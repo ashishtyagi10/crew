@@ -1,0 +1,58 @@
+[general]
+confirm_delete = true
+confirm_overwrite = true
+show_hidden_files = false
+use_trash = true
+editor = "internal"
+viewer = "internal"
+
+[ui]
+theme = "far-classic"
+tick_rate_ms = 250
+show_fn_bar = true
+date_format = "%Y-%m-%d %H:%M"
+
+[panels]
+directories_first = true
+default_sort = "name"
+
+# AI Assistant Configuration
+# Default: OpenRouter with a free model (no cost)
+# Get your free API key at: https://openrouter.ai/keys
+[ai]
+enabled = false
+provider = "openrouter"
+base_url = "https://openrouter.ai/api/v1"
+model = "google/gemma-3-4b-it:free"
+max_tokens = 4096
+api_key_env = "OPENROUTER_API_KEY"
+
+# ── Alternative provider examples ──
+#
+# OpenRouter with a paid model:
+# [ai]
+# provider = "openrouter"
+# base_url = "https://openrouter.ai/api/v1"
+# model = "anthropic/claude-sonnet-4-20250514"
+# api_key_env = "OPENROUTER_API_KEY"
+#
+# Anthropic direct:
+# [ai]
+# provider = "anthropic"
+# base_url = "https://api.anthropic.com/v1"
+# model = "claude-sonnet-4-20250514"
+# api_key_env = "ANTHROPIC_API_KEY"
+#
+# Local Ollama:
+# [ai]
+# provider = "openai-compatible"
+# base_url = "http://localhost:11434/v1"
+# model = "llama3.2"
+# api_key_env = "OLLAMA_API_KEY"  # set to any value, e.g. "ollama"
+#
+# OpenAI:
+# [ai]
+# provider = "openai-compatible"
+# base_url = "https://api.openai.com/v1"
+# model = "gpt-4o-mini"
+# api_key_env = "OPENAI_API_KEY"

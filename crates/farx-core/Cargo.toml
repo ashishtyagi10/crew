@@ -1,0 +1,14 @@
+[package]
+name = "farx-core"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+crossterm = { workspace = true }
+serde = { workspace = true }
+toml = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+chrono = { workspace = true }
+dirs = { workspace = true }
+tracing = { workspace = true }

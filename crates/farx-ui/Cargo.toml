@@ -1,0 +1,20 @@
+[package]
+name = "farx-ui"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+farx-core = { workspace = true }
+farx-fs = { workspace = true }
+farx-ai = { workspace = true }
+ratatui = { workspace = true }
+crossterm = { workspace = true }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+unicode-width = { workspace = true }
+chrono = { workspace = true }
+open = { workspace = true }
+dirs = { workspace = true }
+futures = { workspace = true }
+libc = "0.2"

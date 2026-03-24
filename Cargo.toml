@@ -1,0 +1,61 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/farx-app",
+    "crates/farx-core",
+    "crates/farx-fs",
+    "crates/farx-ui",
+    "crates/farx-plugin",
+    "crates/farx-ai",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["farx contributors"]
+license = "MIT OR Apache-2.0"
+
+[workspace.dependencies]
+# TUI
+ratatui = "0.29"
+crossterm = { version = "0.28", features = ["event-stream"] }
+
+# Async
+tokio = { version = "1", features = ["full"] }
+tokio-stream = "0.1"
+futures = "0.3"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+
+# HTTP / AI
+reqwest = { version = "0.12", features = ["json", "stream", "rustls-tls"], default-features = false }
+
+# Filesystem
+walkdir = "2"
+dirs = "5"
+
+# Error Handling
+thiserror = "2"
+anyhow = "1"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# CLI
+clap = { version = "4", features = ["derive"] }
+
+# Utilities
+chrono = { version = "0.4", features = ["serde"] }
+unicode-width = "0.2"
+open = "5"
+
+# Internal crates
+farx-core = { path = "crates/farx-core" }
+farx-fs = { path = "crates/farx-fs" }
+farx-ui = { path = "crates/farx-ui" }
+farx-plugin = { path = "crates/farx-plugin" }
+farx-ai = { path = "crates/farx-ai" }

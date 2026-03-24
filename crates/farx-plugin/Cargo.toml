@@ -1,0 +1,9 @@
+[package]
+name = "farx-plugin"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+farx-core = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }

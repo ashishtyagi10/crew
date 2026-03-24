@@ -1,0 +1,13 @@
+[package]
+name = "farx-fs"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+farx-core = { workspace = true }
+tokio = { workspace = true }
+walkdir = { workspace = true }
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+chrono = { workspace = true }
+tracing = { workspace = true }
