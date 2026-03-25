@@ -1,8 +1,8 @@
-use std::path::{Path, PathBuf};
+use crate::theme::Theme;
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Clear, Paragraph};
-use crate::theme::Theme;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum SearchAction {
@@ -166,7 +166,8 @@ impl SearchState {
                         self.pattern_cursor = (self.pattern_cursor + 1).min(self.pattern.len());
                     }
                     SearchField::Content => {
-                        self.content_cursor = (self.content_cursor + 1).min(self.content_query.len());
+                        self.content_cursor =
+                            (self.content_cursor + 1).min(self.content_query.len());
                     }
                 }
                 SearchAction::None
@@ -186,7 +187,13 @@ impl SearchState {
         let search_dir = self.search_dir.clone();
 
         // Synchronous search (could be made async later)
-        search_recursive(&search_dir, &pattern, &content_query, &mut self.results, 5000);
+        search_recursive(
+            &search_dir,
+            &pattern,
+            &content_query,
+            &mut self.results,
+            5000,
+        );
 
         self.searching = false;
     }
@@ -270,7 +277,9 @@ fn search_recursive(
             // If content query is set and it's a file, check content
             let content_match = if !content_query.is_empty() && !is_dir {
                 match std::fs::read_to_string(&path) {
-                    Ok(content) => content.to_lowercase().contains(&content_query.to_lowercase()),
+                    Ok(content) => content
+                        .to_lowercase()
+                        .contains(&content_query.to_lowercase()),
                     Err(_) => false,
                 }
             } else {
@@ -319,7 +328,10 @@ pub fn render_search(frame: &mut Frame, state: &SearchState, _theme: &Theme) {
 
     // Search dir
     let dir_line = Line::from(vec![
-        Span::styled(" Search in: ", Style::default().fg(Color::Cyan).bg(Color::Indexed(236))),
+        Span::styled(
+            " Search in: ",
+            Style::default().fg(Color::Cyan).bg(Color::Indexed(236)),
+        ),
         Span::styled(
             state.search_dir.display().to_string(),
             Style::default().fg(Color::White).bg(Color::Indexed(236)),
@@ -334,11 +346,17 @@ pub fn render_search(frame: &mut Frame, state: &SearchState, _theme: &Theme) {
     // Pattern field
     let pattern_active = state.field == SearchField::Pattern && state.results.is_empty();
     let pattern_label_style = Style::default()
-        .fg(if pattern_active { Color::Yellow } else { Color::Cyan })
+        .fg(if pattern_active {
+            Color::Yellow
+        } else {
+            Color::Cyan
+        })
         .bg(Color::Indexed(236));
-    let pattern_input_style = Style::default()
-        .fg(Color::White)
-        .bg(if pattern_active { Color::Indexed(238) } else { Color::Indexed(237) });
+    let pattern_input_style = Style::default().fg(Color::White).bg(if pattern_active {
+        Color::Indexed(238)
+    } else {
+        Color::Indexed(237)
+    });
 
     frame.render_widget(
         Paragraph::new(Line::from(Span::styled(" File mask:", pattern_label_style))),
@@ -346,38 +364,67 @@ pub fn render_search(frame: &mut Frame, state: &SearchState, _theme: &Theme) {
     );
     y_offset += 1;
 
-    let pattern_display = format!(" {:<width$}", state.pattern, width = (inner.width as usize).saturating_sub(2));
+    let pattern_display = format!(
+        " {:<width$}",
+        state.pattern,
+        width = (inner.width as usize).saturating_sub(2)
+    );
     frame.render_widget(
-        Paragraph::new(Line::from(Span::styled(pattern_display, pattern_input_style))),
+        Paragraph::new(Line::from(Span::styled(
+            pattern_display,
+            pattern_input_style,
+        ))),
         Rect::new(inner.x, inner.y + y_offset, inner.width, 1),
     );
     if pattern_active {
-        frame.set_cursor_position((inner.x + 1 + state.pattern_cursor as u16, inner.y + y_offset));
+        frame.set_cursor_position((
+            inner.x + 1 + state.pattern_cursor as u16,
+            inner.y + y_offset,
+        ));
     }
     y_offset += 2;
 
     // Content field
     let content_active = state.field == SearchField::Content && state.results.is_empty();
     let content_label_style = Style::default()
-        .fg(if content_active { Color::Yellow } else { Color::Cyan })
+        .fg(if content_active {
+            Color::Yellow
+        } else {
+            Color::Cyan
+        })
         .bg(Color::Indexed(236));
-    let content_input_style = Style::default()
-        .fg(Color::White)
-        .bg(if content_active { Color::Indexed(238) } else { Color::Indexed(237) });
+    let content_input_style = Style::default().fg(Color::White).bg(if content_active {
+        Color::Indexed(238)
+    } else {
+        Color::Indexed(237)
+    });
 
     frame.render_widget(
-        Paragraph::new(Line::from(Span::styled(" Containing text (optional):", content_label_style))),
+        Paragraph::new(Line::from(Span::styled(
+            " Containing text (optional):",
+            content_label_style,
+        ))),
         Rect::new(inner.x, inner.y + y_offset, inner.width, 1),
     );
     y_offset += 1;
 
-    let content_display = format!(" {:<width$}", state.content_query, width = (inner.width as usize).saturating_sub(2));
+    let content_display = format!(
+        " {:<width$}",
+        state.content_query,
+        width = (inner.width as usize).saturating_sub(2)
+    );
     frame.render_widget(
-        Paragraph::new(Line::from(Span::styled(content_display, content_input_style))),
+        Paragraph::new(Line::from(Span::styled(
+            content_display,
+            content_input_style,
+        ))),
         Rect::new(inner.x, inner.y + y_offset, inner.width, 1),
     );
     if content_active {
-        frame.set_cursor_position((inner.x + 1 + state.content_cursor as u16, inner.y + y_offset));
+        frame.set_cursor_position((
+            inner.x + 1 + state.content_cursor as u16,
+            inner.y + y_offset,
+        ));
     }
     y_offset += 2;
 
@@ -386,7 +433,10 @@ pub fn render_search(frame: &mut Frame, state: &SearchState, _theme: &Theme) {
 
     if state.searching {
         frame.render_widget(
-            Paragraph::new(Span::styled(" Searching...", Style::default().fg(Color::Yellow).bg(Color::Indexed(236)))),
+            Paragraph::new(Span::styled(
+                " Searching...",
+                Style::default().fg(Color::Yellow).bg(Color::Indexed(236)),
+            )),
             Rect::new(inner.x, inner.y + y_offset, inner.width, 1),
         );
     } else if !state.results.is_empty() {
@@ -438,7 +488,10 @@ pub fn render_search(frame: &mut Frame, state: &SearchState, _theme: &Theme) {
         " Enter=Go to  Up/Down=Navigate  Tab=New search  Esc=Close"
     };
     frame.render_widget(
-        Paragraph::new(Span::styled(hint, Style::default().fg(Color::DarkGray).bg(Color::Indexed(236)))),
+        Paragraph::new(Span::styled(
+            hint,
+            Style::default().fg(Color::DarkGray).bg(Color::Indexed(236)),
+        )),
         Rect::new(inner.x, hint_y, inner.width, 1),
     );
 }

@@ -95,16 +95,28 @@ pub fn render_info_panel(frame: &mut Frame, area: Rect, data: &InfoPanelData, _t
         .borders(Borders::ALL)
         .title(" Info ")
         .title_alignment(Alignment::Center)
-        .border_style(Style::default().fg(Color::Rgb(200, 200, 210)).bg(Color::Rgb(22, 22, 26)))
-        .style(Style::default().bg(Color::Rgb(22, 22, 26)).fg(Color::Rgb(200, 200, 210)));
+        .border_style(
+            Style::default()
+                .fg(Color::Rgb(200, 200, 210))
+                .bg(Color::Rgb(22, 22, 26)),
+        )
+        .style(
+            Style::default()
+                .bg(Color::Rgb(22, 22, 26))
+                .fg(Color::Rgb(200, 200, 210)),
+        );
 
     let inner = block.inner(area);
     frame.render_widget(block, area);
 
     let mut lines = Vec::new();
-    let label_style = Style::default().fg(Color::Yellow).bg(Color::Rgb(22, 22, 26));
+    let label_style = Style::default()
+        .fg(Color::Yellow)
+        .bg(Color::Rgb(22, 22, 26));
     let value_style = Style::default().fg(Color::White).bg(Color::Rgb(22, 22, 26));
-    let dim_style = Style::default().fg(Color::Rgb(200, 200, 210)).bg(Color::Rgb(22, 22, 26));
+    let dim_style = Style::default()
+        .fg(Color::Rgb(200, 200, 210))
+        .bg(Color::Rgb(22, 22, 26));
 
     lines.push(Line::from(""));
     lines.push(Line::from(Span::styled(
@@ -174,10 +186,7 @@ pub fn render_info_panel(frame: &mut Frame, area: Rect, data: &InfoPanelData, _t
     }
 
     lines.push(Line::from(""));
-    lines.push(Line::from(Span::styled(
-        "  Ctrl+L to close",
-        dim_style,
-    )));
+    lines.push(Line::from(Span::styled("  Ctrl+L to close", dim_style)));
 
     frame.render_widget(Paragraph::new(lines), inner);
 }

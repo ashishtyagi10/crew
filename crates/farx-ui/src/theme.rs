@@ -72,9 +72,7 @@ impl Theme {
                 .add_modifier(Modifier::BOLD),
             grid_separator: "│",
             grid_style: Style::default().fg(Color::Indexed(24)).bg(panel_bg),
-            panel_cursor: Style::default()
-                .fg(Color::Black)
-                .bg(Color::Indexed(30)),
+            panel_cursor: Style::default().fg(Color::Black).bg(Color::Indexed(30)),
             panel_selected: Style::default()
                 .fg(Color::Yellow)
                 .bg(Color::Indexed(24))
@@ -106,18 +104,18 @@ impl Theme {
 
     /// Modern dark theme — true black, warm amber/emerald accents, zero blue.
     pub fn tokyo_night() -> Self {
-        let bg = Color::Rgb(16, 16, 18);         // near-black
-        let bg_alt = Color::Rgb(22, 22, 25);     // subtle stripe
-        let fg = Color::Rgb(190, 186, 178);       // warm gray text
-        let accent = Color::Rgb(220, 170, 60);    // warm amber/gold
-        let green = Color::Rgb(120, 190, 90);     // muted green
-        let magenta = Color::Rgb(190, 120, 170);  // dusty pink
-        let orange = Color::Rgb(230, 140, 70);    // warm orange
-        let teal = Color::Rgb(90, 180, 160);      // muted teal (not blue)
-        let yellow = Color::Rgb(230, 200, 100);   // soft yellow
-        let dim = Color::Rgb(70, 68, 64);         // muted comments
-        let surface = Color::Rgb(26, 26, 30);     // surface for headers
-        let cursor_bg = Color::Rgb(55, 50, 35);   // warm dark highlight
+        let bg = Color::Rgb(16, 16, 18); // near-black
+        let bg_alt = Color::Rgb(22, 22, 25); // subtle stripe
+        let fg = Color::Rgb(190, 186, 178); // warm gray text
+        let accent = Color::Rgb(220, 170, 60); // warm amber/gold
+        let green = Color::Rgb(120, 190, 90); // muted green
+        let magenta = Color::Rgb(190, 120, 170); // dusty pink
+        let orange = Color::Rgb(230, 140, 70); // warm orange
+        let teal = Color::Rgb(90, 180, 160); // muted teal (not blue)
+        let yellow = Color::Rgb(230, 200, 100); // soft yellow
+        let dim = Color::Rgb(70, 68, 64); // muted comments
+        let surface = Color::Rgb(26, 26, 30); // surface for headers
+        let cursor_bg = Color::Rgb(55, 50, 35); // warm dark highlight
 
         Self {
             name: "tokyo-night",
@@ -131,9 +129,7 @@ impl Theme {
                 .add_modifier(Modifier::BOLD),
             grid_separator: "│",
             grid_style: Style::default().fg(Color::Rgb(40, 40, 42)).bg(bg),
-            panel_cursor: Style::default()
-                .fg(Color::Rgb(240, 235, 220))
-                .bg(cursor_bg),
+            panel_cursor: Style::default().fg(Color::Rgb(240, 235, 220)).bg(cursor_bg),
             panel_selected: Style::default()
                 .fg(accent)
                 .bg(Color::Rgb(40, 38, 30))
@@ -158,9 +154,7 @@ impl Theme {
             panel_border_active: Style::default().fg(accent).bg(bg),
             fn_bar_bg: surface,
             fn_bar_fg: fg,
-            fn_bar_key: Style::default()
-                .fg(Color::Rgb(16, 16, 18))
-                .bg(accent),
+            fn_bar_key: Style::default().fg(Color::Rgb(16, 16, 18)).bg(accent),
             fn_bar_label: Style::default().fg(fg).bg(surface),
             cmd_line: Style::default().fg(dim).bg(bg),
             info_text: Style::default().fg(fg).bg(bg),
@@ -361,6 +355,12 @@ impl Theme {
 
     /// List available theme names.
     pub fn available() -> &'static [&'static str] {
-        &["far-classic", "tokyo-night", "catppuccin", "dracula", "gruvbox"]
+        &[
+            "far-classic",
+            "tokyo-night",
+            "catppuccin",
+            "dracula",
+            "gruvbox",
+        ]
     }
 }

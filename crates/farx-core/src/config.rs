@@ -97,7 +97,6 @@ impl Default for AiConfig {
     }
 }
 
-
 impl AppConfig {
     /// Load configuration from `$CONFIG_DIR/farx/config.toml`.
     /// Falls back to defaults if the file does not exist or cannot be parsed.
@@ -125,12 +124,20 @@ impl AppConfig {
                 }
                 Err(e) => {
                     eprintln!("[farx] Config parse error: {}", e);
-                    warn!("Failed to parse config at {}: {}; using defaults", path.display(), e);
+                    warn!(
+                        "Failed to parse config at {}: {}; using defaults",
+                        path.display(),
+                        e
+                    );
                     Self::default()
                 }
             },
             Err(e) => {
-                warn!("Failed to read config at {}: {}; using defaults", path.display(), e);
+                warn!(
+                    "Failed to read config at {}: {}; using defaults",
+                    path.display(),
+                    e
+                );
                 Self::default()
             }
         }

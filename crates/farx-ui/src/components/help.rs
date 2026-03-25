@@ -59,8 +59,16 @@ pub fn render_help(frame: &mut Frame, state: &HelpState, _theme: &Theme) {
         .borders(Borders::ALL)
         .title(" Farx Help - FAR Manager Keybindings ")
         .title_alignment(Alignment::Center)
-        .border_style(Style::default().fg(Color::Yellow).bg(Color::Rgb(22, 22, 26)))
-        .style(Style::default().bg(Color::Rgb(22, 22, 26)).fg(Color::Rgb(200, 200, 210)));
+        .border_style(
+            Style::default()
+                .fg(Color::Yellow)
+                .bg(Color::Rgb(22, 22, 26)),
+        )
+        .style(
+            Style::default()
+                .bg(Color::Rgb(22, 22, 26))
+                .fg(Color::Rgb(200, 200, 210)),
+        );
 
     let inner = block.inner(area);
     frame.render_widget(block, area);

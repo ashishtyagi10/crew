@@ -103,10 +103,7 @@ pub fn render_markdown(text: &str) -> Vec<Line<'static>> {
         // Bullet lists
         if trimmed.starts_with("- ") || trimmed.starts_with("* ") || trimmed.starts_with("+ ") {
             let content = &trimmed[2..];
-            let mut spans = vec![Span::styled(
-                " • ",
-                Style::default().fg(Color::Cyan).bg(BG),
-            )];
+            let mut spans = vec![Span::styled(" • ", Style::default().fg(Color::Cyan).bg(BG))];
             spans.extend(parse_inline(content));
             lines.push(Line::from(spans));
             continue;
@@ -115,10 +112,7 @@ pub fn render_markdown(text: &str) -> Vec<Line<'static>> {
         // Numbered lists
         if let Some(rest) = strip_numbered_prefix(trimmed) {
             let mut spans = vec![Span::styled(
-                format!(
-                    " {}",
-                    &trimmed[..trimmed.len() - rest.len()]
-                ),
+                format!(" {}", &trimmed[..trimmed.len() - rest.len()]),
                 Style::default().fg(Color::Cyan).bg(BG),
             )];
             spans.extend(parse_inline(rest));
@@ -203,9 +197,7 @@ fn parse_inline(text: &str) -> Vec<Span<'static>> {
             if let Some(end) = remaining.find('`') {
                 spans.push(Span::styled(
                     remaining[..end].to_string(),
-                    Style::default()
-                        .fg(Color::Green)
-                        .bg(Color::Indexed(236)),
+                    Style::default().fg(Color::Green).bg(Color::Indexed(236)),
                 ));
                 remaining = &remaining[end + 1..];
                 continue;

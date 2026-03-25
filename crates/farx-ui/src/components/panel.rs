@@ -122,10 +122,20 @@ pub fn render_panel(
         let row_index = idx - panel.scroll_offset;
 
         // Zebra stripe background
-        let row_bg = if row_index % 2 == 1 { theme.panel_bg_alt } else { theme.panel_bg };
+        let row_bg = if row_index % 2 == 1 {
+            theme.panel_bg_alt
+        } else {
+            theme.panel_bg
+        };
 
         // File type / selection icon
-        let marker_icon = if is_selected { "◆" } else if entry.is_dir { "▸" } else { " " };
+        let marker_icon = if is_selected {
+            "◆"
+        } else if entry.is_dir {
+            "▸"
+        } else {
+            " "
+        };
 
         // Entry name
         let name_display = truncate_or_pad(
@@ -161,23 +171,31 @@ pub fn render_panel(
         } else if is_selected {
             theme.panel_selected
         } else if entry.is_hidden && entry.name != ".." {
-            Style::default().fg(theme.panel_hidden.fg.unwrap_or(theme.panel_fg)).bg(row_bg)
+            Style::default()
+                .fg(theme.panel_hidden.fg.unwrap_or(theme.panel_fg))
+                .bg(row_bg)
         } else if entry.is_dir {
             Style::default()
                 .fg(theme.panel_dir.fg.unwrap_or(theme.panel_fg))
                 .bg(row_bg)
                 .add_modifier(Modifier::BOLD)
         } else if is_image(entry) {
-            Style::default().fg(theme.panel_image.fg.unwrap_or(theme.panel_fg)).bg(row_bg)
+            Style::default()
+                .fg(theme.panel_image.fg.unwrap_or(theme.panel_fg))
+                .bg(row_bg)
         } else if entry.is_symlink {
             Style::default()
                 .fg(theme.panel_symlink.fg.unwrap_or(theme.panel_fg))
                 .bg(row_bg)
                 .add_modifier(Modifier::ITALIC)
         } else if is_executable(entry) {
-            Style::default().fg(theme.panel_exe.fg.unwrap_or(theme.panel_fg)).bg(row_bg)
+            Style::default()
+                .fg(theme.panel_exe.fg.unwrap_or(theme.panel_fg))
+                .bg(row_bg)
         } else if is_archive(entry) {
-            Style::default().fg(theme.panel_archive.fg.unwrap_or(theme.panel_fg)).bg(row_bg)
+            Style::default()
+                .fg(theme.panel_archive.fg.unwrap_or(theme.panel_fg))
+                .bg(row_bg)
         } else {
             Style::default().fg(theme.panel_fg).bg(row_bg)
         };
@@ -206,7 +224,11 @@ pub fn render_panel(
 
     // Fill remaining empty rows with zebra
     for i in lines.len()..list_height {
-        let bg = if i % 2 == 1 { theme.panel_bg_alt } else { theme.panel_bg };
+        let bg = if i % 2 == 1 {
+            theme.panel_bg_alt
+        } else {
+            theme.panel_bg
+        };
         lines.push(Line::from(Span::styled(
             " ".repeat(total_width),
             Style::default().bg(bg),
@@ -247,7 +269,10 @@ pub fn render_panel(
         footer_text
     };
 
-    frame.render_widget(Paragraph::new(Line::from(Span::styled(footer_text, theme.footer))), footer_area);
+    frame.render_widget(
+        Paragraph::new(Line::from(Span::styled(footer_text, theme.footer))),
+        footer_area,
+    );
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────
@@ -269,9 +294,26 @@ fn is_archive(entry: &farx_core::FileEntry) -> bool {
     matches!(
         entry.extension.as_deref(),
         Some(
-            "zip" | "tar" | "gz" | "bz2" | "xz" | "7z" | "rar" | "zst"
-                | "tgz" | "tbz2" | "txz" | "lz" | "lzma" | "cab" | "iso"
-                | "dmg" | "jar" | "war" | "deb" | "rpm"
+            "zip"
+                | "tar"
+                | "gz"
+                | "bz2"
+                | "xz"
+                | "7z"
+                | "rar"
+                | "zst"
+                | "tgz"
+                | "tbz2"
+                | "txz"
+                | "lz"
+                | "lzma"
+                | "cab"
+                | "iso"
+                | "dmg"
+                | "jar"
+                | "war"
+                | "deb"
+                | "rpm"
         )
     )
 }

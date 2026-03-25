@@ -9,6 +9,7 @@ use farx_core::{Action, AppConfig, KeyMap, PanelSide, PanelState, TreeState};
 use farx_core::SortField;
 
 use crate::components::ai_bar::{render_ai_bar, AiBarAction, AiBarState};
+use crate::components::command_line::CommandLineState;
 use crate::components::dialog::{render_dialog, DialogResult, DialogState};
 use crate::components::editor::{render_editor, EditorAction, EditorState};
 use crate::components::feedback::{render_feedback, ConfirmAction, FeedbackResult, FeedbackState};
@@ -19,7 +20,6 @@ use crate::components::search::{render_search, SearchAction, SearchState};
 use crate::components::tree_panel::render_tree_panel;
 use crate::components::viewer::{render_viewer, ViewerAction, ViewerState};
 use crate::components::{command_line, fn_bar};
-use crate::components::command_line::CommandLineState;
 use crate::theme::Theme;
 
 /// Pending operation for input dialogs (MkDir, Rename, CreateFile).
@@ -229,7 +229,8 @@ impl App {
             }
             Vec::new()
         } else {
-            tree.selected.iter()
+            tree.selected
+                .iter()
                 .filter_map(|&i| tree.visible_nodes.get(i))
                 .map(|n| n.entry.path.clone())
                 .collect()
@@ -245,7 +246,8 @@ impl App {
             }
             Vec::new()
         } else {
-            tree.selected.iter()
+            tree.selected
+                .iter()
                 .filter_map(|&i| tree.visible_nodes.get(i))
                 .map(|n| n.entry.name.clone())
                 .collect()
@@ -271,7 +273,9 @@ impl App {
         // Viewer is full-screen
         if let Some(ref mut viewer) = self.viewer {
             match viewer.handle_key_event(key) {
-                ViewerAction::Close => { self.viewer = None; }
+                ViewerAction::Close => {
+                    self.viewer = None;
+                }
                 ViewerAction::None => {}
             }
             return Action::Noop;
@@ -331,7 +335,9 @@ impl App {
         // AI bar
         if let Some(ref mut ai_bar) = self.ai_bar {
             match ai_bar.handle_key_event(key) {
-                AiBarAction::Close => { self.ai_bar = None; }
+                AiBarAction::Close => {
+                    self.ai_bar = None;
+                }
                 AiBarAction::Submit(query) => {
                     self.submit_ai_query(query);
                 }
@@ -430,8 +436,10 @@ impl App {
     /// Submit an AI query in the background.
     fn submit_ai_query(&mut self, query: String) {
         let current_dir = self.active_panel_ref().current_dir.clone();
-        let entries: Vec<(String, bool, u64)> = self.active_panel_ref()
-            .entries.iter()
+        let entries: Vec<(String, bool, u64)> = self
+            .active_panel_ref()
+            .entries
+            .iter()
             .map(|e| (e.name.clone(), e.is_dir, e.size))
             .collect();
         let files_context = farx_ai::AiAgent::build_files_context(&entries);
@@ -459,9 +467,9 @@ impl App {
 
     /// Called when the background update check finds a newer version.
     pub fn set_update_available(&mut self, version: String) {
-        self.feedback.info(
-            format!("Update available: v{version} — run `farx --update` to install"),
-        );
+        self.feedback.info(format!(
+            "Update available: v{version} — run `farx --update` to install"
+        ));
         self.update_available = Some(version);
     }
 
@@ -494,8 +502,10 @@ impl App {
         self.suggestion_request_input = input.clone();
 
         let dir = self.active_tree_ref().root.clone();
-        let entries: Vec<(String, bool, u64)> = self.active_tree_ref()
-            .visible_nodes.iter()
+        let entries: Vec<(String, bool, u64)> = self
+            .active_tree_ref()
+            .visible_nodes
+            .iter()
             .take(20) // only send a few for speed
             .map(|n| (n.entry.name.clone(), n.entry.is_dir, n.entry.size))
             .collect();
@@ -642,33 +652,135 @@ impl App {
         let first_word = trimmed.split_whitespace().next().unwrap_or("");
 
         // Absolute or relative path
-        if first_word.starts_with('/') || first_word.starts_with("./") || first_word.starts_with("~/") {
+        if first_word.starts_with('/')
+            || first_word.starts_with("./")
+            || first_word.starts_with("~/")
+        {
             return true;
         }
 
         // Contains shell operators
-        if trimmed.contains('|') || trimmed.contains('>') || trimmed.contains('<')
-            || trimmed.contains("&&") || trimmed.contains("||") || trimmed.contains(';')
+        if trimmed.contains('|')
+            || trimmed.contains('>')
+            || trimmed.contains('<')
+            || trimmed.contains("&&")
+            || trimmed.contains("||")
+            || trimmed.contains(';')
         {
             return true;
         }
 
         // Starts with common command names
         const SHELL_COMMANDS: &[&str] = &[
-            "ls", "cd", "cp", "mv", "rm", "mkdir", "rmdir", "cat", "head", "tail",
-            "grep", "find", "sed", "awk", "sort", "uniq", "wc", "echo", "printf",
-            "touch", "chmod", "chown", "chgrp", "ln", "pwd", "env", "export",
-            "which", "whereis", "whoami", "date", "cal", "df", "du", "free",
-            "top", "ps", "kill", "tar", "zip", "unzip", "gzip", "gunzip",
-            "curl", "wget", "ssh", "scp", "rsync", "git", "docker", "make",
-            "npm", "yarn", "pnpm", "cargo", "rustc", "python", "python3", "pip",
-            "node", "ruby", "go", "java", "javac", "gcc", "g++", "clang",
-            "brew", "apt", "yum", "dnf", "pacman", "snap", "flatpak",
-            "systemctl", "journalctl", "sudo", "su", "man", "less", "more",
-            "vi", "vim", "nano", "emacs", "code", "open", "xdg-open",
-            "clear", "reset", "history", "alias", "unalias", "set", "unset",
-            "test", "true", "false", "yes", "no", "tee", "xargs", "diff",
-            "patch", "file", "stat", "md5", "sha256sum", "base64",
+            "ls",
+            "cd",
+            "cp",
+            "mv",
+            "rm",
+            "mkdir",
+            "rmdir",
+            "cat",
+            "head",
+            "tail",
+            "grep",
+            "find",
+            "sed",
+            "awk",
+            "sort",
+            "uniq",
+            "wc",
+            "echo",
+            "printf",
+            "touch",
+            "chmod",
+            "chown",
+            "chgrp",
+            "ln",
+            "pwd",
+            "env",
+            "export",
+            "which",
+            "whereis",
+            "whoami",
+            "date",
+            "cal",
+            "df",
+            "du",
+            "free",
+            "top",
+            "ps",
+            "kill",
+            "tar",
+            "zip",
+            "unzip",
+            "gzip",
+            "gunzip",
+            "curl",
+            "wget",
+            "ssh",
+            "scp",
+            "rsync",
+            "git",
+            "docker",
+            "make",
+            "npm",
+            "yarn",
+            "pnpm",
+            "cargo",
+            "rustc",
+            "python",
+            "python3",
+            "pip",
+            "node",
+            "ruby",
+            "go",
+            "java",
+            "javac",
+            "gcc",
+            "g++",
+            "clang",
+            "brew",
+            "apt",
+            "yum",
+            "dnf",
+            "pacman",
+            "snap",
+            "flatpak",
+            "systemctl",
+            "journalctl",
+            "sudo",
+            "su",
+            "man",
+            "less",
+            "more",
+            "vi",
+            "vim",
+            "nano",
+            "emacs",
+            "code",
+            "open",
+            "xdg-open",
+            "clear",
+            "reset",
+            "history",
+            "alias",
+            "unalias",
+            "set",
+            "unset",
+            "test",
+            "true",
+            "false",
+            "yes",
+            "no",
+            "tee",
+            "xargs",
+            "diff",
+            "patch",
+            "file",
+            "stat",
+            "md5",
+            "sha256sum",
+            "base64",
         ];
 
         if SHELL_COMMANDS.contains(&first_word) {
@@ -681,9 +793,12 @@ impl App {
         }
 
         // If first word contains a dot and looks like a script (./foo.sh, script.py)
-        if first_word.contains('.') && (first_word.ends_with(".sh") || first_word.ends_with(".py")
-            || first_word.ends_with(".rb") || first_word.ends_with(".js")
-            || first_word.ends_with(".pl"))
+        if first_word.contains('.')
+            && (first_word.ends_with(".sh")
+                || first_word.ends_with(".py")
+                || first_word.ends_with(".rb")
+                || first_word.ends_with(".js")
+                || first_word.ends_with(".pl"))
         {
             return true;
         }
@@ -792,7 +907,8 @@ impl App {
                 if fail == 0 {
                     self.feedback.success(format!("Copied {} file(s)", ok));
                 } else {
-                    self.feedback.warning(format!("Copied {}, failed {}", ok, fail));
+                    self.feedback
+                        .warning(format!("Copied {}, failed {}", ok, fail));
                 }
             }
             ConfirmAction::Move { sources, dest } => {
@@ -807,7 +923,8 @@ impl App {
                 if fail == 0 {
                     self.feedback.success(format!("Moved {} file(s)", ok));
                 } else {
-                    self.feedback.warning(format!("Moved {}, failed {}", ok, fail));
+                    self.feedback
+                        .warning(format!("Moved {}, failed {}", ok, fail));
                 }
             }
             ConfirmAction::Delete { targets } => {
@@ -822,7 +939,8 @@ impl App {
                 if fail == 0 {
                     self.feedback.success(format!("Deleted {} file(s)", ok));
                 } else {
-                    self.feedback.warning(format!("Deleted {}, failed {}", ok, fail));
+                    self.feedback
+                        .warning(format!("Deleted {}, failed {}", ok, fail));
                 }
             }
         }
@@ -835,11 +953,26 @@ impl App {
     pub fn dispatch(&mut self, action: Action) {
         // Both panels use tree view — route navigation through the active tree
         match &action {
-            Action::CursorUp => { self.active_tree().move_cursor(-1); return; }
-            Action::CursorDown => { self.active_tree().move_cursor(1); return; }
-            Action::CursorPageUp => { self.active_tree().move_cursor(-20); return; }
-            Action::CursorPageDown => { self.active_tree().move_cursor(20); return; }
-            Action::CursorHome => { self.active_tree().move_cursor_to(0); return; }
+            Action::CursorUp => {
+                self.active_tree().move_cursor(-1);
+                return;
+            }
+            Action::CursorDown => {
+                self.active_tree().move_cursor(1);
+                return;
+            }
+            Action::CursorPageUp => {
+                self.active_tree().move_cursor(-20);
+                return;
+            }
+            Action::CursorPageDown => {
+                self.active_tree().move_cursor(20);
+                return;
+            }
+            Action::CursorHome => {
+                self.active_tree().move_cursor_to(0);
+                return;
+            }
             Action::CursorEnd => {
                 let last = self.active_tree().visible_nodes.len().saturating_sub(1);
                 self.active_tree().move_cursor_to(last);
@@ -854,13 +987,20 @@ impl App {
                 return;
             }
             Action::EnterDirectory | Action::CommandLineEnterOrDir => {
-                if matches!(action, Action::CommandLineEnterOrDir) && !self.command_line.input.is_empty() {
+                if matches!(action, Action::CommandLineEnterOrDir)
+                    && !self.command_line.input.is_empty()
+                {
                     self.smart_execute_command();
                     return;
                 }
                 // Read what we need from the tree node first
                 let node_info = self.active_tree_ref().current_node().map(|n| {
-                    (n.entry.is_dir, n.expanded, n.entry.path.clone(), n.entry.name.clone())
+                    (
+                        n.entry.is_dir,
+                        n.expanded,
+                        n.entry.path.clone(),
+                        n.entry.name.clone(),
+                    )
                 });
                 if let Some((is_dir, expanded, path, name)) = node_info {
                     if is_dir {
@@ -873,8 +1013,12 @@ impl App {
                         // Smart open: text in editor, binary with system app
                         if is_text_file(&path) {
                             match EditorState::open(&path) {
-                                Ok(es) => { self.editor = Some(es); }
-                                Err(e) => { self.show_error("Edit", &format!("{}", e)); }
+                                Ok(es) => {
+                                    self.editor = Some(es);
+                                }
+                                Err(e) => {
+                                    self.show_error("Edit", &format!("{}", e));
+                                }
                             }
                         } else {
                             match open::that(&path) {
@@ -909,8 +1053,12 @@ impl App {
                     if !node.entry.is_dir {
                         let path = node.entry.path.clone();
                         match ViewerState::open(&path) {
-                            Ok(vs) => { self.viewer = Some(vs); }
-                            Err(e) => { self.show_error("View", &format!("{}", e)); }
+                            Ok(vs) => {
+                                self.viewer = Some(vs);
+                            }
+                            Err(e) => {
+                                self.show_error("View", &format!("{}", e));
+                            }
                         }
                     }
                 }
@@ -921,8 +1069,12 @@ impl App {
                     if !node.entry.is_dir {
                         let path = node.entry.path.clone();
                         match EditorState::open(&path) {
-                            Ok(es) => { self.editor = Some(es); }
-                            Err(e) => { self.show_error("Edit", &format!("{}", e)); }
+                            Ok(es) => {
+                                self.editor = Some(es);
+                            }
+                            Err(e) => {
+                                self.show_error("Edit", &format!("{}", e));
+                            }
                         }
                     }
                 }
@@ -982,38 +1134,35 @@ impl App {
             // ── File operation dialogs ───────────────────────────────────
             Action::CopyDialog => {
                 let sources = self.collect_selected_paths();
-                if sources.is_empty() { return; }
+                if sources.is_empty() {
+                    return;
+                }
                 let names = self.collect_selected_names();
                 let dest = self.inactive_tree_root();
                 let detail = format!("{} → {}", names.join(", "), dest.display());
-                self.feedback.ask_confirm(
-                    "Copy?",
-                    detail,
-                    ConfirmAction::Copy { sources, dest },
-                );
+                self.feedback
+                    .ask_confirm("Copy?", detail, ConfirmAction::Copy { sources, dest });
             }
             Action::MoveDialog => {
                 let sources = self.collect_selected_paths();
-                if sources.is_empty() { return; }
+                if sources.is_empty() {
+                    return;
+                }
                 let names = self.collect_selected_names();
                 let dest = self.inactive_tree_root();
                 let detail = format!("{} → {}", names.join(", "), dest.display());
-                self.feedback.ask_confirm(
-                    "Move?",
-                    detail,
-                    ConfirmAction::Move { sources, dest },
-                );
+                self.feedback
+                    .ask_confirm("Move?", detail, ConfirmAction::Move { sources, dest });
             }
             Action::DeleteDialog => {
                 let targets = self.collect_selected_paths();
-                if targets.is_empty() { return; }
+                if targets.is_empty() {
+                    return;
+                }
                 let names = self.collect_selected_names();
                 let detail = names.join(", ");
-                self.feedback.ask_confirm(
-                    "Delete?",
-                    detail,
-                    ConfirmAction::Delete { targets },
-                );
+                self.feedback
+                    .ask_confirm("Delete?", detail, ConfirmAction::Delete { targets });
             }
             Action::MkDirDialog => {
                 let parent = self.active_panel_ref().current_dir.clone();
@@ -1208,7 +1357,8 @@ impl App {
 /// Determine if a file should be opened in the built-in editor (text)
 /// or with the system default application (binary/media).
 fn is_text_file(path: &Path) -> bool {
-    let ext = path.extension()
+    let ext = path
+        .extension()
         .and_then(|e| e.to_str())
         .map(|e| e.to_lowercase());
 

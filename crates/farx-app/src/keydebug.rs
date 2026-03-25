@@ -1,8 +1,8 @@
-use std::io::Write;
 use crossterm::{
     event::{self, Event, KeyEventKind},
     terminal::{disable_raw_mode, enable_raw_mode},
 };
+use std::io::Write;
 
 pub fn run_key_debug() {
     let mut log = std::fs::File::create("/tmp/farx_keys.log").unwrap();
@@ -36,7 +36,9 @@ pub fn run_key_debug() {
                     print!("{}\r\n", msg);
 
                     if key.code == crossterm::event::KeyCode::Char('q')
-                        && key.modifiers.contains(crossterm::event::KeyModifiers::CONTROL)
+                        && key
+                            .modifiers
+                            .contains(crossterm::event::KeyModifiers::CONTROL)
                     {
                         break;
                     }

@@ -1,8 +1,8 @@
+use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Clear, Paragraph};
-use crossterm::event::{KeyCode, KeyEvent};
 
 use crate::theme::Theme;
 
@@ -23,15 +23,9 @@ pub enum DialogKind {
         details: Vec<String>,
     },
     /// Message/alert dialog
-    Message {
-        title: String,
-        message: String,
-    },
+    Message { title: String, message: String },
     /// Error dialog
-    Error {
-        title: String,
-        message: String,
-    },
+    Error { title: String, message: String },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -323,11 +317,7 @@ pub fn render_dialog(frame: &mut ratatui::Frame, state: &DialogState, _theme: &T
             let block = Block::default()
                 .borders(Borders::ALL)
                 .title(format!(" {} ", title))
-                .border_style(
-                    Style::default()
-                        .fg(border_color)
-                        .bg(Color::Indexed(236)),
-                )
+                .border_style(Style::default().fg(border_color).bg(Color::Indexed(236)))
                 .style(Style::default().bg(Color::Indexed(236)).fg(Color::White));
 
             let inner = block.inner(dialog_area);

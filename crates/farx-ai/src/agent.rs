@@ -232,10 +232,7 @@ impl AiAgent {
 
         let messages_merged = vec![ChatMessage {
             role: "user".to_string(),
-            content: format!(
-                "{}\n\nUser request: {}",
-                system_prompt, user_query
-            ),
+            content: format!("{}\n\nUser request: {}", system_prompt, user_query),
         }];
 
         // Try with system message first
@@ -245,10 +242,7 @@ impl AiAgent {
             messages: messages_with_system,
         };
 
-        let url = format!(
-            "{}/chat/completions",
-            self.base_url.trim_end_matches('/')
-        );
+        let url = format!("{}/chat/completions", self.base_url.trim_end_matches('/'));
         let client = reqwest::Client::new();
         let response = client
             .post(&url)
@@ -351,10 +345,7 @@ impl AiAgent {
             messages,
         };
 
-        let url = format!(
-            "{}/chat/completions",
-            self.base_url.trim_end_matches('/')
-        );
+        let url = format!("{}/chat/completions", self.base_url.trim_end_matches('/'));
         let client = reqwest::Client::new();
         let response = client
             .post(&url)
@@ -404,10 +395,7 @@ impl AiAgent {
             }
         }
         if entries.len() > 50 {
-            ctx.push_str(&format!(
-                "  ... and {} more entries\n",
-                entries.len() - 50
-            ));
+            ctx.push_str(&format!("  ... and {} more entries\n", entries.len() - 50));
         }
         ctx
     }

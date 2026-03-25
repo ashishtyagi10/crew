@@ -1,10 +1,10 @@
+use crate::theme::Theme;
 use farx_core::tree::TreeState;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph};
 use ratatui::Frame;
-use crate::theme::Theme;
 
 pub fn render_tree_panel(
     frame: &mut Frame,
@@ -57,27 +57,29 @@ pub fn render_tree_panel(
         let is_selected = tree.selected.contains(&idx);
         let row_index = idx - tree.scroll_offset;
 
-        let row_bg = if row_index % 2 == 1 { theme.panel_bg_alt } else { theme.panel_bg };
+        let row_bg = if row_index % 2 == 1 {
+            theme.panel_bg_alt
+        } else {
+            theme.panel_bg
+        };
 
         // Tree indent with guide lines
-        let indent: String = (0..node.depth)
-            .map(|_| "  │")
-            .collect::<String>();
+        let indent: String = (0..node.depth).map(|_| "  │").collect::<String>();
         let connector = if node.depth > 0 { "── " } else { " " };
 
         // Icon — using standard Unicode that works in every terminal
         let icon = if node.entry.is_dir {
             if node.expanded {
-                "▼ "   // expanded
+                "▼ " // expanded
             } else if node.has_children {
-                "▶ "   // collapsed with children
+                "▶ " // collapsed with children
             } else {
-                "△ "   // empty dir
+                "△ " // empty dir
             }
         } else if is_selected {
             "◆ "
         } else {
-            "· "  // simple dot for files
+            "· " // simple dot for files
         };
 
         let name = &node.entry.name;
@@ -119,22 +121,16 @@ pub fn render_tree_panel(
                 .fg(theme.grid_style.fg.unwrap_or(theme.panel_fg))
                 .bg(entry_style.bg.unwrap_or(row_bg))
         } else {
-            Style::default()
-                .fg(Color::Rgb(60, 60, 65))
-                .bg(row_bg)
+            Style::default().fg(Color::Rgb(60, 60, 65)).bg(row_bg)
         };
 
         // Icon style — slightly different color than name
         let icon_style = if is_cursor || is_selected {
             entry_style
         } else if node.entry.is_dir {
-            Style::default()
-                .fg(Color::Rgb(180, 150, 60))
-                .bg(row_bg)
+            Style::default().fg(Color::Rgb(180, 150, 60)).bg(row_bg)
         } else {
-            Style::default()
-                .fg(Color::Rgb(80, 80, 85))
-                .bg(row_bg)
+            Style::default().fg(Color::Rgb(80, 80, 85)).bg(row_bg)
         };
 
         // Calculate how much space the name part gets
@@ -156,7 +152,11 @@ pub fn render_tree_panel(
 
     // Fill empty rows
     for i in lines.len()..list_height {
-        let bg = if i % 2 == 1 { theme.panel_bg_alt } else { theme.panel_bg };
+        let bg = if i % 2 == 1 {
+            theme.panel_bg_alt
+        } else {
+            theme.panel_bg
+        };
         lines.push(Line::from(Span::styled(
             " ".repeat(total_width),
             Style::default().bg(bg),

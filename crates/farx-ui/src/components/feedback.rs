@@ -3,12 +3,12 @@
 //! Messages appear in the command bar area and auto-dismiss.
 //! Confirmations are inline Y/N prompts that resolve without blocking.
 
-use std::time::{Duration, Instant};
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::prelude::*;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
+use std::time::{Duration, Instant};
 
 /// A single feedback message
 #[derive(Debug, Clone)]
@@ -44,9 +44,17 @@ pub struct InlineConfirm {
 
 #[derive(Debug, Clone)]
 pub enum ConfirmAction {
-    Copy { sources: Vec<std::path::PathBuf>, dest: std::path::PathBuf },
-    Move { sources: Vec<std::path::PathBuf>, dest: std::path::PathBuf },
-    Delete { targets: Vec<std::path::PathBuf> },
+    Copy {
+        sources: Vec<std::path::PathBuf>,
+        dest: std::path::PathBuf,
+    },
+    Move {
+        sources: Vec<std::path::PathBuf>,
+        dest: std::path::PathBuf,
+    },
+    Delete {
+        targets: Vec<std::path::PathBuf>,
+    },
 }
 
 /// Result of handling a key in the feedback system
@@ -130,7 +138,12 @@ impl FeedbackState {
     }
 
     /// Request an inline confirmation
-    pub fn ask_confirm(&mut self, prompt: impl Into<String>, detail: impl Into<String>, action: ConfirmAction) {
+    pub fn ask_confirm(
+        &mut self,
+        prompt: impl Into<String>,
+        detail: impl Into<String>,
+        action: ConfirmAction,
+    ) {
         self.confirm = Some(InlineConfirm {
             prompt: prompt.into(),
             detail: detail.into(),
@@ -142,7 +155,8 @@ impl FeedbackState {
     /// Tick: remove expired messages, auto-dismiss output after inactivity
     pub fn tick(&mut self) {
         let now = Instant::now();
-        self.messages.retain(|m| now.duration_since(m.created) < m.ttl);
+        self.messages
+            .retain(|m| now.duration_since(m.created) < m.ttl);
 
         // Auto-dismiss output panel after 30 seconds
         if self.output_visible && !self.output_lines.is_empty() {
@@ -189,7 +203,8 @@ impl FeedbackState {
                     return FeedbackResult::Consumed;
                 }
                 KeyCode::PageDown => {
-                    self.output_scroll = (self.output_scroll + 20).min(self.output_lines.len().saturating_sub(1));
+                    self.output_scroll =
+                        (self.output_scroll + 20).min(self.output_lines.len().saturating_sub(1));
                     return FeedbackResult::Consumed;
                 }
                 _ => {
@@ -228,11 +243,7 @@ impl Default for FeedbackState {
 
 /// Render the feedback area. This replaces the command line when feedback is active.
 /// Returns the height consumed (0 if no feedback, or height of output panel).
-pub fn render_feedback(
-    frame: &mut Frame,
-    area: Rect,
-    state: &FeedbackState,
-) -> u16 {
+pub fn render_feedback(frame: &mut Frame, area: Rect, state: &FeedbackState) -> u16 {
     // Scrollable output panel (takes variable height above the command line)
     if state.output_visible && !state.output_lines.is_empty() {
         render_output_panel(frame, area, state);
@@ -276,11 +287,17 @@ fn render_message(frame: &mut Frame, area: Rect, msg: &FeedbackMessage) {
     let line = Line::from(vec![
         Span::styled(
             format!(" {} ", icon),
-            Style::default().fg(fg).bg(Color::Rgb(16, 16, 18)).add_modifier(fade),
+            Style::default()
+                .fg(fg)
+                .bg(Color::Rgb(16, 16, 18))
+                .add_modifier(fade),
         ),
         Span::styled(
             msg.text.clone(),
-            Style::default().fg(fg).bg(Color::Rgb(16, 16, 18)).add_modifier(fade),
+            Style::default()
+                .fg(fg)
+                .bg(Color::Rgb(16, 16, 18))
+                .add_modifier(fade),
         ),
     ]);
 
@@ -294,7 +311,10 @@ fn render_confirm(frame: &mut Frame, area: Rect, confirm: &InlineConfirm) {
     let line = Line::from(vec![
         Span::styled(
             " ⚡ ",
-            Style::default().fg(Color::Rgb(230, 190, 110)).bg(bg).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(Color::Rgb(230, 190, 110))
+                .bg(bg)
+                .add_modifier(Modifier::BOLD),
         ),
         Span::styled(
             confirm.prompt.clone(),
@@ -306,11 +326,17 @@ fn render_confirm(frame: &mut Frame, area: Rect, confirm: &InlineConfirm) {
         ),
         Span::styled(
             " [Y]es ",
-            Style::default().fg(Color::Rgb(120, 190, 90)).bg(bg).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(Color::Rgb(120, 190, 90))
+                .bg(bg)
+                .add_modifier(Modifier::BOLD),
         ),
         Span::styled(
             " [N]o ",
-            Style::default().fg(Color::Rgb(230, 80, 80)).bg(bg).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(Color::Rgb(230, 80, 80))
+                .bg(bg)
+                .add_modifier(Modifier::BOLD),
         ),
     ]);
 
@@ -347,18 +373,12 @@ fn render_output_panel(frame: &mut Frame, area: Rect, state: &FeedbackState) {
             Style::default().fg(Color::Rgb(220, 170, 60)).bg(bg),
         ))
         .title_bottom(Line::from(vec![
-            Span::styled(
-                " Esc",
-                Style::default().fg(Color::Rgb(220, 170, 60)).bg(bg),
-            ),
+            Span::styled(" Esc", Style::default().fg(Color::Rgb(220, 170, 60)).bg(bg)),
             Span::styled(
                 "=close  ",
                 Style::default().fg(Color::Rgb(90, 90, 110)).bg(bg),
             ),
-            Span::styled(
-                "↑↓",
-                Style::default().fg(Color::Rgb(220, 170, 60)).bg(bg),
-            ),
+            Span::styled("↑↓", Style::default().fg(Color::Rgb(220, 170, 60)).bg(bg)),
             Span::styled(
                 "=scroll ",
                 Style::default().fg(Color::Rgb(90, 90, 110)).bg(bg),
@@ -371,13 +391,17 @@ fn render_output_panel(frame: &mut Frame, area: Rect, state: &FeedbackState) {
     frame.render_widget(block, panel_area);
 
     // Render lines
-    let visible: Vec<Line> = state.output_lines.iter()
+    let visible: Vec<Line> = state
+        .output_lines
+        .iter()
         .skip(state.output_scroll)
         .take(inner.height as usize)
-        .map(|l| Line::from(Span::styled(
-            format!(" {}", l),
-            Style::default().fg(Color::Rgb(190, 186, 178)).bg(bg),
-        )))
+        .map(|l| {
+            Line::from(Span::styled(
+                format!(" {}", l),
+                Style::default().fg(Color::Rgb(190, 186, 178)).bg(bg),
+            ))
+        })
         .collect();
 
     frame.render_widget(Paragraph::new(visible), inner);

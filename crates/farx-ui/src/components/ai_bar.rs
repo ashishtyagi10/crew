@@ -1,7 +1,7 @@
+use crate::theme::Theme;
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Clear, Paragraph};
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use crate::theme::Theme;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum AiBarAction {
@@ -180,9 +180,7 @@ pub fn render_ai_bar(frame: &mut Frame, state: &AiBarState, theme: &Theme) {
     let prompt_style = Style::default()
         .fg(Color::Rgb(255, 175, 0))
         .bg(Color::Indexed(234));
-    let input_style = Style::default()
-        .fg(Color::White)
-        .bg(Color::Indexed(236));
+    let input_style = Style::default().fg(Color::White).bg(Color::Indexed(236));
 
     let input_display = format!(
         "{:<width$}",
@@ -341,10 +339,7 @@ fn copy_to_clipboard(text: &str) {
     use std::process::{Command, Stdio};
 
     // macOS
-    if let Ok(mut child) = Command::new("pbcopy")
-        .stdin(Stdio::piped())
-        .spawn()
-    {
+    if let Ok(mut child) = Command::new("pbcopy").stdin(Stdio::piped()).spawn() {
         if let Some(mut stdin) = child.stdin.take() {
             let _ = stdin.write_all(text.as_bytes());
         }
@@ -366,10 +361,7 @@ fn copy_to_clipboard(text: &str) {
     }
 
     // Linux (Wayland)
-    if let Ok(mut child) = Command::new("wl-copy")
-        .stdin(Stdio::piped())
-        .spawn()
-    {
+    if let Ok(mut child) = Command::new("wl-copy").stdin(Stdio::piped()).spawn() {
         if let Some(mut stdin) = child.stdin.take() {
             let _ = stdin.write_all(text.as_bytes());
         }

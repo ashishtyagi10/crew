@@ -309,9 +309,7 @@ pub fn render_menu(frame: &mut Frame, state: &MenuState, _theme: &Theme) {
                 frame.render_widget(
                     Paragraph::new(Span::styled(
                         sep,
-                        Style::default()
-                            .fg(Color::DarkGray)
-                            .bg(Color::Indexed(236)),
+                        Style::default().fg(Color::DarkGray).bg(Color::Indexed(236)),
                     )),
                     item_area,
                 );
@@ -324,9 +322,7 @@ pub fn render_menu(frame: &mut Frame, state: &MenuState, _theme: &Theme) {
                 let hotkey_style = if is_selected {
                     Style::default().fg(Color::Yellow).bg(Color::Indexed(24))
                 } else {
-                    Style::default()
-                        .fg(Color::DarkGray)
-                        .bg(Color::Indexed(236))
+                    Style::default().fg(Color::DarkGray).bg(Color::Indexed(236))
                 };
 
                 let padding = inner.width as usize

@@ -24,10 +24,7 @@ impl KeyMap {
             (KeyCode::F(11), KeyModifiers::NONE),
             Action::ShowPluginCommands,
         );
-        global.insert(
-            (KeyCode::F(12), KeyModifiers::NONE),
-            Action::ShowScreenList,
-        );
+        global.insert((KeyCode::F(12), KeyModifiers::NONE), Action::ShowScreenList);
 
         // ── Panel: function keys ───────────────────────────────────────
         panel.insert((KeyCode::F(3), KeyModifiers::NONE), Action::ViewFile);
@@ -43,10 +40,7 @@ impl KeyMap {
             Action::CreateFileDialog,
         );
         panel.insert((KeyCode::F(5), KeyModifiers::SHIFT), Action::CopySameDir);
-        panel.insert(
-            (KeyCode::F(6), KeyModifiers::SHIFT),
-            Action::RenameDialog,
-        );
+        panel.insert((KeyCode::F(6), KeyModifiers::SHIFT), Action::RenameDialog);
 
         // ── Panel: Alt+F keys ──────────────────────────────────────────
         panel.insert(
@@ -57,10 +51,7 @@ impl KeyMap {
             (KeyCode::F(2), KeyModifiers::ALT),
             Action::ShowDriveMenu(PanelSide::Right),
         );
-        panel.insert(
-            (KeyCode::F(7), KeyModifiers::ALT),
-            Action::ShowSearchDialog,
-        );
+        panel.insert((KeyCode::F(7), KeyModifiers::ALT), Action::ShowSearchDialog);
 
         // ── Panel: navigation ──────────────────────────────────────────
         panel.insert((KeyCode::Up, KeyModifiers::NONE), Action::CursorUp);
@@ -78,33 +69,36 @@ impl KeyMap {
         // Enter is handled specially in resolve_panel: if command line has input,
         // it executes; otherwise it enters the directory. So we don't bind it here.
         panel.insert((KeyCode::Tab, KeyModifiers::NONE), Action::SwitchPanel);
-        panel.insert(
-            (KeyCode::Insert, KeyModifiers::NONE),
-            Action::ToggleSelect,
-        );
+        panel.insert((KeyCode::Insert, KeyModifiers::NONE), Action::ToggleSelect);
 
         // ── Panel: Selection ──────────────────────────────────────────
         // Space = toggle select + move down (works on all terminals including macOS)
         // This is the primary selection method.
         // Insert is kept for keyboards that have it.
         // Shift+Arrow kept for terminals that support it (iTerm2, Kitty, etc.)
-        panel.insert((KeyCode::Char(' '), KeyModifiers::NONE), Action::ToggleSelect);
+        panel.insert(
+            (KeyCode::Char(' '), KeyModifiers::NONE),
+            Action::ToggleSelect,
+        );
 
         // Ctrl+Up/Down = select while moving (macOS friendly)
         panel.insert((KeyCode::Up, KeyModifiers::ALT), Action::SelectUp);
         panel.insert((KeyCode::Down, KeyModifiers::ALT), Action::SelectDown);
 
         // Ctrl+A = select all, Ctrl+D = deselect all
-        panel.insert((KeyCode::Char('a'), KeyModifiers::CONTROL), Action::SelectAll);
-        panel.insert((KeyCode::Char('d'), KeyModifiers::CONTROL), Action::DeselectAll);
+        panel.insert(
+            (KeyCode::Char('a'), KeyModifiers::CONTROL),
+            Action::SelectAll,
+        );
+        panel.insert(
+            (KeyCode::Char('d'), KeyModifiers::CONTROL),
+            Action::DeselectAll,
+        );
 
         // Shift+Arrow for terminals that support it
         panel.insert((KeyCode::Up, KeyModifiers::SHIFT), Action::SelectUp);
         panel.insert((KeyCode::Down, KeyModifiers::SHIFT), Action::SelectDown);
-        panel.insert(
-            (KeyCode::PageUp, KeyModifiers::SHIFT),
-            Action::SelectPageUp,
-        );
+        panel.insert((KeyCode::PageUp, KeyModifiers::SHIFT), Action::SelectPageUp);
         panel.insert(
             (KeyCode::PageDown, KeyModifiers::SHIFT),
             Action::SelectPageDown,
@@ -139,22 +133,13 @@ impl KeyMap {
         );
 
         // ── Sort modes (Ctrl+F3..F6) ────────────────────────────────────
-        panel.insert(
-            (KeyCode::F(3), KeyModifiers::CONTROL),
-            Action::SortByName,
-        );
+        panel.insert((KeyCode::F(3), KeyModifiers::CONTROL), Action::SortByName);
         panel.insert(
             (KeyCode::F(4), KeyModifiers::CONTROL),
             Action::SortByExtension,
         );
-        panel.insert(
-            (KeyCode::F(5), KeyModifiers::CONTROL),
-            Action::SortBySize,
-        );
-        panel.insert(
-            (KeyCode::F(6), KeyModifiers::CONTROL),
-            Action::SortByDate,
-        );
+        panel.insert((KeyCode::F(5), KeyModifiers::CONTROL), Action::SortBySize);
+        panel.insert((KeyCode::F(6), KeyModifiers::CONTROL), Action::SortByDate);
 
         // ── Toggle hidden, refresh ───────────────────────────────────────
         panel.insert(

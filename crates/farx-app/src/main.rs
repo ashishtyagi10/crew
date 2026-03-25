@@ -18,7 +18,11 @@ use farx_ui::app::App;
 use farx_ui::event::{Event, EventHandler};
 
 #[derive(Parser)]
-#[command(name = "farx", version, about = "Next-generation cross-platform file manager")]
+#[command(
+    name = "farx",
+    version,
+    about = "Next-generation cross-platform file manager"
+)]
 struct Cli {
     /// Update farx to the latest release
     #[arg(long)]
@@ -82,8 +86,7 @@ async fn main() -> Result<()> {
     // Initialize logging
     tracing_subscriber::fmt()
         .with_env_filter(
-            tracing_subscriber::EnvFilter::from_default_env()
-                .add_directive("farx=info".parse()?),
+            tracing_subscriber::EnvFilter::from_default_env().add_directive("farx=info".parse()?),
         )
         .with_writer(io::stderr)
         .init();

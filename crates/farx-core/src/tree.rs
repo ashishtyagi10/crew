@@ -1,6 +1,6 @@
+use crate::types::FileEntry;
 use std::collections::HashSet;
 use std::path::PathBuf;
-use crate::types::FileEntry;
 
 /// A node in the file tree
 #[derive(Debug, Clone)]
@@ -65,7 +65,9 @@ impl TreeState {
         let mut items: Vec<FileEntry> = Vec::new();
         for entry in entries {
             let Ok(entry) = entry else { continue };
-            let Ok(metadata) = entry.metadata() else { continue };
+            let Ok(metadata) = entry.metadata() else {
+                continue;
+            };
             let name = entry.file_name().to_string_lossy().to_string();
 
             // Skip hidden files unless show_hidden is set
@@ -73,12 +75,20 @@ impl TreeState {
                 continue;
             }
 
-            let is_symlink = entry.path().symlink_metadata()
-                .map(|m| m.is_symlink()).unwrap_or(false);
-            let modified = metadata.modified().ok()
+            let is_symlink = entry
+                .path()
+                .symlink_metadata()
+                .map(|m| m.is_symlink())
+                .unwrap_or(false);
+            let modified = metadata
+                .modified()
+                .ok()
                 .map(chrono::DateTime::<chrono::Local>::from);
             let extension = if metadata.is_file() {
-                entry.path().extension().map(|e| e.to_string_lossy().to_string())
+                entry
+                    .path()
+                    .extension()
+                    .map(|e| e.to_string_lossy().to_string())
             } else {
                 None
             };
@@ -89,7 +99,11 @@ impl TreeState {
                 is_dir: metadata.is_dir(),
                 is_symlink,
                 is_hidden: false,
-                size: if metadata.is_file() { metadata.len() } else { 0 },
+                size: if metadata.is_file() {
+                    metadata.len()
+                } else {
+                    0
+                },
                 modified,
                 extension,
                 readonly: metadata.permissions().readonly(),
@@ -97,12 +111,10 @@ impl TreeState {
         }
 
         // Sort: directories first, then alphabetically
-        items.sort_by(|a, b| {
-            match (a.is_dir, b.is_dir) {
-                (true, false) => std::cmp::Ordering::Less,
-                (false, true) => std::cmp::Ordering::Greater,
-                _ => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
-            }
+        items.sort_by(|a, b| match (a.is_dir, b.is_dir) {
+            (true, false) => std::cmp::Ordering::Less,
+            (false, true) => std::cmp::Ordering::Greater,
+            _ => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
         });
 
         for item in items {
@@ -112,7 +124,9 @@ impl TreeState {
 
             let has_children = if is_dir {
                 // Quick check if directory has any children
-                std::fs::read_dir(&path).map(|mut rd| rd.next().is_some()).unwrap_or(false)
+                std::fs::read_dir(&path)
+                    .map(|mut rd| rd.next().is_some())
+                    .unwrap_or(false)
             } else {
                 false
             };
@@ -153,7 +167,9 @@ impl TreeState {
 
     /// Right arrow: expand collapsed dir, or move into first child of expanded dir.
     pub fn expand(&mut self) {
-        let Some(node) = self.visible_nodes.get(self.cursor) else { return };
+        let Some(node) = self.visible_nodes.get(self.cursor) else {
+            return;
+        };
         if !node.entry.is_dir {
             return;
         }

@@ -112,8 +112,7 @@ impl ViewerState {
     }
 
     fn scroll_down(&mut self, amount: usize) {
-        self.scroll_offset =
-            (self.scroll_offset + amount).min(self.total_lines.saturating_sub(1));
+        self.scroll_offset = (self.scroll_offset + amount).min(self.total_lines.saturating_sub(1));
     }
 }
 
@@ -168,8 +167,16 @@ pub fn render_viewer(frame: &mut Frame, state: &ViewerState, _theme: &Theme) {
         .borders(Borders::ALL)
         .title(title)
         .title_alignment(Alignment::Center)
-        .border_style(Style::default().fg(Color::Rgb(200, 200, 210)).bg(Color::Rgb(22, 22, 26)))
-        .style(Style::default().bg(Color::Rgb(22, 22, 26)).fg(Color::Rgb(200, 200, 210)));
+        .border_style(
+            Style::default()
+                .fg(Color::Rgb(200, 200, 210))
+                .bg(Color::Rgb(22, 22, 26)),
+        )
+        .style(
+            Style::default()
+                .bg(Color::Rgb(22, 22, 26))
+                .fg(Color::Rgb(200, 200, 210)),
+        );
 
     let inner = block.inner(area);
     frame.render_widget(block, area);
@@ -188,12 +195,16 @@ pub fn render_viewer(frame: &mut Frame, state: &ViewerState, _theme: &Theme) {
             let line_num = format!("{:>6} ", i + 1);
             let content = &state.lines[i];
 
-            let mut spans = vec![
-                Span::styled(line_num, Style::default().fg(Color::DarkGray).bg(bg)),
-            ];
+            let mut spans = vec![Span::styled(
+                line_num,
+                Style::default().fg(Color::DarkGray).bg(bg),
+            )];
 
             if state.hex_mode {
-                spans.push(Span::styled(content.as_str(), Style::default().fg(Color::Rgb(200, 200, 210)).bg(bg)));
+                spans.push(Span::styled(
+                    content.as_str(),
+                    Style::default().fg(Color::Rgb(200, 200, 210)).bg(bg),
+                ));
             } else {
                 spans.extend(highlight_line(content, lang, bg));
             }
@@ -226,7 +237,9 @@ pub fn render_viewer(frame: &mut Frame, state: &ViewerState, _theme: &Theme) {
     );
     let status_line = Line::from(Span::styled(
         status_text,
-        Style::default().fg(Color::Rgb(16, 16, 18)).bg(Color::Rgb(220, 170, 60)),
+        Style::default()
+            .fg(Color::Rgb(16, 16, 18))
+            .bg(Color::Rgb(220, 170, 60)),
     ));
     // Render over the bottom border
     frame.render_widget(

@@ -1,9 +1,9 @@
-use std::path::{Path, PathBuf};
+use crate::components::syntax::{highlight_line, Language};
+use crate::theme::Theme;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Clear, Paragraph};
-use crate::components::syntax::{highlight_line, Language};
-use crate::theme::Theme;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum EditorAction {
@@ -118,7 +118,11 @@ impl EditorState {
     pub fn save(&mut self) -> anyhow::Result<()> {
         let content = self.lines.join("\n");
         // Add trailing newline if file had content
-        let content = if content.is_empty() { content } else { content + "\n" };
+        let content = if content.is_empty() {
+            content
+        } else {
+            content + "\n"
+        };
         std::fs::write(&self.file_path, &content)?;
         self.modified = false;
         self.last_save_undo_len = self.undo_stack.len();
@@ -126,7 +130,10 @@ impl EditorState {
     }
 
     fn current_line(&self) -> &str {
-        self.lines.get(self.cursor_line).map(|s| s.as_str()).unwrap_or("")
+        self.lines
+            .get(self.cursor_line)
+            .map(|s| s.as_str())
+            .unwrap_or("")
     }
 
     fn current_line_len(&self) -> usize {
@@ -166,7 +173,9 @@ impl EditorState {
             self.save_undo();
             self.cursor_col -= 1;
             // Handle multi-byte chars
-            while self.cursor_col > 0 && !self.lines[self.cursor_line].is_char_boundary(self.cursor_col) {
+            while self.cursor_col > 0
+                && !self.lines[self.cursor_line].is_char_boundary(self.cursor_col)
+            {
                 self.cursor_col -= 1;
             }
             self.lines[self.cursor_line].remove(self.cursor_col);
@@ -407,7 +416,9 @@ pub fn render_editor(frame: &mut Frame, state: &EditorState, _theme: &Theme) {
     let area = frame.area();
     frame.render_widget(Clear, area);
 
-    let file_name = state.file_path.file_name()
+    let file_name = state
+        .file_path
+        .file_name()
         .map(|n| n.to_string_lossy().to_string())
         .unwrap_or_else(|| "new file".to_string());
     let modified_marker = if state.modified { " [modified]" } else { "" };
@@ -417,8 +428,16 @@ pub fn render_editor(frame: &mut Frame, state: &EditorState, _theme: &Theme) {
         .borders(Borders::ALL)
         .title(title)
         .title_alignment(Alignment::Center)
-        .border_style(Style::default().fg(Color::Rgb(200, 200, 210)).bg(Color::Rgb(22, 22, 26)))
-        .style(Style::default().bg(Color::Rgb(22, 22, 26)).fg(Color::Rgb(200, 200, 210)));
+        .border_style(
+            Style::default()
+                .fg(Color::Rgb(200, 200, 210))
+                .bg(Color::Rgb(22, 22, 26)),
+        )
+        .style(
+            Style::default()
+                .bg(Color::Rgb(22, 22, 26))
+                .fg(Color::Rgb(200, 200, 210)),
+        );
 
     let inner = block.inner(area);
     frame.render_widget(block, area);
@@ -438,13 +457,18 @@ pub fn render_editor(frame: &mut Frame, state: &EditorState, _theme: &Theme) {
         let line = &state.lines[i];
 
         // Apply horizontal scroll
-        let visible_text: String = line.chars()
+        let visible_text: String = line
+            .chars()
             .skip(state.horizontal_scroll)
             .take(text_width)
             .collect();
 
         let is_cursor_line = i == state.cursor_line;
-        let bg = if is_cursor_line { Color::Indexed(236) } else { Color::Rgb(22, 22, 26) };
+        let bg = if is_cursor_line {
+            Color::Indexed(236)
+        } else {
+            Color::Rgb(22, 22, 26)
+        };
         let line_num_style = Style::default().fg(Color::DarkGray).bg(bg);
 
         let mut spans = vec![Span::styled(line_num, line_num_style)];
@@ -474,7 +498,12 @@ pub fn render_editor(frame: &mut Frame, state: &EditorState, _theme: &Theme) {
     // Fill remaining lines
     for _ in text_lines.len()..visible_height {
         text_lines.push(Line::from(vec![
-            Span::styled("    ~ ", Style::default().fg(Color::DarkGray).bg(Color::Rgb(22, 22, 26))),
+            Span::styled(
+                "    ~ ",
+                Style::default()
+                    .fg(Color::DarkGray)
+                    .bg(Color::Rgb(22, 22, 26)),
+            ),
             Span::styled(
                 " ".repeat(text_width),
                 Style::default().bg(Color::Rgb(22, 22, 26)),
@@ -505,7 +534,9 @@ pub fn render_editor(frame: &mut Frame, state: &EditorState, _theme: &Theme) {
     };
     let status_line = Line::from(Span::styled(
         format!("{:<width$}", status, width = inner.width as usize),
-        Style::default().fg(Color::Rgb(16, 16, 18)).bg(Color::Rgb(220, 170, 60)),
+        Style::default()
+            .fg(Color::Rgb(16, 16, 18))
+            .bg(Color::Rgb(220, 170, 60)),
     ));
     frame.render_widget(
         Paragraph::new(status_line),

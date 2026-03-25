@@ -216,12 +216,19 @@ pub fn render_command_line(
     // Truncate dir if too long
     let max_dir_len = (area.width as usize).saturating_sub(20);
     let dir_display = if dir_str.len() > max_dir_len {
-        format!("...{}", &dir_str[dir_str.len().saturating_sub(max_dir_len)..])
+        format!(
+            "...{}",
+            &dir_str[dir_str.len().saturating_sub(max_dir_len)..]
+        )
     } else {
         dir_str.to_string()
     };
 
-    let border_color = if has_input { Color::Cyan } else { Color::Indexed(240) };
+    let border_color = if has_input {
+        Color::Cyan
+    } else {
+        Color::Indexed(240)
+    };
 
     let block = Block::default()
         .borders(Borders::ALL)
@@ -255,20 +262,28 @@ pub fn render_command_line(
 
     // Render the input line inside the box
     let prompt_style = Style::default()
-        .fg(if has_input { Color::Cyan } else { Color::Indexed(244) })
+        .fg(if has_input {
+            Color::Cyan
+        } else {
+            Color::Indexed(244)
+        })
         .bg(Color::Black);
-    let input_style = Style::default()
-        .fg(Color::White)
-        .bg(if has_input { Color::Indexed(235) } else { Color::Black });
+    let input_style = Style::default().fg(Color::White).bg(if has_input {
+        Color::Indexed(235)
+    } else {
+        Color::Black
+    });
 
     let prompt = "> ";
     let input_width = inner.width.saturating_sub(2) as usize; // 2 for "> "
 
     // Ghost text (suggestion) shown after the input in dim color
     let ghost = state.suggestion.as_deref().unwrap_or("");
-    let ghost_style = Style::default()
-        .fg(Color::Indexed(240))
-        .bg(if has_input { Color::Indexed(235) } else { Color::Black });
+    let ghost_style = Style::default().fg(Color::Indexed(240)).bg(if has_input {
+        Color::Indexed(235)
+    } else {
+        Color::Black
+    });
 
     let combined = format!("{}{}", state.input, ghost);
     let display = if combined.len() >= input_width {
@@ -311,7 +326,9 @@ pub fn render_command_line(
             frame.render_widget(
                 Paragraph::new(Span::styled(
                     hint_text,
-                    Style::default().fg(Color::Rgb(220, 170, 60)).bg(Color::Indexed(236)),
+                    Style::default()
+                        .fg(Color::Rgb(220, 170, 60))
+                        .bg(Color::Indexed(236)),
                 )),
                 hint_area,
             );
@@ -331,19 +348,21 @@ fn looks_like_command(input: &str) -> bool {
     if first_word.starts_with('/') || first_word.starts_with("./") || first_word.starts_with("~/") {
         return true;
     }
-    if trimmed.contains('|') || trimmed.contains('>') || trimmed.contains('<')
-        || trimmed.contains("&&") || trimmed.contains("||")
+    if trimmed.contains('|')
+        || trimmed.contains('>')
+        || trimmed.contains('<')
+        || trimmed.contains("&&")
+        || trimmed.contains("||")
     {
         return true;
     }
 
     const CMDS: &[&str] = &[
-        "ls", "cd", "cp", "mv", "rm", "mkdir", "rmdir", "cat", "head", "tail",
-        "grep", "find", "sed", "awk", "sort", "wc", "echo", "touch", "chmod",
-        "pwd", "df", "du", "tar", "zip", "unzip", "curl", "wget", "ssh", "git",
-        "docker", "make", "npm", "yarn", "cargo", "python", "python3", "pip",
-        "node", "ruby", "go", "java", "brew", "apt", "sudo", "man",
-        "vi", "vim", "nano", "code", "open", "clear", "which",
+        "ls", "cd", "cp", "mv", "rm", "mkdir", "rmdir", "cat", "head", "tail", "grep", "find",
+        "sed", "awk", "sort", "wc", "echo", "touch", "chmod", "pwd", "df", "du", "tar", "zip",
+        "unzip", "curl", "wget", "ssh", "git", "docker", "make", "npm", "yarn", "cargo", "python",
+        "python3", "pip", "node", "ruby", "go", "java", "brew", "apt", "sudo", "man", "vi", "vim",
+        "nano", "code", "open", "clear", "which",
     ];
     CMDS.contains(&first_word)
 }
