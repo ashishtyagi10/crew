@@ -6,7 +6,7 @@ use std::sync::mpsc;
 use std::thread;
 
 /// GitHub repository owner — change this to your GitHub username/org.
-const REPO_OWNER: &str = "atyagi";
+const REPO_OWNER: &str = "ashishtyagi10";
 /// GitHub repository name.
 const REPO_NAME: &str = "farx";
 

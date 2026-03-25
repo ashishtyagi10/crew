@@ -2,11 +2,11 @@
 # Farx installer — detects OS/arch and installs the latest release from GitHub.
 #
 # Usage:
-#   curl -sSfL https://raw.githubusercontent.com/atyagi/farx/main/install.sh | sh
+#   curl -sSfL https://raw.githubusercontent.com/ashishtyagi10/farx/main/install.sh | sh
 #
 set -e
 
-REPO="atyagi/farx"
+REPO="ashishtyagi10/farx"
 INSTALL_DIR="/usr/local/bin"
 BIN_NAME="farx"
 
