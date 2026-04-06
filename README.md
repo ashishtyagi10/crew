@@ -80,6 +80,8 @@ farx --keydebug       # Debug terminal key events
 | `Shift+F4` | Create new file |
 | `Shift+F5` | Copy to same directory |
 | `Shift+F6` | Rename |
+| `Ctrl+M` | Batch rename (regex find/replace) |
+| `Ctrl+Z` | Undo last file operation |
 
 ### Selection
 
@@ -129,6 +131,7 @@ farx --keydebug       # Debug terminal key events
 | `Ctrl+Y` | Copy file path(s) to clipboard |
 | `Alt+E` | Extract archive to other panel |
 | `Alt+C` | Compress selection to zip |
+| `Ctrl+P` | Fuzzy file finder |
 
 ## Built-in Editor
 
@@ -254,6 +257,18 @@ farx.register_command("hello", "Say hello", [[
 ```
 
 Use `/plugin` to list loaded commands, or `/hello` to run the example above.
+
+## Undo
+
+Press `Ctrl+Z` to undo the last file operation (move, rename, mkdir, create file). Moves are reversed, renames are swapped back. For trashed files, you'll be directed to the system trash. Use `/undo` from the command line.
+
+## Batch Rename
+
+Press `Ctrl+M` to open the batch rename dialog for selected files (or all files in the directory). Enter a regex find pattern and replacement text — the preview updates in real time showing old → new names. Press Enter to apply. Use `/rename-batch` from the command line.
+
+## Fuzzy Finder
+
+Press `Ctrl+P` to open the fuzzy file finder. Type to search recursively across all files from the current directory. Matches are scored by consecutive characters and word boundaries. Press Enter to navigate to the selected file. Use `/find-file` or `/ff` from the command line.
 
 ## Themes
 
