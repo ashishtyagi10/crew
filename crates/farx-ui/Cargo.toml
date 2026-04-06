@@ -19,4 +19,5 @@ dirs = { workspace = true }
 futures = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+arboard = { workspace = true }
 libc = "0.2"

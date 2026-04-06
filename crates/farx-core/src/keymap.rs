@@ -149,6 +149,12 @@ impl KeyMap {
             Action::ToggleFilter,
         );
 
+        // ── Clipboard ────────────────────────────────────────────────────
+        panel.insert(
+            (KeyCode::Char('y'), KeyModifiers::CONTROL),
+            Action::CopyPathToClipboard,
+        );
+
         // ── Directory size ──────────────────────────────────────────────
         panel.insert(
             (KeyCode::Char('s'), KeyModifiers::ALT),

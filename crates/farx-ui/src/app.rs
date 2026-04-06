@@ -898,6 +898,9 @@ impl App {
             "/menu" => {
                 self.menu = Some(MenuState::new());
             }
+            "/yank" | "/copy-path" => {
+                self.dispatch(Action::CopyPathToClipboard);
+            }
             "/back" => {
                 self.dispatch(Action::HistoryBack);
             }
@@ -1571,6 +1574,42 @@ impl App {
                 if !self.filter_active {
                     self.filter_pattern.clear();
                     self.active_tree().rebuild();
+                }
+            }
+            Action::CopyPathToClipboard => {
+                let tree = self.active_tree_ref();
+                // If selected, copy all selected paths; otherwise copy current
+                let paths: Vec<String> = if !tree.selected.is_empty() {
+                    tree.selected
+                        .iter()
+                        .filter_map(|&i| tree.visible_nodes.get(i))
+                        .map(|n| n.entry.path.to_string_lossy().to_string())
+                        .collect()
+                } else if let Some(node) = tree.current_node() {
+                    vec![node.entry.path.to_string_lossy().to_string()]
+                } else {
+                    Vec::new()
+                };
+                if paths.is_empty() {
+                    return;
+                }
+                let text = paths.join("\n");
+                match arboard::Clipboard::new() {
+                    Ok(mut clipboard) => match clipboard.set_text(&text) {
+                        Ok(()) => {
+                            if paths.len() == 1 {
+                                self.feedback.info(format!("Copied: {}", paths[0]));
+                            } else {
+                                self.feedback.info(format!("Copied {} paths", paths.len()));
+                            }
+                        }
+                        Err(e) => {
+                            self.feedback.error(format!("Clipboard: {}", e));
+                        }
+                    },
+                    Err(e) => {
+                        self.feedback.error(format!("Clipboard: {}", e));
+                    }
                 }
             }
             Action::CalculateDirSize => {

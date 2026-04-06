@@ -84,6 +84,9 @@ pub enum Action {
     ShowBookmarks,
     AddBookmark,
 
+    // Clipboard
+    CopyPathToClipboard,
+
     // Filter
     ToggleFilter,
 

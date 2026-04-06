@@ -49,6 +49,9 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 # CLI
 clap = { version = "4", features = ["derive"] }
 
+# Clipboard
+arboard = "3"
+
 # Utilities
 chrono = { version = "0.4", features = ["serde"] }
 unicode-width = "0.2"
