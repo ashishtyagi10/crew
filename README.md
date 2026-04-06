@@ -97,6 +97,19 @@ farx --keydebug       # Debug terminal key events
 | `Ctrl+F5` | Sort by size |
 | `Ctrl+F6` | Sort by date |
 
+### Bookmarks
+
+| Key | Action |
+|-----|--------|
+| `Ctrl+B` | Open bookmarks panel |
+| `Alt+B` | Bookmark current directory |
+
+### Filter
+
+| Key | Action |
+|-----|--------|
+| `Ctrl+F` | Filter / narrow directory listing |
+
 ### Other
 
 | Key | Action |
@@ -110,6 +123,7 @@ farx --keydebug       # Debug terminal key events
 | `Ctrl+L` | Info panel |
 | `Ctrl+Space` | AI assistant |
 | `Alt+F7` | Search files |
+| `Alt+S` | Calculate directory / selection size |
 
 ## Built-in Editor
 
@@ -180,6 +194,20 @@ api_key_env = "OPENAI_API_KEY"
 ```
 
 Then set the corresponding environment variable (e.g. `export OPENROUTER_API_KEY=sk-...`).
+
+## Bookmarks
+
+Press `Alt+B` to bookmark the current directory. Press `Ctrl+B` to open the bookmarks panel — navigate with arrow keys, press Enter to jump to a bookmark, or Delete/F8 to remove one. Bookmarks are persisted in `~/.config/farx/bookmarks.json`.
+
+You can also use `/bookmark` or `/bm` from the command line.
+
+## Filter
+
+Press `Ctrl+F` to activate the filter bar. Type to narrow the file listing in real time — only files matching your input remain visible (directories are always shown). Press Enter to accept, Esc to clear. Use `/filter <pattern>` from the command line for a one-shot filter.
+
+## Directory Size
+
+Press `Alt+S` to calculate the total size of the directory under the cursor. If files are selected, it calculates the combined size of all selected items. Use `/size` from the command line.
 
 ## Themes
 
