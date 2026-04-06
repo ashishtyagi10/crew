@@ -1221,19 +1221,21 @@ impl App {
                 }
             }
             ConfirmAction::Delete { targets } => {
+                let use_trash = self.config.general.use_trash;
                 let mut ok = 0;
                 let mut fail = 0;
                 for target in &targets {
-                    match farx_fs::delete_entry(target, false) {
+                    match farx_fs::delete_entry(target, use_trash) {
                         Ok(()) => ok += 1,
                         Err(_) => fail += 1,
                     }
                 }
+                let verb = if use_trash { "Trashed" } else { "Deleted" };
                 if fail == 0 {
-                    self.feedback.success(format!("Deleted {} file(s)", ok));
+                    self.feedback.success(format!("{} {} file(s)", verb, ok));
                 } else {
                     self.feedback
-                        .warning(format!("Deleted {}, failed {}", ok, fail));
+                        .warning(format!("{} {}, failed {}", verb, ok, fail));
                 }
             }
         }

@@ -11,3 +11,4 @@ thiserror = { workspace = true }
 anyhow = { workspace = true }
 chrono = { workspace = true }
 tracing = { workspace = true }
+trash = { workspace = true }

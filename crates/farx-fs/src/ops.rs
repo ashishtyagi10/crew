@@ -55,11 +55,11 @@ pub fn move_entry(source: &Path, dest_dir: &Path) -> Result<()> {
     }
 }
 
-/// Delete a file or directory
+/// Delete a file or directory.
+/// If `use_trash` is true, moves to the system trash/recycle bin.
 pub fn delete_entry(path: &Path, use_trash: bool) -> Result<()> {
     if use_trash {
-        // For now, just do regular delete. Trash support can use the `trash` crate later.
-        delete_permanent(path)
+        trash::delete(path).map_err(|e| anyhow::anyhow!("Trash: {}", e))
     } else {
         delete_permanent(path)
     }
