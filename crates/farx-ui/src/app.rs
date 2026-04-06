@@ -216,11 +216,11 @@ impl App {
     fn navigate_to(&mut self, path: PathBuf) {
         match self.active_panel {
             PanelSide::Left => {
-                self.left_tree.set_root(path.clone());
+                self.left_tree.navigate_to(path.clone());
                 self.left_panel.current_dir = path;
             }
             PanelSide::Right => {
-                self.right_tree.set_root(path.clone());
+                self.right_tree.navigate_to(path.clone());
                 self.right_panel.current_dir = path;
             }
         }
@@ -898,6 +898,12 @@ impl App {
             "/menu" => {
                 self.menu = Some(MenuState::new());
             }
+            "/back" => {
+                self.dispatch(Action::HistoryBack);
+            }
+            "/forward" | "/fwd" => {
+                self.dispatch(Action::HistoryForward);
+            }
             "/size" => {
                 self.calculate_dir_size();
             }
@@ -1511,6 +1517,31 @@ impl App {
             }
             Action::CommandLineClear => {
                 self.command_line.clear();
+            }
+            Action::HistoryBack => {
+                let went_back = self.active_tree().go_back();
+                if went_back {
+                    let new_root = self.active_tree_ref().root.clone();
+                    match self.active_panel {
+                        PanelSide::Left => self.left_panel.current_dir = new_root,
+                        PanelSide::Right => self.right_panel.current_dir = new_root,
+                    }
+                } else {
+                    self.feedback.info("No history to go back to".to_string());
+                }
+            }
+            Action::HistoryForward => {
+                let went_fwd = self.active_tree().go_forward();
+                if went_fwd {
+                    let new_root = self.active_tree_ref().root.clone();
+                    match self.active_panel {
+                        PanelSide::Left => self.left_panel.current_dir = new_root,
+                        PanelSide::Right => self.right_panel.current_dir = new_root,
+                    }
+                } else {
+                    self.feedback
+                        .info("No history to go forward to".to_string());
+                }
             }
             Action::ShowBookmarks => {
                 self.bookmarks_panel = Some(BookmarkState::new(self.bookmarks.clone()));

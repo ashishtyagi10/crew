@@ -132,6 +132,10 @@ impl KeyMap {
             Action::ShowAiBar,
         );
 
+        // ── Directory history ────────────────────────────────────────────
+        panel.insert((KeyCode::Left, KeyModifiers::ALT), Action::HistoryBack);
+        panel.insert((KeyCode::Right, KeyModifiers::ALT), Action::HistoryForward);
+
         // ── Bookmarks ────────────────────────────────────────────────────
         panel.insert(
             (KeyCode::Char('b'), KeyModifiers::CONTROL),

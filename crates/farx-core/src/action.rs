@@ -76,6 +76,10 @@ pub enum Action {
     QuickSearch(char),
     QuickSearchClear,
 
+    // History
+    HistoryBack,
+    HistoryForward,
+
     // Bookmarks
     ShowBookmarks,
     AddBookmark,
