@@ -64,6 +64,8 @@ farx --keydebug       # Debug terminal key events
 | `Tab` | Switch panels |
 | `Ctrl+PageUp` | Parent directory |
 | `Ctrl+\` | Go to root |
+| `Alt+Left` | Go back in directory history |
+| `Alt+Right` | Go forward in directory history |
 
 ### File Operations
 
@@ -124,6 +126,7 @@ farx --keydebug       # Debug terminal key events
 | `Ctrl+Space` | AI assistant |
 | `Alt+F7` | Search files |
 | `Alt+S` | Calculate directory / selection size |
+| `Ctrl+Y` | Copy file path(s) to clipboard |
 
 ## Built-in Editor
 
@@ -208,6 +211,18 @@ Press `Ctrl+F` to activate the filter bar. Type to narrow the file listing in re
 ## Directory Size
 
 Press `Alt+S` to calculate the total size of the directory under the cursor. If files are selected, it calculates the combined size of all selected items. Use `/size` from the command line.
+
+## Directory History
+
+Each panel maintains a navigation history. Press `Alt+Left` to go back to the previously visited directory and `Alt+Right` to go forward. History is cleared when you navigate to a new directory from an older position (like a browser). Use `/back` and `/forward` from the command line.
+
+## Trash Support
+
+By default, deleted files are moved to the system trash (Recycle Bin on Windows, Trash on macOS/Linux) instead of being permanently deleted. Set `use_trash = false` in config to permanently delete instead.
+
+## Clipboard
+
+Press `Ctrl+Y` to copy the path of the file under the cursor to the system clipboard. If files are selected, all selected paths are copied (one per line). Use `/yank` from the command line.
 
 ## Themes
 
