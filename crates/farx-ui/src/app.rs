@@ -1620,6 +1620,67 @@ impl App {
                 self.active_tree().move_cursor(1);
                 return;
             }
+            Action::SelectPageUp => {
+                let tree = self.active_tree();
+                let cursor = tree.cursor;
+                let target = cursor.saturating_sub(20);
+                for i in (target..cursor).rev() {
+                    if i < tree.visible_nodes.len() && tree.visible_nodes[i].entry.name != ".." {
+                        tree.selected.insert(i);
+                    }
+                }
+                tree.move_cursor_to(target);
+                return;
+            }
+            Action::SelectPageDown => {
+                let tree = self.active_tree();
+                let cursor = tree.cursor;
+                let max = tree.visible_nodes.len().saturating_sub(1);
+                let target = (cursor + 20).min(max);
+                for i in cursor..=target {
+                    if i < tree.visible_nodes.len() && tree.visible_nodes[i].entry.name != ".." {
+                        tree.selected.insert(i);
+                    }
+                }
+                tree.move_cursor_to(target);
+                return;
+            }
+            Action::SelectHome => {
+                let tree = self.active_tree();
+                let cursor = tree.cursor;
+                for i in 0..cursor {
+                    if i < tree.visible_nodes.len() && tree.visible_nodes[i].entry.name != ".." {
+                        tree.selected.insert(i);
+                    }
+                }
+                tree.move_cursor_to(0);
+                return;
+            }
+            Action::SelectEnd => {
+                let tree = self.active_tree();
+                let cursor = tree.cursor;
+                let max = tree.visible_nodes.len().saturating_sub(1);
+                for i in cursor..=max {
+                    if i < tree.visible_nodes.len() && tree.visible_nodes[i].entry.name != ".." {
+                        tree.selected.insert(i);
+                    }
+                }
+                tree.move_cursor_to(max);
+                return;
+            }
+            Action::SelectAll => {
+                let tree = self.active_tree();
+                for i in 0..tree.visible_nodes.len() {
+                    if tree.visible_nodes[i].entry.name != ".." {
+                        tree.selected.insert(i);
+                    }
+                }
+                return;
+            }
+            Action::DeselectAll => {
+                self.active_tree().selected.clear();
+                return;
+            }
             Action::ViewFile => {
                 if let Some(node) = self.active_tree().current_node() {
                     if !node.entry.is_dir {
