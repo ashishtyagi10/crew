@@ -94,9 +94,6 @@ async fn main() -> Result<()> {
         .with_writer(io::stderr)
         .init();
 
-    // Kick off a background update check + auto-apply (non-blocking)
-    let update_rx = update::check_and_auto_update_async();
-
     // Load config
     let config = AppConfig::load();
     let tick_rate = Duration::from_millis(config.ui.tick_rate_ms);
@@ -113,28 +110,11 @@ async fn main() -> Result<()> {
     let mut events = EventHandler::new(tick_rate);
 
     // Main loop
-    let mut update_checked = false;
     while app.running {
         // Render
         terminal.draw(|frame| {
             app.render(frame);
         })?;
-
-        // Check if the background update result has arrived
-        if !update_checked {
-            if let Ok(status) = update_rx.try_recv() {
-                update_checked = true;
-                match status {
-                    update::UpdateStatus::Updated(v) => {
-                        app.set_update_applied(v);
-                    }
-                    update::UpdateStatus::Available(v) => {
-                        app.set_update_available(v);
-                    }
-                    _ => {}
-                }
-            }
-        }
 
         // Handle events
         match events.next().await {
