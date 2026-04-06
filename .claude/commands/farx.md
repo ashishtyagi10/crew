@@ -107,9 +107,10 @@ After all enhancements are implemented and documentation is updated:
 4. Run `cargo check` to regenerate `Cargo.lock`
 5. Commit: `git add Cargo.toml Cargo.lock && git commit -m "Bump version to X.Y.Z"`
 6. Push: `git push origin main`
-7. Create a GitHub release with `gh release create vX.Y.Z` including:
-   - Title: `vX.Y.Z`
-   - Release notes summarizing the enhancements implemented in this run (keybindings, slash commands, features)
+7. Create and push a git tag: `git tag vX.Y.Z && git push origin vX.Y.Z`
+   - This triggers the `.github/workflows/release.yml` CI which builds cross-platform binaries and creates the GitHub release with assets attached.
+   - Do NOT use `gh release create` — that would create a release without binaries and conflict with the CI workflow.
+8. Verify the CI was triggered: `gh run list --limit 1`
 
 ## Phase 7: Loop (if mode starts with "loop")
 
