@@ -132,6 +132,8 @@ farx --keydebug       # Debug terminal key events
 | `Alt+E` | Extract archive to other panel |
 | `Alt+C` | Compress selection to zip |
 | `Ctrl+P` | Fuzzy file finder |
+| `Alt+D` | Find duplicate files |
+| `Alt+T` | Disk usage treemap |
 
 ## Built-in Editor
 
@@ -269,6 +271,18 @@ Press `Ctrl+M` to open the batch rename dialog for selected files (or all files 
 ## Fuzzy Finder
 
 Press `Ctrl+P` to open the fuzzy file finder. Type to search recursively across all files from the current directory. Matches are scored by consecutive characters and word boundaries. Press Enter to navigate to the selected file. Use `/find-file` or `/ff` from the command line.
+
+## Duplicate File Finder
+
+Press `Alt+D` to scan the current directory tree for duplicate files. Uses a two-pass approach: groups by file size first, then verifies with SHA-256 checksums. Results show grouped duplicates with total reclaimable space. Use `/duplicates` from the command line.
+
+## Disk Usage Treemap
+
+Press `Alt+T` to see a visual bar-chart of disk usage for the current directory. Each entry shows a proportional bar, percentage, size, and name — sorted largest first. Use `/treemap` from the command line.
+
+## SSH Remote Browsing
+
+Use `/ssh user@host:/path` to list files on a remote server. Works with your existing SSH config and keys. Example: `/ssh myserver:~/projects`.
 
 ## Themes
 
