@@ -22,4 +22,5 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 arboard = { workspace = true }
 regex = { workspace = true }
+notify = { workspace = true }
 libc = "0.2"

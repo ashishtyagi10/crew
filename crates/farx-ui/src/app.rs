@@ -127,6 +127,11 @@ pub struct App {
     pub batch_rename: Option<BatchRenameState>,
     /// Fuzzy finder dialog state.
     pub fuzzy_finder: Option<FuzzyFinderState>,
+    /// File watcher: receives notifications when files change.
+    fs_watcher: Option<notify::RecommendedWatcher>,
+    fs_change_rx: Option<std::sync::mpsc::Receiver<()>>,
+    /// Debounce: tick count of last fs change signal.
+    fs_change_tick: u64,
 }
 
 impl App {
@@ -156,7 +161,7 @@ impl App {
             &config.ai.api_key_env,
         );
 
-        Ok(Self {
+        let mut app = Self {
             running: true,
             active_panel: PanelSide::Left,
             left_panel: left,
@@ -209,7 +214,13 @@ impl App {
             undo_stack: Vec::new(),
             batch_rename: None,
             fuzzy_finder: None,
-        })
+            fs_watcher: None,
+            fs_change_rx: None,
+            fs_change_tick: 0,
+        };
+
+        app.setup_fs_watcher();
+        Ok(app)
     }
 
     /// Re-read the directory listing for a panel and sort the entries.
@@ -264,6 +275,7 @@ impl App {
                 self.right_panel.current_dir = path;
             }
         }
+        self.update_fs_watcher();
     }
 
     /// Get the inactive tree's root directory.
@@ -682,6 +694,7 @@ impl App {
         self.feedback.tick();
         self.check_ai_response();
         self.check_suggestion_response();
+        self.check_fs_changes();
 
         // Debounced typeahead: request suggestion after 3 ticks (~750ms) of no typing
         if !self.command_line.input.is_empty()
@@ -857,6 +870,68 @@ impl App {
             } else {
                 self.feedback
                     .info(format!("{}: {}", name, format_size_human(node.entry.size)));
+            }
+        }
+    }
+
+    /// Set up filesystem watcher for both panel directories.
+    fn setup_fs_watcher(&mut self) {
+        use notify::{EventKind, RecursiveMode, Watcher};
+        let (tx, rx) = std::sync::mpsc::channel();
+
+        let handler_tx = tx.clone();
+        let watcher =
+            notify::recommended_watcher(move |res: Result<notify::Event, notify::Error>| {
+                if let Ok(event) = res {
+                    match event.kind {
+                        EventKind::Create(_) | EventKind::Remove(_) | EventKind::Modify(_) => {
+                            let _ = handler_tx.send(());
+                        }
+                        _ => {}
+                    }
+                }
+            });
+
+        match watcher {
+            Ok(mut w) => {
+                let _ = w.watch(&self.left_tree.root, RecursiveMode::NonRecursive);
+                let _ = w.watch(&self.right_tree.root, RecursiveMode::NonRecursive);
+                self.fs_watcher = Some(w);
+                self.fs_change_rx = Some(rx);
+            }
+            Err(_) => {
+                // Watcher unavailable — silently skip
+            }
+        }
+    }
+
+    /// Re-watch directories when panels navigate.
+    fn update_fs_watcher(&mut self) {
+        use notify::{RecursiveMode, Watcher};
+        if let Some(ref mut w) = self.fs_watcher {
+            // Unwatch all, then re-watch current roots
+            let _ = w.unwatch(&self.left_tree.root);
+            let _ = w.unwatch(&self.right_tree.root);
+            let _ = w.watch(&self.left_tree.root, RecursiveMode::NonRecursive);
+            let _ = w.watch(&self.right_tree.root, RecursiveMode::NonRecursive);
+        }
+    }
+
+    /// Check for filesystem change notifications (debounced).
+    fn check_fs_changes(&mut self) {
+        if let Some(ref rx) = self.fs_change_rx {
+            let mut changed = false;
+            // Drain all pending notifications
+            while rx.try_recv().is_ok() {
+                changed = true;
+            }
+            if changed {
+                // Debounce: only rebuild if 2+ ticks since last change
+                if self.tick_count - self.fs_change_tick >= 2 {
+                    self.left_tree.rebuild();
+                    self.right_tree.rebuild();
+                }
+                self.fs_change_tick = self.tick_count;
             }
         }
     }

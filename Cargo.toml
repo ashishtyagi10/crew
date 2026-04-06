@@ -38,6 +38,9 @@ walkdir = "2"
 dirs = "5"
 trash = "5"
 
+# File watching
+notify = { version = "7", default-features = false, features = ["macos_fsevent"] }
+
 # Hashing
 sha2 = "0.10"
 
