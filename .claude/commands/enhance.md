@@ -84,6 +84,24 @@ After all enhancements are implemented:
 4. Keep the existing style and formatting
 5. Run `cargo fmt` and `cargo check` one final time
 
+## Phase 6: Release New Version
+
+After all enhancements are implemented and documentation is updated:
+
+1. Read the current version from `Cargo.toml` (`[workspace.package] version`)
+2. Increment the version following this scheme:
+   - Increment the patch (rightmost) digit by 1
+   - If it reaches 10, reset to 0 and bump the minor (middle) digit
+   - If minor reaches 10, reset to 0 and bump the major digit
+   - Examples: 0.0.4 → 0.0.5, 0.0.9 → 0.1.0, 0.9.9 → 1.0.0
+3. Update the version in `Cargo.toml` (`[workspace.package] version = "X.Y.Z"`)
+4. Run `cargo check` to regenerate `Cargo.lock`
+5. Commit: `git add Cargo.toml Cargo.lock && git commit -m "Bump version to X.Y.Z"`
+6. Push: `git push origin main`
+7. Create a GitHub release with `gh release create vX.Y.Z` including:
+   - Title: `vX.Y.Z`
+   - Release notes summarizing the enhancements implemented in this run (keybindings, slash commands, features)
+
 ## Rules
 
 - NEVER break existing functionality. If unsure, don't change it.
