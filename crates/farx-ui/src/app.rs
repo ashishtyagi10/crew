@@ -1059,6 +1059,14 @@ impl App {
             "/find-file" | "/ff" => {
                 self.dispatch(Action::ShowFuzzyFinder);
             }
+            "/ssh" => {
+                if args.is_empty() {
+                    self.feedback
+                        .error("Usage: /ssh user@host:/path".to_string());
+                } else {
+                    self.dispatch(Action::SshBrowse(args.to_string()));
+                }
+            }
             "/duplicates" | "/dupes" => {
                 self.dispatch(Action::FindDuplicates);
             }
@@ -2043,6 +2051,40 @@ impl App {
                         Err(e) => {
                             self.feedback.error(format!("Compress: {}", e));
                         }
+                    }
+                }
+            }
+            Action::SshBrowse(target) => {
+                // Parse target: user@host:/path or user@host (defaults to ~)
+                let (host_part, remote_path) = if let Some(idx) = target.find(':') {
+                    (&target[..idx], &target[idx + 1..])
+                } else {
+                    (target.as_str(), "~")
+                };
+
+                self.feedback
+                    .info(format!("Connecting to {}...", host_part));
+
+                // Use system ssh to list remote directory
+                let cmd = format!(
+                    "ssh -o ConnectTimeout=5 -o BatchMode=yes {} ls -lahF {}",
+                    host_part, remote_path
+                );
+                let output = std::process::Command::new("sh").args(["-c", &cmd]).output();
+
+                match output {
+                    Ok(out) if out.status.success() => {
+                        let listing = String::from_utf8_lossy(&out.stdout).to_string();
+                        let title = format!("SSH: {}:{}", host_part, remote_path);
+                        self.feedback.show_output(&title, listing);
+                    }
+                    Ok(out) => {
+                        let stderr = String::from_utf8_lossy(&out.stderr).to_string();
+                        self.feedback
+                            .error(format!("SSH failed: {}", stderr.trim()));
+                    }
+                    Err(e) => {
+                        self.feedback.error(format!("SSH: {}", e));
                     }
                 }
             }

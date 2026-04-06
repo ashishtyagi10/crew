@@ -104,6 +104,9 @@ pub enum Action {
     ExtractArchive,
     CompressSelection,
 
+    // Remote browsing
+    SshBrowse(String),
+
     // Duplicate finder
     FindDuplicates,
 
