@@ -134,6 +134,8 @@ farx --keydebug       # Debug terminal key events
 | `Ctrl+P` | Fuzzy file finder |
 | `Alt+D` | Find duplicate files |
 | `Alt+T` | Disk usage treemap |
+| `Alt+Enter` | Quick actions palette |
+| `Alt+K` | SHA-256 checksum |
 
 ## Built-in Editor
 
@@ -283,6 +285,18 @@ Press `Alt+T` to see a visual bar-chart of disk usage for the current directory.
 ## SSH Remote Browsing
 
 Use `/ssh user@host:/path` to list files on a remote server. Works with your existing SSH config and keys. Example: `/ssh myserver:~/projects`.
+
+## Live File Watching
+
+Directory listings auto-refresh when files are created, modified, or deleted by external programs. No manual refresh needed — changes from builds, git operations, or other tools appear automatically.
+
+## Quick Actions Palette
+
+Press `Alt+Enter` to see context-aware actions for the file under the cursor. Actions adapt to the file type — for example, Rust files offer "Cargo check/test/run", Python files offer "Run with Python" and "Lint", shell scripts offer "Run" and "Make executable". Use `/actions` from the command line.
+
+## Checksums
+
+Press `Alt+K` to compute and display the SHA-256 checksum for the file under the cursor or all selected files. Use `/checksum` or `/sha256` from the command line.
 
 ## Themes
 
