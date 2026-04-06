@@ -86,7 +86,30 @@ fn check_latest_version() -> Result<Option<String>> {
 
 /// Perform the actual update: download and replace the current binary.
 /// This should be called outside the TUI (terminal restored first).
+/// If the current binary is not writable (e.g. /usr/local/bin), it will
+/// attempt to install to ~/.local/bin instead.
 pub fn perform_update() -> Result<self_update::Status> {
+    // First try updating in-place
+    match do_update() {
+        Ok(status) => Ok(status),
+        Err(e) => {
+            let err_str = e.to_string();
+            if err_str.contains("Permission denied") || err_str.contains("permission denied") {
+                // Binary is in a root-owned dir — try installing to ~/.local/bin
+                eprintln!();
+                eprintln!(
+                    "Permission denied updating in-place. \
+                     Attempting install to ~/.local/bin ..."
+                );
+                install_to_local_bin()
+            } else {
+                Err(e)
+            }
+        }
+    }
+}
+
+fn do_update() -> Result<self_update::Status> {
     let status = Update::configure()
         .repo_owner(REPO_OWNER)
         .repo_name(REPO_NAME)
@@ -97,6 +120,46 @@ pub fn perform_update() -> Result<self_update::Status> {
         .no_confirm(true)
         .build()?
         .update()?;
+    Ok(status)
+}
+
+/// Fallback: download the latest release and install to ~/.local/bin.
+fn install_to_local_bin() -> Result<self_update::Status> {
+    let local_bin = dirs::home_dir()
+        .ok_or_else(|| anyhow::anyhow!("Cannot determine home directory"))?
+        .join(".local")
+        .join("bin");
+
+    std::fs::create_dir_all(&local_bin)?;
+    let dest = local_bin.join("farx");
+
+    let status = Update::configure()
+        .repo_owner(REPO_OWNER)
+        .repo_name(REPO_NAME)
+        .bin_name("farx")
+        .identifier("farx")
+        .current_version(cargo_crate_version!())
+        .show_download_progress(true)
+        .no_confirm(true)
+        .bin_install_path(&local_bin)
+        .build()?
+        .update()?;
+
+    eprintln!();
+    eprintln!("Installed to {}", dest.display());
+
+    // Check if ~/.local/bin is in PATH
+    if let Ok(path) = std::env::var("PATH") {
+        let local_str = local_bin.to_string_lossy();
+        if !path.split(':').any(|p| p == local_str.as_ref()) {
+            eprintln!();
+            eprintln!("NOTE: {} is not in your PATH. Add it:", local_bin.display());
+            eprintln!(
+                "  echo 'export PATH=\"{}:$PATH\"' >> ~/.zshrc && source ~/.zshrc",
+                local_bin.display()
+            );
+        }
+    }
 
     Ok(status)
 }

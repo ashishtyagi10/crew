@@ -20,3 +20,4 @@ crossterm = { workspace = true }
 ratatui = { workspace = true }
 self_update = { workspace = true }
 semver = { workspace = true }
+dirs = { workspace = true }
