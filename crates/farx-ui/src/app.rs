@@ -99,6 +99,8 @@ pub struct App {
     pub filter_active: bool,
     /// Current filter pattern.
     pub filter_pattern: String,
+    /// Plugin engine for Lua extensions.
+    pub plugin_engine: Option<farx_plugin::PluginEngine>,
 }
 
 impl App {
@@ -169,6 +171,15 @@ impl App {
             bookmarks: load_bookmarks(),
             filter_active: false,
             filter_pattern: String::new(),
+            plugin_engine: {
+                match farx_plugin::PluginEngine::new() {
+                    Ok(mut engine) => {
+                        let _ = engine.load_plugins();
+                        Some(engine)
+                    }
+                    Err(_) => None,
+                }
+            },
         })
     }
 
@@ -907,6 +918,49 @@ impl App {
             "/compress" | "/zip" => {
                 self.dispatch(Action::CompressSelection);
             }
+            "/plugin" => {
+                if args.is_empty() {
+                    // List plugin commands
+                    if let Some(ref engine) = self.plugin_engine {
+                        let cmds = engine.list_commands();
+                        if cmds.is_empty() {
+                            self.feedback.info(
+                                "No plugins loaded. Place .lua files in ~/.config/farx/plugins/"
+                                    .to_string(),
+                            );
+                        } else {
+                            let lines: Vec<String> = cmds
+                                .iter()
+                                .map(|c| {
+                                    format!("  /{} — {} ({})", c.name, c.description, c.plugin_file)
+                                })
+                                .collect();
+                            self.feedback.show_output("Plugins", lines.join("\n"));
+                        }
+                    } else {
+                        self.feedback
+                            .error("Plugin engine not available".to_string());
+                    }
+                } else {
+                    // Run a plugin command
+                    let dir = self.active_tree_ref().root.to_string_lossy().to_string();
+                    if let Some(ref engine) = self.plugin_engine {
+                        match engine.execute_command(args, &dir) {
+                            Ok(farx_plugin::PluginResult::Message(msg)) => {
+                                self.feedback.info(msg);
+                            }
+                            Ok(farx_plugin::PluginResult::Shell(cmd)) => {
+                                self.command_line.input = cmd;
+                                self.smart_execute_command();
+                            }
+                            Ok(farx_plugin::PluginResult::None) => {}
+                            Err(e) => {
+                                self.feedback.error(format!("Plugin: {}", e));
+                            }
+                        }
+                    }
+                }
+            }
             "/back" => {
                 self.dispatch(Action::HistoryBack);
             }
@@ -938,7 +992,30 @@ impl App {
             "/info" => {
                 self.show_info_panel = !self.show_info_panel;
             }
-            _ => return false,
+            _ => {
+                // Try plugin commands: /cmd_name → plugin "cmd_name"
+                let plugin_cmd = cmd.trim_start_matches('/');
+                if let Some(ref engine) = self.plugin_engine {
+                    if engine.has_command(plugin_cmd) {
+                        let dir = self.active_tree_ref().root.to_string_lossy().to_string();
+                        match engine.execute_command(plugin_cmd, &dir) {
+                            Ok(farx_plugin::PluginResult::Message(msg)) => {
+                                self.feedback.info(msg);
+                            }
+                            Ok(farx_plugin::PluginResult::Shell(shell_cmd)) => {
+                                self.command_line.input = shell_cmd;
+                                self.smart_execute_command();
+                            }
+                            Ok(farx_plugin::PluginResult::None) => {}
+                            Err(e) => {
+                                self.feedback.error(format!("Plugin: {}", e));
+                            }
+                        }
+                        return true;
+                    }
+                }
+                return false;
+            }
         }
         true
     }

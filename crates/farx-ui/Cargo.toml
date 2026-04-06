@@ -7,6 +7,7 @@ edition.workspace = true
 farx-core = { workspace = true }
 farx-fs = { workspace = true }
 farx-ai = { workspace = true }
+farx-plugin = { workspace = true }
 ratatui = { workspace = true }
 crossterm = { workspace = true }
 tokio = { workspace = true }

@@ -57,6 +57,9 @@ clap = { version = "4", features = ["derive"] }
 # Clipboard
 arboard = "3"
 
+# Scripting
+mlua = { version = "0.10", features = ["lua54", "vendored"] }
+
 # Utilities
 chrono = { version = "0.4", features = ["serde"] }
 unicode-width = "0.2"

@@ -7,3 +7,5 @@ edition.workspace = true
 farx-core = { workspace = true }
 anyhow = { workspace = true }
 tracing = { workspace = true }
+mlua = { workspace = true }
+dirs = { workspace = true }
