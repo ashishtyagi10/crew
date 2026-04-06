@@ -1,9 +1,12 @@
 use std::path::{Path, PathBuf};
 
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind};
 use ratatui::prelude::*;
-use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
+use ratatui::widgets::{
+    Block, Borders, Clear, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState, Wrap,
+};
 
+use crate::components::markdown::render_markdown_with_bg;
 use crate::components::syntax::{highlight_line, Language};
 use crate::theme::Theme;
 
@@ -20,10 +23,16 @@ pub struct ViewerState {
     pub wrap: bool,
     /// Hex view mode
     pub hex_mode: bool,
+    /// Markdown preview mode
+    pub markdown_mode: bool,
+    /// Pre-rendered markdown lines
+    pub markdown_lines: Vec<Line<'static>>,
     /// Search query
     pub search: Option<String>,
     /// Total number of lines
     pub total_lines: usize,
+    /// Visible height from last render (for scroll clamping)
+    pub visible_height: usize,
     /// File size in bytes
     pub file_size: u64,
 }
@@ -46,8 +55,11 @@ impl ViewerState {
                     active: true,
                     wrap: false,
                     hex_mode: true,
+                    markdown_mode: false,
+                    markdown_lines: Vec::new(),
                     search: None,
                     total_lines: bytes.len().div_ceil(16),
+                    visible_height: 0,
                     file_size,
                 });
             }
@@ -56,6 +68,20 @@ impl ViewerState {
         let lines: Vec<String> = contents.lines().map(String::from).collect();
         let total_lines = lines.len();
 
+        // Detect markdown files and pre-render
+        let ext = path.extension().and_then(|e| e.to_str());
+        let markdown_mode = matches!(ext, Some("md" | "markdown" | "mdx"));
+        let markdown_lines = if markdown_mode {
+            render_markdown_with_bg(&contents, Color::Rgb(22, 22, 26))
+        } else {
+            Vec::new()
+        };
+        let effective_total = if markdown_mode {
+            markdown_lines.len()
+        } else {
+            total_lines
+        };
+
         Ok(Self {
             file_path: path.to_path_buf(),
             lines,
@@ -63,8 +89,11 @@ impl ViewerState {
             active: true,
             wrap: false,
             hex_mode: false,
+            markdown_mode,
+            markdown_lines,
             search: None,
-            total_lines,
+            total_lines: effective_total,
+            visible_height: 0,
             file_size,
         })
     }
@@ -96,11 +125,25 @@ impl ViewerState {
                 ViewerAction::None
             }
             KeyCode::End => {
-                self.scroll_offset = self.total_lines.saturating_sub(1);
+                self.scroll_offset = self.total_lines.saturating_sub(self.visible_height.max(1));
                 ViewerAction::None
             }
             KeyCode::Char('w') if key.modifiers.contains(KeyModifiers::CONTROL) => {
                 self.wrap = !self.wrap;
+                ViewerAction::None
+            }
+            _ => ViewerAction::None,
+        }
+    }
+
+    pub fn handle_mouse_event(&mut self, mouse: MouseEvent) -> ViewerAction {
+        match mouse.kind {
+            MouseEventKind::ScrollUp => {
+                self.scroll_up(3);
+                ViewerAction::None
+            }
+            MouseEventKind::ScrollDown => {
+                self.scroll_down(3);
                 ViewerAction::None
             }
             _ => ViewerAction::None,
@@ -112,7 +155,8 @@ impl ViewerState {
     }
 
     fn scroll_down(&mut self, amount: usize) {
-        self.scroll_offset = (self.scroll_offset + amount).min(self.total_lines.saturating_sub(1));
+        let max_offset = self.total_lines.saturating_sub(self.visible_height.max(1));
+        self.scroll_offset = (self.scroll_offset + amount).min(max_offset);
     }
 }
 
@@ -146,8 +190,9 @@ fn hex_dump(bytes: &[u8]) -> Vec<String> {
     lines
 }
 
-pub fn render_viewer(frame: &mut Frame, state: &ViewerState, _theme: &Theme) {
+pub fn render_viewer(frame: &mut Frame, state: &mut ViewerState, _theme: &Theme) {
     let area = frame.area();
+    frame.render_widget(Clear, area);
 
     // Title with file info
     let file_name = state
@@ -155,7 +200,13 @@ pub fn render_viewer(frame: &mut Frame, state: &ViewerState, _theme: &Theme) {
         .file_name()
         .map(|n| n.to_string_lossy().to_string())
         .unwrap_or_default();
-    let mode_str = if state.hex_mode { " [HEX]" } else { "" };
+    let mode_str = if state.hex_mode {
+        " [HEX]"
+    } else if state.markdown_mode {
+        " [MD]"
+    } else {
+        ""
+    };
     let title = format!(
         " {} - {}{} ",
         file_name,
@@ -181,37 +232,56 @@ pub fn render_viewer(frame: &mut Frame, state: &ViewerState, _theme: &Theme) {
     let inner = block.inner(area);
     frame.render_widget(block, area);
 
-    let visible_height = inner.height as usize;
+    // Reserve 1 row for the status bar (rendered over bottom border)
+    let content_height = inner.height as usize;
+    state.visible_height = content_height;
 
-    // Detect language from file extension
-    let ext = state.file_path.extension().and_then(|e| e.to_str());
-    let lang = Language::from_extension(ext);
+    // Re-clamp scroll offset after visible_height is known
+    if state.total_lines > content_height {
+        state.scroll_offset = state
+            .scroll_offset
+            .min(state.total_lines.saturating_sub(content_height));
+    } else {
+        state.scroll_offset = 0;
+    }
+
     let bg = Color::Rgb(22, 22, 26);
 
-    // Build visible lines with syntax highlighting
-    let mut text_lines: Vec<Line> = Vec::new();
-    for i in state.scroll_offset..(state.scroll_offset + visible_height).min(state.total_lines) {
-        if i < state.lines.len() {
-            let line_num = format!("{:>6} ", i + 1);
-            let content = &state.lines[i];
+    let text_lines: Vec<Line> = if state.markdown_mode {
+        // Markdown preview: use pre-rendered lines
+        let end = (state.scroll_offset + content_height).min(state.markdown_lines.len());
+        state.markdown_lines[state.scroll_offset..end].to_vec()
+    } else {
+        // Detect language from file extension
+        let ext = state.file_path.extension().and_then(|e| e.to_str());
+        let lang = Language::from_extension(ext);
 
-            let mut spans = vec![Span::styled(
-                line_num,
-                Style::default().fg(Color::DarkGray).bg(bg),
-            )];
+        let mut lines: Vec<Line> = Vec::new();
+        for i in state.scroll_offset..(state.scroll_offset + content_height).min(state.total_lines)
+        {
+            if i < state.lines.len() {
+                let line_num = format!("{:>6} ", i + 1);
+                let content = &state.lines[i];
 
-            if state.hex_mode {
-                spans.push(Span::styled(
-                    content.as_str(),
-                    Style::default().fg(Color::Rgb(200, 200, 210)).bg(bg),
-                ));
-            } else {
-                spans.extend(highlight_line(content, lang, bg));
+                let mut spans = vec![Span::styled(
+                    line_num,
+                    Style::default().fg(Color::DarkGray).bg(bg),
+                )];
+
+                if state.hex_mode {
+                    spans.push(Span::styled(
+                        content.as_str(),
+                        Style::default().fg(Color::Rgb(200, 200, 210)).bg(bg),
+                    ));
+                } else {
+                    spans.extend(highlight_line(content, lang, bg));
+                }
+
+                lines.push(Line::from(spans));
             }
-
-            text_lines.push(Line::from(spans));
         }
-    }
+        lines
+    };
 
     let paragraph = if state.wrap {
         Paragraph::new(text_lines).wrap(Wrap { trim: false })
@@ -221,12 +291,34 @@ pub fn render_viewer(frame: &mut Frame, state: &ViewerState, _theme: &Theme) {
 
     frame.render_widget(paragraph, inner);
 
+    // Scrollbar
+    if state.total_lines > content_height {
+        let scrollbar_area = Rect::new(
+            area.x + area.width.saturating_sub(1),
+            area.y + 1,
+            1,
+            area.height.saturating_sub(2),
+        );
+        let mut scrollbar_state =
+            ScrollbarState::new(state.total_lines.saturating_sub(content_height))
+                .position(state.scroll_offset);
+        frame.render_stateful_widget(
+            Scrollbar::new(ScrollbarOrientation::VerticalRight)
+                .track_symbol(Some("│"))
+                .thumb_symbol("█")
+                .track_style(Style::default().fg(Color::Rgb(50, 50, 55)))
+                .thumb_style(Style::default().fg(Color::Rgb(120, 120, 140))),
+            scrollbar_area,
+            &mut scrollbar_state,
+        );
+    }
+
     // Status bar at the bottom of the viewer area
     let status_y = area.y + area.height.saturating_sub(1);
     let percentage = if state.total_lines == 0 {
         100
     } else {
-        ((state.scroll_offset + visible_height).min(state.total_lines) * 100) / state.total_lines
+        ((state.scroll_offset + content_height).min(state.total_lines) * 100) / state.total_lines
     };
     let status_text = format!(
         " Line {}/{} ({}%) | {}Esc/F3/q=Close  PgUp/PgDn=Scroll  Ctrl+W=Wrap ",

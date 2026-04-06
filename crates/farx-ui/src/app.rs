@@ -1,10 +1,10 @@
 use std::path::{Path, PathBuf};
 
-use crossterm::event::KeyEvent;
+use crossterm::event::{KeyEvent, MouseEvent, MouseEventKind};
 use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::Frame;
 
-use farx_core::{Action, AppConfig, KeyMap, PanelSide, PanelState, TreeState};
+use farx_core::{Action, AppConfig, KeyMap, PanelSide, PanelState, SortOrder, TreeState};
 
 use farx_core::SortField;
 
@@ -618,24 +618,58 @@ impl App {
         self.keymap.resolve_panel(&key)
     }
 
+    /// Handle mouse events (scroll, click).
+    pub fn handle_mouse_event(&mut self, mouse: MouseEvent) {
+        match mouse.kind {
+            MouseEventKind::ScrollUp | MouseEventKind::ScrollDown => {
+                // Route scroll to active full-screen overlay first
+                if let Some(ref mut editor) = self.editor {
+                    let amount: i32 = if matches!(mouse.kind, MouseEventKind::ScrollUp) {
+                        -3
+                    } else {
+                        3
+                    };
+                    editor.scroll_offset = if amount < 0 {
+                        editor.scroll_offset.saturating_sub((-amount) as usize)
+                    } else {
+                        (editor.scroll_offset + amount as usize)
+                            .min(editor.lines.len().saturating_sub(1))
+                    };
+                    return;
+                }
+                if let Some(ref mut viewer) = self.viewer {
+                    viewer.handle_mouse_event(mouse);
+                    return;
+                }
+                // Scroll the active panel
+                let tree = match self.active_panel {
+                    PanelSide::Left => &mut self.left_tree,
+                    PanelSide::Right => &mut self.right_tree,
+                };
+                match mouse.kind {
+                    MouseEventKind::ScrollUp => tree.move_cursor(-3),
+                    MouseEventKind::ScrollDown => tree.move_cursor(3),
+                    _ => {}
+                }
+            }
+            _ => {}
+        }
+    }
+
     fn handle_menu_action(&mut self, action: MenuAction) {
         let show_hidden = self.config.general.show_hidden_files;
         match action {
             MenuAction::SortByName => {
-                self.active_panel_mut().sort_field = SortField::Name;
-                self.active_panel_mut().sort_entries();
+                self.toggle_sort(SortField::Name);
             }
             MenuAction::SortByExtension => {
-                self.active_panel_mut().sort_field = SortField::Extension;
-                self.active_panel_mut().sort_entries();
+                self.toggle_sort(SortField::Extension);
             }
             MenuAction::SortBySize => {
-                self.active_panel_mut().sort_field = SortField::Size;
-                self.active_panel_mut().sort_entries();
+                self.toggle_sort(SortField::Size);
             }
             MenuAction::SortByDate => {
-                self.active_panel_mut().sort_field = SortField::Modified;
-                self.active_panel_mut().sort_entries();
+                self.toggle_sort(SortField::Modified);
             }
             MenuAction::ToggleHidden => {
                 self.config.general.show_hidden_files = !self.config.general.show_hidden_files;
@@ -786,6 +820,33 @@ impl App {
                 }
             }
         }
+    }
+
+    /// Toggle sort: if already sorted by this field, flip asc/desc; otherwise set field and reset to ascending.
+    fn toggle_sort(&mut self, field: SortField) {
+        let panel = self.active_panel_mut();
+        if panel.sort_field == field {
+            panel.sort_order = match panel.sort_order {
+                SortOrder::Ascending => SortOrder::Descending,
+                SortOrder::Descending => SortOrder::Ascending,
+            };
+        } else {
+            panel.sort_field = field;
+            panel.sort_order = SortOrder::Ascending;
+        }
+        panel.sort_entries();
+        let field_name = match field {
+            SortField::Name => "Name",
+            SortField::Extension => "Extension",
+            SortField::Size => "Size",
+            SortField::Modified => "Date",
+        };
+        let order = match self.active_panel_ref().sort_order {
+            SortOrder::Ascending => "↑",
+            SortOrder::Descending => "↓",
+        };
+        self.feedback
+            .info(format!("Sort: {} {}", field_name, order));
     }
 
     /// Show a text-based treemap of disk usage for the current directory.
@@ -1121,34 +1182,16 @@ impl App {
                     if sh { "shown" } else { "hidden" }
                 ));
             }
-            "/sort" => {
-                let valid = match args {
-                    "name" => {
-                        self.active_panel_mut().sort_field = SortField::Name;
-                        true
-                    }
-                    "ext" => {
-                        self.active_panel_mut().sort_field = SortField::Extension;
-                        true
-                    }
-                    "size" => {
-                        self.active_panel_mut().sort_field = SortField::Size;
-                        true
-                    }
-                    "date" => {
-                        self.active_panel_mut().sort_field = SortField::Modified;
-                        true
-                    }
-                    _ => {
-                        self.feedback
-                            .error("Usage: /sort name|ext|size|date".to_string());
-                        false
-                    }
-                };
-                if valid {
-                    self.active_panel_mut().sort_entries();
+            "/sort" => match args {
+                "name" => self.toggle_sort(SortField::Name),
+                "ext" => self.toggle_sort(SortField::Extension),
+                "size" => self.toggle_sort(SortField::Size),
+                "date" => self.toggle_sort(SortField::Modified),
+                _ => {
+                    self.feedback
+                        .error("Usage: /sort name|ext|size|date".to_string());
                 }
-            }
+            },
             "/search" | "/find" => {
                 let dir = self.active_panel_ref().current_dir.clone();
                 self.search = Some(SearchState::new(dir));
@@ -2388,6 +2431,18 @@ impl App {
             Action::CalculateDirSize => {
                 self.calculate_dir_size();
             }
+            Action::SortByName => {
+                self.toggle_sort(SortField::Name);
+            }
+            Action::SortByExtension => {
+                self.toggle_sort(SortField::Extension);
+            }
+            Action::SortBySize => {
+                self.toggle_sort(SortField::Size);
+            }
+            Action::SortByDate => {
+                self.toggle_sort(SortField::Modified);
+            }
             _ => {
                 // Other actions not yet implemented
             }
@@ -2403,7 +2458,7 @@ impl App {
             render_editor(frame, editor, &self.theme);
             return;
         }
-        if let Some(ref viewer) = self.viewer {
+        if let Some(ref mut viewer) = self.viewer {
             render_viewer(frame, viewer, &self.theme);
             return;
         }

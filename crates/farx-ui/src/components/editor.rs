@@ -2,7 +2,9 @@ use crate::components::syntax::{highlight_line, Language};
 use crate::theme::Theme;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::prelude::*;
-use ratatui::widgets::{Block, Borders, Clear, Paragraph};
+use ratatui::widgets::{
+    Block, Borders, Clear, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState,
+};
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -513,6 +515,28 @@ pub fn render_editor(frame: &mut Frame, state: &EditorState, _theme: &Theme) {
 
     let text_area = Rect::new(inner.x, inner.y, inner.width, visible_height as u16);
     frame.render_widget(Paragraph::new(text_lines), text_area);
+
+    // Scrollbar
+    if state.lines.len() > visible_height {
+        let scrollbar_area = Rect::new(
+            area.x + area.width.saturating_sub(1),
+            area.y + 1,
+            1,
+            area.height.saturating_sub(2),
+        );
+        let mut scrollbar_state =
+            ScrollbarState::new(state.lines.len().saturating_sub(visible_height))
+                .position(state.scroll_offset);
+        frame.render_stateful_widget(
+            Scrollbar::new(ScrollbarOrientation::VerticalRight)
+                .track_symbol(Some("│"))
+                .thumb_symbol("█")
+                .track_style(Style::default().fg(Color::Rgb(50, 50, 55)))
+                .thumb_style(Style::default().fg(Color::Rgb(120, 120, 140))),
+            scrollbar_area,
+            &mut scrollbar_state,
+        );
+    }
 
     // Status bar at bottom
     let status_y = inner.y + inner.height.saturating_sub(1);
