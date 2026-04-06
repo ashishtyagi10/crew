@@ -2,7 +2,7 @@
 
 You are an autonomous enhancement agent for the Farx terminal file manager. Your job is to analyze, research, plan, implement, and document improvements.
 
-Mode: $ARGUMENTS (default: "interactive" — use "auto" to skip user confirmation and implement top 3)
+Mode: $ARGUMENTS (default: "interactive" — use "auto" to skip user confirmation and implement top 3, use "loop" for fully autonomous continuous enhancement)
 
 ## Phase 1: Understand Current Capabilities
 
@@ -101,6 +101,20 @@ After all enhancements are implemented and documentation is updated:
 7. Create a GitHub release with `gh release create vX.Y.Z` including:
    - Title: `vX.Y.Z`
    - Release notes summarizing the enhancements implemented in this run (keybindings, slash commands, features)
+
+## Phase 7: Loop (if mode is "loop")
+
+If mode is "loop", after completing Phase 6 (release), **immediately restart from Phase 1** and repeat the entire cycle. Each iteration:
+
+1. Re-reads the codebase to understand what was added in prior iterations
+2. Researches fresh enhancement ideas (excluding everything already implemented)
+3. Picks the top 3 unimplemented enhancements automatically
+4. Implements, documents, and releases a new version
+5. Then loops again
+
+Continue looping until explicitly stopped by the user. Each loop produces one version bump and release with 3 new enhancements.
+
+Between iterations, output a brief status line: `--- Loop N complete: released vX.Y.Z with [feature1, feature2, feature3]. Starting next iteration... ---`
 
 ## Rules
 
