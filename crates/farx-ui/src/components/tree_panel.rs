@@ -13,6 +13,17 @@ pub fn render_tree_panel(
     is_active: bool,
     theme: &Theme,
 ) {
+    render_tree_panel_with_filter(frame, area, tree, is_active, theme, false);
+}
+
+pub fn render_tree_panel_with_filter(
+    frame: &mut Frame,
+    area: Rect,
+    tree: &TreeState,
+    is_active: bool,
+    theme: &Theme,
+    filter_editing: bool,
+) {
     let dir_display = tree.root.to_string_lossy().to_string();
     let border_style = if is_active {
         theme.panel_border_active
@@ -44,8 +55,40 @@ pub fn render_tree_panel(
         return;
     }
 
+    // Filter bar (shown when filter is active)
+    let filter_height: u16 = if !tree.filter.is_empty() || filter_editing {
+        1
+    } else {
+        0
+    };
+    if filter_height > 0 {
+        let filter_area = Rect {
+            x: inner.x,
+            y: inner.y,
+            width: inner.width,
+            height: 1,
+        };
+        let filter_display = format!(
+            " Filter: {:<width$}",
+            tree.filter,
+            width = (inner.width as usize).saturating_sub(10)
+        );
+        let filter_style = if filter_editing {
+            Style::default().fg(Color::Yellow).bg(Color::Indexed(238))
+        } else {
+            Style::default().fg(Color::Cyan).bg(Color::Indexed(237))
+        };
+        frame.render_widget(
+            Paragraph::new(Line::from(Span::styled(filter_display, filter_style))),
+            filter_area,
+        );
+        if filter_editing {
+            frame.set_cursor_position((inner.x + 9 + tree.filter.len() as u16, inner.y));
+        }
+    }
+
     let footer_height: u16 = 1;
-    let list_height = inner.height.saturating_sub(footer_height) as usize;
+    let list_height = inner.height.saturating_sub(footer_height + filter_height) as usize;
     let total_width = inner.width as usize;
 
     let mut lines: Vec<Line<'_>> = Vec::with_capacity(list_height);
@@ -165,7 +208,7 @@ pub fn render_tree_panel(
 
     let list_area = Rect {
         x: inner.x,
-        y: inner.y,
+        y: inner.y + filter_height,
         width: inner.width,
         height: list_height as u16,
     };
@@ -174,7 +217,7 @@ pub fn render_tree_panel(
     // Footer
     let footer_area = Rect {
         x: inner.x,
-        y: inner.y + list_height as u16,
+        y: inner.y + filter_height + list_height as u16,
         width: inner.width,
         height: footer_height,
     };

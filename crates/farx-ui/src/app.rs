@@ -20,7 +20,7 @@ use crate::components::help::{render_help, HelpState};
 use crate::components::info_panel::{render_info_panel, InfoPanelData};
 use crate::components::menu::{render_menu, MenuAction, MenuState};
 use crate::components::search::{render_search, SearchAction, SearchState};
-use crate::components::tree_panel::render_tree_panel;
+use crate::components::tree_panel::{render_tree_panel, render_tree_panel_with_filter};
 use crate::components::viewer::{render_viewer, ViewerAction, ViewerState};
 use crate::components::{command_line, fn_bar};
 use crate::theme::Theme;
@@ -412,6 +412,48 @@ impl App {
                 self.handle_dialog_result(result, pending);
             }
             return Action::Noop;
+        }
+
+        // Filter mode: intercept key input for filter pattern
+        if self.filter_active {
+            use crossterm::event::{KeyCode, KeyModifiers};
+            match (key.code, key.modifiers) {
+                (KeyCode::Esc, _) => {
+                    self.filter_active = false;
+                    self.filter_pattern.clear();
+                    self.active_tree().filter.clear();
+                    self.active_tree().rebuild();
+                    return Action::Noop;
+                }
+                (KeyCode::Enter, _) => {
+                    // Accept filter and close filter bar (keep results narrowed)
+                    self.filter_active = false;
+                    return Action::Noop;
+                }
+                (KeyCode::Backspace, _) => {
+                    self.filter_pattern.pop();
+                    self.active_tree().filter = self.filter_pattern.clone();
+                    self.active_tree().rebuild();
+                    return Action::Noop;
+                }
+                (KeyCode::Char(ch), KeyModifiers::NONE | KeyModifiers::SHIFT) => {
+                    self.filter_pattern.push(ch);
+                    self.active_tree().filter = self.filter_pattern.clone();
+                    self.active_tree().rebuild();
+                    return Action::Noop;
+                }
+                (KeyCode::Up, _) => {
+                    self.active_tree().move_cursor(-1);
+                    return Action::Noop;
+                }
+                (KeyCode::Down, _) => {
+                    self.active_tree().move_cursor(1);
+                    return Action::Noop;
+                }
+                _ => {
+                    return Action::Noop;
+                }
+            }
         }
 
         // If command line has input, intercept some keys for command line editing
@@ -823,6 +865,17 @@ impl App {
             }
             "/menu" => {
                 self.menu = Some(MenuState::new());
+            }
+            "/filter" => {
+                if args.is_empty() {
+                    self.filter_active = true;
+                    self.filter_pattern.clear();
+                } else {
+                    self.filter_pattern = args.to_string();
+                    self.active_tree().filter = args.to_string();
+                    self.active_tree().rebuild();
+                    self.feedback.info(format!("Filter: {}", args));
+                }
             }
             "/bookmark" | "/bm" => {
                 if args.is_empty() {
@@ -1517,12 +1570,15 @@ impl App {
         self.right_tree.scroll_to_cursor(right_height);
 
         // Render left tree panel
-        render_tree_panel(
+        let left_active = self.active_panel == PanelSide::Left;
+        let left_filter_editing = left_active && self.filter_active;
+        render_tree_panel_with_filter(
             frame,
             panel_chunks[0],
             &self.left_tree,
-            self.active_panel == PanelSide::Left,
+            left_active,
             &self.theme,
+            left_filter_editing,
         );
 
         // Render right tree panel (or info panel if Ctrl+L toggled)
@@ -1530,12 +1586,15 @@ impl App {
             let data = InfoPanelData::from_panel(self.active_panel_ref());
             render_info_panel(frame, panel_chunks[1], &data, &self.theme);
         } else {
-            render_tree_panel(
+            let right_active = self.active_panel == PanelSide::Right;
+            let right_filter_editing = right_active && self.filter_active;
+            render_tree_panel_with_filter(
                 frame,
                 panel_chunks[1],
                 &self.right_tree,
-                self.active_panel == PanelSide::Right,
+                right_active,
                 &self.theme,
+                right_filter_editing,
             );
         }
 

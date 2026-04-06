@@ -27,6 +27,8 @@ pub struct TreeState {
     pub selected: HashSet<usize>,
     /// Whether to show hidden files
     pub show_hidden: bool,
+    /// Active filter pattern (empty = no filter)
+    pub filter: String,
 }
 
 impl TreeState {
@@ -39,6 +41,7 @@ impl TreeState {
             scroll_offset: 0,
             selected: HashSet::new(),
             show_hidden: false,
+            filter: String::new(),
         };
         // Root is always expanded
         state.expanded.insert(root);
@@ -116,6 +119,17 @@ impl TreeState {
             (false, true) => std::cmp::Ordering::Greater,
             _ => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
         });
+
+        // Apply filter at depth 0 (root listing) — files only, dirs always pass
+        let filter_lower = self.filter.to_lowercase();
+        let items: Vec<FileEntry> = if !filter_lower.is_empty() && depth == 0 {
+            items
+                .into_iter()
+                .filter(|item| item.is_dir || item.name.to_lowercase().contains(&filter_lower))
+                .collect()
+        } else {
+            items
+        };
 
         for item in items {
             let is_dir = item.is_dir;
@@ -257,6 +271,7 @@ impl TreeState {
         self.cursor = 0;
         self.scroll_offset = 0;
         self.selected.clear();
+        self.filter.clear();
         self.rebuild();
     }
 }
