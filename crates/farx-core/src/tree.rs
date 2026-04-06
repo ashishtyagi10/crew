@@ -1,4 +1,4 @@
-use crate::types::FileEntry;
+use crate::types::{FileEntry, SortField, SortOrder};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
@@ -49,6 +49,10 @@ pub struct TreeState {
     pub git_status: HashMap<PathBuf, GitFileStatus>,
     /// Whether we are inside a git repository.
     pub in_git_repo: bool,
+    /// Sort field for file ordering.
+    pub sort_field: SortField,
+    /// Sort order (ascending/descending).
+    pub sort_order: SortOrder,
 }
 
 impl TreeState {
@@ -66,6 +70,8 @@ impl TreeState {
             history_forward: Vec::new(),
             git_status: HashMap::new(),
             in_git_repo: false,
+            sort_field: SortField::default(),
+            sort_order: SortOrder::default(),
         };
         // Root is always expanded
         state.expanded.insert(root);
@@ -159,11 +165,33 @@ impl TreeState {
             });
         }
 
-        // Sort: directories first, then alphabetically
-        items.sort_by(|a, b| match (a.is_dir, b.is_dir) {
-            (true, false) => std::cmp::Ordering::Less,
-            (false, true) => std::cmp::Ordering::Greater,
-            _ => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
+        // Sort: directories first, then by configured sort field/order
+        let sort_field = self.sort_field;
+        let sort_order = self.sort_order;
+        items.sort_by(|a, b| {
+            // Directories always come first
+            match (a.is_dir, b.is_dir) {
+                (true, false) => return std::cmp::Ordering::Less,
+                (false, true) => return std::cmp::Ordering::Greater,
+                _ => {}
+            }
+            let ordering = match sort_field {
+                SortField::Name => a.name.to_lowercase().cmp(&b.name.to_lowercase()),
+                SortField::Extension => {
+                    let ext_a = a.extension.as_deref().unwrap_or("");
+                    let ext_b = b.extension.as_deref().unwrap_or("");
+                    ext_a
+                        .to_lowercase()
+                        .cmp(&ext_b.to_lowercase())
+                        .then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase()))
+                }
+                SortField::Size => a.size.cmp(&b.size),
+                SortField::Modified => a.modified.cmp(&b.modified),
+            };
+            match sort_order {
+                SortOrder::Ascending => ordering,
+                SortOrder::Descending => ordering.reverse(),
+            }
         });
 
         // Apply filter at depth 0 (root listing) — files only, dirs always pass

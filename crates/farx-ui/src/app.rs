@@ -864,14 +864,22 @@ impl App {
             panel.sort_field = field;
             panel.sort_order = SortOrder::Ascending;
         }
+        let new_order = panel.sort_order;
         panel.sort_entries();
+
+        // Sync tree sort settings and rebuild so the display actually changes
+        let tree = self.active_tree();
+        tree.sort_field = field;
+        tree.sort_order = new_order;
+        tree.rebuild();
+
         let field_name = match field {
             SortField::Name => "Name",
             SortField::Extension => "Extension",
             SortField::Size => "Size",
             SortField::Modified => "Date",
         };
-        let order = match self.active_panel_ref().sort_order {
+        let order = match new_order {
             SortOrder::Ascending => "↑",
             SortOrder::Descending => "↓",
         };

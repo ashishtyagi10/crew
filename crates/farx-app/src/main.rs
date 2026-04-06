@@ -131,8 +131,8 @@ async fn main() -> Result<()> {
             Some(Event::Tick) => {
                 app.tick();
             }
-            Some(Event::Mouse(_)) => {
-                // Mouse support later
+            Some(Event::Mouse(mouse)) => {
+                app.handle_mouse_event(mouse);
             }
             None => {
                 // Event stream ended

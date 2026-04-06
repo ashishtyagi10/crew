@@ -214,8 +214,20 @@ impl KeyMap {
         );
 
         // ── Select/Deselect by mask ────────────────────────────────────
+        // Alt+= (easier to press) and Alt++ (Shift+= on most keyboards)
         panel.insert(
             (KeyCode::Char('+'), KeyModifiers::ALT),
+            Action::SelectByMaskDialog,
+        );
+        panel.insert(
+            (
+                KeyCode::Char('+'),
+                KeyModifiers::ALT.union(KeyModifiers::SHIFT),
+            ),
+            Action::SelectByMaskDialog,
+        );
+        panel.insert(
+            (KeyCode::Char('='), KeyModifiers::ALT),
             Action::SelectByMaskDialog,
         );
         panel.insert(

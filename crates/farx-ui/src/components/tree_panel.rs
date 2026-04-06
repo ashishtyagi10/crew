@@ -1,5 +1,6 @@
 use crate::theme::Theme;
 use farx_core::tree::{GitFileStatus, TreeState};
+use farx_core::{SortField, SortOrder};
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
@@ -253,10 +254,23 @@ pub fn render_tree_panel_with_filter(
 
     let node_count = tree.visible_nodes.len();
     let selected_count = tree.selected.len();
+    let sort_label = match tree.sort_field {
+        SortField::Name => "Name",
+        SortField::Extension => "Ext",
+        SortField::Size => "Size",
+        SortField::Modified => "Date",
+    };
+    let sort_arrow = match tree.sort_order {
+        SortOrder::Ascending => "↑",
+        SortOrder::Descending => "↓",
+    };
     let footer_text = if selected_count > 0 {
-        format!("  {} items | {} selected", node_count, selected_count)
+        format!(
+            "  {} items | {} selected | {}{sort_arrow}",
+            node_count, selected_count, sort_label
+        )
     } else {
-        format!("  {} items", node_count)
+        format!("  {} items | {}{sort_arrow}", node_count, sort_label)
     };
 
     frame.render_widget(
