@@ -137,8 +137,13 @@ pub fn render_tree_panel_with_filter(
             .mode
             .map(|m| format!(" {}", format_permissions(m)))
             .unwrap_or_default();
+        let date_str = node
+            .entry
+            .modified
+            .map(|m| format!(" {}", m.format("%m-%d %H:%M")))
+            .unwrap_or_default();
 
-        let name_and_size = format!("{}{}{}", name, size_str, perms_str);
+        let name_and_size = format!("{}{}{}{}", name, size_str, perms_str, date_str);
 
         // Styles
         let entry_style = if is_cursor && is_selected {
