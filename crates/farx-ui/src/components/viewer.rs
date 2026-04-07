@@ -39,6 +39,8 @@ pub struct ViewerState {
     pub follow: bool,
     /// Go-to-line input mode
     pub goto_input: Option<String>,
+    /// Search input mode
+    pub search_input: Option<String>,
 }
 
 const MAX_VIEW_SIZE: u64 = 100 * 1024 * 1024; // 100 MB
@@ -76,6 +78,7 @@ impl ViewerState {
                     file_size,
                     follow: false,
                     goto_input: None,
+                    search_input: None,
                 });
             }
         };
@@ -112,10 +115,75 @@ impl ViewerState {
             file_size,
             follow: false,
             goto_input: None,
+            search_input: None,
         })
     }
 
+    fn find_in_viewer(&mut self, query: &str) {
+        if query.is_empty() {
+            return;
+        }
+        let query_lower = query.to_lowercase();
+        // Search from current scroll position forward
+        for i in self.scroll_offset..self.total_lines {
+            if i < self.lines.len() && self.lines[i].to_lowercase().contains(&query_lower) {
+                self.scroll_offset = i;
+                self.search = Some(query.to_string());
+                return;
+            }
+        }
+        // Wrap around from beginning
+        for i in 0..self.scroll_offset {
+            if i < self.lines.len() && self.lines[i].to_lowercase().contains(&query_lower) {
+                self.scroll_offset = i;
+                self.search = Some(query.to_string());
+                return;
+            }
+        }
+    }
+
+    fn find_next_in_viewer(&mut self) {
+        if let Some(query) = self.search.clone() {
+            let query_lower = query.to_lowercase();
+            for i in (self.scroll_offset + 1)..self.total_lines {
+                if i < self.lines.len() && self.lines[i].to_lowercase().contains(&query_lower) {
+                    self.scroll_offset = i;
+                    return;
+                }
+            }
+            // Wrap
+            for i in 0..=self.scroll_offset {
+                if i < self.lines.len() && self.lines[i].to_lowercase().contains(&query_lower) {
+                    self.scroll_offset = i;
+                    return;
+                }
+            }
+        }
+    }
+
     pub fn handle_key_event(&mut self, key: KeyEvent) -> ViewerAction {
+        // Search input mode
+        if let Some(ref mut input) = self.search_input {
+            match key.code {
+                KeyCode::Enter => {
+                    let query = input.clone();
+                    self.search_input = None;
+                    self.find_in_viewer(&query);
+                }
+                KeyCode::Esc => {
+                    self.search_input = None;
+                }
+                KeyCode::Char(ch) => {
+                    input.push(ch);
+                }
+                KeyCode::Backspace => {
+                    input.pop();
+                }
+                _ => {}
+            }
+            return ViewerAction::None;
+        }
+
         // Go-to-line input mode
         if let Some(ref mut input) = self.goto_input {
             match key.code {
@@ -176,6 +244,14 @@ impl ViewerState {
             }
             KeyCode::Char('g') if key.modifiers.contains(KeyModifiers::CONTROL) => {
                 self.goto_input = Some(String::new());
+                ViewerAction::None
+            }
+            KeyCode::Char('/') | KeyCode::F(7) => {
+                self.search_input = Some(String::new());
+                ViewerAction::None
+            }
+            KeyCode::Char('n') => {
+                self.find_next_in_viewer();
                 ViewerAction::None
             }
             KeyCode::Char('f') if key.modifiers.contains(KeyModifiers::CONTROL) => {
@@ -394,7 +470,9 @@ pub fn render_viewer(frame: &mut Frame, state: &mut ViewerState, _theme: &Theme)
         ((state.scroll_offset + content_height).min(state.total_lines) * 100) / state.total_lines
     };
     let follow_indicator = if state.follow { "FOLLOW  " } else { "" };
-    let status_text = if let Some(ref input) = state.goto_input {
+    let status_text = if let Some(ref input) = state.search_input {
+        format!(" Search: {}_ (Enter=Find, Esc=Cancel) ", input)
+    } else if let Some(ref input) = state.goto_input {
         format!(" Go to line: {}_ (Enter=Go, Esc=Cancel) ", input)
     } else {
         format!(
