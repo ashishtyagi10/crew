@@ -37,10 +37,19 @@ pub struct ViewerState {
     pub file_size: u64,
 }
 
+const MAX_VIEW_SIZE: u64 = 100 * 1024 * 1024; // 100 MB
+
 impl ViewerState {
     pub fn open(path: &Path) -> anyhow::Result<Self> {
         let metadata = std::fs::metadata(path)?;
         let file_size = metadata.len();
+
+        if file_size > MAX_VIEW_SIZE {
+            anyhow::bail!(
+                "File too large ({:.1} MB). Max: 100 MB",
+                file_size as f64 / 1_048_576.0
+            );
+        }
 
         // Read file contents - handle binary files gracefully
         let contents = match std::fs::read_to_string(path) {

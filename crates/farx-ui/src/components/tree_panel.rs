@@ -84,7 +84,7 @@ pub fn render_tree_panel_with_filter(
             filter_area,
         );
         if filter_editing {
-            frame.set_cursor_position((inner.x + 9 + tree.filter.len() as u16, inner.y));
+            frame.set_cursor_position((inner.x + 9 + tree.filter.chars().count() as u16, inner.y));
         }
     }
 
@@ -194,8 +194,13 @@ pub fn render_tree_panel_with_filter(
         // Calculate how much space the name part gets
         let prefix_len = indent.chars().count() + connector.chars().count() + icon.chars().count();
         let name_width = total_width.saturating_sub(prefix_len + git_len);
-        let name_padded = if name_and_size.len() >= name_width {
-            format!("{}~", &name_and_size[..name_width.saturating_sub(1)])
+        let name_padded = if name_and_size.chars().count() >= name_width {
+            // Truncate at character boundary, not byte boundary
+            let truncated: String = name_and_size
+                .chars()
+                .take(name_width.saturating_sub(1))
+                .collect();
+            format!("{}~", truncated)
         } else {
             format!("{:<width$}", name_and_size, width = name_width)
         };

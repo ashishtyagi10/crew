@@ -213,13 +213,14 @@ pub fn render_command_line(
     };
 
     let dir_str = current_dir.to_string_lossy();
-    // Truncate dir if too long
+    // Truncate dir if too long (use chars for safe unicode handling)
     let max_dir_len = (area.width as usize).saturating_sub(20);
-    let dir_display = if dir_str.len() > max_dir_len {
-        format!(
-            "...{}",
-            &dir_str[dir_str.len().saturating_sub(max_dir_len)..]
-        )
+    let dir_display = if dir_str.chars().count() > max_dir_len {
+        let suffix: String = dir_str
+            .chars()
+            .skip(dir_str.chars().count().saturating_sub(max_dir_len))
+            .collect();
+        format!("...{}", suffix)
     } else {
         dir_str.to_string()
     };

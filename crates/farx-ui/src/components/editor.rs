@@ -45,8 +45,19 @@ pub struct EditorState {
     last_save_undo_len: usize,
 }
 
+const MAX_FILE_SIZE: u64 = 100 * 1024 * 1024; // 100 MB
+
 impl EditorState {
     pub fn open(path: &Path) -> anyhow::Result<Self> {
+        if path.exists() {
+            let meta = std::fs::metadata(path)?;
+            if meta.len() > MAX_FILE_SIZE {
+                anyhow::bail!(
+                    "File too large ({:.1} MB). Max: 100 MB",
+                    meta.len() as f64 / 1_048_576.0
+                );
+            }
+        }
         let contents = if path.exists() {
             std::fs::read_to_string(path)?
         } else {
@@ -147,6 +158,14 @@ impl EditorState {
         if self.cursor_col > len {
             self.cursor_col = len;
         }
+        // Ensure we're at a char boundary
+        if self.cursor_line < self.lines.len() {
+            while self.cursor_col > 0
+                && !self.lines[self.cursor_line].is_char_boundary(self.cursor_col)
+            {
+                self.cursor_col -= 1;
+            }
+        }
     }
 
     fn insert_char(&mut self, ch: char) {
@@ -161,8 +180,20 @@ impl EditorState {
     fn insert_newline(&mut self) {
         self.save_undo();
         if self.cursor_line < self.lines.len() {
-            let rest = self.lines[self.cursor_line][self.cursor_col..].to_string();
-            self.lines[self.cursor_line].truncate(self.cursor_col);
+            // Ensure cursor_col is at a char boundary
+            let line = &self.lines[self.cursor_line];
+            let col = self.cursor_col.min(line.len());
+            let col = if col > 0 && !line.is_char_boundary(col) {
+                line.char_indices()
+                    .rev()
+                    .find(|&(i, _)| i <= col)
+                    .map(|(i, _)| i)
+                    .unwrap_or(0)
+            } else {
+                col
+            };
+            let rest = self.lines[self.cursor_line][col..].to_string();
+            self.lines[self.cursor_line].truncate(col);
             self.cursor_line += 1;
             self.lines.insert(self.cursor_line, rest);
             self.cursor_col = 0;
@@ -207,17 +238,27 @@ impl EditorState {
     }
 
     fn find_next(&mut self) {
-        if self.search_query.is_empty() {
+        if self.search_query.is_empty() || self.lines.is_empty() {
             return;
         }
         let query = self.search_query.clone();
         // Search from current position forward
-        let start_line = self.cursor_line;
+        let start_line = self.cursor_line.min(self.lines.len() - 1);
         let start_col = self.cursor_col + 1;
 
         for i in 0..self.lines.len() {
             let line_idx = (start_line + i) % self.lines.len();
-            let search_from = if i == 0 { start_col } else { 0 };
+            let search_from = if i == 0 {
+                // Ensure search_from is at a char boundary
+                let line = &self.lines[line_idx];
+                let mut sf = start_col.min(line.len());
+                while sf > 0 && sf < line.len() && !line.is_char_boundary(sf) {
+                    sf += 1;
+                }
+                sf
+            } else {
+                0
+            };
             if search_from <= self.lines[line_idx].len() {
                 if let Some(pos) = self.lines[line_idx][search_from..].find(&query) {
                     self.cursor_line = line_idx;
@@ -354,6 +395,11 @@ impl EditorState {
             (KeyCode::Left, KeyModifiers::NONE) => {
                 if self.cursor_col > 0 {
                     self.cursor_col -= 1;
+                    // Skip back to char boundary for multi-byte chars
+                    let line = &self.lines[self.cursor_line];
+                    while self.cursor_col > 0 && !line.is_char_boundary(self.cursor_col) {
+                        self.cursor_col -= 1;
+                    }
                 } else if self.cursor_line > 0 {
                     self.cursor_line -= 1;
                     self.cursor_col = self.current_line_len();
@@ -362,6 +408,11 @@ impl EditorState {
             (KeyCode::Right, KeyModifiers::NONE) => {
                 if self.cursor_col < self.current_line_len() {
                     self.cursor_col += 1;
+                    // Skip forward to char boundary for multi-byte chars
+                    let line = &self.lines[self.cursor_line];
+                    while self.cursor_col < line.len() && !line.is_char_boundary(self.cursor_col) {
+                        self.cursor_col += 1;
+                    }
                 } else if self.cursor_line + 1 < self.lines.len() {
                     self.cursor_line += 1;
                     self.cursor_col = 0;
