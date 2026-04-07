@@ -148,6 +148,7 @@ farx --keydebug       # Debug terminal key events
 | `Ctrl+G` | Go to directory |
 | `Ctrl+F9` | Compare directories |
 | `Alt+W` | Touch file (update mtime) |
+| `Alt+I` | File statistics (line/word/byte count) |
 
 ## Built-in Editor
 
@@ -156,6 +157,7 @@ Open any file with `F4`. The editor supports:
 - Syntax highlighting for common languages
 - Undo / redo (`Ctrl+Z` / `Ctrl+Shift+Z`)
 - Search (`Ctrl+F`) and replace (`Ctrl+H`)
+- Go to line (`Ctrl+G`)
 - Save (`Ctrl+S`), save and exit (`Ctrl+Q`)
 
 ## Built-in Viewer
