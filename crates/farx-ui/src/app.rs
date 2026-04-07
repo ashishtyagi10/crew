@@ -44,6 +44,7 @@ enum PendingOperation {
 
 /// A recorded file operation that can be undone.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 enum UndoEntry {
     /// Files were deleted (moved to trash). Record paths for feedback.
     Delete { paths: Vec<PathBuf> },
@@ -3115,7 +3116,7 @@ fn is_text_file(path: &Path) -> bool {
         Some(
             "pdf" | "doc" | "docx" | "xls" | "xlsx" | "ppt" | "pptx" | "odt" | "ods" | "odp"
             | "png" | "jpg" | "jpeg" | "gif" | "bmp" | "ico" | "tiff" | "tif" | "webp"
-            | "heic" | "heif" | "raw" | "cr2" | "nef" | "svg"  // svg as image
+            | "heic" | "heif" | "raw" | "cr2" | "nef"
             | "mp3" | "wav" | "flac" | "aac" | "ogg" | "wma" | "m4a"
             | "mp4" | "mkv" | "avi" | "mov" | "wmv" | "flv" | "webm" | "m4v"
             | "zip" | "tar" | "gz" | "bz2" | "xz" | "7z" | "rar" | "zst" | "lz"

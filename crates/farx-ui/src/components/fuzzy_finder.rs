@@ -17,21 +17,24 @@ pub enum FuzzyAction {
 }
 
 #[derive(Debug, Clone)]
-struct FuzzyResult {
-    path: PathBuf,
-    name: String,
-    rel_path: String,
-    score: i32,
+#[allow(dead_code)]
+pub(crate) struct FuzzyResult {
+    pub(crate) path: PathBuf,
+    pub(crate) name: String,
+    pub(crate) rel_path: String,
+    pub(crate) score: i32,
 }
 
 pub struct FuzzyFinderState {
     pub active: bool,
     pub query: String,
     pub cursor_pos: usize,
+    #[allow(private_interfaces)]
     pub results: Vec<FuzzyResult>,
     pub result_cursor: usize,
     pub result_scroll: usize,
-    root: PathBuf,
+    #[allow(dead_code)]
+    pub(crate) root: PathBuf,
     all_files: Vec<(PathBuf, String, String)>, // (abs_path, name, rel_path)
 }
 

@@ -112,7 +112,7 @@ impl Theme {
         let magenta = Color::Rgb(190, 120, 170); // dusty pink
         let orange = Color::Rgb(230, 140, 70); // warm orange
         let teal = Color::Rgb(90, 180, 160); // muted teal (not blue)
-        let yellow = Color::Rgb(230, 200, 100); // soft yellow
+        let _yellow = Color::Rgb(230, 200, 100); // soft yellow
         let dim = Color::Rgb(70, 68, 64); // muted comments
         let surface = Color::Rgb(26, 26, 30); // surface for headers
         let cursor_bg = Color::Rgb(55, 50, 35); // warm dark highlight

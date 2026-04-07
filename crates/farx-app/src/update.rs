@@ -11,6 +11,7 @@ const REPO_OWNER: &str = "ashishtyagi10";
 const REPO_NAME: &str = "farx";
 
 /// Result of a background update check.
+#[allow(dead_code)]
 pub enum UpdateStatus {
     /// A newer version is available.
     Available(String),

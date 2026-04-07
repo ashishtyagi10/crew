@@ -156,9 +156,9 @@ Open any file with `F4`. The editor supports:
 
 - Syntax highlighting for common languages
 - Undo / redo (`Ctrl+Z` / `Ctrl+Shift+Z`)
-- Search (`Ctrl+F`) and replace (`Ctrl+H`)
+- Search (`Ctrl+F` or `F7`), find next (`F3`)
 - Go to line (`Ctrl+G`)
-- Save (`Ctrl+S`), save and exit (`Ctrl+Q`)
+- Save (`Ctrl+S` or `F2`), save and exit (`Ctrl+Q` or `Shift+F2`)
 
 ## Built-in Viewer
 

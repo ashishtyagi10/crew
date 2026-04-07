@@ -4,8 +4,9 @@
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::Span;
 
-const BG: Color = Color::Rgb(22, 22, 26);
-const BG_CURSOR: Color = Color::Indexed(236);
+// Background colors available for syntax-highlighted rendering
+const _BG: Color = Color::Rgb(22, 22, 26);
+const _BG_CURSOR: Color = Color::Indexed(236);
 
 // Color palette — rich, distinct colors
 const C_KEYWORD: Color = Color::Rgb(220, 170, 60); // amber — keywords (if, for, fn)
