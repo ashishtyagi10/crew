@@ -127,6 +127,14 @@ pub fn render_tree_panel_with_filter(
         };
 
         let name = &node.entry.name;
+        let symlink_target = if node.entry.is_symlink {
+            std::fs::read_link(&node.entry.path)
+                .ok()
+                .map(|t| format!(" → {}", t.display()))
+                .unwrap_or_else(|| " → ?".to_string())
+        } else {
+            String::new()
+        };
         let size_str = if node.entry.is_dir {
             String::new()
         } else {
@@ -143,7 +151,10 @@ pub fn render_tree_panel_with_filter(
             .map(|m| format!(" {}", m.format("%m-%d %H:%M")))
             .unwrap_or_default();
 
-        let name_and_size = format!("{}{}{}{}", name, size_str, perms_str, date_str);
+        let name_and_size = format!(
+            "{}{}{}{}{}",
+            name, symlink_target, size_str, perms_str, date_str
+        );
 
         // Styles
         let entry_style = if is_cursor && is_selected {
