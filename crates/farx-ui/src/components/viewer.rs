@@ -35,6 +35,8 @@ pub struct ViewerState {
     pub visible_height: usize,
     /// File size in bytes
     pub file_size: u64,
+    /// Follow/tail mode: auto-scroll to end and reload on tick
+    pub follow: bool,
 }
 
 const MAX_VIEW_SIZE: u64 = 100 * 1024 * 1024; // 100 MB
@@ -70,6 +72,7 @@ impl ViewerState {
                     total_lines: bytes.len().div_ceil(16),
                     visible_height: 0,
                     file_size,
+                    follow: false,
                 });
             }
         };
@@ -104,6 +107,7 @@ impl ViewerState {
             total_lines: effective_total,
             visible_height: 0,
             file_size,
+            follow: false,
         })
     }
 
@@ -141,8 +145,35 @@ impl ViewerState {
                 self.wrap = !self.wrap;
                 ViewerAction::None
             }
+            KeyCode::Char('f') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                self.follow = !self.follow;
+                if self.follow {
+                    // Jump to end when enabling follow
+                    self.scroll_offset =
+                        self.total_lines.saturating_sub(self.visible_height.max(1));
+                }
+                ViewerAction::None
+            }
             _ => ViewerAction::None,
         }
+    }
+
+    /// Reload file contents (for follow/tail mode). Returns true if content changed.
+    pub fn reload_if_follow(&mut self) -> bool {
+        if !self.follow || self.hex_mode {
+            return false;
+        }
+        let Ok(contents) = std::fs::read_to_string(&self.file_path) else {
+            return false;
+        };
+        let new_lines: Vec<String> = contents.lines().map(String::from).collect();
+        if new_lines.len() == self.lines.len() {
+            return false;
+        }
+        self.lines = new_lines;
+        self.total_lines = self.lines.len();
+        self.scroll_offset = self.total_lines.saturating_sub(self.visible_height.max(1));
+        true
     }
 
     pub fn handle_mouse_event(&mut self, mouse: MouseEvent) -> ViewerAction {
@@ -329,12 +360,14 @@ pub fn render_viewer(frame: &mut Frame, state: &mut ViewerState, _theme: &Theme)
     } else {
         ((state.scroll_offset + content_height).min(state.total_lines) * 100) / state.total_lines
     };
+    let follow_indicator = if state.follow { "FOLLOW  " } else { "" };
     let status_text = format!(
-        " Line {}/{} ({}%) | {}Esc/F3/q=Close  PgUp/PgDn=Scroll  Ctrl+W=Wrap ",
+        " Line {}/{} ({}%) | {}{}Esc/F3/q=Close  PgUp/PgDn=Scroll  Ctrl+W=Wrap  Ctrl+F=Follow ",
         state.scroll_offset + 1,
         state.total_lines,
         percentage,
         if state.wrap { "Wrap:ON  " } else { "" },
+        follow_indicator,
     );
     let status_line = Line::from(Span::styled(
         status_text,

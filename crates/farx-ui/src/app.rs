@@ -753,6 +753,13 @@ impl App {
         self.check_suggestion_response();
         self.check_fs_changes();
 
+        // Viewer follow/tail mode: reload file every 4 ticks (~1s)
+        if self.tick_count % 4 == 0 {
+            if let Some(ref mut viewer) = self.viewer {
+                viewer.reload_if_follow();
+            }
+        }
+
         // Debounced typeahead: request suggestion after 3 ticks (~750ms) of no typing
         if !self.command_line.input.is_empty()
             && !self.command_line.suggestion_pending
