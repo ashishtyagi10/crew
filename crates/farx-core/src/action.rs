@@ -37,6 +37,7 @@ pub enum Action {
     SelectEnd,
     SelectAll,
     DeselectAll,
+    InvertSelection,
     SelectByMaskDialog,
     DeselectByMaskDialog,
 

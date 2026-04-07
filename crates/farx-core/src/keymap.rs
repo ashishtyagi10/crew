@@ -213,6 +213,19 @@ impl KeyMap {
             Action::CreateSymlinkDialog,
         );
 
+        // ── Invert selection ────────────────────────────────────────────
+        panel.insert(
+            (KeyCode::Char('*'), KeyModifiers::ALT),
+            Action::InvertSelection,
+        );
+        panel.insert(
+            (
+                KeyCode::Char('*'),
+                KeyModifiers::ALT.union(KeyModifiers::SHIFT),
+            ),
+            Action::InvertSelection,
+        );
+
         // ── Select/Deselect by mask ────────────────────────────────────
         // Alt+= (easier to press) and Alt++ (Shift+= on most keyboards)
         panel.insert(

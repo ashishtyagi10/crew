@@ -1392,6 +1392,9 @@ impl App {
                     self.apply_mask_selection(args, false);
                 }
             }
+            "/invert" => {
+                self.dispatch(Action::InvertSelection);
+            }
             _ => {
                 // Try plugin commands: /cmd_name → plugin "cmd_name"
                 let plugin_cmd = cmd.trim_start_matches('/');
@@ -1944,6 +1947,19 @@ impl App {
             }
             Action::DeselectAll => {
                 self.active_tree().selected.clear();
+                return;
+            }
+            Action::InvertSelection => {
+                let tree = self.active_tree();
+                for i in 0..tree.visible_nodes.len() {
+                    if tree.visible_nodes[i].entry.name != ".." {
+                        if tree.selected.contains(&i) {
+                            tree.selected.remove(&i);
+                        } else {
+                            tree.selected.insert(i);
+                        }
+                    }
+                }
                 return;
             }
             Action::ViewFile => {
