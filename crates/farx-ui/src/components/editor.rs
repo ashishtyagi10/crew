@@ -25,6 +25,7 @@ struct UndoEntry {
 enum EditorMode {
     Normal,
     Search,
+    GotoLine,
     ConfirmExit,
 }
 
@@ -40,6 +41,7 @@ pub struct EditorState {
     mode: EditorMode,
     search_query: String,
     search_cursor: usize,
+    goto_line_input: String,
     undo_stack: Vec<UndoEntry>,
     redo_stack: Vec<UndoEntry>,
     last_save_undo_len: usize,
@@ -81,6 +83,7 @@ impl EditorState {
             mode: EditorMode::Normal,
             search_query: String::new(),
             search_cursor: 0,
+            goto_line_input: String::new(),
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
             last_save_undo_len: 0,
@@ -339,6 +342,33 @@ impl EditorState {
                 }
                 return EditorAction::None;
             }
+            EditorMode::GotoLine => {
+                match key.code {
+                    KeyCode::Enter => {
+                        self.mode = EditorMode::Normal;
+                        if let Ok(line_num) = self.goto_line_input.parse::<usize>() {
+                            let target = line_num
+                                .saturating_sub(1)
+                                .min(self.lines.len().saturating_sub(1));
+                            self.cursor_line = target;
+                            self.cursor_col = 0;
+                        }
+                        self.goto_line_input.clear();
+                    }
+                    KeyCode::Esc => {
+                        self.mode = EditorMode::Normal;
+                        self.goto_line_input.clear();
+                    }
+                    KeyCode::Char(ch) if ch.is_ascii_digit() => {
+                        self.goto_line_input.push(ch);
+                    }
+                    KeyCode::Backspace => {
+                        self.goto_line_input.pop();
+                    }
+                    _ => {}
+                }
+                return EditorAction::None;
+            }
             EditorMode::Normal => {}
         }
 
@@ -369,8 +399,13 @@ impl EditorState {
                 self.search_cursor = self.search_query.len();
             }
             // Find next
-            (KeyCode::F(3), KeyModifiers::NONE) | (KeyCode::Char('g'), KeyModifiers::CONTROL) => {
+            (KeyCode::F(3), KeyModifiers::NONE) => {
                 self.find_next();
+            }
+            // Go to line
+            (KeyCode::Char('g'), KeyModifiers::CONTROL) => {
+                self.mode = EditorMode::GotoLine;
+                self.goto_line_input.clear();
             }
             // Undo/Redo
             (KeyCode::Char('z'), KeyModifiers::CONTROL) => {
@@ -598,9 +633,15 @@ pub fn render_editor(frame: &mut Frame, state: &EditorState, _theme: &Theme) {
         EditorMode::Search => {
             format!(" Search: {}_  (Enter=Find, Esc=Cancel)", state.search_query)
         }
+        EditorMode::GotoLine => {
+            format!(
+                " Go to line: {}_  (Enter=Go, Esc=Cancel)",
+                state.goto_line_input
+            )
+        }
         EditorMode::Normal => {
             format!(
-                " Ln {}, Col {} | {} | F2=Save  F7=Search  F3=FindNext  Ctrl+Z=Undo  Esc=Exit ",
+                " Ln {}, Col {} | {} | F2=Save  F7=Search  Ctrl+G=GoTo  Ctrl+Z=Undo  Esc=Exit ",
                 state.cursor_line + 1,
                 state.cursor_col + 1,
                 if state.modified { "Modified" } else { "Saved" },
@@ -621,6 +662,9 @@ pub fn render_editor(frame: &mut Frame, state: &EditorState, _theme: &Theme) {
     // Position the cursor
     if state.mode == EditorMode::Search {
         let cursor_x = inner.x + 9 + state.search_cursor as u16; // " Search: " is 9 chars
+        frame.set_cursor_position((cursor_x.min(inner.x + inner.width - 1), status_y));
+    } else if state.mode == EditorMode::GotoLine {
+        let cursor_x = inner.x + 14 + state.goto_line_input.len() as u16; // " Go to line: " is 14
         frame.set_cursor_position((cursor_x.min(inner.x + inner.width - 1), status_y));
     } else if state.mode == EditorMode::Normal {
         let visual_col = state.cursor_col.saturating_sub(state.horizontal_scroll) as u16;
