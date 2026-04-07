@@ -36,6 +36,7 @@ enum PendingOperation {
     MkDir { parent: PathBuf },
     Rename { original: PathBuf },
     CreateFile { parent: PathBuf },
+    CopySameDir { source: PathBuf },
     SelectByMask,
     DeselectByMask,
     CreateSymlink { target: PathBuf },
@@ -1803,6 +1804,21 @@ impl App {
                     return;
                 }
             }
+            PendingOperation::CopySameDir { source } => {
+                if let Some(name) = input_value {
+                    let name = name.trim();
+                    if name.is_empty() {
+                        return;
+                    }
+                    let dest_dir = self.active_tree_ref().root.clone();
+                    let dest = dest_dir.join(name);
+                    std::fs::copy(&source, &dest)
+                        .map(|_| ())
+                        .map_err(anyhow::Error::from)
+                } else {
+                    return;
+                }
+            }
             PendingOperation::CreateSymlink { target } => {
                 if let Some(name) = input_value {
                     let name = name.trim();
@@ -2197,6 +2213,21 @@ impl App {
                 let detail = format!("{} → {}", names.join(", "), dest.display());
                 self.feedback
                     .ask_confirm("Copy?", detail, ConfirmAction::Copy { sources, dest });
+            }
+            Action::CopySameDir => {
+                if let Some(node) = self.active_tree_ref().current_node() {
+                    if node.entry.name == ".." || node.entry.is_dir {
+                        return;
+                    }
+                    let source = node.entry.path.clone();
+                    let default_name = format!("{}_copy", node.entry.name);
+                    self.pending_op = Some(PendingOperation::CopySameDir { source });
+                    self.dialog = Some(DialogState::new_input(
+                        "Copy to same directory",
+                        "Enter new name:",
+                        default_name,
+                    ));
+                }
             }
             Action::MoveDialog => {
                 let sources = self.collect_selected_paths();
@@ -2862,6 +2893,46 @@ impl App {
             }
             Action::SortByDate => {
                 self.toggle_sort(SortField::Modified);
+            }
+            Action::ShowPluginCommands => {
+                // Reuse the /plugin slash command logic
+                if let Some(ref engine) = self.plugin_engine {
+                    let cmds = engine.list_commands();
+                    if cmds.is_empty() {
+                        self.feedback.info(
+                            "No plugins loaded. Place .lua files in ~/.config/farx/plugins/"
+                                .to_string(),
+                        );
+                    } else {
+                        let lines: Vec<String> = cmds
+                            .iter()
+                            .map(|c| {
+                                format!("  /{} — {} ({})", c.name, c.description, c.plugin_file)
+                            })
+                            .collect();
+                        self.feedback.show_output("Plugins", lines.join("\n"));
+                    }
+                } else {
+                    self.feedback
+                        .error("Plugin engine not available".to_string());
+                }
+            }
+            Action::ShowDriveMenu(_) => {
+                // Drive/volume menu — on Unix, show mount points
+                let output = std::process::Command::new("df")
+                    .args(["-h", "--output=target,size,avail,pcent"])
+                    .output()
+                    .or_else(|_| {
+                        // macOS df doesn't support --output
+                        std::process::Command::new("df").args(["-h"]).output()
+                    });
+                match output {
+                    Ok(out) => {
+                        let text = String::from_utf8_lossy(&out.stdout).to_string();
+                        self.feedback.show_output("Volumes", text);
+                    }
+                    Err(e) => self.feedback.error(format!("df: {}", e)),
+                }
             }
             _ => {
                 // Other actions not yet implemented
