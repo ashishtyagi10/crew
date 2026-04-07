@@ -71,6 +71,7 @@ farx --keydebug       # Debug terminal key events
 
 | Key | Action |
 |-----|--------|
+| `F2` | Open with system app |
 | `F3` | View file |
 | `F4` | Edit file |
 | `F5` | Copy to other panel |
@@ -128,7 +129,8 @@ farx --keydebug       # Debug terminal key events
 | `Ctrl+H` | Toggle hidden files |
 | `Ctrl+R` | Refresh |
 | `Ctrl+O` | Toggle panels / console |
-| `Ctrl+L` | Info panel |
+| `Ctrl+L` | Info panel (with file preview) |
+| `Ctrl+U` | Swap panels |
 | `Ctrl+Space` | AI assistant |
 | `Alt+F7` | Search files |
 | `Alt+S` | Calculate directory / selection size |
@@ -323,6 +325,18 @@ Press `Ctrl+G` to open a dialog where you can type any directory path and jump d
 ## Compare Directories
 
 Press `Ctrl+F9` to compare the active panel against the other panel. Files that exist only in the active panel, or that differ by size or modification time, get selected. This is useful for syncing directories or finding what changed. Use `/compare` or `/cmp` from the command line.
+
+## Swap Panels
+
+Press `Ctrl+U` to swap left and right panel contents (directories, files, and tree state). Use `/swap` from the command line.
+
+## Open with System App
+
+Press `F2` to open the file or directory under the cursor with your OS's default application (macOS `open`, Linux `xdg-open`, Windows `start`). Use `/open` from the command line.
+
+## File Preview
+
+Press `Ctrl+L` to toggle the info panel. It now shows a live preview of the file under the cursor: name, size, modification date, and the first 30 lines of text content. Binary files show a hex dump summary. Files larger than 5 MB show a placeholder.
 
 ## Themes
 
