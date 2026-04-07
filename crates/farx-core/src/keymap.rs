@@ -132,6 +132,12 @@ impl KeyMap {
             Action::ShowAiBar,
         );
 
+        // ── Swap panels ──────────────────────────────────────────────────
+        panel.insert(
+            (KeyCode::Char('u'), KeyModifiers::CONTROL),
+            Action::SwapPanels,
+        );
+
         // ── Directory history ────────────────────────────────────────────
         panel.insert((KeyCode::Left, KeyModifiers::ALT), Action::HistoryBack);
         panel.insert((KeyCode::Right, KeyModifiers::ALT), Action::HistoryForward);

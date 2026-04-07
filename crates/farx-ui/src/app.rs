@@ -691,9 +691,7 @@ impl App {
             MenuAction::FindFiles => self.dispatch(Action::ShowSearchDialog),
             MenuAction::ShowAiBar => self.dispatch(Action::ShowAiBar),
             MenuAction::SwapPanels => {
-                std::mem::swap(&mut self.left_panel, &mut self.right_panel);
-                self.left_panel.side = PanelSide::Left;
-                self.right_panel.side = PanelSide::Right;
+                self.dispatch(Action::SwapPanels);
             }
             MenuAction::ToggleFnBar => {
                 self.config.ui.show_fn_bar = !self.config.ui.show_fn_bar;
@@ -1446,6 +1444,9 @@ impl App {
             "/compare" | "/cmp" => {
                 self.dispatch(Action::CompareDirectories);
             }
+            "/swap" => {
+                self.dispatch(Action::SwapPanels);
+            }
             "/goto" | "/go" | "/g" => {
                 if args.is_empty() {
                     self.dispatch(Action::GotoDirectoryDialog);
@@ -2102,6 +2103,13 @@ impl App {
                     PanelSide::Left => PanelSide::Right,
                     PanelSide::Right => PanelSide::Left,
                 };
+            }
+            Action::SwapPanels => {
+                std::mem::swap(&mut self.left_panel, &mut self.right_panel);
+                self.left_panel.side = PanelSide::Left;
+                self.right_panel.side = PanelSide::Right;
+                std::mem::swap(&mut self.left_tree, &mut self.right_tree);
+                self.update_fs_watcher();
             }
             Action::GotoRoot => {
                 let root = if cfg!(windows) {

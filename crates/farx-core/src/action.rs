@@ -17,6 +17,7 @@ pub enum Action {
     ParentDirectory,
     GotoRoot,
     SwitchPanel,
+    SwapPanels,
 
     // File operations
     CopyDialog,
