@@ -165,10 +165,11 @@ Open any file with `F4`. The editor supports:
 Open any file with `F3`. The viewer supports:
 
 - Syntax-highlighted text files
-- Hex dump for binary files
+- Hex dump for binary files, with hex/text toggle (`Ctrl+H`)
 - Line wrapping toggle (`Ctrl+W`)
 - Follow/tail mode (`Ctrl+F`) — auto-scrolls as file grows, like `tail -f`
-- In-file search
+- Text search (`/` or `F7`), find next (`n`)
+- Go to line (`Ctrl+G`)
 
 ## AI Assistant
 
