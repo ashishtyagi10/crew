@@ -94,6 +94,7 @@ farx --keydebug       # Debug terminal key events
 | `Alt+Up` / `Alt+Down` | Select while moving |
 | `Alt++` | Select by pattern/mask |
 | `Alt+-` | Deselect by pattern/mask |
+| `Alt+*` | Invert selection |
 
 ### Sorting
 
@@ -139,6 +140,8 @@ farx --keydebug       # Debug terminal key events
 | `Alt+T` | Disk usage treemap |
 | `Alt+Enter` | Quick actions palette |
 | `Alt+K` | SHA-256 checksum |
+| `Ctrl+G` | Go to directory |
+| `Ctrl+F9` | Compare directories |
 
 ## Built-in Editor
 
@@ -308,6 +311,18 @@ Press `Alt++` to select files matching a glob pattern (e.g. `*.rs`, `test*`, `*.
 ## Symbolic Links
 
 Press `Alt+L` to create a symbolic link to the file under the cursor. A dialog prompts for the link name. Works on Unix and Windows. Use `/symlink` or `/ln` from the command line.
+
+## Invert Selection
+
+Press `Alt+*` to invert the current selection — selected files become deselected and vice versa. Use `/invert` from the command line.
+
+## Go to Directory
+
+Press `Ctrl+G` to open a dialog where you can type any directory path and jump directly to it. Supports `~` expansion for home directory. Use `/goto <path>`, `/go <path>`, or `/g <path>` from the command line.
+
+## Compare Directories
+
+Press `Ctrl+F9` to compare the active panel against the other panel. Files that exist only in the active panel, or that differ by size or modification time, get selected. This is useful for syncing directories or finding what changed. Use `/compare` or `/cmp` from the command line.
 
 ## Themes
 
