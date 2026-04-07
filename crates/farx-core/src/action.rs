@@ -77,6 +77,9 @@ pub enum Action {
     QuickSearch(char),
     QuickSearchClear,
 
+    // Go to directory
+    GotoDirectoryDialog,
+
     // History
     HistoryBack,
     HistoryForward,

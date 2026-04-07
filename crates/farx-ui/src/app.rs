@@ -39,6 +39,7 @@ enum PendingOperation {
     SelectByMask,
     DeselectByMask,
     CreateSymlink { target: PathBuf },
+    GotoDirectory,
 }
 
 /// A recorded file operation that can be undone.
@@ -1395,6 +1396,27 @@ impl App {
             "/invert" => {
                 self.dispatch(Action::InvertSelection);
             }
+            "/goto" | "/go" | "/g" => {
+                if args.is_empty() {
+                    self.dispatch(Action::GotoDirectoryDialog);
+                } else {
+                    // Direct navigation
+                    let path = if args.starts_with('~') {
+                        dirs::home_dir()
+                            .unwrap_or_default()
+                            .join(args.trim_start_matches("~/"))
+                    } else if args.starts_with('/') {
+                        PathBuf::from(args)
+                    } else {
+                        self.active_tree_ref().root.join(args)
+                    };
+                    if path.is_dir() {
+                        self.navigate_to(path);
+                    } else {
+                        self.feedback.error(format!("Not a directory: {}", args));
+                    }
+                }
+            }
             _ => {
                 // Try plugin commands: /cmd_name → plugin "cmd_name"
                 let plugin_cmd = cmd.trim_start_matches('/');
@@ -1605,7 +1627,7 @@ impl App {
 
     /// Execute the file operation associated with a confirmed input dialog.
     fn execute_pending_operation(&mut self, op: PendingOperation, input_value: Option<String>) {
-        // Handle selection operations (no filesystem change)
+        // Handle non-filesystem operations
         match &op {
             PendingOperation::SelectByMask | PendingOperation::DeselectByMask => {
                 let selecting = matches!(op, PendingOperation::SelectByMask);
@@ -1615,6 +1637,28 @@ impl App {
                         return;
                     }
                     self.apply_mask_selection(pattern, selecting);
+                }
+                return;
+            }
+            PendingOperation::GotoDirectory => {
+                if let Some(path_str) = input_value {
+                    let path_str = path_str.trim();
+                    if path_str.is_empty() {
+                        return;
+                    }
+                    let path = if path_str.starts_with('~') {
+                        dirs::home_dir()
+                            .unwrap_or_default()
+                            .join(path_str.trim_start_matches("~/"))
+                    } else {
+                        PathBuf::from(path_str)
+                    };
+                    if path.is_dir() {
+                        self.navigate_to(path);
+                    } else {
+                        self.feedback
+                            .error(format!("Not a directory: {}", path_str));
+                    }
                 }
                 return;
             }
@@ -1696,7 +1740,9 @@ impl App {
                 }
             }
             // Already handled above; included for exhaustiveness
-            PendingOperation::SelectByMask | PendingOperation::DeselectByMask => return,
+            PendingOperation::SelectByMask
+            | PendingOperation::DeselectByMask
+            | PendingOperation::GotoDirectory => return,
         };
 
         // Refresh trees after file operation
@@ -2109,6 +2155,15 @@ impl App {
                     "Create file",
                     "Enter file name:",
                     "",
+                ));
+            }
+            Action::GotoDirectoryDialog => {
+                let current = self.active_tree_ref().root.to_string_lossy().to_string();
+                self.pending_op = Some(PendingOperation::GotoDirectory);
+                self.dialog = Some(DialogState::new_input(
+                    "Go to directory",
+                    "Enter path:",
+                    current,
                 ));
             }
             Action::CreateSymlinkDialog => {

@@ -143,6 +143,12 @@ impl KeyMap {
         );
         panel.insert((KeyCode::Char('b'), KeyModifiers::ALT), Action::AddBookmark);
 
+        // ── Go to directory ────────────────────────────────────────────
+        panel.insert(
+            (KeyCode::Char('g'), KeyModifiers::CONTROL),
+            Action::GotoDirectoryDialog,
+        );
+
         // ── Filter ──────────────────────────────────────────────────────
         panel.insert(
             (KeyCode::Char('f'), KeyModifiers::CONTROL),
