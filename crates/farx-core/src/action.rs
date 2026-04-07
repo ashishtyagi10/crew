@@ -98,6 +98,9 @@ pub enum Action {
     // Terminal
     OpenTerminalHere,
 
+    // Touch file
+    TouchFile,
+
     // Filter
     ToggleFilter,
 

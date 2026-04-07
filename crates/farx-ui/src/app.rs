@@ -1459,6 +1459,9 @@ impl App {
             "/recent" | "/history" => {
                 self.dispatch(Action::ShowRecentDirectories);
             }
+            "/touch" => {
+                self.dispatch(Action::TouchFile);
+            }
             "/goto" | "/go" | "/g" => {
                 if args.is_empty() {
                     self.dispatch(Action::GotoDirectoryDialog);
@@ -2751,6 +2754,40 @@ impl App {
             }
             Action::CalculateDirSize => {
                 self.calculate_dir_size();
+            }
+            Action::TouchFile => {
+                let paths = self.collect_selected_paths();
+                if paths.is_empty() {
+                    return;
+                }
+                let now = std::time::SystemTime::now();
+                let mut ok = 0;
+                let mut fail = 0;
+                for path in &paths {
+                    if path.exists() {
+                        // Update mtime by opening and setting modified time
+                        match std::fs::File::options().write(true).open(path) {
+                            Ok(f) => match f.set_modified(now) {
+                                Ok(()) => ok += 1,
+                                Err(_) => fail += 1,
+                            },
+                            Err(_) => fail += 1,
+                        }
+                    } else {
+                        // Create the file (like Unix touch)
+                        match std::fs::File::create(path) {
+                            Ok(_) => ok += 1,
+                            Err(_) => fail += 1,
+                        }
+                    }
+                }
+                self.active_tree().rebuild();
+                if fail == 0 {
+                    self.feedback.success(format!("Touched {} file(s)", ok));
+                } else {
+                    self.feedback
+                        .warning(format!("Touched {}, failed {}", ok, fail));
+                }
             }
             Action::CompareDirectories => {
                 self.compare_directories();
