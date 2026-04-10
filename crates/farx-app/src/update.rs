@@ -63,46 +63,34 @@ fn check_latest_version() -> Result<Option<String>> {
     Ok(None)
 }
 
-/// Perform the actual update: download and replace the current binary.
-/// This should be called outside the TUI (terminal restored first).
-/// If the current binary is not writable (e.g. /usr/local/bin), it will
-/// attempt to install to ~/.local/bin instead.
+/// Perform the actual update: download and replace the binary.
+/// Always installs to ~/.local/bin (no sudo required). If the current
+/// binary lives in a root-owned directory (e.g. /usr/local/bin), warns
+/// the user to remove the old copy so the updated one takes precedence.
 pub fn perform_update() -> Result<self_update::Status> {
-    // First try updating in-place
-    match do_update() {
-        Ok(status) => Ok(status),
-        Err(e) => {
-            let err_str = e.to_string();
-            if err_str.contains("Permission denied") || err_str.contains("permission denied") {
-                // Binary is in a root-owned dir — try installing to ~/.local/bin
-                eprintln!();
-                eprintln!(
-                    "Permission denied updating in-place. \
-                     Attempting install to ~/.local/bin ..."
-                );
-                install_to_local_bin()
-            } else {
-                Err(e)
-            }
+    let status = install_to_local_bin()?;
+
+    // Warn if a root-owned copy shadows ~/.local/bin
+    if let Ok(current_exe) = std::env::current_exe() {
+        let local_bin = dirs::home_dir()
+            .unwrap_or_default()
+            .join(".local")
+            .join("bin");
+        if !current_exe.starts_with(&local_bin) {
+            eprintln!();
+            eprintln!(
+                "NOTE: An older farx binary exists at {} (owned by root).",
+                current_exe.display()
+            );
+            eprintln!("      It may shadow the updated version. Remove it with:");
+            eprintln!("      sudo rm {}", current_exe.display());
         }
     }
-}
 
-fn do_update() -> Result<self_update::Status> {
-    let status = Update::configure()
-        .repo_owner(REPO_OWNER)
-        .repo_name(REPO_NAME)
-        .bin_name("farx")
-        .identifier("farx")
-        .current_version(cargo_crate_version!())
-        .show_download_progress(true)
-        .no_confirm(true)
-        .build()?
-        .update()?;
     Ok(status)
 }
 
-/// Fallback: download the latest release and install to ~/.local/bin.
+/// Download the latest release and install to ~/.local/bin.
 fn install_to_local_bin() -> Result<self_update::Status> {
     let local_bin = dirs::home_dir()
         .ok_or_else(|| anyhow::anyhow!("Cannot determine home directory"))?
