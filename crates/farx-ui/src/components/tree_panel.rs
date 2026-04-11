@@ -135,26 +135,53 @@ pub fn render_tree_panel_with_filter(
         } else {
             String::new()
         };
-        let size_str = if node.entry.is_dir {
-            String::new()
+
+        // Fixed-width right-aligned columns: size(7) perms(10) date(12) git(2)
+        let size_col: String = if node.entry.is_dir {
+            format!("{:>7}", "<DIR>")
         } else {
-            format!("  {}", format_size(node.entry.size))
+            format!("{:>7}", format_size(node.entry.size))
         };
-        let perms_str = node
+        let perms_col: String = node
             .entry
             .mode
             .map(|m| format!(" {}", format_permissions(m)))
-            .unwrap_or_default();
-        let date_str = node
+            .unwrap_or_else(|| " ".repeat(10));
+        let date_col: String = node
             .entry
             .modified
             .map(|m| format!(" {}", m.format("%m-%d %H:%M")))
-            .unwrap_or_default();
+            .unwrap_or_else(|| " ".repeat(12));
 
-        let name_and_size = format!(
-            "{}{}{}{}{}",
-            name, symlink_target, size_str, perms_str, date_str
-        );
+        // Git status indicator
+        let git_indicator = tree.git_status_for(&node.entry.path);
+        let (git_glyph, git_color) = match git_indicator {
+            Some(GitFileStatus::Modified) => (" M", Color::Rgb(230, 140, 70)),
+            Some(GitFileStatus::Staged) => (" S", Color::Rgb(120, 190, 90)),
+            Some(GitFileStatus::Untracked) => (" ?", Color::Rgb(150, 150, 150)),
+            Some(GitFileStatus::Conflict) => (" !", Color::Rgb(240, 80, 80)),
+            Some(GitFileStatus::Deleted) => (" D", Color::Rgb(240, 80, 80)),
+            Some(GitFileStatus::Renamed) => (" R", Color::Rgb(140, 180, 250)),
+            Some(GitFileStatus::Ignored) => ("", Color::Reset),
+            None => ("", Color::Reset),
+        };
+
+        // Column widths: size(7) + perms(10) + date(12) + git(2) = 31
+        let meta_width = 7 + 10 + 12 + if git_glyph.is_empty() { 0 } else { 2 };
+        let prefix_len = indent.chars().count() + connector.chars().count() + icon.chars().count();
+        let name_width = total_width.saturating_sub(prefix_len + meta_width);
+
+        // Build name column (left-aligned, padded/truncated to fixed width)
+        let name_display = format!("{}{}", name, symlink_target);
+        let name_padded = if name_display.chars().count() >= name_width {
+            let truncated: String = name_display
+                .chars()
+                .take(name_width.saturating_sub(1))
+                .collect();
+            format!("{}~", truncated)
+        } else {
+            format!("{:<width$}", name_display, width = name_width)
+        };
 
         // Styles
         let entry_style = if is_cursor && is_selected {
@@ -198,32 +225,19 @@ pub fn render_tree_panel_with_filter(
             Style::default().fg(Color::Rgb(80, 80, 85)).bg(row_bg)
         };
 
-        // Git status indicator
-        let git_indicator = tree.git_status_for(&node.entry.path);
-        let (git_glyph, git_color) = match git_indicator {
-            Some(GitFileStatus::Modified) => (" M", Color::Rgb(230, 140, 70)),
-            Some(GitFileStatus::Staged) => (" S", Color::Rgb(120, 190, 90)),
-            Some(GitFileStatus::Untracked) => (" ?", Color::Rgb(150, 150, 150)),
-            Some(GitFileStatus::Conflict) => (" !", Color::Rgb(240, 80, 80)),
-            Some(GitFileStatus::Deleted) => (" D", Color::Rgb(240, 80, 80)),
-            Some(GitFileStatus::Renamed) => (" R", Color::Rgb(140, 180, 250)),
-            Some(GitFileStatus::Ignored) => ("", Color::Reset),
-            None => ("", Color::Reset),
-        };
-        let git_len = git_glyph.len();
-
-        // Calculate how much space the name part gets
-        let prefix_len = indent.chars().count() + connector.chars().count() + icon.chars().count();
-        let name_width = total_width.saturating_sub(prefix_len + git_len);
-        let name_padded = if name_and_size.chars().count() >= name_width {
-            // Truncate at character boundary, not byte boundary
-            let truncated: String = name_and_size
-                .chars()
-                .take(name_width.saturating_sub(1))
-                .collect();
-            format!("{}~", truncated)
+        // Metadata style — dimmer than the name for visual hierarchy
+        let meta_style = if is_cursor || is_selected {
+            entry_style
         } else {
-            format!("{:<width$}", name_and_size, width = name_width)
+            Style::default().fg(Color::Indexed(245)).bg(row_bg)
+        };
+
+        let size_style = if is_cursor || is_selected {
+            entry_style
+        } else if node.entry.is_dir {
+            Style::default().fg(Color::Indexed(242)).bg(row_bg)
+        } else {
+            Style::default().fg(Color::Indexed(248)).bg(row_bg)
         };
 
         let mut spans = vec![
@@ -231,6 +245,9 @@ pub fn render_tree_panel_with_filter(
             Span::styled(connector.to_string(), guide_style),
             Span::styled(icon.to_string(), icon_style),
             Span::styled(name_padded, entry_style),
+            Span::styled(size_col, size_style),
+            Span::styled(perms_col, meta_style),
+            Span::styled(date_col, meta_style),
         ];
         if !git_glyph.is_empty() {
             let git_style = if is_cursor {
