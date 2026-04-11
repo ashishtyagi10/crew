@@ -1490,6 +1490,9 @@ impl App {
             "/gemini" => {
                 self.launch_ai_tool_in_new_window(farx_core::AiTool::Gemini);
             }
+            "/opencode" => {
+                self.launch_ai_tool_in_new_window(farx_core::AiTool::OpenCode);
+            }
             "/cd" => {
                 if args.is_empty() {
                     // Go home

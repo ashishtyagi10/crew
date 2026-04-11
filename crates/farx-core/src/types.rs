@@ -14,6 +14,7 @@ pub enum AiTool {
     Codex,
     GithubCopilot,
     Gemini,
+    OpenCode,
 }
 
 impl AiTool {
@@ -24,6 +25,7 @@ impl AiTool {
             AiTool::Codex => "Codex (OpenAI)",
             AiTool::GithubCopilot => "GitHub Copilot",
             AiTool::Gemini => "Gemini (Google)",
+            AiTool::OpenCode => "OpenCode",
         }
     }
 
@@ -34,6 +36,7 @@ impl AiTool {
             AiTool::Codex => ("codex", &[]),
             AiTool::GithubCopilot => ("gh", &["copilot"]),
             AiTool::Gemini => ("gemini", &[]),
+            AiTool::OpenCode => ("opencode", &[]),
         }
     }
 
@@ -44,6 +47,7 @@ impl AiTool {
             AiTool::Codex,
             AiTool::GithubCopilot,
             AiTool::Gemini,
+            AiTool::OpenCode,
         ]
     }
 
@@ -54,6 +58,7 @@ impl AiTool {
             AiTool::Codex => "OpenAI's CLI coding agent",
             AiTool::GithubCopilot => "GitHub's AI pair programmer",
             AiTool::Gemini => "Google's AI coding assistant",
+            AiTool::OpenCode => "Open-source AI coding agent",
         }
     }
 }

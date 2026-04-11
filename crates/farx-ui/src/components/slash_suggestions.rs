@@ -124,6 +124,10 @@ pub const SLASH_COMMANDS: &[SlashCommand] = &[
         description: "Open with system application",
     },
     SlashCommand {
+        command: "/opencode",
+        description: "Launch OpenCode AI agent",
+    },
+    SlashCommand {
         command: "/plugin",
         description: "List or run plugins",
     },
