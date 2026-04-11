@@ -5,6 +5,7 @@ pub mod bookmarks;
 pub mod command_line;
 pub mod dialog;
 pub mod editor;
+pub mod embedded_terminal;
 pub mod feedback;
 pub mod fn_bar;
 pub mod fuzzy_finder;

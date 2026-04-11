@@ -10,7 +10,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.2.9"
+version = "0.3.0"
 edition = "2021"
 authors = ["farx contributors"]
 license = "MIT OR Apache-2.0"
@@ -68,6 +68,10 @@ regex = "1"
 
 # Scripting
 mlua = { version = "0.10", features = ["lua54", "vendored"] }
+
+# Terminal multiplexer
+portable-pty = "0.8"
+vt100 = "0.15"
 
 # Utilities
 chrono = { version = "0.4", features = ["serde"] }

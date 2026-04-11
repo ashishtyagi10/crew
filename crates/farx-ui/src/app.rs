@@ -17,6 +17,7 @@ use crate::components::bookmarks::{
 use crate::components::command_line::CommandLineState;
 use crate::components::dialog::{render_dialog, DialogResult, DialogState};
 use crate::components::editor::{render_editor, EditorAction, EditorState};
+use crate::components::embedded_terminal::{key_to_bytes, render_terminal, TerminalSession};
 use crate::components::feedback::{render_feedback, ConfirmAction, FeedbackResult, FeedbackState};
 use crate::components::fuzzy_finder::{render_fuzzy_finder, FuzzyAction, FuzzyFinderState};
 use crate::components::help::{render_help, HelpState};
@@ -144,6 +145,12 @@ pub struct App {
     pub ai_panel: Option<AiPanelState>,
     /// Slash command suggestion popup state.
     pub slash_suggestions: Option<SlashSuggestionsState>,
+    /// Embedded terminal sessions.
+    pub terminals: Vec<crate::components::embedded_terminal::TerminalSession>,
+    /// Panel layout tree (supports recursive splitting).
+    pub layout: farx_core::LayoutNode,
+    /// Index of the focused leaf in the layout tree (None = file panel via active_panel).
+    pub focused_terminal: Option<usize>,
     /// File watcher: receives notifications when files change.
     fs_watcher: Option<notify::RecommendedWatcher>,
     fs_change_rx: Option<std::sync::mpsc::Receiver<()>>,
@@ -234,6 +241,9 @@ impl App {
             quick_actions: None,
             ai_panel: None,
             slash_suggestions: None,
+            terminals: Vec::new(),
+            layout: farx_core::LayoutNode::default_layout(),
+            focused_terminal: None,
             fs_watcher: None,
             fs_change_rx: None,
             fs_change_tick: 0,
@@ -306,58 +316,132 @@ impl App {
         self.update_fs_watcher();
     }
 
-    /// Launch an AI coding tool in a new terminal window at the active panel's directory.
-    fn launch_ai_tool_in_new_window(&mut self, tool: farx_core::AiTool) {
-        let dir = self.active_tree_ref().root.to_string_lossy().to_string();
-        let (cmd, args) = tool.command();
-        let full_cmd = if args.is_empty() {
-            cmd.to_string()
+    /// Spawn an embedded terminal in a new split panel.
+    fn spawn_embedded_terminal(&mut self, cmd: &str, args: &[&str]) {
+        let dir = self.active_tree_ref().root.clone();
+        // Use a reasonable default size; will be resized on first render
+        let rows = 24;
+        let cols = 80;
+
+        match TerminalSession::spawn(cmd, args, &dir, rows, cols) {
+            Ok(session) => {
+                let terminal_id = self.terminals.len();
+                let title = session.title.clone();
+                self.terminals.push(session);
+
+                // Find the currently focused leaf index and split it
+                let leaves = self.layout.leaves();
+                let focus_idx = if let Some(tid) = self.focused_terminal {
+                    // Find the leaf that is Terminal(tid)
+                    leaves
+                        .iter()
+                        .position(|l| *l == farx_core::PanelLeaf::Terminal(tid))
+                        .unwrap_or(0)
+                } else {
+                    // Find the leaf that is FilePanel(active_panel)
+                    leaves
+                        .iter()
+                        .position(|l| *l == farx_core::PanelLeaf::FilePanel(self.active_panel))
+                        .unwrap_or(0)
+                };
+
+                self.layout.split_leaf(focus_idx, terminal_id);
+
+                // Focus the new terminal
+                let new_leaves = self.layout.leaves();
+                if let Some(idx) = new_leaves
+                    .iter()
+                    .position(|l| *l == farx_core::PanelLeaf::Terminal(terminal_id))
+                {
+                    // Set focus to the new terminal
+                    self.focused_terminal = Some(terminal_id);
+                    let _ = idx; // used for position finding
+                }
+
+                self.feedback
+                    .info(format!("{} opened in split panel", title));
+            }
+            Err(e) => {
+                self.feedback
+                    .error(format!("Failed to spawn terminal: {}", e));
+            }
+        }
+    }
+
+    /// Close a terminal session and collapse its split.
+    fn close_terminal(&mut self, terminal_id: usize) {
+        if terminal_id >= self.terminals.len() {
+            return;
+        }
+
+        // Remove from layout tree
+        self.layout.remove_terminal(terminal_id);
+
+        // Remove from terminals vec
+        self.terminals.remove(terminal_id);
+
+        // Adjust IDs in the layout tree (shift down IDs above the removed one)
+        self.layout.adjust_terminal_ids(terminal_id);
+
+        // Also adjust focused_terminal
+        match self.focused_terminal {
+            Some(id) if id == terminal_id => {
+                // Focus was on the closed terminal, go back to file panel
+                self.focused_terminal = None;
+            }
+            Some(id) if id > terminal_id => {
+                self.focused_terminal = Some(id - 1);
+            }
+            _ => {}
+        }
+    }
+
+    /// Cycle focus to the next panel (file or terminal) — Tab key.
+    fn cycle_focus(&mut self) {
+        let leaves = self.layout.leaves();
+        if leaves.is_empty() {
+            return;
+        }
+
+        // Find current focus position in leaf list
+        let current_idx = if let Some(tid) = self.focused_terminal {
+            leaves
+                .iter()
+                .position(|l| *l == farx_core::PanelLeaf::Terminal(tid))
+                .unwrap_or(0)
         } else {
-            format!("{} {}", cmd, args.join(" "))
+            leaves
+                .iter()
+                .position(|l| *l == farx_core::PanelLeaf::FilePanel(self.active_panel))
+                .unwrap_or(0)
         };
 
-        let result = if cfg!(target_os = "macos") {
-            // AppleScript: open a new Terminal.app window, cd to dir, run the tool
-            let script = format!(
-                "tell application \"Terminal\"\n\
-                     do script \"cd '{}' && {}\"\n\
-                     activate\n\
-                 end tell",
-                dir, full_cmd
-            );
-            std::process::Command::new("osascript")
-                .args(["-e", &script])
-                .spawn()
-        } else if cfg!(target_os = "windows") {
-            std::process::Command::new("cmd")
-                .args([
-                    "/C",
-                    "start",
-                    "cmd",
-                    "/K",
-                    &format!("cd /d {} && {}", dir, full_cmd),
-                ])
-                .spawn()
-        } else {
-            // Linux: try common terminal emulators
-            std::process::Command::new("sh")
-                .args([
-                    "-c",
-                    &format!(
-                        "cd '{}' && ${{TERMINAL:-x-terminal-emulator}} -e {} &",
-                        dir, full_cmd
-                    ),
-                ])
-                .spawn()
-        };
+        // Move to next leaf
+        let next_idx = (current_idx + 1) % leaves.len();
+        match leaves[next_idx] {
+            farx_core::PanelLeaf::FilePanel(side) => {
+                self.focused_terminal = None;
+                self.active_panel = side;
+            }
+            farx_core::PanelLeaf::Terminal(tid) => {
+                self.focused_terminal = Some(tid);
+                // Clear attention flag when focusing
+                if let Some(t) = self.terminals.get_mut(tid) {
+                    t.has_attention = false;
+                }
+            }
+        }
+    }
 
-        match result {
-            Ok(_) => self
-                .feedback
-                .info(format!("{} opened in {}", tool.label(), dir)),
-            Err(e) => self
-                .feedback
-                .error(format!("Failed to launch {}: {}", tool.label(), e)),
+    /// Poll all terminal sessions for new output. Called on each tick.
+    pub fn poll_terminals(&mut self) {
+        let focused_tid = self.focused_terminal;
+        for (i, term) in self.terminals.iter_mut().enumerate() {
+            let got_output = term.poll_output();
+            // Set attention if terminal has output and isn't focused
+            if got_output && Some(i) != focused_tid {
+                term.has_attention = true;
+            }
         }
     }
 
@@ -446,6 +530,34 @@ impl App {
             return Action::Noop;
         }
 
+        // Embedded terminal — when focused, forward all keys to PTY
+        // Ctrl+Tab = switch panel (escape hatch), Ctrl+W = close terminal
+        if let Some(tid) = self.focused_terminal {
+            use crossterm::event::{KeyCode, KeyModifiers};
+            if key.code == KeyCode::Tab && key.modifiers.contains(KeyModifiers::CONTROL) {
+                // Ctrl+Tab: cycle focus away from terminal
+                self.cycle_focus();
+                return Action::Noop;
+            }
+            if key.code == KeyCode::Char('w') && key.modifiers.contains(KeyModifiers::CONTROL) {
+                // Ctrl+W: close this terminal
+                self.close_terminal(tid);
+                return Action::Noop;
+            }
+            // Forward everything else to the PTY
+            if let Some(bytes) = key_to_bytes(&key) {
+                if let Some(term) = self.terminals.get_mut(tid) {
+                    if term.alive {
+                        term.write_input(&bytes);
+                    } else {
+                        // Process exited — any key closes the panel
+                        self.close_terminal(tid);
+                    }
+                }
+            }
+            return Action::Noop;
+        }
+
         // Inline feedback (confirmations, output panels)
         match self.feedback.handle_key(key) {
             FeedbackResult::Confirmed(_) => {
@@ -524,7 +636,8 @@ impl App {
                 }
                 AiPanelAction::Launch(tool) => {
                     self.ai_panel = None;
-                    self.launch_ai_tool_in_new_window(tool);
+                    let (cmd, args) = tool.command();
+                    self.spawn_embedded_terminal(cmd, args);
                 }
                 AiPanelAction::None => {}
             }
@@ -893,6 +1006,7 @@ impl App {
         self.check_ai_response();
         self.check_suggestion_response();
         self.check_fs_changes();
+        self.poll_terminals();
 
         // Viewer follow/tail mode: reload file every 4 ticks (~1s)
         if self.tick_count % 4 == 0 {
@@ -1479,19 +1593,23 @@ impl App {
                 self.ai_panel = Some(AiPanelState::new());
             }
             "/claude" => {
-                self.launch_ai_tool_in_new_window(farx_core::AiTool::ClaudeCode);
+                self.spawn_embedded_terminal("claude", &[]);
             }
             "/codex" => {
-                self.launch_ai_tool_in_new_window(farx_core::AiTool::Codex);
+                self.spawn_embedded_terminal("codex", &[]);
             }
             "/copilot" => {
-                self.launch_ai_tool_in_new_window(farx_core::AiTool::GithubCopilot);
+                self.spawn_embedded_terminal("gh", &["copilot"]);
             }
             "/gemini" => {
-                self.launch_ai_tool_in_new_window(farx_core::AiTool::Gemini);
+                self.spawn_embedded_terminal("gemini", &[]);
             }
             "/opencode" => {
-                self.launch_ai_tool_in_new_window(farx_core::AiTool::OpenCode);
+                self.spawn_embedded_terminal("opencode", &[]);
+            }
+            "/shell" | "/sh" | "/bash" | "/zsh" => {
+                let shell = std::env::var("SHELL").unwrap_or_else(|_| "sh".to_string());
+                self.spawn_embedded_terminal(&shell, &[]);
             }
             "/cd" => {
                 if args.is_empty() {
@@ -2385,10 +2503,7 @@ impl App {
                 self.running = false;
             }
             Action::SwitchPanel => {
-                self.active_panel = match self.active_panel {
-                    PanelSide::Left => PanelSide::Right,
-                    PanelSide::Right => PanelSide::Left,
-                };
+                self.cycle_focus();
             }
             Action::SwapPanels => {
                 std::mem::swap(&mut self.left_panel, &mut self.right_panel);
@@ -2439,7 +2554,8 @@ impl App {
                 self.ai_panel = Some(AiPanelState::new());
             }
             Action::LaunchAiTool(tool) => {
-                self.launch_ai_tool_in_new_window(tool);
+                let (cmd, args) = tool.command();
+                self.spawn_embedded_terminal(cmd, args);
             }
             // ── File operation dialogs ───────────────────────────────────
             Action::CopyDialog => {
@@ -3226,46 +3342,52 @@ impl App {
             ])
             .split(size);
 
-        // Split: 50/50 for both tree panels
-        let panel_chunks = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-            .split(main_chunks[0]);
+        // Compute panel rects from the layout tree
+        let panel_rects = self.layout.compute_rects(main_chunks[0]);
 
-        // Scroll adjustments
-        let left_height = panel_chunks[0].height.saturating_sub(3) as usize;
-        self.left_tree.scroll_to_cursor(left_height);
-        let right_height = panel_chunks[1].height.saturating_sub(3) as usize;
-        self.right_tree.scroll_to_cursor(right_height);
+        // Render each leaf panel
+        for (leaf, rect) in &panel_rects {
+            match leaf {
+                farx_core::PanelLeaf::FilePanel(side) => {
+                    let (tree, panel_state) = match side {
+                        PanelSide::Left => (&mut self.left_tree, &self.left_panel),
+                        PanelSide::Right => (&mut self.right_tree, &self.right_panel),
+                    };
+                    let is_active = self.focused_terminal.is_none() && self.active_panel == *side;
+                    let filter_editing = is_active && self.filter_active;
 
-        // Render left tree panel
-        let left_active = self.active_panel == PanelSide::Left;
-        let left_filter_editing = left_active && self.filter_active;
-        render_tree_panel_with_filter(
-            frame,
-            panel_chunks[0],
-            &self.left_tree,
-            left_active,
-            &self.theme,
-            left_filter_editing,
-        );
+                    // Scroll adjustments
+                    let panel_height = rect.height.saturating_sub(3) as usize;
+                    tree.scroll_to_cursor(panel_height);
 
-        // Render right tree panel (or info panel if Ctrl+L toggled)
-        if self.show_info_panel {
-            let current_file = self.active_tree_ref().current_node().map(|n| &n.entry);
-            let data = InfoPanelData::from_panel(self.active_panel_ref(), current_file);
-            render_info_panel(frame, panel_chunks[1], &data, &self.theme);
-        } else {
-            let right_active = self.active_panel == PanelSide::Right;
-            let right_filter_editing = right_active && self.filter_active;
-            render_tree_panel_with_filter(
-                frame,
-                panel_chunks[1],
-                &self.right_tree,
-                right_active,
-                &self.theme,
-                right_filter_editing,
-            );
+                    if self.show_info_panel && *side != self.active_panel {
+                        let current_file = self.active_tree_ref().current_node().map(|n| &n.entry);
+                        let data = InfoPanelData::from_panel(panel_state, current_file);
+                        render_info_panel(frame, *rect, &data, &self.theme);
+                    } else {
+                        render_tree_panel_with_filter(
+                            frame,
+                            *rect,
+                            tree,
+                            is_active,
+                            &self.theme,
+                            filter_editing,
+                        );
+                    }
+                }
+                farx_core::PanelLeaf::Terminal(tid) => {
+                    if let Some(term) = self.terminals.get_mut(*tid) {
+                        // Resize terminal to match panel inner area
+                        let inner_h = rect.height.saturating_sub(2);
+                        let inner_w = rect.width.saturating_sub(2);
+                        if inner_h > 0 && inner_w > 0 {
+                            term.resize(inner_h, inner_w);
+                        }
+                        let is_focused = self.focused_terminal == Some(*tid);
+                        render_terminal(frame, *rect, term, is_focused);
+                    }
+                }
+            }
         }
 
         // Render command line / feedback area

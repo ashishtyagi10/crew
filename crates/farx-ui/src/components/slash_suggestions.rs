@@ -148,6 +148,10 @@ pub const SLASH_COMMANDS: &[SlashCommand] = &[
         description: "Search in files",
     },
     SlashCommand {
+        command: "/shell",
+        description: "Open embedded terminal shell",
+    },
+    SlashCommand {
         command: "/select",
         description: "Select files by mask",
     },
