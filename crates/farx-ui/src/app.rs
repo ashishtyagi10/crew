@@ -207,7 +207,13 @@ impl App {
             right_panel: right,
             command_line: CommandLineState::new(),
             panels_visible: true,
-            keymap: KeyMap::far_defaults(),
+            keymap: {
+                let mut km = KeyMap::far_defaults();
+                if !config.keybindings.is_empty() {
+                    km.apply_overrides(&config.keybindings);
+                }
+                km
+            },
             theme: Theme::by_name(&config.ui.theme),
             config,
             dialog: None,

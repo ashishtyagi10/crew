@@ -8,6 +8,7 @@ pub struct AppConfig {
     pub ui: UiConfig,
     pub panels: PanelConfig,
     pub ai: AiConfig,
+    pub keybindings: std::collections::HashMap<String, String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
