@@ -1873,6 +1873,10 @@ impl App {
             "/find-file" | "/ff" => {
                 self.dispatch(Action::ShowFuzzyFinder);
             }
+            "/grep" | "/content-search" => {
+                let dir = self.active_tree_ref().root.clone();
+                self.search = Some(SearchState::new_content_focused(dir));
+            }
             "/ssh" => {
                 if args.is_empty() {
                     self.feedback

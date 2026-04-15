@@ -24,6 +24,8 @@ pub struct SearchResult {
     pub name: String,
     pub is_dir: bool,
     pub size: u64,
+    /// Matching lines from content search: (line_number, line_text).
+    pub matching_lines: Vec<(usize, String)>,
 }
 
 pub struct SearchState {
@@ -45,6 +47,23 @@ impl SearchState {
         Self {
             active: true,
             field: SearchField::Pattern,
+            pattern: "*".to_string(),
+            content_query: String::new(),
+            pattern_cursor: 1,
+            content_cursor: 0,
+            results: Vec::new(),
+            result_cursor: 0,
+            result_scroll: 0,
+            searching: false,
+            search_dir,
+        }
+    }
+
+    /// Create a search dialog with content field focused (for /grep).
+    pub fn new_content_focused(search_dir: PathBuf) -> Self {
+        Self {
+            active: true,
+            field: SearchField::Content,
             pattern: "*".to_string(),
             content_query: String::new(),
             pattern_cursor: 1,
@@ -274,24 +293,41 @@ fn search_recursive(
 
         // Check name match
         if matches_glob(&name, pattern) {
-            // If content query is set and it's a file, check content
-            let content_match = if !content_query.is_empty() && !is_dir {
-                match std::fs::read_to_string(&path) {
-                    Ok(content) => content
-                        .to_lowercase()
-                        .contains(&content_query.to_lowercase()),
-                    Err(_) => false,
+            // If content query is set and it's a file, check content and collect matching lines
+            if !content_query.is_empty() && !is_dir {
+                // Skip large files (> 10MB) for content search
+                if metadata.len() <= 10 * 1024 * 1024 {
+                    if let Ok(content) = std::fs::read_to_string(&path) {
+                        let query_lower = content_query.to_lowercase();
+                        let matching_lines: Vec<(usize, String)> = content
+                            .lines()
+                            .enumerate()
+                            .filter(|(_, line)| line.to_lowercase().contains(&query_lower))
+                            .take(5) // max 5 matching lines per file
+                            .map(|(num, line)| {
+                                let trimmed: String = line.chars().take(200).collect();
+                                (num + 1, trimmed)
+                            })
+                            .collect();
+                        if !matching_lines.is_empty() {
+                            results.push(SearchResult {
+                                path: path.clone(),
+                                name: name.clone(),
+                                is_dir,
+                                size: metadata.len(),
+                                matching_lines,
+                            });
+                        }
+                    }
                 }
             } else {
-                true // No content filter or is a directory
-            };
-
-            if content_match {
+                // No content filter or is a directory
                 results.push(SearchResult {
                     path: path.clone(),
                     name: name.clone(),
                     is_dir,
                     size: if is_dir { 0 } else { metadata.len() },
+                    matching_lines: Vec::new(),
                 });
             }
         }
@@ -461,9 +497,12 @@ pub fn render_search(frame: &mut Frame, state: &SearchState, _theme: &Theme) {
             state.result_scroll
         };
 
-        for (i, result) in state.results.iter().skip(scroll).take(visible).enumerate() {
-            let is_selected = scroll + i == state.result_cursor;
-            let style = if is_selected {
+        let mut row = 0usize;
+        let mut result_idx = scroll;
+        while row < visible && result_idx < state.results.len() {
+            let result = &state.results[result_idx];
+            let is_selected = result_idx == state.result_cursor;
+            let file_style = if is_selected {
                 Style::default().fg(Color::White).bg(Color::Indexed(24))
             } else {
                 Style::default().fg(Color::Cyan).bg(Color::Indexed(236))
@@ -474,9 +513,33 @@ pub fn render_search(frame: &mut Frame, state: &SearchState, _theme: &Theme) {
             let truncated: String = display.chars().take(inner.width as usize).collect();
 
             frame.render_widget(
-                Paragraph::new(Span::styled(truncated, style)),
-                Rect::new(inner.x, inner.y + y_offset + i as u16, inner.width, 1),
+                Paragraph::new(Span::styled(truncated, file_style)),
+                Rect::new(inner.x, inner.y + y_offset + row as u16, inner.width, 1),
             );
+            row += 1;
+
+            // Show matching lines if content search was used
+            if !result.matching_lines.is_empty() {
+                let match_style = if is_selected {
+                    Style::default().fg(Color::Yellow).bg(Color::Indexed(24))
+                } else {
+                    Style::default().fg(Color::DarkGray).bg(Color::Indexed(236))
+                };
+                for (line_num, line_text) in &result.matching_lines {
+                    if row >= visible {
+                        break;
+                    }
+                    let match_display = format!("        {}:{}", line_num, line_text);
+                    let match_truncated: String =
+                        match_display.chars().take(inner.width as usize).collect();
+                    frame.render_widget(
+                        Paragraph::new(Span::styled(match_truncated, match_style)),
+                        Rect::new(inner.x, inner.y + y_offset + row as u16, inner.width, 1),
+                    );
+                    row += 1;
+                }
+            }
+            result_idx += 1;
         }
     }
 

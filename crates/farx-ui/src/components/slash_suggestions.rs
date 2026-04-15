@@ -96,6 +96,10 @@ pub const SLASH_COMMANDS: &[SlashCommand] = &[
         description: "Navigate forward in history",
     },
     SlashCommand {
+        command: "/grep",
+        description: "Search inside files by content",
+    },
+    SlashCommand {
         command: "/gemini",
         description: "Launch Google Gemini",
     },
