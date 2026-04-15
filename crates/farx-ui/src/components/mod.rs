@@ -5,6 +5,7 @@ pub mod bookmarks;
 pub mod chmod_dialog;
 pub mod command_line;
 pub mod dialog;
+pub mod diff_view;
 pub mod editor;
 pub mod embedded_terminal;
 pub mod feedback;

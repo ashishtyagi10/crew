@@ -72,6 +72,10 @@ pub const SLASH_COMMANDS: &[SlashCommand] = &[
         description: "Deselect files by mask",
     },
     SlashCommand {
+        command: "/diff",
+        description: "Compare files from both panels",
+    },
+    SlashCommand {
         command: "/duplicates",
         description: "Find duplicate files",
     },

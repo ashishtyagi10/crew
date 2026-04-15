@@ -144,6 +144,9 @@ pub enum Action {
     // File permissions
     ChmodDialog,
 
+    // File diff
+    DiffFiles,
+
     // Tabs
     NewTab,
     CloseTab,

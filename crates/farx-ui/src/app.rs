@@ -17,6 +17,7 @@ use crate::components::bookmarks::{
 use crate::components::chmod_dialog::{render_chmod_dialog, ChmodAction, ChmodDialogState};
 use crate::components::command_line::CommandLineState;
 use crate::components::dialog::{render_dialog, DialogResult, DialogState};
+use crate::components::diff_view::{render_diff_view, DiffAction, DiffViewState};
 use crate::components::editor::{render_editor, EditorAction, EditorState};
 use crate::components::embedded_terminal::{key_to_bytes, render_terminal, TerminalSession};
 use crate::components::feedback::{render_feedback, ConfirmAction, FeedbackResult, FeedbackState};
@@ -143,6 +144,8 @@ pub struct App {
     pub chmod_dialog: Option<ChmodDialogState>,
     /// File operation progress dialog.
     pub progress: Option<ProgressState>,
+    /// Side-by-side diff view state.
+    pub diff_view: Option<DiffViewState>,
     /// Fuzzy finder dialog state.
     pub fuzzy_finder: Option<FuzzyFinderState>,
     /// Quick actions palette state.
@@ -251,6 +254,7 @@ impl App {
             batch_rename: None,
             chmod_dialog: None,
             progress: None,
+            diff_view: None,
             fuzzy_finder: None,
             quick_actions: None,
             ai_panel: None,
@@ -543,6 +547,17 @@ impl App {
                     self.viewer = None;
                 }
                 ViewerAction::None => {}
+            }
+            return Action::Noop;
+        }
+
+        // Diff view is full-screen
+        if let Some(ref mut diff) = self.diff_view {
+            match diff.handle_key_event(key) {
+                DiffAction::Close => {
+                    self.diff_view = None;
+                }
+                DiffAction::None => {}
             }
             return Action::Noop;
         }
@@ -1928,6 +1943,9 @@ impl App {
             "/grep" | "/content-search" => {
                 let dir = self.active_tree_ref().root.clone();
                 self.search = Some(SearchState::new_content_focused(dir));
+            }
+            "/diff" | "/compare-files" => {
+                self.dispatch(Action::DiffFiles);
             }
             "/ssh" => {
                 if args.is_empty() {
@@ -3461,6 +3479,33 @@ impl App {
                         .error("Chmod is only available on Unix systems".to_string());
                 }
             }
+            Action::DiffFiles => {
+                // Get current file from left and right panels
+                let left_file = self.left_tree.current_node().and_then(|n| {
+                    if !n.entry.is_dir {
+                        Some(n.entry.path.clone())
+                    } else {
+                        None
+                    }
+                });
+                let right_file = self.right_tree.current_node().and_then(|n| {
+                    if !n.entry.is_dir {
+                        Some(n.entry.path.clone())
+                    } else {
+                        None
+                    }
+                });
+                match (left_file, right_file) {
+                    (Some(left), Some(right)) => match DiffViewState::new(left, right) {
+                        Ok(dv) => self.diff_view = Some(dv),
+                        Err(e) => self.feedback.error(format!("Diff failed: {}", e)),
+                    },
+                    _ => {
+                        self.feedback
+                            .error("Place cursor on a file in each panel to diff".to_string());
+                    }
+                }
+            }
             Action::NewTab => {
                 let root = self.active_tree_ref().root.clone();
                 let show_hidden = self.config.general.show_hidden_files;
@@ -3662,6 +3707,10 @@ impl App {
         }
         if let Some(ref help) = self.help {
             render_help(frame, help, &self.theme);
+            return;
+        }
+        if let Some(ref diff) = self.diff_view {
+            render_diff_view(frame, diff, &self.theme);
             return;
         }
 
