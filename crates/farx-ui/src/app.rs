@@ -587,6 +587,8 @@ impl App {
                 if let Some(term) = self.terminals.get_mut(tid) {
                     if term.alive {
                         term.write_input(&bytes);
+                        // Poll immediately so typed characters appear without tick delay
+                        term.poll_output();
                     } else {
                         // Process exited — any key closes the panel
                         self.close_terminal(tid);
@@ -1016,10 +1018,15 @@ impl App {
                 }
 
                 // Check breadcrumb click (top border row of a panel)
-                if let Some(path) = self.breadcrumb_hit(mx, my) {
+                if let Some((side, path)) = self.breadcrumb_hit(mx, my) {
+                    // Switch to the clicked panel first
+                    self.active_panel = side;
                     if path.is_dir() {
                         let show_hidden = self.config.general.show_hidden_files;
-                        let tree = self.active_tree();
+                        let tree = match side {
+                            PanelSide::Left => &mut self.left_tree,
+                            PanelSide::Right => &mut self.right_tree,
+                        };
                         tree.set_root(path);
                         tree.show_hidden = show_hidden;
                         tree.rebuild();
@@ -1115,18 +1122,22 @@ impl App {
         for (leaf, rect) in &self.cached_panel_rects {
             if x >= rect.x && x < rect.x + rect.width && y >= rect.y && y < rect.y + rect.height {
                 if let farx_core::PanelLeaf::FilePanel(side) = leaf {
-                    // Inner area: 1 for top border
-                    let inner_y = rect.y + 1;
-                    // Filter bar may take 1 row at the top of inner
                     let tree = match side {
                         PanelSide::Left => &self.left_tree,
                         PanelSide::Right => &self.right_tree,
                     };
-                    let filter_height: u16 = if !tree.filter.is_empty() || self.filter_active {
-                        1
-                    } else {
-                        0
-                    };
+                    // Tab bar takes 1 row when multiple tabs exist
+                    let tab_height: u16 = if tree.tab_count() > 1 { 1 } else { 0 };
+                    // Inner area: tab_height + 1 for top border
+                    let inner_y = rect.y + tab_height + 1;
+                    // Filter bar may take 1 row at the top of inner
+                    let is_active_panel = self.active_panel == *side;
+                    let filter_height: u16 =
+                        if !tree.filter.is_empty() || (self.filter_active && is_active_panel) {
+                            1
+                        } else {
+                            0
+                        };
                     let list_start_y = inner_y + filter_height;
                     // Footer is 1 row, bottom border is 1 row
                     let list_end_y = rect.y + rect.height - 2; // -1 border -1 footer
@@ -1142,7 +1153,8 @@ impl App {
     }
 
     /// Check if a click hit a breadcrumb segment in the panel title bar.
-    fn breadcrumb_hit(&self, x: u16, y: u16) -> Option<std::path::PathBuf> {
+    /// Returns (panel_side, path) so the caller can switch panels correctly.
+    fn breadcrumb_hit(&self, x: u16, y: u16) -> Option<(PanelSide, std::path::PathBuf)> {
         use crate::components::tree_panel::breadcrumb_path_at_click;
         for (leaf, rect) in &self.cached_panel_rects {
             // Top border row of the panel
@@ -1152,8 +1164,9 @@ impl App {
                         PanelSide::Left => &self.left_tree,
                         PanelSide::Right => &self.right_tree,
                     };
-                    // Switch to this panel if needed
-                    return breadcrumb_path_at_click(&tree.root, *rect, x);
+                    if let Some(path) = breadcrumb_path_at_click(&tree.root, *rect, x) {
+                        return Some((*side, path));
+                    }
                 }
             }
         }
