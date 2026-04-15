@@ -14,6 +14,7 @@ use crate::components::batch_rename::{render_batch_rename, BatchRenameAction, Ba
 use crate::components::bookmarks::{
     load_bookmarks, render_bookmarks, save_bookmarks, Bookmark, BookmarkAction, BookmarkState,
 };
+use crate::components::chmod_dialog::{render_chmod_dialog, ChmodAction, ChmodDialogState};
 use crate::components::command_line::CommandLineState;
 use crate::components::dialog::{render_dialog, DialogResult, DialogState};
 use crate::components::editor::{render_editor, EditorAction, EditorState};
@@ -137,6 +138,8 @@ pub struct App {
     undo_stack: Vec<UndoEntry>,
     /// Batch rename dialog state.
     pub batch_rename: Option<BatchRenameState>,
+    /// Chmod / permissions dialog state.
+    pub chmod_dialog: Option<ChmodDialogState>,
     /// Fuzzy finder dialog state.
     pub fuzzy_finder: Option<FuzzyFinderState>,
     /// Quick actions palette state.
@@ -243,6 +246,7 @@ impl App {
             },
             undo_stack: Vec::new(),
             batch_rename: None,
+            chmod_dialog: None,
             fuzzy_finder: None,
             quick_actions: None,
             ai_panel: None,
@@ -706,6 +710,39 @@ impl App {
             return Action::Noop;
         }
 
+        // Chmod dialog
+        if let Some(ref mut chmod) = self.chmod_dialog {
+            match chmod.handle_key_event(key) {
+                ChmodAction::Cancel => {
+                    self.chmod_dialog = None;
+                }
+                ChmodAction::Apply(new_mode) => {
+                    let path = chmod.file_path.clone();
+                    self.chmod_dialog = None;
+                    #[cfg(unix)]
+                    {
+                        use std::os::unix::fs::PermissionsExt;
+                        match std::fs::set_permissions(
+                            &path,
+                            std::fs::Permissions::from_mode(new_mode),
+                        ) {
+                            Ok(()) => {
+                                self.feedback
+                                    .success(format!("Permissions set to {:04o}", new_mode));
+                                self.active_tree().rebuild();
+                            }
+                            Err(e) => {
+                                self.feedback
+                                    .error(format!("Failed to set permissions: {}", e));
+                            }
+                        }
+                    }
+                }
+                ChmodAction::None => {}
+            }
+            return Action::Noop;
+        }
+
         // Bookmarks panel
         if let Some(ref mut bm_panel) = self.bookmarks_panel {
             match bm_panel.handle_key_event(key) {
@@ -936,6 +973,7 @@ impl App {
                     || self.fuzzy_finder.is_some()
                     || self.quick_actions.is_some()
                     || self.batch_rename.is_some()
+                    || self.chmod_dialog.is_some()
                 {
                     return;
                 }
@@ -1825,6 +1863,9 @@ impl App {
             }
             "/checksum" | "/sha256" => {
                 self.dispatch(Action::ShowChecksums);
+            }
+            "/chmod" | "/permissions" | "/perms" => {
+                self.dispatch(Action::ChmodDialog);
             }
             "/actions" => {
                 self.dispatch(Action::ShowQuickActions);
@@ -3322,6 +3363,25 @@ impl App {
                     self.feedback.show_output("Checksums", lines.join("\n"));
                 }
             }
+            Action::ChmodDialog => {
+                #[cfg(unix)]
+                {
+                    if let Some(node) = self.active_tree_ref().current_node() {
+                        if let Some(mode) = node.entry.mode {
+                            self.chmod_dialog =
+                                Some(ChmodDialogState::new(node.entry.path.clone(), mode));
+                        } else {
+                            self.feedback
+                                .error("Cannot read file permissions".to_string());
+                        }
+                    }
+                }
+                #[cfg(not(unix))]
+                {
+                    self.feedback
+                        .error("Chmod is only available on Unix systems".to_string());
+                }
+            }
             Action::FindDuplicates => {
                 let root = self.active_tree_ref().root.clone();
                 self.feedback.info("Scanning for duplicates...".to_string());
@@ -3639,6 +3699,11 @@ impl App {
         // Batch rename dialog
         if let Some(ref br) = self.batch_rename {
             render_batch_rename(frame, br, &self.theme);
+        }
+
+        // Chmod dialog
+        if let Some(ref chmod) = self.chmod_dialog {
+            render_chmod_dialog(frame, chmod, &self.theme);
         }
 
         // Dialog only for text input (MkDir, Rename, CreateFile)

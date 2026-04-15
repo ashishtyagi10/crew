@@ -44,6 +44,10 @@ pub const SLASH_COMMANDS: &[SlashCommand] = &[
         description: "Show SHA-256 checksums",
     },
     SlashCommand {
+        command: "/chmod",
+        description: "Change file permissions",
+    },
+    SlashCommand {
         command: "/claude",
         description: "Launch Claude Code",
     },

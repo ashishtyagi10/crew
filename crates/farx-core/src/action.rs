@@ -141,6 +141,9 @@ pub enum Action {
     // Checksums
     ShowChecksums,
 
+    // File permissions
+    ChmodDialog,
+
     // Disk usage treemap
     ShowTreemap,
 

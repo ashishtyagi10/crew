@@ -2,6 +2,7 @@ pub mod ai_bar;
 pub mod ai_panel;
 pub mod batch_rename;
 pub mod bookmarks;
+pub mod chmod_dialog;
 pub mod command_line;
 pub mod dialog;
 pub mod editor;

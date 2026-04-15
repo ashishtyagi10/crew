@@ -250,6 +250,9 @@ impl KeyMap {
             Action::CompressSelection,
         );
 
+        // ── File permissions (chmod) ──────────────────────────────────────
+        panel.insert((KeyCode::Char('a'), KeyModifiers::ALT), Action::ChmodDialog);
+
         // ── Symlink ─────────────────────────────────────────────────────
         panel.insert(
             (KeyCode::Char('l'), KeyModifiers::ALT),
