@@ -6,6 +6,7 @@ pub mod panel_layout;
 pub mod tab_group;
 pub mod tree;
 pub mod types;
+pub mod update;
 
 pub use action::Action;
 pub use config::AppConfig;

@@ -208,6 +208,10 @@ pub const SLASH_COMMANDS: &[SlashCommand] = &[
         description: "Undo last file operation",
     },
     SlashCommand {
+        command: "/update",
+        description: "Check for and install a new farx release",
+    },
+    SlashCommand {
         command: "/yank",
         description: "Copy path to clipboard",
     },

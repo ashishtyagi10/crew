@@ -87,7 +87,7 @@ main() {
     esac
 
     echo ""
-    echo "Run 'farx' to start. Farx auto-updates on startup."
+    echo "Run 'farx' to start. Type '/update' inside farx to install new releases."
 }
 
 detect_os() {

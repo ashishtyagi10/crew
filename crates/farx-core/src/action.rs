@@ -17,6 +17,8 @@ pub enum Action {
     ParentDirectory,
     GotoRoot,
     SwitchPanel,
+    FocusLeftPanel,
+    FocusRightPanel,
     SwapPanels,
 
     // File operations

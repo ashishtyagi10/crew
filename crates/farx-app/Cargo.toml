@@ -19,10 +19,3 @@ tracing-subscriber = { workspace = true }
 crossterm = { workspace = true }
 ratatui = { workspace = true }
 self_update = { workspace = true }
-semver = { workspace = true }
-dirs = { workspace = true }
-reqwest = { workspace = true, features = ["blocking"] }
-tempfile = "3"
-flate2 = { workspace = true }
-tar = { workspace = true }
-zip = { workspace = true }

@@ -22,4 +22,5 @@ pub mod search;
 pub mod slash_suggestions;
 pub mod syntax;
 pub mod tree_panel;
+pub mod update_modal;
 pub mod viewer;

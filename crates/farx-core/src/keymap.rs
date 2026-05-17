@@ -30,6 +30,16 @@ impl KeyMap {
         panel.insert((KeyCode::F(2), KeyModifiers::NONE), Action::OpenSystemApp);
         panel.insert((KeyCode::F(3), KeyModifiers::NONE), Action::EditFile);
         panel.insert((KeyCode::F(4), KeyModifiers::NONE), Action::SwitchPanel);
+        panel.insert((KeyCode::Tab, KeyModifiers::NONE), Action::SwitchPanel);
+        panel.insert((KeyCode::BackTab, KeyModifiers::SHIFT), Action::SwitchPanel);
+        panel.insert(
+            (KeyCode::Left, KeyModifiers::CONTROL),
+            Action::FocusLeftPanel,
+        );
+        panel.insert(
+            (KeyCode::Right, KeyModifiers::CONTROL),
+            Action::FocusRightPanel,
+        );
         panel.insert((KeyCode::F(5), KeyModifiers::NONE), Action::CopyDialog);
         panel.insert((KeyCode::F(6), KeyModifiers::NONE), Action::MoveDialog);
         panel.insert((KeyCode::F(7), KeyModifiers::NONE), Action::MkDirDialog);
@@ -464,6 +474,8 @@ fn parse_action(s: &str) -> Option<Action> {
         "parentdirectory" | "parent" => Some(Action::ParentDirectory),
         "gotoroot" => Some(Action::GotoRoot),
         "switchpanel" => Some(Action::SwitchPanel),
+        "focusleftpanel" | "focusleft" => Some(Action::FocusLeftPanel),
+        "focusrightpanel" | "focusright" => Some(Action::FocusRightPanel),
         "swappanels" => Some(Action::SwapPanels),
         "opensystemapp" | "open" => Some(Action::OpenSystemApp),
         "copydialog" | "copy" => Some(Action::CopyDialog),

@@ -32,6 +32,7 @@ use crate::components::quick_actions::{
 use crate::components::search::{render_search, SearchAction, SearchState};
 use crate::components::slash_suggestions::{render_slash_suggestions, SlashSuggestionsState};
 use crate::components::tree_panel::{render_tab_bar, render_tree_panel_with_filter};
+use crate::components::update_modal::{render_update_modal, UpdateAction, UpdateState};
 use crate::components::viewer::{render_viewer, ViewerAction, ViewerState};
 use crate::components::{command_line, fn_bar};
 use crate::theme::Theme;
@@ -154,6 +155,11 @@ pub struct App {
     pub ai_panel: Option<AiPanelState>,
     /// Slash command suggestion popup state.
     pub slash_suggestions: Option<SlashSuggestionsState>,
+    /// In-TUI auto-update flow state (`/update` command).
+    pub update_state: Option<crate::components::update_modal::UpdateState>,
+    /// Set to true when the main loop should leave the alternate screen and
+    /// run the blocking installer. Cleared by the main loop after handling.
+    pub pending_install: bool,
     /// Embedded terminal sessions.
     pub terminals: Vec<crate::components::embedded_terminal::TerminalSession>,
     /// Panel layout tree (supports recursive splitting).
@@ -265,6 +271,8 @@ impl App {
             quick_actions: None,
             ai_panel: None,
             slash_suggestions: None,
+            update_state: None,
+            pending_install: false,
             terminals: Vec::new(),
             layout: farx_core::LayoutNode::default_layout(),
             focused_terminal: None,
@@ -569,12 +577,25 @@ impl App {
         }
 
         // Embedded terminal — when focused, forward all keys to PTY
-        // F4 = cycle panels (escape hatch), Ctrl+W = close terminal
+        // F4/Tab = cycle panels (escape hatch), Ctrl+W = close terminal,
+        // Ctrl+Left/Right = jump directly to left/right file panel.
         if let Some(tid) = self.focused_terminal {
             use crossterm::event::{KeyCode, KeyModifiers};
-            if key.code == KeyCode::F(4) {
-                // F4: cycle focus to next panel
+            if key.code == KeyCode::F(4)
+                || (key.code == KeyCode::Tab && key.modifiers == KeyModifiers::NONE)
+            {
                 self.cycle_focus();
+                return Action::Noop;
+            }
+            if key.modifiers == KeyModifiers::CONTROL
+                && (key.code == KeyCode::Left || key.code == KeyCode::Right)
+            {
+                self.focused_terminal = None;
+                self.active_panel = if key.code == KeyCode::Left {
+                    PanelSide::Left
+                } else {
+                    PanelSide::Right
+                };
                 return Action::Noop;
             }
             if key.code == KeyCode::Char('w') && key.modifiers.contains(KeyModifiers::CONTROL) {
@@ -619,6 +640,26 @@ impl App {
                 self.help = None;
             }
             return Action::Noop;
+        }
+
+        // Update modal (Confirm / Done / Failed) takes priority over normal input.
+        if let Some(ref state) = self.update_state {
+            if state.is_modal() {
+                match state.handle_key_event(key) {
+                    UpdateAction::Confirmed => {
+                        if let Some(UpdateState::Confirm { latest, .. }) = self.update_state.take()
+                        {
+                            self.update_state = Some(UpdateState::Installing { latest });
+                            self.pending_install = true;
+                        }
+                    }
+                    UpdateAction::Cancelled | UpdateAction::Dismissed => {
+                        self.update_state = None;
+                    }
+                    UpdateAction::None => {}
+                }
+                return Action::Noop;
+            }
         }
 
         // Menu bar
@@ -1377,6 +1418,7 @@ impl App {
         self.check_suggestion_response();
         self.check_fs_changes();
         self.poll_terminals();
+        self.poll_update_check();
 
         // Poll file operation progress
         if let Some(ref mut progress) = self.progress {
@@ -1411,6 +1453,67 @@ impl App {
         {
             self.request_suggestion();
         }
+    }
+
+    /// Kick off the `/update` flow: spawn the GitHub release check on a
+    /// background thread and store the receiver. `poll_update_check()` picks
+    /// the result up on a subsequent tick.
+    fn start_update_check(&mut self) {
+        if self.update_state.is_some() {
+            self.feedback
+                .info("Update check already in progress".to_string());
+            return;
+        }
+        self.feedback.info("Checking for updates…".to_string());
+        let rx = farx_core::update::check_and_auto_update_async();
+        self.update_state = Some(UpdateState::Checking { rx });
+    }
+
+    /// Drain the update-check channel without blocking. Transitions the
+    /// `Checking` state into `Confirm` / `Failed` / cleared once the
+    /// background thread produces a result.
+    fn poll_update_check(&mut self) {
+        let Some(UpdateState::Checking { rx }) = self.update_state.as_ref() else {
+            return;
+        };
+        match rx.try_recv() {
+            Ok(status) => {
+                use farx_core::update::UpdateStatus;
+                let current = env!("CARGO_PKG_VERSION").to_string();
+                match status {
+                    UpdateStatus::Available(latest) => {
+                        self.update_state = Some(UpdateState::Confirm { current, latest });
+                    }
+                    UpdateStatus::Updated(version) => {
+                        self.update_state = Some(UpdateState::Done { version });
+                    }
+                    UpdateStatus::UpToDate => {
+                        self.update_state = None;
+                        self.feedback
+                            .info(format!("Already on the latest version (v{})", current));
+                    }
+                    UpdateStatus::Failed(message) => {
+                        self.update_state = Some(UpdateState::Failed { message });
+                    }
+                }
+            }
+            Err(std::sync::mpsc::TryRecvError::Empty) => {}
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                self.update_state = Some(UpdateState::Failed {
+                    message: "Update check ended without a result".to_string(),
+                });
+            }
+        }
+    }
+
+    /// Called by the main loop after running `perform_update()`.
+    /// `result` is `Ok(installed_version)` on success or `Err(message)` on
+    /// failure.
+    pub fn complete_install(&mut self, result: Result<String, String>) {
+        self.update_state = Some(match result {
+            Ok(version) => UpdateState::Done { version },
+            Err(message) => UpdateState::Failed { message },
+        });
     }
 
     /// Request a typeahead suggestion from the LLM.
@@ -1941,6 +2044,9 @@ impl App {
             }
             "/help" | "/h" => {
                 self.help = Some(HelpState::new());
+            }
+            "/update" => {
+                self.start_update_check();
             }
             "/refresh" | "/r" => {
                 self.left_tree.rebuild();
@@ -2924,6 +3030,14 @@ impl App {
             }
             Action::SwitchPanel => {
                 self.cycle_focus();
+            }
+            Action::FocusLeftPanel => {
+                self.focused_terminal = None;
+                self.active_panel = PanelSide::Left;
+            }
+            Action::FocusRightPanel => {
+                self.focused_terminal = None;
+                self.active_panel = PanelSide::Right;
             }
             Action::SwapPanels => {
                 std::mem::swap(&mut self.left_panel, &mut self.right_panel);
@@ -3999,6 +4113,11 @@ impl App {
         if self.feedback.output_visible {
             let output_area = main_chunks[0]; // render over the panel area
             render_feedback(frame, output_area, &self.feedback);
+        }
+
+        // Update modal renders last so it sits above every other overlay.
+        if let Some(ref state) = self.update_state {
+            render_update_modal(frame, state, &self.theme);
         }
     }
 }

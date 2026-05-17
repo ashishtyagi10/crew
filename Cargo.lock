@@ -811,21 +811,14 @@ dependencies = [
  "anyhow",
  "clap",
  "crossterm",
- "dirs",
  "farx-core",
  "farx-fs",
  "farx-ui",
- "flate2",
  "ratatui",
- "reqwest",
  "self_update",
- "semver",
- "tar",
- "tempfile",
  "tokio",
  "tracing",
  "tracing-subscriber",
- "zip",
 ]
 
 [[package]]
@@ -836,11 +829,18 @@ dependencies = [
  "chrono",
  "crossterm",
  "dirs",
+ "flate2",
  "ratatui",
+ "reqwest",
+ "self_update",
+ "semver",
  "serde",
+ "tar",
+ "tempfile",
  "thiserror 2.0.18",
  "toml",
  "tracing",
+ "zip",
 ]
 
 [[package]]
