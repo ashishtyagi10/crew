@@ -1,203 +1,33 @@
-use std::io;
-use std::time::Duration;
-
 use anyhow::Result;
 use clap::Parser;
-use crossterm::{
-    event::{DisableMouseCapture, EnableMouseCapture},
-    execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-};
-use ratatui::prelude::*;
 
+mod cli;
+mod install;
 mod keydebug;
+mod tui;
 
-use farx_core::update;
-use farx_core::AppConfig;
-use farx_ui::app::App;
-use farx_ui::event::{Event, EventHandler};
-
-#[derive(Parser)]
-#[command(
-    name = "farx",
-    version,
-    about = "Next-generation cross-platform file manager"
-)]
-struct Cli {
-    /// Update farx to the latest release
-    #[arg(long)]
-    update: bool,
-
-    /// Check if a newer version is available
-    #[arg(long)]
-    check_update: bool,
-
-    /// Print version
-    #[arg(long)]
-    keydebug: bool,
-}
+use cli::Cli;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let cli = Cli::parse();
+    let args = Cli::parse();
 
     // --keydebug: interactive key event debugger
-    if cli.keydebug {
+    if args.keydebug {
         keydebug::run_key_debug();
         return Ok(());
     }
 
     // --update: download and install the latest version, then exit
-    if cli.update {
-        println!("farx — checking for updates...");
-        match update::perform_update()? {
-            self_update::Status::UpToDate(v) => {
-                println!("Already up to date (v{v}).");
-            }
-            self_update::Status::Updated(v) => {
-                println!("Updated to v{v}! Restart farx to use the new version.");
-            }
-        }
-        return Ok(());
+    if args.update {
+        return cli::run_update();
     }
 
     // --check-update: just print whether an update exists
-    if cli.check_update {
-        update::print_version();
-        let rx = update::check_and_auto_update_async();
-        match rx.recv() {
-            Ok(update::UpdateStatus::Updated(v)) => {
-                println!("Updated to v{v}! Restart farx to use the new version.");
-            }
-            Ok(update::UpdateStatus::Available(v)) => {
-                println!("New version available: v{v}");
-                println!("Run `farx --update` to install it.");
-            }
-            Ok(update::UpdateStatus::UpToDate) => {
-                println!("You are on the latest version.");
-            }
-            Ok(update::UpdateStatus::Failed(e)) => {
-                eprintln!("Could not check for updates: {e}");
-            }
-            Err(_) => {
-                eprintln!("Update check did not complete.");
-            }
-        }
+    if args.check_update {
+        cli::run_check_update();
         return Ok(());
     }
 
-    // Initialize logging
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::from_default_env().add_directive("farx=info".parse()?),
-        )
-        .with_writer(io::stderr)
-        .init();
-
-    // Load config
-    let config = AppConfig::load();
-    let tick_rate = Duration::from_millis(config.ui.tick_rate_ms);
-
-    // Setup terminal
-    enable_raw_mode()?;
-    let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
-    let backend = CrosstermBackend::new(stdout);
-    let mut terminal = Terminal::new(backend)?;
-
-    // Create app and event handler
-    let mut app = App::new(config)?;
-    let mut events = EventHandler::new(tick_rate);
-
-    // Main loop
-    while app.running {
-        // Render
-        terminal.draw(|frame| {
-            app.render(frame);
-        })?;
-
-        // Handle events
-        match events.next().await {
-            Some(Event::Key(key)) => {
-                // Only handle key press events (not release/repeat)
-                if key.kind == crossterm::event::KeyEventKind::Press {
-                    let action = app.handle_key_event(key);
-                    app.dispatch(action);
-                }
-            }
-            Some(Event::Resize(_, _)) => {
-                // Terminal will re-render on next loop iteration
-            }
-            Some(Event::Tick) => {
-                app.tick();
-            }
-            Some(Event::Mouse(mouse)) => {
-                app.handle_mouse_event(mouse);
-            }
-            None => {
-                // Event stream ended
-                break;
-            }
-        }
-
-        // If the user just confirmed an in-TUI update, leave the alternate
-        // screen so `perform_update`'s stdout (download progress, install
-        // path notes) is visible, run the installer synchronously, then
-        // restore the TUI and let App render the result modal.
-        if app.pending_install {
-            app.pending_install = false;
-            let result = run_install_with_screen_break(&mut terminal);
-            app.complete_install(result);
-        }
-    }
-
-    // Restore terminal
-    disable_raw_mode()?;
-    execute!(
-        terminal.backend_mut(),
-        LeaveAlternateScreen,
-        DisableMouseCapture
-    )?;
-    terminal.show_cursor()?;
-
-    Ok(())
-}
-
-/// Temporarily restore the normal terminal so `perform_update`'s stdout
-/// (download progress, install-path notes) is visible to the user, run
-/// the blocking installer, then return to the alternate screen with raw
-/// mode and mouse capture re-enabled. Returns `Ok(version)` on success
-/// or `Err(message)` on any failure — never propagates, because the TUI
-/// must always be restored.
-fn run_install_with_screen_break<B: ratatui::backend::Backend + std::io::Write>(
-    terminal: &mut Terminal<B>,
-) -> Result<String, String> {
-    // Leave the TUI.
-    let _ = disable_raw_mode();
-    let _ = execute!(
-        terminal.backend_mut(),
-        LeaveAlternateScreen,
-        DisableMouseCapture
-    );
-
-    println!();
-    println!("farx — installing update…");
-    let install_result = update::perform_update();
-    println!();
-    println!("Returning to farx…");
-
-    // Re-enter the TUI regardless of install outcome.
-    let _ = enable_raw_mode();
-    let _ = execute!(
-        terminal.backend_mut(),
-        EnterAlternateScreen,
-        EnableMouseCapture
-    );
-    let _ = terminal.clear();
-
-    match install_result {
-        Ok(self_update::Status::Updated(v)) => Ok(v),
-        Ok(self_update::Status::UpToDate(v)) => Ok(v),
-        Err(e) => Err(e.to_string()),
-    }
+    tui::run_tui().await
 }
