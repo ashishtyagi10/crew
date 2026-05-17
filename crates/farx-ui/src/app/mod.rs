@@ -4,6 +4,7 @@ mod chrome;
 mod commands;
 mod confirm;
 mod dialogs;
+mod dispatch;
 mod fs_watcher;
 mod globs;
 mod helpers;
@@ -40,236 +41,17 @@ use crate::components::help::HelpState;
 use crate::components::menu::MenuState;
 use crate::components::quick_actions::QuickActionsState;
 use crate::components::search::SearchState;
-use crate::components::viewer::ViewerState;
 
 pub use self::state::App;
 
 use self::helpers::format_size_human;
 use self::pending::{PendingOperation, UndoEntry};
-use self::text_detect::is_text_file;
 
 impl App {
     /// Execute an action, updating application state accordingly.
     pub fn dispatch(&mut self, action: Action) {
-        // Both panels use tree view — route navigation through the active tree
-        match &action {
-            Action::CursorUp => {
-                self.active_tree().move_cursor(-1);
-                return;
-            }
-            Action::CursorDown => {
-                self.active_tree().move_cursor(1);
-                return;
-            }
-            Action::CursorPageUp => {
-                self.active_tree().move_cursor(-20);
-                return;
-            }
-            Action::CursorPageDown => {
-                self.active_tree().move_cursor(20);
-                return;
-            }
-            Action::CursorHome => {
-                self.active_tree().move_cursor_to(0);
-                return;
-            }
-            Action::CursorEnd => {
-                let last = self.active_tree().visible_nodes.len().saturating_sub(1);
-                self.active_tree().move_cursor_to(last);
-                return;
-            }
-            Action::TreeExpand => {
-                self.active_tree().expand();
-                return;
-            }
-            Action::TreeCollapse => {
-                self.active_tree().collapse();
-                return;
-            }
-            Action::EnterDirectory | Action::CommandLineEnterOrDir => {
-                if matches!(action, Action::CommandLineEnterOrDir)
-                    && !self.command_line.input.is_empty()
-                {
-                    self.smart_execute_command();
-                    return;
-                }
-                // Read what we need from the tree node first
-                let node_info = self
-                    .active_tree_ref()
-                    .current_node()
-                    .map(|n| (n.entry.is_dir, n.entry.path.clone(), n.entry.name.clone()));
-                if let Some((is_dir, path, name)) = node_info {
-                    if is_dir {
-                        // Enter changes into the directory (new root)
-                        self.navigate_to(path);
-                    } else if farx_fs::is_archive(&path) {
-                        // Archive: browse contents
-                        self.dispatch(Action::ViewArchive);
-                    } else {
-                        // Smart open: text in editor, binary with system app
-                        if is_text_file(&path) {
-                            match EditorState::open(&path) {
-                                Ok(es) => {
-                                    self.editor = Some(es);
-                                }
-                                Err(e) => {
-                                    self.show_error("Edit", &format!("{}", e));
-                                }
-                            }
-                        } else {
-                            match open::that(&path) {
-                                Ok(()) => self.feedback.info(format!("Opened: {}", name)),
-                                Err(e) => self.feedback.error(format!("Open: {}", e)),
-                            }
-                        }
-                    }
-                }
-                return;
-            }
-            Action::ParentDirectory => {
-                // Go up to the parent directory
-                let parent = self
-                    .active_tree_ref()
-                    .root
-                    .parent()
-                    .map(|p| p.to_path_buf());
-                if let Some(parent_path) = parent {
-                    self.navigate_to(parent_path);
-                }
-                return;
-            }
-            Action::ToggleSelect => {
-                self.active_tree().toggle_select();
-                return;
-            }
-            Action::SelectUp => {
-                self.active_tree().toggle_select();
-                self.active_tree().move_cursor(-1);
-                return;
-            }
-            Action::SelectDown => {
-                self.active_tree().toggle_select();
-                self.active_tree().move_cursor(1);
-                return;
-            }
-            Action::SelectPageUp => {
-                let tree = self.active_tree();
-                let cursor = tree.cursor;
-                let target = cursor.saturating_sub(20);
-                for i in (target..cursor).rev() {
-                    if i < tree.visible_nodes.len() && tree.visible_nodes[i].entry.name != ".." {
-                        tree.selected.insert(i);
-                    }
-                }
-                tree.move_cursor_to(target);
-                return;
-            }
-            Action::SelectPageDown => {
-                let tree = self.active_tree();
-                let cursor = tree.cursor;
-                let max = tree.visible_nodes.len().saturating_sub(1);
-                let target = (cursor + 20).min(max);
-                for i in cursor..=target {
-                    if i < tree.visible_nodes.len() && tree.visible_nodes[i].entry.name != ".." {
-                        tree.selected.insert(i);
-                    }
-                }
-                tree.move_cursor_to(target);
-                return;
-            }
-            Action::SelectHome => {
-                let tree = self.active_tree();
-                let cursor = tree.cursor;
-                for i in 0..cursor {
-                    if i < tree.visible_nodes.len() && tree.visible_nodes[i].entry.name != ".." {
-                        tree.selected.insert(i);
-                    }
-                }
-                tree.move_cursor_to(0);
-                return;
-            }
-            Action::SelectEnd => {
-                let tree = self.active_tree();
-                let cursor = tree.cursor;
-                let max = tree.visible_nodes.len().saturating_sub(1);
-                for i in cursor..=max {
-                    if i < tree.visible_nodes.len() && tree.visible_nodes[i].entry.name != ".." {
-                        tree.selected.insert(i);
-                    }
-                }
-                tree.move_cursor_to(max);
-                return;
-            }
-            Action::SelectAll => {
-                let tree = self.active_tree();
-                for i in 0..tree.visible_nodes.len() {
-                    if tree.visible_nodes[i].entry.name != ".." {
-                        tree.selected.insert(i);
-                    }
-                }
-                return;
-            }
-            Action::DeselectAll => {
-                self.active_tree().selected.clear();
-                return;
-            }
-            Action::InvertSelection => {
-                let tree = self.active_tree();
-                for i in 0..tree.visible_nodes.len() {
-                    if tree.visible_nodes[i].entry.name != ".." {
-                        if tree.selected.contains(&i) {
-                            tree.selected.remove(&i);
-                        } else {
-                            tree.selected.insert(i);
-                        }
-                    }
-                }
-                return;
-            }
-            Action::OpenSystemApp => {
-                if let Some(node) = self.active_tree_ref().current_node() {
-                    let path = node.entry.path.clone();
-                    let name = node.entry.name.clone();
-                    match open::that(&path) {
-                        Ok(()) => self.feedback.info(format!("Opened: {}", name)),
-                        Err(e) => self.feedback.error(format!("Open: {}", e)),
-                    }
-                }
-                return;
-            }
-            Action::ViewFile => {
-                if let Some(node) = self.active_tree().current_node() {
-                    if !node.entry.is_dir {
-                        let path = node.entry.path.clone();
-                        match ViewerState::open(&path) {
-                            Ok(vs) => {
-                                self.viewer = Some(vs);
-                            }
-                            Err(e) => {
-                                self.show_error("View", &format!("{}", e));
-                            }
-                        }
-                    }
-                }
-                return;
-            }
-            Action::EditFile => {
-                if let Some(node) = self.active_tree().current_node() {
-                    if !node.entry.is_dir {
-                        let path = node.entry.path.clone();
-                        match EditorState::open(&path) {
-                            Ok(es) => {
-                                self.editor = Some(es);
-                            }
-                            Err(e) => {
-                                self.show_error("Edit", &format!("{}", e));
-                            }
-                        }
-                    }
-                }
-                return;
-            }
-            _ => {} // fall through to other actions
+        if self.dispatch_tree_nav(&action) || self.dispatch_selection(&action) {
+            return;
         }
 
         match action {
