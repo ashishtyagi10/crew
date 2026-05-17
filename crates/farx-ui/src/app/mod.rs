@@ -7,6 +7,7 @@ mod dialogs;
 mod fs_watcher;
 mod globs;
 mod helpers;
+mod keys;
 mod mouse;
 mod pending;
 mod selection_ops;
@@ -20,7 +21,6 @@ mod update_flow;
 
 use std::path::PathBuf;
 
-use crossterm::event::KeyEvent;
 use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::Frame;
 
@@ -28,32 +28,30 @@ use farx_core::{Action, AppConfig, KeyMap, PanelSide, PanelState, TabGroup, Tree
 
 use farx_core::SortField;
 
-use crate::components::ai_bar::{render_ai_bar, AiBarAction, AiBarState};
-use crate::components::ai_panel::{render_ai_panel, AiPanelAction, AiPanelState};
-use crate::components::batch_rename::{render_batch_rename, BatchRenameAction, BatchRenameState};
+use crate::components::ai_bar::{render_ai_bar, AiBarState};
+use crate::components::ai_panel::{render_ai_panel, AiPanelState};
+use crate::components::batch_rename::{render_batch_rename, BatchRenameState};
 use crate::components::bookmarks::{
-    load_bookmarks, render_bookmarks, save_bookmarks, Bookmark, BookmarkAction, BookmarkState,
+    load_bookmarks, render_bookmarks, save_bookmarks, Bookmark, BookmarkState,
 };
-use crate::components::chmod_dialog::{render_chmod_dialog, ChmodAction, ChmodDialogState};
+use crate::components::chmod_dialog::{render_chmod_dialog, ChmodDialogState};
 use crate::components::command_line::CommandLineState;
 use crate::components::dialog::{render_dialog, DialogState};
-use crate::components::diff_view::{render_diff_view, DiffAction, DiffViewState};
-use crate::components::editor::{render_editor, EditorAction, EditorState};
-use crate::components::embedded_terminal::{key_to_bytes, render_terminal};
-use crate::components::feedback::{render_feedback, ConfirmAction, FeedbackResult, FeedbackState};
-use crate::components::fuzzy_finder::{render_fuzzy_finder, FuzzyAction, FuzzyFinderState};
+use crate::components::diff_view::{render_diff_view, DiffViewState};
+use crate::components::editor::{render_editor, EditorState};
+use crate::components::embedded_terminal::render_terminal;
+use crate::components::feedback::{render_feedback, ConfirmAction, FeedbackState};
+use crate::components::fuzzy_finder::{render_fuzzy_finder, FuzzyFinderState};
 use crate::components::help::{render_help, HelpState};
 use crate::components::info_panel::{render_info_panel, InfoPanelData};
 use crate::components::menu::{render_menu, MenuState};
 use crate::components::progress::{render_progress, ProgressState};
-use crate::components::quick_actions::{
-    render_quick_actions, QuickActionResult, QuickActionsState,
-};
-use crate::components::search::{render_search, SearchAction, SearchState};
+use crate::components::quick_actions::{render_quick_actions, QuickActionsState};
+use crate::components::search::{render_search, SearchState};
 use crate::components::slash_suggestions::{render_slash_suggestions, SlashSuggestionsState};
 use crate::components::tree_panel::{render_tab_bar, render_tree_panel_with_filter};
-use crate::components::update_modal::{render_update_modal, UpdateAction, UpdateState};
-use crate::components::viewer::{render_viewer, ViewerAction, ViewerState};
+use crate::components::update_modal::render_update_modal;
+use crate::components::viewer::{render_viewer, ViewerState};
 use crate::components::{command_line, fn_bar};
 use crate::theme::Theme;
 
@@ -301,457 +299,6 @@ impl App {
         self.refresh_both_panels();
         self.left_tree.rebuild();
         self.right_tree.rebuild();
-    }
-
-    /// Map a key event to an action via the keymap, or send it to the active modal.
-    pub fn handle_key_event(&mut self, key: KeyEvent) -> Action {
-        // Priority: editor > viewer > help > menu > search > ai_bar > dialog > panel
-
-        // Editor is full-screen
-        if let Some(ref mut editor) = self.editor {
-            match editor.handle_key_event(key) {
-                EditorAction::Close | EditorAction::SaveAndClose => {
-                    self.editor = None;
-                    self.refresh_both_panels();
-                }
-                EditorAction::None => {}
-            }
-            return Action::Noop;
-        }
-
-        // Viewer is full-screen
-        if let Some(ref mut viewer) = self.viewer {
-            match viewer.handle_key_event(key) {
-                ViewerAction::Close => {
-                    self.viewer = None;
-                }
-                ViewerAction::None => {}
-            }
-            return Action::Noop;
-        }
-
-        // Diff view is full-screen
-        if let Some(ref mut diff) = self.diff_view {
-            match diff.handle_key_event(key) {
-                DiffAction::Close => {
-                    self.diff_view = None;
-                }
-                DiffAction::None => {}
-            }
-            return Action::Noop;
-        }
-
-        // Embedded terminal — when focused, forward all keys to PTY
-        // F4/Tab = cycle panels (escape hatch), Ctrl+W = close terminal,
-        // Ctrl+Left/Right = jump directly to left/right file panel.
-        if let Some(tid) = self.focused_terminal {
-            use crossterm::event::{KeyCode, KeyModifiers};
-            if key.code == KeyCode::F(4)
-                || (key.code == KeyCode::Tab && key.modifiers == KeyModifiers::NONE)
-            {
-                self.cycle_focus();
-                return Action::Noop;
-            }
-            if key.modifiers == KeyModifiers::CONTROL
-                && (key.code == KeyCode::Left || key.code == KeyCode::Right)
-            {
-                self.focused_terminal = None;
-                self.active_panel = if key.code == KeyCode::Left {
-                    PanelSide::Left
-                } else {
-                    PanelSide::Right
-                };
-                return Action::Noop;
-            }
-            if key.code == KeyCode::Char('w') && key.modifiers.contains(KeyModifiers::CONTROL) {
-                // Ctrl+W: close this terminal
-                self.close_terminal(tid);
-                return Action::Noop;
-            }
-            // Forward everything else to the PTY
-            if let Some(bytes) = key_to_bytes(&key) {
-                if let Some(term) = self.terminals.get_mut(tid) {
-                    if term.alive {
-                        term.write_input(&bytes);
-                        // Poll immediately so typed characters appear without tick delay
-                        term.poll_output();
-                    } else {
-                        // Process exited — any key closes the panel
-                        self.close_terminal(tid);
-                    }
-                }
-            }
-            return Action::Noop;
-        }
-
-        // Inline feedback (confirmations, output panels)
-        match self.feedback.handle_key(key) {
-            FeedbackResult::Confirmed(_) => {
-                if let Some(action) = self.feedback.take_confirm() {
-                    self.execute_confirm(action);
-                }
-                return Action::Noop;
-            }
-            FeedbackResult::Rejected | FeedbackResult::Consumed => {
-                return Action::Noop;
-            }
-            FeedbackResult::NotHandled => {}
-        }
-
-        // Help screen
-        if let Some(ref mut help) = self.help {
-            help.handle_key_event(key);
-            if !help.active {
-                self.help = None;
-            }
-            return Action::Noop;
-        }
-
-        // Update modal (Confirm / Done / Failed) takes priority over normal input.
-        if let Some(ref state) = self.update_state {
-            if state.is_modal() {
-                match state.handle_key_event(key) {
-                    UpdateAction::Confirmed => {
-                        if let Some(UpdateState::Confirm { latest, .. }) = self.update_state.take()
-                        {
-                            self.update_state = Some(UpdateState::Installing { latest });
-                            self.pending_install = true;
-                        }
-                    }
-                    UpdateAction::Cancelled | UpdateAction::Dismissed => {
-                        self.update_state = None;
-                    }
-                    UpdateAction::None => {}
-                }
-                return Action::Noop;
-            }
-        }
-
-        // Menu bar
-        if let Some(ref mut menu) = self.menu {
-            let action = menu.handle_key_event(key);
-            if !menu.active {
-                self.menu = None;
-            }
-            self.handle_menu_action(action);
-            return Action::Noop;
-        }
-
-        // Search dialog
-        if let Some(ref mut search) = self.search {
-            let action = search.handle_key_event(key);
-            if !search.active {
-                self.search = None;
-            }
-            if let SearchAction::GoTo(path) = action {
-                let show_hidden = self.config.general.show_hidden_files;
-                let panel = self.active_panel_mut();
-                panel.current_dir = path;
-                panel.cursor = 0;
-                panel.scroll_offset = 0;
-                panel.selected.clear();
-                Self::refresh_panel(panel, show_hidden);
-            }
-            return Action::Noop;
-        }
-
-        // Fuzzy finder
-        if let Some(ref mut ff) = self.fuzzy_finder {
-            match ff.handle_key_event(key) {
-                FuzzyAction::Close => {
-                    self.fuzzy_finder = None;
-                }
-                FuzzyAction::GoTo(path) => {
-                    self.fuzzy_finder = None;
-                    if path.is_dir() {
-                        self.navigate_to(path);
-                    } else if let Some(parent) = path.parent() {
-                        self.navigate_to(parent.to_path_buf());
-                    }
-                }
-                FuzzyAction::None => {}
-            }
-            return Action::Noop;
-        }
-
-        // AI tools panel
-        if let Some(ref mut ai_panel) = self.ai_panel {
-            match ai_panel.handle_key_event(key) {
-                AiPanelAction::Close => {
-                    self.ai_panel = None;
-                }
-                AiPanelAction::Launch(tool) => {
-                    self.ai_panel = None;
-                    let (cmd, args) = tool.command();
-                    self.spawn_embedded_terminal(cmd, args);
-                }
-                AiPanelAction::None => {}
-            }
-            return Action::Noop;
-        }
-
-        // Quick actions palette
-        if let Some(ref mut qa) = self.quick_actions {
-            match qa.handle_key_event(key) {
-                QuickActionResult::Close => {
-                    self.quick_actions = None;
-                }
-                QuickActionResult::Execute(cmd) => {
-                    self.quick_actions = None;
-                    self.handle_quick_action(&cmd);
-                }
-                QuickActionResult::None => {}
-            }
-            return Action::Noop;
-        }
-
-        // Batch rename dialog
-        if let Some(ref mut br) = self.batch_rename {
-            match br.handle_key_event(key) {
-                BatchRenameAction::Close => {
-                    self.batch_rename = None;
-                }
-                BatchRenameAction::Apply(renames) => {
-                    self.batch_rename = None;
-                    let mut ok = 0;
-                    let mut fail = 0;
-                    for (old_path, new_name) in &renames {
-                        if let Some(parent) = old_path.parent() {
-                            let new_path = parent.join(new_name);
-                            match farx_fs::rename_entry(old_path, &new_path) {
-                                Ok(()) => {
-                                    self.undo_stack.push(UndoEntry::Rename {
-                                        old: old_path.clone(),
-                                        new: new_path,
-                                    });
-                                    ok += 1;
-                                }
-                                Err(_) => fail += 1,
-                            }
-                        }
-                    }
-                    if fail == 0 {
-                        self.feedback.success(format!("Renamed {} file(s)", ok));
-                    } else {
-                        self.feedback
-                            .warning(format!("Renamed {}, failed {}", ok, fail));
-                    }
-                    self.active_tree().rebuild();
-                }
-                BatchRenameAction::None => {}
-            }
-            return Action::Noop;
-        }
-
-        // Chmod dialog
-        if let Some(ref mut chmod) = self.chmod_dialog {
-            match chmod.handle_key_event(key) {
-                ChmodAction::Cancel => {
-                    self.chmod_dialog = None;
-                }
-                ChmodAction::Apply(new_mode) => {
-                    let path = chmod.file_path.clone();
-                    self.chmod_dialog = None;
-                    #[cfg(unix)]
-                    {
-                        use std::os::unix::fs::PermissionsExt;
-                        match std::fs::set_permissions(
-                            &path,
-                            std::fs::Permissions::from_mode(new_mode),
-                        ) {
-                            Ok(()) => {
-                                self.feedback
-                                    .success(format!("Permissions set to {:04o}", new_mode));
-                                self.active_tree().rebuild();
-                            }
-                            Err(e) => {
-                                self.feedback
-                                    .error(format!("Failed to set permissions: {}", e));
-                            }
-                        }
-                    }
-                }
-                ChmodAction::None => {}
-            }
-            return Action::Noop;
-        }
-
-        // Bookmarks panel
-        if let Some(ref mut bm_panel) = self.bookmarks_panel {
-            match bm_panel.handle_key_event(key) {
-                BookmarkAction::Close => {
-                    self.bookmarks_panel = None;
-                }
-                BookmarkAction::GoTo(path) => {
-                    self.bookmarks_panel = None;
-                    if path.is_dir() {
-                        self.navigate_to(path);
-                    } else {
-                        self.feedback
-                            .error("Bookmark path no longer exists".to_string());
-                    }
-                }
-                BookmarkAction::Delete(idx) => {
-                    if idx < self.bookmarks.len() {
-                        self.bookmarks.remove(idx);
-                        save_bookmarks(&self.bookmarks);
-                    }
-                }
-                BookmarkAction::None => {}
-            }
-            return Action::Noop;
-        }
-
-        // AI bar
-        if let Some(ref mut ai_bar) = self.ai_bar {
-            match ai_bar.handle_key_event(key) {
-                AiBarAction::Close => {
-                    self.ai_bar = None;
-                }
-                AiBarAction::Submit(query) => {
-                    self.submit_ai_query(query);
-                }
-                AiBarAction::None => {}
-            }
-            return Action::Noop;
-        }
-
-        // Dialog
-        if let Some(ref mut dialog) = self.dialog {
-            dialog.handle_key_event(key);
-            if dialog.is_resolved() {
-                let result = dialog.result.clone();
-                let pending = self.pending_op.take();
-                self.dialog = None;
-                self.handle_dialog_result(result, pending);
-            }
-            return Action::Noop;
-        }
-
-        // Filter mode: intercept key input for filter pattern
-        if self.filter_active {
-            use crossterm::event::{KeyCode, KeyModifiers};
-            match (key.code, key.modifiers) {
-                (KeyCode::Esc, _) => {
-                    self.filter_active = false;
-                    self.filter_pattern.clear();
-                    self.active_tree().filter.clear();
-                    self.active_tree().rebuild();
-                    return Action::Noop;
-                }
-                (KeyCode::Enter, _) => {
-                    // Accept filter and close filter bar (keep results narrowed)
-                    self.filter_active = false;
-                    return Action::Noop;
-                }
-                (KeyCode::Backspace, _) => {
-                    self.filter_pattern.pop();
-                    self.active_tree().filter = self.filter_pattern.clone();
-                    self.active_tree().rebuild();
-                    return Action::Noop;
-                }
-                (KeyCode::Char(ch), KeyModifiers::NONE | KeyModifiers::SHIFT) => {
-                    self.filter_pattern.push(ch);
-                    self.active_tree().filter = self.filter_pattern.clone();
-                    self.active_tree().rebuild();
-                    return Action::Noop;
-                }
-                (KeyCode::Up, _) => {
-                    self.active_tree().move_cursor(-1);
-                    return Action::Noop;
-                }
-                (KeyCode::Down, _) => {
-                    self.active_tree().move_cursor(1);
-                    return Action::Noop;
-                }
-                _ => {
-                    return Action::Noop;
-                }
-            }
-        }
-
-        // If command line has input, intercept some keys for command line editing
-        if !self.command_line.input.is_empty() {
-            use crossterm::event::{KeyCode, KeyModifiers};
-
-            // Slash command suggestion navigation takes priority
-            if self.slash_suggestions.is_some() {
-                match key.code {
-                    KeyCode::Up => {
-                        if let Some(ref mut ss) = self.slash_suggestions {
-                            ss.move_up();
-                        }
-                        return Action::Noop;
-                    }
-                    KeyCode::Down => {
-                        if let Some(ref mut ss) = self.slash_suggestions {
-                            ss.move_down();
-                        }
-                        return Action::Noop;
-                    }
-                    KeyCode::Tab => {
-                        // Tab fills the command and lets user add arguments
-                        if let Some(ref ss) = self.slash_suggestions {
-                            if let Some(cmd) = ss.selected_command() {
-                                self.command_line.input = cmd.to_string();
-                                self.command_line.cursor_pos = self.command_line.input.len();
-                                self.command_line.input.push(' ');
-                                self.command_line.cursor_pos += 1;
-                            }
-                        }
-                        self.slash_suggestions = None;
-                        return Action::Noop;
-                    }
-                    KeyCode::Enter => {
-                        // Enter selects and immediately executes the command
-                        if let Some(ref ss) = self.slash_suggestions {
-                            if let Some(cmd) = ss.selected_command() {
-                                self.command_line.input = cmd.to_string();
-                                self.command_line.cursor_pos = self.command_line.input.len();
-                            }
-                        }
-                        self.slash_suggestions = None;
-                        self.smart_execute_command();
-                        return Action::Noop;
-                    }
-                    KeyCode::Esc => {
-                        self.slash_suggestions = None;
-                        self.command_line.clear();
-                        return Action::Noop;
-                    }
-                    _ => {
-                        // Fall through to normal input handling
-                    }
-                }
-            }
-
-            // Tab: accept suggestion if available, otherwise switch panel
-            if key.code == KeyCode::Tab && self.command_line.suggestion.is_some() {
-                self.command_line.accept_suggestion();
-                self.command_line.last_typed_tick = self.tick_count;
-                return Action::Noop;
-            }
-            match (key.code, key.modifiers) {
-                (KeyCode::Up, KeyModifiers::NONE) => return Action::CommandLineHistoryUp,
-                (KeyCode::Down, KeyModifiers::NONE) => return Action::CommandLineHistoryDown,
-                (KeyCode::Esc, _) => return Action::CommandLineClear,
-                (KeyCode::Char(' '), KeyModifiers::NONE) => {
-                    return Action::CommandLineInput(' ');
-                }
-                (KeyCode::Left, KeyModifiers::NONE) => {
-                    self.command_line.cursor_pos = self.command_line.cursor_pos.saturating_sub(1);
-                    return Action::Noop;
-                }
-                (KeyCode::Right, KeyModifiers::NONE) => {
-                    self.command_line.cursor_pos =
-                        (self.command_line.cursor_pos + 1).min(self.command_line.input.len());
-                    return Action::Noop;
-                }
-                _ => {}
-            }
-        }
-
-        self.keymap.resolve_panel(&key)
     }
 
     /// Handle mouse events (scroll, click, double-click).
