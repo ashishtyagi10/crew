@@ -23,29 +23,9 @@ mod tick;
 mod tools;
 mod update_flow;
 
-use std::path::PathBuf;
-
-use farx_core::{Action, PanelSide, SortField};
-
-use crate::components::ai_bar::AiBarState;
-use crate::components::ai_panel::AiPanelState;
-use crate::components::batch_rename::BatchRenameState;
-use crate::components::bookmarks::{save_bookmarks, Bookmark, BookmarkState};
-use crate::components::chmod_dialog::ChmodDialogState;
-use crate::components::dialog::DialogState;
-use crate::components::diff_view::DiffViewState;
-use crate::components::editor::EditorState;
-use crate::components::feedback::ConfirmAction;
-use crate::components::fuzzy_finder::FuzzyFinderState;
-use crate::components::help::HelpState;
-use crate::components::menu::MenuState;
-use crate::components::quick_actions::QuickActionsState;
-use crate::components::search::SearchState;
+use farx_core::Action;
 
 pub use self::state::App;
-
-use self::helpers::format_size_human;
-use self::pending::{PendingOperation, UndoEntry};
 
 impl App {
     /// Execute an action, updating application state accordingly.
@@ -53,5 +33,14 @@ impl App {
         if self.dispatch_tree_nav(&action) || self.dispatch_selection(&action) {
             return;
         }
+        let _ = self.dispatch_control(&action)
+            || self.dispatch_file_dialogs(&action)
+            || self.dispatch_cmdline(&action)
+            || self.dispatch_nav(&action)
+            || self.dispatch_clipboard(&action)
+            || self.dispatch_term_palette(&action)
+            || self.dispatch_bulk_ops(&action)
+            || self.dispatch_archives(&action)
+            || self.dispatch_analysis(&action);
     }
 }
