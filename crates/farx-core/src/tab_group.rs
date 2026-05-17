@@ -104,3 +104,37 @@ impl DerefMut for TabGroup {
         &mut self.tabs[self.active]
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn tab_lifecycle_and_switching() {
+        let tmp = tempfile::tempdir().unwrap();
+        let a = tmp.path().join("a");
+        let b = tmp.path().join("b");
+        std::fs::create_dir_all(&a).unwrap();
+        std::fs::create_dir_all(&b).unwrap();
+
+        let tree = TreeState::new(a.clone());
+        let mut tabs = TabGroup::new(tree);
+        assert_eq!(tabs.tab_count(), 1);
+
+        tabs.new_tab(b.clone(), false);
+        assert_eq!(tabs.tab_count(), 2);
+        assert_eq!(tabs.active_tab(), 1);
+        assert_eq!(tabs.root, b);
+
+        tabs.prev_tab();
+        assert_eq!(tabs.active_tab(), 0);
+        tabs.next_tab();
+        assert_eq!(tabs.active_tab(), 1);
+
+        tabs.switch_to(0);
+        assert_eq!(tabs.active_tab(), 0);
+        assert!(tabs.close_tab());
+        assert_eq!(tabs.tab_count(), 1);
+        assert!(!tabs.close_tab());
+    }
+}

@@ -22,3 +22,6 @@ tempfile = "3"
 flate2 = { workspace = true }
 tar = { workspace = true }
 zip = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"

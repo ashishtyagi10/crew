@@ -91,6 +91,34 @@ fn is_hidden_file(name: &str, _path: &Path) -> bool {
     name.starts_with('.')
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn read_directory_hides_dotfiles_by_default() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::write(tmp.path().join("visible.txt"), "v").unwrap();
+        std::fs::write(tmp.path().join(".hidden.txt"), "h").unwrap();
+
+        let entries = read_directory(tmp.path(), false).unwrap();
+        let names: Vec<String> = entries.iter().map(|e| e.name.clone()).collect();
+        assert!(names.contains(&"visible.txt".to_string()));
+        assert!(!names.contains(&".hidden.txt".to_string()));
+    }
+
+    #[test]
+    fn read_directory_includes_hidden_when_enabled() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::write(tmp.path().join(".hidden.txt"), "h").unwrap();
+
+        let entries = read_directory(tmp.path(), true).unwrap();
+        let hidden = entries.iter().find(|e| e.name == ".hidden.txt").unwrap();
+        assert!(hidden.is_hidden);
+        assert_eq!(hidden.extension.as_deref(), Some("txt"));
+    }
+}
+
 #[cfg(windows)]
 fn is_hidden_file(_name: &str, path: &Path) -> bool {
     use std::os::windows::fs::MetadataExt;
