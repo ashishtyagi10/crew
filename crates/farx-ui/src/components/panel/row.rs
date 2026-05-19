@@ -39,7 +39,7 @@ pub(super) fn build_entry_line<'a>(
         cols.name.saturating_sub(1),
     );
 
-    let size_str = if entry.is_dir {
+    let size_str = if entry.is_dir && (entry.name == ".." || entry.size == 0) {
         pad_left("<DIR>", cols.size)
     } else {
         pad_left(&format_size(entry.size), cols.size)

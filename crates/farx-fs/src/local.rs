@@ -1,13 +1,60 @@
 use std::path::Path;
+use std::time::{Duration, Instant};
 
 use anyhow::Result;
 use farx_core::FileEntry;
 
+/// Budget guarding recursive directory-size computation. When entries or
+/// the time budget is exhausted, callers fall back to showing `<DIR>`.
+struct SizeBudget {
+    remaining: u32,
+    deadline: Instant,
+}
+
+impl SizeBudget {
+    fn new(entries: u32, millis: u64) -> Self {
+        Self {
+            remaining: entries,
+            deadline: Instant::now() + Duration::from_millis(millis),
+        }
+    }
+
+    fn tick(&mut self) -> bool {
+        if self.remaining == 0 || Instant::now() > self.deadline {
+            return false;
+        }
+        self.remaining -= 1;
+        true
+    }
+}
+
+/// Recursively sum file sizes under `dir`. Symlinks are skipped to avoid
+/// cycles. Returns `None` if the budget is exhausted before completion.
+fn compute_dir_size(dir: &Path, budget: &mut SizeBudget) -> Option<u64> {
+    let read = std::fs::read_dir(dir).ok()?;
+    let mut total: u64 = 0;
+    for entry in read.flatten() {
+        if !budget.tick() {
+            return None;
+        }
+        let Ok(meta) = entry.path().symlink_metadata() else {
+            continue;
+        };
+        if meta.file_type().is_symlink() {
+            continue;
+        }
+        if meta.is_file() {
+            total = total.saturating_add(meta.len());
+        } else if meta.is_dir() {
+            total = total.saturating_add(compute_dir_size(&entry.path(), budget)?);
+        }
+    }
+    Some(total)
+}
+
 /// Read a directory and return a list of FileEntry.
-/// If show_hidden is false, hidden files are excluded.
-/// On Unix, hidden = starts with dot.
-/// On Windows, hidden = has FILE_ATTRIBUTE_HIDDEN.
-/// The ".." parent entry is always included at the top if not at root.
+/// On Unix hidden = starts with dot; on Windows hidden = FILE_ATTRIBUTE_HIDDEN.
+/// The ".." parent entry is included at the top if not at filesystem root.
 pub fn read_directory(path: &Path, show_hidden: bool) -> Result<Vec<FileEntry>> {
     let mut entries = Vec::new();
 
@@ -26,6 +73,10 @@ pub fn read_directory(path: &Path, show_hidden: bool) -> Result<Vec<FileEntry>> 
             mode: None,
         });
     }
+
+    // Shared budget for computing recursive sizes of subdirectories so a
+    // single huge tree can't freeze panel navigation.
+    let mut budget = SizeBudget::new(50_000, 250);
 
     // Read directory entries
     let read_dir = std::fs::read_dir(path)?;
@@ -63,6 +114,8 @@ pub fn read_directory(path: &Path, show_hidden: bool) -> Result<Vec<FileEntry>> 
             is_hidden,
             size: if metadata.is_file() {
                 metadata.len()
+            } else if metadata.is_dir() && !is_symlink {
+                compute_dir_size(&entry.path(), &mut budget).unwrap_or(0)
             } else {
                 0
             },
@@ -105,6 +158,18 @@ mod tests {
         let names: Vec<String> = entries.iter().map(|e| e.name.clone()).collect();
         assert!(names.contains(&"visible.txt".to_string()));
         assert!(!names.contains(&".hidden.txt".to_string()));
+    }
+
+    #[test]
+    fn read_directory_computes_directory_total_size() {
+        let tmp = tempfile::tempdir().unwrap();
+        let sub = tmp.path().join("sub");
+        std::fs::create_dir(&sub).unwrap();
+        std::fs::write(sub.join("a.bin"), vec![0u8; 100]).unwrap();
+        std::fs::write(sub.join("b.bin"), vec![0u8; 250]).unwrap();
+        let entries = read_directory(tmp.path(), false).unwrap();
+        let dir = entries.iter().find(|e| e.name == "sub").unwrap();
+        assert_eq!(dir.size, 350);
     }
 
     #[test]
