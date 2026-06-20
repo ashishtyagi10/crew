@@ -104,7 +104,6 @@ impl App {
             update_state: None,
             pending_install: false,
             terminals: Vec::new(),
-            layout: farx_core::LayoutNode::default_layout(),
             focused_terminal: None,
             next_terminal_id: 0,
             grid: farx_core::GridLayout::new(),
@@ -114,7 +113,6 @@ impl App {
             fs_change_rx: None,
             fs_change_tick: 0,
             cached_panel_rects: Vec::new(),
-            cached_fn_bar_rect: None,
             last_click: None,
         };
 

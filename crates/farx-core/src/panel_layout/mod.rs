@@ -1,13 +1,5 @@
-//! Recursive panel layout tree.
-//!
-//! Public API is re-exported here so `pub use panel_layout::*;` in `lib.rs`
-//! continues to expose `LayoutNode` and `PanelLeaf`.
+//! Panel leaf type for grid hit-testing and cached rects.
 
-mod split;
-mod traversal;
 mod types;
 
-#[cfg(test)]
-mod tests;
-
-pub use types::{LayoutNode, PanelLeaf};
+pub use types::PanelLeaf;

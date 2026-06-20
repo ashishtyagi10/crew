@@ -5,7 +5,7 @@ use std::path::Path;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Paragraph};
+use ratatui::widgets::{Block, BorderType, Borders, Paragraph};
 use ratatui::Frame;
 
 use super::state::CommandLineState;
@@ -22,6 +22,7 @@ pub fn render_command_line(
     area: Rect,
     state: &CommandLineState,
     current_dir: &Path,
+    status: &str,
     _theme: &Theme,
 ) {
     let has_input = !state.input.is_empty();
@@ -49,13 +50,14 @@ pub fn render_command_line(
     };
 
     let border_color = if has_input {
-        Color::Cyan
+        Color::Rgb(122, 162, 247)
     } else {
-        Color::Indexed(240)
+        Color::Indexed(238)
     };
 
     let block = Block::default()
         .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
         .title(Line::from(vec![
             Span::styled(" ", Style::default().fg(border_color).bg(Color::Black)),
             Span::styled(
@@ -66,17 +68,16 @@ pub fn render_command_line(
         ]))
         .title_bottom(Line::from(vec![
             Span::styled(
-                " Type command or ask in English ",
-                Style::default().fg(Color::Indexed(244)).bg(Color::Black),
-            ),
-            Span::styled(
                 format!(" {} ", mode_label),
                 Style::default()
                     .fg(Color::Black)
                     .bg(mode_color)
                     .add_modifier(Modifier::BOLD),
             ),
-            Span::styled(" ", Style::default().bg(Color::Black)),
+            Span::styled(
+                format!(" {} ", status),
+                Style::default().fg(Color::Indexed(244)).bg(Color::Black),
+            ),
         ]))
         .border_style(Style::default().fg(border_color).bg(Color::Black))
         .style(Style::default().bg(Color::Black));
@@ -90,19 +91,20 @@ pub fn render_command_line(
 fn render_input_line(frame: &mut Frame, inner: Rect, state: &CommandLineState, has_input: bool) {
     let prompt_style = Style::default()
         .fg(if has_input {
-            Color::Cyan
+            Color::Rgb(122, 162, 247)
         } else {
             Color::Indexed(244)
         })
-        .bg(Color::Black);
+        .bg(Color::Black)
+        .add_modifier(Modifier::BOLD);
     let input_style = Style::default().fg(Color::White).bg(if has_input {
         Color::Indexed(235)
     } else {
         Color::Black
     });
 
-    let prompt = "> ";
-    let input_width = inner.width.saturating_sub(2) as usize; // 2 for "> "
+    let prompt = "❯ ";
+    let input_width = inner.width.saturating_sub(2) as usize; // 2 for "❯ "
 
     // Ghost text (suggestion) shown after the input in dim color
     let ghost = state.suggestion.as_deref().unwrap_or("");

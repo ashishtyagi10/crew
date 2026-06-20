@@ -20,34 +20,57 @@ use crate::components::help::render_help;
 use crate::components::slash_suggestions::render_slash_suggestions;
 use crate::components::viewer::render_viewer;
 
-/// Rect for the centered command box on the empty canvas: ~60% width
-/// (clamped 40..100 cols), horizontally centered, around vertical middle.
-fn centered_command_rect(area: Rect) -> Rect {
-    let w = (area.width.saturating_mul(6) / 10)
-        .clamp(40, 100)
-        .min(area.width);
-    let x = area.x + area.width.saturating_sub(w) / 2;
-    let y = area.y + area.height / 2;
-    Rect {
-        x,
-        y: y.saturating_sub(1),
-        width: w,
-        height: 3,
+/// FARX banner + hint, centered on the empty canvas (no agents running).
+fn render_farx_logo(frame: &mut Frame, area: Rect) {
+    const ART: [&str; 5] = [
+        "███████  █████  ██████  ██   ██",
+        "██      ██   ██ ██   ██  ██ ██ ",
+        "█████   ███████ ██████    ███  ",
+        "██      ██   ██ ██   ██  ██ ██ ",
+        "██      ██   ██ ██   ██ ██   ██",
+    ];
+    let art_w = ART[0].chars().count() as u16;
+    if area.width < art_w || area.height < ART.len() as u16 + 2 {
+        return;
     }
-}
-
-/// Dim one-line hint shown under the empty-canvas command box.
-fn render_launcher_hint(frame: &mut Frame, cmd_rect: Rect) {
-    let area = Rect {
-        x: cmd_rect.x,
-        y: cmd_rect.y.saturating_add(cmd_rect.height),
-        width: cmd_rect.width,
+    let x = area.x + (area.width - art_w) / 2;
+    let y = area.y + area.height / 3;
+    for (i, line) in ART.iter().enumerate() {
+        let row = Rect {
+            x,
+            y: y + i as u16,
+            width: art_w,
+            height: 1,
+        };
+        frame.render_widget(
+            Paragraph::new(*line).style(Style::default().fg(Color::Indexed(75))),
+            row,
+        );
+    }
+    let hint = Rect {
+        x: area.x,
+        y: y + ART.len() as u16 + 1,
+        width: area.width,
         height: 1,
     };
-    let hint = Paragraph::new("/claude   /codex   /shell   ·   Alt+Enter to focus")
-        .style(Style::default().fg(Color::Indexed(244)))
-        .alignment(Alignment::Center);
-    frame.render_widget(hint, area);
+    frame.render_widget(
+        Paragraph::new("/claude   /codex   /shell   ·   Alt+Enter to focus   ·   /exit to quit")
+            .style(Style::default().fg(Color::Indexed(244)))
+            .alignment(Alignment::Center),
+        hint,
+    );
+}
+
+/// Inset a rect horizontally (~8%, clamped 2..6 cols) so a box doesn't touch
+/// the screen edges.
+fn inset_x(area: Rect) -> Rect {
+    let m = (area.width / 12).clamp(2, 6);
+    Rect {
+        x: area.x + m,
+        y: area.y,
+        width: area.width.saturating_sub(m * 2),
+        height: area.height,
+    }
 }
 
 use super::App;
@@ -79,11 +102,13 @@ impl App {
                 PanelSide::Left => self.left_panel.current_dir.clone(),
                 PanelSide::Right => self.right_panel.current_dir.clone(),
             };
+            let status = self.agent_status_text();
             command_line::render_command_line(
                 frame,
                 size,
                 &self.command_line,
                 &active_dir,
+                &status,
                 &self.theme,
             );
             return;
@@ -91,55 +116,36 @@ impl App {
 
         let main_chunks = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Min(3),
-                Constraint::Length(1),
-                Constraint::Length(3),
-            ])
+            .constraints([Constraint::Min(3), Constraint::Length(3)])
             .split(size);
 
-        self.render_status_bar(frame, main_chunks[1]);
-
         self.render_agent_grid(frame, main_chunks[0]);
-        self.cached_fn_bar_rect = None;
 
-        let active_dir = self.active_tree_ref().root.clone();
-        let empty_canvas = self.grid.is_empty();
-
-        // The command input lives in a centered box on the empty canvas
-        // (initial launcher), otherwise the full-width bottom row.
-        let cmd_rect = if empty_canvas {
-            centered_command_rect(main_chunks[0])
-        } else {
-            main_chunks[2]
-        };
-
-        if self.feedback.has_content() {
-            render_feedback(frame, main_chunks[2], &self.feedback);
+        // On the empty canvas, show the FARX banner above the input.
+        if self.grid.is_empty() {
+            render_farx_logo(frame, main_chunks[0]);
         }
-        if empty_canvas || !self.feedback.has_content() {
+
+        // The command input sits in the bottom row, inset from the screen
+        // edges. Its footer carries the agent status ("no agents" / "N agents").
+        let cmd_area = inset_x(main_chunks[1]);
+        if self.feedback.has_content() {
+            render_feedback(frame, cmd_area, &self.feedback);
+        } else {
+            let active_dir = self.active_tree_ref().root.clone();
+            let status = self.agent_status_text();
             command_line::render_command_line(
                 frame,
-                cmd_rect,
+                cmd_area,
                 &self.command_line,
                 &active_dir,
+                &status,
                 &self.theme,
             );
-            if empty_canvas && self.command_line.input.is_empty() {
-                render_launcher_hint(frame, cmd_rect);
-            }
         }
 
         if let Some(ref ss) = self.slash_suggestions {
-            let ss_rect = if empty_canvas {
-                Rect {
-                    y: cmd_rect.y.saturating_add(cmd_rect.height),
-                    ..cmd_rect
-                }
-            } else {
-                main_chunks[2]
-            };
-            render_slash_suggestions(frame, ss, ss_rect);
+            render_slash_suggestions(frame, ss, cmd_area);
         }
 
         self.render_overlays(frame, main_chunks[0]);

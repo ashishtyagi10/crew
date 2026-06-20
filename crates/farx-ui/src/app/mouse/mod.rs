@@ -1,4 +1,4 @@
-//! Mouse event handling: scroll routing, left-click (fn bar, breadcrumb,
+//! Mouse event handling: scroll routing, left-click (breadcrumb,
 //! panel entry, double-click), and right-click (toggle select).
 
 mod hit_test;
@@ -60,17 +60,6 @@ impl App {
                     || self.chmod_dialog.is_some()
                 {
                     return;
-                }
-
-                if let Some(fn_rect) = self.cached_fn_bar_rect {
-                    if my >= fn_rect.y
-                        && my < fn_rect.y + fn_rect.height
-                        && mx >= fn_rect.x
-                        && mx < fn_rect.x + fn_rect.width
-                    {
-                        self.handle_fn_bar_click(mx, fn_rect);
-                        return;
-                    }
                 }
 
                 if self.try_focus_terminal_at(mx, my) {

@@ -21,6 +21,4 @@ pub enum MenuAction {
     ShowAiBar,
     ShowAiPanel,
     SwapPanels,
-    // Options
-    ToggleFnBar,
 }

@@ -76,7 +76,6 @@ pub struct App {
     pub update_state: Option<UpdateState>,
     pub pending_install: bool,
     pub terminals: Vec<crate::components::embedded_terminal::TerminalSession>,
-    pub layout: farx_core::LayoutNode,
     pub focused_terminal: Option<usize>,
     /// Monotonic counter for stable terminal ids.
     pub(super) next_terminal_id: usize,
@@ -91,6 +90,5 @@ pub struct App {
     pub(super) fs_change_rx: Option<std::sync::mpsc::Receiver<()>>,
     pub(super) fs_change_tick: u64,
     pub(super) cached_panel_rects: Vec<(farx_core::PanelLeaf, ratatui::layout::Rect)>,
-    pub(super) cached_fn_bar_rect: Option<ratatui::layout::Rect>,
     pub(super) last_click: Option<(u16, u16, u64)>,
 }

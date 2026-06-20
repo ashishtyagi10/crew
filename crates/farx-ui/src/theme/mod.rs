@@ -44,14 +44,6 @@ pub struct Theme {
     pub panel_border: Style,
     /// Active panel border.
     pub panel_border_active: Style,
-    /// Function key bar background.
-    pub fn_bar_bg: Color,
-    /// Function key bar foreground.
-    pub fn_bar_fg: Color,
-    /// Style for the key number in the function bar.
-    pub fn_bar_key: Style,
-    /// Style for the label text in the function bar.
-    pub fn_bar_label: Style,
     /// Style for the command line area.
     pub cmd_line: Style,
     /// Style for informational text.

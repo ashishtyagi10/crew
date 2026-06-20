@@ -102,13 +102,5 @@ pub(super) fn build_menus() -> Vec<MenuColumn> {
                 },
             ],
         },
-        MenuColumn {
-            title: " Options ",
-            items: vec![MenuItem {
-                label: "Toggle Fn Bar",
-                action: MenuAction::ToggleFnBar,
-                hotkey: "",
-            }],
-        },
     ]
 }

@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 pub struct UiConfig {
     pub theme: String,
     pub tick_rate_ms: u64,
-    pub show_fn_bar: bool,
     pub date_format: String,
 }
 
@@ -14,7 +13,6 @@ impl Default for UiConfig {
         Self {
             theme: "tokyo-night".to_string(),
             tick_rate_ms: 250,
-            show_fn_bar: true,
             date_format: "%Y-%m-%d %H:%M".to_string(),
         }
     }

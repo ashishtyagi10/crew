@@ -9,7 +9,6 @@ pub mod diff_view;
 pub mod editor;
 pub mod embedded_terminal;
 pub mod feedback;
-pub mod fn_bar;
 pub mod fuzzy_finder;
 pub mod help;
 pub mod info_panel;

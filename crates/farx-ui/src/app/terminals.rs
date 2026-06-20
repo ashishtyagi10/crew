@@ -1,5 +1,5 @@
-//! Embedded-terminal lifecycle: spawn into a split, close + collapse, and
-//! Tab/F4 cycle through file panels and terminals.
+//! Embedded-terminal lifecycle: spawn into the grid, close + remove, and
+//! Tab/F4 cycle through terminals.
 
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
@@ -40,9 +40,19 @@ impl App {
         }))
     }
 
-    /// Spawn an embedded terminal in a new split panel.
+    /// Spawn an embedded terminal in the current directory.
     pub(super) fn spawn_embedded_terminal(&mut self, cmd: &str, args: &[&str]) {
         let dir = self.active_tree_ref().root.clone();
+        self.spawn_embedded_terminal_in(cmd, args, dir);
+    }
+
+    /// Spawn an embedded terminal in `dir` and add it to the agent grid.
+    pub(super) fn spawn_embedded_terminal_in(
+        &mut self,
+        cmd: &str,
+        args: &[&str],
+        dir: std::path::PathBuf,
+    ) {
         let rows = 24;
         let cols = 80;
         let waker = self.output_waker();
@@ -54,34 +64,9 @@ impl App {
             Ok(session) => {
                 let title = session.title.clone();
                 self.terminals.push(session);
-
-                let leaves = self.layout.leaves();
-                let focus_idx = if let Some(tid) = self.focused_terminal {
-                    leaves
-                        .iter()
-                        .position(|l| *l == farx_core::PanelLeaf::Terminal(tid))
-                        .unwrap_or(0)
-                } else {
-                    leaves
-                        .iter()
-                        .position(|l| *l == farx_core::PanelLeaf::FilePanel(self.active_panel))
-                        .unwrap_or(0)
-                };
-
-                self.layout.split_leaf(focus_idx, terminal_id);
-
-                let new_leaves = self.layout.leaves();
-                if let Some(idx) = new_leaves
-                    .iter()
-                    .position(|l| *l == farx_core::PanelLeaf::Terminal(terminal_id))
-                {
-                    self.focused_terminal = Some(terminal_id);
-                    let _ = idx;
-                }
-
+                self.focused_terminal = Some(terminal_id);
                 self.grid.add(terminal_id);
-                self.feedback
-                    .info(format!("{} opened in split panel", title));
+                self.feedback.info(format!("{} · {}", title, dir.display()));
             }
             Err(e) => {
                 self.feedback
@@ -90,13 +75,12 @@ impl App {
         }
     }
 
-    /// Close a terminal session and collapse its split.
+    /// Close a terminal session and remove it from the grid.
     pub(super) fn close_terminal(&mut self, terminal_id: usize) {
         if self.terminal_by_id(terminal_id).is_none() {
             return;
         }
 
-        self.layout.remove_terminal(terminal_id);
         self.terminals.retain(|t| t.id != terminal_id);
         self.grid.remove(terminal_id);
 
