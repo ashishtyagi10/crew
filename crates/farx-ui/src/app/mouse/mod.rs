@@ -73,6 +73,10 @@ impl App {
                     }
                 }
 
+                if self.try_focus_terminal_at(mx, my) {
+                    return;
+                }
+
                 if let Some((side, path)) = self.breadcrumb_hit(mx, my) {
                     self.active_panel = side;
                     if path.is_dir() {

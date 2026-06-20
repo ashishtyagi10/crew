@@ -70,16 +70,13 @@ impl App {
 
         self.render_status_bar(frame, main_chunks[1]);
 
-        let panel_rects = self.layout.compute_rects(main_chunks[0]);
-        self.cached_panel_rects = panel_rects.clone();
+        self.render_agent_grid(frame, main_chunks[0]);
 
         if self.config.ui.show_fn_bar {
             self.cached_fn_bar_rect = Some(main_chunks[3]);
         } else {
             self.cached_fn_bar_rect = None;
         }
-
-        self.render_panel_leaves(frame, &panel_rects);
 
         if self.feedback.has_content() {
             render_feedback(frame, main_chunks[2], &self.feedback);

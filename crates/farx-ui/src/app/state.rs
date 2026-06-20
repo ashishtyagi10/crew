@@ -2,7 +2,7 @@
 //! here. Method `impl App { ... }` blocks are spread across this module's
 //! sibling files.
 
-use farx_core::{KeyMap, PanelSide, PanelState, TabGroup};
+use farx_core::{GridLayout, KeyMap, PanelSide, PanelState, TabGroup};
 
 use crate::components::ai_bar::AiBarState;
 use crate::components::ai_panel::AiPanelState;
@@ -78,6 +78,15 @@ pub struct App {
     pub terminals: Vec<crate::components::embedded_terminal::TerminalSession>,
     pub layout: farx_core::LayoutNode,
     pub focused_terminal: Option<usize>,
+    /// Monotonic counter for stable terminal ids.
+    pub(super) next_terminal_id: usize,
+    /// LRU-ordered grid layout tracking which terminals are full vs minimized.
+    pub(super) grid: GridLayout,
+    /// Sender used by PTY reader threads to wake the render loop on output.
+    pub(super) terminal_event_tx: Option<tokio::sync::mpsc::UnboundedSender<crate::event::Event>>,
+    /// Coalescing flag: set when a terminal-output wake-up is already queued,
+    /// cleared when the loop drains terminals, to avoid redraw storms.
+    pub(super) output_pending: std::sync::Arc<std::sync::atomic::AtomicBool>,
     pub(super) fs_watcher: Option<notify::RecommendedWatcher>,
     pub(super) fs_change_rx: Option<std::sync::mpsc::Receiver<()>>,
     pub(super) fs_change_tick: u64,

@@ -1,10 +1,20 @@
 use std::io::{Read, Write};
 use std::sync::mpsc;
+use std::sync::Arc;
 
 use portable_pty::{native_pty_system, CommandBuilder, PtySize};
 
+/// Callback invoked by the PTY reader thread whenever new output arrives, so
+/// the render loop can be woken for an immediate redraw instead of waiting
+/// for the next periodic tick. Kept as an opaque closure to avoid coupling
+/// the session to the app's event types.
+pub type OutputWaker = Arc<dyn Fn() + Send + Sync>;
+
 /// An embedded terminal session backed by a PTY + vt100 parser.
 pub struct TerminalSession {
+    /// Stable monotonic id assigned at spawn; never changes even when other
+    /// terminals are closed.
+    pub id: usize,
     /// Human-readable title (e.g. "claude", "bash").
     pub title: String,
     /// vt100 terminal emulator / parser.
@@ -27,11 +37,13 @@ pub struct TerminalSession {
 impl TerminalSession {
     /// Spawn a command in a new PTY with the given dimensions and working directory.
     pub fn spawn(
+        id: usize,
         cmd: &str,
         args: &[&str],
         cwd: &std::path::Path,
         rows: u16,
         cols: u16,
+        waker: Option<OutputWaker>,
     ) -> anyhow::Result<Self> {
         let pty_system = native_pty_system();
 
@@ -68,6 +80,11 @@ impl TerminalSession {
                         if tx.send(buf[..n].to_vec()).is_err() {
                             break;
                         }
+                        // Wake the render loop so this output is shown right
+                        // away rather than on the next tick.
+                        if let Some(ref wake) = waker {
+                            wake();
+                        }
                     }
                     Err(_) => break,
                 }
@@ -77,6 +94,7 @@ impl TerminalSession {
         let parser = vt100::Parser::new(rows, cols, 100);
 
         Ok(Self {
+            id,
             title: cmd.to_string(),
             parser,
             output_rx: rx,

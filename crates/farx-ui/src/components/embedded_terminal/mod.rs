@@ -9,7 +9,9 @@
 mod input;
 mod render;
 mod session;
+mod thumbnail;
 
 pub use input::key_to_bytes;
 pub use render::render_terminal;
-pub use session::TerminalSession;
+pub use session::{OutputWaker, TerminalSession};
+pub use thumbnail::render_thumbnail;

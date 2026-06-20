@@ -1,7 +1,7 @@
 //! Chrome rendering and chrome-driven dispatch: the bottom status bar,
 //! function-key bar click handling, and the menu-action router.
 
-use farx_core::{Action, PanelSide, SortField};
+use farx_core::{Action, SortField};
 use ratatui::layout::Rect;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
@@ -9,23 +9,11 @@ use ratatui::Frame;
 
 use crate::components::menu::MenuAction;
 
-use super::helpers::{format_size_human, get_disk_space_cached};
 use super::App;
 
 impl App {
     /// Paint the one-row status bar at the bottom of the panel area.
     pub(super) fn render_status_bar(&self, frame: &mut Frame, area: Rect) {
-        let tree = self.active_tree_ref();
-        let total_files = tree.visible_nodes.len();
-        let selected_count = tree.selected.len();
-        let selected_size: u64 = tree
-            .selected
-            .iter()
-            .filter_map(|&i| tree.visible_nodes.get(i))
-            .filter(|n| !n.entry.is_dir)
-            .map(|n| n.entry.size)
-            .sum();
-
         let bg = ratatui::style::Color::Indexed(235);
         let label_style = ratatui::style::Style::default()
             .fg(ratatui::style::Color::Rgb(140, 140, 150))
@@ -40,43 +28,23 @@ impl App {
         let mut spans: Vec<Span<'_>> = Vec::new();
         spans.push(Span::styled(" ", label_style));
 
-        spans.push(Span::styled("Files: ", label_style));
-        spans.push(Span::styled(format!("{}", total_files), value_style));
-
-        if selected_count > 0 {
-            spans.push(Span::styled(" │ ", sep_style));
-            spans.push(Span::styled("Selected: ", label_style));
-            spans.push(Span::styled(
-                format!("{} ({})", selected_count, format_size_human(selected_size)),
-                value_style,
-            ));
-        }
-
-        spans.push(Span::styled(" │ ", sep_style));
-        let (free, total) = get_disk_space_cached(&tree.root);
-        if let (Some(free), Some(total)) = (free, total) {
-            spans.push(Span::styled("Disk: ", label_style));
-            spans.push(Span::styled(
-                format!(
-                    "{} free / {}",
-                    format_size_human(free),
-                    format_size_human(total)
-                ),
-                value_style,
-            ));
-        }
-
-        let tab_group = match self.active_panel {
-            PanelSide::Left => &self.left_tree,
-            PanelSide::Right => &self.right_tree,
-        };
-        if tab_group.tab_count() > 1 {
-            spans.push(Span::styled(" │ ", sep_style));
-            spans.push(Span::styled("Tab: ", label_style));
-            spans.push(Span::styled(
-                format!("{}/{}", tab_group.active_tab() + 1, tab_group.tab_count()),
-                value_style,
-            ));
+        if self.grid.is_empty() {
+            spans.push(Span::styled("no agents", label_style));
+        } else {
+            let agent_count = self.grid.len();
+            let title = self
+                .focused_terminal
+                .and_then(|id| self.terminal_by_id(id))
+                .map(|t| t.title.clone())
+                .unwrap_or_else(|| "—".to_string());
+            spans.push(Span::styled(title, value_style));
+            spans.push(Span::styled(" · ", sep_style));
+            let count_label = if agent_count == 1 {
+                "1 agent".to_string()
+            } else {
+                format!("{} agents", agent_count)
+            };
+            spans.push(Span::styled(count_label, label_style));
         }
 
         let used: usize = spans.iter().map(|s| s.content.chars().count()).sum();

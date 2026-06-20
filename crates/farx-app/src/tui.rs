@@ -3,9 +3,15 @@ use std::time::Duration;
 
 use anyhow::Result;
 use crossterm::{
-    event::{DisableMouseCapture, EnableMouseCapture},
+    event::{
+        DisableMouseCapture, EnableMouseCapture, KeyboardEnhancementFlags,
+        PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags,
+    },
     execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    terminal::{
+        disable_raw_mode, enable_raw_mode, supports_keyboard_enhancement, EnterAlternateScreen,
+        LeaveAlternateScreen,
+    },
 };
 use ratatui::prelude::*;
 
@@ -33,16 +39,33 @@ pub async fn run_tui() -> Result<()> {
     enable_raw_mode()?;
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+
+    // Enable the kitty keyboard protocol (disambiguated escape codes) when the
+    // host terminal supports it, so modified keys (Ctrl/Shift/Alt combos) are
+    // reported unambiguously. Conservative: no event-type or all-keys flags,
+    // so key-repeat and the existing keymap behave as before.
+    let kbd_enhanced = matches!(supports_keyboard_enhancement(), Ok(true));
+    if kbd_enhanced {
+        let _ = execute!(
+            stdout,
+            PushKeyboardEnhancementFlags(KeyboardEnhancementFlags::DISAMBIGUATE_ESCAPE_CODES)
+        );
+    }
+
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
     // Create app and event handler
     let mut app = App::new(config)?;
     let mut events = EventHandler::new(tick_rate);
+    app.set_event_sender(events.sender());
 
     let loop_result = event_loop(&mut terminal, &mut app, &mut events).await;
 
     // Restore terminal
+    if kbd_enhanced {
+        let _ = execute!(terminal.backend_mut(), PopKeyboardEnhancementFlags);
+    }
     disable_raw_mode()?;
     execute!(
         terminal.backend_mut(),
@@ -72,6 +95,11 @@ async fn event_loop<B: ratatui::backend::Backend + std::io::Write>(
                 }
             }
             Some(Event::Resize(_, _)) => {}
+            Some(Event::TerminalOutput) => {
+                // An embedded terminal produced output; drain it so the redraw
+                // at the top of the next loop iteration shows it immediately.
+                app.poll_terminals();
+            }
             Some(Event::Tick) => {
                 app.tick();
             }

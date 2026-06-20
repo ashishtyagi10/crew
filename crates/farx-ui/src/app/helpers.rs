@@ -35,6 +35,7 @@ pub(super) fn format_size_human(size: u64) -> String {
 
 /// Get free and total disk space for the given path (unix-only; returns
 /// `(None, None)` on other platforms).
+#[allow(dead_code)] // Plan 4: status bar disk-space display removed in Plan 2 T5
 pub(super) fn get_disk_space_cached(path: &Path) -> (Option<u64>, Option<u64>) {
     #[cfg(unix)]
     {

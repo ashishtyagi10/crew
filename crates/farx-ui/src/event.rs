@@ -12,6 +12,10 @@ pub enum Event {
     Mouse(MouseEvent),
     /// Terminal resize event with new (width, height).
     Resize(u16, u16),
+    /// An embedded terminal produced output and the screen should redraw.
+    /// Sent from PTY reader threads so output is shown immediately instead
+    /// of waiting for the next periodic tick.
+    TerminalOutput,
     /// Periodic tick for background updates.
     Tick,
 }
@@ -19,6 +23,7 @@ pub enum Event {
 /// Async event handler that bridges crossterm terminal events into a tokio
 /// channel, combining them with periodic tick events.
 pub struct EventHandler {
+    tx: mpsc::UnboundedSender<Event>,
     rx: mpsc::UnboundedReceiver<Event>,
     _task: tokio::task::JoinHandle<()>,
 }
@@ -28,7 +33,9 @@ impl EventHandler {
     /// at the given rate.
     pub fn new(tick_rate: Duration) -> Self {
         let (tx, rx) = mpsc::unbounded_channel();
+        let task_tx = tx.clone();
         let task = tokio::spawn(async move {
+            let tx = task_tx;
             let mut reader = event::EventStream::new();
             let mut tick_interval = tokio::time::interval(tick_rate);
             loop {
@@ -61,7 +68,18 @@ impl EventHandler {
                 }
             }
         });
-        Self { rx, _task: task }
+        Self {
+            tx,
+            rx,
+            _task: task,
+        }
+    }
+
+    /// A clone of the sender, so background producers (e.g. PTY reader
+    /// threads) can push events such as [`Event::TerminalOutput`] that wake
+    /// the loop for an immediate redraw.
+    pub fn sender(&self) -> mpsc::UnboundedSender<Event> {
+        self.tx.clone()
     }
 
     /// Wait for the next event. Returns `None` if the channel is closed.

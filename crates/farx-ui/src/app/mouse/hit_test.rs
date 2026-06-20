@@ -8,6 +8,26 @@ use farx_core::PanelSide;
 use super::super::App;
 
 impl App {
+    /// If a click lands on a terminal tile, focus it and promote it in the
+    /// grid order. Returns `true` when the click was consumed by a terminal.
+    pub(super) fn try_focus_terminal_at(&mut self, x: u16, y: u16) -> bool {
+        // Collect matching terminal id without holding an immutable borrow.
+        let hit = self.cached_panel_rects.iter().find_map(|(leaf, rect)| {
+            if x >= rect.x && x < rect.x + rect.width && y >= rect.y && y < rect.y + rect.height {
+                if let farx_core::PanelLeaf::Terminal(id) = leaf {
+                    return Some(*id);
+                }
+            }
+            None
+        });
+        if let Some(id) = hit {
+            self.focused_terminal = Some(id);
+            self.grid.touch(id);
+            return true;
+        }
+        false
+    }
+
     /// Determine which panel side a screen coordinate falls in.
     pub(super) fn panel_side_at(&self, x: u16, y: u16) -> Option<PanelSide> {
         for (leaf, rect) in &self.cached_panel_rects {

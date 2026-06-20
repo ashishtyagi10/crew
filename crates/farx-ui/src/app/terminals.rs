@@ -1,20 +1,57 @@
 //! Embedded-terminal lifecycle: spawn into a split, close + collapse, and
 //! Tab/F4 cycle through file panels and terminals.
 
-use crate::components::embedded_terminal::TerminalSession;
+use std::sync::atomic::Ordering;
+use std::sync::Arc;
+
+use crate::components::embedded_terminal::{OutputWaker, TerminalSession};
 
 use super::App;
 
 impl App {
+    /// Look up a terminal by stable id (linear scan).
+    pub(crate) fn terminal_by_id(&self, id: usize) -> Option<&TerminalSession> {
+        self.terminals.iter().find(|t| t.id == id)
+    }
+
+    /// Look up a terminal mutably by stable id (linear scan).
+    pub(crate) fn terminal_by_id_mut(&mut self, id: usize) -> Option<&mut TerminalSession> {
+        self.terminals.iter_mut().find(|t| t.id == id)
+    }
+
+    /// Register the event sender that PTY reader threads use to wake the
+    /// render loop when an embedded terminal produces output.
+    pub fn set_event_sender(
+        &mut self,
+        tx: tokio::sync::mpsc::UnboundedSender<crate::event::Event>,
+    ) {
+        self.terminal_event_tx = Some(tx);
+    }
+
+    /// Build a waker that coalesces output notifications into a single queued
+    /// [`crate::event::Event::TerminalOutput`] until the loop drains output.
+    fn output_waker(&self) -> Option<OutputWaker> {
+        let tx = self.terminal_event_tx.clone()?;
+        let pending = self.output_pending.clone();
+        Some(Arc::new(move || {
+            if !pending.swap(true, Ordering::SeqCst) {
+                let _ = tx.send(crate::event::Event::TerminalOutput);
+            }
+        }))
+    }
+
     /// Spawn an embedded terminal in a new split panel.
     pub(super) fn spawn_embedded_terminal(&mut self, cmd: &str, args: &[&str]) {
         let dir = self.active_tree_ref().root.clone();
         let rows = 24;
         let cols = 80;
+        let waker = self.output_waker();
 
-        match TerminalSession::spawn(cmd, args, &dir, rows, cols) {
+        let terminal_id = self.next_terminal_id;
+        self.next_terminal_id += 1;
+
+        match TerminalSession::spawn(terminal_id, cmd, args, &dir, rows, cols, waker) {
             Ok(session) => {
-                let terminal_id = self.terminals.len();
                 let title = session.title.clone();
                 self.terminals.push(session);
 
@@ -42,6 +79,7 @@ impl App {
                     let _ = idx;
                 }
 
+                self.grid.add(terminal_id);
                 self.feedback
                     .info(format!("{} opened in split panel", title));
             }
@@ -54,65 +92,59 @@ impl App {
 
     /// Close a terminal session and collapse its split.
     pub(super) fn close_terminal(&mut self, terminal_id: usize) {
-        if terminal_id >= self.terminals.len() {
+        if self.terminal_by_id(terminal_id).is_none() {
             return;
         }
 
         self.layout.remove_terminal(terminal_id);
-        self.terminals.remove(terminal_id);
-        self.layout.adjust_terminal_ids(terminal_id);
+        self.terminals.retain(|t| t.id != terminal_id);
+        self.grid.remove(terminal_id);
 
-        match self.focused_terminal {
-            Some(id) if id == terminal_id => {
-                self.focused_terminal = None;
-            }
-            Some(id) if id > terminal_id => {
-                self.focused_terminal = Some(id - 1);
-            }
-            _ => {}
+        if self.focused_terminal == Some(terminal_id) {
+            self.focused_terminal = None;
         }
     }
 
-    /// Cycle focus to the next panel (file or terminal) — Tab key.
+    /// Cycle focus to the next agent tile — Tab / F4 key.
+    /// Walks `self.grid.full()` then `self.grid.minimized()` (wrapping).
+    /// Focusing a minimized id calls `self.grid.touch(id)` so it promotes
+    /// into the full set on the next rendered frame.
     pub(super) fn cycle_focus(&mut self) {
-        let leaves = self.layout.leaves();
-        if leaves.is_empty() {
+        let order: Vec<usize> = self
+            .grid
+            .full()
+            .iter()
+            .chain(self.grid.minimized().iter())
+            .copied()
+            .collect();
+        if order.is_empty() {
+            self.focused_terminal = None;
             return;
         }
-
-        let current_idx = if let Some(tid) = self.focused_terminal {
-            leaves
-                .iter()
-                .position(|l| *l == farx_core::PanelLeaf::Terminal(tid))
-                .unwrap_or(0)
-        } else {
-            leaves
-                .iter()
-                .position(|l| *l == farx_core::PanelLeaf::FilePanel(self.active_panel))
-                .unwrap_or(0)
+        let next = match self.focused_terminal {
+            Some(cur) => {
+                let i = order.iter().position(|x| *x == cur).unwrap_or(0);
+                order[(i + 1) % order.len()]
+            }
+            None => order[0],
         };
-
-        let next_idx = (current_idx + 1) % leaves.len();
-        match leaves[next_idx] {
-            farx_core::PanelLeaf::FilePanel(side) => {
-                self.focused_terminal = None;
-                self.active_panel = side;
-            }
-            farx_core::PanelLeaf::Terminal(tid) => {
-                self.focused_terminal = Some(tid);
-                if let Some(t) = self.terminals.get_mut(tid) {
-                    t.has_attention = false;
-                }
-            }
+        self.focused_terminal = Some(next);
+        self.grid.touch(next);
+        if let Some(t) = self.terminal_by_id_mut(next) {
+            t.has_attention = false;
         }
     }
 
-    /// Poll all terminal sessions for new output. Called on each tick.
+    /// Poll all terminal sessions for new output. Called on each tick and
+    /// whenever a [`crate::event::Event::TerminalOutput`] wake-up arrives.
     pub fn poll_terminals(&mut self) {
+        // Clear the coalescing flag first so output arriving during this drain
+        // queues a fresh wake-up rather than being missed.
+        self.output_pending.store(false, Ordering::SeqCst);
         let focused_tid = self.focused_terminal;
-        for (i, term) in self.terminals.iter_mut().enumerate() {
+        for term in self.terminals.iter_mut() {
             let got_output = term.poll_output();
-            if got_output && Some(i) != focused_tid {
+            if got_output && Some(term.id) != focused_tid {
                 term.has_attention = true;
             }
         }

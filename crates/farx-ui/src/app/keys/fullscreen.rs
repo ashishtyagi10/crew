@@ -71,7 +71,7 @@ impl App {
         }
 
         if let Some(bytes) = key_to_bytes(&key) {
-            if let Some(term) = self.terminals.get_mut(tid) {
+            if let Some(term) = self.terminal_by_id_mut(tid) {
                 if term.alive {
                     term.write_input(&bytes);
                     term.poll_output();
