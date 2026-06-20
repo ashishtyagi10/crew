@@ -793,7 +793,7 @@ dependencies = [
 
 [[package]]
 name = "farx-ai"
-version = "0.3.9"
+version = "0.4.0"
 dependencies = [
  "anyhow",
  "farx-core",
@@ -806,7 +806,7 @@ dependencies = [
 
 [[package]]
 name = "farx-app"
-version = "0.3.9"
+version = "0.4.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -823,7 +823,7 @@ dependencies = [
 
 [[package]]
 name = "farx-core"
-version = "0.3.9"
+version = "0.4.0"
 dependencies = [
  "anyhow",
  "chrono",
@@ -846,7 +846,7 @@ dependencies = [
 
 [[package]]
 name = "farx-fs"
-version = "0.3.9"
+version = "0.4.0"
 dependencies = [
  "anyhow",
  "chrono",
@@ -865,7 +865,7 @@ dependencies = [
 
 [[package]]
 name = "farx-plugin"
-version = "0.3.9"
+version = "0.4.0"
 dependencies = [
  "anyhow",
  "dirs",
@@ -877,7 +877,7 @@ dependencies = [
 
 [[package]]
 name = "farx-ui"
-version = "0.3.9"
+version = "0.4.0"
 dependencies = [
  "anyhow",
  "arboard",
