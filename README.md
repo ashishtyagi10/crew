@@ -228,6 +228,23 @@ api_key_env = "OPENAI_API_KEY"
 
 Then set the corresponding environment variable (e.g. `export OPENROUTER_API_KEY=sk-...`).
 
+## Agent Tiles
+
+Farx runs coding agents and shells as tiles in an auto-arranging grid. Launch one
+with `/claude`, `/codex`, `/gemini`, `/copilot`, `/opencode`, or `/shell` (each
+takes an optional directory, e.g. `/claude ~/project`). Manage the grid from the
+command line:
+
+| Command | Action |
+|---------|--------|
+| `/agents` or `/ls` | List running tiles with their number, title, state (focused / minimized / exited), and working directory |
+| `/focus <n>` or `/f <n>` | Focus the tile numbered `n` (as shown by `/agents`); promotes a minimized tile back into the grid |
+| `/title <name>` | Rename the focused tile — handy for telling apart several agents of the same kind |
+| `/close` or `/x` | Close the focused tile; `/closeall` closes every tile |
+
+Press `F1` to focus the command input from anywhere (even while an agent has the
+keyboard), and `F2` to cycle focus between tiles.
+
 ## Bookmarks
 
 Press `Alt+B` to bookmark the current directory. Press `Ctrl+B` to open the bookmarks panel — navigate with arrow keys, press Enter to jump to a bookmark, or Delete/F8 to remove one. Bookmarks are persisted in `~/.config/farx/bookmarks.json`.

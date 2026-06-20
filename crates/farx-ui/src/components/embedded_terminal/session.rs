@@ -17,6 +17,8 @@ pub struct TerminalSession {
     pub id: usize,
     /// Human-readable title (e.g. "claude", "bash").
     pub title: String,
+    /// Working directory the session was spawned in.
+    pub cwd: std::path::PathBuf,
     /// vt100 terminal emulator / parser.
     parser: vt100::Parser,
     /// Channel receiving raw bytes from the PTY reader thread.
@@ -96,6 +98,7 @@ impl TerminalSession {
         Ok(Self {
             id,
             title: cmd.to_string(),
+            cwd: cwd.to_path_buf(),
             parser,
             output_rx: rx,
             writer,

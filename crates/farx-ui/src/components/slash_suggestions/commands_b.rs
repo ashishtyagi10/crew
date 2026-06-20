@@ -71,6 +71,10 @@ pub const PART_B: &[SlashCommand] = &[
         description: "Open terminal here",
     },
     SlashCommand {
+        command: "/title",
+        description: "Rename the focused agent tile",
+    },
+    SlashCommand {
         command: "/touch",
         description: "Create empty file",
     },

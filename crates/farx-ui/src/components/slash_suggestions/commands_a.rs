@@ -15,6 +15,14 @@ pub const PART_A: &[SlashCommand] = &[
         description: "AI coding tools panel",
     },
     SlashCommand {
+        command: "/agents",
+        description: "List running agent tiles",
+    },
+    SlashCommand {
+        command: "/focus",
+        description: "Focus an agent tile by number",
+    },
+    SlashCommand {
         command: "/back",
         description: "Navigate to previous directory",
     },

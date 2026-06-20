@@ -2,6 +2,7 @@
 //! category dispatcher in turn; the first one that recognises the command
 //! returns `true` and execution stops.
 
+mod agents;
 mod ai;
 mod core;
 mod files;
@@ -19,6 +20,7 @@ impl App {
         };
 
         self.slash_core(cmd, args)
+            || self.slash_agents(cmd, args)
             || self.slash_ai(cmd, args)
             || self.slash_files(cmd, args)
             || self.slash_plugin_or_unknown(cmd, args)
