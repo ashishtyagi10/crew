@@ -22,9 +22,11 @@ impl App {
         if let Some(a) = self.key_route_fullscreen(key) {
             return a;
         }
-        // Global: Alt+Enter focuses the main command input from anywhere,
-        // including while an agent panel owns the keyboard.
-        if key.code == KeyCode::Enter && key.modifiers.contains(KeyModifiers::ALT) {
+        // Global: F1 (or Alt+Enter) focuses the main command input from
+        // anywhere, including while an agent panel owns the keyboard.
+        if (key.code == KeyCode::F(1) && key.modifiers == KeyModifiers::NONE)
+            || (key.code == KeyCode::Enter && key.modifiers.contains(KeyModifiers::ALT))
+        {
             self.focused_terminal = None;
             return Action::Noop;
         }

@@ -54,7 +54,7 @@ fn render_farx_logo(frame: &mut Frame, area: Rect) {
         height: 1,
     };
     frame.render_widget(
-        Paragraph::new("/claude   /codex   /shell   ·   Alt+Enter to focus   ·   /exit to quit")
+        Paragraph::new("/claude   /codex   /shell   ·   F1 to focus input   ·   /exit to quit")
             .style(Style::default().fg(Color::Indexed(244)))
             .alignment(Alignment::Center),
         hint,
