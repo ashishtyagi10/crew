@@ -18,7 +18,6 @@ pub(super) enum PendingOperation {
 
 /// A recorded file operation that can be undone.
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub(super) enum UndoEntry {
     /// Files were deleted (moved to trash). Record paths for feedback.
     Delete { paths: Vec<PathBuf> },
@@ -29,8 +28,4 @@ pub(super) enum UndoEntry {
     },
     /// A file was renamed from old to new.
     Rename { old: PathBuf, new: PathBuf },
-    /// A directory was created.
-    MkDir { path: PathBuf },
-    /// A file was created.
-    CreateFile { path: PathBuf },
 }

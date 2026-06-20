@@ -10,11 +10,9 @@ pub(super) fn render_status_bar(
     content_height: usize,
 ) {
     let status_y = area.y + area.height.saturating_sub(1);
-    let percentage = if state.total_lines == 0 {
-        100
-    } else {
-        ((state.scroll_offset + content_height).min(state.total_lines) * 100) / state.total_lines
-    };
+    let percentage = ((state.scroll_offset + content_height).min(state.total_lines) * 100)
+        .checked_div(state.total_lines)
+        .unwrap_or(100);
     let follow_indicator = if state.follow { "FOLLOW  " } else { "" };
     let status_text = if let Some(ref input) = state.search_input {
         format!(" Search: {}_ (Enter=Find, Esc=Cancel) ", input)

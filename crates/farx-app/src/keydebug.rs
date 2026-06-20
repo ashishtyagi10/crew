@@ -17,33 +17,28 @@ pub fn run_key_debug() {
     log.flush().unwrap();
 
     loop {
-        if let Ok(evt) = event::read() {
-            match evt {
-                Event::Key(key) => {
-                    if key.kind != KeyEventKind::Press {
-                        continue;
-                    }
+        if let Ok(Event::Key(key)) = event::read() {
+            if key.kind != KeyEventKind::Press {
+                continue;
+            }
 
-                    let msg = format!(
-                        "code={:?}  mod={:?}  state={:?}",
-                        key.code, key.modifiers, key.state
-                    );
+            let msg = format!(
+                "code={:?}  mod={:?}  state={:?}",
+                key.code, key.modifiers, key.state
+            );
 
-                    // Write to both file and screen
-                    writeln!(log, "{}", msg).unwrap();
-                    log.flush().unwrap();
+            // Write to both file and screen
+            writeln!(log, "{}", msg).unwrap();
+            log.flush().unwrap();
 
-                    print!("{}\r\n", msg);
+            print!("{}\r\n", msg);
 
-                    if key.code == crossterm::event::KeyCode::Char('q')
-                        && key
-                            .modifiers
-                            .contains(crossterm::event::KeyModifiers::CONTROL)
-                    {
-                        break;
-                    }
-                }
-                _ => {}
+            if key.code == crossterm::event::KeyCode::Char('q')
+                && key
+                    .modifiers
+                    .contains(crossterm::event::KeyModifiers::CONTROL)
+            {
+                break;
             }
         }
     }

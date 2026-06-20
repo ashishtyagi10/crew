@@ -31,7 +31,7 @@ impl App {
             }
         }
 
-        if self.tick_count % 4 == 0 {
+        if self.tick_count.is_multiple_of(4) {
             if let Some(ref mut viewer) = self.viewer {
                 viewer.reload_if_follow();
             }

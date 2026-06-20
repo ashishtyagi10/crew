@@ -171,9 +171,9 @@ pub(super) fn scan_identifier(
             .add_modifier(Modifier::BOLD)
     } else if lang.builtins().contains(&word) {
         Style::default().fg(C_BUILTIN).bg(bg)
-    } else if word.ends_with('!') && lang == Language::Rust {
-        Style::default().fg(C_MACRO).bg(bg)
-    } else if word.starts_with("__") && word.ends_with("__") {
+    } else if (word.ends_with('!') && lang == Language::Rust)
+        || (word.starts_with("__") && word.ends_with("__"))
+    {
         Style::default().fg(C_MACRO).bg(bg)
     } else if word
         .chars()

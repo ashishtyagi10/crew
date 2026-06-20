@@ -9,7 +9,6 @@ use std::thread;
 use super::{REPO_NAME, REPO_OWNER};
 
 /// Result of a background update check.
-#[allow(dead_code)]
 pub enum UpdateStatus {
     /// A newer version is available.
     Available(String),

@@ -10,7 +10,7 @@ pub(super) fn select_asset(assets: &[ReleaseAsset]) -> Result<ReleaseAsset> {
     let target = self_update::get_target();
     let asset = assets
         .iter()
-        .find(|a| a.name.contains(&target))
+        .find(|a| a.name.contains(target))
         .or_else(|| {
             let os = if cfg!(target_os = "macos") {
                 "apple"

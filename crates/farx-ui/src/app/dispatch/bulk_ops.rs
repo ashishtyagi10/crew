@@ -86,22 +86,6 @@ impl App {
                 }
                 Err(e) => self.feedback.error(format!("Undo rename: {}", e)),
             },
-            UndoEntry::MkDir { path } => {
-                if path.exists() && path.is_dir() {
-                    let _ = std::fs::remove_dir(&path);
-                    self.feedback
-                        .success("Undo: removed created directory".to_string());
-                    self.active_tree().rebuild();
-                }
-            }
-            UndoEntry::CreateFile { path } => {
-                if path.exists() && path.is_file() {
-                    let _ = std::fs::remove_file(&path);
-                    self.feedback
-                        .success("Undo: removed created file".to_string());
-                    self.active_tree().rebuild();
-                }
-            }
         }
     }
 

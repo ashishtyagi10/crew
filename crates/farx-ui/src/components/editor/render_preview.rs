@@ -48,11 +48,9 @@ pub(super) fn render(
 
     // Status bar
     let status_y = inner.y + inner.height.saturating_sub(1);
-    let pct = if total == 0 {
-        100
-    } else {
-        ((state.preview_scroll + visible_height).min(total) * 100) / total
-    };
+    let pct = ((state.preview_scroll + visible_height).min(total) * 100)
+        .checked_div(total)
+        .unwrap_or(100);
     let status = format!(
         " MD Preview {}/{} ({}%) | Ctrl+M/Esc=Edit  PgUp/PgDn ",
         state.preview_scroll + 1,

@@ -90,9 +90,9 @@ pub(super) fn render_table(rows: &[&str], bg: Color) -> Vec<Line<'static>> {
         let is_header = !after_header;
         let mut spans: Vec<Span<'static>> = vec![Span::styled(" │".to_string(), border_style)];
 
-        for j in 0..num_cols {
+        for (j, &width) in col_widths.iter().enumerate() {
             let cell_text = cells.get(j).map(|s| s.as_str()).unwrap_or("");
-            let padded = format!(" {:<width$} ", cell_text, width = col_widths[j]);
+            let padded = format!(" {:<width$} ", cell_text, width = width);
             let cell_style = if is_header {
                 Style::default()
                     .fg(Color::Cyan)

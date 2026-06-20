@@ -1,13 +1,8 @@
 use std::path::{Path, PathBuf};
 
-/// Recursively scan files starting at `dir`, collecting `(abs_path, name, rel_path)`
+/// Recursively scan files starting at `dir`, collecting `(abs_path, rel_path)`
 /// entries into `out`. Skips hidden files. Bounded by depth and total count.
-pub(super) fn scan_files(
-    out: &mut Vec<(PathBuf, String, String)>,
-    dir: &Path,
-    root: &Path,
-    depth: usize,
-) {
+pub(super) fn scan_files(out: &mut Vec<(PathBuf, String)>, dir: &Path, root: &Path, depth: usize) {
     if depth > 8 || out.len() > 10_000 {
         return;
     }
@@ -26,7 +21,7 @@ pub(super) fn scan_files(
             .unwrap_or(&path)
             .to_string_lossy()
             .to_string();
-        out.push((path.clone(), name, rel));
+        out.push((path.clone(), rel));
         if path.is_dir() {
             scan_files(out, &path, root, depth + 1);
         }

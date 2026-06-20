@@ -36,7 +36,7 @@ impl App {
             return;
         }
 
-        entries.sort_by(|a, b| b.1.cmp(&a.1));
+        entries.sort_by_key(|(_, size)| std::cmp::Reverse(*size));
         let total: u64 = entries.iter().map(|(_, s)| *s).sum();
 
         let mut lines = Vec::new();

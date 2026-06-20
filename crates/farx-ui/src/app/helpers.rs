@@ -1,5 +1,5 @@
-//! Small free-function helpers used across the app module: byte sizes,
-//! disk-space probing, and recursive directory size.
+//! Small free-function helpers used across the app module: byte sizes
+//! and recursive directory size.
 
 use std::path::Path;
 
@@ -30,32 +30,5 @@ pub(super) fn format_size_human(size: u64) -> String {
         format!("{:.1} MB", size as f64 / 1_048_576.0)
     } else {
         format!("{:.2} GB", size as f64 / 1_073_741_824.0)
-    }
-}
-
-/// Get free and total disk space for the given path (unix-only; returns
-/// `(None, None)` on other platforms).
-#[allow(dead_code)] // Plan 4: status bar disk-space display removed in Plan 2 T5
-pub(super) fn get_disk_space_cached(path: &Path) -> (Option<u64>, Option<u64>) {
-    #[cfg(unix)]
-    {
-        use std::ffi::CString;
-        let c_path = CString::new(path.to_string_lossy().as_bytes()).ok();
-        if let Some(c_path) = c_path {
-            unsafe {
-                let mut stat: libc::statvfs = std::mem::zeroed();
-                if libc::statvfs(c_path.as_ptr(), &mut stat) == 0 {
-                    let free = stat.f_bavail as u64 * stat.f_frsize;
-                    let total = stat.f_blocks as u64 * stat.f_frsize;
-                    return (Some(free), Some(total));
-                }
-            }
-        }
-        (None, None)
-    }
-    #[cfg(not(unix))]
-    {
-        let _ = path;
-        (None, None)
     }
 }

@@ -116,14 +116,12 @@ fn verify_archive_magic(asset_name: &str, path: &Path) -> Result<()> {
                 &head[..read]
             );
         }
-    } else if asset_name.ends_with(".zip") {
-        if read < 4 || head[0] != b'P' || head[1] != b'K' {
-            anyhow::bail!(
-                "Downloaded {} is not a zip archive (got bytes {:02x?}).",
-                asset_name,
-                &head[..read]
-            );
-        }
+    } else if asset_name.ends_with(".zip") && (read < 4 || head[0] != b'P' || head[1] != b'K') {
+        anyhow::bail!(
+            "Downloaded {} is not a zip archive (got bytes {:02x?}).",
+            asset_name,
+            &head[..read]
+        );
     }
     Ok(())
 }
