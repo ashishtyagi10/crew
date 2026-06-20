@@ -48,12 +48,9 @@ impl App {
     pub(super) fn key_route_terminal(&mut self, key: KeyEvent) -> Option<Action> {
         let tid = self.focused_terminal?;
 
-        if key.code == KeyCode::F(4)
-            || (key.code == KeyCode::Tab && key.modifiers == KeyModifiers::NONE)
-        {
-            self.cycle_focus();
-            return Some(Action::Noop);
-        }
+        // Tab and F4 are no longer intercepted here — they pass through to the
+        // focused agent (e.g. Tab autocomplete). Panel cycling is the global
+        // F2 handler in `handle_key_event`.
         if key.modifiers == KeyModifiers::CONTROL
             && (key.code == KeyCode::Left || key.code == KeyCode::Right)
         {

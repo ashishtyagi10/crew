@@ -30,6 +30,12 @@ impl App {
             self.focused_terminal = None;
             return Action::Noop;
         }
+        // Global: F2 cycles focus across agent panels (Tab now belongs to the
+        // focused agent).
+        if key.code == KeyCode::F(2) && key.modifiers == KeyModifiers::NONE {
+            self.cycle_focus();
+            return Action::Noop;
+        }
         if let Some(a) = self.key_route_terminal(key) {
             return a;
         }
