@@ -9,7 +9,7 @@ mod modals;
 mod overlays;
 mod text_input;
 
-use crossterm::event::KeyEvent;
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use farx_core::Action;
 
 use super::App;
@@ -21,6 +21,12 @@ impl App {
     pub fn handle_key_event(&mut self, key: KeyEvent) -> Action {
         if let Some(a) = self.key_route_fullscreen(key) {
             return a;
+        }
+        // Global: Alt+Enter focuses the main command input from anywhere,
+        // including while an agent panel owns the keyboard.
+        if key.code == KeyCode::Enter && key.modifiers.contains(KeyModifiers::ALT) {
+            self.focused_terminal = None;
+            return Action::Noop;
         }
         if let Some(a) = self.key_route_terminal(key) {
             return a;
