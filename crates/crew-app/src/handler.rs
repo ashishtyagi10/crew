@@ -48,7 +48,11 @@ impl ApplicationHandler for CrewApp {
         for p in self.panes.iter_mut() {
             let changed = match &mut p.content {
                 PaneContent::Terminal(t) => t.pty.try_read() > 0,
-                PaneContent::Chat(c) => c.poll(),
+                PaneContent::Chat(c) => {
+                    let result = c.poll();
+                    let _ = result.actions;
+                    result.changed
+                }
             };
             any_changed |= changed;
         }

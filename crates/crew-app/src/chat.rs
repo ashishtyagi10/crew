@@ -5,6 +5,43 @@ use winit::keyboard::{Key, NamedKey};
 
 use crate::chatlayout::{input_reduce, layout_cells, Message};
 
+#[derive(Debug, PartialEq)]
+pub enum HostAction {
+    SpawnPane {
+        command: String,
+        args: Vec<String>,
+        label: String,
+    },
+    SendPane {
+        label: String,
+        text: String,
+    },
+}
+
+pub struct PollResult {
+    pub changed: bool,
+    pub actions: Vec<HostAction>,
+}
+
+pub fn classify(ev: &PluginEvent) -> Option<HostAction> {
+    match ev {
+        PluginEvent::SpawnPane {
+            command,
+            args,
+            label,
+        } => Some(HostAction::SpawnPane {
+            command: command.clone(),
+            args: args.clone(),
+            label: label.clone(),
+        }),
+        PluginEvent::SendPane { label, text } => Some(HostAction::SendPane {
+            label: label.clone(),
+            text: text.clone(),
+        }),
+        _ => None,
+    }
+}
+
 pub struct ChatPane {
     pub plugin: Plugin,
     pub channel: String,
@@ -24,37 +61,47 @@ impl ChatPane {
         }
     }
 
-    /// Drain plugin events; return true if any state changed (caller should redraw).
-    pub fn poll(&mut self) -> bool {
+    /// Drain plugin events; return PollResult with changed flag and any host actions.
+    pub fn poll(&mut self) -> PollResult {
         let events = self.plugin.try_recv();
         if events.is_empty() {
-            return false;
+            return PollResult {
+                changed: false,
+                actions: vec![],
+            };
         }
+        let mut actions = Vec::new();
         for ev in events {
-            match ev {
-                PluginEvent::Ready { channels, .. } => {
-                    self.connected = true;
-                    if self.channel.is_empty() {
-                        if let Some(ch) = channels.into_iter().next() {
-                            self.channel = ch;
+            if let Some(action) = classify(&ev) {
+                actions.push(action);
+            } else {
+                match ev {
+                    PluginEvent::Ready { channels, .. } => {
+                        self.connected = true;
+                        if self.channel.is_empty() {
+                            if let Some(ch) = channels.into_iter().next() {
+                                self.channel = ch;
+                            }
                         }
                     }
-                }
-                PluginEvent::Message { sender, text, .. } => {
-                    self.messages.push(Message { sender, text });
-                    if self.messages.len() > 500 {
-                        let drain = self.messages.len() - 500;
-                        self.messages.drain(..drain);
+                    PluginEvent::Message { sender, text, .. } => {
+                        self.messages.push(Message { sender, text });
+                        if self.messages.len() > 500 {
+                            let drain = self.messages.len() - 500;
+                            self.messages.drain(..drain);
+                        }
                     }
+                    PluginEvent::Error { .. } => {
+                        self.connected = false;
+                    }
+                    _ => {}
                 }
-                PluginEvent::Error { .. } => {
-                    self.connected = false;
-                }
-                // handled in Task 3
-                PluginEvent::SpawnPane { .. } | PluginEvent::SendPane { .. } => {}
             }
         }
-        true
+        PollResult {
+            changed: true,
+            actions,
+        }
     }
 
     /// Render the channel as CellView cells.
@@ -85,5 +132,54 @@ impl ChatPane {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn classify_spawn_pane_returns_host_action() {
+        let ev = PluginEvent::SpawnPane {
+            command: "sh".into(),
+            args: vec![],
+            label: "x".into(),
+        };
+        let result = classify(&ev);
+        assert_eq!(
+            result,
+            Some(HostAction::SpawnPane {
+                command: "sh".into(),
+                args: vec![],
+                label: "x".into(),
+            })
+        );
+    }
+
+    #[test]
+    fn classify_message_returns_none() {
+        let ev = PluginEvent::Message {
+            channel: "general".into(),
+            sender: "bob".into(),
+            text: "hello".into(),
+            ts: "t".into(),
+        };
+        assert_eq!(classify(&ev), None);
+    }
+
+    #[test]
+    fn classify_send_pane_returns_host_action() {
+        let ev = PluginEvent::SendPane {
+            label: "a".into(),
+            text: "hi".into(),
+        };
+        assert_eq!(
+            classify(&ev),
+            Some(HostAction::SendPane {
+                label: "a".into(),
+                text: "hi".into(),
+            })
+        );
     }
 }
