@@ -759,9 +759,19 @@ name = "crew-app"
 version = "0.4.5"
 dependencies = [
  "anyhow",
+ "crew-plugin",
  "crew-render",
  "crew-term",
  "winit",
+]
+
+[[package]]
+name = "crew-plugin"
+version = "0.4.5"
+dependencies = [
+ "anyhow",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

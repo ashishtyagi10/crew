@@ -1,4 +1,6 @@
 mod app;
+mod chat;
+mod chatlayout;
 mod handler;
 mod layout;
 mod pane;

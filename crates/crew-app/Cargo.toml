@@ -9,6 +9,7 @@ name = "crew"
 path = "src/main.rs"
 
 [dependencies]
+crew-plugin = { path = "../crew-plugin" }
 crew-term = { path = "../crew-term" }
 crew-render = { path = "../crew-render" }
 winit.workspace = true
