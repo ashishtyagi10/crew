@@ -25,14 +25,6 @@ pub struct CellView {
     pub italic: bool,
 }
 
-/// Grid dimensions inferred from the window size and font metrics.
-pub struct GridMetrics {
-    pub cell_w: f32,
-    pub cell_h: f32,
-    pub cols: u16,
-    pub rows: u16,
-}
-
 /// Renders a scene of panes: per-cell bg quads, pane borders, per-pane text.
 pub struct CellGrid {
     pub(crate) font_system: FontSystem,
