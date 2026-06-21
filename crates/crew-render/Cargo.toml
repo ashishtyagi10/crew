@@ -1,0 +1,11 @@
+[package]
+name = "crew-render"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+winit.workspace = true
+wgpu.workspace = true
+glyphon.workspace = true
+anyhow.workspace = true
