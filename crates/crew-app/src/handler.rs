@@ -9,6 +9,7 @@ use winit::window::{Window, WindowId};
 
 use crate::app::{CrewApp, POLL_MS};
 use crate::config::CrewConfig;
+use crate::inputbar::InputBar;
 use crate::pane::PaneContent;
 use crew_render::Renderer;
 
@@ -146,6 +147,11 @@ pub fn run() -> anyhow::Result<()> {
     let event_loop = EventLoop::new()?;
     let mut app = CrewApp {
         config: CrewConfig::load(),
+        // Default focus is the input bar (startup has no panes selected).
+        input: InputBar {
+            text: String::new(),
+            focused: true,
+        },
         ..Default::default()
     };
     event_loop.run_app(&mut app)?;

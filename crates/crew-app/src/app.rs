@@ -47,11 +47,19 @@ impl CrewApp {
             self.panes.remove(idx);
         }
         if self.panes.is_empty() {
+            // No panel selected → focus returns to the input bar.
             self.focused = 0;
+            self.input.focused = true;
             return false;
         }
         self.focused = self.focused.min(self.panes.len() - 1);
         false
+    }
+
+    /// Focus the most-recently-pushed pane and move keyboard focus off the input bar.
+    pub(crate) fn focus_new_pane(&mut self) {
+        self.focused = self.panes.len().saturating_sub(1);
+        self.input.focused = false;
     }
 
     /// Handle a Super-chord key.  Returns `true` if the app should exit.
@@ -130,9 +138,8 @@ impl CrewApp {
                 &["-c".to_string(), "git pull; exec sh".to_string()],
                 "update".to_string(),
             ),
-            _ => return false,
+            _ => {}
         }
-        self.input.focused = false;
         false
     }
 

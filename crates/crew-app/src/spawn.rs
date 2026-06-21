@@ -20,7 +20,7 @@ impl CrewApp {
         match spawn_pane("bash", "sh", grid) {
             Ok(pane) => {
                 self.panes.push(pane);
-                self.focused = self.panes.len() - 1;
+                self.focus_new_pane();
             }
             Err(e) => eprintln!("spawn_new_pane failed: {e:#}"),
         }
@@ -50,7 +50,7 @@ impl CrewApp {
                     label: Some(label),
                 };
                 self.panes.push(pane);
-                self.focused = self.panes.len() - 1;
+                self.focus_new_pane();
                 self.redraw();
             }
             Err(e) => eprintln!("spawn_labeled_terminal failed: {e:#}"),
@@ -94,7 +94,7 @@ impl CrewApp {
             },
             label: None,
         });
-        self.focused = self.panes.len() - 1;
+        self.focus_new_pane();
     }
 
     /// Apply updated config: set font size live, persist to disk, and redraw.
@@ -136,7 +136,7 @@ impl CrewApp {
                     },
                     label: None,
                 });
-                self.focused = self.panes.len() - 1;
+                self.focus_new_pane();
             }
             Err(e) => eprintln!("spawn_chat_pane failed: {e:#}"),
         }
