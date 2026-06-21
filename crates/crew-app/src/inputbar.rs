@@ -26,10 +26,22 @@ impl InputBar {
         let start = 2u16;
         let prompt_fg = if self.focused { ACCENT } else { DIM };
         let max = cols.saturating_sub(start + 1) as usize;
-        let display: String = format!("> {}", self.text).chars().take(max).collect();
+        let text_len = self.text.chars().count();
+        let mut full = format!("> {}", self.text);
+        if self.focused {
+            full.push('█'); // block cursor while typing, like a terminal
+        }
+        let display: String = full.chars().take(max).collect();
+        let cursor_idx = 2 + text_len; // position of the block cursor in `full`
         let mut out = Vec::new();
         for (i, ch) in display.chars().enumerate() {
-            let fg = if i < 2 { prompt_fg } else { TEXT_FG };
+            let fg = if i < 2 {
+                prompt_fg
+            } else if self.focused && i == cursor_idx {
+                ACCENT
+            } else {
+                TEXT_FG
+            };
             out.push(CellView {
                 col: start + i as u16,
                 row,
@@ -80,6 +92,17 @@ mod tests {
         // the '>' prompt is accent-green when focused
         let prompt = cells.iter().find(|c| c.c == '>').unwrap();
         assert_eq!(prompt.fg, ACCENT);
+        // a block cursor is shown while focused
+        assert!(cells.iter().any(|c| c.c == '█'));
+    }
+
+    #[test]
+    fn cells_unfocused_has_no_cursor() {
+        let bar = InputBar {
+            text: "ls".into(),
+            focused: false,
+        };
+        assert!(!bar.cells(40, 3).iter().any(|c| c.c == '█'));
     }
 
     #[test]
