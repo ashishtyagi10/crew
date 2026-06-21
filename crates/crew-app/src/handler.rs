@@ -19,7 +19,7 @@ impl ApplicationHandler for CrewApp {
         let attrs = Window::default_attributes().with_title("Crew");
         let window = Arc::new(event_loop.create_window(attrs).expect("create window"));
 
-        match Renderer::new(window.clone()) {
+        match Renderer::new(window.clone(), 18.0) {
             Ok(renderer) => {
                 let initial_grid = Self::current_grid(&renderer);
                 self.renderer = Some(renderer);

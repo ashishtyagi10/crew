@@ -13,10 +13,15 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn new(window: Arc<Window>) -> anyhow::Result<Self> {
+    pub fn new(window: Arc<Window>, font_size: f32) -> anyhow::Result<Self> {
         let gpu = Gpu::new(window)?;
-        let cell_grid = CellGrid::new(&gpu);
+        let cell_grid = CellGrid::new(&gpu, font_size);
         Ok(Self { gpu, cell_grid })
+    }
+
+    /// Update the font size at runtime; recomputes cell metrics immediately.
+    pub fn set_font_size(&mut self, font_size: f32) {
+        self.cell_grid.set_font_size(font_size);
     }
 
     pub fn resize(&mut self, w: u32, h: u32) {

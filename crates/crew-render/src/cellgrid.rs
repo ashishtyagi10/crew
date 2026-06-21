@@ -1,18 +1,15 @@
 use glyphon::{
-    Buffer, Cache, Color, FontSystem, Metrics, Resolution, SwashCache, TextArea, TextAtlas,
-    TextBounds, TextRenderer, Viewport, Wrap,
+    Cache, Color, FontSystem, Resolution, SwashCache, TextArea, TextAtlas, TextBounds,
+    TextRenderer, Viewport,
 };
 
-use crate::celltext::{probe_cell_width, FontParams};
+use crate::celltext::{cell_metrics, FontParams};
 use crate::gpu::Gpu;
 use crate::quads::QuadLayer;
 use crate::scene::{build_scene, PaneBuffer, PaneScene};
 
 /// Default terminal background colour (must match scene.rs).
 pub(crate) const DEFAULT_BG: (u8, u8, u8) = (8, 8, 16);
-
-pub(crate) const FONT_SIZE: f32 = 16.0;
-pub(crate) const LINE_HEIGHT: f32 = 20.0;
 
 /// A single terminal cell to be rendered.
 pub struct CellView {
@@ -37,10 +34,12 @@ pub struct CellGrid {
     quad_layer: QuadLayer,
     pub(crate) cell_w: f32,
     pub(crate) cell_h: f32,
+    font_size: f32,
+    line_height: f32,
 }
 
 impl CellGrid {
-    pub fn new(gpu: &Gpu) -> Self {
+    pub fn new(gpu: &Gpu, font_size: f32) -> Self {
         let mut font_system = FontSystem::new();
         let swash = SwashCache::new();
         let cache = Cache::new(&gpu.device);
@@ -53,16 +52,8 @@ impl CellGrid {
             None,
         );
 
-        let mut probe_buf = Buffer::new(&mut font_system, Metrics::new(FONT_SIZE, LINE_HEIGHT));
-        probe_buf.set_wrap(&mut font_system, Wrap::None);
-        probe_buf.set_size(
-            &mut font_system,
-            Some(gpu.config.width as f32),
-            Some(gpu.config.height as f32),
-        );
-
-        let cell_w = probe_cell_width(&mut probe_buf, &mut font_system, FONT_SIZE);
-        let cell_h = LINE_HEIGHT;
+        let (cell_w, cell_h) = cell_metrics(&mut font_system, font_size);
+        let line_height = font_size * 1.25;
         let quad_layer = QuadLayer::new(&gpu.device, gpu.format);
 
         Self {
@@ -75,7 +66,18 @@ impl CellGrid {
             quad_layer,
             cell_w,
             cell_h,
+            font_size,
+            line_height,
         }
+    }
+
+    /// Update cell metrics when the font size changes at runtime.
+    pub fn set_font_size(&mut self, font_size: f32) {
+        let (cell_w, cell_h) = cell_metrics(&mut self.font_system, font_size);
+        self.font_size = font_size;
+        self.line_height = font_size * 1.25;
+        self.cell_w = cell_w;
+        self.cell_h = cell_h;
     }
 
     /// Returns the monospace cell size `(width, height)` in pixels.
@@ -89,8 +91,8 @@ impl CellGrid {
     /// Upload a scene of panes: backgrounds + borders as quads, one Buffer per pane.
     pub fn set_scene(&mut self, gpu: &Gpu, panes: &[PaneScene]) {
         let params = FontParams {
-            font_size: FONT_SIZE,
-            line_height: LINE_HEIGHT,
+            font_size: self.font_size,
+            line_height: self.line_height,
         };
         let (quads, buffers) = build_scene(
             panes,

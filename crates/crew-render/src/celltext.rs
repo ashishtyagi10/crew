@@ -105,3 +105,39 @@ pub(crate) fn fill_rich_text(
 
     buffer.set_rich_text(font_system, spans, &default_attrs, Shaping::Advanced, None);
 }
+
+/// Compute monospace cell dimensions for the given font size without a GPU.
+/// Returns `(cell_w, cell_h)` where `cell_h = font_size * 1.25`.
+pub(crate) fn cell_metrics(fs: &mut FontSystem, font_size: f32) -> (f32, f32) {
+    let cell_h = font_size * 1.25;
+    let mut probe_buf = Buffer::new(fs, Metrics::new(font_size, cell_h));
+    probe_buf.set_wrap(fs, Wrap::None);
+    probe_buf.set_size(fs, Some(4096.0), Some(4096.0));
+    let cell_w = probe_cell_width(&mut probe_buf, fs, font_size);
+    (cell_w, cell_h)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cell_metrics_larger_font_gives_larger_dimensions() {
+        let mut fs = FontSystem::new();
+        let small = cell_metrics(&mut fs, 12.0);
+        let large = cell_metrics(&mut fs, 24.0);
+        assert!(
+            large.0 > small.0,
+            "cell_w(24) {:.2} should be > cell_w(12) {:.2}",
+            large.0,
+            small.0
+        );
+        assert!(
+            large.1 > small.1,
+            "cell_h(24) {:.2} should be > cell_h(12) {:.2}",
+            large.1,
+            small.1
+        );
+        assert_eq!(large.1, 24.0 * 1.25, "cell_h(24) must equal 24.0 * 1.25");
+    }
+}
