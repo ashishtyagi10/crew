@@ -14,6 +14,7 @@ crew-term = { path = "../crew-term" }
 crew-render = { path = "../crew-render" }
 winit.workspace = true
 anyhow.workspace = true
+ratatui.workspace = true
 serde = { workspace = true }
 toml = { workspace = true }
 dirs = { workspace = true }

@@ -8,11 +8,6 @@ use winit::event::KeyEvent;
 
 use crate::config::CrewConfig;
 
-pub(crate) const ACCENT: (u8, u8, u8) = (0, 255, 160);
-pub(crate) const TEXT: (u8, u8, u8) = (200, 200, 200);
-pub(crate) const DIM: (u8, u8, u8) = (120, 130, 140);
-pub(crate) const BG: (u8, u8, u8) = (8, 8, 16);
-
 /// Label shown for "no explicit family — use the system monospace".
 pub(crate) const DEFAULT_FAMILY_LABEL: &str = "System monospace";
 

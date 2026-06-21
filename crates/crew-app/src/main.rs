@@ -16,6 +16,7 @@ mod settingspane;
 mod spawn;
 pub mod stats;
 mod statspane;
+mod tui;
 mod welcome;
 
 fn main() -> anyhow::Result<()> {
