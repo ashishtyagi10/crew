@@ -13,7 +13,7 @@ use crew_term::GridSize;
 /// Fallback grid size when the GPU cell size is not yet known (zero).
 pub(crate) const FALLBACK_SIZE: GridSize = GridSize { cols: 80, rows: 24 };
 pub(crate) const POLL_MS: u64 = 16;
-pub(crate) const GAP: f32 = 4.0;
+pub(crate) const GAP: f32 = 8.0;
 
 #[derive(Default)]
 pub struct CrewApp {

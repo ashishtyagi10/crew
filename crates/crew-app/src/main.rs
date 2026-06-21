@@ -3,6 +3,7 @@ mod chat;
 mod chatlayout;
 pub mod chrome;
 pub mod config;
+mod gauges;
 mod handler;
 mod layout;
 mod pane;
