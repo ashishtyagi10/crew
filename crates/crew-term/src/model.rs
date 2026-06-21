@@ -1,7 +1,9 @@
 use alacritty_terminal::event::{Event, EventListener};
 use alacritty_terminal::grid::Dimensions;
+use alacritty_terminal::term::cell::Flags;
+use alacritty_terminal::term::color::Colors;
 use alacritty_terminal::term::{Config, Term};
-use alacritty_terminal::vte::ansi::Processor;
+use alacritty_terminal::vte::ansi::{Color, Processor, Rgb};
 
 #[derive(Clone, Copy, Debug)]
 pub struct GridSize {
@@ -14,6 +16,64 @@ pub struct RenderCell {
     pub col: u16,
     pub row: u16,
     pub c: char,
+    pub fg: (u8, u8, u8),
+    pub bg: (u8, u8, u8),
+    pub bold: bool,
+    pub italic: bool,
+}
+
+const DEFAULT_FG: (u8, u8, u8) = (220, 220, 220);
+const DEFAULT_BG: (u8, u8, u8) = (10, 10, 18);
+
+/// Standard xterm 16-color palette (indices 0–15) used when the terminal hasn't
+/// explicitly defined those slots in its color table.
+const ANSI16: [(u8, u8, u8); 16] = [
+    (0, 0, 0),       // 0  Black
+    (170, 0, 0),     // 1  Red
+    (0, 170, 0),     // 2  Green
+    (170, 85, 0),    // 3  Yellow (dark)
+    (0, 0, 170),     // 4  Blue
+    (170, 0, 170),   // 5  Magenta
+    (0, 170, 170),   // 6  Cyan
+    (170, 170, 170), // 7  White
+    (85, 85, 85),    // 8  Bright Black
+    (255, 85, 85),   // 9  Bright Red
+    (85, 255, 85),   // 10 Bright Green
+    (255, 255, 85),  // 11 Bright Yellow
+    (85, 85, 255),   // 12 Bright Blue
+    (255, 85, 255),  // 13 Bright Magenta
+    (85, 255, 255),  // 14 Bright Cyan
+    (255, 255, 255), // 15 Bright White
+];
+
+fn rgb_to_tuple(rgb: Rgb) -> (u8, u8, u8) {
+    (rgb.r, rgb.g, rgb.b)
+}
+
+fn resolve_color(color: Color, palette: &Colors, default: (u8, u8, u8)) -> (u8, u8, u8) {
+    match color {
+        Color::Spec(rgb) => rgb_to_tuple(rgb),
+        Color::Named(named) => {
+            let idx = named as usize;
+            if let Some(rgb) = palette[idx] {
+                rgb_to_tuple(rgb)
+            } else if idx < 16 {
+                ANSI16[idx]
+            } else {
+                default
+            }
+        }
+        Color::Indexed(i) => {
+            let idx = i as usize;
+            if let Some(rgb) = palette[idx] {
+                rgb_to_tuple(rgb)
+            } else if idx < 16 {
+                ANSI16[idx]
+            } else {
+                default
+            }
+        }
+    }
 }
 
 pub trait TermModel {
@@ -76,15 +136,32 @@ impl TermCore {
 
     fn cells(&self) -> Vec<RenderCell> {
         let content = self.term.renderable_content();
+        let palette = content.colors;
         // display_iter yields Indexed<&Cell>; Indexed derefs to Cell, so .c is available.
         // point.line is i32 (0 = top of viewport); point.column is usize.
         content
             .display_iter
             .filter(|ind| ind.c != ' ' && ind.c != '\0' && ind.point.line.0 >= 0)
-            .map(|ind| RenderCell {
-                col: ind.point.column.0 as u16,
-                row: ind.point.line.0 as u16,
-                c: ind.c,
+            .map(|ind| {
+                let bold = ind.flags.contains(Flags::BOLD);
+                let italic = ind.flags.contains(Flags::ITALIC);
+                let mut fg = resolve_color(ind.fg, palette, DEFAULT_FG);
+                let mut bg = resolve_color(ind.bg, palette, DEFAULT_BG);
+                if ind.flags.contains(Flags::INVERSE) {
+                    std::mem::swap(&mut fg, &mut bg);
+                }
+                // Bold on ANSI colors 0..8: some terminals render as bright. We skip that here.
+                // If the fg is the default foreground named color and no explicit color was set,
+                // use our default rather than a potentially-None palette slot.
+                RenderCell {
+                    col: ind.point.column.0 as u16,
+                    row: ind.point.line.0 as u16,
+                    c: ind.c,
+                    fg,
+                    bg,
+                    bold,
+                    italic,
+                }
             })
             .collect()
     }
@@ -227,6 +304,25 @@ mod tests {
             row0.iter().map(|c| c.c).collect()
         };
         assert_eq!(text, "hi");
+    }
+
+    #[test]
+    fn sgr_red_bold_is_resolved_to_rgb_and_flags() {
+        let mut term = HeadlessTerm::new(GridSize { cols: 20, rows: 3 });
+        // ESC[1m bold, ESC[31m red foreground, then "X"
+        term.feed(b"\x1b[1m\x1b[31mX");
+        let cell = term
+            .cells()
+            .into_iter()
+            .find(|c| c.c == 'X')
+            .expect("cell X");
+        assert!(cell.bold, "bold flag should be set");
+        // Default ANSI red has a high red channel and low green/blue.
+        assert!(
+            cell.fg.0 > 120 && cell.fg.1 < 100 && cell.fg.2 < 100,
+            "fg should be reddish, got {:?}",
+            cell.fg
+        );
     }
 }
 
