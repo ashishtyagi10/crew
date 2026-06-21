@@ -9,11 +9,10 @@ use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::keyboard::Key;
 use winit::window::{Window, WindowId};
 
-use crate::app::{CrewApp, GAP, POLL_MS};
+use crate::app::{CrewApp, POLL_MS};
 use crate::config::CrewConfig;
-use crate::layout::pane_rects;
 use crate::pane::{spawn_pane, PaneContent};
-use crate::session::{key_to_bytes, pane_at};
+use crate::session::key_to_bytes;
 use crew_render::Renderer;
 
 impl ApplicationHandler for CrewApp {
@@ -104,12 +103,8 @@ impl ApplicationHandler for CrewApp {
                 button: MouseButton::Left,
                 ..
             } => {
-                if let Some(renderer) = &self.renderer {
-                    let (sw, sh) = renderer.surface_size();
-                    let rects = pane_rects(self.panes.len(), sw as f32, sh as f32, GAP);
-                    if let Some(i) = pane_at(&rects, self.cursor.0, self.cursor.1) {
-                        self.focused = i;
-                    }
+                if let Some(i) = self.pane_at_cursor() {
+                    self.focused = i;
                 }
                 self.redraw();
             }

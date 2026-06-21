@@ -175,12 +175,13 @@ mod tests {
     #[test]
     fn nav_down_twice_then_inc_toggles_show_nav() {
         let mut cfg = CrewConfig::default();
+        let before = cfg.show_nav;
         let mut sel = 0usize;
         reduce_key(&mut cfg, &mut sel, KeyAction::Down);
         reduce_key(&mut cfg, &mut sel, KeyAction::Down);
         assert_eq!(sel, 2);
         let changed = reduce_key(&mut cfg, &mut sel, KeyAction::Inc);
         assert!(changed);
-        assert!(cfg.show_nav);
+        assert_eq!(cfg.show_nav, !before);
     }
 }
