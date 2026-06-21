@@ -120,12 +120,9 @@ impl CrewApp {
 
     /// Run a `/command` typed in the input bar.
     fn run_slash_command(&mut self, cmd: &str) {
-        match cmd {
-            "settings" => {
-                self.spawn_settings_pane();
-                self.input.focused = false;
-            }
-            _ => {}
+        if cmd == "settings" {
+            self.spawn_settings_pane();
+            self.input.focused = false;
         }
     }
 
