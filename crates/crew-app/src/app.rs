@@ -94,14 +94,14 @@ impl CrewApp {
     }
 
     /// Handle a submitted input line: `/command`s are run; everything else is
-    /// written (with a newline) to the focused Terminal pane.
-    pub(crate) fn submit_input(&mut self, line: String) {
+    /// written (with a newline) to the focused Terminal pane. Returns `true` if the
+    /// app should exit (e.g. `/exit`).
+    pub(crate) fn submit_input(&mut self, line: String) -> bool {
         if line.is_empty() {
-            return;
+            return false;
         }
         if let Some(cmd) = slash_command(&line) {
-            self.run_slash_command(cmd);
-            return;
+            return self.run_slash_command(cmd);
         }
         let focused = self.focused;
         if let Some(pane) = self.panes.get_mut(focused) {
@@ -116,14 +116,24 @@ impl CrewApp {
                 }
             }
         }
+        false
     }
 
-    /// Run a `/command` typed in the input bar.
-    fn run_slash_command(&mut self, cmd: &str) {
-        if cmd == "settings" {
-            self.spawn_settings_pane();
-            self.input.focused = false;
+    /// Run a `/command` typed in the input bar. Returns `true` if the app should exit.
+    fn run_slash_command(&mut self, cmd: &str) -> bool {
+        match cmd {
+            "exit" => return true,
+            "settings" => self.spawn_settings_pane(),
+            "shell" => self.spawn_new_pane(),
+            "update" => self.spawn_labeled_terminal(
+                "sh",
+                &["-c".to_string(), "git pull; exec sh".to_string()],
+                "update".to_string(),
+            ),
+            _ => return false,
         }
+        self.input.focused = false;
+        false
     }
 
     pub(crate) fn toggle_sidebar(&mut self) {

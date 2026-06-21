@@ -50,7 +50,10 @@ impl CrewApp {
             }
             let submitted = self.input.on_key(event);
             if let Some(line) = submitted {
-                self.submit_input(line);
+                if self.submit_input(line) {
+                    event_loop.exit();
+                    return;
+                }
             }
             self.redraw();
             return;
