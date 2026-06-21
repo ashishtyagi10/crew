@@ -4,6 +4,7 @@ use glyphon::Buffer;
 use crate::cellgrid::{CellView, DEFAULT_BG};
 use crate::celltext::{build_pane_buffer, FontParams};
 use crate::quads::Quad;
+use crate::roundborder::Border;
 
 /// `(Buffer, origin_x, origin_y, pane_w, pane_h)` for one rendered pane.
 pub(crate) type PaneBuffer = (Buffer, f32, f32, f32, f32);
@@ -18,22 +19,23 @@ pub struct PaneScene {
     pub focused: bool,
 }
 
-const BORDER_PX: f32 = 2.0;
 const BORDER_NORMAL: [f32; 4] = [40.0 / 255.0, 80.0 / 255.0, 95.0 / 255.0, 1.0];
 const BORDER_FOCUSED: [f32; 4] = [1.0, 0.0, 170.0 / 255.0, 1.0];
+const BORDER_RADIUS: f32 = 10.0;
+const BORDER_THICKNESS: f32 = 2.0;
 
-/// Build all quads (cell backgrounds + borders) and one Buffer per pane.
-/// Returns `(quads, pane_buffers)` where each entry in `pane_buffers` is
-/// `(Buffer, origin_x, origin_y, pane_w, pane_h)`.
+/// Build all quads (cell backgrounds) and one Buffer per pane, plus rounded borders.
+/// Returns `(quads, pane_buffers, borders)`.
 pub(crate) fn build_scene(
     panes: &[PaneScene],
     cell_w: f32,
     cell_h: f32,
     font_system: &mut glyphon::FontSystem,
     params: &FontParams,
-) -> (Vec<Quad>, Vec<PaneBuffer>) {
+) -> (Vec<Quad>, Vec<PaneBuffer>, Vec<Border>) {
     let mut quads: Vec<Quad> = Vec::new();
     let mut buffers: Vec<PaneBuffer> = Vec::new();
+    let mut borders: Vec<Border> = Vec::new();
 
     for pane in panes {
         let cols = ((pane.w / cell_w).floor() as usize).max(1);
@@ -57,54 +59,26 @@ pub(crate) fn build_scene(
             }
         }
 
-        // Border: 4 thin rects outlining the pane.
-        let bc = if pane.focused {
+        // Rounded-corner border for this pane.
+        let color = if pane.focused {
             BORDER_FOCUSED
         } else {
             BORDER_NORMAL
         };
-        push_border(&mut quads, pane.x, pane.y, pane.w, pane.h, bc);
+        borders.push(Border {
+            x: pane.x,
+            y: pane.y,
+            w: pane.w,
+            h: pane.h,
+            radius: BORDER_RADIUS,
+            thickness: BORDER_THICKNESS,
+            color,
+        });
 
         // One text Buffer per pane.
         let buf = build_pane_buffer(font_system, &pane.cells, cols, rows, pane.w, pane.h, params);
         buffers.push((buf, pane.x, pane.y, pane.w, pane.h));
     }
 
-    (quads, buffers)
-}
-
-/// Push 4 border quads: top, bottom, left, right.
-fn push_border(quads: &mut Vec<Quad>, x: f32, y: f32, w: f32, h: f32, color: [f32; 4]) {
-    // Top
-    quads.push(Quad {
-        x,
-        y,
-        w,
-        h: BORDER_PX,
-        color,
-    });
-    // Bottom
-    quads.push(Quad {
-        x,
-        y: y + h - BORDER_PX,
-        w,
-        h: BORDER_PX,
-        color,
-    });
-    // Left
-    quads.push(Quad {
-        x,
-        y,
-        w: BORDER_PX,
-        h,
-        color,
-    });
-    // Right
-    quads.push(Quad {
-        x: x + w - BORDER_PX,
-        y,
-        w: BORDER_PX,
-        h,
-        color,
-    });
+    (quads, buffers, borders)
 }

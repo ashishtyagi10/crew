@@ -6,6 +6,7 @@ use glyphon::{
 use crate::celltext::{cell_metrics, FontParams};
 use crate::gpu::Gpu;
 use crate::quads::QuadLayer;
+use crate::roundborder::RoundBorderLayer;
 use crate::scene::{build_scene, PaneBuffer, PaneScene};
 
 /// Default terminal background colour (must match scene.rs).
@@ -22,7 +23,7 @@ pub struct CellView {
     pub italic: bool,
 }
 
-/// Renders a scene of panes: per-cell bg quads, pane borders, per-pane text.
+/// Renders a scene of panes: per-cell bg quads, rounded borders, per-pane text.
 pub struct CellGrid {
     pub(crate) font_system: FontSystem,
     swash: SwashCache,
@@ -32,6 +33,7 @@ pub struct CellGrid {
     /// One Buffer per pane, plus (origin_x, origin_y, pane_w, pane_h).
     pane_buffers: Vec<PaneBuffer>,
     quad_layer: QuadLayer,
+    round_border_layer: RoundBorderLayer,
     pub(crate) cell_w: f32,
     pub(crate) cell_h: f32,
     font_size: f32,
@@ -55,6 +57,7 @@ impl CellGrid {
         let (cell_w, cell_h) = cell_metrics(&mut font_system, font_size);
         let line_height = font_size * 1.25;
         let quad_layer = QuadLayer::new(&gpu.device, gpu.format);
+        let round_border_layer = RoundBorderLayer::new(&gpu.device, gpu.format);
 
         Self {
             font_system,
@@ -64,6 +67,7 @@ impl CellGrid {
             renderer,
             pane_buffers: Vec::new(),
             quad_layer,
+            round_border_layer,
             cell_w,
             cell_h,
             font_size,
@@ -88,13 +92,13 @@ impl CellGrid {
     /// Update the text buffer layout bounds on resize (no-op now; sizing per pane).
     pub fn resize(&mut self, _width: f32, _height: f32) {}
 
-    /// Upload a scene of panes: backgrounds + borders as quads, one Buffer per pane.
+    /// Upload a scene of panes: backgrounds as quads, rounded borders, one Buffer per pane.
     pub fn set_scene(&mut self, gpu: &Gpu, panes: &[PaneScene]) {
         let params = FontParams {
             font_size: self.font_size,
             line_height: self.line_height,
         };
-        let (quads, buffers) = build_scene(
+        let (quads, buffers, borders) = build_scene(
             panes,
             self.cell_w,
             self.cell_h,
@@ -102,16 +106,16 @@ impl CellGrid {
             &params,
         );
         self.quad_layer.set_quads(&gpu.device, &quads);
+        self.round_border_layer.set_borders(&gpu.device, &borders);
         self.pane_buffers = buffers;
     }
 
     /// Update viewports and prepare GPU uploads for all pane text areas.
     pub fn prepare(&mut self, gpu: &Gpu) {
-        self.quad_layer.set_viewport(
-            &gpu.queue,
-            gpu.config.width as f32,
-            gpu.config.height as f32,
-        );
+        let w = gpu.config.width as f32;
+        let h = gpu.config.height as f32;
+        self.quad_layer.set_viewport(&gpu.queue, w, h);
+        self.round_border_layer.set_viewport(&gpu.queue, w, h);
         self.viewport.update(
             &gpu.queue,
             Resolution {
@@ -152,9 +156,10 @@ impl CellGrid {
             .expect("glyphon prepare failed");
     }
 
-    /// Draw backgrounds + borders then all pane text into the active render pass.
+    /// Draw: cell backgrounds → rounded borders → pane text.
     pub fn draw<'a>(&'a self, pass: &mut wgpu::RenderPass<'a>) {
         self.quad_layer.draw(pass);
+        self.round_border_layer.draw(pass);
         self.renderer
             .render(&self.atlas, &self.viewport, pass)
             .expect("glyphon render failed");

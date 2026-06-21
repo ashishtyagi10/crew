@@ -4,6 +4,7 @@ mod celltext;
 mod gpu;
 mod quads;
 mod renderer;
+mod roundborder;
 mod scene;
 pub use cellgrid::CellView;
 pub use renderer::Renderer;
