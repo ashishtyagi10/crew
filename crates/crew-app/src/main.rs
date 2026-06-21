@@ -6,6 +6,7 @@ pub mod chrome;
 pub mod config;
 mod gauges;
 mod handler;
+pub(crate) mod inputbar;
 mod layout;
 mod pane;
 mod render;

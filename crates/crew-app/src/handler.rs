@@ -112,6 +112,18 @@ impl ApplicationHandler for CrewApp {
                     event_loop.exit();
                     return;
                 }
+                // Enter submits the input bar when it is focused (key handler task wires focus).
+                if event.state.is_pressed()
+                    && self.input.focused
+                    && matches!(
+                        &event.logical_key,
+                        Key::Named(winit::keyboard::NamedKey::Enter)
+                    )
+                {
+                    let _ = self.submit_input();
+                    self.redraw();
+                    return;
+                }
                 if self.mods.state().super_key() && event.state.is_pressed() {
                     if let Key::Character(s) = &event.logical_key {
                         let s = s.to_string();

@@ -4,6 +4,7 @@ use winit::event::Modifiers;
 use winit::window::Window;
 
 use crate::config::CrewConfig;
+use crate::inputbar::InputBar;
 use crate::pane::Pane;
 use crate::session::grid_for;
 use crate::statspane::StatsPane;
@@ -25,6 +26,7 @@ pub struct CrewApp {
     pub(crate) cursor: (f32, f32),
     pub(crate) config: CrewConfig,
     pub(crate) sidebar: Box<StatsPane>,
+    pub(crate) input: InputBar,
 }
 
 impl CrewApp {
@@ -87,6 +89,12 @@ impl CrewApp {
             _ => {}
         }
         false
+    }
+
+    /// Submit the input bar text (called by key handler on Enter).
+    /// Returns the submitted text if any.
+    pub(crate) fn submit_input(&mut self) -> Option<String> {
+        self.input.submit()
     }
 
     pub(crate) fn toggle_sidebar(&mut self) {

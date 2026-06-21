@@ -35,25 +35,27 @@ impl CrewApp {
 
     /// Grid pane rects packed into the content area (right of the sidebar).
     fn grid_rects(&self) -> Vec<Rect> {
-        let Some((_cw, _ch, sw, sh, scale)) = self.frame_geometry() else {
+        let Some((_cw, ch, sw, sh, scale)) = self.frame_geometry() else {
             return Vec::new();
         };
-        let c = chrome::content_rect(sw, sh, self.config.show_nav, self.nav_px(scale), GAP);
+        let ih = chrome::input_h(ch);
+        let c = chrome::content_rect(sw, sh, self.config.show_nav, self.nav_px(scale), GAP, ih);
         pane_rects_at(self.panes.len(), c.x, c.y, c.w, c.h, GAP)
     }
 
     /// Build all PaneScenes for one frame: grid panes in the content area, plus
-    /// the docked full-height sidebar when shown.
+    /// the docked full-height sidebar when shown, plus the docked bottom input bar.
     pub(crate) fn build_frame(&mut self) -> Vec<PaneScene> {
         let Some((cw, ch, sw, sh, scale)) = self.frame_geometry() else {
             return Vec::new();
         };
+        let ih = chrome::input_h(ch);
         let rects = self.grid_rects();
         relayout(&mut self.panes, &rects, cw, ch);
         let mut scenes = build_scenes(&self.panes, self.focused);
 
         if self.panes.is_empty() {
-            let c = chrome::content_rect(sw, sh, self.config.show_nav, self.nav_px(scale), GAP);
+            let c = chrome::content_rect(sw, sh, self.config.show_nav, self.nav_px(scale), GAP, ih);
             let wcols = (c.w / cw).floor() as u16;
             let wrows = (c.h / ch).floor() as u16;
             scenes.push(PaneScene {
@@ -67,7 +69,7 @@ impl CrewApp {
         }
 
         if self.config.show_nav {
-            let sb = chrome::sidebar_rect(sh, self.nav_px(scale), GAP);
+            let sb = chrome::sidebar_rect(sh, self.nav_px(scale), GAP, ih);
             let sc = (sb.w / cw).floor() as u16;
             let sr = (sb.h / ch).floor() as u16;
             scenes.push(PaneScene {
@@ -79,14 +81,28 @@ impl CrewApp {
                 focused: false,
             });
         }
+
+        let ib = chrome::inputbar_rect(sw, sh, ih, GAP);
+        let ic = (ib.w / cw).floor() as u16;
+        let ir = (ib.h / ch).floor() as u16;
+        scenes.push(PaneScene {
+            cells: self.input.cells(ic, ir),
+            x: ib.x,
+            y: ib.y,
+            w: ib.w,
+            h: ib.h,
+            focused: false,
+        });
+
         scenes
     }
 
     /// Which grid pane (if any) sits under the cursor — only inside the content
-    /// area, so clicks on the sidebar do not steal focus.
+    /// area, so clicks on the sidebar or input bar do not steal focus.
     pub(crate) fn pane_at_cursor(&self) -> Option<usize> {
-        let (_cw, _ch, sw, sh, scale) = self.frame_geometry()?;
-        let c = chrome::content_rect(sw, sh, self.config.show_nav, self.nav_px(scale), GAP);
+        let (_cw, ch, sw, sh, scale) = self.frame_geometry()?;
+        let ih = chrome::input_h(ch);
+        let c = chrome::content_rect(sw, sh, self.config.show_nav, self.nav_px(scale), GAP, ih);
         if !chrome::point_in(c, self.cursor.0, self.cursor.1) {
             return None;
         }
