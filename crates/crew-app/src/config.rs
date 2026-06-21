@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 fn default_font_size() -> f32 {
-    18.0
+    14.0
 }
 
 fn default_nav_width() -> f32 {
@@ -83,7 +83,7 @@ mod tests {
     #[test]
     fn default_values() {
         let cfg = CrewConfig::default();
-        assert_eq!(cfg.font_size, 18.0);
+        assert_eq!(cfg.font_size, 14.0);
         assert!(!cfg.show_nav);
     }
 
@@ -127,6 +127,6 @@ mod tests {
     #[test]
     fn line_height() {
         let cfg = CrewConfig::default();
-        assert!((cfg.line_height() - 22.5).abs() < 1e-6);
+        assert!((cfg.line_height() - 17.5).abs() < 1e-6);
     }
 }
