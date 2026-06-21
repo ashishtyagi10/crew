@@ -64,6 +64,7 @@ impl ApplicationHandler for CrewApp {
                     collected_actions.extend(result.actions);
                     result.changed
                 }
+                PaneContent::Stats(s) => s.refresh(),
             };
             any_changed |= changed;
         }
@@ -141,6 +142,7 @@ impl ApplicationHandler for CrewApp {
                                 }
                             }
                             PaneContent::Chat(c) => c.on_key(&event),
+                            PaneContent::Stats(_) => {}
                         }
                     }
                     self.redraw();

@@ -8,6 +8,7 @@ mod pane;
 mod session;
 mod spawn;
 pub mod stats;
+mod statspane;
 
 fn main() -> anyhow::Result<()> {
     handler::run()

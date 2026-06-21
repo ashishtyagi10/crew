@@ -53,6 +53,7 @@ impl CrewApp {
     pub(crate) fn handle_super_chord(&mut self, s: &str) -> bool {
         let n = self.panes.len().max(1);
         match s {
+            "g" => self.spawn_stats_pane(),
             "t" => self.spawn_new_pane(),
             "j" => {
                 let cmd = Self::echo_plugin_cmd();
