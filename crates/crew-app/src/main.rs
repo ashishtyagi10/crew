@@ -1,3 +1,6 @@
+mod app;
+mod session;
+
 fn main() -> anyhow::Result<()> {
-    crew_render::run()
+    app::run()
 }

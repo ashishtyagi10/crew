@@ -12,4 +12,5 @@ path = "src/main.rs"
 crew-term = { path = "../crew-term" }
 crew-render = { path = "../crew-render" }
 winit.workspace = true
+wgpu.workspace = true
 anyhow.workspace = true

@@ -1,34 +1,67 @@
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
-use winit::event_loop::{ActiveEventLoop, EventLoop};
+use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::window::{Window, WindowId};
+
+use crew_render::{Gpu, TextLayer};
+use crew_term::{GridSize, PtyTerm, TermModel};
+
+use crate::session::cells_to_string;
+
+const PTY_SIZE: GridSize = GridSize { cols: 80, rows: 24 };
+const POLL_MS: u64 = 16;
 
 #[derive(Default)]
 pub struct CrewApp {
     window: Option<Arc<Window>>,
-    gpu: Option<crate::gpu::Gpu>,
-    text: Option<crate::text::TextLayer>,
+    gpu: Option<Gpu>,
+    text: Option<TextLayer>,
+    pty: Option<PtyTerm>,
 }
 
 impl ApplicationHandler for CrewApp {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         let attrs = Window::default_attributes().with_title("Crew");
         let window = Arc::new(event_loop.create_window(attrs).expect("create window"));
-        match crate::gpu::Gpu::new(window.clone()) {
+
+        match Gpu::new(window.clone()) {
             Ok(gpu) => {
-                let mut text = crate::text::TextLayer::new(&gpu);
-                text.set_text("crew ready");
-                self.text = Some(text);
+                let text = TextLayer::new(&gpu);
+                let pty = PtyTerm::spawn(PTY_SIZE, "bash")
+                    .or_else(|_| PtyTerm::spawn(PTY_SIZE, "sh"))
+                    .ok();
                 self.gpu = Some(gpu);
-                self.window = Some(window);
+                self.text = Some(text);
+                self.pty = pty;
+                self.window = Some(window.clone());
+                window.request_redraw();
             }
             Err(e) => {
                 eprintln!("GPU init failed: {e:#}");
                 event_loop.exit();
             }
         }
+    }
+
+    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+        let (Some(pty), Some(text), Some(window)) = (&mut self.pty, &mut self.text, &self.window)
+        else {
+            return;
+        };
+
+        let new_bytes = pty.try_read();
+        if new_bytes > 0 {
+            let s = cells_to_string(&pty.cells(), PTY_SIZE);
+            text.set_text(&s);
+            window.request_redraw();
+        }
+
+        event_loop.set_control_flow(ControlFlow::WaitUntil(
+            Instant::now() + Duration::from_millis(POLL_MS),
+        ));
     }
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
@@ -44,17 +77,13 @@ impl ApplicationHandler for CrewApp {
                     return;
                 };
 
-                // Step 1: prepare text (needs &mut self, must run before pass begins).
                 text.prepare(gpu);
 
-                // Step 2: acquire frame.
                 let frame = match gpu.surface.get_current_texture() {
                     wgpu::CurrentSurfaceTexture::Success(t) => t,
                     wgpu::CurrentSurfaceTexture::Suboptimal(t) => t,
                     wgpu::CurrentSurfaceTexture::Timeout
-                    | wgpu::CurrentSurfaceTexture::Occluded => {
-                        return;
-                    }
+                    | wgpu::CurrentSurfaceTexture::Occluded => return,
                     wgpu::CurrentSurfaceTexture::Outdated
                     | wgpu::CurrentSurfaceTexture::Lost
                     | wgpu::CurrentSurfaceTexture::Validation => {
@@ -69,7 +98,6 @@ impl ApplicationHandler for CrewApp {
                     .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
 
                 {
-                    // Step 3: begin render pass with clear, draw text inside.
                     let mut pass = enc.begin_render_pass(&wgpu::RenderPassDescriptor {
                         label: Some("crew frame"),
                         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -91,14 +119,11 @@ impl ApplicationHandler for CrewApp {
                         occlusion_query_set: None,
                         multiview_mask: None,
                     });
-
                     text.draw(&mut pass);
                 }
 
-                // Step 4: submit and present.
                 gpu.queue.submit(Some(enc.finish()));
                 frame.present();
-                // No unconditional re-request; redraws come from OS expose/resize events.
             }
             _ => {}
         }
