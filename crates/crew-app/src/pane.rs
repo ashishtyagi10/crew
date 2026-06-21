@@ -25,6 +25,8 @@ pub struct Pane {
     pub content: PaneContent,
     pub grid: GridSize,
     pub rect: Rect,
+    /// Optional label for routing host actions to this pane.
+    pub label: Option<String>,
 }
 
 impl Pane {
@@ -58,6 +60,7 @@ pub fn spawn_pane(
             w: 0.0,
             h: 0.0,
         },
+        label: None,
     })
 }
 

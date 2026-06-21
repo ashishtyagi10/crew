@@ -39,25 +39,40 @@ impl ApplicationHandler for CrewApp {
     }
 
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
-        let Some(window) = &self.window else { return };
+        if self.window.is_none() {
+            return;
+        }
 
         // Drain EVERY pane each tick. A `for` loop (not `any()`/`fold`) so all
         // panes are polled for their side effects — `any()` would short-circuit
         // and starve later panes when an earlier one has output.
         let mut any_changed = false;
+        let mut collected_actions = Vec::new();
         for p in self.panes.iter_mut() {
             let changed = match &mut p.content {
                 PaneContent::Terminal(t) => t.pty.try_read() > 0,
                 PaneContent::Chat(c) => {
                     let result = c.poll();
-                    let _ = result.actions;
+                    collected_actions.extend(result.actions);
                     result.changed
                 }
             };
             any_changed |= changed;
         }
-        if any_changed {
-            window.request_redraw();
+        let actions_ran = !collected_actions.is_empty();
+        for action in collected_actions {
+            use crate::chat::HostAction;
+            match action {
+                HostAction::SpawnPane {
+                    command,
+                    args,
+                    label,
+                } => self.spawn_labeled_terminal(&command, &args, label),
+                HostAction::SendPane { label, text } => self.send_to_label(&label, &text),
+            }
+        }
+        if any_changed || actions_ran {
+            self.redraw();
         }
 
         event_loop.set_control_flow(ControlFlow::WaitUntil(

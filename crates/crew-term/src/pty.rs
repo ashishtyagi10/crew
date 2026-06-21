@@ -11,7 +11,13 @@ pub struct PtyTerm {
 }
 
 impl PtyTerm {
+    /// Spawn a shell (no extra args).  Delegates to `spawn_args`.
     pub fn spawn(size: GridSize, shell: &str) -> anyhow::Result<Self> {
+        Self::spawn_args(size, shell, &[])
+    }
+
+    /// Spawn `command` with `args` in a new PTY of the given size.
+    pub fn spawn_args(size: GridSize, command: &str, args: &[String]) -> anyhow::Result<Self> {
         let pty = native_pty_system();
         let pair = pty.openpty(PtySize {
             rows: size.rows,
@@ -19,7 +25,9 @@ impl PtyTerm {
             pixel_width: 0,
             pixel_height: 0,
         })?;
-        let child = pair.slave.spawn_command(CommandBuilder::new(shell))?;
+        let mut cmd = CommandBuilder::new(command);
+        cmd.args(args);
+        let child = pair.slave.spawn_command(cmd)?;
         // Drop the slave end so EOF propagates when the child exits.
         drop(pair.slave);
 
