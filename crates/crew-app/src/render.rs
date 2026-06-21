@@ -5,6 +5,7 @@ use crate::chrome;
 use crate::layout::{pane_rects_at, Rect};
 use crate::pane::{build_scenes, relayout};
 use crate::session::pane_at;
+use crate::welcome;
 
 impl CrewApp {
     /// `(cell_w, cell_h, surface_w, surface_h, scale)` when the renderer is ready.
@@ -44,12 +45,26 @@ impl CrewApp {
     /// Build all PaneScenes for one frame: grid panes in the content area, plus
     /// the docked full-height sidebar when shown.
     pub(crate) fn build_frame(&mut self) -> Vec<PaneScene> {
-        let Some((cw, ch, _sw, sh, scale)) = self.frame_geometry() else {
+        let Some((cw, ch, sw, sh, scale)) = self.frame_geometry() else {
             return Vec::new();
         };
         let rects = self.grid_rects();
         relayout(&mut self.panes, &rects, cw, ch);
         let mut scenes = build_scenes(&self.panes, self.focused);
+
+        if self.panes.is_empty() {
+            let c = chrome::content_rect(sw, sh, self.config.show_nav, self.nav_px(scale), GAP);
+            let wcols = (c.w / cw).floor() as u16;
+            let wrows = (c.h / ch).floor() as u16;
+            scenes.push(PaneScene {
+                cells: welcome::welcome_cells(wcols, wrows),
+                x: c.x,
+                y: c.y,
+                w: c.w,
+                h: c.h,
+                focused: false,
+            });
+        }
 
         if self.config.show_nav {
             let sb = chrome::sidebar_rect(sh, self.nav_px(scale), GAP);

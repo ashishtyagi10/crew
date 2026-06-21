@@ -11,7 +11,7 @@ use winit::window::{Window, WindowId};
 
 use crate::app::{CrewApp, POLL_MS};
 use crate::config::CrewConfig;
-use crate::pane::{spawn_pane, PaneContent};
+use crate::pane::PaneContent;
 use crate::session::key_to_bytes;
 use crew_render::Renderer;
 
@@ -28,14 +28,8 @@ impl ApplicationHandler for CrewApp {
         let font_px = self.config.font_size * window.scale_factor() as f32;
         match Renderer::new(window.clone(), font_px) {
             Ok(renderer) => {
-                let initial_grid = Self::current_grid(&renderer);
                 self.renderer = Some(renderer);
                 self.window = Some(window.clone());
-
-                if let Ok(pane) = spawn_pane("bash", "sh", initial_grid) {
-                    self.panes.push(pane);
-                    self.focused = 0;
-                }
                 window.request_redraw();
             }
             Err(e) => {
@@ -165,7 +159,7 @@ impl ApplicationHandler for CrewApp {
                 self.redraw();
             }
             WindowEvent::RedrawRequested => {
-                if self.renderer.is_none() || self.panes.is_empty() {
+                if self.renderer.is_none() {
                     return;
                 }
                 let scenes = self.build_frame();

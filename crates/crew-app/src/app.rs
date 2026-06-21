@@ -44,7 +44,8 @@ impl CrewApp {
             self.panes.remove(idx);
         }
         if self.panes.is_empty() {
-            return true;
+            self.focused = 0;
+            return false;
         }
         self.focused = self.focused.min(self.panes.len() - 1);
         false

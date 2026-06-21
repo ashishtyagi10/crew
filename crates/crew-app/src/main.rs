@@ -14,6 +14,7 @@ mod settingspane;
 mod spawn;
 pub mod stats;
 mod statspane;
+mod welcome;
 
 fn main() -> anyhow::Result<()> {
     handler::run()
