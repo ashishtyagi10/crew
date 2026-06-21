@@ -1,3 +1,6 @@
 //! crew-term: terminal model + PTY, behind a stable TermModel interface.
+mod color;
 mod model;
-pub use model::{GridSize, HeadlessTerm, PtyTerm, RenderCell, TermModel};
+mod pty;
+pub use model::{GridSize, HeadlessTerm, RenderCell, TermModel};
+pub use pty::PtyTerm;
