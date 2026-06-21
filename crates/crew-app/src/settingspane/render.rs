@@ -1,11 +1,19 @@
-//! Two-column form rendering for the settings pane, plus the font-family dropdown.
+//! Two-column form rendering for the settings pane: each value sits in a real
+//! bordered input box (rounded card with the field name as a legend), plus the
+//! font-family dropdown and Save/Cancel buttons.
 use crew_render::CellView;
 
 use super::{Field, SettingsPane, ACCENT, BG, DIM, TEXT};
+use crate::boxdraw::{titled_box, BoxRect};
 
-const LABEL_COL: u16 = 3;
-const BOX_COL: u16 = 18;
-const INNER_W: usize = 22;
+const BOX_LEFT: u16 = 2;
+const BOX_MAX_W: u16 = 46;
+/// Top row of each field's box; boxes are 3 rows tall with a 1-row gap.
+const FAM_TOP: u16 = 1;
+const SIZE_TOP: u16 = 5;
+const NAV_TOP: u16 = 9;
+const SHOW_TOP: u16 = 13;
+const BTN_ROW: u16 = 17;
 
 /// Render the whole form into a flat `CellView` list.
 pub(crate) fn render(p: &SettingsPane, cols: u16, rows: u16) -> Vec<CellView> {
@@ -13,52 +21,38 @@ pub(crate) fn render(p: &SettingsPane, cols: u16, rows: u16) -> Vec<CellView> {
         return Vec::new();
     }
     let mut out = Vec::new();
-    put(&mut out, LABEL_COL, 1, "Settings", ACCENT, cols, true);
-
     let f = p.focused_field();
     let nav = if p.draft.show_nav { "on" } else { "off" };
-    field_row(
-        &mut out,
-        3,
-        "Font family",
-        &p.family_query,
-        f == Field::FontFamily,
-        true,
-        cols,
-    );
-    field_row(
-        &mut out,
-        4,
-        "Font size",
-        &p.size_buf,
-        f == Field::FontSize,
-        true,
-        cols,
-    );
-    field_row(
-        &mut out,
-        5,
-        "Nav width",
-        &p.nav_buf,
-        f == Field::NavWidth,
-        true,
-        cols,
-    );
-    field_row(
-        &mut out,
-        6,
-        "Show nav",
-        nav,
-        f == Field::ShowNav,
-        false,
-        cols,
-    );
 
-    button(&mut out, LABEL_COL + 2, 8, "Save", f == Field::Save, cols);
+    // (top row, legend, value, field, draw block cursor)
+    let boxes: [(u16, &str, &str, Field, bool); 4] = [
+        (
+            FAM_TOP,
+            "Font family",
+            &p.family_query,
+            Field::FontFamily,
+            true,
+        ),
+        (SIZE_TOP, "Font size", &p.size_buf, Field::FontSize, true),
+        (NAV_TOP, "Nav width", &p.nav_buf, Field::NavWidth, true),
+        (SHOW_TOP, "Show nav", nav, Field::ShowNav, false),
+    ];
+    for &(top, legend, value, field, cursor) in &boxes {
+        input_box(&mut out, top, legend, value, f == field, cursor, cols);
+    }
+
     button(
         &mut out,
-        LABEL_COL + 14,
-        8,
+        BOX_LEFT + 2,
+        BTN_ROW,
+        "Save",
+        f == Field::Save,
+        cols,
+    );
+    button(
+        &mut out,
+        BOX_LEFT + 14,
+        BTN_ROW,
         "Cancel",
         f == Field::Cancel,
         cols,
@@ -70,27 +64,46 @@ pub(crate) fn render(p: &SettingsPane, cols: u16, rows: u16) -> Vec<CellView> {
     out
 }
 
-/// One label + bracketed value-box row.
-fn field_row(
+/// Right column of every input box, clamped to the pane width.
+fn box_right(cols: u16) -> u16 {
+    (BOX_LEFT + BOX_MAX_W).min(cols.saturating_sub(2))
+}
+
+/// A bordered input box: rounded card, field name in the legend, value inside.
+fn input_box(
     out: &mut Vec<CellView>,
-    row: u16,
-    label: &str,
+    top: u16,
+    legend: &str,
     value: &str,
     focused: bool,
     cursor: bool,
     cols: u16,
 ) {
-    let lab_fg = if focused { ACCENT } else { TEXT };
-    put(out, LABEL_COL, row, label, lab_fg, cols, false);
-    let br = if focused { ACCENT } else { DIM };
-    put(out, BOX_COL, row, "[", br, cols, false);
-    let mut val: String = value.chars().take(INNER_W - 1).collect();
+    let right = box_right(cols);
+    if right <= BOX_LEFT + 2 {
+        return;
+    }
+    let border = if focused { ACCENT } else { DIM };
+    let leg_fg = if focused { ACCENT } else { TEXT };
+    out.extend(titled_box(
+        BoxRect {
+            left: BOX_LEFT,
+            top,
+            right,
+            bottom: top + 2,
+        },
+        legend,
+        border,
+        leg_fg,
+        BG,
+    ));
+    let avail = (right - BOX_LEFT - 2) as usize;
+    let mut val: String = value.chars().take(avail.saturating_sub(1)).collect();
     if cursor && focused {
         val.push('█');
     }
-    let val_fg = if focused { ACCENT } else { TEXT };
-    put(out, BOX_COL + 2, row, &val, val_fg, cols, false);
-    put(out, BOX_COL + 3 + INNER_W as u16, row, "]", br, cols, false);
+    let vfg = if focused { ACCENT } else { TEXT };
+    put(out, BOX_LEFT + 2, top + 1, &val, vfg, cols, false);
 }
 
 /// A `[ Label ]` button; accent + bold when focused.
@@ -99,12 +112,12 @@ fn button(out: &mut Vec<CellView>, col: u16, row: u16, label: &str, focused: boo
     put(out, col, row, &format!("[ {label} ]"), fg, cols, focused);
 }
 
-/// The type-to-search font list, drawn over the rows below the family field.
+/// The type-to-search font list, drawn over the rows below the family box.
 fn dropdown(out: &mut Vec<CellView>, p: &SettingsPane, cols: u16, rows: u16) {
     let list = p.filtered();
-    let start = 4u16;
+    let start = FAM_TOP + 3;
     let avail = rows.saturating_sub(start + 1) as usize;
-    let width = (BOX_COL as usize + INNER_W + 4).min(cols as usize) - LABEL_COL as usize;
+    let width = (box_right(cols) - BOX_LEFT) as usize;
     for (i, name) in list.iter().take(avail.min(8)).enumerate() {
         let row = start + i as u16;
         let selected = i == p.family_sel;
@@ -114,7 +127,7 @@ fn dropdown(out: &mut Vec<CellView>, p: &SettingsPane, cols: u16, rows: u16) {
         while line.chars().count() < width {
             line.push(' ');
         }
-        put(out, LABEL_COL, row, &line, fg, cols, selected);
+        put(out, BOX_LEFT, row, &line, fg, cols, selected);
     }
 }
 
@@ -150,10 +163,14 @@ mod tests {
     use crate::config::CrewConfig;
 
     #[test]
-    fn renders_settings_heading() {
+    fn renders_bordered_input_boxes() {
         let p = SettingsPane::new(CrewConfig::default(), Vec::new());
-        let cells = p.cells(60, 12);
-        assert!(cells.iter().any(|c| c.row == 1 && c.c == 'S'));
+        let cells = p.cells(60, 20);
+        // rounded box corners are present (real borders, not just brackets)
+        assert!(cells.iter().any(|c| c.c == '╭'));
+        assert!(cells.iter().any(|c| c.c == '╰'));
+        // the field legend renders in the top border
+        assert!(cells.iter().any(|c| c.c == 'F'));
     }
 
     #[test]
