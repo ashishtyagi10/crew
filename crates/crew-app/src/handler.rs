@@ -65,6 +65,7 @@ impl ApplicationHandler for CrewApp {
                     result.changed
                 }
                 PaneContent::Stats(s) => s.refresh(),
+                PaneContent::Settings(_) => false,
             };
             any_changed |= changed;
         }
@@ -130,6 +131,7 @@ impl ApplicationHandler for CrewApp {
                     self.redraw();
                 } else {
                     let focused = self.focused;
+                    let mut applied: Option<CrewConfig> = None;
                     if let Some(pane) = self.panes.get_mut(focused) {
                         match &mut pane.content {
                             PaneContent::Terminal(t) => {
@@ -143,7 +145,13 @@ impl ApplicationHandler for CrewApp {
                             }
                             PaneContent::Chat(c) => c.on_key(&event),
                             PaneContent::Stats(_) => {}
+                            PaneContent::Settings(s) => {
+                                applied = s.on_key(&event).map(|c| c.config);
+                            }
                         }
+                    }
+                    if let Some(cfg) = applied {
+                        self.apply_settings(cfg);
                     }
                     self.redraw();
                 }

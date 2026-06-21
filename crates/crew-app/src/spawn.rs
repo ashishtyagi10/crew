@@ -2,8 +2,10 @@ use std::io::Write;
 
 use crate::app::{CrewApp, FALLBACK_SIZE, GAP};
 use crate::chat::ChatPane;
+use crate::config::CrewConfig;
 use crate::layout::Rect;
 use crate::pane::{spawn_pane, Pane, PaneContent, TermPane};
+use crate::settingspane::SettingsPane;
 use crew_plugin::{Plugin, PluginCommand};
 use crew_term::{GridSize, PtyTerm};
 
@@ -103,6 +105,42 @@ impl CrewApp {
             label: None,
         });
         self.focused = self.panes.len() - 1;
+    }
+
+    /// Spawn a settings pane showing the app config and focus it.
+    pub(crate) fn spawn_settings_pane(&mut self) {
+        let grid = self
+            .renderer
+            .as_ref()
+            .map(Self::current_grid)
+            .unwrap_or(FALLBACK_SIZE);
+        self.panes.push(Pane {
+            content: PaneContent::Settings(SettingsPane::new(self.config)),
+            grid,
+            rect: Rect {
+                x: 0.0,
+                y: 0.0,
+                w: 0.0,
+                h: 0.0,
+            },
+            label: None,
+        });
+        self.focused = self.panes.len() - 1;
+    }
+
+    /// Apply updated config: set font size live, persist to disk, and redraw.
+    pub(crate) fn apply_settings(&mut self, cfg: CrewConfig) {
+        self.config = cfg;
+        let scale = self
+            .window
+            .as_ref()
+            .map(|w| w.scale_factor() as f32)
+            .unwrap_or(1.0);
+        if let Some(r) = &mut self.renderer {
+            r.set_font_size(self.config.font_size * scale);
+        }
+        self.config.save();
+        self.redraw();
     }
 
     /// Spawn a new chat pane backed by the plugin at `cmd`.

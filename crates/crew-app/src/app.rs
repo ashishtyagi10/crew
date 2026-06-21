@@ -4,11 +4,10 @@ use winit::event::Modifiers;
 use winit::window::Window;
 
 use crate::config::CrewConfig;
+use crate::pane::Pane;
 use crate::session::grid_for;
 use crew_render::Renderer;
 use crew_term::GridSize;
-
-use crate::pane::Pane;
 
 /// Fallback grid size when the GPU cell size is not yet known (zero).
 pub(crate) const FALLBACK_SIZE: GridSize = GridSize { cols: 80, rows: 24 };
@@ -53,6 +52,7 @@ impl CrewApp {
     pub(crate) fn handle_super_chord(&mut self, s: &str) -> bool {
         let n = self.panes.len().max(1);
         match s {
+            "," => self.spawn_settings_pane(),
             "g" => self.spawn_stats_pane(),
             "t" => self.spawn_new_pane(),
             "j" => {

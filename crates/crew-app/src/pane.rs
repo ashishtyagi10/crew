@@ -7,6 +7,7 @@ use crew_term::{GridSize, PtyTerm, TermModel};
 use crate::chat::ChatPane;
 use crate::layout::Rect;
 use crate::session::to_cellviews;
+use crate::settingspane::SettingsPane;
 use crate::statspane::StatsPane;
 
 /// Raw terminal pane: owns its PTY and writer.
@@ -20,6 +21,7 @@ pub enum PaneContent {
     Terminal(Box<TermPane>),
     Chat(ChatPane),
     Stats(Box<StatsPane>),
+    Settings(SettingsPane),
 }
 
 /// A single pane: owns its content, grid size, and pixel rect.
@@ -38,6 +40,7 @@ impl Pane {
             PaneContent::Terminal(t) => to_cellviews(&t.pty.cells()),
             PaneContent::Chat(c) => c.cells(self.grid.cols, self.grid.rows),
             PaneContent::Stats(s) => s.cells(self.grid.cols, self.grid.rows),
+            PaneContent::Settings(s) => s.cells(self.grid.cols, self.grid.rows),
         }
     }
 }
