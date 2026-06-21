@@ -5,8 +5,8 @@ use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::mpsc::{self, Receiver};
 
 pub struct Plugin {
-    #[allow(dead_code)] // held to keep the child process alive; dropped on Plugin drop
-    child: Child,
+    // held to keep the child process alive; dropped on Plugin drop
+    _child: Child,
     stdin: ChildStdin,
     rx: Receiver<PluginEvent>,
 }
@@ -41,7 +41,11 @@ impl Plugin {
             }
         });
 
-        Ok(Plugin { child, stdin, rx })
+        Ok(Plugin {
+            _child: child,
+            stdin,
+            rx,
+        })
     }
 
     pub fn send(&mut self, cmd: &PluginCommand) -> Result<()> {
