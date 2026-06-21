@@ -83,6 +83,9 @@ wgpu = "=29.0.3"
 glyphon = "=0.11.0"
 alacritty_terminal = "=0.26.0"
 
+# System stats
+sysinfo = "0.33"
+
 # Utilities
 chrono = { version = "0.4", features = ["serde"] }
 unicode-width = "0.2"
