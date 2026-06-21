@@ -1,8 +1,8 @@
 use alacritty_terminal::term::color::Colors;
 use alacritty_terminal::vte::ansi::{Color, Rgb};
 
-pub(crate) const DEFAULT_FG: (u8, u8, u8) = (220, 220, 220);
-pub(crate) const DEFAULT_BG: (u8, u8, u8) = (10, 10, 18);
+pub(crate) const DEFAULT_FG: (u8, u8, u8) = (0, 255, 160);
+pub(crate) const DEFAULT_BG: (u8, u8, u8) = (8, 8, 16);
 
 /// Standard xterm 16-color palette (indices 0–15) used when the terminal hasn't
 /// explicitly defined those slots in its color table.

@@ -19,8 +19,8 @@ pub struct PaneScene {
 }
 
 const BORDER_PX: f32 = 2.0;
-const BORDER_NORMAL: [f32; 4] = [80.0 / 255.0, 80.0 / 255.0, 90.0 / 255.0, 1.0];
-const BORDER_FOCUSED: [f32; 4] = [90.0 / 255.0, 140.0 / 255.0, 220.0 / 255.0, 1.0];
+const BORDER_NORMAL: [f32; 4] = [40.0 / 255.0, 80.0 / 255.0, 95.0 / 255.0, 1.0];
+const BORDER_FOCUSED: [f32; 4] = [1.0, 0.0, 170.0 / 255.0, 1.0];
 
 /// Build all quads (cell backgrounds + borders) and one Buffer per pane.
 /// Returns `(quads, pane_buffers)` where each entry in `pane_buffers` is

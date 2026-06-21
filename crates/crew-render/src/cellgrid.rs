@@ -9,7 +9,7 @@ use crate::quads::QuadLayer;
 use crate::scene::{build_scene, PaneBuffer, PaneScene};
 
 /// Default terminal background colour (must match scene.rs).
-pub(crate) const DEFAULT_BG: (u8, u8, u8) = (10, 10, 18);
+pub(crate) const DEFAULT_BG: (u8, u8, u8) = (8, 8, 16);
 
 pub(crate) const FONT_SIZE: f32 = 16.0;
 pub(crate) const LINE_HEIGHT: f32 = 20.0;
@@ -132,7 +132,7 @@ impl CellGrid {
                     right: (*ox + *pw) as i32,
                     bottom: (*oy + *ph) as i32,
                 },
-                default_color: Color::rgb(220, 220, 220),
+                default_color: Color::rgb(0, 255, 160),
                 custom_glyphs: &[],
             })
             .collect();
