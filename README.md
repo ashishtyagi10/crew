@@ -1,5 +1,9 @@
 # Farx
 
+> **This repo is pivoting to [Crew](docs/CREW.md)** — a from-scratch native GPU
+> terminal (Rust + wgpu). Run it with `cargo run --release -p crew-app`. The
+> Farx file-manager docs below are retained for the legacy crates.
+
 A next-generation, cross-platform terminal file manager inspired by FAR Manager. Built in Rust with dual-panel navigation, a built-in editor/viewer, AI assistant, and five beautiful themes.
 
 Works on **macOS**, **Linux**, and **Windows**.
