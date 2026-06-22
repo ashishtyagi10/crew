@@ -1,5 +1,6 @@
 use std::io::Write;
 use std::sync::Arc;
+use std::time::Instant;
 
 use winit::event::Modifiers;
 use winit::window::Window;
@@ -38,6 +39,8 @@ pub struct CrewApp {
     pub(crate) win_title: String,
     /// Mirror input to every terminal pane (tmux-style synchronized input).
     pub(crate) broadcast: bool,
+    /// Time + pane index of the last left click, for double-click detection.
+    pub(crate) last_click: Option<(Instant, usize)>,
 }
 
 impl CrewApp {

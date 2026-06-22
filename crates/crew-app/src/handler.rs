@@ -13,6 +13,9 @@ use crate::inputbar::InputBar;
 use crate::pane::PaneContent;
 use crew_render::Renderer;
 
+/// Max gap between two left clicks on the same pane to count as a double-click.
+const DOUBLE_CLICK: Duration = Duration::from_millis(400);
+
 impl ApplicationHandler for CrewApp {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         let attrs = Window::default_attributes()
@@ -142,6 +145,17 @@ impl ApplicationHandler for CrewApp {
                 } else if let Some(i) = self.pane_at_cursor() {
                     self.focused = i;
                     self.input.focused = false;
+                    // A second click on the same pane within 400ms toggles zoom.
+                    let now = Instant::now();
+                    let double = self
+                        .last_click
+                        .is_some_and(|(t, pi)| pi == i && now.duration_since(t) < DOUBLE_CLICK);
+                    if double {
+                        self.zoomed = !self.zoomed;
+                        self.last_click = None;
+                    } else {
+                        self.last_click = Some((now, i));
+                    }
                 }
                 self.redraw();
             }
