@@ -13,6 +13,8 @@ const TEXT_FG: (u8, u8, u8) = (220, 220, 220);
 pub struct InputBar {
     pub text: String,
     pub focused: bool,
+    /// Submitted lines, oldest first — the source for history autosuggestions.
+    pub history: Vec<String>,
 }
 
 impl InputBar {
@@ -28,9 +30,18 @@ impl InputBar {
         // Drawable columns after the gutter; the first 2 hold the "> " prompt.
         let max = cols.saturating_sub(start + 1) as usize;
         let text_area = max.saturating_sub(2);
-        let mut body: Vec<char> = self.text.chars().collect();
-        if self.focused {
-            body.push('█'); // block cursor at the end, like a terminal
+        // Typed text (bright), then either the ghost suggestion (dim) or the
+        // block cursor when there's nothing to suggest.
+        let mut body: Vec<(char, (u8, u8, u8))> = self.text.chars().map(|c| (c, TEXT_FG)).collect();
+        let ghost = if self.focused {
+            crate::suggest::suggest(&self.text, &self.history)
+        } else {
+            None
+        };
+        match &ghost {
+            Some(g) => body.extend(g.chars().map(|c| (c, DIM))),
+            None if self.focused => body.push(('█', ACCENT)),
+            None => {}
         }
         // Follow the cursor: when the body overflows the field, show its tail.
         let skip = body.len().saturating_sub(text_area);
@@ -46,9 +57,7 @@ impl InputBar {
                 italic: false,
             });
         }
-        for (i, &ch) in body[skip..].iter().enumerate() {
-            let is_cursor = self.focused && ch == '█' && skip + i + 1 == body.len();
-            let fg = if is_cursor { ACCENT } else { TEXT_FG };
+        for (i, &(ch, fg)) in body[skip..].iter().enumerate() {
             out.push(CellView {
                 col: start + 2 + i as u16,
                 row,
@@ -70,6 +79,16 @@ impl InputBar {
         if !key.state.is_pressed() {
             return None;
         }
+        // Tab / Right accept the type-ahead suggestion.
+        if matches!(
+            &key.logical_key,
+            Key::Named(NamedKey::Tab) | Key::Named(NamedKey::ArrowRight)
+        ) {
+            if let Some(g) = crate::suggest::suggest(&self.text, &self.history) {
+                self.text.push_str(&g);
+            }
+            return None;
+        }
         let (ch, enter, backspace) = match &key.logical_key {
             Key::Named(NamedKey::Enter) => (None, true, false),
             Key::Named(NamedKey::Backspace) => (None, false, true),
@@ -77,7 +96,13 @@ impl InputBar {
             Key::Character(s) => (s.chars().next(), false, false),
             _ => (None, false, false),
         };
-        crate::chatlayout::input_reduce(&mut self.text, ch, enter, backspace)
+        let result = crate::chatlayout::input_reduce(&mut self.text, ch, enter, backspace);
+        if let Some(line) = &result {
+            if !line.is_empty() {
+                self.history.push(line.clone());
+            }
+        }
+        result
     }
 }
 
@@ -90,6 +115,7 @@ mod tests {
         let bar = InputBar {
             text: "ls".into(),
             focused: true,
+            ..Default::default()
         };
         let cells = bar.cells(40, 3);
         // prompt + text present
@@ -109,6 +135,7 @@ mod tests {
         let bar = InputBar {
             text,
             focused: true,
+            ..Default::default()
         };
         let cells = bar.cells(20, 3);
         // the tail (end of input) and the cursor are visible…
@@ -119,10 +146,24 @@ mod tests {
     }
 
     #[test]
+    fn cells_shows_dim_ghost_suggestion() {
+        let bar = InputBar {
+            text: "/se".into(),
+            focused: true,
+            ..Default::default()
+        };
+        let cells = bar.cells(40, 3);
+        // the completion "ttings" is shown as a dim ghost, with no block cursor
+        assert!(cells.iter().any(|c| c.c == 't' && c.fg == DIM));
+        assert!(!cells.iter().any(|c| c.c == '█'));
+    }
+
+    #[test]
     fn cells_unfocused_has_no_cursor() {
         let bar = InputBar {
             text: "ls".into(),
             focused: false,
+            ..Default::default()
         };
         assert!(!bar.cells(40, 3).iter().any(|c| c.c == '█'));
     }
@@ -132,6 +173,7 @@ mod tests {
         let bar = InputBar {
             text: String::new(),
             focused: false,
+            ..Default::default()
         };
         let prompt = bar.cells(40, 3).into_iter().find(|c| c.c == '>').unwrap();
         assert_eq!(prompt.fg, DIM);

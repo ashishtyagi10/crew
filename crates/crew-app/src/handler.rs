@@ -163,6 +163,7 @@ pub fn run() -> anyhow::Result<()> {
         input: InputBar {
             text: String::new(),
             focused: true,
+            ..Default::default()
         },
         ..Default::default()
     };

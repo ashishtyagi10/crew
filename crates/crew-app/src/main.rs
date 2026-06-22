@@ -17,6 +17,7 @@ mod settingspane;
 mod spawn;
 pub mod stats;
 mod statspane;
+mod suggest;
 mod tui;
 mod welcome;
 
