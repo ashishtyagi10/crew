@@ -50,15 +50,22 @@ impl CrewApp {
             return Vec::new();
         };
         let ih = chrome::input_h(ch);
-        let rects = self.grid_rects();
-        relayout(&mut self.panes, &rects, cw, ch);
         // A pane highlights only when the input bar is NOT focused (one active surface).
-        let pane_focus = if self.input.focused {
-            None
+        let mut scenes = if self.zoomed && !self.panes.is_empty() {
+            // Zoom: render only the focused pane, expanded to the full content area.
+            let i = self.focused.min(self.panes.len() - 1);
+            let c = chrome::content_rect(sw, sh, self.config.show_nav, self.nav_px(scale), GAP, ih);
+            if let Some(r) = pane_rects_at(1, c.x, c.y, c.w, c.h, GAP).into_iter().next() {
+                relayout(&mut self.panes[i..=i], &[r], cw, ch);
+            }
+            let f = (!self.input.focused).then_some(0);
+            build_scenes(&self.panes[i..=i], f)
         } else {
-            Some(self.focused)
+            let rects = self.grid_rects();
+            relayout(&mut self.panes, &rects, cw, ch);
+            let f = (!self.input.focused).then_some(self.focused);
+            build_scenes(&self.panes, f)
         };
-        let mut scenes = build_scenes(&self.panes, pane_focus);
 
         if self.panes.is_empty() {
             // Use the SAME rect a single grid pane would occupy (gap-inset) so the

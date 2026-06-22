@@ -20,6 +20,7 @@ const BINDINGS: &[(&str, &str)] = &[
     ("Cmd+T", "New shell pane"),
     ("Cmd+, / Cmd+J", "Settings / chat pane"),
     ("Cmd+G", "Toggle sidebar"),
+    ("Cmd+Z", "Zoom focused pane"),
     ("Cmd+= / Cmd+- / Cmd+0", "Font size + / - / reset"),
     ("Cmd+W / Cmd+M", "Close pane / maximize"),
     ("Shift+PageUp / PageDown", "Scroll focused pane"),

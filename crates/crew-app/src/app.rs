@@ -32,6 +32,8 @@ pub struct CrewApp {
     pub(crate) tick: u64,
     /// Whether the keybindings help overlay is showing.
     pub(crate) help_open: bool,
+    /// Whether the focused pane is zoomed to fill the content area.
+    pub(crate) zoomed: bool,
 }
 
 impl CrewApp {
@@ -90,6 +92,7 @@ impl CrewApp {
             }
             "[" => self.focused = (self.focused + n - 1) % n,
             "]" => self.focused = (self.focused + 1) % n,
+            "z" => self.zoomed = !self.zoomed,
             // Font zoom: Cmd+= / Cmd+- grow/shrink, Cmd+0 resets to default.
             "=" | "+" => self.set_font(self.config.font_size + 1.0),
             "-" | "_" => self.set_font(self.config.font_size - 1.0),
@@ -180,7 +183,7 @@ pub(crate) fn slash_command(line: &str) -> Option<&str> {
 
 #[cfg(test)]
 mod tests {
-    use super::slash_command;
+    use super::{slash_command, CrewApp};
 
     #[test]
     fn slash_command_parses() {
@@ -188,5 +191,15 @@ mod tests {
         assert_eq!(slash_command("/ settings "), Some("settings"));
         assert_eq!(slash_command("ls -la"), None);
         assert_eq!(slash_command("/"), Some(""));
+    }
+
+    #[test]
+    fn zoom_chord_toggles() {
+        let mut app = CrewApp::default();
+        assert!(!app.zoomed);
+        app.handle_super_chord("z");
+        assert!(app.zoomed);
+        app.handle_super_chord("z");
+        assert!(!app.zoomed);
     }
 }
