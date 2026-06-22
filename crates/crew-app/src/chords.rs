@@ -41,11 +41,7 @@ impl CrewApp {
                 self.spawn_chat_pane(&cmd);
             }
             "w" => return self.close_pane(self.focused),
-            "m" => {
-                if let Some(w) = &self.window {
-                    w.set_maximized(!w.is_maximized());
-                }
-            }
+            "m" => self.toggle_maximize(),
             "[" => self.focused = (self.focused + n - 1) % n,
             "]" => self.focused = (self.focused + 1) % n,
             "{" => self.move_pane(-1),
