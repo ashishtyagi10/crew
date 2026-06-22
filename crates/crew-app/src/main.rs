@@ -11,6 +11,7 @@ pub mod config;
 mod gauges;
 mod handler;
 mod help;
+mod history;
 mod host;
 pub(crate) mod inputbar;
 mod keys;

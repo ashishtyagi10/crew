@@ -93,6 +93,7 @@ impl CrewApp {
                     event_loop.exit();
                     return;
                 }
+                crate::history::save(&self.input.history);
             }
             self.redraw();
             return;

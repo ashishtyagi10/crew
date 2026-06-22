@@ -183,6 +183,7 @@ pub fn run() -> anyhow::Result<()> {
         input: InputBar {
             text: String::new(),
             focused: true,
+            history: crate::history::load(),
             ..Default::default()
         },
         ..Default::default()
