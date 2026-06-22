@@ -14,6 +14,7 @@ mod help;
 mod history;
 mod host;
 pub(crate) mod inputbar;
+mod inputkeys;
 mod keys;
 mod layout;
 mod matrix;
