@@ -10,6 +10,8 @@ const WORD: &str = "CREW";
 /// Dim grey for the discoverability hint under the wordmark.
 const HINT_FG: (u8, u8, u8) = (110, 110, 120);
 const HINT: &str = "Cmd+T  new shell    ·    /  commands";
+/// Faint colour for the version stamp in the corner.
+const VERSION_FG: (u8, u8, u8) = (70, 75, 85);
 /// Columns between successive letters (one rain cell shows through each gap).
 const STEP: u16 = 2;
 /// Frames for one brighten→dim→brighten pulse of a letter.
@@ -75,6 +77,24 @@ pub fn welcome_cells_animated(cols: u16, rows: u16, tick: u64) -> Vec<CellView> 
             });
         }
     }
+
+    // Version stamp in the bottom-right corner.
+    let ver = concat!("v", env!("CARGO_PKG_VERSION"));
+    let vw = ver.chars().count() as u16;
+    if vw + 1 < cols && rows > 0 {
+        let vstart = cols - vw - 1;
+        for (i, ch) in ver.chars().enumerate() {
+            cells.push(CellView {
+                col: vstart + i as u16,
+                row: rows - 1,
+                c: ch,
+                fg: VERSION_FG,
+                bg: BG,
+                bold: false,
+                italic: false,
+            });
+        }
+    }
     cells
 }
 
@@ -94,6 +114,10 @@ mod tests {
         }
         // the dim hint is shown two rows below the wordmark
         assert!(cells.iter().any(|c| c.row == 14 && c.fg == HINT_FG));
+        // a faint version stamp sits on the bottom row
+        assert!(cells
+            .iter()
+            .any(|c| c.c == 'v' && c.row == 23 && c.fg == VERSION_FG));
     }
 
     #[test]
