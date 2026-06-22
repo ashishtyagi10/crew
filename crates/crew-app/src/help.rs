@@ -28,6 +28,7 @@ const BINDINGS: &[(&str, &str)] = &[
     ("Cmd+C / Cmd+V", "Copy screen / paste"),
     ("Cmd+W / Cmd+M", "Close pane / maximize"),
     ("Shift+PageUp / PageDown", "Scroll focused pane"),
+    ("Shift+Home / End", "Scroll to top / bottom"),
     ("/ (in input)", "Command palette"),
     ("Cmd+Q", "Quit"),
 ];

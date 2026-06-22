@@ -23,16 +23,26 @@ impl CrewApp {
             return;
         }
 
-        // Shift+PageUp / Shift+PageDown scroll the focused pane's scrollback.
+        // Shift+PageUp/Down scroll a page; Shift+Home/End jump to top/bottom.
         if event.state.is_pressed() && mstate.shift_key() {
-            let page = match &event.logical_key {
-                Key::Named(NamedKey::PageUp) => Some(true),
-                Key::Named(NamedKey::PageDown) => Some(false),
-                _ => None,
-            };
-            if let Some(up) = page {
-                self.scroll_focused_page(up);
-                return;
+            match &event.logical_key {
+                Key::Named(NamedKey::PageUp) => {
+                    self.scroll_focused_page(true);
+                    return;
+                }
+                Key::Named(NamedKey::PageDown) => {
+                    self.scroll_focused_page(false);
+                    return;
+                }
+                Key::Named(NamedKey::Home) => {
+                    self.scroll_focused_end(true);
+                    return;
+                }
+                Key::Named(NamedKey::End) => {
+                    self.scroll_focused_end(false);
+                    return;
+                }
+                _ => {}
             }
         }
 

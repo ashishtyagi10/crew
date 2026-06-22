@@ -33,4 +33,13 @@ impl CrewApp {
             self.redraw();
         }
     }
+
+    /// Jump the focused pane to the top / bottom of its scrollback (Shift+Home/End).
+    pub(crate) fn scroll_focused_end(&mut self, to_top: bool) {
+        if let Some(pane) = self.panes.get_mut(self.focused) {
+            // The grid clamps a huge delta to the available history range.
+            scroll_pane(pane, if to_top { i32::MAX / 2 } else { i32::MIN / 2 });
+            self.redraw();
+        }
+    }
 }
