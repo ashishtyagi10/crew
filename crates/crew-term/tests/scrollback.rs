@@ -2,6 +2,23 @@
 use crew_term::{GridSize, HeadlessTerm, TermModel};
 
 #[test]
+fn sgr_red_bold_is_resolved_to_rgb_and_flags() {
+    let mut term = HeadlessTerm::new(GridSize { cols: 20, rows: 3 });
+    term.feed(b"\x1b[1m\x1b[31mX"); // bold + red foreground
+    let cell = term
+        .cells()
+        .into_iter()
+        .find(|c| c.c == 'X')
+        .expect("cell X");
+    assert!(cell.bold);
+    assert!(
+        cell.fg.0 > 120 && cell.fg.1 < 100 && cell.fg.2 < 100,
+        "fg should be reddish, got {:?}",
+        cell.fg
+    );
+}
+
+#[test]
 fn cursor_block_rendered_at_live_position() {
     let mut term = HeadlessTerm::new(GridSize { cols: 20, rows: 3 });
     term.feed(b"hi");

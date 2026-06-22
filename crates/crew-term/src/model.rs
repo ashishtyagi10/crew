@@ -1,7 +1,7 @@
 use alacritty_terminal::event::{Event, EventListener};
 use alacritty_terminal::grid::{Dimensions, Scroll};
 use alacritty_terminal::term::cell::Flags;
-use alacritty_terminal::term::{Config, Term};
+use alacritty_terminal::term::{Config, Term, TermMode};
 use alacritty_terminal::vte::ansi::Processor;
 
 use crate::color::{resolve_color, DEFAULT_BG, DEFAULT_FG};
@@ -136,6 +136,11 @@ impl TermCore {
     pub(crate) fn display_offset(&self) -> usize {
         self.term.grid().display_offset()
     }
+
+    /// Whether the program enabled bracketed-paste mode.
+    pub(crate) fn bracketed_paste(&self) -> bool {
+        self.term.mode().contains(TermMode::BRACKETED_PASTE)
+    }
 }
 
 pub struct HeadlessTerm {
@@ -171,29 +176,5 @@ impl TermModel for HeadlessTerm {
 
     fn resize(&mut self, size: GridSize) {
         self.core.resize(size);
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn sgr_red_bold_is_resolved_to_rgb_and_flags() {
-        let mut term = HeadlessTerm::new(GridSize { cols: 20, rows: 3 });
-        // ESC[1m bold, ESC[31m red foreground, then "X"
-        term.feed(b"\x1b[1m\x1b[31mX");
-        let cell = term
-            .cells()
-            .into_iter()
-            .find(|c| c.c == 'X')
-            .expect("cell X");
-        assert!(cell.bold, "bold flag should be set");
-        // Default ANSI red has a high red channel and low green/blue.
-        assert!(
-            cell.fg.0 > 120 && cell.fg.1 < 100 && cell.fg.2 < 100,
-            "fg should be reddish, got {:?}",
-            cell.fg
-        );
     }
 }

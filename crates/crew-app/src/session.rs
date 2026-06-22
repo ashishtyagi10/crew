@@ -76,6 +76,21 @@ fn ctrl_byte(c: char) -> Option<u8> {
     (up.is_ascii() && ('@'..='_').contains(&up)).then_some((up as u8) & 0x1f)
 }
 
+/// Prepare clipboard `text` for writing to a PTY: normalize newlines to `\r`,
+/// and wrap in bracketed-paste markers when the program enabled that mode (so a
+/// multi-line paste isn't executed line-by-line).
+pub fn wrap_paste(text: &str, bracketed: bool) -> Vec<u8> {
+    let body = text.replace("\r\n", "\r").replace('\n', "\r");
+    if bracketed {
+        let mut out = b"\x1b[200~".to_vec();
+        out.extend_from_slice(body.as_bytes());
+        out.extend_from_slice(b"\x1b[201~");
+        out
+    } else {
+        body.into_bytes()
+    }
+}
+
 /// Map `crew_term::RenderCell` slices to `crew_render::CellView` — field-for-field.
 pub fn to_cellviews(cells: &[RenderCell]) -> Vec<crew_render::CellView> {
     cells
@@ -141,6 +156,14 @@ mod tests {
         assert_eq!(named_bytes(NamedKey::PageUp).unwrap(), b"\x1b[5~");
         assert_eq!(named_bytes(NamedKey::Delete).unwrap(), b"\x1b[3~");
         assert_eq!(named_bytes(NamedKey::Home).unwrap(), b"\x1b[H");
+    }
+
+    #[test]
+    fn wrap_paste_normalizes_and_brackets() {
+        assert_eq!(wrap_paste("ab", false), b"ab");
+        assert_eq!(wrap_paste("a\r\nb\nc", false), b"a\rb\rc");
+        let w = wrap_paste("x", true);
+        assert!(w.starts_with(b"\x1b[200~") && w.ends_with(b"\x1b[201~"));
     }
 
     #[test]

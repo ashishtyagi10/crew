@@ -93,6 +93,7 @@ impl CrewApp {
             "[" => self.focused = (self.focused + n - 1) % n,
             "]" => self.focused = (self.focused + 1) % n,
             "z" => self.zoomed = !self.zoomed,
+            "v" => self.paste(),
             // Font zoom: Cmd+= / Cmd+- grow/shrink, Cmd+0 resets to default.
             "=" | "+" => self.set_font(self.config.font_size + 1.0),
             "-" | "_" => self.set_font(self.config.font_size - 1.0),

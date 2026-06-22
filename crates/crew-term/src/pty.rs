@@ -110,6 +110,11 @@ impl PtyTerm {
     pub fn display_offset(&self) -> usize {
         self.core.display_offset()
     }
+
+    /// Whether the program enabled bracketed-paste mode.
+    pub fn bracketed_paste(&self) -> bool {
+        self.core.bracketed_paste()
+    }
 }
 
 impl TermModel for PtyTerm {

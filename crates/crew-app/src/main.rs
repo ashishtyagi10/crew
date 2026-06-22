@@ -3,6 +3,7 @@ mod boxdraw;
 mod chat;
 mod chatlayout;
 pub mod chrome;
+mod clipboard;
 mod clock;
 mod cmdmenu;
 pub mod config;
