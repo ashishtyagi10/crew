@@ -9,6 +9,7 @@ mod clock;
 mod cmdmenu;
 pub mod config;
 mod cwd;
+mod envexpand;
 mod events;
 mod gauges;
 mod git;

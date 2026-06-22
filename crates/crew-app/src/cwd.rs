@@ -51,10 +51,12 @@ pub(crate) fn cd_arg(line: &str) -> Option<&str> {
     }
 }
 
-/// Resolve `cd arg` against `base`: empty/`~` → `$HOME`; `~/x` expanded; an
-/// absolute path kept; a relative path joined onto `base`. Returns the canonical
-/// path only when it resolves to an existing directory.
+/// Resolve `cd arg` against `base`: `$VAR`/`${VAR}` are expanded first, then
+/// empty/`~` → `$HOME`; `~/x` expanded; an absolute path kept; a relative path
+/// joined onto `base`. Returns the canonical path only when it's a directory.
 pub(crate) fn resolve(base: &Path, arg: &str) -> Option<PathBuf> {
+    let expanded = crate::envexpand::expand_env(arg);
+    let arg = expanded.as_str();
     let home = || std::env::var_os("HOME").map(PathBuf::from);
     let target = if arg.is_empty() || arg == "~" {
         home()?
@@ -132,6 +134,14 @@ mod tests {
         assert_eq!(resolve(&base, base.to_str().unwrap()), Some(base.clone()));
         // a non-existent path resolves to None.
         assert_eq!(resolve(&base, "definitely-not-here-xyz"), None);
+    }
+
+    #[test]
+    fn resolve_expands_env_var() {
+        let base = std::env::temp_dir().canonicalize().unwrap();
+        std::env::set_var("CREW_RESOLVE_DIR", base.to_str().unwrap());
+        // `$VAR` expands to an absolute existing dir.
+        assert_eq!(resolve(Path::new("/"), "$CREW_RESOLVE_DIR"), Some(base));
     }
 
     #[test]

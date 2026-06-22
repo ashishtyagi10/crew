@@ -79,7 +79,8 @@ The docked command bar supports:
 - **History** — **Up/Down** recall previous lines (persisted to
   `$XDG_CONFIG/crew/history` across sessions).
 - **`cd` completion** — typing `cd <partial>` ghost-completes the first matching
-  subdirectory; Tab/→ accepts it. `cd -` toggles back to the previous directory;
+  subdirectory; Tab/→ accepts it. `$VAR`/`${VAR}` are expanded (e.g. `cd $HOME/src`).
+  `cd -` toggles back to the previous directory;
   the working directory is restored on the next launch.
 - **Editing** — **Ctrl+W** delete the last word, **Ctrl+U** clear the line.
 - **Working directory** — the bar's legend shows Crew's current directory
