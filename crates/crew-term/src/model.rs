@@ -87,7 +87,8 @@ impl TermCore {
         // When scrolled into history, viewport lines are negative; add the display
         // offset to map each line back to a 0-based viewport row.
         let off = content.display_offset as i32;
-        content
+        let cursor = content.cursor;
+        let mut out: Vec<RenderCell> = content
             .display_iter
             .filter(|ind| ind.c != ' ' && ind.c != '\0' && ind.point.line.0 + off >= 0)
             .map(|ind| {
@@ -108,7 +109,9 @@ impl TermCore {
                     italic,
                 }
             })
-            .collect()
+            .collect();
+        crate::cursor::apply(&mut out, &cursor, off);
+        out
     }
 
     pub(crate) fn resize(&mut self, size: GridSize) {
