@@ -3,7 +3,7 @@ use crew_render::PaneScene;
 use crate::app::{CrewApp, GAP};
 use crate::chrome;
 use crate::layout::{pane_rects_at, Rect};
-use crate::pane::{relayout, PaneContent};
+use crate::pane::relayout;
 use crate::paneview::build_scenes;
 use crate::session::pane_at;
 use crate::welcome;
@@ -163,36 +163,16 @@ impl CrewApp {
         scenes
     }
 
-    /// Route a mouse-wheel scroll (in lines; positive = up/older) to the surface
-    /// under the cursor. Terminal panes scroll their scrollback.
-    pub(crate) fn scroll_at_cursor(&mut self, lines: i32) {
-        if lines == 0 {
-            return;
-        }
-        if let Some(i) = self.pane_at_cursor() {
-            if let Some(pane) = self.panes.get_mut(i) {
-                match &mut pane.content {
-                    PaneContent::Terminal(t) => t.pty.scroll(lines),
-                    PaneContent::Chat(c) => c.scroll(lines, pane.grid.cols, pane.grid.rows),
-                    PaneContent::Settings(_) => {}
-                }
-                self.redraw();
-            }
-        }
-    }
-
-    /// Scroll the focused pane by one page (Shift+PageUp/PageDown).
-    pub(crate) fn scroll_focused_page(&mut self, up: bool) {
-        if let Some(pane) = self.panes.get_mut(self.focused) {
-            let page = pane.grid.rows.saturating_sub(1).max(1) as i32;
-            let lines = if up { page } else { -page };
-            match &mut pane.content {
-                PaneContent::Terminal(t) => t.pty.scroll(lines),
-                PaneContent::Chat(c) => c.scroll(lines, pane.grid.cols, pane.grid.rows),
-                PaneContent::Settings(_) => {}
-            }
-            self.redraw();
-        }
+    /// Whether the cursor is over the docked input bar.
+    pub(crate) fn cursor_in_input(&self) -> bool {
+        let Some((_cw, ch, sw, sh, scale)) = self.frame_geometry() else {
+            return false;
+        };
+        let ih = chrome::input_h(ch);
+        let content =
+            chrome::content_rect(sw, sh, self.config.show_nav, self.nav_px(scale), GAP, ih);
+        let ib = chrome::inputbar_rect(content, sh, ih, GAP);
+        chrome::point_in(ib, self.cursor.0, self.cursor.1)
     }
 
     /// Which grid pane (if any) sits under the cursor — only inside the content

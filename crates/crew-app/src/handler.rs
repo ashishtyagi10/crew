@@ -137,8 +137,11 @@ impl ApplicationHandler for CrewApp {
                 button: MouseButton::Left,
                 ..
             } => {
-                if let Some(i) = self.pane_at_cursor() {
+                if self.cursor_in_input() {
+                    self.input.focused = true;
+                } else if let Some(i) = self.pane_at_cursor() {
                     self.focused = i;
+                    self.input.focused = false;
                 }
                 self.redraw();
             }

@@ -22,6 +22,7 @@ mod net;
 mod pane;
 mod paneview;
 mod render;
+mod scroll;
 mod session;
 mod settingspane;
 mod spawn;
