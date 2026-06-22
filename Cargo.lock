@@ -759,6 +759,7 @@ name = "crew-app"
 version = "0.4.5"
 dependencies = [
  "anyhow",
+ "chrono",
  "crew-plugin",
  "crew-render",
  "crew-term",

@@ -5,10 +5,10 @@ use crate::boxdraw;
 use crate::stats::Stats;
 
 const FILL: (u8, u8, u8) = (0, 255, 160);
-const TRACK: (u8, u8, u8) = (40, 80, 95);
+const TRACK: (u8, u8, u8) = (70, 70, 80);
 const BG: (u8, u8, u8) = (0, 0, 0);
 const LABEL: (u8, u8, u8) = (200, 200, 200);
-const BORDER: (u8, u8, u8) = (70, 130, 140);
+const BORDER: (u8, u8, u8) = (110, 110, 120);
 const HEADER: &str = "SYSTEM";
 
 /// One gauge row laid out within `cols`: `label | space | bar | NNN%`.

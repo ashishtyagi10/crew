@@ -25,23 +25,12 @@ pub(crate) fn render(p: &SettingsPane, cols: u16, rows: u16) -> Vec<CellView> {
     let area = Rect::new(0, 0, cols, rows);
     let mut buf = Buffer::empty(area);
 
-    let zones = Layout::vertical([
-        Constraint::Length(3), // font family
-        Constraint::Length(3), // font size
-        Constraint::Length(3), // nav width
-        Constraint::Length(3), // show nav
-        Constraint::Length(1), // gap
-        Constraint::Length(1), // buttons
-        Constraint::Min(0),
-    ])
-    .horizontal_margin(2)
-    .split(area);
-
+    let (fr, btn) = field_layout(area);
     let f = p.focused_field();
     let nav = if p.draft.show_nav { "on" } else { "off" };
     input_box(
         &mut buf,
-        zones[0],
+        fr[0],
         "Font family",
         &p.family_query,
         f == Field::FontFamily,
@@ -49,7 +38,7 @@ pub(crate) fn render(p: &SettingsPane, cols: u16, rows: u16) -> Vec<CellView> {
     );
     input_box(
         &mut buf,
-        zones[1],
+        fr[1],
         "Font size",
         &p.size_buf,
         f == Field::FontSize,
@@ -57,26 +46,74 @@ pub(crate) fn render(p: &SettingsPane, cols: u16, rows: u16) -> Vec<CellView> {
     );
     input_box(
         &mut buf,
-        zones[2],
+        fr[2],
         "Nav width",
         &p.nav_buf,
         f == Field::NavWidth,
         true,
     );
-    input_box(
-        &mut buf,
-        zones[3],
-        "Show nav",
-        nav,
-        f == Field::ShowNav,
-        false,
-    );
-    buttons(&mut buf, zones[5], f);
+    input_box(&mut buf, fr[3], "Show nav", nav, f == Field::ShowNav, false);
+    buttons(&mut buf, btn, f);
 
     if p.family_open {
-        dropdown(&mut buf, p, zones[1]);
+        dropdown(&mut buf, p, fr[0]);
     }
     crate::tui::to_cells(&buf)
+}
+
+/// Width at/above which the form uses two columns.
+const WIDE: u16 = 76;
+
+/// Lay out the four field boxes and the buttons row, responsively: two columns
+/// on a wide pane (family/size left, nav/show-nav right), one column otherwise.
+/// Returns the field rects in `Field` order plus the buttons rect.
+fn field_layout(area: Rect) -> ([Rect; 4], Rect) {
+    let main = Layout::vertical([
+        Constraint::Length(1), // top padding
+        Constraint::Min(0),    // fields
+        Constraint::Length(1), // gap
+        Constraint::Length(1), // buttons
+    ])
+    .horizontal_margin(2)
+    .split(area);
+    let (body, btn) = (main[1], main[3]);
+
+    if area.width >= WIDE {
+        let halves = Layout::horizontal([
+            Constraint::Percentage(50),
+            Constraint::Length(2),
+            Constraint::Percentage(50),
+        ])
+        .split(body);
+        let l = two_boxes(halves[0]);
+        let r = two_boxes(halves[2]);
+        ([l[0], l[1], r[0], r[1]], btn)
+    } else {
+        let v = Layout::vertical([
+            Constraint::Length(3),
+            Constraint::Length(1),
+            Constraint::Length(3),
+            Constraint::Length(1),
+            Constraint::Length(3),
+            Constraint::Length(1),
+            Constraint::Length(3),
+            Constraint::Min(0),
+        ])
+        .split(body);
+        ([v[0], v[2], v[4], v[6]], btn)
+    }
+}
+
+/// Split a column into two stacked 3-row box rects (with a 1-row gap).
+fn two_boxes(col: Rect) -> [Rect; 2] {
+    let v = Layout::vertical([
+        Constraint::Length(3),
+        Constraint::Length(1),
+        Constraint::Length(3),
+        Constraint::Min(0),
+    ])
+    .split(col);
+    [v[0], v[2]]
 }
 
 /// A rounded input box (field name as the legend) with the value inside.
@@ -119,9 +156,10 @@ fn button_span(text: &str, focused: bool) -> Span<'static> {
 fn dropdown(buf: &mut Buffer, p: &SettingsPane, anchor: Rect) {
     let names = p.filtered();
     let want = names.len() as u16 + 2;
-    let max = buf.area.height.saturating_sub(anchor.y);
+    let y0 = anchor.y + anchor.height; // just below the family box
+    let max = buf.area.height.saturating_sub(y0);
     let height = want.clamp(3, max.max(3));
-    let area = Rect::new(anchor.x, anchor.y, anchor.width, height.min(max));
+    let area = Rect::new(anchor.x, y0, anchor.width, height.min(max));
     Clear.render(area, buf);
     let items: Vec<ListItem> = names.into_iter().map(ListItem::new).collect();
     let block = Block::bordered()
@@ -138,24 +176,5 @@ fn dropdown(buf: &mut Buffer, p: &SettingsPane, anchor: Rect) {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::config::CrewConfig;
-
-    #[test]
-    fn renders_bordered_input_boxes() {
-        let p = SettingsPane::new(CrewConfig::default(), Vec::new());
-        let cells = p.cells(60, 20);
-        // ratatui rounded blocks → real corner glyphs, not [ ] brackets
-        assert!(cells.iter().any(|c| c.c == '╭'));
-        assert!(cells.iter().any(|c| c.c == '╰'));
-        // field legend renders in the top border
-        assert!(cells.iter().any(|c| c.c == 'F'));
-    }
-
-    #[test]
-    fn tiny_pane_renders_nothing() {
-        let p = SettingsPane::new(CrewConfig::default(), Vec::new());
-        assert!(p.cells(10, 4).is_empty());
-    }
-}
+#[path = "render_tests.rs"]
+mod tests;

@@ -22,10 +22,10 @@ pub struct PaneScene {
     pub bordered: bool,
 }
 
-/// Unfocused panes use a muted teal-green; the focused pane highlights in the
-/// neon accent green (same hue family — no jarring contrast colour).
-const BORDER_NORMAL: [f32; 4] = [40.0 / 255.0, 80.0 / 255.0, 95.0 / 255.0, 1.0];
-const BORDER_FOCUSED: [f32; 4] = [0.0, 1.0, 160.0 / 255.0, 1.0];
+/// Unfocused panes use a plain mid-grey that stays visible on the black
+/// background; the focused pane brightens to near-white (no neon tint).
+const BORDER_NORMAL: [f32; 4] = [110.0 / 255.0, 110.0 / 255.0, 120.0 / 255.0, 1.0];
+const BORDER_FOCUSED: [f32; 4] = [210.0 / 255.0, 210.0 / 255.0, 220.0 / 255.0, 1.0];
 const BORDER_RADIUS: f32 = 10.0;
 const BORDER_THICKNESS: f32 = 2.0;
 

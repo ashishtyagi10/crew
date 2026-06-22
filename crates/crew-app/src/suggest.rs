@@ -23,6 +23,10 @@ pub(crate) const COMMANDS: &[Cmd] = &[
         desc: "Update Crew (git pull)",
     },
     Cmd {
+        name: "/keys",
+        desc: "Show keyboard shortcuts",
+    },
+    Cmd {
         name: "/exit",
         desc: "Quit Crew",
     },

@@ -20,19 +20,60 @@ pub fn grid_for(width: u32, height: u32, cell_w: f32, cell_h: f32) -> GridSize {
 }
 
 /// Map a winit key press event to the bytes that should be sent to the PTY.
-pub fn key_to_bytes(event: &KeyEvent) -> Option<Vec<u8>> {
+/// `ctrl`/`shift` are the live modifier states (Ctrl+letter control codes and
+/// Shift+Tab "backtab").
+pub fn key_to_bytes(event: &KeyEvent, ctrl: bool, shift: bool) -> Option<Vec<u8>> {
     if !event.state.is_pressed() {
         return None;
     }
-    match &event.logical_key {
-        Key::Named(NamedKey::Enter) => Some(b"\r".to_vec()),
-        Key::Named(NamedKey::Backspace) => Some(vec![0x7f]),
-        Key::Named(NamedKey::Tab) => Some(b"\t".to_vec()),
-        Key::Named(NamedKey::Escape) => Some(vec![0x1b]),
-        Key::Named(NamedKey::Space) => Some(b" ".to_vec()),
-        Key::Character(s) => Some(s.as_bytes().to_vec()),
-        _ => None,
+    if let Key::Named(n) = &event.logical_key {
+        // Shift+Tab is backtab (CSI Z) — used by the Claude CLI and others.
+        if *n == NamedKey::Tab && shift {
+            return Some(b"\x1b[Z".to_vec());
+        }
+        return named_bytes(*n);
     }
+    if let Key::Character(s) = &event.logical_key {
+        // Ctrl+<letter/@-_> → the ASCII control code (Ctrl+C = 0x03, etc.).
+        if ctrl {
+            if let Some(b) = s.chars().next().and_then(ctrl_byte) {
+                return Some(vec![b]);
+            }
+        }
+        return Some(s.as_bytes().to_vec());
+    }
+    None
+}
+
+/// Bytes for a named key: control chars and xterm escape sequences for the
+/// navigation/editing keys so TUI programs (editors, the Claude CLI, …) work.
+fn named_bytes(n: NamedKey) -> Option<Vec<u8>> {
+    let bytes: &[u8] = match n {
+        NamedKey::Enter => b"\r",
+        NamedKey::Backspace => &[0x7f],
+        NamedKey::Tab => b"\t",
+        NamedKey::Escape => &[0x1b],
+        NamedKey::Space => b" ",
+        NamedKey::ArrowUp => b"\x1b[A",
+        NamedKey::ArrowDown => b"\x1b[B",
+        NamedKey::ArrowRight => b"\x1b[C",
+        NamedKey::ArrowLeft => b"\x1b[D",
+        NamedKey::Home => b"\x1b[H",
+        NamedKey::End => b"\x1b[F",
+        NamedKey::PageUp => b"\x1b[5~",
+        NamedKey::PageDown => b"\x1b[6~",
+        NamedKey::Delete => b"\x1b[3~",
+        NamedKey::Insert => b"\x1b[2~",
+        _ => return None,
+    };
+    Some(bytes.to_vec())
+}
+
+/// The ASCII control byte for a Ctrl+`c` chord (`Ctrl+C` → 0x03), or `None` if
+/// `c` has no control mapping.
+fn ctrl_byte(c: char) -> Option<u8> {
+    let up = c.to_ascii_uppercase();
+    (up.is_ascii() && ('@'..='_').contains(&up)).then_some((up as u8) & 0x1f)
 }
 
 /// Map `crew_term::RenderCell` slices to `crew_render::CellView` — field-for-field.
@@ -85,5 +126,28 @@ mod tests {
         let g = grid_for(805, 601, 10.0, 20.0);
         assert_eq!(g.cols, 80);
         assert_eq!(g.rows, 30);
+    }
+
+    #[test]
+    fn arrow_keys_map_to_escape_sequences() {
+        assert_eq!(named_bytes(NamedKey::ArrowUp).unwrap(), b"\x1b[A");
+        assert_eq!(named_bytes(NamedKey::ArrowDown).unwrap(), b"\x1b[B");
+        assert_eq!(named_bytes(NamedKey::ArrowRight).unwrap(), b"\x1b[C");
+        assert_eq!(named_bytes(NamedKey::ArrowLeft).unwrap(), b"\x1b[D");
+    }
+
+    #[test]
+    fn nav_and_edit_keys_mapped() {
+        assert_eq!(named_bytes(NamedKey::PageUp).unwrap(), b"\x1b[5~");
+        assert_eq!(named_bytes(NamedKey::Delete).unwrap(), b"\x1b[3~");
+        assert_eq!(named_bytes(NamedKey::Home).unwrap(), b"\x1b[H");
+    }
+
+    #[test]
+    fn ctrl_letters_become_control_codes() {
+        assert_eq!(ctrl_byte('c'), Some(0x03));
+        assert_eq!(ctrl_byte('C'), Some(0x03));
+        assert_eq!(ctrl_byte('a'), Some(0x01));
+        assert_eq!(ctrl_byte('1'), None);
     }
 }

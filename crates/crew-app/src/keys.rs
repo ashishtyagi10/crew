@@ -18,12 +18,51 @@ impl CrewApp {
     ) {
         let mstate = self.mods.state();
 
+        // The help overlay swallows the next key press to dismiss itself.
+        if self.help_open && event.state.is_pressed() {
+            self.help_open = false;
+            self.redraw();
+            return;
+        }
+
+        // Shift+PageUp / Shift+PageDown scroll the focused pane's scrollback.
+        if event.state.is_pressed() && mstate.shift_key() {
+            let page = match &event.logical_key {
+                Key::Named(NamedKey::PageUp) => Some(true),
+                Key::Named(NamedKey::PageDown) => Some(false),
+                _ => None,
+            };
+            if let Some(up) = page {
+                self.scroll_focused_page(up);
+                return;
+            }
+        }
+
         // Cmd+Q / Ctrl+Q quits the app.
         if event.state.is_pressed()
             && (mstate.super_key() || mstate.control_key())
             && matches!(&event.logical_key, Key::Character(s) if s.as_str() == "q")
         {
             event_loop.exit();
+            return;
+        }
+
+        // Ctrl+Tab / Ctrl+Shift+Tab cycle panes — works even over a focused
+        // terminal (plain Tab still reaches the shell for completion).
+        if event.state.is_pressed()
+            && mstate.control_key()
+            && matches!(&event.logical_key, Key::Named(NamedKey::Tab))
+        {
+            if !self.panes.is_empty() {
+                let n = self.panes.len();
+                self.input.focused = false;
+                self.focused = if mstate.shift_key() {
+                    (self.focused + n - 1) % n
+                } else {
+                    (self.focused + 1) % n
+                };
+            }
+            self.redraw();
             return;
         }
 
@@ -66,7 +105,9 @@ impl CrewApp {
         if let Some(pane) = self.panes.get_mut(focused) {
             match &mut pane.content {
                 PaneContent::Terminal(t) => {
-                    if let Some(bytes) = key_to_bytes(event) {
+                    if let Some(bytes) =
+                        key_to_bytes(event, mstate.control_key(), mstate.shift_key())
+                    {
                         // Typing snaps the view back to the live bottom.
                         t.pty.scroll_to_bottom();
                         if let Err(e) = t.input.write_all(&bytes).and_then(|_| t.input.flush()) {

@@ -109,6 +109,25 @@ impl CrewApp {
             bordered: true,
         });
 
+        // Keybindings help overlay, centered over everything.
+        if self.help_open {
+            let (hw, hh) = crate::help::size();
+            let hwp = (hw as f32 * cw).min(sw);
+            let hhp = (hh as f32 * ch).min(sh);
+            let hx = (sw - hwp) / 2.0;
+            let hy = (sh - hhp) / 2.0;
+            scenes.push(PaneScene {
+                cells: crate::help::help_cells(hw.min((sw / cw) as u16), hh.min((sh / ch) as u16)),
+                x: hx,
+                y: hy,
+                w: hwp,
+                h: hhp,
+                focused: false,
+                bordered: false,
+            });
+            return scenes;
+        }
+
         // Command palette: a popup just above the input bar when slash input matches.
         let matches = crate::suggest::matches(&self.input.text);
         if self.input.focused && !matches.is_empty() {
@@ -144,6 +163,20 @@ impl CrewApp {
                 }
                 self.redraw();
             }
+        }
+    }
+
+    /// Scroll the focused pane by one page (Shift+PageUp/PageDown).
+    pub(crate) fn scroll_focused_page(&mut self, up: bool) {
+        if let Some(pane) = self.panes.get_mut(self.focused) {
+            let page = pane.grid.rows.saturating_sub(1).max(1) as i32;
+            let lines = if up { page } else { -page };
+            match &mut pane.content {
+                PaneContent::Terminal(t) => t.pty.scroll(lines),
+                PaneContent::Chat(c) => c.scroll(lines, pane.grid.cols, pane.grid.rows),
+                PaneContent::Settings(_) => {}
+            }
+            self.redraw();
         }
     }
 

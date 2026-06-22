@@ -30,6 +30,8 @@ pub struct CrewApp {
     pub(crate) input: InputBar,
     /// Animation frame counter, advanced while the welcome screen is showing.
     pub(crate) tick: u64,
+    /// Whether the keybindings help overlay is showing.
+    pub(crate) help_open: bool,
 }
 
 impl CrewApp {
@@ -133,6 +135,7 @@ impl CrewApp {
     fn run_slash_command(&mut self, cmd: &str) -> bool {
         match cmd {
             "exit" => return true,
+            "keys" => self.help_open = true,
             "settings" => self.spawn_settings_pane(),
             "shell" => self.spawn_new_pane(),
             "update" => self.spawn_labeled_terminal(
