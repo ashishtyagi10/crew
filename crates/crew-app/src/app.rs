@@ -90,6 +90,10 @@ impl CrewApp {
             }
             "[" => self.focused = (self.focused + n - 1) % n,
             "]" => self.focused = (self.focused + 1) % n,
+            // Font zoom: Cmd+= / Cmd+- grow/shrink, Cmd+0 resets to default.
+            "=" | "+" => self.set_font(self.config.font_size + 1.0),
+            "-" | "_" => self.set_font(self.config.font_size - 1.0),
+            "0" => self.set_font(14.0),
             s if s.len() == 1 => {
                 if let Some(d) = s.chars().next().and_then(|c| c.to_digit(10)) {
                     if d >= 1 {
@@ -146,6 +150,14 @@ impl CrewApp {
             _ => {}
         }
         false
+    }
+
+    /// Set the font size (clamped to the config's valid range), applying it live
+    /// and persisting — shared by the Cmd+= / Cmd+- / Cmd+0 zoom chords.
+    pub(crate) fn set_font(&mut self, size: f32) {
+        let mut cfg = self.config.clone();
+        cfg.font_size = size;
+        self.apply_settings(cfg.clamped());
     }
 
     pub(crate) fn toggle_sidebar(&mut self) {

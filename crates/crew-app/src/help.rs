@@ -20,6 +20,7 @@ const BINDINGS: &[(&str, &str)] = &[
     ("Cmd+T", "New shell pane"),
     ("Cmd+, / Cmd+J", "Settings / chat pane"),
     ("Cmd+G", "Toggle sidebar"),
+    ("Cmd+= / Cmd+- / Cmd+0", "Font size + / - / reset"),
     ("Cmd+W / Cmd+M", "Close pane / maximize"),
     ("Shift+PageUp / PageDown", "Scroll focused pane"),
     ("/ (in input)", "Command palette"),
@@ -28,7 +29,7 @@ const BINDINGS: &[(&str, &str)] = &[
 
 /// Preferred overlay size in cells.
 pub fn size() -> (u16, u16) {
-    (44, BINDINGS.len() as u16 + 4)
+    (52, BINDINGS.len() as u16 + 4)
 }
 
 /// Render the help overlay into a `cols × rows` grid.
