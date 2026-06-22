@@ -5,12 +5,11 @@ use crate::chrome;
 use crate::layout::{pane_rects_at, Rect};
 use crate::pane::relayout;
 use crate::paneview::build_scenes;
-use crate::session::pane_at;
 use crate::welcome;
 
 impl CrewApp {
     /// `(cell_w, cell_h, surface_w, surface_h, scale)` when the renderer is ready.
-    fn frame_geometry(&self) -> Option<(f32, f32, f32, f32, f32)> {
+    pub(crate) fn frame_geometry(&self) -> Option<(f32, f32, f32, f32, f32)> {
         let r = self.renderer.as_ref()?;
         let (cw, ch) = r.cell_size();
         if cw <= 0.0 || ch <= 0.0 {
@@ -26,7 +25,7 @@ impl CrewApp {
     }
 
     /// Sidebar width in physical px (0 when hidden).
-    fn nav_px(&self, scale: f32) -> f32 {
+    pub(crate) fn nav_px(&self, scale: f32) -> f32 {
         if self.config.show_nav {
             self.config.nav_width * scale
         } else {
@@ -35,7 +34,7 @@ impl CrewApp {
     }
 
     /// Grid pane rects packed into the content area (right of the sidebar).
-    fn grid_rects(&self) -> Vec<Rect> {
+    pub(crate) fn grid_rects(&self) -> Vec<Rect> {
         let Some((_cw, ch, sw, sh, scale)) = self.frame_geometry() else {
             return Vec::new();
         };
@@ -161,29 +160,5 @@ impl CrewApp {
         }
 
         scenes
-    }
-
-    /// Whether the cursor is over the docked input bar.
-    pub(crate) fn cursor_in_input(&self) -> bool {
-        let Some((_cw, ch, sw, sh, scale)) = self.frame_geometry() else {
-            return false;
-        };
-        let ih = chrome::input_h(ch);
-        let content =
-            chrome::content_rect(sw, sh, self.config.show_nav, self.nav_px(scale), GAP, ih);
-        let ib = chrome::inputbar_rect(content, sh, ih, GAP);
-        chrome::point_in(ib, self.cursor.0, self.cursor.1)
-    }
-
-    /// Which grid pane (if any) sits under the cursor — only inside the content
-    /// area, so clicks on the sidebar or input bar do not steal focus.
-    pub(crate) fn pane_at_cursor(&self) -> Option<usize> {
-        let (_cw, ch, sw, sh, scale) = self.frame_geometry()?;
-        let ih = chrome::input_h(ch);
-        let c = chrome::content_rect(sw, sh, self.config.show_nav, self.nav_px(scale), GAP, ih);
-        if !chrome::point_in(c, self.cursor.0, self.cursor.1) {
-            return None;
-        }
-        pane_at(&self.grid_rects(), self.cursor.0, self.cursor.1)
     }
 }

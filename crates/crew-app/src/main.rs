@@ -12,6 +12,7 @@ mod gauges;
 mod handler;
 mod help;
 mod history;
+mod hit;
 mod host;
 pub(crate) mod inputbar;
 mod inputkeys;

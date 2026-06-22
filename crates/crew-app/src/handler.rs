@@ -140,11 +140,7 @@ impl ApplicationHandler for CrewApp {
                 button: MouseButton::Left,
                 ..
             } => {
-                if self.cursor_in_input() {
-                    self.input.focused = true;
-                } else if let Some(i) = self.pane_at_cursor() {
-                    self.focused = i;
-                    self.input.focused = false;
+                if let Some(i) = self.focus_at_cursor() {
                     // A second click on the same pane within 400ms toggles zoom.
                     let now = Instant::now();
                     let double = self
@@ -158,6 +154,15 @@ impl ApplicationHandler for CrewApp {
                     }
                 }
                 self.redraw();
+            }
+            WindowEvent::MouseInput {
+                state: ElementState::Pressed,
+                button: MouseButton::Right,
+                ..
+            } => {
+                // Right-click pastes into the surface under the cursor.
+                self.focus_at_cursor();
+                self.paste();
             }
             WindowEvent::MouseWheel { delta, .. } => {
                 let lines = match delta {
