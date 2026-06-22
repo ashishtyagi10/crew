@@ -92,6 +92,12 @@ impl CrewConfig {
     }
 
     pub fn save(&self) {
+        // Never write the real config from the test harness — the cwd tests
+        // drive `set_cwd`, which would otherwise persist temp dirs into the
+        // user's `last_dir` and reopen Crew in /tmp.
+        if cfg!(test) {
+            return;
+        }
         let Some(path) = Self::config_path() else {
             return;
         };
