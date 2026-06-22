@@ -11,12 +11,28 @@ impl CrewApp {
             self.input.focused = true;
             return None;
         }
-        if let Some(i) = self.pane_at_cursor() {
+        if let Some(i) = self.pane_at_sidebar().or_else(|| self.pane_at_cursor()) {
             self.focused = i;
             self.input.focused = false;
             return Some(i);
         }
         None
+    }
+
+    /// Which pane a click on the sidebar's PANES list targets, if any.
+    pub(crate) fn pane_at_sidebar(&self) -> Option<usize> {
+        if !self.config.show_nav {
+            return None;
+        }
+        let (_cw, ch, _sw, sh, scale) = self.frame_geometry()?;
+        let sb = chrome::sidebar_rect(sh, self.nav_px(scale), GAP);
+        if !chrome::point_in(sb, self.cursor.0, self.cursor.1) {
+            return None;
+        }
+        let rel_row = ((self.cursor.1 - sb.y) / ch).floor() as u16;
+        let first = self.sidebar.panes_top() + 1; // skip the PANES header row
+        let idx = rel_row.checked_sub(first)? as usize;
+        (idx < self.panes.len()).then_some(idx)
     }
 
     /// Whether the cursor is over the docked input bar.

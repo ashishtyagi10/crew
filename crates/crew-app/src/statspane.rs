@@ -75,6 +75,13 @@ impl StatsPane {
         false
     }
 
+    /// The cell-row where the PANES section header sits — used to hit-test
+    /// clicks on the pane list. Must track the section offsets in `cells`.
+    pub fn panes_top(&self) -> u16 {
+        let stats = clock::CLOCK_H + SYS_BLOCK + LOAD_BLOCK + CARD_BLOCK + CARD_BLOCK;
+        stats + if self.git.is_some() { CARD_BLOCK } else { 0 }
+    }
+
     pub fn cells(&self, cols: u16, rows: u16, panes: &[PaneRow]) -> Vec<CellView> {
         let (time, date) = clock::now_strings();
         let mut out = clock::clock_cells(&time, &date, cols);
@@ -141,5 +148,22 @@ impl StatsPane {
 impl Default for StatsPane {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn panes_top_accounts_for_git() {
+        let mut s = StatsPane::new();
+        // clock(4) + system(5) + load(3) + host(4) + net(4) = 20
+        assert_eq!(s.panes_top(), 20);
+        s.git = Some(GitInfo {
+            branch: "main".into(),
+            dirty: false,
+        });
+        assert_eq!(s.panes_top(), 24); // + git(4)
     }
 }
