@@ -50,17 +50,17 @@ jobs:
 
       - name: Build (cross)
         if: matrix.cross
-        run: cross build --release --target ${{ matrix.target }}
+        run: cross build --release --target ${{ matrix.target }} -p crew-app --bin crew
 
       - name: Build (native)
         if: "!matrix.cross"
-        run: cargo build --release --target ${{ matrix.target }}
+        run: cargo build --release --target ${{ matrix.target }} -p crew-app --bin crew
 
       - name: Package (unix)
         if: matrix.archive == 'tar.gz'
         run: |
           cd target/${{ matrix.target }}/release
-          tar czf ../../../farx-${{ github.ref_name }}-${{ matrix.target }}.tar.gz farx
+          tar czf ../../../crew-${{ github.ref_name }}-${{ matrix.target }}.tar.gz crew
           cd ../../..
 
       - name: Package (windows)
@@ -68,14 +68,14 @@ jobs:
         shell: bash
         run: |
           cd target/${{ matrix.target }}/release
-          7z a ../../../farx-${{ github.ref_name }}-${{ matrix.target }}.zip farx.exe
+          7z a ../../../crew-${{ github.ref_name }}-${{ matrix.target }}.zip crew.exe
           cd ../../..
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: farx-${{ matrix.target }}
-          path: farx-${{ github.ref_name }}-${{ matrix.target }}.*
+          name: crew-${{ matrix.target }}
+          path: crew-${{ github.ref_name }}-${{ matrix.target }}.*
 
   release:
     name: Create Release
@@ -93,7 +93,7 @@ jobs:
       - name: Generate checksums
         run: |
           cd artifacts
-          sha256sum farx-* > checksums-sha256.txt
+          sha256sum crew-* > checksums-sha256.txt
           cat checksums-sha256.txt
 
       - name: Create GitHub Release
@@ -101,5 +101,5 @@ jobs:
         with:
           generate_release_notes: true
           files: |
-            artifacts/farx-*
+            artifacts/crew-*
             artifacts/checksums-sha256.txt

@@ -10,31 +10,42 @@ Works on **macOS**, **Linux**, and **Windows**.
 
 ## Install
 
+> The commands below install **Crew**, the GPU terminal (binary: `crew`).
+
 ### Quick install (macOS / Linux)
 
 ```sh
 curl -sSfL https://raw.githubusercontent.com/ashishtyagi10/farx/main/install.sh | sh
 ```
 
-### From GitHub Releases
+Installs the prebuilt `crew` binary to `~/.local/bin`. Set `INSTALL_DIR` to
+choose another location.
 
-Download the latest binary for your platform from the [Releases page](https://github.com/ashishtyagi10/farx/releases), extract it, and move it to a directory in your `PATH`.
+### With cargo (any platform with Rust)
+
+```sh
+cargo install --git https://github.com/ashishtyagi10/farx crew-app
+```
+
+### From GitHub Releases (standalone package)
+
+Download the latest archive for your platform from the [Releases page](https://github.com/ashishtyagi10/farx/releases), extract it, and move the `crew` binary to a directory on your `PATH`.
 
 | Platform | Asset |
 |----------|-------|
-| macOS (Apple Silicon) | `farx-v*-aarch64-apple-darwin.tar.gz` |
-| macOS (Intel) | `farx-v*-x86_64-apple-darwin.tar.gz` |
-| Linux (x86_64) | `farx-v*-x86_64-unknown-linux-gnu.tar.gz` |
-| Linux (ARM64) | `farx-v*-aarch64-unknown-linux-gnu.tar.gz` |
-| Windows (x86_64) | `farx-v*-x86_64-pc-windows-msvc.zip` |
+| macOS (Apple Silicon) | `crew-v*-aarch64-apple-darwin.tar.gz` |
+| macOS (Intel) | `crew-v*-x86_64-apple-darwin.tar.gz` |
+| Linux (x86_64) | `crew-v*-x86_64-unknown-linux-gnu.tar.gz` |
+| Linux (ARM64) | `crew-v*-aarch64-unknown-linux-gnu.tar.gz` |
+| Windows (x86_64) | `crew-v*-x86_64-pc-windows-msvc.zip` |
 
 ### Build from source
 
 ```sh
 git clone https://github.com/ashishtyagi10/farx.git
 cd farx
-cargo build --release
-# Binary is at target/release/farx
+cargo build --release -p crew-app
+# Binary is at target/release/crew
 ```
 
 ## Auto-Update

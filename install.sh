@@ -1,5 +1,5 @@
 #!/bin/sh
-# Farx installer — detects OS/arch and installs the latest release from GitHub.
+# Crew installer — detects OS/arch and installs the latest release from GitHub.
 #
 # Usage:
 #   curl -sSfL https://raw.githubusercontent.com/ashishtyagi10/farx/main/install.sh | sh
@@ -7,7 +7,7 @@
 set -e
 
 REPO="ashishtyagi10/farx"
-BIN_NAME="farx"
+BIN_NAME="crew"
 
 # Always install to ~/.local/bin so neither install nor `/update` ever
 # needs sudo. The user can override with INSTALL_DIR=/path env var if
@@ -93,7 +93,7 @@ main() {
     esac
 
     echo ""
-    echo "Run 'farx' to start. Type '/update' inside farx to install new releases."
+    echo "Run 'crew' to start. Type '/update' inside crew to install new releases."
 }
 
 detect_os() {
