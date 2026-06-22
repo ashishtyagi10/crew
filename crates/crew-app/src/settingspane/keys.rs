@@ -12,7 +12,7 @@ pub(crate) fn reduce(p: &mut SettingsPane, key: &KeyEvent, shift: bool) -> Optio
         return None;
     }
     match &key.logical_key {
-        Key::Named(NamedKey::Escape) => return Some(SettingsAction::Cancel),
+        Key::Named(NamedKey::Escape) => return escape(p),
         Key::Named(NamedKey::Tab) => {
             commit_field(p);
             move_focus(p, shift);
@@ -172,4 +172,14 @@ pub(crate) fn move_focus(p: &mut SettingsPane, back: bool) {
 
 pub(crate) fn build_config(p: &SettingsPane) -> CrewConfig {
     p.draft.clone().clamped()
+}
+
+/// Escape closes the font dropdown if it's open, otherwise cancels the form.
+pub(crate) fn escape(p: &mut SettingsPane) -> Option<SettingsAction> {
+    if p.family_open {
+        p.family_open = false;
+        None
+    } else {
+        Some(SettingsAction::Cancel)
+    }
 }

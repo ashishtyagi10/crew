@@ -101,8 +101,8 @@ impl SettingsPane {
 
 #[cfg(test)]
 mod tests {
-    use super::keys::{build_config, commit_family, commit_field, move_focus};
-    use super::{Field, SettingsPane, DEFAULT_FAMILY_LABEL};
+    use super::keys::{build_config, commit_family, commit_field, escape, move_focus};
+    use super::{Field, SettingsAction, SettingsPane, DEFAULT_FAMILY_LABEL};
     use crate::config::CrewConfig;
 
     fn pane() -> SettingsPane {
@@ -149,6 +149,15 @@ mod tests {
         let mut p = pane();
         move_focus(&mut p, true);
         assert_eq!(p.focused_field(), Field::Cancel);
+    }
+
+    #[test]
+    fn esc_closes_dropdown_then_cancels() {
+        let mut p = pane();
+        p.family_open = true;
+        assert!(escape(&mut p).is_none()); // first Esc closes the dropdown
+        assert!(!p.family_open);
+        assert!(matches!(escape(&mut p), Some(SettingsAction::Cancel)));
     }
 
     #[test]
