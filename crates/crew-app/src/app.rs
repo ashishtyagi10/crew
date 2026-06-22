@@ -41,6 +41,8 @@ pub struct CrewApp {
     pub(crate) broadcast: bool,
     /// Time + pane index of the last left click, for double-click detection.
     pub(crate) last_click: Option<(Instant, usize)>,
+    /// Last `/find` term, so repeating it walks to the next older match.
+    pub(crate) last_find: Option<String>,
 }
 
 impl CrewApp {

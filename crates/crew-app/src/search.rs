@@ -33,12 +33,22 @@ impl CrewApp {
         if term.is_empty() {
             return;
         }
+        // Repeating the same term continues upward from the current match.
+        let repeat = self.last_find.as_deref() == Some(term);
+        self.last_find = Some(term.to_string());
         let focused = self.focused;
         let Some(pane) = self.panes.get_mut(focused) else {
             return;
         };
         let (cols, rows) = (pane.grid.cols, pane.grid.rows);
         if let PaneContent::Terminal(t) = &mut pane.content {
+            if repeat {
+                let before = t.pty.display_offset();
+                t.pty.scroll(1); // step past the current match
+                if t.pty.display_offset() == before {
+                    return; // already at the top
+                }
+            }
             for _ in 0..MAX_STEPS {
                 if grid_contains(&t.pty.cells(false), term, cols, rows) {
                     return;
