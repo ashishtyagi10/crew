@@ -2,10 +2,26 @@
 use crew_term::{GridSize, HeadlessTerm, TermModel};
 
 #[test]
+fn cursor_block_rendered_at_live_position() {
+    let mut term = HeadlessTerm::new(GridSize { cols: 20, rows: 3 });
+    term.feed(b"hi");
+    // the cursor sits after "hi" at column 2, drawn as an inverted block
+    assert!(term
+        .cells()
+        .iter()
+        .any(|c| c.col == 2 && c.row == 0 && c.bg == (200, 200, 200)));
+}
+
+#[test]
 fn feeding_text_appears_in_cells() {
     let mut term = HeadlessTerm::new(GridSize { cols: 20, rows: 5 });
     term.feed(b"hi");
-    let mut row0: Vec<_> = term.cells().into_iter().filter(|c| c.row == 0).collect();
+    // cols 0..2 are the text; col 2 holds the cursor block (a space).
+    let mut row0: Vec<_> = term
+        .cells()
+        .into_iter()
+        .filter(|c| c.row == 0 && c.col < 2)
+        .collect();
     row0.sort_by_key(|c| c.col);
     let text: String = row0.iter().map(|c| c.c).collect();
     assert_eq!(text, "hi");
