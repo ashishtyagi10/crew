@@ -86,19 +86,72 @@ pub fn relayout(panes: &mut [Pane], rects: &[Rect], cell_w: f32, cell_h: f32) {
     }
 }
 
+/// Accent green for the focused pane's badge; muted grey otherwise.
+const BADGE_ON: (u8, u8, u8) = (0, 255, 160);
+const BADGE_OFF: (u8, u8, u8) = (110, 110, 120);
+
+/// Append a single-digit index badge to the pane's top-right corner so the
+/// Cmd+1..9 / Ctrl+Tab navigation is discoverable. Only shown for panes 1-9.
+fn add_badge(cells: &mut Vec<CellView>, n: usize, cols: u16, focused: bool) {
+    if cols < 3 || !(1..=9).contains(&n) {
+        return;
+    }
+    let c = char::from_digit(n as u32, 10).unwrap_or('?');
+    cells.push(CellView {
+        col: cols - 2,
+        row: 0,
+        c,
+        fg: if focused { BADGE_ON } else { BADGE_OFF },
+        bg: (0, 0, 0),
+        bold: focused,
+        italic: false,
+    });
+}
+
 /// Build a `Vec<PaneScene>` from the current pane state (for `renderer.frame`).
+/// Each pane gets a corner index badge when more than one pane is open.
 pub fn build_scenes(panes: &[Pane], focused: Option<usize>) -> Vec<PaneScene> {
+    let multi = panes.len() > 1;
     panes
         .iter()
         .enumerate()
-        .map(|(i, p)| PaneScene {
-            cells: p.cells(),
-            x: p.rect.x,
-            y: p.rect.y,
-            w: p.rect.w,
-            h: p.rect.h,
-            focused: focused == Some(i),
-            bordered: true,
+        .map(|(i, p)| {
+            let mut cells = p.cells();
+            if multi {
+                add_badge(&mut cells, i + 1, p.grid.cols, focused == Some(i));
+            }
+            PaneScene {
+                cells,
+                x: p.rect.x,
+                y: p.rect.y,
+                w: p.rect.w,
+                h: p.rect.h,
+                focused: focused == Some(i),
+                bordered: true,
+            }
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn badge_added_for_valid_index() {
+        let mut cells = Vec::new();
+        add_badge(&mut cells, 3, 40, true);
+        assert!(cells
+            .iter()
+            .any(|c| c.c == '3' && c.row == 0 && c.col == 38 && c.fg == BADGE_ON));
+    }
+
+    #[test]
+    fn no_badge_out_of_range_or_too_narrow() {
+        let mut cells = Vec::new();
+        add_badge(&mut cells, 0, 40, false);
+        add_badge(&mut cells, 12, 40, false);
+        add_badge(&mut cells, 2, 2, false);
+        assert!(cells.is_empty());
+    }
 }
