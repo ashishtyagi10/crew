@@ -17,6 +17,8 @@ pub struct InputBar {
     pub history: Vec<String>,
     /// Highlighted row in the command palette (when it's open).
     pub menu_sel: usize,
+    /// Position while browsing history with Up/Down (`None` = editing fresh text).
+    pub hist_pos: Option<usize>,
 }
 
 impl InputBar {
@@ -107,6 +109,21 @@ impl InputBar {
             }
         }
 
+        // Up/Down recall submitted history (when the palette isn't open).
+        if !menu_open {
+            match &key.logical_key {
+                Key::Named(NamedKey::ArrowUp) => {
+                    self.history_prev();
+                    return None;
+                }
+                Key::Named(NamedKey::ArrowDown) => {
+                    self.history_next();
+                    return None;
+                }
+                _ => {}
+            }
+        }
+
         // Tab / Right accept: the highlighted command, else the ghost suffix.
         if matches!(
             &key.logical_key,
@@ -139,12 +156,41 @@ impl InputBar {
         };
         let result = crate::chatlayout::input_reduce(&mut self.text, ch, enter, backspace);
         self.menu_sel = 0; // editing changes the match set; re-highlight the top
+        self.hist_pos = None; // editing leaves history-browse mode
         if let Some(line) = &result {
             if !line.is_empty() {
                 self.history.push(line.clone());
             }
         }
         result
+    }
+
+    /// Step to an older history entry (Up), loading it into the input.
+    fn history_prev(&mut self) {
+        if self.history.is_empty() {
+            return;
+        }
+        let i = match self.hist_pos {
+            None => self.history.len() - 1,
+            Some(i) => i.saturating_sub(1),
+        };
+        self.hist_pos = Some(i);
+        self.text = self.history[i].clone();
+    }
+
+    /// Step to a newer history entry (Down); past the newest clears the input.
+    fn history_next(&mut self) {
+        match self.hist_pos {
+            Some(i) if i + 1 < self.history.len() => {
+                self.hist_pos = Some(i + 1);
+                self.text = self.history[i + 1].clone();
+            }
+            Some(_) => {
+                self.hist_pos = None;
+                self.text.clear();
+            }
+            None => {}
+        }
     }
 }
 

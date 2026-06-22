@@ -65,6 +65,24 @@ fn cells_unfocused_prompt_is_dim() {
 }
 
 #[test]
+fn history_up_down_recalls_entries() {
+    let mut bar = InputBar {
+        focused: true,
+        history: vec!["one".into(), "two".into(), "three".into()],
+        ..Default::default()
+    };
+    bar.history_prev(); // newest
+    assert_eq!(bar.text, "three");
+    bar.history_prev();
+    assert_eq!(bar.text, "two");
+    bar.history_next();
+    assert_eq!(bar.text, "three");
+    bar.history_next(); // past newest → clears
+    assert_eq!(bar.text, "");
+    assert_eq!(bar.hist_pos, None);
+}
+
+#[test]
 fn cells_tiny_returns_empty() {
     assert!(InputBar::default().cells(3, 3).is_empty());
     assert!(InputBar::default().cells(40, 0).is_empty());
