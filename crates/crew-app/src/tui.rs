@@ -12,6 +12,18 @@ const DEFAULT_BG: (u8, u8, u8) = (0, 0, 0);
 /// Fully-blank cells (a space with the default background) are skipped so we
 /// don't emit useless glyphs/quads.
 pub fn to_cells(buf: &Buffer) -> Vec<CellView> {
+    convert(buf, false)
+}
+
+/// Like [`to_cells`], but for overlays: blank cells that have a background colour
+/// are emitted as a solid block glyph in that colour so the popup is opaque
+/// (the renderer draws all backgrounds before all text, so a bare bg quad alone
+/// lets text from panes behind bleed through).
+pub fn to_cells_opaque(buf: &Buffer) -> Vec<CellView> {
+    convert(buf, true)
+}
+
+fn convert(buf: &Buffer, opaque: bool) -> Vec<CellView> {
     let area = buf.area;
     let mut out = Vec::with_capacity((area.width as usize) * (area.height as usize));
     for y in 0..area.height {
@@ -21,14 +33,20 @@ pub fn to_cells(buf: &Buffer) -> Vec<CellView> {
             };
             let ch = cell.symbol().chars().next().unwrap_or(' ');
             let bg_opt = color_opt(cell.bg);
-            if ch == ' ' && bg_opt.is_none() {
-                continue;
-            }
+            let (c, fg) = if ch == ' ' {
+                match (opaque, bg_opt) {
+                    // Opaque overlay: paint blank cells as a solid block in their bg.
+                    (true, Some(bg)) => ('█', bg),
+                    _ => continue,
+                }
+            } else {
+                (ch, color_opt(cell.fg).unwrap_or(DEFAULT_FG))
+            };
             out.push(CellView {
                 col: x,
                 row: y,
-                c: ch,
-                fg: color_opt(cell.fg).unwrap_or(DEFAULT_FG),
+                c,
+                fg,
                 bg: bg_opt.unwrap_or(DEFAULT_BG),
                 bold: cell.modifier.contains(Modifier::BOLD),
                 italic: cell.modifier.contains(Modifier::ITALIC),
@@ -85,5 +103,17 @@ mod tests {
     fn blank_buffer_yields_no_cells() {
         let buf = Buffer::empty(Rect::new(0, 0, 8, 2));
         assert!(to_cells(&buf).is_empty());
+    }
+
+    #[test]
+    fn opaque_fills_blank_bg_cells_with_blocks() {
+        use ratatui::style::{Color, Style};
+        let mut buf = Buffer::empty(Rect::new(0, 0, 6, 2));
+        buf.set_style(buf.area, Style::new().bg(Color::Rgb(18, 18, 30)));
+        // transparent variant skips the (blank) cells; opaque fills them solid
+        assert!(to_cells(&buf).is_empty());
+        let cells = to_cells_opaque(&buf);
+        assert_eq!(cells.len(), 12);
+        assert!(cells.iter().all(|c| c.c == '█' && c.fg == (18, 18, 30)));
     }
 }

@@ -66,7 +66,7 @@ pub fn help_cells(cols: u16, rows: u16) -> Vec<CellView> {
             cell.set_char(ch).set_fg(DIM);
         }
     }
-    crate::tui::to_cells(&buf)
+    crate::tui::to_cells_opaque(&buf)
 }
 
 #[cfg(test)]

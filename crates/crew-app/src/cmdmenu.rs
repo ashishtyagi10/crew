@@ -50,7 +50,7 @@ pub fn menu_cells(matches: &[&Cmd], sel: usize, cols: u16, rows: u16) -> Vec<Cel
     let mut state = ListState::default();
     state.select(Some(sel.min(matches.len() - 1)));
     StatefulWidget::render(list, buf.area, &mut buf, &mut state);
-    crate::tui::to_cells(&buf)
+    crate::tui::to_cells_opaque(&buf)
 }
 
 #[cfg(test)]
