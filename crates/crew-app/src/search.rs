@@ -28,7 +28,8 @@ pub(crate) fn grid_contains(cells: &[RenderCell], term: &str, cols: u16, rows: u
 
 impl CrewApp {
     /// Scroll the focused terminal back to the most recent line containing
-    /// `term` (stops at the current view, or the top of the scrollback).
+    /// `term` (stops at the current view, or the top of the scrollback). Always
+    /// repaints, and flashes a status when there's no match.
     pub(crate) fn find_in_terminal(&mut self, term: &str) {
         if term.is_empty() {
             return;
@@ -37,30 +38,37 @@ impl CrewApp {
         let repeat = self.last_find.as_deref() == Some(term);
         self.last_find = Some(term.to_string());
         let focused = self.focused;
-        let Some(pane) = self.panes.get_mut(focused) else {
-            return;
-        };
-        let (cols, rows) = (pane.grid.cols, pane.grid.rows);
-        if let PaneContent::Terminal(t) = &mut pane.content {
-            if repeat {
-                let before = t.pty.display_offset();
-                t.pty.scroll(1); // step past the current match
-                if t.pty.display_offset() == before {
-                    return; // already at the top
+        let mut searched = false;
+        let mut found = false;
+        if let Some(pane) = self.panes.get_mut(focused) {
+            let (cols, rows) = (pane.grid.cols, pane.grid.rows);
+            if let PaneContent::Terminal(t) = &mut pane.content {
+                searched = true;
+                if repeat {
+                    t.pty.scroll(1); // step past the current match
                 }
-            }
-            for _ in 0..MAX_STEPS {
-                if grid_contains(&t.pty.cells(false), term, cols, rows) {
-                    return;
-                }
-                let before = t.pty.display_offset();
-                t.pty.scroll(1);
-                if t.pty.display_offset() == before {
-                    break; // reached the top of the scrollback
+                for _ in 0..MAX_STEPS {
+                    if grid_contains(&t.pty.cells(false), term, cols, rows) {
+                        found = true;
+                        break;
+                    }
+                    let before = t.pty.display_offset();
+                    t.pty.scroll(1);
+                    if t.pty.display_offset() == before {
+                        break; // reached the top of the scrollback
+                    }
                 }
             }
         }
-        self.redraw();
+        // Repaint regardless (the old code skipped redraw on a hit, so the match
+        // scroll never showed); report misses since the scroll alone can't.
+        if searched {
+            if found {
+                self.redraw();
+            } else {
+                self.set_status(format!("no match for '{term}'"));
+            }
+        }
     }
 }
 
