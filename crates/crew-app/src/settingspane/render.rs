@@ -69,13 +69,14 @@ const WIDE: u16 = 76;
 /// Returns the field rects in `Field` order plus the buttons rect.
 fn field_layout(area: Rect) -> ([Rect; 4], Rect) {
     let main = Layout::vertical([
+        Constraint::Length(1), // top padding
         Constraint::Min(0),    // fields
         Constraint::Length(1), // gap
         Constraint::Length(1), // buttons
     ])
     .horizontal_margin(2)
     .split(area);
-    let (body, btn) = (main[0], main[2]);
+    let (body, btn) = (main[1], main[3]);
 
     if area.width >= WIDE {
         let halves = Layout::horizontal([
