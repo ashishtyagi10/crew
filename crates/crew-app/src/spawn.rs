@@ -26,7 +26,8 @@ impl CrewApp {
             .map(Self::current_grid)
             .unwrap_or(FALLBACK_SIZE);
         let shell = default_shell();
-        match spawn_pane(&shell, "/bin/sh", grid) {
+        let cwd = (!self.cwd.as_os_str().is_empty()).then_some(self.cwd.as_path());
+        match spawn_pane(&shell, "/bin/sh", grid, cwd) {
             Ok(pane) => {
                 self.panes.push(pane);
                 self.focus_new_pane();

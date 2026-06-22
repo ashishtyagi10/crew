@@ -1,4 +1,5 @@
 use std::io::Write;
+use std::path::Path;
 
 use anyhow::Context;
 use crew_render::CellView;
@@ -65,15 +66,17 @@ impl Pane {
 
 /// Spawn a terminal pane running a **login** shell (so the user's full shell
 /// config — `.zprofile`/`.zshrc`, plugins, PATH — loads, like Ghostty/Terminal).
-/// Tries `shell_primary` first and falls back to `shell_fallback`.
+/// Tries `shell_primary` first and falls back to `shell_fallback`. When `cwd` is
+/// given the shell starts in that directory.
 pub fn spawn_pane(
     shell_primary: &str,
     shell_fallback: &str,
     grid: GridSize,
+    cwd: Option<&Path>,
 ) -> anyhow::Result<Pane> {
     let login = ["-l".to_string()];
-    let pty = PtyTerm::spawn_args(grid, shell_primary, &login)
-        .or_else(|_| PtyTerm::spawn_args(grid, shell_fallback, &login))
+    let pty = PtyTerm::spawn_in(grid, shell_primary, &login, cwd)
+        .or_else(|_| PtyTerm::spawn_in(grid, shell_fallback, &login, cwd))
         .with_context(|| {
             format!("failed to spawn shell (tried {shell_primary}, {shell_fallback})")
         })?;

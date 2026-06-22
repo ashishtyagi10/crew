@@ -1,4 +1,5 @@
 use std::io::Write;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -43,6 +44,9 @@ pub struct CrewApp {
     pub(crate) last_click: Option<(Instant, usize)>,
     /// Last `/find` term, so repeating it walks to the next older match.
     pub(crate) last_find: Option<String>,
+    /// Crew's working directory: shown in the input-bar legend and used as the
+    /// start directory for new shells. Moved by typing `cd` in the input bar.
+    pub(crate) cwd: PathBuf,
 }
 
 impl CrewApp {
@@ -90,6 +94,10 @@ impl CrewApp {
         }
         if let Some(cmd) = slash_command(&line) {
             return self.run_slash_command(cmd);
+        }
+        // `cd` in the input bar moves Crew's working directory, not the terminal's.
+        if self.try_change_dir(&line) {
+            return false;
         }
         let mut bytes = line.into_bytes();
         bytes.push(b'\n');
@@ -165,37 +173,5 @@ pub(crate) fn slash_command(line: &str) -> Option<&str> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{slash_command, CrewApp};
-
-    #[test]
-    fn slash_command_parses() {
-        assert_eq!(slash_command("/settings"), Some("settings"));
-        assert_eq!(slash_command("/ settings "), Some("settings"));
-        assert_eq!(slash_command("ls -la"), None);
-        assert_eq!(slash_command("/"), Some(""));
-    }
-
-    #[test]
-    fn close_pane_resets_modes_when_empty() {
-        let mut app = CrewApp {
-            zoomed: true,
-            broadcast: true,
-            ..Default::default()
-        };
-        app.input.broadcast = true;
-        assert!(!app.close_pane(0));
-        assert!(!app.zoomed && !app.broadcast && !app.input.broadcast);
-        assert!(app.input.focused);
-    }
-
-    #[test]
-    fn zoom_chord_toggles() {
-        let mut app = CrewApp::default();
-        assert!(!app.zoomed);
-        app.handle_super_chord("z");
-        assert!(app.zoomed);
-        app.handle_super_chord("z");
-        assert!(!app.zoomed);
-    }
-}
+#[path = "app_tests.rs"]
+mod tests;

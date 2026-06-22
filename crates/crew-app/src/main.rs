@@ -8,6 +8,7 @@ mod clipboard;
 mod clock;
 mod cmdmenu;
 pub mod config;
+mod cwd;
 mod gauges;
 mod handler;
 mod help;

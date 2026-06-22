@@ -94,6 +94,23 @@ fn broadcast_prompt_is_magenta() {
 }
 
 #[test]
+fn cells_show_cwd_legend_on_top_row() {
+    let bar = InputBar {
+        text: String::new(),
+        focused: true,
+        cwd: "~/code/farx".into(),
+        ..Default::default()
+    };
+    let cells = bar.cells(40, 3);
+    // legend characters appear on row 0 in the accent colour
+    assert!(cells
+        .iter()
+        .any(|c| c.c == 'f' && c.row == 0 && c.fg == ACCENT));
+    // the prompt still renders on the middle row
+    assert!(cells.iter().any(|c| c.c == '>' && c.row == 1));
+}
+
+#[test]
 fn cells_tiny_returns_empty() {
     assert!(InputBar::default().cells(3, 3).is_empty());
     assert!(InputBar::default().cells(40, 0).is_empty());

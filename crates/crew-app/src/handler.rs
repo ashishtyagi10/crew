@@ -202,6 +202,7 @@ impl ApplicationHandler for CrewApp {
 
 pub fn run() -> anyhow::Result<()> {
     let event_loop = EventLoop::new()?;
+    let cwd = crate::cwd::initial();
     let mut app = CrewApp {
         config: CrewConfig::load(),
         // Default focus is the input bar (startup has no panes selected).
@@ -209,8 +210,10 @@ pub fn run() -> anyhow::Result<()> {
             text: String::new(),
             focused: true,
             history: crate::history::load(),
+            cwd: crate::cwd::display(&cwd),
             ..Default::default()
         },
+        cwd,
         ..Default::default()
     };
     event_loop.run_app(&mut app)?;

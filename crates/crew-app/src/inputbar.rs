@@ -21,6 +21,8 @@ pub struct InputBar {
     pub hist_pos: Option<usize>,
     /// Whether broadcast (synchronized input to all panes) is active.
     pub broadcast: bool,
+    /// `~`-abbreviated working directory shown as the bar's legend (empty = none).
+    pub cwd: String,
 }
 
 impl InputBar {
@@ -66,6 +68,22 @@ impl InputBar {
         // Follow the cursor: when the body overflows the field, show its tail.
         let skip = body.len().saturating_sub(text_area);
         let mut out = Vec::new();
+        // Working-directory legend on the top row (when there's a row to spare
+        // above the prompt), styled like the sidebar fieldset legends.
+        if row > 0 && !self.cwd.is_empty() {
+            let avail = cols.saturating_sub(start + 1) as usize;
+            for (i, ch) in self.cwd.chars().take(avail).enumerate() {
+                out.push(CellView {
+                    col: start + i as u16,
+                    row: 0,
+                    c: ch,
+                    fg: ACCENT,
+                    bg: BG,
+                    bold: false,
+                    italic: false,
+                });
+            }
+        }
         for (i, ch) in prompt.chars().enumerate() {
             out.push(CellView {
                 col: start + i as u16,

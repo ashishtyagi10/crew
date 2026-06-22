@@ -1,4 +1,5 @@
 use portable_pty::{native_pty_system, CommandBuilder, PtySize};
+use std::path::Path;
 use std::sync::mpsc::{channel, Receiver};
 
 use crate::model::{GridSize, RenderCell, TermCore, TermModel};
@@ -19,6 +20,17 @@ impl PtyTerm {
 
     /// Spawn `command` with `args` in a new PTY of the given size.
     pub fn spawn_args(size: GridSize, command: &str, args: &[String]) -> anyhow::Result<Self> {
+        Self::spawn_in(size, command, args, None)
+    }
+
+    /// Spawn `command` with `args` in a new PTY, starting in `cwd` when given
+    /// (otherwise the child inherits the host process's working directory).
+    pub fn spawn_in(
+        size: GridSize,
+        command: &str,
+        args: &[String],
+        cwd: Option<&Path>,
+    ) -> anyhow::Result<Self> {
         let pty = native_pty_system();
         let pair = pty.openpty(PtySize {
             rows: size.rows,
@@ -28,6 +40,9 @@ impl PtyTerm {
         })?;
         let mut cmd = CommandBuilder::new(command);
         cmd.args(args);
+        if let Some(dir) = cwd {
+            cmd.cwd(dir);
+        }
         // Advertise a capable terminal so TUI programs behave (env is otherwise
         // inherited from the host process, so $HOME/$PATH etc. are present).
         cmd.env("TERM", "xterm-256color");

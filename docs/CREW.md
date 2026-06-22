@@ -79,7 +79,10 @@ The docked command bar supports:
 - **History** — **Up/Down** recall previous lines (persisted to
   `$XDG_CONFIG/crew/history` across sessions).
 - **Editing** — **Ctrl+W** delete the last word, **Ctrl+U** clear the line.
-- Anything that isn't a slash command is sent to the focused terminal.
+- **Working directory** — the bar's legend shows Crew's current directory
+  (`~`-abbreviated). Type **`cd <path>`** (or bare `cd` for home) to move it; new
+  shells (**Cmd+T** / `/shell`) open in that directory.
+- Anything that isn't a slash command or `cd` is sent to the focused terminal.
 
 ## Clipboard
 
