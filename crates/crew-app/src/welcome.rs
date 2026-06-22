@@ -7,6 +7,9 @@ use crew_render::CellView;
 const HEAD: (u8, u8, u8) = (210, 255, 220);
 const BG: (u8, u8, u8) = (0, 0, 0);
 const WORD: &str = "CREW";
+/// Dim grey for the discoverability hint under the wordmark.
+const HINT_FG: (u8, u8, u8) = (110, 110, 120);
+const HINT: &str = "Cmd+T  new shell    ·    /  commands";
 /// Columns between successive letters (one rain cell shows through each gap).
 const STEP: u16 = 2;
 /// Frames for one brighten→dim→brighten pulse of a letter.
@@ -54,6 +57,24 @@ pub fn welcome_cells_animated(cols: u16, rows: u16, tick: u64) -> Vec<CellView> 
             italic: false,
         });
     }
+
+    // A dim hint two rows below the wordmark, when it fits.
+    let hint_w = HINT.chars().count() as u16;
+    let hint_row = row + 2;
+    if hint_w < cols && hint_row < rows {
+        let hstart = (cols - hint_w) / 2;
+        for (i, ch) in HINT.chars().enumerate() {
+            cells.push(CellView {
+                col: hstart + i as u16,
+                row: hint_row,
+                c: ch,
+                fg: HINT_FG,
+                bg: BG,
+                bold: false,
+                italic: false,
+            });
+        }
+    }
     cells
 }
 
@@ -71,6 +92,8 @@ mod tests {
                 .iter()
                 .any(|c| c.c == ch && c.row == 12 && c.fg.1 >= c.fg.0 && c.fg.1 > 80));
         }
+        // the dim hint is shown two rows below the wordmark
+        assert!(cells.iter().any(|c| c.row == 14 && c.fg == HINT_FG));
     }
 
     #[test]
