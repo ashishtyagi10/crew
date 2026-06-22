@@ -6,21 +6,24 @@ use alacritty_terminal::vte::ansi::CursorShape;
 
 use crate::model::RenderCell;
 
-/// Light grey for the block cursor.
-const CURSOR: (u8, u8, u8) = (200, 200, 200);
+/// Bright block for the focused pane's cursor; dim for unfocused panes.
+const CURSOR_FOCUSED: (u8, u8, u8) = (200, 200, 200);
+const CURSOR_DIM: (u8, u8, u8) = (90, 90, 100);
 
 /// Overlay a block cursor onto `out` at the cursor position. Only drawn when the
 /// view is at the live bottom (`off == 0`) and the cursor is not hidden — when
-/// scrolled into history there is no live cursor to show.
-pub(crate) fn apply(out: &mut Vec<RenderCell>, cursor: &RenderableCursor, off: i32) {
+/// scrolled into history there is no live cursor to show. The block is bright in
+/// the focused pane and dim elsewhere.
+pub(crate) fn apply(out: &mut Vec<RenderCell>, cursor: &RenderableCursor, off: i32, focused: bool) {
     if off != 0 || matches!(cursor.shape, CursorShape::Hidden) || cursor.point.line.0 < 0 {
         return;
     }
+    let bg = if focused { CURSOR_FOCUSED } else { CURSOR_DIM };
     let col = cursor.point.column.0 as u16;
     let row = cursor.point.line.0 as u16;
     if let Some(cell) = out.iter_mut().find(|c| c.col == col && c.row == row) {
         // Invert the glyph under the cursor so it reads as a block cursor.
-        cell.bg = CURSOR;
+        cell.bg = bg;
         cell.fg = (0, 0, 0);
     } else {
         out.push(RenderCell {
@@ -28,7 +31,7 @@ pub(crate) fn apply(out: &mut Vec<RenderCell>, cursor: &RenderableCursor, off: i
             row,
             c: ' ',
             fg: (0, 0, 0),
-            bg: CURSOR,
+            bg,
             bold: false,
             italic: false,
         });

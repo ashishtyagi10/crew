@@ -25,7 +25,8 @@ pub struct RenderCell {
 
 pub trait TermModel {
     fn feed(&mut self, bytes: &[u8]);
-    fn cells(&self) -> Vec<RenderCell>;
+    /// Render cells; `focused` brightens the block cursor (dim otherwise).
+    fn cells(&self, focused: bool) -> Vec<RenderCell>;
     fn resize(&mut self, size: GridSize);
 }
 
@@ -81,7 +82,7 @@ impl TermCore {
         self.parser.advance(&mut self.term, bytes);
     }
 
-    pub(crate) fn cells(&self) -> Vec<RenderCell> {
+    pub(crate) fn cells(&self, focused: bool) -> Vec<RenderCell> {
         let content = self.term.renderable_content();
         let palette = content.colors;
         // When scrolled into history, viewport lines are negative; add the display
@@ -110,7 +111,7 @@ impl TermCore {
                 }
             })
             .collect();
-        crate::cursor::apply(&mut out, &cursor, off);
+        crate::cursor::apply(&mut out, &cursor, off, focused);
         out
     }
 
@@ -170,8 +171,8 @@ impl TermModel for HeadlessTerm {
         self.core.feed(bytes);
     }
 
-    fn cells(&self) -> Vec<RenderCell> {
-        self.core.cells()
+    fn cells(&self, focused: bool) -> Vec<RenderCell> {
+        self.core.cells(focused)
     }
 
     fn resize(&mut self, size: GridSize) {
