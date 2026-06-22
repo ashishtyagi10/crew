@@ -163,6 +163,8 @@ mod tests {
         s.git = Some(GitInfo {
             branch: "main".into(),
             dirty: false,
+            ahead: 0,
+            behind: 0,
         });
         assert_eq!(s.panes_top(), 24); // + git(4)
     }
