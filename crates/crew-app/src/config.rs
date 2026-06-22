@@ -23,6 +23,9 @@ pub struct CrewConfig {
     /// Chosen font family; `None`/empty uses the system monospace.
     #[serde(default)]
     pub font_family: Option<String>,
+    /// Whether the window should launch maximized.
+    #[serde(default)]
+    pub maximized: bool,
 }
 
 impl Default for CrewConfig {
@@ -32,6 +35,7 @@ impl Default for CrewConfig {
             nav_width: default_nav_width(),
             show_nav: default_show_nav(),
             font_family: None,
+            maximized: false,
         }
     }
 }
@@ -47,6 +51,7 @@ impl CrewConfig {
             nav_width: self.nav_width.clamp(160.0, 320.0),
             show_nav: self.show_nav,
             font_family: self.font_family.filter(|n| !n.is_empty()),
+            maximized: self.maximized,
         }
     }
 
@@ -103,6 +108,7 @@ mod tests {
             nav_width: 9.0,
             show_nav: true,
             font_family: None,
+            maximized: false,
         }
         .clamped();
         assert_eq!(cfg.font_size, 32.0);
@@ -131,6 +137,7 @@ mod tests {
             nav_width: 200.0,
             show_nav: true,
             font_family: Some("Menlo".to_string()),
+            maximized: true,
         };
         assert_eq!(CrewConfig::from_toml_str(&c.to_toml_str()), c);
     }

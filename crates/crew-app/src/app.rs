@@ -123,6 +123,16 @@ impl CrewApp {
         false
     }
 
+    /// Toggle the window's maximized state and persist it.
+    pub(crate) fn toggle_maximize(&mut self) {
+        if let Some(w) = &self.window {
+            let m = !w.is_maximized();
+            w.set_maximized(m);
+            self.config.maximized = m;
+        }
+        self.config.save();
+    }
+
     pub(crate) fn toggle_sidebar(&mut self) {
         self.config.show_nav = !self.config.show_nav;
         self.config.save();
