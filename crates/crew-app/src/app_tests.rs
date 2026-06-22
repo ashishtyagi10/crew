@@ -47,6 +47,14 @@ fn cd_in_input_changes_cwd_and_legend() {
 }
 
 #[test]
+fn submit_without_a_shell_hints() {
+    let mut app = CrewApp::default();
+    // a plain command with no terminal open is not silently dropped.
+    assert!(!app.submit_input("ls".to_string()));
+    assert!(app.active_status().is_some());
+}
+
+#[test]
 fn cd_dash_toggles_previous_directory() {
     let base = std::env::temp_dir();
     let a = base.join("crew_cd_dash_a");

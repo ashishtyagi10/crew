@@ -40,6 +40,7 @@ pub mod stats;
 mod statspane;
 mod status;
 mod suggest;
+mod termwrite;
 mod tui;
 mod welcome;
 mod windowtitle;

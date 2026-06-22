@@ -1,4 +1,3 @@
-use std::io::Write;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Instant;
@@ -8,7 +7,7 @@ use winit::window::Window;
 
 use crate::config::CrewConfig;
 use crate::inputbar::InputBar;
-use crate::pane::{Pane, PaneContent};
+use crate::pane::Pane;
 use crate::session::grid_for;
 use crate::statspane::StatsPane;
 use crew_render::Renderer;
@@ -109,26 +108,12 @@ impl CrewApp {
         }
         let mut bytes = line.into_bytes();
         bytes.push(b'\n');
-        self.write_to_terminals(&bytes);
-        false
-    }
-
-    /// Write `bytes` to the focused terminal — or, when broadcast is on, to every
-    /// terminal pane (tmux-style synchronized input). Each write snaps to bottom.
-    pub(crate) fn write_to_terminals(&mut self, bytes: &[u8]) {
-        let all = self.broadcast;
-        let focused = self.focused;
-        for (i, pane) in self.panes.iter_mut().enumerate() {
-            if !all && i != focused {
-                continue;
-            }
-            if let PaneContent::Terminal(t) = &mut pane.content {
-                t.pty.scroll_to_bottom();
-                if let Err(e) = t.input.write_all(bytes).and_then(|_| t.input.flush()) {
-                    eprintln!("terminal write error: {e}");
-                }
-            }
+        // Nothing received it (no terminal focused / open) — hint instead of a
+        // silent no-op.
+        if self.write_to_terminals(&bytes) == 0 {
+            self.set_status("no shell here — press Cmd+T to open one");
         }
+        false
     }
 
     /// Run a `/command` typed in the input bar. Returns `true` if the app should exit.
