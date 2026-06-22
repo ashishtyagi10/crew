@@ -73,7 +73,7 @@ shell, so your full config and plugins load.
 The docked command bar supports:
 
 - **Slash commands** — type `/` for a command palette (↑/↓ to pick, Tab/→ to
-  fill, Enter to run): `/shell`, `/settings`, `/find <text>`, `/name <text>`, `/update`,
+  fill, Enter to run): `/shell`, `/settings`, `/find <text>`, `/name <text>`, `/clear`, `/update`,
   `/keys`, `/exit`.
 - **Autosuggest** — fish-style ghost text from history; Tab/→ accepts it.
 - **History** — **Up/Down** recall previous lines (persisted to

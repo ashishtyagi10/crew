@@ -28,6 +28,10 @@ pub(crate) const COMMANDS: &[Cmd] = &[
         desc: "Rename the focused pane (/name <text>)",
     },
     Cmd {
+        name: "/clear",
+        desc: "Clear the focused pane's scrollback",
+    },
+    Cmd {
         name: "/update",
         desc: "Update Crew (git pull)",
     },

@@ -143,6 +143,7 @@ impl CrewApp {
                 &["-c".to_string(), "git pull; exec sh".to_string()],
                 "update".to_string(),
             ),
+            "clear" => self.clear_focused_scrollback(),
             "name" => self.name_focused_pane(""), // clear the pane's name
             other => {
                 if let Some(term) = other.strip_prefix("find ") {

@@ -97,3 +97,24 @@ fn scrolling_up_reveals_lines_pushed_into_history() {
         "TOPLINE should reappear after scrolling to the top, got {scrolled:?}"
     );
 }
+
+#[test]
+fn clear_scrollback_drops_history() {
+    let mut term = HeadlessTerm::new(GridSize { cols: 20, rows: 3 });
+    term.feed(b"TOPLINE\r\n");
+    for _ in 0..20 {
+        term.feed(b"x\r\n");
+    }
+    term.scroll(1000);
+    assert!(term.display_offset() > 0, "has scrollback before clearing");
+
+    term.feed(b"\x1b[3J"); // CSI 3 J: clear saved (scrollback) lines
+
+    // With the history gone, scrolling up can no longer leave the live bottom.
+    term.scroll(1000);
+    assert_eq!(
+        term.display_offset(),
+        0,
+        "no scrollback should remain after clearing"
+    );
+}

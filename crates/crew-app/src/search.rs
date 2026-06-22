@@ -39,6 +39,24 @@ pub(crate) fn grid_contains(cells: &[RenderCell], term: &str, cols: u16, rows: u
 }
 
 impl CrewApp {
+    /// Clear the focused terminal's scrollback (CSI 3 J), keeping the visible
+    /// screen, and snap back to the live bottom.
+    pub(crate) fn clear_focused_scrollback(&mut self) {
+        let mut cleared = false;
+        if let Some(pane) = self.panes.get_mut(self.focused) {
+            if let PaneContent::Terminal(t) = &mut pane.content {
+                t.pty.feed(b"\x1b[3J");
+                t.pty.scroll_to_bottom();
+                cleared = true;
+            }
+        }
+        self.set_status(if cleared {
+            "scrollback cleared"
+        } else {
+            "nothing to clear"
+        });
+    }
+
     /// Scroll the focused terminal back to the most recent line containing
     /// `term` (stops at the current view, or the top of the scrollback). Always
     /// repaints, and flashes a status when there's no match.
