@@ -26,6 +26,9 @@ pub struct CrewConfig {
     /// Whether the window should launch maximized.
     #[serde(default)]
     pub maximized: bool,
+    /// Last working directory (absolute), restored on the next launch.
+    #[serde(default)]
+    pub last_dir: Option<String>,
 }
 
 impl Default for CrewConfig {
@@ -36,6 +39,7 @@ impl Default for CrewConfig {
             show_nav: default_show_nav(),
             font_family: None,
             maximized: false,
+            last_dir: None,
         }
     }
 }
@@ -52,6 +56,7 @@ impl CrewConfig {
             show_nav: self.show_nav,
             font_family: self.font_family.filter(|n| !n.is_empty()),
             maximized: self.maximized,
+            last_dir: self.last_dir,
         }
     }
 
@@ -109,6 +114,7 @@ mod tests {
             show_nav: true,
             font_family: None,
             maximized: false,
+            last_dir: None,
         }
         .clamped();
         assert_eq!(cfg.font_size, 32.0);
@@ -138,6 +144,7 @@ mod tests {
             show_nav: true,
             font_family: Some("Menlo".to_string()),
             maximized: true,
+            last_dir: Some("/tmp".to_string()),
         };
         assert_eq!(CrewConfig::from_toml_str(&c.to_toml_str()), c);
     }

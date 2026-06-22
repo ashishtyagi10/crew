@@ -13,6 +13,16 @@ pub(crate) fn initial() -> PathBuf {
         .unwrap_or_else(|| PathBuf::from("/"))
 }
 
+/// The directory to launch in: the `saved` config path when it still exists as a
+/// directory, otherwise [`initial`]. Lets Crew reopen where it was last left.
+pub(crate) fn resolved_start(saved: Option<&str>) -> PathBuf {
+    saved
+        .map(PathBuf::from)
+        .and_then(|p| p.canonicalize().ok())
+        .filter(|p| p.is_dir())
+        .unwrap_or_else(initial)
+}
+
 /// `~`-abbreviated display string for `path`, e.g. `~/code/farx`.
 pub(crate) fn display(path: &Path) -> String {
     let s = path.to_string_lossy();
@@ -63,8 +73,11 @@ pub(crate) fn resolve(base: &Path, arg: &str) -> Option<PathBuf> {
 }
 
 impl CrewApp {
-    /// Point Crew at `dir`: update the tracked cwd and the input-bar legend.
+    /// Point Crew at `dir`: update the tracked cwd and input-bar legend, and
+    /// persist it so the next launch reopens here.
     pub(crate) fn set_cwd(&mut self, dir: PathBuf) {
+        self.config.last_dir = Some(dir.to_string_lossy().into_owned());
+        self.config.save();
         self.input.cwd = dir.clone();
         self.cwd = dir;
     }
@@ -105,6 +118,17 @@ mod tests {
         assert_eq!(resolve(&base, base.to_str().unwrap()), Some(base.clone()));
         // a non-existent path resolves to None.
         assert_eq!(resolve(&base, "definitely-not-here-xyz"), None);
+    }
+
+    #[test]
+    fn resolved_start_prefers_valid_saved_dir() {
+        let base = std::env::temp_dir().canonicalize().unwrap();
+        // a saved dir that exists is used
+        assert_eq!(resolved_start(Some(base.to_str().unwrap())), base);
+        // a missing saved dir, or none, falls back to the process cwd
+        let fallback = initial();
+        assert_eq!(resolved_start(Some("/no/such/dir/xyz")), fallback);
+        assert_eq!(resolved_start(None), fallback);
     }
 
     #[test]
