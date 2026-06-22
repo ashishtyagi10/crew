@@ -143,6 +143,7 @@ impl CrewApp {
         let mut cfg = self.config.clone();
         cfg.font_size = size;
         self.apply_settings(cfg.clamped());
+        self.set_status(format!("font size {}", self.config.font_size as i32));
     }
 
     /// Spawn a new chat pane backed by the plugin at `cmd`.

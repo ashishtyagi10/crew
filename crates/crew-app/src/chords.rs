@@ -1,6 +1,15 @@
 //! Super-chord (Cmd/Ctrl + key) dispatch and pane reordering.
 use crate::app::CrewApp;
 
+/// Status label flashed when toggling broadcast (input → all panes).
+fn broadcast_label(on: bool) -> &'static str {
+    if on {
+        "broadcast: all panes"
+    } else {
+        "broadcast: off"
+    }
+}
+
 /// The next index after `from` (wrapping) whose `active` flag is set, or `None`.
 pub(crate) fn next_active_index(active: &[bool], from: usize) -> Option<usize> {
     let n = active.len();
@@ -70,6 +79,7 @@ impl CrewApp {
             "s" => {
                 self.broadcast = !self.broadcast;
                 self.input.broadcast = self.broadcast;
+                self.set_status(broadcast_label(self.broadcast));
             }
             "v" => self.paste(),
             // Font zoom: Cmd+= / Cmd+- grow/shrink, Cmd+0 resets to default.
@@ -94,7 +104,13 @@ impl CrewApp {
 
 #[cfg(test)]
 mod tests {
-    use super::{next_active_index, swap_target};
+    use super::{broadcast_label, next_active_index, swap_target};
+
+    #[test]
+    fn broadcast_label_reflects_state() {
+        assert_eq!(broadcast_label(true), "broadcast: all panes");
+        assert_eq!(broadcast_label(false), "broadcast: off");
+    }
 
     #[test]
     fn next_active_wraps_and_skips() {
