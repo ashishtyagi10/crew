@@ -47,17 +47,22 @@ Press **`/keys`** in the input bar for this list in-app.
 |--------|------|
 | Next / previous pane | **Ctrl+Tab** / **Ctrl+Shift+Tab** (also Cmd+] / Cmd+[) |
 | Jump to pane N | **Cmd+1 … 9** |
+| Jump to next active pane | **Cmd+A** |
 | Move pane left / right | **Cmd+{** / **Cmd+}** |
 | Focus the input bar | **Cmd+I** |
 | New shell pane | **Cmd+T** |
 | Settings / chat pane | **Cmd+,** / **Cmd+J** |
 | Toggle sidebar | **Cmd+G** |
-| Zoom focused pane | **Cmd+Z** |
+| Zoom focused pane | **Cmd+Z** (or double-click) |
+| Broadcast input to all panes | **Cmd+S** |
 | Font bigger / smaller / reset | **Cmd+=** / **Cmd+-** / **Cmd+0** |
-| Paste | **Cmd+V** |
+| Copy visible screen / paste | **Cmd+C** / **Cmd+V** |
 | Close pane / maximize window | **Cmd+W** / **Cmd+M** |
 | Scroll focused pane | **Shift+PageUp** / **Shift+PageDown**, or mouse wheel |
 | Quit | **Cmd+Q** |
+
+Click a pane to focus it (click the input bar to focus that); double-click a
+pane to toggle zoom.
 
 Inside a terminal pane, all other keys (arrows, Home/End, PageUp/Down, Ctrl+C,
 Shift+Tab, …) pass through to the program. Shells launch as your `$SHELL` login
@@ -68,7 +73,8 @@ shell, so your full config and plugins load.
 The docked command bar supports:
 
 - **Slash commands** — type `/` for a command palette (↑/↓ to pick, Tab/→ to
-  fill, Enter to run): `/shell`, `/settings`, `/update`, `/keys`, `/exit`.
+  fill, Enter to run): `/shell`, `/settings`, `/find <text>`, `/update`,
+  `/keys`, `/exit`.
 - **Autosuggest** — fish-style ghost text from history; Tab/→ accepts it.
 - **History** — **Up/Down** recall previous lines (persisted to
   `$XDG_CONFIG/crew/history` across sessions).
@@ -77,15 +83,22 @@ The docked command bar supports:
 
 ## Clipboard
 
+- **Cmd+C** copies the focused terminal's visible screen to the system clipboard.
 - **Cmd+V** pastes into the focused surface (terminal, input bar, or chat). For
   terminals it uses bracketed paste when the program enabled it.
 - Programs can copy to the system clipboard via **OSC 52**.
 
+## Scrollback
+
+Mouse wheel or **Shift+PageUp/PageDown** scroll a pane's history; an amber `⇡`
+in the title bar marks that you're viewing scrollback. **`/find <text>`** scrolls
+back to the most recent line containing the text. Typing returns to the bottom.
+
 ## Sidebar
 
 A docked left panel (toggle with **Cmd+G**) with stacked cards: a live **TIME**
-clock, **SYSTEM** CPU/MEM/DISK gauges, and a **HOST** card (hostname, OS,
-uptime).
+clock, **SYSTEM** CPU/MEM/DISK gauges, a **HOST** card (hostname, OS, uptime),
+and a **NET** card (down/up byte rates).
 
 ## Settings
 
