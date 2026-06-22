@@ -1,101 +1,121 @@
-//! Rendering panes to `PaneScene`s, including the corner badges: index (for
-//! Cmd+1..9 / Ctrl+Tab nav), scrollback, and activity.
+//! Rendering panes to `PaneScene`s. Each pane reserves its top row for a title
+//! bar carrying the index, the program-set title, and status glyphs (scrollback,
+//! activity, bell); the pane content is shifted down one row beneath it.
 use crew_render::{CellView, PaneScene};
 
 use crate::pane::{Pane, PaneContent};
 
-/// Accent green for the focused pane's badge; muted grey otherwise.
-const BADGE_ON: (u8, u8, u8) = (0, 255, 160);
-const BADGE_OFF: (u8, u8, u8) = (110, 110, 120);
-/// Amber for the "viewing scrollback" indicator.
+const ACCENT: (u8, u8, u8) = (0, 255, 160);
 const SCROLL_HINT: (u8, u8, u8) = (230, 180, 90);
-/// Cyan dot marking a non-focused pane with new output.
 const ACTIVITY: (u8, u8, u8) = (120, 200, 255);
-/// Yellow mark for a pane that rang the bell.
 const BELL: (u8, u8, u8) = (240, 210, 90);
+const BAR_FOCUSED: (u8, u8, u8) = (28, 40, 46);
+const BAR_DIM: (u8, u8, u8) = (20, 20, 28);
+const TITLE_ON: (u8, u8, u8) = (225, 225, 225);
+const TITLE_OFF: (u8, u8, u8) = (140, 140, 150);
 
-fn corner(cells: &mut Vec<CellView>, col: u16, c: char, fg: (u8, u8, u8)) {
-    cells.push(CellView {
+/// Inputs for one pane's title bar.
+struct Bar<'a> {
+    cols: u16,
+    index: Option<usize>,
+    title: &'a str,
+    focused: bool,
+    scrolled: bool,
+    activity: bool,
+    bell: bool,
+}
+
+fn cell(col: u16, c: char, fg: (u8, u8, u8), bg: (u8, u8, u8)) -> CellView {
+    CellView {
         col,
         row: 0,
         c,
         fg,
-        bg: (0, 0, 0),
-        bold: true,
+        bg,
+        bold: false,
         italic: false,
-    });
+    }
 }
 
-/// Single-digit index badge in the top-right corner (panes 1-9 only).
-fn add_badge(cells: &mut Vec<CellView>, n: usize, cols: u16, focused: bool) {
-    if cols < 3 || !(1..=9).contains(&n) {
-        return;
+fn set(out: &mut [CellView], col: u16, c: char, fg: (u8, u8, u8), bg: (u8, u8, u8)) {
+    if (col as usize) < out.len() {
+        out[col as usize] = cell(col, c, fg, bg);
     }
-    let c = char::from_digit(n as u32, 10).unwrap_or('?');
-    corner(
-        cells,
-        cols - 2,
-        c,
-        if focused { BADGE_ON } else { BADGE_OFF },
-    );
 }
 
-/// Arrow marking a pane that's scrolled away from the live bottom.
-fn add_scroll_badge(cells: &mut Vec<CellView>, cols: u16) {
-    if cols < 6 {
-        return;
+/// Build the title-bar cells for row 0: a filled bar with the index, title, and
+/// right-aligned status glyphs.
+fn title_bar(b: &Bar) -> Vec<CellView> {
+    if b.cols < 4 {
+        return Vec::new();
     }
-    corner(cells, cols - 4, '⇡', SCROLL_HINT);
-}
+    let bg = if b.focused { BAR_FOCUSED } else { BAR_DIM };
+    let mut out: Vec<CellView> = (0..b.cols).map(|c| cell(c, ' ', bg, bg)).collect();
 
-/// Dot marking a non-focused pane that produced output since you last saw it.
-fn add_activity_badge(cells: &mut Vec<CellView>, cols: u16) {
-    if cols < 8 {
-        return;
+    let mut x = 1u16;
+    if let Some(n) = b.index {
+        if (1..=9).contains(&n) {
+            let d = char::from_digit(n as u32, 10).unwrap_or('?');
+            set(&mut out, x, d, ACCENT, bg);
+            x += 2;
+        }
     }
-    corner(cells, cols - 6, '●', ACTIVITY);
-}
 
-/// Mark a non-focused pane that rang the bell.
-fn add_bell_badge(cells: &mut Vec<CellView>, cols: u16) {
-    if cols < 10 {
-        return;
+    // Right-aligned status glyphs, stepping leftward.
+    let mut rx = b.cols.saturating_sub(2);
+    for (on, c, fg) in [
+        (b.bell, '!', BELL),
+        (b.activity, '●', ACTIVITY),
+        (b.scrolled, '⇡', SCROLL_HINT),
+    ] {
+        if on && rx > x {
+            set(&mut out, rx, c, fg, bg);
+            rx = rx.saturating_sub(2);
+        }
     }
-    corner(cells, cols - 8, '!', BELL);
+
+    let fg = if b.focused { TITLE_ON } else { TITLE_OFF };
+    for (i, ch) in b.title.chars().enumerate() {
+        let col = x + i as u16;
+        if col >= rx {
+            break;
+        }
+        set(&mut out, col, ch, fg, bg);
+    }
+    out
 }
 
 /// Build a `Vec<PaneScene>` from the current pane state (for `renderer.frame`).
-/// Each pane gets corner badges (index when >1 pane, scrollback, activity).
 pub fn build_scenes(panes: &[Pane], focused: Option<usize>) -> Vec<PaneScene> {
     let multi = panes.len() > 1;
     panes
         .iter()
         .enumerate()
         .map(|(i, p)| {
-            let mut cells = p.cells(focused == Some(i));
-            if multi {
-                add_badge(&mut cells, i + 1, p.grid.cols, focused == Some(i));
+            let foc = focused == Some(i);
+            let mut cells = p.cells(foc);
+            for c in cells.iter_mut() {
+                c.row += 1; // content sits below the title bar
             }
-            if let PaneContent::Terminal(t) = &p.content {
-                if t.pty.display_offset() > 0 {
-                    add_scroll_badge(&mut cells, p.grid.cols);
-                }
-            }
-            if focused != Some(i) {
-                if p.activity {
-                    add_activity_badge(&mut cells, p.grid.cols);
-                }
-                if p.bell {
-                    add_bell_badge(&mut cells, p.grid.cols);
-                }
-            }
+            let scrolled =
+                matches!(&p.content, PaneContent::Terminal(t) if t.pty.display_offset() > 0);
+            let title = p.title_text();
+            cells.extend(title_bar(&Bar {
+                cols: p.grid.cols,
+                index: multi.then_some(i + 1),
+                title: &title,
+                focused: foc,
+                scrolled,
+                activity: p.activity && !foc,
+                bell: p.bell && !foc,
+            }));
             PaneScene {
                 cells,
                 x: p.rect.x,
                 y: p.rect.y,
                 w: p.rect.w,
                 h: p.rect.h,
-                focused: focused == Some(i),
+                focused: foc,
                 bordered: true,
             }
         })
@@ -106,32 +126,32 @@ pub fn build_scenes(panes: &[Pane], focused: Option<usize>) -> Vec<PaneScene> {
 mod tests {
     use super::*;
 
-    #[test]
-    fn index_badge_in_top_right() {
-        let mut cells = Vec::new();
-        add_badge(&mut cells, 3, 40, true);
-        assert!(cells
-            .iter()
-            .any(|c| c.c == '3' && c.row == 0 && c.col == 38 && c.fg == BADGE_ON));
+    fn bar(focused: bool) -> Bar<'static> {
+        Bar {
+            cols: 40,
+            index: Some(2),
+            title: "~/code",
+            focused,
+            scrolled: true,
+            activity: true,
+            bell: true,
+        }
     }
 
     #[test]
-    fn no_index_badge_out_of_range_or_too_narrow() {
-        let mut cells = Vec::new();
-        add_badge(&mut cells, 0, 40, false);
-        add_badge(&mut cells, 12, 40, false);
-        add_badge(&mut cells, 2, 2, false);
-        assert!(cells.is_empty());
-    }
-
-    #[test]
-    fn scroll_activity_and_bell_badges() {
-        let mut cells = Vec::new();
-        add_scroll_badge(&mut cells, 40);
-        add_activity_badge(&mut cells, 40);
-        add_bell_badge(&mut cells, 40);
+    fn title_bar_has_index_title_and_glyphs() {
+        let cells = title_bar(&bar(true));
+        assert_eq!(cells.len(), 40); // full-width bar
+        assert!(cells.iter().any(|c| c.c == '2' && c.fg == ACCENT));
+        assert!(cells.iter().any(|c| c.c == '~'));
         assert!(cells.iter().any(|c| c.c == '⇡' && c.fg == SCROLL_HINT));
         assert!(cells.iter().any(|c| c.c == '●' && c.fg == ACTIVITY));
         assert!(cells.iter().any(|c| c.c == '!' && c.fg == BELL));
+        assert!(cells.iter().all(|c| c.row == 0));
+    }
+
+    #[test]
+    fn title_bar_bg_differs_by_focus() {
+        assert_ne!(title_bar(&bar(true))[0].bg, title_bar(&bar(false))[0].bg);
     }
 }

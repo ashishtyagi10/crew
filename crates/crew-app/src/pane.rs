@@ -36,6 +36,22 @@ pub struct Pane {
 }
 
 impl Pane {
+    /// Short label for the pane's title bar (the program-set title, or a kind).
+    pub fn title_text(&self) -> String {
+        match &self.content {
+            PaneContent::Terminal(t) => {
+                let ti = t.pty.title();
+                if ti.is_empty() {
+                    "shell".into()
+                } else {
+                    ti
+                }
+            }
+            PaneContent::Chat(_) => "chat".into(),
+            PaneContent::Settings(_) => "settings".into(),
+        }
+    }
+
     /// Render this pane to a flat list of `CellView`s. `focused` brightens the
     /// terminal cursor (dim in unfocused panes).
     pub fn cells(&self, focused: bool) -> Vec<CellView> {
@@ -82,7 +98,9 @@ pub fn relayout(panes: &mut [Pane], rects: &[Rect], cell_w: f32, cell_h: f32) {
     for (pane, &rect) in panes.iter_mut().zip(rects.iter()) {
         pane.rect = rect;
         let cols = ((rect.w / cell_w).floor() as u16).max(1);
-        let rows = ((rect.h / cell_h).floor() as u16).max(1);
+        // Reserve the top row for the pane title bar; the content grid is one
+        // row shorter (PaneView shifts content down and draws the bar on row 0).
+        let rows = ((rect.h / cell_h).floor() as u16).saturating_sub(1).max(1);
         if cols != pane.grid.cols || rows != pane.grid.rows {
             let new_grid = GridSize { cols, rows };
             if let PaneContent::Terminal(t) = &mut pane.content {
