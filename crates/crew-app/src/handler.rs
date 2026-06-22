@@ -103,6 +103,7 @@ impl ApplicationHandler for CrewApp {
         if any_changed || actions_ran {
             self.redraw();
         }
+        self.sync_window_title();
 
         event_loop.set_control_flow(ControlFlow::WaitUntil(
             Instant::now() + Duration::from_millis(POLL_MS),

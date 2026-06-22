@@ -129,6 +129,14 @@ impl CrewApp {
         self.redraw();
     }
 
+    /// Set the font size (clamped to the config's valid range), applying it live
+    /// and persisting — shared by the Cmd+= / Cmd+- / Cmd+0 zoom chords.
+    pub(crate) fn set_font(&mut self, size: f32) {
+        let mut cfg = self.config.clone();
+        cfg.font_size = size;
+        self.apply_settings(cfg.clamped());
+    }
+
     /// Spawn a new chat pane backed by the plugin at `cmd`.
     pub fn spawn_chat_pane(&mut self, cmd: &str) {
         let grid = self

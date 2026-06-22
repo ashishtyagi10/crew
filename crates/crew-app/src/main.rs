@@ -26,6 +26,7 @@ mod statspane;
 mod suggest;
 mod tui;
 mod welcome;
+mod windowtitle;
 
 fn main() -> anyhow::Result<()> {
     handler::run()

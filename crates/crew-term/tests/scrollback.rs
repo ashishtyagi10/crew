@@ -35,6 +35,14 @@ fn cursor_block_rendered_at_live_position() {
 }
 
 #[test]
+fn osc_title_is_captured() {
+    let mut term = HeadlessTerm::new(GridSize { cols: 20, rows: 3 });
+    assert_eq!(term.title(), "");
+    term.feed(b"\x1b]2;~/code/farx\x07"); // OSC 2 set-window-title
+    assert_eq!(term.title(), "~/code/farx");
+}
+
+#[test]
 fn feeding_text_appears_in_cells() {
     let mut term = HeadlessTerm::new(GridSize { cols: 20, rows: 5 });
     term.feed(b"hi");

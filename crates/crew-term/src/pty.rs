@@ -115,6 +115,11 @@ impl PtyTerm {
     pub fn bracketed_paste(&self) -> bool {
         self.core.bracketed_paste()
     }
+
+    /// The program-set window title (OSC 0/2), empty if none.
+    pub fn title(&self) -> String {
+        self.core.title()
+    }
 }
 
 impl TermModel for PtyTerm {

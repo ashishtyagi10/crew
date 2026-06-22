@@ -34,6 +34,8 @@ pub struct CrewApp {
     pub(crate) help_open: bool,
     /// Whether the focused pane is zoomed to fill the content area.
     pub(crate) zoomed: bool,
+    /// Last OS window title set, to avoid redundant `set_title` calls.
+    pub(crate) win_title: String,
 }
 
 impl CrewApp {
@@ -154,14 +156,6 @@ impl CrewApp {
             _ => {}
         }
         false
-    }
-
-    /// Set the font size (clamped to the config's valid range), applying it live
-    /// and persisting — shared by the Cmd+= / Cmd+- / Cmd+0 zoom chords.
-    pub(crate) fn set_font(&mut self, size: f32) {
-        let mut cfg = self.config.clone();
-        cfg.font_size = size;
-        self.apply_settings(cfg.clamped());
     }
 
     pub(crate) fn toggle_sidebar(&mut self) {

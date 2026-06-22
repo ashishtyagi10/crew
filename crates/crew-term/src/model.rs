@@ -1,10 +1,12 @@
-use alacritty_terminal::event::{Event, EventListener};
+use std::sync::{Arc, Mutex};
+
 use alacritty_terminal::grid::{Dimensions, Scroll};
 use alacritty_terminal::term::cell::Flags;
 use alacritty_terminal::term::{Config, Term, TermMode};
 use alacritty_terminal::vte::ansi::Processor;
 
 use crate::color::{resolve_color, DEFAULT_BG, DEFAULT_FG};
+use crate::listener::TitleListener;
 
 #[derive(Clone, Copy, Debug)]
 pub struct GridSize {
@@ -51,18 +53,11 @@ impl Dimensions for Dims {
     }
 }
 
-// A no-op event listener — we don't react to terminal events yet.
-#[derive(Clone)]
-struct NoopListener;
-
-impl EventListener for NoopListener {
-    fn send_event(&self, _event: Event) {}
-}
-
 // Shared core: a Term + an ANSI processor. Used by HeadlessTerm and PtyTerm.
 pub(crate) struct TermCore {
-    term: Term<NoopListener>,
+    term: Term<TitleListener>,
     parser: Processor,
+    title: Arc<Mutex<String>>,
 }
 
 impl TermCore {
@@ -71,11 +66,21 @@ impl TermCore {
             cols: size.cols as usize,
             rows: size.rows as usize,
         };
-        let term = Term::new(Config::default(), &dims, NoopListener);
+        let title = Arc::new(Mutex::new(String::new()));
+        let listener = TitleListener {
+            title: title.clone(),
+        };
+        let term = Term::new(Config::default(), &dims, listener);
         Self {
             term,
             parser: Processor::new(),
+            title,
         }
+    }
+
+    /// The current program-set window title (empty if none).
+    pub(crate) fn title(&self) -> String {
+        self.title.lock().unwrap().clone()
     }
 
     pub(crate) fn feed(&mut self, bytes: &[u8]) {
@@ -163,6 +168,11 @@ impl HeadlessTerm {
     /// Lines currently scrolled back from the live bottom (0 = at the bottom).
     pub fn display_offset(&self) -> usize {
         self.core.display_offset()
+    }
+
+    /// The program-set window title (empty if none).
+    pub fn title(&self) -> String {
+        self.core.title()
     }
 }
 
