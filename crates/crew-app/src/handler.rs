@@ -51,8 +51,13 @@ impl ApplicationHandler for CrewApp {
         let mut collected_actions = Vec::new();
         let focused = self.focused;
         for (i, p) in self.panes.iter_mut().enumerate() {
+            let mut rang = false;
             let changed = match &mut p.content {
-                PaneContent::Terminal(t) => t.pty.try_read() > 0,
+                PaneContent::Terminal(t) => {
+                    let n = t.pty.try_read() > 0;
+                    rang = t.pty.take_bell();
+                    n
+                }
                 PaneContent::Chat(c) => {
                     let result = c.poll();
                     collected_actions.extend(result.actions);
@@ -60,11 +65,12 @@ impl ApplicationHandler for CrewApp {
                 }
                 PaneContent::Settings(_) => false,
             };
-            // Output to a pane you're not watching flags it as having activity.
-            if changed && i != focused {
-                p.activity = true;
+            // Output / bells in a pane you're not watching flag it.
+            if i != focused {
+                p.activity |= changed;
+                p.bell |= rang;
             }
-            any_changed |= changed;
+            any_changed |= changed || rang;
         }
         if self.sidebar.refresh() {
             any_changed = true;

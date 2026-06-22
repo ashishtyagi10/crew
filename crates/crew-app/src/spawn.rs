@@ -58,6 +58,7 @@ impl CrewApp {
                     },
                     label: Some(label),
                     activity: false,
+                    bell: false,
                 };
                 self.panes.push(pane);
                 self.focus_new_pane();
@@ -109,6 +110,7 @@ impl CrewApp {
             },
             label: None,
             activity: false,
+            bell: false,
         });
         self.focus_new_pane();
     }
@@ -161,6 +163,7 @@ impl CrewApp {
                     },
                     label: None,
                     activity: false,
+                    bell: false,
                 });
                 self.focus_new_pane();
             }

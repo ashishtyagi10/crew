@@ -52,6 +52,15 @@ fn osc52_clipboard_store_is_captured() {
 }
 
 #[test]
+fn bell_is_captured_and_cleared() {
+    let mut term = HeadlessTerm::new(GridSize { cols: 20, rows: 3 });
+    assert!(!term.take_bell());
+    term.feed(b"\x07"); // BEL
+    assert!(term.take_bell());
+    assert!(!term.take_bell(), "taking clears it");
+}
+
+#[test]
 fn feeding_text_appears_in_cells() {
     let mut term = HeadlessTerm::new(GridSize { cols: 20, rows: 5 });
     term.feed(b"hi");
