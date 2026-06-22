@@ -16,6 +16,7 @@ const PANEL: Color = Color::Rgb(18, 18, 30);
 const BINDINGS: &[(&str, &str)] = &[
     ("Ctrl+Tab / Ctrl+Shift+Tab", "Next / previous pane"),
     ("Cmd+1 … 9", "Jump to pane N"),
+    ("Cmd+A", "Jump to next active pane"),
     ("Cmd+{ / Cmd+}", "Move pane left / right"),
     ("Cmd+I", "Focus the input bar"),
     ("Cmd+T", "New shell pane"),
