@@ -17,6 +17,9 @@ const BORDER_ON: (u8, u8, u8) = (210, 210, 220);
 const BORDER_OFF: (u8, u8, u8) = (110, 110, 120);
 /// Transient status message colour (amber), shown on the bottom border.
 const STATUS_FG: (u8, u8, u8) = (230, 180, 90);
+/// Faint placeholder hint shown in an empty, focused input bar.
+const PLACEHOLDER: (u8, u8, u8) = (90, 95, 105);
+const PLACEHOLDER_TEXT: &str = "type / for commands";
 
 #[derive(Default)]
 pub struct InputBar {
@@ -101,6 +104,17 @@ impl InputBar {
         }
         for (i, &(ch, fg)) in body[skip..].iter().enumerate() {
             out.push(cell(tstart + i as u16, row, ch, fg));
+        }
+
+        // Faint placeholder past the cursor when the bar is empty and focused.
+        if self.text.is_empty() && self.focused {
+            for (i, ch) in PLACEHOLDER_TEXT.chars().enumerate() {
+                let col = tstart + 2 + i as u16;
+                if col >= cols - 1 {
+                    break;
+                }
+                out.push(cell(col, row, ch, PLACEHOLDER));
+            }
         }
 
         // Transient status flashed on the bottom border, right-aligned.

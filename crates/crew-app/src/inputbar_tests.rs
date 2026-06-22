@@ -1,6 +1,24 @@
 use super::*;
 
 #[test]
+fn empty_focused_shows_placeholder() {
+    let bar = InputBar {
+        focused: true,
+        ..Default::default()
+    };
+    let cells = bar.cells(40, 3, None);
+    // the placeholder hint renders in the faint placeholder colour
+    assert!(cells.iter().any(|c| c.c == '/' && c.fg == PLACEHOLDER));
+    // once there's text, the placeholder is gone
+    let typed = InputBar {
+        text: "ls".into(),
+        focused: true,
+        ..Default::default()
+    };
+    assert!(!typed.cells(40, 3, None).iter().any(|c| c.fg == PLACEHOLDER));
+}
+
+#[test]
 fn cells_focused_shows_accent_prompt_and_text() {
     let bar = InputBar {
         text: "ls".into(),
