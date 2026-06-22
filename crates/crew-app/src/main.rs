@@ -9,6 +9,7 @@ pub mod config;
 mod gauges;
 mod handler;
 mod help;
+mod host;
 pub(crate) mod inputbar;
 mod keys;
 mod layout;

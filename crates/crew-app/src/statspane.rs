@@ -4,7 +4,11 @@ use crew_render::CellView;
 
 use crate::clock;
 use crate::gauges::render_stats;
+use crate::host;
 use crate::stats::SysSampler;
+
+/// Rows the SYSTEM card occupies (card body + a one-row gap below it).
+const SYS_BLOCK: u16 = 9;
 
 /// The docked sidebar: a live clock card stacked above the system-stats card.
 pub struct StatsPane {
@@ -37,9 +41,20 @@ impl StatsPane {
     pub fn cells(&self, cols: u16, rows: u16) -> Vec<CellView> {
         let (time, date) = clock::now_strings();
         let mut out = clock::clock_cells(&time, &date, cols);
-        if rows > clock::CLOCK_H {
-            for mut c in render_stats(self.sampler.stats(), cols, rows - clock::CLOCK_H) {
-                c.row += clock::CLOCK_H;
+
+        let sys_off = clock::CLOCK_H;
+        if rows > sys_off {
+            for mut c in render_stats(self.sampler.stats(), cols, rows - sys_off) {
+                c.row += sys_off;
+                out.push(c);
+            }
+        }
+
+        let host_off = clock::CLOCK_H + SYS_BLOCK;
+        if rows > host_off + 3 {
+            let (name, uptime) = host::host_strings();
+            for mut c in host::host_cells(&name, &uptime, cols) {
+                c.row += host_off;
                 out.push(c);
             }
         }
