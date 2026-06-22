@@ -1,4 +1,5 @@
 use std::io::Write;
+use std::path::Path;
 
 use crate::app::{CrewApp, FALLBACK_SIZE};
 use crate::chat::ChatPane;
@@ -9,6 +10,14 @@ use crate::settingspane::SettingsPane;
 use crew_plugin::{Plugin, PluginCommand};
 use crew_term::PtyTerm;
 
+/// A zero rect; `build_frame`'s relayout assigns the real pane rect next frame.
+const PLACEHOLDER_RECT: Rect = Rect {
+    x: 0.0,
+    y: 0.0,
+    w: 0.0,
+    h: 0.0,
+};
+
 /// The user's preferred shell from `$SHELL`, falling back to `/bin/sh`.
 pub(crate) fn default_shell() -> String {
     std::env::var("SHELL")
@@ -18,6 +27,13 @@ pub(crate) fn default_shell() -> String {
 }
 
 impl CrewApp {
+    /// The directory new terminals start in — Crew's tracked working directory,
+    /// the same one shown in the input-bar legend and moved by `cd`. `None` only
+    /// before it has been seeded (e.g. in tests), so the child inherits ours.
+    pub(crate) fn spawn_cwd(&self) -> Option<&Path> {
+        (!self.cwd.as_os_str().is_empty()).then_some(self.cwd.as_path())
+    }
+
     /// Spawn a new terminal pane and focus it.
     pub fn spawn_new_pane(&mut self) {
         let grid = self
@@ -26,8 +42,7 @@ impl CrewApp {
             .map(Self::current_grid)
             .unwrap_or(FALLBACK_SIZE);
         let shell = default_shell();
-        let cwd = (!self.cwd.as_os_str().is_empty()).then_some(self.cwd.as_path());
-        match spawn_pane(&shell, "/bin/sh", grid, cwd) {
+        match spawn_pane(&shell, "/bin/sh", grid, self.spawn_cwd()) {
             Ok(pane) => {
                 self.panes.push(pane);
                 self.focus_new_pane();
@@ -43,7 +58,7 @@ impl CrewApp {
             .as_ref()
             .map(Self::current_grid)
             .unwrap_or(FALLBACK_SIZE);
-        match PtyTerm::spawn_args(grid, command, args) {
+        match PtyTerm::spawn_in(grid, command, args, self.spawn_cwd()) {
             Ok(pty) => {
                 let input = pty.writer();
                 // rect/grid are placeholders; build_frame's relayout sizes the pane
@@ -51,12 +66,7 @@ impl CrewApp {
                 let pane = Pane {
                     content: PaneContent::Terminal(Box::new(TermPane { pty, input })),
                     grid,
-                    rect: Rect {
-                        x: 0.0,
-                        y: 0.0,
-                        w: 0.0,
-                        h: 0.0,
-                    },
+                    rect: PLACEHOLDER_RECT,
                     label: Some(label),
                     activity: false,
                     bell: false,
@@ -103,12 +113,7 @@ impl CrewApp {
         self.panes.push(Pane {
             content: PaneContent::Settings(SettingsPane::new(self.config.clone(), families)),
             grid,
-            rect: Rect {
-                x: 0.0,
-                y: 0.0,
-                w: 0.0,
-                h: 0.0,
-            },
+            rect: PLACEHOLDER_RECT,
             label: None,
             activity: false,
             bell: false,
@@ -156,12 +161,7 @@ impl CrewApp {
                 self.panes.push(Pane {
                     content: PaneContent::Chat(chat),
                     grid,
-                    rect: Rect {
-                        x: 0.0,
-                        y: 0.0,
-                        w: 0.0,
-                        h: 0.0,
-                    },
+                    rect: PLACEHOLDER_RECT,
                     label: None,
                     activity: false,
                     bell: false,
