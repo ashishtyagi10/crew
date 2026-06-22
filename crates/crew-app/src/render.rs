@@ -120,10 +120,12 @@ impl CrewApp {
         }
         if let Some(i) = self.pane_at_cursor() {
             if let Some(pane) = self.panes.get_mut(i) {
-                if let PaneContent::Terminal(t) = &mut pane.content {
-                    t.pty.scroll(lines);
-                    self.redraw();
+                match &mut pane.content {
+                    PaneContent::Terminal(t) => t.pty.scroll(lines),
+                    PaneContent::Chat(c) => c.scroll(lines, pane.grid.cols, pane.grid.rows),
+                    PaneContent::Settings(_) => {}
                 }
+                self.redraw();
             }
         }
     }

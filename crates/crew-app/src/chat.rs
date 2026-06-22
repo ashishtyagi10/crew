@@ -48,6 +48,8 @@ pub struct ChatPane {
     pub messages: Vec<Message>,
     pub input: String,
     pub connected: bool,
+    /// Lines scrolled up from the live bottom (0 = following new messages).
+    pub scroll: usize,
 }
 
 impl ChatPane {
@@ -58,7 +60,18 @@ impl ChatPane {
             messages: Vec::new(),
             input: String::new(),
             connected: false,
+            scroll: 0,
         }
+    }
+
+    /// Scroll the message history by `delta` lines (positive = up/older),
+    /// clamped to the available scrollback for the current width/height.
+    pub fn scroll(&mut self, delta: i32, cols: u16, rows: u16) {
+        let msg_rows = rows.saturating_sub(1) as usize;
+        let max =
+            crate::chatlayout::wrapped_line_count(&self.messages, cols).saturating_sub(msg_rows);
+        let next = self.scroll as i64 + delta as i64;
+        self.scroll = next.clamp(0, max as i64) as usize;
     }
 
     /// Drain plugin events; return PollResult with changed flag and any host actions.
@@ -106,7 +119,7 @@ impl ChatPane {
 
     /// Render the channel as CellView cells.
     pub fn cells(&self, cols: u16, rows: u16) -> Vec<CellView> {
-        layout_cells(&self.messages, &self.input, cols, rows)
+        layout_cells(&self.messages, &self.input, cols, rows, self.scroll)
     }
 
     /// Handle a winit key event: translate to (char, enter, backspace) and reduce.
@@ -122,6 +135,7 @@ impl ChatPane {
             _ => (None, false, false),
         };
         if let Some(text) = input_reduce(&mut self.input, ch, enter, backspace) {
+            self.scroll = 0; // sending snaps back to the live bottom
             if !text.is_empty() {
                 let cmd = PluginCommand::Send {
                     channel: self.channel.clone(),

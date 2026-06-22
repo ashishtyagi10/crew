@@ -25,25 +25,32 @@ impl InputBar {
         let row = rows / 2;
         let start = 2u16;
         let prompt_fg = if self.focused { ACCENT } else { DIM };
+        // Drawable columns after the gutter; the first 2 hold the "> " prompt.
         let max = cols.saturating_sub(start + 1) as usize;
-        let text_len = self.text.chars().count();
-        let mut full = format!("> {}", self.text);
+        let text_area = max.saturating_sub(2);
+        let mut body: Vec<char> = self.text.chars().collect();
         if self.focused {
-            full.push('█'); // block cursor while typing, like a terminal
+            body.push('█'); // block cursor at the end, like a terminal
         }
-        let display: String = full.chars().take(max).collect();
-        let cursor_idx = 2 + text_len; // position of the block cursor in `full`
+        // Follow the cursor: when the body overflows the field, show its tail.
+        let skip = body.len().saturating_sub(text_area);
         let mut out = Vec::new();
-        for (i, ch) in display.chars().enumerate() {
-            let fg = if i < 2 {
-                prompt_fg
-            } else if self.focused && i == cursor_idx {
-                ACCENT
-            } else {
-                TEXT_FG
-            };
+        for (i, ch) in "> ".chars().enumerate() {
             out.push(CellView {
                 col: start + i as u16,
+                row,
+                c: ch,
+                fg: prompt_fg,
+                bg: BG,
+                bold: false,
+                italic: false,
+            });
+        }
+        for (i, &ch) in body[skip..].iter().enumerate() {
+            let is_cursor = self.focused && ch == '█' && skip + i + 1 == body.len();
+            let fg = if is_cursor { ACCENT } else { TEXT_FG };
+            out.push(CellView {
+                col: start + 2 + i as u16,
                 row,
                 c: ch,
                 fg,
@@ -94,6 +101,21 @@ mod tests {
         assert_eq!(prompt.fg, ACCENT);
         // a block cursor is shown while focused
         assert!(cells.iter().any(|c| c.c == '█'));
+    }
+
+    #[test]
+    fn cells_long_text_follows_cursor_tail() {
+        let text = format!("S{}E", "x".repeat(80));
+        let bar = InputBar {
+            text,
+            focused: true,
+        };
+        let cells = bar.cells(20, 3);
+        // the tail (end of input) and the cursor are visible…
+        assert!(cells.iter().any(|c| c.c == 'E'));
+        assert!(cells.iter().any(|c| c.c == '█'));
+        // …while the start has scrolled out of view
+        assert!(!cells.iter().any(|c| c.c == 'S'));
     }
 
     #[test]

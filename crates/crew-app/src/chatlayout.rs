@@ -13,13 +13,33 @@ pub struct Message {
     pub text: String,
 }
 
+/// Total number of wrapped message lines for the given width.
+pub fn wrapped_line_count(messages: &[Message], cols: u16) -> usize {
+    if cols == 0 {
+        return 0;
+    }
+    messages
+        .iter()
+        .map(|m| {
+            let len = format!("{}: {}", m.sender, m.text).chars().count();
+            len.div_ceil(cols as usize).max(1)
+        })
+        .sum()
+}
+
 /// Render messages + input prompt as CellView cells.
 ///
 /// - Rows `0..rows-1`: most recent messages, top-down, wrapped to `cols`.
 ///   Sender chars in ACCENT_FG, rest in TEXT_FG.
 /// - Row `rows-1`: `"> " + input` in INPUT_FG.
 /// - All cells use DEFAULT_BG.
-pub fn layout_cells(messages: &[Message], input: &str, cols: u16, rows: u16) -> Vec<CellView> {
+pub fn layout_cells(
+    messages: &[Message],
+    input: &str,
+    cols: u16,
+    rows: u16,
+    scroll: usize,
+) -> Vec<CellView> {
     if rows == 0 || cols == 0 {
         return Vec::new();
     }
@@ -81,9 +101,11 @@ pub fn layout_cells(messages: &[Message], input: &str, cols: u16, rows: u16) -> 
         }
     }
 
-    // Show the last msg_rows lines
-    let start = all_lines.len().saturating_sub(msg_rows as usize);
-    for (row_offset, line) in all_lines[start..].iter().enumerate() {
+    // Show a msg_rows-tall window, `scroll` lines up from the bottom.
+    let max_start = all_lines.len().saturating_sub(msg_rows as usize);
+    let start = max_start.saturating_sub(scroll);
+    let end = (start + msg_rows as usize).min(all_lines.len());
+    for (row_offset, line) in all_lines[start..end].iter().enumerate() {
         let row = row_offset as u16;
         for (col, &(c, fg)) in line.iter().enumerate() {
             cells.push(CellView {
