@@ -15,33 +15,33 @@ const BORDER: (u8, u8, u8) = (110, 110, 120);
 const DIRTY: (u8, u8, u8) = (230, 180, 90);
 const BG: (u8, u8, u8) = (0, 0, 0);
 
-/// Branch name, dirty state, and commits ahead/behind the upstream.
+/// Branch name, number of changed files, and commits ahead/behind the upstream.
 #[derive(Clone, PartialEq, Eq)]
 pub struct GitInfo {
     pub branch: String,
-    pub dirty: bool,
+    pub changed: usize,
     pub ahead: usize,
     pub behind: usize,
 }
 
-/// Query `git` for `dir`'s branch, dirty state, and ahead/behind in a single
-/// `status --porcelain --branch`. `None` when `dir` isn't a repo (or no `git`).
+/// Query `git` for `dir`'s branch, changed-file count, and ahead/behind in a
+/// single `status --porcelain --branch`. `None` when `dir` isn't a repo (no `git`).
 pub fn query(dir: &Path) -> Option<GitInfo> {
     let out = run(dir, &["status", "--porcelain", "--branch"])?;
     parse_status(&out)
 }
 
 /// Parse `git status --porcelain --branch` output: the `## …` header gives the
-/// branch and ahead/behind, any further lines mean the tree is dirty.
+/// branch and ahead/behind, and each further line is one changed file.
 fn parse_status(out: &str) -> Option<GitInfo> {
     let mut lines = out.lines();
     let header = lines.next()?;
     let branch = parse_branch(header)?;
-    let dirty = lines.any(|l| !l.trim().is_empty());
+    let changed = lines.filter(|l| !l.trim().is_empty()).count();
     let (ahead, behind) = parse_ahead_behind(header);
     Some(GitInfo {
         branch,
-        dirty,
+        changed,
         ahead,
         behind,
     })
@@ -99,12 +99,12 @@ pub fn git_cells(info: &GitInfo, cols: u16) -> Vec<CellView> {
         head.push_str(&format!(" ↓{}", info.behind));
     }
     put(&mut out, &head, 1, cols, LABEL);
-    let (marker, fg) = if info.dirty {
-        ("● uncommitted", DIRTY)
+    let (marker, fg) = if info.changed > 0 {
+        (format!("● {} changed", info.changed), DIRTY)
     } else {
-        ("✓ clean", DIM)
+        ("✓ clean".to_string(), DIM)
     };
-    put(&mut out, marker, 2, cols, fg);
+    put(&mut out, &marker, 2, cols, fg);
     out
 }
 
@@ -139,7 +139,7 @@ mod tests {
     fn git_cells_show_branch_and_marker() {
         let info = GitInfo {
             branch: "main".into(),
-            dirty: true,
+            changed: 2,
             ahead: 2,
             behind: 0,
         };
@@ -150,17 +150,18 @@ mod tests {
         // branch + ahead arrow on row 1
         assert!(cells.iter().any(|c| c.c == 'm' && c.row == 1));
         assert!(cells.iter().any(|c| c.c == '↑' && c.row == 1));
-        // dirty marker (amber) on row 2
+        // changed-count marker (amber) on row 2, with the count
         assert!(cells
             .iter()
             .any(|c| c.c == '●' && c.row == 2 && c.fg == DIRTY));
+        assert!(cells.iter().any(|c| c.c == '2' && c.row == 2));
     }
 
     #[test]
     fn git_cells_clean_marker() {
         let info = GitInfo {
             branch: "dev".into(),
-            dirty: false,
+            changed: 0,
             ahead: 0,
             behind: 0,
         };
@@ -169,11 +170,11 @@ mod tests {
     }
 
     #[test]
-    fn parse_status_reads_branch_dirty_ahead_behind() {
+    fn parse_status_reads_branch_changed_ahead_behind() {
         let out = "## main...origin/main [ahead 1, behind 2]\n M src/x.rs\n?? new\n";
         let info = parse_status(out).unwrap();
         assert_eq!(info.branch, "main");
-        assert!(info.dirty);
+        assert_eq!(info.changed, 2);
         assert_eq!((info.ahead, info.behind), (1, 2));
     }
 
@@ -181,7 +182,7 @@ mod tests {
     fn parse_status_clean_no_upstream() {
         let info = parse_status("## feature/x\n").unwrap();
         assert_eq!(info.branch, "feature/x");
-        assert!(!info.dirty);
+        assert_eq!(info.changed, 0);
         assert_eq!((info.ahead, info.behind), (0, 0));
     }
 

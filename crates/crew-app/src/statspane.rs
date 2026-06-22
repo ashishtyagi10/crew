@@ -162,7 +162,7 @@ mod tests {
         assert_eq!(s.panes_top(), 20);
         s.git = Some(GitInfo {
             branch: "main".into(),
-            dirty: false,
+            changed: 0,
             ahead: 0,
             behind: 0,
         });
