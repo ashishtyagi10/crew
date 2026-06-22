@@ -29,6 +29,11 @@ pub struct CrewConfig {
     /// Last working directory (absolute), restored on the next launch.
     #[serde(default)]
     pub last_dir: Option<String>,
+    /// Last window size in logical pixels, restored on the next launch.
+    #[serde(default)]
+    pub win_w: Option<f32>,
+    #[serde(default)]
+    pub win_h: Option<f32>,
 }
 
 impl Default for CrewConfig {
@@ -40,6 +45,8 @@ impl Default for CrewConfig {
             font_family: None,
             maximized: false,
             last_dir: None,
+            win_w: None,
+            win_h: None,
         }
     }
 }
@@ -57,6 +64,8 @@ impl CrewConfig {
             font_family: self.font_family.filter(|n| !n.is_empty()),
             maximized: self.maximized,
             last_dir: self.last_dir,
+            win_w: self.win_w.map(|w| w.clamp(400.0, 10000.0)),
+            win_h: self.win_h.map(|h| h.clamp(300.0, 10000.0)),
         }
     }
 
@@ -115,11 +124,16 @@ mod tests {
             font_family: None,
             maximized: false,
             last_dir: None,
+            win_w: Some(50.0),
+            win_h: Some(50.0),
         }
         .clamped();
         assert_eq!(cfg.font_size, 32.0);
         assert_eq!(cfg.nav_width, 160.0);
         assert!(cfg.show_nav);
+        // window size is clamped up to sane minimums
+        assert_eq!(cfg.win_w, Some(400.0));
+        assert_eq!(cfg.win_h, Some(300.0));
     }
 
     #[test]
@@ -145,6 +159,8 @@ mod tests {
             font_family: Some("Menlo".to_string()),
             maximized: true,
             last_dir: Some("/tmp".to_string()),
+            win_w: Some(1024.0),
+            win_h: Some(768.0),
         };
         assert_eq!(CrewConfig::from_toml_str(&c.to_toml_str()), c);
     }

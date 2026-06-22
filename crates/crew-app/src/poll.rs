@@ -87,9 +87,21 @@ impl CrewApp {
             }
         }
         self.sync_window_title();
+        self.save_window_size_if_settled();
 
         event_loop.set_control_flow(ControlFlow::WaitUntil(
             Instant::now() + Duration::from_millis(POLL_MS),
         ));
+    }
+
+    /// Persist the window size once resizing has settled (~400ms idle), so a
+    /// drag produces a single write rather than one per frame.
+    fn save_window_size_if_settled(&mut self) {
+        if let Some(t) = self.resize_at {
+            if t.elapsed() >= Duration::from_millis(400) {
+                self.config.save();
+                self.resize_at = None;
+            }
+        }
     }
 }

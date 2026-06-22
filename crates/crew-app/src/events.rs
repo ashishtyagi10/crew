@@ -63,6 +63,16 @@ impl CrewApp {
                 if let Some(renderer) = &mut self.renderer {
                     renderer.resize(size.width, size.height);
                 }
+                // Remember the new logical size to persist (debounced in poll_panes).
+                // Skip while maximized so the restore size stays the un-maximized one.
+                if let Some(w) = &self.window {
+                    if !w.is_maximized() {
+                        let scale = w.scale_factor() as f32;
+                        self.config.win_w = Some(size.width as f32 / scale);
+                        self.config.win_h = Some(size.height as f32 / scale);
+                        self.resize_at = Some(Instant::now());
+                    }
+                }
                 self.redraw();
             }
             WindowEvent::ScaleFactorChanged { scale_factor, .. } => {

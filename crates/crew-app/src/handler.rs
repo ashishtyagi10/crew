@@ -15,10 +15,13 @@ use crew_render::Renderer;
 
 impl ApplicationHandler for CrewApp {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+        // Restore the last window size (logical px), defaulting to 1200x800.
+        let w = self.config.win_w.unwrap_or(1200.0).max(400.0);
+        let h = self.config.win_h.unwrap_or(800.0).max(300.0);
         let attrs = Window::default_attributes()
             .with_title("Crew")
             .with_resizable(true)
-            .with_inner_size(LogicalSize::new(1200.0, 800.0));
+            .with_inner_size(LogicalSize::new(w, h));
         let window = Arc::new(event_loop.create_window(attrs).expect("create window"));
 
         // Font size is in logical points; multiply by the display scale so text is

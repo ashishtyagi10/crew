@@ -49,6 +49,8 @@ pub struct CrewApp {
     pub(crate) cwd: PathBuf,
     /// The directory before the last change, so `cd -` can toggle back.
     pub(crate) prev_cwd: PathBuf,
+    /// When the window was last resized; drives a debounced save of its size.
+    pub(crate) resize_at: Option<Instant>,
 }
 
 impl CrewApp {
