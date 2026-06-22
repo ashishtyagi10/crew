@@ -7,11 +7,19 @@ use crew_term::{RenderCell, TermModel};
 /// Safety bound on how many lines a single search scrolls through.
 const MAX_STEPS: usize = 5000;
 
-/// Whether any row of the `cols × rows` grid (rebuilt from `cells`) contains `term`.
+/// Whether any row of the `cols × rows` grid (rebuilt from `cells`) contains
+/// `term`, matched with smart case: case-insensitive unless `term` has an
+/// uppercase letter, in which case the match is case-sensitive.
 pub(crate) fn grid_contains(cells: &[RenderCell], term: &str, cols: u16, rows: u16) -> bool {
     if term.is_empty() {
         return false;
     }
+    let case_insensitive = !term.chars().any(|c| c.is_uppercase());
+    let needle = if case_insensitive {
+        term.to_lowercase()
+    } else {
+        term.to_string()
+    };
     for r in 0..rows {
         let mut line = vec![' '; cols as usize];
         for cell in cells.iter().filter(|c| c.row == r) {
@@ -19,7 +27,11 @@ pub(crate) fn grid_contains(cells: &[RenderCell], term: &str, cols: u16, rows: u
                 line[cell.col as usize] = cell.c;
             }
         }
-        if line.iter().collect::<String>().contains(term) {
+        let mut hay: String = line.iter().collect();
+        if case_insensitive {
+            hay = hay.to_lowercase();
+        }
+        if hay.contains(needle.as_str()) {
             return true;
         }
     }
@@ -95,5 +107,23 @@ mod tests {
         assert!(grid_contains(&cells, "hi", 10, 3));
         assert!(!grid_contains(&cells, "bye", 10, 3));
         assert!(!grid_contains(&cells, "", 10, 3));
+    }
+
+    #[test]
+    fn grid_contains_smart_case() {
+        // "Hello" on row 0.
+        let cells = [
+            cell(0, 0, 'H'),
+            cell(1, 0, 'e'),
+            cell(2, 0, 'l'),
+            cell(3, 0, 'l'),
+            cell(4, 0, 'o'),
+        ];
+        // all-lowercase term → case-insensitive, matches.
+        assert!(grid_contains(&cells, "hello", 10, 1));
+        assert!(grid_contains(&cells, "ell", 10, 1));
+        // a term with an uppercase letter → case-sensitive.
+        assert!(grid_contains(&cells, "Hello", 10, 1));
+        assert!(!grid_contains(&cells, "HELLO", 10, 1));
     }
 }

@@ -100,7 +100,9 @@ The docked command bar supports:
 
 Mouse wheel or **Shift+PageUp/PageDown** scroll a pane's history; an amber `⇡`
 in the title bar marks that you're viewing scrollback. **`/find <text>`** scrolls
-back to the most recent line containing the text. Typing returns to the bottom.
+back to the most recent line containing the text (smart case: case-insensitive
+unless the term has an uppercase letter); a miss reports on the status line.
+Typing returns to the bottom.
 
 ## Sidebar
 
