@@ -25,7 +25,9 @@ impl ApplicationHandler for CrewApp {
         // the right physical size on HiDPI/Retina (the surface is in physical px).
         let font_px = self.config.font_size * window.scale_factor() as f32;
         match Renderer::new(window.clone(), font_px) {
-            Ok(renderer) => {
+            Ok(mut renderer) => {
+                // Apply the persisted font family up front, not just on Save.
+                renderer.set_font_family(self.config.font_family.clone());
                 self.renderer = Some(renderer);
                 self.window = Some(window.clone());
                 window.request_redraw();
