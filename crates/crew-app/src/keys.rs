@@ -46,12 +46,15 @@ impl CrewApp {
             }
         }
 
-        // Cmd+Q / Ctrl+Q quits the app.
+        // Cmd+Q / Ctrl+Q quits — but with panes open, the first press only arms a
+        // confirmation so a stray keystroke can't kill running shells/agents.
         if event.state.is_pressed()
             && (mstate.super_key() || mstate.control_key())
             && matches!(&event.logical_key, Key::Character(s) if s.as_str() == "q")
         {
-            event_loop.exit();
+            if self.confirm_quit() {
+                event_loop.exit();
+            }
             return;
         }
 

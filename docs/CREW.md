@@ -59,7 +59,7 @@ Press **`/keys`** in the input bar for this list in-app.
 | Copy visible screen / paste | **Cmd+C** / **Cmd+V** |
 | Close pane / maximize window | **Cmd+W** / **Cmd+M** |
 | Scroll focused pane | **Shift+PageUp** / **Shift+PageDown**, or mouse wheel |
-| Quit | **Cmd+Q** |
+| Quit | **Cmd+Q** (press twice to confirm when panes are open) |
 
 Click a pane to focus it (click the input bar to focus that); double-click a
 pane to toggle zoom.

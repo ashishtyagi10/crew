@@ -53,6 +53,8 @@ pub struct CrewApp {
     pub(crate) resize_at: Option<Instant>,
     /// Transient status message + when it was set, shown on the input bar.
     pub(crate) status: Option<(String, Instant)>,
+    /// When quit was last pressed with panes open, for the confirm-to-quit window.
+    pub(crate) quit_armed: Option<Instant>,
 }
 
 impl CrewApp {

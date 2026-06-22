@@ -27,6 +27,7 @@ mod net;
 mod pane;
 mod paneview;
 mod poll;
+mod quit;
 mod render;
 mod scroll;
 mod search;
