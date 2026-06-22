@@ -47,7 +47,7 @@ pub fn rain(cols: u16, rows: u16, tick: u64) -> Vec<CellView> {
     let mut cells = Vec::new();
     for c in 0..cols {
         let seed = hash(c as u64 + 1);
-        let period = 2 + (seed % 5); // ticks per cell of fall (2..=6)
+        let period = 5 + (seed % 7); // ticks per cell of fall (5..=11) — a calm drift
         let phase = ((seed >> 8) as i64).rem_euclid(cycle);
         let head = (((tick / period) as i64) + phase).rem_euclid(cycle);
         for d in 0..TRAIL {
