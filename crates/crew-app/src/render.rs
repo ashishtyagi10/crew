@@ -3,7 +3,8 @@ use crew_render::PaneScene;
 use crate::app::{CrewApp, GAP};
 use crate::chrome;
 use crate::layout::{pane_rects_at, Rect};
-use crate::pane::{build_scenes, relayout, PaneContent};
+use crate::pane::{relayout, PaneContent};
+use crate::paneview::build_scenes;
 use crate::session::pane_at;
 use crate::welcome;
 
@@ -50,6 +51,12 @@ impl CrewApp {
             return Vec::new();
         };
         let ih = chrome::input_h(ch);
+        // The pane you're looking at has no unseen activity.
+        if !self.input.focused {
+            if let Some(p) = self.panes.get_mut(self.focused) {
+                p.activity = false;
+            }
+        }
         // A pane highlights only when the input bar is NOT focused (one active surface).
         let mut scenes = if self.zoomed && !self.panes.is_empty() {
             // Zoom: render only the focused pane, expanded to the full content area.

@@ -15,6 +15,7 @@ mod keys;
 mod layout;
 mod matrix;
 mod pane;
+mod paneview;
 mod render;
 mod session;
 mod settingspane;

@@ -49,7 +49,8 @@ impl ApplicationHandler for CrewApp {
         // and starve later panes when an earlier one has output.
         let mut any_changed = false;
         let mut collected_actions = Vec::new();
-        for p in self.panes.iter_mut() {
+        let focused = self.focused;
+        for (i, p) in self.panes.iter_mut().enumerate() {
             let changed = match &mut p.content {
                 PaneContent::Terminal(t) => t.pty.try_read() > 0,
                 PaneContent::Chat(c) => {
@@ -59,6 +60,10 @@ impl ApplicationHandler for CrewApp {
                 }
                 PaneContent::Settings(_) => false,
             };
+            // Output to a pane you're not watching flags it as having activity.
+            if changed && i != focused {
+                p.activity = true;
+            }
             any_changed |= changed;
         }
         if self.sidebar.refresh() {

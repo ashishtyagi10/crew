@@ -1,7 +1,7 @@
 use std::io::Write;
 
 use anyhow::Context;
-use crew_render::{CellView, PaneScene};
+use crew_render::CellView;
 use crew_term::{GridSize, PtyTerm, TermModel};
 
 use crate::chat::ChatPane;
@@ -29,6 +29,8 @@ pub struct Pane {
     pub rect: Rect,
     /// Optional label for routing host actions to this pane.
     pub label: Option<String>,
+    /// Unseen output since this pane was last focused (drives the activity dot).
+    pub activity: bool,
 }
 
 impl Pane {
@@ -67,6 +69,7 @@ pub fn spawn_pane(
             h: 0.0,
         },
         label: None,
+        activity: false,
     })
 }
 
@@ -83,107 +86,5 @@ pub fn relayout(panes: &mut [Pane], rects: &[Rect], cell_w: f32, cell_h: f32) {
             }
             pane.grid = new_grid;
         }
-    }
-}
-
-/// Accent green for the focused pane's badge; muted grey otherwise.
-const BADGE_ON: (u8, u8, u8) = (0, 255, 160);
-const BADGE_OFF: (u8, u8, u8) = (110, 110, 120);
-/// Amber for the "viewing scrollback" indicator.
-const SCROLL_HINT: (u8, u8, u8) = (230, 180, 90);
-
-/// Mark a pane that's scrolled away from the live bottom with a top-corner arrow.
-fn add_scroll_badge(cells: &mut Vec<CellView>, cols: u16) {
-    if cols < 6 {
-        return;
-    }
-    cells.push(CellView {
-        col: cols - 4,
-        row: 0,
-        c: '⇡',
-        fg: SCROLL_HINT,
-        bg: (0, 0, 0),
-        bold: true,
-        italic: false,
-    });
-}
-
-/// Append a single-digit index badge to the pane's top-right corner so the
-/// Cmd+1..9 / Ctrl+Tab navigation is discoverable. Only shown for panes 1-9.
-fn add_badge(cells: &mut Vec<CellView>, n: usize, cols: u16, focused: bool) {
-    if cols < 3 || !(1..=9).contains(&n) {
-        return;
-    }
-    let c = char::from_digit(n as u32, 10).unwrap_or('?');
-    cells.push(CellView {
-        col: cols - 2,
-        row: 0,
-        c,
-        fg: if focused { BADGE_ON } else { BADGE_OFF },
-        bg: (0, 0, 0),
-        bold: focused,
-        italic: false,
-    });
-}
-
-/// Build a `Vec<PaneScene>` from the current pane state (for `renderer.frame`).
-/// Each pane gets a corner index badge when more than one pane is open.
-pub fn build_scenes(panes: &[Pane], focused: Option<usize>) -> Vec<PaneScene> {
-    let multi = panes.len() > 1;
-    panes
-        .iter()
-        .enumerate()
-        .map(|(i, p)| {
-            let mut cells = p.cells();
-            if multi {
-                add_badge(&mut cells, i + 1, p.grid.cols, focused == Some(i));
-            }
-            if let PaneContent::Terminal(t) = &p.content {
-                if t.pty.display_offset() > 0 {
-                    add_scroll_badge(&mut cells, p.grid.cols);
-                }
-            }
-            PaneScene {
-                cells,
-                x: p.rect.x,
-                y: p.rect.y,
-                w: p.rect.w,
-                h: p.rect.h,
-                focused: focused == Some(i),
-                bordered: true,
-            }
-        })
-        .collect()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn badge_added_for_valid_index() {
-        let mut cells = Vec::new();
-        add_badge(&mut cells, 3, 40, true);
-        assert!(cells
-            .iter()
-            .any(|c| c.c == '3' && c.row == 0 && c.col == 38 && c.fg == BADGE_ON));
-    }
-
-    #[test]
-    fn no_badge_out_of_range_or_too_narrow() {
-        let mut cells = Vec::new();
-        add_badge(&mut cells, 0, 40, false);
-        add_badge(&mut cells, 12, 40, false);
-        add_badge(&mut cells, 2, 2, false);
-        assert!(cells.is_empty());
-    }
-
-    #[test]
-    fn scroll_badge_marks_top_corner() {
-        let mut cells = Vec::new();
-        add_scroll_badge(&mut cells, 40);
-        assert!(cells
-            .iter()
-            .any(|c| c.c == '⇡' && c.row == 0 && c.fg == SCROLL_HINT));
     }
 }
