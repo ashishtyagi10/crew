@@ -31,6 +31,8 @@ pub struct Pane {
     pub label: Option<String>,
     /// Unseen output since this pane was last focused (drives the activity dot).
     pub activity: bool,
+    /// The program rang the bell since this pane was last focused.
+    pub bell: bool,
 }
 
 impl Pane {
@@ -71,6 +73,7 @@ pub fn spawn_pane(
         },
         label: None,
         activity: false,
+        bell: false,
     })
 }
 

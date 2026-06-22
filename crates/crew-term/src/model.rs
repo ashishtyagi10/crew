@@ -1,3 +1,5 @@
+use std::sync::atomic::Ordering;
+
 use alacritty_terminal::grid::{Dimensions, Scroll};
 use alacritty_terminal::term::cell::Flags;
 use alacritty_terminal::term::{Config, Term, TermMode};
@@ -128,24 +130,25 @@ impl TermCore {
         self.term.resize(dims);
     }
 
-    /// Scroll the viewport by `delta` lines into scrollback (positive = older).
     pub(crate) fn scroll(&mut self, delta: i32) {
         self.term.scroll_display(Scroll::Delta(delta));
     }
 
-    /// Jump back to the live bottom of the terminal.
     pub(crate) fn scroll_to_bottom(&mut self) {
         self.term.scroll_display(Scroll::Bottom);
     }
 
-    /// Lines currently scrolled back from the live bottom (0 = at the bottom).
     pub(crate) fn display_offset(&self) -> usize {
         self.term.grid().display_offset()
     }
 
-    /// Whether the program enabled bracketed-paste mode.
     pub(crate) fn bracketed_paste(&self) -> bool {
         self.term.mode().contains(TermMode::BRACKETED_PASTE)
+    }
+
+    /// Take a pending bell (rung since the last check), clearing it.
+    pub(crate) fn take_bell(&self) -> bool {
+        self.events.bell.swap(false, Ordering::Relaxed)
     }
 }
 
@@ -160,22 +163,22 @@ impl HeadlessTerm {
         }
     }
 
-    /// Scroll the viewport by `delta` lines into scrollback (positive = older).
     pub fn scroll(&mut self, delta: i32) {
         self.core.scroll(delta);
     }
 
-    /// Lines currently scrolled back from the live bottom (0 = at the bottom).
     pub fn display_offset(&self) -> usize {
         self.core.display_offset()
     }
 
-    /// The program-set window title (empty if none).
     pub fn title(&self) -> String {
         self.core.title()
     }
 
-    /// Take any pending OSC 52 clipboard-store text (clearing it).
+    pub fn take_bell(&self) -> bool {
+        self.core.take_bell()
+    }
+
     pub fn take_clipboard(&self) -> Option<String> {
         self.core.take_clipboard()
     }

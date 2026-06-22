@@ -55,6 +55,7 @@ impl CrewApp {
         if !self.input.focused {
             if let Some(p) = self.panes.get_mut(self.focused) {
                 p.activity = false;
+                p.bell = false;
             }
         }
         // A pane highlights only when the input bar is NOT focused (one active surface).

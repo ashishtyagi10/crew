@@ -125,6 +125,11 @@ impl PtyTerm {
     pub fn take_clipboard(&self) -> Option<String> {
         self.core.take_clipboard()
     }
+
+    /// Take a pending bell (rung since the last check), clearing it.
+    pub fn take_bell(&self) -> bool {
+        self.core.take_bell()
+    }
 }
 
 impl TermModel for PtyTerm {

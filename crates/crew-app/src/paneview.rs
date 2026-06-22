@@ -11,6 +11,8 @@ const BADGE_OFF: (u8, u8, u8) = (110, 110, 120);
 const SCROLL_HINT: (u8, u8, u8) = (230, 180, 90);
 /// Cyan dot marking a non-focused pane with new output.
 const ACTIVITY: (u8, u8, u8) = (120, 200, 255);
+/// Yellow mark for a pane that rang the bell.
+const BELL: (u8, u8, u8) = (240, 210, 90);
 
 fn corner(cells: &mut Vec<CellView>, col: u16, c: char, fg: (u8, u8, u8)) {
     cells.push(CellView {
@@ -54,6 +56,14 @@ fn add_activity_badge(cells: &mut Vec<CellView>, cols: u16) {
     corner(cells, cols - 6, '●', ACTIVITY);
 }
 
+/// Mark a non-focused pane that rang the bell.
+fn add_bell_badge(cells: &mut Vec<CellView>, cols: u16) {
+    if cols < 10 {
+        return;
+    }
+    corner(cells, cols - 8, '!', BELL);
+}
+
 /// Build a `Vec<PaneScene>` from the current pane state (for `renderer.frame`).
 /// Each pane gets corner badges (index when >1 pane, scrollback, activity).
 pub fn build_scenes(panes: &[Pane], focused: Option<usize>) -> Vec<PaneScene> {
@@ -71,8 +81,13 @@ pub fn build_scenes(panes: &[Pane], focused: Option<usize>) -> Vec<PaneScene> {
                     add_scroll_badge(&mut cells, p.grid.cols);
                 }
             }
-            if p.activity && focused != Some(i) {
-                add_activity_badge(&mut cells, p.grid.cols);
+            if focused != Some(i) {
+                if p.activity {
+                    add_activity_badge(&mut cells, p.grid.cols);
+                }
+                if p.bell {
+                    add_bell_badge(&mut cells, p.grid.cols);
+                }
             }
             PaneScene {
                 cells,
@@ -110,11 +125,13 @@ mod tests {
     }
 
     #[test]
-    fn scroll_and_activity_badges() {
+    fn scroll_activity_and_bell_badges() {
         let mut cells = Vec::new();
         add_scroll_badge(&mut cells, 40);
         add_activity_badge(&mut cells, 40);
+        add_bell_badge(&mut cells, 40);
         assert!(cells.iter().any(|c| c.c == '⇡' && c.fg == SCROLL_HINT));
         assert!(cells.iter().any(|c| c.c == '●' && c.fg == ACTIVITY));
+        assert!(cells.iter().any(|c| c.c == '!' && c.fg == BELL));
     }
 }
