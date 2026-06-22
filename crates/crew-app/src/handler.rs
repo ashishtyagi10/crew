@@ -62,6 +62,11 @@ impl ApplicationHandler for CrewApp {
         if self.sidebar.refresh() {
             any_changed = true;
         }
+        // Animate the matrix-rain welcome screen while there are no panes.
+        if self.panes.is_empty() {
+            self.tick = self.tick.wrapping_add(1);
+            any_changed = true;
+        }
         // Close terminal panes whose shell has exited (e.g. the user typed `exit`).
         let exited: Vec<usize> = self
             .panes

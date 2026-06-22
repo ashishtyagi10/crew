@@ -9,6 +9,7 @@ mod handler;
 pub(crate) mod inputbar;
 mod keys;
 mod layout;
+mod matrix;
 mod pane;
 mod render;
 mod session;

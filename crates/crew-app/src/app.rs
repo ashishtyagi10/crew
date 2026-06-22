@@ -28,6 +28,8 @@ pub struct CrewApp {
     pub(crate) config: CrewConfig,
     pub(crate) sidebar: Box<StatsPane>,
     pub(crate) input: InputBar,
+    /// Animation frame counter, advanced while the welcome screen is showing.
+    pub(crate) tick: u64,
 }
 
 impl CrewApp {

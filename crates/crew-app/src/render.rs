@@ -68,7 +68,7 @@ impl CrewApp {
                 let wcols = (r.w / cw).floor() as u16;
                 let wrows = (r.h / ch).floor() as u16;
                 scenes.push(PaneScene {
-                    cells: welcome::welcome_cells(wcols, wrows),
+                    cells: welcome::welcome_cells_animated(wcols, wrows, self.tick),
                     x: r.x,
                     y: r.y,
                     w: r.w,
