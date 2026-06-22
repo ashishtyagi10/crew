@@ -62,7 +62,7 @@ pub fn build_scenes(panes: &[Pane], focused: Option<usize>) -> Vec<PaneScene> {
         .iter()
         .enumerate()
         .map(|(i, p)| {
-            let mut cells = p.cells();
+            let mut cells = p.cells(focused == Some(i));
             if multi {
                 add_badge(&mut cells, i + 1, p.grid.cols, focused == Some(i));
             }

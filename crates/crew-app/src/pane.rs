@@ -34,10 +34,11 @@ pub struct Pane {
 }
 
 impl Pane {
-    /// Render this pane to a flat list of `CellView`s.
-    pub fn cells(&self) -> Vec<CellView> {
+    /// Render this pane to a flat list of `CellView`s. `focused` brightens the
+    /// terminal cursor (dim in unfocused panes).
+    pub fn cells(&self, focused: bool) -> Vec<CellView> {
         match &self.content {
-            PaneContent::Terminal(t) => to_cellviews(&t.pty.cells()),
+            PaneContent::Terminal(t) => to_cellviews(&t.pty.cells(focused)),
             PaneContent::Chat(c) => c.cells(self.grid.cols, self.grid.rows),
             PaneContent::Settings(s) => s.cells(self.grid.cols, self.grid.rows),
         }

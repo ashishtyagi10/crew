@@ -122,8 +122,8 @@ impl TermModel for PtyTerm {
         self.core.feed(bytes);
     }
 
-    fn cells(&self) -> Vec<RenderCell> {
-        self.core.cells()
+    fn cells(&self, focused: bool) -> Vec<RenderCell> {
+        self.core.cells(focused)
     }
 
     fn resize(&mut self, size: GridSize) {
@@ -155,7 +155,7 @@ mod pty_tests {
         while Instant::now() < deadline {
             term.try_read();
             let line: String = {
-                let mut cs: Vec<_> = term.cells();
+                let mut cs: Vec<_> = term.cells(true);
                 cs.sort_by_key(|c| (c.row, c.col));
                 cs.iter().map(|c| c.c).collect()
             };
