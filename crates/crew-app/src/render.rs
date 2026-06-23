@@ -94,6 +94,7 @@ impl CrewApp {
                     h: r.h,
                     focused: false,
                     bordered: true,
+                    overlay: false,
                 });
             }
         }
@@ -121,6 +122,7 @@ impl CrewApp {
                 h: sb.h,
                 focused: false,
                 bordered: true,
+                overlay: false,
             });
         }
 
@@ -139,6 +141,7 @@ impl CrewApp {
             // The input bar draws its own fieldset card border (with the cwd
             // legend), so it opts out of the GPU rounded border.
             bordered: false,
+            overlay: false,
         });
 
         // Keybindings help overlay, centered over everything.
@@ -156,6 +159,7 @@ impl CrewApp {
                 h: hhp,
                 focused: false,
                 bordered: false,
+                overlay: true,
             });
             return scenes;
         }
@@ -174,6 +178,7 @@ impl CrewApp {
                 h: mh,
                 focused: false,
                 bordered: false,
+                overlay: true,
             });
         }
 

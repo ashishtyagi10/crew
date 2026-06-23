@@ -156,6 +156,7 @@ pub fn build_scenes(
                 h: p.rect.h,
                 focused: foc,
                 bordered: true,
+                overlay: false,
             }
         })
         .collect()

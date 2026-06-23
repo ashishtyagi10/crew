@@ -1,13 +1,11 @@
-use glyphon::{
-    Cache, Color, FontSystem, Resolution, SwashCache, TextArea, TextAtlas, TextBounds,
-    TextRenderer, Viewport,
-};
+use glyphon::{Cache, FontSystem, Resolution, SwashCache, TextAtlas, TextRenderer, Viewport};
 
 use crate::celltext::{cell_metrics, monospace_families, FontParams};
 use crate::gpu::Gpu;
 use crate::quads::QuadLayer;
 use crate::roundborder::RoundBorderLayer;
 use crate::scene::{build_scene, PaneBuffer, PaneScene};
+use crate::textprep::prepare_renderer;
 
 /// Default terminal background colour (must match scene.rs).
 pub(crate) const DEFAULT_BG: (u8, u8, u8) = (0, 0, 0);
@@ -30,9 +28,14 @@ pub struct CellGrid {
     viewport: Viewport,
     atlas: TextAtlas,
     renderer: TextRenderer,
+    /// Second renderer for overlay popups, drawn after base panes so nothing
+    /// behind them bleeds through.
+    overlay_renderer: TextRenderer,
     /// One Buffer per pane, plus (origin_x, origin_y, pane_w, pane_h).
     pane_buffers: Vec<PaneBuffer>,
+    overlay_buffers: Vec<PaneBuffer>,
     quad_layer: QuadLayer,
+    overlay_quad_layer: QuadLayer,
     round_border_layer: RoundBorderLayer,
     pub(crate) cell_w: f32,
     pub(crate) cell_h: f32,
@@ -48,17 +51,17 @@ impl CellGrid {
         let cache = Cache::new(&gpu.device);
         let viewport = Viewport::new(&gpu.device, &cache);
         let mut atlas = TextAtlas::new(&gpu.device, &gpu.queue, &cache, gpu.format);
-        let renderer = TextRenderer::new(
-            &mut atlas,
-            &gpu.device,
-            wgpu::MultisampleState::default(),
-            None,
-        );
+        let mk_renderer = |atlas: &mut TextAtlas| {
+            TextRenderer::new(atlas, &gpu.device, wgpu::MultisampleState::default(), None)
+        };
+        let renderer = mk_renderer(&mut atlas);
+        let overlay_renderer = mk_renderer(&mut atlas);
 
         let font_family: Option<String> = None;
         let (cell_w, cell_h) = cell_metrics(&mut font_system, font_size, &font_family);
         let line_height = font_size * 1.25;
         let quad_layer = QuadLayer::new(&gpu.device, gpu.format);
+        let overlay_quad_layer = QuadLayer::new(&gpu.device, gpu.format);
         let round_border_layer = RoundBorderLayer::new(&gpu.device, gpu.format);
 
         Self {
@@ -67,8 +70,11 @@ impl CellGrid {
             viewport,
             atlas,
             renderer,
+            overlay_renderer,
             pane_buffers: Vec::new(),
+            overlay_buffers: Vec::new(),
             quad_layer,
+            overlay_quad_layer,
             round_border_layer,
             cell_w,
             cell_h,
@@ -117,16 +123,16 @@ impl CellGrid {
             line_height: self.line_height,
             family: self.font_family.clone(),
         };
-        let (quads, buffers, borders) = build_scene(
-            panes,
-            self.cell_w,
-            self.cell_h,
-            &mut self.font_system,
-            &params,
-        );
+        let (cw, ch) = (self.cell_w, self.cell_h);
+        let (quads, buffers, borders) =
+            build_scene(panes, cw, ch, &mut self.font_system, &params, false);
+        let (oquads, obuffers, _) =
+            build_scene(panes, cw, ch, &mut self.font_system, &params, true);
         self.quad_layer.set_quads(&gpu.device, &quads);
+        self.overlay_quad_layer.set_quads(&gpu.device, &oquads);
         self.round_border_layer.set_borders(&gpu.device, &borders);
         self.pane_buffers = buffers;
+        self.overlay_buffers = obuffers;
     }
 
     /// Update viewports and prepare GPU uploads for all pane text areas.
@@ -134,6 +140,7 @@ impl CellGrid {
         let w = gpu.config.width as f32;
         let h = gpu.config.height as f32;
         self.quad_layer.set_viewport(&gpu.queue, w, h);
+        self.overlay_quad_layer.set_viewport(&gpu.queue, w, h);
         self.round_border_layer.set_viewport(&gpu.queue, w, h);
         self.viewport.update(
             &gpu.queue,
@@ -143,44 +150,38 @@ impl CellGrid {
             },
         );
 
-        let areas: Vec<TextArea<'_>> = self
-            .pane_buffers
-            .iter()
-            .map(|(buf, ox, oy, pw, ph)| TextArea {
-                buffer: buf,
-                left: *ox,
-                top: *oy,
-                scale: 1.0,
-                bounds: TextBounds {
-                    left: *ox as i32,
-                    top: *oy as i32,
-                    right: (*ox + *pw) as i32,
-                    bottom: (*oy + *ph) as i32,
-                },
-                default_color: Color::rgb(0, 255, 160),
-                custom_glyphs: &[],
-            })
-            .collect();
-
-        self.renderer
-            .prepare(
-                &gpu.device,
-                &gpu.queue,
-                &mut self.font_system,
-                &mut self.atlas,
-                &self.viewport,
-                areas,
-                &mut self.swash,
-            )
-            .expect("glyphon prepare failed");
+        prepare_renderer(
+            &mut self.renderer,
+            gpu,
+            &mut self.font_system,
+            &mut self.atlas,
+            &self.viewport,
+            &self.pane_buffers,
+            &mut self.swash,
+        );
+        prepare_renderer(
+            &mut self.overlay_renderer,
+            gpu,
+            &mut self.font_system,
+            &mut self.atlas,
+            &self.viewport,
+            &self.overlay_buffers,
+            &mut self.swash,
+        );
     }
 
-    /// Draw: cell backgrounds → rounded borders → pane text.
+    /// Draw base panes (backgrounds → borders → text), then overlay popups
+    /// (backgrounds → text) on top, so overlays are fully opaque — no pane text
+    /// behind them can bleed through.
     pub fn draw<'a>(&'a self, pass: &mut wgpu::RenderPass<'a>) {
         self.quad_layer.draw(pass);
         self.round_border_layer.draw(pass);
         self.renderer
             .render(&self.atlas, &self.viewport, pass)
             .expect("glyphon render failed");
+        self.overlay_quad_layer.draw(pass);
+        self.overlay_renderer
+            .render(&self.atlas, &self.viewport, pass)
+            .expect("glyphon overlay render failed");
     }
 }

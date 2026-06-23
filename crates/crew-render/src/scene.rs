@@ -20,6 +20,10 @@ pub struct PaneScene {
     /// Whether to draw the rounded GPU border. Surfaces that draw their own
     /// cell-based border (e.g. the input bar's titled card) set this `false`.
     pub bordered: bool,
+    /// Overlay popups (command palette, help) drawn on top of everything. Their
+    /// backgrounds and text are rendered in a second pass *after* base panes, so
+    /// nothing behind them can bleed through — they are fully opaque.
+    pub overlay: bool,
 }
 
 /// Unfocused panes use a plain mid-grey that stays visible on the black
@@ -30,19 +34,25 @@ const BORDER_RADIUS: f32 = 10.0;
 const BORDER_THICKNESS: f32 = 2.0;
 
 /// Build all quads (cell backgrounds) and one Buffer per pane, plus rounded borders.
-/// Returns `(quads, pane_buffers, borders)`.
+/// Returns `(quads, pane_buffers, borders)`. Only panes whose `overlay` flag
+/// equals `want_overlay` are built, so the caller can render base panes and
+/// overlay popups as two separate passes.
 pub(crate) fn build_scene(
     panes: &[PaneScene],
     cell_w: f32,
     cell_h: f32,
     font_system: &mut glyphon::FontSystem,
     params: &FontParams,
+    want_overlay: bool,
 ) -> (Vec<Quad>, Vec<PaneBuffer>, Vec<Border>) {
     let mut quads: Vec<Quad> = Vec::new();
     let mut buffers: Vec<PaneBuffer> = Vec::new();
     let mut borders: Vec<Border> = Vec::new();
 
     for pane in panes {
+        if pane.overlay != want_overlay {
+            continue;
+        }
         let cols = ((pane.w / cell_w).floor() as usize).max(1);
         let rows = ((pane.h / cell_h).floor() as usize).max(1);
 
