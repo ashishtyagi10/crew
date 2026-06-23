@@ -6,6 +6,7 @@ use crew_render::CellView;
 use crew_term::{GridSize, PtyTerm, TermModel};
 
 use crate::chat::ChatPane;
+use crate::farpane::FarPane;
 use crate::layout::Rect;
 use crate::session::to_cellviews;
 use crate::settingspane::SettingsPane;
@@ -21,6 +22,7 @@ pub enum PaneContent {
     Terminal(Box<TermPane>),
     Chat(ChatPane),
     Settings(SettingsPane),
+    Far(FarPane),
 }
 
 /// A single pane: owns its content, grid size, and pixel rect.
@@ -56,6 +58,7 @@ impl Pane {
             }
             PaneContent::Chat(_) => "chat".into(),
             PaneContent::Settings(_) => "settings".into(),
+            PaneContent::Far(_) => "far".into(),
         }
     }
 
@@ -66,6 +69,7 @@ impl Pane {
             PaneContent::Terminal(t) => to_cellviews(&t.pty.cells(focused)),
             PaneContent::Chat(c) => c.cells(self.grid.cols, self.grid.rows),
             PaneContent::Settings(s) => s.cells(self.grid.cols, self.grid.rows),
+            PaneContent::Far(f) => f.cells(self.grid.cols, self.grid.rows),
         }
     }
 }

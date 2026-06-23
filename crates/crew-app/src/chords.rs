@@ -2,7 +2,7 @@
 use crate::app::CrewApp;
 
 /// Status label flashed when toggling broadcast (input → all panes).
-fn broadcast_label(on: bool) -> &'static str {
+pub(crate) fn broadcast_label(on: bool) -> &'static str {
     if on {
         "broadcast: all panes"
     } else {
@@ -73,14 +73,10 @@ impl CrewApp {
             "]" => self.focused = (self.focused + 1) % n,
             "{" => self.move_pane(-1),
             "}" => self.move_pane(1),
-            "z" => self.zoomed = !self.zoomed,
+            "z" => self.toggle_zoom(),
             "a" => self.focus_next_active(),
             "c" => self.copy_screen(),
-            "s" => {
-                self.broadcast = !self.broadcast;
-                self.input.broadcast = self.broadcast;
-                self.set_status(broadcast_label(self.broadcast));
-            }
+            "s" => self.toggle_broadcast(),
             "v" => self.paste(),
             // Font zoom: Cmd+= / Cmd+- grow/shrink, Cmd+0 resets to default.
             "=" | "+" => self.set_font(self.config.font_size + 1.0),

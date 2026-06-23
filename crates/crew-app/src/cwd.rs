@@ -40,6 +40,18 @@ pub(crate) fn display(path: &Path) -> String {
     s.into_owned()
 }
 
+/// Truncate `s` from the left to at most `max` columns, keeping the tail (the
+/// most specific path component) behind a leading `…`. Used so a deep cwd legend
+/// shows the current directory rather than being clipped at the root.
+pub(crate) fn fit_legend(s: &str, max: usize) -> String {
+    let n = s.chars().count();
+    if n <= max || max == 0 {
+        return s.to_string();
+    }
+    let tail: String = s.chars().skip(n - max.saturating_sub(1)).collect();
+    format!("…{tail}")
+}
+
 /// If `line` is a `cd` command, return its argument (`""` means "go home").
 /// `cd` alone or `cd <path>` match; anything else returns `None`.
 pub(crate) fn cd_arg(line: &str) -> Option<&str> {
@@ -153,6 +165,16 @@ mod tests {
         let fallback = initial();
         assert_eq!(resolved_start(Some("/no/such/dir/xyz")), fallback);
         assert_eq!(resolved_start(None), fallback);
+    }
+
+    #[test]
+    fn fit_legend_keeps_tail_behind_ellipsis() {
+        // fits → unchanged.
+        assert_eq!(fit_legend("~/code/crew", 20), "~/code/crew");
+        // too long → leading ellipsis + the last (max-1) chars (the deep tail).
+        assert_eq!(fit_legend("~/a/b/c/deep", 6), "…/deep");
+        // a zero budget is a no-op rather than a panic.
+        assert_eq!(fit_legend("~/x", 0), "~/x");
     }
 
     #[test]

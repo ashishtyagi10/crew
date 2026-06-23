@@ -34,7 +34,7 @@ impl CrewApp {
                     collected_actions.extend(result.actions);
                     result.changed
                 }
-                PaneContent::Settings(_) => false,
+                PaneContent::Settings(_) | PaneContent::Far(_) => false,
             };
             // Output / bells in a pane you're not watching flag it.
             if i != focused {

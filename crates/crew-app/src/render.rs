@@ -66,12 +66,17 @@ impl CrewApp {
                 relayout(&mut self.panes[i..=i], &[r], cw, ch);
             }
             let f = (!self.input.focused).then_some(0);
-            build_scenes(&self.panes[i..=i], f, self.broadcast)
+            build_scenes(
+                &self.panes[i..=i],
+                f,
+                self.broadcast,
+                self.last_find.as_deref(),
+            )
         } else {
             let rects = self.grid_rects();
             relayout(&mut self.panes, &rects, cw, ch);
             let f = (!self.input.focused).then_some(self.focused);
-            build_scenes(&self.panes, f, self.broadcast)
+            build_scenes(&self.panes, f, self.broadcast, self.last_find.as_deref())
         };
 
         if self.panes.is_empty() {

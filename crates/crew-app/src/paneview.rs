@@ -103,8 +103,14 @@ fn title_bar(b: &Bar) -> Vec<CellView> {
 }
 
 /// Build a `Vec<PaneScene>` from the current pane state (for `renderer.frame`).
-/// `broadcast` marks terminal panes that receive synchronized input.
-pub fn build_scenes(panes: &[Pane], focused: Option<usize>, broadcast: bool) -> Vec<PaneScene> {
+/// `broadcast` marks terminal panes that receive synchronized input; `find` is
+/// the active `/find` term, highlighted in the focused pane while scrolled back.
+pub fn build_scenes(
+    panes: &[Pane],
+    focused: Option<usize>,
+    broadcast: bool,
+    find: Option<&str>,
+) -> Vec<PaneScene> {
     let multi = panes.len() > 1;
     panes
         .iter()
@@ -112,14 +118,25 @@ pub fn build_scenes(panes: &[Pane], focused: Option<usize>, broadcast: bool) -> 
         .map(|(i, p)| {
             let foc = focused == Some(i);
             let mut cells = p.cells(foc);
-            for c in cells.iter_mut() {
-                c.row += 1; // content sits below the title bar
-            }
             let is_term = matches!(&p.content, PaneContent::Terminal(_));
             let scroll = match &p.content {
                 PaneContent::Terminal(t) => t.pty.display_offset(),
                 _ => 0,
             };
+            // Tint http(s) URLs blue so they read as clickable (Cmd+click opens).
+            if is_term {
+                crate::linkhl::colorize(&mut cells, p.grid.cols, p.grid.rows);
+            }
+            // Wash search matches in the focused terminal while viewing a /find
+            // result (scrolled back); it self-clears on return to the bottom.
+            if foc && is_term && scroll > 0 {
+                if let Some(term) = find {
+                    crate::findhl::highlight(&mut cells, term, p.grid.cols, p.grid.rows);
+                }
+            }
+            for c in cells.iter_mut() {
+                c.row += 1; // content sits below the title bar
+            }
             let title = p.title_text();
             cells.extend(title_bar(&Bar {
                 cols: p.grid.cols,

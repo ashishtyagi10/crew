@@ -116,32 +116,6 @@ impl CrewApp {
         false
     }
 
-    /// Run a `/command` typed in the input bar. Returns `true` if the app should exit.
-    fn run_slash_command(&mut self, cmd: &str) -> bool {
-        match cmd {
-            "exit" => return true,
-            "keys" => self.help_open = true,
-            "settings" => self.spawn_settings_pane(),
-            "shell" => self.spawn_new_pane(),
-            "update" => self.spawn_labeled_terminal(
-                "sh",
-                &["-c".to_string(), "git pull; exec sh".to_string()],
-                "update".to_string(),
-            ),
-            "clear" => self.clear_focused_scrollback(),
-            "pwd" => self.copy_cwd(),
-            "name" => self.name_focused_pane(""), // clear the pane's name
-            other => {
-                if let Some(term) = other.strip_prefix("find ") {
-                    self.find_in_terminal(term.trim());
-                } else if let Some(n) = other.strip_prefix("name ") {
-                    self.name_focused_pane(n.trim());
-                }
-            }
-        }
-        false
-    }
-
     /// Set (or, when `name` is empty, clear) the focused pane's title override.
     pub(crate) fn name_focused_pane(&mut self, name: &str) {
         if let Some(p) = self.panes.get_mut(self.focused) {

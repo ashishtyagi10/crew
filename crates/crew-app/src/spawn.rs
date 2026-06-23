@@ -2,16 +2,15 @@ use std::io::Write;
 use std::path::Path;
 
 use crate::app::{CrewApp, FALLBACK_SIZE};
-use crate::chat::ChatPane;
 use crate::config::CrewConfig;
+use crate::farpane::FarPane;
 use crate::layout::Rect;
 use crate::pane::{spawn_pane, Pane, PaneContent, TermPane};
 use crate::settingspane::SettingsPane;
-use crew_plugin::{Plugin, PluginCommand};
 use crew_term::PtyTerm;
 
 /// A zero rect; `build_frame`'s relayout assigns the real pane rect next frame.
-const PLACEHOLDER_RECT: Rect = Rect {
+pub(crate) const PLACEHOLDER_RECT: Rect = Rect {
     x: 0.0,
     y: 0.0,
     w: 0.0,
@@ -123,8 +122,41 @@ impl CrewApp {
         self.focus_new_pane();
     }
 
+    /// Spawn a Far dual-pane file-manager pane rooted at Crew's cwd, and focus it.
+    pub(crate) fn spawn_far_pane(&mut self) {
+        let grid = self
+            .renderer
+            .as_ref()
+            .map(Self::current_grid)
+            .unwrap_or(FALLBACK_SIZE);
+        let cwd = self
+            .spawn_cwd()
+            .map(Path::to_path_buf)
+            .or_else(|| std::env::current_dir().ok())
+            .unwrap_or_default();
+        self.panes.push(Pane {
+            content: PaneContent::Far(FarPane::new(cwd)),
+            grid,
+            rect: PLACEHOLDER_RECT,
+            label: None,
+            name: None,
+            activity: false,
+            bell: false,
+        });
+        self.focus_new_pane();
+    }
+
     /// Apply updated config: set font family + size live, persist to disk, and redraw.
     pub(crate) fn apply_settings(&mut self, cfg: CrewConfig) {
+        self.apply_config(cfg);
+        self.config.save();
+    }
+
+    /// Adopt `cfg` and apply it live (font family/size to the renderer, and a
+    /// redraw to pick up nav width/visibility) *without* writing it back — used
+    /// by `apply_settings` (which then persists) and `/reload` (which must not
+    /// clobber the file just read from disk).
+    pub(crate) fn apply_config(&mut self, cfg: CrewConfig) {
         self.config = cfg;
         let scale = self
             .window
@@ -135,7 +167,6 @@ impl CrewApp {
             r.set_font_family(self.config.font_family.clone());
             r.set_font_size(self.config.font_size * scale);
         }
-        self.config.save();
         self.redraw();
     }
 
@@ -146,55 +177,5 @@ impl CrewApp {
         cfg.font_size = size;
         self.apply_settings(cfg.clamped());
         self.set_status(format!("font size {}", self.config.font_size as i32));
-    }
-
-    /// Spawn a new chat pane backed by the plugin at `cmd`.
-    pub fn spawn_chat_pane(&mut self, cmd: &str) {
-        let grid = self
-            .renderer
-            .as_ref()
-            .map(Self::current_grid)
-            .unwrap_or(FALLBACK_SIZE);
-        match Plugin::spawn(cmd, &[]) {
-            Ok(mut plugin) => {
-                if let Err(e) = plugin.send(&PluginCommand::Hello { v: 1 }) {
-                    eprintln!("spawn_chat_pane: plugin hello error: {e}");
-                }
-                let chat = ChatPane::new(plugin, String::new());
-                self.panes.push(Pane {
-                    content: PaneContent::Chat(chat),
-                    grid,
-                    rect: PLACEHOLDER_RECT,
-                    label: None,
-                    name: None,
-                    activity: false,
-                    bell: false,
-                });
-                self.focus_new_pane();
-            }
-            Err(e) => eprintln!("spawn_chat_pane failed: {e:#}"),
-        }
-    }
-
-    /// Resolve the echo plugin command path.
-    pub(crate) fn echo_plugin_cmd() -> String {
-        std::env::var("CREW_CHAT_PLUGIN").unwrap_or_else(|_| {
-            std::env::current_exe()
-                .ok()
-                .and_then(|p| p.parent().map(|d| d.join("crew-echo-plugin")))
-                .map(|p| p.to_string_lossy().into_owned())
-                .unwrap_or_else(|| "crew-echo-plugin".to_string())
-        })
-    }
-
-    /// Resolve the orchestrator plugin command path.
-    pub(crate) fn orchestrator_plugin_cmd() -> String {
-        std::env::var("CREW_ORCHESTRATOR_PLUGIN").unwrap_or_else(|_| {
-            std::env::current_exe()
-                .ok()
-                .and_then(|p| p.parent().map(|d| d.join("crew-orchestrator-plugin")))
-                .map(|p| p.to_string_lossy().into_owned())
-                .unwrap_or_else(|| "crew-orchestrator-plugin".to_string())
-        })
     }
 }

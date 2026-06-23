@@ -31,6 +31,9 @@ pub struct InputBar {
     pub menu_sel: usize,
     /// Position while browsing history with Up/Down (`None` = editing fresh text).
     pub hist_pos: Option<usize>,
+    /// Text typed before history navigation began; Up/Down recall only entries
+    /// starting with it (empty = match everything, i.e. plain recall).
+    pub hist_prefix: String,
     /// Whether broadcast (synchronized input to all panes) is active.
     pub broadcast: bool,
     /// Crew's working directory: rendered (`~`-abbreviated) as the bar's legend
@@ -49,10 +52,19 @@ impl InputBar {
         let m = crate::suggest::matches(&self.text);
         if !m.is_empty() {
             let name = m[self.menu_sel.min(m.len() - 1)].name;
-            return Some(name[self.text.len()..].to_string());
+            // Only the highlighted command extends inline as ghost text; a fuzzy
+            // (non-prefix) match shows no suffix but the palette still lists it
+            // and Tab/Enter fills the full name.
+            return name.strip_prefix(self.text.as_str()).map(str::to_string);
         }
-        if self.text.starts_with("cd ") && !self.cwd.as_os_str().is_empty() {
-            return crate::suggest::dir_suggest(&self.text, &self.cwd);
+        if !self.cwd.as_os_str().is_empty() {
+            if self.text.starts_with("cd ") {
+                return crate::suggest::dir_suggest(&self.text, &self.cwd);
+            }
+            // `/edit`/`/open` complete file and directory paths.
+            if let Some(p) = crate::pathcomplete::path_suggest(&self.text, &self.cwd) {
+                return Some(p);
+            }
         }
         crate::suggest::suggest(&self.text, &self.history)
     }
@@ -72,7 +84,11 @@ impl InputBar {
         let legend = if self.cwd.as_os_str().is_empty() {
             String::new()
         } else {
-            crate::cwd::display(&self.cwd)
+            // Keep the tail (current dir) when the path is deeper than the card.
+            crate::cwd::fit_legend(
+                &crate::cwd::display(&self.cwd),
+                cols.saturating_sub(6) as usize,
+            )
         };
         let border = if self.focused { BORDER_ON } else { BORDER_OFF };
         let mut out = titled_card(cols, rows, &legend, border, ACCENT, BG);

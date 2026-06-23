@@ -25,6 +25,11 @@ impl CrewApp {
                 button: MouseButton::Left,
                 ..
             } => {
+                // Cmd+click opens a URL / file / dir under the cursor.
+                if self.mods.state().super_key() && self.cmd_click_at_cursor() {
+                    self.redraw();
+                    return;
+                }
                 if let Some(i) = self.focus_at_cursor() {
                     // A second click on the same pane within 400ms toggles zoom.
                     let now = Instant::now();

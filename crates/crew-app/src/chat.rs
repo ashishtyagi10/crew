@@ -119,7 +119,14 @@ impl ChatPane {
 
     /// Render the channel as CellView cells.
     pub fn cells(&self, cols: u16, rows: u16) -> Vec<CellView> {
-        layout_cells(&self.messages, &self.input, cols, rows, self.scroll)
+        layout_cells(
+            &self.messages,
+            &self.input,
+            cols,
+            rows,
+            self.scroll,
+            self.connected,
+        )
     }
 
     /// Handle a winit key event: translate to (char, enter, backspace) and reduce.
@@ -150,50 +157,5 @@ impl ChatPane {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn classify_spawn_pane_returns_host_action() {
-        let ev = PluginEvent::SpawnPane {
-            command: "sh".into(),
-            args: vec![],
-            label: "x".into(),
-        };
-        let result = classify(&ev);
-        assert_eq!(
-            result,
-            Some(HostAction::SpawnPane {
-                command: "sh".into(),
-                args: vec![],
-                label: "x".into(),
-            })
-        );
-    }
-
-    #[test]
-    fn classify_message_returns_none() {
-        let ev = PluginEvent::Message {
-            channel: "general".into(),
-            sender: "bob".into(),
-            text: "hello".into(),
-            ts: "t".into(),
-        };
-        assert_eq!(classify(&ev), None);
-    }
-
-    #[test]
-    fn classify_send_pane_returns_host_action() {
-        let ev = PluginEvent::SendPane {
-            label: "a".into(),
-            text: "hi".into(),
-        };
-        assert_eq!(
-            classify(&ev),
-            Some(HostAction::SendPane {
-                label: "a".into(),
-                text: "hi".into(),
-            })
-        );
-    }
-}
+#[path = "chat_tests.rs"]
+mod tests;

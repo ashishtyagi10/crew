@@ -114,6 +114,7 @@ impl CrewApp {
         let focused = self.focused;
         let shift = mstate.shift_key();
         let mut settings_action: Option<SettingsAction> = None;
+        let mut far_close = false;
         let mut is_terminal = false;
         if let Some(pane) = self.panes.get_mut(focused) {
             match &mut pane.content {
@@ -123,7 +124,13 @@ impl CrewApp {
                 PaneContent::Settings(s) => {
                     settings_action = s.on_key(event, shift);
                 }
+                PaneContent::Far(f) => {
+                    far_close = matches!(f.on_key(event), Some(crate::farpane::FarAction::Close));
+                }
             }
+        }
+        if far_close {
+            self.close_pane(focused);
         }
         if is_terminal {
             if let Some(bytes) = key_to_bytes(event, mstate.control_key(), shift) {

@@ -65,7 +65,8 @@ impl InputBar {
         ) {
             if menu_open {
                 self.text = menu[self.menu_sel.min(menu.len() - 1)].name.to_string();
-            } else if let Some(g) = crate::suggest::suggest(&self.text, &self.history) {
+            } else if let Some(g) = self.ghost() {
+                // Accept exactly what's shown as ghost text (history, cd, or path).
                 self.text.push_str(&g);
             }
             self.menu_sel = 0;
@@ -104,34 +105,6 @@ impl InputBar {
         self.menu_sel = 0;
         self.hist_pos = None;
         None
-    }
-
-    /// Step to an older history entry (Up), loading it into the input.
-    pub(crate) fn history_prev(&mut self) {
-        if self.history.is_empty() {
-            return;
-        }
-        let i = match self.hist_pos {
-            None => self.history.len() - 1,
-            Some(i) => i.saturating_sub(1),
-        };
-        self.hist_pos = Some(i);
-        self.text = self.history[i].clone();
-    }
-
-    /// Step to a newer history entry (Down); past the newest clears the input.
-    pub(crate) fn history_next(&mut self) {
-        match self.hist_pos {
-            Some(i) if i + 1 < self.history.len() => {
-                self.hist_pos = Some(i + 1);
-                self.text = self.history[i + 1].clone();
-            }
-            Some(_) => {
-                self.hist_pos = None;
-                self.text.clear();
-            }
-            None => {}
-        }
     }
 }
 

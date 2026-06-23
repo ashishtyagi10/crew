@@ -7,10 +7,45 @@ pub const DEFAULT_BG: (u8, u8, u8) = (0, 0, 0);
 pub const ACCENT_FG: (u8, u8, u8) = (0, 255, 160);
 pub const TEXT_FG: (u8, u8, u8) = (200, 200, 200);
 pub const INPUT_FG: (u8, u8, u8) = (220, 220, 220);
+/// Dim hint shown in an agent pane that has no messages yet.
+pub const HINT_FG: (u8, u8, u8) = (110, 110, 120);
+const READY_HINT: &str = "Type a message and press Enter to talk to the agent.";
+const CONNECTING_HINT: &str = "Connecting to the agent…";
 
 pub struct Message {
     pub sender: String,
     pub text: String,
+}
+
+/// Word-aware wrap of `full` to width `cols`: the `[start, end)` char ranges of
+/// each line. Words longer than `cols` are hard-broken; the single space at a
+/// wrap point is dropped. Always returns at least one (possibly empty) line.
+fn wrap_indices(full: &[char], cols: usize) -> Vec<(usize, usize)> {
+    if cols == 0 || full.is_empty() {
+        return vec![(0, full.len())];
+    }
+    let n = full.len();
+    let mut lines = Vec::new();
+    let mut start = 0;
+    while start < n {
+        let max_end = (start + cols).min(n);
+        if max_end == n {
+            lines.push((start, n));
+            break;
+        }
+        // Line is full; prefer breaking at the last space within it.
+        match full[start..max_end].iter().rposition(|&c| c == ' ') {
+            Some(p) if p > 0 => {
+                lines.push((start, start + p));
+                start += p + 1; // skip the break space
+            }
+            _ => {
+                lines.push((start, max_end)); // a too-long word: hard break
+                start = max_end;
+            }
+        }
+    }
+    lines
 }
 
 /// Total number of wrapped message lines for the given width.
@@ -21,8 +56,8 @@ pub fn wrapped_line_count(messages: &[Message], cols: u16) -> usize {
     messages
         .iter()
         .map(|m| {
-            let len = format!("{}: {}", m.sender, m.text).chars().count();
-            len.div_ceil(cols as usize).max(1)
+            let full: Vec<char> = format!("{}: {}", m.sender, m.text).chars().collect();
+            wrap_indices(&full, cols as usize).len()
         })
         .sum()
 }
@@ -39,6 +74,7 @@ pub fn layout_cells(
     cols: u16,
     rows: u16,
     scroll: usize,
+    connected: bool,
 ) -> Vec<CellView> {
     if rows == 0 || cols == 0 {
         return Vec::new();
@@ -68,36 +104,47 @@ pub fn layout_cells(
         return cells;
     }
 
-    // Build wrapped lines from messages
+    // A fresh agent pane (no messages) shows a dim hint: how to start once the
+    // agent is connected, or that it's still connecting.
+    if messages.is_empty() {
+        let hint = if connected {
+            READY_HINT
+        } else {
+            CONNECTING_HINT
+        };
+        for (i, c) in hint.chars().take(cols as usize).enumerate() {
+            cells.push(CellView {
+                col: i as u16,
+                row: 0,
+                c,
+                fg: HINT_FG,
+                bg: DEFAULT_BG,
+                bold: false,
+                italic: false,
+            });
+        }
+        return cells;
+    }
+
+    // Build word-wrapped, coloured lines from messages.
     let mut all_lines: Vec<ColoredLine> = Vec::new();
     for msg in messages {
-        let prefix = format!("{}: ", msg.sender);
-        let prefix_len = prefix.chars().count();
-        let full: Vec<char> = format!("{}{}", prefix, msg.text).chars().collect();
-        let total = full.len();
-        if total == 0 {
-            all_lines.push(Vec::new());
-            continue;
-        }
-        let mut pos = 0usize;
-        while pos < total {
-            let end = (pos + cols as usize).min(total);
-            let line = full[pos..end]
+        let prefix_len = format!("{}: ", msg.sender).chars().count();
+        let full: Vec<char> = format!("{}: {}", msg.sender, msg.text).chars().collect();
+        for (s, e) in wrap_indices(&full, cols as usize) {
+            let line = full[s..e]
                 .iter()
                 .enumerate()
                 .map(|(i, &c)| {
-                    (
-                        c,
-                        if pos + i < prefix_len {
-                            ACCENT_FG
-                        } else {
-                            TEXT_FG
-                        },
-                    )
+                    let fg = if s + i < prefix_len {
+                        ACCENT_FG
+                    } else {
+                        TEXT_FG
+                    };
+                    (c, fg)
                 })
                 .collect();
             all_lines.push(line);
-            pos = end;
         }
     }
 

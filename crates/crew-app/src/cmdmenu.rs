@@ -16,9 +16,14 @@ const DIM: Color = Color::Rgb(120, 130, 140);
 /// only draws a background quad when its bg differs from the default).
 const MENU_BG: Color = Color::Rgb(18, 18, 30);
 
-/// Number of cell rows a menu of `n` commands needs (list + top/bottom border).
+/// Most command rows shown at once; beyond this the palette scrolls to keep the
+/// selection in view (the list grew past a comfortable popup height).
+const MAX_ROWS: usize = 10;
+
+/// Number of cell rows a menu of `n` commands needs (list + top/bottom border),
+/// capped at [`MAX_ROWS`] visible rows so a long list doesn't overflow upward.
 pub fn menu_rows(n: usize) -> u16 {
-    n as u16 + 2
+    n.min(MAX_ROWS) as u16 + 2
 }
 
 /// Render the command palette into a `cols × rows` grid.
@@ -69,5 +74,23 @@ mod tests {
     #[test]
     fn empty_matches_render_nothing() {
         assert!(menu_cells(&[], 0, 40, 5).is_empty());
+    }
+
+    #[test]
+    fn menu_rows_caps_long_lists() {
+        assert_eq!(menu_rows(3), 5); // short list: exact fit
+        assert_eq!(menu_rows(50), MAX_ROWS as u16 + 2); // long list: capped
+    }
+
+    #[test]
+    fn long_list_scrolls_to_selection() {
+        let all = crate::suggest::matches("/"); // every command
+        assert!(all.len() > MAX_ROWS, "need a list longer than the cap");
+        let rows = menu_rows(all.len());
+        assert_eq!(rows as usize, MAX_ROWS + 2); // height is capped
+                                                 // selecting the last command still renders it (the list scrolled): the
+                                                 // selection marker is drawn within the capped popup.
+        let cells = menu_cells(&all, all.len() - 1, 40, rows);
+        assert!(cells.iter().any(|c| c.c == '›'));
     }
 }

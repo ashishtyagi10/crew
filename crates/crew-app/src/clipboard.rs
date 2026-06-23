@@ -58,7 +58,7 @@ impl CrewApp {
                     }
                 }
                 PaneContent::Chat(c) => c.input.push_str(&one_line(&text)),
-                PaneContent::Settings(_) => {}
+                PaneContent::Settings(_) | PaneContent::Far(_) => {}
             }
         }
         self.redraw();
@@ -79,6 +79,31 @@ impl CrewApp {
                     self.set_status(format!("copied {lines} lines"));
                 }
             }
+        }
+    }
+
+    /// Copy the focused terminal's full scrollback to the clipboard (`/copy`).
+    /// Unlike Cmd+C (visible screen only), this walks the entire history.
+    pub(crate) fn copy_scrollback(&mut self) {
+        let focused = self.focused;
+        let Some(pane) = self.panes.get_mut(focused) else {
+            self.set_status("copy: focus a terminal pane");
+            return;
+        };
+        let (cols, rows) = (pane.grid.cols, pane.grid.rows);
+        let PaneContent::Terminal(t) = &mut pane.content else {
+            self.set_status("copy: focus a terminal pane");
+            return;
+        };
+        let text = crate::dump::capture_scrollback(&mut t.pty, cols, rows);
+        if text.trim().is_empty() {
+            self.set_status("nothing to copy");
+            return;
+        }
+        if let Ok(mut cb) = arboard::Clipboard::new() {
+            let lines = text.lines().count();
+            let _ = cb.set_text(text);
+            self.set_status(format!("copied {lines} lines (scrollback)"));
         }
     }
 

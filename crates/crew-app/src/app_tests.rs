@@ -22,6 +22,18 @@ fn close_pane_resets_modes_when_empty() {
 }
 
 #[test]
+fn far_slash_command_spawns_dual_pane() {
+    use crate::pane::PaneContent;
+    let mut app = CrewApp::default();
+    assert!(app.panes.is_empty());
+    // `/far` is a non-exit command that opens a Far file-manager pane in the grid.
+    assert!(!app.submit_input("/far".to_string()));
+    assert_eq!(app.panes.len(), 1);
+    assert!(matches!(app.panes[0].content, PaneContent::Far(_)));
+    assert_eq!(app.panes[0].title_text(), "far");
+}
+
+#[test]
 fn zoom_chord_toggles() {
     let mut app = CrewApp::default();
     assert!(!app.zoomed);
