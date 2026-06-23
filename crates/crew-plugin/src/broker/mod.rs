@@ -15,12 +15,14 @@ mod normalize;
 mod registry;
 mod route;
 mod run;
+mod stdio;
 
 pub use adapter::{Adapter, CliAdapter, Normalize};
 pub use agents::known_adapters;
 pub use engine::{Broker, Hop, HopKind};
 pub use registry::Registry;
 pub use route::{parse_routing, Routing};
+pub use stdio::run_broker_stdio;
 
 /// A single message addressed from one agent to another. Every message and
 /// reply that flows through the broker takes this shape.

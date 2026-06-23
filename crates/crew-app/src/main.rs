@@ -65,5 +65,12 @@ mod welcome;
 mod windowtitle;
 
 fn main() -> anyhow::Result<()> {
+    // When the `/crew` pane spawns this binary as its multi-agent broker (a
+    // re-exec of `crew` with this flag), run the JSON-line broker loop and exit
+    // before any GUI initialization. This means `/crew` works wherever `crew`
+    // is installed, with no separate plugin binary to ship.
+    if std::env::args().skip(1).any(|a| a == "--broker-plugin") {
+        return crew_plugin::run_broker_stdio();
+    }
     handler::run()
 }
