@@ -10,6 +10,9 @@ use super::{parse_routing, Envelope, Registry, Routing};
 /// Why a hop was logged.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HopKind {
+    /// About to call an agent (progress note, emitted before the call so the UI
+    /// shows activity during the wait). `to` names the agent being called.
+    Dialing,
     /// A normal reply (relayed onward or bounced back to the sender).
     Reply,
     /// The agent ended the thread with `DONE`.
@@ -78,6 +81,7 @@ impl Broker {
                 return;
             };
             let prompt = frame(&env, &self.registry.peers_of(&env.to));
+            sink(self.note(&env, HopKind::Dialing, String::new()));
             let reply = match agent.call(&prompt, self.timeout) {
                 Ok(r) if !r.trim().is_empty() => r,
                 Ok(_) => {

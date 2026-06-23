@@ -8,25 +8,32 @@ use crew_plugin::{Plugin, PluginCommand};
 impl CrewApp {
     /// Spawn a new chat pane backed by the plugin at `cmd`.
     pub fn spawn_chat_pane(&mut self, cmd: &str) {
-        self.spawn_plugin_pane(cmd, None);
+        self.spawn_plugin_pane(cmd, &[], None);
     }
 
-    /// Spawn the `/crew` pane: a chat pane backed by the multi-agent broker
-    /// plugin, named "crew" so its title bar distinguishes it from chat panes.
+    /// Spawn the `/crew` pane: a chat pane backed by the multi-agent broker.
+    /// The broker is `crew` itself re-exec'd with `--broker-plugin`, so it works
+    /// wherever Crew is installed without a separate plugin binary. Named "crew"
+    /// so its title bar distinguishes it from chat panes.
     pub(crate) fn spawn_crew_pane(&mut self) {
         let cmd = Self::crew_broker_cmd();
-        self.spawn_plugin_pane(&cmd, Some("crew".to_string()));
+        self.spawn_plugin_pane(
+            &cmd,
+            &["--broker-plugin".to_string()],
+            Some("crew".to_string()),
+        );
     }
 
     /// Shared spawn path for plugin-backed panes (chat and crew). `name` sets
-    /// the pane's title-bar label when present.
-    fn spawn_plugin_pane(&mut self, cmd: &str, name: Option<String>) {
+    /// the pane's title-bar label when present. On failure a status flash tells
+    /// the user, rather than silently opening nothing.
+    fn spawn_plugin_pane(&mut self, cmd: &str, args: &[String], name: Option<String>) {
         let grid = self
             .renderer
             .as_ref()
             .map(Self::current_grid)
             .unwrap_or(FALLBACK_SIZE);
-        match Plugin::spawn(cmd, &[]) {
+        match Plugin::spawn(cmd, args) {
             Ok(mut plugin) => {
                 if let Err(e) = plugin.send(&PluginCommand::Hello { v: 1 }) {
                     eprintln!("spawn_plugin_pane: plugin hello error: {e}");
@@ -43,7 +50,10 @@ impl CrewApp {
                 });
                 self.focus_new_pane();
             }
-            Err(e) => eprintln!("spawn_plugin_pane failed: {e:#}"),
+            Err(e) => {
+                eprintln!("spawn_plugin_pane failed: {e:#}");
+                self.set_status(format!("could not start pane: {e}"));
+            }
         }
     }
 
@@ -69,16 +79,15 @@ impl CrewApp {
         })
     }
 
-    /// Resolve the `/crew` multi-agent broker plugin command path. Looks beside
-    /// the running binary (where Cargo places sibling bins), overridable via
-    /// `CREW_BROKER_PLUGIN`.
+    /// Resolve the `/crew` multi-agent broker command. Defaults to **this**
+    /// binary (`crew`), which the pane runs with `--broker-plugin` — so `/crew`
+    /// works wherever Crew is installed, with no separate binary to ship. Set
+    /// `CREW_BROKER_PLUGIN` to use a standalone `crew-broker-plugin` instead.
     pub(crate) fn crew_broker_cmd() -> String {
         std::env::var("CREW_BROKER_PLUGIN").unwrap_or_else(|_| {
             std::env::current_exe()
-                .ok()
-                .and_then(|p| p.parent().map(|d| d.join("crew-broker-plugin")))
                 .map(|p| p.to_string_lossy().into_owned())
-                .unwrap_or_else(|| "crew-broker-plugin".to_string())
+                .unwrap_or_else(|_| "crew".to_string())
         })
     }
 }

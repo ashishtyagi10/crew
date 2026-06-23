@@ -64,10 +64,16 @@ fn drive(agents: Vec<Box<dyn Adapter>>, max: u32) -> Vec<Hop> {
     hops
 }
 
+/// Routing legs, ignoring the `Dialing` progress notes emitted before calls.
 fn legs(hops: &[Hop]) -> Vec<(String, String, HopKind)> {
     hops.iter()
+        .filter(|h| h.kind != HopKind::Dialing)
         .map(|h| (h.from.clone(), h.to.clone(), h.kind))
         .collect()
+}
+
+fn errors(hops: &[Hop]) -> Vec<&Hop> {
+    hops.iter().filter(|h| h.kind == HopKind::Error).collect()
 }
 
 #[test]
@@ -87,7 +93,16 @@ fn demo_a_to_b() {
             ("codex".into(), "claude".into(), HopKind::Done),
         ]
     );
-    assert_eq!(hops[1].text, "looks good");
+    assert!(hops
+        .iter()
+        .any(|h| h.kind == HopKind::Done && h.text == "looks good"));
+    // Each call is announced first (so the UI shows activity during the wait).
+    let dialed: Vec<&str> = hops
+        .iter()
+        .filter(|h| h.kind == HopKind::Dialing)
+        .map(|h| h.to.as_str())
+        .collect();
+    assert_eq!(dialed, vec!["claude", "codex"]);
 }
 
 #[test]
@@ -100,8 +115,7 @@ fn demo_b_to_a_round_trip() {
         ],
         6,
     );
-    // The relay is flat: codex's plain reply bounces back to claude (B->A), and
-    // claude's DONE is addressed to whoever last messaged it (codex).
+    // Flat relay: codex's plain reply bounces back to claude (B->A).
     assert_eq!(
         legs(&hops),
         vec![
@@ -114,8 +128,7 @@ fn demo_b_to_a_round_trip() {
 
 #[test]
 fn demo_three_way_relay_answer_returns_to_a() {
-    // A(claude) -> B(codex) -> C(opencode); C answers B, who relays it back to
-    // A, who finishes. The (codex -> claude) leg is the answer returning to A.
+    // A->B->C; C's answer relays back B->A. The codex->claude leg is the return.
     let hops = drive(
         vec![
             Fake::scripted("claude", &["TO codex: relay please", "DONE: shipped"]),
@@ -152,30 +165,30 @@ fn loop_guard_terminates_a_cycle() {
     let last = hops.last().unwrap();
     assert_eq!(last.kind, HopKind::Terminated);
     assert!(last.text.contains("hop limit"));
-    // hops 0,1,2 logged, then the guard fires on hop 3.
-    assert_eq!(hops.len(), 4);
+    // hops 0,1,2 logged, then the guard fires on hop 3 (Dialing notes aside).
+    assert_eq!(legs(&hops).len(), 4);
 }
 
 #[test]
 fn unknown_agent_errors() {
     let hops = drive(vec![Fake::scripted("codex", &["DONE"])], 6); // no "claude"
-    assert_eq!(hops.len(), 1);
-    assert_eq!(hops[0].kind, HopKind::Error);
-    assert!(hops[0].text.contains("unknown agent"));
+    let errs = errors(&hops);
+    assert_eq!(errs.len(), 1);
+    assert!(errs[0].text.contains("unknown agent"));
 }
 
 #[test]
 fn call_error_is_logged_and_stops() {
     let hops = drive(vec![Fake::failing("claude")], 6);
-    assert_eq!(hops.len(), 1);
-    assert_eq!(hops[0].kind, HopKind::Error);
-    assert_eq!(hops[0].text, "boom");
+    let errs = errors(&hops);
+    assert_eq!(errs.len(), 1);
+    assert_eq!(errs[0].text, "boom");
 }
 
 #[test]
 fn empty_reply_is_an_error() {
     let hops = drive(vec![Fake::scripted("claude", &[""])], 6);
-    assert_eq!(hops.len(), 1);
-    assert_eq!(hops[0].kind, HopKind::Error);
-    assert!(hops[0].text.contains("empty"));
+    let errs = errors(&hops);
+    assert_eq!(errs.len(), 1);
+    assert!(errs[0].text.contains("empty"));
 }
