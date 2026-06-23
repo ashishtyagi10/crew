@@ -1,9 +1,9 @@
 # Crew
 
 A from-scratch, native **GPU terminal** written in Rust — an AI-oriented terminal
-where everything renders in the terminal as tiles (no overlays). This repo is
-pivoting from the original *Farx* file manager to Crew; the crates under
-`crates/crew-*` are the new product.
+where everything renders in the terminal as tiles (no overlays). Crew is the
+successor to this repo's original terminal file-manager project; the crates under
+`crates/crew-*` are the product.
 
 ## Architecture
 

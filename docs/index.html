@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Farx — Next-Gen Terminal File Manager</title>
-  <meta name="description" content="A blazing-fast, cross-platform terminal file manager with dual panels, built-in editor, AI assistant, and beautiful themes. Built in Rust." />
-  <meta property="og:title" content="Farx — Next-Gen Terminal File Manager" />
-  <meta property="og:description" content="Dual-panel file manager with AI assistant. Built in Rust. Runs everywhere." />
+  <title>Crew — A Native GPU Terminal in Rust</title>
+  <meta name="description" content="A from-scratch, native GPU terminal written in Rust. Everything renders as tiles — panes auto-tile into a near-square grid, drawn cell-by-cell on the GPU. Built on macOS, Linux, and Windows." />
+  <meta property="og:title" content="Crew — A Native GPU Terminal in Rust" />
+  <meta property="og:description" content="A GPU terminal where everything renders as tiles, no overlays. Auto-tiling panes, a docked input bar, a live sidebar. Built in Rust." />
   <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://ashishtyagi10.github.io/farx/" />
+  <meta property="og:url" content="https://ashishtyagi10.github.io/crew/" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -20,13 +20,13 @@
 <nav class="nav">
   <div class="nav-inner">
     <a href="#" class="nav-logo">
-      <span class="logo-bracket">[</span>farx<span class="logo-bracket">]</span>
+      <span class="logo-bracket">[</span>crew<span class="logo-bracket">]</span>
     </a>
     <div class="nav-links">
       <a href="#features">Features</a>
       <a href="#install">Install</a>
-      <a href="#ai">AI</a>
-      <a href="#themes">Themes</a>
+      <a href="#input">Input Bar</a>
+      <a href="#keys">Shortcuts</a>
       <a href="docs.html">Docs</a>
       <a href="https://github.com/ashishtyagi10/crew" target="_blank" class="nav-github">GitHub</a>
     </div>
@@ -37,14 +37,15 @@
 <section class="hero">
   <div class="hero-glow"></div>
   <div class="hero-content">
-    <div class="hero-badge">Built with Rust &middot; MIT Licensed</div>
+    <div class="hero-badge">Built with Rust &middot; MIT / Apache-2.0</div>
     <h1 class="hero-title">
-      The file manager<br/>
-      <span class="gradient-text">your terminal deserves.</span>
+      A native GPU terminal<br/>
+      <span class="gradient-text">where everything is a tile.</span>
     </h1>
     <p class="hero-sub">
-      Dual-panel navigation, built-in editor &amp; viewer, AI assistant, 5 themes,
-      and auto-updates &mdash; all in a single binary that runs on
+      Panes auto-tile into a near-square grid, drawn cell-by-cell on the GPU with
+      <strong>winit</strong>, <strong>wgpu</strong> &amp; <strong>glyphon</strong> &mdash;
+      no overlays, just tiles. A single binary that runs on
       <strong>macOS</strong>, <strong>Linux</strong>, and <strong>Windows</strong>.
     </p>
     <div class="hero-actions">
@@ -58,18 +59,17 @@
         <span class="terminal-dot red"></span>
         <span class="terminal-dot yellow"></span>
         <span class="terminal-dot green"></span>
-        <span class="terminal-title">farx</span>
+        <span class="terminal-title">crew</span>
       </div>
-      <pre class="terminal-body"><span class="t-header">   Name             Size     Modified          Name             Size     Modified   </span>
-<span class="t-dir"> /..                &lt;DIR&gt;    2026-03-20  </span><span class="t-sep">|</span><span class="t-dir"> /..                &lt;DIR&gt;    2026-03-20  </span>
-<span class="t-dir"> /src               &lt;DIR&gt;    2026-03-25  </span><span class="t-sep">|</span><span class="t-dir"> /docs              &lt;DIR&gt;    2026-03-25  </span>
-<span class="t-dir"> /tests             &lt;DIR&gt;    2026-03-22  </span><span class="t-sep">|</span><span class="t-dir"> /config            &lt;DIR&gt;    2026-03-18  </span>
-<span class="t-sel"> /target            &lt;DIR&gt;    2026-03-25  </span><span class="t-sep">|</span><span class="t-file"> Cargo.toml         2.1K     2026-03-25  </span>
-<span class="t-file"> Cargo.toml         2.1K     2026-03-25  </span><span class="t-sep">|</span><span class="t-file"> README.md          8.4K     2026-03-25  </span>
-<span class="t-exec"> install.sh         1.8K     2026-03-25  </span><span class="t-sep">|</span><span class="t-file"> LICENSE            1.1K     2026-03-18  </span>
-<span class="t-file"> .gitignore           42      2026-03-18  </span><span class="t-sep">|</span><span class="t-file"> .gitignore           42      2026-03-18  </span>
-<span class="t-prompt">~/code/farx$</span> <span class="t-cursor">_</span>
-<span class="t-fnbar"> F1 Help  F3 View  F4 Edit  F5 Copy  F6 Move  F7 MkDir  F8 Del  F9 Menu  F10 Quit </span></pre>
+      <pre class="terminal-body"><span class="t-header"> 1 ~/code/crew                              2 cargo run                  ⇡12 ● </span>
+<span class="t-dir"> $ cargo build --release -p crew-app  </span><span class="t-sep">|</span><span class="t-file">    Compiling crew-render v0.1.0    </span>
+<span class="t-file"> Compiling crew-term v0.1.0           </span><span class="t-sep">|</span><span class="t-file">    Compiling crew-app v0.1.0       </span>
+<span class="t-sel">  Finished release [optimized]        </span><span class="t-sep">|</span><span class="t-exec">    Running target/release/crew     </span>
+<span class="t-header"> 3 server                                 4 git                            ! </span>
+<span class="t-file"> listening on 127.0.0.1:8080          </span><span class="t-sep">|</span><span class="t-dir"> On branch main ↑2                   </span>
+<span class="t-file"> GET /  200  4ms                      </span><span class="t-sep">|</span><span class="t-file"> nothing to commit, working clean    </span>
+<span class="t-prompt">crew ~/code/crew »</span> <span class="t-cursor">_</span>
+<span class="t-fnbar"> /shell  /settings  /find  /name  /pwd  /update  /keys  /exit    Cmd+T new pane </span></pre>
     </div>
   </div>
 </section>
@@ -77,49 +77,49 @@
 <!-- ==================== FEATURES ==================== -->
 <section id="features" class="section">
   <div class="container">
-    <h2 class="section-title">Everything you need. <span class="gradient-text">Nothing you don't.</span></h2>
-    <p class="section-sub">Power-user features in a single, dependency-free binary.</p>
+    <h2 class="section-title">Rendered on the GPU. <span class="gradient-text">Tiled by default.</span></h2>
+    <p class="section-sub">A from-scratch terminal, drawn cell-by-cell, in a single binary.</p>
 
     <div class="features-grid">
       <div class="feature-card">
-        <div class="feature-icon">&#9776;</div>
-        <h3>Dual-Panel Navigation</h3>
-        <p>Side-by-side panels with tree view, file previews, and one-key copy/move between directories.</p>
+        <div class="feature-icon">&#9638;</div>
+        <h3>Auto-Tiling Panes</h3>
+        <p>Panes auto-tile into a near-square grid. Each has a title bar with its index, program title, and status glyphs. No overlays &mdash; everything is a tile.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">&#9998;</div>
-        <h3>Built-in Editor</h3>
-        <p>Syntax highlighting, undo/redo, search &amp; replace. Edit files without leaving the manager.</p>
+        <div class="feature-icon">&#9728;</div>
+        <h3>GPU Cell Rendering</h3>
+        <p>Every cell is drawn on the GPU with winit, wgpu, and glyphon. Panes have SDF rounded borders; the canvas is pure black with natural ANSI colors.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#9000;</div>
+        <h3>Per-Pane PTY</h3>
+        <p>Each pane runs a real terminal backed by alacritty_terminal and portable-pty. Shells launch as your <code>$SHELL</code> login shell, so your full config loads.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#9656;</div>
+        <h3>Docked Input Bar</h3>
+        <p>A command bar with slash commands, fish-style autosuggest, <code>cd</code> completion with <code>$VAR</code> expansion, and persisted history.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#9776;</div>
+        <h3>Live Sidebar</h3>
+        <p>A docked panel with a clock, CPU/MEM/DISK gauges, load average, host info, network rates, a git section, and a clickable list of open panes.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">&#128270;</div>
-        <h3>Powerful Search</h3>
-        <p>Find files by name pattern or content across entire directory trees. Jump to results instantly.</p>
+        <h3>Scrollback &amp; Find</h3>
+        <p>Mouse wheel or Shift+PageUp/Down scroll a pane's history. <code>/find &lt;text&gt;</code> jumps back to the most recent matching line with smart case.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">&#9881;</div>
-        <h3>Fully Configurable</h3>
-        <p>TOML-based config for keymaps, themes, sorting, hidden files, external editors, and more.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">&#128640;</div>
-        <h3>Blazing Fast</h3>
-        <p>Written in Rust with zero garbage collection. Instant startup, smooth 60fps rendering.</p>
+        <h3>Live Settings</h3>
+        <p><code>/settings</code> opens a form for font family, font size, and the sidebar. Changes persist to a TOML config and apply live on Save.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">&#127760;</div>
         <h3>Cross-Platform</h3>
-        <p>One binary for macOS, Linux, and Windows. Native terminal rendering via Crossterm.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">&#129302;</div>
-        <h3>AI Assistant</h3>
-        <p>Ask questions in plain English. Supports OpenRouter, Anthropic, OpenAI, and local Ollama.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">&#8635;</div>
-        <h3>Auto-Updates</h3>
-        <p>Install once, stay current forever. Background update checks with one-command upgrades.</p>
+        <p>One native binary for macOS, Linux, and Windows. Clipboard via Cmd+C/V and OSC 52, plus chat and agent plugins.</p>
       </div>
     </div>
   </div>
@@ -140,25 +140,25 @@
       </div>
 
       <div class="install-card">
-        <h3>Build from Source</h3>
+        <h3>With Cargo</h3>
         <div class="code-block">
           <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-          <code>git clone https://github.com/ashishtyagi10/crew.git
-cd crew &amp;&amp; cargo build --release</code>
+          <code>cargo install --git https://github.com/ashishtyagi10/crew crew-app</code>
         </div>
       </div>
 
       <div class="install-card">
-        <h3>Update</h3>
+        <h3>Build from Source</h3>
         <div class="code-block">
           <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-          <code>farx --update</code>
+          <code>git clone https://github.com/ashishtyagi10/crew.git
+cd crew &amp;&amp; cargo run --release -p crew-app</code>
         </div>
       </div>
 
       <div class="install-card">
         <h3>GitHub Releases</h3>
-        <p class="install-desc">Pre-built binaries for every platform:</p>
+        <p class="install-desc">Pre-built <code>crew</code> binaries for every platform:</p>
         <div class="platform-tags">
           <span class="tag">macOS Intel</span>
           <span class="tag">macOS ARM</span>
@@ -173,50 +173,53 @@ cd crew &amp;&amp; cargo build --release</code>
 </section>
 
 <!-- ==================== KEYBINDINGS ==================== -->
-<section class="section">
+<section id="keys" class="section">
   <div class="container">
-    <h2 class="section-title">Keyboard-driven. <span class="gradient-text">Mouse optional.</span></h2>
-    <p class="section-sub">FAR Manager keybindings you already know — or learn in minutes.</p>
+    <h2 class="section-title">Keyboard-driven. <span class="gradient-text">Cmd-based chords.</span></h2>
+    <p class="section-sub">Press <kbd>/keys</kbd> in the input bar for the full list in-app.</p>
 
     <div class="keys-grid">
       <div class="key-group">
-        <h4>Navigation</h4>
-        <div class="key-row"><kbd>Tab</kbd> <span>Switch panels</span></div>
-        <div class="key-row"><kbd>Enter</kbd> <span>Open / enter directory</span></div>
-        <div class="key-row"><kbd>Ctrl+\</kbd> <span>Go to root</span></div>
-        <div class="key-row"><kbd>Ctrl+O</kbd> <span>Toggle console</span></div>
+        <h4>Panes</h4>
+        <div class="key-row"><kbd>Ctrl+Tab</kbd> <span>Next / previous pane</span></div>
+        <div class="key-row"><kbd>Cmd+1…9</kbd> <span>Jump to pane N</span></div>
+        <div class="key-row"><kbd>Cmd+A</kbd> <span>Jump to next active pane</span></div>
+        <div class="key-row"><kbd>Cmd+T</kbd> <span>New shell pane</span></div>
+        <div class="key-row"><kbd>Cmd+W</kbd> <span>Close pane</span></div>
       </div>
       <div class="key-group">
-        <h4>File Operations</h4>
-        <div class="key-row"><kbd>F3</kbd> <span>View</span></div>
-        <div class="key-row"><kbd>F4</kbd> <span>Edit</span></div>
-        <div class="key-row"><kbd>F5</kbd> <span>Copy</span></div>
-        <div class="key-row"><kbd>F6</kbd> <span>Move / Rename</span></div>
-        <div class="key-row"><kbd>F7</kbd> <span>New directory</span></div>
-        <div class="key-row"><kbd>F8</kbd> <span>Delete</span></div>
+        <h4>Layout</h4>
+        <div class="key-row"><kbd>Cmd+{ }</kbd> <span>Move pane left / right</span></div>
+        <div class="key-row"><kbd>Cmd+Z</kbd> <span>Zoom focused pane</span></div>
+        <div class="key-row"><kbd>Cmd+G</kbd> <span>Toggle sidebar</span></div>
+        <div class="key-row"><kbd>Cmd+S</kbd> <span>Broadcast input</span></div>
+        <div class="key-row"><kbd>Cmd+M</kbd> <span>Maximize window</span></div>
       </div>
       <div class="key-group">
-        <h4>Selection</h4>
-        <div class="key-row"><kbd>Space</kbd> <span>Toggle select</span></div>
-        <div class="key-row"><kbd>Ctrl+A</kbd> <span>Select all</span></div>
-        <div class="key-row"><kbd>Ctrl+D</kbd> <span>Deselect all</span></div>
+        <h4>Input &amp; Font</h4>
+        <div class="key-row"><kbd>Cmd+I</kbd> <span>Focus input bar</span></div>
+        <div class="key-row"><kbd>Cmd+,</kbd> <span>Settings pane</span></div>
+        <div class="key-row"><kbd>Cmd+J</kbd> <span>Chat pane</span></div>
+        <div class="key-row"><kbd>Cmd+= -</kbd> <span>Font bigger / smaller</span></div>
+        <div class="key-row"><kbd>Cmd+0</kbd> <span>Reset font size</span></div>
       </div>
       <div class="key-group">
-        <h4>Sorting</h4>
-        <div class="key-row"><kbd>Ctrl+F3</kbd> <span>By name</span></div>
-        <div class="key-row"><kbd>Ctrl+F4</kbd> <span>By extension</span></div>
-        <div class="key-row"><kbd>Ctrl+F5</kbd> <span>By size</span></div>
-        <div class="key-row"><kbd>Ctrl+F6</kbd> <span>By date</span></div>
+        <h4>Clipboard &amp; Scroll</h4>
+        <div class="key-row"><kbd>Cmd+C</kbd> <span>Copy visible screen</span></div>
+        <div class="key-row"><kbd>Cmd+V</kbd> <span>Paste</span></div>
+        <div class="key-row"><kbd>Shift+PgUp</kbd> <span>Scroll back</span></div>
+        <div class="key-row"><kbd>Shift+PgDn</kbd> <span>Scroll forward</span></div>
+        <div class="key-row"><kbd>Cmd+Q</kbd> <span>Quit</span></div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ==================== AI ==================== -->
-<section id="ai" class="section section-dark">
+<!-- ==================== INPUT BAR ==================== -->
+<section id="input" class="section section-dark">
   <div class="container">
-    <h2 class="section-title">Your files. <span class="gradient-text">Your AI.</span></h2>
-    <p class="section-sub">Press <kbd>Ctrl+Space</kbd> and ask anything in plain English.</p>
+    <h2 class="section-title">One bar. <span class="gradient-text">Every command.</span></h2>
+    <p class="section-sub">Press <kbd>Cmd+I</kbd> to focus the docked input bar &mdash; type <kbd>/</kbd> for the palette.</p>
 
     <div class="ai-demo">
       <div class="terminal terminal-small">
@@ -224,103 +227,94 @@ cd crew &amp;&amp; cargo build --release</code>
           <span class="terminal-dot red"></span>
           <span class="terminal-dot yellow"></span>
           <span class="terminal-dot green"></span>
-          <span class="terminal-title">AI Assistant</span>
+          <span class="terminal-title">input bar</span>
         </div>
-        <pre class="terminal-body"><span class="t-prompt">AI&gt;</span> find all files larger than 100MB modified this week
+        <pre class="terminal-body"><span class="t-prompt">crew ~/code/crew »</span> /<span class="t-cursor">_</span>
 
-<span class="t-ai">Scanning current directory tree...</span>
+<span class="t-sel">  /shell      open a new shell pane in the current directory  </span>
+<span class="t-file">  /settings   font family, font size, sidebar</span>
+<span class="t-file">  /find       scroll back to the latest matching line</span>
+<span class="t-file">  /name       title the focused pane</span>
+<span class="t-file">  /pwd        copy the working directory</span>
+<span class="t-file">  /clear /update /keys /exit</span>
 
-<span class="t-file">  ./backups/db-dump-2026-03-24.sql      248 MB</span>
-<span class="t-file">  ./logs/app-2026-03-23.log             142 MB</span>
-<span class="t-file">  ./data/export-full.csv                118 MB</span>
-
-<span class="t-ai">Found 3 files totaling 508 MB.</span></pre>
+<span class="t-ai">  Tab/→ accepts the fish-style autosuggest from history.</span></pre>
       </div>
     </div>
 
     <div class="ai-providers">
-      <h3>Works with your favorite provider</h3>
+      <h3>Smarter than a prompt</h3>
       <div class="provider-grid">
         <div class="provider-card">
-          <div class="provider-name">OpenRouter</div>
-          <div class="provider-detail">Free tier available</div>
+          <div class="provider-name">Slash Commands</div>
+          <div class="provider-detail">A palette you can pick from</div>
         </div>
         <div class="provider-card">
-          <div class="provider-name">Anthropic</div>
-          <div class="provider-detail">Claude models</div>
+          <div class="provider-name">Autosuggest</div>
+          <div class="provider-detail">Fish-style ghost text</div>
         </div>
         <div class="provider-card">
-          <div class="provider-name">OpenAI</div>
-          <div class="provider-detail">GPT models</div>
+          <div class="provider-name">cd Completion</div>
+          <div class="provider-detail">With <code>$VAR</code> expansion</div>
         </div>
         <div class="provider-card">
-          <div class="provider-name">Ollama</div>
-          <div class="provider-detail">100% local &amp; private</div>
+          <div class="provider-name">History Recall</div>
+          <div class="provider-detail">Persisted across sessions</div>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ==================== THEMES ==================== -->
-<section id="themes" class="section">
+<!-- ==================== ARCHITECTURE ==================== -->
+<section id="architecture" class="section">
   <div class="container">
-    <h2 class="section-title">Five themes. <span class="gradient-text">Your vibe.</span></h2>
-    <p class="section-sub">Switch with one line in your config.</p>
+    <h2 class="section-title">Four crates. <span class="gradient-text">One workspace.</span></h2>
+    <p class="section-sub">Every <code>.rs</code> file stays ≤200 lines; clippy runs warning-free.</p>
 
     <div class="themes-grid">
-      <div class="theme-card" style="--bg: #00002a; --fg: #00d4d4; --accent: #ffff00; --header: #e0e000;">
-        <div class="theme-label">far-classic</div>
+      <div class="theme-card" style="--bg: #0a0a0a; --fg: #7ee787; --accent: #7ee787; --header: #7ee787;">
+        <div class="theme-label">crew-app</div>
         <div class="theme-preview">
-          <span style="color: var(--header);">Name          Size</span><br/>
-          <span style="color: var(--fg);">/src         &lt;DIR&gt;</span><br/>
-          <span style="color: var(--accent);">Cargo.toml   2.1K</span><br/>
-          <span style="color: var(--fg);">README.md    8.4K</span>
+          <span style="color: var(--header);">window · panes · input</span><br/>
+          <span style="color: var(--fg);">in-pane UI</span><br/>
+          <span style="color: var(--fg);">slash commands</span><br/>
+          <span style="color: var(--fg);">settings form</span>
         </div>
       </div>
-      <div class="theme-card" style="--bg: #101012; --fg: #bebab2; --accent: #dcaa3c; --header: #dcaa3c;">
-        <div class="theme-label">tokyo-night</div>
+      <div class="theme-card" style="--bg: #0a0a0a; --fg: #79c0ff; --accent: #79c0ff; --header: #79c0ff;">
+        <div class="theme-label">crew-render</div>
         <div class="theme-preview">
-          <span style="color: var(--header);">Name          Size</span><br/>
-          <span style="color: #c8a050;">/src         &lt;DIR&gt;</span><br/>
-          <span style="color: var(--fg);">Cargo.toml   2.1K</span><br/>
-          <span style="color: var(--fg);">README.md    8.4K</span>
+          <span style="color: var(--header);">GPU rendering</span><br/>
+          <span style="color: var(--fg);">wgpu + glyphon</span><br/>
+          <span style="color: var(--fg);">SDF borders</span><br/>
+          <span style="color: var(--fg);">cell drawing</span>
         </div>
       </div>
-      <div class="theme-card" style="--bg: #1e1e2e; --fg: #cdd6f4; --accent: #89b4fa; --header: #89b4fa;">
-        <div class="theme-label">catppuccin</div>
+      <div class="theme-card" style="--bg: #0a0a0a; --fg: #d2a8ff; --accent: #d2a8ff; --header: #d2a8ff;">
+        <div class="theme-label">crew-term</div>
         <div class="theme-preview">
-          <span style="color: var(--header);">Name          Size</span><br/>
-          <span style="color: #a6e3a1;">/src         &lt;DIR&gt;</span><br/>
-          <span style="color: var(--fg);">Cargo.toml   2.1K</span><br/>
-          <span style="color: var(--fg);">README.md    8.4K</span>
+          <span style="color: var(--header);">PTY + grid</span><br/>
+          <span style="color: var(--fg);">alacritty_terminal</span><br/>
+          <span style="color: var(--fg);">portable-pty</span><br/>
+          <span style="color: var(--fg);">scrollback</span>
         </div>
       </div>
-      <div class="theme-card" style="--bg: #282a36; --fg: #f8f8f2; --accent: #bd93f9; --header: #bd93f9;">
-        <div class="theme-label">dracula</div>
+      <div class="theme-card" style="--bg: #0a0a0a; --fg: #ffa657; --accent: #ffa657; --header: #ffa657;">
+        <div class="theme-label">crew-plugin</div>
         <div class="theme-preview">
-          <span style="color: var(--header);">Name          Size</span><br/>
-          <span style="color: #50fa7b;">/src         &lt;DIR&gt;</span><br/>
-          <span style="color: var(--fg);">Cargo.toml   2.1K</span><br/>
-          <span style="color: var(--fg);">README.md    8.4K</span>
-        </div>
-      </div>
-      <div class="theme-card" style="--bg: #282828; --fg: #ebdbb2; --accent: #fabd2f; --header: #fabd2f;">
-        <div class="theme-label">gruvbox</div>
-        <div class="theme-preview">
-          <span style="color: var(--header);">Name          Size</span><br/>
-          <span style="color: #b8bb26;">/src         &lt;DIR&gt;</span><br/>
-          <span style="color: var(--fg);">Cargo.toml   2.1K</span><br/>
-          <span style="color: var(--fg);">README.md    8.4K</span>
+          <span style="color: var(--header);">chat plugins</span><br/>
+          <span style="color: var(--fg);">agent plugins</span><br/>
+          <span style="color: var(--fg);">Cmd+J chat pane</span><br/>
+          <span style="color: var(--fg);">extensible</span>
         </div>
       </div>
     </div>
 
     <div class="theme-config">
       <div class="code-block">
-        <code># ~/.config/farx/config.toml
-[ui]
-theme = "catppuccin"</code>
+        <code># run the workspace
+cargo run --release -p crew-app</code>
       </div>
     </div>
   </div>
@@ -329,8 +323,8 @@ theme = "catppuccin"</code>
 <!-- ==================== CTA ==================== -->
 <section class="section section-cta">
   <div class="container">
-    <h2 class="section-title">Ready to upgrade your terminal?</h2>
-    <p class="section-sub">One command. All platforms. Auto-updates forever.</p>
+    <h2 class="section-title">Ready to tile your terminal?</h2>
+    <p class="section-sub">One command. All platforms. Rendered on the GPU.</p>
     <div class="cta-code">
       <div class="code-block code-block-large">
         <button class="copy-btn" onclick="copyCode(this)">Copy</button>
@@ -348,7 +342,7 @@ theme = "catppuccin"</code>
 <footer class="footer">
   <div class="container footer-inner">
     <div class="footer-logo">
-      <span class="logo-bracket">[</span>farx<span class="logo-bracket">]</span>
+      <span class="logo-bracket">[</span>crew<span class="logo-bracket">]</span>
     </div>
     <div class="footer-links">
       <a href="https://github.com/ashishtyagi10/crew" target="_blank">GitHub</a>

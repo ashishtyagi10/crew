@@ -204,7 +204,7 @@ git commit -m "chore: Crew real-cell-rendering milestone (color + style + resize
 
 ## Notes for the next plan (Plan 3: Multi-pane + focus)
 
-- Multiple `PtyTerm`s; port Farx grid geometry (`cols = ceil(sqrt(n))`, full-tile cap, LRU demotion) into a `crew-render` layout that places each pane's `CellGrid` in a sub-rect.
+- Multiple `PtyTerm`s; port the prior project's grid geometry (`cols = ceil(sqrt(n))`, full-tile cap, LRU demotion) into a `crew-render` layout that places each pane's `CellGrid` in a sub-rect.
 - Focus model: single focus owner (orchestrator box vs a pane), click-to-focus, one reserved jump chord, passthrough.
 - Damage-driven redraw via `Term::damage()` (add `TermModel::take_damage()`), instead of rebuilding all cells each frame.
 - Expand `key_to_bytes` for Ctrl/Alt combos and arrow keys (currently plain keys only).

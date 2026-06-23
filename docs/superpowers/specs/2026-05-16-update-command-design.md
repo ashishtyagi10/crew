@@ -1,5 +1,7 @@
 # `/update` slash command — Design
 
+> *Historical record: this plan predates the Crew pivot and targets editor crates that have since been removed.*
+
 **Date:** 2026-05-16
 **Status:** Approved
 **Author:** Ashish Tyagi (with Claude)
@@ -7,13 +9,13 @@
 ## Goal
 
 Add a first-class `/update` slash command (Copilot-style) that lets the user
-check for and install a newer Farx release from inside the running TUI. The
+check for and install a newer release from inside the running TUI. The
 existing `--update` and `--check-update` CLI flags continue to work; this
 spec is only about the in-TUI command.
 
 ## Non-goals
 
-- Auto-update on startup. The install script's old tagline "Farx auto-updates
+- Auto-update on startup. The install script's old tagline "the app auto-updates
   on startup" is misleading and is dropped.
 - Auto-restart after install. The user is told to restart manually so any
   in-flight TUI state is preserved.
@@ -22,10 +24,10 @@ spec is only about the in-TUI command.
 
 ## Architecture
 
-The current `crates/farx-app/src/update.rs` cannot be called from
-`crates/farx-ui` because `farx-app` depends on `farx-ui`, not the reverse.
+The current `crates/legacy-app/src/update.rs` cannot be called from
+`crates/legacy-ui` because `legacy-app` depends on `legacy-ui`, not the reverse.
 
-**Move `update.rs` into `farx-core`.** Both crates already consume `farx-core`,
+**Move `update.rs` into `legacy-core`.** Both crates already consume `legacy-core`,
 so this is the minimum change that lets the TUI trigger the update flow. The
 public API is unchanged: `UpdateStatus`, `check_and_auto_update_async`,
 `perform_update`, `print_version`.
@@ -84,7 +86,7 @@ Failed   { message: String }
 
 5. **N key** while in `Confirm`: clear state.
 
-6. **Done modal**: `"Updated to vX.Y.Z — restart farx to use the new version.  [Enter] dismiss"`. Enter clears state. App keeps running.
+6. **Done modal**: `"Updated to vX.Y.Z — restart the app to use the new version.  [Enter] dismiss"`. Enter clears state. App keeps running.
 
 7. **Failed modal**: shows the error message and `[Enter] dismiss`.
 
@@ -92,17 +94,17 @@ Failed   { message: String }
 
 | Path | Change |
 |------|--------|
-| `crates/farx-core/Cargo.toml` | Add `self_update`, `semver`, `tempfile`; reuse workspace `reqwest`, `tar`, `flate2`, `zip`, `dirs` |
-| `crates/farx-core/src/update.rs` | New — moved from `farx-app/src/update.rs` |
-| `crates/farx-core/src/lib.rs` | `pub mod update;` |
-| `crates/farx-app/src/update.rs` | Deleted |
-| `crates/farx-app/src/main.rs` | `use farx_core::update;`, post-dispatch install hook |
-| `crates/farx-app/Cargo.toml` | Drop deps that moved |
-| `crates/farx-ui/src/components/update_modal.rs` | New — renders modal for each state |
-| `crates/farx-ui/src/components/mod.rs` | Declare module |
-| `crates/farx-ui/src/components/slash_suggestions.rs` | Register `/update` |
-| `crates/farx-ui/src/app.rs` | `UpdateState`, `update_state` field, `pending_install` flag, `/update` handler, tick poll, Y/N/Enter intercept, render call |
-| `install.sh` | Drop "Farx auto-updates on startup"; replace with "Run `/update` inside farx to install a new release" |
+| `crates/legacy-core/Cargo.toml` | Add `self_update`, `semver`, `tempfile`; reuse workspace `reqwest`, `tar`, `flate2`, `zip`, `dirs` |
+| `crates/legacy-core/src/update.rs` | New — moved from `legacy-app/src/update.rs` |
+| `crates/legacy-core/src/lib.rs` | `pub mod update;` |
+| `crates/legacy-app/src/update.rs` | Deleted |
+| `crates/legacy-app/src/main.rs` | `use legacy_core::update;`, post-dispatch install hook |
+| `crates/legacy-app/Cargo.toml` | Drop deps that moved |
+| `crates/legacy-ui/src/components/update_modal.rs` | New — renders modal for each state |
+| `crates/legacy-ui/src/components/mod.rs` | Declare module |
+| `crates/legacy-ui/src/components/slash_suggestions.rs` | Register `/update` |
+| `crates/legacy-ui/src/app.rs` | `UpdateState`, `update_state` field, `pending_install` flag, `/update` handler, tick poll, Y/N/Enter intercept, render call |
+| `install.sh` | Drop "the app auto-updates on startup"; replace with "Run `/update` inside the app to install a new release" |
 
 ## Error handling
 
@@ -110,7 +112,7 @@ Failed   { message: String }
 - `check_latest_version` errors → `Failed` modal with the message.
 - `perform_update` errors (no matching asset, archive extraction failure,
   filesystem error) → `Failed` modal. The user remains in the old binary;
-  no partial-install state is possible because writes go to `~/.local/bin/farx`
+  no partial-install state is possible because writes go to `~/.local/bin/legacy`
   only after the download fully succeeds.
 - If user re-runs `/update` while another check is in flight, the second
   invocation is a no-op (logged as `feedback.info("Update check already

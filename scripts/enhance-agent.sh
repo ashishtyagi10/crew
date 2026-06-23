@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Farx Enhancement Agent Runner
+# Crew Enhancement Agent Runner
 #
 # Runs the /enhance Claude Code command in one-shot or loop mode.
 #
@@ -48,10 +48,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --help|-h)
             cat <<'HELP'
-Farx Enhancement Agent Runner
+Crew Enhancement Agent Runner
 
 Runs the Claude Code /enhance command to autonomously analyze, research,
-plan, implement, and document improvements to Farx.
+plan, implement, and document improvements to Crew.
 
 USAGE:
     ./scripts/enhance-agent.sh [OPTIONS]
@@ -79,7 +79,7 @@ EXAMPLES:
 
 REQUIREMENTS:
     - Claude Code CLI (`claude`) must be installed and authenticated
-    - Must be run from the farx project root (or scripts/ dir)
+    - Must be run from the crew project root (or scripts/ dir)
 HELP
             exit 0
             ;;
@@ -100,8 +100,8 @@ fi
 cd "$PROJECT_DIR"
 
 # Verify we're in the right repo
-if [[ ! -f "Cargo.toml" ]] || ! grep -q "farx" Cargo.toml 2>/dev/null; then
-    echo "Error: not in farx project root (expected Cargo.toml with farx)"
+if [[ ! -f "Cargo.toml" ]] || ! grep -q "crew" Cargo.toml 2>/dev/null; then
+    echo "Error: not in crew project root (expected Cargo.toml with crew)"
     exit 1
 fi
 
@@ -113,7 +113,7 @@ run_cycle() {
     timestamp="$(date '+%Y-%m-%d %H:%M:%S')"
 
     echo "========================================"
-    echo " Farx Enhancement Agent - Cycle $CYCLE"
+    echo " Crew Enhancement Agent - Cycle $CYCLE"
     echo " Mode: $MODE | $(date)"
     echo "========================================"
     echo ""

@@ -1,21 +1,23 @@
 # Agent Grid Wiring — Implementation Plan (Plan 2 of 4)
 
+> *Historical record: this plan predates the Crew pivot and targets editor crates that have since been removed.*
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development. Steps use checkbox (`- [ ]`) syntax.
 
-**Goal:** Wire the `farx-core::grid` engine (Plan 1) into the live app so spawned agents render as a near-square grid that fills the canvas, with the 7th+ agent demoting to a minimized thumbnail strip; empty canvas when no agents.
+**Goal:** Wire the `legacy-core::grid` engine (Plan 1) into the live app so spawned agents render as a near-square grid that fills the canvas, with the 7th+ agent demoting to a minimized thumbnail strip; empty canvas when no agents.
 
 **Architecture:** Replace the `LayoutNode` split-tree as the *main panel surface* with `GridLayout` + `compute_grid_layout`. Terminals get **stable ids** (a monotonic counter) so closing one never reindexes the others. The render path computes grid rects each frame, paints full tiles with the existing `render_terminal`, paints minimized tiles as compact thumbnails, and records every tile's rect in `cached_panel_rects` for mouse hit-testing. File panels/`LayoutNode` are NOT deleted (that is Plan 4) — they are simply no longer rendered in the main path during this plan; the explorer returns as a toggle in Plan 3.
 
-**Tech Stack:** Rust, ratatui/crossterm, the `farx-core::grid` module from Plan 1. Verification is via a PTY harness driving the real `target/debug/farx` (no unit tests — `App` is not unit-constructable).
+**Tech Stack:** Rust, ratatui/crossterm, the `legacy-core::grid` module from Plan 1. Verification is via a PTY harness driving the real `target/debug/legacy` (no unit tests — `App` is not unit-constructable).
 
 ## Global Constraints
 
 - HARD **200-line maximum per `.rs` file**, no exceptions. If an edit would push a file over, split it.
 - This plan must keep the app **compiling and runnable** at every task boundary.
 - `focused_terminal: Option<usize>` holds a **stable terminal id** after Task 1 (NOT a Vec index). `None` = nothing focused (empty canvas or no agent focused).
-- The agent grid uses `farx_core::{GridLayout, compute_grid_layout, GridRects, MINIMIZED_STRIP_HEIGHT, MAX_FULL_TILES}` exactly.
-- Do not touch the `farx-core::grid` module (Plan 1, frozen) except by calling its public API.
-- Verification harness lives at `/tmp/farx_grid_verify.py` (created in Task 3) and drives the built binary in a PTY at 120×40.
+- The agent grid uses `legacy_core::{GridLayout, compute_grid_layout, GridRects, MINIMIZED_STRIP_HEIGHT, MAX_FULL_TILES}` exactly.
+- Do not touch the `legacy-core::grid` module (Plan 1, frozen) except by calling its public API.
+- Verification harness lives at `/tmp/legacy_grid_verify.py` (created in Task 3) and drives the built binary in a PTY at 120×40.
 
 ---
 
@@ -24,11 +26,11 @@
 Give each `TerminalSession` a stable id so closing a terminal never shifts the others. Keep the existing tree/render working (no visible change) — pure refactor.
 
 **Files:**
-- Modify: `crates/farx-ui/src/components/embedded_terminal/session.rs` (add `pub id` field; set in `spawn`)
-- Modify: `crates/farx-ui/src/app/state.rs` (add `next_terminal_id: usize`)
-- Modify: `crates/farx-ui/src/app/lifecycle.rs` (init `next_terminal_id: 0`)
-- Modify: `crates/farx-ui/src/app/terminals.rs` (assign ids; add lookup helpers; drop index-reindexing)
-- Modify: `crates/farx-ui/src/app/render/panels.rs`, `crates/farx-ui/src/app/keys/fullscreen.rs`, `crates/farx-ui/src/app/mouse/hit_test.rs`, `crates/farx-ui/src/app/dispatch/control.rs` (replace `terminals.get*(tid)` index access with id lookups)
+- Modify: `crates/legacy-ui/src/components/embedded_terminal/session.rs` (add `pub id` field; set in `spawn`)
+- Modify: `crates/legacy-ui/src/app/state.rs` (add `next_terminal_id: usize`)
+- Modify: `crates/legacy-ui/src/app/lifecycle.rs` (init `next_terminal_id: 0`)
+- Modify: `crates/legacy-ui/src/app/terminals.rs` (assign ids; add lookup helpers; drop index-reindexing)
+- Modify: `crates/legacy-ui/src/app/render/panels.rs`, `crates/legacy-ui/src/app/keys/fullscreen.rs`, `crates/legacy-ui/src/app/mouse/hit_test.rs`, `crates/legacy-ui/src/app/dispatch/control.rs` (replace `terminals.get*(tid)` index access with id lookups)
 
 **Interfaces:**
 - Produces on `TerminalSession`: `pub id: usize` (set from the spawn caller).
@@ -54,7 +56,7 @@ pub(crate) fn terminal_by_id_mut(&mut self, id: usize) -> Option<&mut TerminalSe
 
 In `spawn_embedded_terminal`: replace `let terminal_id = self.terminals.len();` with `let terminal_id = self.next_terminal_id; self.next_terminal_id += 1;`, and pass `terminal_id` as the new first arg to `TerminalSession::spawn`.
 
-In `close_terminal`: remove the `adjust_terminal_ids` call and the `id > terminal_id` shifting branch; remove the terminal by id (`self.terminals.retain(|t| t.id != terminal_id);`) and set `focused_terminal = None` if it matched. Keep `self.layout.remove_terminal(terminal_id)` (the tree still stores ids). Remove the now-unused `adjust_terminal_ids` usage (leave the `LayoutNode` method in farx-core; just stop calling it).
+In `close_terminal`: remove the `adjust_terminal_ids` call and the `id > terminal_id` shifting branch; remove the terminal by id (`self.terminals.retain(|t| t.id != terminal_id);`) and set `focused_terminal = None` if it matched. Keep `self.layout.remove_terminal(terminal_id)` (the tree still stores ids). Remove the now-unused `adjust_terminal_ids` usage (leave the `LayoutNode` method in legacy-core; just stop calling it).
 
 - [ ] **Step 3: Replace index access with id lookups**
 
@@ -62,7 +64,7 @@ In `render/panels.rs`, `keys/fullscreen.rs`, `mouse/hit_test.rs`, `dispatch/cont
 
 - [ ] **Step 4: Build + behavior check**
 
-Run: `cargo build && cargo clippy -p farx-ui -- -W clippy::all`
+Run: `cargo build && cargo clippy -p legacy-ui -- -W clippy::all`
 Expected: compiles; no new warnings.
 
 Manual PTY check (the app must still behave as before): launch the binary in a PTY with a temp `$HOME`, open two shells (`/shell`⏎ twice), close the first (focus it, `Ctrl-W`), confirm the second still renders and accepts input. (This is the case that the old reindexing made fragile.) Capture the final frame; confirm a live `bash` prompt is present.
@@ -80,17 +82,17 @@ git add -A && git commit -m "refactor(ui): stable terminal ids (no reindex on cl
 Add the grid state and keep it in sync with terminal lifecycle. Not yet rendered — purely state.
 
 **Files:**
-- Modify: `crates/farx-ui/src/app/state.rs` (add `grid: GridLayout`)
-- Modify: `crates/farx-ui/src/app/lifecycle.rs` (init `grid: farx_core::GridLayout::new()`)
-- Modify: `crates/farx-ui/src/app/terminals.rs` (`add` on spawn, `remove` on close, `touch` on focus + on output)
+- Modify: `crates/legacy-ui/src/app/state.rs` (add `grid: GridLayout`)
+- Modify: `crates/legacy-ui/src/app/lifecycle.rs` (init `grid: legacy_core::GridLayout::new()`)
+- Modify: `crates/legacy-ui/src/app/terminals.rs` (`add` on spawn, `remove` on close, `touch` on focus + on output)
 
 **Interfaces:**
-- Produces on `App`: `pub(super) grid: farx_core::GridLayout`.
+- Produces on `App`: `pub(super) grid: legacy_core::GridLayout`.
 - Consumes: `GridLayout::{add, remove, touch, full, minimized}` from Plan 1.
 
 - [ ] **Step 1: Add + init the field**
 
-`state.rs`: `pub(super) grid: farx_core::GridLayout,`. `lifecycle.rs`: `grid: farx_core::GridLayout::new(),`.
+`state.rs`: `pub(super) grid: legacy_core::GridLayout,`. `lifecycle.rs`: `grid: legacy_core::GridLayout::new(),`.
 
 - [ ] **Step 2: Wire lifecycle**
 
@@ -102,7 +104,7 @@ In `terminals.rs`:
 
 - [ ] **Step 3: Build**
 
-Run: `cargo build && cargo clippy -p farx-ui -- -W clippy::all`
+Run: `cargo build && cargo clippy -p legacy-ui -- -W clippy::all`
 Expected: compiles, no new warnings, no behavior change yet.
 
 - [ ] **Step 4: Commit**
@@ -118,13 +120,13 @@ git add -A && git commit -m "feat(ui): maintain GridLayout across terminal lifec
 Replace the main panel surface with the grid of full tiles. Empty canvas when no agents.
 
 **Files:**
-- Modify: `crates/farx-ui/src/app/render/mod.rs` (compute grid rects instead of `LayoutNode::compute_rects`; feed a new renderer)
-- Modify: `crates/farx-ui/src/app/render/panels.rs` (new `render_agent_grid` that paints full tiles + records rects)
-- Create: `/tmp/farx_grid_verify.py` (PTY verification harness)
+- Modify: `crates/legacy-ui/src/app/render/mod.rs` (compute grid rects instead of `LayoutNode::compute_rects`; feed a new renderer)
+- Modify: `crates/legacy-ui/src/app/render/panels.rs` (new `render_agent_grid` that paints full tiles + records rects)
+- Create: `/tmp/legacy_grid_verify.py` (PTY verification harness)
 
 **Interfaces:**
 - Produces on `App`: `pub(super) fn render_agent_grid(&mut self, frame: &mut Frame, area: Rect)` — computes `compute_grid_layout(area, &self.grid)`, paints each full tile with `render_terminal`, resizes each tile's PTY to its inner size, records `(PanelLeaf::Terminal(id), rect)` into `self.cached_panel_rects` for every full tile (minimized handled in Task 4).
-- Consumes: `farx_core::{compute_grid_layout, GridRects}`.
+- Consumes: `legacy_core::{compute_grid_layout, GridRects}`.
 
 - [ ] **Step 1: Add `render_agent_grid`**
 
@@ -132,7 +134,7 @@ In `panels.rs`, add a method that replaces the old leaf loop for the main surfac
 
 ```rust
 pub(super) fn render_agent_grid(&mut self, frame: &mut Frame, area: Rect) {
-    use farx_core::compute_grid_layout;
+    use legacy_core::compute_grid_layout;
     let layout = compute_grid_layout(area, &self.grid);
     self.cached_panel_rects.clear();
     for (id, rect) in &layout.full {
@@ -148,7 +150,7 @@ pub(super) fn render_agent_grid(&mut self, frame: &mut Frame, area: Rect) {
             crate::components::embedded_terminal::render_terminal(frame, *rect, term, is_focused);
         }
         self.cached_panel_rects
-            .push((farx_core::PanelLeaf::Terminal(*id), *rect));
+            .push((legacy_core::PanelLeaf::Terminal(*id), *rect));
     }
     // Task 4 will render layout.minimized here.
 }
@@ -173,11 +175,11 @@ self.render_agent_grid(frame, main_chunks[0]);
 
 - [ ] **Step 3: Create the verification harness**
 
-Create `/tmp/farx_grid_verify.py` — a PTY driver (120×40) that: sets a temp `$HOME`, launches `target/debug/farx`, spawns N shells via `/shell⏎`, waits, captures the raw frame, strips ANSI, and reports the **distinct top-border `y` rows** and **distinct left-border `x` columns** of the agent tiles (so the grid shape is observable). Model it on the smoothness harness pattern: `pty.openpty`, `TIOCSWINSZ` 40×120, fork/exec with `HOME`/`TERM=xterm-256color`/`SHELL=/bin/bash`, `select`-loop reader, regex `\x1b\[[0-9;?]*[ -/]*[@-~]` → strip. Count tile borders by counting occurrences of the box-drawing top-left corner the renderer uses (the `Block` border draws `┌`/`╭`). Print, for N in {1,2,3,4}, the number of distinct tile origins detected.
+Create `/tmp/legacy_grid_verify.py` — a PTY driver (120×40) that: sets a temp `$HOME`, launches `target/debug/legacy`, spawns N shells via `/shell⏎`, waits, captures the raw frame, strips ANSI, and reports the **distinct top-border `y` rows** and **distinct left-border `x` columns** of the agent tiles (so the grid shape is observable). Model it on the smoothness harness pattern: `pty.openpty`, `TIOCSWINSZ` 40×120, fork/exec with `HOME`/`TERM=xterm-256color`/`SHELL=/bin/bash`, `select`-loop reader, regex `\x1b\[[0-9;?]*[ -/]*[@-~]` → strip. Count tile borders by counting occurrences of the box-drawing top-left corner the renderer uses (the `Block` border draws `┌`/`╭`). Print, for N in {1,2,3,4}, the number of distinct tile origins detected.
 
 - [ ] **Step 4: Build + verify the grid shape**
 
-Run: `cargo build` then `python3 /tmp/farx_grid_verify.py`.
+Run: `cargo build` then `python3 /tmp/legacy_grid_verify.py`.
 Expected: 1 agent → 1 tile filling the area; 2 → two tiles side by side (2 distinct x origins, 1 y); 3 → 2 origins on row 1 + 1 on row 2; 4 → 2×2 (2 x-origins, 2 y-origins). Capture the harness output as evidence. Also confirm: with **zero** agents the canvas is empty (no panic, just the status/command/fn bars).
 
 - [ ] **Step 5: Commit**
@@ -193,9 +195,9 @@ git add -A && git commit -m "feat(ui): render spawned agents as a grid canvas"
 Render agents 7+ as compact thumbnails in the reserved bottom strip; focusing one promotes it.
 
 **Files:**
-- Create: `crates/farx-ui/src/components/embedded_terminal/thumbnail.rs` (compact thumbnail renderer)
-- Modify: `crates/farx-ui/src/components/embedded_terminal/mod.rs` (export `render_thumbnail`)
-- Modify: `crates/farx-ui/src/app/render/panels.rs` (render `layout.minimized`, record rects)
+- Create: `crates/legacy-ui/src/components/embedded_terminal/thumbnail.rs` (compact thumbnail renderer)
+- Modify: `crates/legacy-ui/src/components/embedded_terminal/mod.rs` (export `render_thumbnail`)
+- Modify: `crates/legacy-ui/src/app/render/panels.rs` (render `layout.minimized`, record rects)
 
 **Interfaces:**
 - Produces: `pub fn render_thumbnail(frame: &mut Frame, area: Rect, session: &TerminalSession)` — a 1-line-bordered box showing the title + a status glyph (`●` alive / `⚠` has_attention / `✗` exited), truncated to width. No PTY contents.
@@ -243,13 +245,13 @@ for (id, rect) in &layout.minimized {
         crate::components::embedded_terminal::render_thumbnail(frame, *rect, term);
     }
     self.cached_panel_rects
-        .push((farx_core::PanelLeaf::Terminal(*id), *rect));
+        .push((legacy_core::PanelLeaf::Terminal(*id), *rect));
 }
 ```
 
 - [ ] **Step 3: Build + verify the strip**
 
-Extend `/tmp/farx_grid_verify.py` to spawn **7** shells and confirm: 6 full tiles in the grid region + a bottom strip (`MINIMIZED_STRIP_HEIGHT = 3` rows) containing 1 thumbnail; the least-recently-focused agent is the minimized one. Run `cargo build && python3 /tmp/farx_grid_verify.py`; capture output.
+Extend `/tmp/legacy_grid_verify.py` to spawn **7** shells and confirm: 6 full tiles in the grid region + a bottom strip (`MINIMIZED_STRIP_HEIGHT = 3` rows) containing 1 thumbnail; the least-recently-focused agent is the minimized one. Run `cargo build && python3 /tmp/legacy_grid_verify.py`; capture output.
 
 - [ ] **Step 4: Commit**
 
@@ -264,9 +266,9 @@ git add -A && git commit -m "feat(ui): minimized agent thumbnail strip"
 Make `Tab`/`F4` cycle through agent tiles, clicking a tile focus it (promoting a minimized one), and the status bar reflect the grid.
 
 **Files:**
-- Modify: `crates/farx-ui/src/app/terminals.rs` (`cycle_focus` walks `self.grid` order, not `LayoutNode::leaves`)
-- Modify: `crates/farx-ui/src/app/mouse/hit_test.rs` (click on a `Terminal(id)` rect → focus + `grid.touch(id)`)
-- Modify: `crates/farx-ui/src/app/chrome.rs` or wherever `render_status_bar` lives (show focused agent / count) — locate with `grep -rn "fn render_status_bar" crates/farx-ui/src`
+- Modify: `crates/legacy-ui/src/app/terminals.rs` (`cycle_focus` walks `self.grid` order, not `LayoutNode::leaves`)
+- Modify: `crates/legacy-ui/src/app/mouse/hit_test.rs` (click on a `Terminal(id)` rect → focus + `grid.touch(id)`)
+- Modify: `crates/legacy-ui/src/app/chrome.rs` or wherever `render_status_bar` lives (show focused agent / count) — locate with `grep -rn "fn render_status_bar" crates/legacy-ui/src`
 
 **Interfaces:**
 - `cycle_focus` cycles over `self.grid.full()` then `self.grid.minimized()` (full order then minimized order), wrapping; focusing a minimized id calls `self.grid.touch(id)` so it promotes into the full set on the next frame.
@@ -312,7 +314,7 @@ Update `render_status_bar` to show e.g. `"<focused title> · N agents"` (or `"no
 
 - [ ] **Step 4: Build + verify**
 
-Run `cargo build && cargo clippy -p farx-ui -- -W clippy::all`. Then drive the harness: spawn 3 agents, send `Tab` twice, confirm the focused tile (cyan border) advances; spawn a 7th, `Tab` to the minimized one, confirm it promotes into the grid next frame. Capture frames.
+Run `cargo build && cargo clippy -p legacy-ui -- -W clippy::all`. Then drive the harness: spawn 3 agents, send `Tab` twice, confirm the focused tile (cyan border) advances; spawn a 7th, `Tab` to the minimized one, confirm it promotes into the grid next frame. Capture frames.
 
 - [ ] **Step 5: Commit**
 

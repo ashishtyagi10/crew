@@ -13,7 +13,7 @@
 - **Rust edition 2021**, stable toolchain.
 - **Pin exact dependency versions** (`=x.y.z`) — `alacritty_terminal` and `wgpu` ship breaking changes in normal releases. Verify every API used below against `docs.rs` for the *pinned* version before implementing; adjust signatures to match the pinned release (these crates move; the compile loop is the source of truth).
 - **All deps must be MIT/Apache/Zlib.** No AGPL.
-- **File-size discipline:** keep `.rs` files focused and small (Crew inherits Farx's small-file habit); split a file by responsibility before it grows unwieldy.
+- **File-size discipline:** keep `.rs` files focused and small (Crew inherits the prior project's small-file habit); split a file by responsibility before it grows unwieldy.
 - **Isolate upstream churn behind adapters:** the renderer never imports `alacritty_terminal` types directly — only `crew-term`'s `TermModel`.
 - **`cargo fmt` + `cargo clippy --all-targets` stay clean** (warning-free) at every commit.
 
@@ -928,6 +928,6 @@ git commit -m "chore: Crew foundation milestone — single-pane GPU terminal wor
 ## Notes for the next plan (Plan 2: Grid + focus)
 
 - Replace the `cells_to_string` shim with a **per-cell renderer** (colors, bold/italic from `RenderCell` extended with fg/bg/flags) — Task 2's `RenderCell` is the seam to extend.
-- Introduce multiple `PtyTerm`s and the grid geometry (`cols = ceil(sqrt(n))`, LRU demotion) ported from Farx.
+- Introduce multiple `PtyTerm`s and the grid geometry (`cols = ceil(sqrt(n))`, LRU demotion) ported from the prior project.
 - Add the focus model (single focus owner, click-to-focus, one reserved jump chord, passthrough).
 - Add a damage-driven redraw (use `Term::damage()` via a `TermModel::take_damage()` addition) instead of rebuilding the whole string each frame.

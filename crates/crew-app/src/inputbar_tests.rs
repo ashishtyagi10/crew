@@ -120,14 +120,14 @@ fn cells_show_cwd_legend_on_top_border() {
     let bar = InputBar {
         text: String::new(),
         focused: true,
-        cwd: "/code/farx".into(),
+        cwd: "/code/crew".into(),
         ..Default::default()
     };
     let cells = bar.cells(40, 3, None);
     // the cwd legend rides the top border (row 0) in the accent colour
     assert!(cells
         .iter()
-        .any(|c| c.c == 'f' && c.row == 0 && c.fg == ACCENT));
+        .any(|c| c.c == 'w' && c.row == 0 && c.fg == ACCENT));
     // the card has rounded corners and the prompt is on the interior row
     assert!(cells.iter().any(|c| c.c == '╭'));
     assert!(cells.iter().any(|c| c.c == '>' && c.row == 1));

@@ -38,8 +38,8 @@ fn cursor_block_rendered_at_live_position() {
 fn osc_title_is_captured() {
     let mut term = HeadlessTerm::new(GridSize { cols: 20, rows: 3 });
     assert_eq!(term.title(), "");
-    term.feed(b"\x1b]2;~/code/farx\x07"); // OSC 2 set-window-title
-    assert_eq!(term.title(), "~/code/farx");
+    term.feed(b"\x1b]2;~/code/crew\x07"); // OSC 2 set-window-title
+    assert_eq!(term.title(), "~/code/crew");
 }
 
 #[test]

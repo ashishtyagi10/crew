@@ -1,6 +1,6 @@
 //! Docked bottom command bar: a single-line text input drawn as a rounded
 //! fieldset card. The working directory rides the top border as the card's
-//! legend (`╭─ ~/code/farx ─╮`); the `> text` prompt sits on the interior row.
+//! legend (`╭─ ~/code/crew ─╮`); the `> text` prompt sits on the interior row.
 use std::path::PathBuf;
 
 use crew_render::CellView;

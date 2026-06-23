@@ -23,7 +23,7 @@ pub(crate) fn resolved_start(saved: Option<&str>) -> PathBuf {
         .unwrap_or_else(initial)
 }
 
-/// `~`-abbreviated display string for `path`, e.g. `~/code/farx`.
+/// `~`-abbreviated display string for `path`, e.g. `~/code/crew`.
 pub(crate) fn display(path: &Path) -> String {
     let s = path.to_string_lossy();
     if let Some(home) = std::env::var_os("HOME") {

@@ -1,17 +1,19 @@
 # Agent Grid Layout — Implementation Plan (Plan 1 of 4)
 
+> *Historical record: this plan predates the Crew pivot and targets editor crates that have since been removed.*
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a tested `grid` module to `farx-core` that lays N agent tiles out in a near-square grid, caps the full tiles at 6, and demotes the least-recently-active tiles into a minimized thumbnail strip (LRU).
+**Goal:** Add a tested `grid` module to `legacy-core` that lays N agent tiles out in a near-square grid, caps the full tiles at 6, and demotes the least-recently-active tiles into a minimized thumbnail strip (LRU).
 
-**Architecture:** A pure, UI-independent `farx-core::grid` module. `GridLayout` holds tile ids in most-recently-active-first order; `grid_rects` packs a count of tiles into a near-square grid; `compute_grid_layout` combines them — reserving a bottom strip for minimized tiles and gridding the rest. This plan is **purely additive**: it builds and unit-tests the engine without touching the live render path, so the running app is unchanged. Wiring into rendering happens in Plan 2.
+**Architecture:** A pure, UI-independent `legacy-core::grid` module. `GridLayout` holds tile ids in most-recently-active-first order; `grid_rects` packs a count of tiles into a near-square grid; `compute_grid_layout` combines them — reserving a bottom strip for minimized tiles and gridding the rest. This plan is **purely additive**: it builds and unit-tests the engine without touching the live render path, so the running app is unchanged. Wiring into rendering happens in Plan 2.
 
-**Tech Stack:** Rust, `ratatui::layout::Rect` (already a `farx-core` dependency), standard `cargo test`.
+**Tech Stack:** Rust, `ratatui::layout::Rect` (already a `legacy-core` dependency), standard `cargo test`.
 
 ## Global Constraints
 
 - Hard **200-line maximum per `.rs` file**, no exceptions.
-- Match existing `farx-core` module style: a `mod.rs` that declares submodules and re-exports the public API, with `#[cfg(test)] mod tests;` (mirror `panel_layout/mod.rs`).
+- Match existing `legacy-core` module style: a `mod.rs` that declares submodules and re-exports the public API, with `#[cfg(test)] mod tests;` (mirror `panel_layout/mod.rs`).
 - `lib.rs` uses glob re-exports (`pub use grid::*;`). Public types must be unambiguously named (no collision with existing `LayoutNode`/`PanelLeaf`).
 - Near-square grid rule: `cols = ceil(sqrt(count))`, `rows = ceil(count / cols)`, row-major fill.
 - Full-tile cap: `MAX_FULL_TILES = 6`. Tiles beyond the 6 most-recently-active are minimized.
@@ -24,10 +26,10 @@
 Pack `count` tiles into a near-square grid within an area. Pure function, no state.
 
 **Files:**
-- Create: `crates/farx-core/src/grid/mod.rs`
-- Create: `crates/farx-core/src/grid/geometry.rs`
-- Create: `crates/farx-core/src/grid/tests.rs`
-- Modify: `crates/farx-core/src/lib.rs` (add `pub mod grid;` and `pub use grid::*;`)
+- Create: `crates/legacy-core/src/grid/mod.rs`
+- Create: `crates/legacy-core/src/grid/geometry.rs`
+- Create: `crates/legacy-core/src/grid/tests.rs`
+- Modify: `crates/legacy-core/src/lib.rs` (add `pub mod grid;` and `pub use grid::*;`)
 
 **Interfaces:**
 - Produces: `pub fn grid_rects(area: ratatui::layout::Rect, count: usize) -> Vec<ratatui::layout::Rect>` — returns exactly `count` rects (empty when `count == 0`), row-major (top-to-bottom, left-to-right), tiling `area` with no overlaps; the last row stretches its tiles to fill the row width.
@@ -35,7 +37,7 @@ Pack `count` tiles into a near-square grid within an area. Pure function, no sta
 
 - [ ] **Step 1: Create the module skeleton and wire it into the crate**
 
-Create `crates/farx-core/src/grid/mod.rs`:
+Create `crates/legacy-core/src/grid/mod.rs`:
 
 ```rust
 //! Agent grid layout: pack N tiles into a near-square grid and track which
@@ -50,7 +52,7 @@ mod tests;
 pub use geometry::{grid_rects, MAX_FULL_TILES};
 ```
 
-Modify `crates/farx-core/src/lib.rs` — add the module declaration after the `panel_layout` line and a glob re-export after the `panel_layout` re-export:
+Modify `crates/legacy-core/src/lib.rs` — add the module declaration after the `panel_layout` line and a glob re-export after the `panel_layout` re-export:
 
 ```rust
 pub mod action;
@@ -66,7 +68,7 @@ pub mod update;
 
 pub use action::Action;
 pub use config::AppConfig;
-pub use error::FarxError;
+pub use error::LegacyError;
 pub use grid::*;
 pub use keymap::KeyMap;
 pub use panel_layout::*;
@@ -77,7 +79,7 @@ pub use types::*;
 
 - [ ] **Step 2: Write the failing tests**
 
-Create `crates/farx-core/src/grid/tests.rs`:
+Create `crates/legacy-core/src/grid/tests.rs`:
 
 ```rust
 use super::*;
@@ -165,12 +167,12 @@ fn grid_rects_cover_without_overlap_for_many_counts() {
 
 - [ ] **Step 3: Run the tests to verify they fail**
 
-Run: `cargo test -p farx-core grid::`
+Run: `cargo test -p legacy-core grid::`
 Expected: FAIL — compile error, `grid_rects` not found / `geometry` module empty.
 
 - [ ] **Step 4: Implement `grid_rects`**
 
-Create `crates/farx-core/src/grid/geometry.rs`:
+Create `crates/legacy-core/src/grid/geometry.rs`:
 
 ```rust
 use ratatui::layout::Rect;
@@ -228,18 +230,18 @@ fn span_len(total: u16, parts: usize, index: usize) -> u16 {
 
 - [ ] **Step 5: Run the tests to verify they pass**
 
-Run: `cargo test -p farx-core grid::`
+Run: `cargo test -p legacy-core grid::`
 Expected: PASS — all 7 tests green.
 
 - [ ] **Step 6: Format, lint, full test**
 
-Run: `cargo fmt && cargo clippy -p farx-core -- -W clippy::all && cargo test -p farx-core`
+Run: `cargo fmt && cargo clippy -p legacy-core -- -W clippy::all && cargo test -p legacy-core`
 Expected: no new clippy warnings in `grid/`, all tests pass.
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add crates/farx-core/src/grid/mod.rs crates/farx-core/src/grid/geometry.rs crates/farx-core/src/grid/tests.rs crates/farx-core/src/lib.rs
+git add crates/legacy-core/src/grid/mod.rs crates/legacy-core/src/grid/geometry.rs crates/legacy-core/src/grid/tests.rs crates/legacy-core/src/lib.rs
 git commit -m "feat(core): near-square grid_rects packing for agent tiles"
 ```
 
@@ -250,9 +252,9 @@ git commit -m "feat(core): near-square grid_rects packing for agent tiles"
 Track tile ids in most-recently-active-first order; expose which are full vs. minimized.
 
 **Files:**
-- Create: `crates/farx-core/src/grid/state.rs`
-- Modify: `crates/farx-core/src/grid/mod.rs` (declare `mod state;` and re-export)
-- Modify: `crates/farx-core/src/grid/tests.rs` (append state tests)
+- Create: `crates/legacy-core/src/grid/state.rs`
+- Modify: `crates/legacy-core/src/grid/mod.rs` (declare `mod state;` and re-export)
+- Modify: `crates/legacy-core/src/grid/tests.rs` (append state tests)
 
 **Interfaces:**
 - Consumes: `MAX_FULL_TILES` from Task 1.
@@ -267,7 +269,7 @@ Track tile ids in most-recently-active-first order; expose which are full vs. mi
 
 - [ ] **Step 1: Write the failing tests**
 
-Append to `crates/farx-core/src/grid/tests.rs`:
+Append to `crates/legacy-core/src/grid/tests.rs`:
 
 ```rust
 #[test]
@@ -345,12 +347,12 @@ fn gridlayout_empty_state() {
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
-Run: `cargo test -p farx-core grid::`
+Run: `cargo test -p legacy-core grid::`
 Expected: FAIL — `GridLayout` not found.
 
 - [ ] **Step 3: Implement `GridLayout`**
 
-Create `crates/farx-core/src/grid/state.rs`:
+Create `crates/legacy-core/src/grid/state.rs`:
 
 ```rust
 use super::geometry::MAX_FULL_TILES;
@@ -413,7 +415,7 @@ impl GridLayout {
 }
 ```
 
-Modify `crates/farx-core/src/grid/mod.rs` to add the submodule and re-export:
+Modify `crates/legacy-core/src/grid/mod.rs` to add the submodule and re-export:
 
 ```rust
 //! Agent grid layout: pack N tiles into a near-square grid and track which
@@ -432,18 +434,18 @@ pub use state::GridLayout;
 
 - [ ] **Step 4: Run the tests to verify they pass**
 
-Run: `cargo test -p farx-core grid::`
+Run: `cargo test -p legacy-core grid::`
 Expected: PASS — all state tests green.
 
 - [ ] **Step 5: Format, lint, full test**
 
-Run: `cargo fmt && cargo clippy -p farx-core -- -W clippy::all && cargo test -p farx-core`
+Run: `cargo fmt && cargo clippy -p legacy-core -- -W clippy::all && cargo test -p legacy-core`
 Expected: clean.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add crates/farx-core/src/grid/state.rs crates/farx-core/src/grid/mod.rs crates/farx-core/src/grid/tests.rs
+git add crates/legacy-core/src/grid/state.rs crates/legacy-core/src/grid/mod.rs crates/legacy-core/src/grid/tests.rs
 git commit -m "feat(core): GridLayout LRU state (6 full, rest minimized)"
 ```
 
@@ -454,9 +456,9 @@ git commit -m "feat(core): GridLayout LRU state (6 full, rest minimized)"
 Turn a `GridLayout` + an area into concrete rects: full tiles gridded in the main region, minimized tiles laid left-to-right across a reserved bottom strip.
 
 **Files:**
-- Create: `crates/farx-core/src/grid/compose.rs`
-- Modify: `crates/farx-core/src/grid/mod.rs` (declare `mod compose;` and re-export)
-- Modify: `crates/farx-core/src/grid/tests.rs` (append compose tests)
+- Create: `crates/legacy-core/src/grid/compose.rs`
+- Modify: `crates/legacy-core/src/grid/mod.rs` (declare `mod compose;` and re-export)
+- Modify: `crates/legacy-core/src/grid/tests.rs` (append compose tests)
 
 **Interfaces:**
 - Consumes: `grid_rects`, `MAX_FULL_TILES`, `GridLayout` from Tasks 1–2.
@@ -467,7 +469,7 @@ Turn a `GridLayout` + an area into concrete rects: full tiles gridded in the mai
 
 - [ ] **Step 1: Write the failing tests**
 
-Append to `crates/farx-core/src/grid/tests.rs`:
+Append to `crates/legacy-core/src/grid/tests.rs`:
 
 ```rust
 #[test]
@@ -522,12 +524,12 @@ fn compose_full_ids_match_layout_order() {
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
-Run: `cargo test -p farx-core grid::`
+Run: `cargo test -p legacy-core grid::`
 Expected: FAIL — `compute_grid_layout` / `GridRects` not found.
 
 - [ ] **Step 3: Implement `compute_grid_layout`**
 
-Create `crates/farx-core/src/grid/compose.rs`:
+Create `crates/legacy-core/src/grid/compose.rs`:
 
 ```rust
 use ratatui::layout::Rect;
@@ -587,7 +589,7 @@ pub fn compute_grid_layout(area: Rect, layout: &GridLayout) -> GridRects {
 }
 ```
 
-Modify `crates/farx-core/src/grid/mod.rs`:
+Modify `crates/legacy-core/src/grid/mod.rs`:
 
 ```rust
 //! Agent grid layout: pack N tiles into a near-square grid and track which
@@ -608,7 +610,7 @@ pub use state::GridLayout;
 
 - [ ] **Step 4: Run the tests to verify they pass**
 
-Run: `cargo test -p farx-core grid::`
+Run: `cargo test -p legacy-core grid::`
 Expected: PASS — compose tests green.
 
 - [ ] **Step 5: Format, lint, full workspace test**
@@ -619,7 +621,7 @@ Expected: no new clippy warnings in `grid/`; entire workspace still compiles and
 - [ ] **Step 6: Commit**
 
 ```bash
-git add crates/farx-core/src/grid/compose.rs crates/farx-core/src/grid/mod.rs crates/farx-core/src/grid/tests.rs
+git add crates/legacy-core/src/grid/compose.rs crates/legacy-core/src/grid/mod.rs crates/legacy-core/src/grid/tests.rs
 git commit -m "feat(core): compute_grid_layout — grid + minimized strip placement"
 ```
 

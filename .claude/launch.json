@@ -2,15 +2,15 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "farx-dev",
+      "name": "crew-dev",
       "runtimeExecutable": "cargo",
-      "runtimeArgs": ["run", "--bin", "farx"],
+      "runtimeArgs": ["run", "--bin", "crew"],
       "port": 0
     },
     {
-      "name": "farx-release",
+      "name": "crew-release",
       "runtimeExecutable": "cargo",
-      "runtimeArgs": ["run", "--release", "--bin", "farx"],
+      "runtimeArgs": ["run", "--release", "--bin", "crew"],
       "port": 0
     }
   ]

@@ -28,8 +28,7 @@ jobs:
       - name: Generate scoped coverage summary
         run: |
           cargo llvm-cov clean --workspace
-          cargo llvm-cov -p farx-core -p farx-fs -p farx-plugin --all-features \
-            --ignore-filename-regex 'crates/farx-core/src/update.rs' \
+          cargo llvm-cov -p crew-term -p crew-render -p crew-plugin --all-features \
             --summary-only | tee coverage-summary.txt
 
       - name: Enforce line coverage >= 80%
@@ -41,8 +40,7 @@ jobs:
       - name: Generate scoped coverage (lcov)
         run: |
           cargo llvm-cov clean --workspace
-          cargo llvm-cov -p farx-core -p farx-fs -p farx-plugin --all-features \
-            --ignore-filename-regex 'crates/farx-core/src/update.rs' \
+          cargo llvm-cov -p crew-term -p crew-render -p crew-plugin --all-features \
             --lcov --output-path lcov.info
 
       - name: Upload lcov artifact

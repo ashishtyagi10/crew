@@ -1,12 +1,6 @@
 [workspace]
 resolver = "2"
 members = [
-    "crates/farx-app",
-    "crates/farx-core",
-    "crates/farx-fs",
-    "crates/farx-ui",
-    "crates/farx-plugin",
-    "crates/farx-ai",
     "crates/crew-term",
     "crates/crew-render",
     "crates/crew-app",
@@ -16,7 +10,7 @@ members = [
 [workspace.package]
 version = "0.4.6"
 edition = "2021"
-authors = ["farx contributors"]
+authors = ["crew contributors"]
 license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
@@ -95,9 +89,3 @@ semver = "1"
 # Auto-update
 self_update = { version = "0.42", default-features = false, features = ["archive-tar", "archive-zip", "compression-flate2", "rustls"] }
 
-# Internal crates
-farx-core = { path = "crates/farx-core" }
-farx-fs = { path = "crates/farx-fs" }
-farx-ui = { path = "crates/farx-ui" }
-farx-plugin = { path = "crates/farx-plugin" }
-farx-ai = { path = "crates/farx-ai" }

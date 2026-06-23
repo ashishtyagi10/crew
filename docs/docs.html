@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Farx — Documentation</title>
-  <meta name="description" content="Complete documentation for Farx terminal file manager: architecture, configuration, themes, AI setup, and contributor guide." />
+  <title>Crew — Documentation</title>
+  <meta name="description" content="Complete documentation for Crew, a from-scratch native GPU terminal: panes, shortcuts, the input bar, sidebar, settings, and architecture." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -17,14 +17,14 @@
 <nav class="nav">
   <div class="nav-inner">
     <a href="index.html" class="nav-logo">
-      <span class="logo-bracket">[</span>farx<span class="logo-bracket">]</span>
+      <span class="logo-bracket">[</span>crew<span class="logo-bracket">]</span>
     </a>
     <div class="nav-links">
       <a href="index.html">Home</a>
+      <a href="#panes">Panes</a>
+      <a href="#shortcuts">Shortcuts</a>
+      <a href="#input-bar">Input Bar</a>
       <a href="#architecture">Architecture</a>
-      <a href="#configuration">Config</a>
-      <a href="#ai-setup">AI</a>
-      <a href="#contributing">Contributing</a>
       <a href="https://github.com/ashishtyagi10/crew" target="_blank" class="nav-github">GitHub</a>
     </div>
   </div>
@@ -34,7 +34,7 @@
 <section class="docs-hero">
   <div class="container">
     <h1 class="hero-title">Documentation</h1>
-    <p class="hero-sub">Everything you need to use, configure, and contribute to Farx.</p>
+    <p class="hero-sub">Everything you need to install, drive, and contribute to Crew — a from-scratch native GPU terminal.</p>
   </div>
 </section>
 
@@ -45,35 +45,25 @@
       <div class="sidebar-section">
         <h4>Getting Started</h4>
         <a href="#installation">Installation</a>
-        <a href="#quick-start">Quick Start</a>
-        <a href="#cli-flags">CLI Flags</a>
+        <a href="#build-run">Build &amp; Run</a>
       </div>
       <div class="sidebar-section">
         <h4>Usage</h4>
-        <a href="#navigation">Navigation</a>
-        <a href="#file-operations">File Operations</a>
-        <a href="#selection">Selection</a>
-        <a href="#editor">Built-in Editor</a>
-        <a href="#viewer">Built-in Viewer</a>
-        <a href="#search">Search</a>
-        <a href="#command-line">Command Line</a>
-      </div>
-      <div class="sidebar-section">
-        <h4>Configuration</h4>
-        <a href="#configuration">Config File</a>
-        <a href="#themes">Themes</a>
-        <a href="#ai-setup">AI Setup</a>
+        <a href="#panes">Panes</a>
+        <a href="#shortcuts">Keyboard Shortcuts</a>
+        <a href="#input-bar">Input Bar</a>
+        <a href="#clipboard">Clipboard</a>
+        <a href="#scrollback">Scrollback</a>
+        <a href="#sidebar-panel">Sidebar</a>
+        <a href="#settings">Settings</a>
+        <a href="#theme">Theme</a>
       </div>
       <div class="sidebar-section">
         <h4>Development</h4>
         <a href="#architecture">Architecture</a>
         <a href="#crate-structure">Crate Structure</a>
-        <a href="#event-flow">Event Flow</a>
+        <a href="#hard-rules">Hard Rules</a>
         <a href="#contributing">Contributing</a>
-        <a href="#adding-themes">Adding Themes</a>
-        <a href="#adding-keybindings">Adding Keybindings</a>
-        <a href="#adding-components">Adding Components</a>
-        <a href="#adding-ai-providers">Adding AI Providers</a>
       </div>
     </aside>
 
@@ -82,23 +72,31 @@
       <!-- ========== GETTING STARTED ========== -->
 
       <h2 id="installation">Installation</h2>
+      <p>Crew builds on <strong>macOS</strong>, <strong>Linux</strong>, and <strong>Windows</strong>.</p>
 
       <h3>One-liner (macOS &amp; Linux)</h3>
       <div class="code-block">
         <button class="copy-btn" onclick="copyCode(this)">Copy</button>
         <code>curl -sSfL https://raw.githubusercontent.com/ashishtyagi10/crew/main/install.sh | sh</code>
       </div>
+      <p>Installs the prebuilt <code>crew</code> binary to <code>~/.local/bin</code>. Set <code>INSTALL_DIR</code> to choose another location.</p>
+
+      <h3>With cargo (any platform with Rust)</h3>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+        <code>cargo install --git https://github.com/ashishtyagi10/crew crew-app</code>
+      </div>
 
       <h3>GitHub Releases</h3>
-      <p>Download pre-built binaries from the <a href="https://github.com/ashishtyagi10/crew/releases">Releases page</a>:</p>
+      <p>Download the latest archive for your platform from the <a href="https://github.com/ashishtyagi10/crew/releases">Releases page</a>, extract it, and move the <code>crew</code> binary to a directory on your <code>PATH</code>:</p>
       <table class="docs-table">
         <thead><tr><th>Platform</th><th>Asset</th></tr></thead>
         <tbody>
-          <tr><td>macOS (Apple Silicon)</td><td><code>farx-v*-aarch64-apple-darwin.tar.gz</code></td></tr>
-          <tr><td>macOS (Intel)</td><td><code>farx-v*-x86_64-apple-darwin.tar.gz</code></td></tr>
-          <tr><td>Linux x86_64</td><td><code>farx-v*-x86_64-unknown-linux-gnu.tar.gz</code></td></tr>
-          <tr><td>Linux ARM64</td><td><code>farx-v*-aarch64-unknown-linux-gnu.tar.gz</code></td></tr>
-          <tr><td>Windows x64</td><td><code>farx-v*-x86_64-pc-windows-msvc.zip</code></td></tr>
+          <tr><td>macOS (Apple Silicon)</td><td><code>crew-v*-aarch64-apple-darwin.tar.gz</code></td></tr>
+          <tr><td>macOS (Intel)</td><td><code>crew-v*-x86_64-apple-darwin.tar.gz</code></td></tr>
+          <tr><td>Linux x86_64</td><td><code>crew-v*-x86_64-unknown-linux-gnu.tar.gz</code></td></tr>
+          <tr><td>Linux ARM64</td><td><code>crew-v*-aarch64-unknown-linux-gnu.tar.gz</code></td></tr>
+          <tr><td>Windows x64</td><td><code>crew-v*-x86_64-pc-windows-msvc.zip</code></td></tr>
         </tbody>
       </table>
 
@@ -106,364 +104,186 @@
       <div class="code-block">
         <button class="copy-btn" onclick="copyCode(this)">Copy</button>
         <code>git clone https://github.com/ashishtyagi10/crew.git
-cd crew &amp;&amp; cargo build --release
-# Binary: target/release/farx</code>
+cd crew
+cargo build --release -p crew-app
+# Binary is at target/release/crew</code>
       </div>
 
-      <h3>Auto-Update</h3>
-      <p>Farx checks for updates on every startup. When an update is available, you'll see a notification. To update:</p>
-      <div class="code-block"><code>farx --update</code></div>
+      <h3>Updating</h3>
+      <p>Type <code>/update</code> in the input bar to fetch and install the latest release.</p>
 
-      <!-- QUICK START -->
-      <h2 id="quick-start">Quick Start</h2>
-      <p>Run <code>farx</code> in your terminal. You'll see two panels side by side showing your current directory (left) and home directory (right).</p>
-      <ul>
-        <li>Use <kbd>Up</kbd>/<kbd>Down</kbd> to navigate, <kbd>Enter</kbd> to open directories</li>
-        <li><kbd>Tab</kbd> switches between panels</li>
-        <li><kbd>F3</kbd> views a file, <kbd>F4</kbd> edits it</li>
-        <li><kbd>F5</kbd> copies, <kbd>F6</kbd> moves, <kbd>F8</kbd> deletes</li>
-        <li><kbd>F1</kbd> opens the full help screen</li>
-        <li><kbd>F10</kbd> quits</li>
-      </ul>
-
-      <!-- CLI FLAGS -->
-      <h2 id="cli-flags">CLI Flags</h2>
-      <table class="docs-table">
-        <thead><tr><th>Flag</th><th>Description</th></tr></thead>
-        <tbody>
-          <tr><td><code>--update</code></td><td>Download and install the latest release</td></tr>
-          <tr><td><code>--check-update</code></td><td>Check if a newer version exists without installing</td></tr>
-          <tr><td><code>--keydebug</code></td><td>Interactive key event debugger for terminal compatibility testing</td></tr>
-          <tr><td><code>--version</code></td><td>Print version</td></tr>
-          <tr><td><code>--help</code></td><td>Print help</td></tr>
-        </tbody>
-      </table>
+      <!-- BUILD & RUN -->
+      <h2 id="build-run">Build &amp; Run</h2>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+        <code>cargo run --release -p crew-app</code>
+      </div>
+      <p>Shells launch as your <code>$SHELL</code> login shell, so your full config and plugins load. The window opens with panes auto-tiled into a near-square grid and a docked command bar at the bottom.</p>
 
       <!-- ========== USAGE ========== -->
 
-      <h2 id="navigation">Navigation</h2>
+      <h2 id="panes">Panes</h2>
+      <p>Panes auto-tile into a near-square grid. Each pane has a <strong>title bar</strong> (top row) showing its index, the program-set title (often the cwd), and right-aligned status glyphs. The focused pane has a near-white border and a bright block cursor; unfocused panes are grey with a dim cursor.</p>
       <table class="docs-table">
-        <thead><tr><th>Key</th><th>Action</th></tr></thead>
+        <thead><tr><th>Glyph</th><th>Meaning</th></tr></thead>
         <tbody>
-          <tr><td><kbd>Up</kbd> / <kbd>Down</kbd></td><td>Move cursor</td></tr>
-          <tr><td><kbd>PageUp</kbd> / <kbd>PageDown</kbd></td><td>Scroll by page</td></tr>
-          <tr><td><kbd>Home</kbd> / <kbd>End</kbd></td><td>First / last entry</td></tr>
-          <tr><td><kbd>Enter</kbd></td><td>Enter directory or run command</td></tr>
-          <tr><td><kbd>Right</kbd></td><td>Expand tree node</td></tr>
-          <tr><td><kbd>Left</kbd></td><td>Collapse tree node or go to parent</td></tr>
-          <tr><td><kbd>Tab</kbd></td><td>Switch between left and right panels</td></tr>
-          <tr><td><kbd>Ctrl+PageUp</kbd></td><td>Parent directory</td></tr>
-          <tr><td><kbd>Ctrl+\</kbd></td><td>Go to root</td></tr>
-          <tr><td><kbd>Ctrl+O</kbd></td><td>Toggle panels / console view</td></tr>
-          <tr><td><kbd>Ctrl+L</kbd></td><td>Toggle info panel (file stats, disk space)</td></tr>
-          <tr><td><kbd>Ctrl+H</kbd></td><td>Toggle hidden files</td></tr>
-          <tr><td><kbd>Ctrl+R</kbd></td><td>Refresh panel</td></tr>
+          <tr><td><code>⇡N</code></td><td>viewing scrollback, N lines back from the live bottom</td></tr>
+          <tr><td><code>●</code></td><td>new output in an unfocused pane</td></tr>
+          <tr><td><code>!</code></td><td>the program rang the bell</td></tr>
+          <tr><td><code>»</code></td><td>receiving broadcast (synchronized) input</td></tr>
+        </tbody>
+      </table>
+      <p>Click a pane to focus it (click the input bar to focus that); double-click a pane to toggle zoom. Inside a terminal pane, all other keys (arrows, Home/End, PageUp/Down, Ctrl+C, Shift+Tab, …) pass through to the program.</p>
+
+      <h2 id="shortcuts">Keyboard Shortcuts</h2>
+      <p>Type <code>/keys</code> in the input bar for this list in-app.</p>
+      <table class="docs-table">
+        <thead><tr><th>Action</th><th>Keys</th></tr></thead>
+        <tbody>
+          <tr><td>Next / previous pane</td><td><kbd>Ctrl+Tab</kbd> / <kbd>Ctrl+Shift+Tab</kbd> (also <kbd>Cmd+]</kbd> / <kbd>Cmd+[</kbd>)</td></tr>
+          <tr><td>Jump to pane N</td><td><kbd>Cmd+1</kbd> … <kbd>Cmd+9</kbd></td></tr>
+          <tr><td>Jump to next active pane</td><td><kbd>Cmd+A</kbd></td></tr>
+          <tr><td>Move pane left / right</td><td><kbd>Cmd+{</kbd> / <kbd>Cmd+}</kbd></td></tr>
+          <tr><td>Focus the input bar</td><td><kbd>Cmd+I</kbd></td></tr>
+          <tr><td>New shell pane</td><td><kbd>Cmd+T</kbd></td></tr>
+          <tr><td>Settings / chat pane</td><td><kbd>Cmd+,</kbd> / <kbd>Cmd+J</kbd></td></tr>
+          <tr><td>Toggle sidebar</td><td><kbd>Cmd+G</kbd></td></tr>
+          <tr><td>Zoom focused pane</td><td><kbd>Cmd+Z</kbd> (or double-click)</td></tr>
+          <tr><td>Broadcast input to all panes</td><td><kbd>Cmd+S</kbd></td></tr>
+          <tr><td>Font bigger / smaller / reset</td><td><kbd>Cmd+=</kbd> / <kbd>Cmd+-</kbd> / <kbd>Cmd+0</kbd></td></tr>
+          <tr><td>Copy visible screen / paste</td><td><kbd>Cmd+C</kbd> / <kbd>Cmd+V</kbd></td></tr>
+          <tr><td>Close pane / maximize window</td><td><kbd>Cmd+W</kbd> / <kbd>Cmd+M</kbd></td></tr>
+          <tr><td>Scroll focused pane</td><td><kbd>Shift+PageUp</kbd> / <kbd>Shift+PageDown</kbd>, or mouse wheel</td></tr>
+          <tr><td>Quit</td><td><kbd>Cmd+Q</kbd> (press twice to confirm when panes are open)</td></tr>
         </tbody>
       </table>
 
-      <h2 id="file-operations">File Operations</h2>
+      <h2 id="input-bar">The Input Bar</h2>
+      <p>The docked command bar at the bottom focuses with <kbd>Cmd+I</kbd>. Anything that isn't a slash command or <code>cd</code> is sent to the focused terminal. The bar's legend shows Crew's current working directory (<code>~</code>-abbreviated).</p>
+
+      <h3>Slash Commands</h3>
+      <p>Type <code>/</code> for a command palette (<kbd>↑</kbd>/<kbd>↓</kbd> to pick, <kbd>Tab</kbd>/<kbd>→</kbd> to fill, <kbd>Enter</kbd> to run):</p>
       <table class="docs-table">
-        <thead><tr><th>Key</th><th>Action</th></tr></thead>
+        <thead><tr><th>Command</th><th>Action</th></tr></thead>
         <tbody>
-          <tr><td><kbd>F3</kbd></td><td>View file</td></tr>
-          <tr><td><kbd>F4</kbd></td><td>Edit file</td></tr>
-          <tr><td><kbd>F5</kbd></td><td>Copy to other panel</td></tr>
-          <tr><td><kbd>F6</kbd></td><td>Move / rename</td></tr>
-          <tr><td><kbd>F7</kbd></td><td>Create directory</td></tr>
-          <tr><td><kbd>F8</kbd></td><td>Delete (uses trash by default)</td></tr>
-          <tr><td><kbd>Shift+F4</kbd></td><td>Create new file</td></tr>
-          <tr><td><kbd>Shift+F5</kbd></td><td>Copy to same directory</td></tr>
-          <tr><td><kbd>Shift+F6</kbd></td><td>Rename</td></tr>
+          <tr><td><code>/shell</code></td><td>Open a new shell pane in the current directory</td></tr>
+          <tr><td><code>/settings</code></td><td>Open the settings form</td></tr>
+          <tr><td><code>/find &lt;text&gt;</code></td><td>Scroll back to the most recent line containing the text</td></tr>
+          <tr><td><code>/name &lt;text&gt;</code></td><td>Title the focused pane; bare <code>/name</code> clears it</td></tr>
+          <tr><td><code>/clear</code></td><td>Clear the focused terminal</td></tr>
+          <tr><td><code>/pwd</code></td><td>Show / copy the current working directory</td></tr>
+          <tr><td><code>/update</code></td><td>Fetch and install the latest release</td></tr>
+          <tr><td><code>/keys</code></td><td>Show the keyboard shortcut list in-app</td></tr>
+          <tr><td><code>/exit</code></td><td>Quit Crew</td></tr>
         </tbody>
       </table>
 
-      <h3>Sorting</h3>
-      <table class="docs-table">
-        <thead><tr><th>Key</th><th>Sort by</th></tr></thead>
-        <tbody>
-          <tr><td><kbd>Ctrl+F3</kbd></td><td>Name</td></tr>
-          <tr><td><kbd>Ctrl+F4</kbd></td><td>Extension</td></tr>
-          <tr><td><kbd>Ctrl+F5</kbd></td><td>Size</td></tr>
-          <tr><td><kbd>Ctrl+F6</kbd></td><td>Date modified</td></tr>
-        </tbody>
-      </table>
-
-      <h2 id="selection">Selection</h2>
-      <table class="docs-table">
-        <thead><tr><th>Key</th><th>Action</th></tr></thead>
-        <tbody>
-          <tr><td><kbd>Space</kbd> / <kbd>Insert</kbd></td><td>Toggle select and move down</td></tr>
-          <tr><td><kbd>Ctrl+A</kbd></td><td>Select all</td></tr>
-          <tr><td><kbd>Ctrl+D</kbd></td><td>Deselect all</td></tr>
-          <tr><td><kbd>Alt+Up</kbd> / <kbd>Alt+Down</kbd></td><td>Select while moving</td></tr>
-          <tr><td><kbd>Shift+PageUp/PageDown</kbd></td><td>Select a page range</td></tr>
-          <tr><td><kbd>Shift+Home/End</kbd></td><td>Select to beginning / end</td></tr>
-        </tbody>
-      </table>
-      <p>Selected files are highlighted. Operations like <kbd>F5</kbd> (Copy) and <kbd>F8</kbd> (Delete) act on all selected files, or on the file under the cursor if nothing is selected.</p>
-
-      <h2 id="editor">Built-in Editor</h2>
-      <p>Press <kbd>F4</kbd> to open a file in the editor. Press <kbd>Shift+F4</kbd> to create a new file.</p>
-      <table class="docs-table">
-        <thead><tr><th>Key</th><th>Action</th></tr></thead>
-        <tbody>
-          <tr><td><kbd>Ctrl+S</kbd></td><td>Save</td></tr>
-          <tr><td><kbd>Ctrl+Q</kbd></td><td>Save and exit</td></tr>
-          <tr><td><kbd>Esc</kbd></td><td>Exit (prompts to save if modified)</td></tr>
-          <tr><td><kbd>Ctrl+Z</kbd></td><td>Undo</td></tr>
-          <tr><td><kbd>Ctrl+Shift+Z</kbd></td><td>Redo</td></tr>
-          <tr><td><kbd>Ctrl+F</kbd></td><td>Search</td></tr>
-          <tr><td><kbd>Ctrl+H</kbd></td><td>Search and replace</td></tr>
-        </tbody>
-      </table>
-      <p>The editor supports syntax highlighting for common languages detected by file extension.</p>
-
-      <h2 id="viewer">Built-in Viewer</h2>
-      <p>Press <kbd>F3</kbd> to view a file. Text files get syntax highlighting; binary files are shown in hex dump mode.</p>
-      <table class="docs-table">
-        <thead><tr><th>Key</th><th>Action</th></tr></thead>
-        <tbody>
-          <tr><td><kbd>Esc</kbd> / <kbd>q</kbd></td><td>Close</td></tr>
-          <tr><td><kbd>j</kbd> / <kbd>k</kbd> / Arrows</td><td>Scroll up / down</td></tr>
-          <tr><td><kbd>Space</kbd> / <kbd>PageDown</kbd></td><td>Next page</td></tr>
-          <tr><td><kbd>Home</kbd> / <kbd>End</kbd></td><td>Jump to start / end</td></tr>
-          <tr><td><kbd>/</kbd></td><td>Search</td></tr>
-        </tbody>
-      </table>
-
-      <h2 id="search">Search</h2>
-      <p>Press <kbd>Alt+F7</kbd> to open the search dialog. You can search by filename pattern (glob) and/or by content. Results are listed in a scrollable list — press <kbd>Enter</kbd> to jump to the directory containing the result.</p>
-
-      <h2 id="command-line">Command Line</h2>
-      <p>The command line at the bottom accepts two kinds of input:</p>
+      <h3>Autosuggest &amp; History</h3>
       <ul>
-        <li><strong>Shell commands</strong> — Recognized commands (ls, git, grep, etc.) are executed in your shell. Output is shown in the feedback area.</li>
-        <li><strong>Natural language</strong> — Anything that doesn't look like a shell command is routed to the AI assistant (if configured).</li>
+        <li><strong>Autosuggest</strong> — fish-style ghost text from history; <kbd>Tab</kbd>/<kbd>→</kbd> accepts it.</li>
+        <li><strong>History</strong> — <kbd>Up</kbd>/<kbd>Down</kbd> recall previous lines, persisted to <code>$XDG_CONFIG/crew/history</code> across sessions.</li>
       </ul>
-      <p>As you type, Farx uses the AI to show typeahead suggestions in ghost text. Press <kbd>Right</kbd> to accept.</p>
 
-      <!-- ========== CONFIGURATION ========== -->
+      <h3><code>cd</code> Completion</h3>
+      <p>Typing <code>cd &lt;partial&gt;</code> ghost-completes the first matching subdirectory; <kbd>Tab</kbd>/<kbd>→</kbd> accepts it. <code>$VAR</code>/<code>${VAR}</code> are expanded (e.g. <code>cd $HOME/src</code>). <code>cd -</code> toggles back to the previous directory, and the working directory is restored on the next launch. New shells (<kbd>Cmd+T</kbd> / <code>/shell</code>) open in the bar's current directory.</p>
 
-      <h2 id="configuration">Configuration</h2>
-      <p>Farx looks for <code>config.toml</code> in these locations (first match wins):</p>
+      <h3>Editing &amp; Status</h3>
       <ul>
-        <li><code>~/.config/farx/config.toml</code></li>
-        <li><code>$XDG_CONFIG_HOME/farx/config.toml</code></li>
-        <li><code>~/Library/Application Support/farx/config.toml</code> (macOS)</li>
+        <li><kbd>Ctrl+W</kbd> deletes the last word; <kbd>Ctrl+U</kbd> clears the line.</li>
+        <li><strong>Status flashes</strong> — transient messages (e.g. "copied 12 lines", "cd: no such directory") appear briefly on the input card's bottom border.</li>
       </ul>
-      <p>All settings are optional — missing keys use defaults.</p>
 
-      <h3>Full Reference</h3>
-      <div class="code-block">
-        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-        <code>[general]
-confirm_delete = true       # Prompt before deleting
-confirm_overwrite = true    # Prompt before overwriting
-show_hidden_files = false   # Show dotfiles
-use_trash = true            # Move to trash instead of permanent delete
-editor = "internal"         # "internal" or external command (e.g. "vim")
-viewer = "internal"         # "internal" or external command (e.g. "less")
+      <h2 id="clipboard">Clipboard</h2>
+      <ul>
+        <li><kbd>Cmd+C</kbd> copies the focused terminal's visible screen to the system clipboard.</li>
+        <li><kbd>Cmd+V</kbd> pastes into the focused surface (terminal, input bar, or chat). For terminals it uses bracketed paste when the program enabled it.</li>
+        <li>Programs can copy to the system clipboard via <strong>OSC 52</strong>.</li>
+      </ul>
 
-[ui]
-theme = "tokyo-night"       # far-classic, tokyo-night, catppuccin, dracula, gruvbox
-tick_rate_ms = 250          # Refresh interval in milliseconds
-show_fn_bar = true          # Show function key bar at bottom
-date_format = "%Y-%m-%d %H:%M"  # strftime format
+      <h2 id="scrollback">Scrollback</h2>
+      <p>Mouse wheel or <kbd>Shift+PageUp</kbd>/<kbd>Shift+PageDown</kbd> scroll a pane's history; an amber <code>⇡</code> in the title bar marks that you're viewing scrollback. <code>/find &lt;text&gt;</code> scrolls back to the most recent line containing the text (smart case: case-insensitive unless the term has an uppercase letter); a miss reports on the status line. Typing returns to the bottom.</p>
 
-[panels]
-directories_first = true    # Directories always sorted before files
-default_sort = "name"       # name, extension, size, date
+      <h2 id="sidebar-panel">Sidebar</h2>
+      <p>A docked left panel (toggle with <kbd>Cmd+G</kbd>) with stacked, line-divided sections:</p>
+      <table class="docs-table">
+        <thead><tr><th>Section</th><th>Shows</th></tr></thead>
+        <tbody>
+          <tr><td><strong>TIME</strong></td><td>A live clock</td></tr>
+          <tr><td><strong>SYSTEM</strong></td><td>CPU / MEM / DISK gauges</td></tr>
+          <tr><td><strong>LOAD</strong></td><td>1/5/15-minute load average, coloured by load-per-core</td></tr>
+          <tr><td><strong>HOST</strong></td><td>Hostname, OS, uptime</td></tr>
+          <tr><td><strong>NET</strong></td><td>Down/up byte rates</td></tr>
+          <tr><td><strong>GIT</strong></td><td>Current branch (with <code>↑</code>/<code>↓</code> commits ahead/behind upstream) and a clean / <code>● N changed</code> marker — when the working directory is a repository</td></tr>
+          <tr><td><strong>PANES</strong></td><td>Open panes (index, name, a <code>▸</code> focus marker, and an activity dot), filling the remaining height</td></tr>
+        </tbody>
+      </table>
+      <p>Click a PANES row to focus that pane (double-click to zoom it).</p>
 
-[ai]
-enabled = false
-provider = "openrouter"     # anthropic, openrouter, or openai-compatible
-base_url = "https://openrouter.ai/api/v1"
-model = "google/gemma-3-4b-it:free"
-max_tokens = 4096
-api_key_env = "OPENROUTER_API_KEY"  # Env var name containing the key</code>
-      </div>
+      <h2 id="settings">Settings</h2>
+      <p><code>/settings</code> opens a form (two columns on a wide pane, one when narrow):</p>
+      <ul>
+        <li><strong>Font family</strong> — type-to-search over installed monospace families.</li>
+        <li><strong>Font size</strong>, <strong>Nav width</strong>, <strong>Show nav</strong>.</li>
+      </ul>
+      <p>Settings persist to <code>$XDG_CONFIG/crew/config.toml</code> and apply live on Save.</p>
 
-      <h2 id="themes">Themes</h2>
-      <p>Five built-in themes are available:</p>
-      <div class="theme-list">
-        <div class="theme-chip" style="background: #00002a; border-color: #00d4d4;"><span style="color:#00d4d4;">far-classic</span></div>
-        <div class="theme-chip" style="background: #101012; border-color: #dcaa3c;"><span style="color:#dcaa3c;">tokyo-night</span></div>
-        <div class="theme-chip" style="background: #1e1e2e; border-color: #89b4fa;"><span style="color:#89b4fa;">catppuccin</span></div>
-        <div class="theme-chip" style="background: #282a36; border-color: #bd93f9;"><span style="color:#bd93f9;">dracula</span></div>
-        <div class="theme-chip" style="background: #282828; border-color: #fabd2f;"><span style="color:#fabd2f;">gruvbox</span></div>
-      </div>
-      <p>Set in config:</p>
-      <div class="code-block"><code>[ui]
-theme = "catppuccin"</code></div>
-
-      <h2 id="ai-setup">AI Setup</h2>
-      <p>Farx supports multiple AI providers. Set one up in your config and export the API key as an environment variable.</p>
-
-      <h3>OpenRouter (free tier)</h3>
-      <div class="code-block">
-        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-        <code>[ai]
-enabled = true
-provider = "openrouter"
-base_url = "https://openrouter.ai/api/v1"
-model = "google/gemma-3-4b-it:free"
-api_key_env = "OPENROUTER_API_KEY"</code>
-      </div>
-      <div class="code-block"><code>export OPENROUTER_API_KEY="sk-or-..."</code></div>
-
-      <h3>Anthropic (Claude)</h3>
-      <div class="code-block">
-        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-        <code>[ai]
-enabled = true
-provider = "anthropic"
-base_url = "https://api.anthropic.com/v1"
-model = "claude-sonnet-4-20250514"
-api_key_env = "ANTHROPIC_API_KEY"</code>
-      </div>
-
-      <h3>OpenAI</h3>
-      <div class="code-block">
-        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-        <code>[ai]
-enabled = true
-provider = "openai-compatible"
-base_url = "https://api.openai.com/v1"
-model = "gpt-4o-mini"
-api_key_env = "OPENAI_API_KEY"</code>
-      </div>
-
-      <h3>Ollama (local, private)</h3>
-      <div class="code-block">
-        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-        <code>[ai]
-enabled = true
-provider = "openai-compatible"
-base_url = "http://localhost:11434/v1"
-model = "llama3.2"
-api_key_env = "OLLAMA_API_KEY"</code>
-      </div>
-      <p>For Ollama, set <code>OLLAMA_API_KEY</code> to any non-empty value (e.g. <code>export OLLAMA_API_KEY=local</code>).</p>
+      <h2 id="theme">Theme</h2>
+      <p>The canvas is pure black; terminal content shows its natural ANSI colors. The accent green is reserved for chrome (borders, the CREW wordmark, the command palette). A configurable theme is future work.</p>
 
       <!-- ========== DEVELOPMENT ========== -->
 
       <h2 id="architecture">Architecture</h2>
-      <p>Farx uses a layered, action-based architecture. Every user interaction is mapped to an <code>Action</code> enum variant, which is dispatched by the central <code>App</code> struct to mutate state. The render loop then draws the new state.</p>
+      <p>Crew is a from-scratch GPU terminal. Every cell is drawn on the GPU; panes have SDF rounded borders. The terminal model is built on <code>alacritty_terminal</code> + <code>portable-pty</code>. In-pane UI (the settings form, command palette, and help overlay) is laid out with <code>ratatui</code> widgets into a <code>Buffer</code> and converted to GPU cells.</p>
 
       <div class="arch-diagram">
         <pre>
 ┌──────────────────────────────────────────────────────────────┐
-│  Terminal (crossterm)                                        │
-│  ├─ Key / Mouse / Resize events                             │
-│  └─ Periodic Tick events                                     │
+│  crew-app  — window, panes, input, in-pane UI                │
+│  winit window · pane grid · docked input bar · sidebar       │
 └────────────────────────┬─────────────────────────────────────┘
                          ▼
 ┌──────────────────────────────────────────────────────────────┐
-│  EventHandler (farx-ui/src/event.rs)                         │
-│  Async bridge: crossterm → tokio channel                     │
+│  crew-render  — GPU rendering                                │
+│  wgpu + glyphon / cosmic-text · SDF rounded pane borders     │
 └────────────────────────┬─────────────────────────────────────┘
                          ▼
 ┌──────────────────────────────────────────────────────────────┐
-│  App::handle_key_event (farx-ui/src/app.rs)                  │
-│  Routes input to deepest active modal, or to KeyMap          │
+│  crew-term  — PTY + terminal grid                            │
+│  alacritty_terminal + portable-pty · scrollback · OSC 52     │
 └────────────────────────┬─────────────────────────────────────┘
                          ▼
 ┌──────────────────────────────────────────────────────────────┐
-│  KeyMap::resolve_panel (farx-core/src/keymap.rs)             │
-│  Maps key combo → Action enum                                │
-└────────────────────────┬─────────────────────────────────────┘
-                         ▼
-┌──────────────────────────────────────────────────────────────┐
-│  App::dispatch(action) (farx-ui/src/app.rs)                  │
-│  Mutates App state: tree, panels, modals, feedback           │
-└────────────────────────┬─────────────────────────────────────┘
-                         ▼
-┌──────────────────────────────────────────────────────────────┐
-│  App::render(frame) (farx-ui/src/app.rs)                     │
-│  Draws TUI frame from current state                          │
+│  crew-plugin  — chat / agent plugins                         │
 └──────────────────────────────────────────────────────────────┘</pre>
       </div>
 
       <h2 id="crate-structure">Crate Structure</h2>
+      <p>Crew is a Cargo workspace with four crates:</p>
       <table class="docs-table">
-        <thead><tr><th>Crate</th><th>Purpose</th><th>Depends on</th></tr></thead>
+        <thead><tr><th>Crate</th><th>Purpose</th></tr></thead>
         <tbody>
-          <tr><td><code>farx-core</code></td><td>Config, keymaps, actions, types, tree state</td><td>(none)</td></tr>
-          <tr><td><code>farx-fs</code></td><td>Filesystem operations (copy, move, delete, read)</td><td>farx-core</td></tr>
-          <tr><td><code>farx-ai</code></td><td>Multi-provider AI agent</td><td>farx-core</td></tr>
-          <tr><td><code>farx-ui</code></td><td>TUI components, themes, event handling</td><td>farx-core, farx-fs, farx-ai</td></tr>
-          <tr><td><code>farx-plugin</code></td><td>Plugin system (WIP)</td><td>farx-core</td></tr>
-          <tr><td><code>farx-app</code></td><td>Binary, CLI parsing, auto-update</td><td>farx-core, farx-fs, farx-ui</td></tr>
+          <tr><td><code>crew-app</code></td><td>Window, panes, input, in-pane UI</td></tr>
+          <tr><td><code>crew-render</code></td><td>GPU rendering (<code>wgpu</code> + <code>glyphon</code>)</td></tr>
+          <tr><td><code>crew-term</code></td><td>PTY + terminal grid (<code>alacritty_terminal</code> + <code>portable-pty</code>)</td></tr>
+          <tr><td><code>crew-plugin</code></td><td>Chat / agent plugins</td></tr>
         </tbody>
       </table>
-      <p><strong>Rule:</strong> <code>farx-core</code> has zero internal dependencies. Lower crates never import higher ones.</p>
 
-      <h2 id="event-flow">Event Flow</h2>
-      <p>When a key is pressed:</p>
-      <ol>
-        <li><strong>crossterm</strong> emits a raw terminal event</li>
-        <li><strong>EventHandler</strong> wraps it as <code>Event::Key(KeyEvent)</code> and sends it through a tokio channel</li>
-        <li><strong>main.rs</strong> receives the event and calls <code>app.handle_key_event(key)</code></li>
-        <li><strong>handle_key_event</strong> checks modals in priority order (editor &gt; viewer &gt; feedback &gt; help &gt; menu &gt; search &gt; AI bar &gt; dialog &gt; command line). The deepest active modal consumes the event.</li>
-        <li>If no modal is active, <strong>KeyMap::resolve_panel(key)</strong> maps the key to an <code>Action</code></li>
-        <li><strong>app.dispatch(action)</strong> mutates the application state</li>
-        <li>On the next loop iteration, <strong>app.render(frame)</strong> draws the updated state</li>
-      </ol>
+      <h2 id="hard-rules">Hard Rules</h2>
+      <ul>
+        <li>Every <code>.rs</code> file stays <strong>≤200 lines</strong> — no exceptions.</li>
+        <li><code>cargo clippy --workspace --all-targets</code> is warning-free.</li>
+      </ul>
 
       <h2 id="contributing">Contributing</h2>
-      <p>See the full <a href="https://github.com/ashishtyagi10/crew/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a> on GitHub. The short version:</p>
+      <p>The short version:</p>
       <ol>
         <li>Fork and clone the repo</li>
         <li>Create a feature branch</li>
-        <li>Make your changes (the pre-commit hook runs <code>cargo fmt</code> and <code>cargo check</code>)</li>
+        <li>Make your changes, keeping every <code>.rs</code> file ≤200 lines and clippy clean</li>
         <li>Push and open a PR against <code>main</code></li>
       </ol>
-
-      <h2 id="adding-themes">Adding a Theme</h2>
-      <p>Edit <code>crates/farx-ui/src/theme.rs</code>:</p>
-      <ol>
-        <li>Add a constructor function that returns <code>Self</code> with all fields set (copy an existing theme as a starting point)</li>
-        <li>Register it in <code>by_name()</code> match statement</li>
-        <li>Add it to <code>available()</code> array</li>
-      </ol>
-      <div class="code-block">
-        <code>pub fn my_theme() -> Self {
-    let bg = Color::Rgb(30, 30, 40);
-    let fg = Color::Rgb(200, 200, 210);
-    Self {
-        name: "my-theme",
-        panel_bg: bg,
-        panel_fg: fg,
-        // ... all other fields ...
-    }
-}</code>
-      </div>
-
-      <h2 id="adding-keybindings">Adding a Keybinding</h2>
-      <ol>
-        <li>Add the <code>Action</code> variant in <code>crates/farx-core/src/action.rs</code></li>
-        <li>Map a key to it in <code>KeyMap::far_defaults()</code> in <code>crates/farx-core/src/keymap.rs</code></li>
-        <li>Handle the action in <code>App::dispatch()</code> in <code>crates/farx-ui/src/app.rs</code></li>
-      </ol>
-
-      <h2 id="adding-components">Adding a UI Component</h2>
-      <ol>
-        <li>Create the component file in <code>crates/farx-ui/src/components/</code></li>
-        <li>Export it in <code>components/mod.rs</code></li>
-        <li>Add state to the <code>App</code> struct</li>
-        <li>Handle its key events in <code>App::handle_key_event()</code></li>
-        <li>Render it in <code>App::render()</code></li>
-      </ol>
-      <p>Follow the existing pattern of state struct + render function + action enum (see <code>editor.rs</code> or <code>search.rs</code> for examples).</p>
-
-      <h2 id="adding-ai-providers">Adding an AI Provider</h2>
-      <p>Edit <code>crates/farx-ai/src/agent.rs</code>:</p>
-      <ol>
-        <li>Add a variant to <code>ApiProvider</code> enum</li>
-        <li>Create request/response structs for the provider's API format</li>
-        <li>Handle the new variant in <code>query()</code> and <code>suggest()</code> methods</li>
-        <li>Map the provider name string in <code>AiAgent::new()</code></li>
-      </ol>
+      <p>Crew is licensed MIT or Apache-2.0, at your option.</p>
 
     </main>
   </div>
@@ -473,7 +293,7 @@ api_key_env = "OLLAMA_API_KEY"</code>
 <footer class="footer">
   <div class="container footer-inner">
     <div class="footer-logo">
-      <span class="logo-bracket">[</span>farx<span class="logo-bracket">]</span>
+      <span class="logo-bracket">[</span>crew<span class="logo-bracket">]</span>
     </div>
     <div class="footer-links">
       <a href="index.html">Home</a>

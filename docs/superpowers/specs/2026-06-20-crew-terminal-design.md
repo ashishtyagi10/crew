@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-20
 **Status:** Approved for planning
-**Supersedes:** Farx (the TUI-inside-a-terminal era)
+**Supersedes:** the prior TUI-inside-a-terminal file manager
 
 ---
 
@@ -14,26 +14,26 @@ to one coordinating AI in that bottom box; it spawns and drives a grid of agent
 panes (your "crew"), delegates tasks to them, and aggregates their results. Agents
 coordinate *through* the orchestrator.
 
-Crew is the successor to Farx. Farx was a TUI that ran *inside* someone else's
-terminal, which capped it at the keys the host terminal chose to forward — the
-recurring "keys limit" pain. Crew owns the OS keyboard layer because it *is* the
-terminal. The keyboard-namespace collision that defined Farx disappears by
-construction.
+Crew is the successor to the prior file-manager project. That project was a TUI
+that ran *inside* someone else's terminal, which capped it at the keys the host
+terminal chose to forward — the recurring "keys limit" pain. Crew owns the OS
+keyboard layer because it *is* the terminal. The keyboard-namespace collision
+that defined the predecessor disappears by construction.
 
 ---
 
 ## 2. Why this pivot (the one-paragraph rationale)
 
 Ghostty and Warp "just split panes and own every key" because they are terminal
-emulators sitting at the OS layer. Farx, a ratatui TUI hosted inside another
-terminal, could never get there: a host terminal eats `Cmd`, swallows many
+emulators sitting at the OS layer. The prior project, a ratatui TUI hosted inside
+another terminal, could never get there: a host terminal eats `Cmd`, swallows many
 `Ctrl`/`Alt` combos, and forwards only a subset of keys — the exact keys agents
 also need. Crew's true peers were never Ghostty/Warp from the outside; they were
 the terminals themselves. We are becoming one. We build from scratch (rather than
 forking WezTerm) so the bottom-box UI, the keyboard/focus model, the agent grid,
 and image rendering are all ours from line one — no fork-rebase tax, no fighting
-another project's GUI model, and Farx's existing Rust code (grid tiling, AI
-provider layer, PTY usage) ports in.
+another project's GUI model, and the prior project's existing Rust code (grid
+tiling, AI provider layer, PTY usage) ports in.
 
 ---
 
@@ -57,8 +57,8 @@ provider layer, PTY usage) ports in.
 - **Native API sub-agents** (orchestrator running agents directly via LLM tool-use,
   rendered as transcripts). North-star (hybrid), but phase 2.
 - **Full hybrid orchestration** (CLI + native API agents coordinating). Phase 2+.
-- **Remote/SSH TUI mode.** Going native means Crew is a local GPU app. Farx's
-  "runs over SSH" property is intentionally retired. (A remote-mux story could be
+- **Remote/SSH TUI mode.** Going native means Crew is a local GPU app. The prior
+  project's "runs over SSH" property is intentionally retired. (A remote-mux story could be
   revisited far later; out of scope now.)
 - A plugin system, theming engine, or config language. Later.
 
@@ -108,12 +108,12 @@ breaking upstream change touches one file, not the app.
   grid layout geometry, and the bottom-box surface. Wraps `winit` + `wgpu` +
   `glyphon` + `cosmic-text`. Draws text via glyphon and cursor/background/selection
   as its own quads.
-- **`crew-term`** *(thin wrapper; ports Farx PTY usage)* — one instance per pane.
+- **`crew-term`** *(thin wrapper; ports the prior project's PTY usage)* — one instance per pane.
   Adapter around `alacritty_terminal::Term` (grid/scrollback/damage) fed by a
   `portable-pty` child. Exposes a stable internal `TermModel` interface
   (`renderable_content()`, `damage()`, `write_input()`), insulating the renderer
   from `alacritty_terminal`'s unstable API.
-- **`crew-core`** *(new; reuses Farx's `farx-ai` provider client)* — the
+- **`crew-core`** *(new; reuses the prior project's AI provider client)* — the
   orchestrator brain. Task decomposition, agent lifecycle, delegate/aggregate
   policy, and result-gathering. Knows nothing about wgpu; testable headless.
 - **`crew-image`** *(new)* — `image`-crate decode → wgpu texture atlas; Kitty
@@ -158,7 +158,7 @@ graphics + keyboard protocol conformance, clean core/UI split).
   redraw, compute grid geometry, ask each visible `crew-term` for
   `renderable_content()` + `damage()`, feed glyph runs to glyphon, draw cursor/bg
   quads, composite `crew-image` textures at correct z-order, present.
-- **Grid geometry:** ported from Farx — `cols = ceil(sqrt(n))`; cap full tiles
+- **Grid geometry:** ported from the prior project — `cols = ceil(sqrt(n))`; cap full tiles
   (default 6), demote least-recently-active panes to a minimized strip (LRU).
 - **Bottom box:** a dedicated surface region below the grid (the grid area shrinks
   to make room). It is a self-drawn input widget — Crew owns text editing here
@@ -175,7 +175,7 @@ graphics + keyboard protocol conformance, clean core/UI split).
 
 ### 7.3 `crew-core` (orchestrator)
 - **Input:** the user's prompt from the bottom box.
-- **Decompose:** call the LLM (via ported `farx-ai` provider client) to produce a
+- **Decompose:** call the LLM (via the ported AI provider client) to produce a
   plan — a set of sub-tasks, each with the agent/command to run.
 - **Spawn:** for each sub-task, ask the app to open a pane running the chosen CLI
   agent (`claude-code`, `codex`, `gemini-cli`, or a shell), via `crew-term`.
@@ -218,12 +218,12 @@ not to suffer). Design:
 - **One focus owner at a time:** either the orchestrator box or a specific agent
   pane holds keyboard focus.
 - **Focus switching:** a mouse click on a pane/box focuses it (reliably, including
-  on non-content regions — a retained Farx guardrail). A single reserved chord
+  on non-content regions — a guardrail retained from the prior project). A single reserved chord
   (e.g. a `Cmd`/`Super`-based key, which we now *can* use because we own the OS
   layer) jumps to/from the orchestrator box. `Esc` from the box returns focus to the
   last pane.
 - **Everything else passes through** to the focused pane's agent untouched — the
-  Farx principle that agents keep their keys, now without the host-terminal
+  prior project's principle that agents keep their keys, now without the host-terminal
   collision.
 - Exact bindings are a planning detail; the *model* (single focus owner + one
   reserved jump + click-to-focus + passthrough) is fixed here.
@@ -258,14 +258,14 @@ boundary convention → orchestrator summarizes in the transcript.
 
 ---
 
-## 11. What ports from Farx
+## 11. What ports from the prior project
 
 - **Grid-tiling geometry** (`cols = ceil(sqrt(n))`, full-tile cap, LRU demotion) →
   `crew-render` layout.
-- **AI provider layer** (`farx-ai`) → `crew-core`'s model client.
+- **AI provider layer** (the prior project's provider crate) → `crew-core`'s model client.
 - **`portable-pty` usage** → `crew-term`.
 - **Click-to-focus reliability** principle → keyboard/focus model.
-- **File-size discipline** (Farx's small-file rule) → retained as a project
+- **File-size discipline** (the prior project's small-file rule) → retained as a project
   convention for Crew's modules.
 
 New: `crew-render`'s GPU renderer, the winit/input layer, `crew-core`'s
@@ -313,7 +313,7 @@ orchestration, `crew-image`.
 1. Workspace layout: single binary crate with modules, or a Cargo workspace of
    `crew-*` crates? (Leaning workspace for clean boundaries + faster incremental
    builds.)
-2. Async runtime: tokio (matches `farx-ai`) vs. a thread-per-PTY + small executor.
+2. Async runtime: tokio (matches the prior project's provider crate) vs. a thread-per-PTY + small executor.
 3. Exact reserved focus chord(s) and whether the orchestrator box is always visible
    or has a show/hide toggle.
 4. Which CLI agents ship as first-class spawn targets in v1 (claude-code / codex /
