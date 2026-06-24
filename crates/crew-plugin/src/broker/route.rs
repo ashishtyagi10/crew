@@ -51,9 +51,11 @@ pub fn parse_routing(reply: &str) -> Routing {
     Routing::Done(reply.trim().to_string())
 }
 
-/// Build the prompt for the agent named by `env.to`: the task, the transcript so
-/// far, and the message addressed to it (already a normalized reply, never raw
-/// CLI chatter), plus the `@next`/`@done` protocol.
+/// Build the prompt for the agent named by `env.to`. The invariant content
+/// (identity, task, the `@next`/`@done` protocol) comes first so repeated calls
+/// to the same agent in a thread share a cacheable prefix; the variable parts
+/// (transcript, then the current message — already a normalized reply, never raw
+/// CLI chatter) come last, with the message most salient.
 pub fn frame(env: &Envelope, peers: &[String], task: &str, transcript: &str) -> String {
     let peer_list = if peers.is_empty() {
         "(none)".to_string()
@@ -68,11 +70,11 @@ pub fn frame(env: &Envelope, peers: &[String], task: &str, transcript: &str) -> 
     format!(
         "You are \"{me}\", a CLI coding agent working with peers: {peers}.\n\n\
          TASK:\n{task}\n\n\
-         CONVERSATION SO FAR:\n{convo}\n\n\
-         MESSAGE FOR YOU FROM \"{from}\":\n{body}\n\n\
-         Answer concisely. Then make the FINAL line of your reply exactly one of:\n\
+         HOW TO REPLY: answer concisely, then make the FINAL line exactly one of:\n\
          - `@next <agent>` to hand the conversation to a peer (only from: {peers})\n\
-         - `@done` if the task is complete and no further reply is needed.",
+         - `@done` if the task is complete and no further reply is needed.\n\n\
+         CONVERSATION SO FAR:\n{convo}\n\n\
+         MESSAGE FOR YOU FROM \"{from}\":\n{body}",
         me = env.to,
         peers = peer_list,
         task = task,

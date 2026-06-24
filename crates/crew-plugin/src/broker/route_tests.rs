@@ -116,6 +116,17 @@ fn clip_truncates_long_text_with_ellipsis() {
 }
 
 #[test]
+fn frame_orders_stable_prefix_before_variable_parts() {
+    let env = Envelope::new("user", "claude", "t", "the message");
+    let p = frame(&env, &["codex".into()], "the task", "user → claude: hi");
+    let at = |s: &str| p.find(s).unwrap();
+    // task + protocol (stable) precede transcript + message (variable).
+    assert!(at("TASK:") < at("HOW TO REPLY"));
+    assert!(at("HOW TO REPLY") < at("CONVERSATION SO FAR"));
+    assert!(at("CONVERSATION SO FAR") < at("MESSAGE FOR YOU"));
+}
+
+#[test]
 fn frame_handles_no_peers_and_empty_transcript() {
     let env = Envelope::new("user", "claude", "t", "hi");
     let p = frame(&env, &[], "task", "");
