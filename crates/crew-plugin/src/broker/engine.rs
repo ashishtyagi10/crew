@@ -94,7 +94,7 @@ impl Broker {
                 ));
                 return stats;
             };
-            let peers = self.registry.peers_of(&env.to);
+            let peers = self.registry.roster_excluding(&env.to);
             let prompt = frame(&env, &peers, &task, &tail(&transcript));
             sink(self.note(&env, HopKind::Dialing, String::new()));
             let reply = match agent.call(&prompt, self.timeout) {

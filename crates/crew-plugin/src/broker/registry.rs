@@ -41,6 +41,19 @@ impl Registry {
             .collect()
     }
 
+    /// Peer descriptions (name + capability hint) for everyone except `name` —
+    /// the prompt's peer list, so an agent hands off to the right one.
+    pub fn roster_excluding(&self, name: &str) -> Vec<String> {
+        self.names()
+            .into_iter()
+            .filter(|n| !n.eq_ignore_ascii_case(name))
+            .map(|n| match super::agents::role_for(&n) {
+                "" => n,
+                role => format!("{n} ({role})"),
+            })
+            .collect()
+    }
+
     pub fn len(&self) -> usize {
         self.agents.len()
     }
@@ -81,6 +94,13 @@ mod tests {
     #[test]
     fn peers_excludes_self() {
         assert_eq!(reg().peers_of("claude"), vec!["codex".to_string()]);
+    }
+
+    #[test]
+    fn roster_excluding_adds_role_hints() {
+        let roster = reg().roster_excluding("claude");
+        assert_eq!(roster.len(), 1);
+        assert!(roster[0].starts_with("codex ("), "{}", roster[0]);
     }
 
     #[test]

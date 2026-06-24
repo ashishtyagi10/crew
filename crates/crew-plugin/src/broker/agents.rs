@@ -12,6 +12,17 @@ pub fn known_adapters() -> Vec<Box<dyn Adapter>> {
     vec![Box::new(claude()), Box::new(codex()), Box::new(opencode())]
 }
 
+/// A short capability hint per known agent, surfaced in the peer list so an
+/// agent hands the task off to the right one. Empty for unknown agents.
+pub fn role_for(name: &str) -> &'static str {
+    match name {
+        "claude" => "planning, analysis, prose",
+        "codex" => "implementation, refactors",
+        "opencode" => "review, second opinion",
+        _ => "",
+    }
+}
+
 fn claude() -> CliAdapter {
     CliAdapter {
         name: "claude".into(),
@@ -67,5 +78,12 @@ mod tests {
     #[test]
     fn codex_skips_git_repo_check() {
         assert!(codex().args.contains(&"--skip-git-repo-check".to_string()));
+    }
+
+    #[test]
+    fn role_for_known_and_unknown() {
+        assert!(!role_for("codex").is_empty());
+        assert!(!role_for("claude").is_empty());
+        assert_eq!(role_for("nope"), "");
     }
 }
