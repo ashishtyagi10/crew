@@ -78,6 +78,19 @@ pub fn frame(env: &Envelope, peers: &[String], task: &str, transcript: &str) -> 
     )
 }
 
+/// Flatten whitespace and clip a transcript body to at most `max` chars (adding
+/// `…`), keeping the conversation summary compact so prompt size — and cost —
+/// stays bounded as a thread grows. The immediate recipient still sees the full
+/// message via the envelope body; only the historical summary is clipped.
+pub(crate) fn clip(s: &str, max: usize) -> String {
+    let flat = s.split_whitespace().collect::<Vec<_>>().join(" ");
+    if flat.chars().count() <= max {
+        flat
+    } else {
+        format!("{}…", flat.chars().take(max).collect::<String>())
+    }
+}
+
 #[cfg(test)]
 #[path = "route_tests.rs"]
 mod tests;

@@ -80,6 +80,18 @@ fn frame_includes_task_transcript_peers_and_protocol() {
 }
 
 #[test]
+fn clip_flattens_short_text_unchanged() {
+    assert_eq!(clip("hello\n  world", 100), "hello world");
+}
+
+#[test]
+fn clip_truncates_long_text_with_ellipsis() {
+    let out = clip(&"x ".repeat(500), 10);
+    assert_eq!(out.chars().count(), 11); // 10 chars + the ellipsis
+    assert!(out.ends_with('…'));
+}
+
+#[test]
 fn frame_handles_no_peers_and_empty_transcript() {
     let env = Envelope::new("user", "claude", "t", "hi");
     let p = frame(&env, &[], "task", "");

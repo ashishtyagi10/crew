@@ -4,7 +4,7 @@
 //! the loop guard. Every hop is reported through a sink for observability.
 use std::time::Duration;
 
-use super::route::frame;
+use super::route::{clip, frame};
 use super::{parse_routing, Envelope, Registry, Routing};
 
 /// Why a hop was logged.
@@ -133,7 +133,7 @@ impl Broker {
                         kind: HopKind::Reply,
                         text: body.clone(),
                     });
-                    transcript.push(format!("{} → {next}: {body}", env.to));
+                    transcript.push(format!("{} → {next}: {}", env.to, clip(&body, 400)));
                     if self.registry.get(&next).is_none() {
                         sink(self.note(&env, HopKind::Error, format!("unknown peer \"{next}\"")));
                         return stats;
