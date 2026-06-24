@@ -29,6 +29,12 @@ fn relay_a_to_b() {
     // Control line stripped: the relayed body is just the answer.
     assert_eq!(text_of(&msgs, "claude → codex"), "please pong");
     assert_eq!(text_of(&msgs, "codex → claude"), "[done] pong-ok");
+    // A cost summary is surfaced at the end.
+    assert!(
+        msgs.iter()
+            .any(|(s, t)| s == "crew" && t.contains("tokens")),
+        "{msgs:?}"
+    );
 }
 
 #[test]
@@ -90,7 +96,10 @@ fn loop_guard_terminates_via_binary() {
 
     let ev = run_broker(&dir, &[("CREW_BROKER_MAX_HOPS", "2")], &[SEND]);
     let msgs = messages(&ev);
-    let last = &msgs.last().unwrap().1;
-    assert!(last.contains("[stopped]"), "{msgs:?}");
-    assert!(last.contains("hop limit"), "{msgs:?}");
+    // The guard fires (a cost summary follows it, so check anywhere, not last).
+    assert!(
+        msgs.iter()
+            .any(|(_, t)| t.contains("[stopped]") && t.contains("hop limit")),
+        "{msgs:?}"
+    );
 }

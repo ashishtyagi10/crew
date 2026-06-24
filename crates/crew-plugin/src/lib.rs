@@ -5,7 +5,7 @@ mod orchestrator;
 mod protocol;
 pub use broker::{
     known_adapters, parse_routing, run_broker_stdio, Adapter, Broker, CliAdapter, Envelope, Hop,
-    HopKind, Normalize, Registry, Routing,
+    HopKind, Normalize, Registry, Routing, RunStats,
 };
 pub use echo::respond;
 pub use host::Plugin;
