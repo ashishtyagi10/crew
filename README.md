@@ -103,12 +103,14 @@ pane probes which agent CLIs are installed and lists the ones it found (missing
 ones are skipped). Type a task and press Enter; prefix `@<agent>` to choose who
 starts (otherwise the first detected agent does).
 
-Each agent gets a clean message and can **hand off** to a peer by beginning its
-reply with `TO <agent>: …`, or **end the thread** with `DONE` (optionally
-`DONE: <answer>`). The broker logs every hop as `from → to` with the reply, so
-the whole conversation is visible in the pane. A hop counter caps each thread
-(default 6) so a relay can never loop forever, and every agent call has a
-timeout — a hung agent is killed and logged, never blocking the UI.
+Each agent gets a clean message plus the task and a transcript so far, and ends
+its reply with a control line: **`@next <agent>`** to hand off to a peer, or
+**`@done`** to end the thread (the parser tolerates markdown wrappers and
+re-asks once if the line is missing). The broker logs every hop as `from → to`
+with the reply, so the whole conversation is visible in the pane. A hop counter
+caps each thread (default 6), an optional token budget caps spend, and every
+agent call has a timeout — a hung agent is killed and logged, never blocking the
+UI. The pane prints a cost summary (`~N tokens`) when the task ends.
 
 Agents run headlessly off the render thread (in a broker subprocess), so the
 window stays responsive. **Adding a fourth agent takes one adapter**: add a
