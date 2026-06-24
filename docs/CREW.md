@@ -173,17 +173,19 @@ agent starts; prefix `@<agent>` (e.g. `@codex refactor this`) to choose who
 starts. The agent receives a clean, normalized message — never another agent's
 raw CLI output.
 
-**Routing protocol.** Each agent is told who it is, who its peers are, and how
-to route:
+**Routing protocol.** Each agent is told who it is, what its peers are good at
+(a capability hint per agent), and the task + a transcript of the conversation
+so far. It answers, then ends its reply with a final control line:
 
-- begin a reply with `TO <agent>: <message>` to **hand off** to a peer;
-- reply `DONE` (or `DONE: <answer>`) to **end the thread** with no further
-  reply — the explicit no-reply signal;
-- anything else is a plain reply that **bounces back** to whoever sent it.
+- `@next <agent>` to **hand off** to a peer (only from the listed peers);
+- `@done` (optionally `@done: <answer>`) to **end the thread** — the explicit
+  no-reply signal.
 
-This proves out as `A→B` (claude hands to codex), `B→A` (codex replies back),
-and a **3-way relay** (claude → codex → opencode, and the answer relayed back to
-claude).
+Parsing is tolerant of markdown/punctuation wrappers (`**@next codex**`,
+`` `@done` ``). If an agent forgets the line, the broker re-asks it once to add
+one; a still-missing directive ends the thread rather than mis-routing. This
+proves out as `A→B` (claude hands to codex), `B→A` (codex relays back), and a
+**3-way relay** (claude → codex → opencode, answer relayed back to claude).
 
 **Loop guard & timeouts.** Every message carries a hop counter; once it passes
 the limit (default 6) the broker drops the thread and logs that it stopped, so a
