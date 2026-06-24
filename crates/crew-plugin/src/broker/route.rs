@@ -24,12 +24,16 @@ pub fn parse_routing(reply: &str) -> Routing {
         end -= 1;
     }
     if end > 0 {
-        let last = lines[end - 1].trim();
+        // Tolerate the markdown/backtick wrappers and stray punctuation real
+        // agents put around directives (`**@next codex**`, `` `@done` ``, `@done.`).
+        let last = lines[end - 1]
+            .trim()
+            .trim_matches(|c: char| matches!(c, '*' | '`' | '_' | ' ' | '.'));
         let lower = last.to_ascii_lowercase();
         let body = || lines[..end - 1].join("\n").trim().to_string();
-        if lower.strip_prefix("@next").is_some() {
+        if lower.starts_with("@next") {
             let arg = last[5..]
-                .trim_start_matches([':', ' '])
+                .trim_matches(|c: char| !c.is_alphanumeric() && c != '-')
                 .split_whitespace()
                 .next()
                 .unwrap_or("");
@@ -39,7 +43,7 @@ pub fn parse_routing(reply: &str) -> Routing {
                     body: body(),
                 };
             }
-        } else if lower == "@done" || lower.starts_with("@done ") || lower.starts_with("@done:") {
+        } else if lower.starts_with("@done") {
             return Routing::Done(body());
         }
     }

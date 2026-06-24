@@ -37,6 +37,30 @@ fn next_tolerates_colon_and_trailing_words() {
 }
 
 #[test]
+fn tolerates_markdown_and_punctuation_wrappers() {
+    // Real agents wrap directives; the parser must still recover them.
+    assert_eq!(
+        parse_routing("draft ready\n**@next codex**"),
+        Routing::Relay {
+            to: "codex".into(),
+            body: "draft ready".into()
+        }
+    );
+    assert_eq!(
+        parse_routing("all set\n`@done`"),
+        Routing::Done("all set".into())
+    );
+    assert_eq!(parse_routing("ok\n@done."), Routing::Done("ok".into()));
+    assert_eq!(
+        parse_routing("go\n@next `opencode`"),
+        Routing::Relay {
+            to: "opencode".into(),
+            body: "go".into()
+        }
+    );
+}
+
+#[test]
 fn done_ends_with_body_above() {
     assert_eq!(
         parse_routing("the answer is 42\n@done"),
