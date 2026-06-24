@@ -111,10 +111,11 @@ pub fn spawn_pane(
 pub fn relayout(panes: &mut [Pane], rects: &[Rect], cell_w: f32, cell_h: f32) {
     for (pane, &rect) in panes.iter_mut().zip(rects.iter()) {
         pane.rect = rect;
-        let cols = ((rect.w / cell_w).floor() as u16).max(1);
-        // Reserve the top row for the pane title bar; the content grid is one
-        // row shorter (PaneView shifts content down and draws the bar on row 0).
-        let rows = ((rect.h / cell_h).floor() as u16).saturating_sub(1).max(1);
+        // Reserve a one-cell border ring on every side: panes render as fieldset
+        // cards (PaneView draws the rounded border + legend and insets content),
+        // so the content grid is two cols and two rows smaller than the rect.
+        let cols = ((rect.w / cell_w).floor() as u16).saturating_sub(2).max(1);
+        let rows = ((rect.h / cell_h).floor() as u16).saturating_sub(2).max(1);
         if cols != pane.grid.cols || rows != pane.grid.rows {
             let new_grid = GridSize { cols, rows };
             if let PaneContent::Terminal(t) = &mut pane.content {
