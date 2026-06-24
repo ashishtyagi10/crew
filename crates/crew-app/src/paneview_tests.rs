@@ -2,9 +2,8 @@ use super::*;
 
 fn bar(focused: bool) -> Bar<'static> {
     Bar {
-        cols: 40,
         index: Some(2),
-        title: "~/code",
+        title: "shell",
         focused,
         scroll: 37,
         activity: true,
@@ -14,45 +13,63 @@ fn bar(focused: bool) -> Bar<'static> {
 }
 
 #[test]
-fn title_bar_shows_broadcast_marker() {
+fn card_has_rounded_border_and_legend() {
+    let cells = pane_card(38, 10, &bar(true));
+    let has = |ch: char| cells.iter().any(|c| c.c == ch);
+    // fieldset frame, not a filled title bar
+    assert!(has('╭') && has('╮') && has('╰') && has('╯'));
+    // legend on the top border: index then title
+    assert!(cells.iter().any(|c| c.c == '2' && c.row == 0));
+    assert!(cells.iter().any(|c| c.c == 's' && c.row == 0)); // "shell"
+}
+
+#[test]
+fn status_glyphs_ride_the_top_border() {
+    let cells = pane_card(38, 10, &bar(true));
+    let on_top =
+        |ch: char, fg: (u8, u8, u8)| cells.iter().any(|c| c.c == ch && c.row == 0 && c.fg == fg);
+    assert!(on_top('⇡', SCROLL_HINT)); // scrollback `⇡37`
+    assert!(on_top('●', ACTIVITY));
+    assert!(on_top('!', BELL));
+}
+
+#[test]
+fn broadcast_marker_shown_only_when_set() {
     let b = Bar {
         broadcast: true,
         ..bar(true)
     };
-    let cells = title_bar(&b);
-    assert!(cells.iter().any(|c| c.c == '»' && c.fg == BROADCAST));
-    // without broadcast, no marker
-    assert!(!title_bar(&bar(true)).iter().any(|c| c.c == '»'));
+    assert!(pane_card(38, 10, &b)
+        .iter()
+        .any(|c| c.c == '»' && c.fg == BROADCAST));
+    assert!(!pane_card(38, 10, &bar(true)).iter().any(|c| c.c == '»'));
 }
 
 #[test]
-fn title_bar_has_index_title_and_glyphs() {
-    let cells = title_bar(&bar(true));
-    assert_eq!(cells.len(), 40); // full-width bar
-    assert!(cells.iter().any(|c| c.c == '2' && c.fg == ACCENT));
-    assert!(cells.iter().any(|c| c.c == '~'));
-    // scroll indicator renders as `⇡37`
-    assert!(cells.iter().any(|c| c.c == '⇡' && c.fg == SCROLL_HINT));
-    assert!(cells.iter().any(|c| c.c == '3' && c.fg == SCROLL_HINT));
-    assert!(cells.iter().any(|c| c.c == '7' && c.fg == SCROLL_HINT));
-    assert!(cells.iter().any(|c| c.c == '●' && c.fg == ACTIVITY));
-    assert!(cells.iter().any(|c| c.c == '!' && c.fg == BELL));
-    assert!(cells.iter().all(|c| c.row == 0));
-}
-
-#[test]
-fn title_bar_no_scroll_indicator_at_bottom() {
+fn no_scroll_indicator_at_bottom() {
     let b = Bar {
         scroll: 0,
         activity: false,
         bell: false,
         ..bar(true)
     };
-    let cells = title_bar(&b);
-    assert!(!cells.iter().any(|c| c.c == '⇡'));
+    assert!(!pane_card(38, 10, &b).iter().any(|c| c.c == '⇡'));
 }
 
 #[test]
-fn title_bar_bg_differs_by_focus() {
-    assert_ne!(title_bar(&bar(true))[0].bg, title_bar(&bar(false))[0].bg);
+fn border_colour_differs_by_focus() {
+    let corner = |foc| {
+        pane_card(38, 10, &bar(foc))
+            .into_iter()
+            .find(|c| c.c == '╭')
+            .map(|c| c.fg)
+            .unwrap()
+    };
+    assert_ne!(corner(true), corner(false));
+}
+
+#[test]
+fn tiny_pane_yields_no_card() {
+    // Interior so small the card can't be drawn → empty (degenerate tile).
+    assert!(pane_card(1, 0, &bar(true)).is_empty());
 }
