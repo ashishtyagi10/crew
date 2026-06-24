@@ -39,6 +39,7 @@ mod matrix;
 mod net;
 mod openurl;
 mod pane;
+mod panecard;
 mod panelist;
 mod panemanage;
 mod paneview;

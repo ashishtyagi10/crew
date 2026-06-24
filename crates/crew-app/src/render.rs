@@ -92,26 +92,16 @@ impl CrewApp {
             // Use the SAME rect a single grid pane would occupy (gap-inset) so the
             // welcome area matches a Cmd+T terminal exactly.
             let c = chrome::content_rect(sw, sh, self.config.show_nav, self.nav_px(scale), GAP, ih);
-            if let Some(r) = pane_rects_at(1, c.x, c.y, c.w, c.h, GAP).first() {
-                let wcols = (r.w / cw).floor() as u16;
-                let wrows = (r.h / ch).floor() as u16;
-                scenes.push(PaneScene {
-                    cells: welcome::welcome_cells_animated(wcols, wrows, self.tick),
-                    x: r.x,
-                    y: r.y,
-                    w: r.w,
-                    h: r.h,
-                    focused: false,
-                    bordered: true,
-                    overlay: false,
+            if let Some(r) = pane_rects_at(1, c.x, c.y, c.w, c.h, GAP).first().copied() {
+                let tick = self.tick;
+                crate::panecard::push_card(&mut scenes, r, cw, ch, "crew", |cols, rows| {
+                    welcome::welcome_cells_animated(cols, rows, tick)
                 });
             }
         }
 
         if self.config.show_nav {
             let sb = chrome::sidebar_rect(sh, self.nav_px(scale), GAP);
-            let sc = (sb.w / cw).floor() as u16;
-            let sr = (sb.h / ch).floor() as u16;
             let pane_rows: Vec<crate::panelist::PaneRow> = self
                 .panes
                 .iter()
@@ -123,15 +113,9 @@ impl CrewApp {
                     activity: p.activity,
                 })
                 .collect();
-            scenes.push(PaneScene {
-                cells: self.sidebar.cells(sc, sr, &pane_rows),
-                x: sb.x,
-                y: sb.y,
-                w: sb.w,
-                h: sb.h,
-                focused: false,
-                bordered: true,
-                overlay: false,
+            let sidebar = &self.sidebar;
+            crate::panecard::push_card(&mut scenes, sb, cw, ch, "nav", |cols, rows| {
+                sidebar.cells(cols, rows, &pane_rows)
             });
         }
 
