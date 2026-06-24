@@ -59,6 +59,18 @@ fn token_budget_terminates_thread() {
 }
 
 #[test]
+fn self_hand_off_finishes_without_recalling() {
+    // An agent that @next's itself must not trigger a redundant self-call.
+    let reg = Registry::new(vec![agent("claude", "my take\n@next claude")]);
+    let b = Broker::new(reg, 6, Duration::from_secs(1));
+    let mut hops = Vec::new();
+    let stats = b.run("user", "claude", "task", "t", &mut |h| hops.push(h));
+    assert_eq!(stats.exchanges, 1);
+    let done = hops.iter().find(|h| h.kind == HopKind::Done).unwrap();
+    assert_eq!(done.text, "my take");
+}
+
+#[test]
 fn zero_budget_is_unlimited() {
     let reg = Registry::new(vec![agent("claude", "answer\n@done")]);
     let b = Broker::new(reg, 6, Duration::from_secs(1)); // budget defaults to 0

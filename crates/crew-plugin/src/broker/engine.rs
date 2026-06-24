@@ -10,8 +10,7 @@ use super::{parse_routing, Envelope, Registry, Routing};
 /// Why a hop was logged.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HopKind {
-    /// About to call an agent (progress note, emitted before the call so the UI
-    /// shows activity during the wait). `to` names the agent being called.
+    /// About to call an agent (progress note shown before the call); `to` = it.
     Dialing,
     /// A normal reply (relayed onward or bounced back to the sender).
     Reply,
@@ -23,8 +22,7 @@ pub enum HopKind {
     Error,
 }
 
-/// One entry in the transcript: who produced it, who it is bound for, how deep
-/// the relay is, why it was logged, and the text.
+/// One transcript entry: who produced it, who it's bound for, depth, kind, text.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Hop {
     pub from: String,
@@ -66,8 +64,7 @@ impl Broker {
         self
     }
 
-    /// Drive a relay from `from` to `to`. Every agent sees the task + transcript
-    /// and ends with `@next <agent>` or `@done`; hops stream through `sink`.
+    /// Drive a relay from `from` to `to`; hops stream through `sink`.
     pub fn run(
         &self,
         from: &str,
@@ -126,6 +123,10 @@ impl Broker {
             }
             match parse_routing(&reply) {
                 Routing::Relay { to: next, body } => {
+                    if next.eq_ignore_ascii_case(&env.to) {
+                        sink(self.back(&env, HopKind::Done, body)); // self-hand-off → finish
+                        return stats;
+                    }
                     sink(Hop {
                         from: env.to.clone(),
                         to: next.clone(),
@@ -171,8 +172,7 @@ impl Broker {
     }
 }
 
-/// The last few transcript entries joined — a compact conversation summary that
-/// gives the next agent context without an unbounded prompt.
+/// The last few transcript entries joined — bounded context for the next agent.
 fn tail(transcript: &[String]) -> String {
     const MAX: usize = 8;
     transcript[transcript.len().saturating_sub(MAX)..].join("\n")
