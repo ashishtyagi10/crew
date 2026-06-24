@@ -18,6 +18,10 @@ fn max_hops() -> u32 {
 fn call_timeout() -> Duration {
     Duration::from_millis(env_num("CREW_BROKER_TIMEOUT_MS").unwrap_or(180_000))
 }
+/// Approximate per-thread token budget (0 = unlimited). `CREW_BROKER_TOKEN_BUDGET`.
+fn token_budget() -> usize {
+    env_num("CREW_BROKER_TOKEN_BUDGET").unwrap_or(0)
+}
 fn env_num<T: std::str::FromStr>(key: &str) -> Option<T> {
     std::env::var(key).ok().and_then(|s| s.parse().ok())
 }
@@ -97,14 +101,25 @@ fn relay(input: &str, out: &mut impl Write) -> anyhow::Result<()> {
             format!("starting with {start} — relaying until an agent says @done"),
         ),
     )?;
-    let broker = Broker::new(reg, max_hops(), call_timeout());
+    let broker = Broker::new(reg, max_hops(), call_timeout()).with_budget(token_budget());
     let mut werr: anyhow::Result<()> = Ok(());
-    broker.run("user", &start, &body, &tid, &mut |hop| {
+    let stats = broker.run("user", &start, &body, &tid, &mut |hop| {
         if werr.is_ok() {
             werr = emit(out, &hop_to_msg(&hop));
         }
     });
-    werr
+    werr?;
+    // Surface cost so it stays in check.
+    emit(
+        out,
+        &msg(
+            "crew",
+            format!(
+                "done — {} exchange(s), ~{} tokens (approx)",
+                stats.exchanges, stats.approx_tokens
+            ),
+        ),
+    )
 }
 
 /// Split an optional leading `@agent` selector off the task. Falls back to the

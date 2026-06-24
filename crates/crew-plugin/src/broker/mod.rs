@@ -19,7 +19,7 @@ mod stdio;
 
 pub use adapter::{Adapter, CliAdapter, Normalize};
 pub use agents::known_adapters;
-pub use engine::{Broker, Hop, HopKind};
+pub use engine::{Broker, Hop, HopKind, RunStats};
 pub use registry::Registry;
 pub use route::{parse_routing, Routing};
 pub use stdio::run_broker_stdio;

@@ -34,12 +34,20 @@ pub struct Hop {
     pub text: String,
 }
 
-/// Routes messages between agents in a [`Registry`], with a per-call timeout and
-/// a maximum hop count.
+/// Approximate cost of a relay: agent calls made and ~tokens (chars / 4).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct RunStats {
+    pub exchanges: u32,
+    pub approx_tokens: usize,
+}
+
+/// Routes messages between agents in a [`Registry`], with a per-call timeout, a
+/// maximum hop count, and an approximate token budget (0 = unlimited).
 pub struct Broker {
     pub registry: Registry,
     pub max_hops: u32,
     pub timeout: Duration,
+    pub token_budget: usize,
 }
 
 impl Broker {
@@ -48,14 +56,18 @@ impl Broker {
             registry,
             max_hops,
             timeout,
+            token_budget: 0,
         }
     }
 
-    /// Drive a relay that begins with a message `body` sent from `from` to `to`.
-    /// Every agent sees the original task plus a transcript of the conversation
-    /// so far, and ends its reply with `@next <agent>` or `@done`. Each hop is
-    /// reported through `sink`; the thread ends on `@done`, the hop limit, or an
-    /// error. `from`'s first message is taken as the task.
+    /// Cap a thread's approximate token spend (0 = unlimited).
+    pub fn with_budget(mut self, tokens: usize) -> Self {
+        self.token_budget = tokens;
+        self
+    }
+
+    /// Drive a relay from `from` to `to`. Every agent sees the task + transcript
+    /// and ends with `@next <agent>` or `@done`; hops stream through `sink`.
     pub fn run(
         &self,
         from: &str,
@@ -63,9 +75,10 @@ impl Broker {
         body: &str,
         thread_id: &str,
         sink: &mut dyn FnMut(Hop),
-    ) {
+    ) -> RunStats {
         let task = body.to_string();
         let mut transcript: Vec<String> = Vec::new();
+        let mut stats = RunStats::default();
         let mut env = Envelope::new(from, to, thread_id, body);
         loop {
             if env.hop > self.max_hops {
@@ -74,7 +87,7 @@ impl Broker {
                     HopKind::Terminated,
                     format!("thread terminated: hop limit {} reached", self.max_hops),
                 ));
-                return;
+                return stats;
             }
             let Some(agent) = self.registry.get(&env.to) else {
                 sink(self.note(
@@ -82,7 +95,7 @@ impl Broker {
                     HopKind::Error,
                     format!("unknown agent \"{}\"", env.to),
                 ));
-                return;
+                return stats;
             };
             let peers = self.registry.peers_of(&env.to);
             let prompt = frame(&env, &peers, &task, &tail(&transcript));
@@ -91,13 +104,26 @@ impl Broker {
                 Ok(r) if !r.trim().is_empty() => r,
                 Ok(_) => {
                     sink(self.back(&env, HopKind::Error, "empty reply".into()));
-                    return;
+                    return stats;
                 }
                 Err(e) => {
                     sink(self.back(&env, HopKind::Error, e));
-                    return;
+                    return stats;
                 }
             };
+            stats.exchanges += 1;
+            stats.approx_tokens += (prompt.len() + reply.len()) / 4;
+            if self.token_budget > 0 && stats.approx_tokens > self.token_budget {
+                sink(self.note(
+                    &env,
+                    HopKind::Terminated,
+                    format!(
+                        "thread terminated: token budget {} reached (~{} tokens)",
+                        self.token_budget, stats.approx_tokens
+                    ),
+                ));
+                return stats;
+            }
             match parse_routing(&reply) {
                 Routing::Relay { to: next, body } => {
                     sink(Hop {
@@ -110,13 +136,13 @@ impl Broker {
                     transcript.push(format!("{} → {next}: {body}", env.to));
                     if self.registry.get(&next).is_none() {
                         sink(self.note(&env, HopKind::Error, format!("unknown peer \"{next}\"")));
-                        return;
+                        return stats;
                     }
                     env = env.advance(env.to.clone(), next, body);
                 }
                 Routing::Done(answer) => {
                     sink(self.back(&env, HopKind::Done, answer));
-                    return;
+                    return stats;
                 }
             }
         }
@@ -168,3 +194,7 @@ impl Envelope {
 #[cfg(test)]
 #[path = "engine_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "engine_budget_tests.rs"]
+mod budget_tests;
