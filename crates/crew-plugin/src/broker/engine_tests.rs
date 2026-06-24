@@ -154,11 +154,11 @@ fn demo_three_way_relay_answer_returns_to_a() {
 
 #[test]
 fn loop_guard_terminates_a_cycle() {
-    // Two agents that relay forever; the hop limit must stop the thread.
+    // Relay forever with distinct bodies → exercises the hop limit guard.
     let hops = drive(
         vec![
-            Fake::scripted("claude", &["loop\n@next codex"]),
-            Fake::scripted("codex", &["loop\n@next claude"]),
+            Fake::scripted("claude", &["a\n@next codex", "c\n@next codex"]),
+            Fake::scripted("codex", &["b\n@next claude"]),
         ],
         2,
     );

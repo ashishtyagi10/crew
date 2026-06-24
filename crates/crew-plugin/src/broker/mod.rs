@@ -11,6 +11,7 @@
 mod adapter;
 mod agents;
 mod engine;
+mod hop;
 mod normalize;
 mod registry;
 mod route;
@@ -19,7 +20,8 @@ mod stdio;
 
 pub use adapter::{Adapter, CliAdapter, Normalize};
 pub use agents::known_adapters;
-pub use engine::{Broker, Hop, HopKind, RunStats};
+pub use engine::Broker;
+pub use hop::{Hop, HopKind, RunStats};
 pub use registry::Registry;
 pub use route::{parse_routing, Routing};
 pub use stdio::run_broker_stdio;

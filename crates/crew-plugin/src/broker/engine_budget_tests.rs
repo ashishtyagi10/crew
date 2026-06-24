@@ -71,6 +71,22 @@ fn self_hand_off_finishes_without_recalling() {
 }
 
 #[test]
+fn repeated_reply_stops_for_no_progress() {
+    // Both agents keep emitting the identical body — a stuck loop the no-progress
+    // guard must stop well before the (large) hop limit.
+    let reg = Registry::new(vec![
+        agent("claude", "same\n@next codex"),
+        agent("codex", "same\n@next claude"),
+    ]);
+    let b = Broker::new(reg, 50, Duration::from_secs(1));
+    let mut hops = Vec::new();
+    b.run("user", "claude", "task", "t", &mut |h| hops.push(h));
+    let last = hops.last().unwrap();
+    assert_eq!(last.kind, HopKind::Terminated);
+    assert!(last.text.contains("no progress"), "{}", last.text);
+}
+
+#[test]
 fn zero_budget_is_unlimited() {
     let reg = Registry::new(vec![agent("claude", "answer\n@done")]);
     let b = Broker::new(reg, 6, Duration::from_secs(1)); // budget defaults to 0

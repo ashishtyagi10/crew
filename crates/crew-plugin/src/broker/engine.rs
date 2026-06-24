@@ -4,40 +4,9 @@
 //! the loop guard. Every hop is reported through a sink for observability.
 use std::time::Duration;
 
+use super::hop::{Hop, HopKind, RunStats};
 use super::route::{clip, frame};
 use super::{parse_routing, Envelope, Registry, Routing};
-
-/// Why a hop was logged.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum HopKind {
-    /// About to call an agent (progress note shown before the call); `to` = it.
-    Dialing,
-    /// A normal reply (relayed onward or bounced back to the sender).
-    Reply,
-    /// The agent ended the thread with `DONE`.
-    Done,
-    /// The hop limit was reached; the thread was dropped.
-    Terminated,
-    /// A launch failure, timeout, empty reply, or unknown recipient.
-    Error,
-}
-
-/// One transcript entry: who produced it, who it's bound for, depth, kind, text.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Hop {
-    pub from: String,
-    pub to: String,
-    pub hop: u32,
-    pub kind: HopKind,
-    pub text: String,
-}
-
-/// Approximate cost of a relay: agent calls made and ~tokens (chars / 4).
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub struct RunStats {
-    pub exchanges: u32,
-    pub approx_tokens: usize,
-}
 
 /// Routes messages between agents in a [`Registry`], with a per-call timeout, a
 /// maximum hop count, and an approximate token budget (0 = unlimited).
@@ -76,6 +45,7 @@ impl Broker {
         let task = body.to_string();
         let mut transcript: Vec<String> = Vec::new();
         let mut stats = RunStats::default();
+        let mut last_body: Option<String> = None;
         let mut env = Envelope::new(from, to, thread_id, body);
         loop {
             if env.hop > self.max_hops {
@@ -127,6 +97,13 @@ impl Broker {
                         sink(self.back(&env, HopKind::Done, body)); // self-hand-off → finish
                         return stats;
                     }
+                    let trimmed = body.trim();
+                    if !trimmed.is_empty() && last_body.as_deref() == Some(trimmed) {
+                        let m = "thread terminated: no progress (a reply repeated verbatim)";
+                        sink(self.note(&env, HopKind::Terminated, m.into()));
+                        return stats;
+                    }
+                    last_body = Some(trimmed.to_string());
                     sink(Hop {
                         from: env.to.clone(),
                         to: next.clone(),

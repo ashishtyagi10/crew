@@ -86,13 +86,14 @@ fn loop_guard_terminates_via_binary() {
     let dir = unique_dir("loop");
     // The e2e fake finishes once its scripted replies run out, so give claude
     // enough @next turns to keep the cycle going until the hop guard fires.
+    // Distinct bodies so this hits the hop guard, not the no-progress guard.
     write_fake(
         &dir,
         "claude",
-        &["loop\\n@next codex", "loop\\n@next codex"],
+        &["a\\n@next codex", "c\\n@next codex"],
         false,
     );
-    write_fake(&dir, "codex", &["loop\\n@next claude"], false);
+    write_fake(&dir, "codex", &["b\\n@next claude"], false);
 
     let ev = run_broker(&dir, &[("CREW_BROKER_MAX_HOPS", "2")], &[SEND]);
     let msgs = messages(&ev);
