@@ -4,11 +4,13 @@ use serde::{Deserialize, Serialize};
 
 pub mod constellation;
 pub mod heatmap;
+pub mod render;
 #[cfg(test)]
 mod tests;
 
 pub use constellation::{constellation, Constellation, Edge, Node};
 pub use heatmap::{heatmap, Cell, FleetView, Heatmap};
+pub use render::{render_cells, CellGlyph};
 
 /// An RGB colour triple.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

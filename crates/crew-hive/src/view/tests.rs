@@ -112,3 +112,48 @@ fn fleet_view_picks_constellation_when_small() {
         FleetView::Constellation(_)
     ));
 }
+
+#[test]
+fn render_constellation_places_nodes_in_bounds() {
+    let g = TaskGraph::new(vec![spec(0, &[]), spec(1, &[0])]).unwrap();
+    let view = FleetView::Constellation(constellation(&g, &Fleet::new()));
+    let cells = render_cells(&view, 40, 20);
+    assert_eq!(cells.len(), 2);
+    for c in &cells {
+        assert!(c.col < 40 && c.row < 20);
+        assert_eq!(c.ch, '●');
+    }
+    // the root (x=0) lands at col 0; the leaf (x=1.0) lands at the right edge
+    let cols_sorted: Vec<u16> = {
+        let mut v: Vec<u16> = cells.iter().map(|c| c.col).collect();
+        v.sort_unstable();
+        v
+    };
+    assert_eq!(cols_sorted[0], 0);
+    assert_eq!(*cols_sorted.last().unwrap(), 39);
+}
+
+#[test]
+fn render_heatmap_fits_small_grid_one_to_one() {
+    let mut fleet = Fleet::new();
+    for i in 0..4u64 {
+        fleet.apply(&HiveEvent::AgentSpawned {
+            agent: AgentId(i),
+            task: TaskId(i),
+        });
+    }
+    let view = FleetView::Heatmap(heatmap(&fleet, 2)); // 2 cols x 2 rows
+    let cells = render_cells(&view, 40, 20);
+    assert_eq!(cells.len(), 4);
+    for c in &cells {
+        assert!(c.col < 40 && c.row < 20);
+        assert_eq!(c.ch, '■');
+    }
+}
+
+#[test]
+fn render_zero_viewport_is_empty() {
+    let g = TaskGraph::new(vec![spec(0, &[])]).unwrap();
+    let view = FleetView::Constellation(constellation(&g, &Fleet::new()));
+    assert!(render_cells(&view, 0, 10).is_empty());
+}
