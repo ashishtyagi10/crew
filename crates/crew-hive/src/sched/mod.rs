@@ -3,10 +3,16 @@
 //! `Semaphore` permit (the concurrency cap). Results land in the `Blackboard`;
 //! state transitions emit on the `EventBus`; a failed/cancelled task cascades
 //! cancellation to its dependents.
+//!
+//! Cooperative cancellation: call `.with_cancel(flag)` before `.run()`. When
+//! the flag is set, the scheduler stops spawning new tasks, marks all
+//! unstarted tasks `Cancelled`, and drains in-flight agents to completion.
+mod cancel;
 #[cfg(test)]
 mod tests;
 
 use std::collections::HashSet;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use futures::FutureExt as _;
@@ -17,6 +23,8 @@ use crate::agent::{AgentContext, AgentFactory};
 use crate::board::Blackboard;
 use crate::bus::{AgentId, EventBus, HiveEvent};
 use crate::graph::{TaskGraph, TaskId, TaskState};
+
+use cancel::{cascade_cancel, mark_all_unstarted_cancelled, sorted};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct RunOutcome {
@@ -31,6 +39,7 @@ pub struct Scheduler {
     bus: EventBus,
     factory: Arc<dyn AgentFactory>,
     concurrency: usize,
+    cancel: Arc<AtomicBool>,
 }
 
 impl Scheduler {
@@ -47,7 +56,16 @@ impl Scheduler {
             bus,
             factory,
             concurrency: concurrency.max(1),
+            cancel: Arc::new(AtomicBool::new(false)),
         }
+    }
+
+    /// Attach a shared cancel flag (builder-style). When the flag is set,
+    /// the scheduler stops spawning new tasks and cancels all unstarted
+    /// tasks, but drains the `JoinSet` so in-flight agents finish normally.
+    pub fn with_cancel(mut self, cancel: Arc<AtomicBool>) -> Self {
+        self.cancel = cancel;
+        self
     }
 
     pub async fn run(self) -> RunOutcome {
@@ -60,6 +78,24 @@ impl Scheduler {
         let mut next_agent: u64 = 0;
 
         loop {
+            // --- Cooperative cancellation check ---
+            if self.cancel.load(Ordering::Relaxed) {
+                mark_all_unstarted_cancelled(
+                    &self.graph,
+                    &self.bus,
+                    &done,
+                    &failed,
+                    &mut cancelled,
+                    &started,
+                );
+                // Drain all in-flight agents; never abort running work.
+                while let Some(joined) = joinset.join_next().await {
+                    let (id, result) = joined.expect("agent task panicked");
+                    record_result(id, result, &mut done, &mut failed, &self.board, &self.bus).await;
+                }
+                break;
+            }
+
             cascade_cancel(
                 &self.graph,
                 &self.bus,
@@ -68,6 +104,7 @@ impl Scheduler {
                 &mut cancelled,
                 &started,
             );
+
             // Spawn every ready (deps all done), not-yet-started task.
             for id in self.graph.ready(&done) {
                 if started.contains(&id) || cancelled.contains(&id) {
@@ -119,23 +156,8 @@ impl Scheduler {
             }
 
             if let Some(joined) = joinset.join_next().await {
-                // Panics are caught inside the task and converted to a failed TaskResult,
-                // so a JoinError here only occurs on abort — which this scheduler never does.
                 let (id, result) = joined.expect("agent task panicked");
-                if result.success {
-                    self.board.put_result(result).await;
-                    done.insert(id);
-                    self.bus.publish(HiveEvent::TaskStateChanged {
-                        task: id,
-                        state: TaskState::Done,
-                    });
-                } else {
-                    failed.insert(id);
-                    self.bus.publish(HiveEvent::TaskStateChanged {
-                        task: id,
-                        state: TaskState::Failed,
-                    });
-                }
+                record_result(id, result, &mut done, &mut failed, &self.board, &self.bus).await;
             }
         }
 
@@ -147,47 +169,26 @@ impl Scheduler {
     }
 }
 
-/// Mark every not-started task with a failed/cancelled dependency as
-/// cancelled (transitively, since newly-cancelled tasks feed the next pass
-/// via the scheduler loop).
-fn cascade_cancel(
-    graph: &TaskGraph,
+async fn record_result(
+    id: TaskId,
+    result: crate::board::TaskResult,
+    done: &mut HashSet<TaskId>,
+    failed: &mut HashSet<TaskId>,
+    board: &Blackboard,
     bus: &EventBus,
-    done: &HashSet<TaskId>,
-    failed: &HashSet<TaskId>,
-    cancelled: &mut HashSet<TaskId>,
-    started: &HashSet<TaskId>,
 ) {
-    loop {
-        let mut changed = false;
-        for t in graph.tasks() {
-            if done.contains(&t.id)
-                || failed.contains(&t.id)
-                || cancelled.contains(&t.id)
-                || started.contains(&t.id)
-            {
-                continue;
-            }
-            if t.deps
-                .iter()
-                .any(|d| failed.contains(d) || cancelled.contains(d))
-            {
-                cancelled.insert(t.id);
-                bus.publish(HiveEvent::TaskStateChanged {
-                    task: t.id,
-                    state: TaskState::Cancelled,
-                });
-                changed = true;
-            }
-        }
-        if !changed {
-            break;
-        }
+    if result.success {
+        board.put_result(result).await;
+        done.insert(id);
+        bus.publish(HiveEvent::TaskStateChanged {
+            task: id,
+            state: TaskState::Done,
+        });
+    } else {
+        failed.insert(id);
+        bus.publish(HiveEvent::TaskStateChanged {
+            task: id,
+            state: TaskState::Failed,
+        });
     }
-}
-
-fn sorted(set: HashSet<TaskId>) -> Vec<TaskId> {
-    let mut v: Vec<TaskId> = set.into_iter().collect();
-    v.sort_unstable();
-    v
 }

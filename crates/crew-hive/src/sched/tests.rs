@@ -194,3 +194,80 @@ async fn transitive_cancel() {
     assert_eq!(out.failed, vec![TaskId(0)]);
     assert_eq!(out.cancelled, vec![TaskId(1), TaskId(2)]);
 }
+
+#[tokio::test]
+async fn cancel_before_run_cancels_everything() {
+    use std::sync::atomic::AtomicBool;
+    use std::sync::Arc;
+    let g = TaskGraph::new(vec![spec(0, &[]), spec(1, &[]), spec(2, &[])]).unwrap();
+    let cancel = Arc::new(AtomicBool::new(true));
+    let out = Scheduler::new(
+        g,
+        Blackboard::new(),
+        EventBus::new(64),
+        Arc::new(StubFactory),
+        4,
+    )
+    .with_cancel(cancel)
+    .run()
+    .await;
+    assert!(out.done.is_empty());
+    assert_eq!(out.cancelled, vec![TaskId(0), TaskId(1), TaskId(2)]);
+}
+
+#[tokio::test]
+async fn cancel_mid_run_drains_inflight() {
+    use crate::agent::{Agent, AgentContext, AgentFactory};
+    use crate::board::TaskResult;
+    use std::future::Future;
+    use std::pin::Pin;
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::sync::Arc;
+
+    // Agent that flips cancel after starting, then sleeps briefly and succeeds.
+    struct Flip {
+        cancel: Arc<AtomicBool>,
+    }
+    impl Agent for Flip {
+        fn run(&self, ctx: AgentContext) -> Pin<Box<dyn Future<Output = TaskResult> + Send>> {
+            let cancel = self.cancel.clone();
+            Box::pin(async move {
+                cancel.store(true, Ordering::Relaxed);
+                tokio::time::sleep(std::time::Duration::from_millis(15)).await;
+                TaskResult {
+                    task: ctx.task.id,
+                    output: String::new(),
+                    success: true,
+                }
+            })
+        }
+    }
+    struct FlipFactory {
+        cancel: Arc<AtomicBool>,
+    }
+    impl AgentFactory for FlipFactory {
+        fn make(&self, _k: &AgentKind) -> Box<dyn Agent> {
+            Box::new(Flip {
+                cancel: self.cancel.clone(),
+            })
+        }
+    }
+
+    // One root (runs and flips cancel) + one dependent (should be cancelled).
+    let g = TaskGraph::new(vec![spec(0, &[]), spec(1, &[0])]).unwrap();
+    let cancel = Arc::new(AtomicBool::new(false));
+    let out = Scheduler::new(
+        g,
+        Blackboard::new(),
+        EventBus::new(64),
+        Arc::new(FlipFactory {
+            cancel: cancel.clone(),
+        }),
+        1,
+    )
+    .with_cancel(cancel)
+    .run()
+    .await;
+    assert_eq!(out.done, vec![TaskId(0)]); // in-flight completed
+    assert_eq!(out.cancelled, vec![TaskId(1)]); // unstarted dependent cancelled
+}
