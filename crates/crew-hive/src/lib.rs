@@ -20,6 +20,7 @@ pub mod agent;
 pub mod board;
 pub mod bus;
 pub mod graph;
+pub mod planner;
 pub mod provider;
 pub mod sched;
 pub mod telemetry;
