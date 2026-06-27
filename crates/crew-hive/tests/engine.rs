@@ -68,3 +68,44 @@ async fn end_to_end_fan_out_fan_in() {
     );
     let _ = TaskState::Done; // type is part of the public surface
 }
+
+#[tokio::test]
+async fn plan_then_schedule_with_api_agents() {
+    use crew_hive::{
+        Agent, AgentFactory, AgentKind, ApiAgent, Blackboard, EventBus, MockProvider, ModelTier,
+        Planner, Scheduler, StubPlanner,
+    };
+    use std::sync::Arc;
+
+    struct ApiFactory {
+        provider: Arc<MockProvider>,
+    }
+    impl AgentFactory for ApiFactory {
+        fn make(&self, _k: &AgentKind) -> Box<dyn Agent> {
+            Box::new(ApiAgent::new(
+                self.provider.clone(),
+                ModelTier::Standard,
+                256,
+            ))
+        }
+    }
+
+    let graph = StubPlanner { fanout: 2 }
+        .plan("build a thing")
+        .await
+        .unwrap();
+    let n = graph.len();
+    let board = Blackboard::new();
+    let provider = Arc::new(MockProvider { reply: "ok".into() });
+    let out = Scheduler::new(
+        graph,
+        board.clone(),
+        EventBus::new(128),
+        Arc::new(ApiFactory { provider }),
+        8,
+    )
+    .run()
+    .await;
+    assert_eq!(out.done.len(), n);
+    assert_eq!(board.result_count().await, n);
+}

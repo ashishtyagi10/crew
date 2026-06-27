@@ -17,6 +17,7 @@
 //! ```
 
 pub mod agent;
+pub mod apiagent;
 pub mod board;
 pub mod bus;
 pub mod graph;
@@ -40,5 +41,16 @@ pub use telemetry::{AgentTelemetry, Fleet, FleetTotals};
 // Agent
 pub use agent::{Agent, AgentContext, AgentFactory, StubAgent};
 
+// ApiAgent
+pub use apiagent::ApiAgent;
+
 // Scheduler
 pub use sched::{RunOutcome, Scheduler};
+
+// Provider
+pub use provider::{
+    AnthropicProvider, Completion, CompletionRequest, MockProvider, Provider, ProviderError,
+};
+
+// Planner
+pub use planner::{LlmPlanner, PlanError, Planner, StubPlanner};
