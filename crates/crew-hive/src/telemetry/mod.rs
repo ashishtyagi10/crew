@@ -22,7 +22,7 @@ pub struct AgentTelemetry {
 }
 
 /// Fleet-wide aggregate counts.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FleetTotals {
     pub live: usize,
     pub done: usize,
@@ -133,9 +133,9 @@ impl Fleet {
                 TaskState::Failed => t.failed += 1,
                 _ => {}
             }
-            t.tokens_in += u64::from(rec.tokens_in);
-            t.tokens_out += u64::from(rec.tokens_out);
-            t.micros_usd += rec.micros_usd;
+            t.tokens_in = t.tokens_in.saturating_add(u64::from(rec.tokens_in));
+            t.tokens_out = t.tokens_out.saturating_add(u64::from(rec.tokens_out));
+            t.micros_usd = t.micros_usd.saturating_add(rec.micros_usd);
         }
         t
     }

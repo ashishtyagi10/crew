@@ -71,3 +71,21 @@ fn get_and_serde_roundtrip() {
     let back: Vec<TaskSpec> = serde_json::from_str(&json).unwrap();
     assert_eq!(back.len(), 2);
 }
+
+#[test]
+fn diamond_dag_accepted_and_ready_correct() {
+    let g = TaskGraph::new(vec![
+        spec(0, &[]),
+        spec(1, &[0]),
+        spec(2, &[0]),
+        spec(3, &[1, 2]),
+    ])
+    .unwrap();
+    let mut done = HashSet::new();
+    assert_eq!(g.ready(&done), vec![TaskId(0)]);
+    done.insert(TaskId(0));
+    assert_eq!(g.ready(&done), vec![TaskId(1), TaskId(2)]);
+    done.insert(TaskId(1));
+    done.insert(TaskId(2));
+    assert_eq!(g.ready(&done), vec![TaskId(3)]);
+}
