@@ -116,6 +116,16 @@ impl Fleet {
         self.agents.get(&agent.0)
     }
 
+    /// Number of agents in the fleet.
+    pub fn len(&self) -> usize {
+        self.agents.len()
+    }
+
+    /// True when no agents have been spawned.
+    pub fn is_empty(&self) -> bool {
+        self.agents.is_empty()
+    }
+
     /// Aggregate counts across all agents.
     pub fn totals(&self) -> FleetTotals {
         let mut t = FleetTotals {
