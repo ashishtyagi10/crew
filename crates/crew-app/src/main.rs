@@ -22,7 +22,7 @@ mod findhl;
 mod fontcmd;
 mod gauges;
 mod git;
-mod grid;
+pub(crate) mod grid;
 mod gridrows;
 mod handler;
 mod help;

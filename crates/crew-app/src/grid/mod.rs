@@ -8,5 +8,4 @@ mod state;
 #[cfg(test)]
 mod tests;
 
-#[allow(unused_imports)]
 pub use state::{GridLayout, MAX_FULL_TILES};

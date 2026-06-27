@@ -1,17 +1,14 @@
 /// Maximum number of panes shown at full size; the rest are minimized.
-#[allow(dead_code)]
 pub const MAX_FULL_TILES: usize = 6;
 
 /// Tracks pane indices in most-recently-active-first order. The first
 /// `MAX_FULL_TILES` are full tiles; the remainder are minimized (LRU).
-#[allow(dead_code)]
 #[derive(Debug, Clone, Default)]
 pub struct GridLayout {
     /// Pane indices, most-recently-active first.
     order: Vec<usize>,
 }
 
-#[allow(dead_code)]
 impl GridLayout {
     pub fn new() -> Self {
         Self::default()
