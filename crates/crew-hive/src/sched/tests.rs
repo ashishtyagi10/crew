@@ -139,6 +139,49 @@ async fn failure_cascades_cancel_to_dependents() {
 }
 
 #[tokio::test]
+async fn panicking_agent_becomes_failed_not_abort() {
+    use crate::agent::{Agent, AgentContext, AgentFactory};
+    use crate::board::TaskResult;
+    use std::future::Future;
+    use std::pin::Pin;
+
+    struct Panicker;
+    impl Agent for Panicker {
+        fn run(&self, ctx: AgentContext) -> Pin<Box<dyn Future<Output = TaskResult> + Send>> {
+            Box::pin(async move {
+                if ctx.task.id == TaskId(0) {
+                    panic!("boom");
+                }
+                TaskResult {
+                    task: ctx.task.id,
+                    output: String::new(),
+                    success: true,
+                }
+            })
+        }
+    }
+    struct PanicFactory;
+    impl AgentFactory for PanicFactory {
+        fn make(&self, _k: &AgentKind) -> Box<dyn Agent> {
+            Box::new(Panicker)
+        }
+    }
+    // Task 0 panics; task 1 is independent and should still complete.
+    let g = TaskGraph::new(vec![spec(0, &[]), spec(1, &[])]).unwrap();
+    let out = Scheduler::new(
+        g,
+        Blackboard::new(),
+        EventBus::new(64),
+        Arc::new(PanicFactory),
+        4,
+    )
+    .run()
+    .await;
+    assert_eq!(out.failed, vec![TaskId(0)]);
+    assert_eq!(out.done, vec![TaskId(1)]);
+}
+
+#[tokio::test]
 async fn transitive_cancel() {
     // 0 fails -> 1 (dep 0) cancelled -> 2 (dep 1) cancelled.
     let g = TaskGraph::new(vec![spec(0, &[]), spec(1, &[0]), spec(2, &[1])]).unwrap();

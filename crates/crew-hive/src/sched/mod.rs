@@ -9,6 +9,7 @@ mod tests;
 use std::collections::HashSet;
 use std::sync::Arc;
 
+use futures::FutureExt as _;
 use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 
@@ -98,7 +99,18 @@ impl Scheduler {
                         deps,
                         bus,
                     };
-                    (task_id, agent.run(ctx).await)
+                    let result = match std::panic::AssertUnwindSafe(agent.run(ctx))
+                        .catch_unwind()
+                        .await
+                    {
+                        Ok(r) => r,
+                        Err(_) => crate::board::TaskResult {
+                            task: task_id,
+                            output: "agent panicked".into(),
+                            success: false,
+                        },
+                    };
+                    (task_id, result)
                 });
             }
 
@@ -107,6 +119,8 @@ impl Scheduler {
             }
 
             if let Some(joined) = joinset.join_next().await {
+                // Panics are caught inside the task and converted to a failed TaskResult,
+                // so a JoinError here only occurs on abort — which this scheduler never does.
                 let (id, result) = joined.expect("agent task panicked");
                 if result.success {
                     self.board.put_result(result).await;
