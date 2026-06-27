@@ -10,6 +10,7 @@ pub struct GridLayout {
 }
 
 impl GridLayout {
+    #[cfg(test)]
     pub fn new() -> Self {
         Self::default()
     }
@@ -58,6 +59,7 @@ impl GridLayout {
         self.order.len()
     }
 
+    #[cfg(test)]
     pub fn is_empty(&self) -> bool {
         self.order.is_empty()
     }
