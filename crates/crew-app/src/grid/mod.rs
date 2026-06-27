@@ -8,5 +8,5 @@ mod state;
 #[cfg(test)]
 mod tests;
 
-pub use compose::{compose_grid, GridRects, MINIMIZED_STRIP_ROWS};
-pub use state::{GridLayout, MAX_FULL_TILES};
+pub use compose::compose_grid;
+pub use state::GridLayout;

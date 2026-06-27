@@ -107,22 +107,25 @@ pub fn spawn_pane(
     })
 }
 
-/// Assign pixel rects to panes and resize each PTY (Terminal only) when its grid changes.
+/// Assign one pane's pixel rect and resize its PTY (Terminal only) when the
+/// derived grid changes. Reserves a one-cell border ring (fieldset card).
+pub fn relayout_one(pane: &mut Pane, rect: Rect, cell_w: f32, cell_h: f32) {
+    pane.rect = rect;
+    let cols = ((rect.w / cell_w).floor() as u16).saturating_sub(2).max(1);
+    let rows = ((rect.h / cell_h).floor() as u16).saturating_sub(2).max(1);
+    if cols != pane.grid.cols || rows != pane.grid.rows {
+        let new_grid = GridSize { cols, rows };
+        if let PaneContent::Terminal(t) = &mut pane.content {
+            t.pty.resize(new_grid);
+        }
+        pane.grid = new_grid;
+    }
+}
+
+/// Assign pixel rects to panes (zipped in order). Thin wrapper over `relayout_one`.
 pub fn relayout(panes: &mut [Pane], rects: &[Rect], cell_w: f32, cell_h: f32) {
     for (pane, &rect) in panes.iter_mut().zip(rects.iter()) {
-        pane.rect = rect;
-        // Reserve a one-cell border ring on every side: panes render as fieldset
-        // cards (PaneView draws the rounded border + legend and insets content),
-        // so the content grid is two cols and two rows smaller than the rect.
-        let cols = ((rect.w / cell_w).floor() as u16).saturating_sub(2).max(1);
-        let rows = ((rect.h / cell_h).floor() as u16).saturating_sub(2).max(1);
-        if cols != pane.grid.cols || rows != pane.grid.rows {
-            let new_grid = GridSize { cols, rows };
-            if let PaneContent::Terminal(t) = &mut pane.content {
-                t.pty.resize(new_grid);
-            }
-            pane.grid = new_grid;
-        }
+        relayout_one(pane, rect, cell_w, cell_h);
     }
 }
 

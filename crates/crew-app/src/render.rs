@@ -2,9 +2,10 @@ use crew_render::PaneScene;
 
 use crate::app::{CrewApp, GAP};
 use crate::chrome;
+use crate::grid::compose_grid;
 use crate::layout::{pane_rects_at, Rect};
-use crate::pane::relayout;
-use crate::paneview::build_scenes;
+use crate::pane::{relayout, relayout_one};
+use crate::paneview::{build_scenes, full_scenes};
 use crate::welcome;
 
 impl CrewApp {
@@ -76,11 +77,16 @@ impl CrewApp {
                 ch,
             )
         } else {
-            let rects = self.grid_rects();
-            relayout(&mut self.panes, &rects, cw, ch);
+            let content =
+                chrome::content_rect(sw, sh, self.config.show_nav, self.nav_px(scale), GAP, ih);
+            let placed = compose_grid(content, &self.grid, ch, GAP);
+            for &(idx, rect) in &placed.full {
+                relayout_one(&mut self.panes[idx], rect, cw, ch);
+            }
             let f = (!self.input.focused).then_some(self.focused);
-            build_scenes(
+            full_scenes(
                 &self.panes,
+                &placed.full,
                 f,
                 self.broadcast,
                 self.last_find.as_deref(),
