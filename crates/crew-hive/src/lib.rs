@@ -21,6 +21,7 @@ pub mod apiagent;
 pub mod batch;
 pub mod board;
 pub mod bus;
+pub mod govern;
 pub mod graph;
 pub mod planner;
 pub mod provider;
@@ -59,3 +60,6 @@ pub use planner::{LlmPlanner, PlanError, Planner, StubPlanner};
 
 // Batch
 pub use batch::{batch_graph, Job};
+
+// Govern
+pub use govern::{budget_governor, Budget};
