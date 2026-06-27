@@ -6,6 +6,7 @@ use winit::event::Modifiers;
 use winit::window::Window;
 
 use crate::config::CrewConfig;
+use crate::grid::GridLayout;
 use crate::inputbar::InputBar;
 use crate::pane::Pane;
 use crate::session::grid_for;
@@ -24,6 +25,8 @@ pub struct CrewApp {
     pub(crate) renderer: Option<Renderer>,
     pub(crate) panes: Vec<Pane>,
     pub(crate) focused: usize,
+    /// LRU of pane indices: which panes are full tiles vs. minimized.
+    pub(crate) grid: GridLayout,
     pub(crate) mods: Modifiers,
     pub(crate) cursor: (f32, f32),
     pub(crate) config: CrewConfig,
@@ -71,6 +74,7 @@ impl CrewApp {
     pub fn close_pane(&mut self, idx: usize) -> bool {
         if idx < self.panes.len() {
             self.panes.remove(idx);
+            self.grid.on_close(idx);
         }
         // Closing a pane returns to the grid; never linger zoomed on it.
         self.zoomed = false;
@@ -84,6 +88,27 @@ impl CrewApp {
         }
         self.focused = self.focused.min(self.panes.len() - 1);
         false
+    }
+
+    /// Keep the grid LRU in step with `self.panes` and the current focus. Adds
+    /// any pane index not yet tracked (newly spawned), drops any index past the
+    /// end, and marks the focused pane most-recently-active. Called once per
+    /// frame from `build_frame`.
+    pub(crate) fn reconcile_grid(&mut self) {
+        let n = self.panes.len();
+        for idx in 0..n {
+            if !self.grid.full().contains(&idx) && !self.grid.minimized().contains(&idx) {
+                self.grid.add(idx);
+            }
+        }
+        // Drop any stale indices at/after the end (defensive; close_pane already
+        // fixes the common case via on_close).
+        while self.grid.len() > n {
+            self.grid.on_close(n);
+        }
+        if n > 0 {
+            self.grid.touch(self.focused.min(n - 1));
+        }
     }
 
     /// Focus the most-recently-pushed pane and move keyboard focus off the input bar.

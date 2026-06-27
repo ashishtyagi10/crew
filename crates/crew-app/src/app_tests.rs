@@ -1,5 +1,24 @@
 use super::{slash_command, CrewApp};
 
+fn tests_far_pane(name: &str) -> crate::pane::Pane {
+    use crate::pane::{Pane, PaneContent};
+    use crew_term::GridSize;
+    Pane {
+        content: PaneContent::Far(crate::farpane::FarPane::new(std::env::temp_dir())),
+        grid: GridSize { cols: 80, rows: 24 },
+        rect: crate::layout::Rect {
+            x: 0.0,
+            y: 0.0,
+            w: 0.0,
+            h: 0.0,
+        },
+        label: Some(name.into()),
+        name: None,
+        activity: false,
+        bell: false,
+    }
+}
+
 #[test]
 fn slash_command_parses() {
     assert_eq!(slash_command("/settings"), Some("settings"));
@@ -86,4 +105,23 @@ fn cd_dash_toggles_previous_directory() {
     assert_eq!(app.cwd, a);
     assert!(!app.submit_input("cd -".to_string()));
     assert_eq!(app.cwd, b);
+}
+
+#[test]
+fn reconcile_grid_tracks_panes_and_focus() {
+    let mut app = CrewApp::default();
+    // Simulate two spawned panes by pushing Far panes (no PTY needed).
+    app.panes.push(tests_far_pane("a"));
+    app.panes.push(tests_far_pane("b"));
+    app.focused = 1;
+    app.reconcile_grid();
+    // Both panes tracked; focused (1) is most-recently-active.
+    assert_eq!(app.grid.len(), 2);
+    assert_eq!(app.grid.full()[0], 1);
+
+    // Close pane 0; reconcile must not resurrect a stale index.
+    app.close_pane(0);
+    app.reconcile_grid();
+    assert_eq!(app.grid.len(), 1);
+    assert_eq!(app.grid.full(), &[0]);
 }

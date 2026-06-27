@@ -49,6 +49,7 @@ impl CrewApp {
         let Some((cw, ch, sw, sh, scale)) = self.frame_geometry() else {
             return Vec::new();
         };
+        self.reconcile_grid();
         let ih = chrome::input_h(ch);
         // The pane you're looking at has no unseen activity.
         if !self.input.focused {
