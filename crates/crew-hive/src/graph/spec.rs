@@ -56,3 +56,34 @@ impl std::fmt::Display for GraphError {
 }
 
 impl std::error::Error for GraphError {}
+
+impl ModelTier {
+    /// The default Anthropic model id for this cost tier.
+    pub fn model_id(&self) -> &'static str {
+        match self {
+            ModelTier::Cheap => "claude-haiku-4-5",
+            ModelTier::Standard => "claude-sonnet-4-6",
+            ModelTier::Capable => "claude-opus-4-8",
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn model_id_cheap() {
+        assert_eq!(ModelTier::Cheap.model_id(), "claude-haiku-4-5");
+    }
+
+    #[test]
+    fn model_id_standard() {
+        assert_eq!(ModelTier::Standard.model_id(), "claude-sonnet-4-6");
+    }
+
+    #[test]
+    fn model_id_capable() {
+        assert_eq!(ModelTier::Capable.model_id(), "claude-opus-4-8");
+    }
+}
