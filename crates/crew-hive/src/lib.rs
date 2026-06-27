@@ -25,9 +25,12 @@ pub mod govern;
 pub mod graph;
 pub mod planner;
 pub mod provider;
+pub mod remoteagent;
 pub mod sched;
 pub mod telemetry;
 pub mod view;
+pub mod wire;
+pub mod worker;
 
 // Graph
 pub use graph::{AgentKind, GraphError, ModelTier, TaskGraph, TaskId, TaskSpec, TaskState};
@@ -63,3 +66,12 @@ pub use batch::{batch_graph, Job};
 
 // Govern
 pub use govern::{budget_governor, Budget};
+
+// Wire
+pub use wire::{DepResult, RemoteReply, RemoteTask, Transport, TransportError};
+
+// Worker
+pub use worker::{serve_stdio, LoopbackTransport};
+
+// RemoteAgent
+pub use remoteagent::RemoteAgent;
