@@ -137,3 +137,15 @@ async fn api_agent_with_deps_passes_context_in_prompt() {
     assert!(result.success);
     assert_eq!(result.output, "merged");
 }
+
+#[test]
+fn api_factory_makes_an_agent() {
+    use crate::agent::AgentFactory;
+    use crate::graph::{AgentKind, ModelTier};
+    use crate::provider::MockProvider;
+    use std::sync::Arc;
+
+    let provider = Arc::new(MockProvider { reply: "ok".into() });
+    let factory = crate::apiagent::ApiFactory::new(provider, ModelTier::Standard, 256);
+    let _agent = factory.make(&AgentKind::Api { system: None });
+}
