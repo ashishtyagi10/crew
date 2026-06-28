@@ -144,3 +144,31 @@ fn swarm_cells_empty_for_zero_dims() {
     assert!(swarm_cells(&graph, &fleet, 0, 10).is_empty());
     assert!(swarm_cells(&graph, &fleet, 40, 0).is_empty());
 }
+
+// ── Task 3: plan_goal off-thread planner ───────────────────────────────────
+
+#[test]
+fn plan_goal_produces_a_graph() {
+    use crate::swarm::plan::plan_goal;
+    use crew_hive::{Planner, StubPlanner};
+    use std::sync::Arc;
+    use std::time::{Duration, Instant};
+
+    let planner: Arc<dyn Planner> = Arc::new(StubPlanner { fanout: 3 });
+    let handle = plan_goal("build a thing".into(), planner);
+
+    let start = Instant::now();
+    let result = loop {
+        if let Some(r) = handle.try_take() {
+            break r;
+        }
+        assert!(
+            start.elapsed() < Duration::from_secs(5),
+            "planner timed out"
+        );
+        std::thread::yield_now();
+    };
+    let graph = result.expect("stub planner should succeed");
+    // StubPlanner { fanout: 3 } makes 3 leaves + 1 merge = 4 tasks.
+    assert_eq!(graph.len(), 4);
+}
