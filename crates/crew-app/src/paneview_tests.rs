@@ -9,6 +9,7 @@ fn bar(focused: bool) -> Bar<'static> {
         activity: true,
         bell: true,
         broadcast: false,
+        busy: None,
     }
 }
 
@@ -66,6 +67,20 @@ fn border_colour_differs_by_focus() {
             .unwrap()
     };
     assert_ne!(corner(true), corner(false));
+}
+
+#[test]
+fn busy_pane_draws_a_sweep_on_the_bottom_border() {
+    let busy = Bar {
+        busy: Some(0),
+        ..bar(true)
+    };
+    let cells = pane_card(38, 10, &busy);
+    // heavy rule glyphs ride the bottom border (row = interior + 1) when busy…
+    let bottom = 10 + 1;
+    assert!(cells.iter().any(|c| c.c == '━' && c.row == bottom));
+    // …and never when idle.
+    assert!(!pane_card(38, 10, &bar(true)).iter().any(|c| c.c == '━'));
 }
 
 #[test]

@@ -50,6 +50,9 @@ pub struct ChatPane {
     pub connected: bool,
     /// Lines scrolled up from the live bottom (0 = following new messages).
     pub scroll: usize,
+    /// A message was sent and no reply has arrived yet — drives the pane's
+    /// indeterminate "thinking" progress sweep.
+    awaiting: bool,
 }
 
 impl ChatPane {
@@ -61,7 +64,13 @@ impl ChatPane {
             input: String::new(),
             connected: false,
             scroll: 0,
+            awaiting: false,
         }
+    }
+
+    /// Whether the pane is awaiting a reply (busy), for the progress sweep.
+    pub fn is_busy(&self) -> bool {
+        self.awaiting
     }
 
     /// Scroll the message history by `delta` lines (positive = up/older),
@@ -98,6 +107,7 @@ impl ChatPane {
                         }
                     }
                     PluginEvent::Message { sender, text, .. } => {
+                        self.awaiting = false; // a reply landed
                         self.messages.push(Message { sender, text });
                         if self.messages.len() > 500 {
                             let drain = self.messages.len() - 500;
@@ -148,8 +158,9 @@ impl ChatPane {
                     channel: self.channel.clone(),
                     text,
                 };
-                if let Err(e) = self.plugin.send(&cmd) {
-                    eprintln!("crew-app: plugin send error: {e}");
+                match self.plugin.send(&cmd) {
+                    Ok(()) => self.awaiting = true, // wait for the reply
+                    Err(e) => eprintln!("crew-app: plugin send error: {e}"),
                 }
             }
         }

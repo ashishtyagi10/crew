@@ -70,6 +70,16 @@ pub fn full_scenes(
     scenes
 }
 
+/// Whether a pane is doing background work, so its border shows the
+/// indeterminate progress sweep (swarm planning/running, agent chat awaiting).
+pub(crate) fn pane_busy(p: &Pane) -> bool {
+    match &p.content {
+        PaneContent::Swarm(s) => s.is_busy(),
+        PaneContent::Chat(c) => c.is_busy(),
+        _ => false,
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 fn push_pane_scenes(
     scenes: &mut Vec<PaneScene>,
@@ -125,6 +135,7 @@ fn push_pane_scenes(
                 activity: p.activity && !foc,
                 bell: p.bell && !foc,
                 broadcast: broadcast && is_term,
+                busy: pane_busy(p).then(crate::anim::now_ms),
             },
         ),
         x: r.x,

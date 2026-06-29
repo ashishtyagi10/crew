@@ -28,6 +28,9 @@ pub(crate) struct Bar<'a> {
     pub bell: bool,
     /// This pane is receiving broadcast (synchronized) input.
     pub broadcast: bool,
+    /// `Some(now_ms)` when the pane is busy: animate an indeterminate sweep along
+    /// the bottom border at that time. `None` leaves the border static.
+    pub busy: Option<u64>,
 }
 
 /// Overwrite (or append) the cell at `(col, row)` in `v` — used to drop status
@@ -87,6 +90,13 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
         if on && rx > 1 {
             put(&mut v, rx, 0, c, fg);
             rx = rx.saturating_sub(2);
+        }
+    }
+    // Indeterminate progress: a sweep along the bottom border while busy.
+    if let Some(now) = b.busy {
+        let bottom = rows - 1;
+        for (col, fg) in crate::progress::sweep(cols, now) {
+            put(&mut v, col, bottom, '━', fg);
         }
     }
     v

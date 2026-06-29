@@ -1,3 +1,4 @@
+mod anim;
 mod app;
 mod boxdraw;
 mod chat;
@@ -50,6 +51,7 @@ mod paneview;
 mod pathcomplete;
 mod pathexpand;
 mod poll;
+mod progress;
 mod quit;
 mod reload;
 mod render;

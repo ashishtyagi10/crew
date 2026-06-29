@@ -8,6 +8,10 @@ use winit::event_loop::{ActiveEventLoop, ControlFlow};
 use crate::app::{CrewApp, POLL_MS};
 use crate::pane::PaneContent;
 
+/// Poll ticks per rendered frame of the busy progress sweep: the loop runs at
+/// ~62 Hz, so redrawing every 4th tick animates the sweep at ~15 fps.
+const BUSY_ANIM_DIV: u64 = 4;
+
 impl CrewApp {
     /// One poll cycle. Schedules the next wake-up before returning.
     pub(crate) fn poll_panes(&mut self, event_loop: &ActiveEventLoop) {
@@ -56,6 +60,14 @@ impl CrewApp {
         if self.panes.is_empty() {
             self.tick = self.tick.wrapping_add(1);
             if crate::welcome::anim_should_redraw(self.tick) {
+                any_changed = true;
+            }
+        } else if self.panes.iter().any(crate::paneview::pane_busy) {
+            // Drive the indeterminate progress sweep while any pane is busy,
+            // throttled to ~15 fps so a working pane stays lively without
+            // spinning the CPU. Idle (no busy pane) → no extra redraws at all.
+            self.tick = self.tick.wrapping_add(1);
+            if self.tick.is_multiple_of(BUSY_ANIM_DIV) {
                 any_changed = true;
             }
         }

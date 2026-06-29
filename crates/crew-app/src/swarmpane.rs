@@ -179,6 +179,18 @@ impl SwarmPane {
         }
     }
 
+    /// Whether the pane is working — planning, or running with live tasks and not
+    /// cancelled. Drives the indeterminate progress sweep on the pane border.
+    pub fn is_busy(&self) -> bool {
+        match &self.state {
+            SwarmState::Planning { .. } => true,
+            SwarmState::Running { handle, fleet } => {
+                !handle.is_cancelled() && fleet.totals().live > 0
+            }
+            SwarmState::Failed { .. } => false,
+        }
+    }
+
     /// Render the pane for a `cols × rows` grid: a banner while planning/failed,
     /// the live constellation + HUD while running.
     pub fn cells(&self, cols: u16, rows: u16) -> Vec<CellView> {
@@ -190,25 +202,8 @@ impl SwarmPane {
             SwarmState::Failed { msg } => banner(&format!("plan failed: {msg}"), cols),
             SwarmState::Running { handle, fleet } => {
                 let mut cells = swarm_cells(handle.graph(), fleet, cols, rows);
-                // Surface a budget/cancel notice on the last row so a swarm the
-                // governor stopped doesn't just look "done".
                 if handle.is_cancelled() {
-                    let last = rows.saturating_sub(1);
-                    for (i, c) in "budget exceeded — swarm cancelled"
-                        .chars()
-                        .take(cols as usize)
-                        .enumerate()
-                    {
-                        cells.push(CellView {
-                            col: i as u16,
-                            row: last,
-                            c,
-                            fg: (235, 180, 70),
-                            bg: (0, 0, 0),
-                            bold: true,
-                            italic: false,
-                        });
-                    }
+                    cells.extend(crate::swarm::view::cancelled_notice(cols, rows));
                 }
                 cells
             }
