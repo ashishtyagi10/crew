@@ -494,6 +494,7 @@ dependencies = [
  "anyhow",
  "arboard",
  "chrono",
+ "crew-hive",
  "crew-plugin",
  "crew-render",
  "crew-term",
@@ -502,6 +503,7 @@ dependencies = [
  "ratatui",
  "serde",
  "sysinfo",
+ "tokio",
  "toml",
  "winit",
 ]

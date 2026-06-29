@@ -68,7 +68,7 @@ pub use telemetry::{AgentTelemetry, Fleet, FleetTotals};
 pub use agent::{Agent, AgentContext, AgentFactory, StubAgent};
 
 // ApiAgent
-pub use apiagent::ApiAgent;
+pub use apiagent::{ApiAgent, ApiFactory};
 
 // Scheduler
 pub use sched::{RunOutcome, Scheduler};

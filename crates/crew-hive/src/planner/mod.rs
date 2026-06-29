@@ -150,6 +150,10 @@ impl<P: Provider> Planner for LlmPlanner<P> {
 // parse_plan
 // ---------------------------------------------------------------------------
 
+/// The shape we accept from model output. Deliberately has **no** `agent`,
+/// `command`, or `args` field: the model describes *what* work to do, never
+/// *how* to execute it. serde ignores any such extra keys, so an attacker-
+/// influenced completion cannot smuggle one in. See the security note below.
 #[derive(Deserialize)]
 struct PlanNode {
     id: u64,
@@ -158,10 +162,18 @@ struct PlanNode {
     deps: Vec<u64>,
 }
 
+/// Convert a model-produced JSON task array into a [`TaskGraph`].
+///
+/// SECURITY INVARIANT: the JSON here is untrusted (LLM output, ultimately
+/// influenced by the goal and any tool/context content). Every task it yields
+/// is forced to [`AgentKind::Api`] — model output can never select a
+/// process-executing [`AgentKind::Pty`] agent. This is the trust boundary that
+/// keeps a future Pty executor from becoming a command-injection sink; the
+/// `debug_assert!` and `parse_plan_*` tests fail loudly if it ever regresses.
 pub(crate) fn parse_plan(json: &str) -> Result<TaskGraph, PlanError> {
     let nodes: Vec<PlanNode> =
         serde_json::from_str(json).map_err(|e| PlanError::Parse(e.to_string()))?;
-    let tasks = nodes
+    let tasks: Vec<TaskSpec> = nodes
         .into_iter()
         .map(|n| TaskSpec {
             id: TaskId(n.id),
@@ -172,5 +184,9 @@ pub(crate) fn parse_plan(json: &str) -> Result<TaskGraph, PlanError> {
             prompt: n.prompt,
         })
         .collect();
+    debug_assert!(
+        !tasks.iter().any(|t| t.agent.is_pty()),
+        "parse_plan must never yield a process-executing Pty task from model output",
+    );
     Ok(TaskGraph::new(tasks)?)
 }

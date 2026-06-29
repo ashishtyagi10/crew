@@ -22,3 +22,5 @@ toml = { workspace = true }
 dirs = { workspace = true }
 sysinfo = { workspace = true }
 open = { workspace = true }
+crew-hive = { path = "../crew-hive" }
+tokio = { workspace = true }

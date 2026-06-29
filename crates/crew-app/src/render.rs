@@ -176,14 +176,16 @@ impl CrewApp {
             return scenes;
         }
 
-        // Command palette: a popup just above the input bar when slash input matches.
+        // Command menu: a solid-black "commands" fieldset card just above the
+        // input bar when slash input matches. An overlay scene so the overlay
+        // pass backs it with black — a box on the canvas, fully opaque.
         let matches = crate::suggest::matches(&self.input.text);
         if self.input.focused && !matches.is_empty() {
             let mr = crate::cmdmenu::menu_rows(matches.len());
             let mh = mr as f32 * ch;
             let my = (ib.y - mh - GAP).max(0.0);
             scenes.push(PaneScene {
-                cells: crate::cmdmenu::menu_cells(&matches, self.input.menu_sel, ic, mr),
+                cells: crate::cmdmenu::menu_card(&matches, self.input.menu_sel, ic, mr),
                 x: ib.x,
                 y: my,
                 w: ib.w,

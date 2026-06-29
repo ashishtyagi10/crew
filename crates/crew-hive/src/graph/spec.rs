@@ -9,6 +9,17 @@ pub enum AgentKind {
     Api { system: Option<String> },
 }
 
+impl AgentKind {
+    /// Whether this kind spawns an OS process (`command`/`args`). This is the
+    /// security-sensitive variant: a task graph derived from untrusted input
+    /// (e.g. an LLM-produced plan) must never carry a `Pty` agent, or the
+    /// command/args become a command-injection sink once a Pty executor exists.
+    /// See `planner::parse_plan`, which forces every model-derived task to `Api`.
+    pub fn is_pty(&self) -> bool {
+        matches!(self, AgentKind::Pty { .. })
+    }
+}
+
 #[derive(Copy, Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ModelTier {
     Cheap,

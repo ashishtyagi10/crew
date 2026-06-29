@@ -126,3 +126,38 @@ impl Agent for ApiAgent {
         })
     }
 }
+
+// ---------------------------------------------------------------------------
+// ApiFactory
+// ---------------------------------------------------------------------------
+
+use crate::agent::AgentFactory;
+
+/// Agent factory making native [`ApiAgent`]s that share one provider. `make`
+/// ignores per-task tier (the scheduler passes only `AgentKind`); all agents
+/// use the configured `tier`. Per-task tiers are a follow-up.
+pub struct ApiFactory {
+    provider: Arc<dyn Provider>,
+    tier: ModelTier,
+    max_tokens: u32,
+}
+
+impl ApiFactory {
+    pub fn new(provider: Arc<dyn Provider>, tier: ModelTier, max_tokens: u32) -> Self {
+        Self {
+            provider,
+            tier,
+            max_tokens,
+        }
+    }
+}
+
+impl AgentFactory for ApiFactory {
+    fn make(&self, _kind: &AgentKind) -> Box<dyn Agent> {
+        Box::new(ApiAgent::new(
+            Arc::clone(&self.provider),
+            self.tier,
+            self.max_tokens,
+        ))
+    }
+}

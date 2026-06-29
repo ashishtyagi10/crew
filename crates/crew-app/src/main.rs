@@ -61,6 +61,7 @@ pub mod stats;
 mod statspane;
 mod status;
 mod suggest;
+mod swarm;
 mod termwrite;
 mod toggles;
 mod tui;

@@ -56,6 +56,21 @@ pub(crate) fn build_scene(
         let cols = ((pane.w / cell_w).floor() as usize).max(1);
         let rows = ((pane.h / cell_h).floor() as usize).max(1);
 
+        // Overlay popups get a solid black backdrop spanning the whole pane,
+        // drawn before their cell quads. The overlay pass runs after all base
+        // text, so this fully occludes anything behind — a 100%-opaque box. A
+        // pure-black per-cell bg wouldn't suffice: cells skip the bg quad when
+        // their colour is the default, and base text would still show through.
+        if pane.overlay {
+            quads.push(Quad {
+                x: pane.x,
+                y: pane.y,
+                w: pane.w,
+                h: pane.h,
+                color: [0.0, 0.0, 0.0, 1.0],
+            });
+        }
+
         // Background quads for cells with non-default bg colour.
         for cell in &pane.cells {
             if cell.bg != DEFAULT_BG {
