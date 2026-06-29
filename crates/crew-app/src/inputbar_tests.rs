@@ -158,3 +158,23 @@ fn cells_tiny_returns_empty() {
     assert!(InputBar::default().cells(3, 3, None).is_empty());
     assert!(InputBar::default().cells(40, 0, None).is_empty());
 }
+
+#[test]
+fn ghost_caches_path_completion_between_identical_calls() {
+    let base = std::env::temp_dir().join("crew_ghost_cache_test");
+    let _ = std::fs::remove_dir_all(&base);
+    std::fs::create_dir_all(base.join("alpha")).unwrap();
+    let bar = InputBar {
+        text: "cd al".into(),
+        focused: true,
+        cwd: base.clone(),
+        ..Default::default()
+    };
+    // First call scans the directory and completes "al" -> "alpha/".
+    assert_eq!(bar.ghost().as_deref(), Some("pha/"));
+    // Remove the directory from disk. A cached ghost must NOT re-scan for the
+    // same input, so it still returns the previously computed suffix — proving
+    // the per-frame `read_dir` is not repeated every render.
+    std::fs::remove_dir_all(&base).unwrap();
+    assert_eq!(bar.ghost().as_deref(), Some("pha/"));
+}

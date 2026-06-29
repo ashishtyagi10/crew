@@ -1,6 +1,7 @@
 //! Docked bottom command bar: a single-line text input drawn as a rounded
 //! fieldset card. The working directory rides the top border as the card's
 //! legend (`╭─ ~/code/crew ─╮`); the `> text` prompt sits on the interior row.
+use std::cell::RefCell;
 use std::path::PathBuf;
 
 use crew_render::CellView;
@@ -39,13 +40,47 @@ pub struct InputBar {
     /// Crew's working directory: rendered (`~`-abbreviated) as the bar's legend
     /// and used as the base for `cd` directory completion. Empty = none.
     pub cwd: PathBuf,
+    /// Memoized `ghost()` result. `ghost()` runs on every render frame, and for
+    /// `cd`/`/edit`/`/open` it does a `read_dir`; without this cache a path
+    /// partial sitting in the bar re-scans the directory on every redraw (e.g.
+    /// ~15×/s while a pane animates). Interior mutability so the cache fills from
+    /// the `&self` render path. Keyed on the inputs `ghost()` actually depends on.
+    pub(crate) ghost_cache: RefCell<GhostCache>,
+}
+
+/// Cached `ghost()` output and the `(text, menu_sel, cwd)` it was computed for.
+#[derive(Default)]
+pub(crate) struct GhostCache {
+    key: Option<(String, usize, PathBuf)>,
+    val: Option<String>,
 }
 
 impl InputBar {
     /// The ghost-suffix to show after the typed text (and insert on Tab/→): the
     /// highlighted palette command, else `cd` directory completion, else a
     /// history/slash autosuggestion. `None` when unfocused or nothing completes.
+    ///
+    /// Memoized: `compute_ghost` can hit the filesystem, but this runs every
+    /// frame, so a result is reused until the typed text, palette selection, or
+    /// working directory changes.
     pub(crate) fn ghost(&self) -> Option<String> {
+        let key = (self.text.clone(), self.menu_sel, self.cwd.clone());
+        {
+            let cache = self.ghost_cache.borrow();
+            if cache.key.as_ref() == Some(&key) {
+                return cache.val.clone();
+            }
+        }
+        let val = self.compute_ghost();
+        *self.ghost_cache.borrow_mut() = GhostCache {
+            key: Some(key),
+            val: val.clone(),
+        };
+        val
+    }
+
+    /// Uncached `ghost()` computation — see [`InputBar::ghost`].
+    fn compute_ghost(&self) -> Option<String> {
         if !self.focused {
             return None;
         }
