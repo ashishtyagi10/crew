@@ -13,8 +13,8 @@ use crate::net;
 use crate::panelist::{self, PaneRow};
 use crate::stats::SysSampler;
 
-/// Rows the SYSTEM section occupies (rule + 3 gauges + a one-row gap below it).
-const SYS_BLOCK: u16 = 5;
+/// Rows the SYSTEM section occupies (rule + 3 gauges + CPU sparkline + gap).
+const SYS_BLOCK: u16 = 6;
 /// Rows the LOAD section occupies (rule + 1 line + a one-row gap below it).
 const LOAD_BLOCK: u16 = 3;
 /// Rows a section with a rule + 2 content rows + one-row gap occupies (HOST, NET, GIT).
@@ -32,6 +32,7 @@ pub struct StatsPane {
     /// Directory the cached git status is for, and when it was last queried.
     git_cwd: PathBuf,
     git_sec: u64,
+    cpu_hist: crate::spark::History, // recent CPU %, drawn as a moving sparkline
 }
 
 impl StatsPane {
@@ -42,6 +43,7 @@ impl StatsPane {
             git: None,
             git_cwd: PathBuf::new(),
             git_sec: 0,
+            cpu_hist: crate::spark::History::new(64),
         }
     }
 
@@ -49,6 +51,11 @@ impl StatsPane {
     /// a new wall-clock second for the clock, or changed git status for `cwd`.
     pub fn refresh(&mut self, cwd: &Path) -> bool {
         let stats_changed = self.sampler.refresh();
+        if stats_changed {
+            // One reading per sample → the sparkline scrolls ~1 Hz.
+            let cpu = (self.sampler.stats().cpu.clamp(0.0, 1.0) * 100.0).round() as u64;
+            self.cpu_hist.push(cpu);
+        }
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map(|d| d.as_secs())
@@ -96,6 +103,10 @@ impl StatsPane {
                 c.row += sys_off;
                 out.push(c);
             }
+        }
+        // a moving CPU sparkline on the row below the three gauges
+        if rows > sys_off + 4 {
+            out.extend(crate::spark::cpu_row(&self.cpu_hist, cols, sys_off + 4));
         }
 
         let load_off = clock::CLOCK_H + SYS_BLOCK;
@@ -173,17 +184,17 @@ mod tests {
     #[test]
     fn panes_top_accounts_for_git_and_log() {
         let mut s = StatsPane::new();
-        // clock(4) + system(5) + load(3) + host(4) + net(4) = 20
-        assert_eq!(s.panes_top(0), 20);
+        // clock(4) + system(6) + load(3) + host(4) + net(4) = 21
+        assert_eq!(s.panes_top(0), 21);
         s.git = Some(GitInfo {
             branch: "main".into(),
             changed: 0,
             ahead: 0,
             behind: 0,
         });
-        assert_eq!(s.panes_top(0), 24); // + git(4)
+        assert_eq!(s.panes_top(0), 25); // + git(4)
                                         // a non-empty log adds its block: rule + min(n, LOG_LINES) + gap.
-        assert_eq!(s.panes_top(2), 24 + 4); // 2 entries -> 2 + 2
-        assert_eq!(s.panes_top(99), 24 + navlog::LOG_LINES as u16 + 2); // capped
+        assert_eq!(s.panes_top(2), 25 + 4); // 2 entries -> 2 + 2
+        assert_eq!(s.panes_top(99), 25 + navlog::LOG_LINES as u16 + 2); // capped
     }
 }

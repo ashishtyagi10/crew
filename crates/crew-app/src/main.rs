@@ -60,6 +60,7 @@ mod select;
 mod selfupdate;
 mod session;
 mod settingspane;
+mod spark;
 mod spawn;
 pub mod stats;
 mod statspane;
