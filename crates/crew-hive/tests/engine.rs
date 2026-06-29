@@ -110,40 +110,28 @@ async fn plan_then_schedule_with_api_agents() {
 async fn scheduler_runs_remote_agents() {
     use crew_hive::wire::{RemoteReply, RemoteTask};
     use crew_hive::worker::LoopbackTransport;
-    use crew_hive::{
-        Agent, AgentFactory, AgentKind, Blackboard, EventBus, Planner, RemoteAgent, Scheduler,
-        StubPlanner,
-    };
+    use crew_hive::{Blackboard, EventBus, Planner, RemoteFactory, Scheduler, StubPlanner};
     use std::sync::Arc;
 
-    struct RemoteFactory;
-    impl AgentFactory for RemoteFactory {
-        fn make(&self, _k: &AgentKind) -> Box<dyn Agent> {
-            let tr = LoopbackTransport {
-                handler: |t: RemoteTask| RemoteReply {
-                    task: t.task,
-                    output: "ok".into(),
-                    success: true,
-                    input_tokens: 1,
-                    output_tokens: 1,
-                },
-            };
-            Box::new(RemoteAgent::new(Arc::new(tr)))
-        }
-    }
+    // The exported RemoteFactory runs a whole graph over one shared transport;
+    // an in-process LoopbackTransport stands in for a real sidecar worker.
+    let transport = Arc::new(LoopbackTransport {
+        handler: |t: RemoteTask| RemoteReply {
+            task: t.task,
+            output: "ok".into(),
+            success: true,
+            input_tokens: 1,
+            output_tokens: 1,
+        },
+    });
+    let factory = Arc::new(RemoteFactory::new(transport));
 
     let graph = StubPlanner { fanout: 3 }.plan("g").await.unwrap();
     let n = graph.len();
     let board = Blackboard::new();
-    let out = Scheduler::new(
-        graph,
-        board.clone(),
-        EventBus::new(128),
-        Arc::new(RemoteFactory),
-        8,
-    )
-    .run()
-    .await;
+    let out = Scheduler::new(graph, board.clone(), EventBus::new(128), factory, 8)
+        .run()
+        .await;
     assert_eq!(out.done.len(), n);
     assert_eq!(board.result_count().await, n);
 }

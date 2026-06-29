@@ -94,4 +94,4 @@ pub use wire::{DepResult, RemoteReply, RemoteTask, Transport, TransportError};
 pub use worker::{serve_stdio, LoopbackTransport};
 
 // RemoteAgent
-pub use remoteagent::RemoteAgent;
+pub use remoteagent::{RemoteAgent, RemoteFactory};

@@ -1,7 +1,9 @@
-//! `RemoteAgent`: an `Agent` that dispatches to a remote worker via `Transport`.
-use crate::agent::{Agent, AgentContext};
+//! `RemoteAgent`: an `Agent` that dispatches to a remote worker via `Transport`,
+//! plus `RemoteFactory` to run a whole graph over one shared transport.
+use crate::agent::{Agent, AgentContext, AgentFactory};
 use crate::board::TaskResult;
 use crate::bus::HiveEvent;
+use crate::graph::AgentKind;
 use crate::wire::{DepResult, RemoteTask, Transport};
 use std::future::Future;
 use std::pin::Pin;
@@ -70,5 +72,25 @@ impl Agent for RemoteAgent {
                 }
             }
         })
+    }
+}
+
+/// Agent factory making [`RemoteAgent`]s that share one [`Transport`]. Hand the
+/// scheduler a `RemoteFactory` to run an entire graph over a remote/sidecar
+/// worker — the in-process [`crate::worker::LoopbackTransport`] makes this
+/// testable without spawning anything.
+pub struct RemoteFactory {
+    transport: Arc<dyn Transport>,
+}
+
+impl RemoteFactory {
+    pub fn new(transport: Arc<dyn Transport>) -> Self {
+        Self { transport }
+    }
+}
+
+impl AgentFactory for RemoteFactory {
+    fn make(&self, _kind: &AgentKind) -> Box<dyn Agent> {
+        Box::new(RemoteAgent::new(Arc::clone(&self.transport)))
     }
 }
