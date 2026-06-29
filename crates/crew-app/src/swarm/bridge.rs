@@ -5,7 +5,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, Receiver};
 use std::sync::Arc;
 
-use crew_hive::{AgentFactory, Blackboard, EventBus, Fleet, HiveEvent, Scheduler, TaskGraph};
+use crew_hive::{
+    budget_governor, AgentFactory, Blackboard, Budget, EventBus, Fleet, HiveEvent, Scheduler,
+    TaskGraph,
+};
 
 /// Handle to a running swarm engine. Cheaply drains events each frame.
 pub struct SwarmHandle {
@@ -18,11 +21,19 @@ impl SwarmHandle {
     /// Spawn the scheduler on a worker thread and return a handle.
     ///
     /// The worker thread owns a `tokio` current-thread runtime; its `EventBus`
-    /// is drained into the mpsc channel so the UI thread never blocks.
-    pub fn spawn(graph: TaskGraph, factory: Arc<dyn AgentFactory>, concurrency: usize) -> Self {
+    /// is drained into the mpsc channel so the UI thread never blocks. When
+    /// `budget` is `Some`, a [`budget_governor`] runs alongside the scheduler on
+    /// the same cancel flag and stops the fleet once fleet cost exceeds the cap.
+    pub fn spawn(
+        graph: TaskGraph,
+        factory: Arc<dyn AgentFactory>,
+        concurrency: usize,
+        budget: Option<Budget>,
+    ) -> Self {
         let (tx, rx) = mpsc::channel::<HiveEvent>();
         let cancel = Arc::new(AtomicBool::new(false));
-        let cancel_clone = cancel.clone();
+        let cancel_sched = cancel.clone();
+        let cancel_gov = cancel.clone();
         let graph_thread = graph.clone();
 
         std::thread::spawn(move || {
@@ -34,9 +45,12 @@ impl SwarmHandle {
             rt.block_on(async move {
                 let bus = EventBus::new(256);
                 let mut sub = bus.subscribe();
+                // Build the governor future before `bus` moves into the scheduler;
+                // it gets its own clone and shares the scheduler's cancel flag.
+                let governor = budget.map(|b| budget_governor(bus.clone(), b, cancel_gov));
                 let board = Blackboard::new();
                 let sched = Scheduler::new(graph_thread, board, bus, factory, concurrency)
-                    .with_cancel(cancel_clone);
+                    .with_cancel(cancel_sched);
 
                 // Drain the broadcast bus into the mpsc sender concurrently
                 // with the scheduler. When sched completes, the broadcast
@@ -49,7 +63,14 @@ impl SwarmHandle {
                     }
                 };
 
-                tokio::join!(sched.run(), drain);
+                match governor {
+                    Some(governor) => {
+                        tokio::join!(sched.run(), drain, governor);
+                    }
+                    None => {
+                        tokio::join!(sched.run(), drain);
+                    }
+                }
             });
         });
 
@@ -71,6 +92,12 @@ impl SwarmHandle {
     /// Signal the scheduler to stop spawning new tasks.
     pub fn cancel(&self) {
         self.cancel.store(true, Ordering::Relaxed);
+    }
+
+    /// Whether the run has been cancelled — either explicitly via [`Self::cancel`]
+    /// or by the budget governor tripping the shared flag.
+    pub fn is_cancelled(&self) -> bool {
+        self.cancel.load(Ordering::Relaxed)
     }
 
     /// The task graph this swarm is executing.

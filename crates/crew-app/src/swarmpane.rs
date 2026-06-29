@@ -14,8 +14,8 @@ use std::sync::Arc;
 
 use crew_hive::agent::StubFactory;
 use crew_hive::{
-    AgentFactory, AgentKind, AnthropicProvider, ApiFactory, Fleet, LlmPlanner, ModelTier, Planner,
-    StubPlanner, TaskGraph, TaskId, TaskSpec,
+    AgentFactory, AgentKind, AnthropicProvider, ApiFactory, Budget, Fleet, LlmPlanner, ModelTier,
+    Planner, StubPlanner, TaskGraph, TaskId, TaskSpec,
 };
 use crew_render::CellView;
 
@@ -30,6 +30,9 @@ const GOAL_FANOUT: usize = 3;
 const PLAN_TIER: ModelTier = ModelTier::Standard;
 /// Per-task output token cap for worker agents.
 const WORK_MAX_TOKENS: u32 = 2048;
+/// Default cost ceiling for a real-LLM `/goal` run ($1.00 in micros-USD). The
+/// budget governor cancels the swarm once fleet spend exceeds this.
+const GOAL_BUDGET_MICROS_USD: u64 = 1_000_000;
 
 /// Which planning + execution backend a goal pane uses.
 #[derive(Debug, PartialEq, Eq)]
@@ -53,11 +56,13 @@ fn backend_for(has_api_key: bool) -> Backend {
 /// The lifecycle of a swarm pane.
 enum SwarmState {
     /// Awaiting the planner thread; `goal` is echoed in the banner. `factory`
-    /// is the executor chosen at goal time, used once the graph arrives.
+    /// is the executor chosen at goal time, used once the graph arrives, and
+    /// `budget` is its optional cost ceiling.
     Planning {
         goal: String,
         plan: PlanHandle,
         factory: Arc<dyn AgentFactory>,
+        budget: Option<Budget>,
     },
     /// Executing a graph; `handle` drives the engine, `fleet` accumulates events.
     Running { handle: SwarmHandle, fleet: Fleet },
@@ -72,9 +77,10 @@ pub struct SwarmPane {
 
 impl SwarmPane {
     /// Launch the self-contained demo swarm immediately (no planning step).
+    /// Stub agents cost nothing, so no budget is needed.
     pub fn demo() -> Self {
         Self {
-            state: running(demo_graph(), Arc::new(StubFactory)),
+            state: running(demo_graph(), Arc::new(StubFactory), None),
         }
     }
 
@@ -92,14 +98,19 @@ impl SwarmPane {
                     tier: PLAN_TIER,
                 });
                 let factory = Arc::new(ApiFactory::new(Arc::new(provider), WORK_MAX_TOKENS));
-                Self::goal_with(goal, planner, factory)
+                // Real API agents accrue cost — cap the run.
+                let budget = Some(Budget {
+                    max_micros_usd: GOAL_BUDGET_MICROS_USD,
+                });
+                Self::goal_with(goal, planner, factory, budget)
             }
             Backend::Stub => Self::goal_stub(goal),
         }
     }
 
     /// The offline path: stub planner + stub agents. Used as the no-key fallback
-    /// and directly by tests for determinism.
+    /// and directly by tests for determinism. Stub agents cost nothing, so no
+    /// budget is applied.
     fn goal_stub(goal: String) -> Self {
         Self::goal_with(
             goal,
@@ -107,17 +118,24 @@ impl SwarmPane {
                 fanout: GOAL_FANOUT,
             }),
             Arc::new(StubFactory),
+            None,
         )
     }
 
-    /// Start planning `goal` with `planner`, holding `factory` to execute the
-    /// resulting graph.
-    fn goal_with(goal: String, planner: Arc<dyn Planner>, factory: Arc<dyn AgentFactory>) -> Self {
+    /// Start planning `goal` with `planner`, holding `factory` (and its optional
+    /// `budget`) to execute the resulting graph.
+    fn goal_with(
+        goal: String,
+        planner: Arc<dyn Planner>,
+        factory: Arc<dyn AgentFactory>,
+        budget: Option<Budget>,
+    ) -> Self {
         Self {
             state: SwarmState::Planning {
                 plan: plan_goal(goal.clone(), planner),
                 goal,
                 factory,
+                budget,
             },
         }
     }
@@ -126,9 +144,14 @@ impl SwarmPane {
     /// arrived, or engine events were applied) and the pane should redraw.
     pub fn poll(&mut self) -> bool {
         match &mut self.state {
-            SwarmState::Planning { plan, factory, .. } => match plan.try_take() {
+            SwarmState::Planning {
+                plan,
+                factory,
+                budget,
+                ..
+            } => match plan.try_take() {
                 Some(Ok(graph)) => {
-                    self.state = running(graph, Arc::clone(factory));
+                    self.state = running(graph, Arc::clone(factory), *budget);
                     true
                 }
                 Some(Err(e)) => {
@@ -151,7 +174,30 @@ impl SwarmPane {
         match &self.state {
             SwarmState::Planning { goal, .. } => banner(&format!("planning: {goal}…"), cols),
             SwarmState::Failed { msg } => banner(&format!("plan failed: {msg}"), cols),
-            SwarmState::Running { handle, fleet } => swarm_cells(handle.graph(), fleet, cols, rows),
+            SwarmState::Running { handle, fleet } => {
+                let mut cells = swarm_cells(handle.graph(), fleet, cols, rows);
+                // Surface a budget/cancel notice on the last row so a swarm the
+                // governor stopped doesn't just look "done".
+                if handle.is_cancelled() {
+                    let last = rows.saturating_sub(1);
+                    for (i, c) in "budget exceeded — swarm cancelled"
+                        .chars()
+                        .take(cols as usize)
+                        .enumerate()
+                    {
+                        cells.push(CellView {
+                            col: i as u16,
+                            row: last,
+                            c,
+                            fg: (235, 180, 70),
+                            bg: (0, 0, 0),
+                            bold: true,
+                            italic: false,
+                        });
+                    }
+                }
+                cells
+            }
         }
     }
 }
@@ -166,10 +212,11 @@ impl Drop for SwarmPane {
     }
 }
 
-/// Build a `Running` state: spawn the engine for `graph` with `factory`.
-fn running(graph: TaskGraph, factory: Arc<dyn AgentFactory>) -> SwarmState {
+/// Build a `Running` state: spawn the engine for `graph` with `factory`, capped
+/// by `budget` when set.
+fn running(graph: TaskGraph, factory: Arc<dyn AgentFactory>, budget: Option<Budget>) -> SwarmState {
     SwarmState::Running {
-        handle: SwarmHandle::spawn(graph, factory, 4),
+        handle: SwarmHandle::spawn(graph, factory, 4, budget),
         fleet: Fleet::new(),
     }
 }

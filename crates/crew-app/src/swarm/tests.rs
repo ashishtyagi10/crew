@@ -37,7 +37,7 @@ fn bridge_stub_graph_completes() {
 
     let graph = two_task_graph();
     let factory = Arc::new(StubFactory);
-    let handle = SwarmHandle::spawn(graph, factory, 2);
+    let handle = SwarmHandle::spawn(graph, factory, 2, None);
 
     let mut fleet = Fleet::new();
     // Poll until both tasks done or ~2 s elapsed.
@@ -74,7 +74,7 @@ fn bridge_cancel_stops_scheduler() {
         .collect();
     let graph = TaskGraph::new(tasks).expect("chain graph");
     let factory = Arc::new(StubFactory);
-    let handle = SwarmHandle::spawn(graph, factory, 1);
+    let handle = SwarmHandle::spawn(graph, factory, 1, None);
 
     // Cancel before most tasks run.
     handle.cancel();
@@ -88,6 +88,40 @@ fn bridge_cancel_stops_scheduler() {
     // After cancel, done + failed + (cancelled tasks not in fleet) < 10.
     let t = fleet.totals();
     assert!(t.done + t.failed + t.live <= 10, "fleet consistent");
+}
+
+#[test]
+fn budget_governor_trips_shared_cancel_flag() {
+    use super::bridge::SwarmHandle;
+    use crew_hive::{ApiFactory, Budget, MockProvider};
+
+    // Real API agents emit CostDelta events; a zero-dollar cap means the very
+    // first cost event exceeds budget, so the governor sets the shared cancel
+    // flag. This exercises the bridge wiring (governor spawned alongside the
+    // scheduler on one cancel flag) — the governor's own logic is unit-tested
+    // in crew-hive's govern module.
+    let graph = two_task_graph(); // AgentKind::Api tasks
+    let provider = Arc::new(MockProvider {
+        reply: "some result text".into(),
+    });
+    let factory = Arc::new(ApiFactory::new(provider, 256));
+    let budget = Some(Budget { max_micros_usd: 0 });
+    let handle = SwarmHandle::spawn(graph, factory, 2, budget);
+
+    let mut fleet = Fleet::new();
+    let mut cancelled = false;
+    for _ in 0..200 {
+        handle.drain(&mut fleet);
+        if handle.is_cancelled() {
+            cancelled = true;
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    assert!(
+        cancelled,
+        "a zero-budget run must be cancelled by the budget governor"
+    );
 }
 
 // ── Task 2: swarm_cells view ────────────────────────────────────────────────
