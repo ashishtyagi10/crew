@@ -125,8 +125,10 @@ to the focused terminal.
 ## Sidebar
 
 A docked left panel (toggle with **Cmd+G**) with a live clock, CPU/MEM/DISK
-gauges, load average, host info, network rates, a git section for the working
-directory, and a list of open panes (click a row to focus it).
+gauges, a moving **CPU sparkline** under them, load average, host info, network
+rates with a **throughput sparkline**, a git section for the working directory,
+and a list of open panes (click a row to focus it). The sparklines scroll on the
+sidebar's once-a-second refresh, so the charts animate at no extra redraw cost.
 
 ## Multi-agent panes (`/crew`)
 

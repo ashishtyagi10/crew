@@ -44,6 +44,12 @@ status glyphs:
 The focused pane has a near-white border and a bright block cursor; unfocused
 panes are grey with a dim cursor.
 
+**Busy indicator.** While a pane is doing background work — a swarm planning or
+running with live tasks, or an agent chat awaiting a reply — an **indeterminate
+progress sweep** glides back and forth along its bottom border. It animates only
+while the pane is actually busy (idle Crew never repaints), so the motion costs
+nothing once the work finishes.
+
 **Capacity & visibility.** Crew displays up to **6 panes as full tiles** in the
 auto-tiling grid. Additional panes are demoted to a **minimized thumbnail strip**
 along the bottom of the content area, each showing the pane's title and an
@@ -329,9 +335,10 @@ graphs through one interface. Design rationale and roadmap:
 ## Sidebar
 
 A docked left panel (toggle with **Cmd+G**) with stacked, line-divided sections:
-a live **TIME** clock, **SYSTEM** CPU/MEM/DISK gauges, a **LOAD** section
-(1/5/15-minute load average, coloured by load-per-core), a **HOST** section
-(hostname, OS, uptime), a **NET** section (down/up byte rates), and — when the
+a live **TIME** clock, **SYSTEM** CPU/MEM/DISK gauges followed by a moving
+**CPU sparkline**, a **LOAD** section (1/5/15-minute load average, coloured by
+load-per-core), a **HOST** section (hostname, OS, uptime), a **NET** section
+(down/up byte rates plus an auto-scaled throughput sparkline), and — when the
 working directory is a repository — a **GIT** section showing the current branch
 (with `↑`/`↓` commits ahead/behind the upstream) and a clean / `● N changed` marker. Below those, a **LOG** section keeps a live tail of
 recent status messages (the same lines flashed on the input bar, newest last) so
