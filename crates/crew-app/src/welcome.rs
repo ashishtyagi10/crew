@@ -16,6 +16,15 @@ const VERSION_FG: (u8, u8, u8) = (70, 75, 85);
 const STEP: u16 = 2;
 /// Frames for one brighten→dim→brighten pulse of a letter.
 const PULSE: u64 = 56;
+/// Poll ticks per rendered rain frame: the poll loop runs at ~60 Hz, but the
+/// idle welcome animation only needs ~20 fps, so we redraw every third tick and
+/// advance the animation frame by one — cutting idle redraws to a third.
+pub const ANIM_DIV: u64 = 3;
+
+/// Whether this poll `tick` should redraw the welcome rain (every [`ANIM_DIV`]).
+pub fn anim_should_redraw(tick: u64) -> bool {
+    tick.is_multiple_of(ANIM_DIV)
+}
 
 /// Rain-like colour for letter `i` at `tick`: each letter pulses between the
 /// bright head and a dim green (never fully gone), out of phase with the others.
@@ -132,5 +141,13 @@ mod tests {
     fn tiny_size_no_panic_and_in_bounds() {
         let cells = welcome_cells_animated(2, 1, 0);
         assert!(cells.iter().all(|c| c.col < 2 && c.row < 1));
+    }
+
+    #[test]
+    fn anim_redraws_one_in_every_anim_div_ticks() {
+        let redraws = (0..ANIM_DIV * 4).filter(|&t| anim_should_redraw(t)).count();
+        assert_eq!(redraws as u64, 4, "one redraw per ANIM_DIV ticks");
+        assert!(anim_should_redraw(0) && anim_should_redraw(ANIM_DIV));
+        assert!(!anim_should_redraw(1));
     }
 }

@@ -50,10 +50,13 @@ impl CrewApp {
         if self.expire_status() {
             any_changed = true;
         }
-        // Animate the matrix-rain welcome screen while there are no panes.
+        // Animate the matrix-rain welcome screen while there are no panes — but
+        // only redraw every Nth tick, so the idle screen runs at ~20 fps, not 60.
         if self.panes.is_empty() {
             self.tick = self.tick.wrapping_add(1);
-            any_changed = true;
+            if crate::welcome::anim_should_redraw(self.tick) {
+                any_changed = true;
+            }
         }
         // Close terminal panes whose shell has exited (e.g. the user typed `exit`).
         let exited: Vec<usize> = self

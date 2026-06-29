@@ -94,6 +94,15 @@ fn slash_completes_agent_tools() {
 }
 
 #[test]
+fn slash_completes_clearlog() {
+    // /clear is the shortest match, so it ghosts first; /clearlog is reached by
+    // typing past it, and both appear in the palette.
+    assert_eq!(suggest("/clearl", &[]).as_deref(), Some("og"));
+    let names: Vec<&str> = matches("/clear").iter().map(|c| c.name).collect();
+    assert!(names.contains(&"/clear") && names.contains(&"/clearlog"));
+}
+
+#[test]
 fn slash_completes_dump() {
     assert_eq!(suggest("/du", &[]).as_deref(), Some("mp"));
     let names: Vec<&str> = matches("/d").iter().map(|c| c.name).collect();

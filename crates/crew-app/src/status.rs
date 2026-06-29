@@ -27,6 +27,13 @@ impl CrewApp {
         self.redraw();
     }
 
+    /// Clear the live LOG ring buffer (`/clearlog`), then note the action so the
+    /// sidebar shows the log was reset rather than going blank.
+    pub(crate) fn clear_log(&mut self) {
+        self.log.clear();
+        self.set_status("activity log cleared");
+    }
+
     /// The current status text, or `None` once it has expired.
     pub(crate) fn active_status(&self) -> Option<&str> {
         self.status
@@ -69,5 +76,17 @@ mod tests {
         let last = app.log.last().expect("log has the entry");
         assert!(last.ends_with("hello world"));
         assert!(last.contains(':') && last != "hello world");
+    }
+
+    #[test]
+    fn clear_log_empties_then_notes_the_reset() {
+        let mut app = CrewApp::default();
+        app.set_status("a");
+        app.set_status("b");
+        assert_eq!(app.log.len(), 2);
+        app.clear_log();
+        // Cleared down to just the single "cleared" note (not blank).
+        assert_eq!(app.log.len(), 1);
+        assert!(app.log[0].ends_with("activity log cleared"));
     }
 }

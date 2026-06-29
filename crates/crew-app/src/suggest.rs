@@ -56,6 +56,10 @@ pub(crate) const COMMANDS: &[Cmd] = &[
         desc: "Clear the focused pane's scrollback",
     },
     Cmd {
+        name: "/clearlog",
+        desc: "Clear the live activity log in the sidebar",
+    },
+    Cmd {
         name: "/only",
         desc: "Close all panes except the focused one",
     },

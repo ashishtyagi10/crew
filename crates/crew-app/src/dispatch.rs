@@ -25,6 +25,7 @@ impl CrewApp {
                 "update".to_string(),
             ),
             "clear" => self.clear_focused_scrollback(),
+            "clearlog" => self.clear_log(),
             "only" => self.close_other_panes(),
             "copy" => self.copy_scrollback(),
             "dump" => self.dump_focused_pane(""),
