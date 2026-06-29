@@ -108,11 +108,12 @@ impl TermCore {
             .map(|ind| {
                 let bold = ind.flags.contains(Flags::BOLD);
                 let italic = ind.flags.contains(Flags::ITALIC);
-                let mut fg = resolve_color(ind.fg, palette, DEFAULT_FG);
+                let fg = resolve_color(ind.fg, palette, DEFAULT_FG);
                 let mut bg = resolve_color(ind.bg, palette, DEFAULT_BG);
-                if ind.flags.contains(Flags::INVERSE) {
-                    std::mem::swap(&mut fg, &mut bg);
-                }
+                // Reverse-video (SGR 7) is intentionally NOT honoured: programs
+                // (e.g. agent CLIs) use it to "highlight" the line you just sent,
+                // which renders as a hard-to-read block. Dropping the fg/bg swap
+                // shows that text plainly instead.
                 // Selected cells take the selection background, drawn over any
                 // program colours (the copied text comes from the engine).
                 if selection.is_some_and(|r| r.contains(ind.point)) {
@@ -296,6 +297,20 @@ mod selection_tests {
     #[test]
     fn no_selection_yields_no_text() {
         assert_eq!(term("hello").sel_text(), None);
+    }
+
+    #[test]
+    fn inverse_video_is_not_drawn_as_a_highlight() {
+        // 'X' is plain; 'H' is reverse-video (SGR 7). With the program's
+        // highlight suppressed, the inverse cell must render with the SAME
+        // colours as the plain one — no swapped fg/bg "highlight" block.
+        let mut t = HeadlessTerm::new(GridSize { cols: 20, rows: 2 });
+        t.feed(b"X\x1b[7mH\x1b[0m");
+        let cells = t.cells(false);
+        let x = cells.iter().find(|c| c.c == 'X').expect("X rendered");
+        let h = cells.iter().find(|c| c.c == 'H').expect("H rendered");
+        assert_eq!(h.fg, x.fg, "inverse cell should keep the normal foreground");
+        assert_eq!(h.bg, x.bg, "inverse cell should keep the normal background");
     }
 
     #[test]
