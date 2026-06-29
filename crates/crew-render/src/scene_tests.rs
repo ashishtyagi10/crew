@@ -76,9 +76,22 @@ fn want_overlay_partitions_panes() {
     // Base pass: only the non-overlay pane (bordered → one border).
     let (q, b, bd) = build_scene(&panes, 8.0, 16.0, &mut fs, &params(), false);
     assert_eq!((q.len(), b.len(), bd.len()), (1, 1, 1));
-    // Overlay pass: only the overlay pane (bordered:false → no border).
+    // Overlay pass: only the overlay pane (bordered:false → no border). Two
+    // quads: the full-rect black backdrop plus the one non-default-bg cell.
     let (q2, b2, bd2) = build_scene(&panes, 8.0, 16.0, &mut fs, &params(), true);
-    assert_eq!((q2.len(), b2.len(), bd2.len()), (1, 1, 0));
+    assert_eq!((q2.len(), b2.len(), bd2.len()), (2, 1, 0));
+}
+
+#[test]
+fn overlay_pane_gets_an_opaque_black_backdrop() {
+    let mut fs = FontSystem::new();
+    // An overlay pane with only blank/default-bg cells still gets a backdrop.
+    let panes = vec![pane(vec![cell(0, 0, 'y', (0, 0, 0))], false, true)];
+    let (quads, _b, _bd) = build_scene(&panes, 8.0, 16.0, &mut fs, &params(), true);
+    assert_eq!(quads.len(), 1, "the backdrop quad, no per-cell quad");
+    let q = &quads[0];
+    assert_eq!((q.x, q.y, q.w, q.h), (0.0, 0.0, 80.0, 40.0)); // spans the pane
+    assert_eq!(q.color, [0.0, 0.0, 0.0, 1.0]); // solid black
 }
 
 #[test]
