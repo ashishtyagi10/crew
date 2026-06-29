@@ -1,6 +1,12 @@
 //! Scrollback routing for panes (mouse wheel and Shift+PageUp/Down).
+use winit::event::MouseScrollDelta;
+
 use crate::app::CrewApp;
 use crate::pane::{Pane, PaneContent};
+
+/// Pixels per scroll line for trackpad/pixel-precise wheel deltas. Roughly one
+/// text row; tuned so the scroll speed matches a traditional wheel notch.
+const PIXELS_PER_LINE: f32 = 24.0;
 
 /// Scroll one pane's content by `lines` (positive = up/older).
 fn scroll_pane(pane: &mut Pane, lines: i32) {
@@ -15,6 +21,20 @@ fn scroll_pane(pane: &mut Pane, lines: i32) {
 }
 
 impl CrewApp {
+    /// Convert one wheel/trackpad delta into whole scroll lines, carrying the
+    /// sub-line remainder across calls. Without this, macOS trackpads — which
+    /// emit a stream of small pixel deltas — had every tick rounded to zero, so
+    /// slow scrolling never moved a pane at all.
+    pub(crate) fn wheel_lines(&mut self, delta: MouseScrollDelta) -> i32 {
+        self.scroll_accum += match delta {
+            MouseScrollDelta::LineDelta(_, y) => y,
+            MouseScrollDelta::PixelDelta(p) => p.y as f32 / PIXELS_PER_LINE,
+        };
+        let lines = self.scroll_accum.trunc() as i32;
+        self.scroll_accum -= lines as f32;
+        lines
+    }
+
     /// Route a mouse-wheel scroll to the pane under the cursor.
     pub(crate) fn scroll_at_cursor(&mut self, lines: i32) {
         if lines == 0 {
@@ -46,3 +66,7 @@ impl CrewApp {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "scroll_tests.rs"]
+mod scroll_tests;

@@ -1,4 +1,15 @@
-use super::{slash_command, CrewApp};
+use super::{slash_command, submit_bytes, CrewApp};
+
+#[test]
+fn submit_sends_carriage_return_not_soft_newline() {
+    // A submitted input line must end in CR (0x0d) — the same byte a real Enter
+    // sends — so agent CLIs (Claude/codex) submit it. Ending in LF (0x0a) is the
+    // Shift+Enter "soft return", which leaves the text sitting (highlighted) in
+    // the agent's input box instead of submitting it.
+    assert_eq!(submit_bytes("hello"), b"hello\r");
+    assert_eq!(*submit_bytes("hi").last().unwrap(), b'\r');
+    assert!(!submit_bytes("hi").contains(&b'\n'));
+}
 
 fn tests_far_pane(name: &str) -> crate::pane::Pane {
     use crate::pane::{Pane, PaneContent};

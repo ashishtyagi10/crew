@@ -29,6 +29,10 @@ pub struct CrewApp {
     pub(crate) grid: GridLayout,
     pub(crate) mods: Modifiers,
     pub(crate) cursor: (f32, f32),
+    /// Sub-line scroll remainder, in lines. Trackpads emit many small pixel
+    /// deltas; we accumulate the fractional part here so slow scrolling adds up
+    /// instead of each tick rounding to zero and being lost.
+    pub(crate) scroll_accum: f32,
     pub(crate) config: CrewConfig,
     pub(crate) sidebar: Box<StatsPane>,
     pub(crate) input: InputBar,
@@ -135,8 +139,7 @@ impl CrewApp {
         if self.try_change_dir(&line) {
             return false;
         }
-        let mut bytes = line.into_bytes();
-        bytes.push(b'\n');
+        let bytes = submit_bytes(&line);
         // Nothing received it (no terminal focused / open) — hint instead of a
         // silent no-op.
         if self.write_to_terminals(&bytes) == 0 {
@@ -181,6 +184,17 @@ impl CrewApp {
 /// If `line` is a `/command`, return the trimmed command name; else `None`.
 pub(crate) fn slash_command(line: &str) -> Option<&str> {
     line.strip_prefix('/').map(str::trim)
+}
+
+/// Bytes to write when submitting an input-bar line to a terminal: the line
+/// followed by a carriage return (0x0d) — the same byte a real Enter sends. A
+/// trailing line feed (0x0a) is the Shift+Enter "soft return", which agent CLIs
+/// (Claude/codex) treat as "insert a newline, keep editing", leaving the text
+/// sitting highlighted in their input box instead of being submitted.
+pub(crate) fn submit_bytes(line: &str) -> Vec<u8> {
+    let mut bytes = line.as_bytes().to_vec();
+    bytes.push(b'\r');
+    bytes
 }
 
 #[cfg(test)]

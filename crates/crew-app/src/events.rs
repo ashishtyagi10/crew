@@ -3,7 +3,7 @@
 //! impl so each surface stays small.
 use std::time::{Duration, Instant};
 
-use winit::event::{ElementState, MouseButton, MouseScrollDelta, WindowEvent};
+use winit::event::{ElementState, MouseButton, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
 
 use crate::app::CrewApp;
@@ -55,10 +55,7 @@ impl CrewApp {
                 self.paste();
             }
             WindowEvent::MouseWheel { delta, .. } => {
-                let lines = match delta {
-                    MouseScrollDelta::LineDelta(_, y) => y.round() as i32,
-                    MouseScrollDelta::PixelDelta(p) => (p.y / 24.0).round() as i32,
-                };
+                let lines = self.wheel_lines(delta);
                 self.scroll_at_cursor(lines);
             }
             WindowEvent::KeyboardInput { event, .. } => {
