@@ -541,7 +541,7 @@ dependencies = [
 
 [[package]]
 name = "crew-app"
-version = "0.5.2"
+version = "0.5.3"
 dependencies = [
  "anyhow",
  "arboard",
@@ -564,7 +564,7 @@ dependencies = [
 
 [[package]]
 name = "crew-hive"
-version = "0.5.2"
+version = "0.5.3"
 dependencies = [
  "futures",
  "reqwest",
@@ -575,7 +575,7 @@ dependencies = [
 
 [[package]]
 name = "crew-plugin"
-version = "0.5.2"
+version = "0.5.3"
 dependencies = [
  "anyhow",
  "serde",
@@ -584,7 +584,7 @@ dependencies = [
 
 [[package]]
 name = "crew-render"
-version = "0.5.2"
+version = "0.5.3"
 dependencies = [
  "anyhow",
  "glyphon",
@@ -595,7 +595,7 @@ dependencies = [
 
 [[package]]
 name = "crew-term"
-version = "0.5.2"
+version = "0.5.3"
 dependencies = [
  "alacritty_terminal",
  "anyhow",
