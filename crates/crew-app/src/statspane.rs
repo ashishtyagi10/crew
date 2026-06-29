@@ -130,7 +130,7 @@ impl StatsPane {
         let net_off = host_off + CARD_BLOCK;
         if rows > net_off + 3 {
             let s = self.sampler.stats();
-            for mut c in net::net_cells(s.net_rx, s.net_tx, cols) {
+            for mut c in net::net_cells(s.net_rx, s.net_tx, self.sampler.net_hist(), cols) {
                 c.row += net_off;
                 out.push(c);
             }

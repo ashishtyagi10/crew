@@ -26,6 +26,7 @@ pub struct SysSampler {
     nets: Networks,
     last: Option<Instant>,
     stats: Stats,
+    net_hist: crate::spark::History, // total throughput per sample, for the chart
 }
 
 impl SysSampler {
@@ -36,6 +37,7 @@ impl SysSampler {
             nets: Networks::new_with_refreshed_list(),
             last: None,
             stats: Stats::default(),
+            net_hist: crate::spark::History::new(64),
         };
         sampler.sample();
         sampler.last = Some(Instant::now());
@@ -44,6 +46,11 @@ impl SysSampler {
 
     pub fn stats(&self) -> Stats {
         self.stats
+    }
+
+    /// Recent total (rx+tx) network throughput, for the sidebar NET sparkline.
+    pub fn net_hist(&self) -> &crate::spark::History {
+        &self.net_hist
     }
 
     pub fn refresh(&mut self) -> bool {
@@ -78,6 +85,7 @@ impl SysSampler {
             (acc.0 + n.received(), acc.1 + n.transmitted())
         });
 
+        self.net_hist.push(net_rx.saturating_add(net_tx));
         self.stats = Stats {
             cpu,
             mem,

@@ -47,8 +47,8 @@ impl History {
 }
 
 /// Render `hist` as a single-row sparkline `width` cells wide, its left edge at
-/// `col0` on `row`. `max` scales the bars (e.g. 100 for a percentage). Empty when
-/// there's no history or no width.
+/// `col0` on `row`. `max` scales the bars (e.g. 100 for a percentage); `0`
+/// auto-scales to the window's peak. Empty with no history or no width.
 pub fn sparkline_cells(
     hist: &History,
     width: u16,
@@ -62,11 +62,13 @@ pub fn sparkline_cells(
     }
     let data = hist.tail(width as usize);
     let mut buf = Buffer::empty(Rect::new(0, 0, width, 1));
-    Sparkline::default()
+    let mut spark = Sparkline::default()
         .data(&data)
-        .max(max.max(1))
-        .style(Style::default().fg(Color::Rgb(fg.0, fg.1, fg.2)))
-        .render(buf.area, &mut buf);
+        .style(Style::default().fg(Color::Rgb(fg.0, fg.1, fg.2)));
+    if max > 0 {
+        spark = spark.max(max); // fixed scale; otherwise auto-scale to data peak
+    }
+    spark.render(buf.area, &mut buf);
     let mut cells = crate::tui::to_cells(&buf);
     for c in &mut cells {
         c.col += col0;
