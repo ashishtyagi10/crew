@@ -95,13 +95,14 @@ pub(crate) fn fill_rich_text(
     family: &Option<String>,
 ) {
     let fam = family_from(family);
-    // Bucket cells into a 2-D grid (row × col).
-    let mut grid: Vec<Vec<Option<&CellView>>> = vec![vec![None; cols]; rows];
+    // Bucket cells into a single flat rows×cols grid — one allocation per pane
+    // per frame, instead of a Vec-of-Vecs (one inner Vec allocated per row).
+    let mut grid: Vec<Option<&CellView>> = vec![None; rows * cols];
     for cell in cells {
         let r = cell.row as usize;
         let c = cell.col as usize;
         if r < rows && c < cols {
-            grid[r][c] = Some(cell);
+            grid[r * cols + c] = Some(cell);
         }
     }
 
@@ -111,9 +112,9 @@ pub(crate) fn fill_rich_text(
     // ranges into it; consecutive same-key cells extend the current run.
     let mut text = String::with_capacity(rows * (cols + 1));
     let mut runs: Vec<(usize, usize, RunKey)> = Vec::new();
-    for (row_i, row) in grid.iter().enumerate() {
-        for cell_opt in row.iter() {
-            let (ch, key) = match cell_opt {
+    for row_i in 0..rows {
+        for c in 0..cols {
+            let (ch, key) = match grid[row_i * cols + c] {
                 Some(cell) => (cell.c, RunKey::Styled(cell.fg, cell.bold, cell.italic)),
                 None => (' ', RunKey::Default),
             };
