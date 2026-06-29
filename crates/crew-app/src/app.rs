@@ -48,6 +48,8 @@ pub struct CrewApp {
     pub(crate) broadcast: bool,
     /// Time + pane index of the last left click, for double-click detection.
     pub(crate) last_click: Option<(Instant, usize)>,
+    /// In-progress mouse drag selection over a terminal pane, if any.
+    pub(crate) drag: Option<crate::select::Drag>,
     /// Last `/find` term, so repeating it walks to the next older match.
     pub(crate) last_find: Option<String>,
     /// Crew's working directory: shown in the input-bar legend and used as the

@@ -94,6 +94,11 @@ impl CrewApp {
     /// Copy the focused terminal's visible screen to the system clipboard,
     /// flashing a status message with the line count.
     pub(crate) fn copy_screen(&mut self) {
+        // An active mouse selection wins over the whole-screen copy.
+        if let Some(text) = self.pane_selection_text(self.focused) {
+            self.copy_text(text);
+            return;
+        }
         let Some(pane) = self.panes.get(self.focused) else {
             return;
         };

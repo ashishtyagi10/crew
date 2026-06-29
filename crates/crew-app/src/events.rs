@@ -19,6 +19,8 @@ impl CrewApp {
             WindowEvent::ModifiersChanged(mods) => self.mods = mods,
             WindowEvent::CursorMoved { position, .. } => {
                 self.cursor = (position.x as f32, position.y as f32);
+                // Extend an in-progress selection as the cursor drags.
+                self.selection_drag();
             }
             WindowEvent::MouseInput {
                 state: ElementState::Pressed,
@@ -30,8 +32,10 @@ impl CrewApp {
                     self.redraw();
                     return;
                 }
-                if let Some(i) = self.focus_at_cursor() {
-                    // A second click on the same pane within 400ms toggles zoom.
+                // Focus the surface and arm a drag selection on a terminal pane.
+                if let Some(i) = self.selection_press() {
+                    // A second click on the same pane within 400ms toggles zoom;
+                    // cancel the just-armed drag so the release doesn't copy.
                     let now = Instant::now();
                     let double = self
                         .last_click
@@ -39,10 +43,21 @@ impl CrewApp {
                     if double {
                         self.zoomed = !self.zoomed;
                         self.last_click = None;
+                        self.drag = None;
                     } else {
                         self.last_click = Some((now, i));
                     }
                 }
+                self.redraw();
+            }
+            WindowEvent::MouseInput {
+                state: ElementState::Released,
+                button: MouseButton::Left,
+                ..
+            } => {
+                // A drag that moved finalizes + copies the selection; a plain
+                // click (no movement) was already handled on press.
+                self.selection_release();
                 self.redraw();
             }
             WindowEvent::MouseInput {

@@ -131,6 +131,26 @@ impl PtyTerm {
         self.core.bracketed_paste()
     }
 
+    /// Begin a mouse selection at viewport cell (col, row); `block` = rectangular.
+    pub fn sel_start(&mut self, col: u16, row: u16, block: bool) {
+        self.core.sel_start(col, row, block);
+    }
+
+    /// Extend the active selection to viewport cell (col, row).
+    pub fn sel_update(&mut self, col: u16, row: u16) {
+        self.core.sel_update(col, row);
+    }
+
+    /// Clear any active selection.
+    pub fn sel_clear(&mut self) {
+        self.core.sel_clear();
+    }
+
+    /// The selected text, or `None` when nothing (non-empty) is selected.
+    pub fn sel_text(&self) -> Option<String> {
+        self.core.sel_text()
+    }
+
     /// The program-set window title (OSC 0/2), empty if none.
     pub fn title(&self) -> String {
         self.core.title()

@@ -56,6 +56,7 @@ mod render;
 mod runpane;
 mod scroll;
 mod search;
+mod select;
 mod selfupdate;
 mod session;
 mod settingspane;
