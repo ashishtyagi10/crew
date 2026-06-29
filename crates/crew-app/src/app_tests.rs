@@ -218,6 +218,47 @@ fn cd_dash_toggles_previous_directory() {
 }
 
 #[test]
+fn typing_clears_a_terminal_selection() {
+    use crate::layout::Rect;
+    use crate::pane::{Pane, PaneContent, TermPane};
+    use crew_term::{GridSize, PtyTerm, TermModel};
+    // A real shell pane (plain, no login flag — reliable under the test harness)
+    // with an active mouse selection.
+    let mut app = CrewApp::default();
+    // Absolute shell path + an explicit, existing cwd so the spawn never depends
+    // on $PATH or the process's (possibly test-mutated) working directory.
+    let tmp = std::env::temp_dir();
+    let pty =
+        PtyTerm::spawn_in(GridSize { cols: 40, rows: 10 }, "/bin/sh", &[], Some(&tmp)).unwrap();
+    let input = pty.writer();
+    app.panes.push(Pane {
+        content: PaneContent::Terminal(Box::new(TermPane { pty, input })),
+        grid: GridSize { cols: 40, rows: 10 },
+        rect: Rect {
+            x: 0.0,
+            y: 0.0,
+            w: 0.0,
+            h: 0.0,
+        },
+        label: None,
+        name: None,
+        dir: None,
+        activity: false,
+        bell: false,
+    });
+    app.focused = 0;
+    if let Some(PaneContent::Terminal(t)) = app.panes.get_mut(0).map(|p| &mut p.content) {
+        t.pty.feed(b"hello world");
+        t.pty.sel_start(0, 0, false);
+        t.pty.sel_update(4, 0);
+    }
+    assert!(app.pane_selection_text(0).is_some(), "selection armed");
+    // Typing into the focused terminal must clear the stale highlight.
+    app.write_to_terminals(b"x");
+    assert_eq!(app.pane_selection_text(0), None, "type clears selection");
+}
+
+#[test]
 fn reconcile_grid_tracks_panes_and_focus() {
     let mut app = CrewApp::default();
     // Simulate two spawned panes by pushing Far panes (no PTY needed).

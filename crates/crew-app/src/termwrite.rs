@@ -19,6 +19,9 @@ impl CrewApp {
             }
             if let PaneContent::Terminal(t) = &mut pane.content {
                 t.pty.scroll_to_bottom();
+                // Typing invalidates any mouse selection — drop the stale
+                // highlight so it doesn't linger painted over fresh output.
+                t.pty.sel_clear();
                 if let Err(e) = t.input.write_all(bytes).and_then(|_| t.input.flush()) {
                     eprintln!("terminal write error: {e}");
                 } else {
