@@ -72,8 +72,8 @@ async fn end_to_end_fan_out_fan_in() {
 #[tokio::test]
 async fn plan_then_schedule_with_api_agents() {
     use crew_hive::{
-        Agent, AgentFactory, AgentKind, ApiAgent, Blackboard, EventBus, MockProvider, ModelTier,
-        Planner, Scheduler, StubPlanner,
+        Agent, AgentFactory, AgentKind, ApiAgent, Blackboard, EventBus, MockProvider, Planner,
+        Scheduler, StubPlanner,
     };
     use std::sync::Arc;
 
@@ -82,11 +82,7 @@ async fn plan_then_schedule_with_api_agents() {
     }
     impl AgentFactory for ApiFactory {
         fn make(&self, _k: &AgentKind) -> Box<dyn Agent> {
-            Box::new(ApiAgent::new(
-                self.provider.clone(),
-                ModelTier::Standard,
-                256,
-            ))
+            Box::new(ApiAgent::new(self.provider.clone(), 256))
         }
     }
 

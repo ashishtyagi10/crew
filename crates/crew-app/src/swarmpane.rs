@@ -26,9 +26,8 @@ use crate::swarm::view::swarm_cells;
 /// How many parallel leaves the stub planner decomposes a goal into.
 const GOAL_FANOUT: usize = 3;
 /// Model tier the LLM planner uses to decompose a goal (better structure).
+/// Worker agents instead run at whatever per-task tier the planner assigns.
 const PLAN_TIER: ModelTier = ModelTier::Standard;
-/// Model tier the worker agents use to execute tasks (cost-conscious).
-const WORK_TIER: ModelTier = ModelTier::Cheap;
 /// Per-task output token cap for worker agents.
 const WORK_MAX_TOKENS: u32 = 2048;
 
@@ -92,11 +91,7 @@ impl SwarmPane {
                     provider: provider.clone(),
                     tier: PLAN_TIER,
                 });
-                let factory = Arc::new(ApiFactory::new(
-                    Arc::new(provider),
-                    WORK_TIER,
-                    WORK_MAX_TOKENS,
-                ));
+                let factory = Arc::new(ApiFactory::new(Arc::new(provider), WORK_MAX_TOKENS));
                 Self::goal_with(goal, planner, factory)
             }
             Backend::Stub => Self::goal_stub(goal),

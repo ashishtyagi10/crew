@@ -56,7 +56,6 @@ async fn api_agent_completes_and_emits() {
         Arc::new(MockProvider {
             reply: "done".into(),
         }),
-        ModelTier::Standard,
         256,
     );
     let ctx = AgentContext {
@@ -86,7 +85,6 @@ async fn api_agent_emits_output_chunk_and_cost() {
         Arc::new(MockProvider {
             reply: "hello world".into(),
         }),
-        ModelTier::Cheap,
         128,
     );
     let ctx = AgentContext {
@@ -120,7 +118,6 @@ async fn api_agent_with_deps_passes_context_in_prompt() {
         Arc::new(MockProvider {
             reply: "merged".into(),
         }),
-        ModelTier::Standard,
         256,
     );
     let ctx = AgentContext {
@@ -141,11 +138,49 @@ async fn api_agent_with_deps_passes_context_in_prompt() {
 #[test]
 fn api_factory_makes_an_agent() {
     use crate::agent::AgentFactory;
-    use crate::graph::{AgentKind, ModelTier};
+    use crate::graph::AgentKind;
     use crate::provider::MockProvider;
     use std::sync::Arc;
 
     let provider = Arc::new(MockProvider { reply: "ok".into() });
-    let factory = crate::apiagent::ApiFactory::new(provider, ModelTier::Standard, 256);
+    let factory = crate::apiagent::ApiFactory::new(provider, 256);
     let _agent = factory.make(&AgentKind::Api { system: None });
+}
+
+#[tokio::test]
+async fn api_agent_bills_at_the_tasks_own_tier() {
+    // Same prompt + reply (so token counts are identical), different task tier:
+    // the emitted CostDelta must reflect the task's model, proving the agent
+    // honours ctx.task.model rather than any fixed factory tier.
+    async fn cost_for(tier: ModelTier) -> u64 {
+        let bus = EventBus::new(32);
+        let mut rx = bus.subscribe();
+        let agent = ApiAgent::new(
+            Arc::new(MockProvider {
+                reply: "a b".into(),
+            }),
+            256,
+        );
+        let mut task = spec(1); // prompt "summarize" = 1 input token
+        task.model = tier;
+        let ctx = AgentContext {
+            agent: AgentId(0),
+            task,
+            deps: vec![],
+            bus: bus.clone(),
+        };
+        let _ = agent.run(ctx).await;
+        let mut cost = 0;
+        while let Ok(ev) = rx.try_recv() {
+            if let HiveEvent::CostDelta { micros_usd, .. } = ev {
+                cost = micros_usd;
+            }
+        }
+        cost
+    }
+    // 1 input token, 2 output tokens ("a b").
+    // Cheap: 1*1 + 5*2 = 11.  Standard: 3*1 + 15*2 = 33.  Capable: 15*1 + 75*2 = 165.
+    assert_eq!(cost_for(ModelTier::Cheap).await, 11);
+    assert_eq!(cost_for(ModelTier::Standard).await, 33);
+    assert_eq!(cost_for(ModelTier::Capable).await, 165);
 }

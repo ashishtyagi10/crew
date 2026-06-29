@@ -53,15 +53,13 @@ pub(crate) fn build_prompt(task_prompt: &str, deps: &[TaskResult]) -> String {
 
 pub struct ApiAgent {
     provider: Arc<dyn Provider>,
-    tier: ModelTier,
     max_tokens: u32,
 }
 
 impl ApiAgent {
-    pub fn new(provider: Arc<dyn Provider>, tier: ModelTier, max_tokens: u32) -> Self {
+    pub fn new(provider: Arc<dyn Provider>, max_tokens: u32) -> Self {
         Self {
             provider,
-            tier,
             max_tokens,
         }
     }
@@ -70,11 +68,14 @@ impl ApiAgent {
 impl Agent for ApiAgent {
     fn run(&self, ctx: AgentContext) -> Pin<Box<dyn Future<Output = TaskResult> + Send>> {
         let provider = Arc::clone(&self.provider);
-        let tier = self.tier;
         let max_tokens = self.max_tokens;
         Box::pin(async move {
             let task_id = ctx.task.id;
             let agent_id = ctx.agent.clone();
+            // Honour the per-task model tier the planner assigned, not a fixed
+            // factory tier — this is what lets a plan mix cheap and capable
+            // models, and bills each task at its own rate.
+            let tier = ctx.task.model;
             let prompt = build_prompt(&ctx.task.prompt, &ctx.deps);
             let system = match &ctx.task.agent {
                 AgentKind::Api { system } => system.clone(),
@@ -133,20 +134,18 @@ impl Agent for ApiAgent {
 
 use crate::agent::AgentFactory;
 
-/// Agent factory making native [`ApiAgent`]s that share one provider. `make`
-/// ignores per-task tier (the scheduler passes only `AgentKind`); all agents
-/// use the configured `tier`. Per-task tiers are a follow-up.
+/// Agent factory making native [`ApiAgent`]s that share one provider. Each
+/// agent reads its model tier from its task at run time (see [`ApiAgent::run`]),
+/// so the factory only needs the provider and the per-task output token cap.
 pub struct ApiFactory {
     provider: Arc<dyn Provider>,
-    tier: ModelTier,
     max_tokens: u32,
 }
 
 impl ApiFactory {
-    pub fn new(provider: Arc<dyn Provider>, tier: ModelTier, max_tokens: u32) -> Self {
+    pub fn new(provider: Arc<dyn Provider>, max_tokens: u32) -> Self {
         Self {
             provider,
-            tier,
             max_tokens,
         }
     }
@@ -154,10 +153,6 @@ impl ApiFactory {
 
 impl AgentFactory for ApiFactory {
     fn make(&self, _kind: &AgentKind) -> Box<dyn Agent> {
-        Box::new(ApiAgent::new(
-            Arc::clone(&self.provider),
-            self.tier,
-            self.max_tokens,
-        ))
+        Box::new(ApiAgent::new(Arc::clone(&self.provider), self.max_tokens))
     }
 }
