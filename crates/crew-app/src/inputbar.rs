@@ -8,7 +8,7 @@ use crew_render::CellView;
 use crate::boxdraw::titled_card;
 
 const BG: (u8, u8, u8) = (0, 0, 0);
-const ACCENT: (u8, u8, u8) = (0, 255, 160);
+use crate::palette::accent;
 const DIM: (u8, u8, u8) = (120, 130, 140);
 const TEXT_FG: (u8, u8, u8) = (220, 220, 220);
 const BROADCAST: (u8, u8, u8) = (220, 120, 200);
@@ -91,13 +91,13 @@ impl InputBar {
             )
         };
         let border = if self.focused { BORDER_ON } else { BORDER_OFF };
-        let mut out = titled_card(cols, rows, &legend, border, ACCENT, BG);
+        let mut out = titled_card(cols, rows, &legend, border, accent(), BG);
 
         // A distinct magenta "» " prompt signals broadcast (input → all panes).
         let (prompt, base) = if self.broadcast {
             ("» ", BROADCAST)
         } else {
-            ("> ", ACCENT)
+            ("> ", accent())
         };
         let prompt_fg = if self.focused { base } else { DIM };
         // Prompt starts inside the left border (col 0); text follows the prompt.
@@ -110,7 +110,7 @@ impl InputBar {
         let mut body: Vec<(char, (u8, u8, u8))> = self.text.chars().map(|c| (c, TEXT_FG)).collect();
         match &self.ghost() {
             Some(g) => body.extend(g.chars().map(|c| (c, DIM))),
-            None if self.focused => body.push(('█', ACCENT)),
+            None if self.focused => body.push(('█', accent())),
             None => {}
         }
         // Follow the cursor: when the body overflows the field, show its tail.

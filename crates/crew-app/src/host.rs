@@ -4,7 +4,7 @@ use crew_render::CellView;
 
 use crate::boxdraw::section_header;
 
-const ACCENT: (u8, u8, u8) = (0, 255, 160);
+use crate::palette::accent;
 const LABEL: (u8, u8, u8) = (200, 200, 200);
 const DIM: (u8, u8, u8) = (150, 150, 160);
 const BORDER: (u8, u8, u8) = (110, 110, 120);
@@ -39,7 +39,7 @@ pub fn host_cells(name: &str, uptime: &str, cols: u16) -> Vec<CellView> {
     if cols < 10 {
         return Vec::new();
     }
-    let mut out = section_header("HOST", cols, BORDER, ACCENT, BG);
+    let mut out = section_header("HOST", cols, BORDER, accent(), BG);
     put(&mut out, name, 1, cols, LABEL);
     put(&mut out, uptime, 2, cols, DIM);
     out

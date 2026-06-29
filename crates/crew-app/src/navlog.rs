@@ -6,7 +6,7 @@ use crew_render::CellView;
 
 use crate::boxdraw::section_header;
 
-const ACCENT: (u8, u8, u8) = (0, 255, 160);
+use crate::palette::accent;
 const TEXT: (u8, u8, u8) = (165, 170, 180);
 const BORDER: (u8, u8, u8) = (110, 110, 120);
 const BG: (u8, u8, u8) = (0, 0, 0);
@@ -32,7 +32,7 @@ pub fn log_cells(entries: &[String], cols: u16, max_lines: usize) -> Vec<CellVie
     if entries.is_empty() || max_lines == 0 || cols < 4 {
         return Vec::new();
     }
-    let mut out = section_header("LOG", cols, BORDER, ACCENT, BG);
+    let mut out = section_header("LOG", cols, BORDER, accent(), BG);
     let shown = entries.len().min(max_lines);
     let start = entries.len() - shown;
     for (k, e) in entries[start..].iter().enumerate() {

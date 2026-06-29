@@ -3,7 +3,7 @@ use crew_render::CellView;
 
 use crate::boxdraw::section_header;
 
-const ACCENT: (u8, u8, u8) = (0, 255, 160);
+use crate::palette::accent;
 const LABEL: (u8, u8, u8) = (200, 200, 200);
 const DIM: (u8, u8, u8) = (150, 150, 160);
 const BORDER: (u8, u8, u8) = (110, 110, 120);
@@ -27,7 +27,7 @@ pub fn net_cells(rx: u64, tx: u64, cols: u16) -> Vec<CellView> {
     if cols < 10 {
         return Vec::new();
     }
-    let mut out = section_header("NET", cols, BORDER, ACCENT, BG);
+    let mut out = section_header("NET", cols, BORDER, accent(), BG);
     put(&mut out, &format!("↓ {}", rate(rx)), 1, cols, LABEL);
     put(&mut out, &format!("↑ {}", rate(tx)), 2, cols, DIM);
     out

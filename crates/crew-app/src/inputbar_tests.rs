@@ -30,7 +30,7 @@ fn cells_focused_shows_accent_prompt_and_text() {
     assert!(cells.iter().any(|c| c.c == 'l'));
     assert!(cells.iter().any(|c| c.c == 's'));
     let prompt = cells.iter().find(|c| c.c == '>').unwrap();
-    assert_eq!(prompt.fg, ACCENT);
+    assert_eq!(prompt.fg, accent());
     // a block cursor is shown while focused with no suggestion
     assert!(cells.iter().any(|c| c.c == '█'));
 }
@@ -127,7 +127,7 @@ fn cells_show_cwd_legend_on_top_border() {
     // the cwd legend rides the top border (row 0) in the accent colour
     assert!(cells
         .iter()
-        .any(|c| c.c == 'w' && c.row == 0 && c.fg == ACCENT));
+        .any(|c| c.c == 'w' && c.row == 0 && c.fg == accent()));
     // the card has rounded corners and the prompt is on the interior row
     assert!(cells.iter().any(|c| c.c == '╭'));
     assert!(cells.iter().any(|c| c.c == '>' && c.row == 1));

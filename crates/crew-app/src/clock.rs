@@ -3,7 +3,7 @@ use crew_render::CellView;
 
 use crate::boxdraw::section_header;
 
-const ACCENT: (u8, u8, u8) = (0, 255, 160);
+use crate::palette::accent;
 const LABEL: (u8, u8, u8) = (200, 200, 200);
 const BORDER: (u8, u8, u8) = (110, 110, 120);
 const BG: (u8, u8, u8) = (0, 0, 0);
@@ -26,8 +26,8 @@ pub fn clock_cells(time: &str, date: &str, cols: u16) -> Vec<CellView> {
     if cols < 10 {
         return Vec::new();
     }
-    let mut out = section_header("TIME", cols, BORDER, ACCENT, BG);
-    put_centered(&mut out, time, 1, cols, ACCENT, true);
+    let mut out = section_header("TIME", cols, BORDER, accent(), BG);
+    put_centered(&mut out, time, 1, cols, accent(), true);
     put_centered(&mut out, date, 2, cols, LABEL, false);
     out
 }

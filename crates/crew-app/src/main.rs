@@ -41,6 +41,7 @@ mod navcard;
 mod navlog;
 mod net;
 mod openurl;
+mod palette;
 mod pane;
 mod panecard;
 mod panelist;

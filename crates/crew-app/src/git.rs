@@ -8,7 +8,7 @@ use crew_render::CellView;
 
 use crate::boxdraw::section_header;
 
-const ACCENT: (u8, u8, u8) = (0, 255, 160);
+use crate::palette::accent;
 const LABEL: (u8, u8, u8) = (200, 200, 200);
 const DIM: (u8, u8, u8) = (150, 150, 160);
 const BORDER: (u8, u8, u8) = (110, 110, 120);
@@ -90,7 +90,7 @@ fn run(dir: &Path, args: &[&str]) -> Option<String> {
 /// Render the GIT section: a `GIT` rule on row 0, the branch on row 1, and a
 /// clean/dirty marker on row 2.
 pub fn git_cells(info: &GitInfo, cols: u16) -> Vec<CellView> {
-    let mut out = section_header("GIT", cols, BORDER, ACCENT, BG);
+    let mut out = section_header("GIT", cols, BORDER, accent(), BG);
     let mut head = info.branch.clone();
     if info.ahead > 0 {
         head.push_str(&format!(" ↑{}", info.ahead));

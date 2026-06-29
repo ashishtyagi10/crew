@@ -226,6 +226,8 @@ impl CrewApp {
     /// clobber the file just read from disk).
     pub(crate) fn apply_config(&mut self, cfg: CrewConfig) {
         self.config = cfg;
+        // Apply the themeable accent app-wide (render code reads it via palette).
+        crate::palette::set_accent(self.config.accent_rgb());
         let scale = self
             .window
             .as_ref()

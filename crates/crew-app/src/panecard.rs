@@ -7,7 +7,7 @@ use crew_render::{CellView, PaneScene};
 use crate::boxdraw::titled_card;
 use crate::layout::Rect;
 
-pub(crate) const ACCENT: (u8, u8, u8) = (0, 255, 160);
+pub(crate) use crate::palette::accent;
 pub(crate) const SCROLL_HINT: (u8, u8, u8) = (230, 180, 90);
 pub(crate) const ACTIVITY: (u8, u8, u8) = (120, 200, 255);
 pub(crate) const BELL: (u8, u8, u8) = (240, 210, 90);
@@ -54,7 +54,7 @@ fn put(v: &mut Vec<CellView>, col: u16, row: u16, c: char, fg: (u8, u8, u8)) {
 pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
     let (cols, rows) = (gcols + 2, grows + 2);
     let (border, legend) = if b.focused {
-        (BORDER_ON, ACCENT)
+        (BORDER_ON, accent())
     } else {
         (BORDER_OFF, LEGEND_OFF)
     };

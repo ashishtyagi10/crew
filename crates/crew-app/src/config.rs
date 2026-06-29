@@ -23,6 +23,10 @@ pub struct CrewConfig {
     /// Chosen font family; `None`/empty uses the system monospace.
     #[serde(default)]
     pub font_family: Option<String>,
+    /// Accent colour as a `#rrggbb` hex string; `None`/invalid uses the built-in
+    /// Crew green. Applied app-wide via [`crate::palette`].
+    #[serde(default)]
+    pub accent: Option<String>,
     /// Whether the window should launch maximized.
     #[serde(default)]
     pub maximized: bool,
@@ -43,6 +47,7 @@ impl Default for CrewConfig {
             nav_width: default_nav_width(),
             show_nav: default_show_nav(),
             font_family: None,
+            accent: None,
             maximized: false,
             last_dir: None,
             win_w: None,
@@ -56,12 +61,21 @@ impl CrewConfig {
         self.font_size * 1.25
     }
 
+    /// The configured accent colour, or the built-in default when unset/invalid.
+    pub fn accent_rgb(&self) -> (u8, u8, u8) {
+        self.accent
+            .as_deref()
+            .and_then(crate::palette::parse_hex)
+            .unwrap_or(crate::palette::DEFAULT_ACCENT)
+    }
+
     pub fn clamped(self) -> Self {
         Self {
             font_size: self.font_size.clamp(12.0, 32.0),
             nav_width: self.nav_width.clamp(160.0, 320.0),
             show_nav: self.show_nav,
             font_family: self.font_family.filter(|n| !n.is_empty()),
+            accent: self.accent.filter(|s| !s.is_empty()),
             maximized: self.maximized,
             last_dir: self.last_dir,
             win_w: self.win_w.map(|w| w.clamp(400.0, 10000.0)),
@@ -128,6 +142,7 @@ mod tests {
             nav_width: 9.0,
             show_nav: true,
             font_family: None,
+            accent: None,
             maximized: false,
             last_dir: None,
             win_w: Some(50.0),
@@ -163,6 +178,7 @@ mod tests {
             nav_width: 200.0,
             show_nav: true,
             font_family: Some("Menlo".to_string()),
+            accent: Some("#112233".to_string()),
             maximized: true,
             last_dir: Some("/tmp".to_string()),
             win_w: Some(1024.0),
@@ -175,5 +191,24 @@ mod tests {
     fn line_height() {
         let cfg = CrewConfig::default();
         assert!((cfg.line_height() - 17.5).abs() < 1e-6);
+    }
+
+    #[test]
+    fn accent_rgb_parses_or_falls_back() {
+        use crate::palette::DEFAULT_ACCENT;
+        // Unset → built-in default.
+        assert_eq!(CrewConfig::default().accent_rgb(), DEFAULT_ACCENT);
+        // Valid hex → parsed.
+        let cfg = CrewConfig::from_toml_str("accent = \"#102030\"\n");
+        assert_eq!(cfg.accent_rgb(), (0x10, 0x20, 0x30));
+        // Invalid hex → default (not a panic).
+        let bad = CrewConfig::from_toml_str("accent = \"not-a-color\"\n");
+        assert_eq!(bad.accent_rgb(), DEFAULT_ACCENT);
+    }
+
+    #[test]
+    fn empty_accent_clamped_to_none() {
+        let cfg = CrewConfig::from_toml_str("accent = \"\"\n");
+        assert_eq!(cfg.accent, None);
     }
 }

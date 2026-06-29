@@ -197,7 +197,10 @@ trips. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
 ## Settings
 
 `/settings` opens a form for font family, font size, and the sidebar. Settings
-persist to `$XDG_CONFIG/crew/config.toml` and apply live on Save.
+persist to `$XDG_CONFIG/crew/config.toml` and apply live on Save. The config
+file also accepts `accent = "#rrggbb"` to recolour Crew's accent (the input-bar
+border/cursor and the sidebar widgets); omit it (or give an invalid value) for
+the built-in Crew green. It applies at launch and on `/reload`.
 
 ## Architecture
 

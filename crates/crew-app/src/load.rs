@@ -5,7 +5,7 @@ use crew_render::CellView;
 
 use crate::boxdraw::section_header;
 
-const ACCENT: (u8, u8, u8) = (0, 255, 160);
+use crate::palette::accent;
 const AMBER: (u8, u8, u8) = (230, 180, 90);
 const RED: (u8, u8, u8) = (230, 90, 90);
 const DIM: (u8, u8, u8) = (150, 150, 160);
@@ -31,7 +31,7 @@ pub fn cores() -> f64 {
 fn load_color(one: f64, cores: f64) -> (u8, u8, u8) {
     let per_core = one / cores;
     if per_core < 0.7 {
-        ACCENT
+        accent()
     } else if per_core < 1.0 {
         AMBER
     } else {
@@ -42,7 +42,7 @@ fn load_color(one: f64, cores: f64) -> (u8, u8, u8) {
 /// Render the load section: a `LOAD` rule on row 0 and the three averages on
 /// row 1, the trio coloured by the 1-minute load relative to `cores`.
 pub fn load_cells(one: f64, five: f64, fifteen: f64, cores: f64, cols: u16) -> Vec<CellView> {
-    let mut out = section_header("LOAD", cols, BORDER, ACCENT, BG);
+    let mut out = section_header("LOAD", cols, BORDER, accent(), BG);
     let fg = load_color(one, cores);
     let nums = format!("{one:.2}  {five:.2}  {fifteen:.2}");
     let max = cols.saturating_sub(4) as usize;
@@ -83,7 +83,7 @@ mod tests {
     #[test]
     fn load_color_thresholds() {
         // 4 cores: 1.0 load → 0.25/core (green); 3.0 → 0.75 (amber); 5.0 → 1.25 (red)
-        assert_eq!(load_color(1.0, 4.0), ACCENT);
+        assert_eq!(load_color(1.0, 4.0), accent());
         assert_eq!(load_color(3.0, 4.0), AMBER);
         assert_eq!(load_color(5.0, 4.0), RED);
     }

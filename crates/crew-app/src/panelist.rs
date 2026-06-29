@@ -5,7 +5,7 @@ use crew_render::CellView;
 
 use crate::boxdraw::section_header;
 
-const ACCENT: (u8, u8, u8) = (0, 255, 160);
+use crate::palette::accent;
 const TITLE_ON: (u8, u8, u8) = (225, 225, 225);
 const TITLE_OFF: (u8, u8, u8) = (150, 150, 160);
 const ACTIVITY: (u8, u8, u8) = (120, 200, 255);
@@ -23,11 +23,11 @@ pub struct PaneRow {
 /// Render the PANES section: a `PANES` rule on row 0, then one row per pane
 /// (up to `limit`) beneath it.
 pub fn pane_cells(panes: &[PaneRow], cols: u16, limit: usize) -> Vec<CellView> {
-    let mut out = section_header("PANES", cols, BORDER, ACCENT, BG);
+    let mut out = section_header("PANES", cols, BORDER, accent(), BG);
     for (k, p) in panes.iter().take(limit).enumerate() {
         let row = 1 + k as u16;
         let head = format!("{} {}", if p.focused { '▸' } else { ' ' }, p.index);
-        let head_fg = if p.focused { ACCENT } else { TITLE_OFF };
+        let head_fg = if p.focused { accent() } else { TITLE_OFF };
         write(&mut out, &head, 2, row, head_fg, cols - 1);
         let tstart = 2 + head.chars().count() as u16 + 1;
         let title_fg = if p.focused { TITLE_ON } else { TITLE_OFF };
