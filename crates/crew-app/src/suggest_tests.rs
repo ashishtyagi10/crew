@@ -12,11 +12,6 @@ fn slash_prefix_completes_command() {
 }
 
 #[test]
-fn slash_completes_pwd() {
-    assert_eq!(suggest("/pw", &[]).as_deref(), Some("d"));
-}
-
-#[test]
 fn fuzzy_subsequence_finds_command() {
     // non-contiguous chars d-m-p match "/dump"
     let names: Vec<&str> = matches("/dmp").iter().map(|c| c.name).collect();
@@ -42,13 +37,6 @@ fn slash_completes_toggles() {
 }
 
 #[test]
-fn slash_completes_about() {
-    assert_eq!(suggest("/ab", &[]).as_deref(), Some("out"));
-    let names: Vec<&str> = matches("/ab").iter().map(|c| c.name).collect();
-    assert!(names.contains(&"/about"));
-}
-
-#[test]
 fn slash_completes_font() {
     assert_eq!(suggest("/fo", &[]).as_deref(), Some("nt"));
     let names: Vec<&str> = matches("/fo").iter().map(|c| c.name).collect();
@@ -60,20 +48,6 @@ fn slash_completes_reload() {
     assert_eq!(suggest("/rel", &[]).as_deref(), Some("oad"));
     let names: Vec<&str> = matches("/rel").iter().map(|c| c.name).collect();
     assert!(names.contains(&"/reload"));
-}
-
-#[test]
-fn slash_completes_clearall() {
-    assert_eq!(suggest("/cleara", &[]).as_deref(), Some("ll"));
-    let names: Vec<&str> = matches("/cleara").iter().map(|c| c.name).collect();
-    assert!(names.contains(&"/clearall"));
-}
-
-#[test]
-fn slash_completes_closeall() {
-    assert_eq!(suggest("/clos", &[]).as_deref(), Some("eall"));
-    let names: Vec<&str> = matches("/close").iter().map(|c| c.name).collect();
-    assert!(names.contains(&"/closeall"));
 }
 
 #[test]
@@ -102,6 +76,21 @@ fn slash_completes_copy() {
     assert_eq!(suggest("/co", &[]).as_deref(), Some("py"));
     let names: Vec<&str> = matches("/co").iter().map(|c| c.name).collect();
     assert!(names.contains(&"/copy"));
+}
+
+#[test]
+fn slash_completes_agent_tools() {
+    // the agent CLIs are in the palette
+    let all: Vec<&str> = matches("/").iter().map(|c| c.name).collect();
+    for name in ["/claude", "/codex", "/opencode"] {
+        assert!(all.contains(&name), "{name} missing from palette");
+    }
+    // shortest-match ghosting: the stems /copy and /open win at the ambiguous
+    // prefix; one more char reaches the agent tool.
+    assert_eq!(suggest("/cod", &[]).as_deref(), Some("ex"));
+    // /open is a strict prefix of /opencode, so the agent tool is reached past it.
+    assert_eq!(suggest("/openc", &[]).as_deref(), Some("ode"));
+    assert_eq!(suggest("/cla", &[]).as_deref(), Some("ude"));
 }
 
 #[test]

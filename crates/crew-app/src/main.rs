@@ -1,4 +1,3 @@
-mod about;
 mod app;
 mod boxdraw;
 mod chat;
@@ -38,6 +37,8 @@ mod linkhl;
 mod load;
 mod matrix;
 mod minstrip;
+mod navcard;
+mod navlog;
 mod net;
 mod openurl;
 mod pane;

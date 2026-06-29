@@ -107,20 +107,6 @@ impl CrewApp {
         }
     }
 
-    /// Copy Crew's working directory to the system clipboard (`/pwd`), since the
-    /// legend isn't selectable. Flashes the `~`-abbreviated path.
-    pub(crate) fn copy_cwd(&mut self) {
-        if self.cwd.as_os_str().is_empty() {
-            self.set_status("no working directory");
-            return;
-        }
-        let full = self.cwd.to_string_lossy().into_owned();
-        if let Ok(mut cb) = arboard::Clipboard::new() {
-            let _ = cb.set_text(full);
-            self.set_status(format!("copied {}", crate::cwd::display(&self.cwd)));
-        }
-    }
-
     /// Take a pending OSC 52 clipboard-store request from any terminal pane.
     pub(crate) fn take_pane_clipboard(&self) -> Option<String> {
         self.panes.iter().find_map(|p| match &p.content {

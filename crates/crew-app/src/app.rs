@@ -55,6 +55,9 @@ pub struct CrewApp {
     pub(crate) resize_at: Option<Instant>,
     /// Transient status message + when it was set, shown on the input bar.
     pub(crate) status: Option<(String, Instant)>,
+    /// Ring buffer of recent status messages, shown as the live LOG section in
+    /// the left nav (newest last). Capped at [`crate::status::LOG_CAP`].
+    pub(crate) log: Vec<String>,
     /// When quit was last pressed with panes open, for the confirm-to-quit window.
     pub(crate) quit_armed: Option<Instant>,
 }

@@ -29,7 +29,7 @@ impl CrewApp {
             return None;
         }
         let rel_row = ((self.cursor.1 - sb.y) / ch).floor() as u16;
-        let first = self.sidebar.panes_top() + 1; // skip the PANES header row
+        let first = self.sidebar.panes_top(self.log.len()) + 1; // skip the PANES header row
         let idx = rel_row.checked_sub(first)? as usize;
         (idx < self.panes.len()).then_some(idx)
     }

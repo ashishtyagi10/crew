@@ -9,9 +9,14 @@ impl CrewApp {
         match cmd {
             "exit" => return true,
             "keys" => self.help_open = true,
-            "about" => self.show_about(),
             "far" => self.spawn_far_pane(),
             "crew" => self.spawn_crew_pane(),
+            // Native AI coding-agent CLIs, each in its own terminal pane (the
+            // pane re-execs the shell on exit, so a missing tool just shows its
+            // "command not found" and leaves a usable shell behind).
+            "claude" => self.run_in_pane("claude"),
+            "codex" => self.run_in_pane("codex"),
+            "opencode" => self.run_in_pane("opencode"),
             "settings" => self.spawn_settings_pane(),
             "shell" => self.spawn_new_pane(),
             "update" => self.spawn_labeled_terminal(
@@ -20,15 +25,12 @@ impl CrewApp {
                 "update".to_string(),
             ),
             "clear" => self.clear_focused_scrollback(),
-            "clearall" => self.clear_all_scrollback(),
             "only" => self.close_other_panes(),
-            "closeall" => self.close_all_panes(),
             "copy" => self.copy_scrollback(),
             "dump" => self.dump_focused_pane(""),
             "run" => self.run_in_pane(""),   // show usage hint
             "edit" => self.edit_in_pane(""), // show usage hint
             "open" => self.open_target(""),  // open the last URL on screen
-            "pwd" => self.copy_cwd(),
             "font" => self.set_font_cmd(""),
             "reload" => self.reload_config(),
             "broadcast" => self.toggle_broadcast(),

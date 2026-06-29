@@ -24,6 +24,18 @@ pub(crate) const COMMANDS: &[Cmd] = &[
         desc: "Open the multi-agent pane (claude/codex/opencode relay)",
     },
     Cmd {
+        name: "/claude",
+        desc: "Open Claude Code in a new pane",
+    },
+    Cmd {
+        name: "/codex",
+        desc: "Open Codex in a new pane",
+    },
+    Cmd {
+        name: "/opencode",
+        desc: "Open opencode in a new pane",
+    },
+    Cmd {
         name: "/run",
         desc: "Run a command in a new pane (/run <cmd>)",
     },
@@ -44,16 +56,8 @@ pub(crate) const COMMANDS: &[Cmd] = &[
         desc: "Clear the focused pane's scrollback",
     },
     Cmd {
-        name: "/clearall",
-        desc: "Clear every terminal pane's scrollback",
-    },
-    Cmd {
         name: "/only",
         desc: "Close all panes except the focused one",
-    },
-    Cmd {
-        name: "/closeall",
-        desc: "Close every pane (back to the welcome screen)",
     },
     Cmd {
         name: "/copy",
@@ -66,10 +70,6 @@ pub(crate) const COMMANDS: &[Cmd] = &[
     Cmd {
         name: "/open",
         desc: "Open a URL/path, or the last URL on screen (/open [target])",
-    },
-    Cmd {
-        name: "/pwd",
-        desc: "Copy the working directory to the clipboard",
     },
     Cmd {
         name: "/font",
@@ -98,10 +98,6 @@ pub(crate) const COMMANDS: &[Cmd] = &[
     Cmd {
         name: "/keys",
         desc: "Show keyboard shortcuts",
-    },
-    Cmd {
-        name: "/about",
-        desc: "Show the Crew version",
     },
     Cmd {
         name: "/far",
@@ -152,7 +148,9 @@ fn is_subsequence(needle: &str, hay: &str) -> bool {
 
 /// Suggested completion suffix for `text`, or `None` if nothing completes it.
 /// Slash input completes against the command list; everything else against the
-/// most recent matching `history` entry.
+/// most recent matching `history` entry. When several commands share the prefix
+/// (e.g. `/co` → `/copy`, `/codex`), the **shortest** one is ghosted — it's the
+/// nearest completion, and a longer sibling is reached by typing one more char.
 pub(crate) fn suggest(text: &str, history: &[String]) -> Option<String> {
     if text.is_empty() {
         return None;
@@ -161,7 +159,8 @@ pub(crate) fn suggest(text: &str, history: &[String]) -> Option<String> {
         return COMMANDS
             .iter()
             .map(|c| c.name)
-            .find(|name| name.starts_with(text) && *name != text)
+            .filter(|name| name.starts_with(text) && *name != text)
+            .min_by_key(|name| name.len())
             .map(|name| name[text.len()..].to_string());
     }
     history

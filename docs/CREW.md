@@ -85,10 +85,12 @@ shell, so your full config and plugins load.
 The docked command bar supports:
 
 - **Slash commands** — type `/` for a command palette (↑/↓ to pick, Tab/→ to
-  fill, Enter to run): `/shell`, `/run <cmd>`, `/edit <file>`, `/settings`, `/find <text>`, `/name <text>`, `/clear`, `/clearall`, `/only`, `/closeall`, `/copy`, `/dump`, `/open`, `/pwd`, `/font`, `/reload`, `/update`,
-  `/broadcast`, `/zoom`, `/sidebar`, `/keys`, `/about`, `/far`, `/crew`, `/exit`. The palette is **fuzzy** — prefix matches rank first,
+  fill, Enter to run): `/shell`, `/crew`, `/claude`, `/codex`, `/opencode`, `/run <cmd>`, `/edit <file>`, `/settings`, `/find <text>`, `/name <text>`, `/clear`, `/only`, `/copy`, `/dump`, `/open`, `/font`, `/reload`, `/update`,
+  `/broadcast`, `/zoom`, `/sidebar`, `/keys`, `/far`, `/exit`. The palette is **fuzzy** — prefix matches rank first,
   then subsequence matches (e.g. `/dmp` finds `/dump`) — and **scrolls** to the
-  selection when the match list is long.
+  selection when the match list is long. When several commands share a prefix,
+  the **shortest** is ghosted as the autosuggestion (e.g. `/co` → `/copy`, with
+  `/codex` one keystroke further at `/cod`).
 - **`/broadcast`, `/zoom`, `/sidebar`** — palette-discoverable toggles that mirror
   the `Cmd+S` / `Cmd+Z` / `Cmd+G` chords, for when the chord slips your mind.
 - **`/font <n>`** — sets the font size to an exact value (clamped 12–32), unlike
@@ -98,9 +100,10 @@ The docked command bar supports:
   `/settings` pane take effect without a restart.
 - **`/only`** — closes every pane except the focused one (a quick "focus mode");
   a no-op when only one pane is open.
-- **`/closeall`** — closes every pane and returns to the welcome screen.
-- **`/clearall`** — clears the scrollback of every terminal pane at once (`/clear`
-  applied across all panes).
+- **`/claude`, `/codex`, `/opencode`** — open a native AI coding-agent CLI in its
+  own tiled terminal pane. Each runs the tool and re-execs your shell on exit, so
+  a missing tool just prints "command not found" and leaves a usable shell behind.
+  (Distinct from `/crew`, which opens the multi-agent broker relay pane.)
 - **`/edit <file>`** — opens the file in your terminal editor (`$VISUAL`, else
   `$EDITOR`, else `vi`) in a new pane. Path arguments to `/edit`, `/open`, and
   `/dump` expand `~` and `$VAR`/`${VAR}` and resolve relative paths against the
@@ -310,9 +313,13 @@ a live **TIME** clock, **SYSTEM** CPU/MEM/DISK gauges, a **LOAD** section
 (1/5/15-minute load average, coloured by load-per-core), a **HOST** section
 (hostname, OS, uptime), a **NET** section (down/up byte rates), and — when the
 working directory is a repository — a **GIT** section showing the current branch
-(with `↑`/`↓` commits ahead/behind the upstream) and a clean / `● N changed` marker, and a **PANES** list of the open panes (index, name,
-a `▸` focus marker, and an activity dot) filling the remaining height. Click a
-PANES row to focus that pane (double-click to zoom it).
+(with `↑`/`↓` commits ahead/behind the upstream) and a clean / `● N changed` marker. Below those, a **LOG** section keeps a live tail of
+recent status messages (the same lines flashed on the input bar, newest last) so
+activity history persists instead of vanishing after a few seconds, and a
+**PANES** list of the open panes (index, name, a `▸` focus marker, and an
+activity dot) fills the remaining height. Click a PANES row to focus that pane
+(double-click to zoom it). The panel's **card legend shows the running version**
+(`crew vX.Y.Z`), so the build is always visible at a glance.
 
 ## Settings
 

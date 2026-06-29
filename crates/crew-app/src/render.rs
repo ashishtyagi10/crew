@@ -121,24 +121,7 @@ impl CrewApp {
             }
         }
 
-        if self.config.show_nav {
-            let sb = chrome::sidebar_rect(sh, self.nav_px(scale), GAP);
-            let pane_rows: Vec<crate::panelist::PaneRow> = self
-                .panes
-                .iter()
-                .enumerate()
-                .map(|(i, p)| crate::panelist::PaneRow {
-                    index: i + 1,
-                    title: p.title_text(),
-                    focused: i == self.focused,
-                    activity: p.activity,
-                })
-                .collect();
-            let sidebar = &self.sidebar;
-            crate::panecard::push_card(&mut scenes, sb, cw, ch, "nav", |cols, rows| {
-                sidebar.cells(cols, rows, &pane_rows)
-            });
-        }
+        self.push_sidebar(&mut scenes, sh, scale, cw, ch);
 
         let ib = chrome::inputbar_rect(content, sh, ih, GAP);
         let ic = (ib.w / cw).floor() as u16;

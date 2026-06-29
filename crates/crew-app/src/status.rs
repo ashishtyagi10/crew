@@ -8,10 +8,20 @@ use crate::app::CrewApp;
 /// How long a status message stays visible.
 const STATUS_TTL: Duration = Duration::from_secs(3);
 
+/// Most entries kept in the live LOG ring buffer (oldest dropped past this).
+pub(crate) const LOG_CAP: usize = 64;
+
 impl CrewApp {
-    /// Flash a transient status message and request a redraw.
+    /// Flash a transient status message and request a redraw. The message is also
+    /// appended to the live LOG ring buffer shown in the left nav — unlike the
+    /// 3-second flash, the log keeps a scrollback of recent activity.
     pub(crate) fn set_status(&mut self, msg: impl Into<String>) {
-        self.status = Some((msg.into(), Instant::now()));
+        let msg = msg.into();
+        if self.log.len() >= LOG_CAP {
+            self.log.remove(0);
+        }
+        self.log.push(msg.clone());
+        self.status = Some((msg, Instant::now()));
         self.redraw();
     }
 

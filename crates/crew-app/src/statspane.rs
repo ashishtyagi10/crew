@@ -8,6 +8,7 @@ use crate::gauges::render_stats;
 use crate::git::{self, GitInfo};
 use crate::host;
 use crate::load;
+use crate::navlog;
 use crate::net;
 use crate::panelist::{self, PaneRow};
 use crate::stats::SysSampler;
@@ -76,13 +77,16 @@ impl StatsPane {
     }
 
     /// The cell-row where the PANES section header sits — used to hit-test
-    /// clicks on the pane list. Must track the section offsets in `cells`.
-    pub fn panes_top(&self) -> u16 {
+    /// clicks on the pane list. Must track the section offsets in `cells`,
+    /// including the conditional GIT and LOG blocks (`log_len` = buffered
+    /// entries, so the caller passes `app.log.len()`).
+    pub fn panes_top(&self, log_len: usize) -> u16 {
         let stats = clock::CLOCK_H + SYS_BLOCK + LOAD_BLOCK + CARD_BLOCK + CARD_BLOCK;
-        stats + if self.git.is_some() { CARD_BLOCK } else { 0 }
+        let git = if self.git.is_some() { CARD_BLOCK } else { 0 };
+        stats + git + navlog::log_block(log_len)
     }
 
-    pub fn cells(&self, cols: u16, rows: u16, panes: &[PaneRow]) -> Vec<CellView> {
+    pub fn cells(&self, cols: u16, rows: u16, panes: &[PaneRow], log: &[String]) -> Vec<CellView> {
         let (time, date) = clock::now_strings();
         let mut out = clock::clock_cells(&time, &date, cols);
 
@@ -133,11 +137,22 @@ impl StatsPane {
             next = git_off + CARD_BLOCK; // only reserve the GIT block when shown
         }
 
-        // PANES list fills the remaining height below the last stat section.
-        if !panes.is_empty() && rows > next + 1 {
-            let limit = (rows - next - 1) as usize;
-            for mut c in panelist::pane_cells(panes, cols, limit) {
+        // LIVE LOG: recent status messages in their own section, above the panes.
+        let log_h = navlog::log_block(log.len());
+        if log_h > 0 && rows > next + 1 {
+            let fit = ((rows - next - 1) as usize).min(navlog::LOG_LINES);
+            for mut c in navlog::log_cells(log, cols, fit) {
                 c.row += next;
+                out.push(c);
+            }
+        }
+        let panes_off = next + log_h;
+
+        // PANES list fills the remaining height below the LOG section.
+        if !panes.is_empty() && rows > panes_off + 1 {
+            let limit = (rows - panes_off - 1) as usize;
+            for mut c in panelist::pane_cells(panes, cols, limit) {
+                c.row += panes_off;
                 out.push(c);
             }
         }
@@ -156,16 +171,19 @@ mod tests {
     use super::*;
 
     #[test]
-    fn panes_top_accounts_for_git() {
+    fn panes_top_accounts_for_git_and_log() {
         let mut s = StatsPane::new();
         // clock(4) + system(5) + load(3) + host(4) + net(4) = 20
-        assert_eq!(s.panes_top(), 20);
+        assert_eq!(s.panes_top(0), 20);
         s.git = Some(GitInfo {
             branch: "main".into(),
             changed: 0,
             ahead: 0,
             behind: 0,
         });
-        assert_eq!(s.panes_top(), 24); // + git(4)
+        assert_eq!(s.panes_top(0), 24); // + git(4)
+                                        // a non-empty log adds its block: rule + min(n, LOG_LINES) + gap.
+        assert_eq!(s.panes_top(2), 24 + 4); // 2 entries -> 2 + 2
+        assert_eq!(s.panes_top(99), 24 + navlog::LOG_LINES as u16 + 2); // capped
     }
 }
