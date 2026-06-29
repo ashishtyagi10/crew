@@ -541,7 +541,7 @@ dependencies = [
 
 [[package]]
 name = "crew-app"
-version = "0.5.8"
+version = "0.5.9"
 dependencies = [
  "anyhow",
  "arboard",
@@ -559,12 +559,13 @@ dependencies = [
  "sysinfo",
  "tokio",
  "toml",
+ "trash",
  "winit",
 ]
 
 [[package]]
 name = "crew-hive"
-version = "0.5.8"
+version = "0.5.9"
 dependencies = [
  "futures",
  "reqwest",
@@ -575,7 +576,7 @@ dependencies = [
 
 [[package]]
 name = "crew-plugin"
-version = "0.5.8"
+version = "0.5.9"
 dependencies = [
  "anyhow",
  "serde",
@@ -584,7 +585,7 @@ dependencies = [
 
 [[package]]
 name = "crew-render"
-version = "0.5.8"
+version = "0.5.9"
 dependencies = [
  "anyhow",
  "glyphon",
@@ -595,7 +596,7 @@ dependencies = [
 
 [[package]]
 name = "crew-term"
-version = "0.5.8"
+version = "0.5.9"
 dependencies = [
  "alacritty_terminal",
  "anyhow",
@@ -3976,6 +3977,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "db97caf9d906fbde555dd62fa95ddba9eecfd14cb388e4f491a66d74cd5fb79a"
 dependencies = [
  "once_cell",
+]
+
+[[package]]
+name = "trash"
+version = "5.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7602e0c7d66ec2d92a8c917219fbc7894039efa2063b9064260110828a356f46"
+dependencies = [
+ "chrono",
+ "libc",
+ "log",
+ "objc2 0.6.4",
+ "objc2-foundation 0.3.2",
+ "once_cell",
+ "percent-encoding",
+ "scopeguard",
+ "urlencoding",
+ "windows 0.56.0",
 ]
 
 [[package]]
