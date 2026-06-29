@@ -52,8 +52,8 @@ plugins), and `crew-hive` (the orchestration engine).
 │                   glyphon) + SDF rounded-border shader.  No overlays.          │
 └──────────────────────────────────────────────────────────────────────────────┘
 
-  * Swarm pane + bridge are wired & tested headlessly (branch feat/crew-app-swarm);
-    GPU draw of the pane is the deferred step needing a display.
+  * Swarm pane + bridge are wired on main (/swarm, /goal, /batch) & tested
+    headlessly; the GPU draw of the pane's CellViews shares this render path.
 ```
 
 ## crew-hive — the orchestration engine

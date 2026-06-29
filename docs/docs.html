@@ -170,6 +170,9 @@ cargo build --release -p crew-app
         <tbody>
           <tr><td><code>/shell</code></td><td>Open a new shell pane in the current directory</td></tr>
           <tr><td><code>/crew</code></td><td>Open the <a href="#multi-agent">multi-agent pane</a> (claude/codex/opencode relay)</td></tr>
+          <tr><td><code>/swarm</code></td><td>Run a built-in demo swarm (stub agents) in a live constellation pane</td></tr>
+          <tr><td><code>/goal &lt;text&gt;</code></td><td>Plan a goal into a task-graph and run it as a swarm (real LLM if <code>ANTHROPIC_API_KEY</code> is set, else offline stub)</td></tr>
+          <tr><td><code>/batch &lt;file&gt;</code></td><td>Run a file of jobs (one per line) as a flat parallel swarm</td></tr>
           <tr><td><code>/far</code></td><td>Open a Far Manager-style dual-pane file browser</td></tr>
           <tr><td><code>/run &lt;cmd&gt;</code></td><td>Run a command in its own tiled pane that stays open</td></tr>
           <tr><td><code>/edit &lt;file&gt;</code></td><td>Open a file in <code>$EDITOR</code> in a new pane</td></tr>
@@ -245,7 +248,7 @@ claude → codex   [done]</code></div>
         <li><strong>Two modes, one engine</strong> &mdash; single-goal decomposition <em>and</em> flat parallel-job batches (<code>batch_graph</code>); a <code>budget_governor</code> enforces a hard cost ceiling.</li>
         <li><strong>Swarm view</strong> &mdash; a constellation / heatmap layout over live fleet telemetry (color = state; auto-switches to a heatmap past ~150 agents).</li>
       </ul>
-      <p>The engine is complete and tested headlessly (decompose &rarr; schedule &rarr; run a fan-out of agents &rarr; merge). The in-terminal swarm <strong>pane</strong> (a <code>/swarm &lt;goal&gt;</code> command rendering the constellation live, with drill-down) is wired and headless-tested on the <code>feat/crew-app-swarm</code> branch; the on-screen GPU rendering is the remaining step, and the live LLM path needs <code>ANTHROPIC_API_KEY</code>. See <a href="ARCHITECTURE.md">ARCHITECTURE.md</a> for the engine diagram.</p>
+      <p>The engine is wired into the app through three commands, each opening a live swarm <strong>pane</strong> (constellation + a live / done / failed / cost HUD, redrawn every frame): <code>/swarm</code> runs a built-in demo graph with stub agents (no key, no network); <code>/goal &lt;text&gt;</code> plans a goal off the UI thread then runs it &mdash; using the real <code>LlmPlanner</code> + <code>ApiAgent</code> workers when <code>ANTHROPIC_API_KEY</code> is set, else a deterministic offline stub backend; and <code>/batch &lt;file&gt;</code> runs a file of jobs (one per line) as a flat parallel swarm. Real-LLM runs are capped by the <code>budget_governor</code> (default $1.00). See <a href="ARCHITECTURE.md">ARCHITECTURE.md</a> for the engine diagram.</p>
 
       <h2 id="clipboard">Clipboard</h2>
       <ul>
