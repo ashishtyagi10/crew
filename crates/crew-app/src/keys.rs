@@ -114,7 +114,7 @@ impl CrewApp {
         let focused = self.focused;
         let shift = mstate.shift_key();
         let mut settings_action: Option<SettingsAction> = None;
-        let mut far_close = false;
+        let mut far_action: Option<crate::farpane::FarAction> = None;
         let mut is_terminal = false;
         if let Some(pane) = self.panes.get_mut(focused) {
             match &mut pane.content {
@@ -125,14 +125,24 @@ impl CrewApp {
                     settings_action = s.on_key(event, shift);
                 }
                 PaneContent::Far(f) => {
-                    far_close = matches!(f.on_key(event), Some(crate::farpane::FarAction::Close));
+                    far_action = f.on_key(event);
                 }
                 // The swarm view is non-interactive; it ignores key input.
                 PaneContent::Swarm(_) => {}
             }
         }
-        if far_close {
-            self.close_pane(focused);
+        if let Some(action) = far_action {
+            use crate::farpane::FarAction;
+            match action {
+                FarAction::Close => {
+                    self.close_pane(focused);
+                }
+                FarAction::Help => self.help_open = true,
+                FarAction::Open(path) => {
+                    let _ = open::that(path);
+                }
+                FarAction::Status(msg) => self.set_status(&msg),
+            }
         }
         if is_terminal {
             if let Some(bytes) = key_to_bytes(event, mstate.control_key(), shift) {

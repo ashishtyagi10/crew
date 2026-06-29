@@ -43,7 +43,11 @@ pub(crate) fn render(p: &FarPane, cols: u16, rows: u16) -> Vec<CellView> {
         .split(split[0]);
     panel(&mut buf, cols2[0], &p.left, p.active == Side::Left);
     panel(&mut buf, cols2[1], &p.right, p.active == Side::Right);
-    function_bar(&mut buf, split[1]);
+    // The make-folder prompt takes over the bottom row while it's open.
+    match &p.prompt {
+        Some(prompt) => prompt_bar(&mut buf, split[1], prompt),
+        None => function_bar(&mut buf, split[1]),
+    }
     crate::tui::to_cells(&buf)
 }
 
@@ -121,6 +125,20 @@ fn function_bar(buf: &mut Buffer, area: Rect) {
     Paragraph::new(Line::from(spans))
         .style(Style::new().bg(BAR_BG))
         .render(area, buf);
+}
+
+/// The bottom-row text prompt (F7 make-folder), replacing the function bar.
+fn prompt_bar(buf: &mut Buffer, area: Rect, prompt: &super::Prompt) {
+    let label = match prompt.kind {
+        super::PromptKind::MkDir => "Create folder: ",
+    };
+    let line = format!("{label}{}▏", prompt.input);
+    Paragraph::new(Line::from(Span::styled(
+        line,
+        Style::new().fg(BAR_FG).bg(BAR_BG),
+    )))
+    .style(Style::new().bg(BAR_BG))
+    .render(area, buf);
 }
 
 #[cfg(test)]
