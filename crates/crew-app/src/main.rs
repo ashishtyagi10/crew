@@ -55,6 +55,7 @@ mod render;
 mod runpane;
 mod scroll;
 mod search;
+mod selfupdate;
 mod session;
 mod settingspane;
 mod spawn;
@@ -76,6 +77,11 @@ fn main() -> anyhow::Result<()> {
     // is installed, with no separate plugin binary to ship.
     if std::env::args().skip(1).any(|a| a == "--broker-plugin") {
         return crew_plugin::run_broker_stdio();
+    }
+    // `/update` re-execs this binary with `--self-update` inside a terminal pane:
+    // download the latest release over ourselves, show a progress bar, and exit.
+    if std::env::args().skip(1).any(|a| a == "--self-update") {
+        return selfupdate::run();
     }
     handler::run()
 }

@@ -85,7 +85,7 @@ pub(crate) const COMMANDS: &[Cmd] = &[
     },
     Cmd {
         name: "/update",
-        desc: "Update Crew (git pull)",
+        desc: "Update Crew to the latest release",
     },
     Cmd {
         name: "/broadcast",
