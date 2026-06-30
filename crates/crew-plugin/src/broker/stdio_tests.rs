@@ -93,5 +93,5 @@ fn done_and_error_markers() {
 #[test]
 fn roster_lists_or_explains() {
     assert!(roster(&reg(&["claude", "codex"])).contains("claude, codex"));
-    assert!(roster(&reg(&[])).contains("No coding agents"));
+    assert!(roster(&reg(&[])).contains("ANTHROPIC_API_KEY"));
 }

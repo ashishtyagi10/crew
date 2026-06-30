@@ -1,8 +1,15 @@
 //! The agent registry: maps a name to its adapter. [`Registry::discover`]
 //! probes every known agent at runtime and keeps only the installed ones, so
 //! the broker never routes to a CLI that isn't there.
+use std::sync::Arc;
+
 use super::adapter::Adapter;
-use super::agents::known_adapters;
+use super::apiadapter::inbuilt_agents;
+
+/// Default OpenRouter model for the inbuilt agents — a free slug, since quality
+/// is not the current goal. OpenRouter rotates its free models, so override with
+/// `CREW_OPENROUTER_MODEL=<slug>` if this one is retired.
+const DEFAULT_OPENROUTER_MODEL: &str = "meta-llama/llama-3.3-70b-instruct:free";
 
 pub struct Registry {
     agents: Vec<Box<dyn Adapter>>,
@@ -14,10 +21,33 @@ impl Registry {
         Self { agents }
     }
 
-    /// Build from the known adapters, keeping only those whose CLI is installed.
+    /// Build the inbuilt agent roster (planner/coder/reviewer). Prefers OpenRouter
+    /// (`OPENROUTER_API_KEY`) — every role runs on [`DEFAULT_OPENROUTER_MODEL`],
+    /// overridable with `CREW_OPENROUTER_MODEL` — then falls back to Anthropic
+    /// (`ANTHROPIC_API_KEY`, per-tier native models). Empty when neither key is
+    /// set, so the broker explains how to enable it rather than routing to nothing.
+    ///
+    /// `CREW_BROKER_MOCK_REPLY` overrides the provider with a fixed-reply mock
+    /// (no network), so the relay can be driven deterministically offline and in
+    /// end-to-end tests of the broker binary.
     pub fn discover() -> Self {
-        let agents = known_adapters().into_iter().filter(|a| a.probe()).collect();
-        Self { agents }
+        if let Ok(reply) = std::env::var("CREW_BROKER_MOCK_REPLY") {
+            let provider = Arc::new(crew_hive::MockProvider { reply });
+            return Self::new(inbuilt_agents(provider, |t| t.model_id().to_string()));
+        }
+        if let Ok(provider) = crew_hive::OpenRouterProvider::from_env() {
+            let model = std::env::var("CREW_OPENROUTER_MODEL")
+                .unwrap_or_else(|_| DEFAULT_OPENROUTER_MODEL.to_string());
+            // Quality is not the goal here (a free model by default); every role
+            // shares one OpenRouter slug, with the role's system prompt steering it.
+            return Self::new(inbuilt_agents(Arc::new(provider), move |_| model.clone()));
+        }
+        if let Ok(provider) = crew_hive::AnthropicProvider::from_env() {
+            return Self::new(inbuilt_agents(Arc::new(provider), |t| {
+                t.model_id().to_string()
+            }));
+        }
+        Self::new(Vec::new())
     }
 
     /// Registered agent names, in registration order.

@@ -3,11 +3,13 @@
 //! Anthropic client share one interface.
 mod anthropic;
 mod mock;
+mod openrouter;
 #[cfg(test)]
 mod tests;
 
 pub use anthropic::AnthropicProvider;
 pub use mock::MockProvider;
+pub use openrouter::OpenRouterProvider;
 
 use std::future::Future;
 use std::pin::Pin;

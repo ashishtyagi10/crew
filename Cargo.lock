@@ -579,8 +579,10 @@ name = "crew-plugin"
 version = "0.5.10"
 dependencies = [
  "anyhow",
+ "crew-hive",
  "serde",
  "serde_json",
+ "tokio",
 ]
 
 [[package]]

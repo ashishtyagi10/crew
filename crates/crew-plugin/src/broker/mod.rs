@@ -1,7 +1,9 @@
-//! Multi-agent broker: routes messages between headless CLI coding agents
-//! (claude, codex, opencode) discovered at runtime. The broker is
-//! agent-agnostic — adding an agent means adding one adapter in `agents` and
-//! registering it in `known_adapters`; nothing in the routing engine changes.
+//! Multi-agent broker: routes messages between coding agents. By default these
+//! are the inbuilt API agents (planner/coder/reviewer in `apiadapter`), which
+//! call the LLM in-process via crew-hive; the external-CLI adapters in `agents`
+//! remain available as the same [`Adapter`] abstraction. The broker is
+//! agent-agnostic — an adapter turns an envelope body into a clean reply string;
+//! nothing in the routing engine cares how that reply was produced.
 //!
 //! Every message in flight is an [`Envelope`]. An adapter turns an envelope
 //! body into a clean reply string (never raw CLI chatter). The [`engine::Broker`]
@@ -10,6 +12,7 @@
 //! hop limit so a thread can never loop forever.
 mod adapter;
 mod agents;
+mod apiadapter;
 mod engine;
 mod hop;
 mod normalize;

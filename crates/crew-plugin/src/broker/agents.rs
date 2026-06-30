@@ -16,6 +16,11 @@ pub fn known_adapters() -> Vec<Box<dyn Adapter>> {
 /// agent hands the task off to the right one. Empty for unknown agents.
 pub fn role_for(name: &str) -> &'static str {
     match name {
+        // Inbuilt API agents (the default roster).
+        "planner" => "planning, analysis, architecture",
+        "coder" => "implementation, refactors",
+        "reviewer" => "review, critique, second opinion",
+        // External CLI agents (still selectable via the CLI adapters).
         "claude" => "planning, analysis, prose",
         "codex" => "implementation, refactors",
         "opencode" => "review, second opinion",

@@ -9,6 +9,10 @@ license.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 anyhow.workspace = true
+# Inbuilt /crew agents call the LLM API in-process via crew-hive's Provider,
+# driven on the broker's sync thread with a small current-thread runtime.
+crew-hive = { path = "../crew-hive" }
+tokio = { workspace = true }
 
 # Integration tests (tests/) parse the broker's JSON event lines.
 [dev-dependencies]

@@ -70,8 +70,8 @@ fn dispatch(cmd: PluginCommand, out: &mut impl Write) -> anyhow::Result<()> {
 /// A human-readable description of which agents were discovered.
 pub(crate) fn roster(reg: &Registry) -> String {
     if reg.is_empty() {
-        return "No coding agents found on PATH. Install claude, codex, or \
-                opencode and reopen /crew."
+        return "No inbuilt agents available. Set OPENROUTER_API_KEY or \
+                ANTHROPIC_API_KEY and reopen /crew."
             .into();
     }
     format!(

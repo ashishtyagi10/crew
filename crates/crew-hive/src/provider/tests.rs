@@ -58,6 +58,41 @@ fn from_env_missing_key_errors() {
     }
 }
 
+#[test]
+fn openrouter_parse_response_extracts_text_and_usage() {
+    use crate::provider::OpenRouterProvider;
+    // OpenAI-shaped response: choices[].message.content + usage token names.
+    let body = r#"{
+        "choices": [{"message": {"role": "assistant", "content": "Hello world"}}],
+        "usage": {"prompt_tokens": 7, "completion_tokens": 3}
+    }"#;
+    let c = OpenRouterProvider::parse_response(body).unwrap();
+    assert_eq!(c.text, "Hello world");
+    assert_eq!(c.input_tokens, 7);
+    assert_eq!(c.output_tokens, 3);
+}
+
+#[test]
+fn openrouter_parse_response_errors_on_api_error_payload() {
+    use crate::provider::OpenRouterProvider;
+    let body = r#"{"error":{"code":402,"message":"insufficient credits"}}"#;
+    assert!(matches!(
+        OpenRouterProvider::parse_response(body),
+        Err(ProviderError::Api(_))
+    ));
+}
+
+#[test]
+fn openrouter_from_env_missing_key_errors() {
+    use crate::provider::OpenRouterProvider;
+    if std::env::var("OPENROUTER_API_KEY").is_err() {
+        assert!(matches!(
+            OpenRouterProvider::from_env(),
+            Err(ProviderError::MissingKey)
+        ));
+    }
+}
+
 #[tokio::test]
 #[ignore = "requires ANTHROPIC_API_KEY; run with --ignored"]
 async fn live_anthropic_completion() {

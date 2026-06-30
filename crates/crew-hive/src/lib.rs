@@ -75,7 +75,8 @@ pub use sched::{RunOutcome, Scheduler};
 
 // Provider
 pub use provider::{
-    AnthropicProvider, Completion, CompletionRequest, MockProvider, Provider, ProviderError,
+    AnthropicProvider, Completion, CompletionRequest, MockProvider, OpenRouterProvider, Provider,
+    ProviderError,
 };
 
 // Planner

@@ -1,7 +1,11 @@
-//! End-to-end test harness: drive the *real* `crew-broker-plugin` binary with
-//! fake agent CLIs on `PATH`, so the whole pipeline runs with real processes
-//! (discovery, the JSON plugin protocol, subprocess spawning, normalization,
-//! routing) but with scripted, deterministic replies.
+//! End-to-end test harness: drive the *real* `crew-broker-plugin` binary,
+//! feeding it JSON commands and parsing the events it streams back. The inbuilt
+//! agents are made deterministic (no network) via `CREW_BROKER_MOCK_REPLY`;
+//! `write_fake` still builds fake CLI agents on `PATH` for tests of that path.
+//!
+//! Each e2e file includes this module separately and uses a different subset of
+//! the helpers, so unused-in-one-file helpers are expected.
+#![allow(dead_code)]
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -62,6 +66,11 @@ pub fn run_broker(path_dir: &Path, env: &[(&str, &str)], cmds: &[&str]) -> Vec<P
     let mut command = Command::new(bin);
     command
         .env("PATH", path_dir)
+        // Determinism: never let an inherited API key make the broker reach the
+        // real network during tests. Tests opt into agents via the mock hook.
+        .env_remove("ANTHROPIC_API_KEY")
+        .env_remove("OPENROUTER_API_KEY")
+        .env_remove("CREW_BROKER_MOCK_REPLY")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::null());
