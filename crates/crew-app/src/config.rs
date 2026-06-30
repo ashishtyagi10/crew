@@ -21,7 +21,10 @@ fn default_notify_min_secs() -> u64 {
 }
 
 fn default_paper_grain() -> f32 {
-    1.0
+    // ~2.6% luminance grain — clearly reads as paper texture without looking
+    // noisy (chosen by comparing a rendered 0.0/0.6/1.0/1.6 sweep). Tunable in
+    // config; 0.0 disables grain, paper_texture=false disables the whole pass.
+    1.3
 }
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
