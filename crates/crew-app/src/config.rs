@@ -105,7 +105,7 @@ impl CrewConfig {
     pub fn theme_id(&self) -> crew_theme::ThemeId {
         self.theme
             .as_deref()
-            .and_then(crew_theme::ThemeId::from_str)
+            .and_then(crew_theme::ThemeId::from_name)
             .unwrap_or(crew_theme::ThemeId::PaperDark)
     }
 

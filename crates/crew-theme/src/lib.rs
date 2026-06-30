@@ -138,7 +138,7 @@ impl ThemeId {
         }
     }
 
-    pub fn from_str(s: &str) -> Option<ThemeId> {
+    pub fn from_name(s: &str) -> Option<ThemeId> {
         match s.trim() {
             "paper-dark" => Some(ThemeId::PaperDark),
             "paper-light" => Some(ThemeId::PaperLight),
@@ -207,11 +207,11 @@ mod tests {
     #[test]
     fn id_string_round_trip() {
         for id in [ThemeId::PaperDark, ThemeId::PaperLight] {
-            assert_eq!(ThemeId::from_str(id.as_str()), Some(id));
+            assert_eq!(ThemeId::from_name(id.as_str()), Some(id));
         }
-        assert_eq!(ThemeId::from_str("nope"), None);
+        assert_eq!(ThemeId::from_name("nope"), None);
         assert_eq!(
-            ThemeId::from_str("  paper-light "),
+            ThemeId::from_name("  paper-light "),
             Some(ThemeId::PaperLight)
         );
     }

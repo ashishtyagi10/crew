@@ -274,7 +274,7 @@ impl CrewApp {
             self.set_status(format!("theme: {}", crew_theme::current_id().as_str()));
             return;
         }
-        let Some(id) = crew_theme::ThemeId::from_str(arg) else {
+        let Some(id) = crew_theme::ThemeId::from_name(arg) else {
             self.set_status(format!("unknown theme '{arg}' (paper-light | paper-dark)"));
             return;
         };
