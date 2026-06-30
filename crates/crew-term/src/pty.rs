@@ -342,12 +342,22 @@ impl PtyTerm {
     /// pane is idle) or on a platform that doesn't expose it. Lets the title name
     /// the running program (e.g. `claude`, `codex`).
     pub fn foreground_pid(&self) -> Option<u32> {
-        let fg = u32::try_from(self.master.process_group_leader()?).ok()?;
-        // A shell waiting at its prompt is its own foreground group → idle.
-        if Some(fg) == self._child.process_id() {
-            return None;
+        // `process_group_leader` is a Unix-only portable-pty API; Windows has no
+        // tty foreground-process-group concept, so the pane is simply never
+        // labelled with a running command there.
+        #[cfg(unix)]
+        {
+            let fg = u32::try_from(self.master.process_group_leader()?).ok()?;
+            // A shell waiting at its prompt is its own foreground group → idle.
+            if Some(fg) == self._child.process_id() {
+                return None;
+            }
+            Some(fg)
         }
-        Some(fg)
+        #[cfg(not(unix))]
+        {
+            None
+        }
     }
 
     /// Take any pending OSC 52 clipboard-store text (clearing it).
