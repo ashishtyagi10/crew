@@ -2,6 +2,7 @@
 mod cellgrid;
 mod celltext;
 mod gpu;
+mod paperbg;
 mod quads;
 mod renderer;
 mod roundborder;
