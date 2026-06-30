@@ -192,6 +192,113 @@ fn main() {
 
         println!("wrote {out_path}  ({W}×{H})");
     }
+
+    // --- grain-strength sweep: PaperLight at four grain multipliers ---
+    crew_theme::set_theme(ThemeId::PaperLight);
+    let panes = build_scene(cell_w, cell_h);
+    cell_grid.set_scene(&device, &panes);
+    cell_grid.prepare(&device, &queue, W, H);
+
+    let bg = crew_theme::theme().page_bg;
+    let bg_f32 = [
+        bg.0 as f32 / 255.0,
+        bg.1 as f32 / 255.0,
+        bg.2 as f32 / 255.0,
+        1.0_f32,
+    ];
+
+    const SCRATCHPAD: &str = "/private/tmp/claude-501/-Users-atyagi-code-crew/7f6ecec7-c641-4cc2-a923-a17dea6afba0/scratchpad";
+
+    for grain_mul in [0.0_f32, 0.6, 1.0, 1.6] {
+        let out_path = format!("{SCRATCHPAD}/grain-{grain_mul:.1}.png");
+
+        paper_bg.update_uniform(&queue, bg_f32, W as f32, H as f32, 1.0, grain_mul);
+
+        let mut enc = device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
+
+        {
+            let mut pass = enc.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("grain_sweep_pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &tex_view,
+                    depth_slice: None,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color {
+                            r: bg.0 as f64 / 255.0,
+                            g: bg.1 as f64 / 255.0,
+                            b: bg.2 as f64 / 255.0,
+                            a: 1.0,
+                        }),
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+                multiview_mask: None,
+            });
+            paper_bg.draw(&mut pass);
+            cell_grid.draw(&mut pass);
+        }
+
+        enc.copy_texture_to_buffer(
+            wgpu::TexelCopyTextureInfo {
+                texture: &tex,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            },
+            wgpu::TexelCopyBufferInfo {
+                buffer: &readback,
+                layout: wgpu::TexelCopyBufferLayout {
+                    offset: 0,
+                    bytes_per_row: Some(ROW_BYTES_PADDED),
+                    rows_per_image: Some(H),
+                },
+            },
+            wgpu::Extent3d {
+                width: W,
+                height: H,
+                depth_or_array_layers: 1,
+            },
+        );
+
+        queue.submit(Some(enc.finish()));
+        device
+            .poll(wgpu::PollType::Wait {
+                submission_index: None,
+                timeout: None,
+            })
+            .expect("poll failed");
+
+        readback.slice(..).map_async(wgpu::MapMode::Read, |_| {});
+        device
+            .poll(wgpu::PollType::Wait {
+                submission_index: None,
+                timeout: None,
+            })
+            .expect("poll (map) failed");
+
+        let padded = readback.slice(..).get_mapped_range().to_vec();
+        readback.unmap();
+
+        let mut pixels: Vec<u8> = Vec::with_capacity((W * H * BYTES_PER_PIXEL) as usize);
+        for row in 0..H as usize {
+            let src = row * ROW_BYTES_PADDED as usize;
+            pixels.extend_from_slice(&padded[src..src + ROW_BYTES_UNPADDED as usize]);
+        }
+
+        // Bgra8UnormSrgb → RGBA8 swap
+        for chunk in pixels.chunks_exact_mut(4) {
+            chunk.swap(0, 2);
+        }
+
+        image::save_buffer(&out_path, &pixels, W, H, image::ColorType::Rgba8)
+            .unwrap_or_else(|e| panic!("failed to write {out_path}: {e}"));
+
+        println!("wrote {out_path}  (grain_mul={grain_mul:.1})");
+    }
 }
 
 /// Build a representative crew frame scene.
