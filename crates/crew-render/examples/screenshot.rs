@@ -10,9 +10,10 @@ use crew_theme::ThemeId;
 
 const W: u32 = 1200;
 const H: u32 = 800;
-const FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
+// Match the real app's surface format (Metal/wgpu picks Bgra8UnormSrgb on macOS).
+const FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormSrgb;
 
-// 256-byte aligned bytes-per-row for W columns of RGBA8.
+// 256-byte aligned bytes-per-row for W columns of BGRA8.
 const BYTES_PER_PIXEL: u32 = 4;
 const ROW_BYTES_UNPADDED: u32 = W * BYTES_PER_PIXEL;
 const ALIGN: u32 = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT;
@@ -169,6 +170,12 @@ fn main() {
         for row in 0..H as usize {
             let src = row * ROW_BYTES_PADDED as usize;
             pixels.extend_from_slice(&padded[src..src + ROW_BYTES_UNPADDED as usize]);
+        }
+
+        // Bgra8UnormSrgb bytes are [B, G, R, A]; PNG expects [R, G, B, A].
+        // Swap in-place — no gamma conversion: sRGB values are written directly.
+        for chunk in pixels.chunks_exact_mut(4) {
+            chunk.swap(0, 2);
         }
 
         // Write PNG.
