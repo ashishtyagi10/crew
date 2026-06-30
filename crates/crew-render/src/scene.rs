@@ -27,7 +27,6 @@ pub struct PaneScene {
 }
 
 const BORDER_RADIUS: f32 = 10.0;
-const BORDER_THICKNESS: f32 = 2.0;
 
 /// Build all quads (cell backgrounds) and one Buffer per pane, plus rounded borders.
 /// Returns `(quads, pane_buffers, borders)`. Only panes whose `overlay` flag
@@ -106,7 +105,7 @@ pub(crate) fn build_scene(
                 w: pane.w,
                 h: pane.h,
                 radius: BORDER_RADIUS,
-                thickness: BORDER_THICKNESS,
+                thickness: t.border_thickness,
                 color,
             });
         }

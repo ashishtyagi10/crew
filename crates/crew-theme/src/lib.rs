@@ -22,6 +22,8 @@ pub struct Theme {
     /// Unfocused / focused rounded pane border.
     pub border_normal: (u8, u8, u8),
     pub border_focused: (u8, u8, u8),
+    /// Rounded pane border stroke width, in physical pixels.
+    pub border_thickness: f32,
     /// Legend text on an unfocused pane card.
     pub legend_off: (u8, u8, u8),
     /// Default accent when the user hasn't set one in config.
@@ -58,6 +60,7 @@ pub static PAPER_DARK: Theme = Theme {
     term_bg: (10, 10, 10),
     border_normal: (85, 85, 85),
     border_focused: (205, 205, 205),
+    border_thickness: 2.5,
     legend_off: (120, 120, 120),
     accent_default: (230, 230, 230),
     status_fg: (210, 180, 120),
@@ -91,39 +94,42 @@ pub static PAPER_DARK: Theme = Theme {
 /// Warm paper "day" page — soft off-white with ink-toned output.
 pub static PAPER_LIGHT: Theme = Theme {
     page_bg: (244, 241, 234),
-    ink: (43, 40, 37),
-    text_muted: (90, 84, 75),
-    term_fg: (43, 40, 37),
+    // Ink and every text shade run ~18% darker than a flat paper palette so
+    // type reads crisp on the bright page rather than washed-out.
+    ink: (35, 33, 30),
+    text_muted: (74, 69, 62),
+    term_fg: (35, 33, 30),
     term_bg: (244, 241, 234),
     border_normal: (201, 194, 178),
     border_focused: (140, 132, 117),
-    legend_off: (140, 133, 118),
-    accent_default: (156, 107, 63),
-    status_fg: (150, 110, 40),
-    broadcast: (150, 70, 120),
-    activity: (60, 100, 140),
-    bell: (160, 120, 40),
-    dim: (140, 132, 118),
-    placeholder: (160, 152, 138),
-    hint_fg: (160, 152, 138),
+    border_thickness: 3.0,
+    legend_off: (115, 109, 97),
+    accent_default: (128, 88, 52),
+    status_fg: (123, 90, 33),
+    broadcast: (123, 57, 98),
+    activity: (49, 82, 115),
+    bell: (131, 98, 33),
+    dim: (115, 108, 97),
+    placeholder: (131, 125, 113),
+    hint_fg: (131, 125, 113),
     find_hl_bg: (232, 220, 168),
     ansi: [
-        (43, 40, 37),    // 0  black
-        (156, 59, 46),   // 1  red (brick)
-        (93, 107, 58),   // 2  green (sage)
-        (154, 123, 46),  // 3  yellow (ochre)
-        (63, 90, 120),   // 4  blue (faded indigo)
-        (125, 75, 110),  // 5  magenta (mauve)
-        (63, 111, 107),  // 6  cyan (teal)
-        (92, 86, 75),    // 7  white (warm gray)
-        (120, 113, 99),  // 8  bright black
-        (178, 82, 66),   // 9  bright red
-        (122, 134, 82),  // 10 bright green
-        (163, 133, 63),  // 11 bright yellow
-        (88, 116, 148),  // 12 bright blue
-        (150, 100, 135), // 13 bright magenta
-        (88, 140, 134),  // 14 bright cyan
-        (60, 56, 50),    // 15 bright white (boldest ink)
+        (35, 33, 30),   // 0  black
+        (128, 48, 38),  // 1  red (brick)
+        (76, 88, 48),   // 2  green (sage)
+        (126, 101, 38), // 3  yellow (ochre)
+        (52, 74, 98),   // 4  blue (faded indigo)
+        (102, 62, 90),  // 5  magenta (mauve)
+        (52, 91, 88),   // 6  cyan (teal)
+        (75, 71, 62),   // 7  white (warm gray)
+        (98, 93, 81),   // 8  bright black
+        (146, 67, 54),  // 9  bright red
+        (100, 110, 67), // 10 bright green
+        (134, 109, 52), // 11 bright yellow
+        (72, 95, 121),  // 12 bright blue
+        (123, 82, 111), // 13 bright magenta
+        (72, 115, 110), // 14 bright cyan
+        (49, 46, 41),   // 15 bright white (boldest ink)
     ],
 };
 
