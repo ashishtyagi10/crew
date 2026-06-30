@@ -299,6 +299,241 @@ fn main() {
 
         println!("wrote {out_path}  (grain_mul={grain_mul:.1})");
     }
+
+    // --- welcome screen: one full-canvas pane per theme ---
+    for (theme_id, out_path) in [
+        (
+            ThemeId::PaperLight,
+            format!("{SCRATCHPAD}/welcome-light.png"),
+        ),
+        (ThemeId::PaperDark, format!("{SCRATCHPAD}/welcome-dark.png")),
+    ] {
+        crew_theme::set_theme(theme_id);
+
+        let cols = (W as f32 / cell_w).floor() as u16;
+        let rows = (H as f32 / cell_h).floor() as u16;
+        let panes = build_welcome_scene(cols, rows, 28, W as f32, H as f32);
+
+        cell_grid.set_scene(&device, &panes);
+        cell_grid.prepare(&device, &queue, W, H);
+
+        let bg = crew_theme::theme().page_bg;
+        let bg_f32 = [
+            bg.0 as f32 / 255.0,
+            bg.1 as f32 / 255.0,
+            bg.2 as f32 / 255.0,
+            1.0_f32,
+        ];
+        paper_bg.update_uniform(&queue, bg_f32, W as f32, H as f32, 1.0, 1.0);
+
+        let mut enc = device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
+        {
+            let mut pass = enc.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("welcome_pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &tex_view,
+                    depth_slice: None,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color {
+                            r: bg.0 as f64 / 255.0,
+                            g: bg.1 as f64 / 255.0,
+                            b: bg.2 as f64 / 255.0,
+                            a: 1.0,
+                        }),
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+                multiview_mask: None,
+            });
+            paper_bg.draw(&mut pass);
+            cell_grid.draw(&mut pass);
+        }
+        enc.copy_texture_to_buffer(
+            wgpu::TexelCopyTextureInfo {
+                texture: &tex,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            },
+            wgpu::TexelCopyBufferInfo {
+                buffer: &readback,
+                layout: wgpu::TexelCopyBufferLayout {
+                    offset: 0,
+                    bytes_per_row: Some(ROW_BYTES_PADDED),
+                    rows_per_image: Some(H),
+                },
+            },
+            wgpu::Extent3d {
+                width: W,
+                height: H,
+                depth_or_array_layers: 1,
+            },
+        );
+        queue.submit(Some(enc.finish()));
+        device
+            .poll(wgpu::PollType::Wait {
+                submission_index: None,
+                timeout: None,
+            })
+            .expect("poll failed");
+        readback.slice(..).map_async(wgpu::MapMode::Read, |_| {});
+        device
+            .poll(wgpu::PollType::Wait {
+                submission_index: None,
+                timeout: None,
+            })
+            .expect("poll (map) failed");
+
+        let padded = readback.slice(..).get_mapped_range().to_vec();
+        readback.unmap();
+
+        let mut pixels: Vec<u8> = Vec::with_capacity((W * H * BYTES_PER_PIXEL) as usize);
+        for row in 0..H as usize {
+            let src = row * ROW_BYTES_PADDED as usize;
+            pixels.extend_from_slice(&padded[src..src + ROW_BYTES_UNPADDED as usize]);
+        }
+        for chunk in pixels.chunks_exact_mut(4) {
+            chunk.swap(0, 2);
+        }
+        image::save_buffer(&out_path, &pixels, W, H, image::ColorType::Rgba8)
+            .unwrap_or_else(|e| panic!("failed to write {out_path}: {e}"));
+        println!("wrote {out_path}  ({W}×{H})");
+    }
+}
+
+/// ASCII-art banner — Standard figlet style, all rows padded to equal width.
+const WELCOME_BANNER: &[&str] = &[
+    r"  ____   ____   _____  __        __",
+    r" / ___| |  _ \ | ____| \ \      / /",
+    r"| |     | |_) ||  _|    \ \ /\ / / ",
+    r"| |___  |  _ < | |___    \ V  V /  ",
+    r" \____| |_| \_||_____|    \_/\_/   ",
+];
+const WELCOME_BANNER_W: u16 = 35;
+const WELCOME_BANNER_H: u16 = WELCOME_BANNER.len() as u16;
+const WELCOME_TAGLINE: &str = "fast terminals. clean flow.";
+const WELCOME_HINT: &str = "Cmd+T  new shell    ·    /  commands";
+const WELCOME_PULSE: u64 = 56;
+
+fn welcome_col_style(tick: u64, col: u16) -> ((u8, u8, u8), bool) {
+    let phase = (tick / 2 + u64::from(col) * 3) % WELCOME_PULSE;
+    let half = WELCOME_PULSE / 2;
+    let dist = if phase < half {
+        phase
+    } else {
+        WELCOME_PULSE - phase
+    };
+    let t = crew_theme::theme();
+    let acc = t.accent_default;
+    if dist == 0 {
+        return (acc, true);
+    }
+    let frac = dist as f32 / half as f32;
+    let lerp = |a: u8, b: u8| (a as f32 + frac * (b as f32 - a as f32)) as u8;
+    let (ar, ag, ab) = acc;
+    let (dr, dg, db) = t.text_muted;
+    ((lerp(ar, dr), lerp(ag, dg), lerp(ab, db)), false)
+}
+
+/// Build a welcome-screen scene: ASCII CREW banner centred on a `W×H` px canvas.
+fn build_welcome_scene(cols: u16, rows: u16, tick: u64, pw: f32, ph: f32) -> Vec<PaneScene> {
+    let t = crew_theme::theme();
+    let bg = t.page_bg;
+    let mut cells: Vec<CellView> = Vec::new();
+
+    let use_banner = WELCOME_BANNER_W < cols && WELCOME_BANNER_H + 4 < rows;
+    if use_banner {
+        let top = (rows.saturating_sub(WELCOME_BANNER_H + 4)) / 2;
+        let left = (cols - WELCOME_BANNER_W) / 2;
+        for (li, line) in WELCOME_BANNER.iter().enumerate() {
+            let row = top + li as u16;
+            if row >= rows {
+                break;
+            }
+            for (ci, ch) in line.chars().enumerate() {
+                if ch == ' ' {
+                    continue;
+                }
+                let abs_col = left + ci as u16;
+                if abs_col >= cols {
+                    break;
+                }
+                let (fg, bold) = welcome_col_style(tick, ci as u16);
+                cells.push(CellView {
+                    col: abs_col,
+                    row,
+                    c: ch,
+                    fg,
+                    bg,
+                    bold,
+                    italic: false,
+                });
+            }
+        }
+        let tl_row = top + WELCOME_BANNER_H + 1;
+        let tl_w = WELCOME_TAGLINE.chars().count() as u16;
+        if tl_row < rows && tl_w < cols {
+            let tl_start = (cols - tl_w) / 2;
+            for (i, ch) in WELCOME_TAGLINE.chars().enumerate() {
+                cells.push(CellView {
+                    col: tl_start + i as u16,
+                    row: tl_row,
+                    c: ch,
+                    fg: t.hint_fg,
+                    bg,
+                    bold: false,
+                    italic: false,
+                });
+            }
+        }
+        let hint_row = tl_row + 1;
+        let hint_w = WELCOME_HINT.chars().count() as u16;
+        if hint_row < rows && hint_w < cols {
+            let hs = (cols - hint_w) / 2;
+            for (i, ch) in WELCOME_HINT.chars().enumerate() {
+                cells.push(CellView {
+                    col: hs + i as u16,
+                    row: hint_row,
+                    c: ch,
+                    fg: t.hint_fg,
+                    bg,
+                    bold: false,
+                    italic: false,
+                });
+            }
+        }
+    }
+    // Version stamp bottom-right.
+    let ver = "v0.5.11";
+    let vw = ver.chars().count() as u16;
+    if vw + 1 < cols {
+        let vstart = cols - vw - 1;
+        for (i, ch) in ver.chars().enumerate() {
+            cells.push(CellView {
+                col: vstart + i as u16,
+                row: rows - 1,
+                c: ch,
+                fg: t.dim,
+                bg,
+                bold: false,
+                italic: false,
+            });
+        }
+    }
+    vec![PaneScene {
+        cells,
+        x: 0.0,
+        y: 0.0,
+        w: pw,
+        h: ph,
+        focused: false,
+        bordered: false,
+        overlay: false,
+    }]
 }
 
 /// Build a representative crew frame scene.
