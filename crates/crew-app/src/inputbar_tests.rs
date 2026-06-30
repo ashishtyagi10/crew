@@ -8,14 +8,19 @@ fn empty_focused_shows_placeholder() {
     };
     let cells = bar.cells(40, 3, None);
     // the placeholder hint renders in the faint placeholder colour
-    assert!(cells.iter().any(|c| c.c == '/' && c.fg == PLACEHOLDER));
+    assert!(cells
+        .iter()
+        .any(|c| c.c == '/' && c.fg == crew_theme::theme().placeholder));
     // once there's text, the placeholder is gone
     let typed = InputBar {
         text: "ls".into(),
         focused: true,
         ..Default::default()
     };
-    assert!(!typed.cells(40, 3, None).iter().any(|c| c.fg == PLACEHOLDER));
+    assert!(!typed
+        .cells(40, 3, None)
+        .iter()
+        .any(|c| c.fg == crew_theme::theme().placeholder));
 }
 
 #[test]
@@ -59,7 +64,9 @@ fn cells_shows_dim_ghost_suggestion() {
         ..Default::default()
     };
     let cells = bar.cells(40, 3, None);
-    assert!(cells.iter().any(|c| c.c == 't' && c.fg == DIM));
+    assert!(cells
+        .iter()
+        .any(|c| c.c == 't' && c.fg == crew_theme::theme().dim));
     assert!(!cells.iter().any(|c| c.c == '█'));
 }
 
@@ -85,7 +92,7 @@ fn cells_unfocused_prompt_is_dim() {
         .into_iter()
         .find(|c| c.c == '>')
         .unwrap();
-    assert_eq!(prompt.fg, DIM);
+    assert_eq!(prompt.fg, crew_theme::theme().dim);
 }
 
 #[test]
@@ -114,7 +121,9 @@ fn broadcast_prompt_is_magenta() {
         ..Default::default()
     };
     let cells = bar.cells(40, 3, None);
-    assert!(cells.iter().any(|c| c.c == '»' && c.fg == BROADCAST));
+    assert!(cells
+        .iter()
+        .any(|c| c.c == '»' && c.fg == crew_theme::theme().broadcast));
 }
 
 #[test]
@@ -147,10 +156,10 @@ fn cells_show_status_on_bottom_border() {
     // status characters appear on the bottom border row in the amber colour
     assert!(cells
         .iter()
-        .any(|c| c.c == 'c' && c.row == 2 && c.fg == STATUS_FG));
+        .any(|c| c.c == 'c' && c.row == 2 && c.fg == crew_theme::theme().status_fg));
     // without a status, the bottom row carries no amber text
     let plain = bar.cells(40, 3, None);
-    assert!(!plain.iter().any(|c| c.fg == STATUS_FG));
+    assert!(!plain.iter().any(|c| c.fg == crew_theme::theme().status_fg));
 }
 
 #[test]

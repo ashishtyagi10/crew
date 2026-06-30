@@ -8,14 +8,6 @@ use crate::boxdraw::titled_card;
 use crate::layout::Rect;
 
 pub(crate) use crate::palette::accent;
-pub(crate) const SCROLL_HINT: (u8, u8, u8) = (230, 180, 90);
-pub(crate) const ACTIVITY: (u8, u8, u8) = (120, 200, 255);
-pub(crate) const BELL: (u8, u8, u8) = (240, 210, 90);
-pub(crate) const BROADCAST: (u8, u8, u8) = (220, 120, 200);
-const BORDER_ON: (u8, u8, u8) = (210, 210, 220);
-const BORDER_OFF: (u8, u8, u8) = (110, 110, 120);
-const LEGEND_OFF: (u8, u8, u8) = (140, 140, 150);
-const CANVAS_BG: (u8, u8, u8) = (0, 0, 0);
 
 /// Inputs for one pane's fieldset border.
 pub(crate) struct Bar<'a> {
@@ -37,14 +29,14 @@ pub(crate) struct Bar<'a> {
 /// glyphs onto the already-drawn top border.
 fn put(v: &mut Vec<CellView>, col: u16, row: u16, c: char, fg: (u8, u8, u8)) {
     if let Some(cell) = v.iter_mut().find(|x| x.col == col && x.row == row) {
-        (cell.c, cell.fg, cell.bg) = (c, fg, CANVAS_BG);
+        (cell.c, cell.fg, cell.bg) = (c, fg, crew_theme::theme().page_bg);
     } else {
         v.push(CellView {
             col,
             row,
             c,
             fg,
-            bg: CANVAS_BG,
+            bg: crew_theme::theme().page_bg,
             bold: false,
             italic: false,
         });
@@ -57,15 +49,25 @@ fn put(v: &mut Vec<CellView>, col: u16, row: u16, c: char, fg: (u8, u8, u8)) {
 pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
     let (cols, rows) = (gcols + 2, grows + 2);
     let (border, legend) = if b.focused {
-        (BORDER_ON, accent())
+        (crew_theme::theme().border_focused, accent())
     } else {
-        (BORDER_OFF, LEGEND_OFF)
+        (
+            crew_theme::theme().border_normal,
+            crew_theme::theme().legend_off,
+        )
     };
     let label = match b.index {
         Some(n) => format!("{n} {}", b.title),
         None => b.title.to_string(),
     };
-    let mut v = titled_card(cols, rows, &label, border, legend, CANVAS_BG);
+    let mut v = titled_card(
+        cols,
+        rows,
+        &label,
+        border,
+        legend,
+        crew_theme::theme().page_bg,
+    );
     if v.is_empty() {
         return v;
     }
@@ -77,15 +79,21 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
         if rx + 1 > w {
             let start = rx + 1 - w;
             for (i, ch) in s.chars().enumerate() {
-                put(&mut v, start + i as u16, 0, ch, SCROLL_HINT);
+                put(
+                    &mut v,
+                    start + i as u16,
+                    0,
+                    ch,
+                    crew_theme::theme().status_fg,
+                );
             }
             rx = start.saturating_sub(2);
         }
     }
     for (on, c, fg) in [
-        (b.broadcast, '»', BROADCAST),
-        (b.activity, '●', ACTIVITY),
-        (b.bell, '!', BELL),
+        (b.broadcast, '»', crew_theme::theme().broadcast),
+        (b.activity, '●', crew_theme::theme().activity),
+        (b.bell, '!', crew_theme::theme().bell),
     ] {
         if on && rx > 1 {
             put(&mut v, rx, 0, c, fg);
@@ -131,9 +139,9 @@ pub fn push_card(
             icols + 2,
             irows + 2,
             legend,
-            BORDER_OFF,
-            LEGEND_OFF,
-            CANVAS_BG,
+            crew_theme::theme().border_normal,
+            crew_theme::theme().legend_off,
+            crew_theme::theme().page_bg,
         ),
         x: rect.x,
         y: rect.y,

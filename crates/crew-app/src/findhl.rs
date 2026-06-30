@@ -5,9 +5,6 @@ use crew_render::CellView;
 
 use crate::gridrows::grid_lines;
 
-/// Amber wash painted behind matched cells.
-pub(crate) const HL_BG: (u8, u8, u8) = (90, 70, 0);
-
 /// Highlight every occurrence of `term` in the `cols × rows` grid `cells`,
 /// smart-case (case-insensitive unless `term` has an uppercase letter). Returns
 /// the number of matches highlighted. Builds the rows once, then washes once.
@@ -37,7 +34,7 @@ pub(crate) fn highlight(cells: &mut [CellView], term: &str, cols: u16, rows: u16
             .iter()
             .any(|&(r, a, b)| c.row == r && (a..b).contains(&(c.col as usize)))
         {
-            c.bg = HL_BG;
+            c.bg = crew_theme::theme().find_hl_bg;
         }
     }
     ranges.len()
@@ -45,7 +42,7 @@ pub(crate) fn highlight(cells: &mut [CellView], term: &str, cols: u16, rows: u16
 
 #[cfg(test)]
 mod tests {
-    use super::{highlight, HL_BG};
+    use super::highlight;
     use crew_render::CellView;
 
     fn row(text: &str, r: u16) -> Vec<CellView> {
@@ -70,10 +67,15 @@ mod tests {
         let n = highlight(&mut cells, "foo", 11, 1);
         assert_eq!(n, 2);
         // exactly the 6 cells of the two matches are washed.
-        let washed = cells.iter().filter(|c| c.bg == HL_BG).count();
+        let washed = cells
+            .iter()
+            .filter(|c| c.bg == crew_theme::theme().find_hl_bg)
+            .count();
         assert_eq!(washed, 6);
         // a space between is not highlighted.
-        assert!(cells.iter().any(|c| c.c == ' ' && c.bg != HL_BG));
+        assert!(cells
+            .iter()
+            .any(|c| c.c == ' ' && c.bg != crew_theme::theme().find_hl_bg));
     }
 
     #[test]
@@ -90,6 +92,6 @@ mod tests {
     fn empty_term_does_nothing() {
         let mut cells = row("hello", 0);
         assert_eq!(highlight(&mut cells, "", 5, 1), 0);
-        assert!(cells.iter().all(|c| c.bg != HL_BG));
+        assert!(cells.iter().all(|c| c.bg != crew_theme::theme().find_hl_bg));
     }
 }

@@ -5,9 +5,6 @@ use crew_render::CellView;
 use ratatui::buffer::Buffer;
 use ratatui::style::{Color, Modifier};
 
-const DEFAULT_FG: (u8, u8, u8) = (220, 220, 220);
-const DEFAULT_BG: (u8, u8, u8) = (0, 0, 0);
-
 /// Convert a laid-out ratatui buffer into `CellView`s (origin-relative coords).
 /// Fully-blank cells (a space with the default background) are skipped so we
 /// don't emit useless glyphs/quads.
@@ -40,14 +37,17 @@ fn convert(buf: &Buffer, opaque: bool) -> Vec<CellView> {
                     _ => continue,
                 }
             } else {
-                (ch, color_opt(cell.fg).unwrap_or(DEFAULT_FG))
+                (
+                    ch,
+                    color_opt(cell.fg).unwrap_or_else(|| crew_theme::theme().ink),
+                )
             };
             out.push(CellView {
                 col: x,
                 row: y,
                 c,
                 fg,
-                bg: bg_opt.unwrap_or(DEFAULT_BG),
+                bg: bg_opt.unwrap_or_else(|| crew_theme::theme().page_bg),
                 bold: cell.modifier.contains(Modifier::BOLD),
                 italic: cell.modifier.contains(Modifier::ITALIC),
             });

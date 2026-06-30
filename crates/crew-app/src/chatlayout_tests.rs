@@ -23,10 +23,10 @@ fn empty_pane_shows_dim_hint_no_messages_does_not() {
     let empty = layout_cells(&[], "", 60, 6, 0, true);
     assert!(empty
         .iter()
-        .any(|c| c.c == 'T' && c.row == 0 && c.fg == HINT_FG));
+        .any(|c| c.c == 'T' && c.row == 0 && c.fg == crew_theme::theme().hint_fg));
     // Once a message exists, the hint is gone (message text occupies row 0).
     let with_msg = layout_cells(&[msg("agent", "hello")], "", 60, 6, 0, true);
-    assert!(!with_msg.iter().any(|c| c.fg == HINT_FG));
+    assert!(!with_msg.iter().any(|c| c.fg == crew_theme::theme().hint_fg));
 }
 
 #[test]
@@ -35,13 +35,15 @@ fn empty_pane_hint_reflects_connection_state() {
     let ready = layout_cells(&[], "", 60, 6, 0, true);
     assert!(ready
         .iter()
-        .any(|c| c.c == 'T' && c.row == 0 && c.fg == HINT_FG));
+        .any(|c| c.c == 'T' && c.row == 0 && c.fg == crew_theme::theme().hint_fg));
     // Not connected → the "Connecting…" hint (starts with 'C'), and no 'T' hint.
     let connecting = layout_cells(&[], "", 60, 6, 0, false);
     assert!(connecting
         .iter()
-        .any(|c| c.c == 'C' && c.row == 0 && c.fg == HINT_FG));
-    assert!(!connecting.iter().any(|c| c.c == 'T' && c.fg == HINT_FG));
+        .any(|c| c.c == 'C' && c.row == 0 && c.fg == crew_theme::theme().hint_fg));
+    assert!(!connecting
+        .iter()
+        .any(|c| c.c == 'T' && c.fg == crew_theme::theme().hint_fg));
 }
 
 #[test]
@@ -60,7 +62,7 @@ fn layout_cells_message_above_prompt() {
 #[test]
 fn layout_cells_sender_in_accent_fg() {
     let cells = layout_cells(&[msg("bob", "hello")], "", 20, 3, 0, true);
-    assert!(cells.iter().any(|c| c.fg == ACCENT_FG));
+    assert!(cells.iter().any(|c| c.fg == crate::palette::accent()));
 }
 
 #[test]

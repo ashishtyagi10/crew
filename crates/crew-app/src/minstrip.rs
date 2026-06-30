@@ -5,7 +5,7 @@ use crew_render::{CellView, PaneScene};
 
 use crate::layout::Rect;
 use crate::pane::Pane;
-use crate::panecard::{push_card, ACTIVITY};
+use crate::panecard::push_card;
 
 /// Push one fieldset card per minimized pane into `scenes`.
 pub fn push_min_strip(
@@ -26,8 +26,8 @@ pub fn push_min_strip(
                     col: 0,
                     row: 0,
                     c: '●',
-                    fg: ACTIVITY,
-                    bg: (0, 0, 0),
+                    fg: crew_theme::theme().activity,
+                    bg: crew_theme::theme().page_bg,
                     bold: false,
                     italic: false,
                 });

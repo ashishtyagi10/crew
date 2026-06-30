@@ -77,7 +77,13 @@ fn menu_cells(matches: &[&Cmd], sel: usize, cols: u16, rows: u16) -> Vec<CellVie
     state.select(Some(sel.min(matches.len() - 1)));
     StatefulWidget::render(list, buf.area, &mut buf, &mut state);
     // Transparent: blank cells are skipped, so only glyphs sit on the black card.
-    crate::tui::to_cells(&buf)
+    // Pin BLACK on every returned cell — the theme page_bg fallback in to_cells
+    // would otherwise tint the palette interior with the warm page colour.
+    let mut cells = crate::tui::to_cells(&buf);
+    for cell in &mut cells {
+        cell.bg = BLACK;
+    }
+    cells
 }
 
 #[cfg(test)]

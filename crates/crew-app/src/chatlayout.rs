@@ -3,12 +3,6 @@ use crew_render::CellView;
 type Color = (u8, u8, u8);
 type ColoredLine = Vec<(char, Color)>;
 
-pub const DEFAULT_BG: (u8, u8, u8) = (0, 0, 0);
-pub const ACCENT_FG: (u8, u8, u8) = (0, 255, 160);
-pub const TEXT_FG: (u8, u8, u8) = (200, 200, 200);
-pub const INPUT_FG: (u8, u8, u8) = (220, 220, 220);
-/// Dim hint shown in an agent pane that has no messages yet.
-pub const HINT_FG: (u8, u8, u8) = (110, 110, 120);
 const READY_HINT: &str = "Type a message and press Enter to talk to the agent.";
 const CONNECTING_HINT: &str = "Connecting to the agent…";
 
@@ -92,8 +86,8 @@ pub fn layout_cells(
             col: i as u16,
             row: input_row,
             c,
-            fg: INPUT_FG,
-            bg: DEFAULT_BG,
+            fg: crew_theme::theme().ink,
+            bg: crew_theme::theme().page_bg,
             bold: false,
             italic: false,
         });
@@ -117,8 +111,8 @@ pub fn layout_cells(
                 col: i as u16,
                 row: 0,
                 c,
-                fg: HINT_FG,
-                bg: DEFAULT_BG,
+                fg: crew_theme::theme().hint_fg,
+                bg: crew_theme::theme().page_bg,
                 bold: false,
                 italic: false,
             });
@@ -137,9 +131,9 @@ pub fn layout_cells(
                 .enumerate()
                 .map(|(i, &c)| {
                     let fg = if s + i < prefix_len {
-                        ACCENT_FG
+                        crate::palette::accent()
                     } else {
-                        TEXT_FG
+                        crew_theme::theme().text_muted
                     };
                     (c, fg)
                 })
@@ -160,7 +154,7 @@ pub fn layout_cells(
                 row,
                 c,
                 fg,
-                bg: DEFAULT_BG,
+                bg: crew_theme::theme().page_bg,
                 bold: false,
                 italic: false,
             });

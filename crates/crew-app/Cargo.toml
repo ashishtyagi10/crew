@@ -24,6 +24,7 @@ sysinfo = { workspace = true }
 open = { workspace = true }
 trash = { workspace = true }
 crew-hive = { path = "../crew-hive" }
+crew-theme = { path = "../crew-theme" }
 tokio = { workspace = true }
 self_update = { workspace = true }
 image = { version = "0.25", default-features = false, features = ["png"] }

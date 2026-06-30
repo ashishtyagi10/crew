@@ -96,12 +96,12 @@ impl CrewConfig {
         self.font_size * 1.25
     }
 
-    /// The configured accent colour, or the built-in default when unset/invalid.
+    /// The configured accent colour, or the active theme's default when unset/invalid.
     pub fn accent_rgb(&self) -> (u8, u8, u8) {
         self.accent
             .as_deref()
             .and_then(crate::palette::parse_hex)
-            .unwrap_or(crate::palette::DEFAULT_ACCENT)
+            .unwrap_or_else(|| crew_theme::theme().accent_default)
     }
 
     pub fn clamped(self) -> Self {
@@ -277,15 +277,18 @@ mod tests {
 
     #[test]
     fn accent_rgb_parses_or_falls_back() {
-        use crate::palette::DEFAULT_ACCENT;
-        // Unset → built-in default.
-        assert_eq!(CrewConfig::default().accent_rgb(), DEFAULT_ACCENT);
+        crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+        // Unset → active theme default.
+        assert_eq!(
+            CrewConfig::default().accent_rgb(),
+            crew_theme::PAPER_DARK.accent_default
+        );
         // Valid hex → parsed.
         let cfg = CrewConfig::from_toml_str("accent = \"#102030\"\n");
         assert_eq!(cfg.accent_rgb(), (0x10, 0x20, 0x30));
-        // Invalid hex → default (not a panic).
+        // Invalid hex → theme default (not a panic).
         let bad = CrewConfig::from_toml_str("accent = \"not-a-color\"\n");
-        assert_eq!(bad.accent_rgb(), DEFAULT_ACCENT);
+        assert_eq!(bad.accent_rgb(), crew_theme::PAPER_DARK.accent_default);
     }
 
     #[test]
