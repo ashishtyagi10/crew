@@ -74,6 +74,7 @@ impl Renderer {
             .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
 
         {
+            let bg = crew_theme::theme().page_bg;
             let mut pass = enc.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("crew frame"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -82,9 +83,9 @@ impl Renderer {
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.0,
-                            g: 0.0,
-                            b: 0.0,
+                            r: bg.0 as f64 / 255.0,
+                            g: bg.1 as f64 / 255.0,
+                            b: bg.2 as f64 / 255.0,
                             a: 1.0,
                         }),
                         store: wgpu::StoreOp::Store,

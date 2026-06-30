@@ -1,5 +1,5 @@
 use super::*;
-use crate::cellgrid::CellView;
+use crate::cellgrid::{default_bg, CellView};
 use crate::celltext::FontParams;
 use glyphon::FontSystem;
 
@@ -40,7 +40,7 @@ fn pane(cells: Vec<CellView>, bordered: bool, overlay: bool) -> PaneScene {
 fn bg_quads_only_for_non_default_cells() {
     let mut fs = FontSystem::new();
     let panes = vec![pane(
-        vec![cell(0, 0, 'a', (0, 0, 0)), cell(1, 0, 'b', (10, 20, 30))],
+        vec![cell(0, 0, 'a', default_bg()), cell(1, 0, 'b', (10, 20, 30))],
         false,
         false,
     )];
@@ -83,15 +83,20 @@ fn want_overlay_partitions_panes() {
 }
 
 #[test]
-fn overlay_pane_gets_an_opaque_black_backdrop() {
+fn overlay_pane_gets_an_opaque_page_bg_backdrop() {
     let mut fs = FontSystem::new();
-    // An overlay pane with only blank/default-bg cells still gets a backdrop.
-    let panes = vec![pane(vec![cell(0, 0, 'y', (0, 0, 0))], false, true)];
+    // An overlay pane with only default-bg cells still gets a backdrop.
+    let panes = vec![pane(vec![cell(0, 0, 'y', default_bg())], false, true)];
     let (quads, _b, _bd) = build_scene(&panes, 8.0, 16.0, &mut fs, &params(), true);
     assert_eq!(quads.len(), 1, "the backdrop quad, no per-cell quad");
     let q = &quads[0];
     assert_eq!((q.x, q.y, q.w, q.h), (0.0, 0.0, 80.0, 40.0)); // spans the pane
-    assert_eq!(q.color, [0.0, 0.0, 0.0, 1.0]); // solid black
+    let t = crew_theme::theme();
+    let (r, g, b) = t.page_bg;
+    assert_eq!(
+        q.color,
+        [r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0, 1.0]
+    );
 }
 
 #[test]
@@ -108,5 +113,15 @@ fn focused_border_is_brighter_than_unfocused() {
         &params(),
         false,
     );
-    assert!(focused[0].color[0] > normal[0].color[0]);
+    let t = crew_theme::theme();
+    let f = |c: (u8, u8, u8)| {
+        [
+            c.0 as f32 / 255.0,
+            c.1 as f32 / 255.0,
+            c.2 as f32 / 255.0,
+            1.0,
+        ]
+    };
+    assert_eq!(focused[0].color, f(t.border_focused));
+    assert_eq!(normal[0].color, f(t.border_normal));
 }

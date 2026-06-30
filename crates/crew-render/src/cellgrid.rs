@@ -7,8 +7,11 @@ use crate::roundborder::RoundBorderLayer;
 use crate::scene::{build_scene, PaneBuffer, PaneScene};
 use crate::textprep::prepare_renderer;
 
-/// Default terminal background colour (must match scene.rs).
-pub(crate) const DEFAULT_BG: (u8, u8, u8) = (0, 0, 0);
+/// The active theme's default background (the page colour). Cells at this bg
+/// skip their bg quad and let the cleared page show through.
+pub(crate) fn default_bg() -> (u8, u8, u8) {
+    crew_theme::theme().page_bg
+}
 
 /// A single terminal cell to be rendered.
 pub struct CellView {

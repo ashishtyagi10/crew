@@ -1,7 +1,7 @@
 //! Scene-building: converts PaneScene slice into quads + per-pane Buffers.
 use glyphon::Buffer;
 
-use crate::cellgrid::{CellView, DEFAULT_BG};
+use crate::cellgrid::{default_bg, CellView};
 use crate::celltext::{build_pane_buffer, FontParams};
 use crate::quads::Quad;
 use crate::roundborder::Border;
@@ -26,10 +26,6 @@ pub struct PaneScene {
     pub overlay: bool,
 }
 
-/// Unfocused panes use a plain mid-grey that stays visible on the black
-/// background; the focused pane brightens to near-white (no neon tint).
-const BORDER_NORMAL: [f32; 4] = [110.0 / 255.0, 110.0 / 255.0, 120.0 / 255.0, 1.0];
-const BORDER_FOCUSED: [f32; 4] = [210.0 / 255.0, 210.0 / 255.0, 220.0 / 255.0, 1.0];
 const BORDER_RADIUS: f32 = 10.0;
 const BORDER_THICKNESS: f32 = 2.0;
 
@@ -62,18 +58,24 @@ pub(crate) fn build_scene(
         // pure-black per-cell bg wouldn't suffice: cells skip the bg quad when
         // their colour is the default, and base text would still show through.
         if pane.overlay {
+            let bg = crew_theme::theme().page_bg;
             quads.push(Quad {
                 x: pane.x,
                 y: pane.y,
                 w: pane.w,
                 h: pane.h,
-                color: [0.0, 0.0, 0.0, 1.0],
+                color: [
+                    bg.0 as f32 / 255.0,
+                    bg.1 as f32 / 255.0,
+                    bg.2 as f32 / 255.0,
+                    1.0,
+                ],
             });
         }
 
         // Background quads for cells with non-default bg colour.
         for cell in &pane.cells {
-            if cell.bg != DEFAULT_BG {
+            if cell.bg != default_bg() {
                 quads.push(Quad {
                     x: pane.x + f32::from(cell.col) * cell_w,
                     y: pane.y + f32::from(cell.row) * cell_h,
@@ -91,11 +93,13 @@ pub(crate) fn build_scene(
 
         // Rounded-corner border for this pane (unless it draws its own).
         if pane.bordered {
-            let color = if pane.focused {
-                BORDER_FOCUSED
+            let t = crew_theme::theme();
+            let (r, g, b) = if pane.focused {
+                t.border_focused
             } else {
-                BORDER_NORMAL
+                t.border_normal
             };
+            let color = [r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0, 1.0];
             borders.push(Border {
                 x: pane.x,
                 y: pane.y,
