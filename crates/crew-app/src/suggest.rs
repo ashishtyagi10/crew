@@ -100,6 +100,10 @@ pub(crate) const COMMANDS: &[Cmd] = &[
         desc: "Reload config.toml from disk and apply it",
     },
     Cmd {
+        name: "/theme",
+        desc: "Switch theme (/theme [paper-light|paper-dark])",
+    },
+    Cmd {
         name: "/notify",
         desc: "Notification settings (/notify [on|off|add <text>|clear])",
     },

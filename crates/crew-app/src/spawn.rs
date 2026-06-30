@@ -240,6 +240,7 @@ impl CrewApp {
     /// clobber the file just read from disk).
     pub(crate) fn apply_config(&mut self, cfg: CrewConfig) {
         self.config = cfg;
+        crew_theme::set_theme(self.config.theme_id());
         // Apply the themeable accent app-wide (render code reads it via palette).
         crate::palette::set_accent(self.config.accent_rgb());
         let scale = self
@@ -263,5 +264,45 @@ impl CrewApp {
         cfg.font_size = size;
         self.apply_settings(cfg.clamped());
         self.set_status(format!("font size {}", self.config.font_size as i32));
+    }
+
+    /// `/theme [paper-light|paper-dark]`: switch the active theme live, persist
+    /// the choice, and repaint. With no/unknown arg, report the current theme.
+    pub(crate) fn set_theme_cmd(&mut self, arg: &str) {
+        let arg = arg.trim();
+        if arg.is_empty() {
+            self.set_status(format!("theme: {}", crew_theme::current_id().as_str()));
+            return;
+        }
+        let Some(id) = crew_theme::ThemeId::from_str(arg) else {
+            self.set_status(format!("unknown theme '{arg}' (paper-light | paper-dark)"));
+            return;
+        };
+        self.config.theme = Some(id.as_str().to_string());
+        crew_theme::set_theme(id);
+        // Re-apply the accent default (it follows the theme when the user hasn't
+        // set an explicit accent).
+        crate::palette::set_accent(self.config.accent_rgb());
+        self.config.save();
+        self.redraw();
+        self.set_status(format!("theme: {}", id.as_str()));
+    }
+}
+
+#[cfg(test)]
+mod theme_cmd_tests {
+    use crate::app::CrewApp;
+
+    #[test]
+    fn set_theme_cmd_switches_active_theme() {
+        crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+        let mut app = CrewApp::default();
+        app.set_theme_cmd("paper-light");
+        assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::PaperLight);
+        assert_eq!(app.config.theme.as_deref(), Some("paper-light"));
+        // Unknown name leaves the active theme unchanged.
+        app.set_theme_cmd("chartreuse");
+        assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::PaperLight);
+        crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
     }
 }

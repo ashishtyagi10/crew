@@ -39,6 +39,7 @@ impl CrewApp {
             "open" => self.open_target(""),  // open the last URL on screen
             "font" => self.set_font_cmd(""),
             "reload" => self.reload_config(),
+            "theme" => self.set_theme_cmd(""),
             "notify" => self.notify_command(""),
             "broadcast" => self.toggle_broadcast(),
             "zoom" => self.toggle_zoom(),
@@ -65,6 +66,8 @@ impl CrewApp {
                     self.spawn_batch_pane(f.trim());
                 } else if let Some(n) = other.strip_prefix("notify ") {
                     self.notify_command(n.trim());
+                } else if let Some(t) = other.strip_prefix("theme ") {
+                    self.set_theme_cmd(t.trim());
                 }
             }
         }
