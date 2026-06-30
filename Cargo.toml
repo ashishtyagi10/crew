@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "crates/crew-theme",
     "crates/crew-hive",
     "crates/crew-term",
     "crates/crew-render",
