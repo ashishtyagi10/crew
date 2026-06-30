@@ -139,17 +139,16 @@ impl ChatPane {
         )
     }
 
-    /// Handle a winit key event: translate to (char, enter, backspace) and reduce.
-    pub fn on_key(&mut self, key: &KeyEvent) {
-        if !key.state.is_pressed() {
-            return;
-        }
-        let (ch, enter, backspace) = match &key.logical_key {
-            Key::Named(NamedKey::Enter) => (None, true, false),
-            Key::Named(NamedKey::Backspace) => (None, false, true),
-            Key::Named(NamedKey::Space) => (Some(' '), false, false),
-            Key::Character(s) => (s.chars().next(), false, false),
-            _ => (None, false, false),
+    /// Handle a winit key event. Returns [`ChatAction::Close`] when the user asks
+    /// to close the pane (Escape) — mirroring the Far/Settings panes, which a chat
+    /// pane previously lacked, leaving `/crew` only closable via the Cmd+W chord.
+    pub fn on_key(&mut self, key: &KeyEvent) -> Option<ChatAction> {
+        let (ch, enter, backspace) = match chat_key(&key.logical_key, key.state.is_pressed()) {
+            ChatInput::Close => return Some(ChatAction::Close),
+            ChatInput::Ignore => return None,
+            ChatInput::Char(c) => (Some(c), false, false),
+            ChatInput::Enter => (None, true, false),
+            ChatInput::Backspace => (None, false, true),
         };
         if let Some(text) = input_reduce(&mut self.input, ch, enter, backspace) {
             self.scroll = 0; // sending snaps back to the live bottom
@@ -164,6 +163,39 @@ impl ChatPane {
                 }
             }
         }
+        None
+    }
+}
+
+/// What a key press means to a chat pane. Extracted from `on_key` as a pure,
+/// testable seam (winit's `KeyEvent` is `#[non_exhaustive]` and hard to build).
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum ChatInput {
+    Close,
+    Char(char),
+    Enter,
+    Backspace,
+    Ignore,
+}
+
+/// An action a chat pane asks the app to take after a key press.
+pub(crate) enum ChatAction {
+    /// Close this pane (Escape).
+    Close,
+}
+
+/// Classify a key press for a chat pane. Only presses act; Escape closes.
+pub(crate) fn chat_key(logical: &Key, pressed: bool) -> ChatInput {
+    if !pressed {
+        return ChatInput::Ignore;
+    }
+    match logical {
+        Key::Named(NamedKey::Escape) => ChatInput::Close,
+        Key::Named(NamedKey::Enter) => ChatInput::Enter,
+        Key::Named(NamedKey::Backspace) => ChatInput::Backspace,
+        Key::Named(NamedKey::Space) => ChatInput::Char(' '),
+        Key::Character(s) => s.chars().next().map_or(ChatInput::Ignore, ChatInput::Char),
+        _ => ChatInput::Ignore,
     }
 }
 

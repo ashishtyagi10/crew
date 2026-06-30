@@ -115,12 +115,13 @@ impl CrewApp {
         let shift = mstate.shift_key();
         let mut settings_action: Option<SettingsAction> = None;
         let mut far_action: Option<crate::farpane::FarAction> = None;
+        let mut chat_action: Option<crate::chat::ChatAction> = None;
         let mut is_terminal = false;
         if let Some(pane) = self.panes.get_mut(focused) {
             match &mut pane.content {
                 // Terminal input is written below (so broadcast can reach all panes).
                 PaneContent::Terminal(_) => is_terminal = true,
-                PaneContent::Chat(c) => c.on_key(event),
+                PaneContent::Chat(c) => chat_action = c.on_key(event),
                 PaneContent::Settings(s) => {
                     settings_action = s.on_key(event, shift);
                 }
@@ -142,6 +143,14 @@ impl CrewApp {
                     let _ = open::that(path);
                 }
                 FarAction::Status(msg) => self.set_status(&msg),
+            }
+        }
+        if let Some(action) = chat_action {
+            use crate::chat::ChatAction;
+            match action {
+                ChatAction::Close => {
+                    self.close_pane(focused);
+                }
             }
         }
         if is_terminal {

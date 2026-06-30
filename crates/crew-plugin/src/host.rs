@@ -5,8 +5,8 @@ use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::mpsc::{self, Receiver};
 
 pub struct Plugin {
-    // held to keep the child process alive; dropped on Plugin drop
-    _child: Child,
+    // The broker subprocess. Killed explicitly on drop (see `impl Drop`).
+    child: Child,
     stdin: ChildStdin,
     rx: Receiver<PluginEvent>,
 }
@@ -41,11 +41,7 @@ impl Plugin {
             }
         });
 
-        Ok(Plugin {
-            _child: child,
-            stdin,
-            rx,
-        })
+        Ok(Plugin { child, stdin, rx })
     }
 
     pub fn send(&mut self, cmd: &PluginCommand) -> Result<()> {
@@ -60,5 +56,47 @@ impl Plugin {
             events.push(ev);
         }
         events
+    }
+
+    /// PID of the child process (the broker), e.g. for liveness checks.
+    pub fn child_id(&self) -> u32 {
+        self.child.id()
+    }
+}
+
+impl Drop for Plugin {
+    /// Kill the child on drop. Dropping a [`std::process::Child`] only *detaches*
+    /// it — without this, closing a `/crew` pane would orphan the still-running
+    /// `crew --broker-plugin` subprocess (and any agents it spawned).
+    fn drop(&mut self) {
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::process::Command;
+    use std::time::Duration;
+
+    #[test]
+    fn dropping_the_plugin_kills_the_child() {
+        // A long-lived child standing in for the broker subprocess.
+        let p = Plugin::spawn("sh", &["-c".to_string(), "sleep 30".to_string()]).unwrap();
+        let pid = p.child_id();
+        drop(p);
+        std::thread::sleep(Duration::from_millis(300));
+        // `kill -0` succeeds only while the process exists; once killed and reaped
+        // it exits non-zero.
+        let alive = Command::new("kill")
+            .args(["-0", &pid.to_string()])
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false);
+        assert!(
+            !alive,
+            "broker child {pid} should be killed when the Plugin drops"
+        );
     }
 }
