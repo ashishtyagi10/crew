@@ -97,7 +97,7 @@ pub static PAPER_LIGHT: Theme = Theme {
     term_bg: (244, 241, 234),
     border_normal: (201, 194, 178),
     border_focused: (140, 132, 117),
-    legend_off: (168, 159, 141),
+    legend_off: (140, 133, 118),
     accent_default: (156, 107, 63),
     status_fg: (150, 110, 40),
     broadcast: (150, 70, 120),
@@ -119,13 +119,31 @@ pub static PAPER_LIGHT: Theme = Theme {
         (120, 113, 99),  // 8  bright black
         (178, 82, 66),   // 9  bright red
         (122, 134, 82),  // 10 bright green
-        (180, 148, 74),  // 11 bright yellow
+        (163, 133, 63),  // 11 bright yellow
         (88, 116, 148),  // 12 bright blue
         (150, 100, 135), // 13 bright magenta
         (88, 140, 134),  // 14 bright cyan
         (60, 56, 50),    // 15 bright white (boldest ink)
     ],
 };
+
+/// WCAG 2.1 contrast ratio between two sRGB colours.
+pub fn contrast_ratio(a: (u8, u8, u8), b: (u8, u8, u8)) -> f32 {
+    let lin = |c: u8| -> f32 {
+        let x = c as f32 / 255.0;
+        if x <= 0.03928 {
+            x / 12.92
+        } else {
+            ((x + 0.055) / 1.055).powf(2.4)
+        }
+    };
+    let lum =
+        |c: (u8, u8, u8)| -> f32 { 0.2126 * lin(c.0) + 0.7152 * lin(c.1) + 0.0722 * lin(c.2) };
+    let l1 = lum(a);
+    let l2 = lum(b);
+    let (hi, lo) = if l1 > l2 { (l1, l2) } else { (l2, l1) };
+    (hi + 0.05) / (lo + 0.05)
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ThemeId {
@@ -272,6 +290,70 @@ mod tests {
         for t in [&PAPER_DARK, &PAPER_LIGHT] {
             let lum = |c: (u8, u8, u8)| c.0 as i32 + c.1 as i32 + c.2 as i32;
             assert!((lum(t.term_fg) - lum(t.term_bg)).abs() > 200);
+        }
+    }
+
+    #[test]
+    fn contrast_thresholds() {
+        let cr = contrast_ratio;
+        for (name, t) in [("PAPER_DARK", &PAPER_DARK), ("PAPER_LIGHT", &PAPER_LIGHT)] {
+            let bg = t.page_bg;
+            let tbg = t.term_bg;
+
+            assert!(
+                cr(t.ink, bg) >= 7.0,
+                "{name}: ink vs page_bg = {:.3} (need >= 7.0)",
+                cr(t.ink, bg)
+            );
+            assert!(
+                cr(t.term_fg, tbg) >= 7.0,
+                "{name}: term_fg vs term_bg = {:.3} (need >= 7.0)",
+                cr(t.term_fg, tbg)
+            );
+            assert!(
+                cr(t.text_muted, bg) >= 4.5,
+                "{name}: text_muted vs page_bg = {:.3} (need >= 4.5)",
+                cr(t.text_muted, bg)
+            );
+            assert!(
+                cr(t.legend_off, bg) >= 3.0,
+                "{name}: legend_off vs page_bg = {:.3} (need >= 3.0)",
+                cr(t.legend_off, bg)
+            );
+            assert!(
+                cr(t.hint_fg, bg) >= 2.5,
+                "{name}: hint_fg vs page_bg = {:.3} (need >= 2.5)",
+                cr(t.hint_fg, bg)
+            );
+            assert!(
+                cr(t.placeholder, bg) >= 2.3,
+                "{name}: placeholder vs page_bg = {:.3} (need >= 2.3)",
+                cr(t.placeholder, bg)
+            );
+            assert!(
+                cr(t.accent_default, bg) >= 3.0,
+                "{name}: accent_default vs page_bg = {:.3} (need >= 3.0)",
+                cr(t.accent_default, bg)
+            );
+            assert!(
+                cr(t.border_focused, bg) >= 2.2,
+                "{name}: border_focused vs page_bg = {:.3} (need >= 2.2)",
+                cr(t.border_focused, bg)
+            );
+            assert!(
+                cr(t.border_normal, bg) >= 1.45,
+                "{name}: border_normal vs page_bg = {:.3} (need >= 1.45)",
+                cr(t.border_normal, bg)
+            );
+            // ANSI terminal colours (skip slots 0, 7, 8, 15 = blacks and whites)
+            for i in [1usize, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14] {
+                assert!(
+                    cr(t.ansi[i], tbg) >= 3.0,
+                    "{name}: ansi[{i}] {:?} vs term_bg = {:.3} (need >= 3.0)",
+                    t.ansi[i],
+                    cr(t.ansi[i], tbg)
+                );
+            }
         }
     }
 }
