@@ -27,6 +27,45 @@ impl CrewApp {
         self.redraw();
     }
 
+    /// Surface a pane event through the notification system: gated by the config
+    /// toggles, throttled by the [`crate::notify::Notifier`], then flashed on the
+    /// input bar and appended to the LOG (via [`Self::set_status`]). In-app only —
+    /// no OS notifications.
+    pub(crate) fn notify(&mut self, kind: crate::notify::NotifyKind, pane: String, detail: String) {
+        use crate::notify::NotifyKind;
+        if !self.config.notify {
+            return;
+        }
+        let enabled = match kind {
+            NotifyKind::AgentDone => self.config.notify_agent_done,
+            NotifyKind::Bell => self.config.notify_bell,
+            NotifyKind::Exited => self.config.notify_exit,
+            // Patterns are opt-in: they only fire when the user lists them.
+            NotifyKind::Pattern => true,
+        };
+        if !enabled {
+            return;
+        }
+        if let Some(msg) = self
+            .notifier
+            .record(kind, pane, detail, std::time::Instant::now())
+        {
+            self.set_status(msg);
+        }
+    }
+
+    /// Push the configured watch patterns onto every terminal pane's PTY scanner.
+    /// Called after spawning a pane and whenever the patterns change (`/notify`,
+    /// `/reload`), so all live panes share the current watch list.
+    pub(crate) fn apply_notify_patterns(&mut self) {
+        let patterns = self.config.notify_patterns.clone();
+        for p in &mut self.panes {
+            if let crate::pane::PaneContent::Terminal(t) = &mut p.content {
+                t.pty.set_watch_patterns(&patterns);
+            }
+        }
+    }
+
     /// Clear the live LOG ring buffer (`/clearlog`), then note the action so the
     /// sidebar shows the log was reset rather than going blank.
     pub(crate) fn clear_log(&mut self) {
@@ -88,5 +127,38 @@ mod tests {
         // Cleared down to just the single "cleared" note (not blank).
         assert_eq!(app.log.len(), 1);
         assert!(app.log[0].ends_with("activity log cleared"));
+    }
+
+    #[test]
+    fn notify_logs_a_flash_when_enabled() {
+        use crate::notify::NotifyKind;
+        let mut app = CrewApp::default();
+        app.notify(NotifyKind::AgentDone, "crew".into(), "claude".into());
+        assert_eq!(app.active_status(), Some("✓ claude finished in crew"));
+        assert!(app.log.last().unwrap().contains("claude finished in crew"));
+    }
+
+    #[test]
+    fn notify_respects_the_per_kind_toggle() {
+        use crate::notify::NotifyKind;
+        let mut app = CrewApp::default();
+        app.config.notify_bell = false;
+        let before = app.log.len();
+        app.notify(NotifyKind::Bell, "crew".into(), String::new());
+        assert_eq!(app.log.len(), before, "bell notifications are disabled");
+    }
+
+    #[test]
+    fn notify_master_switch_suppresses_everything() {
+        use crate::notify::NotifyKind;
+        let mut app = CrewApp::default();
+        app.config.notify = false;
+        let before = app.log.len();
+        app.notify(NotifyKind::Exited, "crew".into(), String::new());
+        assert_eq!(
+            app.log.len(),
+            before,
+            "master switch off → no notifications"
+        );
     }
 }

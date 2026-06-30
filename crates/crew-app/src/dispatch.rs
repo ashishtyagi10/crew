@@ -39,6 +39,7 @@ impl CrewApp {
             "open" => self.open_target(""),  // open the last URL on screen
             "font" => self.set_font_cmd(""),
             "reload" => self.reload_config(),
+            "notify" => self.notify_command(""),
             "broadcast" => self.toggle_broadcast(),
             "zoom" => self.toggle_zoom(),
             "sidebar" => self.toggle_sidebar(),
@@ -62,9 +63,89 @@ impl CrewApp {
                     self.spawn_goal_pane(g.trim());
                 } else if let Some(f) = other.strip_prefix("batch ") {
                     self.spawn_batch_pane(f.trim());
+                } else if let Some(n) = other.strip_prefix("notify ") {
+                    self.notify_command(n.trim());
                 }
             }
         }
         false
+    }
+
+    /// Handle `/notify [on|off|add <text>|clear]`: with no argument it reports the
+    /// current state; otherwise it toggles the master switch or edits the watched
+    /// output patterns (persisted, and pushed to live panes).
+    pub(crate) fn notify_command(&mut self, arg: &str) {
+        match arg {
+            "" => {
+                let state = if self.config.notify { "on" } else { "off" };
+                self.set_status(format!(
+                    "notifications {state} · {} pattern(s) · {} recent",
+                    self.config.notify_patterns.len(),
+                    self.notifier.len()
+                ));
+            }
+            "on" => {
+                self.config.notify = true;
+                self.config.save();
+                self.set_status("notifications on");
+            }
+            "off" => {
+                self.config.notify = false;
+                self.config.save();
+                self.set_status("notifications off");
+            }
+            "clear" => {
+                self.config.notify_patterns.clear();
+                self.config.save();
+                self.apply_notify_patterns();
+                self.set_status("notify patterns cleared");
+            }
+            other => {
+                if let Some(p) = other.strip_prefix("add ") {
+                    let p = p.trim();
+                    if p.is_empty() {
+                        self.set_status("usage: /notify add <text>");
+                        return;
+                    }
+                    self.config.notify_patterns.push(p.to_string());
+                    self.config.save();
+                    self.apply_notify_patterns();
+                    self.set_status(format!("watching output for \"{p}\""));
+                } else {
+                    self.set_status("usage: /notify [on|off|add <text>|clear]");
+                }
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::app::CrewApp;
+
+    #[test]
+    fn notify_off_then_on_toggles_the_master_switch() {
+        let mut app = CrewApp::default();
+        assert!(app.config.notify);
+        app.notify_command("off");
+        assert!(!app.config.notify);
+        app.notify_command("on");
+        assert!(app.config.notify);
+    }
+
+    #[test]
+    fn notify_add_appends_a_pattern_then_clear_empties() {
+        let mut app = CrewApp::default();
+        app.notify_command("add error");
+        assert_eq!(app.config.notify_patterns, vec!["error".to_string()]);
+        app.notify_command("clear");
+        assert!(app.config.notify_patterns.is_empty());
+    }
+
+    #[test]
+    fn notify_add_without_text_adds_nothing() {
+        let mut app = CrewApp::default();
+        app.notify_command("add    ");
+        assert!(app.config.notify_patterns.is_empty());
     }
 }

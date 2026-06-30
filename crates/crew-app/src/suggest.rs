@@ -100,6 +100,10 @@ pub(crate) const COMMANDS: &[Cmd] = &[
         desc: "Reload config.toml from disk and apply it",
     },
     Cmd {
+        name: "/notify",
+        desc: "Notification settings (/notify [on|off|add <text>|clear])",
+    },
+    Cmd {
         name: "/update",
         desc: "Update Crew to the latest release (left-nav progress, auto-restart)",
     },

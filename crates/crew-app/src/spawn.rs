@@ -45,6 +45,7 @@ impl CrewApp {
             Ok(pane) => {
                 self.panes.push(pane);
                 self.focus_new_pane();
+                self.apply_notify_patterns();
             }
             // Surface the failure in the UI — stderr is invisible in the GUI.
             Err(e) => self.set_status(format!("couldn't open shell: {e}")),
@@ -65,7 +66,12 @@ impl CrewApp {
                 // rect/grid are placeholders; build_frame's relayout sizes the pane
                 // to the content area (right of the sidebar) on the next frame.
                 let pane = Pane {
-                    content: PaneContent::Terminal(Box::new(TermPane { pty, input })),
+                    content: PaneContent::Terminal(Box::new(TermPane {
+                        pty,
+                        input,
+                        cmd: None,
+                        cmd_since: None,
+                    })),
                     grid,
                     rect: PLACEHOLDER_RECT,
                     label: Some(label),
@@ -76,6 +82,7 @@ impl CrewApp {
                 };
                 self.panes.push(pane);
                 self.focus_new_pane();
+                self.apply_notify_patterns();
                 self.redraw();
             }
             // Surface the failure in the UI — stderr is invisible in the GUI.
@@ -244,6 +251,8 @@ impl CrewApp {
             r.set_font_family(self.config.font_family.clone());
             r.set_font_size(self.config.font_size * scale);
         }
+        // Pick up any change to the watched notification patterns on live panes.
+        self.apply_notify_patterns();
         self.redraw();
     }
 

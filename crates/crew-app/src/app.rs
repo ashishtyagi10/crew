@@ -35,6 +35,9 @@ pub struct CrewApp {
     pub(crate) scroll_accum: f32,
     pub(crate) config: CrewConfig,
     pub(crate) sidebar: Box<StatsPane>,
+    /// Resolves each terminal pane's foreground PID to a command name for its
+    /// title (e.g. `claude`), refreshed ~1×/s.
+    pub(crate) procnames: crate::procname::ProcNames,
     pub(crate) input: InputBar,
     /// Animation frame counter, advanced while the welcome screen is showing.
     pub(crate) tick: u64,
@@ -64,6 +67,9 @@ pub struct CrewApp {
     /// Ring buffer of recent status messages, shown as the live LOG section in
     /// the left nav (newest last). Capped at [`crate::status::LOG_CAP`].
     pub(crate) log: Vec<String>,
+    /// Notification system: throttles + records pane events (command finished,
+    /// bell, output pattern match, pane exit) surfaced via the LOG + input bar.
+    pub(crate) notifier: crate::notify::Notifier,
     /// When quit was last pressed with panes open, for the confirm-to-quit window.
     pub(crate) quit_armed: Option<Instant>,
     /// In-progress background self-update (`/update`): drives the left-nav UPDATE

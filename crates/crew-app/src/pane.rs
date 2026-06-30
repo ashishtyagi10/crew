@@ -16,6 +16,13 @@ use crate::swarmpane::SwarmPane;
 pub struct TermPane {
     pub pty: PtyTerm,
     pub input: Box<dyn Write + Send>,
+    /// Name of the foreground command running in the pane (e.g. `claude`),
+    /// shown alongside the directory in the title. `None` when the shell is idle.
+    /// Refreshed ~1×/s by `poll_panes` via [`crate::procname::ProcNames`].
+    pub cmd: Option<String>,
+    /// When the current foreground command (`cmd`) started, used to gate the
+    /// "command finished" notification on a minimum runtime. `None` when idle.
+    pub cmd_since: Option<std::time::Instant>,
 }
 
 /// Discriminated union of pane kinds.
@@ -55,15 +62,22 @@ impl Pane {
         }
         match &self.content {
             PaneContent::Terminal(t) => {
-                // The open directory's folder name always wins over an OSC title.
-                if let Some(dir) = self.dir.as_deref().and_then(dir_label) {
-                    return dir;
-                }
-                let ti = t.pty.title();
-                if ti.is_empty() {
-                    "shell".into()
-                } else {
-                    ti
+                // Directory folder name, plus the foreground command when one is
+                // running (e.g. `crew · claude`). The folder name wins over an OSC
+                // title; the running command is appended to it.
+                let dir = self.dir.as_deref().and_then(dir_label);
+                match (dir, t.cmd.as_deref()) {
+                    (Some(dir), Some(cmd)) => format!("{dir} · {cmd}"),
+                    (Some(dir), None) => dir,
+                    (None, Some(cmd)) => cmd.to_string(),
+                    (None, None) => {
+                        let ti = t.pty.title();
+                        if ti.is_empty() {
+                            "shell".into()
+                        } else {
+                            ti
+                        }
+                    }
                 }
             }
             PaneContent::Chat(_) => "chat".into(),
@@ -117,7 +131,12 @@ pub fn spawn_pane(
         })?;
     let input = pty.writer();
     Ok(Pane {
-        content: PaneContent::Terminal(Box::new(TermPane { pty, input })),
+        content: PaneContent::Terminal(Box::new(TermPane {
+            pty,
+            input,
+            cmd: None,
+            cmd_since: None,
+        })),
         grid,
         rect: Rect {
             x: 0.0,
@@ -180,6 +199,24 @@ mod tests {
         // The open directory's folder name is the title…
         assert_eq!(pane.title_text(), "crew_pane_title_dir");
         // …but an explicit /name still wins.
+        pane.name = Some("build".into());
+        assert_eq!(pane.title_text(), "build");
+    }
+
+    #[test]
+    fn terminal_title_appends_the_foreground_command() {
+        let base = std::env::temp_dir().join("crew_pane_title_cmd");
+        std::fs::create_dir_all(&base).unwrap();
+        let grid = GridSize { cols: 40, rows: 10 };
+        let mut pane = spawn_pane("sh", "sh", grid, Some(&base)).unwrap();
+        // Idle shell → just the folder name.
+        assert_eq!(pane.title_text(), "crew_pane_title_cmd");
+        // A running command rides alongside the directory.
+        if let PaneContent::Terminal(t) = &mut pane.content {
+            t.cmd = Some("claude".into());
+        }
+        assert_eq!(pane.title_text(), "crew_pane_title_cmd · claude");
+        // A /name override still wins outright.
         pane.name = Some("build".into());
         assert_eq!(pane.title_text(), "build");
     }

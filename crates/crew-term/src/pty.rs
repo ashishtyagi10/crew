@@ -27,6 +27,14 @@ pub struct PtyTerm {
     /// Set by `try_read` when it stopped at `READ_BUDGET` with bytes still
     /// queued, so the caller can keep the poll loop hot until the backlog drains.
     pending: bool,
+    /// Case-insensitive substrings watched in the output stream (lowercased).
+    /// Empty disables scanning entirely (zero overhead).
+    watch: Vec<String>,
+    /// Trailing partial line carried between `try_read`s so a watched pattern
+    /// split across reads still matches.
+    scan_tail: String,
+    /// Watched patterns matched since the last `take_matches`.
+    hits: Vec<String>,
     _child: Box<dyn portable_pty::Child + Send + Sync>,
 }
 
@@ -94,6 +102,9 @@ impl PtyTerm {
             rx,
             exited: false,
             pending: false,
+            watch: Vec::new(),
+            scan_tail: String::new(),
+            hits: Vec::new(),
             _child: child,
         })
     }
@@ -131,6 +142,13 @@ impl PtyTerm {
                 Ok(chunk) => {
                     total += chunk.len();
                     self.core.feed(&chunk);
+                    if !self.watch.is_empty() {
+                        for hit in scan(&mut self.scan_tail, &chunk, &self.watch) {
+                            if !self.hits.contains(&hit) {
+                                self.hits.push(hit);
+                            }
+                        }
+                    }
                 }
                 Err(TryRecvError::Empty) => break,
                 Err(TryRecvError::Disconnected) => {
@@ -149,6 +167,116 @@ impl PtyTerm {
     pub fn has_pending(&self) -> bool {
         self.pending
     }
+
+    /// Set the case-insensitive substrings watched in this pane's output. Blank
+    /// entries are dropped; an empty list disables scanning. Lowercased here so
+    /// matching in `scan` is a plain `contains`.
+    pub fn set_watch_patterns(&mut self, patterns: &[String]) {
+        self.watch = patterns
+            .iter()
+            .filter(|p| !p.is_empty())
+            .map(|p| p.to_lowercase())
+            .collect();
+    }
+
+    /// Take the watched patterns matched since the last call (clearing them).
+    pub fn take_matches(&mut self) -> Vec<String> {
+        std::mem::take(&mut self.hits)
+    }
+}
+
+/// Max bytes of partial (newline-free) output carried between [`scan`] calls, so
+/// a pattern split across reads still matches without letting a newline-free
+/// flood (e.g. a progress bar redrawing with `\r`) grow the carry unbounded.
+const SCAN_CARRY_CAP: usize = 4096;
+
+/// Scan a freshly-read `chunk` for any watched `patterns` (already lowercased,
+/// matched case-insensitively). `tail` carries the trailing partial line between
+/// calls so a pattern split across reads still matches. ANSI escape sequences are
+/// stripped before matching. Returns the patterns that matched a line completed
+/// by this chunk. Pure and bounded — safe to run on the main thread.
+fn scan(tail: &mut String, chunk: &[u8], patterns: &[String]) -> Vec<String> {
+    if patterns.is_empty() {
+        return Vec::new();
+    }
+    tail.push_str(&strip_ansi(&String::from_utf8_lossy(chunk)));
+    let mut hits = Vec::new();
+    // Everything up to and including the last line break is a set of completed
+    // lines — scan it, then carry only the trailing partial line.
+    if let Some(idx) = tail.rfind(['\n', '\r']) {
+        let rest = tail.split_off(idx + 1);
+        scan_into(tail, patterns, &mut hits);
+        *tail = rest;
+    }
+    // A newline-free flood must not grow the carry without bound.
+    if tail.len() > SCAN_CARRY_CAP {
+        scan_into(tail, patterns, &mut hits);
+        let cut = tail.len() - SCAN_CARRY_CAP;
+        let cut = (cut..=tail.len())
+            .find(|&i| tail.is_char_boundary(i))
+            .unwrap_or(tail.len());
+        *tail = tail[cut..].to_string();
+    }
+    hits
+}
+
+/// Push every pattern present in `hay` (case-insensitive) into `hits`, once each.
+fn scan_into(hay: &str, patterns: &[String], hits: &mut Vec<String>) {
+    let lower = hay.to_lowercase();
+    for p in patterns {
+        if lower.contains(p) && !hits.contains(p) {
+            hits.push(p.clone());
+        }
+    }
+}
+
+/// Strip ANSI escape sequences (CSI `ESC [ … final`, OSC `ESC ] … BEL/ST`, and
+/// other two-char `ESC x` escapes) and stray C0 control bytes (keeping `\n \r
+/// \t`), so pattern matching sees plain text rather than colour codes.
+fn strip_ansi(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut chars = s.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c == '\u{1b}' {
+            match chars.peek() {
+                Some('[') => {
+                    chars.next();
+                    // CSI runs until a final byte in 0x40..=0x7e (`@`..=`~`).
+                    while let Some(&nc) = chars.peek() {
+                        chars.next();
+                        if ('@'..='~').contains(&nc) {
+                            break;
+                        }
+                    }
+                }
+                Some(']') => {
+                    chars.next();
+                    // OSC runs until BEL or ST (`ESC \`).
+                    while let Some(&nc) = chars.peek() {
+                        chars.next();
+                        if nc == '\u{07}' {
+                            break;
+                        }
+                        if nc == '\u{1b}' {
+                            if chars.peek() == Some(&'\\') {
+                                chars.next();
+                            }
+                            break;
+                        }
+                    }
+                }
+                _ => {
+                    chars.next();
+                }
+            }
+            continue;
+        }
+        if c.is_control() && c != '\n' && c != '\r' && c != '\t' {
+            continue;
+        }
+        out.push(c);
+    }
+    out
 }
 
 impl PtyTerm {
@@ -207,6 +335,19 @@ impl PtyTerm {
     /// call, else `None` — used to retitle the pane when the user `cd`s inside it.
     pub fn take_cwd(&mut self) -> Option<std::path::PathBuf> {
         self.core.take_cwd()
+    }
+
+    /// PID of the foreground command running in this pane — the process group in
+    /// control of the tty. `None` when the shell itself is at its prompt (so the
+    /// pane is idle) or on a platform that doesn't expose it. Lets the title name
+    /// the running program (e.g. `claude`, `codex`).
+    pub fn foreground_pid(&self) -> Option<u32> {
+        let fg = u32::try_from(self.master.process_group_leader()?).ok()?;
+        // A shell waiting at its prompt is its own foreground group → idle.
+        if Some(fg) == self._child.process_id() {
+            return None;
+        }
+        Some(fg)
     }
 
     /// Take any pending OSC 52 clipboard-store text (clearing it).
@@ -298,5 +439,82 @@ mod pty_tests {
         // Stop `yes` so the child doesn't keep spinning after the test.
         let _ = w.write_all(&[0x03]); // Ctrl-C to the foreground process group
         let _ = w.flush();
+    }
+
+    fn pats(xs: &[&str]) -> Vec<String> {
+        xs.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn scan_matches_a_completed_line() {
+        let mut tail = String::new();
+        let hits = scan(&mut tail, b"Build succeeded\n", &pats(&["build succeeded"]));
+        assert_eq!(hits, vec!["build succeeded".to_string()]);
+    }
+
+    #[test]
+    fn scan_is_case_insensitive() {
+        let mut tail = String::new();
+        let hits = scan(&mut tail, b"ERROR: boom\n", &pats(&["error"]));
+        assert_eq!(hits, vec!["error".to_string()]);
+    }
+
+    #[test]
+    fn scan_ignores_ansi_color_codes() {
+        let mut tail = String::new();
+        // Red "error" wrapped in SGR codes, plus an OSC title set.
+        let chunk = b"\x1b]0;title\x07\x1b[31merror\x1b[0m here\n";
+        let hits = scan(&mut tail, chunk, &pats(&["error"]));
+        assert_eq!(hits, vec!["error".to_string()]);
+    }
+
+    #[test]
+    fn scan_matches_across_a_chunk_boundary() {
+        let mut tail = String::new();
+        // The pattern is split across two reads; no newline yet → no match.
+        let first = scan(&mut tail, b"Build suc", &pats(&["build succeeded"]));
+        assert!(first.is_empty());
+        // The newline completes the line and the carried tail makes it match.
+        let second = scan(&mut tail, b"ceeded\n", &pats(&["build succeeded"]));
+        assert_eq!(second, vec!["build succeeded".to_string()]);
+    }
+
+    #[test]
+    fn scan_does_not_rematch_an_already_consumed_line() {
+        let mut tail = String::new();
+        let first = scan(&mut tail, b"error here\n", &pats(&["error"]));
+        assert_eq!(first, vec!["error".to_string()]);
+        // A later read with no new match must not re-report the old line.
+        let second = scan(&mut tail, b"all good\n", &pats(&["error"]));
+        assert!(second.is_empty());
+    }
+
+    #[test]
+    fn scan_empty_patterns_is_a_noop() {
+        let mut tail = String::new();
+        let hits = scan(&mut tail, b"anything at all\n", &[]);
+        assert!(hits.is_empty());
+        assert!(
+            tail.is_empty(),
+            "no work and no buffering when nothing is watched"
+        );
+    }
+
+    #[test]
+    fn scan_keeps_the_tail_bounded_under_a_newline_free_flood() {
+        let mut tail = String::new();
+        let pat = pats(&["needle"]);
+        // 100 KiB with no newline must not grow the carry without bound.
+        for _ in 0..1000 {
+            scan(&mut tail, &[b'x'; 100], &pat);
+        }
+        assert!(tail.len() <= 4096, "carry grew to {} bytes", tail.len());
+    }
+
+    #[test]
+    fn strip_ansi_removes_csi_and_osc() {
+        assert_eq!(strip_ansi("\x1b[1;31mhi\x1b[0m"), "hi");
+        assert_eq!(strip_ansi("\x1b]0;my title\x07done"), "done");
+        assert_eq!(strip_ansi("plain"), "plain");
     }
 }

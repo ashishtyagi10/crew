@@ -29,16 +29,21 @@ impl CrewApp {
         // each tick stays bounded, so input and rendering never stall.
         let mut more_pending = false;
         let mut collected_actions = Vec::new();
+        // Notification events detected this tick, surfaced after the pane loops so
+        // they don't fight the `&mut self.panes` borrow. (kind, pane title, detail).
+        let mut notify_events: Vec<(crate::notify::NotifyKind, String, String)> = Vec::new();
         let focused = self.focused;
         for (i, p) in self.panes.iter_mut().enumerate() {
             let mut rang = false;
             let mut new_cwd = None;
+            let mut matches: Vec<String> = Vec::new();
             let changed = match &mut p.content {
                 PaneContent::Terminal(t) => {
                     let n = t.pty.try_read() > 0;
                     more_pending |= t.pty.has_pending();
                     rang = t.pty.take_bell();
                     new_cwd = t.pty.take_cwd();
+                    matches = t.pty.take_matches();
                     n
                 }
                 PaneContent::Chat(c) => {
@@ -61,19 +66,76 @@ impl CrewApp {
                 p.bell |= rang;
             }
             any_changed |= changed || rang;
+            // Bell + output-pattern notifications (the pane title is borrowable
+            // now that the `&mut p.content` match above has ended).
+            if rang || !matches.is_empty() {
+                use crate::notify::NotifyKind;
+                let title = p.title_text();
+                if rang {
+                    notify_events.push((NotifyKind::Bell, title.clone(), String::new()));
+                }
+                for m in matches {
+                    notify_events.push((NotifyKind::Pattern, title.clone(), m));
+                }
+            }
         }
         if self.sidebar.refresh(&self.cwd) {
             any_changed = true;
         }
-        // Drive the background self-update: animate its card, and re-exec into the
-        // freshly installed binary once it's ready.
+        // Name the foreground command in each terminal pane (claude/codex/…), so
+        // it rides the title beside the directory. Throttled to ~1×/s.
+        if self.procnames.due() {
+            // Foreground PID per pane (None = idle shell or non-terminal).
+            let fg: Vec<Option<u32>> = self
+                .panes
+                .iter()
+                .map(|p| match &p.content {
+                    PaneContent::Terminal(t) => t.pty.foreground_pid(),
+                    _ => None,
+                })
+                .collect();
+            let pids: Vec<u32> = fg.iter().flatten().copied().collect();
+            self.procnames.refresh(&pids);
+            let min = Duration::from_secs(self.config.notify_min_secs);
+            let now = Instant::now();
+            for (p, fg) in self.panes.iter_mut().zip(fg) {
+                let mut just_finished = None;
+                if let PaneContent::Terminal(t) = &mut p.content {
+                    let cmd = fg.and_then(|pid| self.procnames.name(pid));
+                    if t.cmd != cmd {
+                        // A foreground command returning to the idle prompt after
+                        // running long enough is a "command finished" event.
+                        let outcome = crate::notify::agent_done(
+                            t.cmd.as_deref(),
+                            cmd.as_deref(),
+                            t.cmd_since,
+                            min,
+                            now,
+                        );
+                        t.cmd = cmd;
+                        t.cmd_since = outcome.since;
+                        any_changed = true;
+                        just_finished = outcome.finished;
+                    }
+                }
+                if let Some(finished) = just_finished {
+                    notify_events.push((
+                        crate::notify::NotifyKind::AgentDone,
+                        p.title_text(),
+                        finished,
+                    ));
+                }
+            }
+        }
+        // Surface the bell / pattern / command-finished events gathered above.
+        // (Pane-exit events are raised at the reap site below.)
+        for (kind, pane, detail) in notify_events.drain(..) {
+            self.notify(kind, pane, detail);
+        }
+        // Drive the background self-update: animate its card and dismiss it when
+        // done. The new binary applies on the next launch — Crew does not restart.
         if self.update.is_some() {
             let tick = self.poll_update(Instant::now());
-            if tick.restart {
-                crate::update::restart_into_new_binary();
-                event_loop.exit();
-                return;
-            }
             any_changed |= tick.redraw;
         }
         // Clear a status message once it has aged out, repainting the border.
@@ -106,6 +168,9 @@ impl CrewApp {
             .collect();
         if !exited.is_empty() {
             for i in exited.into_iter().rev() {
+                // Capture the title before the pane is removed, then notify.
+                let title = self.panes[i].title_text();
+                self.notify(crate::notify::NotifyKind::Exited, title, String::new());
                 self.close_pane(i);
             }
             any_changed = true;

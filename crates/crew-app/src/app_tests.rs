@@ -253,7 +253,12 @@ fn typing_clears_a_terminal_selection() {
         PtyTerm::spawn_in(GridSize { cols: 40, rows: 10 }, "/bin/sh", &[], Some(&tmp)).unwrap();
     let input = pty.writer();
     app.panes.push(Pane {
-        content: PaneContent::Terminal(Box::new(TermPane { pty, input })),
+        content: PaneContent::Terminal(Box::new(TermPane {
+            pty,
+            input,
+            cmd: None,
+            cmd_since: None,
+        })),
         grid: GridSize { cols: 40, rows: 10 },
         rect: Rect {
             x: 0.0,

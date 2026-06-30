@@ -1,8 +1,8 @@
-//! Background self-update with progress in the left-nav UPDATE card, and an
-//! automatic restart once the new binary is in place. `/update` starts a worker
-//! thread that checks GitHub, downloads the latest release over the running
-//! binary, and streams stage updates back to the UI — no separate shell pane,
-//! no manual relaunch.
+//! Background self-update with progress in the left-nav UPDATE card. `/update`
+//! starts a worker thread that checks GitHub, downloads the latest release over
+//! the running binary, and streams stage updates back to the UI — no separate
+//! shell pane. The new binary applies on the next launch; Crew does NOT restart
+//! itself, so an in-flight session is never interrupted.
 use std::sync::mpsc::Receiver;
 use std::time::{Duration, Instant};
 
@@ -12,9 +12,8 @@ use crate::app::CrewApp;
 pub(crate) const SPINNER: [char; 10] = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 /// Poll ticks per spinner frame (~62 Hz loop → ~10 fps).
 const SPINNER_DIV: u64 = 6;
-/// How long "updated — restarting…" shows before the re-exec.
-const RESTART_DELAY: Duration = Duration::from_millis(900);
-/// How long a terminal note (up-to-date / failed) lingers before auto-dismiss.
+/// How long a terminal card (installed / up-to-date / failed) lingers before
+/// auto-dismiss.
 const NOTE_TTL: Duration = Duration::from_secs(5);
 
 /// A stage message streamed from the worker thread to the UI.
@@ -71,7 +70,9 @@ impl UpdateState {
             UpdateMsg::Checking => Stage::Checking,
             UpdateMsg::Downloading(v) => Stage::Downloading(v),
             UpdateMsg::Installed(v) => {
-                self.deadline = Some(now + RESTART_DELAY);
+                // Installed over the running binary; it applies on the next launch.
+                // Linger the card briefly, then clear — no auto-restart.
+                self.deadline = Some(now + NOTE_TTL);
                 Stage::Done(v)
             }
             UpdateMsg::UpToDate(v) => {
@@ -100,12 +101,10 @@ impl UpdateState {
         false
     }
 
-    fn restart_due(&self, now: Instant) -> bool {
-        matches!(self.stage, Stage::Done(_)) && self.deadline.is_some_and(|d| now >= d)
-    }
-
+    /// A terminal card (installed / note) whose linger has elapsed → dismiss it.
     fn clear_due(&self, now: Instant) -> bool {
-        matches!(self.stage, Stage::Note(_)) && self.deadline.is_some_and(|d| now >= d)
+        matches!(self.stage, Stage::Done(_) | Stage::Note(_))
+            && self.deadline.is_some_and(|d| now >= d)
     }
 
     /// Build a state parked at `stage` (no worker thread) — for card-render tests.
@@ -135,17 +134,13 @@ impl CrewApp {
         self.redraw();
     }
 
-    /// Drive the active update each poll tick. Returns `true` when Crew should
-    /// re-exec into the freshly installed binary (the caller then exits the loop).
+    /// Drive the active update each poll tick. Streams stage changes into the
+    /// UPDATE card and dismisses it once a terminal card's linger elapses.
     pub(crate) fn poll_update(&mut self, now: Instant) -> UpdateTick {
         let mut tick = UpdateTick::default();
         let mut clear = false;
         if let Some(u) = self.update.as_mut() {
             tick.redraw = u.drain(now);
-            if u.restart_due(now) {
-                tick.restart = true;
-                return tick;
-            }
             if u.animating() && u.tick_anim() {
                 tick.redraw = true;
             }
@@ -163,13 +158,28 @@ impl CrewApp {
 #[derive(Default)]
 pub(crate) struct UpdateTick {
     pub(crate) redraw: bool,
-    pub(crate) restart: bool,
 }
 
-/// Re-exec the (now-updated) binary as a fresh, detached process. The caller
-/// exits the event loop immediately after, handing the window to the new build.
-pub(crate) fn restart_into_new_binary() {
-    if let Ok(exe) = std::env::current_exe() {
-        let _ = std::process::Command::new(exe).spawn();
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::app::CrewApp;
+
+    #[test]
+    #[allow(clippy::field_reassign_with_default)] // test fixture: inject update state
+    fn install_parks_then_clears_without_restarting() {
+        let (tx, rx) = std::sync::mpsc::channel();
+        let mut app = CrewApp::default();
+        app.update = Some(UpdateState::new(rx));
+        let now = Instant::now();
+        tx.send(UpdateMsg::Installed("9.9.9".into())).unwrap();
+        // First tick drains the install message and parks the card at "done".
+        let tick = app.poll_update(now);
+        assert!(tick.redraw);
+        assert!(matches!(app.update.as_ref().unwrap().stage, Stage::Done(_)));
+        // After the note lingers, the card auto-clears — the app is never asked to
+        // restart (UpdateTick no longer carries a restart signal at all).
+        app.poll_update(now + NOTE_TTL);
+        assert!(app.update.is_none(), "card cleared, app keeps running");
     }
 }

@@ -12,6 +12,14 @@ fn default_show_nav() -> bool {
     true
 }
 
+fn default_true() -> bool {
+    true
+}
+
+fn default_notify_min_secs() -> u64 {
+    10
+}
+
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CrewConfig {
     #[serde(default = "default_font_size")]
@@ -38,6 +46,27 @@ pub struct CrewConfig {
     pub win_w: Option<f32>,
     #[serde(default)]
     pub win_h: Option<f32>,
+    /// Master switch for the notification system (pane events flashed on the
+    /// input bar + logged in the sidebar). When off, no events are surfaced.
+    #[serde(default = "default_true")]
+    pub notify: bool,
+    /// Notify when a foreground command in a pane finishes (returns to the shell
+    /// prompt) after running at least `notify_min_secs`.
+    #[serde(default = "default_true")]
+    pub notify_agent_done: bool,
+    /// Notify when a program rings the terminal bell.
+    #[serde(default = "default_true")]
+    pub notify_bell: bool,
+    /// Notify when a pane's process exits.
+    #[serde(default = "default_true")]
+    pub notify_exit: bool,
+    /// Minimum foreground-command runtime (seconds) before a "finished"
+    /// notification fires — suppresses quick commands like `ls`/`cd`.
+    #[serde(default = "default_notify_min_secs")]
+    pub notify_min_secs: u64,
+    /// Case-insensitive substrings watched in pane output; a match notifies.
+    #[serde(default)]
+    pub notify_patterns: Vec<String>,
 }
 
 impl Default for CrewConfig {
@@ -52,6 +81,12 @@ impl Default for CrewConfig {
             last_dir: None,
             win_w: None,
             win_h: None,
+            notify: true,
+            notify_agent_done: true,
+            notify_bell: true,
+            notify_exit: true,
+            notify_min_secs: default_notify_min_secs(),
+            notify_patterns: Vec::new(),
         }
     }
 }
@@ -80,6 +115,16 @@ impl CrewConfig {
             last_dir: self.last_dir,
             win_w: self.win_w.map(|w| w.clamp(400.0, 10000.0)),
             win_h: self.win_h.map(|h| h.clamp(300.0, 10000.0)),
+            notify: self.notify,
+            notify_agent_done: self.notify_agent_done,
+            notify_bell: self.notify_bell,
+            notify_exit: self.notify_exit,
+            notify_min_secs: self.notify_min_secs.clamp(1, 3600),
+            notify_patterns: self
+                .notify_patterns
+                .into_iter()
+                .filter(|p| !p.is_empty())
+                .collect(),
         }
     }
 
@@ -136,6 +181,36 @@ mod tests {
     }
 
     #[test]
+    fn notify_defaults_are_on() {
+        let cfg = CrewConfig::default();
+        assert!(cfg.notify);
+        assert!(cfg.notify_agent_done);
+        assert!(cfg.notify_bell);
+        assert!(cfg.notify_exit);
+        assert_eq!(cfg.notify_min_secs, 10);
+        assert!(cfg.notify_patterns.is_empty());
+    }
+
+    #[test]
+    fn notify_min_secs_clamped() {
+        // Zero is nonsensical (every quick command fires) → clamp up to 1.
+        let cfg = CrewConfig::from_toml_str("notify_min_secs = 0\n");
+        assert_eq!(cfg.notify_min_secs, 1);
+        // Absurdly large → clamped down to an hour.
+        let cfg = CrewConfig::from_toml_str("notify_min_secs = 99999\n");
+        assert_eq!(cfg.notify_min_secs, 3600);
+    }
+
+    #[test]
+    fn notify_patterns_drop_blanks() {
+        let cfg = CrewConfig::from_toml_str("notify_patterns = [\"error\", \"\", \"done\"]\n");
+        assert_eq!(
+            cfg.notify_patterns,
+            vec!["error".to_string(), "done".to_string()]
+        );
+    }
+
+    #[test]
     fn clamped_out_of_range() {
         let cfg = CrewConfig {
             font_size: 99.0,
@@ -147,6 +222,7 @@ mod tests {
             last_dir: None,
             win_w: Some(50.0),
             win_h: Some(50.0),
+            ..CrewConfig::default()
         }
         .clamped();
         assert_eq!(cfg.font_size, 32.0);
@@ -183,6 +259,12 @@ mod tests {
             last_dir: Some("/tmp".to_string()),
             win_w: Some(1024.0),
             win_h: Some(768.0),
+            notify: true,
+            notify_agent_done: false,
+            notify_bell: true,
+            notify_exit: false,
+            notify_min_secs: 30,
+            notify_patterns: vec!["error".to_string(), "done".to_string()],
         };
         assert_eq!(CrewConfig::from_toml_str(&c.to_toml_str()), c);
     }
