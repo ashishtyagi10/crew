@@ -67,6 +67,10 @@ pub struct CrewConfig {
     /// Case-insensitive substrings watched in pane output; a match notifies.
     #[serde(default)]
     pub notify_patterns: Vec<String>,
+    /// Theme name: `paper-dark` (default) or `paper-light`. Unknown/unset →
+    /// `paper-dark`. Applied app-wide via [`crew_theme`].
+    #[serde(default)]
+    pub theme: Option<String>,
 }
 
 impl Default for CrewConfig {
@@ -87,6 +91,7 @@ impl Default for CrewConfig {
             notify_exit: true,
             notify_min_secs: default_notify_min_secs(),
             notify_patterns: Vec::new(),
+            theme: None,
         }
     }
 }
@@ -94,6 +99,14 @@ impl Default for CrewConfig {
 impl CrewConfig {
     pub fn line_height(&self) -> f32 {
         self.font_size * 1.25
+    }
+
+    /// The configured theme, or `paper-dark` when unset/unknown.
+    pub fn theme_id(&self) -> crew_theme::ThemeId {
+        self.theme
+            .as_deref()
+            .and_then(crew_theme::ThemeId::from_str)
+            .unwrap_or(crew_theme::ThemeId::PaperDark)
     }
 
     /// The configured accent colour, or the active theme's default when unset/invalid.
@@ -125,6 +138,7 @@ impl CrewConfig {
                 .into_iter()
                 .filter(|p| !p.is_empty())
                 .collect(),
+            theme: self.theme.filter(|s| !s.is_empty()),
         }
     }
 
@@ -265,6 +279,7 @@ mod tests {
             notify_exit: false,
             notify_min_secs: 30,
             notify_patterns: vec!["error".to_string(), "done".to_string()],
+            theme: Some("paper-light".to_string()),
         };
         assert_eq!(CrewConfig::from_toml_str(&c.to_toml_str()), c);
     }
@@ -295,5 +310,17 @@ mod tests {
     fn empty_accent_clamped_to_none() {
         let cfg = CrewConfig::from_toml_str("accent = \"\"\n");
         assert_eq!(cfg.accent, None);
+    }
+
+    #[test]
+    fn theme_id_parses_or_defaults() {
+        assert_eq!(
+            CrewConfig::default().theme_id(),
+            crew_theme::ThemeId::PaperDark
+        );
+        let light = CrewConfig::from_toml_str("theme = \"paper-light\"\n");
+        assert_eq!(light.theme_id(), crew_theme::ThemeId::PaperLight);
+        let bad = CrewConfig::from_toml_str("theme = \"chartreuse\"\n");
+        assert_eq!(bad.theme_id(), crew_theme::ThemeId::PaperDark);
     }
 }

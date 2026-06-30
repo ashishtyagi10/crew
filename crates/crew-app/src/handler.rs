@@ -57,6 +57,8 @@ impl ApplicationHandler for CrewApp {
 pub fn run() -> anyhow::Result<()> {
     let event_loop = EventLoop::new()?;
     let config = CrewConfig::load();
+    // Apply the theme first; the accent default reads the active theme.
+    crew_theme::set_theme(config.theme_id());
     // Seed the themeable accent from config before the first frame.
     crate::palette::set_accent(config.accent_rgb());
     let cwd = crate::cwd::resolved_start(config.last_dir.as_deref());
