@@ -13,6 +13,7 @@ pub struct Renderer {
     cell_grid: CellGrid,
     paper_bg: PaperBgPass,
     paper_texture: bool,
+    paper_grain: f32,
 }
 
 impl Renderer {
@@ -25,6 +26,7 @@ impl Renderer {
             cell_grid,
             paper_bg,
             paper_texture: true,
+            paper_grain: 1.0,
         })
     }
 
@@ -41,6 +43,11 @@ impl Renderer {
     /// Enable or disable the paper grain + vignette background pass.
     pub fn set_paper_texture(&mut self, enabled: bool) {
         self.paper_texture = enabled;
+    }
+
+    /// Set the grain amplitude multiplier (0.0 = no grain, 1.0 = default ~±3%, 2.0 = double).
+    pub fn set_paper_grain(&mut self, grain: f32) {
+        self.paper_grain = grain;
     }
 
     /// Sorted, de-duplicated names of all installed monospace font families.
@@ -103,6 +110,7 @@ impl Renderer {
                     self.gpu.config.width as f32,
                     self.gpu.config.height as f32,
                     1.0,
+                    self.paper_grain,
                 );
             }
 

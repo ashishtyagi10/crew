@@ -2,7 +2,7 @@ struct Uniform {
     page_bg: vec4<f32>,
     resolution: vec2<f32>,
     intensity: f32,
-    pad: f32,
+    grain_mul: f32,   // replaces pad; scales grain amplitude (0 = no grain, 1 = default ~3%)
 }
 @group(0) @binding(0) var<uniform> u: Uniform;
 
@@ -37,8 +37,8 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     let d2 = dot(uv - vec2<f32>(0.5), uv - vec2<f32>(0.5));
     let vignette = 1.0 - d2 * 0.1;
 
-    // Grain: ±3% amplitude around neutral.
-    let g = (grain(in.pos.xy) - 0.5) * 0.06;
+    // Grain: ±3% amplitude around neutral, scaled by grain_mul.
+    let g = (grain(in.pos.xy) - 0.5) * 0.06 * u.grain_mul;
 
     // Blend between full effect (intensity=1) and plain bg (intensity=0).
     let mod_factor = (vignette + g) * u.intensity + (1.0 - u.intensity);

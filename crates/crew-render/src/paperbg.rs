@@ -89,7 +89,8 @@ impl PaperBgPass {
     }
 
     /// Write the per-frame uniform: theme background colour, surface resolution,
-    /// and effect intensity (1.0 = full grain+vignette, 0.0 = flat fill).
+    /// effect intensity (1.0 = full grain+vignette, 0.0 = flat fill), and grain
+    /// amplitude multiplier (0.0 = no grain, 1.0 = default ~±3%, 2.0 = double).
     pub fn update_uniform(
         &self,
         queue: &wgpu::Queue,
@@ -97,10 +98,10 @@ impl PaperBgPass {
         width: f32,
         height: f32,
         intensity: f32,
+        grain_mul: f32,
     ) {
         let data: [f32; 8] = [
-            page_bg[0], page_bg[1], page_bg[2], page_bg[3], width, height, intensity,
-            0.0, // pad
+            page_bg[0], page_bg[1], page_bg[2], page_bg[3], width, height, intensity, grain_mul,
         ];
         queue.write_buffer(&self.uniform_buf, 0, f32s_as_bytes(&data));
     }

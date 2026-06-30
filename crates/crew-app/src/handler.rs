@@ -32,6 +32,7 @@ impl ApplicationHandler for CrewApp {
                 // Apply the persisted font family up front, not just on Save.
                 renderer.set_font_family(self.config.font_family.clone());
                 renderer.set_paper_texture(self.config.paper_texture);
+                renderer.set_paper_grain(self.config.paper_grain);
                 if self.config.maximized {
                     window.set_maximized(true);
                 }

@@ -20,6 +20,10 @@ fn default_notify_min_secs() -> u64 {
     10
 }
 
+fn default_paper_grain() -> f32 {
+    1.0
+}
+
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CrewConfig {
     #[serde(default = "default_font_size")]
@@ -75,6 +79,9 @@ pub struct CrewConfig {
     /// When off, the window background is a plain flat colour.
     #[serde(default = "default_true")]
     pub paper_texture: bool,
+    /// Grain amplitude multiplier for the paper texture (0.0 = no grain, 1.0 = default ~3%, 2.0 = double).
+    #[serde(default = "default_paper_grain")]
+    pub paper_grain: f32,
 }
 
 impl Default for CrewConfig {
@@ -97,6 +104,7 @@ impl Default for CrewConfig {
             notify_patterns: Vec::new(),
             theme: None,
             paper_texture: true,
+            paper_grain: default_paper_grain(),
         }
     }
 }
@@ -145,6 +153,7 @@ impl CrewConfig {
                 .collect(),
             theme: self.theme.filter(|s| !s.is_empty()),
             paper_texture: self.paper_texture,
+            paper_grain: self.paper_grain.clamp(0.0, 2.0),
         }
     }
 
@@ -287,6 +296,7 @@ mod tests {
             notify_patterns: vec!["error".to_string(), "done".to_string()],
             theme: Some("paper-light".to_string()),
             paper_texture: false,
+            paper_grain: 0.5,
         };
         assert_eq!(CrewConfig::from_toml_str(&c.to_toml_str()), c);
     }

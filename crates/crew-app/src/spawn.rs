@@ -252,6 +252,7 @@ impl CrewApp {
             r.set_font_family(self.config.font_family.clone());
             r.set_font_size(self.config.font_size * scale);
             r.set_paper_texture(self.config.paper_texture);
+            r.set_paper_grain(self.config.paper_grain);
         }
         // Pick up any change to the watched notification patterns on live panes.
         self.apply_notify_patterns();
