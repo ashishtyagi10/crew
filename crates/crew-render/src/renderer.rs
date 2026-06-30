@@ -26,7 +26,9 @@ impl Renderer {
             cell_grid,
             paper_bg,
             paper_texture: true,
-            paper_grain: 1.0,
+            // Matches config's default_paper_grain; the app calls set_paper_grain
+            // right after construction, so this is just a sane standalone default.
+            paper_grain: 1.3,
         })
     }
 
