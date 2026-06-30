@@ -86,9 +86,9 @@ mod tests {
         // both rates now share row 1
         assert!(cells.iter().any(|c| c.c == '↓' && c.row == 1));
         assert!(cells.iter().any(|c| c.c == '↑' && c.row == 1));
-        // the throughput line chart draws braille glyphs on row 2
+        // the throughput line chart draws vertical block glyphs on row 2
         assert!(cells
             .iter()
-            .any(|c| c.row == 2 && c.fg == SPARK && ('\u{2800}'..='\u{28FF}').contains(&c.c)));
+            .any(|c| c.row == 2 && c.fg == SPARK && ('\u{2581}'..='\u{2588}').contains(&c.c)));
     }
 }

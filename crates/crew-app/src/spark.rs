@@ -1,8 +1,9 @@
 //! Rolling history + line-chart rendering for the sidebar. A [`History`] keeps the
-//! last N samples; [`line_cells`] traces them as a single-row braille **line**
-//! chart converted to Crew cells. The chart "moves" as samples are pushed on the
-//! sidebar's existing ~1 Hz refresh — it costs nothing beyond the repaint that
-//! already happens each second, so animation never compromises performance.
+//! last N samples; [`line_cells`] traces them as a single-row **continuous line**
+//! chart — one vertical block glyph (`▁`–`█`) per column — converted to Crew
+//! cells. The chart "moves" as samples are pushed on the sidebar's existing ~1 Hz
+//! refresh — it costs nothing beyond the repaint that already happens each
+//! second, so animation never compromises performance.
 use std::collections::VecDeque;
 
 use crew_render::CellView;
@@ -44,22 +45,13 @@ impl History {
     }
 }
 
-/// Braille dot bit for sub-cell (`dot_col` 0..2 left→right, `dot_row` 0..4
-/// top→bottom) per the Unicode Braille Patterns layout (U+2800 base).
-fn braille_bit(dot_col: usize, dot_row: usize) -> u8 {
-    // Left column = dots 1,2,3,7; right column = dots 4,5,6,8.
-    const LEFT: [u8; 4] = [0x01, 0x02, 0x04, 0x40];
-    const RIGHT: [u8; 4] = [0x08, 0x10, 0x20, 0x80];
-    if dot_col == 0 {
-        LEFT[dot_row]
-    } else {
-        RIGHT[dot_row]
-    }
-}
+/// Vertical block ramp (eighths), shortest → tallest. Index 0 (`▁`) is the
+/// baseline so even a zero sample draws a glyph and the line stays continuous.
+const BLOCKS: [char; 8] = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
 
-/// Render `hist` as a single-row braille **line** chart `width` cells wide, its
-/// left edge at `col0` on `row`. Each cell packs a 2×4 dot grid, so the line has
-/// two horizontal points and four vertical levels per cell. `max` scales the
+/// Render `hist` as a single-row **continuous line** chart `width` cells wide,
+/// its left edge at `col0` on `row`. One vertical block glyph (`▁`–`█`) per
+/// column gives eight height levels and a gap-free baseline. `max` scales the
 /// height (e.g. 100 for a percentage); `0` auto-scales to the window's peak. The
 /// newest sample sits at the right edge. Empty with no history or no width.
 pub fn line_cells(
@@ -73,38 +65,29 @@ pub fn line_cells(
     if width == 0 || hist.is_empty() {
         return Vec::new();
     }
-    // Two braille sub-columns per cell → horizontal resolution of 2·width points.
-    let subcols = width as usize * 2;
-    let data = hist.tail(subcols);
+    // One sample per cell → horizontal resolution of `width` points.
+    let cols = width as usize;
+    let data = hist.tail(cols);
     // Fixed scale when given, else auto-scale to the window's peak (min 1).
     let scale = if max > 0 {
         max
     } else {
         data.iter().copied().max().unwrap_or(1).max(1)
     };
-    // Right-align so the newest sample lands on the rightmost sub-column.
-    let offset = subcols - data.len();
-
-    let mut bits = vec![0u8; width as usize];
-    for (k, &v) in data.iter().enumerate() {
-        let x = offset + k;
-        let frac = (v as f64 / scale as f64).clamp(0.0, 1.0);
-        // Map value to a vertical dot level: high value → top row (0).
-        let height = (frac * 3.0).round() as usize; // 0..=3
-        let dot_row = 3 - height;
-        bits[x / 2] |= braille_bit(x % 2, dot_row);
-    }
+    // Right-align so the newest sample lands on the rightmost cell.
+    let offset = cols - data.len();
 
     let mut cells = Vec::new();
-    for (i, &b) in bits.iter().enumerate() {
-        if b == 0 {
-            continue; // no point in this cell — leave it transparent
-        }
-        let c = char::from_u32(0x2800 + b as u32).unwrap_or(' ');
+    for (k, &v) in data.iter().enumerate() {
+        let i = offset + k;
+        let frac = (v as f64 / scale as f64).clamp(0.0, 1.0);
+        // Map value to one of eight block heights (`▁`–`█`); zero still draws the
+        // baseline so the line never breaks.
+        let level = (frac * 7.0).round() as usize; // 0..=7
         cells.push(CellView {
             col: col0 + i as u16,
             row,
-            c,
+            c: BLOCKS[level],
             fg,
             bg: BG,
             bold: false,
@@ -114,8 +97,9 @@ pub fn line_cells(
     cells
 }
 
-/// Sidebar convenience: render `hist` as a percentage (0–100) line chart indented
-/// under the section legend (col 3), spanning the rest of `cols` on `row`.
+/// Sidebar convenience: render `hist` as a percentage (0–100) continuous line
+/// chart indented under the section legend (col 3), spanning the rest of `cols`
+/// on `row`.
 pub fn cpu_row(hist: &History, cols: u16, row: u16) -> Vec<CellView> {
     if cols <= 5 {
         return Vec::new();
@@ -154,7 +138,7 @@ mod tests {
     }
 
     #[test]
-    fn renders_braille_line_in_bounds() {
+    fn renders_line_in_bounds() {
         let mut h = History::new(32);
         for v in [10, 40, 70, 100, 0, 55, 80, 20] {
             h.push(v);
@@ -164,17 +148,19 @@ mod tests {
         // shifted to the requested origin and within the requested width
         assert!(cells.iter().all(|c| c.row == 4));
         assert!(cells.iter().all(|c| (3..3 + 8).contains(&c.col)));
-        // every glyph is a Unicode braille pattern, not a bar block
+        // every glyph is a vertical block element (continuous line), not braille
         assert!(cells
             .iter()
-            .all(|c| ('\u{2800}'..='\u{28FF}').contains(&c.c)));
-        assert!(!cells.iter().any(|c| c.c == '█'));
+            .all(|c| ('\u{2581}'..='\u{2588}').contains(&c.c)));
+        assert!(!cells
+            .iter()
+            .any(|c| ('\u{2800}'..='\u{28FF}').contains(&c.c)));
     }
 
     #[test]
     fn high_value_sits_above_low_value() {
-        // A peak sample's dot must render higher (more top dots set) than a
-        // trough sample's — proving the line tracks value height.
+        // A peak sample must render a taller block than a trough sample —
+        // proving the line tracks value height.
         let mut peak = History::new(2);
         peak.push(100);
         let top = &line_cells(&peak, 1, 0, 0, 100, (0, 0, 0))[0];
@@ -183,14 +169,8 @@ mod tests {
         trough.push(0);
         let bottom = &line_cells(&trough, 1, 0, 0, 100, (0, 0, 0))[0];
 
-        // Top dot for a full value (dot 4, 0x08 at the rightmost sub-column),
-        // bottom dot for a zero value (dot 8, 0x80).
-        let top_bits = top.c as u32 - 0x2800;
-        let bottom_bits = bottom.c as u32 - 0x2800;
-        assert_eq!(top_bits, 0x08, "full value should set the top-right dot");
-        assert_eq!(
-            bottom_bits, 0x80,
-            "zero value should set the bottom-right dot"
-        );
+        // Full value fills the cell (`█`); a zero value sits on the baseline (`▁`).
+        assert_eq!(top.c, '█', "full value should draw a full block");
+        assert_eq!(bottom.c, '▁', "zero value should draw the baseline block");
     }
 }
