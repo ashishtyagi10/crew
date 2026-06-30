@@ -271,7 +271,7 @@ fn banner(text: &str, cols: u16) -> Vec<CellView> {
             col: i as u16,
             row: 0,
             c,
-            fg: (200, 200, 210),
+            fg: crew_theme::theme().ink,
             bg: crew_theme::theme().page_bg,
             bold: false,
             italic: false,

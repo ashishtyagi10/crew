@@ -68,7 +68,7 @@ pub fn swarm_cells(graph: &TaskGraph, fleet: &Fleet, cols: u16, rows: u16) -> Ve
 /// a cancelled run doesn't just look "done".
 pub fn cancelled_notice(cols: u16, rows: u16) -> Vec<CellView> {
     let last = rows.saturating_sub(1);
-    let page_bg = crew_theme::theme().page_bg;
+    let t = crew_theme::theme();
     "budget exceeded — swarm cancelled"
         .chars()
         .take(cols as usize)
@@ -77,8 +77,8 @@ pub fn cancelled_notice(cols: u16, rows: u16) -> Vec<CellView> {
             col: i as u16,
             row: last,
             c,
-            fg: (235, 180, 70),
-            bg: page_bg,
+            fg: t.status_fg,
+            bg: t.page_bg,
             bold: true,
             italic: false,
         })
