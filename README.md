@@ -78,6 +78,20 @@ The prebuilt path only sees a version once its release assets are published.
 cargo run --release -p crew-app
 ```
 
+### Detached mode
+
+Launched from a terminal, `crew` shares that terminal's session — so closing the
+terminal sends it `SIGHUP` and the window dies with it. Start it **detached** to
+keep it running after the launching terminal closes:
+
+```sh
+crew --detach   # or: crew -d
+```
+
+This re-launches crew in a new session (no controlling terminal) and returns your
+prompt immediately. (Equivalent to `setsid crew` / `nohup crew &` if you prefer
+the shell built-ins.)
+
 ## Panes
 
 Panes auto-tile into a near-square grid. Each pane has a title bar showing its

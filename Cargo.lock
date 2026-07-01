@@ -553,6 +553,7 @@ dependencies = [
  "crew-theme",
  "dirs",
  "image",
+ "libc",
  "open",
  "ratatui",
  "self_update",

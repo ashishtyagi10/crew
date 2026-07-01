@@ -13,6 +13,7 @@ mod clock;
 mod cmdmenu;
 pub mod config;
 mod cwd;
+mod detach;
 mod dispatch;
 mod dump;
 mod editpane;
@@ -95,6 +96,12 @@ fn main() -> anyhow::Result<()> {
     // download the latest release over ourselves, show a progress bar, and exit.
     if std::env::args().skip(1).any(|a| a == "--self-update") {
         return selfupdate::run();
+    }
+    // `--detach` / `-d`: re-launch in a new session (detached from this terminal)
+    // and exit the parent, so closing the launching shell doesn't SIGHUP the GUI.
+    // The re-launched child sets CREW_DETACHED, so it falls through to the GUI.
+    if detach::wants_detach() && !detach::is_detached_child() {
+        return detach::relaunch_detached();
     }
     handler::run()
 }
