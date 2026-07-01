@@ -125,7 +125,7 @@ impl CrewApp {
         let shift = mstate.shift_key();
         let mut settings_action: Option<SettingsAction> = None;
         let mut far_action: Option<crate::farpane::FarAction> = None;
-        let mut chat_action: Option<crate::chat::ChatAction> = None;
+        let mut chat_action: Option<crate::chatkeys::ChatAction> = None;
         let mut is_terminal = false;
         if let Some(pane) = self.panes.get_mut(focused) {
             match &mut pane.content {
@@ -157,7 +157,7 @@ impl CrewApp {
             }
         }
         if let Some(action) = chat_action {
-            use crate::chat::ChatAction;
+            use crate::chatkeys::ChatAction;
             match action {
                 ChatAction::Close => {
                     self.close_pane(focused);

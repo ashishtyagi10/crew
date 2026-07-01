@@ -53,6 +53,10 @@ impl Adapter for ApiAdapter {
         &self.name
     }
 
+    fn model(&self) -> &str {
+        &self.model
+    }
+
     /// Inbuilt agents are only constructed when an API key is present, so they
     /// are always usable.
     fn probe(&self) -> bool {

@@ -10,4 +10,4 @@ pub use broker::{
 pub use echo::respond;
 pub use host::Plugin;
 pub use orchestrator::plan;
-pub use protocol::{PluginCommand, PluginEvent};
+pub use protocol::{AgentInfo, PluginCommand, PluginEvent};

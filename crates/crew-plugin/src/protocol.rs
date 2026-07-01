@@ -8,6 +8,17 @@ pub enum PluginCommand {
     Send { channel: String, text: String },
 }
 
+/// One agent in a plugin's roster: its address name, a short capability role,
+/// and the model it runs on (empty when unknown, e.g. an external CLI).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AgentInfo {
+    pub name: String,
+    #[serde(default)]
+    pub role: String,
+    #[serde(default)]
+    pub model: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum PluginEvent {
@@ -15,6 +26,11 @@ pub enum PluginEvent {
         v: u32,
         provider: String,
         channels: Vec<String>,
+    },
+    /// The agents this plugin can route to (sent once after `Ready`), so the
+    /// host can show a roster with model badges.
+    Roster {
+        agents: Vec<AgentInfo>,
     },
     Message {
         channel: String,
@@ -65,6 +81,20 @@ mod tests {
             PluginEvent::SendPane { label, text } => {
                 assert_eq!(label, "a");
                 assert_eq!(text, "hi");
+            }
+            _ => panic!("wrong variant"),
+        }
+    }
+
+    #[test]
+    fn roster_event_roundtrips_and_defaults() {
+        let line = r#"{"type":"roster","agents":[{"name":"planner","role":"planning","model":"m1"},{"name":"claude"}]}"#;
+        let ev: PluginEvent = serde_json::from_str(line).unwrap();
+        match ev {
+            PluginEvent::Roster { agents } => {
+                assert_eq!(agents.len(), 2);
+                assert_eq!(agents[0].model, "m1");
+                assert_eq!(agents[1].role, ""); // role/model default to empty
             }
             _ => panic!("wrong variant"),
         }

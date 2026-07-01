@@ -1,46 +1,11 @@
-use crew_plugin::{Plugin, PluginCommand, PluginEvent};
+use crew_plugin::{AgentInfo, Plugin, PluginCommand, PluginEvent};
 use crew_render::CellView;
 use winit::event::KeyEvent;
-use winit::keyboard::{Key, NamedKey};
 
+use crate::chatkeys::{chat_key, ChatAction, ChatInput};
 use crate::chatlayout::{input_reduce, layout_cells, Message};
 
-#[derive(Debug, PartialEq)]
-pub enum HostAction {
-    SpawnPane {
-        command: String,
-        args: Vec<String>,
-        label: String,
-    },
-    SendPane {
-        label: String,
-        text: String,
-    },
-}
-
-pub struct PollResult {
-    pub changed: bool,
-    pub actions: Vec<HostAction>,
-}
-
-pub fn classify(ev: &PluginEvent) -> Option<HostAction> {
-    match ev {
-        PluginEvent::SpawnPane {
-            command,
-            args,
-            label,
-        } => Some(HostAction::SpawnPane {
-            command: command.clone(),
-            args: args.clone(),
-            label: label.clone(),
-        }),
-        PluginEvent::SendPane { label, text } => Some(HostAction::SendPane {
-            label: label.clone(),
-            text: text.clone(),
-        }),
-        _ => None,
-    }
-}
+pub use crate::chatevents::{classify, HostAction, PollResult};
 
 pub struct ChatPane {
     pub plugin: Plugin,
@@ -48,6 +13,8 @@ pub struct ChatPane {
     pub messages: Vec<Message>,
     pub input: String,
     pub connected: bool,
+    /// The agents the plugin can route to (name/role/model), for the roster row.
+    pub agents: Vec<AgentInfo>,
     /// Lines scrolled up from the live bottom (0 = following new messages).
     pub scroll: usize,
     /// A message was sent and no reply has arrived yet — drives the pane's
@@ -63,6 +30,7 @@ impl ChatPane {
             messages: Vec::new(),
             input: String::new(),
             connected: false,
+            agents: Vec::new(),
             scroll: 0,
             awaiting: false,
         }
@@ -73,11 +41,22 @@ impl ChatPane {
         self.awaiting
     }
 
+    /// Rows consumed above the message body: the status header, plus the agent
+    /// roster row when agents are known and the pane is tall enough.
+    fn top_rows(&self, rows: u16) -> u16 {
+        match rows {
+            0..=2 => 0,
+            3 => 1,
+            _ if self.agents.is_empty() => 1,
+            _ => 2,
+        }
+    }
+
     /// Scroll the message history by `delta` lines (positive = up/older),
     /// clamped to the available scrollback for the current width/height.
     pub fn scroll(&mut self, delta: i32, cols: u16, rows: u16) {
-        // The header (row 0) and the input row both sit outside the message area.
-        let msg_rows = rows.saturating_sub(2) as usize;
+        // The header/roster rows and the input row sit outside the message area.
+        let msg_rows = rows.saturating_sub(self.top_rows(rows) + 1) as usize;
         let max =
             crate::chatlayout::wrapped_line_count(&self.messages, cols).saturating_sub(msg_rows);
         let next = self.scroll as i64 + delta as i64;
@@ -107,6 +86,9 @@ impl ChatPane {
                             }
                         }
                     }
+                    PluginEvent::Roster { agents } => {
+                        self.agents = agents;
+                    }
                     PluginEvent::Message { sender, text, .. } => {
                         self.awaiting = false; // a reply landed
                         self.messages.push(Message { sender, text });
@@ -128,11 +110,12 @@ impl ChatPane {
         }
     }
 
-    /// Render the channel as CellView cells: a status header on row 0, then the
-    /// message body + input composer below it. Tiny panes (no room for a header)
-    /// fall back to the plain body.
+    /// Render the channel as CellView cells: a status header on row 0, the agent
+    /// roster (when known) on row 1, then the message body + input composer.
+    /// Tiny panes (no room for a header) fall back to the plain body.
     pub fn cells(&self, cols: u16, rows: u16) -> Vec<CellView> {
-        if rows < 3 {
+        let top = self.top_rows(rows);
+        if top == 0 {
             return layout_cells(
                 &self.messages,
                 &self.input,
@@ -149,24 +132,26 @@ impl ChatPane {
             self.messages.len(),
             self.awaiting,
         );
+        if top > 1 {
+            cells.extend(crate::chatroster::roster_cells(cols, 1, &self.agents));
+        }
         let mut body = layout_cells(
             &self.messages,
             &self.input,
             cols,
-            rows - 1,
+            rows - top,
             self.scroll,
             self.connected,
         );
         for c in &mut body {
-            c.row += 1; // shift the body below the header row
+            c.row += top; // shift the body below the header/roster rows
         }
         cells.append(&mut body);
         cells
     }
 
     /// Handle a winit key event. Returns [`ChatAction::Close`] when the user asks
-    /// to close the pane (Escape) — mirroring the Far/Settings panes, which a chat
-    /// pane previously lacked, leaving `/crew` only closable via the Cmd+W chord.
+    /// to close the pane (Escape) — mirroring the Far/Settings panes.
     pub fn on_key(&mut self, key: &KeyEvent) -> Option<ChatAction> {
         let (ch, enter, backspace) = match chat_key(&key.logical_key, key.state.is_pressed()) {
             ChatInput::Close => return Some(ChatAction::Close),
@@ -189,38 +174,6 @@ impl ChatPane {
             }
         }
         None
-    }
-}
-
-/// What a key press means to a chat pane. Extracted from `on_key` as a pure,
-/// testable seam (winit's `KeyEvent` is `#[non_exhaustive]` and hard to build).
-#[derive(Debug, PartialEq, Eq)]
-pub(crate) enum ChatInput {
-    Close,
-    Char(char),
-    Enter,
-    Backspace,
-    Ignore,
-}
-
-/// An action a chat pane asks the app to take after a key press.
-pub(crate) enum ChatAction {
-    /// Close this pane (Escape).
-    Close,
-}
-
-/// Classify a key press for a chat pane. Only presses act; Escape closes.
-pub(crate) fn chat_key(logical: &Key, pressed: bool) -> ChatInput {
-    if !pressed {
-        return ChatInput::Ignore;
-    }
-    match logical {
-        Key::Named(NamedKey::Escape) => ChatInput::Close,
-        Key::Named(NamedKey::Enter) => ChatInput::Enter,
-        Key::Named(NamedKey::Backspace) => ChatInput::Backspace,
-        Key::Named(NamedKey::Space) => ChatInput::Char(' '),
-        Key::Character(s) => s.chars().next().map_or(ChatInput::Ignore, ChatInput::Char),
-        _ => ChatInput::Ignore,
     }
 }
 

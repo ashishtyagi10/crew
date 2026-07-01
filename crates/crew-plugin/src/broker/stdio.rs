@@ -59,6 +59,12 @@ fn dispatch(cmd: PluginCommand, out: &mut impl Write) -> anyhow::Result<()> {
                     channels: vec!["crew".into()],
                 },
             )?;
+            emit(
+                out,
+                &PluginEvent::Roster {
+                    agents: reg.infos(),
+                },
+            )?;
             emit(out, &msg("crew", roster(&reg)))?;
         }
         PluginCommand::Send { text, .. } => relay(&text, out)?,

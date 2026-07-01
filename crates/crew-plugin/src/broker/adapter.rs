@@ -29,6 +29,11 @@ impl Normalize {
 pub trait Adapter: Send + Sync {
     /// The name messages are addressed to (lowercase, e.g. `"claude"`).
     fn name(&self) -> &str;
+    /// The model this agent runs on, for roster badges. Empty when the agent
+    /// picks its own model (external CLIs).
+    fn model(&self) -> &str {
+        ""
+    }
     /// Whether this agent's CLI is installed and usable on this machine.
     fn probe(&self) -> bool;
     /// Send `body` to the agent and return its normalized reply, or an error

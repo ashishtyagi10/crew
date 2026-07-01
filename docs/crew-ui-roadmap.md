@@ -25,7 +25,7 @@ a failure. Keep each iteration shippable on its own.
 - [x] **1 — Header status bar.** A top row: title (`crew · <channel>`) left;
   right-aligned live status — connection dot, message count, animated "thinking"
   spinner while a reply is pending.
-- [ ] **2 — Agent roster + model badges.** Track the connected agents (from the
+- [x] **2 — Agent roster + model badges.** Track the connected agents (from the
   broker `Ready`/hop events) and show them as colored chips with role + model
   labels and an active-agent highlight (à la Cursor's agent bar).
 - [ ] **3 — Role-styled message cards.** Distinct treatment per sender (user vs
