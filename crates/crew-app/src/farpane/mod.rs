@@ -3,7 +3,9 @@
 //! cursor; Enter descends into a folder (or `..`) or opens a file with the OS
 //! default. The function-key bar works as labelled: F1 help, F3/F4 view/edit
 //! (open with the OS default), F5 copy and F6 move into the other panel, F7
-//! make-folder (a text prompt), F8 delete to trash, F10/Esc close. Lives in the
+//! make-folder (a text prompt), F8 delete to trash, F10/Esc close. A Far-style
+//! command line sits at the bottom: type a command and press Enter to run it in
+//! the active panel's directory (in its own pane); Esc clears it. Lives in the
 //! auto-tiling grid like any other pane and renders into a `ratatui` buffer →
 //! GPU cells.
 mod keys;
@@ -82,6 +84,9 @@ pub struct FarPane {
     pub(crate) active: Side,
     /// Active text prompt (F7 make-folder), captured before any nav key.
     pub(crate) prompt: Option<Prompt>,
+    /// The classic Far command line at the bottom: typed text runs (Enter) as a
+    /// command in the active panel's directory. Empty when nothing is typed.
+    pub(crate) cmdline: String,
 }
 
 impl FarPane {
@@ -92,7 +97,13 @@ impl FarPane {
             right: Panel::new(cwd),
             active: Side::Left,
             prompt: None,
+            cmdline: String::new(),
         }
+    }
+
+    /// The directory of the currently active panel — where a typed command runs.
+    pub(crate) fn active_cwd(&self) -> PathBuf {
+        self.panel(self.active).cwd.clone()
     }
 
     pub fn cells(&self, cols: u16, rows: u16) -> Vec<CellView> {

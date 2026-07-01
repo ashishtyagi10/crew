@@ -1,4 +1,4 @@
-use super::keys::{activate, ascend, copy, delete, make_dir, move_sel, rename_move};
+use super::keys::{activate, ascend, copy, delete, make_dir, move_sel, rename_move, run_cmdline};
 use super::{FarAction, FarPane, Side};
 
 /// A FarPane rooted at a unique temp dir containing one subdirectory and one
@@ -43,6 +43,31 @@ fn enter_descends_into_dir_and_back() {
     assert!(p.left.entries.iter().any(|e| e.is_parent));
     ascend(&mut p);
     assert_eq!(p.left.cwd, base);
+}
+
+#[test]
+fn command_line_runs_in_active_panel_dir() {
+    let (base, mut p) = fixture("cmdline");
+    // Type a command on the right panel (which points at a subdir).
+    p.active = Side::Right;
+    p.right.cwd = base.join("sub");
+    p.cmdline = "ls -la".into();
+    match run_cmdline(&mut p) {
+        FarAction::Run { cmd, cwd } => {
+            assert_eq!(cmd, "ls -la");
+            assert_eq!(cwd, base.join("sub")); // active panel's dir, not left's
+        }
+        _ => panic!("expected FarAction::Run"),
+    }
+    // Running consumes the command line.
+    assert!(p.cmdline.is_empty());
+}
+
+#[test]
+fn whitespace_command_line_does_not_run() {
+    let (_b, mut p) = fixture("blankcmd");
+    p.cmdline = "   ".into();
+    assert!(matches!(run_cmdline(&mut p), FarAction::Status(_)));
 }
 
 #[test]

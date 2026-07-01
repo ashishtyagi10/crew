@@ -54,12 +54,25 @@ impl CrewApp {
 
     /// Spawn a labeled terminal pane running `command args` and focus it.
     pub fn spawn_labeled_terminal(&mut self, command: &str, args: &[String], label: String) {
+        let cwd = self.spawn_cwd().map(std::path::Path::to_path_buf);
+        self.spawn_labeled_terminal_in(command, args, label, cwd);
+    }
+
+    /// As [`Self::spawn_labeled_terminal`], but starts the pane in `cwd` (used by
+    /// the Far command line to run in the active panel's directory). `None` falls
+    /// back to the process's inherited directory.
+    pub fn spawn_labeled_terminal_in(
+        &mut self,
+        command: &str,
+        args: &[String],
+        label: String,
+        cwd: Option<std::path::PathBuf>,
+    ) {
         let grid = self
             .renderer
             .as_ref()
             .map(Self::current_grid)
             .unwrap_or(FALLBACK_SIZE);
-        let cwd = self.spawn_cwd().map(std::path::Path::to_path_buf);
         match PtyTerm::spawn_in(grid, command, args, cwd.as_deref()) {
             Ok(pty) => {
                 let input = pty.writer();

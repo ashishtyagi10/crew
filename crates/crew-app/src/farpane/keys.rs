@@ -14,12 +14,14 @@ const PAGE: i32 = 10;
 /// Outcome of a key press the host app must act on. Filesystem mutations happen
 /// in-place on the pane; these are the effects that need the wider app.
 pub enum FarAction {
-    /// Tear the pane down (Esc / F10).
+    /// Tear the pane down (Esc on an empty command line / F10).
     Close,
     /// Open the keyboard-shortcuts overlay (F1).
     Help,
     /// Open a file with the OS default application (F3 / F4 / Enter on a file).
     Open(PathBuf),
+    /// Run the typed command line in `cwd` (the active panel's directory).
+    Run { cmd: String, cwd: PathBuf },
     /// Show a transient status message (operation result or error).
     Status(String),
 }
@@ -33,8 +35,17 @@ pub(crate) fn reduce(p: &mut FarPane, key: &KeyEvent) -> Option<FarAction> {
     if p.prompt.is_some() {
         return prompt_key(p, key);
     }
+    let typing = !p.cmdline.is_empty();
     match &key.logical_key {
-        Key::Named(NamedKey::Escape) | Key::Named(NamedKey::F10) => return Some(FarAction::Close),
+        // F10 always quits. Esc clears a typed command first, else quits.
+        Key::Named(NamedKey::F10) => return Some(FarAction::Close),
+        Key::Named(NamedKey::Escape) => {
+            if typing {
+                p.cmdline.clear();
+            } else {
+                return Some(FarAction::Close);
+            }
+        }
         Key::Named(NamedKey::F1) => return Some(FarAction::Help),
         Key::Named(NamedKey::Tab) => {
             p.active = p.other_side();
@@ -45,17 +56,45 @@ pub(crate) fn reduce(p: &mut FarPane, key: &KeyEvent) -> Option<FarAction> {
         Key::Named(NamedKey::PageUp) => move_sel(p, -PAGE),
         Key::Named(NamedKey::Home) => set_sel(p, 0),
         Key::Named(NamedKey::End) => set_sel(p, usize::MAX),
-        Key::Named(NamedKey::Enter) => return activate(p),
-        Key::Named(NamedKey::Backspace) => ascend(p),
+        // Enter runs a typed command; with an empty command line it activates
+        // the selected entry (descend / open), preserving the old behaviour.
+        Key::Named(NamedKey::Enter) => {
+            if typing {
+                return Some(run_cmdline(p));
+            }
+            return activate(p);
+        }
+        // Backspace edits the command line while typing, else ascends.
+        Key::Named(NamedKey::Backspace) => {
+            if typing {
+                p.cmdline.pop();
+            } else {
+                ascend(p);
+            }
+        }
         // F3 View / F4 Edit both open the selected file with the OS default app.
         Key::Named(NamedKey::F3) | Key::Named(NamedKey::F4) => return open_selected(p),
         Key::Named(NamedKey::F5) => return Some(copy(p)),
         Key::Named(NamedKey::F6) => return Some(rename_move(p)),
         Key::Named(NamedKey::F7) => p.prompt = Some(Prompt::mkdir()),
         Key::Named(NamedKey::F8) => return Some(delete(p)),
+        // Printable input builds up the command line (classic Far behaviour).
+        Key::Named(NamedKey::Space) => p.cmdline.push(' '),
+        Key::Character(s) => p.cmdline.push_str(s.as_str()),
         _ => {}
     }
     None
+}
+
+/// Take the typed command line and ask the app to run it in the active panel's
+/// directory. Whitespace-only input is discarded without spawning anything.
+pub(crate) fn run_cmdline(p: &mut FarPane) -> FarAction {
+    let cwd = p.active_cwd();
+    let cmd = std::mem::take(&mut p.cmdline);
+    if cmd.trim().is_empty() {
+        return FarAction::Status("nothing to run".into());
+    }
+    FarAction::Run { cmd, cwd }
 }
 
 /// Handle a key while the make-folder prompt is open.

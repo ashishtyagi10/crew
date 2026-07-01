@@ -24,6 +24,17 @@ impl CrewApp {
         let (label, script) = run_parts(cmd, &shell);
         self.spawn_labeled_terminal(&shell, &["-c".to_string(), script], label);
     }
+
+    /// Spawn a pane running `cmd` in `cwd` (the Far command line's directory).
+    pub(crate) fn run_in_pane_at(&mut self, cmd: &str, cwd: std::path::PathBuf) {
+        let cmd = cmd.trim();
+        if cmd.is_empty() {
+            return;
+        }
+        let shell = default_shell();
+        let (label, script) = run_parts(cmd, &shell);
+        self.spawn_labeled_terminal_in(&shell, &["-c".to_string(), script], label, Some(cwd));
+    }
 }
 
 #[cfg(test)]
