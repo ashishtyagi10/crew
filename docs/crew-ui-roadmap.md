@@ -59,9 +59,15 @@ a failure. Keep each iteration shippable on its own.
   metadata line (tokens/latency) per message when available. The broker stamps
   every message with epoch-ms `ts` and the reply's latency in a new `meta`
   field; card headers show `▍sender · 2m ago · 4.2s`.
-- [ ] **10 — Empty-state onboarding + polish.** A welcoming empty state (detected
+- [x] **10 — Empty-state onboarding + polish.** A welcoming empty state (detected
   agents, example prompts, quick-start), plus a final theming/consistency pass.
-  Then cut the release and stop the loop.
+  Then cut the release and stop the loop. A fresh pane now shows "Your crew is
+  ready" with the agent roster + roles, a how-to line, and a `Try: @planner …`
+  example; connecting and no-key states explain themselves.
+
+All 10 iterations shipped: 1 in v0.5.14 (header), 2/3/4/8/9 in v0.5.15
+(roster, cards, activity, timeline/meter, timestamps), 5/6/7/10 in v0.5.16
+(code blocks, composer, scroll affordances, onboarding). Loop complete.
 
 ## How to continue (trigger fires here each hour)
 

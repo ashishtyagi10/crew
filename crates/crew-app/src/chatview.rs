@@ -5,7 +5,7 @@
 use crew_render::CellView;
 
 use crate::chat::ChatPane;
-use crate::chatlayout::{layout_cells, CONNECTING_HINT, READY_HINT};
+use crate::chatlayout::layout_cells;
 
 /// Render `pane` into a `cols` × `rows` grid.
 pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
@@ -40,7 +40,13 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
     }
     let bottom = crate::chatinput::composer_rows(rows);
     if pane.messages.is_empty() {
-        cells.extend(hint_cells(pane.connected, cols, top));
+        cells.extend(crate::chatempty::empty_cells(
+            cols,
+            rows - bottom,
+            top,
+            pane.connected,
+            &pane.agents,
+        ));
     } else {
         let msg_rows = rows.saturating_sub(top + bottom);
         cells.extend(crate::chatmsgs::message_cells(
@@ -71,46 +77,4 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
         rows,
     ));
     cells
-}
-
-/// The dim one-line hint shown while the pane has no messages yet.
-fn hint_cells(connected: bool, cols: u16, row: u16) -> Vec<CellView> {
-    let t = crew_theme::theme();
-    let hint = if connected {
-        READY_HINT
-    } else {
-        CONNECTING_HINT
-    };
-    hint.chars()
-        .take(cols as usize)
-        .enumerate()
-        .map(|(i, c)| CellView {
-            col: i as u16,
-            row,
-            c,
-            fg: t.hint_fg,
-            bg: t.page_bg,
-            bold: false,
-            italic: false,
-        })
-        .collect()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn hint_names_the_state() {
-        let ready: String = hint_cells(true, 80, 2).iter().map(|c| c.c).collect();
-        assert_eq!(ready, READY_HINT);
-        let conn: String = hint_cells(false, 80, 2).iter().map(|c| c.c).collect();
-        assert_eq!(conn, CONNECTING_HINT);
-        assert!(hint_cells(true, 80, 2).iter().all(|c| c.row == 2));
-    }
-
-    #[test]
-    fn hint_clips_to_width() {
-        assert_eq!(hint_cells(true, 5, 0).len(), 5);
-    }
 }
