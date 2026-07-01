@@ -3,8 +3,8 @@ use crew_render::CellView;
 type Color = (u8, u8, u8);
 type ColoredLine = Vec<(char, Color)>;
 
-const READY_HINT: &str = "Type a message and press Enter to talk to the agent.";
-const CONNECTING_HINT: &str = "Connecting to the agent…";
+pub(crate) const READY_HINT: &str = "Type a message and press Enter to talk to the agent.";
+pub(crate) const CONNECTING_HINT: &str = "Connecting to the agent…";
 
 pub struct Message {
     pub sender: String,
@@ -14,7 +14,7 @@ pub struct Message {
 /// Word-aware wrap of `full` to width `cols`: the `[start, end)` char ranges of
 /// each line. Words longer than `cols` are hard-broken; the single space at a
 /// wrap point is dropped. Always returns at least one (possibly empty) line.
-fn wrap_indices(full: &[char], cols: usize) -> Vec<(usize, usize)> {
+pub(crate) fn wrap_indices(full: &[char], cols: usize) -> Vec<(usize, usize)> {
     if cols == 0 || full.is_empty() {
         return vec![(0, full.len())];
     }

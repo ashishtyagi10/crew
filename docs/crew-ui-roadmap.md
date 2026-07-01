@@ -28,7 +28,7 @@ a failure. Keep each iteration shippable on its own.
 - [x] **2 — Agent roster + model badges.** Track the connected agents (from the
   broker `Ready`/hop events) and show them as colored chips with role + model
   labels and an active-agent highlight (à la Cursor's agent bar).
-- [ ] **3 — Role-styled message cards.** Distinct treatment per sender (user vs
+- [x] **3 — Role-styled message cards.** Distinct treatment per sender (user vs
   each agent vs system): a colored gutter/rule, a role label line, and clear
   separation between messages rather than inline `sender: text`.
 - [ ] **4 — Handoff / relay visualization.** Render `@next`/`@done` control hops

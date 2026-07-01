@@ -3,7 +3,7 @@ use crew_render::CellView;
 use winit::event::KeyEvent;
 
 use crate::chatkeys::{chat_key, ChatAction, ChatInput};
-use crate::chatlayout::{input_reduce, layout_cells, Message};
+use crate::chatlayout::{input_reduce, Message};
 
 pub use crate::chatevents::{classify, HostAction, PollResult};
 
@@ -43,7 +43,7 @@ impl ChatPane {
 
     /// Rows consumed above the message body: the status header, plus the agent
     /// roster row when agents are known and the pane is tall enough.
-    fn top_rows(&self, rows: u16) -> u16 {
+    pub(crate) fn top_rows(&self, rows: u16) -> u16 {
         match rows {
             0..=2 => 0,
             3 => 1,
@@ -56,9 +56,16 @@ impl ChatPane {
     /// clamped to the available scrollback for the current width/height.
     pub fn scroll(&mut self, delta: i32, cols: u16, rows: u16) {
         // The header/roster rows and the input row sit outside the message area.
-        let msg_rows = rows.saturating_sub(self.top_rows(rows) + 1) as usize;
-        let max =
-            crate::chatlayout::wrapped_line_count(&self.messages, cols).saturating_sub(msg_rows);
+        let top = self.top_rows(rows);
+        let msg_rows = rows.saturating_sub(top + 1) as usize;
+        // The card view (normal panes) and the plain fallback (tiny panes)
+        // wrap to different line counts; clamp against whichever is shown.
+        let total = if top == 0 {
+            crate::chatlayout::wrapped_line_count(&self.messages, cols)
+        } else {
+            crate::chatmsgs::card_line_count(&self.messages, cols)
+        };
+        let max = total.saturating_sub(msg_rows);
         let next = self.scroll as i64 + delta as i64;
         self.scroll = next.clamp(0, max as i64) as usize;
     }
@@ -110,44 +117,11 @@ impl ChatPane {
         }
     }
 
-    /// Render the channel as CellView cells: a status header on row 0, the agent
-    /// roster (when known) on row 1, then the message body + input composer.
-    /// Tiny panes (no room for a header) fall back to the plain body.
+    /// Render the channel as CellView cells: a status header, the agent roster
+    /// (when known), role-styled message cards, and the input composer. Tiny
+    /// panes (no room for a header) fall back to the plain body.
     pub fn cells(&self, cols: u16, rows: u16) -> Vec<CellView> {
-        let top = self.top_rows(rows);
-        if top == 0 {
-            return layout_cells(
-                &self.messages,
-                &self.input,
-                cols,
-                rows,
-                self.scroll,
-                self.connected,
-            );
-        }
-        let mut cells = crate::chathdr::header_cells(
-            cols,
-            &self.channel,
-            self.connected,
-            self.messages.len(),
-            self.awaiting,
-        );
-        if top > 1 {
-            cells.extend(crate::chatroster::roster_cells(cols, 1, &self.agents));
-        }
-        let mut body = layout_cells(
-            &self.messages,
-            &self.input,
-            cols,
-            rows - top,
-            self.scroll,
-            self.connected,
-        );
-        for c in &mut body {
-            c.row += top; // shift the body below the header/roster rows
-        }
-        cells.append(&mut body);
-        cells
+        crate::chatview::cells(self, cols, rows)
     }
 
     /// Handle a winit key event. Returns [`ChatAction::Close`] when the user asks
