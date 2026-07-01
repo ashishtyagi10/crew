@@ -49,7 +49,12 @@ pub enum PluginEvent {
         channel: String,
         sender: String,
         text: String,
+        /// Unix-epoch milliseconds when the message was produced ("" = unknown).
         ts: String,
+        /// Optional per-message metadata for the host's log line (e.g. the
+        /// reply's latency, `"4.2s"`). Absent on the wire when empty.
+        #[serde(default, skip_serializing_if = "String::is_empty")]
+        meta: String,
     },
     Error {
         message: String,
@@ -147,6 +152,7 @@ mod tests {
                 sender,
                 text,
                 ts,
+                ..
             } => {
                 assert_eq!(
                     (

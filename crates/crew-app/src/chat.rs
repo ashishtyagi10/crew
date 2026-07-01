@@ -119,9 +119,20 @@ impl ChatPane {
                     PluginEvent::Stats { tokens, .. } => {
                         self.tokens = self.tokens.saturating_add(tokens);
                     }
-                    PluginEvent::Message { sender, text, .. } => {
+                    PluginEvent::Message {
+                        sender,
+                        text,
+                        ts,
+                        meta,
+                        ..
+                    } => {
                         self.awaiting = false; // a reply landed
-                        self.messages.push(Message { sender, text });
+                        self.messages.push(Message {
+                            sender,
+                            text,
+                            ts,
+                            meta,
+                        });
                         if self.messages.len() > 500 {
                             let drain = self.messages.len() - 500;
                             self.messages.drain(..drain);

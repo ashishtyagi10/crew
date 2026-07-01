@@ -12,6 +12,7 @@ pub fn respond(cmd: &PluginCommand) -> Vec<PluginEvent> {
             sender: "echo".into(),
             text: text.clone(),
             ts: String::new(),
+            meta: String::new(),
         }],
         PluginCommand::Subscribe { .. } => vec![],
     }
@@ -52,6 +53,7 @@ mod tests {
                 sender,
                 text,
                 ts,
+                ..
             } => {
                 assert_eq!(channel, "general");
                 assert_eq!(sender, "echo");

@@ -3,9 +3,17 @@
 //! event for the host's token meter plus a per-turn timeline summary line
 //! (`turn done — planner 4.2s → coder 8.1s · 2 exchanges · ~950 tok`), timed
 //! here at the source so every UI gets the same numbers.
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use crate::{Broker, Hop, HopKind, PluginEvent, Registry};
+
+/// Unix-epoch milliseconds now, as the wire `ts` string.
+fn now_ts() -> String {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis().to_string())
+        .unwrap_or_default()
+}
 
 /// Drive one turn of the broker over `emit`, timing each agent call.
 pub(crate) fn relay_turn(
@@ -19,7 +27,9 @@ pub(crate) fn relay_turn(
     let mut segments: Vec<(String, Duration)> = Vec::new();
     let mut werr: anyhow::Result<()> = Ok(());
     let stats = broker.run("user", start, body, tid, &mut |hop| {
-        // A Dialing hop opens an agent's segment; any other hop closes it.
+        // A Dialing hop opens an agent's segment; any other hop closes it —
+        // the closed segment is that reply's latency.
+        let mut latency = None;
         match (&hop.kind, timing.take()) {
             (HopKind::Dialing, prev) => {
                 if let Some((agent, t0)) = prev {
@@ -27,11 +37,15 @@ pub(crate) fn relay_turn(
                 }
                 timing = Some((hop.to.clone(), Instant::now()));
             }
-            (_, Some((agent, t0))) => segments.push((agent, t0.elapsed())),
+            (_, Some((agent, t0))) => {
+                let d = t0.elapsed();
+                latency = Some(d);
+                segments.push((agent, d));
+            }
             _ => {}
         }
         if werr.is_ok() {
-            werr = emit(hop_to_msg(&hop));
+            werr = emit(hop_to_msg(&hop, latency));
         }
     });
     werr?;
@@ -72,14 +86,22 @@ pub(crate) fn turn_summary(
 
 /// Render a hop as a plugin event. `Dialing` becomes a live `Activity` status
 /// (the agent is thinking) rather than transcript spam; every other hop is a
-/// message labelled `from → to`.
-pub(crate) fn hop_to_msg(hop: &Hop) -> PluginEvent {
+/// message labelled `from → to`, carrying the reply's latency as its metadata.
+pub(crate) fn hop_to_msg(hop: &Hop, latency: Option<Duration>) -> PluginEvent {
     match hop.kind {
         HopKind::Dialing => PluginEvent::Activity {
             agent: hop.to.clone(),
             state: "thinking".into(),
         },
-        _ => msg(&format!("{} \u{2192} {}", hop.from, hop.to), hop_text(hop)),
+        _ => PluginEvent::Message {
+            channel: "crew".into(),
+            sender: format!("{} \u{2192} {}", hop.from, hop.to),
+            text: hop_text(hop),
+            ts: now_ts(),
+            meta: latency
+                .map(|d| format!("{:.1}s", d.as_secs_f32()))
+                .unwrap_or_default(),
+        },
     }
 }
 
@@ -98,7 +120,8 @@ pub(crate) fn msg(sender: &str, text: impl Into<String>) -> PluginEvent {
         channel: "crew".into(),
         sender: sender.into(),
         text: text.into(),
-        ts: String::new(),
+        ts: now_ts(),
+        meta: String::new(),
     }
 }
 

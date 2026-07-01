@@ -9,6 +9,10 @@ pub(crate) const CONNECTING_HINT: &str = "Connecting to the agent…";
 pub struct Message {
     pub sender: String,
     pub text: String,
+    /// Unix-epoch milliseconds when the message was produced ("" = unknown).
+    pub ts: String,
+    /// Per-message metadata from the plugin (e.g. reply latency, `"4.2s"`).
+    pub meta: String,
 }
 
 /// Word-aware wrap of `full` to width `cols`: the `[start, end)` char ranges of

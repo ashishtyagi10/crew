@@ -13,6 +13,7 @@ pub fn plan(cmd: &PluginCommand) -> Vec<PluginEvent> {
                 sender: "orchestrator".into(),
                 text: format!("Plan: spawning 2 agents for: {text}"),
                 ts: String::new(),
+                meta: String::new(),
             },
             PluginEvent::SpawnPane {
                 command: "sh".into(),
@@ -66,6 +67,7 @@ mod tests {
                 sender,
                 text,
                 ts,
+                ..
             } => {
                 assert_eq!(channel, "plan");
                 assert_eq!(sender, "orchestrator");

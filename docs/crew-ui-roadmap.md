@@ -47,8 +47,10 @@ a failure. Keep each iteration shippable on its own.
   times each agent call and ends every turn with a structured `Stats` event plus
   a `turn done — planner 4.2s → coder 8.1s · …` summary line; the header shows a
   running `~N tok` meter.
-- [ ] **9 — Timestamps + per-message metadata.** Relative timestamps and a subtle
-  metadata line (tokens/latency) per message when available.
+- [x] **9 — Timestamps + per-message metadata.** Relative timestamps and a subtle
+  metadata line (tokens/latency) per message when available. The broker stamps
+  every message with epoch-ms `ts` and the reply's latency in a new `meta`
+  field; card headers show `▍sender · 2m ago · 4.2s`.
 - [ ] **10 — Empty-state onboarding + polish.** A welcoming empty state (detected
   agents, example prompts, quick-start), plus a final theming/consistency pass.
   Then cut the release and stop the loop.

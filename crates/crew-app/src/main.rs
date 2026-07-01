@@ -10,6 +10,7 @@ mod chatlayout;
 mod chatmsgs;
 mod chatroster;
 mod chatspawn;
+mod chattime;
 mod chatview;
 mod chords;
 pub mod chrome;

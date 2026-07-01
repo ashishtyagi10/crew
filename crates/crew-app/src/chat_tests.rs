@@ -25,6 +25,7 @@ fn classify_message_returns_none() {
         sender: "bob".into(),
         text: "hello".into(),
         ts: "t".into(),
+        meta: String::new(),
     };
     assert_eq!(classify(&ev), None);
 }

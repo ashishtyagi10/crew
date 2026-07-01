@@ -23,12 +23,13 @@ fn sender_color(sender: &str) -> Color {
     }
 }
 
-/// The `▍sender` header line. Multi-part senders (`a → b`) colour each name
-/// separately with a muted arrow, so hand-offs read as from → to.
-fn header_line(sender: &str) -> CardLine {
+/// The `▍sender · 2m ago · 4.2s` header line. Multi-part senders (`a → b`)
+/// colour each name separately with a muted arrow, so hand-offs read as
+/// from → to; the muted tail carries the relative time and reply latency.
+fn header_line(m: &Message, now_ms: u64) -> CardLine {
     let muted = crew_theme::theme().text_muted;
     let mut line: CardLine = Vec::new();
-    let parts: Vec<&str> = sender.split(" \u{2192} ").collect();
+    let parts: Vec<&str> = m.sender.split(" \u{2192} ").collect();
     line.push((GUTTER, sender_color(parts[0]), false));
     for (i, part) in parts.iter().enumerate() {
         if i > 0 {
@@ -40,17 +41,20 @@ fn header_line(sender: &str) -> CardLine {
             line.push((c, sender_color(part), true));
         }
     }
+    for c in crate::chattime::meta_suffix(&m.ts, &m.meta, now_ms).chars() {
+        line.push((c, muted, false));
+    }
     line
 }
 
 /// All messages as card lines: header, indented body, spacer between cards.
-fn card_lines(messages: &[Message], cols: usize) -> Vec<CardLine> {
+fn card_lines(messages: &[Message], cols: usize, now_ms: u64) -> Vec<CardLine> {
     let mut out: Vec<CardLine> = Vec::new();
     for (i, m) in messages.iter().enumerate() {
         if i > 0 {
             out.push(Vec::new()); // spacer between cards
         }
-        out.push(header_line(&m.sender));
+        out.push(header_line(m, now_ms));
         // Body text: agents speak in ink; the system voice stays muted.
         let fg = match m.sender.as_str() {
             "crew" | "system" | "broker" => crew_theme::theme().text_muted,
@@ -72,7 +76,7 @@ pub(crate) fn card_line_count(messages: &[Message], cols: u16) -> usize {
     if cols == 0 {
         return 0;
     }
-    card_lines(messages, cols as usize).len()
+    card_lines(messages, cols as usize, 0).len()
 }
 
 /// Render the card view of `messages` into `rows` rows starting at `top_row`,
@@ -88,7 +92,7 @@ pub(crate) fn message_cells(
         return Vec::new();
     }
     let bg = crew_theme::theme().page_bg;
-    let lines = card_lines(messages, cols as usize);
+    let lines = card_lines(messages, cols as usize, crate::chattime::unix_now_ms());
     let max_start = lines.len().saturating_sub(rows as usize);
     let start = max_start.saturating_sub(scroll);
     let end = (start + rows as usize).min(lines.len());
@@ -116,10 +120,21 @@ pub(crate) fn message_cells(
 mod tests {
     use super::*;
 
+    #[test]
+    fn header_tail_carries_latency_metadata() {
+        let mut m = msg("coder", "done");
+        m.meta = "4.2s".into();
+        let line = header_line(&m, 0);
+        let text: String = line.iter().map(|&(c, ..)| c).collect();
+        assert!(text.ends_with("\u{00b7} 4.2s"), "got: {text}");
+    }
+
     fn msg(sender: &str, text: &str) -> Message {
         Message {
             sender: sender.into(),
             text: text.into(),
+            ts: String::new(),
+            meta: String::new(),
         }
     }
 
@@ -150,7 +165,7 @@ mod tests {
 
     #[test]
     fn handoff_sender_colours_each_name_separately() {
-        let line = header_line("planner \u{2192} coder");
+        let line = header_line(&msg("planner \u{2192} coder", ""), 0);
         let text: String = line.iter().map(|&(c, ..)| c).collect();
         assert_eq!(text, format!("{GUTTER}planner \u{2192} coder"));
         let planner_fg = line[1].1;

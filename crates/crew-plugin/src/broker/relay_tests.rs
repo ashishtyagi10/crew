@@ -51,7 +51,7 @@ fn dialing_becomes_a_thinking_activity() {
         kind: HopKind::Dialing,
         text: String::new(),
     };
-    match hop_to_msg(&hop) {
+    match hop_to_msg(&hop, None) {
         PluginEvent::Activity { agent, state } => {
             assert_eq!((agent.as_str(), state.as_str()), ("codex", "thinking"));
         }
@@ -68,8 +68,15 @@ fn reply_hop_is_labelled_from_to() {
         kind: HopKind::Reply,
         text: "here is my analysis".into(),
     };
-    let ev = hop_to_msg(&hop);
+    let ev = hop_to_msg(&hop, Some(Duration::from_millis(4200)));
     assert_eq!(text(&ev), ("claude → codex", "here is my analysis"));
+    match &ev {
+        PluginEvent::Message { meta, ts, .. } => {
+            assert_eq!(meta, "4.2s");
+            assert!(ts.parse::<u64>().is_ok(), "ts should be epoch ms: {ts}");
+        }
+        _ => panic!("expected Message"),
+    }
 }
 
 #[test]
@@ -81,10 +88,13 @@ fn done_and_error_markers() {
         kind,
         text: t.into(),
     };
-    assert_eq!(text(&hop_to_msg(&mk(HopKind::Done, ""))).1, "[done]");
-    assert_eq!(text(&hop_to_msg(&mk(HopKind::Error, "x"))).1, "[error] x");
+    assert_eq!(text(&hop_to_msg(&mk(HopKind::Done, ""), None)).1, "[done]");
     assert_eq!(
-        text(&hop_to_msg(&mk(HopKind::Terminated, "y"))).1,
+        text(&hop_to_msg(&mk(HopKind::Error, "x"), None)).1,
+        "[error] x"
+    );
+    assert_eq!(
+        text(&hop_to_msg(&mk(HopKind::Terminated, "y"), None)).1,
         "[stopped] y"
     );
 }

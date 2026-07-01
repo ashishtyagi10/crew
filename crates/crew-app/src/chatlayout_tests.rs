@@ -4,6 +4,8 @@ fn msg(sender: &str, text: &str) -> Message {
     Message {
         sender: sender.into(),
         text: text.into(),
+        ts: String::new(),
+        meta: String::new(),
     }
 }
 
