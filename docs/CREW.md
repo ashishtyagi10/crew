@@ -238,7 +238,19 @@ hung agent is killed and logged, and the broker moves on.
 
 **Observability.** Every hop is logged in the pane as `from → to` with the
 reply, so the whole conversation — including `[done]`, `[stopped]`, and
-`[error]` outcomes — is visible.
+`[error]` outcomes — is visible. The pane renders this as a multi-agent
+console: row 0 is a status header (connection dot, message count, a running
+`~N tok` meter, and — while an agent works — a spinner naming it with live
+elapsed seconds); row 1 is the **agent roster** streamed by the broker as a
+structured `roster` event — a colored chip per agent with role + model badge,
+the currently-thinking agent highlighted (`▸` + bold). Messages render as
+**cards**: a `▍sender` header in the sender's stable colour (hand-off senders
+like `planner → coder` colour each name), a muted `· 2m ago · 4.2s` tail
+(epoch-ms `ts` + per-reply latency `meta` stamped by the broker), and the
+wrapped body beneath. Live agent state flows as structured `activity` events
+(`thinking` per dial, `idle` at turn end) instead of transcript spam, and each
+turn ends with a `stats` event plus a timeline summary: `turn done — planner
+4.2s → coder 8.1s · 2 exchange(s) · ~950 tok (approx)`.
 
 **Models & rate-limits.** When no agent CLIs are installed, `/crew` runs its
 inbuilt API agents (planner/coder/reviewer) over an LLM: it prefers
@@ -275,8 +287,9 @@ nothing in the engine changes.
 a specific (e.g. cheaper) model; `CREW_BROKER_MAX_HOPS` (default 6) caps relay
 depth; `CREW_BROKER_TOKEN_BUDGET` (default 0 = unlimited) caps a thread's
 approximate token spend; `CREW_BROKER_TIMEOUT_MS` (default 180000) bounds each
-agent call. The pane also prints a cost summary (`done — N exchange(s), ~X
-tokens`) at the end of every task.
+agent call. The pane also prints a per-turn timeline + cost summary (`turn done
+— planner 4.2s → … · N exchange(s) · ~X tok (approx)`) at the end of every
+task, and accumulates the spend into the header's `~N tok` meter.
 
 ## Swarm orchestration (`crew-hive`)
 

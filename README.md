@@ -160,7 +160,15 @@ re-asks once if the line is missing). The broker logs every hop as `from → to`
 with the reply, so the whole conversation is visible in the pane. A hop counter
 caps each thread (default 6), an optional token budget caps spend, and every
 agent call has a timeout — a hung agent is killed and logged, never blocking the
-UI. The pane prints a cost summary (`~N tokens`) when the task ends.
+UI.
+
+The pane itself reads like a multi-agent console: a header with a live status
+(`| coder · 12s` while an agent thinks, a running `~N tok` meter, connection
+dot), an **agent roster row** — one colored chip per agent with its model badge,
+the active agent highlighted — and **message cards** (`▍sender · 2m ago · 4.2s`)
+that colour each agent consistently and show hand-offs as `from → to`. Every
+turn ends with a timeline log line: `turn done — planner 4.2s → coder 8.1s ·
+2 exchange(s) · ~950 tok (approx)`.
 
 Agents run headlessly off the render thread (in a broker subprocess), so the
 window stays responsive. **Adding a fourth agent takes one adapter**: add a
