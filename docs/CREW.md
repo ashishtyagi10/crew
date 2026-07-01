@@ -252,6 +252,16 @@ wrapped body beneath. Live agent state flows as structured `activity` events
 turn ends with a `stats` event plus a timeline summary: `turn done — planner
 4.2s → coder 8.1s · 2 exchange(s) · ~950 tok (approx)`.
 
+Message bodies are newline-aware, and fenced ```code``` blocks render as
+bordered cards — a muted `╭─ lang` header, verbatim hard-wrapped lines on a
+dimmed background, `╰─` footer. The composer on the bottom rows shows an
+affordance bar (`@agent` chips in roster colours, `Enter send · Esc close`
+hints) above a `❯` prompt that highlights a valid leading `@mention` in that
+agent's colour. While the transcript overflows, the last column shows a
+proportional scrollbar, and messages arriving out of view raise a `↓ N new`
+pill that clears at the live bottom. A fresh pane greets with the detected
+crew (names, roles) and an example `@agent` prompt.
+
 **Models & rate-limits.** When no agent CLIs are installed, `/crew` runs its
 inbuilt API agents (planner/coder/reviewer) over an LLM: it prefers
 `OPENROUTER_API_KEY` (free models by default) and falls back to

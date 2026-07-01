@@ -168,7 +168,12 @@ dot), an **agent roster row** — one colored chip per agent with its model badg
 the active agent highlighted — and **message cards** (`▍sender · 2m ago · 4.2s`)
 that colour each agent consistently and show hand-offs as `from → to`. Every
 turn ends with a timeline log line: `turn done — planner 4.2s → coder 8.1s ·
-2 exchange(s) · ~950 tok (approx)`.
+2 exchange(s) · ~950 tok (approx)`. Fenced ```code``` in replies renders as a
+bordered card with a language tag on a dimmed background; a composer with
+`@agent` chips and key hints frames the input (a valid `@mention` lights up in
+the agent's colour); a proportional scrollbar plus a `↓ N new` pill keep long
+transcripts navigable; and a fresh pane opens with onboarding — the detected
+crew, roles, and an example prompt.
 
 Agents run headlessly off the render thread (in a broker subprocess), so the
 window stays responsive. **Adding a fourth agent takes one adapter**: add a
