@@ -31,8 +31,11 @@ a failure. Keep each iteration shippable on its own.
 - [x] **3 — Role-styled message cards.** Distinct treatment per sender (user vs
   each agent vs system): a colored gutter/rule, a role label line, and clear
   separation between messages rather than inline `sender: text`.
-- [ ] **4 — Handoff / relay visualization.** Render `@next`/`@done` control hops
+- [x] **4 — Handoff / relay visualization.** Render `@next`/`@done` control hops
   as inline `from → to` connectors/pills so the conversation flow is legible.
+  Plus: structured `Activity` events (agent + state) replace "calling X…"
+  transcript spam; the header names the thinking agent with elapsed seconds and
+  the roster highlights it (▸ + bold).
 - [ ] **5 — Code block rendering.** Detect fenced ```code``` in messages and
   render it in a bordered monospace card with a dimmed background and language tag.
 - [ ] **6 — Rich input area.** A framed composer with an `@agent` target hint, a

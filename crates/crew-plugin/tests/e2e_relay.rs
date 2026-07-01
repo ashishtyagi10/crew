@@ -5,7 +5,7 @@
 //! tests (`broker::engine::tests`); here we prove the real binary streams the
 //! protocol end to end and surfaces the cost summary.
 mod common;
-use common::{has_leg, messages, run_broker, unique_dir};
+use common::{has_leg, messages, run_broker, unique_dir, PluginEvent};
 
 const SEND: &str = r#"{"type":"send","channel":"crew","text":"do it"}"#;
 
@@ -32,15 +32,24 @@ fn relay_runs_through_the_binary_and_finishes() {
 }
 
 #[test]
-fn dialing_is_streamed_as_a_progress_note() {
+fn dialing_is_streamed_as_a_live_activity() {
     let dir = unique_dir("relay-stream");
     let mock = ("CREW_BROKER_MOCK_REPLY", "ok\n@done");
     let ev = run_broker(&dir, &[mock], &[SEND]);
-    let msgs = messages(&ev);
-    // The broker streams a "calling planner…" note as it dials the agent.
+    // The broker streams a thinking activity as it dials the agent…
     assert!(
-        msgs.iter()
-            .any(|(s, t)| s == "crew" && t.contains("calling planner")),
-        "{msgs:?}"
+        ev.iter().any(|e| matches!(
+            e,
+            PluginEvent::Activity { agent, state } if agent == "planner" && state == "thinking"
+        )),
+        "{ev:?}"
+    );
+    // …and clears it when the turn ends.
+    assert!(
+        ev.iter().any(|e| matches!(
+            e,
+            PluginEvent::Activity { agent, state } if agent.is_empty() && state == "idle"
+        )),
+        "{ev:?}"
     );
 }

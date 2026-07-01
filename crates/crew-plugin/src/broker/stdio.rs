@@ -115,7 +115,14 @@ fn relay(input: &str, out: &mut impl Write) -> anyhow::Result<()> {
         }
     });
     werr?;
-    // Surface cost so it stays in check.
+    // The turn is over: clear the live activity indicator, then surface cost.
+    emit(
+        out,
+        &PluginEvent::Activity {
+            agent: String::new(),
+            state: "idle".into(),
+        },
+    )?;
     emit(
         out,
         &msg(
@@ -142,14 +149,15 @@ pub(crate) fn split_target(task: &str, reg: &Registry) -> (String, String) {
     (default, task.to_string())
 }
 
-/// Render a hop as a chat message. `Dialing` is a `crew` progress note naming
-/// the agent being called; every other hop is labelled `from → to`.
+/// Render a hop as a plugin event. `Dialing` becomes a live `Activity` status
+/// (the agent is thinking) rather than transcript spam; every other hop is a
+/// message labelled `from → to`.
 pub(crate) fn hop_to_msg(hop: &Hop) -> PluginEvent {
     match hop.kind {
-        HopKind::Dialing => msg(
-            "crew",
-            format!("calling {}… (waiting for its reply)", hop.to),
-        ),
+        HopKind::Dialing => PluginEvent::Activity {
+            agent: hop.to.clone(),
+            state: "thinking".into(),
+        },
         _ => msg(&format!("{} → {}", hop.from, hop.to), hop_text(hop)),
     }
 }

@@ -32,6 +32,13 @@ pub enum PluginEvent {
     Roster {
         agents: Vec<AgentInfo>,
     },
+    /// A live status change: `agent` entered `state` (`"thinking"` while being
+    /// called; `"idle"` with an empty agent when the turn ends). Drives the
+    /// host's activity indicator instead of spamming the transcript.
+    Activity {
+        agent: String,
+        state: String,
+    },
     Message {
         channel: String,
         sender: String,
@@ -95,6 +102,18 @@ mod tests {
                 assert_eq!(agents.len(), 2);
                 assert_eq!(agents[0].model, "m1");
                 assert_eq!(agents[1].role, ""); // role/model default to empty
+            }
+            _ => panic!("wrong variant"),
+        }
+    }
+
+    #[test]
+    fn activity_event_roundtrips() {
+        let line = r#"{"type":"activity","agent":"coder","state":"thinking"}"#;
+        let ev: PluginEvent = serde_json::from_str(line).unwrap();
+        match ev {
+            PluginEvent::Activity { agent, state } => {
+                assert_eq!((agent.as_str(), state.as_str()), ("coder", "thinking"));
             }
             _ => panic!("wrong variant"),
         }

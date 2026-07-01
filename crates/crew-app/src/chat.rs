@@ -20,6 +20,9 @@ pub struct ChatPane {
     /// A message was sent and no reply has arrived yet — drives the pane's
     /// indeterminate "thinking" progress sweep.
     awaiting: bool,
+    /// The agent currently thinking (from `Activity` events) and when it
+    /// started, for the header's live `agent · elapsed` status.
+    active: Option<(String, std::time::Instant)>,
 }
 
 impl ChatPane {
@@ -33,12 +36,21 @@ impl ChatPane {
             agents: Vec::new(),
             scroll: 0,
             awaiting: false,
+            active: None,
         }
     }
 
-    /// Whether the pane is awaiting a reply (busy), for the progress sweep.
+    /// Whether the pane is awaiting a reply (busy), for the progress sweep —
+    /// either our own send is unanswered or an agent is mid-turn.
     pub fn is_busy(&self) -> bool {
-        self.awaiting
+        self.awaiting || self.active.is_some()
+    }
+
+    /// The agent currently thinking and for how many seconds, if any.
+    pub(crate) fn active_status(&self) -> Option<(&str, u64)> {
+        self.active
+            .as_ref()
+            .map(|(a, t)| (a.as_str(), t.elapsed().as_secs()))
     }
 
     /// Rows consumed above the message body: the status header, plus the agent
@@ -96,6 +108,10 @@ impl ChatPane {
                     PluginEvent::Roster { agents } => {
                         self.agents = agents;
                     }
+                    PluginEvent::Activity { agent, state } => {
+                        self.active = (state == "thinking" && !agent.is_empty())
+                            .then(|| (agent, std::time::Instant::now()));
+                    }
                     PluginEvent::Message { sender, text, .. } => {
                         self.awaiting = false; // a reply landed
                         self.messages.push(Message { sender, text });
@@ -106,6 +122,7 @@ impl ChatPane {
                     }
                     PluginEvent::Error { .. } => {
                         self.connected = false;
+                        self.active = None;
                     }
                     _ => {}
                 }

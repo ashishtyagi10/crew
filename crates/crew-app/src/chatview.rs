@@ -19,15 +19,22 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
             pane.connected,
         );
     }
+    let active = pane.active_status();
     let mut cells = crate::chathdr::header_cells(
         cols,
         &pane.channel,
         pane.connected,
         pane.messages.len(),
         pane.is_busy(),
+        active,
     );
     if top > 1 {
-        cells.extend(crate::chatroster::roster_cells(cols, 1, &pane.agents));
+        cells.extend(crate::chatroster::roster_cells(
+            cols,
+            1,
+            &pane.agents,
+            active.map(|(a, _)| a),
+        ));
     }
     if pane.messages.is_empty() {
         // The plain layout already renders the hint + composer for this case.

@@ -43,7 +43,7 @@ fn split_target_ignores_unknown_selector() {
 }
 
 #[test]
-fn dialing_names_the_agent_being_called() {
+fn dialing_becomes_a_thinking_activity() {
     let hop = Hop {
         from: "broker".into(),
         to: "codex".into(),
@@ -51,13 +51,12 @@ fn dialing_names_the_agent_being_called() {
         kind: HopKind::Dialing,
         text: String::new(),
     };
-    let (sender, t) = {
-        let ev = hop_to_msg(&hop);
-        let (s, x) = text(&ev);
-        (s.to_string(), x.to_string())
-    };
-    assert_eq!(sender, "crew");
-    assert!(t.starts_with("calling codex"), "{t}");
+    match hop_to_msg(&hop) {
+        PluginEvent::Activity { agent, state } => {
+            assert_eq!((agent.as_str(), state.as_str()), ("codex", "thinking"));
+        }
+        ev => panic!("expected Activity, got {ev:?}"),
+    }
 }
 
 #[test]
