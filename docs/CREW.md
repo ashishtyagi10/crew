@@ -108,9 +108,9 @@ The docked command bar supports:
 - **`/reload`** — re-reads `config.toml` from disk and applies it live (font,
   sidebar width/visibility, theme) without rewriting the file, so edits made
   outside the `/settings` pane take effect without a restart.
-- **`/theme [paper-light|paper-dark]`** — switches the theme live and persists
-  it; no argument reports the current theme. `Ctrl+Shift+L` toggles between the
-  two. See [Themes](#themes).
+- **`/theme [name]`** — switches the theme live and persists it (`paper-dark`,
+  `paper-light`, `crt-green`, `crt-amber`, `crt-blue`); no argument reports the
+  current theme. `Ctrl+Shift+L` cycles through all of them. See [Themes](#themes).
 - **`/only`** — closes every pane except the focused one (a quick "focus mode");
   a no-op when only one pane is open.
 - **`/edit <file>`** — opens the file in your terminal editor (`$VISUAL`, else
@@ -385,8 +385,8 @@ Settings persist to `$XDG_CONFIG/crew/config.toml` and apply live on Save.
 
 ## Themes
 
-Crew ships two e-ink-reader themes designed to read like paper rather than a
-screen:
+Crew ships five themes: two e-ink-reader looks designed to read like paper
+rather than a screen, and three old-school CRT phosphor tubes.
 
 - **`paper-dark`** (default) — a high-contrast "newspaper" look: a near-black
   page (`#0a0a0a`) with near-white ink (`#ececec`) and grey rules. Terminal
@@ -394,18 +394,24 @@ screen:
 - **`paper-light`** — a warm off-white page (`#f4f1ea`) with soft dark ink and
   ink-toned ANSI colours (sage, brick, faded indigo). No pure black or white
   anywhere; every surface reads as the same sheet of paper.
+- **`crt-green`** — the classic P1 green-phosphor terminal: bright green on a
+  near-black tube, with a monochrome-green ANSI palette (brightness tiers) for
+  that single-gun look.
+- **`crt-amber`** — the warm P3 amber variation of the green tube.
+- **`crt-blue`** — a cool cyan-blue phosphor variation.
 
-A faint procedural **paper grain** + edge vignette is drawn behind everything
-(GPU). Colours are picked for measured WCAG contrast on both palettes.
+A faint procedural **grain** + edge vignette is drawn behind everything (GPU) —
+it reads as paper texture on the paper themes and as a subtle **tube glow** on
+the CRT ones. Every palette's colours are picked for measured WCAG contrast.
 
-**Switching:** `/theme paper-light` / `/theme paper-dark`, or toggle live with
-**`Ctrl+Shift+L`**. The choice persists to `config.toml`.
+**Switching:** `/theme <name>` (e.g. `/theme crt-green`), or cycle through every
+theme live with **`Ctrl+Shift+L`**. The choice persists to `config.toml`.
 
 **Config keys** (`$XDG_CONFIG/crew/config.toml`, applied on launch and `/reload`):
 
 | Key | Default | Meaning |
 |-----|---------|---------|
-| `theme` | `"paper-dark"` | `paper-dark` or `paper-light`; unknown ⇒ default |
+| `theme` | `"paper-dark"` | `paper-dark`, `paper-light`, `crt-green`, `crt-amber`, or `crt-blue`; unknown ⇒ default |
 | `accent` | theme default | `"#rrggbb"` override for the accent (chrome only); omit to use the theme's accent |
 | `paper_texture` | `true` | turn the paper grain + vignette pass on/off |
 | `paper_grain` | `1.3` | grain strength (`0.0`–`2.0`; `0` = no grain) |

@@ -205,12 +205,15 @@ file also accepts `accent = "#rrggbb"` to override Crew's accent; omit it (or
 give an invalid value) to use the active theme's default accent. It applies at
 launch and on `/reload`.
 
-**Themes.** Crew ships two paper/e-ink themes: `paper-dark` (default — a
-high-contrast "newspaper" look) and `paper-light` (a warm paper page). Switch
-with `/theme paper-light` / `/theme paper-dark` or toggle live with
-`Ctrl+Shift+L`; the choice persists. A subtle GPU paper-grain + vignette sits
-behind everything. Config keys: `theme = "paper-dark"`, `paper_texture = true`
-(grain on/off), `paper_grain = 1.3` (strength `0.0`–`2.0`). See
+**Themes.** Crew ships five themes: two paper/e-ink looks — `paper-dark`
+(default — a high-contrast "newspaper" look) and `paper-light` (a warm paper
+page) — and three old-school **CRT phosphor** themes: `crt-green` (classic P1),
+`crt-amber` (P3), and `crt-blue`, each a monochrome glow on a near-black tube.
+Switch with `/theme <name>` or cycle through all of them live with
+`Ctrl+Shift+L`; the choice persists. A subtle GPU grain + vignette sits behind
+everything (it reads as a CRT glow on the phosphor themes). Config keys:
+`theme = "paper-dark"`, `paper_texture = true` (grain on/off),
+`paper_grain = 1.3` (strength `0.0`–`2.0`). See
 [docs/CREW.md](docs/CREW.md#themes).
 
 ## Architecture

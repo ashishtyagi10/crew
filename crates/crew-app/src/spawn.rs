@@ -290,7 +290,12 @@ impl CrewApp {
             return;
         }
         let Some(id) = crew_theme::ThemeId::from_name(arg) else {
-            self.set_status(format!("unknown theme '{arg}' (paper-light | paper-dark)"));
+            let names = crew_theme::ALL_THEMES
+                .iter()
+                .map(|t| t.as_str())
+                .collect::<Vec<_>>()
+                .join(" | ");
+            self.set_status(format!("unknown theme '{arg}' ({names})"));
             return;
         };
         self.config.theme = Some(id.as_str().to_string());

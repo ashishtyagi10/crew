@@ -64,7 +64,7 @@ fn main() {
 
     let (cell_w, cell_h) = cell_grid.cell_size();
 
-    // render both themes
+    // render every theme
     for (theme_id, out_path) in [
         (
             ThemeId::PaperLight,
@@ -73,6 +73,18 @@ fn main() {
         (
             ThemeId::PaperDark,
             "/private/tmp/claude-501/-Users-atyagi-code-crew/7f6ecec7-c641-4cc2-a923-a17dea6afba0/scratchpad/crew-paper-dark.png",
+        ),
+        (
+            ThemeId::CrtGreen,
+            "/private/tmp/claude-501/-Users-atyagi-code-crew/7f6ecec7-c641-4cc2-a923-a17dea6afba0/scratchpad/crt-green.png",
+        ),
+        (
+            ThemeId::CrtAmber,
+            "/private/tmp/claude-501/-Users-atyagi-code-crew/7f6ecec7-c641-4cc2-a923-a17dea6afba0/scratchpad/crt-amber.png",
+        ),
+        (
+            ThemeId::CrtBlue,
+            "/private/tmp/claude-501/-Users-atyagi-code-crew/7f6ecec7-c641-4cc2-a923-a17dea6afba0/scratchpad/crt-blue.png",
         ),
     ] {
         crew_theme::set_theme(theme_id);

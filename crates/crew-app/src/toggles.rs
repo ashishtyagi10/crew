@@ -17,11 +17,9 @@ impl CrewApp {
     /// Flip between the two paper themes (Ctrl+Shift+L). Reuses `set_theme_cmd`
     /// so it persists and repaints exactly like the `/theme` command.
     pub(crate) fn toggle_theme(&mut self) {
-        let next = match crew_theme::current_id() {
-            crew_theme::ThemeId::PaperDark => crew_theme::ThemeId::PaperLight,
-            crew_theme::ThemeId::PaperLight => crew_theme::ThemeId::PaperDark,
-        };
-        self.set_theme_cmd(next.as_str());
+        // Cycle through every theme in order (paper-dark → paper-light → the CRT
+        // phosphors → wrap), so the one hotkey reaches all of them.
+        self.set_theme_cmd(crew_theme::current_id().next().as_str());
     }
 
     /// Toggle zoom — the focused pane fills the content area.
@@ -37,13 +35,15 @@ mod tests {
     use crate::app::CrewApp;
 
     #[test]
-    fn toggle_theme_flips() {
+    fn toggle_theme_cycles_forward() {
         crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
         let mut app = crate::app::CrewApp::default();
         app.toggle_theme();
         assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::PaperLight);
         app.toggle_theme();
-        assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::PaperDark);
+        // Past the two paper themes it steps into the CRT set (no longer a flip).
+        assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::CrtGreen);
+        crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
     }
 
     #[test]
