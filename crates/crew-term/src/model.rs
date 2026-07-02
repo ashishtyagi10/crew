@@ -248,6 +248,13 @@ impl TermCore {
     pub(crate) fn take_bell(&self) -> bool {
         self.events.bell.swap(false, Ordering::Relaxed)
     }
+
+    /// Take the query replies accumulated while feeding (OSC 10/11 color
+    /// queries, DSR cursor reports, …) — the bytes the child expects written
+    /// back on the pty. `None` when nothing is pending.
+    pub(crate) fn take_replies(&self) -> Option<String> {
+        self.events.take_replies()
+    }
 }
 
 pub struct HeadlessTerm {
@@ -284,6 +291,11 @@ impl HeadlessTerm {
     pub fn take_clipboard(&self) -> Option<String> {
         self.core.take_clipboard()
     }
+
+    /// Take pending query replies (OSC color / DSR reports) owed to the child.
+    pub fn take_replies(&self) -> Option<String> {
+        self.core.take_replies()
+    }
 }
 
 impl HeadlessTerm {
@@ -315,6 +327,46 @@ impl TermModel for HeadlessTerm {
 
     fn resize(&mut self, size: GridSize) {
         self.core.resize(size);
+    }
+}
+
+#[cfg(test)]
+mod reply_tests {
+    use super::{GridSize, HeadlessTerm, TermModel};
+
+    /// OSC 11 (background query) must be answered from the active theme — agent
+    /// CLIs (claude, codex) probe it to pick a light or dark output palette;
+    /// unanswered, they assume dark and paint light text onto light themes.
+    #[test]
+    fn osc11_background_query_is_answered_from_theme() {
+        let mut t = HeadlessTerm::new(GridSize { cols: 20, rows: 4 });
+        t.feed(b"\x1b]11;?\x1b\\");
+        let reply = t.take_replies().expect("background query answered");
+        let (r, g, b) = crew_theme::theme().term_bg;
+        assert_eq!(
+            reply,
+            format!("\x1b]11;rgb:{r:02x}{r:02x}/{g:02x}{g:02x}/{b:02x}{b:02x}\x1b\\")
+        );
+        assert_eq!(t.take_replies(), None, "replies drain on take");
+    }
+
+    /// OSC 10 (foreground query) answers with the theme's terminal foreground.
+    #[test]
+    fn osc10_foreground_query_is_answered_from_theme() {
+        let mut t = HeadlessTerm::new(GridSize { cols: 20, rows: 4 });
+        t.feed(b"\x1b]10;?\x1b\\");
+        let reply = t.take_replies().expect("foreground query answered");
+        let (r, _, _) = crew_theme::theme().term_fg;
+        assert!(reply.starts_with("\x1b]10;rgb:"), "{reply:?}");
+        assert!(reply.contains(&format!("{r:02x}{r:02x}/")), "{reply:?}");
+    }
+
+    /// DSR 6 (cursor position report) flows back through `PtyWrite`.
+    #[test]
+    fn dsr_cursor_position_is_reported() {
+        let mut t = HeadlessTerm::new(GridSize { cols: 20, rows: 4 });
+        t.feed(b"ab\x1b[6n");
+        assert_eq!(t.take_replies().as_deref(), Some("\x1b[1;3R"));
     }
 }
 
