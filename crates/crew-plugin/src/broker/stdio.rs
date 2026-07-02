@@ -28,6 +28,9 @@ fn emit(out: &Out, ev: &PluginEvent) -> anyhow::Result<()> {
 
 /// Run the broker over stdin/stdout until EOF.
 pub fn run_broker_stdio() -> anyhow::Result<()> {
+    // Before anything reads the env: import provider keys the launching app
+    // didn't inherit (GUI / stale-terminal launches). Single-threaded here.
+    super::shellenv::hydrate();
     let stdin = std::io::stdin();
     let out: Out = Arc::new(Mutex::new(std::io::stdout()));
     let mut session = Session::new();

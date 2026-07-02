@@ -72,6 +72,9 @@ pub fn run_broker(path_dir: &Path, env: &[(&str, &str)], cmds: &[&str]) -> Vec<P
         .env_remove("OPENROUTER_API_KEY")
         .env_remove("DASHSCOPE_API_KEY")
         .env_remove("CREW_BROKER_MOCK_REPLY")
+        // …and never let the shell-env probe re-import those keys from the
+        // developer's real shell config. Tests opt in via the `env` pairs.
+        .env("CREW_SHELL_ENV", "0")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::null());

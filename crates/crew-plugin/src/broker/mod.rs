@@ -26,6 +26,7 @@ mod relay;
 mod route;
 mod run;
 mod session;
+mod shellenv;
 mod skills;
 mod stdio;
 mod toolcall;

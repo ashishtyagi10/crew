@@ -48,6 +48,25 @@ fn no_key_does_not_route() {
     assert!(msgs.iter().any(|(_, t)| t.contains("ANTHROPIC_API_KEY")));
 }
 
+/// A GUI/stale-terminal launch misses keys added to shell config after that
+/// environment was created; the broker re-imports them from `$SHELL` (here a
+/// fake shell that "has" a DashScope key the process env lacks).
+#[cfg(unix)]
+#[test]
+fn shell_env_probe_recovers_missing_provider_key() {
+    use std::os::unix::fs::PermissionsExt;
+    let dir = unique_dir("shellenv");
+    let fake = dir.join("fakeshell");
+    std::fs::write(&fake, "#!/bin/sh\necho DASHSCOPE_API_KEY=e2e-test-key\n").unwrap();
+    std::fs::set_permissions(&fake, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let env = [
+        ("CREW_SHELL_ENV", "1"), // re-enable the probe the harness disables
+        ("SHELL", fake.to_str().unwrap()),
+    ];
+    let r = roster(&run_broker(&dir, &env, &[HELLO]));
+    assert!(r.contains("3 agent(s)"), "{r}");
+}
+
 #[test]
 fn at_selector_starts_with_chosen_agent() {
     let dir = unique_dir("sel");
