@@ -1,21 +1,22 @@
 //! A live swarm pane. Two entry points:
 //!
-//! - `/swarm` → [`SwarmPane::demo`] runs a fixed fan-out/merge graph immediately.
 //! - `/goal <text>` → [`SwarmPane::for_goal`] first plans the goal into a graph
 //!   off the UI thread (via [`plan_goal`]), shows a "planning…" banner, then runs
 //!   the resulting graph and visualises it.
+//! - `/batch <file>` → [`SwarmPane::for_batch`] runs a flat list of jobs as one
+//!   all-parallel graph, no planning step.
 //!
 //! `/goal` adapts to its environment: when `ANTHROPIC_API_KEY` is set it plans
 //! with [`LlmPlanner`] and executes with real [`ApiFactory`] agents; otherwise
 //! it falls back to a deterministic [`StubPlanner`] + always-succeeding stub
 //! agents so the whole goal → plan → schedule → bridge → view pipeline still
-//! runs live, offline, and deterministically. `/swarm` always uses the stub path.
+//! runs live, offline, and deterministically.
 use std::sync::Arc;
 
 use crew_hive::agent::StubFactory;
 use crew_hive::{
-    batch_graph, AgentFactory, AgentKind, AnthropicProvider, ApiFactory, Budget, Fleet, GraphError,
-    Job, LlmPlanner, ModelTier, Planner, StubPlanner, TaskGraph, TaskId, TaskSpec,
+    batch_graph, AgentFactory, AnthropicProvider, ApiFactory, Budget, Fleet, GraphError, Job,
+    LlmPlanner, ModelTier, Planner, StubPlanner, TaskGraph,
 };
 use crew_render::CellView;
 
@@ -79,14 +80,6 @@ pub struct SwarmPane {
 }
 
 impl SwarmPane {
-    /// Launch the self-contained demo swarm immediately (no planning step).
-    /// Stub agents cost nothing, so no budget is needed.
-    pub fn demo() -> Self {
-        Self {
-            state: running(demo_graph(), Arc::new(StubFactory), None),
-        }
-    }
-
     /// Run a batch of independent `jobs` as one all-parallel swarm — no planning
     /// step, since the jobs already are the task list. Uses the real API backend
     /// (capped) when a key is set, else the offline stub backend.
@@ -277,27 +270,6 @@ fn banner(text: &str, cols: u16) -> Vec<CellView> {
             italic: false,
         })
         .collect()
-}
-
-/// A small fan-out/merge demo graph: one root, three parallel workers, one merge
-/// — enough structure to show the constellation layout and HUD counters.
-fn demo_graph() -> TaskGraph {
-    let task = |id: u64, title: &str, deps: Vec<TaskId>| TaskSpec {
-        id: TaskId(id),
-        title: title.into(),
-        agent: AgentKind::Api { system: None },
-        model: ModelTier::Cheap,
-        deps,
-        prompt: format!("demo task {id}"),
-    };
-    TaskGraph::new(vec![
-        task(0, "plan", vec![]),
-        task(1, "research", vec![TaskId(0)]),
-        task(2, "build", vec![TaskId(0)]),
-        task(3, "test", vec![TaskId(0)]),
-        task(4, "merge", vec![TaskId(1), TaskId(2), TaskId(3)]),
-    ])
-    .expect("demo graph is valid")
 }
 
 #[cfg(test)]

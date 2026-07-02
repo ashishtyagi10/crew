@@ -86,18 +86,6 @@ fn far_slash_command_spawns_dual_pane() {
 }
 
 #[test]
-fn swarm_slash_command_spawns_swarm_pane() {
-    use crate::pane::PaneContent;
-    let mut app = CrewApp::default();
-    assert!(app.panes.is_empty());
-    // `/swarm` opens a live swarm-visualization pane in the grid.
-    assert!(!app.submit_input("/swarm".to_string()));
-    assert_eq!(app.panes.len(), 1);
-    assert!(matches!(app.panes[0].content, PaneContent::Swarm(_)));
-    assert_eq!(app.panes[0].title_text(), "swarm");
-}
-
-#[test]
 fn goal_slash_command_spawns_swarm_pane() {
     use crate::pane::PaneContent;
     let mut app = CrewApp::default();

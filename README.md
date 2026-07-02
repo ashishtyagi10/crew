@@ -132,7 +132,7 @@ Press **`/keys`** in the input bar for the full list in-app.
 ## Input bar
 
 The docked command bar supports slash commands (type `/` for a palette:
-`/shell`, `/crew`, `/swarm`, `/goal <text>`, `/batch <file>`, `/run <cmd>`, `/edit <file>`, `/settings`, `/find <text>`, `/name <text>`, `/clear`, `/only`, `/copy`, `/dump`, `/open`,
+`/shell`, `/crew`, `/goal <text>`, `/batch <file>`, `/run <cmd>`, `/edit <file>`, `/settings`, `/find <text>`, `/name <text>`, `/clear`, `/only`, `/copy`, `/dump`, `/open`,
 `/clearall`, `/closeall`, `/pwd`, `/about`, `/font`, `/theme`, `/restart`, `/update`, `/broadcast`, `/zoom`, `/sidebar`, `/keys`, `/far`, `/exit`), fish-style autosuggest from history, `cd`
 completion with `$VAR` expansion, and `Up`/`Down` history recall persisted to
 `$XDG_CONFIG/crew/history`. Anything that isn't a slash command or `cd` is sent
@@ -215,12 +215,10 @@ full orchestration **engine**, the `crew-hive` crate — the substrate for runni
 - **Swarm view** — a constellation/heatmap layout over live fleet telemetry
   (color = state, mode auto-switches to a heatmap past ~150 agents).
 
-The engine is wired into the app through three commands, each opening a live
-**swarm pane** that renders the constellation + a fleet HUD (live / done / failed
+The engine is wired into the app through two commands, each opening a live
+**swarm pane** that renders the task list + a fleet HUD (live / done / failed
 / cost) and updates every frame:
 
-- **`/swarm`** — runs a built-in fan-out/merge demo graph with stub agents
-  (no API key, no network) — the quickest way to see the swarm view.
 - **`/goal <text>`** — plans the goal into a task-graph off the UI thread, then
   runs it. With `ANTHROPIC_API_KEY` set it uses the real `LlmPlanner` + native
   `ApiAgent` workers (each task billed at the planner's per-task `ModelTier`);

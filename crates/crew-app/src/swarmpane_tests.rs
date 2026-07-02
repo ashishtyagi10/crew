@@ -1,9 +1,7 @@
 //! Headless tests for the live swarm pane. The planner and engine run on
 //! std::threads with stub implementations — no GPU, no winit, no network — so
 //! these are fully deterministic.
-use super::{
-    backend_for, demo_graph, jobs_from_lines, Backend, SwarmPane, SwarmState, GOAL_FANOUT,
-};
+use super::{backend_for, jobs_from_lines, Backend, SwarmPane, SwarmState, GOAL_FANOUT};
 use std::time::{Duration, Instant};
 
 /// Drive `pane.poll()` until `done` predicate holds or the deadline passes.
@@ -22,12 +20,6 @@ fn done_count(pane: &SwarmPane) -> usize {
         SwarmState::Running { fleet, .. } => fleet.totals().done,
         _ => 0,
     }
-}
-
-#[test]
-fn demo_graph_is_fanout_merge() {
-    // 1 root + 3 parallel workers + 1 merge.
-    assert_eq!(demo_graph().len(), 5);
 }
 
 #[test]
@@ -66,24 +58,6 @@ fn for_batch_runs_all_jobs_in_parallel() {
     assert!(matches!(pane.state, SwarmState::Running { .. }));
     pump_until(&mut pane, Duration::from_secs(5), |p| done_count(p) >= 3);
     assert_eq!(done_count(&pane), 3, "all 3 batch jobs complete");
-}
-
-#[test]
-fn demo_swarm_runs_to_completion() {
-    let mut pane = SwarmPane::demo();
-    assert!(
-        matches!(pane.state, SwarmState::Running { .. }),
-        "demo runs at once"
-    );
-    pump_until(&mut pane, Duration::from_secs(5), |p| done_count(p) >= 5);
-    match &pane.state {
-        SwarmState::Running { fleet, .. } => {
-            let t = fleet.totals();
-            assert_eq!(t.done, 5, "all 5 demo tasks should complete");
-            assert_eq!(t.failed, 0, "stub agents never fail");
-        }
-        _ => panic!("expected Running state"),
-    }
 }
 
 #[test]
@@ -128,7 +102,7 @@ fn goal_pane_plans_then_runs() {
 
 #[test]
 fn cells_have_hud_row_when_running() {
-    let pane = SwarmPane::demo();
+    let pane = SwarmPane::for_batch(jobs_from_lines("one job")).expect("batch graph builds");
     let cells = pane.cells(60, 12);
     assert!(
         cells
@@ -140,7 +114,7 @@ fn cells_have_hud_row_when_running() {
 
 #[test]
 fn cells_empty_for_zero_dims() {
-    let pane = SwarmPane::demo();
+    let pane = SwarmPane::for_batch(jobs_from_lines("one job")).expect("batch graph builds");
     assert!(pane.cells(0, 12).is_empty());
     assert!(pane.cells(60, 0).is_empty());
 }

@@ -10,7 +10,6 @@ impl CrewApp {
             "exit" => return true,
             "keys" => self.help_open = true,
             "far" => self.spawn_far_pane(),
-            "swarm" => self.spawn_swarm_pane(),
             "goal" => self.spawn_goal_pane(""), // show usage hint
             "batch" => self.spawn_batch_pane(""), // show usage hint
             "crew" => self.spawn_crew_pane(),

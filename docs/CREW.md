@@ -399,12 +399,10 @@ trait lets the scheduler dispatch tasks out-of-process. `LoopbackTransport` runs
 handler in-process (and powers the tests); `serve_stdio` is the worker side — the
 exact line an external engine (e.g. LangGraph) implements to act as a sidecar.
 
-**Status.** The engine is wired into the app through three commands, each opening
-a live swarm pane (constellation + a `live / done / failed / cost` HUD, redrawn
+**Status.** The engine is wired into the app through two commands, each opening
+a live swarm pane (task list + a `live / done / failed / cost` HUD, redrawn
 every frame on a worker-thread event bridge):
 
-- **`/swarm`** — a built-in fan-out/merge demo graph run by stub agents (no key,
-  no network); the quickest way to see the view.
 - **`/goal <text>`** — plans the goal into a task-graph off the UI thread, then
   runs it. With `ANTHROPIC_API_KEY` it uses the real `LlmPlanner` + `ApiAgent`
   workers (each task billed at its per-task `ModelTier`); without a key it falls
