@@ -22,8 +22,8 @@ pub(crate) fn scan(root: &Path) -> Vec<String> {
                 return true;
             }
             let name = e.file_name().to_string_lossy();
-            !name.starts_with('.')
-                && !(e.file_type().is_dir() && SKIP_DIRS.contains(&name.as_ref()))
+            let skipped_dir = e.file_type().is_dir() && SKIP_DIRS.contains(&name.as_ref());
+            !name.starts_with('.') && !skipped_dir
         });
     let mut files = Vec::new();
     for entry in walker.flatten() {
