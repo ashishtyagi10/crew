@@ -44,8 +44,9 @@ pub enum PluginEvent {
     },
     /// End-of-turn cost: agent exchanges made and approximate tokens spent.
     /// Feeds the host's running token meter. When `agent` is non-empty the
-    /// event is one agent's reply stat instead — `agent` spent `ms` on one
-    /// reply (exchanges/tokens 0) — feeding the host's per-agent totals.
+    /// event is one agent's reply stat instead — `agent` spent `ms` (and
+    /// `tokens`, when the backend reports real usage) on one reply, streamed
+    /// live as the hop lands — feeding the host's per-agent totals.
     Stats {
         exchanges: u32,
         tokens: u64,
@@ -53,6 +54,10 @@ pub enum PluginEvent {
         agent: String,
         #[serde(default)]
         ms: u64,
+        /// The reply's real prompt size in tokens — the agent's live context
+        /// fill — when the backend reports usage; 0 = unknown.
+        #[serde(default)]
+        ctx: u64,
     },
     Message {
         channel: String,
@@ -138,6 +143,7 @@ mod tests {
                 tokens,
                 agent,
                 ms,
+                ..
             } => {
                 assert_eq!((exchanges, tokens), (3, 950));
                 assert_eq!((agent.as_str(), ms), ("", 0));

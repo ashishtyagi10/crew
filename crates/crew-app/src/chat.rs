@@ -34,6 +34,9 @@ pub struct ChatPane {
     /// Per-agent totals from reply-level `Stats` events: name → (replies,
     /// total ms) — the roster chips show `n× avg` from these.
     pub(crate) agent_stats: std::collections::HashMap<String, (u32, u64)>,
+    /// Each agent's latest real prompt size in tokens (its live context fill,
+    /// from reply-level `Stats.ctx`) — the pulse lanes' ctx meter.
+    pub(crate) ctx: std::collections::HashMap<String, u64>,
     /// Messages that arrived while scrolled up — the `↓ N new` pill. Cleared
     /// when the view returns to the live bottom.
     pub(crate) unread: usize,
@@ -59,6 +62,7 @@ impl ChatPane {
             tokens: 0,
             turns: 0,
             agent_stats: std::collections::HashMap::new(),
+            ctx: std::collections::HashMap::new(),
             unread: 0,
             pulse: crate::chatpulse::Pulse::new(),
             mention: None,
@@ -101,8 +105,12 @@ impl ChatPane {
                         self.absorb_activity(agent, &state, from);
                     }
                     PluginEvent::Stats {
-                        tokens, agent, ms, ..
-                    } => self.absorb_stats(tokens, agent, ms),
+                        tokens,
+                        agent,
+                        ms,
+                        ctx,
+                        ..
+                    } => self.absorb_stats(tokens, agent, ms, ctx),
                     PluginEvent::Message {
                         sender,
                         text,

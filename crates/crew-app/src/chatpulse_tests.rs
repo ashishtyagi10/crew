@@ -82,7 +82,13 @@ fn lanes_need_height_agents_and_engagement() {
 
 // ---- Lane rendering ----
 
-fn lane(cols: u16, active_agent: Option<&ActiveAgent>, stats_ms: u64) -> Vec<CellView> {
+fn lane_ctx(
+    cols: u16,
+    active_agent: Option<&ActiveAgent>,
+    stats_ms: u64,
+    ctx: Option<u64>,
+    limit: Option<u64>,
+) -> Vec<CellView> {
     let mut stats = HashMap::new();
     stats.insert("planner".to_string(), (2u32, stats_ms));
     let mut hist = History::new(8);
@@ -98,7 +104,13 @@ fn lane(cols: u16, active_agent: Option<&ActiveAgent>, stats_ms: u64) -> Vec<Cel
         10_000,
         3_000,
         7,
+        ctx,
+        limit,
     )
+}
+
+fn lane(cols: u16, active_agent: Option<&ActiveAgent>, stats_ms: u64) -> Vec<CellView> {
+    lane_ctx(cols, active_agent, stats_ms, None, None)
 }
 
 #[test]
@@ -151,6 +163,51 @@ fn narrow_lane_drops_charts_but_keeps_identity() {
     assert!(line.contains("planner"), "got: {line}");
     assert!(!line.contains('\u{2591}'), "no bar track at 30 cols");
     assert!(cells.iter().all(|c| c.col < 30), "clipped to width");
+}
+
+// ---- Context meter ----
+
+#[test]
+fn ctx_meter_shows_fill_percent_against_the_limit() {
+    // 8 192 of 32 768 → 25%: 1 of 5 meter cells filled, accent tier.
+    let cells = lane_ctx(100, None, 6_400, Some(8_192), Some(32_768));
+    let line = text(&cells, 100);
+    assert!(line.contains("ctx"), "got: {line}");
+    assert!(line.contains("25%"), "got: {line}");
+    let meter: Vec<_> = cells
+        .iter()
+        .filter(|c| c.c == '\u{2588}' && c.fg == crate::palette::accent())
+        .collect();
+    assert_eq!(meter.len(), 1, "25% of a 5-cell meter fills one cell");
+}
+
+#[test]
+fn ctx_meter_goes_red_when_the_window_is_nearly_full() {
+    let cells = lane_ctx(100, None, 6_400, Some(31_000), Some(32_768));
+    let line = text(&cells, 100);
+    assert!(line.contains("95%"), "got: {line}");
+    let red = crew_theme::theme().ansi[9];
+    assert!(
+        cells.iter().any(|c| c.c == '\u{2588}' && c.fg == red),
+        "past 90% the fill wears the critical tier"
+    );
+}
+
+#[test]
+fn ctx_meter_without_limit_shows_absolute_tokens() {
+    let line = text(&lane_ctx(100, None, 6_400, Some(8_192), None), 100);
+    assert!(line.contains("ctx 8.2k"), "got: {line}");
+    assert!(
+        !line.contains('%') || line.contains("64%"),
+        "no ctx percent, got: {line}"
+    );
+}
+
+#[test]
+fn ctx_meter_hidden_without_data_or_width() {
+    assert!(!text(&lane(100, None, 6_400), 100).contains("ctx"));
+    let narrow = text(&lane_ctx(70, None, 6_400, Some(8_192), Some(32_768)), 70);
+    assert!(!narrow.contains("ctx"), "no room at 70 cols, got: {narrow}");
 }
 
 // ---- Waterfall rendering ----

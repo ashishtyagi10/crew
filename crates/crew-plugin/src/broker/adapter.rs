@@ -25,6 +25,15 @@ impl Normalize {
     }
 }
 
+/// Real token usage from one API reply, as the provider reported it.
+/// `input_tokens` is the call's full prompt size — the agent's live context
+/// fill. All zeros when the backend can't report usage (external CLIs).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Usage {
+    pub input_tokens: u32,
+    pub output_tokens: u32,
+}
+
 /// A registered agent the broker can address by name.
 pub trait Adapter: Send + Sync {
     /// The name messages are addressed to (lowercase, e.g. `"claude"`).
@@ -45,6 +54,11 @@ pub trait Adapter: Send + Sync {
     /// Send `body` to the agent and return its normalized reply, or an error
     /// string (launch failure / timeout) the broker can log.
     fn call(&self, body: &str, timeout: Duration) -> Result<String, String>;
+    /// Like [`Adapter::call`], also reporting the reply's real token usage.
+    /// Defaults to zero usage for backends that can't report it.
+    fn call_with_usage(&self, body: &str, timeout: Duration) -> Result<(String, Usage), String> {
+        self.call(body, timeout).map(|t| (t, Usage::default()))
+    }
 }
 
 /// An agent driven by one CLI command. `args` may contain the placeholder

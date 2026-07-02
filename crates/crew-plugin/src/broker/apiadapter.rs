@@ -64,6 +64,16 @@ impl Adapter for ApiAdapter {
     }
 
     fn call(&self, body: &str, timeout: Duration) -> Result<String, String> {
+        self.call_with_usage(body, timeout).map(|(t, _)| t)
+    }
+
+    /// API replies carry real usage: the provider's reported prompt/completion
+    /// tokens (the prompt size is the agent's live context fill).
+    fn call_with_usage(
+        &self,
+        body: &str,
+        timeout: Duration,
+    ) -> Result<(String, super::adapter::Usage), String> {
         let req = CompletionRequest {
             model: self.model.clone(),
             system: self.system.clone(),
@@ -75,7 +85,13 @@ impl Adapter for ApiAdapter {
             .rt
             .block_on(async move { tokio::time::timeout(timeout, fut).await })
         {
-            Ok(Ok(c)) => Ok(c.text.trim().to_string()),
+            Ok(Ok(c)) => Ok((
+                c.text.trim().to_string(),
+                super::adapter::Usage {
+                    input_tokens: c.input_tokens,
+                    output_tokens: c.output_tokens,
+                },
+            )),
             Ok(Err(e)) => Err(e.to_string()),
             Err(_) => Err(format!(
                 "{}: api call timed out after {timeout:?} (raise CREW_BROKER_TIMEOUT_MS?)",

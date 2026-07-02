@@ -35,11 +35,13 @@ fn stats_events_split_turn_and_agent_totals() {
     // An idle child stands in for the broker; only pane state is under test.
     let plugin = Plugin::spawn("sh", &["-c".to_string(), "cat >/dev/null".to_string()]).unwrap();
     let mut pane = ChatPane::new(plugin, "crew".into());
-    pane.absorb_stats(950, String::new(), 0); // turn-level
-    pane.absorb_stats(0, "planner".into(), 4_200); // reply-level
-    pane.absorb_stats(0, "planner".into(), 2_200);
+    pane.absorb_stats(950, String::new(), 0, 0); // turn-level
+    pane.absorb_stats(0, "planner".into(), 4_200, 8_100); // reply-level, ctx 8.1k
+    pane.absorb_stats(0, "planner".into(), 2_200, 9_400);
     assert_eq!((pane.tokens, pane.turns), (950, 1));
     assert_eq!(pane.agent_stats.get("planner"), Some(&(2, 6_400)));
+    // The latest reply's prompt size is the live context fill.
+    assert_eq!(pane.ctx.get("planner"), Some(&9_400));
 }
 
 fn pane() -> ChatPane {
@@ -106,7 +108,7 @@ fn pulse_lanes_gate_on_height_and_engagement() {
     ];
     assert_eq!(p.pulse_lanes(20), 0, "fresh pane keeps the roster rows");
     assert_eq!(p.top_rows(20), 2);
-    p.absorb_stats(950, String::new(), 0); // a turn ran
+    p.absorb_stats(950, String::new(), 0, 0); // a turn ran
     assert_eq!(p.pulse_lanes(20), 2, "engaged + tall → one lane per agent");
     assert_eq!(p.top_rows(20), 4, "header + 2 lanes + waterfall");
     assert_eq!(p.pulse_lanes(10), 0, "short pane falls back");

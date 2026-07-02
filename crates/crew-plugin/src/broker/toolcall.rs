@@ -118,6 +118,7 @@ impl Broker {
                 hop: env.hop,
                 kind: HopKind::Reply,
                 text: format!("[tool] {label} {}", clip(&call.args, 200)),
+                usage: Default::default(),
             });
             let text = match runner.call(&call.server, &call.tool, &call.args) {
                 Ok(t) if t.is_empty() => "(empty result)".to_string(),
@@ -131,6 +132,7 @@ impl Broker {
                 hop: env.hop,
                 kind: HopKind::Reply,
                 text: clip(&text, 400),
+                usage: Default::default(),
             });
             exchanges.push(format!(
                 "CALLED {label} {}\nRESULT:\n{}",
@@ -149,6 +151,7 @@ impl Broker {
                 hop: env.hop,
                 kind: HopKind::Dialing,
                 text: String::new(),
+                usage: Default::default(),
             });
             match agent.call(&follow, self.timeout) {
                 Ok(r) if !r.trim().is_empty() => {

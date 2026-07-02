@@ -32,6 +32,7 @@ pub(crate) fn fan_out(
          `@done` control line.\n\nTask: {task}"
     );
     let mut tokens = 0usize;
+    let mut real_tokens = 0usize;
     let mut timings: Vec<(String, Duration)> = Vec::new();
     let mut werr: anyhow::Result<()> = Ok(());
     std::thread::scope(|s| {
@@ -49,7 +50,7 @@ pub(crate) fn fan_out(
             let prompt = prompt.clone();
             s.spawn(move || {
                 let t0 = Instant::now();
-                let res = agent.call(&prompt, timeout);
+                let res = agent.call_with_usage(&prompt, timeout);
                 let _ = tx.send((name.clone(), res, t0.elapsed()));
             });
         }
@@ -61,16 +62,33 @@ pub(crate) fn fan_out(
                 state: "idle".into(),
                 from: String::new(),
             };
-            let ev = match res {
-                Ok(reply) => {
+            let (ev, stat) = match res {
+                Ok((reply, u)) => {
                     tokens += (prompt.len() + reply.len()) / 4;
+                    real_tokens += (u.input_tokens + u.output_tokens) as usize;
                     timings.push((name.clone(), dt));
-                    reply_msg(&name, &reply, dt)
+                    // The agent's live reply stat, real usage when reported.
+                    let stat = PluginEvent::Stats {
+                        exchanges: 0,
+                        tokens: (u.input_tokens + u.output_tokens) as u64,
+                        agent: name.clone(),
+                        ms: dt.as_millis() as u64,
+                        ctx: u.input_tokens as u64,
+                    };
+                    (reply_msg(&name, &reply, dt), Some(stat))
                 }
-                Err(e) => msg(&format!("{name} \u{2192} user"), format!("[error] {e}")),
+                Err(e) => (
+                    msg(&format!("{name} \u{2192} user"), format!("[error] {e}")),
+                    None,
+                ),
             };
             if werr.is_ok() {
-                werr = emit(done).and_then(|()| emit(ev));
+                werr = emit(done)
+                    .and_then(|()| match stat {
+                        Some(s) => emit(s),
+                        None => Ok(()),
+                    })
+                    .and_then(|()| emit(ev));
             }
         }
     });
@@ -80,24 +98,27 @@ pub(crate) fn fan_out(
         .iter()
         .map(|(n, d)| format!("{n} {:.1}s", d.as_secs_f32()))
         .collect();
-    for (agent, d) in &timings {
-        emit(PluginEvent::Stats {
-            exchanges: 0,
-            tokens: 0,
-            agent: agent.clone(),
-            ms: d.as_millis() as u64,
-        })?;
-    }
+    let (total, approx) = if real_tokens > 0 {
+        (real_tokens, false)
+    } else {
+        (tokens, true)
+    };
+    let cost = if approx {
+        format!("~{total} tok (approx)")
+    } else {
+        format!("{total} tok")
+    };
     emit(PluginEvent::Stats {
         exchanges: names.len() as u32,
-        tokens: tokens as u64,
+        tokens: total as u64,
         agent: String::new(),
         ms: 0,
+        ctx: 0,
     })?;
     emit(msg(
         "crew",
         format!(
-            "fan done \u{2014} {} of {} replied \u{2225} {} \u{00b7} ~{tokens} tok (approx)",
+            "fan done \u{2014} {} of {} replied \u{2225} {} \u{00b7} {cost}",
             timings.len(),
             names.len(),
             order.join(" \u{00b7} "),

@@ -30,6 +30,7 @@ mod clipboard;
 mod clock;
 mod cmdmenu;
 pub mod config;
+mod ctxlimit;
 mod cwd;
 mod detach;
 mod dispatch;

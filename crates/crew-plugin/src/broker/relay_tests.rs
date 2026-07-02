@@ -50,6 +50,7 @@ fn dialing_becomes_a_thinking_activity() {
         hop: 1,
         kind: HopKind::Dialing,
         text: String::new(),
+        usage: Default::default(),
     };
     match hop_to_msg(&hop, None) {
         PluginEvent::Activity { agent, state, from } => {
@@ -68,6 +69,7 @@ fn reply_hop_is_labelled_from_to() {
         hop: 0,
         kind: HopKind::Reply,
         text: "here is my analysis".into(),
+        usage: Default::default(),
     };
     let ev = hop_to_msg(&hop, Some(Duration::from_millis(4200)));
     assert_eq!(text(&ev), ("claude → codex", "here is my analysis"));
@@ -88,6 +90,7 @@ fn done_and_error_markers() {
         hop: 0,
         kind,
         text: t.into(),
+        usage: Default::default(),
     };
     assert_eq!(text(&hop_to_msg(&mk(HopKind::Done, ""), None)).1, "[done]");
     assert_eq!(
@@ -106,7 +109,7 @@ fn turn_summary_times_each_agent_in_order() {
         ("planner".to_string(), Duration::from_millis(4200)),
         ("coder".to_string(), Duration::from_millis(8100)),
     ];
-    let s = turn_summary(&segs, 2, 950);
+    let s = turn_summary(&segs, 2, 950, true);
     assert!(s.contains("planner 4.2s → coder 8.1s"), "{s}");
     assert!(s.contains("2 exchange(s)"), "{s}");
     assert!(s.contains("~950 tok"), "{s}");
@@ -114,7 +117,7 @@ fn turn_summary_times_each_agent_in_order() {
 
 #[test]
 fn turn_summary_without_segments_still_reports_cost() {
-    let s = turn_summary(&[], 0, 0);
+    let s = turn_summary(&[], 0, 0, true);
     assert!(s.starts_with("turn done"), "{s}");
     assert!(s.contains("~0 tok"), "{s}");
 }
@@ -149,4 +152,65 @@ fn multi_targets_rejects_singles_typos_and_plain_tasks() {
         multi_targets("@planner+coder", &r).is_none(),
         "no task body"
     );
+}
+
+/// A stub agent that answers `@done ok` and reports real usage, as an
+/// API-backed adapter would.
+struct UsageAgent;
+impl crate::Adapter for UsageAgent {
+    fn name(&self) -> &str {
+        "planner"
+    }
+    fn probe(&self) -> bool {
+        true
+    }
+    fn call(&self, _b: &str, _t: std::time::Duration) -> Result<String, String> {
+        Ok("@done ok".into())
+    }
+    fn call_with_usage(
+        &self,
+        _b: &str,
+        _t: std::time::Duration,
+    ) -> Result<(String, crate::broker::adapter::Usage), String> {
+        Ok((
+            "@done ok".into(),
+            crate::broker::adapter::Usage {
+                input_tokens: 8_192,
+                output_tokens: 40,
+            },
+        ))
+    }
+}
+
+#[test]
+fn relay_streams_live_reply_stats_with_real_usage() {
+    let registry = Registry::new(vec![Box::new(UsageAgent)]);
+    let broker = Broker::new(registry, 6, std::time::Duration::from_secs(5));
+    let mut events = Vec::new();
+    relay_turn(&broker, "planner", "task", "t1", &mut |ev| {
+        events.push(ev);
+        Ok(())
+    })
+    .unwrap();
+    // The agent's reply stat streams live with the hop: real spend + context fill.
+    let reply_stat = events.iter().position(|e| {
+        matches!(e, PluginEvent::Stats { agent, tokens, ctx, .. }
+            if agent == "planner" && *tokens == 8_232 && *ctx == 8_192)
+    });
+    assert!(
+        reply_stat.is_some(),
+        "live reply stat with usage: {events:?}"
+    );
+    // The turn total prefers the real count and the summary drops "(approx)".
+    let turn_stat = events.iter().position(|e| {
+        matches!(e, PluginEvent::Stats { agent, tokens, .. }
+            if agent.is_empty() && *tokens == 8_232)
+    });
+    assert!(turn_stat.is_some(), "real turn total: {events:?}");
+    assert!(reply_stat < turn_stat, "reply stat streams before turn end");
+    let summary = events.iter().any(|e| {
+        matches!(e, PluginEvent::Message { text, .. }
+            if text.contains("8232 tok") && !text.contains("approx"))
+    });
+    assert!(summary, "summary shows real cost: {events:?}");
 }

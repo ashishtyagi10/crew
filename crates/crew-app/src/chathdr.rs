@@ -70,7 +70,7 @@ fn status_segments(
 }
 
 /// A compact token count: `950`, then `9.5k` from a thousand up.
-fn fmt_tokens(tokens: u64) -> String {
+pub(crate) fn fmt_tokens(tokens: u64) -> String {
     if tokens < 1_000 {
         tokens.to_string()
     } else {

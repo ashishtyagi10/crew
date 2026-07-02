@@ -62,6 +62,8 @@ fn pulse_block(pane: &ChatPane, cols: u16, lanes: u16) -> Vec<CellView> {
             total_ms,
             scale,
             name_w,
+            pane.ctx.get(&a.name).copied(),
+            crate::ctxlimit::context_limit(&a.model),
         ));
     }
     // The newest thinking agent's segment grows live on the waterfall.

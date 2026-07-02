@@ -34,7 +34,8 @@ pub(crate) fn relay_turn(
             answer = Some(hop.text.clone());
         }
         // A Dialing hop opens an agent's segment; any other hop closes it —
-        // the closed segment is that reply's latency.
+        // the closed segment is that reply's latency, streamed at once as that
+        // agent's live reply stat (real tokens + context fill when reported).
         let mut latency = None;
         match (&hop.kind, timing.take()) {
             (HopKind::Dialing, prev) => {
@@ -46,6 +47,9 @@ pub(crate) fn relay_turn(
             (_, Some((agent, t0))) => {
                 let d = t0.elapsed();
                 latency = Some(d);
+                if werr.is_ok() {
+                    werr = emit(reply_stat(&agent, d, &hop));
+                }
                 segments.push((agent, d));
             }
             _ => {}
@@ -56,27 +60,32 @@ pub(crate) fn relay_turn(
     });
     werr?;
     if let Some((agent, t0)) = timing.take() {
-        segments.push((agent, t0.elapsed()));
-    }
-    // One reply stat per timed segment (exchanges/tokens 0 — the turn-level
-    // event below carries those), then the turn total.
-    for (agent, d) in &segments {
+        let d = t0.elapsed();
         emit(PluginEvent::Stats {
             exchanges: 0,
             tokens: 0,
             agent: agent.clone(),
             ms: d.as_millis() as u64,
+            ctx: 0,
         })?;
+        segments.push((agent, d));
     }
+    // The turn total: real usage when every backend reported it, else approx.
+    let (total, approx) = if stats.real_tokens > 0 {
+        (stats.real_tokens, false)
+    } else {
+        (stats.approx_tokens, true)
+    };
     emit(PluginEvent::Stats {
         exchanges: stats.exchanges,
-        tokens: stats.approx_tokens as u64,
+        tokens: total as u64,
         agent: String::new(),
         ms: 0,
+        ctx: 0,
     })?;
     emit(msg(
         "crew",
-        turn_summary(&segments, stats.exchanges, stats.approx_tokens),
+        turn_summary(&segments, stats.exchanges, total, approx),
     ))?;
     emit(PluginEvent::Activity {
         agent: String::new(),
@@ -86,11 +95,25 @@ pub(crate) fn relay_turn(
     Ok(answer)
 }
 
-/// The per-turn log line: who worked for how long, and what it cost.
+/// One agent's live reply stat: its latency plus — when the backend reported
+/// usage — the hop's real token spend and prompt size (context fill).
+fn reply_stat(agent: &str, d: Duration, hop: &Hop) -> PluginEvent {
+    PluginEvent::Stats {
+        exchanges: 0,
+        tokens: (hop.usage.input_tokens + hop.usage.output_tokens) as u64,
+        agent: agent.to_string(),
+        ms: d.as_millis() as u64,
+        ctx: hop.usage.input_tokens as u64,
+    }
+}
+
+/// The per-turn log line: who worked for how long, and what it cost —
+/// `~N tok (approx)` only when no backend reported real usage.
 pub(crate) fn turn_summary(
     segments: &[(String, Duration)],
     exchanges: u32,
-    approx_tokens: usize,
+    tokens: usize,
+    approx: bool,
 ) -> String {
     let timeline: Vec<String> = segments
         .iter()
@@ -101,7 +124,12 @@ pub(crate) fn turn_summary(
     } else {
         format!("turn done \u{2014} {}", timeline.join(" \u{2192} "))
     };
-    format!("{head} \u{00b7} {exchanges} exchange(s) \u{00b7} ~{approx_tokens} tok (approx)")
+    let cost = if approx {
+        format!("~{tokens} tok (approx)")
+    } else {
+        format!("{tokens} tok")
+    };
+    format!("{head} \u{00b7} {exchanges} exchange(s) \u{00b7} {cost}")
 }
 
 /// Render a hop as a plugin event. `Dialing` becomes a live `Activity` status

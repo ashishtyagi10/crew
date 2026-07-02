@@ -25,13 +25,18 @@ pub struct Hop {
     pub hop: u32,
     pub kind: HopKind,
     pub text: String,
+    /// Real usage of the agent call that produced this hop (reply hops from
+    /// API-backed agents); zeros for dialing/notes and usage-less backends.
+    pub usage: super::adapter::Usage,
 }
 
-/// Approximate cost of a relay: agent calls made and ~tokens (chars / 4).
+/// Cost of a relay: agent calls made, ~tokens (chars / 4), and — when the
+/// backend reports usage — the real token total (0 = nothing reported).
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct RunStats {
     pub exchanges: u32,
     pub approx_tokens: usize,
+    pub real_tokens: usize,
 }
 
 use super::Envelope;
@@ -44,6 +49,7 @@ pub(crate) fn back(env: &Envelope, kind: HopKind, text: String) -> Hop {
         hop: env.hop,
         kind,
         text,
+        usage: Default::default(),
     }
 }
 
@@ -55,6 +61,7 @@ pub(crate) fn note(env: &Envelope, kind: HopKind, text: String) -> Hop {
         hop: env.hop,
         kind,
         text,
+        usage: Default::default(),
     }
 }
 

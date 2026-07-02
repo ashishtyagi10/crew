@@ -102,9 +102,10 @@ impl Broker {
                 hop: env.hop,
                 kind: HopKind::Dialing,
                 text: String::new(),
+                usage: Default::default(),
             });
-            let reply = match agent.call(&prompt, self.timeout) {
-                Ok(r) if !r.trim().is_empty() => r,
+            let (reply, mut usage) = match agent.call_with_usage(&prompt, self.timeout) {
+                Ok((r, u)) if !r.trim().is_empty() => (r, u),
                 Ok(_) => {
                     sink(back(&env, HopKind::Error, "empty reply".into()));
                     return stats;
@@ -116,6 +117,7 @@ impl Broker {
             };
             stats.exchanges += 1;
             stats.approx_tokens += (prompt.len() + reply.len()) / 4;
+            stats.real_tokens += (usage.input_tokens + usage.output_tokens) as usize;
             // Resolve any `@tool` directives before routing (no-op without tools).
             let reply = self.run_tools(agent, &prompt, reply, &mut stats, &env, sink);
             // If the agent forgot its control line and a hand-off is possible,
@@ -123,10 +125,12 @@ impl Broker {
             let reply = if !repaired && !peers.is_empty() && !has_directive(&reply) {
                 repaired = true;
                 let nudge = repair_prompt(&peers, &reply);
-                match agent.call(&nudge, self.timeout) {
-                    Ok(r) if !r.trim().is_empty() => {
+                match agent.call_with_usage(&nudge, self.timeout) {
+                    Ok((r, u)) if !r.trim().is_empty() => {
                         stats.exchanges += 1;
                         stats.approx_tokens += (nudge.len() + r.len()) / 4;
+                        stats.real_tokens += (u.input_tokens + u.output_tokens) as usize;
+                        usage = u; // the repair call's context is the latest
                         r
                     }
                     _ => reply,
@@ -148,7 +152,9 @@ impl Broker {
             match parse_routing(&reply) {
                 Routing::Relay { to: next, body } => {
                     if next.eq_ignore_ascii_case(&env.to) {
-                        sink(back(&env, HopKind::Done, body)); // self-hand-off → finish
+                        let mut done = back(&env, HopKind::Done, body); // self-hand-off → finish
+                        done.usage = usage;
+                        sink(done);
                         return stats;
                     }
                     let trimmed = body.trim();
@@ -164,6 +170,7 @@ impl Broker {
                         hop: env.hop,
                         kind: HopKind::Reply,
                         text: body.clone(),
+                        usage,
                     });
                     transcript.push(format!("{} → {next}: {}", env.to, clip(&body, 400)));
                     if self.registry.get(&next).is_none() {
@@ -177,7 +184,9 @@ impl Broker {
                     env = env.advance(env.to.clone(), next, body);
                 }
                 Routing::Done(answer) => {
-                    sink(back(&env, HopKind::Done, answer));
+                    let mut done = back(&env, HopKind::Done, answer);
+                    done.usage = usage;
+                    sink(done);
                     return stats;
                 }
             }

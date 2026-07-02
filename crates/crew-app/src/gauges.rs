@@ -17,7 +17,7 @@ fn track_color() -> (u8, u8, u8) {
 /// Bar colour by load: accent when low, the theme's status amber past 70%,
 /// its bright-red ANSI slot past 90% — every tier drawn from the active
 /// palette so a phosphor theme's gauges glow in that phosphor's hues.
-fn fill_color(frac: f32) -> (u8, u8, u8) {
+pub(crate) fn fill_color(frac: f32) -> (u8, u8, u8) {
     let t = crew_theme::theme();
     if frac < 0.7 {
         accent()
