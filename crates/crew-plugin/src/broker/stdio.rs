@@ -1,18 +1,24 @@
 //! The stdio broker loop behind the `/crew` pane. Reads `PluginCommand` JSON
-//! lines, discovers the installed agents, relays a task between them, and
-//! STREAMS each event as it happens — flushing per line — so the pane shows
-//! live progress (activity, each reply) instead of waiting for the whole
-//! (slow) relay to finish. Used both by the `crew-broker-plugin` binary and by
-//! the `crew` binary re-execing itself with `--broker-plugin`.
+//! lines and STREAMS every event as it happens (flushing per line). Long work
+//! — a relay turn, /fan, /loop, /goal — runs on a **worker thread** so the
+//! main loop keeps draining stdin: quick constructs (/help, /model, …) answer
+//! immediately and `/stop` can cancel the running task between hops/rounds.
+//! Used both by the `crew-broker-plugin` binary and by the `crew` binary
+//! re-execing itself with `--broker-plugin`.
 use std::io::{BufRead, Write};
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use super::relay::{msg, multi_targets, relay_turn, split_target};
 use super::session::Session;
-use crate::{Broker, PluginCommand, PluginEvent, Registry};
+use crate::{PluginCommand, PluginEvent, Registry};
 
 static THREAD_SEQ: AtomicU64 = AtomicU64::new(1);
+
+/// stdout shared between the main loop and the worker thread; every emit
+/// locks, writes one full line, and flushes.
+type Out = Arc<Mutex<std::io::Stdout>>;
 
 pub(crate) fn max_hops() -> u32 {
     env_num("CREW_BROKER_MAX_HOPS").unwrap_or(6)
@@ -28,57 +34,112 @@ fn env_num<T: std::str::FromStr>(key: &str) -> Option<T> {
     std::env::var(key).ok().and_then(|s| s.parse().ok())
 }
 
-/// Run the broker over stdin/stdout until EOF, flushing every event so the UI
-/// streams progress.
+fn emit(out: &Out, ev: &PluginEvent) -> anyhow::Result<()> {
+    let mut o = out.lock().unwrap_or_else(|e| e.into_inner());
+    writeln!(o, "{}", serde_json::to_string(ev)?)?;
+    o.flush()?;
+    Ok(())
+}
+
+/// Run the broker over stdin/stdout until EOF.
 pub fn run_broker_stdio() -> anyhow::Result<()> {
     let stdin = std::io::stdin();
-    let mut out = std::io::stdout();
+    let out: Out = Arc::new(Mutex::new(std::io::stdout()));
     let mut session = Session::new();
+    // The running construct's label, shared with the worker that clears it.
+    let busy: Arc<Mutex<Option<String>>> = Arc::new(Mutex::new(None));
+    let mut worker: Option<std::thread::JoinHandle<()>> = None;
     for line in stdin.lock().lines() {
         let line = line?;
         let Ok(cmd) = serde_json::from_str::<PluginCommand>(&line) else {
             continue;
         };
-        dispatch(cmd, &mut out, &mut session)?;
+        match cmd {
+            PluginCommand::Hello { .. } => hello(&out, &session)?,
+            PluginCommand::Send { text, .. } => send(text, &out, &mut session, &busy, &mut worker)?,
+            PluginCommand::Subscribe { .. } => {}
+        }
+    }
+    // stdin closed (pane gone / EOF): let a running task finish streaming
+    // rather than truncating its output mid-line.
+    if let Some(h) = worker {
+        let _ = h.join();
     }
     Ok(())
 }
 
-fn emit(out: &mut impl Write, ev: &PluginEvent) -> anyhow::Result<()> {
-    writeln!(out, "{}", serde_json::to_string(ev)?)?;
-    out.flush()?;
-    Ok(())
+fn hello(out: &Out, session: &Session) -> anyhow::Result<()> {
+    let reg = session.registry();
+    emit(
+        out,
+        &PluginEvent::Ready {
+            v: 1,
+            provider: "crew".into(),
+            channels: vec!["crew".into()],
+        },
+    )?;
+    emit(
+        out,
+        &PluginEvent::Roster {
+            agents: reg.infos(),
+        },
+    )?;
+    emit(out, &msg("crew", roster(&reg)))
 }
 
-fn dispatch(cmd: PluginCommand, out: &mut impl Write, session: &mut Session) -> anyhow::Result<()> {
-    match cmd {
-        PluginCommand::Hello { .. } => {
-            let reg = session.registry();
-            emit(
-                out,
-                &PluginEvent::Ready {
-                    v: 1,
-                    provider: "crew".into(),
-                    channels: vec!["crew".into()],
-                },
-            )?;
-            emit(
-                out,
-                &PluginEvent::Roster {
-                    agents: reg.infos(),
-                },
-            )?;
-            emit(out, &msg("crew", roster(&reg)))?;
-        }
-        PluginCommand::Send { text, .. } => {
-            if super::commands::is_command(&text) {
-                super::commands::handle(session, &text, &mut |ev| emit(out, &ev))?;
-            } else {
-                relay(&text, out, session)?;
+/// Route one Send: `/stop` and quick constructs answer inline; tasks and long
+/// constructs run on the worker thread (one at a time).
+fn send(
+    text: String,
+    out: &Out,
+    session: &mut Session,
+    busy: &Arc<Mutex<Option<String>>>,
+    worker: &mut Option<std::thread::JoinHandle<()>>,
+) -> anyhow::Result<()> {
+    let trimmed = text.trim().to_string();
+    let running = busy.lock().unwrap_or_else(|e| e.into_inner()).clone();
+    if trimmed == "/stop" {
+        return match running {
+            Some(label) => {
+                session.cancel.store(true, Ordering::Relaxed);
+                emit(
+                    out,
+                    &msg("crew", format!("stopping \u{2018}{label}\u{2019}\u{2026}")),
+                )
             }
-        }
-        PluginCommand::Subscribe { .. } => {}
+            None => emit(out, &msg("crew", "nothing is running")),
+        };
     }
+    if super::commands::is_quick(&trimmed) {
+        return super::commands::handle(session, &trimmed, &mut |ev| emit(out, &ev));
+    }
+    if let Some(label) = running {
+        return emit(
+            out,
+            &msg(
+                "crew",
+                format!("busy with \u{2018}{label}\u{2019} \u{2014} /stop cancels it"),
+            ),
+        );
+    }
+    session.cancel.store(false, Ordering::Relaxed);
+    let label: String = trimmed.chars().take(40).collect();
+    *busy.lock().unwrap_or_else(|e| e.into_inner()) = Some(label);
+    let mut snap = session.snapshot();
+    let (out, busy) = (Arc::clone(out), Arc::clone(busy));
+    // A finished worker's handle may be overwritten here (it's already done;
+    // dropping the handle just detaches the dead thread).
+    *worker = Some(std::thread::spawn(move || {
+        let res = if super::commands::is_command(&trimmed) {
+            super::commands::handle(&mut snap, &trimmed, &mut |ev| emit(&out, &ev))
+        } else {
+            relay(&trimmed, &out, &snap)
+        };
+        if let Err(e) = res {
+            eprintln!("crew-broker: worker error: {e}");
+        }
+        *busy.lock().unwrap_or_else(|e| e.into_inner()) = None;
+    }));
     Ok(())
 }
 
@@ -98,7 +159,7 @@ pub(crate) fn roster(reg: &Registry) -> String {
     )
 }
 
-fn relay(input: &str, out: &mut impl Write, session: &Session) -> anyhow::Result<()> {
+fn relay(input: &str, out: &Out, session: &Session) -> anyhow::Result<()> {
     let reg = session.registry();
     if reg.is_empty() {
         return emit(out, &msg("crew", roster(&reg)));
@@ -129,7 +190,7 @@ fn relay(input: &str, out: &mut impl Write, session: &Session) -> anyhow::Result
             format!("starting with {start} — relaying until an agent says @done"),
         ),
     )?;
-    let broker = Broker::new(reg, max_hops(), call_timeout()).with_budget(token_budget());
+    let broker = session.broker(reg);
     relay_turn(&broker, &start, &body, &tid, &mut |ev| emit(out, &ev)).map(|_| ())
 }
 

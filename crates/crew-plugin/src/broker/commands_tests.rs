@@ -27,6 +27,21 @@ fn detects_commands() {
 }
 
 #[test]
+fn quick_commands_answer_inline_but_constructs_do_not() {
+    for quick in ["/help", "/agents", "/model coder x", "/status", "/nonsense"] {
+        assert!(is_quick(quick), "{quick}");
+    }
+    for long in [
+        "/fan build it",
+        "/loop 3 x",
+        "/goal ship it",
+        "a plain task",
+    ] {
+        assert!(!is_quick(long), "{long}");
+    }
+}
+
+#[test]
 fn help_lists_constructs() {
     let evs = run("/help");
     assert_eq!(evs.len(), 1);

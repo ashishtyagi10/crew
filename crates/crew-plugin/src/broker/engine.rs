@@ -4,7 +4,7 @@
 //! the loop guard. Every hop is reported through a sink for observability.
 use std::time::Duration;
 
-use super::hop::{Hop, HopKind, RunStats};
+use super::hop::{back, note, transcript_tail, Hop, HopKind, RunStats};
 use super::route::{clip, frame, has_directive, repair_prompt};
 use super::{parse_routing, Envelope, Registry, Routing};
 
@@ -15,6 +15,9 @@ pub struct Broker {
     pub max_hops: u32,
     pub timeout: Duration,
     pub token_budget: usize,
+    /// Checked between hops; when it flips true (`/stop`), the thread ends
+    /// with a Terminated hop instead of dialling the next agent.
+    cancel: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
 }
 
 impl Broker {
@@ -24,6 +27,7 @@ impl Broker {
             max_hops,
             timeout,
             token_budget: 0,
+            cancel: None,
         }
     }
 
@@ -31,6 +35,18 @@ impl Broker {
     pub fn with_budget(mut self, tokens: usize) -> Self {
         self.token_budget = tokens;
         self
+    }
+
+    /// Attach a cooperative cancel flag (the `/stop` construct).
+    pub fn with_cancel_flag(mut self, flag: std::sync::Arc<std::sync::atomic::AtomicBool>) -> Self {
+        self.cancel = Some(flag);
+        self
+    }
+
+    fn cancelled(&self) -> bool {
+        self.cancel
+            .as_ref()
+            .is_some_and(|c| c.load(std::sync::atomic::Ordering::Relaxed))
     }
 
     /// Drive a relay from `from` to `to`; hops stream through `sink`.
@@ -49,8 +65,16 @@ impl Broker {
         let mut repaired = false; // at most one protocol-repair re-ask per thread
         let mut env = Envelope::new(from, to, thread_id, body);
         loop {
+            if self.cancelled() {
+                sink(note(
+                    &env,
+                    HopKind::Terminated,
+                    "thread cancelled by /stop".into(),
+                ));
+                return stats;
+            }
             if env.hop > self.max_hops {
-                sink(self.note(
+                sink(note(
                     &env,
                     HopKind::Terminated,
                     format!("thread terminated: hop limit {} reached", self.max_hops),
@@ -58,7 +82,7 @@ impl Broker {
                 return stats;
             }
             let Some(agent) = self.registry.get(&env.to) else {
-                sink(self.note(
+                sink(note(
                     &env,
                     HopKind::Error,
                     format!("unknown agent \"{}\"", env.to),
@@ -66,16 +90,16 @@ impl Broker {
                 return stats;
             };
             let peers = self.registry.roster_excluding(&env.to);
-            let prompt = frame(&env, &peers, &task, &tail(&transcript));
-            sink(self.note(&env, HopKind::Dialing, String::new()));
+            let prompt = frame(&env, &peers, &task, &transcript_tail(&transcript));
+            sink(note(&env, HopKind::Dialing, String::new()));
             let reply = match agent.call(&prompt, self.timeout) {
                 Ok(r) if !r.trim().is_empty() => r,
                 Ok(_) => {
-                    sink(self.back(&env, HopKind::Error, "empty reply".into()));
+                    sink(back(&env, HopKind::Error, "empty reply".into()));
                     return stats;
                 }
                 Err(e) => {
-                    sink(self.back(&env, HopKind::Error, e));
+                    sink(back(&env, HopKind::Error, e));
                     return stats;
                 }
             };
@@ -98,7 +122,7 @@ impl Broker {
                 reply
             };
             if self.token_budget > 0 && stats.approx_tokens > self.token_budget {
-                sink(self.note(
+                sink(note(
                     &env,
                     HopKind::Terminated,
                     format!(
@@ -111,13 +135,13 @@ impl Broker {
             match parse_routing(&reply) {
                 Routing::Relay { to: next, body } => {
                     if next.eq_ignore_ascii_case(&env.to) {
-                        sink(self.back(&env, HopKind::Done, body)); // self-hand-off → finish
+                        sink(back(&env, HopKind::Done, body)); // self-hand-off → finish
                         return stats;
                     }
                     let trimmed = body.trim();
                     if !trimmed.is_empty() && last_body.as_deref() == Some(trimmed) {
                         let m = "thread terminated: no progress (a reply repeated verbatim)";
-                        sink(self.note(&env, HopKind::Terminated, m.into()));
+                        sink(note(&env, HopKind::Terminated, m.into()));
                         return stats;
                     }
                     last_body = Some(trimmed.to_string());
@@ -130,57 +154,20 @@ impl Broker {
                     });
                     transcript.push(format!("{} → {next}: {}", env.to, clip(&body, 400)));
                     if self.registry.get(&next).is_none() {
-                        sink(self.note(&env, HopKind::Error, format!("unknown peer \"{next}\"")));
+                        sink(note(
+                            &env,
+                            HopKind::Error,
+                            format!("unknown peer \"{next}\""),
+                        ));
                         return stats;
                     }
                     env = env.advance(env.to.clone(), next, body);
                 }
                 Routing::Done(answer) => {
-                    sink(self.back(&env, HopKind::Done, answer));
+                    sink(back(&env, HopKind::Done, answer));
                     return stats;
                 }
             }
-        }
-    }
-
-    /// A hop produced by the agent at `env.to`, bound back to `env.from`.
-    fn back(&self, env: &Envelope, kind: HopKind, text: String) -> Hop {
-        Hop {
-            from: env.to.clone(),
-            to: env.from.clone(),
-            hop: env.hop,
-            kind,
-            text,
-        }
-    }
-
-    /// A broker-originated note (loop guard / routing error) about `env`.
-    fn note(&self, env: &Envelope, kind: HopKind, text: String) -> Hop {
-        Hop {
-            from: "broker".into(),
-            to: env.to.clone(),
-            hop: env.hop,
-            kind,
-            text,
-        }
-    }
-}
-
-/// The last few transcript entries joined — bounded context for the next agent.
-fn tail(transcript: &[String]) -> String {
-    const MAX: usize = 8;
-    transcript[transcript.len().saturating_sub(MAX)..].join("\n")
-}
-
-impl Envelope {
-    /// The next envelope one hop deeper, from `from` to `to` carrying `body`.
-    fn advance(&self, from: String, to: String, body: String) -> Envelope {
-        Envelope {
-            from,
-            to,
-            thread_id: self.thread_id.clone(),
-            hop: self.hop + 1,
-            body,
         }
     }
 }

@@ -11,6 +11,14 @@ pub(crate) fn is_command(text: &str) -> bool {
     text.trim_start().starts_with('/')
 }
 
+/// Whether a command answers instantly (no agent calls) — those run inline on
+/// the stdin loop even while a long construct occupies the worker thread.
+pub(crate) fn is_quick(text: &str) -> bool {
+    let line = text.trim().trim_start_matches('/');
+    let cmd = line.split_whitespace().next().unwrap_or("");
+    is_command(text) && !matches!(cmd, "fan" | "loop" | "goal")
+}
+
 /// One-line summaries of every construct, shown by `/help`.
 pub(crate) const HELP: &str = "constructs:\n\
     /help — this list\n\
@@ -19,7 +27,9 @@ pub(crate) const HELP: &str = "constructs:\n\
     /fan <task> — every agent answers the same task in parallel\n\
     /loop <n> <task> — n relay rounds, each improving the last answer\n\
     /goal <text> — keep working until a judge agent rules the goal met\n\
-    @<agent> <task> — choose who starts the relay";
+    /stop — cancel the running construct at the next checkpoint\n\
+    @<agent> <task> — choose who starts the relay\n\
+    @<a>+<b> <task> — those agents answer in parallel";
 
 /// Handle a `/command` line; emits reply events through `emit`.
 pub(crate) fn handle(

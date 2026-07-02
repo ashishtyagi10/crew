@@ -127,6 +127,30 @@ fn pick_judge_prefers_a_reviewer_who_is_not_the_worker() {
 }
 
 #[test]
+fn a_pre_tripped_stop_flag_cancels_the_loop_before_round_one() {
+    let _g = testenv::mock("ok\n@done");
+    let mut session = Session::new();
+    session
+        .cancel
+        .store(true, std::sync::atomic::Ordering::Relaxed);
+    let mut evs = Vec::new();
+    loop_cmd(&mut session, "3 do the thing", &mut |ev| {
+        evs.push(ev);
+        Ok(())
+    })
+    .unwrap();
+    let ts = texts(&evs);
+    assert!(
+        ts.iter().any(|t| t.contains("cancelled by /stop")),
+        "{ts:?}"
+    );
+    assert!(
+        !ts.iter().any(|t| t.starts_with("loop round")),
+        "no rounds ran: {ts:?}"
+    );
+}
+
+#[test]
 fn round_body_feeds_the_previous_answer_forward() {
     assert_eq!(round_body("task", None), "task");
     let b = round_body("task", Some("draft v1"));

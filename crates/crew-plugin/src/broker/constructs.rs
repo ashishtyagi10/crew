@@ -6,8 +6,7 @@ use crate::PluginEvent;
 use super::relay::{msg, relay_turn, split_target};
 use super::route::clip;
 use super::session::Session;
-use super::stdio::{call_timeout, max_hops, roster, token_budget};
-use super::Broker;
+use super::stdio::{call_timeout, roster};
 
 /// Hard ceiling on rounds, so a typo can't run a 100-round loop.
 pub(crate) const MAX_ROUNDS: u32 = 10;
@@ -34,9 +33,12 @@ pub(crate) fn loop_cmd(
         return emit(msg("crew", roster(&reg)));
     }
     let (start, task) = split_target(task, &reg);
-    let broker = Broker::new(reg, max_hops(), call_timeout()).with_budget(token_budget());
+    let broker = session.broker(reg);
     let mut answer: Option<String> = None;
     for round in 1..=n {
+        if session.cancelled() {
+            return emit(msg("crew", "loop cancelled by /stop"));
+        }
         emit(msg(
             "crew",
             format!("loop round {round}/{n} \u{2014} starting with {start}"),
@@ -73,9 +75,12 @@ pub(crate) fn goal_cmd(
     let (start, goal) = split_target(goal, &reg);
     let judge = pick_judge(&reg.names(), &start);
     let timeout = call_timeout();
-    let broker = Broker::new(reg, max_hops(), call_timeout()).with_budget(token_budget());
+    let broker = session.broker(reg);
     let mut answer: Option<String> = None;
     for round in 1..=GOAL_ROUNDS {
+        if session.cancelled() {
+            return emit(msg("crew", "goal cancelled by /stop"));
+        }
         emit(msg(
             "crew",
             format!("goal round {round}/{GOAL_ROUNDS} \u{2014} {start} works, {judge} judges"),

@@ -33,3 +33,46 @@ pub struct RunStats {
     pub exchanges: u32,
     pub approx_tokens: usize,
 }
+
+use super::Envelope;
+
+/// A hop produced by the agent at `env.to`, bound back to `env.from`.
+pub(crate) fn back(env: &Envelope, kind: HopKind, text: String) -> Hop {
+    Hop {
+        from: env.to.clone(),
+        to: env.from.clone(),
+        hop: env.hop,
+        kind,
+        text,
+    }
+}
+
+/// A broker-originated note (loop guard / routing error) about `env`.
+pub(crate) fn note(env: &Envelope, kind: HopKind, text: String) -> Hop {
+    Hop {
+        from: "broker".into(),
+        to: env.to.clone(),
+        hop: env.hop,
+        kind,
+        text,
+    }
+}
+
+/// The last few transcript entries joined — bounded context for the next agent.
+pub(crate) fn transcript_tail(transcript: &[String]) -> String {
+    const MAX: usize = 8;
+    transcript[transcript.len().saturating_sub(MAX)..].join("\n")
+}
+
+impl Envelope {
+    /// The next envelope one hop deeper, from `from` to `to` carrying `body`.
+    pub(crate) fn advance(&self, from: String, to: String, body: String) -> Envelope {
+        Envelope {
+            from,
+            to,
+            thread_id: self.thread_id.clone(),
+            hop: self.hop + 1,
+            body,
+        }
+    }
+}

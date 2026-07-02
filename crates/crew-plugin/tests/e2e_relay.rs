@@ -38,6 +38,20 @@ fn relay_runs_through_the_binary_and_finishes() {
 }
 
 #[test]
+fn stop_with_nothing_running_reports_idle() {
+    let dir = unique_dir("relay-stop");
+    let mock = ("CREW_BROKER_MOCK_REPLY", "ok\n@done");
+    let stop = r#"{"type":"send","channel":"crew","text":"/stop"}"#;
+    let ev = run_broker(&dir, &[mock], &[stop]);
+    let msgs = messages(&ev);
+    assert!(
+        msgs.iter()
+            .any(|(s, t)| s == "crew" && t.contains("nothing is running")),
+        "{msgs:?}"
+    );
+}
+
+#[test]
 fn dialing_is_streamed_as_a_live_activity() {
     let dir = unique_dir("relay-stream");
     let mock = ("CREW_BROKER_MOCK_REPLY", "ok\n@done");
