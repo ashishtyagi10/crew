@@ -10,15 +10,18 @@ use alacritty_terminal::vte::ansi::Processor;
 /// Background painted over selected cells.
 const SELECTION_BG: (u8, u8, u8) = (54, 84, 130);
 
-/// A dark, desaturated (grey) background — the kind agent CLIs paint behind the
-/// line you just sent (e.g. `ESC[48;2;55;55;55m`). The `≤96` cap keeps it dark
-/// (covering ANSI "bright black", 85), and the `≤24` channel spread keeps it
-/// grey, so saturated dark backgrounds that carry meaning (diff red/green, error
-/// rows) are preserved while the muddy echo highlight is dropped.
-fn is_dim_grey((r, g, b): (u8, u8, u8)) -> bool {
+/// A desaturated (grey) background at either extreme — the kind agent CLIs
+/// paint behind the line you just sent, tuned to whichever theme they detected
+/// at startup: dark grey on a dark guess (`ESC[48;2;55;55;55m`), light grey on
+/// a light one (`ESC[48;2;230;230;230m`). After a live theme switch the
+/// opposite-theme variant lands as a glaring block (white word-boxes on the
+/// dark canvas). The `≤24` channel spread keeps the match grey-only, and the
+/// dark `≤96` / light `≥160` bounds leave mid-greys and every saturated
+/// background that carries meaning (diff red/green, error rows) untouched.
+fn is_echo_grey((r, g, b): (u8, u8, u8)) -> bool {
     let mx = r.max(g).max(b);
     let mn = r.min(g).min(b);
-    mx <= 96 && mx - mn <= 24
+    (mx <= 96 || mn >= 160) && mx - mn <= 24
 }
 
 use crate::color::{default_bg, default_fg, resolve_color};
@@ -137,11 +140,12 @@ impl TermCore {
                 // which renders as a hard-to-read block. Dropping the fg/bg swap
                 // shows that text plainly instead.
                 // Agent CLIs (Claude/codex) also paint the just-sent line with a
-                // real dark-grey background (e.g. ESC[48;2;55;55;55m), which reads
-                // as a muddy block on Crew's black canvas. Drop dark, near-grey
-                // backgrounds so that text shows plainly, while keeping saturated
-                // or bright backgrounds that carry meaning (diffs, errors).
-                if is_dim_grey(bg) {
+                // real near-grey background tuned to the theme they detected at
+                // startup — dark grey on dark, light grey on light — which reads
+                // as a muddy (or glaring) block on the actual canvas. Drop those
+                // echo greys so the text shows plainly, while keeping saturated
+                // backgrounds that carry meaning (diffs, errors).
+                if is_echo_grey(bg) {
                     bg = default_bg();
                 }
                 // Selected cells take the selection background, drawn over any
@@ -433,6 +437,21 @@ mod selection_tests {
         let x = cells.iter().find(|c| c.c == 'X').expect("X rendered");
         let h = cells.iter().find(|c| c.c == 'H').expect("H rendered");
         assert_eq!(h.bg, x.bg, "dark-grey echo background should be dropped");
+    }
+
+    #[test]
+    fn light_grey_echo_background_is_dropped() {
+        // The same echo highlight painted for the OPPOSITE theme: a CLI that
+        // detected a light background (or outlived a live switch to dark)
+        // paints the just-sent line light-grey (ESC[48;2;230;230;230m). On the
+        // dark canvas that reads as white word-boxes — drop it like the dark
+        // variant.
+        let mut t = HeadlessTerm::new(GridSize { cols: 20, rows: 2 });
+        t.feed(b"X\x1b[48;2;230;230;230mH\x1b[0m");
+        let cells = t.cells(false);
+        let x = cells.iter().find(|c| c.c == 'X').expect("X rendered");
+        let h = cells.iter().find(|c| c.c == 'H').expect("H rendered");
+        assert_eq!(h.bg, x.bg, "light-grey echo background should be dropped");
     }
 
     #[test]
