@@ -45,6 +45,9 @@ pub struct ChatPane {
     pub(crate) pulse: crate::chatpulse::Pulse,
     /// The @file mention popup while one is being typed (see `chatmention`).
     pub(crate) mention: Option<crate::chatmention::MentionState>,
+    /// The leading `/command` or `@agent` palette while one is open (see
+    /// `chatpalette`). Mutually exclusive with `mention` by construction.
+    pub(crate) palette: Option<crate::chatpalette::PaletteState>,
 }
 
 impl ChatPane {
@@ -66,6 +69,7 @@ impl ChatPane {
             unread: 0,
             pulse: crate::chatpulse::Pulse::new(),
             mention: None,
+            palette: None,
         }
     }
 
@@ -161,6 +165,25 @@ impl ChatPane {
     /// the pane). `cwd` roots mention scanning and expansion.
     pub fn on_key(&mut self, key: &KeyEvent, cwd: &std::path::Path) -> Option<ChatAction> {
         let k = chat_key(&key.logical_key, key.state.is_pressed());
+        self.on_input(k, cwd)
+    }
+
+    /// Handle a decoded [`ChatInput`] — the testable half of [`on_key`], split
+    /// out so the popup-vs-pane key routing can be exercised without
+    /// constructing a winit `KeyEvent`.
+    pub(crate) fn on_input(&mut self, k: ChatInput, cwd: &std::path::Path) -> Option<ChatAction> {
+        // ORDER IS LOAD-BEARING: an open popup must get keys BEFORE the
+        // `match k { Close/Up/Down/… }` block below, or Escape would close the
+        // pane instead of the popup and arrows would never reach it. The
+        // palette (leading token) and mention (mid-line) are mutually
+        // exclusive, so their relative order is free — but both must precede
+        // the pane's own key handling.
+        if matches!(
+            crate::chatpalette::popup_key(&mut self.palette, &mut self.input, &k),
+            crate::chatpalette::PaletteKey::Consumed
+        ) {
+            return None;
+        }
         if matches!(
             crate::chatmention::popup_key(&mut self.mention, &mut self.input, &k),
             crate::chatmention::MentionKey::Consumed
@@ -200,6 +223,7 @@ impl ChatPane {
             crate::chatmention::after_edit(&mut self.mention, &self.input, || {
                 crate::fileindex::scan(cwd)
             });
+            crate::chatpalette::after_edit(&mut self.palette, &self.input, &self.agents);
         }
         None
     }

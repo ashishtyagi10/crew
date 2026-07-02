@@ -85,3 +85,102 @@ fn function_bar_highlights_actions_far_style() {
 fn tiny_renders_nothing() {
     assert!(render(&fixture_pane("tiny"), 8, 2).is_empty());
 }
+
+#[test]
+fn fmt_size_uses_compact_far_style_units() {
+    use super::fmt_size;
+    assert_eq!(fmt_size(0), "0 B");
+    assert_eq!(fmt_size(427), "427 B");
+    assert_eq!(fmt_size(1_229), "1.2K");
+    assert_eq!(fmt_size(35_651_584), "34M");
+    assert_eq!(fmt_size(2_254_857_830), "2.1G");
+}
+
+#[test]
+fn file_rows_show_a_right_aligned_size() {
+    let base = std::env::temp_dir().join("crew_far_render_size");
+    let _ = std::fs::remove_dir_all(&base);
+    std::fs::create_dir_all(&base).unwrap();
+    std::fs::write(base.join("readme.md"), vec![b'x'; 1229]).unwrap();
+    let pane = FarPane::new(base);
+    let cells = render(&pane, 80, 24);
+    let t = text(&cells);
+    let row = t
+        .lines()
+        .find(|l| l.contains("readme.md"))
+        .expect("file row rendered");
+    assert!(row.contains("1.2K"), "size missing from row: {row:?}");
+    // Right-aligned: the size's final glyph sits flush against a `│` border
+    // cell. (Padding renders as absent blank cells, so text order alone
+    // cannot show the gap.)
+    let k = cells
+        .iter()
+        .filter(|c| c.c == 'K')
+        .min_by_key(|c| (c.row, c.col))
+        .expect("size unit cell rendered");
+    assert!(
+        cells
+            .iter()
+            .any(|c| c.row == k.row && c.col == k.col + 1 && c.c == '\u{2502}'),
+        "size not flush at the panel's right border (K at col {})",
+        k.col
+    );
+}
+
+#[test]
+fn overflowing_panel_paints_a_scroll_thumb_on_its_border() {
+    let base = std::env::temp_dir().join("crew_far_render_thumb");
+    let _ = std::fs::remove_dir_all(&base);
+    std::fs::create_dir_all(&base).unwrap();
+    for i in 0..30 {
+        std::fs::write(base.join(format!("f{i:02}.txt")), b"x").unwrap();
+    }
+    let pane = FarPane::new(base);
+    let cells = render(&pane, 40, 10);
+    // BOTH panels show the same (overflowing) directory, so each must paint a
+    // thumb on its own border. Asserting "any █" masked a bug where the right
+    // panel's border render overwrote the left panel's thumb on the shared
+    // column. The left panel's right border is the shared middle column
+    // (col 20 for a 40-wide pane); the right panel's is the far-right (col 39).
+    let thumb_cols: std::collections::BTreeSet<u16> = cells
+        .iter()
+        .filter(|c| c.c == '\u{2588}')
+        .map(|c| c.col)
+        .collect();
+    assert!(
+        thumb_cols.contains(&20),
+        "left panel painted no thumb on the shared column (cols: {thumb_cols:?})"
+    );
+    assert!(
+        thumb_cols.contains(&39),
+        "right panel painted no thumb on its border (cols: {thumb_cols:?})"
+    );
+}
+
+#[test]
+fn short_listing_paints_no_scroll_thumb() {
+    let cells = render(&fixture_pane("no_thumb"), 40, 24);
+    assert!(
+        cells.iter().all(|c| c.c != '\u{2588}'),
+        "thumb painted though everything fits"
+    );
+}
+
+#[test]
+fn file_rows_show_a_type_glyph() {
+    let base = std::env::temp_dir().join("crew_far_render_glyph");
+    let _ = std::fs::remove_dir_all(&base);
+    std::fs::create_dir_all(base.join("src")).unwrap();
+    std::fs::write(base.join("main.rs"), b"x").unwrap();
+    let pane = FarPane::new(base);
+    let cells = render(&pane, 80, 24);
+    // The rust glyph precedes a .rs file; the folder glyph precedes a dir.
+    assert!(
+        cells.iter().any(|c| c.c == '\u{e7a8}'),
+        "no rust glyph rendered for main.rs"
+    );
+    assert!(
+        cells.iter().any(|c| c.c == '\u{f07b}'),
+        "no folder glyph rendered for the src/ dir"
+    );
+}

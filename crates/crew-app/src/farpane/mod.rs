@@ -10,6 +10,7 @@
 //! new pane is spawned); Esc clears it. Lives in the auto-tiling grid like any
 //! other pane and renders into a `ratatui` buffer → GPU cells.
 mod fileops;
+mod icons;
 mod keys;
 mod list;
 mod render;
@@ -35,6 +36,8 @@ pub(crate) struct Entry {
     pub is_dir: bool,
     /// The synthetic ".." row that ascends to the parent directory.
     pub is_parent: bool,
+    /// File size in bytes; 0 for directories and the parent row.
+    pub size: u64,
 }
 
 /// An in-pane single-line text prompt — currently only "make folder" (F7).

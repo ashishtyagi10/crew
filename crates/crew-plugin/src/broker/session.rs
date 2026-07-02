@@ -94,16 +94,17 @@ impl Session {
     }
 
     /// A relay broker over `reg` with the env knobs, this session's cancel
-    /// flag, and — when MCP servers are configured — its tools applied;
-    /// every construct builds its broker here.
+    /// flag, and — when the built-in `sys` tools are enabled or MCP servers
+    /// are configured — its tools applied; every construct builds its broker
+    /// here.
     pub fn broker(&self, reg: Registry) -> Broker {
         let b = Broker::new(reg, max_hops(), call_timeout())
             .with_budget(token_budget())
             .with_cancel_flag(Arc::clone(&self.cancel));
-        if self.lock_mcp().is_empty() {
+        if !super::systools::enabled() && self.lock_mcp().is_empty() {
             return b;
         }
-        b.with_tools(Arc::new(McpTools(Arc::clone(&self.mcp))))
+        b.with_tools(Arc::new(SessionTools(Arc::clone(&self.mcp))))
     }
 
     /// The shared MCP host, poison-tolerant.
@@ -112,17 +113,26 @@ impl Session {
     }
 }
 
-/// Bridges the engine's [`super::toolcall::ToolRunner`] to the session's
-/// shared [`crate::mcp::McpHost`].
-struct McpTools(Arc<Mutex<crate::mcp::McpHost>>);
+/// Bridges the engine's [`super::toolcall::ToolRunner`] to the built-in `sys`
+/// tools plus the session's shared [`crate::mcp::McpHost`]: one merged TOOLS
+/// hint, `sys:` dispatched locally, everything else to MCP.
+struct SessionTools(Arc<Mutex<crate::mcp::McpHost>>);
 
-impl super::toolcall::ToolRunner for McpTools {
+impl super::toolcall::ToolRunner for SessionTools {
     fn hint(&self) -> String {
-        let tools = self.0.lock().unwrap_or_else(|e| e.into_inner()).tools();
+        let mut tools = if super::systools::enabled() {
+            super::systools::tools()
+        } else {
+            Vec::new()
+        };
+        tools.extend(self.0.lock().unwrap_or_else(|e| e.into_inner()).tools());
         super::toolcall::hint_for(&tools)
     }
 
     fn call(&self, server: &str, tool: &str, args: &str) -> Result<String, String> {
+        if server == "sys" && super::systools::enabled() {
+            return super::systools::call(tool, args);
+        }
         self.0
             .lock()
             .unwrap_or_else(|e| e.into_inner())
@@ -147,5 +157,30 @@ mod tests {
         let snap = s.snapshot();
         s.cancel.store(true, Ordering::Relaxed);
         assert!(snap.cancelled(), "worker sees the main loop's /stop");
+    }
+
+    #[test]
+    fn session_tools_hint_lists_sys_tools_with_empty_mcp() {
+        use super::super::toolcall::ToolRunner;
+        let host = Arc::new(Mutex::new(crate::mcp::McpHost::default()));
+        let t = SessionTools(host);
+        let h = t.hint();
+        // Under `cargo test` no mock/env gate is set, so sys tools are on.
+        assert!(h.contains("sys:run"), "{h}");
+        assert!(h.contains("sys:read_file"), "{h}");
+    }
+
+    #[test]
+    fn session_tools_dispatches_sys_locally() {
+        use super::super::toolcall::ToolRunner;
+        let host = Arc::new(Mutex::new(crate::mcp::McpHost::default()));
+        let t = SessionTools(host);
+        let r = t
+            .call("sys", "run", r#"{"cmd":"echo via-session"}"#)
+            .unwrap();
+        assert!(r.contains("via-session"), "{r}");
+        // Unknown server still falls through to the (empty) MCP host's error.
+        let e = t.call("nope", "x", "{}").unwrap_err();
+        assert!(e.contains("unknown MCP server"), "{e}");
     }
 }

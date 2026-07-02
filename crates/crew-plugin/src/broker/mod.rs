@@ -31,6 +31,8 @@ mod session;
 mod shellenv;
 mod skills;
 mod stdio;
+mod sysrun;
+mod systools;
 mod toolcall;
 
 pub use adapter::{Adapter, CliAdapter, Normalize};

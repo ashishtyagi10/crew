@@ -114,6 +114,58 @@ fn pulse_lanes_gate_on_height_and_engagement() {
     assert_eq!(p.pulse_lanes(10), 0, "short pane falls back");
 }
 
+// `on_key` takes a winit `KeyEvent`, which is #[non_exhaustive] and awkward
+// to construct in a unit test (see `chatkeys.rs`). These drive its testable
+// half, `on_input(ChatInput, cwd)`, end-to-end — the real routing, including
+// the return value that decides whether the pane closes.
+#[test]
+fn esc_closes_the_open_palette_then_the_pane() {
+    use crate::chatkeys::{ChatAction, ChatInput};
+
+    let mut p = pane();
+    let cwd = std::env::temp_dir();
+
+    // Typing '/' opens the command palette (goes through the real edit path).
+    assert!(p.on_input(ChatInput::Char('/'), &cwd).is_none());
+    assert!(p.palette.is_some(), "leading '/' opens the command palette");
+
+    // First Esc: consumed by the palette. on_input returns None — the pane
+    // stays open — and the popup closes. This is the exact swallowed-Esc
+    // regression the routing order guards against.
+    assert!(
+        p.on_input(ChatInput::Close, &cwd).is_none(),
+        "Esc with an open palette must NOT close the pane"
+    );
+    assert!(p.palette.is_none(), "Esc closed the popup");
+
+    // Second Esc: no popup now, so it reaches the pane and asks to close.
+    assert!(matches!(
+        p.on_input(ChatInput::Close, &cwd),
+        Some(ChatAction::Close)
+    ));
+}
+
+#[test]
+fn palette_and_file_mention_are_mutually_exclusive() {
+    // A leading '/' or '@' opens the palette but never the file mention
+    // (pending_mention requires a non-leading token); a mid-line '@' opens
+    // the mention but never the palette (pending_palette requires the
+    // leading token). At most one popup is ever open.
+    let mut p = pane();
+    p.input = "/mo".to_string();
+    crate::chatpalette::after_edit(&mut p.palette, &p.input, &p.agents);
+    crate::chatmention::after_edit(&mut p.mention, &p.input, || vec!["mod.rs".into()]);
+    assert!(p.palette.is_some());
+    assert!(p.mention.is_none());
+
+    let mut p = pane();
+    p.input = "hey @mo".to_string();
+    crate::chatpalette::after_edit(&mut p.palette, &p.input, &p.agents);
+    crate::chatmention::after_edit(&mut p.mention, &p.input, || vec!["mod.rs".into()]);
+    assert!(p.palette.is_none());
+    assert!(p.mention.is_some());
+}
+
 #[test]
 fn classify_send_pane_returns_host_action() {
     let ev = PluginEvent::SendPane {

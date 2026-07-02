@@ -45,6 +45,11 @@ pub(crate) fn render(p: &FarPane, cols: u16, rows: u16) -> Vec<CellView> {
     panel(&mut buf, larea, &p.left, p.active == Side::Left);
     panel(&mut buf, rarea, &p.right, p.active == Side::Right);
     merge_divider(&mut buf, split[0], rarea.x);
+    // Scroll thumbs paint last: the left panel's border is the shared middle
+    // column, which the right panel's block render and merge_divider both
+    // overwrite — so a thumb drawn inside panel() would be lost.
+    scroll_thumb(&mut buf, larea, &p.left, p.active == Side::Left);
+    scroll_thumb(&mut buf, rarea, &p.right, p.active == Side::Right);
     let running = p.running.as_ref().map(|(cmd, _)| cmd.as_str());
     command_bar(&mut buf, split[1], &p.active_cwd(), &p.cmdline, running);
     // The make-folder prompt takes over the function-key row while it's open.
@@ -143,13 +148,33 @@ fn panel(buf: &mut Buffer, area: Rect, panel: &Panel, active: bool) {
         .skip(start)
         .take(h)
         .map(|e| {
-            let label = if e.is_dir {
-                format!("{}/", e.name)
+            let width = inner.width as usize;
+            let glyph = super::icons::icon(e);
+            let (mut name, fg) = if e.is_dir {
+                (format!("{glyph} {}/", e.name), DIR)
             } else {
-                e.name.clone()
+                (format!("{glyph} {}", e.name), text_col)
             };
-            let fg = if e.is_dir { DIR } else { text_col };
-            ListItem::new(Line::styled(label, Style::new().fg(fg)))
+            let size = if e.is_dir {
+                String::new()
+            } else {
+                fmt_size(e.size)
+            };
+            if !size.is_empty() && name.chars().count() + size.chars().count() >= width {
+                // Keep the size intact; truncate the name with an ellipsis
+                // (the legend truncates the same way, from the other end).
+                let keep = width.saturating_sub(size.chars().count() + 2);
+                name = name.chars().take(keep).chain(['\u{2026}']).collect();
+            }
+            let pad = width.saturating_sub(name.chars().count() + size.chars().count());
+            let mut spans = vec![Span::styled(name, Style::new().fg(fg))];
+            if !size.is_empty() {
+                spans.push(Span::styled(
+                    format!("{}{size}", " ".repeat(pad)),
+                    Style::new().fg(dim_col),
+                ));
+            }
+            ListItem::new(Line::from(spans))
         })
         .collect();
     let hl = if active {
@@ -160,6 +185,53 @@ fn panel(buf: &mut Buffer, area: Rect, panel: &Panel, active: bool) {
     let mut state = ListState::default();
     state.select(Some(panel.sel - start));
     StatefulWidget::render(List::new(items).highlight_style(hl), inner, buf, &mut state);
+}
+
+/// Paint the proportional scroll thumb over `panel`'s right border while its
+/// listing overflows. Called from `render` AFTER both panels and the divider
+/// are drawn, since the left panel's border is the shared middle column.
+fn scroll_thumb(buf: &mut Buffer, area: Rect, panel: &Panel, active: bool) {
+    let inner_h = area.height.saturating_sub(2) as usize; // minus top/bottom border
+    let start = panel
+        .sel
+        .saturating_sub(inner_h.saturating_sub(1))
+        .min(panel.sel);
+    let Some((top, len)) = crate::chatscroll::thumb(panel.entries.len(), inner_h, start) else {
+        return;
+    };
+    let edge = if active {
+        accent_color()
+    } else {
+        let t = crew_theme::theme();
+        Color::Rgb(t.text_muted.0, t.text_muted.1, t.text_muted.2)
+    };
+    let x = area.x + area.width - 1;
+    for i in 0..len {
+        if let Some(cell) = buf.cell_mut((x, area.y + 1 + (top + i) as u16)) {
+            cell.set_symbol("\u{2588}"); // █
+            cell.set_fg(edge);
+        }
+    }
+}
+
+/// `bytes` in compact Far-style units: `427 B`, `1.2K`, `34M`, `2.1G` — one
+/// decimal below 10, none above, binary (1024) steps.
+fn fmt_size(bytes: u64) -> String {
+    const UNITS: [char; 4] = ['K', 'M', 'G', 'T'];
+    if bytes < 1024 {
+        return format!("{bytes} B");
+    }
+    let mut v = bytes as f64 / 1024.0;
+    let mut i = 0;
+    while v >= 1024.0 && i + 1 < UNITS.len() {
+        v /= 1024.0;
+        i += 1;
+    }
+    if v < 10.0 {
+        format!("{v:.1}{}", UNITS[i])
+    } else {
+        format!("{v:.0}{}", UNITS[i])
+    }
 }
 
 /// `" /path "`, truncated from the left (keeping the tail) to fit `width`.
