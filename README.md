@@ -14,6 +14,15 @@ per agent, with a live task-list view. See
 
 Built on **macOS**, **Linux**, and **Windows**.
 
+Rendering is built for legibility: a **whole-pixel cell grid** whose box never
+changes with the font you pick (glyph advances snap to it, so panes and borders
+never move), **pixel-exact themes** (colours convert to linear once at the GPU
+boundary — the near-black page really is near-black), **width-aware text
+everywhere** (emoji/CJK occupy two cells without overlapping), a **complete
+font picker** (every installed monospace family, name-matched variable fonts
+included — verify with `crew --list-fonts`), and frame-to-frame **shaped-text
+reuse** so unchanged panes cost nothing to redraw.
+
 ## Install
 
 ### Quick install (macOS / Linux)
