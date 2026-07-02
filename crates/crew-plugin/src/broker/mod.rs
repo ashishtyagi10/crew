@@ -14,6 +14,7 @@ mod adapter;
 mod agents;
 mod apiadapter;
 mod commands;
+mod constructs;
 mod engine;
 mod fan;
 mod hop;
@@ -32,6 +33,26 @@ pub use hop::{Hop, HopKind, RunStats};
 pub use registry::Registry;
 pub use route::{parse_routing, Routing};
 pub use stdio::run_broker_stdio;
+
+/// Serialises tests that set `CREW_BROKER_MOCK_REPLY` (process-wide env): the
+/// guard holds a global lock and removes the variable again on drop.
+#[cfg(test)]
+pub(crate) mod testenv {
+    pub(crate) struct MockEnv(#[allow(dead_code)] std::sync::MutexGuard<'static, ()>);
+
+    impl Drop for MockEnv {
+        fn drop(&mut self) {
+            std::env::remove_var("CREW_BROKER_MOCK_REPLY");
+        }
+    }
+
+    pub(crate) fn mock(reply: &str) -> MockEnv {
+        static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+        let g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        std::env::set_var("CREW_BROKER_MOCK_REPLY", reply);
+        MockEnv(g)
+    }
+}
 
 /// A single message addressed from one agent to another. Every message and
 /// reply that flows through the broker takes this shape.

@@ -51,17 +51,11 @@ fn agents_reports_roster_or_keys_hint() {
     assert!(!text_of(&evs[0]).is_empty());
 }
 
-/// Serialises tests that set `CREW_BROKER_MOCK_REPLY` (process-wide env).
-fn mock_env() -> std::sync::MutexGuard<'static, ()> {
-    static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
-    let g = LOCK.lock().unwrap_or_else(|e| e.into_inner());
-    std::env::set_var("CREW_BROKER_MOCK_REPLY", "ok\n@done");
-    g
-}
+use crate::broker::testenv;
 
 #[test]
 fn model_pins_an_agent_and_reemits_the_roster() {
-    let _g = mock_env();
+    let _g = testenv::mock("ok\n@done");
     let mut session = Session::new();
     let mut evs = Vec::new();
     handle(&mut session, "/model coder qwen-turbo", &mut |ev| {
@@ -69,7 +63,6 @@ fn model_pins_an_agent_and_reemits_the_roster() {
         Ok(())
     })
     .unwrap();
-    std::env::remove_var("CREW_BROKER_MOCK_REPLY");
     assert_eq!(session.overrides.get("coder").unwrap(), "qwen-turbo");
     // A fresh Roster event precedes the confirmation message.
     match &evs[0] {
@@ -84,7 +77,7 @@ fn model_pins_an_agent_and_reemits_the_roster() {
 
 #[test]
 fn model_default_clears_the_pin() {
-    let _g = mock_env();
+    let _g = testenv::mock("ok\n@done");
     let mut session = Session::new();
     session.overrides.insert("coder".into(), "x".into());
     let mut evs = Vec::new();
@@ -93,15 +86,13 @@ fn model_default_clears_the_pin() {
         Ok(())
     })
     .unwrap();
-    std::env::remove_var("CREW_BROKER_MOCK_REPLY");
     assert!(session.overrides.is_empty());
     assert!(text_of(&evs[1]).contains("provider default"));
 }
 
 #[test]
 fn model_unknown_agent_lists_the_roster() {
-    let _g = mock_env();
+    let _g = testenv::mock("ok\n@done");
     let evs = run("/model ghost qwen-max");
-    std::env::remove_var("CREW_BROKER_MOCK_REPLY");
     assert!(text_of(&evs[0]).contains("unknown agent"), "{evs:?}");
 }

@@ -130,7 +130,7 @@ fn relay(input: &str, out: &mut impl Write, session: &Session) -> anyhow::Result
         ),
     )?;
     let broker = Broker::new(reg, max_hops(), call_timeout()).with_budget(token_budget());
-    relay_turn(&broker, &start, &body, &tid, &mut |ev| emit(out, &ev))
+    relay_turn(&broker, &start, &body, &tid, &mut |ev| emit(out, &ev)).map(|_| ())
 }
 
 #[cfg(test)]

@@ -15,18 +15,24 @@ fn now_ts() -> String {
         .unwrap_or_default()
 }
 
-/// Drive one turn of the broker over `emit`, timing each agent call.
+/// Drive one turn of the broker over `emit`, timing each agent call. Returns
+/// the turn's final answer (the `@done` body) when the thread finished cleanly
+/// — the input to the next round of `/loop` and `/goal`.
 pub(crate) fn relay_turn(
     broker: &Broker,
     start: &str,
     body: &str,
     tid: &str,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<Option<String>> {
     let mut timing: Option<(String, Instant)> = None;
     let mut segments: Vec<(String, Duration)> = Vec::new();
+    let mut answer: Option<String> = None;
     let mut werr: anyhow::Result<()> = Ok(());
     let stats = broker.run("user", start, body, tid, &mut |hop| {
+        if hop.kind == HopKind::Done && !hop.text.is_empty() {
+            answer = Some(hop.text.clone());
+        }
         // A Dialing hop opens an agent's segment; any other hop closes it —
         // the closed segment is that reply's latency.
         let mut latency = None;
@@ -63,7 +69,8 @@ pub(crate) fn relay_turn(
     emit(PluginEvent::Activity {
         agent: String::new(),
         state: "idle".into(),
-    })
+    })?;
+    Ok(answer)
 }
 
 /// The per-turn log line: who worked for how long, and what it cost.
