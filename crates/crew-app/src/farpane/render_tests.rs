@@ -42,6 +42,23 @@ fn renders_two_panels_and_function_bar() {
 }
 
 #[test]
+fn function_bar_highlights_actions_far_style() {
+    let cells = render(&fixture_pane("fbar"), 80, 24);
+    let bar_row = cells.iter().map(|c| c.row).max().unwrap();
+    let bar: Vec<_> = cells.iter().filter(|c| c.row == bar_row).collect();
+    let mut v: Vec<(u16, char)> = bar.iter().map(|c| (c.col, c.c)).collect();
+    v.sort_unstable();
+    let s: String = v.into_iter().map(|(_, c)| c).collect();
+    // Key number outside the block, a gap, then the action on a solid pill.
+    assert!(s.contains("▐Help▌"), "label block caps missing: {s}");
+    assert!(s.contains("F10▐Quit▌"), "F10 keeps its number: {s}");
+    let f = bar.iter().find(|c| c.c == 'F').unwrap();
+    let h = bar.iter().find(|c| c.c == 'H').unwrap();
+    assert_eq!(h.bg, f.fg, "label must sit on an accent block");
+    assert_ne!(h.bg, h.fg, "label text must contrast with its block");
+}
+
+#[test]
 fn tiny_renders_nothing() {
     assert!(render(&fixture_pane("tiny"), 8, 2).is_empty());
 }

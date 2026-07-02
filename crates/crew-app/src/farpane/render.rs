@@ -151,21 +151,23 @@ fn legend(cwd: &std::path::Path, width: u16) -> String {
     format!(" …{tail} ")
 }
 
-/// The Far-style function-key bar across the bottom row.
+/// The Far-style function-key bar across the bottom row: the key number in
+/// accent, a gap, then the action label on a solid accent pill. The pill's
+/// padding is half-block glyphs (`▐label▌`), not spaces — `to_cells` drops
+/// blank cells, so a bg-only space would never reach the GPU.
 fn function_bar(buf: &mut Buffer, area: Rect) {
     let t = crew_theme::theme();
     let bar_bg = Color::Rgb(t.page_bg.0, t.page_bg.1, t.page_bg.2);
-    let bar_fg = Color::Rgb(t.ink.0, t.ink.1, t.ink.2);
+    let cap = Style::new().fg(accent_color());
     let mut spans = Vec::new();
     for (k, label) in FKEYS {
+        spans.push(Span::styled(format!("F{k} "), cap));
+        spans.push(Span::styled("\u{2590}", cap)); // ▐ left pill edge
         spans.push(Span::styled(
-            format!("F{k}"),
-            Style::new().fg(accent_color()).bg(bar_bg),
+            label,
+            Style::new().fg(bar_bg).bg(accent_color()),
         ));
-        spans.push(Span::styled(
-            format!("{label} "),
-            Style::new().fg(bar_fg).bg(bar_bg),
-        ));
+        spans.push(Span::styled("\u{258c}", cap)); // ▌ right pill edge
     }
     Paragraph::new(Line::from(spans))
         .style(Style::new().bg(bar_bg))
