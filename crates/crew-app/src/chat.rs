@@ -45,6 +45,9 @@ pub struct ChatPane {
     pub(crate) pulse: crate::chatpulse::Pulse,
     /// The @file mention popup while one is being typed (see `chatmention`).
     pub(crate) mention: Option<crate::chatmention::MentionState>,
+    /// The leading `/command` or `@agent` palette while one is open (see
+    /// `chatpalette`). Mutually exclusive with `mention` by construction.
+    pub(crate) palette: Option<crate::chatpalette::PaletteState>,
 }
 
 impl ChatPane {
@@ -66,6 +69,7 @@ impl ChatPane {
             unread: 0,
             pulse: crate::chatpulse::Pulse::new(),
             mention: None,
+            palette: None,
         }
     }
 
@@ -162,6 +166,12 @@ impl ChatPane {
     pub fn on_key(&mut self, key: &KeyEvent, cwd: &std::path::Path) -> Option<ChatAction> {
         let k = chat_key(&key.logical_key, key.state.is_pressed());
         if matches!(
+            crate::chatpalette::popup_key(&mut self.palette, &mut self.input, &k),
+            crate::chatpalette::PaletteKey::Consumed
+        ) {
+            return None;
+        }
+        if matches!(
             crate::chatmention::popup_key(&mut self.mention, &mut self.input, &k),
             crate::chatmention::MentionKey::Consumed
         ) {
@@ -200,6 +210,7 @@ impl ChatPane {
             crate::chatmention::after_edit(&mut self.mention, &self.input, || {
                 crate::fileindex::scan(cwd)
             });
+            crate::chatpalette::after_edit(&mut self.palette, &self.input, &self.agents);
         }
         None
     }
