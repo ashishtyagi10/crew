@@ -71,7 +71,9 @@ impl CellGrid {
 
         let font_family: Option<String> = None;
         let (cell_w, cell_h) = cell_metrics(font_size);
-        let line_height = font_size * 1.25;
+        // Text rows must land exactly on the (rounded) cell grid, so the
+        // buffer line height IS the cell height — never derived separately.
+        let line_height = cell_h;
         let quad_layer = QuadLayer::new(device, format);
         let overlay_quad_layer = QuadLayer::new(device, format);
         let round_border_layer = RoundBorderLayer::new(device, format);
@@ -101,7 +103,7 @@ impl CellGrid {
     pub fn set_font_size(&mut self, font_size: f32) {
         let (cell_w, cell_h) = cell_metrics(font_size);
         self.font_size = font_size;
-        self.line_height = font_size * 1.25;
+        self.line_height = cell_h;
         self.cell_w = cell_w;
         self.cell_h = cell_h;
     }

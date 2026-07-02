@@ -24,10 +24,13 @@ fn cell_metrics_height_is_125_percent() {
 }
 
 #[test]
-fn cell_metrics_are_family_independent() {
+fn cell_metrics_are_family_independent_and_whole_pixel() {
     // The whole point of the fixed box: the same size gives the same cell no
-    // matter which family the user picks.
-    assert_eq!(cell_metrics(14.0), (14.0 * 0.6, 14.0 * 1.25));
+    // matter which family the user picks — snapped to whole physical pixels
+    // (14 × 0.6 = 8.4 → 8, 14 × 1.25 = 17.5 → 18) so glyphs never smear.
+    assert_eq!(cell_metrics(14.0), (8.0, 18.0));
+    let (w, h) = cell_metrics(28.0); // 2x display
+    assert_eq!((w.fract(), h.fract()), (0.0, 0.0));
 }
 
 #[test]

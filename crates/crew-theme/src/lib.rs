@@ -146,7 +146,9 @@ pub static CRT_GREEN: Theme = Theme {
     text_muted: (0, 204, 82),
     term_fg: (0, 255, 102),
     term_bg: (3, 10, 5),
-    border_normal: (0, 115, 55),
+    // Unfocused borders sit back (matching paper-dark's focus-led hierarchy)
+    // so the bright phosphor frame alone says which pane is live.
+    border_normal: (0, 88, 42),
     border_focused: (0, 255, 140),
     border_thickness: 2.5,
     legend_off: (0, 160, 70),
@@ -187,7 +189,8 @@ pub static CRT_AMBER: Theme = Theme {
     text_muted: (226, 148, 0),
     term_fg: (255, 184, 0),
     term_bg: (14, 8, 2),
-    border_normal: (145, 90, 20),
+    // Unfocused borders sit back (focus-led hierarchy, as in paper-dark).
+    border_normal: (112, 70, 16),
     border_focused: (255, 170, 40),
     border_thickness: 2.5,
     legend_off: (180, 115, 20),
@@ -228,7 +231,8 @@ pub static CRT_BLUE: Theme = Theme {
     text_muted: (0, 182, 214),
     term_fg: (0, 229, 255),
     term_bg: (2, 8, 18),
-    border_normal: (0, 100, 140),
+    // Unfocused borders sit back (focus-led hierarchy, as in paper-dark).
+    border_normal: (0, 78, 110),
     border_focused: (0, 215, 255),
     border_thickness: 2.5,
     legend_off: (0, 145, 180),
