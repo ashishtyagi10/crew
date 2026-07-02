@@ -16,11 +16,8 @@ fn line(
     bold: bool,
 ) {
     let bg = crew_theme::theme().page_bg;
-    for (i, c) in s.chars().enumerate() {
-        let x = col + i as u16;
-        if x >= cols {
-            break;
-        }
+    // Width-aware (see `chatwidth`): roster names can carry wide glyphs.
+    crate::chatwidth::place_row(col, cols, s.chars().map(|c| (c, fg)), |x, c, fg| {
         out.push(CellView {
             col: x,
             row,
@@ -30,7 +27,7 @@ fn line(
             bold,
             italic: false,
         });
-    }
+    });
 }
 
 /// Emit one onboarding row (skipped below `max_row`) and advance the cursor.

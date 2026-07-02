@@ -17,18 +17,18 @@ fn push(
     bold: bool,
 ) -> u16 {
     let bg = crew_theme::theme().page_bg;
-    for (i, ch) in s.chars().enumerate() {
+    // Width-aware (see `chatwidth`): agent labels can carry wide glyphs.
+    crate::chatwidth::place_row(col, u16::MAX, s.chars().map(|c| (c, fg)), |x, c, fg| {
         cells.push(CellView {
-            col: col + i as u16,
+            col: x,
             row,
-            c: ch,
+            c,
             fg,
             bg,
             bold,
             italic: false,
         });
-    }
-    col + s.chars().count() as u16
+    })
 }
 
 /// The right-aligned status segments as `(text, colour)`, in left-to-right order.
@@ -97,7 +97,10 @@ pub(crate) fn header_cells(
 
     // Right-aligned status, laid out from the right edge.
     let segs = status_segments(connected, msg_count, awaiting, active, tokens);
-    let status_w: usize = segs.iter().map(|(s, _)| s.chars().count()).sum::<usize>()
+    let status_w: usize = segs
+        .iter()
+        .map(|(s, _)| crate::chatwidth::str_w(s))
+        .sum::<usize>()
         + segs.len().saturating_sub(1) * 2;
     let mut x = cols.saturating_sub(status_w as u16);
     for (i, (s, c)) in segs.iter().enumerate() {
@@ -109,9 +112,11 @@ pub(crate) fn header_cells(
         }
     }
 
-    // Title only up to where the status begins, so they never overlap.
+    // Title only up to where the status begins (measured in display columns).
     let title_room = cols.saturating_sub(status_w as u16 + 1) as usize;
-    let title: String = title.chars().take(title_room).collect();
+    let full: Vec<char> = title.chars().collect();
+    let end = crate::chatwidth::fit_end(&full, 0, title_room);
+    let title: String = full[..end].iter().collect();
     push(&mut cells, 0, 0, &title, crate::palette::accent(), true);
 
     cells
