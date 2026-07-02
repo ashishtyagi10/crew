@@ -1,13 +1,13 @@
 //! Directory listing for the Far file-manager panels: read entries and sort
-//! folders first then files (case-insensitive), with a leading ".." entry
-//! whenever the directory has a parent.
+//! folders first (case-insensitive) then files largest-first, with a leading
+//! ".." entry whenever the directory has a parent.
 use std::path::Path;
 
 use super::Entry;
 
 /// Read `dir` into a sorted entry list: ".." first (unless at the filesystem
-/// root), then directories, then files — each group alphabetical and
-/// case-insensitive.
+/// root), then directories alphabetical and case-insensitive, then files by
+/// size descending (name as the tiebreaker).
 pub(crate) fn read_dir(dir: &Path) -> Vec<Entry> {
     let mut out = Vec::new();
     if dir.parent().is_some() {
@@ -15,6 +15,7 @@ pub(crate) fn read_dir(dir: &Path) -> Vec<Entry> {
             name: "..".into(),
             is_dir: true,
             is_parent: true,
+            size: 0,
         });
     }
     let mut items: Vec<Entry> = std::fs::read_dir(dir)
@@ -27,12 +28,18 @@ pub(crate) fn read_dir(dir: &Path) -> Vec<Entry> {
                 name: e.file_name().to_string_lossy().into_owned(),
                 is_dir,
                 is_parent: false,
+                size: if is_dir {
+                    0
+                } else {
+                    e.metadata().map(|m| m.len()).unwrap_or(0)
+                },
             }
         })
         .collect();
     items.sort_by(|a, b| {
         b.is_dir
             .cmp(&a.is_dir)
+            .then_with(|| b.size.cmp(&a.size))
             .then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase()))
     });
     out.extend(items);
@@ -57,5 +64,25 @@ mod tests {
         assert_eq!(e[2].name, "zdir");
         assert!(e[1].is_dir && !e[3].is_dir);
         assert_eq!(e[3].name, "bfile.txt");
+    }
+
+    #[test]
+    fn files_sort_by_size_descending_with_name_tiebreak() {
+        let base = std::env::temp_dir().join("crew_far_size_sort_test");
+        let _ = std::fs::remove_dir_all(&base);
+        std::fs::create_dir_all(base.join("dir")).unwrap();
+        std::fs::write(base.join("small.txt"), b"x").unwrap();
+        std::fs::write(base.join("big.txt"), vec![b'x'; 500]).unwrap();
+        std::fs::write(base.join("also-small.txt"), b"y").unwrap();
+        let e = read_dir(&base);
+        // ".." then the dir, then files largest-first; equal sizes by name.
+        let names: Vec<&str> = e.iter().map(|e| e.name.as_str()).collect();
+        assert_eq!(
+            names,
+            ["..", "dir", "big.txt", "also-small.txt", "small.txt"]
+        );
+        assert_eq!(e[2].size, 500);
+        assert_eq!(e[1].size, 0, "directories carry no size");
+        assert_eq!(e[0].size, 0, "the parent row carries no size");
     }
 }

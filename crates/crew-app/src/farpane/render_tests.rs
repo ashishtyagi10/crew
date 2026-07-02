@@ -85,3 +85,44 @@ fn function_bar_highlights_actions_far_style() {
 fn tiny_renders_nothing() {
     assert!(render(&fixture_pane("tiny"), 8, 2).is_empty());
 }
+
+#[test]
+fn fmt_size_uses_compact_far_style_units() {
+    use super::fmt_size;
+    assert_eq!(fmt_size(0), "0 B");
+    assert_eq!(fmt_size(427), "427 B");
+    assert_eq!(fmt_size(1_229), "1.2K");
+    assert_eq!(fmt_size(35_651_584), "34M");
+    assert_eq!(fmt_size(2_254_857_830), "2.1G");
+}
+
+#[test]
+fn file_rows_show_a_right_aligned_size() {
+    let base = std::env::temp_dir().join("crew_far_render_size");
+    let _ = std::fs::remove_dir_all(&base);
+    std::fs::create_dir_all(&base).unwrap();
+    std::fs::write(base.join("readme.md"), vec![b'x'; 1229]).unwrap();
+    let pane = FarPane::new(base);
+    let cells = render(&pane, 80, 24);
+    let t = text(&cells);
+    let row = t
+        .lines()
+        .find(|l| l.contains("readme.md"))
+        .expect("file row rendered");
+    assert!(row.contains("1.2K"), "size missing from row: {row:?}");
+    // Right-aligned: the size's final glyph sits flush against a `│` border
+    // cell. (Padding renders as absent blank cells, so text order alone
+    // cannot show the gap.)
+    let k = cells
+        .iter()
+        .filter(|c| c.c == 'K')
+        .min_by_key(|c| (c.row, c.col))
+        .expect("size unit cell rendered");
+    assert!(
+        cells
+            .iter()
+            .any(|c| c.row == k.row && c.col == k.col + 1 && c.c == '\u{2502}'),
+        "size not flush at the panel's right border (K at col {})",
+        k.col
+    );
+}

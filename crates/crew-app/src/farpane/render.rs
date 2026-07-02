@@ -143,13 +143,32 @@ fn panel(buf: &mut Buffer, area: Rect, panel: &Panel, active: bool) {
         .skip(start)
         .take(h)
         .map(|e| {
-            let label = if e.is_dir {
-                format!("{}/", e.name)
+            let width = inner.width as usize;
+            let (mut name, fg) = if e.is_dir {
+                (format!("{}/", e.name), DIR)
             } else {
-                e.name.clone()
+                (e.name.clone(), text_col)
             };
-            let fg = if e.is_dir { DIR } else { text_col };
-            ListItem::new(Line::styled(label, Style::new().fg(fg)))
+            let size = if e.is_dir {
+                String::new()
+            } else {
+                fmt_size(e.size)
+            };
+            if !size.is_empty() && name.chars().count() + size.chars().count() >= width {
+                // Keep the size intact; truncate the name with an ellipsis
+                // (the legend truncates the same way, from the other end).
+                let keep = width.saturating_sub(size.chars().count() + 2);
+                name = name.chars().take(keep).chain(['\u{2026}']).collect();
+            }
+            let pad = width.saturating_sub(name.chars().count() + size.chars().count());
+            let mut spans = vec![Span::styled(name, Style::new().fg(fg))];
+            if !size.is_empty() {
+                spans.push(Span::styled(
+                    format!("{}{size}", " ".repeat(pad)),
+                    Style::new().fg(dim_col),
+                ));
+            }
+            ListItem::new(Line::from(spans))
         })
         .collect();
     let hl = if active {
@@ -160,6 +179,26 @@ fn panel(buf: &mut Buffer, area: Rect, panel: &Panel, active: bool) {
     let mut state = ListState::default();
     state.select(Some(panel.sel - start));
     StatefulWidget::render(List::new(items).highlight_style(hl), inner, buf, &mut state);
+}
+
+/// `bytes` in compact Far-style units: `427 B`, `1.2K`, `34M`, `2.1G` — one
+/// decimal below 10, none above, binary (1024) steps.
+fn fmt_size(bytes: u64) -> String {
+    const UNITS: [char; 4] = ['K', 'M', 'G', 'T'];
+    if bytes < 1024 {
+        return format!("{bytes} B");
+    }
+    let mut v = bytes as f64 / 1024.0;
+    let mut i = 0;
+    while v >= 1024.0 && i + 1 < UNITS.len() {
+        v /= 1024.0;
+        i += 1;
+    }
+    if v < 10.0 {
+        format!("{v:.1}{}", UNITS[i])
+    } else {
+        format!("{v:.0}{}", UNITS[i])
+    }
 }
 
 /// `" /path "`, truncated from the left (keeping the tail) to fit `width`.
