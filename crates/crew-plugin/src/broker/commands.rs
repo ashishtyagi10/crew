@@ -18,6 +18,7 @@ pub(crate) const HELP: &str = "constructs:\n\
     /model <agent> <model|default> — pin an agent to a model (mix models freely)\n\
     /fan <task> — every agent answers the same task in parallel\n\
     /loop <n> <task> — n relay rounds, each improving the last answer\n\
+    /goal <text> — keep working until a judge agent rules the goal met\n\
     @<agent> <task> — choose who starts the relay";
 
 /// Handle a `/command` line; emits reply events through `emit`.
@@ -34,6 +35,7 @@ pub(crate) fn handle(
         "model" => model_cmd(session, rest, emit),
         "fan" => fan_cmd(session, rest, emit),
         "loop" => super::constructs::loop_cmd(session, rest, emit),
+        "goal" => super::constructs::goal_cmd(session, rest, emit),
         other => emit(msg(
             "crew",
             format!("unknown construct /{other} — try /help"),

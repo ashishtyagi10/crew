@@ -55,6 +55,77 @@ fn loop_rejects_bad_counts_and_missing_tasks() {
     }
 }
 
+fn run_goal(rest: &str) -> Vec<PluginEvent> {
+    let mut session = Session::new();
+    let mut evs = Vec::new();
+    goal_cmd(&mut session, rest, &mut |ev| {
+        evs.push(ev);
+        Ok(())
+    })
+    .unwrap();
+    evs
+}
+
+#[test]
+fn goal_met_on_round_one_stops_the_loop() {
+    // Every mock agent (worker AND judge) replies MET, so round one settles it.
+    let _g = testenv::mock("MET: shipped and green\n@done");
+    let ts = texts(&run_goal("ship the release"));
+    assert!(
+        ts.iter().any(|t| t.contains("goal met after 1 round")),
+        "{ts:?}"
+    );
+    assert_eq!(
+        ts.iter().filter(|t| t.starts_with("goal round")).count(),
+        1,
+        "{ts:?}"
+    );
+}
+
+#[test]
+fn goal_gives_up_at_the_round_cap_when_never_met() {
+    let _g = testenv::mock("NOT MET: still missing tests\n@done");
+    let ts = texts(&run_goal("prove the collatz conjecture"));
+    assert_eq!(
+        ts.iter().filter(|t| t.starts_with("goal round")).count(),
+        GOAL_ROUNDS as usize,
+        "{ts:?}"
+    );
+    assert!(ts.last().unwrap().contains("goal not met after"), "{ts:?}");
+    // The judge's reasoning is surfaced each round.
+    assert!(
+        ts.iter().any(|t| t.contains("still missing tests")),
+        "{ts:?}"
+    );
+}
+
+#[test]
+fn goal_without_text_prints_usage() {
+    let _g = testenv::mock("ok\n@done");
+    let ts = texts(&run_goal("   "));
+    assert!(ts[0].starts_with("usage:"), "{ts:?}");
+}
+
+#[test]
+fn parse_verdict_reads_met_and_not_met() {
+    assert_eq!(parse_verdict("MET: all done"), (true, "all done".into()));
+    assert_eq!(
+        parse_verdict("NOT MET: missing docs"),
+        (false, "missing docs".into())
+    );
+    // Control lines and casing are tolerated; garbage is conservatively not met.
+    assert!(parse_verdict("met: fine\n@done").0);
+    assert!(!parse_verdict("hard to say").0);
+}
+
+#[test]
+fn pick_judge_prefers_a_reviewer_who_is_not_the_worker() {
+    let names = vec!["planner".to_string(), "coder".into(), "reviewer".into()];
+    assert_eq!(pick_judge(&names, "planner"), "reviewer");
+    assert_eq!(pick_judge(&names, "reviewer"), "planner");
+    assert_eq!(pick_judge(&["solo".to_string()], "solo"), "solo");
+}
+
 #[test]
 fn round_body_feeds_the_previous_answer_forward() {
     assert_eq!(round_body("task", None), "task");
