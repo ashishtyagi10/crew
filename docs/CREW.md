@@ -10,9 +10,10 @@ successor to this repo's original terminal file-manager project; the crates unde
 - **Rendering** — `winit` + `wgpu` + `glyphon`/`cosmic-text`. Every cell is drawn
   on the GPU; panes have SDF rounded borders. The rendering model has four
   invariants: the **cell box is fixed** at `(0.6, 1.25) × font size`, rounded to
-  whole physical pixels and independent of the font family (glyph advances snap
-  to it via cosmic-text's `monospace_width`, so switching fonts never moves a
-  pane or a border); **colours convert to linear once** at the GPU boundary
+  whole physical pixels and independent of the font family (every glyph advance
+  — bold and wide CJK/emoji runs included — snaps to a whole number of cells
+  via cosmic-text's `monospace_width`, so switching fonts never moves a pane, a
+  border, or a column); **colours convert to linear once** at the GPU boundary
   (`crew_render::color`) because the surface is sRGB; **unchanged panes reuse
   last frame's shaped text** (content signatures in `scenecache`); and all cell
   placement is **display-width aware** (`chatwidth` — emoji/CJK advance two
@@ -119,7 +120,12 @@ The docked command bar supports:
   The font *family* is picked in `/settings` — a type-to-search dropdown over
   every installed monospace family (the active one carries a `✓`); run
   `crew --list-fonts` in any shell to print the same list and check a newly
-  installed font is visible to Crew.
+  installed font is visible to Crew. Inclusion is verified by measurement, not
+  font-table flags: a family is listed when a candidate face (flagged
+  monospaced or name-matched, so variable fonts like JetBrains Mono count)
+  actually renders `i`, `m` and `0` at one shared advance — which is why
+  proportional Unicode fallbacks and icon/symbol fonts that ship mis-flagged
+  as monospace (Arial Unicode MS, Symbols Nerd Font Mono) don't appear.
 - **`/restart`** — relaunches Crew as a fresh detached process and exits this
   one: the way to apply a binary installed by `/update`, and the fresh process
   re-reads `config.toml`, so edits made outside the `/settings` pane take

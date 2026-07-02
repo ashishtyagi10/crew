@@ -1,6 +1,7 @@
 use glyphon::{Cache, FontSystem, Resolution, SwashCache, TextAtlas, TextRenderer, Viewport};
 
-use crate::celltext::{cell_metrics, monospace_families, FontParams};
+use crate::celltext::{cell_metrics, FontParams};
+use crate::fontlist::monospace_families;
 use crate::quads::QuadLayer;
 use crate::roundborder::RoundBorderLayer;
 use crate::scene::{build_both, PaneScene};
@@ -115,9 +116,10 @@ impl CellGrid {
         self.font_family = family.filter(|n| !n.is_empty());
     }
 
-    /// Sorted, de-duplicated names of all installed monospace font families.
-    pub fn monospace_families(&self) -> Vec<String> {
-        monospace_families(&self.font_system)
+    /// Sorted, de-duplicated names of all installed monospace font families
+    /// (verified fixed-pitch — `&mut` because verification loads the faces).
+    pub fn monospace_families(&mut self) -> Vec<String> {
+        monospace_families(&mut self.font_system)
     }
 
     /// Returns the monospace cell size `(width, height)` in pixels.

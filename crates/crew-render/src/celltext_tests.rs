@@ -34,16 +34,6 @@ fn cell_metrics_are_family_independent_and_whole_pixel() {
 }
 
 #[test]
-fn sounds_monospace_catches_coding_fonts_only() {
-    for name in ["JetBrains Mono", "Fira Code", "Consolas", "Menlo", "Monaco"] {
-        assert!(sounds_monospace(name), "{name} should read as monospace");
-    }
-    for name in ["Helvetica", "Times New Roman", "Arial"] {
-        assert!(!sounds_monospace(name), "{name} should not");
-    }
-}
-
-#[test]
 fn family_from_maps_named_and_default() {
     match family_from(&Some("Menlo".to_string())) {
         Family::Name(n) => assert_eq!(n, "Menlo"),
@@ -57,15 +47,45 @@ fn family_from_maps_named_and_default() {
 }
 
 #[test]
-fn monospace_families_sorted_and_deduped() {
-    let fs = FontSystem::new();
-    let names = monospace_families(&fs);
-    let mut sorted = names.clone();
-    sorted.sort();
-    assert_eq!(names, sorted, "names must be sorted");
-    let mut deduped = names.clone();
-    deduped.dedup();
-    assert_eq!(deduped.len(), names.len(), "names must be de-duplicated");
+fn bold_glyphs_snap_to_the_same_cell_advance() {
+    // The fixed cell box must hold for BOLD runs too — a bold face's natural
+    // advances differ from the regular face's, so if `set_monospace_width`
+    // ever stopped covering weight variants, bold text would drift off-grid.
+    let style = |col: u16, c: char, bold: bool| CellView {
+        col,
+        row: 0,
+        c,
+        fg: (200, 200, 200),
+        bg: (0, 0, 0),
+        bold,
+        italic: false,
+    };
+    let mut fs = FontSystem::new();
+    let cells = vec![
+        style(0, 'W', true),
+        style(1, 'i', true),
+        style(2, 'm', false),
+        style(3, '0', true),
+    ];
+    let (cell_w, cell_h) = cell_metrics(14.0);
+    let p = FontParams {
+        font_size: 14.0,
+        line_height: cell_h,
+        cell_w,
+        family: None,
+    };
+    let buf = build_pane_buffer(&mut fs, &cells, 4, 1, 4.0 * cell_w, cell_h, &p);
+    let runs: Vec<_> = buf.layout_runs().collect();
+    assert_eq!(runs.len(), 1);
+    assert_eq!(runs[0].glyphs.len(), 4, "four columns shape to four glyphs");
+    for g in runs[0].glyphs {
+        let cols = g.x / cell_w;
+        assert!(
+            (cols - cols.round()).abs() < 1e-3,
+            "glyph at x={} is off the {cell_w}px grid",
+            g.x
+        );
+    }
 }
 
 #[test]

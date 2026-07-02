@@ -53,7 +53,7 @@ impl Renderer {
     }
 
     /// Sorted, de-duplicated names of all installed monospace font families.
-    pub fn monospace_families(&self) -> Vec<String> {
+    pub fn monospace_families(&mut self) -> Vec<String> {
         self.cell_grid.monospace_families()
     }
 

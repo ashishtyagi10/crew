@@ -131,7 +131,7 @@ impl CrewApp {
             .unwrap_or(FALLBACK_SIZE);
         let families = self
             .renderer
-            .as_ref()
+            .as_mut()
             .map(|r| r.monospace_families())
             .unwrap_or_default();
         self.panes.push(Pane {

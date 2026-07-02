@@ -5,17 +5,26 @@ use crate::boxdraw;
 use crate::palette::accent;
 use crate::stats::Stats;
 
-const TRACK: (u8, u8, u8) = (70, 70, 80);
 const HEADER: &str = "SYSTEM";
 
-/// Bar colour by load: accent green when low, amber past 70%, red past 90%.
+/// Empty-track colour: the theme's recessed border shade, so the track sits
+/// back like an unfocused card edge — and stays in-palette on the monochrome
+/// CRT phosphor themes instead of a fixed grey.
+fn track_color() -> (u8, u8, u8) {
+    crew_theme::theme().border_normal
+}
+
+/// Bar colour by load: accent when low, the theme's status amber past 70%,
+/// its bright-red ANSI slot past 90% — every tier drawn from the active
+/// palette so a phosphor theme's gauges glow in that phosphor's hues.
 fn fill_color(frac: f32) -> (u8, u8, u8) {
+    let t = crew_theme::theme();
     if frac < 0.7 {
         accent()
     } else if frac < 0.9 {
-        (230, 180, 90)
+        t.status_fg
     } else {
-        (230, 90, 90)
+        t.ansi[9]
     }
 }
 
@@ -55,7 +64,7 @@ fn gauge_cells(label: &str, frac: f32, row: u16, cols: u16) -> Vec<CellView> {
         let (c, fg) = if i < filled {
             ('█', fill)
         } else {
-            ('░', TRACK)
+            ('░', track_color())
         };
         cells.push(cell((used + i) as u16, row, c, fg, t.page_bg));
     }
@@ -133,9 +142,11 @@ mod tests {
 
     #[test]
     fn fill_color_thresholds() {
+        let t = crew_theme::theme();
         assert_eq!(fill_color(0.5), crate::palette::accent());
-        assert_eq!(fill_color(0.8), (230, 180, 90));
-        assert_eq!(fill_color(0.95), (230, 90, 90));
+        assert_eq!(fill_color(0.8), t.status_fg);
+        assert_eq!(fill_color(0.95), t.ansi[9]);
+        assert_eq!(track_color(), t.border_normal);
     }
 
     #[test]

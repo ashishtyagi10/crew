@@ -21,37 +21,6 @@ pub(crate) fn family_from(opt: &Option<String>) -> Family<'_> {
     }
 }
 
-/// Whether a family name reads as a coding/terminal face. Variable and
-/// otherwise mis-flagged fonts (JetBrains Mono among them) often lack the
-/// `monospaced` bit in their tables, so the picker would hide them; the name
-/// heuristic keeps them listed.
-pub(crate) fn sounds_monospace(name: &str) -> bool {
-    let l = name.to_lowercase();
-    [
-        "mono", "consol", "courier", "menlo", "monaco", "code", "fixed", "term",
-    ]
-    .iter()
-    .any(|h| l.contains(h))
-}
-
-/// Sorted, de-duplicated names of all installed monospace font families:
-/// every face flagged monospaced, plus families whose name says so.
-pub(crate) fn monospace_families(font_system: &FontSystem) -> Vec<String> {
-    let mut names: Vec<String> = font_system
-        .db()
-        .faces()
-        .flat_map(|f| {
-            let mono = f.monospaced;
-            f.families.iter().map(move |(name, _)| (name.clone(), mono))
-        })
-        .filter(|(name, mono)| *mono || sounds_monospace(name))
-        .map(|(name, _)| name)
-        .collect();
-    names.sort();
-    names.dedup();
-    names
-}
-
 /// Build a new `Buffer` for one pane's cells at the given cols/rows.
 /// The buffer is sized to `(w, h)` pixels and laid out as a cols×rows grid.
 pub(crate) fn build_pane_buffer(
@@ -71,8 +40,17 @@ pub(crate) fn build_pane_buffer(
     buffer.set_size(font_system, Some(w), Some(h));
     // Snap every glyph advance to the fixed cell box, so the grid — and every
     // box-drawing border in it — stays identical whatever family is chosen
-    // (fallback glyphs included).
-    buffer.set_monospace_width(font_system, Some(params.cell_w));
+    // (fallback glyphs, bold runs and wide CJK/emoji included).
+    //
+    // Unit quirk: without cosmic-text's `monospace_fallback` feature (not in
+    // its defaults, so compiled out of our glyphon build), the only effect of
+    // `monospace_width` is to round each advance to the nearest multiple of
+    // `monospace_width / font_size`. Passing `cell_w * font_size` makes that
+    // quantum exactly one cell, which is the snapping we want; passing the
+    // intuitive `cell_w` yields a ~cell_w/font_size quantum — advances stay
+    // at the font's natural width and the text grid drifts off the quad grid
+    // (verified by `bold_glyphs_snap_to_the_same_cell_advance`).
+    buffer.set_monospace_width(font_system, Some(params.cell_w * params.font_size));
 
     fill_rich_text(&mut buffer, font_system, cells, cols, rows, &params.family);
     buffer
