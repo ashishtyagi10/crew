@@ -1,20 +1,22 @@
 //! Composes the crew pane's full cell view: status header (row 0), agent
-//! roster (row 1 when known), role-styled message cards, and the input
-//! composer (affordance bar + prompt) on the bottom rows. Tiny panes fall
-//! back to the plain layout.
+//! roster (row 1 when known), the live activity row (row 2 while agents
+//! work), role-styled message cards, and the input composer (affordance bar +
+//! prompt) on the bottom rows. Tiny panes fall back to the plain layout.
 use crew_render::CellView;
 
 use crate::chat::ChatPane;
 use crate::chatlayout::layout_cells;
 
 impl ChatPane {
-    /// Rows consumed above the message body: the status header, plus the agent
-    /// roster row when agents are known and the pane is tall enough.
+    /// Rows consumed above the message body: the status header, the agent
+    /// roster row when agents are known, and — while agents are working and
+    /// the pane is tall enough — the live activity row.
     pub(crate) fn top_rows(&self, rows: u16) -> u16 {
         match rows {
             0..=2 => 0,
             3 => 1,
             _ if self.agents.is_empty() => 1,
+            _ if !self.active_agents().is_empty() && rows >= 6 => 3,
             _ => 2,
         }
     }
@@ -57,6 +59,14 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
             1,
             &pane.agents,
             &names,
+        ));
+    }
+    // While agents work, row 2 shows who is doing what for whom, live.
+    if top > 2 {
+        cells.extend(crate::chatflow::activity_cells(
+            cols,
+            2,
+            pane.active_agents(),
         ));
     }
     let bottom = crate::chatinput::composer_rows(rows);

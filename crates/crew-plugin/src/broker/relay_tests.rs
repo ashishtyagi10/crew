@@ -52,8 +52,9 @@ fn dialing_becomes_a_thinking_activity() {
         text: String::new(),
     };
     match hop_to_msg(&hop, None) {
-        PluginEvent::Activity { agent, state } => {
+        PluginEvent::Activity { agent, state, from } => {
             assert_eq!((agent.as_str(), state.as_str()), ("codex", "thinking"));
+            assert_eq!(from, "broker", "activity names who dialed the agent");
         }
         ev => panic!("expected Activity, got {ev:?}"),
     }

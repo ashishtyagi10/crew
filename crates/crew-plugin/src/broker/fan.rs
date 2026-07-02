@@ -19,11 +19,12 @@ pub(crate) fn fan_out(
     timeout: Duration,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
-    // Every agent starts thinking at once.
+    // Every agent starts thinking at once, each on the user's behalf.
     for name in names {
         emit(PluginEvent::Activity {
             agent: name.clone(),
             state: "thinking".into(),
+            from: "user".into(),
         })?;
     }
     let prompt = format!(
@@ -58,6 +59,7 @@ pub(crate) fn fan_out(
             let done = PluginEvent::Activity {
                 agent: name.clone(),
                 state: "idle".into(),
+                from: String::new(),
             };
             let ev = match res {
                 Ok(reply) => {
@@ -94,6 +96,7 @@ pub(crate) fn fan_out(
     emit(PluginEvent::Activity {
         agent: String::new(),
         state: "idle".into(),
+        from: String::new(),
     })
 }
 

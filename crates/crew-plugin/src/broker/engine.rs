@@ -91,7 +91,15 @@ impl Broker {
             };
             let peers = self.registry.roster_excluding(&env.to);
             let prompt = frame(&env, &peers, &task, &transcript_tail(&transcript));
-            sink(note(&env, HopKind::Dialing, String::new()));
+            // The dial names its real sender (`user`, or the relaying peer) so
+            // the host's activity row can show who the agent is working for.
+            sink(Hop {
+                from: env.from.clone(),
+                to: env.to.clone(),
+                hop: env.hop,
+                kind: HopKind::Dialing,
+                text: String::new(),
+            });
             let reply = match agent.call(&prompt, self.timeout) {
                 Ok(r) if !r.trim().is_empty() => r,
                 Ok(_) => {

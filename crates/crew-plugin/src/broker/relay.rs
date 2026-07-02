@@ -69,6 +69,7 @@ pub(crate) fn relay_turn(
     emit(PluginEvent::Activity {
         agent: String::new(),
         state: "idle".into(),
+        from: String::new(),
     })?;
     Ok(answer)
 }
@@ -99,6 +100,7 @@ pub(crate) fn hop_to_msg(hop: &Hop, latency: Option<Duration>) -> PluginEvent {
         HopKind::Dialing => PluginEvent::Activity {
             agent: hop.to.clone(),
             state: "thinking".into(),
+            from: hop.from.clone(),
         },
         _ => PluginEvent::Message {
             channel: "crew".into(),

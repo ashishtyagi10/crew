@@ -83,7 +83,7 @@ fn every_agent_thinks_then_goes_idle_and_stats_close_the_turn() {
     // The very last event clears the pane's activity.
     assert!(matches!(
         evs.last().unwrap(),
-        PluginEvent::Activity { agent, state } if agent.is_empty() && state == "idle"
+        PluginEvent::Activity { agent, state, .. } if agent.is_empty() && state == "idle"
     ));
     // The summary names both agents with timings, joined in parallel notation.
     let msgs = messages(&evs);

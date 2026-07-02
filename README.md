@@ -175,7 +175,9 @@ The pane itself reads like a multi-agent console: a header with a live status
 (`| coder · 12s` while an agent thinks, `| 3 working · 8s` during a parallel
 fan, a running `~N tok` meter, connection dot), an **agent roster row** — one
 colored chip per agent with its model badge, every active agent highlighted —
-and **message cards** (`▍sender · 2m ago · 4.2s`)
+a **live activity row** while agents work (`⠹ user ⇢ planner 4s`, one animated
+chip per working agent naming who handed it the task, so parallel fans and
+hand-offs are visible as they happen), and **message cards** (`▍sender · 2m ago · 4.2s`)
 that colour each agent consistently and show hand-offs as `from → to`. Every
 turn ends with a timeline log line: `turn done — planner 4.2s → coder 8.1s ·
 2 exchange(s) · ~950 tok (approx)`. Fenced ```code``` in replies renders as a

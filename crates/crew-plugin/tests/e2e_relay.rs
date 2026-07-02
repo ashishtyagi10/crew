@@ -56,11 +56,13 @@ fn dialing_is_streamed_as_a_live_activity() {
     let dir = unique_dir("relay-stream");
     let mock = ("CREW_BROKER_MOCK_REPLY", "ok\n@done");
     let ev = run_broker(&dir, &[mock], &[SEND]);
-    // The broker streams a thinking activity as it dials the agent…
+    // The broker streams a thinking activity as it dials the agent, naming
+    // who handed it the work…
     assert!(
         ev.iter().any(|e| matches!(
             e,
-            PluginEvent::Activity { agent, state } if agent == "planner" && state == "thinking"
+            PluginEvent::Activity { agent, state, from }
+                if agent == "planner" && state == "thinking" && from == "user"
         )),
         "{ev:?}"
     );
@@ -68,7 +70,7 @@ fn dialing_is_streamed_as_a_live_activity() {
     assert!(
         ev.iter().any(|e| matches!(
             e,
-            PluginEvent::Activity { agent, state } if agent.is_empty() && state == "idle"
+            PluginEvent::Activity { agent, state, .. } if agent.is_empty() && state == "idle"
         )),
         "{ev:?}"
     );

@@ -33,11 +33,14 @@ pub enum PluginEvent {
         agents: Vec<AgentInfo>,
     },
     /// A live status change: `agent` entered `state` (`"thinking"` while being
-    /// called; `"idle"` with an empty agent when the turn ends). Drives the
-    /// host's activity indicator instead of spamming the transcript.
+    /// called; `"idle"` with an empty agent when the turn ends). `from` names
+    /// who handed the agent its work (`"user"`, a peer agent, …; may be empty),
+    /// so the host can draw the live interaction, not just a busy flag.
     Activity {
         agent: String,
         state: String,
+        #[serde(default, skip_serializing_if = "String::is_empty")]
+        from: String,
     },
     /// End-of-turn cost: agent exchanges made and approximate tokens spent.
     /// Feeds the host's running token meter.
@@ -132,11 +135,25 @@ mod tests {
 
     #[test]
     fn activity_event_roundtrips() {
+        // No `from` on the wire (older broker) → defaults to empty.
         let line = r#"{"type":"activity","agent":"coder","state":"thinking"}"#;
         let ev: PluginEvent = serde_json::from_str(line).unwrap();
         match ev {
-            PluginEvent::Activity { agent, state } => {
+            PluginEvent::Activity { agent, state, from } => {
                 assert_eq!((agent.as_str(), state.as_str()), ("coder", "thinking"));
+                assert_eq!(from, "");
+            }
+            _ => panic!("wrong variant"),
+        }
+    }
+
+    #[test]
+    fn activity_event_carries_who_dialed() {
+        let line = r#"{"type":"activity","agent":"coder","state":"thinking","from":"planner"}"#;
+        let ev: PluginEvent = serde_json::from_str(line).unwrap();
+        match ev {
+            PluginEvent::Activity { agent, from, .. } => {
+                assert_eq!((agent.as_str(), from.as_str()), ("coder", "planner"));
             }
             _ => panic!("wrong variant"),
         }

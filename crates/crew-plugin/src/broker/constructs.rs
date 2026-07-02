@@ -93,6 +93,7 @@ pub(crate) fn goal_cmd(
         emit(PluginEvent::Activity {
             agent: judge.clone(),
             state: "thinking".into(),
+            from: "goal".into(),
         })?;
         let verdict = broker
             .registry
@@ -101,6 +102,7 @@ pub(crate) fn goal_cmd(
         emit(PluginEvent::Activity {
             agent: String::new(),
             state: "idle".into(),
+            from: String::new(),
         })?;
         let reply = match verdict {
             Some(Ok(r)) => r,

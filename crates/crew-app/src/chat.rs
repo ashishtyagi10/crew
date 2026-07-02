@@ -2,6 +2,7 @@ use crew_plugin::{AgentInfo, Plugin, PluginCommand, PluginEvent};
 use crew_render::CellView;
 use winit::event::KeyEvent;
 
+use crate::chatflow::ActiveAgent;
 use crate::chatkeys::{chat_key, ChatAction, ChatInput};
 use crate::chatlayout::{input_reduce, Message};
 
@@ -20,9 +21,10 @@ pub struct ChatPane {
     /// A message was sent and no reply has arrived yet — drives the pane's
     /// indeterminate "thinking" progress sweep.
     awaiting: bool,
-    /// The agents currently thinking (from `Activity` events) and when each
-    /// started — several at once during a parallel /fan.
-    active: Vec<(String, std::time::Instant)>,
+    /// The agents currently thinking (from `Activity` events): each with who
+    /// handed it the work and when it started — several at once during a
+    /// parallel /fan. Drives the live activity row.
+    active: Vec<ActiveAgent>,
     /// Session-wide approximate token spend (from `Stats` events), for the
     /// header's running cost meter.
     pub(crate) tokens: u64,
@@ -60,17 +62,22 @@ impl ChatPane {
         let secs = self
             .active
             .iter()
-            .map(|(_, t)| t.elapsed().as_secs())
+            .map(|a| a.since.elapsed().as_secs())
             .max()?;
         match &self.active[..] {
-            [(name, _)] => Some((name.clone(), secs)),
+            [one] => Some((one.name.clone(), secs)),
             many => Some((format!("{} working", many.len()), secs)),
         }
     }
 
     /// Names of every agent currently thinking (roster highlights them all).
     pub(crate) fn active_names(&self) -> Vec<&str> {
-        self.active.iter().map(|(a, _)| a.as_str()).collect()
+        self.active.iter().map(|a| a.name.as_str()).collect()
+    }
+
+    /// The live activity entries, for the pane's interaction row.
+    pub(crate) fn active_agents(&self) -> &[ActiveAgent] {
+        &self.active
     }
 
     /// Drain plugin events; return PollResult with changed flag and any host actions.
@@ -99,14 +106,18 @@ impl ChatPane {
                     PluginEvent::Roster { agents } => {
                         self.agents = agents;
                     }
-                    PluginEvent::Activity { agent, state } => {
+                    PluginEvent::Activity { agent, state, from } => {
                         match (state.as_str(), agent.is_empty()) {
                             ("thinking", false) => {
-                                if !self.active.iter().any(|(a, _)| *a == agent) {
-                                    self.active.push((agent, std::time::Instant::now()));
+                                if !self.active.iter().any(|a| a.name == agent) {
+                                    self.active.push(ActiveAgent {
+                                        name: agent,
+                                        from,
+                                        since: std::time::Instant::now(),
+                                    });
                                 }
                             }
-                            ("idle", false) => self.active.retain(|(a, _)| *a != agent),
+                            ("idle", false) => self.active.retain(|a| a.name != agent),
                             // An empty-agent idle (turn over) clears everyone.
                             _ => self.active.clear(),
                         }

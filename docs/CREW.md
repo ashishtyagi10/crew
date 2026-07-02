@@ -247,12 +247,17 @@ console: row 0 is a status header (connection dot, message count, a running
 `~N tok` meter, and — while an agent works — a spinner naming it with live
 elapsed seconds); row 1 is the **agent roster** streamed by the broker as a
 structured `roster` event — a colored chip per agent with role + model badge,
-the currently-thinking agent highlighted (`▸` + bold). Messages render as
+the currently-thinking agent highlighted (`▸` + bold). While agents work, row 2
+becomes a **live activity row**: one animated chip per working agent —
+`⠹ user ⇢ planner 4s` — naming who handed it the task (the user, a relaying
+peer, or the goal judge) with a spinner and elapsed seconds, so parallel fans
+and hand-offs are visible as they happen. Messages render as
 **cards**: a `▍sender` header in the sender's stable colour (hand-off senders
 like `planner → coder` colour each name), a muted `· 2m ago · 4.2s` tail
 (epoch-ms `ts` + per-reply latency `meta` stamped by the broker), and the
 wrapped body beneath. Live agent state flows as structured `activity` events
-(`thinking` per dial, `idle` at turn end) instead of transcript spam, and each
+(`thinking` per dial — carrying who dialed as `from` — and `idle` at turn end)
+instead of transcript spam, and each
 turn ends with a `stats` event plus a timeline summary: `turn done — planner
 4.2s → coder 8.1s · 2 exchange(s) · ~950 tok (approx)`.
 
