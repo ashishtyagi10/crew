@@ -3,7 +3,7 @@ use std::pin::Pin;
 
 use serde::Deserialize;
 
-use super::{Completion, CompletionRequest, Provider, ProviderError};
+use super::{http_client, request_timeout, Completion, CompletionRequest, Provider, ProviderError};
 
 const ENDPOINT: &str = "https://api.anthropic.com/v1/messages";
 const VERSION: &str = "2023-06-01";
@@ -45,7 +45,7 @@ struct ApiResp {
 impl AnthropicProvider {
     pub fn new(api_key: String) -> Self {
         Self {
-            client: reqwest::Client::new(),
+            client: http_client(request_timeout()),
             api_key,
         }
     }

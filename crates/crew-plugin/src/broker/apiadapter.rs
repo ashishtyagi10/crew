@@ -77,7 +77,10 @@ impl Adapter for ApiAdapter {
         {
             Ok(Ok(c)) => Ok(c.text.trim().to_string()),
             Ok(Err(e)) => Err(e.to_string()),
-            Err(_) => Err(format!("api call timed out after {timeout:?}")),
+            Err(_) => Err(format!(
+                "{}: api call timed out after {timeout:?} (raise CREW_BROKER_TIMEOUT_MS?)",
+                self.model
+            )),
         }
     }
 }

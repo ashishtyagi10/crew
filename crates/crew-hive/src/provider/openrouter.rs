@@ -8,7 +8,7 @@ use std::future::Future;
 use std::pin::Pin;
 
 use super::openai_http::request_with_retry;
-use super::{Completion, CompletionRequest, Provider, ProviderError};
+use super::{http_client, request_timeout, Completion, CompletionRequest, Provider, ProviderError};
 
 const ENDPOINT: &str = "https://openrouter.ai/api/v1/chat/completions";
 
@@ -45,7 +45,7 @@ fn attempt_chain(primary: &str, fallbacks: &[String]) -> Vec<String> {
 impl OpenRouterProvider {
     pub fn new(api_key: String) -> Self {
         Self {
-            client: reqwest::Client::new(),
+            client: http_client(request_timeout()),
             api_key,
             endpoint: ENDPOINT.to_string(),
             fallbacks: Vec::new(),
@@ -56,6 +56,12 @@ impl OpenRouterProvider {
     /// URL (e.g. DashScope's compatible mode).
     pub fn with_endpoint(mut self, url: impl Into<String>) -> Self {
         self.endpoint = url.into();
+        self
+    }
+
+    /// Replace the per-attempt HTTP timeout (default: [`request_timeout`]).
+    pub fn with_timeout(mut self, timeout: std::time::Duration) -> Self {
+        self.client = http_client(timeout);
         self
     }
 
