@@ -3,8 +3,9 @@ use crew_render::CellView;
 use winit::event::KeyEvent;
 
 use crate::chatflow::ActiveAgent;
+use crate::chatinput::input_reduce;
 use crate::chatkeys::{chat_key, ChatAction, ChatInput};
-use crate::chatlayout::{input_reduce, Message};
+use crate::chatlayout::Message;
 
 pub use crate::chatevents::{classify, HostAction, PollResult};
 

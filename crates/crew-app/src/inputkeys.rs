@@ -97,7 +97,7 @@ impl InputBar {
             Key::Character(s) => (s.chars().next(), false, false),
             _ => (None, false, false),
         };
-        let result = crate::chatlayout::input_reduce(&mut self.text, ch, enter, backspace);
+        let result = crate::chatinput::input_reduce(&mut self.text, ch, enter, backspace);
         self.menu_sel = 0;
         self.hist_pos = None;
         if let Some(line) = &result {

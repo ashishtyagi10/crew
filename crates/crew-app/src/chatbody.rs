@@ -64,7 +64,8 @@ pub(crate) fn body_lines(text: &str, cols: usize, fg: Color) -> Vec<CardLine> {
                     let full: Vec<char> = logical.chars().collect();
                     let mut s = 0;
                     loop {
-                        let e = (s + width).min(full.len());
+                        // Width-aware chunking: wide glyphs count two columns.
+                        let e = crate::chatwidth::fit_end(&full, s, width);
                         let mut line = vec![plain(' ', fg, false)];
                         line.extend(full[s..e].iter().map(|&c| CardCell {
                             c,

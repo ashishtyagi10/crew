@@ -116,3 +116,29 @@ pub(crate) fn composer_cells(
 #[cfg(test)]
 #[path = "chatinput_tests.rs"]
 mod tests;
+
+/// Pure input reducer.
+///
+/// - `enter`: return `Some(old_input)`, clear `input`.
+/// - `backspace`: pop last char, return `None`.
+/// - `ch=Some(c)` (non-control): push `c`, return `None`.
+pub fn input_reduce(
+    input: &mut String,
+    ch: Option<char>,
+    enter: bool,
+    backspace: bool,
+) -> Option<String> {
+    if enter {
+        Some(std::mem::take(input))
+    } else if backspace {
+        input.pop();
+        None
+    } else if let Some(c) = ch {
+        if !c.is_control() {
+            input.push(c);
+        }
+        None
+    } else {
+        None
+    }
+}

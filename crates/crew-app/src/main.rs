@@ -19,6 +19,7 @@ mod chatscroll;
 mod chatspawn;
 mod chattime;
 mod chatview;
+mod chatwidth;
 mod chords;
 pub mod chrome;
 mod clickopen;

@@ -110,3 +110,21 @@ fn top_row_offsets_and_width_clips() {
     let cells = message_cells(&[msg("planner", "wide text here")], 5, 4, 3, 0);
     assert!(cells.iter().all(|c| c.row >= 3 && c.col < 5));
 }
+
+#[test]
+fn wide_glyphs_advance_two_columns() {
+    // "中x": the wide glyph sits at its column and `x` lands TWO columns
+    // later, so it can't overlap the glyph's second cell.
+    let cells = message_cells(&[msg("a", "\u{4e2d}x")], 20, 4, 0, 0);
+    let body: Vec<(u16, char)> = cells
+        .iter()
+        .filter(|c| c.row == 1 && c.c != ' ')
+        .map(|c| (c.col, c.c))
+        .collect();
+    let wide = body
+        .iter()
+        .find(|(_, c)| *c == '\u{4e2d}')
+        .expect("wide glyph present");
+    let x = body.iter().find(|(_, c)| *c == 'x').expect("x present");
+    assert_eq!(x.0, wide.0 + 2, "got: {body:?}");
+}

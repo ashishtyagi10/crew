@@ -84,12 +84,17 @@ pub(crate) fn message_cells(
     let end = (start + rows as usize).min(lines.len());
     let mut cells = Vec::new();
     for (row_offset, line) in lines[start..end].iter().enumerate() {
-        for (col, cell) in line.iter().enumerate() {
-            if col as u16 >= cols {
+        let mut col: u16 = 0;
+        for cell in line.iter() {
+            let w = crate::chatwidth::char_w(cell.c) as u16;
+            if w == 0 {
+                continue; // zero-width marks don't get their own cell
+            }
+            if col + w > cols {
                 break;
             }
             cells.push(CellView {
-                col: col as u16,
+                col,
                 row: top_row + row_offset as u16,
                 c: cell.c,
                 fg: cell.fg,
@@ -97,6 +102,7 @@ pub(crate) fn message_cells(
                 bold: cell.bold,
                 italic: false,
             });
+            col += w;
         }
     }
     cells

@@ -1,4 +1,5 @@
 use super::*;
+use crate::chatinput::input_reduce;
 
 fn msg(sender: &str, text: &str) -> Message {
     Message {

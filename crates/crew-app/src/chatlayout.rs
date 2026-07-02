@@ -26,7 +26,8 @@ pub(crate) fn wrap_indices(full: &[char], cols: usize) -> Vec<(usize, usize)> {
     let mut lines = Vec::new();
     let mut start = 0;
     while start < n {
-        let max_end = (start + cols).min(n);
+        // Width-aware: a wide glyph counts two columns (see `chatwidth`).
+        let max_end = crate::chatwidth::fit_end(full, start, cols);
         if max_end == n {
             lines.push((start, n));
             break;
@@ -152,9 +153,17 @@ pub fn layout_cells(
     let end = (start + msg_rows as usize).min(all_lines.len());
     for (row_offset, line) in all_lines[start..end].iter().enumerate() {
         let row = row_offset as u16;
-        for (col, &(c, fg)) in line.iter().enumerate() {
+        let mut col: u16 = 0;
+        for &(c, fg) in line.iter() {
+            let w = crate::chatwidth::char_w(c) as u16;
+            if w == 0 {
+                continue; // zero-width marks don't get their own cell
+            }
+            if col + w > cols {
+                break;
+            }
             cells.push(CellView {
-                col: col as u16,
+                col,
                 row,
                 c,
                 fg,
@@ -162,35 +171,10 @@ pub fn layout_cells(
                 bold: false,
                 italic: false,
             });
+            col += w;
         }
     }
     cells
-}
-
-/// Pure input reducer.
-///
-/// - `enter`: return `Some(old_input)`, clear `input`.
-/// - `backspace`: pop last char, return `None`.
-/// - `ch=Some(c)` (non-control): push `c`, return `None`.
-pub fn input_reduce(
-    input: &mut String,
-    ch: Option<char>,
-    enter: bool,
-    backspace: bool,
-) -> Option<String> {
-    if enter {
-        Some(std::mem::take(input))
-    } else if backspace {
-        input.pop();
-        None
-    } else if let Some(c) = ch {
-        if !c.is_control() {
-            input.push(c);
-        }
-        None
-    } else {
-        None
-    }
 }
 
 #[cfg(test)]
