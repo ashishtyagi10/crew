@@ -19,6 +19,16 @@ const DEFAULT_OPENROUTER_CHAIN: &[&str] = &[
     "meta-llama/llama-4-scout:free",
 ];
 
+/// Default Qwen chain for Alibaba Cloud DashScope (`DASHSCOPE_API_KEY`): the
+/// most capable commercial alias first, rolling to cheaper tiers on limits.
+/// Override with a comma-separated `CREW_DASHSCOPE_MODEL=slug1,slug2,…`.
+const DEFAULT_DASHSCOPE_CHAIN: &[&str] = &["qwen-max", "qwen-plus", "qwen-turbo"];
+
+/// DashScope's OpenAI-compatible chat endpoint (international). Point
+/// `CREW_DASHSCOPE_BASE_URL` at the China-region host if your key lives there.
+const DASHSCOPE_ENDPOINT: &str =
+    "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions";
+
 /// Parse `CREW_OPENROUTER_MODEL` (a comma-separated model chain) into an ordered
 /// list, falling back to `default` when unset or empty.
 fn parse_model_chain(env_val: Option<String>, default: &[&str]) -> Vec<String> {
@@ -70,6 +80,23 @@ impl Registry {
             let primary = chain[0].clone();
             let provider = provider.with_fallbacks(chain);
             return Self::new(inbuilt_agents(Arc::new(provider), move |_| primary.clone()));
+        }
+        // Alibaba Cloud DashScope: the same OpenAI-compatible wire shape on a
+        // different endpoint, running the Qwen commercial models.
+        if let Ok(key) = std::env::var("DASHSCOPE_API_KEY") {
+            if !key.is_empty() {
+                let chain = parse_model_chain(
+                    std::env::var("CREW_DASHSCOPE_MODEL").ok(),
+                    DEFAULT_DASHSCOPE_CHAIN,
+                );
+                let url = std::env::var("CREW_DASHSCOPE_BASE_URL")
+                    .unwrap_or_else(|_| DASHSCOPE_ENDPOINT.to_string());
+                let primary = chain[0].clone();
+                let provider = crew_hive::OpenRouterProvider::new(key)
+                    .with_endpoint(url)
+                    .with_fallbacks(chain);
+                return Self::new(inbuilt_agents(Arc::new(provider), move |_| primary.clone()));
+            }
         }
         if let Ok(provider) = crew_hive::AnthropicProvider::from_env() {
             return Self::new(inbuilt_agents(Arc::new(provider), |t| {

@@ -70,6 +70,7 @@ pub fn run_broker(path_dir: &Path, env: &[(&str, &str)], cmds: &[&str]) -> Vec<P
         // real network during tests. Tests opt into agents via the mock hook.
         .env_remove("ANTHROPIC_API_KEY")
         .env_remove("OPENROUTER_API_KEY")
+        .env_remove("DASHSCOPE_API_KEY")
         .env_remove("CREW_BROKER_MOCK_REPLY")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())

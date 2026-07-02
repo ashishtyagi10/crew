@@ -3,6 +3,7 @@
 //! Anthropic client share one interface.
 mod anthropic;
 mod mock;
+mod openai_http;
 mod openrouter;
 #[cfg(test)]
 mod tests;

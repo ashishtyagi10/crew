@@ -267,7 +267,11 @@ crew (names, roles) and an example `@agent` prompt.
 
 **Models & rate-limits.** When no agent CLIs are installed, `/crew` runs its
 inbuilt API agents (planner/coder/reviewer) over an LLM: it prefers
-`OPENROUTER_API_KEY` (free models by default) and falls back to
+`OPENROUTER_API_KEY` (free models by default), then `DASHSCOPE_API_KEY`
+(Alibaba Cloud Model Studio — Qwen commercial models, `qwen-max` →
+`qwen-plus` → `qwen-turbo`, override with `CREW_DASHSCOPE_MODEL=a,b,…`; the
+endpoint defaults to the international region, point `CREW_DASHSCOPE_BASE_URL`
+at the China host if your key lives there), and falls back to
 `ANTHROPIC_API_KEY`. To survive OpenRouter's free-tier throttling, the provider
 retries transient rate-limits (honoring `Retry-After`) and then rolls through a
 **fallback chain** of free models on *different* upstream providers — so one

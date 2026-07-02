@@ -88,7 +88,7 @@ pub(crate) fn empty_cells(
             &mut row,
             max_row,
             cols,
-            "Set OPENROUTER_API_KEY or ANTHROPIC_API_KEY",
+            "Set OPENROUTER_API_KEY, DASHSCOPE_API_KEY, or",
             t.text_muted,
             false,
         );
@@ -97,7 +97,7 @@ pub(crate) fn empty_cells(
             &mut row,
             max_row,
             cols,
-            "and reopen /crew.",
+            "ANTHROPIC_API_KEY, then reopen /crew.",
             t.text_muted,
             false,
         );
