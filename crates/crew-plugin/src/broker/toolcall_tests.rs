@@ -175,3 +175,46 @@ fn run_tools_without_a_runner_is_a_no_op() {
     assert_eq!(reply, "answer\n@tool fs:read {}");
     assert_eq!(stats.exchanges, 0);
 }
+
+/// A runner that routes `sys:` to the real built-in tools (the session
+/// bridge's local arm), proving the engine loop executes real commands.
+struct SysOnly;
+
+impl ToolRunner for SysOnly {
+    fn hint(&self) -> String {
+        hint_for(&crate::broker::systools::tools())
+    }
+    fn call(&self, server: &str, tool: &str, args: &str) -> Result<String, String> {
+        assert_eq!(server, "sys");
+        crate::broker::systools::call(tool, args)
+    }
+}
+
+#[test]
+fn relay_runs_a_real_sys_command_and_logs_hops() {
+    let broker = Broker::new(Registry::new(vec![]), 6, Duration::from_secs(5))
+        .with_tools(std::sync::Arc::new(SysOnly));
+    let agent = Scripted::new(&[
+        "@tool sys:run {\"cmd\":\"echo tool-e2e\"}",
+        "the command printed tool-e2e",
+    ]);
+    let mut hops = Vec::new();
+    let mut stats = RunStats::default();
+    let reply = broker.run_tools(
+        &agent,
+        "task",
+        "@tool sys:run {\"cmd\":\"echo tool-e2e\"}".into(),
+        &mut stats,
+        &env(),
+        &mut |h| hops.push(h),
+    );
+    assert_eq!(reply, "the command printed tool-e2e");
+    assert!(
+        hops.iter().any(|h| h.text.contains("[tool] sys:run")),
+        "call hop logged"
+    );
+    assert!(
+        hops.iter().any(|h| h.text.contains("tool-e2e")),
+        "result hop logged"
+    );
+}
