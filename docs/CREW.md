@@ -290,10 +290,43 @@ itself (Tab completes both `@agents` and `/constructs`):
 - **`/goal <text>`** — relay rounds until a judge agent (the reviewer when it
   isn't the worker) rules `MET:`/`NOT MET:` on the goal; NOT-MET reasons feed
   the next round. Caps at 5 rounds.
+- **`/skills`** — list the loaded prompt playbooks; **`/skill <name> <task>`**
+  — run the relay with that playbook prepended to the task (see *Extending*
+  below).
+- **`/mcp`** — list the configured MCP servers and their tools (see
+  *Extending* below).
 - **`/stop`** — cancel the running construct at its next checkpoint (between
   hops/rounds). Long work runs on a worker thread, so `/stop`, quick
   constructs, and `/status` answer immediately while a task is in flight; a
   second task is politely rejected until the first ends.
+
+**Extending (skills · plugin agents · MCP).** Three drop-in surfaces, no
+rebuild required — the same trio other coding tools ship:
+
+- **Skills** are markdown playbooks in `~/.config/crew/skills/*.md` (user) or
+  `./.crew/skills/*.md` (project; wins on a name clash). Optional `---`
+  frontmatter sets `name:` and `description:`; otherwise the file stem and
+  first line are used. `/skills` lists them; `/skill <name> <task>` runs the
+  normal relay with the playbook prepended, so every agent in the thread
+  follows it.
+- **Plugin agents** join the roster from JSON manifests in
+  `~/.config/crew/agents/*.json` or `./.crew/agents/*.json`:
+  `{"name": "aider", "command": "aider", "args": ["--message", "{}"],
+  "role": "repo-wide edits"}`. `{}` is the message placeholder (appended when
+  missing); manifests whose command isn't on `$PATH` are skipped, and a
+  manifest can't shadow an inbuilt agent. With manifests present, `/crew`
+  works even with **no API key at all**.
+- **MCP servers** are declared in `~/.config/crew/mcp.json` or
+  `./.crew/mcp.json` with the familiar schema —
+  `{"mcpServers": {"fs": {"command": "mcp-server-fs", "args": ["--root", "."],
+  "env": {}}}}` — and connect lazily over stdio (JSON-RPC 2.0, hard
+  per-request deadlines, killed with the pane). `/mcp` lists each server's
+  tools. When servers are configured, every relay prompt advertises the tools
+  and an agent calls one by ending its reply with
+  `` `@tool <server>:<tool> {"arg": …}` `` — the broker runs the tool, logs
+  the call and result as visible hops, feeds the result back to the same
+  agent (up to 4 tool rounds per hop), then normal `@next`/`@done` routing
+  resumes.
 
 **Models & rate-limits.** When no agent CLIs are installed, `/crew` runs its
 inbuilt API agents (planner/coder/reviewer) over an LLM: it prefers
@@ -334,7 +367,7 @@ nothing in the engine changes.
 a specific (e.g. cheaper) model; `CREW_BROKER_MAX_HOPS` (default 6) caps relay
 depth; `CREW_BROKER_TOKEN_BUDGET` (default 0 = unlimited) caps a thread's
 approximate token spend; `CREW_BROKER_TIMEOUT_MS` (default 180000) bounds each
-agent call. The pane also prints a per-turn timeline + cost summary (`turn done
+agent call; `CREW_MCP_TIMEOUT_MS` (default 30000) bounds each MCP request. The pane also prints a per-turn timeline + cost summary (`turn done
 — planner 4.2s → … · N exchange(s) · ~X tok (approx)`) at the end of every
 task, and accumulates the spend into the header's `~N tok` meter.
 

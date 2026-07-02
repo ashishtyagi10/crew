@@ -171,6 +171,23 @@ fans out to a subset, `/loop <n> <task>` iterates on the crew's own answer,
 reports live totals, and `/stop` cancels the running construct — with Tab
 completion for `@agents` and `/constructs` in the composer.
 
+The pane is extensible the way other coding tools are — three drop-in
+surfaces, no rebuild (see [docs/CREW.md](docs/CREW.md#multi-agent-relay-crew)):
+
+- **Skills** — markdown prompt playbooks in `~/.config/crew/skills/` or
+  `./.crew/skills/` (optional `name:`/`description:` frontmatter; project
+  overrides user). `/skills` lists them; `/skill <name> <task>` runs the relay
+  with the playbook prepended so the whole crew follows it.
+- **Plugin agents** — a JSON manifest in `~/.config/crew/agents/` or
+  `./.crew/agents/` (`{"name", "command", "args": […, "{}"], "role"}`) turns
+  any headless CLI into a roster agent; installed manifests appear in
+  `/agents` and make `/crew` usable with **no API key at all**.
+- **MCP** — servers declared in `~/.config/crew/mcp.json` or `./.crew/mcp.json`
+  (the standard `mcpServers` schema) connect lazily over stdio; `/mcp` lists
+  their tools, relay prompts advertise them, and agents call one by ending a
+  reply with `` `@tool server:tool {"arg": …}` `` — the result is fed back
+  (bounded rounds, visible in the transcript) before routing resumes.
+
 The pane itself reads like a multi-agent console: a header with a live status
 (`| coder · 12s` while an agent thinks, `| 3 working · 8s` during a parallel
 fan, a running `~N tok` meter, connection dot), an **agent roster row** — one
