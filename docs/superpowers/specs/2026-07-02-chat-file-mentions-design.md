@@ -33,8 +33,9 @@ selector; agents have no way to see local files.
 
 ## Candidate index
 
-- Built with the `ignore` crate (`WalkBuilder`, gitignore-aware, skips hidden
-  files), rooted at the app cwd.
+- Built with `walkdir` (already a workspace dependency; `ignore` is not in the
+  tree and gitignore-awareness is YAGNI for v1): skip hidden entries and
+  `target`/`node_modules`/`.git`, rooted at the app cwd.
 - Bounded: depth ≤ 8, ≤ 2,000 files collected; truncation is fine (fuzzy filter
   still works over what was collected). The walk runs when the popup opens and is
   cached per (cwd, generation); this keeps the winit thread stall bounded to a few
@@ -59,7 +60,8 @@ selector; agents have no way to see local files.
 - Caps: skip files > 64 KiB or non-UTF-8, appending a one-line note instead
   (`--- file: X skipped: too large/binary ---`). Unresolvable tokens are left
   alone (they may be genuine prose like an email handle).
-- The pane transcript shows the user's original short message, not the expansion.
+- The broker renders hops as transcript messages and never echoes the user's
+  outgoing text, so the expansion is not visible in the pane by construction.
 
 ## Architecture / seams
 
