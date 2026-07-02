@@ -24,6 +24,7 @@ mod relay;
 mod route;
 mod run;
 mod session;
+mod skills;
 mod stdio;
 
 pub use adapter::{Adapter, CliAdapter, Normalize};

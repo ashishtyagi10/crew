@@ -16,7 +16,7 @@ pub(crate) fn is_command(text: &str) -> bool {
 pub(crate) fn is_quick(text: &str) -> bool {
     let line = text.trim().trim_start_matches('/');
     let cmd = line.split_whitespace().next().unwrap_or("");
-    is_command(text) && !matches!(cmd, "fan" | "loop" | "goal")
+    is_command(text) && !matches!(cmd, "fan" | "loop" | "goal" | "skill")
 }
 
 /// One-line summaries of every construct, shown by `/help`.
@@ -27,6 +27,8 @@ pub(crate) const HELP: &str = "constructs:\n\
     /fan <task> — every agent answers the same task in parallel\n\
     /loop <n> <task> — n relay rounds, each improving the last answer\n\
     /goal <text> — keep working until a judge agent rules the goal met\n\
+    /skills — list prompt playbooks (~/.config/crew/skills, .crew/skills)\n\
+    /skill <name> <task> — run the relay with that playbook prepended\n\
     /stop — cancel the running construct at the next checkpoint\n\
     /status — session totals, models, and what's running\n\
     @<agent> <task> — choose who starts the relay\n\
@@ -47,6 +49,11 @@ pub(crate) fn handle(
         "fan" => fan_cmd(session, rest, emit),
         "loop" => super::constructs::loop_cmd(session, rest, emit),
         "goal" => super::constructs::goal_cmd(session, rest, emit),
+        "skills" => emit(msg(
+            "crew",
+            super::skills::list_report(&super::skills::load()),
+        )),
+        "skill" => super::skills::skill_cmd(session, rest, emit),
         "status" => emit(msg("crew", status_report(session))),
         other => emit(msg(
             "crew",

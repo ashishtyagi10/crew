@@ -582,6 +582,7 @@ version = "0.5.21"
 dependencies = [
  "anyhow",
  "crew-hive",
+ "dirs",
  "serde",
  "serde_json",
  "tokio",
