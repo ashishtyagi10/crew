@@ -110,10 +110,11 @@ fn main() -> anyhow::Result<()> {
     if std::env::args().skip(1).any(|a| a == "--self-update") {
         return selfupdate::run();
     }
-    // `--detach` / `-d`: re-launch in a new session (detached from this terminal)
-    // and exit the parent, so closing the launching shell doesn't SIGHUP the GUI.
-    // The re-launched child sets CREW_DETACHED, so it falls through to the GUI.
-    if detach::wants_detach() && !detach::is_detached_child() {
+    // Detached launch is the default: re-launch in a new session (detached from
+    // this terminal) and exit the parent, so closing the launching shell doesn't
+    // SIGHUP the GUI. `--no-detach` / `--foreground` keeps crew attached. The
+    // re-launched child sets CREW_DETACHED, so it falls through to the GUI.
+    if detach::should_detach() && !detach::is_detached_child() {
         return detach::relaunch_detached();
     }
     handler::run()

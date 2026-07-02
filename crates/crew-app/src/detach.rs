@@ -1,5 +1,8 @@
-//! `--detach` / `-d`: relaunch crew in a new session, detached from the
-//! controlling terminal, so closing the launching shell doesn't SIGHUP it.
+//! Detached launch (the **default**): relaunch crew in a new session, detached
+//! from the controlling terminal, so closing the launching shell doesn't
+//! SIGHUP it. `--no-detach` / `--foreground` keeps crew attached (handy for
+//! debugging with visible logs); `--detach` / `-d` is still accepted as a
+//! no-op for existing scripts.
 //!
 //! We re-exec a fresh copy of the binary (rather than `fork`) because the GUI
 //! toolkit (winit / AppKit) must not be initialised across a `fork`. The child
@@ -9,15 +12,19 @@ use std::process::{Command, Stdio};
 /// Env marker set on the detached child so it doesn't detach a second time.
 const DETACHED_ENV: &str = "CREW_DETACHED";
 
-/// Whether `--detach` / `-d` appears in `args`.
-fn has_detach_flag<I: IntoIterator<Item = String>>(args: I) -> bool {
-    args.into_iter().any(|a| a == "--detach" || a == "-d")
+/// Flags this module owns; all are stripped from the relaunched child's args.
+const DETACH_FLAGS: [&str; 4] = ["--detach", "-d", "--no-detach", "--foreground"];
+
+/// Whether `--no-detach` / `--foreground` appears in `args` (stay attached).
+fn has_foreground_flag<I: IntoIterator<Item = String>>(args: I) -> bool {
+    args.into_iter()
+        .any(|a| a == "--no-detach" || a == "--foreground")
 }
 
 /// `args` with the detach flags removed — the child is launched with the rest.
 fn strip_detach_flags<I: IntoIterator<Item = String>>(args: I) -> Vec<String> {
     args.into_iter()
-        .filter(|a| a != "--detach" && a != "-d")
+        .filter(|a| !DETACH_FLAGS.contains(&a.as_str()))
         .collect()
 }
 
@@ -26,9 +33,9 @@ pub fn is_detached_child() -> bool {
     std::env::var_os(DETACHED_ENV).is_some()
 }
 
-/// Whether `--detach` / `-d` was requested on the command line.
-pub fn wants_detach() -> bool {
-    has_detach_flag(std::env::args().skip(1))
+/// Detaching is the default; `--no-detach` / `--foreground` opts out.
+pub fn should_detach() -> bool {
+    !has_foreground_flag(std::env::args().skip(1))
 }
 
 /// Spawn a detached copy of ourselves (new session, stdio → null) and return
@@ -82,18 +89,26 @@ mod tests {
     use super::*;
 
     #[test]
-    fn detects_both_flag_spellings() {
-        assert!(has_detach_flag(["--detach".to_string()]));
-        assert!(has_detach_flag(["-d".to_string()]));
-        assert!(has_detach_flag(["run".to_string(), "-d".to_string()]));
-        assert!(!has_detach_flag(["--depth".to_string(), "x".to_string()]));
-        assert!(!has_detach_flag(Vec::<String>::new()));
+    fn detects_both_foreground_spellings() {
+        assert!(has_foreground_flag(["--no-detach".to_string()]));
+        assert!(has_foreground_flag(["--foreground".to_string()]));
+        assert!(has_foreground_flag([
+            "run".to_string(),
+            "--foreground".to_string()
+        ]));
+        // The legacy detach flags no longer opt out of anything.
+        assert!(!has_foreground_flag([
+            "--detach".to_string(),
+            "-d".to_string()
+        ]));
+        assert!(!has_foreground_flag(Vec::<String>::new()));
     }
 
     #[test]
     fn strips_only_the_detach_flags() {
         let args = [
             "-d".to_string(),
+            "--no-detach".to_string(),
             "--self-update".to_string(),
             "x".to_string(),
         ];
