@@ -126,6 +126,28 @@ pub(crate) fn after_edit(
     }
 }
 
+/// Half-open char-index ranges of every non-leading `@token` in the input —
+/// the composer tints them so mentions read as chips while typing.
+pub(crate) fn spans(input: &str) -> Vec<(usize, usize)> {
+    let chars: Vec<char> = input.chars().collect();
+    let mut spans = Vec::new();
+    let mut i = 0;
+    while i < chars.len() {
+        if chars[i].is_whitespace() {
+            i += 1;
+            continue;
+        }
+        let start = i;
+        while i < chars.len() && !chars[i].is_whitespace() {
+            i += 1;
+        }
+        if start > 0 && chars[start] == '@' && i - start > 1 {
+            spans.push((start, i));
+        }
+    }
+    spans
+}
+
 /// Largest file inlined into a message; bigger mentions become a skip note
 /// instead of blowing up the agents' context.
 pub(crate) const MAX_FILE_BYTES: usize = 64 * 1024;
@@ -229,6 +251,14 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         dir
+    }
+
+    #[test]
+    fn spans_cover_non_leading_at_tokens() {
+        assert_eq!(spans("hey @a.rs now"), vec![(4, 9)]);
+        assert_eq!(spans("@coder fix @src/x.rs"), vec![(11, 20)]); // leading selector excluded
+        assert!(spans("plain text").is_empty());
+        assert!(spans("hey @").is_empty()); // bare '@' is not a mention yet
     }
 
     #[test]

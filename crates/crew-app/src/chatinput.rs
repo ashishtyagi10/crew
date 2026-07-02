@@ -54,10 +54,19 @@ fn prompt_cells(input: &str, agents: &[AgentInfo], x0: u16, max: u16, row: u16) 
         t.ink
     };
     let mut cells = vec![cell(x0, row, '\u{276f}', accent, true)]; // ❯
-    let styled = input
-        .chars()
-        .enumerate()
-        .map(|(i, c)| (c, (if i < mention { m_color } else { t.ink }, i < mention)));
+                                                                   // Mid-message @file mentions read as chips: tinted accent while typed.
+    let spans = crate::chatmention::spans(input);
+    let in_span = |i: usize| spans.iter().any(|&(s, e)| i >= s && i < e);
+    let styled = input.chars().enumerate().map(|(i, c)| {
+        let (fg, bold) = if i < mention {
+            (m_color, true)
+        } else if in_span(i) {
+            (accent, false)
+        } else {
+            (t.ink, false)
+        };
+        (c, (fg, bold))
+    });
     // Width-aware placement: a wide glyph advances two columns, and the caret
     // lands after the text instead of on top of it.
     let x = crate::chatwidth::place_row(x0 + 2, max, styled, |x, c, (fg, bold)| {
