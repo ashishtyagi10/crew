@@ -157,7 +157,7 @@ impl ChatPane {
     pub fn on_key(&mut self, key: &KeyEvent) -> Option<ChatAction> {
         let (ch, enter, backspace) = match chat_key(&key.logical_key, key.state.is_pressed()) {
             ChatInput::Close => return Some(ChatAction::Close),
-            ChatInput::Ignore => return None,
+            ChatInput::Ignore | ChatInput::Up | ChatInput::Down => return None,
             ChatInput::Complete => {
                 if let Some(done) = crate::chatcomplete::complete(&self.input, &self.agents) {
                     self.input = done;

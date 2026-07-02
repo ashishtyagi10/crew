@@ -11,6 +11,9 @@ pub(crate) enum ChatInput {
     Backspace,
     /// Tab — complete the leading @agent / /construct token.
     Complete,
+    /// Arrow keys — navigate the @file mention popup when it is open.
+    Up,
+    Down,
     Ignore,
 }
 
@@ -28,6 +31,8 @@ pub(crate) fn chat_key(logical: &Key, pressed: bool) -> ChatInput {
     match logical {
         Key::Named(NamedKey::Escape) => ChatInput::Close,
         Key::Named(NamedKey::Tab) => ChatInput::Complete,
+        Key::Named(NamedKey::ArrowUp) => ChatInput::Up,
+        Key::Named(NamedKey::ArrowDown) => ChatInput::Down,
         Key::Named(NamedKey::Enter) => ChatInput::Enter,
         Key::Named(NamedKey::Backspace) => ChatInput::Backspace,
         Key::Named(NamedKey::Space) => ChatInput::Char(' '),
@@ -62,6 +67,18 @@ mod tests {
         assert_eq!(
             chat_key(&Key::Named(NamedKey::Tab), true),
             ChatInput::Complete
+        );
+    }
+
+    #[test]
+    fn arrows_classify_for_popup_navigation() {
+        assert_eq!(
+            chat_key(&Key::Named(NamedKey::ArrowUp), true),
+            ChatInput::Up
+        );
+        assert_eq!(
+            chat_key(&Key::Named(NamedKey::ArrowDown), true),
+            ChatInput::Down
         );
     }
 
