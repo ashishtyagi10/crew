@@ -126,3 +126,28 @@ fn file_rows_show_a_right_aligned_size() {
         k.col
     );
 }
+
+#[test]
+fn overflowing_panel_paints_a_scroll_thumb_on_its_border() {
+    let base = std::env::temp_dir().join("crew_far_render_thumb");
+    let _ = std::fs::remove_dir_all(&base);
+    std::fs::create_dir_all(&base).unwrap();
+    for i in 0..30 {
+        std::fs::write(base.join(format!("f{i:02}.txt")), b"x").unwrap();
+    }
+    let pane = FarPane::new(base);
+    let cells = render(&pane, 40, 10);
+    assert!(
+        cells.iter().any(|c| c.c == '\u{2588}'),
+        "no scroll thumb painted for an overflowing listing"
+    );
+}
+
+#[test]
+fn short_listing_paints_no_scroll_thumb() {
+    let cells = render(&fixture_pane("no_thumb"), 40, 24);
+    assert!(
+        cells.iter().all(|c| c.c != '\u{2588}'),
+        "thumb painted though everything fits"
+    );
+}

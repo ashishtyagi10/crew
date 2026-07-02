@@ -112,8 +112,12 @@ fn merge_divider(buf: &mut Buffer, area: Rect, x: u16) {
             "\u{2502}" // │
         };
         if let Some(cell) = buf.cell_mut((x, y)) {
-            cell.set_symbol(sym);
-            cell.set_fg(accent_color());
+            // The left panel's scroll thumb lives on this shared column —
+            // keep it.
+            if cell.symbol() != "\u{2588}" {
+                cell.set_symbol(sym);
+                cell.set_fg(accent_color());
+            }
         }
     }
 }
@@ -179,6 +183,18 @@ fn panel(buf: &mut Buffer, area: Rect, panel: &Panel, active: bool) {
     let mut state = ListState::default();
     state.select(Some(panel.sel - start));
     StatefulWidget::render(List::new(items).highlight_style(hl), inner, buf, &mut state);
+    // Scroll indicator: the proportional thumb painted over the panel's right
+    // border while the listing overflows (merge_divider preserves it on the
+    // shared middle column).
+    if let Some((top, len)) = crate::chatscroll::thumb(panel.entries.len(), h, start) {
+        let x = area.x + area.width - 1;
+        for i in 0..len {
+            if let Some(cell) = buf.cell_mut((x, inner.y + (top + i) as u16)) {
+                cell.set_symbol("\u{2588}"); // █
+                cell.set_fg(edge);
+            }
+        }
+    }
 }
 
 /// `bytes` in compact Far-style units: `427 B`, `1.2K`, `34M`, `2.1G` — one

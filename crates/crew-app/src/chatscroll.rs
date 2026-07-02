@@ -44,6 +44,18 @@ fn cell(col: u16, row: u16, c: char, fg: (u8, u8, u8), bold: bool) -> CellView {
     }
 }
 
+/// Proportional scroll-thumb geometry for a `visible`-row window into `total`
+/// rows whose first visible row is `first` (0-based from the top): the
+/// thumb's `(offset, length)` in window rows. `None` when everything fits —
+/// shared by the chat scrollbar and the far panels' border thumbs.
+pub(crate) fn thumb(total: usize, visible: usize, first: usize) -> Option<(usize, usize)> {
+    if total <= visible || visible == 0 {
+        return None;
+    }
+    let len = ((visible * visible).div_ceil(total)).max(1);
+    Some((first * visible / total, len))
+}
+
 /// A proportional scrollbar for a `visible`-row window into `total` lines,
 /// `scroll` lines up from the bottom, drawn in column `col` over the message
 /// rows `top..top+visible`. Empty when nothing overflows.
@@ -54,14 +66,12 @@ pub(crate) fn scrollbar_cells(
     col: u16,
     top: u16,
 ) -> Vec<CellView> {
-    if total <= visible || visible == 0 {
-        return Vec::new();
-    }
-    let t = crew_theme::theme();
-    let thumb_len = ((visible * visible).div_ceil(total)).max(1);
     // First content line in the window, 0-based from the transcript top.
-    let start = total - visible - scroll.min(total - visible);
-    let thumb_top = start * visible / total;
+    let first = total.saturating_sub(visible) - scroll.min(total.saturating_sub(visible));
+    let Some((thumb_top, thumb_len)) = thumb(total, visible, first) else {
+        return Vec::new();
+    };
+    let t = crew_theme::theme();
     (0..visible)
         .map(|i| {
             let in_thumb = i >= thumb_top && i < thumb_top + thumb_len;
@@ -99,6 +109,17 @@ mod tests {
     fn no_scrollbar_when_content_fits() {
         assert!(scrollbar_cells(5, 10, 0, 79, 2).is_empty());
         assert!(scrollbar_cells(10, 10, 0, 79, 2).is_empty());
+    }
+
+    #[test]
+    fn thumb_geometry_is_proportional_and_anchored() {
+        assert_eq!(thumb(5, 10, 0), None, "fits — no thumb");
+        assert_eq!(thumb(10, 10, 0), None, "exactly fits — no thumb");
+        assert_eq!(thumb(100, 10, 0), Some((0, 1)), "top of the list");
+        let (top, len) = thumb(100, 10, 90).expect("overflowing");
+        assert_eq!(top + len, 10, "bottom-anchored at max scroll");
+        let (top, len) = thumb(100, 10, 45).expect("overflowing");
+        assert!(top > 0 && top + len < 10, "mid-scroll sits mid-track");
     }
 
     #[test]
