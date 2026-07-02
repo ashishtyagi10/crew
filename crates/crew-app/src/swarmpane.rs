@@ -16,7 +16,7 @@ use std::sync::Arc;
 use crew_hive::agent::StubFactory;
 use crew_hive::{
     batch_graph, AgentFactory, AnthropicProvider, ApiFactory, Budget, Fleet, GraphError, Job,
-    LlmPlanner, ModelTier, Planner, StubPlanner, TaskGraph,
+    LlmPlanner, Planner, StubPlanner,
 };
 use crew_render::CellView;
 
@@ -24,41 +24,15 @@ use crate::swarm::bridge::SwarmHandle;
 use crate::swarm::plan::{plan_goal, PlanHandle};
 use crate::swarm::view::swarm_cells;
 
-/// How many parallel leaves the stub planner decomposes a goal into.
-const GOAL_FANOUT: usize = 3;
-/// Model tier the LLM planner uses to decompose a goal (better structure).
-/// Worker agents instead run at whatever per-task tier the planner assigns.
-const PLAN_TIER: ModelTier = ModelTier::Standard;
-/// Per-task output token cap for worker agents.
-const WORK_MAX_TOKENS: u32 = 2048;
-/// Default cost ceiling for a real-LLM `/goal` or `/batch` run ($1.00 in
-/// micros-USD). The budget governor cancels the swarm once fleet spend exceeds
-/// this.
-const GOAL_BUDGET_MICROS_USD: u64 = 1_000_000;
-/// Model tier for `/batch` jobs (no planner assigns one; keep it cost-conscious).
-const BATCH_TIER: ModelTier = ModelTier::Cheap;
-
-/// Which planning + execution backend a goal pane uses.
-#[derive(Debug, PartialEq, Eq)]
-enum Backend {
-    /// Real LLM planner + API worker agents (an API key is present).
-    Llm,
-    /// Deterministic stub planner + stub agents (offline fallback).
-    Stub,
-}
-
-/// Pick the backend from whether an API key is available. Pure + testable; the
-/// side-effecting `from_env` lookup happens once in [`SwarmPane::for_goal`].
-fn backend_for(has_api_key: bool) -> Backend {
-    if has_api_key {
-        Backend::Llm
-    } else {
-        Backend::Stub
-    }
-}
+// Backend selection + execution helpers live in `swarm::backend`; re-exported
+// so callers (and the tests) keep addressing them through this module.
+pub(crate) use crate::swarm::backend::{
+    backend_for, banner, executor, jobs_from_lines, running, Backend, GOAL_BUDGET_MICROS_USD,
+    GOAL_FANOUT, PLAN_TIER, WORK_MAX_TOKENS,
+};
 
 /// The lifecycle of a swarm pane.
-enum SwarmState {
+pub(crate) enum SwarmState {
     /// Awaiting the planner thread; `goal` is echoed in the banner. `factory`
     /// is the executor chosen at goal time, used once the graph arrives, and
     /// `budget` is its optional cost ceiling.
@@ -212,64 +186,6 @@ impl Drop for SwarmPane {
             handle.cancel();
         }
     }
-}
-
-/// Build a `Running` state: spawn the engine for `graph` with `factory`, capped
-/// by `budget` when set.
-fn running(graph: TaskGraph, factory: Arc<dyn AgentFactory>, budget: Option<Budget>) -> SwarmState {
-    SwarmState::Running {
-        handle: SwarmHandle::spawn(graph, factory, 4, budget),
-        fleet: Fleet::new(),
-    }
-}
-
-/// Choose the execution backend for a graph that's already planned: real,
-/// budget-capped API agents when `ANTHROPIC_API_KEY` is set, else free stub
-/// agents. (`/goal` selects its own backend because it also needs a planner.)
-fn executor() -> (Arc<dyn AgentFactory>, Option<Budget>) {
-    let provider = AnthropicProvider::from_env().ok();
-    match backend_for(provider.is_some()) {
-        Backend::Llm => {
-            let provider = provider.expect("Llm backend implies a provider");
-            let factory = Arc::new(ApiFactory::new(Arc::new(provider), WORK_MAX_TOKENS));
-            let budget = Some(Budget {
-                max_micros_usd: GOAL_BUDGET_MICROS_USD,
-            });
-            (factory, budget)
-        }
-        Backend::Stub => (Arc::new(StubFactory), None),
-    }
-}
-
-/// Parse batch jobs from text: one job per non-blank line, the line serving as
-/// both the (truncated) title and the prompt. Empty input yields no jobs.
-pub(crate) fn jobs_from_lines(text: &str) -> Vec<Job> {
-    text.lines()
-        .map(str::trim)
-        .filter(|l| !l.is_empty())
-        .map(|l| Job {
-            title: l.chars().take(40).collect(),
-            prompt: l.to_string(),
-            tier: BATCH_TIER,
-        })
-        .collect()
-}
-
-/// Lay `text` across row 0 as a single line of cell views (truncated to `cols`).
-fn banner(text: &str, cols: u16) -> Vec<CellView> {
-    text.chars()
-        .take(cols as usize)
-        .enumerate()
-        .map(|(i, c)| CellView {
-            col: i as u16,
-            row: 0,
-            c,
-            fg: crew_theme::theme().ink,
-            bg: crew_theme::theme().page_bg,
-            bold: false,
-            italic: false,
-        })
-        .collect()
 }
 
 #[cfg(test)]

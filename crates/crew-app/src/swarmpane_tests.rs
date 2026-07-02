@@ -82,7 +82,14 @@ fn goal_pane_plans_then_runs() {
     let mut pane = SwarmPane::goal_stub("build a thing".into());
     // Starts in Planning, showing the goal in its banner.
     assert!(matches!(pane.state, SwarmState::Planning { .. }));
-    let banner: String = pane.cells(60, 12).iter().map(|c| c.c).collect();
+    let banner: String = {
+        // Positional rebuild: blank cells are skipped, so gaps become spaces.
+        let mut row = vec![' '; 60];
+        for c in pane.cells(60, 12).iter().filter(|c| c.row == 0) {
+            row[c.col as usize] = c.c;
+        }
+        row.into_iter().collect()
+    };
     assert!(
         banner.contains("build a thing"),
         "planning banner echoes the goal"

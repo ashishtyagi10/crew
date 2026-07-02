@@ -547,7 +547,7 @@ fn build_welcome_scene(cols: u16, rows: u16, tick: u64, pw: f32, ph: f32) -> Vec
         }
     }
     // Version stamp bottom-right.
-    let ver = "v0.5.11";
+    let ver = concat!("v", env!("CARGO_PKG_VERSION"));
     let vw = ver.chars().count() as u16;
     if vw + 1 < cols {
         let vstart = cols - vw - 1;

@@ -216,13 +216,13 @@ fn swarm_cells_overflow_notes_hidden_tasks() {
     // 2 rows total → 1 content row → 0 task rows + the "+2 more" note.
     let cells = swarm_cells(&graph, &fleet, 40, 2);
     let text: String = {
-        let mut v: Vec<_> = cells
-            .iter()
-            .filter(|c| c.row == 1)
-            .map(|c| (c.col, c.c))
-            .collect();
-        v.sort_unstable();
-        v.into_iter().map(|(_, c)| c).collect()
+        // Rebuild the row positionally: blank cells are skipped by to_cells,
+        // so gaps between glyphs must come back as spaces.
+        let mut row = vec![' '; 40];
+        for c in cells.iter().filter(|c| c.row == 1) {
+            row[c.col as usize] = c.c;
+        }
+        row.into_iter().collect()
     };
     assert!(text.contains("+2 more"), "got: {text}");
     assert!(cells.iter().all(|c| c.row < 2), "no cell may overflow rows");
