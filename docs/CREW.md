@@ -104,7 +104,7 @@ config and plugins load.
 The docked command bar supports:
 
 - **Slash commands** — type `/` for a command palette (↑/↓ to pick, Tab/→ to
-  fill, Enter to run): `/shell`, `/crew`, `/run <cmd>`, `/edit <file>`, `/settings`, `/find <text>`, `/name <text>`, `/clear`, `/only`, `/copy`, `/dump`, `/open`, `/font`, `/restart`, `/theme`, `/update`,
+  fill, Enter to run): `/shell`, `/crew`, `/run <cmd>`, `/diff`, `/edit <file>`, `/settings`, `/find <text>`, `/name <text>`, `/clear`, `/only`, `/copy`, `/dump`, `/open`, `/font`, `/restart`, `/theme`, `/update`,
   `/broadcast`, `/zoom`, `/sidebar`, `/keys`, `/far`, `/exit`. The palette is **fuzzy** — prefix matches rank first,
   then subsequence matches (e.g. `/dmp` finds `/dump`) — and **scrolls** to the
   selection when the match list is long. When several commands share a prefix,
@@ -146,6 +146,10 @@ The docked command bar supports:
   jobs run alongside your shells instead of blocking one. This is also how you
   open a coding-agent CLI in a pane — `/run claude`, `/run codex`, `/run opencode`.
   (Distinct from `/crew`, which opens the multi-agent broker relay pane.)
+- **`/diff`** — reviews the working tree's git changes in a new pane (à la
+  Codex's `/diff`): a `git status --short` summary, the `diff --stat`, then
+  the full colored diff, dropping to a fresh prompt afterwards. Pairs with the
+  crew pane's `/checkpoint`/`/restore` for reviewing what agents changed.
 - **`/copy`** — copies the focused terminal pane's **full scrollback** to the
   system clipboard (Cmd+C copies only the visible screen); the line count is
   flashed on the input bar.
@@ -261,11 +265,14 @@ hung agent is killed and logged, and the broker moves on.
 **Observability.** Every hop is logged in the pane as `from → to` with the
 reply, so the whole conversation — including `[done]`, `[stopped]`, and
 `[error]` outcomes — is visible. The pane renders this as a multi-agent
-console: row 0 is a status header (connection dot, message count, a running
-`~N tok` meter, and — while an agent works — a spinner naming it with live
-elapsed seconds); row 1 is the **agent roster** streamed by the broker as a
-structured `roster` event — a colored chip per agent with role + model badge,
-the currently-thinking agent highlighted (`▸` + bold). While agents work, row 2
+console: row 0 is a status header (connection dot, message count, a completed
+**turns counter**, a running `~N tok` meter, and — while an agent works — a
+spinner naming it with live elapsed seconds); row 1 is the **agent roster**
+streamed by the broker as a structured `roster` event — a colored chip per
+agent with role + model badge, the currently-thinking agent highlighted
+(`▸` + bold), and once an agent has replied a dimmed **stat suffix**
+(`·3× 4.2s` — replies and average latency, fed by reply-level `stats`
+events the broker emits per timed segment). While agents work, row 2
 becomes a **live activity row**: one animated chip per working agent —
 `⠹ user ⇢ planner 4s` — naming who handed it the task (the user, a relaying
 peer, or the goal judge) with a spinner and elapsed seconds, so parallel fans
@@ -281,7 +288,8 @@ turn ends with a `stats` event plus a timeline summary: `turn done — planner
 
 Message bodies are newline-aware, and fenced ```code``` blocks render as
 bordered cards — a muted `╭─ lang` header, verbatim hard-wrapped lines on a
-dimmed background, `╰─` footer. The composer on the bottom rows shows an
+dimmed background, `╰─` footer. A just-landed card **fades in** from the page
+colour over ~400ms (the fade drives redraws without reading as "busy"). The composer on the bottom rows shows an
 affordance bar (`@agent` chips in roster colours, `Enter send · Esc close`
 hints) above a `❯` prompt that highlights a valid leading `@mention` in that
 agent's colour. While the transcript overflows, the last column shows a
@@ -308,11 +316,25 @@ itself (Tab completes both `@agents` and `/constructs`):
 - **`/goal <text>`** — relay rounds until a judge agent (the reviewer when it
   isn't the worker) rules `MET:`/`NOT MET:` on the goal; NOT-MET reasons feed
   the next round. Caps at 5 rounds.
+- **`/plan <task>`** — plan mode (à la Claude Code): an agent (prefix
+  `@agent` to pick who) drafts a numbered plan and **nothing executes** until
+  **`/approve`** hands the approved plan to the relay; **`/reject`** discards
+  it. The draft survives on the session until one or the other.
+- **`/checkpoint [label]`** — Cline-style workspace snapshot: the working
+  tree (tracked + untracked, `.gitignore` respected) is committed through a
+  temporary index and pinned under `refs/crew/` — HEAD, your index, and
+  branches are never touched, and snapshots survive broker restarts.
+  **`/checkpoints`** lists them oldest-first; **`/restore <n>`** puts that
+  snapshot's files back (files created after the snapshot are left in place).
 - **`/skills`** — list the loaded prompt playbooks; **`/skill <name> <task>`**
   — run the relay with that playbook prepended to the task (see *Extending*
   below).
 - **`/mcp`** — list the configured MCP servers and their tools (see
   *Extending* below).
+- **`/export`** — write the pane's transcript to
+  `crew-transcript-<stamp>.md` in the working directory (à la OpenCode),
+  one `## sender · time · latency` section per message. Answered by the pane
+  itself, so it works even while the broker is busy.
 - **`/stop`** — cancel the running construct at its next checkpoint (between
   hops/rounds). Long work runs on a worker thread, so `/stop`, quick
   constructs, and `/status` answer immediately while a task is in flight; a

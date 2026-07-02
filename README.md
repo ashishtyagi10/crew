@@ -143,11 +143,13 @@ Press **`/keys`** in the input bar for the full list in-app.
 ## Input bar
 
 The docked command bar supports slash commands (type `/` for a palette:
-`/shell`, `/crew`, `/goal <text>`, `/batch <file>`, `/run <cmd>`, `/edit <file>`, `/settings`, `/find <text>`, `/name <text>`, `/clear`, `/only`, `/copy`, `/dump`, `/open`,
+`/shell`, `/crew`, `/goal <text>`, `/batch <file>`, `/run <cmd>`, `/diff`, `/edit <file>`, `/settings`, `/find <text>`, `/name <text>`, `/clear`, `/only`, `/copy`, `/dump`, `/open`,
 `/clearall`, `/closeall`, `/pwd`, `/about`, `/font`, `/theme`, `/restart`, `/update`, `/broadcast`, `/zoom`, `/sidebar`, `/keys`, `/far`, `/exit`), fish-style autosuggest from history, `cd`
 completion with `$VAR` expansion, and `Up`/`Down` history recall persisted to
 `$XDG_CONFIG/crew/history`. Anything that isn't a slash command or `cd` is sent
-to the focused terminal.
+to the focused terminal. `/diff` opens the working tree's colored git diff
+(status, stat, full diff) in its own pane — Codex-style change review beside
+your shells.
 
 ## Sidebar
 
@@ -182,6 +184,16 @@ fans out to a subset, `/loop <n> <task>` iterates on the crew's own answer,
 reports live totals, and `/stop` cancels the running construct — with Tab
 completion for `@agents` and `/constructs` in the composer.
 
+It also borrows the flagship moves of the big coding agents: **plan mode**
+(`/plan <task>` drafts a numbered plan and nothing runs until `/approve`;
+`/reject` discards — à la Claude Code), **workspace checkpoints**
+(`/checkpoint [label]` snapshots the working tree as a hidden commit under
+`refs/crew/` without touching HEAD or your index, `/checkpoints` lists,
+`/restore <n>` brings a snapshot's files back — à la Cline), and
+**transcript export** (`/export` writes the conversation to
+`crew-transcript-<stamp>.md` — à la OpenCode); `/diff` in the input bar
+completes the loop with Codex-style change review.
+
 The pane is extensible the way other coding tools are — three drop-in
 surfaces, no rebuild (see [docs/CREW.md](docs/CREW.md#multi-agent-relay-crew)):
 
@@ -201,14 +213,17 @@ surfaces, no rebuild (see [docs/CREW.md](docs/CREW.md#multi-agent-relay-crew)):
 
 The pane itself reads like a multi-agent console: a header with a live status
 (`| coder · 12s` while an agent thinks, `| 3 working · 8s` during a parallel
-fan, a running `~N tok` meter, connection dot), an **agent roster row** — one
-colored chip per agent with its model badge, every active agent highlighted —
+fan, a completed-turns counter, a running `~N tok` meter, connection dot), an
+**agent roster row** — one colored chip per agent with its model badge and,
+once it has replied, a dimmed `·3× 4.2s` stat suffix (replies × average
+latency), every active agent highlighted —
 a **live activity row** while agents work (`⠹ user ⇢ planner 4s`, one animated
 chip per working agent naming who handed it the task, so parallel fans and
 hand-offs are visible as they happen), and **message cards** (`▍sender · 2m ago · 4.2s`)
 that colour each agent consistently and show hand-offs as `from → to`. Every
 turn ends with a timeline log line: `turn done — planner 4.2s → coder 8.1s ·
-2 exchange(s) · ~950 tok (approx)`. Fenced ```code``` in replies renders as a
+2 exchange(s) · ~950 tok (approx)`. New cards fade in from the page colour;
+fenced ```code``` in replies renders as a
 bordered card with a language tag on a dimmed background; a composer with
 `@agent` chips and key hints frames the input (a valid `@mention` lights up in
 the agent's colour); a proportional scrollbar plus a `↓ N new` pill keep long
