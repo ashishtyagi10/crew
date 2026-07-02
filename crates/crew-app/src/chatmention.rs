@@ -60,6 +60,52 @@ pub(crate) fn accept(input: &str, path: &str) -> String {
     format!("{}@{path} ", &input[..cut])
 }
 
+/// Largest file inlined into a message; bigger mentions become a skip note
+/// instead of blowing up the agents' context.
+pub(crate) const MAX_FILE_BYTES: usize = 64 * 1024;
+
+/// Expand `@path` mentions in an outgoing message: every non-leading token
+/// that resolves to a file under `cwd` gets its contents appended as a
+/// `--- file: … ---` block. The tokens stay in place; unresolvable ones are
+/// left alone (they may be genuine prose). Never blocks sending.
+pub(crate) fn expand(text: &str, cwd: &std::path::Path) -> String {
+    let mut out = text.to_string();
+    let mut seen: Vec<&str> = Vec::new();
+    for (i, tok) in text.split_whitespace().enumerate() {
+        // Token 0 is the @agent selector position, never a file mention.
+        if i == 0 {
+            continue;
+        }
+        let Some(rel) = tok.strip_prefix('@') else {
+            continue;
+        };
+        if rel.is_empty() || seen.contains(&rel) {
+            continue;
+        }
+        let path = cwd.join(rel);
+        if !path.is_file() {
+            continue;
+        }
+        seen.push(rel);
+        out.push_str(&attachment(rel, &path));
+    }
+    out
+}
+
+/// One mention's appended block: contents, or a one-line skip note.
+fn attachment(rel: &str, path: &std::path::Path) -> String {
+    match std::fs::read(path) {
+        Ok(bytes) if bytes.len() > MAX_FILE_BYTES => {
+            format!("\n\n--- file: {rel} skipped: too large ---")
+        }
+        Ok(bytes) => match String::from_utf8(bytes) {
+            Ok(s) => format!("\n\n--- file: {rel} ---\n{s}\n--- end file ---"),
+            Err(_) => format!("\n\n--- file: {rel} skipped: binary ---"),
+        },
+        Err(e) => format!("\n\n--- file: {rel} skipped: {e} ---"),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -110,5 +156,46 @@ mod tests {
     fn accept_replaces_the_trailing_token() {
         assert_eq!(accept("hey @sr", "src/main.rs"), "hey @src/main.rs ");
         assert_eq!(accept("look at @", "a.txt"), "look at @a.txt ");
+    }
+
+    fn tmp(name: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!("crew-mention-{}-{name}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn expand_appends_mentioned_file_contents() {
+        let dir = tmp("expand");
+        std::fs::write(dir.join("note.txt"), "hello world").unwrap();
+        let out = expand("summarize @note.txt please", &dir);
+        assert!(out.starts_with("summarize @note.txt please"));
+        assert!(out.contains("--- file: note.txt ---\nhello world\n--- end file ---"));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn expand_skips_oversize_binary_and_missing() {
+        let dir = tmp("caps");
+        std::fs::write(dir.join("big.txt"), vec![b'a'; MAX_FILE_BYTES + 1]).unwrap();
+        std::fs::write(dir.join("bin.dat"), [0u8, 159, 146, 150]).unwrap();
+        let out = expand("see @big.txt @bin.dat @gone.txt", &dir);
+        assert!(out.contains("--- file: big.txt skipped: too large ---"));
+        assert!(out.contains("--- file: bin.dat skipped: binary ---"));
+        assert!(!out.contains("gone.txt ---")); // unresolvable token left alone
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn expand_ignores_the_leading_selector_and_dedups() {
+        let dir = tmp("lead");
+        std::fs::write(dir.join("a.txt"), "A").unwrap();
+        // Leading token is the @agent selector even if it happens to be a path.
+        let out = expand("@a.txt do it", &dir);
+        assert_eq!(out, "@a.txt do it");
+        let out = expand("x @a.txt and @a.txt", &dir);
+        assert_eq!(out.matches("--- file: a.txt ---").count(), 1);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }
