@@ -37,6 +37,8 @@ pub struct ChatPane {
     /// Messages that arrived while scrolled up — the `↓ N new` pill. Cleared
     /// when the view returns to the live bottom.
     pub(crate) unread: usize,
+    /// The @file mention popup while one is being typed (see `chatmention`).
+    pub(crate) mention: Option<crate::chatmention::MentionState>,
 }
 
 impl ChatPane {
@@ -55,6 +57,7 @@ impl ChatPane {
             turns: 0,
             agent_stats: std::collections::HashMap::new(),
             unread: 0,
+            mention: None,
         }
     }
 
@@ -153,9 +156,18 @@ impl ChatPane {
     }
 
     /// Handle a winit key event. Returns [`ChatAction::Close`] when the user asks
-    /// to close the pane (Escape) — mirroring the Far/Settings panes.
-    pub fn on_key(&mut self, key: &KeyEvent) -> Option<ChatAction> {
-        let (ch, enter, backspace) = match chat_key(&key.logical_key, key.state.is_pressed()) {
+    /// to close the pane (Escape) — mirroring the Far/Settings panes. While the
+    /// @file popup is open it gets keys first (Escape then closes the popup, not
+    /// the pane). `cwd` roots mention scanning and expansion.
+    pub fn on_key(&mut self, key: &KeyEvent, cwd: &std::path::Path) -> Option<ChatAction> {
+        let k = chat_key(&key.logical_key, key.state.is_pressed());
+        if matches!(
+            crate::chatmention::popup_key(&mut self.mention, &mut self.input, &k),
+            crate::chatmention::MentionKey::Consumed
+        ) {
+            return None;
+        }
+        let (ch, enter, backspace) = match k {
             ChatInput::Close => return Some(ChatAction::Close),
             ChatInput::Ignore | ChatInput::Up | ChatInput::Down => return None,
             ChatInput::Complete => {
@@ -176,13 +188,18 @@ impl ChatPane {
             if !text.is_empty() {
                 let cmd = PluginCommand::Send {
                     channel: self.channel.clone(),
-                    text,
+                    text: crate::chatmention::expand(&text, cwd),
                 };
                 match self.plugin.send(&cmd) {
                     Ok(()) => self.awaiting = true, // wait for the reply
                     Err(e) => eprintln!("crew-app: plugin send error: {e}"),
                 }
             }
+        } else {
+            // A Char/Backspace edit: sync the mention popup to the new input.
+            crate::chatmention::after_edit(&mut self.mention, &self.input, || {
+                crate::fileindex::scan(cwd)
+            });
         }
         None
     }
