@@ -3,6 +3,7 @@
 //! Tab/wheel navigation, a type-to-search font-family dropdown, cycling
 //! toggles/pickers, and Save/Cancel buttons.
 mod commit;
+mod form;
 mod keys;
 mod render;
 
@@ -164,3 +165,7 @@ impl SettingsPane {
 #[cfg(test)]
 #[path = "mod_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "form_tests.rs"]
+mod form_tests;
