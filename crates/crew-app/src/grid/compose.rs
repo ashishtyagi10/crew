@@ -51,20 +51,25 @@ pub fn compose_grid(content: Rect, layout: &GridLayout, cell_h: f32, gap: f32) -
     GridRects { full, minimized }
 }
 
-/// Lay `ids` left-to-right as equal-width tiles across one strip row.
+/// Lay `ids` left-to-right as equal-width tiles across one strip row. Like the
+/// main grid, interior seams take half the gap per side; the strip's outer
+/// edges keep the full gap.
 fn strip_row(ids: &[usize], x: f32, y: f32, w: f32, h: f32, gap: f32) -> Vec<(usize, Rect)> {
     let n = ids.len();
     let tile_w = w / n as f32;
+    let half = gap / 2.0;
     ids.iter()
         .copied()
         .enumerate()
         .map(|(i, idx)| {
+            let left = if i == 0 { gap } else { half };
+            let right = if i == n - 1 { gap } else { half };
             (
                 idx,
                 Rect {
-                    x: x + i as f32 * tile_w + gap,
+                    x: x + i as f32 * tile_w + left,
                     y: y + gap,
-                    w: (tile_w - 2.0 * gap).max(0.0),
+                    w: (tile_w - left - right).max(0.0),
                     h: h - 2.0 * gap,
                 },
             )

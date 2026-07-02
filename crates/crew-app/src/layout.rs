@@ -6,7 +6,10 @@ pub struct Rect {
     pub h: f32,
 }
 
-/// Pack `n` tiles near-square into `w`x`h` offset by `(ox, oy)`, each inset by `gap`.
+/// Pack `n` tiles near-square into `w`x`h` offset by `(ox, oy)`. Outer edges
+/// keep the full `gap`; interior edges take half each, so the seam between two
+/// adjacent panes is one `gap` — tiles sit closer to each other than to the
+/// window chrome.
 pub fn pane_rects_at(n: usize, ox: f32, oy: f32, w: f32, h: f32, gap: f32) -> Vec<Rect> {
     if n == 0 {
         return Vec::new();
@@ -15,15 +18,20 @@ pub fn pane_rects_at(n: usize, ox: f32, oy: f32, w: f32, h: f32, gap: f32) -> Ve
     let rows = n.div_ceil(cols);
     let tile_w = w / cols as f32;
     let tile_h = h / rows as f32;
+    let half = gap / 2.0;
     let mut out = Vec::with_capacity(n);
     for i in 0..n {
         let c = i % cols;
         let r = i / cols;
+        let left = if c == 0 { gap } else { half };
+        let right = if c == cols - 1 { gap } else { half };
+        let top = if r == 0 { gap } else { half };
+        let bottom = if r == rows - 1 { gap } else { half };
         out.push(Rect {
-            x: ox + c as f32 * tile_w + gap,
-            y: oy + r as f32 * tile_h + gap,
-            w: tile_w - 2.0 * gap,
-            h: tile_h - 2.0 * gap,
+            x: ox + c as f32 * tile_w + left,
+            y: oy + r as f32 * tile_h + top,
+            w: tile_w - left - right,
+            h: tile_h - top - bottom,
         });
     }
     out
@@ -76,5 +84,17 @@ mod tests {
     #[test]
     fn zero_panes_empty() {
         assert!(pane_rects_at(0, 0.0, 0.0, 800.0, 600.0, 4.0).is_empty());
+    }
+
+    #[test]
+    fn interior_seam_is_one_gap_outer_margin_full() {
+        let r = pane_rects_at(2, 0.0, 0.0, 800.0, 600.0, 8.0);
+        // Outer margins keep the full gap…
+        approx(r[0].x, 8.0);
+        approx(r[1].x + r[1].w, 792.0);
+        approx(r[0].y, 8.0);
+        approx(r[0].h, 584.0);
+        // …while the seam between the two panes is a single gap, not two.
+        approx(r[1].x - (r[0].x + r[0].w), 8.0);
     }
 }
