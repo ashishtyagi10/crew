@@ -19,7 +19,15 @@ pub(crate) fn is_quick(text: &str) -> bool {
     is_command(text)
         && !matches!(
             cmd,
-            "fan" | "loop" | "goal" | "skill" | "mcp" | "plan" | "approve"
+            "fan"
+                | "loop"
+                | "goal"
+                | "skill"
+                | "mcp"
+                | "plan"
+                | "approve"
+                | "checkpoint"
+                | "restore"
         )
 }
 
@@ -34,6 +42,9 @@ pub(crate) const HELP: &str = "constructs:\n\
     /plan <task> — draft a numbered plan; nothing runs until /approve\n\
     /approve — execute the pending plan\n\
     /reject — discard the pending plan\n\
+    /checkpoint [label] — snapshot the working tree (HEAD and index untouched)\n\
+    /checkpoints — list saved snapshots\n\
+    /restore <n> — put checkpoint n's files back\n\
     /skills — list prompt playbooks (~/.config/crew/skills, .crew/skills)\n\
     /skill <name> <task> — run the relay with that playbook prepended\n\
     /mcp — MCP servers and their tools (~/.config/crew/mcp.json, .crew/mcp.json)\n\
@@ -60,6 +71,9 @@ pub(crate) fn handle(
         "plan" => super::plan::plan_cmd(session, rest, emit),
         "approve" => super::plan::approve_cmd(session, emit),
         "reject" => super::plan::reject_cmd(session, emit),
+        "checkpoint" => super::checkpoint::checkpoint_cmd(rest, emit),
+        "checkpoints" => super::checkpoint::list_cmd(emit),
+        "restore" => super::checkpoint::restore_cmd(rest, emit),
         "skills" => emit(msg(
             "crew",
             super::skills::list_report(&super::skills::load()),

@@ -13,6 +13,7 @@
 mod adapter;
 mod agents;
 mod apiadapter;
+mod checkpoint;
 mod commands;
 mod constructs;
 mod discover;
