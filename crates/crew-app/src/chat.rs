@@ -37,6 +37,9 @@ pub struct ChatPane {
     /// Messages that arrived while scrolled up — the `↓ N new` pill. Cleared
     /// when the view returns to the live bottom.
     pub(crate) unread: usize,
+    /// Hop timings observed live from activity/reply events — the pulse
+    /// block's lane sparklines and turn waterfall (see `chatpulse`).
+    pub(crate) pulse: crate::chatpulse::Pulse,
     /// The @file mention popup while one is being typed (see `chatmention`).
     pub(crate) mention: Option<crate::chatmention::MentionState>,
 }
@@ -57,6 +60,7 @@ impl ChatPane {
             turns: 0,
             agent_stats: std::collections::HashMap::new(),
             unread: 0,
+            pulse: crate::chatpulse::Pulse::new(),
             mention: None,
         }
     }
@@ -94,20 +98,7 @@ impl ChatPane {
                         self.agents = agents;
                     }
                     PluginEvent::Activity { agent, state, from } => {
-                        match (state.as_str(), agent.is_empty()) {
-                            ("thinking", false) => {
-                                if !self.active.iter().any(|a| a.name == agent) {
-                                    self.active.push(ActiveAgent {
-                                        name: agent,
-                                        from,
-                                        since: std::time::Instant::now(),
-                                    });
-                                }
-                            }
-                            ("idle", false) => self.active.retain(|a| a.name != agent),
-                            // An empty-agent idle (turn over) clears everyone.
-                            _ => self.active.clear(),
-                        }
+                        self.absorb_activity(agent, &state, from);
                     }
                     PluginEvent::Stats {
                         tokens, agent, ms, ..
@@ -120,6 +111,7 @@ impl ChatPane {
                         ..
                     } => {
                         self.awaiting = false; // a reply landed
+                        self.note_reply(&sender);
                         if self.scroll > 0 {
                             self.unread += 1; // arrived out of view
                         }
@@ -136,7 +128,7 @@ impl ChatPane {
                     }
                     PluginEvent::Error { .. } => {
                         self.connected = false;
-                        self.active.clear();
+                        self.flush_active_hops();
                     }
                     _ => {}
                 }

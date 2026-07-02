@@ -35,6 +35,62 @@ impl crate::chat::ChatPane {
         }
     }
 
+    /// Fold one `Activity` event into the live set and the pulse's hop record:
+    /// `thinking` starts an agent's clock (and a fresh waterfall when the
+    /// previous turn had settled); a per-agent `idle` (fan replies) stops it
+    /// and records the hop; the empty-agent idle (turn over) flushes everyone
+    /// and freezes the waterfall.
+    pub(crate) fn absorb_activity(&mut self, agent: String, state: &str, from: String) {
+        match (state, agent.is_empty()) {
+            ("thinking", false) => {
+                self.pulse.begin_hop();
+                if !self.active.iter().any(|a| a.name == agent) {
+                    self.active.push(ActiveAgent {
+                        name: agent,
+                        from,
+                        since: Instant::now(),
+                    });
+                }
+            }
+            ("idle", false) => {
+                if let Some(i) = self.active.iter().position(|a| a.name == agent) {
+                    let a = self.active.remove(i);
+                    self.pulse
+                        .record_hop(&a.name, a.since.elapsed().as_millis() as u64);
+                }
+            }
+            _ => self.flush_active_hops(),
+        }
+    }
+
+    /// A reply landed: in a relay the broker sends no per-agent idle, so the
+    /// message itself (`sender` = `"agent → to"`) is the hop-end signal — stop
+    /// that agent's clock and record the hop.
+    pub(crate) fn note_reply(&mut self, sender: &str) {
+        let name = sender.split(" \u{2192} ").next().unwrap_or(sender);
+        if let Some(i) = self.active.iter().position(|a| a.name == name) {
+            let a = self.active.remove(i);
+            self.pulse
+                .record_hop(&a.name, a.since.elapsed().as_millis() as u64);
+        }
+    }
+
+    /// Turn over (or broker gone): record any still-running agents' elapsed
+    /// time so a cancelled turn's waterfall stays truthful, then freeze it.
+    pub(crate) fn flush_active_hops(&mut self) {
+        for a in self.active.drain(..) {
+            self.pulse
+                .record_hop(&a.name, a.since.elapsed().as_millis() as u64);
+        }
+        self.pulse.end_turn();
+    }
+
+    /// Whether the crew has done or is doing anything worth charting — gates
+    /// the pulse block (a fresh pane keeps the roster + onboarding).
+    pub(crate) fn engaged(&self) -> bool {
+        self.turns > 0 || !self.active.is_empty() || !self.pulse.is_empty()
+    }
+
     /// Whether the newest message is still fading in — keeps redraw frames
     /// flowing for the fade's few hundred ms after a reply lands.
     pub(crate) fn is_fading(&self) -> bool {

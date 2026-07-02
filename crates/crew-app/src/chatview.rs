@@ -8,10 +8,14 @@ use crate::chat::ChatPane;
 use crate::chatlayout::layout_cells;
 
 impl ChatPane {
-    /// Rows consumed above the message body: the status header, the agent
-    /// roster row when agents are known, and — while agents are working and
-    /// the pane is tall enough — the live activity row.
+    /// Rows consumed above the message body: the status header, then either
+    /// the pulse block (one lane per agent + the turn waterfall, on tall
+    /// panes once the crew is engaged) or the legacy roster/activity rows.
     pub(crate) fn top_rows(&self, rows: u16) -> u16 {
+        let lanes = self.pulse_lanes(rows);
+        if lanes > 0 {
+            return 2 + lanes; // header + lanes + waterfall
+        }
         match rows {
             0..=2 => 0,
             3 => 1,
@@ -20,6 +24,58 @@ impl ChatPane {
             _ => 2,
         }
     }
+
+    /// Pulse lanes to draw (0 = pulse hidden, keep the legacy rows).
+    pub(crate) fn pulse_lanes(&self, rows: u16) -> u16 {
+        crate::chatpulse::pulse_lanes(self.agents.len(), rows, self.engaged())
+    }
+}
+
+/// The pulse block under the header: one lane per agent (rows 1..=lanes) and
+/// the turn waterfall (row lanes+1). Lanes share a sparkline scale so hop
+/// heights compare across agents; the share bars split total reply time.
+fn pulse_block(pane: &ChatPane, cols: u16, lanes: u16) -> Vec<CellView> {
+    let shown = &pane.agents[..(lanes as usize).min(pane.agents.len())];
+    let name_w = shown
+        .iter()
+        .map(|a| a.name.chars().count())
+        .max()
+        .unwrap_or(0);
+    let scale = shown
+        .iter()
+        .filter_map(|a| pane.pulse.hist(&a.name))
+        .map(|h| h.peak(crate::chatpulse::SPARK_W as usize))
+        .max()
+        .unwrap_or(0)
+        .max(1);
+    let total_ms: u64 = pane.agent_stats.values().map(|(_, ms)| ms).sum();
+    let mut cells = Vec::new();
+    for (i, a) in shown.iter().enumerate() {
+        let active = pane.active_agents().iter().find(|x| x.name == a.name);
+        cells.extend(crate::chatpulse::lane_cells(
+            cols,
+            1 + i as u16,
+            a,
+            active,
+            pane.pulse.hist(&a.name),
+            &pane.agent_stats,
+            total_ms,
+            scale,
+            name_w,
+        ));
+    }
+    // The newest thinking agent's segment grows live on the waterfall.
+    let live = pane
+        .active_agents()
+        .last()
+        .map(|a| (a.name.as_str(), a.since.elapsed().as_millis() as u64));
+    cells.extend(crate::chatpulse::waterfall_cells(
+        cols,
+        1 + lanes,
+        pane.pulse.hops(),
+        live,
+    ));
+    cells
 }
 
 /// Render `pane` into a `cols` × `rows` grid.
@@ -53,22 +109,27 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
         status.as_ref().map(|(l, s, c)| (l.as_str(), *s, *c)),
         (pane.tokens, pane.turns),
     );
-    if top > 1 {
-        cells.extend(crate::chatroster::roster_cells(
-            cols,
-            1,
-            &pane.agents,
-            &names,
-            &pane.agent_stats,
-        ));
-    }
-    // While agents work, row 2 shows who is doing what for whom, live.
-    if top > 2 {
-        cells.extend(crate::chatflow::activity_cells(
-            cols,
-            2,
-            pane.active_agents(),
-        ));
+    let lanes = pane.pulse_lanes(rows);
+    if lanes > 0 {
+        cells.extend(pulse_block(pane, cols, lanes));
+    } else {
+        if top > 1 {
+            cells.extend(crate::chatroster::roster_cells(
+                cols,
+                1,
+                &pane.agents,
+                &names,
+                &pane.agent_stats,
+            ));
+        }
+        // While agents work, row 2 shows who is doing what for whom, live.
+        if top > 2 {
+            cells.extend(crate::chatflow::activity_cells(
+                cols,
+                2,
+                pane.active_agents(),
+            ));
+        }
     }
     let bottom = crate::chatinput::composer_rows(rows);
     if pane.messages.is_empty() {

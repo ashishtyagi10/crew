@@ -41,6 +41,12 @@ impl History {
         let start = self.data.len().saturating_sub(width);
         self.data.iter().skip(start).copied().collect()
     }
+
+    /// The largest of the most recent `width` samples (0 when empty) — lets
+    /// several charts share one scale so their heights compare.
+    pub fn peak(&self, width: usize) -> u64 {
+        self.tail(width).into_iter().max().unwrap_or(0)
+    }
 }
 
 /// Vertical block ramp (eighths), shortest → tallest. Index 0 (`▁`) is the
@@ -118,6 +124,17 @@ mod tests {
         }
         // capacity 3 keeps the three newest, oldest first
         assert_eq!(h.tail(10), vec![3, 4, 5]);
+    }
+
+    #[test]
+    fn peak_scans_the_visible_window_only() {
+        let mut h = History::new(8);
+        for v in [90, 10, 20, 30] {
+            h.push(v);
+        }
+        assert_eq!(h.peak(3), 30, "the 90 is outside the 3-sample window");
+        assert_eq!(h.peak(10), 90);
+        assert_eq!(History::new(4).peak(4), 0, "empty history peaks at 0");
     }
 
     #[test]
