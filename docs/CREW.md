@@ -551,6 +551,16 @@ the CRT ones. Every palette's colours are picked for measured WCAG contrast.
 **Switching:** `/theme <name>` (e.g. `/theme crt-green`), or cycle through every
 theme live with **`Ctrl+Shift+L`**. The choice persists to `config.toml`.
 
+**Programs keep reading after a switch.** Terminal panes answer color queries
+(OSC 10/11) and set `$COLORFGBG` from the active theme, so CLIs that probe the
+background pick the right palette at launch. But agent CLIs sample **once at
+startup** — after a live theme switch they keep painting colors tuned to the
+old background. Crew therefore enforces a **minimum-contrast floor** on
+program-painted text (à la iTerm2's Minimum Contrast): any foreground within a
+3.0 WCAG ratio of its background is darkened (light page) or lightened (dark
+page) in linear light — hue preserved — just enough to read. White-on-white
+after switching a running claude/codex pane to `paper-light` stays legible.
+
 **Config keys** (`$XDG_CONFIG/crew/config.toml`, applied on launch — `/restart` picks up external edits):
 
 | Key | Default | Meaning |

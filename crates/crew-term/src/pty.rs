@@ -76,6 +76,13 @@ impl PtyTerm {
         // Advertise a capable terminal so TUI programs behave (env is otherwise
         // inherited from the host process, so $HOME/$PATH etc. are present).
         cmd.env("TERM", "xterm-256color");
+        // Light/dark hint for programs that read $COLORFGBG instead of (or as
+        // a fallback to) querying OSC 11 — agent CLIs pick their palette from
+        // it, so it must match the theme active at spawn time.
+        cmd.env(
+            "COLORFGBG",
+            crate::contrast::colorfgbg_for(crew_theme::theme().term_bg),
+        );
         let child = pair.slave.spawn_command(cmd)?;
         // Drop the slave end so EOF propagates when the child exits.
         drop(pair.slave);

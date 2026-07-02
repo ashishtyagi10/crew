@@ -149,6 +149,10 @@ impl TermCore {
                 if selection.is_some_and(|r| r.contains(ind.point)) {
                     bg = SELECTION_BG;
                 }
+                // Legibility floor: a program that sampled the background once
+                // (or guessed wrong) keeps painting for the other theme after a
+                // live switch — nudge any too-close fg until it reads.
+                let fg = crate::contrast::ensure_min_contrast(fg, bg);
                 RenderCell {
                     col: ind.point.column.0 as u16,
                     row: (ind.point.line.0 + off) as u16,
@@ -367,6 +371,25 @@ mod reply_tests {
         let mut t = HeadlessTerm::new(GridSize { cols: 20, rows: 4 });
         t.feed(b"ab\x1b[6n");
         assert_eq!(t.take_replies().as_deref(), Some("\x1b[1;3R"));
+    }
+
+    /// A program painting truecolor text at (or near) the terminal background —
+    /// a dark-theme palette left running across a live switch to a light theme,
+    /// say — must still render legibly: the contrast floor nudges the fg.
+    #[test]
+    fn near_background_truecolor_text_stays_legible() {
+        let mut t = HeadlessTerm::new(GridSize { cols: 20, rows: 4 });
+        let (r, g, b) = crew_theme::theme().term_bg;
+        t.feed(format!("\x1b[38;2;{r};{g};{b}mhi").as_bytes());
+        let cells = t.cells(false);
+        let h = cells.iter().find(|c| c.c == 'h').expect("cell rendered");
+        assert!(
+            crate::contrast::ratio(h.fg, h.bg) >= crate::contrast::MIN_CONTRAST - 0.1,
+            "bg-on-bg text rendered at ratio {} (fg {:?} on bg {:?})",
+            crate::contrast::ratio(h.fg, h.bg),
+            h.fg,
+            h.bg
+        );
     }
 }
 
