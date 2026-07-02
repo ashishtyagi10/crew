@@ -86,3 +86,47 @@ fn list_dir_shows_kind_and_size() {
     assert!(r.contains("sub/"), "{r}");
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+#[test]
+fn read_file_truncates_at_utf8_char_boundary() {
+    // "é" is 2 bytes (0xC3 0xA9); place it straddling the CAP boundary so the
+    // truncation point falls inside the codepoint. The bounded read (File +
+    // Read::take) must still walk back to a char boundary and emit valid
+    // UTF-8, never a replacement character.
+    let dir = std::env::temp_dir().join(format!("systools-utf8b-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let p = dir.join("multibyte.txt");
+    let mut content = "a".repeat(CAP - 1);
+    content.push('é');
+    content.push_str(&"b".repeat(100));
+    std::fs::write(&p, &content).unwrap();
+    let r = call(
+        "read_file",
+        &format!(r#"{{"path":{:?}}}"#, p.display().to_string()),
+    )
+    .unwrap();
+    assert!(r.len() < CAP + 100, "capped, got {}", r.len());
+    assert!(
+        r.ends_with("(truncated at 64 KB)"),
+        "{}",
+        &r[r.len().saturating_sub(40)..]
+    );
+    assert!(!r.contains('\u{FFFD}'), "no replacement char: {r}");
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn list_dir_notes_unstatable_entries_instead_of_aborting() {
+    let dir = std::env::temp_dir().join(format!("systools-ls-bad-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("a.txt"), "abc").unwrap();
+    std::os::unix::fs::symlink("/nonexistent/target", dir.join("dangler")).unwrap();
+    let r = call(
+        "list_dir",
+        &format!(r#"{{"path":{:?}}}"#, dir.display().to_string()),
+    )
+    .unwrap();
+    assert!(r.contains("a.txt (3 B)"), "{r}");
+    assert!(r.contains("dangler (?)"), "{r}");
+    let _ = std::fs::remove_dir_all(&dir);
+}

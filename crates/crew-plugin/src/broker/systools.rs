@@ -75,21 +75,36 @@ fn str_arg<'a>(v: &'a serde_json::Value, key: &str) -> Result<&'a str, String> {
         .ok_or_else(|| format!("missing string argument \u{201c}{key}\u{201d}"))
 }
 
-fn read_file(path: &str) -> Result<String, String> {
-    let text = std::fs::read_to_string(path).map_err(|e| format!("read {path}: {e}"))?;
-    if text.len() > CAP {
-        let cut = if text.is_char_boundary(CAP) {
-            CAP
-        } else {
-            let mut cut = CAP;
-            while !text.is_char_boundary(cut) {
-                cut -= 1;
-            }
-            cut
-        };
-        return Ok(format!("{}\n\u{2026} (truncated at 64 KB)", &text[..cut]));
+/// True if `idx` doesn't split a UTF-8 codepoint in `bytes` (mirrors
+/// `str::is_char_boundary` without requiring a validated `&str` up front).
+fn is_utf8_boundary(bytes: &[u8], idx: usize) -> bool {
+    match bytes.get(idx) {
+        None => idx == bytes.len(),
+        Some(&b) => (b as i8) >= -0x40,
     }
-    Ok(text)
+}
+
+fn read_file(path: &str) -> Result<String, String> {
+    use std::io::Read;
+    // Bound the I/O itself: at most CAP+1 bytes, so a huge or never-EOF file
+    // (e.g. /dev/zero) can't blow up memory or hang before the cap applies.
+    let f = std::fs::File::open(path).map_err(|e| format!("read {path}: {e}"))?;
+    let mut buf = Vec::new();
+    f.take(CAP as u64 + 1)
+        .read_to_end(&mut buf)
+        .map_err(|e| format!("read {path}: {e}"))?;
+    if buf.len() > CAP {
+        let mut cut = CAP;
+        while !is_utf8_boundary(&buf, cut) {
+            cut -= 1;
+        }
+        let text = std::str::from_utf8(&buf[..cut])
+            .map_err(|e| format!("read {path}: not valid UTF-8: {e}"))?;
+        return Ok(format!("{text}\n\u{2026} (truncated at 64 KB)"));
+    }
+    std::str::from_utf8(&buf)
+        .map(str::to_owned)
+        .map_err(|e| format!("read {path}: not valid UTF-8: {e}"))
 }
 
 fn write_file(path: &str, content: &str) -> Result<String, String> {
@@ -105,11 +120,12 @@ fn list_dir(path: &str) -> Result<String, String> {
     let mut lines: Vec<String> = Vec::new();
     for entry in rd.flatten() {
         let name = entry.file_name().to_string_lossy().into_owned();
-        let meta = entry.metadata().map_err(|e| format!("stat {name}: {e}"))?;
-        lines.push(if meta.is_dir() {
-            format!("{name}/")
-        } else {
-            format!("{name} ({} B)", meta.len())
+        // A broken symlink or a permissions error shouldn't fail the whole
+        // listing — note the entry as unstat-able and keep going.
+        lines.push(match std::fs::metadata(entry.path()) {
+            Ok(meta) if meta.is_dir() => format!("{name}/"),
+            Ok(meta) => format!("{name} ({} B)", meta.len()),
+            Err(_) => format!("{name} (?)"),
         });
     }
     lines.sort();
