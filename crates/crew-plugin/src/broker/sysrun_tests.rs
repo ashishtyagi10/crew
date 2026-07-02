@@ -46,3 +46,19 @@ fn run_is_noninteractive() {
     let r = run_with("cat", T).unwrap();
     assert_eq!(r, "exit 0\n");
 }
+
+#[test]
+fn run_does_not_block_on_backgrounded_descendant() {
+    // `sh` exits immediately after backgrounding `sleep 30 &`, but that
+    // descendant inherits the stdout pipe write-end. If we joined the drain
+    // thread unconditionally, this would hang for ~30s waiting for the pipe
+    // to see EOF, well past the 10s deadline we pass in. The fix must return
+    // promptly instead of blocking on the orphaned descendant.
+    let start = Instant::now();
+    let r = run_with("echo hi; sleep 30 &", Duration::from_secs(10)).unwrap();
+    assert!(
+        start.elapsed() < Duration::from_secs(5),
+        "returned promptly, not blocked on the backgrounded child"
+    );
+    assert!(r.contains("hi"));
+}
