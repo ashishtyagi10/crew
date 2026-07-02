@@ -94,8 +94,9 @@ impl Session {
     }
 
     /// A relay broker over `reg` with the env knobs, this session's cancel
-    /// flag, and — when MCP servers are configured — its tools applied;
-    /// every construct builds its broker here.
+    /// flag, and — when the built-in `sys` tools are enabled or MCP servers
+    /// are configured — its tools applied; every construct builds its broker
+    /// here.
     pub fn broker(&self, reg: Registry) -> Broker {
         let b = Broker::new(reg, max_hops(), call_timeout())
             .with_budget(token_budget())
