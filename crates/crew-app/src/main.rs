@@ -36,6 +36,7 @@ mod editpane;
 mod envexpand;
 mod events;
 mod farpane;
+mod fileindex;
 mod findhl;
 mod fontcmd;
 mod gauges;
