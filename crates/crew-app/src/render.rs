@@ -226,6 +226,111 @@ impl CrewApp {
             }
         }
 
+        // Composer palette: a "commands"/"agents" fieldset card sitting above the
+        // focused crew pane's composer while a leading `/` or `@` token is being
+        // typed (see `chatpalette`). Mutually exclusive with the mention popup
+        // above by construction, so both blocks can push independently. Overlay
+        // scene, so the overlay pass backs it with an opaque page background.
+        if !self.input.focused {
+            if let Some(pane) = self.panes.get(self.focused) {
+                if let crate::pane::PaneContent::Chat(c) = &pane.content {
+                    if let Some(p) = &c.palette {
+                        let r = pane.rect;
+                        let cols = (r.w / cw).floor() as u16;
+                        let mr = crate::cmdmenu::menu_rows(p.items.len());
+                        let comp =
+                            f32::from(crate::chatinput::composer_rows((r.h / ch).floor() as u16))
+                                * ch;
+                        let mh = f32::from(mr) * ch;
+                        let my = (r.y + r.h - comp - mh).max(0.0);
+                        scenes.push(PaneScene {
+                            cells: crate::cmdmenu::menu_card(
+                                palette_card_title(p.kind),
+                                &p.items,
+                                p.sel,
+                                cols,
+                                mr,
+                            ),
+                            x: r.x,
+                            y: my,
+                            w: r.w,
+                            h: mh,
+                            focused: false,
+                            bordered: false,
+                            overlay: true,
+                        });
+                    }
+                }
+            }
+        }
+
         scenes
+    }
+}
+
+/// Card legend for the composer palette: "commands" for the slash palette,
+/// "agents" for the leading-`@` picker.
+fn palette_card_title(kind: crate::chatpalette::Kind) -> &'static str {
+    match kind {
+        crate::chatpalette::Kind::Slash => "commands",
+        crate::chatpalette::Kind::Agent => "agents",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::chatpalette;
+
+    fn agents() -> Vec<crew_plugin::AgentInfo> {
+        vec![crew_plugin::AgentInfo {
+            name: "coder".into(),
+            role: "codes".into(),
+            model: String::new(),
+        }]
+    }
+
+    fn legend(cells: &[crew_render::CellView]) -> String {
+        let mut row0: Vec<_> = cells.iter().filter(|c| c.row == 0).collect();
+        row0.sort_by_key(|c| c.col);
+        row0.iter().map(|c| c.c).collect()
+    }
+
+    #[test]
+    fn palette_card_title_matches_kind() {
+        assert_eq!(palette_card_title(chatpalette::Kind::Slash), "commands");
+        assert_eq!(palette_card_title(chatpalette::Kind::Agent), "agents");
+    }
+
+    #[test]
+    fn slash_palette_card_shows_commands_legend_and_construct_row() {
+        let mut palette = None;
+        chatpalette::after_edit(&mut palette, "/mo", &[]);
+        let p = palette.unwrap();
+        let cells = crate::cmdmenu::menu_card(
+            palette_card_title(p.kind),
+            &p.items,
+            p.sel,
+            40,
+            crate::cmdmenu::menu_rows(p.items.len()),
+        );
+        assert!(legend(&cells).contains("commands"));
+        assert!(cells.iter().any(|c| c.c == '/'));
+    }
+
+    #[test]
+    fn agent_palette_card_shows_agents_legend_and_name_row() {
+        let mut palette = None;
+        chatpalette::after_edit(&mut palette, "@", &agents());
+        let p = palette.unwrap();
+        let cells = crate::cmdmenu::menu_card(
+            palette_card_title(p.kind),
+            &p.items,
+            p.sel,
+            40,
+            crate::cmdmenu::menu_rows(p.items.len()),
+        );
+        assert!(legend(&cells).contains("agents"));
+        assert!(cells.iter().any(|c| c.c == 'c')); // "coder" row text
     }
 }
