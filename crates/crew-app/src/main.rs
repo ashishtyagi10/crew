@@ -14,6 +14,7 @@ mod chathdr;
 mod chatinput;
 mod chatkeys;
 mod chatlayout;
+mod chatmention;
 mod chatmsgs;
 mod chatroster;
 mod chatscroll;
