@@ -163,6 +163,9 @@ impl ChatPane {
         };
         if let Some(text) = input_reduce(&mut self.input, ch, enter, backspace) {
             self.scroll = 0; // sending snaps back to the live bottom
+            if crate::chatexport::intercept(self, &text) {
+                return None; // answered locally (e.g. /export)
+            }
             if !text.is_empty() {
                 let cmd = PluginCommand::Send {
                     channel: self.channel.clone(),

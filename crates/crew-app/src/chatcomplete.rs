@@ -4,10 +4,11 @@
 //! trivially testable.
 use crew_plugin::AgentInfo;
 
-/// Every broker construct the composer can complete.
-pub(crate) const CONSTRUCTS: [&str; 11] = [
+/// Every composer slash action: broker constructs plus the pane-local
+/// `/export` (see `chatexport`).
+pub(crate) const CONSTRUCTS: [&str; 12] = [
     "/help", "/agents", "/model", "/fan", "/loop", "/goal", "/skills", "/skill", "/mcp", "/stop",
-    "/status",
+    "/status", "/export",
 ];
 
 /// Complete `input`'s leading token. Returns the new input when something

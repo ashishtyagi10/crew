@@ -8,6 +8,7 @@ mod chatcode;
 mod chatcomplete;
 mod chatempty;
 mod chatevents;
+mod chatexport;
 mod chatflow;
 mod chathdr;
 mod chatinput;
