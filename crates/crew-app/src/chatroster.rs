@@ -48,15 +48,32 @@ fn push(
     })
 }
 
-/// Build the roster row at `row`: `▪ name model` chips, two spaces apart,
-/// clipped to the pane width. The `active` agent's chip gets a `▸` marker and a
-/// bold name so the currently-thinking agent stands out. Empty when no agents
-/// are known.
+/// An agent's chip stat suffix from its `(replies, total ms)` totals:
+/// `·3× 4.2s` (reply count and average latency). Empty until it has replied.
+pub(crate) fn chip_stat(
+    stats: &std::collections::HashMap<String, (u32, u64)>,
+    name: &str,
+) -> String {
+    match stats.get(name) {
+        Some((n, ms)) if *n > 0 => {
+            let avg = *ms as f32 / (*n as f32 * 1000.0);
+            format!("\u{00b7}{n}\u{00d7} {avg:.1}s")
+        }
+        _ => String::new(),
+    }
+}
+
+/// Build the roster row at `row`: `▪ name model ·n× avg` chips, two spaces
+/// apart, clipped to the pane width. The `active` agent's chip gets a `▸`
+/// marker and a bold name so the currently-thinking agent stands out; the
+/// dimmed stat suffix comes from `stats` (per-agent replies + total ms).
+/// Empty when no agents are known.
 pub(crate) fn roster_cells(
     cols: u16,
     row: u16,
     agents: &[AgentInfo],
     active: &[&str],
+    stats: &std::collections::HashMap<String, (u32, u64)>,
 ) -> Vec<CellView> {
     let mut cells = Vec::new();
     let muted = crew_theme::theme().text_muted;
@@ -78,83 +95,15 @@ pub(crate) fn roster_cells(
             x = push(&mut cells, row, x, cols, " ", muted, false);
             x = push(&mut cells, row, x, cols, m, muted, false);
         }
+        let stat = chip_stat(stats, &a.name);
+        if !stat.is_empty() {
+            x = push(&mut cells, row, x, cols, " ", muted, false);
+            x = push(&mut cells, row, x, cols, &stat, muted, false);
+        }
     }
     cells
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn agent(name: &str, model: &str) -> AgentInfo {
-        AgentInfo {
-            name: name.into(),
-            role: String::new(),
-            model: model.into(),
-        }
-    }
-
-    fn text(cells: &[CellView]) -> String {
-        let mut v: Vec<(u16, char)> = cells.iter().map(|c| (c.col, c.c)).collect();
-        v.sort_unstable();
-        v.into_iter().map(|(_, c)| c).collect()
-    }
-
-    #[test]
-    fn short_model_strips_provider_and_variant() {
-        assert_eq!(
-            short_model("meta-llama/llama-3.3-70b-instruct:free"),
-            "llama-3.3-70b-instruct"
-        );
-        assert_eq!(short_model("claude-sonnet-5"), "claude-sonnet-5");
-        assert_eq!(short_model(""), "");
-    }
-
-    #[test]
-    fn agent_color_is_stable_and_distinguishes_names() {
-        assert_eq!(agent_color("planner"), agent_color("planner"));
-    }
-
-    #[test]
-    fn roster_row_lists_agents_with_model_badges() {
-        let agents = [agent("planner", "org/m-1:free"), agent("coder", "")];
-        let line = text(&roster_cells(80, 1, &agents, &[]));
-        assert!(line.contains("planner m-1"), "got: {line}");
-        assert!(line.contains("coder"), "got: {line}");
-    }
-
-    #[test]
-    fn active_agent_gets_arrow_marker_and_bold_name() {
-        let agents = [agent("planner", ""), agent("coder", "")];
-        let cells = roster_cells(80, 1, &agents, &["coder"]);
-        let line = text(&cells);
-        assert!(line.contains("\u{25b8} coder"), "got: {line}");
-        assert!(line.contains("\u{25aa} planner"), "got: {line}");
-        assert!(cells.iter().any(|c| c.bold), "active chip should be bold");
-    }
-
-    #[test]
-    fn several_active_agents_highlight_together() {
-        let agents = [
-            agent("planner", ""),
-            agent("coder", ""),
-            agent("reviewer", ""),
-        ];
-        let line = text(&roster_cells(80, 1, &agents, &["planner", "coder"]));
-        assert!(line.contains("\u{25b8} planner"), "got: {line}");
-        assert!(line.contains("\u{25b8} coder"), "got: {line}");
-        assert!(line.contains("\u{25aa} reviewer"), "got: {line}");
-    }
-
-    #[test]
-    fn roster_clips_to_width_and_targets_row() {
-        let agents = [agent("a-very-long-agent-name", "some/very-long-model")];
-        let cells = roster_cells(10, 1, &agents, &[]);
-        assert!(cells.iter().all(|c| c.col < 10 && c.row == 1));
-    }
-
-    #[test]
-    fn empty_roster_renders_nothing() {
-        assert!(roster_cells(80, 1, &[], &[]).is_empty());
-    }
-}
+#[path = "chatroster_tests.rs"]
+mod tests;

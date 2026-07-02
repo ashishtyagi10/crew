@@ -32,7 +32,7 @@ fn relay_runs_through_the_binary_and_finishes() {
     // …alongside a structured Stats event for the host's token meter.
     assert!(
         ev.iter()
-            .any(|e| matches!(e, PluginEvent::Stats { exchanges, tokens } if *exchanges > 0 && *tokens > 0)),
+            .any(|e| matches!(e, PluginEvent::Stats { exchanges, tokens, .. } if *exchanges > 0 && *tokens > 0)),
         "{ev:?}"
     );
 }

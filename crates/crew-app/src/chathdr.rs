@@ -41,6 +41,7 @@ fn status_segments(
     awaiting: bool,
     active: Option<(&str, u64, (u8, u8, u8))>,
     tokens: u64,
+    turns: u64,
 ) -> Vec<(String, (u8, u8, u8))> {
     let t = crew_theme::theme();
     let mut segs = Vec::new();
@@ -49,6 +50,10 @@ fn status_segments(
         segs.push((format!("{} {label} \u{00b7} {secs}s", SPINNER[f]), color));
     } else if awaiting {
         segs.push((format!("{} thinking", SPINNER[f]), crate::palette::accent()));
+    }
+    if turns > 0 {
+        let plural = if turns == 1 { "" } else { "s" };
+        segs.push((format!("{turns} turn{plural}"), t.text_muted));
     }
     if tokens > 0 {
         segs.push((format!("~{} tok", fmt_tokens(tokens)), t.text_muted));
@@ -74,6 +79,7 @@ fn fmt_tokens(tokens: u64) -> String {
 }
 
 /// Build the single-row header for a `cols`-wide crew pane.
+/// `totals` is the session's `(approx tokens, completed turns)`.
 pub(crate) fn header_cells(
     cols: u16,
     channel: &str,
@@ -81,8 +87,9 @@ pub(crate) fn header_cells(
     msg_count: usize,
     awaiting: bool,
     active: Option<(&str, u64, (u8, u8, u8))>,
-    tokens: u64,
+    totals: (u64, u64),
 ) -> Vec<CellView> {
+    let (tokens, turns) = totals;
     if cols == 0 {
         return Vec::new();
     }
@@ -96,7 +103,7 @@ pub(crate) fn header_cells(
     };
 
     // Right-aligned status, laid out from the right edge.
-    let segs = status_segments(connected, msg_count, awaiting, active, tokens);
+    let segs = status_segments(connected, msg_count, awaiting, active, tokens, turns);
     let status_w: usize = segs
         .iter()
         .map(|(s, _)| crate::chatwidth::str_w(s))
@@ -123,73 +130,5 @@ pub(crate) fn header_cells(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn text(cells: &[CellView], row: u16) -> String {
-        let mut v: Vec<(u16, char)> = cells
-            .iter()
-            .filter(|c| c.row == row)
-            .map(|c| (c.col, c.c))
-            .collect();
-        v.sort_unstable();
-        v.into_iter().map(|(_, c)| c).collect()
-    }
-
-    #[test]
-    fn header_shows_title_channel_and_count() {
-        let cells = header_cells(60, "general", true, 3, false, None, 0);
-        let line = text(&cells, 0);
-        assert!(line.contains("crew"), "title missing: {line}");
-        assert!(line.contains("general"), "channel missing: {line}");
-        assert!(line.contains("3 msgs"), "count missing: {line}");
-        assert!(line.contains('\u{25cf}'), "connected dot missing: {line}");
-    }
-
-    #[test]
-    fn singular_message_and_connecting_dot() {
-        let line = text(&header_cells(60, "", false, 1, false, None, 0), 0);
-        assert!(line.contains("1 msg") && !line.contains("1 msgs"));
-        assert!(line.contains('\u{25cb}'), "connecting dot missing: {line}");
-    }
-
-    #[test]
-    fn awaiting_shows_thinking_spinner() {
-        let line = text(&header_cells(60, "c", true, 0, true, None, 0), 0);
-        assert!(line.contains("thinking"), "spinner label missing: {line}");
-    }
-
-    #[test]
-    fn active_agent_shows_name_and_elapsed_over_plain_thinking() {
-        let line = text(
-            &header_cells(60, "c", true, 0, true, Some(("coder", 12, (9, 9, 9))), 0),
-            0,
-        );
-        assert!(
-            line.contains("coder \u{00b7} 12s"),
-            "active missing: {line}"
-        );
-        assert!(!line.contains("thinking"), "plain spinner leaked: {line}");
-    }
-
-    #[test]
-    fn token_meter_appears_once_spend_is_nonzero() {
-        assert!(!text(&header_cells(60, "c", true, 0, false, None, 0), 0).contains("tok"));
-        let line = text(&header_cells(60, "c", true, 0, false, None, 9_500), 0);
-        assert!(line.contains("~9.5k tok"), "meter missing: {line}");
-    }
-
-    #[test]
-    fn all_cells_stay_within_width() {
-        let cells = header_cells(
-            20,
-            "a-very-long-channel-name",
-            true,
-            999,
-            true,
-            Some(("x", 5, (9, 9, 9))),
-            12345,
-        );
-        assert!(cells.iter().all(|c| c.col < 20 && c.row == 0));
-    }
-}
+#[path = "chathdr_tests.rs"]
+mod tests;

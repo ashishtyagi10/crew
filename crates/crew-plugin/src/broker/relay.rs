@@ -58,9 +58,21 @@ pub(crate) fn relay_turn(
     if let Some((agent, t0)) = timing.take() {
         segments.push((agent, t0.elapsed()));
     }
+    // One reply stat per timed segment (exchanges/tokens 0 — the turn-level
+    // event below carries those), then the turn total.
+    for (agent, d) in &segments {
+        emit(PluginEvent::Stats {
+            exchanges: 0,
+            tokens: 0,
+            agent: agent.clone(),
+            ms: d.as_millis() as u64,
+        })?;
+    }
     emit(PluginEvent::Stats {
         exchanges: stats.exchanges,
         tokens: stats.approx_tokens as u64,
+        agent: String::new(),
+        ms: 0,
     })?;
     emit(msg(
         "crew",

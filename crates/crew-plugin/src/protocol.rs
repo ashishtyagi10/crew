@@ -43,10 +43,16 @@ pub enum PluginEvent {
         from: String,
     },
     /// End-of-turn cost: agent exchanges made and approximate tokens spent.
-    /// Feeds the host's running token meter.
+    /// Feeds the host's running token meter. When `agent` is non-empty the
+    /// event is one agent's reply stat instead — `agent` spent `ms` on one
+    /// reply (exchanges/tokens 0) — feeding the host's per-agent totals.
     Stats {
         exchanges: u32,
         tokens: u64,
+        #[serde(default, skip_serializing_if = "String::is_empty")]
+        agent: String,
+        #[serde(default)]
+        ms: u64,
     },
     Message {
         channel: String,
@@ -123,11 +129,30 @@ mod tests {
 
     #[test]
     fn stats_event_roundtrips() {
+        // No agent/ms on the wire (older broker) → defaults.
         let line = r#"{"type":"stats","exchanges":3,"tokens":950}"#;
         let ev: PluginEvent = serde_json::from_str(line).unwrap();
         match ev {
-            PluginEvent::Stats { exchanges, tokens } => {
+            PluginEvent::Stats {
+                exchanges,
+                tokens,
+                agent,
+                ms,
+            } => {
                 assert_eq!((exchanges, tokens), (3, 950));
+                assert_eq!((agent.as_str(), ms), ("", 0));
+            }
+            _ => panic!("wrong variant"),
+        }
+    }
+
+    #[test]
+    fn per_agent_stats_carry_the_reply_latency() {
+        let line = r#"{"type":"stats","exchanges":0,"tokens":0,"agent":"coder","ms":4200}"#;
+        let ev: PluginEvent = serde_json::from_str(line).unwrap();
+        match ev {
+            PluginEvent::Stats { agent, ms, .. } => {
+                assert_eq!((agent.as_str(), ms), ("coder", 4200));
             }
             _ => panic!("wrong variant"),
         }

@@ -29,6 +29,11 @@ pub struct ChatPane {
     /// Session-wide approximate token spend (from `Stats` events), for the
     /// header's running cost meter.
     pub(crate) tokens: u64,
+    /// Completed turns (turn-level `Stats` events), for the header.
+    pub(crate) turns: u64,
+    /// Per-agent totals from reply-level `Stats` events: name → (replies,
+    /// total ms) — the roster chips show `n× avg` from these.
+    pub(crate) agent_stats: std::collections::HashMap<String, (u32, u64)>,
     /// Messages that arrived while scrolled up — the `↓ N new` pill. Cleared
     /// when the view returns to the live bottom.
     pub(crate) unread: usize,
@@ -47,6 +52,8 @@ impl ChatPane {
             awaiting: false,
             active: Vec::new(),
             tokens: 0,
+            turns: 0,
+            agent_stats: std::collections::HashMap::new(),
             unread: 0,
         }
     }
@@ -99,9 +106,9 @@ impl ChatPane {
                             _ => self.active.clear(),
                         }
                     }
-                    PluginEvent::Stats { tokens, .. } => {
-                        self.tokens = self.tokens.saturating_add(tokens);
-                    }
+                    PluginEvent::Stats {
+                        tokens, agent, ms, ..
+                    } => self.absorb_stats(tokens, agent, ms),
                     PluginEvent::Message {
                         sender,
                         text,

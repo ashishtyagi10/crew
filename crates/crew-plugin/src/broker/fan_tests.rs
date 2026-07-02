@@ -77,7 +77,7 @@ fn every_agent_thinks_then_goes_idle_and_stats_close_the_turn() {
     assert_eq!(thinking, 2, "one thinking activity per agent");
     assert!(
         evs.iter()
-            .any(|e| matches!(e, PluginEvent::Stats { exchanges: 2, tokens } if *tokens > 0)),
+            .any(|e| matches!(e, PluginEvent::Stats { exchanges: 2, tokens, .. } if *tokens > 0)),
         "{evs:?}"
     );
     // The very last event clears the pane's activity.

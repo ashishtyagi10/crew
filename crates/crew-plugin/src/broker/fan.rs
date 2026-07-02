@@ -80,9 +80,19 @@ pub(crate) fn fan_out(
         .iter()
         .map(|(n, d)| format!("{n} {:.1}s", d.as_secs_f32()))
         .collect();
+    for (agent, d) in &timings {
+        emit(PluginEvent::Stats {
+            exchanges: 0,
+            tokens: 0,
+            agent: agent.clone(),
+            ms: d.as_millis() as u64,
+        })?;
+    }
     emit(PluginEvent::Stats {
         exchanges: names.len() as u32,
         tokens: tokens as u64,
+        agent: String::new(),
+        ms: 0,
     })?;
     emit(msg(
         "crew",

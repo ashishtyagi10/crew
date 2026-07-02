@@ -21,6 +21,20 @@ pub(crate) struct ActiveAgent {
 const FRAME_MS: u128 = 120;
 
 impl crate::chat::ChatPane {
+    /// Fold one `Stats` event into the pane's totals: turn-level events (empty
+    /// `agent`) feed the token meter and turn counter; reply-level events feed
+    /// that agent's `(replies, total ms)` for the roster chips.
+    pub(crate) fn absorb_stats(&mut self, tokens: u64, agent: String, ms: u64) {
+        if agent.is_empty() {
+            self.tokens = self.tokens.saturating_add(tokens);
+            self.turns = self.turns.saturating_add(1);
+        } else {
+            let e = self.agent_stats.entry(agent).or_default();
+            e.0 = e.0.saturating_add(1);
+            e.1 = e.1.saturating_add(ms);
+        }
+    }
+
     /// The live status label: the thinking agent's name (one active) or a
     /// `N working` count (parallel fan), with the oldest elapsed seconds.
     pub(crate) fn active_status(&self) -> Option<(String, u64)> {

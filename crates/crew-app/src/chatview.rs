@@ -51,7 +51,7 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
         pane.messages.len(),
         pane.is_busy(),
         status.as_ref().map(|(l, s, c)| (l.as_str(), *s, *c)),
-        pane.tokens,
+        (pane.tokens, pane.turns),
     );
     if top > 1 {
         cells.extend(crate::chatroster::roster_cells(
@@ -59,6 +59,7 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
             1,
             &pane.agents,
             &names,
+            &pane.agent_stats,
         ));
     }
     // While agents work, row 2 shows who is doing what for whom, live.

@@ -31,6 +31,18 @@ fn classify_message_returns_none() {
 }
 
 #[test]
+fn stats_events_split_turn_and_agent_totals() {
+    // An idle child stands in for the broker; only pane state is under test.
+    let plugin = Plugin::spawn("sh", &["-c".to_string(), "cat >/dev/null".to_string()]).unwrap();
+    let mut pane = ChatPane::new(plugin, "crew".into());
+    pane.absorb_stats(950, String::new(), 0); // turn-level
+    pane.absorb_stats(0, "planner".into(), 4_200); // reply-level
+    pane.absorb_stats(0, "planner".into(), 2_200);
+    assert_eq!((pane.tokens, pane.turns), (950, 1));
+    assert_eq!(pane.agent_stats.get("planner"), Some(&(2, 6_400)));
+}
+
+#[test]
 fn classify_send_pane_returns_host_action() {
     let ev = PluginEvent::SendPane {
         label: "a".into(),
