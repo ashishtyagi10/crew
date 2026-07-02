@@ -31,6 +31,7 @@ mod session;
 mod shellenv;
 mod skills;
 mod stdio;
+mod systools;
 mod toolcall;
 
 pub use adapter::{Adapter, CliAdapter, Normalize};
@@ -41,6 +42,13 @@ pub use registry::Registry;
 pub use route::{parse_routing, Routing};
 pub use stdio::run_broker_stdio;
 pub use toolcall::ToolRunner;
+
+pub(crate) mod sysrun {
+    /// Task 2 replaces this stub with the real bounded shell runner.
+    pub(crate) fn run(_cmd: &str) -> Result<String, String> {
+        Err("sys:run not yet implemented".into())
+    }
+}
 
 /// Serialises tests that set `CREW_BROKER_MOCK_REPLY` (process-wide env): the
 /// guard holds a global lock and removes the variable again on drop.
