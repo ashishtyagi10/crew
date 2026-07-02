@@ -1,10 +1,13 @@
 //! Scene-building: converts PaneScene slice into quads + per-pane Buffers.
+//! Shaped buffers are reused frame-to-frame when a pane's content signature is
+//! unchanged (see [`crate::scenecache`]).
 use glyphon::Buffer;
 
 use crate::cellgrid::{default_bg, CellView};
 use crate::celltext::{build_pane_buffer, FontParams};
 use crate::quads::Quad;
 use crate::roundborder::Border;
+use crate::scenecache::{pane_sig, PrevPass};
 
 /// `(Buffer, origin_x, origin_y, pane_w, pane_h)` for one rendered pane.
 pub(crate) type PaneBuffer = (Buffer, f32, f32, f32, f32);
@@ -28,10 +31,11 @@ pub struct PaneScene {
 
 const BORDER_RADIUS: f32 = 10.0;
 
-/// [`build_scene`] for both passes at once: `(base, overlay)`, where base is
-/// `(quads, buffers, borders)` and overlay is `(quads, buffers)`.
-type ScenePass = (Vec<Quad>, Vec<PaneBuffer>, Vec<Border>);
+/// One built pass: quads, buffers (with this frame's signatures), borders.
+type ScenePass = (Vec<Quad>, Vec<PaneBuffer>, Vec<u64>, Vec<Border>);
 
+/// [`build_scene`] for both passes at once: `(base, overlay)`.
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn build_both(
     panes: &[PaneScene],
     cell_w: f32,
@@ -39,17 +43,39 @@ pub(crate) fn build_both(
     font_system: &mut glyphon::FontSystem,
     params: &FontParams,
     srgb: bool,
-) -> (ScenePass, (Vec<Quad>, Vec<PaneBuffer>)) {
-    let base = build_scene(panes, cell_w, cell_h, font_system, params, false, srgb);
-    let (oq, ob, _) = build_scene(panes, cell_w, cell_h, font_system, params, true, srgb);
-    (base, (oq, ob))
+    prev_base: PrevPass,
+    prev_overlay: PrevPass,
+) -> (ScenePass, ScenePass) {
+    let base = build_scene(
+        panes,
+        cell_w,
+        cell_h,
+        font_system,
+        params,
+        false,
+        srgb,
+        prev_base,
+    );
+    let overlay = build_scene(
+        panes,
+        cell_w,
+        cell_h,
+        font_system,
+        params,
+        true,
+        srgb,
+        prev_overlay,
+    );
+    (base, overlay)
 }
 
 /// Build all quads (cell backgrounds) and one Buffer per pane, plus rounded borders.
-/// Returns `(quads, pane_buffers, borders)`. Only panes whose `overlay` flag
-/// equals `want_overlay` are built, so the caller can render base panes and
-/// overlay popups as two separate passes. `srgb` names the target format so
-/// theme colours are converted once at this boundary (see [`crate::color`]).
+/// Returns `(quads, pane_buffers, sigs, borders)`. Only panes whose `overlay`
+/// flag equals `want_overlay` are built, so the caller can render base panes
+/// and overlay popups as two separate passes. `srgb` names the target format
+/// (colours convert once at this boundary — see [`crate::color`]); `prev` is
+/// last frame's `(sigs, buffers)`, reused slot-by-slot on a signature match so
+/// unchanged panes skip re-shaping entirely.
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn build_scene(
     panes: &[PaneScene],
@@ -59,10 +85,14 @@ pub(crate) fn build_scene(
     params: &FontParams,
     want_overlay: bool,
     srgb: bool,
-) -> (Vec<Quad>, Vec<PaneBuffer>, Vec<Border>) {
+    prev: PrevPass,
+) -> ScenePass {
     let mut quads: Vec<Quad> = Vec::new();
     let mut buffers: Vec<PaneBuffer> = Vec::new();
+    let mut sigs: Vec<u64> = Vec::new();
     let mut borders: Vec<Border> = Vec::new();
+    let (prev_sigs, prev_bufs) = prev;
+    let mut prev_bufs: Vec<Option<PaneBuffer>> = prev_bufs.into_iter().map(Some).collect();
 
     for pane in panes {
         if pane.overlay != want_overlay {
@@ -120,14 +150,28 @@ pub(crate) fn build_scene(
             });
         }
 
-        // One text Buffer per pane.
-        let buf = build_pane_buffer(font_system, &pane.cells, cols, rows, pane.w, pane.h, params);
+        // One text Buffer per pane — last frame's, when the signature matches
+        // (position is not part of the signature; a moved pane reuses too).
+        let sig = pane_sig(pane, cols, rows, params);
+        let slot = buffers.len();
+        let buf = match prev_sigs.get(slot) == Some(&sig) {
+            true => prev_bufs.get_mut(slot).and_then(Option::take),
+            false => None,
+        };
+        let buf = buf.map(|b| b.0).unwrap_or_else(|| {
+            build_pane_buffer(font_system, &pane.cells, cols, rows, pane.w, pane.h, params)
+        });
+        sigs.push(sig);
         buffers.push((buf, pane.x, pane.y, pane.w, pane.h));
     }
 
-    (quads, buffers, borders)
+    (quads, buffers, sigs, borders)
 }
 
 #[cfg(test)]
 #[path = "scene_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "scene_sig_tests.rs"]
+mod sig_tests;

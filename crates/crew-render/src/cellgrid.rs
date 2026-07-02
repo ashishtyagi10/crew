@@ -3,7 +3,8 @@ use glyphon::{Cache, FontSystem, Resolution, SwashCache, TextAtlas, TextRenderer
 use crate::celltext::{cell_metrics, monospace_families, FontParams};
 use crate::quads::QuadLayer;
 use crate::roundborder::RoundBorderLayer;
-use crate::scene::{build_both, PaneBuffer, PaneScene};
+use crate::scene::{build_both, PaneScene};
+use crate::scenecache::SceneSlots;
 use crate::textprep::prepare_renderer;
 
 /// The active theme's default background (the page colour). Cells at this bg
@@ -13,6 +14,7 @@ pub(crate) fn default_bg() -> (u8, u8, u8) {
 }
 
 /// A single terminal cell to be rendered.
+#[derive(Hash)]
 pub struct CellView {
     pub col: u16,
     pub row: u16,
@@ -33,9 +35,10 @@ pub struct CellGrid {
     /// Second renderer for overlay popups, drawn after base panes so nothing
     /// behind them bleeds through.
     overlay_renderer: TextRenderer,
-    /// One Buffer per pane, plus (origin_x, origin_y, pane_w, pane_h).
-    pane_buffers: Vec<PaneBuffer>,
-    overlay_buffers: Vec<PaneBuffer>,
+    /// Retained shaped buffers + signatures per pass, so unchanged panes
+    /// reuse last frame's shaping (see [`crate::scenecache`]).
+    base: SceneSlots,
+    overlay: SceneSlots,
     quad_layer: QuadLayer,
     overlay_quad_layer: QuadLayer,
     round_border_layer: RoundBorderLayer,
@@ -80,8 +83,8 @@ impl CellGrid {
             atlas,
             renderer,
             overlay_renderer,
-            pane_buffers: Vec::new(),
-            overlay_buffers: Vec::new(),
+            base: SceneSlots::default(),
+            overlay: SceneSlots::default(),
             quad_layer,
             overlay_quad_layer,
             round_border_layer,
@@ -132,13 +135,21 @@ impl CellGrid {
             family: self.font_family.clone(),
         };
         let (cw, ch) = (self.cell_w, self.cell_h);
-        let ((quads, buffers, borders), (oquads, obuffers)) =
-            build_both(panes, cw, ch, &mut self.font_system, &params, self.srgb);
+        let ((quads, buffers, sigs, borders), (oquads, obuffers, osigs, _)) = build_both(
+            panes,
+            cw,
+            ch,
+            &mut self.font_system,
+            &params,
+            self.srgb,
+            self.base.take_prev(),
+            self.overlay.take_prev(),
+        );
         self.quad_layer.set_quads(device, &quads);
         self.overlay_quad_layer.set_quads(device, &oquads);
         self.round_border_layer.set_borders(device, &borders);
-        self.pane_buffers = buffers;
-        self.overlay_buffers = obuffers;
+        self.base.set(sigs, buffers);
+        self.overlay.set(osigs, obuffers);
     }
 
     /// Update viewports and prepare GPU uploads for all pane text areas.
@@ -157,7 +168,7 @@ impl CellGrid {
             &mut self.font_system,
             &mut self.atlas,
             &self.viewport,
-            &self.pane_buffers,
+            self.base.bufs(),
             &mut self.swash,
         );
         prepare_renderer(
@@ -167,7 +178,7 @@ impl CellGrid {
             &mut self.font_system,
             &mut self.atlas,
             &self.viewport,
-            &self.overlay_buffers,
+            self.overlay.bufs(),
             &mut self.swash,
         );
     }

@@ -8,6 +8,7 @@ mod quads;
 mod renderer;
 mod roundborder;
 mod scene;
+mod scenecache;
 mod textprep;
 pub use cellgrid::CellGrid;
 pub use cellgrid::CellView;

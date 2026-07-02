@@ -58,7 +58,10 @@ pub static PAPER_DARK: Theme = Theme {
     text_muted: (196, 196, 196),
     term_fg: (247, 247, 247),
     term_bg: (8, 8, 8),
-    border_normal: (100, 100, 100),
+    // Unfocused borders sit back (~3.4:1 on the page — visual parity with the
+    // light theme's ~1.9:1 weight) so the FOCUSED near-white frame carries the
+    // "where am I" signal instead of every card shouting equally.
+    border_normal: (72, 72, 72),
     border_focused: (235, 235, 235),
     border_thickness: 2.5,
     legend_off: (140, 140, 140),
