@@ -61,11 +61,9 @@ fn write(
     max_col: u16,
     bg: (u8, u8, u8),
 ) {
-    for (i, c) in s.chars().enumerate() {
-        let x = col + i as u16;
-        if x >= max_col {
-            break;
-        }
+    // Width-aware: pane titles can carry emoji/CJK (OSC titles) — a wide
+    // glyph advances two columns (see `chatwidth`).
+    crate::chatwidth::place_row(col, max_col, s.chars().map(|c| (c, fg)), |x, c, fg| {
         out.push(CellView {
             col: x,
             row,
@@ -75,7 +73,7 @@ fn write(
             bold: false,
             italic: false,
         });
-    }
+    });
 }
 
 #[cfg(test)]

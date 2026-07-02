@@ -57,23 +57,18 @@ fn push(
     bold: bool,
 ) -> u16 {
     let bg = crew_theme::theme().page_bg;
-    let mut x = col;
-    for ch in s.chars() {
-        if x >= cols {
-            break;
-        }
+    // Width-aware placement (wide glyphs advance two columns — see `chatwidth`).
+    crate::chatwidth::place_row(col, cols, s.chars().map(|c| (c, fg)), |x, c, fg| {
         cells.push(CellView {
             col: x,
             row,
-            c: ch,
+            c,
             fg,
             bg,
             bold,
             italic: false,
         });
-        x += 1;
-    }
-    x
+    })
 }
 
 /// Build the activity row at `row`: `⠹ from ⇢ agent Ns` chips, two spaces

@@ -8,7 +8,15 @@ successor to this repo's original terminal file-manager project; the crates unde
 ## Architecture
 
 - **Rendering** — `winit` + `wgpu` + `glyphon`/`cosmic-text`. Every cell is drawn
-  on the GPU; panes have SDF rounded borders.
+  on the GPU; panes have SDF rounded borders. The rendering model has four
+  invariants: the **cell box is fixed** at `(0.6, 1.25) × font size`, rounded to
+  whole physical pixels and independent of the font family (glyph advances snap
+  to it via cosmic-text's `monospace_width`, so switching fonts never moves a
+  pane or a border); **colours convert to linear once** at the GPU boundary
+  (`crew_render::color`) because the surface is sRGB; **unchanged panes reuse
+  last frame's shaped text** (content signatures in `scenecache`); and all cell
+  placement is **display-width aware** (`chatwidth` — emoji/CJK advance two
+  columns everywhere).
 - **Terminal model** — `alacritty_terminal` + `portable-pty` (`crates/crew-term`).
 - **In-pane UI** — `ratatui` widgets are laid out into a `Buffer` and converted to
   GPU cells (the settings form, command palette, and help overlay use this).
