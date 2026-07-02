@@ -4,13 +4,6 @@
 use std::cell::RefCell;
 use std::path::PathBuf;
 
-use crew_render::CellView;
-
-use crate::boxdraw::titled_card;
-
-use crate::palette::accent;
-const PLACEHOLDER_TEXT: &str = "type / for commands";
-
 #[derive(Default)]
 pub struct InputBar {
     pub text: String,
@@ -91,120 +84,6 @@ impl InputBar {
             }
         }
         crate::suggest::suggest(&self.text, &self.history)
-    }
-}
-
-impl InputBar {
-    /// Render the input card: a rounded border with the working directory as its
-    /// top-border legend, `> text` on the interior row, and an optional transient
-    /// `status` message on the bottom border. Prompt and border brighten on focus.
-    pub fn cells(&self, cols: u16, rows: u16, status: Option<&str>) -> Vec<CellView> {
-        if cols < 6 || rows < 3 {
-            return Vec::new();
-        }
-        // Interior row between the top (legend) and bottom borders.
-        let row = rows / 2;
-        // The card frame with the cwd riding the top border as its legend.
-        let legend = if self.cwd.as_os_str().is_empty() {
-            String::new()
-        } else {
-            // Keep the tail (current dir) when the path is deeper than the card.
-            crate::cwd::fit_legend(
-                &crate::cwd::display(&self.cwd),
-                cols.saturating_sub(6) as usize,
-            )
-        };
-        let border = if self.focused {
-            crew_theme::theme().border_focused
-        } else {
-            crew_theme::theme().border_normal
-        };
-        let mut out = titled_card(
-            cols,
-            rows,
-            &legend,
-            border,
-            accent(),
-            crew_theme::theme().page_bg,
-        );
-
-        // A distinct magenta "» " prompt signals broadcast (input → all panes).
-        let (prompt, base) = if self.broadcast {
-            ("» ", crew_theme::theme().broadcast)
-        } else {
-            ("> ", accent())
-        };
-        let prompt_fg = if self.focused {
-            base
-        } else {
-            crew_theme::theme().dim
-        };
-        // Prompt starts inside the left border (col 0); text follows the prompt.
-        let pstart = 2u16;
-        let tstart = pstart + 2;
-        // Keep text clear of the right border at `cols - 1`.
-        let text_area = (cols.saturating_sub(tstart + 1)) as usize;
-        // Typed text (bright), then either the ghost suggestion (dim) or the
-        // block cursor when there's nothing to suggest.
-        let mut body: Vec<(char, (u8, u8, u8))> = self
-            .text
-            .chars()
-            .map(|c| (c, crew_theme::theme().ink))
-            .collect();
-        match &self.ghost() {
-            Some(g) => body.extend(g.chars().map(|c| (c, crew_theme::theme().dim))),
-            None if self.focused => body.push(('█', accent())),
-            None => {}
-        }
-        // Follow the cursor: when the body overflows the field, show its tail.
-        let skip = body.len().saturating_sub(text_area);
-        for (i, ch) in prompt.chars().enumerate() {
-            out.push(cell(pstart + i as u16, row, ch, prompt_fg));
-        }
-        for (i, &(ch, fg)) in body[skip..].iter().enumerate() {
-            out.push(cell(tstart + i as u16, row, ch, fg));
-        }
-
-        // Faint placeholder past the cursor when the bar is empty and focused.
-        if self.text.is_empty() && self.focused {
-            for (i, ch) in PLACEHOLDER_TEXT.chars().enumerate() {
-                let col = tstart + 2 + i as u16;
-                if col >= cols - 1 {
-                    break;
-                }
-                out.push(cell(col, row, ch, crew_theme::theme().placeholder));
-            }
-        }
-
-        // Transient status flashed on the bottom border, right-aligned.
-        if let Some(s) = status {
-            let label = format!(" {s} ");
-            let w = label.chars().count() as u16;
-            if w + 3 < cols {
-                let start = cols - 2 - w;
-                for (i, ch) in label.chars().enumerate() {
-                    out.push(cell(
-                        start + i as u16,
-                        rows - 1,
-                        ch,
-                        crew_theme::theme().status_fg,
-                    ));
-                }
-            }
-        }
-        out
-    }
-}
-
-fn cell(col: u16, row: u16, c: char, fg: (u8, u8, u8)) -> CellView {
-    CellView {
-        col,
-        row,
-        c,
-        fg,
-        bg: crew_theme::theme().page_bg,
-        bold: false,
-        italic: false,
     }
 }
 

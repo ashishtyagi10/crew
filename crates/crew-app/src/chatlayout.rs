@@ -82,21 +82,23 @@ pub fn layout_cells(
 
     // Bottom row: input bar
     let input_row = rows - 1;
-    for (i, c) in format!("> {}", input)
-        .chars()
-        .take(cols as usize)
-        .enumerate()
-    {
-        cells.push(CellView {
-            col: i as u16,
-            row: input_row,
-            c,
-            fg: crew_theme::theme().ink,
-            bg: crew_theme::theme().page_bg,
-            bold: false,
-            italic: false,
-        });
-    }
+    let ink = crew_theme::theme().ink;
+    crate::chatwidth::place_row(
+        0,
+        cols,
+        format!("> {}", input).chars().map(|c| (c, ink)),
+        |x, c, fg| {
+            cells.push(CellView {
+                col: x,
+                row: input_row,
+                c,
+                fg,
+                bg: crew_theme::theme().page_bg,
+                bold: false,
+                italic: false,
+            });
+        },
+    );
 
     let msg_rows = rows - 1;
     if msg_rows == 0 {

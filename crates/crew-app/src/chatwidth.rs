@@ -30,6 +30,35 @@ pub(crate) fn fit_end(full: &[char], start: usize, cols: usize) -> usize {
     }
 }
 
+/// Total display columns of `s`.
+pub(crate) fn str_w(s: &str) -> usize {
+    s.chars().map(char_w).sum()
+}
+
+/// Place styled chars on one row from `start`, advancing by display width and
+/// stopping before `max_col`; zero-width marks are skipped. Calls
+/// `put(col, ch, style)` per placed char and returns the next free column.
+pub(crate) fn place_row<S: Copy>(
+    start: u16,
+    max_col: u16,
+    chars: impl IntoIterator<Item = (char, S)>,
+    mut put: impl FnMut(u16, char, S),
+) -> u16 {
+    let mut x = start;
+    for (ch, style) in chars {
+        let w = char_w(ch) as u16;
+        if w == 0 {
+            continue;
+        }
+        if x + w > max_col {
+            break;
+        }
+        put(x, ch, style);
+        x += w;
+    }
+    x
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

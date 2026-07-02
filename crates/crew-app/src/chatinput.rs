@@ -53,15 +53,15 @@ fn prompt_cells(input: &str, agents: &[AgentInfo], cols: u16, row: u16) -> Vec<C
         t.ink
     };
     let mut cells = vec![cell(0, row, '\u{276f}', accent, true)]; // ❯
-    let mut x = 2u16;
-    for (i, c) in input.chars().enumerate() {
-        if x >= cols {
-            return cells;
-        }
-        let fg = if i < mention { m_color } else { t.ink };
-        cells.push(cell(x, row, c, fg, i < mention));
-        x += 1;
-    }
+    let styled = input
+        .chars()
+        .enumerate()
+        .map(|(i, c)| (c, (if i < mention { m_color } else { t.ink }, i < mention)));
+    // Width-aware placement: a wide glyph advances two columns, and the caret
+    // lands after the text instead of on top of it.
+    let x = crate::chatwidth::place_row(2, cols, styled, |x, c, (fg, bold)| {
+        cells.push(cell(x, row, c, fg, bold));
+    });
     if x < cols {
         cells.push(cell(x, row, '\u{258f}', accent, false)); // ▏ caret
     }

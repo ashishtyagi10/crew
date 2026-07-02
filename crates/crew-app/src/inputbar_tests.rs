@@ -1,4 +1,5 @@
 use super::*;
+use crate::palette::accent;
 
 #[test]
 fn empty_focused_shows_placeholder() {
