@@ -27,6 +27,32 @@ pub(crate) const CONSTRUCTS: [&str; 18] = [
     "/export",
 ];
 
+/// One-line description for each construct, shown as the dim hint in the
+/// composer's slash palette. Falls back to "" for anything unlisted.
+pub(crate) fn describe(construct: &str) -> &'static str {
+    match construct {
+        "/help" => "list the constructs",
+        "/agents" => "show the crew roster",
+        "/model" => "set an agent's model",
+        "/fan" => "fan a task out to every agent",
+        "/loop" => "run a task on a loop",
+        "/goal" => "set the crew's shared goal",
+        "/plan" => "draft a plan for approval",
+        "/approve" => "approve the drafted plan",
+        "/reject" => "reject the drafted plan",
+        "/checkpoint" => "snapshot the session",
+        "/checkpoints" => "list checkpoints",
+        "/restore" => "restore a checkpoint",
+        "/skills" => "list available skills",
+        "/skill" => "run a skill",
+        "/mcp" => "list MCP servers and tools",
+        "/stop" => "stop the running task",
+        "/status" => "show session status",
+        "/export" => "export the transcript",
+        _ => "",
+    }
+}
+
 /// Complete `input`'s leading token. Returns the new input when something
 /// completed (unique match, or extended to the candidates' common prefix).
 pub(crate) fn complete(input: &str, agents: &[AgentInfo]) -> Option<String> {
