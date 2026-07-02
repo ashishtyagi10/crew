@@ -94,10 +94,16 @@ fn read_file(path: &str) -> Result<String, String> {
         .read_to_end(&mut buf)
         .map_err(|e| format!("read {path}: {e}"))?;
     if buf.len() > CAP {
-        let mut cut = CAP;
-        while !is_utf8_boundary(&buf, cut) {
-            cut -= 1;
-        }
+        // A valid UTF-8 boundary must occur within 3 bytes of any index, so
+        // bound the walk-back to at most 3 steps. If none of them is a
+        // boundary (e.g. a binary file whose bytes near CAP are all UTF-8
+        // continuation bytes), the content isn't valid UTF-8 at all — report
+        // that instead of walking past 0 and underflowing.
+        let floor = CAP.saturating_sub(3);
+        let cut = (floor..=CAP).rev().find(|&i| is_utf8_boundary(&buf, i));
+        let cut = cut.ok_or_else(|| {
+            format!("read {path}: not valid UTF-8: no character boundary near the 64 KB cap")
+        })?;
         let text = std::str::from_utf8(&buf[..cut])
             .map_err(|e| format!("read {path}: not valid UTF-8: {e}"))?;
         return Ok(format!("{text}\n\u{2026} (truncated at 64 KB)"));

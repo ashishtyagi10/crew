@@ -116,6 +116,26 @@ fn read_file_truncates_at_utf8_char_boundary() {
 }
 
 #[test]
+fn read_file_rejects_binary_with_no_boundary_near_cap() {
+    // Bytes 0x80..=0xBF are all UTF-8 continuation bytes — none of them is a
+    // char boundary. If the walk-back from CAP has no lower bound, it walks
+    // past 0 and underflows (`cut -= 1` panics in debug, spins in release).
+    // The scan must be bounded to at most 3 steps and, finding no boundary,
+    // return the existing agent-readable "not valid UTF-8" error instead.
+    let dir = std::env::temp_dir().join(format!("systools-bin-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let p = dir.join("binary.dat");
+    std::fs::write(&p, vec![0x80u8; CAP + 16]).unwrap();
+    let e = call(
+        "read_file",
+        &format!(r#"{{"path":{:?}}}"#, p.display().to_string()),
+    )
+    .unwrap_err();
+    assert!(e.contains("not valid UTF-8"), "{e}");
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
 fn list_dir_notes_unstatable_entries_instead_of_aborting() {
     let dir = std::env::temp_dir().join(format!("systools-ls-bad-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
