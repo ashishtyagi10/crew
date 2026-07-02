@@ -165,6 +165,13 @@ impl ChatPane {
     /// the pane). `cwd` roots mention scanning and expansion.
     pub fn on_key(&mut self, key: &KeyEvent, cwd: &std::path::Path) -> Option<ChatAction> {
         let k = chat_key(&key.logical_key, key.state.is_pressed());
+        self.on_input(k, cwd)
+    }
+
+    /// Handle a decoded [`ChatInput`] — the testable half of [`on_key`], split
+    /// out so the popup-vs-pane key routing can be exercised without
+    /// constructing a winit `KeyEvent`.
+    pub(crate) fn on_input(&mut self, k: ChatInput, cwd: &std::path::Path) -> Option<ChatAction> {
         // ORDER IS LOAD-BEARING: an open popup must get keys BEFORE the
         // `match k { Close/Up/Down/… }` block below, or Escape would close the
         // pane instead of the popup and arrows would never reach it. The

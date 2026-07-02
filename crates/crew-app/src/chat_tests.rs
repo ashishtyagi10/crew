@@ -115,28 +115,34 @@ fn pulse_lanes_gate_on_height_and_engagement() {
 }
 
 // `on_key` takes a winit `KeyEvent`, which is #[non_exhaustive] and awkward
-// to construct in a unit test (see `chatkeys.rs`'s comment on the same
-// tradeoff). These tests instead exercise the routing boundary `on_key`
-// calls: `chatpalette::popup_key`/`after_edit` against a real `ChatPane`'s
-// `palette`/`input` fields, which is what `on_key` does internally.
+// to construct in a unit test (see `chatkeys.rs`). These drive its testable
+// half, `on_input(ChatInput, cwd)`, end-to-end — the real routing, including
+// the return value that decides whether the pane closes.
 #[test]
-fn typing_slash_opens_the_palette_and_esc_closes_it_not_the_pane() {
-    use crate::chatkeys::ChatInput;
-    use crate::chatpalette::{self, PaletteKey};
+fn esc_closes_the_open_palette_then_the_pane() {
+    use crate::chatkeys::{ChatAction, ChatInput};
 
     let mut p = pane();
-    p.input.push('/');
-    chatpalette::after_edit(&mut p.palette, &p.input, &p.agents);
+    let cwd = std::env::temp_dir();
+
+    // Typing '/' opens the command palette (goes through the real edit path).
+    assert!(p.on_input(ChatInput::Char('/'), &cwd).is_none());
     assert!(p.palette.is_some(), "leading '/' opens the command palette");
 
-    // Esc is consumed by the palette (mirrors on_key's routing: the palette
-    // gets first look at every key), so on_key would return None here, never
-    // `Some(ChatAction::Close)` — Esc closes the popup, not the pane.
-    assert!(matches!(
-        chatpalette::popup_key(&mut p.palette, &mut p.input, &ChatInput::Close),
-        PaletteKey::Consumed
-    ));
+    // First Esc: consumed by the palette. on_input returns None — the pane
+    // stays open — and the popup closes. This is the exact swallowed-Esc
+    // regression the routing order guards against.
+    assert!(
+        p.on_input(ChatInput::Close, &cwd).is_none(),
+        "Esc with an open palette must NOT close the pane"
+    );
     assert!(p.palette.is_none(), "Esc closed the popup");
+
+    // Second Esc: no popup now, so it reaches the pane and asks to close.
+    assert!(matches!(
+        p.on_input(ChatInput::Close, &cwd),
+        Some(ChatAction::Close)
+    ));
 }
 
 #[test]
