@@ -12,7 +12,24 @@ pub(crate) fn run_parts(cmd: &str, shell: &str) -> (String, String) {
     (label, format!("{cmd}; exec {shell}"))
 }
 
+/// The `/diff` review script: a short status summary, the diff stat, then the
+/// full colored working-tree diff — colors forced since git sees a pipe.
+pub(crate) fn diff_script(shell: &str) -> String {
+    let git = "git -c color.ui=always";
+    format!(
+        "{git} status --short; {git} --no-pager diff --stat; {git} --no-pager diff; exec {shell}"
+    )
+}
+
 impl CrewApp {
+    /// `/diff`: review the working tree's changes (à la Codex's `/diff`) in a
+    /// tiled pane that drops to a fresh prompt after the diff prints.
+    pub(crate) fn diff_in_pane(&mut self) {
+        let shell = default_shell();
+        let script = diff_script(&shell);
+        self.spawn_labeled_terminal(&shell, &["-c".to_string(), script], "diff".to_string());
+    }
+
     /// Spawn a pane running `cmd` in the user's shell and focus it.
     pub(crate) fn run_in_pane(&mut self, cmd: &str) {
         let cmd = cmd.trim();
@@ -28,7 +45,16 @@ impl CrewApp {
 
 #[cfg(test)]
 mod tests {
-    use super::run_parts;
+    use super::{diff_script, run_parts};
+
+    #[test]
+    fn diff_script_forces_color_and_persists_shell() {
+        let s = diff_script("/bin/zsh");
+        assert!(s.contains("color.ui=always"), "got: {s}");
+        assert!(s.contains("status --short"), "got: {s}");
+        assert!(s.contains("diff --stat"), "got: {s}");
+        assert!(s.ends_with("exec /bin/zsh"), "got: {s}");
+    }
 
     #[test]
     fn labels_first_word_and_persists_shell() {

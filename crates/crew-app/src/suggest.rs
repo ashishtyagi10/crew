@@ -104,6 +104,10 @@ pub(crate) const COMMANDS: &[Cmd] = &[
         desc: "Run a command in a new pane (e.g. /run claude, /run codex)",
     },
     Cmd {
+        name: "/diff",
+        desc: "Review the working tree's git diff in a new pane",
+    },
+    Cmd {
         name: "/find",
         desc: "Search scrollback, highlighting matches (/find <text>)",
     },

@@ -27,6 +27,7 @@ impl CrewApp {
             "about" => self.set_status(concat!("crew v", env!("CARGO_PKG_VERSION"))),
             "copy" => self.copy_scrollback(),
             "dump" => self.dump_focused_pane(""),
+            "diff" => self.diff_in_pane(),
             "run" => self.run_in_pane(""),   // show usage hint
             "edit" => self.edit_in_pane(""), // show usage hint
             "open" => self.open_target(""),  // open the last URL on screen
