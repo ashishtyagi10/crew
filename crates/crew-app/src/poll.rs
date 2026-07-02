@@ -29,6 +29,9 @@ impl CrewApp {
         // each tick stays bounded, so input and rendering never stall.
         let mut more_pending = false;
         let mut collected_actions = Vec::new();
+        // Status flashes from Far panes whose command finished this tick
+        // (surfaced after the loop to avoid fighting the panes borrow).
+        let mut far_statuses: Vec<String> = Vec::new();
         // Notification events detected this tick, surfaced after the pane loops so
         // they don't fight the `&mut self.panes` borrow. (kind, pane title, detail).
         let mut notify_events: Vec<(crate::notify::NotifyKind, String, String)> = Vec::new();
@@ -52,7 +55,16 @@ impl CrewApp {
                     result.changed
                 }
                 PaneContent::Swarm(s) => s.poll(),
-                PaneContent::Settings(_) | PaneContent::Far(_) => false,
+                // A Far pane changes when its command-line command finishes
+                // (panels reload; the result becomes a status flash).
+                PaneContent::Far(f) => match f.poll_cmd() {
+                    Some(msg) => {
+                        far_statuses.push(msg);
+                        true
+                    }
+                    None => false,
+                },
+                PaneContent::Settings(_) => false,
             };
             // Follow `cd` inside the pane: a new OSC 7 cwd report retitles the
             // pane to that folder (a `/name` override still wins in title_text).
@@ -131,6 +143,9 @@ impl CrewApp {
         // (Pane-exit events are raised at the reap site below.)
         for (kind, pane, detail) in notify_events.drain(..) {
             self.notify(kind, pane, detail);
+        }
+        for msg in far_statuses.drain(..) {
+            self.set_status(&msg);
         }
         // Drive the background self-update: animate its card and dismiss it when
         // done. The new binary applies on the next launch — Crew does not restart.

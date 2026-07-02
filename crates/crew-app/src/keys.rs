@@ -152,7 +152,6 @@ impl CrewApp {
                 FarAction::Open(path) => {
                     let _ = open::that(path);
                 }
-                FarAction::Run { cmd, cwd } => self.run_in_pane_at(&cmd, cwd),
                 FarAction::Status(msg) => self.set_status(&msg),
             }
         }

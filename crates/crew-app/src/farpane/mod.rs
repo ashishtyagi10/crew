@@ -5,12 +5,15 @@
 //! (open with the OS default), F5 copy and F6 move into the other panel, F7
 //! make-folder (a text prompt), F8 delete to trash, F10/Esc close. A Far-style
 //! command line sits at the bottom: type a command and press Enter to run it in
-//! the active panel's directory (in its own pane); Esc clears it. Lives in the
-//! auto-tiling grid like any other pane and renders into a `ratatui` buffer →
-//! GPU cells.
+//! the active panel's directory — `cd` navigates that panel in place, anything
+//! else runs on a worker thread and reloads the listings when it finishes (no
+//! new pane is spawned); Esc clears it. Lives in the auto-tiling grid like any
+//! other pane and renders into a `ratatui` buffer → GPU cells.
+mod fileops;
 mod keys;
 mod list;
 mod render;
+mod run;
 
 use std::path::PathBuf;
 
@@ -87,6 +90,9 @@ pub struct FarPane {
     /// The classic Far command line at the bottom: typed text runs (Enter) as a
     /// command in the active panel's directory. Empty when nothing is typed.
     pub(crate) cmdline: String,
+    /// A command started from the command line that is still running on its
+    /// worker thread: `(command text, result channel)`.
+    pub(crate) running: Option<(String, std::sync::mpsc::Receiver<run::CmdDone>)>,
 }
 
 impl FarPane {
@@ -98,7 +104,34 @@ impl FarPane {
             active: Side::Left,
             prompt: None,
             cmdline: String::new(),
+            running: None,
         }
+    }
+
+    /// Whether a command-line command is still running (drives the busy sweep).
+    pub fn is_busy(&self) -> bool {
+        self.running.is_some()
+    }
+
+    /// Drain the running command's result, if it finished this tick: reload
+    /// both panels (the command likely changed the directory contents) and
+    /// return a status line for the app to flash.
+    pub fn poll_cmd(&mut self) -> Option<String> {
+        let (cmd, rx) = self.running.as_ref()?;
+        let done = rx.try_recv().ok()?;
+        let cmd = cmd.clone();
+        self.running = None;
+        self.reload_both();
+        let outcome = match done.code {
+            Some(0) => "ok".to_string(),
+            Some(c) => format!("exit {c}"),
+            None => "killed".to_string(),
+        };
+        Some(if done.tail.is_empty() {
+            format!("‘{cmd}’ — {outcome}")
+        } else {
+            format!("‘{cmd}’ — {outcome} · {}", done.tail)
+        })
     }
 
     /// The directory of the currently active panel — where a typed command runs.

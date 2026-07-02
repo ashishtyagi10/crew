@@ -149,8 +149,11 @@ The docked command bar supports:
   a folder (or `..`) or opens a file with the OS default, `Backspace` climbs to
   the parent, `F5`/`F6` copy/move to the other panel, `F7` makes a folder, `F8`
   trashes, `F10` closes. Type on the **command line** and press `Enter` to run a
-  command in the active panel's directory (in its own pane, like `/run`); `Esc`
-  clears a typed command (and closes the pane when it's empty).
+  command against the **active panel** — `cd <path>` navigates that panel in
+  place, anything else runs in its directory on a worker thread (a `⟳` note
+  shows while it runs, the listings reload when it finishes, and the result
+  flashes in the status bar — no new pane is spawned); `Esc` clears a typed
+  command (and closes the pane when it's empty).
 - **`/crew`** — opens a **multi-agent pane** where the installed CLI coding
   agents (claude, codex, opencode) message each other to work a task. See
   [Multi-agent relay](#multi-agent-relay-crew) below.

@@ -84,6 +84,7 @@ pub(crate) fn pane_busy(p: &Pane) -> bool {
     match &p.content {
         PaneContent::Swarm(s) => s.is_busy(),
         PaneContent::Chat(c) => c.is_busy(),
+        PaneContent::Far(f) => f.is_busy(),
         _ => false,
     }
 }

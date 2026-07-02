@@ -45,7 +45,8 @@ pub(crate) fn render(p: &FarPane, cols: u16, rows: u16) -> Vec<CellView> {
         .split(split[0]);
     panel(&mut buf, cols2[0], &p.left, p.active == Side::Left);
     panel(&mut buf, cols2[1], &p.right, p.active == Side::Right);
-    command_bar(&mut buf, split[1], &p.active_cwd(), &p.cmdline);
+    let running = p.running.as_ref().map(|(cmd, _)| cmd.as_str());
+    command_bar(&mut buf, split[1], &p.active_cwd(), &p.cmdline, running);
     // The make-folder prompt takes over the function-key row while it's open.
     match &p.prompt {
         Some(prompt) => prompt_bar(&mut buf, split[2], prompt),
@@ -55,8 +56,15 @@ pub(crate) fn render(p: &FarPane, cols: u16, rows: u16) -> Vec<CellView> {
 }
 
 /// The Far command line: `<cwd> $ <typed>▏`, the directory dimmed and the typed
-/// command in the ink colour with a cursor bar. Truncated from the left to fit.
-fn command_bar(buf: &mut Buffer, area: Rect, cwd: &std::path::Path, cmdline: &str) {
+/// command in the ink colour with a cursor bar. While a command runs, a dimmed
+/// `⟳ <cmd>` note follows the prompt. Truncated from the left to fit.
+fn command_bar(
+    buf: &mut Buffer,
+    area: Rect,
+    cwd: &std::path::Path,
+    cmdline: &str,
+    running: Option<&str>,
+) {
     let t = crew_theme::theme();
     let bg = Color::Rgb(t.page_bg.0, t.page_bg.1, t.page_bg.2);
     let dim = Color::Rgb(t.text_muted.0, t.text_muted.1, t.text_muted.2);
@@ -65,11 +73,17 @@ fn command_bar(buf: &mut Buffer, area: Rect, cwd: &std::path::Path, cmdline: &st
         .file_name()
         .map(|s| s.to_string_lossy().into_owned())
         .unwrap_or_else(|| cwd.to_string_lossy().into_owned());
-    let spans = vec![
+    let mut spans = vec![
         Span::styled(format!("{folder} "), Style::new().fg(dim).bg(bg)),
         Span::styled("$ ", Style::new().fg(accent_color()).bg(bg)),
         Span::styled(format!("{cmdline}▏"), Style::new().fg(ink).bg(bg)),
     ];
+    if let Some(cmd) = running {
+        spans.push(Span::styled(
+            format!("  \u{27f3} {cmd}"),
+            Style::new().fg(dim).bg(bg),
+        ));
+    }
     Paragraph::new(Line::from(spans))
         .style(Style::new().bg(bg))
         .render(area, buf);
