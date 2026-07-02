@@ -45,6 +45,11 @@ pub(crate) fn render(p: &FarPane, cols: u16, rows: u16) -> Vec<CellView> {
     panel(&mut buf, larea, &p.left, p.active == Side::Left);
     panel(&mut buf, rarea, &p.right, p.active == Side::Right);
     merge_divider(&mut buf, split[0], rarea.x);
+    // Scroll thumbs paint last: the left panel's border is the shared middle
+    // column, which the right panel's block render and merge_divider both
+    // overwrite — so a thumb drawn inside panel() would be lost.
+    scroll_thumb(&mut buf, larea, &p.left, p.active == Side::Left);
+    scroll_thumb(&mut buf, rarea, &p.right, p.active == Side::Right);
     let running = p.running.as_ref().map(|(cmd, _)| cmd.as_str());
     command_bar(&mut buf, split[1], &p.active_cwd(), &p.cmdline, running);
     // The make-folder prompt takes over the function-key row while it's open.
@@ -112,12 +117,8 @@ fn merge_divider(buf: &mut Buffer, area: Rect, x: u16) {
             "\u{2502}" // │
         };
         if let Some(cell) = buf.cell_mut((x, y)) {
-            // The left panel's scroll thumb lives on this shared column —
-            // keep it.
-            if cell.symbol() != "\u{2588}" {
-                cell.set_symbol(sym);
-                cell.set_fg(accent_color());
-            }
+            cell.set_symbol(sym);
+            cell.set_fg(accent_color());
         }
     }
 }
@@ -183,16 +184,31 @@ fn panel(buf: &mut Buffer, area: Rect, panel: &Panel, active: bool) {
     let mut state = ListState::default();
     state.select(Some(panel.sel - start));
     StatefulWidget::render(List::new(items).highlight_style(hl), inner, buf, &mut state);
-    // Scroll indicator: the proportional thumb painted over the panel's right
-    // border while the listing overflows (merge_divider preserves it on the
-    // shared middle column).
-    if let Some((top, len)) = crate::chatscroll::thumb(panel.entries.len(), h, start) {
-        let x = area.x + area.width - 1;
-        for i in 0..len {
-            if let Some(cell) = buf.cell_mut((x, inner.y + (top + i) as u16)) {
-                cell.set_symbol("\u{2588}"); // █
-                cell.set_fg(edge);
-            }
+}
+
+/// Paint the proportional scroll thumb over `panel`'s right border while its
+/// listing overflows. Called from `render` AFTER both panels and the divider
+/// are drawn, since the left panel's border is the shared middle column.
+fn scroll_thumb(buf: &mut Buffer, area: Rect, panel: &Panel, active: bool) {
+    let inner_h = area.height.saturating_sub(2) as usize; // minus top/bottom border
+    let start = panel
+        .sel
+        .saturating_sub(inner_h.saturating_sub(1))
+        .min(panel.sel);
+    let Some((top, len)) = crate::chatscroll::thumb(panel.entries.len(), inner_h, start) else {
+        return;
+    };
+    let edge = if active {
+        accent_color()
+    } else {
+        let t = crew_theme::theme();
+        Color::Rgb(t.text_muted.0, t.text_muted.1, t.text_muted.2)
+    };
+    let x = area.x + area.width - 1;
+    for i in 0..len {
+        if let Some(cell) = buf.cell_mut((x, area.y + 1 + (top + i) as u16)) {
+            cell.set_symbol("\u{2588}"); // █
+            cell.set_fg(edge);
         }
     }
 }

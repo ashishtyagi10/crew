@@ -137,9 +137,23 @@ fn overflowing_panel_paints_a_scroll_thumb_on_its_border() {
     }
     let pane = FarPane::new(base);
     let cells = render(&pane, 40, 10);
+    // BOTH panels show the same (overflowing) directory, so each must paint a
+    // thumb on its own border. Asserting "any █" masked a bug where the right
+    // panel's border render overwrote the left panel's thumb on the shared
+    // column. The left panel's right border is the shared middle column
+    // (col 20 for a 40-wide pane); the right panel's is the far-right (col 39).
+    let thumb_cols: std::collections::BTreeSet<u16> = cells
+        .iter()
+        .filter(|c| c.c == '\u{2588}')
+        .map(|c| c.col)
+        .collect();
     assert!(
-        cells.iter().any(|c| c.c == '\u{2588}'),
-        "no scroll thumb painted for an overflowing listing"
+        thumb_cols.contains(&20),
+        "left panel painted no thumb on the shared column (cols: {thumb_cols:?})"
+    );
+    assert!(
+        thumb_cols.contains(&39),
+        "right panel painted no thumb on its border (cols: {thumb_cols:?})"
     );
 }
 
