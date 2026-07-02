@@ -39,17 +39,14 @@ fn status_segments(
     connected: bool,
     msg_count: usize,
     awaiting: bool,
-    active: Option<(&str, u64)>,
+    active: Option<(&str, u64, (u8, u8, u8))>,
     tokens: u64,
 ) -> Vec<(String, (u8, u8, u8))> {
     let t = crew_theme::theme();
     let mut segs = Vec::new();
     let f = (crate::anim::now_ms() / 120) as usize % SPINNER.len();
-    if let Some((agent, secs)) = active {
-        segs.push((
-            format!("{} {agent} \u{00b7} {secs}s", SPINNER[f]),
-            crate::chatroster::agent_color(agent),
-        ));
+    if let Some((label, secs, color)) = active {
+        segs.push((format!("{} {label} \u{00b7} {secs}s", SPINNER[f]), color));
     } else if awaiting {
         segs.push((format!("{} thinking", SPINNER[f]), crate::palette::accent()));
     }
@@ -83,7 +80,7 @@ pub(crate) fn header_cells(
     connected: bool,
     msg_count: usize,
     awaiting: bool,
-    active: Option<(&str, u64)>,
+    active: Option<(&str, u64, (u8, u8, u8))>,
     tokens: u64,
 ) -> Vec<CellView> {
     if cols == 0 {
@@ -160,7 +157,7 @@ mod tests {
     #[test]
     fn active_agent_shows_name_and_elapsed_over_plain_thinking() {
         let line = text(
-            &header_cells(60, "c", true, 0, true, Some(("coder", 12)), 0),
+            &header_cells(60, "c", true, 0, true, Some(("coder", 12, (9, 9, 9))), 0),
             0,
         );
         assert!(
@@ -185,7 +182,7 @@ mod tests {
             true,
             999,
             true,
-            Some(("x", 5)),
+            Some(("x", 5, (9, 9, 9))),
             12345,
         );
         assert!(cells.iter().all(|c| c.col < 20 && c.row == 0));

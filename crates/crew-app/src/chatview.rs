@@ -20,14 +20,22 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
             pane.connected,
         );
     }
-    let active = pane.active_status();
+    let names = pane.active_names();
+    let status = pane.active_status().map(|(label, secs)| {
+        // One agent keeps its roster colour; a parallel pack goes accent.
+        let color = match names.as_slice() {
+            [one] => crate::chatroster::agent_color(one),
+            _ => crate::palette::accent(),
+        };
+        (label, secs, color)
+    });
     let mut cells = crate::chathdr::header_cells(
         cols,
         &pane.channel,
         pane.connected,
         pane.messages.len(),
         pane.is_busy(),
-        active,
+        status.as_ref().map(|(l, s, c)| (l.as_str(), *s, *c)),
         pane.tokens,
     );
     if top > 1 {
@@ -35,7 +43,7 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
             cols,
             1,
             &pane.agents,
-            active.map(|(a, _)| a),
+            &names,
         ));
     }
     let bottom = crate::chatinput::composer_rows(rows);

@@ -20,9 +20,9 @@ pub struct ChatPane {
     /// A message was sent and no reply has arrived yet — drives the pane's
     /// indeterminate "thinking" progress sweep.
     awaiting: bool,
-    /// The agent currently thinking (from `Activity` events) and when it
-    /// started, for the header's live `agent · elapsed` status.
-    active: Option<(String, std::time::Instant)>,
+    /// The agents currently thinking (from `Activity` events) and when each
+    /// started — several at once during a parallel /fan.
+    active: Vec<(String, std::time::Instant)>,
     /// Session-wide approximate token spend (from `Stats` events), for the
     /// header's running cost meter.
     pub(crate) tokens: u64,
@@ -42,23 +42,35 @@ impl ChatPane {
             agents: Vec::new(),
             scroll: 0,
             awaiting: false,
-            active: None,
+            active: Vec::new(),
             tokens: 0,
             unread: 0,
         }
     }
 
     /// Whether the pane is awaiting a reply (busy), for the progress sweep —
-    /// either our own send is unanswered or an agent is mid-turn.
+    /// either our own send is unanswered or agents are mid-turn.
     pub fn is_busy(&self) -> bool {
-        self.awaiting || self.active.is_some()
+        self.awaiting || !self.active.is_empty()
     }
 
-    /// The agent currently thinking and for how many seconds, if any.
-    pub(crate) fn active_status(&self) -> Option<(&str, u64)> {
-        self.active
-            .as_ref()
-            .map(|(a, t)| (a.as_str(), t.elapsed().as_secs()))
+    /// The live status label: the thinking agent's name (one active) or a
+    /// `N working` count (parallel fan), with the oldest elapsed seconds.
+    pub(crate) fn active_status(&self) -> Option<(String, u64)> {
+        let secs = self
+            .active
+            .iter()
+            .map(|(_, t)| t.elapsed().as_secs())
+            .max()?;
+        match &self.active[..] {
+            [(name, _)] => Some((name.clone(), secs)),
+            many => Some((format!("{} working", many.len()), secs)),
+        }
+    }
+
+    /// Names of every agent currently thinking (roster highlights them all).
+    pub(crate) fn active_names(&self) -> Vec<&str> {
+        self.active.iter().map(|(a, _)| a.as_str()).collect()
     }
 
     /// Rows consumed above the message body: the status header, plus the agent
@@ -99,8 +111,16 @@ impl ChatPane {
                         self.agents = agents;
                     }
                     PluginEvent::Activity { agent, state } => {
-                        self.active = (state == "thinking" && !agent.is_empty())
-                            .then(|| (agent, std::time::Instant::now()));
+                        match (state.as_str(), agent.is_empty()) {
+                            ("thinking", false) => {
+                                if !self.active.iter().any(|(a, _)| *a == agent) {
+                                    self.active.push((agent, std::time::Instant::now()));
+                                }
+                            }
+                            ("idle", false) => self.active.retain(|(a, _)| *a != agent),
+                            // An empty-agent idle (turn over) clears everyone.
+                            _ => self.active.clear(),
+                        }
                     }
                     PluginEvent::Stats { tokens, .. } => {
                         self.tokens = self.tokens.saturating_add(tokens);
@@ -129,7 +149,7 @@ impl ChatPane {
                     }
                     PluginEvent::Error { .. } => {
                         self.connected = false;
-                        self.active = None;
+                        self.active.clear();
                     }
                     _ => {}
                 }
