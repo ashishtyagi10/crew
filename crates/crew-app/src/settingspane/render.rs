@@ -8,9 +8,6 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{
-    Block, BorderType, Clear, List, ListItem, ListState, StatefulWidget, Widget,
-};
 
 use super::{form, Field, SettingsPane};
 use crate::palette::accent_color;
@@ -91,7 +88,11 @@ pub(crate) fn render(p: &SettingsPane, cols: u16, rows: u16) -> Vec<CellView> {
     if p.family_open {
         if let Some(r) = lay.rect_of(Field::FontFamily) {
             if r.y >= off {
-                dropdown(&mut out, p, Rect::new(r.x, r.y - off, r.width, r.height));
+                super::dropdown::dropdown(
+                    &mut out,
+                    p,
+                    Rect::new(r.x, r.y - off, r.width, r.height),
+                );
             }
         }
     }
@@ -164,35 +165,6 @@ fn button_span(text: &str, focused: bool) -> Span<'static> {
         style = style.add_modifier(Modifier::BOLD);
     }
     Span::styled(text.to_string(), style)
-}
-
-/// The type-to-search font list, drawn as a rounded popup anchored below the
-/// family row (over the rows beneath it).
-fn dropdown(buf: &mut Buffer, p: &SettingsPane, anchor: Rect) {
-    let names = p.filtered();
-    let want = names.len() as u16 + 2;
-    let y0 = anchor.y + anchor.height; // just below the family row
-    let max = buf.area.height.saturating_sub(y0);
-    if max < 3 {
-        return;
-    }
-    let height = want.clamp(3, max);
-    let area = Rect::new(anchor.x, y0, anchor.width, height);
-    Clear.render(area, buf);
-    let items: Vec<ListItem> = names.into_iter().map(ListItem::new).collect();
-    let block = Block::bordered()
-        .border_type(BorderType::Rounded)
-        .border_style(Style::new().fg(accent_color()))
-        .title(Span::styled(" fonts ", Style::new().fg(accent_color())));
-    let t = crew_theme::theme();
-    let page_col = Color::Rgb(t.page_bg.0, t.page_bg.1, t.page_bg.2);
-    let list = List::new(items)
-        .block(block)
-        .highlight_style(Style::new().fg(page_col).bg(accent_color()))
-        .highlight_symbol("\u{203a} ");
-    let mut state = ListState::default();
-    state.select(Some(p.family_sel));
-    StatefulWidget::render(list, area, buf, &mut state);
 }
 
 #[cfg(test)]

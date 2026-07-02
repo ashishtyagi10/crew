@@ -4,6 +4,7 @@
 //! navigation, a type-to-search font-family dropdown, and Save (Cmd+S /
 //! Alt+S) / Cancel (Esc).
 mod commit;
+mod dropdown;
 mod form;
 mod keys;
 mod render;

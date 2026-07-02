@@ -111,6 +111,15 @@ fn main() -> anyhow::Result<()> {
     if std::env::args().skip(1).any(|a| a == "--self-update") {
         return selfupdate::run();
     }
+    // `--list-fonts`: print every monospace family the font picker offers
+    // (faces flagged monospaced + name-matched coding fonts), then exit — the
+    // quick way to check a newly installed font is visible to Crew.
+    if std::env::args().skip(1).any(|a| a == "--list-fonts") {
+        for name in crew_render::list_monospace_families() {
+            println!("{name}");
+        }
+        return Ok(());
+    }
     // Detached launch is the default: re-launch in a new session (detached from
     // this terminal) and exit the parent, so closing the launching shell doesn't
     // SIGHUP the GUI. `--no-detach` / `--foreground` keeps crew attached. The

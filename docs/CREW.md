@@ -108,6 +108,10 @@ The docked command bar supports:
   the `Cmd+S` / `Cmd+Z` / `Cmd+G` chords, for when the chord slips your mind.
 - **`/font <n>`** — sets the font size to an exact value (clamped 12–32), unlike
   the `Cmd+=`/`Cmd+-` chords that step by one; no argument reports the current size.
+  The font *family* is picked in `/settings` — a type-to-search dropdown over
+  every installed monospace family (the active one carries a `✓`); run
+  `crew --list-fonts` in any shell to print the same list and check a newly
+  installed font is visible to Crew.
 - **`/restart`** — relaunches Crew as a fresh detached process and exits this
   one: the way to apply a binary installed by `/update`, and the fresh process
   re-reads `config.toml`, so edits made outside the `/settings` pane take
