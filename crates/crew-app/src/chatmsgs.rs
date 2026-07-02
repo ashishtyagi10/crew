@@ -11,6 +11,23 @@ use crate::chatlayout::Message;
 /// The card header's gutter glyph (▍), in the sender's colour.
 const GUTTER: char = '\u{258d}';
 
+/// How long a freshly-arrived card takes to fade in from the page colour.
+pub(crate) const FADE_MS: u64 = 400;
+
+/// Fade progress for a message stamped `ts` (epoch ms): 0.0 just landed,
+/// 1.0 fully drawn. Unparseable stamps and the counting pass (`now_ms == 0`)
+/// render fully drawn.
+pub(crate) fn fade_t(ts: &str, now_ms: u64) -> f32 {
+    if now_ms == 0 {
+        return 1.0;
+    }
+    let Ok(ts) = ts.parse::<u64>() else {
+        return 1.0;
+    };
+    let age = now_ms.saturating_sub(ts);
+    (age as f32 / FADE_MS as f32).min(1.0)
+}
+
 /// The colour a sender renders in: the broker/system voice is muted; every
 /// agent (and the user) gets its stable roster colour.
 fn sender_color(sender: &str) -> Color {
@@ -46,6 +63,7 @@ fn card_lines(messages: &[Message], cols: usize, now_ms: u64) -> Vec<CardLine> {
         if i > 0 {
             out.push(Vec::new()); // spacer between cards
         }
+        let first = out.len();
         out.push(header_line(m, now_ms));
         // Body text: agents speak in ink; the system voice stays muted.
         let fg = match m.sender.as_str() {
@@ -53,6 +71,16 @@ fn card_lines(messages: &[Message], cols: usize, now_ms: u64) -> Vec<CardLine> {
             _ => crew_theme::theme().ink,
         };
         out.extend(body_lines(&m.text, cols, fg));
+        // A just-landed card fades in from the page colour (see `fade_t`).
+        let t = fade_t(&m.ts, now_ms);
+        if t < 1.0 {
+            let page = crew_theme::theme().page_bg;
+            for line in &mut out[first..] {
+                for cell in line.iter_mut() {
+                    cell.fg = crate::anim::lerp_rgb(page, cell.fg, t);
+                }
+            }
+        }
     }
     out
 }

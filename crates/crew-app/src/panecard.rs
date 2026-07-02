@@ -71,6 +71,13 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
     if v.is_empty() {
         return v;
     }
+    // The focused card's legend goes bold: the active tile reads at a glance
+    // without any extra chrome on the canvas.
+    if b.focused {
+        for cell in v.iter_mut().filter(|c| c.row == 0 && c.fg == legend) {
+            cell.bold = true;
+        }
+    }
     // Status glyphs ride the top-right border, stepping left from the corner.
     let mut rx = cols.saturating_sub(3);
     if b.scroll > 0 {

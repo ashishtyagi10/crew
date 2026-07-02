@@ -128,3 +128,15 @@ fn wide_glyphs_advance_two_columns() {
     let x = body.iter().find(|(_, c)| *c == 'x').expect("x present");
     assert_eq!(x.0, wide.0 + 2, "got: {body:?}");
 }
+
+#[test]
+fn fade_t_ramps_with_message_age() {
+    // Counting pass (now == 0) and unstamped messages render fully drawn.
+    assert_eq!(fade_t("1000", 0), 1.0);
+    assert_eq!(fade_t("", 5_000), 1.0);
+    // A just-landed message starts faded and finishes after FADE_MS.
+    assert_eq!(fade_t("5000", 5_000), 0.0);
+    let mid = fade_t("5000", 5_000 + FADE_MS / 2);
+    assert!(mid > 0.4 && mid < 0.6, "got: {mid}");
+    assert_eq!(fade_t("5000", 5_000 + FADE_MS), 1.0);
+}

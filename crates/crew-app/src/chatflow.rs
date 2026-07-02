@@ -35,6 +35,14 @@ impl crate::chat::ChatPane {
         }
     }
 
+    /// Whether the newest message is still fading in — keeps redraw frames
+    /// flowing for the fade's few hundred ms after a reply lands.
+    pub(crate) fn is_fading(&self) -> bool {
+        self.messages
+            .last()
+            .is_some_and(|m| crate::chatmsgs::fade_t(&m.ts, crate::chattime::unix_now_ms()) < 1.0)
+    }
+
     /// The live status label: the thinking agent's name (one active) or a
     /// `N working` count (parallel fan), with the oldest elapsed seconds.
     pub(crate) fn active_status(&self) -> Option<(String, u64)> {

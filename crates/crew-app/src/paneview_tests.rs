@@ -70,6 +70,17 @@ fn border_colour_differs_by_focus() {
 }
 
 #[test]
+fn focused_legend_is_bold_unfocused_is_not() {
+    let bold_legend = |foc| {
+        pane_card(38, 10, &bar(foc))
+            .into_iter()
+            .any(|c| c.c == 's' && c.row == 0 && c.bold)
+    };
+    assert!(bold_legend(true), "focused legend should be bold");
+    assert!(!bold_legend(false), "unfocused legend stays regular");
+}
+
+#[test]
 fn busy_pane_draws_a_sweep_on_the_bottom_border() {
     let busy = Bar {
         busy: Some(0),

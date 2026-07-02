@@ -89,6 +89,17 @@ pub(crate) fn pane_busy(p: &Pane) -> bool {
     }
 }
 
+/// Busy or briefly animating (a message card fading in): the redraw-scheduling
+/// predicate for `poll` — wider than [`pane_busy`], which alone decides the
+/// card's busy sweep so a fade never reads as "working".
+pub(crate) fn pane_animating(p: &Pane) -> bool {
+    pane_busy(p)
+        || match &p.content {
+            PaneContent::Chat(c) => c.is_fading(),
+            _ => false,
+        }
+}
+
 #[allow(clippy::too_many_arguments)]
 fn push_pane_scenes(
     scenes: &mut Vec<PaneScene>,

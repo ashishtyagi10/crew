@@ -164,10 +164,10 @@ impl CrewApp {
             if crate::welcome::anim_should_redraw(self.tick) {
                 any_changed = true;
             }
-        } else if self.panes.iter().any(crate::paneview::pane_busy) {
-            // Drive the indeterminate progress sweep while any pane is busy,
-            // throttled to ~15 fps so a working pane stays lively without
-            // spinning the CPU. Idle (no busy pane) → no extra redraws at all.
+        } else if self.panes.iter().any(crate::paneview::pane_animating) {
+            // Drive the indeterminate progress sweep while any pane is busy
+            // (or a chat card is fading in), throttled to ~15 fps so a working
+            // pane stays lively without spinning the CPU. Idle → no redraws.
             self.tick = self.tick.wrapping_add(1);
             if self.tick.is_multiple_of(BUSY_ANIM_DIV) {
                 any_changed = true;
