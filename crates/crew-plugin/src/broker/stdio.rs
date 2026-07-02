@@ -9,6 +9,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 
 use super::relay::{msg, relay_turn, split_target};
+use super::session::Session;
 use crate::{Broker, PluginCommand, PluginEvent, Registry};
 
 static THREAD_SEQ: AtomicU64 = AtomicU64::new(1);
@@ -32,12 +33,13 @@ fn env_num<T: std::str::FromStr>(key: &str) -> Option<T> {
 pub fn run_broker_stdio() -> anyhow::Result<()> {
     let stdin = std::io::stdin();
     let mut out = std::io::stdout();
+    let mut session = Session::new();
     for line in stdin.lock().lines() {
         let line = line?;
         let Ok(cmd) = serde_json::from_str::<PluginCommand>(&line) else {
             continue;
         };
-        dispatch(cmd, &mut out)?;
+        dispatch(cmd, &mut out, &mut session)?;
     }
     Ok(())
 }
@@ -48,10 +50,10 @@ fn emit(out: &mut impl Write, ev: &PluginEvent) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn dispatch(cmd: PluginCommand, out: &mut impl Write) -> anyhow::Result<()> {
+fn dispatch(cmd: PluginCommand, out: &mut impl Write, session: &mut Session) -> anyhow::Result<()> {
     match cmd {
         PluginCommand::Hello { .. } => {
-            let reg = Registry::discover();
+            let reg = session.registry();
             emit(
                 out,
                 &PluginEvent::Ready {
@@ -68,7 +70,13 @@ fn dispatch(cmd: PluginCommand, out: &mut impl Write) -> anyhow::Result<()> {
             )?;
             emit(out, &msg("crew", roster(&reg)))?;
         }
-        PluginCommand::Send { text, .. } => relay(&text, out)?,
+        PluginCommand::Send { text, .. } => {
+            if super::commands::is_command(&text) {
+                super::commands::handle(session, &text, &mut |ev| emit(out, &ev))?;
+            } else {
+                relay(&text, out, session)?;
+            }
+        }
         PluginCommand::Subscribe { .. } => {}
     }
     Ok(())
@@ -90,8 +98,8 @@ pub(crate) fn roster(reg: &Registry) -> String {
     )
 }
 
-fn relay(input: &str, out: &mut impl Write) -> anyhow::Result<()> {
-    let reg = Registry::discover();
+fn relay(input: &str, out: &mut impl Write, session: &Session) -> anyhow::Result<()> {
+    let reg = session.registry();
     if reg.is_empty() {
         return emit(out, &msg("crew", roster(&reg)));
     }

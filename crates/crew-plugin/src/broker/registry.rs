@@ -66,9 +66,20 @@ impl Registry {
     /// (no network), so the relay can be driven deterministically offline and in
     /// end-to-end tests of the broker binary.
     pub fn discover() -> Self {
+        Self::discover_with(&std::collections::HashMap::new())
+    }
+
+    /// [`Registry::discover`] with per-agent model overrides (the `/model`
+    /// construct) applied on top of the provider's defaults, so different
+    /// agents can run different models side by side.
+    pub fn discover_with(overrides: &std::collections::HashMap<String, String>) -> Self {
         if let Ok(reply) = std::env::var("CREW_BROKER_MOCK_REPLY") {
             let provider = Arc::new(crew_hive::MockProvider { reply });
-            return Self::new(inbuilt_agents(provider, |t| t.model_id().to_string()));
+            return Self::new(inbuilt_agents(
+                provider,
+                |t| t.model_id().to_string(),
+                overrides,
+            ));
         }
         if let Ok(provider) = crew_hive::OpenRouterProvider::from_env() {
             let chain = parse_model_chain(
@@ -79,7 +90,11 @@ impl Registry {
             // steers it); the provider rolls to later slugs when one is limited.
             let primary = chain[0].clone();
             let provider = provider.with_fallbacks(chain);
-            return Self::new(inbuilt_agents(Arc::new(provider), move |_| primary.clone()));
+            return Self::new(inbuilt_agents(
+                Arc::new(provider),
+                move |_| primary.clone(),
+                overrides,
+            ));
         }
         // Alibaba Cloud DashScope: the same OpenAI-compatible wire shape on a
         // different endpoint, running the Qwen commercial models.
@@ -95,13 +110,19 @@ impl Registry {
                 let provider = crew_hive::OpenRouterProvider::new(key)
                     .with_endpoint(url)
                     .with_fallbacks(chain);
-                return Self::new(inbuilt_agents(Arc::new(provider), move |_| primary.clone()));
+                return Self::new(inbuilt_agents(
+                    Arc::new(provider),
+                    move |_| primary.clone(),
+                    overrides,
+                ));
             }
         }
         if let Ok(provider) = crew_hive::AnthropicProvider::from_env() {
-            return Self::new(inbuilt_agents(Arc::new(provider), |t| {
-                t.model_id().to_string()
-            }));
+            return Self::new(inbuilt_agents(
+                Arc::new(provider),
+                |t| t.model_id().to_string(),
+                overrides,
+            ));
         }
         Self::new(Vec::new())
     }

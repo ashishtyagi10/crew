@@ -13,6 +13,7 @@
 mod adapter;
 mod agents;
 mod apiadapter;
+mod commands;
 mod engine;
 mod hop;
 mod normalize;
@@ -20,6 +21,7 @@ mod registry;
 mod relay;
 mod route;
 mod run;
+mod session;
 mod stdio;
 
 pub use adapter::{Adapter, CliAdapter, Normalize};

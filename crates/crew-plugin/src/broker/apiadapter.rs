@@ -85,11 +85,14 @@ impl Adapter for ApiAdapter {
 /// The inbuilt relay roster: a planner (Capable tier), a coder and a reviewer
 /// (Standard tier), all backed by `provider`. `model_for` maps each role's tier
 /// to a concrete model id, so the same roster works across providers (Anthropic
-/// native ids vs. OpenRouter slugs). Adapters whose runtime fails to start are
-/// skipped rather than aborting the whole roster.
+/// native ids vs. OpenRouter slugs); `overrides` pins a specific model per
+/// agent name (the `/model` construct), letting different agents run different
+/// models side by side. Adapters whose runtime fails to start are skipped
+/// rather than aborting the whole roster.
 pub fn inbuilt_agents(
     provider: Arc<dyn Provider>,
     model_for: impl Fn(ModelTier) -> String,
+    overrides: &std::collections::HashMap<String, String>,
 ) -> Vec<Box<dyn Adapter>> {
     let specs: [(&str, ModelTier, &str); 3] = [
         (
@@ -114,14 +117,13 @@ pub fn inbuilt_agents(
     specs
         .into_iter()
         .filter_map(|(name, tier, system)| {
-            ApiAdapter::new(
-                name,
-                model_for(tier),
-                Some(system.to_string()),
-                provider.clone(),
-            )
-            .ok()
-            .map(|a| Box::new(a) as Box<dyn Adapter>)
+            let model = overrides
+                .get(name)
+                .cloned()
+                .unwrap_or_else(|| model_for(tier));
+            ApiAdapter::new(name, model, Some(system.to_string()), provider.clone())
+                .ok()
+                .map(|a| Box::new(a) as Box<dyn Adapter>)
         })
         .collect()
 }
@@ -152,14 +154,14 @@ mod tests {
 
     #[test]
     fn inbuilt_agents_are_planner_coder_reviewer() {
-        let agents = inbuilt_agents(mock("ok"), tier_model);
+        let agents = inbuilt_agents(mock("ok"), tier_model, &Default::default());
         let names: Vec<&str> = agents.iter().map(|a| a.name()).collect();
         assert_eq!(names, vec!["planner", "coder", "reviewer"]);
     }
 
     #[test]
     fn inbuilt_agents_all_probe_usable() {
-        assert!(inbuilt_agents(mock("ok"), tier_model)
+        assert!(inbuilt_agents(mock("ok"), tier_model, &Default::default())
             .iter()
             .all(|a| a.probe()));
     }
