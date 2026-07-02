@@ -1,5 +1,5 @@
 //! Filesystem path completion for the input bar: `cd` completes directories,
-//! while `/edit`/`/open` complete files and directories. Both finish the final
+//! while `/dump` completes files and directories. Both finish the final
 //! path component against a base directory, returning the ghost suffix.
 use std::path::{Path, PathBuf};
 
@@ -38,12 +38,10 @@ pub(crate) fn complete_path(arg: &str, base: &Path, files_too: bool) -> Option<S
     })
 }
 
-/// Path completion for an `/edit <partial>` or `/open <partial>` line (files and
-/// directories), or `None` when `text` isn't one of those commands.
+/// Path completion for a `/dump <partial>` line (files and directories), or
+/// `None` when `text` isn't that command.
 pub(crate) fn path_suggest(text: &str, base: &Path) -> Option<String> {
-    let arg = text
-        .strip_prefix("/edit ")
-        .or_else(|| text.strip_prefix("/open "))?;
+    let arg = text.strip_prefix("/dump ")?;
     complete_path(arg, base, true)
 }
 
@@ -89,12 +87,12 @@ mod tests {
     }
 
     #[test]
-    fn path_suggest_only_for_edit_and_open() {
+    fn path_suggest_only_for_dump() {
         let base = fixture();
-        assert_eq!(path_suggest("/edit al", &base).as_deref(), Some("pha/"));
-        assert_eq!(path_suggest("/open read", &base).as_deref(), Some("me.md"));
+        assert_eq!(path_suggest("/dump al", &base).as_deref(), Some("pha/"));
+        assert_eq!(path_suggest("/dump read", &base).as_deref(), Some("me.md"));
         // other commands and a trailing-slash partial complete nothing.
         assert_eq!(path_suggest("/run al", &base), None);
-        assert_eq!(path_suggest("/edit alpha/", &base), None);
+        assert_eq!(path_suggest("/dump alpha/", &base), None);
     }
 }

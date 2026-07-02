@@ -1,4 +1,4 @@
-//! Path-argument expansion shared by `/edit`, `/open`, and `/dump`: expand
+//! Path-argument expansion shared by `/dump` and Cmd+click file opening: expand
 //! `$VAR`/`${VAR}` and a leading `~`, keep absolute paths, and resolve relative
 //! ones against a base directory. Unlike [`crate::cwd::resolve`] it does not
 //! canonicalise or require the path to exist (the target may be new).

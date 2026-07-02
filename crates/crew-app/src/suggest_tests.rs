@@ -58,10 +58,15 @@ fn slash_completes_only() {
 }
 
 #[test]
-fn slash_completes_edit() {
-    assert_eq!(suggest("/ed", &[]).as_deref(), Some("it"));
-    let names: Vec<&str> = matches("/ed").iter().map(|c| c.name).collect();
-    assert!(names.contains(&"/edit"));
+fn edit_and_open_were_dropped_for_far() {
+    // File operations live in Far (F3/F4/Enter) and Cmd+click now; the old
+    // /edit and /open input-bar commands are gone from the palette.
+    for name in ["/edit", "/open"] {
+        assert!(
+            !crate::suggest::COMMANDS.iter().any(|c| c.name == name),
+            "{name} should be dropped"
+        );
+    }
 }
 
 #[test]
@@ -157,13 +162,6 @@ fn slash_completes_dump() {
     assert_eq!(suggest("/du", &[]).as_deref(), Some("mp"));
     let names: Vec<&str> = matches("/d").iter().map(|c| c.name).collect();
     assert!(names.contains(&"/dump"));
-}
-
-#[test]
-fn slash_completes_open() {
-    assert_eq!(suggest("/op", &[]).as_deref(), Some("en"));
-    let names: Vec<&str> = matches("/o").iter().map(|c| c.name).collect();
-    assert!(names.contains(&"/open"));
 }
 
 #[test]

@@ -104,7 +104,7 @@ config and plugins load.
 The docked command bar supports:
 
 - **Slash commands** — type `/` for a command palette (↑/↓ to pick, Tab/→ to
-  fill, Enter to run): `/shell`, `/crew`, `/run <cmd>`, `/diff`, `/edit <file>`, `/settings`, `/find <text>`, `/name <text>`, `/clear`, `/only`, `/copy`, `/dump`, `/open`, `/font`, `/restart`, `/theme`, `/update`,
+  fill, Enter to run): `/shell`, `/crew`, `/run <cmd>`, `/diff`, `/settings`, `/find <text>`, `/name <text>`, `/clear`, `/only`, `/copy`, `/dump`, `/font`, `/restart`, `/theme`, `/update`,
   `/broadcast`, `/zoom`, `/sidebar`, `/keys`, `/far`, `/exit`. The palette is **fuzzy** — prefix matches rank first,
   then subsequence matches (e.g. `/dmp` finds `/dump`) — and **scrolls** to the
   selection when the match list is long. When several commands share a prefix,
@@ -137,10 +137,14 @@ The docked command bar supports:
   cycles through all of them. See [Themes](#themes).
 - **`/only`** — closes every pane except the focused one (a quick "focus mode");
   a no-op when only one pane is open.
-- **`/edit <file>`** — opens the file in your terminal editor (`$VISUAL`, else
-  `$EDITOR`, else `vi`) in a new pane. Path arguments to `/edit`, `/open`, and
-  `/dump` expand `~` and `$VAR`/`${VAR}` and resolve relative paths against the
-  working directory. (`/open` instead hands the path to the OS default app.)
+- **File operations live in Far and Cmd+click**, not slash commands: the old
+  `/edit` and `/open` were dropped. `/far` browses/views/edits/copies files
+  (F3/F4/Enter open the selection); **Cmd+click** on terminal text resolves it —
+  a URL opens in the browser, an existing **file** opens in `$EDITOR` in a new
+  pane, a **directory** becomes the working directory. http(s) URLs are
+  **tinted blue** to show they're clickable. Path arguments to `/dump` expand
+  `~` and `$VAR`/`${VAR}` and resolve relative paths against the working
+  directory.
 - **`/run <cmd>`** — launches `cmd` in its own tiled pane (labeled by the
   command) that stays open after it finishes, so builds, tests, and long-running
   jobs run alongside your shells instead of blocking one. This is also how you
@@ -153,13 +157,6 @@ The docked command bar supports:
 - **`/copy`** — copies the focused terminal pane's **full scrollback** to the
   system clipboard (Cmd+C copies only the visible screen); the line count is
   flashed on the input bar.
-- **`/open [target]`** — opens a URL or path with the OS default app. With no
-  argument it opens the most recent http(s) URL visible in the focused terminal
-  (a quick "clickable link" without reaching for the mouse); a relative path is
-  resolved against the working directory. http(s) URLs in terminal panes are
-  **tinted blue** to show they're clickable; **Cmd+click** resolves the text
-  under the cursor — a URL opens in the browser, an existing **file** opens in
-  `$EDITOR`, and a **directory** becomes the new working directory.
 - **`/dump [file]`** — exports the focused terminal pane's full scrollback to a
   file (handy for archiving a long build log or an AI agent's output); the saved
   path — with the line count and size — is shown on the input bar. With no argument it writes a timestamped
@@ -186,8 +183,8 @@ The docked command bar supports:
   input recalls everything). Persisted to
   `$XDG_CONFIG/crew/history` across sessions.
 - **Path completion** — `cd <partial>` ghost-completes the first matching
-  subdirectory, while `/edit <partial>` and `/open <partial>` complete **files
-  and** directories; Tab/→ accepts it. `$VAR`/`${VAR}` are expanded (e.g. `cd $HOME/src`).
+  subdirectory, while `/dump <partial>` completes **files and** directories;
+  Tab/→ accepts it. `$VAR`/`${VAR}` are expanded (e.g. `cd $HOME/src`).
   `cd -` toggles back to the previous directory;
   the working directory is restored on the next launch.
 - **Editing** — **Ctrl+W** delete the last word, **Ctrl+U** clear the line.

@@ -143,7 +143,7 @@ Press **`/keys`** in the input bar for the full list in-app.
 ## Input bar
 
 The docked command bar supports slash commands (type `/` for a palette:
-`/shell`, `/crew`, `/goal <text>`, `/batch <file>`, `/run <cmd>`, `/diff`, `/edit <file>`, `/settings`, `/find <text>`, `/name <text>`, `/clear`, `/only`, `/copy`, `/dump`, `/open`,
+`/shell`, `/crew`, `/goal <text>`, `/batch <file>`, `/run <cmd>`, `/diff`, `/settings`, `/find <text>`, `/name <text>`, `/clear`, `/only`, `/copy`, `/dump`,
 `/clearall`, `/closeall`, `/pwd`, `/about`, `/font`, `/theme`, `/restart`, `/update`, `/broadcast`, `/zoom`, `/sidebar`, `/keys`, `/far`, `/exit`), fish-style autosuggest from history, `cd`
 completion with `$VAR` expansion, and `Up`/`Down` history recall persisted to
 `$XDG_CONFIG/crew/history`. Anything that isn't a slash command or `cd` is sent

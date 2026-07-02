@@ -1,4 +1,4 @@
-use super::{find_urls, url_at, url_spans};
+use super::{url_at, url_spans};
 
 #[test]
 fn url_spans_reports_char_ranges() {
@@ -42,27 +42,4 @@ fn url_at_ignores_bare_scheme_and_trailing_punctuation() {
     let line = "(https://a.io)";
     assert_eq!(url_at(line, 1).as_deref(), Some("https://a.io"));
     assert_eq!(url_at(line, line.len() - 1), None);
-}
-
-#[test]
-fn finds_urls_in_order_and_trims_trailers() {
-    let text = "see https://example.com/a, and http://b.org/x).\nlast https://z.io";
-    let urls = find_urls(text);
-    assert_eq!(
-        urls,
-        vec![
-            "https://example.com/a".to_string(),
-            "http://b.org/x".to_string(),
-            "https://z.io".to_string(),
-        ]
-    );
-    // `/open` with no arg uses the most recent (last) one.
-    assert_eq!(find_urls(text).pop().unwrap(), "https://z.io");
-}
-
-#[test]
-fn ignores_non_urls_and_bare_schemes() {
-    // a stray "http" word and a scheme with no host are not URLs.
-    assert!(find_urls("nothing http here, https:// either").is_empty());
-    assert!(find_urls("plain text, no links").is_empty());
 }

@@ -23,7 +23,7 @@ pub struct InputBar {
     /// and used as the base for `cd` directory completion. Empty = none.
     pub cwd: PathBuf,
     /// Memoized `ghost()` result. `ghost()` runs on every render frame, and for
-    /// `cd`/`/edit`/`/open` it does a `read_dir`; without this cache a path
+    /// `cd`/`/dump` it does a `read_dir`; without this cache a path
     /// partial sitting in the bar re-scans the directory on every redraw (e.g.
     /// ~15×/s while a pane animates). Interior mutability so the cache fills from
     /// the `&self` render path. Keyed on the inputs `ghost()` actually depends on.
@@ -78,7 +78,7 @@ impl InputBar {
             if self.text.starts_with("cd ") {
                 return crate::suggest::dir_suggest(&self.text, &self.cwd);
             }
-            // `/edit`/`/open` complete file and directory paths.
+            // `/dump` completes file and directory paths.
             if let Some(p) = crate::pathcomplete::path_suggest(&self.text, &self.cwd) {
                 return Some(p);
             }

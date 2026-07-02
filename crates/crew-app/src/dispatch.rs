@@ -28,9 +28,7 @@ impl CrewApp {
             "copy" => self.copy_scrollback(),
             "dump" => self.dump_focused_pane(""),
             "diff" => self.diff_in_pane(),
-            "run" => self.run_in_pane(""),   // show usage hint
-            "edit" => self.edit_in_pane(""), // show usage hint
-            "open" => self.open_target(""),  // open the last URL on screen
+            "run" => self.run_in_pane(""), // show usage hint
             "font" => self.set_font_cmd(""),
             // Relaunch as a fresh detached process (picks up an installed
             // `/update` and external config edits) and exit this one.
@@ -46,12 +44,8 @@ impl CrewApp {
                     self.find_in_terminal(term.trim());
                 } else if let Some(n) = other.strip_prefix("name ") {
                     self.name_focused_pane(n.trim());
-                } else if let Some(t) = other.strip_prefix("open ") {
-                    self.open_target(t);
                 } else if let Some(c) = other.strip_prefix("run ") {
                     self.run_in_pane(c);
-                } else if let Some(f) = other.strip_prefix("edit ") {
-                    self.edit_in_pane(f);
                 } else if let Some(f) = other.strip_prefix("dump ") {
                     self.dump_focused_pane(f);
                 } else if let Some(n) = other.strip_prefix("font ") {

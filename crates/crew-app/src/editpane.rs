@@ -1,7 +1,7 @@
-//! `/edit <file>`: open a file in the user's terminal editor (`$VISUAL`, else
-//! `$EDITOR`, else `vi`) in its own tiled pane, resolving a relative path
-//! against Crew's working directory. Complements `/open`, which hands a path to
-//! the OS default app instead.
+//! Open a file in the user's terminal editor (`$VISUAL`, else `$EDITOR`, else
+//! `vi`) in its own tiled pane, resolving a relative path against Crew's
+//! working directory. Reached by Cmd+clicking a file path in a terminal pane
+//! (see `clickopen`); browsing/opening files by name is Far's job (`/far`).
 use crate::app::CrewApp;
 use crate::spawn::default_shell;
 
@@ -26,11 +26,10 @@ pub(crate) fn edit_script(editor: &str, path: &str, shell: &str) -> String {
 }
 
 impl CrewApp {
-    /// Open `arg` in the user's editor in a new pane (`/edit <file>`).
+    /// Open `arg` in the user's editor in a new pane (Cmd+click on a file path).
     pub(crate) fn edit_in_pane(&mut self, arg: &str) {
         let arg = arg.trim();
         if arg.is_empty() {
-            self.set_status("usage: /edit <file>");
             return;
         }
         let path = crate::pathexpand::expand_path(&self.cwd, arg)

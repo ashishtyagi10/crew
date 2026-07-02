@@ -112,10 +112,6 @@ pub(crate) const COMMANDS: &[Cmd] = &[
         desc: "Search scrollback, highlighting matches (/find <text>)",
     },
     Cmd {
-        name: "/edit",
-        desc: "Open a file in $EDITOR in a new pane (/edit <file>)",
-    },
-    Cmd {
         name: "/name",
         desc: "Rename the focused pane (/name <text>)",
     },
@@ -154,10 +150,6 @@ pub(crate) const COMMANDS: &[Cmd] = &[
     Cmd {
         name: "/dump",
         desc: "Save scrollback to a file (/dump [file])",
-    },
-    Cmd {
-        name: "/open",
-        desc: "Open a URL/path, or the last URL on screen (/open [target])",
     },
     Cmd {
         name: "/font",
