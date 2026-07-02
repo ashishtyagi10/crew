@@ -38,8 +38,9 @@ use crate::chatkeys::ChatInput;
 use crew_plugin::AgentInfo;
 
 fn agents() -> Vec<AgentInfo> {
+    // AgentInfo does NOT derive Default — construct all three fields.
     ["planner", "coder"].iter().map(|n| AgentInfo {
-        name: n.to_string(), role: "role".into(), ..Default::default()
+        name: n.to_string(), role: "role".into(), model: String::new()
     }).collect()
 }
 
