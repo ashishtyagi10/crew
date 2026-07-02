@@ -20,6 +20,7 @@ mod engine;
 mod fan;
 mod hop;
 mod normalize;
+mod plan;
 mod plugins;
 mod registry;
 mod relay;

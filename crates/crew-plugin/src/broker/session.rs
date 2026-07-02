@@ -39,6 +39,9 @@ pub(crate) struct Session {
     /// The configured MCP servers, shared with worker snapshots so lazy
     /// connections and the per-server tool cache live once per pane.
     pub mcp: Arc<Mutex<crate::mcp::McpHost>>,
+    /// The plan `/plan` drafted, awaiting `/approve` or `/reject` — shared so
+    /// a worker-thread draft reaches the inline `/reject`.
+    pub plan: super::plan::SharedPlan,
 }
 
 impl Default for Session {
@@ -50,6 +53,7 @@ impl Default for Session {
             turns: Arc::new(AtomicU64::new(0)),
             tokens: Arc::new(AtomicU64::new(0)),
             mcp: Arc::new(Mutex::new(crate::mcp::McpHost::from_config())),
+            plan: Arc::new(Mutex::new(None)),
         }
     }
 }
@@ -70,6 +74,7 @@ impl Session {
             turns: Arc::clone(&self.turns),
             tokens: Arc::clone(&self.tokens),
             mcp: Arc::clone(&self.mcp),
+            plan: Arc::clone(&self.plan),
         }
     }
 

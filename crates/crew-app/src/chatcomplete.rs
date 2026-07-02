@@ -6,9 +6,9 @@ use crew_plugin::AgentInfo;
 
 /// Every composer slash action: broker constructs plus the pane-local
 /// `/export` (see `chatexport`).
-pub(crate) const CONSTRUCTS: [&str; 12] = [
-    "/help", "/agents", "/model", "/fan", "/loop", "/goal", "/skills", "/skill", "/mcp", "/stop",
-    "/status", "/export",
+pub(crate) const CONSTRUCTS: [&str; 15] = [
+    "/help", "/agents", "/model", "/fan", "/loop", "/goal", "/plan", "/approve", "/reject",
+    "/skills", "/skill", "/mcp", "/stop", "/status", "/export",
 ];
 
 /// Complete `input`'s leading token. Returns the new input when something

@@ -16,7 +16,11 @@ pub(crate) fn is_command(text: &str) -> bool {
 pub(crate) fn is_quick(text: &str) -> bool {
     let line = text.trim().trim_start_matches('/');
     let cmd = line.split_whitespace().next().unwrap_or("");
-    is_command(text) && !matches!(cmd, "fan" | "loop" | "goal" | "skill" | "mcp")
+    is_command(text)
+        && !matches!(
+            cmd,
+            "fan" | "loop" | "goal" | "skill" | "mcp" | "plan" | "approve"
+        )
 }
 
 /// One-line summaries of every construct, shown by `/help`.
@@ -27,6 +31,9 @@ pub(crate) const HELP: &str = "constructs:\n\
     /fan <task> — every agent answers the same task in parallel\n\
     /loop <n> <task> — n relay rounds, each improving the last answer\n\
     /goal <text> — keep working until a judge agent rules the goal met\n\
+    /plan <task> — draft a numbered plan; nothing runs until /approve\n\
+    /approve — execute the pending plan\n\
+    /reject — discard the pending plan\n\
     /skills — list prompt playbooks (~/.config/crew/skills, .crew/skills)\n\
     /skill <name> <task> — run the relay with that playbook prepended\n\
     /mcp — MCP servers and their tools (~/.config/crew/mcp.json, .crew/mcp.json)\n\
@@ -50,6 +57,9 @@ pub(crate) fn handle(
         "fan" => fan_cmd(session, rest, emit),
         "loop" => super::constructs::loop_cmd(session, rest, emit),
         "goal" => super::constructs::goal_cmd(session, rest, emit),
+        "plan" => super::plan::plan_cmd(session, rest, emit),
+        "approve" => super::plan::approve_cmd(session, emit),
+        "reject" => super::plan::reject_cmd(session, emit),
         "skills" => emit(msg(
             "crew",
             super::skills::list_report(&super::skills::load()),
