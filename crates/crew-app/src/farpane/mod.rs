@@ -10,6 +10,7 @@
 //! new pane is spawned); Esc clears it. Lives in the auto-tiling grid like any
 //! other pane and renders into a `ratatui` buffer → GPU cells.
 mod fileops;
+mod icons;
 mod keys;
 mod list;
 mod render;

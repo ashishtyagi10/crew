@@ -165,3 +165,22 @@ fn short_listing_paints_no_scroll_thumb() {
         "thumb painted though everything fits"
     );
 }
+
+#[test]
+fn file_rows_show_a_type_glyph() {
+    let base = std::env::temp_dir().join("crew_far_render_glyph");
+    let _ = std::fs::remove_dir_all(&base);
+    std::fs::create_dir_all(base.join("src")).unwrap();
+    std::fs::write(base.join("main.rs"), b"x").unwrap();
+    let pane = FarPane::new(base);
+    let cells = render(&pane, 80, 24);
+    // The rust glyph precedes a .rs file; the folder glyph precedes a dir.
+    assert!(
+        cells.iter().any(|c| c.c == '\u{e7a8}'),
+        "no rust glyph rendered for main.rs"
+    );
+    assert!(
+        cells.iter().any(|c| c.c == '\u{f07b}'),
+        "no folder glyph rendered for the src/ dir"
+    );
+}

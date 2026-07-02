@@ -149,10 +149,11 @@ fn panel(buf: &mut Buffer, area: Rect, panel: &Panel, active: bool) {
         .take(h)
         .map(|e| {
             let width = inner.width as usize;
+            let glyph = super::icons::icon(e);
             let (mut name, fg) = if e.is_dir {
-                (format!("{}/", e.name), DIR)
+                (format!("{glyph} {}/", e.name), DIR)
             } else {
-                (e.name.clone(), text_col)
+                (format!("{glyph} {}", e.name), text_col)
             };
             let size = if e.is_dir {
                 String::new()
