@@ -28,6 +28,7 @@ pub(crate) const HELP: &str = "constructs:\n\
     /loop <n> <task> — n relay rounds, each improving the last answer\n\
     /goal <text> — keep working until a judge agent rules the goal met\n\
     /stop — cancel the running construct at the next checkpoint\n\
+    /status — session totals, models, and what's running\n\
     @<agent> <task> — choose who starts the relay\n\
     @<a>+<b> <task> — those agents answer in parallel";
 
@@ -46,6 +47,7 @@ pub(crate) fn handle(
         "fan" => fan_cmd(session, rest, emit),
         "loop" => super::constructs::loop_cmd(session, rest, emit),
         "goal" => super::constructs::goal_cmd(session, rest, emit),
+        "status" => emit(msg("crew", status_report(session))),
         other => emit(msg(
             "crew",
             format!("unknown construct /{other} — try /help"),
@@ -115,7 +117,35 @@ fn fan_cmd(
         "crew",
         format!("fanning out to {} agents in parallel\u{2026}", names.len()),
     ))?;
-    super::fan::fan_out(&reg, &names, task, super::stdio::call_timeout(), emit)
+    super::fan::fan_out(&reg, &names, task, super::session::call_timeout(), emit)
+}
+
+/// `/status` — what the session has done and is doing right now.
+fn status_report(session: &Session) -> String {
+    use std::sync::atomic::Ordering;
+    let running = session
+        .running()
+        .map(|l| format!("running \u{2018}{l}\u{2019}"))
+        .unwrap_or_else(|| "idle".into());
+    let pins = if session.overrides.is_empty() {
+        "none".to_string()
+    } else {
+        let mut pins: Vec<String> = session
+            .overrides
+            .iter()
+            .map(|(a, m)| format!("{a} \u{2192} {m}"))
+            .collect();
+        pins.sort();
+        pins.join(", ")
+    };
+    format!(
+        "status: {running}\n\
+         turns: {} \u{00b7} ~{} tok (approx)\n\
+         model pins: {pins}\n\n{}",
+        session.turns.load(Ordering::Relaxed),
+        session.tokens.load(Ordering::Relaxed),
+        agents_report(session),
+    )
 }
 
 /// The roster, one agent per line: name, role hint, and the model it runs.

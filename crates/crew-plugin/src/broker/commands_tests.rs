@@ -106,6 +106,32 @@ fn model_default_clears_the_pin() {
 }
 
 #[test]
+fn status_reports_totals_pins_and_running_state() {
+    let _g = testenv::mock("ok\n@done");
+    let mut session = Session::new();
+    session
+        .overrides
+        .insert("coder".into(), "qwen-turbo".into());
+    session.turns.store(4, std::sync::atomic::Ordering::Relaxed);
+    session
+        .tokens
+        .store(950, std::sync::atomic::Ordering::Relaxed);
+    *session.busy.lock().unwrap() = Some("/fan build".into());
+    let mut evs = Vec::new();
+    handle(&mut session, "/status", &mut |ev| {
+        evs.push(ev);
+        Ok(())
+    })
+    .unwrap();
+    let t = text_of(&evs[0]);
+    assert!(t.contains("running \u{2018}/fan build\u{2019}"), "{t}");
+    assert!(t.contains("turns: 4"), "{t}");
+    assert!(t.contains("~950 tok"), "{t}");
+    assert!(t.contains("coder \u{2192} qwen-turbo"), "{t}");
+    assert!(t.contains("planner"), "roster included: {t}");
+}
+
+#[test]
 fn model_unknown_agent_lists_the_roster() {
     let _g = testenv::mock("ok\n@done");
     let evs = run("/model ghost qwen-max");

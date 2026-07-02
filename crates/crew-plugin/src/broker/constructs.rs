@@ -5,8 +5,8 @@ use crate::PluginEvent;
 
 use super::relay::{msg, relay_turn, split_target};
 use super::route::clip;
-use super::session::Session;
-use super::stdio::{call_timeout, roster};
+use super::session::{call_timeout, Session};
+use super::stdio::roster;
 
 /// Hard ceiling on rounds, so a typo can't run a 100-round loop.
 pub(crate) const MAX_ROUNDS: u32 = 10;
