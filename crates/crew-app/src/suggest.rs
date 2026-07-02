@@ -237,7 +237,7 @@ fn rank(name: &str, q: &str) -> Option<u8> {
 
 /// Whether every char of `needle` appears in `hay`, in order (not necessarily
 /// contiguous).
-fn is_subsequence(needle: &str, hay: &str) -> bool {
+pub(crate) fn is_subsequence(needle: &str, hay: &str) -> bool {
     let mut chars = hay.chars();
     needle.chars().all(|c| chars.any(|h| h == c))
 }

@@ -173,7 +173,7 @@ impl CrewApp {
             let mh = mr as f32 * ch;
             let my = (ib.y - mh - GAP).max(0.0);
             scenes.push(PaneScene {
-                cells: crate::cmdmenu::menu_card(&matches, self.input.menu_sel, ic, mr),
+                cells: crate::cmdmenu::menu_card("commands", &matches, self.input.menu_sel, ic, mr),
                 x: ib.x,
                 y: my,
                 w: ib.w,
@@ -182,6 +182,48 @@ impl CrewApp {
                 bordered: false,
                 overlay: true,
             });
+        }
+
+        // @file mention popup: a "files" fieldset card sitting above the focused
+        // crew pane's composer while a mention is being typed. Overlay scene, so
+        // the overlay pass backs it with an opaque page background.
+        if !self.input.focused {
+            if let Some(pane) = self.panes.get(self.focused) {
+                if let crate::pane::PaneContent::Chat(c) = &pane.content {
+                    if let Some(m) = &c.mention {
+                        if !m.matches.is_empty() {
+                            let items: Vec<crate::suggest::MenuItem> = m
+                                .matches
+                                .iter()
+                                .map(|p| crate::suggest::MenuItem {
+                                    label: format!("@{p}"),
+                                    desc: String::new(),
+                                    fill: String::new(),
+                                    submit: false,
+                                })
+                                .collect();
+                            let r = pane.rect;
+                            let cols = (r.w / cw).floor() as u16;
+                            let mr = crate::cmdmenu::menu_rows(items.len());
+                            let comp = f32::from(crate::chatinput::composer_rows(
+                                (r.h / ch).floor() as u16,
+                            )) * ch;
+                            let mh = f32::from(mr) * ch;
+                            let my = (r.y + r.h - comp - mh).max(0.0);
+                            scenes.push(PaneScene {
+                                cells: crate::cmdmenu::menu_card("files", &items, m.sel, cols, mr),
+                                x: r.x,
+                                y: my,
+                                w: r.w,
+                                h: mh,
+                                focused: false,
+                                bordered: false,
+                                overlay: true,
+                            });
+                        }
+                    }
+                }
+            }
         }
 
         scenes
