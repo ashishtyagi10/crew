@@ -234,7 +234,10 @@ impl CrewApp {
         if !self.input.focused {
             if let Some(pane) = self.panes.get(self.focused) {
                 if let crate::pane::PaneContent::Chat(c) = &pane.content {
-                    if let Some(p) = &c.palette {
+                    // `after_edit` clears `palette` whenever it would be empty,
+                    // so this is an invariant — guarded to match the mention
+                    // block and stay safe if that ever changes.
+                    if let Some(p) = c.palette.as_ref().filter(|p| !p.items.is_empty()) {
                         let r = pane.rect;
                         let cols = (r.w / cw).floor() as u16;
                         let mr = crate::cmdmenu::menu_rows(p.items.len());
