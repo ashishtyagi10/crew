@@ -110,8 +110,43 @@ fn pulse_lanes_gate_on_height_and_engagement() {
     assert_eq!(p.top_rows(20), 2);
     p.absorb_stats(950, String::new(), 0, 0); // a turn ran
     assert_eq!(p.pulse_lanes(20), 2, "engaged + tall → one lane per agent");
-    assert_eq!(p.top_rows(20), 4, "header + 2 lanes + waterfall");
+    // `top_rows` now derives from `status_rows` (session line + chip grid +
+    // waterfall-if-hops), decoupled from `pulse_lanes`; no hop has been
+    // recorded here, so no waterfall row yet. See
+    // `status_rows_counts_session_grid_and_waterfall` for the waterfall case.
+    assert_eq!(
+        p.top_rows(20),
+        2,
+        "session line + one grid row, no hops yet"
+    );
     assert_eq!(p.pulse_lanes(10), 0, "short pane falls back");
+}
+
+#[test]
+fn status_rows_counts_session_grid_and_waterfall() {
+    let mut p = pane();
+    p.agents = vec![
+        crew_plugin::AgentInfo {
+            name: "planner".into(),
+            role: String::new(),
+            model: "m".into(),
+        },
+        crew_plugin::AgentInfo {
+            name: "coder".into(),
+            role: String::new(),
+            model: "m".into(),
+        },
+    ];
+    // Idle, wide pane: session line + one grid row (both agents fit), no
+    // waterfall yet (no turn has run).
+    assert_eq!(p.status_rows(200, 20), 2);
+    // A turn ran → the waterfall row is added.
+    p.absorb_stats(950, String::new(), 0, 0);
+    p.pulse.record_hop("planner", 1200);
+    p.pulse.end_turn();
+    assert_eq!(p.status_rows(200, 20), 3);
+    // Too narrow for any cluster → just the session line.
+    assert_eq!(p.status_rows(3, 20), 1);
 }
 
 // `on_key` takes a winit `KeyEvent`, which is #[non_exhaustive] and awkward

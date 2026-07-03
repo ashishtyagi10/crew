@@ -8,21 +8,75 @@ use crate::chat::ChatPane;
 use crate::chatlayout::layout_cells;
 
 impl ChatPane {
-    /// Rows consumed above the message body: the status header, then either
-    /// the pulse block (one lane per agent + the turn waterfall, on tall
-    /// panes once the crew is engaged) or the legacy roster/activity rows.
+    /// One `AgentView` per roster agent, snapshotting live state for the grid.
+    pub(crate) fn agent_views(&self) -> Vec<crate::chatchips::AgentView> {
+        let names = self.active_names();
+        let sum_ms: u64 = self.agent_stats.values().map(|(_, ms)| *ms).sum();
+        self.agents
+            .iter()
+            .map(|a| {
+                let active = names.contains(&a.name.as_str());
+                let ctx = self.ctx.get(&a.name).copied().unwrap_or(0);
+                let ctx_pct = crate::ctxlimit::context_limit(&a.model)
+                    .filter(|&l| l > 0)
+                    .map(|l| ((ctx * 100) / l).min(100) as u8);
+                let agent_ms = self
+                    .agent_stats
+                    .get(&a.name)
+                    .map(|(_, ms)| *ms)
+                    .unwrap_or(0);
+                let share_pct = (sum_ms > 0).then(|| ((agent_ms * 100) / sum_ms).min(100) as u8);
+                crate::chatchips::AgentView {
+                    name: a.name.clone(),
+                    model: a.model.clone(),
+                    state: self.agent_state_str(&a.name, active),
+                    tok: ctx,
+                    ctx_pct,
+                    share_pct,
+                    active,
+                }
+            })
+            .collect()
+    }
+
+    /// The state token for an agent chip: live spinner + elapsed while active,
+    /// else `·n×` with the reply count, or `idle`.
+    fn agent_state_str(&self, name: &str, active: bool) -> String {
+        if active {
+            if let Some(a) = self.active_agents().iter().find(|a| a.name == name) {
+                let f =
+                    (a.since.elapsed().as_millis() / 120) as usize % crate::update::SPINNER.len();
+                return format!(
+                    "{}{}s",
+                    crate::update::SPINNER[f],
+                    a.since.elapsed().as_secs()
+                );
+            }
+        }
+        match self.agent_stats.get(name) {
+            Some((n, _)) if *n > 0 => format!("\u{00b7}{n}\u{00d7}"),
+            _ => "idle".into(),
+        }
+    }
+
+    /// Total rows consumed above the message body: session line + chip grid +
+    /// the turn waterfall (only once a turn has run AND the pane is wide enough
+    /// for `waterfall_cells` to draw — it needs `cols >= 30`, so the count must
+    /// match or the body sizing drifts). Replaces the old header+lanes /
+    /// header+roster+activity accounting.
+    pub(crate) fn status_rows(&self, cols: u16, rows: u16) -> u16 {
+        if rows < 3 {
+            return 0; // too short — plain message fallback
+        }
+        let grid = crate::chatchips::grid_rows(&self.agent_views(), cols);
+        let waterfall = u16::from(!self.pulse.hops().is_empty() && cols >= 30);
+        (1 + grid + waterfall).min(rows.saturating_sub(2))
+    }
+
+    /// Back-compat name used by callers that only have `rows`; estimates at a
+    /// wide pane. `cells` recomputes with real `cols`.
     pub(crate) fn top_rows(&self, rows: u16) -> u16 {
-        let lanes = self.pulse_lanes(rows);
-        if lanes > 0 {
-            return 2 + lanes; // header + lanes + waterfall
-        }
-        match rows {
-            0..=2 => 0,
-            3 => 1,
-            _ if self.agents.is_empty() => 1,
-            _ if !self.active_agents().is_empty() && rows >= 6 => 3,
-            _ => 2,
-        }
+        self.status_rows(u16::MAX, rows)
     }
 
     /// Pulse lanes to draw (0 = pulse hidden, keep the legacy rows).
