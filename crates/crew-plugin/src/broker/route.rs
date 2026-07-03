@@ -87,6 +87,13 @@ pub fn repair_prompt(peers: &[String], prev: &str) -> String {
     )
 }
 
+/// Cap on the task text interpolated into every hop's prompt (see [`frame`]).
+/// The full `task` is repeated on EVERY hop of a relay, so an unbounded task
+/// costs its full length again and again as a thread grows; this is generous
+/// enough that normal tasks never notice, and only pathologically long ones
+/// get clipped (with a trailing ellipsis via [`clip`]).
+const TASK_CAP: usize = 4000;
+
 /// Build the prompt for the agent named by `env.to`. The invariant content
 /// (identity, task, the `@next`/`@done` protocol) comes first so repeated calls
 /// to the same agent in a thread share a cacheable prefix; the variable parts
@@ -103,6 +110,7 @@ pub fn frame(env: &Envelope, peers: &[String], task: &str, transcript: &str) -> 
     } else {
         transcript.to_string()
     };
+    let task = clip(task, TASK_CAP);
     compact_ws(&format!(
         "You are \"{me}\", a CLI coding agent working with peers: {peers}.\n\n\
          TASK:\n{task}\n\n\
