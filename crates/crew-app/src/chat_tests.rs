@@ -303,3 +303,25 @@ fn classify_send_pane_returns_host_action() {
         })
     );
 }
+
+#[test]
+fn slash_exit_closes_the_pane() {
+    use crate::chatkeys::{ChatAction, ChatInput};
+    let mut p = pane();
+    let cwd = std::env::temp_dir();
+    // `/exit` submitted from the composer closes the pane (like Escape), and
+    // is never sent to the broker. Palette is closed here (the accept step
+    // adds the trailing space, which `trim()` tolerates).
+    p.input = "/exit".to_string();
+    assert!(matches!(
+        p.on_input(ChatInput::Enter, &cwd),
+        Some(ChatAction::Close)
+    ));
+    // Trailing space (what the palette-accept produces) still closes.
+    let mut p = pane();
+    p.input = "/exit ".to_string();
+    assert!(matches!(
+        p.on_input(ChatInput::Enter, &cwd),
+        Some(ChatAction::Close)
+    ));
+}

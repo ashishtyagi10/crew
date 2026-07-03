@@ -205,6 +205,9 @@ impl ChatPane {
         };
         if let Some(text) = input_reduce(&mut self.input, ch, enter, backspace) {
             self.scroll = 0; // sending snaps back to the live bottom
+            if text.trim() == "/exit" {
+                return Some(ChatAction::Close); // close the pane, like Escape
+            }
             if crate::chatexport::intercept(self, &text) {
                 return None; // answered locally (e.g. /export)
             }
