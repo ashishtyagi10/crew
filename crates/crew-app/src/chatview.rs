@@ -45,15 +45,16 @@ impl ChatPane {
             if let Some(a) = self.active_agents().iter().find(|a| a.name == name) {
                 let f =
                     (a.since.elapsed().as_millis() / 120) as usize % crate::update::SPINNER.len();
+                // Space between the spinner "pixels" and the elapsed number.
                 return format!(
-                    "{}{}s",
+                    "{} {}s",
                     crate::update::SPINNER[f],
                     a.since.elapsed().as_secs()
                 );
             }
         }
         match self.agent_stats.get(name) {
-            Some((n, _)) if *n > 0 => format!("\u{00b7}{n}\u{00d7}"),
+            Some((n, _)) if *n > 0 => format!("\u{00b7} {n}\u{00d7}"),
             _ => "idle".into(),
         }
     }
