@@ -91,3 +91,36 @@ message body sizes correctly.
 - No change to hop timing / `Pulse` bookkeeping or the waterfall itself.
 - No new metrics added now (the grid just makes adding them trivial later).
 - Sidebar panels and other panes are untouched.
+
+---
+
+## Revision (user feedback, live): boxed metric fields per agent
+
+The flat `name model state tok% share%` cluster reads as a bland string. New
+per-agent layout, matching the settings pane's boxed form fields
+(`settingspane/form.rs::input_box`: rounded border + label as a legend):
+
+- **Identity line**: `▪planner qwen-max` (marker+name in agent color, model dim).
+- **Metric boxes** below it: a horizontal row of rounded boxes, one per present
+  metric, each a 3-row `╭ label ─╮ / │ value │ / ╰──────╯` with the label
+  (`state`/`tok`/`ctx`/`shr`) as the top-border legend and the value centered.
+  So each agent card is 4 rows tall (1 identity + 3 box).
+- **Packing**: agent cards pack left-to-right with a 2-col gutter and wrap, same
+  as before but the unit is now a 4-row card. `grid_rows = ceil(n/per_row) * 4`.
+- **Width-drop** (unchanged priority): drop the `shr` box, then `ctx`, then
+  `tok`, then the model text on the identity line; minimum = identity + `state`
+  box.
+- **Rendering**: build the cards with ratatui `Block::bordered().rounded()` +
+  legend into a local `Buffer`, convert via `crate::tui::to_cells` (same path as
+  the far/settings panes) — do NOT hand-draw borders as CellViews.
+
+### Row-math correctness (fixes the final review's Important #1)
+`status_rows` and `cells` MUST agree on drawn height, and neither may overdraw
+the message body/composer. Introduce ONE shared layout function
+`chatchips::layout(views, cols, avail_rows) -> Layout { rows: u16, per_row,
+level, card_w }` that caps the drawn card-rows so `1 + rows + waterfall <=
+avail_rows` (dropping trailing agent-rows, then the waterfall, when short).
+`ChatPane::status_rows` returns `1 + layout.rows + waterfall`; `cells` draws
+from the SAME `layout` result (computed once — also removes the double
+`agent_views`/`grid_rows` compute). If `avail_rows` is too small for even the
+session line + one card, fall back to the session line only (grid hidden).
