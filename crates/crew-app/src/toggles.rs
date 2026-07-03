@@ -14,12 +14,16 @@ impl CrewApp {
         self.redraw();
     }
 
-    /// Flip between the two paper themes (Ctrl+Shift+L). Reuses `set_theme_cmd`
-    /// so it persists and repaints exactly like the `/theme` command.
+    /// Advance the theme cycle (Ctrl+Shift+L): every fixed theme in order, then
+    /// `random`, then wraps — so the one hotkey reaches all of them, persists
+    /// the choice, and repaints exactly like the `/theme` command.
     pub(crate) fn toggle_theme(&mut self) {
-        // Cycle through every theme in order (paper-dark → paper-light → the CRT
-        // phosphors → wrap), so the one hotkey reaches all of them.
-        self.set_theme_cmd(crew_theme::current_id().next().as_str());
+        let label = crew_theme::cycle_next(crate::chattime::unix_now_ms());
+        self.config.theme = Some(label.to_string());
+        crate::palette::set_accent(self.config.accent_rgb());
+        self.config.save();
+        self.redraw();
+        self.set_status(format!("theme: {label}"));
     }
 
     /// Toggle zoom — the focused pane fills the content area.
@@ -36,6 +40,7 @@ mod tests {
 
     #[test]
     fn toggle_theme_cycles_forward() {
+        let _g = crate::app::theme_test_guard();
         crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
         let mut app = crate::app::CrewApp::default();
         app.toggle_theme();
@@ -43,6 +48,22 @@ mod tests {
         app.toggle_theme();
         // Past the two paper themes it steps into the CRT set (no longer a flip).
         assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::CrtGreen);
+        crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+    }
+
+    #[test]
+    fn toggle_theme_enters_random_after_the_last_fixed_theme_then_wraps() {
+        let _g = crate::app::theme_test_guard();
+        crew_theme::set_random(false, 0);
+        crew_theme::set_theme(crew_theme::ThemeId::CrtBlue);
+        let mut app = crate::app::CrewApp::default();
+        app.toggle_theme();
+        assert!(crew_theme::is_random());
+        assert_eq!(app.config.theme.as_deref(), Some("random"));
+        app.toggle_theme();
+        assert!(!crew_theme::is_random());
+        assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::PaperDark);
+        assert_eq!(app.config.theme.as_deref(), Some("paper-dark"));
         crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
     }
 

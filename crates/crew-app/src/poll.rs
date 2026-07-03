@@ -19,10 +19,21 @@ impl CrewApp {
             return;
         }
 
+        // Random theme mode: rotate on its 10-minute clock. Cheap + lock-free.
+        // Seeds `any_changed` so a rotation repaints every pane in the new theme.
+        // A rotation changes the active theme app-wide, so re-apply the themeable
+        // accent (it follows the theme when the user hasn't pinned one) exactly
+        // like every other theme-change path — otherwise the accent stays frozen
+        // on the previous theme after the first rotation.
+        let rotated = crew_theme::tick_random(crate::chattime::unix_now_ms());
+        if rotated {
+            crate::palette::set_accent(self.config.accent_rgb());
+        }
+        //
         // Drain EVERY pane each tick. A `for` loop (not `any()`/`fold`) so all
         // panes are polled for their side effects — `any()` would short-circuit
         // and starve later panes when an earlier one has output.
-        let mut any_changed = false;
+        let mut any_changed = rotated;
         // Set when any pane still has buffered PTY output past this tick's read
         // budget. We then keep the loop hot (ControlFlow::Poll) so a flood drains
         // quickly across ticks instead of trickling one budget per 16 ms — while

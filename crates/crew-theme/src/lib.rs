@@ -3,7 +3,7 @@
 //! look. The active theme lives behind a lock-free `AtomicU8` so the winit
 //! render thread can read it every frame without blocking. No dependencies and
 //! no knowledge of the other crates — they import this one.
-use std::sync::atomic::{AtomicU8, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
 
 /// Every colour the UI draws with. RGB triples; `ansi` is the 16-slot terminal
 /// palette (indices 0–15) used for shell output.
@@ -390,6 +390,79 @@ pub fn theme() -> &'static Theme {
     current_id().theme()
 }
 
+/// Random-rotation mode: when on, the active theme changes every `ROTATE_MS`.
+static RANDOM: AtomicBool = AtomicBool::new(false);
+/// Wall-clock ms of the last rotation (or of enabling random mode).
+static ROTATED_MS: AtomicU64 = AtomicU64::new(0);
+/// How long each random theme is shown before rotating: 10 minutes.
+pub const ROTATE_MS: u64 = 600_000;
+
+/// Whether random-rotation mode is active.
+pub fn is_random() -> bool {
+    RANDOM.load(Ordering::Relaxed)
+}
+
+/// Pick a theme from `ALL_THEMES` that is NOT `current`, deterministically from
+/// `seed` (so a caller can seed with a timestamp). Always changes visibly.
+pub fn random_pick(current: ThemeId, seed: u64) -> ThemeId {
+    let others: Vec<ThemeId> = ALL_THEMES
+        .iter()
+        .copied()
+        .filter(|&t| t != current)
+        .collect();
+    // Cheap hash of the seed → index; others is never empty (len == ALL_THEMES-1).
+    let idx = (seed.wrapping_mul(6364136223846793005).rotate_right(29) as usize) % others.len();
+    others[idx]
+}
+
+/// Enable/disable random-rotation mode. Enabling switches to a random theme
+/// immediately (so the effect is visible) and starts the 10-minute clock.
+pub fn set_random(on: bool, now_ms: u64) {
+    RANDOM.store(on, Ordering::Relaxed);
+    if on {
+        set_theme(random_pick(current_id(), now_ms));
+        ROTATED_MS.store(now_ms, Ordering::Relaxed);
+    }
+}
+
+/// Called each poll tick with the current wall-clock ms. When random mode is on
+/// and `ROTATE_MS` has elapsed since the last rotation, switch to a new random
+/// theme and return `true` (so the caller can request a redraw). Cheap and
+/// lock-free — safe to call at ~62 Hz on the winit thread.
+pub fn tick_random(now_ms: u64) -> bool {
+    if !RANDOM.load(Ordering::Relaxed) {
+        return false;
+    }
+    let last = ROTATED_MS.load(Ordering::Relaxed);
+    if now_ms.saturating_sub(last) < ROTATE_MS {
+        return false;
+    }
+    set_theme(random_pick(current_id(), now_ms));
+    ROTATED_MS.store(now_ms, Ordering::Relaxed);
+    true
+}
+
+/// Advance the Ctrl+Shift+L cycle one step: the 5 themes in ALL_THEMES order,
+/// then `random`, wrapping back to the first. Applies the change and returns a
+/// label for the status line (`"random"` or a theme's `as_str()`).
+pub fn cycle_next(now_ms: u64) -> &'static str {
+    if is_random() {
+        set_random(false, now_ms);
+        set_theme(ALL_THEMES[0]);
+        ALL_THEMES[0].as_str()
+    } else {
+        let cur = current_id();
+        let i = ALL_THEMES.iter().position(|&t| t == cur).unwrap_or(0);
+        if i + 1 < ALL_THEMES.len() {
+            set_theme(ALL_THEMES[i + 1]);
+            ALL_THEMES[i + 1].as_str()
+        } else {
+            set_random(true, now_ms); // last fixed theme → enter random mode
+            "random"
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -489,6 +562,88 @@ mod tests {
             let lum = |c: (u8, u8, u8)| c.0 as i32 + c.1 as i32 + c.2 as i32;
             assert!((lum(t.term_fg) - lum(t.term_bg)).abs() > 200);
         }
+    }
+
+    #[test]
+    fn random_pick_never_returns_current_and_is_deterministic() {
+        let _g = guard();
+        for current in ALL_THEMES {
+            for seed in [0u64, 1, 2, 42, 1_000, 600_000, u64::MAX, 123_456_789] {
+                let picked = random_pick(current, seed);
+                assert_ne!(picked, current, "seed {seed} picked the current theme");
+                // Same seed -> same pick (determinism).
+                assert_eq!(random_pick(current, seed), picked);
+            }
+        }
+        // Varying the seed actually varies the pick (not a constant function).
+        let current = ThemeId::PaperDark;
+        let picks: Vec<ThemeId> = (0u64..20).map(|s| random_pick(current, s)).collect();
+        assert!(
+            picks.iter().any(|&p| p != picks[0]),
+            "random_pick looks constant across seeds: {picks:?}"
+        );
+    }
+
+    #[test]
+    fn set_random_true_enables_mode_and_switches_theme_now() {
+        let _g = guard();
+        set_theme(ThemeId::PaperDark);
+        set_random(true, 1000);
+        assert!(is_random());
+        assert_ne!(current_id(), ThemeId::PaperDark);
+        set_random(false, 0);
+        set_theme(ThemeId::PaperDark);
+    }
+
+    #[test]
+    fn tick_random_fires_at_rotate_ms_when_on() {
+        let _g = guard();
+        set_theme(ThemeId::PaperDark);
+        RANDOM.store(true, Ordering::Relaxed);
+        ROTATED_MS.store(0, Ordering::Relaxed);
+        assert!(!tick_random(ROTATE_MS - 1));
+        assert_eq!(current_id(), ThemeId::PaperDark);
+        let before = current_id();
+        assert!(tick_random(ROTATE_MS));
+        assert_ne!(current_id(), before);
+
+        // Random OFF: never fires, no matter how much time has passed.
+        set_random(false, 0);
+        assert!(!tick_random(10_000_000));
+        set_theme(ThemeId::PaperDark);
+    }
+
+    #[test]
+    fn set_random_false_disables_mode() {
+        let _g = guard();
+        set_random(true, 500);
+        assert!(is_random());
+        set_random(false, 0);
+        assert!(!is_random());
+        assert!(!tick_random(10_000_000));
+        set_theme(ThemeId::PaperDark);
+    }
+
+    #[test]
+    fn cycle_next_walks_all_themes_then_random_then_wraps() {
+        let _g = guard();
+        set_random(false, 0);
+        set_theme(ThemeId::PaperDark);
+        // Starting at paper-dark, each call steps to the next fixed theme...
+        assert_eq!(cycle_next(1), "paper-light");
+        assert_eq!(current_id(), ThemeId::PaperLight);
+        assert_eq!(cycle_next(2), "crt-green");
+        assert_eq!(cycle_next(3), "crt-amber");
+        assert_eq!(cycle_next(4), "crt-blue");
+        // ...then from the last fixed theme it enters random mode...
+        assert_eq!(cycle_next(5), "random");
+        assert!(is_random());
+        // ...and from random it wraps back to the first fixed theme, off.
+        assert_eq!(cycle_next(6), "paper-dark");
+        assert!(!is_random());
+        assert_eq!(current_id(), ThemeId::PaperDark);
+        set_random(false, 0);
+        set_theme(ThemeId::PaperDark);
     }
 
     #[test]

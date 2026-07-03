@@ -13,6 +13,8 @@ use crate::chatlayout::Message;
 enum ThemeCmd {
     /// No argument: list every theme, marking the current one.
     List,
+    /// Enter random-rotation mode (rotates every 10 minutes).
+    Random,
     /// A recognized theme name: switch to it.
     Switch(crew_theme::ThemeId),
     /// An unrecognized name, kept verbatim for the error echo.
@@ -25,22 +27,32 @@ fn parse_theme_cmd(arg: &str) -> ThemeCmd {
     if arg.is_empty() {
         return ThemeCmd::List;
     }
+    if arg.eq_ignore_ascii_case("random") {
+        return ThemeCmd::Random;
+    }
     match crew_theme::ThemeId::from_name(arg) {
         Some(id) => ThemeCmd::Switch(id),
         None => ThemeCmd::Unknown(arg.to_string()),
     }
 }
 
-/// The `/theme` (no-arg) listing: every theme's name and description, the
-/// current one marked with `\u{25cf}`.
-fn theme_list_line(current: crew_theme::ThemeId) -> String {
-    let items: Vec<String> = crew_theme::ALL_THEMES
+/// The `/theme` (no-arg) listing: every theme's name and description, plus the
+/// `random` rotation mode, the active one marked with `\u{25cf}`. When
+/// `random` is true no fixed theme is marked (rotation owns the pick).
+fn theme_list_line(current: crew_theme::ThemeId, random: bool) -> String {
+    let mut items: Vec<String> = crew_theme::ALL_THEMES
         .iter()
         .map(|&id| {
-            let mark = if id == current { "\u{25cf} " } else { "" };
+            let mark = if !random && id == current {
+                "\u{25cf} "
+            } else {
+                ""
+            };
             format!("{mark}{} ({})", id.as_str(), id.describe())
         })
         .collect();
+    let random_mark = if random { "\u{25cf} " } else { "" };
+    items.push(format!("{random_mark}random (rotates every 10 min)"));
     format!(
         "themes: {} \u{2014} /theme <name> to switch",
         items.join(", ")
@@ -52,6 +64,7 @@ fn theme_names() -> String {
     crew_theme::ALL_THEMES
         .iter()
         .map(|id| id.as_str())
+        .chain(std::iter::once("random"))
         .collect::<Vec<_>>()
         .join(", ")
 }
@@ -64,9 +77,15 @@ pub(crate) fn intercept(pane: &mut ChatPane, text: &str) -> bool {
         return false;
     }
     let arg = trimmed.strip_prefix("/theme").unwrap_or("");
+    let now_ms = chrono::Local::now().timestamp_millis() as u64;
     let note = match parse_theme_cmd(arg) {
-        ThemeCmd::List => theme_list_line(crew_theme::current_id()),
+        ThemeCmd::List => theme_list_line(crew_theme::current_id(), crew_theme::is_random()),
+        ThemeCmd::Random => {
+            crew_theme::set_random(true, now_ms);
+            "theme \u{2192} random (rotates every 10 min)".to_string()
+        }
         ThemeCmd::Switch(id) => {
+            crew_theme::set_random(false, now_ms);
             crew_theme::set_theme(id);
             format!("theme \u{2192} {}", id.as_str())
         }
@@ -113,8 +132,15 @@ mod tests {
     }
 
     #[test]
+    fn parse_random_is_case_insensitive() {
+        assert_eq!(parse_theme_cmd("random"), ThemeCmd::Random);
+        assert_eq!(parse_theme_cmd("RANDOM"), ThemeCmd::Random);
+        assert_eq!(parse_theme_cmd(" Random "), ThemeCmd::Random);
+    }
+
+    #[test]
     fn list_line_names_every_theme_and_marks_the_current_one() {
-        let line = theme_list_line(ThemeId::PaperLight);
+        let line = theme_list_line(ThemeId::PaperLight, false);
         for id in crew_theme::ALL_THEMES {
             assert!(
                 line.contains(id.as_str()),
@@ -122,6 +148,7 @@ mod tests {
                 id.as_str()
             );
         }
+        assert!(line.contains("random"), "random not listed: {line}");
         assert!(
             line.contains("\u{25cf} paper-light"),
             "current theme not marked: {line}"
@@ -130,5 +157,38 @@ mod tests {
             !line.contains("\u{25cf} paper-dark"),
             "wrong theme marked: {line}"
         );
+        assert!(
+            !line.contains("\u{25cf} random"),
+            "random marked while off: {line}"
+        );
+    }
+
+    #[test]
+    fn list_line_marks_random_and_no_fixed_theme_when_random_is_on() {
+        let line = theme_list_line(ThemeId::PaperDark, true);
+        assert!(
+            line.contains("\u{25cf} random"),
+            "random not marked: {line}"
+        );
+        assert!(
+            !line.contains("\u{25cf} paper-dark"),
+            "fixed theme marked while random is on: {line}"
+        );
+    }
+
+    #[test]
+    fn theme_names_includes_random() {
+        assert!(theme_names().contains("random"));
+    }
+
+    #[test]
+    fn switch_after_random_clears_random_mode() {
+        let _g = crate::app::theme_test_guard();
+        crew_theme::set_random(true, 1_000);
+        assert!(crew_theme::is_random());
+        crew_theme::set_random(false, 2_000);
+        crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+        assert!(!crew_theme::is_random());
+        assert_eq!(crew_theme::current_id(), ThemeId::PaperDark);
     }
 }
