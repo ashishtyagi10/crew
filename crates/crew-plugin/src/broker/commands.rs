@@ -48,8 +48,9 @@ pub(crate) const HELP: &str = "constructs:\n\
     /skills — list prompt playbooks (~/.config/crew/skills, .crew/skills)\n\
     /skill <name> <task> — run the relay with that playbook prepended\n\
     /mcp — MCP servers and their tools (~/.config/crew/mcp.json, .crew/mcp.json)\n\
-    /stop — cancel the running construct at the next checkpoint\n\
-    /status — session totals, models, and what's running\n\
+    /tasks — list the background tasks running now\n\
+    /stop [#n] — cancel all background tasks, or just task #n\n\
+    /status — session totals, models, and the live task count\n\
     @<agent> <task> — choose who starts the relay\n\
     @<a>+<b> <task> — those agents answer in parallel";
 
@@ -83,7 +84,6 @@ pub(crate) fn handle(
             let report = session.lock_mcp().report();
             emit(msg("crew", report))
         }
-        "status" => emit(msg("crew", status_report(session))),
         other => emit(msg(
             "crew",
             format!("unknown construct /{other} — try /help"),
@@ -156,13 +156,15 @@ fn fan_cmd(
     super::fan::fan_out(&reg, &names, task, super::session::call_timeout(), emit)
 }
 
-/// `/status` — what the session has done and is doing right now.
-fn status_report(session: &Session) -> String {
+/// `/status` — what the session has done and is doing right now. `tasks_running`
+/// is the broker's live background-task count (0 = idle).
+pub(crate) fn status_report(session: &Session, tasks_running: usize) -> String {
     use std::sync::atomic::Ordering;
-    let running = session
-        .running()
-        .map(|l| format!("running \u{2018}{l}\u{2019}"))
-        .unwrap_or_else(|| "idle".into());
+    let running = if tasks_running == 0 {
+        "idle".to_string()
+    } else {
+        format!("{tasks_running} task(s) running")
+    };
     let pins = if session.overrides.is_empty() {
         "none".to_string()
     } else {

@@ -26,9 +26,30 @@ pub(crate) fn rel_time(ts: &str, now_ms: u64) -> Option<String> {
     })
 }
 
+/// The background-task id carried at the FRONT of a message's `meta`
+/// (`"task:<id>"` or `"task:<id> \u{00b7} <latency>"`), if any.
+pub(crate) fn task_tag(meta: &str) -> Option<u64> {
+    let rest = meta.strip_prefix("task:")?;
+    rest.split_whitespace().next()?.parse().ok()
+}
+
+/// `meta` with any leading `task:<id>` tag removed — i.e. just the latency the
+/// header tail should show (`"task:3 \u{00b7} 0.0s"` -> `"0.0s"`;
+/// `"task:3"` -> `""`; an untagged `"4.2s"` is returned unchanged).
+pub(crate) fn strip_task_tag(meta: &str) -> &str {
+    let Some(rest) = meta.strip_prefix("task:") else {
+        return meta;
+    };
+    match rest.split_once(" \u{00b7} ") {
+        Some((_id, latency)) => latency,
+        None => "",
+    }
+}
+
 /// The card header's metadata tail: ` · <rel time>` then ` · <meta>`, each part
 /// present only when known. Empty when there's nothing to say.
 pub(crate) fn meta_suffix(ts: &str, meta: &str, now_ms: u64) -> String {
+    let meta = strip_task_tag(meta);
     let mut s = String::new();
     if let Some(rel) = rel_time(ts, now_ms) {
         s.push_str(" \u{00b7} ");
@@ -69,5 +90,32 @@ mod tests {
         );
         assert_eq!(meta_suffix("", "4.2s", 1000), " \u{00b7} 4.2s");
         assert_eq!(meta_suffix("", "", 1000), "");
+    }
+
+    #[test]
+    fn task_tag_parses_the_leading_id() {
+        assert_eq!(task_tag("task:3"), Some(3));
+        assert_eq!(task_tag("task:3 \u{00b7} 0.0s"), Some(3));
+        assert_eq!(task_tag(""), None);
+        assert_eq!(task_tag("4.2s"), None);
+        assert_eq!(task_tag("task:"), None);
+        assert_eq!(task_tag("task:abc"), None);
+    }
+
+    #[test]
+    fn strip_task_tag_keeps_only_the_latency() {
+        assert_eq!(strip_task_tag("task:3 \u{00b7} 0.0s"), "0.0s");
+        assert_eq!(strip_task_tag("task:3"), "");
+        assert_eq!(strip_task_tag("4.2s"), "4.2s"); // untagged unchanged
+        assert_eq!(strip_task_tag(""), "");
+    }
+
+    #[test]
+    fn meta_suffix_drops_the_task_tag_but_keeps_latency() {
+        let s = meta_suffix("", "task:3 \u{00b7} 0.0s", 1000);
+        assert_eq!(s, " \u{00b7} 0.0s");
+        assert!(!s.contains("task:"), "tag must not leak into the tail: {s}");
+        // Tag-only meta yields no latency part.
+        assert_eq!(meta_suffix("", "task:3", 1000), "");
     }
 }
