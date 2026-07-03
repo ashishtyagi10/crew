@@ -85,13 +85,67 @@ fn cells_render_session_line_agent_chips_and_waterfall() {
     assert!(text.contains("crew"), "session line present:\n{text}");
     assert!(
         text.contains("\u{25b8}planner") || text.contains("\u{25aa}planner"),
-        "planner chip:\n{text}"
+        "planner card:\n{text}"
     );
     assert!(
         text.contains("\u{25aa}coder") || text.contains("\u{25b8}coder"),
-        "coder chip:\n{text}"
+        "coder card:\n{text}"
     );
+    assert!(text.contains("state"), "boxed metric label legend:\n{text}");
     assert!(text.contains("turn"), "waterfall row:\n{text}");
+}
+
+/// Overdraw regression: `status_rows` used to clamp the grid's row count
+/// while `cells()`'s renderer drew the grid's *unclamped* row count, so a
+/// short pane with more agents than fit could bleed the card grid into the
+/// message body. Both now derive from one `chatchips::layout` call with
+/// identical `avail`, so the drawn extent can never exceed what `status_rows`
+/// reports. Force the cap (8 agents, a short/narrow pane) and confirm it.
+#[test]
+fn cells_grid_never_overdraws_past_status_rows() {
+    let mut p = pane();
+    p.agents = (0..8)
+        .map(|i| crew_plugin::AgentInfo {
+            name: format!("agent{i}"),
+            role: String::new(),
+            model: "m".into(),
+        })
+        .collect();
+    p.absorb_stats(950, String::new(), 0, 0);
+    p.pulse.record_hop("agent0", 1200);
+    p.pulse.end_turn();
+    let (cols, rows) = (40u16, 9u16);
+    let top = p.status_rows(cols, rows);
+
+    let views = p.agent_views();
+    let wf = u16::from(!p.pulse.hops().is_empty() && cols >= 30);
+    let avail = rows.saturating_sub(2).saturating_sub(1 + wf);
+    let lay = crate::chatchips::layout(&views, cols, avail).expect("some cards fit");
+    assert_eq!(
+        top,
+        1 + lay.rows + wf,
+        "status_rows matches the shared layout's extent exactly"
+    );
+    let needed = views.len().div_ceil(lay.per_row);
+    assert!(
+        lay.card_rows < needed,
+        "the short pane forces capping below what all 8 agents need: \
+         card_rows={} needed={needed}",
+        lay.card_rows
+    );
+
+    // The renderer draws with this exact `lay` — its cells must never reach
+    // or exceed `top`.
+    let grid = crate::chatchips::grid_cells(&views, cols, 1, &lay);
+    let max_row = grid.iter().map(|c| c.row).max().unwrap_or(0);
+    assert!(
+        max_row < top,
+        "grid content stays inside the status zone: max_row={max_row} top={top}"
+    );
+
+    // And the full render pipeline still produces a sane frame at this size.
+    let cells = p.cells(cols, rows);
+    assert!(!cells.is_empty());
 }
 
 #[test]
@@ -149,16 +203,18 @@ fn status_rows_counts_session_grid_and_waterfall() {
             model: "m".into(),
         },
     ];
-    // Idle, wide pane: session line + one grid row (both agents fit), no
-    // waterfall yet (no turn has run).
-    assert_eq!(p.status_rows(200, 20), 2);
+    // Idle, wide+tall pane: session line + one card row (both agents fit, 4
+    // rows tall each), no waterfall yet (no turn has run).
+    assert_eq!(p.status_rows(200, 20), 1 + crate::chatchips::CARD_H);
     // A turn ran → the waterfall row is added.
     p.absorb_stats(950, String::new(), 0, 0);
     p.pulse.record_hop("planner", 1200);
     p.pulse.end_turn();
-    assert_eq!(p.status_rows(200, 20), 3);
-    // Too narrow for any cluster → just the session line.
+    assert_eq!(p.status_rows(200, 20), 1 + crate::chatchips::CARD_H + 1);
+    // Too narrow for any card → just the session line.
     assert_eq!(p.status_rows(3, 20), 1);
+    // Too short for even one card row → capped down.
+    assert_eq!(p.status_rows(200, 4), 1);
 }
 
 // `on_key` takes a winit `KeyEvent`, which is #[non_exhaustive] and awkward

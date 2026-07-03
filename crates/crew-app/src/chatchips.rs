@@ -1,16 +1,28 @@
-//! The crew pane's dense agent chip grid: one compact colored cluster per
-//! agent (`▸planner qwen-max ⠙3.2s 4.1k 38% 42%`), packed equal-width and
-//! wrapped to fill the pane. Replaces the per-agent pulse lanes. Pure text +
-//! geometry; `chatview` turns the chosen layout into cells.
+//! The crew pane's boxed agent status cards: one card per agent with an
+//! identity line (`▪planner qwen-max`) over a row of rounded, labeled metric
+//! boxes (`state`/`tok`/`ctx`/`shr`) — settings-form style. Replaces the old
+//! flat text clusters. `layout()` is the single source of truth for how much
+//! vertical space the grid needs, shared by `ChatPane::status_rows` (row
+//! accounting) and `chatview::cells` (the renderer), so the two can never
+//! disagree about the drawn extent (the fix for a confirmed overdraw bug).
+use ratatui::buffer::Buffer;
+use ratatui::layout::Rect;
+use ratatui::style::{Color, Modifier, Style};
+use ratatui::text::{Line, Span};
+use ratatui::widgets::{Block, BorderType, Widget};
+
 use crew_render::CellView;
 
 use crate::chathdr::fmt_tokens;
 use crate::chatroster::agent_color;
+use crate::chatwidth::str_w;
 
-/// A 2-space gutter between clusters on a row.
+/// A 2-space gutter between cards on a row.
 const GUTTER: usize = 2;
-/// Sparsest drop level (marker+name+state only).
+/// Sparsest drop level (marker+name+state box only).
 const MAX_LEVEL: u8 = 4;
+/// Identity line + a 3-row box (top border, value, bottom border).
+pub(crate) const CARD_H: u16 = 4;
 
 /// One agent's snapshot for the grid.
 pub(crate) struct AgentView {
@@ -24,116 +36,195 @@ pub(crate) struct AgentView {
     pub active: bool,
 }
 
-/// (text, colour, bold) runs for one cluster at `level` (0 = richest).
-/// Fields shed from the right as `level` rises: share%, ctx%, tok, model.
-pub(crate) fn cluster_runs(v: &AgentView, level: u8) -> Vec<(String, (u8, u8, u8), bool)> {
-    let t = crew_theme::theme();
-    let color = agent_color(&v.name);
-    let mut runs: Vec<(String, (u8, u8, u8), bool)> = Vec::new();
-    let marker = if v.active { "\u{25b8}" } else { "\u{25aa}" }; // ▸ / ▪
-    runs.push((format!("{marker}{}", v.name), color, v.active));
-    if level < 4 && !v.model.is_empty() {
-        runs.push((format!(" {}", v.model), t.text_muted, false));
+/// Computed grid geometry, shared by row accounting and rendering.
+pub(crate) struct Layout {
+    pub level: u8,
+    pub card_w: u16,
+    /// Cards per row.
+    pub per_row: usize,
+    /// Number of card ROWS actually drawn (after capping to `avail_rows`).
+    pub card_rows: usize,
+    /// `card_rows * CARD_H` — the drawn height of the grid zone.
+    pub rows: u16,
+}
+
+/// Lay out `views` into `cols` width with at most `avail_rows` rows for the
+/// grid zone (the caller has already excluded the session line and
+/// waterfall). Caps `card_rows` so `rows <= avail_rows`. `None` when nothing
+/// fits (grid hidden, session line only).
+pub(crate) fn layout(views: &[AgentView], cols: u16, avail_rows: u16) -> Option<Layout> {
+    if views.is_empty() || avail_rows < CARD_H {
+        return None;
     }
-    runs.push((format!(" {}", v.state), t.text_muted, false));
+    let level = choose_level(views, cols)?;
+    let card_w = max_card_width(views, level) as u16;
+    let per_row = per_row(card_w as usize, cols);
+    let need = views.len().div_ceil(per_row);
+    let max_card_rows = (avail_rows / CARD_H) as usize;
+    let card_rows = need.min(max_card_rows);
+    if card_rows == 0 {
+        return None;
+    }
+    Some(Layout {
+        level,
+        card_w,
+        per_row,
+        card_rows,
+        rows: (card_rows as u16) * CARD_H,
+    })
+}
+
+/// The metric boxes present at `level`, in display order: label + value.
+/// Fields shed from the right as `level` rises: shr, ctx, tok — `state` is
+/// always present.
+fn metrics_for(v: &AgentView, level: u8) -> Vec<(&'static str, String)> {
+    let mut m = vec![("state", v.state.clone())];
     if level < 3 && v.tok > 0 {
-        runs.push((format!(" {}", fmt_tokens(v.tok)), t.text_muted, false));
+        m.push(("tok", fmt_tokens(v.tok)));
     }
     if level < 2 {
         if let Some(p) = v.ctx_pct {
-            runs.push((format!(" {p}%"), t.text_muted, false));
+            m.push(("ctx", format!("{p}%")));
         }
     }
     if level < 1 {
         if let Some(p) = v.share_pct {
-            runs.push((format!(" {p}%"), t.text_muted, false));
+            m.push(("shr", format!("{p}%")));
         }
     }
-    runs
+    m
 }
 
-/// Rendered width (display columns) of a cluster at `level`.
-pub(crate) fn cluster_width(v: &AgentView, level: u8) -> usize {
-    cluster_runs(v, level)
+/// A box's outer width: 1 pad each side of the value + 2 borders, wide enough
+/// for the label legend too.
+fn box_outer_width(label: &str, value: &str) -> usize {
+    str_w(label).max(str_w(value)) + 4
+}
+
+/// Sum of the present boxes' outer widths (boxes are adjacent, no gap).
+fn box_row_width(v: &AgentView, level: u8) -> usize {
+    metrics_for(v, level)
         .iter()
-        .map(|(s, _, _)| crate::chatwidth::str_w(s))
+        .map(|(label, value)| box_outer_width(label, value))
         .sum()
 }
 
-/// The widest cluster across `views` at `level`.
-fn max_width(views: &[AgentView], level: u8) -> usize {
+/// `▪name model` (model dropped at level4).
+fn identity_width(v: &AgentView, level: u8) -> usize {
+    str_w(&identity_text(v, level))
+}
+
+fn identity_text(v: &AgentView, level: u8) -> String {
+    let marker = if v.active { '\u{25b8}' } else { '\u{25aa}' };
+    let mut s = format!("{marker}{}", v.name);
+    if level < MAX_LEVEL && !v.model.is_empty() {
+        s.push(' ');
+        s.push_str(&v.model);
+    }
+    s
+}
+
+/// A card's width at `level`: the wider of the identity line and the boxes row.
+fn card_width(v: &AgentView, level: u8) -> usize {
+    identity_width(v, level).max(box_row_width(v, level))
+}
+
+/// The widest card across `views` at `level`.
+fn max_card_width(views: &[AgentView], level: u8) -> usize {
     views
         .iter()
-        .map(|v| cluster_width(v, level))
+        .map(|v| card_width(v, level))
         .max()
         .unwrap_or(0)
 }
 
-/// The richest level (0 best) whose widest cluster fits `cols`; `None` if even
-/// the sparsest cluster overflows.
+/// The richest level (0 best) whose widest card fits `cols`; `None` if even
+/// the sparsest card overflows.
 pub(crate) fn choose_level(views: &[AgentView], cols: u16) -> Option<u8> {
     if views.is_empty() {
         return None;
     }
-    (0..=MAX_LEVEL).find(|&level| max_width(views, level) <= cols as usize)
+    (0..=MAX_LEVEL).find(|&level| max_card_width(views, level) <= cols as usize)
 }
 
-/// Clusters that fit on one row of `cols`, given equal `cluster_w` + gutter.
-pub(crate) fn per_row(cluster_w: usize, cols: u16) -> usize {
+/// Cards that fit on one row of `cols`, given equal `card_w` + gutter.
+fn per_row(card_w: usize, cols: u16) -> usize {
     let cols = cols as usize;
-    if cluster_w == 0 || cluster_w > cols {
+    if card_w == 0 || card_w > cols {
         return 1;
     }
-    // n clusters need n*w + (n-1)*gutter columns.
-    ((cols + GUTTER) / (cluster_w + GUTTER)).max(1)
+    // n cards need n*w + (n-1)*gutter columns.
+    ((cols + GUTTER) / (card_w + GUTTER)).max(1)
 }
 
-/// Rows the grid needs for `views` at `cols` (0 when nothing fits).
-pub(crate) fn grid_rows(views: &[AgentView], cols: u16) -> u16 {
-    let Some(level) = choose_level(views, cols) else {
-        return 0;
-    };
-    let w = max_width(views, level);
-    let cols_per = per_row(w, cols);
-    views.len().div_ceil(cols_per) as u16
-}
-
-/// Place the chip grid starting at `start_row`, filling `cols`. Clusters are
-/// padded to the chosen level's max width and separated by the gutter, wrapping
-/// to new rows. Returns the cells (empty when nothing fits).
-pub(crate) fn grid_cells(views: &[AgentView], cols: u16, start_row: u16) -> Vec<CellView> {
-    let Some(level) = choose_level(views, cols) else {
-        return Vec::new();
-    };
-    let w = max_width(views, level);
-    let cols_per = per_row(w, cols);
+/// Draw the boxed agent cards into a fresh Buffer, convert to cells, offset
+/// to `start_row`. Draws exactly `lay.card_rows` rows of cards (already
+/// capped by `layout`).
+pub(crate) fn grid_cells(
+    views: &[AgentView],
+    cols: u16,
+    start_row: u16,
+    lay: &Layout,
+) -> Vec<CellView> {
+    let area = Rect::new(0, 0, cols, lay.rows);
+    let mut buf = Buffer::empty(area);
     let t = crew_theme::theme();
-    let mut cells = Vec::new();
-    for (i, v) in views.iter().enumerate() {
-        let row = start_row + (i / cols_per) as u16;
-        let col0 = (i % cols_per) * (w + GUTTER);
-        let mut x = col0 as u16;
-        let max_col = (col0 + w) as u16;
-        for (s, color, bold) in cluster_runs(v, level) {
-            x = crate::chatwidth::place_row(
-                x,
-                max_col,
-                s.chars().map(|c| (c, color)),
-                |px, c, fg| {
-                    cells.push(CellView {
-                        col: px,
-                        row,
-                        c,
-                        fg,
-                        bg: t.page_bg,
-                        bold,
-                        italic: false,
-                    });
-                },
-            );
+    let dim = Color::Rgb(t.text_muted.0, t.text_muted.1, t.text_muted.2);
+    let n = views.len().min(lay.per_row * lay.card_rows);
+    for (i, v) in views.iter().take(n).enumerate() {
+        let col0 = ((i % lay.per_row) * (lay.card_w as usize + GUTTER)) as u16;
+        let row0 = (i / lay.per_row) as u16 * CARD_H;
+        draw_identity(&mut buf, v, lay.level, col0, row0, lay.card_w);
+        let mut x = col0;
+        for (label, value) in metrics_for(v, lay.level) {
+            let w = box_outer_width(label, &value) as u16;
+            let rect = Rect::new(x, row0 + 1, w, 3);
+            draw_box(&mut buf, rect, label, &value, dim);
+            x += w;
         }
     }
+    let mut cells = crate::tui::to_cells(&buf);
+    for c in &mut cells {
+        c.row += start_row;
+    }
     cells
+}
+
+/// Row 0 of a card: marker+name in the agent colour (bold while active),
+/// then ` model` in the muted colour (dropped at level4).
+fn draw_identity(buf: &mut Buffer, v: &AgentView, level: u8, x: u16, y: u16, max_w: u16) {
+    let t = crew_theme::theme();
+    let color = agent_color(&v.name);
+    let fg = Color::Rgb(color.0, color.1, color.2);
+    let muted = Color::Rgb(t.text_muted.0, t.text_muted.1, t.text_muted.2);
+    let marker = if v.active { '\u{25b8}' } else { '\u{25aa}' };
+    let mut name_style = Style::new().fg(fg);
+    if v.active {
+        name_style = name_style.add_modifier(Modifier::BOLD);
+    }
+    let mut spans = vec![Span::styled(format!("{marker}{}", v.name), name_style)];
+    if level < MAX_LEVEL && !v.model.is_empty() {
+        spans.push(Span::styled(
+            format!(" {}", v.model),
+            Style::new().fg(muted),
+        ));
+    }
+    buf.set_line(x, y, &Line::from(spans), max_w);
+}
+
+/// One rounded metric box: the label as the title legend (settings-form
+/// style), the value centered on the middle row.
+fn draw_box(buf: &mut Buffer, rect: Rect, label: &str, value: &str, dim: Color) {
+    Block::bordered()
+        .border_type(BorderType::Rounded)
+        .border_style(Style::new().fg(dim))
+        .title(Span::styled(format!(" {label} "), Style::new().fg(dim)))
+        .render(rect, buf);
+    let iw = rect.width.saturating_sub(2) as usize;
+    let vw = str_w(value);
+    let pad = iw.saturating_sub(vw) / 2;
+    let line = Line::styled(value.to_string(), Style::new().fg(dim));
+    buf.set_line(rect.x + 1 + pad as u16, rect.y + 1, &line, iw as u16);
 }
 
 #[cfg(test)]
@@ -157,92 +248,75 @@ mod tests {
     }
 
     #[test]
-    fn cluster_runs_full_level_has_all_fields_in_order() {
-        let runs = cluster_runs(&v("planner", true), 0);
-        let joined: String = runs.iter().map(|(s, _, _)| s.as_str()).collect();
-        assert!(
-            joined.starts_with("\u{25b8}planner"),
-            "marker+name: {joined}"
+    fn choose_level_drops_boxes_as_cols_shrink() {
+        let views = vec![v("planner", false)];
+        assert_eq!(choose_level(&views, 200), Some(0), "wide → full card");
+        // Between the level0 (all 4 boxes) and level1 (drops shr) widths:
+        // fits without shr, still has ctx+tok → level >= 1.
+        let l = choose_level(&views, 25).expect("still fits a level");
+        assert!(l >= 1, "mid width drops the shr box, got {l}");
+        // Just wide enough for marker+name + the state box only.
+        assert_eq!(
+            choose_level(&views, 9),
+            Some(4),
+            "very narrow-but-fits → sparsest level"
         );
-        assert!(joined.contains("qwen-max"), "model: {joined}");
-        assert!(joined.contains("\u{2819}3.2s"), "state: {joined}");
-        assert!(joined.contains("4.1k"), "tok: {joined}");
-        assert!(joined.contains("38%"), "ctx: {joined}");
-        assert!(joined.contains("42%"), "share: {joined}");
-        // Name run is the agent colour and bold while active.
-        assert!(runs
-            .iter()
-            .any(|(s, _, bold)| s.contains("planner") && *bold));
     }
 
     #[test]
-    fn drop_levels_shed_fields_from_the_right() {
-        let a = v("planner", false);
-        let full = cluster_runs(&a, 0)
-            .iter()
-            .map(|(s, _, _)| s.clone())
-            .collect::<String>();
-        assert!(full.contains("42%") && full.contains("38%") && full.contains("4.1k"));
-        let l1: String = cluster_runs(&a, 1)
-            .iter()
-            .map(|(s, _, _)| s.clone())
-            .collect();
+    fn layout_none_when_nothing_fits() {
         assert!(
-            !l1.contains("42%") && l1.contains("38%"),
-            "L1 drops share: {l1}"
+            layout(&[v("planner", false)], 3, 100).is_none(),
+            "too narrow for even the state box"
         );
-        let l2: String = cluster_runs(&a, 2)
-            .iter()
-            .map(|(s, _, _)| s.clone())
-            .collect();
-        assert!(
-            !l2.contains("38%") && l2.contains("4.1k"),
-            "L2 drops ctx: {l2}"
-        );
-        let l3: String = cluster_runs(&a, 3)
-            .iter()
-            .map(|(s, _, _)| s.clone())
-            .collect();
-        assert!(
-            !l3.contains("4.1k") && l3.contains("qwen-max"),
-            "L3 drops tok: {l3}"
-        );
-        let l4: String = cluster_runs(&a, 4)
-            .iter()
-            .map(|(s, _, _)| s.clone())
-            .collect();
-        assert!(
-            !l4.contains("qwen-max") && l4.contains("planner"),
-            "L4 drops model: {l4}"
-        );
-        assert!(l4.contains("2\u{00d7}"), "L4 keeps state: {l4}");
     }
 
     #[test]
-    fn choose_level_prefers_richer_when_wide_and_degrades_when_narrow() {
-        let views = vec![v("planner", false), v("coder", false)];
-        assert_eq!(choose_level(&views, 200), Some(0), "wide → full");
-        let l = choose_level(&views, 22).expect("still fits a minimal cluster");
-        assert!(l >= 3, "narrow → a sparse level, got {l}");
-        assert_eq!(choose_level(&views, 3), None, "too narrow for any cluster");
+    fn layout_caps_card_rows_to_available() {
+        let views: Vec<AgentView> = (0..6).map(|i| v(&format!("a{i}"), false)).collect();
+        // Narrow enough that only one card fits per row.
+        let cols = 32;
+        assert_eq!(per_row(max_card_width(&views, 0), cols), 1);
+        let lay = layout(&views, cols, 8).expect("fits at some level");
+        assert_eq!(lay.card_rows, 2, "capped to 8/CARD_H, not the 6 needed");
+        assert_eq!(lay.rows, 8);
+        assert!(
+            layout(&views, cols, 3).is_none(),
+            "avail_rows < CARD_H → None"
+        );
     }
 
     #[test]
-    fn grid_rows_packs_multiple_per_row_and_wraps() {
-        let views = vec![v("a", false), v("b", false), v("c", false)];
-        // Very wide: all three on one row.
-        assert_eq!(grid_rows(&views, 240), 1);
-        // Enough for one cluster per row: three rows.
-        let w = cluster_width(&views[0], choose_level(&views, 26).unwrap()) as u16;
-        assert_eq!(grid_rows(&views, w + 2), 3);
-        // Nothing fits.
-        assert_eq!(grid_rows(&views, 3), 0);
-    }
-
-    #[test]
-    fn per_row_is_at_least_one_and_accounts_for_the_gutter() {
-        assert_eq!(per_row(10, 10), 1);
-        assert_eq!(per_row(10, 21), 1); // 10 + 2 gutter + 10 = 22 > 21
-        assert_eq!(per_row(10, 22), 2);
+    fn grid_cells_draws_identity_and_boxed_labels() {
+        let views = vec![AgentView {
+            name: "planner".into(),
+            model: "qwen-max".into(),
+            state: "\u{00b7}1\u{00d7}".into(),
+            tok: 1_200,
+            ctx_pct: Some(3),
+            share_pct: Some(100),
+            active: false,
+        }];
+        let cols = 60;
+        let lay = layout(&views, cols, 40).expect("fits");
+        let start_row = 3;
+        let cells = grid_cells(&views, cols, start_row, &lay);
+        let text: String = cells.iter().map(|c| c.c).collect();
+        assert!(text.contains("planner"), "name: {text}");
+        assert!(text.contains("state"), "state label: {text}");
+        assert!(text.contains("tok"), "tok label: {text}");
+        assert!(text.contains("ctx"), "ctx label: {text}");
+        assert!(text.contains("shr"), "shr label: {text}");
+        assert!(
+            cells.iter().any(|c| c.c == '\u{256d}' || c.c == '\u{2570}'),
+            "rounded corner glyph present"
+        );
+        assert!(text.contains("1.2k"), "tok value: {text}");
+        assert!(text.contains("3%"), "ctx value: {text}");
+        let max_row = cells.iter().map(|c| c.row).max().unwrap_or(0);
+        assert!(
+            max_row < start_row + CARD_H,
+            "card stays within CARD_H rows: max_row={max_row}"
+        );
     }
 }

@@ -59,18 +59,23 @@ impl ChatPane {
         }
     }
 
-    /// Total rows consumed above the message body: session line + chip grid +
+    /// Total rows consumed above the message body: session line + card grid +
     /// the turn waterfall (only once a turn has run AND the pane is wide enough
     /// for `waterfall_cells` to draw — it needs `cols >= 30`, so the count must
-    /// match or the body sizing drifts). Replaces the old header+lanes /
-    /// header+roster+activity accounting.
+    /// match or the body sizing drifts). Derives from `chatchips::layout`, the
+    /// same function the renderer uses, so the two can never disagree about
+    /// the drawn extent.
     pub(crate) fn status_rows(&self, cols: u16, rows: u16) -> u16 {
         if rows < 3 {
             return 0; // too short — plain message fallback
         }
-        let grid = crate::chatchips::grid_rows(&self.agent_views(), cols);
-        let waterfall = u16::from(!self.pulse.hops().is_empty() && cols >= 30);
-        (1 + grid + waterfall).min(rows.saturating_sub(2))
+        let views = self.agent_views();
+        let wf = u16::from(!self.pulse.hops().is_empty() && cols >= 30);
+        let avail = rows.saturating_sub(2).saturating_sub(1 + wf);
+        match crate::chatchips::layout(&views, cols, avail) {
+            Some(l) => 1 + l.rows + wf,
+            None => 1, // session line only
+        }
     }
 
     /// Back-compat name used by callers that only have `rows`; estimates at a
@@ -111,24 +116,31 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
         status.as_ref().map(|(l, s, c)| (l.as_str(), *s, *c)),
         (pane.tokens, pane.turns),
     );
-    // Zone 2: the agent chip grid (rows 1..1+grid).
+    // Zone 2: the boxed agent status cards (rows 1..1+lay.rows), sized by the
+    // same `layout` call `status_rows` used above — so the two always agree
+    // on the drawn extent (no overdraw onto the message body).
     let views = pane.agent_views();
-    let grid = crate::chatchips::grid_rows(&views, cols);
-    cells.extend(crate::chatchips::grid_cells(&views, cols, 1));
-    // Zone 3: the turn waterfall below the grid, once a turn ran (and only when
-    // wide enough to draw — matches status_rows' cols>=30 gate). `live` is the
-    // newest thinking agent's still-growing segment.
-    if !pane.pulse.hops().is_empty() && cols >= 30 {
-        let live = pane
-            .active_agents()
-            .last()
-            .map(|a| (a.name.as_str(), a.since.elapsed().as_millis() as u64));
-        cells.extend(crate::chatpulse::waterfall_cells(
-            cols,
-            1 + grid,
-            pane.pulse.hops(),
-            live,
-        ));
+    let wf_possible = !pane.pulse.hops().is_empty() && cols >= 30;
+    let avail = rows
+        .saturating_sub(2)
+        .saturating_sub(1 + u16::from(wf_possible));
+    if let Some(lay) = crate::chatchips::layout(&views, cols, avail) {
+        cells.extend(crate::chatchips::grid_cells(&views, cols, 1, &lay));
+        // Zone 3: the turn waterfall below the grid, once a turn ran (and only
+        // when wide enough to draw — matches status_rows' cols>=30 gate).
+        // `live` is the newest thinking agent's still-growing segment.
+        if wf_possible {
+            let live = pane
+                .active_agents()
+                .last()
+                .map(|a| (a.name.as_str(), a.since.elapsed().as_millis() as u64));
+            cells.extend(crate::chatpulse::waterfall_cells(
+                cols,
+                1 + lay.rows,
+                pane.pulse.hops(),
+                live,
+            ));
+        }
     }
     let bottom = crate::chatinput::composer_rows(rows);
     if pane.messages.is_empty() {
