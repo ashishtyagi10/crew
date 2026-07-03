@@ -186,3 +186,30 @@ fn frame_handles_no_peers_and_empty_transcript() {
     assert!(p.contains("(none)"));
     assert!(p.contains("you are first"));
 }
+
+#[test]
+fn frame_leaves_a_normal_length_task_unchanged() {
+    let env = Envelope::new("user", "claude", "t", "hi");
+    let task = "a".repeat(TASK_CAP - 1);
+    let p = frame(&env, &[], &task, "");
+    assert!(
+        p.contains(&task),
+        "task under the cap must pass through whole"
+    );
+}
+
+#[test]
+fn frame_caps_a_pathologically_long_task() {
+    let env = Envelope::new("user", "claude", "t", "hi");
+    let task = "a".repeat(TASK_CAP * 3);
+    let p = frame(&env, &[], &task, "");
+    assert!(
+        p.len() < task.len(),
+        "frame output must be bounded by the task cap, not scale with it"
+    );
+    assert!(p.contains('…'), "truncation must leave the clip marker");
+    assert!(
+        !p.contains(&task),
+        "the full oversized task must not appear verbatim"
+    );
+}

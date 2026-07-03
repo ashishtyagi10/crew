@@ -211,6 +211,9 @@ impl ChatPane {
             if crate::chatexport::intercept(self, &text) {
                 return None; // answered locally (e.g. /export)
             }
+            if crate::chattheme::intercept(self, &text) {
+                return None; // answered locally (/theme list or switch)
+            }
             if !text.is_empty() {
                 let cmd = PluginCommand::Send {
                     channel: self.channel.clone(),

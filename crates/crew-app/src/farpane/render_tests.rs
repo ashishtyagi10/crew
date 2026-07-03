@@ -96,11 +96,11 @@ fn legend_shows_the_entry_count() {
 }
 
 #[test]
-fn legend_shows_zero_for_an_empty_dir() {
+fn legend_shows_empty_for_a_zero_entry_dir() {
     use super::legend;
     use std::path::Path;
     let s = legend(Path::new("/tmp/empty"), 0, 0, 40);
-    assert!(s.contains("\u{00b7} 0"), "{s}");
+    assert!(s.contains("\u{00b7} empty"), "{s}");
 }
 
 #[test]
@@ -122,11 +122,15 @@ fn legend_shows_total_size_after_the_count() {
 }
 
 #[test]
-fn legend_shows_zero_bytes_for_an_empty_total() {
+fn legend_says_empty_not_zero_bytes_for_a_zero_entry_dir() {
     use super::legend;
     use std::path::Path;
     let s = legend(Path::new("/tmp/empty"), 0, 0, 40);
-    assert!(s.contains("\u{00b7} 0 \u{00b7} 0 B"), "{s}");
+    assert!(s.contains("\u{00b7} empty"), "{s}");
+    assert!(
+        !s.contains("0 B"),
+        "must not fall back to the size suffix: {s}"
+    );
 }
 
 #[test]

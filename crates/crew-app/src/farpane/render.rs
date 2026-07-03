@@ -240,12 +240,18 @@ fn fmt_size(bytes: u64) -> String {
 }
 
 /// `" /path · N · size "` — `N` is the panel's entry count and `size` its
-/// total byte size (via `fmt_size`). The suffix stays intact whenever there's
-/// room for it at all; the path truncates from the left (keeping the tail) to
-/// fit `width`, same as before the count/size were added.
+/// total byte size (via `fmt_size`). A directory with zero entries shows
+/// `· empty` instead of the (always-zero, redundant) `· 0 · 0 B` — a plain
+/// word reads faster than two zeros. The suffix stays intact whenever
+/// there's room for it at all; the path truncates from the left (keeping the
+/// tail) to fit `width`, same as before the count/size were added.
 fn legend(cwd: &std::path::Path, count: usize, total: u64, width: u16) -> String {
     let full = cwd.to_string_lossy();
-    let suffix = format!(" \u{00b7} {count} \u{00b7} {} ", fmt_size(total));
+    let suffix = if count == 0 {
+        " \u{00b7} empty ".to_string()
+    } else {
+        format!(" \u{00b7} {count} \u{00b7} {} ", fmt_size(total))
+    };
     let max = (width as usize).saturating_sub(1 + suffix.chars().count());
     if full.chars().count() <= max || max == 0 {
         return format!(" {full}{suffix}");

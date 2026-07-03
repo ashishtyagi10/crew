@@ -325,3 +325,38 @@ fn slash_exit_closes_the_pane() {
         Some(ChatAction::Close)
     ));
 }
+
+#[test]
+fn slash_theme_lists_and_switches_without_reaching_the_broker() {
+    use crate::chatkeys::ChatInput;
+
+    let mut p = pane();
+    let cwd = std::env::temp_dir();
+
+    // No arg: lists the themes locally, pane stays open, nothing sent.
+    p.input = "/theme".to_string();
+    assert!(p.on_input(ChatInput::Enter, &cwd).is_none());
+    let note = &p.messages.last().expect("a crew note was pushed").text;
+    assert!(
+        note.contains("paper-dark") && note.contains("crt-blue"),
+        "got: {note}"
+    );
+
+    // A known name switches the live theme and echoes it.
+    p.input = "/theme crt-amber".to_string();
+    assert!(p.on_input(ChatInput::Enter, &cwd).is_none());
+    assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::CrtAmber);
+    let note = &p.messages.last().unwrap().text;
+    assert!(
+        note.contains("theme") && note.contains("crt-amber"),
+        "got: {note}"
+    );
+    crew_theme::set_theme(crew_theme::ThemeId::PaperDark); // reset (global atomic)
+
+    // An unknown name reports the failure instead of switching.
+    p.input = "/theme nope".to_string();
+    assert!(p.on_input(ChatInput::Enter, &cwd).is_none());
+    assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::PaperDark);
+    let note = &p.messages.last().unwrap().text;
+    assert!(note.contains("unknown theme"), "got: {note}");
+}

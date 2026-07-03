@@ -22,6 +22,7 @@ mod chatpulse;
 mod chatroster;
 mod chatscroll;
 mod chatspawn;
+mod chattheme;
 mod chattime;
 mod chatview;
 mod chatwidth;
