@@ -84,6 +84,9 @@ fn send(
     use std::time::Instant;
     tasks.reap();
     let trimmed = text.trim().to_string();
+    // First whitespace token, so `/tasks` and `/status` tolerate trailing args
+    // (they take none) instead of misrouting to "unknown construct".
+    let cmd0 = trimmed.split_whitespace().next().unwrap_or("");
 
     // /stop [#N] — cancel one task or all.
     if trimmed == "/stop" || trimmed.starts_with("/stop ") {
@@ -107,7 +110,7 @@ fn send(
     }
 
     // /tasks — list running tasks.
-    if trimmed == "/tasks" {
+    if cmd0 == "/tasks" {
         let lines = tasks.describe(Instant::now());
         let body = if lines.is_empty() {
             "no background tasks running".to_string()
@@ -119,7 +122,7 @@ fn send(
 
     // /status — session totals plus the LIVE task count (needs the registry,
     // so it's handled here rather than in commands::handle).
-    if trimmed == "/status" {
+    if cmd0 == "/status" {
         return emit(
             out,
             &msg("crew", super::commands::status_report(session, tasks.len())),
@@ -168,9 +171,15 @@ fn send(
                 tokens.fetch_add(*t, Ordering::Relaxed);
             }
             if let PluginEvent::Message { meta, .. } = &mut ev {
-                if meta.is_empty() {
-                    *meta = format!("task:{id}");
-                }
+                // Combine the task id with any existing `meta` (the hop latency,
+                // e.g. "0.0s", which the app also renders as the log-line
+                // latency) — an `if meta.is_empty()` guard would skip exactly
+                // the agent replies the tag exists to disambiguate.
+                *meta = if meta.is_empty() {
+                    format!("task:{id}")
+                } else {
+                    format!("task:{id} \u{00b7} {meta}") // e.g. "task:3 · 0.0s"
+                };
             }
             emit(&out_thread, &ev)
         };

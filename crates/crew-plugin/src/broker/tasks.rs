@@ -43,9 +43,10 @@ impl Tasks {
         self.running.len() < Self::max()
     }
 
-    /// Register a spawned task in one step; returns its new id. (Used by the
-    /// unit tests; `stdio` uses `reserve` + `attach` because it needs the id
-    /// before the `JoinHandle` exists.)
+    /// Register a spawned task in one step; returns its new id. (Test-only:
+    /// `stdio` uses `reserve` + `attach` because it needs the id before the
+    /// `JoinHandle` exists, so `register` is dead code in the non-test build.)
+    #[cfg(test)]
     pub(crate) fn register(
         &mut self,
         label: String,

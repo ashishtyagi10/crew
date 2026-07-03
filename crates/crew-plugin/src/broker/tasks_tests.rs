@@ -62,6 +62,23 @@ fn admit_respects_the_cap() {
 }
 
 #[test]
+fn admit_is_false_once_at_the_cap() {
+    // Register exactly Tasks::max() live tasks and confirm admission is then
+    // refused (the "third over cap is rejected" spec requirement). Reads the
+    // live cap instead of mutating CREW_MAX_TASKS, so it's safe under the
+    // parallel test runner.
+    let mut t = Tasks::new();
+    let max = Tasks::max();
+    for i in 0..max {
+        let (c, h) = spawn_flag();
+        t.register(format!("t{i}"), c, h, Instant::now());
+    }
+    assert_eq!(t.len(), max);
+    assert!(!t.admit(), "a registry at the cap must refuse admission");
+    t.cancel_all();
+}
+
+#[test]
 fn describe_lists_id_and_label() {
     let mut t = Tasks::new();
     let (c1, h1) = spawn_flag();
