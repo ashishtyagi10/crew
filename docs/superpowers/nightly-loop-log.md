@@ -25,3 +25,12 @@ Each iteration appends a section below. Iteration numbering starts at 1.
 - Gate: fmt ok · clippy clean · tests 904 pass · security review CLEAN (0 findings; adversarial 3-lens + skeptics).
 - Release: v0.5.47.
 - Crossed off menu: opencode fuzzy command palette.
+
+## Iteration 3 — 2026-07-03 02:52 EDT — RELEASED v0.5.48
+- Feature (claude-code): single-letter slash aliases expanded at send time (`/s`→`/status`, `/t`→`/tasks`, `/h`→`/help`, `/a`→`/agents`, `/d`→`/diff`, `/m`→`/model`); applied before routing so aliases reach the stdio interceptors too. [crew-plugin/src/broker/commands.rs, stdio.rs]
+- UI: composer shows a dim placeholder hint when empty (`type a task · / for constructs · @ to pick an agent`). [crew-app/src/chatinput.rs]
+- Token opt: empty/whitespace agent replies are no longer stored in the relay transcript, so they stop costing tokens on every subsequent hop. [crew-plugin/src/broker/engine.rs]
+- UX (claude-code "did you mean"): an unknown construct suggests the closest match (`/stauts` → "did you mean /status?"). [crew-plugin/src/broker/commands.rs]
+- Gate: fmt ok · clippy clean · tests 915 pass · security review CLEAN (0 confirmed; adversarial scan + skeptics).
+- Release: v0.5.48.
+- Crossed off menu: claude-code slash-command aliases.
