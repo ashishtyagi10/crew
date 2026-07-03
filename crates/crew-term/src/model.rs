@@ -24,6 +24,31 @@ fn is_echo_grey((r, g, b): (u8, u8, u8)) -> bool {
     (mx <= 96 || mn >= 160) && mx - mn <= 24
 }
 
+/// Whether a program-painted background should be dropped to the canvas.
+///
+/// In a dark theme, agent CLIs paint "highlight" backgrounds tuned to
+/// whichever theme they detected at startup — dark grey, light grey, or
+/// (after a live switch) the opposite-theme variant — and any of those reads
+/// as an ugly box on the flat dark canvas regardless of how close to the
+/// extremes it sits. So in dark mode we drop any low-saturation (`≤24`
+/// channel spread) background, MID-grey included, plus any background bright
+/// enough to itself read as a light "highlight" box (luminance `> 0.6`) even
+/// if it happens to carry a little saturation. Saturated *dark* colours
+/// (spread `> 24` and luminance `≤ 0.6` — diff red/green, error rows) survive
+/// untouched.
+///
+/// In a light theme the existing (dark/light-extreme-only) echo-grey
+/// behaviour is unchanged.
+fn should_drop_bg((r, g, b): (u8, u8, u8), dark: bool) -> bool {
+    if dark {
+        let mx = r.max(g).max(b);
+        let mn = r.min(g).min(b);
+        (mx - mn <= 24) || crate::contrast::luminance((r, g, b)) > 0.6
+    } else {
+        is_echo_grey((r, g, b))
+    }
+}
+
 use crate::color::{default_bg, default_fg, resolve_color};
 use crate::listener::TermEvents;
 
@@ -127,6 +152,7 @@ impl TermCore {
         let off = content.display_offset as i32;
         let cursor = content.cursor;
         let selection = content.selection;
+        let dark = crate::contrast::luminance(default_bg()) < 0.5;
         let mut out: Vec<RenderCell> = content
             .display_iter
             .filter(|ind| ind.c != ' ' && ind.c != '\0' && ind.point.line.0 + off >= 0)
@@ -144,8 +170,12 @@ impl TermCore {
                 // startup — dark grey on dark, light grey on light — which reads
                 // as a muddy (or glaring) block on the actual canvas. Drop those
                 // echo greys so the text shows plainly, while keeping saturated
-                // backgrounds that carry meaning (diffs, errors).
-                if is_echo_grey(bg) {
+                // backgrounds that carry meaning (diffs, errors). In a dark
+                // theme this also flattens MID-grey and any light "highlight"
+                // background (see `should_drop_bg`), since the flat-canvas
+                // vision is stricter there than the light-theme extremes-only
+                // check.
+                if should_drop_bg(bg, dark) {
                     bg = default_bg();
                 }
                 // Selected cells take the selection background, drawn over any
@@ -440,6 +470,27 @@ mod selection_tests {
     }
 
     #[test]
+    fn mid_grey_program_background_is_flattened_in_dark_theme() {
+        // The regression `is_echo_grey` missed: a MID-grey highlight (neither
+        // near-black nor near-white) still reads as an ugly box on the flat
+        // dark canvas and must be dropped too. Only meaningful if the test
+        // theme is dark (default is PaperDark — see crew-theme's
+        // `default_is_paper_dark`); the pure `should_drop_bg` tests below are
+        // the primary coverage regardless of theme.
+        let mut t = HeadlessTerm::new(GridSize { cols: 20, rows: 2 });
+        t.feed(b"X\x1b[48;2;140;140;140mH\x1b[0m");
+        let cells = t.cells(false);
+        let x = cells.iter().find(|c| c.c == 'X').expect("X rendered");
+        let h = cells.iter().find(|c| c.c == 'H').expect("H rendered");
+        if crew_theme::theme().term_bg == crew_theme::PAPER_DARK.term_bg {
+            assert_eq!(
+                h.bg, x.bg,
+                "mid-grey program background should be flattened in a dark theme"
+            );
+        }
+    }
+
+    #[test]
     fn light_grey_echo_background_is_dropped() {
         // The same echo highlight painted for the OPPOSITE theme: a CLI that
         // detected a light background (or outlived a live switch to dark)
@@ -506,5 +557,40 @@ mod selection_tests {
         t.sel_update(3, 1);
         let txt = t.sel_text().unwrap_or_default();
         assert!(txt.contains("bcd") && txt.contains("BCD"), "got {txt:?}");
+    }
+}
+
+#[cfg(test)]
+mod should_drop_bg_tests {
+    use super::should_drop_bg;
+
+    #[test]
+    fn dark_theme_drops_mid_grey() {
+        // The regression the old `is_echo_grey` missed: a MID-grey highlight
+        // (neither near-black nor near-white) reads just as ugly on a flat
+        // dark canvas as the extremes did.
+        assert!(should_drop_bg((140, 140, 140), true));
+    }
+
+    #[test]
+    fn dark_theme_drops_light_grey() {
+        assert!(should_drop_bg((230, 230, 230), true));
+    }
+
+    #[test]
+    fn dark_theme_keeps_saturated_diff_green() {
+        assert!(!should_drop_bg((30, 110, 50), true));
+    }
+
+    #[test]
+    fn dark_theme_keeps_saturated_diff_red() {
+        assert!(!should_drop_bg((110, 40, 45), true));
+    }
+
+    #[test]
+    fn light_theme_keeps_mid_grey() {
+        // Light-theme behaviour is unchanged: `is_echo_grey`'s extremes-only
+        // check does not treat mid-grey as an echo highlight.
+        assert!(!should_drop_bg((140, 140, 140), false));
     }
 }
