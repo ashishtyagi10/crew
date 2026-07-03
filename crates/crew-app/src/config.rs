@@ -312,6 +312,7 @@ mod tests {
 
     #[test]
     fn accent_rgb_parses_or_falls_back() {
+        let _g = crate::app::theme_test_guard();
         crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
         // Unset → active theme default.
         assert_eq!(

@@ -329,6 +329,7 @@ fn slash_exit_closes_the_pane() {
 #[test]
 fn slash_theme_lists_and_switches_without_reaching_the_broker() {
     use crate::chatkeys::ChatInput;
+    let _g = crate::app::theme_test_guard();
 
     let mut p = pane();
     let cwd = std::env::temp_dir();
@@ -359,6 +360,43 @@ fn slash_theme_lists_and_switches_without_reaching_the_broker() {
     assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::PaperDark);
     let note = &p.messages.last().unwrap().text;
     assert!(note.contains("unknown theme"), "got: {note}");
+}
+
+#[test]
+fn slash_theme_random_enters_rotation_and_a_named_switch_clears_it() {
+    use crate::chatkeys::ChatInput;
+    let _g = crate::app::theme_test_guard();
+
+    let mut p = pane();
+    let cwd = std::env::temp_dir();
+    crew_theme::set_random(false, 0);
+    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+
+    // `/theme random` enters rotation mode and echoes it, without reaching
+    // the broker.
+    p.input = "/theme random".to_string();
+    assert!(p.on_input(ChatInput::Enter, &cwd).is_none());
+    assert!(crew_theme::is_random());
+    let note = &p.messages.last().unwrap().text;
+    assert!(
+        note.contains("random") && note.contains("10 min"),
+        "got: {note}"
+    );
+
+    // The listing marks `random`, not any fixed theme, while rotation is on.
+    p.input = "/theme".to_string();
+    assert!(p.on_input(ChatInput::Enter, &cwd).is_none());
+    let note = &p.messages.last().unwrap().text;
+    assert!(note.contains("\u{25cf} random"), "got: {note}");
+
+    // Switching to a named theme turns rotation back off.
+    p.input = "/theme paper-light".to_string();
+    assert!(p.on_input(ChatInput::Enter, &cwd).is_none());
+    assert!(!crew_theme::is_random());
+    assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::PaperLight);
+
+    crew_theme::set_random(false, 0);
+    crew_theme::set_theme(crew_theme::ThemeId::PaperDark); // reset (global atomic)
 }
 
 #[test]

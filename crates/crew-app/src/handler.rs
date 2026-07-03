@@ -60,7 +60,13 @@ pub fn run() -> anyhow::Result<()> {
     let event_loop = EventLoop::new()?;
     let config = CrewConfig::load();
     // Apply the theme first; the accent default reads the active theme.
-    crew_theme::set_theme(config.theme_id());
+    // A saved `random` pin resumes rotation mode; `theme_id()` would otherwise
+    // silently default it to paper-dark (it only parses fixed theme names).
+    if config.theme.as_deref() == Some("random") {
+        crew_theme::set_random(true, crate::chattime::unix_now_ms());
+    } else {
+        crew_theme::set_theme(config.theme_id());
+    }
     // Seed the themeable accent from config before the first frame.
     crate::palette::set_accent(config.accent_rgb());
     let cwd = crate::cwd::resolved_start(config.last_dir.as_deref());

@@ -229,6 +229,17 @@ pub(crate) fn submit_bytes(line: &str) -> Vec<u8> {
     bytes
 }
 
+/// Serialises tests that mutate crew-theme's process-global state (`CURRENT`,
+/// the random-rotation atomics): several files across this crate exercise
+/// `/theme` behaviour (chattheme.rs, toggles.rs, spawn.rs, config.rs) and
+/// would otherwise race under the default parallel test runner. Mirrors the
+/// `guard()` used by crew-theme's own tests.
+#[cfg(test)]
+pub(crate) fn theme_test_guard() -> std::sync::MutexGuard<'static, ()> {
+    static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    LOCK.lock().unwrap_or_else(|e| e.into_inner())
+}
+
 #[cfg(test)]
 #[path = "app_tests.rs"]
 mod tests;

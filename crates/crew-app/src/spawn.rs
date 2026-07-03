@@ -246,7 +246,17 @@ impl CrewApp {
     /// by `apply_settings`, which then persists.
     pub(crate) fn apply_config(&mut self, cfg: CrewConfig) {
         self.config = cfg;
-        crew_theme::set_theme(self.config.theme_id());
+        // Reconcile random-rotation mode with the applied theme (mirrors startup
+        // in handler.rs and the `/theme` paths): a saved `random` pin resumes
+        // rotation; any fixed theme stops it — otherwise a theme chosen in the
+        // Settings pane keeps getting overridden by the rotation, and applying an
+        // unrelated setting while random would force paper-dark.
+        if self.config.theme.as_deref() == Some("random") {
+            crew_theme::set_random(true, crate::chattime::unix_now_ms());
+        } else {
+            crew_theme::set_random(false, crate::chattime::unix_now_ms());
+            crew_theme::set_theme(self.config.theme_id());
+        }
         // Apply the themeable accent app-wide (render code reads it via palette).
         crate::palette::set_accent(self.config.accent_rgb());
         let scale = self
@@ -274,12 +284,23 @@ impl CrewApp {
         self.set_status(format!("font size {}", self.config.font_size as i32));
     }
 
-    /// `/theme [paper-light|paper-dark]`: switch the active theme live, persist
-    /// the choice, and repaint. With no/unknown arg, report the current theme.
+    /// `/theme [paper-light|paper-dark|random]`: switch the active theme live,
+    /// persist the choice, and repaint. `random` enters rotation mode (a new
+    /// random theme every 10 minutes); any other name pins that theme and
+    /// stops rotation. With no/unknown arg, report the current theme.
     pub(crate) fn set_theme_cmd(&mut self, arg: &str) {
         let arg = arg.trim();
         if arg.is_empty() {
             self.set_status(format!("theme: {}", crew_theme::current_id().as_str()));
+            return;
+        }
+        if arg.eq_ignore_ascii_case("random") {
+            crew_theme::set_random(true, crate::chattime::unix_now_ms());
+            self.config.theme = Some("random".to_string());
+            crate::palette::set_accent(self.config.accent_rgb());
+            self.config.save();
+            self.redraw();
+            self.set_status("theme: random".to_string());
             return;
         }
         let Some(id) = crew_theme::ThemeId::from_name(arg) else {
@@ -292,6 +313,7 @@ impl CrewApp {
             return;
         };
         self.config.theme = Some(id.as_str().to_string());
+        crew_theme::set_random(false, crate::chattime::unix_now_ms());
         crew_theme::set_theme(id);
         // Re-apply the accent default (it follows the theme when the user hasn't
         // set an explicit accent).
