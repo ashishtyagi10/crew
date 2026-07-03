@@ -87,6 +87,33 @@ fn tiny_renders_nothing() {
 }
 
 #[test]
+fn legend_shows_the_entry_count() {
+    use super::legend;
+    use std::path::Path;
+    let s = legend(Path::new("/tmp/project"), 3, 40);
+    assert!(s.contains("/tmp/project"), "{s}");
+    assert!(s.contains("\u{00b7} 3"), "{s}");
+}
+
+#[test]
+fn legend_shows_zero_for_an_empty_dir() {
+    use super::legend;
+    use std::path::Path;
+    let s = legend(Path::new("/tmp/empty"), 0, 40);
+    assert!(s.contains("\u{00b7} 0"), "{s}");
+}
+
+#[test]
+fn legend_keeps_the_count_suffix_intact_when_the_path_is_truncated() {
+    use super::legend;
+    use std::path::Path;
+    let long = Path::new("/very/long/nested/path/that/does/not/fit/at/all/here");
+    let s = legend(long, 12, 24);
+    assert!(s.contains("\u{00b7} 12"), "count suffix dropped: {s}");
+    assert!(s.contains('\u{2026}'), "path should be ellipsized: {s}");
+}
+
+#[test]
 fn fmt_size_uses_compact_far_style_units() {
     use super::fmt_size;
     assert_eq!(fmt_size(0), "0 B");

@@ -28,7 +28,14 @@ fn detects_commands() {
 
 #[test]
 fn quick_commands_answer_inline_but_constructs_do_not() {
-    for quick in ["/help", "/agents", "/model coder x", "/status", "/nonsense"] {
+    for quick in [
+        "/help",
+        "/agents",
+        "/model coder x",
+        "/status",
+        "/diff",
+        "/nonsense",
+    ] {
         assert!(is_quick(quick), "{quick}");
     }
     for long in [
@@ -47,6 +54,32 @@ fn help_lists_constructs() {
     assert_eq!(evs.len(), 1);
     let t = text_of(&evs[0]);
     assert!(t.contains("/agents"), "{t}");
+}
+
+#[test]
+fn help_includes_the_concurrency_tip() {
+    let evs = run("/help");
+    let t = text_of(&evs[0]);
+    assert!(t.contains("tip: tasks run in the background"), "{t}");
+    assert!(t.contains("/tasks lists them"), "{t}");
+    assert!(t.contains("/stop #n cancels one"), "{t}");
+}
+
+#[test]
+fn help_lists_the_diff_construct() {
+    let evs = run("/help");
+    let t = text_of(&evs[0]);
+    assert!(t.contains("/diff"), "{t}");
+    assert!(t.contains("git diff --stat"), "{t}");
+}
+
+#[test]
+fn diff_reports_something_for_the_current_repo() {
+    // Read-only: exercises the real cwd, like `/agents` does above — safe
+    // because /diff never mutates the working tree.
+    let evs = run("/diff");
+    assert_eq!(evs.len(), 1);
+    assert!(!text_of(&evs[0]).is_empty());
 }
 
 #[test]

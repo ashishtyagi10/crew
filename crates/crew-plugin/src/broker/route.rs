@@ -103,7 +103,7 @@ pub fn frame(env: &Envelope, peers: &[String], task: &str, transcript: &str) -> 
     } else {
         transcript.to_string()
     };
-    format!(
+    compact_ws(&format!(
         "You are \"{me}\", a CLI coding agent working with peers: {peers}.\n\n\
          TASK:\n{task}\n\n\
          HOW TO REPLY: answer concisely, then make the FINAL line exactly one of:\n\
@@ -117,7 +117,28 @@ pub fn frame(env: &Envelope, peers: &[String], task: &str, transcript: &str) -> 
         convo = convo,
         from = env.from,
         body = env.body,
-    )
+    ))
+}
+
+/// Collapse 3+ consecutive newlines into 2 and strip trailing spaces/tabs from
+/// each line — removes prompt-padding tokens without changing meaning.
+pub(crate) fn compact_ws(s: &str) -> String {
+    let stripped: Vec<&str> = s.lines().map(|l| l.trim_end_matches([' ', '\t'])).collect();
+    let joined = stripped.join("\n");
+    let mut out = String::with_capacity(joined.len());
+    let mut newline_run = 0usize;
+    for ch in joined.chars() {
+        if ch == '\n' {
+            newline_run += 1;
+            if newline_run <= 2 {
+                out.push(ch);
+            }
+        } else {
+            newline_run = 0;
+            out.push(ch);
+        }
+    }
+    out
 }
 
 /// Flatten whitespace and clip a transcript body to at most `max` chars (adding
