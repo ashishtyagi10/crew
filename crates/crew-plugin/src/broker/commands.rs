@@ -179,12 +179,18 @@ pub(crate) fn status_report(session: &Session, tasks_running: usize) -> String {
         pins.sort();
         pins.join(", ")
     };
+    let turns = session.turns.load(Ordering::Relaxed);
+    let tokens = session.tokens.load(Ordering::Relaxed);
+    // "approx" until there's at least one turn to average over — a `0/turn`
+    // reading would be meaningless (and turns == 0 would divide by zero).
+    let approx = match tokens.checked_div(turns) {
+        Some(avg) => format!("~{avg}/turn"),
+        None => "approx".to_string(),
+    };
     format!(
         "status: {running}\n\
-         turns: {} \u{00b7} ~{} tok (approx)\n\
+         turns: {turns} \u{00b7} ~{tokens} tok ({approx})\n\
          model pins: {pins}\n\n{}",
-        session.turns.load(Ordering::Relaxed),
-        session.tokens.load(Ordering::Relaxed),
         agents_report(session),
     )
 }

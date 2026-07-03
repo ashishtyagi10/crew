@@ -134,7 +134,12 @@ fn panel(buf: &mut Buffer, area: Rect, panel: &Panel, active: bool) {
         .border_type(BorderType::Rounded)
         .border_style(Style::new().fg(edge))
         .title(Span::styled(
-            legend(&panel.cwd, panel.entries.len(), area.width),
+            legend(
+                &panel.cwd,
+                panel.entries.len(),
+                panel.entries.iter().map(|e| e.size).sum::<u64>(),
+                area.width,
+            ),
             Style::new().fg(edge),
         ));
     let inner = block.inner(area);
@@ -234,12 +239,13 @@ fn fmt_size(bytes: u64) -> String {
     }
 }
 
-/// `" /path · N "` — `N` is the panel's entry count. The count suffix stays
-/// intact whenever there's room for it at all; the path truncates from the
-/// left (keeping the tail) to fit `width`, same as before the count was added.
-fn legend(cwd: &std::path::Path, count: usize, width: u16) -> String {
+/// `" /path · N · size "` — `N` is the panel's entry count and `size` its
+/// total byte size (via `fmt_size`). The suffix stays intact whenever there's
+/// room for it at all; the path truncates from the left (keeping the tail) to
+/// fit `width`, same as before the count/size were added.
+fn legend(cwd: &std::path::Path, count: usize, total: u64, width: u16) -> String {
     let full = cwd.to_string_lossy();
-    let suffix = format!(" \u{00b7} {count} ");
+    let suffix = format!(" \u{00b7} {count} \u{00b7} {} ", fmt_size(total));
     let max = (width as usize).saturating_sub(1 + suffix.chars().count());
     if full.chars().count() <= max || max == 0 {
         return format!(" {full}{suffix}");
