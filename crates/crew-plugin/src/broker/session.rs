@@ -1,7 +1,6 @@
 //! Mutable per-connection broker state: settings the user changes with slash
 //! constructs (per-agent model overrides, …) that must survive across sends
-//! for as long as the `/crew` pane is open, plus the shared cancel flag the
-//! `/stop` construct trips while a task runs on the worker thread.
+//! for as long as the `/crew` pane is open.
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
@@ -31,8 +30,6 @@ pub(crate) struct Session {
     pub overrides: HashMap<String, String>,
     /// Tripped by `/stop`; long constructs check it between hops/rounds.
     pub cancel: Arc<AtomicBool>,
-    /// The running construct's label (None = idle), shared with the worker.
-    pub busy: Arc<Mutex<Option<String>>>,
     /// Session totals for `/status`: worker tasks started, ~tokens spent.
     pub turns: Arc<AtomicU64>,
     pub tokens: Arc<AtomicU64>,
@@ -49,7 +46,6 @@ impl Default for Session {
         Self {
             overrides: HashMap::new(),
             cancel: Arc::new(AtomicBool::new(false)),
-            busy: Arc::new(Mutex::new(None)),
             turns: Arc::new(AtomicU64::new(0)),
             tokens: Arc::new(AtomicU64::new(0)),
             mcp: Arc::new(Mutex::new(crate::mcp::McpHost::from_config())),
@@ -63,24 +59,18 @@ impl Session {
         Self::default()
     }
 
-    /// A worker-thread copy: its own override map (reads only), the SAME
-    /// cancel flag / busy label / counters — so `/stop` on the main loop
-    /// reaches the running task and `/status` sees live totals.
-    pub fn snapshot(&self) -> Self {
+    /// A worker-thread copy for one task: its own override map (reads only),
+    /// the SAME shared counters (turns/tokens) and MCP/plan, but the caller's
+    /// per-task `cancel` flag so `/stop #N` reaches exactly this task.
+    pub fn snapshot_with_cancel(&self, cancel: Arc<AtomicBool>) -> Self {
         Self {
             overrides: self.overrides.clone(),
-            cancel: Arc::clone(&self.cancel),
-            busy: Arc::clone(&self.busy),
+            cancel,
             turns: Arc::clone(&self.turns),
             tokens: Arc::clone(&self.tokens),
             mcp: Arc::clone(&self.mcp),
             plan: Arc::clone(&self.plan),
         }
-    }
-
-    /// The running construct's label, if any.
-    pub fn running(&self) -> Option<String> {
-        self.busy.lock().unwrap_or_else(|e| e.into_inner()).clone()
     }
 
     /// Whether `/stop` has been requested for the running task.
@@ -152,11 +142,16 @@ mod tests {
     }
 
     #[test]
-    fn snapshot_shares_the_cancel_flag() {
+    fn snapshot_with_cancel_uses_the_given_flag() {
         let s = Session::new();
-        let snap = s.snapshot();
-        s.cancel.store(true, Ordering::Relaxed);
-        assert!(snap.cancelled(), "worker sees the main loop's /stop");
+        let flag = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let snap = s.snapshot_with_cancel(std::sync::Arc::clone(&flag));
+        // Tripping the registry-held flag cancels the snapshot's broker/loop.
+        flag.store(true, Ordering::Relaxed);
+        assert!(
+            snap.cancelled(),
+            "snapshot observes its own task's cancel flag"
+        );
     }
 
     #[test]
