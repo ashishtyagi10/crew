@@ -5,8 +5,9 @@
 use crew_plugin::AgentInfo;
 
 /// Every composer slash action: broker constructs plus the pane-local
-/// `/export`, `/theme`, and `/exit` (see `chatexport` / `chattheme` / `chat`).
-pub(crate) const CONSTRUCTS: [&str; 22] = [
+/// `/export`, `/theme`, `/compact`, and `/exit` (see `chatexport` /
+/// `chattheme` / `chatcompact` / `chat`).
+pub(crate) const CONSTRUCTS: [&str; 23] = [
     "/help",
     "/agents",
     "/model",
@@ -28,6 +29,7 @@ pub(crate) const CONSTRUCTS: [&str; 22] = [
     "/status",
     "/export",
     "/theme",
+    "/compact",
     "/exit",
 ];
 
@@ -56,6 +58,7 @@ pub(crate) fn describe(construct: &str) -> &'static str {
         "/status" => "show session status",
         "/export" => "export the transcript",
         "/theme" => "list or switch the color theme",
+        "/compact" => "fold away older messages",
         "/exit" => "close this pane",
         _ => "",
     }

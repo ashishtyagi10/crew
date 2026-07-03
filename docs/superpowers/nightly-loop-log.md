@@ -52,3 +52,12 @@ Each iteration appends a section below. Iteration numbering starts at 1.
 - Release: v0.5.50.
 - Crossed off menu: opencode theme presets/switcher.
 - Note: crew-pane empty-state hint & `/export` path feedback were already implemented, so this iteration shipped 3 net-new changes rather than 4.
+
+## Iteration 6 — 2026-07-03 05:52 EDT — RELEASED v0.5.51
+- Feature (claude-code): `/compact` pane command — folds older crew-pane messages into a `(compacted N earlier messages)` marker, keeping the last 20 (or `/compact <n>`); new `chatcompact.rs`. [crew-app/src/chatcompact.rs, chat.rs, chatcomplete.rs]
+- Token visibility: `/status` reports the relay token budget (`budget: unlimited` / `~N tok` from CREW_BROKER_TOKEN_BUDGET). [crew-plugin/src/broker/commands.rs]
+- UX: `/export` confirmation now includes the message count (`transcript exported (N messages) → path`). [crew-app/src/chatexport.rs]
+- Gate: fmt ok · clippy clean · tests 935 pass · security review CLEAN (0 confirmed; message-Vec panic focus).
+- Release: v0.5.51.
+- Crossed off menu: claude-code /compact transcript summarizer.
+- Note: the unread "N new" indicator (planned UI change) already existed (chatscroll::new_pill_cells), so 3 net-new changes shipped.
