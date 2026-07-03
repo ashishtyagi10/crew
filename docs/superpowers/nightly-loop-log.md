@@ -43,3 +43,12 @@ Each iteration appends a section below. Iteration numbering starts at 1.
 - Gate: fmt ok · clippy clean · tests 921 pass · security review CLEAN (sandbox-bypass focus; 0 confirmed).
 - Release: v0.5.49.
 - Crossed off menu: codex approval/sandbox profiles for sys:run.
+
+## Iteration 5 — 2026-07-03 04:52 EDT — RELEASED v0.5.50
+- Feature (opencode): `/theme` pane command — lists the 5 built-in themes (current marked) and switches by name (`/theme paper-light`), reusing crew-theme's `from_name`/`set_theme`; new `chattheme.rs` module. [crew-app/src/chattheme.rs, chat.rs, chatcomplete.rs]
+- UI/UX: far-panel legend shows `· empty` for a directory with no entries (instead of `· 0 · 0 B`). [crew-app/src/farpane/render.rs] (The crew-pane empty-state hint from the plan already existed pre-branch, so no dup was added.)
+- Token opt: the relay frame caps very long task text at 4 KB (context-window guard) so a huge task doesn't cost its full length on every hop. [crew-plugin/src/broker/route.rs]
+- Gate: fmt ok · clippy clean · tests 928 pass · security review CLEAN (0 confirmed; /theme global-state + panic focus).
+- Release: v0.5.50.
+- Crossed off menu: opencode theme presets/switcher.
+- Note: crew-pane empty-state hint & `/export` path feedback were already implemented, so this iteration shipped 3 net-new changes rather than 4.
