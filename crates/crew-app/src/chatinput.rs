@@ -42,19 +42,38 @@ fn mention_len(input: &str, agents: &[AgentInfo]) -> usize {
     }
 }
 
+/// The dim hint shown in place of the caret/typed text while the composer is
+/// empty — purely visual: it's never written into the input buffer, so typing
+/// simply replaces it and it never touches the cursor or what Enter submits.
+const PLACEHOLDER_HINT: &str = "type a task \u{00b7} / for constructs \u{00b7} @ to pick an agent";
+
+/// Placeholder cells for [`PLACEHOLDER_HINT`], starting at column `x0`,
+/// clipped to `[x0, max)` (truncated on panes narrower than the hint).
+fn placeholder_cells(x0: u16, max: u16, row: u16) -> Vec<CellView> {
+    let muted = crew_theme::theme().text_muted;
+    (x0..max)
+        .zip(PLACEHOLDER_HINT.chars())
+        .map(|(x, c)| cell(x, row, c, muted, false))
+        .collect()
+}
+
 /// The `❯ input▏` prompt line at `row`, starting at column `x0` and clipped to
 /// `[x0, max)`, with a valid `@mention` coloured.
 fn prompt_cells(input: &str, agents: &[AgentInfo], x0: u16, max: u16, row: u16) -> Vec<CellView> {
     let t = crew_theme::theme();
     let accent = crate::palette::accent();
+    let mut cells = vec![cell(x0, row, '\u{276f}', accent, true)]; // ❯
+    if input.is_empty() {
+        cells.extend(placeholder_cells(x0 + 2, max, row));
+        return cells;
+    }
     let mention = mention_len(input, agents);
     let m_color = if mention > 0 {
         crate::chatroster::agent_color(&input[1..mention])
     } else {
         t.ink
     };
-    let mut cells = vec![cell(x0, row, '\u{276f}', accent, true)]; // ❯
-                                                                   // Mid-message @file mentions read as chips: tinted accent while typed.
+    // Mid-message @file mentions read as chips: tinted accent while typed.
     let spans = crate::chatmention::spans(input);
     let in_span = |i: usize| spans.iter().any(|&(s, e)| i >= s && i < e);
     let styled = input.chars().enumerate().map(|(i, c)| {

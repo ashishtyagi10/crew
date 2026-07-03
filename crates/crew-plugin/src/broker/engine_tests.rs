@@ -53,6 +53,53 @@ impl Adapter for Fake {
     }
 }
 
+/// A scripted agent that also records every prompt it was called with, so a
+/// test can inspect what a LATER hop's prompt contained (e.g. whether the
+/// transcript grew a line for an earlier, empty-bodied relay).
+struct Capturing {
+    name: String,
+    replies: Vec<String>,
+    idx: Mutex<usize>,
+    calls: std::sync::Arc<Mutex<Vec<String>>>,
+}
+
+impl Capturing {
+    fn scripted(
+        name: &str,
+        replies: &[&str],
+    ) -> (Box<dyn Adapter>, std::sync::Arc<Mutex<Vec<String>>>) {
+        let calls = std::sync::Arc::new(Mutex::new(Vec::new()));
+        let agent = Box::new(Capturing {
+            name: name.into(),
+            replies: replies.iter().map(|s| s.to_string()).collect(),
+            idx: Mutex::new(0),
+            calls: std::sync::Arc::clone(&calls),
+        });
+        (agent, calls)
+    }
+}
+
+impl Adapter for Capturing {
+    fn name(&self) -> &str {
+        &self.name
+    }
+    fn probe(&self) -> bool {
+        true
+    }
+    fn call(&self, body: &str, _t: std::time::Duration) -> Result<String, String> {
+        self.calls.lock().unwrap().push(body.to_string());
+        let mut i = self.idx.lock().unwrap();
+        let r = self
+            .replies
+            .get(*i)
+            .or_else(|| self.replies.last())
+            .cloned()
+            .unwrap_or_default();
+        *i += 1;
+        Ok(r)
+    }
+}
+
 fn drive(agents: Vec<Box<dyn Adapter>>, max: u32) -> Vec<Hop> {
     let b = Broker::new(
         Registry::new(agents),
@@ -197,4 +244,60 @@ fn empty_reply_is_an_error() {
     let errs = errors(&hops);
     assert_eq!(errs.len(), 1);
     assert!(errs[0].text.contains("empty"));
+}
+
+#[test]
+fn keep_in_transcript_skips_blank_bodies_only() {
+    assert!(!keep_in_transcript(""));
+    assert!(!keep_in_transcript("   \n\t"));
+    assert!(keep_in_transcript("ok"));
+    assert!(keep_in_transcript("  ok  "));
+}
+
+#[test]
+fn empty_relay_body_does_not_bloat_a_later_prompt() {
+    // claude hands off to codex with a BLANK body (just the control line);
+    // codex then hands back to claude with a real answer. If the blank hop
+    // still cost a transcript line, codex's prompt would carry a
+    // "claude → codex: " entry with no information in it.
+    let (claude, _claude_calls) = Capturing::scripted("claude", &["\n@next codex", "final\n@done"]);
+    let (codex, codex_calls) = Capturing::scripted("codex", &["ack\n@next claude"]);
+    let b = Broker::new(
+        Registry::new(vec![claude, codex]),
+        6,
+        std::time::Duration::from_secs(1),
+    );
+    let mut hops = Vec::new();
+    b.run("user", "claude", "task", "t1", &mut |h| hops.push(h));
+    let calls = codex_calls.lock().unwrap();
+    assert_eq!(calls.len(), 1, "{calls:?}");
+    assert!(
+        !calls[0].contains("claude \u{2192} codex:"),
+        "empty-bodied hop leaked into the transcript: {}",
+        calls[0]
+    );
+    assert!(
+        calls[0].contains("you are first"),
+        "with nothing kept, codex should see the no-transcript-yet placeholder: {}",
+        calls[0]
+    );
+}
+
+#[test]
+fn non_empty_relay_body_is_kept_in_the_transcript() {
+    let (claude, _) = Capturing::scripted("claude", &["real answer\n@next codex", "final\n@done"]);
+    let (codex, codex_calls) = Capturing::scripted("codex", &["ack\n@next claude"]);
+    let b = Broker::new(
+        Registry::new(vec![claude, codex]),
+        6,
+        std::time::Duration::from_secs(1),
+    );
+    let mut hops = Vec::new();
+    b.run("user", "claude", "task", "t1", &mut |h| hops.push(h));
+    let calls = codex_calls.lock().unwrap();
+    assert!(
+        calls[0].contains("claude \u{2192} codex: real answer"),
+        "{}",
+        calls[0]
+    );
 }

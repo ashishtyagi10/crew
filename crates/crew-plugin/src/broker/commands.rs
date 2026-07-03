@@ -54,7 +54,101 @@ pub(crate) const HELP: &str = "constructs:\n\
     /status — session totals, models, and the live task count\n\
     @<agent> <task> — choose who starts the relay\n\
     @<a>+<b> <task> — those agents answer in parallel\n\
-    \u{2026} tip: tasks run in the background — /tasks lists them, /stop #n cancels one";
+    \u{2026} tip: tasks run in the background — /tasks lists them, /stop #n cancels one\n\
+    aliases: /h /a /s /t /d /m\n\
+    ";
+
+/// Expand a built-in single-letter slash alias in the FIRST token, preserving
+/// the rest: `/s` → `/status`, `/m coder qwen` → `/model coder qwen`. Returns
+/// the input unchanged when the first token isn't a known alias.
+pub(crate) fn expand_alias(trimmed: &str) -> String {
+    const ALIASES: &[(&str, &str)] = &[
+        ("/h", "/help"),
+        ("/a", "/agents"),
+        ("/s", "/status"),
+        ("/t", "/tasks"),
+        ("/d", "/diff"),
+        ("/m", "/model"),
+    ];
+    let (head, rest) = trimmed
+        .split_once(char::is_whitespace)
+        .unwrap_or((trimmed, ""));
+    for (short, long) in ALIASES {
+        if head == *short {
+            return if rest.is_empty() {
+                (*long).to_string()
+            } else {
+                format!("{long} {rest}")
+            };
+        }
+    }
+    trimmed.to_string()
+}
+
+/// Construct names this router (and the stdio layer's `/stop`/`/tasks`/
+/// `/status`) recognizes — the candidate list for [`closest_construct`].
+const CONSTRUCTS: &[&str] = &[
+    "help",
+    "agents",
+    "model",
+    "fan",
+    "loop",
+    "goal",
+    "plan",
+    "approve",
+    "reject",
+    "checkpoint",
+    "checkpoints",
+    "restore",
+    "skills",
+    "skill",
+    "mcp",
+    "diff",
+    "status",
+    "tasks",
+    "stop",
+];
+
+/// The known construct whose name is closest to `typo`, if one is close
+/// enough — sharing a 2+ char prefix, or within edit distance 2 — else `None`.
+fn closest_construct(typo: &str) -> Option<&'static str> {
+    let typo = typo.to_ascii_lowercase();
+    CONSTRUCTS
+        .iter()
+        .filter(|c| {
+            let shared_prefix = typo
+                .chars()
+                .zip(c.chars())
+                .take_while(|(a, b)| a == b)
+                .count();
+            shared_prefix >= 2 || levenshtein(&typo, c) <= 2
+        })
+        .min_by_key(|c| levenshtein(&typo, c))
+        .copied()
+}
+
+/// Classic edit-distance DP (insert/delete/substitute, unit cost).
+fn levenshtein(a: &str, b: &str) -> usize {
+    let a: Vec<char> = a.chars().collect();
+    let b: Vec<char> = b.chars().collect();
+    let (la, lb) = (a.len(), b.len());
+    let mut dp = vec![vec![0usize; lb + 1]; la + 1];
+    for (i, row) in dp.iter_mut().enumerate().take(la + 1) {
+        row[0] = i;
+    }
+    for (j, cell) in dp[0].iter_mut().enumerate().take(lb + 1) {
+        *cell = j;
+    }
+    for i in 1..=la {
+        for j in 1..=lb {
+            let cost = usize::from(a[i - 1] != b[j - 1]);
+            dp[i][j] = (dp[i - 1][j] + 1)
+                .min(dp[i][j - 1] + 1)
+                .min(dp[i - 1][j - 1] + cost);
+        }
+    }
+    dp[la][lb]
+}
 
 /// Handle a `/command` line; emits reply events through `emit`.
 pub(crate) fn handle(
@@ -89,7 +183,10 @@ pub(crate) fn handle(
         }
         other => emit(msg(
             "crew",
-            format!("unknown construct /{other} — try /help"),
+            match closest_construct(other) {
+                Some(s) => format!("unknown construct /{other} — did you mean /{s}? (or /help)"),
+                None => format!("unknown construct /{other} — try /help"),
+            },
         )),
     }
 }

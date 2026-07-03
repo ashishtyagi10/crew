@@ -84,6 +84,36 @@ fn caret_follows_the_input() {
 }
 
 #[test]
+fn empty_input_shows_a_dim_placeholder_hint() {
+    let cells = composer_cells("", &agents(&["planner"]), 60, 10);
+    let muted = crew_theme::theme().text_muted;
+    // Row 8 is the interior prompt row for a 10-row (tall) pane.
+    let hint: String = cells
+        .iter()
+        .filter(|c| c.row == 8 && c.fg == muted)
+        .map(|c| c.c)
+        .collect();
+    assert!(hint.contains("type a task"), "{hint}");
+}
+
+#[test]
+fn nonempty_input_has_no_placeholder() {
+    let cells = composer_cells("hi", &agents(&["planner"]), 60, 10);
+    let muted = crew_theme::theme().text_muted;
+    assert!(
+        cells.iter().all(|c| c.row != 8 || c.fg != muted),
+        "typed input must not render any muted placeholder cells"
+    );
+    assert!(row_text(&cells, 8).contains("hi"));
+}
+
+#[test]
+fn placeholder_truncates_to_a_narrow_pane() {
+    let cells = composer_cells("", &[], 10, 10);
+    assert!(cells.iter().all(|c| c.col < 10));
+}
+
+#[test]
 fn everything_clips_to_width() {
     let cells = composer_cells(
         "a very long input line that overflows",
