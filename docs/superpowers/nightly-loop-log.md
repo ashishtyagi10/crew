@@ -34,3 +34,12 @@ Each iteration appends a section below. Iteration numbering starts at 1.
 - Gate: fmt ok · clippy clean · tests 915 pass · security review CLEAN (0 confirmed; adversarial scan + skeptics).
 - Release: v0.5.48.
 - Crossed off menu: claude-code slash-command aliases.
+
+## Iteration 4 — 2026-07-03 03:52 EDT — RELEASED v0.5.49
+- Feature (codex): `sys` read-only sandbox — `CREW_SYS_MODE=readonly` blocks `sys:run` and `sys:write_file` (mutating tools) while keeping `read_file`/`list_dir`; gated at the single `systools::call` entry point (no bypass). [crew-plugin/src/broker/systools.rs]
+- UI: chat cards use a lighter dotted gutter (`┆`) for the system/broker voice so agent replies stand out. [crew-app/src/chatmsgs.rs]
+- Token opt: consecutive byte-identical relay transcript entries are de-duplicated before storage (budget enforcement already existed, so this was the chosen fallback). [crew-plugin/src/broker/engine.rs]
+- UX: `/status` reports the sys sandbox mode (`sys: full` / `sys: read-only`). [crew-plugin/src/broker/commands.rs]
+- Gate: fmt ok · clippy clean · tests 921 pass · security review CLEAN (sandbox-bypass focus; 0 confirmed).
+- Release: v0.5.49.
+- Crossed off menu: codex approval/sandbox profiles for sys:run.
