@@ -214,6 +214,9 @@ impl ChatPane {
             if crate::chattheme::intercept(self, &text) {
                 return None; // answered locally (/theme list or switch)
             }
+            if crate::chatcompact::intercept(self, &text) {
+                return None; // answered locally (/compact folds away older messages)
+            }
             if !text.is_empty() {
                 let cmd = PluginCommand::Send {
                     channel: self.channel.clone(),

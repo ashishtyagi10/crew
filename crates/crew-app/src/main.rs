@@ -6,6 +6,7 @@ mod chat;
 mod chatbody;
 mod chatchips;
 mod chatcode;
+mod chatcompact;
 mod chatcomplete;
 mod chatempty;
 mod chatevents;

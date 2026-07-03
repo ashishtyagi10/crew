@@ -360,3 +360,48 @@ fn slash_theme_lists_and_switches_without_reaching_the_broker() {
     let note = &p.messages.last().unwrap().text;
     assert!(note.contains("unknown theme"), "got: {note}");
 }
+
+#[test]
+fn slash_compact_folds_old_messages_without_reaching_the_broker() {
+    use crate::chatkeys::ChatInput;
+
+    let mut p = pane();
+    let cwd = std::env::temp_dir();
+    for i in 0..30 {
+        p.messages.push(crate::chatlayout::Message {
+            sender: "user".into(),
+            text: format!("m{i}"),
+            ts: String::new(),
+            meta: String::new(),
+        });
+    }
+    p.scroll = 5;
+    p.unread = 2;
+
+    p.input = "/compact".to_string();
+    assert!(p.on_input(ChatInput::Enter, &cwd).is_none());
+    assert_eq!(p.messages.len(), 21, "20 kept + 1 marker");
+    assert!(
+        p.messages[0].text.contains("compacted 10"),
+        "got: {}",
+        p.messages[0].text
+    );
+    assert_eq!(p.messages.last().unwrap().text, "m29");
+    assert_eq!(p.scroll, 0, "compacting snaps back to the live bottom");
+    assert_eq!(p.unread, 0, "compacting clears the unread count");
+
+    // `/compact <n>` overrides the default keep count.
+    let mut p = pane();
+    for i in 0..10 {
+        p.messages.push(crate::chatlayout::Message {
+            sender: "user".into(),
+            text: format!("m{i}"),
+            ts: String::new(),
+            meta: String::new(),
+        });
+    }
+    p.input = "/compact 3".to_string();
+    assert!(p.on_input(ChatInput::Enter, &cwd).is_none());
+    assert_eq!(p.messages.len(), 4, "3 kept + 1 marker");
+    assert_eq!(p.messages.last().unwrap().text, "m9");
+}

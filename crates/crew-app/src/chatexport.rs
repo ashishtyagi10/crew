@@ -2,7 +2,7 @@
 //! in the working directory (à la OpenCode's `/export`), so a session's
 //! multi-agent conversation survives the pane. Handled app-side — the
 //! transcript lives in the pane, not the broker.
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::chat::ChatPane;
 use crate::chatlayout::Message;
@@ -13,8 +13,9 @@ pub(crate) fn intercept(pane: &mut ChatPane, text: &str) -> bool {
     if text.trim() != "/export" {
         return false;
     }
+    let n = pane.messages.len();
     let note = match export_transcript(&pane.channel, &pane.messages) {
-        Ok(path) => format!("transcript exported \u{2192} {}", path.display()),
+        Ok(path) => success_note(n, &path),
         Err(e) => format!("export failed: {e}"),
     };
     let ts = chrono::Local::now().timestamp_millis().to_string();
@@ -25,6 +26,16 @@ pub(crate) fn intercept(pane: &mut ChatPane, text: &str) -> bool {
         meta: String::new(),
     });
     true
+}
+
+/// The `/export` success echo: the exported message count (pluralized) and
+/// the file it was written to, so the user knows what landed on disk.
+fn success_note(n: usize, path: &Path) -> String {
+    let plural = if n == 1 { "" } else { "s" };
+    format!(
+        "transcript exported ({n} message{plural}) \u{2192} {}",
+        path.display()
+    )
 }
 
 /// Write the transcript and return the file's path. The file lands in the
@@ -123,6 +134,16 @@ mod tests {
         assert!(local_time("1750000000000").is_some());
         assert_eq!(local_time(""), None);
         assert_eq!(local_time("not-a-ts"), None);
+    }
+
+    #[test]
+    fn success_note_reports_the_message_count_pluralized() {
+        let path = PathBuf::from("/tmp/crew-transcript-20260702-000000.md");
+        let one = success_note(1, &path);
+        assert!(one.contains("exported (1 message)"), "got: {one}");
+        assert!(!one.contains("(1 messages)"), "no plural for one: {one}");
+        let two = success_note(2, &path);
+        assert!(two.contains("exported (2 messages)"), "got: {two}");
     }
 
     #[test]

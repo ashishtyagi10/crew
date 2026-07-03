@@ -156,7 +156,14 @@ fn status_reports_totals_pins_and_running_state() {
     assert!(t.contains("~237/turn"), "{t}");
     assert!(t.contains("coder \u{2192} qwen-turbo"), "{t}");
     assert!(t.contains("sys: full"), "{t}"); // CREW_SYS_MODE unset under cargo test
+    assert!(t.contains("budget: unlimited"), "{t}"); // CREW_BROKER_TOKEN_BUDGET unset under cargo test
     assert!(t.contains("planner"), "roster included: {t}");
+}
+
+#[test]
+fn budget_label_reports_unlimited_or_the_token_count() {
+    assert_eq!(budget_label(0), "unlimited");
+    assert_eq!(budget_label(50_000), "~50000 tok");
 }
 
 #[test]

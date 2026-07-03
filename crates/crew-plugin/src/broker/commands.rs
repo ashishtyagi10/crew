@@ -288,10 +288,22 @@ pub(crate) fn status_report(session: &Session, tasks_running: usize) -> String {
         "status: {running}\n\
          turns: {turns} \u{00b7} ~{tokens} tok ({approx})\n\
          model pins: {pins}\n\
-         sys: {}\n\n{}",
+         sys: {}\n\
+         budget: {}\n\n{}",
         super::systools::mode_label(),
+        budget_label(super::session::token_budget()),
         agents_report(session),
     )
+}
+
+/// The relay token budget as a human label: `"unlimited"` when unset (0,
+/// `CREW_BROKER_TOKEN_BUDGET`), else `"~<n> tok"`.
+fn budget_label(budget: usize) -> String {
+    if budget == 0 {
+        "unlimited".to_string()
+    } else {
+        format!("~{budget} tok")
+    }
 }
 
 /// The roster, one agent per line: name, role hint, and the model it runs.
