@@ -116,15 +116,8 @@ fn status_reports_totals_pins_and_running_state() {
     session
         .tokens
         .store(950, std::sync::atomic::Ordering::Relaxed);
-    *session.busy.lock().unwrap() = Some("/fan build".into());
-    let mut evs = Vec::new();
-    handle(&mut session, "/status", &mut |ev| {
-        evs.push(ev);
-        Ok(())
-    })
-    .unwrap();
-    let t = text_of(&evs[0]);
-    assert!(t.contains("running \u{2018}/fan build\u{2019}"), "{t}");
+    let t = super::status_report(&session, 2);
+    assert!(t.contains("2 task(s) running"), "{t}");
     assert!(t.contains("turns: 4"), "{t}");
     assert!(t.contains("~950 tok"), "{t}");
     assert!(t.contains("coder \u{2192} qwen-turbo"), "{t}");

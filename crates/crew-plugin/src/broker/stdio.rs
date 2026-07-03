@@ -34,7 +34,7 @@ pub fn run_broker_stdio() -> anyhow::Result<()> {
     let stdin = std::io::stdin();
     let out: Out = Arc::new(Mutex::new(std::io::stdout()));
     let mut session = Session::new();
-    let mut worker: Option<std::thread::JoinHandle<()>> = None;
+    let mut tasks = super::tasks::Tasks::new();
     for line in stdin.lock().lines() {
         let line = line?;
         let Ok(cmd) = serde_json::from_str::<PluginCommand>(&line) else {
@@ -42,15 +42,13 @@ pub fn run_broker_stdio() -> anyhow::Result<()> {
         };
         match cmd {
             PluginCommand::Hello { .. } => hello(&out, &session)?,
-            PluginCommand::Send { text, .. } => send(text, &out, &mut session, &mut worker)?,
+            PluginCommand::Send { text, .. } => send(text, &out, &mut session, &mut tasks)?,
             PluginCommand::Subscribe { .. } => {}
         }
     }
-    // stdin closed (pane gone / EOF): let a running task finish streaming
-    // rather than truncating its output mid-line.
-    if let Some(h) = worker {
-        let _ = h.join();
-    }
+    // stdin closed (pane gone / EOF): let running tasks finish streaming
+    // rather than truncating their output mid-line.
+    tasks.join_all();
     Ok(())
 }
 
@@ -73,68 +71,122 @@ fn hello(out: &Out, session: &Session) -> anyhow::Result<()> {
     emit(out, &msg("crew", roster(&reg)))
 }
 
-/// Route one Send: `/stop` and quick constructs answer inline; tasks and long
-/// constructs run on the worker thread (one at a time).
+/// Route one Send. `/stop [#N]`, `/tasks`, `/status`, and quick constructs
+/// answer inline; every other task spawns a NEW background worker (up to the
+/// cap), so several run at once.
 fn send(
     text: String,
     out: &Out,
     session: &mut Session,
-    worker: &mut Option<std::thread::JoinHandle<()>>,
+    tasks: &mut super::tasks::Tasks,
 ) -> anyhow::Result<()> {
+    use std::sync::atomic::AtomicBool;
+    use std::time::Instant;
+    tasks.reap();
     let trimmed = text.trim().to_string();
-    let running = session.running();
-    if trimmed == "/stop" {
-        return match running {
-            Some(label) => {
-                session.cancel.store(true, Ordering::Relaxed);
-                emit(
-                    out,
-                    &msg("crew", format!("stopping \u{2018}{label}\u{2019}\u{2026}")),
-                )
-            }
-            None => emit(out, &msg("crew", "nothing is running")),
+
+    // /stop [#N] — cancel one task or all.
+    if trimmed == "/stop" || trimmed.starts_with("/stop ") {
+        let arg = trimmed.strip_prefix("/stop").unwrap().trim();
+        if arg.is_empty() {
+            let n = tasks.cancel_all();
+            let m = if n == 0 {
+                "nothing is running".to_string()
+            } else {
+                format!("stopping all {n} task(s)\u{2026}")
+            };
+            return emit(out, &msg("crew", m));
+        }
+        let id: Option<u64> = arg.trim_start_matches('#').parse().ok();
+        let m = match id {
+            Some(id) if tasks.cancel(id) => format!("stopping task #{id}\u{2026}"),
+            Some(id) => format!("no task #{id}"),
+            None => "usage: /stop [#id]".to_string(),
         };
+        return emit(out, &msg("crew", m));
     }
+
+    // /tasks — list running tasks.
+    if trimmed == "/tasks" {
+        let lines = tasks.describe(Instant::now());
+        let body = if lines.is_empty() {
+            "no background tasks running".to_string()
+        } else {
+            lines.join("\n")
+        };
+        return emit(out, &msg("crew", body));
+    }
+
+    // /status — session totals plus the LIVE task count (needs the registry,
+    // so it's handled here rather than in commands::handle).
+    if trimmed == "/status" {
+        return emit(
+            out,
+            &msg("crew", super::commands::status_report(session, tasks.len())),
+        );
+    }
+
     if super::commands::is_quick(&trimmed) {
         return super::commands::handle(session, &trimmed, &mut |ev| emit(out, &ev));
     }
-    if let Some(label) = running {
+
+    if !tasks.admit() {
         return emit(
             out,
             &msg(
                 "crew",
-                format!("busy with \u{2018}{label}\u{2019} \u{2014} /stop cancels it"),
+                format!(
+                    "at capacity ({} tasks) \u{2014} /stop one first",
+                    tasks.len()
+                ),
             ),
         );
     }
-    session.cancel.store(false, Ordering::Relaxed);
+
+    // The worker closure needs the task id (to stamp `meta` and print the
+    // start/done lines), but `attach` needs the JoinHandle which only exists
+    // after `spawn` — so reserve the id first, spawn, then attach.
     session.turns.fetch_add(1, Ordering::Relaxed);
     let label: String = trimmed.chars().take(40).collect();
-    *session.busy.lock().unwrap_or_else(|e| e.into_inner()) = Some(label);
-    let mut snap = session.snapshot();
-    let out = Arc::clone(out);
-    // A finished worker's handle may be overwritten here (it's already done;
-    // dropping the handle just detaches the dead thread).
-    *worker = Some(std::thread::spawn(move || {
+    let cancel = std::sync::Arc::new(AtomicBool::new(false));
+    let mut snap = session.snapshot_with_cancel(std::sync::Arc::clone(&cancel));
+    let out_thread = Arc::clone(out);
+    let is_cmd = super::commands::is_command(&trimmed);
+    let id = tasks.reserve();
+    emit(
+        out,
+        &msg(
+            "crew",
+            format!("\u{25b8} task #{id} started \u{00b7} {label}"),
+        ),
+    )?;
+    let handle = std::thread::spawn(move || {
         let tokens = Arc::clone(&snap.tokens);
-        let busy = Arc::clone(&snap.busy);
-        // Count every Stats event into the session totals for /status.
-        let mut counting = |ev: PluginEvent| {
+        // Stamp every relay Message event with this task's id, and count Stats.
+        let mut counting = |mut ev: PluginEvent| {
             if let PluginEvent::Stats { tokens: t, .. } = &ev {
                 tokens.fetch_add(*t, Ordering::Relaxed);
             }
-            emit(&out, &ev)
+            if let PluginEvent::Message { meta, .. } = &mut ev {
+                if meta.is_empty() {
+                    *meta = format!("task:{id}");
+                }
+            }
+            emit(&out_thread, &ev)
         };
-        let res = if super::commands::is_command(&trimmed) {
+        let res = if is_cmd {
             super::commands::handle(&mut snap, &trimmed, &mut counting)
         } else {
             relay_counting(&trimmed, &snap, &mut counting)
         };
-        if let Err(e) = res {
-            eprintln!("crew-broker: worker error: {e}");
-        }
-        *busy.lock().unwrap_or_else(|e| e.into_inner()) = None;
-    }));
+        let done = match (res, snap.cancelled()) {
+            (Err(e), _) => format!("\u{2717} task #{id}: {e}"),
+            (Ok(_), true) => format!("\u{2717} task #{id} stopped"),
+            (Ok(_), false) => format!("\u{2713} task #{id} done"),
+        };
+        let _ = emit(&out_thread, &msg("crew", done));
+    });
+    tasks.attach(id, label, cancel, handle, Instant::now());
     Ok(())
 }
 

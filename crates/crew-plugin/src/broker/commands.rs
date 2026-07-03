@@ -83,7 +83,6 @@ pub(crate) fn handle(
             let report = session.lock_mcp().report();
             emit(msg("crew", report))
         }
-        "status" => emit(msg("crew", status_report(session))),
         other => emit(msg(
             "crew",
             format!("unknown construct /{other} — try /help"),
@@ -156,13 +155,15 @@ fn fan_cmd(
     super::fan::fan_out(&reg, &names, task, super::session::call_timeout(), emit)
 }
 
-/// `/status` — what the session has done and is doing right now.
-fn status_report(session: &Session) -> String {
+/// `/status` — what the session has done and is doing right now. `tasks_running`
+/// is the broker's live background-task count (0 = idle).
+pub(crate) fn status_report(session: &Session, tasks_running: usize) -> String {
     use std::sync::atomic::Ordering;
-    let running = session
-        .running()
-        .map(|l| format!("running \u{2018}{l}\u{2019}"))
-        .unwrap_or_else(|| "idle".into());
+    let running = if tasks_running == 0 {
+        "idle".to_string()
+    } else {
+        format!("{tasks_running} task(s) running")
+    };
     let pins = if session.overrides.is_empty() {
         "none".to_string()
     } else {
