@@ -64,6 +64,10 @@ Run, from the loop branch, ALL of:
 ### If GREEN → release
 1. Bump the workspace version by one **patch** in `Cargo.toml` (`version = "0.5.X"` → `0.5.X+1`).
    (Match the existing release convention: a `Bump version to 0.5.X` commit is standard.)
+   **GOTCHA:** the bump propagates into `Cargo.lock` (the pre-commit `cargo check`
+   rewrites it), so `git add Cargo.toml Cargo.lock` TOGETHER in the bump commit —
+   otherwise a dirty `Cargo.lock` aborts the later `git checkout main`. After
+   committing, confirm `git status --short` is empty before switching branches.
 2. Commit the feature work + version bump on the branch (`cargo fmt` first; pre-commit runs fmt+check).
 3. `git checkout main && git merge --ff-only auto/nightly-<N>-<slug>` (fast-forward; if it can't
    ff, `git merge --no-ff` is acceptable). 
