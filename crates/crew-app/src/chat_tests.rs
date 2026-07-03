@@ -127,7 +127,7 @@ fn cells_grid_never_overdraws_past_status_rows() {
     let top = p.status_rows(cols, rows);
 
     let views = p.agent_views();
-    let avail = rows.saturating_sub(2).saturating_sub(1);
+    let avail = rows.saturating_sub(1 + crate::chatinput::composer_rows(rows));
     let lay = crate::chatchips::layout(&views, cols, avail).expect("some rows fit");
     assert_eq!(
         top,
@@ -148,6 +148,17 @@ fn cells_grid_never_overdraws_past_status_rows() {
     assert!(
         max_row < top,
         "grid content stays inside the status zone: max_row={max_row} top={top}"
+    );
+
+    // Composer-overlap regression: the grid's budget must reserve the
+    // composer's *real* height (`composer_rows`, 3 on this tall pane), not a
+    // hardcoded stand-in — otherwise the last grid row lands on the
+    // composer's top border. No rendered grid row may reach the composer's
+    // first row.
+    let composer_first_row = rows - crate::chatinput::composer_rows(rows);
+    assert!(
+        max_row < composer_first_row,
+        "grid content stays clear of the composer: max_row={max_row} composer_first_row={composer_first_row}"
     );
 
     // And the full render pipeline still produces a sane frame at this size.
@@ -220,9 +231,10 @@ fn status_rows_counts_session_and_grid() {
     assert_eq!(p.status_rows(200, 20), 1 + 2);
     // Too narrow for any card → just the session line.
     assert_eq!(p.status_rows(3, 20), 1);
-    // Too short for even one card row → capped down (no waterfall row to
-    // subtract now, so this needs one fewer spare row than before to bite).
-    assert_eq!(p.status_rows(200, 3), 1);
+    // A short pane (rows=3, composer=1 row here) reserves session(1) +
+    // composer(1), leaving exactly one row for the grid — one agent row
+    // fits with no overlap.
+    assert_eq!(p.status_rows(200, 3), 1 + 1);
 }
 
 // `on_key` takes a winit `KeyEvent`, which is #[non_exhaustive] and awkward

@@ -14,9 +14,9 @@ use crate::gauges::fill_color;
 
 /// Bar width in cells for the ctx/share progress bars.
 const BAR_W: usize = 6;
-/// Minimum width of the right-aligned `NN%` field (grows past this only for
-/// `100%`, which is never truncated).
-const PCT_W: usize = 3;
+/// Width of the right-aligned `NNN%` field — wide enough for `100%` (4
+/// chars) so the trailing `)` of the `(ctx)`/`(shr)` label never clips.
+const PCT_W: usize = 4;
 /// The ` │ ` separator between every segment.
 const SEP: &str = " \u{2502} ";
 const SEP_W: usize = 3;
@@ -189,23 +189,32 @@ fn place(
     })
 }
 
-/// One `<bar> NN% (label)` segment. `pct = None` draws an all-track bar and
-/// ` 0%`.
+/// One bar segment's content: its percentage, label, and filled-cell colour.
+/// `fill` is chosen per segment by the caller (e.g. `fill_color(frac)` for a
+/// warn-at-full bar like `ctx`, a flat neutral colour for a bar where 100%
+/// isn't a warning, like `shr`).
+struct Seg<'a> {
+    pct: Option<u8>,
+    label: &'a str,
+    fill: (u8, u8, u8),
+}
+
+/// One `<bar> NN% (label)` segment. `seg.pct = None` draws an all-track bar
+/// and ` 0%`.
 fn push_segment(
     cells: &mut Vec<CellView>,
     row: u16,
     col: u16,
     max_col: u16,
-    pct: Option<u8>,
-    label: &str,
+    seg: Seg,
     pal: &Pal,
 ) -> u16 {
+    let Seg { pct, label, fill } = seg;
     let bg = crew_theme::theme().page_bg;
     let frac = pct.unwrap_or(0) as f32 / 100.0;
     let filled = pct
         .map(|_| (frac * BAR_W as f32).round() as usize)
         .unwrap_or(0);
-    let fill = fill_color(frac);
     let mut x = col;
     for i in 0..BAR_W {
         if x >= max_col {
@@ -291,11 +300,26 @@ pub(crate) fn row_cells(
         }
         if lay.level <= 1 {
             col = place(&mut cells, row, col, cols, SEP, pal.dim, false);
-            col = push_segment(&mut cells, row, col, cols, v.ctx_pct, "ctx", &pal);
+            let ctx_frac = v.ctx_pct.unwrap_or(0) as f32 / 100.0;
+            let seg = Seg {
+                pct: v.ctx_pct,
+                label: "ctx",
+                fill: fill_color(ctx_frac),
+            };
+            col = push_segment(&mut cells, row, col, cols, seg, &pal);
         }
         if lay.level == 0 {
             col = place(&mut cells, row, col, cols, SEP, pal.dim, false);
-            col = push_segment(&mut cells, row, col, cols, v.share_pct, "shr", &pal);
+            // Share is relative, not a fullness warning — a lone active
+            // agent is always 100% and that isn't alarming — so it stays a
+            // neutral accent rather than riding the ctx bar's red-at-full
+            // scale.
+            let seg = Seg {
+                pct: v.share_pct,
+                label: "shr",
+                fill: crate::palette::accent(),
+            };
+            col = push_segment(&mut cells, row, col, cols, seg, &pal);
         }
         let _ = col;
     }

@@ -1,7 +1,8 @@
-//! Composes the crew pane's full cell view: status header (row 0), agent
-//! roster (row 1 when known), the live activity row (row 2 while agents
-//! work), role-styled message cards, and the input composer (affordance bar +
-//! prompt) on the bottom rows. Tiny panes fall back to the plain layout.
+//! Composes the crew pane's full cell view: the session line (row 0),
+//! statusline-style agent rows (one per agent, from `chatchips::layout`),
+//! role-styled message cards, and the input composer (bordered fieldset on
+//! tall panes, a bare prompt row on short ones) on the bottom rows. Tiny
+//! panes fall back to the plain layout.
 use crew_render::CellView;
 
 use crate::chat::ChatPane;
@@ -67,7 +68,7 @@ impl ChatPane {
             return 0; // too short — plain message fallback
         }
         let views = self.agent_views();
-        let avail = rows.saturating_sub(2).saturating_sub(1);
+        let avail = rows.saturating_sub(1 + crate::chatinput::composer_rows(rows));
         match crate::chatchips::layout(&views, cols, avail) {
             Some(l) => 1 + l.rows,
             None => 1, // session line only
@@ -120,7 +121,7 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
     // the same `layout` call `status_rows` used above — so the two always
     // agree on the drawn extent (no overdraw onto the message body).
     let views = pane.agent_views();
-    let avail = rows.saturating_sub(2).saturating_sub(1);
+    let avail = rows.saturating_sub(1 + crate::chatinput::composer_rows(rows));
     if let Some(lay) = crate::chatchips::layout(&views, cols, avail) {
         cells.extend(crate::chatchips::row_cells(&views, cols, 1, &lay));
     }
