@@ -3,15 +3,31 @@
 //! drained so a chatty child never blocks on a full pipe), child killed at
 //! the deadline. The broker is a subprocess, so blocking here never touches
 //! the app's winit thread; the timeout bounds the hop.
+//! `sys:run` is Unix-only (it relies on `/bin/sh`, process groups, and
+//! `/bin/kill`); on other platforms `run` returns an error so the crate still
+//! compiles and the rest of the `sys` tools (read/write/list) stay available.
+#[cfg(unix)]
 use std::io::Read;
+#[cfg(unix)]
 use std::os::unix::process::CommandExt;
+#[cfg(unix)]
 use std::process::{Command, Stdio};
+#[cfg(unix)]
 use std::sync::mpsc;
+#[cfg(unix)]
 use std::time::{Duration, Instant};
 
+#[cfg(unix)]
 use super::systools::CAP;
 
+/// Non-Unix platforms have no `/bin/sh`; report that plainly to the agent.
+#[cfg(not(unix))]
+pub(crate) fn run(_cmd: &str) -> Result<String, String> {
+    Err("sys:run is only supported on Unix platforms".into())
+}
+
 /// Per-command deadline. `CREW_SYS_TIMEOUT_MS` overrides (default 30 s).
+#[cfg(unix)]
 fn timeout() -> Duration {
     let ms = std::env::var("CREW_SYS_TIMEOUT_MS")
         .ok()
@@ -20,10 +36,12 @@ fn timeout() -> Duration {
     Duration::from_millis(ms)
 }
 
+#[cfg(unix)]
 pub(crate) fn run(cmd: &str) -> Result<String, String> {
     run_with(cmd, timeout())
 }
 
+#[cfg(unix)]
 pub(crate) fn run_with(cmd: &str, timeout: Duration) -> Result<String, String> {
     let mut child = Command::new("/bin/sh")
         .args(["-c", cmd])
@@ -105,6 +123,7 @@ pub(crate) fn run_with(cmd: &str, timeout: Duration) -> Result<String, String> {
 /// group was created via `process_group(0)` at spawn time. TERM first to let
 /// well-behaved processes clean up, then KILL to guarantee they're gone;
 /// both are best-effort since the group may already be empty.
+#[cfg(unix)]
 fn kill_group(pgid: u32) {
     let target = format!("-{pgid}");
     // An already-empty group makes `/bin/kill` print "No such process" — that
@@ -127,6 +146,7 @@ fn kill_group(pgid: u32) {
 /// lets the caller bound how long it waits for this thread instead of
 /// blocking until the pipe sees EOF, which a still-running backgrounded
 /// descendant holding the write end could delay indefinitely.
+#[cfg(unix)]
 fn drain(mut pipe: impl Read + Send + 'static, tx: mpsc::Sender<(String, bool)>) {
     std::thread::spawn(move || {
         let mut kept = Vec::new();
@@ -148,6 +168,6 @@ fn drain(mut pipe: impl Read + Send + 'static, tx: mpsc::Sender<(String, bool)>)
     });
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 #[path = "sysrun_tests.rs"]
 mod tests;
