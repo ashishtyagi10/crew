@@ -51,6 +51,50 @@ fn pane() -> ChatPane {
 }
 
 #[test]
+fn cells_render_session_line_agent_chips_and_waterfall() {
+    let mut p = pane();
+    p.agents = vec![
+        crew_plugin::AgentInfo {
+            name: "planner".into(),
+            role: String::new(),
+            model: "qwen".into(),
+        },
+        crew_plugin::AgentInfo {
+            name: "coder".into(),
+            role: String::new(),
+            model: "qwen".into(),
+        },
+    ];
+    p.absorb_stats(950, String::new(), 0, 0);
+    p.pulse.record_hop("planner", 1200);
+    p.pulse.end_turn();
+    let cells = p.cells(120, 20);
+    let text: String = {
+        let mut rows: std::collections::BTreeMap<u16, Vec<(u16, char)>> = Default::default();
+        for c in &cells {
+            rows.entry(c.row).or_default().push((c.col, c.c));
+        }
+        rows.into_values()
+            .map(|mut r| {
+                r.sort();
+                r.into_iter().map(|(_, c)| c).collect::<String>()
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+    assert!(text.contains("crew"), "session line present:\n{text}");
+    assert!(
+        text.contains("\u{25b8}planner") || text.contains("\u{25aa}planner"),
+        "planner chip:\n{text}"
+    );
+    assert!(
+        text.contains("\u{25aa}coder") || text.contains("\u{25b8}coder"),
+        "coder chip:\n{text}"
+    );
+    assert!(text.contains("turn"), "waterfall row:\n{text}");
+}
+
+#[test]
 fn relay_reply_ends_the_hop_and_records_it() {
     let mut p = pane();
     p.absorb_activity("planner".into(), "thinking", "user".into());

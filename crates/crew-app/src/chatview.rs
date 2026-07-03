@@ -136,7 +136,7 @@ fn pulse_block(pane: &ChatPane, cols: u16, lanes: u16) -> Vec<CellView> {
 
 /// Render `pane` into a `cols` × `rows` grid.
 pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
-    let top = pane.top_rows(rows);
+    let top = pane.status_rows(cols, rows);
     if top == 0 {
         return layout_cells(
             &pane.messages,
@@ -165,27 +165,25 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
         status.as_ref().map(|(l, s, c)| (l.as_str(), *s, *c)),
         (pane.tokens, pane.turns),
     );
-    let lanes = pane.pulse_lanes(rows);
-    if lanes > 0 {
-        cells.extend(pulse_block(pane, cols, lanes));
-    } else {
-        if top > 1 {
-            cells.extend(crate::chatroster::roster_cells(
-                cols,
-                1,
-                &pane.agents,
-                &names,
-                &pane.agent_stats,
-            ));
-        }
-        // While agents work, row 2 shows who is doing what for whom, live.
-        if top > 2 {
-            cells.extend(crate::chatflow::activity_cells(
-                cols,
-                2,
-                pane.active_agents(),
-            ));
-        }
+    // Zone 2: the agent chip grid (rows 1..1+grid).
+    let views = pane.agent_views();
+    let grid = crate::chatchips::grid_rows(&views, cols);
+    cells.extend(crate::chatchips::grid_cells(&views, cols, 1));
+    // Zone 3: the turn waterfall below the grid, once a turn ran (and only when
+    // wide enough to draw — matches status_rows' cols>=30 gate). `live` is the
+    // newest thinking agent's still-growing segment (same expression the old
+    // pulse_block used).
+    if !pane.pulse.hops().is_empty() && cols >= 30 {
+        let live = pane
+            .active_agents()
+            .last()
+            .map(|a| (a.name.as_str(), a.since.elapsed().as_millis() as u64));
+        cells.extend(crate::chatpulse::waterfall_cells(
+            cols,
+            1 + grid,
+            pane.pulse.hops(),
+            live,
+        ));
     }
     let bottom = crate::chatinput::composer_rows(rows);
     if pane.messages.is_empty() {
