@@ -27,6 +27,18 @@ fn two_sends_both_start_as_separate_tasks_not_busy() {
             .any(|(s, t)| s == "crew" && t.contains("task #2 started")),
         "{msgs:?}"
     );
+    // Live task-pool capacity (`n/max`) is stamped on each start line and
+    // increments as tasks are admitted.
+    assert!(
+        msgs.iter()
+            .any(|(s, t)| s == "crew" && t.contains("task #1 started") && t.contains("1/")),
+        "first start line missing 1/max capacity: {msgs:?}"
+    );
+    assert!(
+        msgs.iter()
+            .any(|(s, t)| s == "crew" && t.contains("task #2 started") && t.contains("2/")),
+        "second start line missing 2/max capacity: {msgs:?}"
+    );
     // No "busy" rejection anywhere — both sends were admitted concurrently.
     assert!(
         !msgs.iter().any(|(_, t)| t.contains("busy")),

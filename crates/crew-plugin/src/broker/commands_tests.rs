@@ -153,8 +153,18 @@ fn status_reports_totals_pins_and_running_state() {
     assert!(t.contains("2 task(s) running"), "{t}");
     assert!(t.contains("turns: 4"), "{t}");
     assert!(t.contains("~950 tok"), "{t}");
+    assert!(t.contains("~237/turn"), "{t}");
     assert!(t.contains("coder \u{2192} qwen-turbo"), "{t}");
     assert!(t.contains("planner"), "roster included: {t}");
+}
+
+#[test]
+fn status_omits_the_per_turn_average_when_no_turns_yet() {
+    let _g = testenv::mock("ok\n@done");
+    let session = Session::new();
+    let t = super::status_report(&session, 0);
+    assert!(t.contains("turns: 0"), "{t}");
+    assert!(!t.contains("/turn"), "no turns yet, no rate to show: {t}");
 }
 
 #[test]

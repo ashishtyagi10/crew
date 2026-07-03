@@ -159,11 +159,16 @@ fn send(
     let out_thread = Arc::clone(out);
     let is_cmd = super::commands::is_command(&trimmed);
     let id = tasks.reserve();
+    // `tasks` doesn't count this task yet (it's attached below, once the
+    // JoinHandle exists) — `+ 1` accounts for it so the line reflects live
+    // capacity right as the task starts.
+    let n = tasks.len() + 1;
+    let max = super::tasks::Tasks::max();
     emit(
         out,
         &msg(
             "crew",
-            format!("\u{25b8} task #{id} started \u{00b7} {label}"),
+            format!("\u{25b8} task #{id} started \u{00b7} {n}/{max} \u{00b7} {label}"),
         ),
     )?;
     let handle = std::thread::spawn(move || {

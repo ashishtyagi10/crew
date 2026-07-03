@@ -74,12 +74,20 @@ pub(crate) fn complete(input: &str, agents: &[AgentInfo]) -> Option<String> {
             None => ("", rest),
         };
         let names: Vec<&str> = agents.iter().map(|a| a.name.as_str()).collect();
-        let (ext, unique) = extend(part, &names)?;
+        let (ext, unique) = match extend(part, &names) {
+            Some(pair) => pair,
+            // Prefix matching found nothing — fall back to a fuzzy (opencode-
+            // style subsequence) match, but only if it's unambiguous.
+            None => (fuzzy_unique(part, &names)?.to_string(), true),
+        };
         let tail = if unique && done.is_empty() { " " } else { "" };
         return Some(format!("@{done}{ext}{tail}"));
     }
     if input.starts_with('/') {
-        let (ext, unique) = extend(input, &CONSTRUCTS)?;
+        let (ext, unique) = match extend(input, &CONSTRUCTS) {
+            Some(pair) => pair,
+            None => (fuzzy_unique(input, &CONSTRUCTS)?.to_string(), true),
+        };
         let tail = if unique { " " } else { "" };
         return Some(format!("{ext}{tail}"));
     }
@@ -113,6 +121,25 @@ fn extend(prefix: &str, candidates: &[&str]) -> Option<(String, bool)> {
             }
             (lcp > prefix.len()).then(|| (first[..lcp].to_string(), false))
         }
+    }
+}
+
+/// Case-insensitive subsequence match: is every char of `needle` found in
+/// `hay` in order? (`"gl"` matches `"goal"`, `"pnr"` matches `"planner"`.)
+/// Case-folds and delegates to `crate::suggest`'s identical (already
+/// case-normalized-by-caller) helper.
+fn is_subsequence(needle: &str, hay: &str) -> bool {
+    crate::suggest::is_subsequence(&needle.to_lowercase(), &hay.to_lowercase())
+}
+
+/// The single candidate that fuzzy-matches `needle`, or `None` if zero or
+/// more than one do.
+fn fuzzy_unique<'a>(needle: &str, candidates: &[&'a str]) -> Option<&'a str> {
+    let mut hits = candidates.iter().filter(|c| is_subsequence(needle, c));
+    let first = *hits.next()?;
+    match hits.next() {
+        Some(_) => None,
+        None => Some(first),
     }
 }
 
@@ -175,5 +202,35 @@ mod tests {
         assert_eq!(complete("hello", &a), None);
         assert_eq!(complete("", &a), None);
         assert_eq!(complete("@ghost", &a), None);
+    }
+
+    #[test]
+    fn fuzzy_fallback_completes_a_unique_subsequence_match() {
+        assert_eq!(complete("/gl", &[]).unwrap(), "/goal ");
+        let a = agents(&["planner", "coder", "reviewer"]);
+        assert_eq!(complete("@pnr", &a).unwrap(), "@planner ");
+    }
+
+    #[test]
+    fn fuzzy_fallback_is_none_when_ambiguous() {
+        let a = agents(&["planner", "cleaner"]);
+        // "an" is a subsequence of both "planner" and "cleaner".
+        assert_eq!(complete("@an", &a), None);
+    }
+
+    #[test]
+    fn prefix_match_still_wins_over_fuzzy() {
+        // "/st" is the shared prefix of /stop and /status (and a fuzzy
+        // subsequence of several other constructs too) — stays ambiguous.
+        assert_eq!(complete("/st", &[]), None);
+    }
+
+    #[test]
+    fn is_subsequence_cases() {
+        assert!(is_subsequence("gl", "goal"));
+        assert!(is_subsequence("pnr", "planner"));
+        assert!(is_subsequence("", "anything"));
+        assert!(!is_subsequence("xyz", "goal"));
+        assert!(!is_subsequence("lg", "goal")); // wrong order
     }
 }

@@ -16,3 +16,12 @@ Each iteration appends a section below. Iteration numbering starts at 1.
 - Gate: fmt ok · clippy clean · tests 897 pass · security review CLEAN (0 findings; adversarial 4-lens + skeptics).
 - Release: v0.5.46 (tag pushed; see release run below).
 - Crossed off menu: codex `/diff` pane.
+
+## Iteration 2 — 2026-07-03 01:52 EDT — RELEASED v0.5.47
+- Feature (opencode): fuzzy (subsequence) Tab-completion fallback in the composer — `/gl`→`/goal`, `@pnr`→`@planner`; only fires when prefix matching finds nothing and exactly one candidate fuzzy-matches, so existing behaviour is unchanged. [crew-app/src/chatcomplete.rs]
+- UI: far-panel legend now also shows the panel's total size (`name · N · <size>`) via the existing `fmt_size`. [crew-app/src/farpane/render.rs]
+- Token opt: `/status` reports average tokens/turn (`~{tok}/turn`) so per-turn cost is visible at a glance. [crew-plugin/src/broker/commands.rs]
+- UX: task-start line shows live pool capacity (`▸ task #n started · n/max · label`). [crew-plugin/src/broker/stdio.rs]
+- Gate: fmt ok · clippy clean · tests 904 pass · security review CLEAN (0 findings; adversarial 3-lens + skeptics).
+- Release: v0.5.47.
+- Crossed off menu: opencode fuzzy command palette.
