@@ -75,12 +75,7 @@ pub(crate) fn choose_level(views: &[AgentView], cols: u16) -> Option<u8> {
     if views.is_empty() {
         return None;
     }
-    for level in 0..=MAX_LEVEL {
-        if max_width(views, level) <= cols as usize {
-            return Some(level);
-        }
-    }
-    None
+    (0..=MAX_LEVEL).find(|&level| max_width(views, level) <= cols as usize)
 }
 
 /// Clusters that fit on one row of `cols`, given equal `cluster_w` + gutter.

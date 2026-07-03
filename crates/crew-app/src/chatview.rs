@@ -78,60 +78,6 @@ impl ChatPane {
     pub(crate) fn top_rows(&self, rows: u16) -> u16 {
         self.status_rows(u16::MAX, rows)
     }
-
-    /// Pulse lanes to draw (0 = pulse hidden, keep the legacy rows).
-    pub(crate) fn pulse_lanes(&self, rows: u16) -> u16 {
-        crate::chatpulse::pulse_lanes(self.agents.len(), rows, self.engaged())
-    }
-}
-
-/// The pulse block under the header: one lane per agent (rows 1..=lanes) and
-/// the turn waterfall (row lanes+1). Lanes share a sparkline scale so hop
-/// heights compare across agents; the share bars split total reply time.
-fn pulse_block(pane: &ChatPane, cols: u16, lanes: u16) -> Vec<CellView> {
-    let shown = &pane.agents[..(lanes as usize).min(pane.agents.len())];
-    let name_w = shown
-        .iter()
-        .map(|a| a.name.chars().count())
-        .max()
-        .unwrap_or(0);
-    let scale = shown
-        .iter()
-        .filter_map(|a| pane.pulse.hist(&a.name))
-        .map(|h| h.peak(crate::chatpulse::SPARK_W as usize))
-        .max()
-        .unwrap_or(0)
-        .max(1);
-    let total_ms: u64 = pane.agent_stats.values().map(|(_, ms)| ms).sum();
-    let mut cells = Vec::new();
-    for (i, a) in shown.iter().enumerate() {
-        let active = pane.active_agents().iter().find(|x| x.name == a.name);
-        cells.extend(crate::chatpulse::lane_cells(
-            cols,
-            1 + i as u16,
-            a,
-            active,
-            pane.pulse.hist(&a.name),
-            &pane.agent_stats,
-            total_ms,
-            scale,
-            name_w,
-            pane.ctx.get(&a.name).copied(),
-            crate::ctxlimit::context_limit(&a.model),
-        ));
-    }
-    // The newest thinking agent's segment grows live on the waterfall.
-    let live = pane
-        .active_agents()
-        .last()
-        .map(|a| (a.name.as_str(), a.since.elapsed().as_millis() as u64));
-    cells.extend(crate::chatpulse::waterfall_cells(
-        cols,
-        1 + lanes,
-        pane.pulse.hops(),
-        live,
-    ));
-    cells
 }
 
 /// Render `pane` into a `cols` × `rows` grid.
@@ -171,8 +117,7 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
     cells.extend(crate::chatchips::grid_cells(&views, cols, 1));
     // Zone 3: the turn waterfall below the grid, once a turn ran (and only when
     // wide enough to draw — matches status_rows' cols>=30 gate). `live` is the
-    // newest thinking agent's still-growing segment (same expression the old
-    // pulse_block used).
+    // newest thinking agent's still-growing segment.
     if !pane.pulse.hops().is_empty() && cols >= 30 {
         let live = pane
             .active_agents()

@@ -132,38 +132,6 @@ fn turn_over_flushes_stragglers_and_next_turn_resets() {
     // The next turn's first hop starts a fresh waterfall.
     p.absorb_activity("coder".into(), "thinking", "user".into());
     assert!(p.pulse.hops().is_empty());
-    assert!(p.engaged(), "an active agent keeps the pulse block on");
-}
-
-#[test]
-fn pulse_lanes_gate_on_height_and_engagement() {
-    let mut p = pane();
-    p.agents = vec![
-        AgentInfo {
-            name: "planner".into(),
-            role: String::new(),
-            model: "m".into(),
-        },
-        AgentInfo {
-            name: "coder".into(),
-            role: String::new(),
-            model: "m".into(),
-        },
-    ];
-    assert_eq!(p.pulse_lanes(20), 0, "fresh pane keeps the roster rows");
-    assert_eq!(p.top_rows(20), 2);
-    p.absorb_stats(950, String::new(), 0, 0); // a turn ran
-    assert_eq!(p.pulse_lanes(20), 2, "engaged + tall → one lane per agent");
-    // `top_rows` now derives from `status_rows` (session line + chip grid +
-    // waterfall-if-hops), decoupled from `pulse_lanes`; no hop has been
-    // recorded here, so no waterfall row yet. See
-    // `status_rows_counts_session_grid_and_waterfall` for the waterfall case.
-    assert_eq!(
-        p.top_rows(20),
-        2,
-        "session line + one grid row, no hops yet"
-    );
-    assert_eq!(p.pulse_lanes(10), 0, "short pane falls back");
 }
 
 #[test]
