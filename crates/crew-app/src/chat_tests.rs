@@ -51,6 +51,122 @@ fn pane() -> ChatPane {
 }
 
 #[test]
+fn cells_render_session_line_agent_chips_and_turn_duration() {
+    let mut p = pane();
+    p.agents = vec![
+        crew_plugin::AgentInfo {
+            name: "planner".into(),
+            role: String::new(),
+            model: "qwen".into(),
+        },
+        crew_plugin::AgentInfo {
+            name: "coder".into(),
+            role: String::new(),
+            model: "qwen".into(),
+        },
+    ];
+    p.absorb_stats(950, String::new(), 0, 0);
+    p.pulse.record_hop("planner", 1200);
+    p.pulse.end_turn();
+    let cells = p.cells(120, 20);
+    let text: String = {
+        let mut rows: std::collections::BTreeMap<u16, Vec<(u16, char)>> = Default::default();
+        for c in &cells {
+            rows.entry(c.row).or_default().push((c.col, c.c));
+        }
+        rows.into_values()
+            .map(|mut r| {
+                r.sort();
+                r.into_iter().map(|(_, c)| c).collect::<String>()
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+    assert!(text.contains("crew"), "session line present:\n{text}");
+    assert!(
+        text.contains("\u{25b8}planner") || text.contains("\u{25aa}planner"),
+        "planner card:\n{text}"
+    );
+    assert!(
+        text.contains("\u{25aa}coder") || text.contains("\u{25b8}coder"),
+        "coder card:\n{text}"
+    );
+    assert!(text.contains("idle"), "state token:\n{text}");
+    // The turn duration (1200ms -> "1.2s") now lives in the session line, not
+    // a waterfall row.
+    assert!(
+        text.contains("1 turn") && text.contains("1.2s"),
+        "turn duration in session line:\n{text}"
+    );
+    assert!(
+        !text.contains('\u{2588}'),
+        "no waterfall block glyphs left:\n{text}"
+    );
+}
+
+/// Overdraw regression: `status_rows` used to clamp the grid's row count
+/// while `cells()`'s renderer drew the grid's *unclamped* row count, so a
+/// short pane with more agents than fit could bleed the card grid into the
+/// message body. Both now derive from one `chatchips::layout` call with
+/// identical `avail`, so the drawn extent can never exceed what `status_rows`
+/// reports. Force the cap (8 agents, a short/narrow pane) and confirm it.
+#[test]
+fn cells_grid_never_overdraws_past_status_rows() {
+    let mut p = pane();
+    p.agents = (0..8)
+        .map(|i| crew_plugin::AgentInfo {
+            name: format!("agent{i}"),
+            role: String::new(),
+            model: "m".into(),
+        })
+        .collect();
+    p.absorb_stats(950, String::new(), 0, 0);
+    p.pulse.record_hop("agent0", 1200);
+    p.pulse.end_turn();
+    let (cols, rows) = (40u16, 9u16);
+    let top = p.status_rows(cols, rows);
+
+    let views = p.agent_views();
+    let avail = rows.saturating_sub(1 + crate::chatinput::composer_rows(rows));
+    let lay = crate::chatchips::layout(&views, cols, avail).expect("some rows fit");
+    assert_eq!(
+        top,
+        1 + lay.rows,
+        "status_rows matches the shared layout's extent exactly"
+    );
+    assert!(
+        lay.shown < views.len(),
+        "the short pane forces capping below all 8 agents: shown={} of {}",
+        lay.shown,
+        views.len()
+    );
+
+    // The renderer draws with this exact `lay` — its cells must never reach
+    // or exceed `top` (no rendered row exceeds `status_rows`).
+    let grid = crate::chatchips::row_cells(&views, cols, 1, &lay);
+    let max_row = grid.iter().map(|c| c.row).max().unwrap_or(0);
+    assert!(
+        max_row < top,
+        "grid content stays inside the status zone: max_row={max_row} top={top}"
+    );
+
+    // Composer-overlap regression: the grid's budget must reserve the
+    // composer's *real* height (`composer_rows`, 3 on this tall pane), not a
+    // hardcoded stand-in — otherwise the last grid row lands on the
+    // composer's top border. No rendered grid row may reach the composer's
+    // first row.
+    let composer_first_row = rows - crate::chatinput::composer_rows(rows);
+    assert!(
+        max_row < composer_first_row,
+        "grid content stays clear of the composer: max_row={max_row} composer_first_row={composer_first_row}"
+    );
+
+    // And the full render pipeline still produces a sane frame at this size.
+    let cells = p.cells(cols, rows);
+    assert!(!cells.is_empty());
+}
+
+#[test]
 fn relay_reply_ends_the_hop_and_records_it() {
     let mut p = pane();
     p.absorb_activity("planner".into(), "thinking", "user".into());
@@ -88,30 +204,37 @@ fn turn_over_flushes_stragglers_and_next_turn_resets() {
     // The next turn's first hop starts a fresh waterfall.
     p.absorb_activity("coder".into(), "thinking", "user".into());
     assert!(p.pulse.hops().is_empty());
-    assert!(p.engaged(), "an active agent keeps the pulse block on");
 }
 
 #[test]
-fn pulse_lanes_gate_on_height_and_engagement() {
+fn status_rows_counts_session_and_grid() {
     let mut p = pane();
     p.agents = vec![
-        AgentInfo {
+        crew_plugin::AgentInfo {
             name: "planner".into(),
             role: String::new(),
             model: "m".into(),
         },
-        AgentInfo {
+        crew_plugin::AgentInfo {
             name: "coder".into(),
             role: String::new(),
             model: "m".into(),
         },
     ];
-    assert_eq!(p.pulse_lanes(20), 0, "fresh pane keeps the roster rows");
-    assert_eq!(p.top_rows(20), 2);
-    p.absorb_stats(950, String::new(), 0, 0); // a turn ran
-    assert_eq!(p.pulse_lanes(20), 2, "engaged + tall → one lane per agent");
-    assert_eq!(p.top_rows(20), 4, "header + 2 lanes + waterfall");
-    assert_eq!(p.pulse_lanes(10), 0, "short pane falls back");
+    // Idle, wide+tall pane: session line + one row per agent (2 agents).
+    assert_eq!(p.status_rows(200, 20), 1 + 2);
+    // A turn ran → the count is unchanged; the duration now lives in the
+    // session line, not an extra row.
+    p.absorb_stats(950, String::new(), 0, 0);
+    p.pulse.record_hop("planner", 1200);
+    p.pulse.end_turn();
+    assert_eq!(p.status_rows(200, 20), 1 + 2);
+    // Too narrow for any card → just the session line.
+    assert_eq!(p.status_rows(3, 20), 1);
+    // A short pane (rows=3, composer=1 row here) reserves session(1) +
+    // composer(1), leaving exactly one row for the grid — one agent row
+    // fits with no overlap.
+    assert_eq!(p.status_rows(200, 3), 1 + 1);
 }
 
 // `on_key` takes a winit `KeyEvent`, which is #[non_exhaustive] and awkward

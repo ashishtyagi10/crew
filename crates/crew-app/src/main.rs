@@ -4,6 +4,7 @@ mod app;
 mod boxdraw;
 mod chat;
 mod chatbody;
+mod chatchips;
 mod chatcode;
 mod chatcomplete;
 mod chatempty;
