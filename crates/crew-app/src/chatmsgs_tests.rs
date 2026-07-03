@@ -130,6 +130,39 @@ fn wide_glyphs_advance_two_columns() {
 }
 
 #[test]
+fn header_line_shows_a_dim_chip_for_task_tagged_messages() {
+    let m = Message {
+        sender: "planner \u{2192} user".into(),
+        text: "done".into(),
+        ts: String::new(),
+        meta: "task:2 \u{00b7} 0.0s".into(),
+    };
+    let line = header_line(&m, 0);
+    let muted = crew_theme::theme().text_muted;
+    let hash = line.iter().find(|c| c.c == '#').expect("chip # present");
+    assert_eq!(hash.fg, muted, "chip # is muted");
+    let id = line.iter().find(|c| c.c == '2').expect("chip id present");
+    assert_eq!(id.fg, muted, "chip id is muted");
+    let chars: String = line.iter().map(|c| c.c).collect();
+    assert!(chars.contains("0.0s"), "latency must still render: {chars}");
+    assert!(
+        !chars.contains("task"),
+        "tag must not leak into the header: {chars}"
+    );
+}
+
+#[test]
+fn header_line_has_no_chip_for_untagged_messages() {
+    let mut m = msg("coder", "done");
+    m.meta = "4.2s".into();
+    let line = header_line(&m, 0);
+    assert!(
+        !line.iter().any(|c| c.c == '#'),
+        "no task tag means no chip"
+    );
+}
+
+#[test]
 fn fade_t_ramps_with_message_age() {
     // Counting pass (now == 0) and unstamped messages render fully drawn.
     assert_eq!(fade_t("1000", 0), 1.0);

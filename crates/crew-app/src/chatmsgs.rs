@@ -45,6 +45,11 @@ fn header_line(m: &Message, now_ms: u64) -> CardLine {
     let mut line: CardLine = Vec::new();
     let parts: Vec<&str> = m.sender.split(" \u{2192} ").collect();
     line.push(plain(GUTTER, sender_color(parts[0]), false));
+    if let Some(id) = crate::chattime::task_tag(&m.meta) {
+        for c in format!("#{id} ").chars() {
+            line.push(plain(c, muted, false));
+        }
+    }
     for (i, part) in parts.iter().enumerate() {
         if i > 0 {
             line.extend(" \u{2192} ".chars().map(|c| plain(c, muted, false)));

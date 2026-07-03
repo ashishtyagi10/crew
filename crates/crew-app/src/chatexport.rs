@@ -62,8 +62,9 @@ pub(crate) fn transcript_markdown(
         if let Some(t) = local_time(&m.ts) {
             head.push_str(&format!(" \u{00b7} {t}"));
         }
-        if !m.meta.is_empty() {
-            head.push_str(&format!(" \u{00b7} {}", m.meta));
+        let meta = crate::chattime::strip_task_tag(&m.meta);
+        if !meta.is_empty() {
+            head.push_str(&format!(" \u{00b7} {}", meta));
         }
         out.push_str(&head);
         out.push_str("\n\n");
@@ -122,5 +123,13 @@ mod tests {
         assert!(local_time("1750000000000").is_some());
         assert_eq!(local_time(""), None);
         assert_eq!(local_time("not-a-ts"), None);
+    }
+
+    #[test]
+    fn task_tagged_meta_exports_the_stripped_latency_not_the_tag() {
+        let msgs = [msg("coder", "done", "", "task:2 \u{00b7} 0.0s")];
+        let md = transcript_markdown("general", &msgs, &chrono::Local::now());
+        assert!(md.contains("0.0s"), "got: {md}");
+        assert!(!md.contains("task:"), "tag must not leak into export: {md}");
     }
 }
