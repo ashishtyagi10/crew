@@ -32,6 +32,30 @@ fn two_sends_both_start_as_separate_tasks_not_busy() {
         !msgs.iter().any(|(_, t)| t.contains("busy")),
         "second Send was rejected as busy: {msgs:?}"
     );
+    // Both tasks actually RAN to completion (not just admitted): each emits its
+    // own `done` line and its own agent reply. `send` spawns each worker without
+    // joining the previous handle (see stdio.rs), so the two run concurrently;
+    // the harness joins both on EOF, so both must have finished before exit.
+    assert!(
+        msgs.iter()
+            .any(|(s, t)| s == "crew" && t.contains("task #1 done")),
+        "task #1 never completed: {msgs:?}"
+    );
+    assert!(
+        msgs.iter()
+            .any(|(s, t)| s == "crew" && t.contains("task #2 done")),
+        "task #2 never completed: {msgs:?}"
+    );
+    // Two independent agent replies landed — one per task — proving both tasks
+    // did real work, not that one was dropped or serialized out.
+    let replies = msgs
+        .iter()
+        .filter(|(s, t)| s.contains(" \u{2192} ") && t.contains("did it"))
+        .count();
+    assert!(
+        replies >= 2,
+        "expected a reply from each task, got {replies}: {msgs:?}"
+    );
 }
 
 #[test]

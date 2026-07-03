@@ -84,6 +84,15 @@ with a concurrent task in practice; note this limitation).
 - A dedicated task-dashboard pane.
 - Queueing beyond the cap.
 
+## Known limitations (v1)
+- **Shared plan slot across concurrent tasks.** `/plan` and `/approve` run as
+  background tasks over the session's single `SharedPlan`. Firing two `/plan`
+  tasks concurrently means the second draft overwrites the first's pending plan,
+  and `/approve` executes whatever plan currently occupies the slot. This is the
+  same shared-session-state trade-off as the deferred per-task isolation above;
+  drafting one plan at a time avoids it. A future per-task (or locked) plan slot
+  would remove the footgun.
+
 ## Testing
 - `tasks.rs`: spawn assigns increasing ids; reap drops finished; cancel(id)
   flips only that flag; cancel_all flips all; len/describe correct; cap

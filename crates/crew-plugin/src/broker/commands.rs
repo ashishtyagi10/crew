@@ -48,8 +48,9 @@ pub(crate) const HELP: &str = "constructs:\n\
     /skills — list prompt playbooks (~/.config/crew/skills, .crew/skills)\n\
     /skill <name> <task> — run the relay with that playbook prepended\n\
     /mcp — MCP servers and their tools (~/.config/crew/mcp.json, .crew/mcp.json)\n\
-    /stop — cancel the running construct at the next checkpoint\n\
-    /status — session totals, models, and what's running\n\
+    /tasks — list the background tasks running now\n\
+    /stop [#n] — cancel all background tasks, or just task #n\n\
+    /status — session totals, models, and the live task count\n\
     @<agent> <task> — choose who starts the relay\n\
     @<a>+<b> <task> — those agents answer in parallel";
 

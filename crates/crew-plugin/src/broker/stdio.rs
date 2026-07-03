@@ -1,8 +1,11 @@
 //! The stdio broker loop behind the `/crew` pane. Reads `PluginCommand` JSON
 //! lines and STREAMS every event as it happens (flushing per line). Long work
-//! — a relay turn, /fan, /loop, /goal — runs on a **worker thread** so the
-//! main loop keeps draining stdin: quick constructs (/help, /model, …) answer
-//! immediately and `/stop` can cancel the running task between hops/rounds.
+//! — a relay turn, /fan, /loop, /goal — spawns a **background task** (its own
+//! worker thread, id, and cancel flag) so several run at once (up to
+//! `CREW_MAX_TASKS`) while the main loop keeps draining stdin. Quick constructs
+//! (/help, /model, …) answer inline; `/tasks` lists the running tasks and
+//! `/stop [#n]` cancels all of them or just task #n between hops/rounds. Each
+//! task's streamed `Message` events carry a `task:<id>` tag in their `meta`.
 //! Used both by the `crew-broker-plugin` binary and by the `crew` binary
 //! re-execing itself with `--broker-plugin`.
 use std::io::{BufRead, Write};
