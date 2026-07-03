@@ -287,7 +287,9 @@ pub(crate) fn status_report(session: &Session, tasks_running: usize) -> String {
     format!(
         "status: {running}\n\
          turns: {turns} \u{00b7} ~{tokens} tok ({approx})\n\
-         model pins: {pins}\n\n{}",
+         model pins: {pins}\n\
+         sys: {}\n\n{}",
+        super::systools::mode_label(),
         agents_report(session),
     )
 }

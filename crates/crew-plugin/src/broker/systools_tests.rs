@@ -136,6 +136,23 @@ fn read_file_rejects_binary_with_no_boundary_near_cap() {
 }
 
 #[test]
+fn read_only_from_recognizes_readonly_and_ro() {
+    assert!(read_only_from(Some("readonly")));
+    assert!(read_only_from(Some("ro")));
+    assert!(!read_only_from(Some("full")));
+    assert!(!read_only_from(None));
+    assert!(!read_only_from(Some("x")));
+}
+
+#[test]
+fn read_only_block_gates_mutating_tools_only() {
+    assert!(read_only_block("run", true).is_some());
+    assert!(read_only_block("write_file", true).is_some());
+    assert!(read_only_block("read_file", true).is_none());
+    assert!(read_only_block("run", false).is_none());
+}
+
+#[test]
 fn list_dir_notes_unstatable_entries_instead_of_aborting() {
     let dir = std::env::temp_dir().join(format!("systools-ls-bad-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();

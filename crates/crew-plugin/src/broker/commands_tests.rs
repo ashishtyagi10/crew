@@ -155,6 +155,7 @@ fn status_reports_totals_pins_and_running_state() {
     assert!(t.contains("~950 tok"), "{t}");
     assert!(t.contains("~237/turn"), "{t}");
     assert!(t.contains("coder \u{2192} qwen-turbo"), "{t}");
+    assert!(t.contains("sys: full"), "{t}"); // CREW_SYS_MODE unset under cargo test
     assert!(t.contains("planner"), "roster included: {t}");
 }
 
