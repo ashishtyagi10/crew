@@ -33,6 +33,7 @@ mod skills;
 mod stdio;
 mod sysrun;
 mod systools;
+mod tasks;
 mod toolcall;
 
 pub use adapter::{Adapter, CliAdapter, Normalize};
