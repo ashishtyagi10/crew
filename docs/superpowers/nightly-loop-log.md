@@ -61,3 +61,12 @@ Each iteration appends a section below. Iteration numbering starts at 1.
 - Release: v0.5.51.
 - Crossed off menu: claude-code /compact transcript summarizer.
 - Note: the unread "N new" indicator (planned UI change) already existed (chatscroll::new_pill_cells), so 3 net-new changes shipped.
+
+## Iteration 7 — 2026-07-03 06:52 EDT — RELEASED v0.5.52
+- Feature (codex): `/cwd` construct — shows the broker's working directory (where sys tools operate) and the sandbox mode. [crew-plugin/src/broker/commands.rs, chatcomplete.rs]
+- UI: composer shows a dim right-aligned char-count badge (`Nc`) when input exceeds 120 chars (bordered-pane variant). [crew-app/src/chatinput.rs]
+- Token opt: the relay frame now trims surrounding whitespace from the task text (paid on every hop) before the 4 KB cap. [crew-plugin/src/broker/route.rs]
+- UX: `/status` pluralizes correctly (`1 task running` / `N tasks running`, no more `task(s)`). [crew-plugin/src/broker/commands.rs]
+- Gate: fmt ok · clippy clean · tests 946 pass · security review CLEAN (0 confirmed).
+- Release: v0.5.52.
+- Crossed off menu: codex working-directory surfacing (`/cwd`).

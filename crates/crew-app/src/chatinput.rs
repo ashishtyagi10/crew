@@ -98,8 +98,10 @@ fn prompt_cells(input: &str, agents: &[AgentInfo], x0: u16, max: u16, row: u16) 
 }
 
 /// Overlay the `@agent` chips on the card's top border as its legend
-/// (`╭─ @planner @coder ─╮`), each chip in its roster colour.
-fn chips_on_border(cells: &mut Vec<CellView>, agents: &[AgentInfo], cols: u16, row: u16) {
+/// (`╭─ @planner @coder ─╮`), each chip in its roster colour. Returns the
+/// first free column after the chips (or after the corner, if none fit) so
+/// callers can place more content on the same row without overlapping them.
+fn chips_on_border(cells: &mut Vec<CellView>, agents: &[AgentInfo], cols: u16, row: u16) -> u16 {
     let bg = crew_theme::theme().page_bg;
     let border = crew_theme::theme().border_normal;
     let mut x = 2u16;
@@ -135,6 +137,31 @@ fn chips_on_border(cells: &mut Vec<CellView>, agents: &[AgentInfo], cols: u16, r
             bold: false,
             italic: false,
         });
+        x += 1;
+    }
+    x
+}
+
+/// A dim `Nc` badge shown at the right of the composer when input is long.
+fn char_count_badge(len: usize) -> Option<String> {
+    (len > 120).then(|| format!("{len}c"))
+}
+
+/// Right-align the char-count badge on the card's top border, clear of the
+/// agent chips (`chips_end`) and the right corner; skipped entirely if the
+/// row is too narrow to fit it without overlapping either.
+fn badge_on_border(cells: &mut Vec<CellView>, badge: &str, chips_end: u16, cols: u16, row: u16) {
+    let muted = crew_theme::theme().text_muted;
+    let w = badge.chars().count() as u16;
+    if cols < 3 + w {
+        return;
+    }
+    let start = cols - 2 - w;
+    if start <= chips_end {
+        return;
+    }
+    for (x, c) in (start..).zip(badge.chars()) {
+        cells.push(cell(x, row, c, muted, false));
     }
 }
 
@@ -183,7 +210,10 @@ pub(crate) fn composer_cells(
         c
     })
     .collect();
-    chips_on_border(&mut cells, agents, cols, top);
+    let chips_end = chips_on_border(&mut cells, agents, cols, top);
+    if let Some(badge) = char_count_badge(input.chars().count()) {
+        badge_on_border(&mut cells, &badge, chips_end, cols, top);
+    }
     // Interior prompt, kept clear of the right border at `cols - 1`.
     cells.extend(prompt_cells(input, agents, 2, cols - 1, rows - 2));
     hints_on_border(&mut cells, cols, rows - 1);

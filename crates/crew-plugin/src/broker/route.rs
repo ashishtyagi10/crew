@@ -110,7 +110,7 @@ pub fn frame(env: &Envelope, peers: &[String], task: &str, transcript: &str) -> 
     } else {
         transcript.to_string()
     };
-    let task = clip(task, TASK_CAP);
+    let task = clip(task.trim(), TASK_CAP);
     compact_ws(&format!(
         "You are \"{me}\", a CLI coding agent working with peers: {peers}.\n\n\
          TASK:\n{task}\n\n\

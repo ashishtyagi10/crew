@@ -7,7 +7,7 @@ use crew_plugin::AgentInfo;
 /// Every composer slash action: broker constructs plus the pane-local
 /// `/export`, `/theme`, `/compact`, and `/exit` (see `chatexport` /
 /// `chattheme` / `chatcompact` / `chat`).
-pub(crate) const CONSTRUCTS: [&str; 23] = [
+pub(crate) const CONSTRUCTS: [&str; 24] = [
     "/help",
     "/agents",
     "/model",
@@ -21,6 +21,7 @@ pub(crate) const CONSTRUCTS: [&str; 23] = [
     "/checkpoints",
     "/restore",
     "/diff",
+    "/cwd",
     "/skills",
     "/skill",
     "/mcp",
@@ -50,6 +51,7 @@ pub(crate) fn describe(construct: &str) -> &'static str {
         "/checkpoints" => "list checkpoints",
         "/restore" => "restore a checkpoint",
         "/diff" => "show working-tree changes",
+        "/cwd" => "show the working directory",
         "/skills" => "list available skills",
         "/skill" => "run a skill",
         "/mcp" => "list MCP servers and tools",
@@ -198,6 +200,12 @@ mod tests {
     fn completes_and_describes_diff() {
         assert_eq!(complete("/di", &[]).unwrap(), "/diff ");
         assert_eq!(describe("/diff"), "show working-tree changes");
+    }
+
+    #[test]
+    fn completes_and_describes_cwd() {
+        assert_eq!(complete("/cw", &[]).unwrap(), "/cwd ");
+        assert_eq!(describe("/cwd"), "show the working directory");
     }
 
     #[test]

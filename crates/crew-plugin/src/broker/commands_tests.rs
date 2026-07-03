@@ -74,6 +74,34 @@ fn help_lists_the_diff_construct() {
 }
 
 #[test]
+fn help_lists_the_cwd_construct() {
+    let evs = run("/help");
+    let t = text_of(&evs[0]);
+    assert!(t.contains("/cwd"), "{t}");
+    assert!(t.contains("sandbox mode"), "{t}");
+}
+
+#[test]
+fn cwd_report_shows_the_dir_and_full_mode() {
+    let t = cwd_report(std::path::Path::new("/tmp/x"), false);
+    assert!(t.contains("working dir: /tmp/x"), "{t}");
+    assert!(t.contains("sys: full"), "{t}");
+}
+
+#[test]
+fn cwd_report_shows_read_only_mode() {
+    let t = cwd_report(std::path::Path::new("/a"), true);
+    assert!(t.contains("sys: read-only"), "{t}");
+}
+
+#[test]
+fn cwd_emits_the_working_directory() {
+    let evs = run("/cwd");
+    assert_eq!(evs.len(), 1);
+    assert!(text_of(&evs[0]).contains("working dir:"), "{evs:?}");
+}
+
+#[test]
 fn diff_reports_something_for_the_current_repo() {
     // Read-only: exercises the real cwd, like `/agents` does above — safe
     // because /diff never mutates the working tree.
@@ -150,7 +178,7 @@ fn status_reports_totals_pins_and_running_state() {
         .tokens
         .store(950, std::sync::atomic::Ordering::Relaxed);
     let t = super::status_report(&session, 2);
-    assert!(t.contains("2 task(s) running"), "{t}");
+    assert!(t.contains("2 tasks running"), "{t}");
     assert!(t.contains("turns: 4"), "{t}");
     assert!(t.contains("~950 tok"), "{t}");
     assert!(t.contains("~237/turn"), "{t}");
@@ -158,6 +186,17 @@ fn status_reports_totals_pins_and_running_state() {
     assert!(t.contains("sys: full"), "{t}"); // CREW_SYS_MODE unset under cargo test
     assert!(t.contains("budget: unlimited"), "{t}"); // CREW_BROKER_TOKEN_BUDGET unset under cargo test
     assert!(t.contains("planner"), "roster included: {t}");
+}
+
+#[test]
+fn status_singularizes_a_single_running_task() {
+    let _g = testenv::mock("ok\n@done");
+    let session = Session::new();
+    let one = super::status_report(&session, 1);
+    assert!(one.contains("1 task running"), "{one}");
+    assert!(!one.contains("task(s)"), "{one}");
+    let two = super::status_report(&session, 2);
+    assert!(two.contains("2 tasks running"), "{two}");
 }
 
 #[test]

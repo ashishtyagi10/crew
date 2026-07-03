@@ -46,6 +46,7 @@ pub(crate) const HELP: &str = "constructs:\n\
     /checkpoints — list saved snapshots\n\
     /restore <n> — put checkpoint n's files back\n\
     /diff — show the working tree's changes (git diff --stat)\n\
+    /cwd — show the working directory and sandbox mode\n\
     /skills — list prompt playbooks (~/.config/crew/skills, .crew/skills)\n\
     /skill <name> <task> — run the relay with that playbook prepended\n\
     /mcp — MCP servers and their tools (~/.config/crew/mcp.json, .crew/mcp.json)\n\
@@ -104,6 +105,7 @@ const CONSTRUCTS: &[&str] = &[
     "skill",
     "mcp",
     "diff",
+    "cwd",
     "status",
     "tasks",
     "stop",
@@ -172,6 +174,7 @@ pub(crate) fn handle(
         "checkpoints" => super::checkpoint::list_cmd(emit),
         "restore" => super::checkpoint::restore_cmd(rest, emit),
         "diff" => super::diff::diff_cmd(emit),
+        "cwd" => cwd_cmd(emit),
         "skills" => emit(msg(
             "crew",
             super::skills::list_report(&super::skills::load()),
@@ -189,6 +192,22 @@ pub(crate) fn handle(
             },
         )),
     }
+}
+
+/// `/cwd` — where the sys tools operate, and the sandbox mode.
+fn cwd_report(dir: &std::path::Path, read_only: bool) -> String {
+    let mode = if read_only { "read-only" } else { "full" };
+    format!("working dir: {}\nsys: {mode}", dir.display())
+}
+
+/// `/cwd` — reports the sys tools' working directory and sandbox mode
+/// (codex-style: read-only, no agent calls).
+fn cwd_cmd(emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>) -> anyhow::Result<()> {
+    let report = match std::env::current_dir() {
+        Ok(dir) => cwd_report(&dir, super::systools::read_only()),
+        Err(e) => format!("cwd unavailable: {e}"),
+    };
+    emit(msg("crew", report))
 }
 
 /// `/model` — list each agent's model; `/model <agent> <model>` — pin the
@@ -263,7 +282,10 @@ pub(crate) fn status_report(session: &Session, tasks_running: usize) -> String {
     let running = if tasks_running == 0 {
         "idle".to_string()
     } else {
-        format!("{tasks_running} task(s) running")
+        format!(
+            "{tasks_running} task{} running",
+            if tasks_running == 1 { "" } else { "s" }
+        )
     };
     let pins = if session.overrides.is_empty() {
         "none".to_string()

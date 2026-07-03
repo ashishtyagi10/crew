@@ -114,6 +114,37 @@ fn placeholder_truncates_to_a_narrow_pane() {
 }
 
 #[test]
+fn char_count_badge_thresholds() {
+    assert_eq!(char_count_badge(10), None);
+    assert_eq!(char_count_badge(121), Some("121c".to_string()));
+}
+
+#[test]
+fn long_input_shows_a_muted_char_count_badge_on_the_top_border() {
+    let long = "a".repeat(121);
+    let cells = composer_cells(&long, &agents(&["planner"]), 80, 10);
+    let muted = crew_theme::theme().text_muted;
+    let top = row_text(&cells, 7);
+    assert!(top.contains("121c"), "{top}");
+    assert!(
+        cells
+            .iter()
+            .any(|c| c.row == 7 && c.c == '1' && c.fg == muted),
+        "badge must render in the muted colour"
+    );
+}
+
+#[test]
+fn short_input_has_no_char_count_badge() {
+    let cells = composer_cells("hi", &agents(&["planner"]), 80, 10);
+    let muted = crew_theme::theme().text_muted;
+    assert!(
+        cells.iter().all(|c| c.row != 7 || c.fg != muted),
+        "no badge expected for short input"
+    );
+}
+
+#[test]
 fn everything_clips_to_width() {
     let cells = composer_cells(
         "a very long input line that overflows",
