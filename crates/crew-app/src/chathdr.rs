@@ -7,18 +7,20 @@ use crew_render::CellView;
 /// ASCII spinner frames for the "thinking" indicator (Nerd-Font-independent).
 const SPINNER: [char; 4] = ['|', '/', '-', '\\'];
 
-/// Append `s` at `(row, col..)` in `fg`; returns the next free column.
+/// Append `s` at `(row, col..)` in `fg`, clipped to `max_col`; returns the
+/// next free column.
 fn push(
     cells: &mut Vec<CellView>,
     row: u16,
     col: u16,
+    max_col: u16,
     s: &str,
     fg: (u8, u8, u8),
     bold: bool,
 ) -> u16 {
     let bg = crew_theme::theme().page_bg;
     // Width-aware (see `chatwidth`): agent labels can carry wide glyphs.
-    crate::chatwidth::place_row(col, u16::MAX, s.chars().map(|c| (c, fg)), |x, c, fg| {
+    crate::chatwidth::place_row(col, max_col, s.chars().map(|c| (c, fg)), |x, c, fg| {
         cells.push(CellView {
             col: x,
             row,
@@ -32,9 +34,12 @@ fn push(
 }
 
 /// The right-aligned status segments as `(text, colour)`, in left-to-right order.
-/// Joined with two-space gaps. While an agent is active the spinner names it and
-/// counts the elapsed seconds (`| coder · 12s`, in the agent's roster colour);
-/// otherwise a plain `thinking` spinner appears while a send is unanswered.
+/// While an agent is active the spinner names it and counts the elapsed
+/// seconds (`| coder · 12s`, in the agent's roster colour); otherwise a plain
+/// `thinking` spinner appears while a send is unanswered. The turn/token/
+/// message counters are ` │ `-separated (the pipe is its own segment, so it
+/// picks up the ordinary inter-segment gap on both sides); the trailing
+/// connection dot keeps the tighter single-space gap it always had.
 fn status_segments(
     connected: bool,
     msg_count: usize,
@@ -42,6 +47,7 @@ fn status_segments(
     active: Option<(&str, u64, (u8, u8, u8))>,
     tokens: u64,
     turns: u64,
+    turn_ms: u64,
 ) -> Vec<(String, (u8, u8, u8))> {
     let t = crew_theme::theme();
     let mut segs = Vec::new();
@@ -51,15 +57,30 @@ fn status_segments(
     } else if awaiting {
         segs.push((format!("{} thinking", SPINNER[f]), crate::palette::accent()));
     }
+
+    // The turn/token/message counters, pipe-separated.
+    let mut info: Vec<(String, (u8, u8, u8))> = Vec::new();
     if turns > 0 {
         let plural = if turns == 1 { "" } else { "s" };
-        segs.push((format!("{turns} turn{plural}"), t.text_muted));
+        let dur = if turn_ms > 0 {
+            format!(" \u{00b7} {:.1}s", turn_ms as f64 / 1_000.0)
+        } else {
+            String::new()
+        };
+        info.push((format!("{turns} turn{plural}{dur}"), t.text_muted));
     }
     if tokens > 0 {
-        segs.push((format!("~{} tok", fmt_tokens(tokens)), t.text_muted));
+        info.push((format!("~{} tok", fmt_tokens(tokens)), t.text_muted));
     }
     let plural = if msg_count == 1 { "" } else { "s" };
-    segs.push((format!("{msg_count} msg{plural}"), t.text_muted));
+    info.push((format!("{msg_count} msg{plural}"), t.text_muted));
+    for (i, seg) in info.into_iter().enumerate() {
+        if i > 0 {
+            segs.push(("\u{2502}".to_string(), t.text_muted)); // │
+        }
+        segs.push(seg);
+    }
+
     let (dot, dot_c) = if connected {
         ('\u{25cf}', t.activity) // ● connected
     } else {
@@ -80,6 +101,9 @@ pub(crate) fn fmt_tokens(tokens: u64) -> String {
 
 /// Build the single-row header for a `cols`-wide crew pane.
 /// `totals` is the session's `(approx tokens, completed turns)`.
+/// `turn_ms` is the settled/last turn's duration in milliseconds (0 = none
+/// known yet), rendered as `· <D.D>s` after the turn count.
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn header_cells(
     cols: u16,
     channel: &str,
@@ -88,6 +112,7 @@ pub(crate) fn header_cells(
     awaiting: bool,
     active: Option<(&str, u64, (u8, u8, u8))>,
     totals: (u64, u64),
+    turn_ms: u64,
 ) -> Vec<CellView> {
     let (tokens, turns) = totals;
     if cols == 0 {
@@ -102,20 +127,31 @@ pub(crate) fn header_cells(
         format!("crew \u{00b7} {channel}") // crew · <channel>
     };
 
-    // Right-aligned status, laid out from the right edge.
-    let segs = status_segments(connected, msg_count, awaiting, active, tokens, turns);
+    // Right-aligned status, laid out from the right edge. Segments get the
+    // usual two-space gap, except the trailing connection dot, which sits a
+    // single space after the message count.
+    let segs = status_segments(
+        connected, msg_count, awaiting, active, tokens, turns, turn_ms,
+    );
+    let gap = |i: usize| -> u16 {
+        if i == 0 {
+            0
+        } else if i == segs.len() - 1 {
+            1 // tight gap before the trailing connection dot
+        } else {
+            2
+        }
+    };
     let status_w: usize = segs
         .iter()
         .map(|(s, _)| crate::chatwidth::str_w(s))
         .sum::<usize>()
-        + segs.len().saturating_sub(1) * 2;
+        + (0..segs.len()).map(gap).sum::<u16>() as usize;
     let mut x = cols.saturating_sub(status_w as u16);
     for (i, (s, c)) in segs.iter().enumerate() {
-        if i > 0 {
-            x += 2; // two-space gap between segments
-        }
+        x += gap(i);
         if x < cols {
-            x = push(&mut cells, 0, x, s, *c, false);
+            x = push(&mut cells, 0, x, cols, s, *c, false);
         }
     }
 
@@ -124,7 +160,15 @@ pub(crate) fn header_cells(
     let full: Vec<char> = title.chars().collect();
     let end = crate::chatwidth::fit_end(&full, 0, title_room);
     let title: String = full[..end].iter().collect();
-    push(&mut cells, 0, 0, &title, crate::palette::accent(), true);
+    push(
+        &mut cells,
+        0,
+        0,
+        cols,
+        &title,
+        crate::palette::accent(),
+        true,
+    );
 
     cells
 }

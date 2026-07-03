@@ -51,7 +51,7 @@ fn pane() -> ChatPane {
 }
 
 #[test]
-fn cells_render_session_line_agent_chips_and_waterfall() {
+fn cells_render_session_line_agent_chips_and_turn_duration() {
     let mut p = pane();
     p.agents = vec![
         crew_plugin::AgentInfo {
@@ -92,7 +92,16 @@ fn cells_render_session_line_agent_chips_and_waterfall() {
         "coder card:\n{text}"
     );
     assert!(text.contains("idle"), "state token:\n{text}");
-    assert!(text.contains("turn"), "waterfall row:\n{text}");
+    // The turn duration (1200ms -> "1.2s") now lives in the session line, not
+    // a waterfall row.
+    assert!(
+        text.contains("1 turn") && text.contains("1.2s"),
+        "turn duration in session line:\n{text}"
+    );
+    assert!(
+        !text.contains('\u{2588}'),
+        "no waterfall block glyphs left:\n{text}"
+    );
 }
 
 /// Overdraw regression: `status_rows` used to clamp the grid's row count
@@ -118,12 +127,11 @@ fn cells_grid_never_overdraws_past_status_rows() {
     let top = p.status_rows(cols, rows);
 
     let views = p.agent_views();
-    let wf = u16::from(!p.pulse.hops().is_empty() && cols >= 30);
-    let avail = rows.saturating_sub(2).saturating_sub(1 + wf);
+    let avail = rows.saturating_sub(2).saturating_sub(1);
     let lay = crate::chatchips::layout(&views, cols, avail).expect("some rows fit");
     assert_eq!(
         top,
-        1 + lay.rows + wf,
+        1 + lay.rows,
         "status_rows matches the shared layout's extent exactly"
     );
     assert!(
@@ -188,7 +196,7 @@ fn turn_over_flushes_stragglers_and_next_turn_resets() {
 }
 
 #[test]
-fn status_rows_counts_session_grid_and_waterfall() {
+fn status_rows_counts_session_and_grid() {
     let mut p = pane();
     p.agents = vec![
         crew_plugin::AgentInfo {
@@ -202,18 +210,19 @@ fn status_rows_counts_session_grid_and_waterfall() {
             model: "m".into(),
         },
     ];
-    // Idle, wide+tall pane: session line + one row per agent (2 agents), no
-    // waterfall yet (no turn has run).
+    // Idle, wide+tall pane: session line + one row per agent (2 agents).
     assert_eq!(p.status_rows(200, 20), 1 + 2);
-    // A turn ran → the waterfall row is added.
+    // A turn ran → the count is unchanged; the duration now lives in the
+    // session line, not an extra row.
     p.absorb_stats(950, String::new(), 0, 0);
     p.pulse.record_hop("planner", 1200);
     p.pulse.end_turn();
-    assert_eq!(p.status_rows(200, 20), 1 + 2 + 1);
+    assert_eq!(p.status_rows(200, 20), 1 + 2);
     // Too narrow for any card → just the session line.
     assert_eq!(p.status_rows(3, 20), 1);
-    // Too short for even one card row → capped down.
-    assert_eq!(p.status_rows(200, 4), 1);
+    // Too short for even one card row → capped down (no waterfall row to
+    // subtract now, so this needs one fewer spare row than before to bite).
+    assert_eq!(p.status_rows(200, 3), 1);
 }
 
 // `on_key` takes a winit `KeyEvent`, which is #[non_exhaustive] and awkward
