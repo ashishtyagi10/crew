@@ -28,7 +28,6 @@ impl ChatPane {
                 let share_pct = (sum_ms > 0).then(|| ((agent_ms * 100) / sum_ms).min(100) as u8);
                 crate::chatchips::AgentView {
                     name: a.name.clone(),
-                    model: a.model.clone(),
                     state: self.agent_state_str(&a.name, active),
                     tok: ctx,
                     ctx_pct,
@@ -116,16 +115,16 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
         status.as_ref().map(|(l, s, c)| (l.as_str(), *s, *c)),
         (pane.tokens, pane.turns),
     );
-    // Zone 2: the boxed agent status cards (rows 1..1+lay.rows), sized by the
-    // same `layout` call `status_rows` used above — so the two always agree
-    // on the drawn extent (no overdraw onto the message body).
+    // Zone 2: the statusline-style agent rows (rows 1..1+lay.rows), sized by
+    // the same `layout` call `status_rows` used above — so the two always
+    // agree on the drawn extent (no overdraw onto the message body).
     let views = pane.agent_views();
     let wf_possible = !pane.pulse.hops().is_empty() && cols >= 30;
     let avail = rows
         .saturating_sub(2)
         .saturating_sub(1 + u16::from(wf_possible));
     if let Some(lay) = crate::chatchips::layout(&views, cols, avail) {
-        cells.extend(crate::chatchips::grid_cells(&views, cols, 1, &lay));
+        cells.extend(crate::chatchips::row_cells(&views, cols, 1, &lay));
         // Zone 3: the turn waterfall below the grid, once a turn ran (and only
         // when wide enough to draw — matches status_rows' cols>=30 gate).
         // `live` is the newest thinking agent's still-growing segment.

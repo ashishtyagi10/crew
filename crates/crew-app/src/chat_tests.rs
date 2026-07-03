@@ -91,7 +91,7 @@ fn cells_render_session_line_agent_chips_and_waterfall() {
         text.contains("\u{25aa}coder") || text.contains("\u{25b8}coder"),
         "coder card:\n{text}"
     );
-    assert!(text.contains("state"), "boxed metric label legend:\n{text}");
+    assert!(text.contains("idle"), "state token:\n{text}");
     assert!(text.contains("turn"), "waterfall row:\n{text}");
 }
 
@@ -120,23 +120,22 @@ fn cells_grid_never_overdraws_past_status_rows() {
     let views = p.agent_views();
     let wf = u16::from(!p.pulse.hops().is_empty() && cols >= 30);
     let avail = rows.saturating_sub(2).saturating_sub(1 + wf);
-    let lay = crate::chatchips::layout(&views, cols, avail).expect("some cards fit");
+    let lay = crate::chatchips::layout(&views, cols, avail).expect("some rows fit");
     assert_eq!(
         top,
         1 + lay.rows + wf,
         "status_rows matches the shared layout's extent exactly"
     );
-    let needed = views.len().div_ceil(lay.per_row);
     assert!(
-        lay.card_rows < needed,
-        "the short pane forces capping below what all 8 agents need: \
-         card_rows={} needed={needed}",
-        lay.card_rows
+        lay.shown < views.len(),
+        "the short pane forces capping below all 8 agents: shown={} of {}",
+        lay.shown,
+        views.len()
     );
 
     // The renderer draws with this exact `lay` — its cells must never reach
-    // or exceed `top`.
-    let grid = crate::chatchips::grid_cells(&views, cols, 1, &lay);
+    // or exceed `top` (no rendered row exceeds `status_rows`).
+    let grid = crate::chatchips::row_cells(&views, cols, 1, &lay);
     let max_row = grid.iter().map(|c| c.row).max().unwrap_or(0);
     assert!(
         max_row < top,
@@ -203,14 +202,14 @@ fn status_rows_counts_session_grid_and_waterfall() {
             model: "m".into(),
         },
     ];
-    // Idle, wide+tall pane: session line + one card row (both agents fit, 4
-    // rows tall each), no waterfall yet (no turn has run).
-    assert_eq!(p.status_rows(200, 20), 1 + crate::chatchips::CARD_H);
+    // Idle, wide+tall pane: session line + one row per agent (2 agents), no
+    // waterfall yet (no turn has run).
+    assert_eq!(p.status_rows(200, 20), 1 + 2);
     // A turn ran → the waterfall row is added.
     p.absorb_stats(950, String::new(), 0, 0);
     p.pulse.record_hop("planner", 1200);
     p.pulse.end_turn();
-    assert_eq!(p.status_rows(200, 20), 1 + crate::chatchips::CARD_H + 1);
+    assert_eq!(p.status_rows(200, 20), 1 + 2 + 1);
     // Too narrow for any card → just the session line.
     assert_eq!(p.status_rows(3, 20), 1);
     // Too short for even one card row → capped down.

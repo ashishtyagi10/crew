@@ -1,34 +1,34 @@
-//! The crew pane's boxed agent status cards: one card per agent with an
-//! identity line (`▪planner qwen-max`) over a row of rounded, labeled metric
-//! boxes (`state`/`tok`/`ctx`/`shr`) — settings-form style. Replaces the old
-//! flat text clusters. `layout()` is the single source of truth for how much
-//! vertical space the grid needs, shared by `ChatPane::status_rows` (row
-//! accounting) and `chatview::cells` (the renderer), so the two can never
-//! disagree about the drawn extent (the fix for a confirmed overdraw bug).
-use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
-use ratatui::style::{Color, Modifier, Style};
-use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, BorderType, Widget};
-
+//! The crew pane's agent status rows: one flat, ` │ `-separated line per
+//! agent in claude-code's own statusline style — `name │ state │ tok │ <bar>
+//! ctx% (ctx) │ <bar> shr% (shr)` — replacing the old boxed metric cards.
+//! `layout()` is the single source of truth for how many rows the grid
+//! needs, shared by `ChatPane::status_rows` (row accounting) and
+//! `chatview::cells` (the renderer), so the two can never disagree about the
+//! drawn extent (the fix for a confirmed overdraw bug).
 use crew_render::CellView;
 
 use crate::chathdr::fmt_tokens;
 use crate::chatroster::agent_color;
-use crate::chatwidth::str_w;
+use crate::chatwidth::{place_row, str_w};
+use crate::gauges::fill_color;
 
-/// A 2-space gutter between cards on a row.
-const GUTTER: usize = 2;
-/// Sparsest drop level (marker+name+state box only).
-const MAX_LEVEL: u8 = 4;
-/// Identity line + a 3-row box (top border, value, bottom border).
-pub(crate) const CARD_H: u16 = 4;
+/// Bar width in cells for the ctx/share progress bars.
+const BAR_W: usize = 6;
+/// Minimum width of the right-aligned `NN%` field (grows past this only for
+/// `100%`, which is never truncated).
+const PCT_W: usize = 3;
+/// The ` │ ` separator between every segment.
+const SEP: &str = " \u{2502} ";
+const SEP_W: usize = 3;
+/// A bar segment's fixed width: `bar + " " + pct(>=PCT_W) + " (" + lbl + ")"`.
+const SEG_W: usize = BAR_W + 1 + PCT_W + 1 + 1 + 3 + 1;
+/// Sparsest level: name + state only.
+const MAX_LEVEL: u8 = 3;
 
 /// One agent's snapshot for the grid.
 pub(crate) struct AgentView {
     pub name: String,
-    pub model: String,
-    /// Already-formatted state token (e.g. "⠙3.2s", "·2×", "idle").
+    /// Already-formatted state token (e.g. "⠙3.2s", "1×", "idle").
     pub state: String,
     pub tok: u64,
     pub ctx_pct: Option<u8>,
@@ -36,287 +36,413 @@ pub(crate) struct AgentView {
     pub active: bool,
 }
 
-/// Computed grid geometry, shared by row accounting and rendering.
+/// Computed row geometry, shared by row accounting and rendering.
 pub(crate) struct Layout {
     pub level: u8,
-    pub card_w: u16,
-    /// Cards per row.
-    pub per_row: usize,
-    /// Number of card ROWS actually drawn (after capping to `avail_rows`).
-    pub card_rows: usize,
-    /// `card_rows * CARD_H` — the drawn height of the grid zone.
+    pub name_w: u16,
+    pub state_w: u16,
+    pub tok_w: u16,
+    /// Agents drawn after the short-pane cap.
+    pub shown: usize,
+    /// Number of rows actually drawn — one per shown agent.
     pub rows: u16,
 }
 
 /// Lay out `views` into `cols` width with at most `avail_rows` rows for the
 /// grid zone (the caller has already excluded the session line and
-/// waterfall). Caps `card_rows` so `rows <= avail_rows`. `None` when nothing
-/// fits (grid hidden, session line only).
+/// waterfall). `None` when nothing fits (grid hidden, session line only).
 pub(crate) fn layout(views: &[AgentView], cols: u16, avail_rows: u16) -> Option<Layout> {
-    if views.is_empty() || avail_rows < CARD_H {
+    if views.is_empty() || avail_rows == 0 {
         return None;
     }
     let level = choose_level(views, cols)?;
-    let card_w = max_card_width(views, level) as u16;
-    let per_row = per_row(card_w as usize, cols);
-    let need = views.len().div_ceil(per_row);
-    let max_card_rows = (avail_rows / CARD_H) as usize;
-    let card_rows = need.min(max_card_rows);
-    if card_rows == 0 {
+    let shown = views.len().min(avail_rows as usize);
+    if shown == 0 {
         return None;
     }
+    let subset = &views[..shown];
     Some(Layout {
         level,
-        card_w,
-        per_row,
-        card_rows,
-        rows: (card_rows as u16) * CARD_H,
+        name_w: name_w(subset) as u16,
+        state_w: state_w(subset) as u16,
+        tok_w: tok_w(subset) as u16,
+        shown,
+        rows: shown as u16,
     })
 }
 
-/// The metric boxes present at `level`, in display order: label + value.
-/// Fields shed from the right as `level` rises: shr, ctx, tok — `state` is
-/// always present.
-fn metrics_for(v: &AgentView, level: u8) -> Vec<(&'static str, String)> {
-    let mut m = vec![("state", v.state.clone())];
-    if level < 3 && v.tok > 0 {
-        m.push(("tok", fmt_tokens(v.tok)));
+fn marker(v: &AgentView) -> char {
+    if v.active {
+        '\u{25b8}'
+    } else {
+        '\u{25aa}'
     }
-    if level < 2 {
-        if let Some(p) = v.ctx_pct {
-            m.push(("ctx", format!("{p}%")));
-        }
+}
+
+fn name_text(v: &AgentView) -> String {
+    format!("{}{}", marker(v), v.name)
+}
+
+/// `tok` formatted, or U+2013 (–) when there is no context to show.
+fn tok_text(v: &AgentView) -> String {
+    if v.tok == 0 {
+        "\u{2013}".into()
+    } else {
+        fmt_tokens(v.tok)
     }
-    if level < 1 {
-        if let Some(p) = v.share_pct {
-            m.push(("shr", format!("{p}%")));
-        }
-    }
-    m
 }
 
-/// A box's outer width: 1 pad each side of the value + 2 borders, wide enough
-/// for the label legend too.
-fn box_outer_width(label: &str, value: &str) -> usize {
-    str_w(label).max(str_w(value)) + 4
-}
-
-/// Sum of the present boxes' outer widths (boxes are adjacent, no gap).
-fn box_row_width(v: &AgentView, level: u8) -> usize {
-    metrics_for(v, level)
-        .iter()
-        .map(|(label, value)| box_outer_width(label, value))
-        .sum()
-}
-
-/// `▪name model` (model dropped at level4).
-fn identity_width(v: &AgentView, level: u8) -> usize {
-    str_w(&identity_text(v, level))
-}
-
-fn identity_text(v: &AgentView, level: u8) -> String {
-    let marker = if v.active { '\u{25b8}' } else { '\u{25aa}' };
-    let mut s = format!("{marker}{}", v.name);
-    if level < MAX_LEVEL && !v.model.is_empty() {
-        s.push(' ');
-        s.push_str(&v.model);
-    }
-    s
-}
-
-/// A card's width at `level`: the wider of the identity line and the boxes row.
-fn card_width(v: &AgentView, level: u8) -> usize {
-    identity_width(v, level).max(box_row_width(v, level))
-}
-
-/// The widest card across `views` at `level`.
-fn max_card_width(views: &[AgentView], level: u8) -> usize {
+fn name_w(views: &[AgentView]) -> usize {
     views
         .iter()
-        .map(|v| card_width(v, level))
+        .map(|v| str_w(&name_text(v)))
         .max()
         .unwrap_or(0)
 }
 
-/// The richest level (0 best) whose widest card fits `cols`; `None` if even
-/// the sparsest card overflows.
+fn state_w(views: &[AgentView]) -> usize {
+    views.iter().map(|v| str_w(&v.state)).max().unwrap_or(0)
+}
+
+fn tok_w(views: &[AgentView]) -> usize {
+    views.iter().map(|v| str_w(&tok_text(v))).max().unwrap_or(0)
+}
+
+/// Total row width at `level`: name+state are always present; tok/ctx/shr
+/// shed from the right as `level` rises (shr first, then ctx, then tok).
+fn row_width(views: &[AgentView], level: u8) -> usize {
+    let mut w = name_w(views) + SEP_W + state_w(views);
+    if level <= 2 {
+        w += SEP_W + tok_w(views);
+    }
+    if level <= 1 {
+        w += SEP_W + SEG_W;
+    }
+    if level == 0 {
+        w += SEP_W + SEG_W;
+    }
+    w
+}
+
+/// The richest level (0 best) whose row fits `cols`; `None` if even the
+/// sparsest row (name+state) overflows.
 pub(crate) fn choose_level(views: &[AgentView], cols: u16) -> Option<u8> {
     if views.is_empty() {
         return None;
     }
-    (0..=MAX_LEVEL).find(|&level| max_card_width(views, level) <= cols as usize)
+    (0..=MAX_LEVEL).find(|&level| row_width(views, level) <= cols as usize)
 }
 
-/// Cards that fit on one row of `cols`, given equal `card_w` + gutter.
-fn per_row(card_w: usize, cols: u16) -> usize {
-    let cols = cols as usize;
-    if card_w == 0 || card_w > cols {
-        return 1;
+/// Left-align `s` to `w` display columns (padding with trailing spaces).
+fn pad_left(s: &str, w: usize) -> String {
+    let len = str_w(s);
+    if len >= w {
+        s.to_string()
+    } else {
+        format!("{s}{}", " ".repeat(w - len))
     }
-    // n cards need n*w + (n-1)*gutter columns.
-    ((cols + GUTTER) / (card_w + GUTTER)).max(1)
 }
 
-/// Draw the boxed agent cards into a fresh Buffer, convert to cells, offset
-/// to `start_row`. Draws exactly `lay.card_rows` rows of cards (already
-/// capped by `layout`).
-pub(crate) fn grid_cells(
+/// Center `s` within `w` display columns.
+fn pad_center(s: &str, w: usize) -> String {
+    let len = str_w(s);
+    if len >= w {
+        return s.to_string();
+    }
+    let total = w - len;
+    let left = total / 2;
+    let right = total - left;
+    format!("{}{s}{}", " ".repeat(left), " ".repeat(right))
+}
+
+/// The two foreground shades a row needs beyond the per-agent colour: `ink`
+/// for values, `dim` for separators/labels/track cells. Bundled so the
+/// per-segment helpers stay under clippy's argument-count limit.
+struct Pal {
+    ink: (u8, u8, u8),
+    dim: (u8, u8, u8),
+}
+
+/// Append `s` at `(row, col..)` in `fg`, stopping before `max_col`. Returns
+/// the next free column. Background is always the page background — every
+/// cell in this grid sits on the plain page, no card fills.
+fn place(
+    cells: &mut Vec<CellView>,
+    row: u16,
+    col: u16,
+    max_col: u16,
+    s: &str,
+    fg: (u8, u8, u8),
+    bold: bool,
+) -> u16 {
+    let bg = crew_theme::theme().page_bg;
+    place_row(col, max_col, s.chars().map(|c| (c, fg)), |x, c, fg| {
+        cells.push(CellView {
+            col: x,
+            row,
+            c,
+            fg,
+            bg,
+            bold,
+            italic: false,
+        });
+    })
+}
+
+/// One `<bar> NN% (label)` segment. `pct = None` draws an all-track bar and
+/// ` 0%`.
+fn push_segment(
+    cells: &mut Vec<CellView>,
+    row: u16,
+    col: u16,
+    max_col: u16,
+    pct: Option<u8>,
+    label: &str,
+    pal: &Pal,
+) -> u16 {
+    let bg = crew_theme::theme().page_bg;
+    let frac = pct.unwrap_or(0) as f32 / 100.0;
+    let filled = pct
+        .map(|_| (frac * BAR_W as f32).round() as usize)
+        .unwrap_or(0);
+    let fill = fill_color(frac);
+    let mut x = col;
+    for i in 0..BAR_W {
+        if x >= max_col {
+            break;
+        }
+        let (ch, fg) = if i < filled {
+            ('\u{2588}', fill)
+        } else {
+            ('\u{2591}', pal.dim)
+        };
+        cells.push(CellView {
+            col: x,
+            row,
+            c: ch,
+            fg,
+            bg,
+            bold: false,
+            italic: false,
+        });
+        x += 1;
+    }
+    x = place(cells, row, x, max_col, " ", pal.dim, false);
+    let pct_str = format!("{:>PCT_W$}", format!("{}%", pct.unwrap_or(0)));
+    x = place(cells, row, x, max_col, &pct_str, pal.ink, false);
+    place(
+        cells,
+        row,
+        x,
+        max_col,
+        &format!(" ({label})"),
+        pal.dim,
+        false,
+    )
+}
+
+/// Draw the agent status rows, offset to `start_row`. Draws exactly
+/// `lay.shown` rows (already capped by `layout`).
+pub(crate) fn row_cells(
     views: &[AgentView],
     cols: u16,
     start_row: u16,
     lay: &Layout,
 ) -> Vec<CellView> {
-    let area = Rect::new(0, 0, cols, lay.rows);
-    let mut buf = Buffer::empty(area);
     let t = crew_theme::theme();
-    let dim = Color::Rgb(t.text_muted.0, t.text_muted.1, t.text_muted.2);
-    let n = views.len().min(lay.per_row * lay.card_rows);
-    for (i, v) in views.iter().take(n).enumerate() {
-        let col0 = ((i % lay.per_row) * (lay.card_w as usize + GUTTER)) as u16;
-        let row0 = (i / lay.per_row) as u16 * CARD_H;
-        draw_identity(&mut buf, v, lay.level, col0, row0, lay.card_w);
-        let mut x = col0;
-        for (label, value) in metrics_for(v, lay.level) {
-            let w = box_outer_width(label, &value) as u16;
-            let rect = Rect::new(x, row0 + 1, w, 3);
-            draw_box(&mut buf, rect, label, &value, dim);
-            x += w;
+    let pal = Pal {
+        ink: t.ink,
+        dim: t.text_muted,
+    };
+    let mut cells = Vec::new();
+    for (i, v) in views.iter().take(lay.shown).enumerate() {
+        let row = start_row + i as u16;
+        let color = agent_color(&v.name);
+        let mut col = place(
+            &mut cells,
+            row,
+            0,
+            cols,
+            &pad_left(&name_text(v), lay.name_w as usize),
+            color,
+            v.active,
+        );
+        col = place(&mut cells, row, col, cols, SEP, pal.dim, false);
+        col = place(
+            &mut cells,
+            row,
+            col,
+            cols,
+            &pad_center(&v.state, lay.state_w as usize),
+            pal.dim,
+            false,
+        );
+        if lay.level <= 2 {
+            col = place(&mut cells, row, col, cols, SEP, pal.dim, false);
+            col = place(
+                &mut cells,
+                row,
+                col,
+                cols,
+                &pad_center(&tok_text(v), lay.tok_w as usize),
+                pal.dim,
+                false,
+            );
         }
-    }
-    let mut cells = crate::tui::to_cells(&buf);
-    for c in &mut cells {
-        c.row += start_row;
+        if lay.level <= 1 {
+            col = place(&mut cells, row, col, cols, SEP, pal.dim, false);
+            col = push_segment(&mut cells, row, col, cols, v.ctx_pct, "ctx", &pal);
+        }
+        if lay.level == 0 {
+            col = place(&mut cells, row, col, cols, SEP, pal.dim, false);
+            col = push_segment(&mut cells, row, col, cols, v.share_pct, "shr", &pal);
+        }
+        let _ = col;
     }
     cells
-}
-
-/// Row 0 of a card: marker+name in the agent colour (bold while active),
-/// then ` model` in the muted colour (dropped at level4).
-fn draw_identity(buf: &mut Buffer, v: &AgentView, level: u8, x: u16, y: u16, max_w: u16) {
-    let t = crew_theme::theme();
-    let color = agent_color(&v.name);
-    let fg = Color::Rgb(color.0, color.1, color.2);
-    let muted = Color::Rgb(t.text_muted.0, t.text_muted.1, t.text_muted.2);
-    let marker = if v.active { '\u{25b8}' } else { '\u{25aa}' };
-    let mut name_style = Style::new().fg(fg);
-    if v.active {
-        name_style = name_style.add_modifier(Modifier::BOLD);
-    }
-    let mut spans = vec![Span::styled(format!("{marker}{}", v.name), name_style)];
-    if level < MAX_LEVEL && !v.model.is_empty() {
-        spans.push(Span::styled(
-            format!(" {}", v.model),
-            Style::new().fg(muted),
-        ));
-    }
-    buf.set_line(x, y, &Line::from(spans), max_w);
-}
-
-/// One rounded metric box: the label as the title legend (settings-form
-/// style), the value centered on the middle row.
-fn draw_box(buf: &mut Buffer, rect: Rect, label: &str, value: &str, dim: Color) {
-    Block::bordered()
-        .border_type(BorderType::Rounded)
-        .border_style(Style::new().fg(dim))
-        .title(Span::styled(format!(" {label} "), Style::new().fg(dim)))
-        .render(rect, buf);
-    let iw = rect.width.saturating_sub(2) as usize;
-    let vw = str_w(value);
-    let pad = iw.saturating_sub(vw) / 2;
-    let line = Line::styled(value.to_string(), Style::new().fg(dim));
-    buf.set_line(rect.x + 1 + pad as u16, rect.y + 1, &line, iw as u16);
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    fn v(name: &str, active: bool) -> AgentView {
+    fn v(
+        name: &str,
+        state: &str,
+        tok: u64,
+        ctx: Option<u8>,
+        share: Option<u8>,
+        active: bool,
+    ) -> AgentView {
         AgentView {
             name: name.into(),
-            model: "qwen-max".into(),
-            state: if active {
-                "\u{2819}3.2s".into()
-            } else {
-                "\u{00b7}2\u{00d7}".into()
-            },
-            tok: 4_100,
-            ctx_pct: Some(38),
-            share_pct: Some(42),
+            state: state.into(),
+            tok,
+            ctx_pct: ctx,
+            share_pct: share,
             active,
         }
     }
 
+    fn trio() -> Vec<AgentView> {
+        vec![
+            v("planner", "1\u{d7}", 5_800, Some(17), Some(100), true),
+            v("coder", "idle", 0, None, None, false),
+            v("reviewer", "idle", 0, None, None, false),
+        ]
+    }
+
     #[test]
-    fn choose_level_drops_boxes_as_cols_shrink() {
-        let views = vec![v("planner", false)];
-        assert_eq!(choose_level(&views, 200), Some(0), "wide → full card");
-        // Between the level0 (all 4 boxes) and level1 (drops shr) widths:
-        // fits without shr, still has ctx+tok → level >= 1.
-        let l = choose_level(&views, 25).expect("still fits a level");
-        assert!(l >= 1, "mid width drops the shr box, got {l}");
-        // Just wide enough for marker+name + the state box only.
+    fn layout_one_row_per_agent_capped() {
+        let views = trio();
+        let lay = layout(&views, 200, 100).expect("wide/tall pane fits everything");
+        assert_eq!(lay.rows, 3, "one row per agent");
+        assert_eq!(lay.shown, 3);
+
+        let lay2 = layout(&views, 200, 2).expect("capped pane still fits some rows");
+        assert_eq!(lay2.shown, 2);
+        assert_eq!(lay2.rows, 2);
+
+        assert!(layout(&views, 200, 0).is_none(), "no available rows → None");
+    }
+
+    #[test]
+    fn choose_level_drops_segments_right_to_left() {
+        let views = trio();
+        assert_eq!(choose_level(&views, 200), Some(0), "wide → every segment");
+
+        // Wide enough to lose only the shr segment (level 1: name/state/tok/ctx).
+        let level1_w = row_width(&views, 1);
+        let level0_w = row_width(&views, 0);
+        assert!(level1_w < level0_w, "dropping shr must shrink the row");
+        let l = choose_level(&views, level1_w as u16).expect("fits at level 1");
+        assert!(l >= 1, "mid width drops the shr segment, got {l}");
+
+        // Just wide enough for name+state only (the sparsest level that fits).
+        let level3_w = row_width(&views, MAX_LEVEL);
         assert_eq!(
-            choose_level(&views, 9),
-            Some(4),
-            "very narrow-but-fits → sparsest level"
+            choose_level(&views, level3_w as u16),
+            Some(MAX_LEVEL),
+            "narrow-but-fits → sparsest level"
         );
+
+        assert_eq!(choose_level(&views, 3), None, "too narrow for anything");
     }
 
     #[test]
-    fn layout_none_when_nothing_fits() {
-        assert!(
-            layout(&[v("planner", false)], 3, 100).is_none(),
-            "too narrow for even the state box"
-        );
-    }
+    fn row_cells_have_name_state_pipes_and_ctx_shr_bars() {
+        let views = trio();
+        let cols = 200;
+        let lay = layout(&views, cols, 100).expect("fits");
+        let start_row = 1;
+        let cells = row_cells(&views, cols, start_row, &lay);
 
-    #[test]
-    fn layout_caps_card_rows_to_available() {
-        let views: Vec<AgentView> = (0..6).map(|i| v(&format!("a{i}"), false)).collect();
-        // Narrow enough that only one card fits per row.
-        let cols = 32;
-        assert_eq!(per_row(max_card_width(&views, 0), cols), 1);
-        let lay = layout(&views, cols, 8).expect("fits at some level");
-        assert_eq!(lay.card_rows, 2, "capped to 8/CARD_H, not the 6 needed");
-        assert_eq!(lay.rows, 8);
-        assert!(
-            layout(&views, cols, 3).is_none(),
-            "avail_rows < CARD_H → None"
+        let text_at = |row: u16| -> String {
+            let mut row_cells: Vec<(u16, char)> = cells
+                .iter()
+                .filter(|c| c.row == row)
+                .map(|c| (c.col, c.c))
+                .collect();
+            row_cells.sort();
+            row_cells.into_iter().map(|(_, c)| c).collect()
+        };
+        let (planner, coder, reviewer) = (
+            text_at(start_row),
+            text_at(start_row + 1),
+            text_at(start_row + 2),
         );
-    }
+        assert!(planner.contains("planner"), "planner name: {planner}");
+        assert!(coder.contains("coder"), "coder name: {coder}");
+        assert!(reviewer.contains("reviewer"), "reviewer name: {reviewer}");
 
-    #[test]
-    fn grid_cells_draws_identity_and_boxed_labels() {
-        let views = vec![AgentView {
-            name: "planner".into(),
-            model: "qwen-max".into(),
-            state: "\u{00b7}1\u{00d7}".into(),
-            tok: 1_200,
-            ctx_pct: Some(3),
-            share_pct: Some(100),
-            active: false,
-        }];
-        let cols = 60;
-        let lay = layout(&views, cols, 40).expect("fits");
-        let start_row = 3;
-        let cells = grid_cells(&views, cols, start_row, &lay);
-        let text: String = cells.iter().map(|c| c.c).collect();
-        assert!(text.contains("planner"), "name: {text}");
-        assert!(text.contains("state"), "state label: {text}");
-        assert!(text.contains("tok"), "tok label: {text}");
-        assert!(text.contains("ctx"), "ctx label: {text}");
-        assert!(text.contains("shr"), "shr label: {text}");
-        assert!(
-            cells.iter().any(|c| c.c == '\u{256d}' || c.c == '\u{2570}'),
-            "rounded corner glyph present"
+        assert!(planner.contains("(ctx)"), "ctx label: {planner}");
+        assert!(planner.contains("(shr)"), "shr label: {planner}");
+
+        // Separators land at the same columns across every row (leading-column
+        // alignment).
+        let pipe_cols = |row: u16| -> Vec<u16> {
+            let mut cols: Vec<u16> = cells
+                .iter()
+                .filter(|c| c.row == row && c.c == '\u{2502}')
+                .map(|c| c.col)
+                .collect();
+            cols.sort();
+            cols
+        };
+        let p0 = pipe_cols(start_row);
+        assert!(!p0.is_empty(), "planner row has separators");
+        assert_eq!(
+            p0,
+            pipe_cols(start_row + 1),
+            "coder pipes align with planner's"
         );
-        assert!(text.contains("1.2k"), "tok value: {text}");
-        assert!(text.contains("3%"), "ctx value: {text}");
-        let max_row = cells.iter().map(|c| c.row).max().unwrap_or(0);
-        assert!(
-            max_row < start_row + CARD_H,
-            "card stays within CARD_H rows: max_row={max_row}"
+        assert_eq!(
+            p0,
+            pipe_cols(start_row + 2),
+            "reviewer pipes align with planner's"
         );
+
+        // Active agent (ctx=17%) has both filled and track cells in its bars.
+        assert!(cells
+            .iter()
+            .any(|c| c.row == start_row && c.c == '\u{2588}'));
+        assert!(cells
+            .iter()
+            .any(|c| c.row == start_row && c.c == '\u{2591}'));
+
+        // Idle agent's ctx bar is all-track (no fill) since ctx_pct is None.
+        let coder_row = start_row + 1;
+        assert!(
+            !cells
+                .iter()
+                .any(|c| c.row == coder_row && c.c == '\u{2588}'),
+            "idle agent has no filled bar cells: {coder}"
+        );
+        assert!(cells
+            .iter()
+            .any(|c| c.row == coder_row && c.c == '\u{2591}'));
+
+        // Idle agent's tok column renders the dash placeholder.
+        assert!(coder.contains('\u{2013}'), "idle tok is a dash: {coder}");
     }
 }
