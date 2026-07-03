@@ -199,6 +199,23 @@ fn frame_leaves_a_normal_length_task_unchanged() {
 }
 
 #[test]
+fn frame_trims_surrounding_whitespace_from_the_task() {
+    let env = Envelope::new("user", "claude", "t", "hi");
+    let p = frame(&env, &[], "\n\n  do it  \n\n", "");
+    assert!(
+        p.contains("TASK:\ndo it\n\n"),
+        "leading/trailing blank lines must not survive: {p}"
+    );
+}
+
+#[test]
+fn frame_leaves_a_clean_task_unchanged() {
+    let env = Envelope::new("user", "claude", "t", "hi");
+    let p = frame(&env, &[], "do it", "");
+    assert!(p.contains("TASK:\ndo it\n\n"), "{p}");
+}
+
+#[test]
 fn frame_caps_a_pathologically_long_task() {
     let env = Envelope::new("user", "claude", "t", "hi");
     let task = "a".repeat(TASK_CAP * 3);
