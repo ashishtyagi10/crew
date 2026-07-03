@@ -70,3 +70,26 @@ Each iteration appends a section below. Iteration numbering starts at 1.
 - Gate: fmt ok · clippy clean · tests 946 pass · security review CLEAN (0 confirmed).
 - Release: v0.5.52.
 - Crossed off menu: codex working-directory surfacing (`/cwd`).
+
+## LOOP COMPLETE — 2026-07-03 07:56 EDT
+The final cron fire (the 07:26 slot, delayed to 07:56 by jitter + idle) landed
+with only ~4 minutes to the 08:00 hard stop. A full iteration (implement →
+security review → gated release) takes ~35–40 min and would have auto-released
+well past 08:00, overrunning the "until 8:00 AM" window — so iteration 8 was NOT
+started. The cron (`dcfee9b6`) was deleted; the loop is stopped.
+
+**Summary: 7 iterations, 7 green gated releases, 0 blocked, 0 rollbacks.**
+Baseline v0.5.45 (long-running-agents, merged before the loop) → v0.5.46 … v0.5.52.
+Every release passed fmt + clippy(-D warnings) + full `cargo test --workspace` +
+an adversarial security review (0 Critical/High across all 7) and was verified
+published (all 5 targets incl. Windows + assets). main is releasable at v0.5.52.
+
+| Iter | Source      | Version | Highlights |
+|------|-------------|---------|------------|
+| 1 | codex       | v0.5.46 | /diff, far-panel count, prompt compaction, /help tip |
+| 2 | opencode    | v0.5.47 | fuzzy completion, far-panel size, /status per-turn, task capacity |
+| 3 | claude-code | v0.5.48 | slash aliases, composer placeholder, transcript skip-empty, did-you-mean |
+| 4 | codex       | v0.5.49 | sys read-only sandbox, system gutter, transcript dedup, /status sys mode |
+| 5 | opencode    | v0.5.50 | /theme switcher, far-panel · empty, task-length cap |
+| 6 | claude-code | v0.5.51 | /compact, /status budget, /export count |
+| 7 | codex       | v0.5.52 | /cwd, composer char badge, task-trim, /status pluralization |
