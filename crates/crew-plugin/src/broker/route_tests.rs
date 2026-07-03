@@ -143,6 +143,43 @@ fn frame_orders_stable_prefix_before_variable_parts() {
 }
 
 #[test]
+fn compact_ws_collapses_three_or_more_newlines_to_two() {
+    assert_eq!(compact_ws("a\n\n\n\nb"), "a\n\nb");
+    assert_eq!(compact_ws("a\n\n\n\n\n\nb"), "a\n\nb");
+}
+
+#[test]
+fn compact_ws_strips_trailing_spaces_and_tabs_per_line() {
+    assert_eq!(compact_ws("x   \ny"), "x\ny");
+    assert_eq!(compact_ws("x\t\t\ny   \n"), "x\ny");
+}
+
+#[test]
+fn compact_ws_leaves_already_compact_text_unchanged() {
+    let s = "line one\nline two\n\nline three";
+    assert_eq!(compact_ws(s), s);
+}
+
+#[test]
+fn compact_ws_preserves_single_and_double_newlines() {
+    // A single newline (no blank line) and a double newline (one blank line)
+    // are both left untouched — only runs of 3+ collapse.
+    assert_eq!(compact_ws("a\nb"), "a\nb");
+    assert_eq!(compact_ws("a\n\nb"), "a\n\nb");
+}
+
+#[test]
+fn frame_output_is_whitespace_compacted() {
+    let env = Envelope::new("codex", "claude", "t", "hi   ");
+    let p = frame(&env, &[], "task", "");
+    assert_eq!(
+        p,
+        compact_ws(&p),
+        "frame's return value must already be compact"
+    );
+}
+
+#[test]
 fn frame_handles_no_peers_and_empty_transcript() {
     let env = Envelope::new("user", "claude", "t", "hi");
     let p = frame(&env, &[], "task", "");

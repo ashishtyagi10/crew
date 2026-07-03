@@ -134,7 +134,7 @@ fn panel(buf: &mut Buffer, area: Rect, panel: &Panel, active: bool) {
         .border_type(BorderType::Rounded)
         .border_style(Style::new().fg(edge))
         .title(Span::styled(
-            legend(&panel.cwd, area.width),
+            legend(&panel.cwd, panel.entries.len(), area.width),
             Style::new().fg(edge),
         ));
     let inner = block.inner(area);
@@ -234,12 +234,15 @@ fn fmt_size(bytes: u64) -> String {
     }
 }
 
-/// `" /path "`, truncated from the left (keeping the tail) to fit `width`.
-fn legend(cwd: &std::path::Path, width: u16) -> String {
+/// `" /path · N "` — `N` is the panel's entry count. The count suffix stays
+/// intact whenever there's room for it at all; the path truncates from the
+/// left (keeping the tail) to fit `width`, same as before the count was added.
+fn legend(cwd: &std::path::Path, count: usize, width: u16) -> String {
     let full = cwd.to_string_lossy();
-    let max = width.saturating_sub(4) as usize;
+    let suffix = format!(" \u{00b7} {count} ");
+    let max = (width as usize).saturating_sub(1 + suffix.chars().count());
     if full.chars().count() <= max || max == 0 {
-        return format!(" {full} ");
+        return format!(" {full}{suffix}");
     }
     let tail: String = full
         .chars()
@@ -249,7 +252,7 @@ fn legend(cwd: &std::path::Path, width: u16) -> String {
         .into_iter()
         .rev()
         .collect();
-    format!(" …{tail} ")
+    format!(" …{tail}{suffix}")
 }
 
 /// The Far-style function-key bar across the bottom row: the key number in

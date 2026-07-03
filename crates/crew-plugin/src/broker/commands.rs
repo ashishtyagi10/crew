@@ -45,6 +45,7 @@ pub(crate) const HELP: &str = "constructs:\n\
     /checkpoint [label] — snapshot the working tree (HEAD and index untouched)\n\
     /checkpoints — list saved snapshots\n\
     /restore <n> — put checkpoint n's files back\n\
+    /diff — show the working tree's changes (git diff --stat)\n\
     /skills — list prompt playbooks (~/.config/crew/skills, .crew/skills)\n\
     /skill <name> <task> — run the relay with that playbook prepended\n\
     /mcp — MCP servers and their tools (~/.config/crew/mcp.json, .crew/mcp.json)\n\
@@ -52,7 +53,8 @@ pub(crate) const HELP: &str = "constructs:\n\
     /stop [#n] — cancel all background tasks, or just task #n\n\
     /status — session totals, models, and the live task count\n\
     @<agent> <task> — choose who starts the relay\n\
-    @<a>+<b> <task> — those agents answer in parallel";
+    @<a>+<b> <task> — those agents answer in parallel\n\
+    \u{2026} tip: tasks run in the background — /tasks lists them, /stop #n cancels one";
 
 /// Handle a `/command` line; emits reply events through `emit`.
 pub(crate) fn handle(
@@ -75,6 +77,7 @@ pub(crate) fn handle(
         "checkpoint" => super::checkpoint::checkpoint_cmd(rest, emit),
         "checkpoints" => super::checkpoint::list_cmd(emit),
         "restore" => super::checkpoint::restore_cmd(rest, emit),
+        "diff" => super::diff::diff_cmd(emit),
         "skills" => emit(msg(
             "crew",
             super::skills::list_report(&super::skills::load()),
