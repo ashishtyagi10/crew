@@ -16,6 +16,14 @@ fn keep_in_transcript(body: &str) -> bool {
     !body.trim().is_empty()
 }
 
+/// Whether `entry` would duplicate the immediately-preceding transcript
+/// entry byte-for-byte — a consecutive repeat (e.g. a stalled retry, or the
+/// same body reappearing after an unlogged blank hop) that costs a later
+/// hop's prompt tokens for zero new information.
+fn is_dup(transcript: &[String], entry: &str) -> bool {
+    transcript.last().is_some_and(|last| last == entry)
+}
+
 /// Routes messages between agents in a [`Registry`], with a per-call timeout, a
 /// maximum hop count, and an approximate token budget (0 = unlimited).
 pub struct Broker {
@@ -181,7 +189,10 @@ impl Broker {
                         usage,
                     });
                     if keep_in_transcript(&body) {
-                        transcript.push(format!("{} → {next}: {}", env.to, clip(&body, 400)));
+                        let entry = format!("{} → {next}: {}", env.to, clip(&body, 400));
+                        if !is_dup(&transcript, &entry) {
+                            transcript.push(entry);
+                        }
                     }
                     if self.registry.get(&next).is_none() {
                         sink(note(

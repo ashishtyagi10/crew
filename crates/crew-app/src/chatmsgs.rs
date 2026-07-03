@@ -28,6 +28,15 @@ pub(crate) fn fade_t(ts: &str, now_ms: u64) -> f32 {
     (age as f32 / FADE_MS as f32).min(1.0)
 }
 
+/// The gutter glyph for a sender: a lighter bar for the system/broker voice,
+/// the solid bar for agents and the user.
+fn gutter_for(sender: &str) -> char {
+    match sender {
+        "crew" | "system" | "broker" => '\u{2506}', // ┆ dotted — quieter
+        _ => GUTTER,                                // ▍ solid
+    }
+}
+
 /// The colour a sender renders in: the broker/system voice is muted; every
 /// agent (and the user) gets its stable roster colour.
 fn sender_color(sender: &str) -> Color {
@@ -44,7 +53,7 @@ fn header_line(m: &Message, now_ms: u64) -> CardLine {
     let muted = crew_theme::theme().text_muted;
     let mut line: CardLine = Vec::new();
     let parts: Vec<&str> = m.sender.split(" \u{2192} ").collect();
-    line.push(plain(GUTTER, sender_color(parts[0]), false));
+    line.push(plain(gutter_for(&m.sender), sender_color(parts[0]), false));
     if let Some(id) = crate::chattime::task_tag(&m.meta) {
         for c in format!("#{id} ").chars() {
             line.push(plain(c, muted, false));

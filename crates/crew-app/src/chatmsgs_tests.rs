@@ -96,6 +96,21 @@ fn system_sender_is_muted_and_agents_are_not() {
 }
 
 #[test]
+fn crew_message_uses_the_dotted_system_gutter() {
+    let cells = message_cells(&[msg("crew", "hello")], 40, 10, 0, 0);
+    assert_eq!(row_text(&cells, 0), "\u{2506}crew");
+}
+
+#[test]
+fn agent_message_keeps_the_solid_gutter() {
+    let cells = message_cells(&[msg("planner \u{2192} user", "hello")], 40, 10, 0, 0);
+    assert_eq!(
+        row_text(&cells, 0),
+        format!("{GUTTER}planner \u{2192} user")
+    );
+}
+
+#[test]
 fn count_matches_rendered_lines_and_scroll_shows_older() {
     let m = [msg("a", "one"), msg("b", "two")];
     // 2 cards × (header + body) + 1 spacer = 5 lines.

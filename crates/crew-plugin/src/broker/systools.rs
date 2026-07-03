@@ -22,6 +22,36 @@ pub(crate) fn enabled_from(sys_tools: Option<&str>, mock: bool) -> bool {
     !mock && sys_tools != Some("0")
 }
 
+/// Whether the `sys` tools are in read-only mode (CREW_SYS_MODE in {readonly, ro}).
+pub(crate) fn read_only() -> bool {
+    read_only_from(std::env::var("CREW_SYS_MODE").ok().as_deref())
+}
+
+/// Pure gate for read-only mode.
+pub(crate) fn read_only_from(v: Option<&str>) -> bool {
+    matches!(v, Some("readonly") | Some("ro"))
+}
+
+/// The block message when a MUTATING tool is used in read-only mode, else None.
+fn read_only_block(tool: &str, read_only: bool) -> Option<String> {
+    if read_only && matches!(tool, "run" | "write_file") {
+        Some(format!(
+            "sys:{tool} blocked \u{2014} CREW_SYS_MODE=readonly (set CREW_SYS_MODE=full to enable)"
+        ))
+    } else {
+        None
+    }
+}
+
+/// Human label for the current sys mode.
+pub(crate) fn mode_label() -> &'static str {
+    if read_only() {
+        "read-only"
+    } else {
+        "full"
+    }
+}
+
 /// The four `sys` tool descriptors, in the shape the TOOLS hint renders.
 pub(crate) fn tools() -> Vec<McpTool> {
     let mk = |name: &str, desc: &str| McpTool {
@@ -51,6 +81,9 @@ pub(crate) fn tools() -> Vec<McpTool> {
 
 /// Dispatch one `sys` call. Errors return to the agent as `ERROR: …`.
 pub(crate) fn call(tool: &str, args: &str) -> Result<String, String> {
+    if let Some(blocked) = read_only_block(tool, read_only()) {
+        return Err(blocked);
+    }
     let args = args.trim();
     let v: serde_json::Value = if args.is_empty() {
         serde_json::json!({})

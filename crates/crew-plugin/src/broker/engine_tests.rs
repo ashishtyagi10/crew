@@ -284,6 +284,52 @@ fn empty_relay_body_does_not_bloat_a_later_prompt() {
 }
 
 #[test]
+fn is_dup_flags_only_a_byte_identical_immediate_repeat() {
+    let none: Vec<String> = Vec::new();
+    assert!(!is_dup(&none, "a"));
+    let one = vec!["a".to_string()];
+    assert!(is_dup(&one, "a"));
+    assert!(!is_dup(&one, "b"));
+    let two = vec!["a".to_string(), "b".to_string()];
+    assert!(
+        !is_dup(&two, "a"),
+        "only the immediately-preceding entry counts"
+    );
+    assert!(is_dup(&two, "b"));
+}
+
+#[test]
+fn consecutive_duplicate_relay_body_is_not_logged_twice() {
+    // claude relays "X" to codex; codex hands straight back with a BLANK body
+    // (so the no-progress guard's `last_body` check doesn't fire); claude then
+    // relays "X" again. The two "claude → codex: X" transcript entries are
+    // separated only by the blank (unlogged) hop, so they'd land back-to-back
+    // in the transcript — a byte-identical consecutive repeat that must be
+    // deduped rather than doubling the next prompt's token cost.
+    let (claude, _) = Capturing::scripted(
+        "claude",
+        &["X\n@next codex", "X\n@next codex", "final\n@done"],
+    );
+    let (codex, codex_calls) =
+        Capturing::scripted("codex", &["\n@next claude", "ack\n@next claude"]);
+    let b = Broker::new(
+        Registry::new(vec![claude, codex]),
+        6,
+        std::time::Duration::from_secs(1),
+    );
+    let mut hops = Vec::new();
+    b.run("user", "claude", "task", "t1", &mut |h| hops.push(h));
+    let calls = codex_calls.lock().unwrap();
+    assert_eq!(calls.len(), 2, "{calls:?}");
+    let count = calls[1].matches("claude \u{2192} codex: X").count();
+    assert_eq!(
+        count, 1,
+        "duplicate consecutive entry must not repeat: {}",
+        calls[1]
+    );
+}
+
+#[test]
 fn non_empty_relay_body_is_kept_in_the_transcript() {
     let (claude, _) = Capturing::scripted("claude", &["real answer\n@next codex", "final\n@done"]);
     let (codex, codex_calls) = Capturing::scripted("codex", &["ack\n@next claude"]);
