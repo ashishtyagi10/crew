@@ -94,6 +94,82 @@ fn host_rejects_unknown_servers_and_bad_args() {
     assert!(e.contains("not valid JSON"), "got: {e}");
 }
 
+const TOOLS2: &str = r#"{"jsonrpc":"2.0","id":2,"result":{"tools":[{"name":"echo2","description":"Echo v2.","inputSchema":{}}]}}"#;
+
+#[test]
+fn sync_to_keeps_an_unchanged_servers_client_and_cache() {
+    let mut servers = BTreeMap::new();
+    servers.insert("fake".to_string(), canned("keep", &[INIT, TOOLS, CALL_OK]));
+    let mut host = McpHost::new(servers.clone());
+    assert_eq!(host.tools().len(), 1);
+    host.sync_to(servers);
+    // The original connection survived: its canned stream is already past
+    // INIT and TOOLS, so the call's request id (3) matches CALL_OK. A
+    // reconnect would misalign the ids and never see "hello\nworld".
+    assert_eq!(host.call("fake", "echo", "{}").unwrap(), "hello\nworld");
+}
+
+#[test]
+fn sync_to_swaps_a_changed_servers_client_and_cache() {
+    let mut old = BTreeMap::new();
+    old.insert("fake".to_string(), canned("swap-a", &[INIT, TOOLS]));
+    let mut host = McpHost::new(old);
+    assert_eq!(host.tools()[0].name, "echo");
+    let mut new = BTreeMap::new();
+    new.insert("fake".to_string(), canned("swap-b", &[INIT, TOOLS2]));
+    host.sync_to(new);
+    assert_eq!(host.tools()[0].name, "echo2");
+}
+
+#[test]
+fn sync_to_drops_a_removed_server() {
+    let mut servers = BTreeMap::new();
+    servers.insert("fake".to_string(), canned("rm", &[INIT, TOOLS]));
+    let mut host = McpHost::new(servers);
+    assert_eq!(host.tools().len(), 1);
+    host.sync_to(BTreeMap::new());
+    assert!(host.is_empty());
+    assert!(host.tools().is_empty());
+    assert!(host
+        .call("fake", "echo", "{}")
+        .unwrap_err()
+        .contains("unknown MCP server"));
+}
+
+#[test]
+fn reload_reconnects_and_relists_every_server() {
+    // The config launches `cat <path>`; rewriting <path> after the first
+    // connect stands in for a running server whose tool set changed.
+    let path = std::env::temp_dir().join(format!("crew-mcp-reload-{}.jsonl", std::process::id()));
+    std::fs::write(&path, [INIT, TOOLS].join("\n")).unwrap();
+    let cfg = ServerConfig {
+        command: "sh".into(),
+        args: vec!["-c".into(), format!("cat '{}'; sleep 5", path.display())],
+        env: BTreeMap::new(),
+    };
+    let mut servers = BTreeMap::new();
+    servers.insert("fake".to_string(), cfg);
+    let mut host = McpHost::new(servers);
+    assert_eq!(host.tools()[0].name, "echo");
+    std::fs::write(&path, [INIT, TOOLS2].join("\n")).unwrap();
+    assert_eq!(host.tools()[0].name, "echo", "cached until a reload");
+    assert_eq!(host.reload(), vec!["fake".to_string()]);
+    assert_eq!(host.tools()[0].name, "echo2");
+}
+
+#[test]
+fn explicit_hosts_never_auto_sync_from_disk() {
+    // `new()` (tests) pins the map; only `from_config()` tracks mcp.json —
+    // if any use auto-synced, "fake" would vanish on machines without it.
+    let mut servers = BTreeMap::new();
+    servers.insert("fake".to_string(), canned("pin", &[INIT, TOOLS]));
+    let mut host = McpHost::new(servers);
+    assert_eq!(host.tools().len(), 1);
+    assert!(!host.is_empty());
+    let report = host.report();
+    assert!(report.contains("fake"), "got: {report}");
+}
+
 #[test]
 fn host_report_names_a_server_that_fails_to_launch() {
     let mut servers = BTreeMap::new();

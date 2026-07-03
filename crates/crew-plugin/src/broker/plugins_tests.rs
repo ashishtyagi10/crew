@@ -75,6 +75,20 @@ fn load_dir_reads_sorted_json_and_skips_garbage() {
 }
 
 #[test]
+fn load_dir_sees_manifests_added_after_a_previous_scan() {
+    // Hot-reload contract: manifests re-read the directory on every message,
+    // so a plugin agent added while crew runs joins the roster without a
+    // restart.
+    let d = tmpdir("fresh");
+    std::fs::write(d.join("a.json"), r#"{"name":"a","command":"sh"}"#).unwrap();
+    assert_eq!(load_dir(&d).len(), 1);
+    std::fs::write(d.join("b.json"), r#"{"name":"b","command":"sh"}"#).unwrap();
+    let names: Vec<String> = load_dir(&d).iter().map(|p| p.name().to_string()).collect();
+    assert_eq!(names, vec!["a", "b"]);
+    let _ = std::fs::remove_dir_all(&d);
+}
+
+#[test]
 fn load_dir_of_missing_path_is_empty() {
     assert!(load_dir(Path::new("/nonexistent/xyz")).is_empty());
 }

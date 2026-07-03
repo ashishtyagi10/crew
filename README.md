@@ -195,7 +195,8 @@ It also borrows the flagship moves of the big coding agents: **plan mode**
 completes the loop with Codex-style change review.
 
 The pane is extensible the way other coding tools are — three drop-in
-surfaces, no rebuild (see [docs/CREW.md](docs/CREW.md#multi-agent-relay-crew)):
+surfaces, no rebuild, edits picked up live (`/reload` forces it; no restart
+needed) — see [docs/CREW.md](docs/CREW.md#multi-agent-relay-crew):
 
 - **Skills** — markdown prompt playbooks in `~/.config/crew/skills/` or
   `./.crew/skills/` (optional `name:`/`description:` frontmatter; project

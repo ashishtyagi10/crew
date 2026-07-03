@@ -119,12 +119,13 @@ fn unknown_command_points_at_help() {
 }
 
 #[test]
-fn agents_reports_roster_or_keys_hint() {
-    // In tests no API key is guaranteed; either a roster line or the
-    // no-agents hint is acceptable — both are a Message.
+fn agents_reemits_the_roster_before_its_report() {
+    // In tests no API key is guaranteed; the roster may be empty, but the
+    // Roster event always precedes the report so the pane's badges refresh.
     let evs = run("/agents");
-    assert_eq!(evs.len(), 1);
-    assert!(!text_of(&evs[0]).is_empty());
+    assert_eq!(evs.len(), 2);
+    assert!(matches!(evs[0], PluginEvent::Roster { .. }), "{evs:?}");
+    assert!(!text_of(&evs[1]).is_empty());
 }
 
 use crate::broker::testenv;
@@ -244,14 +245,46 @@ fn expand_alias_leaves_non_aliases_unchanged() {
 fn help_documents_the_aliases() {
     let evs = run("/help");
     let t = text_of(&evs[0]);
-    assert!(t.contains("aliases: /h /a /s /t /d /m"), "{t}");
+    assert!(t.contains("aliases: /h /a /s /t /d /m /r"), "{t}");
 }
 
 #[test]
 fn closest_construct_suggests_near_typos() {
     assert_eq!(closest_construct("stauts"), Some("status"));
     assert_eq!(closest_construct("hlep"), Some("help"));
+    assert_eq!(closest_construct("relaod"), Some("reload"));
     assert_eq!(closest_construct("zzzzz"), None);
+}
+
+#[test]
+fn reload_is_quick_and_listed_in_help() {
+    assert!(is_quick("/reload"));
+    let evs = run("/help");
+    let t = text_of(&evs[0]);
+    assert!(t.contains("/reload"), "{t}");
+    assert!(t.contains("without a restart"), "{t}");
+}
+
+#[test]
+fn expand_alias_maps_r_to_reload() {
+    assert_eq!(expand_alias("/r"), "/reload");
+}
+
+#[test]
+fn reload_reemits_the_roster_and_reports_every_surface() {
+    let _g = testenv::mock("ok\n@done");
+    let mut session = Session::new();
+    let mut evs = Vec::new();
+    handle(&mut session, "/reload", &mut |ev| {
+        evs.push(ev);
+        Ok(())
+    })
+    .unwrap();
+    assert!(matches!(evs[0], PluginEvent::Roster { .. }), "{evs:?}");
+    let t = text_of(&evs[1]);
+    assert!(t.contains("skills:"), "{t}");
+    assert!(t.contains("plugin agents:"), "{t}");
+    assert!(t.contains("mcp:"), "{t}");
 }
 
 #[test]

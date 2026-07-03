@@ -3,6 +3,7 @@
 //! `/agents` reports the roster with each agent's current model.
 use crate::PluginEvent;
 
+use super::adapter::Adapter;
 use super::relay::msg;
 use super::session::Session;
 
@@ -50,13 +51,14 @@ pub(crate) const HELP: &str = "constructs:\n\
     /skills — list prompt playbooks (~/.config/crew/skills, .crew/skills)\n\
     /skill <name> <task> — run the relay with that playbook prepended\n\
     /mcp — MCP servers and their tools (~/.config/crew/mcp.json, .crew/mcp.json)\n\
+    /reload — re-read skills, plugin agents, and mcp.json without a restart\n\
     /tasks — list the background tasks running now\n\
     /stop [#n] — cancel all background tasks, or just task #n\n\
     /status — session totals, models, and the live task count\n\
     @<agent> <task> — choose who starts the relay\n\
     @<a>+<b> <task> — those agents answer in parallel\n\
     \u{2026} tip: tasks run in the background — /tasks lists them, /stop #n cancels one\n\
-    aliases: /h /a /s /t /d /m\n\
+    aliases: /h /a /s /t /d /m /r\n\
     ";
 
 /// Expand a built-in single-letter slash alias in the FIRST token, preserving
@@ -70,6 +72,7 @@ pub(crate) fn expand_alias(trimmed: &str) -> String {
         ("/t", "/tasks"),
         ("/d", "/diff"),
         ("/m", "/model"),
+        ("/r", "/reload"),
     ];
     let (head, rest) = trimmed
         .split_once(char::is_whitespace)
@@ -104,6 +107,7 @@ const CONSTRUCTS: &[&str] = &[
     "skills",
     "skill",
     "mcp",
+    "reload",
     "diff",
     "cwd",
     "status",
@@ -162,7 +166,13 @@ pub(crate) fn handle(
     let (cmd, rest) = line.split_once(char::is_whitespace).unwrap_or((line, ""));
     match cmd {
         "help" => emit(msg("crew", HELP)),
-        "agents" => emit(msg("crew", agents_report(session))),
+        "agents" => {
+            // Fresh Roster first so the pane's badges pick up manifest edits.
+            emit(PluginEvent::Roster {
+                agents: session.registry().infos(),
+            })?;
+            emit(msg("crew", agents_report(session)))
+        }
         "model" => model_cmd(session, rest, emit),
         "fan" => fan_cmd(session, rest, emit),
         "loop" => super::constructs::loop_cmd(session, rest, emit),
@@ -184,6 +194,7 @@ pub(crate) fn handle(
             let report = session.lock_mcp().report();
             emit(msg("crew", report))
         }
+        "reload" => reload_cmd(session, emit),
         other => emit(msg(
             "crew",
             match closest_construct(other) {
@@ -192,6 +203,49 @@ pub(crate) fn handle(
             },
         )),
     }
+}
+
+/// `/reload` — pick up extension edits without a restart. Skills and plugin
+/// manifests already re-read from disk on every use, so this reports what's
+/// there now; MCP is forced to re-read `mcp.json`, drop every connection, and
+/// re-list tools on next use. A fresh Roster event updates the pane's badges.
+fn reload_cmd(
+    session: &mut Session,
+    emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
+) -> anyhow::Result<()> {
+    let skills = super::skills::load();
+    let plugins: Vec<String> = super::plugins::load()
+        .iter()
+        .filter(|p| p.probe())
+        .map(|p| p.name().to_string())
+        .collect();
+    let servers = session.lock_mcp().reload();
+    emit(PluginEvent::Roster {
+        agents: session.registry().infos(),
+    })?;
+    let list = |names: Vec<String>| {
+        if names.is_empty() {
+            "none".to_string()
+        } else {
+            format!("{} \u{2014} {}", names.len(), names.join(", "))
+        }
+    };
+    emit(msg(
+        "crew",
+        format!(
+            "reloaded from disk:\n\
+             \u{25aa} skills: {}\n\
+             \u{25aa} plugin agents: {}\n\
+             \u{25aa} mcp: {}",
+            list(skills.into_iter().map(|s| s.name).collect()),
+            list(plugins),
+            if servers.is_empty() {
+                "none configured".to_string()
+            } else {
+                format!("{} \u{2014} reconnecting on next use", servers.join(", "))
+            },
+        ),
+    ))
 }
 
 /// `/cwd` — where the sys tools operate, and the sandbox mode.

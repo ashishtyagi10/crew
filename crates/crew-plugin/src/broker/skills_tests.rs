@@ -60,6 +60,19 @@ fn load_dir_of_missing_path_is_empty() {
 }
 
 #[test]
+fn load_dir_sees_files_added_after_a_previous_scan() {
+    // Hot-reload contract: skills re-read the directory on every use, so a
+    // file dropped in while crew runs shows up without a restart.
+    let d = tmpdir("fresh");
+    std::fs::write(d.join("a.md"), "alpha").unwrap();
+    assert_eq!(load_dir(&d, "user").len(), 1);
+    std::fs::write(d.join("b.md"), "beta").unwrap();
+    let names: Vec<String> = load_dir(&d, "user").into_iter().map(|s| s.name).collect();
+    assert_eq!(names, vec!["a", "b"]);
+    let _ = std::fs::remove_dir_all(&d);
+}
+
+#[test]
 fn merge_lets_project_override_user() {
     let user = vec![
         parse("user body", "shared", "user"),

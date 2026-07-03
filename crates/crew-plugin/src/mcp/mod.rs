@@ -25,6 +25,9 @@ pub struct McpHost {
     servers: BTreeMap<String, ServerConfig>,
     clients: BTreeMap<String, McpClient>,
     cache: BTreeMap<String, Vec<McpTool>>,
+    /// Track `mcp.json` on every use (only hosts built by [`Self::from_config`]),
+    /// so config edits land without a restart. Explicit maps (tests) stay pinned.
+    auto: bool,
 }
 
 impl McpHost {
@@ -43,12 +46,54 @@ impl McpHost {
         if std::env::var("CREW_BROKER_MOCK_REPLY").is_ok() {
             return Self::default();
         }
-        Self::new(config::load())
+        Self {
+            auto: true,
+            ..Self::new(config::load())
+        }
     }
 
-    /// Whether any server is configured at all.
-    pub fn is_empty(&self) -> bool {
+    /// Whether any server is configured at all (after a config sync, so the
+    /// first server added to `mcp.json` enables tools without a restart).
+    pub fn is_empty(&mut self) -> bool {
+        self.sync();
         self.servers.is_empty()
+    }
+
+    /// Re-read `mcp.json` when this host tracks it; a no-op for pinned maps.
+    fn sync(&mut self) {
+        if self.auto {
+            self.sync_to(config::load());
+        }
+    }
+
+    /// Adopt `fresh` as the server map: servers that were removed or whose
+    /// config changed lose their client (killing the child) and cached tools;
+    /// unchanged servers keep their live connection and cache.
+    pub(crate) fn sync_to(&mut self, fresh: BTreeMap<String, ServerConfig>) {
+        if fresh == self.servers {
+            return;
+        }
+        let stale: Vec<String> = self
+            .servers
+            .keys()
+            .filter(|name| fresh.get(*name) != self.servers.get(*name))
+            .cloned()
+            .collect();
+        for name in stale {
+            self.clients.remove(&name);
+            self.cache.remove(&name);
+        }
+        self.servers = fresh;
+    }
+
+    /// Force a full refresh for `/reload`: re-read `mcp.json` (when this host
+    /// tracks it), then drop every client and the whole tool cache so the next
+    /// use reconnects and re-lists. Returns the configured server names.
+    pub fn reload(&mut self) -> Vec<String> {
+        self.sync();
+        self.clients.clear();
+        self.cache.clear();
+        self.servers.keys().cloned().collect()
     }
 
     /// The connected client for `server`, connecting on first use.
@@ -93,6 +138,7 @@ impl McpHost {
     /// A server that fails to connect or list contributes nothing here — the
     /// failure is visible in [`McpHost::report`].
     pub fn tools(&mut self) -> Vec<McpTool> {
+        self.sync();
         let names: Vec<String> = self.servers.keys().cloned().collect();
         names
             .iter()
@@ -103,6 +149,7 @@ impl McpHost {
     /// Call `tool` on `server` with JSON `args` (empty = `{}`). A failed call
     /// drops the connection so the next call reconnects fresh.
     pub fn call(&mut self, server: &str, tool: &str, args: &str) -> Result<String, String> {
+        self.sync();
         let args = args.trim();
         let value: serde_json::Value = if args.is_empty() {
             serde_json::json!({})

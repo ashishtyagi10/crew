@@ -328,6 +328,9 @@ itself (Tab completes both `@agents` and `/constructs`):
   below).
 - **`/mcp`** — list the configured MCP servers and their tools (see
   *Extending* below).
+- **`/reload`** — pick up extension edits without a restart: re-reads skills
+  and plugin manifests, forces MCP to re-read `mcp.json` and reconnect on
+  next use, and re-emits the roster so the pane's badges update.
 - **`/export`** — write the pane's transcript to
   `crew-transcript-<stamp>.md` in the working directory (à la OpenCode),
   one `## sender · time · latency` section per message. Answered by the pane
@@ -338,7 +341,10 @@ itself (Tab completes both `@agents` and `/constructs`):
   second task is politely rejected until the first ends.
 
 **Extending (skills · plugin agents · MCP).** Three drop-in surfaces, no
-rebuild required — the same trio other coding tools ship:
+rebuild required — the same trio other coding tools ship. All three
+hot-reload: skills and manifests are re-read from disk on every use, and
+`mcp.json` edits are picked up on the next tool use (or immediately with
+`/reload`) — no restart needed:
 
 - **Skills** are markdown playbooks in `~/.config/crew/skills/*.md` (user) or
   `./.crew/skills/*.md` (project; wins on a name clash). Optional `---`
