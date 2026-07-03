@@ -173,3 +173,43 @@ fn model_unknown_agent_lists_the_roster() {
     let evs = run("/model ghost qwen-max");
     assert!(text_of(&evs[0]).contains("unknown agent"), "{evs:?}");
 }
+
+#[test]
+fn expand_alias_maps_known_short_forms() {
+    assert_eq!(expand_alias("/s"), "/status");
+    assert_eq!(expand_alias("/m coder qwen"), "/model coder qwen");
+    assert_eq!(expand_alias("/h"), "/help");
+    assert_eq!(expand_alias("/a"), "/agents");
+    assert_eq!(expand_alias("/t"), "/tasks");
+    assert_eq!(expand_alias("/d"), "/diff");
+}
+
+#[test]
+fn expand_alias_leaves_non_aliases_unchanged() {
+    // Already the long form — not an alias key, so untouched.
+    assert_eq!(expand_alias("/status"), "/status");
+    assert_eq!(expand_alias("hello"), "hello");
+    // Unknown short form — no match, unchanged.
+    assert_eq!(expand_alias("/x"), "/x");
+}
+
+#[test]
+fn help_documents_the_aliases() {
+    let evs = run("/help");
+    let t = text_of(&evs[0]);
+    assert!(t.contains("aliases: /h /a /s /t /d /m"), "{t}");
+}
+
+#[test]
+fn closest_construct_suggests_near_typos() {
+    assert_eq!(closest_construct("stauts"), Some("status"));
+    assert_eq!(closest_construct("hlep"), Some("help"));
+    assert_eq!(closest_construct("zzzzz"), None);
+}
+
+#[test]
+fn unknown_construct_suggests_the_closest_match() {
+    let evs = run("/stauts");
+    let t = text_of(&evs[0]);
+    assert!(t.contains("did you mean /status"), "{t}");
+}

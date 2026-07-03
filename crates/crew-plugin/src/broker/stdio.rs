@@ -87,6 +87,9 @@ fn send(
     use std::time::Instant;
     tasks.reap();
     let trimmed = text.trim().to_string();
+    // Resolve built-in single-letter aliases (`/s` → `/status`) before ANY
+    // routing below, so they reach the same interceptors their long form does.
+    let trimmed = super::commands::expand_alias(&trimmed);
     // First whitespace token, so `/tasks` and `/status` tolerate trailing args
     // (they take none) instead of misrouting to "unknown construct".
     let cmd0 = trimmed.split_whitespace().next().unwrap_or("");

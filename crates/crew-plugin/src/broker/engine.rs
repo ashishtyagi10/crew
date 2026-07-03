@@ -8,6 +8,14 @@ use super::hop::{back, note, transcript_tail, Hop, HopKind, RunStats};
 use super::route::{clip, frame, has_directive, repair_prompt};
 use super::{parse_routing, Envelope, Registry, Routing};
 
+/// Whether a relayed body is worth a transcript line. An agent that hands off
+/// with nothing but its control line (a blank body) contributes no
+/// information, but a stored `"X → Y: "` entry still costs every later hop's
+/// prompt tokens — so it's dropped rather than logged.
+fn keep_in_transcript(body: &str) -> bool {
+    !body.trim().is_empty()
+}
+
 /// Routes messages between agents in a [`Registry`], with a per-call timeout, a
 /// maximum hop count, and an approximate token budget (0 = unlimited).
 pub struct Broker {
@@ -172,7 +180,9 @@ impl Broker {
                         text: body.clone(),
                         usage,
                     });
-                    transcript.push(format!("{} → {next}: {}", env.to, clip(&body, 400)));
+                    if keep_in_transcript(&body) {
+                        transcript.push(format!("{} → {next}: {}", env.to, clip(&body, 400)));
+                    }
                     if self.registry.get(&next).is_none() {
                         sink(note(
                             &env,
