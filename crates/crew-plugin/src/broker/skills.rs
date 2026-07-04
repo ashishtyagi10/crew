@@ -19,6 +19,10 @@ pub(crate) struct Skill {
     pub body: String,
     /// Where it came from: `"user"` or `"project"`.
     pub origin: &'static str,
+    /// The markdown source: the flat file, or the directory's `SKILL.md`.
+    pub path: PathBuf,
+    /// The skill's root directory — `Some` only for directory skills.
+    pub dir: Option<PathBuf>,
 }
 
 /// Parse one skill file. Frontmatter (`---` … `---`) may set `name` and
@@ -52,6 +56,8 @@ pub(crate) fn parse(text: &str, stem: &str, origin: &'static str) -> Skill {
         description,
         body: body.to_string(),
         origin,
+        path: PathBuf::new(),
+        dir: None,
     }
 }
 
@@ -64,28 +70,36 @@ fn normalize_name(s: &str) -> String {
         .join("-")
 }
 
-/// All `.md` skills in `dir` (empty when the dir doesn't exist), sorted by
-/// file name so loading order is stable.
+/// All `.md` skills in `dir`, plus subdirectories containing a `SKILL.md` (empty
+/// when the dir doesn't exist), sorted by name so loading order is stable.
 pub(crate) fn load_dir(dir: &Path, origin: &'static str) -> Vec<Skill> {
     let Ok(entries) = std::fs::read_dir(dir) else {
         return Vec::new();
     };
-    let mut paths: Vec<PathBuf> = entries
-        .flatten()
-        .map(|e| e.path())
-        .filter(|p| p.extension().is_some_and(|e| e == "md"))
-        .collect();
-    paths.sort();
-    paths
-        .iter()
-        .filter_map(|p| {
-            let text = std::fs::read_to_string(p).ok()?;
-            let stem = p.file_stem()?.to_string_lossy();
-            Some(parse(&text, &stem, origin))
+    // (markdown source, name stem, skill root for directory skills)
+    let mut sources: Vec<(PathBuf, String, Option<PathBuf>)> = Vec::new();
+    for p in entries.flatten().map(|e| e.path()) {
+        if p.extension().is_some_and(|e| e == "md") {
+            let Some(stem) = p.file_stem() else { continue };
+            sources.push((p.clone(), stem.to_string_lossy().into_owned(), None));
+        } else if p.is_dir() && p.join("SKILL.md").is_file() {
+            let Some(name) = p.file_name() else { continue };
+            let name = name.to_string_lossy().into_owned();
+            sources.push((p.join("SKILL.md"), name, Some(p)));
+        }
+    }
+    sources.sort_by(|a, b| a.1.cmp(&b.1));
+    sources
+        .into_iter()
+        .filter_map(|(path, stem, root)| {
+            let text = std::fs::read_to_string(&path).ok()?;
+            let mut s = parse(&text, &stem, origin);
+            s.path = path;
+            s.dir = root;
+            Some(s)
         })
         .collect()
 }
-
 /// User + project skills merged: a project skill replaces a user skill with
 /// the same name.
 pub(crate) fn merge(user: Vec<Skill>, project: Vec<Skill>) -> Vec<Skill> {
