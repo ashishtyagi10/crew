@@ -64,11 +64,7 @@ fn read_file_is_capped() {
     )
     .unwrap();
     assert!(r.len() < CAP + 100, "capped, got {}", r.len());
-    assert!(
-        r.ends_with("(truncated at 64 KB)"),
-        "{}",
-        &r[r.len() - 40..]
-    );
+    assert!(r.contains("truncated at 64 KB"), "{}", &r[r.len() - 60..]);
     let _ = std::fs::remove_dir_all(&dir);
 }
 
@@ -107,9 +103,9 @@ fn read_file_truncates_at_utf8_char_boundary() {
     .unwrap();
     assert!(r.len() < CAP + 100, "capped, got {}", r.len());
     assert!(
-        r.ends_with("(truncated at 64 KB)"),
+        r.contains("truncated at 64 KB"),
         "{}",
-        &r[r.len().saturating_sub(40)..]
+        &r[r.len().saturating_sub(60)..]
     );
     assert!(!r.contains('\u{FFFD}'), "no replacement char: {r}");
     let _ = std::fs::remove_dir_all(&dir);
@@ -166,4 +162,67 @@ fn list_dir_notes_unstatable_entries_instead_of_aborting() {
     assert!(r.contains("a.txt (3 B)"), "{r}");
     assert!(r.contains("dangler (?)"), "{r}");
     let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn read_file_offset_resumes_mid_file() {
+    let p = std::env::temp_dir().join(format!("crew-sys-off-{}.txt", std::process::id()));
+    std::fs::write(&p, "abcdefghij").unwrap();
+    let out = call(
+        "read_file",
+        &format!("{{\"path\": \"{}\", \"offset\": 4}}", p.display()),
+    )
+    .unwrap();
+    assert_eq!(out, "efghij");
+    let _ = std::fs::remove_file(&p);
+}
+
+#[test]
+fn read_file_truncation_notice_names_the_next_offset() {
+    let p = std::env::temp_dir().join(format!("crew-sys-big-{}.txt", std::process::id()));
+    std::fs::write(&p, "x".repeat(CAP + 100)).unwrap();
+    let out = call("read_file", &format!("{{\"path\": \"{}\"}}", p.display())).unwrap();
+    assert!(
+        out.contains("truncated at 64 KB"),
+        "got tail: {}",
+        &out[out.len() - 120..]
+    );
+    assert!(
+        out.contains(&format!("file is {} bytes", CAP + 100)),
+        "got tail: {}",
+        &out[out.len() - 120..]
+    );
+    assert!(
+        out.contains(&format!("continue with {{\"offset\": {CAP}}}")),
+        "got tail: {}",
+        &out[out.len() - 120..]
+    );
+    let _ = std::fs::remove_file(&p);
+}
+
+#[test]
+fn read_file_offset_past_eof_says_so() {
+    let p = std::env::temp_dir().join(format!("crew-sys-eof-{}.txt", std::process::id()));
+    std::fs::write(&p, "short").unwrap();
+    let out = call(
+        "read_file",
+        &format!("{{\"path\": \"{}\", \"offset\": 99}}", p.display()),
+    )
+    .unwrap();
+    assert!(out.contains("offset 99"), "got: {out}");
+    assert!(out.contains("5 bytes"), "got: {out}");
+    let _ = std::fs::remove_file(&p);
+}
+
+#[test]
+fn read_file_offset_mid_codepoint_skips_to_a_boundary() {
+    let p = std::env::temp_dir().join(format!("crew-sys-utf8-{}.txt", std::process::id()));
+    std::fs::write(&p, "é-tail").unwrap(); // 'é' is 2 bytes; offset 1 lands mid-char
+    let out = call(
+        "read_file",
+        &format!("{{\"path\": \"{}\", \"offset\": 1}}", p.display()),
+    )
+    .unwrap();
+    assert_eq!(out, "-tail");
+    let _ = std::fs::remove_file(&p);
 }
