@@ -218,3 +218,43 @@ fn relay_runs_a_real_sys_command_and_logs_hops() {
         "result hop logged"
     );
 }
+
+#[test]
+fn pointer_framed_skill_lets_the_agent_read_the_playbook() {
+    // A >8 KB skill on disk: the frame must carry a pointer, and the loop
+    // must resolve a sys:read_file for that pointer's path.
+    let p = std::env::temp_dir().join(format!("crew-skillframe-e2e-{}.md", std::process::id()));
+    let body = format!(
+        "Intro.\n## Only Section\n{}",
+        "needle-content\n".repeat(700)
+    );
+    std::fs::write(&p, &body).unwrap();
+    let mut skill = crate::broker::skills::parse(&body, "big-skill", "user");
+    skill.path = p.clone();
+    let frame = crate::broker::skillframe::framed(&skill, "use the playbook", true);
+    assert!(frame.contains("Full playbook:"), "got: {frame}");
+    assert!(frame.contains(&p.display().to_string()), "got: {frame}");
+
+    let broker = Broker::new(Registry::new(vec![]), 6, Duration::from_secs(5))
+        .with_tools(std::sync::Arc::new(SysOnly));
+    let agent = Scripted::new(&["read it, proceeding"]);
+    let mut hops = Vec::new();
+    let mut stats = RunStats::default();
+    let reply = broker.run_tools(
+        &agent,
+        &frame,
+        format!(
+            "checking\n@tool sys:read_file {{\"path\": \"{}\"}}",
+            p.display()
+        ),
+        &mut stats,
+        &env(),
+        &mut |h| hops.push(h),
+    );
+    assert_eq!(reply, "read it, proceeding");
+    assert!(
+        hops.iter().any(|h| h.text.contains("needle-content")),
+        "tool result hop carries the playbook text"
+    );
+    let _ = std::fs::remove_file(&p);
+}
