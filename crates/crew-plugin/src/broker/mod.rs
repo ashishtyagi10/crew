@@ -30,6 +30,7 @@ mod route;
 mod run;
 mod session;
 mod shellenv;
+mod skillframe;
 mod skills;
 mod stdio;
 mod sysrun;

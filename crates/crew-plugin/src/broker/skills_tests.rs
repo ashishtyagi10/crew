@@ -102,7 +102,7 @@ fn list_report_explains_when_empty_and_lists_when_not() {
 #[test]
 fn framed_puts_playbook_before_task() {
     let s = parse("playbook text", "guide", "user");
-    let f = framed(&s, "do the thing");
+    let f = crate::broker::skillframe::framed(&s, "do the thing", true);
     let (pb, task) = (
         f.find("playbook text").unwrap(),
         f.find("do the thing").unwrap(),

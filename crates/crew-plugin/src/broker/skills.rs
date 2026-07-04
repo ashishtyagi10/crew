@@ -144,14 +144,6 @@ pub(crate) fn list_report(skills: &[Skill]) -> String {
     lines.join("\n")
 }
 
-/// The relay body for a skill run: playbook first, then the task.
-pub(crate) fn framed(skill: &Skill, task: &str) -> String {
-    format!(
-        "SKILL \u{201c}{}\u{201d} \u{2014} follow this playbook:\n{}\n\nTASK:\n{task}",
-        skill.name, skill.body
-    )
-}
-
 /// `/skill <name> <task>` — run one relay turn with the playbook prepended.
 pub(crate) fn skill_cmd(
     session: &mut Session,
@@ -192,7 +184,15 @@ pub(crate) fn skill_cmd(
         format!("skill \u{201c}{name}\u{201d} \u{2014} starting with {start}"),
     ))?;
     let broker = session.broker(reg);
-    relay_turn(&broker, &start, &framed(skill, &task), "skill-1", emit).map(|_| ())
+    let sys_on = super::systools::enabled();
+    relay_turn(
+        &broker,
+        &start,
+        &super::skillframe::framed(skill, &task, sys_on),
+        "skill-1",
+        emit,
+    )
+    .map(|_| ())
 }
 
 #[cfg(test)]
