@@ -187,7 +187,7 @@ pub(crate) fn handle(
         "cwd" => cwd_cmd(emit),
         "skills" => emit(msg(
             "crew",
-            super::skills::list_report(&super::skills::load()),
+            super::skillframe::list_report(&super::skills::load()),
         )),
         "skill" => super::skills::skill_cmd(session, rest, emit),
         "mcp" => {

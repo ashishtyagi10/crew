@@ -83,3 +83,30 @@ fn small_body_still_inlines_even_with_sys_on() {
     let s = skill_with("tiny", None);
     assert!(framed(&s, "t", true).contains("follow this playbook"));
 }
+
+#[test]
+fn list_report_marks_dir_skills_and_outline_framing() {
+    let mut small = skill_with("tiny", Some("/skills/small"));
+    small.name = "small".into();
+    let mut big = skill_with(&big_body(), None);
+    big.name = "big".into();
+    let report = list_report(&[small, big]);
+    assert!(
+        report.contains("small \u{2014} tiny (user, dir)"),
+        "got: {report}"
+    );
+    assert!(
+        report.contains("(user, 10 KB \u{2192} outline)"),
+        "got: {report}"
+    );
+}
+
+#[test]
+fn list_report_plain_flat_skill_line_is_unchanged() {
+    let s = skill_with("tiny", None);
+    let report = list_report(&[s]);
+    assert!(
+        report.contains("demo \u{2014} tiny (user)"),
+        "got: {report}"
+    );
+}

@@ -76,6 +76,31 @@ fn support(skill: &Skill) -> String {
     }
 }
 
+/// The `/skills` listing: one line per skill, or where to put files.
+pub(crate) fn list_report(skills: &[Skill]) -> String {
+    if skills.is_empty() {
+        return "No skills found. Drop markdown playbooks into \
+                ~/.config/crew/skills/ or ./.crew/skills/ \
+                (optional `---` frontmatter: name, description), then \
+                run one with /skill <name> <task>."
+            .into();
+    }
+    let lines: Vec<String> = skills
+        .iter()
+        .map(|s| {
+            let mut tag = s.origin.to_string();
+            if s.dir.is_some() {
+                tag.push_str(", dir");
+            }
+            if s.body.len() > INLINE_CAP {
+                tag.push_str(&format!(", {} KB \u{2192} outline", s.body.len() / 1024));
+            }
+            format!("\u{25aa} {} \u{2014} {} ({tag})", s.name, s.description)
+        })
+        .collect();
+    lines.join("\n")
+}
+
 #[cfg(test)]
 #[path = "skillframe_tests.rs"]
 mod tests;

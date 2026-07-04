@@ -123,27 +123,6 @@ pub(crate) fn load() -> Vec<Skill> {
     merge(user, project)
 }
 
-/// The `/skills` listing: one line per skill, or where to put files.
-pub(crate) fn list_report(skills: &[Skill]) -> String {
-    if skills.is_empty() {
-        return "No skills found. Drop markdown playbooks into \
-                ~/.config/crew/skills/ or ./.crew/skills/ \
-                (optional `---` frontmatter: name, description), then \
-                run one with /skill <name> <task>."
-            .into();
-    }
-    let lines: Vec<String> = skills
-        .iter()
-        .map(|s| {
-            format!(
-                "\u{25aa} {} \u{2014} {} ({})",
-                s.name, s.description, s.origin
-            )
-        })
-        .collect();
-    lines.join("\n")
-}
-
 /// `/skill <name> <task>` — run one relay turn with the playbook prepended.
 pub(crate) fn skill_cmd(
     session: &mut Session,
