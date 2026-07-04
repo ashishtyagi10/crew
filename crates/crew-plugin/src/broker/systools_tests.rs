@@ -226,3 +226,32 @@ fn read_file_offset_mid_codepoint_skips_to_a_boundary() {
     assert_eq!(out, "-tail");
     let _ = std::fs::remove_file(&p);
 }
+
+#[test]
+fn read_file_mid_codepoint_offset_still_reports_truncation() {
+    let p = std::env::temp_dir().join(format!("crew-sys-utf8big-{}.txt", std::process::id()));
+    let mut content = String::from("é"); // 2 bytes; offset 1 lands mid-char
+    content.push_str(&"x".repeat(CAP + 50));
+    std::fs::write(&p, &content).unwrap();
+    let out = call(
+        "read_file",
+        &format!("{{\"path\": \"{}\", \"offset\": 1}}", p.display()),
+    )
+    .unwrap();
+    assert!(
+        out.starts_with("xxx"),
+        "skips the split codepoint, got: {}",
+        &out[..20]
+    );
+    assert!(
+        out.contains("truncated at 64 KB"),
+        "tail: {}",
+        &out[out.len() - 130..]
+    );
+    assert!(
+        out.contains(&format!("continue with {{\"offset\": {}}}", 1 + 1 + CAP)),
+        "tail: {}",
+        &out[out.len() - 130..]
+    );
+    let _ = std::fs::remove_file(&p);
+}

@@ -140,15 +140,15 @@ fn read_file(path: &str, offset: usize) -> Result<String, String> {
             "\u{2026} (offset {offset} is at or past the end \u{2014} file is {total} bytes)"
         ));
     }
-    // An offset landing mid-codepoint skips forward to the next boundary (at most 3 bytes).
-    let start = (0..=3.min(buf.len()))
+    let hit_cap = buf.len() > CAP; // pre-trim: more file remains beyond this read
+    let start = (0..=3.min(buf.len())) // offset may land mid-codepoint; skip <=3B to a boundary
         .find(|&i| is_utf8_boundary(&buf, i))
         .unwrap_or(0);
     let buf = &buf[start..];
-    if buf.len() > CAP {
-        // A boundary must occur within 3 bytes; binary data near the cap may have none.
-        let floor = CAP.saturating_sub(3);
-        let cut = (floor..=CAP).rev().find(|&i| is_utf8_boundary(buf, i));
+    if hit_cap {
+        let end = buf.len().min(CAP);
+        let floor = end.saturating_sub(3); // boundary within 3 bytes; binary may lack one
+        let cut = (floor..=end).rev().find(|&i| is_utf8_boundary(buf, i));
         let cut = cut.ok_or_else(|| {
             format!("read {path}: not valid UTF-8: no character boundary near the 64 KB cap")
         })?;
