@@ -306,3 +306,33 @@ fn run_tools_clips_large_results_but_keeps_newlines_and_the_final_line() {
         &follow[follow.len().saturating_sub(200)..]
     );
 }
+
+#[test]
+fn run_tools_clips_single_line_results_with_no_newline() {
+    // Minified/base64-shaped output: no embedded newline at all, so the
+    // "final line" is the entire text. clip_result must still hard-cap it
+    // instead of returning the whole thing unbounded.
+    let body = "x".repeat(7000);
+    assert!(body.len() > 6000, "fixture must exceed the clip budget");
+
+    let b = broker_with(FakeTools(Ok(body)));
+    let agent = std::sync::Arc::new(Scripted::new(&["got it\n@done"]));
+    let mut stats = RunStats::default();
+    let reply = b.run_tools(
+        agent.as_ref(),
+        "base prompt",
+        "reading\n@tool fs:read {\"path\": \"x\"}".into(),
+        &mut stats,
+        &env(),
+        &mut |_| {},
+    );
+    assert_eq!(reply, "got it\n@done");
+
+    let seen = agent.seen();
+    let follow = seen.last().expect("agent was dialed with the follow-up");
+    assert!(
+        follow.len() < 6500,
+        "single-line result must be hard-capped near the 6000 budget, got {} chars",
+        follow.len()
+    );
+}

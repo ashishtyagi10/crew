@@ -2,8 +2,7 @@
 //! task advertises the available tools; an agent calls one by ending its
 //! reply with `@tool <server>:<tool> {"arg": …}`. The engine executes the
 //! call and re-dials the same agent with the result — up to
-//! [`MAX_TOOL_ROUNDS`] times per hop — before normal routing resumes. Every
-//! call and result is logged as a hop, so tool use is visible in the pane.
+//! [`MAX_TOOL_ROUNDS`] times per hop — before routing resumes. Every call and result is logged as a hop, so tool use is visible in the pane.
 use std::sync::Arc;
 
 use super::adapter::Adapter;
@@ -24,12 +23,10 @@ pub trait ToolRunner: Send + Sync {
 /// Most tool rounds one agent may take within a single hop.
 pub(crate) const MAX_TOOL_ROUNDS: u32 = 4;
 
-/// Clip a tool result for the agent-facing exchange log: unlike
-/// [`route::clip`] (whitespace-flattening, for short display strings), this
-/// preserves newlines and — when the text must be cut — always keeps the
-/// final line intact. Continuation protocols (e.g. `sys:read_file`'s
-/// "continue with {\"offset\": N}") put their payload on the last line, so
-/// losing it would strand the agent mid-read.
+/// Clip a tool result for the exchange log: unlike [`route::clip`]
+/// (flattens whitespace), this keeps newlines and, when cut, the final line
+/// verbatim (continuation protocols put their payload there). Hard-caps
+/// instead when the final line alone would overflow the budget.
 fn clip_result(text: &str, max: usize) -> String {
     if text.chars().count() <= max {
         return text.to_string();
@@ -37,7 +34,10 @@ fn clip_result(text: &str, max: usize) -> String {
     const MARKER: &str = "\n\u{2026} (result clipped) \u{2026}\n";
     let last_line = text.rsplit('\n').next().unwrap_or("");
     let reserved = MARKER.chars().count() + last_line.chars().count();
-    let head_budget = max.saturating_sub(reserved);
+    if reserved >= max {
+        return text.chars().take(max).chain(['\u{2026}']).collect();
+    }
+    let head_budget = max - reserved;
     let head: String = text.chars().take(head_budget).collect();
     format!("{head}{MARKER}{last_line}")
 }
