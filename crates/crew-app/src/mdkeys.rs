@@ -8,10 +8,9 @@ use winit::keyboard::{Key, NamedKey};
 
 use crate::mdpane::MdPane;
 
-/// A Page Up/Down jump scrolls this many lines. `MdPane::on_key` only has the
-/// model at this layer, not the pane's row count (`keys.rs` doesn't thread
-/// the grid through key routing), so this mirrors `farpane::keys::PAGE`'s
-/// fixed page size rather than a real page height.
+/// A Page Up/Down jump scrolls this many lines. `keys.rs` threads the grid
+/// through for `clamp_scrolls`, but the jump itself mirrors
+/// `farpane::keys::PAGE`'s fixed page size rather than a real page height.
 const PAGE: i32 = 10;
 
 /// What a key press means to the markdown viewer, decoded from a winit
