@@ -169,7 +169,7 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
 }
 
 /// The URL a markdown link occupies at `(row, col)` in the message body, if
-/// any — Task 6's click hit-test. Re-derives `chatplace::placed_lines` with
+/// any — `clickopen`'s click hit-test. Re-derives `chatplace::placed_lines` with
 /// the same `cols`/`rows` geometry `cells` renders the message area at, so a
 /// click can never resolve against stale layout. `col` is a DISPLAY column
 /// (what the click's `CellView` carries), so the cell is found via

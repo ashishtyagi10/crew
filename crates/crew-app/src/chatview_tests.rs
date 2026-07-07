@@ -1,4 +1,4 @@
-//! Task 6: `link_at` resolves a markdown link's URL from a (row, col) in the
+//! `link_at` resolves a markdown link's URL from a (row, col) in the
 //! rendered message body — the click hit-test `clickopen` drives. Tests locate
 //! the link text in the rendered `CellView`s rather than hardcoding layout
 //! constants, so they stay independent of header/status-row geometry.

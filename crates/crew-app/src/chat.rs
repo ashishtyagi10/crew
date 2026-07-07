@@ -50,7 +50,7 @@ pub struct ChatPane {
     pub(crate) palette: Option<crate::chatpalette::PaletteState>,
     /// When true, show raw message text instead of markdown rendering.
     /// Toggled with Ctrl+Shift+M; not persisted.
-    pub show_source: bool,
+    pub(crate) show_source: bool,
 }
 
 impl ChatPane {

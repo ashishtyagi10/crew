@@ -7,7 +7,7 @@
 pub(crate) type Color = (u8, u8, u8);
 
 /// One cell of a card line. `bg: None` means the pane's page background.
-/// `link` carries the URL a markdown link span resolves to, so Task 6's
+/// `link` carries the URL a markdown link span resolves to, so `clickopen`'s
 /// click hit-test can recover it without re-parsing the message.
 #[derive(Clone)]
 pub(crate) struct CardCell {
@@ -16,7 +16,7 @@ pub(crate) struct CardCell {
     pub bold: bool,
     pub italic: bool,
     pub bg: Option<Color>,
-    /// The URL a markdown link span resolves to; read by Task 6's click
+    /// The URL a markdown link span resolves to; read by `clickopen`'s click
     /// hit-test (`chatview::link_at`) to recover it without re-parsing.
     pub link: Option<std::sync::Arc<str>>,
 }

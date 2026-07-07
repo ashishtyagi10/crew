@@ -1,5 +1,5 @@
 //! Scroll-windowed card-line placement for the chat card view: shared by
-//! `chatmsgs::message_cells` (drawing) and Task 6's link hit-test (click
+//! `chatmsgs::message_cells` (drawing) and `clickopen`'s link hit-test (click
 //! resolution) so both agree on exactly which line sits at which row.
 use crew_render::CellView;
 
@@ -86,20 +86,20 @@ pub(crate) fn msg_rows_budget(pane: &ChatPane, cols: u16, rows: u16) -> u16 {
 }
 
 /// The scroll-windowed card-line placement for `pane`'s message area, each
-/// line tagged with its absolute row on the pane's `cols` × `rows_budget`
-/// grid (below `pane.status_rows`) — the same geometry `message_cells` draws.
-/// Task 6's link hit-test (`chatview::link_at`) reads this to map a click
-/// back to its source line without re-deriving the card layout.
-pub(crate) fn placed_lines(pane: &ChatPane, cols: u16, rows_budget: u16) -> Vec<(u16, CardLine)> {
-    if cols == 0 || rows_budget == 0 || pane.messages.is_empty() {
+/// line tagged with its absolute row on the pane's `cols` × `rows` grid
+/// (below `pane.status_rows`) — the same geometry `message_cells` draws.
+/// `clickopen`'s link hit-test (`chatview::link_at`) reads this to map a
+/// click back to its source line without re-deriving the card layout.
+pub(crate) fn placed_lines(pane: &ChatPane, cols: u16, rows: u16) -> Vec<(u16, CardLine)> {
+    if cols == 0 || rows == 0 || pane.messages.is_empty() {
         return Vec::new();
     }
-    let top = pane.status_rows(cols, rows_budget);
+    let top = pane.status_rows(cols, rows);
     if top == 0 {
         return Vec::new(); // too short for the card view (plain fallback)
     }
-    let rows = msg_rows_budget(pane, cols, rows_budget);
-    if rows == 0 {
+    let budget = msg_rows_budget(pane, cols, rows);
+    if budget == 0 {
         return Vec::new();
     }
     let lines = crate::chatmsgs::card_lines(
@@ -108,5 +108,5 @@ pub(crate) fn placed_lines(pane: &ChatPane, cols: u16, rows_budget: u16) -> Vec<
         crate::chattime::unix_now_ms(),
         pane.show_source,
     );
-    window(lines, rows, top, pane.scroll)
+    window(lines, budget, top, pane.scroll)
 }
