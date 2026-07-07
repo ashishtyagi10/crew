@@ -36,6 +36,10 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
             crew_theme::ALL_THEMES
                 .iter()
                 .map(|t| (t.as_str().to_string(), t.describe().to_string()))
+                .chain(std::iter::once((
+                    "random".to_string(),
+                    "rotates every 10 min".to_string(),
+                )))
                 .collect(),
         ),
         _ => None,

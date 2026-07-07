@@ -115,6 +115,25 @@ fn theme_space_lists_all_themes_as_runnable_values() {
 }
 
 #[test]
+fn theme_picker_offers_random_mode() {
+    // `random` is a valid /theme value, so the picker must offer it alongside
+    // the fixed themes — typing it blind shouldn't be the only way in.
+    let items = menu_items("/theme ");
+    let random = items
+        .iter()
+        .find(|m| m.label == "random")
+        .expect("random missing from picker");
+    assert_eq!(random.fill, "/theme random");
+    assert!(random.submit);
+    // And it survives partial-value filtering.
+    let labels: Vec<String> = menu_items("/theme ra")
+        .into_iter()
+        .map(|m| m.label)
+        .collect();
+    assert_eq!(labels, ["random"]);
+}
+
+#[test]
 fn theme_partial_value_filters_and_ghosts() {
     // "/theme cr" narrows to the CRT themes…
     let labels: Vec<String> = menu_items("/theme cr")
