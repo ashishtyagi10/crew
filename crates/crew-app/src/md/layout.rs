@@ -2,7 +2,9 @@
 //! width. Word-wrap/truncation primitives live in `wrap.rs`, table layout in
 //! `table.rs` — both split out to keep this file under budget.
 use super::parse::{Block, ListItem};
-use super::{render, LineKind, MdLine, MdSpan};
+#[cfg(test)]
+use super::render;
+use super::{LineKind, MdLine, MdSpan};
 use wrap::{plain_span, split_hardbreaks, wrap_group};
 
 #[path = "table.rs"]
