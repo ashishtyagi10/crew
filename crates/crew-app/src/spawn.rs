@@ -92,6 +92,7 @@ impl CrewApp {
                     dir: cwd,
                     activity: false,
                     bell: false,
+                    hidden: false,
                 };
                 self.panes.push(pane);
                 self.focus_new_pane();
@@ -143,6 +144,7 @@ impl CrewApp {
             dir: None,
             activity: false,
             bell: false,
+            hidden: false,
         });
         self.focus_new_pane();
     }
@@ -168,6 +170,7 @@ impl CrewApp {
             dir: None,
             activity: false,
             bell: false,
+            hidden: false,
         });
         self.focus_new_pane();
     }
@@ -230,6 +233,7 @@ impl CrewApp {
             dir: None,
             activity: false,
             bell: false,
+            hidden: false,
         });
         self.focus_new_pane();
         self.redraw();

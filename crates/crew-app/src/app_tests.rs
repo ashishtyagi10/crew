@@ -28,6 +28,7 @@ fn tests_far_pane(name: &str) -> crate::pane::Pane {
         dir: None,
         activity: false,
         bell: false,
+        hidden: false,
     }
 }
 
@@ -291,6 +292,7 @@ fn typing_clears_a_terminal_selection() {
         dir: None,
         activity: false,
         bell: false,
+        hidden: false,
     });
     app.focused = 0;
     if let Some(PaneContent::Terminal(t)) = app.panes.get_mut(0).map(|p| &mut p.content) {
@@ -302,6 +304,112 @@ fn typing_clears_a_terminal_selection() {
     // Typing into the focused terminal must clear the stale highlight.
     app.write_to_terminals(b"x");
     assert_eq!(app.pane_selection_text(0), None, "type clears selection");
+}
+
+#[test]
+fn reconcile_grid_keeps_hidden_panes_out() {
+    let mut app = CrewApp::default();
+    app.panes.push(tests_far_pane("a"));
+    app.panes.push(tests_far_pane("b"));
+    app.focused = 0;
+    app.input.focused = false;
+    app.reconcile_grid();
+    assert_eq!(app.grid.len(), 2);
+    // Hiding a pane removes it from the grid: not a full tile, and — unlike
+    // LRU demotion — not in the bottom strip either.
+    app.panes[1].hidden = true;
+    app.reconcile_grid();
+    assert_eq!(app.grid.full(), &[0]);
+    assert!(app.grid.minimized().is_empty(), "hidden ≠ LRU strip");
+    // Repeated reconciles must not resurrect it.
+    app.reconcile_grid();
+    assert_eq!(app.grid.len(), 1);
+}
+
+#[test]
+fn focusing_a_hidden_pane_restores_it() {
+    let mut app = CrewApp::default();
+    app.panes.push(tests_far_pane("a"));
+    app.panes.push(tests_far_pane("b"));
+    app.panes[1].hidden = true;
+    // Keyboard focus lands on the hidden pane (nav click, Cmd+N…): restore it.
+    app.focused = 1;
+    app.input.focused = false;
+    app.reconcile_grid();
+    assert!(!app.panes[1].hidden);
+    assert_eq!(app.grid.full()[0], 1, "restored pane re-enters as MRU");
+}
+
+#[test]
+fn input_bar_focus_does_not_restore_hidden_pane() {
+    let mut app = CrewApp::default();
+    app.panes.push(tests_far_pane("a"));
+    // The only pane is hidden and the input bar holds focus: `focused` still
+    // points at the pane, but no pane is active — it must stay hidden.
+    app.panes[0].hidden = true;
+    app.focused = 0;
+    app.input.focused = true;
+    app.reconcile_grid();
+    assert!(app.panes[0].hidden);
+    assert_eq!(app.grid.len(), 0);
+}
+
+#[test]
+fn closing_last_visible_pane_keeps_hidden_panes_tucked() {
+    let mut app = CrewApp::default();
+    app.panes.push(tests_far_pane("tucked"));
+    app.panes.push(tests_far_pane("open"));
+    app.panes[0].hidden = true;
+    app.focused = 1;
+    app.input.focused = false;
+    // Closing the only visible pane must NOT resurrect the minimized one:
+    // focus falls to the input bar, and reconcile leaves it tucked away.
+    app.close_pane(1);
+    assert!(app.input.focused, "no visible pane left → input bar");
+    app.reconcile_grid();
+    assert!(app.panes[0].hidden, "minimized pane stays in the nav");
+    assert_eq!(app.grid.len(), 0);
+}
+
+#[test]
+fn closing_a_pane_moves_focus_to_a_visible_pane() {
+    let mut app = CrewApp::default();
+    for n in ["a", "b", "c"] {
+        app.panes.push(tests_far_pane(n));
+    }
+    app.panes[0].hidden = true;
+    app.focused = 1;
+    app.input.focused = false;
+    // Closing focused "b" leaves [a(hidden), c]: focus must skip the hidden
+    // pane and land on "c" (now index 1), not restore "a".
+    app.close_pane(1);
+    assert_eq!(app.focused, 1);
+    assert!(!app.input.focused);
+    app.reconcile_grid();
+    assert!(app.panes[0].hidden);
+}
+
+#[test]
+fn pane_cycling_skips_hidden_panes() {
+    let mut app = CrewApp::default();
+    for n in ["a", "b", "c"] {
+        app.panes.push(tests_far_pane(n));
+    }
+    app.panes[1].hidden = true;
+    app.focused = 0;
+    app.input.focused = false;
+    // Cmd+] hops 0 → 2 (skipping hidden 1); again wraps 2 → 0; Cmd+[ back to 2.
+    app.handle_super_chord("]");
+    assert_eq!(app.focused, 2);
+    app.handle_super_chord("]");
+    assert_eq!(app.focused, 0);
+    app.handle_super_chord("[");
+    assert_eq!(app.focused, 2);
+    app.reconcile_grid();
+    assert!(
+        app.panes[1].hidden,
+        "cycling never restores a minimized pane"
+    );
 }
 
 #[test]

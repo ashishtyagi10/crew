@@ -13,6 +13,9 @@ pub struct PaneRow {
     pub title: String,
     pub focused: bool,
     pub activity: bool,
+    /// Minimized into the nav (the pane's `[-]` border button): drawn with a
+    /// right-aligned `[+]`; clicking the row focuses the pane, which restores it.
+    pub minimized: bool,
 }
 
 /// Render the PANES section: a `PANES` rule on row 0, then one row per pane
@@ -27,15 +30,25 @@ pub fn pane_cells(panes: &[PaneRow], cols: u16, limit: usize) -> Vec<CellView> {
         write(&mut out, &head, 2, row, head_fg, cols - 1, t.page_bg);
         let tstart = 2 + head.chars().count() as u16 + 1;
         let title_fg = if p.focused { t.ink } else { t.text_muted };
-        write(
-            &mut out,
-            &p.title,
-            tstart,
-            row,
-            title_fg,
-            cols.saturating_sub(3),
-            t.page_bg,
-        );
+        // A minimized row carries a right-aligned [+] restore button (ending a
+        // cell left of the activity-dot slot); its title stops short of it.
+        let tmax = if p.minimized {
+            cols.saturating_sub(8)
+        } else {
+            cols.saturating_sub(3)
+        };
+        write(&mut out, &p.title, tstart, row, title_fg, tmax, t.page_bg);
+        if p.minimized {
+            write(
+                &mut out,
+                "[+]",
+                cols.saturating_sub(6),
+                row,
+                accent(),
+                cols.saturating_sub(2),
+                t.page_bg,
+            );
+        }
         if p.activity {
             write(
                 &mut out,
@@ -86,7 +99,33 @@ mod tests {
             title: title.into(),
             focused,
             activity,
+            minimized: false,
         }
+    }
+
+    #[test]
+    fn pane_cells_marks_minimized_panes_with_a_restore_button() {
+        let panes = [
+            row(1, "build", true, false),
+            PaneRow {
+                minimized: true,
+                ..row(2, "server", false, false)
+            },
+        ];
+        let cells = pane_cells(&panes, 24, 10);
+        // The minimized pane's row carries a right-aligned [+] restore button
+        // ending one cell left of the activity-dot slot: cols 18..=20.
+        let at = |col: u16, row: u16| {
+            cells
+                .iter()
+                .find(|c| c.row == row && c.col == col)
+                .map(|c| c.c)
+        };
+        assert_eq!(at(18, 2), Some('['));
+        assert_eq!(at(19, 2), Some('+'));
+        assert_eq!(at(20, 2), Some(']'));
+        // …and only on minimized rows.
+        assert!(!cells.iter().any(|c| c.c == '+' && c.row == 1));
     }
 
     #[test]

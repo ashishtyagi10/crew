@@ -28,6 +28,9 @@ pub fn build_scenes(
         let foc = focused == Some(i);
         // This slice is index-rebased (zoom renders a 1-pane slice), so the
         // selection — keyed by absolute index — is matched to the focused pane.
+        // No minimize button here: this path renders the zoomed single pane
+        // (and 1-pane slices), whose grid rects don't match the drawn rect, so
+        // a border button would have no reliable hit region.
         push_pane_scenes(
             &mut scenes,
             p,
@@ -36,6 +39,7 @@ pub fn build_scenes(
             broadcast,
             find,
             foc.then_some(sel).flatten(),
+            false,
             cw,
             ch,
         );
@@ -71,6 +75,7 @@ pub fn full_scenes(
             broadcast,
             find,
             sel.filter(|s| s.pane == idx),
+            true,
             cw,
             ch,
         );
@@ -109,6 +114,7 @@ fn push_pane_scenes(
     broadcast: bool,
     find: Option<&str>,
     sel: Option<&CellSel>,
+    min_btn: bool,
     cw: f32,
     ch: f32,
 ) {
@@ -162,6 +168,7 @@ fn push_pane_scenes(
                 bell: p.bell && !foc,
                 broadcast: broadcast && is_term,
                 busy: pane_busy(p).then(crate::anim::now_ms),
+                min_btn,
             },
         ),
         x: r.x,

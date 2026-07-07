@@ -45,6 +45,27 @@ pub fn sidebar_rect(sh: f32, nav_px: f32, gap: f32) -> Rect {
     }
 }
 
+/// Cell rows the docked UPDATE card occupies while a `/update` runs (2 border
+/// + 2 content rows).
+pub const UPDATE_CARD_ROWS: f32 = 4.0;
+
+/// The sidebar stats card's rect: the full column from [`sidebar_rect`],
+/// shrunk below the UPDATE card (plus a gap) while an update runs. Shared by
+/// drawing (`navcard`) and PANES-row hit-testing (`hit`) so the drawn rows
+/// and the click mapping shift together.
+pub fn stats_card_rect(sh: f32, nav_px: f32, gap: f32, ch: f32, update: bool) -> Rect {
+    let sb = sidebar_rect(sh, nav_px, gap);
+    if !update {
+        return sb;
+    }
+    let h = (UPDATE_CARD_ROWS * ch).min(sb.h);
+    Rect {
+        y: sb.y + h + gap,
+        h: (sb.h - h - gap).max(0.0),
+        ..sb
+    }
+}
+
 /// The content area for grid panes: everything to the right of the sidebar. When
 /// the sidebar is shown, leave one `gap` of space between it and the first pane
 /// (the grid's own internal gap supplies the remaining inset). `ih` is the
@@ -142,6 +163,19 @@ mod tests {
             sb_bottom, ib_bottom,
             "sidebar and input-bar card bottoms must align"
         );
+    }
+
+    #[test]
+    fn stats_card_rect_shifts_below_the_update_card() {
+        // No update: the stats card IS the sidebar column.
+        let sb = sidebar_rect(800.0, 200.0, 8.0);
+        assert_eq!(stats_card_rect(800.0, 200.0, 8.0, 20.0, false), sb);
+        // Update running: shifted down by the 4-row card plus one gap, and
+        // shrunk by the same amount.
+        let shifted = stats_card_rect(800.0, 200.0, 8.0, 20.0, true);
+        assert_eq!(shifted.y, sb.y + 4.0 * 20.0 + 8.0);
+        assert_eq!(shifted.h, sb.h - 4.0 * 20.0 - 8.0);
+        assert_eq!((shifted.x, shifted.w), (sb.x, sb.w));
     }
 
     #[test]

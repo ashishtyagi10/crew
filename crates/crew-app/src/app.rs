@@ -109,25 +109,52 @@ impl CrewApp {
             return false;
         }
         self.focused = self.focused.min(self.panes.len() - 1);
+        // Never let the clamp land focus on a pane minimized into the nav —
+        // reconcile_grid would silently restore it. Prefer a visible pane;
+        // with none left, the input bar takes focus and the pane stays tucked.
+        if self.panes[self.focused].hidden {
+            match self.nearest_visible(self.focused) {
+                Some(i) => self.focused = i,
+                None => self.input.focused = true,
+            }
+        }
         false
     }
 
+    /// The non-hidden pane index nearest to `idx`, if any pane is visible.
+    pub(crate) fn nearest_visible(&self, idx: usize) -> Option<usize> {
+        (0..self.panes.len())
+            .filter(|&i| !self.panes[i].hidden)
+            .min_by_key(|&i| i.abs_diff(idx))
+    }
+
     /// Keep the grid LRU in step with `self.panes` and the current focus. Adds
-    /// any pane index not yet tracked (newly spawned), drops any index past the
-    /// end, and marks the focused pane most-recently-active. Called once per
-    /// frame from `build_frame`.
+    /// any visible pane index not yet tracked (newly spawned), drops hidden and
+    /// stale indices, and marks the focused pane most-recently-active. Called
+    /// once per frame from `build_frame`.
     pub(crate) fn reconcile_grid(&mut self) {
         let n = self.panes.len();
-        for idx in 0..n {
-            if !self.grid.full().contains(&idx) && !self.grid.minimized().contains(&idx) {
-                self.grid.add(idx);
+        // Keyboard-focusing a hidden pane restores it — the one rule that makes
+        // every focus path (nav-row click, Cmd+N, spawn) a restore path. The
+        // input bar holding focus means no pane is active, so nothing restores.
+        if !self.input.focused {
+            if let Some(p) = self.panes.get_mut(self.focused) {
+                p.hidden = false;
             }
         }
-        // Drop any stale indices at/after the end (defensive; close_pane already
-        // fixes the common case via on_close). Terminates because each
-        // `on_close(n)` removes/shifts the max stale index down toward `n`.
-        while self.grid.len() > n {
-            self.grid.on_close(n);
+        // Hidden panes leave the grid without reindexing — a hide keeps the
+        // panes vec intact, unlike a close. Also drops any stale index past the
+        // end (defensive; close_pane already fixes the common case via on_close).
+        let panes = &self.panes;
+        self.grid
+            .retain(|i| panes.get(i).is_some_and(|p| !p.hidden));
+        for idx in 0..n {
+            if !self.panes[idx].hidden
+                && !self.grid.full().contains(&idx)
+                && !self.grid.minimized().contains(&idx)
+            {
+                self.grid.add(idx);
+            }
         }
         if n > 0 {
             self.grid.touch(self.focused.min(n - 1));

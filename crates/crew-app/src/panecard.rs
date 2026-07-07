@@ -23,6 +23,33 @@ pub(crate) struct Bar<'a> {
     /// `Some(now_ms)` when the pane is busy: animate an indeterminate sweep along
     /// the bottom border at that time. `None` leaves the border static.
     pub busy: Option<u64>,
+    /// Draw the `[-]` minimize button on the top border (full grid tiles only —
+    /// not the zoomed view or strip thumbnails). Click regions come from
+    /// [`min_btn_rect`], which shares [`MIN_BTN_COLS`] so draw and hit agree.
+    pub min_btn: bool,
+}
+
+/// Narrowest card (in cells, border included) that carries the minimize
+/// button — below this there's no room for a legible click target.
+const MIN_BTN_COLS: u16 = 10;
+
+/// Pixel rect of the `[-]` minimize button on a full tile at `rect`: the three
+/// row-0 cells the button occupies (card columns `cols-5 ..= cols-3`). `None`
+/// when the card is too narrow to carry the button. Derives cols via
+/// `card_inner_cells` — the same convention `relayout_one` sizes the pane by —
+/// so it lands on the drawn glyphs exactly.
+pub(crate) fn min_btn_rect(rect: Rect, cw: f32, ch: f32) -> Option<Rect> {
+    let (icols, _) = crate::layout::card_inner_cells(rect.w, rect.h, cw, ch);
+    let cols = icols + 2;
+    if cols < MIN_BTN_COLS {
+        return None;
+    }
+    Some(Rect {
+        x: rect.x + f32::from(cols - 5) * cw,
+        y: rect.y,
+        w: 3.0 * cw,
+        h: ch,
+    })
 }
 
 /// Overwrite (or append) the cell at `(col, row)` in `v` — used to drop status
@@ -80,6 +107,13 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
     }
     // Status glyphs ride the top-right border, stepping left from the corner.
     let mut rx = cols.saturating_sub(3);
+    // The [-] minimize button claims the corner slot; status glyphs step past it.
+    if b.min_btn && cols >= MIN_BTN_COLS {
+        for (i, ch) in "[-]".chars().enumerate() {
+            put(&mut v, cols - 5 + i as u16, 0, ch, legend);
+        }
+        rx = cols.saturating_sub(7);
+    }
     if b.scroll > 0 {
         let s = format!("⇡{}", b.scroll);
         let w = s.chars().count() as u16;
@@ -129,8 +163,7 @@ pub fn push_card(
     legend: &str,
     content: impl FnOnce(u16, u16) -> Vec<CellView>,
 ) {
-    let icols = ((rect.w / cw).floor() as u16).saturating_sub(2).max(1);
-    let irows = ((rect.h / ch).floor() as u16).saturating_sub(2).max(1);
+    let (icols, irows) = crate::layout::card_inner_cells(rect.w, rect.h, cw, ch);
     scenes.push(PaneScene {
         cells: content(icols, irows),
         x: rect.x + cw,

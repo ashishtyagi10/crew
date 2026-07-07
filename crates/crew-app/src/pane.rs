@@ -53,6 +53,10 @@ pub struct Pane {
     pub activity: bool,
     /// The program rang the bell since this pane was last focused.
     pub bell: bool,
+    /// User-minimized into the left-nav PANES list (the `[-]` border button):
+    /// excluded from the grid (and the LRU strip) until focused again. Named
+    /// `hidden` because "minimized" already means the LRU bottom strip.
+    pub hidden: bool,
 }
 
 impl Pane {
@@ -166,6 +170,7 @@ pub fn spawn_pane(
         dir: cwd.map(Path::to_path_buf),
         activity: false,
         bell: false,
+        hidden: false,
     })
 }
 
@@ -173,8 +178,7 @@ pub fn spawn_pane(
 /// derived grid changes. Reserves a one-cell border ring (fieldset card).
 pub fn relayout_one(pane: &mut Pane, rect: Rect, cell_w: f32, cell_h: f32) {
     pane.rect = rect;
-    let cols = ((rect.w / cell_w).floor() as u16).saturating_sub(2).max(1);
-    let rows = ((rect.h / cell_h).floor() as u16).saturating_sub(2).max(1);
+    let (cols, rows) = crate::layout::card_inner_cells(rect.w, rect.h, cell_w, cell_h);
     if cols != pane.grid.cols || rows != pane.grid.rows {
         let new_grid = GridSize { cols, rows };
         if let PaneContent::Terminal(t) = &mut pane.content {
@@ -254,6 +258,7 @@ mod tests {
             dir: None,
             activity: false,
             bell: false,
+            hidden: false,
         };
         assert_eq!(p.title_text(), "settings");
         p.name = Some("build".into());

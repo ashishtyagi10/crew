@@ -21,22 +21,20 @@ impl CrewApp {
         if !self.config.show_nav {
             return;
         }
-        let mut sb = chrome::sidebar_rect(sh, self.nav_px(scale), GAP);
+        let full = chrome::sidebar_rect(sh, self.nav_px(scale), GAP);
         // While a `/update` runs, dock a distinct UPDATE card on top of the stats
-        // card (a 4-row fieldset: 2 border + 2 content rows), shrinking the stats
-        // card below it. It vanishes again once the update finishes.
+        // card, shrinking the stats card below it (chrome::stats_card_rect — the
+        // same rect the PANES hit-test uses). It vanishes once the update ends.
         if let Some(u) = &self.update {
-            let h = (4.0 * ch).min(sb.h);
-            let top = Rect { h, ..sb };
+            let top = Rect {
+                h: (chrome::UPDATE_CARD_ROWS * ch).min(full.h),
+                ..full
+            };
             crate::panecard::push_card(scenes, top, cw, ch, "UPDATE", |cols, rows| {
                 crate::updatecard::update_cells(u, cols, rows)
             });
-            sb = Rect {
-                y: sb.y + h + GAP,
-                h: (sb.h - h - GAP).max(0.0),
-                ..sb
-            };
         }
+        let sb = chrome::stats_card_rect(sh, self.nav_px(scale), GAP, ch, self.update.is_some());
         let pane_rows: Vec<crate::panelist::PaneRow> = self
             .panes
             .iter()
@@ -46,6 +44,7 @@ impl CrewApp {
                 title: p.title_text(),
                 focused: i == self.focused,
                 activity: p.activity,
+                minimized: p.hidden,
             })
             .collect();
         let sidebar = &self.sidebar;

@@ -66,6 +66,21 @@ fn on_close_removes_and_shifts_indices() {
 }
 
 #[test]
+fn retain_drops_without_shifting() {
+    // Unlike on_close, retain removes indices without reindexing the rest:
+    // the panes vec is untouched (a hidden pane still exists at its index).
+    let mut g = GridLayout::new();
+    for idx in 0..4 {
+        g.add(idx); // order front->back: 3,2,1,0
+    }
+    g.retain(|i| i != 2);
+    assert_eq!(g.full(), &[3, 1, 0]);
+    assert_eq!(g.len(), 3);
+    g.retain(|_| true); // keep-all is a no-op
+    assert_eq!(g.full(), &[3, 1, 0]);
+}
+
+#[test]
 fn empty_state() {
     let g = GridLayout::new();
     assert!(g.is_empty());

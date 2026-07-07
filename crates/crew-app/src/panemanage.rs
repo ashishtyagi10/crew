@@ -4,6 +4,31 @@
 use crate::app::CrewApp;
 
 impl CrewApp {
+    /// Minimize the pane at `idx` into the left-nav PANES list (the `[-]` button
+    /// on its border): it leaves the grid but keeps running; focusing it again
+    /// (click its nav row, Cmd+N) restores it. Shows the nav when hidden — the
+    /// pane minimizes *into* it.
+    pub(crate) fn minimize_pane(&mut self, idx: usize) {
+        if idx >= self.panes.len() {
+            return;
+        }
+        self.panes[idx].hidden = true;
+        self.zoomed = false;
+        if !self.config.show_nav {
+            self.config.show_nav = true;
+            self.config.save();
+        }
+        if idx == self.focused {
+            // Focus the nearest visible pane; with none left, the input bar.
+            match self.nearest_visible(idx) {
+                Some(i) => self.focused = i,
+                None => self.input.focused = true,
+            }
+        }
+        self.set_status("minimized to nav — click its PANES row to restore");
+        self.redraw();
+    }
+
     /// Close all panes except the focused one. A no-op (with a hint) when there
     /// is one pane or none.
     pub(crate) fn close_other_panes(&mut self) {
@@ -61,7 +86,65 @@ mod tests {
             dir: None,
             activity: false,
             bell: false,
+            hidden: false,
         }
+    }
+
+    #[test]
+    fn minimize_focused_pane_moves_focus_to_nearest_visible() {
+        let mut app = CrewApp::default();
+        for n in ["a", "b", "c"] {
+            app.panes.push(far_pane(n));
+        }
+        app.focused = 1;
+        app.input.focused = false;
+        app.zoomed = true;
+        app.minimize_pane(1);
+        assert!(app.panes[1].hidden);
+        assert_eq!(app.focused, 0, "nearest visible pane takes focus");
+        assert!(!app.input.focused);
+        assert!(!app.zoomed, "minimize leaves zoom");
+    }
+
+    #[test]
+    fn minimize_unfocused_pane_keeps_focus() {
+        let mut app = CrewApp::default();
+        for n in ["a", "b"] {
+            app.panes.push(far_pane(n));
+        }
+        app.focused = 0;
+        app.input.focused = false;
+        app.minimize_pane(1);
+        assert!(app.panes[1].hidden);
+        assert_eq!(app.focused, 0);
+    }
+
+    #[test]
+    fn minimize_last_visible_pane_focuses_input_bar() {
+        let mut app = CrewApp::default();
+        app.panes.push(far_pane("solo"));
+        app.focused = 0;
+        app.input.focused = false;
+        app.minimize_pane(0);
+        assert!(app.panes[0].hidden);
+        assert!(app.input.focused, "no visible pane left → input bar");
+    }
+
+    #[test]
+    fn minimize_shows_the_nav_when_hidden() {
+        // The pane minimizes *into* the nav, so the nav must become visible.
+        let mut app = CrewApp::default();
+        app.panes.push(far_pane("a"));
+        app.config.show_nav = false;
+        app.minimize_pane(0);
+        assert!(app.config.show_nav);
+    }
+
+    #[test]
+    fn minimize_out_of_range_is_a_noop() {
+        let mut app = CrewApp::default();
+        app.minimize_pane(3);
+        assert!(app.panes.is_empty());
     }
 
     #[test]
