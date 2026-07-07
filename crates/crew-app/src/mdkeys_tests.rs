@@ -9,21 +9,48 @@ fn pane(source: &str) -> MdPane {
 
 #[test]
 fn escape_classifies_as_close() {
-    assert_eq!(md_key(&Key::Named(NamedKey::Escape), true), MdInput::Close);
+    assert_eq!(
+        md_key(&Key::Named(NamedKey::Escape), true, false),
+        MdInput::Close
+    );
 }
 
 #[test]
 fn a_released_key_is_ignored() {
     assert_eq!(
-        md_key(&Key::Named(NamedKey::Escape), false),
+        md_key(&Key::Named(NamedKey::Escape), false, false),
         MdInput::Ignore
     );
 }
 
 #[test]
 fn r_key_requests_reload_case_insensitively() {
-    assert_eq!(md_key(&Key::Character("r".into()), true), MdInput::Reload);
-    assert_eq!(md_key(&Key::Character("R".into()), true), MdInput::Reload);
+    assert_eq!(
+        md_key(&Key::Character("r".into()), true, false),
+        MdInput::Reload
+    );
+    assert_eq!(
+        md_key(&Key::Character("R".into()), true, false),
+        MdInput::Reload
+    );
+}
+
+// Finding 4 (minor, phase-2 final review): `r`/Tab must not fire while Ctrl
+// is held, so a Ctrl-chord passing through here (defense in depth — Ctrl+Tab
+// is normally intercepted earlier, in `keys.rs`'s global pane-cycle chord)
+// can't be misread as reload/side-switch.
+#[test]
+fn ctrl_held_suppresses_reload_and_tab_switch() {
+    assert_eq!(
+        md_key(&Key::Character("r".into()), true, true),
+        MdInput::Ignore,
+        "Ctrl+R must not reload"
+    );
+    assert_eq!(
+        md_key(&Key::Named(NamedKey::Tab), true, true),
+        MdInput::Ignore,
+        "Ctrl+Tab must not flip the active side"
+    );
 }
 
 #[test]

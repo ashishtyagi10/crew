@@ -36,19 +36,22 @@ pub(crate) enum MdAction {
     Status(String),
 }
 
-/// Classify a key press. Only presses act; releases are ignored.
-pub(crate) fn md_key(logical: &Key, pressed: bool) -> MdInput {
+/// Classify a key press. Only presses act; releases are ignored. `ctrl`
+/// guards Tab/`r` — a Ctrl-chord must not flip the active side or reload
+/// (defense in depth: Ctrl+Tab is normally intercepted earlier, in
+/// `keys.rs`'s global pane-cycle chord, before a key ever reaches a pane).
+pub(crate) fn md_key(logical: &Key, pressed: bool, ctrl: bool) -> MdInput {
     if !pressed {
         return MdInput::Ignore;
     }
     match logical {
         Key::Named(NamedKey::Escape) => MdInput::Close,
-        Key::Named(NamedKey::Tab) => MdInput::Tab,
+        Key::Named(NamedKey::Tab) if !ctrl => MdInput::Tab,
         Key::Named(NamedKey::ArrowUp) => MdInput::Up,
         Key::Named(NamedKey::ArrowDown) => MdInput::Down,
         Key::Named(NamedKey::PageUp) => MdInput::PageUp,
         Key::Named(NamedKey::PageDown) => MdInput::PageDown,
-        Key::Character(s) if s.eq_ignore_ascii_case("r") => MdInput::Reload,
+        Key::Character(s) if !ctrl && s.eq_ignore_ascii_case("r") => MdInput::Reload,
         _ => MdInput::Ignore,
     }
 }

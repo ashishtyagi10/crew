@@ -287,6 +287,27 @@ fn indicator_marks_active_side_and_moves_after_tab() {
     );
 }
 
+// Finding 4 (minor, phase-2 final review): the source-side indicator always
+// overwrote (0, 0) unconditionally, but a scrolled-to top line at or past
+// 1000 fills that column with the line number's leading digit
+// (`format!("{line_no:>4} ")` has no left-padding left at 4 digits) --
+// overdrawing it corrupted the gutter. Skip the indicator rather than
+// misrender the digit; it simply doesn't show at that scroll position on
+// very large files, which is harmless (short files never reach 4 digits at
+// the top row, so the indicator always shows for them, unaffected).
+#[test]
+fn indicator_skips_overdrawing_a_four_digit_gutter_digit() {
+    let lines: Vec<String> = (1..=1005).map(|_| "x".to_string()).collect();
+    let mut p = pane(&lines.join("\n"));
+    p.scroll_src = 999; // top visible row becomes line 1000 (4 digits)
+    let cells = p.cells(41, 5);
+    assert_eq!(
+        cell_at(&cells, 0, 0).map(|c| c.c),
+        Some('1'),
+        "the gutter's leading digit must survive, not be overdrawn by the indicator"
+    );
+}
+
 #[test]
 fn wheel_scrolls_the_side_under_the_cursor() {
     let mut p = pane("x");

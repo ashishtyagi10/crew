@@ -72,8 +72,8 @@ impl MdPane {
     /// The URL under (`row`, `col`) on the preview half, or `None` on the
     /// source half, the divider, or empty space. Uses the exact same
     /// geometry and scroll windowing `cells` draws with, so a click always
-    /// resolves the line it visibly sits on.
-    #[allow(dead_code)] // Task 4 wires this into clickopen.rs
+    /// resolves the line it visibly sits on. Wired from `clickopen`'s
+    /// Cmd/Ctrl+click resolution.
     pub(crate) fn link_at(&self, cols: u16, rows: u16, row: u16, col: u16) -> Option<String> {
         if cols == 0 || rows == 0 {
             return None;
@@ -97,13 +97,19 @@ impl MdPane {
     /// Handle a winit key event: Tab flips the active side, arrows/PageUp/
     /// PageDown scroll it, `r` reloads `path` from disk, Esc asks the host to
     /// close the pane. Decoding + effects live in `mdkeys` as a pure,
-    /// testable seam — mirrors `ChatPane::on_key`/`FarPane::on_key`.
-    /// `cols`/`rows` are the pane's current grid size, threaded through so
-    /// `mdkeys::reduce`'s scroll arms can clamp the offset they just moved
-    /// (see `clamp_scrolls`) — without this a huge keyboard-driven jump
-    /// (Shift+End) would leave scrolling up dead afterward.
-    pub(crate) fn on_key(&mut self, key: &KeyEvent, cols: u16, rows: u16) -> Option<MdAction> {
-        let input = mdkeys::md_key(&key.logical_key, key.state.is_pressed());
+    /// testable seam — mirrors `ChatPane::on_key`/`FarPane::on_key`. `cols`/
+    /// `rows` let `mdkeys::reduce`'s scroll arms clamp the offset they just
+    /// moved (see `clamp_scrolls`); `ctrl` — not carried on the `KeyEvent`
+    /// itself, so `keys.rs` threads it from `self.mods.state()`, as it does
+    /// for `InputBar::on_key` — guards Tab/`r` against a Ctrl-chord.
+    pub(crate) fn on_key(
+        &mut self,
+        key: &KeyEvent,
+        cols: u16,
+        rows: u16,
+        ctrl: bool,
+    ) -> Option<MdAction> {
+        let input = mdkeys::md_key(&key.logical_key, key.state.is_pressed(), ctrl);
         mdkeys::reduce(self, input, cols, rows)
     }
 

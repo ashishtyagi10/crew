@@ -1,7 +1,8 @@
 //! Cmd/Ctrl+click resolution: in terminal panes, open a URL, edit a file in
 //! `$EDITOR`, or `cd` into a directory — whichever the clicked text resolves
 //! to (builds on `openurl` and reuses `/edit` and `cd`); in chat panes, open a
-//! markdown link's URL (`chatview::link_at`).
+//! markdown link's URL (`chatview::link_at`); in the Markdown-viewer pane,
+//! open a link on its preview half (`MdPane::link_at`).
 use crate::app::CrewApp;
 use crate::openurl::url_at;
 use crate::pane::PaneContent;

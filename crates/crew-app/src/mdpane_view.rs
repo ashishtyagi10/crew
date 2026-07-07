@@ -1,7 +1,6 @@
-//! `MdPane::cells`: draws the numbered source half, the muted divider
-//! column, and the styled preview half — both halves' lines come from
-//! `MdPane::cache_for` (`mdcache`), shared with `MdPane::link_at` — into
-//! one `CellView` list.
+//! `MdPane::cells`: draws the numbered source half, the muted divider, and
+//! the styled preview half — lines come from `MdPane::cache_for`
+//! (`mdcache`), shared with `MdPane::link_at`.
 use crew_render::CellView;
 
 use crate::chatbody::CardLine;
@@ -9,14 +8,11 @@ use crate::mdcache::GUTTER_W;
 use crate::mdpane::{geometry, window_top, MdPane, Side};
 
 impl MdPane {
-    /// Caps both scroll offsets to their content's last full page at this
-    /// `cols`×`rows` geometry. `window_top` already clamps the rendered
-    /// *view* to a valid window, but the stored offset itself was
-    /// unbounded — a huge jump (Shift+End's `i32::MIN/2` delta) left it
-    /// sitting around content length forever, so every later Up/wheel-up
-    /// tick just decremented that huge number with no visible motion.
-    /// `cols == 0 || rows == 0` means no geometry yet (mirrors `cells`'s
-    /// zero-size guard) — offsets are left alone.
+    /// Caps both scroll offsets to their content's last full page for this
+    /// `cols`×`rows` geometry — `window_top` clamps the rendered *view*, but
+    /// not the stored offset, which a huge jump (Shift+End) could otherwise
+    /// leave stuck, deadening every later Up/wheel-up tick. `0` means no
+    /// geometry yet (mirrors `cells`'s zero-size guard) — offsets untouched.
     pub(crate) fn clamp_scrolls(&mut self, cols: u16, rows: u16) {
         if cols == 0 || rows == 0 {
             return;
@@ -34,11 +30,9 @@ impl MdPane {
         }
     }
 
-    /// Renders both halves of the split into `cols` × `rows` cells. Never
-    /// panics: `cols == 0 || rows == 0` (and any `cols` too small for a
-    /// half) simply draw less, down to just the divider column. Reads
-    /// wrapped-source/preview lines through `cache_for` rather than
-    /// re-parsing the whole file every redraw.
+    /// Renders both halves into `cols` × `rows` cells via `cache_for`. Never
+    /// panics: `cols == 0 || rows == 0` (or any `cols` too small for a half)
+    /// simply draws less, down to just the divider column.
     pub(crate) fn cells(&self, cols: u16, rows: u16) -> Vec<CellView> {
         if cols == 0 || rows == 0 {
             return Vec::new();
@@ -69,13 +63,27 @@ impl MdPane {
             Side::Source => left_w > 0,
             Side::Preview => right_w > 0,
         };
+        // See `indicator_overdraws`: a 1000+ scrolled-to source top line
+        // shouldn't have its gutter digit overwritten.
         if has_room {
             let indicator = indicator_cell(self.active, right_start);
-            out.retain(|c| !(c.row == indicator.row && c.col == indicator.col));
-            out.push(indicator);
+            if !indicator_overdraws(&out, &indicator) {
+                out.retain(|c| !(c.row == indicator.row && c.col == indicator.col));
+                out.push(indicator);
+            }
         }
         out
     }
+}
+
+/// Would drawing `indicator` overwrite a non-blank cell? True only when a
+/// scrolled-to source top line hits 1000+ (its gutter loses its left
+/// padding) — the caller skips the indicator there rather than corrupt the
+/// digit; it just won't show at that one scroll position on huge files.
+fn indicator_overdraws(out: &[CellView], indicator: &CellView) -> bool {
+    out.iter()
+        .find(|c| c.row == indicator.row && c.col == indicator.col)
+        .is_some_and(|c| c.c != ' ')
 }
 
 /// One-cell `▸` marking which half of the split has focus, drawn over
@@ -116,12 +124,10 @@ fn divider_cells(divider_col: u16, rows: u16) -> Vec<CellView> {
 }
 
 /// The source half: a 4-col right-aligned muted line number + space, then
-/// the hard-wrapped raw text (precomputed by `mdcache::wrap_source`,
-/// reached via `MdPane::cache_for`), scrolled top-anchored by `scroll`.
-/// Columns advance by display width (`chatwidth::char_w`), exactly like
-/// `chatplace::line_cells` — a CJK/emoji glyph occupies 2 display columns
-/// but only 1 char slot, so indexing by char count would overlap it with
-/// whatever follows.
+/// the hard-wrapped text from `mdcache::wrap_source` (via `cache_for`).
+/// Columns advance by display width (`chatwidth::char_w`), like
+/// `chatplace::line_cells`, so a wide CJK/emoji glyph can't overlap what
+/// follows it.
 fn source_cells(
     wrapped: &[(usize, Vec<char>)],
     left_w: usize,
@@ -171,10 +177,8 @@ fn source_cells(
     out
 }
 
-/// The preview half: `md::render` mapped to styled card lines exactly like
-/// chat (`mdpane::preview_lines`, precomputed by `MdPane::cache_for`),
-/// scrolled top-anchored by `scroll` and shifted `right_start` columns right
-/// of the divider.
+/// The preview half: precomputed card lines (`cache_for`) placed like chat
+/// (`chatplace::line_cells`), shifted `right_start` columns past the divider.
 fn preview_cells(
     lines: &[CardLine],
     right_w: usize,
