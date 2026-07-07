@@ -98,10 +98,13 @@ In `crew-render`:
 - `pane_sig` (scenecache.rs) hashes the new field so a theme switch that
   changes weight rebuilds shaped buffers instead of serving stale glyphs.
 
-In `crew-app`, wherever `FontParams` is built per frame: `weight = if
-crew_theme::theme().dark { 400 } else { 500 }`. Reading the theme per frame is
-the existing lock-free pattern, and it makes random-rotation and live `/theme`
-switches pick the weight up with no extra plumbing.
+`FontParams` is built per frame in `CellGrid::set_scene` (cellgrid.rs), which
+lives in crew-render — a crate that already depends on crew-theme and reads
+`crew_theme::theme()` per frame (renderer.rs reads `page_bg` there). The
+weight follows that existing pattern: `weight = if crew_theme::theme().dark
+{ 400 } else { 500 }` at `FontParams` construction. Random-rotation and live
+`/theme` switches pick the weight up with no extra plumbing, and no crew-app
+change is needed.
 
 Font-fallback note: if the active family has no Medium face, cosmic-text
 resolves to the nearest available weight — worst case identical to today,
@@ -113,11 +116,13 @@ grid.
 
 - No shader changes. The existing `paperbg` pass's hybrid grain already scales
   multiplicatively on bright pages; only the amplitude fed to it changes.
-- Per frame, the app passes **effective grain** = `config.paper_grain ×
-  theme().grain` to `Renderer::set_paper_grain` (a plain field store — safe
-  per frame). Today this is set once at resume (handler.rs:34-35); the resume
-  call remains, and the per-frame update keeps it correct across `/theme`
-  switches and random rotation.
+- **Effective grain** = `config.paper_grain × theme().grain`, computed where
+  the grain uniform is written each frame: `Renderer::frame` (renderer.rs)
+  already reads `crew_theme::theme()` there for `page_bg`, and now passes
+  `self.paper_grain * crew_theme::theme().grain` to the paperbg uniform. The
+  app's resume-time `set_paper_grain(config.paper_grain)` call is unchanged
+  (it stores the user knob); `/theme` switches and random rotation are picked
+  up automatically frame-by-frame.
 - `Theme.grain` values: 3.0 on `paper-light`; 1.0 on every dark theme.
 - Config semantics preserved: `paper_texture=false` disables the whole pass;
   `paper_grain=0.0` disables grain everywhere (0 × anything = 0); the config
@@ -136,8 +141,10 @@ splits as part of this work:
 - `presets_crt.rs` — CRT_GREEN, CRT_AMBER, CRT_BLUE, CRT_VIOLET.
 - `lib_tests.rs` — the test module, extended for the new behavior.
 
-No new dependencies anywhere. `crew-render` keeps zero knowledge of
-`crew-theme` (weight and grain arrive as plain values, as colours do today).
+No new dependencies anywhere. `crew-render` already depends on `crew-theme`
+(renderer.rs reads the active theme per frame for `page_bg`); the weight and
+grain reads follow that established pattern rather than adding new plumbing
+through crew-app.
 
 ## Error handling
 
