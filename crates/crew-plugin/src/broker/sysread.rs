@@ -55,9 +55,16 @@ pub(super) fn read_file(path: &str, offset: usize) -> Result<String, String> {
         ));
     }
     let hit_cap = buf.len() > CAP; // pre-trim: more file remains beyond this read
-    let start = (0..=3.min(buf.len())) // offset may land mid-codepoint; skip <=3B to a boundary
-        .find(|&i| is_utf8_boundary(&buf, i))
-        .unwrap_or(0);
+                                   // Offset may land mid-codepoint; skip <=3B to a boundary. Only when we
+                                   // actually seeked (offset > 0) — at offset 0 a bad leading byte means the
+                                   // file isn't UTF-8 and must fail validation below, not be silently eaten.
+    let start = if offset > 0 {
+        (0..=3.min(buf.len()))
+            .find(|&i| is_utf8_boundary(&buf, i))
+            .unwrap_or(0)
+    } else {
+        0
+    };
     let buf = &buf[start..];
     if hit_cap {
         let end = buf.len().min(CAP);

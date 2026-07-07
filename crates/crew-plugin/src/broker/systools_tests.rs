@@ -257,6 +257,23 @@ fn read_file_rejects_a_non_numeric_offset() {
 }
 
 #[test]
+fn read_file_at_offset_zero_keeps_strict_utf8_validation() {
+    // A file that starts with a lone continuation byte (0x80) is not valid
+    // UTF-8 from byte 0. The offset-0 default must not silently skip it and
+    // hand back "hi" — it must fail the same way any other invalid-UTF-8
+    // file would.
+    let p = std::env::temp_dir().join(format!("crew-sys-badstart-{}.dat", std::process::id()));
+    std::fs::write(&p, [0x80u8, b'h', b'i']).unwrap();
+    let e = call(
+        "read_file",
+        &format!(r#"{{"path":{:?}}}"#, p.display().to_string()),
+    )
+    .unwrap_err();
+    assert!(e.contains("not valid UTF-8"), "{e}");
+    let _ = std::fs::remove_file(&p);
+}
+
+#[test]
 fn read_file_mid_codepoint_offset_still_reports_truncation() {
     let p = std::env::temp_dir().join(format!("crew-sys-utf8big-{}.txt", std::process::id()));
     let mut content = String::from("é"); // 2 bytes; offset 1 lands mid-char
