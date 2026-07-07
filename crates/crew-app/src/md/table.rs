@@ -8,14 +8,18 @@ fn cell_text(spans: &[MdSpan]) -> String {
     spans.iter().map(|s| s.text.as_str()).collect()
 }
 
+/// Display width of `s` (CJK/emoji count as 2 columns, combining marks as 0)
+/// — table columns render on a fixed-width cell grid, so char-count padding
+/// would misalign the `│` separator whenever a cell holds a wide glyph.
+fn cell_width(spans: &[MdSpan]) -> usize {
+    crate::chatwidth::str_w(&cell_text(spans))
+}
+
 fn col_widths(header: &[Vec<MdSpan>], rows: &[Vec<Vec<MdSpan>>]) -> Vec<usize> {
-    let mut widths: Vec<usize> = header
-        .iter()
-        .map(|c| cell_text(c).chars().count())
-        .collect();
+    let mut widths: Vec<usize> = header.iter().map(|c| cell_width(c)).collect();
     for row in rows {
         for (i, cell) in row.iter().enumerate() {
-            let w = cell_text(cell).chars().count();
+            let w = cell_width(cell);
             if i < widths.len() {
                 widths[i] = widths[i].max(w);
             } else {
@@ -49,7 +53,11 @@ fn row_line(cells: &[Vec<MdSpan>], widths: &[usize], bold: bool, cols: usize) ->
             break;
         }
         let cell = cells.get(i).unwrap_or(&empty);
-        let text_len = cell_text(cell).chars().count();
+        // Display width, not char count: a column's `w` (from `col_widths`)
+        // is a display width too, so padding must close the same gap a
+        // wide glyph (CJK/emoji) actually occupies on the cell grid, or the
+        // `│` separator drifts out of alignment against other rows.
+        let cell_w = cell_width(cell);
         for s in cell {
             let mut s = s.clone();
             if bold {
@@ -57,9 +65,9 @@ fn row_line(cells: &[Vec<MdSpan>], widths: &[usize], bold: bool, cols: usize) ->
             }
             spans.push(s);
         }
-        acc += text_len;
-        if text_len < w {
-            let pad = (w - text_len).min(cols.saturating_sub(acc));
+        acc += cell_w;
+        if cell_w < w {
+            let pad = (w - cell_w).min(cols.saturating_sub(acc));
             if pad > 0 {
                 spans.push(super::wrap::plain_span(" ".repeat(pad)));
                 acc += pad;
@@ -133,6 +141,28 @@ mod tests {
         for total in line_totals(&lines) {
             assert!(total <= 80, "line exceeds the {}-col budget: {total}", 80);
         }
+    }
+
+    #[test]
+    fn table_aligns_wide_glyph_cells() {
+        // 漢字 is two 2-column-wide glyphs (4 display columns, 2 chars) —
+        // char-count padding would treat it as width 2, misaligning the
+        // separator against the header row's char-count-2 "b" column... but
+        // the real bug is column 0: "漢字" (2 chars, 4 display cols) vs "a"
+        // (1 char, 1 display col) — char-count padding overshoots by the
+        // wide cell's extra display width.
+        let lines = crate::md::render("| a | b |\n|---|---|\n| \u{6f22}\u{5b57} | x |", 40);
+        fn prefix_display_width(line: &MdLine) -> usize {
+            let text: String = line.spans.iter().map(|s| s.text.as_str()).collect();
+            let prefix = text.split('\u{2502}').next().unwrap_or("");
+            crate::chatwidth::str_w(prefix)
+        }
+        let header_w = prefix_display_width(&lines[0]);
+        let data_w = prefix_display_width(&lines[2]);
+        assert_eq!(
+            header_w, data_w,
+            "the │ separator should land at the same display column: header={header_w} data={data_w}"
+        );
     }
 
     #[test]
