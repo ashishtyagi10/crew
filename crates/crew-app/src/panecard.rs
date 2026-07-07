@@ -35,10 +35,11 @@ const MIN_BTN_COLS: u16 = 10;
 
 /// Pixel rect of the `[-]` minimize button on a full tile at `rect`: the three
 /// row-0 cells the button occupies (card columns `cols-5 ..= cols-3`). `None`
-/// when the card is too narrow to carry the button. Mirrors `relayout_one`'s
-/// rect→cols math so it lands on the drawn glyphs exactly.
+/// when the card is too narrow to carry the button. Derives cols via
+/// `card_inner_cells` — the same convention `relayout_one` sizes the pane by —
+/// so it lands on the drawn glyphs exactly.
 pub(crate) fn min_btn_rect(rect: Rect, cw: f32, ch: f32) -> Option<Rect> {
-    let icols = ((rect.w / cw).floor() as u16).saturating_sub(2).max(1);
+    let (icols, _) = crate::layout::card_inner_cells(rect.w, rect.h, cw, ch);
     let cols = icols + 2;
     if cols < MIN_BTN_COLS {
         return None;
@@ -162,8 +163,7 @@ pub fn push_card(
     legend: &str,
     content: impl FnOnce(u16, u16) -> Vec<CellView>,
 ) {
-    let icols = ((rect.w / cw).floor() as u16).saturating_sub(2).max(1);
-    let irows = ((rect.h / ch).floor() as u16).saturating_sub(2).max(1);
+    let (icols, irows) = crate::layout::card_inner_cells(rect.w, rect.h, cw, ch);
     scenes.push(PaneScene {
         cells: content(icols, irows),
         x: rect.x + cw,

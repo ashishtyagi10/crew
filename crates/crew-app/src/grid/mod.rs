@@ -8,5 +8,5 @@ mod state;
 #[cfg(test)]
 mod tests;
 
-pub use compose::compose_grid;
+pub use compose::{compose_grid, GridRects};
 pub use state::GridLayout;

@@ -34,18 +34,26 @@ impl CrewApp {
         }
     }
 
+    /// The pane content area and this frame's tile placement — the single
+    /// derivation shared by frame building and the mouse hit paths, so they
+    /// can never disagree about where a tile sits. `None` until the renderer
+    /// reports a real cell size.
+    pub(crate) fn placed_grid(&self) -> Option<(Rect, crate::grid::GridRects)> {
+        let (_cw, ch, sw, sh, scale) = self.frame_geometry()?;
+        let ih = chrome::input_h(ch);
+        let content =
+            chrome::content_rect(sw, sh, self.config.show_nav, self.nav_px(scale), GAP, ih);
+        Some((content, compose_grid(content, &self.grid, ch, GAP)))
+    }
+
     /// Returns the actual on-screen rect for every rendered pane (full-size grid
     /// tiles + minimized strip thumbnails), as `(pane_index, rect)`. This is the
     /// single source of truth for hit-testing and URL rect lookups. Returns empty
     /// when frame geometry is not yet ready.
     pub(crate) fn pane_hit_rects(&self) -> Vec<(usize, Rect)> {
-        let Some((_cw, ch, sw, sh, scale)) = self.frame_geometry() else {
+        let Some((_content, placed)) = self.placed_grid() else {
             return Vec::new();
         };
-        let ih = chrome::input_h(ch);
-        let content =
-            chrome::content_rect(sw, sh, self.config.show_nav, self.nav_px(scale), GAP, ih);
-        let placed = compose_grid(content, &self.grid, ch, GAP);
         let mut rects = placed.full;
         rects.extend(placed.minimized);
         rects
@@ -58,7 +66,6 @@ impl CrewApp {
             return Vec::new();
         };
         self.reconcile_grid();
-        let ih = chrome::input_h(ch);
         // The pane you're looking at has no unseen activity.
         if !self.input.focused {
             if let Some(p) = self.panes.get_mut(self.focused) {
@@ -67,9 +74,9 @@ impl CrewApp {
             }
         }
         // A pane highlights only when the input bar is NOT focused (one active surface).
-        let content =
-            chrome::content_rect(sw, sh, self.config.show_nav, self.nav_px(scale), GAP, ih);
-        let placed = compose_grid(content, &self.grid, ch, GAP);
+        let Some((content, placed)) = self.placed_grid() else {
+            return Vec::new();
+        };
         let mut scenes = if self.zoomed && !self.panes.is_empty() {
             // Zoom: render only the focused pane, expanded to the full content area.
             let i = self.focused.min(self.panes.len() - 1);

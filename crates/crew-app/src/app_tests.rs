@@ -355,6 +355,64 @@ fn input_bar_focus_does_not_restore_hidden_pane() {
 }
 
 #[test]
+fn closing_last_visible_pane_keeps_hidden_panes_tucked() {
+    let mut app = CrewApp::default();
+    app.panes.push(tests_far_pane("tucked"));
+    app.panes.push(tests_far_pane("open"));
+    app.panes[0].hidden = true;
+    app.focused = 1;
+    app.input.focused = false;
+    // Closing the only visible pane must NOT resurrect the minimized one:
+    // focus falls to the input bar, and reconcile leaves it tucked away.
+    app.close_pane(1);
+    assert!(app.input.focused, "no visible pane left → input bar");
+    app.reconcile_grid();
+    assert!(app.panes[0].hidden, "minimized pane stays in the nav");
+    assert_eq!(app.grid.len(), 0);
+}
+
+#[test]
+fn closing_a_pane_moves_focus_to_a_visible_pane() {
+    let mut app = CrewApp::default();
+    for n in ["a", "b", "c"] {
+        app.panes.push(tests_far_pane(n));
+    }
+    app.panes[0].hidden = true;
+    app.focused = 1;
+    app.input.focused = false;
+    // Closing focused "b" leaves [a(hidden), c]: focus must skip the hidden
+    // pane and land on "c" (now index 1), not restore "a".
+    app.close_pane(1);
+    assert_eq!(app.focused, 1);
+    assert!(!app.input.focused);
+    app.reconcile_grid();
+    assert!(app.panes[0].hidden);
+}
+
+#[test]
+fn pane_cycling_skips_hidden_panes() {
+    let mut app = CrewApp::default();
+    for n in ["a", "b", "c"] {
+        app.panes.push(tests_far_pane(n));
+    }
+    app.panes[1].hidden = true;
+    app.focused = 0;
+    app.input.focused = false;
+    // Cmd+] hops 0 → 2 (skipping hidden 1); again wraps 2 → 0; Cmd+[ back to 2.
+    app.handle_super_chord("]");
+    assert_eq!(app.focused, 2);
+    app.handle_super_chord("]");
+    assert_eq!(app.focused, 0);
+    app.handle_super_chord("[");
+    assert_eq!(app.focused, 2);
+    app.reconcile_grid();
+    assert!(
+        app.panes[1].hidden,
+        "cycling never restores a minimized pane"
+    );
+}
+
+#[test]
 fn reconcile_grid_tracks_panes_and_focus() {
     let mut app = CrewApp::default();
     // Simulate two spawned panes by pushing Far panes (no PTY needed).

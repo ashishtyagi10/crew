@@ -24,7 +24,9 @@ impl CrewApp {
             return None;
         }
         let (_cw, ch, _sw, sh, scale) = self.frame_geometry()?;
-        let sb = chrome::sidebar_rect(sh, self.nav_px(scale), GAP);
+        // Same rect the rows are drawn in — shifted below the UPDATE card
+        // while a `/update` runs, so clicks keep tracking the rows.
+        let sb = chrome::stats_card_rect(sh, self.nav_px(scale), GAP, ch, self.update.is_some());
         if !chrome::point_in(sb, self.cursor.0, self.cursor.1) {
             return None;
         }
@@ -40,11 +42,8 @@ impl CrewApp {
         if self.zoomed {
             return None;
         }
-        let (cw, ch, sw, sh, scale) = self.frame_geometry()?;
-        let ih = chrome::input_h(ch);
-        let content =
-            chrome::content_rect(sw, sh, self.config.show_nav, self.nav_px(scale), GAP, ih);
-        let placed = crate::grid::compose_grid(content, &self.grid, ch, GAP);
+        let (cw, ch, _sw, _sh, _scale) = self.frame_geometry()?;
+        let (_content, placed) = self.placed_grid()?;
         placed.full.into_iter().find_map(|(idx, r)| {
             let hit = crate::panecard::min_btn_rect(r, cw, ch)?;
             chrome::point_in(hit, self.cursor.0, self.cursor.1).then_some(idx)

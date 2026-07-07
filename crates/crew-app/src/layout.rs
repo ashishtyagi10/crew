@@ -6,6 +6,17 @@ pub struct Rect {
     pub h: f32,
 }
 
+/// Interior cell grid of a fieldset card `w`×`h` px with one border cell per
+/// side: `floor(px/cell) − 2`, min 1 per axis. The single source of the
+/// rect→cells convention, shared by PTY sizing (`relayout_one`), card drawing
+/// (`push_card`), and border-button hit-testing (`min_btn_rect`) so they can
+/// never disagree about where a cell sits.
+pub fn card_inner_cells(w: f32, h: f32, cell_w: f32, cell_h: f32) -> (u16, u16) {
+    let cols = ((w / cell_w).floor() as u16).saturating_sub(2).max(1);
+    let rows = ((h / cell_h).floor() as u16).saturating_sub(2).max(1);
+    (cols, rows)
+}
+
 /// Pack `n` tiles near-square into `w`x`h` offset by `(ox, oy)`. Outer edges
 /// keep the full `gap`; interior edges take half each, so the seam between two
 /// adjacent panes is one `gap` — tiles sit closer to each other than to the

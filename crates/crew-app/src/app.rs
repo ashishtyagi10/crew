@@ -109,7 +109,23 @@ impl CrewApp {
             return false;
         }
         self.focused = self.focused.min(self.panes.len() - 1);
+        // Never let the clamp land focus on a pane minimized into the nav —
+        // reconcile_grid would silently restore it. Prefer a visible pane;
+        // with none left, the input bar takes focus and the pane stays tucked.
+        if self.panes[self.focused].hidden {
+            match self.nearest_visible(self.focused) {
+                Some(i) => self.focused = i,
+                None => self.input.focused = true,
+            }
+        }
         false
+    }
+
+    /// The non-hidden pane index nearest to `idx`, if any pane is visible.
+    pub(crate) fn nearest_visible(&self, idx: usize) -> Option<usize> {
+        (0..self.panes.len())
+            .filter(|&i| !self.panes[i].hidden)
+            .min_by_key(|&i| i.abs_diff(idx))
     }
 
     /// Keep the grid LRU in step with `self.panes` and the current focus. Adds

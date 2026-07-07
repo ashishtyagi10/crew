@@ -90,6 +90,17 @@ unfocused pane.
 
 - Minimize the focused pane → focus moves to nearest visible pane.
 - Minimize the last visible pane → input bar takes focus; canvas is empty.
+- Closing a pane never lands focus on a hidden pane (that would silently
+  restore it): `close_pane` re-targets the nearest visible pane, else the
+  input bar.
+- Cmd+[ / Cmd+] cycle among **visible** panes only — incidental traversal
+  must not restore. Explicit focus paths DO restore, by design: nav-row
+  click, Cmd+digit, and Cmd+A (jump to activity — a minimized pane that
+  turns noisy pops back out when you jump to it).
+- Broadcast input still reaches hidden terminal panes: broadcast means
+  "every terminal", and hidden panes keep running by design.
+- During `/update`, the sidebar rows shift below the UPDATE card; the PANES
+  hit-test uses the same shifted rect (`chrome::stats_card_rect`).
 - Narrow pane (< 10 card cells): no button drawn, no hit region (helper and
   draw share the same threshold).
 - Stale grid between event and next frame: same one-frame staleness class as

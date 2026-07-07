@@ -178,8 +178,7 @@ pub fn spawn_pane(
 /// derived grid changes. Reserves a one-cell border ring (fieldset card).
 pub fn relayout_one(pane: &mut Pane, rect: Rect, cell_w: f32, cell_h: f32) {
     pane.rect = rect;
-    let cols = ((rect.w / cell_w).floor() as u16).saturating_sub(2).max(1);
-    let rows = ((rect.h / cell_h).floor() as u16).saturating_sub(2).max(1);
+    let (cols, rows) = crate::layout::card_inner_cells(rect.w, rect.h, cell_w, cell_h);
     if cols != pane.grid.cols || rows != pane.grid.rows {
         let new_grid = GridSize { cols, rows };
         if let PaneContent::Terminal(t) = &mut pane.content {

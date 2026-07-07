@@ -34,6 +34,20 @@ pub(crate) fn swap_target(i: usize, n: usize, dir: i32) -> Option<usize> {
 }
 
 impl CrewApp {
+    /// Step focus to the previous/next VISIBLE pane (wrapping), skipping panes
+    /// minimized into the nav — cycling is incidental traversal, so it must
+    /// not restore them (the nav row and Cmd+digit are the explicit paths).
+    pub(crate) fn focus_visible_step(&mut self, dir: i32) {
+        let vis: Vec<usize> = (0..self.panes.len())
+            .filter(|&i| !self.panes[i].hidden)
+            .collect();
+        let Some(n) = i32::try_from(vis.len()).ok().filter(|&n| n > 0) else {
+            return;
+        };
+        let pos = vis.iter().position(|&i| i == self.focused).unwrap_or(0) as i32;
+        self.focused = vis[((pos + dir).rem_euclid(n)) as usize];
+    }
+
     /// Focus the next pane (wrapping) that has unseen activity.
     pub(crate) fn focus_next_active(&mut self) {
         let active: Vec<bool> = self.panes.iter().map(|p| p.activity).collect();
@@ -53,7 +67,6 @@ impl CrewApp {
 
     /// Handle a Super-chord key.  Returns `true` if the app should exit.
     pub(crate) fn handle_super_chord(&mut self, s: &str) -> bool {
-        let n = self.panes.len().max(1);
         match s {
             "i" => self.input.focused = !self.input.focused,
             "," => self.spawn_settings_pane(),
@@ -70,8 +83,8 @@ impl CrewApp {
             "w" => return self.close_pane(self.focused),
             "k" => self.clear_focused_scrollback(),
             "m" => self.toggle_maximize(),
-            "[" => self.focused = (self.focused + n - 1) % n,
-            "]" => self.focused = (self.focused + 1) % n,
+            "[" => self.focus_visible_step(-1),
+            "]" => self.focus_visible_step(1),
             "{" => self.move_pane(-1),
             "}" => self.move_pane(1),
             "z" => self.toggle_zoom(),

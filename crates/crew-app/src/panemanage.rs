@@ -20,8 +20,7 @@ impl CrewApp {
         }
         if idx == self.focused {
             // Focus the nearest visible pane; with none left, the input bar.
-            let visible = (0..self.panes.len()).filter(|&i| !self.panes[i].hidden);
-            match visible.min_by_key(|&i| i.abs_diff(idx)) {
+            match self.nearest_visible(idx) {
                 Some(i) => self.focused = i,
                 None => self.input.focused = true,
             }
