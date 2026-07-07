@@ -57,8 +57,8 @@ pub struct Theme {
 
 mod presets_crt;
 mod presets_paper;
-pub use presets_crt::{CRT_AMBER, CRT_BLUE, CRT_GREEN};
-pub use presets_paper::{PAPER_DARK, PAPER_LIGHT};
+pub use presets_crt::{CRT_AMBER, CRT_BLUE, CRT_GREEN, CRT_VIOLET};
+pub use presets_paper::{GRAPHITE, MIDNIGHT_INK, PAPER_DARK, PAPER_LIGHT, SEPIA_DARK};
 
 /// WCAG 2.1 contrast ratio between two sRGB colours.
 pub fn contrast_ratio(a: (u8, u8, u8), b: (u8, u8, u8)) -> f32 {
@@ -82,19 +82,27 @@ pub fn contrast_ratio(a: (u8, u8, u8), b: (u8, u8, u8)) -> f32 {
 pub enum ThemeId {
     PaperDark,
     PaperLight,
+    SepiaDark,
+    MidnightInk,
+    Graphite,
     CrtGreen,
     CrtAmber,
     CrtBlue,
+    CrtViolet,
 }
 
 /// Every theme, in cycle order (used by the `Ctrl+Shift+L` rotation and the
 /// `/theme` completion). Keep in sync with the enum.
-pub const ALL_THEMES: [ThemeId; 5] = [
+pub const ALL_THEMES: [ThemeId; 9] = [
     ThemeId::PaperDark,
     ThemeId::PaperLight,
+    ThemeId::SepiaDark,
+    ThemeId::MidnightInk,
+    ThemeId::Graphite,
     ThemeId::CrtGreen,
     ThemeId::CrtAmber,
     ThemeId::CrtBlue,
+    ThemeId::CrtViolet,
 ];
 
 impl ThemeId {
@@ -102,9 +110,13 @@ impl ThemeId {
         match self {
             ThemeId::PaperDark => "paper-dark",
             ThemeId::PaperLight => "paper-light",
+            ThemeId::SepiaDark => "sepia-dark",
+            ThemeId::MidnightInk => "midnight-ink",
+            ThemeId::Graphite => "graphite",
             ThemeId::CrtGreen => "crt-green",
             ThemeId::CrtAmber => "crt-amber",
             ThemeId::CrtBlue => "crt-blue",
+            ThemeId::CrtViolet => "crt-violet",
         }
     }
 
@@ -113,9 +125,13 @@ impl ThemeId {
         match self {
             ThemeId::PaperDark => "high-contrast newspaper (dark)",
             ThemeId::PaperLight => "warm paper page (light)",
+            ThemeId::SepiaDark => "dark sepia paper (warm cream ink)",
+            ThemeId::MidnightInk => "deep navy page, cool off-white ink",
+            ThemeId::Graphite => "soft charcoal paper (gentle dark)",
             ThemeId::CrtGreen => "neon green phosphor CRT",
             ThemeId::CrtAmber => "neon amber phosphor CRT",
             ThemeId::CrtBlue => "neon blue phosphor CRT (Tron)",
+            ThemeId::CrtViolet => "neon violet phosphor CRT",
         }
     }
 
@@ -128,9 +144,13 @@ impl ThemeId {
         match s.trim() {
             "paper-dark" => Some(ThemeId::PaperDark),
             "paper-light" => Some(ThemeId::PaperLight),
+            "sepia-dark" => Some(ThemeId::SepiaDark),
+            "midnight-ink" => Some(ThemeId::MidnightInk),
+            "graphite" => Some(ThemeId::Graphite),
             "crt-green" => Some(ThemeId::CrtGreen),
             "crt-amber" => Some(ThemeId::CrtAmber),
             "crt-blue" => Some(ThemeId::CrtBlue),
+            "crt-violet" => Some(ThemeId::CrtViolet),
             _ => None,
         }
     }
@@ -139,9 +159,13 @@ impl ThemeId {
         match self {
             ThemeId::PaperDark => &PAPER_DARK,
             ThemeId::PaperLight => &PAPER_LIGHT,
+            ThemeId::SepiaDark => &SEPIA_DARK,
+            ThemeId::MidnightInk => &MIDNIGHT_INK,
+            ThemeId::Graphite => &GRAPHITE,
             ThemeId::CrtGreen => &CRT_GREEN,
             ThemeId::CrtAmber => &CRT_AMBER,
             ThemeId::CrtBlue => &CRT_BLUE,
+            ThemeId::CrtViolet => &CRT_VIOLET,
         }
     }
 
@@ -152,6 +176,10 @@ impl ThemeId {
             ThemeId::CrtGreen => 2,
             ThemeId::CrtAmber => 3,
             ThemeId::CrtBlue => 4,
+            ThemeId::SepiaDark => 5,
+            ThemeId::MidnightInk => 6,
+            ThemeId::Graphite => 7,
+            ThemeId::CrtViolet => 8,
         }
     }
 
@@ -161,6 +189,10 @@ impl ThemeId {
             2 => ThemeId::CrtGreen,
             3 => ThemeId::CrtAmber,
             4 => ThemeId::CrtBlue,
+            5 => ThemeId::SepiaDark,
+            6 => ThemeId::MidnightInk,
+            7 => ThemeId::Graphite,
+            8 => ThemeId::CrtViolet,
             _ => ThemeId::PaperDark,
         }
     }
@@ -211,7 +243,7 @@ pub fn random_pick(current: ThemeId, seed: u64) -> ThemeId {
         .copied()
         .filter(|&t| t.is_dark() && t != current)
         .collect();
-    // Cheap hash of the seed → index; others is never empty (4 dark themes now, 8 after Task 3).
+    // Cheap hash of the seed → index; others is never empty (8 dark themes).
     let idx = (seed.wrapping_mul(6364136223846793005).rotate_right(29) as usize) % others.len();
     others[idx]
 }

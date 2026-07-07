@@ -93,6 +93,50 @@ pub static CRT_AMBER: Theme = Theme {
     grain: 1.0,
 };
 
+/// **Neon violet phosphor** (electrified): ultraviolet orchid on a
+/// near-black tube — the fourth phosphor, glowing purple.
+pub static CRT_VIOLET: Theme = Theme {
+    page_bg: (12, 4, 18),
+    ink: (232, 170, 255),
+    text_muted: (205, 140, 235),
+    term_fg: (232, 170, 255),
+    term_bg: (12, 4, 18),
+    // Unfocused borders sit back (focus-led hierarchy, as in paper-dark).
+    border_normal: (88, 50, 110),
+    border_focused: (225, 160, 255),
+    border_thickness: 2.5,
+    legend_off: (170, 115, 200),
+    accent_default: (240, 180, 255),
+    status_fg: (245, 185, 250),
+    broadcast: (255, 150, 200),
+    activity: (190, 140, 255),
+    bell: (255, 190, 240),
+    dim: (120, 78, 145),
+    placeholder: (135, 88, 162),
+    hint_fg: (150, 100, 180),
+    find_hl_bg: (60, 25, 85),
+    ansi: [
+        (55, 35, 75),    // 0  black
+        (255, 140, 200), // 1  red
+        (190, 150, 255), // 2  green
+        (235, 180, 255), // 3  yellow
+        (160, 140, 255), // 4  blue
+        (230, 140, 255), // 5  magenta
+        (200, 160, 255), // 6  cyan
+        (230, 200, 250), // 7  white
+        (140, 95, 175),  // 8  bright black
+        (255, 160, 220), // 9  bright red
+        (210, 170, 255), // 10 bright green
+        (245, 200, 255), // 11 bright yellow
+        (180, 160, 255), // 12 bright blue
+        (240, 160, 255), // 13 bright magenta
+        (215, 180, 255), // 14 bright cyan
+        (245, 225, 255), // 15 bright white
+    ],
+    dark: true,
+    grain: 1.0,
+};
+
 /// **Neon blue phosphor** (electrified): Tron light-cycle cyan on a
 /// near-black tube — electric edge-glow blues, the coolest of the three grids.
 pub static CRT_BLUE: Theme = Theme {

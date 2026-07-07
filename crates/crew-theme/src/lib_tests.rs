@@ -35,7 +35,7 @@ fn next_cycles_through_all_and_wraps() {
         id = id.next();
     }
     assert_eq!(id, ThemeId::PaperDark);
-    assert_eq!(ThemeId::CrtBlue.next(), ThemeId::PaperDark); // last wraps to first
+    assert_eq!(ThemeId::CrtViolet.next(), ThemeId::PaperDark); // last wraps to first
 }
 
 #[test]
@@ -163,11 +163,18 @@ fn cycle_next_walks_all_themes_then_random_then_wraps() {
     set_random(false, 0);
     set_theme(ThemeId::PaperDark);
     // Starting at paper-dark, each call steps to the next fixed theme...
-    assert_eq!(cycle_next(1), "paper-light");
-    assert_eq!(current_id(), ThemeId::PaperLight);
-    assert_eq!(cycle_next(2), "crt-green");
-    assert_eq!(cycle_next(3), "crt-amber");
-    assert_eq!(cycle_next(4), "crt-blue");
+    for want in [
+        "paper-light",
+        "sepia-dark",
+        "midnight-ink",
+        "graphite",
+        "crt-green",
+        "crt-amber",
+        "crt-blue",
+        "crt-violet",
+    ] {
+        assert_eq!(cycle_next(1), want);
+    }
     // ...then from the last fixed theme it enters random mode...
     assert_eq!(cycle_next(5), "random");
     assert!(is_random());
@@ -176,6 +183,23 @@ fn cycle_next_walks_all_themes_then_random_then_wraps() {
     assert!(!is_random());
     assert_eq!(current_id(), ThemeId::PaperDark);
     set_random(false, 0);
+    set_theme(ThemeId::PaperDark);
+}
+
+#[test]
+fn u8_mapping_round_trips_all_nine_ids() {
+    // Persistence mapping: every id survives as_u8 → from_u8 (via the
+    // set_theme/current_id atomics), and the new ids extend the mapping
+    // without renumbering the original five.
+    let _g = guard();
+    for id in ALL_THEMES {
+        set_theme(id);
+        assert_eq!(current_id(), id, "{} lost by u8 round-trip", id.as_str());
+    }
+    assert_eq!(ThemeId::from_u8(5), ThemeId::SepiaDark);
+    assert_eq!(ThemeId::from_u8(6), ThemeId::MidnightInk);
+    assert_eq!(ThemeId::from_u8(7), ThemeId::Graphite);
+    assert_eq!(ThemeId::from_u8(8), ThemeId::CrtViolet);
     set_theme(ThemeId::PaperDark);
 }
 
