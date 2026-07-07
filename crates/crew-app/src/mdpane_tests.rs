@@ -120,3 +120,35 @@ fn link_at_hits_preview_link_and_misses_source_side() {
     let miss = p.link_at(41, 5, 0, 5);
     assert_eq!(miss, None);
 }
+
+/// Same as `row_text_before`, but only columns strictly after `min_col` —
+/// lets a test read just the preview half without the source text before
+/// the divider getting prepended onto the same row.
+fn row_text_after(cells: &[CellView], row: u16, min_col: u16) -> String {
+    let mut v: Vec<(u16, char)> = cells
+        .iter()
+        .filter(|c| c.row == row && c.col > min_col)
+        .map(|c| (c.col, c.c))
+        .collect();
+    v.sort_unstable();
+    v.into_iter().map(|(_, c)| c).collect()
+}
+
+#[test]
+fn preview_full_width_row_keeps_its_last_character() {
+    // One long word (no spaces) so the markdown engine hard-wraps by char
+    // count rather than at a word boundary — every full row fills the
+    // preview width exactly, which is what exposes the dropped last column.
+    let paragraph = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    let p = pane(paragraph);
+    // cols=41 -> left_w=20, divider=20, right_start=21, right_w=20.
+    let cells = p.cells(41, 5);
+    let raw: String = (0..5).map(|row| row_text_after(&cells, row, 20)).collect();
+    // Every preview row is indented one column by `chatmd::map_lines`, so
+    // strip spaces (the paragraph itself contains none) before comparing.
+    let preview_text: String = raw.chars().filter(|c| *c != ' ').collect();
+    assert_eq!(
+        preview_text, paragraph,
+        "expected every preview character to survive wrapping, got {raw:?}"
+    );
+}

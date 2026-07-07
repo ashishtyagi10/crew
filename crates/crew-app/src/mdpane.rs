@@ -95,10 +95,18 @@ pub(crate) fn window_top(len: usize, rows: usize, scroll: usize) -> (usize, usiz
 /// lines exactly like chat bodies (`chatmd::map_lines`), at `right_w`
 /// columns — the single place both `cells` and `link_at` read the preview
 /// half from, so a click always resolves the same line it's drawn on.
+///
+/// `chatmd::map_lines` prepends an unconditional one-column indent cell to
+/// every line (matching the chat card layout it shares code with), so
+/// content is wrapped one column narrower than `right_w`, same as
+/// `chatbody::body_lines` does for chat cards — otherwise the last column of
+/// every width-filling row would be clipped when `line_cells` draws at
+/// `right_w` columns.
 #[allow(dead_code)] // only `mdpane_view`/tests call this until Task 2 wires the pane in
 pub(crate) fn preview_lines(source: &str, right_w: usize) -> Vec<CardLine> {
     let fg = crew_theme::theme().ink;
-    crate::chatmd::map_lines(crate::md::render(source, right_w), right_w, fg)
+    let content_w = right_w.saturating_sub(1);
+    crate::chatmd::map_lines(crate::md::render(source, content_w), content_w, fg)
 }
 
 #[cfg(test)]
