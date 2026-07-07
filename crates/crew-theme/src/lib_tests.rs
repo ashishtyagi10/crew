@@ -244,3 +244,54 @@ fn contrast_thresholds() {
         }
     }
 }
+
+#[test]
+fn dark_flag_matches_page_bg_luminance() {
+    // The `dark` field is design data, but it may never contradict the
+    // palette: WCAG relative luminance of page_bg < 0.5 ⇔ dark.
+    let lin = |c: u8| -> f32 {
+        let x = c as f32 / 255.0;
+        if x <= 0.03928 {
+            x / 12.92
+        } else {
+            ((x + 0.055) / 1.055).powf(2.4)
+        }
+    };
+    for id in ALL_THEMES {
+        let t = id.theme();
+        let lum = 0.2126 * lin(t.page_bg.0) + 0.7152 * lin(t.page_bg.1) + 0.0722 * lin(t.page_bg.2);
+        assert_eq!(
+            t.dark,
+            lum < 0.5,
+            "{}: dark={} but page_bg luminance={lum:.3}",
+            id.as_str(),
+            t.dark
+        );
+    }
+}
+
+#[test]
+fn grain_is_newsprint_on_light_and_subtle_on_dark() {
+    for id in ALL_THEMES {
+        let t = id.theme();
+        let want = if t.dark { 1.0 } else { 3.0 };
+        assert_eq!(t.grain, want, "{}: grain", id.as_str());
+    }
+}
+
+#[test]
+fn random_pick_only_returns_dark_themes() {
+    // Random rotation must never land on a light theme, from any start.
+    for current in ALL_THEMES {
+        for seed in [0u64, 1, 2, 42, 999, 600_000, u64::MAX, 123_456_789] {
+            let picked = random_pick(current, seed);
+            assert!(
+                picked.is_dark(),
+                "seed {seed} from {} picked light theme {}",
+                current.as_str(),
+                picked.as_str()
+            );
+            assert_ne!(picked, current);
+        }
+    }
+}

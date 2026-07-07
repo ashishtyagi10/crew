@@ -46,6 +46,13 @@ pub struct Theme {
     pub find_hl_bg: (u8, u8, u8),
     /// 16-colour ANSI palette for shell output (muted "ink" tones).
     pub ansi: [(u8, u8, u8); 16],
+    /// Whether this is a dark theme (dark page, light ink). Drives the
+    /// random-rotation pool, the light-theme text weight, and grain.
+    pub dark: bool,
+    /// Grain amplitude multiplier for the paper-texture pass, relative to
+    /// the user's configured `paper_grain`. 1.0 on dark themes; 3.0 on
+    /// light themes for a visible newsprint texture.
+    pub grain: f32,
 }
 
 mod presets_crt;
@@ -110,6 +117,11 @@ impl ThemeId {
             ThemeId::CrtAmber => "neon amber phosphor CRT",
             ThemeId::CrtBlue => "neon blue phosphor CRT (Tron)",
         }
+    }
+
+    /// Whether this theme is dark — see [`Theme::dark`].
+    pub fn is_dark(self) -> bool {
+        self.theme().dark
     }
 
     pub fn from_name(s: &str) -> Option<ThemeId> {
@@ -190,15 +202,16 @@ pub fn is_random() -> bool {
     RANDOM.load(Ordering::Relaxed)
 }
 
-/// Pick a theme from `ALL_THEMES` that is NOT `current`, deterministically from
-/// `seed` (so a caller can seed with a timestamp). Always changes visibly.
+/// Pick a DARK theme from `ALL_THEMES` that is NOT `current`, deterministically from
+/// `seed` (so a caller can seed with a timestamp). Always changes visibly. The pool
+/// excludes light themes and `current`.
 pub fn random_pick(current: ThemeId, seed: u64) -> ThemeId {
     let others: Vec<ThemeId> = ALL_THEMES
         .iter()
         .copied()
-        .filter(|&t| t != current)
+        .filter(|&t| t.is_dark() && t != current)
         .collect();
-    // Cheap hash of the seed → index; others is never empty (len == ALL_THEMES-1).
+    // Cheap hash of the seed → index; others is never empty (4 dark themes now, 8 after Task 3).
     let idx = (seed.wrapping_mul(6364136223846793005).rotate_right(29) as usize) % others.len();
     others[idx]
 }

@@ -46,6 +46,8 @@ pub static PAPER_DARK: Theme = Theme {
         (135, 245, 235), // 14 bright cyan
         (250, 250, 250), // 15 bright white
     ],
+    dark: true,
+    grain: 1.0,
 };
 
 /// Warm paper "day" page — soft off-white with ink-toned output.
@@ -88,4 +90,6 @@ pub static PAPER_LIGHT: Theme = Theme {
         (24, 114, 108), // 14 bright cyan
         (30, 28, 25),   // 15 bright white (boldest ink)
     ],
+    dark: false,
+    grain: 3.0,
 };
