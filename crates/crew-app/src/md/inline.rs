@@ -70,6 +70,32 @@ pub(super) fn apply_inline_event(
     }
 }
 
+/// Consumes an already-open `List` — and everything nested inside it, no
+/// matter how deep — without recursing, folding any text it contains into
+/// `spans` at the current level. Used once block-nesting has hit its depth
+/// cap (see `parse::MAX_NEST_DEPTH`) so pathological input can't grow the
+/// call stack: an `open` counter tracks further `List` starts/ends instead.
+pub(super) fn fold_nested_list<'a>(
+    events: &mut impl Iterator<Item = Event<'a>>,
+    spans: &mut Vec<MdSpan>,
+) {
+    let mut state = InlineState::default();
+    let mut open = 1u32;
+    loop {
+        match events.next() {
+            Some(Event::Start(Tag::List(_))) => open += 1,
+            Some(Event::End(TagEnd::List(_))) => {
+                open -= 1;
+                if open == 0 {
+                    break;
+                }
+            }
+            Some(event) => apply_inline_event(event, &mut state, spans),
+            None => break,
+        }
+    }
+}
+
 /// Consumes events until (and including) `stop`, folding them into styled
 /// spans; bare URLs in the result become link spans.
 pub(super) fn collect_inline<'a>(

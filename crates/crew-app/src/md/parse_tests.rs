@@ -111,6 +111,26 @@ fn hard_break_becomes_newline_span() {
 }
 
 #[test]
+fn pathological_nesting_does_not_overflow_the_stack() {
+    // Abort-on-overflow can't be caught by #[test]; run in a small-stack
+    // thread so overflow WOULD abort the child observably before the fix.
+    let handle = std::thread::Builder::new()
+        .stack_size(512 * 1024)
+        .spawn(|| {
+            let quotes = ">".repeat(50_000) + "x";
+            let _ = parse(&quotes);
+            let mut deep = String::new();
+            for i in 0..5_000 {
+                deep.push_str(&"  ".repeat(i));
+                deep.push_str("- x\n");
+            }
+            let _ = parse(&deep);
+        })
+        .unwrap();
+    handle.join().expect("parser must not blow the stack");
+}
+
+#[test]
 fn garbage_never_panics() {
     for s in [
         "",

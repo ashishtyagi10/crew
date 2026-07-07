@@ -11,10 +11,18 @@ use super::MdSpan;
 
 #[path = "autolink.rs"]
 mod autolink;
+#[path = "fold.rs"]
+mod fold;
 #[path = "inline.rs"]
 mod inline;
 
-use inline::{apply_inline_event, collect_inline, InlineState};
+use fold::collect_table;
+use inline::{apply_inline_event, collect_inline, fold_nested_list, InlineState};
+
+/// Nesting cap for `BlockQuote`/`List`: past this depth, further nesting is
+/// folded flat instead of recursed into, so pathological input (e.g. 50k
+/// `>` in a row) can't blow the call stack rendering untrusted text.
+const MAX_NEST_DEPTH: u8 = 32;
 
 /// One list entry: `ordered_idx` is `Some(n)` for the nth item of an ordered
 /// list, `None` for bullet items; `depth` is 0 at the list's own level and
@@ -49,14 +57,18 @@ pub(super) enum Block {
 pub(super) fn parse(text: &str) -> Vec<Block> {
     let opts = Options::ENABLE_TABLES | Options::ENABLE_STRIKETHROUGH;
     let mut events = Parser::new_ext(text, opts);
-    collect_blocks(&mut events)
+    collect_blocks(&mut events, 0)
 }
 
 /// Also used recursively for `BlockQuote` contents: a nested quote's own
 /// `Start`/`End` pair is fully consumed by its own recursive call, so the
-/// first stray `End(BlockQuote)` a call sees is its own closing tag.
-fn collect_blocks<'a>(events: &mut impl Iterator<Item = Event<'a>>) -> Vec<Block> {
+/// first stray `End(BlockQuote)` a call sees is its own closing tag. Once
+/// `depth` hits `MAX_NEST_DEPTH`, further quotes stop recursing: `inert`
+/// counts those extra opens so their closes don't end this call early, and
+/// their contents fold into `blocks` at the current level instead.
+fn collect_blocks<'a>(events: &mut impl Iterator<Item = Event<'a>>, depth: u8) -> Vec<Block> {
     let mut blocks = Vec::new();
+    let mut inert = 0u32;
     while let Some(event) = events.next() {
         match event {
             Event::Start(Tag::Paragraph) => {
@@ -70,9 +82,11 @@ fn collect_blocks<'a>(events: &mut impl Iterator<Item = Event<'a>>) -> Vec<Block
             Event::Start(Tag::List(start)) => {
                 blocks.push(Block::List(collect_list_items(events, start, 0)))
             }
-            Event::Start(Tag::BlockQuote(_)) => {
-                blocks.push(Block::BlockQuote(collect_blocks(events)))
+            Event::Start(Tag::BlockQuote(_)) if depth < MAX_NEST_DEPTH => {
+                blocks.push(Block::BlockQuote(collect_blocks(events, depth + 1)))
             }
+            Event::Start(Tag::BlockQuote(_)) => inert += 1,
+            Event::End(TagEnd::BlockQuote(_)) if inert > 0 => inert -= 1,
             Event::End(TagEnd::BlockQuote(_)) => break,
             Event::Start(Tag::Table(_)) => blocks.push(collect_table(events)),
             Event::Rule => blocks.push(Block::Rule),
@@ -154,9 +168,10 @@ fn collect_item<'a>(
     loop {
         match events.next() {
             Some(Event::End(TagEnd::Item)) | None => break,
-            Some(Event::Start(Tag::List(start))) => {
+            Some(Event::Start(Tag::List(start))) if depth < MAX_NEST_DEPTH => {
                 nested = collect_list_items(events, start, depth + 1)
             }
+            Some(Event::Start(Tag::List(_))) => fold_nested_list(events, &mut spans),
             Some(Event::Start(Tag::Paragraph)) => {
                 spans.extend(collect_inline(events, TagEnd::Paragraph))
             }
@@ -164,35 +179,6 @@ fn collect_item<'a>(
         }
     }
     (autolink::autolink(spans), nested)
-}
-
-fn collect_table<'a>(events: &mut impl Iterator<Item = Event<'a>>) -> Block {
-    let mut header = Vec::new();
-    let mut rows = Vec::new();
-    loop {
-        match events.next() {
-            Some(Event::Start(Tag::TableHead)) => header = collect_row(events, TagEnd::TableHead),
-            Some(Event::Start(Tag::TableRow)) => rows.push(collect_row(events, TagEnd::TableRow)),
-            Some(Event::End(TagEnd::Table)) | None => break,
-            _ => {}
-        }
-    }
-    Block::Table { header, rows }
-}
-
-fn collect_row<'a>(events: &mut impl Iterator<Item = Event<'a>>, stop: TagEnd) -> Vec<Vec<MdSpan>> {
-    let mut cells = Vec::new();
-    loop {
-        match events.next() {
-            Some(Event::Start(Tag::TableCell)) => {
-                cells.push(collect_inline(events, TagEnd::TableCell))
-            }
-            Some(Event::End(end)) if end == stop => break,
-            None => break,
-            _ => {}
-        }
-    }
-    cells
 }
 
 #[cfg(test)]
