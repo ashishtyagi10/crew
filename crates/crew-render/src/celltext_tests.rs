@@ -6,6 +6,7 @@ fn params(family: Option<String>) -> FontParams {
         line_height: 17.5,
         cell_w: 14.0 * 0.6,
         family,
+        weight: 400,
     }
 }
 
@@ -73,6 +74,7 @@ fn bold_glyphs_snap_to_the_same_cell_advance() {
         line_height: cell_h,
         cell_w,
         family: None,
+        weight: 400,
     };
     let buf = build_pane_buffer(&mut fs, &cells, 4, 1, 4.0 * cell_w, cell_h, &p);
     let runs: Vec<_> = buf.layout_runs().collect();
@@ -83,6 +85,41 @@ fn bold_glyphs_snap_to_the_same_cell_advance() {
         assert!(
             (cols - cols.round()).abs() < 1e-3,
             "glyph at x={} is off the {cell_w}px grid",
+            g.x
+        );
+    }
+}
+
+#[test]
+fn medium_weight_glyphs_snap_to_the_same_cell_advance() {
+    let style = |col: u16, c: char| CellView {
+        col,
+        row: 0,
+        c,
+        fg: (200, 200, 200),
+        bg: (0, 0, 0),
+        bold: false,
+        italic: false,
+    };
+    let mut fs = FontSystem::new();
+    let cells = vec![style(0, 'W'), style(1, 'i'), style(2, 'm'), style(3, '0')];
+    let (cell_w, cell_h) = cell_metrics(14.0);
+    let p = FontParams {
+        font_size: 14.0,
+        line_height: cell_h,
+        cell_w,
+        family: None,
+        weight: 500,
+    };
+    let buf = build_pane_buffer(&mut fs, &cells, 4, 1, 4.0 * cell_w, cell_h, &p);
+    let runs: Vec<_> = buf.layout_runs().collect();
+    assert_eq!(runs.len(), 1);
+    assert_eq!(runs[0].glyphs.len(), 4, "four columns shape to four glyphs");
+    for g in runs[0].glyphs {
+        let cols = g.x / cell_w;
+        assert!(
+            (cols - cols.round()).abs() < 1e-3,
+            "medium glyph at x={} is off the {cell_w}px grid",
             g.x
         );
     }
@@ -156,6 +193,12 @@ fn adjacent_same_style_cells_coalesce_into_one_span() {
     assert_eq!(runs.len(), 1, "single row lays out one line");
     let glyphs = runs[0].glyphs.len();
     assert_eq!(glyphs, 3, "three columns shape to three glyphs");
+}
+
+#[test]
+fn base_weight_is_medium_on_light_and_normal_on_dark() {
+    assert_eq!(base_weight(true), 400, "dark themes keep Normal");
+    assert_eq!(base_weight(false), 500, "light themes read at Medium");
 }
 
 #[test]

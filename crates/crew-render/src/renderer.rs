@@ -48,6 +48,9 @@ impl Renderer {
     }
 
     /// Set the grain amplitude multiplier (0.0 = no grain, 1.0 = default ~±3%, 2.0 = double).
+    /// This stores the USER knob only; the active theme's `grain`
+    /// multiplies it at frame time in `frame()`, so light themes render
+    /// noticeably grainier newsprint without changing what's stored here.
     pub fn set_paper_grain(&mut self, grain: f32) {
         self.paper_grain = grain;
     }
@@ -112,7 +115,9 @@ impl Renderer {
                     self.gpu.config.width as f32,
                     self.gpu.config.height as f32,
                     1.0,
-                    self.paper_grain,
+                    // Newsprint: light themes multiply the user's grain knob
+                    // (theme().grain = 3.0 there, 1.0 on darks).
+                    self.paper_grain * crew_theme::theme().grain,
                 );
             }
 

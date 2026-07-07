@@ -46,8 +46,8 @@ mod tests {
         app.toggle_theme();
         assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::PaperLight);
         app.toggle_theme();
-        // Past the two paper themes it steps into the CRT set (no longer a flip).
-        assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::CrtGreen);
+        // Past the two paper themes it steps into the sepia-dark paper variant.
+        assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::SepiaDark);
         crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
     }
 
@@ -55,7 +55,7 @@ mod tests {
     fn toggle_theme_enters_random_after_the_last_fixed_theme_then_wraps() {
         let _g = crate::app::theme_test_guard();
         crew_theme::set_random(false, 0);
-        crew_theme::set_theme(crew_theme::ThemeId::CrtBlue);
+        crew_theme::set_theme(crew_theme::ThemeId::CrtViolet);
         let mut app = crate::app::CrewApp::default();
         app.toggle_theme();
         assert!(crew_theme::is_random());

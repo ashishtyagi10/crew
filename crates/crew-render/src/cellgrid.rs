@@ -1,6 +1,6 @@
 use glyphon::{Cache, FontSystem, Resolution, SwashCache, TextAtlas, TextRenderer, Viewport};
 
-use crate::celltext::{cell_metrics, FontParams};
+use crate::celltext::{base_weight, cell_metrics, FontParams};
 use crate::fontlist::monospace_families;
 use crate::quads::QuadLayer;
 use crate::roundborder::RoundBorderLayer;
@@ -137,6 +137,10 @@ impl CellGrid {
             line_height: self.line_height,
             cell_w: self.cell_w,
             family: self.font_family.clone(),
+            // Light themes render base text at Medium for crisp ink on a
+            // bright page; per-frame theme read, same pattern as page_bg
+            // in renderer.rs.
+            weight: base_weight(crew_theme::theme().dark),
         };
         let (cw, ch) = (self.cell_w, self.cell_h);
         let ((quads, buffers, sigs, borders), (oquads, obuffers, osigs, _)) = build_both(

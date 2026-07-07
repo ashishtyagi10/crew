@@ -102,9 +102,13 @@ fn theme_space_lists_all_themes_as_runnable_values() {
     for name in [
         "paper-dark",
         "paper-light",
+        "sepia-dark",
+        "midnight-ink",
+        "graphite",
         "crt-green",
         "crt-amber",
         "crt-blue",
+        "crt-violet",
     ] {
         assert!(labels.contains(&name), "{name} missing from picker");
     }
