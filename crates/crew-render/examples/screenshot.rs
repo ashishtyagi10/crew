@@ -76,6 +76,10 @@ fn main() {
         (ThemeId::CrtGreen, "crt-green.png"),
         (ThemeId::CrtAmber, "crt-amber.png"),
         (ThemeId::CrtBlue, "crt-blue.png"),
+        (ThemeId::SepiaDark, "sepia-dark.png"),
+        (ThemeId::MidnightInk, "midnight-ink.png"),
+        (ThemeId::Graphite, "graphite.png"),
+        (ThemeId::CrtViolet, "crt-violet.png"),
     ] {
         crew_theme::set_theme(theme_id);
         let out_path = format!("{out_dir}/{out_name}");
@@ -92,7 +96,15 @@ fn main() {
         // Encode frame.
         let bg = crew_theme::theme().page_bg;
         let bg_f32 = crew_render::color::target_rgba(bg, 1.0, FORMAT.is_srgb());
-        paper_bg.update_uniform(&queue, bg_f32, W as f32, H as f32, 1.0, 1.0);
+        // Mirrors `Renderer::frame`: effective grain = user knob × theme's grain.
+        paper_bg.update_uniform(
+            &queue,
+            bg_f32,
+            W as f32,
+            H as f32,
+            1.0,
+            1.0 * crew_theme::theme().grain,
+        );
 
         let mut enc = device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
 

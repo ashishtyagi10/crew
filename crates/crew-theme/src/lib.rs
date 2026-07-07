@@ -243,7 +243,9 @@ pub fn random_pick(current: ThemeId, seed: u64) -> ThemeId {
         .copied()
         .filter(|&t| t.is_dark() && t != current)
         .collect();
-    // Cheap hash of the seed → index; others is never empty (8 dark themes).
+    // Cheap hash of the seed → index; `others` is all dark themes minus
+    // `current` when `current` is dark — at least 7 with 8 dark presets, so
+    // never empty.
     let idx = (seed.wrapping_mul(6364136223846793005).rotate_right(29) as usize) % others.len();
     others[idx]
 }

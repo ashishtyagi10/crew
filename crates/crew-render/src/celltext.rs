@@ -17,6 +17,16 @@ pub(crate) struct FontParams {
     pub weight: u16,
 }
 
+/// Base text weight for a theme: dark pages keep Normal; light pages get
+/// Medium so ink reads crisp against the bright paper.
+pub(crate) fn base_weight(dark: bool) -> u16 {
+    if dark {
+        400
+    } else {
+        500
+    }
+}
+
 /// The cosmic-text `Family` for an optional family name (empty/`None` → system monospace).
 pub(crate) fn family_from(opt: &Option<String>) -> Family<'_> {
     match opt {

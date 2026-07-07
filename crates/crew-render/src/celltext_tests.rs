@@ -196,6 +196,12 @@ fn adjacent_same_style_cells_coalesce_into_one_span() {
 }
 
 #[test]
+fn base_weight_is_medium_on_light_and_normal_on_dark() {
+    assert_eq!(base_weight(true), 400, "dark themes keep Normal");
+    assert_eq!(base_weight(false), 500, "light themes read at Medium");
+}
+
+#[test]
 fn build_pane_buffer_ignores_out_of_range_cells() {
     let mut fs = FontSystem::new();
     // A cell beyond cols/rows must be dropped without panicking.

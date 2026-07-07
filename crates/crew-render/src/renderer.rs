@@ -48,7 +48,7 @@ impl Renderer {
     }
 
     /// Set the grain amplitude multiplier (0.0 = no grain, 1.0 = default ~±3%, 2.0 = double).
-    /// This stores the USER knob only; the active theme's `grain` (Task 2)
+    /// This stores the USER knob only; the active theme's `grain`
     /// multiplies it at frame time in `frame()`, so light themes render
     /// noticeably grainier newsprint without changing what's stored here.
     pub fn set_paper_grain(&mut self, grain: f32) {

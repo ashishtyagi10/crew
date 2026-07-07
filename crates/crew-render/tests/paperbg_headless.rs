@@ -240,4 +240,31 @@ fn paperbg_headless() {
         (nograin_avg_corner as i32) + 5 < nograin_centre_r as i32,
         "C2 failed: nograin corner {nograin_avg_corner:.1} not darker than centre {nograin_centre_r}"
     );
+
+    // -------------------------------------------------------
+    // Case 4: grain_mul=3.0 (intensity=1.0) — the newsprint value. Effective
+    // grain is `paper_grain * theme.grain`, and light themes' `grain` field
+    // is 3.0 (vs 1.0 on dark themes), so this exercises that multiplier's
+    // upper end: variance should be strictly wider than at grain_mul=1.0
+    // on the same page colour (Case 1, `max_r`/`min_r` above).
+    // -------------------------------------------------------
+    paper_bg.update_uniform(&queue, bg_f32, 64.0, 64.0, 1.0, 3.0);
+    let strong_pixels = render_64x64(&device, &queue, &paper_bg);
+
+    let (strong_max_r, strong_min_r) = strong_pixels
+        .chunks(4)
+        .map(|p| p[0])
+        .fold((0u8, 255u8), |(mx, mn), r| (mx.max(r), mn.min(r)));
+    let spread_1 = max_r as i32 - min_r as i32;
+    let spread_3 = strong_max_r as i32 - strong_min_r as i32;
+
+    eprintln!(
+        "paperbg_headless [intensity=1 grain_mul=3]: max_R={strong_max_r} min_R={strong_min_r} spread={spread_3} (grain_mul=1 spread={spread_1})"
+    );
+
+    // D1: stronger grain multiplier widens the pixel spread.
+    assert!(
+        spread_3 > spread_1,
+        "D1 failed: grain_mul=3 spread={spread_3} should exceed grain_mul=1 spread={spread_1}"
+    );
 }
