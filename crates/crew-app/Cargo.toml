@@ -25,6 +25,7 @@ unicode-width = { workspace = true }
 open = { workspace = true }
 trash = { workspace = true }
 walkdir = { workspace = true }
+pulldown-cmark = { workspace = true }
 crew-hive = { path = "../crew-hive" }
 crew-theme = { path = "../crew-theme" }
 tokio = { workspace = true }
