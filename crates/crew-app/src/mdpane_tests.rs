@@ -124,6 +124,51 @@ fn link_at_hits_preview_link_and_misses_source_side() {
     assert_eq!(miss, None);
 }
 
+#[test]
+fn link_at_resolves_text_link_on_preview_side() {
+    let p = pane("see [d](https://x.io/p)");
+    let cells = p.cells(41, 5);
+    // Find the 'd' character of the link label "d" on the preview side (col > 20).
+    let link_cell = cells
+        .iter()
+        .find(|c| c.c == 'd' && c.col > 20)
+        .expect("expected link label 'd' on preview side");
+    let hit = p.link_at(41, 5, link_cell.row, link_cell.col);
+    assert_eq!(hit.as_deref(), Some("https://x.io/p"));
+}
+
+#[test]
+fn link_at_resolves_after_wide_glyphs() {
+    // CJK glyphs (like '中' and '文') are 2 display columns wide each, but
+    // only 1 character slot, so raw Vec indexing by display column would miss
+    // the link. The implementation must walk by display width via
+    // `chatplace::cell_at_col`. This test pins that behavior on the
+    // markdown viewer path.
+    let p = pane("中文 [k](https://x.io/w)");
+    let cells = p.cells(41, 5);
+    // Find the 'k' of the link label on the preview side.
+    let link_cell = cells
+        .iter()
+        .find(|c| c.c == 'k' && c.col > 20)
+        .expect("expected link label 'k' on preview side after CJK glyphs");
+    let hit = p.link_at(41, 5, link_cell.row, link_cell.col);
+    assert_eq!(
+        hit.as_deref(),
+        Some("https://x.io/w"),
+        "click on link after CJK glyphs must resolve its URL"
+    );
+    // A click on the CJK glyph itself must not resolve to the link.
+    let cjk = cells
+        .iter()
+        .find(|c| c.c == '中' && c.col > 20)
+        .expect("expected CJK glyph on preview side");
+    assert_eq!(
+        p.link_at(41, 5, cjk.row, cjk.col),
+        None,
+        "click on the CJK glyph must not resolve to the link"
+    );
+}
+
 /// Same as `row_text_before`, but only columns strictly after `min_col` —
 /// lets a test read just the preview half without the source text before
 /// the divider getting prepended onto the same row.

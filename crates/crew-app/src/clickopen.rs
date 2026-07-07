@@ -53,7 +53,8 @@ impl CrewApp {
     }
 
     /// Chat-pane counterpart of the terminal miss above: if the cursor sits
-    /// over a Chat pane's rendered markdown link, open it.
+    /// over a Chat pane's rendered markdown link, open it. Falls through to
+    /// the Markdown pane case if not Chat.
     fn chat_link_click_at_cursor(&mut self) -> bool {
         let Some(i) = self.pane_at_cursor() else {
             return false;
@@ -62,17 +63,32 @@ impl CrewApp {
             return false;
         };
         let pane = &self.panes[i];
-        let PaneContent::Chat(chat) = &pane.content else {
-            return false;
-        };
-        let Some(url) =
-            crate::chatview::link_at(chat, pane.grid.cols, pane.grid.rows, row as u16, col as u16)
-        else {
-            return false;
-        };
-        let _ = open::that(&url);
-        self.set_status(format!("opening {url}"));
-        true
+        match &pane.content {
+            PaneContent::Chat(chat) => {
+                let Some(url) = crate::chatview::link_at(
+                    chat,
+                    pane.grid.cols,
+                    pane.grid.rows,
+                    row as u16,
+                    col as u16,
+                ) else {
+                    return false;
+                };
+                let _ = open::that(&url);
+                self.set_status(format!("opening {url}"));
+                true
+            }
+            PaneContent::Markdown(md) => {
+                let Some(url) = md.link_at(pane.grid.cols, pane.grid.rows, row as u16, col as u16)
+                else {
+                    return false;
+                };
+                let _ = open::that(&url);
+                self.set_status(format!("opening {url}"));
+                true
+            }
+            _ => false,
+        }
     }
 
     /// If `tok` resolves (against the cwd) to a file, edit it; to a directory, cd.
