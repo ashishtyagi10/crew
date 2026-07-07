@@ -171,12 +171,17 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
 /// The URL a markdown link occupies at `(row, col)` in the message body, if
 /// any — Task 6's click hit-test. Re-derives `chatplace::placed_lines` with
 /// the same `cols`/`rows` geometry `cells` renders the message area at, so a
-/// click can never resolve against stale layout.
+/// click can never resolve against stale layout. `col` is a DISPLAY column
+/// (what the click's `CellView` carries), so the cell is found via
+/// `chatplace::cell_at_col`, which walks the line with the same char-width
+/// accounting `line_cells` renders with — not raw `Vec` indexing, which
+/// drifts from display columns once a wide (CJK/emoji) or zero-width glyph
+/// appears earlier on the line.
 pub(crate) fn link_at(pane: &ChatPane, cols: u16, rows: u16, row: u16, col: u16) -> Option<String> {
     crate::chatplace::placed_lines(pane, cols, rows)
         .into_iter()
         .find(|(r, _)| *r == row)
-        .and_then(|(_, line)| line.get(col as usize).cloned())
+        .and_then(|(_, line)| crate::chatplace::cell_at_col(&line, col).cloned())
         .and_then(|cell: CardCell| cell.link)
         .map(|l| l.to_string())
 }

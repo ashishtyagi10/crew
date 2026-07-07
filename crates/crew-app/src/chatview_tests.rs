@@ -83,3 +83,29 @@ fn link_at_resolves_after_scrolling() {
         "link must resolve at its shifted row after scrolling"
     );
 }
+
+#[test]
+fn link_after_wide_glyphs_resolves_at_its_display_column() {
+    // "中文 " advances the DISPLAY column by 4 (two CJK cells, 2 cols each)
+    // plus 1 for the space, before the link starts — but only 3 Vec slots
+    // (one per char). Raw `Vec` indexing by display column therefore misses
+    // the link cell entirely; the fix must walk the line by display width.
+    let pane = test_pane(vec![msg("user", "中文 [k](https://x.io/p)")]);
+    let (cols, rows) = (40u16, 20u16);
+    let cells_out = cells(&pane, cols, rows);
+    let k = cells_out
+        .iter()
+        .find(|c| c.c == 'k')
+        .expect("link text 'k' rendered somewhere");
+    assert_eq!(
+        link_at(&pane, cols, rows, k.row, k.col).as_deref(),
+        Some("https://x.io/p"),
+        "click on the link's own display column must resolve its URL"
+    );
+    // A click on the first CJK glyph's own cell must not resolve to the link.
+    let cjk = cells_out
+        .iter()
+        .find(|c| c.c == '中')
+        .expect("CJK glyph rendered");
+    assert_eq!(link_at(&pane, cols, rows, cjk.row, cjk.col), None);
+}

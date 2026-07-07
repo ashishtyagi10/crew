@@ -4,7 +4,7 @@
 use crew_render::CellView;
 
 use crate::chat::ChatPane;
-use crate::chatbody::{CardLine, Color};
+use crate::chatbody::{CardCell, CardLine, Color};
 
 /// Scroll-window `lines` into `rows` rows, tagging each surviving line with
 /// its absolute row (`top_row` + its offset in the window).
@@ -51,6 +51,27 @@ pub(crate) fn line_cells(row: u16, line: &CardLine, cols: u16, page: Color) -> V
         col += w;
     }
     cells
+}
+
+/// The `CardCell` occupying display column `col` on `line`, using the exact
+/// same display-column accounting `line_cells` renders with (wide glyphs
+/// advance `char_w` columns; zero-width marks are skipped and can never be
+/// hit). Lets `chatview::link_at` map a click's display column back to its
+/// cell without re-deriving `line_cells`' bookkeeping. `None` past the last
+/// cell's column.
+pub(crate) fn cell_at_col(line: &CardLine, col: u16) -> Option<&CardCell> {
+    let mut acc: u16 = 0;
+    for cell in line.iter() {
+        let w = crate::chatwidth::char_w(cell.c) as u16;
+        if w == 0 {
+            continue; // zero-width marks are never hit targets
+        }
+        if col < acc + w {
+            return Some(cell);
+        }
+        acc += w;
+    }
+    None
 }
 
 /// The message-area row budget for `pane`'s `cols` × `rows` grid: `rows`
