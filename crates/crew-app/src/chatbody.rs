@@ -42,7 +42,7 @@ pub(crate) fn plain(c: char, fg: Color, bold: bool) -> CardCell {
 /// Lines are indented one column under the card's `▍sender` header.
 pub(crate) fn body_lines(text: &str, cols: usize, fg: Color) -> Vec<CardLine> {
     let width = cols.saturating_sub(1).max(1);
-    let md_lines = crate::md::render(text, width);
+    let md_lines = crate::md::render_chat(text, width);
     crate::chatmd::map_lines(md_lines, width, fg)
 }
 

@@ -53,42 +53,52 @@ pub(super) enum Block {
     Rule,
 }
 
-/// Parses `text` into a flat sequence of top-level blocks. Never panics.
+/// Parses `text` into blocks. Never panics. CommonMark: a soft break joins with a space.
 pub(super) fn parse(text: &str) -> Vec<Block> {
+    parse_with(text, false)
+}
+
+/// Same, but `keep_soft_breaks` keeps each line break as its own line — chat prose (`md::render_chat`).
+pub(super) fn parse_with(text: &str, keep_soft_breaks: bool) -> Vec<Block> {
     let opts = Options::ENABLE_TABLES | Options::ENABLE_STRIKETHROUGH;
     let mut events = Parser::new_ext(text, opts);
-    collect_blocks(&mut events, 0)
+    collect_blocks(&mut events, 0, keep_soft_breaks)
 }
 
 /// Also used recursively for `BlockQuote` contents: a nested quote's own
-/// `Start`/`End` pair is fully consumed by its own recursive call, so the
-/// first stray `End(BlockQuote)` a call sees is its own closing tag. Once
-/// `depth` hits `MAX_NEST_DEPTH`, further quotes stop recursing: `inert`
-/// counts those extra opens so their closes don't end this call early, and
-/// their contents fold into `blocks` at the current level instead.
-fn collect_blocks<'a>(events: &mut impl Iterator<Item = Event<'a>>, depth: u8) -> Vec<Block> {
+/// `Start`/`End` pair is fully consumed by its own call, so the first stray
+/// `End(BlockQuote)` seen is this call's own close. Past `MAX_NEST_DEPTH`,
+/// further quotes fold flat instead of recursing (`inert` tracks the extras).
+fn collect_blocks<'a>(
+    events: &mut impl Iterator<Item = Event<'a>>,
+    depth: u8,
+    keep_soft_breaks: bool,
+) -> Vec<Block> {
     let mut blocks = Vec::new();
     let mut inert = 0u32;
     while let Some(event) = events.next() {
         match event {
             Event::Start(Tag::Paragraph) => {
-                blocks.push(Block::Paragraph(collect_inline(events, TagEnd::Paragraph)))
+                let spans = collect_inline(events, TagEnd::Paragraph, keep_soft_breaks);
+                blocks.push(Block::Paragraph(spans));
             }
             Event::Start(Tag::Heading { level, .. }) => {
-                let spans = heading_spans(collect_inline(events, TagEnd::Heading(level)), level);
-                blocks.push(Block::Heading(level as u8, spans));
+                let inline = collect_inline(events, TagEnd::Heading(level), keep_soft_breaks);
+                blocks.push(Block::Heading(level as u8, heading_spans(inline, level)));
             }
             Event::Start(Tag::CodeBlock(kind)) => blocks.push(collect_code_block(events, kind)),
             Event::Start(Tag::List(start)) => {
-                blocks.push(Block::List(collect_list_items(events, start, 0)))
+                let items = collect_list_items(events, start, 0, keep_soft_breaks);
+                blocks.push(Block::List(items));
             }
             Event::Start(Tag::BlockQuote(_)) if depth < MAX_NEST_DEPTH => {
-                blocks.push(Block::BlockQuote(collect_blocks(events, depth + 1)))
+                let inner = collect_blocks(events, depth + 1, keep_soft_breaks);
+                blocks.push(Block::BlockQuote(inner));
             }
             Event::Start(Tag::BlockQuote(_)) => inert += 1,
             Event::End(TagEnd::BlockQuote(_)) if inert > 0 => inert -= 1,
             Event::End(TagEnd::BlockQuote(_)) => break,
-            Event::Start(Tag::Table(_)) => blocks.push(collect_table(events)),
+            Event::Start(Tag::Table(_)) => blocks.push(collect_table(events, keep_soft_breaks)),
             Event::Rule => blocks.push(Block::Rule),
             _ => {} // stray leaf/garbage events at block level: ignore
         }
@@ -134,13 +144,14 @@ fn collect_list_items<'a>(
     events: &mut impl Iterator<Item = Event<'a>>,
     start: Option<u64>,
     depth: u8,
+    keep_soft_breaks: bool,
 ) -> Vec<ListItem> {
     let mut items = Vec::new();
     let mut idx = start;
     loop {
         match events.next() {
             Some(Event::Start(Tag::Item)) => {
-                let (spans, nested) = collect_item(events, depth);
+                let (spans, nested) = collect_item(events, depth, keep_soft_breaks);
                 items.push(ListItem {
                     ordered_idx: idx,
                     depth,
@@ -161,19 +172,22 @@ fn collect_list_items<'a>(
 fn collect_item<'a>(
     events: &mut impl Iterator<Item = Event<'a>>,
     depth: u8,
+    keep_soft_breaks: bool,
 ) -> (Vec<MdSpan>, Vec<ListItem>) {
     let mut spans = Vec::new();
     let mut nested = Vec::new();
-    let mut state = InlineState::default();
+    let mut state = InlineState::new(keep_soft_breaks);
     loop {
         match events.next() {
             Some(Event::End(TagEnd::Item)) | None => break,
             Some(Event::Start(Tag::List(start))) if depth < MAX_NEST_DEPTH => {
-                nested = collect_list_items(events, start, depth + 1)
+                nested = collect_list_items(events, start, depth + 1, keep_soft_breaks)
             }
-            Some(Event::Start(Tag::List(_))) => fold_nested_list(events, &mut spans),
+            Some(Event::Start(Tag::List(_))) => {
+                fold_nested_list(events, &mut spans, keep_soft_breaks)
+            }
             Some(Event::Start(Tag::Paragraph)) => {
-                spans.extend(collect_inline(events, TagEnd::Paragraph))
+                spans.extend(collect_inline(events, TagEnd::Paragraph, keep_soft_breaks))
             }
             Some(event) => apply_inline_event(event, &mut state, &mut spans),
         }

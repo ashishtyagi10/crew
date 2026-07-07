@@ -6,13 +6,20 @@ use super::inline::collect_inline;
 use super::Block;
 use crate::md::MdSpan;
 
-pub(super) fn collect_table<'a>(events: &mut impl Iterator<Item = Event<'a>>) -> Block {
+pub(super) fn collect_table<'a>(
+    events: &mut impl Iterator<Item = Event<'a>>,
+    keep_soft_breaks: bool,
+) -> Block {
     let mut header = Vec::new();
     let mut rows = Vec::new();
     loop {
         match events.next() {
-            Some(Event::Start(Tag::TableHead)) => header = collect_row(events, TagEnd::TableHead),
-            Some(Event::Start(Tag::TableRow)) => rows.push(collect_row(events, TagEnd::TableRow)),
+            Some(Event::Start(Tag::TableHead)) => {
+                header = collect_row(events, TagEnd::TableHead, keep_soft_breaks)
+            }
+            Some(Event::Start(Tag::TableRow)) => {
+                rows.push(collect_row(events, TagEnd::TableRow, keep_soft_breaks))
+            }
             Some(Event::End(TagEnd::Table)) | None => break,
             _ => {}
         }
@@ -20,12 +27,16 @@ pub(super) fn collect_table<'a>(events: &mut impl Iterator<Item = Event<'a>>) ->
     Block::Table { header, rows }
 }
 
-fn collect_row<'a>(events: &mut impl Iterator<Item = Event<'a>>, stop: TagEnd) -> Vec<Vec<MdSpan>> {
+fn collect_row<'a>(
+    events: &mut impl Iterator<Item = Event<'a>>,
+    stop: TagEnd,
+    keep_soft_breaks: bool,
+) -> Vec<Vec<MdSpan>> {
     let mut cells = Vec::new();
     loop {
         match events.next() {
             Some(Event::Start(Tag::TableCell)) => {
-                cells.push(collect_inline(events, TagEnd::TableCell))
+                cells.push(collect_inline(events, TagEnd::TableCell, keep_soft_breaks))
             }
             Some(Event::End(end)) if end == stop => break,
             None => break,

@@ -12,9 +12,19 @@ pub(super) struct InlineState {
     bold: u32,
     italic: u32,
     link: Vec<String>,
+    // Whether a `SoftBreak` becomes a hard line-break (`chat`) or, per
+    // CommonMark, a plain space joining the two sides (default `render`).
+    keep_soft_breaks: bool,
 }
 
 impl InlineState {
+    pub(super) fn new(keep_soft_breaks: bool) -> Self {
+        Self {
+            keep_soft_breaks,
+            ..Default::default()
+        }
+    }
+
     fn style(&self) -> MdStyle {
         MdStyle {
             bold: self.bold > 0,
@@ -49,14 +59,15 @@ pub(super) fn apply_inline_event(
     match event {
         Event::Text(t) => state.push_text(spans, t.into_string(), false),
         Event::Code(t) => state.push_text(spans, t.into_string(), true),
-        // A single newline in chat prose is an intentional line break (users
-        // press Enter meaning "new line", not CommonMark's "join with a
-        // space"), so treat it the same as an explicit hard break.
-        Event::SoftBreak => spans.push(MdSpan {
+        // CommonMark joins a soft break with a single space; chat prose
+        // (`keep_soft_breaks`) instead treats it as an intentional line
+        // break, since users press Enter meaning "new line".
+        Event::SoftBreak if state.keep_soft_breaks => spans.push(MdSpan {
             text: "\n".into(),
             style: MdStyle::default(),
             link: None,
         }),
+        Event::SoftBreak => state.push_text(spans, " ".into(), false),
         Event::HardBreak => spans.push(MdSpan {
             text: "\n".into(),
             style: MdStyle::default(),
@@ -85,8 +96,9 @@ pub(super) fn apply_inline_event(
 pub(super) fn fold_nested_list<'a>(
     events: &mut impl Iterator<Item = Event<'a>>,
     spans: &mut Vec<MdSpan>,
+    keep_soft_breaks: bool,
 ) {
-    let mut state = InlineState::default();
+    let mut state = InlineState::new(keep_soft_breaks);
     let mut open = 1u32;
     loop {
         match events.next() {
@@ -108,8 +120,9 @@ pub(super) fn fold_nested_list<'a>(
 pub(super) fn collect_inline<'a>(
     events: &mut impl Iterator<Item = Event<'a>>,
     stop: TagEnd,
+    keep_soft_breaks: bool,
 ) -> Vec<MdSpan> {
-    let mut state = InlineState::default();
+    let mut state = InlineState::new(keep_soft_breaks);
     let mut spans = Vec::new();
     loop {
         match events.next() {

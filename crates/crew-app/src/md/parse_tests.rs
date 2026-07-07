@@ -111,6 +111,29 @@ fn hard_break_becomes_newline_span() {
 }
 
 #[test]
+fn default_render_joins_soft_breaks_with_a_space() {
+    let lines = crate::md::render("one\ntwo", 40);
+    // CommonMark: a single paragraph, soft break joined by a space.
+    let flat: String = lines
+        .iter()
+        .flat_map(|l| l.spans.iter())
+        .map(|s| s.text.as_str())
+        .collect::<String>();
+    assert_eq!(flat, "one two");
+    assert_eq!(lines.len(), 1, "{lines:?}");
+}
+
+#[test]
+fn chat_render_keeps_soft_breaks_as_lines() {
+    let lines = crate::md::render_chat("one\ntwo", 40);
+    let body: Vec<&crate::md::MdLine> = lines
+        .iter()
+        .filter(|l| l.kind == crate::md::LineKind::Body)
+        .collect();
+    assert_eq!(body.len(), 2, "{lines:?}");
+}
+
+#[test]
 fn pathological_nesting_does_not_overflow_the_stack() {
     // Abort-on-overflow can't be caught by #[test]; run in a small-stack
     // thread so overflow WOULD abort the child observably before the fix.

@@ -5,9 +5,19 @@ mod layout;
 mod parse;
 
 /// Parses `text` and lays it out into wrapped, styled lines ready to draw at
-/// `cols` columns. Never panics, regardless of input.
+/// `cols` columns. Never panics, regardless of input. CommonMark semantics:
+/// a single line break (soft break) joins with a space — the right default
+/// for a future file/document viewer, where source text is often hard-wrapped.
+#[allow(dead_code)] // phase-2 file viewer will be the first non-chat caller
 pub(crate) fn render(text: &str, cols: usize) -> Vec<MdLine> {
     layout::lines(parse::parse(text), cols)
+}
+
+/// Same as `render`, but for chat message bodies: a single line break stays
+/// a line break, since in chat prose pressing Enter means "new line", not
+/// CommonMark's "soft break, join with a space".
+pub(crate) fn render_chat(text: &str, cols: usize) -> Vec<MdLine> {
+    layout::lines(parse::parse_with(text, true), cols)
 }
 
 /// Per-span inline styling. Independent bits so they can combine freely
