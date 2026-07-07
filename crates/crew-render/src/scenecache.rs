@@ -22,6 +22,7 @@ pub(crate) fn pane_sig(pane: &PaneScene, cols: usize, rows: usize, params: &Font
         params.font_size.to_bits(),
         params.line_height.to_bits(),
         params.cell_w.to_bits(),
+        params.weight,
     )
         .hash(&mut h);
     params.family.hash(&mut h);

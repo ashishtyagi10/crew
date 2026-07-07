@@ -137,6 +137,10 @@ impl CellGrid {
             line_height: self.line_height,
             cell_w: self.cell_w,
             family: self.font_family.clone(),
+            // Light themes render base text at Medium for crisp ink on a
+            // bright page; per-frame theme read, same pattern as page_bg
+            // in renderer.rs.
+            weight: if crew_theme::theme().dark { 400 } else { 500 },
         };
         let (cw, ch) = (self.cell_w, self.cell_h);
         let ((quads, buffers, sigs, borders), (oquads, obuffers, osigs, _)) = build_both(

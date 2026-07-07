@@ -11,6 +11,10 @@ pub(crate) struct FontParams {
     pub cell_w: f32,
     /// Chosen family name; `None`/empty falls back to the system monospace.
     pub family: Option<String>,
+    /// Base weight for non-bold text (CSS scale; 400 normal, 500 medium).
+    /// Light themes use 500 so ink reads crisp on a bright page; bold cells
+    /// always shape at `Weight::BOLD` regardless.
+    pub weight: u16,
 }
 
 /// The cosmic-text `Family` for an optional family name (empty/`None` → system monospace).
@@ -52,7 +56,15 @@ pub(crate) fn build_pane_buffer(
     // (verified by `bold_glyphs_snap_to_the_same_cell_advance`).
     buffer.set_monospace_width(font_system, Some(params.cell_w * params.font_size));
 
-    fill_rich_text(&mut buffer, font_system, cells, cols, rows, &params.family);
+    fill_rich_text(
+        &mut buffer,
+        font_system,
+        cells,
+        cols,
+        rows,
+        &params.family,
+        params.weight,
+    );
     buffer
 }
 
@@ -78,8 +90,10 @@ pub(crate) fn fill_rich_text(
     cols: usize,
     rows: usize,
     family: &Option<String>,
+    weight: u16,
 ) {
     let fam = family_from(family);
+    let base = Weight(weight);
     // Bucket cells into a single flat rows×cols grid — one allocation per pane
     // per frame, instead of a Vec-of-Vecs (one inner Vec allocated per row).
     let mut grid: Vec<Option<&CellView>> = vec![None; rows * cols];
@@ -91,7 +105,7 @@ pub(crate) fn fill_rich_text(
         }
     }
 
-    let default_attrs = Attrs::new().family(fam);
+    let default_attrs = Attrs::new().family(fam).weight(base);
 
     // Build the entire buffer text once, recording `(start, end, key)` byte
     // ranges into it; consecutive same-key cells extend the current run.
@@ -123,10 +137,10 @@ pub(crate) fn fill_rich_text(
             let attrs = match key {
                 RunKey::Default => default_attrs.clone(),
                 RunKey::Styled(fg, bold, italic) => {
-                    let mut a = Attrs::new().family(fam).color(Color::rgb(fg.0, fg.1, fg.2));
-                    if *bold {
-                        a = a.weight(Weight::BOLD);
-                    }
+                    let mut a = Attrs::new()
+                        .family(fam)
+                        .color(Color::rgb(fg.0, fg.1, fg.2))
+                        .weight(if *bold { Weight::BOLD } else { base });
                     if *italic {
                         a = a.style(Style::Italic);
                     }

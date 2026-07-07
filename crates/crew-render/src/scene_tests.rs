@@ -21,6 +21,7 @@ fn params() -> FontParams {
         line_height: 17.5,
         cell_w: 14.0 * 0.6,
         family: None,
+        weight: 400,
     }
 }
 

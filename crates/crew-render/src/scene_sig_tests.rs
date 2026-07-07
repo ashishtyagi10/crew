@@ -8,6 +8,7 @@ fn params() -> FontParams {
         line_height: 17.5,
         cell_w: 14.0 * 0.6,
         family: None,
+        weight: 400,
     }
 }
 
@@ -95,4 +96,19 @@ fn unchanged_pane_reuses_last_frames_buffer() {
     );
     assert_eq!(sigs, sigs2);
     assert_eq!(bufs2.len(), 1);
+}
+
+#[test]
+fn pane_sig_changes_when_base_weight_changes() {
+    // A light-theme switch changes only FontParams.weight; the signature
+    // must change so cached buffers shaped at the old weight are rebuilt.
+    let p = pane(vec![cell(0, 0, 'a', (1, 2, 3))], false, false);
+    let normal = params();
+    let mut medium = params();
+    medium.weight = 500;
+    assert_ne!(
+        pane_sig(&p, 10, 2, &normal),
+        pane_sig(&p, 10, 2, &medium),
+        "weight is part of the signature"
+    );
 }
