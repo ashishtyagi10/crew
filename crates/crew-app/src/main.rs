@@ -66,6 +66,8 @@ mod layout;
 mod linkhl;
 mod load;
 mod md;
+mod mdpane;
+mod mdpane_view;
 mod minstrip;
 mod navcard;
 mod navlog;
