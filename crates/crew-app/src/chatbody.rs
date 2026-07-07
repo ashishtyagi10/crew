@@ -157,6 +157,29 @@ mod tests {
     }
 
     #[test]
+    fn numbered_list_with_fenced_code_renders_chrome() {
+        let lines = body_lines(
+            "1. First do X:\n\n   ```bash\n   cmd --flag\n   ```",
+            40,
+            (9, 9, 9),
+            false,
+        );
+        let all: Vec<String> = lines.iter().map(text).collect();
+        assert!(
+            all.iter().any(|l| l.contains("\u{256d}\u{2500} bash")),
+            "missing code header chrome: {all:?}"
+        );
+        let cmd_row = all
+            .iter()
+            .position(|l| l.contains("cmd --flag"))
+            .unwrap_or_else(|| panic!("missing verbatim code line: {all:?}"));
+        assert!(
+            lines[cmd_row][1].bg.is_some(),
+            "code line should carry the code bg: {all:?}"
+        );
+    }
+
+    #[test]
     fn cjk_prose_rechunks_to_display_width_budget() {
         let text_in = "\u{6f22}\u{5b57}".repeat(30);
         let lines = body_lines(&text_in, 20, (9, 9, 9), false);

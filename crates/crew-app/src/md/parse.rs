@@ -5,7 +5,7 @@
 //! is the real consumer, so the whole tree reads as dead code to a release
 //! build until then.
 #![allow(dead_code)]
-use pulldown_cmark::{CodeBlockKind, Event, HeadingLevel, Options, Parser, Tag, TagEnd};
+use pulldown_cmark::{Event, HeadingLevel, Options, Parser, Tag, TagEnd};
 
 use super::MdSpan;
 
@@ -16,8 +16,8 @@ mod fold;
 #[path = "inline.rs"]
 mod inline;
 
-use fold::collect_table;
-use inline::{apply_inline_event, collect_inline, fold_nested_list, InlineState};
+use fold::{collect_code_block, collect_list_items, collect_table};
+use inline::collect_inline;
 
 /// Nesting cap for `BlockQuote`/`List`: past this depth, further nesting is
 /// folded flat instead of recursed into, so pathological input (e.g. 50k
@@ -88,8 +88,12 @@ fn collect_blocks<'a>(
             }
             Event::Start(Tag::CodeBlock(kind)) => blocks.push(collect_code_block(events, kind)),
             Event::Start(Tag::List(start)) => {
-                let items = collect_list_items(events, start, 0, keep_soft_breaks);
+                let (items, hoisted) = collect_list_items(events, start, 0, keep_soft_breaks);
                 blocks.push(Block::List(items));
+                // Fenced code found inside a list item can't live in a
+                // `ListItem`'s flat spans, so `collect_list_items` hoists it
+                // out; it renders as a sibling code block after the list.
+                blocks.extend(hoisted);
             }
             Event::Start(Tag::BlockQuote(_)) if depth < MAX_NEST_DEPTH => {
                 let inner = collect_blocks(events, depth + 1, keep_soft_breaks);
@@ -115,84 +119,6 @@ fn heading_spans(spans: Vec<MdSpan>, level: HeadingLevel) -> Vec<MdSpan> {
             s
         })
         .collect()
-}
-
-fn collect_code_block<'a>(
-    events: &mut impl Iterator<Item = Event<'a>>,
-    kind: CodeBlockKind,
-) -> Block {
-    let lang = match kind {
-        CodeBlockKind::Fenced(l) => l.into_string(),
-        CodeBlockKind::Indented => String::new(),
-    };
-    let mut buf = String::new();
-    loop {
-        match events.next() {
-            Some(Event::Text(t)) => buf.push_str(&t),
-            Some(Event::End(TagEnd::CodeBlock)) | None => break,
-            _ => {}
-        }
-    }
-    let mut lines: Vec<String> = buf.split('\n').map(String::from).collect();
-    if lines.last().is_some_and(|l| l.is_empty()) {
-        lines.pop();
-    }
-    Block::CodeBlock { lang, lines }
-}
-
-fn collect_list_items<'a>(
-    events: &mut impl Iterator<Item = Event<'a>>,
-    start: Option<u64>,
-    depth: u8,
-    keep_soft_breaks: bool,
-) -> Vec<ListItem> {
-    let mut items = Vec::new();
-    let mut idx = start;
-    loop {
-        match events.next() {
-            Some(Event::Start(Tag::Item)) => {
-                let (spans, nested) = collect_item(events, depth, keep_soft_breaks);
-                items.push(ListItem {
-                    ordered_idx: idx,
-                    depth,
-                    spans,
-                });
-                idx = idx.map(|n| n + 1);
-                items.extend(nested);
-            }
-            Some(Event::End(TagEnd::List(_))) | None => break,
-            _ => {}
-        }
-    }
-    items
-}
-
-/// An item's own inline spans plus any nested list found inside it (nested
-/// lists are hoisted out and appended after the item by the caller).
-fn collect_item<'a>(
-    events: &mut impl Iterator<Item = Event<'a>>,
-    depth: u8,
-    keep_soft_breaks: bool,
-) -> (Vec<MdSpan>, Vec<ListItem>) {
-    let mut spans = Vec::new();
-    let mut nested = Vec::new();
-    let mut state = InlineState::new(keep_soft_breaks);
-    loop {
-        match events.next() {
-            Some(Event::End(TagEnd::Item)) | None => break,
-            Some(Event::Start(Tag::List(start))) if depth < MAX_NEST_DEPTH => {
-                nested = collect_list_items(events, start, depth + 1, keep_soft_breaks)
-            }
-            Some(Event::Start(Tag::List(_))) => {
-                fold_nested_list(events, &mut spans, keep_soft_breaks)
-            }
-            Some(Event::Start(Tag::Paragraph)) => {
-                spans.extend(collect_inline(events, TagEnd::Paragraph, keep_soft_breaks))
-            }
-            Some(event) => apply_inline_event(event, &mut state, &mut spans),
-        }
-    }
-    (autolink::autolink(spans), nested)
 }
 
 #[cfg(test)]

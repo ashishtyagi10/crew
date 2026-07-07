@@ -77,6 +77,41 @@ fn nested_and_ordered_lists_carry_depth_and_index() {
 }
 
 #[test]
+fn list_item_with_fenced_code_hoists_a_code_block() {
+    let blocks = parse("1. First do X:\n\n   ```bash\n   cmd --flag\n   ```");
+    let Block::List(items) = &blocks[0] else {
+        panic!("expected a list first: {blocks:?}")
+    };
+    assert_eq!(items.len(), 1, "{items:?}");
+    let texts: String = items[0].spans.iter().map(|s| s.text.as_str()).collect();
+    assert_eq!(texts, "First do X:");
+    assert_eq!(
+        blocks.get(1),
+        Some(&Block::CodeBlock {
+            lang: "bash".into(),
+            lines: vec!["cmd --flag".into()],
+        }),
+        "fenced code should hoist out as a sibling block: {blocks:?}"
+    );
+}
+
+#[test]
+fn successive_paragraphs_in_one_item_get_a_line_break_marker() {
+    let blocks = parse("- a\n\n  b");
+    let Block::List(items) = &blocks[0] else {
+        panic!("expected a list: {blocks:?}")
+    };
+    assert_eq!(
+        items[0]
+            .spans
+            .iter()
+            .map(|s| s.text.as_str())
+            .collect::<Vec<_>>(),
+        vec!["a", "\n", "b"]
+    );
+}
+
+#[test]
 fn blockquote_wraps_inner_blocks() {
     let blocks = parse("> quoted");
     assert!(matches!(&blocks[0], Block::BlockQuote(inner)
