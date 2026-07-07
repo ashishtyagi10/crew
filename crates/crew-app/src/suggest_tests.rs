@@ -191,6 +191,13 @@ fn slash_completes_far() {
 }
 
 #[test]
+fn slash_completes_md() {
+    assert_eq!(suggest("/m", &[]).as_deref(), Some("d"));
+    let names: Vec<&str> = matches("/m").iter().map(|c| c.name).collect();
+    assert!(names.contains(&"/md"));
+}
+
+#[test]
 fn exact_command_offers_nothing() {
     assert_eq!(suggest("/exit", &[]), None);
 }

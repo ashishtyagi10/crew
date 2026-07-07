@@ -166,6 +166,8 @@ impl CrewApp {
                 }
                 // The swarm view is non-interactive; it ignores key input.
                 PaneContent::Swarm(_) => {}
+                // Stub: Task 3 wires Tab/scroll/reload keys into the markdown viewer.
+                PaneContent::Markdown(_) => {}
             }
         }
         if let Some(action) = far_action {

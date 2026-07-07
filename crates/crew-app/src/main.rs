@@ -97,6 +97,7 @@ mod session;
 mod settingspane;
 mod spark;
 mod spawn;
+mod spawnmd;
 pub mod stats;
 mod statspane;
 mod status;

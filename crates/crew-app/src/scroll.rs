@@ -54,6 +54,8 @@ fn scroll_pane(pane: &mut Pane, lines: i32) {
         PaneContent::Far(f) => f.scroll(lines),
         // The swarm view always renders the current fleet; nothing to scroll.
         PaneContent::Swarm(_) => {}
+        // Stub: Task 3 scrolls whichever half (source/preview) is under the cursor.
+        PaneContent::Markdown(_) => {}
     }
 }
 

@@ -8,7 +8,7 @@ use crate::chatbody::CardLine;
 
 /// Which half of the split is receiving input — Task 3 reads/toggles this to
 /// route keys and mark the active side.
-#[allow(dead_code)] // Task 2 wires MdPane into pane.rs; nothing constructs one yet
+#[allow(dead_code)] // Preview is only constructed once Task 3 adds the Tab key
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) enum Side {
     Source,
@@ -17,10 +17,10 @@ pub(crate) enum Side {
 
 /// One open markdown file: raw source plus independent scroll state for
 /// each half of the split.
-#[allow(dead_code)] // Task 2 wires MdPane into pane.rs; nothing constructs one yet
 pub(crate) struct MdPane {
     pub path: PathBuf,
     pub source: String,
+    #[allow(dead_code)] // read once Task 3 routes keys/renders the active-side indicator
     pub active: Side,
     /// Rows the source half is scrolled down from its top, clamped to the
     /// last page in `cells`/`link_at` (constructing this doesn't yet know
@@ -29,7 +29,6 @@ pub(crate) struct MdPane {
     pub scroll_prev: usize,
 }
 
-#[allow(dead_code)] // Task 2 wires MdPane into pane.rs; nothing calls these yet
 impl MdPane {
     /// Opens `path`'s already-read `source` at the top of both halves.
     pub(crate) fn new(path: PathBuf, source: String) -> Self {
@@ -46,6 +45,7 @@ impl MdPane {
     /// source half, the divider, or empty space. Uses the exact same
     /// geometry and scroll windowing `cells` draws with, so a click always
     /// resolves the line it visibly sits on.
+    #[allow(dead_code)] // Task 4 wires this into clickopen.rs
     pub(crate) fn link_at(&self, cols: u16, rows: u16, row: u16, col: u16) -> Option<String> {
         if cols == 0 || rows == 0 {
             return None;
@@ -71,7 +71,6 @@ impl MdPane {
 /// `divider_col` always lands inside `0..cols` (never panics, even at
 /// `cols == 1`, where the divider alone fills the pane and both halves are
 /// zero-width).
-#[allow(dead_code)] // only `mdpane_view`/tests call this until Task 2 wires the pane in
 pub(crate) fn geometry(cols: u16) -> (usize, u16, u16, usize) {
     let left_w = (cols.saturating_sub(1) / 2) as usize;
     let divider_col = left_w as u16;
@@ -83,7 +82,6 @@ pub(crate) fn geometry(cols: u16) -> (usize, u16, u16, usize) {
 /// Top-anchored scroll window: `(start, end)` indices into a `len`-line list
 /// to show `rows` of it, `scroll` lines down from the top. Scrolling past
 /// the end clamps to the last full page rather than running off the list.
-#[allow(dead_code)] // only `mdpane_view`/tests call this until Task 2 wires the pane in
 pub(crate) fn window_top(len: usize, rows: usize, scroll: usize) -> (usize, usize) {
     let max_start = len.saturating_sub(rows);
     let start = scroll.min(max_start);
@@ -102,7 +100,6 @@ pub(crate) fn window_top(len: usize, rows: usize, scroll: usize) -> (usize, usiz
 /// `chatbody::body_lines` does for chat cards — otherwise the last column of
 /// every width-filling row would be clipped when `line_cells` draws at
 /// `right_w` columns.
-#[allow(dead_code)] // only `mdpane_view`/tests call this until Task 2 wires the pane in
 pub(crate) fn preview_lines(source: &str, right_w: usize) -> Vec<CardLine> {
     let fg = crew_theme::theme().ink;
     let content_w = right_w.saturating_sub(1);

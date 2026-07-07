@@ -8,6 +8,7 @@ use crew_term::{GridSize, PtyTerm, TermModel};
 use crate::chat::ChatPane;
 use crate::farpane::FarPane;
 use crate::layout::Rect;
+use crate::mdpane::MdPane;
 use crate::session::to_cellviews;
 use crate::settingspane::SettingsPane;
 use crate::swarmpane::SwarmPane;
@@ -32,6 +33,7 @@ pub enum PaneContent {
     Settings(SettingsPane),
     Far(FarPane),
     Swarm(SwarmPane),
+    Markdown(MdPane),
 }
 
 /// A single pane: owns its content, grid size, and pixel rect.
@@ -90,6 +92,14 @@ impl Pane {
             PaneContent::Settings(_) => "settings".into(),
             PaneContent::Far(_) => "far".into(),
             PaneContent::Swarm(_) => "swarm".into(),
+            PaneContent::Markdown(m) => {
+                let file = m
+                    .path
+                    .file_name()
+                    .map(|n| n.to_string_lossy().into_owned())
+                    .unwrap_or_else(|| m.path.to_string_lossy().into_owned());
+                format!("{file} · md")
+            }
         }
     }
 
@@ -102,6 +112,7 @@ impl Pane {
             PaneContent::Settings(s) => s.cells(self.grid.cols, self.grid.rows),
             PaneContent::Far(f) => f.cells(self.grid.cols, self.grid.rows),
             PaneContent::Swarm(s) => s.cells(self.grid.cols, self.grid.rows),
+            PaneContent::Markdown(m) => m.cells(self.grid.cols, self.grid.rows),
         }
     }
 }

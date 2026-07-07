@@ -116,6 +116,38 @@ fn batch_slash_command_spawns_swarm_pane_from_a_file() {
 }
 
 #[test]
+fn md_slash_command_opens_a_zoomed_markdown_pane() {
+    use crate::pane::PaneContent;
+    let mut app = CrewApp::default();
+    // bare /md → usage hint, no pane.
+    assert!(!app.submit_input("/md".to_string()));
+    assert!(app.panes.is_empty(), "bare /md opens no pane");
+    assert!(!app.zoomed);
+
+    let path = std::env::temp_dir().join("crew_md_slash_test.md");
+    std::fs::write(&path, "# Title\n").unwrap();
+    assert!(!app.submit_input(format!("/md {}", path.display())));
+    assert_eq!(app.panes.len(), 1);
+    assert!(matches!(app.panes[0].content, PaneContent::Markdown(_)));
+    assert!(app.zoomed, "/md spawns a zoomed pane");
+    assert!(app.panes[0].title_text().ends_with(" · md"));
+    let _ = std::fs::remove_file(&path);
+}
+
+#[test]
+fn md_slash_command_missing_file_reports_status_and_opens_nothing() {
+    let mut app = CrewApp::default();
+    assert!(!app.submit_input("/md /nonexistent/path/for/crew/md/test.md".to_string()));
+    assert!(app.panes.is_empty(), "unreadable file opens no pane");
+    let msg = app
+        .status
+        .as_ref()
+        .map(|(m, _)| m.clone())
+        .unwrap_or_default();
+    assert!(!msg.is_empty(), "missing file must set a status error");
+}
+
+#[test]
 fn closeall_closes_every_pane_and_refocuses_input() {
     let mut app = CrewApp::default();
     // /far twice → two panes.

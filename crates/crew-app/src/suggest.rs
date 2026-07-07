@@ -204,6 +204,10 @@ pub(crate) const COMMANDS: &[Cmd] = &[
         desc: "Run a file of jobs (one per line) as a parallel swarm (/batch <file>)",
     },
     Cmd {
+        name: "/md",
+        desc: "view a markdown file (source | preview)",
+    },
+    Cmd {
         name: "/exit",
         desc: "Quit Crew",
     },
