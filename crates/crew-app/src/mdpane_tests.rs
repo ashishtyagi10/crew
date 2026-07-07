@@ -55,7 +55,10 @@ fn split_places_divider_at_expected_column() {
 fn source_side_shows_numbered_wrapped_lines() {
     let p = pane("hello\nworld");
     let cells = p.cells(41, 5);
-    assert_eq!(row_text_before(&cells, 0, 20), "   1 hello");
+    // Row 0's leading gutter space is overwritten by the active-side `▸`
+    // indicator (source is active by default) — see
+    // `indicator_marks_active_side_and_moves_after_tab` for that behavior.
+    assert_eq!(row_text_before(&cells, 0, 20), "\u{25B8}  1 hello");
     assert_eq!(row_text_before(&cells, 1, 20), "   2 world");
 }
 
@@ -132,6 +135,51 @@ fn row_text_after(cells: &[CellView], row: u16, min_col: u16) -> String {
         .collect();
     v.sort_unstable();
     v.into_iter().map(|(_, c)| c).collect()
+}
+
+#[test]
+fn indicator_marks_active_side_and_moves_after_tab() {
+    let mut p = pane("hello");
+    let cells = p.cells(41, 5);
+    assert_eq!(
+        cell_at(&cells, 0, 0).map(|c| c.c),
+        Some('\u{25B8}'),
+        "source is active by default"
+    );
+    assert_ne!(cell_at(&cells, 0, 21).map(|c| c.c), Some('\u{25B8}'));
+
+    p.active = Side::Preview;
+    let cells = p.cells(41, 5);
+    assert_ne!(
+        cell_at(&cells, 0, 0).map(|c| c.c),
+        Some('\u{25B8}'),
+        "source no longer marked"
+    );
+    assert_eq!(
+        cell_at(&cells, 0, 21).map(|c| c.c),
+        Some('\u{25B8}'),
+        "preview now marked"
+    );
+}
+
+#[test]
+fn wheel_scrolls_the_side_under_the_cursor() {
+    let mut p = pane("x");
+    // cols=41 -> left_w=20, divider=20, right_start=21.
+    p.scroll_wheel(41, Some(5), -1); // left of the divider -> source
+    assert_eq!(p.scroll_src, 1);
+    assert_eq!(p.scroll_prev, 0);
+    p.scroll_wheel(41, Some(25), -1); // at/right of right_start -> preview
+    assert_eq!(p.scroll_prev, 1);
+}
+
+#[test]
+fn wheel_without_a_known_cursor_column_falls_back_to_the_active_side() {
+    let mut p = pane("x");
+    p.active = Side::Preview;
+    p.scroll_wheel(41, None, -1);
+    assert_eq!(p.scroll_prev, 1);
+    assert_eq!(p.scroll_src, 0);
 }
 
 #[test]

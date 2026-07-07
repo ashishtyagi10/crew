@@ -3,7 +3,7 @@
 //! with `MdPane::link_at`) into one `CellView` list.
 use crew_render::CellView;
 
-use crate::mdpane::{geometry, preview_lines, window_top, MdPane};
+use crate::mdpane::{geometry, preview_lines, window_top, MdPane, Side};
 
 /// Right-aligned line-number width (4 digits) plus one separating space.
 const GUTTER_W: usize = 5;
@@ -30,12 +30,40 @@ impl MdPane {
                 right_start,
             ));
         }
+        let has_room = match self.active {
+            Side::Source => left_w > 0,
+            Side::Preview => right_w > 0,
+        };
+        if has_room {
+            let indicator = indicator_cell(self.active, right_start);
+            out.retain(|c| !(c.row == indicator.row && c.col == indicator.col));
+            out.push(indicator);
+        }
         out
     }
 }
 
-/// The muted `│` divider, drawn the full height regardless of content —
-/// Task 3 brightens it on the active side.
+/// One-cell `▸` marking which half of the split has focus, drawn over
+/// whatever else sits at that pane-relative cell — top row, column 0 for the
+/// source half or `right_start` for the preview half.
+fn indicator_cell(active: Side, right_start: u16) -> CellView {
+    let col = match active {
+        Side::Source => 0,
+        Side::Preview => right_start,
+    };
+    CellView {
+        col,
+        row: 0,
+        c: '\u{25B8}', // ▸
+        fg: crew_theme::theme().ink,
+        bg: crew_theme::theme().page_bg,
+        bold: false,
+        italic: false,
+    }
+}
+
+/// The muted `│` divider, drawn the full height regardless of content — the
+/// active side is marked by `indicator_cell`'s `▸`, not by this divider.
 fn divider_cells(divider_col: u16, rows: u16) -> Vec<CellView> {
     let muted = crew_theme::theme().text_muted;
     let page = crew_theme::theme().page_bg;

@@ -4,15 +4,27 @@
 //! and the click hit-test.
 use std::path::PathBuf;
 
-use crate::chatbody::CardLine;
+use winit::event::KeyEvent;
 
-/// Which half of the split is receiving input — Task 3 reads/toggles this to
-/// route keys and mark the active side.
-#[allow(dead_code)] // Preview is only constructed once Task 3 adds the Tab key
+use crate::chatbody::CardLine;
+use crate::mdkeys::{self, MdAction};
+
+/// Which half of the split is receiving input — Tab (`mdkeys::reduce`)
+/// toggles this and it routes scrolling and marks the active-side indicator.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) enum Side {
     Source,
     Preview,
+}
+
+impl Side {
+    /// The side Tab switches to.
+    pub(crate) fn other(self) -> Side {
+        match self {
+            Side::Source => Side::Preview,
+            Side::Preview => Side::Source,
+        }
+    }
 }
 
 /// One open markdown file: raw source plus independent scroll state for
@@ -20,7 +32,6 @@ pub(crate) enum Side {
 pub(crate) struct MdPane {
     pub path: PathBuf,
     pub source: String,
-    #[allow(dead_code)] // read once Task 3 routes keys/renders the active-side indicator
     pub active: Side,
     /// Rows the source half is scrolled down from its top, clamped to the
     /// last page in `cells`/`link_at` (constructing this doesn't yet know
@@ -64,6 +75,56 @@ impl MdPane {
         crate::chatplace::cell_at_col(&lines[idx], local_col)
             .and_then(|cell| cell.link.as_deref())
             .map(str::to_string)
+    }
+
+    /// Handle a winit key event: Tab flips the active side, arrows/PageUp/
+    /// PageDown scroll it, `r` reloads `path` from disk, Esc asks the host to
+    /// close the pane. Decoding + effects live in `mdkeys` as a pure,
+    /// testable seam — mirrors `ChatPane::on_key`/`FarPane::on_key`.
+    pub(crate) fn on_key(&mut self, key: &KeyEvent) -> Option<MdAction> {
+        let input = mdkeys::md_key(&key.logical_key, key.state.is_pressed());
+        mdkeys::reduce(self, input)
+    }
+
+    /// Scrolls one half of the split by `delta` lines, floored at the top —
+    /// `window_top` clamps the far end at render time, so this only needs to
+    /// keep the offset from going negative. Convention matches
+    /// `FarPane::scroll`/`ChatPane::scroll`: positive `delta` moves toward
+    /// the top/start of the content.
+    pub(crate) fn scroll(&mut self, side: Side, delta: i32) {
+        let target = match side {
+            Side::Source => &mut self.scroll_src,
+            Side::Preview => &mut self.scroll_prev,
+        };
+        *target = (*target as i64 - delta as i64).max(0) as usize;
+    }
+
+    /// Routes a mouse-wheel scroll to whichever half `cursor_col` sits over
+    /// (source left of the divider, preview at/right of `right_start`).
+    /// `None` — a keyboard-triggered scroll with no cursor position, e.g.
+    /// Shift+PageUp/Home/End — falls back to the active side.
+    pub(crate) fn scroll_wheel(&mut self, cols: u16, cursor_col: Option<u16>, delta: i32) {
+        let (_, _, right_start, right_w) = geometry(cols);
+        let side = match cursor_col {
+            Some(c) if right_w > 0 && c >= right_start => Side::Preview,
+            Some(_) => Side::Source,
+            None => self.active,
+        };
+        self.scroll(side, delta);
+    }
+
+    /// Re-reads `path` from disk, replacing `source` on success. On failure
+    /// (missing file, permissions, non-UTF-8) the old content is left in
+    /// place and an error message comes back for the caller to show as a
+    /// status line — same wording as `spawn_md_pane`'s initial-read error.
+    pub(crate) fn reload(&mut self) -> Result<(), String> {
+        match std::fs::read_to_string(&self.path) {
+            Ok(s) => {
+                self.source = s;
+                Ok(())
+            }
+            Err(e) => Err(format!("md: cannot read {}: {e}", self.path.display())),
+        }
     }
 }
 

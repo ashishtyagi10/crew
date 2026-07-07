@@ -45,8 +45,12 @@ fn forward_page(pane: &mut Pane, up: bool) -> bool {
     true
 }
 
-/// Scroll one pane's content by `lines` (positive = up/older).
-fn scroll_pane(pane: &mut Pane, lines: i32) {
+/// Scroll one pane's content by `lines` (positive = up/older). `cursor_col`
+/// is the pane-relative column the cursor sits over (mouse-wheel scrolls
+/// only); `None` for keyboard-triggered scrolls (Shift+PageUp/Down, Home/End)
+/// — the markdown viewer falls back to its active side in that case.
+fn scroll_pane(pane: &mut Pane, lines: i32, cursor_col: Option<u16>) {
+    let cols = pane.grid.cols;
     match &mut pane.content {
         PaneContent::Terminal(t) => t.pty.scroll(lines),
         PaneContent::Chat(c) => c.scroll(lines, pane.grid.cols, pane.grid.rows),
@@ -54,8 +58,7 @@ fn scroll_pane(pane: &mut Pane, lines: i32) {
         PaneContent::Far(f) => f.scroll(lines),
         // The swarm view always renders the current fleet; nothing to scroll.
         PaneContent::Swarm(_) => {}
-        // Stub: Task 3 scrolls whichever half (source/preview) is under the cursor.
-        PaneContent::Markdown(_) => {}
+        PaneContent::Markdown(m) => m.scroll_wheel(cols, cursor_col, lines),
     }
 }
 
@@ -88,9 +91,13 @@ impl CrewApp {
         };
         // The hovered cell positions forwarded mouse events; (0,0) when unknown.
         let cell = self.cursor_term_cell().map_or((0, 0), |(_, c, r)| (c, r));
+        // Which pane-relative column the cursor sits over — the markdown
+        // viewer uses this to scroll whichever half (source/preview) it's
+        // hovering rather than always the active one.
+        let cursor_col = self.cursor_any_cell().map(|(_, c, _)| c);
         if let Some(pane) = self.panes.get_mut(i) {
             if !forward_wheel(pane, lines, cell) {
-                scroll_pane(pane, lines);
+                scroll_pane(pane, lines, cursor_col);
             }
             self.redraw();
         }
@@ -101,7 +108,7 @@ impl CrewApp {
         if let Some(pane) = self.panes.get_mut(self.focused) {
             if !forward_page(pane, up) {
                 let page = pane.grid.rows.saturating_sub(1).max(1) as i32;
-                scroll_pane(pane, if up { page } else { -page });
+                scroll_pane(pane, if up { page } else { -page }, None);
             }
             self.redraw();
         }
@@ -111,7 +118,7 @@ impl CrewApp {
     pub(crate) fn scroll_focused_end(&mut self, to_top: bool) {
         if let Some(pane) = self.panes.get_mut(self.focused) {
             // The grid clamps a huge delta to the available history range.
-            scroll_pane(pane, if to_top { i32::MAX / 2 } else { i32::MIN / 2 });
+            scroll_pane(pane, if to_top { i32::MAX / 2 } else { i32::MIN / 2 }, None);
             self.redraw();
         }
     }
