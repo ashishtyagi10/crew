@@ -2,13 +2,14 @@
 //! task advertises the available tools; an agent calls one by ending its
 //! reply with `@tool <server>:<tool> {"arg": …}`. The engine executes the
 //! call and re-dials the same agent with the result — up to
-//! [`MAX_TOOL_ROUNDS`] times per hop — before normal routing resumes. Every
-//! call and result is logged as a hop, so tool use is visible in the pane.
+//! [`MAX_TOOL_ROUNDS`] times per hop — before routing resumes. Every call
+//! and result is logged as a hop, so tool use is visible in the pane.
 use std::sync::Arc;
 
 use super::adapter::Adapter;
 use super::hop::{back, Hop, HopKind, RunStats};
 use super::route::clip;
+use super::toolclip::clip_result;
 use super::{Broker, Envelope};
 use crate::mcp::McpTool;
 
@@ -137,7 +138,7 @@ impl Broker {
             exchanges.push(format!(
                 "CALLED {label} {}\nRESULT:\n{}",
                 call.args,
-                clip(&text, 6000)
+                clip_result(&text, 6000)
             ));
             let follow = format!(
                 "{base_prompt}\n\nTOOL EXCHANGES THIS TURN:\n{}\n\nContinue the task \

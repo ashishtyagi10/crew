@@ -30,12 +30,15 @@ mod route;
 mod run;
 mod session;
 mod shellenv;
+mod skillframe;
 mod skills;
 mod stdio;
+mod sysread;
 mod sysrun;
 mod systools;
 mod tasks;
 mod toolcall;
+mod toolclip;
 
 pub use adapter::{Adapter, CliAdapter, Normalize};
 pub use agents::known_adapters;

@@ -66,7 +66,7 @@ pub(crate) fn tools() -> Vec<McpTool> {
         ),
         mk(
             "read_file",
-            "read a UTF-8 text file: {\"path\": \"README.md\"}",
+            "read a UTF-8 text file, 64 KB per call: {\"path\": \"README.md\", \"offset\": 0}",
         ),
         mk(
             "write_file",
@@ -92,7 +92,7 @@ pub(crate) fn call(tool: &str, args: &str) -> Result<String, String> {
     };
     match tool {
         "run" => super::sysrun::run(str_arg(&v, "cmd")?),
-        "read_file" => read_file(str_arg(&v, "path")?),
+        "read_file" => super::sysread::read_file(str_arg(&v, "path")?, super::sysread::offset_arg(&v)?),
         "write_file" => write_file(str_arg(&v, "path")?, str_arg(&v, "content")?),
         "list_dir" => list_dir(v.get("path").and_then(|p| p.as_str()).unwrap_or(".")),
         other => Err(format!(
@@ -106,44 +106,6 @@ fn str_arg<'a>(v: &'a serde_json::Value, key: &str) -> Result<&'a str, String> {
     v.get(key)
         .and_then(|s| s.as_str())
         .ok_or_else(|| format!("missing string argument \u{201c}{key}\u{201d}"))
-}
-
-/// True if `idx` doesn't split a UTF-8 codepoint in `bytes` (mirrors
-/// `str::is_char_boundary` without requiring a validated `&str` up front).
-fn is_utf8_boundary(bytes: &[u8], idx: usize) -> bool {
-    match bytes.get(idx) {
-        None => idx == bytes.len(),
-        Some(&b) => (b as i8) >= -0x40,
-    }
-}
-
-fn read_file(path: &str) -> Result<String, String> {
-    use std::io::Read;
-    // Bound the I/O itself: at most CAP+1 bytes, so a huge or never-EOF file
-    // (e.g. /dev/zero) can't blow up memory or hang before the cap applies.
-    let f = std::fs::File::open(path).map_err(|e| format!("read {path}: {e}"))?;
-    let mut buf = Vec::new();
-    f.take(CAP as u64 + 1)
-        .read_to_end(&mut buf)
-        .map_err(|e| format!("read {path}: {e}"))?;
-    if buf.len() > CAP {
-        // A valid UTF-8 boundary must occur within 3 bytes of any index, so
-        // bound the walk-back to at most 3 steps. If none of them is a
-        // boundary (e.g. a binary file whose bytes near CAP are all UTF-8
-        // continuation bytes), the content isn't valid UTF-8 at all — report
-        // that instead of walking past 0 and underflowing.
-        let floor = CAP.saturating_sub(3);
-        let cut = (floor..=CAP).rev().find(|&i| is_utf8_boundary(&buf, i));
-        let cut = cut.ok_or_else(|| {
-            format!("read {path}: not valid UTF-8: no character boundary near the 64 KB cap")
-        })?;
-        let text = std::str::from_utf8(&buf[..cut])
-            .map_err(|e| format!("read {path}: not valid UTF-8: {e}"))?;
-        return Ok(format!("{text}\n\u{2026} (truncated at 64 KB)"));
-    }
-    std::str::from_utf8(&buf)
-        .map(str::to_owned)
-        .map_err(|e| format!("read {path}: not valid UTF-8: {e}"))
 }
 
 fn write_file(path: &str, content: &str) -> Result<String, String> {

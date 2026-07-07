@@ -1,4 +1,5 @@
 use super::*;
+use crate::broker::skillframe::list_report;
 
 fn tmpdir(tag: &str) -> std::path::PathBuf {
     let d = std::env::temp_dir().join(format!(
@@ -102,7 +103,7 @@ fn list_report_explains_when_empty_and_lists_when_not() {
 #[test]
 fn framed_puts_playbook_before_task() {
     let s = parse("playbook text", "guide", "user");
-    let f = framed(&s, "do the thing");
+    let f = crate::broker::skillframe::framed(&s, "do the thing", true);
     let (pb, task) = (
         f.find("playbook text").unwrap(),
         f.find("do the thing").unwrap(),
@@ -140,4 +141,45 @@ fn skill_cmd_reports_an_unknown_skill() {
         }
         other => panic!("unexpected event: {other:?}"),
     }
+}
+
+#[test]
+fn load_dir_reads_a_directory_skill() {
+    let d = tmpdir("dirskill");
+    std::fs::create_dir_all(d.join("My Skill")).unwrap();
+    std::fs::write(d.join("My Skill").join("SKILL.md"), "Do the thing.").unwrap();
+    let skills = load_dir(&d, "user");
+    assert_eq!(skills.len(), 1);
+    assert_eq!(skills[0].name, "my-skill");
+    assert_eq!(skills[0].body, "Do the thing.");
+    assert_eq!(skills[0].path, d.join("My Skill").join("SKILL.md"));
+    assert_eq!(skills[0].dir.as_deref(), Some(d.join("My Skill").as_path()));
+    let _ = std::fs::remove_dir_all(&d);
+}
+
+#[test]
+fn directory_skill_frontmatter_name_wins_over_dir_name() {
+    let d = tmpdir("dirname");
+    std::fs::create_dir_all(d.join("foo")).unwrap();
+    std::fs::write(
+        d.join("foo").join("SKILL.md"),
+        "---\nname: Real Name\n---\nbody",
+    )
+    .unwrap();
+    let skills = load_dir(&d, "project");
+    assert_eq!(skills[0].name, "real-name");
+    let _ = std::fs::remove_dir_all(&d);
+}
+
+#[test]
+fn subdir_without_skill_md_is_skipped_and_flat_files_get_path() {
+    let d = tmpdir("mixed");
+    std::fs::create_dir_all(d.join("not-a-skill")).unwrap();
+    std::fs::write(d.join("flat.md"), "flat body").unwrap();
+    let skills = load_dir(&d, "user");
+    let names: Vec<&str> = skills.iter().map(|s| s.name.as_str()).collect();
+    assert_eq!(names, vec!["flat"]);
+    assert_eq!(skills[0].path, d.join("flat.md"));
+    assert_eq!(skills[0].dir, None);
+    let _ = std::fs::remove_dir_all(&d);
 }
