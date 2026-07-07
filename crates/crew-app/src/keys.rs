@@ -152,6 +152,7 @@ impl CrewApp {
         let mut settings_action: Option<SettingsAction> = None;
         let mut far_action: Option<crate::farpane::FarAction> = None;
         let mut chat_action: Option<crate::chatkeys::ChatAction> = None;
+        let mut md_action: Option<crate::mdkeys::MdAction> = None;
         let mut is_terminal = false;
         if let Some(pane) = self.panes.get_mut(focused) {
             match &mut pane.content {
@@ -166,6 +167,10 @@ impl CrewApp {
                 }
                 // The swarm view is non-interactive; it ignores key input.
                 PaneContent::Swarm(_) => {}
+                PaneContent::Markdown(m) => {
+                    md_action =
+                        m.on_key(event, pane.grid.cols, pane.grid.rows, mstate.control_key())
+                }
             }
         }
         if let Some(action) = far_action {
@@ -187,6 +192,15 @@ impl CrewApp {
                 ChatAction::Close => {
                     self.close_pane(focused);
                 }
+            }
+        }
+        if let Some(action) = md_action {
+            use crate::mdkeys::MdAction;
+            match action {
+                MdAction::Close => {
+                    self.close_pane(focused);
+                }
+                MdAction::Status(msg) => self.set_status(msg),
             }
         }
         if is_terminal {

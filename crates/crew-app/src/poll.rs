@@ -76,6 +76,8 @@ impl CrewApp {
                     None => false,
                 },
                 PaneContent::Settings(_) => false,
+                // A static file view; nothing to poll (Task 3 adds `r` reload).
+                PaneContent::Markdown(_) => false,
             };
             // Follow `cd` inside the pane: a new OSC 7 cwd report retitles the
             // pane to that folder (a `/name` override still wins in title_text).

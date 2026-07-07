@@ -20,6 +20,7 @@ impl CrewApp {
                 PaneContent::Settings(_) => "Settings — Crew".into(),
                 PaneContent::Far(_) => "Far — Crew".into(),
                 PaneContent::Swarm(_) => "Swarm — Crew".into(),
+                PaneContent::Markdown(_) => format!("{} — Crew", p.title_text()),
             },
             None => "Crew".into(),
         }
