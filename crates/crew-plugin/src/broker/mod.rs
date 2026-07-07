@@ -33,6 +33,7 @@ mod shellenv;
 mod skillframe;
 mod skills;
 mod stdio;
+mod sysread;
 mod sysrun;
 mod systools;
 mod tasks;

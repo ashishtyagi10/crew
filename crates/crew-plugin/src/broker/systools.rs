@@ -92,7 +92,7 @@ pub(crate) fn call(tool: &str, args: &str) -> Result<String, String> {
     };
     match tool {
         "run" => super::sysrun::run(str_arg(&v, "cmd")?),
-        "read_file" => read_file(str_arg(&v, "path")?, offset_arg(&v)),
+        "read_file" => super::sysread::read_file(str_arg(&v, "path")?, super::sysread::offset_arg(&v)?),
         "write_file" => write_file(str_arg(&v, "path")?, str_arg(&v, "content")?),
         "list_dir" => list_dir(v.get("path").and_then(|p| p.as_str()).unwrap_or(".")),
         other => Err(format!(
@@ -106,63 +106,6 @@ fn str_arg<'a>(v: &'a serde_json::Value, key: &str) -> Result<&'a str, String> {
     v.get(key)
         .and_then(|s| s.as_str())
         .ok_or_else(|| format!("missing string argument \u{201c}{key}\u{201d}"))
-}
-
-/// The optional `"offset"` byte argument, defaulting to 0.
-fn offset_arg(v: &serde_json::Value) -> usize {
-    v.get("offset").and_then(|n| n.as_u64()).unwrap_or(0) as usize
-}
-
-/// True if `idx` doesn't split a UTF-8 codepoint in `bytes` (mirrors
-/// `str::is_char_boundary` without requiring a validated `&str` up front).
-fn is_utf8_boundary(bytes: &[u8], idx: usize) -> bool {
-    match bytes.get(idx) {
-        None => idx == bytes.len(),
-        Some(&b) => (b as i8) >= -0x40,
-    }
-}
-
-fn read_file(path: &str, offset: usize) -> Result<String, String> {
-    use std::io::{Read, Seek, SeekFrom};
-    // Bound the I/O itself: at most CAP+1 bytes, so a huge/never-EOF file can't blow up memory or hang.
-    let mut f = std::fs::File::open(path).map_err(|e| format!("read {path}: {e}"))?;
-    let total = f.metadata().map_err(|e| format!("read {path}: {e}"))?.len() as usize;
-    if offset > 0 {
-        f.seek(SeekFrom::Start(offset as u64))
-            .map_err(|e| format!("read {path}: {e}"))?;
-    }
-    let mut buf = Vec::new();
-    f.take(CAP as u64 + 1)
-        .read_to_end(&mut buf)
-        .map_err(|e| format!("read {path}: {e}"))?;
-    if buf.is_empty() && offset > 0 {
-        return Ok(format!(
-            "\u{2026} (offset {offset} is at or past the end \u{2014} file is {total} bytes)"
-        ));
-    }
-    let hit_cap = buf.len() > CAP; // pre-trim: more file remains beyond this read
-    let start = (0..=3.min(buf.len())) // offset may land mid-codepoint; skip <=3B to a boundary
-        .find(|&i| is_utf8_boundary(&buf, i))
-        .unwrap_or(0);
-    let buf = &buf[start..];
-    if hit_cap {
-        let end = buf.len().min(CAP);
-        let floor = end.saturating_sub(3); // boundary within 3 bytes; binary may lack one
-        let cut = (floor..=end).rev().find(|&i| is_utf8_boundary(buf, i));
-        let cut = cut.ok_or_else(|| {
-            format!("read {path}: not valid UTF-8: no character boundary near the 64 KB cap")
-        })?;
-        let text = std::str::from_utf8(&buf[..cut])
-            .map_err(|e| format!("read {path}: not valid UTF-8: {e}"))?;
-        return Ok(format!(
-            "{text}\n\u{2026} (truncated at 64 KB \u{2014} file is {total} bytes; \
-             continue with {{\"offset\": {}}})",
-            offset + start + cut
-        ));
-    }
-    std::str::from_utf8(buf)
-        .map(str::to_owned)
-        .map_err(|e| format!("read {path}: not valid UTF-8: {e}"))
 }
 
 fn write_file(path: &str, content: &str) -> Result<String, String> {

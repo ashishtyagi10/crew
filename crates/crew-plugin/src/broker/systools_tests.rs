@@ -228,6 +228,35 @@ fn read_file_offset_mid_codepoint_skips_to_a_boundary() {
 }
 
 #[test]
+fn read_file_accepts_a_quoted_numeric_offset() {
+    let p = std::env::temp_dir().join(format!("crew-sys-qoff-{}.txt", std::process::id()));
+    std::fs::write(&p, "abcdefghij").unwrap();
+    let out = call(
+        "read_file",
+        &format!("{{\"path\": \"{}\", \"offset\": \"4\"}}", p.display()),
+    )
+    .unwrap();
+    assert_eq!(out, "efghij");
+    let _ = std::fs::remove_file(&p);
+}
+
+#[test]
+fn read_file_rejects_a_non_numeric_offset() {
+    let p = std::env::temp_dir().join(format!("crew-sys-badoff-{}.txt", std::process::id()));
+    std::fs::write(&p, "abcdefghij").unwrap();
+    let e = call(
+        "read_file",
+        &format!(
+            "{{\"path\": \"{}\", \"offset\": \"not-a-number\"}}",
+            p.display()
+        ),
+    )
+    .unwrap_err();
+    assert!(e.contains("invalid \u{201c}offset\u{201d}"), "{e}");
+    let _ = std::fs::remove_file(&p);
+}
+
+#[test]
 fn read_file_mid_codepoint_offset_still_reports_truncation() {
     let p = std::env::temp_dir().join(format!("crew-sys-utf8big-{}.txt", std::process::id()));
     let mut content = String::from("é"); // 2 bytes; offset 1 lands mid-char
