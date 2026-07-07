@@ -4,7 +4,7 @@
 use crate::app::CrewApp;
 
 impl CrewApp {
-    /// Minimize the pane at `idx` into the left-nav PANES list (the `▾` button
+    /// Minimize the pane at `idx` into the left-nav PANES list (the `[-]` button
     /// on its border): it leaves the grid but keeps running; focusing it again
     /// (click its nav row, Cmd+N) restores it. Shows the nav when hidden — the
     /// pane minimizes *into* it.

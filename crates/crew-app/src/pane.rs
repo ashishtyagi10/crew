@@ -53,7 +53,7 @@ pub struct Pane {
     pub activity: bool,
     /// The program rang the bell since this pane was last focused.
     pub bell: bool,
-    /// User-minimized into the left-nav PANES list (the `▾` border button):
+    /// User-minimized into the left-nav PANES list (the `[-]` border button):
     /// excluded from the grid (and the LRU strip) until focused again. Named
     /// `hidden` because "minimized" already means the LRU bottom strip.
     pub hidden: bool,

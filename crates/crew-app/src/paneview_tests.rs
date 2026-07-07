@@ -108,32 +108,37 @@ fn min_btn_draws_on_the_top_border_and_shifts_status_glyphs() {
         ..bar(true)
     };
     let cells = pane_card(38, 10, &b);
-    // The ▾ button sits at card column cols-3 (cols = 38 + 2), row 0.
-    assert!(cells
-        .iter()
-        .any(|c| c.c == '▾' && c.row == 0 && c.col == 37));
+    // The [-] button ends at card column cols-3 (cols = 38 + 2), row 0.
+    let at = |col: u16| cells.iter().find(|c| c.row == 0 && c.col == col).unwrap().c;
+    assert_eq!(at(35), '[');
+    assert_eq!(at(36), '-');
+    assert_eq!(at(37), ']');
     // Status glyphs still render, stepping further left of the button.
     let scroll_col = cells
         .iter()
         .find(|c| c.c == '⇡' && c.row == 0)
         .map(|c| c.col)
         .unwrap();
-    assert!(scroll_col < 37, "scroll indicator left of the button");
+    assert!(scroll_col < 35, "scroll indicator left of the button");
 }
 
 #[test]
 fn min_btn_absent_when_disabled_or_narrow() {
-    assert!(!pane_card(38, 10, &bar(true)).iter().any(|c| c.c == '▾'));
+    assert!(!pane_card(38, 10, &bar(true))
+        .iter()
+        .any(|c| c.c == '-' && c.row == 0));
     let b = Bar {
         min_btn: true,
         ..bar(true)
     };
-    // A card narrower than 8 cells has no room for a click target.
-    assert!(!pane_card(4, 10, &b).iter().any(|c| c.c == '▾'));
+    // A card narrower than 10 cells has no room for a click target.
+    assert!(!pane_card(6, 10, &b)
+        .iter()
+        .any(|c| c.c == '-' && c.row == 0));
 }
 
 #[test]
-fn min_btn_rect_covers_the_glyph_cell() {
+fn min_btn_rect_covers_the_button_cells() {
     use crate::layout::Rect;
     let r = Rect {
         x: 100.0,
@@ -141,17 +146,17 @@ fn min_btn_rect_covers_the_glyph_cell() {
         w: 400.0,
         h: 300.0,
     };
-    // cw=10 → interior cols = 40-2 = 38, card cols = 40, glyph at card col 37.
+    // cw=10 → interior cols = 40-2 = 38, card cols = 40, [-] at cols 35..=37.
     let hit = min_btn_rect(r, 10.0, 20.0).unwrap();
-    let glyph_x = 100.0 + 37.0 * 10.0;
-    assert!(hit.x <= glyph_x && glyph_x + 10.0 <= hit.x + hit.w);
+    assert_eq!(hit.x, 100.0 + 35.0 * 10.0);
+    assert_eq!(hit.w, 3.0 * 10.0);
     assert_eq!(hit.y, 50.0);
     assert_eq!(hit.h, 20.0);
     // Too narrow for a button → no hit region (matches the draw guard).
     let narrow = Rect {
         x: 0.0,
         y: 0.0,
-        w: 60.0,
+        w: 80.0,
         h: 300.0,
     };
     assert!(min_btn_rect(narrow, 10.0, 20.0).is_none());

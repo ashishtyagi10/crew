@@ -34,7 +34,7 @@ impl CrewApp {
         (idx < self.panes.len()).then_some(idx)
     }
 
-    /// Which full tile's `▾` minimize button sits under the cursor, if any.
+    /// Which full tile's `[-]` minimize button sits under the cursor, if any.
     /// Zoom draws no button (`build_scenes` passes `min_btn: false`), so the
     /// zoomed view never reports one.
     pub(crate) fn min_btn_at_cursor(&self) -> Option<usize> {

@@ -46,7 +46,7 @@ impl CrewApp {
                     self.redraw();
                     return;
                 }
-                // The ▾ border button minimizes the pane into the left nav. It
+                // The [-] border button minimizes the pane into the left nav. It
                 // must win over the focus path so the click neither focuses
                 // the pane nor arms a drag selection.
                 if let Some(i) = self.min_btn_at_cursor() {

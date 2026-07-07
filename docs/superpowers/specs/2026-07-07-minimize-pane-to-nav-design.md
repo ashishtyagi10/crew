@@ -45,21 +45,20 @@ the LRU at MRU position → becomes a full tile. This single rule makes every
 existing focus path a restore path: clicking the pane's PANES row, `Cmd+N`
 pane switching, spawn-focus. No changes to `hit.rs` click routing needed.
 
-### The button: `▾` on the top border
+### The button: `[-]` on the top border
 
-`panecard.rs::Bar` gains `min_btn: bool`. When set (and the card is ≥ 8 cells
-wide), `pane_card` draws `▾` at card column `cols - 3`, row 0 — the slot the
-status glyphs start from today — in the legend color; the status glyphs
-(`⇡N » ● !`) start two cells further left. Only full grid tiles set
+`panecard.rs::Bar` gains `min_btn: bool`. When set (and the card is ≥ 10
+cells wide), `pane_card` draws `[-]` at card columns `cols-5 ..= cols-3`,
+row 0 — where the status glyphs start today — in the legend color; the
+status glyphs (`⇡N » ● !`) start further left. Only full grid tiles set
 `min_btn` (threaded through `full_scenes` → `push_pane_scenes`); the zoomed
 view and minimized-strip thumbnails do not show it.
 
 Hit-testing: a new pure helper `min_btn_rect(rect, cw, ch) -> Option<Rect>`
-mirrors `relayout_one`'s cols math and returns a 3-cell-wide target centered
-on the glyph (row 0), `None` when the card is too narrow. In `events.rs`,
-the left-press handler checks the button (via `compose_grid`'s full tiles)
-after Cmd+click and before `selection_press`, so a button click never focuses
-or arms a drag.
+mirrors `relayout_one`'s cols math and returns the button's three row-0
+cells, `None` when the card is too narrow. In `events.rs`, the left-press
+handler checks the button (via `compose_grid`'s full tiles) after Cmd+click
+and before `selection_press`, so a button click never focuses or arms a drag.
 
 ### Minimize action (`minimize_pane(idx)`, panemanage.rs)
 
@@ -73,9 +72,10 @@ or arms a drag.
 ### Left-nav marker
 
 `PaneRow` gains `minimized: bool` (sourced from `pane.hidden` in
-`navcard.rs`). `panelist::pane_cells` draws `▿` in the marker column (where
-the focused pane shows `▸`; a focused pane is never hidden, so they can't
-collide). Title stays `text_muted` as for any unfocused pane.
+`navcard.rs`). `panelist::pane_cells` draws a right-aligned accent `[+]`
+restore button on minimized rows (ending a cell left of the activity-dot
+slot; the title clamps short of it). Title stays `text_muted` as for any
+unfocused pane.
 
 ## What doesn't change
 
@@ -90,7 +90,7 @@ collide). Title stays `text_muted` as for any unfocused pane.
 
 - Minimize the focused pane → focus moves to nearest visible pane.
 - Minimize the last visible pane → input bar takes focus; canvas is empty.
-- Narrow pane (< 8 card cells): no button drawn, no hit region (helper and
+- Narrow pane (< 10 card cells): no button drawn, no hit region (helper and
   draw share the same threshold).
 - Stale grid between event and next frame: same one-frame staleness class as
   existing close/focus paths; every action calls `redraw()`.
@@ -103,10 +103,11 @@ Cell-level unit tests (the codebase's dominant pattern):
 - `app_tests.rs`: reconcile skips hidden panes; focusing a hidden pane
   restores it; input-bar focus does *not* restore; `minimize_pane` moves
   focus / falls back to the input bar / enables `show_nav`.
-- `paneview_tests.rs` (panecard): `min_btn` draws `▾` at `cols-3`, shifts
-  status glyphs left; absent when `min_btn` is false or the card is narrow.
-- `min_btn_rect`: pixel rect matches the glyph cell; `None` when narrow.
-- `panelist.rs`: minimized row shows `▿`.
+- `paneview_tests.rs` (panecard): `min_btn` draws `[-]` ending at `cols-3`,
+  shifts status glyphs left; absent when `min_btn` is false or the card is
+  narrow.
+- `min_btn_rect`: pixel rect matches the button cells; `None` when narrow.
+- `panelist.rs`: minimized row shows a right-aligned `[+]`.
 
 Manual verify: GUI harness (osascript + screenshot) — spawn panes, click the
 button, confirm the pane leaves the grid and its nav row restores it.
