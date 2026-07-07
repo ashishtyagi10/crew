@@ -24,6 +24,24 @@ pub trait ToolRunner: Send + Sync {
 /// Most tool rounds one agent may take within a single hop.
 pub(crate) const MAX_TOOL_ROUNDS: u32 = 4;
 
+/// Clip a tool result for the agent-facing exchange log: unlike
+/// [`route::clip`] (whitespace-flattening, for short display strings), this
+/// preserves newlines and — when the text must be cut — always keeps the
+/// final line intact. Continuation protocols (e.g. `sys:read_file`'s
+/// "continue with {\"offset\": N}") put their payload on the last line, so
+/// losing it would strand the agent mid-read.
+fn clip_result(text: &str, max: usize) -> String {
+    if text.chars().count() <= max {
+        return text.to_string();
+    }
+    const MARKER: &str = "\n\u{2026} (result clipped) \u{2026}\n";
+    let last_line = text.rsplit('\n').next().unwrap_or("");
+    let reserved = MARKER.chars().count() + last_line.chars().count();
+    let head_budget = max.saturating_sub(reserved);
+    let head: String = text.chars().take(head_budget).collect();
+    format!("{head}{MARKER}{last_line}")
+}
+
 /// The TOOLS prompt section for `tools` (empty when there are none).
 pub(crate) fn hint_for(tools: &[McpTool]) -> String {
     if tools.is_empty() {
@@ -137,7 +155,7 @@ impl Broker {
             exchanges.push(format!(
                 "CALLED {label} {}\nRESULT:\n{}",
                 call.args,
-                clip(&text, 6000)
+                clip_result(&text, 6000)
             ));
             let follow = format!(
                 "{base_prompt}\n\nTOOL EXCHANGES THIS TURN:\n{}\n\nContinue the task \

@@ -5,13 +5,20 @@ use super::*;
 use crate::Registry;
 
 /// An agent whose replies are scripted; repeats the last one when exhausted.
-struct Scripted(Mutex<Vec<String>>);
+/// Records every prompt body it was dialed with, so tests can inspect exactly
+/// what the engine sent back (e.g. a clipped tool result).
+struct Scripted(Mutex<Vec<String>>, Mutex<Vec<String>>);
 
 impl Scripted {
     fn new(replies: &[&str]) -> Self {
         let mut v: Vec<String> = replies.iter().rev().map(|s| s.to_string()).collect();
         v.shrink_to_fit();
-        Self(Mutex::new(v))
+        Self(Mutex::new(v), Mutex::new(Vec::new()))
+    }
+
+    /// Every body the agent was dialed with, in call order.
+    fn seen(&self) -> Vec<String> {
+        self.1.lock().unwrap().clone()
     }
 }
 
@@ -22,7 +29,8 @@ impl Adapter for Scripted {
     fn probe(&self) -> bool {
         true
     }
-    fn call(&self, _body: &str, _t: Duration) -> Result<String, String> {
+    fn call(&self, body: &str, _t: Duration) -> Result<String, String> {
+        self.1.lock().unwrap().push(body.to_string());
         let mut v = self.0.lock().unwrap();
         Ok(match v.len() {
             0 => "@done".into(),
@@ -257,4 +265,44 @@ fn pointer_framed_skill_lets_the_agent_read_the_playbook() {
         "tool result hop carries the playbook text"
     );
     let _ = std::fs::remove_file(&p);
+}
+
+#[test]
+fn run_tools_clips_large_results_but_keeps_newlines_and_the_final_line() {
+    // A big multi-line `sys:read_file`-shaped result: many short lines, then a
+    // truncation notice as the final line that the agent MUST see verbatim to
+    // continue the read. The whole thing is well over the 6000-char budget.
+    let mut body = String::new();
+    for i in 0..2000 {
+        body.push_str(&format!("line {i}: some padding text here\n"));
+    }
+    let notice =
+        "\u{2026} (truncated at 64 KB \u{2014} file is 999999 bytes; continue with {\"offset\": 65536})";
+    body.push_str(notice);
+    assert!(body.len() > 6000, "fixture must exceed the clip budget");
+
+    let b = broker_with(FakeTools(Ok(body)));
+    let agent = std::sync::Arc::new(Scripted::new(&["got it\n@done"]));
+    let mut stats = RunStats::default();
+    let reply = b.run_tools(
+        agent.as_ref(),
+        "base prompt",
+        "reading\n@tool fs:read {\"path\": \"x\"}".into(),
+        &mut stats,
+        &env(),
+        &mut |_| {},
+    );
+    assert_eq!(reply, "got it\n@done");
+
+    let seen = agent.seen();
+    let follow = seen.last().expect("agent was dialed with the follow-up");
+    assert!(
+        follow.contains('\n'),
+        "clipped result must preserve newlines, got: {follow}"
+    );
+    assert!(
+        follow.contains(notice),
+        "clipped result must preserve the final line verbatim, got tail: {}",
+        &follow[follow.len().saturating_sub(200)..]
+    );
 }
