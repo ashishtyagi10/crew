@@ -60,6 +60,40 @@ fn collect_row<'a>(
     cells
 }
 
+/// Collects an HTML block (e.g. `<details>...</details>` on its own line)
+/// into a `Block::Paragraph` of verbatim text, so it renders as plain
+/// literal lines instead of silently vanishing — pulldown-cmark hands the
+/// whole thing back as `Html`/`Text` events per source line, each already
+/// ending in its own `"\n"`.
+pub(super) fn collect_html_block<'a>(events: &mut impl Iterator<Item = Event<'a>>) -> Block {
+    let mut buf = String::new();
+    loop {
+        match events.next() {
+            Some(Event::Html(t)) | Some(Event::Text(t)) => buf.push_str(&t),
+            Some(Event::End(TagEnd::HtmlBlock)) | None => break,
+            _ => {}
+        }
+    }
+    let mut lines: Vec<&str> = buf.split('\n').collect();
+    if lines.last().is_some_and(|l| l.is_empty()) {
+        lines.pop();
+    }
+    let mut spans = Vec::new();
+    for (i, line) in lines.into_iter().enumerate() {
+        if i > 0 {
+            spans.push(newline_marker());
+        }
+        if !line.is_empty() {
+            spans.push(MdSpan {
+                text: line.to_string(),
+                style: MdStyle::default(),
+                link: None,
+            });
+        }
+    }
+    Block::Paragraph(spans)
+}
+
 pub(super) fn collect_code_block<'a>(
     events: &mut impl Iterator<Item = Event<'a>>,
     kind: CodeBlockKind,

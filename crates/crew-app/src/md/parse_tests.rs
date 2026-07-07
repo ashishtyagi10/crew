@@ -112,6 +112,17 @@ fn successive_paragraphs_in_one_item_get_a_line_break_marker() {
 }
 
 #[test]
+fn html_blocks_render_verbatim() {
+    let blocks = parse("<details>\nhidden</details>\nafter");
+    let Block::Paragraph(spans) = &blocks[0] else {
+        panic!("expected a paragraph of verbatim lines: {blocks:?}")
+    };
+    let joined: String = spans.iter().map(|s| s.text.as_str()).collect();
+    assert!(joined.contains("<details>"), "{joined:?}");
+    assert!(joined.contains("hidden"), "{joined:?}");
+}
+
+#[test]
 fn blockquote_wraps_inner_blocks() {
     let blocks = parse("> quoted");
     assert!(matches!(&blocks[0], Block::BlockQuote(inner)

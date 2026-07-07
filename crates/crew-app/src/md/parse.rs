@@ -16,7 +16,7 @@ mod fold;
 #[path = "inline.rs"]
 mod inline;
 
-use fold::{collect_code_block, collect_list_items, collect_table};
+use fold::{collect_code_block, collect_html_block, collect_list_items, collect_table};
 use inline::collect_inline;
 
 /// Nesting cap for `BlockQuote`/`List`: past this depth, further nesting is
@@ -103,6 +103,7 @@ fn collect_blocks<'a>(
             Event::End(TagEnd::BlockQuote(_)) if inert > 0 => inert -= 1,
             Event::End(TagEnd::BlockQuote(_)) => break,
             Event::Start(Tag::Table(_)) => blocks.push(collect_table(events, keep_soft_breaks)),
+            Event::Start(Tag::HtmlBlock) => blocks.push(collect_html_block(events)),
             Event::Rule => blocks.push(Block::Rule),
             _ => {} // stray leaf/garbage events at block level: ignore
         }
