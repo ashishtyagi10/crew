@@ -1,7 +1,15 @@
-//! Markdown model shared by the parser (this task) and the layout/render
-//! pass (Task 2, `md::layout`). Kept intentionally dumb: no wrapping, no
-//! color — just parsed structure and inline styling.
+//! Markdown model shared by the parser and the layout/render pass. Kept
+//! intentionally dumb: no wrapping, no color — just parsed structure and
+//! inline styling.
+mod layout;
 mod parse;
+
+/// Parses `text` and lays it out into wrapped, styled lines ready to draw at
+/// `cols` columns. Never panics, regardless of input.
+#[allow(dead_code)] // wired into the chat pane in a later task
+pub(crate) fn render(text: &str, cols: usize) -> Vec<MdLine> {
+    layout::lines(parse::parse(text), cols)
+}
 
 /// Per-span inline styling. Independent bits so they can combine freely
 /// (`**bold _italic_**` yields a span with both `bold` and `italic` set).
