@@ -6,6 +6,7 @@
 use crew_render::CellView;
 
 use crate::chat::ChatPane;
+use crate::chatbody::CardCell;
 use crate::chatlayout::layout_cells;
 
 impl ChatPane {
@@ -166,3 +167,20 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
     ));
     cells
 }
+
+/// The URL a markdown link occupies at `(row, col)` in the message body, if
+/// any — Task 6's click hit-test. Re-derives `chatplace::placed_lines` with
+/// the same `cols`/`rows` geometry `cells` renders the message area at, so a
+/// click can never resolve against stale layout.
+pub(crate) fn link_at(pane: &ChatPane, cols: u16, rows: u16, row: u16, col: u16) -> Option<String> {
+    crate::chatplace::placed_lines(pane, cols, rows)
+        .into_iter()
+        .find(|(r, _)| *r == row)
+        .and_then(|(_, line)| line.get(col as usize).cloned())
+        .and_then(|cell: CardCell| cell.link)
+        .map(|l| l.to_string())
+}
+
+#[cfg(test)]
+#[path = "chatview_tests.rs"]
+mod tests;

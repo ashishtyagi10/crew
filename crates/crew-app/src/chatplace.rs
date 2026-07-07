@@ -67,9 +67,8 @@ pub(crate) fn msg_rows_budget(pane: &ChatPane, cols: u16, rows: u16) -> u16 {
 /// The scroll-windowed card-line placement for `pane`'s message area, each
 /// line tagged with its absolute row on the pane's `cols` × `rows_budget`
 /// grid (below `pane.status_rows`) — the same geometry `message_cells` draws.
-/// Task 6's link hit-test reads this to map a click back to its source line
-/// without re-deriving the card layout.
-#[allow(dead_code)] // consumed by Task 6's link hit-test; exercised by tests now
+/// Task 6's link hit-test (`chatview::link_at`) reads this to map a click
+/// back to its source line without re-deriving the card layout.
 pub(crate) fn placed_lines(pane: &ChatPane, cols: u16, rows_budget: u16) -> Vec<(u16, CardLine)> {
     if cols == 0 || rows_budget == 0 || pane.messages.is_empty() {
         return Vec::new();

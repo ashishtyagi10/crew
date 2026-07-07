@@ -5,11 +5,24 @@ use std::time::{Duration, Instant};
 
 use winit::event::{ElementState, MouseButton, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
+use winit::keyboard::ModifiersState;
 
 use crate::app::CrewApp;
 
 /// Max gap between two left clicks on the same pane to count as a double-click.
 const DOUBLE_CLICK: Duration = Duration::from_millis(400);
+
+/// The click-to-open modifier for this platform: Cmd on macOS (unchanged),
+/// Ctrl elsewhere — so Windows/Linux users get the familiar Ctrl+click
+/// without touching the mac convention. Drives both the terminal Cmd+click
+/// path and the chat markdown-link click path.
+fn open_modifier(state: ModifiersState) -> bool {
+    if cfg!(target_os = "macos") {
+        state.super_key()
+    } else {
+        state.control_key()
+    }
+}
 
 impl CrewApp {
     /// Handle one `WindowEvent` for the main window.
@@ -27,8 +40,9 @@ impl CrewApp {
                 button: MouseButton::Left,
                 ..
             } => {
-                // Cmd+click opens a URL / file / dir under the cursor.
-                if self.mods.state().super_key() && self.cmd_click_at_cursor() {
+                // Cmd+click (Ctrl+click off mac) opens a URL / file / dir in a
+                // terminal pane, or a markdown link in a chat pane.
+                if open_modifier(self.mods.state()) && self.cmd_click_at_cursor() {
                     self.redraw();
                     return;
                 }

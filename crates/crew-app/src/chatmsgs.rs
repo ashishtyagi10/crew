@@ -11,10 +11,11 @@ use crate::chatbody::{body_lines, plain, CardLine, Color};
 use crate::chatlayout::Message;
 use crate::chatplace::{line_cells, window};
 
-// Re-exported so callers (and Task 6's link hit-test) reach it as
-// `chatmsgs::placed_lines`, even though the placement logic itself lives in
+// Re-exported so this module's own tests reach it as `placed_lines` via
+// `use super::*`, even though the placement logic itself lives in
 // `chatplace` alongside the windowing helpers `message_cells` shares with it.
-#[allow(unused_imports)] // consumed by Task 6; exercised by tests now
+// `chatview::link_at` imports it from `chatplace` directly.
+#[allow(unused_imports)]
 pub(crate) use crate::chatplace::placed_lines;
 
 /// The card header's gutter glyph (▍), in the sender's colour.

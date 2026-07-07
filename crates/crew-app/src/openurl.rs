@@ -46,10 +46,11 @@ pub(crate) fn url_at(line: &str, col: usize) -> Option<String> {
 }
 
 impl CrewApp {
-    /// The row text and character column under the cursor in a terminal pane
-    /// (content rows only; the title bar is excluded). Drives Cmd+click.
-    pub(crate) fn cursor_cell(&self) -> Option<(String, usize)> {
-        let i = self.pane_at_cursor()?;
+    /// The `(row, col)` content-grid cell under the cursor in pane `i`'s rect
+    /// (content rows only; the title bar is excluded). Shared pixel→cell math
+    /// for both the terminal Cmd+click path (`cursor_cell`, below) and the
+    /// chat-pane link hit-test in `clickopen`.
+    pub(crate) fn cursor_rowcol(&self, i: usize) -> Option<(i32, i32)> {
         let (cw, ch, _sw, _sh, _scale) = self.frame_geometry()?;
         let rect = self
             .pane_hit_rects()
@@ -62,6 +63,14 @@ impl CrewApp {
         if col < 0 || row < 0 {
             return None;
         }
+        Some((row, col))
+    }
+
+    /// The row text and character column under the cursor in a terminal pane.
+    /// Drives Cmd+click.
+    pub(crate) fn cursor_cell(&self) -> Option<(String, usize)> {
+        let i = self.pane_at_cursor()?;
+        let (row, col) = self.cursor_rowcol(i)?;
         let pane = &self.panes[i];
         let PaneContent::Terminal(t) = &pane.content else {
             return None;

@@ -16,9 +16,8 @@ pub(crate) struct CardCell {
     pub bold: bool,
     pub italic: bool,
     pub bg: Option<Color>,
-    // Unread until Task 6's click hit-test lands; keep it here now since
-    // `chatmd` already populates it from `MdSpan::link`.
-    #[allow(dead_code)]
+    /// The URL a markdown link span resolves to; read by Task 6's click
+    /// hit-test (`chatview::link_at`) to recover it without re-parsing.
     pub link: Option<std::sync::Arc<str>>,
 }
 
