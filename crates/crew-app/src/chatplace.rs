@@ -86,6 +86,7 @@ pub(crate) fn placed_lines(pane: &ChatPane, cols: u16, rows_budget: u16) -> Vec<
         &pane.messages,
         cols as usize,
         crate::chattime::unix_now_ms(),
+        pane.show_source,
     );
     window(lines, rows, top, pane.scroll)
 }

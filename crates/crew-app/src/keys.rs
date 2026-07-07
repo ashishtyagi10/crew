@@ -87,6 +87,21 @@ impl CrewApp {
             return;
         }
 
+        // Ctrl+Shift+M toggles markdown source view on the focused chat pane.
+        if event.state.is_pressed()
+            && mstate.control_key()
+            && mstate.shift_key()
+            && matches!(&event.logical_key, Key::Character(s) if s.eq_ignore_ascii_case("m"))
+        {
+            if let Some(pane) = self.panes.get_mut(self.focused) {
+                if let PaneContent::Chat(c) = &mut pane.content {
+                    c.show_source = !c.show_source;
+                }
+            }
+            self.redraw();
+            return;
+        }
+
         // Super-chords (e.g. Cmd+I, Cmd+T, …) are handled first.
         if mstate.super_key() && event.state.is_pressed() {
             if let Key::Character(s) = &event.logical_key {

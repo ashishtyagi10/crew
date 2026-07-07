@@ -81,8 +81,13 @@ fn header_line(m: &Message, now_ms: u64) -> CardLine {
 
 /// All messages as card lines: header, body, spacer between cards. Visible
 /// to `chatplace` so `placed_lines` can build the same lines `message_cells`
-/// draws.
-pub(crate) fn card_lines(messages: &[Message], cols: usize, now_ms: u64) -> Vec<CardLine> {
+/// draws. When `source` is true, messages render as plain text instead of markdown.
+pub(crate) fn card_lines(
+    messages: &[Message],
+    cols: usize,
+    now_ms: u64,
+    source: bool,
+) -> Vec<CardLine> {
     let mut out: Vec<CardLine> = Vec::new();
     for (i, m) in messages.iter().enumerate() {
         if i > 0 {
@@ -95,7 +100,7 @@ pub(crate) fn card_lines(messages: &[Message], cols: usize, now_ms: u64) -> Vec<
             "crew" | "system" | "broker" => crew_theme::theme().text_muted,
             _ => crew_theme::theme().ink,
         };
-        out.extend(body_lines(&m.text, cols, fg));
+        out.extend(body_lines(&m.text, cols, fg, source));
         // A just-landed card fades in from the page colour (see `fade_t`).
         let t = fade_t(&m.ts, now_ms);
         if t < 1.0 {
@@ -111,27 +116,34 @@ pub(crate) fn card_lines(messages: &[Message], cols: usize, now_ms: u64) -> Vec<
 }
 
 /// Total card lines for the given width — the scroll clamp for the card view.
-pub(crate) fn card_line_count(messages: &[Message], cols: u16) -> usize {
+pub(crate) fn card_line_count(messages: &[Message], cols: u16, source: bool) -> usize {
     if cols == 0 {
         return 0;
     }
-    card_lines(messages, cols as usize, 0).len()
+    card_lines(messages, cols as usize, 0, source).len()
 }
 
 /// Render the card view of `messages` into `rows` rows starting at `top_row`,
-/// scrolled `scroll` lines up from the live bottom.
+/// scrolled `scroll` lines up from the live bottom. When `source` is true,
+/// messages render as plain text instead of markdown.
 pub(crate) fn message_cells(
     messages: &[Message],
     cols: u16,
     rows: u16,
     top_row: u16,
     scroll: usize,
+    source: bool,
 ) -> Vec<CellView> {
     if cols == 0 || rows == 0 {
         return Vec::new();
     }
     let page = crew_theme::theme().page_bg;
-    let lines = card_lines(messages, cols as usize, crate::chattime::unix_now_ms());
+    let lines = card_lines(
+        messages,
+        cols as usize,
+        crate::chattime::unix_now_ms(),
+        source,
+    );
     window(lines, rows, top_row, scroll)
         .iter()
         .flat_map(|(row, line)| line_cells(*row, line, cols, page))

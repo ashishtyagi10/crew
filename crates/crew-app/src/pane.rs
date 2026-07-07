@@ -80,7 +80,13 @@ impl Pane {
                     }
                 }
             }
-            PaneContent::Chat(_) => "chat".into(),
+            PaneContent::Chat(c) => {
+                if c.show_source {
+                    "chat · source".into()
+                } else {
+                    "chat".into()
+                }
+            }
             PaneContent::Settings(_) => "settings".into(),
             PaneContent::Far(_) => "far".into(),
             PaneContent::Swarm(_) => "swarm".into(),

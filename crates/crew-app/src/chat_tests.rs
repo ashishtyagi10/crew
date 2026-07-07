@@ -443,3 +443,133 @@ fn slash_compact_folds_old_messages_without_reaching_the_broker() {
     assert_eq!(p.messages.len(), 4, "3 kept + 1 marker");
     assert_eq!(p.messages.last().unwrap().text, "m9");
 }
+
+#[test]
+fn show_source_false_renders_bold_markdown() {
+    // When show_source is false (default), **bold** text should render with bold cells.
+    let mut p = pane();
+    p.messages.push(crate::chatlayout::Message {
+        sender: "alice".into(),
+        text: "**bold**".into(),
+        ts: String::new(),
+        meta: String::new(),
+    });
+    assert_eq!(p.show_source, false, "show_source defaults to false");
+
+    let lines = crate::chatmsgs::card_lines(&p.messages, 80, 0, p.show_source);
+    // First line is the header (▍ alice ...)
+    // Remaining lines are the body with the bold text
+    let body_lines: Vec<_> = lines.iter().skip(1).collect();
+    assert!(!body_lines.is_empty(), "body should have lines");
+
+    // Check that at least one cell in the body is bold
+    let has_bold = body_lines.iter().any(|line| line.iter().any(|c| c.bold));
+    assert!(
+        has_bold,
+        "preview mode should have bold cells for **bold** text"
+    );
+
+    // Check that the literal ** characters are NOT in the output
+    let body_text: String = body_lines
+        .iter()
+        .flat_map(|l| l.iter().map(|c| c.c))
+        .collect();
+    assert!(
+        !body_text.contains("**"),
+        "preview mode should render markdown, not show literal ** chars"
+    );
+}
+
+#[test]
+fn show_source_true_shows_literal_text() {
+    // When show_source is true, **bold** should be literal text with no bold cells.
+    let mut p = pane();
+    p.show_source = true;
+    p.messages.push(crate::chatlayout::Message {
+        sender: "alice".into(),
+        text: "**bold**".into(),
+        ts: String::new(),
+        meta: String::new(),
+    });
+
+    let lines = crate::chatmsgs::card_lines(&p.messages, 80, 0, p.show_source);
+    let body_lines: Vec<_> = lines.iter().skip(1).collect();
+    assert!(!body_lines.is_empty(), "body should have lines");
+
+    // Check that NO cell is bold
+    let has_bold = body_lines.iter().any(|line| line.iter().any(|c| c.bold));
+    assert!(
+        !has_bold,
+        "source mode should have no bold cells; all cells should be plain"
+    );
+
+    // Check that the literal ** characters ARE in the output
+    let body_text: String = body_lines
+        .iter()
+        .flat_map(|l| l.iter().map(|c| c.c))
+        .collect();
+    assert!(
+        body_text.contains("**"),
+        "source mode should show literal ** chars: {body_text}"
+    );
+}
+
+#[test]
+fn show_source_false_chat_title_has_no_suffix() {
+    // When show_source is false (default), the title should be just "chat".
+    let p = pane();
+    assert_eq!(p.show_source, false);
+
+    // Create a Pane wrapper to use title_text
+    let pane = crate::pane::Pane {
+        content: crate::pane::PaneContent::Chat(p),
+        grid: crew_term::GridSize { cols: 80, rows: 24 },
+        rect: crate::layout::Rect {
+            x: 0.0,
+            y: 0.0,
+            w: 0.0,
+            h: 0.0,
+        },
+        label: None,
+        name: None,
+        dir: None,
+        activity: false,
+        bell: false,
+    };
+
+    let title = pane.title_text();
+    assert_eq!(
+        title, "chat",
+        "title should be just 'chat' when show_source is false"
+    );
+}
+
+#[test]
+fn show_source_true_chat_title_has_source_suffix() {
+    // When show_source is true, the title should be "chat · source".
+    let mut p = pane();
+    p.show_source = true;
+
+    // Create a Pane wrapper to use title_text
+    let pane = crate::pane::Pane {
+        content: crate::pane::PaneContent::Chat(p),
+        grid: crew_term::GridSize { cols: 80, rows: 24 },
+        rect: crate::layout::Rect {
+            x: 0.0,
+            y: 0.0,
+            w: 0.0,
+            h: 0.0,
+        },
+        label: None,
+        name: None,
+        dir: None,
+        activity: false,
+        bell: false,
+    };
+
+    let title = pane.title_text();
+    assert_eq!(
+        title, "chat · source",
+        "title should be 'chat · source' when show_source is true"
+    );
+}
