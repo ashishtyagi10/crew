@@ -308,6 +308,25 @@ fn run_tools_clips_large_results_but_keeps_newlines_and_the_final_line() {
 }
 
 #[test]
+fn clip_result_keeps_the_final_line_when_it_alone_fits_the_budget() {
+    // Final line is UNDER max but within the marker's width of it (the "bad
+    // band"): the old `reserved >= max` check fired here and hard-capped,
+    // dropping the verbatim final line the continuation protocol needs.
+    let max = 6000usize;
+    let head = "line one\nline two\n".repeat(50);
+    let last_line = "y".repeat(max - 10);
+    let text = format!("{head}{last_line}");
+    assert!(text.chars().count() > max, "fixture must exceed the budget");
+
+    let clipped = clip_result(&text, max);
+    assert!(
+        clipped.ends_with(&last_line),
+        "final line must survive verbatim when it alone fits the budget, got tail: {}",
+        &clipped[clipped.len().saturating_sub(50)..]
+    );
+}
+
+#[test]
 fn run_tools_clips_single_line_results_with_no_newline() {
     // Minified/base64-shaped output: no embedded newline at all, so the
     // "final line" is the entire text. clip_result must still hard-cap it
