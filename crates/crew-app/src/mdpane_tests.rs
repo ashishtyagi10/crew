@@ -130,6 +130,27 @@ fn clamp_scrolls_caps_a_huge_offset_to_the_real_last_page() {
     assert_eq!(p.scroll_src, before - 1);
 }
 
+// Finding 2 (Important, phase-2 final review): the wrapped-source/preview
+// cache must never serve stale content across a `reload` even when the
+// column width hasn't changed.
+#[test]
+fn reload_shows_new_content_even_when_cached_at_the_same_width() {
+    let path = std::env::temp_dir().join("crew_mdpane_cache_reload_test.md");
+    std::fs::write(&path, "line1\nline2").unwrap();
+    let mut p = MdPane::new(path.clone(), "line1\nline2".to_string());
+    let cells = p.cells(41, 5);
+    assert!(row_text(&cells, 1).contains("line2"));
+    std::fs::write(&path, "line1\nfresh").unwrap();
+    assert!(p.reload().is_ok());
+    let cells = p.cells(41, 5);
+    assert!(
+        row_text(&cells, 1).contains("fresh"),
+        "expected reloaded content to render, got {:?}",
+        row_text(&cells, 1)
+    );
+    let _ = std::fs::remove_file(&path);
+}
+
 #[test]
 fn tiny_and_zero_cols_never_panic() {
     let p = pane("hello **world**\nmore text here");

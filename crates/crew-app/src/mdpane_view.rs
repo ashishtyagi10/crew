@@ -1,12 +1,12 @@
 //! `MdPane::cells`: draws the numbered source half, the muted divider
-//! column, and the styled preview half (via `mdpane::preview_lines`, shared
-//! with `MdPane::link_at`) into one `CellView` list.
+//! column, and the styled preview half — both halves' lines come from
+//! `MdPane::cache_for` (`mdcache`), shared with `MdPane::link_at` — into
+//! one `CellView` list.
 use crew_render::CellView;
 
-use crate::mdpane::{geometry, preview_lines, window_top, MdPane, Side};
-
-/// Right-aligned line-number width (4 digits) plus one separating space.
-const GUTTER_W: usize = 5;
+use crate::chatbody::CardLine;
+use crate::mdcache::GUTTER_W;
+use crate::mdpane::{geometry, window_top, MdPane, Side};
 
 impl MdPane {
     /// Caps both scroll offsets to their content's last full page at this
@@ -22,37 +22,48 @@ impl MdPane {
             return;
         }
         let (left_w, _, _, right_w) = geometry(cols);
+        let (src_len, prev_len) = {
+            let cache = self.cache_for(cols);
+            (cache.wrapped_src.len(), cache.preview.len())
+        };
         if left_w > 0 {
-            let text_w = left_w.saturating_sub(GUTTER_W);
-            let len = wrap_source(&self.source, text_w).len();
-            self.scroll_src = self.scroll_src.min(len.saturating_sub(rows as usize));
+            self.scroll_src = self.scroll_src.min(src_len.saturating_sub(rows as usize));
         }
         if right_w > 0 {
-            let len = preview_lines(&self.source, right_w).len();
-            self.scroll_prev = self.scroll_prev.min(len.saturating_sub(rows as usize));
+            self.scroll_prev = self.scroll_prev.min(prev_len.saturating_sub(rows as usize));
         }
     }
 
     /// Renders both halves of the split into `cols` × `rows` cells. Never
     /// panics: `cols == 0 || rows == 0` (and any `cols` too small for a
-    /// half) simply draw less, down to just the divider column.
+    /// half) simply draw less, down to just the divider column. Reads
+    /// wrapped-source/preview lines through `cache_for` rather than
+    /// re-parsing the whole file every redraw.
     pub(crate) fn cells(&self, cols: u16, rows: u16) -> Vec<CellView> {
         if cols == 0 || rows == 0 {
             return Vec::new();
         }
         let (left_w, divider_col, right_start, right_w) = geometry(cols);
         let mut out = divider_cells(divider_col, rows);
-        if left_w > 0 {
-            out.extend(source_cells(&self.source, left_w, rows, self.scroll_src));
-        }
-        if right_w > 0 {
-            out.extend(preview_cells(
-                &self.source,
-                right_w,
-                rows,
-                self.scroll_prev,
-                right_start,
-            ));
+        {
+            let cache = self.cache_for(cols);
+            if left_w > 0 {
+                out.extend(source_cells(
+                    &cache.wrapped_src,
+                    left_w,
+                    rows,
+                    self.scroll_src,
+                ));
+            }
+            if right_w > 0 {
+                out.extend(preview_cells(
+                    &cache.preview,
+                    right_w,
+                    rows,
+                    self.scroll_prev,
+                    right_start,
+                ));
+            }
         }
         let has_room = match self.active {
             Side::Source => left_w > 0,
@@ -104,33 +115,15 @@ fn divider_cells(divider_col: u16, rows: u16) -> Vec<CellView> {
         .collect()
 }
 
-/// Hard-wraps `source` at `text_w` display columns, tagging every wrapped
-/// row with its 1-based source line number (continuation rows share their
-/// line's number so callers know whether to reprint the gutter digits).
-fn wrap_source(source: &str, text_w: usize) -> Vec<(usize, Vec<char>)> {
-    let mut out = Vec::new();
-    for (i, line) in source.split('\n').enumerate() {
-        let n = i + 1;
-        let chars: Vec<char> = line.chars().collect();
-        if text_w == 0 || chars.is_empty() {
-            out.push((n, Vec::new()));
-            continue;
-        }
-        let mut s = 0;
-        while s < chars.len() {
-            let e = crate::chatwidth::fit_end(&chars, s, text_w);
-            out.push((n, chars[s..e].to_vec()));
-            s = e;
-        }
-    }
-    out
-}
-
 /// The source half: a 4-col right-aligned muted line number + space, then
-/// the hard-wrapped raw text, scrolled top-anchored by `scroll`.
-fn source_cells(source: &str, left_w: usize, rows: u16, scroll: usize) -> Vec<CellView> {
-    let text_w = left_w.saturating_sub(GUTTER_W);
-    let wrapped = wrap_source(source, text_w);
+/// the hard-wrapped raw text (precomputed by `mdcache::wrap_source`,
+/// reached via `MdPane::cache_for`), scrolled top-anchored by `scroll`.
+fn source_cells(
+    wrapped: &[(usize, Vec<char>)],
+    left_w: usize,
+    rows: u16,
+    scroll: usize,
+) -> Vec<CellView> {
     let (start, end) = window_top(wrapped.len(), rows as usize, scroll);
     let muted = crew_theme::theme().text_muted;
     let ink = crew_theme::theme().ink;
@@ -168,16 +161,16 @@ fn source_cells(source: &str, left_w: usize, rows: u16, scroll: usize) -> Vec<Ce
 }
 
 /// The preview half: `md::render` mapped to styled card lines exactly like
-/// chat (`mdpane::preview_lines`), scrolled top-anchored by `scroll` and
-/// shifted `right_start` columns right of the divider.
+/// chat (`mdpane::preview_lines`, precomputed by `MdPane::cache_for`),
+/// scrolled top-anchored by `scroll` and shifted `right_start` columns right
+/// of the divider.
 fn preview_cells(
-    source: &str,
+    lines: &[CardLine],
     right_w: usize,
     rows: u16,
     scroll: usize,
     right_start: u16,
 ) -> Vec<CellView> {
-    let lines = preview_lines(source, right_w);
     let (start, end) = window_top(lines.len(), rows as usize, scroll);
     let page = crew_theme::theme().page_bg;
     let mut out = Vec::new();

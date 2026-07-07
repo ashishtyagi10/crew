@@ -1,13 +1,16 @@
 //! The markdown file-viewer pane: a source|preview split over one file.
-//! `mdpane_view` builds the `CellView`s (`cells`); this file owns the model,
-//! the shared split geometry / scroll math both `cells` and `link_at` need,
-//! and the click hit-test.
+//! `mdpane_view` builds the `CellView`s (`cells`); `mdcache` precomputes the
+//! wrapped-source/preview lines both halves render from; this file owns the
+//! model, the shared split geometry / scroll math, and the click hit-test.
+use std::cell::RefCell;
 use std::path::PathBuf;
 
 use winit::event::KeyEvent;
 
-use crate::chatbody::CardLine;
+use crate::mdcache::MdCache;
 use crate::mdkeys::{self, MdAction};
+#[cfg(test)]
+use std::cell::Cell;
 
 /// Which half of the split is receiving input — Tab (`mdkeys::reduce`)
 /// toggles this and it routes scrolling and marks the active-side indicator.
@@ -38,6 +41,17 @@ pub(crate) struct MdPane {
     /// the pane's width, so it can't be clamped up front).
     pub scroll_src: usize,
     pub scroll_prev: usize,
+    /// Precomputed wrapped-source/preview lines for the last `cols` this
+    /// pane rendered at (see `mdcache::cache_for`); `None` before the first
+    /// render or right after a `reload`. `RefCell` because `cells`/`link_at`
+    /// only need a shared `&self` to draw/hit-test — this is the one piece
+    /// of mutable state that has to live behind interior mutability instead.
+    /// `pub(crate)` so `mdcache`'s `impl MdPane` block can reach it.
+    pub(crate) cache: RefCell<Option<MdCache>>,
+    /// Counts cache rebuilds so tests can pin "the cache is reused, not
+    /// rebuilt every call" without depending on wall-clock timing.
+    #[cfg(test)]
+    pub(crate) rebuilds: Cell<u32>,
 }
 
 impl MdPane {
@@ -49,6 +63,9 @@ impl MdPane {
             active: Side::Source,
             scroll_src: 0,
             scroll_prev: 0,
+            cache: RefCell::new(None),
+            #[cfg(test)]
+            rebuilds: Cell::new(0),
         }
     }
 
@@ -66,13 +83,13 @@ impl MdPane {
             return None; // source side, divider column, or no room to render
         }
         let local_col = col - right_start;
-        let lines = preview_lines(&self.source, right_w);
-        let (start, end) = window_top(lines.len(), rows as usize, self.scroll_prev);
+        let cache = self.cache_for(cols);
+        let (start, end) = window_top(cache.preview.len(), rows as usize, self.scroll_prev);
         let idx = start + row as usize;
         if idx >= end {
             return None;
         }
-        crate::chatplace::cell_at_col(&lines[idx], local_col)
+        crate::chatplace::cell_at_col(&cache.preview[idx], local_col)
             .and_then(|cell| cell.link.as_deref())
             .map(str::to_string)
     }
@@ -137,6 +154,9 @@ impl MdPane {
         match std::fs::read_to_string(&self.path) {
             Ok(s) => {
                 self.source = s;
+                // The cache keys only on `cols`, not content, so a same-width
+                // reload would otherwise keep serving the stale lines.
+                *self.cache.get_mut() = None;
                 Ok(())
             }
             Err(e) => Err(format!("md: cannot read {}: {e}", self.path.display())),
@@ -164,23 +184,6 @@ pub(crate) fn window_top(len: usize, rows: usize, scroll: usize) -> (usize, usiz
     let start = scroll.min(max_start);
     let end = (start + rows).min(len);
     (start, end)
-}
-
-/// `source` rendered through the shared markdown engine and mapped to card
-/// lines exactly like chat bodies (`chatmd::map_lines`), at `right_w`
-/// columns — the single place both `cells` and `link_at` read the preview
-/// half from, so a click always resolves the same line it's drawn on.
-///
-/// `chatmd::map_lines` prepends an unconditional one-column indent cell to
-/// every line (matching the chat card layout it shares code with), so
-/// content is wrapped one column narrower than `right_w`, same as
-/// `chatbody::body_lines` does for chat cards — otherwise the last column of
-/// every width-filling row would be clipped when `line_cells` draws at
-/// `right_w` columns.
-pub(crate) fn preview_lines(source: &str, right_w: usize) -> Vec<CardLine> {
-    let fg = crew_theme::theme().ink;
-    let content_w = right_w.saturating_sub(1);
-    crate::chatmd::map_lines(crate::md::render(source, content_w), content_w, fg)
 }
 
 #[cfg(test)]

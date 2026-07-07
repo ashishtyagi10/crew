@@ -66,6 +66,7 @@ mod layout;
 mod linkhl;
 mod load;
 mod md;
+mod mdcache;
 mod mdkeys;
 mod mdpane;
 mod mdpane_view;
