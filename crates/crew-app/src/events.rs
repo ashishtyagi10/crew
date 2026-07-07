@@ -46,6 +46,14 @@ impl CrewApp {
                     self.redraw();
                     return;
                 }
+                // The ▾ border button minimizes the pane into the left nav. It
+                // must win over the focus path so the click neither focuses
+                // the pane nor arms a drag selection.
+                if let Some(i) = self.min_btn_at_cursor() {
+                    self.minimize_pane(i);
+                    self.redraw();
+                    return;
+                }
                 // Focus the surface and arm a drag selection on a terminal pane.
                 if let Some(i) = self.selection_press() {
                     // A second click on the same pane within 400ms toggles zoom;

@@ -46,6 +46,7 @@ impl CrewApp {
                 title: p.title_text(),
                 focused: i == self.focused,
                 activity: p.activity,
+                minimized: p.hidden,
             })
             .collect();
         let sidebar = &self.sidebar;

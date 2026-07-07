@@ -53,6 +53,10 @@ pub struct Pane {
     pub activity: bool,
     /// The program rang the bell since this pane was last focused.
     pub bell: bool,
+    /// User-minimized into the left-nav PANES list (the `▾` border button):
+    /// excluded from the grid (and the LRU strip) until focused again. Named
+    /// `hidden` because "minimized" already means the LRU bottom strip.
+    pub hidden: bool,
 }
 
 impl Pane {
@@ -166,6 +170,7 @@ pub fn spawn_pane(
         dir: cwd.map(Path::to_path_buf),
         activity: false,
         bell: false,
+        hidden: false,
     })
 }
 
@@ -254,6 +259,7 @@ mod tests {
             dir: None,
             activity: false,
             bell: false,
+            hidden: false,
         };
         assert_eq!(p.title_text(), "settings");
         p.name = Some("build".into());

@@ -34,6 +34,24 @@ impl CrewApp {
         (idx < self.panes.len()).then_some(idx)
     }
 
+    /// Which full tile's `▾` minimize button sits under the cursor, if any.
+    /// Zoom draws no button (`build_scenes` passes `min_btn: false`), so the
+    /// zoomed view never reports one.
+    pub(crate) fn min_btn_at_cursor(&self) -> Option<usize> {
+        if self.zoomed {
+            return None;
+        }
+        let (cw, ch, sw, sh, scale) = self.frame_geometry()?;
+        let ih = chrome::input_h(ch);
+        let content =
+            chrome::content_rect(sw, sh, self.config.show_nav, self.nav_px(scale), GAP, ih);
+        let placed = crate::grid::compose_grid(content, &self.grid, ch, GAP);
+        placed.full.into_iter().find_map(|(idx, r)| {
+            let hit = crate::panecard::min_btn_rect(r, cw, ch)?;
+            chrome::point_in(hit, self.cursor.0, self.cursor.1).then_some(idx)
+        })
+    }
+
     /// Whether the cursor is over the docked input bar.
     pub(crate) fn cursor_in_input(&self) -> bool {
         let Some((_cw, ch, sw, sh, scale)) = self.frame_geometry() else {

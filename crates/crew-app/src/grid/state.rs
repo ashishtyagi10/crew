@@ -30,6 +30,13 @@ impl GridLayout {
         }
     }
 
+    /// Drop every index `keep` rejects, without reindexing the rest — the
+    /// panes vec is untouched (used for panes hidden into the left nav, which
+    /// still exist at their index). Contrast [`Self::on_close`], which shifts.
+    pub fn retain(&mut self, keep: impl Fn(usize) -> bool) {
+        self.order.retain(|&x| keep(x));
+    }
+
     /// Remove `idx`, then shift every stored index above it down by one to
     /// match `Vec::remove` reindexing the panes after a close.
     pub fn on_close(&mut self, idx: usize) {
@@ -55,6 +62,7 @@ impl GridLayout {
         &self.order[self.split()..]
     }
 
+    #[cfg(test)]
     pub fn len(&self) -> usize {
         self.order.len()
     }

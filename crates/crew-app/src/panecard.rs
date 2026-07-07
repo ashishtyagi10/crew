@@ -23,6 +23,33 @@ pub(crate) struct Bar<'a> {
     /// `Some(now_ms)` when the pane is busy: animate an indeterminate sweep along
     /// the bottom border at that time. `None` leaves the border static.
     pub busy: Option<u64>,
+    /// Draw the `▾` minimize button on the top border (full grid tiles only —
+    /// not the zoomed view or strip thumbnails). Click regions come from
+    /// [`min_btn_rect`], which shares [`MIN_BTN_COLS`] so draw and hit agree.
+    pub min_btn: bool,
+}
+
+/// Narrowest card (in cells, border included) that carries the minimize
+/// button — below this there's no room for a legible click target.
+const MIN_BTN_COLS: u16 = 8;
+
+/// Pixel rect of the `▾` minimize button on a full tile at `rect`: a
+/// 3-cell-wide row-0 target centered on the glyph (card column `cols - 3`).
+/// `None` when the card is too narrow to carry the button. Mirrors
+/// `relayout_one`'s rect→cols math so it lands on the drawn glyph exactly.
+pub(crate) fn min_btn_rect(rect: Rect, cw: f32, ch: f32) -> Option<Rect> {
+    let icols = ((rect.w / cw).floor() as u16).saturating_sub(2).max(1);
+    let cols = icols + 2;
+    if cols < MIN_BTN_COLS {
+        return None;
+    }
+    let glyph = cols - 3;
+    Some(Rect {
+        x: rect.x + f32::from(glyph - 1) * cw,
+        y: rect.y,
+        w: 3.0 * cw,
+        h: ch,
+    })
 }
 
 /// Overwrite (or append) the cell at `(col, row)` in `v` — used to drop status
@@ -80,6 +107,11 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
     }
     // Status glyphs ride the top-right border, stepping left from the corner.
     let mut rx = cols.saturating_sub(3);
+    // The minimize button claims the corner slot; status glyphs step past it.
+    if b.min_btn && cols >= MIN_BTN_COLS {
+        put(&mut v, rx, 0, '▾', legend);
+        rx = rx.saturating_sub(2);
+    }
     if b.scroll > 0 {
         let s = format!("⇡{}", b.scroll);
         let w = s.chars().count() as u16;

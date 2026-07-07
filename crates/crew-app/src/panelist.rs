@@ -13,6 +13,9 @@ pub struct PaneRow {
     pub title: String,
     pub focused: bool,
     pub activity: bool,
+    /// Minimized into the nav (the pane's `▾` border button): drawn with a `▿`
+    /// marker; clicking the row focuses the pane, which restores it.
+    pub minimized: bool,
 }
 
 /// Render the PANES section: a `PANES` rule on row 0, then one row per pane
@@ -22,7 +25,17 @@ pub fn pane_cells(panes: &[PaneRow], cols: u16, limit: usize) -> Vec<CellView> {
     let mut out = section_header("PANES", cols, t.border_normal, accent(), t.page_bg);
     for (k, p) in panes.iter().take(limit).enumerate() {
         let row = 1 + k as u16;
-        let head = format!("{} {}", if p.focused { '▸' } else { ' ' }, p.index);
+        // Marker: ▿ minimized-to-nav, ▸ focused. A keyboard-focused pane is
+        // never minimized (focusing restores it); the flags only overlap while
+        // the input bar holds focus, where "minimized" is the truer state.
+        let mark = if p.minimized {
+            '▿'
+        } else if p.focused {
+            '▸'
+        } else {
+            ' '
+        };
+        let head = format!("{mark} {}", p.index);
         let head_fg = if p.focused { accent() } else { t.text_muted };
         write(&mut out, &head, 2, row, head_fg, cols - 1, t.page_bg);
         let tstart = 2 + head.chars().count() as u16 + 1;
@@ -86,7 +99,23 @@ mod tests {
             title: title.into(),
             focused,
             activity,
+            minimized: false,
         }
+    }
+
+    #[test]
+    fn pane_cells_marks_minimized_panes() {
+        let panes = [
+            row(1, "build", true, false),
+            PaneRow {
+                minimized: true,
+                ..row(2, "server", false, false)
+            },
+        ];
+        let cells = pane_cells(&panes, 24, 10);
+        // The minimized pane's row carries the ▿ marker where ▸ would sit.
+        assert!(cells.iter().any(|c| c.c == '▿' && c.row == 2));
+        assert!(!cells.iter().any(|c| c.c == '▿' && c.row == 1));
     }
 
     #[test]

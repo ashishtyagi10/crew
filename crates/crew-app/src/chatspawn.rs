@@ -48,6 +48,7 @@ impl CrewApp {
                     dir: None,
                     activity: false,
                     bell: false,
+                    hidden: false,
                 });
                 self.focus_new_pane();
             }
