@@ -135,7 +135,7 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
             &pane.agents,
         ));
     } else {
-        let msg_rows = rows.saturating_sub(top + bottom);
+        let msg_rows = crate::chatplace::msg_rows_budget(pane, cols, rows);
         cells.extend(crate::chatmsgs::message_cells(
             &pane.messages,
             cols,

@@ -17,9 +17,10 @@ pub(crate) fn window(
     let max_start = lines.len().saturating_sub(rows as usize);
     let start = max_start.saturating_sub(scroll);
     let end = (start + rows as usize).min(lines.len());
-    lines[start..end]
-        .iter()
-        .cloned()
+    lines
+        .into_iter()
+        .skip(start)
+        .take(end - start)
         .enumerate()
         .map(|(i, line)| (top_row + i as u16, line))
         .collect()
@@ -52,6 +53,17 @@ pub(crate) fn line_cells(row: u16, line: &CardLine, cols: u16, page: Color) -> V
     cells
 }
 
+/// The message-area row budget for `pane`'s `cols` × `rows` grid: `rows`
+/// minus the status rows above (session line + agent chips, via
+/// `status_rows`) and the composer rows below (via `composer_rows`). The
+/// single source both `chatview::cells` and `placed_lines` call, so the two
+/// can never drift apart on how many rows the message body gets.
+pub(crate) fn msg_rows_budget(pane: &ChatPane, cols: u16, rows: u16) -> u16 {
+    let top = pane.status_rows(cols, rows);
+    let bottom = crate::chatinput::composer_rows(rows);
+    rows.saturating_sub(top + bottom)
+}
+
 /// The scroll-windowed card-line placement for `pane`'s message area, each
 /// line tagged with its absolute row on the pane's `cols` × `rows_budget`
 /// grid (below `pane.status_rows`) — the same geometry `message_cells` draws.
@@ -66,8 +78,7 @@ pub(crate) fn placed_lines(pane: &ChatPane, cols: u16, rows_budget: u16) -> Vec<
     if top == 0 {
         return Vec::new(); // too short for the card view (plain fallback)
     }
-    let bottom = crate::chatinput::composer_rows(rows_budget);
-    let rows = rows_budget.saturating_sub(top + bottom);
+    let rows = msg_rows_budget(pane, cols, rows_budget);
     if rows == 0 {
         return Vec::new();
     }

@@ -256,3 +256,35 @@ fn message_cells_is_a_thin_map_over_placed_lines() {
         "sanity: the pane should render some cells"
     );
 }
+
+#[test]
+fn msg_rows_budget_matches_view_math() {
+    // Enough messages to overflow a modest pane, so `placed_lines` actually
+    // gets clipped by the budget rather than trivially fitting everything.
+    let messages: Vec<Message> = (0..30)
+        .map(|i| msg("planner", &format!("line {i}")))
+        .collect();
+    let pane = test_pane(messages);
+    let (cols, rows) = (40u16, 20u16);
+
+    let budget = crate::chatplace::msg_rows_budget(&pane, cols, rows);
+    let top = pane.status_rows(cols, rows);
+    let placed = placed_lines(&pane, cols, rows);
+
+    assert!(
+        !placed.is_empty(),
+        "sanity: overflowing pane still places lines"
+    );
+    assert!(
+        placed.len() as u16 <= budget,
+        "placed_lines returned more rows ({}) than the shared budget ({budget})",
+        placed.len()
+    );
+    for (row, _) in &placed {
+        assert!(
+            *row >= top && *row < top + budget,
+            "row {row} outside the message-area budget [{top}, {})",
+            top + budget
+        );
+    }
+}
