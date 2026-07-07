@@ -63,8 +63,9 @@ fn wrap_prose_lines(spans: Vec<MdSpan>, cols: usize) -> Vec<MdLine> {
 fn code_block_lines(lang: String, src_lines: Vec<String>, cols: usize) -> Vec<MdLine> {
     let cw = cols.max(1);
     let lang = if lang.is_empty() { "code" } else { &lang };
+    let header_text = format!("╭─ {lang}").chars().take(cw).collect::<String>();
     let mut out = vec![MdLine {
-        spans: vec![plain_span(format!("╭─ {lang}"))],
+        spans: vec![plain_span(header_text)],
         kind: LineKind::CodeHeader,
     }];
     for line in src_lines {
@@ -83,8 +84,9 @@ fn code_block_lines(lang: String, src_lines: Vec<String>, cols: usize) -> Vec<Md
             }
         }
     }
+    let footer_text = "╰─".chars().take(cw).collect::<String>();
     out.push(MdLine {
-        spans: vec![plain_span("╰─".to_string())],
+        spans: vec![plain_span(footer_text)],
         kind: LineKind::CodeFooter,
     });
     out

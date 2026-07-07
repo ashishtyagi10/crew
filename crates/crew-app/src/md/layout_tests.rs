@@ -113,3 +113,17 @@ fn byte_soup_never_panics_and_respects_cols() {
         }
     }
 }
+
+#[test]
+fn code_chrome_lines_respect_cols() {
+    for cols in [1usize, 4, 6] {
+        for l in render("```averylonglanguagetag\nx\n```", cols) {
+            assert!(
+                flat(&l).chars().count() <= cols,
+                "kind {:?} overflows at cols={cols}: {:?}",
+                l.kind,
+                flat(&l)
+            );
+        }
+    }
+}
