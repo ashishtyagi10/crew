@@ -19,6 +19,7 @@ mod chatlayout;
 mod chatmention;
 mod chatmsgs;
 mod chatpalette;
+mod chatplace;
 mod chatpulse;
 mod chatroster;
 mod chatscroll;

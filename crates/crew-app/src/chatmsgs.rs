@@ -5,8 +5,17 @@
 //! (`planner → coder`) keep a per-name colour on each side.
 use crew_render::CellView;
 
+#[cfg(test)]
+use crate::chatbody::CardCell;
 use crate::chatbody::{body_lines, plain, CardLine, Color};
 use crate::chatlayout::Message;
+use crate::chatplace::{line_cells, window};
+
+// Re-exported so callers (and Task 6's link hit-test) reach it as
+// `chatmsgs::placed_lines`, even though the placement logic itself lives in
+// `chatplace` alongside the windowing helpers `message_cells` shares with it.
+#[allow(unused_imports)] // consumed by Task 6; exercised by tests now
+pub(crate) use crate::chatplace::placed_lines;
 
 /// The card header's gutter glyph (▍), in the sender's colour.
 const GUTTER: char = '\u{258d}';
@@ -70,8 +79,10 @@ fn header_line(m: &Message, now_ms: u64) -> CardLine {
     line
 }
 
-/// All messages as card lines: header, body, spacer between cards.
-fn card_lines(messages: &[Message], cols: usize, now_ms: u64) -> Vec<CardLine> {
+/// All messages as card lines: header, body, spacer between cards. Visible
+/// to `chatplace` so `placed_lines` can build the same lines `message_cells`
+/// draws.
+pub(crate) fn card_lines(messages: &[Message], cols: usize, now_ms: u64) -> Vec<CardLine> {
     let mut out: Vec<CardLine> = Vec::new();
     for (i, m) in messages.iter().enumerate() {
         if i > 0 {
@@ -121,33 +132,10 @@ pub(crate) fn message_cells(
     }
     let page = crew_theme::theme().page_bg;
     let lines = card_lines(messages, cols as usize, crate::chattime::unix_now_ms());
-    let max_start = lines.len().saturating_sub(rows as usize);
-    let start = max_start.saturating_sub(scroll);
-    let end = (start + rows as usize).min(lines.len());
-    let mut cells = Vec::new();
-    for (row_offset, line) in lines[start..end].iter().enumerate() {
-        let mut col: u16 = 0;
-        for cell in line.iter() {
-            let w = crate::chatwidth::char_w(cell.c) as u16;
-            if w == 0 {
-                continue; // zero-width marks don't get their own cell
-            }
-            if col + w > cols {
-                break;
-            }
-            cells.push(CellView {
-                col,
-                row: top_row + row_offset as u16,
-                c: cell.c,
-                fg: cell.fg,
-                bg: cell.bg.unwrap_or(page),
-                bold: cell.bold,
-                italic: false,
-            });
-            col += w;
-        }
-    }
-    cells
+    window(lines, rows, top_row, scroll)
+        .iter()
+        .flat_map(|(row, line)| line_cells(*row, line, cols, page))
+        .collect()
 }
 
 #[cfg(test)]

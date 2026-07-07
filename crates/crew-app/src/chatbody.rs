@@ -7,12 +7,19 @@ use crate::chatlayout::wrap_indices;
 pub(crate) type Color = (u8, u8, u8);
 
 /// One cell of a card line. `bg: None` means the pane's page background.
+/// `link` carries the URL a markdown link span resolves to (Task 4+), so a
+/// later click hit-test can recover it without re-parsing the message.
 #[derive(Clone)]
 pub(crate) struct CardCell {
     pub c: char,
     pub fg: Color,
     pub bold: bool,
+    pub italic: bool,
     pub bg: Option<Color>,
+    // Unread until Task 4 (markdown link spans) and Task 6 (click hit-test)
+    // land; keep it here now since both consume this exact field.
+    #[allow(dead_code)]
+    pub link: Option<std::sync::Arc<str>>,
 }
 
 /// One rendered line of a message card.
@@ -24,7 +31,9 @@ pub(crate) fn plain(c: char, fg: Color, bold: bool) -> CardCell {
         c,
         fg,
         bold,
+        italic: false,
         bg: None,
+        link: None,
     }
 }
 
@@ -71,7 +80,9 @@ pub(crate) fn body_lines(text: &str, cols: usize, fg: Color) -> Vec<CardLine> {
                             c,
                             fg,
                             bold: false,
+                            italic: false,
                             bg,
+                            link: None,
                         }));
                         out.push(line);
                         s = e;

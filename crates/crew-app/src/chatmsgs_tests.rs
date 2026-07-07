@@ -1,4 +1,6 @@
 use super::*;
+use crate::chat::ChatPane;
+use crew_plugin::Plugin;
 
 fn msg(sender: &str, text: &str) -> Message {
     Message {
@@ -187,4 +189,70 @@ fn fade_t_ramps_with_message_age() {
     let mid = fade_t("5000", 5_000 + FADE_MS / 2);
     assert!(mid > 0.4 && mid < 0.6, "got: {mid}");
     assert_eq!(fade_t("5000", 5_000 + FADE_MS), 1.0);
+}
+
+fn test_pane(messages: Vec<Message>) -> ChatPane {
+    let plugin = Plugin::spawn("sh", &["-c".to_string(), "cat >/dev/null".to_string()]).unwrap();
+    let mut pane = ChatPane::new(plugin, "crew".into());
+    pane.messages = messages;
+    pane
+}
+
+#[test]
+fn italic_cardcell_threads_through_to_cellview() {
+    // `line_cells` is the per-row mapper `message_cells` maps over; a
+    // hand-built italic cell pins that the flag survives to `CellView`
+    // even before Task 4 wires a producer for it (markdown emphasis).
+    let page = crew_theme::theme().page_bg;
+    let line: CardLine = vec![CardCell {
+        c: 'x',
+        fg: (1, 2, 3),
+        bold: false,
+        italic: true,
+        bg: None,
+        link: None,
+    }];
+    let cells = line_cells(0, &line, 40, page);
+    assert_eq!(cells.len(), 1);
+    assert!(cells[0].italic, "italic must survive to the CellView");
+}
+
+#[test]
+fn message_cells_is_a_thin_map_over_placed_lines() {
+    use std::collections::HashSet;
+    let pane = test_pane(vec![
+        msg("planner", "one"),
+        msg("coder", "two"),
+        msg("crew", "three"),
+    ]);
+    let (cols, rows) = (40u16, 30u16);
+    let top = pane.status_rows(cols, rows);
+    let bottom = crate::chatinput::composer_rows(rows);
+    let msg_rows = rows.saturating_sub(top + bottom);
+    let cells = message_cells(&pane.messages, cols, msg_rows, top, pane.scroll);
+    let placed = placed_lines(&pane, cols, rows);
+
+    // Coverage independently derived from `placed_lines`, using the same
+    // width/clip rules `message_cells` applies per row.
+    let mut expected: HashSet<(u16, u16)> = HashSet::new();
+    for (row, line) in &placed {
+        let mut col = 0u16;
+        for cell in line {
+            let w = crate::chatwidth::char_w(cell.c) as u16;
+            if w == 0 {
+                continue;
+            }
+            if col + w > cols {
+                break;
+            }
+            expected.insert((*row, col));
+            col += w;
+        }
+    }
+    let actual: HashSet<(u16, u16)> = cells.iter().map(|c| (c.row, c.col)).collect();
+    assert_eq!(actual, expected);
+    assert!(
+        !actual.is_empty(),
+        "sanity: the pane should render some cells"
+    );
 }
