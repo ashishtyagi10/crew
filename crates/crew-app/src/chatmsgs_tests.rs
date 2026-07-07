@@ -226,50 +226,57 @@ fn italic_cardcell_threads_through_to_cellview() {
 }
 
 #[test]
-fn message_cells_is_a_thin_map_over_placed_lines() {
+fn message_cells_is_a_thin_map_over_placed_lines_in_both_modes() {
     use std::collections::HashSet;
-    let pane = test_pane(vec![
+    let mut pane = test_pane(vec![
         msg("planner", "one"),
         msg("coder", "two"),
         msg("crew", "three"),
     ]);
     let (cols, rows) = (40u16, 30u16);
-    let top = pane.status_rows(cols, rows);
-    let bottom = crate::chatinput::composer_rows(rows);
-    let msg_rows = rows.saturating_sub(top + bottom);
-    let cells = message_cells(
-        &pane.messages,
-        cols,
-        msg_rows,
-        top,
-        pane.scroll,
-        pane.show_source,
-    );
-    let placed = placed_lines(&pane, cols, rows);
 
-    // Coverage independently derived from `placed_lines`, using the same
-    // width/clip rules `message_cells` applies per row.
-    let mut expected: HashSet<(u16, u16)> = HashSet::new();
-    for (row, line) in &placed {
-        let mut col = 0u16;
-        for cell in line {
-            let w = crate::chatwidth::char_w(cell.c) as u16;
-            if w == 0 {
-                continue;
+    for show_source in [false, true] {
+        pane.show_source = show_source;
+        let top = pane.status_rows(cols, rows);
+        let bottom = crate::chatinput::composer_rows(rows);
+        let msg_rows = rows.saturating_sub(top + bottom);
+        let cells = message_cells(
+            &pane.messages,
+            cols,
+            msg_rows,
+            top,
+            pane.scroll,
+            pane.show_source,
+        );
+        let placed = placed_lines(&pane, cols, rows);
+
+        // Coverage independently derived from `placed_lines`, using the same
+        // width/clip rules `message_cells` applies per row.
+        let mut expected: HashSet<(u16, u16)> = HashSet::new();
+        for (row, line) in &placed {
+            let mut col = 0u16;
+            for cell in line {
+                let w = crate::chatwidth::char_w(cell.c) as u16;
+                if w == 0 {
+                    continue;
+                }
+                if col + w > cols {
+                    break;
+                }
+                expected.insert((*row, col));
+                col += w;
             }
-            if col + w > cols {
-                break;
-            }
-            expected.insert((*row, col));
-            col += w;
         }
+        let actual: HashSet<(u16, u16)> = cells.iter().map(|c| (c.row, c.col)).collect();
+        assert_eq!(
+            actual, expected,
+            "cells/placed-lines mismatch with show_source={show_source}"
+        );
+        assert!(
+            !actual.is_empty(),
+            "sanity: the pane should render some cells (show_source={show_source})"
+        );
     }
-    let actual: HashSet<(u16, u16)> = cells.iter().map(|c| (c.row, c.col)).collect();
-    assert_eq!(actual, expected);
-    assert!(
-        !actual.is_empty(),
-        "sanity: the pane should render some cells"
-    );
 }
 
 #[test]
