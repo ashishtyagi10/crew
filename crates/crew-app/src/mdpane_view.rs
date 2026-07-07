@@ -118,6 +118,10 @@ fn divider_cells(divider_col: u16, rows: u16) -> Vec<CellView> {
 /// The source half: a 4-col right-aligned muted line number + space, then
 /// the hard-wrapped raw text (precomputed by `mdcache::wrap_source`,
 /// reached via `MdPane::cache_for`), scrolled top-anchored by `scroll`.
+/// Columns advance by display width (`chatwidth::char_w`), exactly like
+/// `chatplace::line_cells` — a CJK/emoji glyph occupies 2 display columns
+/// but only 1 char slot, so indexing by char count would overlap it with
+/// whatever follows.
 fn source_cells(
     wrapped: &[(usize, Vec<char>)],
     left_w: usize,
@@ -128,7 +132,8 @@ fn source_cells(
     let muted = crew_theme::theme().text_muted;
     let ink = crew_theme::theme().ink;
     let page = crew_theme::theme().page_bg;
-    let gutter_w = GUTTER_W.min(left_w);
+    let gutter_w = GUTTER_W.min(left_w) as u16;
+    let left_w = left_w as u16;
     let mut out = Vec::new();
     let mut prev_line_no = None;
     for (row_i, idx) in (start..end).enumerate() {
@@ -140,14 +145,19 @@ fn source_cells(
         } else {
             vec![' '; GUTTER_W]
         };
-        let mut row_chars = gutter;
-        row_chars.extend(chunk.iter().copied());
-        row_chars.truncate(left_w);
         let row = row_i as u16;
-        for (col_i, &c) in row_chars.iter().enumerate() {
-            let fg = if col_i < gutter_w { muted } else { ink };
+        let mut col: u16 = 0;
+        for &c in gutter.iter().chain(chunk.iter()) {
+            let w = crate::chatwidth::char_w(c) as u16;
+            if w == 0 {
+                continue; // zero-width marks don't get their own cell
+            }
+            if col + w > left_w {
+                break; // stops at the half's budget, same as `chatplace::line_cells`
+            }
+            let fg = if col < gutter_w { muted } else { ink };
             out.push(CellView {
-                col: col_i as u16,
+                col,
                 row,
                 c,
                 fg,
@@ -155,6 +165,7 @@ fn source_cells(
                 bold: false,
                 italic: false,
             });
+            col += w;
         }
     }
     out

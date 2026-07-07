@@ -62,6 +62,33 @@ fn source_side_shows_numbered_wrapped_lines() {
     assert_eq!(row_text_before(&cells, 1, 20), "   2 world");
 }
 
+// Finding 3 (Important, phase-2 final review): `source_cells` emitted
+// `col: col_i as u16` per raw char index, but wrapping (`wrap_source`)
+// budgets by display width — so a CJK/emoji glyph (2 display columns, 1
+// char slot) let the following char land one column too early, overlapping
+// the wide glyph's second cell instead of sitting after it.
+#[test]
+fn source_side_advances_columns_by_display_width_for_wide_glyphs() {
+    let p = pane("中文abc");
+    let cells = p.cells(41, 5);
+    // Row 0's gutter is 5 cols wide ("   1 ", index 0 overwritten by the
+    // active-side indicator). 中/文 are each 2 display columns, so content
+    // starts at col 5, and 'a' must land at col 5+2+2=9 -- not col 7, its
+    // raw char-index position, which would overlap 文's second cell.
+    let a_cell = cells
+        .iter()
+        .find(|c| c.c == 'a' && c.row == 0 && c.col < 20)
+        .expect("expected 'a' on the source side");
+    assert_eq!(
+        a_cell.col, 9,
+        "wide glyphs must advance the column by display width, not char count"
+    );
+    // The two CJK glyphs themselves must sit at their own non-overlapping
+    // display columns (5 and 7), each 2 columns wide.
+    assert_eq!(cell_at(&cells, 0, 5).map(|c| c.c), Some('\u{4e2d}')); // 中
+    assert_eq!(cell_at(&cells, 0, 7).map(|c| c.c), Some('\u{6587}')); // 文
+}
+
 #[test]
 fn preview_side_renders_bold_span_from_markdown() {
     let p = pane("**x**");
