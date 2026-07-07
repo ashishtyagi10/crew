@@ -6,7 +6,6 @@ mod parse;
 
 /// Parses `text` and lays it out into wrapped, styled lines ready to draw at
 /// `cols` columns. Never panics, regardless of input.
-#[allow(dead_code)] // wired into the chat pane in a later task
 pub(crate) fn render(text: &str, cols: usize) -> Vec<MdLine> {
     layout::lines(parse::parse(text), cols)
 }

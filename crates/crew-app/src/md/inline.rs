@@ -49,7 +49,14 @@ pub(super) fn apply_inline_event(
     match event {
         Event::Text(t) => state.push_text(spans, t.into_string(), false),
         Event::Code(t) => state.push_text(spans, t.into_string(), true),
-        Event::SoftBreak => state.push_text(spans, " ".to_string(), false),
+        // A single newline in chat prose is an intentional line break (users
+        // press Enter meaning "new line", not CommonMark's "join with a
+        // space"), so treat it the same as an explicit hard break.
+        Event::SoftBreak => spans.push(MdSpan {
+            text: "\n".into(),
+            style: MdStyle::default(),
+            link: None,
+        }),
         Event::HardBreak => spans.push(MdSpan {
             text: "\n".into(),
             style: MdStyle::default(),

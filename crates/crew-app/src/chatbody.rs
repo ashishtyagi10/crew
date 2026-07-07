@@ -1,14 +1,14 @@
-//! Message-body layout for the card view: newline-aware prose wrapping plus
-//! fenced ```code``` blocks rendered as a bordered card — `╭─ lang` header,
-//! hard-wrapped verbatim lines on a subtly dimmed background, `╰─` footer.
-use crate::chatcode::{parse_fences, Seg};
-use crate::chatlayout::wrap_indices;
+//! Message-body layout for the card view: message text renders through the
+//! shared `md` engine (headings, bold/italic, links, lists, fenced code as a
+//! bordered card — `╭─ lang` header, hard-wrapped verbatim lines on a subtly
+//! dimmed background, `╰─` footer, ...). `chatmd` maps the engine's styled,
+//! char-wrapped `MdLine`s to this module's display-width-wrapped `CardLine`s.
 
 pub(crate) type Color = (u8, u8, u8);
 
 /// One cell of a card line. `bg: None` means the pane's page background.
-/// `link` carries the URL a markdown link span resolves to (Task 4+), so a
-/// later click hit-test can recover it without re-parsing the message.
+/// `link` carries the URL a markdown link span resolves to, so Task 6's
+/// click hit-test can recover it without re-parsing the message.
 #[derive(Clone)]
 pub(crate) struct CardCell {
     pub c: char,
@@ -16,8 +16,8 @@ pub(crate) struct CardCell {
     pub bold: bool,
     pub italic: bool,
     pub bg: Option<Color>,
-    // Unread until Task 4 (markdown link spans) and Task 6 (click hit-test)
-    // land; keep it here now since both consume this exact field.
+    // Unread until Task 6's click hit-test lands; keep it here now since
+    // `chatmd` already populates it from `MdSpan::link`.
     #[allow(dead_code)]
     pub link: Option<std::sync::Arc<str>>,
 }
@@ -37,73 +37,13 @@ pub(crate) fn plain(c: char, fg: Color, bold: bool) -> CardCell {
     }
 }
 
-/// The code card's background: the page nudged toward the ink colour, so the
-/// block reads as a card in every theme without a dedicated theme slot.
-fn code_bg() -> Color {
-    let t = crew_theme::theme();
-    crate::anim::lerp_rgb(t.page_bg, t.ink, 0.08)
-}
-
-/// Lay out one message body: prose lines word-wrapped (respecting newlines),
-/// code blocks bordered + dimmed. Lines are indented one column under the
-/// card's `▍sender` header.
+/// Lay out one message body through the shared markdown engine: prose,
+/// headings, links and lists styled, fenced code blocks bordered + dimmed.
+/// Lines are indented one column under the card's `▍sender` header.
 pub(crate) fn body_lines(text: &str, cols: usize, fg: Color) -> Vec<CardLine> {
-    let muted = crew_theme::theme().text_muted;
     let width = cols.saturating_sub(1).max(1);
-    let mut out: Vec<CardLine> = Vec::new();
-    for seg in parse_fences(text) {
-        match seg {
-            Seg::Text(lines) => {
-                for logical in lines {
-                    let full: Vec<char> = logical.chars().collect();
-                    for (s, e) in wrap_indices(&full, width) {
-                        let mut line = vec![plain(' ', fg, false)];
-                        line.extend(full[s..e].iter().map(|&c| plain(c, fg, false)));
-                        out.push(line);
-                    }
-                }
-            }
-            Seg::Code { lang, lines } => {
-                let label = if lang.is_empty() { "code" } else { &lang };
-                out.push(rule(&format!("\u{256d}\u{2500} {label}"), width, muted)); // ╭─ lang
-                let bg = Some(code_bg());
-                for logical in lines {
-                    // Hard chunking, not word wrap: code is copied verbatim,
-                    // so no character (not even a break space) may be dropped.
-                    let full: Vec<char> = logical.chars().collect();
-                    let mut s = 0;
-                    loop {
-                        // Width-aware chunking: wide glyphs count two columns.
-                        let e = crate::chatwidth::fit_end(&full, s, width);
-                        let mut line = vec![plain(' ', fg, false)];
-                        line.extend(full[s..e].iter().map(|&c| CardCell {
-                            c,
-                            fg,
-                            bold: false,
-                            italic: false,
-                            bg,
-                            link: None,
-                        }));
-                        out.push(line);
-                        s = e;
-                        if s >= full.len() {
-                            break;
-                        }
-                    }
-                }
-                out.push(rule("\u{2570}\u{2500}", width, muted)); // ╰─
-            }
-        }
-    }
-    out
-}
-
-/// A one-column-indented muted border line (` ╭─ lang` / ` ╰─`), clipped to
-/// the body width.
-fn rule(s: &str, width: usize, fg: Color) -> CardLine {
-    let mut line = vec![plain(' ', fg, false)];
-    line.extend(s.chars().take(width).map(|c| plain(c, fg, false)));
-    line
+    let md_lines = crate::md::render(text, width);
+    crate::chatmd::map_lines(md_lines, width, fg)
 }
 
 #[cfg(test)]
@@ -151,5 +91,56 @@ mod tests {
             .map(|l| text(l)[1..].to_string())
             .collect();
         assert_eq!(joined, "let a = 1;");
+    }
+
+    // -- Task 4: full markdown, not just fenced code -----------------------
+
+    #[test]
+    fn bold_survives_to_cardcells() {
+        let lines = body_lines("**hi**", 40, (9, 9, 9));
+        assert!(
+            lines[0][1..].iter().all(|c| c.bold),
+            "not all bold: {}",
+            text(&lines[0])
+        );
+    }
+
+    #[test]
+    fn heading_is_bold() {
+        let lines = body_lines("# Title", 40, (9, 9, 9));
+        assert_eq!(text(&lines[0]), " Title");
+        assert!(lines[0][1..].iter().all(|c| c.bold));
+    }
+
+    #[test]
+    fn link_cells_carry_url() {
+        let lines = body_lines("go to [site](https://s.io) now", 60, (9, 9, 9));
+        let joined = text(&lines[0]);
+        let start = joined.find("site").expect("site text present");
+        for cell in &lines[0][start..start + "site".len()] {
+            assert_eq!(cell.link.as_deref(), Some("https://s.io"));
+        }
+    }
+
+    #[test]
+    fn bullet_list_renders() {
+        let lines = body_lines("- one\n- two", 40, (9, 9, 9));
+        assert_eq!(text(&lines[0]), " \u{2022} one");
+        assert_eq!(text(&lines[1]), " \u{2022} two");
+    }
+
+    #[test]
+    fn cjk_prose_rechunks_to_display_width_budget() {
+        let text_in = "\u{6f22}\u{5b57}".repeat(30);
+        let lines = body_lines(&text_in, 20, (9, 9, 9));
+        assert!(!lines.is_empty());
+        for l in &lines {
+            let w: usize = l.iter().map(|c| crate::chatwidth::char_w(c.c)).sum();
+            assert!(
+                w <= 20,
+                "line exceeds width budget ({w} > 20): {:?}",
+                text(l)
+            );
+        }
     }
 }
