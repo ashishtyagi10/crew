@@ -48,6 +48,9 @@ pub struct ChatPane {
     /// The leading `/command` or `@agent` palette while one is open (see
     /// `chatpalette`). Mutually exclusive with `mention` by construction.
     pub(crate) palette: Option<crate::chatpalette::PaletteState>,
+    /// When true, show raw message text instead of markdown rendering.
+    /// Toggled with Ctrl+Shift+M; not persisted.
+    pub(crate) show_source: bool,
 }
 
 impl ChatPane {
@@ -70,6 +73,7 @@ impl ChatPane {
             pulse: crate::chatpulse::Pulse::new(),
             mention: None,
             palette: None,
+            show_source: false,
         }
     }
 

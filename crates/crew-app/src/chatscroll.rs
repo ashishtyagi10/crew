@@ -21,7 +21,7 @@ impl crate::chat::ChatPane {
         let total = if top == 0 {
             crate::chatlayout::wrapped_line_count(&self.messages, cols)
         } else {
-            crate::chatmsgs::card_line_count(&self.messages, cols)
+            crate::chatmsgs::card_line_count(&self.messages, cols, self.show_source)
         };
         let max = total.saturating_sub(msg_rows);
         let next = self.scroll as i64 + delta as i64;

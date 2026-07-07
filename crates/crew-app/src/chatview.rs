@@ -6,6 +6,7 @@
 use crew_render::CellView;
 
 use crate::chat::ChatPane;
+use crate::chatbody::CardCell;
 use crate::chatlayout::layout_cells;
 
 impl ChatPane {
@@ -135,16 +136,17 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
             &pane.agents,
         ));
     } else {
-        let msg_rows = rows.saturating_sub(top + bottom);
+        let msg_rows = crate::chatplace::msg_rows_budget(pane, cols, rows);
         cells.extend(crate::chatmsgs::message_cells(
             &pane.messages,
             cols,
             msg_rows,
             top,
             pane.scroll,
+            pane.show_source,
         ));
         // Scroll affordances sit over the message area's last column/row.
-        let total = crate::chatmsgs::card_line_count(&pane.messages, cols);
+        let total = crate::chatmsgs::card_line_count(&pane.messages, cols, pane.show_source);
         cells.extend(crate::chatscroll::scrollbar_cells(
             total,
             msg_rows as usize,
@@ -165,3 +167,25 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
     ));
     cells
 }
+
+/// The URL a markdown link occupies at `(row, col)` in the message body, if
+/// any — `clickopen`'s click hit-test. Re-derives `chatplace::placed_lines` with
+/// the same `cols`/`rows` geometry `cells` renders the message area at, so a
+/// click can never resolve against stale layout. `col` is a DISPLAY column
+/// (what the click's `CellView` carries), so the cell is found via
+/// `chatplace::cell_at_col`, which walks the line with the same char-width
+/// accounting `line_cells` renders with — not raw `Vec` indexing, which
+/// drifts from display columns once a wide (CJK/emoji) or zero-width glyph
+/// appears earlier on the line.
+pub(crate) fn link_at(pane: &ChatPane, cols: u16, rows: u16, row: u16, col: u16) -> Option<String> {
+    crate::chatplace::placed_lines(pane, cols, rows)
+        .into_iter()
+        .find(|(r, _)| *r == row)
+        .and_then(|(_, line)| crate::chatplace::cell_at_col(&line, col).cloned())
+        .and_then(|cell: CardCell| cell.link)
+        .map(|l| l.to_string())
+}
+
+#[cfg(test)]
+#[path = "chatview_tests.rs"]
+mod tests;

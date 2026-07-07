@@ -5,8 +5,18 @@
 //! (`planner → coder`) keep a per-name colour on each side.
 use crew_render::CellView;
 
+#[cfg(test)]
+use crate::chatbody::CardCell;
 use crate::chatbody::{body_lines, plain, CardLine, Color};
 use crate::chatlayout::Message;
+use crate::chatplace::{line_cells, window};
+
+// Re-exported so this module's own tests reach it as `placed_lines` via
+// `use super::*`, even though the placement logic itself lives in
+// `chatplace` alongside the windowing helpers `message_cells` shares with it.
+// `chatview::link_at` imports it from `chatplace` directly.
+#[allow(unused_imports)]
+pub(crate) use crate::chatplace::placed_lines;
 
 /// The card header's gutter glyph (▍), in the sender's colour.
 const GUTTER: char = '\u{258d}';
@@ -70,8 +80,15 @@ fn header_line(m: &Message, now_ms: u64) -> CardLine {
     line
 }
 
-/// All messages as card lines: header, body, spacer between cards.
-fn card_lines(messages: &[Message], cols: usize, now_ms: u64) -> Vec<CardLine> {
+/// All messages as card lines: header, body, spacer between cards. Visible
+/// to `chatplace` so `placed_lines` can build the same lines `message_cells`
+/// draws. When `source` is true, messages render as plain text instead of markdown.
+pub(crate) fn card_lines(
+    messages: &[Message],
+    cols: usize,
+    now_ms: u64,
+    source: bool,
+) -> Vec<CardLine> {
     let mut out: Vec<CardLine> = Vec::new();
     for (i, m) in messages.iter().enumerate() {
         if i > 0 {
@@ -84,7 +101,7 @@ fn card_lines(messages: &[Message], cols: usize, now_ms: u64) -> Vec<CardLine> {
             "crew" | "system" | "broker" => crew_theme::theme().text_muted,
             _ => crew_theme::theme().ink,
         };
-        out.extend(body_lines(&m.text, cols, fg));
+        out.extend(body_lines(&m.text, cols, fg, source));
         // A just-landed card fades in from the page colour (see `fade_t`).
         let t = fade_t(&m.ts, now_ms);
         if t < 1.0 {
@@ -100,54 +117,38 @@ fn card_lines(messages: &[Message], cols: usize, now_ms: u64) -> Vec<CardLine> {
 }
 
 /// Total card lines for the given width — the scroll clamp for the card view.
-pub(crate) fn card_line_count(messages: &[Message], cols: u16) -> usize {
+pub(crate) fn card_line_count(messages: &[Message], cols: u16, source: bool) -> usize {
     if cols == 0 {
         return 0;
     }
-    card_lines(messages, cols as usize, 0).len()
+    card_lines(messages, cols as usize, 0, source).len()
 }
 
 /// Render the card view of `messages` into `rows` rows starting at `top_row`,
-/// scrolled `scroll` lines up from the live bottom.
+/// scrolled `scroll` lines up from the live bottom. When `source` is true,
+/// messages render as plain text instead of markdown.
 pub(crate) fn message_cells(
     messages: &[Message],
     cols: u16,
     rows: u16,
     top_row: u16,
     scroll: usize,
+    source: bool,
 ) -> Vec<CellView> {
     if cols == 0 || rows == 0 {
         return Vec::new();
     }
     let page = crew_theme::theme().page_bg;
-    let lines = card_lines(messages, cols as usize, crate::chattime::unix_now_ms());
-    let max_start = lines.len().saturating_sub(rows as usize);
-    let start = max_start.saturating_sub(scroll);
-    let end = (start + rows as usize).min(lines.len());
-    let mut cells = Vec::new();
-    for (row_offset, line) in lines[start..end].iter().enumerate() {
-        let mut col: u16 = 0;
-        for cell in line.iter() {
-            let w = crate::chatwidth::char_w(cell.c) as u16;
-            if w == 0 {
-                continue; // zero-width marks don't get their own cell
-            }
-            if col + w > cols {
-                break;
-            }
-            cells.push(CellView {
-                col,
-                row: top_row + row_offset as u16,
-                c: cell.c,
-                fg: cell.fg,
-                bg: cell.bg.unwrap_or(page),
-                bold: cell.bold,
-                italic: false,
-            });
-            col += w;
-        }
-    }
-    cells
+    let lines = card_lines(
+        messages,
+        cols as usize,
+        crate::chattime::unix_now_ms(),
+        source,
+    );
+    window(lines, rows, top_row, scroll)
+        .iter()
+        .flat_map(|(row, line)| line_cells(*row, line, cols, page))
+        .collect()
 }
 
 #[cfg(test)]
