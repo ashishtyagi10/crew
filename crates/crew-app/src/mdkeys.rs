@@ -54,8 +54,12 @@ pub(crate) fn md_key(logical: &Key, pressed: bool) -> MdInput {
 }
 
 /// Apply a classified key to the pane, returning an action for the host app
-/// when one is needed (close, or a reload-failure status).
-pub(crate) fn reduce(p: &mut MdPane, input: MdInput) -> Option<MdAction> {
+/// when one is needed (close, or a reload-failure status). `cols`/`rows` are
+/// the pane's grid size (0×0 from callers with no geometry yet, e.g. most
+/// unit tests here) — passed straight to `MdPane::clamp_scrolls` after a
+/// scroll arm runs, so a keyboard-driven jump (Shift+End's huge offset,
+/// landing here via `MdPane::scroll` directly) can't leave scrolling up dead.
+pub(crate) fn reduce(p: &mut MdPane, input: MdInput, cols: u16, rows: u16) -> Option<MdAction> {
     let active = p.active;
     match input {
         MdInput::Close => return Some(MdAction::Close),
@@ -71,6 +75,7 @@ pub(crate) fn reduce(p: &mut MdPane, input: MdInput) -> Option<MdAction> {
         }
         MdInput::Ignore => {}
     }
+    p.clamp_scrolls(cols, rows);
     None
 }
 

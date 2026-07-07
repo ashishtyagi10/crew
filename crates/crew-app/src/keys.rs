@@ -167,7 +167,9 @@ impl CrewApp {
                 }
                 // The swarm view is non-interactive; it ignores key input.
                 PaneContent::Swarm(_) => {}
-                PaneContent::Markdown(m) => md_action = m.on_key(event),
+                PaneContent::Markdown(m) => {
+                    md_action = m.on_key(event, pane.grid.cols, pane.grid.rows)
+                }
             }
         }
         if let Some(action) = far_action {

@@ -9,6 +9,30 @@ use crate::mdpane::{geometry, preview_lines, window_top, MdPane, Side};
 const GUTTER_W: usize = 5;
 
 impl MdPane {
+    /// Caps both scroll offsets to their content's last full page at this
+    /// `cols`×`rows` geometry. `window_top` already clamps the rendered
+    /// *view* to a valid window, but the stored offset itself was
+    /// unbounded — a huge jump (Shift+End's `i32::MIN/2` delta) left it
+    /// sitting around content length forever, so every later Up/wheel-up
+    /// tick just decremented that huge number with no visible motion.
+    /// `cols == 0 || rows == 0` means no geometry yet (mirrors `cells`'s
+    /// zero-size guard) — offsets are left alone.
+    pub(crate) fn clamp_scrolls(&mut self, cols: u16, rows: u16) {
+        if cols == 0 || rows == 0 {
+            return;
+        }
+        let (left_w, _, _, right_w) = geometry(cols);
+        if left_w > 0 {
+            let text_w = left_w.saturating_sub(GUTTER_W);
+            let len = wrap_source(&self.source, text_w).len();
+            self.scroll_src = self.scroll_src.min(len.saturating_sub(rows as usize));
+        }
+        if right_w > 0 {
+            let len = preview_lines(&self.source, right_w).len();
+            self.scroll_prev = self.scroll_prev.min(len.saturating_sub(rows as usize));
+        }
+    }
+
     /// Renders both halves of the split into `cols` × `rows` cells. Never
     /// panics: `cols == 0 || rows == 0` (and any `cols` too small for a
     /// half) simply draw less, down to just the divider column.

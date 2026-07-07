@@ -81,16 +81,23 @@ impl MdPane {
     /// PageDown scroll it, `r` reloads `path` from disk, Esc asks the host to
     /// close the pane. Decoding + effects live in `mdkeys` as a pure,
     /// testable seam — mirrors `ChatPane::on_key`/`FarPane::on_key`.
-    pub(crate) fn on_key(&mut self, key: &KeyEvent) -> Option<MdAction> {
+    /// `cols`/`rows` are the pane's current grid size, threaded through so
+    /// `mdkeys::reduce`'s scroll arms can clamp the offset they just moved
+    /// (see `clamp_scrolls`) — without this a huge keyboard-driven jump
+    /// (Shift+End) would leave scrolling up dead afterward.
+    pub(crate) fn on_key(&mut self, key: &KeyEvent, cols: u16, rows: u16) -> Option<MdAction> {
         let input = mdkeys::md_key(&key.logical_key, key.state.is_pressed());
-        mdkeys::reduce(self, input)
+        mdkeys::reduce(self, input, cols, rows)
     }
 
-    /// Scrolls one half of the split by `delta` lines, floored at the top —
-    /// `window_top` clamps the far end at render time, so this only needs to
-    /// keep the offset from going negative. Convention matches
-    /// `FarPane::scroll`/`ChatPane::scroll`: positive `delta` moves toward
-    /// the top/start of the content.
+    /// Scrolls one half of the split by `delta` lines, floored at the top.
+    /// This alone does *not* bound the far end — callers with real geometry
+    /// (`scroll_wheel`, the key path via `mdkeys::reduce`) must follow up
+    /// with `clamp_scrolls`, since a keyboard-only path (Shift+End's
+    /// `i32::MIN/2` jump) can otherwise leave the stored offset around
+    /// content length forever, silently swallowing every later Up tick.
+    /// Convention matches `FarPane::scroll`/`ChatPane::scroll`: positive
+    /// `delta` moves toward the top/start of the content.
     pub(crate) fn scroll(&mut self, side: Side, delta: i32) {
         let target = match side {
             Side::Source => &mut self.scroll_src,
@@ -102,8 +109,16 @@ impl MdPane {
     /// Routes a mouse-wheel scroll to whichever half `cursor_col` sits over
     /// (source left of the divider, preview at/right of `right_start`).
     /// `None` — a keyboard-triggered scroll with no cursor position, e.g.
-    /// Shift+PageUp/Home/End — falls back to the active side.
-    pub(crate) fn scroll_wheel(&mut self, cols: u16, cursor_col: Option<u16>, delta: i32) {
+    /// Shift+PageUp/Home/End — falls back to the active side. Clamps the
+    /// resulting offset to `cols`×`rows` geometry afterward (see
+    /// `clamp_scrolls`).
+    pub(crate) fn scroll_wheel(
+        &mut self,
+        cols: u16,
+        rows: u16,
+        cursor_col: Option<u16>,
+        delta: i32,
+    ) {
         let (_, _, right_start, right_w) = geometry(cols);
         let side = match cursor_col {
             Some(c) if right_w > 0 && c >= right_start => Side::Preview,
@@ -111,6 +126,7 @@ impl MdPane {
             None => self.active,
         };
         self.scroll(side, delta);
+        self.clamp_scrolls(cols, rows);
     }
 
     /// Re-reads `path` from disk, replacing `source` on success. On failure

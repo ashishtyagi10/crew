@@ -51,6 +51,7 @@ fn forward_page(pane: &mut Pane, up: bool) -> bool {
 /// — the markdown viewer falls back to its active side in that case.
 fn scroll_pane(pane: &mut Pane, lines: i32, cursor_col: Option<u16>) {
     let cols = pane.grid.cols;
+    let rows = pane.grid.rows;
     match &mut pane.content {
         PaneContent::Terminal(t) => t.pty.scroll(lines),
         PaneContent::Chat(c) => c.scroll(lines, pane.grid.cols, pane.grid.rows),
@@ -58,7 +59,7 @@ fn scroll_pane(pane: &mut Pane, lines: i32, cursor_col: Option<u16>) {
         PaneContent::Far(f) => f.scroll(lines),
         // The swarm view always renders the current fleet; nothing to scroll.
         PaneContent::Swarm(_) => {}
-        PaneContent::Markdown(m) => m.scroll_wheel(cols, cursor_col, lines),
+        PaneContent::Markdown(m) => m.scroll_wheel(cols, rows, cursor_col, lines),
     }
 }
 

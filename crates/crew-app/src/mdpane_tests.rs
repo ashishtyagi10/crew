@@ -98,6 +98,38 @@ fn preview_scroll_beyond_end_clamps_to_last_page() {
     );
 }
 
+// Finding 1 (CRITICAL, phase-2 final review): the stored scroll offset had
+// no ceiling — `window_top` only clamps the rendered *view*, not the field
+// itself — so a huge jump (Shift+End) left the offset around content-len
+// forever, and every later Up/wheel-up tick just decremented that huge
+// number with no visible motion.
+#[test]
+fn clamp_scrolls_caps_a_huge_offset_to_the_real_last_page() {
+    let lines: Vec<String> = (1..=50).map(|n| format!("line{n}")).collect();
+    let mut p = pane(&lines.join("\n"));
+    p.scroll_src = 1_000_000_000;
+    p.scroll_prev = 1_000_000_000;
+    p.clamp_scrolls(41, 5);
+    // Clamped view must show the real last page, same as `window_top`
+    // already produced for the raw (unclamped) huge offset.
+    let cells = p.cells(41, 5);
+    assert!(
+        row_text(&cells, 4).contains("line50"),
+        "expected the last source line visible, got {:?}",
+        row_text(&cells, 4)
+    );
+    let before = p.scroll_src;
+    assert!(
+        before < 1_000_000,
+        "offset must actually be capped, not just windowed"
+    );
+    // One more Up must move the (now-sane) offset — proves scrolling up
+    // isn't dead after the huge jump.
+    p.scroll(Side::Source, 1);
+    p.clamp_scrolls(41, 5);
+    assert_eq!(p.scroll_src, before - 1);
+}
+
 #[test]
 fn tiny_and_zero_cols_never_panic() {
     let p = pane("hello **world**\nmore text here");
@@ -210,11 +242,13 @@ fn indicator_marks_active_side_and_moves_after_tab() {
 #[test]
 fn wheel_scrolls_the_side_under_the_cursor() {
     let mut p = pane("x");
-    // cols=41 -> left_w=20, divider=20, right_start=21.
-    p.scroll_wheel(41, Some(5), -1); // left of the divider -> source
+    // cols=41 -> left_w=20, divider=20, right_start=21. rows=0 means "no
+    // geometry yet" to `clamp_scrolls`, same as `cells`'s zero-size guard,
+    // so this pins routing only, not the clamp behavior covered elsewhere.
+    p.scroll_wheel(41, 0, Some(5), -1); // left of the divider -> source
     assert_eq!(p.scroll_src, 1);
     assert_eq!(p.scroll_prev, 0);
-    p.scroll_wheel(41, Some(25), -1); // at/right of right_start -> preview
+    p.scroll_wheel(41, 0, Some(25), -1); // at/right of right_start -> preview
     assert_eq!(p.scroll_prev, 1);
 }
 
@@ -222,9 +256,16 @@ fn wheel_scrolls_the_side_under_the_cursor() {
 fn wheel_without_a_known_cursor_column_falls_back_to_the_active_side() {
     let mut p = pane("x");
     p.active = Side::Preview;
-    p.scroll_wheel(41, None, -1);
+    p.scroll_wheel(41, 0, None, -1);
     assert_eq!(p.scroll_prev, 1);
     assert_eq!(p.scroll_src, 0);
+}
+
+#[test]
+fn wheel_scroll_clamps_the_offset_to_content_length() {
+    let mut p = pane("x"); // one tiny line -> max_start is 0 at any real row count
+    p.scroll_wheel(41, 5, Some(5), -1); // routes to source, then clamps
+    assert_eq!(p.scroll_src, 0, "single-line content has no room to scroll");
 }
 
 #[test]
