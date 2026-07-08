@@ -17,8 +17,11 @@ Decisions locked during brainstorm:
 - **PATH-verified + palette preview**: spawn only what resolves to a real
   executable; show the routing decision live in the palette.
 - **Busy terminals divert**: input never types into a running program from
-  the bar (click the pane to do that). Broadcast mode is exempt and keeps
-  today's type-into-all-terminals semantics.
+  the bar (click the pane to do that).
+- **Broadcast is a prefix, not a mode** (revised in review): `* <text>` sends
+  one line to every terminal, explicitly. Bar submits no longer consult the
+  Cmd+S mode; Cmd+S keeps its pane-level synchronized typing (keystrokes in a
+  focused terminal mirror to all terminals), which the bar never owned.
 
 ## Routing table
 
@@ -30,7 +33,7 @@ Decisions locked during brainstorm:
 | 2 | `/cmd` | slash dispatch | unchanged |
 | 3 | `!cmd` | force-spawn pane via `run_in_pane` (skips all checks) | unchanged — now documented as the escape hatch |
 | 4 | `cd [path]` | `try_change_dir` (moves crew's cwd) | unchanged — stays ahead of broadcast, as in today's code |
-| 5 | broadcast on | bytes to every terminal | unchanged |
+| 5 | `* <text>` (or `*text`) | bytes to every terminal pane, one-shot; "no terminals" status hint when none receive | new — replaces the bar's dependence on broadcast mode |
 | 6 | focused pane is a terminal AND `foreground_pid().is_none()` (shell at prompt) | bytes into that terminal | narrowed (was: any focused terminal, busy or not) |
 | 7 | first word resolves (see Detection) | `run_in_pane(line)` — new persistent pane labeled by the first word, focused | new |
 | 8 | first word is a shell builtin (`export`, `source`, `alias`, …) | status hint "shell builtin — run it inside a shell pane" | new |
@@ -43,7 +46,11 @@ Consequences worth naming:
   text went nowhere).
 - Driving a REPL/agent by typing plain text into the bar while it is focused
   **stops working** (rule 6 diverts, rule 9 hints). That interaction moves to
-  the pane itself; broadcast keeps the bar→terminal firehose when you want it.
+  the pane itself; `* <text>` deliberately reaches every terminal, busy or
+  not, when you want the firehose.
+- With Cmd+S broadcast mode ON, bar submits now follow the same routing as
+  ever — the mode only synchronizes keystrokes typed inside terminal panes.
+  (Before: mode ON meant every bar submit hit all terminals.)
 
 ## Detection (`cmdcheck` module, new)
 
@@ -85,6 +92,7 @@ focused terminal counts as idle — graceful degradation to today's behavior.
 `suggest::menu_items` today returns rows only for `/` input. Add one row for
 non-empty, non-slash, non-`!` text, mirroring the routing table:
 
+- rule 5 hit (`* …`) → `↵ broadcast to 3 terminals` (submit row)
 - rule 6 hit → `↵ type into pane 3 · zsh` (submit row)
 - rule 7 hit → `↵ run claude — new pane` (submit row)
 - rule 8/9 → dim non-submit hint row (`not a command — ! forces a pane`), so
@@ -99,7 +107,10 @@ fish-style history ghost is unaffected.
   palette `COMMANDS` list; `/run`'s palette slot is redundant with bare text,
   `/shell`'s with Cmd+T.
 - `!cmd` unchanged; it is the documented escape hatch for "spawn it anyway".
-- Broadcast (Cmd+S) unchanged.
+- Cmd+S keeps pane-level synchronized typing and the `»` border badges; it no
+  longer influences bar submits. `/broadcast` (the toggle's slash form) stays.
+- Prefix summary the bar now speaks: `/` app command · `!` force a pane ·
+  `*` broadcast · bare text = smart routing.
 
 ## Testing
 
@@ -107,7 +118,8 @@ fish-style history ghost is unaffected.
   builtins, keywords, non-executables, PATH-miss.
 - Routing tests: pure decision function exercised for each table row (Far
   pane focused, idle terminal, busy terminal via injected foreground state,
-  broadcast, empty grid).
+  `*` prefix with and without terminals, broadcast mode ON not affecting bar
+  submits, empty grid).
 - `menu_items` tests for the three preview row shapes.
 - Live verification via `.claude/skills/verify`: idle shell + `ls` lands in
   the shell; focus the md viewer + `top` spawns a pane; typo `caude` hints;
