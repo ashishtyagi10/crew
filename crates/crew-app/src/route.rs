@@ -45,11 +45,14 @@ impl crate::app::CrewApp {
     pub(crate) fn input_preview(&mut self) -> Vec<crate::suggest::MenuItem> {
         use crate::suggest::MenuItem;
         let text = self.input.text.clone();
-        // A leading '/' is silenced only when the slash palette actually has
-        // rows for it (a real command like `/theme`, or its value picker) —
-        // `menu_items` is empty for a `/`-leading path used as a command (e.g.
-        // `/bin/echo hi`), which should still get a preview row below.
-        if text.is_empty() || !crate::suggest::menu_items(&text).is_empty() {
+        // Any `/`-leading text belongs to slash dispatch — `submit_input`
+        // routes it there unconditionally (run_slash_command silently no-ops
+        // on unrecognized commands, it never falls through to route_bare).
+        // So the preview must stay silent for ALL `/`-led text, not just what
+        // the slash palette recognizes — otherwise an unrecognized slash
+        // command (e.g. `/bin/echo hi`, or `/foo`) would show a submit-labeled
+        // row promising a spawn/type-into that Enter will never actually do.
+        if text.is_empty() || text.starts_with('/') {
             return Vec::new();
         }
         let row = |label: String, desc: &str, submit: bool| {
@@ -161,7 +164,7 @@ mod tests {
         app.panes.push(far_pane("files"));
         app.focused = 0;
         // Resolvable → a submit row naming the new pane destination.
-        app.input.text = "/bin/echo hi".into();
+        app.input.text = "ls".into();
         let rows = app.input_preview();
         assert_eq!(rows.len(), 1);
         assert!(rows[0].label.contains("new pane"), "got: {}", rows[0].label);
@@ -190,6 +193,20 @@ mod tests {
         );
         app.input.text = String::new();
         assert!(app.input_preview().is_empty());
+    }
+
+    #[test]
+    fn preview_is_silent_for_unrecognized_slash_command() {
+        // `/definitely-not-a-palette-cmd` matches no slash-palette row, but
+        // `submit_input` still routes it to slash dispatch (which silently
+        // no-ops) — never to route_bare. The preview must not show a
+        // submit-labeled spawn/type-into row Enter will never honor.
+        let mut app = crate::app::CrewApp::default();
+        app.input.text = "/definitely-not-a-palette-cmd".into();
+        assert!(
+            app.input_preview().is_empty(),
+            "slash dispatch owns all /-led text, even unrecognized commands"
+        );
     }
 
     #[test]

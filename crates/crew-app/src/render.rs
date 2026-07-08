@@ -170,10 +170,12 @@ impl CrewApp {
         // Command menu: a solid-black "commands" fieldset card just above the
         // input bar when slash input matches a real command (or its value
         // picker); otherwise the same slot shows the live palette preview of
-        // what Enter will do instead — this also covers a `/`-leading bare
-        // command (e.g. an absolute path like `/bin/echo hi`), which the
-        // slash palette has no rows for. An overlay scene so the overlay pass
-        // backs it with black — a box on the canvas, fully opaque.
+        // what Enter will do instead. `input_preview` stays silent for ALL
+        // `/`-led text (submit_input routes every such line to slash dispatch,
+        // never to route_bare — even a path like `/bin/echo hi` that the
+        // slash palette has no rows for), so this branch is only ever reached
+        // for non-slash input. An overlay scene so the overlay pass backs it
+        // with black — a box on the canvas, fully opaque.
         let slash_matches = crate::suggest::menu_items(&self.input.text);
         let (matches, title) = if !slash_matches.is_empty() {
             (slash_matches, "commands")
