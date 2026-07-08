@@ -63,7 +63,17 @@ impl crate::app::CrewApp {
                 submit,
             }]
         };
-        if crate::app::star_command(&text).is_some() {
+        if let Some(cmd) = crate::app::star_command(&text) {
+            if cmd.is_empty() {
+                // Same as bang below: an empty payload isn't a submit — Enter
+                // shows the usage hint, so the preview must match it, not a
+                // broadcast row promising a spawn that will never happen.
+                return row(
+                    "usage: *<text> — sends to every terminal".to_string(),
+                    "",
+                    false,
+                );
+            }
             let n = self
                 .panes
                 .iter()
@@ -71,7 +81,13 @@ impl crate::app::CrewApp {
                 .count();
             return row(format!("↵ broadcast to {n} terminals"), "", true);
         }
-        if crate::app::bang_command(&text).is_some() {
+        if let Some(cmd) = crate::app::bang_command(&text) {
+            if cmd.is_empty() {
+                // Bare `!` submits to a usage hint (see app.rs submit_input),
+                // not a spawn — the preview must mirror that, not show a
+                // submit-labeled row Enter will never honor.
+                return row("usage: !<command>".to_string(), "", false);
+            }
             return row("↵ run in a new pane (forced)".to_string(), "", true);
         }
         if crate::cwd::cd_arg(&text).is_some() {
@@ -88,7 +104,7 @@ impl crate::app::CrewApp {
             }
             BareRoute::Spawn => row("↵ run — new pane".to_string(), "", true),
             BareRoute::BuiltinHint(b) => row(
-                format!("{b} is a shell builtin — run it in a shell pane"),
+                format!("{b} is a shell builtin — run it inside a shell pane"),
                 "",
                 false,
             ),
@@ -220,5 +236,25 @@ mod tests {
             "got: {}",
             rows[0].label
         );
+    }
+
+    #[test]
+    fn bare_prefixes_show_usage_hint_not_submit_row() {
+        // Bare `!` and `*` (empty payload) submit to a usage-hint status in
+        // submit_input, not a spawn/broadcast — the preview must mirror that
+        // with a single non-submit row, not a submit-labeled one Enter will
+        // never honor.
+        let mut app = crate::app::CrewApp::default();
+        app.input.text = "!".into();
+        let rows = app.input_preview();
+        assert_eq!(rows.len(), 1);
+        assert!(!rows[0].submit);
+        assert_eq!(rows[0].label, "usage: !<command>");
+
+        app.input.text = "*".into();
+        let rows = app.input_preview();
+        assert_eq!(rows.len(), 1);
+        assert!(!rows[0].submit);
+        assert_eq!(rows[0].label, "usage: *<text> — sends to every terminal");
     }
 }

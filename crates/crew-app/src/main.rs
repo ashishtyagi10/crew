@@ -119,7 +119,6 @@ mod welcomeart;
 mod windowtitle;
 
 fn main() -> anyhow::Result<()> {
-    cmdcheck::init_shell_path();
     // When the `/crew` pane spawns this binary as its multi-agent broker (a
     // re-exec of `crew` with this flag), run the JSON-line broker loop and exit
     // before any GUI initialization. This means `/crew` works wherever `crew`
@@ -148,5 +147,9 @@ fn main() -> anyhow::Result<()> {
     if detach::should_detach() && !detach::is_detached_child() {
         return detach::relaunch_detached();
     }
+    // Only the GUI path forks/reads a login shell to seed PATH — CLI modes
+    // above (broker/self-update/list-fonts/detach re-exec) return before
+    // this line, so they never pay for a shell they don't use.
+    cmdcheck::init_shell_path();
     handler::run()
 }
