@@ -234,12 +234,32 @@ fn submit_without_a_shell_hints() {
     // Pre-Task-3 this asserted that ANY bare text with no terminal open hints
     // (it used to be written to nowhere, silently). Smart routing now spawns
     // a pane for a real command like `ls` instead — see
-    // `bare_nonsense_with_no_shell_hints_instead_of_spawning` for that case.
+    // `bare_resolvable_command_spawns_with_no_idle_shell` for that case.
     // What still can't be silently dropped is unresolvable text: hint instead.
+    // This variant covers Target::Other arising from having NO panes at all;
+    // `bare_nonsense_with_no_shell_hints_instead_of_spawning` covers the other
+    // way Target::Other arises — a focused pane that isn't a terminal.
     let mut app = CrewApp::default();
     assert!(!app.submit_input("definitely-not-a-command-xyz".to_string()));
     assert!(app.panes.is_empty(), "no junk pane spawned for nonsense");
     assert!(app.active_status().is_some());
+}
+
+/// Verdict::Executable + Target::Other (no idle shell focused) spawns a new
+/// terminal pane running the command, end to end through `submit_input`.
+#[test]
+fn bare_resolvable_command_spawns_with_no_idle_shell() {
+    use crate::pane::PaneContent;
+    let mut app = CrewApp::default();
+    assert!(app.panes.is_empty());
+    // No panes at all → focused_target() is Target::Other; `ls` resolves to
+    // Verdict::Executable, so route_bare says Spawn.
+    assert!(!app.submit_input("ls".to_string()));
+    assert_eq!(app.panes.len(), 1, "a real command spawns exactly one pane");
+    assert!(
+        matches!(app.panes[0].content, PaneContent::Terminal(_)),
+        "spawned pane runs the command in a terminal"
+    );
 }
 
 #[test]
@@ -450,6 +470,9 @@ fn star_broadcast_with_no_terminals_hints() {
 
 #[test]
 fn bare_nonsense_with_no_shell_hints_instead_of_spawning() {
+    // Same unresolvable-text outcome as `submit_without_a_shell_hints`, but
+    // Target::Other arises the other way here: a focused pane that exists but
+    // isn't a terminal (vs. no panes at all).
     let mut app = CrewApp::default();
     app.panes.push(tests_far_pane("files")); // focused pane is Far, not a terminal
     app.focused = 0;
