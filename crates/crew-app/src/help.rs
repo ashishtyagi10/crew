@@ -29,6 +29,10 @@ const BINDINGS: &[(&str, &str)] = &[
     ("Shift+PageUp / PageDown", "Scroll focused pane"),
     ("Shift+Home / End", "Scroll to top / bottom"),
     ("/ (in input)", "Command palette"),
+    (
+        "! · * (in input)",
+        "Force a new pane / broadcast to all terminals",
+    ),
     ("Cmd+Q", "Quit"),
 ];
 

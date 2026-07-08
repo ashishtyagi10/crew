@@ -1,6 +1,16 @@
 use super::*;
 
 #[test]
+fn palette_hides_shell_and_run_but_dispatch_keeps_them() {
+    assert!(
+        !COMMANDS
+            .iter()
+            .any(|c| c.name == "/shell" || c.name == "/run"),
+        "bare text replaced these palette rows"
+    );
+}
+
+#[test]
 fn empty_text_has_no_suggestion() {
     assert_eq!(suggest("", &[]), None);
 }
@@ -8,7 +18,7 @@ fn empty_text_has_no_suggestion() {
 #[test]
 fn slash_prefix_completes_command() {
     assert_eq!(suggest("/se", &[]).as_deref(), Some("ttings"));
-    assert_eq!(suggest("/sh", &[]).as_deref(), Some("ell"));
+    assert_eq!(suggest("/cr", &[]).as_deref(), Some("ew"));
 }
 
 #[test]
@@ -23,10 +33,10 @@ fn fuzzy_subsequence_finds_command() {
 #[test]
 fn prefix_matches_rank_before_fuzzy() {
     // "/se": "/settings" is a prefix match (rank 0) and must sort before
-    // "/shell", which only matches as a subsequence (s…h…e…ll → rank 1).
+    // "/sidebar", which only matches as a subsequence (s…e…b → rank 1).
     let names: Vec<&str> = matches("/se").iter().map(|c| c.name).collect();
     assert_eq!(names.first(), Some(&"/settings"));
-    assert!(names.contains(&"/shell"));
+    assert!(names.contains(&"/sidebar"));
 }
 
 #[test]
@@ -67,13 +77,6 @@ fn edit_and_open_were_dropped_for_far() {
             "{name} should be dropped"
         );
     }
-}
-
-#[test]
-fn slash_completes_run() {
-    assert_eq!(suggest("/ru", &[]).as_deref(), Some("n"));
-    let names: Vec<&str> = matches("/ru").iter().map(|c| c.name).collect();
-    assert!(names.contains(&"/run"));
 }
 
 #[test]
@@ -158,8 +161,9 @@ fn freeform_command_has_no_picker() {
 
 #[test]
 fn agent_cli_aliases_removed_in_favor_of_run() {
-    // The /claude, /codex, /opencode aliases were dropped — `/run <tool>` covers
-    // them (and /crew still opens the multi-agent relay).
+    // The /claude, /codex, /opencode aliases were dropped — bare text input
+    // can force a new pane (e.g. `claude` or `codex`), and /crew still opens
+    // the multi-agent relay.
     let all: Vec<&str> = matches("/").iter().map(|c| c.name).collect();
     for name in ["/claude", "/codex", "/opencode"] {
         assert!(
@@ -167,7 +171,6 @@ fn agent_cli_aliases_removed_in_favor_of_run() {
             "{name} should no longer be in the palette"
         );
     }
-    assert!(all.contains(&"/run"));
     assert!(all.contains(&"/crew"));
 }
 
@@ -243,7 +246,7 @@ fn dir_suggest_completes_subdir() {
 #[test]
 fn matches_filters_by_prefix() {
     let names: Vec<&str> = matches("/s").iter().map(|c| c.name).collect();
-    assert!(names.contains(&"/settings") && names.contains(&"/shell"));
+    assert!(names.contains(&"/settings") && names.contains(&"/sidebar"));
     assert!(!names.contains(&"/exit"));
     assert!(matches("ls").is_empty()); // non-slash → no palette
 }

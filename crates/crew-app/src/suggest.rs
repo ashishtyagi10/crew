@@ -89,23 +89,15 @@ pub(crate) fn menu_items(text: &str) -> Vec<MenuItem> {
         .collect()
 }
 
-/// Known slash commands (kept in sync with `run_slash_command`).
+/// Known slash commands (kept in sync with run_slash_command; /shell and /run stay dispatchable but bare text replaced their palette rows).
 pub(crate) const COMMANDS: &[Cmd] = &[
     Cmd {
         name: "/settings",
         desc: "Open settings",
     },
     Cmd {
-        name: "/shell",
-        desc: "New shell pane",
-    },
-    Cmd {
         name: "/crew",
         desc: "Open the multi-agent pane (claude/codex/opencode relay)",
-    },
-    Cmd {
-        name: "/run",
-        desc: "Run a command in a new pane (e.g. /run claude, /run codex)",
     },
     Cmd {
         name: "/diff",
