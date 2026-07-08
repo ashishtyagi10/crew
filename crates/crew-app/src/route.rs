@@ -36,6 +36,68 @@ pub(crate) fn route_bare(target: Target, verdict: &Verdict) -> BareRoute {
     }
 }
 
+impl crate::app::CrewApp {
+    /// The palette's live answer to "what will Enter do with this text?" —
+    /// zero rows for input another surface owns (slash palette, cd ghost,
+    /// empty), one row otherwise. Display-only: Enter semantics live solely
+    /// in `submit_input`, this row just mirrors them (`fill` = the text, so
+    /// even a stray menu-Enter is identical to a plain submit).
+    pub(crate) fn input_preview(&mut self) -> Vec<crate::suggest::MenuItem> {
+        use crate::suggest::MenuItem;
+        let text = self.input.text.clone();
+        // A leading '/' is silenced only when the slash palette actually has
+        // rows for it (a real command like `/theme`, or its value picker) —
+        // `menu_items` is empty for a `/`-leading path used as a command (e.g.
+        // `/bin/echo hi`), which should still get a preview row below.
+        if text.is_empty() || !crate::suggest::menu_items(&text).is_empty() {
+            return Vec::new();
+        }
+        let row = |label: String, desc: &str, submit: bool| {
+            vec![MenuItem {
+                label,
+                desc: desc.to_string(),
+                fill: text.clone(),
+                submit,
+            }]
+        };
+        if crate::app::star_command(&text).is_some() {
+            let n = self
+                .panes
+                .iter()
+                .filter(|p| matches!(p.content, crate::pane::PaneContent::Terminal(_)))
+                .count();
+            return row(format!("↵ broadcast to {n} terminals"), "", true);
+        }
+        if crate::app::bang_command(&text).is_some() {
+            return row("↵ run in a new pane (forced)".to_string(), "", true);
+        }
+        if crate::cwd::cd_arg(&text).is_some() {
+            return Vec::new();
+        }
+        match route_bare(self.focused_target(), &self.check_command(&text)) {
+            BareRoute::TypeInto(i) => {
+                let title = self
+                    .panes
+                    .get(i)
+                    .map(|p| p.title_text())
+                    .unwrap_or_default();
+                row(format!("↵ type into pane {} · {title}", i + 1), "", true)
+            }
+            BareRoute::Spawn => row("↵ run — new pane".to_string(), "", true),
+            BareRoute::BuiltinHint(b) => row(
+                format!("{b} is a shell builtin — run it in a shell pane"),
+                "",
+                false,
+            ),
+            BareRoute::UnknownHint => row(
+                "not a command — !… runs it in a pane anyway".to_string(),
+                "",
+                false,
+            ),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -65,5 +127,81 @@ mod tests {
             route_bare(Target::Other, &Verdict::No),
             BareRoute::UnknownHint
         ));
+    }
+
+    /// A Far pane, just enough to seed `CrewApp::panes` for preview tests
+    /// (mirrors the identically-named private helpers in panemanage.rs,
+    /// navcard.rs, and app_tests.rs — no shared helper exists yet, so each
+    /// test module keeps its own).
+    fn far_pane(name: &str) -> crate::pane::Pane {
+        use crate::farpane::FarPane;
+        use crate::pane::{Pane, PaneContent};
+        use crew_term::GridSize;
+        Pane {
+            content: PaneContent::Far(FarPane::new(std::env::temp_dir())),
+            grid: GridSize { cols: 80, rows: 24 },
+            rect: crate::layout::Rect {
+                x: 0.0,
+                y: 0.0,
+                w: 0.0,
+                h: 0.0,
+            },
+            label: None,
+            name: Some(name.to_string()),
+            dir: None,
+            activity: false,
+            bell: false,
+            hidden: false,
+        }
+    }
+
+    #[test]
+    fn preview_labels_spawn_and_hint_rows() {
+        let mut app = crate::app::CrewApp::default();
+        app.panes.push(far_pane("files"));
+        app.focused = 0;
+        // Resolvable → a submit row naming the new pane destination.
+        app.input.text = "/bin/echo hi".into();
+        let rows = app.input_preview();
+        assert_eq!(rows.len(), 1);
+        assert!(rows[0].label.contains("new pane"), "got: {}", rows[0].label);
+        assert!(rows[0].submit);
+        // Unresolvable → a dim non-submit hint row.
+        app.input.text = "definitely-not-a-command-xyz".into();
+        let rows = app.input_preview();
+        assert_eq!(rows.len(), 1);
+        assert!(!rows[0].submit);
+        assert!(
+            rows[0].label.contains("not a command"),
+            "got: {}",
+            rows[0].label
+        );
+    }
+
+    #[test]
+    fn preview_is_silent_for_slash_cd_and_empty() {
+        let mut app = crate::app::CrewApp::default();
+        app.input.text = "/theme".into();
+        assert!(app.input_preview().is_empty(), "slash palette owns / input");
+        app.input.text = "cd ~/code".into();
+        assert!(
+            app.input_preview().is_empty(),
+            "cd keeps its ghost, no card"
+        );
+        app.input.text = String::new();
+        assert!(app.input_preview().is_empty());
+    }
+
+    #[test]
+    fn preview_counts_broadcast_targets() {
+        let mut app = crate::app::CrewApp::default();
+        app.input.text = "* echo hi".into();
+        let rows = app.input_preview();
+        assert_eq!(rows.len(), 1);
+        assert!(
+            rows[0].label.contains("0 terminals"),
+            "got: {}",
+            rows[0].label
+        );
     }
 }
