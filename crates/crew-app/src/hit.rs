@@ -36,15 +36,17 @@ impl CrewApp {
     }
 
     /// Which full tile's `[-]` minimize button sits under the cursor, if any.
-    /// Zoom draws no button (`build_scenes` passes `min_btn: false`), so the
-    /// zoomed view never reports one.
+    /// Zoomed, the one expanded tile carries the button; in the grid only the
+    /// full tiles do (strip thumbnails draw none, so they are never tested).
     pub(crate) fn min_btn_at_cursor(&self) -> Option<usize> {
-        if self.zoomed {
-            return None;
-        }
         let (cw, ch, _sw, _sh, _scale) = self.frame_geometry()?;
-        let (_content, placed) = self.placed_grid()?;
-        placed.full.into_iter().find_map(|(idx, r)| {
+        let (content, placed) = self.placed_grid()?;
+        let tiles = if self.zoomed {
+            crate::render::frame_hit_rects(true, self.focused, self.panes.len(), content, placed)
+        } else {
+            placed.full
+        };
+        tiles.into_iter().find_map(|(idx, r)| {
             let hit = crate::panecard::min_btn_rect(r, cw, ch)?;
             chrome::point_in(hit, self.cursor.0, self.cursor.1).then_some(idx)
         })

@@ -23,8 +23,8 @@ pub(crate) struct Bar<'a> {
     /// `Some(now_ms)` when the pane is busy: animate an indeterminate sweep along
     /// the bottom border at that time. `None` leaves the border static.
     pub busy: Option<u64>,
-    /// Draw the `[-]` minimize button on the top border (full grid tiles only —
-    /// not the zoomed view or strip thumbnails). Click regions come from
+    /// Draw the `[-]` minimize button on the top border (full grid tiles and
+    /// the zoomed tile — not strip thumbnails). Click regions come from
     /// [`min_btn_rect`], which shares [`MIN_BTN_COLS`] so draw and hit agree.
     pub min_btn: bool,
 }

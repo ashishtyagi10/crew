@@ -35,8 +35,24 @@ impl CrewApp {
             });
         }
         let sb = chrome::stats_card_rect(sh, self.nav_px(scale), GAP, ch, self.update.is_some());
-        let pane_rows: Vec<crate::panelist::PaneRow> = self
-            .panes
+        let pane_rows = self.pane_rows();
+        let sidebar = &self.sidebar;
+        let log = &self.log;
+        let legend = concat!("crew v", env!("CARGO_PKG_VERSION"));
+        crate::panecard::push_card(scenes, sb, cw, ch, legend, |cols, rows| {
+            sidebar.cells(cols, rows, &pane_rows, log)
+        });
+    }
+
+    /// One row per open pane for the sidebar PANES list. A row carries the
+    /// `[+]` restore marker whenever its pane is NOT visible in the content
+    /// area — minimized into the nav, or covered while another pane is zoomed
+    /// — so the list always says which panes are actually on screen. Clicking
+    /// (or Cmd+N-focusing) such a row brings the pane back either way.
+    pub(crate) fn pane_rows(&self) -> Vec<crate::panelist::PaneRow> {
+        // Zoom draws only the focused pane (clamped like build_frame clamps).
+        let zoomed_on = self.focused.min(self.panes.len().saturating_sub(1));
+        self.panes
             .iter()
             .enumerate()
             .map(|(i, p)| crate::panelist::PaneRow {
@@ -44,14 +60,64 @@ impl CrewApp {
                 title: p.title_text(),
                 focused: i == self.focused,
                 activity: p.activity,
-                minimized: p.hidden,
+                minimized: p.hidden || (self.zoomed && i != zoomed_on),
             })
-            .collect();
-        let sidebar = &self.sidebar;
-        let log = &self.log;
-        let legend = concat!("crew v", env!("CARGO_PKG_VERSION"));
-        crate::panecard::push_card(scenes, sb, cw, ch, legend, |cols, rows| {
-            sidebar.cells(cols, rows, &pane_rows, log)
-        });
+            .collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::app::CrewApp;
+    use crate::farpane::FarPane;
+    use crate::layout::Rect;
+    use crate::pane::{Pane, PaneContent};
+    use crew_term::GridSize;
+
+    fn far_pane(name: &str) -> Pane {
+        Pane {
+            content: PaneContent::Far(FarPane::new(std::env::temp_dir())),
+            grid: GridSize { cols: 80, rows: 24 },
+            rect: Rect {
+                x: 0.0,
+                y: 0.0,
+                w: 0.0,
+                h: 0.0,
+            },
+            label: None,
+            name: Some(name.to_string()),
+            dir: None,
+            activity: false,
+            bell: false,
+            hidden: false,
+        }
+    }
+
+    #[test]
+    fn zoom_marks_every_covered_pane_restorable() {
+        let mut app = CrewApp::default();
+        for n in ["a", "b", "c"] {
+            app.panes.push(far_pane(n));
+        }
+        app.focused = 1;
+        app.zoomed = true;
+        let rows = app.pane_rows();
+        assert!(!rows[1].minimized, "the zoomed pane is on screen");
+        assert!(
+            rows[0].minimized && rows[2].minimized,
+            "panes covered by the zoom get the [+] marker"
+        );
+    }
+
+    #[test]
+    fn grid_marks_only_nav_hidden_panes_restorable() {
+        let mut app = CrewApp::default();
+        for n in ["a", "b", "c"] {
+            app.panes.push(far_pane(n));
+        }
+        app.panes[2].hidden = true;
+        let rows = app.pane_rows();
+        assert!(!rows[0].minimized && !rows[1].minimized);
+        assert!(rows[2].minimized);
     }
 }

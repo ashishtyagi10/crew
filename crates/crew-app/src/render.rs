@@ -46,17 +46,16 @@ impl CrewApp {
         Some((content, compose_grid(content, &self.grid, ch, GAP)))
     }
 
-    /// Returns the actual on-screen rect for every rendered pane (full-size grid
-    /// tiles + minimized strip thumbnails), as `(pane_index, rect)`. This is the
+    /// Returns the actual on-screen rect for every rendered pane, as
+    /// `(pane_index, rect)`: the zoomed pane expanded over the whole content
+    /// area, or the grid's full tiles + minimized strip thumbnails. This is the
     /// single source of truth for hit-testing and URL rect lookups. Returns empty
     /// when frame geometry is not yet ready.
     pub(crate) fn pane_hit_rects(&self) -> Vec<(usize, Rect)> {
-        let Some((_content, placed)) = self.placed_grid() else {
+        let Some((content, placed)) = self.placed_grid() else {
             return Vec::new();
         };
-        let mut rects = placed.full;
-        rects.extend(placed.minimized);
-        rects
+        frame_hit_rects(self.zoomed, self.focused, self.panes.len(), content, placed)
     }
 
     /// Build all PaneScenes for one frame: grid panes in the content area, plus
@@ -80,10 +79,7 @@ impl CrewApp {
         let mut scenes = if self.zoomed && !self.panes.is_empty() {
             // Zoom: render only the focused pane, expanded to the full content area.
             let i = self.focused.min(self.panes.len() - 1);
-            if let Some(r) = pane_rects_at(1, content.x, content.y, content.w, content.h, GAP)
-                .into_iter()
-                .next()
-            {
+            if let Some(r) = zoom_tile(content) {
                 relayout(&mut self.panes[i..=i], &[r], cw, ch);
             }
             let f = (!self.input.focused).then_some(0);
@@ -278,6 +274,36 @@ impl CrewApp {
     }
 }
 
+/// The one full-content tile the zoomed view draws — the same gap-inset rect
+/// a single grid pane would get. Shared by drawing (`build_frame`) and
+/// hit-testing (`frame_hit_rects`) so they can never disagree.
+fn zoom_tile(content: Rect) -> Option<Rect> {
+    pane_rects_at(1, content.x, content.y, content.w, content.h, GAP)
+        .into_iter()
+        .next()
+}
+
+/// The `(pane_index, rect)` hit list matching what `build_frame` draws.
+/// Zoomed, only the focused pane is on screen — expanded over the whole
+/// content area — so it is the sole hit target; the grid placement would
+/// misroute scrolls and clicks to panes that aren't visible. Otherwise the
+/// grid's full tiles plus the minimized strip thumbnails.
+pub(crate) fn frame_hit_rects(
+    zoomed: bool,
+    focused: usize,
+    n_panes: usize,
+    content: Rect,
+    placed: crate::grid::GridRects,
+) -> Vec<(usize, Rect)> {
+    if zoomed && n_panes > 0 {
+        let i = focused.min(n_panes - 1);
+        return zoom_tile(content).map(|r| vec![(i, r)]).unwrap_or_default();
+    }
+    let mut rects = placed.full;
+    rects.extend(placed.minimized);
+    rects
+}
+
 /// Card legend for the composer palette: "commands" for the slash palette,
 /// "agents" for the leading-`@` picker.
 fn palette_card_title(kind: crate::chatpalette::Kind) -> &'static str {
@@ -291,6 +317,61 @@ fn palette_card_title(kind: crate::chatpalette::Kind) -> &'static str {
 mod tests {
     use super::*;
     use crate::chatpalette;
+    use crate::grid::GridLayout;
+
+    #[test]
+    fn zoomed_hit_rects_are_the_one_drawn_tile_over_the_full_content() {
+        // Regression: zoom draws the focused pane over the whole content area,
+        // but hit rects used the grid placement — so wheel scrolls over a
+        // zoomed pane (e.g. the /md viewer) routed to invisible grid tiles.
+        let content = Rect {
+            x: 10.0,
+            y: 5.0,
+            w: 800.0,
+            h: 600.0,
+        };
+        let mut grid = GridLayout::new();
+        for i in 0..3 {
+            grid.add(i);
+        }
+        let placed = compose_grid(content, &grid, 16.0, GAP);
+        let hits = frame_hit_rects(true, 1, 3, content, placed);
+        let drawn = pane_rects_at(1, content.x, content.y, content.w, content.h, GAP)[0];
+        assert_eq!(hits, vec![(1, drawn)]);
+    }
+
+    #[test]
+    fn zoomed_hit_rects_clamp_a_stale_focus_index() {
+        let content = Rect {
+            x: 0.0,
+            y: 0.0,
+            w: 800.0,
+            h: 600.0,
+        };
+        let mut grid = GridLayout::new();
+        grid.add(0);
+        grid.add(1);
+        let placed = compose_grid(content, &grid, 16.0, GAP);
+        let hits = frame_hit_rects(true, 9, 2, content, placed);
+        assert_eq!(hits[0].0, 1, "focus past the end clamps like build_frame");
+    }
+
+    #[test]
+    fn grid_hit_rects_cover_full_tiles_and_strip_thumbnails() {
+        let content = Rect {
+            x: 0.0,
+            y: 0.0,
+            w: 800.0,
+            h: 600.0,
+        };
+        let mut grid = GridLayout::new();
+        for i in 0..8 {
+            grid.add(i); // 6 full tiles + 2 minimized thumbnails
+        }
+        let placed = compose_grid(content, &grid, 16.0, GAP);
+        let hits = frame_hit_rects(false, 0, 8, content, placed);
+        assert_eq!(hits.len(), 8, "every pane keeps a hit rect in grid view");
+    }
 
     fn agents() -> Vec<crew_plugin::AgentInfo> {
         vec![crew_plugin::AgentInfo {

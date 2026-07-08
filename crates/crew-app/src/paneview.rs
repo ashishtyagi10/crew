@@ -28,9 +28,9 @@ pub fn build_scenes(
         let foc = focused == Some(i);
         // This slice is index-rebased (zoom renders a 1-pane slice), so the
         // selection — keyed by absolute index — is matched to the focused pane.
-        // No minimize button here: this path renders the zoomed single pane
-        // (and 1-pane slices), whose grid rects don't match the drawn rect, so
-        // a border button would have no reliable hit region.
+        // The minimize button rides the zoomed border too: hit-testing shares
+        // the drawn rect (render::frame_hit_rects), so the click region lands
+        // on the glyphs exactly.
         push_pane_scenes(
             &mut scenes,
             p,
@@ -39,7 +39,7 @@ pub fn build_scenes(
             broadcast,
             find,
             foc.then_some(sel).flatten(),
-            false,
+            true,
             cw,
             ch,
         );
@@ -179,4 +179,46 @@ fn push_pane_scenes(
         bordered: false,
         overlay: false,
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::farpane::FarPane;
+    use crate::layout::Rect;
+    use crew_term::GridSize;
+
+    #[test]
+    fn zoomed_scenes_carry_the_minimize_button() {
+        let pane = Pane {
+            content: PaneContent::Far(FarPane::new(std::env::temp_dir())),
+            grid: GridSize { cols: 80, rows: 24 },
+            rect: Rect {
+                x: 0.0,
+                y: 0.0,
+                w: 820.0,
+                h: 416.0,
+            },
+            label: None,
+            name: Some("md".into()),
+            dir: None,
+            activity: false,
+            bell: false,
+            hidden: false,
+        };
+        let scenes = build_scenes(&[pane], Some(0), false, None, None, 10.0, 16.0);
+        // scenes[1] is the border card; the [-] button sits at card columns
+        // cols-5 ..= cols-3 on row 0 (cols = grid cols + 2 border cells).
+        let cols = 80 + 2;
+        let border = &scenes[1].cells;
+        let at = |col: u16| {
+            border
+                .iter()
+                .find(|c| c.row == 0 && c.col == col)
+                .map(|c| c.c)
+        };
+        assert_eq!(at(cols - 5), Some('['));
+        assert_eq!(at(cols - 4), Some('-'));
+        assert_eq!(at(cols - 3), Some(']'));
+    }
 }

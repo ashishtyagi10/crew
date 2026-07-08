@@ -13,8 +13,10 @@ pub struct PaneRow {
     pub title: String,
     pub focused: bool,
     pub activity: bool,
-    /// Minimized into the nav (the pane's `[-]` border button): drawn with a
-    /// right-aligned `[+]`; clicking the row focuses the pane, which restores it.
+    /// Not visible in the content area — minimized into the nav (the pane's
+    /// `[-]` border button) or covered while another pane is zoomed: drawn with
+    /// a right-aligned `[+]`; clicking the row focuses the pane, which brings
+    /// it back on screen.
     pub minimized: bool,
 }
 
