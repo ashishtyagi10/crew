@@ -6,11 +6,10 @@ use crate::app::CrewApp;
 use crate::pane::PaneContent;
 
 impl CrewApp {
-    /// Write `bytes` to the focused terminal — or, when broadcast is on, to every
+    /// Write `bytes` to terminal panes: the focused one, or — when `all` — every
     /// terminal pane. Each write snaps to the bottom. Returns how many terminals
     /// received it (0 means nothing did, e.g. no shell is open/focused).
-    pub(crate) fn write_to_terminals(&mut self, bytes: &[u8]) -> usize {
-        let all = self.broadcast;
+    pub(crate) fn write_terminal_targets(&mut self, bytes: &[u8], all: bool) -> usize {
         let focused = self.focused;
         let mut count = 0;
         for (i, pane) in self.panes.iter_mut().enumerate() {
@@ -30,5 +29,13 @@ impl CrewApp {
             }
         }
         count
+    }
+
+    /// Keystrokes typed while a terminal pane is focused: honors Cmd+S broadcast
+    /// (synchronized typing). The input bar does NOT come through here — its
+    /// routing never consults the mode.
+    pub(crate) fn write_to_terminals(&mut self, bytes: &[u8]) -> usize {
+        let all = self.broadcast;
+        self.write_terminal_targets(bytes, all)
     }
 }

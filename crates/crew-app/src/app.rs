@@ -188,6 +188,16 @@ impl CrewApp {
             }
             return false;
         }
+        // `*text` broadcasts one line to every terminal pane, explicitly — the
+        // bar's replacement for depending on Cmd+S broadcast mode.
+        if let Some(cmd) = star_command(&line) {
+            if cmd.is_empty() {
+                self.set_status("usage: *<text> — sends to every terminal");
+            } else if self.write_terminal_targets(&submit_bytes(cmd), true) == 0 {
+                self.set_status("no terminals to broadcast to");
+            }
+            return false;
+        }
         // `cd` in the input bar moves Crew's working directory, not the terminal's.
         if self.try_change_dir(&line) {
             return false;
@@ -245,6 +255,14 @@ pub(crate) fn bang_command(line: &str) -> Option<&str> {
     line.strip_prefix('!').map(str::trim)
 }
 
+/// If `line` is a `*text` broadcast, return the trimmed payload (empty when
+/// just `*`); else `None`. The payload is sent to EVERY terminal pane —
+/// broadcast is an explicit prefix, not a mode, so nothing else the bar does
+/// depends on Cmd+S state.
+pub(crate) fn star_command(line: &str) -> Option<&str> {
+    line.strip_prefix('*').map(str::trim)
+}
+
 /// Bytes to write when submitting an input-bar line to a terminal: the line
 /// followed by a carriage return (0x0d) — the same byte a real Enter sends. A
 /// trailing line feed (0x0a) is the Shift+Enter "soft return", which agent CLIs
@@ -265,6 +283,19 @@ pub(crate) fn submit_bytes(line: &str) -> Vec<u8> {
 pub(crate) fn theme_test_guard() -> std::sync::MutexGuard<'static, ()> {
     static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
     LOCK.lock().unwrap_or_else(|e| e.into_inner())
+}
+
+#[cfg(test)]
+mod unit_tests {
+    use super::star_command;
+
+    #[test]
+    fn star_command_strips_the_prefix() {
+        assert_eq!(star_command("* ls -la"), Some("ls -la"));
+        assert_eq!(star_command("*ls"), Some("ls"));
+        assert_eq!(star_command("*"), Some(""));
+        assert_eq!(star_command("ls *"), None);
+    }
 }
 
 #[cfg(test)]

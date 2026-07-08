@@ -430,3 +430,15 @@ fn reconcile_grid_tracks_panes_and_focus() {
     assert_eq!(app.grid.len(), 1);
     assert_eq!(app.grid.full(), &[0]);
 }
+
+#[test]
+fn star_broadcast_with_no_terminals_hints() {
+    let mut app = CrewApp::default();
+    app.submit_input("* echo hi".into());
+    let status = app
+        .status
+        .as_ref()
+        .map(|(m, _)| m.clone())
+        .unwrap_or_default();
+    assert!(status.contains("no terminals"), "got: {status}");
+}
