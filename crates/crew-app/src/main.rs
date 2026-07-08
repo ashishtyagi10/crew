@@ -33,6 +33,7 @@ pub mod chrome;
 mod clickopen;
 mod clipboard;
 mod clock;
+mod cmdcheck;
 mod cmdmenu;
 pub mod config;
 mod ctxlimit;
@@ -117,6 +118,7 @@ mod welcomeart;
 mod windowtitle;
 
 fn main() -> anyhow::Result<()> {
+    cmdcheck::init_shell_path();
     // When the `/crew` pane spawns this binary as its multi-agent broker (a
     // re-exec of `crew` with this flag), run the JSON-line broker loop and exit
     // before any GUI initialization. This means `/crew` works wherever `crew`

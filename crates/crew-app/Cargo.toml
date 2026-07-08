@@ -35,3 +35,6 @@ image = { version = "0.25", default-features = false, features = ["png"] }
 # setsid(2) for `--detach` (new session, so a closed terminal can't SIGHUP us).
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
+
+[dev-dependencies]
+tempfile = "3"
