@@ -33,6 +33,8 @@ pub struct CrewApp {
     /// deltas; we accumulate the fractional part here so slow scrolling adds up
     /// instead of each tick rounding to zero and being lost.
     pub(crate) scroll_accum: f32,
+    /// Last resolved (first_word, verdict) — see [`Self::check_command`].
+    pub(crate) cmd_cache: Option<(String, crate::cmdcheck::Verdict)>,
     pub(crate) config: CrewConfig,
     pub(crate) sidebar: Box<StatsPane>,
     /// Resolves each terminal pane's foreground PID to a command name for its
@@ -202,13 +204,57 @@ impl CrewApp {
         if self.try_change_dir(&line) {
             return false;
         }
-        let bytes = submit_bytes(&line);
-        // Nothing received it (no terminal focused / open) — hint instead of a
-        // silent no-op.
-        if self.write_to_terminals(&bytes) == 0 {
-            self.set_status("no shell here — press Cmd+T to open one");
+        match crate::route::route_bare(self.focused_target(), &self.check_command(&line)) {
+            crate::route::BareRoute::TypeInto(_) => {
+                // The focused idle shell receives the line as keystrokes.
+                if self.write_terminal_targets(&submit_bytes(&line), false) == 0 {
+                    self.set_status("no shell here — press Cmd+T to open one");
+                }
+            }
+            crate::route::BareRoute::Spawn => self.run_in_pane(&line),
+            crate::route::BareRoute::BuiltinHint(b) => {
+                self.set_status(format!(
+                    "{b} is a shell builtin — run it inside a shell pane"
+                ));
+            }
+            crate::route::BareRoute::UnknownHint => {
+                self.set_status(format!("not a command — !{line} runs it in a pane anyway"));
+            }
         }
         false
+    }
+
+    /// The focused pane as routing sees it: `IdleShell` only for a visible
+    /// terminal whose shell owns the prompt (`foreground_pid()` is `None`).
+    /// Hidden panes are not "in the main area", so they never receive text.
+    pub(crate) fn focused_target(&self) -> crate::route::Target {
+        if let Some(p) = self.panes.get(self.focused) {
+            if !p.hidden {
+                if let crate::pane::PaneContent::Terminal(t) = &p.content {
+                    if t.pty.foreground_pid().is_none() {
+                        return crate::route::Target::IdleShell(self.focused);
+                    }
+                }
+            }
+        }
+        crate::route::Target::Other
+    }
+
+    /// Resolve `line`'s first word, memoized — the palette preview re-checks on
+    /// every keystroke and only the first word matters, so argument typing must
+    /// not re-stat the PATH.
+    pub(crate) fn check_command(&mut self, line: &str) -> crate::cmdcheck::Verdict {
+        let word = crate::cmdcheck::first_word(line);
+        if let (Some(w), Some((cached_w, v))) = (&word, &self.cmd_cache) {
+            if w == cached_w {
+                return v.clone();
+            }
+        }
+        let v = crate::cmdcheck::resolve(line, &crate::cmdcheck::effective_path());
+        if let Some(w) = word {
+            self.cmd_cache = Some((w, v.clone()));
+        }
+        v
     }
 
     /// Set (or, when `name` is empty, clear) the focused pane's title override.

@@ -231,9 +231,14 @@ fn cd_in_input_changes_cwd_and_legend() {
 
 #[test]
 fn submit_without_a_shell_hints() {
+    // Pre-Task-3 this asserted that ANY bare text with no terminal open hints
+    // (it used to be written to nowhere, silently). Smart routing now spawns
+    // a pane for a real command like `ls` instead — see
+    // `bare_nonsense_with_no_shell_hints_instead_of_spawning` for that case.
+    // What still can't be silently dropped is unresolvable text: hint instead.
     let mut app = CrewApp::default();
-    // a plain command with no terminal open is not silently dropped.
-    assert!(!app.submit_input("ls".to_string()));
+    assert!(!app.submit_input("definitely-not-a-command-xyz".to_string()));
+    assert!(app.panes.is_empty(), "no junk pane spawned for nonsense");
     assert!(app.active_status().is_some());
 }
 
@@ -441,4 +446,19 @@ fn star_broadcast_with_no_terminals_hints() {
         .map(|(m, _)| m.clone())
         .unwrap_or_default();
     assert!(status.contains("no terminals"), "got: {status}");
+}
+
+#[test]
+fn bare_nonsense_with_no_shell_hints_instead_of_spawning() {
+    let mut app = CrewApp::default();
+    app.panes.push(tests_far_pane("files")); // focused pane is Far, not a terminal
+    app.focused = 0;
+    app.submit_input("definitely-not-a-command-xyz".into());
+    assert_eq!(app.panes.len(), 1, "no junk pane spawned");
+    let status = app
+        .status
+        .as_ref()
+        .map(|(m, _)| m.clone())
+        .unwrap_or_default();
+    assert!(status.contains("not a command"), "got: {status}");
 }

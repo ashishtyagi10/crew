@@ -91,6 +91,7 @@ mod progress;
 mod quit;
 mod render;
 mod restart;
+mod route;
 mod runpane;
 mod scroll;
 mod search;
