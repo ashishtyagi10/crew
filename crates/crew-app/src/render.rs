@@ -58,6 +58,20 @@ impl CrewApp {
         frame_hit_rects(self.zoomed, self.focused, self.panes.len(), content, placed)
     }
 
+    /// The pane you're looking at has no unseen activity: clear its activity
+    /// dot, bell, and attention marker. Skipped while the input bar is focused
+    /// — typing in the bar isn't looking at the pane.
+    pub(crate) fn mark_focused_seen(&mut self) {
+        if self.input.focused {
+            return;
+        }
+        if let Some(p) = self.panes.get_mut(self.focused) {
+            p.activity = false;
+            p.bell = false;
+            p.attention = None;
+        }
+    }
+
     /// Build all PaneScenes for one frame: grid panes in the content area, plus
     /// the docked full-height sidebar when shown, plus the docked bottom input bar.
     pub(crate) fn build_frame(&mut self) -> Vec<PaneScene> {
@@ -65,13 +79,7 @@ impl CrewApp {
             return Vec::new();
         };
         self.reconcile_grid();
-        // The pane you're looking at has no unseen activity.
-        if !self.input.focused {
-            if let Some(p) = self.panes.get_mut(self.focused) {
-                p.activity = false;
-                p.bell = false;
-            }
-        }
+        self.mark_focused_seen();
         // A pane highlights only when the input bar is NOT focused (one active surface).
         let Some((content, placed)) = self.placed_grid() else {
             return Vec::new();

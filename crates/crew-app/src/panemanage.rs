@@ -87,6 +87,7 @@ mod tests {
             activity: false,
             bell: false,
             hidden: false,
+            attention: None,
         }
     }
 

@@ -85,10 +85,25 @@ impl CrewApp {
                 p.dir = Some(cwd);
                 any_changed = true;
             }
-            // Output / bells in a pane you're not watching flag it.
+            // Output / bells in a pane you're not watching flag it. A bell or
+            // watched pattern also raises the nav-row attention marker — the
+            // "needs you" flash for minimized/background panes.
             if i != focused {
                 p.activity |= changed;
                 p.bell |= rang;
+                if rang {
+                    crate::attention::raise(
+                        p,
+                        crate::notify::NotifyKind::Bell,
+                        crate::anim::now_ms(),
+                    );
+                } else if !matches.is_empty() {
+                    crate::attention::raise(
+                        p,
+                        crate::notify::NotifyKind::Pattern,
+                        crate::anim::now_ms(),
+                    );
+                }
             }
             any_changed |= changed || rang;
             // Bell + output-pattern notifications (the pane title is borrowable
@@ -123,7 +138,7 @@ impl CrewApp {
             self.procnames.refresh(&pids);
             let min = Duration::from_secs(self.config.notify_min_secs);
             let now = Instant::now();
-            for (p, fg) in self.panes.iter_mut().zip(fg) {
+            for (i, (p, fg)) in self.panes.iter_mut().zip(fg).enumerate() {
                 let mut just_finished = None;
                 if let PaneContent::Terminal(t) = &mut p.content {
                     let cmd = fg.and_then(|pid| self.procnames.name(pid));
@@ -144,6 +159,15 @@ impl CrewApp {
                     }
                 }
                 if let Some(finished) = just_finished {
+                    // A command finishing while you're elsewhere raises the
+                    // pane's attention marker alongside the notification.
+                    if i != focused {
+                        crate::attention::raise(
+                            p,
+                            crate::notify::NotifyKind::AgentDone,
+                            crate::anim::now_ms(),
+                        );
+                    }
                     notify_events.push((
                         crate::notify::NotifyKind::AgentDone,
                         p.title_text(),
@@ -177,10 +201,14 @@ impl CrewApp {
             if crate::welcome::anim_should_redraw(self.tick) {
                 any_changed = true;
             }
-        } else if self.panes.iter().any(crate::paneview::pane_animating) {
+        } else if self.panes.iter().any(crate::paneview::pane_animating)
+            || crate::attention::any_pulsing(&self.panes, crate::anim::now_ms())
+        {
             // Drive the indeterminate progress sweep while any pane is busy
-            // (or a chat card is fading in), throttled to ~15 fps so a working
-            // pane stays lively without spinning the CPU. Idle → no redraws.
+            // (or a chat card is fading in, or an attention marker is still
+            // blinking), throttled to ~15 fps so a working pane stays lively
+            // without spinning the CPU. Idle → no redraws: a settled attention
+            // marker draws once and then costs nothing.
             self.tick = self.tick.wrapping_add(1);
             if self.tick.is_multiple_of(BUSY_ANIM_DIV) {
                 any_changed = true;

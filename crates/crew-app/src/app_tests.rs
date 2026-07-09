@@ -29,7 +29,41 @@ fn tests_far_pane(name: &str) -> crate::pane::Pane {
         activity: false,
         bell: false,
         hidden: false,
+        attention: None,
     }
+}
+
+#[test]
+fn focusing_a_pane_clears_its_attention_but_not_others() {
+    let mut app = CrewApp::default();
+    app.panes.push(tests_far_pane("a"));
+    app.panes.push(tests_far_pane("b"));
+    for p in &mut app.panes {
+        p.activity = true;
+        p.bell = true;
+        crate::attention::raise(p, crate::notify::NotifyKind::Bell, 0);
+    }
+    app.focused = 0;
+    app.mark_focused_seen();
+    assert!(!app.panes[0].activity && !app.panes[0].bell);
+    assert_eq!(app.panes[0].attention, None, "looking at it clears it");
+    assert!(
+        app.panes[1].attention.is_some(),
+        "the unfocused pane keeps its marker"
+    );
+}
+
+#[test]
+fn input_bar_focus_keeps_the_attention_marker() {
+    let mut app = CrewApp::default();
+    app.panes.push(tests_far_pane("a"));
+    crate::attention::raise(&mut app.panes[0], crate::notify::NotifyKind::Bell, 0);
+    app.input.focused = true;
+    app.mark_focused_seen();
+    assert!(
+        app.panes[0].attention.is_some(),
+        "typing in the bar isn't looking at the pane"
+    );
 }
 
 #[test]
@@ -318,6 +352,7 @@ fn typing_clears_a_terminal_selection() {
         activity: false,
         bell: false,
         hidden: false,
+        attention: None,
     });
     app.focused = 0;
     if let Some(PaneContent::Terminal(t)) = app.panes.get_mut(0).map(|p| &mut p.content) {
