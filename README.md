@@ -254,7 +254,9 @@ It also borrows the flagship moves of the big coding agents: **plan mode**
 **transcript export** (`/export` writes the conversation to
 `crew-transcript-<stamp>.md` — à la OpenCode), **AI commit messages**
 (`/commit` has the coder draft a Conventional Commits message for your diff;
-`/commit apply` creates the commit — à la Aider), and **`/compact`**, which
+`/commit apply` creates the commit — à la Aider), **AI code review**
+(`/review` reports findings on the working diff worst-first — à la Codex),
+and **`/compact`**, which
 folds older messages away when a long session gets heavy; `/diff` (in the
 pane or the input bar) completes the loop with Codex-style change review.
 
