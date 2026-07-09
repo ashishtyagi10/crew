@@ -4,9 +4,10 @@ Crew is a from-scratch, native **GPU terminal** (Rust · `winit` + `wgpu` + `gly
 that doubles as a **swarm orchestrator**: give it a goal and it decomposes the work
 and runs a pool of agents toward it, rendered as a live per-task status list.
 
-The workspace is five crates: `crew-app` (the application), `crew-render` (GPU
+The workspace is six crates: `crew-app` (the application), `crew-render` (GPU
 pipeline), `crew-term` (PTY + terminal grid), `crew-plugin` (subprocess agent
-plugins), and `crew-hive` (the orchestration engine).
+plugins), `crew-theme` (the theme presets + palette contracts), and `crew-hive`
+(the orchestration engine).
 
 ## Application architecture
 
@@ -21,11 +22,11 @@ plugins), and `crew-hive` (the orchestration engine).
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │ crew-app          the application: winit window, input routing, frame loop     │
 │                                                                                │
-│  input bar (/cmd) ──► command dispatch ──► spawn panes / /swarm goal           │
+│  input bar (/cmd · !cmd · *line) ──► command dispatch ──► spawn panes / goal   │
 │                                                                                │
 │  ┌── pane model (auto-tiling near-square grid; LRU cap = 6 full tiles) ─────┐  │
 │  │   PaneContent::                                                          │  │
-│  │     Terminal ─┐   Chat ─┐   Settings   Far   [Swarm]*                    │  │
+│  │     Terminal ─┐   Chat ─┐   Settings   Far   Md   [Swarm]*               │  │
 │  │   minimized strip (LRU demotion of overflow tiles)                       │  │
 │  │   each pane → Vec<CellView>  →  PaneScene (fieldset card: border+legend) │  │
 │  └────────┬───────────────┬───────────────────────────┬───────────────────┘  │
@@ -52,7 +53,7 @@ plugins), and `crew-hive` (the orchestration engine).
 │                   glyphon) + SDF rounded-border shader.  No overlays.          │
 └──────────────────────────────────────────────────────────────────────────────┘
 
-  * Swarm pane + bridge are wired on main (/swarm, /goal, /batch) & tested
+  * Swarm pane + bridge are wired on main (/goal, /batch) & tested
     headlessly; the GPU draw of the pane's CellViews shares this render path.
 ```
 
@@ -107,8 +108,14 @@ fully unit/integration-tested; bring-your-own-LLM per agent.
   renders to `CellView`s; the LRU cap keeps ≤6 full tiles and demotes the rest to
   a minimized strip.
 - **crew-render** paints `CellView` grids on the GPU (text via glyphon, rounded
-  borders via an SDF shader). Everything is cells — no overlays.
-- **crew-term** backs Terminal panes (PTY, scrollback, OSC titles); **crew-plugin**
+  borders via an SDF shader). Everything is cells — no overlays. Colours cross
+  the sRGB boundary once (linear conversion at the GPU edge) and the whole-pixel
+  cell box never changes with the font.
+- **crew-theme** defines the theme presets (9 themes: paper, sepia/ink/graphite
+  darks, CRT phosphors) and the palette contracts (contrast thresholds,
+  dark/grain data fields) every surface draws from.
+- **crew-term** backs Terminal panes (PTY, scrollback, OSC titles, OSC 10/11 +
+  DSR query replies from the active theme); **crew-plugin**
   backs Chat/agent panes via JSON-over-stdio subprocesses.
 - **crew-hive** is the engine: a goal is decomposed by the planner into a task
   graph, executed by a tokio scheduler over a bounded pool of agents (stub, native

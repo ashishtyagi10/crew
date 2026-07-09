@@ -52,13 +52,14 @@
         <a href="#panes">Panes</a>
         <a href="#shortcuts">Keyboard Shortcuts</a>
         <a href="#input-bar">Input Bar</a>
+        <a href="#markdown">Markdown</a>
         <a href="#multi-agent">Multi-Agent</a>
         <a href="#swarm">Swarm</a>
         <a href="#clipboard">Clipboard</a>
         <a href="#scrollback">Scrollback</a>
         <a href="#sidebar-panel">Sidebar</a>
         <a href="#settings">Settings</a>
-        <a href="#theme">Theme</a>
+        <a href="#theme">Themes</a>
       </div>
       <div class="sidebar-section">
         <h4>Development</h4>
@@ -112,7 +113,7 @@ cargo build --release -p crew-app
       </div>
 
       <h3>Updating</h3>
-      <p>Type <code>/update</code> in the input bar to fetch and install the latest release.</p>
+      <p>Type <code>/update</code> in the input bar to fetch and install the latest release — progress streams into an UPDATE card in the left nav — then <code>/restart</code> relaunches Crew into the new build whenever you're ready.</p>
 
       <!-- BUILD & RUN -->
       <h2 id="build-run">Build &amp; Run</h2>
@@ -121,6 +122,7 @@ cargo build --release -p crew-app
         <code>cargo run --release -p crew-app</code>
       </div>
       <p>Shells launch as your <code>$SHELL</code> login shell, so your full config and plugins load. The window opens with panes auto-tiled into a near-square grid and a docked command bar at the bottom.</p>
+      <p><code>crew</code> starts <strong>detached</strong> by default — it re-launches itself in a new session and returns your prompt, so closing the launching terminal doesn't kill the window. Use <code>crew --no-detach</code> (or <code>--foreground</code>) to stay attached, e.g. to watch logs.</p>
 
       <!-- ========== USAGE ========== -->
 
@@ -136,6 +138,8 @@ cargo build --release -p crew-app
         </tbody>
       </table>
       <p>Click a pane to focus it (click the input bar to focus that); double-click a pane to toggle zoom. Inside a terminal pane, all other keys (arrows, Home/End, PageUp/Down, Ctrl+C, Shift+Tab, …) pass through to the program.</p>
+      <p>Crew shows up to <strong>6 panes as full tiles</strong>; extra panes demote to a minimized thumbnail strip along the bottom. Any tile can also be <strong>minimized into the left nav</strong> with the <code>[-]</code> button on its top border — it keeps running but leaves the grid, and its sidebar PANES row gains a <code>[+]</code> to restore it (focusing a hidden pane always restores it).</p>
+      <p>Background panes can still flag you down: a bell (Claude Code prompting for input), a watched output pattern, or a long command finishing raises an <strong>attention marker</strong> on the pane's nav row and thumbnail — <code>!</code> / <code>⚑</code> / <code>✓</code> in the bell colour, blinking for a few seconds and then holding until you focus the pane.</p>
 
       <h2 id="shortcuts">Keyboard Shortcuts</h2>
       <p>Type <code>/keys</code> in the input bar for this list in-app.</p>
@@ -153,46 +157,59 @@ cargo build --release -p crew-app
           <tr><td>Zoom focused pane</td><td><kbd>Cmd+Z</kbd> (or double-click)</td></tr>
           <tr><td>Broadcast input to all panes</td><td><kbd>Cmd+S</kbd></td></tr>
           <tr><td>Font bigger / smaller / reset</td><td><kbd>Cmd+=</kbd> / <kbd>Cmd+-</kbd> / <kbd>Cmd+0</kbd></td></tr>
-          <tr><td>Copy visible screen / paste</td><td><kbd>Cmd+C</kbd> / <kbd>Cmd+V</kbd></td></tr>
+          <tr><td>Copy visible screen / paste</td><td><kbd>Cmd+C</kbd> / <kbd>Cmd+V</kbd> (Cmd+V pastes a clipboard image as a temp PNG path)</td></tr>
+          <tr><td>Open URL / file / dir under cursor</td><td><kbd>Cmd+Click</kbd></td></tr>
+          <tr><td>Cycle themes</td><td><kbd>Ctrl+Shift+L</kbd> (fixed presets, then random)</td></tr>
+          <tr><td>Toggle chat markdown preview ↔ source</td><td><kbd>Ctrl+Shift+M</kbd></td></tr>
+          <tr><td>Insert a newline in a terminal</td><td><kbd>Shift+Enter</kbd> (line feed, not submit)</td></tr>
           <tr><td>Close pane / maximize window</td><td><kbd>Cmd+W</kbd> / <kbd>Cmd+M</kbd></td></tr>
-          <tr><td>Scroll focused pane</td><td><kbd>Shift+PageUp</kbd> / <kbd>Shift+PageDown</kbd>, or mouse wheel</td></tr>
+          <tr><td>Clear focused pane scrollback</td><td><kbd>Cmd+K</kbd> (or <code>/clear</code>)</td></tr>
+          <tr><td>Scroll focused pane</td><td><kbd>Shift+PageUp</kbd> / <kbd>Shift+PageDown</kbd> (<kbd>Shift+Home/End</kbd> for top/bottom), or mouse wheel</td></tr>
           <tr><td>Quit</td><td><kbd>Cmd+Q</kbd> (press twice to confirm when panes are open)</td></tr>
         </tbody>
       </table>
 
       <h2 id="input-bar">The Input Bar</h2>
-      <p>The docked command bar at the bottom focuses with <kbd>Cmd+I</kbd>. Anything that isn't a slash command or <code>cd</code> is sent to the focused terminal. The bar's legend shows Crew's current working directory (<code>~</code>-abbreviated).</p>
+      <p>The docked command bar at the bottom focuses with <kbd>Cmd+I</kbd>. The bar's legend shows Crew's current working directory (<code>~</code>-abbreviated).</p>
+
+      <h3>Smart Routing</h3>
+      <p>Bare text routes by context: if the focused pane is a visible <strong>idle shell</strong>, the line is typed into it; otherwise a first word that resolves on your <strong>login shell's <code>$PATH</code></strong> spawns the command in its own pane, and anything else gets a hint instead of a mis-fire. The palette shows a one-row <strong>preview</strong> of exactly where Enter will send the line before you press it.</p>
+      <table class="docs-table">
+        <thead><tr><th>Prefix</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td><code>!&lt;cmd&gt;</code></td><td>Always run the command in its own new pane, regardless of focus</td></tr>
+          <tr><td><code>*&lt;text&gt;</code></td><td>Broadcast one line to every terminal pane (one-shot alternative to Cmd+S broadcast mode)</td></tr>
+        </tbody>
+      </table>
 
       <h3>Slash Commands</h3>
       <p>Type <code>/</code> for a command palette (<kbd>↑</kbd>/<kbd>↓</kbd> to pick, <kbd>Tab</kbd>/<kbd>→</kbd> to fill, <kbd>Enter</kbd> to run):</p>
       <table class="docs-table">
         <thead><tr><th>Command</th><th>Action</th></tr></thead>
         <tbody>
-          <tr><td><code>/shell</code></td><td>Open a new shell pane in the current directory</td></tr>
           <tr><td><code>/crew</code></td><td>Open the <a href="#multi-agent">multi-agent pane</a> (claude/codex/opencode relay)</td></tr>
-          <tr><td><code>/swarm</code></td><td>Run a built-in demo swarm (stub agents) in a live constellation pane</td></tr>
           <tr><td><code>/goal &lt;text&gt;</code></td><td>Plan a goal into a task-graph and run it as a swarm (real LLM if <code>ANTHROPIC_API_KEY</code> is set, else offline stub)</td></tr>
           <tr><td><code>/batch &lt;file&gt;</code></td><td>Run a file of jobs (one per line) as a flat parallel swarm</td></tr>
+          <tr><td><code>/md &lt;file&gt;</code></td><td>View a markdown file in a zoomed <a href="#markdown">source | preview pane</a></td></tr>
+          <tr><td><code>/diff</code></td><td>Review the working tree's colored git diff in a new pane</td></tr>
           <tr><td><code>/far</code></td><td>Open a Far Manager-style dual-pane file browser</td></tr>
-          <tr><td><code>/run &lt;cmd&gt;</code></td><td>Run a command in its own tiled pane that stays open</td></tr>
-          <tr><td><code>/edit &lt;file&gt;</code></td><td>Open a file in <code>$EDITOR</code> in a new pane</td></tr>
-          <tr><td><code>/open [target]</code></td><td>Open a URL or path with the OS default app</td></tr>
           <tr><td><code>/settings</code></td><td>Open the settings form</td></tr>
           <tr><td><code>/find &lt;text&gt;</code></td><td>Scroll back to a match and highlight every hit in view</td></tr>
           <tr><td><code>/name &lt;text&gt;</code></td><td>Title the focused pane; bare <code>/name</code> clears it</td></tr>
-          <tr><td><code>/clear</code> · <code>/clearall</code></td><td>Clear the focused pane's scrollback — or every pane's</td></tr>
+          <tr><td><code>/clear</code> · <code>/clearall</code> · <code>/clearlog</code></td><td>Clear the focused pane's scrollback — every pane's — or the sidebar's activity log</td></tr>
           <tr><td><code>/copy</code> · <code>/dump [file]</code></td><td>Copy scrollback to the clipboard — or save it to a file</td></tr>
           <tr><td><code>/only</code> · <code>/closeall</code></td><td>Close all panes but the focused one — or all of them</td></tr>
           <tr><td><code>/font [n]</code></td><td>Set the font size (12–32); no arg reports the current size</td></tr>
-          <tr><td><code>/reload</code></td><td>Re-read <code>config.toml</code> from disk and apply it live</td></tr>
+          <tr><td><code>/theme [name]</code></td><td>Switch the <a href="#theme">theme</a> live — the palette offers a picker of the nine themes + <code>random</code></td></tr>
+          <tr><td><code>/notify [on|off|add &lt;text&gt;|clear]</code></td><td>Notification settings from the bar</td></tr>
           <tr><td><code>/broadcast</code> · <code>/zoom</code> · <code>/sidebar</code></td><td>Palette-discoverable toggles mirroring the chords</td></tr>
           <tr><td><code>/pwd</code></td><td>Copy the current working directory to the clipboard</td></tr>
-          <tr><td><code>/update</code></td><td>Fetch and install the latest release</td></tr>
+          <tr><td><code>/update</code> · <code>/restart</code></td><td>Install the latest release — then relaunch into it</td></tr>
           <tr><td><code>/keys</code> · <code>/about</code></td><td>Show the keyboard shortcut list / version info in-app</td></tr>
           <tr><td><code>/exit</code></td><td>Quit Crew</td></tr>
         </tbody>
       </table>
-      <p style="color:var(--text-dim)">The palette is <strong>fuzzy</strong> — prefix matches rank first, then subsequence matches (so <code>/dmp</code> finds <code>/dump</code>) — and scrolls to the selection when the list is long.</p>
+      <p style="color:var(--text-dim)">The palette is <strong>fuzzy</strong> — prefix matches rank first, then subsequence matches (so <code>/dmp</code> finds <code>/dump</code>) — and scrolls to the selection when the list is long. Commands with a fixed value set (like <code>/theme</code>) expand into an arrow-selectable <strong>value picker</strong>. <code>/shell</code> and <code>/run &lt;cmd&gt;</code> still dispatch if typed, but bare text and <code>!</code> replaced their palette rows.</p>
 
       <h3>Autosuggest &amp; History</h3>
       <ul>
@@ -209,32 +226,48 @@ cargo build --release -p crew-app
         <li><strong>Status flashes</strong> — transient messages (e.g. "copied 12 lines", "cd: no such directory") appear briefly on the input card's bottom border.</li>
       </ul>
 
+      <h2 id="markdown">Markdown</h2>
+      <p>Crew renders markdown natively — a <code>pulldown-cmark</code>-based engine drawn straight to GPU cells: headings, lists, tables aligned by display width, fenced code as bordered cards, and clickable links.</p>
+      <ul>
+        <li><strong>Chat panes</strong> render agent replies as formatted markdown by default; <kbd>Ctrl+Shift+M</kbd> flips the focused chat pane to the raw source and back, and <kbd>Cmd+Click</kbd> opens a rendered link.</li>
+        <li><strong><code>/md &lt;file&gt;</code></strong> opens a zoomed markdown viewer over one file, split into side-by-side <code>source | preview</code> halves with independent scroll: <kbd>Tab</kbd> switches the active half, arrows / PageUp / PageDown scroll it, <kbd>r</kbd> reloads from disk, <kbd>Cmd+Click</kbd> opens links in the preview, <kbd>Esc</kbd> closes.</li>
+      </ul>
+
       <h2 id="multi-agent">Multi-Agent (<code>/crew</code>)</h2>
       <p><code>/crew</code> opens a pane where independent headless CLI coding agents — <strong>claude</strong>, <strong>codex</strong>, and <strong>opencode</strong> — message each other to work a task you give them, in any direction.</p>
-      <p>On open, the broker probes which agent CLIs are installed and registers only those (missing ones are skipped, and it says so). Type a task and press <kbd>Enter</kbd>; prefix <code>@&lt;agent&gt;</code> to choose who starts.</p>
+      <p>On open, the broker probes which agent CLIs are installed and registers only those (missing ones are skipped, and it says so). Type a task and press <kbd>Enter</kbd>; prefix <code>@&lt;agent&gt;</code> to choose who starts, or <code>@a+b</code> to fan the task out to a subset in parallel. With no agent CLIs installed, the broker runs its <strong>inbuilt API agents</strong> (planner / coder / reviewer) over DashScope, OpenRouter, or Anthropic — whichever key it finds — and plugin-agent manifests make the pane work with no API key at all.</p>
 
       <h3>The relay protocol</h3>
-      <p>Each agent receives a clean, normalized message — never another agent's raw CLI output — and can route in three ways:</p>
+      <p>Each agent receives a clean, normalized message — never another agent's raw CLI output — plus the task, its peers' capabilities, and the transcript so far. It ends its reply with a control line:</p>
       <ul>
-        <li>begin a reply with <code>TO &lt;agent&gt;: &lt;message&gt;</code> to <strong>hand off</strong> to a peer;</li>
-        <li>reply <code>DONE</code> (or <code>DONE: &lt;answer&gt;</code>) to <strong>end the thread</strong> — the explicit no-reply signal;</li>
-        <li>anything else is a plain reply that <strong>bounces back</strong> to the sender.</li>
+        <li><code>@next &lt;agent&gt;</code> to <strong>hand off</strong> to a peer;</li>
+        <li><code>@done</code> (or <code>@done: &lt;answer&gt;</code>) to <strong>end the thread</strong> — the explicit no-reply signal.</li>
       </ul>
-      <p>This proves out as <strong>A→B</strong> (claude hands to codex), <strong>B→A</strong> (codex replies back), and a <strong>3-way relay</strong> (claude → codex → opencode, with the answer relayed back to claude). A live run:</p>
-      <div class="code-block"><code>claude → codex   TO codex: reply with exactly the word PONG
-codex  → claude  PONG
-claude → codex   [done]</code></div>
+      <p>Parsing tolerates markdown wrappers, and a missing control line is re-asked once. This proves out as <strong>A→B</strong> (claude hands to codex), <strong>B→A</strong> (codex replies back), and a <strong>3-way relay</strong> (claude → codex → opencode, with the answer relayed back to claude).</p>
+
+      <h3>Constructs</h3>
+      <p>Inside the pane, <code>/</code>-lines drive the broker itself (Tab completes <code>@agents</code> and <code>/constructs</code>; one-letter aliases and did-you-mean included): <code>/fan</code> sends one task to every agent in parallel, <code>/loop &lt;n&gt;</code> iterates on the crew's own answer, <code>/goal</code> works until a judge agent rules the goal met, <code>/model</code> pins agents to different models side by side, <code>/plan</code> / <code>/approve</code> / <code>/reject</code> is plan mode, <code>/checkpoint</code> / <code>/checkpoints</code> / <code>/restore</code> snapshot and restore the working tree under <code>refs/crew/</code>, <code>/skill</code> runs a prompt playbook, <code>/mcp</code> lists MCP tools, <code>/export</code> writes the transcript to Markdown, <code>/compact</code> folds old messages away, and <code>/status</code> reports live totals. Long constructs run as <strong>concurrent background tasks</strong> (default cap 4) tagged with <code>#N</code> chips — <code>/tasks</code> lists them, <code>/stop [#n]</code> cancels one or all.</p>
+
+      <h3>Extending — skills, plugin agents, MCP, sys tools</h3>
+      <ul>
+        <li><strong>Skills</strong> — markdown playbooks in <code>~/.config/crew/skills/</code> or <code>./.crew/skills/</code> (flat <code>.md</code> or a directory with a <code>SKILL.md</code>); oversized playbooks disclose progressively as an outline agents read in chunks. <code>/skill &lt;name&gt; &lt;task&gt;</code> runs the relay with the playbook prepended.</li>
+        <li><strong>Plugin agents</strong> — a JSON manifest in <code>~/.config/crew/agents/</code> or <code>./.crew/agents/</code> turns any headless CLI into a roster agent.</li>
+        <li><strong>MCP servers</strong> — declared in <code>mcp.json</code> (standard <code>mcpServers</code> schema), connected lazily over stdio; agents call tools mid-relay with <code>@tool server:tool {…}</code>, bounded rounds, every call visible in the transcript.</li>
+        <li><strong>Built-in sys tools</strong> — <code>sys:run</code> (bounded non-interactive shell), <code>sys:read_file</code> (chunked 64&nbsp;KB reads), <code>sys:write_file</code>, <code>sys:list_dir</code>; <code>CREW_SYS_MODE=readonly</code> blocks the mutating pair.</li>
+      </ul>
+      <p>All three drop-in surfaces <strong>hot-reload</strong> — edits are picked up live, and <code>/reload</code> forces it — no restart needed.</p>
 
       <h3>Guardrails</h3>
       <ul>
         <li><strong>Loop guard</strong> — every message carries a hop counter; past the limit (default 6) the broker drops the thread and logs that it stopped, so a relay can never loop forever.</li>
         <li><strong>Per-call timeout</strong> — a hung agent is killed and logged (default 180s); the broker moves on instead of blocking.</li>
+        <li><strong>Token budget</strong> — an optional per-thread cap (<code>CREW_BROKER_TOKEN_BUDGET</code>) terminates a thread that blows past it.</li>
         <li><strong>Isolation</strong> — agents run in a broker subprocess over Crew's JSON plugin protocol, so slow calls stay off the render thread; an adapter normalizes each agent's stdout before it is shown or relayed.</li>
-        <li><strong>Observability</strong> — every hop is logged in the pane as <code>from → to</code> with the reply.</li>
+        <li><strong>Observability</strong> — every hop is logged in the pane as <code>from → to</code> with the reply, under statusline-style agent rows with live context-window and time-share bars.</li>
       </ul>
 
       <h3>Adding an agent</h3>
-      <p>Discovery and routing are agent-agnostic. To add a fourth agent, write one adapter constructor in <code>crates/crew-plugin/src/broker/agents.rs</code> and register it in <code>known_adapters</code> — the routing engine is untouched.</p>
+      <p>Discovery and routing are agent-agnostic. To add a fourth agent, write one adapter constructor in <code>crates/crew-plugin/src/broker/agents.rs</code> and register it in <code>known_adapters</code> — the routing engine is untouched. Or skip the code entirely and drop a plugin-agent manifest.</p>
 
       <h2 id="swarm">Swarm Orchestration (<code>crew-hive</code>)</h2>
       <p>The <code>/crew</code> relay is a few CLI agents talking turn-by-turn. <strong><code>crew-hive</code></strong> is the next tier: a headless orchestration <em>engine</em> for running <em>many</em> agents toward a single goal &mdash; the substrate behind Crew's "command a fleet of agents" direction. It is a standalone workspace crate (no GPU, no terminal), driven by <code>crew-app</code>.</p>
@@ -246,9 +279,9 @@ claude → codex   [done]</code></div>
         <li><strong>Blackboard</strong> &mdash; agents read their dependencies' results and write their own, merging work upward.</li>
         <li><strong>Bring-your-own-LLM</strong> &mdash; a <code>Provider</code> abstraction (mock + an Anthropic client) with per-agent <code>ModelTier</code> cost tiering (haiku / sonnet / opus).</li>
         <li><strong>Two modes, one engine</strong> &mdash; single-goal decomposition <em>and</em> flat parallel-job batches (<code>batch_graph</code>); a <code>budget_governor</code> enforces a hard cost ceiling.</li>
-        <li><strong>Swarm view</strong> &mdash; a constellation / heatmap layout over live fleet telemetry (color = state; auto-switches to a heatmap past ~150 agents).</li>
+        <li><strong>Swarm view</strong> &mdash; a live task list over fleet telemetry: one row per task with a state glyph (○ pending · ● running · ✓ done · ✗ failed), its title, and the agent's last output line while it works.</li>
       </ul>
-      <p>The engine is wired into the app through three commands, each opening a live swarm <strong>pane</strong> (constellation + a live / done / failed / cost HUD, redrawn every frame): <code>/swarm</code> runs a built-in demo graph with stub agents (no key, no network); <code>/goal &lt;text&gt;</code> plans a goal off the UI thread then runs it &mdash; using the real <code>LlmPlanner</code> + <code>ApiAgent</code> workers when <code>ANTHROPIC_API_KEY</code> is set, else a deterministic offline stub backend; and <code>/batch &lt;file&gt;</code> runs a file of jobs (one per line) as a flat parallel swarm. Real-LLM runs are capped by the <code>budget_governor</code> (default $1.00). See <a href="ARCHITECTURE.md">ARCHITECTURE.md</a> for the engine diagram.</p>
+      <p>The engine is wired into the app through two commands, each opening a live swarm <strong>pane</strong> (the task list + a live / done / failed / cost HUD, redrawn every frame): <code>/goal &lt;text&gt;</code> plans a goal off the UI thread then runs it &mdash; using the real <code>LlmPlanner</code> + <code>ApiAgent</code> workers when <code>ANTHROPIC_API_KEY</code> is set, else a deterministic offline stub backend; and <code>/batch &lt;file&gt;</code> runs a file of jobs (one per line) as a flat parallel swarm. Real-LLM runs are capped by the <code>budget_governor</code> (default $1.00). See <a href="ARCHITECTURE.md">ARCHITECTURE.md</a> for the engine diagram.</p>
 
       <h2 id="clipboard">Clipboard</h2>
       <ul>
@@ -269,23 +302,27 @@ claude → codex   [done]</code></div>
           <tr><td><strong>SYSTEM</strong></td><td>CPU / MEM / DISK gauges</td></tr>
           <tr><td><strong>LOAD</strong></td><td>1/5/15-minute load average, coloured by load-per-core</td></tr>
           <tr><td><strong>HOST</strong></td><td>Hostname, OS, uptime</td></tr>
-          <tr><td><strong>NET</strong></td><td>Down/up byte rates</td></tr>
+          <tr><td><strong>NET</strong></td><td>Down/up byte rates, with an auto-scaled throughput sparkline</td></tr>
           <tr><td><strong>GIT</strong></td><td>Current branch (with <code>↑</code>/<code>↓</code> commits ahead/behind upstream) and a clean / <code>● N changed</code> marker — when the working directory is a repository</td></tr>
-          <tr><td><strong>PANES</strong></td><td>Open panes (index, name, a <code>▸</code> focus marker, and an activity dot), filling the remaining height</td></tr>
+          <tr><td><strong>LOG</strong></td><td>A live tail of recent status messages (the lines flashed on the input bar)</td></tr>
+          <tr><td><strong>PANES</strong></td><td>Open panes (index, name, a <code>▸</code> focus marker, an activity dot, and a <code>[+]</code> on minimized panes), filling the remaining height</td></tr>
         </tbody>
       </table>
       <p>Click a PANES row to focus that pane (double-click to zoom it).</p>
 
       <h2 id="settings">Settings</h2>
-      <p><code>/settings</code> opens a form (two columns on a wide pane, one when narrow):</p>
+      <p><code>/settings</code> opens a two-column <strong>bento form</strong> covering every configurable property (one column when the pane is narrow); <kbd>Cmd+S</kbd> / <kbd>Alt+S</kbd> saves:</p>
       <ul>
-        <li><strong>Font family</strong> — type-to-search over installed monospace families.</li>
-        <li><strong>Font size</strong>, <strong>Nav width</strong>, <strong>Show nav</strong>.</li>
+        <li><strong>Appearance</strong> — font family (type-to-search over installed monospace families, verified by measurement), font size, theme, accent (<code>#rrggbb</code>), paper texture + grain.</li>
+        <li><strong>Window</strong> — nav width, show nav, launch maximized.</li>
+        <li><strong>Notifications</strong> — the master switch, per-event toggles (cmd done, bell, pane exit), the min-secs threshold, and watched output patterns (one per line).</li>
       </ul>
-      <p>Settings persist to <code>$XDG_CONFIG/crew/config.toml</code> and apply live on Save.</p>
+      <p>Settings persist to <code>$XDG_CONFIG/crew/config.toml</code> and apply live on Save; <code>/restart</code> picks up edits made outside the form.</p>
 
-      <h2 id="theme">Theme</h2>
-      <p>The canvas is pure black; terminal content shows its natural ANSI colors. The accent green is reserved for chrome (borders, the CREW wordmark, the command palette). A configurable theme is future work.</p>
+      <h2 id="theme">Themes</h2>
+      <p>Crew ships <strong>nine themes</strong>: five paper/ink looks — <code>paper-dark</code> (default, a high-contrast "newspaper" page), <code>paper-light</code> (a warm paper page), <code>sepia-dark</code>, <code>midnight-ink</code>, and <code>graphite</code> — and four CRT phosphor tubes: <code>crt-green</code>, <code>crt-amber</code>, <code>crt-blue</code>, and <code>crt-violet</code>, each a neon monochrome glow on a near-black tube.</p>
+      <p>Switch with <code>/theme &lt;name&gt;</code> (the palette offers an arrow-selectable picker) or cycle live with <kbd>Ctrl+Shift+L</kbd>; the choice persists. <code>/theme random</code> rotates through the <em>dark</em> themes every 10 minutes. Light themes render ink at Medium weight over 3× "newsprint" grain so they read like print; a faint GPU grain + vignette sits behind every theme (it reads as tube glow on the CRT ones), and every palette is picked for measured WCAG contrast.</p>
+      <p>Terminal panes answer OSC 10/11 color queries and export <code>$COLORFGBG</code> from the active theme, and a minimum-contrast floor (WCAG ratio 3.0, à la iTerm2) keeps program-painted text legible even after a live theme switch.</p>
 
       <!-- ========== DEVELOPMENT ========== -->
 
@@ -313,14 +350,18 @@ claude → codex   [done]</code></div>
 │  crew-plugin  — chat / agent plugins (the /crew relay)       │
 └──────────────────────────────────────────────────────────────┘
 ┌──────────────────────────────────────────────────────────────┐
+│  crew-theme  — 9 theme presets · palette contracts           │
+│  (contrast thresholds · dark/grain fields · accent)          │
+└──────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
 │  crew-hive  — swarm orchestration engine                     │
 │  planner · tokio scheduler · agent pool · blackboard ·       │
-│  telemetry · constellation/heatmap view · remote/sidecar     │
+│  telemetry · task-list swarm view · remote/sidecar           │
 └──────────────────────────────────────────────────────────────┘</pre>
       </div>
 
       <h2 id="crate-structure">Crate Structure</h2>
-      <p>Crew is a Cargo workspace with five crates:</p>
+      <p>Crew is a Cargo workspace with six crates:</p>
       <table class="docs-table">
         <thead><tr><th>Crate</th><th>Purpose</th></tr></thead>
         <tbody>
@@ -328,6 +369,7 @@ claude → codex   [done]</code></div>
           <tr><td><code>crew-render</code></td><td>GPU rendering (<code>wgpu</code> + <code>glyphon</code>)</td></tr>
           <tr><td><code>crew-term</code></td><td>PTY + terminal grid (<code>alacritty_terminal</code> + <code>portable-pty</code>)</td></tr>
           <tr><td><code>crew-plugin</code></td><td>Chat / agent plugins (the <code>/crew</code> relay broker)</td></tr>
+          <tr><td><code>crew-theme</code></td><td>Theme presets + palette contracts (9 themes, contrast thresholds)</td></tr>
           <tr><td><code>crew-hive</code></td><td>Swarm orchestration engine (planner, scheduler, agent pool, blackboard, telemetry, remote/sidecar)</td></tr>
         </tbody>
       </table>
