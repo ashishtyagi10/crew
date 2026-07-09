@@ -52,6 +52,7 @@ pub(crate) const HELP: &str = "constructs:\n\
     /commit — draft an AI commit message · /commit apply — create the commit\n\
     /review — AI code review of the working diff, findings worst-first\n\
     /resume — fold the previous session's tail into the next task\n\
+    /doctor — health-check the AI stack (provider, CLIs, MCP, memory)\n\
     /cwd — show the working directory and sandbox mode\n\
     /skills — list prompt playbooks (~/.config/crew/skills, .crew/skills)\n\
     /skill <name> <task> — run the relay with that playbook prepended\n\
@@ -113,6 +114,7 @@ const CONSTRUCTS: &[&str] = &[
     "commit",
     "review",
     "resume",
+    "doctor",
     "restore",
     "skills",
     "skill",
@@ -197,6 +199,7 @@ pub(crate) fn handle(
         "diff" => super::diff::diff_cmd(emit),
         "commit" => super::gitmsg::commit_cmd(session, rest, emit),
         "review" => super::review::review_cmd(session, emit),
+        "doctor" => emit(msg("crew", super::doctor::render(&super::doctor::gather()))),
         "resume" => {
             let m = match super::sessionlog::tail() {
                 Some(prev) => {

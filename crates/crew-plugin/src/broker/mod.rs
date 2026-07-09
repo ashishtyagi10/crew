@@ -19,6 +19,7 @@ mod commands;
 mod constructs;
 mod diff;
 mod discover;
+mod doctor;
 mod engine;
 mod fan;
 mod gitmsg;

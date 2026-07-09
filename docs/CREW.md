@@ -461,6 +461,12 @@ and a typo gets a **did-you-mean** suggestion):
   `blocker — file:line — what and why`, then `warn`, then `nit` — closing
   with a one-line verdict (or "no findings" for a clean diff). Read-only:
   nothing to apply, pairs naturally with `/commit` before you ship.
+- **`/doctor`** — a **health check for the AI stack** (à la Claude Code's
+  `/doctor`): one ✓/✗/– checklist covering the provider that will answer
+  (and which key it found), the claude/codex/opencode CLIs on `$PATH`,
+  `/bin/bash` (run panes' job control), git, and how many skills, plugin
+  agents, and MCP servers loaded, plus standing memory, a resumable session,
+  and the sys-tool mode — each ✗ line names its fix.
 - **`/resume`** — **continue the previous session** (à la Claude Code's
   `--continue`): the broker auto-saves the conversation — your tasks and
   every agent reply — to `./.crew/session-live.md` as it streams (32 KB cap,
