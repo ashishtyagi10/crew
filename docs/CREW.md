@@ -433,6 +433,14 @@ and a typo gets a **did-you-mean** suggestion):
 - **`/skills`** — list the loaded prompt playbooks; **`/skill <name> <task>`**
   — run the relay with that playbook prepended to the task (see *Extending*
   below).
+- **`#<note>`** / **`/memory`** — standing **project memory** (à la Claude
+  Code's `#` shortcut): `#always run tests with --workspace` appends the note
+  to `./.crew/memory.md`, and from then on **every task** — plain sends,
+  `/fan`, `/loop`, `/goal`, `/skill`, `/approve` — carries the merged memory
+  (user `~/.config/crew/memory.md` first, project second, 2 KB cap) as a
+  STANDING MEMORY block the agents are told to follow. `/memory` shows what's
+  loaded. Unlike skills, memory is always on; edit or delete the file to
+  forget.
 - **`/mcp`** — list the configured MCP servers and their tools (see
   *Extending* below).
 - **`/reload`** — pick up extension edits without a restart: re-reads skills
