@@ -252,9 +252,11 @@ It also borrows the flagship moves of the big coding agents: **plan mode**
 `refs/crew/` without touching HEAD or your index, `/checkpoints` lists,
 `/restore <n>` brings a snapshot's files back — à la Cline),
 **transcript export** (`/export` writes the conversation to
-`crew-transcript-<stamp>.md` — à la OpenCode), and **`/compact`**, which folds older
-messages away when a long session gets heavy; `/diff` (in the pane or the
-input bar) completes the loop with Codex-style change review.
+`crew-transcript-<stamp>.md` — à la OpenCode), **AI commit messages**
+(`/commit` has the coder draft a Conventional Commits message for your diff;
+`/commit apply` creates the commit — à la Aider), and **`/compact`**, which
+folds older messages away when a long session gets heavy; `/diff` (in the
+pane or the input bar) completes the loop with Codex-style change review.
 
 The pane is extensible the way other coding tools are — three drop-in
 surfaces, no rebuild, edits picked up live (`/reload` forces it; no restart

@@ -449,6 +449,13 @@ and a typo gets a **did-you-mean** suggestion):
 - **`/diff`** — the working tree's `git diff --stat` inline in the
   transcript; **`/cwd`** — the broker's working directory and sys-tool
   sandbox mode.
+- **`/commit`** — an **AI-written commit message** (à la Aider): the coder
+  agent reads the diff (staged wins; otherwise unstaged tracked changes,
+  12 KB cap) and drafts a Conventional Commits message — subject ≤72 chars,
+  body only when the change warrants it. Nothing is committed until you run
+  **`/commit apply`**, which creates the commit (`-m` for a staged proposal,
+  `-am` for an unstaged one); re-running `/commit` re-drafts. A clean tree,
+  a missing repo, or an empty draft each get a status line instead.
 - **`/export`** — write the pane's transcript to
   `crew-transcript-<stamp>.md` in the working directory (à la OpenCode),
   one `## sender · time · latency` section per message. **`/compact`** folds
