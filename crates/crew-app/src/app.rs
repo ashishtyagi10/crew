@@ -203,6 +203,13 @@ impl CrewApp {
             }
             return false;
         }
+        // `??question` asks the AI to explain the focused pane's output; the
+        // answer opens in the zoomed markdown viewer. Checked before `?` —
+        // qmark_command would read `??x` as an ask for "?x".
+        if let Some(question) = crate::askbar::explain_command(&line) {
+            self.start_explain(question);
+            return false;
+        }
         // `?query` asks the AI for a shell command (à la Warp AI); the reply
         // lands back in the input bar, ready to edit or Enter.
         if let Some(query) = crate::askbar::qmark_command(&line) {

@@ -153,6 +153,13 @@ The docked command bar supports:
   clobbers you (the suggestion flashes on the status line instead). Fenced or
   backticked replies are distilled to the bare command; no provider key ⇒ a
   status hint, never a hang (30s deadline).
+- **`??<question>`** — ask the AI **about the focused pane**: the newest ~120
+  lines (8 KB cap) of the focused terminal's scrollback go to the provider
+  with your question (bare `??` asks it to explain what happened, focusing on
+  errors), and the markdown answer opens in the **zoomed `/md` viewer** —
+  headings, code fences and all. Warp's "ask AI about this error", as a
+  two-keystroke prefix. Non-terminal focus or an empty pane gets a status
+  hint; the same one-ask-at-a-time and worker-thread rules as `?` apply.
 - **Slash commands** — type `/` for a command palette (↑/↓ to pick, Tab/→ to
   fill, Enter to run): `/crew`, `/goal <text>`, `/batch <file>`, `/md <file>`,
   `/diff`, `/settings`, `/find <text>`, `/name <text>`, `/clear`, `/clearall`,
