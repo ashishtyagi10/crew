@@ -22,6 +22,7 @@ pub(crate) fn is_quick(text: &str) -> bool {
             cmd,
             "commit"
                 | "review"
+                | "standup"
                 | "fan"
                 | "loop"
                 | "goal"
@@ -53,6 +54,7 @@ pub(crate) const HELP: &str = "constructs:\n\
     /review — AI code review of the working diff, findings worst-first\n\
     /resume — fold the previous session's tail into the next task\n\
     /doctor — health-check the AI stack (provider, CLIs, MCP, memory)\n\
+    /standup [days] — an AI standup update from recent commits\n\
     /cwd — show the working directory and sandbox mode\n\
     /skills — list prompt playbooks (~/.config/crew/skills, .crew/skills)\n\
     /skill <name> <task> — run the relay with that playbook prepended\n\
@@ -115,6 +117,7 @@ const CONSTRUCTS: &[&str] = &[
     "review",
     "resume",
     "doctor",
+    "standup",
     "restore",
     "skills",
     "skill",
@@ -200,6 +203,7 @@ pub(crate) fn handle(
         "commit" => super::gitmsg::commit_cmd(session, rest, emit),
         "review" => super::review::review_cmd(session, emit),
         "doctor" => emit(msg("crew", super::doctor::render(&super::doctor::gather()))),
+        "standup" => super::standup::standup_cmd(session, rest, emit),
         "resume" => {
             let m = match super::sessionlog::tail() {
                 Some(prev) => {

@@ -260,7 +260,8 @@ It also borrows the flagship moves of the big coding agents: **plan mode**
 in a fresh pane folds the last session into the next task — à la Claude
 Code's `--continue`), **`/doctor`** (a ✓/✗ health check of the whole AI
 stack: provider key, agent CLIs, MCP, skills, memory — each failure names
-its fix), and **`/compact`**, which
+its fix), **`/standup [days]`** (an AI standup update from recent commits:
+done by theme, in progress, risks), and **`/compact`**, which
 folds older messages away when a long session gets heavy; `/diff` (in the
 pane or the input bar) completes the loop with Codex-style change review.
 
