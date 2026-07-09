@@ -51,6 +51,7 @@ pub(crate) const HELP: &str = "constructs:\n\
     /diff — show the working tree's changes (git diff --stat)\n\
     /commit — draft an AI commit message · /commit apply — create the commit\n\
     /review — AI code review of the working diff, findings worst-first\n\
+    /resume — fold the previous session's tail into the next task\n\
     /cwd — show the working directory and sandbox mode\n\
     /skills — list prompt playbooks (~/.config/crew/skills, .crew/skills)\n\
     /skill <name> <task> — run the relay with that playbook prepended\n\
@@ -111,6 +112,7 @@ const CONSTRUCTS: &[&str] = &[
     "checkpoints",
     "commit",
     "review",
+    "resume",
     "restore",
     "skills",
     "skill",
@@ -195,6 +197,20 @@ pub(crate) fn handle(
         "diff" => super::diff::diff_cmd(emit),
         "commit" => super::gitmsg::commit_cmd(session, rest, emit),
         "review" => super::review::review_cmd(session, emit),
+        "resume" => {
+            let m = match super::sessionlog::tail() {
+                Some(prev) => {
+                    let n = prev.len();
+                    *session.resume.lock().unwrap_or_else(|e| e.into_inner()) = Some(prev);
+                    format!(
+                        "restored {n} chars of the previous session — the next \
+                         task carries it as context"
+                    )
+                }
+                None => "nothing to resume — no previous session found".into(),
+            };
+            emit(msg("crew", m))
+        }
         "cwd" => cwd_cmd(emit),
         "skills" => emit(msg(
             "crew",

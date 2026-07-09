@@ -42,6 +42,8 @@ pub(crate) struct Session {
     /// The commit message `/commit` drafted, awaiting `/commit apply` —
     /// shared for the same worker-vs-inline reason as the plan.
     pub commit: super::gitmsg::SharedCommit,
+    /// Restored context set by `/resume`, consumed by the next task.
+    pub resume: super::sessionlog::SharedResume,
 }
 
 impl Default for Session {
@@ -54,6 +56,7 @@ impl Default for Session {
             mcp: Arc::new(Mutex::new(crate::mcp::McpHost::from_config())),
             plan: Arc::new(Mutex::new(None)),
             commit: Arc::new(Mutex::new(None)),
+            resume: Arc::new(Mutex::new(None)),
         }
     }
 }
@@ -75,6 +78,7 @@ impl Session {
             mcp: Arc::clone(&self.mcp),
             plan: Arc::clone(&self.plan),
             commit: Arc::clone(&self.commit),
+            resume: Arc::clone(&self.resume),
         }
     }
 

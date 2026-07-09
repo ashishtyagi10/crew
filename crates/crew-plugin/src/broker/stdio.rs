@@ -23,6 +23,11 @@ static THREAD_SEQ: AtomicU64 = AtomicU64::new(1);
 type Out = Arc<Mutex<std::io::Stdout>>;
 
 fn emit(out: &Out, ev: &PluginEvent) -> anyhow::Result<()> {
+    // Auto-save the conversation as it streams (see sessionlog) — every
+    // emitter funnels through here, worker threads included.
+    if let PluginEvent::Message { sender, text, .. } = ev {
+        super::sessionlog::append(sender, text);
+    }
     let mut o = out.lock().unwrap_or_else(|e| e.into_inner());
     writeln!(o, "{}", serde_json::to_string(ev)?)?;
     o.flush()?;
@@ -34,6 +39,8 @@ pub fn run_broker_stdio() -> anyhow::Result<()> {
     // Before anything reads the env: import provider keys the launching app
     // didn't inherit (GUI / stale-terminal launches). Single-threaded here.
     super::shellenv::hydrate();
+    // The previous run's conversation becomes resumable (/resume).
+    super::sessionlog::rotate();
     let stdin = std::io::stdin();
     let out: Out = Arc::new(Mutex::new(std::io::stdout()));
     let mut session = Session::new();
@@ -254,7 +261,19 @@ fn relay_counting(
         ))?;
         return super::fan::fan_out(&reg, &names, &body, call_timeout(), emit);
     }
-    let (start, body) = split_target(task, &reg);
+    // A `/resume` before this task folds the previous session's tail in as
+    // restored context (consumed once).
+    let resumed = session
+        .resume
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .take();
+    let task_owned = match resumed {
+        Some(prev) => super::sessionlog::with_resume(&prev, task),
+        None => task.to_string(),
+    };
+    super::sessionlog::append("user", task);
+    let (start, body) = split_target(&task_owned, &reg);
     let tid = format!("t{}", THREAD_SEQ.fetch_add(1, Ordering::Relaxed));
     emit(msg(
         "crew",

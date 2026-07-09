@@ -461,6 +461,14 @@ and a typo gets a **did-you-mean** suggestion):
   `blocker — file:line — what and why`, then `warn`, then `nit` — closing
   with a one-line verdict (or "no findings" for a clean diff). Read-only:
   nothing to apply, pairs naturally with `/commit` before you ship.
+- **`/resume`** — **continue the previous session** (à la Claude Code's
+  `--continue`): the broker auto-saves the conversation — your tasks and
+  every agent reply — to `./.crew/session-live.md` as it streams (32 KB cap,
+  oldest half dropped; the `crew` system voice is skipped), and on the next
+  broker start it rotates to `./.crew/last-session.md`. `/resume` in a fresh
+  pane folds that file's tail (2 KB) into your **next task** as a
+  PREVIOUS SESSION context block — consumed once — so the crew picks up
+  where the last pane left off, even after a crash.
 - **`/export`** — write the pane's transcript to
   `crew-transcript-<stamp>.md` in the working directory (à la OpenCode),
   one `## sender · time · latency` section per message. **`/compact`** folds
