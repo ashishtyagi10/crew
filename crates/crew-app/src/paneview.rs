@@ -205,6 +205,7 @@ mod tests {
             activity: false,
             bell: false,
             hidden: false,
+            attention: None,
         };
         let scenes = build_scenes(&[pane], Some(0), false, None, None, 10.0, 16.0);
         // scenes[1] is the border card; the [-] button sits at card columns

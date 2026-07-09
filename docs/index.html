@@ -71,7 +71,7 @@
 <span class="t-file"> listening on 127.0.0.1:8080          </span><span class="t-sep">|</span><span class="t-dir"> On branch main ↑2                   </span>
 <span class="t-file"> GET /  200  4ms                      </span><span class="t-sep">|</span><span class="t-file"> nothing to commit, working clean    </span>
 <span class="t-prompt">crew ~/code/crew »</span> <span class="t-cursor">_</span>
-<span class="t-fnbar"> /crew  /shell  /far  /run  /find  /copy  /settings  /keys  /exit    Cmd+T new pane </span></pre>
+<span class="t-fnbar"> /crew  /goal  /md  /far  /diff  /theme  /settings  /keys    !cmd  *broadcast    Cmd+T new pane </span></pre>
     </div>
   </div>
 </section>
@@ -96,7 +96,22 @@
       <div class="feature-card">
         <div class="feature-icon">&#9728;</div>
         <h3>GPU Cell Rendering</h3>
-        <p>Every cell is drawn on the GPU with winit, wgpu, and glyphon. Panes have SDF rounded borders; the canvas is pure black with natural ANSI colors.</p>
+        <p>Every cell is drawn on the GPU with winit, wgpu, and glyphon. A whole-pixel cell grid that never moves with the font, width-aware emoji/CJK, and pixel-exact colors.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#127912;</div>
+        <h3>Nine Themes</h3>
+        <p>Five paper/ink pages and four CRT phosphor tubes, all WCAG-measured, with GPU paper grain. <code>/theme random</code> rotates the dark ones every 10 minutes.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#9998;</div>
+        <h3>Native Markdown</h3>
+        <p>Chat replies render as formatted markdown on GPU cells, and <code>/md &lt;file&gt;</code> opens a side-by-side source | preview viewer with clickable links.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#128999;</div>
+        <h3>Swarm Orchestration</h3>
+        <p><code>/goal</code> decomposes a goal into a task graph and runs a fleet of agents toward it — live task list, budget cap, bring-your-own-LLM per agent.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">&#9000;</div>
@@ -105,8 +120,8 @@
       </div>
       <div class="feature-card">
         <div class="feature-icon">&#9656;</div>
-        <h3>Docked Input Bar</h3>
-        <p>A command bar with slash commands, fish-style autosuggest, <code>cd</code> completion with <code>$VAR</code> expansion, and persisted history.</p>
+        <h3>Smart Input Bar</h3>
+        <p>Bare text types into an idle shell or spawns a PATH-verified command in its own pane — a preview row shows where it will go. <code>!</code> forces a pane, <code>*</code> broadcasts, <code>/</code> opens the palette.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">&#9776;</div>
@@ -121,7 +136,7 @@
       <div class="feature-card">
         <div class="feature-icon">&#9881;</div>
         <h3>Live Settings</h3>
-        <p><code>/settings</code> opens a form for font family, font size, and the sidebar. Changes persist to a TOML config and apply live on Save.</p>
+        <p><code>/settings</code> opens a bento form covering every property — fonts, theme, accent, grain, nav, notifications. Changes persist to TOML and apply live on Save.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">&#127760;</div>
@@ -209,13 +224,15 @@ cd crew &amp;&amp; cargo run --release -p crew-app</code>
         <div class="key-row"><kbd>Cmd+J</kbd> <span>Chat pane</span></div>
         <div class="key-row"><kbd>Cmd+= -</kbd> <span>Font bigger / smaller</span></div>
         <div class="key-row"><kbd>Cmd+0</kbd> <span>Reset font size</span></div>
+        <div class="key-row"><kbd>Ctrl+Shift+L</kbd> <span>Cycle themes</span></div>
       </div>
       <div class="key-group">
         <h4>Clipboard &amp; Scroll</h4>
         <div class="key-row"><kbd>Cmd+C</kbd> <span>Copy visible screen</span></div>
         <div class="key-row"><kbd>Cmd+V</kbd> <span>Paste</span></div>
-        <div class="key-row"><kbd>Shift+PgUp</kbd> <span>Scroll back</span></div>
-        <div class="key-row"><kbd>Shift+PgDn</kbd> <span>Scroll forward</span></div>
+        <div class="key-row"><kbd>Cmd+Click</kbd> <span>Open URL / file / dir</span></div>
+        <div class="key-row"><kbd>Shift+PgUp/Dn</kbd> <span>Scroll back / forward</span></div>
+        <div class="key-row"><kbd>Cmd+K</kbd> <span>Clear scrollback</span></div>
         <div class="key-row"><kbd>Cmd+Q</kbd> <span>Quit</span></div>
       </div>
     </div>
@@ -239,15 +256,16 @@ cd crew &amp;&amp; cargo run --release -p crew-app</code>
         <pre class="terminal-body"><span class="t-prompt">crew ~/code/crew »</span> /<span class="t-cursor">_</span>
 
 <span class="t-sel">  /crew       agents (claude/codex/opencode) talk to each other  </span>
-<span class="t-file">  /swarm /goal /batch   run a live agent swarm (demo, goal, or job file)</span>
-<span class="t-file">  /shell      open a new shell pane in the current directory</span>
+<span class="t-file">  /goal /batch   run a live agent swarm (goal or job file)</span>
+<span class="t-file">  /md         view a markdown file (source | preview)</span>
 <span class="t-file">  /far        dual-pane file browser</span>
-<span class="t-file">  /run /edit /open   run a command, edit a file, open a URL</span>
+<span class="t-file">  /diff       review the working tree's git diff in a pane</span>
 <span class="t-file">  /find       scroll back to the latest matching line</span>
-<span class="t-file">  /copy /dump /only /closeall /reload /font</span>
-<span class="t-file">  /settings /clear /pwd /update /keys /about /exit</span>
+<span class="t-file">  /theme      pick one of nine themes — or random</span>
+<span class="t-file">  /copy /dump /only /closeall /font /notify</span>
+<span class="t-file">  /settings /clear /pwd /update /restart /keys /exit</span>
 
-<span class="t-ai">  Tab/→ accepts the fish-style autosuggest from history.</span></pre>
+<span class="t-ai">  Bare text routes smart · !cmd forces a pane · *text broadcasts</span></pre>
       </div>
     </div>
 
@@ -255,16 +273,16 @@ cd crew &amp;&amp; cargo run --release -p crew-app</code>
       <h3>Smarter than a prompt</h3>
       <div class="provider-grid">
         <div class="provider-card">
-          <div class="provider-name">Slash Commands</div>
-          <div class="provider-detail">A palette you can pick from</div>
+          <div class="provider-name">Smart Routing</div>
+          <div class="provider-detail">Bare text finds the right pane</div>
+        </div>
+        <div class="provider-card">
+          <div class="provider-name">Value Picker</div>
+          <div class="provider-detail">Arrow through a command's values</div>
         </div>
         <div class="provider-card">
           <div class="provider-name">Autosuggest</div>
-          <div class="provider-detail">Fish-style ghost text</div>
-        </div>
-        <div class="provider-card">
-          <div class="provider-name">cd Completion</div>
-          <div class="provider-detail">With <code>$VAR</code> expansion</div>
+          <div class="provider-detail">Fish-style ghost text + <code>cd $VAR</code> completion</div>
         </div>
         <div class="provider-card">
           <div class="provider-name">History Recall</div>
@@ -278,7 +296,7 @@ cd crew &amp;&amp; cargo run --release -p crew-app</code>
 <!-- ==================== ARCHITECTURE ==================== -->
 <section id="architecture" class="section">
   <div class="container">
-    <h2 class="section-title">Five crates. <span class="gradient-text">One workspace.</span></h2>
+    <h2 class="section-title">Six crates. <span class="gradient-text">One workspace.</span></h2>
     <p class="section-sub">Every <code>.rs</code> file stays ≤200 lines; clippy runs warning-free.</p>
 
     <div class="themes-grid">
@@ -318,13 +336,22 @@ cd crew &amp;&amp; cargo run --release -p crew-app</code>
           <span style="color: var(--fg);">/crew relay</span>
         </div>
       </div>
+      <div class="theme-card" style="--bg: #0a0a0a; --fg: #e3b341; --accent: #e3b341; --header: #e3b341;">
+        <div class="theme-label">crew-theme</div>
+        <div class="theme-preview">
+          <span style="color: var(--header);">9 theme presets</span><br/>
+          <span style="color: var(--fg);">paper · ink · CRT</span><br/>
+          <span style="color: var(--fg);">contrast thresholds</span><br/>
+          <span style="color: var(--fg);">random rotation</span>
+        </div>
+      </div>
       <div class="theme-card" style="--bg: #0a0a0a; --fg: #f778ba; --accent: #f778ba; --header: #f778ba;">
         <div class="theme-label">crew-hive</div>
         <div class="theme-preview">
           <span style="color: var(--header);">swarm engine</span><br/>
           <span style="color: var(--fg);">planner · scheduler</span><br/>
           <span style="color: var(--fg);">agent pool · blackboard</span><br/>
-          <span style="color: var(--fg);">constellation view</span>
+          <span style="color: var(--fg);">task-list swarm view</span>
         </div>
       </div>
     </div>

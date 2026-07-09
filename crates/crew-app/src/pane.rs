@@ -57,6 +57,10 @@ pub struct Pane {
     /// excluded from the grid (and the LRU strip) until focused again. Named
     /// `hidden` because "minimized" already means the LRU bottom strip.
     pub hidden: bool,
+    /// A "needs you" marker (bell / watched pattern / command finished) raised
+    /// while the pane wasn't focused — blinks on its nav row, then holds steady
+    /// until the pane is focused again. See the `attention` module.
+    pub attention: Option<crate::attention::Attention>,
 }
 
 impl Pane {
@@ -171,6 +175,7 @@ pub fn spawn_pane(
         activity: false,
         bell: false,
         hidden: false,
+        attention: None,
     })
 }
 
@@ -259,6 +264,7 @@ mod tests {
             activity: false,
             bell: false,
             hidden: false,
+            attention: None,
         };
         assert_eq!(p.title_text(), "settings");
         p.name = Some("build".into());

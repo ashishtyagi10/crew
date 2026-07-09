@@ -116,6 +116,19 @@ minimized thumbnail strip along the bottom of the content area, ordered
 least-recently-active first. Click a thumbnail, use the sidebar, or press
 **Cmd+1 … 9** to focus a pane and restore it to the full grid.
 
+Any full tile can also be **minimized into the left nav**: click the `[-]`
+button on its top border and the pane keeps running but leaves the grid; its
+sidebar PANES row gains a `[+]` — click the row (or jump to it with
+**Cmd+1 … 9**) to restore it. Focusing a hidden pane always restores it.
+
+Background panes can still flag you down: when a pane you're not looking at
+rings the **bell** (Claude Code prompting for input), matches a **watched
+output pattern**, or finishes a **long command**, its nav row raises an
+**attention marker** — `!` / `⚑` / `✓` in the bell colour — that blinks for a
+few seconds, then holds steady until you focus the pane. Thumbnails in the
+minimized strip carry the same marker, so an agent waiting on you is visible
+no matter where its pane went.
+
 ## Keyboard shortcuts
 
 Press **`/keys`** in the input bar for the full list in-app.
@@ -134,6 +147,9 @@ Press **`/keys`** in the input bar for the full list in-app.
 | Broadcast input to all panes | **Cmd+S** |
 | Font bigger / smaller / reset | **Cmd+=** / **Cmd+-** / **Cmd+0** |
 | Copy visible screen / paste | **Cmd+C** / **Cmd+V** (Cmd+V pastes a clipboard image as a temp PNG path) |
+| Open URL / file / dir under cursor | **Cmd+Click** |
+| Cycle themes (fixed presets, then random) | **Ctrl+Shift+L** |
+| Toggle chat markdown preview ↔ raw source | **Ctrl+Shift+M** |
 | Insert a newline in a terminal | **Shift+Enter** (sends a line feed, not submit) |
 | Close pane / maximize window | **Cmd+W** / **Cmd+M** |
 | Clear focused pane scrollback | **Cmd+K** (or `/clear`) |
@@ -142,14 +158,26 @@ Press **`/keys`** in the input bar for the full list in-app.
 
 ## Input bar
 
-The docked command bar supports slash commands (type `/` for a palette:
-`/shell`, `/crew`, `/goal <text>`, `/batch <file>`, `/run <cmd>`, `/diff`, `/settings`, `/find <text>`, `/name <text>`, `/clear`, `/only`, `/copy`, `/dump`,
-`/clearall`, `/closeall`, `/pwd`, `/about`, `/font`, `/theme`, `/restart`, `/update`, `/broadcast`, `/zoom`, `/sidebar`, `/keys`, `/far`, `/exit`), fish-style autosuggest from history, `cd`
+The docked command bar routes **bare text smartly**: if the focused pane is an
+idle shell, what you type is typed into it; otherwise a first word that
+resolves on your login shell's `$PATH` spawns the command in its own pane, and
+anything else gets a hint instead of a mis-fire. The palette shows a **preview
+row** telling you where the line will go before you press Enter. Two prefixes
+make the routing explicit: **`!<cmd>`** always runs the command in a new pane,
+and **`*<text>`** broadcasts one line to every terminal pane.
+
+Slash commands complete the bar (type `/` for a fuzzy palette): `/crew`,
+`/goal <text>`, `/batch <file>`, `/md <file>`, `/diff`, `/settings`,
+`/find <text>`, `/name <text>`, `/clear`, `/clearall`, `/clearlog`, `/only`,
+`/copy`, `/dump`, `/closeall`, `/pwd`, `/about`, `/font`, `/theme`, `/notify`,
+`/restart`, `/update`, `/broadcast`, `/zoom`, `/sidebar`, `/keys`, `/far`,
+`/exit`. Commands with a fixed value set (like `/theme`) expand into an
+arrow-selectable **value picker**. Fish-style autosuggest from history, `cd`
 completion with `$VAR` expansion, and `Up`/`Down` history recall persisted to
-`$XDG_CONFIG/crew/history`. Anything that isn't a slash command or `cd` is sent
-to the focused terminal. `/diff` opens the working tree's colored git diff
-(status, stat, full diff) in its own pane — Codex-style change review beside
-your shells.
+`$XDG_CONFIG/crew/history` round it out. `/diff` opens the working tree's
+colored git diff (status, stat, full diff) in its own pane — Codex-style
+change review beside your shells; `/md <file>` opens a zoomed **markdown
+viewer** with side-by-side source and preview.
 
 ## Sidebar
 
@@ -158,6 +186,20 @@ gauges, a moving **CPU sparkline** under them, load average, host info, network
 rates with a **throughput sparkline**, a git section for the working directory,
 and a list of open panes (click a row to focus it). The sparklines scroll on the
 sidebar's once-a-second refresh, so the charts animate at no extra redraw cost.
+
+## Markdown
+
+Crew renders markdown natively (a `pulldown-cmark`-based engine drawn straight
+to GPU cells — headings, lists, tables aligned by display width, fenced code
+cards, links):
+
+- **Chat panes** render agent replies as formatted markdown by default;
+  **Ctrl+Shift+M** flips the focused chat pane to the raw source and back.
+  **Cmd+Click** opens a rendered link.
+- **`/md <file>`** opens a zoomed **markdown viewer** pane showing the file as
+  side-by-side `source | preview` halves: **Tab** switches the active half,
+  arrows/PageUp/PageDown scroll it, **r** reloads from disk, **Cmd+Click**
+  opens links in the preview, **Esc** closes.
 
 ## Multi-agent panes (`/crew`)
 
@@ -180,19 +222,33 @@ The pane speaks a small **construct language**: `/fan <task>` sends one task to
 every agent **in parallel** (replies stream back fastest-first), `@a+b <task>`
 fans out to a subset, `/loop <n> <task>` iterates on the crew's own answer,
 `/goal <text>` keeps working until a judge agent rules the goal met, `/model
-<agent> <model>` pins agents to **different models side by side**, `/status`
-reports live totals, and `/stop` cancels the running construct — with Tab
-completion for `@agents` and `/constructs` in the composer.
+<agent> <model>` pins agents to **different models side by side**, and
+`/status` reports live totals — with Tab completion for `@agents` and
+`/constructs` in the composer, one-letter aliases (`/s` → `/status`), and
+did-you-mean on typos. Long constructs run as **concurrent background tasks**
+(default cap 4): each reply is tagged with a dim `#N` task chip, `/tasks`
+lists what's running, and `/stop [#n]` cancels one task or all of them.
+`@file` mentions in the composer fuzzy-complete against the project tree and
+splice the file's contents into the outgoing message.
+
+Agents can also touch the workspace through built-in **sys tools** — bounded
+`sys:run` (non-interactive shell, 30s/64KB caps), `sys:read_file` (chunked
+64KB reads), `sys:write_file`, and `sys:list_dir` — callable mid-relay the
+same way as MCP tools. `CREW_SYS_MODE=readonly` blocks the mutating ones,
+`CREW_SYS_TOOLS=0` turns the surface off, and `/cwd` shows the working
+directory and sandbox mode. An optional token budget
+(`CREW_BROKER_TOKEN_BUDGET`) hard-stops a runaway thread.
 
 It also borrows the flagship moves of the big coding agents: **plan mode**
 (`/plan <task>` drafts a numbered plan and nothing runs until `/approve`;
 `/reject` discards — à la Claude Code), **workspace checkpoints**
 (`/checkpoint [label]` snapshots the working tree as a hidden commit under
 `refs/crew/` without touching HEAD or your index, `/checkpoints` lists,
-`/restore <n>` brings a snapshot's files back — à la Cline), and
+`/restore <n>` brings a snapshot's files back — à la Cline),
 **transcript export** (`/export` writes the conversation to
-`crew-transcript-<stamp>.md` — à la OpenCode); `/diff` in the input bar
-completes the loop with Codex-style change review.
+`crew-transcript-<stamp>.md` — à la OpenCode), and **`/compact`**, which folds older
+messages away when a long session gets heavy; `/diff` (in the pane or the
+input bar) completes the loop with Codex-style change review.
 
 The pane is extensible the way other coding tools are — three drop-in
 surfaces, no rebuild, edits picked up live (`/reload` forces it; no restart
@@ -200,8 +256,12 @@ needed) — see [docs/CREW.md](docs/CREW.md#multi-agent-relay-crew):
 
 - **Skills** — markdown prompt playbooks in `~/.config/crew/skills/` or
   `./.crew/skills/` (optional `name:`/`description:` frontmatter; project
-  overrides user). `/skills` lists them; `/skill <name> <task>` runs the relay
-  with the playbook prepended so the whole crew follows it.
+  overrides user). A skill can also be a **directory with a `SKILL.md`** plus
+  supporting files, and oversized playbooks disclose **progressively**: past
+  8 KB the relay gets the description + heading outline + path, and agents
+  read sections on demand with chunked `sys:read_file` calls. `/skills` lists
+  them; `/skill <name> <task>` runs the relay with the playbook prepended so
+  the whole crew follows it.
 - **Plugin agents** — a JSON manifest in `~/.config/crew/agents/` or
   `./.crew/agents/` (`{"name", "command", "args": […, "{}"], "role"}`) turns
   any headless CLI into a roster agent; installed manifests appear in
@@ -214,10 +274,11 @@ needed) — see [docs/CREW.md](docs/CREW.md#multi-agent-relay-crew):
 
 The pane itself reads like a multi-agent console: a header with a live status
 (`| coder · 12s` while an agent thinks, `| 3 working · 8s` during a parallel
-fan, a completed-turns counter, a running `~N tok` meter, connection dot), an
-**agent roster row** — one colored chip per agent with its model badge and,
-once it has replied, a dimmed `·3× 4.2s` stat suffix (replies × average
-latency), every active agent highlighted —
+fan, a completed-turns counter, a running `~N tok` meter, connection dot),
+**statusline-style agent rows** — one per agent with its model badge, reply
+count, running token total, and live bars for **context-window fill** (sized
+to the pinned model's window) and its share of the turn's time, the active
+agent highlighted —
 a **live activity row** while agents work (`⠹ user ⇢ planner 4s`, one animated
 chip per working agent naming who handed it the task, so parallel fans and
 hand-offs are visible as they happen), and **message cards** (`▍sender · 2m ago · 4.2s`)
@@ -281,29 +342,35 @@ trips. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
 
 ## Settings
 
-`/settings` opens a scrollable form covering every configurable property: font
-family/size, sidebar, theme, accent, paper texture + grain, launch-maximized,
-and the whole notification block (master + per-event toggles, min-secs
-threshold, watched output patterns). Settings persist to
+`/settings` opens a **two-column bento form** covering every configurable
+property: font family/size, nav width + visibility, theme, accent, paper
+texture + grain, launch-maximized, and the whole notification block (master +
+per-event toggles, min-secs threshold, watched output patterns as a
+one-per-line text area). **Cmd+S / Alt+S** saves. Settings persist to
 `$XDG_CONFIG/crew/config.toml` and apply live on Save. The config file also
 accepts `accent = "#rrggbb"` to override Crew's accent; omit it (or give an
 invalid value) to use the active theme's default accent. It applies at launch —
 `/restart` picks up edits made outside the `/settings` pane.
 
-**Themes.** Crew ships five themes: two paper/e-ink looks — `paper-dark`
-(default — a high-contrast "newspaper" look) and `paper-light` (a warm paper
-page) — and three old-school **CRT phosphor** themes: `crt-green` (classic P1),
-`crt-amber` (P3), and `crt-blue`, each a monochrome glow on a near-black tube.
-Switch with `/theme <name>` or cycle through all of them live with
-`Ctrl+Shift+L`; the choice persists. A subtle GPU grain + vignette sits behind
-everything (it reads as a CRT glow on the phosphor themes). Config keys:
-`theme = "paper-dark"`, `paper_texture = true` (grain on/off),
+**Themes.** Crew ships **nine themes**: five paper/ink looks — `paper-dark`
+(default — a high-contrast "newspaper" look), `paper-light` (a warm paper
+page), `sepia-dark` (warm cream ink on dark sepia), `midnight-ink` (cool
+off-white on deep navy), and `graphite` (a gentle soft-charcoal page) — and
+four **CRT phosphor** tubes: `crt-green`, `crt-amber`, `crt-blue`, and
+`crt-violet`, each a neon monochrome glow on a near-black tube. A tenth
+option, **`/theme random`**, rotates through the dark themes every 10
+minutes. Switch with `/theme <name>` (the palette offers an arrow-selectable
+picker) or cycle everything live with `Ctrl+Shift+L`; the choice persists.
+Light themes render ink at Medium weight over 3× "newsprint" grain so they
+read like paper, not a washed-out screen. A subtle GPU grain + vignette sits
+behind everything (it reads as a CRT glow on the phosphor themes). Config
+keys: `theme = "paper-dark"`, `paper_texture = true` (grain on/off),
 `paper_grain = 1.3` (strength `0.0`–`2.0`). See
 [docs/CREW.md](docs/CREW.md#themes).
 
 ## Architecture
 
-Crew is a Cargo workspace with five crates:
+Crew is a Cargo workspace with six crates:
 
 | Crate | Purpose |
 |-------|---------|
@@ -311,6 +378,7 @@ Crew is a Cargo workspace with five crates:
 | `crew-render` | GPU rendering (`wgpu` + `glyphon`) |
 | `crew-term` | PTY + terminal grid (`alacritty_terminal` + `portable-pty`) |
 | `crew-plugin` | Chat / agent plugins (the `/crew` relay broker) |
+| `crew-theme` | Theme presets + palette contracts (9 themes, contrast thresholds) |
 | `crew-hive` | Swarm orchestration engine (planner, scheduler, agents, blackboard, telemetry) |
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full diagram (app +

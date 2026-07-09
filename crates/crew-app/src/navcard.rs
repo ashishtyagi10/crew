@@ -52,6 +52,8 @@ impl CrewApp {
     pub(crate) fn pane_rows(&self) -> Vec<crate::panelist::PaneRow> {
         // Zoom draws only the focused pane (clamped like build_frame clamps).
         let zoomed_on = self.focused.min(self.panes.len().saturating_sub(1));
+        // One clock read per frame keeps every row's blink phase in step.
+        let now = crate::anim::now_ms();
         self.panes
             .iter()
             .enumerate()
@@ -61,6 +63,7 @@ impl CrewApp {
                 focused: i == self.focused,
                 activity: p.activity,
                 minimized: p.hidden || (self.zoomed && i != zoomed_on),
+                attention: p.attention.map(|a| (a.glyph(), a.visible(now))),
             })
             .collect()
     }
@@ -90,6 +93,7 @@ mod tests {
             activity: false,
             bell: false,
             hidden: false,
+            attention: None,
         }
     }
 
@@ -107,6 +111,23 @@ mod tests {
             rows[0].minimized && rows[2].minimized,
             "panes covered by the zoom get the [+] marker"
         );
+    }
+
+    #[test]
+    fn attention_reaches_the_pane_row_as_a_glyph() {
+        let mut app = CrewApp::default();
+        for n in ["a", "b"] {
+            app.panes.push(far_pane(n));
+        }
+        crate::attention::raise(
+            &mut app.panes[1],
+            crate::notify::NotifyKind::Bell,
+            crate::anim::now_ms(),
+        );
+        let rows = app.pane_rows();
+        assert_eq!(rows[0].attention, None);
+        // Fresh marker: bell glyph, blink phase starts visible.
+        assert_eq!(rows[1].attention, Some(('!', true)));
     }
 
     #[test]

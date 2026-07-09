@@ -536,6 +536,7 @@ fn show_source_false_chat_title_has_no_suffix() {
         activity: false,
         bell: false,
         hidden: false,
+        attention: None,
     };
 
     let title = pane.title_text();
@@ -567,6 +568,7 @@ fn show_source_true_chat_title_has_source_suffix() {
         activity: false,
         bell: false,
         hidden: false,
+        attention: None,
     };
 
     let title = pane.title_text();
