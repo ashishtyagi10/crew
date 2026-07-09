@@ -456,6 +456,11 @@ and a typo gets a **did-you-mean** suggestion):
   **`/commit apply`**, which creates the commit (`-m` for a staged proposal,
   `-am` for an unstaged one); re-running `/commit` re-drafts. A clean tree,
   a missing repo, or an empty draft each get a status line instead.
+- **`/review`** — an **AI code review** of the same diff `/commit` sees (à la
+  Codex's `/review`): the reviewer agent reports findings worst-first —
+  `blocker — file:line — what and why`, then `warn`, then `nit` — closing
+  with a one-line verdict (or "no findings" for a clean diff). Read-only:
+  nothing to apply, pairs naturally with `/commit` before you ship.
 - **`/export`** — write the pane's transcript to
   `crew-transcript-<stamp>.md` in the working directory (à la OpenCode),
   one `## sender · time · latency` section per message. **`/compact`** folds

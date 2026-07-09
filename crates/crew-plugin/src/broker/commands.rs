@@ -21,6 +21,7 @@ pub(crate) fn is_quick(text: &str) -> bool {
         && !matches!(
             cmd,
             "commit"
+                | "review"
                 | "fan"
                 | "loop"
                 | "goal"
@@ -49,6 +50,7 @@ pub(crate) const HELP: &str = "constructs:\n\
     /restore <n> — put checkpoint n's files back\n\
     /diff — show the working tree's changes (git diff --stat)\n\
     /commit — draft an AI commit message · /commit apply — create the commit\n\
+    /review — AI code review of the working diff, findings worst-first\n\
     /cwd — show the working directory and sandbox mode\n\
     /skills — list prompt playbooks (~/.config/crew/skills, .crew/skills)\n\
     /skill <name> <task> — run the relay with that playbook prepended\n\
@@ -108,6 +110,7 @@ const CONSTRUCTS: &[&str] = &[
     "checkpoint",
     "checkpoints",
     "commit",
+    "review",
     "restore",
     "skills",
     "skill",
@@ -191,6 +194,7 @@ pub(crate) fn handle(
         "restore" => super::checkpoint::restore_cmd(rest, emit),
         "diff" => super::diff::diff_cmd(emit),
         "commit" => super::gitmsg::commit_cmd(session, rest, emit),
+        "review" => super::review::review_cmd(session, emit),
         "cwd" => cwd_cmd(emit),
         "skills" => emit(msg(
             "crew",

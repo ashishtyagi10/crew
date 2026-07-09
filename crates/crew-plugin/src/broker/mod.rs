@@ -29,6 +29,7 @@ mod plan;
 mod plugins;
 mod registry;
 mod relay;
+mod review;
 mod route;
 mod run;
 mod session;
