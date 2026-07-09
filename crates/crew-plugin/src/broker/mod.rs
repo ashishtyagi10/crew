@@ -21,6 +21,7 @@ mod diff;
 mod discover;
 mod engine;
 mod fan;
+mod gitmsg;
 mod hop;
 mod memory;
 mod normalize;

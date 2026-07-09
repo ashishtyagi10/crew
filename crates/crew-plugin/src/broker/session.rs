@@ -39,6 +39,9 @@ pub(crate) struct Session {
     /// The plan `/plan` drafted, awaiting `/approve` or `/reject` — shared so
     /// a worker-thread draft reaches the inline `/reject`.
     pub plan: super::plan::SharedPlan,
+    /// The commit message `/commit` drafted, awaiting `/commit apply` —
+    /// shared for the same worker-vs-inline reason as the plan.
+    pub commit: super::gitmsg::SharedCommit,
 }
 
 impl Default for Session {
@@ -50,6 +53,7 @@ impl Default for Session {
             tokens: Arc::new(AtomicU64::new(0)),
             mcp: Arc::new(Mutex::new(crate::mcp::McpHost::from_config())),
             plan: Arc::new(Mutex::new(None)),
+            commit: Arc::new(Mutex::new(None)),
         }
     }
 }
@@ -70,6 +74,7 @@ impl Session {
             tokens: Arc::clone(&self.tokens),
             mcp: Arc::clone(&self.mcp),
             plan: Arc::clone(&self.plan),
+            commit: Arc::clone(&self.commit),
         }
     }
 
