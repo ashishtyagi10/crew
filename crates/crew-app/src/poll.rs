@@ -119,6 +119,8 @@ impl CrewApp {
                 }
             }
         }
+        // Land a finished `?` ask (AI command suggestion) from its worker.
+        any_changed |= self.poll_ask();
         if self.sidebar.refresh(&self.cwd) {
             any_changed = true;
         }

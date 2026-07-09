@@ -81,6 +81,9 @@ pub struct CrewApp {
     /// In-progress background self-update (`/update`): drives the left-nav UPDATE
     /// card and the auto-restart. `None` when no update is running.
     pub(crate) update: Option<crate::update::UpdateState>,
+    /// In-flight `?` ask (AI command suggestion) on a worker thread. `None`
+    /// when idle. See [`crate::askbar`].
+    pub(crate) ask: Option<crate::askbar::Ask>,
 }
 
 impl CrewApp {
@@ -197,6 +200,16 @@ impl CrewApp {
                 self.set_status("usage: *<text> — sends to every terminal");
             } else if self.write_terminal_targets(&submit_bytes(cmd), true) == 0 {
                 self.set_status("no terminals to broadcast to");
+            }
+            return false;
+        }
+        // `?query` asks the AI for a shell command (à la Warp AI); the reply
+        // lands back in the input bar, ready to edit or Enter.
+        if let Some(query) = crate::askbar::qmark_command(&line) {
+            if query.is_empty() {
+                self.set_status("usage: ?<what you want> — ask ai for a command");
+            } else {
+                self.start_ask(query);
             }
             return false;
         }

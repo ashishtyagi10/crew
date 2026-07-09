@@ -1,6 +1,7 @@
 mod altscroll;
 mod anim;
 mod app;
+mod askbar;
 mod attention;
 mod boxdraw;
 mod chat;
