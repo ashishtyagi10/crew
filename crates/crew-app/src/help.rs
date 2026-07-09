@@ -30,8 +30,8 @@ const BINDINGS: &[(&str, &str)] = &[
     ("Shift+Home / End", "Scroll to top / bottom"),
     ("/ (in input)", "Command palette"),
     (
-        "! · * (in input)",
-        "Force a new pane / broadcast to all terminals",
+        "! · * · ? (in input)",
+        "Force a new pane / broadcast to all / ask ai for a command",
     ),
     ("Cmd+Q", "Quit"),
 ];

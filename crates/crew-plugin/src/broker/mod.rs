@@ -13,6 +13,7 @@
 mod adapter;
 mod agents;
 mod apiadapter;
+mod ask;
 mod checkpoint;
 mod commands;
 mod constructs;
@@ -42,6 +43,7 @@ mod toolclip;
 
 pub use adapter::{Adapter, CliAdapter, Normalize};
 pub use agents::known_adapters;
+pub use ask::suggest_command;
 pub use engine::Broker;
 pub use hop::{Hop, HopKind, RunStats};
 pub use registry::Registry;

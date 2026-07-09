@@ -144,6 +144,15 @@ The docked command bar supports:
   of focus (the explicit form of the old `/run`).
 - **`*<text>`** — broadcasts one line to **every terminal pane** — a one-shot
   alternative to the persistent Cmd+S broadcast mode.
+- **`?<plain english>`** — ask the AI for a command (à la Warp AI / GitHub
+  Copilot CLI): `?kill whatever is on port 8080` sends the request to the same
+  provider stack `/crew`'s inbuilt agents use (DashScope → OpenRouter →
+  Anthropic, mock under `CREW_BROKER_MOCK_REPLY`) on a worker thread, and the
+  suggested command lands **back in the input bar** — ready to edit or Enter —
+  with a status flash. If you've typed something new meanwhile it never
+  clobbers you (the suggestion flashes on the status line instead). Fenced or
+  backticked replies are distilled to the bare command; no provider key ⇒ a
+  status hint, never a hang (30s deadline).
 - **Slash commands** — type `/` for a command palette (↑/↓ to pick, Tab/→ to
   fill, Enter to run): `/crew`, `/goal <text>`, `/batch <file>`, `/md <file>`,
   `/diff`, `/settings`, `/find <text>`, `/name <text>`, `/clear`, `/clearall`,

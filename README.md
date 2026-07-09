@@ -162,9 +162,12 @@ The docked command bar routes **bare text smartly**: if the focused pane is an
 idle shell, what you type is typed into it; otherwise a first word that
 resolves on your login shell's `$PATH` spawns the command in its own pane, and
 anything else gets a hint instead of a mis-fire. The palette shows a **preview
-row** telling you where the line will go before you press Enter. Two prefixes
-make the routing explicit: **`!<cmd>`** always runs the command in a new pane,
-and **`*<text>`** broadcasts one line to every terminal pane.
+row** telling you where the line will go before you press Enter. Three
+prefixes make the bar explicit: **`!<cmd>`** always runs the command in a new
+pane, **`*<text>`** broadcasts one line to every terminal pane, and
+**`?<plain english>`** asks the AI for a command (à la Warp AI / Copilot CLI)
+— the suggestion lands back in the input bar, ready to edit or Enter, powered
+by the same provider stack as `/crew` (DashScope / OpenRouter / Anthropic).
 
 Slash commands complete the bar (type `/` for a fuzzy palette): `/crew`,
 `/goal <text>`, `/batch <file>`, `/md <file>`, `/diff`, `/settings`,

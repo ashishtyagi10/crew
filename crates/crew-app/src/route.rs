@@ -90,6 +90,17 @@ impl crate::app::CrewApp {
             }
             return row("↵ run in a new pane (forced)".to_string(), "", true);
         }
+        if let Some(query) = crate::askbar::qmark_command(&text) {
+            if query.is_empty() {
+                // Bare `?` submits to a usage hint, mirroring `!` and `*`.
+                return row(
+                    "usage: ?<what you want> — ask ai for a command".to_string(),
+                    "",
+                    false,
+                );
+            }
+            return row("↵ ask ai for a command".to_string(), "", true);
+        }
         if crate::cwd::cd_arg(&text).is_some() {
             return Vec::new();
         }
@@ -224,6 +235,22 @@ mod tests {
             app.input_preview().is_empty(),
             "slash dispatch owns all /-led text, even unrecognized commands"
         );
+    }
+
+    #[test]
+    fn preview_shows_the_ask_row_for_qmark_text() {
+        let mut app = crate::app::CrewApp::default();
+        app.input.text = "?list rust files".into();
+        let rows = app.input_preview();
+        assert_eq!(rows.len(), 1);
+        assert!(rows[0].submit, "a filled ?query submits");
+        assert!(rows[0].label.contains("ask ai"), "got: {}", rows[0].label);
+        // Bare `?` mirrors the usage hint, like bare `!` and `*`.
+        app.input.text = "?".into();
+        let rows = app.input_preview();
+        assert_eq!(rows.len(), 1);
+        assert!(!rows[0].submit);
+        assert!(rows[0].label.contains("usage"), "got: {}", rows[0].label);
     }
 
     #[test]

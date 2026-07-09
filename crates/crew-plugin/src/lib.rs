@@ -5,8 +5,8 @@ pub mod mcp;
 mod orchestrator;
 mod protocol;
 pub use broker::{
-    known_adapters, parse_routing, run_broker_stdio, Adapter, Broker, CliAdapter, Envelope, Hop,
-    HopKind, Normalize, Registry, Routing, RunStats, ToolRunner,
+    known_adapters, parse_routing, run_broker_stdio, suggest_command, Adapter, Broker, CliAdapter,
+    Envelope, Hop, HopKind, Normalize, Registry, Routing, RunStats, ToolRunner,
 };
 pub use echo::respond;
 pub use host::Plugin;
