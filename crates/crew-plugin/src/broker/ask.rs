@@ -31,6 +31,46 @@ pub fn suggest_command(query: &str, timeout: Duration) -> Result<String, String>
     Ok(extract_command(&reply))
 }
 
+/// Explain a terminal pane's output (à la Warp's "ask AI about this"):
+/// `context` is the pane's recent scrollback, `question` the user's ask (a
+/// default stands in when blank). Returns a markdown answer for the viewer.
+/// Same provider stack and threading rules as [`suggest_command`].
+pub fn explain_output(context: &str, question: &str, timeout: Duration) -> Result<String, String> {
+    if std::env::var("CREW_BROKER_MOCK_REPLY").is_err() {
+        static HYDRATE: std::sync::Once = std::sync::Once::new();
+        HYDRATE.call_once(super::shellenv::hydrate);
+    }
+    let adapters = super::discover::roster_with(&std::collections::HashMap::new());
+    // The reviewer role fits post-mortems; any adapter can answer.
+    let adapter = adapters
+        .iter()
+        .find(|a| a.name() == "reviewer")
+        .or_else(|| adapters.first())
+        .ok_or_else(|| {
+            "no AI provider — set DASHSCOPE_API_KEY, OPENROUTER_API_KEY, or ANTHROPIC_API_KEY"
+                .to_string()
+        })?;
+    adapter.call(&explain_prompt(context, question), timeout)
+}
+
+/// The explain prompt: the pane's output, the user's question (or a default),
+/// and a concise-markdown answer format the `/md` viewer renders well.
+fn explain_prompt(context: &str, question: &str) -> String {
+    let q = question.trim();
+    let q = if q.is_empty() {
+        "Explain what happened here, focusing on any errors and how to fix them."
+    } else {
+        q
+    };
+    format!(
+        "You are looking at the recent output of a user's terminal pane.\n\
+         Answer their question concisely in markdown (short headings, code \
+         fences for commands). Terminal output:\n\
+         ```\n{context}\n```\n\
+         Question: {q}"
+    )
+}
+
 /// The single-completion prompt: name the platform, demand exactly one
 /// command, ban prose and fences (models add them anyway — see
 /// [`extract_command`]).

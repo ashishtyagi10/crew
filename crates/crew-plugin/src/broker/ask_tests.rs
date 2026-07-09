@@ -43,3 +43,27 @@ fn extract_command_survives_an_empty_reply() {
     assert_eq!(extract_command(""), "");
     assert_eq!(extract_command("   \n  "), "");
 }
+
+#[test]
+fn mock_provider_answers_the_explain() {
+    let _env = testenv::mock("The build failed because of a missing semicolon.");
+    let got = explain_output("error[E0308]: mismatched types", "", Duration::from_secs(5)).unwrap();
+    assert!(got.contains("missing semicolon"));
+}
+
+#[test]
+fn explain_prompt_carries_context_question_and_asks_for_markdown() {
+    let p = explain_prompt("cargo build\nerror[E0308]", "why did this fail");
+    assert!(p.contains("error[E0308]"), "context included");
+    assert!(p.contains("why did this fail"), "question included");
+    assert!(p.to_lowercase().contains("markdown"), "answer format named");
+}
+
+#[test]
+fn explain_prompt_defaults_the_question_when_empty() {
+    let p = explain_prompt("some output", "  ");
+    assert!(
+        p.to_lowercase().contains("explain"),
+        "a default question stands in: {p}"
+    );
+}
