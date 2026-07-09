@@ -50,6 +50,8 @@ pub(crate) const HELP: &str = "constructs:\n\
     /cwd — show the working directory and sandbox mode\n\
     /skills — list prompt playbooks (~/.config/crew/skills, .crew/skills)\n\
     /skill <name> <task> — run the relay with that playbook prepended\n\
+    /memory — show the standing memory prepended to every task\n\
+    #<note> — remember a preference in ./.crew/memory.md\n\
     /mcp — MCP servers and their tools (~/.config/crew/mcp.json, .crew/mcp.json)\n\
     /reload — re-read skills, plugin agents, and mcp.json without a restart\n\
     /tasks — list the background tasks running now\n\
@@ -106,6 +108,7 @@ const CONSTRUCTS: &[&str] = &[
     "restore",
     "skills",
     "skill",
+    "memory",
     "mcp",
     "reload",
     "diff",
@@ -190,6 +193,7 @@ pub(crate) fn handle(
             super::skillframe::list_report(&super::skills::load()),
         )),
         "skill" => super::skills::skill_cmd(session, rest, emit),
+        "memory" => emit(msg("crew", super::memory::report())),
         "mcp" => {
             let report = session.lock_mcp().report();
             emit(msg("crew", report))

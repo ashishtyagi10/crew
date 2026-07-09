@@ -22,6 +22,7 @@ mod discover;
 mod engine;
 mod fan;
 mod hop;
+mod memory;
 mod normalize;
 mod plan;
 mod plugins;

@@ -135,6 +135,13 @@ fn send(
         );
     }
 
+    // `#note` — remember a standing preference (à la Claude Code's # memory):
+    // appended to ./.crew/memory.md and prepended to every task from now on.
+    // Answered inline; nothing dials an agent.
+    if let Some(note) = trimmed.strip_prefix('#') {
+        return emit(out, &msg("crew", super::memory::remember(note)));
+    }
+
     if super::commands::is_quick(&trimmed) {
         return super::commands::handle(session, &trimmed, &mut |ev| emit(out, &ev));
     }

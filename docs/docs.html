@@ -252,6 +252,7 @@ cargo build --release -p crew-app
 
       <h3>Extending — skills, plugin agents, MCP, sys tools</h3>
       <ul>
+        <li><strong>Memory</strong> — Claude Code-style <code>#</code> shortcut: <code>#always use pnpm</code> appends to <code>./.crew/memory.md</code> and every task thereafter carries the standing memory block (user + project, 2&nbsp;KB cap); <code>/memory</code> shows what's loaded.</li>
         <li><strong>Skills</strong> — markdown playbooks in <code>~/.config/crew/skills/</code> or <code>./.crew/skills/</code> (flat <code>.md</code> or a directory with a <code>SKILL.md</code>); oversized playbooks disclose progressively as an outline agents read in chunks. <code>/skill &lt;name&gt; &lt;task&gt;</code> runs the relay with the playbook prepended.</li>
         <li><strong>Plugin agents</strong> — a JSON manifest in <code>~/.config/crew/agents/</code> or <code>./.crew/agents/</code> turns any headless CLI into a roster agent.</li>
         <li><strong>MCP servers</strong> — declared in <code>mcp.json</code> (standard <code>mcpServers</code> schema), connected lazily over stdio; agents call tools mid-relay with <code>@tool server:tool {…}</code>, bounded rounds, every call visible in the transcript.</li>
