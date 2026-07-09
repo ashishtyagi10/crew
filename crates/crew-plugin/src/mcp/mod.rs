@@ -3,7 +3,7 @@
 //! `mcpServers` schema other coding tools use), connected lazily, and exposed
 //! to the `/crew` relay as callable tools.
 mod client;
-mod config;
+pub(crate) mod config;
 
 use std::collections::BTreeMap;
 

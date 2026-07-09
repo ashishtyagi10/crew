@@ -258,7 +258,9 @@ It also borrows the flagship moves of the big coding agents: **plan mode**
 (`/review` reports findings on the working diff worst-first — à la Codex),
 **session resume** (the conversation auto-saves to `./.crew/`, and `/resume`
 in a fresh pane folds the last session into the next task — à la Claude
-Code's `--continue`), and **`/compact`**, which
+Code's `--continue`), **`/doctor`** (a ✓/✗ health check of the whole AI
+stack: provider key, agent CLIs, MCP, skills, memory — each failure names
+its fix), and **`/compact`**, which
 folds older messages away when a long session gets heavy; `/diff` (in the
 pane or the input bar) completes the loop with Codex-style change review.
 
