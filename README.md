@@ -256,7 +256,9 @@ It also borrows the flagship moves of the big coding agents: **plan mode**
 (`/commit` has the coder draft a Conventional Commits message for your diff;
 `/commit apply` creates the commit — à la Aider), **AI code review**
 (`/review` reports findings on the working diff worst-first — à la Codex),
-and **`/compact`**, which
+**session resume** (the conversation auto-saves to `./.crew/`, and `/resume`
+in a fresh pane folds the last session into the next task — à la Claude
+Code's `--continue`), and **`/compact`**, which
 folds older messages away when a long session gets heavy; `/diff` (in the
 pane or the input bar) completes the loop with Codex-style change review.
 

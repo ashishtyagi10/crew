@@ -33,6 +33,7 @@ mod review;
 mod route;
 mod run;
 mod session;
+mod sessionlog;
 mod shellenv;
 mod skillframe;
 mod skills;
