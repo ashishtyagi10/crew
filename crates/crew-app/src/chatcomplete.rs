@@ -7,7 +7,7 @@ use crew_plugin::AgentInfo;
 /// Every composer slash action: broker constructs plus the pane-local
 /// `/export`, `/theme`, `/compact`, and `/exit` (see `chatexport` /
 /// `chattheme` / `chatcompact` / `chat`).
-pub(crate) const CONSTRUCTS: [&str; 29] = [
+pub(crate) const CONSTRUCTS: [&str; 30] = [
     "/help",
     "/agents",
     "/model",
@@ -29,6 +29,7 @@ pub(crate) const CONSTRUCTS: [&str; 29] = [
     "/review",
     "/resume",
     "/doctor",
+    "/standup",
     "/mcp",
     "/tasks",
     "/stop",
@@ -64,6 +65,7 @@ pub(crate) fn describe(construct: &str) -> &'static str {
         "/review" => "AI code review of the working diff",
         "/resume" => "continue the previous session as context",
         "/doctor" => "health-check the AI stack",
+        "/standup" => "AI standup update from recent commits",
         "/mcp" => "list MCP servers and tools",
         "/tasks" => "list running background tasks",
         "/stop" => "stop all tasks (/stop #n for one)",
@@ -200,10 +202,13 @@ mod tests {
     fn completes_constructs() {
         assert_eq!(complete("/go", &[]).unwrap(), "/goal ");
         assert_eq!(complete("/lo", &[]).unwrap(), "/loop ");
-        // '/st' IS the common prefix of /stop and /status → nothing to add…
+        // '/st' IS the common prefix of /stop, /status, /standup → nothing
+        // to add, and '/sta' still splits status/standup…
         assert_eq!(complete("/st", &[]), None);
-        // …but one more character disambiguates.
-        assert_eq!(complete("/sta", &[]).unwrap(), "/status ");
+        assert_eq!(complete("/sta", &[]), None);
+        // …but one more character disambiguates each.
+        assert_eq!(complete("/stat", &[]).unwrap(), "/status ");
+        assert_eq!(complete("/stan", &[]).unwrap(), "/standup ");
     }
 
     #[test]

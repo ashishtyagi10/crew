@@ -38,6 +38,7 @@ mod sessionlog;
 mod shellenv;
 mod skillframe;
 mod skills;
+mod standup;
 mod stdio;
 mod sysread;
 mod sysrun;

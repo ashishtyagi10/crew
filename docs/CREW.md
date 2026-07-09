@@ -461,6 +461,13 @@ and a typo gets a **did-you-mean** suggestion):
   `blocker — file:line — what and why`, then `warn`, then `nit` — closing
   with a one-line verdict (or "no findings" for a clean diff). Read-only:
   nothing to apply, pairs naturally with `/commit` before you ship.
+- **`/standup [days]`** — an **AI standup update** from the repo's recent
+  commits (default: the last day, up to 30): the coder groups what shipped
+  by theme, infers what's still in progress, and calls out risks — first
+  person, paste-ready for the morning thread. History summarization — the
+  complement of `/review` (the diff you haven't committed) and `/commit`
+  (the message for it). An empty window or a fresh repo reports "nothing to
+  report" instead of erroring.
 - **`/doctor`** — a **health check for the AI stack** (à la Claude Code's
   `/doctor`): one ✓/✗/– checklist covering the provider that will answer
   (and which key it found), the claude/codex/opencode CLIs on `$PATH`,
