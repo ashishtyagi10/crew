@@ -605,4 +605,11 @@ mod tests {
         let gone = name_fg(false, 0.0, 0);
         assert_ne!(fresh, gone, "fresh flash tints the row");
     }
+
+    #[test]
+    fn flash_overrides_pulse_when_both_apply() {
+        // At tri peak (now=800) an active agent with a fresh flash must render
+        // exactly like an inactive one with the same flash — flash wins.
+        assert_eq!(name_fg(true, 1.0, 800), name_fg(false, 1.0, 800));
+    }
 }
