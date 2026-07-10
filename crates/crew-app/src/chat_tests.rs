@@ -636,3 +636,44 @@ fn anim_active_tail_ends_after_settle() {
     let after = crate::anim::now_ms() + crate::chatanim::TOK_MS + 1;
     assert!(!c.anim_active(after), "settled → no redraws");
 }
+
+#[test]
+fn stats_tick_retargets_tok_while_reply_open() {
+    let mut c = pane();
+    c.absorb_stats(0, "planner".into(), 100, 30_000); // seed ctx ground truth
+    c.absorb_activity("planner".into(), "thinking", "user".into()); // opens the reply
+    c.absorb_stats_tick("planner".into(), 500);
+    let now = crate::anim::now_ms() + crate::chatanim::TOK_MS + 1;
+    assert!(
+        (c.anim.tok("planner", now) - 30_500.0).abs() < 1.0,
+        "tick target = last ctx + estimate"
+    );
+}
+
+#[test]
+fn stats_tick_ignored_when_no_reply_open() {
+    let mut c = pane();
+    c.absorb_stats(0, "planner".into(), 100, 30_000);
+    // Reply closed by the per-agent Stats above (and never opened) — a
+    // straggler tick must not move the target.
+    c.absorb_stats_tick("planner".into(), 9_999);
+    let now = crate::anim::now_ms() + crate::chatanim::TOK_MS + 1;
+    assert!(
+        (c.anim.tok("planner", now) - 30_000.0).abs() < 1.0,
+        "stale tick ignored; Stats value stands"
+    );
+}
+
+#[test]
+fn per_agent_stats_closes_the_open_reply() {
+    let mut c = pane();
+    c.absorb_activity("planner".into(), "thinking", "user".into());
+    c.absorb_stats_tick("planner".into(), 100);
+    c.absorb_stats(0, "planner".into(), 50, 40_000); // closes + reconciles
+    c.absorb_stats_tick("planner".into(), 20_000); // late tick from the finished reply
+    let now = crate::anim::now_ms() + crate::chatanim::TOK_MS + 1;
+    assert!(
+        (c.anim.tok("planner", now) - 40_000.0).abs() < 1.0,
+        "authoritative Stats wins over late ticks"
+    );
+}

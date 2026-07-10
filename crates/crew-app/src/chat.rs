@@ -53,6 +53,10 @@ pub struct ChatPane {
     pub(crate) show_source: bool,
     /// Roster animation state: eased bars/token counts + handoff flashes.
     pub(crate) anim: crate::chatanim::RosterAnim,
+    /// Agents with an in-flight streamed reply: opened by
+    /// `Activity{"thinking"}`, closed by their per-agent `Stats` — late
+    /// `StatsTick`s outside the window are dropped without heuristics.
+    pub(crate) tick_open: std::collections::HashSet<String>,
 }
 
 impl ChatPane {
@@ -77,6 +81,7 @@ impl ChatPane {
             palette: None,
             show_source: false,
             anim: crate::chatanim::RosterAnim::new(),
+            tick_open: std::collections::HashSet::new(),
         }
     }
 
@@ -128,6 +133,9 @@ impl ChatPane {
                         ctx,
                         ..
                     } => self.absorb_stats(tokens, agent, ms, ctx),
+                    PluginEvent::StatsTick { agent, tokens } => {
+                        self.absorb_stats_tick(agent, tokens);
+                    }
                     PluginEvent::Message {
                         sender,
                         text,
