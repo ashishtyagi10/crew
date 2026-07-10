@@ -295,7 +295,21 @@ pub(crate) fn row_cells(
     let mut cells = Vec::new();
     for (i, v) in views.iter().take(lay.shown).enumerate() {
         let row = start_row + i as u16;
-        let color = agent_color(&v.name);
+        // Working agent breathes toward the accent (≤25% blend, 1600ms
+        // triangle); a fresh handoff flashes the row (≤35%, 400ms fade).
+        // Flash wins over pulse when both apply — it's the newer signal.
+        let base = agent_color(&v.name);
+        let color = if v.flash_t > 0.0 {
+            crate::anim::lerp_rgb(base, crate::palette::accent(), 0.35 * v.flash_t)
+        } else if v.active {
+            crate::anim::lerp_rgb(
+                base,
+                crate::palette::accent(),
+                0.25 * crate::anim::tri(now, 1600),
+            )
+        } else {
+            base
+        };
         let mut col = place(
             &mut cells,
             row,
@@ -353,7 +367,6 @@ pub(crate) fn row_cells(
         }
         let _ = col;
     }
-    let _ = now;
     cells
 }
 
@@ -554,5 +567,42 @@ mod tests {
         assert!(row.contains("50%"), "text shows target: {row}");
         let full = row.chars().filter(|&c| c == '\u{2588}').count();
         assert_eq!(full, 2, "0.35 * 6 = 2.1 cells → 2 full blocks: {row}");
+    }
+
+    /// Build one AgentView with given active/flash_t, run layout + row_cells,
+    /// and return the fg color of the first cell (the marker).
+    fn name_fg(active: bool, flash_t: f32, now: u64) -> (u8, u8, u8) {
+        let mut view = v("test", "idle", 0, None, None, active);
+        view.flash_t = flash_t;
+        let views = vec![view];
+        let lay = layout(&views, 80, 1).expect("test layout");
+        let cells = row_cells(&views, 80, 0, &lay, now);
+        // Find the first cell (should be the marker at row 0, col 0).
+        cells
+            .iter()
+            .find(|c| c.row == 0)
+            .map(|c| c.fg)
+            .expect("marker cell found")
+    }
+
+    #[test]
+    fn active_agent_pulses_toward_accent() {
+        // At tri peak (now = period/2 = 800) an active row's name color must
+        // differ from an idle row's; at amplitude ≤ 0.25 it must not reach
+        // the accent itself.
+        let accent = crate::palette::accent();
+        let quiet = name_fg(false, 0.0, 0);
+        let peak = name_fg(true, 0.0, 800);
+        assert_ne!(quiet, peak, "active row breathes");
+        assert_ne!(peak, accent, "amplitude stays subtle");
+        let trough = name_fg(true, 0.0, 0);
+        assert_eq!(trough, quiet, "tri trough = base color");
+    }
+
+    #[test]
+    fn handoff_flash_blends_and_expires() {
+        let fresh = name_fg(false, 1.0, 0);
+        let gone = name_fg(false, 0.0, 0);
+        assert_ne!(fresh, gone, "fresh flash tints the row");
     }
 }
