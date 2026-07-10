@@ -59,6 +59,17 @@ pub trait Adapter: Send + Sync {
     fn call_with_usage(&self, body: &str, timeout: Duration) -> Result<(String, Usage), String> {
         self.call(body, timeout).map(|t| (t, Usage::default()))
     }
+    /// Like `call_with_usage`, reporting a running OUTPUT-token estimate to
+    /// `on_tokens` while the reply streams. Default: no ticks.
+    fn call_with_usage_ticked(
+        &self,
+        body: &str,
+        timeout: Duration,
+        on_tokens: std::sync::Arc<dyn Fn(u64) + Send + Sync>,
+    ) -> Result<(String, Usage), String> {
+        let _ = on_tokens;
+        self.call_with_usage(body, timeout)
+    }
 }
 
 /// An agent driven by one CLI command. `args` may contain the placeholder

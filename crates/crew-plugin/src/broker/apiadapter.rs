@@ -99,6 +99,47 @@ impl Adapter for ApiAdapter {
             )),
         }
     }
+
+    /// Same call as `call_with_usage`, but streams the reply and reports a
+    /// running chars/4 OUTPUT-token estimate to `on_tokens` as chunks arrive.
+    fn call_with_usage_ticked(
+        &self,
+        body: &str,
+        timeout: Duration,
+        on_tokens: Arc<dyn Fn(u64) + Send + Sync>,
+    ) -> Result<(String, super::adapter::Usage), String> {
+        let req = CompletionRequest {
+            model: self.model.clone(),
+            system: self.system.clone(),
+            prompt: body.to_string(),
+            max_tokens: MAX_TOKENS,
+        };
+        let chars = Arc::new(std::sync::atomic::AtomicU64::new(0));
+        let counter = chars.clone();
+        let on_chunk: crew_hive::ChunkFn = Arc::new(move |s: &str| {
+            let total = counter.fetch_add(s.len() as u64, std::sync::atomic::Ordering::SeqCst)
+                + s.len() as u64;
+            on_tokens(total / 4);
+        });
+        let fut = self.provider.complete_streaming(req, on_chunk);
+        match self
+            .rt
+            .block_on(async move { tokio::time::timeout(timeout, fut).await })
+        {
+            Ok(Ok(c)) => Ok((
+                c.text.trim().to_string(),
+                super::adapter::Usage {
+                    input_tokens: c.input_tokens,
+                    output_tokens: c.output_tokens,
+                },
+            )),
+            Ok(Err(e)) => Err(e.to_string()),
+            Err(_) => Err(format!(
+                "{}: api call timed out after {timeout:?} (raise CREW_BROKER_TIMEOUT_MS?)",
+                self.model
+            )),
+        }
+    }
 }
 
 /// The inbuilt relay roster: a planner (Capable tier), a coder and a reviewer
@@ -183,5 +224,34 @@ mod tests {
         assert!(inbuilt_agents(mock("ok"), tier_model, &Default::default())
             .iter()
             .all(|a| a.probe()));
+    }
+
+    #[test]
+    fn ticked_call_reports_growing_char_estimates() {
+        // MockProvider streams ~3 chunks; the estimator must report a
+        // non-decreasing chars/4 sequence and the final text must match.
+        let adapter =
+            ApiAdapter::new("planner", "m", None, mock("one two three four five six")).unwrap();
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::<u64>::new()));
+        let sink = seen.clone();
+        let on_tokens: Arc<dyn Fn(u64) + Send + Sync> = Arc::new(move |t| {
+            sink.lock().unwrap().push(t);
+        });
+        let (text, _usage) = adapter
+            .call_with_usage_ticked("task", Duration::from_secs(5), on_tokens)
+            .unwrap();
+        assert_eq!(text, "one two three four five six");
+        let ticks = seen.lock().unwrap();
+        assert!(ticks.len() >= 2, "mock streams >=2 chunks: {ticks:?}");
+        assert!(
+            ticks.windows(2).all(|w| w[0] <= w[1]),
+            "estimates never shrink"
+        );
+        let total_chars = "one two three four five six".len() as u64;
+        assert_eq!(
+            *ticks.last().unwrap(),
+            total_chars / 4,
+            "final estimate = chars/4"
+        );
     }
 }
