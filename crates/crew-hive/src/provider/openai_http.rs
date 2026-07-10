@@ -293,9 +293,12 @@ fn apply_sse_line(
 ) -> bool {
     match parse_sse_line(line) {
         SseItem::Delta(s) => {
-            if !*any_frame {
-                started.store(true, std::sync::atomic::Ordering::SeqCst);
-            }
+            // Unconditional: a usage frame arriving BEFORE the first delta
+            // (legal for any OpenAI-shaped backend) sets `any_frame`, and a
+            // guarded store would then never flip `started` — letting a
+            // mid-stream failure retry into another model and splice text,
+            // the exact thing this flag prevents. The store is idempotent.
+            started.store(true, std::sync::atomic::Ordering::SeqCst);
             *any_frame = true;
             text.push_str(&s);
             on_chunk(&s);
