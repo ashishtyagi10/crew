@@ -379,11 +379,11 @@ spinner naming it with live elapsed seconds); below it the **agent roster**
 streamed by the broker as a structured `roster` event renders as
 **statusline-style rows** — one per agent (`name │ state │ tok │ ctx │ shr`)
 with its model badge, a live spinner or reply count, the running token
-total, a **context-window meter** (per-agent prompt fill as a bar + %, sized
-to the pinned model's window — fed by real usage in the broker's `stats`
-events, and climbing live mid-reply from rate-limited `stats_tick` estimates
-while a provider streams), and a bar for its share of the turn's wall time;
-the row sheds its
+total (climbing live mid-reply from rate-limited `stats_tick` estimates
+while a provider streams), a **context-window meter** (per-agent prompt
+fill as a bar + %, sized to the pinned model's window — fed by real usage
+in the broker's `stats` events), and a bar for its share of the turn's wall
+time; the row sheds its
 rightmost segments as the pane narrows. While agents work, the next row
 becomes a **live activity row**: one animated chip per working agent —
 `⠹ user ⇢ planner 4s` — naming who handed it the task (the user, a relaying
