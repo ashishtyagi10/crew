@@ -16,6 +16,7 @@ pub(crate) const MAX_ROUNDS: u32 = 10;
 pub(crate) fn loop_cmd(
     session: &mut Session,
     rest: &str,
+    tick_emit: &std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
     let (n, task) = match rest.trim().split_once(char::is_whitespace) {
@@ -45,7 +46,7 @@ pub(crate) fn loop_cmd(
         ))?;
         let body = round_body(&task, answer.as_deref());
         let tid = format!("loop-{round}");
-        answer = relay_turn(&broker, &start, &body, &tid, emit)?.or(answer);
+        answer = relay_turn(&broker, &start, &body, &tid, tick_emit, emit)?.or(answer);
     }
     emit(msg(
         "crew",
@@ -62,6 +63,7 @@ pub(crate) const GOAL_ROUNDS: u32 = 5;
 pub(crate) fn goal_cmd(
     session: &mut Session,
     rest: &str,
+    tick_emit: &std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
     let goal = rest.trim();
@@ -86,7 +88,15 @@ pub(crate) fn goal_cmd(
             format!("goal round {round}/{GOAL_ROUNDS} \u{2014} {start} works, {judge} judges"),
         ))?;
         let body = round_body(&goal, answer.as_deref());
-        answer = relay_turn(&broker, &start, &body, &format!("goal-{round}"), emit)?.or(answer);
+        answer = relay_turn(
+            &broker,
+            &start,
+            &body,
+            &format!("goal-{round}"),
+            tick_emit,
+            emit,
+        )?
+        .or(answer);
         let Some(ans) = answer.as_deref() else {
             return emit(msg("crew", "goal stopped \u{2014} no answer was produced"));
         };

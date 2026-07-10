@@ -78,7 +78,14 @@ fn missing_directive_is_repaired_once() {
     ]);
     let b = Broker::new(reg, 6, Duration::from_secs(1));
     let mut hops = Vec::new();
-    let stats = b.run("user", "claude", "task", "t", &mut |h| hops.push(h));
+    let stats = b.run(
+        "user",
+        "claude",
+        "task",
+        "t",
+        &crate::broker::tick::noop_tick_emit(),
+        &mut |h| hops.push(h),
+    );
     assert_eq!(stats.exchanges, 3); // claude + its repair + codex
     assert!(hops
         .iter()
@@ -92,7 +99,14 @@ fn run_reports_exchanges_and_tokens() {
         agent("codex", "done\n@done"),
     ]);
     let b = Broker::new(reg, 6, Duration::from_secs(1));
-    let stats = b.run("user", "claude", "a task", "t", &mut |_h| {});
+    let stats = b.run(
+        "user",
+        "claude",
+        "a task",
+        "t",
+        &crate::broker::tick::noop_tick_emit(),
+        &mut |_h| {},
+    );
     assert_eq!(stats.exchanges, 2);
     assert!(stats.approx_tokens > 0, "token estimate should accrue");
 }
@@ -106,7 +120,14 @@ fn token_budget_terminates_thread() {
     ]);
     let b = Broker::new(reg, 100, Duration::from_secs(1)).with_budget(1);
     let mut hops = Vec::new();
-    let stats = b.run("user", "claude", "task", "t", &mut |h| hops.push(h));
+    let stats = b.run(
+        "user",
+        "claude",
+        "task",
+        "t",
+        &crate::broker::tick::noop_tick_emit(),
+        &mut |h| hops.push(h),
+    );
     let last = hops.last().unwrap();
     assert_eq!(last.kind, HopKind::Terminated);
     assert!(last.text.contains("token budget"), "{}", last.text);
@@ -119,7 +140,14 @@ fn self_hand_off_finishes_without_recalling() {
     let reg = Registry::new(vec![agent("claude", "my take\n@next claude")]);
     let b = Broker::new(reg, 6, Duration::from_secs(1));
     let mut hops = Vec::new();
-    let stats = b.run("user", "claude", "task", "t", &mut |h| hops.push(h));
+    let stats = b.run(
+        "user",
+        "claude",
+        "task",
+        "t",
+        &crate::broker::tick::noop_tick_emit(),
+        &mut |h| hops.push(h),
+    );
     assert_eq!(stats.exchanges, 1);
     let done = hops.iter().find(|h| h.kind == HopKind::Done).unwrap();
     assert_eq!(done.text, "my take");
@@ -135,7 +163,14 @@ fn repeated_reply_stops_for_no_progress() {
     ]);
     let b = Broker::new(reg, 50, Duration::from_secs(1));
     let mut hops = Vec::new();
-    b.run("user", "claude", "task", "t", &mut |h| hops.push(h));
+    b.run(
+        "user",
+        "claude",
+        "task",
+        "t",
+        &crate::broker::tick::noop_tick_emit(),
+        &mut |h| hops.push(h),
+    );
     let last = hops.last().unwrap();
     assert_eq!(last.kind, HopKind::Terminated);
     assert!(last.text.contains("no progress"), "{}", last.text);
@@ -146,7 +181,14 @@ fn zero_budget_is_unlimited() {
     let reg = Registry::new(vec![agent("claude", "answer\n@done")]);
     let b = Broker::new(reg, 6, Duration::from_secs(1)); // budget defaults to 0
     let mut hops = Vec::new();
-    let stats = b.run("user", "claude", "task", "t", &mut |h| hops.push(h));
+    let stats = b.run(
+        "user",
+        "claude",
+        "task",
+        "t",
+        &crate::broker::tick::noop_tick_emit(),
+        &mut |h| hops.push(h),
+    );
     assert_eq!(stats.exchanges, 1);
     assert!(hops.iter().any(|h| h.kind == HopKind::Done));
 }

@@ -3,10 +3,15 @@ use super::*;
 fn run(text: &str) -> Vec<PluginEvent> {
     let mut session = Session::new();
     let mut out = Vec::new();
-    handle(&mut session, text, &mut |ev| {
-        out.push(ev);
-        Ok(())
-    })
+    handle(
+        &mut session,
+        text,
+        &crate::broker::tick::noop_tick_emit(),
+        &mut |ev| {
+            out.push(ev);
+            Ok(())
+        },
+    )
     .unwrap();
     out
 }
@@ -135,10 +140,15 @@ fn model_pins_an_agent_and_reemits_the_roster() {
     let _g = testenv::mock("ok\n@done");
     let mut session = Session::new();
     let mut evs = Vec::new();
-    handle(&mut session, "/model coder qwen-turbo", &mut |ev| {
-        evs.push(ev);
-        Ok(())
-    })
+    handle(
+        &mut session,
+        "/model coder qwen-turbo",
+        &crate::broker::tick::noop_tick_emit(),
+        &mut |ev| {
+            evs.push(ev);
+            Ok(())
+        },
+    )
     .unwrap();
     assert_eq!(session.overrides.get("coder").unwrap(), "qwen-turbo");
     // A fresh Roster event precedes the confirmation message.
@@ -158,10 +168,15 @@ fn model_default_clears_the_pin() {
     let mut session = Session::new();
     session.overrides.insert("coder".into(), "x".into());
     let mut evs = Vec::new();
-    handle(&mut session, "/model coder default", &mut |ev| {
-        evs.push(ev);
-        Ok(())
-    })
+    handle(
+        &mut session,
+        "/model coder default",
+        &crate::broker::tick::noop_tick_emit(),
+        &mut |ev| {
+            evs.push(ev);
+            Ok(())
+        },
+    )
     .unwrap();
     assert!(session.overrides.is_empty());
     assert!(text_of(&evs[1]).contains("provider default"));
@@ -275,10 +290,15 @@ fn reload_reemits_the_roster_and_reports_every_surface() {
     let _g = testenv::mock("ok\n@done");
     let mut session = Session::new();
     let mut evs = Vec::new();
-    handle(&mut session, "/reload", &mut |ev| {
-        evs.push(ev);
-        Ok(())
-    })
+    handle(
+        &mut session,
+        "/reload",
+        &crate::broker::tick::noop_tick_emit(),
+        &mut |ev| {
+            evs.push(ev);
+            Ok(())
+        },
+    )
     .unwrap();
     assert!(matches!(evs[0], PluginEvent::Roster { .. }), "{evs:?}");
     let t = text_of(&evs[1]);

@@ -107,7 +107,14 @@ fn drive(agents: Vec<Box<dyn Adapter>>, max: u32) -> Vec<Hop> {
         std::time::Duration::from_secs(1),
     );
     let mut hops = Vec::new();
-    b.run("user", "claude", "task", "t1", &mut |h| hops.push(h));
+    b.run(
+        "user",
+        "claude",
+        "task",
+        "t1",
+        &crate::broker::tick::noop_tick_emit(),
+        &mut |h| hops.push(h),
+    );
     hops
 }
 
@@ -268,7 +275,14 @@ fn empty_relay_body_does_not_bloat_a_later_prompt() {
         std::time::Duration::from_secs(1),
     );
     let mut hops = Vec::new();
-    b.run("user", "claude", "task", "t1", &mut |h| hops.push(h));
+    b.run(
+        "user",
+        "claude",
+        "task",
+        "t1",
+        &crate::broker::tick::noop_tick_emit(),
+        &mut |h| hops.push(h),
+    );
     let calls = codex_calls.lock().unwrap();
     assert_eq!(calls.len(), 1, "{calls:?}");
     assert!(
@@ -318,7 +332,14 @@ fn consecutive_duplicate_relay_body_is_not_logged_twice() {
         std::time::Duration::from_secs(1),
     );
     let mut hops = Vec::new();
-    b.run("user", "claude", "task", "t1", &mut |h| hops.push(h));
+    b.run(
+        "user",
+        "claude",
+        "task",
+        "t1",
+        &crate::broker::tick::noop_tick_emit(),
+        &mut |h| hops.push(h),
+    );
     let calls = codex_calls.lock().unwrap();
     assert_eq!(calls.len(), 2, "{calls:?}");
     let count = calls[1].matches("claude \u{2192} codex: X").count();
@@ -339,7 +360,14 @@ fn non_empty_relay_body_is_kept_in_the_transcript() {
         std::time::Duration::from_secs(1),
     );
     let mut hops = Vec::new();
-    b.run("user", "claude", "task", "t1", &mut |h| hops.push(h));
+    b.run(
+        "user",
+        "claude",
+        "task",
+        "t1",
+        &crate::broker::tick::noop_tick_emit(),
+        &mut |h| hops.push(h),
+    );
     let calls = codex_calls.lock().unwrap();
     assert!(
         calls[0].contains("claude \u{2192} codex: real answer"),

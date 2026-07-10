@@ -115,10 +115,15 @@ fn framed_puts_playbook_before_task() {
 fn skill_cmd_without_args_prints_usage() {
     let mut session = Session::new();
     let mut got = Vec::new();
-    skill_cmd(&mut session, "", &mut |ev| {
-        got.push(ev);
-        Ok(())
-    })
+    skill_cmd(
+        &mut session,
+        "",
+        &crate::broker::tick::noop_tick_emit(),
+        &mut |ev| {
+            got.push(ev);
+            Ok(())
+        },
+    )
     .unwrap();
     match &got[0] {
         PluginEvent::Message { text, .. } => assert!(text.contains("usage: /skill")),
@@ -130,10 +135,15 @@ fn skill_cmd_without_args_prints_usage() {
 fn skill_cmd_reports_an_unknown_skill() {
     let mut session = Session::new();
     let mut got = Vec::new();
-    skill_cmd(&mut session, "no-such-skill do it", &mut |ev| {
-        got.push(ev);
-        Ok(())
-    })
+    skill_cmd(
+        &mut session,
+        "no-such-skill do it",
+        &crate::broker::tick::noop_tick_emit(),
+        &mut |ev| {
+            got.push(ev);
+            Ok(())
+        },
+    )
     .unwrap();
     match &got[0] {
         PluginEvent::Message { text, .. } => {

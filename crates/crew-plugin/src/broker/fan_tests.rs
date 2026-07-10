@@ -34,10 +34,17 @@ impl Adapter for Failing {
 fn run_fan(reg: &Registry, names: &[&str]) -> Vec<PluginEvent> {
     let names: Vec<String> = names.iter().map(|s| s.to_string()).collect();
     let mut evs = Vec::new();
-    fan_out(reg, &names, "task", Duration::from_secs(5), &mut |ev| {
-        evs.push(ev);
-        Ok(())
-    })
+    fan_out(
+        reg,
+        &names,
+        "task",
+        Duration::from_secs(5),
+        &crate::broker::tick::noop_tick_emit(),
+        &mut |ev| {
+            evs.push(ev);
+            Ok(())
+        },
+    )
     .unwrap();
     evs
 }

@@ -4,11 +4,13 @@
 //! event and a per-agent timing summary. This is the `/fan` construct and the
 //! machinery behind multi-target `@a+b` sends.
 use std::sync::mpsc;
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use crate::{PluginEvent, Registry, Routing};
 
 use super::relay::msg;
+use super::tick::hop_ticker;
 
 /// Send `task` to each of `names` in parallel; every reply/error is emitted as
 /// it arrives, then a `Stats` event and a summary line close the turn.
@@ -17,6 +19,7 @@ pub(crate) fn fan_out(
     names: &[String],
     task: &str,
     timeout: Duration,
+    tick_emit: &Arc<dyn Fn(PluginEvent) + Send + Sync>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
     // Standing memory rides fan tasks too (see relay_turn).
@@ -50,9 +53,10 @@ pub(crate) fn fan_out(
             };
             let tx = tx.clone();
             let prompt = prompt.clone();
+            let on_tokens = hop_ticker(tick_emit.clone(), name.clone());
             s.spawn(move || {
                 let t0 = Instant::now();
-                let res = agent.call_with_usage(&prompt, timeout);
+                let res = agent.call_with_usage_ticked(&prompt, timeout, on_tokens);
                 let _ = tx.send((name.clone(), res, t0.elapsed()));
             });
         }

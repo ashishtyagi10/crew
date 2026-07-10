@@ -86,6 +86,7 @@ pub(crate) fn plan_cmd(
 /// `/approve`: execute the pending plan as a relay turn led by its author.
 pub(crate) fn approve_cmd(
     session: &mut Session,
+    tick_emit: &std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
     let Some(p) = lock(&session.plan).take() else {
@@ -114,6 +115,7 @@ pub(crate) fn approve_cmd(
         &start,
         &execute_body(&p.task, &p.plan),
         "plan",
+        tick_emit,
         emit,
     )?;
     Ok(())

@@ -5,10 +5,15 @@ use crate::PluginEvent;
 fn run_loop(rest: &str) -> Vec<PluginEvent> {
     let mut session = Session::new();
     let mut evs = Vec::new();
-    loop_cmd(&mut session, rest, &mut |ev| {
-        evs.push(ev);
-        Ok(())
-    })
+    loop_cmd(
+        &mut session,
+        rest,
+        &crate::broker::tick::noop_tick_emit(),
+        &mut |ev| {
+            evs.push(ev);
+            Ok(())
+        },
+    )
     .unwrap();
     evs
 }
@@ -58,10 +63,15 @@ fn loop_rejects_bad_counts_and_missing_tasks() {
 fn run_goal(rest: &str) -> Vec<PluginEvent> {
     let mut session = Session::new();
     let mut evs = Vec::new();
-    goal_cmd(&mut session, rest, &mut |ev| {
-        evs.push(ev);
-        Ok(())
-    })
+    goal_cmd(
+        &mut session,
+        rest,
+        &crate::broker::tick::noop_tick_emit(),
+        &mut |ev| {
+            evs.push(ev);
+            Ok(())
+        },
+    )
     .unwrap();
     evs
 }
@@ -134,10 +144,15 @@ fn a_pre_tripped_stop_flag_cancels_the_loop_before_round_one() {
         .cancel
         .store(true, std::sync::atomic::Ordering::Relaxed);
     let mut evs = Vec::new();
-    loop_cmd(&mut session, "3 do the thing", &mut |ev| {
-        evs.push(ev);
-        Ok(())
-    })
+    loop_cmd(
+        &mut session,
+        "3 do the thing",
+        &crate::broker::tick::noop_tick_emit(),
+        &mut |ev| {
+            evs.push(ev);
+            Ok(())
+        },
+    )
     .unwrap();
     let ts = texts(&evs);
     assert!(
