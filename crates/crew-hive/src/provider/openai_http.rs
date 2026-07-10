@@ -1,9 +1,11 @@
 //! The OpenAI-compatible chat-completions HTTP layer shared by every
 //! provider that speaks that shape (OpenRouter, Alibaba DashScope, …):
-//! transient-error retry with Retry-After honouring, and response parsing.
+//! transient-error retry with Retry-After honouring, response parsing, and
+//! SSE streaming.
+use futures::StreamExt;
 use serde::Deserialize;
 
-use super::{Completion, ProviderError};
+use super::{ChunkFn, Completion, ProviderError};
 
 /// How many times to retry one model on a transient error before the chain
 /// advances to the next model (kept low because the fallback chain adds breadth).
@@ -79,6 +81,187 @@ pub(super) async fn request_with_retry(
         }
         return parse_response(&text);
     }
+}
+
+/// One model's streamed request: same header/auth and transient-error retry
+/// as [`request_with_retry`], plus SSE framing. `body` is the caller's base
+/// request (model/messages/max_tokens) — `stream`/`stream_options` are added
+/// here, not by the caller.
+///
+/// `stream_options.include_usage` is requested first; some OpenAI-compatible
+/// endpoints reject the field with a 400, in which case this retries once
+/// without it before falling back to the normal transient-retry loop (a 400
+/// is never itself transient — see [`retry_delay`]).
+///
+/// `started` is flipped to `true` the moment a 200 response begins streaming
+/// — the caller uses it to tell "never got a response worth showing" (safe
+/// to try the next model in a fallback chain) apart from "already streamed
+/// visible text, then failed" (must NOT silently retry elsewhere, since the
+/// caller has already forwarded partial content through `on_chunk`).
+pub(super) async fn request_with_retry_streaming(
+    client: &reqwest::Client,
+    endpoint: &str,
+    key: &str,
+    body: &serde_json::Value,
+    on_chunk: &ChunkFn,
+    started: &std::sync::atomic::AtomicBool,
+) -> Result<Completion, ProviderError> {
+    let mut include_usage = true;
+    let mut attempt = 0u32;
+    loop {
+        let mut req_body = body.clone();
+        req_body["stream"] = serde_json::json!(true);
+        if include_usage {
+            req_body["stream_options"] = serde_json::json!({"include_usage": true});
+        }
+        let resp = client
+            .post(endpoint)
+            .header("authorization", format!("Bearer {key}"))
+            .header("content-type", "application/json")
+            .json(&req_body)
+            .send()
+            .await
+            .map_err(|e| ProviderError::Http(e.to_string()))?;
+        let status = resp.status().as_u16();
+        if status == 200 {
+            started.store(true, std::sync::atomic::Ordering::SeqCst);
+            return consume_sse(resp, body, on_chunk).await;
+        }
+        // Non-2xx: same status handling as the non-streaming path (including
+        // the retry_delay integration), plus a one-shot fallback off
+        // `stream_options` on a plain 400.
+        let retry_after_hdr = resp
+            .headers()
+            .get(reqwest::header::RETRY_AFTER)
+            .and_then(|v| v.to_str().ok())
+            .and_then(|s| s.trim().parse::<u64>().ok());
+        let text = resp
+            .text()
+            .await
+            .map_err(|e| ProviderError::Http(e.to_string()))?;
+        if include_usage && status == 400 {
+            include_usage = false;
+            continue;
+        }
+        if attempt < MAX_RETRIES {
+            if let Some(wait) = retry_delay(status, retry_after_hdr, &text, attempt) {
+                attempt += 1;
+                tokio::time::sleep(std::time::Duration::from_secs(wait)).await;
+                continue;
+            }
+        }
+        return parse_response(&text);
+    }
+}
+
+/// Consume an OpenAI-compatible SSE body: bytes arrive in arbitrary chunks
+/// (not aligned to line boundaries), so a `carry` buffer holds the trailing
+/// partial line across reads while complete lines are classified by
+/// [`parse_sse_line`]. Deltas are forwarded to `on_chunk` and accumulated
+/// into the final text; `[DONE]` (or the stream ending) stops the read. A
+/// transport error partway through the stream is returned as-is — the
+/// caller must not synthesize a partial success.
+///
+/// `req_body` (the pre-`stream` request JSON) only backs the chars/4 token
+/// estimate used when no `usage` frame ever arrives (e.g. the endpoint
+/// doesn't honor `stream_options.include_usage`), mirroring the chars/4
+/// heuristic this streaming feature uses elsewhere for token estimation.
+async fn consume_sse(
+    resp: reqwest::Response,
+    req_body: &serde_json::Value,
+    on_chunk: &ChunkFn,
+) -> Result<Completion, ProviderError> {
+    let mut stream = resp.bytes_stream();
+    let mut carry = String::new();
+    let mut text = String::new();
+    let mut usage: Option<(u64, u64)> = None;
+    'read: while let Some(chunk) = stream.next().await {
+        let bytes = chunk.map_err(|e| ProviderError::Http(e.to_string()))?;
+        carry.push_str(&String::from_utf8_lossy(&bytes));
+        while let Some(pos) = carry.find('\n') {
+            let line = carry[..pos].trim_end_matches('\r').to_string();
+            carry.drain(..=pos);
+            match parse_sse_line(&line) {
+                SseItem::Delta(s) => {
+                    text.push_str(&s);
+                    on_chunk(&s);
+                }
+                SseItem::Usage(i, o) => usage = Some((i, o)),
+                SseItem::Done => break 'read,
+                SseItem::Skip => {}
+            }
+        }
+    }
+    let (input_tokens, output_tokens) = match usage {
+        Some((i, o)) => (i.min(u32::MAX as u64) as u32, o.min(u32::MAX as u64) as u32),
+        None => (estimate_input_tokens(req_body), estimate_tokens(&text)),
+    };
+    Ok(Completion {
+        text,
+        input_tokens,
+        output_tokens,
+    })
+}
+
+/// ~4 chars/token fallback estimate (see [`consume_sse`]).
+fn estimate_tokens(s: &str) -> u32 {
+    chars_to_tokens(s.chars().count())
+}
+
+/// Same chars/4 estimate as [`estimate_tokens`], applied to the request's
+/// message contents (fallback input-token count when no `usage` frame
+/// arrives).
+fn estimate_input_tokens(req_body: &serde_json::Value) -> u32 {
+    let chars: usize = req_body["messages"]
+        .as_array()
+        .map(|msgs| {
+            msgs.iter()
+                .filter_map(|m| m["content"].as_str())
+                .map(str::len)
+                .sum()
+        })
+        .unwrap_or(0);
+    chars_to_tokens(chars)
+}
+
+fn chars_to_tokens(chars: usize) -> u32 {
+    ((chars as u64) / 4).min(u32::MAX as u64) as u32
+}
+
+/// One parsed SSE line from an OpenAI-compatible streaming response.
+pub(crate) enum SseItem {
+    Delta(String),
+    Usage(u64, u64),
+    Done,
+    Skip,
+}
+
+/// Pure classifier for one SSE line: `data: [DONE]`, a delta frame, a
+/// usage frame, or noise (keep-alives, blanks, junk) → Skip. Never errors:
+/// a malformed frame is ignored and the stream carries on.
+pub(crate) fn parse_sse_line(line: &str) -> SseItem {
+    let Some(data) = line.strip_prefix("data:").map(str::trim) else {
+        return SseItem::Skip;
+    };
+    if data == "[DONE]" {
+        return SseItem::Done;
+    }
+    let Ok(v) = serde_json::from_str::<serde_json::Value>(data) else {
+        return SseItem::Skip;
+    };
+    if let Some(s) = v["choices"][0]["delta"]["content"].as_str() {
+        if !s.is_empty() {
+            return SseItem::Delta(s.to_string());
+        }
+    }
+    if let Some(u) = v.get("usage").filter(|u| !u.is_null()) {
+        let i = u["prompt_tokens"].as_u64().unwrap_or(0);
+        let o = u["completion_tokens"].as_u64().unwrap_or(0);
+        if i > 0 || o > 0 {
+            return SseItem::Usage(i, o);
+        }
+    }
+    SseItem::Skip
 }
 
 #[derive(Deserialize, Default)]

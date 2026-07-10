@@ -7,8 +7,10 @@
 use std::future::Future;
 use std::pin::Pin;
 
-use super::openai_http::request_with_retry;
-use super::{http_client, request_timeout, Completion, CompletionRequest, Provider, ProviderError};
+use super::openai_http::{request_with_retry, request_with_retry_streaming};
+use super::{
+    http_client, request_timeout, ChunkFn, Completion, CompletionRequest, Provider, ProviderError,
+};
 
 const ENDPOINT: &str = "https://openrouter.ai/api/v1/chat/completions";
 
@@ -109,6 +111,57 @@ impl Provider for OpenRouterProvider {
                     Ok(c) => return Ok(c),
                     Err(ProviderError::MissingKey) => return Err(ProviderError::MissingKey),
                     Err(e) => last_err = e,
+                }
+            }
+            Err(last_err)
+        })
+    }
+
+    /// Streamed variant of [`Self::complete`]: same model fallback chain,
+    /// but only *before* any content has reached the caller. Once a model's
+    /// attempt starts forwarding real text through `on_chunk` (tracked via
+    /// `started`, set the moment a 200 begins streaming — see
+    /// [`request_with_retry_streaming`]), a later failure on that same
+    /// attempt is returned immediately rather than silently falling through
+    /// to the next model: the caller has already shown the user partial
+    /// content, and resuming from a different model would splice in
+    /// unrelated text under the same reply.
+    fn complete_streaming(
+        &self,
+        req: CompletionRequest,
+        on_chunk: ChunkFn,
+    ) -> Pin<Box<dyn Future<Output = Result<Completion, ProviderError>> + Send>> {
+        let client = self.client.clone();
+        let key = self.api_key.clone();
+        let endpoint = self.endpoint.clone();
+        let chain = attempt_chain(&req.model, &self.fallbacks);
+        Box::pin(async move {
+            let mut messages = Vec::new();
+            if let Some(sys) = &req.system {
+                messages.push(serde_json::json!({"role": "system", "content": sys}));
+            }
+            messages.push(serde_json::json!({"role": "user", "content": req.prompt}));
+            let mut last_err = ProviderError::Api("no model attempted".into());
+            for model in &chain {
+                let body = serde_json::json!({
+                    "model": model,
+                    "max_tokens": req.max_tokens,
+                    "messages": messages,
+                });
+                let started = std::sync::atomic::AtomicBool::new(false);
+                match request_with_retry_streaming(
+                    &client, &endpoint, &key, &body, &on_chunk, &started,
+                )
+                .await
+                {
+                    Ok(c) => return Ok(c),
+                    Err(ProviderError::MissingKey) => return Err(ProviderError::MissingKey),
+                    Err(e) => {
+                        if started.load(std::sync::atomic::Ordering::SeqCst) {
+                            return Err(e);
+                        }
+                        last_err = e;
+                    }
                 }
             }
             Err(last_err)

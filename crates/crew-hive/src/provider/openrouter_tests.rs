@@ -1,8 +1,10 @@
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use super::{attempt_chain, OpenRouterProvider};
 use crate::provider::openai_http::retry_delay;
-use crate::provider::{CompletionRequest, Provider, ProviderError};
+use crate::provider::{ChunkFn, CompletionRequest, Provider, ProviderError};
 
 #[test]
 fn chain_puts_requested_model_first_then_fallbacks() {
@@ -90,4 +92,242 @@ fn does_not_retry_hard_errors() {
     );
     assert_eq!(retry_delay(401, None, "unauthorized", 0), None);
     assert_eq!(retry_delay(200, None, r#"{"choices":[]}"#, 0), None);
+}
+
+// --- complete_streaming over a real HTTP connection ------------------------
+//
+// A raw-TCP one-shot server: full control over the exact bytes sent back,
+// no mock-HTTP-crate dependency needed (mirrors `stalled_server_fails_fast...`
+// above, which already talks to a bare `TcpListener`). Accepts up to
+// `max_conns` connections; each gets `bytes` written back, then the socket
+// closes. `accepted` lets a test assert exactly how many connection attempts
+// were made — e.g. that a fallback model was never dialed.
+fn one_shot_server(bytes: Vec<u8>, max_conns: usize) -> (std::net::SocketAddr, Arc<AtomicUsize>) {
+    use tokio::io::AsyncWriteExt;
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    listener.set_nonblocking(true).unwrap();
+    let addr = listener.local_addr().unwrap();
+    let listener = tokio::net::TcpListener::from_std(listener).unwrap();
+    let accepted = Arc::new(AtomicUsize::new(0));
+    let counted = accepted.clone();
+    tokio::spawn(async move {
+        for _ in 0..max_conns {
+            let Ok((mut sock, _)) = listener.accept().await else {
+                break;
+            };
+            counted.fetch_add(1, Ordering::SeqCst);
+            let _ = sock.write_all(&bytes).await;
+            let _ = sock.shutdown().await;
+        }
+    });
+    (addr, accepted)
+}
+
+fn collecting_chunk_fn() -> (ChunkFn, Arc<Mutex<Vec<String>>>) {
+    let chunks = Arc::new(Mutex::new(Vec::<String>::new()));
+    let sink = chunks.clone();
+    let on_chunk: ChunkFn = Arc::new(move |s: &str| sink.lock().unwrap().push(s.to_string()));
+    (on_chunk, chunks)
+}
+
+/// Read one full HTTP/1.1 request (headers + `Content-Length` body) off a
+/// freshly accepted socket, for a test server that needs to inspect what the
+/// client actually sent (e.g. whether a retry dropped `stream_options`).
+async fn read_request(sock: &mut tokio::net::TcpStream) -> Vec<u8> {
+    use tokio::io::AsyncReadExt;
+    let mut buf = Vec::new();
+    let mut chunk = [0u8; 4096];
+    let header_end = loop {
+        let n = sock.read(&mut chunk).await.unwrap_or(0);
+        if n == 0 {
+            return buf;
+        }
+        buf.extend_from_slice(&chunk[..n]);
+        if let Some(pos) = find_subslice(&buf, b"\r\n\r\n") {
+            break pos + 4;
+        }
+    };
+    let headers = String::from_utf8_lossy(&buf[..header_end]).to_lowercase();
+    let content_len: usize = headers
+        .split("content-length:")
+        .nth(1)
+        .and_then(|s| s.split("\r\n").next())
+        .and_then(|s| s.trim().parse().ok())
+        .unwrap_or(0);
+    while buf.len() < header_end + content_len {
+        let n = sock.read(&mut chunk).await.unwrap_or(0);
+        if n == 0 {
+            break;
+        }
+        buf.extend_from_slice(&chunk[..n]);
+    }
+    buf
+}
+
+fn find_subslice(haystack: &[u8], needle: &[u8]) -> Option<usize> {
+    haystack.windows(needle.len()).position(|w| w == needle)
+}
+
+#[tokio::test]
+async fn streams_deltas_and_reports_final_usage_over_http() {
+    let sse_body = concat!(
+        "data: {\"choices\":[{\"delta\":{\"role\":\"assistant\"}}]}\n",
+        "data: {\"choices\":[{\"delta\":{\"content\":\"Hel\"}}]}\n",
+        "data: {\"choices\":[{\"delta\":{\"content\":\"lo\"}}]}\n",
+        "data: {\"choices\":[],\"usage\":{\"prompt_tokens\":5,\"completion_tokens\":2}}\n",
+        "data: [DONE]\n",
+    );
+    let head = format!(
+        "HTTP/1.1 200 OK\r\ncontent-type: text/event-stream\r\ncontent-length: {}\r\n\r\n",
+        sse_body.len()
+    );
+    let (addr, _accepted) = one_shot_server([head.as_bytes(), sse_body.as_bytes()].concat(), 1);
+    let p = OpenRouterProvider::new("k".into())
+        .with_endpoint(format!("http://{addr}/v1/chat/completions"));
+    let (on_chunk, chunks) = collecting_chunk_fn();
+    let req = CompletionRequest {
+        model: "m".into(),
+        system: None,
+        prompt: "hi".into(),
+        max_tokens: 8,
+    };
+    let done = p.complete_streaming(req, on_chunk).await.unwrap();
+    assert_eq!(chunks.lock().unwrap().concat(), "Hello");
+    assert_eq!(done.text, "Hello");
+    assert_eq!(done.input_tokens, 5);
+    assert_eq!(done.output_tokens, 2);
+}
+
+#[tokio::test]
+async fn midstream_transport_error_does_not_fall_back_to_another_model() {
+    // Chunked encoding: one complete, real delta chunk, then the socket
+    // closes without the terminating zero-length chunk — an unexpected EOF
+    // partway through the body, i.e. a genuine transport error, not a clean
+    // end of stream.
+    let delta = "data: {\"choices\":[{\"delta\":{\"content\":\"partial\"}}]}\n";
+    let framed_chunk = format!("{:x}\r\n{}\r\n", delta.len(), delta);
+    let head =
+        "HTTP/1.1 200 OK\r\ncontent-type: text/event-stream\r\ntransfer-encoding: chunked\r\n\r\n";
+    let (addr, accepted) = one_shot_server(
+        [head.as_bytes(), framed_chunk.as_bytes()].concat(),
+        // A correct implementation dials this server exactly once; allow up
+        // to 2 accepts so a regression that DOES fall back to the next model
+        // is observed as a second accepted connection rather than a hang.
+        2,
+    );
+    let p = OpenRouterProvider::new("k".into())
+        .with_endpoint(format!("http://{addr}/v1/chat/completions"))
+        .with_fallbacks(vec!["backup:free".into()]);
+    let (on_chunk, chunks) = collecting_chunk_fn();
+    let req = CompletionRequest {
+        model: "primary:free".into(),
+        system: None,
+        prompt: "hi".into(),
+        max_tokens: 8,
+    };
+    let res = tokio::time::timeout(Duration::from_secs(5), p.complete_streaming(req, on_chunk))
+        .await
+        .expect("must not hang");
+    assert!(
+        matches!(res, Err(ProviderError::Http(_))),
+        "expected a transport error, got {res:?}"
+    );
+    assert_eq!(
+        chunks.lock().unwrap().as_slice(),
+        &["partial".to_string()],
+        "the delta seen before the failure was still forwarded"
+    );
+    // Give a buggy fallback attempt a moment to have dialed in, then assert
+    // it never did.
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    assert_eq!(
+        accepted.load(Ordering::SeqCst),
+        1,
+        "must not have retried against another model after streaming visible content"
+    );
+}
+
+#[tokio::test]
+async fn retries_once_without_stream_options_on_400() {
+    use tokio::io::AsyncWriteExt;
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    listener.set_nonblocking(true).unwrap();
+    let addr = listener.local_addr().unwrap();
+    let listener = tokio::net::TcpListener::from_std(listener).unwrap();
+    let saw_stream_options = Arc::new(Mutex::new(Vec::<bool>::new()));
+    let seen = saw_stream_options.clone();
+    tokio::spawn(async move {
+        for i in 0..2 {
+            let Ok((mut sock, _)) = listener.accept().await else {
+                break;
+            };
+            let req = read_request(&mut sock).await;
+            seen.lock()
+                .unwrap()
+                .push(String::from_utf8_lossy(&req).contains("stream_options"));
+            let (status_line, body) = if i == 0 {
+                (
+                    "HTTP/1.1 400 Bad Request",
+                    r#"{"error":{"message":"stream_options not supported"}}"#,
+                )
+            } else {
+                (
+                    "HTTP/1.1 200 OK",
+                    "data: {\"choices\":[{\"delta\":{\"content\":\"ok\"}}]}\ndata: [DONE]\n",
+                )
+            };
+            let head = format!(
+                "{status_line}\r\ncontent-type: text/event-stream\r\ncontent-length: {}\r\n\r\n",
+                body.len()
+            );
+            let _ = sock.write_all(head.as_bytes()).await;
+            let _ = sock.write_all(body.as_bytes()).await;
+            let _ = sock.shutdown().await;
+        }
+    });
+    let p = OpenRouterProvider::new("k".into())
+        .with_endpoint(format!("http://{addr}/v1/chat/completions"));
+    let (on_chunk, chunks) = collecting_chunk_fn();
+    let req = CompletionRequest {
+        model: "m".into(),
+        system: None,
+        prompt: "hi".into(),
+        max_tokens: 8,
+    };
+    let done = tokio::time::timeout(Duration::from_secs(5), p.complete_streaming(req, on_chunk))
+        .await
+        .expect("must not hang")
+        .unwrap();
+    assert_eq!(done.text, "ok");
+    assert_eq!(chunks.lock().unwrap().concat(), "ok");
+    let seen = saw_stream_options.lock().unwrap();
+    assert_eq!(seen.len(), 2, "expected exactly two attempts: {seen:?}");
+    assert!(seen[0], "first attempt must include stream_options");
+    assert!(!seen[1], "retry after the 400 must drop stream_options");
+}
+
+#[tokio::test]
+async fn missing_usage_frame_falls_back_to_chars_over_4_estimate() {
+    // No `usage` field anywhere in the stream (as if the endpoint silently
+    // ignores `stream_options.include_usage`) — the final Completion must
+    // still carry a usable (if approximate) token count, not an error.
+    let sse_body = "data: {\"choices\":[{\"delta\":{\"content\":\"12345678\"}}]}\ndata: [DONE]\n";
+    let head = format!(
+        "HTTP/1.1 200 OK\r\ncontent-type: text/event-stream\r\ncontent-length: {}\r\n\r\n",
+        sse_body.len()
+    );
+    let (addr, _accepted) = one_shot_server([head.as_bytes(), sse_body.as_bytes()].concat(), 1);
+    let p = OpenRouterProvider::new("k".into())
+        .with_endpoint(format!("http://{addr}/v1/chat/completions"));
+    let (on_chunk, _chunks) = collecting_chunk_fn();
+    let req = CompletionRequest {
+        model: "m".into(),
+        system: None,
+        prompt: "abcdefgh".into(), // 8 chars → 2 estimated input tokens
+        max_tokens: 8,
+    };
+    let done = p.complete_streaming(req, on_chunk).await.unwrap();
+    assert_eq!(done.text, "12345678");
+    assert_eq!(done.output_tokens, 2, "8 chars / 4 = 2");
+    assert_eq!(done.input_tokens, 2, "prompt is 8 chars / 4 = 2");
 }

@@ -153,6 +153,31 @@ fn openrouter_parse_response_errors_on_api_error_payload() {
 }
 
 #[test]
+fn sse_parser_extracts_deltas_usage_and_done() {
+    use super::openai_http::{parse_sse_line, SseItem};
+    assert!(matches!(parse_sse_line(""), SseItem::Skip));
+    assert!(matches!(parse_sse_line(": keep-alive"), SseItem::Skip));
+    assert!(matches!(parse_sse_line("data: [DONE]"), SseItem::Done));
+    match parse_sse_line(r#"data: {"choices":[{"delta":{"content":"hel"}}]}"#) {
+        SseItem::Delta(s) => assert_eq!(s, "hel"),
+        _ => panic!("delta expected"),
+    }
+    // Role-only first frame: no content → Skip, not an error.
+    assert!(matches!(
+        parse_sse_line(r#"data: {"choices":[{"delta":{"role":"assistant"}}]}"#),
+        SseItem::Skip
+    ));
+    // Usage frame (stream_options include_usage / final frame).
+    match parse_sse_line(
+        r#"data: {"choices":[],"usage":{"prompt_tokens":10,"completion_tokens":42}}"#,
+    ) {
+        SseItem::Usage(i, o) => assert_eq!((i, o), (10, 42)),
+        _ => panic!("usage expected"),
+    }
+    assert!(matches!(parse_sse_line("data: {not json"), SseItem::Skip));
+}
+
+#[test]
 fn openrouter_from_env_missing_key_errors() {
     if std::env::var("OPENROUTER_API_KEY").is_err() {
         assert!(matches!(
