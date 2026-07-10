@@ -256,6 +256,11 @@ fn roster_symbol_glyphs_stay_on_cell_grid() {
     // monospace rounding snapped it to a ZERO advance and every glyph after
     // it drifted one cell left. Every width-1 glyph must land exactly on its
     // cell column, whatever family is configured.
+    //
+    // Font-environment-sensitive: the ComicMono Nerd Font Mono iteration
+    // exercises the real repro only where that font is installed; elsewhere
+    // it degrades to the fallback path, but the on-grid assertions still
+    // hold either way.
     let mk = |col: u16, c: char| CellView {
         col,
         row: 0,
@@ -286,10 +291,7 @@ fn roster_symbol_glyphs_stay_on_cell_grid() {
             weight: 400,
         };
         let buf = build_pane_buffer(&mut fs, &cells, n, 1, n as f32 * cell_w, cell_h, &p);
-        let glyphs: Vec<_> = buf
-            .layout_runs()
-            .flat_map(|r| r.glyphs.iter().cloned().collect::<Vec<_>>())
-            .collect();
+        let glyphs: Vec<_> = buf.layout_runs().flat_map(|r| r.glyphs.to_vec()).collect();
         assert_eq!(
             glyphs.len(),
             n,

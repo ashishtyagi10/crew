@@ -164,6 +164,9 @@ fn detect_corrections(buffer: &Buffer, font_system: &mut FontSystem, params: &Fo
                 cell_correction_em(a_em, cell_em)
             });
         cached_new |= ls.is_some();
+        // Tradeoff: a `None` here (get_font failed, or the measured advance
+        // rounds to one cell anyway) is cached permanently to prevent
+        // detect/rebuild loops — that glyph stays as-is with no retry path.
         CORRECTION_CACHE.with(|cache| cache.borrow_mut().insert(key, ls));
     }
     cached_new

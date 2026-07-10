@@ -13,8 +13,14 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 // `const` (not `static`) so const tables like LINUX_ICON_SIZES can refer
 // to them (constants cannot refer to statics).
+// Callers are cfg-gated per-OS; the fns stay un-gated so they compile+test everywhere.
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
 pub const ICON_PNG_32: &[u8] = include_bytes!("../../../assets/icon/crew-32.png");
+// Callers are cfg-gated per-OS; the fns stay un-gated so they compile+test everywhere.
+#[cfg_attr(target_os = "macos", allow(dead_code))]
 pub const ICON_PNG_128: &[u8] = include_bytes!("../../../assets/icon/crew-128.png");
+// Callers are cfg-gated per-OS; the fns stay un-gated so they compile+test everywhere.
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
 pub const ICON_PNG_256: &[u8] = include_bytes!("../../../assets/icon/crew-256.png");
 pub const ICON_PNG_512: &[u8] = include_bytes!("../../../assets/icon/crew-512.png");
 #[cfg(target_os = "macos")]
@@ -104,6 +110,8 @@ pub fn remove_macos(t: &MacTarget) -> std::io::Result<()> {
     Ok(())
 }
 
+// Callers are cfg-gated per-OS; the fns stay un-gated so they compile+test everywhere.
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
 pub struct LinuxTarget {
     /// XDG data dir, normally `~/.local/share`.
     pub data_dir: PathBuf,
@@ -111,6 +119,8 @@ pub struct LinuxTarget {
     pub version: String,
 }
 
+// Callers are cfg-gated per-OS; the fns stay un-gated so they compile+test everywhere.
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
 pub fn desktop_entry(exe: &std::path::Path, version: &str) -> String {
     format!(
         "[Desktop Entry]\n\
@@ -127,6 +137,8 @@ pub fn desktop_entry(exe: &std::path::Path, version: &str) -> String {
     )
 }
 
+// Callers are cfg-gated per-OS; the fns stay un-gated so they compile+test everywhere.
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
 const LINUX_ICON_SIZES: [(u32, &[u8]); 4] = [
     (32, ICON_PNG_32),
     (128, ICON_PNG_128),
@@ -136,6 +148,8 @@ const LINUX_ICON_SIZES: [(u32, &[u8]); 4] = [
 
 /// Fresh = the .desktop file matches what we'd write (covers both version
 /// and exe path) and every icon size is present.
+// Callers are cfg-gated per-OS; the fns stay un-gated so they compile+test everywhere.
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
 pub fn is_stale_linux(t: &LinuxTarget) -> bool {
     let desktop_ok = std::fs::read_to_string(t.data_dir.join("applications/crew.desktop"))
         .map(|body| body == desktop_entry(&t.exe, &t.version))
@@ -148,6 +162,8 @@ pub fn is_stale_linux(t: &LinuxTarget) -> bool {
     !(desktop_ok && icons_ok)
 }
 
+// Callers are cfg-gated per-OS; the fns stay un-gated so they compile+test everywhere.
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
 pub fn register_linux(t: &LinuxTarget) -> std::io::Result<bool> {
     if !is_stale_linux(t) {
         return Ok(false);
@@ -170,6 +186,8 @@ pub fn register_linux(t: &LinuxTarget) -> std::io::Result<bool> {
     Ok(true)
 }
 
+// Callers are cfg-gated per-OS; the fns stay un-gated so they compile+test everywhere.
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
 pub fn remove_linux(t: &LinuxTarget) -> std::io::Result<()> {
     let desktop = t.data_dir.join("applications/crew.desktop");
     if desktop.exists() {
@@ -188,6 +206,8 @@ pub fn remove_linux(t: &LinuxTarget) -> std::io::Result<()> {
 
 /// Contents of the sidecar staleness marker for the Start-menu shortcut
 /// (.lnk files aren't cheaply parseable, so we track what we wrote).
+// Callers are cfg-gated per-OS; the fns stay un-gated so they compile+test everywhere.
+#[cfg_attr(not(target_os = "windows"), allow(dead_code))]
 pub fn win_marker_content(exe: &std::path::Path, version: &str) -> String {
     format!("{version}|{}", exe.display())
 }

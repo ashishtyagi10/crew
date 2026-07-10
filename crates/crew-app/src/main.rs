@@ -162,8 +162,8 @@ fn main() -> anyhow::Result<()> {
         return detach::relaunch_detached();
     }
     // Only the GUI path forks/reads a login shell to seed PATH — CLI modes
-    // above (broker/self-update/list-fonts/detach re-exec) return before
-    // this line, so they never pay for a shell they don't use.
+    // above (broker/self-update/list-fonts/install-app/detach re-exec) return
+    // before this line, so they never pay for a shell they don't use.
     cmdcheck::init_shell_path();
     handler::run()
 }
