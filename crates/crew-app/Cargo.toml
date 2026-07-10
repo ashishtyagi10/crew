@@ -36,5 +36,9 @@ image = { version = "0.25", default-features = false, features = ["png"] }
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 
+# Start-menu shortcut writer (pure Rust, no COM) for `install-app`.
+[target.'cfg(windows)'.dependencies]
+mslnk = "0.1"
+
 [dev-dependencies]
 tempfile = "3"
