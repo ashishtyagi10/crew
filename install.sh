@@ -80,6 +80,10 @@ main() {
     echo ""
     echo "Installed ${BIN_NAME} ${latest} to ${INSTALL_DIR}/${BIN_NAME}"
 
+    # Register Crew in the OS app menu (Spotlight / Start menu / .desktop).
+    # Best-effort: an older binary without the subcommand must not fail install.
+    "${INSTALL_DIR}/${BIN_NAME}" install-app 2>/dev/null || true
+
     # Check if INSTALL_DIR is in PATH
     case ":$PATH:" in
         *":${INSTALL_DIR}:"*) ;;

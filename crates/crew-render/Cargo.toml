@@ -9,6 +9,7 @@ winit.workspace = true
 wgpu.workspace = true
 glyphon.workspace = true
 anyhow.workspace = true
+unicode-width = { workspace = true }
 pollster = "0.4"
 crew-theme = { path = "../crew-theme" }
 

@@ -44,3 +44,8 @@ the user's live agent chats. Two rules, no exceptions:
   capture region starting at y=33.
 - Cleanup: `kill <DEVPID>`; the isolated `$SCRATCH/home` keeps the user's
   real config untouched.
+- Isolated `$SCRATCH/home` hides the user's fonts: fontdb reads
+  `$HOME/Library/Fonts`, so a configured family (e.g. a Nerd Font) silently
+  misses and a PROPORTIONAL fallback + cell rounding mangles all text
+  (dropped-looking narrow glyphs). Symlink first:
+  `ln -sfn ~/Library/Fonts "$SCRATCH/home/Library/Fonts"`.

@@ -38,6 +38,15 @@ Hard rules: every `.rs` file stays ≤200 lines; `cargo clippy --workspace
 cargo run --release -p crew-app
 ```
 
+## CLI modes
+
+Crew runs as a GUI by default; these command-line modes offer headless operation or setup:
+
+- `crew --list-fonts` — print the list of installed monospace fonts that Crew can use
+- `crew --self-update` — fetch and install the latest release binary (headless alternative to `/update`)
+- `crew install-app` — create or refresh the OS app menu entry (macOS ~/Applications, Spotlight, Windows Start menu, Linux applications menu)
+- `crew install-app --remove` — remove the OS app menu entry
+
 ## Panes
 
 Panes auto-tile into a near-square grid. Each pane has a **title bar** (top row)

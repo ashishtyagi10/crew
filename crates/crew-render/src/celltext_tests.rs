@@ -216,3 +216,95 @@ fn build_pane_buffer_ignores_out_of_range_cells() {
     }];
     let _ = build_pane_buffer(&mut fs, &cells, 2, 2, 16.0, 32.0, &params(None));
 }
+
+#[test]
+fn cell_correction_snaps_off_grid_advances_only() {
+    let cell_em = 0.6;
+    // Advances that already round to one cell need no correction.
+    assert_eq!(cell_correction_em(0.6, cell_em), None);
+    assert_eq!(
+        cell_correction_em(0.55, cell_em),
+        None,
+        "rounds to 1 anyway"
+    );
+    assert_eq!(
+        cell_correction_em(0.85, cell_em),
+        None,
+        "rounds to 1 anyway"
+    );
+    // A narrow glyph (< half a cell) would round to a ZERO advance and shift
+    // the whole row left — the reproduced ComicMono `·` bug.
+    let ls = cell_correction_em(0.2, cell_em).expect("narrow glyph needs correction");
+    assert!(
+        (0.2 + ls - cell_em).abs() < 1e-6,
+        "corrected advance is exactly one cell"
+    );
+    // An over-wide width-1 glyph (> 1.5 cells) would round to TWO cells and
+    // shift the row right; correction pulls it back to one.
+    let ls = cell_correction_em(1.0, cell_em).expect("over-wide glyph needs correction");
+    assert!((1.0 + ls - cell_em).abs() < 1e-6);
+    // Non-finite advances (GB18030 Bitmap CJK quirk) are left alone.
+    assert_eq!(cell_correction_em(f32::INFINITY, cell_em), None);
+}
+
+#[test]
+fn roster_symbol_glyphs_stay_on_cell_grid() {
+    // Repro for the crew-pane roster misalignment: rows mix ASCII with
+    // symbol glyphs (marker, middle dot, multiply sign, box pipe, shades,
+    // braille spinner). In fonts where a symbol's natural advance is narrow
+    // (ComicMono Nerd Font Mono's `·` is < half a cell), cosmic-text's
+    // monospace rounding snapped it to a ZERO advance and every glyph after
+    // it drifted one cell left. Every width-1 glyph must land exactly on its
+    // cell column, whatever family is configured.
+    //
+    // Font-environment-sensitive: the ComicMono Nerd Font Mono iteration
+    // exercises the real repro only where that font is installed; elsewhere
+    // it degrades to the fallback path, but the on-grid assertions still
+    // hold either way.
+    let mk = |col: u16, c: char| CellView {
+        col,
+        row: 0,
+        c,
+        fg: (200, 200, 200),
+        bg: (0, 0, 0),
+        bold: false,
+        italic: false,
+    };
+    let (cell_w, cell_h) = cell_metrics(14.0);
+    let chars: Vec<char> =
+        "\u{25aa}p \u{2502} \u{00b7} 1\u{00d7} \u{2502} \u{2013} \u{2588}\u{2591} 21% idle \u{2800}\u{2819}"
+            .chars()
+            .collect();
+    for family in [None, Some("ComicMono Nerd Font Mono".to_string())] {
+        let mut fs = FontSystem::new();
+        let cells: Vec<CellView> = chars
+            .iter()
+            .enumerate()
+            .map(|(i, &c)| mk(i as u16, c))
+            .collect();
+        let n = cells.len();
+        let p = FontParams {
+            font_size: 14.0,
+            line_height: cell_h,
+            cell_w,
+            family: family.clone(),
+            weight: 400,
+        };
+        let buf = build_pane_buffer(&mut fs, &cells, n, 1, n as f32 * cell_w, cell_h, &p);
+        let glyphs: Vec<_> = buf.layout_runs().flat_map(|r| r.glyphs.to_vec()).collect();
+        assert_eq!(
+            glyphs.len(),
+            n,
+            "every cell shapes to one glyph (fam={family:?})"
+        );
+        for (i, g) in glyphs.iter().enumerate() {
+            let got = g.x / cell_w;
+            assert!(
+                (got - i as f32).abs() < 1e-3,
+                "glyph {:?} (U+{:04X}) at col {got:.3}, expected {i} (fam={family:?})",
+                chars[i],
+                chars[i] as u32
+            );
+        }
+    }
+}

@@ -1,6 +1,7 @@
 mod altscroll;
 mod anim;
 mod app;
+mod appregister;
 mod askbar;
 mod attention;
 mod boxdraw;
@@ -42,6 +43,7 @@ mod ctxlimit;
 mod cwd;
 mod detach;
 mod dispatch;
+mod dockicon;
 mod dump;
 mod editpane;
 mod envexpand;
@@ -142,6 +144,16 @@ fn main() -> anyhow::Result<()> {
         }
         return Ok(());
     }
+    // `crew install-app` — create/refresh the OS app-menu entry (Spotlight /
+    // Start menu / .desktop); `--remove` deletes it. Also run automatically
+    // by install.sh and silently on GUI startup.
+    if std::env::args().skip(1).any(|a| a == "install-app") {
+        return if std::env::args().skip(1).any(|a| a == "--remove") {
+            appregister::remove_current()
+        } else {
+            appregister::register_current(true)
+        };
+    }
     // Detached launch is the default: re-launch in a new session (detached from
     // this terminal) and exit the parent, so closing the launching shell doesn't
     // SIGHUP the GUI. `--no-detach` / `--foreground` keeps crew attached. The
@@ -150,8 +162,8 @@ fn main() -> anyhow::Result<()> {
         return detach::relaunch_detached();
     }
     // Only the GUI path forks/reads a login shell to seed PATH — CLI modes
-    // above (broker/self-update/list-fonts/detach re-exec) return before
-    // this line, so they never pay for a shell they don't use.
+    // above (broker/self-update/list-fonts/install-app/detach re-exec) return
+    // before this line, so they never pay for a shell they don't use.
     cmdcheck::init_shell_path();
     handler::run()
 }

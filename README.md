@@ -84,6 +84,17 @@ How you update depends on how you installed:
 
 The prebuilt path only sees a version once its release assets are published.
 
+## App menu / Spotlight
+
+Crew registers itself in your OS app menu on first GUI launch (Spotlight and
+Launchpad on macOS, the Start menu on Windows, the applications menu on
+Linux). The entry launches the installed binary (`~/.local/bin/crew`) when
+present, so `/update` keeps it current.
+
+- `crew install-app` — create or refresh the entry explicitly
+- `crew install-app --remove` — remove it
+- `CREW_NO_APP_INSTALL=1` — disable automatic registration
+
 ## Run
 
 ```sh
