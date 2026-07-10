@@ -1,6 +1,79 @@
 use super::*;
 use crate::provider::AnthropicProvider;
 
+fn test_request() -> CompletionRequest {
+    CompletionRequest {
+        model: "m".into(),
+        system: None,
+        prompt: "one two three".into(),
+        max_tokens: 100,
+    }
+}
+
+#[tokio::test]
+async fn mock_streams_reply_in_chunks_then_completes() {
+    let p = MockProvider {
+        reply: "alpha beta gamma delta".to_string(),
+    };
+    let chunks = std::sync::Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
+    let sink = chunks.clone();
+    let on_chunk: ChunkFn = std::sync::Arc::new(move |s: &str| {
+        sink.lock().unwrap().push(s.to_string());
+    });
+    let done = p
+        .complete_streaming(test_request(), on_chunk)
+        .await
+        .unwrap();
+    let got = chunks.lock().unwrap();
+    assert!(
+        got.len() >= 2,
+        "reply arrives in at least 2 chunks: {got:?}"
+    );
+    assert_eq!(
+        got.concat(),
+        "alpha beta gamma delta",
+        "chunks reassemble the reply"
+    );
+    assert_eq!(done.text, "alpha beta gamma delta");
+}
+
+#[tokio::test]
+async fn default_streaming_falls_back_without_chunks() {
+    // Any provider using the trait default must behave like complete().
+    // MockProvider OVERRIDES it, so exercise the default through a tiny
+    // local test provider that only implements `complete`.
+    struct Plain;
+    impl Provider for Plain {
+        fn complete(
+            &self,
+            _req: CompletionRequest,
+        ) -> Pin<Box<dyn Future<Output = Result<Completion, ProviderError>> + Send>> {
+            Box::pin(async {
+                Ok(Completion {
+                    text: "whole".into(),
+                    input_tokens: 1,
+                    output_tokens: 1,
+                })
+            })
+        }
+    }
+    let ticked = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let t = ticked.clone();
+    let on_chunk: ChunkFn = std::sync::Arc::new(move |_| {
+        t.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    });
+    let done = Plain
+        .complete_streaming(test_request(), on_chunk)
+        .await
+        .unwrap();
+    assert_eq!(done.text, "whole");
+    assert_eq!(
+        ticked.load(std::sync::atomic::Ordering::SeqCst),
+        0,
+        "default never chunks"
+    );
+}
+
 #[tokio::test]
 async fn mock_provider_echoes_reply_and_counts() {
     let p = MockProvider {
