@@ -6,6 +6,7 @@ mod askbar;
 mod attention;
 mod boxdraw;
 mod chat;
+mod chatanim;
 mod chatbody;
 mod chatchips;
 mod chatcompact;
