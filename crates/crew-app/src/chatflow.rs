@@ -37,12 +37,12 @@ impl crate::chat::ChatPane {
             // tok column shows live context fill; ease it toward the new ctx.
             if ctx > 0 {
                 self.anim.set_tok(&agent, now, ctx as f32);
-            }
-            // ctx% needs the model's limit — mirror agent_views' derivation.
-            if let Some(a) = self.agents.iter().find(|a| a.name == agent) {
-                if let Some(l) = crate::ctxlimit::context_limit(&a.model).filter(|&l| l > 0) {
-                    self.anim
-                        .set_ctx(&agent, now, (ctx as f32 / l as f32).min(1.0));
+                // ctx% needs the model's limit — mirror agent_views' derivation.
+                if let Some(a) = self.agents.iter().find(|a| a.name == agent) {
+                    if let Some(l) = crate::ctxlimit::context_limit(&a.model).filter(|&l| l > 0) {
+                        self.anim
+                            .set_ctx(&agent, now, (ctx as f32 / l as f32).min(1.0));
+                    }
                 }
             }
             // Any stat changes every agent's share of the turn: retarget all.

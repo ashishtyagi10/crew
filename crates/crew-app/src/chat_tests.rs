@@ -562,6 +562,30 @@ fn absorb_stats_retargets_roster_anim() {
 }
 
 #[test]
+fn absorb_stats_derives_ctx_pct_and_ignores_zero_ctx_retarget() {
+    let mut c = pane();
+    c.agents = vec![crew_plugin::AgentInfo {
+        name: "planner".into(),
+        role: String::new(),
+        model: "claude".into(), // context_limit("claude") == 200_000
+    }];
+    // Half the model's context window: ctx% target should land on 0.5.
+    c.absorb_stats(0, "planner".into(), 800, 100_000);
+    assert!(
+        (c.anim.ctx_target("planner") - 0.5).abs() < 1e-6,
+        "ctx% derives from ctx/limit: {}",
+        c.anim.ctx_target("planner")
+    );
+    // A follow-up event reporting no usage must not ease the bar toward 0.
+    c.absorb_stats(0, "planner".into(), 200, 0);
+    assert!(
+        (c.anim.ctx_target("planner") - 0.5).abs() < 1e-6,
+        "zero-ctx event leaves the retarget untouched: {}",
+        c.anim.ctx_target("planner")
+    );
+}
+
+#[test]
 fn thinking_activity_records_flash() {
     let mut c = pane();
     c.absorb_activity("coder".into(), "thinking", "planner".into());
