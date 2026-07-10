@@ -117,8 +117,10 @@ impl Adapter for ApiAdapter {
         let chars = Arc::new(std::sync::atomic::AtomicU64::new(0));
         let counter = chars.clone();
         let on_chunk: crew_hive::ChunkFn = Arc::new(move |s: &str| {
-            let total = counter.fetch_add(s.len() as u64, std::sync::atomic::Ordering::SeqCst)
-                + s.len() as u64;
+            // Unicode chars, not bytes — byte counts over-report CJK ~3×
+            // (same convention as the provider-side chars/4 estimators).
+            let n = s.chars().count() as u64;
+            let total = counter.fetch_add(n, std::sync::atomic::Ordering::SeqCst) + n;
             on_tokens(total / 4);
         });
         let fut = self.provider.complete_streaming(req, on_chunk);
@@ -252,6 +254,29 @@ mod tests {
             *ticks.last().unwrap(),
             total_chars / 4,
             "final estimate = chars/4"
+        );
+    }
+
+    #[test]
+    fn ticked_estimates_count_chars_not_bytes() {
+        // 8 CJK chars = 24 UTF-8 bytes: bytes/4 would report 6, chars/4
+        // must report 2 (same convention as the provider-side estimators).
+        let adapter = ApiAdapter::new("planner", "m", None, mock("文文文文 文文文文")).unwrap();
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::<u64>::new()));
+        let sink = seen.clone();
+        let on_tokens: Arc<dyn Fn(u64) + Send + Sync> = Arc::new(move |t| {
+            sink.lock().unwrap().push(t);
+        });
+        let (text, _usage) = adapter
+            .call_with_usage_ticked("task", Duration::from_secs(5), on_tokens)
+            .unwrap();
+        assert_eq!(text, "文文文文 文文文文");
+        let ticks = seen.lock().unwrap();
+        let total_chars = "文文文文 文文文文".chars().count() as u64; // 9
+        assert_eq!(
+            *ticks.last().unwrap(),
+            total_chars / 4,
+            "final estimate uses chars: {ticks:?}"
         );
     }
 }
