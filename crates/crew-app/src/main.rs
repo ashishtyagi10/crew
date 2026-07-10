@@ -43,6 +43,7 @@ mod ctxlimit;
 mod cwd;
 mod detach;
 mod dispatch;
+mod dockicon;
 mod dump;
 mod editpane;
 mod envexpand;

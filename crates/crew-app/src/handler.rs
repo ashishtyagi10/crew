@@ -22,6 +22,17 @@ impl ApplicationHandler for CrewApp {
             .with_title("Crew")
             .with_resizable(true)
             .with_inner_size(LogicalSize::new(w, h));
+        // Taskbar/window icon + app_id so Windows/Linux match the menu entry
+        // (macOS gets its icon from the bundle + dockicon::set()).
+        #[cfg(not(target_os = "macos"))]
+        let attrs = attrs.with_window_icon(crate::appregister::window_icon());
+        #[cfg(target_os = "linux")]
+        let attrs = {
+            use winit::platform::wayland::WindowAttributesExtWayland;
+            use winit::platform::x11::WindowAttributesExtX11;
+            let attrs = WindowAttributesExtWayland::with_name(attrs, "crew", "crew");
+            WindowAttributesExtX11::with_name(attrs, "crew", "crew")
+        };
         let window = Arc::new(event_loop.create_window(attrs).expect("create window"));
 
         // Font size is in logical points; multiply by the display scale so text is
@@ -62,6 +73,11 @@ pub fn run() -> anyhow::Result<()> {
     // updates. Off-thread: registration does file I/O and must never touch
     // the winit thread. CREW_NO_APP_INSTALL=1 opts out (checked inside).
     std::thread::spawn(crate::appregister::auto_register);
+    // Runtime Dock icon: terminal launches / symlink-executable bundles have
+    // no icon otherwise. Cheap (single NSImage init, no I/O) — safe to run
+    // synchronously on the main thread before the event loop starts.
+    #[cfg(target_os = "macos")]
+    crate::dockicon::set();
     let config = CrewConfig::load();
     // Apply the theme first; the accent default reads the active theme.
     // A saved `random` pin resumes rotation mode; `theme_id()` would otherwise

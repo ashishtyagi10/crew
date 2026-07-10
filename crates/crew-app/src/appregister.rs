@@ -338,6 +338,14 @@ pub fn remove_current() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Window/taskbar icon for winit (Windows + Linux; macOS uses the Dock).
+#[cfg(not(target_os = "macos"))]
+pub fn window_icon() -> Option<winit::window::Icon> {
+    let img = image::load_from_memory(ICON_PNG_128).ok()?.into_rgba8();
+    let (w, h) = img.dimensions();
+    winit::window::Icon::from_rgba(img.into_raw(), w, h).ok()
+}
+
 /// Silent best-effort registration for GUI startup. Runs on a background
 /// thread (never the winit thread); `CREW_NO_APP_INSTALL=1` opts out.
 pub fn auto_register() {
