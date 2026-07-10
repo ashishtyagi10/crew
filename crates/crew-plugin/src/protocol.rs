@@ -59,6 +59,13 @@ pub enum PluginEvent {
         #[serde(default)]
         ctx: u64,
     },
+    /// Mid-reply progress: `agent` has produced roughly `tokens` output
+    /// tokens so far in its in-flight reply. Advisory — the end-of-hop
+    /// `Stats` stays authoritative and reconciles any estimate drift.
+    StatsTick {
+        agent: String,
+        tokens: u64,
+    },
     Message {
         channel: String,
         sender: String,
@@ -211,6 +218,25 @@ mod tests {
                     ),
                     ("general", "bob", "hi", "t")
                 );
+            }
+            _ => panic!("wrong variant"),
+        }
+    }
+
+    #[test]
+    fn stats_tick_roundtrips() {
+        let ev = PluginEvent::StatsTick {
+            agent: "coder".to_string(),
+            tokens: 128,
+        };
+        let line = serde_json::to_string(&ev).unwrap();
+        assert_eq!(
+            line,
+            r#"{"type":"stats_tick","agent":"coder","tokens":128}"#
+        );
+        match serde_json::from_str::<PluginEvent>(&line).unwrap() {
+            PluginEvent::StatsTick { agent, tokens } => {
+                assert_eq!((agent.as_str(), tokens), ("coder", 128));
             }
             _ => panic!("wrong variant"),
         }
