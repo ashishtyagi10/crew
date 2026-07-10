@@ -630,8 +630,9 @@ fn anim_active_tail_ends_after_settle() {
     let mut c = pane();
     let now = crate::anim::now_ms();
     assert!(!c.anim_active(now), "fresh pane is inactive");
+    let before = crate::anim::now_ms();
     c.absorb_stats(100, "planner".into(), 50, 5_000);
-    assert!(c.anim_active(crate::anim::now_ms()), "ease in flight");
+    assert!(c.anim_active(before), "ease in flight");
     let after = crate::anim::now_ms() + crate::chatanim::TOK_MS + 1;
     assert!(!c.anim_active(after), "settled → no redraws");
 }
