@@ -51,6 +51,8 @@ pub struct ChatPane {
     /// When true, show raw message text instead of markdown rendering.
     /// Toggled with Ctrl+Shift+M; not persisted.
     pub(crate) show_source: bool,
+    /// Roster animation state: eased bars/token counts + handoff flashes.
+    pub(crate) anim: crate::chatanim::RosterAnim,
 }
 
 impl ChatPane {
@@ -74,6 +76,7 @@ impl ChatPane {
             mention: None,
             palette: None,
             show_source: false,
+            anim: crate::chatanim::RosterAnim::new(),
         }
     }
 
