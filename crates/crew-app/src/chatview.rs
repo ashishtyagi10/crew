@@ -14,6 +14,7 @@ impl ChatPane {
     pub(crate) fn agent_views(&self) -> Vec<crate::chatchips::AgentView> {
         let names = self.active_names();
         let sum_ms: u64 = self.agent_stats.values().map(|(_, ms)| *ms).sum();
+        let now = crate::anim::now_ms();
         self.agents
             .iter()
             .map(|a| {
@@ -28,12 +29,24 @@ impl ChatPane {
                     .map(|(_, ms)| *ms)
                     .unwrap_or(0);
                 let share_pct = (sum_ms > 0).then(|| ((agent_ms * 100) / sum_ms).min(100) as u8);
+                // Fresh roster restored from a session has no tok animation
+                // entry yet — fall back to the raw ctx value so it doesn't
+                // show 0 until the first live update arrives.
+                let tok_eased = self.anim.tok(&a.name, now);
+                let tok = if tok_eased > 0.0 {
+                    tok_eased.round() as u64
+                } else {
+                    ctx
+                };
                 crate::chatchips::AgentView {
                     name: a.name.clone(),
                     state: self.agent_state_str(&a.name, active),
-                    tok: ctx,
+                    tok,
                     ctx_pct,
                     share_pct,
+                    ctx_frac: self.anim.ctx(&a.name, now),
+                    shr_frac: self.anim.shr(&a.name, now),
+                    flash_t: self.anim.flash_t(&a.name, now),
                     active,
                 }
             })
@@ -124,7 +137,13 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
     let views = pane.agent_views();
     let avail = rows.saturating_sub(1 + crate::chatinput::composer_rows(rows));
     if let Some(lay) = crate::chatchips::layout(&views, cols, avail) {
-        cells.extend(crate::chatchips::row_cells(&views, cols, 1, &lay));
+        cells.extend(crate::chatchips::row_cells(
+            &views,
+            cols,
+            1,
+            &lay,
+            crate::anim::now_ms(),
+        ));
     }
     let bottom = crate::chatinput::composer_rows(rows);
     if pane.messages.is_empty() {

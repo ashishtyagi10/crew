@@ -143,7 +143,7 @@ fn cells_grid_never_overdraws_past_status_rows() {
 
     // The renderer draws with this exact `lay` — its cells must never reach
     // or exceed `top` (no rendered row exceeds `status_rows`).
-    let grid = crate::chatchips::row_cells(&views, cols, 1, &lay);
+    let grid = crate::chatchips::row_cells(&views, cols, 1, &lay, crate::anim::now_ms());
     let max_row = grid.iter().map(|c| c.row).max().unwrap_or(0);
     assert!(
         max_row < top,
