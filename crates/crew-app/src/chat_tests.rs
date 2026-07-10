@@ -624,3 +624,14 @@ fn show_source_true_chat_title_has_source_suffix() {
         "title should be 'chat · source' when show_source is true"
     );
 }
+
+#[test]
+fn anim_active_tail_ends_after_settle() {
+    let mut c = pane();
+    let now = crate::anim::now_ms();
+    assert!(!c.anim_active(now), "fresh pane is inactive");
+    c.absorb_stats(100, "planner".into(), 50, 5_000);
+    assert!(c.anim_active(crate::anim::now_ms()), "ease in flight");
+    let after = crate::anim::now_ms() + crate::chatanim::TOK_MS + 1;
+    assert!(!c.anim_active(after), "settled → no redraws");
+}

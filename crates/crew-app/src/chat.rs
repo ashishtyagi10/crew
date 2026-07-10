@@ -86,6 +86,12 @@ impl ChatPane {
         self.awaiting || !self.active.is_empty()
     }
 
+    /// Whether roster animation is mid-flight — drives the redraw tail after
+    /// a turn ends so eases/flashes finish, then redraws stop entirely.
+    pub(crate) fn anim_active(&self, now: u64) -> bool {
+        self.anim.active(now)
+    }
+
     /// Drain plugin events; return PollResult with changed flag and any host actions.
     pub fn poll(&mut self) -> PollResult {
         let events = self.plugin.try_recv();
