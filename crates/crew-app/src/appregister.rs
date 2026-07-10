@@ -235,6 +235,118 @@ pub fn remove_windows(t: &WinTarget) -> std::io::Result<()> {
     Ok(())
 }
 
+/// Register for the current OS using real user dirs. `verbose` prints what
+/// happened (CLI path); the auto path stays silent.
+pub fn register_current(verbose: bool) -> anyhow::Result<()> {
+    let exe = resolved_exe();
+    #[cfg(target_os = "macos")]
+    {
+        let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("no home dir"))?;
+        let t = MacTarget {
+            apps_dir: home.join("Applications"),
+            exe,
+            version: VERSION.to_string(),
+        };
+        let wrote = register_macos(&t)?;
+        if verbose {
+            let app = t.apps_dir.join("Crew.app");
+            if wrote {
+                println!(
+                    "Registered {} (Spotlight/Launchpad may take a moment)",
+                    app.display()
+                );
+            } else {
+                println!("Already registered: {}", app.display());
+            }
+        }
+    }
+    #[cfg(target_os = "linux")]
+    {
+        let data = dirs::data_dir().ok_or_else(|| anyhow::anyhow!("no XDG data dir"))?;
+        let t = LinuxTarget {
+            data_dir: data,
+            exe,
+            version: VERSION.to_string(),
+        };
+        let wrote = register_linux(&t)?;
+        if verbose {
+            let entry = t.data_dir.join("applications/crew.desktop");
+            if wrote {
+                println!("Registered {}", entry.display());
+            } else {
+                println!("Already registered: {}", entry.display());
+            }
+        }
+    }
+    #[cfg(target_os = "windows")]
+    {
+        let appdata = dirs::config_dir().ok_or_else(|| anyhow::anyhow!("no APPDATA"))?;
+        let t = WinTarget {
+            programs_dir: appdata.join(r"Microsoft\Windows\Start Menu\Programs"),
+            marker: appdata.join(r"crew\app-register"),
+            exe,
+            version: VERSION.to_string(),
+        };
+        let wrote = register_windows(&t)?;
+        if verbose {
+            let lnk = t.programs_dir.join("Crew.lnk");
+            if wrote {
+                println!("Registered {}", lnk.display());
+            } else {
+                println!("Already registered: {}", lnk.display());
+            }
+        }
+    }
+    Ok(())
+}
+
+pub fn remove_current() -> anyhow::Result<()> {
+    #[cfg(target_os = "macos")]
+    {
+        let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("no home dir"))?;
+        let t = MacTarget {
+            apps_dir: home.join("Applications"),
+            exe: resolved_exe(),
+            version: VERSION.to_string(),
+        };
+        remove_macos(&t)?;
+        println!("Removed {}", t.apps_dir.join("Crew.app").display());
+    }
+    #[cfg(target_os = "linux")]
+    {
+        let data = dirs::data_dir().ok_or_else(|| anyhow::anyhow!("no XDG data dir"))?;
+        let t = LinuxTarget {
+            data_dir: data,
+            exe: resolved_exe(),
+            version: VERSION.to_string(),
+        };
+        remove_linux(&t)?;
+        println!("Removed crew.desktop and icons");
+    }
+    #[cfg(target_os = "windows")]
+    {
+        let appdata = dirs::config_dir().ok_or_else(|| anyhow::anyhow!("no APPDATA"))?;
+        let t = WinTarget {
+            programs_dir: appdata.join(r"Microsoft\Windows\Start Menu\Programs"),
+            marker: appdata.join(r"crew\app-register"),
+            exe: resolved_exe(),
+            version: VERSION.to_string(),
+        };
+        remove_windows(&t)?;
+        println!("Removed Crew.lnk");
+    }
+    Ok(())
+}
+
+/// Silent best-effort registration for GUI startup. Runs on a background
+/// thread (never the winit thread); `CREW_NO_APP_INSTALL=1` opts out.
+pub fn auto_register() {
+    if std::env::var_os("CREW_NO_APP_INSTALL").is_some_and(|v| v == "1") {
+        return;
+    }
+    let _ = register_current(false);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

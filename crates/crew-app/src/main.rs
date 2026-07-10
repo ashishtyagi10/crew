@@ -143,6 +143,16 @@ fn main() -> anyhow::Result<()> {
         }
         return Ok(());
     }
+    // `crew install-app` — create/refresh the OS app-menu entry (Spotlight /
+    // Start menu / .desktop); `--remove` deletes it. Also run automatically
+    // by install.sh and silently on GUI startup.
+    if std::env::args().skip(1).any(|a| a == "install-app") {
+        return if std::env::args().skip(1).any(|a| a == "--remove") {
+            appregister::remove_current()
+        } else {
+            appregister::register_current(true)
+        };
+    }
     // Detached launch is the default: re-launch in a new session (detached from
     // this terminal) and exit the parent, so closing the launching shell doesn't
     // SIGHUP the GUI. `--no-detach` / `--foreground` keeps crew attached. The

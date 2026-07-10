@@ -58,6 +58,10 @@ impl ApplicationHandler for CrewApp {
 
 pub fn run() -> anyhow::Result<()> {
     let event_loop = EventLoop::new()?;
+    // Keep the app-menu entry (Crew.app / .desktop / Start-menu) fresh after
+    // updates. Off-thread: registration does file I/O and must never touch
+    // the winit thread. CREW_NO_APP_INSTALL=1 opts out (checked inside).
+    std::thread::spawn(crate::appregister::auto_register);
     let config = CrewConfig::load();
     // Apply the theme first; the accent default reads the active theme.
     // A saved `random` pin resumes rotation mode; `theme_id()` would otherwise
