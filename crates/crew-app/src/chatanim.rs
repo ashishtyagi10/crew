@@ -104,9 +104,13 @@ impl RosterAnim {
         Self::get(&self.tok, agent, now)
     }
 
+    #[cfg(test)]
+    // Test observers: production reads go through the eased getters.
     pub(crate) fn ctx_target(&self, agent: &str) -> f32 {
         self.ctx.get(agent).map(|e| e.target).unwrap_or(0.0)
     }
+    #[cfg(test)]
+    // Test observers: production reads go through the eased getters.
     pub(crate) fn shr_target(&self, agent: &str) -> f32 {
         self.shr.get(agent).map(|e| e.target).unwrap_or(0.0)
     }

@@ -221,8 +221,9 @@ pub(crate) fn partial_block(frac_cells: f32) -> Option<char> {
     }
 }
 
-/// One `<bar> NN% (label)` segment. `seg.pct = None` draws an all-track bar
-/// and ` 0%`.
+/// One `<bar> NN% (label)` segment. Fill comes from `frac` (full blocks + one
+/// left-eighth partial + track); `pct` only affects the `NNN%` text and shows
+/// ` 0%` when `pct` is None.
 fn push_segment(
     cells: &mut Vec<CellView>,
     row: u16,
@@ -600,7 +601,7 @@ mod tests {
     }
 
     #[test]
-    fn handoff_flash_blends_and_expires() {
+    fn handoff_flash_tints_row() {
         let fresh = name_fg(false, 1.0, 0);
         let gone = name_fg(false, 0.0, 0);
         assert_ne!(fresh, gone, "fresh flash tints the row");
