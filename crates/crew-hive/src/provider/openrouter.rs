@@ -44,6 +44,32 @@ fn attempt_chain(primary: &str, fallbacks: &[String]) -> Vec<String> {
     chain
 }
 
+/// The `messages` array shared by [`Provider::complete`] and
+/// [`Provider::complete_streaming`]: an optional system prompt, then the
+/// user prompt.
+fn build_messages(req: &CompletionRequest) -> Vec<serde_json::Value> {
+    let mut messages = Vec::new();
+    if let Some(sys) = &req.system {
+        messages.push(serde_json::json!({"role": "system", "content": sys}));
+    }
+    messages.push(serde_json::json!({"role": "user", "content": req.prompt}));
+    messages
+}
+
+/// One model attempt's base request body (before `stream`/`stream_options`
+/// are layered on for the streaming path — see `request_with_retry_streaming`).
+fn build_body(
+    model: &str,
+    req: &CompletionRequest,
+    messages: &[serde_json::Value],
+) -> serde_json::Value {
+    serde_json::json!({
+        "model": model,
+        "max_tokens": req.max_tokens,
+        "messages": messages,
+    })
+}
+
 impl OpenRouterProvider {
     pub fn new(api_key: String) -> Self {
         Self {
@@ -92,21 +118,13 @@ impl Provider for OpenRouterProvider {
         let endpoint = self.endpoint.clone();
         let chain = attempt_chain(&req.model, &self.fallbacks);
         Box::pin(async move {
-            let mut messages = Vec::new();
-            if let Some(sys) = &req.system {
-                messages.push(serde_json::json!({"role": "system", "content": sys}));
-            }
-            messages.push(serde_json::json!({"role": "user", "content": req.prompt}));
+            let messages = build_messages(&req);
             // Try each model in turn; a model that stays rate-limited or is
             // unavailable (retired free slug, upstream error) hands off to the
             // next. Only a missing key short-circuits — no model can fix that.
             let mut last_err = ProviderError::Api("no model attempted".into());
             for model in &chain {
-                let body = serde_json::json!({
-                    "model": model,
-                    "max_tokens": req.max_tokens,
-                    "messages": messages,
-                });
+                let body = build_body(model, &req, &messages);
                 match request_with_retry(&client, &endpoint, &key, &body).await {
                     Ok(c) => return Ok(c),
                     Err(ProviderError::MissingKey) => return Err(ProviderError::MissingKey),
@@ -120,8 +138,8 @@ impl Provider for OpenRouterProvider {
     /// Streamed variant of [`Self::complete`]: same model fallback chain,
     /// but only *before* any content has reached the caller. Once a model's
     /// attempt starts forwarding real text through `on_chunk` (tracked via
-    /// `started`, set the moment a 200 begins streaming — see
-    /// [`request_with_retry_streaming`]), a later failure on that same
+    /// `started`, set the moment the first visible delta is forwarded —
+    /// see [`request_with_retry_streaming`]), a later failure on that same
     /// attempt is returned immediately rather than silently falling through
     /// to the next model: the caller has already shown the user partial
     /// content, and resuming from a different model would splice in
@@ -136,18 +154,10 @@ impl Provider for OpenRouterProvider {
         let endpoint = self.endpoint.clone();
         let chain = attempt_chain(&req.model, &self.fallbacks);
         Box::pin(async move {
-            let mut messages = Vec::new();
-            if let Some(sys) = &req.system {
-                messages.push(serde_json::json!({"role": "system", "content": sys}));
-            }
-            messages.push(serde_json::json!({"role": "user", "content": req.prompt}));
+            let messages = build_messages(&req);
             let mut last_err = ProviderError::Api("no model attempted".into());
             for model in &chain {
-                let body = serde_json::json!({
-                    "model": model,
-                    "max_tokens": req.max_tokens,
-                    "messages": messages,
-                });
+                let body = build_body(model, &req, &messages);
                 let started = std::sync::atomic::AtomicBool::new(false);
                 match request_with_retry_streaming(
                     &client, &endpoint, &key, &body, &on_chunk, &started,

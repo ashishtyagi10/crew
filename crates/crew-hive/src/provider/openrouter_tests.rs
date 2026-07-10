@@ -306,6 +306,164 @@ async fn retries_once_without_stream_options_on_400() {
     assert!(!seen[1], "retry after the 400 must drop stream_options");
 }
 
+// --- Critical-1: 200-with-wrapped-error-body must not become a silent
+// empty success ------------------------------------------------------------
+//
+// The exact shape from `retry_delay`'s doc comment: OpenRouter returns
+// upstream rate-limits as a 200 whose body is a plain JSON `error` object —
+// no `data:` lines at all. Treated naively as an SSE stream, every line
+// would Skip and the call would return `Ok(Completion{text: "", ..})` with
+// fabricated usage, defeating both retry and the fallback chain. No
+// `retry_after_seconds` hint here, so `retry_delay` backs off
+// exponentially (1s, then 2s) rather than the 4s the doc-comment example's
+// hint would incur — keeps this test fast.
+const WRAPPED_ERROR_BODY: &str = r#"{"error":{"message":"Provider returned error","code":429}}"#;
+
+#[tokio::test]
+async fn wrapped_error_200_body_with_json_content_type_retries_then_errors() {
+    // content-type: application/json, no `data:` framing — exercises the
+    // belt-and-braces content-type gate straight to the non-streaming error
+    // handling, without ever attempting to parse it as a stream.
+    let head = format!(
+        "HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\n\r\n",
+        WRAPPED_ERROR_BODY.len()
+    );
+    let (addr, accepted) = one_shot_server(
+        [head.as_bytes(), WRAPPED_ERROR_BODY.as_bytes()].concat(),
+        3, // initial attempt + 2 retries (MAX_RETRIES = 2)
+    );
+    let p = OpenRouterProvider::new("k".into())
+        .with_endpoint(format!("http://{addr}/v1/chat/completions"));
+    let (on_chunk, chunks) = collecting_chunk_fn();
+    let req = CompletionRequest {
+        model: "m".into(),
+        system: None,
+        prompt: "hi".into(),
+        max_tokens: 8,
+    };
+    let res = tokio::time::timeout(Duration::from_secs(10), p.complete_streaming(req, on_chunk))
+        .await
+        .expect("must not hang");
+    assert!(
+        matches!(res, Err(ProviderError::Api(_))),
+        "wrapped 200 error body must surface as an error, not a fabricated empty success; got {res:?}"
+    );
+    assert!(
+        chunks.lock().unwrap().is_empty(),
+        "no delta was ever produced"
+    );
+    assert_eq!(
+        accepted.load(Ordering::SeqCst),
+        3,
+        "must have retried through MAX_RETRIES before giving up"
+    );
+}
+
+#[tokio::test]
+async fn wrapped_error_200_body_without_content_type_is_not_silent_success() {
+    // No content-type header at all — falls through to consume_sse, which
+    // must recognize zero Done/Delta/Usage frames ever arrived and hand the
+    // raw body to the same parse_response/retry_delay handling as the
+    // non-streaming path, rather than returning an empty successful stream.
+    let head = format!(
+        "HTTP/1.1 200 OK\r\ncontent-length: {}\r\n\r\n",
+        WRAPPED_ERROR_BODY.len()
+    );
+    let (addr, accepted) =
+        one_shot_server([head.as_bytes(), WRAPPED_ERROR_BODY.as_bytes()].concat(), 3);
+    let p = OpenRouterProvider::new("k".into())
+        .with_endpoint(format!("http://{addr}/v1/chat/completions"));
+    let (on_chunk, chunks) = collecting_chunk_fn();
+    let req = CompletionRequest {
+        model: "m".into(),
+        system: None,
+        prompt: "hi".into(),
+        max_tokens: 8,
+    };
+    let res = tokio::time::timeout(Duration::from_secs(10), p.complete_streaming(req, on_chunk))
+        .await
+        .expect("must not hang");
+    assert!(
+        matches!(res, Err(ProviderError::Api(_))),
+        "wrapped 200 error body must surface as an error, not a fabricated empty success; got {res:?}"
+    );
+    assert!(chunks.lock().unwrap().is_empty());
+    assert_eq!(
+        accepted.load(Ordering::SeqCst),
+        3,
+        "must have retried through MAX_RETRIES before giving up"
+    );
+}
+
+// --- Important-2 / Important-3: leftover carry at EOF + UTF-8 codepoints
+// split across TCP chunks ----------------------------------------------------
+
+#[tokio::test]
+async fn reassembles_line_split_mid_multibyte_across_writes_with_crlf_and_no_final_newline() {
+    use tokio::io::AsyncWriteExt;
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    listener.set_nonblocking(true).unwrap();
+    let addr = listener.local_addr().unwrap();
+    let listener = tokio::net::TcpListener::from_std(listener).unwrap();
+
+    // CRLF line endings. The second delta line is split so the write
+    // boundary falls inside "é"'s two-byte UTF-8 encoding (0xC3 0xA9). The
+    // final usage frame has no trailing newline at all — the stream just
+    // ends (pins the leftover-carry fix, Important-2).
+    let line1 = "data: {\"choices\":[{\"delta\":{\"content\":\"Hi \"}}]}\r\n";
+    let line2 = "data: {\"choices\":[{\"delta\":{\"content\":\"h\u{e9}llo\"}}]}\r\n";
+    let line3 = "data: {\"choices\":[],\"usage\":{\"prompt_tokens\":3,\"completion_tokens\":2}}";
+
+    let e_byte_pos = line2.find('\u{e9}').expect("contains é");
+    let split_at = e_byte_pos + 1; // right after é's first byte (0xC3)
+    let (line2_head, line2_tail) = line2.as_bytes().split_at(split_at);
+
+    let total_len = line1.len() + line2.len() + line3.len();
+    let head = format!(
+        "HTTP/1.1 200 OK\r\ncontent-type: text/event-stream\r\ncontent-length: {total_len}\r\n\r\n"
+    );
+
+    tokio::spawn(async move {
+        let Ok((mut sock, _)) = listener.accept().await else {
+            return;
+        };
+        let _ = read_request(&mut sock).await; // drain the client's request
+        let _ = sock.write_all(head.as_bytes()).await;
+        let _ = sock.write_all(line1.as_bytes()).await;
+        tokio::time::sleep(Duration::from_millis(5)).await;
+        let _ = sock.write_all(line2_head).await;
+        tokio::time::sleep(Duration::from_millis(5)).await;
+        let _ = sock.write_all(line2_tail).await;
+        tokio::time::sleep(Duration::from_millis(5)).await;
+        let _ = sock.write_all(line3.as_bytes()).await;
+        let _ = sock.shutdown().await;
+    });
+
+    let p = OpenRouterProvider::new("k".into())
+        .with_endpoint(format!("http://{addr}/v1/chat/completions"));
+    let (on_chunk, chunks) = collecting_chunk_fn();
+    let req = CompletionRequest {
+        model: "m".into(),
+        system: None,
+        prompt: "hi".into(),
+        max_tokens: 8,
+    };
+    let done = tokio::time::timeout(Duration::from_secs(5), p.complete_streaming(req, on_chunk))
+        .await
+        .expect("must not hang")
+        .unwrap();
+    assert_eq!(chunks.lock().unwrap().concat(), "Hi h\u{e9}llo");
+    assert_eq!(done.text, "Hi h\u{e9}llo");
+    assert_eq!(
+        done.input_tokens, 3,
+        "usage frame captured: prompt_tokens=3"
+    );
+    assert_eq!(
+        done.output_tokens, 2,
+        "usage frame captured: completion_tokens=2"
+    );
+}
+
 #[tokio::test]
 async fn missing_usage_frame_falls_back_to_chars_over_4_estimate() {
     // No `usage` field anywhere in the stream (as if the endpoint silently
@@ -330,4 +488,42 @@ async fn missing_usage_frame_falls_back_to_chars_over_4_estimate() {
     assert_eq!(done.text, "12345678");
     assert_eq!(done.output_tokens, 2, "8 chars / 4 = 2");
     assert_eq!(done.input_tokens, 2, "prompt is 8 chars / 4 = 2");
+}
+
+// --- Important-4 / Minor-7: estimate unit symmetry + tiny-reply floor ------
+
+#[tokio::test]
+async fn missing_usage_estimate_uses_chars_not_bytes_and_floors_tiny_output_at_one() {
+    // CJK text: each char is 3 bytes in UTF-8. Before the fix, input tokens
+    // were estimated from byte length (`str::len()`) while output tokens
+    // used char count (`chars().count()`) — a 3x divergence on CJK. Both
+    // must now agree on chars()/4. The reply is a single character, which
+    // chars/4 truncates to 0 — Minor-7 floors any non-empty output estimate
+    // at 1.
+    let reply = "文"; // 1 char, 3 bytes
+    let sse_body = format!(
+        "data: {{\"choices\":[{{\"delta\":{{\"content\":\"{reply}\"}}}}]}}\ndata: [DONE]\n"
+    );
+    let head = format!(
+        "HTTP/1.1 200 OK\r\ncontent-type: text/event-stream\r\ncontent-length: {}\r\n\r\n",
+        sse_body.len()
+    );
+    let (addr, _accepted) = one_shot_server([head.as_bytes(), sse_body.as_bytes()].concat(), 1);
+    let p = OpenRouterProvider::new("k".into())
+        .with_endpoint(format!("http://{addr}/v1/chat/completions"));
+    let (on_chunk, _chunks) = collecting_chunk_fn();
+    let prompt = "文文文文"; // 4 chars, 12 bytes: chars/4 = 1, bytes/4 = 3
+    let req = CompletionRequest {
+        model: "m".into(),
+        system: None,
+        prompt: prompt.into(),
+        max_tokens: 8,
+    };
+    let done = p.complete_streaming(req, on_chunk).await.unwrap();
+    assert_eq!(done.text, reply);
+    assert_eq!(done.input_tokens, 1, "4 CJK chars / 4 = 1, not bytes/4 = 3");
+    assert_eq!(
+        done.output_tokens, 1,
+        "1 non-empty char floors to 1 (Minor-7), not chars/4 = 0"
+    );
 }
