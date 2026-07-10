@@ -29,18 +29,43 @@ StatsTick {
   re-exec of `crew`), so both sides version together. The mock provider and
   tests must tolerate its absence: no tick is ever *required*.
 
+## Provider streaming (added after planning discovery)
+
+Planning found the provider layer is non-streaming end-to-end
+(`Provider::complete` returns one whole `Completion`; the broker's
+`ApiAdapter::call_with_usage` blocks on it), so there is no chunk hook
+without extending the provider layer. Decision (2026-07-09): add real SSE
+streaming rather than timer-based estimates.
+
+- `crew_hive::Provider` gains `complete_streaming(req, on_chunk)` where
+  `on_chunk: Arc<dyn Fn(&str) + Send + Sync>` receives text deltas. The
+  DEFAULT implementation ignores the callback and delegates to `complete`,
+  so every existing provider compiles unchanged and non-streaming providers
+  simply emit no ticks.
+- The OpenAI-compatible HTTP provider overrides it: `"stream": true` SSE,
+  a pure line parser (delta text / usage frame / done), deltas forwarded to
+  `on_chunk`, final usage taken from the stream's usage frame when present
+  (else the existing estimate fallback). Mid-stream transport/parse errors
+  propagate as `ProviderError` exactly like the non-streaming path.
+- `MockProvider` overrides it to send its reply in 2–3 chunks before
+  returning, so the GUI harness and broker tests exercise ticks.
+
 ## Broker emission
 
-- Where the broker observes streamed chunks per agent reply (crew-hive
-  provider streaming path — exact hook located during planning), it
-  accumulates a chars/4 token estimate.
-- Ticks are rate-limited: emit at most one `StatsTick` per agent per 150ms,
-  and only when the estimate grew. A reply that streams no chunks (or a
+- The broker's `Adapter` trait gains `call_with_usage_ticked(.., on_tokens)`
+  (default: ignore ticks, delegate to `call_with_usage`); `ApiAdapter`
+  overrides it, accumulating streamed chunk chars and reporting a chars/4
+  output-token estimate to `on_tokens`.
+- `relay_turn`/`fan_out` pass a per-hop tick closure that rate-limits (pure
+  `should_tick(last_ms, now_ms, 150)` helper, clock passed in) and emits
+  `StatsTick { agent, tokens }` through a thread-safe tick emitter built in
+  `stdio.rs` from the same stdout sink — the callback fires on runtime
+  threads while the hop blocks, so it cannot reuse the `&mut FnMut` emit.
+- Ticks are rate-limited: at most one `StatsTick` per agent per 150ms, and
+  only when the estimate grew. A reply that streams no chunks (or a
   non-streaming provider) emits no ticks.
 - End-of-hop `Stats` (unchanged) reconciles: the app snaps the tok target to
   the authoritative value whether or not any ticks arrived.
-- Mock provider (`CREW_BROKER_MOCK_REPLY`) emits 2–3 synthetic ticks before
-  its reply so the GUI harness and app tests can exercise the path.
 
 ## App consumption
 
