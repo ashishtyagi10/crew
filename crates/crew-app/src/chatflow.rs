@@ -29,9 +29,30 @@ impl crate::chat::ChatPane {
             if ctx > 0 {
                 self.ctx.insert(agent.clone(), ctx);
             }
-            let e = self.agent_stats.entry(agent).or_default();
+            let e = self.agent_stats.entry(agent.clone()).or_default();
             e.0 = e.0.saturating_add(1);
             e.1 = e.1.saturating_add(ms);
+
+            let now = crate::anim::now_ms();
+            // tok column shows live context fill; ease it toward the new ctx.
+            if ctx > 0 {
+                self.anim.set_tok(&agent, now, ctx as f32);
+                // ctx% needs the model's limit — mirror agent_views' derivation.
+                if let Some(a) = self.agents.iter().find(|a| a.name == agent) {
+                    if let Some(l) = crate::ctxlimit::context_limit(&a.model).filter(|&l| l > 0) {
+                        self.anim
+                            .set_ctx(&agent, now, (ctx as f32 / l as f32).min(1.0));
+                    }
+                }
+            }
+            // Any stat changes every agent's share of the turn: retarget all.
+            let sum_ms: u64 = self.agent_stats.values().map(|(_, ms)| *ms).sum();
+            if sum_ms > 0 {
+                for (name, (_, ms)) in self.agent_stats.iter() {
+                    let frac = (*ms as f32 / sum_ms as f32).min(1.0);
+                    self.anim.set_shr(name, now, frac);
+                }
+            }
         }
     }
 
@@ -44,6 +65,7 @@ impl crate::chat::ChatPane {
         match (state, agent.is_empty()) {
             ("thinking", false) => {
                 self.pulse.begin_hop();
+                self.anim.flash(&agent, crate::anim::now_ms());
                 if !self.active.iter().any(|a| a.name == agent) {
                     self.active.push(ActiveAgent {
                         name: agent,

@@ -49,3 +49,8 @@ the user's live agent chats. Two rules, no exceptions:
   misses and a PROPORTIONAL fallback + cell rounding mangles all text
   (dropped-looking narrow glyphs). Symlink first:
   `ln -sfn ~/Library/Fonts "$SCRATCH/home/Library/Fonts"`.
+- The /crew pane's broker child is `$HOME/.local/bin/crew` — absent in an
+  isolated HOME, the pane sits on its empty state forever. Symlink it:
+  `mkdir -p "$SCRATCH/home/.local" && ln -sfn ~/.local/bin "$SCRATCH/home/.local/bin"`.
+  A real crew TURN additionally needs provider config/keys the isolated HOME
+  won't have — mock-reply covers pane plumbing, not full turns.

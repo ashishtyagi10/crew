@@ -143,7 +143,7 @@ fn cells_grid_never_overdraws_past_status_rows() {
 
     // The renderer draws with this exact `lay` — its cells must never reach
     // or exceed `top` (no rendered row exceeds `status_rows`).
-    let grid = crate::chatchips::row_cells(&views, cols, 1, &lay);
+    let grid = crate::chatchips::row_cells(&views, cols, 1, &lay, crate::anim::now_ms());
     let max_row = grid.iter().map(|c| c.row).max().unwrap_or(0);
     assert!(
         max_row < top,
@@ -547,6 +547,53 @@ fn show_source_false_chat_title_has_no_suffix() {
 }
 
 #[test]
+fn absorb_stats_retargets_roster_anim() {
+    let mut c = pane();
+    // Two agents so share redistribution is observable.
+    c.absorb_activity("planner".into(), "thinking", "user".into());
+    c.absorb_stats(1200, "planner".into(), 800, 30_000);
+    c.absorb_stats(400, "coder".into(), 200, 10_000);
+    // Token target = the agent's live ctx (the tok column shows context fill).
+    let now = crate::anim::now_ms() + crate::chatanim::TOK_MS + 1;
+    assert!((c.anim.tok("planner", now) - 30_000.0).abs() < 1.0);
+    // Shares settle to ms proportions: planner 800/1000, coder 200/1000.
+    assert!((c.anim.shr_target("planner") - 0.8).abs() < 1e-6);
+    assert!((c.anim.shr_target("coder") - 0.2).abs() < 1e-6);
+}
+
+#[test]
+fn absorb_stats_derives_ctx_pct_and_ignores_zero_ctx_retarget() {
+    let mut c = pane();
+    c.agents = vec![crew_plugin::AgentInfo {
+        name: "planner".into(),
+        role: String::new(),
+        model: "claude".into(), // context_limit("claude") == 200_000
+    }];
+    // Half the model's context window: ctx% target should land on 0.5.
+    c.absorb_stats(0, "planner".into(), 800, 100_000);
+    assert!(
+        (c.anim.ctx_target("planner") - 0.5).abs() < 1e-6,
+        "ctx% derives from ctx/limit: {}",
+        c.anim.ctx_target("planner")
+    );
+    // A follow-up event reporting no usage must not ease the bar toward 0.
+    c.absorb_stats(0, "planner".into(), 200, 0);
+    assert!(
+        (c.anim.ctx_target("planner") - 0.5).abs() < 1e-6,
+        "zero-ctx event leaves the retarget untouched: {}",
+        c.anim.ctx_target("planner")
+    );
+}
+
+#[test]
+fn thinking_activity_records_flash() {
+    let mut c = pane();
+    c.absorb_activity("coder".into(), "thinking", "planner".into());
+    let now = crate::anim::now_ms();
+    assert!(c.anim.flash_t("coder", now) > 0.9, "fresh handoff flash");
+}
+
+#[test]
 fn show_source_true_chat_title_has_source_suffix() {
     // When show_source is true, the title should be "chat · source".
     let mut p = pane();
@@ -576,4 +623,16 @@ fn show_source_true_chat_title_has_source_suffix() {
         title, "chat · source",
         "title should be 'chat · source' when show_source is true"
     );
+}
+
+#[test]
+fn anim_active_tail_ends_after_settle() {
+    let mut c = pane();
+    let now = crate::anim::now_ms();
+    assert!(!c.anim_active(now), "fresh pane is inactive");
+    let before = crate::anim::now_ms();
+    c.absorb_stats(100, "planner".into(), 50, 5_000);
+    assert!(c.anim_active(before), "ease in flight");
+    let after = crate::anim::now_ms() + crate::chatanim::TOK_MS + 1;
+    assert!(!c.anim_active(after), "settled → no redraws");
 }

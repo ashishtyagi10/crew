@@ -33,6 +33,14 @@ pub(crate) struct AgentView {
     pub tok: u64,
     pub ctx_pct: Option<u8>,
     pub share_pct: Option<u8>,
+    /// Eased ctx fill fraction (0.0..1.0) — drives the bar; `ctx_pct` still
+    /// drives the target percentage text.
+    pub ctx_frac: f32,
+    /// Eased share fill fraction (0.0..1.0) — drives the bar; `share_pct`
+    /// still drives the target percentage text.
+    pub shr_frac: f32,
+    /// Handoff flash intensity: 1.0 = just flashed, 0.0 = none.
+    pub flash_t: f32,
     pub active: bool,
 }
 
@@ -195,12 +203,27 @@ fn place(
 /// isn't a warning, like `shr`).
 struct Seg<'a> {
     pct: Option<u8>,
+    /// Eased fill fraction (0.0..1.0) — drives the bar, independent of
+    /// `pct`'s target text (they can differ mid-ease).
+    frac: f32,
     label: &'a str,
     fill: (u8, u8, u8),
 }
 
-/// One `<bar> NN% (label)` segment. `seg.pct = None` draws an all-track bar
-/// and ` 0%`.
+/// The left-eighth block for a fractional cell (0.0..1.0): ▏(1/8) … ▉(7/8).
+/// None below 1/8 — an empty track cell reads cleaner than a sliver.
+pub(crate) fn partial_block(frac_cells: f32) -> Option<char> {
+    let eighths = (frac_cells.clamp(0.0, 1.0) * 8.0).floor() as u32;
+    match eighths.min(7) {
+        0 => None,
+        // U+2589 ▉ is 7/8 … U+258F ▏ is 1/8: codepoint = 0x2590 - eighths.
+        n => char::from_u32(0x2590 - n),
+    }
+}
+
+/// One `<bar> NN% (label)` segment. Fill comes from `frac` (full blocks + one
+/// left-eighth partial + track); `pct` only affects the `NNN%` text and shows
+/// ` 0%` when `pct` is None.
 fn push_segment(
     cells: &mut Vec<CellView>,
     row: u16,
@@ -209,19 +232,25 @@ fn push_segment(
     seg: Seg,
     pal: &Pal,
 ) -> u16 {
-    let Seg { pct, label, fill } = seg;
+    let Seg {
+        pct,
+        frac,
+        label,
+        fill,
+    } = seg;
     let bg = crew_theme::theme().page_bg;
-    let frac = pct.unwrap_or(0) as f32 / 100.0;
-    let filled = pct
-        .map(|_| (frac * BAR_W as f32).round() as usize)
-        .unwrap_or(0);
+    let filled_cells = frac * BAR_W as f32;
+    let full = filled_cells.floor() as usize;
+    let partial = partial_block(filled_cells.fract());
     let mut x = col;
     for i in 0..BAR_W {
         if x >= max_col {
             break;
         }
-        let (ch, fg) = if i < filled {
+        let (ch, fg) = if i < full {
             ('\u{2588}', fill)
+        } else if i == full && partial.is_some() {
+            (partial.unwrap(), fill)
         } else {
             ('\u{2591}', pal.dim)
         };
@@ -257,6 +286,7 @@ pub(crate) fn row_cells(
     cols: u16,
     start_row: u16,
     lay: &Layout,
+    now: u64,
 ) -> Vec<CellView> {
     let t = crew_theme::theme();
     let pal = Pal {
@@ -266,7 +296,21 @@ pub(crate) fn row_cells(
     let mut cells = Vec::new();
     for (i, v) in views.iter().take(lay.shown).enumerate() {
         let row = start_row + i as u16;
-        let color = agent_color(&v.name);
+        // Working agent breathes toward the accent (≤25% blend, 1600ms
+        // triangle); a fresh handoff flashes the row (≤35%, 400ms fade).
+        // Flash wins over pulse when both apply — it's the newer signal.
+        let base = agent_color(&v.name);
+        let color = if v.flash_t > 0.0 {
+            crate::anim::lerp_rgb(base, crate::palette::accent(), 0.35 * v.flash_t)
+        } else if v.active {
+            crate::anim::lerp_rgb(
+                base,
+                crate::palette::accent(),
+                0.25 * crate::anim::tri(now, 1600),
+            )
+        } else {
+            base
+        };
         let mut col = place(
             &mut cells,
             row,
@@ -300,11 +344,11 @@ pub(crate) fn row_cells(
         }
         if lay.level <= 1 {
             col = place(&mut cells, row, col, cols, SEP, pal.dim, false);
-            let ctx_frac = v.ctx_pct.unwrap_or(0) as f32 / 100.0;
             let seg = Seg {
                 pct: v.ctx_pct,
+                frac: v.ctx_frac,
                 label: "ctx",
-                fill: fill_color(ctx_frac),
+                fill: fill_color(v.ctx_frac),
             };
             col = push_segment(&mut cells, row, col, cols, seg, &pal);
         }
@@ -316,6 +360,7 @@ pub(crate) fn row_cells(
             // scale.
             let seg = Seg {
                 pct: v.share_pct,
+                frac: v.shr_frac,
                 label: "shr",
                 fill: crate::palette::accent(),
             };
@@ -329,6 +374,25 @@ pub(crate) fn row_cells(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn test_pal() -> Pal {
+        Pal {
+            ink: (255, 255, 255),
+            dim: (128, 128, 128),
+        }
+    }
+
+    /// Chars in `row`, sorted by column — mirrors the `text_at` pattern in
+    /// `row_cells_have_name_state_pipes_and_ctx_shr_bars`.
+    fn row_text(cells: &[CellView], row: u16) -> String {
+        let mut row_cells: Vec<(u16, char)> = cells
+            .iter()
+            .filter(|c| c.row == row)
+            .map(|c| (c.col, c.c))
+            .collect();
+        row_cells.sort();
+        row_cells.into_iter().map(|(_, c)| c).collect()
+    }
 
     fn v(
         name: &str,
@@ -344,6 +408,9 @@ mod tests {
             tok,
             ctx_pct: ctx,
             share_pct: share,
+            ctx_frac: ctx.map(|p| p as f32 / 100.0).unwrap_or(0.0),
+            shr_frac: share.map(|p| p as f32 / 100.0).unwrap_or(0.0),
+            flash_t: 0.0,
             active,
         }
     }
@@ -399,7 +466,7 @@ mod tests {
         let cols = 200;
         let lay = layout(&views, cols, 100).expect("fits");
         let start_row = 1;
-        let cells = row_cells(&views, cols, start_row, &lay);
+        let cells = row_cells(&views, cols, start_row, &lay, 0);
 
         let text_at = |row: u16| -> String {
             let mut row_cells: Vec<(u16, char)> = cells
@@ -468,5 +535,82 @@ mod tests {
 
         // Idle agent's tok column renders the dash placeholder.
         assert!(coder.contains('\u{2013}'), "idle tok is a dash: {coder}");
+    }
+
+    #[test]
+    fn partial_block_selects_left_eighths() {
+        assert_eq!(partial_block(0.0), None);
+        assert_eq!(partial_block(0.05), None, "below 1/8 draws nothing");
+        assert_eq!(partial_block(0.125), Some('\u{258F}'), "1/8 \u{258F}");
+        assert_eq!(partial_block(0.5), Some('\u{258C}'), "4/8 \u{258C}");
+        assert_eq!(partial_block(0.874), Some('\u{258A}'), "6/8 \u{258A}");
+        assert_eq!(
+            partial_block(0.999),
+            Some('\u{2589}'),
+            "caps at 7/8 \u{2589}"
+        );
+    }
+
+    #[test]
+    fn segment_bar_uses_eased_frac_but_target_pct_text() {
+        // frac mid-ease (0.35 of BAR_W=6 → 2 full cells + 0.1 partial → none),
+        // while the pct text must read the target (50%).
+        let mut cells = Vec::new();
+        let pal = test_pal();
+        let seg = Seg {
+            pct: Some(50),
+            frac: 0.35,
+            label: "ctx",
+            fill: (255, 0, 0),
+        };
+        push_segment(&mut cells, 0, 0, 40, seg, &pal);
+        let row: String = row_text(&cells, 0); // existing test helper pattern
+        assert!(row.contains("50%"), "text shows target: {row}");
+        let full = row.chars().filter(|&c| c == '\u{2588}').count();
+        assert_eq!(full, 2, "0.35 * 6 = 2.1 cells → 2 full blocks: {row}");
+    }
+
+    /// Build one AgentView with given active/flash_t, run layout + row_cells,
+    /// and return the fg color of the first cell (the marker).
+    fn name_fg(active: bool, flash_t: f32, now: u64) -> (u8, u8, u8) {
+        let mut view = v("test", "idle", 0, None, None, active);
+        view.flash_t = flash_t;
+        let views = vec![view];
+        let lay = layout(&views, 80, 1).expect("test layout");
+        let cells = row_cells(&views, 80, 0, &lay, now);
+        // Find the first cell (should be the marker at row 0, col 0).
+        cells
+            .iter()
+            .find(|c| c.row == 0)
+            .map(|c| c.fg)
+            .expect("marker cell found")
+    }
+
+    #[test]
+    fn active_agent_pulses_toward_accent() {
+        // At tri peak (now = period/2 = 800) an active row's name color must
+        // differ from an idle row's; at amplitude ≤ 0.25 it must not reach
+        // the accent itself.
+        let accent = crate::palette::accent();
+        let quiet = name_fg(false, 0.0, 0);
+        let peak = name_fg(true, 0.0, 800);
+        assert_ne!(quiet, peak, "active row breathes");
+        assert_ne!(peak, accent, "amplitude stays subtle");
+        let trough = name_fg(true, 0.0, 0);
+        assert_eq!(trough, quiet, "tri trough = base color");
+    }
+
+    #[test]
+    fn handoff_flash_tints_row() {
+        let fresh = name_fg(false, 1.0, 0);
+        let gone = name_fg(false, 0.0, 0);
+        assert_ne!(fresh, gone, "fresh flash tints the row");
+    }
+
+    #[test]
+    fn flash_overrides_pulse_when_both_apply() {
+        // At tri peak (now=800) an active agent with a fresh flash must render
+        // exactly like an inactive one with the same flash — flash wins.
+        assert_eq!(name_fg(true, 1.0, 800), name_fg(false, 1.0, 800));
     }
 }

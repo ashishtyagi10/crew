@@ -51,6 +51,8 @@ pub struct ChatPane {
     /// When true, show raw message text instead of markdown rendering.
     /// Toggled with Ctrl+Shift+M; not persisted.
     pub(crate) show_source: bool,
+    /// Roster animation state: eased bars/token counts + handoff flashes.
+    pub(crate) anim: crate::chatanim::RosterAnim,
 }
 
 impl ChatPane {
@@ -74,6 +76,7 @@ impl ChatPane {
             mention: None,
             palette: None,
             show_source: false,
+            anim: crate::chatanim::RosterAnim::new(),
         }
     }
 
@@ -81,6 +84,12 @@ impl ChatPane {
     /// either our own send is unanswered or agents are mid-turn.
     pub fn is_busy(&self) -> bool {
         self.awaiting || !self.active.is_empty()
+    }
+
+    /// Whether roster animation is mid-flight — drives the redraw tail after
+    /// a turn ends so eases/flashes finish, then redraws stop entirely.
+    pub(crate) fn anim_active(&self, now: u64) -> bool {
+        self.anim.active(now)
     }
 
     /// Drain plugin events; return PollResult with changed flag and any host actions.
