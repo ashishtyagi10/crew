@@ -120,6 +120,11 @@ impl crate::chat::ChatPane {
             self.pulse
                 .record_hop(&a.name, a.since.elapsed().as_millis() as u64);
         }
+        // Close every open reply lifecycle too — otherwise a stray tick from
+        // a source that never sent a proper per-agent idle/Stats (a fan
+        // error, the untracked goal-judge dial, …) can still retarget the
+        // tok ease after the turn is over.
+        self.tick_open.clear();
         self.pulse.end_turn();
     }
 

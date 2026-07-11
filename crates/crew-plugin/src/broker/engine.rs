@@ -129,7 +129,7 @@ impl Broker {
             });
             let on_tokens = hop_ticker(tick_emit.clone(), env.to.clone());
             let (reply, mut usage) =
-                match agent.call_with_usage_ticked(&prompt, self.timeout, on_tokens) {
+                match agent.call_with_usage_ticked(&prompt, self.timeout, on_tokens.clone()) {
                     Ok((r, u)) if !r.trim().is_empty() => (r, u),
                     Ok(_) => {
                         sink(back(&env, HopKind::Error, "empty reply".into()));
@@ -144,7 +144,12 @@ impl Broker {
             stats.approx_tokens += (prompt.len() + reply.len()) / 4;
             stats.real_tokens += (usage.input_tokens + usage.output_tokens) as usize;
             // Resolve any `@tool` directives before routing (no-op without tools).
-            let reply = self.run_tools(agent, &prompt, reply, &mut stats, &env, sink);
+            // Reuse this hop's ticker for every follow-up dial too, so the
+            // per-agent 150ms gate and growth rule span the whole hop instead
+            // of resetting per tool round.
+            let reply = self.run_tools(
+                agent, &prompt, reply, &mut stats, &mut usage, &env, &on_tokens, sink,
+            );
             // If the agent forgot its control line and a hand-off is possible,
             // re-ask it once to add one (bounded to a single repair per thread).
             let reply = if !repaired && !peers.is_empty() && !has_directive(&reply) {

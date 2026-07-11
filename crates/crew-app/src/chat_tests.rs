@@ -677,3 +677,21 @@ fn per_agent_stats_closes_the_open_reply() {
         "authoritative Stats wins over late ticks"
     );
 }
+
+#[test]
+fn turn_over_flush_closes_open_reply_lifecycle_so_stray_ticks_are_ignored() {
+    let mut c = pane();
+    c.absorb_stats(0, "planner".into(), 100, 30_000); // seed ctx ground truth
+    c.absorb_activity("planner".into(), "thinking", "user".into()); // opens the reply
+                                                                    // Turn-over / empty-agent idle goes through absorb_activity's `_` arm,
+                                                                    // which calls flush_active_hops — that must also clear tick_open so a
+                                                                    // fan error (or the untracked goal-judge dial) can't leave a stale
+                                                                    // lifecycle entry behind.
+    c.absorb_activity(String::new(), "idle", String::new());
+    c.absorb_stats_tick("planner".into(), 9_999); // straggler after turn-over
+    let now = crate::anim::now_ms() + crate::chatanim::TOK_MS + 1;
+    assert!(
+        (c.anim.tok("planner", now) - 30_000.0).abs() < 1.0,
+        "turn-over must close the reply lifecycle; straggler tick must not move the tok target"
+    );
+}
