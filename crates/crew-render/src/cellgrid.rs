@@ -1,4 +1,6 @@
-use glyphon::{Cache, FontSystem, Resolution, SwashCache, TextAtlas, TextRenderer, Viewport};
+use glyphon::{
+    Cache, ColorMode, FontSystem, Resolution, SwashCache, TextAtlas, TextRenderer, Viewport,
+};
 
 use crate::celltext::{base_weight, cell_metrics, FontParams};
 use crate::fontlist::monospace_families;
@@ -12,6 +14,19 @@ use crate::textprep::prepare_renderer;
 /// skip their bg quad and let the cleared page show through.
 pub(crate) fn default_bg() -> (u8, u8, u8) {
     crew_theme::theme().page_bg
+}
+
+/// Glyph blending mode for a target of the given sRGB-ness. Non-sRGB targets
+/// get `Web`: sRGB text colours pass through unconverted and the fixed-function
+/// blend operates on gamma-encoded values — the browser/CoreText look the
+/// smoothness work targets. If a platform only offers sRGB surfaces, `Accurate`
+/// keeps colours correct (Web mode on an sRGB target would double-encode).
+pub(crate) fn atlas_color_mode(srgb: bool) -> ColorMode {
+    if srgb {
+        ColorMode::Accurate
+    } else {
+        ColorMode::Web
+    }
 }
 
 /// A single terminal cell to be rendered.
@@ -63,7 +78,13 @@ impl CellGrid {
         let swash = SwashCache::new();
         let cache = Cache::new(device);
         let viewport = Viewport::new(device, &cache);
-        let mut atlas = TextAtlas::new(device, queue, &cache, format);
+        let mut atlas = TextAtlas::with_color_mode(
+            device,
+            queue,
+            &cache,
+            format,
+            atlas_color_mode(format.is_srgb()),
+        );
         let mk_renderer = |atlas: &mut TextAtlas| {
             TextRenderer::new(atlas, device, wgpu::MultisampleState::default(), None)
         };
@@ -204,5 +225,20 @@ impl CellGrid {
         self.overlay_renderer
             .render(&self.atlas, &self.viewport, pass)
             .expect("glyphon overlay render failed");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use glyphon::ColorMode;
+
+    use super::atlas_color_mode;
+
+    #[test]
+    fn atlas_color_mode_matches_the_target_kind() {
+        // Non-sRGB target → Web (gamma-space blending, sRGB values pass through).
+        // sRGB-only platform → Accurate (values linearized; never wash out).
+        assert_eq!(atlas_color_mode(false), ColorMode::Web);
+        assert_eq!(atlas_color_mode(true), ColorMode::Accurate);
     }
 }
