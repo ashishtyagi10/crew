@@ -26,6 +26,7 @@ impl crate::chat::ChatPane {
             self.tokens = self.tokens.saturating_add(tokens);
             self.turns = self.turns.saturating_add(1);
         } else {
+            self.tick_open.remove(&agent);
             if ctx > 0 {
                 self.ctx.insert(agent.clone(), ctx);
             }
@@ -66,6 +67,7 @@ impl crate::chat::ChatPane {
             ("thinking", false) => {
                 self.pulse.begin_hop();
                 self.anim.flash(&agent, crate::anim::now_ms());
+                self.tick_open.insert(agent.clone());
                 if !self.active.iter().any(|a| a.name == agent) {
                     self.active.push(ActiveAgent {
                         name: agent,
@@ -83,6 +85,20 @@ impl crate::chat::ChatPane {
             }
             _ => self.flush_active_hops(),
         }
+    }
+
+    /// Mid-reply progress: retarget the tok ease to the agent's last known
+    /// context fill plus the streamed output estimate. The tok column shows
+    /// live context fill, and the reply joins the next prompt — so the sum
+    /// is the honest live reading. Ignored when no reply is open (stale or
+    /// out-of-order ticks after the authoritative Stats).
+    pub(crate) fn absorb_stats_tick(&mut self, agent: String, tokens: u64) {
+        if !self.tick_open.contains(&agent) {
+            return;
+        }
+        let base = self.ctx.get(&agent).copied().unwrap_or(0);
+        self.anim
+            .set_tok(&agent, crate::anim::now_ms(), (base + tokens) as f32);
     }
 
     /// A reply landed: in a relay the broker sends no per-agent idle, so the

@@ -150,7 +150,14 @@ fn send(
     }
 
     if super::commands::is_quick(&trimmed) {
-        return super::commands::handle(session, &trimmed, &mut |ev| emit(out, &ev));
+        // Quick constructs never dial an agent (see `is_quick`'s exclusion
+        // list), so a no-op tick emitter is correct here, not a shortcut.
+        return super::commands::handle(
+            session,
+            &trimmed,
+            &super::tick::noop_tick_emit(),
+            &mut |ev| emit(out, &ev),
+        );
     }
 
     if !tasks.admit() {
@@ -190,6 +197,17 @@ fn send(
     )?;
     let handle = std::thread::spawn(move || {
         let tokens = Arc::clone(&snap.tokens);
+        // StatsTicks fire while an agent hop blocks this worker thread — from
+        // the provider's own runtime plumbing, not this thread's `counting`
+        // closure — so they need their own writer straight to `Out` rather
+        // than sharing the `&mut` counting wrapper (ticks are advisory and
+        // deliberately skip the per-task token count: the end-of-hop `Stats`
+        // stays authoritative).
+        let tick_out = Arc::clone(&out_thread);
+        let tick_emit: std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync> =
+            std::sync::Arc::new(move |ev| {
+                let _ = emit(&tick_out, &ev);
+            });
         // Stamp every relay Message event with this task's id, and count Stats.
         let mut counting = |mut ev: PluginEvent| {
             if let PluginEvent::Stats { tokens: t, .. } = &ev {
@@ -209,9 +227,9 @@ fn send(
             emit(&out_thread, &ev)
         };
         let res = if is_cmd {
-            super::commands::handle(&mut snap, &trimmed, &mut counting)
+            super::commands::handle(&mut snap, &trimmed, &tick_emit, &mut counting)
         } else {
-            relay_counting(&trimmed, &snap, &mut counting)
+            relay_counting(&trimmed, &snap, &tick_emit, &mut counting)
         };
         let done = match (res, snap.cancelled()) {
             (Err(e), _) => format!("\u{2717} task #{id}: {e}"),
@@ -243,6 +261,7 @@ pub(crate) fn roster(reg: &Registry) -> String {
 fn relay_counting(
     input: &str,
     session: &Session,
+    tick_emit: &std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
     let reg = session.registry();
@@ -259,7 +278,7 @@ fn relay_counting(
             "crew",
             format!("fanning out to {} in parallel\u{2026}", names.join("+")),
         ))?;
-        return super::fan::fan_out(&reg, &names, &body, call_timeout(), emit);
+        return super::fan::fan_out(&reg, &names, &body, call_timeout(), tick_emit, emit);
     }
     // A `/resume` before this task folds the previous session's tail in as
     // restored context (consumed once).
@@ -280,7 +299,7 @@ fn relay_counting(
         format!("starting with {start} — relaying until an agent says @done"),
     ))?;
     let broker = session.broker(reg);
-    relay_turn(&broker, &start, &body, &tid, emit).map(|_| ())
+    relay_turn(&broker, &start, &body, &tid, tick_emit, emit).map(|_| ())
 }
 
 #[cfg(test)]

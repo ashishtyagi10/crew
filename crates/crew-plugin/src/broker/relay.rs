@@ -23,6 +23,7 @@ pub(crate) fn relay_turn(
     start: &str,
     body: &str,
     tid: &str,
+    tick_emit: &std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<Option<String>> {
     // Standing memory rides every relay task (plain sends, /loop, /goal,
@@ -32,7 +33,7 @@ pub(crate) fn relay_turn(
     let mut segments: Vec<(String, Duration)> = Vec::new();
     let mut answer: Option<String> = None;
     let mut werr: anyhow::Result<()> = Ok(());
-    let stats = broker.run("user", start, &body, tid, &mut |hop| {
+    let stats = broker.run("user", start, &body, tid, tick_emit, &mut |hop| {
         if hop.kind == HopKind::Done && !hop.text.is_empty() {
             answer = Some(hop.text.clone());
         }

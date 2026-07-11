@@ -2,11 +2,14 @@
 //! logs the reply, and follows the routing decision — relay to a peer, reply
 //! back to the sender, or finish — until the thread ends or the hop limit trips
 //! the loop guard. Every hop is reported through a sink for observability.
+use std::sync::Arc;
 use std::time::Duration;
 
 use super::hop::{back, note, transcript_tail, Hop, HopKind, RunStats};
 use super::route::{clip, frame, has_directive, repair_prompt};
+use super::tick::hop_ticker;
 use super::{parse_routing, Envelope, Registry, Routing};
+use crate::PluginEvent;
 
 /// Whether a relayed body is worth a transcript line. An agent that hands off
 /// with nothing but its control line (a blank body) contributes no
@@ -68,13 +71,17 @@ impl Broker {
             .is_some_and(|c| c.load(std::sync::atomic::Ordering::Relaxed))
     }
 
-    /// Drive a relay from `from` to `to`; hops stream through `sink`.
+    /// Drive a relay from `from` to `to`; hops stream through `sink`. Every
+    /// agent hop also gets its own rate-limited `StatsTick` emitter, built
+    /// fresh per call so successive hops (and the retry below) pace
+    /// independently — see [`super::tick::hop_ticker`].
     pub fn run(
         &self,
         from: &str,
         to: &str,
         body: &str,
         thread_id: &str,
+        tick_emit: &Arc<dyn Fn(PluginEvent) + Send + Sync>,
         sink: &mut dyn FnMut(Hop),
     ) -> RunStats {
         let task = super::toolcall::augment(body, self.tools.as_deref());
@@ -120,17 +127,19 @@ impl Broker {
                 text: String::new(),
                 usage: Default::default(),
             });
-            let (reply, mut usage) = match agent.call_with_usage(&prompt, self.timeout) {
-                Ok((r, u)) if !r.trim().is_empty() => (r, u),
-                Ok(_) => {
-                    sink(back(&env, HopKind::Error, "empty reply".into()));
-                    return stats;
-                }
-                Err(e) => {
-                    sink(back(&env, HopKind::Error, e));
-                    return stats;
-                }
-            };
+            let on_tokens = hop_ticker(tick_emit.clone(), env.to.clone());
+            let (reply, mut usage) =
+                match agent.call_with_usage_ticked(&prompt, self.timeout, on_tokens) {
+                    Ok((r, u)) if !r.trim().is_empty() => (r, u),
+                    Ok(_) => {
+                        sink(back(&env, HopKind::Error, "empty reply".into()));
+                        return stats;
+                    }
+                    Err(e) => {
+                        sink(back(&env, HopKind::Error, e));
+                        return stats;
+                    }
+                };
             stats.exchanges += 1;
             stats.approx_tokens += (prompt.len() + reply.len()) / 4;
             stats.real_tokens += (usage.input_tokens + usage.output_tokens) as usize;
@@ -141,7 +150,8 @@ impl Broker {
             let reply = if !repaired && !peers.is_empty() && !has_directive(&reply) {
                 repaired = true;
                 let nudge = repair_prompt(&peers, &reply);
-                match agent.call_with_usage(&nudge, self.timeout) {
+                let on_tokens = hop_ticker(tick_emit.clone(), env.to.clone());
+                match agent.call_with_usage_ticked(&nudge, self.timeout, on_tokens) {
                     Ok((r, u)) if !r.trim().is_empty() => {
                         stats.exchanges += 1;
                         stats.approx_tokens += (nudge.len() + r.len()) / 4;

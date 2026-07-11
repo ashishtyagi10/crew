@@ -172,10 +172,13 @@ fn levenshtein(a: &str, b: &str) -> usize {
     dp[la][lb]
 }
 
-/// Handle a `/command` line; emits reply events through `emit`.
+/// Handle a `/command` line; emits reply events through `emit`. `tick_emit`
+/// carries mid-hop `StatsTick` events for constructs that dial an agent
+/// (`/fan`, `/loop`, `/goal`, `/approve`, `/skill`); every other arm ignores it.
 pub(crate) fn handle(
     session: &mut Session,
     text: &str,
+    tick_emit: &std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
     let line = text.trim().trim_start_matches('/');
@@ -190,11 +193,11 @@ pub(crate) fn handle(
             emit(msg("crew", agents_report(session)))
         }
         "model" => model_cmd(session, rest, emit),
-        "fan" => fan_cmd(session, rest, emit),
-        "loop" => super::constructs::loop_cmd(session, rest, emit),
-        "goal" => super::constructs::goal_cmd(session, rest, emit),
+        "fan" => fan_cmd(session, rest, tick_emit, emit),
+        "loop" => super::constructs::loop_cmd(session, rest, tick_emit, emit),
+        "goal" => super::constructs::goal_cmd(session, rest, tick_emit, emit),
         "plan" => super::plan::plan_cmd(session, rest, emit),
-        "approve" => super::plan::approve_cmd(session, emit),
+        "approve" => super::plan::approve_cmd(session, tick_emit, emit),
         "reject" => super::plan::reject_cmd(session, emit),
         "checkpoint" => super::checkpoint::checkpoint_cmd(rest, emit),
         "checkpoints" => super::checkpoint::list_cmd(emit),
@@ -223,7 +226,7 @@ pub(crate) fn handle(
             "crew",
             super::skillframe::list_report(&super::skills::load()),
         )),
-        "skill" => super::skills::skill_cmd(session, rest, emit),
+        "skill" => super::skills::skill_cmd(session, rest, tick_emit, emit),
         "memory" => emit(msg("crew", super::memory::report())),
         "mcp" => {
             let report = session.lock_mcp().report();
@@ -346,6 +349,7 @@ fn model_cmd(
 fn fan_cmd(
     session: &mut Session,
     task: &str,
+    tick_emit: &std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
     let task = task.trim();
@@ -361,7 +365,14 @@ fn fan_cmd(
         "crew",
         format!("fanning out to {} agents in parallel\u{2026}", names.len()),
     ))?;
-    super::fan::fan_out(&reg, &names, task, super::session::call_timeout(), emit)
+    super::fan::fan_out(
+        &reg,
+        &names,
+        task,
+        super::session::call_timeout(),
+        tick_emit,
+        emit,
+    )
 }
 
 /// `/status` — what the session has done and is doing right now. `tasks_running`

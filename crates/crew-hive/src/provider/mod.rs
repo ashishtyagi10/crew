@@ -85,9 +85,26 @@ impl std::fmt::Display for ProviderError {
 
 impl std::error::Error for ProviderError {}
 
+/// Callback for a streamed completion: invoked with each text delta as it
+/// arrives. `Arc` (not `Box`) so callers can clone it into an async block
+/// while also holding a reference for bookkeeping.
+pub type ChunkFn = std::sync::Arc<dyn Fn(&str) + Send + Sync>;
+
 pub trait Provider: Send + Sync {
     fn complete(
         &self,
         req: CompletionRequest,
     ) -> Pin<Box<dyn Future<Output = Result<Completion, ProviderError>> + Send>>;
+
+    /// Streamed completion: `on_chunk` receives each text delta as it
+    /// arrives. Default ignores the callback and delegates to `complete`,
+    /// so non-streaming providers work unchanged (and emit no ticks).
+    fn complete_streaming(
+        &self,
+        req: CompletionRequest,
+        on_chunk: ChunkFn,
+    ) -> Pin<Box<dyn Future<Output = Result<Completion, ProviderError>> + Send>> {
+        let _ = on_chunk;
+        self.complete(req)
+    }
 }

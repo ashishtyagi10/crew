@@ -187,10 +187,17 @@ fn relay_streams_live_reply_stats_with_real_usage() {
     let registry = Registry::new(vec![Box::new(UsageAgent)]);
     let broker = Broker::new(registry, 6, std::time::Duration::from_secs(5));
     let mut events = Vec::new();
-    relay_turn(&broker, "planner", "task", "t1", &mut |ev| {
-        events.push(ev);
-        Ok(())
-    })
+    relay_turn(
+        &broker,
+        "planner",
+        "task",
+        "t1",
+        &crate::broker::tick::noop_tick_emit(),
+        &mut |ev| {
+            events.push(ev);
+            Ok(())
+        },
+    )
     .unwrap();
     // The agent's reply stat streams live with the hop: real spend + context fill.
     let reply_stat = events.iter().position(|e| {
@@ -213,4 +220,71 @@ fn relay_streams_live_reply_stats_with_real_usage() {
             if text.contains("8232 tok") && !text.contains("approx"))
     });
     assert!(summary, "summary shows real cost: {events:?}");
+}
+
+#[test]
+fn relay_emits_rate_limited_stats_ticks_between_activity_and_stats() {
+    // A real streaming adapter (ApiAdapter over MockProvider), so ticks
+    // actually fire mid-hop. MockProvider streams the reply in ~3 chunks,
+    // synchronously — a single agent (no peers) skips the protocol-repair
+    // path, so the hop is exactly one `call_with_usage_ticked` call.
+    let provider: std::sync::Arc<dyn crew_hive::Provider> =
+        std::sync::Arc::new(crew_hive::MockProvider {
+            reply: "one two three four five six seven eight\n@done".into(),
+        });
+    let agent = crate::broker::apiadapter::ApiAdapter::new("planner", "m", None, provider).unwrap();
+    let registry = Registry::new(vec![Box::new(agent)]);
+    let broker = Broker::new(registry, 6, std::time::Duration::from_secs(5));
+
+    // Both `emit` and `tick_emit` push into the SAME ordered log — ticks and
+    // hop events come from two different closures, but the call is single-
+    // threaded (ApiAdapter blocks a current-thread tokio runtime), so a shared
+    // Vec behind one Mutex preserves the true temporal order.
+    let events: std::sync::Arc<std::sync::Mutex<Vec<PluginEvent>>> = Default::default();
+    let tick_sink = events.clone();
+    let tick_emit: std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync> =
+        std::sync::Arc::new(move |ev| tick_sink.lock().unwrap().push(ev));
+    let emit_sink = events.clone();
+    relay_turn(
+        &broker,
+        "planner",
+        "task",
+        "t1",
+        &tick_emit,
+        &mut move |ev| {
+            emit_sink.lock().unwrap().push(ev);
+            Ok(())
+        },
+    )
+    .unwrap();
+    let events = events.lock().unwrap().clone();
+
+    let idx = |pred: &dyn Fn(&PluginEvent) -> bool| events.iter().position(pred);
+    let thinking =
+        idx(&|e| matches!(e, PluginEvent::Activity { state, .. } if state == "thinking"))
+            .expect("a thinking activity");
+    // The mock streams synchronously, so all chunks may land within 1ms — the
+    // 150ms gate then allows only the FIRST tick. That is spec-correct
+    // behavior, so assert on presence/ordering/monotonicity, not an exact count.
+    let first_tick = idx(&|e| matches!(e, PluginEvent::StatsTick { .. }))
+        .expect("at least one tick between the dial and the hop's Stats");
+    let stats = idx(&|e| matches!(e, PluginEvent::Stats { agent, .. } if !agent.is_empty()))
+        .expect("a per-agent Stats event");
+    assert!(
+        thinking < first_tick && first_tick < stats,
+        "tick lands mid-hop: {events:?}"
+    );
+
+    let ticks: Vec<u64> = events
+        .iter()
+        .filter_map(|e| match e {
+            PluginEvent::StatsTick { tokens, .. } => Some(*tokens),
+            _ => None,
+        })
+        .collect();
+    assert!(!ticks.is_empty());
+    assert!(
+        ticks.windows(2).all(|w| w[0] < w[1]),
+        "ticks only fire when the estimate grew: {ticks:?}"
+    );
 }

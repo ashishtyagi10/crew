@@ -44,6 +44,7 @@ mod sysread;
 mod sysrun;
 mod systools;
 mod tasks;
+mod tick;
 mod toolcall;
 mod toolclip;
 

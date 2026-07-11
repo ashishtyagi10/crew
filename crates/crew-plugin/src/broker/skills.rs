@@ -127,6 +127,7 @@ pub(crate) fn load() -> Vec<Skill> {
 pub(crate) fn skill_cmd(
     session: &mut Session,
     rest: &str,
+    tick_emit: &std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
     let (name, task) = rest
@@ -169,6 +170,7 @@ pub(crate) fn skill_cmd(
         &start,
         &super::skillframe::framed(skill, &task, sys_on),
         "skill-1",
+        tick_emit,
         emit,
     )
     .map(|_| ())

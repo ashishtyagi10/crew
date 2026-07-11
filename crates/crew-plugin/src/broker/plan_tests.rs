@@ -18,7 +18,9 @@ fn run(session: &mut Session, cmd: &str, rest: &str) -> Vec<PluginEvent> {
     };
     match cmd {
         "plan" => plan_cmd(session, rest, &mut emit).unwrap(),
-        "approve" => approve_cmd(session, &mut emit).unwrap(),
+        "approve" => {
+            approve_cmd(session, &crate::broker::tick::noop_tick_emit(), &mut emit).unwrap()
+        }
         "reject" => reject_cmd(session, &mut emit).unwrap(),
         _ => unreachable!(),
     }
