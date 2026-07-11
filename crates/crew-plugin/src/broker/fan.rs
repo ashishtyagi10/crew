@@ -83,10 +83,23 @@ pub(crate) fn fan_out(
                     };
                     (reply_msg(&name, &reply, dt), Some(stat))
                 }
-                Err(e) => (
-                    msg(&format!("{name} \u{2192} user"), format!("[error] {e}")),
-                    None,
-                ),
+                Err(e) => {
+                    // Even on failure, close this agent's dial with a
+                    // zero-usage Stats so the tok display reconciles and the
+                    // reply lifecycle doesn't stay open — mirroring how
+                    // relay.rs closes every hop, including HopKind::Error.
+                    let stat = PluginEvent::Stats {
+                        exchanges: 0,
+                        tokens: 0,
+                        agent: name.clone(),
+                        ms: dt.as_millis() as u64,
+                        ctx: 0,
+                    };
+                    (
+                        msg(&format!("{name} \u{2192} user"), format!("[error] {e}")),
+                        Some(stat),
+                    )
+                }
             };
             if werr.is_ok() {
                 werr = emit(done)

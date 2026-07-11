@@ -111,3 +111,27 @@ fn a_failing_agent_reports_but_does_not_sink_the_fan() {
     let summary = &msgs.last().unwrap().1;
     assert!(summary.contains("1 of 2 replied"), "{summary}");
 }
+
+#[test]
+fn a_failing_agent_still_emits_a_zero_usage_per_agent_stat() {
+    let reg = Registry::new(vec![Box::new(Slow("ok", 1)), Box::new(Failing)]);
+    let evs = run_fan(&reg, &["ok", "broken"]);
+    // The failed agent must reconcile the pane's tok display with a zero-usage
+    // Stats event of its own — not just the fan-level totals Stats.
+    let per_agent = evs.iter().position(|e| {
+        matches!(e, PluginEvent::Stats { agent, tokens, exchanges: 0, .. } if agent == "broken" && *tokens == 0)
+    });
+    assert!(
+        per_agent.is_some(),
+        "no per-agent Stats for the errored agent: {evs:?}"
+    );
+    // It must land before the fan-level totals Stats (exchanges == names.len()).
+    let totals = evs
+        .iter()
+        .position(|e| matches!(e, PluginEvent::Stats { exchanges: 2, .. }))
+        .expect("fan-level totals Stats missing");
+    assert!(
+        per_agent.unwrap() < totals,
+        "per-agent Stats for the errored agent must precede the fan totals: {evs:?}"
+    );
+}
