@@ -2,7 +2,7 @@ use std::sync::Mutex;
 use std::time::Duration;
 
 use super::*;
-use crate::Registry;
+use crate::{PluginEvent, Registry};
 
 /// An agent whose replies are scripted; repeats the last one when exhausted.
 /// Records every prompt body it was dialed with, so tests can inspect exactly
@@ -62,6 +62,13 @@ fn env() -> Envelope {
     Envelope::new("user", "planner", "t1", "task")
 }
 
+/// A ticker that discards every call — for `run_tools` tests that don't care
+/// about ticking (see `run_tools_follow_up_dial_reports_usage_and_emits_ticks`
+/// for the one that does).
+fn noop_ticker() -> std::sync::Arc<dyn Fn(u64) + Send + Sync> {
+    std::sync::Arc::new(|_| {})
+}
+
 #[test]
 fn parse_tool_call_reads_the_last_line() {
     let c = parse_tool_call("thinking\n@tool fs:read {\"path\": \"x\"}").unwrap();
@@ -116,13 +123,17 @@ fn run_tools_feeds_the_result_back_and_returns_the_final_reply() {
     let b = broker_with(FakeTools(Ok("FILE CONTENTS".into())));
     let agent = Scripted::new(&["used the file\n@done"]);
     let mut stats = RunStats::default();
+    let mut usage = Usage::default();
+    let on_tokens = noop_ticker();
     let mut hops = Vec::new();
     let reply = b.run_tools(
         &agent,
         "base prompt",
         "let me look\n@tool fs:read {\"path\": \"x\"}".into(),
         &mut stats,
+        &mut usage,
         &env(),
+        &on_tokens,
         &mut |h| hops.push(h),
     );
     assert_eq!(reply, "used the file\n@done");
@@ -136,13 +147,17 @@ fn run_tools_shows_errors_to_the_agent_and_continues() {
     let b = broker_with(FakeTools(Err("no such file".into())));
     let agent = Scripted::new(&["cannot read it\n@done"]);
     let mut stats = RunStats::default();
+    let mut usage = Usage::default();
+    let on_tokens = noop_ticker();
     let mut hops = Vec::new();
     let reply = b.run_tools(
         &agent,
         "base",
         "trying\n@tool fs:read {\"path\": \"x\"}".into(),
         &mut stats,
+        &mut usage,
         &env(),
+        &on_tokens,
         &mut |h| hops.push(h),
     );
     assert_eq!(reply, "cannot read it\n@done");
@@ -155,12 +170,16 @@ fn run_tools_stops_at_the_round_cap() {
     // The agent asks for a tool every single time.
     let agent = Scripted::new(&["again\n@tool fs:read {\"path\": \"x\"}"]);
     let mut stats = RunStats::default();
+    let mut usage = Usage::default();
+    let on_tokens = noop_ticker();
     let reply = b.run_tools(
         &agent,
         "base",
         "again\n@tool fs:read {\"path\": \"x\"}".into(),
         &mut stats,
+        &mut usage,
         &env(),
+        &on_tokens,
         &mut |_| {},
     );
     assert_eq!(stats.exchanges, MAX_TOOL_ROUNDS);
@@ -172,12 +191,16 @@ fn run_tools_without_a_runner_is_a_no_op() {
     let b = Broker::new(Registry::new(vec![]), 6, Duration::from_secs(5));
     let agent = Scripted::new(&[]);
     let mut stats = RunStats::default();
+    let mut usage = Usage::default();
+    let on_tokens = noop_ticker();
     let reply = b.run_tools(
         &agent,
         "base",
         "answer\n@tool fs:read {}".into(),
         &mut stats,
+        &mut usage,
         &env(),
+        &on_tokens,
         &mut |_| {},
     );
     assert_eq!(reply, "answer\n@tool fs:read {}");
@@ -208,12 +231,16 @@ fn relay_runs_a_real_sys_command_and_logs_hops() {
     ]);
     let mut hops = Vec::new();
     let mut stats = RunStats::default();
+    let mut usage = Usage::default();
+    let on_tokens = noop_ticker();
     let reply = broker.run_tools(
         &agent,
         "task",
         "@tool sys:run {\"cmd\":\"echo tool-e2e\"}".into(),
         &mut stats,
+        &mut usage,
         &env(),
+        &on_tokens,
         &mut |h| hops.push(h),
     );
     assert_eq!(reply, "the command printed tool-e2e");
@@ -248,6 +275,8 @@ fn pointer_framed_skill_lets_the_agent_read_the_playbook() {
     let agent = Scripted::new(&["read it, proceeding"]);
     let mut hops = Vec::new();
     let mut stats = RunStats::default();
+    let mut usage = Usage::default();
+    let on_tokens = noop_ticker();
     let reply = broker.run_tools(
         &agent,
         &frame,
@@ -256,7 +285,9 @@ fn pointer_framed_skill_lets_the_agent_read_the_playbook() {
             p.display()
         ),
         &mut stats,
+        &mut usage,
         &env(),
+        &on_tokens,
         &mut |h| hops.push(h),
     );
     assert_eq!(reply, "read it, proceeding");
@@ -284,12 +315,16 @@ fn run_tools_clips_large_results_but_keeps_newlines_and_the_final_line() {
     let b = broker_with(FakeTools(Ok(body)));
     let agent = std::sync::Arc::new(Scripted::new(&["got it\n@done"]));
     let mut stats = RunStats::default();
+    let mut usage = Usage::default();
+    let on_tokens = noop_ticker();
     let reply = b.run_tools(
         agent.as_ref(),
         "base prompt",
         "reading\n@tool fs:read {\"path\": \"x\"}".into(),
         &mut stats,
+        &mut usage,
         &env(),
+        &on_tokens,
         &mut |_| {},
     );
     assert_eq!(reply, "got it\n@done");
@@ -337,12 +372,16 @@ fn run_tools_clips_single_line_results_with_no_newline() {
     let b = broker_with(FakeTools(Ok(body)));
     let agent = std::sync::Arc::new(Scripted::new(&["got it\n@done"]));
     let mut stats = RunStats::default();
+    let mut usage = Usage::default();
+    let on_tokens = noop_ticker();
     let reply = b.run_tools(
         agent.as_ref(),
         "base prompt",
         "reading\n@tool fs:read {\"path\": \"x\"}".into(),
         &mut stats,
+        &mut usage,
         &env(),
+        &on_tokens,
         &mut |_| {},
     );
     assert_eq!(reply, "got it\n@done");
@@ -353,5 +392,60 @@ fn run_tools_clips_single_line_results_with_no_newline() {
         follow.len() < 6500,
         "single-line result must be hard-capped near the 6000 budget, got {} chars",
         follow.len()
+    );
+}
+
+/// A tool round's follow-up dial must go through `call_with_usage_ticked` on
+/// the SAME hop ticker the primary dial uses — not `agent.call`, which
+/// accounts no usage and emits no ticks — so the roster's tok display and
+/// per-agent Stats reconcile after tool-heavy hops the same way a plain reply
+/// does. Exercised against a real `ApiAdapter` + `MockProvider` so the ticks
+/// come from real streaming, not a hand-rolled fake.
+#[test]
+fn run_tools_follow_up_dial_reports_usage_and_emits_ticks() {
+    let provider: std::sync::Arc<dyn crew_hive::Provider> =
+        std::sync::Arc::new(crew_hive::MockProvider {
+            reply: "used the file\n@done".into(),
+        });
+    let agent = crate::broker::apiadapter::ApiAdapter::new("planner", "m", None, provider).unwrap();
+    let b = broker_with(FakeTools(Ok("FILE CONTENTS".into())));
+    let mut stats = RunStats::default();
+    let mut usage = crate::broker::adapter::Usage::default();
+
+    let events: std::sync::Arc<Mutex<Vec<PluginEvent>>> = Default::default();
+    let tick_sink = events.clone();
+    let tick_emit: std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync> =
+        std::sync::Arc::new(move |ev| tick_sink.lock().unwrap().push(ev));
+    let on_tokens = crate::broker::tick::hop_ticker(tick_emit, "planner".into());
+
+    let mut hops = Vec::new();
+    let reply = b.run_tools(
+        &agent,
+        "base prompt",
+        "let me look\n@tool fs:read {\"path\": \"x\"}".into(),
+        &mut stats,
+        &mut usage,
+        &env(),
+        &on_tokens,
+        &mut |h| hops.push(h),
+    );
+
+    assert_eq!(reply, "used the file\n@done");
+    assert_eq!(stats.exchanges, 1);
+    assert!(
+        stats.real_tokens > 0,
+        "follow-up usage must be accounted, not just approx_tokens"
+    );
+    assert!(
+        usage.input_tokens > 0 || usage.output_tokens > 0,
+        "the surrounding hop's usage must carry the follow-up's real usage"
+    );
+    assert!(
+        events.lock().unwrap().iter().any(|e| matches!(
+            e,
+            PluginEvent::StatsTick { agent, .. } if agent == "planner"
+        )),
+        "the follow-up dial must emit at least one StatsTick when the gate allows: {:?}",
+        events.lock().unwrap()
     );
 }

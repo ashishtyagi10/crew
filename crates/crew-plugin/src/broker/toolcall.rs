@@ -6,7 +6,7 @@
 //! and result is logged as a hop, so tool use is visible in the pane.
 use std::sync::Arc;
 
-use super::adapter::Adapter;
+use super::adapter::{Adapter, Usage};
 use super::hop::{back, Hop, HopKind, RunStats};
 use super::route::clip;
 use super::toolclip::clip_result;
@@ -95,13 +95,27 @@ impl Broker {
     /// Resolve any tool directives in `reply`: run the tool, show the agent
     /// the result, and take its next reply — until it answers without a tool
     /// call or the round cap trips. Returns the reply routing should parse.
+    ///
+    /// `usage` is the surrounding hop's usage (the primary dial's, or the
+    /// repair dial's when it ran) — each follow-up dial overwrites it with
+    /// its own real usage, the same "latest wins" rule the primary dial uses
+    /// for its own repair call, so the hop's reply-stat and context-fill
+    /// stay accurate through tool rounds.
+    ///
+    /// `on_tokens` is the SAME hop ticker the primary dial was given (built
+    /// once, by `crate::broker::tick::hop_ticker`, at the engine call site)
+    /// — reused rather than rebuilt per follow-up so the per-agent 150ms
+    /// gate and growth rule span the whole hop, primary dial plus every
+    /// follow-up.
     pub(crate) fn run_tools(
         &self,
         agent: &dyn Adapter,
         base_prompt: &str,
         mut reply: String,
         stats: &mut RunStats,
+        usage: &mut Usage,
         env: &Envelope,
+        on_tokens: &Arc<dyn Fn(u64) + Send + Sync>,
         sink: &mut dyn FnMut(Hop),
     ) -> String {
         let Some(runner) = self.tools.as_deref() else {
@@ -154,10 +168,12 @@ impl Broker {
                 text: String::new(),
                 usage: Default::default(),
             });
-            match agent.call(&follow, self.timeout) {
-                Ok(r) if !r.trim().is_empty() => {
+            match agent.call_with_usage_ticked(&follow, self.timeout, on_tokens.clone()) {
+                Ok((r, u)) if !r.trim().is_empty() => {
                     stats.exchanges += 1;
                     stats.approx_tokens += (follow.len() + r.len()) / 4;
+                    stats.real_tokens += (u.input_tokens + u.output_tokens) as usize;
+                    *usage = u; // latest context fill, mirroring the primary dial's repair call
                     reply = r;
                 }
                 Ok(_) => {
