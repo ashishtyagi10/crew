@@ -449,3 +449,76 @@ fn run_tools_follow_up_dial_reports_usage_and_emits_ticks() {
         events.lock().unwrap()
     );
 }
+
+/// Reviewer-confirmed defect: `run_tools` reuses the primary dial's ticker
+/// as-is, but `call_with_usage_ticked` restarts its chars/4 estimate at 0 for
+/// EACH dial. The ticker's "must grow" gate still holds the primary dial's
+/// high last-reported value, so a follow-up whose own running total never
+/// climbs past it emits ZERO ticks for its whole duration — the roster's
+/// live token count freezes during tool rounds. Repro: prime the shared
+/// ticker as a long primary dial would (a big last tick, 167), then drive a
+/// SHORT follow-up reply through `run_tools` on that SAME ticker and require
+/// it to still tick, with values past the primed one.
+#[test]
+fn run_tools_follow_up_dial_ticks_past_the_hops_running_estimate() {
+    let events: std::sync::Arc<Mutex<Vec<PluginEvent>>> = Default::default();
+    let tick_sink = events.clone();
+    let tick_emit: std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync> =
+        std::sync::Arc::new(move |ev| tick_sink.lock().unwrap().push(ev));
+    let on_tokens = crate::broker::tick::hop_ticker(tick_emit, "planner".into());
+
+    // Prime the ticker as if a long primary dial already streamed to a
+    // running estimate of 167 (the ticker's first call always passes the
+    // gate, mirroring the primary dial's final in-flight tick).
+    on_tokens(167);
+    // The 150ms gap gate runs on a real clock (hop_ticker's own
+    // `Instant::now()`); give the follow-up dial's ticks room to clear it.
+    std::thread::sleep(Duration::from_millis(160));
+
+    // `run_tools` seeds its cumulative offset from THIS string's chars/4 —
+    // size it so the offset lands at/above the primed value (167), matching
+    // a primary reply that produced that running estimate.
+    let primary_reply = format!("{}\n@tool fs:read {{\"path\": \"x\"}}", "z".repeat(4 * 167));
+
+    let provider: std::sync::Arc<dyn crew_hive::Provider> =
+        std::sync::Arc::new(crew_hive::MockProvider {
+            reply: "used the file\n@done".into(), // short: alone, never re-passes the gate
+        });
+    let agent = crate::broker::apiadapter::ApiAdapter::new("planner", "m", None, provider).unwrap();
+    let b = broker_with(FakeTools(Ok("FILE CONTENTS".into())));
+    let mut stats = RunStats::default();
+    let mut usage = crate::broker::adapter::Usage::default();
+    let mut hops = Vec::new();
+
+    let primed = events.lock().unwrap().len(); // the priming tick recorded above
+    let reply = b.run_tools(
+        &agent,
+        "base prompt",
+        primary_reply,
+        &mut stats,
+        &mut usage,
+        &env(),
+        &on_tokens,
+        &mut |h| hops.push(h),
+    );
+
+    assert_eq!(reply, "used the file\n@done");
+    let ticks: Vec<u64> = events
+        .lock()
+        .unwrap()
+        .iter()
+        .skip(primed) // only the follow-up dial's ticks, not the priming one
+        .filter_map(|e| match e {
+            PluginEvent::StatsTick { agent, tokens } if agent == "planner" => Some(*tokens),
+            _ => None,
+        })
+        .collect();
+    assert!(
+        !ticks.is_empty(),
+        "the short follow-up must still tick, offset past the hop's running estimate"
+    );
+    assert!(
+        ticks.iter().all(|&t| t > 167),
+        "follow-up ticks must exceed the primed value: {ticks:?}"
+    );
+}
