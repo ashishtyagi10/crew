@@ -296,9 +296,12 @@ fn dark_flag_matches_page_bg_luminance() {
 
 #[test]
 fn grain_is_newsprint_on_light_and_subtle_on_dark() {
+    // 1.2 (not the historical 3.0): gamma-space blending (v0.5.59) modulates
+    // encoded values, which reads much stronger than the old linear-space
+    // grain — 1.2 restores the original measured newsprint amplitude.
     for id in ALL_THEMES {
         let t = id.theme();
-        let want = if t.dark { 1.0 } else { 3.0 };
+        let want = if t.dark { 1.0 } else { 1.2 };
         assert_eq!(t.grain, want, "{}: grain", id.as_str());
     }
 }

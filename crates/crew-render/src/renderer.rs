@@ -116,7 +116,7 @@ impl Renderer {
                     self.gpu.config.height as f32,
                     1.0,
                     // Newsprint: light themes multiply the user's grain knob
-                    // (theme().grain = 3.0 there, 1.0 on darks).
+                    // (theme().grain = 1.2 there, 1.0 on darks).
                     self.paper_grain * crew_theme::theme().grain,
                 );
             }
