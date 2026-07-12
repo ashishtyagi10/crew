@@ -1,9 +1,10 @@
+use super::ask::AskState;
 use super::cmdhist::CmdHistory;
 use super::keys::{
     accept_ghost, activate, ascend, escape_cmdline, history_next, history_prev, move_sel,
     tab_complete,
 };
-use super::run::run_cmdline;
+use super::run::{run_cmdline, submit_ask};
 use super::{FarAction, FarPane, Side};
 
 /// A FarPane rooted at a unique temp dir containing one subdirectory and one
@@ -351,4 +352,229 @@ fn cd_is_pushed_into_history_too() {
         run_cmdline(&mut p);
         assert_eq!(p.history.prev(""), Some("cd sub"));
     });
+}
+
+#[test]
+fn new_pane_starts_with_no_ask() {
+    let (_b, p) = fixture("noask");
+    assert!(p.ask.is_none());
+}
+
+#[test]
+fn absorb_ask_result_lands_a_suggestion_and_replaces_the_bar() {
+    let (_b, mut p) = fixture("askland");
+    p.cmdline = "! list files".into();
+    let msg = p.absorb_ask_result(Ok("ls -la".into()));
+    assert_eq!(p.cmdline, "ls -la");
+    assert!(matches!(&p.ask, Some(AskState::Suggested { original }) if original == "! list files"));
+    assert!(msg.contains("Enter run"));
+}
+
+#[test]
+fn absorb_ask_result_treats_a_blank_suggestion_as_no_command() {
+    let (_b, mut p) = fixture("askblank");
+    p.cmdline = "! list files".into();
+    let msg = p.absorb_ask_result(Ok("   ".into()));
+    assert_eq!(
+        p.cmdline, "! list files",
+        "the ! text is kept on an empty reply"
+    );
+    assert!(p.ask.is_none());
+    assert!(msg.contains("no command"));
+}
+
+#[test]
+fn absorb_ask_result_surfaces_a_provider_error_and_keeps_the_bang_text() {
+    let (_b, mut p) = fixture("askerr");
+    p.cmdline = "! list files".into();
+    let msg = p.absorb_ask_result(Err("no AI provider".into()));
+    assert_eq!(p.cmdline, "! list files");
+    assert!(p.ask.is_none());
+    assert!(msg.contains("no AI provider"));
+}
+
+#[test]
+fn poll_ask_returns_none_while_still_thinking() {
+    let (_b, mut p) = fixture("askthinking");
+    let (_tx, rx) = std::sync::mpsc::channel::<Result<String, String>>();
+    p.ask = Some(AskState::Thinking {
+        started: std::time::Instant::now(),
+        rx,
+    });
+    assert!(p.poll_ask().is_none());
+    assert!(p.ask.is_some(), "still thinking — ask state untouched");
+}
+
+#[test]
+fn poll_ask_drains_a_landed_result_via_absorb() {
+    let (_b, mut p) = fixture("askdrain");
+    let (tx, rx) = std::sync::mpsc::channel::<Result<String, String>>();
+    tx.send(Ok("ls -la".into())).unwrap();
+    p.cmdline = "! list files".into();
+    p.ask = Some(AskState::Thinking {
+        started: std::time::Instant::now(),
+        rx,
+    });
+    let msg = p.poll_ask();
+    assert_eq!(p.cmdline, "ls -la");
+    assert!(msg.unwrap().contains("Enter run"));
+}
+
+#[test]
+fn poll_ask_handles_a_dead_worker_thread() {
+    let (_b, mut p) = fixture("askdead");
+    let (tx, rx) = std::sync::mpsc::channel::<Result<String, String>>();
+    drop(tx); // disconnect without sending — worker panicked/died
+    p.cmdline = "! list files".into();
+    p.ask = Some(AskState::Thinking {
+        started: std::time::Instant::now(),
+        rx,
+    });
+    let msg = p.poll_ask();
+    assert_eq!(p.cmdline, "! list files");
+    assert!(p.ask.is_none());
+    assert!(msg.unwrap().contains("worker died"));
+}
+
+#[test]
+fn submit_ask_starts_thinking_and_keeps_the_bang_text() {
+    // Guard + mock: without these the spawned worker would dial a REAL
+    // provider on machines whose shell env carries API keys.
+    let _g = super::ask::test_guard();
+    std::env::set_var("CREW_BROKER_MOCK_REPLY", "ls -la");
+    let (_b, mut p) = fixture("bangenter");
+    p.cmdline = "! list files".into();
+    let action = submit_ask(&mut p, "list files");
+    std::env::remove_var("CREW_BROKER_MOCK_REPLY");
+    assert!(matches!(action, FarAction::Status(ref s) if s.contains("asking ai")));
+    assert!(matches!(p.ask, Some(AskState::Thinking { .. })));
+    assert_eq!(p.cmdline, "! list files", "the ! text stays while thinking");
+}
+
+#[test]
+fn submit_ask_nags_on_a_blank_description() {
+    let (_b, mut p) = fixture("bangblank");
+    let action = submit_ask(&mut p, "");
+    assert!(matches!(action, FarAction::Status(ref s) if s.contains("description")));
+    assert!(p.ask.is_none());
+}
+
+#[test]
+fn submit_ask_refuses_a_second_ask_while_one_is_in_flight() {
+    let (_b, mut p) = fixture("bangbusy");
+    let (_tx, rx) = std::sync::mpsc::channel::<Result<String, String>>();
+    p.ask = Some(AskState::Thinking {
+        started: std::time::Instant::now(),
+        rx,
+    });
+    let action = submit_ask(&mut p, "another one");
+    assert!(matches!(action, FarAction::Status(ref s) if s.contains("wait")));
+}
+
+#[test]
+fn escape_on_a_suggestion_restores_the_original_bang_text() {
+    let (_b, mut p) = fixture("bangesc");
+    p.cmdline = "ls -la".into();
+    p.ask = Some(AskState::Suggested {
+        original: "! list files".into(),
+    });
+    assert!(escape_cmdline(&mut p).is_none());
+    assert_eq!(p.cmdline, "! list files");
+    assert!(p.ask.is_none());
+}
+
+#[test]
+fn escape_while_thinking_cancels_the_ask_and_clears_the_bar() {
+    let (_b, mut p) = fixture("bangescthink");
+    let (_tx, rx) = std::sync::mpsc::channel::<Result<String, String>>();
+    p.cmdline = "! list files".into();
+    p.ask = Some(AskState::Thinking {
+        started: std::time::Instant::now(),
+        rx,
+    });
+    assert!(escape_cmdline(&mut p).is_none());
+    assert!(p.ask.is_none());
+    assert!(
+        p.cmdline.is_empty(),
+        "Esc's normal non-empty-bar clear still applies"
+    );
+}
+
+#[test]
+fn run_cmdline_after_accepting_a_suggestion_clears_the_ask_state() {
+    let _g = super::ask::test_guard();
+    with_tmp_home(|| {
+        let (base, mut p) = fixture("bangaccept");
+        p.right.cwd = base.join("sub");
+        p.active = Side::Right;
+        p.cmdline = "touch made-here".into();
+        p.ask = Some(AskState::Suggested {
+            original: "! make a file".into(),
+        });
+        run_cmdline(&mut p);
+        assert!(p.ask.is_none());
+        assert_eq!(
+            p.history.prev(""),
+            Some("touch made-here"),
+            "history records the final command, not the ! ask"
+        );
+    });
+}
+
+#[test]
+fn history_recall_cancels_a_thinking_ask() {
+    // Finding-1 regression pin: a reply landing AFTER an Up-arrow recall
+    // must not clobber the recalled text (and Enter must never race into
+    // an unread suggestion). Recall counts as an edit: it cancels the ask.
+    let _g = super::ask::test_guard();
+    std::env::set_var("CREW_BROKER_MOCK_REPLY", "ls -la");
+    let (_b, mut p) = fixture("bangrecall");
+    p.history = CmdHistory::from_entries(vec!["make dist".into()]);
+    p.cmdline = "! find big files".into();
+    submit_ask(&mut p, "find big files");
+    std::env::remove_var("CREW_BROKER_MOCK_REPLY");
+    assert!(matches!(p.ask, Some(AskState::Thinking { .. })));
+    history_prev(&mut p);
+    assert!(p.ask.is_none(), "recall cancels the in-flight ask");
+    assert_eq!(p.cmdline, "make dist");
+    // The dropped receiver means a late reply cannot land anywhere.
+    assert!(p.poll_ask().is_none());
+    assert_eq!(p.cmdline, "make dist", "late reply cannot clobber the bar");
+}
+
+#[test]
+fn thinking_ask_marks_the_pane_busy_so_the_counter_repaints() {
+    // Without this, pane_animating never fires during an ask and the
+    // `thinking\u{2026} Ns` counter freezes on screen (reads as a hang).
+    let _g = super::ask::test_guard();
+    std::env::set_var("CREW_BROKER_MOCK_REPLY", "ls -la");
+    let (_b, mut p) = fixture("bangbusy");
+    assert!(!p.is_busy());
+    submit_ask(&mut p, "list files");
+    std::env::remove_var("CREW_BROKER_MOCK_REPLY");
+    assert!(p.is_busy(), "a thinking ask keeps the busy sweep alive");
+}
+
+#[test]
+fn bang_ask_end_to_end_with_the_mock_provider() {
+    let _g = super::ask::test_guard();
+    std::env::set_var("CREW_BROKER_MOCK_REPLY", "ls -la");
+    let (_b, mut p) = fixture("bange2e");
+    p.cmdline = "! list files".into();
+    submit_ask(&mut p, "list files");
+    let mut landed = None;
+    for _ in 0..300 {
+        if let Some(msg) = p.poll_ask() {
+            landed = Some(msg);
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    std::env::remove_var("CREW_BROKER_MOCK_REPLY");
+    assert!(
+        landed.unwrap().contains("Enter run"),
+        "the hint reaches the caller"
+    );
+    assert_eq!(p.cmdline, "ls -la");
+    assert!(matches!(&p.ask, Some(AskState::Suggested { original }) if original == "! list files"));
 }

@@ -141,6 +141,63 @@ pub(crate) fn roster_with(
     agents
 }
 
+/// Resolve the default provider + a single reasonable model id, without
+/// building the full inbuilt-agent roster (`roster_with`) or its `Adapter`
+/// wrapping. For one-shot low-token asks that need a custom system prompt
+/// and a small `max_tokens` — neither of which the `Adapter` trait exposes
+/// (`ApiAdapter::call` always sends the role's fixed system prompt and a
+/// 2048-token ceiling). Used by the Far pane's `!` command suggestion
+/// ([`super::ask::suggest_far_command`]). Mirrors `roster_with`'s branches
+/// exactly (mock / DashScope / OpenRouter / Anthropic), picking
+/// `ModelTier::Cheap` for Anthropic — a one-line shell suggestion needs no
+/// deep reasoning — while DashScope/OpenRouter already default to their
+/// cheapest usable chain head (`chain[0]`), so no tier mapping applies there.
+pub(crate) fn provider_and_model() -> Option<(Arc<dyn crew_hive::Provider>, String)> {
+    let force = std::env::var("CREW_PROVIDER").ok();
+    let has = |k: &str| std::env::var(k).is_ok_and(|v| !v.is_empty());
+    match pick_provider(force.as_deref(), has)? {
+        ProviderKind::Mock => {
+            let reply = std::env::var("CREW_BROKER_MOCK_REPLY").unwrap_or_default();
+            let provider = crew_hive::MockProvider { reply };
+            Some((
+                Arc::new(provider) as Arc<dyn crew_hive::Provider>,
+                "mock".to_string(),
+            ))
+        }
+        ProviderKind::DashScope => {
+            let key = std::env::var("DASHSCOPE_API_KEY").ok()?;
+            let chain = parse_model_chain(
+                std::env::var("CREW_DASHSCOPE_MODEL").ok(),
+                DEFAULT_DASHSCOPE_CHAIN,
+            );
+            let url = std::env::var("CREW_DASHSCOPE_BASE_URL")
+                .unwrap_or_else(|_| DASHSCOPE_ENDPOINT.to_string());
+            let model = chain[0].clone();
+            let provider = crew_hive::OpenRouterProvider::new(key)
+                .with_endpoint(url)
+                .with_fallbacks(chain);
+            Some((Arc::new(provider) as Arc<dyn crew_hive::Provider>, model))
+        }
+        ProviderKind::OpenRouter => {
+            let provider = crew_hive::OpenRouterProvider::from_env().ok()?;
+            let chain = parse_model_chain(
+                std::env::var("CREW_OPENROUTER_MODEL").ok(),
+                DEFAULT_OPENROUTER_CHAIN,
+            );
+            let model = chain[0].clone();
+            let provider = provider.with_fallbacks(chain);
+            Some((Arc::new(provider) as Arc<dyn crew_hive::Provider>, model))
+        }
+        ProviderKind::Anthropic => {
+            let provider = crew_hive::AnthropicProvider::from_env().ok()?;
+            Some((
+                Arc::new(provider) as Arc<dyn crew_hive::Provider>,
+                crew_hive::ModelTier::Cheap.model_id().to_string(),
+            ))
+        }
+    }
+}
+
 #[cfg(test)]
 #[path = "discover_tests.rs"]
 mod tests;

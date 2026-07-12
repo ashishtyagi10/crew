@@ -274,6 +274,13 @@ The docked command bar supports:
   `Esc` cancels an active Tab-cycle first (restoring the pre-cycle text), then
   clears the typed command, then closes the pane. Run commands persist to
   `far-history` (a sibling of the input bar's `history` file) across sessions.
+  Prefix the command line with **`!`** and a description (e.g. `! list rust
+  files`) to ask AI for the shell command — the bar shows `thinking… Ns`
+  while a provider call runs (20s timeout), then the landed suggestion
+  replaces the bar, highlighted, with a `Enter run · Esc discard · keep
+  typing to edit` hint: `Enter` runs it like any typed command, `Esc`
+  restores the original `!` text, and typing further just edits the
+  suggestion as plain text.
 - **`/crew`** — opens a **multi-agent pane** where the installed CLI coding
   agents (claude, codex, opencode) message each other to work a task. See
   [Multi-agent relay](#multi-agent-relay-crew) below.

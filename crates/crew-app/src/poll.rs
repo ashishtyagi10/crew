@@ -78,14 +78,20 @@ impl CrewApp {
                 }
                 PaneContent::Swarm(s) => s.poll(),
                 // A Far pane changes when its command-line command finishes
-                // (panels reload; the result becomes a status flash).
-                PaneContent::Far(f) => match f.poll_cmd() {
-                    Some(msg) => {
+                // (panels reload) or its `!` AI ask lands/errors — either
+                // becomes a status flash.
+                PaneContent::Far(f) => {
+                    let mut changed = false;
+                    if let Some(msg) = f.poll_cmd() {
                         far_statuses.push(msg);
-                        true
+                        changed = true;
                     }
-                    None => false,
-                },
+                    if let Some(msg) = f.poll_ask() {
+                        far_statuses.push(msg);
+                        changed = true;
+                    }
+                    changed
+                }
                 PaneContent::Settings(_) => false,
                 // A static file view; nothing to poll (Task 3 adds `r` reload).
                 PaneContent::Markdown(_) => false,

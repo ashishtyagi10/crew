@@ -14,6 +14,7 @@
 //! first, then clears the typed text, then closes the pane. Lives in the
 //! auto-tiling grid like any other pane and renders into a `ratatui` buffer →
 //! GPU cells.
+mod ask;
 mod cmdhist;
 mod complete;
 mod fileops;
@@ -120,6 +121,9 @@ pub struct FarPane {
     /// Tab also spawns one before the shared cache is filled, since only the
     /// first `OnceLock::set` to land wins and the rest are silently dropped.
     pub(crate) bins_scan_started: bool,
+    /// The in-flight or landed `!` AI ask, if any — invalidated (`None`) by
+    /// any edit to `cmdline`, same lifecycle rule as `complete`.
+    pub(crate) ask: Option<ask::AskState>,
 }
 
 /// The session-wide `$PATH` binaries cache backing [`FarPane::bins`]: every
@@ -147,15 +151,18 @@ impl FarPane {
             complete: None,
             bins: shared_bins(),
             bins_scan_started: false,
+            ask: None,
         }
     }
 
-    /// Whether a command-line command is still running (drives the busy sweep).
+    /// Whether a command-line command is still running or an AI ask is in
+    /// flight (drives the busy sweep — which is also what repaints the
+    /// `thinking… Ns` counter while waiting).
     pub fn is_busy(&self) -> bool {
-        self.running.is_some()
+        self.running.is_some() || matches!(self.ask, Some(ask::AskState::Thinking { .. }))
     }
 
-    /// Drain the running command's result, if it finished this tick: reload
+    /// Drain the running command’s result, if it finished this tick: reload
     /// both panels (the command likely changed the directory contents) and
     /// return a status line for the app to flash.
     pub fn poll_cmd(&mut self) -> Option<String> {
@@ -174,6 +181,46 @@ impl FarPane {
         } else {
             format!("‘{cmd}’ — {outcome} · {}", done.tail)
         })
+    }
+
+    /// Drain a finished `!` ask, if any: land it (via [`Self::absorb_ask_result`])
+    /// or report the worker thread dying without a reply. Returns a status
+    /// line for the app to flash, mirroring `poll_cmd`; `None` when nothing
+    /// changed this tick (still thinking, or no ask at all).
+    pub fn poll_ask(&mut self) -> Option<String> {
+        let Some(ask::AskState::Thinking { rx, .. }) = &self.ask else {
+            return None;
+        };
+        match rx.try_recv() {
+            Ok(res) => Some(self.absorb_ask_result(res)),
+            Err(std::sync::mpsc::TryRecvError::Empty) => None,
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                self.ask = None;
+                Some("ask failed: worker died — ! text kept".to_string())
+            }
+        }
+    }
+
+    /// Land a finished ask’s result: a non-blank suggestion replaces
+    /// `cmdline` (state becomes `Suggested`, `original` keeps the `!` text
+    /// for Esc); a blank suggestion or an error clears `ask` and leaves
+    /// `cmdline` untouched. Returns the status line either way.
+    fn absorb_ask_result(&mut self, res: Result<String, String>) -> String {
+        match res {
+            Ok(cmd) if cmd.trim().is_empty() => {
+                self.ask = None;
+                "no command suggested — ! text kept".to_string()
+            }
+            Ok(cmd) => {
+                let original = std::mem::replace(&mut self.cmdline, cmd.trim().to_string());
+                self.ask = Some(ask::AskState::Suggested { original });
+                "Enter run · Esc discard · keep typing to edit".to_string()
+            }
+            Err(e) => {
+                self.ask = None;
+                format!("ask failed: {e} — ! text kept")
+            }
+        }
     }
 
     /// The directory of the currently active panel — where a typed command runs.
