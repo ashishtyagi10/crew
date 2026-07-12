@@ -36,10 +36,24 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
             crew_theme::ALL_THEMES
                 .iter()
                 .map(|t| (t.as_str().to_string(), t.describe().to_string()))
-                .chain(std::iter::once((
-                    "random".to_string(),
-                    "rotates every 10 min".to_string(),
-                )))
+                .chain(vec![
+                    (
+                        "random".to_string(),
+                        "rotates dark themes every 10 min (alias of random-dark)".to_string(),
+                    ),
+                    (
+                        "random-dark".to_string(),
+                        "rotates dark themes every 10 min".to_string(),
+                    ),
+                    (
+                        "random-light".to_string(),
+                        "rotates light themes every 10 min".to_string(),
+                    ),
+                    (
+                        "auto".to_string(),
+                        "light by day, dark by night — follows the OS".to_string(),
+                    ),
+                ])
                 .collect(),
         ),
         _ => None,

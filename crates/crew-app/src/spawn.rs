@@ -254,11 +254,10 @@ impl CrewApp {
     /// by `apply_settings`, which then persists.
     pub(crate) fn apply_config(&mut self, cfg: CrewConfig) {
         self.config = cfg;
-        // Reconcile random-rotation mode with the applied theme (mirrors startup
-        // in handler.rs and the `/theme` paths): a saved `random` pin resumes
-        // rotation; any fixed theme stops it — otherwise a theme chosen in the
-        // Settings pane keeps getting overridden by the rotation, and applying an
-        // unrelated setting while random would force paper-dark.
+        // Apply theme selection: if the saved theme is a rotation mode name,
+        // resume rotation in its pool (dark, light, or OS-following); if it's a
+        // fixed theme name, pin that theme and stop rotation. This ensures a
+        // theme chosen in the Settings pane isn't overridden by the rotation.
         match self
             .config
             .theme

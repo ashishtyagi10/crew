@@ -77,7 +77,7 @@ impl CrewApp {
             return;
         }
 
-        // Ctrl+Shift+L toggles the paper light/dark theme.
+        // Ctrl+Shift+L cycles themes (fixed presets, then rotation modes).
         if event.state.is_pressed()
             && mstate.control_key()
             && mstate.shift_key()
