@@ -1,49 +1,34 @@
-//! The empty-screen welcome: ASCII-art CREW banner centred on the canvas
-//! with a per-column shimmer, a tagline + keyboard hint, and a version stamp.
+//! The empty-screen welcome: a procedurally rendered, smoothly rotating
+//! ASCII globe centred on the canvas, with a tagline + keyboard hint below
+//! it and a version stamp in the corner.
 use crew_render::CellView;
 
-/// ASCII-art "CREW" — Standard figlet style; every row padded to equal width.
-const BANNER: &[&str] = &[
-    r"  ____   ____   _____  __        __",
-    r" / ___| |  _ \ | ____| \ \      / /",
-    r"| |     | |_) ||  _|    \ \ /\ / / ",
-    r"| |___  |  _ < | |___    \ V  V /  ",
-    r" \____| |_| \_||_____|    \_/\_/   ",
-];
-/// Character width every banner line must equal (asserted in tests).
-pub const BANNER_W: u16 = 35;
-const BANNER_H: u16 = BANNER.len() as u16;
+use crate::welcomeglobe::{GLOBE_H, GLOBE_MIN_H, GLOBE_MIN_W, GLOBE_W};
+
 const TAGLINE: &str = "fast terminals. clean flow.";
 const HINT: &str = "Cmd+T  new shell    ·    /  commands";
-/// Ticks for one full wave cycle (brighten → dim → brighten).
-const PULSE: u64 = 56;
 /// Poll ticks per rendered frame; idle animation runs at ~20 fps.
 pub const ANIM_DIV: u64 = 3;
+
+/// Width-to-height ratio of the globe box (2:1, matching the terminal's
+/// ~2:1 cell aspect) — derives `h` from `w` without hardcoding `/2`.
+const ASPECT: u16 = GLOBE_W / GLOBE_H;
+
+// Compile-time guard: GLOBE_MIN_H must keep tracking GLOBE_MIN_W's aspect
+// ratio, so this file's `ASPECT`-based derivation never silently drifts
+// from welcomeglobe.rs's floor.
+const _: () = assert!(
+    GLOBE_MIN_H == GLOBE_MIN_W / ASPECT,
+    "GLOBE_MIN_H must track GLOBE_MIN_W's 2:1 aspect"
+);
 
 /// Whether this poll `tick` should redraw the welcome screen.
 pub fn anim_should_redraw(tick: u64) -> bool {
     tick.is_multiple_of(ANIM_DIV)
 }
 
-/// Per-column shimmer: returns `(fg, bold)` for banner column `col` at `tick`.
-/// Phase offset proportional to `col` creates a left-to-right wave across the art.
-fn col_style(tick: u64, col: u16) -> ((u8, u8, u8), bool) {
-    let phase = (tick / 2 + u64::from(col) * 3) % PULSE;
-    let half = PULSE / 2;
-    let dist = if phase < half { phase } else { PULSE - phase };
-    if dist == 0 {
-        return (crate::palette::accent(), true);
-    }
-    let t = crew_theme::theme();
-    let frac = dist as f32 / half as f32;
-    let lerp = |a: u8, b: u8| (a as f32 + frac * (b as f32 - a as f32)) as u8;
-    let (ar, ag, ab) = crate::palette::accent();
-    let (dr, dg, db) = t.text_muted;
-    ((lerp(ar, dr), lerp(ag, dg), lerp(ab, db)), false)
-}
-
 /// Push every character of `s` as cells starting at `(col, row)`.
-// rustfmt::skip keeps the CellView struct literal on one line (7 fields → 9-line expand otherwise).
+// rustfmt::skip keeps the CellView struct literal on one line.
 #[rustfmt::skip]
 fn push_str(cells: &mut Vec<CellView>, row: u16, col: u16, s: &str, fg: (u8,u8,u8), bg: (u8,u8,u8)) {
     for (i, ch) in s.chars().enumerate() {
@@ -51,11 +36,27 @@ fn push_str(cells: &mut Vec<CellView>, row: u16, col: u16, s: &str, fg: (u8,u8,u
     }
 }
 
-/// Render one animation frame: CREW ASCII-art banner centred, tagline + hint
-/// below, version stamp bottom-right. Falls back to a spaced single-line "CREW"
-/// when the banner doesn't fit (too few cols or rows). All cells stay within
-/// `cols × rows`.
-// rustfmt::skip preserves compact inline struct literals to stay within the 200-line budget.
+/// Largest even globe width `w` (rendered at height `w/2`) such that the
+/// globe + blank row + tagline + hint stack (`h + 3` rows) centres within
+/// `rows`, and `w` (plus a 2-col margin) fits within `cols` — capped at
+/// `welcomeglobe::GLOBE_W`, floored at `welcomeglobe::GLOBE_MIN_W`. `None`
+/// when nothing fits — the caller falls back to the single-line banner.
+fn globe_width(cols: u16, rows: u16) -> Option<u16> {
+    let max_w = cols.saturating_sub(2).min(GLOBE_W);
+    let mut w = max_w - max_w % 2;
+    while w >= GLOBE_MIN_W {
+        if w / ASPECT + 3 < rows {
+            return Some(w);
+        }
+        w -= 2;
+    }
+    None
+}
+
+/// Render one animation frame: the rotating globe centred, tagline + hint
+/// below it, version stamp bottom-right. Falls back to a spaced single-line
+/// "CREW" when nothing globe-sized fits. All cells stay within `cols × rows`.
+// rustfmt::skip preserves compact inline struct literals.
 #[rustfmt::skip]
 pub fn welcome_cells_animated(cols: u16, rows: u16, tick: u64) -> Vec<CellView> {
     if cols == 0 || rows == 0 { return Vec::new(); }
@@ -63,50 +64,33 @@ pub fn welcome_cells_animated(cols: u16, rows: u16, tick: u64) -> Vec<CellView> 
     let t = crew_theme::theme();
     let bg = t.page_bg;
 
-    if BANNER_W < cols && BANNER_H + 4 < rows {
-        // Reserve room for the worker scene (when it fits) so the whole stack stays centred.
-        let scene_fits = crate::welcomeart::SCENE_W < cols;
-        let extra = if scene_fits { crate::welcomeart::SCENE_H + 1 } else { 0 };
-        let top = (rows.saturating_sub(BANNER_H + 4 + extra)) / 2;
-        let left = (cols - BANNER_W) / 2;
-        for (li, line) in BANNER.iter().enumerate() {
-            let row = top + li as u16;
-            if row >= rows { break; }
-            for (ci, ch) in line.chars().enumerate() {
-                if ch == ' ' { continue; }
-                let abs_col = left + ci as u16;
-                if abs_col >= cols { break; }
-                let (fg, bold) = col_style(tick, ci as u16);
-                cells.push(CellView { col: abs_col, row, c: ch, fg, bg, bold, italic: false });
-            }
-        }
-        let tl_row = top + BANNER_H + 1;
+    if let Some(w) = globe_width(cols, rows) {
+        let h = w / ASPECT;
+        let top = (rows - (h + 3)) / 2;
+        let left = (cols - w) / 2;
+        let phase = tick as f32 * 0.05;
+        crate::welcomeglobe::globe(&mut cells, top, left, w, h, phase, t.ink, t.text_muted, bg);
+
+        let tl_row = top + h + 1;
         let tl_w = TAGLINE.chars().count() as u16;
         if tl_row < rows && tl_w < cols {
             push_str(&mut cells, tl_row, (cols - tl_w) / 2, TAGLINE, t.hint_fg, bg);
         }
-        // Keyboard hint below the tagline.
         let hint_row = tl_row + 1;
         let hint_w = HINT.chars().count() as u16;
         if hint_row < rows && hint_w < cols {
             push_str(&mut cells, hint_row, (cols - hint_w) / 2, HINT, t.hint_fg, bg);
         }
-        // Animated "dev at the terminal" worker below the hint (the creative bit).
-        let sc_top = hint_row + 2;
-        if scene_fits && sc_top + crate::welcomeart::SCENE_H < rows {
-            let sc_left = (cols - crate::welcomeart::SCENE_W) / 2;
-            crate::welcomeart::scene(&mut cells, sc_top, sc_left, tick, t.text_muted, crate::palette::accent(), bg);
-        }
     } else {
-        // Fallback: spaced single-line "CREW" with per-column shimmer.
+        // Fallback: spaced single-line "CREW" — same layout math as the old
+        // figlet-era fallback, minus the deleted per-column shimmer (static ink).
         let letters: Vec<char> = "CREW".chars().collect();
         let span = (letters.len() as u16 - 1) * 2 + 1;
         if span < cols {
             let row   = rows / 2;
             let start = (cols - span) / 2;
             for (i, &ch) in letters.iter().enumerate() {
-                let (fg, bold) = col_style(tick, i as u16 * 7);
-                cells.push(CellView { col: start + i as u16 * 2, row, c: ch, fg, bg, bold, italic: false });
+                cells.push(CellView { col: start + i as u16 * 2, row, c: ch, fg: t.ink, bg, bold: true, italic: false });
             }
             let hint_w   = HINT.chars().count() as u16;
             let hint_row = row + 2;
@@ -130,24 +114,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn banner_cells_in_bounds() {
+    fn welcome_cells_in_bounds() {
         let cells = welcome_cells_animated(80, 24, 7);
         assert!(!cells.is_empty());
         assert!(
             cells.iter().all(|c| c.col < 80 && c.row < 24),
             "cell out of 80×24 bounds"
         );
-    }
-
-    #[test]
-    fn banner_lines_equal_width() {
-        for line in BANNER {
-            let w = line.chars().count() as u16;
-            assert_eq!(
-                w, BANNER_W,
-                "banner line width {w} ≠ BANNER_W {BANNER_W}: {line:?}"
-            );
-        }
     }
 
     #[test]
@@ -173,13 +146,6 @@ mod tests {
     }
 
     #[test]
-    fn shimmer_changes_over_time() {
-        let a = col_style(0, 0);
-        let b = col_style(20, 0);
-        assert_ne!(a, b, "shimmer colour did not change between frames");
-    }
-
-    #[test]
     fn tiny_size_no_panic_and_in_bounds() {
         let cells = welcome_cells_animated(2, 1, 0);
         assert!(cells.iter().all(|c| c.col < 2 && c.row < 1));
@@ -196,5 +162,68 @@ mod tests {
         assert_eq!(redraws as u64, 4, "one redraw per ANIM_DIV ticks");
         assert!(anim_should_redraw(0) && anim_should_redraw(ANIM_DIV));
         assert!(!anim_should_redraw(1));
+    }
+
+    #[test]
+    fn globe_width_picks_the_default_size_when_roomy() {
+        assert_eq!(globe_width(90, 30), Some(44));
+    }
+
+    #[test]
+    fn globe_width_scales_down_to_fit_the_rows() {
+        // Default 44x22 needs rows > 25 (22 + 3); at rows=24 it steps down to 40x20.
+        assert_eq!(globe_width(90, 24), Some(40));
+    }
+
+    #[test]
+    fn globe_width_falls_back_when_nothing_fits() {
+        assert_eq!(
+            globe_width(10, 24),
+            None,
+            "too narrow for even the min width"
+        );
+        assert_eq!(
+            globe_width(90, 10),
+            None,
+            "too short for even the min height"
+        );
+    }
+
+    #[test]
+    fn globe_sits_above_tagline_and_hint() {
+        let cells = welcome_cells_animated(80, 30, 0);
+        let t = crew_theme::theme();
+        let globe_max_row = cells
+            .iter()
+            .filter(|c| c.fg == t.ink || c.fg == t.text_muted)
+            .map(|c| c.row)
+            .max()
+            .expect("expected globe cells");
+        let hint_min_row = cells
+            .iter()
+            .filter(|c| c.fg == t.hint_fg)
+            .map(|c| c.row)
+            .min()
+            .expect("expected tagline/hint cells");
+        assert!(
+            globe_max_row < hint_min_row,
+            "globe rows must sit above the tagline/hint"
+        );
+    }
+
+    #[test]
+    fn welcome_animates_over_time() {
+        let a = welcome_cells_animated(80, 30, 0);
+        let b = welcome_cells_animated(80, 30, 20);
+        let chars = |v: &[CellView]| {
+            v.iter()
+                .map(|c| (c.col, c.row, c.c, c.fg))
+                .collect::<Vec<_>>()
+        };
+        assert_ne!(
+            chars(&a),
+            chars(&b),
+            "the globe frame must change over time"
+        );
     }
 }

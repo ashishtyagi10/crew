@@ -121,7 +121,6 @@ mod update;
 mod updatecard;
 mod updatefetch;
 mod welcome;
-mod welcomeart;
 mod welcomeglobe;
 mod windowtitle;
 
