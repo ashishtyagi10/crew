@@ -9,6 +9,7 @@
 //! else runs on a worker thread and reloads the listings when it finishes (no
 //! new pane is spawned); Esc clears it. Lives in the auto-tiling grid like any
 //! other pane and renders into a `ratatui` buffer → GPU cells.
+mod cmdhist;
 mod complete;
 mod fileops;
 mod icons;
