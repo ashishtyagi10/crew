@@ -98,6 +98,18 @@ pub struct FarPane {
     /// A command started from the command line that is still running on its
     /// worker thread: `(command text, result channel)`.
     pub(crate) running: Option<(String, std::sync::mpsc::Receiver<run::CmdDone>)>,
+    /// Persisted command-line history (`far-history`) + Up/Down browse state
+    /// and fish-style ghost-text lookups.
+    pub(crate) history: cmdhist::CmdHistory,
+    /// An in-progress Tab-completion cycle, if any — invalidated by any
+    /// edit to `cmdline` (typing, Backspace, running a command).
+    pub(crate) complete: Option<complete::CycleState>,
+    /// Cached `$PATH` binaries for Command-kind Tab completion, filled by a
+    /// background scan kicked off by the first Tab that needs it.
+    pub(crate) bins: std::sync::Arc<std::sync::OnceLock<Vec<String>>>,
+    /// Whether the `$PATH` scan thread has already been spawned — guards
+    /// against spawning one per keystroke before the first scan lands.
+    pub(crate) bins_scan_started: bool,
 }
 
 impl FarPane {
@@ -110,6 +122,10 @@ impl FarPane {
             prompt: None,
             cmdline: String::new(),
             running: None,
+            history: cmdhist::CmdHistory::load(),
+            complete: None,
+            bins: std::sync::Arc::new(std::sync::OnceLock::new()),
+            bins_scan_started: false,
         }
     }
 

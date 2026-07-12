@@ -125,3 +125,11 @@ fn scroll_moves_active_cursor_clamped() {
     p.scroll(99); // wheel up → toward top
     assert_eq!(p.left.sel, 0);
 }
+
+#[test]
+fn new_pane_starts_with_empty_completion_and_scan_state() {
+    let (_b, p) = fixture("newstate");
+    assert!(p.complete.is_none());
+    assert!(p.bins.get().is_none());
+    assert!(!p.bins_scan_started);
+}
