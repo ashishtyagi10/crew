@@ -50,7 +50,7 @@ mod toolclip;
 
 pub use adapter::{Adapter, CliAdapter, Normalize};
 pub use agents::known_adapters;
-pub use ask::{explain_output, suggest_command};
+pub use ask::{explain_output, suggest_command, suggest_far_command};
 pub use engine::Broker;
 pub use hop::{Hop, HopKind, RunStats};
 pub use registry::Registry;
