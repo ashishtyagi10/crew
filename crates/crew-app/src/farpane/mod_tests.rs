@@ -132,10 +132,17 @@ fn scroll_moves_active_cursor_clamped() {
 
 #[test]
 fn new_pane_starts_with_empty_completion_and_scan_state() {
+    // `bins` is now the session-wide cache (shared across every FarPane in
+    // the process, see `shared_bins`), so it may already be populated by
+    // another test's scan by the time this runs under the parallel test
+    // runner — only the per-pane `bins_scan_started` guard is meaningful to
+    // assert here.
     let (_b, p) = fixture("newstate");
     assert!(p.complete.is_none());
-    assert!(p.bins.get().is_none());
-    assert!(!p.bins_scan_started);
+    assert!(
+        !p.bins_scan_started,
+        "a fresh pane hasn't started its own scan"
+    );
 }
 
 #[test]
@@ -179,6 +186,11 @@ fn tab_with_multiple_candidates_starts_a_cycle_and_wraps() {
 fn command_tab_spawns_the_path_scan_exactly_once() {
     // The riskiest wiring: a Command-kind Tab must trigger the background
     // $PATH scan at most once per pane and never block on its result.
+    // `bins` is the session-wide cache (see `shared_bins`) and this is the
+    // only test in this binary that ever does Command-kind completion, so
+    // the cache is guaranteed cold here regardless of test run order —
+    // don't add another Command-kind `tab_complete` call anywhere else in
+    // this crate's tests without re-checking this assumption.
     let (_b, mut p) = fixture("tabcmdscan");
     p.cmdline = "l".into();
     tab_complete(&mut p);
@@ -276,6 +288,28 @@ fn accept_ghost_is_a_no_op_without_a_match() {
     p.cmdline = "zz".into();
     accept_ghost(&mut p);
     assert_eq!(p.cmdline, "zz");
+}
+
+#[test]
+fn accept_ghost_during_a_cycle_does_not_insert_an_invisible_ghost() {
+    // `render.rs` suppresses the ghost suggestion while a Tab-cycle is
+    // active (the cycle's candidate already occupies the line), so
+    // Right/End must not silently splice in a history match that was never
+    // shown on screen — it should just end the cycle, like Esc does.
+    let (base, mut p) = fixture("ghostcycle");
+    std::fs::write(base.join("apple.txt"), b"x").unwrap();
+    std::fs::write(base.join("avocado.txt"), b"x").unwrap();
+    p.history = CmdHistory::from_entries(vec!["cat apple.txt | grep foo".into()]);
+    p.cmdline = "cat a".into();
+    tab_complete(&mut p);
+    assert!(p.complete.is_some(), "multiple matches start a cycle");
+    accept_ghost(&mut p);
+    assert!(
+        !p.cmdline.contains("| grep foo"),
+        "Right/End must not accept a ghost that was never rendered: {:?}",
+        p.cmdline
+    );
+    assert!(p.complete.is_none(), "the cycle is cleared, not advanced");
 }
 
 /// Point `$HOME` at a fresh tempdir for the duration of `f`, then restore it

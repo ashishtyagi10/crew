@@ -171,6 +171,9 @@ pub(crate) fn tab_complete(p: &mut FarPane) {
 /// Command-kind completion needs the cached `$PATH` binaries; kick off the
 /// background scan on first use (returns builtins-only until it lands, never
 /// blocking this thread). Path-kind completion needs no binaries at all.
+/// `p.bins` is the session-wide cache (see `FarPane::bins`/`shared_bins`), so
+/// if another pane's scan already landed this returns instantly without
+/// spawning anything here.
 fn command_binaries(p: &mut FarPane, kind: super::complete::TokenKind) -> Vec<String> {
     if kind != super::complete::TokenKind::Command {
         return Vec::new();
@@ -209,12 +212,17 @@ pub(crate) fn history_next(p: &mut FarPane) {
 }
 
 /// Right/End while typing: accept the visible ghost-text history suggestion
-/// into the command line, if one is showing.
+/// into the command line, if one is showing. `render.rs` suppresses the
+/// ghost display while a Tab-cycle is active (the candidate list already
+/// occupies the line), so during a cycle this must only end the cycle — a
+/// ghost lookup here would insert a suggestion that was never on screen.
 pub(crate) fn accept_ghost(p: &mut FarPane) {
+    if p.complete.take().is_some() {
+        return;
+    }
     if let Some(g) = p.history.ghost(&p.cmdline) {
         p.cmdline = g.to_string();
     }
-    p.complete = None;
 }
 
 /// Handle a key while the make-folder prompt is open.

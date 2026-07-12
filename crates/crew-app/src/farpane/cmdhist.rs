@@ -72,6 +72,10 @@ impl CmdHistory {
         self.save();
     }
 
+    // Like `crate::history`, this file is last-writer-wins across panes and
+    // instances (no lock, no merge) — a concurrent save can clobber another
+    // process's, and `deserialize` tolerates a torn tail from a save that
+    // raced a read.
     fn save(&self) {
         let Some(p) = path() else { return };
         if let Some(parent) = p.parent() {

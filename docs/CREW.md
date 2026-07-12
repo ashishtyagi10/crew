@@ -259,15 +259,21 @@ The docked command bar supports:
 - **`/far`** — opens a Far Manager-style **dual-pane file manager** as a pane in
   the grid (like `/shell`): two side-by-side directory listings with a Far
   function-key bar and a **command line** at the bottom. `Tab` switches the active
-  panel, `↑`/`↓`/`PgUp`/`PgDn`/`Home`/`End` move the cursor, `Enter` descends into
-  a folder (or `..`) or opens a file with the OS default, `Backspace` climbs to
-  the parent, `F5`/`F6` copy/move to the other panel, `F7` makes a folder, `F8`
-  trashes, `F10` closes. Type on the **command line** and press `Enter` to run a
-  command against the **active panel** — `cd <path>` navigates that panel in
-  place, anything else runs in its directory on a worker thread (a `⟳` note
-  shows while it runs, the listings reload when it finishes, and the result
-  flashes in the status bar — no new pane is spawned); `Esc` clears a typed
-  command (and closes the pane when it's empty).
+  panel **only while the command line is empty**; `↑`/`↓`/`PgUp`/`PgDn`/`Home`/`End`
+  move the cursor, `Enter` descends into a folder (or `..`) or opens a file with
+  the OS default, `Backspace` climbs to the parent, `F5`/`F6` copy/move to the
+  other panel, `F7` makes a folder, `F8` trashes, `F10` closes. Type on the
+  **command line** and press `Enter` to run a command against the **active
+  panel** — `cd <path>` navigates that panel in place, anything else runs in
+  its directory on a worker thread (a `⟳` note shows while it runs, the
+  listings reload when it finishes, and the result flashes in the status bar
+  — no new pane is spawned). While typing: `Tab` completes the caret token
+  (command name or path), cycling through candidates on repeat presses;
+  `↑`/`↓` recall previous commands instead of moving the cursor; fish-style
+  ghost text previews a matching history entry, and `→`/`End` accept it.
+  `Esc` cancels an active Tab-cycle first (restoring the pre-cycle text), then
+  clears the typed command, then closes the pane. Run commands persist to
+  `far-history` (a sibling of the input bar's `history` file) across sessions.
 - **`/crew`** — opens a **multi-agent pane** where the installed CLI coding
   agents (claude, codex, opencode) message each other to work a task. See
   [Multi-agent relay](#multi-agent-relay-crew) below.

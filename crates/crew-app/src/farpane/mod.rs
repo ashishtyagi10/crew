@@ -1,14 +1,19 @@
 //! Far Manager pane: a dual-pane file browser (two side-by-side directory
-//! listings) spawned by `/far`. Tab switches the active panel; arrows move the
-//! cursor; Enter descends into a folder (or `..`) or opens a file with the OS
-//! default. The function-key bar works as labelled: F1 help, F3/F4 view/edit
-//! (open with the OS default), F5 copy and F6 move into the other panel, F7
-//! make-folder (a text prompt), F8 delete to trash, F10/Esc close. A Far-style
-//! command line sits at the bottom: type a command and press Enter to run it in
-//! the active panel's directory — `cd` navigates that panel in place, anything
-//! else runs on a worker thread and reloads the listings when it finishes (no
-//! new pane is spawned); Esc clears it. Lives in the auto-tiling grid like any
-//! other pane and renders into a `ratatui` buffer → GPU cells.
+//! listings) spawned by `/far`. Tab switches the active panel when the command
+//! line is empty; arrows move the cursor; Enter descends into a folder (or
+//! `..`) or opens a file with the OS default. The function-key bar works as
+//! labelled: F1 help, F3/F4 view/edit (open with the OS default), F5 copy and
+//! F6 move into the other panel, F7 make-folder (a text prompt), F8 delete to
+//! trash, F10/Esc close. A Far-style command line sits at the bottom: type a
+//! command and press Enter to run it in the active panel's directory — `cd`
+//! navigates that panel in place, anything else runs on a worker thread and
+//! reloads the listings when it finishes (no new pane is spawned). While
+//! typing, Tab completes/cycles the caret token, Up/Down recall persisted
+//! history (`far-history`), and fish-style ghost text previews a matching
+//! history entry that Right/End accept; Esc cancels an active Tab-cycle
+//! first, then clears the typed text, then closes the pane. Lives in the
+//! auto-tiling grid like any other pane and renders into a `ratatui` buffer →
+//! GPU cells.
 mod cmdhist;
 mod complete;
 mod fileops;
@@ -104,12 +109,28 @@ pub struct FarPane {
     /// An in-progress Tab-completion cycle, if any — invalidated by any
     /// edit to `cmdline` (typing, Backspace, running a command).
     pub(crate) complete: Option<complete::CycleState>,
-    /// Cached `$PATH` binaries for Command-kind Tab completion, filled by a
-    /// background scan kicked off by the first Tab that needs it.
+    /// Cached `$PATH` binaries for Command-kind Tab completion. Shared across
+    /// every `FarPane` in the process via [`shared_bins`] — the `$PATH`
+    /// doesn't change pane to pane, so the scan runs at most once per
+    /// session, not once per pane.
     pub(crate) bins: std::sync::Arc<std::sync::OnceLock<Vec<String>>>,
-    /// Whether the `$PATH` scan thread has already been spawned — guards
-    /// against spawning one per keystroke before the first scan lands.
+    /// Whether *this pane* has already spawned the `$PATH` scan thread —
+    /// guards against spawning one per keystroke before the first scan
+    /// lands. Per-pane rather than shared: harmless if another pane's first
+    /// Tab also spawns one before the shared cache is filled, since only the
+    /// first `OnceLock::set` to land wins and the rest are silently dropped.
     pub(crate) bins_scan_started: bool,
+}
+
+/// The session-wide `$PATH` binaries cache backing [`FarPane::bins`]: every
+/// pane clones the same `Arc`, so whichever pane's background scan finishes
+/// first fills it for all of them, and at most one scan actually needs to
+/// run per session (see the `bins` field doc).
+fn shared_bins() -> std::sync::Arc<std::sync::OnceLock<Vec<String>>> {
+    static BINS: std::sync::OnceLock<std::sync::Arc<std::sync::OnceLock<Vec<String>>>> =
+        std::sync::OnceLock::new();
+    BINS.get_or_init(|| std::sync::Arc::new(std::sync::OnceLock::new()))
+        .clone()
 }
 
 impl FarPane {
@@ -124,7 +145,7 @@ impl FarPane {
             running: None,
             history: cmdhist::CmdHistory::load(),
             complete: None,
-            bins: std::sync::Arc::new(std::sync::OnceLock::new()),
+            bins: shared_bins(),
             bins_scan_started: false,
         }
     }
