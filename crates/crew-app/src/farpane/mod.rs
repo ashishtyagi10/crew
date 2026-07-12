@@ -175,9 +175,9 @@ impl FarPane {
             None => "killed".to_string(),
         };
         Some(if done.tail.is_empty() {
-            format!("’{cmd}’ — {outcome}")
+            format!("‘{cmd}’ — {outcome}")
         } else {
-            format!("’{cmd}’ — {outcome} · {}", done.tail)
+            format!("‘{cmd}’ — {outcome} · {}", done.tail)
         })
     }
 
