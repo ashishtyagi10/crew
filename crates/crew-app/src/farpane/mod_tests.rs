@@ -1,3 +1,4 @@
+use super::ask::AskState;
 use super::cmdhist::CmdHistory;
 use super::keys::{
     accept_ghost, activate, ascend, escape_cmdline, history_next, history_prev, move_sel,
@@ -351,4 +352,86 @@ fn cd_is_pushed_into_history_too() {
         run_cmdline(&mut p);
         assert_eq!(p.history.prev(""), Some("cd sub"));
     });
+}
+
+#[test]
+fn new_pane_starts_with_no_ask() {
+    let (_b, p) = fixture("noask");
+    assert!(p.ask.is_none());
+}
+
+#[test]
+fn absorb_ask_result_lands_a_suggestion_and_replaces_the_bar() {
+    let (_b, mut p) = fixture("askland");
+    p.cmdline = "! list files".into();
+    let msg = p.absorb_ask_result(Ok("ls -la".into()));
+    assert_eq!(p.cmdline, "ls -la");
+    assert!(matches!(&p.ask, Some(AskState::Suggested { original }) if original == "! list files"));
+    assert!(msg.contains("Enter run"));
+}
+
+#[test]
+fn absorb_ask_result_treats_a_blank_suggestion_as_no_command() {
+    let (_b, mut p) = fixture("askblank");
+    p.cmdline = "! list files".into();
+    let msg = p.absorb_ask_result(Ok("   ".into()));
+    assert_eq!(
+        p.cmdline, "! list files",
+        "the ! text is kept on an empty reply"
+    );
+    assert!(p.ask.is_none());
+    assert!(msg.contains("no command"));
+}
+
+#[test]
+fn absorb_ask_result_surfaces_a_provider_error_and_keeps_the_bang_text() {
+    let (_b, mut p) = fixture("askerr");
+    p.cmdline = "! list files".into();
+    let msg = p.absorb_ask_result(Err("no AI provider".into()));
+    assert_eq!(p.cmdline, "! list files");
+    assert!(p.ask.is_none());
+    assert!(msg.contains("no AI provider"));
+}
+
+#[test]
+fn poll_ask_returns_none_while_still_thinking() {
+    let (_b, mut p) = fixture("askthinking");
+    let (_tx, rx) = std::sync::mpsc::channel::<Result<String, String>>();
+    p.ask = Some(AskState::Thinking {
+        started: std::time::Instant::now(),
+        rx,
+    });
+    assert!(p.poll_ask().is_none());
+    assert!(p.ask.is_some(), "still thinking — ask state untouched");
+}
+
+#[test]
+fn poll_ask_drains_a_landed_result_via_absorb() {
+    let (_b, mut p) = fixture("askdrain");
+    let (tx, rx) = std::sync::mpsc::channel::<Result<String, String>>();
+    tx.send(Ok("ls -la".into())).unwrap();
+    p.cmdline = "! list files".into();
+    p.ask = Some(AskState::Thinking {
+        started: std::time::Instant::now(),
+        rx,
+    });
+    let msg = p.poll_ask();
+    assert_eq!(p.cmdline, "ls -la");
+    assert!(msg.unwrap().contains("Enter run"));
+}
+
+#[test]
+fn poll_ask_handles_a_dead_worker_thread() {
+    let (_b, mut p) = fixture("askdead");
+    let (tx, rx) = std::sync::mpsc::channel::<Result<String, String>>();
+    drop(tx); // disconnect without sending — worker panicked/died
+    p.cmdline = "! list files".into();
+    p.ask = Some(AskState::Thinking {
+        started: std::time::Instant::now(),
+        rx,
+    });
+    let msg = p.poll_ask();
+    assert_eq!(p.cmdline, "! list files");
+    assert!(p.ask.is_none());
+    assert!(msg.unwrap().contains("worker died"));
 }
