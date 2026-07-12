@@ -50,8 +50,25 @@ pub(crate) fn render(p: &FarPane, cols: u16, rows: u16) -> Vec<CellView> {
     // overwrite — so a thumb drawn inside panel() would be lost.
     scroll_thumb(&mut buf, larea, &p.left, p.active == Side::Left);
     scroll_thumb(&mut buf, rarea, &p.right, p.active == Side::Right);
+    // A Tab-cycle already shows its candidate in `cmdline` directly; the
+    // ghost suggestion would be confusing layered on top of it, so it's
+    // suppressed while a cycle is active.
+    let ghost = if p.complete.is_none() {
+        p.history
+            .ghost(&p.cmdline)
+            .map(|full| full[p.cmdline.len()..].to_string())
+    } else {
+        None
+    };
     let running = p.running.as_ref().map(|(cmd, _)| cmd.as_str());
-    command_bar(&mut buf, split[1], &p.active_cwd(), &p.cmdline, running);
+    command_bar(
+        &mut buf,
+        split[1],
+        &p.active_cwd(),
+        &p.cmdline,
+        ghost.as_deref(),
+        running,
+    );
     // The make-folder prompt takes over the function-key row while it's open.
     match &p.prompt {
         Some(prompt) => prompt_bar(&mut buf, split[2], prompt),
@@ -68,6 +85,7 @@ fn command_bar(
     area: Rect,
     cwd: &std::path::Path,
     cmdline: &str,
+    ghost: Option<&str>,
     running: Option<&str>,
 ) {
     let t = crew_theme::theme();
@@ -83,6 +101,9 @@ fn command_bar(
         Span::styled("$ ", Style::new().fg(accent_color()).bg(bg)),
         Span::styled(format!("{cmdline}▏"), Style::new().fg(ink).bg(bg)),
     ];
+    if let Some(g) = ghost {
+        spans.push(Span::styled(g.to_string(), Style::new().fg(dim).bg(bg)));
+    }
     if let Some(cmd) = running {
         spans.push(Span::styled(
             format!("  \u{27f3} {cmd}"),

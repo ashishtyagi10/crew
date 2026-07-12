@@ -231,3 +231,75 @@ fn file_rows_show_a_type_glyph() {
         "no folder glyph rendered for the src/ dir"
     );
 }
+
+#[test]
+fn ghost_text_renders_dim_after_the_cursor() {
+    use crate::farpane::cmdhist::CmdHistory;
+    let mut pane = fixture_pane("ghost");
+    pane.cmdline = "ba".into();
+    pane.history = CmdHistory::from_entries(vec!["bazqux".into()]);
+    let cells = render(&pane, 80, 24);
+    let cmd_row = 22; // rows(24) - cmdline row(1) - function bar row(1)
+    let mut row: Vec<(u16, char, (u8, u8, u8))> = cells
+        .iter()
+        .filter(|c| c.row == cmd_row)
+        .map(|c| (c.col, c.c, c.fg))
+        .collect();
+    row.sort_unstable_by_key(|(col, _, _)| *col);
+    let line: String = row.iter().map(|(_, c, _)| *c).collect();
+    assert!(line.contains("ba▏zqux"), "ghost text missing: {line:?}");
+    let dim = crew_theme::theme().text_muted;
+    let z_cell = row
+        .iter()
+        .find(|(_, c, _)| *c == 'z')
+        .expect("ghost cell rendered");
+    assert_eq!(z_cell.2, dim, "ghost text must render in text_muted");
+}
+
+#[test]
+fn ghost_text_absent_when_history_does_not_extend_the_typed_text() {
+    use crate::farpane::cmdhist::CmdHistory;
+    let mut pane = fixture_pane("noghost");
+    pane.cmdline = "yy".into();
+    pane.history = CmdHistory::from_entries(vec!["bazqux".into()]);
+    let cells = render(&pane, 80, 24);
+    let cmd_row = 22;
+    let mut row: Vec<(u16, char)> = cells
+        .iter()
+        .filter(|c| c.row == cmd_row)
+        .map(|c| (c.col, c.c))
+        .collect();
+    row.sort_unstable_by_key(|(col, _)| *col);
+    let line: String = row.into_iter().map(|(_, c)| c).collect();
+    assert!(
+        !line.contains('z'),
+        "no history entry should match 'yy': {line:?}"
+    );
+}
+
+#[test]
+fn ghost_hidden_while_a_tab_cycle_is_active() {
+    use crate::farpane::cmdhist::CmdHistory;
+    use crate::farpane::complete::CycleState;
+    let mut pane = fixture_pane("ghostcycle");
+    pane.cmdline = "ba".into();
+    pane.history = CmdHistory::from_entries(vec!["bazqux".into()]);
+    pane.complete = Some(CycleState {
+        candidates: vec!["ba".into()],
+        i: 0,
+        prefix: "ba".into(),
+    });
+    let cells = render(&pane, 80, 24);
+    let cmd_row = 22;
+    let mut row: Vec<(u16, char)> = cells
+        .iter()
+        .filter(|c| c.row == cmd_row)
+        .map(|c| (c.col, c.c))
+        .collect();
+    row.sort_unstable_by_key(|(col, _)| *col);
+    let line: String = row.into_iter().map(|(_, c)| c).collect();
+    assert!(
+        !line.contains('z'),
+        "ghost must be suppressed during a completion cycle: {line:?}"
+    );
+}

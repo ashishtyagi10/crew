@@ -1,4 +1,8 @@
-use super::keys::{activate, ascend, move_sel};
+use super::cmdhist::CmdHistory;
+use super::keys::{
+    accept_ghost, activate, ascend, escape_cmdline, history_next, history_prev, move_sel,
+    tab_complete,
+};
 use super::run::run_cmdline;
 use super::{FarAction, FarPane, Side};
 
@@ -124,4 +128,227 @@ fn scroll_moves_active_cursor_clamped() {
     assert_eq!(p.left.sel, p.left.entries.len() - 1);
     p.scroll(99); // wheel up → toward top
     assert_eq!(p.left.sel, 0);
+}
+
+#[test]
+fn new_pane_starts_with_empty_completion_and_scan_state() {
+    // `bins` is now the session-wide cache (shared across every FarPane in
+    // the process, see `shared_bins`), so it may already be populated by
+    // another test's scan by the time this runs under the parallel test
+    // runner — only the per-pane `bins_scan_started` guard is meaningful to
+    // assert here.
+    let (_b, p) = fixture("newstate");
+    assert!(p.complete.is_none());
+    assert!(
+        !p.bins_scan_started,
+        "a fresh pane hasn't started its own scan"
+    );
+}
+
+#[test]
+fn tab_completes_a_unique_path_candidate_with_trailing_space() {
+    let (base, mut p) = fixture("tabunique");
+    std::fs::write(base.join("readme.md"), b"x").unwrap();
+    p.cmdline = "cat read".into();
+    tab_complete(&mut p);
+    assert_eq!(p.cmdline, "cat readme.md ");
+    assert!(p.complete.is_none(), "single match doesn't start a cycle");
+}
+
+#[test]
+fn tab_completes_a_directory_without_a_trailing_space() {
+    let (_b, mut p) = fixture("tabdir");
+    p.cmdline = "cd su".into();
+    tab_complete(&mut p);
+    assert_eq!(p.cmdline, "cd sub/");
+}
+
+#[test]
+fn tab_with_multiple_candidates_starts_a_cycle_and_wraps() {
+    let (base, mut p) = fixture("tabcycle");
+    std::fs::write(base.join("apple.txt"), b"x").unwrap();
+    std::fs::write(base.join("avocado.txt"), b"x").unwrap();
+    p.cmdline = "cat a".into();
+    tab_complete(&mut p);
+    let first = p.cmdline.clone();
+    assert!(p.complete.is_some(), "multiple matches start a cycle");
+    tab_complete(&mut p);
+    let second = p.cmdline.clone();
+    assert_ne!(first, second, "second Tab advances the cycle");
+    tab_complete(&mut p);
+    assert_eq!(
+        p.cmdline, first,
+        "third Tab wraps back to the first candidate"
+    );
+}
+
+#[test]
+fn command_tab_spawns_the_path_scan_exactly_once() {
+    // The riskiest wiring: a Command-kind Tab must trigger the background
+    // $PATH scan at most once per pane and never block on its result.
+    // `bins` is the session-wide cache (see `shared_bins`) and this is the
+    // only test in this binary that ever does Command-kind completion, so
+    // the cache is guaranteed cold here regardless of test run order —
+    // don't add another Command-kind `tab_complete` call anywhere else in
+    // this crate's tests without re-checking this assumption.
+    let (_b, mut p) = fixture("tabcmdscan");
+    p.cmdline = "l".into();
+    tab_complete(&mut p);
+    assert!(p.bins_scan_started, "first Command Tab starts the scan");
+    tab_complete(&mut p);
+    assert!(p.bins_scan_started, "second Tab keeps the guard set");
+    // Whatever the scan's timing, the call returned without blocking and
+    // builtins-only completion stays available meanwhile.
+    p.cmdline = "c".into();
+    tab_complete(&mut p);
+    assert!(p.cmdline.starts_with('c'), "builtins path stays usable");
+}
+
+#[test]
+fn history_recall_and_ghost_accept_invalidate_an_active_cycle() {
+    let (base, mut p) = fixture("cycleinval");
+    std::fs::write(base.join("apple.txt"), b"x").unwrap();
+    std::fs::write(base.join("avocado.txt"), b"x").unwrap();
+    p.history = CmdHistory::from_entries(vec!["cat apple.txt".into()]);
+    p.cmdline = "cat a".into();
+    tab_complete(&mut p);
+    assert!(p.complete.is_some());
+    history_prev(&mut p);
+    assert!(p.complete.is_none(), "history recall clears the cycle");
+
+    p.cmdline = "cat a".into();
+    tab_complete(&mut p);
+    assert!(p.complete.is_some());
+    accept_ghost(&mut p);
+    assert!(p.complete.is_none(), "ghost accept clears the cycle");
+}
+
+#[test]
+fn escape_during_a_cycle_restores_the_pre_cycle_text() {
+    let (base, mut p) = fixture("tabesc");
+    std::fs::write(base.join("apple.txt"), b"x").unwrap();
+    std::fs::write(base.join("avocado.txt"), b"x").unwrap();
+    p.cmdline = "cat a".into();
+    tab_complete(&mut p);
+    assert!(p.complete.is_some());
+    let action = escape_cmdline(&mut p);
+    assert!(
+        action.is_none(),
+        "Esc during a cycle doesn't close the pane"
+    );
+    assert_eq!(p.cmdline, "cat a");
+    assert!(p.complete.is_none());
+}
+
+#[test]
+fn escape_on_a_typed_bar_clears_it_without_closing() {
+    let (_b, mut p) = fixture("tabescclear");
+    p.cmdline = "ls".into();
+    assert!(escape_cmdline(&mut p).is_none());
+    assert!(p.cmdline.is_empty());
+}
+
+#[test]
+fn escape_on_an_empty_bar_closes_the_pane() {
+    let (_b, mut p) = fixture("tabescclose");
+    assert!(matches!(escape_cmdline(&mut p), Some(FarAction::Close)));
+}
+
+#[test]
+fn history_prev_and_next_cycle_through_the_bar() {
+    let (_b, mut p) = fixture("histcycle");
+    p.history = CmdHistory::from_entries(vec!["ls".into(), "cargo test".into()]);
+    p.cmdline = "half".into();
+    history_prev(&mut p);
+    assert_eq!(p.cmdline, "cargo test");
+    history_prev(&mut p);
+    assert_eq!(p.cmdline, "ls");
+    history_next(&mut p);
+    assert_eq!(p.cmdline, "cargo test");
+    history_next(&mut p);
+    assert_eq!(
+        p.cmdline, "half",
+        "Down past the newest restores the typed text"
+    );
+}
+
+#[test]
+fn accept_ghost_fills_in_the_matching_history_entry() {
+    let (_b, mut p) = fixture("ghostaccept");
+    p.history = CmdHistory::from_entries(vec!["cargo build".into()]);
+    p.cmdline = "cargo".into();
+    accept_ghost(&mut p);
+    assert_eq!(p.cmdline, "cargo build");
+}
+
+#[test]
+fn accept_ghost_is_a_no_op_without_a_match() {
+    let (_b, mut p) = fixture("ghostnoop");
+    p.history = CmdHistory::from_entries(vec!["cargo build".into()]);
+    p.cmdline = "zz".into();
+    accept_ghost(&mut p);
+    assert_eq!(p.cmdline, "zz");
+}
+
+#[test]
+fn accept_ghost_during_a_cycle_does_not_insert_an_invisible_ghost() {
+    // `render.rs` suppresses the ghost suggestion while a Tab-cycle is
+    // active (the cycle's candidate already occupies the line), so
+    // Right/End must not silently splice in a history match that was never
+    // shown on screen — it should just end the cycle, like Esc does.
+    let (base, mut p) = fixture("ghostcycle");
+    std::fs::write(base.join("apple.txt"), b"x").unwrap();
+    std::fs::write(base.join("avocado.txt"), b"x").unwrap();
+    p.history = CmdHistory::from_entries(vec!["cat apple.txt | grep foo".into()]);
+    p.cmdline = "cat a".into();
+    tab_complete(&mut p);
+    assert!(p.complete.is_some(), "multiple matches start a cycle");
+    accept_ghost(&mut p);
+    assert!(
+        !p.cmdline.contains("| grep foo"),
+        "Right/End must not accept a ghost that was never rendered: {:?}",
+        p.cmdline
+    );
+    assert!(p.complete.is_none(), "the cycle is cleared, not advanced");
+}
+
+/// Point `$HOME` at a fresh tempdir for the duration of `f`, then restore it
+/// — callers must hold `super::cmdhist::test_guard()` first. `run_cmdline`
+/// persists history via the real `dirs`-based path, so any test exercising
+/// it needs this isolation (mirrors `cmdhist.rs`'s own test helper — kept
+/// separate since it's a different file/module).
+fn with_tmp_home<T>(f: impl FnOnce() -> T) -> T {
+    let dir = tempfile::tempdir().unwrap();
+    let prev = std::env::var_os("HOME");
+    std::env::set_var("HOME", dir.path());
+    let out = f();
+    match prev {
+        Some(p) => std::env::set_var("HOME", p),
+        None => std::env::remove_var("HOME"),
+    }
+    out
+}
+
+#[test]
+fn run_cmdline_pushes_the_command_into_history() {
+    let _g = super::cmdhist::test_guard();
+    with_tmp_home(|| {
+        let (base, mut p) = fixture("histpush");
+        p.right.cwd = base.join("sub");
+        p.active = Side::Right;
+        p.cmdline = "touch made-here".into();
+        run_cmdline(&mut p);
+        assert_eq!(p.history.prev(""), Some("touch made-here"));
+    });
+}
+
+#[test]
+fn cd_is_pushed_into_history_too() {
+    let _g = super::cmdhist::test_guard();
+    with_tmp_home(|| {
+        let (_b, mut p) = fixture("histpushcd");
+        p.cmdline = "cd sub".into();
+        run_cmdline(&mut p);
+        assert_eq!(p.history.prev(""), Some("cd sub"));
+    });
 }
