@@ -122,22 +122,31 @@ fn theme_space_lists_all_themes_as_runnable_values() {
 }
 
 #[test]
-fn theme_picker_offers_random_mode() {
-    // `random` is a valid /theme value, so the picker must offer it alongside
-    // the fixed themes — typing it blind shouldn't be the only way in.
+fn theme_picker_offers_rotation_modes() {
+    // The picker must offer all four rotation modes alongside the fixed themes.
     let items = menu_items("/theme ");
-    let random = items
-        .iter()
-        .find(|m| m.label == "random")
-        .expect("random missing from picker");
-    assert_eq!(random.fill, "/theme random");
-    assert!(random.submit);
-    // And it survives partial-value filtering.
-    let labels: Vec<String> = menu_items("/theme ra")
-        .into_iter()
-        .map(|m| m.label)
-        .collect();
-    assert_eq!(labels, ["random"]);
+    let labels: Vec<&str> = items.iter().map(|m| m.label.as_str()).collect();
+    for mode in ["random", "random-dark", "random-light", "auto"] {
+        assert!(labels.contains(&mode), "{mode} missing from picker");
+    }
+    // Each mode fills the full command and submits on Enter.
+    for (mode, desc) in [
+        (
+            "random",
+            "rotates dark themes every 10 min (alias of random-dark)",
+        ),
+        ("random-dark", "rotates dark themes every 10 min"),
+        ("random-light", "rotates light themes every 10 min"),
+        ("auto", "light by day, dark by night — follows the OS"),
+    ] {
+        let item = items
+            .iter()
+            .find(|m| m.label == mode)
+            .unwrap_or_else(|| panic!("{mode} not found in picker"));
+        assert_eq!(item.fill, format!("/theme {mode}"));
+        assert!(item.submit);
+        assert_eq!(item.desc, desc);
+    }
 }
 
 #[test]

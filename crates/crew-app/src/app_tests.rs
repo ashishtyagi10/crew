@@ -504,6 +504,26 @@ fn star_broadcast_with_no_terminals_hints() {
 }
 
 #[test]
+fn apply_config_resumes_saved_mode_and_pins_fixed_themes() {
+    let _g = crate::app::theme_test_guard();
+    let mut app = CrewApp::default();
+    let mut cfg = app.config.clone();
+    cfg.theme = Some("random-light".to_string());
+    app.apply_config(cfg);
+    assert_eq!(crew_theme::mode(), Some(crew_theme::RandomMode::Light));
+    assert!(!crew_theme::current_id().is_dark());
+    let mut cfg = app.config.clone();
+    cfg.theme = Some("graphite".to_string());
+    app.apply_config(cfg);
+    assert_eq!(crew_theme::mode(), None);
+    assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::Graphite);
+    crew_theme::apply_selection(
+        crew_theme::Selection::Fixed(crew_theme::ThemeId::PaperDark),
+        0,
+    );
+}
+
+#[test]
 fn bare_nonsense_with_no_shell_hints_instead_of_spawning() {
     // Same unresolvable-text outcome as `submit_without_a_shell_hints`, but
     // Target::Other arises the other way here: a focused pane that exists but

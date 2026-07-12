@@ -58,8 +58,10 @@ pub struct Theme {
 
 mod presets_crt;
 mod presets_paper;
+mod presets_paper_light;
 pub use presets_crt::{CRT_AMBER, CRT_BLUE, CRT_GREEN, CRT_VIOLET};
 pub use presets_paper::{GRAPHITE, MIDNIGHT_INK, PAPER_DARK, PAPER_LIGHT, SEPIA_DARK};
+pub use presets_paper_light::{COLDPRESS_GRAY, IVORY_LEDGER, SALMON_BROADSHEET, SEPIA_LIGHT};
 
 /// WCAG 2.1 contrast ratio between two sRGB colours.
 pub fn contrast_ratio(a: (u8, u8, u8), b: (u8, u8, u8)) -> f32 {
@@ -84,8 +86,12 @@ pub enum ThemeId {
     PaperDark,
     PaperLight,
     SepiaDark,
+    SepiaLight,
     MidnightInk,
     Graphite,
+    ColdpressGray,
+    SalmonBroadsheet,
+    IvoryLedger,
     CrtGreen,
     CrtAmber,
     CrtBlue,
@@ -94,12 +100,16 @@ pub enum ThemeId {
 
 /// Every theme, in cycle order (used by the `Ctrl+Shift+L` rotation and the
 /// `/theme` completion). Keep in sync with the enum.
-pub const ALL_THEMES: [ThemeId; 9] = [
+pub const ALL_THEMES: [ThemeId; 13] = [
     ThemeId::PaperDark,
     ThemeId::PaperLight,
     ThemeId::SepiaDark,
+    ThemeId::SepiaLight,
     ThemeId::MidnightInk,
     ThemeId::Graphite,
+    ThemeId::ColdpressGray,
+    ThemeId::SalmonBroadsheet,
+    ThemeId::IvoryLedger,
     ThemeId::CrtGreen,
     ThemeId::CrtAmber,
     ThemeId::CrtBlue,
@@ -112,8 +122,12 @@ impl ThemeId {
             ThemeId::PaperDark => "paper-dark",
             ThemeId::PaperLight => "paper-light",
             ThemeId::SepiaDark => "sepia-dark",
+            ThemeId::SepiaLight => "sepia-light",
             ThemeId::MidnightInk => "midnight-ink",
             ThemeId::Graphite => "graphite",
+            ThemeId::ColdpressGray => "coldpress-gray",
+            ThemeId::SalmonBroadsheet => "salmon-broadsheet",
+            ThemeId::IvoryLedger => "ivory-ledger",
             ThemeId::CrtGreen => "crt-green",
             ThemeId::CrtAmber => "crt-amber",
             ThemeId::CrtBlue => "crt-blue",
@@ -127,8 +141,12 @@ impl ThemeId {
             ThemeId::PaperDark => "high-contrast newspaper (dark)",
             ThemeId::PaperLight => "warm paper page (light)",
             ThemeId::SepiaDark => "dark sepia paper (warm cream ink)",
+            ThemeId::SepiaLight => "aged-newsprint cream page (light sepia)",
             ThemeId::MidnightInk => "deep navy page, cool off-white ink",
             ThemeId::Graphite => "soft charcoal paper (gentle dark)",
+            ThemeId::ColdpressGray => "cool pale-gray page (light graphite)",
+            ThemeId::SalmonBroadsheet => "FT salmon-pink broadsheet (light)",
+            ThemeId::IvoryLedger => "ivory page, ledger-green ink (light)",
             ThemeId::CrtGreen => "neon green phosphor CRT",
             ThemeId::CrtAmber => "neon amber phosphor CRT",
             ThemeId::CrtBlue => "neon blue phosphor CRT (Tron)",
@@ -146,8 +164,12 @@ impl ThemeId {
             "paper-dark" => Some(ThemeId::PaperDark),
             "paper-light" => Some(ThemeId::PaperLight),
             "sepia-dark" => Some(ThemeId::SepiaDark),
+            "sepia-light" => Some(ThemeId::SepiaLight),
             "midnight-ink" => Some(ThemeId::MidnightInk),
             "graphite" => Some(ThemeId::Graphite),
+            "coldpress-gray" => Some(ThemeId::ColdpressGray),
+            "salmon-broadsheet" => Some(ThemeId::SalmonBroadsheet),
+            "ivory-ledger" => Some(ThemeId::IvoryLedger),
             "crt-green" => Some(ThemeId::CrtGreen),
             "crt-amber" => Some(ThemeId::CrtAmber),
             "crt-blue" => Some(ThemeId::CrtBlue),
@@ -161,8 +183,12 @@ impl ThemeId {
             ThemeId::PaperDark => &PAPER_DARK,
             ThemeId::PaperLight => &PAPER_LIGHT,
             ThemeId::SepiaDark => &SEPIA_DARK,
+            ThemeId::SepiaLight => &SEPIA_LIGHT,
             ThemeId::MidnightInk => &MIDNIGHT_INK,
             ThemeId::Graphite => &GRAPHITE,
+            ThemeId::ColdpressGray => &COLDPRESS_GRAY,
+            ThemeId::SalmonBroadsheet => &SALMON_BROADSHEET,
+            ThemeId::IvoryLedger => &IVORY_LEDGER,
             ThemeId::CrtGreen => &CRT_GREEN,
             ThemeId::CrtAmber => &CRT_AMBER,
             ThemeId::CrtBlue => &CRT_BLUE,
@@ -181,6 +207,10 @@ impl ThemeId {
             ThemeId::MidnightInk => 6,
             ThemeId::Graphite => 7,
             ThemeId::CrtViolet => 8,
+            ThemeId::SepiaLight => 9,
+            ThemeId::SalmonBroadsheet => 10,
+            ThemeId::ColdpressGray => 11,
+            ThemeId::IvoryLedger => 12,
         }
     }
 
@@ -194,6 +224,10 @@ impl ThemeId {
             6 => ThemeId::MidnightInk,
             7 => ThemeId::Graphite,
             8 => ThemeId::CrtViolet,
+            9 => ThemeId::SepiaLight,
+            10 => ThemeId::SalmonBroadsheet,
+            11 => ThemeId::ColdpressGray,
+            12 => ThemeId::IvoryLedger,
             _ => ThemeId::PaperDark,
         }
     }
@@ -223,78 +257,191 @@ pub fn theme() -> &'static Theme {
     current_id().theme()
 }
 
-/// Random-rotation mode: when on, the active theme changes every `ROTATE_MS`.
-static RANDOM: AtomicBool = AtomicBool::new(false);
-/// Wall-clock ms of the last rotation (or of enabling random mode).
+/// Rotation mode: when set, the active theme changes every [`ROTATE_MS`]
+/// within the mode's pool. Stored as a lock-free u8 for per-frame reads:
+/// 0 = off, 1 = dark pool, 2 = light pool, 3 = auto (pool follows the OS
+/// appearance via [`set_os_dark`]).
+static MODE: AtomicU8 = AtomicU8::new(0);
+/// Wall-clock ms of the last rotation (or of enabling a mode).
 static ROTATED_MS: AtomicU64 = AtomicU64::new(0);
-/// How long each random theme is shown before rotating: 10 minutes.
+/// The OS appearance, fed by winit's ThemeChanged. Defaults to dark so a
+/// platform that never reports stays on the dark pool.
+static OS_DARK: AtomicBool = AtomicBool::new(true);
+/// How long each rotated theme is shown: 10 minutes (fonts share this).
 pub const ROTATE_MS: u64 = 600_000;
 
-/// Whether random-rotation mode is active.
-pub fn is_random() -> bool {
-    RANDOM.load(Ordering::Relaxed)
+/// The rotation pools: dark, light, or follow-the-OS.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RandomMode {
+    Dark,
+    Light,
+    Auto,
 }
 
-/// Pick a DARK theme from `ALL_THEMES` that is NOT `current`, deterministically from
-/// `seed` (so a caller can seed with a timestamp). Always changes visibly. The pool
-/// excludes light themes and `current`.
-pub fn random_pick(current: ThemeId, seed: u64) -> ThemeId {
+impl RandomMode {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            RandomMode::Dark => "random-dark",
+            RandomMode::Light => "random-light",
+            RandomMode::Auto => "auto",
+        }
+    }
+
+    fn as_u8(self) -> u8 {
+        match self {
+            RandomMode::Dark => 1,
+            RandomMode::Light => 2,
+            RandomMode::Auto => 3,
+        }
+    }
+
+    fn from_u8(v: u8) -> Option<RandomMode> {
+        match v {
+            1 => Some(RandomMode::Dark),
+            2 => Some(RandomMode::Light),
+            3 => Some(RandomMode::Auto),
+            _ => None,
+        }
+    }
+
+    /// Which pool this mode draws from right now (auto asks the OS).
+    fn pool_is_dark(self) -> bool {
+        match self {
+            RandomMode::Dark => true,
+            RandomMode::Light => false,
+            RandomMode::Auto => os_dark(),
+        }
+    }
+}
+
+/// What a theme name string resolves to: a fixed theme or a rotation mode.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Selection {
+    Fixed(ThemeId),
+    Mode(RandomMode),
+}
+
+/// Parse a `/theme` argument / config value. `random` is a back-compat
+/// alias for `random-dark` (the pre-split behaviour).
+pub fn parse_selection(s: &str) -> Option<Selection> {
+    let s = s.trim();
+    if s.eq_ignore_ascii_case("random") || s.eq_ignore_ascii_case("random-dark") {
+        return Some(Selection::Mode(RandomMode::Dark));
+    }
+    if s.eq_ignore_ascii_case("random-light") {
+        return Some(Selection::Mode(RandomMode::Light));
+    }
+    if s.eq_ignore_ascii_case("auto") {
+        return Some(Selection::Mode(RandomMode::Auto));
+    }
+    ThemeId::from_name(s).map(Selection::Fixed)
+}
+
+/// The active rotation mode, if any.
+pub fn mode() -> Option<RandomMode> {
+    RandomMode::from_u8(MODE.load(Ordering::Relaxed))
+}
+
+/// Whether any rotation mode is active.
+pub fn is_random() -> bool {
+    mode().is_some()
+}
+
+/// Report the OS appearance (winit ThemeChanged / startup Window::theme).
+/// While `auto` is active the change takes effect on the next rotation tick;
+/// callers that want an immediate flip re-apply the selection (the app does).
+pub fn set_os_dark(dark: bool) {
+    OS_DARK.store(dark, Ordering::Relaxed);
+}
+
+/// The last reported OS appearance (defaults to dark).
+pub fn os_dark() -> bool {
+    OS_DARK.load(Ordering::Relaxed)
+}
+
+/// Pick a theme from the dark (`dark = true`) or light pool that is NOT
+/// `current`, deterministically from `seed`. Both pools have ≥ 5 entries,
+/// so minus `current` they are never empty.
+pub fn random_pick(current: ThemeId, seed: u64, dark: bool) -> ThemeId {
     let others: Vec<ThemeId> = ALL_THEMES
         .iter()
         .copied()
-        .filter(|&t| t.is_dark() && t != current)
+        .filter(|&t| t.is_dark() == dark && t != current)
         .collect();
-    // Cheap hash of the seed → index; `others` is all dark themes minus
-    // `current` when `current` is dark — at least 7 with 8 dark presets, so
-    // never empty.
     let idx = (seed.wrapping_mul(6364136223846793005).rotate_right(29) as usize) % others.len();
     others[idx]
 }
 
-/// Enable/disable random-rotation mode. Enabling switches to a random theme
-/// immediately (so the effect is visible) and starts the 10-minute clock.
-pub fn set_random(on: bool, now_ms: u64) {
-    RANDOM.store(on, Ordering::Relaxed);
-    if on {
-        set_theme(random_pick(current_id(), now_ms));
-        ROTATED_MS.store(now_ms, Ordering::Relaxed);
+/// Apply a parsed selection: a fixed theme pins it (mode off); a mode
+/// switches immediately to a pick from its pool (so the effect is visible)
+/// and starts the 10-minute clock.
+pub fn apply_selection(sel: Selection, now_ms: u64) {
+    match sel {
+        Selection::Fixed(id) => {
+            MODE.store(0, Ordering::Relaxed);
+            set_theme(id);
+        }
+        Selection::Mode(m) => {
+            MODE.store(m.as_u8(), Ordering::Relaxed);
+            set_theme(random_pick(current_id(), now_ms, m.pool_is_dark()));
+            ROTATED_MS.store(now_ms, Ordering::Relaxed);
+        }
     }
 }
 
-/// Called each poll tick with the current wall-clock ms. When random mode is on
-/// and `ROTATE_MS` has elapsed since the last rotation, switch to a new random
-/// theme and return `true` (so the caller can request a redraw). Cheap and
-/// lock-free — safe to call at ~62 Hz on the winit thread.
-pub fn tick_random(now_ms: u64) -> bool {
-    if !RANDOM.load(Ordering::Relaxed) {
-        return false;
+/// The status-line label for the active selection: the mode's name while
+/// rotating, else the pinned theme's name.
+pub fn selection_label() -> &'static str {
+    match mode() {
+        Some(m) => m.as_str(),
+        None => current_id().as_str(),
     }
+}
+
+/// Called each poll tick with the current wall-clock ms. When a mode is on
+/// and `ROTATE_MS` has elapsed, switch to a new pick from the mode's pool
+/// (auto re-reads the OS appearance every tick) and return `true` so the
+/// caller repaints. Cheap and lock-free — safe at ~62 Hz on the winit thread.
+pub fn tick_random(now_ms: u64) -> bool {
+    let Some(m) = mode() else {
+        return false;
+    };
     let last = ROTATED_MS.load(Ordering::Relaxed);
     if now_ms.saturating_sub(last) < ROTATE_MS {
         return false;
     }
-    set_theme(random_pick(current_id(), now_ms));
+    set_theme(random_pick(current_id(), now_ms, m.pool_is_dark()));
     ROTATED_MS.store(now_ms, Ordering::Relaxed);
     true
 }
 
-/// Advance the Ctrl+Shift+L cycle one step: the 5 themes in ALL_THEMES order,
-/// then `random`, wrapping back to the first. Applies the change and returns a
-/// label for the status line (`"random"` or a theme's `as_str()`).
+/// Advance the Ctrl+Shift+L cycle one step: the 13 fixed themes in
+/// [`ALL_THEMES`] order, then random-dark → random-light → auto, wrapping
+/// back to the first fixed theme (mode off). Returns the status-line label.
 pub fn cycle_next(now_ms: u64) -> &'static str {
-    if is_random() {
-        set_random(false, now_ms);
-        set_theme(ALL_THEMES[0]);
-        ALL_THEMES[0].as_str()
-    } else {
-        let cur = current_id();
-        let i = ALL_THEMES.iter().position(|&t| t == cur).unwrap_or(0);
-        if i + 1 < ALL_THEMES.len() {
-            set_theme(ALL_THEMES[i + 1]);
-            ALL_THEMES[i + 1].as_str()
-        } else {
-            set_random(true, now_ms); // last fixed theme → enter random mode
-            "random"
+    match mode() {
+        Some(RandomMode::Dark) => {
+            apply_selection(Selection::Mode(RandomMode::Light), now_ms);
+            "random-light"
+        }
+        Some(RandomMode::Light) => {
+            apply_selection(Selection::Mode(RandomMode::Auto), now_ms);
+            "auto"
+        }
+        Some(RandomMode::Auto) => {
+            apply_selection(Selection::Fixed(ALL_THEMES[0]), now_ms);
+            ALL_THEMES[0].as_str()
+        }
+        None => {
+            let cur = current_id();
+            let i = ALL_THEMES.iter().position(|&t| t == cur).unwrap_or(0);
+            if i + 1 < ALL_THEMES.len() {
+                set_theme(ALL_THEMES[i + 1]);
+                ALL_THEMES[i + 1].as_str()
+            } else {
+                apply_selection(Selection::Mode(RandomMode::Dark), now_ms);
+                "random-dark"
+            }
         }
     }
 }

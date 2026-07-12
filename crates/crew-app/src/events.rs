@@ -129,6 +129,18 @@ impl CrewApp {
                     r.frame(&scenes);
                 }
             }
+            WindowEvent::ThemeChanged(t) => {
+                crew_theme::set_os_dark(t == winit::window::Theme::Dark);
+                // An appearance flip lands immediately in auto mode.
+                if crew_theme::mode() == Some(crew_theme::RandomMode::Auto) {
+                    crew_theme::apply_selection(
+                        crew_theme::Selection::Mode(crew_theme::RandomMode::Auto),
+                        crate::chattime::unix_now_ms(),
+                    );
+                    crate::palette::set_accent(self.config.accent_rgb());
+                    self.redraw();
+                }
+            }
             _ => {}
         }
     }

@@ -35,6 +35,21 @@ impl ApplicationHandler for CrewApp {
         };
         let window = Arc::new(event_loop.create_window(attrs).expect("create window"));
 
+        // Seed the OS appearance for `/theme auto` (ThemeChanged keeps it live).
+        if let Some(t) = window.theme() {
+            crew_theme::set_os_dark(t == winit::window::Theme::Dark);
+            if crew_theme::mode() == Some(crew_theme::RandomMode::Auto) {
+                crew_theme::apply_selection(
+                    crew_theme::Selection::Mode(crew_theme::RandomMode::Auto),
+                    crate::chattime::unix_now_ms(),
+                );
+                // The re-apply can flip pools (startup guessed OS-dark before
+                // the window existed), so refresh the theme-following accent
+                // too — same pairing as the ThemeChanged arm in events.rs.
+                crate::palette::set_accent(self.config.accent_rgb());
+            }
+        }
+
         // Font size is in logical points; multiply by the display scale so text is
         // the right physical size on HiDPI/Retina (the surface is in physical px).
         let font_px = self.config.font_size * window.scale_factor() as f32;
@@ -80,12 +95,19 @@ pub fn run() -> anyhow::Result<()> {
     crate::dockicon::set();
     let config = CrewConfig::load();
     // Apply the theme first; the accent default reads the active theme.
-    // A saved `random` pin resumes rotation mode; `theme_id()` would otherwise
-    // silently default it to paper-dark (it only parses fixed theme names).
-    if config.theme.as_deref() == Some("random") {
-        crew_theme::set_random(true, crate::chattime::unix_now_ms());
-    } else {
-        crew_theme::set_theme(config.theme_id());
+    // A saved rotation mode (random/random-dark/random-light/auto) resumes
+    // that mode; `theme_id()` would otherwise silently default it to
+    // paper-dark (it only parses fixed theme names).
+    match config
+        .theme
+        .as_deref()
+        .and_then(crew_theme::parse_selection)
+    {
+        Some(sel) => crew_theme::apply_selection(sel, crate::chattime::unix_now_ms()),
+        None => crew_theme::apply_selection(
+            crew_theme::Selection::Fixed(config.theme_id()),
+            crate::chattime::unix_now_ms(),
+        ),
     }
     // Seed the themeable accent from config before the first frame.
     crate::palette::set_accent(config.accent_rgb());

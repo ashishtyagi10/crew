@@ -15,8 +15,9 @@ impl CrewApp {
     }
 
     /// Advance the theme cycle (Ctrl+Shift+L): every fixed theme in order, then
-    /// `random`, then wraps — so the one hotkey reaches all of them, persists
-    /// the choice, and repaints exactly like the `/theme` command.
+    /// `random-dark`, `random-light`, `auto`, then wraps — so the one hotkey
+    /// reaches all of them, persists the choice, and repaints exactly like the
+    /// `/theme` command.
     pub(crate) fn toggle_theme(&mut self) {
         let label = crew_theme::cycle_next(crate::chattime::unix_now_ms());
         self.config.theme = Some(label.to_string());
@@ -54,12 +55,20 @@ mod tests {
     #[test]
     fn toggle_theme_enters_random_after_the_last_fixed_theme_then_wraps() {
         let _g = crate::app::theme_test_guard();
-        crew_theme::set_random(false, 0);
+        crew_theme::apply_selection(crew_theme::Selection::Fixed(crew_theme::current_id()), 0);
         crew_theme::set_theme(crew_theme::ThemeId::CrtViolet);
         let mut app = crate::app::CrewApp::default();
+        // Past the last fixed theme, the cycle steps through all three
+        // rotation modes before wrapping back to the first fixed theme.
         app.toggle_theme();
-        assert!(crew_theme::is_random());
-        assert_eq!(app.config.theme.as_deref(), Some("random"));
+        assert_eq!(crew_theme::mode(), Some(crew_theme::RandomMode::Dark));
+        assert_eq!(app.config.theme.as_deref(), Some("random-dark"));
+        app.toggle_theme();
+        assert_eq!(crew_theme::mode(), Some(crew_theme::RandomMode::Light));
+        assert_eq!(app.config.theme.as_deref(), Some("random-light"));
+        app.toggle_theme();
+        assert_eq!(crew_theme::mode(), Some(crew_theme::RandomMode::Auto));
+        assert_eq!(app.config.theme.as_deref(), Some("auto"));
         app.toggle_theme();
         assert!(!crew_theme::is_random());
         assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::PaperDark);

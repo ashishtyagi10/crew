@@ -369,25 +369,25 @@ fn slash_theme_random_enters_rotation_and_a_named_switch_clears_it() {
 
     let mut p = pane();
     let cwd = std::env::temp_dir();
-    crew_theme::set_random(false, 0);
-    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+    crew_theme::apply_selection(
+        crew_theme::Selection::Fixed(crew_theme::ThemeId::PaperDark),
+        0,
+    );
 
-    // `/theme random` enters rotation mode and echoes it, without reaching
-    // the broker.
+    // `/theme random` enters rotation mode (the `random-dark` alias) and
+    // echoes it, without reaching the broker.
     p.input = "/theme random".to_string();
     assert!(p.on_input(ChatInput::Enter, &cwd).is_none());
     assert!(crew_theme::is_random());
+    assert_eq!(crew_theme::mode(), Some(crew_theme::RandomMode::Dark));
     let note = &p.messages.last().unwrap().text;
-    assert!(
-        note.contains("random") && note.contains("10 min"),
-        "got: {note}"
-    );
+    assert!(note.contains("random-dark"), "got: {note}");
 
-    // The listing marks `random`, not any fixed theme, while rotation is on.
+    // The listing marks `random-dark`, not any fixed theme, while rotation is on.
     p.input = "/theme".to_string();
     assert!(p.on_input(ChatInput::Enter, &cwd).is_none());
     let note = &p.messages.last().unwrap().text;
-    assert!(note.contains("\u{25cf} random"), "got: {note}");
+    assert!(note.contains("\u{25cf} random-dark"), "got: {note}");
 
     // Switching to a named theme turns rotation back off.
     p.input = "/theme paper-light".to_string();
@@ -395,8 +395,10 @@ fn slash_theme_random_enters_rotation_and_a_named_switch_clears_it() {
     assert!(!crew_theme::is_random());
     assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::PaperLight);
 
-    crew_theme::set_random(false, 0);
-    crew_theme::set_theme(crew_theme::ThemeId::PaperDark); // reset (global atomic)
+    crew_theme::apply_selection(
+        crew_theme::Selection::Fixed(crew_theme::ThemeId::PaperDark),
+        0,
+    ); // reset (global atomic)
 }
 
 #[test]

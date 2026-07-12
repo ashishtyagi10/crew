@@ -159,7 +159,7 @@ Press **`/keys`** in the input bar for the full list in-app.
 | Font bigger / smaller / reset | **Cmd+=** / **Cmd+-** / **Cmd+0** |
 | Copy visible screen / paste | **Cmd+C** / **Cmd+V** (Cmd+V pastes a clipboard image as a temp PNG path) |
 | Open URL / file / dir under cursor | **Cmd+Click** |
-| Cycle themes (fixed presets, then random) | **Ctrl+Shift+L** |
+| Cycle themes (fixed presets, then random-dark/light, then auto) | **Ctrl+Shift+L** |
 | Toggle chat markdown preview ↔ raw source | **Ctrl+Shift+M** |
 | Insert a newline in a terminal | **Shift+Enter** (sends a line feed, not submit) |
 | Close pane / maximize window | **Cmd+W** / **Cmd+M** |
@@ -382,15 +382,20 @@ accepts `accent = "#rrggbb"` to override Crew's accent; omit it (or give an
 invalid value) to use the active theme's default accent. It applies at launch —
 `/restart` picks up edits made outside the `/settings` pane.
 
-**Themes.** Crew ships **nine themes**: five paper/ink looks — `paper-dark`
+**Themes.** Crew ships **thirteen themes**: nine paper/ink looks — `paper-dark`
 (default — a high-contrast "newspaper" look), `paper-light` (a warm paper
-page), `sepia-dark` (warm cream ink on dark sepia), `midnight-ink` (cool
-off-white on deep navy), and `graphite` (a gentle soft-charcoal page) — and
-four **CRT phosphor** tubes: `crt-green`, `crt-amber`, `crt-blue`, and
-`crt-violet`, each a neon monochrome glow on a near-black tube. A tenth
-option, **`/theme random`**, rotates through the dark themes every 10
-minutes. Switch with `/theme <name>` (the palette offers an arrow-selectable
-picker) or cycle everything live with `Ctrl+Shift+L`; the choice persists.
+page), `sepia-dark` (warm cream ink on dark sepia), `sepia-light`
+(aged-newsprint cream page), `midnight-ink` (cool off-white on deep navy),
+`graphite` (a gentle soft-charcoal page), `coldpress-gray` (cool pale-gray
+page), `salmon-broadsheet` (FT-style salmon-pink broadsheet), and
+`ivory-ledger` (ivory with ledger-green ink) — and four **CRT phosphor**
+tubes: `crt-green`, `crt-amber`, `crt-blue`, and `crt-violet`, each a neon
+monochrome glow on a near-black tube. Three rotation modes rotate through a
+pool every 10 minutes: **`/theme random-dark`** (dark themes only; alias
+`/theme random`), **`/theme random-light`** (light themes only), and
+**`/theme auto`** (follows OS appearance). Switch with `/theme <name>` (the
+palette offers an arrow-selectable picker) or cycle everything live with
+`Ctrl+Shift+L` (fixed presets, then rotation modes); the choice persists.
 Light themes render ink at Medium weight over 1.2× "newsprint" grain so they
 read like paper, not a washed-out screen. A subtle GPU grain + vignette sits
 behind everything (it reads as a CRT glow on the phosphor themes). Config
@@ -408,7 +413,7 @@ Crew is a Cargo workspace with six crates:
 | `crew-render` | GPU rendering (`wgpu` + `glyphon`) |
 | `crew-term` | PTY + terminal grid (`alacritty_terminal` + `portable-pty`) |
 | `crew-plugin` | Chat / agent plugins (the `/crew` relay broker) |
-| `crew-theme` | Theme presets + palette contracts (9 themes, contrast thresholds) |
+| `crew-theme` | Theme presets + palette contracts (13 themes, rotation modes, contrast thresholds) |
 | `crew-hive` | Swarm orchestration engine (planner, scheduler, agents, blackboard, telemetry) |
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full diagram (app +
