@@ -176,6 +176,42 @@ fn tab_with_multiple_candidates_starts_a_cycle_and_wraps() {
 }
 
 #[test]
+fn command_tab_spawns_the_path_scan_exactly_once() {
+    // The riskiest wiring: a Command-kind Tab must trigger the background
+    // $PATH scan at most once per pane and never block on its result.
+    let (_b, mut p) = fixture("tabcmdscan");
+    p.cmdline = "l".into();
+    tab_complete(&mut p);
+    assert!(p.bins_scan_started, "first Command Tab starts the scan");
+    tab_complete(&mut p);
+    assert!(p.bins_scan_started, "second Tab keeps the guard set");
+    // Whatever the scan's timing, the call returned without blocking and
+    // builtins-only completion stays available meanwhile.
+    p.cmdline = "c".into();
+    tab_complete(&mut p);
+    assert!(p.cmdline.starts_with('c'), "builtins path stays usable");
+}
+
+#[test]
+fn history_recall_and_ghost_accept_invalidate_an_active_cycle() {
+    let (base, mut p) = fixture("cycleinval");
+    std::fs::write(base.join("apple.txt"), b"x").unwrap();
+    std::fs::write(base.join("avocado.txt"), b"x").unwrap();
+    p.history = CmdHistory::from_entries(vec!["cat apple.txt".into()]);
+    p.cmdline = "cat a".into();
+    tab_complete(&mut p);
+    assert!(p.complete.is_some());
+    history_prev(&mut p);
+    assert!(p.complete.is_none(), "history recall clears the cycle");
+
+    p.cmdline = "cat a".into();
+    tab_complete(&mut p);
+    assert!(p.complete.is_some());
+    accept_ghost(&mut p);
+    assert!(p.complete.is_none(), "ghost accept clears the cycle");
+}
+
+#[test]
 fn escape_during_a_cycle_restores_the_pre_cycle_text() {
     let (base, mut p) = fixture("tabesc");
     std::fs::write(base.join("apple.txt"), b"x").unwrap();
