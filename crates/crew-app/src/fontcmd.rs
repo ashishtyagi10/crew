@@ -126,4 +126,16 @@ mod tests {
         let s = app.active_status().unwrap();
         assert!(s.contains("font size"), "{s}");
     }
+
+    #[test]
+    fn rotation_never_touches_the_pinned_config_family() {
+        // The feature's core safety property: a rotated pick lives on
+        // font_rotate.current ONLY, so unrelated config.save() calls (the
+        // resize settle, /theme) can never persist it.
+        let mut app = CrewApp::default();
+        app.config.font_family = Some("Pinned Mono".to_string());
+        app.apply_rotated_family("Rotated Mono".to_string());
+        assert_eq!(app.config.font_family.as_deref(), Some("Pinned Mono"));
+        assert_eq!(app.font_rotate.current.as_deref(), Some("Rotated Mono"));
+    }
 }
