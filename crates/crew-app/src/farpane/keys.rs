@@ -83,9 +83,7 @@ pub(crate) fn reduce(p: &mut FarPane, key: &KeyEvent) -> Option<FarAction> {
             }
         }
         // Enter runs a typed command, submits a `!` ask, or (empty bar)
-        // activates the selected entry (descend / open). A landed
-        // suggestion's text never starts with `!` (it's the bare command),
-        // so this falls straight through to `run_cmdline` on accept.
+        // activates the selected entry (descend / open).
         Key::Named(NamedKey::Enter) => {
             if typing {
                 // A landed suggestion runs verbatim via run_cmdline — even
