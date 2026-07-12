@@ -155,9 +155,11 @@ impl FarPane {
         }
     }
 
-    /// Whether a command-line command is still running (drives the busy sweep).
+    /// Whether a command-line command is still running or an AI ask is in
+    /// flight (drives the busy sweep — which is also what repaints the
+    /// `thinking… Ns` counter while waiting).
     pub fn is_busy(&self) -> bool {
-        self.running.is_some()
+        self.running.is_some() || matches!(self.ask, Some(ask::AskState::Thinking { .. }))
     }
 
     /// Drain the running command’s result, if it finished this tick: reload

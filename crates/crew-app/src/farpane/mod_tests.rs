@@ -522,6 +522,19 @@ fn run_cmdline_after_accepting_a_suggestion_clears_the_ask_state() {
 }
 
 #[test]
+fn thinking_ask_marks_the_pane_busy_so_the_counter_repaints() {
+    // Without this, pane_animating never fires during an ask and the
+    // `thinking\u{2026} Ns` counter freezes on screen (reads as a hang).
+    let _g = super::ask::test_guard();
+    std::env::set_var("CREW_BROKER_MOCK_REPLY", "ls -la");
+    let (_b, mut p) = fixture("bangbusy");
+    assert!(!p.is_busy());
+    submit_ask(&mut p, "list files");
+    std::env::remove_var("CREW_BROKER_MOCK_REPLY");
+    assert!(p.is_busy(), "a thinking ask keeps the busy sweep alive");
+}
+
+#[test]
 fn bang_ask_end_to_end_with_the_mock_provider() {
     let _g = super::ask::test_guard();
     std::env::set_var("CREW_BROKER_MOCK_REPLY", "ls -la");
