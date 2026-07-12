@@ -110,7 +110,6 @@ fn command_bar(
     let bg = Color::Rgb(t.page_bg.0, t.page_bg.1, t.page_bg.2);
     let dim = Color::Rgb(t.text_muted.0, t.text_muted.1, t.text_muted.2);
     let ink = Color::Rgb(t.ink.0, t.ink.1, t.ink.2);
-    let page = Color::Rgb(t.page_bg.0, t.page_bg.1, t.page_bg.2);
     let folder = cwd
         .file_name()
         .map(|s| s.to_string_lossy().into_owned())
@@ -119,7 +118,7 @@ fn command_bar(
     // same selected look the panel listing uses for its cursor row (ink on
     // an accent fill) — a highlighted, still-editable suggestion.
     let cmd_style = if suggested {
-        Style::new().fg(page).bg(accent_color())
+        Style::new().fg(bg).bg(accent_color())
     } else {
         Style::new().fg(ink).bg(bg)
     };

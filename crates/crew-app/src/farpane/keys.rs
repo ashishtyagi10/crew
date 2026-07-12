@@ -88,9 +88,15 @@ pub(crate) fn reduce(p: &mut FarPane, key: &KeyEvent) -> Option<FarAction> {
         // so this falls straight through to `run_cmdline` on accept.
         Key::Named(NamedKey::Enter) => {
             if typing {
-                if let Some(desc) = super::ask::bang_ask(&p.cmdline) {
-                    let desc = desc.to_string();
-                    return Some(super::run::submit_ask(p, &desc));
+                // A landed suggestion runs verbatim via run_cmdline — even
+                // when the suggested command itself starts with `!` (POSIX
+                // pipeline negation), which must not re-enter the ask path.
+                let suggested = matches!(p.ask, Some(super::ask::AskState::Suggested { .. }));
+                if !suggested {
+                    if let Some(desc) = super::ask::bang_ask(&p.cmdline) {
+                        let desc = desc.to_string();
+                        return Some(super::run::submit_ask(p, &desc));
+                    }
                 }
                 return Some(run_cmdline(p));
             }
@@ -162,6 +168,10 @@ pub(crate) fn escape_cmdline(p: &mut FarPane) -> Option<FarAction> {
 /// chains); more than one starts a cycle on the first candidate, and another
 /// Tab advances it (wrapping).
 pub(crate) fn tab_complete(p: &mut FarPane) {
+    // Any bar edit cancels a thinking ask / demotes a landed suggestion —
+    // otherwise a reply landing later would clobber the tabbed text (and an
+    // Enter aimed at it could run a suggestion the user never read).
+    p.ask = None;
     if let Some(state) = &mut p.complete {
         state.i = (state.i + 1) % state.candidates.len();
         let candidate = state.candidates[state.i].clone();
@@ -222,6 +232,7 @@ pub(crate) fn history_prev(p: &mut FarPane) {
         p.cmdline = s.to_string();
     }
     p.complete = None;
+    p.ask = None; // recall is an edit: cancel/demote any ask (see tab_complete)
 }
 
 /// Down while typing: recall the next (newer) history entry, or restore the
@@ -231,6 +242,7 @@ pub(crate) fn history_next(p: &mut FarPane) {
         p.cmdline = s.to_string();
     }
     p.complete = None;
+    p.ask = None; // recall is an edit: cancel/demote any ask (see tab_complete)
 }
 
 /// Right/End while typing: accept the visible ghost-text history suggestion
@@ -239,6 +251,7 @@ pub(crate) fn history_next(p: &mut FarPane) {
 /// occupies the line), so during a cycle this must only end the cycle — a
 /// ghost lookup here would insert a suggestion that was never on screen.
 pub(crate) fn accept_ghost(p: &mut FarPane) {
+    p.ask = None; // ghost accept is an edit: cancel/demote any ask (see tab_complete)
     if p.complete.take().is_some() {
         return;
     }

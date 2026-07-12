@@ -522,6 +522,27 @@ fn run_cmdline_after_accepting_a_suggestion_clears_the_ask_state() {
 }
 
 #[test]
+fn history_recall_cancels_a_thinking_ask() {
+    // Finding-1 regression pin: a reply landing AFTER an Up-arrow recall
+    // must not clobber the recalled text (and Enter must never race into
+    // an unread suggestion). Recall counts as an edit: it cancels the ask.
+    let _g = super::ask::test_guard();
+    std::env::set_var("CREW_BROKER_MOCK_REPLY", "ls -la");
+    let (_b, mut p) = fixture("bangrecall");
+    p.history = CmdHistory::from_entries(vec!["make dist".into()]);
+    p.cmdline = "! find big files".into();
+    submit_ask(&mut p, "find big files");
+    std::env::remove_var("CREW_BROKER_MOCK_REPLY");
+    assert!(matches!(p.ask, Some(AskState::Thinking { .. })));
+    history_prev(&mut p);
+    assert!(p.ask.is_none(), "recall cancels the in-flight ask");
+    assert_eq!(p.cmdline, "make dist");
+    // The dropped receiver means a late reply cannot land anywhere.
+    assert!(p.poll_ask().is_none());
+    assert_eq!(p.cmdline, "make dist", "late reply cannot clobber the bar");
+}
+
+#[test]
 fn thinking_ask_marks_the_pane_busy_so_the_counter_repaints() {
     // Without this, pane_animating never fires during an ask and the
     // `thinking\u{2026} Ns` counter freezes on screen (reads as a hang).
