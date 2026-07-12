@@ -253,6 +253,7 @@ impl CrewApp {
     /// redraw to pick up nav width/visibility) *without* writing it back — used
     /// by `apply_settings`, which then persists.
     pub(crate) fn apply_config(&mut self, cfg: CrewConfig) {
+        let old_family = self.config.font_family.clone();
         self.config = cfg;
         // Apply theme selection: if the saved theme is a rotation mode name,
         // resume rotation in its pool (dark, light, or OS-following); if it's a
@@ -282,6 +283,17 @@ impl CrewApp {
             r.set_font_size(self.config.font_size * scale);
             r.set_paper_texture(self.config.paper_texture);
             r.set_paper_grain(self.config.paper_grain);
+        }
+        // A manual family pick in Settings stops rotation; otherwise a live
+        // rotation keeps its current pick on top of the re-applied config.
+        if self.config.font_family != old_family {
+            self.font_rotate.on = false;
+            self.font_rotate.current = None;
+            self.config.font_random = false;
+        } else if let (true, Some(fam)) = (self.font_rotate.on, self.font_rotate.current.clone()) {
+            if let Some(r) = &mut self.renderer {
+                r.set_font_family(Some(fam));
+            }
         }
         // Pick up any change to the watched notification patterns on live panes.
         self.apply_notify_patterns();

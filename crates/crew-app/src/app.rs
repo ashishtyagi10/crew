@@ -40,6 +40,8 @@ pub struct CrewApp {
     /// Resolves each terminal pane's foreground PID to a command name for its
     /// title (e.g. `claude`), refreshed ~1×/s.
     pub(crate) procnames: crate::procname::ProcNames,
+    /// `/font random` rotation state (pool cache + 10-minute clock).
+    pub(crate) font_rotate: crate::fontrotate::FontRotate,
     pub(crate) input: InputBar,
     /// Animation frame counter, advanced while the welcome screen is showing.
     pub(crate) tick: u64,

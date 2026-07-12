@@ -111,9 +111,18 @@ pub fn run() -> anyhow::Result<()> {
     }
     // Seed the themeable accent from config before the first frame.
     crate::palette::set_accent(config.accent_rgb());
+    // Seed font rotation state: resume the saved on/off flag, but stamp
+    // `last_ms` to now so the first rotation only fires after ROTATE_MS (no
+    // swap out from under the user at launch).
+    let font_rotate = crate::fontrotate::FontRotate {
+        on: config.font_random,
+        last_ms: crate::chattime::unix_now_ms(),
+        ..Default::default()
+    };
     let cwd = crate::cwd::resolved_start(config.last_dir.as_deref());
     let mut app = CrewApp {
         config,
+        font_rotate,
         // Default focus is the input bar (startup has no panes selected).
         input: InputBar {
             text: String::new(),

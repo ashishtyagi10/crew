@@ -188,7 +188,11 @@ The docked command bar supports:
 - **`/broadcast`, `/zoom`, `/sidebar`** — palette-discoverable toggles that mirror
   the `Cmd+S` / `Cmd+Z` / `Cmd+G` chords, for when the chord slips your mind.
 - **`/font <n>`** — sets the font size to an exact value (clamped 12–32), unlike
-  the `Cmd+=`/`Cmd+-` chords that step by one; no argument reports the current size.
+  the `Cmd+=`/`Cmd+-` chords that step by one; no argument reports the current size
+  (and rotation state, if on). **`/font random`** turns on a 10-minute rotation
+  through the installed monospace families (same clock as `/theme random`); it
+  only ever touches the live renderer, never the pinned `font_family` in
+  Settings, and a manual family pick there turns rotation back off.
   The font *family* is picked in `/settings` — a type-to-search dropdown over
   every installed monospace family (the active one carries a `✓`); run
   `crew --list-fonts` in any shell to print the same list and check a newly

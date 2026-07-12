@@ -18,6 +18,16 @@ fn apply_config_adopts_values_without_a_renderer() {
 }
 
 #[test]
+fn manual_family_change_disables_rotation() {
+    let mut app = CrewApp::default();
+    app.font_rotate.on = true;
+    let mut cfg = app.config.clone();
+    cfg.font_family = Some("Menlo".to_string());
+    app.apply_config(cfg);
+    assert!(!app.font_rotate.on, "explicit family pick stops rotation");
+}
+
+#[test]
 fn apply_config_reconciles_random_mode() {
     let _g = crate::app::theme_test_guard();
     crew_theme::apply_selection(
