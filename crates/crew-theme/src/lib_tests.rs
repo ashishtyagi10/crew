@@ -102,15 +102,15 @@ fn random_pick_never_returns_current_and_is_deterministic() {
     let _g = guard();
     for current in ALL_THEMES {
         for seed in [0u64, 1, 2, 42, 1_000, 600_000, u64::MAX, 123_456_789] {
-            let picked = random_pick(current, seed);
+            let picked = random_pick(current, seed, true);
             assert_ne!(picked, current, "seed {seed} picked the current theme");
             // Same seed -> same pick (determinism).
-            assert_eq!(random_pick(current, seed), picked);
+            assert_eq!(random_pick(current, seed, true), picked);
         }
     }
     // Varying the seed actually varies the pick (not a constant function).
     let current = ThemeId::PaperDark;
-    let picks: Vec<ThemeId> = (0u64..20).map(|s| random_pick(current, s)).collect();
+    let picks: Vec<ThemeId> = (0u64..20).map(|s| random_pick(current, s, true)).collect();
     assert!(
         picks.iter().any(|&p| p != picks[0]),
         "random_pick looks constant across seeds: {picks:?}"
@@ -118,21 +118,10 @@ fn random_pick_never_returns_current_and_is_deterministic() {
 }
 
 #[test]
-fn set_random_true_enables_mode_and_switches_theme_now() {
-    let _g = guard();
-    set_theme(ThemeId::PaperDark);
-    set_random(true, 1000);
-    assert!(is_random());
-    assert_ne!(current_id(), ThemeId::PaperDark);
-    set_random(false, 0);
-    set_theme(ThemeId::PaperDark);
-}
-
-#[test]
 fn tick_random_fires_at_rotate_ms_when_on() {
     let _g = guard();
     set_theme(ThemeId::PaperDark);
-    RANDOM.store(true, Ordering::Relaxed);
+    MODE.store(1, Ordering::Relaxed);
     ROTATED_MS.store(0, Ordering::Relaxed);
     assert!(!tick_random(ROTATE_MS - 1));
     assert_eq!(current_id(), ThemeId::PaperDark);
@@ -141,18 +130,7 @@ fn tick_random_fires_at_rotate_ms_when_on() {
     assert_ne!(current_id(), before);
 
     // Random OFF: never fires, no matter how much time has passed.
-    set_random(false, 0);
-    assert!(!tick_random(10_000_000));
-    set_theme(ThemeId::PaperDark);
-}
-
-#[test]
-fn set_random_false_disables_mode() {
-    let _g = guard();
-    set_random(true, 500);
-    assert!(is_random());
-    set_random(false, 0);
-    assert!(!is_random());
+    apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
     assert!(!tick_random(10_000_000));
     set_theme(ThemeId::PaperDark);
 }
@@ -160,8 +138,7 @@ fn set_random_false_disables_mode() {
 #[test]
 fn cycle_next_walks_all_themes_then_random_then_wraps() {
     let _g = guard();
-    set_random(false, 0);
-    set_theme(ThemeId::PaperDark);
+    apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
     // Starting at paper-dark, each call steps to the next fixed theme...
     for want in [
         "paper-light",
@@ -179,15 +156,20 @@ fn cycle_next_walks_all_themes_then_random_then_wraps() {
     ] {
         assert_eq!(cycle_next(1), want);
     }
-    // ...then from the last fixed theme it enters random mode...
-    assert_eq!(cycle_next(5), "random");
+    // ...then from the last fixed theme it enters random-dark...
+    assert_eq!(cycle_next(5), "random-dark");
     assert!(is_random());
-    // ...and from random it wraps back to the first fixed theme, off.
-    assert_eq!(cycle_next(6), "paper-dark");
+    // ...then random-light...
+    assert_eq!(cycle_next(6), "random-light");
+    assert!(is_random());
+    // ...then auto...
+    assert_eq!(cycle_next(7), "auto");
+    assert!(is_random());
+    // ...and from auto it wraps back to the first fixed theme, off.
+    assert_eq!(cycle_next(8), "paper-dark");
     assert!(!is_random());
     assert_eq!(current_id(), ThemeId::PaperDark);
-    set_random(false, 0);
-    set_theme(ThemeId::PaperDark);
+    apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
 }
 
 #[test]
@@ -315,18 +297,94 @@ fn grain_is_newsprint_on_light_and_subtle_on_dark() {
 }
 
 #[test]
-fn random_pick_only_returns_dark_themes() {
-    // Random rotation must never land on a light theme, from any start.
+fn parse_selection_names_modes_and_alias() {
+    assert_eq!(
+        parse_selection("paper-light"),
+        Some(Selection::Fixed(ThemeId::PaperLight))
+    );
+    assert_eq!(
+        parse_selection(" random-dark "),
+        Some(Selection::Mode(RandomMode::Dark))
+    );
+    assert_eq!(
+        parse_selection("Random-Light"),
+        Some(Selection::Mode(RandomMode::Light))
+    );
+    assert_eq!(
+        parse_selection("AUTO"),
+        Some(Selection::Mode(RandomMode::Auto))
+    );
+    assert_eq!(
+        parse_selection("random"),
+        Some(Selection::Mode(RandomMode::Dark)),
+        "back-compat alias"
+    );
+    assert_eq!(parse_selection("nope"), None);
+}
+
+#[test]
+fn random_pick_pools_are_pure() {
     for current in ALL_THEMES {
-        for seed in [0u64, 1, 2, 42, 999, 600_000, u64::MAX, 123_456_789] {
-            let picked = random_pick(current, seed);
-            assert!(
-                picked.is_dark(),
-                "seed {seed} from {} picked light theme {}",
-                current.as_str(),
-                picked.as_str()
-            );
-            assert_ne!(picked, current);
+        for seed in [0u64, 1, 42, 600_000, u64::MAX] {
+            assert!(random_pick(current, seed, true).is_dark());
+            assert!(!random_pick(current, seed, false).is_dark());
+            assert_ne!(random_pick(current, seed, true), current);
+            assert_ne!(random_pick(current, seed, false), current);
         }
     }
+}
+
+#[test]
+fn apply_selection_modes_pick_from_their_pool_immediately() {
+    let _g = guard();
+    apply_selection(Selection::Mode(RandomMode::Light), 1_000);
+    assert_eq!(mode(), Some(RandomMode::Light));
+    assert!(is_random());
+    assert!(
+        !current_id().is_dark(),
+        "light mode must land on a light theme"
+    );
+    apply_selection(Selection::Mode(RandomMode::Dark), 2_000);
+    assert!(current_id().is_dark());
+    apply_selection(Selection::Fixed(ThemeId::PaperDark), 3_000);
+    assert_eq!(mode(), None);
+    assert!(!is_random());
+    assert_eq!(current_id(), ThemeId::PaperDark);
+}
+
+#[test]
+fn auto_mode_follows_the_os_appearance() {
+    let _g = guard();
+    set_os_dark(true);
+    apply_selection(Selection::Mode(RandomMode::Auto), 1_000);
+    assert!(current_id().is_dark(), "auto + OS dark → dark pool");
+    // OS flips to light: the NEXT tick (or re-apply) must land light.
+    set_os_dark(false);
+    ROTATED_MS.store(0, Ordering::Relaxed);
+    assert!(tick_random(ROTATE_MS));
+    assert!(!current_id().is_dark(), "auto + OS light → light pool");
+    set_os_dark(true);
+    apply_selection(Selection::Fixed(ThemeId::PaperDark), 2_000);
+}
+
+#[test]
+fn tick_random_rotates_within_the_light_pool() {
+    let _g = guard();
+    apply_selection(Selection::Mode(RandomMode::Light), 0);
+    for i in 1..=4u64 {
+        ROTATED_MS.store(0, Ordering::Relaxed);
+        assert!(tick_random(i * ROTATE_MS));
+        assert!(!current_id().is_dark(), "tick {i} left the light pool");
+    }
+    apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
+}
+
+#[test]
+fn selection_label_names_mode_or_theme() {
+    let _g = guard();
+    apply_selection(Selection::Fixed(ThemeId::Graphite), 0);
+    assert_eq!(selection_label(), "graphite");
+    apply_selection(Selection::Mode(RandomMode::Auto), 0);
+    assert_eq!(selection_label(), "auto");
+    apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
 }
