@@ -1,4 +1,8 @@
-use super::keys::{activate, ascend, move_sel};
+use super::cmdhist::CmdHistory;
+use super::keys::{
+    accept_ghost, activate, ascend, escape_cmdline, history_next, history_prev, move_sel,
+    tab_complete,
+};
 use super::run::run_cmdline;
 use super::{FarAction, FarPane, Side};
 
@@ -132,4 +136,149 @@ fn new_pane_starts_with_empty_completion_and_scan_state() {
     assert!(p.complete.is_none());
     assert!(p.bins.get().is_none());
     assert!(!p.bins_scan_started);
+}
+
+#[test]
+fn tab_completes_a_unique_path_candidate_with_trailing_space() {
+    let (base, mut p) = fixture("tabunique");
+    std::fs::write(base.join("readme.md"), b"x").unwrap();
+    p.cmdline = "cat read".into();
+    tab_complete(&mut p);
+    assert_eq!(p.cmdline, "cat readme.md ");
+    assert!(p.complete.is_none(), "single match doesn't start a cycle");
+}
+
+#[test]
+fn tab_completes_a_directory_without_a_trailing_space() {
+    let (_b, mut p) = fixture("tabdir");
+    p.cmdline = "cd su".into();
+    tab_complete(&mut p);
+    assert_eq!(p.cmdline, "cd sub/");
+}
+
+#[test]
+fn tab_with_multiple_candidates_starts_a_cycle_and_wraps() {
+    let (base, mut p) = fixture("tabcycle");
+    std::fs::write(base.join("apple.txt"), b"x").unwrap();
+    std::fs::write(base.join("avocado.txt"), b"x").unwrap();
+    p.cmdline = "cat a".into();
+    tab_complete(&mut p);
+    let first = p.cmdline.clone();
+    assert!(p.complete.is_some(), "multiple matches start a cycle");
+    tab_complete(&mut p);
+    let second = p.cmdline.clone();
+    assert_ne!(first, second, "second Tab advances the cycle");
+    tab_complete(&mut p);
+    assert_eq!(
+        p.cmdline, first,
+        "third Tab wraps back to the first candidate"
+    );
+}
+
+#[test]
+fn escape_during_a_cycle_restores_the_pre_cycle_text() {
+    let (base, mut p) = fixture("tabesc");
+    std::fs::write(base.join("apple.txt"), b"x").unwrap();
+    std::fs::write(base.join("avocado.txt"), b"x").unwrap();
+    p.cmdline = "cat a".into();
+    tab_complete(&mut p);
+    assert!(p.complete.is_some());
+    let action = escape_cmdline(&mut p);
+    assert!(
+        action.is_none(),
+        "Esc during a cycle doesn't close the pane"
+    );
+    assert_eq!(p.cmdline, "cat a");
+    assert!(p.complete.is_none());
+}
+
+#[test]
+fn escape_on_a_typed_bar_clears_it_without_closing() {
+    let (_b, mut p) = fixture("tabescclear");
+    p.cmdline = "ls".into();
+    assert!(escape_cmdline(&mut p).is_none());
+    assert!(p.cmdline.is_empty());
+}
+
+#[test]
+fn escape_on_an_empty_bar_closes_the_pane() {
+    let (_b, mut p) = fixture("tabescclose");
+    assert!(matches!(escape_cmdline(&mut p), Some(FarAction::Close)));
+}
+
+#[test]
+fn history_prev_and_next_cycle_through_the_bar() {
+    let (_b, mut p) = fixture("histcycle");
+    p.history = CmdHistory::from_entries(vec!["ls".into(), "cargo test".into()]);
+    p.cmdline = "half".into();
+    history_prev(&mut p);
+    assert_eq!(p.cmdline, "cargo test");
+    history_prev(&mut p);
+    assert_eq!(p.cmdline, "ls");
+    history_next(&mut p);
+    assert_eq!(p.cmdline, "cargo test");
+    history_next(&mut p);
+    assert_eq!(
+        p.cmdline, "half",
+        "Down past the newest restores the typed text"
+    );
+}
+
+#[test]
+fn accept_ghost_fills_in_the_matching_history_entry() {
+    let (_b, mut p) = fixture("ghostaccept");
+    p.history = CmdHistory::from_entries(vec!["cargo build".into()]);
+    p.cmdline = "cargo".into();
+    accept_ghost(&mut p);
+    assert_eq!(p.cmdline, "cargo build");
+}
+
+#[test]
+fn accept_ghost_is_a_no_op_without_a_match() {
+    let (_b, mut p) = fixture("ghostnoop");
+    p.history = CmdHistory::from_entries(vec!["cargo build".into()]);
+    p.cmdline = "zz".into();
+    accept_ghost(&mut p);
+    assert_eq!(p.cmdline, "zz");
+}
+
+/// Point `$HOME` at a fresh tempdir for the duration of `f`, then restore it
+/// — callers must hold `super::cmdhist::test_guard()` first. `run_cmdline`
+/// persists history via the real `dirs`-based path, so any test exercising
+/// it needs this isolation (mirrors `cmdhist.rs`'s own test helper — kept
+/// separate since it's a different file/module).
+fn with_tmp_home<T>(f: impl FnOnce() -> T) -> T {
+    let dir = tempfile::tempdir().unwrap();
+    let prev = std::env::var_os("HOME");
+    std::env::set_var("HOME", dir.path());
+    let out = f();
+    match prev {
+        Some(p) => std::env::set_var("HOME", p),
+        None => std::env::remove_var("HOME"),
+    }
+    out
+}
+
+#[test]
+fn run_cmdline_pushes_the_command_into_history() {
+    let _g = super::cmdhist::test_guard();
+    with_tmp_home(|| {
+        let (base, mut p) = fixture("histpush");
+        p.right.cwd = base.join("sub");
+        p.active = Side::Right;
+        p.cmdline = "touch made-here".into();
+        run_cmdline(&mut p);
+        assert_eq!(p.history.prev(""), Some("touch made-here"));
+    });
+}
+
+#[test]
+fn cd_is_pushed_into_history_too() {
+    let _g = super::cmdhist::test_guard();
+    with_tmp_home(|| {
+        let (_b, mut p) = fixture("histpushcd");
+        p.cmdline = "cd sub".into();
+        run_cmdline(&mut p);
+        assert_eq!(p.history.prev(""), Some("cd sub"));
+    });
 }

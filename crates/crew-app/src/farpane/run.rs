@@ -63,15 +63,18 @@ pub(crate) fn run_cmdline(p: &mut FarPane) -> FarAction {
     let cwd = p.active_cwd();
     let cmd = std::mem::take(&mut p.cmdline);
     let cmd = cmd.trim().to_string();
+    p.complete = None;
     if cmd.is_empty() {
         return FarAction::Status("nothing to run".into());
     }
     if let Some(target) = cd_target(&cmd) {
+        p.history.push(&cmd);
         return change_dir(p, &cwd, target);
     }
     if let Some((running, _)) = &p.running {
         return FarAction::Status(format!("still running ‘{running}’ — wait for it"));
     }
+    p.history.push(&cmd);
     let rx = start(&crate::spawn::default_shell(), &cmd, &cwd);
     let status = format!("running ‘{cmd}’ in {}…", cwd.display());
     p.running = Some((cmd, rx));

@@ -1,6 +1,8 @@
 //! Key reduction for the Far pane: panel switching, cursor movement, descending
 //! into directories / opening files, the classic function-key actions
-//! (copy/move/delete/make-folder/view/edit/help), and closing the pane.
+//! (copy/move/delete/make-folder/view/edit/help), Tab completion + Up/Down
+//! history + Right/End ghost-text acceptance on the command line, and closing
+//! the pane.
 use std::path::PathBuf;
 
 use winit::event::KeyEvent;
@@ -37,25 +39,49 @@ pub(crate) fn reduce(p: &mut FarPane, key: &KeyEvent) -> Option<FarAction> {
     }
     let typing = !p.cmdline.is_empty();
     match &key.logical_key {
-        // F10 always quits. Esc clears a typed command first, else quits.
+        // F10 always quits. Esc cancels a Tab-cycle, else clears a typed
+        // command, else quits.
         Key::Named(NamedKey::F10) => return Some(FarAction::Close),
-        Key::Named(NamedKey::Escape) => {
+        Key::Named(NamedKey::Escape) => return escape_cmdline(p),
+        Key::Named(NamedKey::F1) => return Some(FarAction::Help),
+        // Tab stays contextual: an empty bar switches panels (unchanged); a
+        // typed bar completes/cycles the caret token.
+        Key::Named(NamedKey::Tab) => {
             if typing {
-                p.cmdline.clear();
+                tab_complete(p);
             } else {
-                return Some(FarAction::Close);
+                p.active = p.other_side();
             }
         }
-        Key::Named(NamedKey::F1) => return Some(FarAction::Help),
-        Key::Named(NamedKey::Tab) => {
-            p.active = p.other_side();
+        Key::Named(NamedKey::ArrowDown) => {
+            if typing {
+                history_next(p);
+            } else {
+                move_sel(p, 1);
+            }
         }
-        Key::Named(NamedKey::ArrowDown) => move_sel(p, 1),
-        Key::Named(NamedKey::ArrowUp) => move_sel(p, -1),
+        Key::Named(NamedKey::ArrowUp) => {
+            if typing {
+                history_prev(p);
+            } else {
+                move_sel(p, -1);
+            }
+        }
+        Key::Named(NamedKey::ArrowRight) => {
+            if typing {
+                accept_ghost(p);
+            }
+        }
         Key::Named(NamedKey::PageDown) => move_sel(p, PAGE),
         Key::Named(NamedKey::PageUp) => move_sel(p, -PAGE),
         Key::Named(NamedKey::Home) => set_sel(p, 0),
-        Key::Named(NamedKey::End) => set_sel(p, usize::MAX),
+        Key::Named(NamedKey::End) => {
+            if typing {
+                accept_ghost(p);
+            } else {
+                set_sel(p, usize::MAX);
+            }
+        }
         // Enter runs a typed command; with an empty command line it activates
         // the selected entry (descend / open), preserving the old behaviour.
         Key::Named(NamedKey::Enter) => {
@@ -68,6 +94,7 @@ pub(crate) fn reduce(p: &mut FarPane, key: &KeyEvent) -> Option<FarAction> {
         Key::Named(NamedKey::Backspace) => {
             if typing {
                 p.cmdline.pop();
+                p.complete = None;
             } else {
                 ascend(p);
             }
@@ -79,11 +106,115 @@ pub(crate) fn reduce(p: &mut FarPane, key: &KeyEvent) -> Option<FarAction> {
         Key::Named(NamedKey::F7) => p.prompt = Some(Prompt::mkdir()),
         Key::Named(NamedKey::F8) => return Some(delete(p)),
         // Printable input builds up the command line (classic Far behaviour).
-        Key::Named(NamedKey::Space) => p.cmdline.push(' '),
-        Key::Character(s) => p.cmdline.push_str(s.as_str()),
+        Key::Named(NamedKey::Space) => {
+            p.cmdline.push(' ');
+            p.complete = None;
+        }
+        Key::Character(s) => {
+            p.cmdline.push_str(s.as_str());
+            p.complete = None;
+        }
         _ => {}
     }
     None
+}
+
+/// Esc on the command line: cancel an active Tab-cycle (restoring the
+/// pre-cycle text) if one is running; else clear a typed command; else ask
+/// the app to close the pane.
+pub(crate) fn escape_cmdline(p: &mut FarPane) -> Option<FarAction> {
+    if let Some(state) = p.complete.take() {
+        p.cmdline = state.prefix;
+        return None;
+    }
+    if !p.cmdline.is_empty() {
+        p.cmdline.clear();
+        return None;
+    }
+    Some(FarAction::Close)
+}
+
+/// Tab while the command line has text: cycle an existing candidate list, or
+/// build a fresh one from the caret token. A single candidate applies
+/// immediately (trailing space unless it's a directory, so deeper completion
+/// chains); more than one starts a cycle on the first candidate, and another
+/// Tab advances it (wrapping).
+pub(crate) fn tab_complete(p: &mut FarPane) {
+    if let Some(state) = &mut p.complete {
+        state.i = (state.i + 1) % state.candidates.len();
+        let candidate = state.candidates[state.i].clone();
+        p.cmdline = super::complete::apply(&state.prefix, &candidate);
+        return;
+    }
+    let (kind, _token) = super::complete::caret_token(&p.cmdline);
+    let binaries = command_binaries(p, kind);
+    let candidates = super::complete::candidates(&p.cmdline, &p.active_cwd(), &binaries);
+    if candidates.is_empty() {
+        return;
+    }
+    if candidates.len() == 1 {
+        p.cmdline = super::complete::apply(&p.cmdline, &candidates[0]);
+        if !p.cmdline.ends_with('/') {
+            p.cmdline.push(' ');
+        }
+        return;
+    }
+    let prefix = p.cmdline.clone();
+    p.cmdline = super::complete::apply(&prefix, &candidates[0]);
+    p.complete = Some(super::complete::CycleState {
+        candidates,
+        i: 0,
+        prefix,
+    });
+}
+
+/// Command-kind completion needs the cached `$PATH` binaries; kick off the
+/// background scan on first use (returns builtins-only until it lands, never
+/// blocking this thread). Path-kind completion needs no binaries at all.
+fn command_binaries(p: &mut FarPane, kind: super::complete::TokenKind) -> Vec<String> {
+    if kind != super::complete::TokenKind::Command {
+        return Vec::new();
+    }
+    if let Some(bins) = p.bins.get() {
+        return bins.clone();
+    }
+    if !p.bins_scan_started {
+        p.bins_scan_started = true;
+        let slot = p.bins.clone();
+        std::thread::spawn(move || {
+            let path_var = std::env::var("PATH").unwrap_or_default();
+            let bins = super::complete::scan_path_binaries(&path_var);
+            let _ = slot.set(bins);
+        });
+    }
+    Vec::new()
+}
+
+/// Up while typing: recall the previous (older) history entry into the
+/// command line, stashing the currently-typed text so Down can restore it.
+pub(crate) fn history_prev(p: &mut FarPane) {
+    if let Some(s) = p.history.prev(&p.cmdline) {
+        p.cmdline = s.to_string();
+    }
+    p.complete = None;
+}
+
+/// Down while typing: recall the next (newer) history entry, or restore the
+/// text that was being typed once past the newest entry.
+pub(crate) fn history_next(p: &mut FarPane) {
+    if let Some(s) = p.history.next(&p.cmdline) {
+        p.cmdline = s.to_string();
+    }
+    p.complete = None;
+}
+
+/// Right/End while typing: accept the visible ghost-text history suggestion
+/// into the command line, if one is showing.
+pub(crate) fn accept_ghost(p: &mut FarPane) {
+    if let Some(g) = p.history.ghost(&p.cmdline) {
+        p.cmdline = g.to_string();
+    }
+    p.complete = None;
 }
 
 /// Handle a key while the make-folder prompt is open.
