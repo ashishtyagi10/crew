@@ -20,8 +20,10 @@ fn apply_config_adopts_values_without_a_renderer() {
 #[test]
 fn apply_config_reconciles_random_mode() {
     let _g = crate::app::theme_test_guard();
-    crew_theme::set_random(false, 0);
-    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+    crew_theme::apply_selection(
+        crew_theme::Selection::Fixed(crew_theme::ThemeId::PaperDark),
+        0,
+    );
     let mut app = CrewApp::default();
 
     // A saved `random` pin resumes rotation mode.
@@ -45,8 +47,10 @@ fn apply_config_reconciles_random_mode() {
     );
     assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::CrtGreen);
 
-    crew_theme::set_random(false, 0);
-    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+    crew_theme::apply_selection(
+        crew_theme::Selection::Fixed(crew_theme::ThemeId::PaperDark),
+        0,
+    );
 }
 
 #[test]
@@ -66,18 +70,22 @@ fn set_theme_cmd_switches_active_theme() {
 #[test]
 fn set_theme_cmd_random_enters_rotation_mode() {
     let _g = crate::app::theme_test_guard();
-    crew_theme::set_random(false, 0);
-    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+    crew_theme::apply_selection(
+        crew_theme::Selection::Fixed(crew_theme::ThemeId::PaperDark),
+        0,
+    );
     let mut app = CrewApp::default();
     app.set_theme_cmd("random");
     assert!(crew_theme::is_random());
-    assert_eq!(app.config.theme.as_deref(), Some("random"));
+    assert_eq!(app.config.theme.as_deref(), Some("random-dark"));
 
     // Switching to a fixed theme through this path also turns rotation off.
     app.set_theme_cmd("paper-light");
     assert!(!crew_theme::is_random());
     assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::PaperLight);
 
-    crew_theme::set_random(false, 0);
-    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+    crew_theme::apply_selection(
+        crew_theme::Selection::Fixed(crew_theme::ThemeId::PaperDark),
+        0,
+    );
 }

@@ -259,11 +259,17 @@ impl CrewApp {
         // rotation; any fixed theme stops it — otherwise a theme chosen in the
         // Settings pane keeps getting overridden by the rotation, and applying an
         // unrelated setting while random would force paper-dark.
-        if self.config.theme.as_deref() == Some("random") {
-            crew_theme::set_random(true, crate::chattime::unix_now_ms());
-        } else {
-            crew_theme::set_random(false, crate::chattime::unix_now_ms());
-            crew_theme::set_theme(self.config.theme_id());
+        match self
+            .config
+            .theme
+            .as_deref()
+            .and_then(crew_theme::parse_selection)
+        {
+            Some(sel) => crew_theme::apply_selection(sel, crate::chattime::unix_now_ms()),
+            None => crew_theme::apply_selection(
+                crew_theme::Selection::Fixed(self.config.theme_id()),
+                crate::chattime::unix_now_ms(),
+            ),
         }
         // Apply the themeable accent app-wide (render code reads it via palette).
         crate::palette::set_accent(self.config.accent_rgb());
@@ -292,43 +298,41 @@ impl CrewApp {
         self.set_status(format!("font size {}", self.config.font_size as i32));
     }
 
-    /// `/theme [paper-light|paper-dark|random]`: switch the active theme live,
-    /// persist the choice, and repaint. `random` enters rotation mode (a new
-    /// random theme every 10 minutes); any other name pins that theme and
-    /// stops rotation. With no/unknown arg, report the current theme.
+    /// `/theme [<name>|random-dark|random-light|auto]`: switch the active
+    /// theme live, persist the choice, and repaint. A mode name enters
+    /// rotation (dark pool, light pool, or OS-appearance-following); any
+    /// fixed theme name pins that theme and stops rotation. With no/unknown
+    /// arg, report the current selection.
     pub(crate) fn set_theme_cmd(&mut self, arg: &str) {
         let arg = arg.trim();
         if arg.is_empty() {
-            self.set_status(format!("theme: {}", crew_theme::current_id().as_str()));
+            self.set_status(format!("theme: {}", crew_theme::selection_label()));
             return;
         }
-        if arg.eq_ignore_ascii_case("random") {
-            crew_theme::set_random(true, crate::chattime::unix_now_ms());
-            self.config.theme = Some("random".to_string());
-            crate::palette::set_accent(self.config.accent_rgb());
-            self.config.save();
-            self.redraw();
-            self.set_status("theme: random".to_string());
-            return;
-        }
-        let Some(id) = crew_theme::ThemeId::from_name(arg) else {
+        let Some(sel) = crew_theme::parse_selection(arg) else {
             let names = crew_theme::ALL_THEMES
                 .iter()
                 .map(|t| t.as_str())
+                .chain(["random-dark", "random-light", "auto"])
                 .collect::<Vec<_>>()
                 .join(" | ");
             self.set_status(format!("unknown theme '{arg}' ({names})"));
             return;
         };
-        self.config.theme = Some(id.as_str().to_string());
-        crew_theme::set_random(false, crate::chattime::unix_now_ms());
-        crew_theme::set_theme(id);
+        crew_theme::apply_selection(sel, crate::chattime::unix_now_ms());
+        self.config.theme = Some(
+            match sel {
+                crew_theme::Selection::Fixed(id) => id.as_str(),
+                crew_theme::Selection::Mode(m) => m.as_str(),
+            }
+            .to_string(),
+        );
         // Re-apply the accent default (it follows the theme when the user hasn't
         // set an explicit accent).
         crate::palette::set_accent(self.config.accent_rgb());
         self.config.save();
         self.redraw();
-        self.set_status(format!("theme: {}", id.as_str()));
+        self.set_status(format!("theme: {}", crew_theme::selection_label()));
     }
 }
 

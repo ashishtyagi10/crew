@@ -23,7 +23,7 @@ successor to this repo's original terminal file-manager project; the crates unde
   GPU cells (the settings form, command palette, and help overlay use this).
 - **Crates** — `crew-app` (window, panes, input), `crew-render` (GPU), `crew-term`
   (PTY + grid), `crew-plugin` (chat/agent plugins + the `/crew` relay broker),
-  `crew-theme` (the nine theme presets + palette contracts — see
+  `crew-theme` (the thirteen theme presets + palette contracts — see
   [Themes](#themes)), `crew-hive` (the swarm orchestration engine — see
   [Swarm orchestration](#swarm-orchestration-crew-hive) below).
 - **Diagram** — see [ARCHITECTURE.md](ARCHITECTURE.md) for the full app + engine
@@ -116,7 +116,7 @@ Press **`/keys`** in the input bar for this list in-app.
 | Font bigger / smaller / reset | **Cmd+=** / **Cmd+-** / **Cmd+0** |
 | Copy visible screen / paste | **Cmd+C** / **Cmd+V** |
 | Open URL / file / dir under cursor | **Cmd+Click** |
-| Cycle themes (fixed presets, then random) | **Ctrl+Shift+L** |
+| Cycle themes (fixed presets, then random-dark/light, then auto) | **Ctrl+Shift+L** |
 | Toggle chat markdown preview ↔ raw source | **Ctrl+Shift+M** |
 | Insert a newline in a terminal | **Shift+Enter** (line feed, not submit) |
 | Close pane / maximize window | **Cmd+W** / **Cmd+M** |
@@ -202,11 +202,13 @@ The docked command bar supports:
   one: the way to apply a binary installed by `/update`, and the fresh process
   re-reads `config.toml`, so edits made outside the `/settings` pane take
   effect too.
-- **`/theme [name]`** — switches the theme live and persists it (nine themes —
-  `paper-dark`, `paper-light`, `sepia-dark`, `midnight-ink`, `graphite`,
-  `crt-green`, `crt-amber`, `crt-blue`, `crt-violet` — plus `random`, which
-  rotates the dark themes every 10 minutes); no argument reports the
-  current theme. Selecting `/theme` in the palette opens an arrow-selectable
+- **`/theme [name]`** — switches the theme live and persists it (thirteen
+  themes — `paper-dark`, `paper-light`, `sepia-dark`, `sepia-light`,
+  `midnight-ink`, `graphite`, `coldpress-gray`, `salmon-broadsheet`,
+  `ivory-ledger`, `crt-green`, `crt-amber`, `crt-blue`, `crt-violet` — plus
+  the rotation modes `random-dark`/`random` (alias), `random-light`, and
+  `auto` (follows the OS appearance)); no argument reports the current
+  selection. Selecting `/theme` in the palette opens an arrow-selectable
   **picker** of the themes, so you don't have to type the name. `Ctrl+Shift+L`
   cycles through all of them. See [Themes](#themes).
 - **`/only`** — closes every pane except the focused one (a quick "focus mode");
@@ -735,8 +737,8 @@ Settings persist to `$XDG_CONFIG/crew/config.toml` and apply live on Save.
 
 ## Themes
 
-Crew ships **nine themes**: five paper/ink looks designed to read like a page
-rather than a screen, and four old-school CRT phosphor tubes.
+Crew ships **thirteen themes**: nine paper/ink looks designed to read like a
+page rather than a screen, and four old-school CRT phosphor tubes.
 
 - **`paper-dark`** (default) — a high-contrast "newspaper" look: a near-black
   page (`#0a0a0a`) with near-white ink (`#ececec`) and grey rules. Terminal
@@ -745,8 +747,12 @@ rather than a screen, and four old-school CRT phosphor tubes.
   ink-toned ANSI colours (sage, brick, faded indigo). No pure black or white
   anywhere; every surface reads as the same sheet of paper.
 - **`sepia-dark`** — dark sepia paper with warm cream ink.
+- **`sepia-light`** — an aged-newsprint cream page with dark sepia ink.
 - **`midnight-ink`** — a deep navy page with cool off-white ink.
 - **`graphite`** — a soft charcoal page; the gentlest of the darks.
+- **`coldpress-gray`** — a cool pale-gray page with light graphite ink.
+- **`salmon-broadsheet`** — an FT-style salmon-pink broadsheet page (light).
+- **`ivory-ledger`** — an ivory page with ledger-green ink (light).
 - **`crt-green`** — the classic green-phosphor terminal: neon green on a
   near-black tube, with a monochrome-green ANSI palette (brightness tiers) for
   that single-gun look.
@@ -754,9 +760,10 @@ rather than a screen, and four old-school CRT phosphor tubes.
 - **`crt-blue`** — a cool blue phosphor variation (Tron).
 - **`crt-violet`** — a neon violet phosphor variation.
 
-**Light themes read like print.** `paper-light` (the one light theme) renders
+**Light themes read like print.** The five light themes (`paper-light`,
+`sepia-light`, `coldpress-gray`, `salmon-broadsheet`, `ivory-ledger`) render
 base text at **Medium (500) weight** — dark themes use Normal (400) — and
-carries a **1.2× "newsprint" grain** multiplier, so the page reads as paper
+carry a **1.2× "newsprint" grain** multiplier, so the page reads as paper
 instead of a washed-out screen.
 
 A faint procedural **grain** + edge vignette is drawn behind everything (GPU) —
@@ -767,9 +774,19 @@ the CRT ones. Every palette's colours are picked for measured WCAG contrast.
 in the palette opens an arrow-selectable picker — or cycle through every
 theme live with **`Ctrl+Shift+L`**. The choice persists to `config.toml`.
 
-**Random mode:** `/theme random` (also the last stop on the `Ctrl+Shift+L`
-cycle) switches immediately and then rotates to a different theme every
-**10 minutes** — **dark themes only**, so a light page never surprises you.
+**Rotation modes:** three modes rotate to a different theme every
+**10 minutes**, and are also the last three stops on the `Ctrl+Shift+L`
+cycle, in this order:
+
+- **`/theme random-dark`** (alias: `/theme random`) — rotates the dark
+  themes only.
+- **`/theme random-light`** — rotates the light themes only.
+- **`/theme auto`** — follows the OS appearance: the light pool by day, the
+  dark pool by night, re-checked on every OS appearance change and rotation
+  tick.
+
+Each switches immediately to a pick from its pool, so the effect is visible
+right away.
 
 **Programs keep reading after a switch.** Terminal panes answer color queries
 (OSC 10/11) and set `$COLORFGBG` from the active theme, so CLIs that probe the
@@ -785,7 +802,7 @@ after switching a running claude/codex pane to `paper-light` stays legible.
 
 | Key | Default | Meaning |
 |-----|---------|---------|
-| `theme` | `"paper-dark"` | one of the nine theme names (see above) or `random`; unknown ⇒ default |
+| `theme` | `"paper-dark"` | one of the thirteen theme names (see above), or a rotation mode (`random`/`random-dark`, `random-light`, `auto`); unknown ⇒ default |
 | `accent` | theme default | `"#rrggbb"` override for the accent (chrome only); omit to use the theme's accent |
 | `paper_texture` | `true` | turn the paper grain + vignette pass on/off |
 | `paper_grain` | `1.3` | grain strength (`0.0`–`2.0`; `0` = no grain) |
