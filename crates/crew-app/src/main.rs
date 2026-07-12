@@ -53,6 +53,7 @@ mod farpane;
 mod fileindex;
 mod findhl;
 mod fontcmd;
+mod fontrotate;
 mod gauges;
 mod git;
 pub(crate) mod grid;
