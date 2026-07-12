@@ -303,3 +303,79 @@ fn ghost_hidden_while_a_tab_cycle_is_active() {
         "ghost must be suppressed during a completion cycle: {line:?}"
     );
 }
+
+#[test]
+fn thinking_status_shows_elapsed_seconds() {
+    use crate::farpane::ask::AskState;
+    let mut pane = fixture_pane("thinking");
+    pane.cmdline = "! list files".into();
+    let (_tx, rx) = std::sync::mpsc::channel::<Result<String, String>>();
+    pane.ask = Some(AskState::Thinking {
+        started: std::time::Instant::now() - std::time::Duration::from_secs(3),
+        rx,
+    });
+    let cells = render(&pane, 80, 24);
+    let cmd_row = 22; // rows(24) - cmdline row(1) - function bar row(1)
+    let mut row: Vec<(u16, char)> = cells
+        .iter()
+        .filter(|c| c.row == cmd_row)
+        .map(|c| (c.col, c.c))
+        .collect();
+    row.sort_unstable_by_key(|(col, _)| *col);
+    let line: String = row.into_iter().map(|(_, c)| c).collect();
+    assert!(
+        line.contains("thinking"),
+        "missing thinking status: {line:?}"
+    );
+    assert!(line.contains('3'), "elapsed seconds missing: {line:?}");
+}
+
+#[test]
+fn suggested_command_highlights_the_bar_and_shows_the_accept_hint() {
+    use crate::farpane::ask::AskState;
+    let _g = crate::palette::test_guard();
+    let mut pane = fixture_pane("suggested");
+    pane.cmdline = "ls -la".into();
+    pane.ask = Some(AskState::Suggested {
+        original: "! list files".into(),
+    });
+    let cells = render(&pane, 80, 24);
+    let cmd_row = 22;
+    let mut row: Vec<(u16, char)> = cells
+        .iter()
+        .filter(|c| c.row == cmd_row)
+        .map(|c| (c.col, c.c))
+        .collect();
+    row.sort_unstable_by_key(|(col, _)| *col);
+    let line: String = row.iter().map(|(_, c)| *c).collect();
+    // `to_cells` drops blank cells regardless of style (see
+    // `function_bar_highlights_actions_far_style`'s `"F10▐Quit▌"`
+    // precedent), so a column-order reconstruction loses inter-word spaces —
+    // check the squished form, not the literal spaced text.
+    assert!(line.contains("ls-la"), "suggestion missing: {line:?}");
+    assert!(line.contains("Enterrun"), "accept hint missing: {line:?}");
+    let dash = cells
+        .iter()
+        .find(|c| c.row == cmd_row && c.c == '-')
+        .expect("suggestion cell rendered");
+    assert_eq!(
+        dash.bg,
+        crate::palette::accent(),
+        "a landed suggestion highlights with the accent fill"
+    );
+}
+
+#[test]
+fn no_ask_status_when_ask_is_absent() {
+    let mut pane = fixture_pane("noask");
+    pane.cmdline = "ls".into();
+    let cells = render(&pane, 80, 24);
+    let cmd_row = 22;
+    let line: String = cells
+        .iter()
+        .filter(|c| c.row == cmd_row)
+        .map(|c| c.c)
+        .collect();
+    assert!(!line.contains("thinking"));
+    assert!(!line.contains("Enterrun"));
+}

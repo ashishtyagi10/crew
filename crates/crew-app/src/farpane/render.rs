@@ -60,6 +60,20 @@ pub(crate) fn render(p: &FarPane, cols: u16, rows: u16) -> Vec<CellView> {
     } else {
         None
     };
+    // The `!` ask's live status: elapsed seconds while thinking (recomputed
+    // fresh every frame from the stored `Instant` — nothing to tick), or
+    // the accept/discard/edit hint once a suggestion has landed.
+    let (ask_hint, suggested) = match &p.ask {
+        Some(super::ask::AskState::Thinking { started, .. }) => (
+            Some(format!("thinking\u{2026} {}s", started.elapsed().as_secs())),
+            false,
+        ),
+        Some(super::ask::AskState::Suggested { .. }) => (
+            Some("Enter run \u{b7} Esc discard \u{b7} keep typing to edit".to_string()),
+            true,
+        ),
+        None => (None, false),
+    };
     let running = p.running.as_ref().map(|(cmd, _)| cmd.as_str());
     command_bar(
         &mut buf,
@@ -67,6 +81,8 @@ pub(crate) fn render(p: &FarPane, cols: u16, rows: u16) -> Vec<CellView> {
         &p.active_cwd(),
         &p.cmdline,
         ghost.as_deref(),
+        ask_hint.as_deref(),
+        suggested,
         running,
     );
     // The make-folder prompt takes over the function-key row while it's open.
@@ -86,23 +102,40 @@ fn command_bar(
     cwd: &std::path::Path,
     cmdline: &str,
     ghost: Option<&str>,
+    ask_hint: Option<&str>,
+    suggested: bool,
     running: Option<&str>,
 ) {
     let t = crew_theme::theme();
     let bg = Color::Rgb(t.page_bg.0, t.page_bg.1, t.page_bg.2);
     let dim = Color::Rgb(t.text_muted.0, t.text_muted.1, t.text_muted.2);
     let ink = Color::Rgb(t.ink.0, t.ink.1, t.ink.2);
+    let page = Color::Rgb(t.page_bg.0, t.page_bg.1, t.page_bg.2);
     let folder = cwd
         .file_name()
         .map(|s| s.to_string_lossy().into_owned())
         .unwrap_or_else(|| cwd.to_string_lossy().into_owned());
+    // A landed `!` suggestion REPLACES the bar's normal styling with the
+    // same selected look the panel listing uses for its cursor row (ink on
+    // an accent fill) — a highlighted, still-editable suggestion.
+    let cmd_style = if suggested {
+        Style::new().fg(page).bg(accent_color())
+    } else {
+        Style::new().fg(ink).bg(bg)
+    };
     let mut spans = vec![
         Span::styled(format!("{folder} "), Style::new().fg(dim).bg(bg)),
         Span::styled("$ ", Style::new().fg(accent_color()).bg(bg)),
-        Span::styled(format!("{cmdline}▏"), Style::new().fg(ink).bg(bg)),
+        Span::styled(format!("{cmdline}▏"), cmd_style),
     ];
     if let Some(g) = ghost {
         spans.push(Span::styled(g.to_string(), Style::new().fg(dim).bg(bg)));
+    }
+    if let Some(hint) = ask_hint {
+        spans.push(Span::styled(
+            format!("  {hint}"),
+            Style::new().fg(dim).bg(bg),
+        ));
     }
     if let Some(cmd) = running {
         spans.push(Span::styled(
