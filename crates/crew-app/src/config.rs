@@ -38,6 +38,11 @@ pub struct CrewConfig {
     /// Chosen font family; `None`/empty uses the system monospace.
     #[serde(default)]
     pub font_family: Option<String>,
+    /// `/font random`: rotate the UI font every 10 minutes through the
+    /// installed monospace families. The rotated pick itself is NOT saved —
+    /// `font_family` stays whatever the user pinned.
+    #[serde(default)]
+    pub font_random: bool,
     /// Accent colour as a `#rrggbb` hex string; `None`/invalid uses the built-in
     /// Crew green. Applied app-wide via [`crate::palette`].
     #[serde(default)]
@@ -94,6 +99,7 @@ impl Default for CrewConfig {
             nav_width: default_nav_width(),
             show_nav: default_show_nav(),
             font_family: None,
+            font_random: false,
             accent: None,
             maximized: false,
             last_dir: None,
@@ -139,6 +145,7 @@ impl CrewConfig {
             nav_width: self.nav_width.clamp(160.0, 320.0),
             show_nav: self.show_nav,
             font_family: self.font_family.filter(|n| !n.is_empty()),
+            font_random: self.font_random,
             accent: self.accent.filter(|s| !s.is_empty()),
             maximized: self.maximized,
             last_dir: self.last_dir,
@@ -286,6 +293,7 @@ mod tests {
             nav_width: 200.0,
             show_nav: true,
             font_family: Some("Menlo".to_string()),
+            font_random: false,
             accent: Some("#112233".to_string()),
             maximized: true,
             last_dir: Some("/tmp".to_string()),
@@ -343,5 +351,14 @@ mod tests {
         assert_eq!(light.theme_id(), crew_theme::ThemeId::PaperLight);
         let bad = CrewConfig::from_toml_str("theme = \"chartreuse\"\n");
         assert_eq!(bad.theme_id(), crew_theme::ThemeId::PaperDark);
+    }
+
+    #[test]
+    fn font_random_round_trips_and_defaults_off() {
+        let cfg = CrewConfig::from_toml_str("");
+        assert!(!cfg.font_random);
+        let cfg = CrewConfig::from_toml_str("font_random = true\n");
+        assert!(cfg.font_random);
+        assert!(cfg.clamped().font_random, "clamped() must carry the flag");
     }
 }
