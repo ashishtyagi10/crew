@@ -391,7 +391,7 @@ four **CRT phosphor** tubes: `crt-green`, `crt-amber`, `crt-blue`, and
 option, **`/theme random`**, rotates through the dark themes every 10
 minutes. Switch with `/theme <name>` (the palette offers an arrow-selectable
 picker) or cycle everything live with `Ctrl+Shift+L`; the choice persists.
-Light themes render ink at Medium weight over 3× "newsprint" grain so they
+Light themes render ink at Medium weight over 1.2× "newsprint" grain so they
 read like paper, not a washed-out screen. A subtle GPU grain + vignette sits
 behind everything (it reads as a CRT glow on the phosphor themes). Config
 keys: `theme = "paper-dark"`, `paper_texture = true` (grain on/off),

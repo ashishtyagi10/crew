@@ -756,7 +756,7 @@ rather than a screen, and four old-school CRT phosphor tubes.
 
 **Light themes read like print.** `paper-light` (the one light theme) renders
 base text at **Medium (500) weight** — dark themes use Normal (400) — and
-carries a **3× "newsprint" grain** multiplier, so the page reads as paper
+carries a **1.2× "newsprint" grain** multiplier, so the page reads as paper
 instead of a washed-out screen.
 
 A faint procedural **grain** + edge vignette is drawn behind everything (GPU) —

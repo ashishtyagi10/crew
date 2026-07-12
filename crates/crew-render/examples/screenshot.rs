@@ -10,8 +10,10 @@ use crew_theme::ThemeId;
 
 const W: u32 = 1200;
 const H: u32 = 800;
-// Match the real app's surface format (Metal/wgpu picks Bgra8UnormSrgb on macOS).
-const FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8UnormSrgb;
+// Match the real app's surface format: `pick_surface_format` in gpu.rs prefers
+// a non-sRGB format so cellgrid's glyphon ColorMode::Web blending happens in
+// gamma space, not linear — the app picks Bgra8Unorm over Bgra8UnormSrgb.
+const FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8Unorm;
 
 // 256-byte aligned bytes-per-row for W columns of BGRA8.
 const BYTES_PER_PIXEL: u32 = 4;
@@ -183,8 +185,8 @@ fn main() {
             pixels.extend_from_slice(&padded[src..src + ROW_BYTES_UNPADDED as usize]);
         }
 
-        // Bgra8UnormSrgb bytes are [B, G, R, A]; PNG expects [R, G, B, A].
-        // Swap in-place — no gamma conversion: sRGB values are written directly.
+        // Bgra8Unorm bytes are [B, G, R, A]; PNG expects [R, G, B, A].
+        // Swap in-place — no gamma conversion: gamma-space values are written directly.
         for chunk in pixels.chunks_exact_mut(4) {
             chunk.swap(0, 2);
         }
@@ -285,7 +287,7 @@ fn main() {
             pixels.extend_from_slice(&padded[src..src + ROW_BYTES_UNPADDED as usize]);
         }
 
-        // Bgra8UnormSrgb → RGBA8 swap
+        // Bgra8Unorm → RGBA8 swap
         for chunk in pixels.chunks_exact_mut(4) {
             chunk.swap(0, 2);
         }

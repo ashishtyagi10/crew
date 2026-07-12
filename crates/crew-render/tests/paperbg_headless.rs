@@ -242,13 +242,16 @@ fn paperbg_headless() {
     );
 
     // -------------------------------------------------------
-    // Case 4: grain_mul=3.0 (intensity=1.0) — the newsprint value. Effective
-    // grain is `paper_grain * theme.grain`, and light themes' `grain` field
-    // is 3.0 (vs 1.0 on dark themes), so this exercises that multiplier's
-    // upper end: variance should be strictly wider than at grain_mul=1.0
-    // on the same page colour (Case 1, `max_r`/`min_r` above).
+    // Case 4: grain_mul=2.4 (intensity=1.0) — the max reachable newsprint
+    // value. Effective grain is `paper_grain * theme.grain`; `paper_grain`
+    // (the user knob) tops out at 2.0 and light themes' `grain` field is 1.2
+    // (vs 1.0 on dark themes, recalibrated for gamma-space blending — see
+    // paperbg.wgsl), so 2.0 * 1.2 = 2.4 is the upper end reachable in the
+    // app. This exercises that ceiling: variance should be strictly wider
+    // than at grain_mul=1.0 on the same page colour (Case 1, `max_r`/`min_r`
+    // above).
     // -------------------------------------------------------
-    paper_bg.update_uniform(&queue, bg_f32, 64.0, 64.0, 1.0, 3.0);
+    paper_bg.update_uniform(&queue, bg_f32, 64.0, 64.0, 1.0, 2.4);
     let strong_pixels = render_64x64(&device, &queue, &paper_bg);
 
     let (strong_max_r, strong_min_r) = strong_pixels
@@ -256,15 +259,15 @@ fn paperbg_headless() {
         .map(|p| p[0])
         .fold((0u8, 255u8), |(mx, mn), r| (mx.max(r), mn.min(r)));
     let spread_1 = max_r as i32 - min_r as i32;
-    let spread_3 = strong_max_r as i32 - strong_min_r as i32;
+    let spread_24 = strong_max_r as i32 - strong_min_r as i32;
 
     eprintln!(
-        "paperbg_headless [intensity=1 grain_mul=3]: max_R={strong_max_r} min_R={strong_min_r} spread={spread_3} (grain_mul=1 spread={spread_1})"
+        "paperbg_headless [intensity=1 grain_mul=2.4]: max_R={strong_max_r} min_R={strong_min_r} spread={spread_24} (grain_mul=1 spread={spread_1})"
     );
 
     // D1: stronger grain multiplier widens the pixel spread.
     assert!(
-        spread_3 > spread_1,
-        "D1 failed: grain_mul=3 spread={spread_3} should exceed grain_mul=1 spread={spread_1}"
+        spread_24 > spread_1,
+        "D1 failed: grain_mul=2.4 spread={spread_24} should exceed grain_mul=1 spread={spread_1}"
     );
 }
