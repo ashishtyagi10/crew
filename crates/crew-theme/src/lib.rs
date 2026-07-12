@@ -50,8 +50,9 @@ pub struct Theme {
     /// random-rotation pool, the light-theme text weight, and grain.
     pub dark: bool,
     /// Grain amplitude multiplier for the paper-texture pass, relative to
-    /// the user's configured `paper_grain`. 1.0 on dark themes; 3.0 on
-    /// light themes for a visible newsprint texture.
+    /// the user's configured `paper_grain`. 1.0 on dark themes; 1.2 on
+    /// light themes for a visible newsprint texture (calibrated for the
+    /// gamma-space blend — see presets_paper.rs).
     pub grain: f32,
 }
 

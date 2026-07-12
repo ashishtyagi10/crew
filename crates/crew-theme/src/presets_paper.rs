@@ -91,7 +91,11 @@ pub static PAPER_LIGHT: Theme = Theme {
         (30, 28, 25),   // 15 bright white (boldest ink)
     ],
     dark: false,
-    grain: 3.0,
+    // 1.2 restores the pre-gamma-blending newsprint amplitude (was 3.0):
+    // grain now modulates encoded values (v0.5.58), which reads much
+    // stronger than the old linear-space pass — calibrated by measuring
+    // page-luma stddev against the previous build's screenshots.
+    grain: 1.2,
 };
 
 /// **Sepia dark**: dark coffee-brown paper with warm cream ink — the paper
