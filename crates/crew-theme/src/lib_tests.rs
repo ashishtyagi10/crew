@@ -166,8 +166,12 @@ fn cycle_next_walks_all_themes_then_random_then_wraps() {
     for want in [
         "paper-light",
         "sepia-dark",
+        "sepia-light",
         "midnight-ink",
         "graphite",
+        "coldpress-gray",
+        "salmon-broadsheet",
+        "ivory-ledger",
         "crt-green",
         "crt-amber",
         "crt-blue",
@@ -187,10 +191,10 @@ fn cycle_next_walks_all_themes_then_random_then_wraps() {
 }
 
 #[test]
-fn u8_mapping_round_trips_all_nine_ids() {
+fn u8_mapping_round_trips_all_ids() {
     // Persistence mapping: every id survives as_u8 → from_u8 (via the
-    // set_theme/current_id atomics), and the new ids extend the mapping
-    // without renumbering the original five.
+    // set_theme/current_id atomics); the new ids extend the mapping
+    // without renumbering the original nine.
     let _g = guard();
     for id in ALL_THEMES {
         set_theme(id);
@@ -200,6 +204,10 @@ fn u8_mapping_round_trips_all_nine_ids() {
     assert_eq!(ThemeId::from_u8(6), ThemeId::MidnightInk);
     assert_eq!(ThemeId::from_u8(7), ThemeId::Graphite);
     assert_eq!(ThemeId::from_u8(8), ThemeId::CrtViolet);
+    assert_eq!(ThemeId::from_u8(9), ThemeId::SepiaLight);
+    assert_eq!(ThemeId::from_u8(10), ThemeId::SalmonBroadsheet);
+    assert_eq!(ThemeId::from_u8(11), ThemeId::ColdpressGray);
+    assert_eq!(ThemeId::from_u8(12), ThemeId::IvoryLedger);
     set_theme(ThemeId::PaperDark);
 }
 
