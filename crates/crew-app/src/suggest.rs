@@ -163,7 +163,7 @@ pub(crate) const COMMANDS: &[Cmd] = &[
     },
     Cmd {
         name: "/font",
-        desc: "Set the font size (/font <n>)",
+        desc: "Set the font size (/font <n>) or toggle rotation (/font random)",
     },
     Cmd {
         name: "/restart",

@@ -29,6 +29,17 @@ impl CrewApp {
         if rotated {
             crate::palette::set_accent(self.config.accent_rgb());
         }
+        // Font rotation: same 10-minute clock as the theme rotation. The pick
+        // updates the renderer only — config.font_family stays pinned.
+        let now_ms = crate::chattime::unix_now_ms();
+        if self.font_rotate.due(now_ms) {
+            let pool = self.font_pool();
+            let cur = self.current_family();
+            if let Some(fam) = crate::fontrotate::pick(&pool, cur.as_deref(), now_ms) {
+                self.apply_rotated_family(fam);
+            }
+            self.font_rotate.last_ms = now_ms;
+        }
         //
         // Drain EVERY pane each tick. A `for` loop (not `any()`/`fold`) so all
         // panes are polled for their side effects — `any()` would short-circuit
