@@ -4,7 +4,7 @@ use super::keys::{
     accept_ghost, activate, ascend, escape_cmdline, history_next, history_prev, move_sel,
     tab_complete,
 };
-use super::run::run_cmdline;
+use super::run::{run_cmdline, submit_ask};
 use super::{FarAction, FarPane, Side};
 
 /// A FarPane rooted at a unique temp dir containing one subdirectory and one
@@ -434,4 +434,108 @@ fn poll_ask_handles_a_dead_worker_thread() {
     assert_eq!(p.cmdline, "! list files");
     assert!(p.ask.is_none());
     assert!(msg.unwrap().contains("worker died"));
+}
+
+#[test]
+fn submit_ask_starts_thinking_and_keeps_the_bang_text() {
+    let (_b, mut p) = fixture("bangenter");
+    p.cmdline = "! list files".into();
+    let action = submit_ask(&mut p, "list files");
+    assert!(matches!(action, FarAction::Status(ref s) if s.contains("asking ai")));
+    assert!(matches!(p.ask, Some(AskState::Thinking { .. })));
+    assert_eq!(p.cmdline, "! list files", "the ! text stays while thinking");
+}
+
+#[test]
+fn submit_ask_nags_on_a_blank_description() {
+    let (_b, mut p) = fixture("bangblank");
+    let action = submit_ask(&mut p, "");
+    assert!(matches!(action, FarAction::Status(ref s) if s.contains("description")));
+    assert!(p.ask.is_none());
+}
+
+#[test]
+fn submit_ask_refuses_a_second_ask_while_one_is_in_flight() {
+    let (_b, mut p) = fixture("bangbusy");
+    let (_tx, rx) = std::sync::mpsc::channel::<Result<String, String>>();
+    p.ask = Some(AskState::Thinking {
+        started: std::time::Instant::now(),
+        rx,
+    });
+    let action = submit_ask(&mut p, "another one");
+    assert!(matches!(action, FarAction::Status(ref s) if s.contains("wait")));
+}
+
+#[test]
+fn escape_on_a_suggestion_restores_the_original_bang_text() {
+    let (_b, mut p) = fixture("bangesc");
+    p.cmdline = "ls -la".into();
+    p.ask = Some(AskState::Suggested {
+        original: "! list files".into(),
+    });
+    assert!(escape_cmdline(&mut p).is_none());
+    assert_eq!(p.cmdline, "! list files");
+    assert!(p.ask.is_none());
+}
+
+#[test]
+fn escape_while_thinking_cancels_the_ask_and_clears_the_bar() {
+    let (_b, mut p) = fixture("bangescthink");
+    let (_tx, rx) = std::sync::mpsc::channel::<Result<String, String>>();
+    p.cmdline = "! list files".into();
+    p.ask = Some(AskState::Thinking {
+        started: std::time::Instant::now(),
+        rx,
+    });
+    assert!(escape_cmdline(&mut p).is_none());
+    assert!(p.ask.is_none());
+    assert!(
+        p.cmdline.is_empty(),
+        "Esc's normal non-empty-bar clear still applies"
+    );
+}
+
+#[test]
+fn run_cmdline_after_accepting_a_suggestion_clears_the_ask_state() {
+    let _g = super::ask::test_guard();
+    with_tmp_home(|| {
+        let (base, mut p) = fixture("bangaccept");
+        p.right.cwd = base.join("sub");
+        p.active = Side::Right;
+        p.cmdline = "touch made-here".into();
+        p.ask = Some(AskState::Suggested {
+            original: "! make a file".into(),
+        });
+        run_cmdline(&mut p);
+        assert!(p.ask.is_none());
+        assert_eq!(
+            p.history.prev(""),
+            Some("touch made-here"),
+            "history records the final command, not the ! ask"
+        );
+    });
+}
+
+#[test]
+fn bang_ask_end_to_end_with_the_mock_provider() {
+    let _g = super::ask::test_guard();
+    std::env::set_var("CREW_BROKER_MOCK_REPLY", "ls -la");
+    let (_b, mut p) = fixture("bange2e");
+    p.cmdline = "! list files".into();
+    submit_ask(&mut p, "list files");
+    let mut landed = None;
+    for _ in 0..300 {
+        if let Some(msg) = p.poll_ask() {
+            landed = Some(msg);
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    std::env::remove_var("CREW_BROKER_MOCK_REPLY");
+    assert!(
+        landed.unwrap().contains("Enter run"),
+        "the hint reaches the caller"
+    );
+    assert_eq!(p.cmdline, "ls -la");
+    assert!(matches!(&p.ask, Some(AskState::Suggested { original }) if original == "! list files"));
 }

@@ -5,6 +5,7 @@
 use std::path::Path;
 use std::sync::mpsc::{self, Receiver};
 
+use super::ask;
 use super::keys::FarAction;
 use super::FarPane;
 
@@ -64,6 +65,7 @@ pub(crate) fn run_cmdline(p: &mut FarPane) -> FarAction {
     let cmd = std::mem::take(&mut p.cmdline);
     let cmd = cmd.trim().to_string();
     p.complete = None;
+    p.ask = None;
     if cmd.is_empty() {
         return FarAction::Status("nothing to run".into());
     }
@@ -79,6 +81,35 @@ pub(crate) fn run_cmdline(p: &mut FarPane) -> FarAction {
     let status = format!("running ‘{cmd}’ in {}…", cwd.display());
     p.running = Some((cmd, rx));
     FarAction::Status(status)
+}
+
+/// Submit a `! <description>` ask on a worker thread: `crew_plugin`'s
+/// discovered provider translates it into one shell command for the active
+/// panel's directory (never auto-run — the reply lands via `poll_ask` as an
+/// editable, highlighted suggestion). Refused, with no thread spawned, while
+/// another ask is already in flight or when `desc` is blank.
+pub(crate) fn submit_ask(p: &mut FarPane, desc: &str) -> FarAction {
+    if p.ask.is_some() {
+        return FarAction::Status("still asking — wait for it".into());
+    }
+    if desc.is_empty() {
+        return FarAction::Status("type a description after !".into());
+    }
+    let cwd = p.active_cwd();
+    let query = desc.to_string();
+    let (tx, rx) = mpsc::channel();
+    std::thread::spawn(move || {
+        let _ = tx.send(crew_plugin::suggest_far_command(
+            &query,
+            &cwd,
+            ask::ASK_TIMEOUT,
+        ));
+    });
+    p.ask = Some(ask::AskState::Thinking {
+        started: std::time::Instant::now(),
+        rx,
+    });
+    FarAction::Status(format!("asking ai — {desc}"))
 }
 
 /// `cd <path>` from the command line: point the active panel at the target

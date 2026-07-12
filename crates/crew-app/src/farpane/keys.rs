@@ -82,10 +82,16 @@ pub(crate) fn reduce(p: &mut FarPane, key: &KeyEvent) -> Option<FarAction> {
                 set_sel(p, usize::MAX);
             }
         }
-        // Enter runs a typed command; with an empty command line it activates
-        // the selected entry (descend / open), preserving the old behaviour.
+        // Enter runs a typed command, submits a `!` ask, or (empty bar)
+        // activates the selected entry (descend / open). A landed
+        // suggestion's text never starts with `!` (it's the bare command),
+        // so this falls straight through to `run_cmdline` on accept.
         Key::Named(NamedKey::Enter) => {
             if typing {
+                if let Some(desc) = super::ask::bang_ask(&p.cmdline) {
+                    let desc = desc.to_string();
+                    return Some(super::run::submit_ask(p, &desc));
+                }
                 return Some(run_cmdline(p));
             }
             return activate(p);
@@ -95,6 +101,7 @@ pub(crate) fn reduce(p: &mut FarPane, key: &KeyEvent) -> Option<FarAction> {
             if typing {
                 p.cmdline.pop();
                 p.complete = None;
+                p.ask = None;
             } else {
                 ascend(p);
             }
@@ -105,14 +112,21 @@ pub(crate) fn reduce(p: &mut FarPane, key: &KeyEvent) -> Option<FarAction> {
         Key::Named(NamedKey::F6) => return Some(rename_move(p)),
         Key::Named(NamedKey::F7) => p.prompt = Some(Prompt::mkdir()),
         Key::Named(NamedKey::F8) => return Some(delete(p)),
-        // Printable input builds up the command line (classic Far behaviour).
+        // Printable input builds up the command line (classic Far
+        // behaviour); any edit cancels an in-flight `!` ask (the worker
+        // thread still finishes in the background, but its result is now
+        // dropped — see `FarPane::poll_ask`) and demotes a landed
+        // suggestion back to plain, unhighlighted text ("keep typing to
+        // edit").
         Key::Named(NamedKey::Space) => {
             p.cmdline.push(' ');
             p.complete = None;
+            p.ask = None;
         }
         Key::Character(s) => {
             p.cmdline.push_str(s.as_str());
             p.complete = None;
+            p.ask = None;
         }
         _ => {}
     }
@@ -125,6 +139,14 @@ pub(crate) fn reduce(p: &mut FarPane, key: &KeyEvent) -> Option<FarAction> {
 pub(crate) fn escape_cmdline(p: &mut FarPane) -> Option<FarAction> {
     if let Some(state) = p.complete.take() {
         p.cmdline = state.prefix;
+        return None;
+    }
+    // A landed suggestion restores the original `!` text verbatim and
+    // discards the suggestion. A still-thinking ask just cancels (its
+    // worker thread finishes in the background but the result is dropped)
+    // and falls through to the normal clear/close behaviour below.
+    if let Some(super::ask::AskState::Suggested { original }) = p.ask.take() {
+        p.cmdline = original;
         return None;
     }
     if !p.cmdline.is_empty() {
