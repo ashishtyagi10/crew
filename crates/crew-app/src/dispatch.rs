@@ -42,8 +42,11 @@ impl CrewApp {
             "zoom" => self.toggle_zoom(),
             "sidebar" => self.toggle_sidebar(),
             "name" => self.name_focused_pane(""), // clear the pane's name
+            "findall" => self.find_all(""),       // show usage hint
             other => {
-                if let Some(term) = other.strip_prefix("find ") {
+                if let Some(term) = other.strip_prefix("findall ") {
+                    self.find_all(term);
+                } else if let Some(term) = other.strip_prefix("find ") {
                     self.find_in_terminal(term.trim());
                 } else if let Some(n) = other.strip_prefix("name ") {
                     self.name_focused_pane(n.trim());

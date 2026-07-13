@@ -171,7 +171,7 @@ The docked command bar supports:
   hint; the same one-ask-at-a-time and worker-thread rules as `?` apply.
 - **Slash commands** — type `/` for a command palette (↑/↓ to pick, Tab/→ to
   fill, Enter to run): `/crew`, `/goal <text>`, `/batch <file>`, `/md <file>`,
-  `/diff`, `/settings`, `/find <text>`, `/name <text>`, `/clear`, `/clearall`,
+  `/diff`, `/settings`, `/find <text>`, `/findall <text>`, `/name <text>`, `/clear`, `/clearall`,
   `/clearlog`, `/only`, `/closeall`, `/pwd`, `/about`, `/copy`, `/dump`,
   `/font`, `/restart`, `/theme`, `/notify`, `/update`, `/broadcast`, `/zoom`,
   `/sidebar`, `/keys`, `/far`, `/exit`. The palette is **fuzzy** — prefix
@@ -343,6 +343,12 @@ back to the most recent line containing the text (smart case: case-insensitive
 unless the term has an uppercase letter), **highlights every match** in the
 viewport with an amber wash, and reports the in-view match count on the status
 line (a miss reports too). Returning to the live bottom clears the highlight.
+**`/findall <text>`** searches **every terminal pane's full scrollback**
+(hidden panes included, bounded per pane), focuses the first matching pane
+(restoring it if minimized), scrolls it to the most recent match, and reports
+the fleet-wide tally — `12 matches for 'error' in 3 panes (#2 #4 #7)` — using
+the same pane numbers as Cmd+1..9 and the tile badges. A follow-up
+`/find <text>` steps upward through the focused pane's matches as usual.
 
 ## Markdown
 

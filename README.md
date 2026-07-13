@@ -188,7 +188,7 @@ recent output and opens its explanation in the zoomed markdown viewer —
 
 Slash commands complete the bar (type `/` for a fuzzy palette): `/crew`,
 `/goal <text>`, `/batch <file>`, `/md <file>`, `/diff`, `/settings`,
-`/find <text>`, `/name <text>`, `/clear`, `/clearall`, `/clearlog`, `/only`,
+`/find <text>`, `/findall <text>`, `/name <text>`, `/clear`, `/clearall`, `/clearlog`, `/only`,
 `/copy`, `/dump`, `/closeall`, `/pwd`, `/about`, `/font`, `/theme`, `/notify`,
 `/restart`, `/update`, `/broadcast`, `/zoom`, `/sidebar`, `/keys`, `/far`,
 `/exit`. Commands with a fixed value set (like `/theme`) expand into an
