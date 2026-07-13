@@ -5,8 +5,11 @@
 mod common;
 use common::{messages, run_broker, unique_dir, PluginEvent};
 
-const SEND_A: &str = r#"{"type":"send","channel":"crew","text":"do task a"}"#;
-const SEND_B: &str = r#"{"type":"send","channel":"crew","text":"do task b"}"#;
+// `@`-addressed so they route to the relay (these pin the task-pool machinery
+// and relay-leg `task:<id>` meta tagging; a plain message is now the default
+// swarm, whose replies aren't relay legs).
+const SEND_A: &str = r#"{"type":"send","channel":"crew","text":"@planner do task a"}"#;
+const SEND_B: &str = r#"{"type":"send","channel":"crew","text":"@planner do task b"}"#;
 const TASKS: &str = r#"{"type":"send","channel":"crew","text":"/tasks"}"#;
 const STOP: &str = r#"{"type":"send","channel":"crew","text":"/stop"}"#;
 const STOP_999: &str = r#"{"type":"send","channel":"crew","text":"/stop #999"}"#;

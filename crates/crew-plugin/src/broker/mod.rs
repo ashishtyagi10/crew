@@ -40,6 +40,7 @@ mod skillframe;
 mod skills;
 mod standup;
 mod stdio;
+mod swarm;
 mod sysread;
 mod sysrun;
 mod systools;

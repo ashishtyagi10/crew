@@ -7,7 +7,9 @@
 mod common;
 use common::{has_leg, messages, run_broker, unique_dir, PluginEvent};
 
-const SEND: &str = r#"{"type":"send","channel":"crew","text":"do it"}"#;
+// `@`-addressed so it routes to the relay (a plain, unaddressed message is now
+// the default swarm; the relay owns explicit `@agent` addressing).
+const SEND: &str = r#"{"type":"send","channel":"crew","text":"@planner do it"}"#;
 
 #[test]
 fn relay_runs_through_the_binary_and_finishes() {
@@ -15,7 +17,7 @@ fn relay_runs_through_the_binary_and_finishes() {
     let mock = ("CREW_BROKER_MOCK_REPLY", "did the work\n@done");
     let ev = run_broker(&dir, &[mock], &[SEND]);
     let msgs = messages(&ev);
-    // The default starting agent (planner) ran and finished back to the user.
+    // The addressed agent (planner) ran and finished back to the user.
     assert!(has_leg(&ev, "planner → user"), "{msgs:?}");
     // The done leg carries the answer with the control line stripped.
     assert!(

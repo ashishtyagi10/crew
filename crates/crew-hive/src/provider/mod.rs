@@ -108,3 +108,23 @@ pub trait Provider: Send + Sync {
         self.complete(req)
     }
 }
+
+/// `Arc<dyn Provider>` (and any `Arc<P>`) is itself a Provider, so callers
+/// that hold a dynamically-discovered provider (the broker) can feed it to
+/// generic consumers like `LlmPlanner<P: Provider>` without re-wrapping.
+impl<P: Provider + ?Sized> Provider for std::sync::Arc<P> {
+    fn complete(
+        &self,
+        req: CompletionRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<Completion, ProviderError>> + Send>> {
+        (**self).complete(req)
+    }
+
+    fn complete_streaming(
+        &self,
+        req: CompletionRequest,
+        on_chunk: ChunkFn,
+    ) -> Pin<Box<dyn Future<Output = Result<Completion, ProviderError>> + Send>> {
+        (**self).complete_streaming(req, on_chunk)
+    }
+}

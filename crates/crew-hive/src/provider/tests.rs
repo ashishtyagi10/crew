@@ -203,3 +203,24 @@ async fn live_anthropic_completion() {
     assert!(!c.text.is_empty());
     assert!(c.output_tokens > 0);
 }
+
+#[tokio::test]
+async fn arc_dyn_provider_is_a_provider() {
+    // The broker holds Arc<dyn Provider>; LlmPlanner<P: Provider> must accept it.
+    fn takes_provider<P: crate::provider::Provider>(p: P) -> P {
+        p
+    }
+    let arc: std::sync::Arc<dyn crate::provider::Provider> =
+        std::sync::Arc::new(crate::provider::MockProvider { reply: "ok".into() });
+    let p = takes_provider(arc);
+    let got = p
+        .complete(crate::provider::CompletionRequest {
+            model: "mock".into(),
+            system: None,
+            prompt: "hi".into(),
+            max_tokens: 16,
+        })
+        .await
+        .unwrap();
+    assert_eq!(got.text, "ok");
+}
