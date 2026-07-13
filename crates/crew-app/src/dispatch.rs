@@ -16,6 +16,8 @@ impl CrewApp {
             "crew" => self.spawn_crew_pane(),
             "settings" => self.spawn_settings_pane(),
             "shell" => self.spawn_new_pane(),
+            // Reopen last session's shells (their cwds snapshot on quit).
+            "restore" => self.restore_session(),
             // Self-update in the background: progress shows in the left-nav UPDATE
             // card and Crew auto-restarts into the new build — no separate shell.
             "update" => self.start_update(),

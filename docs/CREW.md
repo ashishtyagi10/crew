@@ -298,6 +298,15 @@ The docked command bar supports:
 - **Working directory** — the bar's legend shows Crew's current directory
   (`~`-abbreviated). Type **`cd <path>`** (or bare `cd` for home) to move it; new
   shells (**Cmd+T** / `/shell`) open in that directory.
+- **`/restore`** reopens the last session's shells: every quit path (Cmd+Q,
+  window close, `/exit`) snapshots each open terminal pane's **live** shell
+  directory (asked from the OS, so it follows your `cd`s; hidden panes
+  included) to `session.toml` beside the config — up to 6, deduped, stale
+  paths skipped on load. Restore is deliberately pull-based: launching keeps
+  the welcome screen, and the shells come back only when you ask — and asking
+  consumes the snapshot (the next quit re-saves from the live panes). Closing
+  every shell and quitting clears it; a run that never opened a terminal
+  (chat-only, welcome-screen quit) leaves the saved session untouched.
 - **`/name <text>`** titles the focused pane (shown in its title bar); bare
   `/name` clears it back to the program title.
 - **Status flashes** — transient messages (e.g. "copied 12 lines", "cd: no such

@@ -170,6 +170,10 @@ pub(crate) const COMMANDS: &[Cmd] = &[
         desc: "Restart Crew — relaunch detached, applying an installed /update",
     },
     Cmd {
+        name: "/restore",
+        desc: "Reopen last session's shells in their directories",
+    },
+    Cmd {
         name: "/theme",
         desc: "Switch theme — pick from the list",
     },

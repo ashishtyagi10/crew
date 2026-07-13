@@ -259,3 +259,12 @@ fn matches_filters_by_prefix() {
     assert!(!names.contains(&"/exit"));
     assert!(matches("ls").is_empty()); // non-slash → no palette
 }
+
+#[test]
+fn slash_completes_restore_past_the_restart_prefix() {
+    // `/res` stays /restart's (list order = priority); one more char
+    // disambiguates to /restore.
+    assert_eq!(suggest("/resto", &[]).as_deref(), Some("re"));
+    let names: Vec<&str> = matches("/res").iter().map(|c| c.name).collect();
+    assert!(names.contains(&"/restore") && names.contains(&"/restart"));
+}

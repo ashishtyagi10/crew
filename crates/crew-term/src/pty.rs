@@ -390,6 +390,14 @@ impl PtyTerm {
         self.core.take_cwd()
     }
 
+    /// The spawned shell's own PID (the PTY child) — session restore asks the
+    /// OS for this process's live working directory at quit. May be stale
+    /// after the child exits (portable-pty keeps the stored pid); callers
+    /// treat an OS miss as "no cwd" and fall back.
+    pub fn shell_pid(&self) -> Option<u32> {
+        self.child.process_id()
+    }
+
     /// PID of the foreground command running in this pane — the process group in
     /// control of the tty. `None` when the shell itself is at its prompt (so the
     /// pane is idle) or on a platform that doesn't expose it. Lets the title name

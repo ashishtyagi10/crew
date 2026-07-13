@@ -80,6 +80,9 @@ pub struct CrewApp {
     pub(crate) notifier: crate::notify::Notifier,
     /// When quit was last pressed with panes open, for the confirm-to-quit window.
     pub(crate) quit_armed: Option<Instant>,
+    /// Whether a terminal pane ever existed this session — gates the quit
+    /// snapshot so a shell-less run can't wipe a saved `/restore` session.
+    pub(crate) had_terminal: bool,
     /// In-progress background self-update (`/update`): drives the left-nav UPDATE
     /// card and the auto-restart. `None` when no update is running.
     pub(crate) update: Option<crate::update::UpdateState>,
