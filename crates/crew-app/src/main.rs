@@ -25,6 +25,7 @@ mod chatmsgs;
 mod chatpalette;
 mod chatplace;
 mod chatpulse;
+mod chatqueue;
 mod chatroster;
 mod chatscroll;
 mod chatspawn;
