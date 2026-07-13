@@ -111,6 +111,7 @@ fn light_dir() -> (f32, f32, f32) {
 /// `zc` is exactly `cos(lat)` at any latitude). `phase` is added to `lon`
 /// before wrapping to rotate the visible slice.
 #[rustfmt::skip]
+#[allow(clippy::too_many_arguments)] // geometry + three colours, all independent
 pub fn globe(cells: &mut Vec<CellView>, top: u16, left: u16, w: u16, h: u16,
              phase: f32, land: (u8, u8, u8), sea: (u8, u8, u8), bg: (u8, u8, u8)) {
     if w == 0 || h == 0 { return; }
@@ -150,7 +151,9 @@ pub fn globe(cells: &mut Vec<CellView>, top: u16, left: u16, w: u16, h: u16,
 mod tests {
     use super::*;
 
-    fn tuples(cells: &[CellView]) -> Vec<(u16, u16, char, (u8, u8, u8), (u8, u8, u8))> {
+    type CellTuple = (u16, u16, char, (u8, u8, u8), (u8, u8, u8));
+
+    fn tuples(cells: &[CellView]) -> Vec<CellTuple> {
         cells
             .iter()
             .map(|c| (c.col, c.row, c.c, c.fg, c.bg))

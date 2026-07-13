@@ -597,7 +597,7 @@ fn show_source_false_renders_bold_markdown() {
         ts: String::new(),
         meta: String::new(),
     });
-    assert_eq!(p.show_source, false, "show_source defaults to false");
+    assert!(!p.show_source, "show_source defaults to false");
 
     let lines = crate::chatmsgs::card_lines(
         &p.messages,
@@ -677,7 +677,7 @@ fn show_source_true_shows_literal_text() {
 fn show_source_false_chat_title_has_no_suffix() {
     // When show_source is false (default), the title should be just "chat".
     let p = pane();
-    assert_eq!(p.show_source, false);
+    assert!(!p.show_source);
 
     // Create a Pane wrapper to use title_text
     let pane = crate::pane::Pane {

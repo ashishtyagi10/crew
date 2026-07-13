@@ -56,7 +56,7 @@ mod tests {
         assert!(!should_tick(Some(1000), 1149, TICK_GAP_MS));
         assert!(should_tick(Some(1000), 1150, TICK_GAP_MS));
         assert!(
-            should_tick(Some(1000), 999, TICK_GAP_MS) == false,
+            !should_tick(Some(1000), 999, TICK_GAP_MS),
             "clock skew saturates, no panic"
         );
     }

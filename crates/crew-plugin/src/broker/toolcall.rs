@@ -116,6 +116,7 @@ impl Broker {
     /// That keeps every follow-up's reported value monotonically past
     /// wherever the hop's shared gate left off, so it survives the growth
     /// check instead of being swallowed by it.
+    #[allow(clippy::too_many_arguments)] // engine-loop plumbing, one call site
     pub(crate) fn run_tools(
         &self,
         agent: &dyn Adapter,

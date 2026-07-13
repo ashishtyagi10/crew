@@ -61,8 +61,8 @@ fn source_lines(text: &str, width: usize, fg: Color) -> Vec<CardLine> {
         for (start, end) in wrap_indices {
             let mut line = Vec::new();
             line.push(plain(' ', fg, false)); // indentation
-            for i in start..end {
-                line.push(plain(chars[i], fg, false));
+            for &c in &chars[start..end] {
+                line.push(plain(c, fg, false));
             }
             out.push(line);
         }

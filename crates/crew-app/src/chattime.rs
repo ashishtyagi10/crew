@@ -50,7 +50,7 @@ pub(crate) fn strip_task_tag(meta: &str) -> &str {
 /// - <1s (0–999ms): `"0.Xs"` (e.g., `"0.9s"`);
 /// - 1–99s (1000–99999ms): one decimal `"X.Xs"` (e.g., `"3.2s"`, `"61.0s"`);
 /// - >99s (100000ms+): `"MmSSs"` with zero-padded seconds (e.g., `"10m05s"`, `"2m05s"`).
-/// This restores the spec's swarm-task-timings design for durations past 99s.
+///   > This restores the spec's swarm-task-timings design for durations past 99s.
 pub(crate) fn fmt_elapsed(ms: u64) -> String {
     if ms < 1_000 {
         // <1s: "0.Xs" format (truncate to one decimal, not round)

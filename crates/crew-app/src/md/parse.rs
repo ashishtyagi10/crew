@@ -36,6 +36,8 @@ pub(super) struct ListItem {
 
 /// A parsed markdown block. `Block::List` flattens nested lists into one
 /// vector, distinguished by `ListItem::depth`.
+// CodeBlock/BlockQuote are markdown domain terms, not name repetition.
+#[allow(clippy::enum_variant_names)]
 #[derive(Debug, PartialEq)]
 pub(super) enum Block {
     Paragraph(Vec<MdSpan>),
