@@ -209,15 +209,12 @@ pub(crate) fn run_with(
         return Err(e);
     }
 
-    // Final aggregate: sink tasks' outputs (tasks nothing depends on).
-    let sink_ids: Vec<TaskId> = tasks
-        .iter()
-        .filter(|t| !tasks.iter().any(|o| o.deps.contains(&t.id)))
-        .map(|t| t.id)
-        .collect();
-    let sinks = rt.block_on(board.gather(&sink_ids));
+    // Final aggregate: a status line only. Sink tasks' outputs already
+    // streamed live as their own per-task Messages the moment they completed
+    // (OutputChunk -> `translate` -> `msg`), so repeating them here would
+    // duplicate the same answer back-to-back in the transcript.
     let cancelled = cancel.load(std::sync::atomic::Ordering::Relaxed);
-    let mut summary = if cancelled {
+    let summary = if cancelled {
         format!(
             "swarm cancelled (budget or /stop) — {} done, {} failed, {} cancelled",
             outcome.done.len(),
@@ -231,12 +228,6 @@ pub(crate) fn run_with(
             outcome.failed.len()
         )
     };
-    for r in &sinks {
-        if r.success && !r.output.is_empty() {
-            summary.push_str("\n\n");
-            summary.push_str(&r.output);
-        }
-    }
     // One aggregate Stats for the whole run (empty `agent` = turn-total, per
     // the field docs in protocol.rs) so the chat header's token/cost meter
     // and stdio's per-task counter aren't left empty for swarm runs.
@@ -358,6 +349,37 @@ mod tests {
         assert!(evs.iter().rev().any(
             |e| matches!(e, PluginEvent::Message { text, .. } if text.contains("swarm done"))
         ));
+    }
+
+    // The merge (sink) task's output already streams live as its own
+    // per-task Message the moment it completes (OutputChunk -> translate).
+    // The final "swarm done" summary must not repeat that text — otherwise
+    // the same answer appears twice back-to-back in the transcript.
+    #[test]
+    fn final_summary_does_not_repeat_sink_task_output() {
+        let evs = collect("build the thing", Arc::new(AtomicBool::new(false)));
+        // The merge task (id 2, depending on both leaves) streamed its own
+        // output as a per-task message already.
+        assert!(
+            evs.iter()
+                .any(|e| matches!(e, PluginEvent::Message { text, .. } if text.contains("deps=2"))),
+            "expected the merge task's own streamed output message: {evs:?}"
+        );
+        // The closing summary must be status-only, not a repeat of that text.
+        let summary = evs
+            .iter()
+            .rev()
+            .find_map(|e| match e {
+                PluginEvent::Message { text, .. } if text.contains("swarm done") => {
+                    Some(text.clone())
+                }
+                _ => None,
+            })
+            .expect("expected a swarm done summary message");
+        assert!(
+            !summary.contains("deps="),
+            "summary must not duplicate sink task output: {summary:?}"
+        );
     }
 
     #[test]

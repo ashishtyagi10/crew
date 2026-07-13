@@ -159,16 +159,12 @@ impl ChatPane {
                         if self.scroll > 0 {
                             self.unread += 1; // arrived out of view
                         }
-                        self.messages.push(Message {
+                        self.push_capped(Message {
                             sender,
                             text,
                             ts,
                             meta,
                         });
-                        if self.messages.len() > 500 {
-                            let drain = self.messages.len() - 500;
-                            self.messages.drain(..drain);
-                        }
                     }
                     PluginEvent::HivePlan { tasks } => self.absorb_hive_plan(tasks),
                     PluginEvent::Hive { event } => self.absorb_hive(&event),
@@ -206,6 +202,19 @@ impl ChatPane {
         }
     }
 
+    /// Push `m` onto the transcript, then trim from the front to the
+    /// 500-message cap. Shared by every site that appends to `messages` (the
+    /// plugin `Message` arm here, a folded swarm block in `chatswarm.rs`, and
+    /// the Esc-interrupt note below) so the cap can't drift out of sync
+    /// between them.
+    pub(crate) fn push_capped(&mut self, m: Message) {
+        self.messages.push(m);
+        if self.messages.len() > 500 {
+            let drain = self.messages.len() - 500;
+            self.messages.drain(..drain);
+        }
+    }
+
     /// Send `text` to the broker on the pane's channel now, latching
     /// `awaiting` so the busy sweep runs until the reply lands. Shared by a
     /// direct send and a queue flush — both are "the broker gets this text
@@ -235,6 +244,8 @@ impl ChatPane {
     /// deduped: only pushed when the last transcript message isn't already
     /// this same note.
     fn interrupt(&mut self) {
+        // Literal "/stop", not `chatmention::expand` — there's nothing to
+        // expand in a fixed cancel token, so this stays allocation-free.
         self.send_now("/stop".to_string());
         let already_noted = self
             .messages
@@ -246,18 +257,12 @@ impl ChatPane {
         if self.scroll > 0 {
             self.unread += 1;
         }
-        self.messages.push(Message {
+        self.push_capped(Message {
             sender: "crew".into(),
             text: Self::INTERRUPT_NOTE.into(),
             ts: String::new(),
             meta: String::new(),
         });
-        // Same drain the plugin's Message arm applies (chat.rs::poll) — this
-        // note must not let the transcript grow past the cap either.
-        if self.messages.len() > 500 {
-            let drain = self.messages.len() - 500;
-            self.messages.drain(..drain);
-        }
     }
 
     /// Render the channel as CellView cells: a status header, the agent roster
