@@ -61,6 +61,20 @@ impl PtyTerm {
         args: &[String],
         cwd: Option<&Path>,
     ) -> anyhow::Result<Self> {
+        Self::spawn_with_env(size, command, args, cwd, &[])
+    }
+
+    /// As [`Self::spawn_in`], additionally setting `env` vars on the child —
+    /// the host's env is inherited otherwise. Crew uses this to hand run panes
+    /// the user's login-shell PATH: a Dock-launched app only inherits launchd's
+    /// minimal one, under which almost no user command resolves.
+    pub fn spawn_with_env(
+        size: GridSize,
+        command: &str,
+        args: &[String],
+        cwd: Option<&Path>,
+        env: &[(&str, &str)],
+    ) -> anyhow::Result<Self> {
         let pty = native_pty_system();
         let pair = pty.openpty(PtySize {
             rows: size.rows,
@@ -83,6 +97,9 @@ impl PtyTerm {
             "COLORFGBG",
             crate::contrast::colorfgbg_for(crew_theme::theme().term_bg),
         );
+        for (k, v) in env {
+            cmd.env(k, v);
+        }
         let child = pair.slave.spawn_command(cmd)?;
         // Drop the slave end so EOF propagates when the child exits.
         drop(pair.slave);

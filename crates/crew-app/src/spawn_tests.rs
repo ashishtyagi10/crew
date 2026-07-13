@@ -3,6 +3,21 @@ use crate::app::CrewApp;
 use crate::config::CrewConfig;
 
 #[test]
+fn hydrated_env_hands_spawns_the_detection_path() {
+    // Run panes must execute against the SAME PATH commands are detected
+    // with (cmdcheck::effective_path) — a Dock-launched app's inherited PATH
+    // misses ~/.local/bin and /opt/homebrew/bin, so `claude` would pass
+    // detection yet fail to spawn.
+    let env = crate::spawn::hydrated_env();
+    let path = env
+        .iter()
+        .find(|(k, _)| k == "PATH")
+        .map(|(_, v)| v.clone());
+    assert_eq!(path, Some(crate::cmdcheck::effective_path()));
+    assert!(!path.unwrap().is_empty());
+}
+
+#[test]
 fn apply_config_adopts_values_without_a_renderer() {
     let mut app = CrewApp::default();
     let cfg = CrewConfig {
