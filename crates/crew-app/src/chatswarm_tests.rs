@@ -1,4 +1,5 @@
 use crate::chat::ChatPane;
+use crate::chatswarm::{SwarmStatus, SwarmTask};
 use crew_hive::{AgentId, AgentKind, HiveEvent, ModelTier, TaskId, TaskSpec, TaskState};
 use crew_plugin::Plugin;
 
@@ -180,4 +181,129 @@ fn empty_plan_never_opens_a_block_or_wedges_busy() {
     p.absorb_hive_plan(vec![]);
     assert!(p.swarm.is_none());
     assert!(!p.is_busy());
+}
+
+// --- Per-task timings (2026-07-13-swarm-task-timings-design.md) ---
+
+#[test]
+fn agent_spawned_sets_started_once_and_running_does_not_reset_it() {
+    let mut p = pane();
+    p.absorb_hive_plan(vec![spec(0, "research")]);
+    p.absorb_hive(&HiveEvent::AgentSpawned {
+        agent: AgentId(1),
+        task: TaskId(0),
+    });
+    let started1 = p.swarm.as_ref().unwrap().tasks[0].started;
+    assert!(started1.is_some(), "AgentSpawned must stamp `started`");
+
+    // A later TaskStateChanged(Running) for the same task must not reset it
+    // (whichever of the two arrives first wins).
+    p.absorb_hive(&HiveEvent::TaskStateChanged {
+        task: TaskId(0),
+        state: TaskState::Running,
+    });
+    let started2 = p.swarm.as_ref().unwrap().tasks[0].started;
+    assert_eq!(
+        started1, started2,
+        "Running must not reset an already-stamped `started`"
+    );
+}
+
+#[test]
+fn running_state_stamps_started_when_it_arrives_before_agent_spawned() {
+    let mut p = pane();
+    p.absorb_hive_plan(vec![spec(0, "research")]);
+    p.absorb_hive(&HiveEvent::TaskStateChanged {
+        task: TaskId(0),
+        state: TaskState::Running,
+    });
+    assert!(p.swarm.as_ref().unwrap().tasks[0].started.is_some());
+}
+
+#[test]
+fn terminal_state_captures_elapsed_ms_when_started() {
+    let mut p = pane();
+    p.absorb_hive_plan(vec![spec(0, "research")]);
+    p.absorb_hive(&HiveEvent::AgentSpawned {
+        agent: AgentId(1),
+        task: TaskId(0),
+    });
+    p.absorb_hive(&HiveEvent::TaskStateChanged {
+        task: TaskId(0),
+        state: TaskState::Done,
+    });
+    // Instant can't be mocked cheaply — assert presence and monotonic sanity
+    // (a few ms in a fast test run), not an exact value. The record's fold
+    // happened after `started`, so `elapsed_ms` must be non-negative and
+    // small.
+    let last = p.messages.last().unwrap();
+    assert!(last.text.contains('s'), "{}", last.text); // formatter suffix landed
+}
+
+#[test]
+fn cancelled_before_start_leaves_elapsed_none() {
+    // No AgentSpawned/Running ever arrives — task is cancelled straight out
+    // of Pending.
+    let mut p = pane();
+    p.absorb_hive_plan(vec![spec(0, "research")]);
+    p.absorb_hive(&HiveEvent::TaskStateChanged {
+        task: TaskId(0),
+        state: TaskState::Cancelled,
+    });
+    let last = p.messages.last().unwrap();
+    assert_eq!(
+        last.text, "- \u{2298} research",
+        "no elapsed suffix expected"
+    );
+}
+
+#[test]
+fn record_text_appends_elapsed_suffix_when_captured() {
+    let s = SwarmStatus {
+        tasks: vec![SwarmTask {
+            id: TaskId(0),
+            title: "research".into(),
+            state: TaskState::Done,
+            tokens: 0,
+            started: None,
+            elapsed_ms: Some(3_200),
+        }],
+        agent_task: Default::default(),
+    };
+    assert_eq!(s.record_text(), "- \u{2713} research \u{00b7} 3.2s");
+}
+
+#[test]
+fn record_text_appends_elapsed_after_the_token_part() {
+    let s = SwarmStatus {
+        tasks: vec![SwarmTask {
+            id: TaskId(0),
+            title: "research".into(),
+            state: TaskState::Done,
+            tokens: 12_400,
+            started: None,
+            elapsed_ms: Some(900),
+        }],
+        agent_task: Default::default(),
+    };
+    assert_eq!(
+        s.record_text(),
+        "- \u{2713} research \u{2014} 12.4k tok \u{00b7} 0.9s"
+    );
+}
+
+#[test]
+fn record_text_omits_suffix_when_elapsed_is_none() {
+    let s = SwarmStatus {
+        tasks: vec![SwarmTask {
+            id: TaskId(0),
+            title: "research".into(),
+            state: TaskState::Done,
+            tokens: 0,
+            started: None,
+            elapsed_ms: None,
+        }],
+        agent_task: Default::default(),
+    };
+    assert_eq!(s.record_text(), "- \u{2713} research");
 }
