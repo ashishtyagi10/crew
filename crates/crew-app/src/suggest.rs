@@ -122,6 +122,10 @@ pub(crate) const COMMANDS: &[Cmd] = &[
         desc: "Search scrollback, highlighting matches (/find <text>)",
     },
     Cmd {
+        name: "/findall",
+        desc: "Search every pane's scrollback (/findall <text>)",
+    },
+    Cmd {
         name: "/name",
         desc: "Rename the focused pane (/name <text>)",
     },

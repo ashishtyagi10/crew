@@ -106,6 +106,7 @@ mod route;
 mod runpane;
 mod scroll;
 mod search;
+mod searchall;
 mod select;
 mod selfupdate;
 mod session;
