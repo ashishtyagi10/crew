@@ -80,6 +80,13 @@ impl ApplicationHandler for CrewApp {
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
         self.handle_window_event(event_loop, event);
     }
+
+    /// Fires once when the event loop winds down (any quit path — Cmd+Q,
+    /// window close, `/exit`): snapshot the open shells' directories so
+    /// `/restore` can reopen them next launch.
+    fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
+        self.save_session();
+    }
 }
 
 pub fn run() -> anyhow::Result<()> {

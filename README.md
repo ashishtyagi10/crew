@@ -154,6 +154,7 @@ Press **`/keys`** in the input bar for the full list in-app.
 | Move pane left / right | **Cmd+{** / **Cmd+}** |
 | Focus the input bar | **Cmd+I** |
 | New shell pane | **Cmd+T** |
+| Reopen last session's shells | `/restore` |
 | Settings / chat pane | **Cmd+,** / **Cmd+J** |
 | Toggle sidebar | **Cmd+G** |
 | Zoom focused pane | **Cmd+Z** (or double-click) |

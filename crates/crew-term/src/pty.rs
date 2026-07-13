@@ -392,6 +392,12 @@ impl PtyTerm {
 
     /// PID of the foreground command running in this pane — the process group in
     /// control of the tty. `None` when the shell itself is at its prompt (so the
+    /// The spawned shell's own PID (the PTY child) — session restore asks the
+    /// OS for this process's live working directory at quit.
+    pub fn shell_pid(&self) -> Option<u32> {
+        self.child.process_id()
+    }
+
     /// pane is idle) or on a platform that doesn't expose it. Lets the title name
     /// the running program (e.g. `claude`, `codex`).
     pub fn foreground_pid(&self) -> Option<u32> {
