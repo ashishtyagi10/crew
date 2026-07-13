@@ -20,30 +20,32 @@ pub fn card_inner_cells(w: f32, h: f32, cell_w: f32, cell_h: f32) -> (u16, u16) 
 /// Pack `n` tiles near-square into `w`x`h` offset by `(ox, oy)`. Outer edges
 /// keep the full `gap`; interior edges take half each, so the seam between two
 /// adjacent panes is one `gap` — tiles sit closer to each other than to the
-/// window chrome.
+/// window chrome. Bento fill: a short last row stretches its tiles across the
+/// full width, so the grid always covers the whole area with no empty cell.
 pub fn pane_rects_at(n: usize, ox: f32, oy: f32, w: f32, h: f32, gap: f32) -> Vec<Rect> {
     if n == 0 {
         return Vec::new();
     }
     let cols = (n as f32).sqrt().ceil() as usize;
     let rows = n.div_ceil(cols);
-    let tile_w = w / cols as f32;
     let tile_h = h / rows as f32;
     let half = gap / 2.0;
     let mut out = Vec::with_capacity(n);
-    for i in 0..n {
-        let c = i % cols;
-        let r = i / cols;
-        let left = if c == 0 { gap } else { half };
-        let right = if c == cols - 1 { gap } else { half };
-        let top = if r == 0 { gap } else { half };
-        let bottom = if r == rows - 1 { gap } else { half };
-        out.push(Rect {
-            x: ox + c as f32 * tile_w + left,
-            y: oy + r as f32 * tile_h + top,
-            w: tile_w - left - right,
-            h: tile_h - top - bottom,
-        });
+    for r in 0..rows {
+        let row_n = cols.min(n - r * cols);
+        let tile_w = w / row_n as f32;
+        for c in 0..row_n {
+            let left = if c == 0 { gap } else { half };
+            let right = if c == row_n - 1 { gap } else { half };
+            let top = if r == 0 { gap } else { half };
+            let bottom = if r == rows - 1 { gap } else { half };
+            out.push(Rect {
+                x: ox + c as f32 * tile_w + left,
+                y: oy + r as f32 * tile_h + top,
+                w: tile_w - left - right,
+                h: tile_h - top - bottom,
+            });
+        }
     }
     out
 }
@@ -90,6 +92,42 @@ mod tests {
         let r = pane_rects_at(1, 50.0, 30.0, 800.0, 600.0, 0.0);
         approx(r[0].x, 50.0);
         approx(r[0].y, 30.0);
+    }
+
+    #[test]
+    fn three_panes_last_row_fills_full_width() {
+        // Bento fill: a short last row stretches its tiles so the grid always
+        // covers the whole area — no empty cell to the right of pane 3.
+        let r = pane_rects_at(3, 0.0, 0.0, 800.0, 600.0, 0.0);
+        assert_eq!(r.len(), 3);
+        approx(r[0].w, 400.0);
+        approx(r[1].w, 400.0);
+        approx(r[2].x, 0.0);
+        approx(r[2].w, 800.0);
+        approx(r[2].y, 300.0);
+        approx(r[2].h, 300.0);
+    }
+
+    #[test]
+    fn five_panes_last_row_splits_leftover_width() {
+        // n=5 → 3 columns, 2 rows: top row three tiles, bottom row two tiles
+        // that widen to cover the full width between them.
+        let r = pane_rects_at(5, 0.0, 0.0, 900.0, 600.0, 0.0);
+        assert_eq!(r.len(), 5);
+        approx(r[3].x, 0.0);
+        approx(r[3].w, 450.0);
+        approx(r[4].x, 450.0);
+        approx(r[4].w, 450.0);
+        approx(r[4].x + r[4].w, 900.0);
+    }
+
+    #[test]
+    fn short_last_row_keeps_gap_conventions() {
+        // With a gap, the stretched last-row tile still keeps full outer
+        // margins and half-gap interior seams like every other tile.
+        let r = pane_rects_at(3, 0.0, 0.0, 800.0, 600.0, 8.0);
+        approx(r[2].x, 8.0);
+        approx(r[2].x + r[2].w, 792.0);
     }
 
     #[test]
