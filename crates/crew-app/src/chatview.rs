@@ -151,7 +151,11 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
     // claiming one row from the budget when the queue is non-empty (same
     // pattern as the swarm block claiming rows below the messages).
     let queued_rows = crate::chatqueue::queued_rows(pane);
-    let indicator_row = rows.saturating_sub(bottom + queued_rows);
+    // Floored at `top`, same as the swarm block's `block_start` below — on a
+    // squeezed pane (a saturated roster eating rows via `status_rows`, plus
+    // a small `rows`) the unclamped subtraction can bottom out at or below
+    // `top`, letting the indicator overdraw the header/status rows.
+    let indicator_row = rows.saturating_sub(bottom + queued_rows).max(top);
     if pane.messages.is_empty() {
         cells.extend(crate::chatempty::empty_cells(
             cols,

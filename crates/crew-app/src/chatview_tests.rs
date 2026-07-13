@@ -198,6 +198,51 @@ fn queued_indicator_absent_when_queue_empty() {
 }
 
 #[test]
+fn queued_indicator_never_draws_above_the_status_rows_on_a_squeezed_pane() {
+    // Mirrors `empty_pane_swarm_block_never_draws_above_the_status_rows`:
+    // `indicator_row` lacked the swarm block's `.max(top)` floor, so a
+    // saturated roster (status_rows eating several rows for chip cards) on a
+    // short pane can push the unclamped `rows - bottom - queued_rows` above
+    // `top`, overdrawing the header/status rows.
+    let mut pane = test_pane(vec![msg("planner", "hi")]);
+    pane.agents = vec![
+        crew_plugin::AgentInfo {
+            name: "a".into(),
+            role: String::new(),
+            model: String::new(),
+        },
+        crew_plugin::AgentInfo {
+            name: "b".into(),
+            role: String::new(),
+            model: String::new(),
+        },
+        crew_plugin::AgentInfo {
+            name: "c".into(),
+            role: String::new(),
+            model: String::new(),
+        },
+    ];
+    pane.queued.push_back("later".into());
+    let (cols, rows) = (30u16, 5u16);
+    let top = pane.status_rows(cols, rows);
+    assert!(top > 0, "test setup must actually reserve status rows");
+
+    let out = cells(&pane, cols, rows);
+    // Identify indicator cells by the distinctive glyph, not "any cell above
+    // top" — the header/status rows legitimately draw their own content there.
+    let leaked: Vec<(u16, u16, char)> = out
+        .iter()
+        .filter(|c| c.row < top)
+        .filter(|c| c.c == '\u{29d7}')
+        .map(|c| (c.row, c.col, c.c))
+        .collect();
+    assert!(
+        leaked.is_empty(),
+        "queued indicator cell(s) landed above the status rows (top={top}): {leaked:?}"
+    );
+}
+
+#[test]
 fn queued_indicator_renders_on_the_empty_messages_branch_too() {
     let mut pane = test_pane(vec![]);
     pane.queued.push_back("a".into());
