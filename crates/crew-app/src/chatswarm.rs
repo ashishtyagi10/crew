@@ -18,6 +18,9 @@ pub(crate) struct SwarmTask {
     pub state: TaskState,
     /// Tokens spent by the agent running this task (input + output).
     pub tokens: u64,
+    /// Micro-USD spent by the agent running this task (`CostDelta`) — 0 for
+    /// stub/keyless runs, which never emit cost.
+    pub cost_micros: u64,
     /// When the task started running — stamped once by whichever of
     /// `AgentSpawned`/`TaskStateChanged(Running)` arrives first. `None` until
     /// then (and forever, if the task is cancelled before either arrives).
@@ -47,6 +50,7 @@ impl SwarmStatus {
                     title: t.title,
                     state: TaskState::Pending,
                     tokens: 0,
+                    cost_micros: 0,
                     started: None,
                     elapsed_ms: None,
                 })
@@ -92,11 +96,16 @@ impl SwarmStatus {
                     }
                 }
             }
-            // Failed also arrives as TaskStateChanged(Failed); chunks/cost
-            // land in the transcript via the broker's Message translation.
-            HiveEvent::OutputChunk { .. }
-            | HiveEvent::CostDelta { .. }
-            | HiveEvent::Failed { .. } => {}
+            HiveEvent::CostDelta { agent, micros_usd } => {
+                if let Some(&task) = self.agent_task.get(&agent.0) {
+                    if let Some(t) = self.task_mut(task) {
+                        t.cost_micros += *micros_usd;
+                    }
+                }
+            }
+            // Failed also arrives as TaskStateChanged(Failed); chunks land in
+            // the transcript via the broker's Message translation.
+            HiveEvent::OutputChunk { .. } | HiveEvent::Failed { .. } => {}
         }
     }
 

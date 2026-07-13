@@ -9,7 +9,8 @@ It also ships a built-in **swarm orchestration engine** (`crew-hive`): give it a
 goal and it decomposes the work into a task graph and runs a pool of agents
 toward it — single-goal decomposition or parallel-job batches, bring-your-own-LLM
 per agent, with a live task-list view that folds into a per-task record — token
-totals, durations, and a Gantt-style run timeline. See
+totals, dollar costs (per task + run total), durations, and a Gantt-style run
+timeline. See
 [Swarm orchestration](#swarm-orchestration-crew-hive) and
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 

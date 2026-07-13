@@ -421,9 +421,14 @@ turn ends with a `stats` event plus a timeline summary: `turn done — planner
 **Swarm runs stream inline.** When a plain `/crew` message runs as a broker-side
 swarm, the pane opens a **live task-list block** above the composer — one row
 per planned task with a state glyph (a spinner while it runs), its title, live
-elapsed seconds, and a right-aligned token count. When every task reaches a
+elapsed seconds, a right-aligned token count, and — when the run bills real
+API spend — a per-task **cost column** (`$0.0031`; sub-cent costs keep four
+decimals). As the pane narrows the metric columns shed in reverse order of
+urgency: cost first, then tokens, then elapsed. When every task reaches a
 terminal state the block **folds into the transcript** as the run's durable
-record: a task list with per-task token totals and durations, plus — for runs
+record: a task list with per-task token totals, costs, and durations, capped
+by a `Σ 13.0k tok · $0.04` run-total line (the only place the whole run's
+spend surfaces in chat), plus — for runs
 where two or more tasks actually started — a **timeline**: a Gantt-style
 fenced block mapping each task's start→end span onto a 20-cell bar
 (`timeline · 12.4s` header, `█` active / `·` idle), so the run's concurrency

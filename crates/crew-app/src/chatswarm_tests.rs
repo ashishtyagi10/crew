@@ -267,6 +267,7 @@ fn record_text_appends_elapsed_suffix_when_captured() {
             title: "research".into(),
             state: TaskState::Done,
             tokens: 0,
+            cost_micros: 0,
             started: None,
             elapsed_ms: Some(3_200),
         }],
@@ -284,6 +285,7 @@ fn record_text_appends_elapsed_after_the_token_part() {
             title: "research".into(),
             state: TaskState::Done,
             tokens: 12_400,
+            cost_micros: 0,
             started: None,
             elapsed_ms: Some(900),
         }],
@@ -304,6 +306,7 @@ fn record_text_omits_suffix_when_elapsed_is_none() {
             title: "research".into(),
             state: TaskState::Done,
             tokens: 0,
+            cost_micros: 0,
             started: None,
             elapsed_ms: None,
         }],
@@ -321,6 +324,7 @@ fn done_task(id: u64, title: &str, started: Instant, elapsed_ms: u64) -> SwarmTa
         title: title.into(),
         state: TaskState::Done,
         tokens: 0,
+        cost_micros: 0,
         started: Some(started),
         elapsed_ms: Some(elapsed_ms),
     }
@@ -381,6 +385,7 @@ fn task_still_running_at_error_fold_gets_an_open_ended_span() {
                 title: "stuck".into(),
                 state: TaskState::Running,
                 tokens: 0,
+                cost_micros: 0,
                 started: Some(run_started + Duration::from_millis(1_000)),
                 elapsed_ms: None,
             },
@@ -393,4 +398,75 @@ fn task_still_running_at_error_fold_gets_an_open_ended_span() {
     let stuck = text.lines().find(|l| l.starts_with("stuck")).unwrap();
     // Runs to the right edge of the bar (its end is the fold moment).
     assert!(stuck.ends_with('\u{2588}'), "{stuck}");
+}
+
+// --- Per-task cost (CostDelta) ---
+
+#[test]
+fn cost_deltas_accumulate_per_task_via_the_agent_map() {
+    let mut p = pane();
+    p.absorb_hive_plan(vec![spec(0, "research"), spec(1, "merge")]);
+    p.absorb_hive(&HiveEvent::AgentSpawned {
+        agent: AgentId(7),
+        task: TaskId(0),
+    });
+    p.absorb_hive(&HiveEvent::AgentSpawned {
+        agent: AgentId(8),
+        task: TaskId(1),
+    });
+    p.absorb_hive(&HiveEvent::CostDelta {
+        agent: AgentId(7),
+        micros_usd: 3_100,
+    });
+    p.absorb_hive(&HiveEvent::CostDelta {
+        agent: AgentId(7),
+        micros_usd: 900,
+    });
+    p.absorb_hive(&HiveEvent::CostDelta {
+        agent: AgentId(8),
+        micros_usd: 50,
+    });
+    let s = p.swarm.as_ref().unwrap();
+    assert_eq!(s.tasks[0].cost_micros, 4_000);
+    assert_eq!(s.tasks[1].cost_micros, 50);
+}
+
+#[test]
+fn record_shows_per_task_cost_and_a_run_total() {
+    let run_started = Instant::now();
+    let mut a = done_task(0, "research", run_started, 3_200);
+    a.tokens = 12_400;
+    a.cost_micros = 3_100; // $0.0031 — sub-cent keeps 4 decimals
+    let mut b = done_task(1, "merge", run_started, 900);
+    b.tokens = 600;
+    b.cost_micros = 41_200; // $0.04 — cent-plus rounds to 2
+    let s = SwarmStatus {
+        tasks: vec![a, b],
+        agent_task: Default::default(),
+        run_started,
+    };
+    let text = s.record_text();
+    assert!(
+        text.contains("research — 12.4k tok \u{00b7} $0.0031 \u{00b7} 3.2s"),
+        "{text}"
+    );
+    assert!(
+        text.contains("merge — 600 tok \u{00b7} $0.04 \u{00b7} 0.9s"),
+        "{text}"
+    );
+    // The Σ line totals the whole run: 13k tok, $0.0443 → cent-plus → $0.04.
+    assert!(text.contains("\u{03a3} 13.0k tok \u{00b7} $0.04"), "{text}");
+}
+
+#[test]
+fn costless_runs_keep_the_old_record_shape() {
+    let run_started = Instant::now();
+    let s = SwarmStatus {
+        tasks: vec![done_task(0, "solo", run_started, 5_000)],
+        agent_task: Default::default(),
+        run_started,
+    };
+    let text = s.record_text();
+    assert!(!text.contains('$'), "{text}");
+    assert!(!text.contains('\u{03a3}'), "{text}");
 }
