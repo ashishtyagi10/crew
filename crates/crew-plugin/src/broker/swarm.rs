@@ -69,16 +69,35 @@ pub(crate) fn run_task(
     session: &Session,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
+    // A `/resume` before this task folds the previous session's tail in as
+    // restored context (consumed once) — mirrors `relay_counting`'s handling
+    // of `@agent` tasks so the default swarm path doesn't silently ignore it.
+    let task_owned = fold_resume(session, task);
     super::sessionlog::append("user", task);
     let (planner, factory, budget) = backend();
     run_with(
-        task,
+        &task_owned,
         planner,
         factory,
         budget,
         Arc::clone(&session.cancel),
         emit,
     )
+}
+
+/// Consume a pending `/resume` context (if any) and fold it into `task` as
+/// restored context for the planner/execution prompt. The session log still
+/// records the user's original, unfolded `task` text.
+fn fold_resume(session: &Session, task: &str) -> String {
+    let resumed = session
+        .resume
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .take();
+    match resumed {
+        Some(prev) => super::sessionlog::with_resume(&prev, task),
+        None => task.to_string(),
+    }
 }
 
 /// Injectable core: plan `task`, execute the graph, translate events.
@@ -151,9 +170,15 @@ pub(crate) fn run_with(
     let (tx, rx) = std::sync::mpsc::channel::<HiveEvent>();
     let outcome = rt.block_on(async move {
         let drain = async move {
-            while let Ok(ev) = sub.recv().await {
-                if tx.send(ev).is_err() {
-                    break;
+            loop {
+                match sub.recv().await {
+                    Ok(ev) => {
+                        if tx.send(ev).is_err() {
+                            break;
+                        }
+                    }
+                    Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => continue,
+                    Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
                 }
             }
         };
@@ -164,9 +189,14 @@ pub(crate) fn run_with(
     });
 
     // Translate the drained telemetry (the run has completed; the channel
-    // holds the full ordered stream).
+    // holds the full ordered stream), summing token spend for the run's
+    // aggregate `Stats` below.
     let mut agent_task: HashMap<u64, TaskId> = HashMap::new();
+    let mut tokens_total: u64 = 0;
     while let Ok(ev) = rx.try_recv() {
+        if let HiveEvent::TokenDelta { input, output, .. } = &ev {
+            tokens_total += u64::from(*input) + u64::from(*output);
+        }
         emit(PluginEvent::Hive { event: ev.clone() })?;
         for out in translate(&ev, &titles, &mut agent_task) {
             emit(out)?;
@@ -201,6 +231,16 @@ pub(crate) fn run_with(
             summary.push_str(&r.output);
         }
     }
+    // One aggregate Stats for the whole run (empty `agent` = turn-total, per
+    // the field docs in protocol.rs) so the chat header's token/cost meter
+    // and stdio's per-task counter aren't left empty for swarm runs.
+    emit(PluginEvent::Stats {
+        exchanges: outcome.done.len() as u32,
+        tokens: tokens_total,
+        agent: String::new(),
+        ms: 0,
+        ctx: 0,
+    })?;
     emit(msg("crew", summary))?;
     emit(PluginEvent::Activity {
         agent: String::new(),
@@ -256,9 +296,16 @@ fn translate(
         HiveEvent::OutputChunk { agent, text } => {
             vec![msg(agent_name(agent, agent_task).as_str(), text.clone())]
         }
-        HiveEvent::Failed { agent, error } => vec![PluginEvent::Error {
-            message: format!("{}: {error}", agent_name(agent, agent_task)),
-        }],
+        // A task failure is chat-visible content, not a connection loss: the
+        // app's chat pane treats `PluginEvent::Error` as the broker connection
+        // dropping (sets connected=false and discards the text), so surface
+        // this as a normal message from the failing agent/task instead.
+        HiveEvent::Failed { agent, error } => {
+            vec![msg(
+                agent_name(agent, agent_task).as_str(),
+                format!("\u{2717} failed: {error}"),
+            )]
+        }
     }
 }
 
@@ -313,5 +360,102 @@ mod tests {
         assert!(evs
             .iter()
             .any(|e| matches!(e, PluginEvent::Message { text, .. } if text.contains("cancelled"))));
+    }
+
+    // F1: a task failure must surface as chat-visible text, never as
+    // `PluginEvent::Error` — the app's chat pane treats `Error` as the
+    // broker connection dropping (sets connected=false, discards the text).
+    #[test]
+    fn task_failure_becomes_a_chat_message_not_a_connection_error() {
+        use crew_hive::agent::FailingFactory;
+        use crew_hive::TaskId;
+        let mut fail_tasks = std::collections::HashSet::new();
+        fail_tasks.insert(TaskId(0));
+        let mut evs = Vec::new();
+        run_with(
+            "build the thing",
+            Arc::new(StubPlanner { fanout: 2 }),
+            Arc::new(FailingFactory { fail_tasks }),
+            None,
+            Arc::new(AtomicBool::new(false)),
+            &mut |ev| {
+                evs.push(ev);
+                Ok(())
+            },
+        )
+        .unwrap();
+        assert!(
+            evs.iter().any(|e| matches!(
+                e,
+                PluginEvent::Message { text, .. }
+                    if text.contains("failed") && text.contains("stub failure")
+            )),
+            "expected a chat message surfacing the failure: {evs:?}"
+        );
+        assert!(
+            !evs.iter().any(|e| matches!(e, PluginEvent::Error { .. })),
+            "task failures must not be reported as PluginEvent::Error: {evs:?}"
+        );
+    }
+
+    // F2: a pending `/resume` context must be consumed and folded into the
+    // task the swarm path plans/executes, exactly like `relay_counting`
+    // does for `@agent` tasks — otherwise restored context is silently
+    // dropped by the default execution path.
+    #[test]
+    fn fold_resume_consumes_pending_context_once() {
+        let session = Session::new();
+        *session.resume.lock().unwrap() = Some("previous turn: it was the cache".into());
+
+        let first = fold_resume(&session, "now fix the docs");
+        assert!(first.contains("previous turn: it was the cache"));
+        assert!(first.contains("now fix the docs"));
+        assert!(first.to_uppercase().contains("PREVIOUS SESSION"));
+
+        // Consumed: a second task sees no pending resume.
+        let second = fold_resume(&session, "another task");
+        assert_eq!(second, "another task");
+    }
+
+    // F4: the run emits one aggregate Stats event (turn-total: empty agent)
+    // summing the drained TokenDelta events, before the final summary
+    // message closes the run, so the chat header's token/cost meter isn't
+    // left empty for swarm runs.
+    #[test]
+    fn run_emits_an_aggregate_stats_event_with_tokens_and_exchange_count() {
+        let evs = collect("build the thing", Arc::new(AtomicBool::new(false)));
+        let stats = evs.iter().find_map(|e| match e {
+            PluginEvent::Stats {
+                exchanges,
+                tokens,
+                agent,
+                ..
+            } => Some((*exchanges, *tokens, agent.clone())),
+            _ => None,
+        });
+        let (exchanges, tokens, agent) = stats.expect("expected an aggregate Stats event");
+        assert!(
+            tokens > 0,
+            "stub agents emit TokenDelta so the aggregate should be > 0"
+        );
+        assert_eq!(exchanges, 3, "3 stub tasks complete (2 leaves + merge)");
+        assert!(
+            agent.is_empty(),
+            "empty agent = turn-total per protocol.rs Stats docs"
+        );
+        let stats_pos = evs
+            .iter()
+            .position(|e| matches!(e, PluginEvent::Stats { .. }))
+            .unwrap();
+        let summary_pos = evs
+            .iter()
+            .rposition(
+                |e| matches!(e, PluginEvent::Message { text, .. } if text.contains("swarm done")),
+            )
+            .unwrap();
+        assert!(
+            stats_pos < summary_pos,
+            "Stats must land before the final summary message"
+        );
     }
 }
