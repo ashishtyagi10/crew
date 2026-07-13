@@ -24,6 +24,46 @@ fn test_pane(messages: Vec<Message>) -> ChatPane {
 }
 
 #[test]
+fn empty_pane_swarm_block_never_draws_above_the_status_rows() {
+    // A very short pane with a saturated (8-task) swarm block and no
+    // messages yet: block_max.saturating_sub(swarm_rows) can bottom out at
+    // (or below) 0, which — unfloored — lets the block's start row land
+    // above `top`, overwriting the header/status rows.
+    use crew_hive::{AgentKind, ModelTier, TaskId, TaskSpec};
+    let mut pane = test_pane(vec![]);
+    let tasks = (0..8)
+        .map(|i| TaskSpec {
+            id: TaskId(i),
+            title: format!("task-{i}"),
+            agent: AgentKind::Api { system: None },
+            model: ModelTier::Cheap,
+            deps: vec![],
+            prompt: "p".into(),
+        })
+        .collect();
+    pane.absorb_hive_plan(tasks);
+    let (cols, rows) = (30u16, 5u16);
+    let top = pane.status_rows(cols, rows);
+    let out = cells(&pane, cols, rows);
+    // Identify swarm-block cells by their distinctive content (task titles)
+    // rather than by "any non-space cell", since the header/status rows
+    // legitimately draw their own content in 0..top.
+    let leaked: Vec<(u16, u16, char)> = out
+        .iter()
+        .filter(|c| c.row < top)
+        .filter(|c| {
+            let row_text: String = out.iter().filter(|o| o.row == c.row).map(|o| o.c).collect();
+            row_text.contains("task-")
+        })
+        .map(|c| (c.row, c.col, c.c))
+        .collect();
+    assert!(
+        leaked.is_empty(),
+        "swarm block cell(s) landed above the status rows (top={top}): {leaked:?}"
+    );
+}
+
+#[test]
 fn link_at_resolves_the_clicked_link_and_misses_off_link() {
     // Link label "k" is rare enough not to collide with header/status text
     // ("crew", "1 msg", the connection dot) so the search below is unambiguous.
