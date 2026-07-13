@@ -26,7 +26,10 @@ pub struct TermPane {
     pub cmd_since: Option<std::time::Instant>,
 }
 
-/// Discriminated union of pane kinds.
+/// Discriminated union of pane kinds. A handful of instances exist at once
+/// (one per tile), so the size spread between variants is not worth the
+/// match-site churn of boxing every large pane type.
+#[allow(clippy::large_enum_variant)]
 pub enum PaneContent {
     Terminal(Box<TermPane>),
     Chat(ChatPane),

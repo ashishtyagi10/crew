@@ -1,3 +1,5 @@
+use std::time::{Duration, Instant};
+
 use crate::chat::ChatPane;
 use crate::chatswarm::{SwarmStatus, SwarmTask};
 use crew_hive::{AgentId, AgentKind, HiveEvent, ModelTier, TaskId, TaskSpec, TaskState};
@@ -269,6 +271,7 @@ fn record_text_appends_elapsed_suffix_when_captured() {
             elapsed_ms: Some(3_200),
         }],
         agent_task: Default::default(),
+        run_started: Instant::now(),
     };
     assert_eq!(s.record_text(), "- \u{2713} research \u{00b7} 3.2s");
 }
@@ -285,6 +288,7 @@ fn record_text_appends_elapsed_after_the_token_part() {
             elapsed_ms: Some(900),
         }],
         agent_task: Default::default(),
+        run_started: Instant::now(),
     };
     assert_eq!(
         s.record_text(),
@@ -304,6 +308,89 @@ fn record_text_omits_suffix_when_elapsed_is_none() {
             elapsed_ms: None,
         }],
         agent_task: Default::default(),
+        run_started: Instant::now(),
     };
     assert_eq!(s.record_text(), "- \u{2713} research");
+}
+
+// --- Run timeline (2026-07-13-swarm-timeline-design.md) ---
+
+fn done_task(id: u64, title: &str, started: Instant, elapsed_ms: u64) -> SwarmTask {
+    SwarmTask {
+        id: TaskId(id),
+        title: title.into(),
+        state: TaskState::Done,
+        tokens: 0,
+        started: Some(started),
+        elapsed_ms: Some(elapsed_ms),
+    }
+}
+
+#[test]
+fn record_appends_a_timeline_block_for_concurrent_runs() {
+    let run_started = Instant::now();
+    let s = SwarmStatus {
+        tasks: vec![
+            done_task(0, "research", run_started, 3_200),
+            done_task(
+                1,
+                "merge",
+                run_started + Duration::from_millis(3_000),
+                9_400,
+            ),
+        ],
+        agent_task: Default::default(),
+        run_started,
+    };
+    let text = s.record_text();
+    // The list stays first; the timeline is fenced so the markdown preview
+    // keeps it monospaced.
+    assert!(text.starts_with("- \u{2713} research"), "{text}");
+    assert!(text.contains("````\ntimeline \u{00b7} 12.4s\n"), "{text}");
+    assert!(text.trim_end().ends_with("```"), "{text}");
+    assert!(text.contains("research"), "{text}");
+    assert!(text.contains('\u{2588}'), "{text}");
+}
+
+#[test]
+fn single_task_runs_get_no_timeline() {
+    let run_started = Instant::now();
+    let s = SwarmStatus {
+        tasks: vec![done_task(0, "solo", run_started, 5_000)],
+        agent_task: Default::default(),
+        run_started,
+    };
+    assert!(!s.record_text().contains("timeline"));
+}
+
+#[test]
+fn task_still_running_at_error_fold_gets_an_open_ended_span() {
+    // fold_swarm on broker Error can retire a block whose task never reached
+    // a terminal state: started is stamped, elapsed_ms is None. The span
+    // closes at "now" instead of vanishing from the timeline.
+    // checked_sub instead of `-`: Instant subtraction panics when the
+    // monotonic clock's origin is nearer than the offset (sub-10s uptime).
+    let Some(run_started) = Instant::now().checked_sub(Duration::from_millis(10_000)) else {
+        return; // machine up <10s — vacuously skip rather than panic
+    };
+    let s = SwarmStatus {
+        tasks: vec![
+            done_task(0, "done", run_started, 2_000),
+            SwarmTask {
+                id: TaskId(1),
+                title: "stuck".into(),
+                state: TaskState::Running,
+                tokens: 0,
+                started: Some(run_started + Duration::from_millis(1_000)),
+                elapsed_ms: None,
+            },
+        ],
+        agent_task: Default::default(),
+        run_started,
+    };
+    let text = s.record_text();
+    assert!(text.contains("timeline"), "{text}");
+    let stuck = text.lines().find(|l| l.starts_with("stuck")).unwrap();
+    // Runs to the right edge of the bar (its end is the fold moment).
+    assert!(stuck.ends_with('\u{2588}'), "{stuck}");
 }

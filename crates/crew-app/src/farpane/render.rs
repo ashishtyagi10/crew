@@ -96,6 +96,7 @@ pub(crate) fn render(p: &FarPane, cols: u16, rows: u16) -> Vec<CellView> {
 /// The Far command line: `<cwd> $ <typed>▏`, the directory dimmed and the typed
 /// command in the ink colour with a cursor bar. While a command runs, a dimmed
 /// `⟳ <cmd>` note follows the prompt. Truncated from the left to fit.
+#[allow(clippy::too_many_arguments)] // one bar, eight independent knobs
 fn command_bar(
     buf: &mut Buffer,
     area: Rect,

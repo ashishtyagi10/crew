@@ -418,6 +418,19 @@ instead of transcript spam, and each
 turn ends with a `stats` event plus a timeline summary: `turn done — planner
 4.2s → coder 8.1s · 2 exchange(s) · ~950 tok (approx)`.
 
+**Swarm runs stream inline.** When a plain `/crew` message runs as a broker-side
+swarm, the pane opens a **live task-list block** above the composer — one row
+per planned task with a state glyph (a spinner while it runs), its title, live
+elapsed seconds, and a right-aligned token count. When every task reaches a
+terminal state the block **folds into the transcript** as the run's durable
+record: a task list with per-task token totals and durations, plus — for runs
+where two or more tasks actually started — a **timeline**: a Gantt-style
+fenced block mapping each task's start→end span onto a 20-cell bar
+(`timeline · 12.4s` header, `█` active / `·` idle), so the run's concurrency
+shape and critical path stay readable long after the run ends. Tasks cancelled
+before starting are listed (`⊘`) but omitted from the timeline; a task still
+running when a broker error folds the block closes its bar at the fold moment.
+
 Message bodies are newline-aware, and fenced ```code``` blocks render as
 bordered cards — a muted `╭─ lang` header, verbatim hard-wrapped lines on a
 dimmed background, `╰─` footer. A just-landed card **fades in** from the page

@@ -56,7 +56,7 @@ fn lists_indent_and_number() {
     let texts: Vec<String> = lines
         .iter()
         .filter(|l| l.kind == LineKind::Body)
-        .map(|l| flat(l))
+        .map(flat)
         .collect();
     assert!(texts.contains(&"• a".to_string()), "{texts:?}");
     assert!(texts.contains(&"  • b".to_string()), "{texts:?}");
@@ -76,7 +76,7 @@ fn blockquote_prefixes() {
 #[test]
 fn table_aligns_and_bolds_header() {
     let lines = render("| a | bb |\n|---|---|\n| ccc | d |", 40);
-    let texts: Vec<String> = lines.iter().map(|l| flat(l)).collect();
+    let texts: Vec<String> = lines.iter().map(flat).collect();
     assert_eq!(texts[0], "a   \u{2502} bb");
     assert!(lines[0].spans.iter().any(|s| s.style.bold));
     assert!(texts[1].starts_with('\u{2500}'));

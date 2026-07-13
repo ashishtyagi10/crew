@@ -48,8 +48,7 @@ pub(crate) fn indicator_cells(pane: &ChatPane, cols: u16, row: u16) -> Vec<CellV
     };
     let theme = crew_theme::theme();
     let mut cells = Vec::new();
-    let mut col: u16 = 1;
-    for c in text.chars() {
+    for (col, c) in (1u16..).zip(text.chars()) {
         if col >= cols {
             break;
         }
@@ -62,7 +61,6 @@ pub(crate) fn indicator_cells(pane: &ChatPane, cols: u16, row: u16) -> Vec<CellV
             bold: false,
             italic: false,
         });
-        col += 1;
     }
     cells
 }
