@@ -12,6 +12,11 @@ use crew_hive::TaskState;
 const MAX_ROWS: u16 = 8;
 /// Below this width the token column is dropped (title needs the room).
 const TOKENS_MIN_COLS: u16 = 24;
+/// Below this width the elapsed column is dropped too. Narrower than
+/// `TOKENS_MIN_COLS` so tokens drop first as the pane shrinks, and elapsed —
+/// the more at-a-glance-useful of the two for a running task — survives
+/// longer.
+const ELAPSED_MIN_COLS: u16 = 16;
 
 /// Rows the live block occupies in the message area (0 = no live run).
 pub(crate) fn swarm_rows(pane: &ChatPane, _rows: u16) -> u16 {
@@ -65,10 +70,28 @@ pub(crate) fn block_cells(pane: &ChatPane, cols: u16, top_row: u16, now_ms: u64)
         let mut col = 1u16;
         push_str(&mut v, &mut col, row, &g.to_string(), fg);
         push_str(&mut v, &mut col, row, " ", fg);
-        // Title, clamped to leave room for the token column (or the edge).
+        // Title, clamped to leave room for the elapsed/token columns (or the
+        // edge). Elapsed derives from `started` at render time — the
+        // per-frame redraw while busy animates it for free — and is gated on
+        // `now_ms != 0` so tests that don't care (now_ms == 0) stay
+        // deterministic (`chatview::agent_state_str` is the pattern this
+        // imitates).
+        let elapsed = (t.state == TaskState::Running && now_ms != 0)
+            .then(|| t.started.map(|s| format!("{}s", s.elapsed().as_secs())))
+            .flatten()
+            .filter(|_| cols >= ELAPSED_MIN_COLS);
         let tok =
             (t.tokens > 0 && cols >= TOKENS_MIN_COLS).then(|| crate::chatswarm::fmt_tok(t.tokens));
-        let reserve = tok.as_ref().map(|s| s.len() as u16 + 2).unwrap_or(1);
+        // Width rule: tokens drop first (at `TOKENS_MIN_COLS`), elapsed
+        // survives to `ELAPSED_MIN_COLS`, then both drop on very narrow
+        // panes. Reserve room for whichever of the two are shown.
+        let mut reserve = 1u16;
+        if let Some(e) = &elapsed {
+            reserve += e.len() as u16 + 1;
+        }
+        if let Some(tk) = &tok {
+            reserve += tk.len() as u16 + 1;
+        }
         let max_title = cols.saturating_sub(col + reserve) as usize;
         // Display-width-aware clamp: `.chars().take(n)` counts chars, so a
         // CJK/emoji title (2 display columns per glyph) could select twice
@@ -78,9 +101,18 @@ pub(crate) fn block_cells(pane: &ChatPane, cols: u16, top_row: u16, now_ms: u64)
         let title_end = crate::chatwidth::fit_end(&title_chars, 0, max_title);
         let title: String = title_chars[..title_end].iter().collect();
         push_str(&mut v, &mut col, row, &title, theme.text_muted);
-        if let Some(tok) = tok {
-            let mut tcol = cols.saturating_sub(tok.len() as u16 + 1);
-            push_str(&mut v, &mut tcol, row, &tok, theme.text_muted);
+        // Right-aligned from the pane edge, each with a 1-column gap from
+        // whatever sits to its right: tokens outermost, elapsed just inside
+        // it (title ... elapsed ... tokens).
+        let mut next_start = cols;
+        if let Some(tok) = &tok {
+            let mut tcol = next_start.saturating_sub(tok.len() as u16 + 1);
+            push_str(&mut v, &mut tcol, row, tok, theme.text_muted);
+            next_start = tcol.saturating_sub(1);
+        }
+        if let Some(e) = &elapsed {
+            let mut ecol = next_start.saturating_sub(e.len() as u16 + 1);
+            push_str(&mut v, &mut ecol, row, e, theme.text_muted);
         }
     }
     if s.tasks.len() > shown {

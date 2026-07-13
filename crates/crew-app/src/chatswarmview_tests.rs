@@ -257,3 +257,107 @@ fn wide_pane_cjk_title_never_collides_with_token_column() {
         tok_start_col
     );
 }
+
+// --- Per-task timings (2026-07-13-swarm-task-timings-design.md) ---
+
+/// A digit immediately followed by `s` — the live elapsed suffix's shape
+/// (`"0s"`, `"12s"`, ...). None of these tests' task titles ("task-N")
+/// contain a bare `s` after a digit, so this is an unambiguous probe for
+/// "the elapsed column rendered something."
+fn has_elapsed_pattern(s: &str) -> bool {
+    let chars: Vec<char> = s.chars().collect();
+    chars
+        .windows(2)
+        .any(|w| w[0].is_ascii_digit() && w[1] == 's')
+}
+
+#[test]
+fn running_task_with_nonzero_now_shows_elapsed() {
+    let mut p = pane_with_swarm(1);
+    p.absorb_hive(&HiveEvent::AgentSpawned {
+        agent: crew_hive::AgentId(1),
+        task: TaskId(0),
+    });
+    let row: String = block_cells(&p, 60, 0, 1_000)
+        .iter()
+        .filter(|c| c.row == 0)
+        .map(|c| c.c)
+        .collect();
+    assert!(has_elapsed_pattern(&row), "{row}");
+}
+
+#[test]
+fn running_task_with_zero_now_shows_no_elapsed() {
+    // now_ms == 0 means "first frame in a test that doesn't care" — elapsed
+    // rendering is skipped so existing zero-now tests stay deterministic.
+    let mut p = pane_with_swarm(1);
+    p.absorb_hive(&HiveEvent::AgentSpawned {
+        agent: crew_hive::AgentId(1),
+        task: TaskId(0),
+    });
+    let row: String = block_cells(&p, 60, 0, 0)
+        .iter()
+        .filter(|c| c.row == 0)
+        .map(|c| c.c)
+        .collect();
+    assert!(!has_elapsed_pattern(&row), "{row}");
+}
+
+#[test]
+fn finished_task_shows_no_elapsed_in_the_live_block() {
+    // Two tasks so the block stays open (folding on `finished()` would empty
+    // it) with task 0 Done and task 1 still pending.
+    let mut p = pane_with_swarm(2);
+    p.absorb_hive(&HiveEvent::AgentSpawned {
+        agent: crew_hive::AgentId(1),
+        task: TaskId(0),
+    });
+    p.absorb_hive(&HiveEvent::TaskStateChanged {
+        task: TaskId(0),
+        state: TaskState::Done,
+    });
+    let row: String = block_cells(&p, 60, 0, 1_000)
+        .iter()
+        .filter(|c| c.row == 0)
+        .map(|c| c.c)
+        .collect();
+    assert!(row.contains('\u{2713}'), "{row}"); // ✓ glyph still shown
+    assert!(!has_elapsed_pattern(&row), "{row}");
+}
+
+#[test]
+fn width_drop_order_tokens_first_then_elapsed() {
+    let mut p = pane_with_swarm(1);
+    p.absorb_hive(&HiveEvent::AgentSpawned {
+        agent: crew_hive::AgentId(1),
+        task: TaskId(0),
+    });
+    p.absorb_hive(&HiveEvent::TokenDelta {
+        agent: crew_hive::AgentId(1),
+        input: 12_000,
+        output: 400,
+    });
+    let row_at = |cols: u16| -> String {
+        block_cells(&p, cols, 0, 1_000)
+            .iter()
+            .filter(|c| c.row == 0)
+            .map(|c| c.c)
+            .collect()
+    };
+
+    // Wide: both the token count and the elapsed column show.
+    let wide = row_at(60);
+    assert!(wide.contains("12.4k"), "{wide}");
+    assert!(has_elapsed_pattern(&wide), "{wide}");
+
+    // Medium: narrow enough to drop tokens, wide enough to keep elapsed —
+    // tokens drop first.
+    let medium = row_at(20);
+    assert!(!medium.contains("12.4k"), "{medium}");
+    assert!(has_elapsed_pattern(&medium), "{medium}");
+
+    // Very narrow: both drop.
+    let narrow = row_at(10);
+    assert!(!narrow.contains("12.4k"), "{narrow}");
+    assert!(!has_elapsed_pattern(&narrow), "{narrow}");
+}
