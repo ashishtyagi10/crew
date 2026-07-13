@@ -92,6 +92,30 @@ fn run_completion_folds_the_block_into_a_transcript_message() {
 }
 
 #[test]
+fn record_text_uses_the_compact_token_format() {
+    let mut p = pane();
+    p.absorb_hive_plan(vec![spec(0, "research")]);
+    p.absorb_hive(&HiveEvent::AgentSpawned {
+        agent: AgentId(1),
+        task: TaskId(0),
+    });
+    // 12,000 + 400 = 12,400 tokens — the live block shows "12.4k", so the
+    // folded record must match instead of writing the raw "12400 tok".
+    p.absorb_hive(&HiveEvent::TokenDelta {
+        agent: AgentId(1),
+        input: 12_000,
+        output: 400,
+    });
+    p.absorb_hive(&HiveEvent::TaskStateChanged {
+        task: TaskId(0),
+        state: TaskState::Done,
+    });
+    let last = p.messages.last().unwrap();
+    assert!(last.text.contains("12.4k tok"), "{}", last.text);
+    assert!(!last.text.contains("12400 tok"), "{}", last.text);
+}
+
+#[test]
 fn a_second_plan_resets_the_block() {
     let mut p = pane();
     p.absorb_hive_plan(vec![spec(0, "a")]);

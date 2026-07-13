@@ -94,13 +94,24 @@ impl SwarmStatus {
             .map(|t| {
                 let glyph = glyph(&t.state);
                 if t.tokens > 0 {
-                    format!("- {glyph} {} — {} tok", t.title, t.tokens)
+                    format!("- {glyph} {} — {} tok", t.title, fmt_tok(t.tokens))
                 } else {
                     format!("- {glyph} {}", t.title)
                 }
             })
             .collect::<Vec<_>>()
             .join("\n")
+    }
+}
+
+/// Compact token count (`"12.4k"` past 1000) — shared by the live block
+/// (`chatswarmview`) and the folded transcript record so the two never show
+/// different numbers for the same run.
+pub(crate) fn fmt_tok(n: u64) -> String {
+    if n >= 1_000 {
+        format!("{:.1}k", n as f64 / 1000.0)
+    } else {
+        n.to_string()
     }
 }
 
