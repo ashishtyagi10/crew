@@ -10,7 +10,7 @@ const MAX_STEPS: usize = 5000;
 /// Build the grid's rows as strings in a single pass over `cells` (smart-case:
 /// lowercased when `ci`). Avoids rescanning every cell per row — the per-step
 /// cost of the `/find` scroll loop drops from O(rows·cells) to O(cells).
-fn rows_text(cells: &[RenderCell], cols: u16, rows: u16, ci: bool) -> Vec<String> {
+pub(crate) fn rows_text(cells: &[RenderCell], cols: u16, rows: u16, ci: bool) -> Vec<String> {
     let mut lines = vec![vec![' '; cols as usize]; rows as usize];
     for c in cells {
         if (c.row as usize) < lines.len() && (c.col as usize) < cols as usize {
@@ -22,7 +22,7 @@ fn rows_text(cells: &[RenderCell], cols: u16, rows: u16, ci: bool) -> Vec<String
 
 /// The smart-case needle for `term`: lowercased unless `term` has an uppercase
 /// letter (in which case the match is case-sensitive). Returns `(needle, ci)`.
-fn needle(term: &str) -> (String, bool) {
+pub(crate) fn needle(term: &str) -> (String, bool) {
     let ci = !term.chars().any(|c| c.is_uppercase());
     let n = if ci {
         term.to_lowercase()
