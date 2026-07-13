@@ -28,6 +28,7 @@ mod chatpulse;
 mod chatroster;
 mod chatscroll;
 mod chatspawn;
+mod chatswarm;
 mod chattheme;
 mod chattime;
 mod chatview;
