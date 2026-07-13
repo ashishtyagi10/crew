@@ -235,7 +235,7 @@ pub(crate) fn run_with(
         return Err(e);
     }
     if lagged_total > 0 {
-        emit(msg("crew", &lagged_note(lagged_total)))?;
+        emit(msg("crew", lagged_note(lagged_total)))?;
     }
 
     // Final aggregate: a status line only. Sink tasks' outputs already
