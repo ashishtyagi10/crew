@@ -5,7 +5,7 @@
 use crew_render::CellView;
 
 use crate::chat::ChatPane;
-use crate::chatswarm::glyph;
+use crate::chatswarmrec::glyph;
 use crew_hive::TaskState;
 
 /// Most task rows the block will occupy; larger plans get a `… n more` row.
@@ -80,8 +80,8 @@ pub(crate) fn block_cells(pane: &ChatPane, cols: u16, top_row: u16, now_ms: u64)
             .then(|| t.started.map(|s| format!("{}s", s.elapsed().as_secs())))
             .flatten()
             .filter(|_| cols >= ELAPSED_MIN_COLS);
-        let tok =
-            (t.tokens > 0 && cols >= TOKENS_MIN_COLS).then(|| crate::chatswarm::fmt_tok(t.tokens));
+        let tok = (t.tokens > 0 && cols >= TOKENS_MIN_COLS)
+            .then(|| crate::chatswarmrec::fmt_tok(t.tokens));
         // Width rule: tokens drop first (at `TOKENS_MIN_COLS`), elapsed
         // survives to `ELAPSED_MIN_COLS`, then both drop on very narrow
         // panes. Reserve room for whichever of the two are shown.

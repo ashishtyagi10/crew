@@ -1,7 +1,8 @@
 //! Live swarm-run status for the chat pane: `HivePlan` opens a task-list
 //! block, `Hive` telemetry updates it, and when every task reaches a terminal
 //! state the block folds into a transcript message — the durable record of
-//! the run. Rendering lives in `chatswarmview`.
+//! the run. Live rendering lives in `chatswarmview`; the folded record (task
+//! list + timeline) in `chatswarmrec`.
 use std::collections::HashMap;
 use std::time::Instant;
 
@@ -9,7 +10,6 @@ use crew_hive::{HiveEvent, TaskId, TaskSpec, TaskState};
 
 use crate::chat::ChatPane;
 use crate::chatlayout::Message;
-use crate::chattime::fmt_elapsed;
 
 /// One planned task's live state in the block.
 pub(crate) struct SwarmTask {
@@ -32,11 +32,14 @@ pub(crate) struct SwarmStatus {
     pub tasks: Vec<SwarmTask>,
     /// agent id → task id (from `AgentSpawned`) — `TokenDelta` only names agents.
     agent_task: HashMap<u64, TaskId>,
+    /// When the plan arrived — the timeline's zero point (`chatswarmrec`).
+    pub(crate) run_started: Instant,
 }
 
 impl SwarmStatus {
     pub(crate) fn new(tasks: Vec<TaskSpec>) -> Self {
         SwarmStatus {
+            run_started: Instant::now(),
             tasks: tasks
                 .into_iter()
                 .map(|t| SwarmTask {
@@ -105,49 +108,6 @@ impl SwarmStatus {
                 TaskState::Done | TaskState::Failed | TaskState::Cancelled
             )
         })
-    }
-
-    /// The block as a markdown list — the transcript record on fold.
-    pub(crate) fn record_text(&self) -> String {
-        self.tasks
-            .iter()
-            .map(|t| {
-                let glyph = glyph(&t.state);
-                let mut line = if t.tokens > 0 {
-                    format!("- {glyph} {} — {} tok", t.title, fmt_tok(t.tokens))
-                } else {
-                    format!("- {glyph} {}", t.title)
-                };
-                if let Some(ms) = t.elapsed_ms {
-                    line.push_str(" \u{00b7} ");
-                    line.push_str(&fmt_elapsed(ms));
-                }
-                line
-            })
-            .collect::<Vec<_>>()
-            .join("\n")
-    }
-}
-
-/// Compact token count (`"12.4k"` past 1000) — shared by the live block
-/// (`chatswarmview`) and the folded transcript record so the two never show
-/// different numbers for the same run.
-pub(crate) fn fmt_tok(n: u64) -> String {
-    if n >= 1_000 {
-        format!("{:.1}k", n as f64 / 1000.0)
-    } else {
-        n.to_string()
-    }
-}
-
-/// The state glyph shared by the live block and the folded record.
-pub(crate) fn glyph(state: &TaskState) -> char {
-    match state {
-        TaskState::Pending | TaskState::Ready => '·',
-        TaskState::Running => '⠿', // live view animates; record shows a static mark
-        TaskState::Done => '✓',
-        TaskState::Failed => '✗',
-        TaskState::Cancelled => '⊘',
     }
 }
 
