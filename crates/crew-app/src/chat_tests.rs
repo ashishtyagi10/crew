@@ -305,6 +305,20 @@ fn classify_send_pane_returns_host_action() {
 }
 
 #[test]
+fn hive_events_classify_to_host_actions() {
+    use crew_hive::{HiveEvent, TaskId, TaskState};
+    let ev = PluginEvent::HivePlan { tasks: vec![] };
+    assert!(matches!(classify(&ev), Some(HostAction::HivePlan { .. })));
+    let ev = PluginEvent::Hive {
+        event: HiveEvent::TaskStateChanged {
+            task: TaskId(0),
+            state: TaskState::Running,
+        },
+    };
+    assert!(matches!(classify(&ev), Some(HostAction::Hive { .. })));
+}
+
+#[test]
 fn slash_exit_closes_the_pane() {
     use crate::chatkeys::{ChatAction, ChatInput};
     let mut p = pane();
