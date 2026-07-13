@@ -445,11 +445,22 @@ impl TermModel for PtyTerm {
 }
 
 impl Drop for PtyTerm {
-    /// Kill the child explicitly — dropping the master only HUPs the child
-    /// the next time it touches the tty, which leaves quiet processes
-    /// running after the pane is closed with the [x] border button.
+    /// Kill and reap the child explicitly — dropping the master only HUPs
+    /// the child eventually, and a killed-but-unreaped child sits in the
+    /// process table for the life of the app. The reap is a bounded poll:
+    /// kill() already escalated to SIGKILL, so the child dies within
+    /// milliseconds — but an unbounded wait() can wedge on a child that is
+    /// itself blocked waiting on an untracked grandchild.
     fn drop(&mut self) {
         let _ = self.child.kill();
+        for _ in 0..20 {
+            match self.child.try_wait() {
+                Ok(Some(_)) | Err(_) => return, // reaped (or gone)
+                Ok(None) => std::thread::sleep(std::time::Duration::from_millis(5)),
+            }
+        }
+        // Still not reaped after ~100ms: give up rather than hang the
+        // winit thread; the entry is reclaimed when the app exits.
     }
 }
 
