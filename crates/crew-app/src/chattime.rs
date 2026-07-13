@@ -46,6 +46,17 @@ pub(crate) fn strip_task_tag(meta: &str) -> &str {
     }
 }
 
+/// A compact elapsed-duration string — one decimal place at any magnitude
+/// (`"0.9s"`, `"3.2s"`, `"61.0s"`, `"125.0s"`), matching the existing
+/// turn-duration style in `chathdr::status_segments`
+/// (`format!(" \u{00b7} {:.1}s", turn_ms as f64 / 1_000.0)`) rather than the
+/// `MmSSs` bucket the swarm-task-timings design sketches for durations past
+/// 99s — see the design doc's "Duration formatter" note for the deviation:
+/// consistency with the header's existing style wins over a third format.
+pub(crate) fn fmt_elapsed(ms: u64) -> String {
+    format!("{:.1}s", ms as f64 / 1_000.0)
+}
+
 /// The card header's metadata tail: ` · <rel time>` then ` · <meta>`, each part
 /// present only when known. Empty when there's nothing to say.
 pub(crate) fn meta_suffix(ts: &str, meta: &str, now_ms: u64) -> String {
@@ -108,6 +119,17 @@ mod tests {
         assert_eq!(strip_task_tag("task:3"), "");
         assert_eq!(strip_task_tag("4.2s"), "4.2s"); // untagged unchanged
         assert_eq!(strip_task_tag(""), "");
+    }
+
+    #[test]
+    fn fmt_elapsed_edge_cases() {
+        assert_eq!(fmt_elapsed(900), "0.9s");
+        assert_eq!(fmt_elapsed(3_200), "3.2s");
+        // Deviation from the design doc's `MmSSs` bucket past 99s: kept as a
+        // plain decimal-seconds string for consistency with the header's
+        // existing turn-duration format (see `fmt_elapsed`'s doc comment).
+        assert_eq!(fmt_elapsed(61_000), "61.0s");
+        assert_eq!(fmt_elapsed(125_000), "125.0s");
     }
 
     #[test]
