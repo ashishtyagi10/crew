@@ -281,17 +281,16 @@ impl ChatPane {
     /// Handle a winit key event. Returns [`ChatAction::Close`] when the user asks
     /// to close the pane (Escape) — mirroring the Far/Settings panes. While the
     /// @file popup is open it gets keys first (Escape then closes the popup, not
-    /// the pane). `shift` makes Enter insert a newline instead of sending;
-    /// `ctrl` turns Ctrl+O into the compact-transcript toggle. `cwd` roots
-    /// mention scanning and expansion.
+    /// the pane). `shift` makes Enter insert a newline instead of sending.
+    /// `cwd` roots mention scanning and expansion. (Ctrl+O's compact-transcript
+    /// toggle is handled as a global intercept in `keys.rs`, not here.)
     pub fn on_key(
         &mut self,
         key: &KeyEvent,
         shift: bool,
-        ctrl: bool,
         cwd: &std::path::Path,
     ) -> Option<ChatAction> {
-        let k = chat_key(&key.logical_key, key.state.is_pressed(), shift, ctrl);
+        let k = chat_key(&key.logical_key, key.state.is_pressed(), shift);
         self.on_input(k, cwd)
     }
 
@@ -330,10 +329,6 @@ impl ChatPane {
                 return Some(ChatAction::Close);
             }
             ChatInput::Ignore | ChatInput::Up | ChatInput::Down => return None,
-            ChatInput::ToggleCompact => {
-                self.compact_view = !self.compact_view;
-                return None;
-            }
             ChatInput::Complete => {
                 if let Some(done) = crate::chatcomplete::complete(&self.input, &self.agents) {
                     self.input = done;

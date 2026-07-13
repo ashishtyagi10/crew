@@ -16,9 +16,6 @@ pub(crate) enum ChatInput {
     /// Arrow keys — navigate the @file mention popup when it is open.
     Up,
     Down,
-    /// Ctrl+O — toggle the compact transcript view (see
-    /// `ChatPane::compact_view`).
-    ToggleCompact,
     Ignore,
 }
 
@@ -29,9 +26,10 @@ pub(crate) enum ChatAction {
 }
 
 /// Classify a key press for a chat pane. Only presses act; Escape closes.
-/// `shift` turns Enter into a newline instead of a send; `ctrl` turns `o`
-/// into the compact-transcript toggle instead of a literal character.
-pub(crate) fn chat_key(logical: &Key, pressed: bool, shift: bool, ctrl: bool) -> ChatInput {
+/// `shift` turns Enter into a newline instead of a send. (Ctrl+O — the
+/// compact-transcript toggle — is no longer decoded here: it's a global
+/// intercept in `keys.rs`, same reach as Ctrl+Shift+M.)
+pub(crate) fn chat_key(logical: &Key, pressed: bool, shift: bool) -> ChatInput {
     if !pressed {
         return ChatInput::Ignore;
     }
@@ -44,7 +42,6 @@ pub(crate) fn chat_key(logical: &Key, pressed: bool, shift: bool, ctrl: bool) ->
         Key::Named(NamedKey::Enter) => ChatInput::Enter,
         Key::Named(NamedKey::Backspace) => ChatInput::Backspace,
         Key::Named(NamedKey::Space) => ChatInput::Char(' '),
-        Key::Character(s) if ctrl && s.eq_ignore_ascii_case("o") => ChatInput::ToggleCompact,
         Key::Character(s) => s.chars().next().map_or(ChatInput::Ignore, ChatInput::Char),
         _ => ChatInput::Ignore,
     }
@@ -57,7 +54,7 @@ mod tests {
     #[test]
     fn escape_key_requests_pane_close() {
         assert_eq!(
-            chat_key(&Key::Named(NamedKey::Escape), true, false, false),
+            chat_key(&Key::Named(NamedKey::Escape), true, false),
             ChatInput::Close
         );
     }
@@ -66,7 +63,7 @@ mod tests {
     fn a_released_key_is_ignored() {
         // Only key presses act; releases (including Escape) do nothing.
         assert_eq!(
-            chat_key(&Key::Named(NamedKey::Escape), false, false, false),
+            chat_key(&Key::Named(NamedKey::Escape), false, false),
             ChatInput::Ignore
         );
     }
@@ -74,7 +71,7 @@ mod tests {
     #[test]
     fn tab_requests_completion() {
         assert_eq!(
-            chat_key(&Key::Named(NamedKey::Tab), true, false, false),
+            chat_key(&Key::Named(NamedKey::Tab), true, false),
             ChatInput::Complete
         );
     }
@@ -82,11 +79,11 @@ mod tests {
     #[test]
     fn arrows_classify_for_popup_navigation() {
         assert_eq!(
-            chat_key(&Key::Named(NamedKey::ArrowUp), true, false, false),
+            chat_key(&Key::Named(NamedKey::ArrowUp), true, false),
             ChatInput::Up
         );
         assert_eq!(
-            chat_key(&Key::Named(NamedKey::ArrowDown), true, false, false),
+            chat_key(&Key::Named(NamedKey::ArrowDown), true, false),
             ChatInput::Down
         );
     }
@@ -94,11 +91,11 @@ mod tests {
     #[test]
     fn shift_enter_inserts_a_newline_instead_of_sending() {
         assert_eq!(
-            chat_key(&Key::Named(NamedKey::Enter), true, true, false),
+            chat_key(&Key::Named(NamedKey::Enter), true, true),
             ChatInput::Newline
         );
         assert_eq!(
-            chat_key(&Key::Named(NamedKey::Enter), true, false, false),
+            chat_key(&Key::Named(NamedKey::Enter), true, false),
             ChatInput::Enter
         );
     }
@@ -106,33 +103,20 @@ mod tests {
     #[test]
     fn typed_characters_and_edits_are_classified() {
         assert_eq!(
-            chat_key(&Key::Character("a".into()), true, false, false),
+            chat_key(&Key::Character("a".into()), true, false),
             ChatInput::Char('a')
         );
         assert_eq!(
-            chat_key(&Key::Named(NamedKey::Space), true, false, false),
+            chat_key(&Key::Named(NamedKey::Space), true, false),
             ChatInput::Char(' ')
         );
         assert_eq!(
-            chat_key(&Key::Named(NamedKey::Enter), true, false, false),
+            chat_key(&Key::Named(NamedKey::Enter), true, false),
             ChatInput::Enter
         );
         assert_eq!(
-            chat_key(&Key::Named(NamedKey::Backspace), true, false, false),
+            chat_key(&Key::Named(NamedKey::Backspace), true, false),
             ChatInput::Backspace
-        );
-    }
-
-    #[test]
-    fn ctrl_o_requests_compact_toggle() {
-        assert_eq!(
-            chat_key(&Key::Character("o".into()), true, false, true),
-            ChatInput::ToggleCompact
-        );
-        // Without Ctrl, 'o' is just a literal character.
-        assert_eq!(
-            chat_key(&Key::Character("o".into()), true, false, false),
-            ChatInput::Char('o')
         );
     }
 }
