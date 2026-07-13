@@ -18,7 +18,6 @@ use crate::protocol::PluginEvent;
 use super::relay::msg;
 use super::session::Session;
 
-/// $1.00 ceiling per swarm run, enforced by the budget governor.
 /// Parallel worker agents per run.
 const CONCURRENCY: usize = 4;
 /// Per-task output token cap for worker agents.

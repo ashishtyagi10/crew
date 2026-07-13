@@ -20,9 +20,6 @@ pub(crate) const GOAL_FANOUT: usize = 3;
 pub(crate) const PLAN_TIER: ModelTier = ModelTier::Standard;
 /// Per-task output token cap for worker agents.
 pub(crate) const WORK_MAX_TOKENS: u32 = 2048;
-/// Default cost ceiling for a real-LLM `/goal` or `/batch` run ($1.00 in
-/// micros-USD). The budget governor cancels the swarm once fleet spend exceeds
-/// this.
 /// Model tier for `/batch` jobs (no planner assigns one; keep it cost-conscious).
 pub(crate) const BATCH_TIER: ModelTier = ModelTier::Cheap;
 

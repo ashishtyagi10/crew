@@ -124,7 +124,7 @@ impl CrewApp {
         // un-minimize it. Land focus on a visible pane instead (or the
         // input bar when everything restored minimized).
         if self.panes.get(self.focused).is_some_and(|p| p.hidden) {
-            match (0..self.panes.len()).find(|&i| !self.panes[i].hidden) {
+            match self.nearest_visible(self.focused) {
                 Some(i) => self.focused = i,
                 None => self.input.focused = true,
             }
