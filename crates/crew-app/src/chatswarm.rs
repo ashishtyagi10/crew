@@ -3,11 +3,13 @@
 //! state the block folds into a transcript message — the durable record of
 //! the run. Rendering lives in `chatswarmview`.
 use std::collections::HashMap;
+use std::time::Instant;
 
 use crew_hive::{HiveEvent, TaskId, TaskSpec, TaskState};
 
 use crate::chat::ChatPane;
 use crate::chatlayout::Message;
+use crate::chattime::fmt_elapsed;
 
 /// One planned task's live state in the block.
 pub(crate) struct SwarmTask {
@@ -16,6 +18,13 @@ pub(crate) struct SwarmTask {
     pub state: TaskState,
     /// Tokens spent by the agent running this task (input + output).
     pub tokens: u64,
+    /// When the task started running — stamped once by whichever of
+    /// `AgentSpawned`/`TaskStateChanged(Running)` arrives first. `None` until
+    /// then (and forever, if the task is cancelled before either arrives).
+    pub started: Option<Instant>,
+    /// Duration captured when a terminal state is reached (`started.elapsed()`
+    /// at that moment). `None` if the task never started.
+    pub elapsed_ms: Option<u64>,
 }
 
 /// The whole run's live state, built from `HivePlan` and fed by `Hive` events.
@@ -35,6 +44,8 @@ impl SwarmStatus {
                     title: t.title,
                     state: TaskState::Pending,
                     tokens: 0,
+                    started: None,
+                    elapsed_ms: None,
                 })
                 .collect(),
             agent_task: HashMap::new(),
@@ -51,11 +62,20 @@ impl SwarmStatus {
                 self.agent_task.insert(agent.0, *task);
                 if let Some(t) = self.task_mut(*task) {
                     t.state = TaskState::Running;
+                    t.started.get_or_insert_with(Instant::now);
                 }
             }
             HiveEvent::TaskStateChanged { task, state } => {
                 if let Some(t) = self.task_mut(*task) {
                     t.state = *state;
+                    if *state == TaskState::Running {
+                        t.started.get_or_insert_with(Instant::now);
+                    } else if matches!(
+                        state,
+                        TaskState::Done | TaskState::Failed | TaskState::Cancelled
+                    ) {
+                        t.elapsed_ms = t.started.map(|s| s.elapsed().as_millis() as u64);
+                    }
                 }
             }
             HiveEvent::TokenDelta {
@@ -93,11 +113,16 @@ impl SwarmStatus {
             .iter()
             .map(|t| {
                 let glyph = glyph(&t.state);
-                if t.tokens > 0 {
+                let mut line = if t.tokens > 0 {
                     format!("- {glyph} {} — {} tok", t.title, fmt_tok(t.tokens))
                 } else {
                     format!("- {glyph} {}", t.title)
+                };
+                if let Some(ms) = t.elapsed_ms {
+                    line.push_str(" \u{00b7} ");
+                    line.push_str(&fmt_elapsed(ms));
                 }
+                line
             })
             .collect::<Vec<_>>()
             .join("\n")
