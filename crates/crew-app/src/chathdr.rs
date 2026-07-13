@@ -33,6 +33,13 @@ fn push(
     })
 }
 
+/// The muted hint appended to the status while the pane is busy — Esc
+/// cancels the running turn instead of closing the pane (see the
+/// esc-interrupt design doc). Its own segment, inserted right before the
+/// connection dot, so [`header_cells`] can drop it first — before touching
+/// anything else — when the pane is too narrow for the full status.
+const INTERRUPT_HINT: &str = "\u{00b7} esc interrupts";
+
 /// The right-aligned status segments as `(text, colour)`, in left-to-right order.
 /// While an agent is active the spinner names it and counts the elapsed
 /// seconds (`| coder · 12s`, in the agent's roster colour); otherwise a plain
@@ -40,6 +47,9 @@ fn push(
 /// message counters are ` │ `-separated (the pipe is its own segment, so it
 /// picks up the ordinary inter-segment gap on both sides); the trailing
 /// connection dot keeps the tighter single-space gap it always had.
+/// `hint`, when the pane is busy, adds the muted "esc interrupts" segment
+/// just before the dot — callers drop it (`hint: false`) to reclaim width on
+/// narrow panes.
 fn status_segments(
     connected: bool,
     msg_count: usize,
@@ -48,6 +58,7 @@ fn status_segments(
     tokens: u64,
     turns: u64,
     turn_ms: u64,
+    hint: bool,
 ) -> Vec<(String, (u8, u8, u8))> {
     let t = crew_theme::theme();
     let mut segs = Vec::new();
@@ -79,6 +90,12 @@ fn status_segments(
             segs.push(("\u{2502}".to_string(), t.text_muted)); // │
         }
         segs.push(seg);
+    }
+
+    // Busy hint, width-permitting (see `header_cells`) — appended after the
+    // counters, before the connection dot.
+    if awaiting && hint {
+        segs.push((INTERRUPT_HINT.to_string(), t.text_muted));
     }
 
     let (dot, dot_c) = if connected {
@@ -129,10 +146,35 @@ pub(crate) fn header_cells(
 
     // Right-aligned status, laid out from the right edge. Segments get the
     // usual two-space gap, except the trailing connection dot, which sits a
-    // single space after the message count.
-    let segs = status_segments(
-        connected, msg_count, awaiting, active, tokens, turns, turn_ms,
+    // single space after the message count. `segs_width` is shared by the
+    // width probe below and the real layout, so both agree on the same gap
+    // rule for whatever segment count they're given.
+    let segs_width = |segs: &[(String, (u8, u8, u8))]| -> usize {
+        let gap = |i: usize| -> u16 {
+            if i == 0 {
+                0
+            } else if i == segs.len() - 1 {
+                1 // tight gap before the trailing connection dot
+            } else {
+                2
+            }
+        };
+        segs.iter()
+            .map(|(s, _)| crate::chatwidth::str_w(s))
+            .sum::<usize>()
+            + (0..segs.len()).map(gap).sum::<u16>() as usize
+    };
+    // Try with the busy hint first; if it doesn't fit, it's the first thing
+    // dropped — everything else (spinner/active label, turn/token/message
+    // counters, connection dot) renders exactly as it would without it.
+    let mut segs = status_segments(
+        connected, msg_count, awaiting, active, tokens, turns, turn_ms, true,
     );
+    if segs_width(&segs) as u16 > cols {
+        segs = status_segments(
+            connected, msg_count, awaiting, active, tokens, turns, turn_ms, false,
+        );
+    }
     let gap = |i: usize| -> u16 {
         if i == 0 {
             0
@@ -142,11 +184,7 @@ pub(crate) fn header_cells(
             2
         }
     };
-    let status_w: usize = segs
-        .iter()
-        .map(|(s, _)| crate::chatwidth::str_w(s))
-        .sum::<usize>()
-        + (0..segs.len()).map(gap).sum::<u16>() as usize;
+    let status_w: usize = segs_width(&segs);
     let mut x = cols.saturating_sub(status_w as u16);
     for (i, (s, c)) in segs.iter().enumerate() {
         x += gap(i);
