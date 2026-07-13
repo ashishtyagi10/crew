@@ -319,3 +319,18 @@ fn queued_indicator_renders_on_the_empty_messages_branch_too() {
         "indicator row {indicator_row}: {text}"
     );
 }
+
+#[test]
+fn compact_view_shows_the_header_chip_end_to_end() {
+    let mut pane = test_pane(vec![msg("planner", "hi")]);
+    let (cols, rows) = (60u16, 20u16);
+    let before = row_text(&cells(&pane, cols, rows), 0);
+    assert!(
+        !before.contains("compact"),
+        "no chip when compact_view is off: {before}"
+    );
+
+    pane.compact_view = true;
+    let after = row_text(&cells(&pane, cols, rows), 0);
+    assert!(after.contains("compact"), "chip missing: {after}");
+}

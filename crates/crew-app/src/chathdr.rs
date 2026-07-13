@@ -40,6 +40,13 @@ fn push(
 /// anything else — when the pane is too narrow for the full status.
 const INTERRUPT_HINT: &str = "\u{00b7} esc interrupts";
 
+/// The muted chip shown while the transcript is in compact view (Ctrl+O —
+/// see `ChatPane::compact_view`). Same segment family as [`INTERRUPT_HINT`]
+/// (an optional, droppable `· label` suffix), but less essential than the
+/// busy hint, so [`header_cells`] drops it first when the pane is too narrow
+/// for the full status — before touching the esc-interrupts hint.
+const COMPACT_CHIP: &str = "\u{00b7} compact";
+
 /// The right-aligned status segments as `(text, colour)`, in left-to-right order.
 /// While an agent is active the spinner names it and counts the elapsed
 /// seconds (`| coder · 12s`, in the agent's roster colour); otherwise a plain
@@ -49,7 +56,10 @@ const INTERRUPT_HINT: &str = "\u{00b7} esc interrupts";
 /// connection dot keeps the tighter single-space gap it always had.
 /// `hint`, when the pane is busy, adds the muted "esc interrupts" segment
 /// just before the dot — callers drop it (`hint: false`) to reclaim width on
-/// narrow panes.
+/// narrow panes. `compact`, when the transcript is in compact view, adds the
+/// muted "compact" chip right after the counters (dropped first of the two —
+/// see [`COMPACT_CHIP`] — via `compact: false`).
+#[allow(clippy::too_many_arguments)]
 fn status_segments(
     connected: bool,
     msg_count: usize,
@@ -58,6 +68,7 @@ fn status_segments(
     tokens: u64,
     turns: u64,
     turn_ms: u64,
+    compact: bool,
     hint: bool,
 ) -> Vec<(String, (u8, u8, u8))> {
     let t = crew_theme::theme();
@@ -92,8 +103,15 @@ fn status_segments(
         segs.push(seg);
     }
 
+    // Compact-view chip, width-permitting — appended right after the
+    // counters, ahead of the busy hint (see `header_cells`: it's the first
+    // of the two dropped on a narrow pane).
+    if compact {
+        segs.push((COMPACT_CHIP.to_string(), t.text_muted));
+    }
+
     // Busy hint, width-permitting (see `header_cells`) — appended after the
-    // counters, before the connection dot.
+    // counters (and the compact chip, if shown), before the connection dot.
     if awaiting && hint {
         segs.push((INTERRUPT_HINT.to_string(), t.text_muted));
     }
@@ -119,7 +137,9 @@ pub(crate) fn fmt_tokens(tokens: u64) -> String {
 /// Build the single-row header for a `cols`-wide crew pane.
 /// `totals` is the session's `(approx tokens, completed turns)`.
 /// `turn_ms` is the settled/last turn's duration in milliseconds (0 = none
-/// known yet), rendered as `· <D.D>s` after the turn count.
+/// known yet), rendered as `· <D.D>s` after the turn count. `compact`
+/// (Ctrl+O — `ChatPane::compact_view`) shows a muted "compact" chip; it's
+/// the first thing dropped on a narrow pane, ahead of the busy hint.
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn header_cells(
     cols: u16,
@@ -130,6 +150,7 @@ pub(crate) fn header_cells(
     active: Option<(&str, u64, (u8, u8, u8))>,
     totals: (u64, u64),
     turn_ms: u64,
+    compact: bool,
 ) -> Vec<CellView> {
     let (tokens, turns) = totals;
     if cols == 0 {
@@ -164,15 +185,22 @@ pub(crate) fn header_cells(
             .sum::<usize>()
             + (0..segs.len()).map(gap).sum::<u16>() as usize
     };
-    // Try with the busy hint first; if it doesn't fit, it's the first thing
-    // dropped — everything else (spinner/active label, turn/token/message
-    // counters, connection dot) renders exactly as it would without it.
+    // Try with both the compact chip and the busy hint first. If it doesn't
+    // fit, the compact chip is the first thing dropped (it's the less
+    // essential of the two); if it still doesn't fit, the hint goes too —
+    // everything else (spinner/active label, turn/token/message counters,
+    // connection dot) renders exactly as it would without either.
     let mut segs = status_segments(
-        connected, msg_count, awaiting, active, tokens, turns, turn_ms, true,
+        connected, msg_count, awaiting, active, tokens, turns, turn_ms, compact, true,
     );
     if segs_width(&segs) as u16 > cols {
         segs = status_segments(
-            connected, msg_count, awaiting, active, tokens, turns, turn_ms, false,
+            connected, msg_count, awaiting, active, tokens, turns, turn_ms, false, true,
+        );
+    }
+    if segs_width(&segs) as u16 > cols {
+        segs = status_segments(
+            connected, msg_count, awaiting, active, tokens, turns, turn_ms, false, false,
         );
     }
     let gap = |i: usize| -> u16 {

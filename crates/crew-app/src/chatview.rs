@@ -131,6 +131,7 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
         status.as_ref().map(|(l, s, c)| (l.as_str(), *s, *c)),
         (pane.tokens, pane.turns),
         turn_ms,
+        pane.compact_view,
     );
     // Zone 2: the statusline-style agent rows (rows 1..1+lay.rows), sized by
     // the same `layout` call `status_rows` used above — so the two always
