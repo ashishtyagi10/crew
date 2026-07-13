@@ -438,3 +438,67 @@ fn elapsed_and_token_columns_no_overlap_at_cols_60() {
         );
     }
 }
+
+// --- Cost column + wide-glyph advance ---
+
+#[test]
+fn cost_column_renders_outermost_on_wide_panes_and_sheds_first() {
+    let mut p = pane_with_swarm(1);
+    p.absorb_hive(&HiveEvent::AgentSpawned {
+        agent: crew_hive::AgentId(1),
+        task: TaskId(0),
+    });
+    p.absorb_hive(&HiveEvent::TokenDelta {
+        agent: crew_hive::AgentId(1),
+        input: 100,
+        output: 50,
+    });
+    p.absorb_hive(&HiveEvent::CostDelta {
+        agent: crew_hive::AgentId(1),
+        micros_usd: 3_100,
+    });
+    // Wide: cost is the rightmost column (1-col gap to the edge), tokens
+    // just inside it.
+    let cells = block_cells(&p, 80, 5, 0);
+    let row: String = {
+        let mut cs: Vec<_> = cells.iter().filter(|c| c.row == 5).collect();
+        cs.sort_by_key(|c| c.col);
+        cs.iter().map(|c| c.c).collect()
+    };
+    assert!(row.contains("$0.0031"), "{row}");
+    let cost_end = cells
+        .iter()
+        .filter(|c| c.row == 5)
+        .max_by_key(|c| c.col)
+        .unwrap();
+    assert_eq!(cost_end.col, 78, "cost column right-aligned to cols-2");
+    assert!(row.contains("150"), "tokens still shown: {row}");
+    // Narrow (below COST_MIN_COLS=32, at/above TOKENS_MIN_COLS=24): cost
+    // sheds, tokens survive.
+    let cells = block_cells(&p, 28, 5, 0);
+    let row: String = cells.iter().filter(|c| c.row == 5).map(|c| c.c).collect();
+    assert!(!row.contains('$'), "{row}");
+    assert!(row.contains("150"), "{row}");
+}
+
+#[test]
+fn wide_glyph_titles_advance_by_display_width() {
+    // "日本" occupies 4 display columns; the char after a wide glyph must
+    // land 2 columns later, not 1 (push_str used to advance 1 per char,
+    // overlapping the wide glyph's second cell).
+    let mut p = pane();
+    p.absorb_hive_plan(vec![TaskSpec {
+        id: TaskId(0),
+        title: "日本x".into(),
+        agent: AgentKind::Api { system: None },
+        model: ModelTier::Cheap,
+        deps: vec![],
+        prompt: "p".into(),
+    }]);
+    let cells = block_cells(&p, 80, 5, 0);
+    let ja0 = cells.iter().find(|c| c.c == '日').unwrap();
+    let ja1 = cells.iter().find(|c| c.c == '本').unwrap();
+    let x = cells.iter().find(|c| c.c == 'x').unwrap();
+    assert_eq!(ja1.col, ja0.col + 2);
+    assert_eq!(x.col, ja1.col + 2);
+}

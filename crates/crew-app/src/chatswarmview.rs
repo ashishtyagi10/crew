@@ -10,6 +10,9 @@ use crew_hive::TaskState;
 
 /// Most task rows the block will occupy; larger plans get a `… n more` row.
 const MAX_ROWS: u16 = 8;
+/// Below this width the cost column is dropped — it is the least urgent of
+/// the three metric columns while a task runs, so it sheds first.
+const COST_MIN_COLS: u16 = 32;
 /// Below this width the token column is dropped (title needs the room).
 const TOKENS_MIN_COLS: u16 = 24;
 /// Below this width the elapsed column is dropped too. Narrower than
@@ -28,6 +31,13 @@ pub(crate) fn swarm_rows(pane: &ChatPane, _rows: u16) -> u16 {
 
 fn push_str(v: &mut Vec<CellView>, col: &mut u16, row: u16, s: &str, fg: (u8, u8, u8)) {
     for c in s.chars() {
+        // Advance by display width (a wide CJK/emoji glyph occupies two
+        // cells) so text after a wide glyph doesn't overlap it; zero-width
+        // marks are skipped like `chatwidth::place_row` does.
+        let w = crate::chatwidth::char_w(c) as u16;
+        if w == 0 {
+            continue;
+        }
         v.push(CellView {
             col: *col,
             row,
@@ -37,7 +47,7 @@ fn push_str(v: &mut Vec<CellView>, col: &mut u16, row: u16, s: &str, fg: (u8, u8
             bold: false,
             italic: false,
         });
-        *col += 1;
+        *col += w;
     }
 }
 
@@ -82,15 +92,21 @@ pub(crate) fn block_cells(pane: &ChatPane, cols: u16, top_row: u16, now_ms: u64)
             .filter(|_| cols >= ELAPSED_MIN_COLS);
         let tok = (t.tokens > 0 && cols >= TOKENS_MIN_COLS)
             .then(|| crate::chatswarmrec::fmt_tok(t.tokens));
-        // Width rule: tokens drop first (at `TOKENS_MIN_COLS`), elapsed
-        // survives to `ELAPSED_MIN_COLS`, then both drop on very narrow
-        // panes. Reserve room for whichever of the two are shown.
+        let cost = (t.cost_micros > 0 && cols >= COST_MIN_COLS)
+            .then(|| crate::chatswarmrec::fmt_cost(t.cost_micros));
+        // Width rule: cost drops first (at `COST_MIN_COLS`), tokens next (at
+        // `TOKENS_MIN_COLS`), elapsed survives to `ELAPSED_MIN_COLS`, then
+        // all drop on very narrow panes. Reserve room for whichever are
+        // shown.
         let mut reserve = 1u16;
         if let Some(e) = &elapsed {
             reserve += e.len() as u16 + 1;
         }
         if let Some(tk) = &tok {
             reserve += tk.len() as u16 + 1;
+        }
+        if let Some(cst) = &cost {
+            reserve += cst.len() as u16 + 1;
         }
         let max_title = cols.saturating_sub(col + reserve) as usize;
         // Display-width-aware clamp: `.chars().take(n)` counts chars, so a
@@ -102,9 +118,15 @@ pub(crate) fn block_cells(pane: &ChatPane, cols: u16, top_row: u16, now_ms: u64)
         let title: String = title_chars[..title_end].iter().collect();
         push_str(&mut v, &mut col, row, &title, theme.text_muted);
         // Right-aligned from the pane edge, each with a 1-column gap from
-        // whatever sits to its right: tokens outermost, elapsed just inside
-        // it (title ... elapsed ... tokens).
+        // whatever sits to its right: cost outermost, then tokens, then
+        // elapsed (title ... elapsed ... tokens ... cost).
         let mut next_start = cols;
+        if let Some(cst) = &cost {
+            let cost_start = next_start.saturating_sub(cst.len() as u16 + 1);
+            let mut ccol = cost_start;
+            push_str(&mut v, &mut ccol, row, cst, theme.text_muted);
+            next_start = cost_start.saturating_sub(1);
+        }
         if let Some(tok) = &tok {
             let tok_start = next_start.saturating_sub(tok.len() as u16 + 1);
             let mut tcol = tok_start;

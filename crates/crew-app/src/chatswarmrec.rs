@@ -23,6 +23,10 @@ impl SwarmStatus {
                 } else {
                     format!("- {glyph} {}", t.title)
                 };
+                if t.cost_micros > 0 {
+                    line.push_str(" \u{00b7} ");
+                    line.push_str(&fmt_cost(t.cost_micros));
+                }
                 if let Some(ms) = t.elapsed_ms {
                     line.push_str(" \u{00b7} ");
                     line.push_str(&fmt_elapsed(ms));
@@ -31,6 +35,17 @@ impl SwarmStatus {
             })
             .collect::<Vec<_>>()
             .join("\n");
+        // Run totals — the only place the whole run's spend surfaces in chat
+        // (the broker's aggregate Stats carries tokens but not cost).
+        let cost: u64 = self.tasks.iter().map(|t| t.cost_micros).sum();
+        if cost > 0 {
+            let tok: u64 = self.tasks.iter().map(|t| t.tokens).sum();
+            out.push_str(&format!(
+                "\n\n\u{03a3} {} tok \u{00b7} {}",
+                fmt_tok(tok),
+                fmt_cost(cost)
+            ));
+        }
         if let Some(tl) = timeline_block(&self.spans()) {
             out.push_str("\n\n");
             out.push_str(&tl);
@@ -67,6 +82,18 @@ pub(crate) fn fmt_tok(n: u64) -> String {
         format!("{:.1}k", n as f64 / 1000.0)
     } else {
         n.to_string()
+    }
+}
+
+/// Micro-USD as dollars — 2 decimals once a cent is reached, 4 below it so
+/// sub-cent task costs don't all collapse to `$0.00`. Shared by the live
+/// block and the folded record.
+pub(crate) fn fmt_cost(micros: u64) -> String {
+    let usd = micros as f64 / 1_000_000.0;
+    if micros >= 10_000 {
+        format!("${usd:.2}")
+    } else {
+        format!("${usd:.4}")
     }
 }
 
