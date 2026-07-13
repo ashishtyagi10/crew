@@ -21,14 +21,6 @@ pub(crate) fn swarm_rows(pane: &ChatPane, _rows: u16) -> u16 {
     }
 }
 
-fn fmt_tok(n: u64) -> String {
-    if n >= 1_000 {
-        format!("{:.1}k", n as f64 / 1000.0)
-    } else {
-        n.to_string()
-    }
-}
-
 fn push_str(v: &mut Vec<CellView>, col: &mut u16, row: u16, s: &str, fg: (u8, u8, u8)) {
     for c in s.chars() {
         v.push(CellView {
@@ -74,10 +66,17 @@ pub(crate) fn block_cells(pane: &ChatPane, cols: u16, top_row: u16, now_ms: u64)
         push_str(&mut v, &mut col, row, &g.to_string(), fg);
         push_str(&mut v, &mut col, row, " ", fg);
         // Title, clamped to leave room for the token column (or the edge).
-        let tok = (t.tokens > 0 && cols >= TOKENS_MIN_COLS).then(|| fmt_tok(t.tokens));
+        let tok =
+            (t.tokens > 0 && cols >= TOKENS_MIN_COLS).then(|| crate::chatswarm::fmt_tok(t.tokens));
         let reserve = tok.as_ref().map(|s| s.len() as u16 + 2).unwrap_or(1);
         let max_title = cols.saturating_sub(col + reserve) as usize;
-        let title: String = t.title.chars().take(max_title).collect();
+        // Display-width-aware clamp: `.chars().take(n)` counts chars, so a
+        // CJK/emoji title (2 display columns per glyph) could select twice
+        // as many columns as `max_title` allows, colliding with the token
+        // column (or the pane edge on narrow panes).
+        let title_chars: Vec<char> = t.title.chars().collect();
+        let title_end = crate::chatwidth::fit_end(&title_chars, 0, max_title);
+        let title: String = title_chars[..title_end].iter().collect();
         push_str(&mut v, &mut col, row, &title, theme.text_muted);
         if let Some(tok) = tok {
             let mut tcol = cols.saturating_sub(tok.len() as u16 + 1);

@@ -160,17 +160,17 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
         // rows are clamped to strictly above the composer: a saturated row
         // budget (e.g. an 8-task swarm on a tiny pane) can otherwise push
         // block rows onto the composer row, which doesn't reliably overdraw
-        // them (only the prompt glyph/text touch every column).
+        // them (only the prompt glyph/text touch every column). Floored at
+        // `top` too — on a very short pane the same saturation can otherwise
+        // push the start row above the header/status rows.
         let block_max = rows.saturating_sub(bottom);
+        let block_start = block_max
+            .saturating_sub(crate::chatswarmview::swarm_rows(pane, rows))
+            .max(top);
         cells.extend(
-            crate::chatswarmview::block_cells(
-                pane,
-                cols,
-                block_max.saturating_sub(crate::chatswarmview::swarm_rows(pane, rows)),
-                crate::anim::now_ms(),
-            )
-            .into_iter()
-            .filter(|c| c.row < block_max),
+            crate::chatswarmview::block_cells(pane, cols, block_start, crate::anim::now_ms())
+                .into_iter()
+                .filter(|c| c.row >= top && c.row < block_max),
         );
     } else {
         let msg_rows = crate::chatplace::msg_rows_budget(pane, cols, rows);
