@@ -51,6 +51,11 @@ pub struct ChatPane {
     /// When true, show raw message text instead of markdown rendering.
     /// Toggled with Ctrl+Shift+M; not persisted.
     pub(crate) show_source: bool,
+    /// When true, each transcript message renders its header line plus only
+    /// the first body line, with a muted ` … +N` suffix noting how many
+    /// lines are hidden (see `chatmsgs::View`). Toggled with Ctrl+O; not
+    /// persisted. Orthogonal to `show_source` — both can be on at once.
+    pub(crate) compact_view: bool,
     /// Roster animation state: eased bars/token counts + handoff flashes.
     pub(crate) anim: crate::chatanim::RosterAnim,
     /// Agents with an in-flight streamed reply: opened by
@@ -89,6 +94,7 @@ impl ChatPane {
             mention: None,
             palette: None,
             show_source: false,
+            compact_view: false,
             anim: crate::chatanim::RosterAnim::new(),
             tick_open: std::collections::HashSet::new(),
             swarm: None,
@@ -275,15 +281,17 @@ impl ChatPane {
     /// Handle a winit key event. Returns [`ChatAction::Close`] when the user asks
     /// to close the pane (Escape) — mirroring the Far/Settings panes. While the
     /// @file popup is open it gets keys first (Escape then closes the popup, not
-    /// the pane). `shift` makes Enter insert a newline instead of sending.
-    /// `cwd` roots mention scanning and expansion.
+    /// the pane). `shift` makes Enter insert a newline instead of sending;
+    /// `ctrl` turns Ctrl+O into the compact-transcript toggle. `cwd` roots
+    /// mention scanning and expansion.
     pub fn on_key(
         &mut self,
         key: &KeyEvent,
         shift: bool,
+        ctrl: bool,
         cwd: &std::path::Path,
     ) -> Option<ChatAction> {
-        let k = chat_key(&key.logical_key, key.state.is_pressed(), shift);
+        let k = chat_key(&key.logical_key, key.state.is_pressed(), shift, ctrl);
         self.on_input(k, cwd)
     }
 
@@ -322,6 +330,10 @@ impl ChatPane {
                 return Some(ChatAction::Close);
             }
             ChatInput::Ignore | ChatInput::Up | ChatInput::Down => return None,
+            ChatInput::ToggleCompact => {
+                self.compact_view = !self.compact_view;
+                return None;
+            }
             ChatInput::Complete => {
                 if let Some(done) = crate::chatcomplete::complete(&self.input, &self.agents) {
                     self.input = done;

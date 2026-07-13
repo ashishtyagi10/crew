@@ -658,6 +658,46 @@ fn show_source_true_shows_literal_text() {
 }
 
 #[test]
+fn ctrl_o_toggles_compact_view_and_back() {
+    use crate::chatkeys::ChatInput;
+
+    let mut p = pane();
+    let cwd = std::env::temp_dir();
+    assert_eq!(p.compact_view, false, "compact_view defaults to false");
+
+    assert!(p.on_input(ChatInput::ToggleCompact, &cwd).is_none());
+    assert!(p.compact_view, "first Ctrl+O turns compact view on");
+
+    assert!(p.on_input(ChatInput::ToggleCompact, &cwd).is_none());
+    assert!(
+        !p.compact_view,
+        "second Ctrl+O restores the full transcript"
+    );
+}
+
+#[test]
+fn ctrl_o_still_toggles_while_the_mention_popup_is_open() {
+    // The @file popup only consumes Up/Down/Complete/Enter/Close (see
+    // `chatmention::popup_key`) — anything else, including Ctrl+O, forwards
+    // to the pane's own handling, matching the existing popup key contract.
+    use crate::chatkeys::ChatInput;
+
+    let mut p = pane();
+    let cwd = std::env::temp_dir();
+    p.mention = Some(crate::chatmention::MentionState {
+        files: Vec::new(),
+        matches: vec!["a.txt".into()],
+        sel: 0,
+    });
+
+    assert!(p.on_input(ChatInput::ToggleCompact, &cwd).is_none());
+    assert!(
+        p.compact_view,
+        "Ctrl+O reached the pane despite the open popup"
+    );
+}
+
+#[test]
 fn show_source_false_chat_title_has_no_suffix() {
     // When show_source is false (default), the title should be just "chat".
     let p = pane();
