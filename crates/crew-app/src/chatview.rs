@@ -155,6 +155,14 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
             pane.connected,
             &pane.agents,
         ));
+        // A run can start before any reply lands — the plan-summary message
+        // usually exists by fold time, but don't rely on it here.
+        cells.extend(crate::chatswarmview::block_cells(
+            pane,
+            cols,
+            rows - bottom - crate::chatswarmview::swarm_rows(pane, rows),
+            crate::anim::now_ms(),
+        ));
     } else {
         let msg_rows = crate::chatplace::msg_rows_budget(pane, cols, rows);
         cells.extend(crate::chatmsgs::message_cells(
@@ -178,6 +186,14 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
             let last = top + msg_rows.saturating_sub(1);
             cells.extend(crate::chatscroll::new_pill_cells(pane.unread, cols, last));
         }
+        // The live swarm block sits under the messages, above the composer —
+        // msg_rows_budget already reserved its rows so nothing overlaps.
+        cells.extend(crate::chatswarmview::block_cells(
+            pane,
+            cols,
+            top + msg_rows,
+            crate::anim::now_ms(),
+        ));
     }
     cells.extend(crate::chatinput::composer_cells(
         &pane.input,
