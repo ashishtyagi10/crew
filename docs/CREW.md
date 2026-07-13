@@ -347,8 +347,11 @@ line (a miss reports too). Returning to the live bottom clears the highlight.
 (hidden panes included, bounded per pane), focuses the first matching pane
 (restoring it if minimized), scrolls it to the most recent match, and reports
 the fleet-wide tally — `12 matches for 'error' in 3 panes (#2 #4 #7)` — using
-the same pane numbers as Cmd+1..9 and the tile badges. A follow-up
-`/find <text>` steps upward through the focused pane's matches as usual.
+the same pane numbers as Cmd+1..9 and the tile badges (the landed pane is
+arrow-marked: `(#2 →#4 #7)`). **Repeating `/findall`** with the same term
+**cycles to the next matching pane**, wrapping — n/N stepping at fleet
+granularity — while a follow-up `/find <text>` steps upward through the
+focused pane's matches as usual.
 
 ## Markdown
 

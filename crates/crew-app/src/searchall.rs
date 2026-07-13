@@ -1,7 +1,9 @@
 //! Cross-pane scrollback search: `/findall <term>` counts smart-case matches
 //! in every terminal pane's **full** scrollback (hidden panes included),
 //! focuses the first matching pane, and runs the normal `/find` there so the
-//! view scrolls to the match and repeat-`/find` continues upward. Counting
+//! view scrolls to the match and repeat-`/find` continues upward. Repeating
+//! `/findall` with the same term cycles to the NEXT matching pane
+//! (wrapping) — n/N stepping at fleet granularity. Counting
 //! pages a whole screen per grid snapshot — the naive one-`cells()`-per-line
 //! walk measured ~1s/pane on a fat history, far past what the winit thread
 //! tolerates; paging is ~rows× fewer snapshots.
@@ -78,14 +80,23 @@ impl CrewApp {
             }
         }
         if hits.is_empty() {
+            self.last_findall = None;
             self.set_status(format!("no match for '{term}' in any pane"));
             return;
         }
-        // Land on the first matching pane (reconcile restores it if hidden)
-        // and run the per-pane find there FROM THE LIVE BOTTOM — /find only
+        // Repeating the same term cycles: land on the matching pane AFTER
+        // the focused one (wrapping); a fresh term starts at the first.
+        let repeat = self.last_findall.as_deref() == Some(term);
+        self.last_findall = Some(term.to_string());
+        let target = match hits.iter().position(|&(i, _)| i == self.focused) {
+            Some(pos) if repeat => hits[(pos + 1) % hits.len()].0,
+            _ => hits[0].0,
+        };
+        // Land on the target pane (reconcile restores it if hidden) and run
+        // the per-pane find there FROM THE LIVE BOTTOM — /find only
         // searches upward, so a pane left scrolled up would strand at the
         // top missing a match that sits below its old view.
-        self.focused = hits[0].0;
+        self.focused = target;
         self.input.focused = false;
         if let Some(pane) = self.panes.get_mut(self.focused) {
             if let PaneContent::Terminal(t) = &mut pane.content {
@@ -98,7 +109,14 @@ impl CrewApp {
         // total count, pane count, and the 1-based pane numbers (the same
         // numbers Cmd+1..9 and the tile badges use).
         let total: usize = hits.iter().map(|&(_, n)| n).sum();
-        let where_list: Vec<String> = hits.iter().map(|&(i, _)| format!("#{}", i + 1)).collect();
+        // The landed pane is arrow-marked so cycling shows where you are.
+        let where_list: Vec<String> = hits
+            .iter()
+            .map(|&(i, _)| {
+                let mark = if i == self.focused { "\u{2192}" } else { "" };
+                format!("{mark}#{}", i + 1)
+            })
+            .collect();
         self.set_status(format!(
             "{total} match{} for '{term}' in {} pane{} ({})",
             if total == 1 { "" } else { "es" },
