@@ -33,43 +33,6 @@ fn tests_far_pane(name: &str) -> crate::pane::Pane {
     }
 }
 
-/// A chat pane backed by an idle child process — only pane state is under
-/// test, so `sh -c cat >/dev/null` stands in for the broker.
-fn tests_chat_pane() -> crate::pane::Pane {
-    use crate::chat::ChatPane;
-    use crate::pane::{Pane, PaneContent};
-    use crew_plugin::Plugin;
-    use crew_term::GridSize;
-    let plugin = Plugin::spawn("sh", &["-c".to_string(), "cat >/dev/null".to_string()]).unwrap();
-    Pane {
-        content: PaneContent::Chat(ChatPane::new(plugin, "crew".into())),
-        grid: GridSize { cols: 80, rows: 24 },
-        rect: crate::layout::Rect {
-            x: 0.0,
-            y: 0.0,
-            w: 0.0,
-            h: 0.0,
-        },
-        label: None,
-        name: None,
-        dir: None,
-        activity: false,
-        bell: false,
-        hidden: false,
-        attention: None,
-    }
-}
-
-#[test]
-fn closing_chat_pane_closes_hive_companion() {
-    let mut app = CrewApp::default();
-    app.panes.push(tests_chat_pane());
-    app.hive_plan(vec![]); // empty plan is a valid graph
-    assert_eq!(app.panes.len(), 2);
-    app.close_pane(0);
-    assert!(app.panes.is_empty(), "companion closes with its chat");
-}
-
 #[test]
 fn focusing_a_pane_clears_its_attention_but_not_others() {
     let mut app = CrewApp::default();

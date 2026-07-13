@@ -163,6 +163,8 @@ impl ChatPane {
                             self.messages.drain(..drain);
                         }
                     }
+                    PluginEvent::HivePlan { tasks } => self.absorb_hive_plan(tasks),
+                    PluginEvent::Hive { event } => self.absorb_hive(&event),
                     PluginEvent::Error { .. } => {
                         self.fold_swarm();
                         self.connected = false;

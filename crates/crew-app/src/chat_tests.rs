@@ -305,17 +305,16 @@ fn classify_send_pane_returns_host_action() {
 }
 
 #[test]
-fn hive_events_classify_to_host_actions() {
-    use crew_hive::{HiveEvent, TaskId, TaskState};
-    let ev = PluginEvent::HivePlan { tasks: vec![] };
-    assert!(matches!(classify(&ev), Some(HostAction::HivePlan { .. })));
-    let ev = PluginEvent::Hive {
-        event: HiveEvent::TaskStateChanged {
-            task: TaskId(0),
-            state: TaskState::Running,
-        },
-    };
-    assert!(matches!(classify(&ev), Some(HostAction::Hive { .. })));
+fn hive_events_are_pane_state_not_host_actions() {
+    use crew_plugin::PluginEvent;
+    assert!(crate::chat::classify(&PluginEvent::HivePlan { tasks: vec![] }).is_none());
+    assert!(crate::chat::classify(&PluginEvent::Hive {
+        event: crew_hive::HiveEvent::TaskStateChanged {
+            task: crew_hive::TaskId(0),
+            state: crew_hive::TaskState::Running,
+        }
+    })
+    .is_none());
 }
 
 #[test]

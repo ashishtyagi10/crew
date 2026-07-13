@@ -65,7 +65,6 @@ mod help;
 mod history;
 mod histsearch;
 mod hit;
-mod hivepane;
 mod host;
 pub(crate) mod inputbar;
 mod inputbar_render;

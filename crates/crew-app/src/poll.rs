@@ -260,8 +260,6 @@ impl CrewApp {
                     label,
                 } => self.spawn_labeled_terminal(&command, &args, label),
                 HostAction::SendPane { label, text } => self.send_to_label(&label, &text),
-                HostAction::HivePlan { tasks } => self.hive_plan(tasks),
-                HostAction::Hive { event } => self.hive_event(&event),
             }
         }
         if any_changed || actions_ran {
