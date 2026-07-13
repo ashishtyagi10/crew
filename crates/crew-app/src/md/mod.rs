@@ -8,7 +8,6 @@ mod parse;
 /// `cols` columns. Never panics, regardless of input. CommonMark semantics:
 /// a single line break (soft break) joins with a space — the right default
 /// for a future file/document viewer, where source text is often hard-wrapped.
-#[allow(dead_code)] // phase-2 file viewer will be the first non-chat caller
 pub(crate) fn render(text: &str, cols: usize) -> Vec<MdLine> {
     layout::lines(parse::parse(text), cols)
 }
@@ -41,7 +40,6 @@ pub(crate) struct MdSpan {
 /// What a rendered line represents, so the chat pane knows how to draw it
 /// (code lines get a background, rules get a divider glyph, ...).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-#[allow(dead_code)] // constructed by md::layout in Task 2
 pub(crate) enum LineKind {
     Body,
     CodeHeader, // "╭─ lang" chrome line (chat draws it muted, no bg)
@@ -53,7 +51,6 @@ pub(crate) enum LineKind {
 
 /// One wrapped, drawable line of a rendered markdown document.
 #[derive(Clone, PartialEq, Eq, Debug)]
-#[allow(dead_code)] // constructed by md::layout in Task 2
 pub(crate) struct MdLine {
     pub spans: Vec<MdSpan>,
     pub kind: LineKind,

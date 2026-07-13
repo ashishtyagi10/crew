@@ -19,7 +19,6 @@ use super::relay::msg;
 use super::session::Session;
 
 /// $1.00 ceiling per swarm run, enforced by the budget governor.
-const SWARM_BUDGET_MICROS_USD: u64 = 1_000_000;
 /// Parallel worker agents per run.
 const CONCURRENCY: usize = 4;
 /// Per-task output token cap for worker agents.
@@ -58,7 +57,7 @@ fn backend() -> (Arc<dyn Planner>, Arc<dyn AgentFactory>, Option<Budget>) {
             ),
             Arc::new(crew_hive::ApiFactory::new(provider, WORK_MAX_TOKENS).with_model(model)),
             Some(Budget {
-                max_micros_usd: SWARM_BUDGET_MICROS_USD,
+                max_micros_usd: Budget::DEFAULT_MICROS_USD,
             }),
         ),
     }

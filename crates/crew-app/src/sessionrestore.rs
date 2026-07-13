@@ -34,22 +34,28 @@ impl CrewApp {
         }
         self.panes
             .iter()
-            .filter_map(|p| match &p.content {
-                PaneContent::Terminal(t) => t
-                    .pty
-                    .shell_pid()
-                    .and_then(|pid| sys.process(Pid::from_u32(pid)))
-                    .and_then(|proc| proc.cwd())
-                    .map(|c| c.to_path_buf())
-                    .or_else(|| p.dir.clone())
-                    .map(|d| SavedPane::shell(d.to_string_lossy().into_owned())),
-                PaneContent::Far(f) => Some(SavedPane::far(
-                    f.active_cwd().to_string_lossy().into_owned(),
-                )),
-                PaneContent::Chat(_) if p.label.as_deref() == Some("crew") => {
-                    Some(SavedPane::crew())
-                }
-                _ => None,
+            .filter_map(|p| {
+                let sp = match &p.content {
+                    PaneContent::Terminal(t) => t
+                        .pty
+                        .shell_pid()
+                        .and_then(|pid| sys.process(Pid::from_u32(pid)))
+                        .and_then(|proc| proc.cwd())
+                        .map(|c| c.to_path_buf())
+                        .or_else(|| p.dir.clone())
+                        .map(|d| SavedPane::shell(d.to_string_lossy().into_owned())),
+                    PaneContent::Far(f) => Some(SavedPane::far(
+                        f.active_cwd().to_string_lossy().into_owned(),
+                    )),
+                    PaneContent::Chat(_) if p.label.as_deref() == Some("crew") => {
+                        Some(SavedPane::crew())
+                    }
+                    _ => None,
+                };
+                sp.map(|mut sp| {
+                    sp.min = p.hidden;
+                    sp
+                })
             })
             .collect::<Vec<SavedPane>>()
     }
@@ -97,14 +103,32 @@ impl CrewApp {
                 .dir
                 .as_deref()
                 .map_or_else(|| kept.clone(), PathBuf::from);
+            let count = self.panes.len();
             match sp.kind.as_str() {
                 "shell" => self.spawn_new_pane(),
                 "far" => self.spawn_far_pane(),
                 "crew" => self.spawn_crew_pane(),
                 _ => {} // load_at filters unknown kinds; belt for callers
             }
+            // Re-minimize only the pane THIS iteration pushed (a failed
+            // spawn pushes none — last_mut would hit the previous pane).
+            if sp.min && self.panes.len() > count {
+                if let Some(p) = self.panes.last_mut() {
+                    p.hidden = true;
+                }
+            }
         }
         self.cwd = kept;
+        // The loop leaves the last spawn focused; if that one restored
+        // minimized, reconcile_grid's focus-restores rule would immediately
+        // un-minimize it. Land focus on a visible pane instead (or the
+        // input bar when everything restored minimized).
+        if self.panes.get(self.focused).is_some_and(|p| p.hidden) {
+            match (0..self.panes.len()).find(|&i| !self.panes[i].hidden) {
+                Some(i) => self.focused = i,
+                None => self.input.focused = true,
+            }
+        }
         // Count what actually opened — the spawners report failures via
         // set_status, and a blanket "restored n" would overwrite the error
         // with a lie.

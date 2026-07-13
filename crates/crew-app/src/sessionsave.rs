@@ -21,6 +21,9 @@ pub(crate) struct SavedPane {
     pub kind: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub dir: Option<String>,
+    /// Minimized into the left nav when saved — restored the same way.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub min: bool,
 }
 
 impl SavedPane {
@@ -28,18 +31,21 @@ impl SavedPane {
         SavedPane {
             kind: "shell".into(),
             dir: Some(dir),
+            min: false,
         }
     }
     pub(crate) fn far(dir: String) -> Self {
         SavedPane {
             kind: "far".into(),
             dir: Some(dir),
+            min: false,
         }
     }
     pub(crate) fn crew() -> Self {
         SavedPane {
             kind: "crew".into(),
             dir: None,
+            min: false,
         }
     }
 

@@ -27,8 +27,8 @@ use crate::swarm::view::swarm_cells;
 // Backend selection + execution helpers live in `swarm::backend`; re-exported
 // so callers (and the tests) keep addressing them through this module.
 pub(crate) use crate::swarm::backend::{
-    backend_for, banner, executor, jobs_from_lines, running, Backend, GOAL_BUDGET_MICROS_USD,
-    GOAL_FANOUT, PLAN_TIER, WORK_MAX_TOKENS,
+    backend_for, banner, executor, jobs_from_lines, running, Backend, GOAL_FANOUT, PLAN_TIER,
+    WORK_MAX_TOKENS,
 };
 
 /// The lifecycle of a swarm pane.
@@ -82,7 +82,7 @@ impl SwarmPane {
                 let factory = Arc::new(ApiFactory::new(Arc::new(provider), WORK_MAX_TOKENS));
                 // Real API agents accrue cost — cap the run.
                 let budget = Some(Budget {
-                    max_micros_usd: GOAL_BUDGET_MICROS_USD,
+                    max_micros_usd: crew_hive::Budget::DEFAULT_MICROS_USD,
                 });
                 Self::goal_with(goal, planner, factory, budget)
             }

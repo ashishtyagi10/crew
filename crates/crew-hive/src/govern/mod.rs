@@ -27,6 +27,13 @@ pub struct Budget {
     pub max_micros_usd: u64,
 }
 
+impl Budget {
+    /// The default per-run cap ($1) — the single source both the broker's
+    /// swarm runs and crew-app's /goal /batch panes gate on (each crate
+    /// previously duplicated this constant).
+    pub const DEFAULT_MICROS_USD: u64 = 1_000_000;
+}
+
 /// Subscribe to `bus`, apply every event to a `Fleet`, and set `cancel` to
 /// `true` when `fleet.totals().micros_usd > budget.max_micros_usd`.
 ///
