@@ -77,6 +77,16 @@ pub enum PluginEvent {
         #[serde(default, skip_serializing_if = "String::is_empty")]
         meta: String,
     },
+    /// A swarm plan landed: the full task list, so the host can open/refresh
+    /// the companion graph pane. Sent once per swarm run, before execution.
+    HivePlan {
+        tasks: Vec<crew_hive::TaskSpec>,
+    },
+    /// One raw swarm telemetry event, forwarded verbatim for the host's
+    /// companion graph pane. Chat-facing translations are sent separately.
+    Hive {
+        event: crew_hive::HiveEvent,
+    },
     Error {
         message: String,
     },
@@ -240,5 +250,30 @@ mod tests {
             }
             _ => panic!("wrong variant"),
         }
+    }
+
+    #[test]
+    fn hive_events_round_trip() {
+        let plan = PluginEvent::HivePlan {
+            tasks: vec![crew_hive::TaskSpec {
+                id: crew_hive::TaskId(0),
+                title: "t".into(),
+                agent: crew_hive::AgentKind::Api { system: None },
+                model: crew_hive::ModelTier::Cheap,
+                deps: vec![],
+                prompt: "p".into(),
+            }],
+        };
+        let s = serde_json::to_string(&plan).unwrap();
+        assert!(s.contains("\"type\":\"hive_plan\""), "{s}");
+        let ev = PluginEvent::Hive {
+            event: crew_hive::HiveEvent::TaskStateChanged {
+                task: crew_hive::TaskId(0),
+                state: crew_hive::TaskState::Running,
+            },
+        };
+        let s = serde_json::to_string(&ev).unwrap();
+        let back: PluginEvent = serde_json::from_str(&s).unwrap();
+        assert!(matches!(back, PluginEvent::Hive { .. }));
     }
 }
