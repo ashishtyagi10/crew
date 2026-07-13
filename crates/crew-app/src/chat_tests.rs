@@ -599,7 +599,15 @@ fn show_source_false_renders_bold_markdown() {
     });
     assert_eq!(p.show_source, false, "show_source defaults to false");
 
-    let lines = crate::chatmsgs::card_lines(&p.messages, 80, 0, p.show_source);
+    let lines = crate::chatmsgs::card_lines(
+        &p.messages,
+        80,
+        0,
+        crate::chatmsgs::View {
+            source: p.show_source,
+            compact: p.compact_view,
+        },
+    );
     // First line is the header (▍ alice ...)
     // Remaining lines are the body with the bold text
     let body_lines: Vec<_> = lines.iter().skip(1).collect();
@@ -635,7 +643,15 @@ fn show_source_true_shows_literal_text() {
         meta: String::new(),
     });
 
-    let lines = crate::chatmsgs::card_lines(&p.messages, 80, 0, p.show_source);
+    let lines = crate::chatmsgs::card_lines(
+        &p.messages,
+        80,
+        0,
+        crate::chatmsgs::View {
+            source: p.show_source,
+            compact: p.compact_view,
+        },
+    );
     let body_lines: Vec<_> = lines.iter().skip(1).collect();
     assert!(!body_lines.is_empty(), "body should have lines");
 
