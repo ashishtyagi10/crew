@@ -117,21 +117,21 @@ pub(crate) fn block_cells(pane: &ChatPane, cols: u16, top_row: u16, now_ms: u64)
         let title_end = crate::chatwidth::fit_end(&title_chars, 0, max_title);
         let title: String = title_chars[..title_end].iter().collect();
         push_str(&mut v, &mut col, row, &title, theme.text_muted);
-        // Right-aligned from the pane edge, each with a 1-column gap from
-        // whatever sits to its right: cost outermost, then tokens, then
-        // elapsed (title ... elapsed ... tokens ... cost).
+        // Right-aligned from the pane edge, each exactly `len + 1` inside
+        // whatever sits to its right — the same per-column budget `reserve`
+        // charged above, so title and columns can never collide (an extra
+        // -1 here once double-billed the gap and overlapped the title):
+        // title ... elapsed ... tokens ... cost.
         let mut next_start = cols;
         if let Some(cst) = &cost {
-            let cost_start = next_start.saturating_sub(cst.len() as u16 + 1);
-            let mut ccol = cost_start;
+            next_start = next_start.saturating_sub(cst.len() as u16 + 1);
+            let mut ccol = next_start;
             push_str(&mut v, &mut ccol, row, cst, theme.text_muted);
-            next_start = cost_start.saturating_sub(1);
         }
         if let Some(tok) = &tok {
-            let tok_start = next_start.saturating_sub(tok.len() as u16 + 1);
-            let mut tcol = tok_start;
+            next_start = next_start.saturating_sub(tok.len() as u16 + 1);
+            let mut tcol = next_start;
             push_str(&mut v, &mut tcol, row, tok, theme.text_muted);
-            next_start = tok_start.saturating_sub(1);
         }
         if let Some(e) = &elapsed {
             let mut ecol = next_start.saturating_sub(e.len() as u16 + 1);

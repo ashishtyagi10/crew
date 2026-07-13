@@ -85,15 +85,19 @@ pub(crate) fn fmt_tok(n: u64) -> String {
     }
 }
 
-/// Micro-USD as dollars — 2 decimals once a cent is reached, 4 below it so
-/// sub-cent task costs don't all collapse to `$0.00`. Shared by the live
-/// block and the folded record.
+/// Micro-USD as dollars — 2 decimals once the value *displays* as a cent
+/// (from 9,950 micros, where `{:.4}` would round to the inconsistent
+/// `$0.0100`), 4 below it so sub-cent task costs don't collapse to `$0.00`,
+/// and `<$0.0001` under 50 micros (where even 4 decimals round to zero).
+/// Shared by the live block and the folded record.
 pub(crate) fn fmt_cost(micros: u64) -> String {
     let usd = micros as f64 / 1_000_000.0;
-    if micros >= 10_000 {
+    if micros >= 9_950 {
         format!("${usd:.2}")
-    } else {
+    } else if micros >= 50 {
         format!("${usd:.4}")
+    } else {
+        "<$0.0001".into()
     }
 }
 
