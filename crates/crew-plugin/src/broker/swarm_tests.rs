@@ -296,3 +296,12 @@ fn activity_names_the_specialist_not_the_task_title() {
         other => panic!("expected Activity, got {other:?}"),
     }
 }
+
+#[test]
+fn lagged_note_wording_and_plural() {
+    assert_eq!(
+        super::lagged_note(1),
+        "telemetry gap: 1 event dropped (bus overflow) \u{2014} task stats may under-count"
+    );
+    assert!(super::lagged_note(42).contains("42 events dropped"));
+}
