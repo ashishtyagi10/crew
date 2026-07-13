@@ -284,3 +284,40 @@ fn escape_closes_a_swarm_pane_other_keys_do_not() {
         true
     ));
 }
+
+#[test]
+fn bridge_forward_survives_a_lagged_subscriber() {
+    // Capacity-1 bus + 3 sends before the drain runs: the subscriber wakes
+    // to Lagged, must SKIP it (the old `while let Ok` loop broke there and
+    // froze telemetry), then still delivers the retained newest event and
+    // exits cleanly on Closed.
+    use crew_hive::{AgentId, HiveEvent};
+    let (bus_tx, bus_rx) = tokio::sync::broadcast::channel::<HiveEvent>(1);
+    let (tx, rx) = std::sync::mpsc::channel();
+    for i in 0..3 {
+        bus_tx
+            .send(HiveEvent::TokenDelta {
+                agent: AgentId(i),
+                input: i as u32,
+                output: 0,
+            })
+            .unwrap();
+    }
+    drop(bus_tx);
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .build()
+        .unwrap();
+    rt.block_on(super::bridge::forward(bus_rx, tx));
+    let got: Vec<HiveEvent> = rx.try_iter().collect();
+    assert_eq!(got.len(), 1, "the retained newest event arrives: {got:?}");
+    assert!(
+        matches!(
+            got[0],
+            HiveEvent::TokenDelta {
+                agent: AgentId(2),
+                ..
+            }
+        ),
+        "{got:?}"
+    );
+}
