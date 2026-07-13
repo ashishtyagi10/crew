@@ -38,14 +38,24 @@ fn discovery_reports_no_key() {
 }
 
 #[test]
-fn no_key_does_not_route() {
+fn no_key_runs_offline_stub_swarm() {
     let dir = unique_dir("none-route");
     let send = r#"{"type":"send","channel":"crew","text":"do it"}"#;
     let ev = run_broker(&dir, &[], &[send]);
-    // Only the "set a key" explanation; no relay legs.
+    // A plain (unaddressed) message is now the default swarm. With no provider
+    // key it runs the deterministic offline stub swarm — no network relay —
+    // announcing a plan and closing with a "swarm done" summary.
     let msgs = messages(&ev);
-    assert!(msgs.iter().all(|(s, _)| s == "crew"), "{msgs:?}");
-    assert!(msgs.iter().any(|(_, t)| t.contains("ANTHROPIC_API_KEY")));
+    assert!(
+        msgs.iter()
+            .any(|(s, t)| s == "crew" && t.contains("planned")),
+        "{msgs:?}"
+    );
+    assert!(
+        msgs.iter()
+            .any(|(s, t)| s == "crew" && t.contains("swarm done")),
+        "{msgs:?}"
+    );
 }
 
 /// A GUI/stale-terminal launch misses keys added to shell config after that

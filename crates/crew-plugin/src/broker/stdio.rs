@@ -228,8 +228,10 @@ fn send(
         };
         let res = if is_cmd {
             super::commands::handle(&mut snap, &trimmed, &tick_emit, &mut counting)
-        } else {
+        } else if trimmed.starts_with('@') {
             relay_counting(&trimmed, &snap, &tick_emit, &mut counting)
+        } else {
+            super::swarm::run_task(&trimmed, &snap, &mut counting)
         };
         let done = match (res, snap.cancelled()) {
             (Err(e), _) => format!("\u{2717} task #{id}: {e}"),
