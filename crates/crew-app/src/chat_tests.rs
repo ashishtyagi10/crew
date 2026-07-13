@@ -325,6 +325,50 @@ fn double_esc_while_busy_resends_stop_but_notes_once() {
     assert_eq!(p.messages[0].text, note, "the single note is unchanged");
 }
 
+// The dedup in `interrupt` only compares against the LAST transcript
+// message — it must not suppress a note just because an earlier one exists.
+// A broker `Message` landing between two Esc presses (the pane still busy
+// throughout, e.g. via `active`/`swarm`) means the second Esc's note is not
+// a dupe of the last message, so it must be pushed.
+#[test]
+fn esc_after_a_broker_message_pushes_a_second_interrupt_note() {
+    use crate::chatkeys::ChatInput;
+
+    let mut p = pane();
+    let cwd = std::env::temp_dir();
+    p.connected = true;
+    p.absorb_activity("planner".into(), "thinking", "user".into());
+
+    // First Esc: interrupt note pushed.
+    assert!(p.on_input(ChatInput::Close, &cwd).is_none());
+    assert_eq!(p.messages.len(), 1, "one interrupt note pushed");
+    let note = p.messages[0].text.clone();
+
+    // A broker Message arrives mid-turn — mirrors chat.rs::poll's Message arm
+    // (`note_reply` + `push_capped`) — from a sender unrelated to the still-
+    // thinking `planner`, so the pane stays busy throughout (like the
+    // swarm's own "crew" status lines).
+    p.note_reply("crew");
+    p.push_capped(Message {
+        sender: "crew".into(),
+        text: "swarm done \u{2014} 1 task(s), 0 failed".into(),
+        ts: String::new(),
+        meta: String::new(),
+    });
+    assert!(p.is_busy(), "pane must still be busy after the message");
+    assert_eq!(p.messages.len(), 2);
+
+    // Second Esc: the last message is the broker reply, not the note, so
+    // dedup must not suppress this one — a second interrupt note is pushed.
+    assert!(p.on_input(ChatInput::Close, &cwd).is_none());
+    assert_eq!(
+        p.messages.len(),
+        3,
+        "dedup only suppresses CONSECUTIVE notes, not one separated by a reply"
+    );
+    assert_eq!(p.messages[2].text, note, "same note text as the first");
+}
+
 #[test]
 fn esc_closes_the_open_palette_then_the_pane() {
     use crate::chatkeys::{ChatAction, ChatInput};
