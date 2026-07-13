@@ -70,7 +70,13 @@ pub(crate) fn block_cells(pane: &ChatPane, cols: u16, top_row: u16, now_ms: u64)
             (t.tokens > 0 && cols >= TOKENS_MIN_COLS).then(|| crate::chatswarm::fmt_tok(t.tokens));
         let reserve = tok.as_ref().map(|s| s.len() as u16 + 2).unwrap_or(1);
         let max_title = cols.saturating_sub(col + reserve) as usize;
-        let title: String = t.title.chars().take(max_title).collect();
+        // Display-width-aware clamp: `.chars().take(n)` counts chars, so a
+        // CJK/emoji title (2 display columns per glyph) could select twice
+        // as many columns as `max_title` allows, colliding with the token
+        // column (or the pane edge on narrow panes).
+        let title_chars: Vec<char> = t.title.chars().collect();
+        let title_end = crate::chatwidth::fit_end(&title_chars, 0, max_title);
+        let title: String = title_chars[..title_end].iter().collect();
         push_str(&mut v, &mut col, row, &title, theme.text_muted);
         if let Some(tok) = tok {
             let mut tcol = cols.saturating_sub(tok.len() as u16 + 1);

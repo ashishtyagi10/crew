@@ -112,6 +112,40 @@ fn block_never_overdraws_the_composer_row_on_a_saturated_tiny_pane() {
 }
 
 #[test]
+fn title_clamp_is_display_width_aware_for_wide_glyphs() {
+    // 20 CJK chars, 2 display columns each (40 columns total) — far more
+    // than any reasonable char-count clamp should let through on a narrow
+    // pane, and each costs twice what a char-count budget assumes.
+    let mut p = pane();
+    p.absorb_hive_plan(vec![TaskSpec {
+        id: TaskId(0),
+        title: "任务".repeat(10),
+        agent: AgentKind::Api { system: None },
+        model: ModelTier::Cheap,
+        deps: vec![],
+        prompt: "p".into(),
+    }]);
+    // Narrow enough to drop the token column (< TOKENS_MIN_COLS), so the
+    // only reserve is the 1-column margin — isolates the title clamp itself.
+    let cols = 18u16;
+    let cells = block_cells(&p, cols, 0, 0);
+    // The title starts at column 3 (glyph at 0, space at 1... actually 1 and
+    // 2 — see block_cells: col starts at 1, glyph then space each advance it
+    // by one). Measure the REAL display width of what got drawn from there,
+    // the metric that actually determines whether it collides with the
+    // pane edge / token column on screen.
+    let title_w: usize = cells
+        .iter()
+        .filter(|c| c.row == 0 && c.col >= 3)
+        .map(|c| crate::chatwidth::char_w(c.c))
+        .sum();
+    assert!(
+        3 + title_w <= cols as usize,
+        "title's real display width overruns the pane: 3 + {title_w} > {cols}"
+    );
+}
+
+#[test]
 fn token_counts_right_aligned_on_wide_panes_dropped_on_narrow() {
     let mut p = pane_with_swarm(1);
     p.absorb_hive(&HiveEvent::AgentSpawned {
