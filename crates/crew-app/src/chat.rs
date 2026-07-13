@@ -186,7 +186,16 @@ impl ChatPane {
         // clearing `awaiting`), so it's enough to re-check here rather than
         // on every tick. One message per turn — the next flush waits for the
         // reply to *that* send to land and settle the pane again.
-        if !self.is_busy() {
+        //
+        // Also gated on `connected`: a broker death mid-swarm/mid-active-hop
+        // folds the swarm and flushes active hops in the same `Error` arm
+        // that flips `connected` false — so `is_busy()` can go false in the
+        // very same drain as the disconnect. Without this gate that race
+        // pops the queue and calls `send_now` against the dead child right
+        // here, silently dropping the text. Requiring `connected` closes it;
+        // the queue then waits for a real reconnect (a fresh `Ready`) to
+        // flush.
+        if self.connected && !self.is_busy() {
             if let Some(text) = self.queued.pop_front() {
                 self.send_now(text);
             }

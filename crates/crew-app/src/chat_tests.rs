@@ -788,6 +788,7 @@ fn flush_on_idle_sends_exactly_one_and_relatches_awaiting() {
         r#"{"type":"message","channel":"crew","sender":"crew","text":"reply one","ts":"t"}"#,
     ]);
     p.channel = "crew".into();
+    p.connected = true; // simulate: already connected, mid-turn
     p.queued.push_back("first queued".into());
     p.queued.push_back("second queued".into());
     p.awaiting = true; // simulate: our earlier send is still in flight
@@ -831,6 +832,88 @@ fn queue_survives_broker_error() {
     assert!(
         p.awaiting,
         "Error doesn't clear awaiting, so is_busy() stayed true — no flush attempted"
+    );
+}
+
+#[test]
+fn broker_death_mid_swarm_does_not_flush_queue_and_reconnect_unwedges() {
+    // `queue_survives_broker_error` above passes for the wrong reason: with
+    // `awaiting` as the busy signal, the Error arm never clears it, so
+    // `is_busy()` stays true and the flush check never even runs. Busy via a
+    // swarm instead: the Error arm's `fold_swarm`/`flush_active_hops` DO end
+    // that busy state in the very same event drain that flips `connected`
+    // false — the same-batch race the fix must close by also gating the
+    // flush on `self.connected`.
+    use crew_hive::{AgentKind, ModelTier, TaskId, TaskSpec};
+
+    let script = r#"printf '%s\n' '{"type":"error","message":"broker died"}'
+sleep 0.3
+printf '%s\n' '{"type":"roster","agents":[]}'
+cat >/dev/null
+"#;
+    let plugin = crew_plugin::Plugin::spawn("sh", &["-c".to_string(), script.to_string()]).unwrap();
+    let mut p = ChatPane::new(plugin, "crew".into());
+    p.connected = true;
+
+    p.absorb_hive_plan(vec![TaskSpec {
+        id: TaskId(0),
+        title: "research".into(),
+        agent: AgentKind::Api { system: None },
+        model: ModelTier::Cheap,
+        deps: vec![],
+        prompt: "p".into(),
+    }]);
+    assert!(p.is_busy(), "swarm in flight makes the pane busy");
+    assert!(
+        !p.awaiting,
+        "busy here comes from the swarm, not `awaiting` — proves the fix, not the accidental guard"
+    );
+
+    p.queued.push_back("still here".into());
+
+    // Drive poll() until the Error event lands and flips `connected` false.
+    let start = std::time::Instant::now();
+    while p.connected {
+        p.poll();
+        assert!(
+            start.elapsed() < std::time::Duration::from_secs(5),
+            "never observed the Error event"
+        );
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
+
+    assert!(p.swarm.is_none(), "Error arm folds the swarm");
+    assert!(
+        !p.is_busy(),
+        "busy state cleared by the same Error arm that disconnected"
+    );
+    assert_eq!(
+        p.queued.len(),
+        1,
+        "queue must survive broker death even though is_busy() went false in the same drain"
+    );
+    assert_eq!(p.queued[0], "still here");
+    assert!(
+        !p.awaiting,
+        "nothing was sent — a real flush would have latched awaiting via send_now"
+    );
+
+    // Reconnect (direct field set is fine here — the existing tests in this
+    // file do the same) and prove the queue isn't permanently wedged: the
+    // next event to land should flush it once the pane is connected again.
+    p.connected = true;
+    let start = std::time::Instant::now();
+    while !p.queued.is_empty() {
+        p.poll();
+        assert!(
+            start.elapsed() < std::time::Duration::from_secs(5),
+            "queue never flushed after reconnecting"
+        );
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
+    assert!(
+        p.awaiting,
+        "the post-reconnect flush re-latches awaiting for its own reply"
     );
 }
 
