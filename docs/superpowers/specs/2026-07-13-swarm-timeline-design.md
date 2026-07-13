@@ -8,8 +8,10 @@ live block folds, that information is gone.
 
 ## Design
 Append a Gantt-style timeline to the folded record as a fenced code block
-(monospace-safe through the markdown preview, clipped not wrapped on narrow
-panes):
+(monospace-safe through the markdown preview; the md code renderer wraps
+lines, so on panes narrower than ~36 inner columns the Gantt alignment
+degrades — a durable record can't know the widths it will re-render at, and
+the fixed bar keeps runs comparable):
 
 ```
 - ✓ research — 12.4k tok · 3.2s
@@ -31,6 +33,9 @@ merge     ····████████████████
   zero-length run adds nothing).
 - Titles clipped to 14 display columns (chatwidth::fit_end — CJK-safe) and
   padded to the widest clipped title.
+- Titles are LLM plan output: control chars are dropped (a newline is
+  zero display width, so it would survive the clip and split a row) and the
+  fence is 4 backticks so a title beginning with ``` can't close the block.
 
 ## State
 - `SwarmStatus.run_started: Instant` stamped in `new()` (plan arrival).

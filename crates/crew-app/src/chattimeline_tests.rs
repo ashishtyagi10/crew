@@ -15,11 +15,11 @@ fn two_overlapping_tasks_render_exact_bars() {
     ])
     .unwrap();
     let lines: Vec<&str> = block.lines().collect();
-    assert_eq!(lines[0], "```");
+    assert_eq!(lines[0], "````");
     assert_eq!(lines[1], "timeline \u{00b7} 12.4s");
     assert_eq!(lines[2], "research  \u{2588}\u{2588}\u{2588}\u{2588}\u{2588}\u{2588}\u{b7}\u{b7}\u{b7}\u{b7}\u{b7}\u{b7}\u{b7}\u{b7}\u{b7}\u{b7}\u{b7}\u{b7}\u{b7}\u{b7}");
     assert_eq!(lines[3], "merge     \u{b7}\u{b7}\u{b7}\u{b7}\u{2588}\u{2588}\u{2588}\u{2588}\u{2588}\u{2588}\u{2588}\u{2588}\u{2588}\u{2588}\u{2588}\u{2588}\u{2588}\u{2588}\u{2588}\u{2588}");
-    assert_eq!(lines[4], "```");
+    assert_eq!(lines[4], "````");
 }
 
 #[test]
@@ -90,4 +90,22 @@ fn cjk_titles_clip_by_display_width_and_pad_align() {
         crate::chatwidth::str_w(&l[..cut])
     };
     assert_eq!(bar_col(cjk), bar_col(ok));
+}
+
+#[test]
+fn hostile_titles_cannot_break_the_fence_or_split_rows() {
+    // Titles are LLM output: an embedded newline is zero display width (it
+    // would survive a width clip) and a leading ``` would close a 3-backtick
+    // fence. Control chars are dropped and the fence is 4 backticks.
+    let block = timeline_block(&[
+        item("```\nboom", Some((0, 1_000))),
+        item("ok", Some((0, 2_000))),
+    ])
+    .unwrap();
+    let lines: Vec<&str> = block.lines().collect();
+    assert_eq!(lines[0], "````");
+    assert_eq!(*lines.last().unwrap(), "````");
+    // One header + two bar rows + two fence lines — the newline was dropped.
+    assert_eq!(lines.len(), 5);
+    assert!(lines[2].starts_with("```b"), "{}", lines[2]);
 }

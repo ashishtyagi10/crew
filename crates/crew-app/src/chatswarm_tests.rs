@@ -346,7 +346,7 @@ fn record_appends_a_timeline_block_for_concurrent_runs() {
     // The list stays first; the timeline is fenced so the markdown preview
     // keeps it monospaced.
     assert!(text.starts_with("- \u{2713} research"), "{text}");
-    assert!(text.contains("```\ntimeline \u{00b7} 12.4s\n"), "{text}");
+    assert!(text.contains("````\ntimeline \u{00b7} 12.4s\n"), "{text}");
     assert!(text.trim_end().ends_with("```"), "{text}");
     assert!(text.contains("research"), "{text}");
     assert!(text.contains('\u{2588}'), "{text}");
@@ -368,7 +368,11 @@ fn task_still_running_at_error_fold_gets_an_open_ended_span() {
     // fold_swarm on broker Error can retire a block whose task never reached
     // a terminal state: started is stamped, elapsed_ms is None. The span
     // closes at "now" instead of vanishing from the timeline.
-    let run_started = Instant::now() - Duration::from_millis(10_000);
+    // checked_sub instead of `-`: Instant subtraction panics when the
+    // monotonic clock's origin is nearer than the offset (sub-10s uptime).
+    let Some(run_started) = Instant::now().checked_sub(Duration::from_millis(10_000)) else {
+        return; // machine up <10s — vacuously skip rather than panic
+    };
     let s = SwarmStatus {
         tasks: vec![
             done_task(0, "done", run_started, 2_000),

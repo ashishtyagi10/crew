@@ -6,8 +6,10 @@
 use crate::chattime::fmt_elapsed;
 use crate::chatwidth::{fit_end, str_w};
 
-/// Bar width in cells — fixed so the block survives narrow panes (clipped,
-/// never wrapped, inside the code block).
+/// Bar width in cells — fixed so bars stay comparable across runs. Worst-case
+/// row width is TITLE_MAX + 2 + BAR_W = 36 columns; on panes narrower than
+/// that the md code renderer word-wraps rows and the Gantt alignment degrades
+/// (the durable record can't know the widths it will be re-rendered at).
 const BAR_W: u64 = 20;
 /// Widest a title may render before it is clipped.
 const TITLE_MAX: usize = 14;
@@ -34,7 +36,10 @@ pub(crate) fn timeline_block(items: &[(String, Option<(u64, u64)>)]) -> Option<S
         .unwrap_or(0);
     let mut lines = vec![format!("timeline \u{00b7} {}", fmt_elapsed(total))];
     for (title, start, end) in &timed {
-        let chars: Vec<char> = title.chars().collect();
+        // Titles are LLM plan output: drop control chars (an embedded newline
+        // would split the row) before clipping. The 4-backtick fence below
+        // keeps a title that begins with ``` from closing the block early.
+        let chars: Vec<char> = title.chars().filter(|c| !c.is_control()).collect();
         let clipped: String = chars[..fit_end(&chars, 0, TITLE_MAX)].iter().collect();
         let pad = name_w.saturating_sub(str_w(&clipped));
         lines.push(format!(
@@ -43,7 +48,7 @@ pub(crate) fn timeline_block(items: &[(String, Option<(u64, u64)>)]) -> Option<S
             bar(*start, *end, total)
         ));
     }
-    Some(format!("```\n{}\n```", lines.join("\n")))
+    Some(format!("````\n{}\n````", lines.join("\n")))
 }
 
 /// One task's bar: start floors, end ceils (so brief tasks stay visible),
