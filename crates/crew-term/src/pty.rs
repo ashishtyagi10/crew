@@ -39,7 +39,7 @@ pub struct PtyTerm {
     scan_tail: String,
     /// Watched patterns matched since the last `take_matches`.
     hits: Vec<String>,
-    _child: Box<dyn portable_pty::Child + Send + Sync>,
+    child: Box<dyn portable_pty::Child + Send + Sync>,
 }
 
 impl PtyTerm {
@@ -135,7 +135,7 @@ impl PtyTerm {
             watch: Vec::new(),
             scan_tail: String::new(),
             hits: Vec::new(),
-            _child: child,
+            child,
         })
     }
 
@@ -402,7 +402,7 @@ impl PtyTerm {
         {
             let fg = u32::try_from(self.master.process_group_leader()?).ok()?;
             // A shell waiting at its prompt is its own foreground group → idle.
-            if Some(fg) == self._child.process_id() {
+            if Some(fg) == self.child.process_id() {
                 return None;
             }
             Some(fg)
@@ -441,6 +441,15 @@ impl TermModel for PtyTerm {
             pixel_width: 0,
             pixel_height: 0,
         });
+    }
+}
+
+impl Drop for PtyTerm {
+    /// Kill the child explicitly — dropping the master only HUPs the child
+    /// the next time it touches the tty, which leaves quiet processes
+    /// running after the pane is closed with the [x] border button.
+    fn drop(&mut self) {
+        let _ = self.child.kill();
     }
 }
 
