@@ -307,8 +307,8 @@ The docked command bar supports:
   skipped on load (older `dirs`-only files from v0.5.73–74 still restore). Restore is deliberately pull-based: launching keeps
   the welcome screen, and the shells come back only when you ask — and asking
   consumes the snapshot (the next quit re-saves from the live panes). Closing
-  every shell and quitting clears it; a run that never opened a terminal
-  (chat-only, welcome-screen quit) leaves the saved session untouched. When a
+  every restorable pane and quitting clears it; a run that never opened one
+  (welcome-screen quit) leaves the saved session untouched. When a
   snapshot exists, the welcome screen says so — `3 panes from last session ·
   /restore` under the keyboard hint — so the feature introduces itself.
 - **`/name <text>`** titles the focused pane (shown in its title bar); bare

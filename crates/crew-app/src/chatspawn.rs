@@ -8,7 +8,7 @@ use crew_plugin::{Plugin, PluginCommand};
 impl CrewApp {
     /// Spawn a new chat pane backed by the plugin at `cmd`.
     pub fn spawn_chat_pane(&mut self, cmd: &str) {
-        self.spawn_plugin_pane(cmd, &[], None);
+        self.spawn_plugin_pane(cmd, &[], None, None);
     }
 
     /// Spawn the `/crew` pane: a chat pane backed by the multi-agent broker.
@@ -17,17 +17,27 @@ impl CrewApp {
     /// so its title bar distinguishes it from chat panes.
     pub(crate) fn spawn_crew_pane(&mut self) {
         let cmd = Self::crew_broker_cmd();
+        // label "crew" is the pane's routing identity — session restore
+        // snapshots it by this, and host actions could address it.
         self.spawn_plugin_pane(
             &cmd,
             &["--broker-plugin".to_string()],
+            Some("crew".to_string()),
             Some("crew".to_string()),
         );
     }
 
     /// Shared spawn path for plugin-backed panes (chat and crew). `name` sets
-    /// the pane's title-bar label when present. On failure a status flash tells
-    /// the user, rather than silently opening nothing.
-    fn spawn_plugin_pane(&mut self, cmd: &str, args: &[String], name: Option<String>) {
+    /// the pane's title-bar label when present; `label` is the routing
+    /// identity (host actions, session restore). On failure a status flash
+    /// tells the user, rather than silently opening nothing.
+    fn spawn_plugin_pane(
+        &mut self,
+        cmd: &str,
+        args: &[String],
+        name: Option<String>,
+        label: Option<String>,
+    ) {
         let grid = self
             .renderer
             .as_ref()
@@ -43,7 +53,7 @@ impl CrewApp {
                     content: PaneContent::Chat(chat),
                     grid,
                     rect: PLACEHOLDER_RECT,
-                    label: None,
+                    label,
                     name,
                     dir: None,
                     activity: false,

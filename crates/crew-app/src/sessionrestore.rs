@@ -13,9 +13,9 @@ impl CrewApp {
     /// Snapshot every restorable pane, hidden ones included (they're live):
     /// shells save the OS-reported *current* directory of the shell process
     /// (the user cd's around; spawn dir is the Windows/dead-shell fallback),
-    /// Far panes their active panel's directory, the `/crew` chat pane its
-    /// presence.
-    pub(crate) fn save_session(&self) {
+    /// Far panes their active panel's directory, the `/crew` chat pane
+    /// (routing label "crew") its presence.
+    pub(crate) fn session_panes(&self) -> Vec<SavedPane> {
         let pids: Vec<Pid> = self
             .panes
             .iter()
@@ -32,8 +32,7 @@ impl CrewApp {
                 ProcessRefreshKind::nothing().with_cwd(UpdateKind::Always),
             );
         }
-        let panes = self
-            .panes
+        self.panes
             .iter()
             .filter_map(|p| match &p.content {
                 PaneContent::Terminal(t) => t
@@ -52,11 +51,15 @@ impl CrewApp {
                 }
                 _ => None,
             })
-            .collect::<Vec<SavedPane>>();
-        // Overwrite (or, when empty, delete) the snapshot only when this
-        // session actually ran restorable panes. Otherwise a welcome-screen
-        // quit or a GPU-init failure exit would wipe the very snapshot
-        // /restore exists to keep.
+            .collect::<Vec<SavedPane>>()
+    }
+
+    /// Persist the snapshot at quit. Overwrite (or, when empty, delete) it
+    /// only when this session actually ran restorable panes — otherwise a
+    /// welcome-screen quit or a GPU-init failure exit would wipe the very
+    /// snapshot /restore exists to keep.
+    pub(crate) fn save_session(&self) {
+        let panes = self.session_panes();
         if !panes.is_empty() || self.had_restorable {
             save_at(path(), panes);
         }
@@ -88,9 +91,12 @@ impl CrewApp {
         let before = self.panes.len();
         let kept = std::mem::take(&mut self.cwd);
         for sp in panes {
-            if let Some(d) = &sp.dir {
-                self.cwd = PathBuf::from(d);
-            }
+            // Reset each iteration: a dir-less entry must spawn in the
+            // tracked cwd, not leak the previous entry's directory.
+            self.cwd = sp
+                .dir
+                .as_deref()
+                .map_or_else(|| kept.clone(), PathBuf::from);
             match sp.kind.as_str() {
                 "shell" => self.spawn_new_pane(),
                 "far" => self.spawn_far_pane(),
