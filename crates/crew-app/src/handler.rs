@@ -127,6 +127,8 @@ pub fn run() -> anyhow::Result<()> {
         ..Default::default()
     };
     let cwd = crate::cwd::resolved_start(config.last_dir.as_deref());
+    let restore_hint = std::num::NonZeroUsize::new(crate::sessionsave::saved_count())
+        .map(std::num::NonZeroUsize::get);
     let mut app = CrewApp {
         config,
         font_rotate,
@@ -139,6 +141,7 @@ pub fn run() -> anyhow::Result<()> {
             ..Default::default()
         },
         cwd,
+        restore_hint,
         ..Default::default()
     };
     event_loop.run_app(&mut app)?;
