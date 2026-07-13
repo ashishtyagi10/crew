@@ -25,6 +25,15 @@ pub(crate) fn default_shell() -> String {
         .unwrap_or_else(|| "/bin/sh".to_string())
 }
 
+/// Env vars handed to labeled (run/diff/edit) pane spawns: the login-shell
+/// PATH commands were *detected* against. The `-c` wrapper shell is non-login,
+/// so without this a Dock-launched Crew (launchd's minimal PATH) routes
+/// `claude` to a pane that can't find it — and the fallback interactive shell
+/// sources rc files under the same broken PATH, spraying "command not found".
+pub(crate) fn hydrated_env() -> Vec<(String, String)> {
+    vec![("PATH".to_string(), crate::cmdcheck::effective_path())]
+}
+
 impl CrewApp {
     /// The directory new terminals start in — Crew's tracked working directory,
     /// the same one shown in the input-bar legend and moved by `cd`. `None` only
@@ -73,7 +82,9 @@ impl CrewApp {
             .as_ref()
             .map(Self::current_grid)
             .unwrap_or(FALLBACK_SIZE);
-        match PtyTerm::spawn_in(grid, command, args, cwd.as_deref()) {
+        let env = hydrated_env();
+        let env: Vec<(&str, &str)> = env.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
+        match PtyTerm::spawn_with_env(grid, command, args, cwd.as_deref(), &env) {
             Ok(pty) => {
                 let input = pty.writer();
                 // rect/grid are placeholders; build_frame's relayout sizes the pane
