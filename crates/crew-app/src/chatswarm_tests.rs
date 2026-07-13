@@ -116,3 +116,17 @@ fn swarm_in_flight_keeps_the_pane_busy() {
     p.absorb_hive_plan(vec![spec(0, "a")]);
     assert!(p.is_busy());
 }
+
+#[test]
+fn empty_plan_never_opens_a_block_or_wedges_busy() {
+    let mut p = pane();
+    p.absorb_hive_plan(vec![]);
+    assert!(p.swarm.is_none());
+    assert!(!p.is_busy());
+    // An empty plan arriving while a block is open (replan) also clears it.
+    p.absorb_hive_plan(vec![spec(0, "a")]);
+    assert!(p.is_busy());
+    p.absorb_hive_plan(vec![]);
+    assert!(p.swarm.is_none());
+    assert!(!p.is_busy());
+}

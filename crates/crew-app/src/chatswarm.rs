@@ -118,6 +118,13 @@ pub(crate) fn glyph(state: &TaskState) -> char {
 impl ChatPane {
     /// A swarm plan landed: open (or reset) the live block.
     pub(crate) fn absorb_hive_plan(&mut self, tasks: Vec<TaskSpec>) {
+        // A zero-task plan has no telemetry to fold it — never open a block
+        // for one, or is_busy() would stay latched forever. The broker's
+        // plan-summary and swarm-done messages already tell the story.
+        if tasks.is_empty() {
+            self.swarm = None;
+            return;
+        }
         self.swarm = Some(SwarmStatus::new(tasks));
     }
 
