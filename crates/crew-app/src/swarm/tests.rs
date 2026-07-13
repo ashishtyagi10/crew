@@ -265,3 +265,33 @@ fn plan_goal_produces_a_graph() {
     // StubPlanner { fanout: 3 } makes 3 leaves + 1 merge = 4 tasks.
     assert_eq!(graph.len(), 4);
 }
+
+// ── Task 6: remote-fed SwarmPane ────────────────────────────────────────────
+
+#[test]
+fn remote_swarm_pane_applies_forwarded_events() {
+    use crew_hive::{AgentId, AgentKind, HiveEvent, ModelTier, TaskId, TaskSpec, TaskState};
+    let tasks = vec![TaskSpec {
+        id: TaskId(0),
+        title: "t0".into(),
+        agent: AgentKind::Api { system: None },
+        model: ModelTier::Cheap,
+        deps: vec![],
+        prompt: "p".into(),
+    }];
+    let mut pane = crate::swarmpane::SwarmPane::for_remote(tasks).unwrap();
+    assert!(pane.apply_remote(&HiveEvent::AgentSpawned {
+        agent: AgentId(1),
+        task: TaskId(0),
+    }));
+    assert!(pane.apply_remote(&HiveEvent::TaskStateChanged {
+        task: TaskId(0),
+        state: TaskState::Running,
+    }));
+    assert!(pane.is_busy(), "a running remote task means busy");
+    assert!(pane.apply_remote(&HiveEvent::TaskStateChanged {
+        task: TaskId(0),
+        state: TaskState::Done,
+    }));
+    assert!(!pane.is_busy(), "all done \u{2192} idle");
+}

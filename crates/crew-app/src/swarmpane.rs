@@ -15,8 +15,8 @@ use std::sync::Arc;
 
 use crew_hive::agent::StubFactory;
 use crew_hive::{
-    batch_graph, AgentFactory, AnthropicProvider, ApiFactory, Budget, Fleet, GraphError, Job,
-    LlmPlanner, Planner, StubPlanner,
+    batch_graph, AgentFactory, AnthropicProvider, ApiFactory, Budget, Fleet, GraphError, HiveEvent,
+    Job, LlmPlanner, Planner, StubPlanner, TaskGraph, TaskSpec,
 };
 use crew_render::CellView;
 
@@ -46,6 +46,9 @@ pub(crate) enum SwarmState {
     Running { handle: SwarmHandle, fleet: Fleet },
     /// Planning failed; `msg` is shown in the banner.
     Failed { msg: String },
+    /// Visualising a swarm running elsewhere (the /crew broker); events arrive
+    /// over the plugin protocol instead of an in-process bus.
+    Remote { graph: TaskGraph, fleet: Fleet },
 }
 
 /// A pane that plans and/or visualises a running swarm. Cheap to drain each frame.
@@ -122,6 +125,28 @@ impl SwarmPane {
         }
     }
 
+    /// Companion view for a broker-side swarm: build the graph from the
+    /// forwarded plan and wait for `apply_remote` events.
+    pub fn for_remote(tasks: Vec<TaskSpec>) -> Result<Self, GraphError> {
+        Ok(Self {
+            state: SwarmState::Remote {
+                graph: TaskGraph::new(tasks)?,
+                fleet: Fleet::new(),
+            },
+        })
+    }
+
+    /// Apply one forwarded event. Returns true when this pane is remote-fed
+    /// (and thus changed); false otherwise so callers can skip a redraw.
+    pub fn apply_remote(&mut self, ev: &HiveEvent) -> bool {
+        if let SwarmState::Remote { fleet, .. } = &mut self.state {
+            fleet.apply(ev);
+            true
+        } else {
+            false
+        }
+    }
+
     /// Advance the pane one frame. Returns `true` when something changed (a plan
     /// arrived, or engine events were applied) and the pane should redraw.
     pub fn poll(&mut self) -> bool {
@@ -144,6 +169,7 @@ impl SwarmPane {
             },
             SwarmState::Running { handle, fleet } => handle.drain(fleet) > 0,
             SwarmState::Failed { .. } => false,
+            SwarmState::Remote { .. } => false,
         }
     }
 
@@ -156,6 +182,7 @@ impl SwarmPane {
                 !handle.is_cancelled() && fleet.totals().live > 0
             }
             SwarmState::Failed { .. } => false,
+            SwarmState::Remote { fleet, .. } => fleet.totals().live > 0,
         }
     }
 
@@ -175,6 +202,7 @@ impl SwarmPane {
                 }
                 cells
             }
+            SwarmState::Remote { graph, fleet } => swarm_cells(graph, fleet, cols, rows),
         }
     }
 }
