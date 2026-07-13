@@ -47,6 +47,15 @@ collapse detail, expand on demand.
 - Existing render tests unchanged when compact_view=false (default-off
   regression guard = full suite staying green).
 
+## Known inconsistency (reviewer callout, accepted)
+
+Ctrl+O routes through the chat pane's key path (popup-respecting), unlike
+Ctrl+Shift+M's global intercept in keys.rs. Consequence: while the app's
+docked command bar has focus, Ctrl+Shift+M still toggles the focused chat
+pane but Ctrl+O inserts a literal "o" into the bar (pre-existing InputBar
+ctrl-passthrough gap, not a regression). Fix belongs to a future InputBar
+ctrl-key pass, not this feature.
+
 ## Out of scope
 
 Per-message expand (click a message to expand just it); persistence; auto-
