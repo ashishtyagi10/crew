@@ -127,7 +127,7 @@ fn cells_grid_never_overdraws_past_status_rows() {
     let top = p.status_rows(cols, rows);
 
     let views = p.agent_views();
-    let avail = rows.saturating_sub(1 + crate::chatinput::composer_rows(rows));
+    let avail = rows.saturating_sub(1 + crate::chatinput::composer_rows(&p.input, cols, rows));
     let lay = crate::chatchips::layout(&views, cols, avail).expect("some rows fit");
     assert_eq!(
         top,
@@ -155,7 +155,7 @@ fn cells_grid_never_overdraws_past_status_rows() {
     // hardcoded stand-in — otherwise the last grid row lands on the
     // composer's top border. No rendered grid row may reach the composer's
     // first row.
-    let composer_first_row = rows - crate::chatinput::composer_rows(rows);
+    let composer_first_row = rows - crate::chatinput::composer_rows(&p.input, cols, rows);
     assert!(
         max_row < composer_first_row,
         "grid content stays clear of the composer: max_row={max_row} composer_first_row={composer_first_row}"

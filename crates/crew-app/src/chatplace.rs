@@ -81,7 +81,7 @@ pub(crate) fn cell_at_col(line: &CardLine, col: u16) -> Option<&CardCell> {
 /// can never drift apart on how many rows the message body gets.
 pub(crate) fn msg_rows_budget(pane: &ChatPane, cols: u16, rows: u16) -> u16 {
     let top = pane.status_rows(cols, rows);
-    let bottom = crate::chatinput::composer_rows(rows);
+    let bottom = crate::chatinput::composer_rows(&pane.input, cols, rows);
     rows.saturating_sub(top + bottom)
 }
 

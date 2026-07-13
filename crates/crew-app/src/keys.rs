@@ -158,7 +158,7 @@ impl CrewApp {
             match &mut pane.content {
                 // Terminal input is written below (so broadcast can reach all panes).
                 PaneContent::Terminal(_) => is_terminal = true,
-                PaneContent::Chat(c) => chat_action = c.on_key(event, &self.cwd),
+                PaneContent::Chat(c) => chat_action = c.on_key(event, shift, &self.cwd),
                 PaneContent::Settings(s) => {
                     settings_action = s.on_key(event, shift);
                 }

@@ -183,9 +183,15 @@ impl ChatPane {
     /// Handle a winit key event. Returns [`ChatAction::Close`] when the user asks
     /// to close the pane (Escape) — mirroring the Far/Settings panes. While the
     /// @file popup is open it gets keys first (Escape then closes the popup, not
-    /// the pane). `cwd` roots mention scanning and expansion.
-    pub fn on_key(&mut self, key: &KeyEvent, cwd: &std::path::Path) -> Option<ChatAction> {
-        let k = chat_key(&key.logical_key, key.state.is_pressed());
+    /// the pane). `shift` makes Enter insert a newline instead of sending.
+    /// `cwd` roots mention scanning and expansion.
+    pub fn on_key(
+        &mut self,
+        key: &KeyEvent,
+        shift: bool,
+        cwd: &std::path::Path,
+    ) -> Option<ChatAction> {
+        let k = chat_key(&key.logical_key, key.state.is_pressed(), shift);
         self.on_input(k, cwd)
     }
 
@@ -221,6 +227,7 @@ impl ChatPane {
                 return None;
             }
             ChatInput::Char(c) => (Some(c), false, false),
+            ChatInput::Newline => (Some('\n'), false, false),
             ChatInput::Enter => (None, true, false),
             ChatInput::Backspace => (None, false, true),
         };
