@@ -166,6 +166,12 @@ impl ChatPane {
             ts: String::new(),
             meta: String::new(),
         });
+        // Same drain the plugin's Message arm applies (chat.rs::poll) — the
+        // folded record must not let the transcript grow past the cap.
+        if self.messages.len() > 500 {
+            let drain = self.messages.len() - 500;
+            self.messages.drain(..drain);
+        }
     }
 }
 

@@ -142,6 +142,33 @@ fn swarm_in_flight_keeps_the_pane_busy() {
 }
 
 #[test]
+fn fold_swarm_respects_the_500_message_cap() {
+    let mut p = pane();
+    for i in 0..500 {
+        p.messages.push(crate::chatlayout::Message {
+            sender: "crew".into(),
+            text: format!("m{i}"),
+            ts: String::new(),
+            meta: String::new(),
+        });
+    }
+    assert_eq!(p.messages.len(), 500);
+    p.absorb_hive_plan(vec![spec(0, "research")]);
+    p.absorb_hive(&HiveEvent::TaskStateChanged {
+        task: TaskId(0),
+        state: TaskState::Done,
+    });
+    assert_eq!(
+        p.messages.len(),
+        500,
+        "fold_swarm's push must respect the same 500-message drain as Message events"
+    );
+    // The oldest message was drained and the new record is the newest.
+    assert_eq!(p.messages.first().unwrap().text, "m1");
+    assert!(p.messages.last().unwrap().text.contains("research"));
+}
+
+#[test]
 fn empty_plan_never_opens_a_block_or_wedges_busy() {
     let mut p = pane();
     p.absorb_hive_plan(vec![]);
