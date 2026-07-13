@@ -115,6 +115,41 @@ fn turn_duration_omitted_when_turn_ms_is_zero() {
 }
 
 #[test]
+fn esc_interrupt_hint_appears_while_busy_on_a_wide_pane() {
+    let line = text(&header_cells(60, "c", true, 0, true, None, (0, 0), 0), 0);
+    assert!(line.contains("esc interrupts"), "busy hint missing: {line}");
+}
+
+#[test]
+fn esc_interrupt_hint_absent_when_idle() {
+    let line = text(&header_cells(60, "c", true, 0, false, None, (0, 0), 0), 0);
+    assert!(
+        !line.contains("esc interrupts"),
+        "hint must not appear while idle: {line}"
+    );
+}
+
+#[test]
+fn esc_interrupt_hint_is_first_dropped_when_narrow() {
+    // Wide: the hint fits alongside the rest of the status.
+    let wide = text(&header_cells(60, "c", true, 0, true, None, (0, 0), 0), 0);
+    assert!(wide.contains("esc interrupts"), "hint should fit: {wide}");
+
+    // Narrow: room for the core status (spinner + message count + dot) but
+    // not the optional hint suffix — the hint must be the first thing
+    // dropped rather than clipping mid-glyph.
+    let narrow = text(&header_cells(24, "c", true, 0, true, None, (0, 0), 0), 0);
+    assert!(
+        !narrow.contains("esc interrupts"),
+        "hint should be dropped first when narrow: {narrow}"
+    );
+    assert!(
+        narrow.contains("thinking"),
+        "core status must still render: {narrow}"
+    );
+}
+
+#[test]
 fn right_side_segments_are_pipe_separated() {
     // `text()` concatenates rendered cells in column order — the inter-segment
     // gap columns carry no cell at all, so consecutive segments (and the
