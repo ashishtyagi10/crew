@@ -167,7 +167,7 @@ const QUICK_START: &[(&str, &str, Option<&str>)] = &[
         "address one agent",
         Some("plain text runs a swarm"),
     ),
-    ("Esc", "interrupt a running turn (idle: close pane)", None),
+    ("Esc", "interrupt a running turn", Some("idle: close pane")),
     (
         "Ctrl+O",
         "compact transcript",

@@ -61,10 +61,13 @@ const QS_RULE_ROW: u16 = 10;
 const QS_FIRST_HINT_ROW: u16 = 11;
 // `desc_col = 1 (indent) + 6 (longest key, "@agent"/"Ctrl+O") + 3 (gap)`.
 const QS_DESC_COL: u16 = 10;
-// `desc_col + 43` — the widest rendered line is "Esc"'s clause-less primary
-// ("interrupt a running turn (idle: close pane)", 43 cols), which ties the
-// widest with-clause line ("@agent ... · ..."). Both the "show clauses" and
-// "clauses fit at all" thresholds land on this same width — see iter9-report.
+// Minimum width for quick start to render at all (without secondary clauses).
+// After splitting Esc into "interrupt a running turn" + "idle: close pane",
+// the longest primary is now "interrupt a running turn" (24 cols) or "@agent"'s
+// full line with clause (43 cols). desc_col + 24 = 34.
+const QS_BARE_WIDTH: u16 = 34;
+// Minimum width for secondary clauses to render. The widest with-clause line
+// is "@agent ... · ..." (43 cols). desc_col + 43 = 53.
 const QS_FULL_WIDTH: u16 = 53;
 
 #[test]
@@ -97,6 +100,54 @@ fn quick_start_shows_on_tall_wide_pane_with_accent_keys_aligned() {
 }
 
 #[test]
+fn quick_start_shows_primaries_without_clauses_in_mid_tier() {
+    let _g = crate::palette::test_guard();
+    let a = agents(&[("planner", "planning")]);
+    // Width 45 is in the mid-tier band: 34 <= 45 < 53 (bare_w <= cols < full_w).
+    // At this width, primaries render but secondary clauses (` · ` sections) do not.
+    let mid_tier_cols = 45;
+    let cells = empty_cells(mid_tier_cols, 30, 2, true, &a);
+    assert!(row_text(&cells, QS_RULE_ROW).contains("quick start"));
+
+    // Keys are aligned at col 1 in accent color.
+    let keys = ["Enter", "@agent", "Esc", "Ctrl+O", "/"];
+    for (i, key) in keys.iter().enumerate() {
+        let r = QS_FIRST_HINT_ROW + i as u16;
+        let first = cells
+            .iter()
+            .find(|c| c.row == r && c.col == 1)
+            .unwrap_or_else(|| panic!("no cell at row {r} col 1"));
+        assert_eq!(first.c, key.chars().next().unwrap());
+        assert_eq!(first.fg, crate::palette::accent());
+    }
+
+    // Primary clauses present; secondary clauses absent (no " · " joins).
+    assert!(row_text(&cells, QS_FIRST_HINT_ROW).contains("send"));
+    assert!(!row_text(&cells, QS_FIRST_HINT_ROW).contains("type while busy to queue"));
+
+    assert!(row_text(&cells, QS_FIRST_HINT_ROW + 1).contains("address one agent"));
+    assert!(!row_text(&cells, QS_FIRST_HINT_ROW + 1).contains("plain text runs a swarm"));
+
+    assert!(row_text(&cells, QS_FIRST_HINT_ROW + 2).contains("interrupt a running turn"));
+    assert!(!row_text(&cells, QS_FIRST_HINT_ROW + 2).contains("idle: close pane"));
+
+    assert!(row_text(&cells, QS_FIRST_HINT_ROW + 3).contains("compact transcript"));
+    assert!(!row_text(&cells, QS_FIRST_HINT_ROW + 3).contains("Ctrl+Shift+M raw text"));
+
+    assert!(row_text(&cells, QS_FIRST_HINT_ROW + 4).contains("command palette"));
+
+    // Verify no " · " (middle dot) separator appears in any hint row.
+    for i in 0..5 {
+        let r = QS_FIRST_HINT_ROW + i as u16;
+        let row_str = row_text(&cells, r);
+        assert!(
+            !row_str.contains(" \u{b7} "),
+            "Row {r} should not contain ' · ' separator, got: {row_str}"
+        );
+    }
+}
+
+#[test]
 fn quick_start_absent_on_short_pane_existing_content_unchanged() {
     let a = agents(&[("planner", "planning")]);
     // max_row = 15 leaves only 6 free rows after row 9 (needs 7: blank + rule + 5).
@@ -109,7 +160,7 @@ fn quick_start_absent_on_short_pane_existing_content_unchanged() {
 #[test]
 fn quick_start_drops_below_min_width() {
     let a = agents(&[("planner", "planning")]);
-    let cells = empty_cells(QS_FULL_WIDTH - 1, 30, 2, true, &a);
+    let cells = empty_cells(QS_BARE_WIDTH - 1, 30, 2, true, &a);
     assert!(!cells.iter().any(|c| c.row >= QS_RULE_ROW));
 }
 
