@@ -8,14 +8,18 @@ impl crate::chat::ChatPane {
     /// Scroll the message history by `delta` lines (positive = up/older),
     /// clamped to the available scrollback for the current width/height.
     pub fn scroll(&mut self, delta: i32, cols: u16, rows: u16) {
-        // The header/roster rows and the composer sit outside the message area.
+        // The header/roster rows and the composer sit outside the message
+        // area, and a live swarm block (if any) claims rows from the bottom
+        // of the message area too. `msg_rows_budget` is the single source
+        // for all three, shared with the actual drawn window, so the clamp
+        // can never drift from what's on screen (the tiny-pane plain
+        // fallback never draws a block, so it keeps its own row math).
         let top = self.top_rows(rows);
-        let bottom = if top == 0 {
-            1
+        let msg_rows = if top == 0 {
+            rows.saturating_sub(1) as usize
         } else {
-            crate::chatinput::composer_rows(&self.input, cols, rows)
+            crate::chatplace::msg_rows_budget(self, cols, rows) as usize
         };
-        let msg_rows = rows.saturating_sub(top + bottom) as usize;
         // The card view (normal panes) and the plain fallback (tiny panes)
         // wrap to different line counts; clamp against whichever is shown.
         let total = if top == 0 {
@@ -104,11 +108,58 @@ pub(crate) fn new_pill_cells(unread: usize, cols: u16, row: u16) -> Vec<CellView
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::chat::ChatPane;
+    use crew_hive::{AgentKind, ModelTier, TaskId, TaskSpec};
+    use crew_plugin::Plugin;
 
     #[test]
     fn no_scrollbar_when_content_fits() {
         assert!(scrollbar_cells(5, 10, 0, 79, 2).is_empty());
         assert!(scrollbar_cells(10, 10, 0, 79, 2).is_empty());
+    }
+
+    #[test]
+    fn scroll_clamp_accounts_for_the_live_swarm_block() {
+        // A long transcript on a live 8-task swarm run: msg_rows_budget
+        // reserves rows for the block, so the drawn window is shorter than
+        // `rows - top - bottom` alone suggests. If the scroll clamp doesn't
+        // account for the block too, the top of the transcript becomes
+        // unreachable — max scroll stops short of the first line.
+        let plugin =
+            Plugin::spawn("sh", &["-c".to_string(), "cat >/dev/null".to_string()]).unwrap();
+        let mut p = ChatPane::new(plugin, "crew".into());
+        for i in 0..100 {
+            p.messages.push(crate::chatlayout::Message {
+                sender: "crew".into(),
+                text: format!("message number {i}"),
+                ts: String::new(),
+                meta: String::new(),
+            });
+        }
+        let tasks = (0..8)
+            .map(|i| TaskSpec {
+                id: TaskId(i),
+                title: format!("task-{i}"),
+                agent: AgentKind::Api { system: None },
+                model: ModelTier::Cheap,
+                deps: vec![],
+                prompt: "p".into(),
+            })
+            .collect();
+        p.absorb_hive_plan(tasks);
+
+        let (cols, rows) = (80u16, 30u16);
+        p.scroll(1_000_000, cols, rows);
+        let lines = crate::chatplace::placed_lines(&p, cols, rows);
+        let visible: String = lines
+            .iter()
+            .flat_map(|(_, l)| l.iter().map(|c| c.c))
+            .collect();
+        assert!(
+            visible.contains("message number 0"),
+            "max scroll should reach the very first transcript line even \
+             while a live swarm block is open; visible window: {visible:?}"
+        );
     }
 
     #[test]
