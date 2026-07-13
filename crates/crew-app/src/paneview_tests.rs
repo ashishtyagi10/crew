@@ -126,6 +126,15 @@ fn border_buttons_draw_minus_then_x_and_shift_status_glyphs() {
 }
 
 #[test]
+fn border_buttons_absent_when_disabled_on_a_wide_card() {
+    // min_btn: false on a card well above BTNS_COLS (13) draws neither
+    // button — the pair is gated on min_btn, not just on width.
+    assert!(!pane_card(38, 10, &bar(true))
+        .iter()
+        .any(|c| (c.c == '-' || c.c == 'x') && c.row == 0));
+}
+
+#[test]
 fn border_buttons_absent_when_narrow() {
     let b = Bar {
         min_btn: true,
