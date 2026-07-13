@@ -93,9 +93,7 @@ impl InputBar {
         let (ch, enter, backspace) = match &key.logical_key {
             Key::Named(NamedKey::Enter) => (None, true, false),
             Key::Named(NamedKey::Backspace) => (None, false, true),
-            Key::Named(NamedKey::Space) => (Some(' '), false, false),
-            Key::Character(s) => (s.chars().next(), false, false),
-            _ => (None, false, false),
+            other => (char_to_insert(other, ctrl), false, false),
         };
         let result = crate::chatinput::input_reduce(&mut self.text, ch, enter, backspace);
         self.menu_sel = 0;
@@ -116,6 +114,21 @@ impl InputBar {
     }
 }
 
+/// Whether a key press should insert a character into the bar. Space always
+/// does (it's a `Named` key, not a ctrl-chord candidate); a `Character` only
+/// does when `ctrl` is NOT held — Ctrl+W/Ctrl+U are already special-cased
+/// earlier in `on_key`, and every other ctrl-chord (e.g. Ctrl+O, the global
+/// compact-view toggle) must be swallowed here rather than falling through to
+/// a literal character, matching every other pane's ctrl-chord handling.
+fn char_to_insert(key: &Key, ctrl: bool) -> Option<char> {
+    match key {
+        Key::Named(NamedKey::Space) => Some(' '),
+        Key::Character(_) if ctrl => None,
+        Key::Character(s) => s.chars().next(),
+        _ => None,
+    }
+}
+
 /// Delete the trailing word (and any trailing whitespace) from `text`.
 fn delete_last_word(text: &mut String) {
     let end = text.trim_end().len();
@@ -128,7 +141,8 @@ fn delete_last_word(text: &mut String) {
 
 #[cfg(test)]
 mod tests {
-    use super::delete_last_word;
+    use super::{char_to_insert, delete_last_word};
+    use winit::keyboard::{Key, NamedKey};
 
     #[test]
     fn delete_last_word_cases() {
@@ -141,5 +155,41 @@ mod tests {
         let mut s = "trailing   ".to_string();
         delete_last_word(&mut s);
         assert_eq!(s, "");
+    }
+
+    #[test]
+    fn ctrl_held_character_chords_are_swallowed_not_inserted() {
+        // Ctrl+O (bound globally to the compact-view toggle in keys.rs) must
+        // not leak a literal 'o' into the bar; same for any other unbound
+        // ctrl-chord like Ctrl+K.
+        assert_eq!(char_to_insert(&Key::Character("o".into()), true), None);
+        assert_eq!(char_to_insert(&Key::Character("k".into()), true), None);
+    }
+
+    #[test]
+    fn plain_characters_still_insert_without_ctrl() {
+        assert_eq!(
+            char_to_insert(&Key::Character("o".into()), false),
+            Some('o')
+        );
+    }
+
+    #[test]
+    fn space_inserts_regardless_of_ctrl() {
+        // Space is a Named key, not a Character chord, so it's unaffected by
+        // the ctrl gate — unchanged from the pre-existing behavior.
+        assert_eq!(
+            char_to_insert(&Key::Named(NamedKey::Space), true),
+            Some(' ')
+        );
+        assert_eq!(
+            char_to_insert(&Key::Named(NamedKey::Space), false),
+            Some(' ')
+        );
+    }
+
+    #[test]
+    fn other_named_keys_do_not_insert() {
+        assert_eq!(char_to_insert(&Key::Named(NamedKey::Escape), false), None);
     }
 }
