@@ -96,3 +96,50 @@ fn count_scrollback_is_smart_case_like_find() {
         0
     );
 }
+
+#[test]
+fn repeating_findall_cycles_matching_panes_and_wraps() {
+    let grid = GridSize { cols: 80, rows: 24 };
+    let dir = std::env::temp_dir();
+    let mut app = CrewApp::default();
+    for _ in 0..3 {
+        app.panes
+            .push(spawn_pane("sh", "sh", grid, Some(&dir)).unwrap());
+    }
+    // Panes 0 and 2 see the marker; pane 1 never does.
+    for i in [0usize, 2] {
+        if let PaneContent::Terminal(t) = &mut app.panes[i].content {
+            use std::io::Write;
+            let _ = t.input.write_all(b"echo crewcyclemarker\n");
+        }
+    }
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    loop {
+        let mut ready = 0;
+        for i in [0usize, 2] {
+            if let PaneContent::Terminal(t) = &mut app.panes[i].content {
+                t.pty.try_read();
+                if count_scrollback(&mut t.pty, grid.cols, grid.rows, "crewcyclemarker") > 0 {
+                    ready += 1;
+                }
+            }
+        }
+        if ready == 2 {
+            break;
+        }
+        assert!(
+            std::time::Instant::now() < deadline,
+            "markers never appeared"
+        );
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    }
+    app.find_all("crewcyclemarker");
+    assert_eq!(app.focused, 0, "fresh term lands on the first hit");
+    app.find_all("crewcyclemarker");
+    assert_eq!(app.focused, 2, "repeat cycles to the next matching pane");
+    app.find_all("crewcyclemarker");
+    assert_eq!(app.focused, 0, "cycling wraps");
+    // A different term resets the cycle to its own first hit.
+    app.find_all("nosuchtermanywhere");
+    assert!(app.last_findall.is_none(), "miss clears the cycle");
+}

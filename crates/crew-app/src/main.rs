@@ -43,6 +43,7 @@ mod clickopen;
 mod clipboard;
 mod clock;
 mod cmdcheck;
+mod cmddefs;
 mod cmdmenu;
 pub mod config;
 mod ctxlimit;

@@ -63,6 +63,8 @@ pub struct CrewApp {
     pub(crate) cell_sel: Option<crate::gridsel::CellSel>,
     /// Last `/find` term, so repeating it walks to the next older match.
     pub(crate) last_find: Option<String>,
+    /// The last `/findall` term — repeating it cycles through matching panes.
+    pub(crate) last_findall: Option<String>,
     /// Crew's working directory: shown in the input-bar legend and used as the
     /// start directory for new shells. Moved by typing `cd` in the input bar.
     pub(crate) cwd: PathBuf,
