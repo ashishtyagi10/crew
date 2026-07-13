@@ -361,3 +361,80 @@ fn width_drop_order_tokens_first_then_elapsed() {
     assert!(!narrow.contains("12.4k"), "{narrow}");
     assert!(!has_elapsed_pattern(&narrow), "{narrow}");
 }
+
+#[test]
+fn elapsed_and_token_columns_no_overlap_at_cols_60() {
+    // RED test for Finding 1: column collision
+    // When both elapsed and token columns render, they must not overlap.
+    // With cols=60, both should appear without collision.
+    let mut p = pane_with_swarm(1);
+    p.absorb_hive(&HiveEvent::AgentSpawned {
+        agent: crew_hive::AgentId(1),
+        task: TaskId(0),
+    });
+    // Trigger token rendering: 12_400 → "12.4k"
+    p.absorb_hive(&HiveEvent::TokenDelta {
+        agent: crew_hive::AgentId(1),
+        input: 12_000,
+        output: 400,
+    });
+
+    let cols = 60u16;
+    let cells = block_cells(&p, cols, 0, 1_000); // now_ms=1_000 to trigger elapsed
+    let row = 0u16;
+
+    // Check for column collisions: no two CellViews should share (row, col)
+    let mut seen_positions = std::collections::HashSet::new();
+    let mut duplicates = Vec::new();
+    for cell in &cells {
+        if cell.row == row {
+            let pos = (cell.row, cell.col);
+            if !seen_positions.insert(pos) {
+                duplicates.push(pos);
+            }
+        }
+    }
+    assert!(
+        duplicates.is_empty(),
+        "column collision detected (duplicate (row, col) positions): {duplicates:?}"
+    );
+
+    // Verify token column span: "12.4k" should be right-aligned at cols=60
+    let tok_len = 5u16; // "12.4k"
+    let expected_tok_start = cols.saturating_sub(tok_len + 1); // 60 - 5 - 1 = 54
+    let tok_cells: Vec<_> = cells
+        .iter()
+        .filter(|c| c.row == row && c.col >= expected_tok_start && c.col < cols)
+        .collect();
+    assert!(
+        !tok_cells.is_empty(),
+        "token cells not found at expected position [{}..{})",
+        expected_tok_start,
+        cols
+    );
+    let tok_cols: Vec<u16> = tok_cells.iter().map(|c| c.col).collect();
+    let tok_min = *tok_cols.iter().min().unwrap();
+    assert_eq!(
+        tok_min, expected_tok_start,
+        "token not right-aligned correctly"
+    );
+
+    // Verify elapsed is to the LEFT of token with a 1-col gap
+    // Elapsed length: "0s" (when elapsed is small) or similar, typically 2-4 chars
+    let elapsed_cells: Vec<_> = cells
+        .iter()
+        .filter(|c| c.row == row && c.col < expected_tok_start)
+        .collect();
+    if !elapsed_cells.is_empty() {
+        let elapsed_cols: Vec<u16> = elapsed_cells.iter().map(|c| c.col).collect();
+        let elapsed_max = *elapsed_cols.iter().max().unwrap_or(&0);
+        let min_gap = expected_tok_start.saturating_sub(elapsed_max);
+        assert!(
+            min_gap >= 1,
+            "elapsed column at col {} too close to token column starting at {} (gap: {})",
+            elapsed_max,
+            expected_tok_start,
+            min_gap
+        );
+    }
+}

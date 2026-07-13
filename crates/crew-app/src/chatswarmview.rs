@@ -106,9 +106,10 @@ pub(crate) fn block_cells(pane: &ChatPane, cols: u16, top_row: u16, now_ms: u64)
         // it (title ... elapsed ... tokens).
         let mut next_start = cols;
         if let Some(tok) = &tok {
-            let mut tcol = next_start.saturating_sub(tok.len() as u16 + 1);
+            let tok_start = next_start.saturating_sub(tok.len() as u16 + 1);
+            let mut tcol = tok_start;
             push_str(&mut v, &mut tcol, row, tok, theme.text_muted);
-            next_start = tcol.saturating_sub(1);
+            next_start = tok_start.saturating_sub(1);
         }
         if let Some(e) = &elapsed {
             let mut ecol = next_start.saturating_sub(e.len() as u16 + 1);
