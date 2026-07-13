@@ -65,6 +65,12 @@ fn load_at(p: Option<PathBuf>) -> Vec<String> {
         .collect()
 }
 
+/// How many shells the current snapshot would reopen — drives the welcome
+/// screen's `/restore` hint. One small file read; called once at startup.
+pub(crate) fn saved_count() -> usize {
+    load_at(path()).len()
+}
+
 impl CrewApp {
     /// Snapshot every terminal pane's shell cwd (hidden panes included —
     /// they are live shells). Asks the OS for each shell's *current*
@@ -122,6 +128,7 @@ impl CrewApp {
                 let _ = std::fs::remove_file(p);
             }
         }
+        self.restore_hint = None;
         self.restore_from(dirs);
     }
 

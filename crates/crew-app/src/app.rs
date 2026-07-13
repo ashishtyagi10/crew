@@ -83,6 +83,9 @@ pub struct CrewApp {
     /// Whether a terminal pane ever existed this session — gates the quit
     /// snapshot so a shell-less run can't wipe a saved `/restore` session.
     pub(crate) had_terminal: bool,
+    /// Saved-session shell count for the welcome screen's `/restore` hint
+    /// (seeded at startup, cleared once `/restore` spends the snapshot).
+    pub(crate) restore_hint: Option<usize>,
     /// In-progress background self-update (`/update`): drives the left-nav UPDATE
     /// card and the auto-restart. `None` when no update is running.
     pub(crate) update: Option<crate::update::UpdateState>,

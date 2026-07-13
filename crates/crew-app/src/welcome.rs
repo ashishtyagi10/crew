@@ -53,12 +53,22 @@ fn globe_width(cols: u16, rows: u16) -> Option<u16> {
     None
 }
 
+/// One extra hint row when a saved session exists: `restore` carries the
+/// snapshot's shell count (cleared once `/restore` spends it).
+fn restore_hint(n: usize) -> String {
+    format!(
+        "{n} shell{} from last session    \u{00b7}    /restore",
+        if n == 1 { "" } else { "s" }
+    )
+}
+
 /// Render one animation frame: the rotating globe centred, tagline + hint
-/// below it, version stamp bottom-right. Falls back to a spaced single-line
-/// "CREW" when nothing globe-sized fits. All cells stay within `cols × rows`.
+/// below it (plus a `/restore` hint when a session snapshot exists), version
+/// stamp bottom-right. Falls back to a spaced single-line "CREW" when
+/// nothing globe-sized fits. All cells stay within `cols × rows`.
 // rustfmt::skip preserves compact inline struct literals.
 #[rustfmt::skip]
-pub fn welcome_cells_animated(cols: u16, rows: u16, tick: u64) -> Vec<CellView> {
+pub fn welcome_cells_animated(cols: u16, rows: u16, tick: u64, restore: Option<usize>) -> Vec<CellView> {
     if cols == 0 || rows == 0 { return Vec::new(); }
     let mut cells = Vec::new();
     let t = crew_theme::theme();
@@ -80,6 +90,15 @@ pub fn welcome_cells_animated(cols: u16, rows: u16, tick: u64) -> Vec<CellView> 
         let hint_w = HINT.chars().count() as u16;
         if hint_row < rows && hint_w < cols {
             push_str(&mut cells, hint_row, (cols - hint_w) / 2, HINT, t.hint_fg, bg);
+        }
+        if let Some(n) = restore {
+            let line = restore_hint(n);
+            let (row, w) = (hint_row + 2, line.chars().count() as u16);
+            // `row + 1 < rows`: the bottom row belongs to the version stamp
+            // (drawn after, last-write-wins) — skip rather than collide.
+            if row + 1 < rows && w < cols {
+                push_str(&mut cells, row, (cols - w) / 2, &line, t.hint_fg, bg);
+            }
         }
     } else {
         // Fallback: spaced single-line "CREW" — same layout math as the old
@@ -110,120 +129,5 @@ pub fn welcome_cells_animated(cols: u16, rows: u16, tick: u64) -> Vec<CellView> 
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn welcome_cells_in_bounds() {
-        let cells = welcome_cells_animated(80, 24, 7);
-        assert!(!cells.is_empty());
-        assert!(
-            cells.iter().all(|c| c.col < 80 && c.row < 24),
-            "cell out of 80×24 bounds"
-        );
-    }
-
-    #[test]
-    fn hint_present() {
-        let cells = welcome_cells_animated(80, 24, 0);
-        let hint_fg = crew_theme::theme().hint_fg;
-        assert!(
-            cells.iter().any(|c| c.fg == hint_fg),
-            "no hint_fg cells in welcome output"
-        );
-    }
-
-    #[test]
-    fn version_stamp_present() {
-        let cells = welcome_cells_animated(80, 24, 0);
-        let dim = crew_theme::theme().dim;
-        assert!(
-            cells
-                .iter()
-                .any(|c| c.c == 'v' && c.row == 23 && c.fg == dim),
-            "no version stamp on bottom row"
-        );
-    }
-
-    #[test]
-    fn tiny_size_no_panic_and_in_bounds() {
-        let cells = welcome_cells_animated(2, 1, 0);
-        assert!(cells.iter().all(|c| c.col < 2 && c.row < 1));
-    }
-
-    #[test]
-    fn empty_screen_produces_cells() {
-        assert!(!welcome_cells_animated(80, 24, 0).is_empty());
-    }
-
-    #[test]
-    fn anim_redraws_one_in_every_anim_div_ticks() {
-        let redraws = (0..ANIM_DIV * 4).filter(|&t| anim_should_redraw(t)).count();
-        assert_eq!(redraws as u64, 4, "one redraw per ANIM_DIV ticks");
-        assert!(anim_should_redraw(0) && anim_should_redraw(ANIM_DIV));
-        assert!(!anim_should_redraw(1));
-    }
-
-    #[test]
-    fn globe_width_picks_the_default_size_when_roomy() {
-        assert_eq!(globe_width(90, 30), Some(44));
-    }
-
-    #[test]
-    fn globe_width_scales_down_to_fit_the_rows() {
-        // Default 44x22 needs rows > 25 (22 + 3); at rows=24 it steps down to 40x20.
-        assert_eq!(globe_width(90, 24), Some(40));
-    }
-
-    #[test]
-    fn globe_width_falls_back_when_nothing_fits() {
-        assert_eq!(
-            globe_width(10, 24),
-            None,
-            "too narrow for even the min width"
-        );
-        assert_eq!(
-            globe_width(90, 10),
-            None,
-            "too short for even the min height"
-        );
-    }
-
-    #[test]
-    fn globe_sits_above_tagline_and_hint() {
-        let cells = welcome_cells_animated(80, 30, 0);
-        let t = crew_theme::theme();
-        let globe_max_row = cells
-            .iter()
-            .filter(|c| c.fg == t.ink || c.fg == t.text_muted)
-            .map(|c| c.row)
-            .max()
-            .expect("expected globe cells");
-        let hint_min_row = cells
-            .iter()
-            .filter(|c| c.fg == t.hint_fg)
-            .map(|c| c.row)
-            .min()
-            .expect("expected tagline/hint cells");
-        assert!(
-            globe_max_row < hint_min_row,
-            "globe rows must sit above the tagline/hint"
-        );
-    }
-
-    #[test]
-    fn welcome_animates_over_time() {
-        let a = welcome_cells_animated(80, 30, 0);
-        let b = welcome_cells_animated(80, 30, 20);
-        let chars = |v: &[CellView]| {
-            v.iter()
-                .map(|c| (c.col, c.row, c.c, c.fg))
-                .collect::<Vec<_>>()
-        };
-        assert_ne!(
-            chars(&a),
-            chars(&b),
-            "the globe frame must change over time"
-        );
-    }
-}
+#[path = "welcome_tests.rs"]
+mod tests;

@@ -10,6 +10,28 @@ use crew_hive::{
     TaskGraph,
 };
 
+/// Forward every bus event into the mpsc sender until the bus closes or the
+/// receiver is gone. A subscriber that falls behind the bus's 256-slot
+/// buffer gets `Lagged` — skip and keep going (the old `while let Ok` loop
+/// broke there, silently freezing telemetry for the rest of the run).
+pub(super) async fn forward(
+    mut sub: tokio::sync::broadcast::Receiver<HiveEvent>,
+    tx: mpsc::Sender<HiveEvent>,
+) {
+    use tokio::sync::broadcast::error::RecvError;
+    loop {
+        match sub.recv().await {
+            Ok(ev) => {
+                if tx.send(ev).is_err() {
+                    break;
+                }
+            }
+            Err(RecvError::Lagged(_)) => continue,
+            Err(RecvError::Closed) => break,
+        }
+    }
+}
+
 /// Handle to a running swarm engine. Cheaply drains events each frame.
 pub struct SwarmHandle {
     rx: Receiver<HiveEvent>,
@@ -44,7 +66,7 @@ impl SwarmHandle {
 
             rt.block_on(async move {
                 let bus = EventBus::new(256);
-                let mut sub = bus.subscribe();
+                let sub = bus.subscribe();
                 // Build the governor future before `bus` moves into the scheduler;
                 // it gets its own clone and shares the scheduler's cancel flag.
                 let governor = budget.map(|b| budget_governor(bus.clone(), b, cancel_gov));
@@ -54,14 +76,8 @@ impl SwarmHandle {
 
                 // Drain the broadcast bus into the mpsc sender concurrently
                 // with the scheduler. When sched completes, the broadcast
-                // sender is dropped; sub.recv() then returns Err and drain exits.
-                let drain = async move {
-                    while let Ok(ev) = sub.recv().await {
-                        if tx.send(ev).is_err() {
-                            break;
-                        }
-                    }
-                };
+                // sender is dropped; recv() returns Closed and drain exits.
+                let drain = forward(sub, tx);
 
                 match governor {
                     Some(governor) => {

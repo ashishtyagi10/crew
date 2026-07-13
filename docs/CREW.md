@@ -306,7 +306,9 @@ The docked command bar supports:
   the welcome screen, and the shells come back only when you ask — and asking
   consumes the snapshot (the next quit re-saves from the live panes). Closing
   every shell and quitting clears it; a run that never opened a terminal
-  (chat-only, welcome-screen quit) leaves the saved session untouched.
+  (chat-only, welcome-screen quit) leaves the saved session untouched. When a
+  snapshot exists, the welcome screen says so — `3 shells from last session ·
+  /restore` under the keyboard hint — so the feature introduces itself.
 - **`/name <text>`** titles the focused pane (shown in its title bar); bare
   `/name` clears it back to the program title.
 - **Status flashes** — transient messages (e.g. "copied 12 lines", "cd: no such
