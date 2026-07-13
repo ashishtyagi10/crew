@@ -15,6 +15,12 @@ const BUSY_ANIM_DIV: u64 = 4;
 impl CrewApp {
     /// One poll cycle. Schedules the next wake-up before returning.
     pub(crate) fn poll_panes(&mut self, event_loop: &ActiveEventLoop) {
+        if !self.had_terminal {
+            self.had_terminal = self
+                .panes
+                .iter()
+                .any(|p| matches!(p.content, crate::pane::PaneContent::Terminal(_)));
+        }
         if self.window.is_none() {
             return;
         }

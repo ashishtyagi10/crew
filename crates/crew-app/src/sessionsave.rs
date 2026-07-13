@@ -46,17 +46,22 @@ fn save_at(p: Option<PathBuf>, dirs: Vec<String>) {
     }
 }
 
-/// The saved directories that still exist as directories.
+/// The saved directories that still exist as directories — deduped and
+/// capped HERE too, not just on save: the file is user-editable, and a
+/// hostile/fat one must not fork 200 login shells on the winit thread.
 fn load_at(p: Option<PathBuf>) -> Vec<String> {
     let Some(p) = p else { return Vec::new() };
     let Ok(text) = std::fs::read_to_string(&p) else {
         return Vec::new();
     };
+    let mut seen = std::collections::HashSet::new();
     toml::from_str::<Session>(&text)
         .map(|s| s.dirs)
         .unwrap_or_default()
         .into_iter()
         .filter(|d| std::path::Path::new(d).is_dir())
+        .filter(|d| seen.insert(d.clone()))
+        .take(MAX_DIRS)
         .collect()
 }
 
@@ -97,13 +102,26 @@ impl CrewApp {
                     .or_else(|| p.dir.clone())
                     .map(|d| d.to_string_lossy().into_owned())
             })
-            .collect();
-        save_at(path(), dirs);
+            .collect::<Vec<String>>();
+        // Overwrite (or, when empty, delete) the snapshot only when this
+        // session actually ran terminal panes. Otherwise a chat-only
+        // session, a welcome-screen quit, or a GPU-init failure exit would
+        // wipe the very snapshot /restore exists to keep.
+        if !dirs.is_empty() || self.had_terminal {
+            save_at(path(), dirs);
+        }
     }
 
-    /// `/restore` — reopen one shell per saved directory.
+    /// `/restore` — reopen one shell per saved directory, consuming the
+    /// snapshot (so a second `/restore` can't double the panes; the next
+    /// quit re-saves from the live panes anyway).
     pub(crate) fn restore_session(&mut self) {
         let dirs = load_at(path());
+        if !dirs.is_empty() {
+            if let Some(p) = path() {
+                let _ = std::fs::remove_file(p);
+            }
+        }
         self.restore_from(dirs);
     }
 
@@ -116,16 +134,25 @@ impl CrewApp {
             return;
         }
         let n = dirs.len();
+        let before = self.panes.len();
         let kept = std::mem::take(&mut self.cwd);
         for d in dirs {
             self.cwd = PathBuf::from(d);
             self.spawn_new_pane();
         }
         self.cwd = kept;
-        self.set_status(format!(
-            "restored {n} shell{}",
-            if n == 1 { "" } else { "s" }
-        ));
+        // Count what actually opened — spawn_new_pane reports failures via
+        // set_status, and a blanket "restored n" would overwrite the error
+        // with a lie.
+        let opened = self.panes.len() - before;
+        if opened == n {
+            self.set_status(format!(
+                "restored {n} shell{}",
+                if n == 1 { "" } else { "s" }
+            ));
+        } else if opened > 0 {
+            self.set_status(format!("restored {opened} of {n} shells"));
+        }
     }
 }
 
