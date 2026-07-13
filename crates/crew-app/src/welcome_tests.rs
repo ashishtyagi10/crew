@@ -142,3 +142,17 @@ fn restore_hint_singular_and_in_bounds_on_tight_rows() {
     let tight = welcome_cells_animated(80, 24, 0, Some(2));
     assert!(tight.iter().all(|c| c.row < 24 && c.col < 80));
 }
+
+#[test]
+fn restore_hint_never_shares_the_version_stamp_row() {
+    // cols=50 rows=28 puts the naive restore row exactly on rows-1, where
+    // the centred line's tail met "v0.x.y" (last-write-wins garbling) —
+    // review-found collision band. The row is skipped there instead.
+    let cells = welcome_cells_animated(50, 28, 0, Some(3));
+    let stamp_row = 27u16;
+    let hint_fg = crew_theme::theme().hint_fg;
+    assert!(
+        cells.iter().all(|c| c.row != stamp_row || c.fg != hint_fg),
+        "no hint-coloured cells may share the version stamp row"
+    );
+}

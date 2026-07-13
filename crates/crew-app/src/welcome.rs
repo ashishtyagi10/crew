@@ -94,7 +94,9 @@ pub fn welcome_cells_animated(cols: u16, rows: u16, tick: u64, restore: Option<u
         if let Some(n) = restore {
             let line = restore_hint(n);
             let (row, w) = (hint_row + 2, line.chars().count() as u16);
-            if row < rows && w < cols {
+            // `row + 1 < rows`: the bottom row belongs to the version stamp
+            // (drawn after, last-write-wins) — skip rather than collide.
+            if row + 1 < rows && w < cols {
                 push_str(&mut cells, row, (cols - w) / 2, &line, t.hint_fg, bg);
             }
         }
