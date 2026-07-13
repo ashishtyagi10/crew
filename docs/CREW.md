@@ -298,16 +298,18 @@ The docked command bar supports:
 - **Working directory** — the bar's legend shows Crew's current directory
   (`~`-abbreviated). Type **`cd <path>`** (or bare `cd` for home) to move it; new
   shells (**Cmd+T** / `/shell`) open in that directory.
-- **`/restore`** reopens the last session's shells: every quit path (Cmd+Q,
-  window close, `/exit`) snapshots each open terminal pane's **live** shell
+- **`/restore`** reopens the last session's panes: every quit path (Cmd+Q,
+  window close, `/exit`) snapshots each restorable pane to `session.toml`
+  beside the config — terminal panes save the shell's **live** working
   directory (asked from the OS, so it follows your `cd`s; hidden panes
-  included) to `session.toml` beside the config — up to 6, deduped, stale
-  paths skipped on load. Restore is deliberately pull-based: launching keeps
+  included), Far panes their active panel's directory, and the `/crew` chat
+  pane its presence — up to 6, deduped, stale paths and unknown kinds
+  skipped on load (older `dirs`-only files from v0.5.73–74 still restore). Restore is deliberately pull-based: launching keeps
   the welcome screen, and the shells come back only when you ask — and asking
   consumes the snapshot (the next quit re-saves from the live panes). Closing
-  every shell and quitting clears it; a run that never opened a terminal
-  (chat-only, welcome-screen quit) leaves the saved session untouched. When a
-  snapshot exists, the welcome screen says so — `3 shells from last session ·
+  every restorable pane and quitting clears it; a run that never opened one
+  (welcome-screen quit) leaves the saved session untouched. When a
+  snapshot exists, the welcome screen says so — `3 panes from last session ·
   /restore` under the keyboard hint — so the feature introduces itself.
 - **`/name <text>`** titles the focused pane (shown in its title bar); bare
   `/name` clears it back to the program title.

@@ -57,7 +57,7 @@ fn globe_width(cols: u16, rows: u16) -> Option<u16> {
 /// snapshot's shell count (cleared once `/restore` spends it).
 fn restore_hint(n: usize) -> String {
     format!(
-        "{n} shell{} from last session    \u{00b7}    /restore",
+        "{n} pane{} from last session    \u{00b7}    /restore",
         if n == 1 { "" } else { "s" }
     )
 }

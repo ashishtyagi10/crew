@@ -124,7 +124,7 @@ fn text(cells: &[CellView]) -> String {
 fn restore_hint_renders_below_the_keyboard_hint() {
     let with = welcome_cells_animated(80, 30, 0, Some(3));
     assert!(
-        text(&with).contains("3 shells from last session"),
+        text(&with).contains("3 panes from last session"),
         "{}",
         text(&with)
     );
@@ -136,7 +136,7 @@ fn restore_hint_renders_below_the_keyboard_hint() {
 #[test]
 fn restore_hint_singular_and_in_bounds_on_tight_rows() {
     let one = welcome_cells_animated(80, 30, 0, Some(1));
-    assert!(text(&one).contains("1 shell from last session"));
+    assert!(text(&one).contains("1 pane from last session"));
     // Rows exactly at the globe stack budget: the extra row is clipped, not
     // drawn out of bounds.
     let tight = welcome_cells_animated(80, 24, 0, Some(2));

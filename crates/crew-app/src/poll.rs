@@ -15,11 +15,13 @@ const BUSY_ANIM_DIV: u64 = 4;
 impl CrewApp {
     /// One poll cycle. Schedules the next wake-up before returning.
     pub(crate) fn poll_panes(&mut self, event_loop: &ActiveEventLoop) {
-        if !self.had_terminal {
-            self.had_terminal = self
-                .panes
-                .iter()
-                .any(|p| matches!(p.content, crate::pane::PaneContent::Terminal(_)));
+        if !self.had_restorable {
+            use crate::pane::PaneContent;
+            self.had_restorable = self.panes.iter().any(|p| match &p.content {
+                PaneContent::Terminal(_) | PaneContent::Far(_) => true,
+                PaneContent::Chat(_) => p.label.as_deref() == Some("crew"),
+                _ => false,
+            });
         }
         if self.window.is_none() {
             return;

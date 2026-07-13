@@ -109,6 +109,7 @@ mod search;
 mod select;
 mod selfupdate;
 mod session;
+mod sessionrestore;
 mod sessionsave;
 mod settingspane;
 mod spark;
