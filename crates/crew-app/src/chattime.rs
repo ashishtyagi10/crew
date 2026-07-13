@@ -46,15 +46,26 @@ pub(crate) fn strip_task_tag(meta: &str) -> &str {
     }
 }
 
-/// A compact elapsed-duration string — one decimal place at any magnitude
-/// (`"0.9s"`, `"3.2s"`, `"61.0s"`, `"125.0s"`), matching the existing
-/// turn-duration style in `chathdr::status_segments`
-/// (`format!(" \u{00b7} {:.1}s", turn_ms as f64 / 1_000.0)`) rather than the
-/// `MmSSs` bucket the swarm-task-timings design sketches for durations past
-/// 99s — see the design doc's "Duration formatter" note for the deviation:
-/// consistency with the header's existing style wins over a third format.
+/// A compact elapsed-duration string with three format buckets:
+/// - <1s (0–999ms): `"0.Xs"` (e.g., `"0.9s"`);
+/// - 1–99s (1000–99999ms): one decimal `"X.Xs"` (e.g., `"3.2s"`, `"61.0s"`);
+/// - >99s (100000ms+): `"MmSSs"` with zero-padded seconds (e.g., `"10m05s"`, `"2m05s"`).
+/// This restores the spec's swarm-task-timings design for durations past 99s.
 pub(crate) fn fmt_elapsed(ms: u64) -> String {
-    format!("{:.1}s", ms as f64 / 1_000.0)
+    if ms < 1_000 {
+        // <1s: "0.Xs" format (truncate to one decimal, not round)
+        let tenths = (ms / 100) as u32;
+        format!("0.{tenths}s")
+    } else if ms < 100_000 {
+        // 1–99s: one decimal place
+        format!("{:.1}s", ms as f64 / 1_000.0)
+    } else {
+        // >99s: "MmSSs" format with zero-padded seconds
+        let total_secs = ms / 1_000;
+        let mins = total_secs / 60;
+        let secs = total_secs % 60;
+        format!("{mins}m{secs:02}s")
+    }
 }
 
 /// The card header's metadata tail: ` · <rel time>` then ` · <meta>`, each part
@@ -123,13 +134,21 @@ mod tests {
 
     #[test]
     fn fmt_elapsed_edge_cases() {
+        // <1s: "0.Xs" format (e.g., "0.9s")
         assert_eq!(fmt_elapsed(900), "0.9s");
+        assert_eq!(fmt_elapsed(100), "0.1s");
+        assert_eq!(fmt_elapsed(999), "0.9s");
+
+        // 1-99s: one decimal place (e.g., "3.2s", "61.0s")
         assert_eq!(fmt_elapsed(3_200), "3.2s");
-        // Deviation from the design doc's `MmSSs` bucket past 99s: kept as a
-        // plain decimal-seconds string for consistency with the header's
-        // existing turn-duration format (see `fmt_elapsed`'s doc comment).
         assert_eq!(fmt_elapsed(61_000), "61.0s");
-        assert_eq!(fmt_elapsed(125_000), "125.0s");
+        assert_eq!(fmt_elapsed(99_900), "99.9s");
+
+        // >99s: "MmSSs" format with zero-padded seconds
+        // 605s = 10m05s; 125s = 2m05s
+        assert_eq!(fmt_elapsed(125_000), "2m05s");
+        assert_eq!(fmt_elapsed(605_000), "10m05s");
+        assert_eq!(fmt_elapsed(3_661_000), "61m01s"); // 1h 1m 1s
     }
 
     #[test]
