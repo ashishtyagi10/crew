@@ -156,14 +156,22 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
             &pane.agents,
         ));
         // A run can start before any reply lands — the plan-summary message
-        // usually exists by fold time, but don't rely on it here.
-        cells.extend(crate::chatswarmview::block_cells(
-            pane,
-            cols,
-            rows.saturating_sub(bottom)
-                .saturating_sub(crate::chatswarmview::swarm_rows(pane, rows)),
-            crate::anim::now_ms(),
-        ));
+        // usually exists by fold time, but don't rely on it here. The block's
+        // rows are clamped to strictly above the composer: a saturated row
+        // budget (e.g. an 8-task swarm on a tiny pane) can otherwise push
+        // block rows onto the composer row, which doesn't reliably overdraw
+        // them (only the prompt glyph/text touch every column).
+        let block_max = rows.saturating_sub(bottom);
+        cells.extend(
+            crate::chatswarmview::block_cells(
+                pane,
+                cols,
+                block_max.saturating_sub(crate::chatswarmview::swarm_rows(pane, rows)),
+                crate::anim::now_ms(),
+            )
+            .into_iter()
+            .filter(|c| c.row < block_max),
+        );
     } else {
         let msg_rows = crate::chatplace::msg_rows_budget(pane, cols, rows);
         cells.extend(crate::chatmsgs::message_cells(
@@ -188,13 +196,16 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
             cells.extend(crate::chatscroll::new_pill_cells(pane.unread, cols, last));
         }
         // The live swarm block sits under the messages, above the composer —
-        // msg_rows_budget already reserved its rows so nothing overlaps.
-        cells.extend(crate::chatswarmview::block_cells(
-            pane,
-            cols,
-            top + msg_rows,
-            crate::anim::now_ms(),
-        ));
+        // msg_rows_budget already reserved its rows so nothing overlaps in
+        // the normal case, but clamp anyway so a saturated row budget can
+        // never push block rows onto the composer row (see the empty-branch
+        // comment above for why the composer doesn't reliably overdraw them).
+        let block_max = rows.saturating_sub(bottom);
+        cells.extend(
+            crate::chatswarmview::block_cells(pane, cols, top + msg_rows, crate::anim::now_ms())
+                .into_iter()
+                .filter(|c| c.row < block_max),
+        );
     }
     cells.extend(crate::chatinput::composer_cells(
         &pane.input,
