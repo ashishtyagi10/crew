@@ -148,6 +148,50 @@ fn api_factory_makes_an_agent() {
 }
 
 #[tokio::test]
+async fn api_factory_model_override_reaches_request() {
+    use crate::agent::AgentFactory;
+    use std::sync::{Arc, Mutex};
+    struct Probe(Arc<Mutex<String>>);
+    impl crate::provider::Provider for Probe {
+        fn complete(
+            &self,
+            req: crate::provider::CompletionRequest,
+        ) -> std::pin::Pin<
+            Box<
+                dyn std::future::Future<
+                        Output = Result<
+                            crate::provider::Completion,
+                            crate::provider::ProviderError,
+                        >,
+                    > + Send,
+            >,
+        > {
+            *self.0.lock().unwrap() = req.model.clone();
+            Box::pin(async {
+                Ok(crate::provider::Completion {
+                    text: "done".into(),
+                    input_tokens: 1,
+                    output_tokens: 1,
+                })
+            })
+        }
+    }
+    let seen = Arc::new(Mutex::new(String::new()));
+    let provider: Arc<dyn crate::provider::Provider> = Arc::new(Probe(seen.clone()));
+    let factory = ApiFactory::new(provider, 64).with_model("qwen-max");
+    let agent = factory.make(&crate::graph::AgentKind::Api { system: None });
+    let bus = EventBus::new(32);
+    let ctx = AgentContext {
+        agent: AgentId(0),
+        task: spec(1),
+        deps: vec![],
+        bus: bus.clone(),
+    };
+    let _result = agent.run(ctx).await;
+    assert_eq!(seen.lock().unwrap().as_str(), "qwen-max");
+}
+
+#[tokio::test]
 async fn api_agent_bills_at_the_tasks_own_tier() {
     // Same prompt + reply (so token counts are identical), different task tier:
     // the emitted CostDelta must reflect the task's model, proving the agent

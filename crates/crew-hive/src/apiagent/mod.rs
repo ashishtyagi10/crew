@@ -54,6 +54,7 @@ pub(crate) fn build_prompt(task_prompt: &str, deps: &[TaskResult]) -> String {
 pub struct ApiAgent {
     provider: Arc<dyn Provider>,
     max_tokens: u32,
+    model: Option<String>,
 }
 
 impl ApiAgent {
@@ -61,7 +62,13 @@ impl ApiAgent {
         Self {
             provider,
             max_tokens,
+            model: None,
         }
+    }
+
+    pub fn with_model(mut self, m: impl Into<String>) -> Self {
+        self.model = Some(m.into());
+        self
     }
 }
 
@@ -69,6 +76,7 @@ impl Agent for ApiAgent {
     fn run(&self, ctx: AgentContext) -> Pin<Box<dyn Future<Output = TaskResult> + Send>> {
         let provider = Arc::clone(&self.provider);
         let max_tokens = self.max_tokens;
+        let model = self.model.clone();
         Box::pin(async move {
             let task_id = ctx.task.id;
             let agent_id = ctx.agent.clone();
@@ -82,7 +90,7 @@ impl Agent for ApiAgent {
                 AgentKind::Pty { .. } => None,
             };
             let req = CompletionRequest {
-                model: tier.model_id().to_owned(),
+                model: model.unwrap_or_else(|| tier.model_id().to_owned()),
                 system,
                 prompt,
                 max_tokens,
@@ -140,6 +148,7 @@ use crate::agent::AgentFactory;
 pub struct ApiFactory {
     provider: Arc<dyn Provider>,
     max_tokens: u32,
+    model: Option<String>,
 }
 
 impl ApiFactory {
@@ -147,12 +156,22 @@ impl ApiFactory {
         Self {
             provider,
             max_tokens,
+            model: None,
         }
+    }
+
+    pub fn with_model(mut self, m: impl Into<String>) -> Self {
+        self.model = Some(m.into());
+        self
     }
 }
 
 impl AgentFactory for ApiFactory {
     fn make(&self, _kind: &AgentKind) -> Box<dyn Agent> {
-        Box::new(ApiAgent::new(Arc::clone(&self.provider), self.max_tokens))
+        let agent = ApiAgent::new(Arc::clone(&self.provider), self.max_tokens);
+        Box::new(match &self.model {
+            Some(m) => agent.with_model(m.clone()),
+            None => agent,
+        })
     }
 }

@@ -125,6 +125,17 @@ Return ONLY the JSON array, no prose.";
 pub struct LlmPlanner<P: Provider> {
     pub provider: P,
     pub tier: ModelTier,
+    /// When set, overrides `tier.model_id()` in the planning request —
+    /// required for non-Anthropic providers (DashScope/OpenRouter), whose
+    /// model ids the tier table doesn't know.
+    pub model: Option<String>,
+}
+
+impl<P: Provider> LlmPlanner<P> {
+    pub fn with_model(mut self, m: impl Into<String>) -> Self {
+        self.model = Some(m.into());
+        self
+    }
 }
 
 impl<P: Provider> Planner for LlmPlanner<P> {
@@ -133,7 +144,10 @@ impl<P: Provider> Planner for LlmPlanner<P> {
         goal: &str,
     ) -> Pin<Box<dyn Future<Output = Result<TaskGraph, PlanError>> + Send>> {
         let req = CompletionRequest {
-            model: self.tier.model_id().to_owned(),
+            model: self
+                .model
+                .clone()
+                .unwrap_or_else(|| self.tier.model_id().to_owned()),
             system: Some(PLANNER_SYSTEM.to_owned()),
             prompt: goal.to_owned(),
             max_tokens: 2048,

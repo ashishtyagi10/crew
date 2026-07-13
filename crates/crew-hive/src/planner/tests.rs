@@ -67,7 +67,48 @@ async fn llm_planner_parses_provider_json() {
             reply: reply.into(),
         },
         tier: crate::graph::ModelTier::Standard,
+        model: None,
     };
     let g = planner.plan("goal").await.unwrap();
     assert_eq!(g.len(), 1);
+}
+
+#[tokio::test]
+async fn llm_planner_model_override_reaches_request() {
+    use std::sync::{Arc, Mutex};
+    // A probe provider that records the requested model and returns a valid plan.
+    struct Probe(Arc<Mutex<String>>);
+    impl crate::provider::Provider for Probe {
+        fn complete(
+            &self,
+            req: crate::provider::CompletionRequest,
+        ) -> std::pin::Pin<
+            Box<
+                dyn std::future::Future<
+                        Output = Result<
+                            crate::provider::Completion,
+                            crate::provider::ProviderError,
+                        >,
+                    > + Send,
+            >,
+        > {
+            *self.0.lock().unwrap() = req.model.clone();
+            Box::pin(async {
+                Ok(crate::provider::Completion {
+                    text: r#"[{"id":0,"title":"t","prompt":"p","deps":[]}]"#.into(),
+                    input_tokens: 1,
+                    output_tokens: 1,
+                })
+            })
+        }
+    }
+    let seen = Arc::new(Mutex::new(String::new()));
+    let planner = LlmPlanner {
+        provider: Probe(seen.clone()),
+        tier: crate::graph::ModelTier::Standard,
+        model: None,
+    }
+    .with_model("qwen-max");
+    planner.plan("goal").await.unwrap();
+    assert_eq!(seen.lock().unwrap().as_str(), "qwen-max");
 }

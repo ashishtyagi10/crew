@@ -77,6 +77,7 @@ impl SwarmPane {
                 let planner = Arc::new(LlmPlanner {
                     provider: provider.clone(),
                     tier: PLAN_TIER,
+                    model: None,
                 });
                 let factory = Arc::new(ApiFactory::new(Arc::new(provider), WORK_MAX_TOKENS));
                 // Real API agents accrue cost — cap the run.
