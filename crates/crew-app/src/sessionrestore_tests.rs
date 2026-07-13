@@ -48,6 +48,7 @@ fn unknown_kind_spawns_nothing() {
     app.restore_from(vec![SavedPane {
         kind: "hologram".into(),
         dir: None,
+        min: false,
     }]);
     assert!(app.panes.is_empty());
 }
@@ -83,4 +84,22 @@ fn session_panes_snapshots_a_crew_chat_pane_by_its_routing_label() {
     // A label-less chat pane (Cmd+J) is NOT snapshot.
     app.panes[0].label = None;
     assert!(app.session_panes().is_empty());
+}
+
+#[test]
+fn minimized_panes_restore_minimized_and_focus_lands_visible() {
+    let mut app = CrewApp {
+        cwd: PathBuf::from("/"),
+        ..Default::default()
+    };
+    let mut min_shell = SavedPane::shell(tmp_dir_str());
+    min_shell.min = true;
+    // Visible first, minimized LAST — the loop leaves the minimized one
+    // focused, which reconcile_grid's focus-restores rule would un-minimize;
+    // restore must land focus back on a visible pane.
+    app.restore_from(vec![SavedPane::shell(tmp_dir_str()), min_shell]);
+    assert_eq!(app.panes.len(), 2);
+    assert!(!app.panes[0].hidden);
+    assert!(app.panes[1].hidden);
+    assert_eq!(app.focused, 0, "focus must land on the visible pane");
 }

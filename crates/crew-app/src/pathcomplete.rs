@@ -68,8 +68,11 @@ fn expand(dir_part: &str, base: &Path) -> PathBuf {
 mod tests {
     use super::{complete_path, path_suggest};
 
-    fn fixture() -> std::path::PathBuf {
-        let base = std::env::temp_dir().join("crew_pathcomplete_test");
+    /// Per-test fixture dir: a SHARED path raced under parallel runs (one
+    /// test's remove_dir_all deleted the tree mid-assertion in the other).
+    fn fixture(name: &str) -> std::path::PathBuf {
+        let base =
+            std::env::temp_dir().join(format!("crew_pathcomplete_{name}_{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&base);
         std::fs::create_dir_all(base.join("alpha")).unwrap();
         std::fs::write(base.join("readme.md"), b"x").unwrap();
@@ -78,7 +81,7 @@ mod tests {
 
     #[test]
     fn completes_dirs_only_or_files_too() {
-        let base = fixture();
+        let base = fixture("complete");
         // dirs-only: the directory matches (trailing slash), the file does not.
         assert_eq!(complete_path("al", &base, false).as_deref(), Some("pha/"));
         assert_eq!(complete_path("read", &base, false), None);
@@ -88,7 +91,7 @@ mod tests {
 
     #[test]
     fn path_suggest_only_for_dump() {
-        let base = fixture();
+        let base = fixture("suggest");
         assert_eq!(path_suggest("/dump al", &base).as_deref(), Some("pha/"));
         assert_eq!(path_suggest("/dump read", &base).as_deref(), Some("me.md"));
         // other commands and a trailing-slash partial complete nothing.

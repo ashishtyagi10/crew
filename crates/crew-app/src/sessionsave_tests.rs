@@ -123,3 +123,37 @@ fn unparseable_file_loads_as_empty() {
     assert!(load_at(Some(p.clone())).is_empty());
     let _ = std::fs::remove_file(p);
 }
+
+#[test]
+fn min_flag_round_trips_through_toml_and_false_is_omitted() {
+    // Pins the serde attrs (default + skip_serializing_if Not::not): a
+    // future attr edit must not silently break restore-minimized.
+    let p = tmp("min");
+    let mut hidden = SavedPane::shell(tmp_dir_str());
+    hidden.min = true;
+    save_at(Some(p.clone()), vec![hidden.clone(), SavedPane::crew()]);
+    let text = std::fs::read_to_string(&p).unwrap();
+    assert_eq!(text.matches("min = true").count(), 1, "{text}");
+    assert!(!text.contains("min = false"), "false is skipped: {text}");
+    assert_eq!(
+        load_at(Some(p.clone())),
+        vec![hidden, SavedPane::crew()],
+        "min survives the round trip; absent min loads as false"
+    );
+    let _ = std::fs::remove_file(p);
+}
+
+#[test]
+fn same_dir_shells_with_different_min_both_survive_dedupe() {
+    // Two real panes (one minimized) in the same cwd must not collapse into
+    // one arbitrary survivor — min is part of the dedupe key.
+    let p = tmp("minkey");
+    let mut hidden = SavedPane::shell(tmp_dir_str());
+    hidden.min = true;
+    save_at(
+        Some(p.clone()),
+        vec![hidden, SavedPane::shell(tmp_dir_str())],
+    );
+    assert_eq!(load_at(Some(p.clone())).len(), 2);
+    let _ = std::fs::remove_file(p);
+}

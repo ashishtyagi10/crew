@@ -304,7 +304,8 @@ The docked command bar supports:
   directory (asked from the OS, so it follows your `cd`s; hidden panes
   included), Far panes their active panel's directory, and the `/crew` chat
   pane its presence — up to 6, deduped, stale paths and unknown kinds
-  skipped on load (older `dirs`-only files from v0.5.73–74 still restore). Restore is deliberately pull-based: launching keeps
+  skipped on load (older `dirs`-only files from v0.5.73–74 still restore).
+  Panes minimized into the left nav restore minimized. Restore is deliberately pull-based: launching keeps
   the welcome screen, and the shells come back only when you ask — and asking
   consumes the snapshot (the next quit re-saves from the live panes). Closing
   every restorable pane and quitting clears it; a run that never opened one

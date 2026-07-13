@@ -467,8 +467,10 @@ impl Drop for PtyTerm {
                 Ok(None) => std::thread::sleep(std::time::Duration::from_millis(5)),
             }
         }
-        // Still not reaped after ~100ms: give up rather than hang the
-        // winit thread; the entry is reclaimed when the app exits.
+        // Still not reaped after ~100ms of polling: give up rather than
+        // hang the winit thread; the entry is reclaimed when the app exits.
+        // (True worst case is ~300ms: kill() itself waits out a ~200ms
+        // SIGHUP grace before escalating, on top of this poll loop.)
     }
 }
 

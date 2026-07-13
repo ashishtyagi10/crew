@@ -20,10 +20,6 @@ pub(crate) const GOAL_FANOUT: usize = 3;
 pub(crate) const PLAN_TIER: ModelTier = ModelTier::Standard;
 /// Per-task output token cap for worker agents.
 pub(crate) const WORK_MAX_TOKENS: u32 = 2048;
-/// Default cost ceiling for a real-LLM `/goal` or `/batch` run ($1.00 in
-/// micros-USD). The budget governor cancels the swarm once fleet spend exceeds
-/// this.
-pub(crate) const GOAL_BUDGET_MICROS_USD: u64 = 1_000_000;
 /// Model tier for `/batch` jobs (no planner assigns one; keep it cost-conscious).
 pub(crate) const BATCH_TIER: ModelTier = ModelTier::Cheap;
 
@@ -69,7 +65,7 @@ pub(crate) fn executor() -> (Arc<dyn AgentFactory>, Option<Budget>) {
             let provider = provider.expect("Llm backend implies a provider");
             let factory = Arc::new(ApiFactory::new(Arc::new(provider), WORK_MAX_TOKENS));
             let budget = Some(Budget {
-                max_micros_usd: GOAL_BUDGET_MICROS_USD,
+                max_micros_usd: crew_hive::Budget::DEFAULT_MICROS_USD,
             });
             (factory, budget)
         }

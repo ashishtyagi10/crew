@@ -21,6 +21,9 @@ pub(crate) struct SavedPane {
     pub kind: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub dir: Option<String>,
+    /// Minimized into the left nav when saved — restored the same way.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub min: bool,
 }
 
 impl SavedPane {
@@ -28,18 +31,21 @@ impl SavedPane {
         SavedPane {
             kind: "shell".into(),
             dir: Some(dir),
+            min: false,
         }
     }
     pub(crate) fn far(dir: String) -> Self {
         SavedPane {
             kind: "far".into(),
             dir: Some(dir),
+            min: false,
         }
     }
     pub(crate) fn crew() -> Self {
         SavedPane {
             kind: "crew".into(),
             dir: None,
+            min: false,
         }
     }
 
@@ -78,7 +84,7 @@ pub(crate) fn save_at(p: Option<PathBuf>, panes: Vec<SavedPane>) {
     let mut seen = std::collections::HashSet::new();
     let panes: Vec<SavedPane> = panes
         .into_iter()
-        .filter(|sp| seen.insert((sp.kind.clone(), sp.dir.clone())))
+        .filter(|sp| seen.insert((sp.kind.clone(), sp.dir.clone(), sp.min)))
         .take(MAX_PANES)
         .collect();
     if panes.is_empty() {
@@ -114,7 +120,7 @@ pub(crate) fn load_at(p: Option<PathBuf>) -> Vec<SavedPane> {
     panes
         .into_iter()
         .filter(SavedPane::restorable)
-        .filter(|sp| seen.insert((sp.kind.clone(), sp.dir.clone())))
+        .filter(|sp| seen.insert((sp.kind.clone(), sp.dir.clone(), sp.min)))
         .take(MAX_PANES)
         .collect()
 }
