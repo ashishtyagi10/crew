@@ -33,6 +33,72 @@ fn tests_far_pane(name: &str) -> crate::pane::Pane {
     }
 }
 
+fn tests_chat_pane() -> crate::pane::Pane {
+    use crate::chat::ChatPane;
+    use crate::pane::{Pane, PaneContent};
+    use crew_plugin::Plugin;
+    use crew_term::GridSize;
+    // An idle child stands in for the broker; only pane state is under test.
+    let plugin = Plugin::spawn("sh", &["-c".to_string(), "cat >/dev/null".to_string()]).unwrap();
+    Pane {
+        content: PaneContent::Chat(ChatPane::new(plugin, "crew".into())),
+        grid: GridSize { cols: 80, rows: 24 },
+        rect: crate::layout::Rect {
+            x: 0.0,
+            y: 0.0,
+            w: 0.0,
+            h: 0.0,
+        },
+        label: None,
+        name: None,
+        dir: None,
+        activity: false,
+        bell: false,
+        hidden: false,
+        attention: None,
+    }
+}
+
+fn chat_pane_compact(app: &CrewApp, i: usize) -> bool {
+    match &app.panes[i].content {
+        crate::pane::PaneContent::Chat(c) => c.compact_view,
+        _ => unreachable!("expected a chat pane"),
+    }
+}
+
+#[test]
+fn toggle_compact_focused_flips_the_focused_chat_pane_and_back() {
+    // This is the effectful half of the Ctrl+O global intercept (keys.rs) —
+    // the chord-matching half is `is_compact_chord`, tested in keys.rs.
+    let mut app = CrewApp::default();
+    app.panes.push(tests_chat_pane());
+    app.focused = 0;
+    assert!(!chat_pane_compact(&app, 0), "compact_view starts off");
+
+    assert!(
+        app.toggle_compact_focused(),
+        "found a chat pane at the focused index"
+    );
+    assert!(chat_pane_compact(&app, 0), "first Ctrl+O turns it on");
+
+    assert!(app.toggle_compact_focused());
+    assert!(
+        !chat_pane_compact(&app, 0),
+        "second Ctrl+O restores the full transcript"
+    );
+}
+
+#[test]
+fn toggle_compact_focused_is_a_noop_on_a_non_chat_pane() {
+    // Terminal (and other) panes must fall through untouched so Ctrl+O still
+    // reaches the PTY as a raw byte instead of being swallowed here.
+    let mut app = CrewApp::default();
+    app.panes.push(tests_far_pane("a"));
+    app.focused = 0;
+
+    assert!(!app.toggle_compact_focused());
+}
+
 #[test]
 fn focusing_a_pane_clears_its_attention_but_not_others() {
     let mut app = CrewApp::default();

@@ -102,6 +102,19 @@ impl CrewApp {
             return;
         }
 
+        // Ctrl+O toggles the compact transcript view on the focused chat
+        // pane — same global reach as Ctrl+Shift+M above (fires even with
+        // the input bar focused). Unlike Ctrl+Shift+M it only consumes the
+        // key when the focused pane actually IS a chat pane; otherwise it
+        // falls through so terminals still get the raw 0x0f byte.
+        if event.state.is_pressed()
+            && is_compact_chord(&event.logical_key, mstate)
+            && self.toggle_compact_focused()
+        {
+            self.redraw();
+            return;
+        }
+
         // Super-chords (e.g. Cmd+I, Cmd+T, …) are handled first.
         if mstate.super_key() && event.state.is_pressed() {
             if let Key::Character(s) = &event.logical_key {
@@ -159,9 +172,7 @@ impl CrewApp {
             match &mut pane.content {
                 // Terminal input is written below (so broadcast can reach all panes).
                 PaneContent::Terminal(_) => is_terminal = true,
-                PaneContent::Chat(c) => {
-                    chat_action = c.on_key(event, shift, mstate.control_key(), &self.cwd)
-                }
+                PaneContent::Chat(c) => chat_action = c.on_key(event, shift, &self.cwd),
                 PaneContent::Settings(s) => {
                     settings_action = s.on_key(event, shift);
                 }
@@ -242,5 +253,72 @@ impl CrewApp {
         }
         self.close_pane(focused);
         true
+    }
+
+    /// Ctrl+O toggles `compact_view` on the focused pane if — and only if —
+    /// it's a chat pane. Returns `true` when it found one and toggled it
+    /// (the caller should stop there); `false` otherwise, so the key keeps
+    /// flowing to its old destination (e.g. a terminal's raw byte).
+    pub(crate) fn toggle_compact_focused(&mut self) -> bool {
+        let Some(pane) = self.panes.get_mut(self.focused) else {
+            return false;
+        };
+        let PaneContent::Chat(c) = &mut pane.content else {
+            return false;
+        };
+        c.compact_view = !c.compact_view;
+        true
+    }
+}
+
+/// Ctrl+O — the chord that toggles a chat pane's compact transcript view.
+/// Extracted as a pure predicate (mirrors `swarmpane::esc_closes`) so the
+/// match is testable without constructing a winit `KeyEvent`. Modeled on the
+/// Ctrl+Shift+M intercept above: same reach (fires before the input-bar
+/// early-return), but with no Shift requirement.
+pub(crate) fn is_compact_chord(key: &Key, mods: winit::keyboard::ModifiersState) -> bool {
+    mods.control_key() && matches!(key, Key::Character(s) if s.eq_ignore_ascii_case("o"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use winit::keyboard::ModifiersState;
+
+    #[test]
+    fn is_compact_chord_matches_ctrl_o_only() {
+        assert!(is_compact_chord(
+            &Key::Character("o".into()),
+            ModifiersState::CONTROL
+        ));
+        // Case-insensitive, matching how Ctrl+Shift+M's own match is written.
+        assert!(is_compact_chord(
+            &Key::Character("O".into()),
+            ModifiersState::CONTROL
+        ));
+    }
+
+    #[test]
+    fn is_compact_chord_requires_control() {
+        assert!(!is_compact_chord(
+            &Key::Character("o".into()),
+            ModifiersState::empty()
+        ));
+    }
+
+    #[test]
+    fn is_compact_chord_rejects_other_letters() {
+        assert!(!is_compact_chord(
+            &Key::Character("k".into()),
+            ModifiersState::CONTROL
+        ));
+    }
+
+    #[test]
+    fn is_compact_chord_rejects_named_keys() {
+        assert!(!is_compact_chord(
+            &Key::Named(NamedKey::Escape),
+            ModifiersState::CONTROL
+        ));
     }
 }
