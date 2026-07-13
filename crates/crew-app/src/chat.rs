@@ -221,6 +221,45 @@ impl ChatPane {
         }
     }
 
+    /// The transcript text noting an Esc-interrupt — a single constant so the
+    /// dedup check in [`Self::interrupt`] can compare against exactly what it
+    /// pushes.
+    const INTERRUPT_NOTE: &'static str = "\u{238b} interrupting \u{2014} sent /stop";
+
+    /// Esc while the crew is busy and connected: cancel the in-flight run by
+    /// sending `/stop` straight to the broker — bypassing the queue exactly
+    /// like the composer's own `/stop` does (`send_now`, not `queued.push`),
+    /// since it must reach the broker mid-turn to cancel it — and note the
+    /// action in the transcript. Repeat Esc while still busy resends `/stop`
+    /// (the broker's cancel is an idempotent `AtomicBool`) but the note is
+    /// deduped: only pushed when the last transcript message isn't already
+    /// this same note.
+    fn interrupt(&mut self) {
+        self.send_now("/stop".to_string());
+        let already_noted = self
+            .messages
+            .last()
+            .is_some_and(|m| m.sender == "crew" && m.text == Self::INTERRUPT_NOTE);
+        if already_noted {
+            return;
+        }
+        if self.scroll > 0 {
+            self.unread += 1;
+        }
+        self.messages.push(Message {
+            sender: "crew".into(),
+            text: Self::INTERRUPT_NOTE.into(),
+            ts: String::new(),
+            meta: String::new(),
+        });
+        // Same drain the plugin's Message arm applies (chat.rs::poll) — this
+        // note must not let the transcript grow past the cap either.
+        if self.messages.len() > 500 {
+            let drain = self.messages.len() - 500;
+            self.messages.drain(..drain);
+        }
+    }
+
     /// Render the channel as CellView cells: a status header, the agent roster
     /// (when known), role-styled message cards, and the input composer. Tiny
     /// panes (no room for a header) fall back to the plain body.
@@ -266,7 +305,17 @@ impl ChatPane {
             return None;
         }
         let (ch, enter, backspace) = match k {
-            ChatInput::Close => return Some(ChatAction::Close),
+            ChatInput::Close => {
+                // Esc means "interrupt the running turn" while busy (mirrors
+                // Codex/Claude Code); it only means "close the pane" once
+                // idle. A dead connection can't be interrupted, so it falls
+                // back to closing too — no write to a dead pipe.
+                if self.is_busy() && self.connected {
+                    self.interrupt();
+                    return None;
+                }
+                return Some(ChatAction::Close);
+            }
             ChatInput::Ignore | ChatInput::Up | ChatInput::Down => return None,
             ChatInput::Complete => {
                 if let Some(done) = crate::chatcomplete::complete(&self.input, &self.agents) {

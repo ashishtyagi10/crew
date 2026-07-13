@@ -242,6 +242,90 @@ fn status_rows_counts_session_and_grid() {
 // half, `on_input(ChatInput, cwd)`, end-to-end — the real routing, including
 // the return value that decides whether the pane closes.
 #[test]
+fn esc_interrupts_a_busy_connected_pane_instead_of_closing() {
+    use crate::chatkeys::ChatInput;
+
+    let mut p = pane();
+    let cwd = std::env::temp_dir();
+    p.connected = true;
+    // Busy via a live agent (not `awaiting`), so the send below is the only
+    // thing that can flip `awaiting` true.
+    p.absorb_activity("planner".into(), "thinking", "user".into());
+    assert!(p.is_busy());
+    assert!(!p.awaiting);
+
+    let action = p.on_input(ChatInput::Close, &cwd);
+
+    assert!(action.is_none(), "busy Esc must not close the pane");
+    assert!(
+        p.awaiting,
+        "Esc sent /stop directly (bypassing the queue), latching awaiting like any direct send"
+    );
+    assert_eq!(p.messages.len(), 1, "one interrupt note pushed");
+    assert_eq!(p.messages[0].sender, "crew");
+    assert!(
+        p.messages[0].text.contains("interrupting") && p.messages[0].text.contains("/stop"),
+        "note text: {}",
+        p.messages[0].text
+    );
+}
+
+#[test]
+fn esc_closes_the_pane_when_idle() {
+    use crate::chatkeys::{ChatAction, ChatInput};
+
+    let mut p = pane();
+    let cwd = std::env::temp_dir();
+    assert!(!p.is_busy());
+
+    assert!(matches!(
+        p.on_input(ChatInput::Close, &cwd),
+        Some(ChatAction::Close)
+    ));
+    assert!(p.messages.is_empty(), "idle Esc writes nothing");
+}
+
+#[test]
+fn esc_closes_when_busy_but_disconnected_and_writes_nothing() {
+    use crate::chatkeys::{ChatAction, ChatInput};
+
+    let mut p = pane();
+    let cwd = std::env::temp_dir();
+    // Busy via a live agent, but never connected — a dead pipe must not be
+    // written to.
+    p.absorb_activity("planner".into(), "thinking", "user".into());
+    assert!(p.is_busy());
+    assert!(!p.connected);
+
+    assert!(matches!(
+        p.on_input(ChatInput::Close, &cwd),
+        Some(ChatAction::Close)
+    ));
+    assert!(!p.awaiting, "no send happened while disconnected");
+    assert!(p.messages.is_empty(), "no note written while disconnected");
+}
+
+#[test]
+fn double_esc_while_busy_resends_stop_but_notes_once() {
+    use crate::chatkeys::ChatInput;
+
+    let mut p = pane();
+    let cwd = std::env::temp_dir();
+    p.connected = true;
+    p.absorb_activity("planner".into(), "thinking", "user".into());
+
+    assert!(p.on_input(ChatInput::Close, &cwd).is_none());
+    assert_eq!(p.messages.len(), 1);
+    let note = p.messages[0].text.clone();
+
+    // Still busy (via `active`, untouched by the first Esc) — Esc again.
+    assert!(p.is_busy());
+    assert!(p.on_input(ChatInput::Close, &cwd).is_none());
+    assert_eq!(p.messages.len(), 1, "no duplicate note on the second Esc");
+    assert_eq!(p.messages[0].text, note, "the single note is unchanged");
+}
+
+#[test]
 fn esc_closes_the_open_palette_then_the_pane() {
     use crate::chatkeys::{ChatAction, ChatInput};
 
