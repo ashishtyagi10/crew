@@ -37,7 +37,7 @@ pub enum TaskState {
     Cancelled,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct TaskSpec {
     pub id: TaskId,
     pub title: String,

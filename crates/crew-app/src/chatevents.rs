@@ -2,7 +2,7 @@
 //! (pane spawns / sends) the app must perform, versus pane-local state changes.
 use crew_plugin::PluginEvent;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum HostAction {
     SpawnPane {
         command: String,
@@ -19,36 +19,6 @@ pub enum HostAction {
     Hive {
         event: crew_hive::HiveEvent,
     },
-}
-
-impl PartialEq for HostAction {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (
-                HostAction::SpawnPane {
-                    command: c1,
-                    args: a1,
-                    label: l1,
-                },
-                HostAction::SpawnPane {
-                    command: c2,
-                    args: a2,
-                    label: l2,
-                },
-            ) => c1 == c2 && a1 == a2 && l1 == l2,
-            (
-                HostAction::SendPane {
-                    label: l1,
-                    text: t1,
-                },
-                HostAction::SendPane {
-                    label: l2,
-                    text: t2,
-                },
-            ) => l1 == l2 && t1 == t2,
-            _ => false,
-        }
-    }
 }
 
 pub struct PollResult {
