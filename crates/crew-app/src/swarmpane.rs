@@ -179,6 +179,16 @@ impl SwarmPane {
     }
 }
 
+/// The swarm view has no cursor or input; the only key it answers is Escape →
+/// close, matching the Far/Markdown/Chat panes.
+pub(crate) fn esc_closes(key: &winit::keyboard::Key, pressed: bool) -> bool {
+    pressed
+        && matches!(
+            key,
+            winit::keyboard::Key::Named(winit::keyboard::NamedKey::Escape)
+        )
+}
+
 impl Drop for SwarmPane {
     /// Stop the background scheduler when the pane closes, so a dismissed swarm
     /// doesn't keep spawning tasks on its worker thread.

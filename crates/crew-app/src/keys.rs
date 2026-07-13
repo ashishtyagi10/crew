@@ -154,6 +154,7 @@ impl CrewApp {
         let mut chat_action: Option<crate::chatkeys::ChatAction> = None;
         let mut md_action: Option<crate::mdkeys::MdAction> = None;
         let mut is_terminal = false;
+        let mut swarm_close = false;
         if let Some(pane) = self.panes.get_mut(focused) {
             match &mut pane.content {
                 // Terminal input is written below (so broadcast can reach all panes).
@@ -165,13 +166,19 @@ impl CrewApp {
                 PaneContent::Far(f) => {
                     far_action = f.on_key(event);
                 }
-                // The swarm view is non-interactive; it ignores key input.
-                PaneContent::Swarm(_) => {}
+                // The swarm view is display-only; Escape closes it.
+                PaneContent::Swarm(_) => {
+                    swarm_close =
+                        crate::swarmpane::esc_closes(&event.logical_key, event.state.is_pressed());
+                }
                 PaneContent::Markdown(m) => {
                     md_action =
                         m.on_key(event, pane.grid.cols, pane.grid.rows, mstate.control_key())
                 }
             }
+        }
+        if swarm_close {
+            self.close_pane(focused);
         }
         if let Some(action) = far_action {
             use crate::farpane::FarAction;

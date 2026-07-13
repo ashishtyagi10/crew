@@ -265,3 +265,22 @@ fn plan_goal_produces_a_graph() {
     // StubPlanner { fanout: 3 } makes 3 leaves + 1 merge = 4 tasks.
     assert_eq!(graph.len(), 4);
 }
+
+// ── Task 7: pane close wiring ───────────────────────────────────────────────
+
+#[test]
+fn escape_closes_a_swarm_pane_other_keys_do_not() {
+    use winit::keyboard::{Key, NamedKey};
+    assert!(crate::swarmpane::esc_closes(
+        &Key::Named(NamedKey::Escape),
+        true
+    ));
+    assert!(!crate::swarmpane::esc_closes(
+        &Key::Named(NamedKey::Escape),
+        false
+    ));
+    assert!(!crate::swarmpane::esc_closes(
+        &Key::Named(NamedKey::Enter),
+        true
+    ));
+}

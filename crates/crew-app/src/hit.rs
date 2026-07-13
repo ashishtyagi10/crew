@@ -35,10 +35,13 @@ impl CrewApp {
         (idx < self.panes.len()).then_some(idx)
     }
 
-    /// Which full tile's `[-]` minimize button sits under the cursor, if any.
-    /// Zoomed, the one expanded tile carries the button; in the grid only the
-    /// full tiles do (strip thumbnails draw none, so they are never tested).
-    pub(crate) fn min_btn_at_cursor(&self) -> Option<usize> {
+    /// Which full tile's border button (per `rect_of`) is under the cursor.
+    /// Zoomed, the one expanded tile carries the buttons; in the grid only
+    /// the full tiles do (strip thumbnails draw none, so are never tested).
+    fn border_btn_at_cursor(
+        &self,
+        rect_of: fn(crate::layout::Rect, f32, f32) -> Option<crate::layout::Rect>,
+    ) -> Option<usize> {
         let (cw, ch, _sw, _sh, _scale) = self.frame_geometry()?;
         let (content, placed) = self.placed_grid()?;
         let tiles = if self.zoomed {
@@ -47,9 +50,17 @@ impl CrewApp {
             placed.full
         };
         tiles.into_iter().find_map(|(idx, r)| {
-            let hit = crate::panecard::min_btn_rect(r, cw, ch)?;
+            let hit = rect_of(r, cw, ch)?;
             chrome::point_in(hit, self.cursor.0, self.cursor.1).then_some(idx)
         })
+    }
+
+    pub(crate) fn min_btn_at_cursor(&self) -> Option<usize> {
+        self.border_btn_at_cursor(crate::panecard::min_btn_rect)
+    }
+
+    pub(crate) fn close_btn_at_cursor(&self) -> Option<usize> {
+        self.border_btn_at_cursor(crate::panecard::close_btn_rect)
     }
 
     /// Whether the cursor is over the docked input bar.
