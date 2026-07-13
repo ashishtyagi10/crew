@@ -310,3 +310,31 @@ fn msg_rows_budget_matches_view_math() {
         );
     }
 }
+
+#[test]
+fn msg_rows_budget_shrinks_by_one_when_a_message_is_queued() {
+    // The queued-messages indicator claims a row above the composer exactly
+    // like the live swarm block does — `msg_rows_budget` must reserve it.
+    let messages: Vec<Message> = (0..30)
+        .map(|i| msg("planner", &format!("line {i}")))
+        .collect();
+    let mut pane = test_pane(messages);
+    let (cols, rows) = (40u16, 20u16);
+
+    let budget_before = crate::chatplace::msg_rows_budget(&pane, cols, rows);
+    pane.queued.push_back("queued while busy".into());
+    let budget_after = crate::chatplace::msg_rows_budget(&pane, cols, rows);
+
+    assert_eq!(
+        budget_after,
+        budget_before - 1,
+        "the indicator's row comes out of the message budget"
+    );
+
+    pane.queued.push_back("another one".into());
+    assert_eq!(
+        crate::chatplace::msg_rows_budget(&pane, cols, rows),
+        budget_after,
+        "queue depth beyond 1 doesn't claim more rows"
+    );
+}
