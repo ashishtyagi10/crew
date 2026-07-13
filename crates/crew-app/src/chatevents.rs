@@ -13,12 +13,6 @@ pub enum HostAction {
         label: String,
         text: String,
     },
-    HivePlan {
-        tasks: Vec<crew_hive::TaskSpec>,
-    },
-    Hive {
-        event: crew_hive::HiveEvent,
-    },
 }
 
 pub struct PollResult {
@@ -40,12 +34,6 @@ pub fn classify(ev: &PluginEvent) -> Option<HostAction> {
         PluginEvent::SendPane { label, text } => Some(HostAction::SendPane {
             label: label.clone(),
             text: text.clone(),
-        }),
-        PluginEvent::HivePlan { tasks } => Some(HostAction::HivePlan {
-            tasks: tasks.clone(),
-        }),
-        PluginEvent::Hive { event } => Some(HostAction::Hive {
-            event: event.clone(),
         }),
         _ => None,
     }

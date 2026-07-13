@@ -102,62 +102,76 @@ fn tiny_pane_yields_no_card() {
 }
 
 #[test]
-fn min_btn_draws_on_the_top_border_and_shifts_status_glyphs() {
+fn border_buttons_draw_minus_then_x_and_shift_status_glyphs() {
     let b = Bar {
         min_btn: true,
         ..bar(true)
     };
     let cells = pane_card(38, 10, &b);
-    // The [-] button ends at card column cols-3 (cols = 38 + 2), row 0.
+    // The buttons: [-] at cols 32..=34, [x] at cols 35..=37 (cols = 38 + 2 = 40)
     let at = |col: u16| cells.iter().find(|c| c.row == 0 && c.col == col).unwrap().c;
+    assert_eq!(at(32), '[');
+    assert_eq!(at(33), '-');
+    assert_eq!(at(34), ']');
     assert_eq!(at(35), '[');
-    assert_eq!(at(36), '-');
+    assert_eq!(at(36), 'x');
     assert_eq!(at(37), ']');
-    // Status glyphs still render, stepping further left of the button.
+    // Status glyphs still render, stepping further left of the buttons.
     let scroll_col = cells
         .iter()
         .find(|c| c.c == '⇡' && c.row == 0)
         .map(|c| c.col)
         .unwrap();
-    assert!(scroll_col < 35, "scroll indicator left of the button");
+    assert!(scroll_col < 32, "scroll indicator left of the buttons");
 }
 
 #[test]
-fn min_btn_absent_when_disabled_or_narrow() {
-    assert!(!pane_card(38, 10, &bar(true))
-        .iter()
-        .any(|c| c.c == '-' && c.row == 0));
+fn border_buttons_absent_when_narrow() {
     let b = Bar {
         min_btn: true,
         ..bar(true)
     };
-    // A card narrower than 10 cells has no room for a click target.
-    assert!(!pane_card(6, 10, &b)
-        .iter()
-        .any(|c| c.c == '-' && c.row == 0));
+    // A card narrower than 13 cells (11 interior) has no room for the button pair.
+    let cells = pane_card(9, 10, &b);
+    assert!(
+        !cells
+            .iter()
+            .any(|c| (c.c == '-' || c.c == 'x') && c.row == 0),
+        "no buttons at 11 card cols"
+    );
 }
 
 #[test]
-fn min_btn_rect_covers_the_button_cells() {
+fn close_rect_covers_the_corner_button_and_min_rect_sits_left_of_it() {
     use crate::layout::Rect;
     let r = Rect {
-        x: 100.0,
-        y: 50.0,
-        w: 400.0,
-        h: 300.0,
+        x: 0.0,
+        y: 0.0,
+        w: 300.0,
+        h: 100.0,
     };
-    // cw=10 → interior cols = 40-2 = 38, card cols = 40, [-] at cols 35..=37.
-    let hit = min_btn_rect(r, 10.0, 20.0).unwrap();
-    assert_eq!(hit.x, 100.0 + 35.0 * 10.0);
-    assert_eq!(hit.w, 3.0 * 10.0);
-    assert_eq!(hit.y, 50.0);
-    assert_eq!(hit.h, 20.0);
-    // Too narrow for a button → no hit region (matches the draw guard).
+    let close = close_btn_rect(r, 10.0, 20.0).unwrap();
+    let min = min_btn_rect(r, 10.0, 20.0).unwrap();
+    // cw=10, ch=20, w=300 → interior cols = 30-2 = 28, card cols = 30
+    // [x] at cols 25..=27 (off=5), [-] at cols 22..=24 (off=8)
+    assert_eq!(close.w, 30.0); // 3 cells * 10
+    assert_eq!(min.w, 30.0); // 3 cells * 10
+                             // [x] takes the corner slot; [-] sits directly left of it.
+    assert_eq!(close.x, 250.0); // col 25 = 25*10 = 250
+    assert_eq!(min.x, 220.0); // col 22 = 22*10 = 220
+    assert!(close.x > min.x);
+}
+
+#[test]
+fn buttons_rect_none_when_too_narrow() {
+    use crate::layout::Rect;
+    // A card narrower than 13 cells (BTNS_COLS) has no room → None.
     let narrow = Rect {
         x: 0.0,
         y: 0.0,
-        w: 80.0,
+        w: 110.0, // 11 card cols * 10 cw
         h: 300.0,
     };
     assert!(min_btn_rect(narrow, 10.0, 20.0).is_none());
+    assert!(close_btn_rect(narrow, 10.0, 20.0).is_none());
 }

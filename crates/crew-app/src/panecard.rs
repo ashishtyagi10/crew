@@ -23,33 +23,42 @@ pub(crate) struct Bar<'a> {
     /// `Some(now_ms)` when the pane is busy: animate an indeterminate sweep along
     /// the bottom border at that time. `None` leaves the border static.
     pub busy: Option<u64>,
-    /// Draw the `[-]` minimize button on the top border (full grid tiles and
-    /// the zoomed tile — not strip thumbnails). Click regions come from
-    /// [`min_btn_rect`], which shares [`MIN_BTN_COLS`] so draw and hit agree.
+    /// Draw the `[-][x]` minimize and close buttons on the top border (full grid
+    /// tiles and the zoomed tile — not strip thumbnails). Click regions come from
+    /// [`min_btn_rect`] and [`close_btn_rect`], which both share [`BTNS_COLS`]
+    /// so draw and hit agree.
     pub min_btn: bool,
 }
 
-/// Narrowest card (in cells, border included) that carries the minimize
-/// button — below this there's no room for a legible click target.
-const MIN_BTN_COLS: u16 = 10;
+/// Narrowest card (in cells, border included) that carries the border
+/// buttons `[-][x]` — below this there's no room for legible click targets,
+/// and the pair draws all-or-nothing so hit-tests never half-apply.
+const BTNS_COLS: u16 = 13;
 
-/// Pixel rect of the `[-]` minimize button on a full tile at `rect`: the three
-/// row-0 cells the button occupies (card columns `cols-5 ..= cols-3`). `None`
-/// when the card is too narrow to carry the button. Derives cols via
-/// `card_inner_cells` — the same convention `relayout_one` sizes the pane by —
-/// so it lands on the drawn glyphs exactly.
-pub(crate) fn min_btn_rect(rect: Rect, cw: f32, ch: f32) -> Option<Rect> {
+/// Pixel rect of one 3-cell border button whose leftmost glyph sits at card
+/// column `cols - off`. `None` when the card is too narrow for the pair.
+fn btn_rect(rect: Rect, cw: f32, ch: f32, off: u16) -> Option<Rect> {
     let (icols, _) = crate::layout::card_inner_cells(rect.w, rect.h, cw, ch);
     let cols = icols + 2;
-    if cols < MIN_BTN_COLS {
+    if cols < BTNS_COLS {
         return None;
     }
     Some(Rect {
-        x: rect.x + f32::from(cols - 5) * cw,
+        x: rect.x + f32::from(cols - off) * cw,
         y: rect.y,
         w: 3.0 * cw,
         h: ch,
     })
+}
+
+/// The `[x]` close button: the corner slot (card columns `cols-5 ..= cols-3`).
+pub(crate) fn close_btn_rect(rect: Rect, cw: f32, ch: f32) -> Option<Rect> {
+    btn_rect(rect, cw, ch, 5)
+}
+
+/// The `[-]` minimize button, directly left of `[x]` (columns `cols-8 ..= cols-6`).
+pub(crate) fn min_btn_rect(rect: Rect, cw: f32, ch: f32) -> Option<Rect> {
+    btn_rect(rect, cw, ch, 8)
 }
 
 /// Overwrite (or append) the cell at `(col, row)` in `v` — used to drop status
@@ -107,12 +116,12 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
     }
     // Status glyphs ride the top-right border, stepping left from the corner.
     let mut rx = cols.saturating_sub(3);
-    // The [-] minimize button claims the corner slot; status glyphs step past it.
-    if b.min_btn && cols >= MIN_BTN_COLS {
-        for (i, ch) in "[-]".chars().enumerate() {
-            put(&mut v, cols - 5 + i as u16, 0, ch, legend);
+    // The [-][x] buttons claim the corner slots; status glyphs step past them.
+    if b.min_btn && cols >= BTNS_COLS {
+        for (i, ch) in "[-][x]".chars().enumerate() {
+            put(&mut v, cols - 8 + i as u16, 0, ch, legend);
         }
-        rx = cols.saturating_sub(7);
+        rx = cols.saturating_sub(10);
     }
     if b.scroll > 0 {
         let s = format!("⇡{}", b.scroll);

@@ -57,6 +57,9 @@ pub struct ChatPane {
     /// `Activity{"thinking"}`, closed by their per-agent `Stats` — late
     /// `StatsTick`s outside the window are dropped without heuristics.
     pub(crate) tick_open: std::collections::HashSet<String>,
+    /// The live /crew swarm-run block (from `HivePlan`/`Hive` events); folded
+    /// into a transcript message when the run ends (see `chatswarm`).
+    pub(crate) swarm: Option<crate::chatswarm::SwarmStatus>,
 }
 
 impl ChatPane {
@@ -82,13 +85,14 @@ impl ChatPane {
             show_source: false,
             anim: crate::chatanim::RosterAnim::new(),
             tick_open: std::collections::HashSet::new(),
+            swarm: None,
         }
     }
 
     /// Whether the pane is awaiting a reply (busy), for the progress sweep —
     /// either our own send is unanswered or agents are mid-turn.
     pub fn is_busy(&self) -> bool {
-        self.awaiting || !self.active.is_empty()
+        self.awaiting || !self.active.is_empty() || self.swarm.is_some()
     }
 
     /// Whether roster animation is mid-flight — drives the redraw tail after
@@ -159,7 +163,10 @@ impl ChatPane {
                             self.messages.drain(..drain);
                         }
                     }
+                    PluginEvent::HivePlan { tasks } => self.absorb_hive_plan(tasks),
+                    PluginEvent::Hive { event } => self.absorb_hive(&event),
                     PluginEvent::Error { .. } => {
+                        self.fold_swarm();
                         self.connected = false;
                         self.flush_active_hops();
                     }

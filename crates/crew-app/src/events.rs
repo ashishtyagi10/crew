@@ -46,6 +46,13 @@ impl CrewApp {
                     self.redraw();
                     return;
                 }
+                // The [x] border button closes the pane outright; like [-] it
+                // must win over focus/drag so the click does nothing else.
+                if let Some(i) = self.close_btn_at_cursor() {
+                    self.close_pane(i);
+                    self.redraw();
+                    return;
+                }
                 // The [-] border button minimizes the pane into the left nav. It
                 // must win over the focus path so the click neither focuses
                 // the pane nor arms a drag selection.

@@ -39,7 +39,7 @@ pub struct PtyTerm {
     scan_tail: String,
     /// Watched patterns matched since the last `take_matches`.
     hits: Vec<String>,
-    _child: Box<dyn portable_pty::Child + Send + Sync>,
+    child: Box<dyn portable_pty::Child + Send + Sync>,
 }
 
 impl PtyTerm {
@@ -135,7 +135,7 @@ impl PtyTerm {
             watch: Vec::new(),
             scan_tail: String::new(),
             hits: Vec::new(),
-            _child: child,
+            child,
         })
     }
 
@@ -402,7 +402,7 @@ impl PtyTerm {
         {
             let fg = u32::try_from(self.master.process_group_leader()?).ok()?;
             // A shell waiting at its prompt is its own foreground group → idle.
-            if Some(fg) == self._child.process_id() {
+            if Some(fg) == self.child.process_id() {
                 return None;
             }
             Some(fg)
@@ -441,6 +441,26 @@ impl TermModel for PtyTerm {
             pixel_width: 0,
             pixel_height: 0,
         });
+    }
+}
+
+impl Drop for PtyTerm {
+    /// Kill and reap the child explicitly — dropping the master only HUPs
+    /// the child eventually, and a killed-but-unreaped child sits in the
+    /// process table for the life of the app. The reap is a bounded poll:
+    /// kill() already escalated to SIGKILL, so the child dies within
+    /// milliseconds — but an unbounded wait() can wedge on a child that is
+    /// itself blocked waiting on an untracked grandchild.
+    fn drop(&mut self) {
+        let _ = self.child.kill();
+        for _ in 0..20 {
+            match self.child.try_wait() {
+                Ok(Some(_)) | Err(_) => return, // reaped (or gone)
+                Ok(None) => std::thread::sleep(std::time::Duration::from_millis(5)),
+            }
+        }
+        // Still not reaped after ~100ms: give up rather than hang the
+        // winit thread; the entry is reclaimed when the app exits.
     }
 }
 

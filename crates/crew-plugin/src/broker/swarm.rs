@@ -1,6 +1,7 @@
 //! Default /crew execution: plan a plain message into a crew-hive task
 //! graph and run it as a swarm on this worker thread, streaming chat
-//! events plus raw Hive telemetry for the host's companion graph pane.
+//! events plus raw Hive telemetry live — as the scheduler runs, not
+//! buffered until it completes — for the host's companion graph pane.
 //! `@agent` addressing bypasses this module (stdio routes it to the relay).
 use std::collections::HashMap;
 use std::sync::atomic::AtomicBool;
@@ -167,14 +168,31 @@ pub(crate) fn run_with(
     let sched = Scheduler::new(graph.clone(), board.clone(), bus, factory, CONCURRENCY)
         .with_cancel(Arc::clone(&cancel));
 
-    let (tx, rx) = std::sync::mpsc::channel::<HiveEvent>();
-    let outcome = rt.block_on(async move {
-        let drain = async move {
+    // Drain the bus and emit LIVE while the scheduler runs — join! interleaves
+    // the three futures on this current-thread runtime, so each event reaches
+    // the host as it happens instead of after the run (frozen-looking runs).
+    let mut agent_task: HashMap<u64, TaskId> = HashMap::new();
+    let mut tokens_total: u64 = 0;
+    let mut emit_err: Option<anyhow::Error> = None;
+    let outcome = rt.block_on(async {
+        let drain = async {
             loop {
                 match sub.recv().await {
                     Ok(ev) => {
-                        if tx.send(ev).is_err() {
-                            break;
+                        if emit_err.is_some() {
+                            continue; // keep consuming so the scheduler finishes
+                        }
+                        if let HiveEvent::TokenDelta { input, output, .. } = &ev {
+                            tokens_total += u64::from(*input) + u64::from(*output);
+                        }
+                        let r = emit(PluginEvent::Hive { event: ev.clone() }).and_then(|()| {
+                            for out in translate(&ev, &titles, &mut agent_task) {
+                                emit(out)?;
+                            }
+                            Ok(())
+                        });
+                        if let Err(e) = r {
+                            emit_err = Some(e);
                         }
                     }
                     Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => continue,
@@ -187,20 +205,8 @@ pub(crate) fn run_with(
             None => tokio::join!(sched.run(), drain).0,
         }
     });
-
-    // Translate the drained telemetry (the run has completed; the channel
-    // holds the full ordered stream), summing token spend for the run's
-    // aggregate `Stats` below.
-    let mut agent_task: HashMap<u64, TaskId> = HashMap::new();
-    let mut tokens_total: u64 = 0;
-    while let Ok(ev) = rx.try_recv() {
-        if let HiveEvent::TokenDelta { input, output, .. } = &ev {
-            tokens_total += u64::from(*input) + u64::from(*output);
-        }
-        emit(PluginEvent::Hive { event: ev.clone() })?;
-        for out in translate(&ev, &titles, &mut agent_task) {
-            emit(out)?;
-        }
+    if let Some(e) = emit_err {
+        return Err(e);
     }
 
     // Final aggregate: sink tasks' outputs (tasks nothing depends on).
@@ -415,6 +421,89 @@ mod tests {
         // Consumed: a second task sees no pending resume.
         let second = fold_resume(&session, "another task");
         assert_eq!(second, "another task");
+    }
+
+    // Live drain: events must reach `emit` WHILE the run executes, not be
+    // buffered until the scheduler finishes. The merge task starts only
+    // after both leaves complete — by then their events must have been
+    // emitted already.
+    #[test]
+    fn events_are_emitted_during_the_run_not_after() {
+        use crew_hive::agent::{Agent, AgentContext};
+        use crew_hive::board::TaskResult;
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::Mutex;
+
+        struct SnoopAgent {
+            emitted: Arc<AtomicUsize>,
+            merge_snapshot: Arc<Mutex<Option<usize>>>,
+        }
+        impl Agent for SnoopAgent {
+            fn run(
+                &self,
+                ctx: AgentContext,
+            ) -> std::pin::Pin<Box<dyn std::future::Future<Output = TaskResult> + Send>>
+            {
+                let emitted = Arc::clone(&self.emitted);
+                let snap = Arc::clone(&self.merge_snapshot);
+                Box::pin(async move {
+                    if !ctx.deps.is_empty() {
+                        // The merge task: record how many events the host had
+                        // received by the time it started.
+                        *snap.lock().unwrap() = Some(emitted.load(Ordering::SeqCst));
+                    }
+                    let output = format!("snoop:{}", ctx.task.id.0);
+                    ctx.bus.publish(crew_hive::HiveEvent::OutputChunk {
+                        agent: ctx.agent.clone(),
+                        text: output.clone(),
+                    });
+                    TaskResult {
+                        task: ctx.task.id,
+                        output,
+                        success: true,
+                    }
+                })
+            }
+        }
+        struct SnoopFactory {
+            emitted: Arc<AtomicUsize>,
+            merge_snapshot: Arc<Mutex<Option<usize>>>,
+        }
+        impl crew_hive::AgentFactory for SnoopFactory {
+            fn make(&self, _kind: &crew_hive::AgentKind) -> Box<dyn Agent> {
+                Box::new(SnoopAgent {
+                    emitted: Arc::clone(&self.emitted),
+                    merge_snapshot: Arc::clone(&self.merge_snapshot),
+                })
+            }
+        }
+
+        let emitted = Arc::new(AtomicUsize::new(0));
+        let merge_snapshot = Arc::new(Mutex::new(None));
+        let counter = Arc::clone(&emitted);
+        run_with(
+            "build the thing",
+            Arc::new(StubPlanner { fanout: 2 }),
+            Arc::new(SnoopFactory {
+                emitted,
+                merge_snapshot: Arc::clone(&merge_snapshot),
+            }),
+            None,
+            Arc::new(AtomicBool::new(false)),
+            &mut |_ev| {
+                counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                Ok(())
+            },
+        )
+        .unwrap();
+        let snap = merge_snapshot
+            .lock()
+            .unwrap()
+            .expect("merge task must have run");
+        assert!(
+            snap > 2, // more than just HivePlan + plan-summary message
+            "leaf events must be emitted before the merge task starts (got {snap})"
+        );
     }
 
     // F4: the run emits one aggregate Stats event (turn-total: empty agent)

@@ -8,7 +8,7 @@ use winit::window::Window;
 use crate::config::CrewConfig;
 use crate::grid::GridLayout;
 use crate::inputbar::InputBar;
-use crate::pane::{Pane, PaneContent};
+use crate::pane::Pane;
 use crate::session::grid_for;
 use crate::statspane::StatsPane;
 use crew_render::Renderer;
@@ -102,26 +102,8 @@ impl CrewApp {
     /// Close pane at `idx`.  Returns `true` if the app should exit.
     pub fn close_pane(&mut self, idx: usize) -> bool {
         if idx < self.panes.len() {
-            // A Chat pane's companion "hive" swarm pane has no life of its own —
-            // close it alongside its chat. Remove the higher index first so the
-            // lower index's position (and thus `idx` below) stays valid.
-            let companion = matches!(self.panes[idx].content, PaneContent::Chat(_))
-                .then(|| self.hive_pane_idx())
-                .flatten()
-                .filter(|&hive| hive != idx);
-            match companion {
-                Some(hive) => {
-                    let (hi, lo) = if hive > idx { (hive, idx) } else { (idx, hive) };
-                    self.panes.remove(hi);
-                    self.grid.on_close(hi);
-                    self.panes.remove(lo);
-                    self.grid.on_close(lo);
-                }
-                None => {
-                    self.panes.remove(idx);
-                    self.grid.on_close(idx);
-                }
-            }
+            self.panes.remove(idx);
+            self.grid.on_close(idx);
         }
         // Closing a pane returns to the grid; never linger zoomed on it.
         self.zoomed = false;

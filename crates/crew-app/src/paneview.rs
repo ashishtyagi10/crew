@@ -208,8 +208,8 @@ mod tests {
             attention: None,
         };
         let scenes = build_scenes(&[pane], Some(0), false, None, None, 10.0, 16.0);
-        // scenes[1] is the border card; the [-] button sits at card columns
-        // cols-5 ..= cols-3 on row 0 (cols = grid cols + 2 border cells).
+        // scenes[1] is the border card; the [-][x] buttons sit at card columns
+        // cols-8..=cols-6 and cols-5..=cols-3 on row 0 (cols = grid cols + 2 border cells).
         let cols = 80 + 2;
         let border = &scenes[1].cells;
         let at = |col: u16| {
@@ -218,8 +218,13 @@ mod tests {
                 .find(|c| c.row == 0 && c.col == col)
                 .map(|c| c.c)
         };
+        // The [-] minimize button
+        assert_eq!(at(cols - 8), Some('['));
+        assert_eq!(at(cols - 7), Some('-'));
+        assert_eq!(at(cols - 6), Some(']'));
+        // The [x] close button
         assert_eq!(at(cols - 5), Some('['));
-        assert_eq!(at(cols - 4), Some('-'));
+        assert_eq!(at(cols - 4), Some('x'));
         assert_eq!(at(cols - 3), Some(']'));
     }
 }
