@@ -1,4 +1,3 @@
-use super::*;
 use crate::chat::ChatPane;
 use crew_hive::{AgentId, AgentKind, HiveEvent, ModelTier, TaskId, TaskSpec, TaskState};
 use crew_plugin::Plugin;
@@ -33,19 +32,42 @@ fn hive_plan_builds_pending_tasks() {
 #[test]
 fn agent_spawned_marks_running_and_token_deltas_accumulate_via_agent_map() {
     let mut p = pane();
-    p.absorb_hive_plan(vec![spec(0, "research")]);
+    // Two tasks, two agents to prove TokenDelta attribution via agent->task map
+    p.absorb_hive_plan(vec![spec(0, "research"), spec(1, "merge")]);
+
+    // Spawn agent 7 for task 0
     p.absorb_hive(&HiveEvent::AgentSpawned {
         agent: AgentId(7),
         task: TaskId(0),
     });
+
+    // Spawn agent 8 for task 1
+    p.absorb_hive(&HiveEvent::AgentSpawned {
+        agent: AgentId(8),
+        task: TaskId(1),
+    });
+
+    // Send TokenDelta for agent 7 (task 0)
     p.absorb_hive(&HiveEvent::TokenDelta {
         agent: AgentId(7),
         input: 100,
         output: 50,
     });
+
+    // Send TokenDelta for agent 8 (task 1)
+    p.absorb_hive(&HiveEvent::TokenDelta {
+        agent: AgentId(8),
+        input: 1,
+        output: 2,
+    });
+
     let s = p.swarm.as_ref().unwrap();
+    // Task 0 should be Running with 150 tokens (credited to agent 7)
     assert_eq!(s.tasks[0].state, TaskState::Running);
     assert_eq!(s.tasks[0].tokens, 150);
+    // Task 1 should be Running with 3 tokens (credited to agent 8, not summed into task 0)
+    assert_eq!(s.tasks[1].state, TaskState::Running);
+    assert_eq!(s.tasks[1].tokens, 3);
 }
 
 #[test]
