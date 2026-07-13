@@ -238,7 +238,7 @@ fn message_cells_is_a_thin_map_over_placed_lines_in_both_modes() {
     for show_source in [false, true] {
         pane.show_source = show_source;
         let top = pane.status_rows(cols, rows);
-        let bottom = crate::chatinput::composer_rows(rows);
+        let bottom = crate::chatinput::composer_rows(&pane.input, cols, rows);
         let msg_rows = rows.saturating_sub(top + bottom);
         let cells = message_cells(
             &pane.messages,

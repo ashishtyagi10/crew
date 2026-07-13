@@ -82,7 +82,8 @@ impl ChatPane {
             return 0; // too short — plain message fallback
         }
         let views = self.agent_views();
-        let avail = rows.saturating_sub(1 + crate::chatinput::composer_rows(rows));
+        let avail =
+            rows.saturating_sub(1 + crate::chatinput::composer_rows(&self.input, cols, rows));
         match crate::chatchips::layout(&views, cols, avail) {
             Some(l) => 1 + l.rows,
             None => 1, // session line only
@@ -135,7 +136,7 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
     // the same `layout` call `status_rows` used above — so the two always
     // agree on the drawn extent (no overdraw onto the message body).
     let views = pane.agent_views();
-    let avail = rows.saturating_sub(1 + crate::chatinput::composer_rows(rows));
+    let avail = rows.saturating_sub(1 + crate::chatinput::composer_rows(&pane.input, cols, rows));
     if let Some(lay) = crate::chatchips::layout(&views, cols, avail) {
         cells.extend(crate::chatchips::row_cells(
             &views,
@@ -145,7 +146,7 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
             crate::anim::now_ms(),
         ));
     }
-    let bottom = crate::chatinput::composer_rows(rows);
+    let bottom = crate::chatinput::composer_rows(&pane.input, cols, rows);
     if pane.messages.is_empty() {
         cells.extend(crate::chatempty::empty_cells(
             cols,

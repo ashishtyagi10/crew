@@ -228,6 +228,8 @@ impl CrewApp {
                             let cols = (r.w / cw).floor() as u16;
                             let mr = crate::cmdmenu::menu_rows(items.len());
                             let comp = f32::from(crate::chatinput::composer_rows(
+                                &c.input,
+                                cols,
                                 (r.h / ch).floor() as u16,
                             )) * ch;
                             let mh = f32::from(mr) * ch;
@@ -263,9 +265,11 @@ impl CrewApp {
                         let r = pane.rect;
                         let cols = (r.w / cw).floor() as u16;
                         let mr = crate::cmdmenu::menu_rows(p.items.len());
-                        let comp =
-                            f32::from(crate::chatinput::composer_rows((r.h / ch).floor() as u16))
-                                * ch;
+                        let comp = f32::from(crate::chatinput::composer_rows(
+                            &c.input,
+                            cols,
+                            (r.h / ch).floor() as u16,
+                        )) * ch;
                         let mh = f32::from(mr) * ch;
                         let my = (r.y + r.h - comp - mh).max(0.0);
                         scenes.push(PaneScene {

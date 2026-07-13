@@ -13,7 +13,7 @@ impl crate::chat::ChatPane {
         let bottom = if top == 0 {
             1
         } else {
-            crate::chatinput::composer_rows(rows)
+            crate::chatinput::composer_rows(&self.input, cols, rows)
         };
         let msg_rows = rows.saturating_sub(top + bottom) as usize;
         // The card view (normal panes) and the plain fallback (tiny panes)

@@ -121,15 +121,18 @@ fn char_count_badge_thresholds() {
 
 #[test]
 fn long_input_shows_a_muted_char_count_badge_on_the_top_border() {
+    // 121 chars wrap to 2 interior lines at 75 text columns, so the card's
+    // top border sits at rows - 4.
     let long = "a".repeat(121);
     let cells = composer_cells(&long, &agents(&["planner"]), 80, 10);
     let muted = crew_theme::theme().text_muted;
-    let top = row_text(&cells, 7);
+    let border_row = 10 - composer_rows(&long, 80, 10);
+    let top = row_text(&cells, border_row);
     assert!(top.contains("121c"), "{top}");
     assert!(
         cells
             .iter()
-            .any(|c| c.row == 7 && c.c == '1' && c.fg == muted),
+            .any(|c| c.row == border_row && c.c == '1' && c.fg == muted),
         "badge must render in the muted colour"
     );
 }
@@ -142,6 +145,76 @@ fn short_input_has_no_char_count_badge() {
         cells.iter().all(|c| c.row != 7 || c.fg != muted),
         "no badge expected for short input"
     );
+}
+
+#[test]
+fn composer_stays_three_rows_for_short_input() {
+    assert_eq!(composer_rows("", 80, 12), 3);
+    assert_eq!(composer_rows("hi", 80, 12), 3);
+}
+
+#[test]
+fn composer_grows_when_input_wraps() {
+    // cols=20 → 15 text columns per interior line (x0=2, prompt 2, border 1);
+    // 40 chars wrap to 3 lines → 3 interior rows + 2 borders.
+    let input = "a".repeat(40);
+    assert_eq!(composer_rows(&input, 20, 12), 5);
+    let cells = composer_cells(&input, &[], 20, 12);
+    // Interior rows 8, 9, 10 all carry input text; borders at 7 and 11.
+    assert!(row_text(&cells, 7).starts_with('\u{256d}'), "top border");
+    for row in 8..=10 {
+        assert!(row_text(&cells, row).contains('a'), "text on row {row}");
+    }
+    assert!(
+        row_text(&cells, 11).starts_with('\u{2570}'),
+        "bottom border"
+    );
+}
+
+#[test]
+fn composer_grows_on_embedded_newlines() {
+    assert_eq!(composer_rows("a\nb", 80, 12), 4);
+    let cells = composer_cells("a\nb", &[], 80, 12);
+    assert!(row_text(&cells, 9).contains("\u{276f} a"), "first line");
+    assert!(row_text(&cells, 10).contains('b'), "second line");
+    // The caret lands after the LAST line, not the first.
+    let caret = cells.iter().find(|c| c.c == '\u{258f}').unwrap();
+    assert_eq!(caret.row, 10);
+}
+
+#[test]
+fn composer_growth_is_capped_and_shows_the_tail() {
+    // rows=12 caps the interior at 12/3 = 4 lines however long the input.
+    let input = (0..20)
+        .map(|i| i.to_string())
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert_eq!(composer_rows(&input, 80, 12), 6);
+    let cells = composer_cells(&input, &[], 80, 12);
+    // Over the cap the view follows the caret: last line ("19") visible,
+    // first line ("0") scrolled out.
+    assert!(row_text(&cells, 10).contains("19"), "tail line visible");
+    assert!(
+        !row_text(&cells, 7).contains("\u{276f} 0"),
+        "head scrolled out"
+    );
+}
+
+#[test]
+fn short_pane_stays_single_row_even_for_multiline_input() {
+    assert_eq!(composer_rows("a\nb\nc", 60, 5), 1);
+    let cells = composer_cells("a\nb\nc", &[], 60, 5);
+    assert!(cells.iter().all(|c| c.row == 4));
+}
+
+#[test]
+fn input_reduce_accepts_newline_chars() {
+    let mut input = String::from("a");
+    assert_eq!(input_reduce(&mut input, Some('\n'), false, false), None);
+    assert_eq!(input, "a\n");
+    // Other control chars are still rejected.
+    assert_eq!(input_reduce(&mut input, Some('\u{7}'), false, false), None);
+    assert_eq!(input, "a\n");
 }
 
 #[test]

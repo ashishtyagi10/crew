@@ -164,6 +164,6 @@ fn input_reduce_backspace_empty_noop() {
 #[test]
 fn input_reduce_control_char_ignored() {
     let mut s = String::new();
-    input_reduce(&mut s, Some('\n'), false, false);
+    input_reduce(&mut s, Some('\u{7}'), false, false);
     assert_eq!(s, "");
 }

@@ -6,13 +6,59 @@
 use crew_plugin::AgentInfo;
 use crew_render::CellView;
 
-/// Rows the composer occupies at this pane height (the bordered card needs
-/// top border + prompt + bottom border to be worth the room).
-pub(crate) fn composer_rows(rows: u16) -> u16 {
-    if rows >= 7 {
-        3
-    } else {
-        1
+/// Rows the composer occupies for this input at this pane size: the bordered
+/// card (top border + one row per wrapped input line + bottom border) grows
+/// with the input, capped at a third of the pane so the transcript keeps the
+/// room. Short/narrow panes fall back to a single bare prompt row.
+pub(crate) fn composer_rows(input: &str, cols: u16, rows: u16) -> u16 {
+    if rows < 7 || cols < 6 {
+        return 1;
+    }
+    let lines = wrap_ranges(input, text_width(2, cols - 1)).len();
+    (lines.min((rows / 3) as usize).max(1) as u16) + 2
+}
+
+/// Text columns per interior prompt line: between the `❯ ` prompt (2 cols
+/// after `x0`) and the clip edge `max`.
+fn text_width(x0: u16, max: u16) -> usize {
+    (max as usize).saturating_sub(x0 as usize + 2).max(1)
+}
+
+/// Char-index ranges of `input` split into prompt lines `width` columns wide:
+/// hard-broken at `\n`, soft-wrapped by display width in between. Always at
+/// least one (possibly empty) line so the prompt row exists while empty.
+pub(crate) fn wrap_ranges(input: &str, width: usize) -> Vec<(usize, usize)> {
+    let chars: Vec<char> = input.chars().collect();
+    let mut lines = Vec::new();
+    let mut seg = 0;
+    for (i, &c) in chars.iter().enumerate() {
+        if c == '\n' {
+            wrap_segment(&mut lines, &chars, seg, i, width);
+            seg = i + 1;
+        }
+    }
+    wrap_segment(&mut lines, &chars, seg, chars.len(), width);
+    lines
+}
+
+/// Append the soft-wrapped line ranges of `chars[start..end]` (one `\n`-free
+/// segment; an empty segment still yields its one empty line).
+fn wrap_segment(
+    lines: &mut Vec<(usize, usize)>,
+    chars: &[char],
+    start: usize,
+    end: usize,
+    width: usize,
+) {
+    if start == end {
+        lines.push((start, end));
+        return;
+    }
+    let mut s = start;
+    while s < end {
+        let e = crate::chatwidth::fit_end(&chars[..end], s, width);
+        lines.push((s, e));
+        s = e;
     }
 }
 
@@ -57,14 +103,24 @@ fn placeholder_cells(x0: u16, max: u16, row: u16) -> Vec<CellView> {
         .collect()
 }
 
-/// The `❯ input▏` prompt line at `row`, starting at column `x0` and clipped to
-/// `[x0, max)`, with a valid `@mention` coloured.
-fn prompt_cells(input: &str, agents: &[AgentInfo], x0: u16, max: u16, row: u16) -> Vec<CellView> {
+/// The `❯ input▏` prompt block: up to `nrows` wrapped input lines starting at
+/// `first_row`, each clipped to `[x0+2, max)`, with a valid `@mention`
+/// coloured. When the input wraps past `nrows` the view follows the caret —
+/// the LAST lines show, since editing always happens at the end. The `❯`
+/// marks the first visible row; the caret rides the last one.
+fn prompt_lines(
+    input: &str,
+    agents: &[AgentInfo],
+    x0: u16,
+    max: u16,
+    first_row: u16,
+    nrows: u16,
+) -> Vec<CellView> {
     let t = crew_theme::theme();
     let accent = crate::palette::accent();
-    let mut cells = vec![cell(x0, row, '\u{276f}', accent, true)]; // ❯
+    let mut cells = vec![cell(x0, first_row, '\u{276f}', accent, true)]; // ❯
     if input.is_empty() {
-        cells.extend(placeholder_cells(x0 + 2, max, row));
+        cells.extend(placeholder_cells(x0 + 2, max, first_row));
         return cells;
     }
     let mention = mention_len(input, agents);
@@ -76,23 +132,34 @@ fn prompt_cells(input: &str, agents: &[AgentInfo], x0: u16, max: u16, row: u16) 
     // Mid-message @file mentions read as chips: tinted accent while typed.
     let spans = crate::chatmention::spans(input);
     let in_span = |i: usize| spans.iter().any(|&(s, e)| i >= s && i < e);
-    let styled = input.chars().enumerate().map(|(i, c)| {
-        let (fg, bold) = if i < mention {
+    let style_at = |i: usize| {
+        if i < mention {
             (m_color, true)
         } else if in_span(i) {
             (accent, false)
         } else {
             (t.ink, false)
-        };
-        (c, (fg, bold))
-    });
-    // Width-aware placement: a wide glyph advances two columns, and the caret
-    // lands after the text instead of on top of it.
-    let x = crate::chatwidth::place_row(x0 + 2, max, styled, |x, c, (fg, bold)| {
-        cells.push(cell(x, row, c, fg, bold));
-    });
-    if x < max {
-        cells.push(cell(x, row, '\u{258f}', accent, false)); // ▏ caret
+        }
+    };
+    let chars: Vec<char> = input.chars().collect();
+    let ranges = wrap_ranges(input, text_width(x0, max));
+    let skip = ranges.len().saturating_sub(nrows.max(1) as usize);
+    let (mut end_x, mut end_row) = (x0 + 2, first_row);
+    for (li, &(s, e)) in ranges[skip..].iter().enumerate() {
+        let row = first_row + li as u16;
+        let styled = chars[s..e]
+            .iter()
+            .enumerate()
+            .map(|(j, &c)| (c, style_at(s + j)));
+        // Width-aware placement: a wide glyph advances two columns, and the
+        // caret lands after the text instead of on top of it.
+        let x = crate::chatwidth::place_row(x0 + 2, max, styled, |x, c, (fg, bold)| {
+            cells.push(cell(x, row, c, fg, bold))
+        });
+        (end_x, end_row) = (x, row);
+    }
+    if end_x < max {
+        cells.push(cell(end_x, end_row, '\u{258f}', accent, false)); // ▏ caret
     }
     cells
 }
@@ -169,7 +236,7 @@ fn badge_on_border(cells: &mut Vec<CellView>, badge: &str, chips_end: u16, cols:
 /// spaces so the rule reads as a fieldset edge).
 fn hints_on_border(cells: &mut Vec<CellView>, cols: u16, row: u16) {
     let t = crew_theme::theme();
-    let hints = "Tab complete \u{00b7} /help \u{00b7} Enter send \u{00b7} Esc close";
+    let hints = "Tab complete \u{00b7} /help \u{00b7} \u{21e7}\u{21b5} newline \u{00b7} Enter send \u{00b7} Esc close";
     let label = format!(" {hints} ");
     let w = label.chars().count() as u16;
     if w + 3 >= cols {
@@ -180,8 +247,9 @@ fn hints_on_border(cells: &mut Vec<CellView>, cols: u16, row: u16) {
     }
 }
 
-/// Render the composer into the bottom `composer_rows(rows)` rows: a bordered
-/// fieldset card on tall panes, a bare prompt row on short ones.
+/// Render the composer into the bottom `composer_rows(input, cols, rows)`
+/// rows: a bordered fieldset card that grows with the wrapped input on tall
+/// panes, a bare prompt row on short ones.
 pub(crate) fn composer_cells(
     input: &str,
     agents: &[AgentInfo],
@@ -191,14 +259,15 @@ pub(crate) fn composer_cells(
     if cols == 0 || rows == 0 {
         return Vec::new();
     }
-    if composer_rows(rows) == 1 || cols < 6 {
-        return prompt_cells(input, agents, 0, cols, rows - 1);
+    let total = composer_rows(input, cols, rows);
+    if total == 1 {
+        return prompt_lines(input, agents, 0, cols, rows - 1, 1);
     }
     let t = crew_theme::theme();
-    let top = rows - 3;
+    let top = rows - total;
     let mut cells: Vec<CellView> = crate::boxdraw::titled_card(
         cols,
-        3,
+        total,
         "",
         t.border_normal,
         crate::palette::accent(),
@@ -214,8 +283,8 @@ pub(crate) fn composer_cells(
     if let Some(badge) = char_count_badge(input.chars().count()) {
         badge_on_border(&mut cells, &badge, chips_end, cols, top);
     }
-    // Interior prompt, kept clear of the right border at `cols - 1`.
-    cells.extend(prompt_cells(input, agents, 2, cols - 1, rows - 2));
+    // Interior prompt lines, kept clear of the right border at `cols - 1`.
+    cells.extend(prompt_lines(input, agents, 2, cols - 1, top + 1, total - 2));
     hints_on_border(&mut cells, cols, rows - 1);
     cells
 }
@@ -228,7 +297,8 @@ mod tests;
 ///
 /// - `enter`: return `Some(old_input)`, clear `input`.
 /// - `backspace`: pop last char, return `None`.
-/// - `ch=Some(c)` (non-control): push `c`, return `None`.
+/// - `ch=Some(c)` (non-control, or `\n` — Shift+Enter's newline): push `c`,
+///   return `None`.
 pub fn input_reduce(
     input: &mut String,
     ch: Option<char>,
@@ -241,7 +311,7 @@ pub fn input_reduce(
         input.pop();
         None
     } else if let Some(c) = ch {
-        if !c.is_control() {
+        if !c.is_control() || c == '\n' {
             input.push(c);
         }
         None

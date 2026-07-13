@@ -29,9 +29,14 @@ fn one_line(s: &str) -> String {
     s.replace(['\n', '\r'], " ")
 }
 
+/// Normalize clipboard line endings to `\n` for the multiline chat composer.
+fn multiline(s: &str) -> String {
+    s.replace("\r\n", "\n").replace('\r', "\n")
+}
+
 impl CrewApp {
     /// Paste the system clipboard into the focused surface: the command input
-    /// bar, a chat pane's input (single-line), or the focused terminal (using
+    /// bar, a chat pane's input (multiline), or the focused terminal (using
     /// bracketed paste when the running program enabled it). When the clipboard
     /// holds an image (and no text), it's saved to a temp PNG and the file path
     /// is pasted instead — so agent CLIs can read the image by path.
@@ -65,7 +70,7 @@ impl CrewApp {
                         eprintln!("paste write error: {e}");
                     }
                 }
-                PaneContent::Chat(c) => c.input.push_str(&one_line(text)),
+                PaneContent::Chat(c) => c.input.push_str(&multiline(text)),
                 PaneContent::Settings(_)
                 | PaneContent::Far(_)
                 | PaneContent::Swarm(_)
@@ -171,6 +176,13 @@ mod tests {
     fn one_line_flattens_newlines() {
         assert_eq!(one_line("a\nb\r\nc"), "a b  c");
         assert_eq!(one_line("plain"), "plain");
+    }
+
+    #[test]
+    fn multiline_keeps_newlines_and_normalizes_crlf() {
+        use super::multiline;
+        assert_eq!(multiline("a\r\nb\rc\nd"), "a\nb\nc\nd");
+        assert_eq!(multiline("plain"), "plain");
     }
 
     #[test]
