@@ -160,7 +160,8 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
         cells.extend(crate::chatswarmview::block_cells(
             pane,
             cols,
-            rows - bottom - crate::chatswarmview::swarm_rows(pane, rows),
+            rows.saturating_sub(bottom)
+                .saturating_sub(crate::chatswarmview::swarm_rows(pane, rows)),
             crate::anim::now_ms(),
         ));
     } else {
