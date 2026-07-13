@@ -693,6 +693,230 @@ fn per_agent_stats_closes_the_open_reply() {
     );
 }
 
+// --- Queued messages while busy (see docs/superpowers/specs/2026-07-13-queued-messages-design.md) ---
+
+/// Spawn a pane whose "broker" is a real child process that prints each of
+/// `lines` as a JSON `PluginEvent` line on stdout (in order), then blocks
+/// reading stdin forever — a controllable stand-in so `poll()` observes real
+/// events (Ready/Roster/Message/Error/…) instead of us reaching into private
+/// plugin internals.
+fn pane_emitting(lines: &[&str]) -> ChatPane {
+    let mut script = String::new();
+    for l in lines {
+        script.push_str("printf '%s\\n' '");
+        script.push_str(&l.replace('\'', "'\\''"));
+        script.push_str("';\n");
+    }
+    script.push_str("cat >/dev/null\n");
+    let plugin = Plugin::spawn("sh", &["-c".to_string(), script]).unwrap();
+    ChatPane::new(plugin, "crew".into())
+}
+
+/// Poll `pane` until `done` holds or the deadline passes (the emitting
+/// child's output lands on a background thread, so it isn't there on the
+/// very first call).
+fn poll_until(pane: &mut ChatPane, done: impl Fn(&ChatPane) -> bool) {
+    let start = std::time::Instant::now();
+    while !done(pane) {
+        pane.poll();
+        assert!(
+            start.elapsed() < std::time::Duration::from_secs(5),
+            "poll_until timed out"
+        );
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
+}
+
+#[test]
+fn busy_send_is_queued_not_sent() {
+    use crate::chatkeys::ChatInput;
+    let mut p = pane();
+    let cwd = std::env::temp_dir();
+    // Busy via a live agent (not `awaiting`), so we can tell the two apart.
+    p.absorb_activity("planner".into(), "thinking", "user".into());
+    assert!(p.is_busy());
+    assert!(!p.awaiting, "busy here comes from `active`, not `awaiting`");
+
+    p.input = "hello while busy".to_string();
+    assert!(p.on_input(ChatInput::Enter, &cwd).is_none());
+
+    assert_eq!(p.queued.len(), 1, "queued instead of sent");
+    assert_eq!(p.queued[0], "hello while busy");
+    assert!(!p.awaiting, "no send happened, so awaiting is untouched");
+}
+
+#[test]
+fn idle_send_goes_direct_queue_stays_empty() {
+    use crate::chatkeys::ChatInput;
+    let mut p = pane();
+    let cwd = std::env::temp_dir();
+    assert!(!p.is_busy());
+
+    p.input = "hello while idle".to_string();
+    assert!(p.on_input(ChatInput::Enter, &cwd).is_none());
+
+    assert!(p.queued.is_empty(), "idle sends never touch the queue");
+    assert!(p.awaiting, "direct send still latches awaiting as before");
+}
+
+#[test]
+fn stop_bypasses_the_queue_while_busy() {
+    use crate::chatkeys::ChatInput;
+    let mut p = pane();
+    let cwd = std::env::temp_dir();
+    p.absorb_activity("planner".into(), "thinking", "user".into());
+    assert!(p.is_busy());
+
+    p.input = "/stop".to_string();
+    assert!(p.on_input(ChatInput::Enter, &cwd).is_none());
+
+    assert!(
+        p.queued.is_empty(),
+        "/stop must reach the broker, not queue"
+    );
+    assert!(
+        p.awaiting,
+        "the /stop send latched awaiting like any direct send"
+    );
+}
+
+#[test]
+fn flush_on_idle_sends_exactly_one_and_relatches_awaiting() {
+    // The reply landing (a `Message` event) is what clears `awaiting` and
+    // triggers poll()'s end-of-drain flush check.
+    let mut p = pane_emitting(&[
+        r#"{"type":"message","channel":"crew","sender":"crew","text":"reply one","ts":"t"}"#,
+    ]);
+    p.channel = "crew".into();
+    p.connected = true; // simulate: already connected, mid-turn
+    p.queued.push_back("first queued".into());
+    p.queued.push_back("second queued".into());
+    p.awaiting = true; // simulate: our earlier send is still in flight
+
+    poll_until(&mut p, |p| p.queued.len() < 2);
+
+    // Exactly one popped: the reply's Message cleared `awaiting`, poll's
+    // flush then sent "first queued" and re-latched `awaiting` for it.
+    assert_eq!(p.queued.len(), 1, "only one message flushed per turn");
+    assert_eq!(p.queued[0], "second queued", "FIFO order preserved");
+    assert!(
+        p.awaiting,
+        "the flushed send re-latches awaiting for its own reply"
+    );
+}
+
+#[test]
+fn queue_survives_broker_error() {
+    // awaiting stays true across an Error (nothing clears it there), so
+    // is_busy() stays true and the flush check never fires — the queue is
+    // simply left alone, as the design requires.
+    let mut p = pane_emitting(&[r#"{"type":"error","message":"broker died"}"#]);
+    p.connected = true; // so we can observe the Error event actually landed
+    p.awaiting = true;
+    p.queued.push_back("still here".into());
+
+    // Drive poll() until the Error event lands (it flips `connected` false);
+    // bounded so a broken emitter fails the test instead of hanging.
+    let start = std::time::Instant::now();
+    while p.connected {
+        p.poll();
+        assert!(
+            start.elapsed() < std::time::Duration::from_secs(5),
+            "never observed the Error event"
+        );
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
+
+    assert_eq!(p.queued.len(), 1, "Error must not clear the queue");
+    assert_eq!(p.queued[0], "still here");
+    assert!(
+        p.awaiting,
+        "Error doesn't clear awaiting, so is_busy() stayed true — no flush attempted"
+    );
+}
+
+#[test]
+fn broker_death_mid_swarm_does_not_flush_queue_and_reconnect_unwedges() {
+    // `queue_survives_broker_error` above passes for the wrong reason: with
+    // `awaiting` as the busy signal, the Error arm never clears it, so
+    // `is_busy()` stays true and the flush check never even runs. Busy via a
+    // swarm instead: the Error arm's `fold_swarm`/`flush_active_hops` DO end
+    // that busy state in the very same event drain that flips `connected`
+    // false — the same-batch race the fix must close by also gating the
+    // flush on `self.connected`.
+    use crew_hive::{AgentKind, ModelTier, TaskId, TaskSpec};
+
+    let script = r#"printf '%s\n' '{"type":"error","message":"broker died"}'
+sleep 0.3
+printf '%s\n' '{"type":"roster","agents":[]}'
+cat >/dev/null
+"#;
+    let plugin = crew_plugin::Plugin::spawn("sh", &["-c".to_string(), script.to_string()]).unwrap();
+    let mut p = ChatPane::new(plugin, "crew".into());
+    p.connected = true;
+
+    p.absorb_hive_plan(vec![TaskSpec {
+        id: TaskId(0),
+        title: "research".into(),
+        agent: AgentKind::Api { system: None },
+        model: ModelTier::Cheap,
+        deps: vec![],
+        prompt: "p".into(),
+    }]);
+    assert!(p.is_busy(), "swarm in flight makes the pane busy");
+    assert!(
+        !p.awaiting,
+        "busy here comes from the swarm, not `awaiting` — proves the fix, not the accidental guard"
+    );
+
+    p.queued.push_back("still here".into());
+
+    // Drive poll() until the Error event lands and flips `connected` false.
+    let start = std::time::Instant::now();
+    while p.connected {
+        p.poll();
+        assert!(
+            start.elapsed() < std::time::Duration::from_secs(5),
+            "never observed the Error event"
+        );
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
+
+    assert!(p.swarm.is_none(), "Error arm folds the swarm");
+    assert!(
+        !p.is_busy(),
+        "busy state cleared by the same Error arm that disconnected"
+    );
+    assert_eq!(
+        p.queued.len(),
+        1,
+        "queue must survive broker death even though is_busy() went false in the same drain"
+    );
+    assert_eq!(p.queued[0], "still here");
+    assert!(
+        !p.awaiting,
+        "nothing was sent — a real flush would have latched awaiting via send_now"
+    );
+
+    // Reconnect (direct field set is fine here — the existing tests in this
+    // file do the same) and prove the queue isn't permanently wedged: the
+    // next event to land should flush it once the pane is connected again.
+    p.connected = true;
+    let start = std::time::Instant::now();
+    while !p.queued.is_empty() {
+        p.poll();
+        assert!(
+            start.elapsed() < std::time::Duration::from_secs(5),
+            "queue never flushed after reconnecting"
+        );
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
+    assert!(
+        p.awaiting,
+        "the post-reconnect flush re-latches awaiting for its own reply"
+    );
+}
+
 #[test]
 fn turn_over_flush_closes_open_reply_lifecycle_so_stray_ticks_are_ignored() {
     let mut c = pane();

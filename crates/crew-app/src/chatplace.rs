@@ -76,14 +76,17 @@ pub(crate) fn cell_at_col(line: &CardLine, col: u16) -> Option<&CardCell> {
 
 /// The message-area row budget for `pane`'s `cols` × `rows` grid: `rows`
 /// minus the status rows above (session line + agent chips, via
-/// `status_rows`) and the composer rows below (via `composer_rows`). The
-/// single source both `chatview::cells` and `placed_lines` call, so the two
-/// can never drift apart on how many rows the message body gets.
+/// `status_rows`), the composer rows below (via `composer_rows`), the live
+/// swarm block (`chatswarmview::swarm_rows`), and the queued-messages
+/// indicator (`chatqueue::queued_rows`) when either is showing. The single
+/// source both `chatview::cells` and `placed_lines` call, so the two can
+/// never drift apart on how many rows the message body gets.
 pub(crate) fn msg_rows_budget(pane: &ChatPane, cols: u16, rows: u16) -> u16 {
     let top = pane.status_rows(cols, rows);
     let bottom = crate::chatinput::composer_rows(&pane.input, cols, rows);
     let block = crate::chatswarmview::swarm_rows(pane, rows);
-    rows.saturating_sub(top + bottom + block)
+    let queued = crate::chatqueue::queued_rows(pane);
+    rows.saturating_sub(top + bottom + block + queued)
 }
 
 /// The scroll-windowed card-line placement for `pane`'s message area, each

@@ -60,6 +60,12 @@ pub struct ChatPane {
     /// The live /crew swarm-run block (from `HivePlan`/`Hive` events); folded
     /// into a transcript message when the run ends (see `chatswarm`).
     pub(crate) swarm: Option<crate::chatswarm::SwarmStatus>,
+    /// Text typed and submitted while the crew was busy: held here instead of
+    /// sent immediately, flushed one at a time as each turn settles (see
+    /// `chatqueue` for the indicator; the flush itself is in `poll` below,
+    /// since it needs `plugin`/`awaiting`). `/stop` bypasses this queue
+    /// entirely (it must reach the broker mid-run to cancel).
+    pub(crate) queued: std::collections::VecDeque<String>,
 }
 
 impl ChatPane {
@@ -86,6 +92,7 @@ impl ChatPane {
             anim: crate::chatanim::RosterAnim::new(),
             tick_open: std::collections::HashSet::new(),
             swarm: None,
+            queued: std::collections::VecDeque::new(),
         }
     }
 
@@ -174,9 +181,43 @@ impl ChatPane {
                 }
             }
         }
+        // Flush check: the busy→idle transition always arrives via one of the
+        // events just processed (Activity idle, a swarm fold, or a Message
+        // clearing `awaiting`), so it's enough to re-check here rather than
+        // on every tick. One message per turn — the next flush waits for the
+        // reply to *that* send to land and settle the pane again.
+        //
+        // Also gated on `connected`: a broker death mid-swarm/mid-active-hop
+        // folds the swarm and flushes active hops in the same `Error` arm
+        // that flips `connected` false — so `is_busy()` can go false in the
+        // very same drain as the disconnect. Without this gate that race
+        // pops the queue and calls `send_now` against the dead child right
+        // here, silently dropping the text. Requiring `connected` closes it;
+        // the queue then waits for a real reconnect (a fresh `Ready`) to
+        // flush.
+        if self.connected && !self.is_busy() {
+            if let Some(text) = self.queued.pop_front() {
+                self.send_now(text);
+            }
+        }
         PollResult {
             changed: true,
             actions,
+        }
+    }
+
+    /// Send `text` to the broker on the pane's channel now, latching
+    /// `awaiting` so the busy sweep runs until the reply lands. Shared by a
+    /// direct send and a queue flush — both are "the broker gets this text
+    /// now", just reached from different callers.
+    fn send_now(&mut self, text: String) {
+        let cmd = PluginCommand::Send {
+            channel: self.channel.clone(),
+            text,
+        };
+        match self.plugin.send(&cmd) {
+            Ok(()) => self.awaiting = true, // wait for the reply
+            Err(e) => eprintln!("crew-app: plugin send error: {e}"),
         }
     }
 
@@ -253,13 +294,14 @@ impl ChatPane {
                 return None; // answered locally (/compact folds away older messages)
             }
             if !text.is_empty() {
-                let cmd = PluginCommand::Send {
-                    channel: self.channel.clone(),
-                    text: crate::chatmention::expand(&text, cwd),
-                };
-                match self.plugin.send(&cmd) {
-                    Ok(()) => self.awaiting = true, // wait for the reply
-                    Err(e) => eprintln!("crew-app: plugin send error: {e}"),
+                let expanded = crate::chatmention::expand(&text, cwd);
+                // Busy: queue instead of writing to a broker that's still
+                // mid-turn — except `/stop`, which must reach it immediately
+                // to cancel. Idle: send straight away, as before.
+                if self.is_busy() && !crate::chatqueue::is_stop(&text) {
+                    self.queued.push_back(expanded);
+                } else {
+                    self.send_now(expanded);
                 }
             }
         } else {

@@ -149,3 +149,112 @@ fn link_after_wide_glyphs_resolves_at_its_display_column() {
         .expect("CJK glyph rendered");
     assert_eq!(link_at(&pane, cols, rows, cjk.row, cjk.col), None);
 }
+
+fn row_text(cells: &[CellView], row: u16) -> String {
+    let mut v: Vec<(u16, char)> = cells
+        .iter()
+        .filter(|c| c.row == row)
+        .map(|c| (c.col, c.c))
+        .collect();
+    v.sort_unstable();
+    v.into_iter().map(|(_, c)| c).collect()
+}
+
+#[test]
+fn queued_indicator_renders_directly_above_the_composer() {
+    let mut pane = test_pane(vec![msg("planner", "hi")]);
+    pane.queued.push_back("later".into());
+    let (cols, rows) = (60u16, 20u16);
+    let bottom = crate::chatinput::composer_rows(&pane.input, cols, rows);
+    let indicator_row = rows - bottom - 1;
+
+    let cells_out = cells(&pane, cols, rows);
+    let text = row_text(&cells_out, indicator_row);
+    assert!(
+        text.contains("1 message queued"),
+        "indicator row {indicator_row}: {text}"
+    );
+    assert!(text.contains("sends when the crew is idle"), "got: {text}");
+
+    // Nothing else (message body, composer) bleeds into the indicator's row.
+    let composer_row = rows - bottom;
+    let composer_text = row_text(&cells_out, composer_row);
+    assert_ne!(
+        composer_text, text,
+        "composer row is distinct from the indicator row"
+    );
+}
+
+#[test]
+fn queued_indicator_absent_when_queue_empty() {
+    let pane = test_pane(vec![msg("planner", "hi")]);
+    let (cols, rows) = (60u16, 20u16);
+    let cells_out = cells(&pane, cols, rows);
+    let text: String = cells_out.iter().map(|c| c.c).collect();
+    assert!(
+        !text.contains('\u{29d7}'),
+        "no indicator glyph when idle/empty"
+    );
+}
+
+#[test]
+fn queued_indicator_never_draws_above_the_status_rows_on_a_squeezed_pane() {
+    // Mirrors `empty_pane_swarm_block_never_draws_above_the_status_rows`:
+    // `indicator_row` lacked the swarm block's `.max(top)` floor, so a
+    // saturated roster (status_rows eating several rows for chip cards) on a
+    // short pane can push the unclamped `rows - bottom - queued_rows` above
+    // `top`, overdrawing the header/status rows.
+    let mut pane = test_pane(vec![msg("planner", "hi")]);
+    pane.agents = vec![
+        crew_plugin::AgentInfo {
+            name: "a".into(),
+            role: String::new(),
+            model: String::new(),
+        },
+        crew_plugin::AgentInfo {
+            name: "b".into(),
+            role: String::new(),
+            model: String::new(),
+        },
+        crew_plugin::AgentInfo {
+            name: "c".into(),
+            role: String::new(),
+            model: String::new(),
+        },
+    ];
+    pane.queued.push_back("later".into());
+    let (cols, rows) = (30u16, 5u16);
+    let top = pane.status_rows(cols, rows);
+    assert!(top > 0, "test setup must actually reserve status rows");
+
+    let out = cells(&pane, cols, rows);
+    // Identify indicator cells by the distinctive glyph, not "any cell above
+    // top" — the header/status rows legitimately draw their own content there.
+    let leaked: Vec<(u16, u16, char)> = out
+        .iter()
+        .filter(|c| c.row < top)
+        .filter(|c| c.c == '\u{29d7}')
+        .map(|c| (c.row, c.col, c.c))
+        .collect();
+    assert!(
+        leaked.is_empty(),
+        "queued indicator cell(s) landed above the status rows (top={top}): {leaked:?}"
+    );
+}
+
+#[test]
+fn queued_indicator_renders_on_the_empty_messages_branch_too() {
+    let mut pane = test_pane(vec![]);
+    pane.queued.push_back("a".into());
+    pane.queued.push_back("b".into());
+    let (cols, rows) = (60u16, 20u16);
+    let bottom = crate::chatinput::composer_rows(&pane.input, cols, rows);
+    let indicator_row = rows - bottom - 1;
+
+    let cells_out = cells(&pane, cols, rows);
+    let text = row_text(&cells_out, indicator_row);
+    assert!(
+        text.contains("2 messages queued"),
+        "indicator row {indicator_row}: {text}"
+    );
+}
