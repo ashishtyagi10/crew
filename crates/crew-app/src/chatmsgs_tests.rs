@@ -23,7 +23,7 @@ fn row_text(cells: &[CellView], row: u16) -> String {
 
 #[test]
 fn card_has_header_then_indented_body() {
-    let cells = message_cells(&[msg("planner", "hello")], 40, 10, 0, 0, false);
+    let cells = message_cells(&[msg("planner", "hello")], 40, 10, 0, 0, View::default());
     assert_eq!(row_text(&cells, 0), format!("{GUTTER}planner"));
     assert_eq!(row_text(&cells, 1), " hello");
 }
@@ -31,14 +31,14 @@ fn card_has_header_then_indented_body() {
 #[test]
 fn cards_are_separated_by_a_blank_line() {
     let m = [msg("planner", "a"), msg("coder", "b")];
-    let cells = message_cells(&m, 40, 10, 0, 0, false);
+    let cells = message_cells(&m, 40, 10, 0, 0, View::default());
     assert_eq!(row_text(&cells, 2), ""); // spacer
     assert_eq!(row_text(&cells, 3), format!("{GUTTER}coder"));
 }
 
 #[test]
 fn multiline_reply_renders_each_line() {
-    let cells = message_cells(&[msg("coder", "one\ntwo")], 40, 10, 0, 0, false);
+    let cells = message_cells(&[msg("coder", "one\ntwo")], 40, 10, 0, 0, View::default());
     assert_eq!(row_text(&cells, 1), " one");
     assert_eq!(row_text(&cells, 2), " two");
 }
@@ -51,7 +51,7 @@ fn fenced_code_renders_as_bordered_card() {
         10,
         0,
         0,
-        false,
+        View::default(),
     );
     assert_eq!(row_text(&cells, 1), " fix:");
     assert_eq!(row_text(&cells, 2), " \u{256d}\u{2500} rust");
@@ -71,7 +71,7 @@ fn fenced_code_renders_as_bordered_card() {
 fn header_tail_carries_latency_metadata() {
     let mut m = msg("coder", "done");
     m.meta = "4.2s".into();
-    let cells = message_cells(&[m], 40, 10, 0, 0, false);
+    let cells = message_cells(&[m], 40, 10, 0, 0, View::default());
     assert!(
         row_text(&cells, 0).ends_with("\u{00b7} 4.2s"),
         "got: {}",
@@ -81,7 +81,14 @@ fn header_tail_carries_latency_metadata() {
 
 #[test]
 fn handoff_sender_colours_each_name_separately() {
-    let cells = message_cells(&[msg("planner \u{2192} coder", "x")], 40, 10, 0, 0, false);
+    let cells = message_cells(
+        &[msg("planner \u{2192} coder", "x")],
+        40,
+        10,
+        0,
+        0,
+        View::default(),
+    );
     assert_eq!(
         row_text(&cells, 0),
         format!("{GUTTER}planner \u{2192} coder")
@@ -100,7 +107,7 @@ fn system_sender_is_muted_and_agents_are_not() {
 
 #[test]
 fn crew_message_uses_the_dotted_system_gutter() {
-    let cells = message_cells(&[msg("crew", "hello")], 40, 10, 0, 0, false);
+    let cells = message_cells(&[msg("crew", "hello")], 40, 10, 0, 0, View::default());
     assert_eq!(row_text(&cells, 0), "\u{2506}crew");
 }
 
@@ -112,7 +119,7 @@ fn agent_message_keeps_the_solid_gutter() {
         10,
         0,
         0,
-        false,
+        View::default(),
     );
     assert_eq!(
         row_text(&cells, 0),
@@ -124,15 +131,22 @@ fn agent_message_keeps_the_solid_gutter() {
 fn count_matches_rendered_lines_and_scroll_shows_older() {
     let m = [msg("a", "one"), msg("b", "two")];
     // 2 cards × (header + body) + 1 spacer = 5 lines.
-    assert_eq!(card_line_count(&m, 40, false), 5);
+    assert_eq!(card_line_count(&m, 40, View::default()), 5);
     // A 2-row window scrolled 3 up from the bottom shows the first card.
-    let cells = message_cells(&m, 40, 2, 0, 3, false);
+    let cells = message_cells(&m, 40, 2, 0, 3, View::default());
     assert_eq!(row_text(&cells, 0), format!("{GUTTER}a"));
 }
 
 #[test]
 fn top_row_offsets_and_width_clips() {
-    let cells = message_cells(&[msg("planner", "wide text here")], 5, 4, 3, 0, false);
+    let cells = message_cells(
+        &[msg("planner", "wide text here")],
+        5,
+        4,
+        3,
+        0,
+        View::default(),
+    );
     assert!(cells.iter().all(|c| c.row >= 3 && c.col < 5));
 }
 
@@ -140,7 +154,7 @@ fn top_row_offsets_and_width_clips() {
 fn wide_glyphs_advance_two_columns() {
     // "中x": the wide glyph sits at its column and `x` lands TWO columns
     // later, so it can't overlap the glyph's second cell.
-    let cells = message_cells(&[msg("a", "\u{4e2d}x")], 20, 4, 0, 0, false);
+    let cells = message_cells(&[msg("a", "\u{4e2d}x")], 20, 4, 0, 0, View::default());
     let body: Vec<(u16, char)> = cells
         .iter()
         .filter(|c| c.row == 1 && c.c != ' ')
@@ -235,19 +249,19 @@ fn message_cells_is_a_thin_map_over_placed_lines_in_both_modes() {
     ]);
     let (cols, rows) = (40u16, 30u16);
 
-    for show_source in [false, true] {
+    // All four (source, compact) combinations — orthogonal flags, both can
+    // be on at once.
+    for (show_source, compact) in [(false, false), (true, false), (false, true), (true, true)] {
         pane.show_source = show_source;
+        pane.compact_view = compact;
+        let view = View {
+            source: show_source,
+            compact,
+        };
         let top = pane.status_rows(cols, rows);
         let bottom = crate::chatinput::composer_rows(&pane.input, cols, rows);
         let msg_rows = rows.saturating_sub(top + bottom);
-        let cells = message_cells(
-            &pane.messages,
-            cols,
-            msg_rows,
-            top,
-            pane.scroll,
-            pane.show_source,
-        );
+        let cells = message_cells(&pane.messages, cols, msg_rows, top, pane.scroll, view);
         let placed = placed_lines(&pane, cols, rows);
 
         // Coverage independently derived from `placed_lines`, using the same
@@ -270,11 +284,11 @@ fn message_cells_is_a_thin_map_over_placed_lines_in_both_modes() {
         let actual: HashSet<(u16, u16)> = cells.iter().map(|c| (c.row, c.col)).collect();
         assert_eq!(
             actual, expected,
-            "cells/placed-lines mismatch with show_source={show_source}"
+            "cells/placed-lines mismatch with show_source={show_source} compact={compact}"
         );
         assert!(
             !actual.is_empty(),
-            "sanity: the pane should render some cells (show_source={show_source})"
+            "sanity: the pane should render some cells (show_source={show_source} compact={compact})"
         );
     }
 }
@@ -337,4 +351,118 @@ fn msg_rows_budget_shrinks_by_one_when_a_message_is_queued() {
         budget_after,
         "queue depth beyond 1 doesn't claim more rows"
     );
+}
+
+// -- Compact transcript view (Ctrl+O) ---------------------------------------
+
+#[test]
+fn compact_view_clamps_multiline_body_and_appends_hidden_suffix() {
+    let m = [msg("coder", "one\ntwo\nthree")];
+    let full = card_lines(
+        &m,
+        40,
+        0,
+        View {
+            source: false,
+            compact: false,
+        },
+    );
+    assert_eq!(full.len(), 4, "header + 3 body lines, no spacer (one msg)");
+
+    let compact = card_lines(
+        &m,
+        40,
+        0,
+        View {
+            source: false,
+            compact: true,
+        },
+    );
+    assert_eq!(
+        compact.len(),
+        2,
+        "header + first body line only in compact mode"
+    );
+    let body_text: String = compact[1].iter().map(|c| c.c).collect();
+    assert_eq!(
+        body_text, " one \u{2026} +2",
+        "first line keeps its text plus a muted ` … +N` suffix for the 2 hidden lines"
+    );
+    let muted = crew_theme::theme().text_muted;
+    let suffix_start = body_text.find('\u{2026}').expect("suffix present");
+    assert_eq!(
+        compact[1][suffix_start].fg, muted,
+        "the ` … +N` suffix is muted"
+    );
+}
+
+#[test]
+fn compact_view_leaves_single_line_message_unchanged() {
+    let m = [msg("planner", "just one line")];
+    let full = card_lines(&m, 40, 0, View::default());
+    let compact = card_lines(
+        &m,
+        40,
+        0,
+        View {
+            source: false,
+            compact: true,
+        },
+    );
+    let text = |lines: &[CardLine]| -> Vec<String> {
+        lines
+            .iter()
+            .map(|l| l.iter().map(|c| c.c).collect())
+            .collect()
+    };
+    assert_eq!(
+        text(&full),
+        text(&compact),
+        "a single-line body renders identically in both modes"
+    );
+}
+
+#[test]
+fn compact_view_shrinks_card_line_count() {
+    let m = [
+        msg("planner", "one\ntwo\nthree"),
+        msg("coder", "just one line"),
+    ];
+    let full = card_line_count(&m, 40, View::default());
+    let compact = card_line_count(
+        &m,
+        40,
+        View {
+            source: false,
+            compact: true,
+        },
+    );
+    assert!(
+        compact < full,
+        "compact mode must shrink the total line count: full={full} compact={compact}"
+    );
+    // header+body(clamped to 1)+spacer+header+body(unchanged, single line) = 5
+    assert_eq!(compact, 5);
+}
+
+#[test]
+fn compact_view_and_source_view_are_orthogonal() {
+    // Both on at once: raw text, clamped to one line — no special case.
+    let m = [msg("coder", "**one**\ntwo\nthree")];
+    let both = card_lines(
+        &m,
+        40,
+        0,
+        View {
+            source: true,
+            compact: true,
+        },
+    );
+    assert_eq!(both.len(), 2, "header + clamped first line");
+    let body_text: String = both[1].iter().map(|c| c.c).collect();
+    assert!(
+        body_text.starts_with(" **one**"),
+        "source mode keeps literal markdown even while compact: {body_text}"
+    );
+    assert!(body_text.ends_with(" \u{2026} +2"), "got: {body_text}");
 }

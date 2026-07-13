@@ -106,11 +106,15 @@ pub(crate) fn placed_lines(pane: &ChatPane, cols: u16, rows: u16) -> Vec<(u16, C
     if budget == 0 {
         return Vec::new();
     }
+    let view = crate::chatmsgs::View {
+        source: pane.show_source,
+        compact: pane.compact_view,
+    };
     let lines = crate::chatmsgs::card_lines(
         &pane.messages,
         cols as usize,
         crate::chattime::unix_now_ms(),
-        pane.show_source,
+        view,
     );
     window(lines, budget, top, pane.scroll)
 }

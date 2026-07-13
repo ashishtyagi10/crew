@@ -150,6 +150,67 @@ fn link_after_wide_glyphs_resolves_at_its_display_column() {
     assert_eq!(link_at(&pane, cols, rows, cjk.row, cjk.col), None);
 }
 
+#[test]
+fn compact_view_hides_link_on_a_clamped_line_but_keeps_it_on_the_visible_one() {
+    // The link sits on the SECOND body line (a separate markdown paragraph —
+    // a single `\n` is just a soft break within one line) — visible
+    // normally, but clamped away once compact_view drops everything past
+    // the first body line. The label "zzq" (not "k") avoids colliding with
+    // the composer's own placeholder text ("...a task...", which itself
+    // contains a 'k').
+    let mut pane = test_pane(vec![msg("user", "see this:\n\n[zzq](https://x.io/p)")]);
+    let (cols, rows) = (40u16, 20u16);
+
+    let before = cells(&pane, cols, rows);
+    let z = before
+        .iter()
+        .find(|c| c.c == 'z')
+        .expect("link visible before compacting");
+    assert_eq!(
+        link_at(&pane, cols, rows, z.row, z.col).as_deref(),
+        Some("https://x.io/p"),
+        "link on the visible line hit-tests normally"
+    );
+
+    pane.compact_view = true;
+    let after = cells(&pane, cols, rows);
+    let after_text: String = after.iter().map(|c| c.c).collect();
+    assert!(
+        !after_text.contains("zzq"),
+        "the link's line is clamped away in compact mode: {after_text:?}"
+    );
+    assert_eq!(
+        link_at(&pane, cols, rows, z.row, z.col),
+        None,
+        "a link on a now-hidden line no longer hit-tests"
+    );
+}
+
+#[test]
+fn compact_view_keeps_link_on_the_first_body_line() {
+    let mut pane = test_pane(vec![msg(
+        "user",
+        "see [k](https://x.io/p)\nmore detail here",
+    )]);
+    pane.compact_view = true;
+    let (cols, rows) = (40u16, 20u16);
+    let cells_out = cells(&pane, cols, rows);
+    let k = cells_out
+        .iter()
+        .find(|c| c.c == 'k')
+        .expect("link on the first (kept) body line still renders");
+    assert_eq!(
+        link_at(&pane, cols, rows, k.row, k.col).as_deref(),
+        Some("https://x.io/p"),
+        "a link on the visible clamped line still hit-tests"
+    );
+    let text: String = cells_out.iter().map(|c| c.c).collect();
+    assert!(
+        text.contains("\u{2026} +1"),
+        "hidden-line suffix present: {text}"
+    );
+}
+
 fn row_text(cells: &[CellView], row: u16) -> String {
     let mut v: Vec<(u16, char)> = cells
         .iter()
@@ -257,4 +318,19 @@ fn queued_indicator_renders_on_the_empty_messages_branch_too() {
         text.contains("2 messages queued"),
         "indicator row {indicator_row}: {text}"
     );
+}
+
+#[test]
+fn compact_view_shows_the_header_chip_end_to_end() {
+    let mut pane = test_pane(vec![msg("planner", "hi")]);
+    let (cols, rows) = (60u16, 20u16);
+    let before = row_text(&cells(&pane, cols, rows), 0);
+    assert!(
+        !before.contains("compact"),
+        "no chip when compact_view is off: {before}"
+    );
+
+    pane.compact_view = true;
+    let after = row_text(&cells(&pane, cols, rows), 0);
+    assert!(after.contains("compact"), "chip missing: {after}");
 }

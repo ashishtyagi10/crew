@@ -38,6 +38,21 @@ pub(crate) fn fade_t(ts: &str, now_ms: u64) -> f32 {
     (age as f32 / FADE_MS as f32).min(1.0)
 }
 
+/// The card-line render mode: `source` shows raw text instead of markdown
+/// (Ctrl+Shift+M, `ChatPane::show_source`); `compact` clamps each message to
+/// its header line plus first body line only (Ctrl+O,
+/// `ChatPane::compact_view`). Threaded as one value through
+/// `card_lines`/`card_line_count`/`message_cells`/`chatplace::placed_lines`
+/// so scroll math, the scrollbar, link hit-tests and the unread pill all
+/// agree on the same rendering automatically. The two flags are orthogonal —
+/// both can be on at once (raw text, one line) — so this is a plain copy
+/// struct, not an enum.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) struct View {
+    pub(crate) source: bool,
+    pub(crate) compact: bool,
+}
+
 /// The gutter glyph for a sender: a lighter bar for the system/broker voice,
 /// the solid bar for agents and the user.
 fn gutter_for(sender: &str) -> char {
@@ -80,14 +95,36 @@ fn header_line(m: &Message, now_ms: u64) -> CardLine {
     line
 }
 
+/// Appends a muted ` … +N` suffix (`hidden` = number of clamped-away body
+/// lines) to a compact-clamped first body line, trimming trailing cells so
+/// the line — plus the suffix — still fits `cols` display columns. Mirrors
+/// the width-clamp rule other suffixes in this module apply at render time
+/// (`line_cells` would otherwise silently drop overflow, risking a
+/// partially-cut suffix rather than a clean truncation of the body text).
+fn append_hidden_suffix(line: &mut CardLine, hidden: usize, cols: usize) {
+    let muted = crew_theme::theme().text_muted;
+    let suffix = format!(" \u{2026} +{hidden}");
+    let suffix_w: usize = suffix.chars().map(crate::chatwidth::char_w).sum();
+    let mut w: usize = line.iter().map(|c| crate::chatwidth::char_w(c.c)).sum();
+    while w + suffix_w > cols {
+        match line.pop() {
+            Some(cell) => w -= crate::chatwidth::char_w(cell.c),
+            None => break,
+        }
+    }
+    line.extend(suffix.chars().map(|c| plain(c, muted, false)));
+}
+
 /// All messages as card lines: header, body, spacer between cards. Visible
 /// to `chatplace` so `placed_lines` can build the same lines `message_cells`
-/// draws. When `source` is true, messages render as plain text instead of markdown.
+/// draws. `view.source` shows plain text instead of markdown; `view.compact`
+/// clamps each message's body to its first line, appending a muted ` … +N`
+/// suffix when lines were hidden (single-line bodies render unchanged).
 pub(crate) fn card_lines(
     messages: &[Message],
     cols: usize,
     now_ms: u64,
-    source: bool,
+    view: View,
 ) -> Vec<CardLine> {
     let mut out: Vec<CardLine> = Vec::new();
     for (i, m) in messages.iter().enumerate() {
@@ -101,7 +138,13 @@ pub(crate) fn card_lines(
             "crew" | "system" | "broker" => crew_theme::theme().text_muted,
             _ => crew_theme::theme().ink,
         };
-        out.extend(body_lines(&m.text, cols, fg, source));
+        let mut body = body_lines(&m.text, cols, fg, view.source);
+        if view.compact && body.len() > 1 {
+            let hidden = body.len() - 1;
+            body.truncate(1);
+            append_hidden_suffix(&mut body[0], hidden, cols);
+        }
+        out.extend(body);
         // A just-landed card fades in from the page colour (see `fade_t`).
         let t = fade_t(&m.ts, now_ms);
         if t < 1.0 {
@@ -117,23 +160,23 @@ pub(crate) fn card_lines(
 }
 
 /// Total card lines for the given width — the scroll clamp for the card view.
-pub(crate) fn card_line_count(messages: &[Message], cols: u16, source: bool) -> usize {
+pub(crate) fn card_line_count(messages: &[Message], cols: u16, view: View) -> usize {
     if cols == 0 {
         return 0;
     }
-    card_lines(messages, cols as usize, 0, source).len()
+    card_lines(messages, cols as usize, 0, view).len()
 }
 
 /// Render the card view of `messages` into `rows` rows starting at `top_row`,
-/// scrolled `scroll` lines up from the live bottom. When `source` is true,
-/// messages render as plain text instead of markdown.
+/// scrolled `scroll` lines up from the live bottom, in the given render `view`
+/// (see [`View`]).
 pub(crate) fn message_cells(
     messages: &[Message],
     cols: u16,
     rows: u16,
     top_row: u16,
     scroll: usize,
-    source: bool,
+    view: View,
 ) -> Vec<CellView> {
     if cols == 0 || rows == 0 {
         return Vec::new();
@@ -143,7 +186,7 @@ pub(crate) fn message_cells(
         messages,
         cols as usize,
         crate::chattime::unix_now_ms(),
-        source,
+        view,
     );
     window(lines, rows, top_row, scroll)
         .iter()

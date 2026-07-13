@@ -599,7 +599,15 @@ fn show_source_false_renders_bold_markdown() {
     });
     assert_eq!(p.show_source, false, "show_source defaults to false");
 
-    let lines = crate::chatmsgs::card_lines(&p.messages, 80, 0, p.show_source);
+    let lines = crate::chatmsgs::card_lines(
+        &p.messages,
+        80,
+        0,
+        crate::chatmsgs::View {
+            source: p.show_source,
+            compact: p.compact_view,
+        },
+    );
     // First line is the header (▍ alice ...)
     // Remaining lines are the body with the bold text
     let body_lines: Vec<_> = lines.iter().skip(1).collect();
@@ -635,7 +643,15 @@ fn show_source_true_shows_literal_text() {
         meta: String::new(),
     });
 
-    let lines = crate::chatmsgs::card_lines(&p.messages, 80, 0, p.show_source);
+    let lines = crate::chatmsgs::card_lines(
+        &p.messages,
+        80,
+        0,
+        crate::chatmsgs::View {
+            source: p.show_source,
+            compact: p.compact_view,
+        },
+    );
     let body_lines: Vec<_> = lines.iter().skip(1).collect();
     assert!(!body_lines.is_empty(), "body should have lines");
 
@@ -654,6 +670,46 @@ fn show_source_true_shows_literal_text() {
     assert!(
         body_text.contains("**"),
         "source mode should show literal ** chars: {body_text}"
+    );
+}
+
+#[test]
+fn ctrl_o_toggles_compact_view_and_back() {
+    use crate::chatkeys::ChatInput;
+
+    let mut p = pane();
+    let cwd = std::env::temp_dir();
+    assert_eq!(p.compact_view, false, "compact_view defaults to false");
+
+    assert!(p.on_input(ChatInput::ToggleCompact, &cwd).is_none());
+    assert!(p.compact_view, "first Ctrl+O turns compact view on");
+
+    assert!(p.on_input(ChatInput::ToggleCompact, &cwd).is_none());
+    assert!(
+        !p.compact_view,
+        "second Ctrl+O restores the full transcript"
+    );
+}
+
+#[test]
+fn ctrl_o_still_toggles_while_the_mention_popup_is_open() {
+    // The @file popup only consumes Up/Down/Complete/Enter/Close (see
+    // `chatmention::popup_key`) — anything else, including Ctrl+O, forwards
+    // to the pane's own handling, matching the existing popup key contract.
+    use crate::chatkeys::ChatInput;
+
+    let mut p = pane();
+    let cwd = std::env::temp_dir();
+    p.mention = Some(crate::chatmention::MentionState {
+        files: Vec::new(),
+        matches: vec!["a.txt".into()],
+        sel: 0,
+    });
+
+    assert!(p.on_input(ChatInput::ToggleCompact, &cwd).is_none());
+    assert!(
+        p.compact_view,
+        "Ctrl+O reached the pane despite the open popup"
     );
 }
 
