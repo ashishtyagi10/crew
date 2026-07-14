@@ -52,40 +52,40 @@ fn anim_redraws_one_in_every_anim_div_ticks() {
 }
 
 #[test]
-fn globe_width_picks_the_default_size_when_roomy() {
-    assert_eq!(globe_width(90, 30), Some(44));
+fn rain_width_picks_the_default_size_when_roomy() {
+    assert_eq!(rain_width(90, 30), Some(44));
 }
 
 #[test]
-fn globe_width_scales_down_to_fit_the_rows() {
+fn rain_width_scales_down_to_fit_the_rows() {
     // Default 44x22 needs rows > 25 (22 + 3); at rows=24 it steps down to 40x20.
-    assert_eq!(globe_width(90, 24), Some(40));
+    assert_eq!(rain_width(90, 24), Some(40));
 }
 
 #[test]
-fn globe_width_falls_back_when_nothing_fits() {
+fn rain_width_falls_back_when_nothing_fits() {
     assert_eq!(
-        globe_width(10, 24),
+        rain_width(10, 24),
         None,
         "too narrow for even the min width"
     );
     assert_eq!(
-        globe_width(90, 10),
+        rain_width(90, 10),
         None,
         "too short for even the min height"
     );
 }
 
 #[test]
-fn globe_sits_above_tagline_and_hint() {
+fn rain_sits_above_tagline_and_hint() {
     let cells = welcome_cells_animated(80, 30, 0, None);
     let t = crew_theme::theme();
-    let globe_max_row = cells
+    let rain_max_row = cells
         .iter()
         .filter(|c| c.fg == t.ink || c.fg == t.text_muted)
         .map(|c| c.row)
         .max()
-        .expect("expected globe cells");
+        .expect("expected rain cells");
     let hint_min_row = cells
         .iter()
         .filter(|c| c.fg == t.hint_fg)
@@ -93,7 +93,7 @@ fn globe_sits_above_tagline_and_hint() {
         .min()
         .expect("expected tagline/hint cells");
     assert!(
-        globe_max_row < hint_min_row,
+        rain_max_row < hint_min_row,
         "globe rows must sit above the tagline/hint"
     );
 }
@@ -107,11 +107,7 @@ fn welcome_animates_over_time() {
             .map(|c| (c.col, c.row, c.c, c.fg))
             .collect::<Vec<_>>()
     };
-    assert_ne!(
-        chars(&a),
-        chars(&b),
-        "the globe frame must change over time"
-    );
+    assert_ne!(chars(&a), chars(&b), "the rain frame must change over time");
 }
 
 fn text(cells: &[CellView]) -> String {

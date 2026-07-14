@@ -1,25 +1,25 @@
-//! The empty-screen welcome: a procedurally rendered, smoothly rotating
-//! ASCII globe centred on the canvas, with a tagline + keyboard hint below
-//! it and a version stamp in the corner.
+//! The empty-screen welcome: a bounded "matrix rain" glyph field centred on
+//! the canvas, with a tagline + keyboard hint below it and a version stamp in
+//! the corner. (Replaced the rotating ASCII globe — see [`crate::charrain`].)
 use crew_render::CellView;
 
-use crate::welcomeglobe::{GLOBE_H, GLOBE_MIN_H, GLOBE_MIN_W, GLOBE_W};
+use crate::charrain::{rain, RAIN_H, RAIN_MIN_H, RAIN_MIN_W, RAIN_W};
 
 const TAGLINE: &str = "fast terminals. clean flow.";
 const HINT: &str = "Cmd+T  new shell    ·    /  commands";
 /// Poll ticks per rendered frame; idle animation runs at ~20 fps.
 pub const ANIM_DIV: u64 = 3;
 
-/// Width-to-height ratio of the globe box (2:1, matching the terminal's
+/// Width-to-height ratio of the rain box (2:1, matching the terminal's
 /// ~2:1 cell aspect) — derives `h` from `w` without hardcoding `/2`.
-const ASPECT: u16 = GLOBE_W / GLOBE_H;
+const ASPECT: u16 = RAIN_W / RAIN_H;
 
-// Compile-time guard: GLOBE_MIN_H must keep tracking GLOBE_MIN_W's aspect
-// ratio, so this file's `ASPECT`-based derivation never silently drifts
-// from welcomeglobe.rs's floor.
+// Compile-time guard: RAIN_MIN_H must keep tracking RAIN_MIN_W's aspect ratio,
+// so this file's `ASPECT`-based derivation never silently drifts from
+// charrain.rs's floor.
 const _: () = assert!(
-    GLOBE_MIN_H == GLOBE_MIN_W / ASPECT,
-    "GLOBE_MIN_H must track GLOBE_MIN_W's 2:1 aspect"
+    RAIN_MIN_H == RAIN_MIN_W / ASPECT,
+    "RAIN_MIN_H must track RAIN_MIN_W's 2:1 aspect"
 );
 
 /// Whether this poll `tick` should redraw the welcome screen.
@@ -36,15 +36,15 @@ fn push_str(cells: &mut Vec<CellView>, row: u16, col: u16, s: &str, fg: (u8,u8,u
     }
 }
 
-/// Largest even globe width `w` (rendered at height `w/2`) such that the
-/// globe + blank row + tagline + hint stack (`h + 3` rows) centres within
+/// Largest even rain-box width `w` (rendered at height `w/2`) such that the
+/// box + blank row + tagline + hint stack (`h + 3` rows) centres within
 /// `rows`, and `w` (plus a 2-col margin) fits within `cols` — capped at
-/// `welcomeglobe::GLOBE_W`, floored at `welcomeglobe::GLOBE_MIN_W`. `None`
-/// when nothing fits — the caller falls back to the single-line banner.
-fn globe_width(cols: u16, rows: u16) -> Option<u16> {
-    let max_w = cols.saturating_sub(2).min(GLOBE_W);
+/// `charrain::RAIN_W`, floored at `charrain::RAIN_MIN_W`. `None` when nothing
+/// fits — the caller falls back to the single-line banner.
+fn rain_width(cols: u16, rows: u16) -> Option<u16> {
+    let max_w = cols.saturating_sub(2).min(RAIN_W);
     let mut w = max_w - max_w % 2;
-    while w >= GLOBE_MIN_W {
+    while w >= RAIN_MIN_W {
         if w / ASPECT + 3 < rows {
             return Some(w);
         }
@@ -62,10 +62,10 @@ fn restore_hint(n: usize) -> String {
     )
 }
 
-/// Render one animation frame: the rotating globe centred, tagline + hint
-/// below it (plus a `/restore` hint when a session snapshot exists), version
-/// stamp bottom-right. Falls back to a spaced single-line "CREW" when
-/// nothing globe-sized fits. All cells stay within `cols × rows`.
+/// Render one animation frame: the rain field centred, tagline + hint below
+/// it (plus a `/restore` hint when a session snapshot exists), version stamp
+/// bottom-right. Falls back to a spaced single-line "CREW" when nothing
+/// rain-sized fits. All cells stay within `cols × rows`.
 // rustfmt::skip preserves compact inline struct literals.
 #[rustfmt::skip]
 pub fn welcome_cells_animated(cols: u16, rows: u16, tick: u64, restore: Option<usize>) -> Vec<CellView> {
@@ -74,12 +74,11 @@ pub fn welcome_cells_animated(cols: u16, rows: u16, tick: u64, restore: Option<u
     let t = crew_theme::theme();
     let bg = t.page_bg;
 
-    if let Some(w) = globe_width(cols, rows) {
+    if let Some(w) = rain_width(cols, rows) {
         let h = w / ASPECT;
         let top = (rows - (h + 3)) / 2;
         let left = (cols - w) / 2;
-        let phase = tick as f32 * 0.05;
-        crate::welcomeglobe::globe(&mut cells, top, left, w, h, phase, t.ink, t.text_muted, bg);
+        rain(&mut cells, top, left, w, h, tick, t.ink, t.text_muted, bg);
 
         let tl_row = top + h + 1;
         let tl_w = TAGLINE.chars().count() as u16;

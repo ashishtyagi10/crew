@@ -10,6 +10,7 @@ mod askroute;
 mod askwait;
 mod attention;
 mod boxdraw;
+mod charrain;
 mod chat;
 mod chataction;
 mod chatanim;
@@ -142,7 +143,6 @@ mod update;
 mod updatecard;
 mod updatefetch;
 mod welcome;
-mod welcomeglobe;
 mod windowtitle;
 
 fn main() -> anyhow::Result<()> {
