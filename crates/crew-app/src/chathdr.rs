@@ -50,24 +50,19 @@ const COMPACT_CHIP: &str = "\u{00b7} compact";
 /// The right-aligned status segments as `(text, colour)`, in left-to-right order.
 /// While an agent is active the spinner names it and counts the elapsed
 /// seconds (`| coder · 12s`, in the agent's roster colour); otherwise a plain
-/// `thinking` spinner appears while a send is unanswered. The turn/token/
-/// message counters are ` │ `-separated (the pipe is its own segment, so it
-/// picks up the ordinary inter-segment gap on both sides); the trailing
-/// connection dot keeps the tighter single-space gap it always had.
+/// `thinking` spinner appears while a send is unanswered. One muted
+/// session-token estimate (`~9.5k tok`) follows once spend is nonzero; the
+/// trailing connection dot keeps the tighter single-space gap it always had.
 /// `hint`, when the pane is busy, adds the muted "esc interrupts" segment
 /// just before the dot — callers drop it (`hint: false`) to reclaim width on
 /// narrow panes. `compact`, when the transcript is in compact view, adds the
-/// muted "compact" chip right after the counters (dropped first of the two —
+/// muted "compact" chip after the token meter (dropped first of the two —
 /// see [`COMPACT_CHIP`] — via `compact: false`).
-#[allow(clippy::too_many_arguments)]
 fn status_segments(
     connected: bool,
-    msg_count: usize,
     awaiting: bool,
     active: Option<(&str, u64, (u8, u8, u8))>,
     tokens: u64,
-    turns: u64,
-    turn_ms: u64,
     compact: bool,
     hint: bool,
 ) -> Vec<(String, (u8, u8, u8))> {
@@ -80,32 +75,15 @@ fn status_segments(
         segs.push((format!("{} thinking", SPINNER[f]), crate::palette::accent()));
     }
 
-    // The turn/token/message counters, pipe-separated.
-    let mut info: Vec<(String, (u8, u8, u8))> = Vec::new();
-    if turns > 0 {
-        let plural = if turns == 1 { "" } else { "s" };
-        let dur = if turn_ms > 0 {
-            format!(" \u{00b7} {:.1}s", turn_ms as f64 / 1_000.0)
-        } else {
-            String::new()
-        };
-        info.push((format!("{turns} turn{plural}{dur}"), t.text_muted));
-    }
+    // The one surviving counter: the muted session-token estimate. The
+    // transcript itself is the message/turn count, so those are gone.
     if tokens > 0 {
-        info.push((format!("~{} tok", fmt_tokens(tokens)), t.text_muted));
-    }
-    let plural = if msg_count == 1 { "" } else { "s" };
-    info.push((format!("{msg_count} msg{plural}"), t.text_muted));
-    for (i, seg) in info.into_iter().enumerate() {
-        if i > 0 {
-            segs.push(("\u{2502}".to_string(), t.text_muted)); // │
-        }
-        segs.push(seg);
+        segs.push((format!("~{} tok", fmt_tokens(tokens)), t.text_muted));
     }
 
-    // Compact-view chip, width-permitting — appended right after the
-    // counters, ahead of the busy hint (see `header_cells`: it's the first
-    // of the two dropped on a narrow pane).
+    // Compact-view chip, width-permitting — appended after the token meter,
+    // ahead of the busy hint (see `header_cells`: it's the first of the two
+    // dropped on a narrow pane).
     if compact {
         segs.push((COMPACT_CHIP.to_string(), t.text_muted));
     }
@@ -134,25 +112,20 @@ pub(crate) fn fmt_tokens(tokens: u64) -> String {
     }
 }
 
-/// Build the single-row header for a `cols`-wide crew pane.
-/// `totals` is the session's `(approx tokens, completed turns)`.
-/// `turn_ms` is the settled/last turn's duration in milliseconds (0 = none
-/// known yet), rendered as `· <D.D>s` after the turn count. `compact`
-/// (Ctrl+O — `ChatPane::compact_view`) shows a muted "compact" chip; it's
-/// the first thing dropped on a narrow pane, ahead of the busy hint.
-#[allow(clippy::too_many_arguments)]
+/// Build the single-row header for a `cols`-wide crew pane. `tokens` is the
+/// session's approximate spend, shown as a muted `~<N> tok` only when
+/// nonzero. `compact` (Ctrl+O — `ChatPane::compact_view`) shows a muted
+/// "compact" chip; it's the first thing dropped on a narrow pane, ahead of
+/// the busy hint.
 pub(crate) fn header_cells(
     cols: u16,
     channel: &str,
     connected: bool,
-    msg_count: usize,
     awaiting: bool,
     active: Option<(&str, u64, (u8, u8, u8))>,
-    totals: (u64, u64),
-    turn_ms: u64,
+    tokens: u64,
     compact: bool,
 ) -> Vec<CellView> {
-    let (tokens, turns) = totals;
     if cols == 0 {
         return Vec::new();
     }
@@ -167,7 +140,7 @@ pub(crate) fn header_cells(
 
     // Right-aligned status, laid out from the right edge. Segments get the
     // usual two-space gap, except the trailing connection dot, which sits a
-    // single space after the message count. `segs_width` is shared by the
+    // single space after the token meter. `segs_width` is shared by the
     // width probe below and the real layout, so both agree on the same gap
     // rule for whatever segment count they're given.
     let segs_width = |segs: &[(String, (u8, u8, u8))]| -> usize {
@@ -188,20 +161,14 @@ pub(crate) fn header_cells(
     // Try with both the compact chip and the busy hint first. If it doesn't
     // fit, the compact chip is the first thing dropped (it's the less
     // essential of the two); if it still doesn't fit, the hint goes too —
-    // everything else (spinner/active label, turn/token/message counters,
-    // connection dot) renders exactly as it would without either.
-    let mut segs = status_segments(
-        connected, msg_count, awaiting, active, tokens, turns, turn_ms, compact, true,
-    );
+    // everything else (spinner/active label, token meter, connection dot)
+    // renders exactly as it would without either.
+    let mut segs = status_segments(connected, awaiting, active, tokens, compact, true);
     if segs_width(&segs) as u16 > cols {
-        segs = status_segments(
-            connected, msg_count, awaiting, active, tokens, turns, turn_ms, false, true,
-        );
+        segs = status_segments(connected, awaiting, active, tokens, false, true);
     }
     if segs_width(&segs) as u16 > cols {
-        segs = status_segments(
-            connected, msg_count, awaiting, active, tokens, turns, turn_ms, false, false,
-        );
+        segs = status_segments(connected, awaiting, active, tokens, false, false);
     }
     let gap = |i: usize| -> u16 {
         if i == 0 {
