@@ -106,7 +106,7 @@ mod tests {
             Step::Wait
         ));
         let s = a.observe(Obs {
-            new_output: "<CREW-ANS q7>v2</CREW-ANS q7>",
+            new_output: "\nCREW-ANS-q7: v2\n",
             idle_transition: false,
             now_ms: 200,
         });
