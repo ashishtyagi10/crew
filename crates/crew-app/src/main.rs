@@ -79,6 +79,7 @@ mod host;
 pub(crate) mod inputbar;
 mod inputbar_render;
 mod inputkeys;
+mod ipc;
 mod ipc_types;
 mod keys;
 mod layout;
