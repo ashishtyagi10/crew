@@ -52,21 +52,39 @@ pub(crate) fn parse_location(loc: &str) -> Option<Location> {
 
 /// Resolve an ask address into `(pane, local-instance)`. `Err(message)` for a
 /// `crew://` remote until the relay transport lands — an honest "not yet"
-/// rather than a silent local fallback. A bare address or a local instance id
-/// resolves to `Ok`.
-pub(crate) fn resolve_target(to: &str) -> Result<(&str, Option<String>), String> {
+/// rather than a silent local fallback.
+///
+/// Where a resolved ask should be delivered.
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum Target {
+    /// An instance on THIS host — `None` is the default instance's socket.
+    Local(Option<String>),
+    /// A remote host's instance, reached via the relay.
+    Remote {
+        host: String,
+        port: u16,
+        instance: String,
+    },
+}
+
+/// Resolve an ask address into `(pane, target)`: a bare address or local
+/// instance id → [`Target::Local`]; a `crew://` URL → [`Target::Remote`].
+pub(crate) fn resolve_target(to: &str) -> (&str, Target) {
     let (pane, loc) = crate::askroute::split_instance(to);
-    match loc.map(parse_location) {
+    let target = match loc.map(parse_location) {
         Some(Some(Location::Remote {
             host,
             port,
             instance,
-        })) => Err(format!(
-            "cross-host relay not yet available (crew://{host}:{port}/{instance})"
-        )),
-        Some(Some(Location::Local(id))) => Ok((pane, Some(id))),
-        _ => Ok((pane, None)),
-    }
+        })) => Target::Remote {
+            host,
+            port,
+            instance,
+        },
+        Some(Some(Location::Local(id))) => Target::Local(Some(id)),
+        _ => Target::Local(None),
+    };
+    (pane, target)
 }
 
 #[cfg(test)]
@@ -103,13 +121,22 @@ mod tests {
     }
 
     #[test]
-    fn resolve_target_splits_pane_and_reports_remote_as_pending() {
-        assert_eq!(resolve_target("schema"), Ok(("schema", None)));
+    fn resolve_target_splits_pane_and_classifies_location() {
+        assert_eq!(resolve_target("schema"), ("schema", Target::Local(None)));
         assert_eq!(
             resolve_target("schema@alpha"),
-            Ok(("schema", Some("alpha".into())))
+            ("schema", Target::Local(Some("alpha".into())))
         );
-        let err = resolve_target("schema@crew://host/main").unwrap_err();
-        assert!(err.contains("not yet available") && err.contains("crew://host"));
+        assert_eq!(
+            resolve_target("schema@crew://host/main"),
+            (
+                "schema",
+                Target::Remote {
+                    host: "host".into(),
+                    port: DEFAULT_RELAY_PORT,
+                    instance: "main".into(),
+                }
+            )
+        );
     }
 }

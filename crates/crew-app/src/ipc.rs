@@ -98,6 +98,26 @@ pub(crate) fn list_instances() -> Vec<String> {
     list_instances_in(&socket_dir())
 }
 
+/// Connect to a Unix socket at `path`, send one JSON-line request, read the
+/// JSON-line reply. Shared by the `crew` client and the relay bridge. `None`
+/// if nothing is listening or the exchange fails.
+pub(crate) fn exchange_at(path: &Path, req: &Request) -> Option<Reply> {
+    let mut stream = UnixStream::connect(path).ok()?;
+    let json = serde_json::to_string(req).ok()?;
+    stream.write_all(json.as_bytes()).ok()?;
+    stream.write_all(b"\n").ok()?;
+    stream.flush().ok()?;
+    let mut line = String::new();
+    BufReader::new(&mut stream).read_line(&mut line).ok()?;
+    serde_json::from_str(line.trim()).ok()
+}
+
+/// Send a request to a named local instance's socket (the relay bridge: a
+/// federated ask lands here and reuses the ordinary local ask engine).
+pub(crate) fn dial_local(instance: Option<&str>, req: &Request) -> Option<Reply> {
+    exchange_at(&socket_path_for(instance), req)
+}
+
 /// Bind `path` (reclaiming a stale socket) and spawn the listener thread.
 pub(crate) fn spawn_at(path: PathBuf) -> std::io::Result<IpcHandle> {
     let _ = std::fs::remove_file(&path); // reclaim a stale socket

@@ -138,6 +138,9 @@ pub fn run() -> anyhow::Result<()> {
             None
         }
     };
+    // Cross-host federation relay: binds ONLY if the operator opted in with a
+    // CREW_FEDERATE_TOKEN. No token → no port, no reachability.
+    crate::relay::maybe_spawn_listener();
     let mut app = CrewApp {
         config,
         font_rotate,
