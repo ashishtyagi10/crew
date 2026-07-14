@@ -439,10 +439,14 @@ fn elapsed_and_token_columns_no_overlap_at_cols_60() {
     }
 }
 
-// --- Cost column + wide-glyph advance ---
+// --- No cost column (tokens proxy it) + wide-glyph advance ---
 
 #[test]
-fn cost_column_renders_outermost_on_wide_panes_and_sheds_first() {
+fn cost_never_renders_in_the_live_block_tokens_are_outermost() {
+    // Reductionist pass: the live block dropped its cost column — tokens
+    // already proxy spend, and cost belongs in the folded run summary, not
+    // the live chrome. Even with a recorded cost, no `$` appears; tokens
+    // are the rightmost metric.
     let mut p = pane_with_swarm(1);
     p.absorb_hive(&HiveEvent::AgentSpawned {
         agent: crew_hive::AgentId(1),
@@ -457,28 +461,17 @@ fn cost_column_renders_outermost_on_wide_panes_and_sheds_first() {
         agent: crew_hive::AgentId(1),
         micros_usd: 3_100,
     });
-    // Wide: cost is the rightmost column (1-col gap to the edge), tokens
-    // just inside it.
     let cells = block_cells(&p, 80, 5, 0);
     let row: String = {
         let mut cs: Vec<_> = cells.iter().filter(|c| c.row == 5).collect();
         cs.sort_by_key(|c| c.col);
         cs.iter().map(|c| c.c).collect()
     };
-    assert!(row.contains("$0.0031"), "{row}");
-    let cost_end = cells
-        .iter()
-        .filter(|c| c.row == 5)
-        .max_by_key(|c| c.col)
-        .unwrap();
-    assert_eq!(cost_end.col, 78, "cost column right-aligned to cols-2");
+    assert!(
+        !row.contains('$'),
+        "no cost column in the live block: {row}"
+    );
     assert!(row.contains("150"), "tokens still shown: {row}");
-    // Narrow (below COST_MIN_COLS=32, at/above TOKENS_MIN_COLS=24): cost
-    // sheds, tokens survive.
-    let cells = block_cells(&p, 28, 5, 0);
-    let row: String = cells.iter().filter(|c| c.row == 5).map(|c| c.c).collect();
-    assert!(!row.contains('$'), "{row}");
-    assert!(row.contains("150"), "{row}");
 }
 
 #[test]
@@ -504,12 +497,12 @@ fn wide_glyph_titles_advance_by_display_width() {
 }
 
 #[test]
-fn three_columns_and_a_full_width_title_never_collide() {
+fn columns_and_a_full_width_title_never_collide() {
     // Review finding (iter 11): placement burned TWO gap columns per right
-    // column after the first while `reserve` budgeted one — with cost +
-    // tokens + elapsed all shown, a full-budget title's last cell landed on
-    // elapsed's first. Long title fills the whole budget; now_ms != 0 turns
-    // the elapsed column on.
+    // column after the first while `reserve` budgeted one — a full-budget
+    // title's last cell landed on the next column's first. With cost gone,
+    // tokens + elapsed remain; the collision guard must still hold. Long
+    // title fills the whole budget; now_ms != 0 turns the elapsed column on.
     let mut p = pane();
     p.absorb_hive_plan(vec![TaskSpec {
         id: TaskId(0),
@@ -546,20 +539,4 @@ fn three_columns_and_a_full_width_title_never_collide() {
             "cols={cols}: cell past the edge"
         );
     }
-}
-
-#[test]
-fn cost_column_boundary_is_exactly_cost_min_cols() {
-    let mut p = pane_with_swarm(1);
-    p.absorb_hive(&HiveEvent::AgentSpawned {
-        agent: crew_hive::AgentId(1),
-        task: TaskId(0),
-    });
-    p.absorb_hive(&HiveEvent::CostDelta {
-        agent: crew_hive::AgentId(1),
-        micros_usd: 3_100,
-    });
-    let row = |cols: u16| -> String { block_cells(&p, cols, 0, 0).iter().map(|c| c.c).collect() };
-    assert!(row(32).contains('$'), "at the boundary cost shows");
-    assert!(!row(31).contains('$'), "one below it sheds");
 }
