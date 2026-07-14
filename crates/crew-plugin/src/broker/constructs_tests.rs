@@ -137,6 +137,15 @@ fn pick_judge_prefers_a_reviewer_who_is_not_the_worker() {
 }
 
 #[test]
+fn pick_judge_keys_off_capability_not_the_literal_reviewer_name() {
+    // "opencode" advertises a review capability; even though "coder" comes
+    // first, the judge is the critic — so a roster of arbitrarily-named
+    // specialists (no agent literally called "reviewer") still elects a judge.
+    let names = vec!["planner".to_string(), "coder".into(), "opencode".into()];
+    assert_eq!(pick_judge(&names, "planner"), "opencode");
+}
+
+#[test]
 fn a_pre_tripped_stop_flag_cancels_the_loop_before_round_one() {
     let _g = testenv::mock("ok\n@done");
     let mut session = Session::new();

@@ -140,12 +140,21 @@ pub(crate) fn goal_cmd(
     ))
 }
 
-/// The judge: the reviewer when it isn't the worker, else any other agent,
+/// Whether `name` advertises a review/critique capability — the judge is
+/// chosen by capability, NOT by the literal name "reviewer", so a roster of
+/// arbitrarily-named specialists still elects a critic. The literal is kept as
+/// a floor in case `role_for` is empty for a custom agent.
+fn is_critic(name: &str) -> bool {
+    let role = super::agents::role_for(name);
+    role.contains("review") || role.contains("critique") || name == "reviewer"
+}
+
+/// The judge: a capability critic that isn't the worker, else any other agent,
 /// else the worker itself (single-agent roster).
 pub(crate) fn pick_judge(names: &[String], worker: &str) -> String {
     names
         .iter()
-        .find(|n| n.as_str() == "reviewer" && n.as_str() != worker)
+        .find(|n| n.as_str() != worker && is_critic(n))
         .or_else(|| names.iter().find(|n| n.as_str() != worker))
         .cloned()
         .unwrap_or_else(|| worker.to_string())
