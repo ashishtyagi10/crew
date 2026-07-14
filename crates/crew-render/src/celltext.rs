@@ -22,14 +22,13 @@ pub(crate) struct FontParams {
     pub weight: u16,
 }
 
-/// Base text weight for a theme: dark pages keep Normal; light pages get
-/// Medium so ink reads crisp against the bright paper.
-pub(crate) fn base_weight(dark: bool) -> u16 {
-    if dark {
-        400
-    } else {
-        500
-    }
+/// Base text weight for every theme: Medium (500), so ink reads crisp and
+/// substantial on both the bright paper pages and the dark newspaper pages.
+/// (Dark pages used to keep Normal 400 — they now match light for a heavier,
+/// more legible body.) `dark` is retained for the signature/hash key and a
+/// possible future per-appearance split.
+pub(crate) fn base_weight(_dark: bool) -> u16 {
+    500
 }
 
 /// The cosmic-text `Family` for an optional family name (empty/`None` → system monospace).

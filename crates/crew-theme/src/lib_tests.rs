@@ -285,14 +285,15 @@ fn dark_flag_matches_page_bg_luminance() {
 }
 
 #[test]
-fn grain_is_newsprint_on_light_and_subtle_on_dark() {
-    // 1.2 (not the historical 3.0): gamma-space blending (v0.5.58) modulates
-    // encoded values, which reads much stronger than the old linear-space
-    // grain — 1.2 restores the original measured newsprint amplitude.
+fn grain_is_newsprint_on_every_theme() {
+    // 1.2 across the board (not the historical 3.0): gamma-space blending
+    // (v0.5.58) modulates encoded values, which reads much stronger than the
+    // old linear-space grain. Dark themes now match light (was 1.0) so the
+    // newspaper texture reads on the dark pages too — the shader's dark
+    // absolute term carries it (see paperbg.wgsl).
     for id in ALL_THEMES {
         let t = id.theme();
-        let want = if t.dark { 1.0 } else { 1.2 };
-        assert_eq!(t.grain, want, "{}: grain", id.as_str());
+        assert_eq!(t.grain, 1.2, "{}: grain", id.as_str());
     }
 }
 

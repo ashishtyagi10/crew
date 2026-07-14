@@ -29,29 +29,31 @@ pub(crate) struct MenuItem {
 /// picker for free (its rows run on Enter; unknown text still submits freeform).
 pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
     match cmd {
+        // Rotation modes lead the list (the two `random-*` first), then the
+        // fixed themes. The bare `random` alias is intentionally omitted — it
+        // still parses, but random-dark is the canonical name.
         "/theme" => Some(
-            crew_theme::ALL_THEMES
-                .iter()
-                .map(|t| (t.as_str().to_string(), t.describe().to_string()))
-                .chain(vec![
-                    (
-                        "random".to_string(),
-                        "rotates dark themes every 10 min (alias of random-dark)".to_string(),
-                    ),
-                    (
-                        "random-dark".to_string(),
-                        "rotates dark themes every 10 min".to_string(),
-                    ),
-                    (
-                        "random-light".to_string(),
-                        "rotates light themes every 10 min".to_string(),
-                    ),
-                    (
-                        "auto".to_string(),
-                        "light by day, dark by night — follows the OS".to_string(),
-                    ),
-                ])
-                .collect(),
+            vec![
+                (
+                    "random-dark".to_string(),
+                    "rotates dark themes every 10 min".to_string(),
+                ),
+                (
+                    "random-light".to_string(),
+                    "rotates light themes every 10 min".to_string(),
+                ),
+                (
+                    "auto".to_string(),
+                    "light by day, dark by night — follows the OS".to_string(),
+                ),
+            ]
+            .into_iter()
+            .chain(
+                crew_theme::ALL_THEMES
+                    .iter()
+                    .map(|t| (t.as_str().to_string(), t.describe().to_string())),
+            )
+            .collect(),
         ),
         _ => None,
     }

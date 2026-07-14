@@ -47,7 +47,7 @@ pub static PAPER_DARK: Theme = Theme {
         (250, 250, 250), // 15 bright white
     ],
     dark: true,
-    grain: 1.0,
+    grain: 1.2,
 };
 
 /// Warm paper "day" page — soft off-white with ink-toned output.
@@ -139,7 +139,7 @@ pub static SEPIA_DARK: Theme = Theme {
         (248, 240, 225), // 15 bright white
     ],
     dark: true,
-    grain: 1.0,
+    grain: 1.2,
 };
 
 /// **Midnight ink**: deep navy page with cool off-white ink — a calm
@@ -183,7 +183,7 @@ pub static MIDNIGHT_INK: Theme = Theme {
         (245, 248, 252), // 15 bright white
     ],
     dark: true,
-    grain: 1.0,
+    grain: 1.2,
 };
 
 /// **Graphite**: neutral charcoal page with soft white ink — a gentler,
@@ -227,5 +227,5 @@ pub static GRAPHITE: Theme = Theme {
         (246, 246, 248), // 15 bright white
     ],
     dark: true,
-    grain: 1.0,
+    grain: 1.2,
 };
