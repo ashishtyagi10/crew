@@ -129,9 +129,19 @@ pub fn run() -> anyhow::Result<()> {
     let cwd = crate::cwd::resolved_start(config.last_dir.as_deref());
     let saved = crate::sessionsave::saved_count();
     let restore_hint = (saved > 0).then_some(saved);
+    // Bind the inter-pane `ask` IPC socket (best-effort — a bind failure just
+    // means `crew ask` reports "no crew running"; it never blocks startup).
+    let ipc = match crate::ipc::spawn() {
+        Ok(h) => Some(h),
+        Err(e) => {
+            eprintln!("inter-pane ask socket unavailable: {e}");
+            None
+        }
+    };
     let mut app = CrewApp {
         config,
         font_rotate,
+        ipc,
         // Default focus is the input bar (startup has no panes selected).
         input: InputBar {
             text: String::new(),

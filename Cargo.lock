@@ -569,6 +569,7 @@ dependencies = [
  "ratatui",
  "self_update",
  "serde",
+ "serde_json",
  "sysinfo",
  "tempfile",
  "tokio",

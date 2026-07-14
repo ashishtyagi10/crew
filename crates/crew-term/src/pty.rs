@@ -39,6 +39,11 @@ pub struct PtyTerm {
     scan_tail: String,
     /// Watched patterns matched since the last `take_matches`.
     hits: Vec<String>,
+    /// Inter-pane `ask` output tap: `Some(buf)` while an ask targets this
+    /// pane — `try_read` appends each raw output chunk (lossy UTF-8) so the
+    /// asker's liveness engine can scan for its answer sentinel. `None` = off
+    /// (zero overhead). See crew-app `askwait`.
+    capture: Option<String>,
     child: Box<dyn portable_pty::Child + Send + Sync>,
 }
 
@@ -77,6 +82,9 @@ impl PtyTerm {
                 Ok(chunk) => {
                     total += chunk.len();
                     self.core.feed(&chunk);
+                    if let Some(buf) = &mut self.capture {
+                        buf.push_str(&String::from_utf8_lossy(&chunk));
+                    }
                     if !self.watch.is_empty() {
                         for hit in scan(&mut self.scan_tail, &chunk, &self.watch) {
                             if !self.hits.contains(&hit) {
@@ -110,6 +118,26 @@ impl PtyTerm {
     /// full tick, so flooded output catches up without ever blocking the UI.
     pub fn has_pending(&self) -> bool {
         self.pending
+    }
+
+    /// Begin taking a copy of this pane's raw output for an inter-pane `ask`
+    /// (see `take_capture`). Idempotent; keeps any already-captured bytes.
+    pub fn start_capture(&mut self) {
+        self.capture.get_or_insert_with(String::new);
+    }
+
+    /// Stop copying output (the ask resolved). Discards the buffer.
+    pub fn stop_capture(&mut self) {
+        self.capture = None;
+    }
+
+    /// Drain the output captured since the last call (empty when not
+    /// capturing), leaving capture on so the next tick's delta accrues.
+    pub fn take_capture(&mut self) -> String {
+        self.capture
+            .as_mut()
+            .map(std::mem::take)
+            .unwrap_or_default()
     }
 
     /// Set the case-insensitive substrings watched in this pane's output. Blank
