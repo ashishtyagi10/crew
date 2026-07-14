@@ -6,7 +6,7 @@
 //! resolves it.
 use std::io::{BufRead, BufReader, Write};
 use std::os::unix::net::{UnixListener, UnixStream};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::mpsc::{channel, Receiver, Sender};
 
 use crate::ipc_types::{Reply, Request};
@@ -58,11 +58,44 @@ fn socket_name(instance: Option<&str>) -> String {
     }
 }
 
-/// The socket path for this instance: [`socket_dir`] + [`socket_name`], keyed
-/// off `CREW_INSTANCE` (unset = the default instance). The `crew ask`/`crew
-/// panes` client and the GUI read the same env, so they always agree.
+/// The socket path for a named `instance` (`None` = the default). Used to
+/// address another instance's socket for a federated `pane@instance` ask.
+pub(crate) fn socket_path_for(instance: Option<&str>) -> PathBuf {
+    socket_dir().join(socket_name(instance))
+}
+
+/// The socket path for THIS instance: keyed off `CREW_INSTANCE` (unset = the
+/// default). The `crew ask`/`crew panes` client and the GUI read the same env,
+/// so they always agree.
 pub(crate) fn socket_path() -> PathBuf {
-    socket_dir().join(socket_name(std::env::var("CREW_INSTANCE").ok().as_deref()))
+    socket_path_for(std::env::var("CREW_INSTANCE").ok().as_deref())
+}
+
+/// Instance id parsed from a socket file name: `crew-ipc.sock` → "default",
+/// `crew-ipc-<id>.sock` → "<id>". `None` for names that aren't crew sockets.
+fn instance_of(file: &str) -> Option<String> {
+    let id = file.strip_prefix("crew-ipc")?.strip_suffix(".sock")?;
+    Some(match id.strip_prefix('-') {
+        Some(name) if !name.is_empty() => name.to_string(),
+        _ => "default".to_string(),
+    })
+}
+
+/// Discover crew instances whose sockets exist under `dir` (opt-in local
+/// discovery — best-effort; a stale socket from a crashed instance may linger).
+fn list_instances_in(dir: &Path) -> Vec<String> {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return Vec::new();
+    };
+    entries
+        .flatten()
+        .filter_map(|e| instance_of(e.file_name().to_str()?))
+        .collect()
+}
+
+/// Discover crew instances by their live sockets in the socket dir.
+pub(crate) fn list_instances() -> Vec<String> {
+    list_instances_in(&socket_dir())
 }
 
 /// Bind `path` (reclaiming a stale socket) and spawn the listener thread.
@@ -127,64 +160,5 @@ fn handle_conn(stream: UnixStream, tx: Sender<Incoming>) {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::ipc_types::PaneCard;
-
-    #[test]
-    fn socket_round_trips_a_panes_request() {
-        // Unique temp path (no Date/rand available; use the test thread id).
-        let path = std::env::temp_dir().join(format!(
-            "crew-ipc-test-{:?}.sock",
-            std::thread::current().id()
-        ));
-        let handle = spawn_at(path.clone()).expect("bind");
-
-        // Client: connect, send a Panes request.
-        let mut client = UnixStream::connect(&path).expect("connect");
-        client.write_all(b"{\"op\":\"Panes\",\"v\":1}\n").unwrap();
-        client.flush().unwrap();
-
-        // App side: receive, reply with a roster.
-        let incoming = handle
-            .rx
-            .recv_timeout(std::time::Duration::from_secs(5))
-            .unwrap();
-        assert_eq!(incoming.req, Request::Panes { v: 1 });
-        incoming
-            .reply
-            .send(Reply::Roster {
-                panes: vec![PaneCard {
-                    id: "p0".into(),
-                    label: None,
-                    kind: "terminal".into(),
-                    running: None,
-                    dir: None,
-                    busy: false,
-                }],
-            })
-            .unwrap();
-
-        // Client reads the reply line.
-        let mut buf = String::new();
-        BufReader::new(&mut client).read_line(&mut buf).unwrap();
-        let reply: Reply = serde_json::from_str(buf.trim()).unwrap();
-        assert!(matches!(reply, Reply::Roster { panes } if panes.len() == 1));
-        drop(handle); // unlinks the socket
-    }
-
-    #[test]
-    fn socket_name_is_default_or_per_instance_and_path_safe() {
-        assert_eq!(socket_name(None), "crew-ipc.sock");
-        assert_eq!(socket_name(Some("alpha")), "crew-ipc-alpha.sock");
-        // Empty / all-unsafe ids fall back to the shared default socket.
-        assert_eq!(socket_name(Some("")), "crew-ipc.sock");
-        assert_eq!(socket_name(Some("///")), "crew-ipc.sock");
-        // Path-traversal attempts are stripped to a safe filename fragment.
-        assert_eq!(
-            socket_name(Some("../etc/passwd")),
-            "crew-ipc-etcpasswd.sock"
-        );
-        assert_eq!(socket_name(Some("a/b\\c")), "crew-ipc-abc.sock");
-    }
-}
+#[path = "ipc_tests.rs"]
+mod tests;

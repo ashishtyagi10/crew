@@ -49,6 +49,8 @@ Crew runs as a GUI by default; these command-line modes offer headless operation
 - `crew panes` — list the running instance's addressable panes (for inter-pane ask)
 - `crew ask <id|label> "<question>"` — ask the agent in another pane (see below)
 - `crew ask --all|--any "<question>"` — broadcast to every pane (see below)
+- `crew ask <pane>@<instance> "<question>"` — ask a pane in another crew instance
+- `crew instances` — list crew instances running on this host (federation)
 
 ## Inter-pane ask
 
@@ -90,9 +92,17 @@ is actually generating a reply rather than a fixed timeout.
   3 if no pane was eligible. Broadcast reuses the same visible-injection and
   smart-wait engine per pane — it only widens *who* is asked.
 
-v1/v2 target terminal-CLI agents in the same instance. Cross-instance federation
-(asking agents in *other* people's Crew, by consent) is next — see
-`docs/vision/sentinel-network.md`.
+- **Federation** (v3, in progress): reach an agent in *another* crew instance.
+  - Run a second instance with a name: `CREW_INSTANCE=alpha crew` (each instance
+    gets its own socket; unnamed is the default). `crew instances` lists them.
+  - Address it: `crew ask schema@alpha "which API version?"` — the `@alpha` picks
+    that instance's socket, the `schema` pane is resolved by *that* crew exactly
+    like a local ask. Same visible injection, same smart wait, same verdicts —
+    only *who* you can reach widened. Cross-*host* federation (an authenticated
+    relay, strictly opt-in) is the next step.
+
+The engine (envelope, sentinel protocol, verdict, liveness) is identical across
+local, broadcast, and federated asks — see `docs/vision/sentinel-network.md`.
 
 ## Panes
 

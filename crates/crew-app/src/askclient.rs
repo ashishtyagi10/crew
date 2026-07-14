@@ -77,10 +77,16 @@ fn render_roster(panes: &[PaneCard]) -> String {
     out.trim_end().to_string()
 }
 
-/// Send one request over the socket and read the reply. `None` if no crew is
-/// listening (socket absent / refused).
-fn exchange(req: &Request) -> Option<Reply> {
-    let mut stream = UnixStream::connect(crate::ipc::socket_path()).ok()?;
+/// Send one request over the socket and read the reply. `instance` selects
+/// which crew to dial (`None` = this instance's own socket, for a local ask;
+/// `Some(id)` = a federated `pane@instance` target). `None` return if no crew
+/// is listening (socket absent / refused).
+fn exchange(req: &Request, instance: Option<&str>) -> Option<Reply> {
+    let path = match instance {
+        Some(id) => crate::ipc::socket_path_for(Some(id)),
+        None => crate::ipc::socket_path(),
+    };
+    let mut stream = UnixStream::connect(path).ok()?;
     let json = serde_json::to_string(req).ok()?;
     stream.write_all(json.as_bytes()).ok()?;
     stream.write_all(b"\n").ok()?;
@@ -95,18 +101,23 @@ fn no_crew() -> (String, i32) {
     ("NO_ANSWER: unreachable (no crew running)".to_string(), 3)
 }
 
-/// `crew ask <to> "<question>"`.
+/// `crew ask <to> "<question>"`. `<to>` may be `pane@instance` to reach an
+/// agent in another crew instance's pane (v3 federation) — the instance part
+/// picks the socket, the pane part is resolved by that crew unchanged.
 pub(crate) fn run_ask(to: &str, question: &str) -> i32 {
+    let (pane, instance) = crate::askroute::split_instance(to);
     let from = std::env::var("CREW_PANE").unwrap_or_else(|_| "an agent".to_string());
     let id = format!("q{}", std::process::id());
     let req = Request::Ask {
         v: PROTOCOL_V,
         from,
-        to: to.to_string(),
+        to: pane.to_string(),
         question: question.to_string(),
         id,
     };
-    let (text, code) = exchange(&req).map(|r| render(&r)).unwrap_or_else(no_crew);
+    let (text, code) = exchange(&req, instance)
+        .map(|r| render(&r))
+        .unwrap_or_else(no_crew);
     println!("{text}");
     code
 }
@@ -123,18 +134,37 @@ pub(crate) fn run_broadcast(mode: CastMode, question: &str) -> i32 {
         id,
         mode,
     };
-    let (text, code) = exchange(&req).map(|r| render(&r)).unwrap_or_else(no_crew);
+    let (text, code) = exchange(&req, None)
+        .map(|r| render(&r))
+        .unwrap_or_else(no_crew);
     println!("{text}");
     code
 }
 
 /// `crew panes`.
 pub(crate) fn run_panes() -> i32 {
-    let (text, code) = exchange(&Request::Panes { v: PROTOCOL_V })
+    let (text, code) = exchange(&Request::Panes { v: PROTOCOL_V }, None)
         .map(|r| render(&r))
         .unwrap_or_else(no_crew);
     println!("{text}");
     code
+}
+
+/// `crew instances` — list crew instances discoverable by their local sockets
+/// (opt-in discovery; `pane@<id>` addresses one). "default" is the unnamed
+/// instance.
+pub(crate) fn run_instances() -> i32 {
+    let mut ids = crate::ipc::list_instances();
+    ids.sort();
+    ids.dedup();
+    if ids.is_empty() {
+        println!("(no crew instances running)");
+    } else {
+        for id in ids {
+            println!("{id}");
+        }
+    }
+    0
 }
 
 /// Route a `crew ask …` / `crew panes` client subcommand. `Some(exit code)`
@@ -160,6 +190,7 @@ pub(crate) fn dispatch_cli() -> Option<i32> {
             Some(64)
         }
         Some("panes") => Some(run_panes()),
+        Some("instances") => Some(run_instances()),
         _ => None,
     }
 }
