@@ -51,6 +51,7 @@ Crew runs as a GUI by default; these command-line modes offer headless operation
 - `crew ask --all|--any "<question>"` — broadcast to every pane (see below)
 - `crew ask <pane>@<instance> "<question>"` — ask a pane in another crew instance
 - `crew instances` — list crew instances running on this host (federation)
+- `crew federate` — show federation status (on/off, bind/port) and how to enable it
 
 ## Inter-pane ask
 

@@ -117,6 +117,36 @@ pub(crate) fn run_instances() -> i32 {
     0
 }
 
+/// `crew federate` — show whether cross-host federation is on and how to use it.
+pub(crate) fn run_federate() -> i32 {
+    let token = std::env::var("CREW_FEDERATE_TOKEN").ok();
+    let bind = std::env::var("CREW_FEDERATE_BIND").unwrap_or_else(|_| "0.0.0.0".into());
+    let port = std::env::var("CREW_FEDERATE_PORT")
+        .ok()
+        .and_then(|p| p.parse().ok())
+        .unwrap_or(crate::askaddr::DEFAULT_RELAY_PORT);
+    println!("{}", federate_status(token.as_deref(), &bind, port));
+    0
+}
+
+/// The `crew federate` status text — pure, so it's testable.
+fn federate_status(token: Option<&str>, bind: &str, port: u16) -> String {
+    if token.is_some_and(|t| !t.is_empty()) {
+        format!(
+            "federation: ON\n  listening {bind}:{port} (token required)\n  \
+             reach me: crew ask <pane>@crew://<this-host>/<instance> \"…\"  \
+             (callers need the same CREW_FEDERATE_TOKEN)\n  \
+             note: token + data are plaintext — run over a trusted net or a tunnel/TLS"
+        )
+    } else {
+        format!(
+            "federation: OFF (nothing is exposed)\n  enable: \
+             CREW_FEDERATE_TOKEN=<secret> crew   (binds a relay on {bind}:{port})\n  \
+             callers then: crew ask <pane>@crew://<host>/<instance> \"…\" with the same token"
+        )
+    }
+}
+
 /// Route a `crew ask …` / `crew panes` client subcommand. `Some(exit code)`
 /// when the args were a client subcommand (the caller exits without launching
 /// the GUI); `None` when they are not ours and startup should continue.
@@ -141,6 +171,21 @@ pub(crate) fn dispatch_cli() -> Option<i32> {
         }
         Some("panes") => Some(run_panes()),
         Some("instances") => Some(run_instances()),
+        Some("federate") => Some(run_federate()),
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn federate_status_reflects_the_token() {
+        let on = federate_status(Some("s3cret"), "0.0.0.0", 7733);
+        assert!(on.contains("ON") && on.contains("0.0.0.0:7733") && on.contains("crew://"));
+        let off = federate_status(None, "0.0.0.0", 7733);
+        assert!(off.contains("OFF") && off.contains("CREW_FEDERATE_TOKEN"));
+        assert!(federate_status(Some(""), "0.0.0.0", 7733).contains("OFF"));
     }
 }
