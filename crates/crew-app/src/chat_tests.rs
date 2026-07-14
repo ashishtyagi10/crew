@@ -484,9 +484,13 @@ fn slash_theme_lists_and_switches_without_reaching_the_broker() {
         "got: {note}"
     );
 
-    // A known name switches the live theme and echoes it.
+    // A known name switches the live theme, echoes it, and asks the app to
+    // persist the switch (the pane can't reach the config).
     p.input = "/theme crt-amber".to_string();
-    assert!(p.on_input(ChatInput::Enter, &cwd).is_none());
+    assert!(matches!(
+        p.on_input(ChatInput::Enter, &cwd),
+        Some(ChatAction::PersistTheme)
+    ));
     assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::CrtAmber);
     let note = &p.messages.last().unwrap().text;
     assert!(
@@ -518,7 +522,10 @@ fn slash_theme_random_enters_rotation_and_a_named_switch_clears_it() {
     // `/theme random` enters rotation mode (the `random-dark` alias) and
     // echoes it, without reaching the broker.
     p.input = "/theme random".to_string();
-    assert!(p.on_input(ChatInput::Enter, &cwd).is_none());
+    assert!(matches!(
+        p.on_input(ChatInput::Enter, &cwd),
+        Some(ChatAction::PersistTheme)
+    ));
     assert!(crew_theme::is_random());
     assert_eq!(crew_theme::mode(), Some(crew_theme::RandomMode::Dark));
     let note = &p.messages.last().unwrap().text;
@@ -530,9 +537,13 @@ fn slash_theme_random_enters_rotation_and_a_named_switch_clears_it() {
     let note = &p.messages.last().unwrap().text;
     assert!(note.contains("\u{25cf} random-dark"), "got: {note}");
 
-    // Switching to a named theme turns rotation back off.
+    // Switching to a named theme turns rotation back off (and persists too —
+    // a fixed pick must not leave a stale rotation mode in the config).
     p.input = "/theme paper-light".to_string();
-    assert!(p.on_input(ChatInput::Enter, &cwd).is_none());
+    assert!(matches!(
+        p.on_input(ChatInput::Enter, &cwd),
+        Some(ChatAction::PersistTheme)
+    ));
     assert!(!crew_theme::is_random());
     assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::PaperLight);
 
