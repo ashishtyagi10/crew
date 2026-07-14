@@ -101,6 +101,7 @@ mod panecard;
 mod panefit;
 mod panelist;
 mod panemanage;
+mod panes_roster;
 mod paneview;
 mod pathcomplete;
 mod pathexpand;
