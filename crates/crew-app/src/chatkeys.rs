@@ -23,6 +23,14 @@ pub(crate) enum ChatInput {
 pub(crate) enum ChatAction {
     /// Close this pane (Escape).
     Close,
+    /// A `/theme` switch in the composer changed the live theme; the app
+    /// must persist it (the pane can't reach the config) and refresh the
+    /// theme-following accent — same pairing as every theme-change path.
+    PersistTheme,
+    /// `/font <arg>` typed in the composer: run it through the app's
+    /// input-bar font path (size set / rotation toggle needs the renderer,
+    /// which the pane can't reach).
+    Font(String),
 }
 
 /// Classify a key press for a chat pane. Only presses act; Escape closes.

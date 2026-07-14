@@ -82,19 +82,34 @@ fn theme_names() -> String {
         .join(", ")
 }
 
-/// Intercept composer submissions the pane answers locally. Returns `true`
-/// when `text` was consumed (nothing should be sent to the broker).
-pub(crate) fn intercept(pane: &mut ChatPane, text: &str) -> bool {
+/// What `intercept` did with a composer submission: not a `/theme` command
+/// at all (send it to the broker), answered locally with no theme change, or
+/// switched the live theme — the app must persist that switch to config, or
+/// it silently reverts on restart (and a fixed pick would kill a saved
+/// rotation mode until then).
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum ThemeIntercept {
+    NotTheme,
+    Handled,
+    Switched,
+}
+
+/// Intercept composer submissions the pane answers locally. Anything but
+/// `NotTheme` means `text` was consumed (nothing should be sent to the
+/// broker); `Switched` additionally asks the app to persist the selection.
+pub(crate) fn intercept(pane: &mut ChatPane, text: &str) -> ThemeIntercept {
     let trimmed = text.trim();
     if trimmed != "/theme" && !trimmed.starts_with("/theme ") {
-        return false;
+        return ThemeIntercept::NotTheme;
     }
     let arg = trimmed.strip_prefix("/theme").unwrap_or("");
     let now_ms = chrono::Local::now().timestamp_millis() as u64;
+    let mut outcome = ThemeIntercept::Handled;
     let note = match parse_theme_cmd(arg) {
         ThemeCmd::List => theme_list_line(crew_theme::current_id(), crew_theme::mode()),
         ThemeCmd::Select(sel) => {
             crew_theme::apply_selection(sel, now_ms);
+            outcome = ThemeIntercept::Switched;
             format!("theme \u{2192} {}", crew_theme::selection_label())
         }
         ThemeCmd::Unknown(name) => {
@@ -108,7 +123,7 @@ pub(crate) fn intercept(pane: &mut ChatPane, text: &str) -> bool {
         ts,
         meta: String::new(),
     });
-    true
+    outcome
 }
 
 #[cfg(test)]
@@ -207,6 +222,22 @@ mod tests {
     #[test]
     fn theme_names_includes_random() {
         assert!(theme_names().contains("random"));
+    }
+
+    #[test]
+    fn intercept_distinguishes_switch_list_and_foreign_text() {
+        let _g = crate::app::theme_test_guard();
+        let plugin =
+            crew_plugin::Plugin::spawn("sh", &["-c".to_string(), "cat >/dev/null".to_string()])
+                .unwrap();
+        let mut p = ChatPane::new(plugin, "crew".into());
+        assert_eq!(
+            intercept(&mut p, "/theme paper-dark"),
+            ThemeIntercept::Switched
+        );
+        assert_eq!(intercept(&mut p, "/theme"), ThemeIntercept::Handled);
+        assert_eq!(intercept(&mut p, "/theme nope"), ThemeIntercept::Handled);
+        assert_eq!(intercept(&mut p, "hello"), ThemeIntercept::NotTheme);
     }
 
     #[test]

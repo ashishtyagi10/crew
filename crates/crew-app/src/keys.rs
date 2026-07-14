@@ -207,12 +207,7 @@ impl CrewApp {
             }
         }
         if let Some(action) = chat_action {
-            use crate::chatkeys::ChatAction;
-            match action {
-                ChatAction::Close => {
-                    self.close_pane(focused);
-                }
-            }
+            self.apply_chat_action(action, focused);
         }
         if let Some(action) = md_action {
             use crate::mdkeys::MdAction;

@@ -102,6 +102,17 @@ impl ChatPane {
         }
     }
 
+    /// Append a local "crew" note to the transcript — composer intercepts
+    /// (`/theme`, `/export`) and app-side command echoes (`/font`) share it.
+    pub(crate) fn push_note(&mut self, text: String) {
+        self.messages.push(Message {
+            sender: "crew".into(),
+            text,
+            ts: chrono::Local::now().timestamp_millis().to_string(),
+            meta: String::new(),
+        });
+    }
+
     /// Whether the pane is awaiting a reply (busy), for the progress sweep —
     /// either our own send is unanswered or agents are mid-turn.
     pub fn is_busy(&self) -> bool {
@@ -348,11 +359,22 @@ impl ChatPane {
             if crate::chatexport::intercept(self, &text) {
                 return None; // answered locally (e.g. /export)
             }
-            if crate::chattheme::intercept(self, &text) {
-                return None; // answered locally (/theme list or switch)
+            match crate::chattheme::intercept(self, &text) {
+                // A switch must also be persisted app-side, or it silently
+                // reverts on restart.
+                crate::chattheme::ThemeIntercept::Switched => {
+                    return Some(ChatAction::PersistTheme)
+                }
+                crate::chattheme::ThemeIntercept::Handled => return None,
+                crate::chattheme::ThemeIntercept::NotTheme => {}
             }
             if crate::chatcompact::intercept(self, &text) {
                 return None; // answered locally (/compact folds away older messages)
+            }
+            // `/font` needs the renderer, so the app runs it (and echoes the
+            // status back here) — sending it to the broker did nothing.
+            if let Some(arg) = crate::chatfont::parse(&text) {
+                return Some(ChatAction::Font(arg));
             }
             if !text.is_empty() {
                 let expanded = crate::chatmention::expand(&text, cwd);
