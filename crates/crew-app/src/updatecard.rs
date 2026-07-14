@@ -1,6 +1,6 @@
 //! The left-nav UPDATE card interior: a spinner + stage line and a version
 //! transition line, shown only while a `/update` runs (and briefly after). The
-//! bordered fieldset frame is drawn by `panecard::push_card`; this fills it.
+//! bordered fieldset frame is drawn by `panelcard::push_card`; this fills it.
 use crew_render::CellView;
 
 use crate::palette::accent;

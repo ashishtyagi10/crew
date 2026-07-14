@@ -1,8 +1,8 @@
-//! Fieldset card drawing: the rounded border + legend that frames every panel
-//! (panes via [`pane_card`], the sidebar/welcome via [`push_card`]). No title
-//! bars — a panel is just a border with a legend on its top edge, so the UI
-//! reads as boxes drawn on one canvas.
-use crew_render::{CellView, PaneScene};
+//! Pane fieldset drawing: the rounded border + legend that frames a pane
+//! ([`pane_card`]) — signature hue, status glyphs, the busy rain patch. No
+//! title bars: a pane is just a border with a legend on its top edge. Non-pane
+//! panels (sidebar, welcome, menus) use [`crate::panelcard::push_card`].
+use crew_render::CellView;
 
 use crate::boxdraw::titled_card;
 use crate::layout::Rect;
@@ -182,48 +182,6 @@ fn overlay_rain(v: &mut Vec<CellView>, cols: u16, rows: u16, now: u64) {
         v.retain(|c| !(c.col == d.col && c.row == d.row));
         v.push(d);
     }
-}
-
-/// Push a fieldset card for a non-pane panel (sidebar, welcome) into `scenes`:
-/// an inset content buffer plus a dim border card carrying `legend`. `content`
-/// builds the interior cells at the inset `(cols, rows)` grid. Content and
-/// border ride separate buffers, like panes, so the border never shifts content.
-pub fn push_card(
-    scenes: &mut Vec<PaneScene>,
-    rect: Rect,
-    cw: f32,
-    ch: f32,
-    legend: &str,
-    content: impl FnOnce(u16, u16) -> Vec<CellView>,
-) {
-    let (icols, irows) = crate::layout::card_inner_cells(rect.w, rect.h, cw, ch);
-    scenes.push(PaneScene {
-        cells: content(icols, irows),
-        x: rect.x + cw,
-        y: rect.y + ch,
-        w: (rect.w - 2.0 * cw).max(0.0),
-        h: (rect.h - 2.0 * ch).max(0.0),
-        focused: false,
-        bordered: false,
-        overlay: false,
-    });
-    scenes.push(PaneScene {
-        cells: titled_card(
-            icols + 2,
-            irows + 2,
-            legend,
-            crew_theme::theme().border_normal,
-            crew_theme::theme().legend_off,
-            crew_theme::theme().page_bg,
-        ),
-        x: rect.x,
-        y: rect.y,
-        w: rect.w,
-        h: rect.h,
-        focused: false,
-        bordered: false,
-        overlay: false,
-    });
 }
 
 #[cfg(test)]
