@@ -7,7 +7,7 @@ use crew_render::{CellView, PaneScene};
 use crate::attention::Attention;
 use crate::layout::Rect;
 use crate::pane::Pane;
-use crate::panecard::push_card;
+use crate::panelcard::push_card;
 
 /// The one-cell marker for a thumbnail: the attention glyph (bell colour,
 /// blinking on the shared clock) supersedes the activity dot; a marker in its

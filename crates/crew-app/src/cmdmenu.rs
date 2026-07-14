@@ -1,6 +1,6 @@
 //! Command palette: the slash commands matching the current input, rendered as
 //! the interior of a fieldset "commands" card on the canvas (the border + legend
-//! are drawn by [`crate::panecard::push_card`]). Just a box on the one canvas,
+//! are drawn by [`crate::panelcard::push_card`]). Just a box on the one canvas,
 //! like every other panel — no opaque floating popup.
 use crew_render::CellView;
 use ratatui::buffer::Buffer;
@@ -21,7 +21,7 @@ const MAX_ROWS: usize = 10;
 
 /// Total cell rows the "commands" card needs for `n` commands: the visible list
 /// rows (capped at [`MAX_ROWS`]) plus the top/bottom fieldset border. The caller
-/// sizes the card with this; [`crate::panecard::push_card`] insets the 2 border
+/// sizes the card with this; [`crate::panelcard::push_card`] insets the 2 border
 /// rows back out before asking [`menu_cells`] to fill the interior.
 pub fn menu_rows(n: usize) -> u16 {
     n.min(MAX_ROWS) as u16 + 2

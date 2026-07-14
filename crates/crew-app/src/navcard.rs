@@ -30,7 +30,7 @@ impl CrewApp {
                 h: (chrome::UPDATE_CARD_ROWS * ch).min(full.h),
                 ..full
             };
-            crate::panecard::push_card(scenes, top, cw, ch, "UPDATE", |cols, rows| {
+            crate::panelcard::push_card(scenes, top, cw, ch, "UPDATE", |cols, rows| {
                 crate::updatecard::update_cells(u, cols, rows)
             });
         }
@@ -39,7 +39,7 @@ impl CrewApp {
         let sidebar = &self.sidebar;
         let log = &self.log;
         let legend = concat!("crew v", env!("CARGO_PKG_VERSION"));
-        crate::panecard::push_card(scenes, sb, cw, ch, legend, |cols, rows| {
+        crate::panelcard::push_card(scenes, sb, cw, ch, legend, |cols, rows| {
             sidebar.cells(cols, rows, &pane_rows, log)
         });
     }

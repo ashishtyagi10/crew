@@ -104,6 +104,7 @@ mod palette;
 mod pane;
 mod panecard;
 mod panefit;
+mod panelcard;
 mod panelist;
 mod panemanage;
 mod panes_roster;
