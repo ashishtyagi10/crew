@@ -123,18 +123,28 @@ fn theme_space_lists_all_themes_as_runnable_values() {
 
 #[test]
 fn theme_picker_offers_rotation_modes() {
-    // The picker must offer all four rotation modes alongside the fixed themes.
+    // The picker offers the three rotation modes (the bare `random` alias is
+    // not listed — it still parses, but random-dark is the canonical name).
     let items = menu_items("/theme ");
     let labels: Vec<&str> = items.iter().map(|m| m.label.as_str()).collect();
-    for mode in ["random", "random-dark", "random-light", "auto"] {
+    for mode in ["random-dark", "random-light", "auto"] {
         assert!(labels.contains(&mode), "{mode} missing from picker");
     }
+    assert!(
+        !labels.contains(&"random"),
+        "bare `random` alias must not be listed: {labels:?}"
+    );
+    // The two rotation modes float to the top of the list, ahead of the
+    // fixed themes.
+    let first_fixed = labels.iter().position(|l| *l == "paper-dark").unwrap();
+    let rd = labels.iter().position(|l| *l == "random-dark").unwrap();
+    let rl = labels.iter().position(|l| *l == "random-light").unwrap();
+    assert!(
+        rd < first_fixed && rl < first_fixed,
+        "modes lead: {labels:?}"
+    );
     // Each mode fills the full command and submits on Enter.
     for (mode, desc) in [
-        (
-            "random",
-            "rotates dark themes every 10 min (alias of random-dark)",
-        ),
         ("random-dark", "rotates dark themes every 10 min"),
         ("random-light", "rotates light themes every 10 min"),
         ("auto", "light by day, dark by night — follows the OS"),

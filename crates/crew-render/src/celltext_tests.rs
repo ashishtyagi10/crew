@@ -196,8 +196,8 @@ fn adjacent_same_style_cells_coalesce_into_one_span() {
 }
 
 #[test]
-fn base_weight_is_medium_on_light_and_normal_on_dark() {
-    assert_eq!(base_weight(true), 400, "dark themes keep Normal");
+fn base_weight_is_medium_on_both_appearances() {
+    assert_eq!(base_weight(true), 500, "dark themes now read at Medium too");
     assert_eq!(base_weight(false), 500, "light themes read at Medium");
 }
 

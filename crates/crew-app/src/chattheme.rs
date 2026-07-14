@@ -35,17 +35,8 @@ fn parse_theme_cmd(arg: &str) -> ThemeCmd {
 /// three rotation modes, the active one marked with `\u{25cf}`. When a mode is
 /// on no fixed theme is marked (rotation owns the pick).
 fn theme_list_line(current: crew_theme::ThemeId, mode: Option<crew_theme::RandomMode>) -> String {
-    let mut items: Vec<String> = crew_theme::ALL_THEMES
-        .iter()
-        .map(|&id| {
-            let mark = if mode.is_none() && id == current {
-                "\u{25cf} "
-            } else {
-                ""
-            };
-            format!("{mark}{} ({})", id.as_str(), id.describe())
-        })
-        .collect();
+    // The two rotation modes lead the list (then auto), ahead of the fixed
+    // themes — the rotations are the headline choices.
     let modes: [(crew_theme::RandomMode, &str); 3] = [
         (
             crew_theme::RandomMode::Dark,
@@ -60,10 +51,21 @@ fn theme_list_line(current: crew_theme::ThemeId, mode: Option<crew_theme::Random
             "light by day, dark by night \u{2014} follows the OS",
         ),
     ];
-    for (m, desc) in modes {
-        let mark = if mode == Some(m) { "\u{25cf} " } else { "" };
-        items.push(format!("{mark}{} ({desc})", m.as_str()));
-    }
+    let mut items: Vec<String> = modes
+        .into_iter()
+        .map(|(m, desc)| {
+            let mark = if mode == Some(m) { "\u{25cf} " } else { "" };
+            format!("{mark}{} ({desc})", m.as_str())
+        })
+        .collect();
+    items.extend(crew_theme::ALL_THEMES.iter().map(|&id| {
+        let mark = if mode.is_none() && id == current {
+            "\u{25cf} "
+        } else {
+            ""
+        };
+        format!("{mark}{} ({})", id.as_str(), id.describe())
+    }));
     format!(
         "themes: {} \u{2014} /theme <name> to switch",
         items.join(", ")
@@ -71,13 +73,12 @@ fn theme_list_line(current: crew_theme::ThemeId, mode: Option<crew_theme::Random
 }
 
 /// The comma-joined list of valid theme names, for the "unknown theme" echo.
-/// `random` is kept as the back-compat alias for `random-dark` alongside the
-/// three rotation-mode names.
+/// The two rotation modes lead, then the fixed themes. The bare `random`
+/// alias still parses but isn't advertised (random-dark is canonical).
 fn theme_names() -> String {
-    crew_theme::ALL_THEMES
-        .iter()
-        .map(|id| id.as_str())
-        .chain(["random", "random-dark", "random-light", "auto"])
+    ["random-dark", "random-light", "auto"]
+        .into_iter()
+        .chain(crew_theme::ALL_THEMES.iter().map(|id| id.as_str()))
         .collect::<Vec<_>>()
         .join(", ")
 }
@@ -220,8 +221,16 @@ mod tests {
     }
 
     #[test]
-    fn theme_names_includes_random() {
-        assert!(theme_names().contains("random"));
+    fn theme_names_lists_modes_but_not_the_bare_random_alias() {
+        let names = theme_names();
+        assert!(names.contains("random-dark"), "{names}");
+        assert!(names.contains("random-light"), "{names}");
+        assert!(names.contains("auto"), "{names}");
+        // The bare `random` alias is not advertised (it still parses).
+        assert!(
+            !names.split(", ").any(|n| n == "random"),
+            "bare `random` must not be listed: {names}"
+        );
     }
 
     #[test]

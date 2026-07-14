@@ -53,21 +53,26 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     // 0.0015 absolute amplitude was tuned for a LINEAR page colour headed to
     // an sRGB target, where near-black values gained ~13x on encode; on the
     // non-sRGB path that gain is gone, so the same constant read as
-    // essentially flat on dark pages. 0.026 restores the pre-change ~±3-level
-    // (std ≈ 2.6) spread on a near-black page — measured by rendering
-    // page_bg (8,8,8) at grain_mul 1.3 (knob default 1.3 × theme.grain 1.0)
-    // and sampling per-pixel R stddev over a flat center region.
+    // essentially flat on dark pages.
+    //
+    // 0.048 gives the near-black "newspaper" page the SAME newsprint spread
+    // the bright paper page has (light-page std ≈ 5.67), so the dark themes
+    // read as textured newsprint rather than flat black — the deliberate
+    // choice after dark themes previously kept a much subtler ~±3-level grain.
+    // Dark themes now also carry theme.grain 1.2 (matching light), so the two
+    // appearances share one grain identity. Measured by rendering page_bg
+    // (8,8,8) at grain_mul 1.56 (knob default 1.3 × theme.grain 1.2) and
+    // sampling per-pixel R stddev over a flat center region.
     //
     // The absolute term is weighted down by page brightness (`dark_weight`)
-    // so it stays negligible on light pages — without this, the larger
-    // constant would roughly double the already-calibrated light-page grain
-    // (theme.grain 1.2), since the absolute and multiplicative terms share
-    // the same noise sample and add. `dark_weight` ≈ 1 near black and ≈ 0.05
-    // on the paper-light page_bg, keeping light-page spread within ~1% of
-    // its pre-F1 measurement (measured std 5.693 → 5.667).
+    // so it stays negligible on light pages — without this, the constant
+    // would stack on the already-calibrated light-page multiplicative grain,
+    // since the absolute and multiplicative terms share the same noise sample
+    // and add. `dark_weight` ≈ 1 near black and ≈ 0.05 on the paper-light
+    // page_bg, keeping the light-page spread essentially unchanged.
     let page_luma = dot(u.page_bg.rgb, vec3<f32>(0.299, 0.587, 0.114));
     let dark_weight = 1.0 - page_luma;
-    let rgb = clamp(base * (1.0 + n * 0.05) + vec3<f32>(n * 0.026 * dark_weight),
+    let rgb = clamp(base * (1.0 + n * 0.05) + vec3<f32>(n * 0.048 * dark_weight),
                     vec3<f32>(0.0), vec3<f32>(1.0));
     return vec4<f32>(rgb, 1.0);
 }
