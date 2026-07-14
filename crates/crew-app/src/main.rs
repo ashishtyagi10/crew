@@ -77,6 +77,7 @@ mod host;
 pub(crate) mod inputbar;
 mod inputbar_render;
 mod inputkeys;
+mod ipc_types;
 mod keys;
 mod layout;
 mod linkhl;
