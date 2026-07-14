@@ -11,31 +11,39 @@ fn text(cells: &[CellView], row: u16) -> String {
 }
 
 #[test]
-fn header_shows_title_channel_and_count() {
-    let cells = header_cells(60, "general", true, 3, false, None, (0, 0), 0, false);
+fn header_shows_title_channel_and_dot() {
+    let cells = header_cells(60, "general", true, false, None, 0, false);
     let line = text(&cells, 0);
     assert!(line.contains("crew"), "title missing: {line}");
     assert!(line.contains("general"), "channel missing: {line}");
-    assert!(line.contains("3 msgs"), "count missing: {line}");
     assert!(line.contains('\u{25cf}'), "connected dot missing: {line}");
 }
 
 #[test]
-fn singular_message_and_connecting_dot() {
-    let line = text(
-        &header_cells(60, "", false, 1, false, None, (0, 0), 0, false),
-        0,
+fn reductionist_header_has_no_msg_or_turn_chatter() {
+    // A wide, idle, connected header is just: title · dot. No message count,
+    // no turn count, no last-turn duration.
+    let line = text(&header_cells(60, "general", true, false, None, 0, false), 0);
+    assert!(
+        !line.contains("msg"),
+        "message counter must be gone: {line}"
     );
-    assert!(line.contains("1 msg") && !line.contains("1 msgs"));
+    assert!(!line.contains("turn"), "turn counter must be gone: {line}");
+    assert!(
+        !line.contains("tok"),
+        "no token meter at zero spend: {line}"
+    );
+}
+
+#[test]
+fn connecting_dot_when_disconnected() {
+    let line = text(&header_cells(60, "", false, false, None, 0, false), 0);
     assert!(line.contains('\u{25cb}'), "connecting dot missing: {line}");
 }
 
 #[test]
 fn awaiting_shows_thinking_spinner() {
-    let line = text(
-        &header_cells(60, "c", true, 0, true, None, (0, 0), 0, false),
-        0,
-    );
+    let line = text(&header_cells(60, "c", true, true, None, 0, false), 0);
     assert!(line.contains("thinking"), "spinner label missing: {line}");
 }
 
@@ -46,10 +54,8 @@ fn active_agent_shows_name_and_elapsed_over_plain_thinking() {
             60,
             "c",
             true,
-            0,
             true,
             Some(("coder", 12, (9, 9, 9))),
-            (0, 0),
             0,
             false,
         ),
@@ -64,15 +70,8 @@ fn active_agent_shows_name_and_elapsed_over_plain_thinking() {
 
 #[test]
 fn token_meter_appears_once_spend_is_nonzero() {
-    assert!(!text(
-        &header_cells(60, "c", true, 0, false, None, (0, 0), 0, false),
-        0
-    )
-    .contains("tok"));
-    let line = text(
-        &header_cells(60, "c", true, 0, false, None, (9_500, 0), 0, false),
-        0,
-    );
+    assert!(!text(&header_cells(60, "c", true, false, None, 0, false), 0).contains("tok"));
+    let line = text(&header_cells(60, "c", true, false, None, 9_500, false), 0);
     assert!(line.contains("~9.5k tok"), "meter missing: {line}");
 }
 
@@ -82,78 +81,23 @@ fn all_cells_stay_within_width() {
         20,
         "a-very-long-channel-name",
         true,
-        999,
         true,
         Some(("x", 5, (9, 9, 9))),
-        (12345, 42),
-        13_100,
+        12_345,
         false,
     );
     assert!(cells.iter().all(|c| c.col < 20 && c.row == 0));
 }
 
 #[test]
-fn turn_counter_appears_once_a_turn_completes() {
-    assert!(!text(
-        &header_cells(60, "c", true, 0, false, None, (0, 0), 0, false),
-        0
-    )
-    .contains("turn"));
-    let line = text(
-        &header_cells(60, "c", true, 0, false, None, (0, 1), 0, false),
-        0,
-    );
-    assert!(
-        line.contains("1 turn") && !line.contains("1 turns"),
-        "{line}"
-    );
-    let line = text(
-        &header_cells(60, "c", true, 0, false, None, (0, 3), 0, false),
-        0,
-    );
-    assert!(line.contains("3 turns"), "{line}");
-}
-
-#[test]
-fn turn_duration_appears_after_the_turn_count_when_known() {
-    // 13,100ms -> "13.1s", rendered right after the turn count.
-    let line = text(
-        &header_cells(60, "c", true, 0, false, None, (0, 1), 13_100, false),
-        0,
-    );
-    assert!(
-        line.contains("1 turn \u{00b7} 13.1s"),
-        "duration missing: {line}"
-    );
-}
-
-#[test]
-fn turn_duration_omitted_when_turn_ms_is_zero() {
-    let line = text(
-        &header_cells(60, "c", true, 0, false, None, (0, 1), 0, false),
-        0,
-    );
-    assert!(
-        line.contains("1 turn") && !line.contains("\u{00b7} 0.0s"),
-        "unexpected duration: {line}"
-    );
-}
-
-#[test]
 fn esc_interrupt_hint_appears_while_busy_on_a_wide_pane() {
-    let line = text(
-        &header_cells(60, "c", true, 0, true, None, (0, 0), 0, false),
-        0,
-    );
+    let line = text(&header_cells(60, "c", true, true, None, 0, false), 0);
     assert!(line.contains("esc interrupts"), "busy hint missing: {line}");
 }
 
 #[test]
 fn esc_interrupt_hint_absent_when_idle() {
-    let line = text(
-        &header_cells(60, "c", true, 0, false, None, (0, 0), 0, false),
-        0,
-    );
+    let line = text(&header_cells(60, "c", true, false, None, 0, false), 0);
     assert!(
         !line.contains("esc interrupts"),
         "hint must not appear while idle: {line}"
@@ -162,20 +106,12 @@ fn esc_interrupt_hint_absent_when_idle() {
 
 #[test]
 fn esc_interrupt_hint_is_first_dropped_when_narrow() {
-    // Wide: the hint fits alongside the rest of the status.
-    let wide = text(
-        &header_cells(60, "c", true, 0, true, None, (0, 0), 0, false),
-        0,
-    );
+    let wide = text(&header_cells(60, "c", true, true, None, 0, false), 0);
     assert!(wide.contains("esc interrupts"), "hint should fit: {wide}");
 
-    // Narrow: room for the core status (spinner + message count + dot) but
-    // not the optional hint suffix — the hint must be the first thing
-    // dropped rather than clipping mid-glyph.
-    let narrow = text(
-        &header_cells(24, "c", true, 0, true, None, (0, 0), 0, false),
-        0,
-    );
+    // Narrow: room for the core status (spinner + dot) but not the optional
+    // hint suffix — the hint must be dropped rather than clip mid-glyph.
+    let narrow = text(&header_cells(24, "c", true, true, None, 0, false), 0);
     assert!(
         !narrow.contains("esc interrupts"),
         "hint should be dropped first when narrow: {narrow}"
@@ -187,44 +123,14 @@ fn esc_interrupt_hint_is_first_dropped_when_narrow() {
 }
 
 #[test]
-fn right_side_segments_are_pipe_separated() {
-    // `text()` concatenates rendered cells in column order — the inter-segment
-    // gap columns carry no cell at all, so consecutive segments (and the
-    // pipe glyph placed between them) sit directly adjacent with no space
-    // cell of their own in the reconstructed string.
-    let line = text(
-        &header_cells(60, "c", true, 4, false, None, (6_500, 1), 13_100, false),
-        0,
-    );
-    assert!(
-        line.contains("13.1s\u{2502}~6.5k"),
-        "pipe between turn and token segments missing: {line}"
-    );
-    assert!(
-        line.contains("tok\u{2502}4 msgs"),
-        "pipe between token and message segments missing: {line}"
-    );
-    assert!(
-        !line.contains("msgs\u{2502}"),
-        "no pipe before the connection dot: {line}"
-    );
-}
-
-#[test]
 fn compact_chip_appears_when_compact_on_a_wide_pane() {
-    let line = text(
-        &header_cells(60, "c", true, 0, false, None, (0, 0), 0, true),
-        0,
-    );
+    let line = text(&header_cells(60, "c", true, false, None, 0, true), 0);
     assert!(line.contains("compact"), "compact chip missing: {line}");
 }
 
 #[test]
 fn compact_chip_absent_when_not_compact() {
-    let line = text(
-        &header_cells(60, "c", true, 0, false, None, (0, 0), 0, false),
-        0,
-    );
+    let line = text(&header_cells(60, "c", true, false, None, 0, false), 0);
     assert!(
         !line.contains("compact"),
         "chip must not appear outside compact view: {line}"
@@ -234,19 +140,13 @@ fn compact_chip_absent_when_not_compact() {
 #[test]
 fn compact_chip_is_dropped_before_the_esc_hint_when_narrow() {
     // Wide: both the compact chip and the busy hint fit alongside the rest.
-    let wide = text(
-        &header_cells(60, "c", true, 0, true, None, (0, 0), 0, true),
-        0,
-    );
+    let wide = text(&header_cells(60, "c", true, true, None, 0, true), 0);
     assert!(wide.contains("compact"), "chip should fit: {wide}");
     assert!(wide.contains("esc interrupts"), "hint should fit: {wide}");
 
     // Mid-width: room for the hint but not both — the compact chip is the
     // first of the two dropped (it's the less essential signal).
-    let mid = text(
-        &header_cells(44, "c", true, 0, true, None, (0, 0), 0, true),
-        0,
-    );
+    let mid = text(&header_cells(40, "c", true, true, None, 0, true), 0);
     assert!(
         !mid.contains("compact"),
         "chip should be dropped first when narrow: {mid}"
@@ -257,11 +157,8 @@ fn compact_chip_is_dropped_before_the_esc_hint_when_narrow() {
     );
 
     // Narrower still: neither optional segment fits, but the core status
-    // (spinner + message count + dot) always renders.
-    let narrow = text(
-        &header_cells(24, "c", true, 0, true, None, (0, 0), 0, true),
-        0,
-    );
+    // (spinner + dot) always renders.
+    let narrow = text(&header_cells(20, "c", true, true, None, 0, true), 0);
     assert!(!narrow.contains("compact"), "got: {narrow}");
     assert!(!narrow.contains("esc interrupts"), "got: {narrow}");
     assert!(

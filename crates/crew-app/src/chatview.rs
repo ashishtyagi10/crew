@@ -82,9 +82,10 @@ impl ChatPane {
             return 0; // too short — plain message fallback
         }
         let views = self.agent_views();
+        let show_share = views.len() >= 2;
         let avail =
             rows.saturating_sub(1 + crate::chatinput::composer_rows(&self.input, cols, rows));
-        match crate::chatchips::layout(&views, cols, avail) {
+        match crate::chatchips::layout(&views, cols, avail, show_share) {
             Some(l) => 1 + l.rows,
             None => 1, // session line only
         }
@@ -119,26 +120,22 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
         };
         (label, secs, color)
     });
-    // The settled/last turn's duration — the sum of its recorded hop times —
-    // folded into the session line as `<N> turn[s] · <D.D>s`.
-    let turn_ms: u64 = pane.pulse.hops().iter().map(|(_, ms)| *ms).sum();
     let mut cells = crate::chathdr::header_cells(
         cols,
         &pane.channel,
         pane.connected,
-        pane.messages.len(),
         pane.is_busy(),
         status.as_ref().map(|(l, s, c)| (l.as_str(), *s, *c)),
-        (pane.tokens, pane.turns),
-        turn_ms,
+        pane.tokens,
         pane.compact_view,
     );
     // Zone 2: the statusline-style agent rows (rows 1..1+lay.rows), sized by
     // the same `layout` call `status_rows` used above — so the two always
     // agree on the drawn extent (no overdraw onto the message body).
     let views = pane.agent_views();
+    let show_share = views.len() >= 2;
     let avail = rows.saturating_sub(1 + crate::chatinput::composer_rows(&pane.input, cols, rows));
-    if let Some(lay) = crate::chatchips::layout(&views, cols, avail) {
+    if let Some(lay) = crate::chatchips::layout(&views, cols, avail, show_share) {
         cells.extend(crate::chatchips::row_cells(
             &views,
             cols,

@@ -1,5 +1,5 @@
 //! Role-styled message cards for the crew pane: each message renders as a
-//! `▍sender · 2m ago · 4.2s` header line in the sender's stable colour, with
+//! `▍sender · 2m ago` header line in the sender's stable colour, with
 //! the body beneath it (newline-aware prose, bordered code blocks — see
 //! `chatbody`) and a blank spacer line between messages. Hand-off senders
 //! (`planner → coder`) keep a per-name colour on each side.
@@ -71,18 +71,17 @@ fn sender_color(sender: &str) -> Color {
     }
 }
 
-/// The `▍sender · 2m ago · 4.2s` header line. Multi-part senders (`a → b`)
-/// colour each name separately with a muted arrow, so hand-offs read as
-/// from → to; the muted tail carries the relative time and reply latency.
+/// The `▍sender · 2m ago` header line. Multi-part senders (`a → b`) colour
+/// each name separately with a muted arrow, so hand-offs read as from → to;
+/// the muted tail carries only the relative time (the per-card reply latency
+/// was dropped in the reductionist pass — one signal per question).
 fn header_line(m: &Message, now_ms: u64) -> CardLine {
     let muted = crew_theme::theme().text_muted;
     let mut line: CardLine = Vec::new();
     let parts: Vec<&str> = m.sender.split(" \u{2192} ").collect();
     line.push(plain(gutter_for(&m.sender), sender_color(parts[0]), false));
     if let Some(id) = crate::chattime::task_tag(&m.meta) {
-        for c in format!("#{id} ").chars() {
-            line.push(plain(c, muted, false));
-        }
+        line.extend(format!("#{id} ").chars().map(|c| plain(c, muted, false)));
     }
     for (i, part) in parts.iter().enumerate() {
         if i > 0 {
@@ -90,8 +89,10 @@ fn header_line(m: &Message, now_ms: u64) -> CardLine {
         }
         line.extend(part.chars().map(|c| plain(c, sender_color(part), true)));
     }
-    let tail = crate::chattime::meta_suffix(&m.ts, &m.meta, now_ms);
-    line.extend(tail.chars().map(|c| plain(c, muted, false)));
+    if let Some(rel) = crate::chattime::rel_time(&m.ts, now_ms) {
+        let tail = format!(" \u{00b7} {rel}");
+        line.extend(tail.chars().map(|c| plain(c, muted, false)));
+    }
     line
 }
 

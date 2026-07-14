@@ -60,6 +60,11 @@ impl Pulse {
         self.hist.get(agent)
     }
 
+    /// The settled turn's recorded hops. Its header turn-duration consumer
+    /// was removed in the reductionist panel cleanup (one counter only), but
+    /// the begin/record/end-turn accumulation keeps its tested contract for a
+    /// future per-turn trend view — same rationale as [`Self::hist`].
+    #[allow(dead_code)]
     pub(crate) fn hops(&self) -> &[(String, u64)] {
         &self.hops
     }

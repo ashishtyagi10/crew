@@ -10,9 +10,6 @@ use crew_hive::TaskState;
 
 /// Most task rows the block will occupy; larger plans get a `… n more` row.
 const MAX_ROWS: u16 = 8;
-/// Below this width the cost column is dropped — it is the least urgent of
-/// the three metric columns while a task runs, so it sheds first.
-const COST_MIN_COLS: u16 = 32;
 /// Below this width the token column is dropped (title needs the room).
 const TOKENS_MIN_COLS: u16 = 24;
 /// Below this width the elapsed column is dropped too. Narrower than
@@ -92,21 +89,17 @@ pub(crate) fn block_cells(pane: &ChatPane, cols: u16, top_row: u16, now_ms: u64)
             .filter(|_| cols >= ELAPSED_MIN_COLS);
         let tok = (t.tokens > 0 && cols >= TOKENS_MIN_COLS)
             .then(|| crate::chatswarmrec::fmt_tok(t.tokens));
-        let cost = (t.cost_micros > 0 && cols >= COST_MIN_COLS)
-            .then(|| crate::chatswarmrec::fmt_cost(t.cost_micros));
-        // Width rule: cost drops first (at `COST_MIN_COLS`), tokens next (at
-        // `TOKENS_MIN_COLS`), elapsed survives to `ELAPSED_MIN_COLS`, then
-        // all drop on very narrow panes. Reserve room for whichever are
-        // shown.
+        // Width rule: tokens drop first (at `TOKENS_MIN_COLS`), elapsed
+        // survives to `ELAPSED_MIN_COLS`, then both drop on very narrow
+        // panes. (Cost was removed from the live block — tokens proxy spend,
+        // and cost belongs in the folded run summary.) Reserve room for
+        // whichever are shown.
         let mut reserve = 1u16;
         if let Some(e) = &elapsed {
             reserve += e.len() as u16 + 1;
         }
         if let Some(tk) = &tok {
             reserve += tk.len() as u16 + 1;
-        }
-        if let Some(cst) = &cost {
-            reserve += cst.len() as u16 + 1;
         }
         let max_title = cols.saturating_sub(col + reserve) as usize;
         // Display-width-aware clamp: `.chars().take(n)` counts chars, so a
@@ -121,13 +114,8 @@ pub(crate) fn block_cells(pane: &ChatPane, cols: u16, top_row: u16, now_ms: u64)
         // whatever sits to its right — the same per-column budget `reserve`
         // charged above, so title and columns can never collide (an extra
         // -1 here once double-billed the gap and overlapped the title):
-        // title ... elapsed ... tokens ... cost.
+        // title ... elapsed ... tokens.
         let mut next_start = cols;
-        if let Some(cst) = &cost {
-            next_start = next_start.saturating_sub(cst.len() as u16 + 1);
-            let mut ccol = next_start;
-            push_str(&mut v, &mut ccol, row, cst, theme.text_muted);
-        }
         if let Some(tok) = &tok {
             next_start = next_start.saturating_sub(tok.len() as u16 + 1);
             let mut tcol = next_start;
