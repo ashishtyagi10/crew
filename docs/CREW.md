@@ -46,6 +46,34 @@ Crew runs as a GUI by default; these command-line modes offer headless operation
 - `crew --self-update` — fetch and install the latest release binary (headless alternative to `/update`)
 - `crew install-app` — create or refresh the OS app menu entry (macOS ~/Applications, Spotlight, Windows Start menu, Linux applications menu)
 - `crew install-app --remove` — remove the OS app menu entry
+- `crew panes` — list the running instance's addressable panes (for inter-pane ask)
+- `crew ask <id|label> "<question>"` — ask the agent in another pane (see below)
+
+## Inter-pane ask
+
+An agent working in one pane can query an agent in another pane of the same
+running Crew — visibly, in-session, with a wait governed by whether the target
+is actually generating a reply rather than a fixed timeout.
+
+- **Discover**: `crew panes` prints a roster — each pane's stable `p<N>` id, its
+  `/name` label, kind (terminal / swarm), the foreground agent (e.g. `claude`),
+  its directory, and whether it's busy. Address a pane by id (`p2`) or label.
+- **Ask**: `crew ask schema "which API version does the client target?"`. Crew
+  injects the question into the `schema` pane's live session (you see it land),
+  the agent there answers on a line beginning with `CREW-ANS-<id>:`, and the
+  answer prints back to `crew ask`'s stdout:
+
+  ```
+  ANSWERED: v2 — see api/v2/client.rs
+  ```
+
+- **Smart wait**: Crew keeps waiting while the target genuinely produces output,
+  and returns `NO_ANSWER <reason>` (idle / stalled / unreachable) once it stops —
+  so the asking agent never hangs and can fall back to another approach. Exit
+  code: 0 answered, 2 no-answer, 3 unreachable/no crew running.
+
+v1 targets terminal-CLI agents in the same instance. Broadcast (`--any`) and
+cross-instance federation are the roadmap — see `docs/vision/sentinel-network.md`.
 
 ## Panes
 
