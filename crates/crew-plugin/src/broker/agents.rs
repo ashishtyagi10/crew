@@ -13,16 +13,21 @@ pub fn known_adapters() -> Vec<Box<dyn Adapter>> {
 }
 
 /// A short capability hint per known agent, surfaced in the peer list so an
-/// agent hands the task off to the right one. Empty for unknown agents.
+/// agent hands the task off to the right one. The default archetypes are
+/// framed as general specialists — plan / build / critique — not a coding crew,
+/// so the same roster serves research, writing, or analysis work. Empty for
+/// unknown agents. Behaviour that used to key off the literal names now keys
+/// off these capability words (see `constructs::is_critic`), so an operator can
+/// swap in arbitrarily-named specialists.
 pub fn role_for(name: &str) -> &'static str {
     match name {
         // Inbuilt API agents (the default roster).
-        "planner" => "planning, analysis, architecture",
-        "coder" => "implementation, refactors",
+        "planner" => "planning, analysis, architecture, research",
+        "coder" => "building, implementation, synthesis",
         "reviewer" => "review, critique, second opinion",
         // External CLI agents (still selectable via the CLI adapters).
         "claude" => "planning, analysis, prose",
-        "codex" => "implementation, refactors",
+        "codex" => "building, implementation",
         "opencode" => "review, second opinion",
         _ => "",
     }
