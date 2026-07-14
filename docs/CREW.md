@@ -92,14 +92,28 @@ is actually generating a reply rather than a fixed timeout.
   3 if no pane was eligible. Broadcast reuses the same visible-injection and
   smart-wait engine per pane — it only widens *who* is asked.
 
-- **Federation** (v3, in progress): reach an agent in *another* crew instance.
-  - Run a second instance with a name: `CREW_INSTANCE=alpha crew` (each instance
-    gets its own socket; unnamed is the default). `crew instances` lists them.
-  - Address it: `crew ask schema@alpha "which API version?"` — the `@alpha` picks
-    that instance's socket, the `schema` pane is resolved by *that* crew exactly
-    like a local ask. Same visible injection, same smart wait, same verdicts —
-    only *who* you can reach widened. Cross-*host* federation (an authenticated
-    relay, strictly opt-in) is the next step.
+- **Federation** (v3): reach an agent in *another* crew instance — same host or
+  across the network — reusing the identical engine end to end.
+  - **Same host:** run a named instance `CREW_INSTANCE=alpha crew` (each gets its
+    own socket; unnamed is the default; `crew instances` lists them), then
+    `crew ask schema@alpha "which API version?"`. The `@alpha` picks that
+    instance's socket; the `schema` pane is resolved by *that* crew exactly like
+    a local ask.
+  - **Across hosts (opt-in):** the operator of the host you want to reach turns
+    federation ON by starting crew with a shared token —
+    `CREW_FEDERATE_TOKEN=<secret> crew` — which binds a relay
+    (`CREW_FEDERATE_BIND`/`CREW_FEDERATE_PORT`, default `0.0.0.0:7733`). Nothing
+    binds without a token, so a host is never reachable it didn't choose to be.
+    Then, with the same token in your environment,
+    `crew ask schema@crew://their-host/alpha "…"` dials the relay, which — after
+    checking the token — bridges your request to that host's `alpha` instance and
+    relays the reply back. Same visible injection, smart wait, and verdicts;
+    only *who* you can reach widened.
+  - **Security:** the relay carries the shared token and JSON envelope in the
+    clear — run it over a trusted network or an SSH/WireGuard tunnel, or behind a
+    TLS-terminating proxy. It is opt-in and token-gated by design; it never
+    discovers or reaches a host that hasn't turned it on. (Per-host invites,
+    token rotation, and built-in TLS are roadmap.)
 
 The engine (envelope, sentinel protocol, verdict, liveness) is identical across
 local, broadcast, and federated asks — see `docs/vision/sentinel-network.md`.
