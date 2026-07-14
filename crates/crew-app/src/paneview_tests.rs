@@ -9,7 +9,6 @@ fn bar(focused: bool) -> Bar<'static> {
         activity: true,
         bell: true,
         broadcast: false,
-        busy: None,
         min_btn: false,
     }
 }
@@ -100,29 +99,6 @@ fn focused_legend_is_bold_unfocused_is_not() {
     };
     assert!(bold_legend(true), "focused legend should be bold");
     assert!(!bold_legend(false), "unfocused legend stays regular");
-}
-
-#[test]
-fn busy_pane_rains_in_the_bottom_right_corner() {
-    let busy = Bar {
-        busy: Some(0),
-        ..bar(true)
-    };
-    // Card 40×12: the rain patch is w=10 h=3, right/bottom-aligned inside the
-    // border → cols 29..=38, rows 8..=10 (all interior, clear of the ring).
-    let in_corner = |cells: &[CellView]| {
-        cells
-            .iter()
-            .any(|c| (29..=38).contains(&c.col) && (8..=10).contains(&c.row) && c.c != ' ')
-    };
-    assert!(
-        in_corner(&pane_card(38, 10, &busy)),
-        "busy pane rains visible glyphs in the bottom-right interior corner"
-    );
-    assert!(
-        !in_corner(&pane_card(38, 10, &bar(true))),
-        "idle pane leaves the corner clear — no in-pane rain"
-    );
 }
 
 #[test]

@@ -7,8 +7,12 @@ use crate::charrain::{rain, RAIN_H, RAIN_MIN_H, RAIN_MIN_W, RAIN_W};
 
 const TAGLINE: &str = "fast terminals. clean flow.";
 const HINT: &str = "Cmd+T  new shell    ·    /  commands";
-/// Poll ticks per rendered frame; idle animation runs at ~20 fps.
-pub const ANIM_DIV: u64 = 3;
+/// Poll ticks per rendered frame. The tick doubles as the rain's clock, so this
+/// sets the fall speed as well as the frame rate: at the loop's ~62 Hz this
+/// lands the welcome field on the same calm few-cells-per-second cadence as the
+/// busy patch in `panecard`. Rain moves in whole cells, so ~10 fps still
+/// oversamples the fastest column.
+pub const ANIM_DIV: u64 = 6;
 
 /// Width-to-height ratio of the rain box (2:1, matching the terminal's
 /// ~2:1 cell aspect) — derives `h` from `w` without hardcoding `/2`.

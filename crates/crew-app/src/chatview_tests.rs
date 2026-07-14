@@ -5,6 +5,7 @@
 use super::*;
 use crate::chat::ChatPane;
 use crate::chatlayout::Message;
+use crew_hive::{AgentKind, HiveEvent, ModelTier, TaskId, TaskSpec, TaskState};
 use crew_plugin::Plugin;
 
 fn msg(sender: &str, text: &str) -> Message {
@@ -318,6 +319,68 @@ fn queued_indicator_renders_on_the_empty_messages_branch_too() {
         text.contains("2 messages queued"),
         "indicator row {indicator_row}: {text}"
     );
+}
+
+fn mid_run_pane() -> ChatPane {
+    let mut pane = test_pane(vec![msg("crew", "planning the run")]);
+    pane.absorb_hive_plan(
+        (0..4)
+            .map(|i| TaskSpec {
+                id: TaskId(i),
+                title: format!("task-{i}"),
+                agent: AgentKind::Api { system: None },
+                model: ModelTier::Cheap,
+                deps: vec![],
+                prompt: "p".into(),
+            })
+            .collect(),
+    );
+    for (id, state) in [(0, TaskState::Done), (1, TaskState::Running)] {
+        pane.absorb_hive(&HiveEvent::TaskStateChanged {
+            task: TaskId(id),
+            state,
+        });
+    }
+    pane
+}
+
+#[test]
+fn progress_bar_renders_directly_above_the_composer() {
+    let pane = mid_run_pane();
+    let (cols, rows) = (60u16, 20u16);
+    let bottom = crate::chatinput::composer_rows(&pane.input, cols, rows);
+    let bar_row = rows - bottom - 1;
+
+    let cells_out = cells(&pane, cols, rows);
+    let text = row_text(&cells_out, bar_row);
+    assert!(text.contains('\u{2588}'), "bar row {bar_row}: {text}");
+    assert!(text.ends_with(" 1/4"), "count missing: {text}");
+
+    // The whole reason the rain was dropped: the indicator must claim its own
+    // row, never overlay the composer's text.
+    let composer_text = row_text(&cells_out, rows - bottom);
+    assert!(
+        !composer_text.contains('\u{2588}') && !composer_text.contains('\u{2591}'),
+        "bar bled onto the composer row: {composer_text}"
+    );
+}
+
+#[test]
+fn progress_bar_and_queued_indicator_stack_without_colliding() {
+    let mut pane = mid_run_pane();
+    pane.queued.push_back("later".into());
+    let (cols, rows) = (60u16, 20u16);
+    let bottom = crate::chatinput::composer_rows(&pane.input, cols, rows);
+    let cells_out = cells(&pane, cols, rows);
+
+    // Bar innermost (directly above the composer), queued indicator above it.
+    let bar = row_text(&cells_out, rows - bottom - 1);
+    let queued = row_text(&cells_out, rows - bottom - 2);
+    assert!(
+        bar.contains('\u{2588}') && bar.ends_with(" 1/4"),
+        "bar: {bar}"
+    );
+    assert!(queued.contains("1 message queued"), "queued: {queued}");
 }
 
 #[test]

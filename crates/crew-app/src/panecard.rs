@@ -1,13 +1,15 @@
 //! Pane fieldset drawing: the rounded border + legend that frames a pane
-//! ([`pane_card`]) — signature hue, status glyphs, the busy rain patch. No
-//! title bars: a pane is just a border with a legend on its top edge. Non-pane
-//! panels (sidebar, welcome, menus) use [`crate::panelcard::push_card`].
+//! ([`pane_card`]) — signature hue, status glyphs. No title bars: a pane is
+//! just a border with a legend on its top edge. Non-pane panels (sidebar,
+//! welcome, menus) use [`crate::panelcard::push_card`].
+//!
+//! Busy panes carry no in-pane indicator here: the chat header already states
+//! the running task and its elapsed time, and the nav strip pulses its dot
+//! (see [`crate::minstrip`]).
 use crew_render::CellView;
 
 use crate::boxdraw::titled_card;
 use crate::layout::Rect;
-
-pub(crate) use crate::palette::accent;
 
 /// Inputs for one pane's fieldset border.
 pub(crate) struct Bar<'a> {
@@ -20,9 +22,6 @@ pub(crate) struct Bar<'a> {
     pub bell: bool,
     /// This pane is receiving broadcast (synchronized) input.
     pub broadcast: bool,
-    /// `Some(now_ms)` when the pane is busy: animate an in-pane indeterminate
-    /// rain patch (bottom-right corner) at that time. `None` leaves it off.
-    pub busy: Option<u64>,
     /// Draw the `[-][x]` minimize and close buttons on the top border (full grid
     /// tiles and the zoomed tile — not strip thumbnails). Click regions come from
     /// [`min_btn_rect`] and [`close_btn_rect`], which both share [`BTNS_COLS`]
@@ -155,33 +154,7 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
             rx = rx.saturating_sub(2);
         }
     }
-    // Indeterminate progress: a small "matrix rain" patch inset in the
-    // bottom-right interior corner while busy — in-pane, not a border sweep.
-    if let Some(now) = b.busy {
-        overlay_rain(&mut v, cols, rows, now);
-    }
     v
-}
-
-/// Overlay the busy rain indicator: a compact [`crate::charrain`] region in the
-/// bottom-right interior corner (right/bottom-aligned, one cell clear of the
-/// border). Cells replace whatever the border buffer held there, so the drops
-/// win cleanly. Skipped when the card is too small to host a legible patch.
-fn overlay_rain(v: &mut Vec<CellView>, cols: u16, rows: u16, now: u64) {
-    let w = cols.saturating_sub(2).min(10);
-    let h = rows.saturating_sub(2).min(3);
-    if w < 3 || h < 2 {
-        return;
-    }
-    let (left, top) = (cols - 1 - w, rows - 1 - h);
-    let (head, trail, bg) = (accent(), (40, 40, 48), crew_theme::theme().page_bg);
-    let mut drops = Vec::new();
-    // now_ms → a calm ~few-cells/second fall (charrain scales this down again).
-    crate::charrain::rain(&mut drops, top, left, w, h, now / 90, head, trail, bg);
-    for d in drops {
-        v.retain(|c| !(c.col == d.col && c.row == d.row));
-        v.push(d);
-    }
 }
 
 #[cfg(test)]

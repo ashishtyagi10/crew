@@ -167,7 +167,6 @@ fn push_pane_scenes(
                 activity: p.activity && !foc,
                 bell: p.bell && !foc,
                 broadcast: broadcast && is_term,
-                busy: pane_busy(p).then(crate::anim::now_ms),
                 min_btn,
             },
         ),

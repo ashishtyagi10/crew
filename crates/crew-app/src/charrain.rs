@@ -1,9 +1,9 @@
 //! A bounded "matrix rain" glyph field: pseudo-random characters falling in
 //! columns within a given rect. Pure and deterministic in `tick` (no RNG), so
-//! it renders identically for identical inputs — testable and resume-safe. The
-//! same primitive backs both the welcome screen (replacing the old globe) and
-//! the crew pane's indeterminate progress region: give it a rect, it drops
-//! glyphs inside it and nowhere else (the page shows through the gaps).
+//! it renders identically for identical inputs — testable and resume-safe.
+//! Give it a rect and it drops glyphs inside it and nowhere else (the page
+//! shows through the gaps). Backs the welcome screen (replacing the old
+//! globe); busy panes use a progress bar instead (see [`crate::chatprog`]).
 use crew_render::CellView;
 
 /// Default rain box: 44×22 cells, matching the welcome layout it inherits.
@@ -35,8 +35,9 @@ fn lerp_rgb(a: (u8, u8, u8), b: (u8, u8, u8), t: f32) -> (u8, u8, u8) {
 }
 
 /// Render one rain frame into `cells`: a `w`×`h` box at `(top,left)`, advanced
-/// by `tick`. Each column falls at its own speed; the head cell is brightest
-/// (`head`, bold), the trail fades toward `trail`. Only lit cells are pushed.
+/// by `tick`. Each column falls at its own pace, one cell at a time; the head
+/// cell is brightest (`head`, bold), the trail fades toward `trail`. Only lit
+/// cells are pushed.
 #[rustfmt::skip]
 #[allow(clippy::too_many_arguments)] // rect + tick + three colours, all independent
 pub fn rain(cells: &mut Vec<CellView>, top: u16, left: u16, w: u16, h: u16,
@@ -47,8 +48,8 @@ pub fn rain(cells: &mut Vec<CellView>, top: u16, left: u16, w: u16, h: u16,
     let flick = tick / 6;  // glyph re-roll clock (slower than the fall)
     for col in 0..w {
         let seed = hash(col as u64, 0x51);
-        let speed = 1 + seed % 3; // columns fall at 1..=3 cells per fall-tick
-        let headrow = ((fall.wrapping_mul(speed) + seed % period) % period) as i64;
+        let delay = 1 + seed % 3; // columns take 1..=3 fall-ticks per cell dropped
+        let headrow = ((fall / delay + seed % period) % period) as i64;
         for d in 0..TRAIL {
             let r = headrow - d as i64;
             if r < 0 || r >= h as i64 { continue; }
