@@ -34,6 +34,7 @@ mod chatmention;
 mod chatmsgs;
 mod chatpalette;
 mod chatplace;
+mod chatprog;
 mod chatpulse;
 mod chatqueue;
 mod chatroster;

@@ -145,15 +145,20 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
         ));
     }
     let bottom = crate::chatinput::composer_rows(&pane.input, cols, rows);
-    // The queued-messages indicator sits directly above the composer,
-    // claiming one row from the budget when the queue is non-empty (same
-    // pattern as the swarm block claiming rows below the messages).
+    // Stacked directly above the composer, innermost first: the run's progress
+    // bar, then the queued-messages indicator. Each claims a row from the
+    // budget only while it has something to say (same pattern as the swarm
+    // block claiming rows below the messages).
+    let prog_rows = crate::chatprog::progress_rows(pane, cols);
     let queued_rows = crate::chatqueue::queued_rows(pane);
     // Floored at `top`, same as the swarm block's `block_start` below — on a
     // squeezed pane (a saturated roster eating rows via `status_rows`, plus
     // a small `rows`) the unclamped subtraction can bottom out at or below
     // `top`, letting the indicator overdraw the header/status rows.
-    let indicator_row = rows.saturating_sub(bottom + queued_rows).max(top);
+    let bar_row = rows.saturating_sub(bottom + prog_rows).max(top);
+    let indicator_row = rows
+        .saturating_sub(bottom + prog_rows + queued_rows)
+        .max(top);
     if pane.messages.is_empty() {
         cells.extend(crate::chatempty::empty_cells(
             cols,
@@ -171,7 +176,7 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
         // prompt glyph/text touch every column). Floored at `top` too — on a
         // very short pane the same saturation can otherwise push the start
         // row above the header/status rows.
-        let block_max = rows.saturating_sub(bottom + queued_rows);
+        let block_max = rows.saturating_sub(bottom + prog_rows + queued_rows);
         let block_start = block_max
             .saturating_sub(crate::chatswarmview::swarm_rows(pane, rows))
             .max(top);
@@ -213,7 +218,7 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
         // anyway so a saturated row budget can never push block rows onto the
         // composer row (see the empty-branch comment above for why the
         // composer doesn't reliably overdraw them).
-        let block_max = rows.saturating_sub(bottom + queued_rows);
+        let block_max = rows.saturating_sub(bottom + prog_rows + queued_rows);
         cells.extend(
             crate::chatswarmview::block_cells(pane, cols, top + msg_rows, crate::anim::now_ms())
                 .into_iter()
@@ -222,6 +227,9 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
     }
     if queued_rows > 0 {
         cells.extend(crate::chatqueue::indicator_cells(pane, cols, indicator_row));
+    }
+    if prog_rows > 0 {
+        cells.extend(crate::chatprog::bar_cells(pane, cols, bar_row));
     }
     cells.extend(crate::chatinput::composer_cells(
         &pane.input,

@@ -1,7 +1,7 @@
 //! Fieldset card for a *non-pane* panel (sidebar, welcome, command menu,
 //! update card): an inset content buffer plus a dim border card carrying the
 //! legend, pushed as two [`PaneScene`]s so the border never shifts the content.
-//! The pane version (with focus, status glyphs, busy rain) lives in
+//! The pane version (with focus, status glyphs) lives in
 //! [`crate::panecard`]; this is the plain box on the one canvas.
 use crew_render::{CellView, PaneScene};
 

@@ -1,0 +1,93 @@
+//! The live swarm run's progress bar: one row directly above the composer,
+//! tracking how many of the plan's tasks have settled. Replaces the old
+//! in-pane rain patch, which drew over the composer's own text — this claims
+//! a row instead of overlaying one, the same way `chatqueue`'s indicator does,
+//! so the message-area budget stays honest.
+//!
+//! The bar is determinate: a swarm plan has a known task count, so there's no
+//! reason to show an indeterminate animation. Terminal states (done, failed,
+//! cancelled) all count as settled — the bar tracks "how much of the plan is
+//! still moving", not "how much succeeded", which the task rows already say.
+use crew_render::CellView;
+
+use crate::chat::ChatPane;
+use crew_hive::TaskState;
+
+/// Narrowest bar still worth drawing. Below this the row is dropped entirely
+/// rather than drawn as an unreadable stub.
+const MIN_BAR: u16 = 4;
+/// Left inset, matching the swarm block and the queued indicator.
+const INSET: u16 = 1;
+
+/// The bar's geometry for `cols`, or `None` when there's no live run (or no
+/// room). Both [`progress_rows`] and [`bar_cells`] route through this, so the
+/// row a pane budgets and the row it draws can never disagree.
+fn geom(pane: &ChatPane, cols: u16) -> Option<(usize, usize, u16, String)> {
+    let s = pane.swarm.as_ref()?;
+    let total = s.tasks.len();
+    if total == 0 {
+        return None;
+    }
+    let done = s
+        .tasks
+        .iter()
+        .filter(|t| {
+            matches!(
+                t.state,
+                TaskState::Done | TaskState::Failed | TaskState::Cancelled
+            )
+        })
+        .count();
+    let label = format!(" {done}/{total}");
+    let bar_w = cols
+        .saturating_sub(INSET)
+        .saturating_sub(label.chars().count() as u16);
+    (bar_w >= MIN_BAR).then_some((done, total, bar_w, label))
+}
+
+/// Rows the progress bar claims above the composer: 1 during a live swarm run
+/// that fits, else 0.
+pub(crate) fn progress_rows(pane: &ChatPane, cols: u16) -> u16 {
+    geom(pane, cols).is_some() as u16
+}
+
+/// Render the bar at `row`: filled cells in the accent, the remainder muted,
+/// with a `done/total` count on the right.
+pub(crate) fn bar_cells(pane: &ChatPane, cols: u16, row: u16) -> Vec<CellView> {
+    let Some((done, total, bar_w, label)) = geom(pane, cols) else {
+        return Vec::new();
+    };
+    let theme = crew_theme::theme();
+    // Integer floor: the bar only fills completely once every task has
+    // settled, so a full bar always means a finished plan.
+    let filled = (done * bar_w as usize / total) as u16;
+    let mut cells = Vec::new();
+    let mut push = |col: u16, c: char, fg: (u8, u8, u8), bold: bool| {
+        cells.push(CellView {
+            col,
+            row,
+            c,
+            fg,
+            bg: theme.page_bg,
+            bold,
+            italic: false,
+        })
+    };
+    for i in 0..bar_w {
+        let on = i < filled;
+        let (c, fg) = if on {
+            ('\u{2588}', crate::palette::accent())
+        } else {
+            ('\u{2591}', theme.text_muted)
+        };
+        push(INSET + i, c, fg, on);
+    }
+    for (i, c) in label.chars().enumerate() {
+        push(INSET + bar_w + i as u16, c, theme.text_muted, false);
+    }
+    cells
+}
+
+#[cfg(test)]
+#[path = "chatprog_tests.rs"]
+mod tests;

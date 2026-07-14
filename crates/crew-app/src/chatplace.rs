@@ -86,7 +86,8 @@ pub(crate) fn msg_rows_budget(pane: &ChatPane, cols: u16, rows: u16) -> u16 {
     let bottom = crate::chatinput::composer_rows(&pane.input, cols, rows);
     let block = crate::chatswarmview::swarm_rows(pane, rows);
     let queued = crate::chatqueue::queued_rows(pane);
-    rows.saturating_sub(top + bottom + block + queued)
+    let prog = crate::chatprog::progress_rows(pane, cols);
+    rows.saturating_sub(top + bottom + block + queued + prog)
 }
 
 /// The scroll-windowed card-line placement for `pane`'s message area, each
