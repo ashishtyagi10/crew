@@ -144,13 +144,32 @@ fn row_width(views: &[AgentView], level: u8, show_share: bool) -> usize {
     w
 }
 
-/// The richest level (0 best) whose row fits `cols`; `None` if even the
-/// sparsest row (name+state) overflows.
+/// The richest column set the *data* justifies (independent of width): the
+/// share bar only when some agent has nonzero share (and the column shows at
+/// all), the ctx bar only when some agent has nonzero context. An all-idle
+/// roster (every ctx/share 0) drops both bars — those `0% | 0%` cells were
+/// pure noise. Higher level = fewer columns (see [`row_width`]).
+fn data_floor(views: &[AgentView], show_share: bool) -> u8 {
+    let max_ctx = views.iter().filter_map(|v| v.ctx_pct).max().unwrap_or(0);
+    let max_share = views.iter().filter_map(|v| v.share_pct).max().unwrap_or(0);
+    if show_share && max_share > 0 {
+        0
+    } else if max_ctx > 0 {
+        1
+    } else {
+        2
+    }
+}
+
+/// The richest level (0 best) that both the data justifies ([`data_floor`])
+/// and whose row fits `cols`; `None` if even the sparsest row (name+state)
+/// overflows.
 pub(crate) fn choose_level(views: &[AgentView], cols: u16, show_share: bool) -> Option<u8> {
     if views.is_empty() {
         return None;
     }
-    (0..=MAX_LEVEL).find(|&level| row_width(views, level, show_share) <= cols as usize)
+    let floor = data_floor(views, show_share);
+    (floor..=MAX_LEVEL).find(|&level| row_width(views, level, show_share) <= cols as usize)
 }
 
 /// Left-align `s` to `w` display columns (padding with trailing spaces).
@@ -463,6 +482,27 @@ mod tests {
             None,
             "too narrow for anything"
         );
+    }
+
+    #[test]
+    fn idle_roster_drops_the_zero_bars_even_when_wide() {
+        // Every agent idle with no context: the ctx/share bars would read
+        // `0% | 0%`, so they're suppressed no matter how much width there is.
+        let idle = vec![
+            v("planner", "idle", 0, None, None, false),
+            v("coder", "idle", 0, None, None, false),
+        ];
+        assert_eq!(
+            choose_level(&idle, 200, true),
+            Some(2),
+            "all-idle → name/state/tok only, no 0% bars"
+        );
+        // The bars return the moment an agent has real usage.
+        let active = vec![
+            v("planner", "1\u{d7}", 5_800, Some(17), Some(60), true),
+            v("coder", "idle", 0, None, None, false),
+        ];
+        assert_eq!(choose_level(&active, 200, true), Some(0));
     }
 
     #[test]
