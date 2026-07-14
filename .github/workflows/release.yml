@@ -32,9 +32,10 @@ jobs:
             os: ubuntu-latest
             archive: tar.gz
             cross: true
-          - target: x86_64-pc-windows-msvc
-            os: windows-latest
-            archive: zip
+          # Windows is not built: the inter-pane `ask` IPC uses Unix-domain
+          # sockets (std::os::unix::net), which don't compile on Windows. It has
+          # produced no working release since v0.5.83. Restore this target once
+          # the IPC is ported behind #[cfg] (e.g. named pipes on Windows).
 
     steps:
       - uses: actions/checkout@v4
@@ -61,14 +62,6 @@ jobs:
         run: |
           cd target/${{ matrix.target }}/release
           tar czf ../../../crew-${{ github.ref_name }}-${{ matrix.target }}.tar.gz crew
-          cd ../../..
-
-      - name: Package (windows)
-        if: matrix.archive == 'zip'
-        shell: bash
-        run: |
-          cd target/${{ matrix.target }}/release
-          7z a ../../../crew-${{ github.ref_name }}-${{ matrix.target }}.zip crew.exe
           cd ../../..
 
       - name: Upload artifact
