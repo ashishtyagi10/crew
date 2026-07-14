@@ -7,6 +7,7 @@ mod askbar;
 mod askcast;
 mod askclient;
 mod askpump;
+mod askrender;
 mod askroute;
 mod askwait;
 mod attention;

@@ -68,3 +68,20 @@ fn empty_cast_is_unreachable() {
     assert!(t.contains("no eligible panes"));
     assert_eq!(c, 3);
 }
+
+#[test]
+fn roster_reply_renders_via_render() {
+    // Reply::Roster routes through render_roster (exercises the render arm too).
+    let (t, c) = render(&Reply::Roster {
+        panes: vec![PaneCard {
+            id: "p0".into(),
+            label: None,
+            kind: "terminal".into(),
+            running: None,
+            dir: None,
+            busy: true,
+        }],
+    });
+    assert!(t.contains("p0") && t.contains("busy"));
+    assert_eq!(c, 0);
+}
