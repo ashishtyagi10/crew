@@ -104,6 +104,9 @@ pub struct CrewApp {
         crate::askwait::PendingAsk,
         std::sync::mpsc::Sender<crate::ipc_types::Reply>,
     )>,
+    /// Live broadcast asks (`crew ask --all` / `--any`): each fans one question
+    /// across a set of panes and aggregates their verdicts. See [`crate::askcast`].
+    pub(crate) castings: Vec<crate::askcast::Casting>,
 }
 
 impl CrewApp {

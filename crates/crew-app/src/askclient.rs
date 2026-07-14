@@ -5,7 +5,7 @@
 use std::io::{BufRead, BufReader, Write};
 use std::os::unix::net::UnixStream;
 
-use crate::ipc_types::{NoAnswer, PaneCard, Reply, Request, PROTOCOL_V};
+use crate::ipc_types::{CastAnswer, CastMode, NoAnswer, PaneCard, Reply, Request, PROTOCOL_V};
 
 /// Render a reply to (human text, process exit code): 0 answered/roster,
 /// 2 no-answer, 3 unreachable/no-crew.
@@ -31,7 +31,35 @@ pub(crate) fn render(r: &Reply) -> (String, i32) {
             (s, code)
         }
         Reply::Roster { panes } => (render_roster(panes), 0),
+        Reply::Cast { answers } => render_cast(answers),
     }
+}
+
+/// Render a broadcast reply to (text, exit code): 0 if anyone answered, 2 if
+/// panes were reached but none answered, 3 if no pane was eligible.
+fn render_cast(answers: &[CastAnswer]) -> (String, i32) {
+    if answers.is_empty() {
+        return (
+            "NO_ANSWER: no eligible panes to broadcast to".to_string(),
+            3,
+        );
+    }
+    let mut out = String::new();
+    let mut answered = 0;
+    for a in answers {
+        let who = a.label.as_deref().unwrap_or(&a.pane);
+        match (&a.text, a.no_answer) {
+            (Some(t), _) => {
+                answered += 1;
+                out.push_str(&format!("[{who}] ANSWERED: {t}\n"));
+            }
+            (None, Some(NoAnswer::Stalled)) => {
+                out.push_str(&format!("[{who}] no answer (stalled)\n"))
+            }
+            (None, _) => out.push_str(&format!("[{who}] no answer (idle)\n")),
+        }
+    }
+    (out.trim_end().to_string(), if answered > 0 { 0 } else { 2 })
 }
 
 fn render_roster(panes: &[PaneCard]) -> String {
@@ -83,6 +111,23 @@ pub(crate) fn run_ask(to: &str, question: &str) -> i32 {
     code
 }
 
+/// `crew ask --all|--any "<question>"` — fan one question across every eligible
+/// pane and print the aggregate.
+pub(crate) fn run_broadcast(mode: CastMode, question: &str) -> i32 {
+    let from = std::env::var("CREW_PANE").unwrap_or_else(|_| "an agent".to_string());
+    let id = format!("b{}", std::process::id());
+    let req = Request::Broadcast {
+        v: PROTOCOL_V,
+        from,
+        question: question.to_string(),
+        id,
+        mode,
+    };
+    let (text, code) = exchange(&req).map(|r| render(&r)).unwrap_or_else(no_crew);
+    println!("{text}");
+    code
+}
+
 /// `crew panes`.
 pub(crate) fn run_panes() -> i32 {
     let (text, code) = exchange(&Request::Panes { v: PROTOCOL_V })
@@ -92,46 +137,33 @@ pub(crate) fn run_panes() -> i32 {
     code
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn render_verdicts_and_codes() {
-        let (t, c) = render(&Reply::Answered { text: "v2".into() });
-        assert_eq!((t.as_str(), c), ("ANSWERED: v2", 0));
-
-        let (t, c) = render(&Reply::NoAnswer {
-            reason: NoAnswer::IdleNoEngage,
-            partial: None,
-        });
-        assert!(t.contains("NO_ANSWER") && t.contains("idle"));
-        assert_eq!(c, 2);
-
-        let (t, c) = render(&Reply::NoAnswer {
-            reason: NoAnswer::Unreachable,
-            partial: None,
-        });
-        assert_eq!(c, 3, "unreachable is code 3: {t}");
-
-        let (t, _) = render(&Reply::NoAnswer {
-            reason: NoAnswer::Stalled,
-            partial: Some("half an answer".into()),
-        });
-        assert!(t.contains("partial") && t.contains("half an answer"));
-    }
-
-    #[test]
-    fn render_roster_is_a_table_with_ids() {
-        let out = render_roster(&[PaneCard {
-            id: "p2".into(),
-            label: Some("schema".into()),
-            kind: "terminal".into(),
-            running: Some("claude".into()),
-            dir: Some("db".into()),
-            busy: false,
-        }]);
-        assert!(out.contains("p2") && out.contains("schema") && out.contains("claude"));
-        assert!(out.contains("idle"));
+/// Route a `crew ask …` / `crew panes` client subcommand. `Some(exit code)`
+/// when the args were a client subcommand (the caller exits without launching
+/// the GUI); `None` when they are not ours and startup should continue.
+pub(crate) fn dispatch_cli() -> Option<i32> {
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    match args.first().map(String::as_str) {
+        Some("ask") if args.len() >= 3 && (args[1] == "--all" || args[1] == "--any") => {
+            let mode = if args[1] == "--any" {
+                CastMode::Any
+            } else {
+                CastMode::All
+            };
+            Some(run_broadcast(mode, &args[2]))
+        }
+        Some("ask") if args.len() >= 3 => Some(run_ask(&args[1], &args[2])),
+        Some("ask") => {
+            eprintln!(
+                "usage: crew ask <pane-id-or-label> \"<question>\"\n\
+                        crew ask --all|--any \"<question>\"   (broadcast)"
+            );
+            Some(64)
+        }
+        Some("panes") => Some(run_panes()),
+        _ => None,
     }
 }
+
+#[cfg(test)]
+#[path = "askclient_tests.rs"]
+mod tests;

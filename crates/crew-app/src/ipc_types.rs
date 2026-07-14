@@ -7,6 +7,18 @@ use serde::{Deserialize, Serialize};
 /// Protocol version, bumped on any incompatible envelope change.
 pub const PROTOCOL_V: u32 = 1;
 
+/// How a broadcast ask (`crew ask --all` / `--any`) settles across the panes
+/// it reaches. The fan-out and per-pane liveness are identical; only the
+/// stopping rule differs — the v2 resolver widens one address to a set (see
+/// docs/vision/sentinel-network.md).
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Copy)]
+pub enum CastMode {
+    /// Ask every eligible pane; wait for them all and return every answer.
+    All,
+    /// Ask every eligible pane; the first real answer wins, the rest are dropped.
+    Any,
+}
+
 /// A request from a client (`crew ask` / `crew panes`) to the GUI.
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 #[serde(tag = "op")]
@@ -18,6 +30,15 @@ pub enum Request {
         to: String,
         question: String,
         id: String,
+    },
+    /// Broadcast one `question` to every eligible pane; `mode` sets the stop
+    /// rule, `id` namespaces the per-pane sentinels.
+    Broadcast {
+        v: u32,
+        from: String,
+        question: String,
+        id: String,
+        mode: CastMode,
     },
     /// List the addressable panes.
     Panes { v: u32 },
@@ -50,6 +71,20 @@ pub enum Reply {
     Roster {
         panes: Vec<PaneCard>,
     },
+    /// The collected outcome of a broadcast ask, one entry per pane reached.
+    Cast {
+        answers: Vec<CastAnswer>,
+    },
+}
+
+/// One pane's outcome within a broadcast reply. `text` is `Some` when it
+/// answered; otherwise `no_answer` says why (both never set at once).
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+pub struct CastAnswer {
+    pub pane: String,
+    pub label: Option<String>,
+    pub text: Option<String>,
+    pub no_answer: Option<NoAnswer>,
 }
 
 /// One addressable pane in the `crew panes` roster.
@@ -94,5 +129,29 @@ mod tests {
     fn panes_request_parses_from_a_client_line() {
         let req: Request = serde_json::from_str(r#"{"op":"Panes","v":1}"#).unwrap();
         assert_eq!(req, Request::Panes { v: 1 });
+    }
+
+    #[test]
+    fn broadcast_request_and_cast_reply_round_trip() {
+        let req = Request::Broadcast {
+            v: PROTOCOL_V,
+            from: "builder".into(),
+            question: "status?".into(),
+            id: "q9".into(),
+            mode: CastMode::All,
+        };
+        let json = serde_json::to_string(&req).unwrap();
+        assert_eq!(serde_json::from_str::<Request>(&json).unwrap(), req);
+
+        let cast = Reply::Cast {
+            answers: vec![CastAnswer {
+                pane: "p1".into(),
+                label: Some("schema".into()),
+                text: Some("done".into()),
+                no_answer: None,
+            }],
+        };
+        let json = serde_json::to_string(&cast).unwrap();
+        assert_eq!(serde_json::from_str::<Reply>(&json).unwrap(), cast);
     }
 }
