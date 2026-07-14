@@ -1,6 +1,8 @@
 //! The crew pane's agent status rows: one flat, ` │ `-separated line per
 //! agent in claude-code's own statusline style — `name │ state │ tok │ <bar>
-//! ctx% (ctx) │ <bar> shr% (shr)` — replacing the old boxed metric cards.
+//! ctx% │ <bar> shr%` — replacing the old boxed metric cards. The bar + `%`
+//! speak for themselves, so no `(ctx)`/`(shr)` word-labels ride along; the
+//! share column only appears with ≥2 agents (a lone agent is always 100%).
 //! `layout()` is the single source of truth for how many rows the grid
 //! needs, shared by `ChatPane::status_rows` (row accounting) and
 //! `chatview::cells` (the renderer), so the two can never disagree about the
@@ -14,14 +16,13 @@ use crate::gauges::fill_color;
 
 /// Bar width in cells for the ctx/share progress bars.
 const BAR_W: usize = 6;
-/// Width of the right-aligned `NNN%` field — wide enough for `100%` (4
-/// chars) so the trailing `)` of the `(ctx)`/`(shr)` label never clips.
+/// Width of the right-aligned `NNN%` field — wide enough for `100%` (4 chars).
 const PCT_W: usize = 4;
 /// The ` │ ` separator between every segment.
 const SEP: &str = " \u{2502} ";
 const SEP_W: usize = 3;
-/// A bar segment's fixed width: `bar + " " + pct(>=PCT_W) + " (" + lbl + ")"`.
-const SEG_W: usize = BAR_W + 1 + PCT_W + 1 + 1 + 3 + 1;
+/// A bar segment's fixed width: `bar + " " + pct(>=PCT_W)`. No word-label.
+const SEG_W: usize = BAR_W + 1 + PCT_W;
 /// Sparsest level: name + state only.
 const MAX_LEVEL: u8 = 3;
 
@@ -54,16 +55,25 @@ pub(crate) struct Layout {
     pub shown: usize,
     /// Number of rows actually drawn — one per shown agent.
     pub rows: u16,
+    /// Whether the share column is drawn at all (≥2 agents). A lone agent is
+    /// always 100% share, so it's suppressed and level 0 == level 1.
+    pub show_share: bool,
 }
 
 /// Lay out `views` into `cols` width with at most `avail_rows` rows for the
 /// grid zone (the caller has already excluded the session line and
-/// waterfall). `None` when nothing fits (grid hidden, session line only).
-pub(crate) fn layout(views: &[AgentView], cols: u16, avail_rows: u16) -> Option<Layout> {
+/// waterfall). `show_share` (≥2 agents) gates the share column. `None` when
+/// nothing fits (grid hidden, session line only).
+pub(crate) fn layout(
+    views: &[AgentView],
+    cols: u16,
+    avail_rows: u16,
+    show_share: bool,
+) -> Option<Layout> {
     if views.is_empty() || avail_rows == 0 {
         return None;
     }
-    let level = choose_level(views, cols)?;
+    let level = choose_level(views, cols, show_share)?;
     let shown = views.len().min(avail_rows as usize);
     if shown == 0 {
         return None;
@@ -76,6 +86,7 @@ pub(crate) fn layout(views: &[AgentView], cols: u16, avail_rows: u16) -> Option<
         tok_w: tok_w(subset) as u16,
         shown,
         rows: shown as u16,
+        show_share,
     })
 }
 
@@ -117,8 +128,9 @@ fn tok_w(views: &[AgentView]) -> usize {
 }
 
 /// Total row width at `level`: name+state are always present; tok/ctx/shr
-/// shed from the right as `level` rises (shr first, then ctx, then tok).
-fn row_width(views: &[AgentView], level: u8) -> usize {
+/// shed from the right as `level` rises (shr first, then ctx, then tok). The
+/// level-0 share column is only counted when `show_share`.
+fn row_width(views: &[AgentView], level: u8, show_share: bool) -> usize {
     let mut w = name_w(views) + SEP_W + state_w(views);
     if level <= 2 {
         w += SEP_W + tok_w(views);
@@ -126,7 +138,7 @@ fn row_width(views: &[AgentView], level: u8) -> usize {
     if level <= 1 {
         w += SEP_W + SEG_W;
     }
-    if level == 0 {
+    if level == 0 && show_share {
         w += SEP_W + SEG_W;
     }
     w
@@ -134,11 +146,11 @@ fn row_width(views: &[AgentView], level: u8) -> usize {
 
 /// The richest level (0 best) whose row fits `cols`; `None` if even the
 /// sparsest row (name+state) overflows.
-pub(crate) fn choose_level(views: &[AgentView], cols: u16) -> Option<u8> {
+pub(crate) fn choose_level(views: &[AgentView], cols: u16, show_share: bool) -> Option<u8> {
     if views.is_empty() {
         return None;
     }
-    (0..=MAX_LEVEL).find(|&level| row_width(views, level) <= cols as usize)
+    (0..=MAX_LEVEL).find(|&level| row_width(views, level, show_share) <= cols as usize)
 }
 
 /// Left-align `s` to `w` display columns (padding with trailing spaces).
@@ -197,16 +209,15 @@ fn place(
     })
 }
 
-/// One bar segment's content: its percentage, label, and filled-cell colour.
-/// `fill` is chosen per segment by the caller (e.g. `fill_color(frac)` for a
+/// One bar segment's content: its percentage and filled-cell colour. `fill`
+/// is chosen per segment by the caller (e.g. `fill_color(frac)` for a
 /// warn-at-full bar like `ctx`, a flat neutral colour for a bar where 100%
 /// isn't a warning, like `shr`).
-struct Seg<'a> {
+struct Seg {
     pct: Option<u8>,
     /// Eased fill fraction (0.0..1.0) — drives the bar, independent of
     /// `pct`'s target text (they can differ mid-ease).
     frac: f32,
-    label: &'a str,
     fill: (u8, u8, u8),
 }
 
@@ -221,7 +232,7 @@ pub(crate) fn partial_block(frac_cells: f32) -> Option<char> {
     }
 }
 
-/// One `<bar> NN% (label)` segment. Fill comes from `frac` (full blocks + one
+/// One `<bar> NN%` segment. Fill comes from `frac` (full blocks + one
 /// left-eighth partial + track); `pct` only affects the `NNN%` text and shows
 /// ` 0%` when `pct` is None.
 fn push_segment(
@@ -232,12 +243,7 @@ fn push_segment(
     seg: Seg,
     pal: &Pal,
 ) -> u16 {
-    let Seg {
-        pct,
-        frac,
-        label,
-        fill,
-    } = seg;
+    let Seg { pct, frac, fill } = seg;
     let bg = crew_theme::theme().page_bg;
     let filled_cells = frac * BAR_W as f32;
     let full = filled_cells.floor() as usize;
@@ -267,16 +273,7 @@ fn push_segment(
     }
     x = place(cells, row, x, max_col, " ", pal.dim, false);
     let pct_str = format!("{:>PCT_W$}", format!("{}%", pct.unwrap_or(0)));
-    x = place(cells, row, x, max_col, &pct_str, pal.ink, false);
-    place(
-        cells,
-        row,
-        x,
-        max_col,
-        &format!(" ({label})"),
-        pal.dim,
-        false,
-    )
+    place(cells, row, x, max_col, &pct_str, pal.ink, false)
 }
 
 /// Draw the agent status rows, offset to `start_row`. Draws exactly
@@ -347,21 +344,18 @@ pub(crate) fn row_cells(
             let seg = Seg {
                 pct: v.ctx_pct,
                 frac: v.ctx_frac,
-                label: "ctx",
                 fill: fill_color(v.ctx_frac),
             };
             col = push_segment(&mut cells, row, col, cols, seg, &pal);
         }
-        if lay.level == 0 {
+        if lay.level == 0 && lay.show_share {
             col = place(&mut cells, row, col, cols, SEP, pal.dim, false);
-            // Share is relative, not a fullness warning — a lone active
-            // agent is always 100% and that isn't alarming — so it stays a
+            // Share is relative, not a fullness warning — so it stays a
             // neutral accent rather than riding the ctx bar's red-at-full
-            // scale.
+            // scale. Only reached with ≥2 agents (`show_share`).
             let seg = Seg {
                 pct: v.share_pct,
                 frac: v.shr_frac,
-                label: "shr",
                 fill: crate::palette::accent(),
             };
             col = push_segment(&mut cells, row, col, cols, seg, &pal);
@@ -426,45 +420,84 @@ mod tests {
     #[test]
     fn layout_one_row_per_agent_capped() {
         let views = trio();
-        let lay = layout(&views, 200, 100).expect("wide/tall pane fits everything");
+        let lay = layout(&views, 200, 100, true).expect("wide/tall pane fits everything");
         assert_eq!(lay.rows, 3, "one row per agent");
         assert_eq!(lay.shown, 3);
 
-        let lay2 = layout(&views, 200, 2).expect("capped pane still fits some rows");
+        let lay2 = layout(&views, 200, 2, true).expect("capped pane still fits some rows");
         assert_eq!(lay2.shown, 2);
         assert_eq!(lay2.rows, 2);
 
-        assert!(layout(&views, 200, 0).is_none(), "no available rows → None");
+        assert!(
+            layout(&views, 200, 0, true).is_none(),
+            "no available rows → None"
+        );
     }
 
     #[test]
     fn choose_level_drops_segments_right_to_left() {
         let views = trio();
-        assert_eq!(choose_level(&views, 200), Some(0), "wide → every segment");
+        assert_eq!(
+            choose_level(&views, 200, true),
+            Some(0),
+            "wide → every segment"
+        );
 
         // Wide enough to lose only the shr segment (level 1: name/state/tok/ctx).
-        let level1_w = row_width(&views, 1);
-        let level0_w = row_width(&views, 0);
+        let level1_w = row_width(&views, 1, true);
+        let level0_w = row_width(&views, 0, true);
         assert!(level1_w < level0_w, "dropping shr must shrink the row");
-        let l = choose_level(&views, level1_w as u16).expect("fits at level 1");
+        let l = choose_level(&views, level1_w as u16, true).expect("fits at level 1");
         assert!(l >= 1, "mid width drops the shr segment, got {l}");
 
         // Just wide enough for name+state only (the sparsest level that fits).
-        let level3_w = row_width(&views, MAX_LEVEL);
+        let level3_w = row_width(&views, MAX_LEVEL, true);
         assert_eq!(
-            choose_level(&views, level3_w as u16),
+            choose_level(&views, level3_w as u16, true),
             Some(MAX_LEVEL),
             "narrow-but-fits → sparsest level"
         );
 
-        assert_eq!(choose_level(&views, 3), None, "too narrow for anything");
+        assert_eq!(
+            choose_level(&views, 3, true),
+            None,
+            "too narrow for anything"
+        );
+    }
+
+    #[test]
+    fn single_agent_never_reserves_or_draws_the_share_column() {
+        // With one agent, level 0 and level 1 are the same width (no share),
+        // and no share segment is drawn even on a very wide pane.
+        let solo = vec![v("solo", "1\u{d7}", 5_800, Some(17), Some(100), true)];
+        assert_eq!(
+            row_width(&solo, 0, false),
+            row_width(&solo, 1, false),
+            "lone agent: level 0 == level 1 (share suppressed)"
+        );
+        let lay = layout(&solo, 200, 100, false).expect("fits");
+        let cells = row_cells(&solo, 200, 0, &lay, 0);
+        // Exactly one bar segment worth of `%` text: the ctx bar. The share
+        // accent bar (a second `%`) must be absent.
+        let pcts = cells.iter().filter(|c| c.c == '%').count();
+        assert_eq!(pcts, 1, "only the ctx bar renders for a lone agent");
+
+        // Two agents DO get the share column on a wide pane.
+        let duo = vec![
+            v("a", "1\u{d7}", 5_800, Some(17), Some(60), true),
+            v("b", "1\u{d7}", 4_000, Some(11), Some(40), true),
+        ];
+        let lay2 = layout(&duo, 200, 100, true).expect("fits");
+        let cells2 = row_cells(&duo, 200, 0, &lay2, 0);
+        let pcts_a = cells2.iter().filter(|c| c.row == 0 && c.c == '%').count();
+        assert_eq!(pcts_a, 2, "ctx + shr bars for a multi-agent row");
     }
 
     #[test]
     fn row_cells_have_name_state_pipes_and_ctx_shr_bars() {
         let views = trio();
         let cols = 200;
-        let lay = layout(&views, cols, 100).expect("fits");
+        let lay = layout(&views, cols, 100, true).expect("fits");
         let start_row = 1;
         let cells = row_cells(&views, cols, start_row, &lay, 0);
 
@@ -486,8 +519,15 @@ mod tests {
         assert!(coder.contains("coder"), "coder name: {coder}");
         assert!(reviewer.contains("reviewer"), "reviewer name: {reviewer}");
 
-        assert!(planner.contains("(ctx)"), "ctx label: {planner}");
-        assert!(planner.contains("(shr)"), "shr label: {planner}");
+        // The bars speak via their fill + `%`; no word-labels ride along.
+        assert!(
+            !planner.contains("(ctx)"),
+            "ctx label must be gone: {planner}"
+        );
+        assert!(
+            !planner.contains("(shr)"),
+            "shr label must be gone: {planner}"
+        );
 
         // Separators land at the same columns across every row (leading-column
         // alignment).
@@ -560,7 +600,6 @@ mod tests {
         let seg = Seg {
             pct: Some(50),
             frac: 0.35,
-            label: "ctx",
             fill: (255, 0, 0),
         };
         push_segment(&mut cells, 0, 0, 40, seg, &pal);
@@ -576,7 +615,7 @@ mod tests {
         let mut view = v("test", "idle", 0, None, None, active);
         view.flash_t = flash_t;
         let views = vec![view];
-        let lay = layout(&views, 80, 1).expect("test layout");
+        let lay = layout(&views, 80, 1, false).expect("test layout");
         let cells = row_cells(&views, 80, 0, &lay, now);
         // Find the first cell (should be the marker at row 0, col 0).
         cells

@@ -127,8 +127,9 @@ fn cells_grid_never_overdraws_past_status_rows() {
     let top = p.status_rows(cols, rows);
 
     let views = p.agent_views();
+    let show_share = views.len() >= 2;
     let avail = rows.saturating_sub(1 + crate::chatinput::composer_rows(&p.input, cols, rows));
-    let lay = crate::chatchips::layout(&views, cols, avail).expect("some rows fit");
+    let lay = crate::chatchips::layout(&views, cols, avail, show_share).expect("some rows fit");
     assert_eq!(
         top,
         1 + lay.rows,
