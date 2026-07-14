@@ -29,14 +29,40 @@ impl Drop for IpcHandle {
     }
 }
 
-/// The default socket path: `$XDG_RUNTIME_DIR/crew-ipc.sock`, else under the
-/// user config dir (`~/.config/crew` / `~/Library/Application Support/crew`).
-pub(crate) fn socket_path() -> PathBuf {
+/// The directory the IPC socket lives in: `$XDG_RUNTIME_DIR`, else the user
+/// config dir (`~/.config/crew` / `~/Library/Application Support/crew`).
+fn socket_dir() -> PathBuf {
     std::env::var_os("XDG_RUNTIME_DIR")
         .map(PathBuf::from)
         .or_else(|| dirs::config_dir().map(|d| d.join("crew")))
         .unwrap_or_else(std::env::temp_dir)
-        .join("crew-ipc.sock")
+}
+
+/// Keep only safe filename characters from an instance id, capped in length, so
+/// `CREW_INSTANCE` can never escape the socket directory (no `/`, `..`, etc.).
+fn sanitize_instance(id: &str) -> String {
+    id.chars()
+        .filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
+        .take(32)
+        .collect()
+}
+
+/// The socket file name. Default (`crew-ipc.sock`) unless an `instance` id is
+/// given, then `crew-ipc-<id>.sock` — so multiple crew instances on one host
+/// coexist and V3 federation can address each one separately. Pure in
+/// `instance` so it's testable without touching the environment.
+fn socket_name(instance: Option<&str>) -> String {
+    match instance.map(sanitize_instance).filter(|s| !s.is_empty()) {
+        Some(id) => format!("crew-ipc-{id}.sock"),
+        None => "crew-ipc.sock".to_string(),
+    }
+}
+
+/// The socket path for this instance: [`socket_dir`] + [`socket_name`], keyed
+/// off `CREW_INSTANCE` (unset = the default instance). The `crew ask`/`crew
+/// panes` client and the GUI read the same env, so they always agree.
+pub(crate) fn socket_path() -> PathBuf {
+    socket_dir().join(socket_name(std::env::var("CREW_INSTANCE").ok().as_deref()))
 }
 
 /// Bind `path` (reclaiming a stale socket) and spawn the listener thread.
@@ -145,5 +171,20 @@ mod tests {
         let reply: Reply = serde_json::from_str(buf.trim()).unwrap();
         assert!(matches!(reply, Reply::Roster { panes } if panes.len() == 1));
         drop(handle); // unlinks the socket
+    }
+
+    #[test]
+    fn socket_name_is_default_or_per_instance_and_path_safe() {
+        assert_eq!(socket_name(None), "crew-ipc.sock");
+        assert_eq!(socket_name(Some("alpha")), "crew-ipc-alpha.sock");
+        // Empty / all-unsafe ids fall back to the shared default socket.
+        assert_eq!(socket_name(Some("")), "crew-ipc.sock");
+        assert_eq!(socket_name(Some("///")), "crew-ipc.sock");
+        // Path-traversal attempts are stripped to a safe filename fragment.
+        assert_eq!(
+            socket_name(Some("../etc/passwd")),
+            "crew-ipc-etcpasswd.sock"
+        );
+        assert_eq!(socket_name(Some("a/b\\c")), "crew-ipc-abc.sock");
     }
 }
