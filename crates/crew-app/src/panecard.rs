@@ -20,8 +20,8 @@ pub(crate) struct Bar<'a> {
     pub bell: bool,
     /// This pane is receiving broadcast (synchronized) input.
     pub broadcast: bool,
-    /// `Some(now_ms)` when the pane is busy: animate an indeterminate sweep along
-    /// the bottom border at that time. `None` leaves the border static.
+    /// `Some(now_ms)` when the pane is busy: animate an in-pane indeterminate
+    /// rain patch (bottom-right corner) at that time. `None` leaves it off.
     pub busy: Option<u64>,
     /// Draw the `[-][x]` minimize and close buttons on the top border (full grid
     /// tiles and the zoomed tile — not strip thumbnails). Click regions come from
@@ -150,14 +150,33 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
             rx = rx.saturating_sub(2);
         }
     }
-    // Indeterminate progress: a sweep along the bottom border while busy.
+    // Indeterminate progress: a small "matrix rain" patch inset in the
+    // bottom-right interior corner while busy — in-pane, not a border sweep.
     if let Some(now) = b.busy {
-        let bottom = rows - 1;
-        for (col, fg) in crate::progress::sweep(cols, now) {
-            put(&mut v, col, bottom, '━', fg);
-        }
+        overlay_rain(&mut v, cols, rows, now);
     }
     v
+}
+
+/// Overlay the busy rain indicator: a compact [`crate::charrain`] region in the
+/// bottom-right interior corner (right/bottom-aligned, one cell clear of the
+/// border). Cells replace whatever the border buffer held there, so the drops
+/// win cleanly. Skipped when the card is too small to host a legible patch.
+fn overlay_rain(v: &mut Vec<CellView>, cols: u16, rows: u16, now: u64) {
+    let w = cols.saturating_sub(2).min(10);
+    let h = rows.saturating_sub(2).min(3);
+    if w < 3 || h < 2 {
+        return;
+    }
+    let (left, top) = (cols - 1 - w, rows - 1 - h);
+    let (head, trail, bg) = (accent(), (40, 40, 48), crew_theme::theme().page_bg);
+    let mut drops = Vec::new();
+    // now_ms → a calm ~few-cells/second fall (charrain scales this down again).
+    crate::charrain::rain(&mut drops, top, left, w, h, now / 90, head, trail, bg);
+    for d in drops {
+        v.retain(|c| !(c.col == d.col && c.row == d.row));
+        v.push(d);
+    }
 }
 
 /// Push a fieldset card for a non-pane panel (sidebar, welcome) into `scenes`:

@@ -148,7 +148,7 @@ impl SwarmPane {
     }
 
     /// Whether the pane is working — planning, or running with live tasks and not
-    /// cancelled. Drives the indeterminate progress sweep on the pane border.
+    /// cancelled. Drives the in-pane indeterminate rain patch while busy.
     pub fn is_busy(&self) -> bool {
         match &self.state {
             SwarmState::Planning { .. } => true,

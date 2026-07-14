@@ -82,17 +82,26 @@ fn focused_legend_is_bold_unfocused_is_not() {
 }
 
 #[test]
-fn busy_pane_draws_a_sweep_on_the_bottom_border() {
+fn busy_pane_rains_in_the_bottom_right_corner() {
     let busy = Bar {
         busy: Some(0),
         ..bar(true)
     };
-    let cells = pane_card(38, 10, &busy);
-    // heavy rule glyphs ride the bottom border (row = interior + 1) when busy…
-    let bottom = 10 + 1;
-    assert!(cells.iter().any(|c| c.c == '━' && c.row == bottom));
-    // …and never when idle.
-    assert!(!pane_card(38, 10, &bar(true)).iter().any(|c| c.c == '━'));
+    // Card 40×12: the rain patch is w=10 h=3, right/bottom-aligned inside the
+    // border → cols 29..=38, rows 8..=10 (all interior, clear of the ring).
+    let in_corner = |cells: &[CellView]| {
+        cells
+            .iter()
+            .any(|c| (29..=38).contains(&c.col) && (8..=10).contains(&c.row) && c.c != ' ')
+    };
+    assert!(
+        in_corner(&pane_card(38, 10, &busy)),
+        "busy pane rains visible glyphs in the bottom-right interior corner"
+    );
+    assert!(
+        !in_corner(&pane_card(38, 10, &bar(true))),
+        "idle pane leaves the corner clear — no in-pane rain"
+    );
 }
 
 #[test]
