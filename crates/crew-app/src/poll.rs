@@ -149,6 +149,9 @@ impl CrewApp {
         // Inter-pane `ask`: serve socket requests + advance live asks against
         // the output the pane loop just captured this tick.
         any_changed |= self.pump_asks(now_ms);
+        // Broadcast asks aggregate silently (no injection here), so they don't
+        // force a repaint — advance them off the same captured output.
+        self.tick_castings(now_ms);
         if self.sidebar.refresh(&self.cwd) {
             any_changed = true;
         }

@@ -48,6 +48,7 @@ Crew runs as a GUI by default; these command-line modes offer headless operation
 - `crew install-app --remove` — remove the OS app menu entry
 - `crew panes` — list the running instance's addressable panes (for inter-pane ask)
 - `crew ask <id|label> "<question>"` — ask the agent in another pane (see below)
+- `crew ask --all|--any "<question>"` — broadcast to every pane (see below)
 
 ## Inter-pane ask
 
@@ -72,8 +73,26 @@ is actually generating a reply rather than a fixed timeout.
   so the asking agent never hangs and can fall back to another approach. Exit
   code: 0 answered, 2 no-answer, 3 unreachable/no crew running.
 
-v1 targets terminal-CLI agents in the same instance. Broadcast (`--any`) and
-cross-instance federation are the roadmap — see `docs/vision/sentinel-network.md`.
+- **Broadcast** (v2): ask *every* pane at once instead of naming one.
+  - `crew ask --all "what's blocking you?"` — fan the question into every other
+    terminal pane, wait for them all, and print one aggregate (each pane's answer,
+    or why it stayed silent).
+  - `crew ask --any "who has the staging DB URL?"` — same fan-out, but the first
+    real answer wins and the rest are dropped. Use it as a query-by-need: don't
+    know who knows, ask the room.
+
+  ```
+  [schema] ANSWERED: v2 — see api/v2/client.rs
+  [tests]  no answer (idle)
+  ```
+
+  Exit code: 0 if anyone answered, 2 if panes were reached but none answered,
+  3 if no pane was eligible. Broadcast reuses the same visible-injection and
+  smart-wait engine per pane — it only widens *who* is asked.
+
+v1/v2 target terminal-CLI agents in the same instance. Cross-instance federation
+(asking agents in *other* people's Crew, by consent) is next — see
+`docs/vision/sentinel-network.md`.
 
 ## Panes
 
