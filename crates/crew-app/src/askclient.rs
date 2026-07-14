@@ -105,7 +105,13 @@ fn no_crew() -> (String, i32) {
 /// agent in another crew instance's pane (v3 federation) — the instance part
 /// picks the socket, the pane part is resolved by that crew unchanged.
 pub(crate) fn run_ask(to: &str, question: &str) -> i32 {
-    let (pane, instance) = crate::askroute::split_instance(to);
+    let (pane, instance) = match crate::askaddr::resolve_target(to) {
+        Ok(v) => v,
+        Err(msg) => {
+            println!("NO_ANSWER: {msg}");
+            return 3;
+        }
+    };
     let from = std::env::var("CREW_PANE").unwrap_or_else(|_| "an agent".to_string());
     let id = format!("q{}", std::process::id());
     let req = Request::Ask {
@@ -115,7 +121,7 @@ pub(crate) fn run_ask(to: &str, question: &str) -> i32 {
         question: question.to_string(),
         id,
     };
-    let (text, code) = exchange(&req, instance)
+    let (text, code) = exchange(&req, instance.as_deref())
         .map(|r| render(&r))
         .unwrap_or_else(no_crew);
     println!("{text}");

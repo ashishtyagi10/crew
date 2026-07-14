@@ -2,6 +2,7 @@ mod altscroll;
 mod anim;
 mod app;
 mod appregister;
+mod askaddr;
 mod askbar;
 mod askcast;
 mod askclient;
