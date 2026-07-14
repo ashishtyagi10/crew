@@ -13,7 +13,7 @@ impl CrewApp {
             "goal" => self.spawn_goal_pane(""), // show usage hint
             "batch" => self.spawn_batch_pane(""), // show usage hint
             "md" => self.spawn_md_pane(""),     // show usage hint
-            "crew" => self.spawn_crew_pane(),
+            "smith" | "crew" => self.spawn_crew_pane(), // /crew kept as an alias
             "settings" => self.spawn_settings_pane(),
             "shell" => self.spawn_new_pane(),
             // Reopen last session's shells (their cwds snapshot on quit).

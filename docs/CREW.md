@@ -3,7 +3,7 @@
 A from-scratch, native **GPU terminal** written in Rust — an AI-oriented terminal
 where everything renders in the terminal as tiles (no overlays). Crew is the
 successor to this repo's original terminal file-manager project; the crates under
-`crates/crew-*` are the product.
+`crates/smith-*` are the product.
 
 ## Architecture
 
@@ -18,11 +18,11 @@ successor to this repo's original terminal file-manager project; the crates unde
   last frame's shaped text** (content signatures in `scenecache`); and all cell
   placement is **display-width aware** (`chatwidth` — emoji/CJK advance two
   columns everywhere).
-- **Terminal model** — `alacritty_terminal` + `portable-pty` (`crates/crew-term`).
+- **Terminal model** — `alacritty_terminal` + `portable-pty` (`crates/smith-term`).
 - **In-pane UI** — `ratatui` widgets are laid out into a `Buffer` and converted to
   GPU cells (the settings form, command palette, and help overlay use this).
 - **Crates** — `crew-app` (window, panes, input), `crew-render` (GPU), `crew-term`
-  (PTY + grid), `crew-plugin` (chat/agent plugins + the `/crew` relay broker),
+  (PTY + grid), `crew-plugin` (chat/agent plugins + the `/smith` relay broker),
   `crew-theme` (the thirteen theme presets + palette contracts — see
   [Themes](#themes)), `crew-hive` (the swarm orchestration engine — see
   [Swarm orchestration](#swarm-orchestration-crew-hive) below).
@@ -227,7 +227,7 @@ The docked command bar supports:
   alternative to the persistent Cmd+S broadcast mode.
 - **`?<plain english>`** — ask the AI for a command (à la Warp AI / GitHub
   Copilot CLI): `?kill whatever is on port 8080` sends the request to the same
-  provider stack `/crew`'s inbuilt agents use (DashScope → OpenRouter →
+  provider stack `/smith`'s inbuilt agents use (DashScope → OpenRouter →
   Anthropic, mock under `CREW_BROKER_MOCK_REPLY`) on a worker thread, and the
   suggested command lands **back in the input bar** — ready to edit or Enter —
   with a status flash. If you've typed something new meanwhile it never
@@ -242,7 +242,7 @@ The docked command bar supports:
   two-keystroke prefix. Non-terminal focus or an empty pane gets a status
   hint; the same one-ask-at-a-time and worker-thread rules as `?` apply.
 - **Slash commands** — type `/` for a command palette (↑/↓ to pick, Tab/→ to
-  fill, Enter to run): `/crew`, `/goal <text>`, `/batch <file>`, `/md <file>`,
+  fill, Enter to run): `/smith`, `/goal <text>`, `/batch <file>`, `/md <file>`,
   `/diff`, `/settings`, `/find <text>`, `/findall <text>`, `/name <text>`, `/clear`, `/clearall`,
   `/clearlog`, `/only`, `/closeall`, `/pwd`, `/about`, `/copy`, `/dump`,
   `/font`, `/restart`, `/theme`, `/notify`, `/update`, `/broadcast`, `/zoom`,
@@ -303,7 +303,7 @@ The docked command bar supports:
   finishes — the pane drops to a fresh shell prompt — so builds, tests, and
   long-running jobs run alongside your shells instead of blocking one. This is
   also how you open a coding-agent CLI in a pane — `!claude`, `!codex`,
-  `!opencode` (distinct from `/crew`, which opens the multi-agent broker relay
+  `!opencode` (distinct from `/smith`, which opens the multi-agent broker relay
   pane). Run panes execute under **bash job control** (`set -m`, then `exec`
   back into your shell), so Crew can tell "a command is running" from "a
   prompt is waiting" — that signal is what makes bare input divert away from
@@ -353,7 +353,7 @@ The docked command bar supports:
   typing to edit` hint: `Enter` runs it like any typed command, `Esc`
   restores the original `!` text, and typing further just edits the
   suggestion as plain text.
-- **`/crew`** — opens a **multi-agent pane** where the installed CLI coding
+- **`/smith`** — opens a **multi-agent pane** where the installed CLI coding
   agents (claude, codex, opencode) message each other to work a task. See
   [Multi-agent relay](#multi-agent-relay-crew) below.
 - **Autosuggest** — fish-style ghost text from history; Tab/→ accepts it.
@@ -374,7 +374,7 @@ The docked command bar supports:
   window close, `/exit`) snapshots each restorable pane to `session.toml`
   beside the config — terminal panes save the shell's **live** working
   directory (asked from the OS, so it follows your `cd`s; hidden panes
-  included), Far panes their active panel's directory, and the `/crew` chat
+  included), Far panes their active panel's directory, and the `/smith` chat
   pane its presence — up to 6, deduped, stale paths and unknown kinds
   skipped on load (older `dirs`-only files from v0.5.73–74 still restore).
   Panes minimized into the left nav restore minimized. Restore is deliberately pull-based: launching keeps
@@ -434,7 +434,7 @@ CJK/emoji don't skew them), fenced code as bordered cards, and links. Nesting
 depth is capped so pathological input can't blow the stack, and HTML blocks
 render verbatim instead of disappearing.
 
-- **Chat panes** (the `/crew` pane, Cmd+J chat) render message bodies as
+- **Chat panes** (the `/smith` pane, Cmd+J chat) render message bodies as
   formatted markdown by default; single line breaks are preserved, since
   agent replies rely on them. **`Ctrl+Shift+M`** flips the focused chat pane
   to the raw source and back. **Cmd/Ctrl+click** on a rendered link opens it
@@ -449,9 +449,9 @@ render verbatim instead of disappearing.
   the cursor is over, and **Esc** closes the pane. Relative paths resolve
   against the input bar's working directory.
 
-## Multi-agent relay (`/crew`)
+## Multi-agent relay (`/smith`, alias `/crew`)
 
-`/crew` opens a pane that lets independent headless CLI coding agents talk to
+`/smith` opens a pane that lets independent headless CLI coding agents talk to
 each other to work a task you give them. Any registered agent can be sender or
 recipient — claude ↔ codex ↔ opencode.
 
@@ -513,7 +513,7 @@ instead of transcript spam, and each
 turn ends with a `stats` event plus a timeline summary: `turn done — planner
 4.2s → coder 8.1s · 2 exchange(s) · ~950 tok (approx)`.
 
-**Swarm runs stream inline.** When a plain `/crew` message runs as a broker-side
+**Swarm runs stream inline.** When a plain `/smith` message runs as a broker-side
 swarm, the pane opens a **live task-list block** above the composer — one row
 per planned task with a state glyph (a spinner while it runs), its title, live
 elapsed seconds, a right-aligned token count, and — when the run bills real
@@ -683,7 +683,7 @@ hot-reload: skills and manifests are re-read from disk on every use, and
   `{"name": "aider", "command": "aider", "args": ["--message", "{}"],
   "role": "repo-wide edits"}`. `{}` is the message placeholder (appended when
   missing); manifests whose command isn't on `$PATH` are skipped, and a
-  manifest can't shadow an inbuilt agent. With manifests present, `/crew`
+  manifest can't shadow an inbuilt agent. With manifests present, `/smith`
   works even with **no API key at all**.
 - **MCP servers** are declared in `~/.config/crew/mcp.json` or
   `./.crew/mcp.json` with the familiar schema —
@@ -697,7 +697,7 @@ hot-reload: skills and manifests are re-read from disk on every use, and
   agent (up to 4 tool rounds per hop), then normal `@next`/`@done` routing
   resumes.
 
-**Models & rate-limits.** When no agent CLIs are installed, `/crew` runs its
+**Models & rate-limits.** When no agent CLIs are installed, `/smith` runs its
 inbuilt API agents — **planner** (capable tier), **coder**, and **reviewer**
 (standard tier) — over an LLM. Provider discovery prefers `DASHSCOPE_API_KEY`
 (Alibaba Cloud Model Studio — Qwen commercial models, `qwen-max` →
@@ -730,7 +730,7 @@ An adapter normalizes each agent's stdout before it is ever shown or relayed
 (claude `-p --output-format text` and `codex exec` print the reply on stdout;
 opencode's `--format json` event stream is parsed for the assistant text).
 
-**Architecture.** The reusable broker lives in `crates/crew-plugin/src/broker/`:
+**Architecture.** The reusable broker lives in `crates/smith-plugin/src/broker/`:
 `Envelope { from, to, thread_id, hop, body }` is the message shape, an `Adapter`
 turns a body into a clean reply, the `Registry` maps name → adapter (populated by
 `discover()`), and the engine drives the relay with the loop guard. **To add an
@@ -751,7 +751,7 @@ task, and accumulates the spend into the header's `~N tok` meter.
 
 ## Swarm orchestration (`crew-hive`)
 
-The `/crew` relay is a few CLI agents talking turn-by-turn. **`crew-hive`** is the
+The `/smith` relay is a few CLI agents talking turn-by-turn. **`crew-hive`** is the
 next tier: a headless orchestration **engine** for running *many* agents toward a
 single goal — the substrate behind Crew's "command a fleet of agents" direction.
 It is a standalone workspace crate (no GPU, no terminal), driven by `crew-app`.

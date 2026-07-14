@@ -18,7 +18,7 @@ fn empty_text_has_no_suggestion() {
 #[test]
 fn slash_prefix_completes_command() {
     assert_eq!(suggest("/se", &[]).as_deref(), Some("ttings"));
-    assert_eq!(suggest("/cr", &[]).as_deref(), Some("ew"));
+    assert_eq!(suggest("/sm", &[]).as_deref(), Some("ith"));
 }
 
 #[test]
@@ -181,8 +181,8 @@ fn freeform_command_has_no_picker() {
 #[test]
 fn agent_cli_aliases_removed_in_favor_of_run() {
     // The /claude, /codex, /opencode aliases were dropped — bare text input
-    // can force a new pane (e.g. `claude` or `codex`), and /crew still opens
-    // the multi-agent relay.
+    // can force a new pane (e.g. `claude` or `codex`), and /smith (formerly
+    // /crew, still a dispatch alias) still opens the multi-agent relay.
     let all: Vec<&str> = matches("/").iter().map(|c| c.name).collect();
     for name in ["/claude", "/codex", "/opencode"] {
         assert!(
@@ -190,7 +190,7 @@ fn agent_cli_aliases_removed_in_favor_of_run() {
             "{name} should no longer be in the palette"
         );
     }
-    assert!(all.contains(&"/crew"));
+    assert!(all.contains(&"/smith"));
 }
 
 #[test]
