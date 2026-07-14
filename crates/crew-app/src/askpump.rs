@@ -177,7 +177,7 @@ mod tests {
         use std::io::Write;
         use std::time::{Duration, Instant};
 
-        let mut pty = PtyTerm::spawn(GridSize { cols: 80, rows: 24 }, "sh").unwrap();
+        let pty = PtyTerm::spawn(GridSize { cols: 80, rows: 24 }, "sh").unwrap();
         // A cooperating responder: on any line that MENTIONS the marker, print
         // an answer line that BEGINS with it. (Mirrors what an instructed LLM
         // agent does; the echoed instruction line has the marker mid-line and
