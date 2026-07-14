@@ -3,6 +3,7 @@ mod anim;
 mod app;
 mod appregister;
 mod askbar;
+mod askroute;
 mod attention;
 mod boxdraw;
 mod chat;
