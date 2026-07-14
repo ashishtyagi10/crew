@@ -84,12 +84,17 @@ fn put(v: &mut Vec<CellView>, col: u16, row: u16, c: char, fg: (u8, u8, u8)) {
 /// status glyphs. No filled title bar — just the frame on the canvas.
 pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
     let (cols, rows) = (gcols + 2, grows + 2);
+    // Each pane carries a signature hue derived from its title — the same hash
+    // the crew roster uses for agent names, so a swarm agent's pane and its
+    // roster row read as one colour. Focus stays legible via bold + the
+    // focused border; the unfocused legend recedes toward `legend_off`.
+    let hue = crate::chatroster::agent_color(b.title);
     let (border, legend) = if b.focused {
-        (crew_theme::theme().border_focused, accent())
+        (crew_theme::theme().border_focused, hue)
     } else {
         (
             crew_theme::theme().border_normal,
-            crew_theme::theme().legend_off,
+            crate::anim::lerp_rgb(hue, crew_theme::theme().legend_off, 0.55),
         )
     };
     let label = match b.index {
