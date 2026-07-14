@@ -3,6 +3,20 @@
 //! wait live elsewhere (ipc.rs / askpump / askwait.rs).
 use crate::pane::Pane;
 
+/// Split a federated ask address into `(pane-local target, instance)`:
+/// `schema@alpha` → `("schema", Some("alpha"))`; a bare `schema` →
+/// `("schema", None)`. The instance selects which crew's socket the client
+/// dials; the pane part is resolved locally by that crew, unchanged. This is
+/// the v3 address widening — the resolver/transport widen, the engine does not
+/// (docs/vision/sentinel-network.md). Splits on the LAST `@` so a pane label
+/// may itself contain one; an empty instance is ignored.
+pub(crate) fn split_instance(addr: &str) -> (&str, Option<&str>) {
+    match addr.rsplit_once('@') {
+        Some((pane, inst)) if !inst.is_empty() && !pane.is_empty() => (pane, Some(inst)),
+        _ => (addr, None),
+    }
+}
+
 /// Resolve an address to a pane index: an exact `/name`-or-label match first,
 /// else the `p{index}` fallback form (every pane is addressable even unnamed).
 pub(crate) fn resolve(panes: &[Pane], addr: &str) -> Option<usize> {
@@ -77,6 +91,17 @@ mod tests {
             hidden: false,
             attention: None,
         }
+    }
+
+    #[test]
+    fn split_instance_separates_pane_from_instance() {
+        assert_eq!(split_instance("schema"), ("schema", None));
+        assert_eq!(split_instance("schema@alpha"), ("schema", Some("alpha")));
+        // Empty instance or empty pane → treated as a bare local address.
+        assert_eq!(split_instance("schema@"), ("schema@", None));
+        assert_eq!(split_instance("@alpha"), ("@alpha", None));
+        // Splits on the LAST '@' (a label may contain one).
+        assert_eq!(split_instance("a@b@host"), ("a@b", Some("host")));
     }
 
     #[test]
