@@ -112,7 +112,6 @@ mod pathcomplete;
 mod pathexpand;
 mod poll;
 mod procname;
-mod progress;
 mod quit;
 mod render;
 mod restart;
