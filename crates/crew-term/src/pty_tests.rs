@@ -56,6 +56,41 @@ fn try_read_caps_bytes_per_tick_under_flood() {
     let _ = w.flush();
 }
 
+#[test]
+fn capture_records_raw_output_only_while_on() {
+    let mut term = PtyTerm::spawn(GridSize { cols: 40, rows: 10 }, "sh").unwrap();
+    assert_eq!(term.take_capture(), "", "nothing captured before start");
+    term.start_capture();
+    let mut w = term.writer();
+    w.write_all(b"printf 'MARK-42'\n").unwrap();
+    w.flush().unwrap();
+    let deadline = Instant::now() + Duration::from_secs(5);
+    let mut got = String::new();
+    while Instant::now() < deadline {
+        term.try_read();
+        got.push_str(&term.take_capture());
+        if got.contains("MARK-42") {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    assert!(
+        got.contains("MARK-42"),
+        "capture records raw output: {got:?}"
+    );
+
+    // Once stopped, subsequent output is not captured.
+    term.stop_capture();
+    w.write_all(b"printf 'AFTER'\n").unwrap();
+    w.flush().unwrap();
+    std::thread::sleep(Duration::from_millis(200));
+    term.try_read();
+    assert!(
+        !term.take_capture().contains("AFTER"),
+        "stopped capture records nothing"
+    );
+}
+
 fn pats(xs: &[&str]) -> Vec<String> {
     xs.iter().map(|s| s.to_string()).collect()
 }

@@ -95,6 +95,7 @@ impl PtyTerm {
             watch: Vec::new(),
             scan_tail: String::new(),
             hits: Vec::new(),
+            capture: None,
             child,
         })
     }
