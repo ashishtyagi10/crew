@@ -95,6 +95,15 @@ pub struct CrewApp {
     /// In-flight `?` ask (AI command suggestion) on a worker thread. `None`
     /// when idle. See [`crate::askbar`].
     pub(crate) ask: Option<crate::askbar::Ask>,
+    /// Inter-pane `ask` IPC endpoint (the Unix socket, on its own thread).
+    /// `None` if the socket couldn't bind. See [`crate::ipc`], [`crate::askpump`].
+    pub(crate) ipc: Option<crate::ipc::IpcHandle>,
+    /// Live inter-pane asks: each target pane's liveness state + the channel
+    /// its verdict is sent back on when it resolves.
+    pub(crate) pending_asks: Vec<(
+        crate::askwait::PendingAsk,
+        std::sync::mpsc::Sender<crate::ipc_types::Reply>,
+    )>,
 }
 
 impl CrewApp {

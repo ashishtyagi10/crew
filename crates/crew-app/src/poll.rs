@@ -146,6 +146,9 @@ impl CrewApp {
         }
         // Land a finished `?` ask (AI command suggestion) from its worker.
         any_changed |= self.poll_ask();
+        // Inter-pane `ask`: serve socket requests + advance live asks against
+        // the output the pane loop just captured this tick.
+        any_changed |= self.pump_asks(now_ms);
         if self.sidebar.refresh(&self.cwd) {
             any_changed = true;
         }

@@ -13,6 +13,8 @@ const BASE_QUIET_MS: u64 = 4_000;
 pub(crate) struct PendingAsk {
     pub id: String,
     pub target: usize,
+    /// The tick this ask was registered — the base for an absolute ceiling.
+    pub asked_ms: u64,
     pub captured: String,
     pub produced_any: bool,
     pub first_out_ms: Option<u64>,
@@ -43,6 +45,7 @@ impl PendingAsk {
         PendingAsk {
             id,
             target,
+            asked_ms: now_ms,
             captured: String::new(),
             produced_any: false,
             first_out_ms: None,

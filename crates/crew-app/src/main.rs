@@ -4,6 +4,7 @@ mod app;
 mod appregister;
 mod askbar;
 mod askclient;
+mod askpump;
 mod askroute;
 mod askwait;
 mod attention;
