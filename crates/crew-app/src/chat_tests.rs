@@ -51,7 +51,7 @@ fn pane() -> ChatPane {
 }
 
 #[test]
-fn cells_render_session_line_agent_chips_and_turn_duration() {
+fn cells_render_session_line_and_agent_chips() {
     let mut p = pane();
     p.agents = vec![
         crew_plugin::AgentInfo {
@@ -66,8 +66,6 @@ fn cells_render_session_line_agent_chips_and_turn_duration() {
         },
     ];
     p.absorb_stats(950, String::new(), 0, 0);
-    p.pulse.record_hop("planner", 1200);
-    p.pulse.end_turn();
     let cells = p.cells(120, 20);
     let text: String = {
         let mut rows: std::collections::BTreeMap<u16, Vec<(u16, char)>> = Default::default();
@@ -92,15 +90,11 @@ fn cells_render_session_line_agent_chips_and_turn_duration() {
         "coder card:\n{text}"
     );
     assert!(text.contains("idle"), "state token:\n{text}");
-    // The turn duration (1200ms -> "1.2s") now lives in the session line, not
-    // a waterfall row.
+    // Reductionist header: the turn/duration counters are gone — the session
+    // line carries no "N turn" chatter.
     assert!(
-        text.contains("1 turn") && text.contains("1.2s"),
-        "turn duration in session line:\n{text}"
-    );
-    assert!(
-        !text.contains('\u{2588}'),
-        "no waterfall block glyphs left:\n{text}"
+        !text.contains("turn"),
+        "turn counter must be gone from the header:\n{text}"
     );
 }
 
