@@ -16,8 +16,8 @@ pub(crate) const COMMANDS: &[Cmd] = &[
         desc: "Open settings",
     },
     Cmd {
-        name: "/crew",
-        desc: "Open the multi-agent pane (claude/codex/opencode relay)",
+        name: "/smith",
+        desc: "Open the multi-agent pane — the agent relay (alias: /crew)",
     },
     Cmd {
         name: "/diff",
