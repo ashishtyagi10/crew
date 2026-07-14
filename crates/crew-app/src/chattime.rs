@@ -68,22 +68,6 @@ pub(crate) fn fmt_elapsed(ms: u64) -> String {
     }
 }
 
-/// The card header's metadata tail: ` · <rel time>` then ` · <meta>`, each part
-/// present only when known. Empty when there's nothing to say.
-pub(crate) fn meta_suffix(ts: &str, meta: &str, now_ms: u64) -> String {
-    let meta = strip_task_tag(meta);
-    let mut s = String::new();
-    if let Some(rel) = rel_time(ts, now_ms) {
-        s.push_str(" \u{00b7} ");
-        s.push_str(&rel);
-    }
-    if !meta.is_empty() {
-        s.push_str(" \u{00b7} ");
-        s.push_str(meta);
-    }
-    s
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -102,16 +86,6 @@ mod tests {
     fn rel_time_rejects_non_numeric_ts() {
         assert_eq!(rel_time("", 1000), None);
         assert_eq!(rel_time("t", 1000), None);
-    }
-
-    #[test]
-    fn meta_suffix_combines_time_and_latency() {
-        assert_eq!(
-            meta_suffix("999958000", "4.2s", 1_000_000_000),
-            " \u{00b7} 42s ago \u{00b7} 4.2s"
-        );
-        assert_eq!(meta_suffix("", "4.2s", 1000), " \u{00b7} 4.2s");
-        assert_eq!(meta_suffix("", "", 1000), "");
     }
 
     #[test]
@@ -149,14 +123,5 @@ mod tests {
         assert_eq!(fmt_elapsed(125_000), "2m05s");
         assert_eq!(fmt_elapsed(605_000), "10m05s");
         assert_eq!(fmt_elapsed(3_661_000), "61m01s"); // 1h 1m 1s
-    }
-
-    #[test]
-    fn meta_suffix_drops_the_task_tag_but_keeps_latency() {
-        let s = meta_suffix("", "task:3 \u{00b7} 0.0s", 1000);
-        assert_eq!(s, " \u{00b7} 0.0s");
-        assert!(!s.contains("task:"), "tag must not leak into the tail: {s}");
-        // Tag-only meta yields no latency part.
-        assert_eq!(meta_suffix("", "task:3", 1000), "");
     }
 }

@@ -68,15 +68,18 @@ fn fenced_code_renders_as_bordered_card() {
 }
 
 #[test]
-fn header_tail_carries_latency_metadata() {
-    let mut m = msg("coder", "done");
-    m.meta = "4.2s".into();
-    let cells = message_cells(&[m], 40, 10, 0, 0, View::default());
-    assert!(
-        row_text(&cells, 0).ends_with("\u{00b7} 4.2s"),
-        "got: {}",
-        row_text(&cells, 0)
-    );
+fn header_tail_keeps_relative_time_but_drops_latency() {
+    // The muted card-header tail carries "when" (relative time), never the
+    // per-card reply latency — reductionist chrome, one signal per question.
+    let m = Message {
+        sender: "coder".into(),
+        text: "done".into(),
+        ts: "999700000".into(),
+        meta: "4.2s".into(),
+    };
+    let chars: String = header_line(&m, 1_000_000_000).iter().map(|c| c.c).collect();
+    assert!(chars.contains("5m ago"), "relative time shown: {chars}");
+    assert!(!chars.contains("4.2s"), "latency must be gone: {chars}");
 }
 
 #[test]
@@ -183,7 +186,10 @@ fn header_line_shows_a_dim_chip_for_task_tagged_messages() {
     let id = line.iter().find(|c| c.c == '2').expect("chip id present");
     assert_eq!(id.fg, muted, "chip id is muted");
     let chars: String = line.iter().map(|c| c.c).collect();
-    assert!(chars.contains("0.0s"), "latency must still render: {chars}");
+    assert!(
+        !chars.contains("0.0s"),
+        "per-card latency must be gone: {chars}"
+    );
     assert!(
         !chars.contains("task"),
         "tag must not leak into the header: {chars}"

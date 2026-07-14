@@ -71,9 +71,10 @@ fn sender_color(sender: &str) -> Color {
     }
 }
 
-/// The `▍sender · 2m ago · 4.2s` header line. Multi-part senders (`a → b`)
-/// colour each name separately with a muted arrow, so hand-offs read as
-/// from → to; the muted tail carries the relative time and reply latency.
+/// The `▍sender · 2m ago` header line. Multi-part senders (`a → b`) colour
+/// each name separately with a muted arrow, so hand-offs read as from → to;
+/// the muted tail carries only the relative time (the per-card reply latency
+/// was dropped in the reductionist pass — one signal per question).
 fn header_line(m: &Message, now_ms: u64) -> CardLine {
     let muted = crew_theme::theme().text_muted;
     let mut line: CardLine = Vec::new();
@@ -90,8 +91,13 @@ fn header_line(m: &Message, now_ms: u64) -> CardLine {
         }
         line.extend(part.chars().map(|c| plain(c, sender_color(part), true)));
     }
-    let tail = crate::chattime::meta_suffix(&m.ts, &m.meta, now_ms);
-    line.extend(tail.chars().map(|c| plain(c, muted, false)));
+    if let Some(rel) = crate::chattime::rel_time(&m.ts, now_ms) {
+        line.extend(
+            format!(" \u{00b7} {rel}")
+                .chars()
+                .map(|c| plain(c, muted, false)),
+        );
+    }
     line
 }
 
