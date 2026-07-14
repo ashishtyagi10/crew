@@ -3,6 +3,7 @@ mod anim;
 mod app;
 mod appregister;
 mod askbar;
+mod askclient;
 mod askroute;
 mod askwait;
 mod attention;
@@ -163,6 +164,24 @@ fn main() -> anyhow::Result<()> {
             println!("{name}");
         }
         return Ok(());
+    }
+    // Inter-pane ask client subcommands: connect to a RUNNING crew's IPC
+    // socket, print the reply, exit. Placed before the detach re-launch — a
+    // client must never spawn a GUI, it talks to the one already up.
+    // `crew ask <to> "<question>"` / `crew panes`.
+    {
+        let args: Vec<String> = std::env::args().skip(1).collect();
+        match args.first().map(String::as_str) {
+            Some("ask") if args.len() >= 3 => {
+                std::process::exit(askclient::run_ask(&args[1], &args[2]));
+            }
+            Some("ask") => {
+                eprintln!("usage: crew ask <pane-id-or-label> \"<question>\"");
+                std::process::exit(64);
+            }
+            Some("panes") => std::process::exit(askclient::run_panes()),
+            _ => {}
+        }
     }
     // `crew install-app` — create/refresh the OS app-menu entry (Spotlight /
     // Start menu / .desktop); `--remove` deletes it. Also run automatically
