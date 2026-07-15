@@ -127,8 +127,11 @@ mod tests {
 
     #[test]
     fn hard_cut_still_trims_a_trailing_hyphen() {
-        let got = slug("abcdefghijklmnopqrstuvwxyz-ab").unwrap();
+        // 30 chars: the cut at 28 lands exactly on the hyphen at index 27, so
+        // this fails if the trailing-hyphen trim is ever dropped.
+        let got = slug("abcdefghijklmnopqrstuvwxyza-bc").unwrap();
         assert!(!got.ends_with('-'), "got {got}");
+        assert_eq!(got, "abcdefghijklmnopqrstuvwxyza");
     }
 
     #[test]
@@ -142,6 +145,17 @@ mod tests {
         assert_eq!(role_clamp("  records,\n retrieval  "), "records, retrieval");
         assert_eq!(role_clamp("a\u{7}b"), "ab");
         assert_eq!(role_clamp(""), "");
+    }
+
+    #[test]
+    fn role_clamp_treats_control_whitespace_as_a_separator() {
+        assert_eq!(role_clamp("foo\tbar"), "foo bar");
+        assert_eq!(role_clamp("foo\r\nbar"), "foo bar");
+        assert_eq!(
+            role_clamp("a\u{7}b"),
+            "ab",
+            "a non-whitespace control is dropped, not spaced"
+        );
     }
 
     #[test]
@@ -194,13 +208,23 @@ pub fn slug_or(raw: &str, id: u64) -> String {
 /// clamp to 60 chars. `""` is a valid result — it's what `role_for` already
 /// returns for unknown agents, so every consumer handles it.
 pub fn role_clamp(raw: &str) -> String {
-    let cleaned: String = raw
+    // Whitespace wins where the two rules overlap: control-whitespace (tab,
+    // \r, \v, \f) becomes a separator instead of being silently deleted, so
+    // "foo\tbar" collapses to "foo bar" rather than gluing into "foobar".
+    // Non-whitespace controls (e.g. bell) are still dropped outright.
+    let mapped: String = raw
         .chars()
-        .filter(|c| !c.is_control())
-        .collect::<String>()
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ");
+        .filter_map(|c| {
+            if c.is_whitespace() {
+                Some(' ')
+            } else if c.is_control() {
+                None
+            } else {
+                Some(c)
+            }
+        })
+        .collect();
+    let cleaned = mapped.split_whitespace().collect::<Vec<_>>().join(" ");
     cleaned.chars().take(ROLE_MAX).collect()
 }
 ```
@@ -210,7 +234,7 @@ Note `out.truncate(MAX)` is safe because every retained char is single-byte ASCI
 - [ ] **Step 4: Run the tests to verify they pass**
 
 Run: `cargo test -p crew-hive agentname`
-Expected: PASS, 10 tests.
+Expected: PASS, 11 tests.
 
 - [ ] **Step 5: Export the module**
 
