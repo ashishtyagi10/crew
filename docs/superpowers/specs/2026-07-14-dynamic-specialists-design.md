@@ -41,8 +41,12 @@ appear in the roster, light up while working, persist after the run, and are
   is populated by runs.
 - **Persistence:** a run's specialists survive it and accumulate as dial-able
   agents.
-- **Bounding:** cap 12, LRU eviction by last use. Same name = same specialist
-  (merged, not suffixed).
+- **Bounding:** cap 24, LRU eviction by last use. Same name = same specialist
+  (merged, not suffixed). The cap was raised from 12 after the spike measured
+  ~5 new specialists per run with little name reuse — see "Bounding, revised".
+- **Roster display:** the roster is row-budgeted (≤ 5 rows, active first, then
+  `+N more`); the dial-able set (24) and the displayed set (5) are different
+  numbers on purpose.
 - **Name guard:** `^[a-z0-9-]{2,28}$`, enforced at the parse boundary.
   Unsalvageable names fall back to a derived `specialist-{id}`. The 28 is
   empirical — see "Prompt spike" below.
@@ -62,7 +66,7 @@ path itself is preserved — it now dials invented specialists instead.
 ### "Keeps its history" means role and usage, not a transcript
 
 When a second run re-invents `analyst`, the merged specialist retains its role
-hint and accumulated usage (`last_used`, `runs`). It does **not** gain a
+hint and its place in the LRU order (`last_used`). It does **not** gain a
 private conversation history: none exists today. The session log
 (`sessionlog.rs:18`) is a single shared prose file (`"{sender}: {text}"`), not
 a per-agent transcript. Per-agent memory is out of scope.
@@ -107,6 +111,23 @@ the originally-specified 20 would have mangled real output routinely.
 prompt yields 28 distinct names across 32 tasks. The v1 concern — `analyst`
 recurring in 5 of 6 plans and merge-by-name collapsing the roster into one
 catch-all — does not survive the fix.
+
+### Bounding, revised
+
+That diversity number cuts both ways, and it invalidated a decision made
+before the spike ran. Cap 12 was chosen assuming names would recur and merge.
+At 28 distinct / 32 tasks they barely recur: roughly **5 new specialists
+arrive per run**, so a 12-cap turns the roster over every ~2.5 runs and
+merge-by-name almost never fires. That is a churn window, not an accumulating
+network.
+
+The cap is therefore **24** — about five runs of history before eviction
+starts, so the LRU trims a tail instead of thrashing.
+
+One honest caveat on the measurement: the six spike goals were deliberately
+unrelated (trip planning, CVE audit, blog post). A real project's goals
+cluster, so name reuse in practice will be higher than 28/32 and the effective
+cap pressure lower. 28/32 is the worst case, and 24 is sized against it.
 
 The harness is kept as an `#[ignore]`d, network-gated test (it needs a real
 provider). It asserts the mechanical properties — slug-legality without
@@ -181,7 +202,7 @@ Option<String>`; `TaskSpec` (`graph/spec.rs`) gains `specialty: String` and
 >
 > Return ONLY the JSON array, no prose.
 
-Every clause is load-bearing and was earned; see the spike below before
+Every clause is load-bearing and was earned; see the prompt spike above before
 editing this prompt.
 
 Two fields, because they serve different consumers and normalize differently.
@@ -212,17 +233,28 @@ loudly in the same place.
 
 ```json
 [{ "name": "archivist", "role": "records, retrieval, provenance",
-   "last_used": 1784066194783, "runs": 3 }]
+   "last_used": 1784066194783 }]
 ```
 
 `name` is the planner's slugged `specialty`; `role` is its clamped
-`expertise`.
+`expertise`. There is deliberately no `runs` counter: nothing reads it, and a
+field written but never read is a maintenance cost with no consumer.
 
 ```rust
-pub fn load() -> Vec<Specialist>          // absent/corrupt → empty
-pub fn record(seen: &[Specialist])        // merge by name, bump last_used, evict LRU
-pub const CAP: usize = 12;
+pub fn load() -> Vec<Specialist>            // absent/corrupt → empty
+pub fn record(seen: &[(String, String)])    // (name, role): merge, bump last_used, evict LRU
+pub fn touch(name: &str)                    // bump last_used on @-dial
+pub const CAP: usize = 24;
 ```
+
+`record` takes `(name, role)` pairs, not `Specialist`s: `last_used` is the
+store's business, and a caller should not be able to invent it.
+
+**`touch` exists so that use, not just creation, defers eviction.** Without
+it, `last_used` only moves when a run happens to re-invent a name — so a
+specialist you `@`-dial every day would be evicted by churn from unrelated
+runs, which is precisely backwards. `relay_counting` calls it on the resolved
+target.
 
 No system prompt and no model id are stored: the prompt is derived from
 `name` + `role` at construction, and the model comes from live provider
@@ -315,15 +347,48 @@ reports *"No agent named @typo. Known: archivist, analyst."* The `@a+b`
 multi-target path (`:185-202`) already returns `None` on any miss and then
 falls into this same path, so it is fixed by the same change.
 
-### 9. App side
+### 9. App side — the roster UI must be row-budgeted
 
-No structural change. The roster renders `self.agents`; re-emitted `Roster`
-events update it; `Activity` keyed by specialty lights the rows.
+The roster UI assumes a ~3-agent roster and breaks quietly at 24. Two
+concrete defects, both found in spec review rather than at runtime:
+
+**`chatchips::layout` (`chatchips.rs:77`) spends one pane row per agent,
+unbudgeted:** `shown = views.len().min(avail_rows)`, `rows = shown`. With
+`avail` being nearly the whole pane (`chatview.rs:137`), a full roster on a
+24-row pane claims 12+ rows and leaves ~8 for the conversation. The message
+area is the point of the pane; the roster is furniture.
+
+**`chips_on_border` (`chatinput.rs:178`) silently drops overflow:** it
+`break`s on the first chip that doesn't fit. Three short names always fit;
+`@user-experience-specialist @accommodation-specialist …` will not, so most of
+the legend vanishes with no indication it was truncated.
+
+Both get the same treatment:
+
+- `layout` takes a display cap (`ROSTER_MAX_ROWS = 5`) alongside `avail_rows`,
+  and `Layout` carries `hidden: usize`. When `views.len() > shown`, the last
+  row renders `+N more` in the muted style.
+- `agent_views` orders **active first, then by recency**, so a run's working
+  specialists are always the ones on screen and the tail is what gets hidden.
+  Ordering lives there (not in `layout`) because it needs `active` and
+  `last_used`, which are pane state.
+- `chips_on_border` renders a `+N` chip in the border style when it runs out
+  of room, and returns the same "first free column" contract it does today.
+
+The dial-able set (24) and the displayed set (5) are different numbers on
+purpose: `@`-completion (`chatcomplete.rs`) and the palette keep reaching the
+full roster, so a hidden specialist is still one keystroke away. Only the
+always-on display is budgeted.
 
 `chatroster::agent_color` hashes the agent name into a signature hue, so
 invented specialists get distinct colours for free — this closes the
 "signature accent hue" backlog item (`progress.md:893`), which was explicitly
 filed to be folded into this work.
+
+The slug charset pays off here too: `chips_on_border` measures with
+`chip.len()` (bytes), which is only correct because `[a-z0-9-]` is ASCII, so
+byte length equals display width. A non-ASCII agent name would already
+mis-measure that legend today.
 
 ## Error handling
 
@@ -355,10 +420,18 @@ truncated); missing expertise → `""`; the existing Pty-forcing security tests
 retained plus a valid-slug assertion.
 
 **crew-plugin.** Store: merge by name bumps `last_used` and preserves role;
-LRU evicts the right one at cap 12; atomic write; corrupt file → empty.
+LRU evicts the right one at cap 24; `touch` defers eviction for a dialed but
+un-re-invented specialist; atomic write; corrupt file → empty.
 `ApiAdapter`: `role()` returns its own field. `roster_with`: composes stored
 specialists + manifest agents. `stdio::roster`: the no-key vs no-specialists
 split. `relay::split_target`: unknown name reports instead of defaulting.
+
+**crew-app.** `layout` caps at `ROSTER_MAX_ROWS` and reports `hidden`;
+`agent_views` orders active-then-recent so a working specialist is never the
+one hidden; `+N more` renders only when something is hidden; `chips_on_border`
+emits a `+N` chip instead of silently dropping overflow, and still returns the
+first free column. A 24-agent roster on a 24-row pane must leave the message
+area usable — the regression the row budget exists to prevent.
 
 **e2e.** The store file is the seam.
 - `e2e_discovery::discovery_lists_the_inbuilt_roster` → replaced by
@@ -391,4 +464,10 @@ split. `relay::split_target`: unknown name reports instead of defaulting.
   removing.
 - **Project-scoped store.** Specialists do not follow the user across
   projects. Chosen deliberately: a project's experts are project-shaped.
+- **Concurrent writers lose updates.** Two crew instances in one project write
+  the same store; the atomic tmp+rename keeps the file from corrupting, but
+  the later writer clobbers the earlier one's additions. Accepted: the loss is
+  a specialist that has to be re-invented, and per-instance collision is
+  already a known open issue (`progress.md:868`, per-instance socket path).
+  Not worth a lockfile at this size.
 - **Prior-decision reversal.** Documented above.
