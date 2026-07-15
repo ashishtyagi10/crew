@@ -1092,7 +1092,7 @@ Replace the body of `roster_with`:
 pub(crate) fn roster_with(
     overrides: &std::collections::HashMap<String, String>,
 ) -> Vec<Box<dyn Adapter>> {
-    let Some((provider, model)) = provider_and_model() else {
+    let Some((provider, model)) = provider_and_model_for(crew_hive::ModelTier::Standard) else {
         return Vec::new();
     };
     let mut agents = specialist_agents(provider, &model, overrides);
@@ -1110,7 +1110,28 @@ pub(crate) fn roster_with(
 }
 ```
 
-This collapses `roster_with`'s four duplicated provider branches into `provider_and_model`, which the spec notes already mirrors them exactly and is already used by `swarm::backend()`. Verify `provider_and_model`'s Anthropic arm still picks a sensible model — it currently hardcodes `ModelTier::Cheap`, which was chosen for one-shot `!` suggestions; change it to `ModelTier::Standard.model_id()` so specialists get the same tier the old `coder`/`reviewer` had, and update that function's doc comment to say it now serves the roster too.
+This collapses `roster_with`'s four duplicated provider branches into `provider_and_model`, which the spec notes already mirrors them exactly and is already used by `swarm::backend()`.
+
+**Do not simply reuse `provider_and_model` as-is.** Its Anthropic arm hardcodes `ModelTier::Cheap`, chosen deliberately for the Far pane's one-shot `!` command suggestion (`ask::suggest_far_command`) — a one-line shell hint needs no deep reasoning. A specialist does: the trio it replaces ran `Capable`/`Standard`. Reusing the function unchanged would quietly downgrade specialists to the cheapest model on Anthropic; changing its constant to `Standard` would quietly make every `!` suggestion pricier. Both callers are right about their own needs, so the tier becomes a parameter:
+
+```rust
+/// [`provider_and_model`] with an explicit tier. Only Anthropic maps a tier to
+/// a model id — DashScope and OpenRouter default to their chain head
+/// (`chain[0]`), so `tier` is ignored there.
+pub(crate) fn provider_and_model_for(
+    tier: crew_hive::ModelTier,
+) -> Option<(Arc<dyn crew_hive::Provider>, String)> {
+    // ...the existing body, with the Anthropic arm using `tier.model_id()`
+    // in place of the hardcoded `ModelTier::Cheap.model_id()`.
+}
+
+/// The default provider + a cheap model, for one-shot low-token asks.
+pub(crate) fn provider_and_model() -> Option<(Arc<dyn crew_hive::Provider>, String)> {
+    provider_and_model_for(crew_hive::ModelTier::Cheap)
+}
+```
+
+`roster_with` calls `provider_and_model_for(ModelTier::Standard)`; existing callers keep `provider_and_model` and their current behaviour. Update the doc comment on `provider_and_model_for` to say it now serves the roster too.
 
 - [ ] **Step 7: Tighten manifest names**
 
