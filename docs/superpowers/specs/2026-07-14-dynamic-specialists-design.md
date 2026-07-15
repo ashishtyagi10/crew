@@ -43,8 +43,9 @@ appear in the roster, light up while working, persist after the run, and are
   agents.
 - **Bounding:** cap 12, LRU eviction by last use. Same name = same specialist
   (merged, not suffixed).
-- **Name guard:** `^[a-z0-9-]{2,20}$`, enforced at the parse boundary.
-  Unsalvageable names fall back to a derived `specialist-{id}`.
+- **Name guard:** `^[a-z0-9-]{2,28}$`, enforced at the parse boundary.
+  Unsalvageable names fall back to a derived `specialist-{id}`. The 28 is
+  empirical — see "Prompt spike" below.
 - **Store scope:** project-local (`./.crew/`), not global.
 - **Scope:** one spec covering the whole change, not split into additive and
   subtractive phases.
@@ -66,6 +67,54 @@ private conversation history: none exists today. The session log
 (`sessionlog.rs:18`) is a single shared prose file (`"{sender}: {text}"`), not
 a per-agent transcript. Per-agent memory is out of scope.
 
+## Prompt spike (run 2026-07-14, DashScope `qwen-max`)
+
+Specialty quality is the one risk no unit test catches: the failure isn't a
+crash, it's a roster of bland or absurd names. It was also testable before any
+implementation, since the only variables are the prompt and the model. Five
+prompt revisions were run against six deliberately non-coding goals
+(stakeholder comms, CVE audit, trip planning, blog post, conversion-drop
+analysis, billing schema). Findings, in the order they were learned:
+
+**The title-echo failure never occurred.** Across ~150 generated names, not one
+specialty was merely its task title slugged (`"Gather Project Details"` →
+`gather-details`). A `specialty == slug(title)` rejection was considered for
+`parse_plan` and **dropped as dead code** — it guards a failure the model does
+not commit.
+
+**Bare topic nouns did occur** (v1: `security`, `risk`). Fixed by the "must be
+a person, not a subject" rule, which is why that clause exists.
+
+**Few-shot examples backfired badly** (v2). Naming flavourful examples
+(`archivist`, `synthesist`, `cryptographer`) turned them into a word bank: the
+model produced `synthesist` 13 times and assigned `epidemiologist` to "Check
+Weather and Pack" for a holiday. Specific-but-wrong is worse than
+generic-but-right. This is why the prompt carries an explicit anti-anchoring
+clause instead of an example gallery, and why examples appear only as
+contrast pairs ("X, not Y") rather than as a list to choose from.
+
+**Length cannot be enforced by prompt.** v4 stated "20 characters maximum" and
+still returned `quality-assurance-engineer` (26), `communication-strategist`
+(24), `database-administrator` (22). A word-count rule doesn't bound length
+either — `communication-strategist` is two words and 24 chars. Length is
+enforced in code, and the char-count claim was removed from the prompt rather
+than left in as an instruction the model demonstrably ignores.
+
+**The clamp is 28 because 26 was observed.** ~1 name in 6 exceeds 20 chars, so
+the originally-specified 20 would have mangled real output routinely.
+
+**Diversity is good, so no anti-generic machinery is needed.** The final
+prompt yields 28 distinct names across 32 tasks. The v1 concern — `analyst`
+recurring in 5 of 6 plans and merge-by-name collapsing the roster into one
+catch-all — does not survive the fix.
+
+The harness is kept as an `#[ignore]`d, network-gated test (it needs a real
+provider). It asserts the mechanical properties — slug-legality without
+mangling, distinctness within a plan, no title echo — and prints the roster
+for eyeballing. It exists to re-validate the prompt when the planner model
+changes, which matters because the provider chain is DashScope → OpenRouter →
+Anthropic and this prompt is tuned on only the first.
+
 ## Architecture
 
 ### 1. Name normalization — `crates/crew-hive/src/agentname.rs` (new)
@@ -74,15 +123,22 @@ One shared answer to "what is a legal agent name", because names are about to
 become LLM-authored.
 
 ```rust
-/// Normalize `raw` to `^[a-z0-9-]{2,20}$`, or None if nothing survives.
+/// Normalize `raw` to `^[a-z0-9-]{2,28}$`, or None if nothing survives.
 pub fn slug(raw: &str) -> Option<String>
 /// `slug`, falling back to a derived `specialist-{id}`.
 pub fn slug_or(raw: &str, id: u64) -> String
 ```
 
 Rules: trim, lowercase, whitespace → `-`, drop every char outside
-`[a-z0-9-]`, collapse repeated `-`, trim leading/trailing `-`, clamp to 20,
+`[a-z0-9-]`, collapse repeated `-`, trim leading/trailing `-`, clamp to 28,
 require ≥ 2 chars.
+
+**Truncation is a hard cut, deliberately not at a hyphen boundary.** Boundary
+truncation looks tidier and is wrong: `accommodation-specialist` →
+`accommodation` converts an agent noun back into a bare topic word, which is
+the precise failure the prompt rule exists to prevent. A hard cut leaves an
+obviously-mangled name; a boundary cut leaves a plausible-looking wrong one.
+At 28 chars this path is nearly unreachable anyway (see the spike).
 
 The charset is the point: `@`, `+`, `/`, and whitespace become
 unrepresentable. Every consumer already assumes this and none enforce it —
@@ -103,13 +159,30 @@ edge case that was already broken — such a name could never be `@`-dialled.
 
 `PlanNode` gains `specialty: Option<String>` and `expertise:
 Option<String>`; `TaskSpec` (`graph/spec.rs`) gains `specialty: String` and
-`expertise: String`. `PLANNER_SYSTEM` asks for both:
+`expertise: String`. `PLANNER_SYSTEM` becomes the spike-validated text:
 
-> Each task is an object with integer `id`, short `title`, a `prompt`, `deps`,
-> `specialty` — a one-or-two-word name for the kind of specialist the task
-> needs (e.g. "archivist", "analyst", "skeptic") — and `expertise`, a short
-> comma-separated phrase naming that specialist's craft (e.g. "records,
-> retrieval, provenance"). Name the specialist for its craft, not for the task.
+> You are a task planner. Decompose the user's goal into a JSON array of
+> tasks. Each task is an object with integer `id` (0-based), short `title`, a
+> `prompt` describing the work, `deps` (array of task ids that must finish
+> first), `specialty`, and `expertise`.
+>
+> `specialty` names the specialist the task needs. Rules:
+> - At most TWO words, joined by a hyphen. Never three.
+> - It must be a person, not a subject: an agent noun. Write
+>   "security-auditor", not "security"; "risk-assessor", not "risk".
+> - Name them for their craft, not for the task: a task titled "Gather Project
+>   Details" needs an "archivist", not a "gatherer".
+> - Use the word a real practitioner of that work would call themselves. Do
+>   not borrow vocabulary from these instructions — an example word that does
+>   not genuinely fit the goal at hand is worse than a plain one.
+>
+> `expertise` is a short comma-separated phrase naming that specialist's
+> craft, e.g. "records, retrieval, provenance".
+>
+> Return ONLY the JSON array, no prose.
+
+Every clause is load-bearing and was earned; see the spike below before
+editing this prompt.
 
 Two fields, because they serve different consumers and normalize differently.
 `specialty` becomes an `@`-handle and must be a strict slug. `expertise` is
@@ -267,8 +340,15 @@ filed to be folded into this work.
 
 ## Testing
 
+**Prompt regression (`#[ignore]`d, network-gated).** The spike harness,
+promoted into the repo: runs `PLANNER_SYSTEM` against the six fixed goals on
+the live provider and asserts every specialty is slug-legal without mangling,
+distinct-within-plan, and not a slugged task title; prints the cast for
+eyeballing. Ignored by default — it costs API calls and needs a key.
+
 **crew-hive.** `slug` unit tests: whitespace, `@`/`+`/`/`, punctuation, unicode,
-empty, over-length, repeated/leading/trailing `-`, ≥2-char floor.
+empty, over-length (hard cut, not at a hyphen boundary), repeated/leading/
+trailing `-`, ≥2-char floor, the 28-char ceiling.
 `parse_plan`: specialty slugged; missing → derived; garbage → derived;
 expertise clamped (whitespace collapsed, control chars dropped, over-length
 truncated); missing expertise → `""`; the existing Pty-forcing security tests
@@ -296,9 +376,19 @@ split. `relay::split_target`: unknown name reports instead of defaulting.
   their first run. Accepted: plain messages already route to the swarm
   (`stdio.rs:229`), so nothing is blocked — only `@`-dial is unavailable, and
   the message says why.
-- **Specialty quality depends on the model.** A weak planner may invent bland
-  or repetitive names. The prompt steers ("name for its craft, not the task")
-  and merge-by-name means repetition converges rather than proliferates.
+- **Specialty quality on other providers.** Closed for DashScope `qwen-max` by
+  the spike above (28 distinct names / 32 tasks, no title echoes, no topic
+  nouns). It is *not* closed for OpenRouter or Anthropic, the other two links
+  in the provider chain — the prompt is tuned on one model. The `#[ignore]`d
+  harness is how that gets checked; running it against the other two is
+  follow-up work, not a blocker, since a weak name degrades the roster rather
+  than breaking a run.
+- **Prompt edits can silently regress.** Every clause in `PLANNER_SYSTEM` was
+  earned against a specific observed failure, and the v2 result shows a
+  well-intentioned edit (adding examples) can make output dramatically worse
+  while still looking reasonable in review. The spike section documents which
+  clause defends against what, so a future editor knows what they'd be
+  removing.
 - **Project-scoped store.** Specialists do not follow the user across
   projects. Chosen deliberately: a project's experts are project-shaped.
 - **Prior-decision reversal.** Documented above.
