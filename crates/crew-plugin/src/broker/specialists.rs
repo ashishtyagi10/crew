@@ -35,6 +35,15 @@ fn path(base: &Path) -> PathBuf {
     base.join(".crew").join("specialists.json")
 }
 
+/// The project dir the store lives under. `CREW_PROJECT_DIR` overrides the
+/// process CWD — the seam tests use, since lib tests share one CWD and cannot
+/// each chdir. Production never sets it: the broker's CWD *is* the project.
+fn base_dir() -> PathBuf {
+    std::env::var("CREW_PROJECT_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| PathBuf::from("."))
+}
+
 fn now_ms() -> u64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -43,7 +52,7 @@ fn now_ms() -> u64 {
 }
 
 pub(crate) fn load() -> Vec<Specialist> {
-    load_at(Path::new("."))
+    load_at(&base_dir())
 }
 
 /// Read the store. Absent, unreadable or corrupt → empty: a broken file must
@@ -56,7 +65,7 @@ pub(crate) fn load_at(base: &Path) -> Vec<Specialist> {
 }
 
 pub(crate) fn record(seen: &[(String, String)]) {
-    record_at(Path::new("."), seen)
+    record_at(&base_dir(), seen)
 }
 
 /// Merge `(name, role)` pairs into the store: a name already present keeps its
@@ -95,7 +104,7 @@ pub(crate) fn record_at(base: &Path, seen: &[(String, String)]) {
 }
 
 pub(crate) fn touch(name: &str) {
-    touch_at(Path::new("."), name)
+    touch_at(&base_dir(), name)
 }
 
 /// Bump `name`'s recency without inventing it — the `@`-dial path, so that use

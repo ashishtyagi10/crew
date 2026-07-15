@@ -407,7 +407,8 @@ fn run_tools_follow_up_dial_reports_usage_and_emits_ticks() {
         std::sync::Arc::new(crew_hive::MockProvider {
             reply: "used the file\n@done".into(),
         });
-    let agent = crate::broker::apiadapter::ApiAdapter::new("planner", "m", None, provider).unwrap();
+    let agent =
+        crate::broker::apiadapter::ApiAdapter::new("planner", "m", "", None, provider).unwrap();
     let b = broker_with(FakeTools(Ok("FILE CONTENTS".into())));
     let mut stats = RunStats::default();
     let mut usage = crate::broker::adapter::Usage::default();
@@ -484,7 +485,8 @@ fn run_tools_follow_up_dial_ticks_past_the_hops_running_estimate() {
         std::sync::Arc::new(crew_hive::MockProvider {
             reply: "used the file\n@done".into(), // short: alone, never re-passes the gate
         });
-    let agent = crate::broker::apiadapter::ApiAdapter::new("planner", "m", None, provider).unwrap();
+    let agent =
+        crate::broker::apiadapter::ApiAdapter::new("planner", "m", "", None, provider).unwrap();
     let b = broker_with(FakeTools(Ok("FILE CONTENTS".into())));
     let mut stats = RunStats::default();
     let mut usage = crate::broker::adapter::Usage::default();

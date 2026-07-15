@@ -29,7 +29,7 @@ fn texts(evs: &[PluginEvent]) -> Vec<String> {
 
 #[test]
 fn loop_runs_the_requested_rounds_and_reports_done() {
-    let _g = testenv::mock("refined answer\n@done");
+    let _g = testenv::mock_with_specialists("refined answer\n@done", testenv::TRIO);
     let evs = run_loop("3 draft a release plan");
     let ts = texts(&evs);
     let rounds = ts.iter().filter(|t| t.starts_with("loop round")).count();
@@ -41,7 +41,7 @@ fn loop_runs_the_requested_rounds_and_reports_done() {
 
 #[test]
 fn loop_honours_an_agent_selector() {
-    let _g = testenv::mock("ok\n@done");
+    let _g = testenv::mock_with_specialists("ok\n@done", testenv::TRIO);
     let evs = run_loop("2 @reviewer critique the design");
     let ts = texts(&evs);
     assert!(
@@ -79,7 +79,7 @@ fn run_goal(rest: &str) -> Vec<PluginEvent> {
 #[test]
 fn goal_met_on_round_one_stops_the_loop() {
     // Every mock agent (worker AND judge) replies MET, so round one settles it.
-    let _g = testenv::mock("MET: shipped and green\n@done");
+    let _g = testenv::mock_with_specialists("MET: shipped and green\n@done", testenv::TRIO);
     let ts = texts(&run_goal("ship the release"));
     assert!(
         ts.iter().any(|t| t.contains("goal met after 1 round")),
@@ -94,7 +94,7 @@ fn goal_met_on_round_one_stops_the_loop() {
 
 #[test]
 fn goal_gives_up_at_the_round_cap_when_never_met() {
-    let _g = testenv::mock("NOT MET: still missing tests\n@done");
+    let _g = testenv::mock_with_specialists("NOT MET: still missing tests\n@done", testenv::TRIO);
     let ts = texts(&run_goal("prove the collatz conjecture"));
     assert_eq!(
         ts.iter().filter(|t| t.starts_with("goal round")).count(),
@@ -147,7 +147,7 @@ fn pick_judge_keys_off_capability_not_the_literal_reviewer_name() {
 
 #[test]
 fn a_pre_tripped_stop_flag_cancels_the_loop_before_round_one() {
-    let _g = testenv::mock("ok\n@done");
+    let _g = testenv::mock_with_specialists("ok\n@done", testenv::TRIO);
     let mut session = Session::new();
     session
         .cancel

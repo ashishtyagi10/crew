@@ -137,7 +137,7 @@ use crate::broker::testenv;
 
 #[test]
 fn model_pins_an_agent_and_reemits_the_roster() {
-    let _g = testenv::mock("ok\n@done");
+    let _g = testenv::mock_with_specialists("ok\n@done", testenv::TRIO);
     let mut session = Session::new();
     let mut evs = Vec::new();
     handle(
@@ -164,7 +164,7 @@ fn model_pins_an_agent_and_reemits_the_roster() {
 
 #[test]
 fn model_default_clears_the_pin() {
-    let _g = testenv::mock("ok\n@done");
+    let _g = testenv::mock_with_specialists("ok\n@done", testenv::TRIO);
     let mut session = Session::new();
     session.overrides.insert("coder".into(), "x".into());
     let mut evs = Vec::new();
@@ -184,7 +184,7 @@ fn model_default_clears_the_pin() {
 
 #[test]
 fn status_reports_totals_pins_and_running_state() {
-    let _g = testenv::mock("ok\n@done");
+    let _g = testenv::mock_with_specialists("ok\n@done", testenv::TRIO);
     let mut session = Session::new();
     session
         .overrides

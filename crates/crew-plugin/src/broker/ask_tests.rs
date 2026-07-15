@@ -3,7 +3,7 @@ use crate::broker::testenv;
 
 #[test]
 fn mock_provider_answers_the_ask() {
-    let _env = testenv::mock("ls -la");
+    let _env = testenv::mock_with_specialists("ls -la", testenv::TRIO);
     let got = suggest_command("list files", Duration::from_secs(5)).unwrap();
     assert_eq!(got, "ls -la");
 }
@@ -46,7 +46,10 @@ fn extract_command_survives_an_empty_reply() {
 
 #[test]
 fn mock_provider_answers_the_explain() {
-    let _env = testenv::mock("The build failed because of a missing semicolon.");
+    let _env = testenv::mock_with_specialists(
+        "The build failed because of a missing semicolon.",
+        testenv::TRIO,
+    );
     let got = explain_output("error[E0308]: mismatched types", "", Duration::from_secs(5)).unwrap();
     assert!(got.contains("missing semicolon"));
 }
