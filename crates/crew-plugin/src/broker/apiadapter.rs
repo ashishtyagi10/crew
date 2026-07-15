@@ -1,10 +1,14 @@
-//! Inbuilt agents: instead of shelling out to external CLIs, these drive the
-//! relay by calling the LLM API in-process via crew-hive's [`Provider`]. The
+//! API-backed agents: instead of shelling out to external CLIs, these drive
+//! the relay by calling the LLM API in-process via crew-hive's [`Provider`].
+//! There is no fixed roster any more — every [`ApiAdapter`] is either a
+//! planner-invented specialist persisted to the project-local store (see
+//! [`super::specialists`]) or a transient one-shot adapter built straight
+//! from the discovered provider (see the `ask` module's one-shot asks). The
 //! broker engine is synchronous, so each [`Adapter::call`] blocks on the async
 //! provider with a small current-thread tokio runtime. The relay protocol
 //! (`@next`/`@done`, peers, transcript) already arrives in the framed `body`
-//! (see [`super::route::frame`]); the role only selects the model + a light
-//! system prompt.
+//! (see [`super::route::frame`]); the name and role only select the model + a
+//! light system prompt.
 use std::sync::Arc;
 use std::time::Duration;
 

@@ -1,17 +1,18 @@
-//! Roster discovery: which provider backs the inbuilt agents, and the final
-//! adapter list (inbuilt API agents + manifest plugin agents). Split from
-//! `registry` to keep both under the line cap.
+//! Roster discovery: which provider backs the project's stored specialists
+//! (see [`super::specialists`]), and the final adapter list (API-backed
+//! specialist agents + manifest plugin agents). Split from `registry` to keep
+//! both under the line cap.
 use std::sync::Arc;
 
 use super::adapter::Adapter;
 use super::apiadapter::specialist_agents;
 
-/// Default OpenRouter fallback chain for the inbuilt agents — free slugs across
-/// *different* upstream providers, so a provider-specific throttle on one model
-/// rolls to the next instead of failing the relay. Quality isn't the goal here.
-/// OpenRouter rotates its free models; override the whole chain with a
-/// comma-separated `CREW_OPENROUTER_MODEL=slug1,slug2,…` (a retired slug is
-/// skipped automatically when it errors).
+/// Default OpenRouter fallback chain for the project's API-backed agents —
+/// free slugs across *different* upstream providers, so a provider-specific
+/// throttle on one model rolls to the next instead of failing the relay.
+/// Quality isn't the goal here. OpenRouter rotates its free models; override
+/// the whole chain with a comma-separated `CREW_OPENROUTER_MODEL=slug1,slug2,…`
+/// (a retired slug is skipped automatically when it errors).
 pub(crate) const DEFAULT_OPENROUTER_CHAIN: &[&str] = &[
     "meta-llama/llama-3.3-70b-instruct:free",
     "deepseek/deepseek-chat-v3.1:free",
@@ -45,7 +46,7 @@ pub(crate) fn parse_model_chain(env_val: Option<String>, default: &[&str]) -> Ve
     }
 }
 
-/// The provider backing the inbuilt agents.
+/// The provider backing the project's API-backed agents.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) enum ProviderKind {
     Mock,
@@ -54,10 +55,10 @@ pub(crate) enum ProviderKind {
     Anthropic,
 }
 
-/// Resolve which provider backs the inbuilt agents. The mock (tests) always
-/// wins; then an explicit `CREW_PROVIDER` (dashscope|openrouter|anthropic);
-/// then auto-discovery in preference order — DashScope (paid Qwen) before
-/// OpenRouter (free chains) before Anthropic.
+/// Resolve which provider backs the project's API-backed agents. The mock
+/// (tests) always wins; then an explicit `CREW_PROVIDER`
+/// (dashscope|openrouter|anthropic); then auto-discovery in preference order
+/// — DashScope (paid Qwen) before OpenRouter (free chains) before Anthropic.
 pub(crate) fn pick_provider(
     force: Option<&str>,
     has_key: impl Fn(&str) -> bool,
@@ -83,16 +84,20 @@ pub(crate) fn pick_provider(
 }
 
 /// The full adapter roster: stored specialists (see [`super::specialists`])
-/// composed over the picked provider, then every installed manifest plugin
-/// agent (see [`super::plugins`]). The mock roster stays plugin-free so
-/// end-to-end tests are deterministic on any machine.
+/// composed over the picked provider — or, with no provider, none at all —
+/// then every installed manifest plugin agent (see [`super::plugins`])
+/// appended in *either* case. Plugin agents shell out to an installed CLI and
+/// need no API key, so a user with zero keys but a `.crew/agents/` manifest
+/// still gets a working, plugin-only roster instead of an empty one. The mock
+/// roster stays plugin-free so end-to-end tests are deterministic on any
+/// machine.
 pub(crate) fn roster_with(
     overrides: &std::collections::HashMap<String, String>,
 ) -> Vec<Box<dyn Adapter>> {
-    let Some((provider, model)) = provider_and_model_for(crew_hive::ModelTier::Standard) else {
-        return Vec::new();
+    let mut agents = match provider_and_model_for(crew_hive::ModelTier::Standard) {
+        Some((provider, model)) => specialist_agents(provider, &model, overrides),
+        None => Vec::new(),
     };
-    let mut agents = specialist_agents(provider, &model, overrides);
     // The mock roster stays plugin-free so end-to-end tests are deterministic
     // on any machine.
     if !matches!(

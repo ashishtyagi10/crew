@@ -89,6 +89,9 @@ pub(crate) mod testenv {
         #[allow(dead_code)]
         guard: std::sync::MutexGuard<'static, ()>,
         dir: Option<PathBuf>,
+        /// Keys to restore to their prior value (or absence) on drop, beyond
+        /// the always-cleared `CREW_BROKER_MOCK_REPLY`/`CREW_PROJECT_DIR`.
+        restore: Vec<(&'static str, Option<String>)>,
     }
 
     impl Drop for MockEnv {
@@ -98,13 +101,71 @@ pub(crate) mod testenv {
             if let Some(d) = &self.dir {
                 let _ = std::fs::remove_dir_all(d);
             }
+            for (k, v) in self.restore.drain(..) {
+                match v {
+                    Some(v) => std::env::set_var(k, v),
+                    None => std::env::remove_var(k),
+                }
+            }
         }
+    }
+
+    /// A fresh, empty project dir for `CREW_PROJECT_DIR` to point at. Every
+    /// mocked test gets one of these — even plain [`mock`] — so a store write
+    /// (`specialists::record`/`touch`) never lands in the crate's own
+    /// `./.crew/`, and no test can read another test's leftover file there.
+    fn empty_project_dir() -> PathBuf {
+        let id = SEQ.fetch_add(1, Ordering::Relaxed);
+        let dir = std::env::temp_dir().join(format!("crew-testenv-{}-{id}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(dir.join(".crew")).unwrap();
+        dir
     }
 
     pub(crate) fn mock(reply: &str) -> MockEnv {
         let guard = LOCK.lock().unwrap_or_else(|e| e.into_inner());
         std::env::set_var("CREW_BROKER_MOCK_REPLY", reply);
-        MockEnv { guard, dir: None }
+        let dir = empty_project_dir();
+        std::env::set_var("CREW_PROJECT_DIR", &dir);
+        MockEnv {
+            guard,
+            dir: Some(dir),
+            restore: Vec::new(),
+        }
+    }
+
+    /// Provider keys `roster_with` auto-discovers from, plus the forcing
+    /// `CREW_PROVIDER` override.
+    const PROVIDER_KEYS: &[&str] = &[
+        "DASHSCOPE_API_KEY",
+        "OPENROUTER_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "CREW_PROVIDER",
+    ];
+
+    /// Force `roster_with`'s provider discovery to fail, deterministically —
+    /// even on a machine that exports a real key (this one has
+    /// `DASHSCOPE_API_KEY` in the login shell). Clears every auto-discovered
+    /// key and `CREW_PROVIDER` for the guard's lifetime, restoring each to its
+    /// prior value (present or absent) on drop. Also points `CREW_PROJECT_DIR`
+    /// at a fresh empty dir, same as [`mock`]. For tests proving the
+    /// plugin-only fallback works when no provider resolves.
+    pub(crate) fn no_provider() -> MockEnv {
+        let guard = LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        let restore = PROVIDER_KEYS
+            .iter()
+            .map(|&k| (k, std::env::var(k).ok()))
+            .collect();
+        for k in PROVIDER_KEYS {
+            std::env::remove_var(k);
+        }
+        let dir = empty_project_dir();
+        std::env::set_var("CREW_PROJECT_DIR", &dir);
+        MockEnv {
+            guard,
+            dir: Some(dir),
+            restore,
+        }
     }
 
     /// [`mock`], plus a project dir seeded with `specialists` — the roster the
@@ -113,10 +174,7 @@ pub(crate) mod testenv {
     pub(crate) fn mock_with_specialists(reply: &str, specialists: &[(&str, &str)]) -> MockEnv {
         let guard = LOCK.lock().unwrap_or_else(|e| e.into_inner());
         std::env::set_var("CREW_BROKER_MOCK_REPLY", reply);
-        let id = SEQ.fetch_add(1, Ordering::Relaxed);
-        let dir = std::env::temp_dir().join(format!("crew-testenv-{}-{id}", std::process::id()));
-        let _ = std::fs::remove_dir_all(&dir);
-        std::fs::create_dir_all(dir.join(".crew")).unwrap();
+        let dir = empty_project_dir();
         // Newest-first, matching what `specialists::save_at` writes, so the
         // seeded order is the order the roster comes back in.
         let now = std::time::SystemTime::now()
@@ -136,6 +194,7 @@ pub(crate) mod testenv {
         MockEnv {
             guard,
             dir: Some(dir),
+            restore: Vec::new(),
         }
     }
 }

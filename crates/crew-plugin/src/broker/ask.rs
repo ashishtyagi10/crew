@@ -1,13 +1,17 @@
 //! One-shot "ask the AI for a command": powers the input bar's `?` prefix
 //! (à la Warp AI / GitHub Copilot CLI) via `suggest_command`, and the Far
-//! pane's `!` command bar suggestion via `suggest_far_command`. The former
-//! reuses the broker's full `Adapter`/roster stack (`discover::roster_with`)
-//! so it works wherever `/crew`'s inbuilt agents do; the latter calls
-//! `discover::provider_and_model` directly, bypassing the `Adapter` layer,
-//! because it needs a custom cwd/OS-aware system prompt and a small
-//! `max_tokens` the roster's fixed-role adapters don't expose. Both are
-//! blocking: call them from a worker thread, never the render thread.
+//! pane's `!` command bar suggestion via `suggest_far_command`. `suggest_command`
+//! and `explain_output` build a transient one-shot adapter straight from the
+//! discovered provider (see [`one_shot`]) — there is no inbuilt roster to
+//! reuse, and the stored-specialist roster is invented per swarm run, so a
+//! fresh project's is legitimately empty. `suggest_far_command` goes a step
+//! further and calls `discover::provider_and_model` directly, bypassing the
+//! `Adapter` layer entirely, because it needs a custom cwd/OS-aware system
+//! prompt and a small `max_tokens` a fixed-role adapter doesn't expose. All
+//! three are blocking: call them from a worker thread, never the render thread.
 use std::time::Duration;
+
+use super::adapter::Adapter;
 
 /// Translate `query` (plain English) into one shell command via the discovered
 /// provider. Returns the cleaned command, or a human-readable error for the
@@ -19,19 +23,32 @@ pub fn suggest_command(query: &str, timeout: Duration) -> Result<String, String>
         static HYDRATE: std::sync::Once = std::sync::Once::new();
         HYDRATE.call_once(super::shellenv::hydrate);
     }
-    let adapters = super::discover::roster_with(&std::collections::HashMap::new());
-    // The coder role fits command synthesis; any adapter (a manifest plugin
-    // agent, say) can answer when the inbuilt roster is empty.
-    let adapter = adapters
-        .iter()
-        .find(|a| a.name() == "coder")
-        .or_else(|| adapters.first())
+    let adapter = one_shot("command synthesis, shell")?;
+    let reply = adapter.call(&ask_prompt(query), timeout)?;
+    Ok(extract_command(&reply))
+}
+
+/// The adapter for a one-shot ask. A one-shot needs a model, not a roster
+/// agent: the roster is invented per swarm run, so a fresh project's is
+/// legitimately empty, and these entry points never invent anything. Prefers
+/// the discovered provider directly (as `suggest_far_command` does), falling
+/// back to any installed CLI plugin agent, which needs no API key. The error
+/// is therefore only reachable when there really is no provider AND no plugin.
+fn one_shot(role: &str) -> Result<Box<dyn Adapter>, String> {
+    if let Some((provider, model)) =
+        super::discover::provider_and_model_for(crew_hive::ModelTier::Standard)
+    {
+        let adapter = super::apiadapter::ApiAdapter::specialist("assistant", role, model, provider)
+            .map_err(|e| e.to_string())?;
+        return Ok(Box::new(adapter));
+    }
+    super::discover::roster_with(&std::collections::HashMap::new())
+        .into_iter()
+        .next()
         .ok_or_else(|| {
             "no AI provider — set DASHSCOPE_API_KEY, OPENROUTER_API_KEY, or ANTHROPIC_API_KEY"
                 .to_string()
-        })?;
-    let reply = adapter.call(&ask_prompt(query), timeout)?;
-    Ok(extract_command(&reply))
+        })
 }
 
 /// Explain a terminal pane's output (à la Warp's "ask AI about this"):
@@ -43,16 +60,7 @@ pub fn explain_output(context: &str, question: &str, timeout: Duration) -> Resul
         static HYDRATE: std::sync::Once = std::sync::Once::new();
         HYDRATE.call_once(super::shellenv::hydrate);
     }
-    let adapters = super::discover::roster_with(&std::collections::HashMap::new());
-    // The reviewer role fits post-mortems; any adapter can answer.
-    let adapter = adapters
-        .iter()
-        .find(|a| a.name() == "reviewer")
-        .or_else(|| adapters.first())
-        .ok_or_else(|| {
-            "no AI provider — set DASHSCOPE_API_KEY, OPENROUTER_API_KEY, or ANTHROPIC_API_KEY"
-                .to_string()
-        })?;
+    let adapter = one_shot("review, critique, post-mortem")?;
     adapter.call(&explain_prompt(context, question), timeout)
 }
 
