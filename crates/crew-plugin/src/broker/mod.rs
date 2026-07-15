@@ -38,6 +38,7 @@ mod sessionlog;
 mod shellenv;
 mod skillframe;
 mod skills;
+pub(crate) mod specialists;
 mod standup;
 mod stdio;
 mod swarm;
