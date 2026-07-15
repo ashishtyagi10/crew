@@ -128,21 +128,39 @@ fn parse_verdict_reads_met_and_not_met() {
     assert!(!parse_verdict("hard to say").0);
 }
 
+fn info(name: &str, role: &str) -> crate::AgentInfo {
+    crate::AgentInfo {
+        name: name.into(),
+        role: role.into(),
+        model: String::new(),
+    }
+}
+
 #[test]
 fn pick_judge_prefers_a_reviewer_who_is_not_the_worker() {
-    let names = vec!["planner".to_string(), "coder".into(), "reviewer".into()];
-    assert_eq!(pick_judge(&names, "planner"), "reviewer");
-    assert_eq!(pick_judge(&names, "reviewer"), "planner");
-    assert_eq!(pick_judge(&["solo".to_string()], "solo"), "solo");
+    // No roles at all here — this exercises the literal-name floor, not
+    // capability matching.
+    let agents = vec![info("planner", ""), info("coder", ""), info("reviewer", "")];
+    assert_eq!(pick_judge(&agents, "planner"), "reviewer");
+    assert_eq!(pick_judge(&agents, "reviewer"), "planner");
+    assert_eq!(pick_judge(&[info("solo", "")], "solo"), "solo");
 }
 
 #[test]
 fn pick_judge_keys_off_capability_not_the_literal_reviewer_name() {
-    // "opencode" advertises a review capability; even though "coder" comes
-    // first, the judge is the critic — so a roster of arbitrarily-named
-    // specialists (no agent literally called "reviewer") still elects a judge.
-    let names = vec!["planner".to_string(), "coder".into(), "opencode".into()];
-    assert_eq!(pick_judge(&names, "planner"), "opencode");
+    // "quality-auditor" is an INVENTED specialist name — it appears nowhere
+    // in agents::role_for's static map (that map only knows the external CLI
+    // agents claude/codex/opencode). Its own role carries the critic words.
+    // Even though "coder" comes first in the roster, the judge is elected by
+    // that agent's own advertised capability — so a roster of
+    // arbitrarily-named specialists (no agent literally called "reviewer")
+    // still elects a judge.
+    let agents = vec![
+        info("planner", "planning, analysis"),
+        info("coder", "building, implementation"),
+        info("quality-auditor", "review, critique"),
+    ];
+    assert_eq!(pick_judge(&agents, "planner"), "quality-auditor");
 }
 
 #[test]

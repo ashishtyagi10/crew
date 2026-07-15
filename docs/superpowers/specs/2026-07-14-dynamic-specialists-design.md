@@ -23,10 +23,15 @@ do the work off-screen.
 The names are also wrong in kind. `planner`/`coder`/`reviewer` frames the
 product as a coding crew; the goal is a network of diverse specialists, where
 the work decides who is needed. `agents.rs:15-21` already anticipates this —
-roles are documented as general archetypes (plan / build / critique) and
-`constructs::is_critic` already elects the judge by capability rather than by
-the literal name `reviewer` (commit `1fafa93`). The names themselves are the
-last hard-coded piece.
+roles are documented as general archetypes (plan / build / critique), and
+`constructs::pick_judge` elects the judge by capability rather than by the
+literal name `reviewer` (commit `1fafa93`), reading each candidate's own
+`AgentInfo::role` (sourced from `Adapter::role()`, via `Registry::infos()`)
+rather than a static name → role table — the only way this can work once
+every specialist's name and role are invented per task rather than drawn from
+a fixed trio (fixed in Task 5b, after Task 5's roster deletion briefly
+regressed it back to a static lookup). The names themselves are the last
+hard-coded piece.
 
 **Goal:** the planner invents a named specialist per task; those specialists
 appear in the roster, light up while working, persist after the run, and are
