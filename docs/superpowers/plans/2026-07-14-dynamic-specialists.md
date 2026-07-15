@@ -838,6 +838,24 @@ mod tests {
         touch_at(&base, "nobody");
         assert_eq!(load_at(&base).len(), 1);
     }
+
+    #[test]
+    fn a_same_millisecond_tie_evicts_the_earliest_recorded() {
+        // One call ⇒ every name shares a `last_used`, so only physical order
+        // can break the tie. The newest write must never be the one evicted.
+        let base = tmp();
+        let names: Vec<(String, String)> = (0..(CAP + 2))
+            .map(|i| (format!("agent-{i:02}"), String::new()))
+            .collect();
+        record_at(&base, &names);
+        let got: Vec<String> = load_at(&base).into_iter().map(|s| s.name).collect();
+        assert_eq!(got.len(), CAP);
+        assert!(!got.contains(&"agent-00".to_string()), "earliest recorded evicted: {got:?}");
+        assert!(
+            got.contains(&format!("agent-{:02}", CAP + 1)),
+            "latest recorded survives: {got:?}"
+        );
+    }
 }
 ```
 
@@ -872,13 +890,24 @@ pub(crate) fn record_at(base: &Path, seen: &[(String, String)]) {
         let Some(name) = crew_hive::agentname::slug(name) else {
             continue;
         };
-        match all.iter_mut().find(|s| s.name == name) {
-            Some(existing) => existing.last_used = now,
-            None => all.push(Specialist {
-                name,
-                role: crew_hive::agentname::role_clamp(role),
-                last_used: now,
-            }),
+        match all.iter().position(|s| s.name == name) {
+            Some(i) => {
+                // Move-to-front, not update-in-place: `save_at`'s sort is
+                // stable, so among entries sharing a `last_used` millisecond
+                // physical order decides who is evicted. A just-touched entry
+                // must outrank an equally-stamped older one.
+                let mut s = all.remove(i);
+                s.last_used = now;
+                all.insert(0, s);
+            }
+            None => all.insert(
+                0,
+                Specialist {
+                    name,
+                    role: crew_hive::agentname::role_clamp(role),
+                    last_used: now,
+                },
+            ),
         }
     }
     save_at(base, all);
@@ -888,17 +917,21 @@ pub(crate) fn record_at(base: &Path, seen: &[(String, String)]) {
 /// defers eviction and not only re-invention does.
 pub(crate) fn touch_at(base: &Path, name: &str) {
     let mut all = load_at(base);
-    let Some(s) = all.iter_mut().find(|s| s.name == name) else {
+    let Some(i) = all.iter().position(|s| s.name == name) else {
         return;
     };
+    // Move-to-front, matching `record_at`: a stable sort needs the
+    // just-touched entry to outrank equally-stamped older ones.
+    let mut s = all.remove(i);
     s.last_used = now_ms();
+    all.insert(0, s);
     save_at(base, all);
 }
 
 /// Sort newest-first, trim to [`CAP`], write atomically (tmp + rename) so a
 /// crash mid-write can't leave a torn file. Every failure is ignored.
 fn save_at(base: &Path, mut all: Vec<Specialist>) {
-    all.sort_by(|a, b| b.last_used.cmp(&a.last_used));
+    all.sort_by_key(|s| std::cmp::Reverse(s.last_used));
     all.truncate(CAP);
     let p = path(base);
     let Some(dir) = p.parent() else { return };
@@ -915,7 +948,7 @@ fn save_at(base: &Path, mut all: Vec<Specialist>) {
 }
 ```
 
-`record_at` and `touch_at` may write within the same millisecond in tests, making `last_used` ties possible. `sort_by` is stable, so an insertion-ordered tie keeps the earlier entry first (i.e. treated as newer). The eviction test above uses distinct rounds and the `touch` test asserts survival rather than exact order, so neither depends on tie-breaking.
+`record_at` and `touch_at` may write within the same millisecond in tests (indeed, `record_at`'s own loop stamps every `seen` pair with one `now`), making `last_used` ties routine rather than rare. `save_at`'s sort is stable, so among entries sharing a timestamp, *physical order in `all`* decides who survives — a naive push-at-back/update-in-place implementation would rank a freshly-touched entry *last* among its tied group, making the newest write the most evictable. Both `record_at` and `touch_at` instead move the touched or inserted entry to the *front* of `all` before saving, so a stable descending sort always ranks it ahead of equally-stamped older entries. The regression test `a_same_millisecond_tie_evicts_the_earliest_recorded` forces this tie deterministically (one `record_at` call ⇒ one timestamp for every name) and fails against the push-at-back/update-in-place version regardless of clock resolution.
 
 - [ ] **Step 4: Register the module**
 
@@ -928,7 +961,7 @@ pub(crate) mod specialists;
 - [ ] **Step 5: Run to verify they pass**
 
 Run: `cargo test -p crew-plugin specialists`
-Expected: PASS, 8 tests.
+Expected: PASS, 9 tests.
 
 - [ ] **Step 6: Commit**
 

@@ -71,13 +71,24 @@ pub(crate) fn record_at(base: &Path, seen: &[(String, String)]) {
         let Some(name) = crew_hive::agentname::slug(name) else {
             continue;
         };
-        match all.iter_mut().find(|s| s.name == name) {
-            Some(existing) => existing.last_used = now,
-            None => all.push(Specialist {
-                name,
-                role: crew_hive::agentname::role_clamp(role),
-                last_used: now,
-            }),
+        match all.iter().position(|s| s.name == name) {
+            Some(i) => {
+                // Move-to-front, not update-in-place: `save_at`'s sort is
+                // stable, so among entries sharing a `last_used` millisecond
+                // physical order decides who is evicted. A just-touched entry
+                // must outrank an equally-stamped older one.
+                let mut s = all.remove(i);
+                s.last_used = now;
+                all.insert(0, s);
+            }
+            None => all.insert(
+                0,
+                Specialist {
+                    name,
+                    role: crew_hive::agentname::role_clamp(role),
+                    last_used: now,
+                },
+            ),
         }
     }
     save_at(base, all);
@@ -91,17 +102,21 @@ pub(crate) fn touch(name: &str) {
 /// defers eviction and not only re-invention does.
 pub(crate) fn touch_at(base: &Path, name: &str) {
     let mut all = load_at(base);
-    let Some(s) = all.iter_mut().find(|s| s.name == name) else {
+    let Some(i) = all.iter().position(|s| s.name == name) else {
         return;
     };
+    // Move-to-front, matching `record_at`: a stable sort needs the
+    // just-touched entry to outrank equally-stamped older ones.
+    let mut s = all.remove(i);
     s.last_used = now_ms();
+    all.insert(0, s);
     save_at(base, all);
 }
 
 /// Sort newest-first, trim to [`CAP`], write atomically (tmp + rename) so a
 /// crash mid-write can't leave a torn file. Every failure is ignored.
 fn save_at(base: &Path, mut all: Vec<Specialist>) {
-    all.sort_by(|a, b| b.last_used.cmp(&a.last_used));
+    all.sort_by_key(|s| std::cmp::Reverse(s.last_used));
     all.truncate(CAP);
     let p = path(base);
     let Some(dir) = p.parent() else { return };
@@ -222,5 +237,26 @@ mod tests {
         record_at(&base, &[("archivist".into(), String::new())]);
         touch_at(&base, "nobody");
         assert_eq!(load_at(&base).len(), 1);
+    }
+
+    #[test]
+    fn a_same_millisecond_tie_evicts_the_earliest_recorded() {
+        // One call ⇒ every name shares a `last_used`, so only physical order
+        // can break the tie. The newest write must never be the one evicted.
+        let base = tmp();
+        let names: Vec<(String, String)> = (0..(CAP + 2))
+            .map(|i| (format!("agent-{i:02}"), String::new()))
+            .collect();
+        record_at(&base, &names);
+        let got: Vec<String> = load_at(&base).into_iter().map(|s| s.name).collect();
+        assert_eq!(got.len(), CAP);
+        assert!(
+            !got.contains(&"agent-00".to_string()),
+            "earliest recorded evicted: {got:?}"
+        );
+        assert!(
+            got.contains(&format!("agent-{:02}", CAP + 1)),
+            "latest recorded survives: {got:?}"
+        );
     }
 }
