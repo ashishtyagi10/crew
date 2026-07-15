@@ -30,6 +30,8 @@ pub fn batch_graph(jobs: Vec<Job>) -> Result<TaskGraph, GraphError> {
             model: job.tier,
             deps: vec![],
             prompt: job.prompt,
+            specialty: String::new(),
+            expertise: String::new(),
         })
         .collect();
     TaskGraph::new(specs)

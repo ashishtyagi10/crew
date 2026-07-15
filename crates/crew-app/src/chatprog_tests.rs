@@ -20,6 +20,8 @@ fn pane_with_swarm(n: u64) -> ChatPane {
             model: ModelTier::Cheap,
             deps: vec![],
             prompt: "p".into(),
+            specialty: String::new(),
+            expertise: String::new(),
         })
         .collect();
     p.absorb_hive_plan(tasks);

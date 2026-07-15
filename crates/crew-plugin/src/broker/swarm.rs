@@ -134,6 +134,8 @@ pub(crate) fn run_with(
                 model: ModelTier::Standard,
                 deps: vec![],
                 prompt: task.to_owned(),
+                specialty: String::new(),
+                expertise: String::new(),
             };
             TaskGraph::new(vec![single]).expect("single task graph is valid")
         }

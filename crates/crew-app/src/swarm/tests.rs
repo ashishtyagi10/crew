@@ -16,6 +16,8 @@ fn two_task_graph() -> TaskGraph {
             model: ModelTier::Cheap,
             deps: vec![],
             prompt: "do alpha".into(),
+            specialty: String::new(),
+            expertise: String::new(),
         },
         TaskSpec {
             id: TaskId(1),
@@ -24,6 +26,8 @@ fn two_task_graph() -> TaskGraph {
             model: ModelTier::Cheap,
             deps: vec![TaskId(0)],
             prompt: "do beta".into(),
+            specialty: String::new(),
+            expertise: String::new(),
         },
     ])
     .expect("valid graph")
@@ -70,6 +74,8 @@ fn bridge_cancel_stops_scheduler() {
             model: ModelTier::Cheap,
             deps: if i == 0 { vec![] } else { vec![TaskId(i - 1)] },
             prompt: "p".into(),
+            specialty: String::new(),
+            expertise: String::new(),
         })
         .collect();
     let graph = TaskGraph::new(tasks).expect("chain graph");

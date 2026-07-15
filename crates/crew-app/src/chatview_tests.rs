@@ -40,6 +40,8 @@ fn empty_pane_swarm_block_never_draws_above_the_status_rows() {
             model: ModelTier::Cheap,
             deps: vec![],
             prompt: "p".into(),
+            specialty: String::new(),
+            expertise: String::new(),
         })
         .collect();
     pane.absorb_hive_plan(tasks);
@@ -332,6 +334,8 @@ fn mid_run_pane() -> ChatPane {
                 model: ModelTier::Cheap,
                 deps: vec![],
                 prompt: "p".into(),
+                specialty: String::new(),
+                expertise: String::new(),
             })
             .collect(),
     );

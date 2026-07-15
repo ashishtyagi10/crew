@@ -13,6 +13,8 @@ fn spec(id: u64, title: &str) -> TaskSpec {
         model: ModelTier::Cheap,
         deps: vec![],
         prompt: "p".into(),
+        specialty: String::new(),
+        expertise: String::new(),
     }
 }
 

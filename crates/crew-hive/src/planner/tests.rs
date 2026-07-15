@@ -59,6 +59,51 @@ fn parse_plan_never_yields_pty() {
     assert!(g.tasks().iter().all(|t| !t.agent.is_pty()));
 }
 
+#[test]
+fn parse_plan_slugs_the_specialty() {
+    let json = r#"[{"id":0,"title":"Gather Details","prompt":"p","deps":[],
+                    "specialty":"Risk Assessor","expertise":"risk,  analysis"}]"#;
+    let g = parse_plan(json).expect("valid plan");
+    let t = &g.tasks()[0];
+    assert_eq!(t.specialty, "risk-assessor");
+    assert_eq!(t.expertise, "risk, analysis");
+}
+
+#[test]
+fn parse_plan_derives_a_name_when_specialty_is_missing_or_garbage() {
+    let missing = r#"[{"id":0,"title":"T","prompt":"p","deps":[]}]"#;
+    assert_eq!(
+        parse_plan(missing).unwrap().tasks()[0].specialty,
+        "specialist-0"
+    );
+
+    let garbage = r#"[{"id":7,"title":"T","prompt":"p","deps":[],"specialty":"@#$"}]"#;
+    assert_eq!(
+        parse_plan(garbage).unwrap().tasks()[0].specialty,
+        "specialist-7"
+    );
+}
+
+#[test]
+fn parse_plan_defaults_expertise_to_empty() {
+    let json = r#"[{"id":0,"title":"T","prompt":"p","deps":[],"specialty":"analyst"}]"#;
+    assert_eq!(parse_plan(json).unwrap().tasks()[0].expertise, "");
+}
+
+#[test]
+fn parse_plan_every_specialty_is_a_valid_slug() {
+    let json = r#"[{"id":0,"title":"T","prompt":"p","deps":[],"specialty":"A B/C+D"},
+                   {"id":1,"title":"U","prompt":"p","deps":[],"specialty":""}]"#;
+    for t in parse_plan(json).unwrap().tasks() {
+        assert_eq!(
+            crate::agentname::slug(&t.specialty).as_deref(),
+            Some(t.specialty.as_str()),
+            "specialty {:?} must be slug-stable",
+            t.specialty
+        );
+    }
+}
+
 #[tokio::test]
 async fn llm_planner_parses_provider_json() {
     let reply = r#"[{"id":0,"title":"t","prompt":"p","deps":[]}]"#;

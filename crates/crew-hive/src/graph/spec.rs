@@ -45,6 +45,16 @@ pub struct TaskSpec {
     pub model: ModelTier,
     pub deps: Vec<TaskId>,
     pub prompt: String,
+    /// The `@`-handle of the specialist this task needs — always a valid
+    /// `agentname::slug`. `#[serde(default)]` because `TaskSpec` crosses the
+    /// broker↔app wire in `HivePlan`: a mismatched pair mid-upgrade must
+    /// degrade, not fail to parse.
+    #[serde(default)]
+    pub specialty: String,
+    /// That specialist's prose craft hint (`agentname::role_clamp`ed). May be
+    /// empty.
+    #[serde(default)]
+    pub expertise: String,
 }
 
 #[derive(Debug, PartialEq)]

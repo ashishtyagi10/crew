@@ -19,6 +19,8 @@ fn pane_with_swarm(n: u64) -> ChatPane {
             model: ModelTier::Cheap,
             deps: vec![],
             prompt: "p".into(),
+            specialty: String::new(),
+            expertise: String::new(),
         })
         .collect();
     p.absorb_hive_plan(tasks);
@@ -124,6 +126,8 @@ fn title_clamp_is_display_width_aware_for_wide_glyphs() {
         model: ModelTier::Cheap,
         deps: vec![],
         prompt: "p".into(),
+        specialty: String::new(),
+        expertise: String::new(),
     }]);
     // Narrow enough to drop the token column (< TOKENS_MIN_COLS), so the
     // only reserve is the 1-column margin — isolates the title clamp itself.
@@ -183,6 +187,8 @@ fn wide_pane_cjk_title_never_collides_with_token_column() {
         model: ModelTier::Cheap,
         deps: vec![],
         prompt: "p".into(),
+        specialty: String::new(),
+        expertise: String::new(),
     }]);
     // Trigger token rendering: 12_400 → "12.4k"
     p.absorb_hive(&HiveEvent::AgentSpawned {
@@ -487,6 +493,8 @@ fn wide_glyph_titles_advance_by_display_width() {
         model: ModelTier::Cheap,
         deps: vec![],
         prompt: "p".into(),
+        specialty: String::new(),
+        expertise: String::new(),
     }]);
     let cells = block_cells(&p, 80, 5, 0);
     let ja0 = cells.iter().find(|c| c.c == '日').unwrap();
@@ -511,6 +519,8 @@ fn columns_and_a_full_width_title_never_collide() {
         model: ModelTier::Cheap,
         deps: vec![],
         prompt: "p".into(),
+        specialty: String::new(),
+        expertise: String::new(),
     }]);
     p.absorb_hive(&HiveEvent::AgentSpawned {
         agent: crew_hive::AgentId(1),

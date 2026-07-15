@@ -262,6 +262,8 @@ mod tests {
                 model: crew_hive::ModelTier::Cheap,
                 deps: vec![],
                 prompt: "p".into(),
+                specialty: String::new(),
+                expertise: String::new(),
             }],
         };
         let s = serde_json::to_string(&plan).unwrap();
