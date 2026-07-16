@@ -215,3 +215,33 @@ fn garbage_never_panics() {
         let _ = parse(s);
     }
 }
+
+/// A list item holding TWO sublists must keep both.
+///
+/// `collect_item` did `nested = n` where the very next line does
+/// `hoisted.extend(h)` — so a second sublist REPLACED the first and its items
+/// vanished from the render with no error. Silent content loss: the text is in
+/// the document, the reader never sees it.
+#[test]
+fn a_list_item_with_two_sublists_keeps_both() {
+    let md = "- outer\n  - first\n\n  middle\n\n  - second\n";
+    let blocks = parse(md);
+    let texts: Vec<String> = blocks
+        .iter()
+        .flat_map(|b| match b {
+            Block::List(items) => items
+                .iter()
+                .map(|i| i.spans.iter().map(|s| s.text.clone()).collect::<String>())
+                .collect::<Vec<_>>(),
+            _ => vec![],
+        })
+        .collect();
+    assert!(
+        texts.iter().any(|t| t.contains("second")),
+        "second sublist missing: {texts:?}"
+    );
+    assert!(
+        texts.iter().any(|t| t.contains("first")),
+        "FIRST sublist was dropped — a second sublist overwrote it: {texts:?}"
+    );
+}

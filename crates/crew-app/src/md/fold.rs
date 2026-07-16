@@ -171,7 +171,12 @@ fn collect_item<'a>(
             Some(Event::End(TagEnd::Item)) | None => break,
             Some(Event::Start(Tag::List(start))) if depth < MAX_NEST_DEPTH => {
                 let (n, h) = collect_list_items(events, start, depth + 1, keep_soft_breaks);
-                nested = n;
+                // extend, not assign: an item can hold more than one sublist
+                // (`- a` / `  - b` / blank / `  text` / blank / `  - c`), and
+                // assigning dropped every sublist but the last — silent
+                // content loss, since the text is in the document and simply
+                // never rendered.
+                nested.extend(n);
                 hoisted.extend(h);
             }
             Some(Event::Start(Tag::List(_))) => {
