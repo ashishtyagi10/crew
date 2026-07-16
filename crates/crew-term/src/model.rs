@@ -105,6 +105,10 @@ pub(crate) struct TermCore {
     /// Sniffs OSC 7 working-directory reports — which the ANSI parser ignores —
     /// so a `cd` inside the pane can retitle it.
     osc7: crate::osc7::Osc7Scanner,
+    /// Where the drag began, and its kind. Kept because a selection's sides
+    /// depend on the drag's DIRECTION, which only the anchor can tell us, and
+    /// `Selection` doesn't hand its anchor back. See `sel_update`.
+    sel_anchor: Option<(Point, SelectionType)>,
 }
 
 impl TermCore {
@@ -120,6 +124,7 @@ impl TermCore {
             parser: Processor::new(),
             events,
             osc7: crate::osc7::Osc7Scanner::default(),
+            sel_anchor: None,
         }
     }
 
@@ -233,20 +238,40 @@ impl TermCore {
         } else {
             SelectionType::Simple
         };
+        self.sel_anchor = Some((point, ty));
         self.term.selection = Some(Selection::new(ty, point, Side::Left));
     }
 
-    /// Extend the active selection's end to viewport cell (col, row). The end
-    /// cell is inclusive (Side::Right) so the cell under the cursor is selected.
+    /// Extend the active selection's end to viewport cell (col, row), keeping
+    /// both end cells inclusive whichever way the drag runs.
+    ///
+    /// The sides cannot be fixed: `to_range` swaps the anchors when the drag
+    /// runs backwards but KEEPS their sides, then trims the last cell if
+    /// `end.side == Left` and the first if `start.side == Right`. With a
+    /// hard-coded (Left, Right) pair a backward drag swapped to (Right, Left)
+    /// and lost a character off EACH end — dragging right-to-left across
+    /// "hello" copied "ell". Alacritty itself avoids this by deriving the side
+    /// from where in the cell the pointer sits; we only have whole cells, so
+    /// derive it from the direction instead: the pair must come out (Left,
+    /// Right) *after* any swap.
     pub(crate) fn sel_update(&mut self, col: u16, row: u16) {
         let point = self.viewport_point(col, row);
-        if let Some(sel) = self.term.selection.as_mut() {
-            sel.update(point, Side::Right);
-        }
+        let Some((anchor, ty)) = self.sel_anchor else {
+            return;
+        };
+        let (anchor_side, cursor_side) = if point < anchor {
+            (Side::Right, Side::Left)
+        } else {
+            (Side::Left, Side::Right)
+        };
+        let mut sel = Selection::new(ty, anchor, anchor_side);
+        sel.update(point, cursor_side);
+        self.term.selection = Some(sel);
     }
 
     pub(crate) fn sel_clear(&mut self) {
         self.term.selection = None;
+        self.sel_anchor = None;
     }
 
     /// The selected text, or `None` when there's no (non-empty) selection.
@@ -524,6 +549,33 @@ mod selection_tests {
         t.sel_start(0, 0, false);
         t.sel_update(4, 0);
         assert_eq!(t.sel_text().as_deref(), Some("hello"));
+    }
+
+    /// The same span, dragged the other way, must copy the same text.
+    ///
+    /// `sel_start` hard-coded `Side::Left` and `sel_update` `Side::Right`,
+    /// which is only right for a FORWARD drag. On a reverse drag alacritty's
+    /// `to_range` swaps the anchors but keeps their sides, then trims the last
+    /// cell when `end.side == Left` and the first when `start.side == Right` —
+    /// so a right-to-left drag over "hello" copied "ell". The suite only ever
+    /// dragged left-to-right, so it never saw it.
+    #[test]
+    fn a_backward_drag_selects_the_same_span_as_a_forward_one() {
+        let forward = {
+            let mut t = term("hello world");
+            t.sel_start(0, 0, false);
+            t.sel_update(4, 0);
+            t.sel_text()
+        };
+        let mut t = term("hello world");
+        t.sel_start(4, 0, false); // press on the 'o'
+        t.sel_update(0, 0); // drag back to the 'h'
+        assert_eq!(
+            t.sel_text().as_deref(),
+            Some("hello"),
+            "a right-to-left drag lost characters"
+        );
+        assert_eq!(t.sel_text(), forward, "drag direction changed the text");
     }
 
     #[test]
