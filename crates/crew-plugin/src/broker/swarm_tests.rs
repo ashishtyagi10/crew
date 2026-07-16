@@ -257,3 +257,28 @@ fn run_emits_an_aggregate_stats_event_with_tokens_and_exchange_count() {
         "Stats must land before the final summary message"
     );
 }
+
+// The roster matches active agents by name (chatview::agent_views), so
+// Activity must carry the specialty — with the title, a roster row could
+// never light up. `translate` is no longer handed the titles at all, so the
+// old bug is now impossible rather than merely tested against; this pins the
+// name it DOES use.
+#[test]
+fn activity_names_the_specialist_not_the_task_title() {
+    let mut specialties = HashMap::new();
+    specialties.insert(TaskId(0), "archivist".to_string());
+    let mut agent_task = HashMap::new();
+
+    let evs = translate(
+        &HiveEvent::AgentSpawned {
+            agent: AgentId(1),
+            task: TaskId(0),
+        },
+        &specialties,
+        &mut agent_task,
+    );
+    match &evs[0] {
+        PluginEvent::Activity { agent, .. } => assert_eq!(agent, "archivist"),
+        other => panic!("expected Activity, got {other:?}"),
+    }
+}
