@@ -13,22 +13,27 @@ fn keys(set: &'static [&'static str]) -> impl Fn(&str) -> bool {
 #[test]
 fn roster_with_falls_back_to_plugins_when_no_provider_resolves() {
     let _env = testenv::no_provider();
-    // `plugins::load` reads `./.crew/agents` relative to the process cwd
-    // (cargo's test cwd is the crate root), independent of `CREW_PROJECT_DIR`.
-    let agents_dir = std::path::Path::new(".crew/agents");
-    std::fs::create_dir_all(agents_dir).unwrap();
-    let manifest_path = agents_dir.join("regression-5c-probe.json");
+    // `plugins::load` now honours `CREW_PROJECT_DIR` (`plugins::base_dir`,
+    // mirroring `specialists`/`sessionlog`), so the manifest goes in our own
+    // isolated dir rather than the crate's real `./.crew/agents` — writing
+    // there (as this test used to, independent of `CREW_PROJECT_DIR`) landed
+    // a real file in the working tree that a `cargo test` run would leave
+    // behind on failure, and even on success left an empty `.crew/` (the
+    // cleanup only removed `.crew/agents`, not its parent). `testenv::
+    // no_provider`'s own dir is private to `mod.rs`, so this test points
+    // `CREW_PROJECT_DIR` at a fresh dir of its own instead.
+    let base =
+        std::env::temp_dir().join(format!("crew-discover-plugin-probe-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&base);
+    let agents_dir = base.join(".crew").join("agents");
+    std::fs::create_dir_all(&agents_dir).unwrap();
+    std::env::set_var("CREW_PROJECT_DIR", &base);
     std::fs::write(
-        &manifest_path,
+        agents_dir.join("regression-5c-probe.json"),
         r#"{"name":"regression-5c-probe","command":"sh","args":["-c","cat"],"role":"probe"}"#,
     )
     .unwrap();
-    let cleanup = || {
-        let _ = std::fs::remove_file(&manifest_path);
-        let _ = std::fs::remove_dir(agents_dir); // best-effort; only if now empty
-    };
     let agents = roster_with(&std::collections::HashMap::new());
-    cleanup();
     let names: Vec<String> = agents.iter().map(|a| a.name().to_string()).collect();
     assert!(
         names.contains(&"regression-5c-probe".to_string()),

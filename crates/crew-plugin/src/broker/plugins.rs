@@ -93,13 +93,28 @@ pub(crate) fn load_dir(dir: &Path) -> Vec<PluginAgent> {
         .collect()
 }
 
+/// The project dir plugin manifests live under. Mirrors
+/// `specialists::base_dir`/`sessionlog::base_dir`: `CREW_PROJECT_DIR`
+/// overrides the process CWD — the seam tests use, since lib tests share one
+/// CWD and cannot each chdir. Production never sets it: the broker's CWD
+/// *is* the project.
+fn base_dir() -> PathBuf {
+    std::env::var("CREW_PROJECT_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| PathBuf::from("."))
+}
+
 /// User + project plugin agents, a project manifest replacing a user one with
 /// the same name.
 pub(crate) fn load() -> Vec<PluginAgent> {
+    load_at(&base_dir())
+}
+
+pub(crate) fn load_at(base: &Path) -> Vec<PluginAgent> {
     let mut all = dirs::config_dir()
         .map(|d| load_dir(&d.join("crew").join("agents")))
         .unwrap_or_default();
-    for p in load_dir(Path::new(".crew/agents")) {
+    for p in load_dir(&base.join(".crew").join("agents")) {
         match all.iter_mut().position(|a| a.name() == p.name()) {
             Some(i) => all[i] = p,
             None => all.push(p),

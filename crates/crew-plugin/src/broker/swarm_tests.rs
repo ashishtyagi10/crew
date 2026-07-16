@@ -1,10 +1,22 @@
 use super::*;
+use crate::broker::testenv;
 use crew_hive::agent::StubFactory;
 use crew_hive::StubPlanner;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
+/// `run_with` is the injectable core these tests drive directly (bypassing
+/// `run_task`'s provider discovery), but it still calls
+/// `specialists::record` on the bare, CWD-based path (`base_dir()` falls
+/// back to `Path::new(".")` with no `CREW_PROJECT_DIR` set) and reads the
+/// roster via `Registry::discover()` — both of which, unguarded, land a real
+/// `./.crew/specialists.json` in the crate's own working tree under `cargo
+/// test`. `testenv::mock` isolates `CREW_PROJECT_DIR` (and
+/// `CREW_BROKER_MOCK_REPLY`, unused here since planning/execution are
+/// injected explicitly) the same way every other test file that reaches the
+/// specialist store does.
 fn collect(task: &str, cancel: Arc<AtomicBool>) -> Vec<PluginEvent> {
+    let _env = testenv::mock("unused");
     let mut evs = Vec::new();
     run_with(
         task,
@@ -86,6 +98,7 @@ fn pre_cancelled_run_reports_cancellation() {
 fn task_failure_becomes_a_chat_message_not_a_connection_error() {
     use crew_hive::agent::FailingFactory;
     use crew_hive::TaskId;
+    let _env = testenv::mock("unused"); // see `collect`'s doc — isolates CREW_PROJECT_DIR
     let mut fail_tasks = std::collections::HashSet::new();
     fail_tasks.insert(TaskId(0));
     let mut evs = Vec::new();
@@ -188,6 +201,7 @@ fn events_are_emitted_during_the_run_not_after() {
         }
     }
 
+    let _env = testenv::mock("unused"); // see `collect`'s doc — isolates CREW_PROJECT_DIR
     let emitted = Arc::new(AtomicUsize::new(0));
     let merge_snapshot = Arc::new(Mutex::new(None));
     let counter = Arc::clone(&emitted);

@@ -23,11 +23,25 @@ fn last(base: &Path) -> PathBuf {
     base.join(".crew").join("last-session.md")
 }
 
+/// The project dir the log lives under. Mirrors `specialists::base_dir`
+/// exactly, and for the same reason: `CREW_PROJECT_DIR` overrides the process
+/// CWD — the seam tests use, since lib tests share one CWD and cannot each
+/// chdir. Production never sets it: the broker's CWD *is* the project. Before
+/// this seam existed, `rotate`/`append`/`tail` hardcoded `Path::new(".")`, so
+/// any in-process test that reached them (not just the ones written against
+/// `specialists`) wrote a real `./.crew/session-live.md` into the crate's own
+/// working tree.
+fn base_dir() -> PathBuf {
+    std::env::var("CREW_PROJECT_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| PathBuf::from("."))
+}
+
 /// Broker startup: the previous run's live log becomes the resumable
 /// last-session file (a crash still leaves it resumable), and a fresh live
 /// log begins.
 pub(crate) fn rotate() {
-    rotate_at(Path::new("."));
+    rotate_at(&base_dir());
 }
 
 pub(crate) fn rotate_at(base: &Path) {
@@ -42,7 +56,7 @@ pub(crate) fn rotate_at(base: &Path) {
 /// must never break the relay). Empty text and the `crew` system voice are
 /// skipped; the file is capped at [`LOG_CAP`] by dropping the oldest half.
 pub(crate) fn append(sender: &str, text: &str) {
-    append_at(Path::new("."), sender, text);
+    append_at(&base_dir(), sender, text);
 }
 
 pub(crate) fn append_at(base: &Path, sender: &str, text: &str) {
@@ -70,7 +84,7 @@ pub(crate) fn append_at(base: &Path, sender: &str, text: &str) {
 /// The tail of the previous session, at most [`RESUME_CAP`] chars on a line
 /// boundary. `None` when there is nothing to resume.
 pub(crate) fn tail() -> Option<String> {
-    tail_at(Path::new("."))
+    tail_at(&base_dir())
 }
 
 pub(crate) fn tail_at(base: &Path) -> Option<String> {
