@@ -152,6 +152,12 @@ mod tests {
 
     #[test]
     fn parses_and_clamps_to_range() {
+        // A font-SIZE test needs the theme guard: `set_font` persists through
+        // `apply_settings` → `apply_config`, which pins a fixed theme app-wide
+        // and clears the random MODE. Without this it races
+        // `chataction::persist_theme_saves_the_live_mode_name`, which then
+        // reads "paper-dark" instead of its own "random-light".
+        let _g = crate::app::theme_test_guard();
         let mut app = CrewApp::default();
         app.set_font_cmd("18");
         assert_eq!(app.config.font_size, 18.0);

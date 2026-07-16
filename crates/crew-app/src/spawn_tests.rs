@@ -19,6 +19,12 @@ fn hydrated_env_hands_spawns_the_detection_path() {
 
 #[test]
 fn apply_config_adopts_values_without_a_renderer() {
+    // `apply_config` pins a theme app-wide (spawn.rs: no `config.theme` →
+    // `apply_selection(Fixed(theme_id()))`, which clears the random MODE), so
+    // even a test that only cares about font_size/show_nav must take the guard
+    // — without it this races `persist_theme_saves_the_live_mode_name`, which
+    // then reads "paper-dark" instead of its own "random-light".
+    let _g = crate::app::theme_test_guard();
     let mut app = CrewApp::default();
     let cfg = CrewConfig {
         font_size: 19.0,
@@ -34,6 +40,9 @@ fn apply_config_adopts_values_without_a_renderer() {
 
 #[test]
 fn manual_family_change_disables_rotation() {
+    // Guarded for the same reason: `apply_config` mutates the global theme
+    // even though this test is only about the font.
+    let _g = crate::app::theme_test_guard();
     let mut app = CrewApp::default();
     app.font_rotate.on = true;
     let mut cfg = app.config.clone();
