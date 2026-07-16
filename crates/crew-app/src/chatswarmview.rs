@@ -157,11 +157,11 @@ pub(crate) fn block_cells(pane: &ChatPane, cols: u16, top_row: u16, now_ms: u64)
     // is now exactly `PREFIX_END` — the leftmost column anything to the
     // right may use.
 
-    // Counter: right-aligned at the pane edge, floored at `col` so it can
-    // never be pushed left into the prefix on a narrow pane — the bug this
-    // replaces let pure right-edge arithmetic decide, and on a narrow enough
-    // pane it decided to land there.
-    let counter_start = cols.saturating_sub(counter_w).max(col);
+    // Counter: right-aligned at the pane edge. `line_fits` already gated
+    // entry into this function on `cols >= PREFIX_END + counter_w`, so
+    // `cols - counter_w >= col` always holds here — no runtime floor is
+    // needed to keep it from landing in the prefix.
+    let counter_start = cols.saturating_sub(counter_w);
 
     // Elapsed sits one gap column left of the counter — but only if that
     // doesn't run it back into the prefix/title area; otherwise it's
@@ -171,7 +171,6 @@ pub(crate) fn block_cells(pane: &ChatPane, cols: u16, top_row: u16, now_ms: u64)
         let start = counter_start.saturating_sub(1 + e.len() as u16);
         (start >= col).then_some(start)
     });
-    let elapsed = elapsed.filter(|_| elapsed_start.is_some());
 
     // Columns left for the title + suffix: everything up to one gap column
     // before whichever of {elapsed, counter} sits leftmost. Unlike the old

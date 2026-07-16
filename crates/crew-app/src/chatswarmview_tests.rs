@@ -284,6 +284,47 @@ fn wide_glyph_title_never_overruns_the_counter() {
 }
 
 #[test]
+fn swarm_rows_and_block_cells_agree_across_widths() {
+    // Budget and draw must agree: if the row isn't drawn, it isn't claimed.
+    // Mirrors chatprog_tests::a_pane_too_narrow_for_a_legible_bar_drops_the_row,
+    // which guards the identical invariant for the progress bar. This is the
+    // Finding-2 guard: nothing previously asserted `swarm_rows(pane, cols)`
+    // and `!block_cells(pane, cols, ..).is_empty()` stay in lockstep as cols
+    // shrinks below the `line_fits` floor.
+    let running = {
+        let mut p = pane_with_swarm(5);
+        run(&mut p, 0);
+        p
+    };
+    let working = pane_with_swarm(5);
+    for (label, p) in [("running task", &running), ("Working… line", &working)] {
+        for cols in 0..=80u16 {
+            assert_eq!(
+                swarm_rows(p, cols) == 1,
+                !block_cells(p, cols, 10, 5_000).is_empty(),
+                "{label}: claimed row and drawn row disagree at cols={cols}"
+            );
+        }
+    }
+}
+
+#[test]
+fn spinner_frames_are_all_single_column() {
+    // `PREFIX_END`'s "col is now exactly PREFIX_END" reasoning (see
+    // `block_cells`) assumes the spinner glyph is one display column wide.
+    // If a wide glyph ever landed in `update::SPINNER`, `col` would come out
+    // as PREFIX_END + 1 and quietly invalidate the avail/title_limit
+    // non-underflow floor. Cheap to assert directly rather than trust it.
+    for &c in crate::update::SPINNER.iter() {
+        assert_eq!(
+            crate::chatwidth::char_w(c),
+            1,
+            "spinner frame {c:?} is not 1 display column wide"
+        );
+    }
+}
+
+#[test]
 fn wide_glyph_titles_advance_by_display_width() {
     // Each CJK glyph occupies 2 display columns; the char after one must
     // land exactly 2 columns later, not 1 (a char-count advance would

@@ -84,7 +84,7 @@ pub(crate) fn cell_at_col(line: &CardLine, col: u16) -> Option<&CardCell> {
 pub(crate) fn msg_rows_budget(pane: &ChatPane, cols: u16, rows: u16) -> u16 {
     let top = pane.status_rows(cols, rows);
     let bottom = crate::chatinput::composer_rows(&pane.input, cols, rows);
-    let block = crate::chatswarmview::swarm_rows(pane, rows);
+    let block = crate::chatswarmview::swarm_rows(pane, cols);
     let queued = crate::chatqueue::queued_rows(pane);
     let prog = crate::chatprog::progress_rows(pane, cols);
     rows.saturating_sub(top + bottom + block + queued + prog)
@@ -119,3 +119,7 @@ pub(crate) fn placed_lines(pane: &ChatPane, cols: u16, rows: u16) -> Vec<(u16, C
     );
     window(lines, budget, top, pane.scroll)
 }
+
+#[cfg(test)]
+#[path = "chatplace_tests.rs"]
+mod tests;
