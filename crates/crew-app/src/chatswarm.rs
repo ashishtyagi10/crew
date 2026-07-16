@@ -1,8 +1,9 @@
-//! Live swarm-run status for the chat pane: `HivePlan` opens a task-list
-//! block, `Hive` telemetry updates it, and when every task reaches a terminal
-//! state the block folds into a transcript message — the durable record of
-//! the run. Live rendering lives in `chatswarmview`; the folded record (task
-//! list + Σ totals) in `chatswarmrec`.
+//! Live swarm-run status for the chat pane: `HivePlan` opens the run's status
+//! line, `Hive` telemetry updates it, and when every task reaches a terminal
+//! state the line folds into a transcript message — the durable record of
+//! the run. Live rendering (one status line: spinner, focused task, elapsed,
+//! settled count) lives in `chatswarmview`; the folded record (task list + Σ
+//! totals) in `chatswarmrec`.
 use std::collections::HashMap;
 use std::time::Instant;
 

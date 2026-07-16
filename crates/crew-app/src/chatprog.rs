@@ -7,7 +7,9 @@
 //! The bar is determinate: a swarm plan has a known task count, so there's no
 //! reason to show an indeterminate animation. Terminal states (done, failed,
 //! cancelled) all count as settled — the bar tracks "how much of the plan is
-//! still moving", not "how much succeeded", which the task rows already say.
+//! still moving", not "how much succeeded". That distinction — which tasks
+//! settled how — lives only in the folded transcript record
+//! (`chatswarmrec`) once the run ends; the live view no longer shows it.
 use crew_render::CellView;
 
 use crate::chat::ChatPane;

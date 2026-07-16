@@ -45,7 +45,19 @@ fn empty_pane_swarm_block_never_draws_above_the_status_rows() {
         })
         .collect();
     pane.absorb_hive_plan(tasks);
-    let (cols, rows) = (30u16, 5u16);
+    // Mark a task Running so the status line actually names `task-0` — with
+    // nothing running the line reads "Working… 0/8" and the string "task-"
+    // never appears anywhere in the pane, making the probe below vacuous.
+    pane.absorb_hive(&HiveEvent::TaskStateChanged {
+        task: TaskId(0),
+        state: TaskState::Running,
+    });
+    // rows=5 leaves block_max comfortably above `top` for this fixture (no
+    // roster, one progress-bar row, one swarm-line row), so the floor is
+    // never actually exercised there. rows=3 is the genuine saturation case
+    // (block_max == top == 1): the unclamped block_start bottoms out at 0,
+    // one row above `top`.
+    let (cols, rows) = (30u16, 3u16);
     let top = pane.status_rows(cols, rows);
     let out = cells(&pane, cols, rows);
     // Identify swarm-block cells by their distinctive content (task titles)
@@ -381,6 +393,104 @@ fn progress_bar_and_queued_indicator_stack_without_colliding() {
     let queued = row_text(&cells_out, rows - bottom - 2);
     assert!(bar.contains('\u{2588}'), "bar: {bar}");
     assert!(queued.contains("1 message queued"), "queued: {queued}");
+}
+
+/// Recovers the grid-merge helper from the deleted
+/// `chatswarmview_tests::block_never_overdraws_the_composer_row_on_a_saturated_tiny_pane`
+/// (`git show 2fa902f^:crates/crew-app/src/chatswarmview_tests.rs`) — the last
+/// test that drove `pane.cells(cols, rows)` and replicated crew-render's
+/// last-write-wins (row, col) merge. Its replacement in `chatswarmview_tests.rs`
+/// (`cells_never_collide_or_leave_the_pane`) only calls `block_cells` in
+/// isolation, so nothing exercises the status line, queued indicator, progress
+/// bar and composer TOGETHER any more. Belongs here rather than in
+/// `chatswarmview_tests.rs` because it's testing pane-level composition (four
+/// separate widgets stacking without collision), not one widget's own geometry.
+fn merge_grid(cells: &[CellView]) -> std::collections::HashMap<(u16, u16), char> {
+    let mut grid = std::collections::HashMap::new();
+    for c in cells {
+        grid.insert((c.row, c.col), c.c);
+    }
+    grid
+}
+
+#[test]
+fn status_line_queued_indicator_bar_and_composer_stack_without_colliding() {
+    // A realistic mid-run pane: a message already in the transcript (so the
+    // empty-transcript overlap — a known, out-of-scope pre-existing issue —
+    // never comes into play), a 4-task plan with one task Running, and a
+    // queued message, so all four bottom surfaces are showing at once.
+    let mut pane = mid_run_pane();
+    pane.queued.push_back("later".into());
+
+    // Non-degenerate sizes only: rows <= 9 with this roster pile every row
+    // onto `.max(top)` (also a known, out-of-scope pre-existing issue).
+    for cols in [20u16, 40, 80] {
+        for rows in [12u16, 20, 40] {
+            let bottom = crate::chatinput::composer_rows(&pane.input, cols, rows);
+            let prog_rows = crate::chatprog::progress_rows(&pane, cols);
+            let queued_rows = crate::chatqueue::queued_rows(&pane);
+            let swarm_rows = crate::chatswarmview::swarm_rows(&pane, cols);
+            assert!(
+                prog_rows > 0 && queued_rows > 0 && swarm_rows > 0,
+                "fixture must actually exercise all three bottom surfaces at cols={cols} rows={rows}"
+            );
+
+            let top = pane.status_rows(cols, rows);
+            let msg_rows = crate::chatplace::msg_rows_budget(&pane, cols, rows);
+            let status_row = top + msg_rows;
+            let indicator_row = rows - bottom - prog_rows - queued_rows;
+            let bar_row = rows - bottom - prog_rows;
+            let composer_row = rows - bottom;
+
+            // Stacking order, message body toward composer: status line,
+            // queued indicator, bar, composer — each on its own row.
+            let ordered = [status_row, indicator_row, bar_row, composer_row];
+            for w in ordered.windows(2) {
+                assert!(
+                    w[0] < w[1],
+                    "rows out of order at cols={cols} rows={rows}: {ordered:?}"
+                );
+            }
+
+            // Replicate crew-render's actual last-write-wins (row, col) grid
+            // merge rather than concatenating every cell's char — a
+            // partially-overwritten row (one surface punching a hole through
+            // another) could dodge a naive substring check while still
+            // leaking a corrupted glyph on screen.
+            let grid = merge_grid(&cells(&pane, cols, rows));
+            let row_text = |row: u16| -> String {
+                (0..cols).filter_map(|col| grid.get(&(row, col))).collect()
+            };
+
+            let status_text = row_text(status_row);
+            assert!(
+                status_text.contains("task-1"),
+                "status line missing/overwritten at cols={cols} rows={rows}: {status_text:?}"
+            );
+
+            let indicator_text = row_text(indicator_row);
+            assert!(
+                indicator_text.contains("queued"),
+                "queued indicator missing/overwritten at cols={cols} rows={rows}: {indicator_text:?}"
+            );
+
+            let bar_text = row_text(bar_row);
+            assert!(
+                bar_text.contains('\u{2588}') || bar_text.contains('\u{2591}'),
+                "progress bar missing/overwritten at cols={cols} rows={rows}: {bar_text:?}"
+            );
+
+            // None of the three surfaces above bleed onto the composer's row.
+            let composer_text = row_text(composer_row);
+            assert!(
+                !composer_text.contains('\u{2588}')
+                    && !composer_text.contains('\u{2591}')
+                    && !composer_text.contains("queued")
+                    && !composer_text.contains("task-1"),
+                "a surface bled onto the composer row at cols={cols} rows={rows}: {composer_text:?}"
+            );
+        }
+    }
 }
 
 #[test]

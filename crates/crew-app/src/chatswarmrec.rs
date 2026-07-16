@@ -57,10 +57,11 @@ impl SwarmStatus {
     }
 }
 
-/// Compact token count (`"12.4k"` past 1000) — shared by the live block
-/// (`chatswarmview`) and the folded transcript record so the two never show
-/// different numbers for the same run.
-pub(crate) fn fmt_tok(n: u64) -> String {
+/// Compact token count (`"12.4k"` past 1000), used only by the folded
+/// transcript record (`record_text` above) — the live block dropped its own
+/// token/cost columns when it became a single status line and no longer
+/// imports this.
+fn fmt_tok(n: u64) -> String {
     if n >= 1_000 {
         format!("{:.1}k", n as f64 / 1000.0)
     } else {
@@ -72,8 +73,9 @@ pub(crate) fn fmt_tok(n: u64) -> String {
 /// (from 9,950 micros, where `{:.4}` would round to the inconsistent
 /// `$0.0100`), 4 below it so sub-cent task costs don't collapse to `$0.00`,
 /// and `<$0.0001` under 50 micros (where even 4 decimals round to zero).
-/// Shared by the live block and the folded record.
-pub(crate) fn fmt_cost(micros: u64) -> String {
+/// Used only by the folded transcript record — the live block has no cost
+/// column.
+fn fmt_cost(micros: u64) -> String {
     let usd = micros as f64 / 1_000_000.0;
     if micros >= 9_950 {
         format!("${usd:.2}")
@@ -84,11 +86,15 @@ pub(crate) fn fmt_cost(micros: u64) -> String {
     }
 }
 
-/// The state glyph shared by the live block and the folded record.
-pub(crate) fn glyph(state: &TaskState) -> char {
+/// The state glyph used in the folded record's task list. The live block
+/// (`chatswarmview`) names only the one task it's focused on and doesn't use
+/// a per-task glyph at all.
+fn glyph(state: &TaskState) -> char {
     match state {
         TaskState::Pending | TaskState::Ready => '·',
-        TaskState::Running => '⠿', // live view animates; record shows a static mark
+        // Reachable: a run can fold mid-flight (`fold_swarm` also runs on a
+        // broker `Error`), leaving a still-`Running` task in the record.
+        TaskState::Running => '⠿',
         TaskState::Done => '✓',
         TaskState::Failed => '✗',
         TaskState::Cancelled => '⊘',
