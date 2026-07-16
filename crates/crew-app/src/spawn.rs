@@ -270,17 +270,28 @@ impl CrewApp {
         // resume rotation in its pool (dark, light, or OS-following); if it's a
         // fixed theme name, pin that theme and stop rotation. This ensures a
         // theme chosen in the Settings pane isn't overridden by the rotation.
-        match self
+        // Reconcile ONLY when the config's selection differs from what's live.
+        // `apply_selection(Mode(..))` re-picks a theme and restarts the
+        // 10-minute clock, and every Settings save, `/theme`, and Cmd+= zoom
+        // routes through `apply_settings` → here — so applying it
+        // unconditionally re-rolled the theme on config touches that had
+        // nothing to do with themes, and the rotation's own clock could never
+        // run out. (It also made rotation look livelier than it is, masking
+        // that the font rotation beside it has no such path.)
+        let want = self
             .config
             .theme
             .as_deref()
             .and_then(crew_theme::parse_selection)
-        {
-            Some(sel) => crew_theme::apply_selection(sel, crate::chattime::unix_now_ms()),
-            None => crew_theme::apply_selection(
-                crew_theme::Selection::Fixed(self.config.theme_id()),
-                crate::chattime::unix_now_ms(),
-            ),
+            .unwrap_or(crew_theme::Selection::Fixed(self.config.theme_id()));
+        let live = match want {
+            crew_theme::Selection::Mode(m) => crew_theme::mode() == Some(m),
+            crew_theme::Selection::Fixed(id) => {
+                crew_theme::mode().is_none() && crew_theme::current_id() == id
+            }
+        };
+        if !live {
+            crew_theme::apply_selection(want, crate::chattime::unix_now_ms());
         }
         // Apply the themeable accent app-wide (render code reads it via palette).
         crate::palette::set_accent(self.config.accent_rgb());

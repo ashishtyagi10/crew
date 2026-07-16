@@ -51,6 +51,41 @@ fn manual_family_change_disables_rotation() {
     assert!(!app.font_rotate.on, "explicit family pick stops rotation");
 }
 
+/// An unrelated config touch must not re-roll the theme.
+///
+/// `apply_selection(Mode(..))` re-picks a theme AND restarts the 10-minute
+/// clock. `apply_config` ran it on every apply — and a Cmd+= zoom, every
+/// Settings save and every `/theme` all route through `apply_settings` →
+/// `apply_config`. So the theme re-rolled whenever config was touched for any
+/// reason, and a rotation cycle could never actually complete. It also made
+/// rotation LOOK alive while the font (which has no such path) sat still.
+#[test]
+fn apply_config_does_not_reroll_an_already_active_rotation() {
+    let _g = crate::app::theme_test_guard();
+    crew_theme::apply_selection(
+        crew_theme::Selection::Mode(crew_theme::RandomMode::Dark),
+        1_000,
+    );
+    let picked = crew_theme::current_id();
+    let mut app = CrewApp::default();
+
+    // A config apply for an unrelated reason (here a font size), with the
+    // same rotation mode already live.
+    app.apply_config(CrewConfig {
+        theme: Some("random-dark".into()),
+        font_size: 19.0,
+        ..CrewConfig::default()
+    });
+
+    assert!(crew_theme::is_random(), "still rotating");
+    assert_eq!(
+        crew_theme::current_id(),
+        picked,
+        "an unrelated config touch re-rolled the theme — the rotation's own \
+         10-minute clock is the only thing that may change it"
+    );
+}
+
 #[test]
 fn apply_config_reconciles_random_mode() {
     let _g = crate::app::theme_test_guard();
