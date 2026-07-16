@@ -88,3 +88,72 @@ fn planner_invents_craft_shaped_specialists() {
         distinct.len()
     );
 }
+
+/// The scheduler runs every ready task at once (`JoinSet` + a semaphore), so
+/// the concurrency a run actually achieves is decided HERE — by the width of
+/// the graph the planner returns. A chain of `deps: [N-1]` executes serially
+/// no matter what the cap is.
+///
+/// `PLANNER_SYSTEM` gives `deps` one passive clause and never says independent
+/// work should stay independent, so this is the property most at risk from an
+/// innocuous prompt edit — and nothing else asserts graph shape.
+#[test]
+#[ignore = "network + API key + tokens"]
+fn planner_leaves_independent_work_independent() {
+    let key = std::env::var("DASHSCOPE_API_KEY").expect("DASHSCOPE_API_KEY");
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    let mut wide = 0usize;
+
+    for goal in GOALS {
+        let provider = OpenRouterProvider::new(key.clone())
+            .with_endpoint(ENDPOINT.to_string())
+            .with_fallbacks(vec!["qwen-max".to_string()]);
+        let planner = LlmPlanner {
+            provider,
+            tier: ModelTier::Capable,
+            model: Some("qwen-max".to_string()),
+        };
+        let graph = rt.block_on(planner.plan(goal)).expect("plan");
+
+        // Replay the scheduler's own loop: repeatedly take everything `ready`,
+        // mark it done, and record the widest wave. That IS the peak
+        // concurrency the scheduler would reach, so measuring it here needs no
+        // agents, no runtime and no cap.
+        let mut done: std::collections::HashSet<_> = std::collections::HashSet::new();
+        let mut widest = 0usize;
+        let mut waves: Vec<usize> = Vec::new();
+        while done.len() < graph.len() {
+            let wave = graph.ready(&done);
+            assert!(!wave.is_empty(), "{goal}: graph stalled — cycle?");
+            widest = widest.max(wave.len());
+            waves.push(wave.len());
+            for id in wave {
+                done.insert(id);
+            }
+        }
+        println!("{widest:>2}-wide  waves={waves:?}  {goal}");
+        if widest >= 2 {
+            wide += 1;
+        }
+    }
+
+    // Not every goal SHOULD be wide — "audit our dependencies for CVEs" is
+    // honestly serial (list → scan → prioritise → report, each needing the
+    // last), and forcing width there would be a worse plan, not a better one.
+    // So this is a floor on the set, not on each goal: it catches the observed
+    // failure — the model chaining tasks that have no real dependency — while
+    // leaving it free to serialise work that genuinely is.
+    //
+    // Sampled before the `deps must be MINIMAL` clause: one run had 5/6 wide,
+    // a later run collapsed "explain our project to stakeholders" to a flat
+    // 6-task chain. The shape is non-deterministic run to run, which is why
+    // this floor sits well below the observed best rather than at it.
+    println!("\n{wide}/{} goals have parallel width", GOALS.len());
+    assert!(
+        wide * 2 >= GOALS.len(),
+        "only {wide}/{} goals left any independent work independent — the \
+         planner is chaining tasks that could run at once, and the scheduler \
+         cannot recover the lost concurrency whatever its cap",
+        GOALS.len()
+    );
+}

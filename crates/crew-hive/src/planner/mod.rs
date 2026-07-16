@@ -132,6 +132,13 @@ Each task is an object with integer `id` (0-based), short `title`, a `prompt` \
 describing the work, `deps` (array of task ids that must finish first), \
 `specialty`, and `expertise`.\n\
 \n\
+`deps` must be MINIMAL. List a task only if this task genuinely needs its \
+OUTPUT — not because it merely comes earlier in the story. Tasks with no dep \
+between them run AT THE SAME TIME, so every needless dep makes the plan slower \
+for no reason. Independent work must stay independent: if two tasks could both \
+start once their real inputs exist, give them the same deps, not a chain. A \
+plan where every task depends on the one before it is almost always wrong.\n\
+\n\
 `specialty` names the specialist the task needs. Rules:\n\
 - At most TWO words, joined by a hyphen. Never three.\n\
 - It must be a person, not a subject: an agent noun. Write \"security-auditor\", \
