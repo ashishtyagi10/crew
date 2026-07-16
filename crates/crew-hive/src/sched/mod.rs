@@ -74,7 +74,10 @@ impl Scheduler {
         let mut failed: HashSet<TaskId> = HashSet::new();
         let mut cancelled: HashSet<TaskId> = HashSet::new();
         let mut started: HashSet<TaskId> = HashSet::new();
-        let mut joinset: JoinSet<(TaskId, crate::board::TaskResult)> = JoinSet::new();
+        // `None` = the task was cancelled while queued for a permit, so its
+        // agent never ran: that is a cancellation, not a failure, and must not
+        // cascade to dependents as one.
+        let mut joinset: JoinSet<(TaskId, Option<crate::board::TaskResult>)> = JoinSet::new();
         let mut next_agent: u64 = 0;
 
         loop {
@@ -88,10 +91,17 @@ impl Scheduler {
                     &mut cancelled,
                     &started,
                 );
-                // Drain all in-flight agents; never abort running work.
+                // Drain all in-flight agents; never abort running work. Ones
+                // still queued for a permit bail out and land here as `None`.
                 while let Some(joined) = joinset.join_next().await {
                     let (id, result) = joined.expect("agent task panicked");
-                    record_result(id, result, &mut done, &mut failed, &self.board, &self.bus).await;
+                    match result {
+                        Some(r) => {
+                            record_result(id, r, &mut done, &mut failed, &self.board, &self.bus)
+                                .await
+                        }
+                        None => record_cancelled(id, &mut cancelled, &self.bus),
+                    }
                 }
                 break;
             }
@@ -118,8 +128,21 @@ impl Scheduler {
                 let bus = self.bus.clone();
                 let board = self.board.clone();
                 let sem = sem.clone();
+                let cancel = self.cancel.clone();
                 joinset.spawn(async move {
+                    let task_id = spec.id;
                     let _permit = sem.acquire_owned().await.expect("semaphore open");
+                    // `started` is stamped at SPAWN, but with a concurrency cap
+                    // most spawned tasks then sit here waiting for a permit —
+                    // queued, not running. So `mark_all_unstarted_cancelled`
+                    // skips them, and without this check each one would take
+                    // its turn and run a full agent after the user pressed
+                    // stop (or the budget cap tripped) — billing them for work
+                    // they cancelled. A task only becomes un-cancellable once
+                    // its agent is actually running.
+                    if cancel.load(Ordering::Relaxed) {
+                        return (task_id, None);
+                    }
                     let deps = board.gather(&spec.deps).await;
                     bus.publish(HiveEvent::AgentSpawned {
                         agent: agent_id.clone(),
@@ -129,7 +152,6 @@ impl Scheduler {
                         task: spec.id,
                         state: TaskState::Running,
                     });
-                    let task_id = spec.id;
                     let ctx = AgentContext {
                         agent: agent_id,
                         task: spec,
@@ -147,7 +169,7 @@ impl Scheduler {
                             success: false,
                         },
                     };
-                    (task_id, result)
+                    (task_id, Some(result))
                 });
             }
 
@@ -157,7 +179,12 @@ impl Scheduler {
 
             if let Some(joined) = joinset.join_next().await {
                 let (id, result) = joined.expect("agent task panicked");
-                record_result(id, result, &mut done, &mut failed, &self.board, &self.bus).await;
+                match result {
+                    Some(r) => {
+                        record_result(id, r, &mut done, &mut failed, &self.board, &self.bus).await
+                    }
+                    None => record_cancelled(id, &mut cancelled, &self.bus),
+                }
             }
         }
 
@@ -167,6 +194,18 @@ impl Scheduler {
             cancelled: sorted(cancelled),
         }
     }
+}
+
+/// A task that bailed at the permit gate: its agent never ran, so it is
+/// cancelled — not failed. `cascade_cancel` already treats cancelled and
+/// failed dependents alike, but the run's OUTCOME must not report work the
+/// user stopped as work that broke.
+fn record_cancelled(id: TaskId, cancelled: &mut HashSet<TaskId>, bus: &EventBus) {
+    cancelled.insert(id);
+    bus.publish(HiveEvent::TaskStateChanged {
+        task: id,
+        state: TaskState::Cancelled,
+    });
 }
 
 async fn record_result(

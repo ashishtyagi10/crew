@@ -280,3 +280,90 @@ async fn cancel_mid_run_drains_inflight() {
     assert_eq!(out.done, vec![TaskId(0)]); // in-flight completed
     assert_eq!(out.cancelled, vec![TaskId(1)]); // unstarted dependent cancelled
 }
+
+/// Cancelling must stop tasks QUEUED behind the concurrency cap.
+///
+/// `started` marks a task when it is spawned, but the spawned future then
+/// waits on the semaphore — so with a cap, most "started" tasks are merely
+/// queued, not running. `mark_all_unstarted_cancelled` skips anything in
+/// `started`, and the future had no cancel check after acquiring its permit,
+/// so every queued task took the permit in turn and ran its agent in full.
+/// The user hits `/stop`, or the budget governor trips the $1 cap, and is then
+/// billed for the entire rest of the plan.
+#[tokio::test]
+async fn cancel_stops_tasks_queued_behind_the_concurrency_cap() {
+    use crate::agent::{Agent, AgentContext, AgentFactory};
+    use crate::board::TaskResult;
+    use std::future::Future;
+    use std::pin::Pin;
+    use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+    use std::sync::Arc;
+
+    struct Counting {
+        cancel: Arc<AtomicBool>,
+        ran: Arc<AtomicUsize>,
+    }
+    impl Agent for Counting {
+        fn run(&self, ctx: AgentContext) -> Pin<Box<dyn Future<Output = TaskResult> + Send>> {
+            let (cancel, ran) = (self.cancel.clone(), self.ran.clone());
+            Box::pin(async move {
+                // Every agent that actually starts is billable work.
+                ran.fetch_add(1, Ordering::SeqCst);
+                // The first one to run stops the run, as `/stop` would.
+                cancel.store(true, Ordering::Relaxed);
+                tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+                TaskResult {
+                    task: ctx.task.id,
+                    output: String::new(),
+                    success: true,
+                }
+            })
+        }
+    }
+    struct F {
+        cancel: Arc<AtomicBool>,
+        ran: Arc<AtomicUsize>,
+    }
+    impl AgentFactory for F {
+        fn make(&self, _k: &AgentKind) -> Box<dyn Agent> {
+            Box::new(Counting {
+                cancel: self.cancel.clone(),
+                ran: self.ran.clone(),
+            })
+        }
+    }
+
+    let cancel = Arc::new(AtomicBool::new(false));
+    let ran = Arc::new(AtomicUsize::new(0));
+    // 6 independent tasks, cap 1: task 0 takes the permit, 1..5 queue.
+    let tasks: Vec<TaskSpec> = (0..6).map(|i| spec(i, &[])).collect();
+    let g = TaskGraph::new(tasks).unwrap();
+    let out = Scheduler::new(
+        g,
+        Blackboard::new(),
+        EventBus::new(64),
+        Arc::new(F {
+            cancel: cancel.clone(),
+            ran: ran.clone(),
+        }),
+        1,
+    )
+    .with_cancel(cancel.clone())
+    .run()
+    .await;
+
+    assert_eq!(
+        ran.load(Ordering::SeqCst),
+        1,
+        "cancelled after task 0, but {} agents ran — every one past the first \
+         is work the user said stop to and will still be billed for",
+        ran.load(Ordering::SeqCst)
+    );
+    assert_eq!(out.done, vec![TaskId(0)]);
+    assert_eq!(
+        out.cancelled.len(),
+        5,
+        "the queued tasks must be reported cancelled, got {:?}",
+        out.cancelled
+    );
+}
