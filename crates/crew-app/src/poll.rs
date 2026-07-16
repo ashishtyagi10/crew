@@ -33,21 +33,14 @@ impl CrewApp {
         // accent (it follows the theme when the user hasn't pinned one) exactly
         // like every other theme-change path — otherwise the accent stays frozen
         // on the previous theme after the first rotation.
-        let rotated = crew_theme::tick_random(crate::chattime::unix_now_ms());
+        let now_ms = crate::chattime::unix_now_ms();
+        let rotated = crew_theme::tick_random(now_ms);
         if rotated {
             crate::palette::set_accent(self.config.accent_rgb());
         }
         // Font rotation: same 10-minute clock as the theme rotation. The pick
         // updates the renderer only — config.font_family stays pinned.
-        let now_ms = crate::chattime::unix_now_ms();
-        if self.font_rotate.due(now_ms) {
-            let pool = self.font_pool();
-            let cur = self.current_family();
-            if let Some(fam) = crate::fontrotate::pick(&pool, cur.as_deref(), now_ms) {
-                self.apply_rotated_family(fam);
-            }
-            self.font_rotate.last_ms = now_ms;
-        }
+        self.tick_font_rotation(now_ms);
         //
         // Drain EVERY pane each tick. A `for` loop (not `any()`/`fold`) so all
         // panes are polled for their side effects — `any()` would short-circuit
