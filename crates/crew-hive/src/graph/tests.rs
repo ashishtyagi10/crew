@@ -9,6 +9,8 @@ fn spec(id: u64, deps: &[u64]) -> TaskSpec {
         model: ModelTier::Standard,
         deps: deps.iter().map(|d| TaskId(*d)).collect(),
         prompt: String::new(),
+        specialty: String::new(),
+        expertise: String::new(),
     }
 }
 

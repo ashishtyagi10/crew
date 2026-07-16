@@ -14,6 +14,8 @@ fn spec(id: u64) -> TaskSpec {
         model: ModelTier::Standard,
         deps: vec![],
         prompt: "p".into(),
+        specialty: String::new(),
+        expertise: String::new(),
     }
 }
 

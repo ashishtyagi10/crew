@@ -36,6 +36,7 @@
 //! ```
 
 pub mod agent;
+pub mod agentname;
 pub mod apiagent;
 pub mod batch;
 pub mod board;
@@ -64,6 +65,9 @@ pub use telemetry::{AgentTelemetry, Fleet, FleetTotals};
 
 // Agent
 pub use agent::{Agent, AgentContext, AgentFactory, StubAgent};
+
+// AgentName
+pub use agentname::{role_clamp, slug, slug_or};
 
 // ApiAgent
 pub use apiagent::{ApiAgent, ApiFactory};

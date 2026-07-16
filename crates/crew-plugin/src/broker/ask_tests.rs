@@ -3,6 +3,8 @@ use crate::broker::testenv;
 
 #[test]
 fn mock_provider_answers_the_ask() {
+    // A fresh project's specialist store is legitimately empty until a swarm
+    // run invents some — this is the real production path, and must work.
     let _env = testenv::mock("ls -la");
     let got = suggest_command("list files", Duration::from_secs(5)).unwrap();
     assert_eq!(got, "ls -la");
@@ -46,6 +48,8 @@ fn extract_command_survives_an_empty_reply() {
 
 #[test]
 fn mock_provider_answers_the_explain() {
+    // Same rationale as `mock_provider_answers_the_ask`: an empty roster is
+    // the real production path for a fresh project, not an edge case.
     let _env = testenv::mock("The build failed because of a missing semicolon.");
     let got = explain_output("error[E0308]: mismatched types", "", Duration::from_secs(5)).unwrap();
     assert!(got.contains("missing semicolon"));

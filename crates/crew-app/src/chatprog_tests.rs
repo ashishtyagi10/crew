@@ -20,6 +20,8 @@ fn pane_with_swarm(n: u64) -> ChatPane {
             model: ModelTier::Cheap,
             deps: vec![],
             prompt: "p".into(),
+            specialty: String::new(),
+            expertise: String::new(),
         })
         .collect();
     p.absorb_hive_plan(tasks);
@@ -56,15 +58,13 @@ fn a_live_run_claims_exactly_one_row() {
 }
 
 #[test]
-fn bar_fills_as_tasks_settle_and_counts_them() {
+fn bar_fills_as_tasks_settle() {
     let mut p = pane_with_swarm(4);
     assert_eq!(filled(&bar_cells(&p, COLS, 5)), 0, "nothing settled yet");
-    assert!(text(&bar_cells(&p, COLS, 5)).ends_with(" 0/4"));
 
     settle(&mut p, 0, TaskState::Done);
     let quarter = filled(&bar_cells(&p, COLS, 5));
     assert!(quarter > 0, "one of four settled should light some cells");
-    assert!(text(&bar_cells(&p, COLS, 5)).ends_with(" 1/4"));
 
     settle(&mut p, 1, TaskState::Done);
     assert!(
@@ -81,7 +81,6 @@ fn failed_and_cancelled_count_as_settled() {
     let mut p = pane_with_swarm(3);
     settle(&mut p, 0, TaskState::Failed);
     settle(&mut p, 1, TaskState::Cancelled);
-    assert!(text(&bar_cells(&p, COLS, 5)).ends_with(" 2/3"));
     assert!(filled(&bar_cells(&p, COLS, 5)) > 0);
 }
 
@@ -90,7 +89,6 @@ fn running_tasks_are_not_settled() {
     let mut p = pane_with_swarm(2);
     settle(&mut p, 0, TaskState::Running);
     assert_eq!(filled(&bar_cells(&p, COLS, 5)), 0);
-    assert!(text(&bar_cells(&p, COLS, 5)).ends_with(" 0/2"));
 }
 
 #[test]
@@ -132,6 +130,31 @@ fn stays_on_its_row_and_inside_the_pane() {
 }
 
 #[test]
+fn settled_counts_terminal_states_and_is_shared_with_the_line() {
+    let mut p = pane_with_swarm(4);
+    let s = p.swarm.as_ref().unwrap();
+    assert_eq!(s.settled(), (0, 4), "nothing settled yet");
+
+    settle(&mut p, 0, TaskState::Done);
+    settle(&mut p, 1, TaskState::Failed);
+    settle(&mut p, 2, TaskState::Cancelled);
+    let s = p.swarm.as_ref().unwrap();
+    // The bar tracks "still moving", not "succeeded" — all three terminal
+    // states count.
+    assert_eq!(s.settled(), (3, 4));
+}
+
+#[test]
+fn the_bar_no_longer_draws_a_count_label() {
+    // The `2/5` moved to the status line above; the bar spans the full inset
+    // width so the two surfaces don't print the same number twice.
+    let p = pane_with_swarm(4);
+    let t = text(&bar_cells(&p, COLS, 5));
+    assert!(!t.contains('/'), "{t}");
+    assert_eq!(t.chars().count(), (COLS - INSET) as usize, "{t}");
+}
+
+#[test]
 fn a_pane_too_narrow_for_a_legible_bar_drops_the_row() {
     // Budget and draw must agree: if the row isn't drawn, it isn't claimed.
     let p = pane_with_swarm(4);
@@ -142,5 +165,5 @@ fn a_pane_too_narrow_for_a_legible_bar_drops_the_row() {
             "claimed row and drawn row disagree at cols={cols}"
         );
     }
-    assert_eq!(progress_rows(&p, 6), 0, "no room for bar + count");
+    assert_eq!(progress_rows(&p, 4), 0, "no room for a legible bar");
 }

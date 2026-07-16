@@ -134,13 +134,19 @@ pub(crate) fn run_with(
                 model: ModelTier::Standard,
                 deps: vec![],
                 prompt: task.to_owned(),
+                specialty: String::new(),
+                expertise: String::new(),
             };
             TaskGraph::new(vec![single]).expect("single task graph is valid")
         }
     };
 
     let tasks: Vec<crew_hive::TaskSpec> = graph.tasks().to_vec();
-    let titles: HashMap<TaskId, String> = tasks.iter().map(|t| (t.id, t.title.clone())).collect();
+    // Titles are not collected here: `HivePlan` already carries them to the
+    // app, and `translate` names agents by specialty. Handing it titles too is
+    // what let an agent be named after its task.
+    let specialties: HashMap<TaskId, String> =
+        tasks.iter().map(|t| (t.id, t.specialty.clone())).collect();
     emit(PluginEvent::HivePlan {
         tasks: tasks.clone(),
     })?;
@@ -156,6 +162,21 @@ pub(crate) fn run_with(
                 .join(", ")
         ),
     ))?;
+
+    // Persist this run's cast, then re-emit the roster: `Roster` is otherwise
+    // only sent from `hello()`, so without this the app never learns about a
+    // specialist invented mid-session and the new names never appear.
+    // First-wins on a duplicate name: one name is one specialist.
+    let mut seen: Vec<(String, String)> = Vec::new();
+    for t in &tasks {
+        if !seen.iter().any(|(n, _)| n == &t.specialty) {
+            seen.push((t.specialty.clone(), t.expertise.clone()));
+        }
+    }
+    super::specialists::record(&seen);
+    emit(PluginEvent::Roster {
+        agents: super::Registry::discover().infos(),
+    })?;
 
     // Execute: scheduler + optional budget governor + bus drain, all on this
     // thread's runtime (the pattern proven in crew-app/src/swarm/bridge.rs).
@@ -184,7 +205,7 @@ pub(crate) fn run_with(
                             tokens_total += u64::from(*input) + u64::from(*output);
                         }
                         let r = emit(PluginEvent::Hive { event: ev.clone() }).and_then(|()| {
-                            for out in translate(&ev, &titles, &mut agent_task) {
+                            for out in translate(&ev, &specialties, &mut agent_task) {
                                 emit(out)?;
                             }
                             Ok(())

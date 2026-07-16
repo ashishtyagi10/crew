@@ -1,8 +1,9 @@
-//! Live swarm-run status for the chat pane: `HivePlan` opens a task-list
-//! block, `Hive` telemetry updates it, and when every task reaches a terminal
-//! state the block folds into a transcript message — the durable record of
-//! the run. Live rendering lives in `chatswarmview`; the folded record (task
-//! list + timeline) in `chatswarmrec`.
+//! Live swarm-run status for the chat pane: `HivePlan` opens the run's status
+//! line, `Hive` telemetry updates it, and when every task reaches a terminal
+//! state the line folds into a transcript message — the durable record of
+//! the run. Live rendering (one status line: spinner, focused task, elapsed,
+//! settled count) lives in `chatswarmview`; the folded record (task list + Σ
+//! totals) in `chatswarmrec`.
 use std::collections::HashMap;
 use std::time::Instant;
 
@@ -35,7 +36,8 @@ pub(crate) struct SwarmStatus {
     pub tasks: Vec<SwarmTask>,
     /// agent id → task id (from `AgentSpawned`) — `TokenDelta` only names agents.
     agent_task: HashMap<u64, TaskId>,
-    /// When the plan arrived — the timeline's zero point (`chatswarmrec`).
+    /// When the plan arrived — the zero point for the run's wall-clock
+    /// duration on the folded record's Σ line (`chatswarmrec`).
     pub(crate) run_started: Instant,
 }
 
@@ -61,6 +63,27 @@ impl SwarmStatus {
 
     fn task_mut(&mut self, id: TaskId) -> Option<&mut SwarmTask> {
         self.tasks.iter_mut().find(|t| t.id == id)
+    }
+
+    /// `(settled, total)` — tasks that have reached a terminal state, over the
+    /// plan's size. Terminal means done, failed or cancelled: this counts "how
+    /// much of the plan has stopped moving", not "how much succeeded".
+    ///
+    /// Shared by the progress bar (`chatprog`) and the live status line
+    /// (`chatswarmview`) so the bar's fill and the line's `2/5` can never
+    /// disagree about the same run.
+    pub(crate) fn settled(&self) -> (usize, usize) {
+        let done = self
+            .tasks
+            .iter()
+            .filter(|t| {
+                matches!(
+                    t.state,
+                    TaskState::Done | TaskState::Failed | TaskState::Cancelled
+                )
+            })
+            .count();
+        (done, self.tasks.len())
     }
 
     pub(crate) fn apply(&mut self, ev: &HiveEvent) {
@@ -154,9 +177,10 @@ impl ChatPane {
         if self.scroll > 0 {
             self.unread += 1;
         }
+        let run_ms = s.run_started.elapsed().as_millis() as u64;
         self.push_capped(Message {
             sender: "crew".into(),
-            text: s.record_text(),
+            text: s.record_text(Some(run_ms)),
             ts: String::new(),
             meta: String::new(),
         });

@@ -29,9 +29,11 @@ fn from_manifest_normalizes_name_and_keeps_role() {
 
 #[test]
 fn from_manifest_appends_missing_placeholder() {
-    let a = from_manifest(manifest("x", "prog", &["run"], "")).unwrap();
+    // Names below `agentname::slug`'s 2-char floor are rejected, so these use
+    // two-char names — the point of the test is the placeholder, not naming.
+    let a = from_manifest(manifest("ax", "prog", &["run"], "")).unwrap();
     assert_eq!(a.cli.args, vec!["run", "{}"]);
-    let b = from_manifest(manifest("y", "prog", &["--msg", "{}"], "")).unwrap();
+    let b = from_manifest(manifest("ay", "prog", &["--msg", "{}"], "")).unwrap();
     assert_eq!(b.cli.args, vec!["--msg", "{}"]);
 }
 
@@ -79,12 +81,14 @@ fn load_dir_sees_manifests_added_after_a_previous_scan() {
     // Hot-reload contract: manifests re-read the directory on every message,
     // so a plugin agent added while crew runs joins the roster without a
     // restart.
+    // Names below `agentname::slug`'s 2-char floor are rejected, so these use
+    // two-char names — the point of the test is the re-scan, not naming.
     let d = tmpdir("fresh");
-    std::fs::write(d.join("a.json"), r#"{"name":"a","command":"sh"}"#).unwrap();
+    std::fs::write(d.join("a.json"), r#"{"name":"aa","command":"sh"}"#).unwrap();
     assert_eq!(load_dir(&d).len(), 1);
-    std::fs::write(d.join("b.json"), r#"{"name":"b","command":"sh"}"#).unwrap();
+    std::fs::write(d.join("b.json"), r#"{"name":"bb","command":"sh"}"#).unwrap();
     let names: Vec<String> = load_dir(&d).iter().map(|p| p.name().to_string()).collect();
-    assert_eq!(names, vec!["a", "b"]);
+    assert_eq!(names, vec!["aa", "bb"]);
     let _ = std::fs::remove_dir_all(&d);
 }
 

@@ -1,19 +1,23 @@
 //! End-to-end smoke tests of the relay through the real `crew-broker-plugin`
-//! binary, using the inbuilt agents backed by the `CREW_BROKER_MOCK_REPLY`
-//! fixed-reply mock (no network). The multi-hop relay logic itself — A→B, B→A,
-//! the 3-way relay, the loop guard — is covered exhaustively by the engine unit
-//! tests (`broker::engine::tests`); here we prove the real binary streams the
-//! protocol end to end and surfaces the cost summary.
+//! binary, addressing a specialist seeded into the isolated project store
+//! (see `common::seed_specialists` — there is no inbuilt roster) and backed by
+//! the `CREW_BROKER_MOCK_REPLY` fixed-reply mock (no network). The multi-hop
+//! relay logic itself — A→B, B→A, the 3-way relay, the loop guard — is covered
+//! exhaustively by the engine unit tests (`broker::engine::tests`); here we
+//! prove the real binary streams the protocol end to end and surfaces the
+//! cost summary.
 mod common;
-use common::{has_leg, messages, run_broker, unique_dir, PluginEvent};
+use common::{has_leg, messages, run_broker, seed_specialists, unique_dir, PluginEvent};
 
 // `@`-addressed so it routes to the relay (a plain, unaddressed message is now
-// the default swarm; the relay owns explicit `@agent` addressing).
+// the default swarm; the relay owns explicit `@agent` addressing). `planner`
+// must be seeded into the test's store first — see `seed_specialists`.
 const SEND: &str = r#"{"type":"send","channel":"crew","text":"@planner do it"}"#;
 
 #[test]
 fn relay_runs_through_the_binary_and_finishes() {
     let dir = unique_dir("relay-done");
+    seed_specialists(&dir, &["planner"]);
     let mock = ("CREW_BROKER_MOCK_REPLY", "did the work\n@done");
     let ev = run_broker(&dir, &[mock], &[SEND]);
     let msgs = messages(&ev);
@@ -56,6 +60,7 @@ fn stop_with_nothing_running_reports_idle() {
 #[test]
 fn dialing_is_streamed_as_a_live_activity() {
     let dir = unique_dir("relay-stream");
+    seed_specialists(&dir, &["planner"]);
     let mock = ("CREW_BROKER_MOCK_REPLY", "ok\n@done");
     let ev = run_broker(&dir, &[mock], &[SEND]);
     // The broker streams a thinking activity as it dials the agent, naming

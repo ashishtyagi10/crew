@@ -14,6 +14,8 @@ fn spec(id: u64, deps: &[u64]) -> TaskSpec {
         model: ModelTier::Standard,
         deps: deps.iter().map(|d| TaskId(*d)).collect(),
         prompt: String::new(),
+        specialty: String::new(),
+        expertise: String::new(),
     }
 }
 
@@ -116,9 +118,16 @@ async fn respects_concurrency_cap() {
         .run()
         .await;
     assert_eq!(out.done.len(), 6);
-    assert!(
-        max.load(Ordering::SeqCst) <= 2,
-        "peak concurrency {} exceeded cap 2",
+    // Both bounds matter. The upper one alone is satisfied by a scheduler that
+    // never runs anything concurrently — so it could not tell "capped at 2"
+    // from "serial", and nothing else in the suite proves independent tasks
+    // overlap at all. With 6 dep-free tasks and a cap of 2, the peak must
+    // REACH 2, not merely stay under it.
+    assert_eq!(
+        max.load(Ordering::SeqCst),
+        2,
+        "peak concurrency must reach the cap with 6 independent tasks — \
+         {} means work that could overlap is running serially",
         max.load(Ordering::SeqCst)
     );
 }

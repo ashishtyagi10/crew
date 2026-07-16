@@ -1,7 +1,39 @@
 use super::*;
+use crate::broker::testenv;
 
 fn keys(set: &'static [&'static str]) -> impl Fn(&str) -> bool {
     move |k| set.contains(&k)
+}
+
+/// A manifest plugin agent needs no API key (it shells out to an installed
+/// CLI), so a project with zero provider keys but an installed plugin must
+/// still get a working, plugin-only roster — not an empty one. Regression for
+/// the bug where `roster_with` early-returned `Vec::new()` before ever
+/// reaching `plugins::append` when no provider resolved.
+#[test]
+fn roster_with_falls_back_to_plugins_when_no_provider_resolves() {
+    let _env = testenv::no_provider();
+    // `plugins::load` reads `./.crew/agents` relative to the process cwd
+    // (cargo's test cwd is the crate root), independent of `CREW_PROJECT_DIR`.
+    let agents_dir = std::path::Path::new(".crew/agents");
+    std::fs::create_dir_all(agents_dir).unwrap();
+    let manifest_path = agents_dir.join("regression-5c-probe.json");
+    std::fs::write(
+        &manifest_path,
+        r#"{"name":"regression-5c-probe","command":"sh","args":["-c","cat"],"role":"probe"}"#,
+    )
+    .unwrap();
+    let cleanup = || {
+        let _ = std::fs::remove_file(&manifest_path);
+        let _ = std::fs::remove_dir(agents_dir); // best-effort; only if now empty
+    };
+    let agents = roster_with(&std::collections::HashMap::new());
+    cleanup();
+    let names: Vec<String> = agents.iter().map(|a| a.name().to_string()).collect();
+    assert!(
+        names.contains(&"regression-5c-probe".to_string()),
+        "plugin-only roster missing with no provider: {names:?}"
+    );
 }
 
 #[test]

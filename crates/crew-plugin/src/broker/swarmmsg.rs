@@ -4,28 +4,34 @@ use super::*;
 
 /// Map one HiveEvent to chat-facing events. Raw `Hive` forwarding happens at
 /// the call site; this returns only the human-readable translations.
+///
+/// Agents are named by their task's *specialty*, not its title: the roster
+/// lights a row by matching the active name against a roster name, so a title
+/// could never match. Titles still name the *work*, but they reach the app on
+/// `HivePlan` — this translation is not given them at all, so naming an agent
+/// after one is impossible here rather than merely discouraged.
 pub(super) fn translate(
     ev: &HiveEvent,
-    titles: &HashMap<TaskId, String>,
+    specialties: &HashMap<TaskId, String>,
     agent_task: &mut HashMap<u64, TaskId>,
 ) -> Vec<PluginEvent> {
-    let title_of = |t: &TaskId| {
-        titles
+    let specialist_of = |t: &TaskId| {
+        specialties
             .get(t)
             .cloned()
-            .unwrap_or_else(|| format!("task-{}", t.0))
+            .unwrap_or_else(|| format!("specialist-{}", t.0))
     };
     let agent_name = |a: &AgentId, agent_task: &HashMap<u64, TaskId>| {
         agent_task
             .get(&a.0)
-            .map(title_of)
+            .map(specialist_of)
             .unwrap_or_else(|| format!("agent-{}", a.0))
     };
     match ev {
         HiveEvent::AgentSpawned { agent, task } => {
             agent_task.insert(agent.0, *task);
             vec![PluginEvent::Activity {
-                agent: title_of(task),
+                agent: specialist_of(task),
                 state: "thinking".into(),
                 from: "hive".into(),
             }]
@@ -33,7 +39,7 @@ pub(super) fn translate(
         HiveEvent::TaskStateChanged { task, state } => match state {
             TaskState::Done | TaskState::Failed | TaskState::Cancelled => {
                 vec![PluginEvent::Activity {
-                    agent: title_of(task),
+                    agent: specialist_of(task),
                     state: "idle".into(),
                     from: String::new(),
                 }]

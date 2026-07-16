@@ -1,7 +1,20 @@
 //! End-to-end test harness: drive the *real* `crew-broker-plugin` binary,
-//! feeding it JSON commands and parsing the events it streams back. The inbuilt
-//! agents are made deterministic (no network) via `CREW_BROKER_MOCK_REPLY`;
+//! feeding it JSON commands and parsing the events it streams back. Agent
+//! replies are made deterministic (no network) via `CREW_BROKER_MOCK_REPLY`;
 //! `write_fake` still builds fake CLI agents on `PATH` for tests of that path.
+//! There is no inbuilt agent roster (see `broker::apiadapter::specialist_agents`
+//! doc): the agents a run can address come from the project-local specialist
+//! store (`broker::specialists`), so `run_broker` points `CREW_PROJECT_DIR` at
+//! a fresh, per-test directory — the seam `broker::specialists::base_dir`
+//! already exposes for exactly this. Without it every e2e process shares the
+//! developer's real `./.crew/specialists.json` (relative to the crate's CWD
+//! under `cargo test`): tests pollute the working tree and each other's
+//! results depending on run order. Reusing `path_dir` (already unique per
+//! test, via `unique_dir`) as the project dir too, instead of allocating a
+//! second directory, keeps one directory per test standing for "this test's
+//! isolated environment" rather than splitting it across two — fake agents
+//! (if any) and the specialist store never collide because they're
+//! different filenames.
 //!
 //! Each e2e file includes this module separately and uses a different subset of
 //! the helpers, so unused-in-one-file helpers are expected.
@@ -66,6 +79,16 @@ pub fn run_broker(path_dir: &Path, env: &[(&str, &str)], cmds: &[&str]) -> Vec<P
     let mut command = Command::new(bin);
     command
         .env("PATH", path_dir)
+        // Isolate the project-local specialist store (see module doc): each
+        // test gets its own empty `<path_dir>/.crew/specialists.json` instead
+        // of sharing (and mutating) the crate's real working-tree store.
+        .env("CREW_PROJECT_DIR", path_dir)
+        // Belt-and-braces alongside `CREW_PROJECT_DIR`: `broker::sessionlog`
+        // (the auto-saved `.crew/session-live.md` / `last-session.md`) has no
+        // env override and always resolves against the process CWD, so give
+        // the broker its own CWD too — otherwise every e2e run would still
+        // scribble session logs into the crate's real working tree.
+        .current_dir(path_dir)
         // Determinism: never let an inherited API key make the broker reach the
         // real network during tests. Tests opt into agents via the mock hook.
         .env_remove("ANTHROPIC_API_KEY")
@@ -109,4 +132,30 @@ pub fn messages(events: &[PluginEvent]) -> Vec<(String, String)> {
 /// True if any message has exactly this sender label (e.g. `"claude → codex"`).
 pub fn has_leg(events: &[PluginEvent], sender: &str) -> bool {
     messages(events).iter().any(|(s, _)| s == sender)
+}
+
+/// Seed `dir`'s isolated specialist store (`CREW_PROJECT_DIR`, see module doc)
+/// with a fixed cast, so a test can address a known `@name` — or prove a
+/// selector picks something other than the first entry — without waiting for
+/// a run to invent one. `names` are written in order, earliest first, which is
+/// the order `broker::specialists::load_at` (and so the roster/default-agent
+/// fallback) returns them in. The JSON shape mirrors
+/// `broker::specialists::Specialist` (`name`, `role`, `last_used`); `role` is
+/// left blank and `last_used` is just a distinct, increasing stand-in — none
+/// of these fixtures exercise LRU eviction.
+pub fn seed_specialists(dir: &Path, names: &[&str]) {
+    let store = dir.join(".crew").join("specialists.json");
+    std::fs::create_dir_all(store.parent().unwrap()).unwrap();
+    let entries: Vec<serde_json::Value> = names
+        .iter()
+        .enumerate()
+        .map(|(i, name)| {
+            serde_json::json!({
+                "name": name,
+                "role": "",
+                "last_used": (i + 1) as u64,
+            })
+        })
+        .collect();
+    std::fs::write(&store, serde_json::to_string_pretty(&entries).unwrap()).unwrap();
 }

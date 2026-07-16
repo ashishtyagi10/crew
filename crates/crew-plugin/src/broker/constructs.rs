@@ -1,7 +1,7 @@
 //! Round-based constructs: `/loop <n> <task>` runs the relay `n` times, each
 //! round handed the previous round's answer to improve on; `/goal` (see
 //! `goal_cmd`) keeps looping until a judge agent says the goal is met.
-use crate::PluginEvent;
+use crate::{AgentInfo, PluginEvent};
 
 use super::relay::{msg, relay_turn, split_target};
 use super::route::clip;
@@ -75,7 +75,7 @@ pub(crate) fn goal_cmd(
         return emit(msg("crew", roster(&reg)));
     }
     let (start, goal) = split_target(goal, &reg);
-    let judge = pick_judge(&reg.names(), &start);
+    let judge = pick_judge(&reg.infos(), &start);
     let timeout = call_timeout();
     let broker = session.broker(reg);
     let mut answer: Option<String> = None;
@@ -140,23 +140,27 @@ pub(crate) fn goal_cmd(
     ))
 }
 
-/// Whether `name` advertises a review/critique capability — the judge is
-/// chosen by capability, NOT by the literal name "reviewer", so a roster of
-/// arbitrarily-named specialists still elects a critic. The literal is kept as
-/// a floor in case `role_for` is empty for a custom agent.
-fn is_critic(name: &str) -> bool {
-    let role = super::agents::role_for(name);
+/// Whether an agent with this name/role advertises a review/critique
+/// capability — the judge is chosen by the agent's OWN role (each specialist
+/// is invented per task and carries its own hint; there is no static map to
+/// look up any more), NOT by the literal name "reviewer", so a roster of
+/// arbitrarily-named specialists still elects a critic. The literal name is
+/// kept as a floor in case a custom agent's role is empty.
+fn is_critic(role: &str, name: &str) -> bool {
     role.contains("review") || role.contains("critique") || name == "reviewer"
 }
 
 /// The judge: a capability critic that isn't the worker, else any other agent,
-/// else the worker itself (single-agent roster).
-pub(crate) fn pick_judge(names: &[String], worker: &str) -> String {
-    names
+/// else the worker itself (single-agent roster). Reads each agent's own role
+/// (`AgentInfo::role`, sourced from `Adapter::role()`) rather than a static
+/// name-based lookup, so an invented specialist like `quality-auditor` is
+/// elected on the strength of its own advertised capability.
+pub(crate) fn pick_judge(agents: &[AgentInfo], worker: &str) -> String {
+    agents
         .iter()
-        .find(|n| n.as_str() != worker && is_critic(n))
-        .or_else(|| names.iter().find(|n| n.as_str() != worker))
-        .cloned()
+        .find(|a| a.name != worker && is_critic(&a.role, &a.name))
+        .or_else(|| agents.iter().find(|a| a.name != worker))
+        .map(|a| a.name.clone())
         .unwrap_or_else(|| worker.to_string())
 }
 

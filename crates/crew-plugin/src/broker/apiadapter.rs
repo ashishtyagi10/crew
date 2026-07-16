@@ -1,14 +1,18 @@
-//! Inbuilt agents: instead of shelling out to external CLIs, these drive the
-//! relay by calling the LLM API in-process via crew-hive's [`Provider`]. The
+//! API-backed agents: instead of shelling out to external CLIs, these drive
+//! the relay by calling the LLM API in-process via crew-hive's [`Provider`].
+//! There is no fixed roster any more — every [`ApiAdapter`] is either a
+//! planner-invented specialist persisted to the project-local store (see
+//! [`super::specialists`]) or a transient one-shot adapter built straight
+//! from the discovered provider (see the `ask` module's one-shot asks). The
 //! broker engine is synchronous, so each [`Adapter::call`] blocks on the async
 //! provider with a small current-thread tokio runtime. The relay protocol
 //! (`@next`/`@done`, peers, transcript) already arrives in the framed `body`
-//! (see [`super::route::frame`]); the role only selects the model + a light
-//! system prompt.
+//! (see [`super::route::frame`]); the name and role only select the model + a
+//! light system prompt.
 use std::sync::Arc;
 use std::time::Duration;
 
-use crew_hive::{CompletionRequest, ModelTier, Provider};
+use crew_hive::{CompletionRequest, Provider};
 
 use super::adapter::Adapter;
 
@@ -20,6 +24,11 @@ const MAX_TOKENS: u32 = 2048;
 pub struct ApiAdapter {
     name: String,
     model: String,
+    /// This agent's own capability hint. Held here rather than looked up by
+    /// name: `Adapter::role`'s default consults `agents::role_for`, a static
+    /// match over the known CLI names, which returns "" for an invented
+    /// specialist — blanking the palette, peer list and roster badge.
+    role: String,
     system: Option<String>,
     provider: Arc<dyn Provider>,
     /// Current-thread runtime to block the sync broker on the async provider.
@@ -27,11 +36,13 @@ pub struct ApiAdapter {
 }
 
 impl ApiAdapter {
-    /// Build an adapter named `name` calling `model`, with an optional `system`
-    /// prompt, backed by `provider`. Fails only if the tokio runtime can't start.
+    /// Build an adapter named `name` calling `model`, with a `role` hint, an
+    /// optional `system` prompt, backed by `provider`. Fails only if the
+    /// tokio runtime can't start.
     pub fn new(
         name: impl Into<String>,
         model: impl Into<String>,
+        role: impl Into<String>,
         system: Option<String>,
         provider: Arc<dyn Provider>,
     ) -> std::io::Result<Self> {
@@ -41,10 +52,36 @@ impl ApiAdapter {
         Ok(Self {
             name: name.into(),
             model: model.into(),
+            role: role.into(),
             system,
             provider,
             rt,
         })
+    }
+
+    /// A planner-invented specialist: `name` is its `@`-handle (a slug),
+    /// `role` its craft hint (possibly empty). The system prompt is derived
+    /// here rather than stored, so a persisted specialist never pins stale
+    /// prompt text.
+    pub fn specialist(
+        name: impl Into<String>,
+        role: impl Into<String>,
+        model: impl Into<String>,
+        provider: Arc<dyn Provider>,
+    ) -> std::io::Result<Self> {
+        let (name, role) = (name.into(), role.into());
+        let system = if role.is_empty() {
+            format!(
+                "You are the {name}. Do the work the task asks for, in your own \
+                 specialty. Be concise."
+            )
+        } else {
+            format!(
+                "You are the {name}. Your specialty is {role}. Do the work the \
+                 task asks for, from that expertise. Be concise."
+            )
+        };
+        Self::new(name, model, role, Some(system), provider)
     }
 }
 
@@ -55,6 +92,10 @@ impl Adapter for ApiAdapter {
 
     fn model(&self) -> &str {
         &self.model
+    }
+
+    fn role(&self) -> &str {
+        &self.role
     }
 
     /// Inbuilt agents are only constructed when an API key is present, so they
@@ -144,46 +185,25 @@ impl Adapter for ApiAdapter {
     }
 }
 
-/// The inbuilt relay roster: a planner (Capable tier), a coder and a reviewer
-/// (Standard tier), all backed by `provider`. `model_for` maps each role's tier
-/// to a concrete model id, so the same roster works across providers (Anthropic
-/// native ids vs. OpenRouter slugs); `overrides` pins a specific model per
-/// agent name (the `/model` construct), letting different agents run different
-/// models side by side. Adapters whose runtime fails to start are skipped
-/// rather than aborting the whole roster.
-pub fn inbuilt_agents(
+/// Build one adapter per stored specialist on `provider`. `overrides` pins a
+/// specific model per agent name (the `/model` construct). Adapters whose
+/// runtime fails to start are skipped rather than aborting the roster.
+///
+/// There is no inbuilt roster any more: a fresh project has no specialists
+/// until a run invents some. See the design doc.
+pub fn specialist_agents(
     provider: Arc<dyn Provider>,
-    model_for: impl Fn(ModelTier) -> String,
+    model: &str,
     overrides: &std::collections::HashMap<String, String>,
 ) -> Vec<Box<dyn Adapter>> {
-    let specs: [(&str, ModelTier, &str); 3] = [
-        (
-            "planner",
-            ModelTier::Capable,
-            "You are the planner. Clarify the task, outline the approach and the \
-             key steps, then hand off. Be concise.",
-        ),
-        (
-            "coder",
-            ModelTier::Standard,
-            "You are the coder. Implement what the plan calls for with concrete, \
-             correct code. Be concise.",
-        ),
-        (
-            "reviewer",
-            ModelTier::Standard,
-            "You are the reviewer. Critique the work, catch bugs, gaps and risks. \
-             Be concise.",
-        ),
-    ];
-    specs
+    super::specialists::load()
         .into_iter()
-        .filter_map(|(name, tier, system)| {
+        .filter_map(|s| {
             let model = overrides
-                .get(name)
+                .get(&s.name)
                 .cloned()
-                .unwrap_or_else(|| model_for(tier));
-            ApiAdapter::new(name, model, Some(system.to_string()), provider.clone())
+                .unwrap_or_else(|| model.to_string());
+            ApiAdapter::specialist(s.name, s.role, model, provider.clone())
                 .ok()
                 .map(|a| Box::new(a) as Box<dyn Adapter>)
         })
@@ -203,37 +223,53 @@ mod tests {
 
     #[test]
     fn call_returns_the_providers_trimmed_reply() {
-        let a = ApiAdapter::new("planner", "m", None, mock("  do this\n@done  ")).unwrap();
+        let a = ApiAdapter::new("planner", "m", "", None, mock("  do this\n@done  ")).unwrap();
         assert_eq!(
             a.call("task", Duration::from_secs(5)).unwrap(),
             "do this\n@done"
         );
     }
 
-    fn tier_model(t: ModelTier) -> String {
-        t.model_id().to_string()
+    #[test]
+    fn a_specialist_reports_its_own_role() {
+        let a = ApiAdapter::specialist("archivist", "records, retrieval", "m", mock("hi")).unwrap();
+        assert_eq!(a.name(), "archivist");
+        assert_eq!(a.role(), "records, retrieval");
     }
 
     #[test]
-    fn inbuilt_agents_are_planner_coder_reviewer() {
-        let agents = inbuilt_agents(mock("ok"), tier_model, &Default::default());
-        let names: Vec<&str> = agents.iter().map(|a| a.name()).collect();
-        assert_eq!(names, vec!["planner", "coder", "reviewer"]);
+    fn a_specialists_system_prompt_carries_its_name_and_role() {
+        let a = ApiAdapter::specialist("archivist", "records, retrieval", "m", mock("hi")).unwrap();
+        let sys = a
+            .system
+            .clone()
+            .expect("specialists always get a system prompt");
+        assert!(sys.contains("archivist"), "got {sys}");
+        assert!(sys.contains("records, retrieval"), "got {sys}");
     }
 
     #[test]
-    fn inbuilt_agents_all_probe_usable() {
-        assert!(inbuilt_agents(mock("ok"), tier_model, &Default::default())
-            .iter()
-            .all(|a| a.probe()));
+    fn a_roleless_specialist_still_gets_a_usable_prompt() {
+        // expertise is allowed to be empty; the prompt must not read as
+        // "Your specialty is ." in that case.
+        let a = ApiAdapter::specialist("mystery", "", "m", mock("hi")).unwrap();
+        let sys = a.system.clone().unwrap();
+        assert!(sys.contains("mystery"), "got {sys}");
+        assert!(!sys.contains("specialty is ."), "got {sys}");
     }
 
     #[test]
     fn ticked_call_reports_growing_char_estimates() {
         // MockProvider streams ~3 chunks; the estimator must report a
         // non-decreasing chars/4 sequence and the final text must match.
-        let adapter =
-            ApiAdapter::new("planner", "m", None, mock("one two three four five six")).unwrap();
+        let adapter = ApiAdapter::new(
+            "planner",
+            "m",
+            "",
+            None,
+            mock("one two three four five six"),
+        )
+        .unwrap();
         let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::<u64>::new()));
         let sink = seen.clone();
         let on_tokens: Arc<dyn Fn(u64) + Send + Sync> = Arc::new(move |t| {
@@ -261,7 +297,7 @@ mod tests {
     fn ticked_estimates_count_chars_not_bytes() {
         // 8 CJK chars = 24 UTF-8 bytes: bytes/4 would report 6, chars/4
         // must report 2 (same convention as the provider-side estimators).
-        let adapter = ApiAdapter::new("planner", "m", None, mock("文文文文 文文文文")).unwrap();
+        let adapter = ApiAdapter::new("planner", "m", "", None, mock("文文文文 文文文文")).unwrap();
         let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::<u64>::new()));
         let sink = seen.clone();
         let on_tokens: Arc<dyn Fn(u64) + Send + Sync> = Arc::new(move |t| {

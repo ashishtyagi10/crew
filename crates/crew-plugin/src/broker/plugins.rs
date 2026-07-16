@@ -47,18 +47,14 @@ impl Adapter for PluginAgent {
 }
 
 /// Build an agent from a manifest. `None` when the name or command is blank.
-/// The name is normalized like a skill name (lowercase, spaces → `-`); a
-/// missing `{}` placeholder is appended so the task always reaches the CLI.
+/// A missing `{}` placeholder is appended so the task always reaches the CLI.
 pub(crate) fn from_manifest(m: Manifest) -> Option<PluginAgent> {
-    let name = m
-        .name
-        .trim()
-        .to_lowercase()
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join("-");
+    // One legal-name authority (`crew_hive::agentname::slug`): the old
+    // hand-rolled lowercase+hyphenate let `+`/`@` through, and such a name
+    // could never be @-dialled anyway.
+    let name = crew_hive::agentname::slug(&m.name)?;
     let command = m.command.trim().to_string();
-    if name.is_empty() || command.is_empty() {
+    if command.is_empty() {
         return None;
     }
     let mut args = m.args;

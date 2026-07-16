@@ -1012,6 +1012,8 @@ cat >/dev/null
         model: ModelTier::Cheap,
         deps: vec![],
         prompt: "p".into(),
+        specialty: String::new(),
+        expertise: String::new(),
     }]);
     assert!(p.is_busy(), "swarm in flight makes the pane busy");
     assert!(

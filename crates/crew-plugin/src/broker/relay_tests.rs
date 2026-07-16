@@ -232,7 +232,8 @@ fn relay_emits_rate_limited_stats_ticks_between_activity_and_stats() {
         std::sync::Arc::new(crew_hive::MockProvider {
             reply: "one two three four five six seven eight\n@done".into(),
         });
-    let agent = crate::broker::apiadapter::ApiAdapter::new("planner", "m", None, provider).unwrap();
+    let agent =
+        crate::broker::apiadapter::ApiAdapter::new("planner", "m", "", None, provider).unwrap();
     let registry = Registry::new(vec![Box::new(agent)]);
     let broker = Broker::new(registry, 6, std::time::Duration::from_secs(5));
 

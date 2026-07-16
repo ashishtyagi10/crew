@@ -87,6 +87,33 @@ impl CrewApp {
             .or_else(|| self.config.font_family.clone())
     }
 
+    /// Rotate the font if a rotation is due at `now_ms`; returns whether a new
+    /// family was applied.
+    ///
+    /// Split out of `poll_panes` so the wiring is testable at all: that loop
+    /// returns early without a window, so the *enabled* rotation path had no
+    /// coverage — `due`/`pick` were only ever tested in isolation, and the one
+    /// headless test asserts rotation stays off (no renderer → empty pool).
+    /// A feature can be wholly dead with the suite green.
+    pub(crate) fn tick_font_rotation(&mut self, now_ms: u64) -> bool {
+        if !self.font_rotate.due(now_ms) {
+            return false;
+        }
+        let pool = self.font_pool();
+        let cur = self.current_family();
+        let picked = crate::fontrotate::pick(&pool, cur.as_deref(), now_ms);
+        // Stamp the clock even when the pool offered no alternative, so a
+        // one-font machine retries in 10 minutes rather than on every tick.
+        self.font_rotate.last_ms = now_ms;
+        match picked {
+            Some(fam) => {
+                self.apply_rotated_family(fam);
+                true
+            }
+            None => false,
+        }
+    }
+
     /// Apply a rotated family to the renderer and status line — NEVER to config.
     pub(crate) fn apply_rotated_family(&mut self, fam: String) {
         if let Some(r) = &mut self.renderer {
@@ -151,6 +178,66 @@ mod tests {
         // rotation must stay off with the thin-pool report.
         assert!(!app.font_rotate.on);
         assert!(app.active_status().is_some());
+    }
+
+    /// Seed the pool the way a live renderer scan would. Headless there is no
+    /// renderer, so `font_pool` caches an EMPTY vec and `pick` returns None —
+    /// which is exactly why the enabled path had never been exercised.
+    fn rotating_app() -> CrewApp {
+        let mut app = CrewApp::default();
+        app.font_rotate.pool = Some(vec!["Menlo".into(), "Monaco".into()]);
+        app.font_rotate.on = true;
+        app.font_rotate.current = Some("Menlo".into());
+        app.font_rotate.last_ms = 0;
+        app
+    }
+
+    #[test]
+    fn a_due_rotation_applies_a_new_family() {
+        // The wiring test that did not exist: `due` and `pick` were covered in
+        // isolation, so nothing proved a due rotation reaches the renderer.
+        let mut app = rotating_app();
+        let now = crew_theme::ROTATE_MS;
+        assert!(app.tick_font_rotation(now), "a due rotation must apply");
+        assert_eq!(app.font_rotate.current.as_deref(), Some("Monaco"));
+        assert_eq!(app.font_rotate.last_ms, now, "clock must restamp");
+    }
+
+    #[test]
+    fn rotation_does_not_fire_before_the_clock_elapses() {
+        let mut app = rotating_app();
+        assert!(!app.tick_font_rotation(crew_theme::ROTATE_MS - 1));
+        assert_eq!(
+            app.font_rotate.current.as_deref(),
+            Some("Menlo"),
+            "family must not change early"
+        );
+    }
+
+    #[test]
+    fn rotation_does_not_fire_while_off() {
+        let mut app = rotating_app();
+        app.font_rotate.on = false;
+        assert!(!app.tick_font_rotation(crew_theme::ROTATE_MS));
+        assert_eq!(app.font_rotate.current.as_deref(), Some("Menlo"));
+    }
+
+    #[test]
+    fn rotation_keeps_firing_on_each_subsequent_clock() {
+        // One rotation working is not the reported symptom — "sets a font once
+        // and stops" is. Prove the SECOND rotation lands too.
+        let mut app = rotating_app();
+        assert!(app.tick_font_rotation(crew_theme::ROTATE_MS));
+        assert_eq!(app.font_rotate.current.as_deref(), Some("Monaco"));
+        assert!(
+            app.tick_font_rotation(crew_theme::ROTATE_MS * 2),
+            "the second rotation must fire too"
+        );
+        assert_eq!(
+            app.font_rotate.current.as_deref(),
+            Some("Menlo"),
+            "two-font pool must swing back, not stick"
+        );
     }
 
     #[test]

@@ -1,17 +1,18 @@
-//! Roster discovery: which provider backs the inbuilt agents, and the final
-//! adapter list (inbuilt API agents + manifest plugin agents). Split from
-//! `registry` to keep both under the line cap.
+//! Roster discovery: which provider backs the project's stored specialists
+//! (see [`super::specialists`]), and the final adapter list (API-backed
+//! specialist agents + manifest plugin agents). Split from `registry` to keep
+//! both under the line cap.
 use std::sync::Arc;
 
 use super::adapter::Adapter;
-use super::apiadapter::inbuilt_agents;
+use super::apiadapter::specialist_agents;
 
-/// Default OpenRouter fallback chain for the inbuilt agents — free slugs across
-/// *different* upstream providers, so a provider-specific throttle on one model
-/// rolls to the next instead of failing the relay. Quality isn't the goal here.
-/// OpenRouter rotates its free models; override the whole chain with a
-/// comma-separated `CREW_OPENROUTER_MODEL=slug1,slug2,…` (a retired slug is
-/// skipped automatically when it errors).
+/// Default OpenRouter fallback chain for the project's API-backed agents —
+/// free slugs across *different* upstream providers, so a provider-specific
+/// throttle on one model rolls to the next instead of failing the relay.
+/// Quality isn't the goal here. OpenRouter rotates its free models; override
+/// the whole chain with a comma-separated `CREW_OPENROUTER_MODEL=slug1,slug2,…`
+/// (a retired slug is skipped automatically when it errors).
 pub(crate) const DEFAULT_OPENROUTER_CHAIN: &[&str] = &[
     "meta-llama/llama-3.3-70b-instruct:free",
     "deepseek/deepseek-chat-v3.1:free",
@@ -45,7 +46,7 @@ pub(crate) fn parse_model_chain(env_val: Option<String>, default: &[&str]) -> Ve
     }
 }
 
-/// The provider backing the inbuilt agents.
+/// The provider backing the project's API-backed agents.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) enum ProviderKind {
     Mock,
@@ -54,10 +55,10 @@ pub(crate) enum ProviderKind {
     Anthropic,
 }
 
-/// Resolve which provider backs the inbuilt agents. The mock (tests) always
-/// wins; then an explicit `CREW_PROVIDER` (dashscope|openrouter|anthropic);
-/// then auto-discovery in preference order — DashScope (paid Qwen) before
-/// OpenRouter (free chains) before Anthropic.
+/// Resolve which provider backs the project's API-backed agents. The mock
+/// (tests) always wins; then an explicit `CREW_PROVIDER`
+/// (dashscope|openrouter|anthropic); then auto-discovery in preference order
+/// — DashScope (paid Qwen) before OpenRouter (free chains) before Anthropic.
 pub(crate) fn pick_provider(
     force: Option<&str>,
     has_key: impl Fn(&str) -> bool,
@@ -82,77 +83,42 @@ pub(crate) fn pick_provider(
     }
 }
 
-/// The full adapter roster: the picked provider's inbuilt agents, then every
-/// installed manifest plugin agent (see [`super::plugins`]). The mock roster
-/// stays plugin-free so end-to-end tests are deterministic on any machine.
+/// The full adapter roster: stored specialists (see [`super::specialists`])
+/// composed over the picked provider — or, with no provider, none at all —
+/// then every installed manifest plugin agent (see [`super::plugins`])
+/// appended in *either* case. Plugin agents shell out to an installed CLI and
+/// need no API key, so a user with zero keys but a `.crew/agents/` manifest
+/// still gets a working, plugin-only roster instead of an empty one. The mock
+/// roster stays plugin-free so end-to-end tests are deterministic on any
+/// machine.
 pub(crate) fn roster_with(
     overrides: &std::collections::HashMap<String, String>,
 ) -> Vec<Box<dyn Adapter>> {
-    let force = std::env::var("CREW_PROVIDER").ok();
-    let has = |k: &str| std::env::var(k).is_ok_and(|v| !v.is_empty());
-    let mut agents = match pick_provider(force.as_deref(), has) {
-        Some(ProviderKind::Mock) => {
-            let reply = std::env::var("CREW_BROKER_MOCK_REPLY").unwrap_or_default();
-            let provider = Arc::new(crew_hive::MockProvider { reply });
-            return inbuilt_agents(provider, |t| t.model_id().to_string(), overrides);
-        }
-        // Alibaba Cloud DashScope: the same OpenAI-compatible wire shape on
-        // a different endpoint, running the Qwen commercial models.
-        Some(ProviderKind::DashScope) => match std::env::var("DASHSCOPE_API_KEY") {
-            Err(_) => Vec::new(), // forced without a key
-            Ok(key) => {
-                let chain = parse_model_chain(
-                    std::env::var("CREW_DASHSCOPE_MODEL").ok(),
-                    DEFAULT_DASHSCOPE_CHAIN,
-                );
-                let url = std::env::var("CREW_DASHSCOPE_BASE_URL")
-                    .unwrap_or_else(|_| DASHSCOPE_ENDPOINT.to_string());
-                let primary = chain[0].clone();
-                let provider = crew_hive::OpenRouterProvider::new(key)
-                    .with_endpoint(url)
-                    .with_fallbacks(chain);
-                inbuilt_agents(Arc::new(provider), move |_| primary.clone(), overrides)
-            }
-        },
-        Some(ProviderKind::OpenRouter) => match crew_hive::OpenRouterProvider::from_env() {
-            Err(_) => Vec::new(), // forced without a key
-            Ok(provider) => {
-                let chain = parse_model_chain(
-                    std::env::var("CREW_OPENROUTER_MODEL").ok(),
-                    DEFAULT_OPENROUTER_CHAIN,
-                );
-                // Every role starts on the chain's first slug (the role's system
-                // prompt steers it); the provider rolls to later slugs when one
-                // is limited.
-                let primary = chain[0].clone();
-                let provider = provider.with_fallbacks(chain);
-                inbuilt_agents(Arc::new(provider), move |_| primary.clone(), overrides)
-            }
-        },
-        Some(ProviderKind::Anthropic) => match crew_hive::AnthropicProvider::from_env() {
-            Err(_) => Vec::new(), // forced without a key
-            Ok(provider) => {
-                inbuilt_agents(Arc::new(provider), |t| t.model_id().to_string(), overrides)
-            }
-        },
+    let mut agents = match provider_and_model_for(crew_hive::ModelTier::Standard) {
+        Some((provider, model)) => specialist_agents(provider, &model, overrides),
         None => Vec::new(),
     };
-    super::plugins::append(&mut agents);
+    // The mock roster stays plugin-free so end-to-end tests are deterministic
+    // on any machine.
+    if !matches!(
+        pick_provider(std::env::var("CREW_PROVIDER").ok().as_deref(), |k| {
+            std::env::var(k).is_ok_and(|v| !v.is_empty())
+        }),
+        Some(ProviderKind::Mock)
+    ) {
+        super::plugins::append(&mut agents);
+    }
     agents
 }
 
-/// Resolve the default provider + a single reasonable model id, without
-/// building the full inbuilt-agent roster (`roster_with`) or its `Adapter`
-/// wrapping. For one-shot low-token asks that need a custom system prompt
-/// and a small `max_tokens` — neither of which the `Adapter` trait exposes
-/// (`ApiAdapter::call` always sends the role's fixed system prompt and a
-/// 2048-token ceiling). Used by the Far pane's `!` command suggestion
-/// ([`super::ask::suggest_far_command`]). Mirrors `roster_with`'s branches
-/// exactly (mock / DashScope / OpenRouter / Anthropic), picking
-/// `ModelTier::Cheap` for Anthropic — a one-line shell suggestion needs no
-/// deep reasoning — while DashScope/OpenRouter already default to their
-/// cheapest usable chain head (`chain[0]`), so no tier mapping applies there.
-pub(crate) fn provider_and_model() -> Option<(Arc<dyn crew_hive::Provider>, String)> {
+/// [`provider_and_model`] with an explicit tier. Only Anthropic maps a tier to
+/// a model id — DashScope and OpenRouter default to their chain head
+/// (`chain[0]`), so `tier` is ignored there. Serves both the Far pane's
+/// one-shot `!` command suggestion (via `provider_and_model`, pinned to
+/// `Cheap`) and the specialist roster (`roster_with`, pinned to `Standard`).
+pub(crate) fn provider_and_model_for(
+    tier: crew_hive::ModelTier,
+) -> Option<(Arc<dyn crew_hive::Provider>, String)> {
     let force = std::env::var("CREW_PROVIDER").ok();
     let has = |k: &str| std::env::var(k).is_ok_and(|v| !v.is_empty());
     match pick_provider(force.as_deref(), has)? {
@@ -192,10 +158,20 @@ pub(crate) fn provider_and_model() -> Option<(Arc<dyn crew_hive::Provider>, Stri
             let provider = crew_hive::AnthropicProvider::from_env().ok()?;
             Some((
                 Arc::new(provider) as Arc<dyn crew_hive::Provider>,
-                crew_hive::ModelTier::Cheap.model_id().to_string(),
+                tier.model_id().to_string(),
             ))
         }
     }
+}
+
+/// The default provider + a cheap model, for one-shot low-token asks that
+/// need a custom system prompt and a small `max_tokens` — neither of which the
+/// `Adapter` trait exposes (`ApiAdapter::call` always sends the role's fixed
+/// system prompt and a 2048-token ceiling). Used by the Far pane's `!` command
+/// suggestion ([`super::ask::suggest_far_command`]): a one-line shell hint
+/// needs no deep reasoning, hence `ModelTier::Cheap`.
+pub(crate) fn provider_and_model() -> Option<(Arc<dyn crew_hive::Provider>, String)> {
+    provider_and_model_for(crew_hive::ModelTier::Cheap)
 }
 
 #[cfg(test)]

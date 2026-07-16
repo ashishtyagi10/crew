@@ -13,6 +13,8 @@ fn spec(id: u64, title: &str) -> TaskSpec {
         model: ModelTier::Cheap,
         deps: vec![],
         prompt: "p".into(),
+        specialty: String::new(),
+        expertise: String::new(),
     }
 }
 
@@ -274,7 +276,7 @@ fn record_text_appends_elapsed_suffix_when_captured() {
         agent_task: Default::default(),
         run_started: Instant::now(),
     };
-    assert_eq!(s.record_text(), "- \u{2713} research \u{00b7} 3.2s");
+    assert_eq!(s.record_text(None), "- \u{2713} research \u{00b7} 3.2s");
 }
 
 #[test]
@@ -293,7 +295,7 @@ fn record_text_appends_elapsed_after_the_token_part() {
         run_started: Instant::now(),
     };
     assert_eq!(
-        s.record_text(),
+        s.record_text(None),
         "- \u{2713} research \u{2014} 12.4k tok \u{00b7} 0.9s"
     );
 }
@@ -313,10 +315,8 @@ fn record_text_omits_suffix_when_elapsed_is_none() {
         agent_task: Default::default(),
         run_started: Instant::now(),
     };
-    assert_eq!(s.record_text(), "- \u{2713} research");
+    assert_eq!(s.record_text(None), "- \u{2713} research");
 }
-
-// --- Run timeline (2026-07-13-swarm-timeline-design.md) ---
 
 fn done_task(id: u64, title: &str, started: Instant, elapsed_ms: u64) -> SwarmTask {
     SwarmTask {
@@ -331,73 +331,57 @@ fn done_task(id: u64, title: &str, started: Instant, elapsed_ms: u64) -> SwarmTa
 }
 
 #[test]
-fn record_appends_a_timeline_block_for_concurrent_runs() {
+fn keyless_runs_get_a_sigma_line_without_cost() {
+    // A keyless/stub run reports TokenDelta but never CostDelta. It used to
+    // get no Σ at all and so lost its total; it now gets one, minus the $.
     let run_started = Instant::now();
+    let mut a = done_task(0, "research", run_started, 3_200);
+    a.tokens = 12_400;
     let s = SwarmStatus {
-        tasks: vec![
-            done_task(0, "research", run_started, 3_200),
-            done_task(
-                1,
-                "merge",
-                run_started + Duration::from_millis(3_000),
-                9_400,
-            ),
-        ],
+        tasks: vec![a],
         agent_task: Default::default(),
         run_started,
     };
-    let text = s.record_text();
-    // The list stays first; the timeline is fenced so the markdown preview
-    // keeps it monospaced.
-    assert!(text.starts_with("- \u{2713} research"), "{text}");
-    assert!(text.contains("````\ntimeline \u{00b7} 12.4s\n"), "{text}");
-    assert!(text.trim_end().ends_with("```"), "{text}");
-    assert!(text.contains("research"), "{text}");
-    assert!(text.contains('\u{2588}'), "{text}");
+    let text = s.record_text(Some(3_200));
+    assert!(text.contains("\u{03a3} 12.4k tok \u{00b7} 3.2s"), "{text}");
+    assert!(!text.contains('$'), "{text}");
 }
 
 #[test]
-fn single_task_runs_get_no_timeline() {
+fn a_run_that_consumed_nothing_gets_no_sigma_line() {
+    // Σ summarises spend. With no tokens and no cost there is nothing to
+    // summarise, and "Σ 0 tok" is noise.
     let run_started = Instant::now();
     let s = SwarmStatus {
         tasks: vec![done_task(0, "solo", run_started, 5_000)],
         agent_task: Default::default(),
         run_started,
     };
-    assert!(!s.record_text().contains("timeline"));
+    let text = s.record_text(Some(5_000));
+    assert!(!text.contains('\u{03a3}'), "{text}");
 }
 
 #[test]
-fn task_still_running_at_error_fold_gets_an_open_ended_span() {
-    // fold_swarm on broker Error can retire a block whose task never reached
-    // a terminal state: started is stamped, elapsed_ms is None. The span
-    // closes at "now" instead of vanishing from the timeline.
-    // checked_sub instead of `-`: Instant subtraction panics when the
-    // monotonic clock's origin is nearer than the offset (sub-10s uptime).
-    let Some(run_started) = Instant::now().checked_sub(Duration::from_millis(10_000)) else {
-        return; // machine up <10s — vacuously skip rather than panic
-    };
+fn the_record_carries_no_timeline_block() {
+    let run_started = Instant::now();
+    let mut a = done_task(0, "research", run_started, 3_200);
+    a.tokens = 100;
+    let mut b = done_task(
+        1,
+        "merge",
+        run_started + Duration::from_millis(3_000),
+        9_400,
+    );
+    b.tokens = 100;
     let s = SwarmStatus {
-        tasks: vec![
-            done_task(0, "done", run_started, 2_000),
-            SwarmTask {
-                id: TaskId(1),
-                title: "stuck".into(),
-                state: TaskState::Running,
-                tokens: 0,
-                cost_micros: 0,
-                started: Some(run_started + Duration::from_millis(1_000)),
-                elapsed_ms: None,
-            },
-        ],
+        tasks: vec![a, b],
         agent_task: Default::default(),
         run_started,
     };
-    let text = s.record_text();
-    assert!(text.contains("timeline"), "{text}");
-    let stuck = text.lines().find(|l| l.starts_with("stuck")).unwrap();
-    // Runs to the right edge of the bar (its end is the fold moment).
-    assert!(stuck.ends_with('\u{2588}'), "{stuck}");
+    let text = s.record_text(Some(12_400));
+    assert!(!text.contains("timeline"), "{text}");
+    assert!(!text.contains('`'), "no code fence survives: {text}");
+    assert!(!text.contains('\u{2588}'), "{text}");
 }
 
 // --- Per-task cost (CostDelta) ---
@@ -445,7 +429,7 @@ fn record_shows_per_task_cost_and_a_run_total() {
         agent_task: Default::default(),
         run_started,
     };
-    let text = s.record_text();
+    let text = s.record_text(Some(3_200));
     assert!(
         text.contains("research — 12.4k tok \u{00b7} $0.0031 \u{00b7} 3.2s"),
         "{text}"
@@ -454,19 +438,10 @@ fn record_shows_per_task_cost_and_a_run_total() {
         text.contains("merge — 600 tok \u{00b7} $0.04 \u{00b7} 0.9s"),
         "{text}"
     );
-    // The Σ line totals the whole run: 13k tok, $0.0443 → cent-plus → $0.04.
-    assert!(text.contains("\u{03a3} 13.0k tok \u{00b7} $0.04"), "{text}");
-}
-
-#[test]
-fn costless_runs_keep_the_old_record_shape() {
-    let run_started = Instant::now();
-    let s = SwarmStatus {
-        tasks: vec![done_task(0, "solo", run_started, 5_000)],
-        agent_task: Default::default(),
-        run_started,
-    };
-    let text = s.record_text();
-    assert!(!text.contains('$'), "{text}");
-    assert!(!text.contains('\u{03a3}'), "{text}");
+    // The Σ line totals the whole run: 13k tok, $0.0443 → cent-plus → $0.04,
+    // and the run's wall-clock duration.
+    assert!(
+        text.contains("\u{03a3} 13.0k tok \u{00b7} $0.04 \u{00b7} 3.2s"),
+        "{text}"
+    );
 }

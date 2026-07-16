@@ -36,7 +36,7 @@ fn plan_without_task_shows_usage() {
 
 #[test]
 fn plan_drafts_and_holds_without_executing() {
-    let _g = testenv::mock("1. survey\n2. build\n@done");
+    let _g = testenv::mock_with_specialists("1. survey\n2. build\n@done", testenv::TRIO);
     let mut s = Session::new();
     let t = texts(&run(&mut s, "plan", "ship the feature"));
     assert!(t[0].contains("nothing runs until /approve"), "{t:?}");
@@ -62,7 +62,7 @@ fn approve_without_a_plan_hints_at_plan() {
 
 #[test]
 fn approve_runs_the_relay_and_clears_the_plan() {
-    let _g = testenv::mock("done as planned\n@done");
+    let _g = testenv::mock_with_specialists("done as planned\n@done", testenv::TRIO);
     let mut s = Session::new();
     *s.plan.lock().unwrap() = Some(PendingPlan {
         task: "ship it".into(),

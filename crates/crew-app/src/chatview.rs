@@ -178,7 +178,7 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
         // row above the header/status rows.
         let block_max = rows.saturating_sub(bottom + prog_rows + queued_rows);
         let block_start = block_max
-            .saturating_sub(crate::chatswarmview::swarm_rows(pane, rows))
+            .saturating_sub(crate::chatswarmview::swarm_rows(pane, cols))
             .max(top);
         cells.extend(
             crate::chatswarmview::block_cells(pane, cols, block_start, crate::anim::now_ms())

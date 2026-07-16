@@ -1,140 +1,222 @@
-//! Draws the live swarm-run block at the bottom of the chat message area:
-//! one row per task — state glyph (running tasks animate a spinner), title,
-//! right-aligned token count. State lives in `chatswarm`; when the run ends
-//! the block folds into the transcript, so this only ever draws live runs.
+//! Draws the live swarm-run status line at the bottom of the chat message
+//! area: one row saying what crew is doing right now — a spinner, the running
+//! task's title, its elapsed time, and how much of the plan has settled. The
+//! plan itself is not shown live; it lands in the transcript when the run
+//! folds (`chatswarmrec`). State lives in `chatswarm`.
 use crew_render::CellView;
 
 use crate::chat::ChatPane;
-use crate::chatswarmrec::glyph;
+use crate::chatswarm::{SwarmStatus, SwarmTask};
 use crew_hive::TaskState;
 
-/// Most task rows the block will occupy; larger plans get a `… n more` row.
-const MAX_ROWS: u16 = 8;
-/// Below this width the token column is dropped (title needs the room).
-const TOKENS_MIN_COLS: u16 = 24;
-/// Below this width the elapsed column is dropped too. Narrower than
-/// `TOKENS_MIN_COLS` so tokens drop first as the pane shrinks, and elapsed —
-/// the more at-a-glance-useful of the two for a running task — survives
-/// longer.
+/// Shown when the plan has arrived but nothing is running yet — the gap
+/// before the first `AgentSpawned`, and the gap between one task settling and
+/// the next spawning.
+const WORKING: &str = "Working…";
+/// Below this width the elapsed column is dropped (the title needs the room).
+/// The counter is never dropped: it's the reason the line exists.
 const ELAPSED_MIN_COLS: u16 = 16;
+/// Columns claimed by the fixed left prefix — a 1-column margin, the
+/// spinner, and one space — before the title/suffix region begins. Anything
+/// placed right-aligned from the pane edge (counter, elapsed) is floored
+/// here so it can never be pushed left into the prefix, however narrow the
+/// pane gets.
+const PREFIX_END: u16 = 3;
 
-/// Rows the live block occupies in the message area (0 = no live run).
-pub(crate) fn swarm_rows(pane: &ChatPane, _rows: u16) -> u16 {
-    match &pane.swarm {
-        Some(s) => (s.tasks.len() as u16).min(MAX_ROWS),
-        None => 0,
+/// Whether `cols` has room for the line at all: the prefix plus the counter,
+/// with no gap between them. Below this there's nothing sensible left to
+/// draw, so `block_cells` returns nothing — this must agree with that so the
+/// row budget and the draw never disagree.
+fn line_fits(pane: &ChatPane, cols: u16) -> bool {
+    let Some(s) = &pane.swarm else {
+        return false;
+    };
+    if s.tasks.is_empty() {
+        return false;
+    }
+    let (done, total) = s.settled();
+    cols >= PREFIX_END + format!("{done}/{total}").len() as u16
+}
+
+/// Rows the live line occupies in the message area (0 = no live run, or a
+/// pane too narrow to show the line without the counter colliding with the
+/// spinner — see `line_fits`).
+pub(crate) fn swarm_rows(pane: &ChatPane, cols: u16) -> u16 {
+    if line_fits(pane, cols) {
+        1
+    } else {
+        0
     }
 }
 
-fn push_str(v: &mut Vec<CellView>, col: &mut u16, row: u16, s: &str, fg: (u8, u8, u8)) {
-    for c in s.chars() {
-        // Advance by display width (a wide CJK/emoji glyph occupies two
-        // cells) so text after a wide glyph doesn't overlap it; zero-width
-        // marks are skipped like `chatwidth::place_row` does.
-        let w = crate::chatwidth::char_w(c) as u16;
-        if w == 0 {
-            continue;
-        }
+/// The task the line names: the oldest `Running` one, plus how many others are
+/// running alongside it. `None` when nothing is running.
+///
+/// Oldest rather than newest so the line stays put under parallelism — naming
+/// the most recent spawn would make it flicker between tasks as agents come
+/// and go. A `Running` task always has `started` stamped (`chatswarm::apply`),
+/// but unstamped ones sort last so a stamped task still wins if that changes.
+fn focus(s: &SwarmStatus) -> Option<(&SwarmTask, usize)> {
+    let mut running: Vec<&SwarmTask> = s
+        .tasks
+        .iter()
+        .filter(|t| t.state == TaskState::Running)
+        .collect();
+    running.sort_by_key(|t| (t.started.is_none(), t.started));
+    let first = *running.first()?;
+    Some((first, running.len() - 1))
+}
+
+/// Places `s` on `row` starting at `*col`, advancing by display width and
+/// never emitting a cell at or beyond `max_col` — delegated to
+/// `chatwidth::place_row`, which already advances by `char_w` and skips
+/// zero-width marks, so `max_col` is enforced structurally rather than
+/// relying on the caller's arithmetic to have pre-sized `s` correctly (a
+/// wide glyph that would straddle past `max_col` simply isn't drawn, instead
+/// of the old `fit_end`-based clamp that could force one char through even
+/// at a zero-column budget).
+fn push_str(
+    v: &mut Vec<CellView>,
+    col: &mut u16,
+    row: u16,
+    s: &str,
+    fg: (u8, u8, u8),
+    max_col: u16,
+) {
+    let bg = crew_theme::theme().page_bg;
+    *col = crate::chatwidth::place_row(*col, max_col, s.chars().map(|c| (c, fg)), |x, c, fg| {
         v.push(CellView {
-            col: *col,
+            col: x,
             row,
             c,
             fg,
-            bg: crew_theme::theme().page_bg,
+            bg,
             bold: false,
             italic: false,
         });
-        *col += w;
-    }
+    });
 }
 
-/// Render the block, one task per row starting at `top_row`. `now_ms` drives
-/// the running-task spinner (0 in tests = first frame).
+/// Render the status line at `top_row`. `now_ms` drives the spinner (0 in
+/// tests = first frame, and suppresses elapsed so tests stay deterministic).
 pub(crate) fn block_cells(pane: &ChatPane, cols: u16, top_row: u16, now_ms: u64) -> Vec<CellView> {
     let Some(s) = &pane.swarm else {
         return Vec::new();
     };
+    if !line_fits(pane, cols) {
+        // Genuinely no room, even for the prefix + counter alone — drop the
+        // whole line rather than emit anything that could overlap.
+        // `swarm_rows` runs the identical check so the row budget agrees.
+        return Vec::new();
+    }
     let theme = crew_theme::theme();
     let mut v = Vec::new();
-    let shown = (s.tasks.len()).min(MAX_ROWS as usize);
-    // With more tasks than rows, the last row becomes the overflow summary.
-    let listed = if s.tasks.len() > shown {
-        shown - 1
-    } else {
-        shown
+
+    let (done, total) = s.settled();
+    let counter = format!("{done}/{total}");
+    let counter_w = counter.len() as u16;
+    let focused = focus(s);
+    let title_src = match focused {
+        Some((t, _)) => t.title.as_str(),
+        None => WORKING,
     };
-    for (i, t) in s.tasks.iter().take(listed).enumerate() {
-        let row = top_row + i as u16;
-        let (g, fg) = match t.state {
-            TaskState::Running => {
-                let f = (now_ms / 120) as usize % crate::update::SPINNER.len();
-                (crate::update::SPINNER[f], crate::palette::accent())
-            }
-            TaskState::Done => (glyph(&t.state), theme.activity),
-            TaskState::Failed => (glyph(&t.state), theme.bell),
-            _ => (glyph(&t.state), theme.text_muted),
-        };
-        let mut col = 1u16;
-        push_str(&mut v, &mut col, row, &g.to_string(), fg);
-        push_str(&mut v, &mut col, row, " ", fg);
-        // Title, clamped to leave room for the elapsed/token columns (or the
-        // edge). Elapsed derives from `started` at render time — the
-        // per-frame redraw while busy animates it for free — and is gated on
-        // `now_ms != 0` so tests that don't care (now_ms == 0) stay
-        // deterministic (`chatview::agent_state_str` is the pattern this
-        // imitates).
-        let elapsed = (t.state == TaskState::Running && now_ms != 0)
-            .then(|| t.started.map(|s| format!("{}s", s.elapsed().as_secs())))
-            .flatten()
-            .filter(|_| cols >= ELAPSED_MIN_COLS);
-        let tok = (t.tokens > 0 && cols >= TOKENS_MIN_COLS)
-            .then(|| crate::chatswarmrec::fmt_tok(t.tokens));
-        // Width rule: tokens drop first (at `TOKENS_MIN_COLS`), elapsed
-        // survives to `ELAPSED_MIN_COLS`, then both drop on very narrow
-        // panes. (Cost was removed from the live block — tokens proxy spend,
-        // and cost belongs in the folded run summary.) Reserve room for
-        // whichever are shown.
-        let mut reserve = 1u16;
-        if let Some(e) = &elapsed {
-            reserve += e.len() as u16 + 1;
-        }
-        if let Some(tk) = &tok {
-            reserve += tk.len() as u16 + 1;
-        }
-        let max_title = cols.saturating_sub(col + reserve) as usize;
-        // Display-width-aware clamp: `.chars().take(n)` counts chars, so a
-        // CJK/emoji title (2 display columns per glyph) could select twice
-        // as many columns as `max_title` allows, colliding with the token
-        // column (or the pane edge on narrow panes).
-        let title_chars: Vec<char> = t.title.chars().collect();
-        let title_end = crate::chatwidth::fit_end(&title_chars, 0, max_title);
-        let title: String = title_chars[..title_end].iter().collect();
-        push_str(&mut v, &mut col, row, &title, theme.text_muted);
-        // Right-aligned from the pane edge, each exactly `len + 1` inside
-        // whatever sits to its right — the same per-column budget `reserve`
-        // charged above, so title and columns can never collide (an extra
-        // -1 here once double-billed the gap and overlapped the title):
-        // title ... elapsed ... tokens.
-        let mut next_start = cols;
-        if let Some(tok) = &tok {
-            next_start = next_start.saturating_sub(tok.len() as u16 + 1);
-            let mut tcol = next_start;
-            push_str(&mut v, &mut tcol, row, tok, theme.text_muted);
-        }
-        if let Some(e) = &elapsed {
-            let mut ecol = next_start.saturating_sub(e.len() as u16 + 1);
-            push_str(&mut v, &mut ecol, row, e, theme.text_muted);
-        }
-    }
-    if s.tasks.len() > shown {
-        let more = s.tasks.len() - listed;
-        let mut col = 1u16;
+    // ` +N` marks parallel work. It is not clamp-able below — it's the only
+    // signal that other tasks are running, so the title yields columns to it.
+    let suffix = match focused {
+        Some((_, others)) if others > 0 => format!(" +{others}"),
+        _ => String::new(),
+    };
+    // Elapsed derives from `started` at render time — the per-frame redraw
+    // while busy animates it for free — and is gated on `now_ms != 0` so tests
+    // that don't care (now_ms == 0) stay deterministic.
+    let elapsed = focused
+        .filter(|_| now_ms != 0)
+        .and_then(|(t, _)| t.started)
+        .map(|s| format!("{}s", s.elapsed().as_secs()))
+        .filter(|_| cols >= ELAPSED_MIN_COLS);
+
+    let f = (now_ms / 120) as usize % crate::update::SPINNER.len();
+    let mut col = 1u16;
+    push_str(
+        &mut v,
+        &mut col,
+        top_row,
+        &crate::update::SPINNER[f].to_string(),
+        crate::palette::accent(),
+        cols,
+    );
+    push_str(
+        &mut v,
+        &mut col,
+        top_row,
+        " ",
+        crate::palette::accent(),
+        cols,
+    );
+    // `line_fits` guaranteed `cols` has room for the prefix in full, so `col`
+    // is now exactly `PREFIX_END` — the leftmost column anything to the
+    // right may use.
+
+    // Counter: right-aligned at the pane edge. `line_fits` already gated
+    // entry into this function on `cols >= PREFIX_END + counter_w`, so
+    // `cols - counter_w >= col` always holds here — no runtime floor is
+    // needed to keep it from landing in the prefix.
+    let counter_start = cols.saturating_sub(counter_w);
+
+    // Elapsed sits one gap column left of the counter — but only if that
+    // doesn't run it back into the prefix/title area; otherwise it's
+    // dropped, same as the `ELAPSED_MIN_COLS` gate above already mostly
+    // ensures.
+    let elapsed_start = elapsed.as_ref().and_then(|e| {
+        let start = counter_start.saturating_sub(1 + e.len() as u16);
+        (start >= col).then_some(start)
+    });
+
+    // Columns left for the title + suffix: everything up to one gap column
+    // before whichever of {elapsed, counter} sits leftmost. Unlike the old
+    // `reserve`/`next_start` pair — two separate expressions of the same
+    // budget that could disagree — this is just the gap between two column
+    // positions computed once, so there's nothing left to double-book.
+    let region_end = elapsed_start.unwrap_or(counter_start);
+    let title_limit = region_end.saturating_sub(1).max(col);
+    let avail = title_limit - col;
+    let suffix_w = crate::chatwidth::str_w(&suffix) as u16;
+    // The suffix is preferred over the title — it's the only signal parallel
+    // work exists — but on a pane with room for neither it drops too, rather
+    // than overrunning into the counter/elapsed region.
+    let (suffix, suffix_w) = if suffix_w <= avail {
+        (suffix, suffix_w)
+    } else {
+        (String::new(), 0)
+    };
+    push_str(
+        &mut v,
+        &mut col,
+        top_row,
+        title_src,
+        theme.text_muted,
+        title_limit - suffix_w,
+    );
+    push_str(
+        &mut v,
+        &mut col,
+        top_row,
+        &suffix,
+        theme.text_muted,
+        title_limit,
+    );
+
+    let mut ccol = counter_start;
+    push_str(&mut v, &mut ccol, top_row, &counter, theme.text_muted, cols);
+    if let (Some(e), Some(start)) = (&elapsed, elapsed_start) {
+        let mut ecol = start;
         push_str(
             &mut v,
-            &mut col,
-            top_row + listed as u16,
-            &format!("… {more} more"),
+            &mut ecol,
+            top_row,
+            e,
             theme.text_muted,
+            counter_start.saturating_sub(1),
         );
     }
     v
