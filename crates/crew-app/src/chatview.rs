@@ -100,7 +100,12 @@ impl ChatPane {
 
 /// Render `pane` into a `cols` × `rows` grid.
 pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
-    let top = pane.status_rows(cols, rows);
+    // One allotment for the whole frame: `grants` is the same source
+    // `msg_rows_budget` reads, and it already resolves `top`/`bottom`, so
+    // taking them from it keeps this function from computing `status_rows` a
+    // second time and drifting from the budget.
+    let g = crate::chatplace::grants(pane, cols, rows);
+    let top = g.top;
     if top == 0 {
         return layout_cells(
             &pane.messages,
@@ -144,35 +149,26 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
             crate::anim::now_ms(),
         ));
     }
-    let bottom = crate::chatinput::composer_rows(&pane.input, cols, rows);
     // Stacked directly above the composer, innermost first: the run's progress
-    // bar, then the queued-messages indicator. Each claims a row from the
-    // budget only while it has something to say (same pattern as the swarm
-    // block claiming rows below the messages).
-    let prog_rows = crate::chatprog::progress_rows(pane, cols);
-    let queued_rows = crate::chatqueue::queued_rows(pane);
-    // Floored at `top`, same as the swarm block's `block_start` below — on a
-    // squeezed pane (a saturated roster eating rows via `status_rows`, plus
-    // a small `rows`) the unclamped subtraction can bottom out at or below
-    // `top`, letting the indicator overdraw the header/status rows.
-    let bar_row = rows.saturating_sub(bottom + prog_rows).max(top);
-    let indicator_row = rows
-        .saturating_sub(bottom + prog_rows + queued_rows)
-        .max(top);
+    // bar, then the queued-messages indicator. `chatplace::grants` decides who
+    // gets a row — it is the same source `msg_rows_budget` uses, so what is
+    // budgeted and what is drawn cannot disagree. A surface it could not seat
+    // has a grant of 0 and is SKIPPED below; the anchors used to floor at
+    // `.max(top)` instead, which collapsed them onto one row and let
+    // last-write-wins hide whichever drew first.
+    let bottom = g.bottom;
+    let prog_rows = g.prog;
+    let queued_rows = g.queued;
+    let bar_row = rows.saturating_sub(bottom + prog_rows);
+    let indicator_row = rows.saturating_sub(bottom + prog_rows + queued_rows);
     if pane.messages.is_empty() {
         // A run can start before any reply lands — the plan-summary message
-        // usually exists by fold time, but don't rely on it here. The block's
-        // rows are clamped to strictly above the composer (and the queued
-        // indicator, when showing): a saturated row budget (e.g. an 8-task
-        // swarm on a tiny pane) can otherwise push block rows onto the
-        // composer row, which doesn't reliably overdraw them (only the
-        // prompt glyph/text touch every column). Floored at `top` too — on a
-        // very short pane the same saturation can otherwise push the start
-        // row above the header/status rows.
+        // usually exists by fold time, but don't rely on it here. `g.swarm` is
+        // 0 when the pane had no row to seat the line in, and then nothing is
+        // drawn: the start row used to floor at `.max(top)` instead, which on a
+        // saturated budget pushed it onto another surface's row.
         let block_max = rows.saturating_sub(bottom + prog_rows + queued_rows);
-        let block_start = block_max
-            .saturating_sub(crate::chatswarmview::swarm_rows(pane, cols))
-            .max(top);
+        let block_start = block_max.saturating_sub(g.swarm);
         // The empty-state card stops where the live run begins. It used to get
         // `rows - bottom`, which ignores the rows the status line, queued
         // indicator and bar have already claimed — so a run starting on an
@@ -185,11 +181,13 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
             pane.connected,
             &pane.agents,
         ));
-        cells.extend(
-            crate::chatswarmview::block_cells(pane, cols, block_start, crate::anim::now_ms())
-                .into_iter()
-                .filter(|c| c.row >= top && c.row < block_max),
-        );
+        if g.swarm > 0 {
+            cells.extend(
+                crate::chatswarmview::block_cells(pane, cols, block_start, crate::anim::now_ms())
+                    .into_iter()
+                    .filter(|c| c.row >= top && c.row < block_max),
+            );
+        }
     } else {
         let view = crate::chatmsgs::View {
             source: pane.show_source,
@@ -224,11 +222,18 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
         // composer row (see the empty-branch comment above for why the
         // composer doesn't reliably overdraw them).
         let block_max = rows.saturating_sub(bottom + prog_rows + queued_rows);
-        cells.extend(
-            crate::chatswarmview::block_cells(pane, cols, top + msg_rows, crate::anim::now_ms())
+        if g.swarm > 0 {
+            cells.extend(
+                crate::chatswarmview::block_cells(
+                    pane,
+                    cols,
+                    top + msg_rows,
+                    crate::anim::now_ms(),
+                )
                 .into_iter()
                 .filter(|c| c.row < block_max),
-        );
+            );
+        }
     }
     if queued_rows > 0 {
         cells.extend(crate::chatqueue::indicator_cells(pane, cols, indicator_row));

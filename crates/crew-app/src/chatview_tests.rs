@@ -490,10 +490,12 @@ fn status_line_queued_indicator_bar_and_composer_stack_without_colliding() {
     let mut pane = mid_run_pane();
     pane.queued.push_back("later".into());
 
-    // Non-degenerate sizes only: rows <= 9 with this roster pile every row
-    // onto `.max(top)` (also a known, out-of-scope pre-existing issue).
+    // Includes short panes: rows <= 9 used to pile every surface onto
+    // `.max(top)`. `chatplace::grants` now drops what it cannot seat, so the
+    // ones that DO draw still each own a row. Sizes where the status line is
+    // dropped entirely are skipped by the guard below.
     for cols in [20u16, 40, 80] {
-        for rows in [12u16, 20, 40] {
+        for rows in [8u16, 10, 12, 20, 40] {
             let bottom = crate::chatinput::composer_rows(&pane.input, cols, rows);
             let prog_rows = crate::chatprog::progress_rows(&pane, cols);
             let queued_rows = crate::chatqueue::queued_rows(&pane);

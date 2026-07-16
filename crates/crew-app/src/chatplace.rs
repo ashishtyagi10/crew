@@ -74,20 +74,60 @@ pub(crate) fn cell_at_col(line: &CardLine, col: u16) -> Option<&CardCell> {
     None
 }
 
-/// The message-area row budget for `pane`'s `cols` × `rows` grid: `rows`
-/// minus the status rows above (session line + agent chips, via
-/// `status_rows`), the composer rows below (via `composer_rows`), the live
-/// swarm block (`chatswarmview::swarm_rows`), and the queued-messages
-/// indicator (`chatqueue::queued_rows`) when either is showing. The single
-/// source both `chatview::cells` and `placed_lines` call, so the two can
-/// never drift apart on how many rows the message body gets.
-pub(crate) fn msg_rows_budget(pane: &ChatPane, cols: u16, rows: u16) -> u16 {
+/// How a pane's rows are allotted. Decided in ONE place so the rows a surface
+/// is budgeted and the rows it draws can never disagree.
+///
+/// Each `*_rows` function says what its surface WANTS; this says what it gets.
+/// A pane too short for all of them drops the ones that don't fit rather than
+/// piling them: the anchors used to floor at `.max(top)`, which collapsed the
+/// bar, the indicator and the status line onto the same row and let
+/// last-write-wins hide whichever drew first.
+///
+/// Priority, most expendable last: the status line, then the queued indicator,
+/// then the bar. The bar goes first because the status line now carries the
+/// `done/total` counter that used to be the bar's label — a pane with room for
+/// one of them is better off with the one that also names the task.
+pub(crate) struct Grants {
+    pub top: u16,
+    pub bottom: u16,
+    pub swarm: u16,
+    pub queued: u16,
+    pub prog: u16,
+    /// What's left for the transcript.
+    pub msg: u16,
+}
+
+pub(crate) fn grants(pane: &ChatPane, cols: u16, rows: u16) -> Grants {
     let top = pane.status_rows(cols, rows);
     let bottom = crate::chatinput::composer_rows(&pane.input, cols, rows);
-    let block = crate::chatswarmview::swarm_rows(pane, cols);
-    let queued = crate::chatqueue::queued_rows(pane);
-    let prog = crate::chatprog::progress_rows(pane, cols);
-    rows.saturating_sub(top + bottom + block + queued + prog)
+    // The header and the composer are load-bearing chrome and are never
+    // dropped; everything else shares what's between them.
+    let mut left = rows.saturating_sub(top).saturating_sub(bottom);
+    let mut take = |want: u16| {
+        let got = want.min(left);
+        left -= got;
+        got
+    };
+    let swarm = take(crate::chatswarmview::swarm_rows(pane, cols));
+    let queued = take(crate::chatqueue::queued_rows(pane));
+    let prog = take(crate::chatprog::progress_rows(pane, cols));
+    Grants {
+        top,
+        bottom,
+        swarm,
+        queued,
+        prog,
+        msg: left,
+    }
+}
+
+/// The message-area row budget for `pane`'s `cols` × `rows` grid: what's left
+/// after the status rows above, the composer below, and whichever live-run
+/// surfaces [`grants`] could seat. The single source both `chatview::cells`
+/// and `placed_lines` call, so the two can never drift apart on how many rows
+/// the message body gets.
+pub(crate) fn msg_rows_budget(pane: &ChatPane, cols: u16, rows: u16) -> u16 {
+    grants(pane, cols, rows).msg
 }
 
 /// The scroll-windowed card-line placement for `pane`'s message area, each

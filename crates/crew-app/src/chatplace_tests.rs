@@ -73,3 +73,90 @@ fn msg_rows_budget_reserves_the_swarm_row_by_width_not_height() {
         "msg_rows_budget must reserve swarm_rows(pane, cols), not swarm_rows(pane, rows)"
     );
 }
+
+/// A pane too short for every surface must DROP the ones that don't fit, not
+/// pile them onto one row.
+///
+/// The anchors each floored at `.max(top)`, so on a squeezed pane `bar_row`,
+/// `indicator_row` and `block_start` all collapsed to the SAME row and
+/// last-write-wins hid whichever drew first. The grants decide once, in
+/// priority order, so the sum can never exceed the space between the header
+/// and the composer.
+#[test]
+fn a_short_pane_drops_surfaces_instead_of_piling_them() {
+    let mut p = pane_with_swarm(4);
+    run(&mut p, 0);
+    p.queued.push_back("later".into());
+
+    for rows in 0..=14u16 {
+        for cols in [20u16, 40, 80] {
+            let g = grants(&p, cols, rows);
+            // The header and composer are chrome and are never dropped, so on
+            // a pane too small even for those they can exceed `rows` — that is
+            // outside what grants arbitrates. What grants DOES guarantee: the
+            // droppable surfaces plus the transcript never exceed the space
+            // between them.
+            let body = rows.saturating_sub(g.top).saturating_sub(g.bottom);
+            let claimed = g.swarm + g.queued + g.prog + g.msg;
+            assert!(
+                claimed <= body,
+                "grants claim {claimed} of {body} body rows at cols={cols} rows={rows}"
+            );
+            // Priority: the bar is the first to go — the status line carries
+            // the done/total counter the bar's label used to.
+            if g.prog == 1 {
+                assert_eq!(g.swarm, 1, "bar kept while the status line was dropped");
+            }
+            if g.queued == 1 {
+                assert_eq!(
+                    g.swarm, 1,
+                    "indicator kept while the status line was dropped"
+                );
+            }
+        }
+    }
+}
+
+/// Every granted surface gets a row of its own.
+#[test]
+fn granted_surfaces_never_share_a_row() {
+    let mut p = pane_with_swarm(4);
+    run(&mut p, 0);
+    p.queued.push_back("later".into());
+
+    for rows in 0..=14u16 {
+        for cols in [20u16, 40, 80] {
+            let g = grants(&p, cols, rows);
+            let mut used: Vec<u16> = Vec::new();
+            let bar = rows.saturating_sub(g.bottom + g.prog);
+            let ind = rows.saturating_sub(g.bottom + g.prog + g.queued);
+            let blk = rows.saturating_sub(g.bottom + g.prog + g.queued + g.swarm);
+            if g.prog == 1 {
+                used.push(bar);
+            }
+            if g.queued == 1 {
+                used.push(ind);
+            }
+            if g.swarm == 1 {
+                used.push(blk);
+            }
+            let n = used.len();
+            used.sort_unstable();
+            used.dedup();
+            assert_eq!(
+                n,
+                used.len(),
+                "two surfaces share a row at cols={cols} rows={rows}"
+            );
+            // …and none of them lands on the header or the composer.
+            for r in &used {
+                assert!(
+                    *r >= g.top && *r < rows.saturating_sub(g.bottom),
+                    "surface at row {r} escaped the body at cols={cols} rows={rows} (top={}, bottom={})",
+                    g.top,
+                    g.bottom
+                );
+            }
+        }
+    }
+}
