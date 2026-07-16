@@ -578,6 +578,30 @@ mod selection_tests {
         assert_eq!(t.sel_text(), forward, "drag direction changed the text");
     }
 
+    /// 256-colour output must render in colour.
+    ///
+    /// `resolve_color` sends every Indexed value >= 16 to the default fg when
+    /// alacritty's palette has no entry — so the entire xterm cube (16-231)
+    /// and greyscale ramp (232-255) render monochrome: bat, fzf, btop, vim
+    /// colorschemes and p10k prompts all lose their colour. `query_color`
+    /// implements the cube correctly and its doc claims to mirror
+    /// `resolve_color`, which is how the two drifted unnoticed.
+    #[test]
+    fn indexed_256_colours_render_in_colour() {
+        // SGR 38;5;196 = the cube's bright red.
+        let mut t = term("");
+        t.feed(b"\x1b[38;5;196mR\x1b[0m");
+        let cells = t.cells(true);
+        let r = cells.iter().find(|c| c.c == 'R').expect("R rendered");
+        assert_ne!(
+            r.fg,
+            crate::color::default_fg(),
+            "indexed colour 196 fell back to the default fg — 256-colour output is monochrome"
+        );
+        // The xterm cube's 196 is pure red.
+        assert_eq!(r.fg, (255, 0, 0), "196 should be the cube's red");
+    }
+
     #[test]
     fn clearing_drops_the_selection() {
         let mut t = term("hello");
