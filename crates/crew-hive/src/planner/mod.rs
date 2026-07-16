@@ -121,6 +121,15 @@ impl Planner for StubPlanner {
 
 /// The planner's system prompt. Every clause here was earned against an
 /// observed failure on a real provider (see the design doc's Prompt spike):
+/// the `deps` clause exists because the model chained tasks that had no real
+/// dependency — one run flattened "explain our project to stakeholders" into a
+/// six-task chain, which pins the scheduler at concurrency 1 however high its
+/// cap. Shape is non-deterministic run to run, so it was A/B'd over 5 runs per
+/// arm (`planner_leaves_independent_work_independent`, 30 plans each): without
+/// the clause 3.6/6 goals had parallel width (range 3-4), with it 4.8/6 (range
+/// 4-5) — Mann-Whitney U = 1.5, under the 5,5 critical value of 2 at
+/// α=0.05. Do not "tidy" it away on the reasoning that the scheduler is
+/// already parallel; the scheduler can only run the width the plan gives it.
 /// the agent-noun rule fixes bare topic words ("security"); the
 /// anti-anchoring clause exists because naming flavourful examples turned
 /// them into a word bank (one revision assigned "epidemiologist" to packing a

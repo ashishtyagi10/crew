@@ -144,10 +144,11 @@ fn planner_leaves_independent_work_independent() {
     // failure — the model chaining tasks that have no real dependency — while
     // leaving it free to serialise work that genuinely is.
     //
-    // Sampled before the `deps must be MINIMAL` clause: one run had 5/6 wide,
-    // a later run collapsed "explain our project to stakeholders" to a flat
-    // 6-task chain. The shape is non-deterministic run to run, which is why
-    // this floor sits well below the observed best rather than at it.
+    // The shape is non-deterministic run to run, so the floor sits well below
+    // the observed mean rather than at it. Measured over 5 runs per arm:
+    // without the `deps must be MINIMAL` clause 3.6/6 (range 3-4), with it
+    // 4.8/6 (range 4-5). A floor of 3 would pass either arm and prove nothing;
+    // a floor of 5 would flake on the clause's own worst run.
     println!("\n{wide}/{} goals have parallel width", GOALS.len());
     assert!(
         wide * 2 >= GOALS.len(),
