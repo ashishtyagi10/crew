@@ -201,6 +201,23 @@ pub(crate) fn multi_targets(task: &str, reg: &Registry) -> Option<(Vec<String>, 
     (names.len() >= 2).then(|| (names, body.trim().to_string()))
 }
 
+/// The explicit `@name` selector at the front of `task`, resolved to the
+/// registered agent it actually names. `None` for an unaddressed task, a
+/// selector with no task body, or a name nothing in `reg` answers to (a
+/// typo) — exactly the cases [`split_target`] treats as "not really
+/// addressed" and silently falls back to the first agent for, so it alone
+/// can't tell a genuine dial from a fallback. Callers that need to know a
+/// task truly addressed someone (e.g. bumping a specialist's LRU recency on
+/// the `@`-dial path, see `broker::specialists::touch`) use this instead.
+/// Returns the registry's own name for the agent (`Adapter::name`, also the
+/// specialist store's key), not necessarily `task`'s casing, since `reg.get`
+/// matches case-insensitively.
+pub(crate) fn dialed_target(task: &str, reg: &Registry) -> Option<String> {
+    let rest = task.strip_prefix('@')?;
+    let (name, _) = rest.split_once(char::is_whitespace)?;
+    reg.get(name).map(|a| a.name().to_string())
+}
+
 /// Split an optional leading `@agent` selector off the task. Falls back to the
 /// first discovered agent when no valid selector is present.
 pub(crate) fn split_target(task: &str, reg: &Registry) -> (String, String) {

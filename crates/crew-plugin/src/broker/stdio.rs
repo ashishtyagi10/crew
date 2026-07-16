@@ -12,7 +12,7 @@ use std::io::{BufRead, Write};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
-use super::relay::{msg, multi_targets, relay_turn, split_target};
+use super::relay::{dialed_target, msg, multi_targets, relay_turn, split_target};
 use super::session::{call_timeout, Session};
 use crate::{PluginCommand, PluginEvent, Registry};
 
@@ -294,6 +294,15 @@ fn relay_counting(
         None => task.to_string(),
     };
     super::sessionlog::append("user", task);
+    // A genuine `@name` dial (not `split_target`'s first-agent fallback for
+    // an unaddressed/typo'd task) defers this specialist's LRU eviction, the
+    // same way inventing it via a plan does (`specialists::record`) — see
+    // `specialists::touch`'s doc. Checked against `task_owned` (post-resume
+    // fold), matching exactly what `split_target` below actually consults,
+    // so touch and routing never disagree about whether this was a real dial.
+    if let Some(name) = dialed_target(&task_owned, &reg) {
+        super::specialists::touch(&name);
+    }
     let (start, body) = split_target(&task_owned, &reg);
     let tid = format!("t{}", THREAD_SEQ.fetch_add(1, Ordering::Relaxed));
     emit(msg(
