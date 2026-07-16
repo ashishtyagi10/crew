@@ -71,6 +71,137 @@ async fn end_to_end_fan_out_fan_in() {
     let _ = TaskState::Done; // type is part of the public surface
 }
 
+/// End-to-end proof that independent tasks REALLY run at the same time —
+/// through the public API, the real scheduler, and the same event stream the
+/// broker and the chat pane consume.
+///
+/// A barrier is the proof, not a peak counter: each of the four independent
+/// tasks blocks until all four have arrived, so the run can only finish if
+/// they are genuinely in flight together. A serial scheduler cannot complete
+/// this graph at all — it parks on the first task forever — so the outer
+/// timeout failing IS the assertion. Counting `Running` events instead would
+/// prove nothing here: stub agents finish instantly, so a serial run can
+/// interleave to a peak of one and still look plausible.
+///
+/// Shape is the real one: a gather task, a fan-out of independent work, then
+/// a fan-in — the pattern the LLM planner actually emits.
+#[tokio::test]
+async fn independent_tasks_really_run_at_the_same_time() {
+    use crew_hive::board::TaskResult;
+    use crew_hive::{Agent, AgentContext, AgentFactory};
+    use std::future::Future;
+    use std::pin::Pin;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use tokio::sync::Barrier;
+
+    const WIDTH: usize = 4;
+
+    struct Rendezvous {
+        gate: Arc<Barrier>,
+        peak: Arc<AtomicUsize>,
+        live: Arc<AtomicUsize>,
+    }
+    impl Agent for Rendezvous {
+        fn run(&self, ctx: AgentContext) -> Pin<Box<dyn Future<Output = TaskResult> + Send>> {
+            let (gate, peak, live) = (self.gate.clone(), self.peak.clone(), self.live.clone());
+            Box::pin(async move {
+                let n = live.fetch_add(1, Ordering::SeqCst) + 1;
+                peak.fetch_max(n, Ordering::SeqCst);
+                // The gather (0) and fan-in (5) tasks are alone in their wave,
+                // so only the fan-out cohort rendezvouses — the others would
+                // block forever waiting for siblings that cannot exist.
+                if (1..=WIDTH as u64).contains(&ctx.task.id.0) {
+                    gate.wait().await;
+                }
+                live.fetch_sub(1, Ordering::SeqCst);
+                TaskResult {
+                    task: ctx.task.id,
+                    output: String::new(),
+                    success: true,
+                }
+            })
+        }
+    }
+    struct Factory {
+        gate: Arc<Barrier>,
+        peak: Arc<AtomicUsize>,
+        live: Arc<AtomicUsize>,
+    }
+    impl AgentFactory for Factory {
+        fn make(&self, _k: &AgentKind) -> Box<dyn Agent> {
+            Box::new(Rendezvous {
+                gate: self.gate.clone(),
+                peak: self.peak.clone(),
+                live: self.live.clone(),
+            })
+        }
+    }
+
+    let g = TaskGraph::new(vec![
+        spec(0, &[]),
+        spec(1, &[0]),
+        spec(2, &[0]),
+        spec(3, &[0]),
+        spec(4, &[0]),
+        spec(5, &[1, 2, 3, 4]),
+    ])
+    .unwrap();
+
+    let peak = Arc::new(AtomicUsize::new(0));
+    let bus = EventBus::new(256);
+    // Watch the same telemetry the chat pane's status line reads, so this also
+    // pins that a parallel run is observable downstream and not just internal.
+    let mut rx = bus.subscribe();
+    let running = tokio::spawn(async move {
+        let (mut live, mut peak) = (0usize, 0usize);
+        while let Ok(ev) = rx.recv().await {
+            if let crew_hive::HiveEvent::TaskStateChanged { state, .. } = &ev {
+                match state {
+                    TaskState::Done | TaskState::Failed | TaskState::Cancelled => {
+                        live = live.saturating_sub(1)
+                    }
+                    TaskState::Running => {
+                        live += 1;
+                        peak = peak.max(live);
+                    }
+                    _ => {}
+                }
+            }
+        }
+        peak
+    });
+
+    let f = Arc::new(Factory {
+        gate: Arc::new(Barrier::new(WIDTH)),
+        peak: peak.clone(),
+        live: Arc::new(AtomicUsize::new(0)),
+    });
+    let sched = Scheduler::new(g, Blackboard::new(), bus.clone(), f, 8).run();
+
+    // A serial scheduler deadlocks on the barrier; fail loudly instead of
+    // hanging the suite.
+    let out = tokio::time::timeout(std::time::Duration::from_secs(10), sched)
+        .await
+        .expect(
+            "timed out — the fan-out tasks never met at the barrier, so the \
+             scheduler ran independent work serially",
+        );
+    drop(bus);
+
+    assert_eq!(out.done.len(), 6, "every task completed");
+    assert!(
+        peak.load(Ordering::SeqCst) >= WIDTH,
+        "peak in-flight was {}, expected {WIDTH} — the barrier released, so \
+         they overlapped, but the count disagrees",
+        peak.load(Ordering::SeqCst)
+    );
+    assert!(
+        running.await.unwrap() >= WIDTH,
+        "the event stream never showed {WIDTH} tasks Running at once, so a \
+         parallel run is not observable downstream"
+    );
+}
+
 #[tokio::test]
 async fn plan_then_schedule_with_api_agents() {
     use crew_hive::{
