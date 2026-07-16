@@ -358,7 +358,6 @@ fn progress_bar_renders_directly_above_the_composer() {
     let cells_out = cells(&pane, cols, rows);
     let text = row_text(&cells_out, bar_row);
     assert!(text.contains('\u{2588}'), "bar row {bar_row}: {text}");
-    assert!(text.ends_with(" 1/4"), "count missing: {text}");
 
     // The whole reason the rain was dropped: the indicator must claim its own
     // row, never overlay the composer's text.
@@ -380,10 +379,7 @@ fn progress_bar_and_queued_indicator_stack_without_colliding() {
     // Bar innermost (directly above the composer), queued indicator above it.
     let bar = row_text(&cells_out, rows - bottom - 1);
     let queued = row_text(&cells_out, rows - bottom - 2);
-    assert!(
-        bar.contains('\u{2588}') && bar.ends_with(" 1/4"),
-        "bar: {bar}"
-    );
+    assert!(bar.contains('\u{2588}'), "bar: {bar}");
     assert!(queued.contains("1 message queued"), "queued: {queued}");
 }
 

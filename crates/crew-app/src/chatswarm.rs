@@ -63,6 +63,27 @@ impl SwarmStatus {
         self.tasks.iter_mut().find(|t| t.id == id)
     }
 
+    /// `(settled, total)` — tasks that have reached a terminal state, over the
+    /// plan's size. Terminal means done, failed or cancelled: this counts "how
+    /// much of the plan has stopped moving", not "how much succeeded".
+    ///
+    /// Shared by the progress bar (`chatprog`) and the live status line
+    /// (`chatswarmview`) so the bar's fill and the line's `2/5` can never
+    /// disagree about the same run.
+    pub(crate) fn settled(&self) -> (usize, usize) {
+        let done = self
+            .tasks
+            .iter()
+            .filter(|t| {
+                matches!(
+                    t.state,
+                    TaskState::Done | TaskState::Failed | TaskState::Cancelled
+                )
+            })
+            .count();
+        (done, self.tasks.len())
+    }
+
     pub(crate) fn apply(&mut self, ev: &HiveEvent) {
         match ev {
             HiveEvent::AgentSpawned { agent, task } => {

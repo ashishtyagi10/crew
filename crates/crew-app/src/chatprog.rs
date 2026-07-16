@@ -11,7 +11,6 @@
 use crew_render::CellView;
 
 use crate::chat::ChatPane;
-use crew_hive::TaskState;
 
 /// Narrowest bar still worth drawing. Below this the row is dropped entirely
 /// rather than drawn as an unreadable stub.
@@ -22,27 +21,14 @@ const INSET: u16 = 1;
 /// The bar's geometry for `cols`, or `None` when there's no live run (or no
 /// room). Both [`progress_rows`] and [`bar_cells`] route through this, so the
 /// row a pane budgets and the row it draws can never disagree.
-fn geom(pane: &ChatPane, cols: u16) -> Option<(usize, usize, u16, String)> {
+fn geom(pane: &ChatPane, cols: u16) -> Option<(usize, usize, u16)> {
     let s = pane.swarm.as_ref()?;
-    let total = s.tasks.len();
+    let (done, total) = s.settled();
     if total == 0 {
         return None;
     }
-    let done = s
-        .tasks
-        .iter()
-        .filter(|t| {
-            matches!(
-                t.state,
-                TaskState::Done | TaskState::Failed | TaskState::Cancelled
-            )
-        })
-        .count();
-    let label = format!(" {done}/{total}");
-    let bar_w = cols
-        .saturating_sub(INSET)
-        .saturating_sub(label.chars().count() as u16);
-    (bar_w >= MIN_BAR).then_some((done, total, bar_w, label))
+    let bar_w = cols.saturating_sub(INSET);
+    (bar_w >= MIN_BAR).then_some((done, total, bar_w))
 }
 
 /// Rows the progress bar claims above the composer: 1 during a live swarm run
@@ -51,10 +37,10 @@ pub(crate) fn progress_rows(pane: &ChatPane, cols: u16) -> u16 {
     geom(pane, cols).is_some() as u16
 }
 
-/// Render the bar at `row`: filled cells in the accent, the remainder muted,
-/// with a `done/total` count on the right.
+/// Render the bar at `row`: filled cells in the accent, the remainder muted.
+/// The `done/total` count lives on the status line above (`chatswarmview`).
 pub(crate) fn bar_cells(pane: &ChatPane, cols: u16, row: u16) -> Vec<CellView> {
-    let Some((done, total, bar_w, label)) = geom(pane, cols) else {
+    let Some((done, total, bar_w)) = geom(pane, cols) else {
         return Vec::new();
     };
     let theme = crew_theme::theme();
@@ -81,9 +67,6 @@ pub(crate) fn bar_cells(pane: &ChatPane, cols: u16, row: u16) -> Vec<CellView> {
             ('\u{2591}', theme.text_muted)
         };
         push(INSET + i, c, fg, on);
-    }
-    for (i, c) in label.chars().enumerate() {
-        push(INSET + bar_w + i as u16, c, theme.text_muted, false);
     }
     cells
 }
