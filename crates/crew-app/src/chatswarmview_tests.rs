@@ -265,7 +265,7 @@ fn cells_never_collide_or_leave_the_pane() {
     for (label, p) in &cases {
         for cols in 0..=80u16 {
             let cells = block_cells(p, cols, 10, 5_000);
-            assert_no_collisions(&cells, cols, *label);
+            assert_no_collisions(&cells, cols, label);
         }
     }
 }
