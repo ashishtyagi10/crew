@@ -21,6 +21,31 @@ fn repo(tag: &str) -> PathBuf {
     d
 }
 
+fn info(name: &str, role: &str) -> crate::AgentInfo {
+    crate::AgentInfo {
+        name: name.into(),
+        role: role.into(),
+        model: String::new(),
+    }
+}
+
+/// `/standup`'s author election (`pick_by_role(&reg.infos(), is_writer)`)
+/// must pick the agent whose OWN role advertises a build/writing capability,
+/// not the literal name "coder" (no invented specialist is ever named that)
+/// and not just the roster's first (arbitrary, LRU-ordered) agent.
+/// `standup-scribe` is deliberately NOT first and carries no name hint — only
+/// its role says "writes summaries, build notes" — so a fixture where the
+/// fallback (`travel-advisor`) coincided with the right answer would prove
+/// nothing.
+#[test]
+fn standup_author_is_elected_by_role_not_by_roster_order() {
+    let agents = vec![
+        info("travel-advisor", ""),
+        info("standup-scribe", "writes summaries, build notes"),
+    ];
+    assert_eq!(pick_by_role(&agents, is_writer), "standup-scribe");
+}
+
 #[test]
 fn parse_days_defaults_clamps_and_rejects() {
     assert_eq!(parse_days(""), Some(1));

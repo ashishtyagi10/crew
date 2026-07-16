@@ -47,6 +47,31 @@ fn pick_diff_errs_outside_a_repo() {
     assert!(pick_diff(&d).is_err());
 }
 
+fn info(name: &str, role: &str) -> crate::AgentInfo {
+    crate::AgentInfo {
+        name: name.into(),
+        role: role.into(),
+        model: String::new(),
+    }
+}
+
+/// `/commit`'s author election (`pick_by_role(&reg.infos(), is_writer)`) must
+/// pick the agent whose OWN role advertises a build/writing capability, not
+/// the literal name "coder" (no invented specialist is ever named that) and
+/// not just the roster's first (arbitrary, LRU-ordered) agent.
+/// `release-scribe` is deliberately NOT first and carries no name hint — only
+/// its role says "drafts release notes, writing" — so a fixture where the
+/// fallback (`travel-advisor`) coincided with the right answer would prove
+/// nothing.
+#[test]
+fn commit_author_is_elected_by_role_not_by_roster_order() {
+    let agents = vec![
+        info("travel-advisor", ""),
+        info("release-scribe", "drafts release notes, writing"),
+    ];
+    assert_eq!(pick_by_role(&agents, is_writer), "release-scribe");
+}
+
 #[test]
 fn commit_prompt_carries_the_diff_and_the_rules() {
     let p = commit_prompt("+ fn new_thing() {}");

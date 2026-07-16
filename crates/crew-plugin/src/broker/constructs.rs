@@ -146,8 +146,42 @@ pub(crate) fn goal_cmd(
 /// look up any more), NOT by the literal name "reviewer", so a roster of
 /// arbitrarily-named specialists still elects a critic. The literal name is
 /// kept as a floor in case a custom agent's role is empty.
-fn is_critic(role: &str, name: &str) -> bool {
+///
+/// `pub(crate)` rather than duplicated: `/review` (`review.rs`) wants the
+/// exact same critic election `/goal`'s judge does, and a second copy of this
+/// keyword list would drift the moment one of them changed capability words.
+pub(crate) fn is_critic(role: &str, name: &str) -> bool {
     role.contains("review") || role.contains("critique") || name == "reviewer"
+}
+
+/// Whether an agent with this name/role advertises a writing/build
+/// capability — `/commit` and `/standup` (which draft prose *about* a diff or
+/// a commit log, not code itself) want an author elected the same way
+/// `is_critic` elects a judge: by the agent's OWN role, with the literal name
+/// "coder" kept only as a floor for a custom agent whose role is empty.
+pub(crate) fn is_writer(role: &str, name: &str) -> bool {
+    role.contains("build")
+        || role.contains("implement")
+        || role.contains("cod") // "code", "coding", "coder"
+        || role.contains("writ") // "write", "writing", "writer"
+        || name == "coder"
+}
+
+/// Elect an agent from `agents` by capability: the first whose `(role, name)`
+/// satisfies `is_match`, else the roster's first agent at all (mirroring
+/// `split_target`'s own fallback), else empty — only reachable with an empty
+/// roster, which every call site here has already ruled out via
+/// `reg.is_empty()`. Shared by `/review`, `/commit` and `/standup` so each
+/// elects by an agent's own advertised role rather than hoping a specialist
+/// happens to be literally named "reviewer"/"coder" — no invented specialist
+/// ever is (see `d49a6e1`, which deleted the inbuilt trio).
+pub(crate) fn pick_by_role(agents: &[AgentInfo], is_match: impl Fn(&str, &str) -> bool) -> String {
+    agents
+        .iter()
+        .find(|a| is_match(&a.role, &a.name))
+        .or_else(|| agents.first())
+        .map(|a| a.name.clone())
+        .unwrap_or_default()
 }
 
 /// The judge: a capability critic that isn't the worker, else any other agent,

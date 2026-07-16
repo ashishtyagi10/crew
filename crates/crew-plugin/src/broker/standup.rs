@@ -7,6 +7,7 @@ use std::path::Path;
 
 use crate::PluginEvent;
 
+use super::constructs::{is_writer, pick_by_role};
 use super::relay::msg;
 use super::session::{call_timeout, Session};
 use super::stdio::roster;
@@ -106,11 +107,9 @@ pub(crate) fn standup_cmd(
     if reg.is_empty() {
         return emit(msg("crew", roster(&reg)));
     }
-    let author = if reg.get("coder").is_some() {
-        "coder".to_string()
-    } else {
-        reg.names().first().cloned().unwrap_or_default()
-    };
+    // Elected by the agent's OWN role (`is_writer`), not the literal name
+    // "coder" — see `review.rs`'s identical fix and `constructs::pick_judge`.
+    let author = pick_by_role(&reg.infos(), is_writer);
     emit(msg(
         "crew",
         format!("drafting a standup from the last {days} day(s) of commits…"),

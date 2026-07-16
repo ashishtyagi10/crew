@@ -5,6 +5,7 @@
 //! construct carries no session state.
 use crate::PluginEvent;
 
+use super::constructs::{is_critic, pick_by_role};
 use super::relay::msg;
 use super::session::{call_timeout, Session};
 use super::stdio::roster;
@@ -45,11 +46,12 @@ pub(crate) fn review_cmd(
     if reg.is_empty() {
         return emit(msg("crew", roster(&reg)));
     }
-    let author = if reg.get("reviewer").is_some() {
-        "reviewer".to_string()
-    } else {
-        reg.names().first().cloned().unwrap_or_default()
-    };
+    // Elected by the agent's OWN role (`is_critic`), not the literal name
+    // "reviewer" — no invented specialist is ever literally called that, so
+    // this used to always fall through to the roster's first (arbitrary,
+    // LRU-ordered) agent. See `constructs::pick_judge`, which solves the
+    // identical problem for `/goal`.
+    let author = pick_by_role(&reg.infos(), is_critic);
     emit(msg(
         "crew",
         format!(
