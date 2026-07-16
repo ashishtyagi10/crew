@@ -16,12 +16,36 @@ const WORKING: &str = "Working…";
 /// Below this width the elapsed column is dropped (the title needs the room).
 /// The counter is never dropped: it's the reason the line exists.
 const ELAPSED_MIN_COLS: u16 = 16;
+/// Columns claimed by the fixed left prefix — a 1-column margin, the
+/// spinner, and one space — before the title/suffix region begins. Anything
+/// placed right-aligned from the pane edge (counter, elapsed) is floored
+/// here so it can never be pushed left into the prefix, however narrow the
+/// pane gets.
+const PREFIX_END: u16 = 3;
 
-/// Rows the live line occupies in the message area (0 = no live run).
-pub(crate) fn swarm_rows(pane: &ChatPane, _rows: u16) -> u16 {
-    match &pane.swarm {
-        Some(s) if !s.tasks.is_empty() => 1,
-        _ => 0,
+/// Whether `cols` has room for the line at all: the prefix plus the counter,
+/// with no gap between them. Below this there's nothing sensible left to
+/// draw, so `block_cells` returns nothing — this must agree with that so the
+/// row budget and the draw never disagree.
+fn line_fits(pane: &ChatPane, cols: u16) -> bool {
+    let Some(s) = &pane.swarm else {
+        return false;
+    };
+    if s.tasks.is_empty() {
+        return false;
+    }
+    let (done, total) = s.settled();
+    cols >= PREFIX_END + format!("{done}/{total}").len() as u16
+}
+
+/// Rows the live line occupies in the message area (0 = no live run, or a
+/// pane too narrow to show the line without the counter colliding with the
+/// spinner — see `line_fits`).
+pub(crate) fn swarm_rows(pane: &ChatPane, cols: u16) -> u16 {
+    if line_fits(pane, cols) {
+        1
+    } else {
+        0
     }
 }
 
@@ -43,26 +67,34 @@ fn focus(s: &SwarmStatus) -> Option<(&SwarmTask, usize)> {
     Some((first, running.len() - 1))
 }
 
-fn push_str(v: &mut Vec<CellView>, col: &mut u16, row: u16, s: &str, fg: (u8, u8, u8)) {
-    for c in s.chars() {
-        // Advance by display width (a wide CJK/emoji glyph occupies two
-        // cells) so text after a wide glyph doesn't overlap it; zero-width
-        // marks are skipped like `chatwidth::place_row` does.
-        let w = crate::chatwidth::char_w(c) as u16;
-        if w == 0 {
-            continue;
-        }
+/// Places `s` on `row` starting at `*col`, advancing by display width and
+/// never emitting a cell at or beyond `max_col` — delegated to
+/// `chatwidth::place_row`, which already advances by `char_w` and skips
+/// zero-width marks, so `max_col` is enforced structurally rather than
+/// relying on the caller's arithmetic to have pre-sized `s` correctly (a
+/// wide glyph that would straddle past `max_col` simply isn't drawn, instead
+/// of the old `fit_end`-based clamp that could force one char through even
+/// at a zero-column budget).
+fn push_str(
+    v: &mut Vec<CellView>,
+    col: &mut u16,
+    row: u16,
+    s: &str,
+    fg: (u8, u8, u8),
+    max_col: u16,
+) {
+    let bg = crew_theme::theme().page_bg;
+    *col = crate::chatwidth::place_row(*col, max_col, s.chars().map(|c| (c, fg)), |x, c, fg| {
         v.push(CellView {
-            col: *col,
+            col: x,
             row,
             c,
             fg,
-            bg: crew_theme::theme().page_bg,
+            bg,
             bold: false,
             italic: false,
         });
-        *col += w;
-    }
+    });
 }
 
 /// Render the status line at `top_row`. `now_ms` drives the spinner (0 in
@@ -71,7 +103,10 @@ pub(crate) fn block_cells(pane: &ChatPane, cols: u16, top_row: u16, now_ms: u64)
     let Some(s) = &pane.swarm else {
         return Vec::new();
     };
-    if s.tasks.is_empty() {
+    if !line_fits(pane, cols) {
+        // Genuinely no room, even for the prefix + counter alone — drop the
+        // whole line rather than emit anything that could overlap.
+        // `swarm_rows` runs the identical check so the row budget agrees.
         return Vec::new();
     }
     let theme = crew_theme::theme();
@@ -79,6 +114,7 @@ pub(crate) fn block_cells(pane: &ChatPane, cols: u16, top_row: u16, now_ms: u64)
 
     let (done, total) = s.settled();
     let counter = format!("{done}/{total}");
+    let counter_w = counter.len() as u16;
     let focused = focus(s);
     let title_src = match focused {
         Some((t, _)) => t.title.as_str(),
@@ -107,48 +143,82 @@ pub(crate) fn block_cells(pane: &ChatPane, cols: u16, top_row: u16, now_ms: u64)
         top_row,
         &crate::update::SPINNER[f].to_string(),
         crate::palette::accent(),
+        cols,
     );
-    push_str(&mut v, &mut col, top_row, " ", crate::palette::accent());
+    push_str(
+        &mut v,
+        &mut col,
+        top_row,
+        " ",
+        crate::palette::accent(),
+        cols,
+    );
+    // `line_fits` guaranteed `cols` has room for the prefix in full, so `col`
+    // is now exactly `PREFIX_END` — the leftmost column anything to the
+    // right may use.
 
-    // Reserve room for the right-aligned columns. The counter always shows;
-    // elapsed drops below ELAPSED_MIN_COLS. Each column claims exactly
-    // `len + 1` — the same budget `next_start` charges below.
-    let mut reserve = 1u16 + counter.len() as u16 + 1;
-    if let Some(e) = &elapsed {
-        reserve += e.len() as u16 + 1;
-    }
-    // Columns left for the title and its suffix. The suffix is preferred over
-    // the title — it's the only signal parallel work exists — but on a pane
-    // with room for neither it drops too, rather than overrunning `reserve`
-    // and landing on the counter.
-    let avail = cols.saturating_sub(col + reserve);
+    // Counter: right-aligned at the pane edge, floored at `col` so it can
+    // never be pushed left into the prefix on a narrow pane — the bug this
+    // replaces let pure right-edge arithmetic decide, and on a narrow enough
+    // pane it decided to land there.
+    let counter_start = cols.saturating_sub(counter_w).max(col);
+
+    // Elapsed sits one gap column left of the counter — but only if that
+    // doesn't run it back into the prefix/title area; otherwise it's
+    // dropped, same as the `ELAPSED_MIN_COLS` gate above already mostly
+    // ensures.
+    let elapsed_start = elapsed.as_ref().and_then(|e| {
+        let start = counter_start.saturating_sub(1 + e.len() as u16);
+        (start >= col).then_some(start)
+    });
+    let elapsed = elapsed.filter(|_| elapsed_start.is_some());
+
+    // Columns left for the title + suffix: everything up to one gap column
+    // before whichever of {elapsed, counter} sits leftmost. Unlike the old
+    // `reserve`/`next_start` pair — two separate expressions of the same
+    // budget that could disagree — this is just the gap between two column
+    // positions computed once, so there's nothing left to double-book.
+    let region_end = elapsed_start.unwrap_or(counter_start);
+    let title_limit = region_end.saturating_sub(1).max(col);
+    let avail = title_limit - col;
     let suffix_w = crate::chatwidth::str_w(&suffix) as u16;
+    // The suffix is preferred over the title — it's the only signal parallel
+    // work exists — but on a pane with room for neither it drops too, rather
+    // than overrunning into the counter/elapsed region.
     let (suffix, suffix_w) = if suffix_w <= avail {
         (suffix, suffix_w)
     } else {
         (String::new(), 0)
     };
-    let max_title = (avail - suffix_w) as usize;
-    // Display-width-aware clamp: `.chars().take(n)` counts chars, so a
-    // CJK/emoji title (2 display columns per glyph) could select twice as many
-    // columns as `max_title` allows, colliding with the elapsed column.
-    let title_chars: Vec<char> = title_src.chars().collect();
-    let title_end = crate::chatwidth::fit_end(&title_chars, 0, max_title);
-    let title: String = title_chars[..title_end].iter().collect();
-    push_str(&mut v, &mut col, top_row, &title, theme.text_muted);
-    push_str(&mut v, &mut col, top_row, &suffix, theme.text_muted);
+    push_str(
+        &mut v,
+        &mut col,
+        top_row,
+        title_src,
+        theme.text_muted,
+        title_limit - suffix_w,
+    );
+    push_str(
+        &mut v,
+        &mut col,
+        top_row,
+        &suffix,
+        theme.text_muted,
+        title_limit,
+    );
 
-    // Right-aligned from the pane edge, each exactly `len + 1` inside whatever
-    // sits to its right — the same per-column budget `reserve` charged above,
-    // so title and columns can never collide (an extra -1 here once
-    // double-billed the gap and overlapped the title):
-    // title ... elapsed ... counter.
-    let next_start = cols.saturating_sub(counter.len() as u16 + 1);
-    let mut ccol = next_start;
-    push_str(&mut v, &mut ccol, top_row, &counter, theme.text_muted);
-    if let Some(e) = &elapsed {
-        let mut ecol = next_start.saturating_sub(e.len() as u16 + 1);
-        push_str(&mut v, &mut ecol, top_row, e, theme.text_muted);
+    let mut ccol = counter_start;
+    push_str(&mut v, &mut ccol, top_row, &counter, theme.text_muted, cols);
+    if let (Some(e), Some(start)) = (&elapsed, elapsed_start) {
+        let mut ecol = start;
+        push_str(
+            &mut v,
+            &mut ecol,
+            top_row,
+            e,
+            theme.text_muted,
+            counter_start.saturating_sub(1),
+        );
     }
     v
 }

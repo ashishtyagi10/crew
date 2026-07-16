@@ -111,13 +111,28 @@ fn nothing_running_shows_a_working_line_with_the_counter() {
     assert!(!l.contains("task-"), "{l}");
 }
 
+/// A digit immediately followed by `s` — the elapsed column's shape. Probing
+/// for this instead of a literal substring keeps these tests from depending
+/// on word choice (`!l.contains('s')` breaks the moment `WORKING` gains an
+/// 's') or on the machine being fast enough to still read "0s" (`l.contains
+/// ("0s")` is one slow tick from a false failure).
+fn has_elapsed_pattern(s: &str) -> bool {
+    let chars: Vec<char> = s.chars().collect();
+    chars
+        .windows(2)
+        .any(|w| w[0].is_ascii_digit() && w[1] == 's')
+}
+
 #[test]
 fn the_working_line_carries_no_elapsed() {
     // Elapsed derives from a running task's `started`; there isn't one.
     let p = pane_with_swarm(2);
     let l = line(&p, 80, 5_000);
     assert!(l.contains("Working"), "{l}");
-    assert!(!l.contains('s'), "no elapsed without a running task: {l}");
+    assert!(
+        !has_elapsed_pattern(&l),
+        "no elapsed without a running task: {l}"
+    );
 }
 
 #[test]
@@ -125,7 +140,7 @@ fn running_task_with_nonzero_now_shows_elapsed() {
     let mut p = pane_with_swarm(2);
     run(&mut p, 0);
     let l = line(&p, 80, 5_000);
-    assert!(l.contains("0s"), "{l}");
+    assert!(has_elapsed_pattern(&l), "{l}");
 }
 
 #[test]
@@ -174,53 +189,124 @@ fn the_plus_suffix_survives_a_title_clamp() {
     assert!(l.contains("0/3"), "{l}");
 }
 
+/// Expands each cell to its full display-width extent (`col..col+char_w`)
+/// and asserts none overlap another, and none extend past `cols`. A plain
+/// `col` dedup — what this replaces — can't see a wide glyph straddling its
+/// neighbour: it occupies `col` AND `col+1` while emitting a single
+/// `CellView`, so two cells at adjacent `col`s can still be a real overlap.
+fn assert_no_collisions(cells: &[CellView], cols: u16, ctx: &str) {
+    let mut ranges: Vec<(u16, u16)> = cells
+        .iter()
+        .map(|c| (c.col, c.col + crate::chatwidth::char_w(c.c) as u16))
+        .collect();
+    ranges.sort_unstable();
+    for w in ranges.windows(2) {
+        assert!(
+            w[0].1 <= w[1].0,
+            "{ctx}: cells overlap at cols={cols}: {:?} vs {:?} (all: {:?})",
+            w[0],
+            w[1],
+            ranges
+        );
+    }
+    assert!(
+        ranges.iter().all(|&(_, end)| end <= cols),
+        "{ctx}: a cell escaped the pane at cols={cols}: {ranges:?}"
+    );
+}
+
+fn cjk_plan(n: u64) -> Vec<TaskSpec> {
+    (0..n)
+        .map(|i| TaskSpec {
+            id: TaskId(i),
+            title: "研究研究研究".into(),
+            agent: AgentKind::Api { system: None },
+            model: ModelTier::Cheap,
+            deps: vec![],
+            prompt: "p".into(),
+            specialty: String::new(),
+            expertise: String::new(),
+        })
+        .collect()
+}
+
 #[test]
 fn cells_never_collide_or_leave_the_pane() {
-    // `reserve` and `next_start` are two expressions of the same per-column
-    // budget; when they disagree the columns overlap the title.
-    let mut p = pane_with_swarm(5);
-    run(&mut p, 0);
-    run(&mut p, 1);
-    for cols in 8..=80u16 {
-        let cells = block_cells(&p, cols, 10, 5_000);
-        let mut seen: Vec<u16> = cells.iter().map(|c| c.col).collect();
-        seen.sort_unstable();
-        let before = seen.len();
-        seen.dedup();
-        assert_eq!(
-            before,
-            seen.len(),
-            "two glyphs share a column at cols={cols}"
-        );
-        assert!(
-            cells.iter().all(|c| c.col < cols),
-            "a cell escaped the pane at cols={cols}"
-        );
+    // Covers narrow-to-wide panes (from 0, not just 8 — there's no minimum
+    // pane-width guard upstream), ASCII and CJK titles, and with/without the
+    // `+N` suffix. `reserve`/`next_start`-style arithmetic used to be able to
+    // disagree; the fix must make overlap structurally impossible instead.
+    let cases: [(&str, ChatPane); 4] = [
+        ("ascii, no suffix", {
+            let mut p = pane_with_swarm(5);
+            run(&mut p, 0);
+            p
+        }),
+        ("ascii, +N suffix", {
+            let mut p = pane_with_swarm(5);
+            run(&mut p, 0);
+            run(&mut p, 1);
+            p
+        }),
+        ("CJK, no suffix", {
+            let mut p = pane();
+            p.absorb_hive_plan(cjk_plan(5));
+            run(&mut p, 0);
+            p
+        }),
+        ("CJK, +N suffix", {
+            let mut p = pane();
+            p.absorb_hive_plan(cjk_plan(5));
+            run(&mut p, 0);
+            run(&mut p, 1);
+            p
+        }),
+    ];
+    for (label, p) in &cases {
+        for cols in 0..=80u16 {
+            let cells = block_cells(p, cols, 10, 5_000);
+            assert_no_collisions(&cells, cols, *label);
+        }
     }
 }
 
 #[test]
-fn wide_glyph_titles_advance_by_display_width() {
+fn wide_glyph_title_never_overruns_the_counter() {
+    // Finding-1 regression: cols=8, a single-task counter "0/1" (len 3), and
+    // a CJK title. `avail` computes to 0 here, and `fit_end`'s stall guard
+    // used to force one glyph through regardless, straddling into the
+    // counter column.
     let mut p = pane();
-    let tasks = vec![TaskSpec {
+    p.absorb_hive_plan(cjk_plan(1));
+    run(&mut p, 0);
+    let cells = block_cells(&p, 8, 10, 5_000);
+    assert_no_collisions(&cells, 8, "CJK title at cols=8");
+}
+
+#[test]
+fn wide_glyph_titles_advance_by_display_width() {
+    // Each CJK glyph occupies 2 display columns; the char after one must
+    // land exactly 2 columns later, not 1 (a char-count advance would
+    // overlap the glyph's second cell). This is a property about *where*
+    // cells land, not just that they don't collide — a naive "advance by 1"
+    // implementation could still emit distinct, in-pane `col`s and pass a
+    // collision check while getting every position wrong.
+    let mut p = pane();
+    p.absorb_hive_plan(vec![TaskSpec {
         id: TaskId(0),
-        title: "研究研究研究".into(),
+        title: "日本x".into(),
         agent: AgentKind::Api { system: None },
         model: ModelTier::Cheap,
         deps: vec![],
         prompt: "p".into(),
         specialty: String::new(),
         expertise: String::new(),
-    }];
-    p.absorb_hive_plan(tasks);
+    }]);
     run(&mut p, 0);
-    for cols in 8..=80u16 {
-        let cells = block_cells(&p, cols, 10, 5_000);
-        let mut seen: Vec<u16> = cells.iter().map(|c| c.col).collect();
-        seen.sort_unstable();
-        let before = seen.len();
-        seen.dedup();
-        assert_eq!(before, seen.len(), "CJK title overlapped at cols={cols}");
-        assert!(cells.iter().all(|c| c.col < cols), "escaped at cols={cols}");
-    }
+    let cells = block_cells(&p, 80, 5, 0);
+    let ja0 = cells.iter().find(|c| c.c == '日').unwrap();
+    let ja1 = cells.iter().find(|c| c.c == '本').unwrap();
+    let x = cells.iter().find(|c| c.c == 'x').unwrap();
+    assert_eq!(ja1.col, ja0.col + 2);
+    assert_eq!(x.col, ja1.col + 2);
 }
