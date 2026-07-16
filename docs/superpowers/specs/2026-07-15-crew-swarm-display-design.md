@@ -170,7 +170,8 @@ the counter survives below `ELAPSED_MIN_COLS`.
 | `:363` asserts no `"timeline"` | delete (vacuous) |
 | `:379` running task's bar reaches the edge | delete; its back-dated `run_started` is the model for a new total test |
 | `:436` per-task cost + run total | update: pass `Some(3_200)`; `Σ 13.0k tok · $0.04` → `Σ 13.0k tok · $0.04 · 3.2s` |
-| `:463` costless runs keep the old shape | unchanged — its `done_task` fixture has `tokens: 0`, so the new gate still yields no Σ |
+| `:463` costless runs keep the old shape | delete — `:303` plus the new zero-consumption test cover its fixture, and "costless" no longer describes what suppresses Σ |
+| *new* `a_run_that_consumed_nothing_gets_no_sigma_line` | `Some(…)` with no tokens and no cost yields no Σ — the second half of the gate |
 | `:264, :282, :303` | unchanged; pass `None` → no Σ |
 | `:99, :248` | unchanged; `contains`-based and zero-consumption respectively |
 | *new* `keyless_runs_get_a_sigma_line_without_cost` | a run with tokens but no cost folds to `Σ 12.4k tok · 3.2s` — the requirement `:463` does *not* cover |

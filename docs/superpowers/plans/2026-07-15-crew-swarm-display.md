@@ -726,23 +726,14 @@ Update the three direct callers to pass `None` — `:279`, `:297-300`, `:318`:
     assert_eq!(s.record_text(None), "- \u{2713} research");
 ```
 
-And `costless_runs_keep_the_old_record_shape` (`:463`) — update its call at `:471` and sharpen the comment, since it now passes for a subtly different reason (`done_task` has `tokens: 0`, so the new gate finds nothing to summarise):
+Finally, **delete `costless_runs_keep_the_old_record_shape` (`:463-474`)**. Its fixture is `None` + no tokens + no cost, which `record_text_omits_suffix_when_elapsed_is_none` (`:303`) and the new `a_run_that_consumed_nothing_gets_no_sigma_line` now cover between them. Its name also stops being true: "costless" is no longer what suppresses Σ — consuming nothing is. The four cases that matter are each covered exactly once:
 
-```rust
-#[test]
-fn costless_runs_keep_the_old_record_shape() {
-    // No cost and no tokens: nothing for Σ to say.
-    let run_started = Instant::now();
-    let s = SwarmStatus {
-        tasks: vec![done_task(0, "solo", run_started, 5_000)],
-        agent_task: Default::default(),
-        run_started,
-    };
-    let text = s.record_text(None);
-    assert!(!text.contains('$'), "{text}");
-    assert!(!text.contains('\u{03a3}'), "{text}");
-}
-```
+| `run_ms` | tokens | cost | Σ? | test |
+|---|---|---|---|---|
+| `None` | 12.4k | 0 | no | `:282` |
+| `Some` | 0 | 0 | no | `a_run_that_consumed_nothing_gets_no_sigma_line` |
+| `Some` | 12.4k | 0 | `Σ … tok · 3.2s` | `keyless_runs_get_a_sigma_line_without_cost` |
+| `Some` | 13.0k | $0.04 | `Σ … tok · $0.04 · 3.2s` | `:436` |
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
