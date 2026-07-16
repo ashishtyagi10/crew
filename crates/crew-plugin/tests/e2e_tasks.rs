@@ -3,11 +3,13 @@
 //! "busy" rejection), `/tasks` and `/stop [#N]` address them by id, and each
 //! task's streamed relay `Message` events carry a `meta: "task:<id>"` tag.
 mod common;
-use common::{messages, run_broker, unique_dir, PluginEvent};
+use common::{messages, run_broker, seed_specialists, unique_dir, PluginEvent};
 
 // `@`-addressed so they route to the relay (these pin the task-pool machinery
 // and relay-leg `task:<id>` meta tagging; a plain message is now the default
-// swarm, whose replies aren't relay legs).
+// swarm, whose replies aren't relay legs). `planner` must be seeded into each
+// test's isolated store first — see `seed_specialists` (there is no inbuilt
+// roster).
 const SEND_A: &str = r#"{"type":"send","channel":"crew","text":"@planner do task a"}"#;
 const SEND_B: &str = r#"{"type":"send","channel":"crew","text":"@planner do task b"}"#;
 const TASKS: &str = r#"{"type":"send","channel":"crew","text":"/tasks"}"#;
@@ -17,6 +19,7 @@ const STOP_999: &str = r#"{"type":"send","channel":"crew","text":"/stop #999"}"#
 #[test]
 fn two_sends_both_start_as_separate_tasks_not_busy() {
     let dir = unique_dir("tasks-concurrent");
+    seed_specialists(&dir, &["planner"]);
     let mock = ("CREW_BROKER_MOCK_REPLY", "did it\n@done");
     let ev = run_broker(&dir, &[mock], &[SEND_A, SEND_B]);
     let msgs = messages(&ev);
@@ -90,6 +93,7 @@ fn tasks_lists_running_and_reports_idle_when_none_are() {
     // per the harness's determinism note: the synchronous "started" lines are
     // emitted before spawn, so they always appear in order).
     let dir2 = unique_dir("tasks-list-started");
+    seed_specialists(&dir2, &["planner"]);
     let ev2 = run_broker(&dir2, &[mock], &[SEND_A, SEND_B]);
     let msgs2 = messages(&ev2);
     assert!(
@@ -119,6 +123,7 @@ fn stop_reports_unknown_id_and_idle_deterministically() {
     // `/stop #999` for an id that never existed → always "no task #999",
     // regardless of whether the prior Send has finished.
     let dir = unique_dir("tasks-stop-unknown");
+    seed_specialists(&dir, &["planner"]);
     let mock = ("CREW_BROKER_MOCK_REPLY", "did it\n@done");
     let ev = run_broker(&dir, &[mock], &[SEND_A, STOP_999]);
     let msgs = messages(&ev);
@@ -144,6 +149,7 @@ fn stop_reports_unknown_id_and_idle_deterministically() {
 #[test]
 fn relay_message_events_carry_the_task_meta_tag() {
     let dir = unique_dir("tasks-meta");
+    seed_specialists(&dir, &["planner"]);
     let mock = ("CREW_BROKER_MOCK_REPLY", "did it\n@done");
     let ev = run_broker(&dir, &[mock], &[SEND_A]);
     // `messages()` drops `meta`, so walk the raw events for the tag. Assert the
