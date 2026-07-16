@@ -139,6 +139,9 @@ mod status;
 mod suggest;
 mod swarm;
 mod swarmpane;
+#[cfg(test)]
+#[path = "swarmshot_tests.rs"]
+mod swarmshot_tests;
 mod termwrite;
 mod toggles;
 mod tui;

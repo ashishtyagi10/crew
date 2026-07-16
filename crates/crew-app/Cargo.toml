@@ -52,3 +52,9 @@ objc2-app-kit = { version = "0.3", default-features = false, features = ["std", 
 
 [dev-dependencies]
 tempfile = "3"
+# Offscreen render check (`swarm_shot`, #[ignore]d): draws a real mid-run chat
+# pane through the same CellGrid the app uses and writes a PNG, so the layout
+# can be verified with real fonts and no window — the GUI harness needs macOS
+# Accessibility + Screen Recording, which CI and headless sessions lack.
+wgpu.workspace = true
+pollster = "0.4"
