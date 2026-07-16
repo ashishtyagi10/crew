@@ -2,7 +2,7 @@
 //! block, `Hive` telemetry updates it, and when every task reaches a terminal
 //! state the block folds into a transcript message — the durable record of
 //! the run. Live rendering lives in `chatswarmview`; the folded record (task
-//! list + timeline) in `chatswarmrec`.
+//! list + Σ totals) in `chatswarmrec`.
 use std::collections::HashMap;
 use std::time::Instant;
 
@@ -35,7 +35,8 @@ pub(crate) struct SwarmStatus {
     pub tasks: Vec<SwarmTask>,
     /// agent id → task id (from `AgentSpawned`) — `TokenDelta` only names agents.
     agent_task: HashMap<u64, TaskId>,
-    /// When the plan arrived — the timeline's zero point (`chatswarmrec`).
+    /// When the plan arrived — the zero point for the run's wall-clock
+    /// duration on the folded record's Σ line (`chatswarmrec`).
     pub(crate) run_started: Instant,
 }
 
@@ -175,9 +176,10 @@ impl ChatPane {
         if self.scroll > 0 {
             self.unread += 1;
         }
+        let run_ms = s.run_started.elapsed().as_millis() as u64;
         self.push_capped(Message {
             sender: "crew".into(),
-            text: s.record_text(),
+            text: s.record_text(Some(run_ms)),
             ts: String::new(),
             meta: String::new(),
         });

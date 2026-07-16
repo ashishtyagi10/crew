@@ -45,7 +45,6 @@ mod chatswarmrec;
 mod chatswarmview;
 mod chattheme;
 mod chattime;
-mod chattimeline;
 mod chatview;
 mod chatwidth;
 mod chords;

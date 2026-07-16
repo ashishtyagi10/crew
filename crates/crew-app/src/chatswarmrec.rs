@@ -1,18 +1,20 @@
 //! The folded swarm record: when a run ends, `chatswarm` retires the live
-//! block into a transcript message rendered here — a markdown task list plus,
-//! for concurrent runs, a `chattimeline` Gantt block showing each task's
-//! span within the run.
+//! status line into a transcript message rendered here — a markdown task list
+//! plus a Σ line totalling the run's tokens, spend and wall-clock duration.
 
 use crew_hive::TaskState;
 
 use crate::chatswarm::SwarmStatus;
 use crate::chattime::fmt_elapsed;
-use crate::chattimeline::timeline_block;
 
 impl SwarmStatus {
-    /// The block as a markdown list (+ timeline) — the transcript record on
-    /// fold.
-    pub(crate) fn record_text(&self) -> String {
+    /// The block as a markdown list — the transcript record on fold.
+    ///
+    /// `run_ms` is the run's wall-clock duration, supplied by the caller
+    /// rather than read from `run_started` here: `Instant` can't be mocked, so
+    /// reading the clock inside would make every test's Σ line read "0.0s".
+    /// `None` omits the duration.
+    pub(crate) fn record_text(&self, run_ms: Option<u64>) -> String {
         let mut out = self
             .tasks
             .iter()
@@ -37,40 +39,21 @@ impl SwarmStatus {
             .join("\n");
         // Run totals — the only place the whole run's spend surfaces in chat
         // (the broker's aggregate Stats carries tokens but not cost).
+        //
+        // Gated on the run having consumed something: a run cancelled before
+        // it started would otherwise summarise itself as "Σ 0 tok · 0.0s".
+        // Cost is absent on keyless/stub runs, which still report tokens — so
+        // those get a Σ line, just without the `$` part.
         let cost: u64 = self.tasks.iter().map(|t| t.cost_micros).sum();
-        if cost > 0 {
-            let tok: u64 = self.tasks.iter().map(|t| t.tokens).sum();
-            out.push_str(&format!(
-                "\n\n\u{03a3} {} tok \u{00b7} {}",
-                fmt_tok(tok),
-                fmt_cost(cost)
-            ));
-        }
-        if let Some(tl) = timeline_block(&self.spans()) {
-            out.push_str("\n\n");
-            out.push_str(&tl);
+        let tok: u64 = self.tasks.iter().map(|t| t.tokens).sum();
+        if let Some(ms) = run_ms.filter(|_| tok > 0 || cost > 0) {
+            out.push_str(&format!("\n\n\u{03a3} {} tok", fmt_tok(tok)));
+            if cost > 0 {
+                out.push_str(&format!(" \u{00b7} {}", fmt_cost(cost)));
+            }
+            out.push_str(&format!(" \u{00b7} {}", fmt_elapsed(ms)));
         }
         out
-    }
-
-    /// Per-task `(title, Some((start_ms, end_ms)))` offsets within the run,
-    /// `None` when the task never started. A task still running at fold time
-    /// (error-path fold) closes at "now" — an honest partial bar.
-    fn spans(&self) -> Vec<(String, Option<(u64, u64)>)> {
-        self.tasks
-            .iter()
-            .map(|t| {
-                let span = t.started.map(|s| {
-                    let start = s.duration_since(self.run_started).as_millis() as u64;
-                    let end = match t.elapsed_ms {
-                        Some(e) => start + e,
-                        None => self.run_started.elapsed().as_millis() as u64,
-                    };
-                    (start, end.max(start))
-                });
-                (t.title.clone(), span)
-            })
-            .collect()
     }
 }
 
