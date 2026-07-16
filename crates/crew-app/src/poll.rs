@@ -41,6 +41,13 @@ impl CrewApp {
         // Font rotation: same 10-minute clock as the theme rotation. The pick
         // updates the renderer only — config.font_family stays pinned.
         self.tick_font_rotation(now_ms);
+        // Then the theme's own font, if the theme changed since last tick.
+        // Deliberately LAST: both hang off the same 10-minute clock, so on a
+        // rotation tick both fire and the theme's font must land on top. This
+        // one place catches every theme-change path (`/theme`, the picker,
+        // Ctrl+Shift+L, the rotation tick) rather than four call sites each
+        // remembering to do it.
+        self.tick_theme_font();
         //
         // Drain EVERY pane each tick. A `for` loop (not `any()`/`fold`) so all
         // panes are polled for their side effects — `any()` would short-circuit

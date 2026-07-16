@@ -12,6 +12,11 @@ pub(crate) struct FontRotate {
     pub last_ms: u64,
     pub pool: Option<Vec<String>>,
     pub current: Option<String>,
+    /// The theme whose font was last applied. `poll` compares the live theme
+    /// against this to notice a change ONCE, whatever caused it (`/theme`, the
+    /// picker, `Ctrl+Shift+L`, or the rotation tick) — four call sites would
+    /// otherwise each need to remember to apply the theme's font.
+    pub themed: Option<crew_theme::ThemeId>,
 }
 
 impl FontRotate {

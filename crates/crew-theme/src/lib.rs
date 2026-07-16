@@ -5,6 +5,9 @@
 //! no knowledge of the other crates — they import this one.
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
 
+mod fonts;
+pub use fonts::font_prefs;
+
 /// Every colour the UI draws with. RGB triples; `ansi` is the 16-slot terminal
 /// palette (indices 0–15) used for shell output.
 #[derive(Clone, Copy, Debug)]

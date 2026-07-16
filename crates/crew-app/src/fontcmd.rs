@@ -87,6 +87,45 @@ impl CrewApp {
             .or_else(|| self.config.font_family.clone())
     }
 
+    /// The first family in `prefs` that is actually installed.
+    ///
+    /// Themes state a preference, not a font: a family that isn't installed
+    /// makes fontdb substitute a proportional face and cell rounding then
+    /// mangles every glyph. `None` = none of them are here, and the caller
+    /// must leave the font alone rather than guess.
+    pub(crate) fn resolve_family(&mut self, prefs: &[&str]) -> Option<String> {
+        let pool = self.font_pool();
+        prefs
+            .iter()
+            .find(|want| pool.iter().any(|have| have == *want))
+            .map(|s| s.to_string())
+    }
+
+    /// Apply the live theme's font when the theme has changed since last tick.
+    /// Returns whether a family was applied.
+    ///
+    /// Ordered AFTER `tick_font_rotation` in `poll_panes` so that when both
+    /// fire on the same tick — which they will, since both hang off the same
+    /// 10-minute clock — the theme's font lands on top. Every other tick each
+    /// simply wins by being the most recent event.
+    pub(crate) fn tick_theme_font(&mut self) -> bool {
+        let id = crew_theme::current_id();
+        if self.font_rotate.themed == Some(id) {
+            return false;
+        }
+        // Stamp first: an unresolvable preference must not retry every tick at
+        // ~62 Hz, and a theme with no installed pick keeps the current font.
+        self.font_rotate.themed = Some(id);
+        let Some(fam) = self.resolve_family(crew_theme::font_prefs(id)) else {
+            return false;
+        };
+        if self.current_family().as_deref() == Some(fam.as_str()) {
+            return false; // already showing it — don't churn the atlas
+        }
+        self.apply_rotated_family(fam);
+        true
+    }
+
     /// Rotate the font if a rotation is due at `now_ms`; returns whether a new
     /// family was applied.
     ///
@@ -196,6 +235,123 @@ mod tests {
         app.font_rotate.current = Some("Menlo".into());
         app.font_rotate.last_ms = 0;
         app
+    }
+
+    #[test]
+    fn a_theme_change_applies_that_themes_font() {
+        let _g = crate::app::theme_test_guard();
+        let mut app = rotating_app();
+        // Pool holds a face the CRT themes prefer and one they don't.
+        app.font_rotate.pool = Some(vec!["Andale Mono".into(), "IBM Plex Mono".into()]);
+        crew_theme::apply_selection(
+            crew_theme::Selection::Fixed(crew_theme::ThemeId::CrtGreen),
+            0,
+        );
+        assert!(app.tick_theme_font(), "a theme change must apply its font");
+        assert_eq!(app.font_rotate.current.as_deref(), Some("Andale Mono"));
+
+        // Switching theme switches font.
+        crew_theme::apply_selection(
+            crew_theme::Selection::Fixed(crew_theme::ThemeId::PaperDark),
+            0,
+        );
+        assert!(app.tick_theme_font());
+        assert_eq!(app.font_rotate.current.as_deref(), Some("IBM Plex Mono"));
+    }
+
+    #[test]
+    fn the_theme_font_is_applied_once_not_every_tick() {
+        // poll runs at ~62 Hz; re-applying a family every tick would churn the
+        // glyph atlas for nothing.
+        let _g = crate::app::theme_test_guard();
+        let mut app = rotating_app();
+        app.font_rotate.pool = Some(vec!["Andale Mono".into()]);
+        crew_theme::apply_selection(
+            crew_theme::Selection::Fixed(crew_theme::ThemeId::CrtGreen),
+            0,
+        );
+        assert!(app.tick_theme_font(), "first tick applies");
+        assert!(!app.tick_theme_font(), "second tick must be a no-op");
+        assert!(!app.tick_theme_font());
+    }
+
+    #[test]
+    fn a_rotation_pick_survives_later_ticks_of_an_unchanged_theme() {
+        // The heart of the temporal rule: a theme change sets the font, but
+        // the NEXT rotation overrides it and must then stick. If
+        // `tick_theme_font` re-applied on every tick rather than only on a
+        // change, it would stamp the theme's font back ~62 times a second and
+        // the rotation could never win — "both" would collapse to "theme
+        // only". The `is_applied_once` test above cannot see this: its second
+        // guard (already-showing-it) masks a missing change check.
+        let _g = crate::app::theme_test_guard();
+        let mut app = rotating_app();
+        app.font_rotate.pool = Some(vec!["Andale Mono".into(), "IBM Plex Mono".into()]);
+        crew_theme::apply_selection(
+            crew_theme::Selection::Fixed(crew_theme::ThemeId::CrtGreen),
+            0,
+        );
+        app.tick_theme_font();
+        assert_eq!(app.font_rotate.current.as_deref(), Some("Andale Mono"));
+
+        // 10 minutes on, the rotation picks the other face.
+        app.font_rotate.last_ms = 0;
+        assert!(app.tick_font_rotation(crew_theme::ROTATE_MS));
+        assert_eq!(app.font_rotate.current.as_deref(), Some("IBM Plex Mono"));
+
+        // Many more ticks with the theme unchanged: the pick must stand.
+        for _ in 0..5 {
+            assert!(!app.tick_theme_font(), "no theme change — nothing to do");
+        }
+        assert_eq!(
+            app.font_rotate.current.as_deref(),
+            Some("IBM Plex Mono"),
+            "the theme stamped its font back over a live rotation"
+        );
+    }
+
+    #[test]
+    fn a_theme_whose_fonts_are_all_missing_changes_nothing() {
+        // A family that isn't installed makes fontdb substitute a PROPORTIONAL
+        // face, and cell rounding then mangles every glyph — so an
+        // unresolvable preference must leave the font alone, not guess.
+        let _g = crate::app::theme_test_guard();
+        let mut app = rotating_app();
+        app.font_rotate.pool = Some(vec!["Nothing The Theme Wants".into()]);
+        app.font_rotate.current = Some("Nothing The Theme Wants".into());
+        crew_theme::apply_selection(
+            crew_theme::Selection::Fixed(crew_theme::ThemeId::CrtGreen),
+            0,
+        );
+        assert!(!app.tick_theme_font(), "must not apply an absent family");
+        assert_eq!(
+            app.font_rotate.current.as_deref(),
+            Some("Nothing The Theme Wants"),
+            "font must be left exactly as it was"
+        );
+    }
+
+    #[test]
+    fn the_theme_font_beats_the_rotation_on_a_shared_tick() {
+        // Both hang off the same 10-minute clock, so they fire together on
+        // every rotation. `poll_panes` runs the theme font last for exactly
+        // this: the theme wins the tie.
+        let _g = crate::app::theme_test_guard();
+        let mut app = rotating_app();
+        app.font_rotate.pool = Some(vec!["Andale Mono".into(), "IBM Plex Mono".into()]);
+        app.font_rotate.current = Some("IBM Plex Mono".into());
+        crew_theme::apply_selection(
+            crew_theme::Selection::Fixed(crew_theme::ThemeId::CrtGreen),
+            0,
+        );
+
+        app.tick_font_rotation(crew_theme::ROTATE_MS); // rotation picks something
+        app.tick_theme_font(); // …the theme overrides it
+        assert_eq!(
+            app.font_rotate.current.as_deref(),
+            Some("Andale Mono"),
+            "the theme's font must land on top of the rotation's pick"
+        );
     }
 
     #[test]

@@ -309,9 +309,24 @@ impl CrewApp {
         // A manual family pick in Settings stops rotation; otherwise a live
         // rotation keeps its current pick on top of the re-applied config.
         if self.config.font_family != old_family {
+            // Say so. This used to flip the flag silently, and the natural
+            // reaction to a rotated pick you dislike — pinning your own font
+            // back — is exactly what lands here, so rotation died without a
+            // word and looked like "/font random only works once".
+            let was_rotating = self.font_rotate.on;
             self.font_rotate.on = false;
             self.font_rotate.current = None;
             self.config.font_random = false;
+            if was_rotating {
+                let fam = self
+                    .config
+                    .font_family
+                    .clone()
+                    .unwrap_or_else(|| "system monospace".to_string());
+                self.set_status(format!(
+                    "font pinned: {fam} — rotation off (/font random to resume)"
+                ));
+            }
         } else if let (true, Some(fam)) = (self.font_rotate.on, self.font_rotate.current.clone()) {
             if let Some(r) = &mut self.renderer {
                 r.set_font_family(Some(fam));

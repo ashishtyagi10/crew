@@ -51,6 +51,43 @@ fn manual_family_change_disables_rotation() {
     assert!(!app.font_rotate.on, "explicit family pick stops rotation");
 }
 
+#[test]
+fn pinning_a_family_says_it_stopped_rotation() {
+    // It used to stop silently — and pinning your own font back is the natural
+    // reaction to a rotated pick you dislike, so rotation died without a word
+    // and the feature read as "/font random only works once".
+    let _g = crate::app::theme_test_guard();
+    let mut app = CrewApp::default();
+    app.font_rotate.on = true;
+    let mut cfg = app.config.clone();
+    cfg.font_family = Some("Menlo".to_string());
+    app.apply_config(cfg);
+    let status = app.active_status().unwrap_or_default();
+    assert!(status.contains("Menlo"), "{status}");
+    assert!(status.contains("rotation off"), "{status}");
+}
+
+#[test]
+fn a_config_apply_that_does_not_touch_the_family_says_nothing() {
+    // Only a genuine pin should report; every Settings save re-applies the
+    // config, and a status line that fires on each one is noise.
+    let _g = crate::app::theme_test_guard();
+    let mut app = CrewApp::default();
+    app.font_rotate.on = true;
+    let cfg = CrewConfig {
+        font_size: 19.0,
+        ..app.config.clone()
+    };
+    app.apply_config(cfg);
+    assert!(
+        !app.active_status()
+            .unwrap_or_default()
+            .contains("rotation off"),
+        "a font-size change is not a pin"
+    );
+    assert!(app.font_rotate.on, "…and must not stop rotation");
+}
+
 /// An unrelated config touch must not re-roll the theme.
 ///
 /// `apply_selection(Mode(..))` re-picks a theme AND restarts the 10-minute
