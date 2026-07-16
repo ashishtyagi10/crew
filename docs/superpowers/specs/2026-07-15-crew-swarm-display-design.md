@@ -114,11 +114,21 @@ keyed:    Σ 9.9k tok · $0.09 · 64.2s
 keyless:  Σ 9.9k tok · 64.2s
 ```
 
-**The Σ gate becomes `cost > 0 || run_ms.is_some()`.** Today it is `cost > 0`,
-so a costless run (stub provider, keyless project) gets no Σ at all and would
-lose its total. Gating on cost-or-time fixes that. It must *not* be gated on
-tokens: four tests (`chatswarm_tests.rs:99, 264, 282, 303`) `assert_eq!` on
-`record_text`'s entire output and would grow a Σ line they never asserted.
+**The Σ gate becomes `run_ms.is_some() && (tok > 0 || cost > 0)`.** Today it is
+`cost > 0`, so a costless run (stub provider, keyless project) gets no Σ at all
+and loses its total. A keyless run still reports `TokenDelta`, so gating on
+tokens-or-cost restores its Σ — without the `$` segment.
+
+Both halves of the gate are load-bearing:
+
+- **`run_ms.is_some()`** — three tests (`chatswarm_tests.rs:264, 282, 303`)
+  call `record_text` directly and `assert_eq!` on its entire output. They pass
+  `None` and must not grow a Σ line they never asserted.
+- **`tok > 0 || cost > 0`** — `cancelled_before_start_leaves_elapsed_none`
+  (`:248`) folds a run cancelled straight out of `Pending`: no tokens, no cost,
+  and it `assert_eq!`s the whole record as `"- ⊘ research"`. Without this half,
+  the fold path supplies `Some(…)` and emits `Σ 0 tok · 0.0s` — a summary of
+  nothing. A run that consumed nothing gets no Σ.
 
 **The total is wall-clock, passed in.** `record_text` takes
 `run_ms: Option<u64>`. `fold_swarm` (`chatswarm.rs:159`) supplies
@@ -159,9 +169,11 @@ the counter survives below `ELAPSED_MIN_COLS`.
 | `:336` timeline appended for concurrent runs | delete |
 | `:363` asserts no `"timeline"` | delete (vacuous) |
 | `:379` running task's bar reaches the edge | delete; its back-dated `run_started` is the model for a new total test |
-| `:436` per-task cost + run total | update: `Σ 13.0k tok · $0.04` → `· 3.2s` |
-| `:463` costless runs keep the old shape | update and flip: a costless run now *does* get Σ, without the `$` |
-| `:99, :264, :282, :303` | unchanged; pass `None`, cost 0, so no Σ |
+| `:436` per-task cost + run total | update: pass `Some(3_200)`; `Σ 13.0k tok · $0.04` → `Σ 13.0k tok · $0.04 · 3.2s` |
+| `:463` costless runs keep the old shape | unchanged — its `done_task` fixture has `tokens: 0`, so the new gate still yields no Σ |
+| `:264, :282, :303` | unchanged; pass `None` → no Σ |
+| `:99, :248` | unchanged; `contains`-based and zero-consumption respectively |
+| *new* `keyless_runs_get_a_sigma_line_without_cost` | a run with tokens but no cost folds to `Σ 12.4k tok · 3.2s` — the requirement `:463` does *not* cover |
 
 **`chattimeline_tests.rs`** — deleted with the module (8 tests).
 
