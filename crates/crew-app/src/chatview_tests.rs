@@ -24,6 +24,74 @@ fn test_pane(messages: Vec<Message>) -> ChatPane {
     pane
 }
 
+/// The empty-state card must yield the rows the live-run surfaces claim.
+///
+/// `empty_cells` was handed `rows - bottom` as its max row while the status
+/// line, queued indicator and bar budget `rows - (bottom + prog + queued)` —
+/// so on an empty transcript with a live run (which is exactly when a run
+/// starts: the plan lands before any reply) the onboarding text drew straight
+/// through them. Last-write-wins made it a garbled interleave, not a clean
+/// overdraw.
+#[test]
+fn empty_state_card_never_collides_with_a_live_runs_rows() {
+    use crew_hive::{AgentKind, ModelTier, TaskId, TaskSpec};
+    let mut pane = test_pane(vec![]);
+    pane.connected = true;
+    let tasks = (0..4)
+        .map(|i| TaskSpec {
+            id: TaskId(i),
+            title: format!("task-{i}"),
+            agent: AgentKind::Api { system: None },
+            model: ModelTier::Cheap,
+            deps: vec![],
+            prompt: "p".into(),
+            specialty: String::new(),
+            expertise: String::new(),
+        })
+        .collect();
+    pane.absorb_hive_plan(tasks);
+    pane.absorb_hive(&HiveEvent::TaskStateChanged {
+        task: TaskId(0),
+        state: TaskState::Running,
+    });
+
+    for rows in 10..=24u16 {
+        for cols in [40u16, 60, 80] {
+            let cells = pane.cells(cols, rows);
+            // Rows the live run owns: the status line, the bar, and the
+            // queued indicator when showing. Nothing from the empty-state
+            // card may share a row with them.
+            let bottom = crate::chatinput::composer_rows(&pane.input, cols, rows);
+            let prog = crate::chatprog::progress_rows(&pane, cols);
+            let block_max = rows.saturating_sub(bottom + prog);
+            let line_rows: std::collections::HashSet<u16> =
+                crate::chatswarmview::block_cells(&pane, cols, block_max.saturating_sub(1), 0)
+                    .iter()
+                    .map(|c| c.row)
+                    .collect();
+            if line_rows.is_empty() {
+                continue; // pane too narrow for the line at all
+            }
+            // The empty card's own glyphs: everything the pane draws that the
+            // status line and bar did not.
+            let bar_row = rows.saturating_sub(bottom + prog);
+            for c in &cells {
+                if line_rows.contains(&c.row) || c.row == bar_row {
+                    // A cell on a live-run row must BE the live run's — the
+                    // card must not have reached down here.
+                    assert!(
+                        c.c != '·' && c.c != '❯',
+                        "empty-state card glyph {:?} landed on a live-run row \
+                         {} at cols={cols} rows={rows}",
+                        c.c,
+                        c.row
+                    );
+                }
+            }
+        }
+    }
+}
+
 #[test]
 fn empty_pane_swarm_block_never_draws_above_the_status_rows() {
     // A very short pane with a saturated (8-task) swarm block and no

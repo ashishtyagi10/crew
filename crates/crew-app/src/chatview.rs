@@ -160,13 +160,6 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
         .saturating_sub(bottom + prog_rows + queued_rows)
         .max(top);
     if pane.messages.is_empty() {
-        cells.extend(crate::chatempty::empty_cells(
-            cols,
-            rows - bottom,
-            top,
-            pane.connected,
-            &pane.agents,
-        ));
         // A run can start before any reply lands — the plan-summary message
         // usually exists by fold time, but don't rely on it here. The block's
         // rows are clamped to strictly above the composer (and the queued
@@ -180,6 +173,18 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
         let block_start = block_max
             .saturating_sub(crate::chatswarmview::swarm_rows(pane, cols))
             .max(top);
+        // The empty-state card stops where the live run begins. It used to get
+        // `rows - bottom`, which ignores the rows the status line, queued
+        // indicator and bar have already claimed — so a run starting on an
+        // empty transcript (i.e. every run) interleaved the onboarding text
+        // with them. With no live run all three are 0 and this is unchanged.
+        cells.extend(crate::chatempty::empty_cells(
+            cols,
+            block_start,
+            top,
+            pane.connected,
+            &pane.agents,
+        ));
         cells.extend(
             crate::chatswarmview::block_cells(pane, cols, block_start, crate::anim::now_ms())
                 .into_iter()
