@@ -23,26 +23,35 @@ const INSET: u16 = 1;
 /// The bar's geometry for `cols`, or `None` when there's no live run (or no
 /// room). Both [`progress_rows`] and [`bar_cells`] route through this, so the
 /// row a pane budgets and the row it draws can never disagree.
-fn geom(pane: &ChatPane, cols: u16) -> Option<(usize, usize, u16)> {
+///
+/// The bar's width mirrors the status line's left "words" (`chatswarmview::
+/// words_width`) rather than the whole pane, so it underlines the text instead
+/// of stretching edge to edge. `now_ms` feeds that width because the words
+/// carry a live elapsed clock; `progress_rows` passes 0 (existence is
+/// clock-independent — the words are always at least a counter wide).
+fn geom(pane: &ChatPane, cols: u16, now_ms: u64) -> Option<(usize, usize, u16)> {
     let s = pane.swarm.as_ref()?;
     let (done, total) = s.settled();
     if total == 0 {
         return None;
     }
-    let bar_w = cols.saturating_sub(INSET);
+    // Match the words; never exceed the pane (the last column is a margin).
+    let words = crate::chatswarmview::words_width(pane, cols, now_ms)?;
+    let bar_w = words.min(cols.saturating_sub(INSET));
     (bar_w >= MIN_BAR).then_some((done, total, bar_w))
 }
 
 /// Rows the progress bar claims above the composer: 1 during a live swarm run
-/// that fits, else 0.
+/// that fits, else 0. Clock-independent, so it passes `now_ms = 0`.
 pub(crate) fn progress_rows(pane: &ChatPane, cols: u16) -> u16 {
-    geom(pane, cols).is_some() as u16
+    geom(pane, cols, 0).is_some() as u16
 }
 
 /// Render the bar at `row`: filled cells in the accent, the remainder muted.
 /// The `done/total` count lives on the status line above (`chatswarmview`).
-pub(crate) fn bar_cells(pane: &ChatPane, cols: u16, row: u16) -> Vec<CellView> {
-    let Some((done, total, bar_w)) = geom(pane, cols) else {
+/// `now_ms` sizes the bar to that line's live-elapsed width.
+pub(crate) fn bar_cells(pane: &ChatPane, cols: u16, row: u16, now_ms: u64) -> Vec<CellView> {
+    let Some((done, total, bar_w)) = geom(pane, cols, now_ms) else {
         return Vec::new();
     };
     let theme = crew_theme::theme();

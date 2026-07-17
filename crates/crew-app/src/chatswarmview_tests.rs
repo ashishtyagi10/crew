@@ -34,6 +34,21 @@ fn run(p: &mut ChatPane, id: u64) {
     });
 }
 
+/// Spawn `agent` on `task` (which also marks it Running and maps the agent) and
+/// credit it `input`/`output` tokens — the only path that reaches
+/// `token_totals`, since `TokenDelta` is attributed via the agent→task map.
+fn spawn_tok(p: &mut ChatPane, agent: u64, task: u64, input: u32, output: u32) {
+    p.absorb_hive(&HiveEvent::AgentSpawned {
+        agent: crew_hive::AgentId(agent),
+        task: TaskId(task),
+    });
+    p.absorb_hive(&HiveEvent::TokenDelta {
+        agent: crew_hive::AgentId(agent),
+        input,
+        output,
+    });
+}
+
 fn line(p: &ChatPane, cols: u16, now_ms: u64) -> String {
     let cells = block_cells(p, cols, 10, now_ms);
     let mut v: Vec<_> = cells.iter().filter(|c| c.row == 10).collect();
@@ -63,7 +78,8 @@ fn the_line_names_the_running_task_and_counts_the_plan() {
     run(&mut p, 2);
     let l = line(&p, 80, 0);
     assert!(l.contains("task-2"), "{l}");
-    assert!(l.ends_with("0/5"), "{l}");
+    // The counter now lives inside the Claude-style parenthetical.
+    assert!(l.contains("(0/5)"), "{l}");
 }
 
 #[test]
@@ -107,7 +123,7 @@ fn nothing_running_shows_a_working_line_with_the_counter() {
     let p = pane_with_swarm(5);
     let l = line(&p, 80, 0);
     assert!(l.contains("Working"), "{l}");
-    assert!(l.ends_with("0/5"), "{l}");
+    assert!(l.contains("(0/5)"), "{l}");
     assert!(!l.contains("task-"), "{l}");
 }
 
@@ -350,4 +366,95 @@ fn wide_glyph_titles_advance_by_display_width() {
     let x = cells.iter().find(|c| c.c == 'x').unwrap();
     assert_eq!(ja1.col, ja0.col + 2);
     assert_eq!(x.col, ja1.col + 2);
+}
+
+// --- Claude-style status line: parenthetical, elapsed format, tokens ---
+
+#[test]
+fn elapsed_formats_minutes_past_sixty_seconds() {
+    assert_eq!(fmt_elapsed_short(0), "0s");
+    assert_eq!(fmt_elapsed_short(12), "12s");
+    assert_eq!(fmt_elapsed_short(59), "59s");
+    assert_eq!(fmt_elapsed_short(60), "1m 0s");
+    assert_eq!(fmt_elapsed_short(252), "4m 12s");
+}
+
+#[test]
+fn the_parenthetical_wraps_elapsed_count_and_parallel() {
+    // Claude-style: `{title}… (elapsed · done/total · +N)`. Two tasks run, so
+    // the oldest holds the line and the other shows as +1.
+    let mut p = pane_with_swarm(5);
+    run(&mut p, 0);
+    run(&mut p, 1);
+    let l = line(&p, 80, 5_000);
+    assert!(l.contains('('), "has a parenthetical: {l}");
+    assert!(has_elapsed_pattern(&l), "elapsed inside: {l}");
+    assert!(l.contains("0/5"), "count inside: {l}");
+    assert!(l.contains("+1"), "parallel inside: {l}");
+    assert!(l.trim_end().ends_with(')'), "closes the paren: {l}");
+    // Order within the paren: elapsed, then count, then parallel.
+    let open = l.find('(').unwrap();
+    let paren = &l[open..];
+    let count_at = paren.find("0/5").unwrap();
+    let plus_at = paren.find("+1").unwrap();
+    assert!(count_at < plus_at, "count precedes parallel: {paren}");
+}
+
+#[test]
+fn tokens_render_split_with_arrows_at_the_right_edge() {
+    let mut p = pane_with_swarm(3);
+    spawn_tok(&mut p, 7, 0, 1_200, 3_400);
+    let cells = block_cells(&p, 80, 10, 5_000);
+    let l: String = {
+        let mut v: Vec<_> = cells.iter().filter(|c| c.row == 10).collect();
+        v.sort_by_key(|c| c.col);
+        v.iter().map(|c| c.c).collect()
+    };
+    assert!(l.contains("\u{2191}1.2k"), "up arrow + input tokens: {l}");
+    assert!(
+        l.contains("\u{2193}3.4k"),
+        "down arrow + output tokens: {l}"
+    );
+    // Right-aligned: the up-arrow sits in the right half, past the words.
+    let up = cells.iter().find(|c| c.c == '\u{2191}').unwrap();
+    assert!(up.col > 40, "tokens hug the right edge: col {}", up.col);
+    let down = cells.iter().find(|c| c.c == '\u{2193}').unwrap();
+    // The pair ends flush with the pane's right margin.
+    assert!(
+        down.col > up.col,
+        "output follows input: {} {}",
+        up.col,
+        down.col
+    );
+}
+
+#[test]
+fn tokens_drop_before_the_counter_on_a_narrow_pane() {
+    // Tokens are the first sacrifice under width pressure; the counter is the
+    // last. A pane wide enough for the words but not the tokens keeps the
+    // counter and drops the ↑↓ pair entirely.
+    let mut p = pane_with_swarm(3);
+    spawn_tok(&mut p, 7, 0, 1_200, 3_400);
+    let l = line(&p, 22, 5_000);
+    assert!(l.contains("0/3"), "counter survives: {l}");
+    assert!(!l.contains('\u{2191}'), "tokens dropped: {l}");
+}
+
+#[test]
+fn the_words_are_narrower_than_a_wide_pane() {
+    // The whole point of the redesign: the bar mirrors these words, so they
+    // must not span the pane. A short title on an 80-col pane leaves slack.
+    let mut p = pane_with_swarm(3);
+    run(&mut p, 0);
+    let w = words_width(&p, 80, 5_000).unwrap();
+    assert!(w < 80, "words claim {w} of 80 columns");
+    // And `words_width` equals the block's left extent (the non-token cells).
+    let cells = block_cells(&p, 80, 10, 5_000);
+    let left_extent = cells
+        .iter()
+        .filter(|c| c.c != '\u{2191}' && c.c != '\u{2193}')
+        .map(|c| c.col + crate::chatwidth::char_w(c.c) as u16 - 1)
+        .max()
+        .unwrap();
+    assert_eq!(w, left_extent, "words_width tracks the drawn left text");
 }

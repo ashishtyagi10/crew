@@ -17,8 +17,10 @@ pub(crate) struct SwarmTask {
     pub id: TaskId,
     pub title: String,
     pub state: TaskState,
-    /// Tokens spent by the agent running this task (input + output).
-    pub tokens: u64,
+    /// Input tokens spent by the agent running this task.
+    pub tokens_in: u64,
+    /// Output tokens spent by the agent running this task.
+    pub tokens_out: u64,
     /// Micro-USD spent by the agent running this task (`CostDelta`) — 0 for
     /// stub/keyless runs, which never emit cost.
     pub cost_micros: u64,
@@ -29,6 +31,16 @@ pub(crate) struct SwarmTask {
     /// Duration captured when a terminal state is reached (`started.elapsed()`
     /// at that moment). `None` if the task never started.
     pub elapsed_ms: Option<u64>,
+}
+
+impl SwarmTask {
+    /// Total tokens spent on this task — input plus output. The folded record
+    /// (`chatswarmrec`) reports one combined figure per task; the live line
+    /// (`chatswarmview`) reports the run's `↑in ↓out` split via
+    /// [`SwarmStatus::token_totals`].
+    pub(crate) fn tokens(&self) -> u64 {
+        self.tokens_in + self.tokens_out
+    }
 }
 
 /// The whole run's live state, built from `HivePlan` and fed by `Hive` events.
@@ -51,7 +63,8 @@ impl SwarmStatus {
                     id: t.id,
                     title: t.title,
                     state: TaskState::Pending,
-                    tokens: 0,
+                    tokens_in: 0,
+                    tokens_out: 0,
                     cost_micros: 0,
                     started: None,
                     elapsed_ms: None,
@@ -86,6 +99,15 @@ impl SwarmStatus {
         (done, self.tasks.len())
     }
 
+    /// `(input, output)` tokens summed across the whole run — the live line's
+    /// `↑in ↓out`. The per-task split arrives on `TokenDelta`; this rolls it
+    /// up so the status line can show the run's spend at a glance.
+    pub(crate) fn token_totals(&self) -> (u64, u64) {
+        self.tasks
+            .iter()
+            .fold((0, 0), |(i, o), t| (i + t.tokens_in, o + t.tokens_out))
+    }
+
     pub(crate) fn apply(&mut self, ev: &HiveEvent) {
         match ev {
             HiveEvent::AgentSpawned { agent, task } => {
@@ -115,7 +137,8 @@ impl SwarmStatus {
             } => {
                 if let Some(&task) = self.agent_task.get(&agent.0) {
                     if let Some(t) = self.task_mut(task) {
-                        t.tokens += u64::from(*input) + u64::from(*output);
+                        t.tokens_in += u64::from(*input);
+                        t.tokens_out += u64::from(*output);
                     }
                 }
             }

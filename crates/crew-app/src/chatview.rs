@@ -239,7 +239,12 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
         cells.extend(crate::chatqueue::indicator_cells(pane, cols, indicator_row));
     }
     if prog_rows > 0 {
-        cells.extend(crate::chatprog::bar_cells(pane, cols, bar_row));
+        cells.extend(crate::chatprog::bar_cells(
+            pane,
+            cols,
+            bar_row,
+            crate::anim::now_ms(),
+        ));
     }
     cells.extend(crate::chatinput::composer_cells(
         &pane.input,
