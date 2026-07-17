@@ -76,14 +76,27 @@ fn empty_state_card_never_collides_with_a_live_runs_rows() {
             // status line and bar did not.
             let bar_row = rows.saturating_sub(bottom + prog);
             for c in &cells {
-                if line_rows.contains(&c.row) || c.row == bar_row {
-                    // A cell on a live-run row must BE the live run's — the
-                    // card must not have reached down here.
+                let on_live = line_rows.contains(&c.row) || c.row == bar_row;
+                if on_live {
+                    // '❯' is the composer/card prompt cursor — it never belongs
+                    // on a live-run row, whatever the row.
                     assert!(
-                        c.c != '·' && c.c != '❯',
+                        c.c != '❯',
                         "empty-state card glyph {:?} landed on a live-run row \
                          {} at cols={cols} rows={rows}",
                         c.c,
+                        c.row
+                    );
+                }
+                if c.row == bar_row {
+                    // The bar is block glyphs only, so a '·' here is a foreign
+                    // surface. (On the status line the '·' is now the swarm
+                    // parenthetical's own separator, so it's checked there by
+                    // '❯' above, not by '·'.)
+                    assert!(
+                        c.c != '·',
+                        "empty-state card bullet landed on the bar row \
+                         {} at cols={cols} rows={rows}",
                         c.row
                     );
                 }

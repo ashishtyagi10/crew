@@ -67,12 +67,17 @@ fn agent_spawned_marks_running_and_token_deltas_accumulate_via_agent_map() {
     });
 
     let s = p.swarm.as_ref().unwrap();
-    // Task 0 should be Running with 150 tokens (credited to agent 7)
+    // Task 0 should be Running, crediting agent 7's split (100 in / 50 out).
     assert_eq!(s.tasks[0].state, TaskState::Running);
-    assert_eq!(s.tasks[0].tokens, 150);
-    // Task 1 should be Running with 3 tokens (credited to agent 8, not summed into task 0)
+    assert_eq!((s.tasks[0].tokens_in, s.tasks[0].tokens_out), (100, 50));
+    assert_eq!(s.tasks[0].tokens(), 150);
+    // Task 1 should be Running with agent 8's split (1 in / 2 out), not summed
+    // into task 0.
     assert_eq!(s.tasks[1].state, TaskState::Running);
-    assert_eq!(s.tasks[1].tokens, 3);
+    assert_eq!((s.tasks[1].tokens_in, s.tasks[1].tokens_out), (1, 2));
+    assert_eq!(s.tasks[1].tokens(), 3);
+    // The run rolls both tasks' splits up for the live line's ↑in ↓out.
+    assert_eq!(s.token_totals(), (101, 52));
 }
 
 #[test]
@@ -268,7 +273,8 @@ fn record_text_appends_elapsed_suffix_when_captured() {
             id: TaskId(0),
             title: "research".into(),
             state: TaskState::Done,
-            tokens: 0,
+            tokens_in: 0,
+            tokens_out: 0,
             cost_micros: 0,
             started: None,
             elapsed_ms: Some(3_200),
@@ -286,7 +292,8 @@ fn record_text_appends_elapsed_after_the_token_part() {
             id: TaskId(0),
             title: "research".into(),
             state: TaskState::Done,
-            tokens: 12_400,
+            tokens_in: 12_400,
+            tokens_out: 0,
             cost_micros: 0,
             started: None,
             elapsed_ms: Some(900),
@@ -307,7 +314,8 @@ fn record_text_omits_suffix_when_elapsed_is_none() {
             id: TaskId(0),
             title: "research".into(),
             state: TaskState::Done,
-            tokens: 0,
+            tokens_in: 0,
+            tokens_out: 0,
             cost_micros: 0,
             started: None,
             elapsed_ms: None,
@@ -323,7 +331,8 @@ fn done_task(id: u64, title: &str, started: Instant, elapsed_ms: u64) -> SwarmTa
         id: TaskId(id),
         title: title.into(),
         state: TaskState::Done,
-        tokens: 0,
+        tokens_in: 0,
+        tokens_out: 0,
         cost_micros: 0,
         started: Some(started),
         elapsed_ms: Some(elapsed_ms),
@@ -336,7 +345,7 @@ fn keyless_runs_get_a_sigma_line_without_cost() {
     // get no Σ at all and so lost its total; it now gets one, minus the $.
     let run_started = Instant::now();
     let mut a = done_task(0, "research", run_started, 3_200);
-    a.tokens = 12_400;
+    a.tokens_in = 12_400;
     let s = SwarmStatus {
         tasks: vec![a],
         agent_task: Default::default(),
@@ -365,14 +374,14 @@ fn a_run_that_consumed_nothing_gets_no_sigma_line() {
 fn the_record_carries_no_timeline_block() {
     let run_started = Instant::now();
     let mut a = done_task(0, "research", run_started, 3_200);
-    a.tokens = 100;
+    a.tokens_in = 100;
     let mut b = done_task(
         1,
         "merge",
         run_started + Duration::from_millis(3_000),
         9_400,
     );
-    b.tokens = 100;
+    b.tokens_in = 100;
     let s = SwarmStatus {
         tasks: vec![a, b],
         agent_task: Default::default(),
@@ -419,10 +428,10 @@ fn cost_deltas_accumulate_per_task_via_the_agent_map() {
 fn record_shows_per_task_cost_and_a_run_total() {
     let run_started = Instant::now();
     let mut a = done_task(0, "research", run_started, 3_200);
-    a.tokens = 12_400;
+    a.tokens_in = 12_400;
     a.cost_micros = 3_100; // $0.0031 — sub-cent keeps 4 decimals
     let mut b = done_task(1, "merge", run_started, 900);
-    b.tokens = 600;
+    b.tokens_in = 600;
     b.cost_micros = 41_200; // $0.04 — cent-plus rounds to 2
     let s = SwarmStatus {
         tasks: vec![a, b],

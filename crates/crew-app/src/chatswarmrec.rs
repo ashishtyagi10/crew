@@ -20,8 +20,8 @@ impl SwarmStatus {
             .iter()
             .map(|t| {
                 let glyph = glyph(&t.state);
-                let mut line = if t.tokens > 0 {
-                    format!("- {glyph} {} — {} tok", t.title, fmt_tok(t.tokens))
+                let mut line = if t.tokens() > 0 {
+                    format!("- {glyph} {} — {} tok", t.title, fmt_tok(t.tokens()))
                 } else {
                     format!("- {glyph} {}", t.title)
                 };
@@ -45,7 +45,7 @@ impl SwarmStatus {
         // Cost is absent on keyless/stub runs, which still report tokens — so
         // those get a Σ line, just without the `$` part.
         let cost: u64 = self.tasks.iter().map(|t| t.cost_micros).sum();
-        let tok: u64 = self.tasks.iter().map(|t| t.tokens).sum();
+        let tok: u64 = self.tasks.iter().map(|t| t.tokens()).sum();
         if let Some(ms) = run_ms.filter(|_| tok > 0 || cost > 0) {
             out.push_str(&format!("\n\n\u{03a3} {} tok", fmt_tok(tok)));
             if cost > 0 {
