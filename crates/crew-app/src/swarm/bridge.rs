@@ -65,7 +65,7 @@ impl SwarmHandle {
                 .expect("tokio current-thread runtime");
 
             rt.block_on(async move {
-                let bus = EventBus::new(256);
+                let bus = EventBus::new(EventBus::DEFAULT_CAPACITY);
                 let sub = bus.subscribe();
                 // Build the governor future before `bus` moves into the scheduler;
                 // it gets its own clone and shares the scheduler's cancel flag.

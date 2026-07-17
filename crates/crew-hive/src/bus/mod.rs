@@ -15,6 +15,13 @@ pub struct EventBus {
 }
 
 impl EventBus {
+    /// Default ring capacity. 256 proved too tight: a fanned-out swarm
+    /// bursts TokenDelta/OutputChunk faster than a drain that is writing
+    /// JSON lines to a blocking pipe, and a lagged subscriber silently
+    /// loses telemetry. Events are small; 4096 makes overflow an anomaly
+    /// instead of a load-dependent certainty.
+    pub const DEFAULT_CAPACITY: usize = 4096;
+
     pub fn new(capacity: usize) -> Self {
         let (tx, _rx) = broadcast::channel(capacity);
         Self { tx }

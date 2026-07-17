@@ -181,7 +181,7 @@ pub(crate) fn run_with(
     // Execute: scheduler + optional budget governor + bus drain, all on this
     // thread's runtime (the pattern proven in crew-app/src/swarm/bridge.rs).
     let board = Blackboard::new();
-    let bus = EventBus::new(256);
+    let bus = EventBus::new(EventBus::DEFAULT_CAPACITY);
     let mut sub = bus.subscribe();
     let governor = budget.map(|b| budget_governor(bus.clone(), b, Arc::clone(&cancel)));
     let sched = Scheduler::new(graph.clone(), board.clone(), bus, factory, CONCURRENCY)
@@ -192,6 +192,7 @@ pub(crate) fn run_with(
     // the host as it happens instead of after the run (frozen-looking runs).
     let mut agent_task: HashMap<u64, TaskId> = HashMap::new();
     let mut tokens_total: u64 = 0;
+    let mut lagged_total: u64 = 0;
     let mut emit_err: Option<anyhow::Error> = None;
     let outcome = rt.block_on(async {
         let drain = async {
@@ -214,7 +215,13 @@ pub(crate) fn run_with(
                             emit_err = Some(e);
                         }
                     }
-                    Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => continue,
+                    // Skipping keeps the run alive, but the skips must not
+                    // be silent: per-task tokens/cost under-count after a
+                    // gap, and the user should know why.
+                    Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
+                        lagged_total += n;
+                        continue;
+                    }
                     Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
                 }
             }
@@ -226,6 +233,9 @@ pub(crate) fn run_with(
     });
     if let Some(e) = emit_err {
         return Err(e);
+    }
+    if lagged_total > 0 {
+        emit(msg("crew", lagged_note(lagged_total)))?;
     }
 
     // Final aggregate: a status line only. Sink tasks' outputs already
@@ -264,6 +274,15 @@ pub(crate) fn run_with(
         from: String::new(),
     })?;
     Ok(())
+}
+
+/// Transcript note for a telemetry overflow: the run finished, but `n`
+/// events never reached the pane, so its per-task stats under-count.
+fn lagged_note(n: u64) -> String {
+    format!(
+        "telemetry gap: {n} event{} dropped (bus overflow) \u{2014} task stats may under-count",
+        if n == 1 { "" } else { "s" }
+    )
 }
 
 #[path = "swarmmsg.rs"]

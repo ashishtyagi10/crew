@@ -530,6 +530,10 @@ fenced block mapping each task's start→end span onto a 20-cell bar
 shape and critical path stay readable long after the run ends. Tasks cancelled
 before starting are listed (`⊘`) but omitted from the timeline; a task still
 running when a broker error folds the block closes its bar at the fold moment.
+Telemetry rides a bounded broadcast bus (4096-event ring); if a burst ever
+outruns the drain, the skipped count is reported in the transcript —
+`telemetry gap: N events dropped (bus overflow)` — instead of the pane's
+per-task stats silently under-counting.
 
 Message bodies are newline-aware, and fenced ```code``` blocks render as
 bordered cards — a muted `╭─ lang` header, verbatim hard-wrapped lines on a
