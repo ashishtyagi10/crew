@@ -55,6 +55,14 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
             )
             .collect(),
         ),
+        "/crt" => Some(vec![
+            ("on".to_string(), "force the CRT tube look on".to_string()),
+            ("off".to_string(), "force the CRT tube look off".to_string()),
+            (
+                "auto".to_string(),
+                "follow the theme (on for crt-* themes)".to_string(),
+            ),
+        ]),
         _ => None,
     }
 }

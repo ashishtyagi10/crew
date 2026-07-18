@@ -331,6 +331,13 @@ impl CrewApp {
             w.request_redraw();
         }
     }
+
+    /// Whether the CRT tube post-process should be active right now: the user's
+    /// `/crt` override if set, otherwise the active theme's `crt` flag (on for
+    /// the phosphor themes). Read every frame so it tracks live theme changes.
+    pub(crate) fn effective_crt(&self) -> bool {
+        self.config.crt.unwrap_or(crew_theme::theme().crt)
+    }
 }
 
 /// If `line` is a `/command`, return the trimmed command name; else `None`.

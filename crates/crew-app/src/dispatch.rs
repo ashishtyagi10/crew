@@ -37,6 +37,7 @@ impl CrewApp {
             // `/update` and external config edits) and exit this one.
             "restart" => return self.restart_crew(),
             "theme" => self.set_theme_cmd(""),
+            "crt" => self.crt_command(""),
             "notify" => self.notify_command(""),
             "broadcast" => self.toggle_broadcast(),
             "zoom" => self.toggle_zoom(),
@@ -66,6 +67,8 @@ impl CrewApp {
                     self.notify_command(n.trim());
                 } else if let Some(t) = other.strip_prefix("theme ") {
                     self.set_theme_cmd(t.trim());
+                } else if let Some(a) = other.strip_prefix("crt ") {
+                    self.crt_command(a.trim());
                 }
             }
         }
@@ -118,6 +121,48 @@ impl CrewApp {
             }
         }
     }
+
+    /// Handle `/crt [on|off|auto]`: force the CRT tube post-process on or off, or
+    /// (`auto`) follow the theme's own `crt` flag. Bare `/crt` toggles the
+    /// current effective state into an explicit override. Persisted; the
+    /// renderer reads the effective state every frame, so a redraw applies it.
+    pub(crate) fn crt_command(&mut self, arg: &str) {
+        let msg = match arg {
+            "" => {
+                // Toggle: pin the opposite of what's showing now.
+                let next = !self.effective_crt();
+                self.config.crt = Some(next);
+                if next {
+                    "CRT on"
+                } else {
+                    "CRT off"
+                }
+            }
+            "on" => {
+                self.config.crt = Some(true);
+                "CRT on"
+            }
+            "off" => {
+                self.config.crt = Some(false);
+                "CRT off"
+            }
+            "auto" => {
+                self.config.crt = None;
+                if self.effective_crt() {
+                    "CRT auto (on for this theme)"
+                } else {
+                    "CRT auto (off for this theme)"
+                }
+            }
+            _ => {
+                self.set_status("usage: /crt [on|off|auto]");
+                return;
+            }
+        };
+        self.config.save();
+        self.set_status(msg);
+        self.redraw();
+    }
 }
 
 #[cfg(test)]
@@ -148,5 +193,36 @@ mod tests {
         let mut app = CrewApp::default();
         app.notify_command("add    ");
         assert!(app.config.notify_patterns.is_empty());
+    }
+
+    #[test]
+    fn crt_on_off_auto_set_the_override() {
+        let mut app = CrewApp::default();
+        assert_eq!(app.config.crt, None, "defaults to following the theme");
+        app.crt_command("on");
+        assert_eq!(app.config.crt, Some(true));
+        app.crt_command("off");
+        assert_eq!(app.config.crt, Some(false));
+        app.crt_command("auto");
+        assert_eq!(app.config.crt, None);
+    }
+
+    #[test]
+    fn bare_crt_toggles_the_effective_state() {
+        let mut app = CrewApp::default();
+        // A paper theme is CRT-off by default, so the first bare toggle pins on.
+        let before = app.effective_crt();
+        app.crt_command("");
+        assert_eq!(app.config.crt, Some(!before));
+        app.crt_command("");
+        assert_eq!(app.config.crt, Some(before));
+    }
+
+    #[test]
+    fn crt_unknown_arg_leaves_state_untouched() {
+        let mut app = CrewApp::default();
+        app.crt_command("on");
+        app.crt_command("wobble");
+        assert_eq!(app.config.crt, Some(true), "bad arg must not change state");
     }
 }

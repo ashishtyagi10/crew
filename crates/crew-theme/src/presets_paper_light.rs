@@ -44,6 +44,7 @@ pub static SEPIA_LIGHT: Theme = Theme {
     ],
     dark: false,
     grain: 1.2,
+    crt: false,
 };
 
 /// **Salmon broadsheet**: Financial-Times-style salmon-pink page with cool
@@ -87,6 +88,7 @@ pub static SALMON_BROADSHEET: Theme = Theme {
     ],
     dark: false,
     grain: 1.2,
+    crt: false,
 };
 
 /// **Coldpress gray**: cool pale-gray page with near-black neutral ink — the
@@ -130,6 +132,7 @@ pub static COLDPRESS_GRAY: Theme = Theme {
     ],
     dark: false,
     grain: 1.2,
+    crt: false,
 };
 
 /// **Ivory ledger**: slightly yellow ivory page with green-black ink — an
@@ -173,4 +176,5 @@ pub static IVORY_LEDGER: Theme = Theme {
     ],
     dark: false,
     grain: 1.2,
+    crt: false,
 };

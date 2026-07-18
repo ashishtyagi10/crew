@@ -47,6 +47,7 @@ pub static CRT_GREEN: Theme = Theme {
     ],
     dark: true,
     grain: 1.2,
+    crt: true,
 };
 
 /// **Neon amber phosphor** (P3, electrified): saturated Tron-orange amber on a
@@ -91,6 +92,7 @@ pub static CRT_AMBER: Theme = Theme {
     ],
     dark: true,
     grain: 1.2,
+    crt: true,
 };
 
 /// **Neon violet phosphor** (electrified): ultraviolet orchid on a
@@ -135,6 +137,7 @@ pub static CRT_VIOLET: Theme = Theme {
     ],
     dark: true,
     grain: 1.2,
+    crt: true,
 };
 
 /// **Neon blue phosphor** (electrified): Tron light-cycle cyan on a
@@ -179,4 +182,5 @@ pub static CRT_BLUE: Theme = Theme {
     ],
     dark: true,
     grain: 1.2,
+    crt: true,
 };
