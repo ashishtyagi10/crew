@@ -7,9 +7,11 @@
 //! nothing when none of them are. Pure data: resolving needs the renderer's
 //! installed-family list, which lives in `crew-app`, not here.
 //!
-//! Every list ends in faces that ship with the OS (`Menlo`/`SF Mono` on macOS,
-//! `Noto Sans Mono`/`DejaVu Sans Mono` on Linux, `Consolas` on Windows) so a
-//! bare machine still resolves something rather than silently opting out.
+//! Every list leads with a modern designer face and ends in faces that ship
+//! with the OS (`Menlo`/`SF Mono` on macOS, `Noto Sans Mono`/`DejaVu Sans Mono`
+//! on Linux, `Cascadia Mono` on Windows 11) so a bare machine still resolves
+//! something rather than silently opting out. The dated `Consolas` is
+//! deliberately not listed — `Cascadia Mono` is the modern Windows stock face.
 use crate::ThemeId;
 
 /// The families this theme would like, best first. Empty = no opinion.
@@ -17,18 +19,20 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
     match id {
         // Paper: a book face — humanist, generous counters.
         ThemeId::PaperDark | ThemeId::PaperLight => &[
+            "MonoLisa",
             "IBM Plex Mono",
             "Fragment Mono",
+            "SF Mono",
             "Menlo",
             "Noto Sans Mono",
             "DejaVu Sans Mono",
-            "Consolas",
+            "Cascadia Mono",
         ],
-        // Sepia: warm and typewritten.
+        // Sepia: warm and typewritten — a modern humanist face over old Courier.
         ThemeId::SepiaDark | ThemeId::SepiaLight => &[
-            "PT Mono",
             "IBM Plex Mono",
-            "Courier New",
+            "MonoLisa",
+            "SF Mono",
             "Menlo",
             "Noto Sans Mono",
             "DejaVu Sans Mono",
@@ -38,6 +42,7 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "JetBrainsMono NF",
             "JetBrains Mono",
             "Geist Mono",
+            "SF Mono",
             "Menlo",
             "Noto Sans Mono",
             "DejaVu Sans Mono",
@@ -46,44 +51,46 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
         ThemeId::Graphite => &[
             "SF Mono",
             "Geist Mono",
+            "JetBrains Mono",
             "Menlo",
             "Noto Sans Mono",
             "DejaVu Sans Mono",
-            "Consolas",
+            "Cascadia Mono",
         ],
-        // Coldpress: flat, drafting-table.
+        // Coldpress: flat, drafting-table — geometric and even.
         ThemeId::ColdpressGray => &[
-            "Fragment Mono",
+            "Fira Code",
             "Google Sans Code",
+            "Fragment Mono",
+            "SF Mono",
             "Menlo",
             "Noto Sans Mono",
             "DejaVu Sans Mono",
         ],
-        // Broadsheet / ledger: newsprint and accounting.
+        // Broadsheet / ledger: newsprint and accounting — a clean modern
+        // humanist face over the old Courier typewriter look.
         ThemeId::SalmonBroadsheet => &[
-            "PT Mono",
-            "Courier New",
-            "Courier",
+            "IBM Plex Mono",
+            "MonoLisa",
             "Menlo",
             "Noto Sans Mono",
             "DejaVu Sans Mono",
         ],
         ThemeId::IvoryLedger => &[
-            "Courier",
-            "Courier New",
-            "PT Mono",
+            "IBM Plex Mono",
+            "SF Mono",
             "Menlo",
             "Noto Sans Mono",
             "DejaVu Sans Mono",
         ],
         // CRT: a terminal face with squared-off shoulders.
         ThemeId::CrtGreen | ThemeId::CrtAmber | ThemeId::CrtBlue | ThemeId::CrtViolet => &[
-            "Andale Mono",
+            "Cascadia Code",
+            "JetBrains Mono",
             "Monaco",
             "Menlo",
             "Noto Sans Mono",
             "DejaVu Sans Mono",
-            "Consolas",
         ],
     }
 }
@@ -112,7 +119,7 @@ mod tests {
             "SF Mono",
             "Noto Sans Mono",
             "DejaVu Sans Mono",
-            "Consolas",
+            "Cascadia Mono",
         ];
         for id in ALL_THEMES {
             let prefs = font_prefs(id);
