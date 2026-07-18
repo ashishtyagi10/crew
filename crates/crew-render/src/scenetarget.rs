@@ -1,8 +1,9 @@
 //! Off-screen colour target for the CRT post-process. When CRT is active the
 //! frame is rendered into this texture (exactly the passes that otherwise draw
 //! straight to the surface — same format, so glyph output is identical), then
-//! the `CrtPass` samples it onto the real surface with curvature, scanlines,
-//! and phosphor glow. Recreated on resize; `view` feeds the CRT bind group.
+//! the `CrtPass` samples it onto the real surface as a flat panel with
+//! scanlines and phosphor glow. Recreated on resize; `view` feeds the CRT bind
+//! group.
 pub struct SceneTarget {
     pub view: wgpu::TextureView,
     width: u32,

@@ -1,9 +1,11 @@
-// CRT post-process: samples the off-screen scene texture and reprojects it
-// through a curved phosphor tube — barrel curvature, phosphor glow (a cheap
-// single-pass neighbour bloom), scanlines, corner darkening, and an
-// activity-driven flicker. All amounts are uniforms so each theme can dial the
-// look; flicker is 0 while idle, which makes the whole pass static (the app
-// only advances `time` and lifts `flicker` while output is streaming).
+// CRT post-process: samples the off-screen scene texture and draws it onto a
+// flat phosphor panel — a laptop LCD wearing the tube's phosphor glow (a cheap
+// single-pass neighbour bloom), scanlines, and an activity-driven flicker. The
+// barrel-curvature and corner-vignette math is kept but driven by uniforms that
+// default to 0, so the geometry is flat and edge-to-edge (identity warp, no
+// bezel). All amounts are uniforms so each theme can dial the look; flicker is
+// 0 while idle, which makes the whole pass static (the app only advances `time`
+// and lifts `flicker` while output is streaming).
 
 struct U {
     resolution: vec2<f32>,

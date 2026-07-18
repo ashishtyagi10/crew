@@ -57,8 +57,8 @@ pub(crate) fn encode(
                 depth_slice: None,
                 resolve_target: None,
                 ops: wgpu::Operations {
-                    // The tube fills the surface; the bezel is shader-drawn, so
-                    // this clear is only a safety net.
+                    // The flat panel fills the surface edge-to-edge, so this
+                    // clear is only a safety net.
                     load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
                     store: wgpu::StoreOp::Store,
                 },

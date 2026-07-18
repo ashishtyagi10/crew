@@ -8,13 +8,16 @@ fn f32s_as_bytes(data: &[f32]) -> &[u8] {
     unsafe { std::slice::from_raw_parts(data.as_ptr() as *const u8, data.len() * 4) }
 }
 
-/// Default look, tuned to read as a tube without swamping legibility. `flicker`
-/// has no default — the app supplies it per frame (0 idle, a small value while
-/// output streams).
-pub const CURVATURE: f32 = 0.10;
+/// Default look, tuned to read as a flat phosphor panel — a laptop LCD wearing
+/// the CRT's scanlines and glow, not a bulging tube. `curvature` and `corner`
+/// are 0 so the geometry stays flat and edge-to-edge (no barrel warp, no bezel,
+/// no tube-face vignette); the phosphor character lives entirely in the
+/// scanlines, glow, and streaming flicker. `flicker` has no default — the app
+/// supplies it per frame (0 idle, a small value while output streams).
+pub const CURVATURE: f32 = 0.0;
 pub const SCANLINE: f32 = 0.18;
 pub const GLOW: f32 = 0.35;
-pub const CORNER: f32 = 0.22;
+pub const CORNER: f32 = 0.0;
 
 pub struct CrtPass {
     pipeline: wgpu::RenderPipeline,

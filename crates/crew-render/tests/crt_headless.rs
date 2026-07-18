@@ -1,8 +1,9 @@
 //! Headless GPU integration test for the CRT post-process pass. Renders a
 //! known source texture through `CrtPass` and reads pixels back to prove the
-//! tube physics actually happen: barrel curvature blacks out the corners,
-//! scanlines darken alternating rows, phosphor glow bleeds a bright block into
-//! its dark neighbours, and `flicker = 0` is byte-for-byte static.
+//! tube physics actually happen: the flat panel fills edge-to-edge (no barrel
+//! warp, no black bezel), scanlines darken alternating rows, phosphor glow
+//! bleeds a bright block into its dark neighbours, and `flicker = 0` is
+//! byte-for-byte static.
 //!
 //! On macOS/Metal this runs the real GPU render; on GPU-less CI it skips.
 use crew_render::CrtPass;
@@ -162,7 +163,7 @@ fn crt_headless() {
 
     let mut crt = CrtPass::new(&device, wgpu::TextureFormat::Rgba8Unorm);
 
-    // --- Case 1: a solid mid-gray tube → curvature + scanlines ---
+    // --- Case 1: a solid mid-gray field → flat geometry + scanlines ---
     // Mid-gray (not white) so the scanline darkening stays visible: on a
     // saturated white field the phosphor glow would push every row past 1.0 and
     // both light and dark lines would clamp to 255, hiding the effect.
@@ -171,16 +172,16 @@ fn crt_headless() {
     crt.update_uniform(&queue, N as f32, N as f32, 0.0, 0.0);
     let px = render(&device, &queue, &crt);
 
-    // Curvature: all four corners fall outside the warped image → black bezel.
+    // Flat geometry: with curvature 0 the image maps 1:1 and fills the panel
+    // edge-to-edge, so every corner is lit — there is no bezel to black out.
     for (x, y) in [(0, 0), (N - 1, 0), (0, N - 1), (N - 1, N - 1)] {
-        assert_eq!(
-            r_at(&px, x, y),
-            0,
-            "corner ({x},{y}) should be black bezel, got {}",
+        assert!(
+            r_at(&px, x, y) > 40,
+            "corner ({x},{y}) should be lit on a flat panel, got {}",
             r_at(&px, x, y)
         );
     }
-    // The center is inside the tube and lit.
+    // The center is lit too.
     assert!(
         r_at(&px, N / 2, N / 2) > 40,
         "center should be lit, got {}",
@@ -227,5 +228,5 @@ fn crt_headless() {
     let b = render(&device, &queue, &crt);
     assert_eq!(a, b, "flicker=0 must be static regardless of time");
 
-    eprintln!("crt_headless: curvature, scanlines, glow, static-flicker all verified");
+    eprintln!("crt_headless: flat geometry, scanlines, glow, static-flicker all verified");
 }
