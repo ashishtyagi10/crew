@@ -1,7 +1,7 @@
 //! Draws the live swarm-run status line at the bottom of the chat message
 //! area: one row saying what crew is doing right now — a spinner, the running
 //! task's title, and a Claude-style `(elapsed · settled · +parallel)`
-//! parenthetical, with the run's `↑in ↓out` token spend right-aligned at the
+//! parenthetical, with the run's `(↑in ↓out)` token spend right-aligned at the
 //! pane edge. The plan itself is not shown live; it lands in the transcript
 //! when the run folds (`chatswarmrec`). State lives in `chatswarm`.
 //!
@@ -164,13 +164,13 @@ fn layout(pane: &ChatPane, cols: u16, now_ms: u64) -> Option<Line> {
 
     let left_w = SPINNER_W + crate::chatwidth::str_w(&rest) as u16;
 
-    // Tokens: right-aligned `↑in ↓out`, shown only when the run has spent
+    // Tokens: right-aligned `(↑in ↓out)`, shown only when the run has spent
     // something and there's a clear column of gap after the left text. They're
     // the first thing to drop on a busy pane — the bar deliberately ignores
     // them and mirrors only the left words.
     let (ti, to) = s.token_totals();
     let tokens = (ti > 0 || to > 0)
-        .then(|| format!("\u{2191}{} \u{2193}{}", fmt_tokens(ti), fmt_tokens(to)))
+        .then(|| format!("(\u{2191}{} \u{2193}{})", fmt_tokens(ti), fmt_tokens(to)))
         .filter(|t| {
             let tw = crate::chatwidth::str_w(t) as u16;
             cols >= tw && cols - tw >= left_w + 2
