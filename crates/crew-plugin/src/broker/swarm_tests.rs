@@ -272,9 +272,8 @@ fn run_emits_an_aggregate_stats_event_with_tokens_and_exchange_count() {
     );
 }
 
-// The roster matches active agents by name (chatview::agent_views), so
-// Activity must carry the specialty — with the title, a roster row could
-// never light up. `translate` is no longer handed the titles at all, so the
+// The roster matches active agents by name, so Activity must carry the
+// specialty — with the title, a roster entry could never light up. `translate` is no longer handed the titles at all, so the
 // old bug is now impossible rather than merely tested against; this pins the
 // name it DOES use.
 #[test]

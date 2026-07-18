@@ -56,12 +56,6 @@ pub struct ChatPane {
     /// lines are hidden (see `chatmsgs::View`). Toggled with Ctrl+O; not
     /// persisted. Orthogonal to `show_source` — both can be on at once.
     pub(crate) compact_view: bool,
-    /// Roster animation state: eased bars/token counts + handoff flashes.
-    pub(crate) anim: crate::chatanim::RosterAnim,
-    /// Agents with an in-flight streamed reply: opened by
-    /// `Activity{"thinking"}`, closed by their per-agent `Stats` — late
-    /// `StatsTick`s outside the window are dropped without heuristics.
-    pub(crate) tick_open: std::collections::HashSet<String>,
     /// The live /crew swarm-run block (from `HivePlan`/`Hive` events); folded
     /// into a transcript message when the run ends (see `chatswarm`).
     pub(crate) swarm: Option<crate::chatswarm::SwarmStatus>,
@@ -95,8 +89,6 @@ impl ChatPane {
             palette: None,
             show_source: false,
             compact_view: false,
-            anim: crate::chatanim::RosterAnim::new(),
-            tick_open: std::collections::HashSet::new(),
             swarm: None,
             queued: std::collections::VecDeque::new(),
         }
@@ -117,12 +109,6 @@ impl ChatPane {
     /// either our own send is unanswered or agents are mid-turn.
     pub fn is_busy(&self) -> bool {
         self.awaiting || !self.active.is_empty() || self.swarm.is_some()
-    }
-
-    /// Whether roster animation is mid-flight — drives the redraw tail after
-    /// a turn ends so eases/flashes finish, then redraws stop entirely.
-    pub(crate) fn anim_active(&self, now: u64) -> bool {
-        self.anim.active(now)
     }
 
     /// Drain plugin events; return PollResult with changed flag and any host actions.
@@ -161,9 +147,10 @@ impl ChatPane {
                         ctx,
                         ..
                     } => self.absorb_stats(tokens, agent, ms, ctx),
-                    PluginEvent::StatsTick { agent, tokens } => {
-                        self.absorb_stats_tick(agent, tokens);
-                    }
+                    // Mid-reply token ticks fed only the retired per-agent tok
+                    // ease; the summary footer reads settled per-turn `ctx`, so
+                    // there's nothing live to update here now.
+                    PluginEvent::StatsTick { .. } => {}
                     PluginEvent::Message {
                         sender,
                         text,

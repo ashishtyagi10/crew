@@ -19,41 +19,22 @@ pub(crate) struct ActiveAgent {
 impl crate::chat::ChatPane {
     /// Fold one `Stats` event into the pane's totals: turn-level events (empty
     /// `agent`) feed the token meter and turn counter; reply-level events feed
-    /// that agent's `(replies, total ms)` for the roster chips, and — when the
-    /// backend reported real usage — its live context fill (`ctx`).
+    /// that agent's `(replies, total ms)` and — when the backend reported real
+    /// usage — its live context fill (`ctx`), which the summary footer reads to
+    /// derive the tightest remaining context window.
     pub(crate) fn absorb_stats(&mut self, tokens: u64, agent: String, ms: u64, ctx: u64) {
         if agent.is_empty() {
             self.tokens = self.tokens.saturating_add(tokens);
             self.turns = self.turns.saturating_add(1);
         } else {
-            self.tick_open.remove(&agent);
+            // A follow-up event reporting no usage must not clear a known fill,
+            // so only a nonzero `ctx` overwrites.
             if ctx > 0 {
                 self.ctx.insert(agent.clone(), ctx);
             }
-            let e = self.agent_stats.entry(agent.clone()).or_default();
+            let e = self.agent_stats.entry(agent).or_default();
             e.0 = e.0.saturating_add(1);
             e.1 = e.1.saturating_add(ms);
-
-            let now = crate::anim::now_ms();
-            // tok column shows live context fill; ease it toward the new ctx.
-            if ctx > 0 {
-                self.anim.set_tok(&agent, now, ctx as f32);
-                // ctx% needs the model's limit — mirror agent_views' derivation.
-                if let Some(a) = self.agents.iter().find(|a| a.name == agent) {
-                    if let Some(l) = crate::ctxlimit::context_limit(&a.model).filter(|&l| l > 0) {
-                        self.anim
-                            .set_ctx(&agent, now, (ctx as f32 / l as f32).min(1.0));
-                    }
-                }
-            }
-            // Any stat changes every agent's share of the turn: retarget all.
-            let sum_ms: u64 = self.agent_stats.values().map(|(_, ms)| *ms).sum();
-            if sum_ms > 0 {
-                for (name, (_, ms)) in self.agent_stats.iter() {
-                    let frac = (*ms as f32 / sum_ms as f32).min(1.0);
-                    self.anim.set_shr(name, now, frac);
-                }
-            }
         }
     }
 
@@ -66,8 +47,6 @@ impl crate::chat::ChatPane {
         match (state, agent.is_empty()) {
             ("thinking", false) => {
                 self.pulse.begin_hop();
-                self.anim.flash(&agent, crate::anim::now_ms());
-                self.tick_open.insert(agent.clone());
                 if !self.active.iter().any(|a| a.name == agent) {
                     self.active.push(ActiveAgent {
                         name: agent,
@@ -85,20 +64,6 @@ impl crate::chat::ChatPane {
             }
             _ => self.flush_active_hops(),
         }
-    }
-
-    /// Mid-reply progress: retarget the tok ease to the agent's last known
-    /// context fill plus the streamed output estimate. The tok column shows
-    /// live context fill, and the reply joins the next prompt — so the sum
-    /// is the honest live reading. Ignored when no reply is open (stale or
-    /// out-of-order ticks after the authoritative Stats).
-    pub(crate) fn absorb_stats_tick(&mut self, agent: String, tokens: u64) {
-        if !self.tick_open.contains(&agent) {
-            return;
-        }
-        let base = self.ctx.get(&agent).copied().unwrap_or(0);
-        self.anim
-            .set_tok(&agent, crate::anim::now_ms(), (base + tokens) as f32);
     }
 
     /// A reply landed: in a relay the broker sends no per-agent idle, so the
@@ -120,11 +85,6 @@ impl crate::chat::ChatPane {
             self.pulse
                 .record_hop(&a.name, a.since.elapsed().as_millis() as u64);
         }
-        // Close every open reply lifecycle too — otherwise a stray tick from
-        // a source that never sent a proper per-agent idle/Stats (a fan
-        // error, the untracked goal-judge dial, …) can still retarget the
-        // tok ease after the turn is over.
-        self.tick_open.clear();
         self.pulse.end_turn();
     }
 
@@ -153,10 +113,5 @@ impl crate::chat::ChatPane {
     /// Names of every agent currently thinking (roster highlights them all).
     pub(crate) fn active_names(&self) -> Vec<&str> {
         self.active.iter().map(|a| a.name.as_str()).collect()
-    }
-
-    /// The live activity entries, for the pane's interaction row.
-    pub(crate) fn active_agents(&self) -> &[ActiveAgent] {
-        &self.active
     }
 }

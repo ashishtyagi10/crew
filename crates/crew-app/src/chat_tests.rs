@@ -51,7 +51,7 @@ fn pane() -> ChatPane {
 }
 
 #[test]
-fn cells_render_session_line_and_agent_chips() {
+fn cells_render_header_and_summary_footer_not_agent_chips() {
     let mut p = pane();
     p.agents = vec![
         crew_plugin::AgentInfo {
@@ -80,85 +80,17 @@ fn cells_render_session_line_and_agent_chips() {
             .collect::<Vec<_>>()
             .join("\n")
     };
-    assert!(text.contains("crew"), "session line present:\n{text}");
+    assert!(text.contains("crew"), "header present:\n{text}");
+    // The summary footer replaces the per-agent chip grid: one shared model,
+    // the (full, since no fill recorded) context window, and session spend.
+    assert!(text.contains("qwen"), "footer model:\n{text}");
+    assert!(text.contains("100% context"), "footer context:\n{text}");
+    assert!(text.contains("~950 tok"), "footer token spend:\n{text}");
+    // The retired chip markers must be gone.
     assert!(
-        text.contains("\u{25b8}planner") || text.contains("\u{25aa}planner"),
-        "planner card:\n{text}"
+        !text.contains('\u{25b8}') && !text.contains('\u{25aa}'),
+        "agent chip markers must not render:\n{text}"
     );
-    assert!(
-        text.contains("\u{25aa}coder") || text.contains("\u{25b8}coder"),
-        "coder card:\n{text}"
-    );
-    assert!(text.contains("idle"), "state token:\n{text}");
-    // Reductionist header: the turn/duration counters are gone — the session
-    // line carries no "N turn" chatter.
-    assert!(
-        !text.contains("turn"),
-        "turn counter must be gone from the header:\n{text}"
-    );
-}
-
-/// Overdraw regression: `status_rows` used to clamp the grid's row count
-/// while `cells()`'s renderer drew the grid's *unclamped* row count, so a
-/// short pane with more agents than fit could bleed the card grid into the
-/// message body. Both now derive from one `chatchips::layout` call with
-/// identical `avail`, so the drawn extent can never exceed what `status_rows`
-/// reports. Force the cap (8 agents, a short/narrow pane) and confirm it.
-#[test]
-fn cells_grid_never_overdraws_past_status_rows() {
-    let mut p = pane();
-    p.agents = (0..8)
-        .map(|i| crew_plugin::AgentInfo {
-            name: format!("agent{i}"),
-            role: String::new(),
-            model: "m".into(),
-        })
-        .collect();
-    p.absorb_stats(950, String::new(), 0, 0);
-    p.pulse.record_hop("agent0", 1200);
-    p.pulse.end_turn();
-    let (cols, rows) = (40u16, 9u16);
-    let top = p.status_rows(cols, rows);
-
-    let views = p.agent_views();
-    let show_share = views.len() >= 2;
-    let avail = rows.saturating_sub(1 + crate::chatinput::composer_rows(&p.input, cols, rows));
-    let lay = crate::chatchips::layout(&views, cols, avail, show_share).expect("some rows fit");
-    assert_eq!(
-        top,
-        1 + lay.rows,
-        "status_rows matches the shared layout's extent exactly"
-    );
-    assert!(
-        lay.shown < views.len(),
-        "the short pane forces capping below all 8 agents: shown={} of {}",
-        lay.shown,
-        views.len()
-    );
-
-    // The renderer draws with this exact `lay` — its cells must never reach
-    // or exceed `top` (no rendered row exceeds `status_rows`).
-    let grid = crate::chatchips::row_cells(&views, cols, 1, &lay, crate::anim::now_ms());
-    let max_row = grid.iter().map(|c| c.row).max().unwrap_or(0);
-    assert!(
-        max_row < top,
-        "grid content stays inside the status zone: max_row={max_row} top={top}"
-    );
-
-    // Composer-overlap regression: the grid's budget must reserve the
-    // composer's *real* height (`composer_rows`, 3 on this tall pane), not a
-    // hardcoded stand-in — otherwise the last grid row lands on the
-    // composer's top border. No rendered grid row may reach the composer's
-    // first row.
-    let composer_first_row = rows - crate::chatinput::composer_rows(&p.input, cols, rows);
-    assert!(
-        max_row < composer_first_row,
-        "grid content stays clear of the composer: max_row={max_row} composer_first_row={composer_first_row}"
-    );
-
-    // And the full render pipeline still produces a sane frame at this size.
-    let cells = p.cells(cols, rows);
-    assert!(!cells.is_empty());
 }
 
 #[test]
@@ -202,7 +134,9 @@ fn turn_over_flushes_stragglers_and_next_turn_resets() {
 }
 
 #[test]
-fn status_rows_counts_session_and_grid() {
+fn status_rows_is_header_only() {
+    // The per-agent grid was retired, so the status zone above the transcript
+    // is now just the single header row (roster size no longer changes it).
     let mut p = pane();
     p.agents = vec![
         crew_plugin::AgentInfo {
@@ -216,20 +150,18 @@ fn status_rows_counts_session_and_grid() {
             model: "m".into(),
         },
     ];
-    // Idle, wide+tall pane: session line + one row per agent (2 agents).
-    assert_eq!(p.status_rows(200, 20), 1 + 2);
-    // A turn ran → the count is unchanged; the duration now lives in the
-    // session line, not an extra row.
+    assert_eq!(p.status_rows(200, 20), 1, "just the header on a tall pane");
     p.absorb_stats(950, String::new(), 0, 0);
     p.pulse.record_hop("planner", 1200);
     p.pulse.end_turn();
-    assert_eq!(p.status_rows(200, 20), 1 + 2);
-    // Too narrow for any card → just the session line.
-    assert_eq!(p.status_rows(3, 20), 1);
-    // A short pane (rows=3, composer=1 row here) reserves session(1) +
-    // composer(1), leaving exactly one row for the grid — one agent row
-    // fits with no overlap.
-    assert_eq!(p.status_rows(200, 3), 1 + 1);
+    assert_eq!(p.status_rows(200, 20), 1, "unchanged after a turn");
+    assert_eq!(
+        p.status_rows(200, 3),
+        1,
+        "header still shows on a short pane"
+    );
+    // Too short for the card view at all → plain fallback (no status rows).
+    assert_eq!(p.status_rows(200, 2), 0);
 }
 
 // `on_key` takes a winit `KeyEvent`, which is #[non_exhaustive] and awkward
@@ -712,50 +644,25 @@ fn show_source_false_chat_title_has_no_suffix() {
 }
 
 #[test]
-fn absorb_stats_retargets_roster_anim() {
+fn absorb_stats_records_ctx_and_keeps_last_nonzero() {
+    // The summary footer reads `ctx` to derive the remaining context window,
+    // so a per-agent Stats must record real usage — and a follow-up event
+    // reporting no usage must NOT clear it (else the footer would flap to full).
     let mut c = pane();
-    // Two agents so share redistribution is observable.
-    c.absorb_activity("planner".into(), "thinking", "user".into());
-    c.absorb_stats(1200, "planner".into(), 800, 30_000);
-    c.absorb_stats(400, "coder".into(), 200, 10_000);
-    // Token target = the agent's live ctx (the tok column shows context fill).
-    let now = crate::anim::now_ms() + crate::chatanim::TOK_MS + 1;
-    assert!((c.anim.tok("planner", now) - 30_000.0).abs() < 1.0);
-    // Shares settle to ms proportions: planner 800/1000, coder 200/1000.
-    assert!((c.anim.shr_target("planner") - 0.8).abs() < 1e-6);
-    assert!((c.anim.shr_target("coder") - 0.2).abs() < 1e-6);
-}
-
-#[test]
-fn absorb_stats_derives_ctx_pct_and_ignores_zero_ctx_retarget() {
-    let mut c = pane();
-    c.agents = vec![crew_plugin::AgentInfo {
-        name: "planner".into(),
-        role: String::new(),
-        model: "claude".into(), // context_limit("claude") == 200_000
-    }];
-    // Half the model's context window: ctx% target should land on 0.5.
     c.absorb_stats(0, "planner".into(), 800, 100_000);
-    assert!(
-        (c.anim.ctx_target("planner") - 0.5).abs() < 1e-6,
-        "ctx% derives from ctx/limit: {}",
-        c.anim.ctx_target("planner")
+    assert_eq!(
+        c.ctx.get("planner").copied(),
+        Some(100_000),
+        "ctx fill recorded from the Stats event"
     );
-    // A follow-up event reporting no usage must not ease the bar toward 0.
     c.absorb_stats(0, "planner".into(), 200, 0);
-    assert!(
-        (c.anim.ctx_target("planner") - 0.5).abs() < 1e-6,
-        "zero-ctx event leaves the retarget untouched: {}",
-        c.anim.ctx_target("planner")
+    assert_eq!(
+        c.ctx.get("planner").copied(),
+        Some(100_000),
+        "a zero-ctx event leaves the last known fill untouched"
     );
-}
-
-#[test]
-fn thinking_activity_records_flash() {
-    let mut c = pane();
-    c.absorb_activity("coder".into(), "thinking", "planner".into());
-    let now = crate::anim::now_ms();
-    assert!(c.anim.flash_t("coder", now) > 0.9, "fresh handoff flash");
+    // Replies still accumulate regardless of ctx.
+    assert_eq!(c.agent_stats.get("planner").map(|(n, _)| *n), Some(2));
 }
 
 #[test]
@@ -787,59 +694,6 @@ fn show_source_true_chat_title_has_source_suffix() {
     assert_eq!(
         title, "chat · source",
         "title should be 'chat · source' when show_source is true"
-    );
-}
-
-#[test]
-fn anim_active_tail_ends_after_settle() {
-    let mut c = pane();
-    let now = crate::anim::now_ms();
-    assert!(!c.anim_active(now), "fresh pane is inactive");
-    let before = crate::anim::now_ms();
-    c.absorb_stats(100, "planner".into(), 50, 5_000);
-    assert!(c.anim_active(before), "ease in flight");
-    let after = crate::anim::now_ms() + crate::chatanim::TOK_MS + 1;
-    assert!(!c.anim_active(after), "settled → no redraws");
-}
-
-#[test]
-fn stats_tick_retargets_tok_while_reply_open() {
-    let mut c = pane();
-    c.absorb_stats(0, "planner".into(), 100, 30_000); // seed ctx ground truth
-    c.absorb_activity("planner".into(), "thinking", "user".into()); // opens the reply
-    c.absorb_stats_tick("planner".into(), 500);
-    let now = crate::anim::now_ms() + crate::chatanim::TOK_MS + 1;
-    assert!(
-        (c.anim.tok("planner", now) - 30_500.0).abs() < 1.0,
-        "tick target = last ctx + estimate"
-    );
-}
-
-#[test]
-fn stats_tick_ignored_when_no_reply_open() {
-    let mut c = pane();
-    c.absorb_stats(0, "planner".into(), 100, 30_000);
-    // Reply closed by the per-agent Stats above (and never opened) — a
-    // straggler tick must not move the target.
-    c.absorb_stats_tick("planner".into(), 9_999);
-    let now = crate::anim::now_ms() + crate::chatanim::TOK_MS + 1;
-    assert!(
-        (c.anim.tok("planner", now) - 30_000.0).abs() < 1.0,
-        "stale tick ignored; Stats value stands"
-    );
-}
-
-#[test]
-fn per_agent_stats_closes_the_open_reply() {
-    let mut c = pane();
-    c.absorb_activity("planner".into(), "thinking", "user".into());
-    c.absorb_stats_tick("planner".into(), 100);
-    c.absorb_stats(0, "planner".into(), 50, 40_000); // closes + reconciles
-    c.absorb_stats_tick("planner".into(), 20_000); // late tick from the finished reply
-    let now = crate::anim::now_ms() + crate::chatanim::TOK_MS + 1;
-    assert!(
-        (c.anim.tok("planner", now) - 40_000.0).abs() < 1.0,
-        "authoritative Stats wins over late ticks"
     );
 }
 
@@ -1066,23 +920,5 @@ cat >/dev/null
     assert!(
         p.awaiting,
         "the post-reconnect flush re-latches awaiting for its own reply"
-    );
-}
-
-#[test]
-fn turn_over_flush_closes_open_reply_lifecycle_so_stray_ticks_are_ignored() {
-    let mut c = pane();
-    c.absorb_stats(0, "planner".into(), 100, 30_000); // seed ctx ground truth
-    c.absorb_activity("planner".into(), "thinking", "user".into()); // opens the reply
-                                                                    // Turn-over / empty-agent idle goes through absorb_activity's `_` arm,
-                                                                    // which calls flush_active_hops — that must also clear tick_open so a
-                                                                    // fan error (or the untracked goal-judge dial) can't leave a stale
-                                                                    // lifecycle entry behind.
-    c.absorb_activity(String::new(), "idle", String::new());
-    c.absorb_stats_tick("planner".into(), 9_999); // straggler after turn-over
-    let now = crate::anim::now_ms() + crate::chatanim::TOK_MS + 1;
-    assert!(
-        (c.anim.tok("planner", now) - 30_000.0).abs() < 1.0,
-        "turn-over must close the reply lifecycle; straggler tick must not move the tok target"
     );
 }

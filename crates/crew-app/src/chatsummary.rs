@@ -1,0 +1,121 @@
+//! The crew pane's summary line: a single muted row rendered directly BELOW
+//! the input composer (Claude-Code footer style), consolidating what the old
+//! per-agent statusline rows used to spread across the top — the model, the
+//! tightest remaining context window, and the session's token spend — into one
+//! whole-pane summary. `summary_text` is pure (model list + ctx map + tokens)
+//! so it unit-tests without a live pane; `summary_rows`/`summary_cells` gate
+//! and place it.
+use crew_plugin::AgentInfo;
+use crew_render::CellView;
+use std::collections::HashMap;
+
+use crate::chat::ChatPane;
+use crate::chathdr::fmt_tokens;
+
+/// The composer only becomes the bordered fieldset at this height (mirrors
+/// `chatinput::composer_rows`). We reserve the summary row only well clear of
+/// that threshold — `rows >= 8` — so pushing the composer up by one never flips
+/// it back to the bare single-row prompt.
+const MIN_ROWS: u16 = 8;
+
+/// A model slug trimmed to its last path segment: `anthropic/claude-sonnet-5`
+/// → `claude-sonnet-5`, so provider prefixes don't crowd the line.
+fn short_model(model: &str) -> &str {
+    model.rsplit('/').next().unwrap_or(model)
+}
+
+/// The summary line for a pane with these `agents`, per-agent context fill
+/// (`ctx` tokens by agent name), and session `tokens` spend — or `None` when
+/// there's nothing yet to summarise (no agents and no spend).
+///
+/// Segments, in order, each shown only when it has a value:
+/// - **model**: the one model when the roster shares it, else `N agents`.
+/// - **context**: the *tightest* remaining window across agents whose model
+///   has a known limit (`{left}% context`) — the agent nearest its ceiling is
+///   the one that matters, so the minimum-remaining wins.
+/// - **tokens**: `~{n} tok`, the session spend, once nonzero.
+pub(crate) fn summary_text(
+    agents: &[AgentInfo],
+    ctx: &HashMap<String, u64>,
+    tokens: u64,
+) -> Option<String> {
+    let mut segs: Vec<String> = Vec::new();
+
+    // Distinct models across the roster, order-preserving.
+    let mut models: Vec<&str> = Vec::new();
+    for a in agents {
+        let m = short_model(&a.model);
+        if !models.contains(&m) {
+            models.push(m);
+        }
+    }
+    match models.as_slice() {
+        [] => {}
+        [one] => segs.push((*one).to_string()),
+        many => segs.push(format!("{} agents", many.len())),
+    }
+
+    // Tightest remaining context across agents with a known window.
+    let mut min_left: Option<u8> = None;
+    for a in agents {
+        let Some(limit) = crate::ctxlimit::context_limit(&a.model).filter(|&l| l > 0) else {
+            continue;
+        };
+        let used = ctx.get(&a.name).copied().unwrap_or(0);
+        let fill = ((used.saturating_mul(100)) / limit).min(100) as u8;
+        let left = 100 - fill;
+        min_left = Some(min_left.map_or(left, |m| m.min(left)));
+    }
+    if let Some(left) = min_left {
+        segs.push(format!("{left}% context"));
+    }
+
+    if tokens > 0 {
+        segs.push(format!("~{} tok", fmt_tokens(tokens)));
+    }
+
+    (!segs.is_empty()).then(|| segs.join(" \u{00b7} "))
+}
+
+/// Rows the summary claims at the very bottom of a `cols`×`rows` pane: `1` when
+/// the pane is tall/wide enough for the bordered composer to spare a footer row
+/// AND there's something to summarise, else `0`. The single source both
+/// `chatplace::grants` (row budget) and `chatview::cells` (placement) read, so
+/// the reserved row and the drawn row can never disagree.
+pub(crate) fn summary_rows(pane: &ChatPane, cols: u16, rows: u16) -> u16 {
+    if rows < MIN_ROWS || cols < 6 {
+        return 0;
+    }
+    match summary_text(&pane.agents, &pane.ctx, pane.tokens) {
+        Some(_) => 1,
+        None => 0,
+    }
+}
+
+/// Render the summary as a muted single row at `row`, indented one column so it
+/// reads as a footer rather than a continuation of the composer border. Clipped
+/// to `cols`; empty when there's nothing to summarise.
+pub(crate) fn summary_cells(pane: &ChatPane, cols: u16, row: u16) -> Vec<CellView> {
+    let Some(text) = summary_text(&pane.agents, &pane.ctx, pane.tokens) else {
+        return Vec::new();
+    };
+    let muted = crew_theme::theme().text_muted;
+    let bg = crew_theme::theme().page_bg;
+    let mut cells = Vec::new();
+    crate::chatwidth::place_row(1, cols, text.chars().map(|c| (c, muted)), |x, c, fg| {
+        cells.push(CellView {
+            col: x,
+            row,
+            c,
+            fg,
+            bg,
+            bold: false,
+            italic: false,
+        });
+    });
+    cells
+}
+
+#[cfg(test)]
+#[path = "chatsummary_tests.rs"]
+mod tests;

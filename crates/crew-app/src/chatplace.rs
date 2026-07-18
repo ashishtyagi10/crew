@@ -90,6 +90,8 @@ pub(crate) fn cell_at_col(line: &CardLine, col: u16) -> Option<&CardCell> {
 pub(crate) struct Grants {
     pub top: u16,
     pub bottom: u16,
+    /// The whole-pane summary footer below the composer (0 or 1 row).
+    pub summary: u16,
     pub swarm: u16,
     pub queued: u16,
     pub prog: u16,
@@ -99,9 +101,13 @@ pub(crate) struct Grants {
 
 pub(crate) fn grants(pane: &ChatPane, cols: u16, rows: u16) -> Grants {
     let top = pane.status_rows(cols, rows);
-    let bottom = crate::chatinput::composer_rows(&pane.input, cols, rows);
-    // The header and the composer are load-bearing chrome and are never
-    // dropped; everything else shares what's between them.
+    // The summary footer claims the very bottom row; the composer sits in what
+    // remains, so its height is measured against `rows - summary`.
+    let summary = crate::chatsummary::summary_rows(pane, cols, rows);
+    let composer = crate::chatinput::composer_rows(&pane.input, cols, rows - summary);
+    let bottom = composer + summary;
+    // The header and the composer (+ its summary footer) are load-bearing
+    // chrome and are never dropped; everything else shares what's between them.
     let mut left = rows.saturating_sub(top).saturating_sub(bottom);
     let mut take = |want: u16| {
         let got = want.min(left);
@@ -114,6 +120,7 @@ pub(crate) fn grants(pane: &ChatPane, cols: u16, rows: u16) -> Grants {
     Grants {
         top,
         bottom,
+        summary,
         swarm,
         queued,
         prog,

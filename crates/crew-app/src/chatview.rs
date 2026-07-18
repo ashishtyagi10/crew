@@ -1,8 +1,8 @@
-//! Composes the crew pane's full cell view: the session line (row 0),
-//! statusline-style agent rows (one per agent, from `chatchips::layout`),
-//! role-styled message cards, and the input composer (bordered fieldset on
-//! tall panes, a bare prompt row on short ones) on the bottom rows. Tiny
-//! panes fall back to the plain layout.
+//! Composes the crew pane's full cell view: the header row (row 0),
+//! role-styled message cards, the input composer (bordered fieldset on tall
+//! panes, a bare prompt row on short ones), and — on tall panes — the
+//! whole-pane summary footer (`chatsummary`) on the very bottom row. Tiny panes
+//! fall back to the plain layout.
 use crew_render::CellView;
 
 use crate::chat::ChatPane;
@@ -10,84 +10,16 @@ use crate::chatbody::CardCell;
 use crate::chatlayout::layout_cells;
 
 impl ChatPane {
-    /// One `AgentView` per roster agent, snapshotting live state for the grid.
-    pub(crate) fn agent_views(&self) -> Vec<crate::chatchips::AgentView> {
-        let names = self.active_names();
-        let sum_ms: u64 = self.agent_stats.values().map(|(_, ms)| *ms).sum();
-        let now = crate::anim::now_ms();
-        self.agents
-            .iter()
-            .map(|a| {
-                let active = names.contains(&a.name.as_str());
-                let ctx = self.ctx.get(&a.name).copied().unwrap_or(0);
-                let ctx_pct = crate::ctxlimit::context_limit(&a.model)
-                    .filter(|&l| l > 0)
-                    .map(|l| ((ctx * 100) / l).min(100) as u8);
-                let agent_ms = self
-                    .agent_stats
-                    .get(&a.name)
-                    .map(|(_, ms)| *ms)
-                    .unwrap_or(0);
-                let share_pct = (sum_ms > 0).then(|| ((agent_ms * 100) / sum_ms).min(100) as u8);
-                // Fresh roster restored from a session has no tok animation
-                // entry yet — fall back to the raw ctx value so it doesn't
-                // show 0 until the first live update arrives.
-                let tok_eased = self.anim.tok(&a.name, now);
-                let tok = if tok_eased > 0.0 {
-                    tok_eased.round() as u64
-                } else {
-                    ctx
-                };
-                crate::chatchips::AgentView {
-                    name: a.name.clone(),
-                    state: self.agent_state_str(&a.name, active),
-                    tok,
-                    ctx_pct,
-                    share_pct,
-                    ctx_frac: self.anim.ctx(&a.name, now),
-                    shr_frac: self.anim.shr(&a.name, now),
-                    flash_t: self.anim.flash_t(&a.name, now),
-                    active,
-                }
-            })
-            .collect()
-    }
-
-    /// The state token for an agent chip: live spinner + elapsed while active,
-    /// else `·n×` with the reply count, or `idle`.
-    fn agent_state_str(&self, name: &str, active: bool) -> String {
-        if active {
-            if let Some(a) = self.active_agents().iter().find(|a| a.name == name) {
-                let f =
-                    (a.since.elapsed().as_millis() / 120) as usize % crate::update::SPINNER.len();
-                // Space between the spinner "pixels" and the elapsed number.
-                return format!(
-                    "{} {}s",
-                    crate::update::SPINNER[f],
-                    a.since.elapsed().as_secs()
-                );
-            }
-        }
-        match self.agent_stats.get(name) {
-            Some((n, _)) if *n > 0 => format!("\u{00b7} {n}\u{00d7}"),
-            _ => "idle".into(),
-        }
-    }
-
-    /// Total rows consumed above the message body: session line + card grid.
-    /// Derives from `chatchips::layout`, the same function the renderer uses,
-    /// so the two can never disagree about the drawn extent.
-    pub(crate) fn status_rows(&self, cols: u16, rows: u16) -> u16 {
+    /// Rows consumed above the message body: just the single header row. The
+    /// old per-agent statusline grid was retired in favour of the whole-pane
+    /// summary footer below the composer (see `chatsummary`), so nothing but the
+    /// header sits on top now. Tiny panes (`rows < 3`) fall back to the plain
+    /// message layout, which draws its own bottom-row prompt instead.
+    pub(crate) fn status_rows(&self, _cols: u16, rows: u16) -> u16 {
         if rows < 3 {
-            return 0; // too short — plain message fallback
-        }
-        let views = self.agent_views();
-        let show_share = views.len() >= 2;
-        let avail =
-            rows.saturating_sub(1 + crate::chatinput::composer_rows(&self.input, cols, rows));
-        match crate::chatchips::layout(&views, cols, avail, show_share) {
-            Some(l) => 1 + l.rows,
-            None => 1, // session line only
+            0 // too short — plain message fallback
+        } else {
+            1 // header only
         }
     }
 
@@ -125,30 +57,22 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
         };
         (label, secs, color)
     });
+    // The summary footer owns the token spend when it's showing; suppress the
+    // header's duplicate `~N tok` then (tokens=0 omits it). Short panes with no
+    // footer keep it in the header as the only cost readout.
+    let header_tokens = if g.summary > 0 { 0 } else { pane.tokens };
     let mut cells = crate::chathdr::header_cells(
         cols,
         &pane.channel,
         pane.connected,
         pane.is_busy(),
         status.as_ref().map(|(l, s, c)| (l.as_str(), *s, *c)),
-        pane.tokens,
+        header_tokens,
         pane.compact_view,
     );
-    // Zone 2: the statusline-style agent rows (rows 1..1+lay.rows), sized by
-    // the same `layout` call `status_rows` used above — so the two always
-    // agree on the drawn extent (no overdraw onto the message body).
-    let views = pane.agent_views();
-    let show_share = views.len() >= 2;
-    let avail = rows.saturating_sub(1 + crate::chatinput::composer_rows(&pane.input, cols, rows));
-    if let Some(lay) = crate::chatchips::layout(&views, cols, avail, show_share) {
-        cells.extend(crate::chatchips::row_cells(
-            &views,
-            cols,
-            1,
-            &lay,
-            crate::anim::now_ms(),
-        ));
-    }
+    // The per-agent statusline grid that used to sit here (rows 1..) was
+    // retired: its model/context/token signals are consolidated into the
+    // whole-pane summary footer drawn below the composer (see `chatsummary`).
     // Stacked directly above the composer, innermost first: the run's progress
     // bar, then the queued-messages indicator. `chatplace::grants` decides who
     // gets a row — it is the same source `msg_rows_budget` uses, so what is
@@ -246,12 +170,20 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
             crate::anim::now_ms(),
         ));
     }
+    // The composer anchors to the bottom of the pane MINUS the summary footer,
+    // so it ends one row up when the footer shows; the summary then occupies the
+    // very last row. `g.summary` is the same reservation `grants` budgeted, so
+    // nothing above can overdraw the footer.
+    let summary_h = g.summary;
     cells.extend(crate::chatinput::composer_cells(
         &pane.input,
         &pane.agents,
         cols,
-        rows,
+        rows - summary_h,
     ));
+    if summary_h > 0 {
+        cells.extend(crate::chatsummary::summary_cells(pane, cols, rows - 1));
+    }
     cells
 }
 
