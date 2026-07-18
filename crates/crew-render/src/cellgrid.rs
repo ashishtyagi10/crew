@@ -63,6 +63,10 @@ pub struct CellGrid {
     font_size: f32,
     line_height: f32,
     font_family: Option<String>,
+    /// User base-weight override (CSS scale). `None` follows the theme default
+    /// ([`base_weight`]); `Some(w)` renders all non-bold text at `w` so the
+    /// user can make the body heavier/lighter. Bold cells still shape BOLD.
+    weight_override: Option<u16>,
     /// Whether the render target is sRGB (colours must be fed linear).
     srgb: bool,
 }
@@ -117,6 +121,7 @@ impl CellGrid {
             font_size,
             line_height,
             font_family,
+            weight_override: None,
             srgb: format.is_srgb(),
         }
     }
@@ -133,6 +138,12 @@ impl CellGrid {
     /// Switch the font family at runtime (`None`/empty → system monospace).
     /// The cell box is fixed per font size — glyphs snap to it at layout time —
     /// so no metrics change and the grid never moves.
+    /// Override the base text weight (CSS scale, e.g. 500 Medium, 600 SemiBold,
+    /// 700 Bold). `None` follows the theme default. Applied next frame.
+    pub fn set_font_weight(&mut self, weight: Option<u16>) {
+        self.weight_override = weight;
+    }
+
     pub fn set_font_family(&mut self, family: Option<String>) {
         self.font_family = family.filter(|n| !n.is_empty());
     }
@@ -158,10 +169,12 @@ impl CellGrid {
             line_height: self.line_height,
             cell_w: self.cell_w,
             family: self.font_family.clone(),
-            // Light themes render base text at Medium for crisp ink on a
-            // bright page; per-frame theme read, same pattern as page_bg
-            // in renderer.rs.
-            weight: base_weight(crew_theme::theme().dark),
+            // A user weight override wins; otherwise the theme default (Medium
+            // for crisp ink on a bright page). Per-frame theme read, same
+            // pattern as page_bg in renderer.rs.
+            weight: self
+                .weight_override
+                .unwrap_or_else(|| base_weight(crew_theme::theme().dark)),
         };
         let (cw, ch) = (self.cell_w, self.cell_h);
         let ((quads, buffers, sigs, borders), (oquads, obuffers, osigs, _)) = build_both(

@@ -92,6 +92,10 @@ pub(crate) const COMMANDS: &[Cmd] = &[
         desc: "CRT tube look on/off (/crt [on|off|auto])",
     },
     Cmd {
+        name: "/weight",
+        desc: "Text weight — thicker/lighter font (/weight [medium|semibold|bold|…])",
+    },
+    Cmd {
         name: "/notify",
         desc: "Notification settings (/notify [on|off|add <text>|clear])",
     },

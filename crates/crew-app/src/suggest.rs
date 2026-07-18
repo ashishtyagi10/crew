@@ -63,6 +63,15 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
                 "follow the theme (on for crt-* themes)".to_string(),
             ),
         ]),
+        "/weight" => Some(vec![
+            ("normal".to_string(), "400 — regular".to_string()),
+            ("medium".to_string(), "500 — the old default".to_string()),
+            ("semibold".to_string(), "600 — the new default".to_string()),
+            (
+                "bold".to_string(),
+                "700 — thickest for body text".to_string(),
+            ),
+        ]),
         _ => None,
     }
 }

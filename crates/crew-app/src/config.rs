@@ -27,6 +27,12 @@ fn default_paper_grain() -> f32 {
     1.3
 }
 
+fn default_font_weight() -> u16 {
+    // SemiBold. Heavier than the old Medium (500) base so body text reads
+    // thicker and more substantial out of the box; /weight tunes it live.
+    600
+}
+
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CrewConfig {
     #[serde(default = "default_font_size")]
@@ -96,6 +102,10 @@ pub struct CrewConfig {
     /// theme.
     #[serde(default)]
     pub crt: Option<bool>,
+    /// Base text weight on the CSS scale (400 normal … 900 black). Defaults to
+    /// SemiBold (600) for a thicker body; set live with `/weight`.
+    #[serde(default = "default_font_weight")]
+    pub font_weight: u16,
 }
 
 impl Default for CrewConfig {
@@ -121,6 +131,7 @@ impl Default for CrewConfig {
             paper_texture: true,
             paper_grain: default_paper_grain(),
             crt: None,
+            font_weight: default_font_weight(),
         }
     }
 }
@@ -172,6 +183,7 @@ impl CrewConfig {
             paper_texture: self.paper_texture,
             paper_grain: self.paper_grain.clamp(0.0, 2.0),
             crt: self.crt,
+            font_weight: self.font_weight.clamp(300, 900),
         }
     }
 
@@ -317,6 +329,7 @@ mod tests {
             paper_texture: false,
             paper_grain: 0.5,
             crt: Some(true),
+            font_weight: 700,
         };
         assert_eq!(CrewConfig::from_toml_str(&c.to_toml_str()), c);
     }
