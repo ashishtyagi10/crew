@@ -303,6 +303,7 @@ impl CrewApp {
         if let Some(r) = &mut self.renderer {
             r.set_font_family(self.config.font_family.clone());
             r.set_font_size(self.config.font_size * scale);
+            r.set_font_weight(Some(self.config.font_weight));
             r.set_paper_texture(self.config.paper_texture);
             r.set_paper_grain(self.config.paper_grain);
         }

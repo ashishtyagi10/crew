@@ -126,6 +126,91 @@ fn medium_weight_glyphs_snap_to_the_same_cell_advance() {
 }
 
 #[test]
+fn semibold_weight_glyphs_snap_to_the_same_cell_advance() {
+    // 600 is the shipped default base weight (a thicker body). The fixed-cell
+    // invariant must hold for it too, or every row would drift off-grid — the
+    // exact failure the letter-spacing correction exists to prevent, keyed on
+    // (family, weight, char), so a new weight is a new correction key.
+    let style = |col: u16, c: char| CellView {
+        col,
+        row: 0,
+        c,
+        fg: (200, 200, 200),
+        bg: (0, 0, 0),
+        bold: false,
+        italic: false,
+    };
+    let mut fs = FontSystem::new();
+    let cells = vec![style(0, 'W'), style(1, 'i'), style(2, 'm'), style(3, '0')];
+    let (cell_w, cell_h) = cell_metrics(14.0);
+    let p = FontParams {
+        font_size: 14.0,
+        line_height: cell_h,
+        cell_w,
+        family: None,
+        weight: 600,
+    };
+    let buf = build_pane_buffer(&mut fs, &cells, 4, 1, 4.0 * cell_w, cell_h, &p);
+    let runs: Vec<_> = buf.layout_runs().collect();
+    assert_eq!(runs.len(), 1);
+    assert_eq!(runs[0].glyphs.len(), 4, "four columns shape to four glyphs");
+    for g in runs[0].glyphs {
+        let cols = g.x / cell_w;
+        assert!(
+            (cols - cols.round()).abs() < 1e-3,
+            "semibold glyph at x={} is off the {cell_w}px grid",
+            g.x
+        );
+    }
+}
+
+#[test]
+fn a_heavier_weight_rasterizes_more_ink() {
+    // The point of the weight knob: a heavier base weight must actually paint
+    // thicker glyphs. Rasterize the same 'M' at Normal (400) and Bold (700)
+    // through the swash cache and compare total coverage — heavier = more ink.
+    use glyphon::SwashCache;
+    let ink = |weight: u16| -> u64 {
+        let mut fs = FontSystem::new();
+        let mut swash = SwashCache::new();
+        let (cell_w, cell_h) = cell_metrics(14.0);
+        let cells = vec![CellView {
+            col: 0,
+            row: 0,
+            c: 'M',
+            fg: (255, 255, 255),
+            bg: (0, 0, 0),
+            bold: false,
+            italic: false,
+        }];
+        let p = FontParams {
+            font_size: 14.0,
+            line_height: cell_h,
+            cell_w,
+            family: None,
+            weight,
+        };
+        let buf = build_pane_buffer(&mut fs, &cells, 1, 1, cell_w, cell_h, &p);
+        let run = buf.layout_runs().next().expect("one run");
+        let g = run.glyphs.first().expect("one glyph");
+        let phys = g.physical((0.0, 0.0), 1.0);
+        // Sum the coverage bytes of the rasterized glyph mask.
+        swash
+            .get_image(&mut fs, phys.cache_key)
+            .as_ref()
+            .map(|img| img.data.iter().map(|&b| b as u64).sum())
+            .unwrap_or(0)
+    };
+    let normal = ink(400);
+    let bold = ink(700);
+    assert!(normal > 0, "the normal glyph should rasterize some ink");
+    assert!(
+        bold > normal,
+        "bold ink ({bold}) should exceed normal ink ({normal})"
+    );
+}
+
+#[test]
 fn build_pane_buffer_lays_out_grid_with_styles() {
     let mut fs = FontSystem::new();
     let cells = vec![

@@ -60,6 +60,11 @@ impl Renderer {
         self.cell_grid.set_font_family(family);
     }
 
+    /// Override the base text weight (CSS scale; `None` → theme default).
+    pub fn set_font_weight(&mut self, weight: Option<u16>) {
+        self.cell_grid.set_font_weight(weight);
+    }
+
     /// Enable or disable the paper grain + vignette background pass.
     pub fn set_paper_texture(&mut self, enabled: bool) {
         self.paper_texture = enabled;

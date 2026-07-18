@@ -38,6 +38,7 @@ impl CrewApp {
             "restart" => return self.restart_crew(),
             "theme" => self.set_theme_cmd(""),
             "crt" => self.crt_command(""),
+            "weight" => self.weight_command(""),
             "notify" => self.notify_command(""),
             "broadcast" => self.toggle_broadcast(),
             "zoom" => self.toggle_zoom(),
@@ -69,6 +70,8 @@ impl CrewApp {
                     self.set_theme_cmd(t.trim());
                 } else if let Some(a) = other.strip_prefix("crt ") {
                     self.crt_command(a.trim());
+                } else if let Some(w) = other.strip_prefix("weight ") {
+                    self.weight_command(w.trim());
                 }
             }
         }
@@ -163,6 +166,49 @@ impl CrewApp {
         self.set_status(msg);
         self.redraw();
     }
+
+    /// Handle `/weight [<name>|<300-900>]`: set the base text weight so the font
+    /// reads thicker or lighter. Accepts named steps (thin/normal/medium/
+    /// semibold/bold/black) or a raw CSS number. Bare `/weight` reports the
+    /// current value. Persisted and applied live.
+    pub(crate) fn weight_command(&mut self, arg: &str) {
+        let named = |a: &str| -> Option<u16> {
+            Some(match a {
+                "thin" | "light" => 300,
+                "normal" | "regular" => 400,
+                "medium" => 500,
+                "semibold" | "semi" => 600,
+                "bold" => 700,
+                "black" | "heavy" => 900,
+                _ => return None,
+            })
+        };
+        let weight = match arg {
+            "" => {
+                self.set_status(format!(
+                    "font weight {} (/weight [thin|normal|medium|semibold|bold|black|<300-900>])",
+                    self.config.font_weight
+                ));
+                return;
+            }
+            a => match named(a).or_else(|| a.parse::<u16>().ok()) {
+                Some(w) => w.clamp(300, 900),
+                None => {
+                    self.set_status(
+                        "usage: /weight [thin|normal|medium|semibold|bold|black|<300-900>]",
+                    );
+                    return;
+                }
+            },
+        };
+        self.config.font_weight = weight;
+        self.config.save();
+        if let Some(r) = &mut self.renderer {
+            r.set_font_weight(Some(weight));
+        }
+        self.set_status(format!("font weight {weight}"));
+        self.redraw();
+    }
 }
 
 #[cfg(test)]
@@ -224,5 +270,37 @@ mod tests {
         app.crt_command("on");
         app.crt_command("wobble");
         assert_eq!(app.config.crt, Some(true), "bad arg must not change state");
+    }
+
+    #[test]
+    fn weight_defaults_to_semibold_and_named_steps_set_it() {
+        let mut app = CrewApp::default();
+        assert_eq!(app.config.font_weight, 600, "SemiBold out of the box");
+        app.weight_command("bold");
+        assert_eq!(app.config.font_weight, 700);
+        app.weight_command("medium");
+        assert_eq!(app.config.font_weight, 500);
+        app.weight_command("black");
+        assert_eq!(app.config.font_weight, 900);
+    }
+
+    #[test]
+    fn weight_accepts_a_raw_number_clamped_to_range() {
+        let mut app = CrewApp::default();
+        app.weight_command("650");
+        assert_eq!(app.config.font_weight, 650);
+        app.weight_command("5000"); // clamps
+        assert_eq!(app.config.font_weight, 900);
+    }
+
+    #[test]
+    fn weight_bad_arg_leaves_it_untouched() {
+        let mut app = CrewApp::default();
+        app.weight_command("bold");
+        app.weight_command("chunky");
+        assert_eq!(
+            app.config.font_weight, 700,
+            "bad arg must not change weight"
+        );
     }
 }
