@@ -15,6 +15,21 @@ fn default_is_paper_dark() {
 }
 
 #[test]
+fn only_the_crt_presets_carry_the_crt_flag() {
+    // The renderer keys the CRT tube post-process off `theme().crt`, and the
+    // `crt-*` family is exactly the set that should turn it on automatically.
+    for id in ALL_THEMES {
+        let is_crt_family = id.as_str().starts_with("crt-");
+        assert_eq!(
+            id.theme().crt,
+            is_crt_family,
+            "{} crt flag should be {is_crt_family}",
+            id.as_str()
+        );
+    }
+}
+
+#[test]
 fn id_string_round_trip() {
     for id in ALL_THEMES {
         assert_eq!(ThemeId::from_name(id.as_str()), Some(id));

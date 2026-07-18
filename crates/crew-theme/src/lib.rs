@@ -57,6 +57,12 @@ pub struct Theme {
     /// light themes for a visible newsprint texture (calibrated for the
     /// gamma-space blend — see presets_paper.rs).
     pub grain: f32,
+    /// Whether this theme reads as a CRT phosphor tube. When true — and unless
+    /// the user overrides it with `/crt off` — the renderer wraps the frame in
+    /// the CRT post-process (curvature, scanlines, phosphor glow, corner
+    /// darkening). Only the `CRT_*` presets set this; every paper theme is
+    /// `false` so the crisp flat look is the default.
+    pub crt: bool,
 }
 
 mod presets_crt;

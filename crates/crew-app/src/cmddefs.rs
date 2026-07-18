@@ -88,6 +88,10 @@ pub(crate) const COMMANDS: &[Cmd] = &[
         desc: "Switch theme — pick from the list",
     },
     Cmd {
+        name: "/crt",
+        desc: "CRT tube look on/off (/crt [on|off|auto])",
+    },
+    Cmd {
         name: "/notify",
         desc: "Notification settings (/notify [on|off|add <text>|clear])",
     },

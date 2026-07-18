@@ -90,6 +90,12 @@ pub struct CrewConfig {
     /// Grain amplitude multiplier for the paper texture (0.0 = no grain, 1.0 = default ~3%, 2.0 = double).
     #[serde(default = "default_paper_grain")]
     pub paper_grain: f32,
+    /// CRT tube post-process override. `None` (default) follows the active
+    /// theme's `crt` flag — on for the `crt-*` phosphor themes, off elsewhere.
+    /// `Some(true)`/`Some(false)` forces it via `/crt on|off` regardless of
+    /// theme.
+    #[serde(default)]
+    pub crt: Option<bool>,
 }
 
 impl Default for CrewConfig {
@@ -114,6 +120,7 @@ impl Default for CrewConfig {
             theme: None,
             paper_texture: true,
             paper_grain: default_paper_grain(),
+            crt: None,
         }
     }
 }
@@ -164,6 +171,7 @@ impl CrewConfig {
             theme: self.theme.filter(|s| !s.is_empty()),
             paper_texture: self.paper_texture,
             paper_grain: self.paper_grain.clamp(0.0, 2.0),
+            crt: self.crt,
         }
     }
 
@@ -308,6 +316,7 @@ mod tests {
             theme: Some("paper-light".to_string()),
             paper_texture: false,
             paper_grain: 0.5,
+            crt: Some(true),
         };
         assert_eq!(CrewConfig::from_toml_str(&c.to_toml_str()), c);
     }
