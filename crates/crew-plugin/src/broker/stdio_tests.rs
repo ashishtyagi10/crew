@@ -19,9 +19,35 @@ fn reg(names: &[&str]) -> Registry {
 }
 
 #[test]
-fn roster_lists_or_explains() {
+fn roster_lists_agents_when_present() {
+    // A non-empty roster short-circuits before the provider check, so this is
+    // env-independent (no guard needed).
     assert!(roster(&reg(&["claude", "codex"])).contains("claude, codex"));
+}
+
+#[test]
+fn empty_roster_without_a_provider_says_set_a_key() {
+    // no_provider() clears every key + CREW_PROVIDER for the guard's lifetime,
+    // deterministic even on this machine (which exports DASHSCOPE_API_KEY).
+    let _env = testenv::no_provider();
     assert!(roster(&reg(&[])).contains("ANTHROPIC_API_KEY"));
+}
+
+#[test]
+fn empty_roster_with_a_provider_invites_a_task_not_a_key() {
+    // The fresh-project state: a working provider (mock resolves like any key)
+    // but an empty specialist store — the store fills on the first run. The
+    // greeting must NOT wrongly blame a missing key; that was the reported bug.
+    let _env = testenv::mock("hi");
+    let m = roster(&reg(&[]));
+    assert!(
+        !m.contains("ANTHROPIC_API_KEY"),
+        "must not tell a user with a working provider to set a key: {m}"
+    );
+    assert!(
+        m.to_lowercase().contains("type a task"),
+        "should invite a task: {m}"
+    );
 }
 
 /// A fresh project dir per test, matching `specialists.rs`'s own `tmp()` —

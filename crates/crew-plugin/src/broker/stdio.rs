@@ -244,12 +244,34 @@ fn send(
     Ok(())
 }
 
-/// A human-readable description of which agents were discovered.
+/// Whether an API provider resolves right now — a key is set (or
+/// `CREW_PROVIDER` forces one, or the mock is active). An empty roster means
+/// two very different things depending on this: no provider at all, versus a
+/// working provider whose per-project specialist store is simply still empty.
+pub(crate) fn provider_resolves() -> bool {
+    let force = std::env::var("CREW_PROVIDER").ok();
+    let has = |k: &str| std::env::var(k).is_ok_and(|v| !v.is_empty());
+    super::discover::pick_provider(force.as_deref(), has).is_some()
+}
+
+/// A human-readable description of which agents were discovered. When the
+/// roster is empty the advice hinges on whether a provider resolves: with no
+/// provider the user must set a key; WITH one, the roster is just empty because
+/// no swarm has run yet — the planner invents (and records) a team on the first
+/// task, so the old "set a key" line would be actively wrong here (a valid key
+/// on a fresh project). The provider check reads the live env, same as every
+/// other consumer of [`provider_resolves`].
 pub(crate) fn roster(reg: &Registry) -> String {
     if reg.is_empty() {
-        return "No inbuilt agents available. Set OPENROUTER_API_KEY, \
-                DASHSCOPE_API_KEY, or ANTHROPIC_API_KEY and reopen /crew."
-            .into();
+        return if provider_resolves() {
+            "No specialists yet — type a task and press Enter; crew assembles a \
+             team for it and saves each one, so your @roster grows as you go."
+                .into()
+        } else {
+            "No inbuilt agents available. Set OPENROUTER_API_KEY, \
+             DASHSCOPE_API_KEY, or ANTHROPIC_API_KEY and reopen /crew."
+                .into()
+        };
     }
     format!(
         "Detected {} agent(s): {}. Type a task and press Enter; prefix @<agent> \
