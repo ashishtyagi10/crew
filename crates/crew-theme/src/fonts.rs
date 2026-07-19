@@ -7,7 +7,8 @@
 //! nothing when none of them are. Pure data: resolving needs the renderer's
 //! installed-family list, which lives in `crew-app`, not here.
 //!
-//! Every list leads with a modern designer face and ends in faces that ship
+//! Every list leads with `Comic Mono` (a rounded, friendly coding face) and
+//! ends in faces that ship
 //! with the OS (`Menlo`/`SF Mono` on macOS, `Noto Sans Mono`/`DejaVu Sans Mono`
 //! on Linux, `Cascadia Mono` on Windows 11) so a bare machine still resolves
 //! something rather than silently opting out. The dated `Consolas` is
@@ -19,6 +20,7 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
     match id {
         // Paper: a book face — humanist, generous counters.
         ThemeId::PaperDark | ThemeId::PaperLight => &[
+            "Comic Mono",
             "MonoLisa",
             "IBM Plex Mono",
             "Fragment Mono",
@@ -30,6 +32,7 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
         ],
         // Sepia: warm and typewritten — a modern humanist face over old Courier.
         ThemeId::SepiaDark | ThemeId::SepiaLight => &[
+            "Comic Mono",
             "IBM Plex Mono",
             "MonoLisa",
             "SF Mono",
@@ -39,6 +42,7 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
         ],
         // Midnight ink: high-contrast, tight.
         ThemeId::MidnightInk => &[
+            "Comic Mono",
             "JetBrainsMono NF",
             "JetBrains Mono",
             "Geist Mono",
@@ -49,6 +53,7 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
         ],
         // Graphite: the system's own neutral.
         ThemeId::Graphite => &[
+            "Comic Mono",
             "SF Mono",
             "Geist Mono",
             "JetBrains Mono",
@@ -59,6 +64,7 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
         ],
         // Coldpress: flat, drafting-table — geometric and even.
         ThemeId::ColdpressGray => &[
+            "Comic Mono",
             "Fira Code",
             "Google Sans Code",
             "Fragment Mono",
@@ -70,6 +76,7 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
         // Broadsheet / ledger: newsprint and accounting — a clean modern
         // humanist face over the old Courier typewriter look.
         ThemeId::SalmonBroadsheet => &[
+            "Comic Mono",
             "IBM Plex Mono",
             "MonoLisa",
             "Menlo",
@@ -77,6 +84,7 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "DejaVu Sans Mono",
         ],
         ThemeId::IvoryLedger => &[
+            "Comic Mono",
             "IBM Plex Mono",
             "SF Mono",
             "Menlo",
@@ -85,6 +93,7 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
         ],
         // CRT: a terminal face with squared-off shoulders.
         ThemeId::CrtGreen | ThemeId::CrtAmber | ThemeId::CrtBlue | ThemeId::CrtViolet => &[
+            "Comic Mono",
             "Cascadia Code",
             "JetBrains Mono",
             "Monaco",

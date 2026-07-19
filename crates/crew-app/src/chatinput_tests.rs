@@ -40,11 +40,11 @@ fn tall_pane_gets_a_bordered_card() {
     let mid = row_text(&cells, 8);
     assert!(mid.starts_with("\u{2502} \u{276f} hi"), "mid: {mid}"); // │ ❯ hi
     assert!(mid.ends_with('\u{2502}'), "mid: {mid}"); // │
-                                                      // Bottom border (row 9): key hints ride the border, right-aligned.
+                                                      // Bottom border (row 9): a plain fieldset edge, no key hints.
     let bot = row_text(&cells, 9);
     assert!(bot.starts_with('\u{2570}'), "bot: {bot}"); // ╰
     assert!(bot.ends_with('\u{256f}'), "bot: {bot}"); // ╯
-    assert!(bot.contains("Enter send \u{00b7} Esc close"), "bot: {bot}");
+    assert!(!bot.contains("Esc close"), "bot: {bot}");
 }
 
 #[test]

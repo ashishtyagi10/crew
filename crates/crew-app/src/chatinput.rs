@@ -1,8 +1,8 @@
 //! The crew pane's input composer. Tall panes get a bordered fieldset card:
 //! the addressable `@agents` ride the top border as the legend (each in its
-//! roster colour), the `❯` prompt sits on the interior row (a valid leading
-//! `@agent` mention takes that agent's colour), and the key hints ride the
-//! bottom border. Short panes fall back to a single bare prompt row.
+//! roster colour) and the `❯` prompt sits on the interior row (a valid leading
+//! `@agent` mention takes that agent's colour). Short panes fall back to a
+//! single bare prompt row.
 use crew_plugin::AgentInfo;
 use crew_render::CellView;
 
@@ -232,21 +232,6 @@ fn badge_on_border(cells: &mut Vec<CellView>, badge: &str, chips_end: u16, cols:
     }
 }
 
-/// Right-align the key hints on the card's bottom border (muted, framed in
-/// spaces so the rule reads as a fieldset edge).
-fn hints_on_border(cells: &mut Vec<CellView>, cols: u16, row: u16) {
-    let t = crew_theme::theme();
-    let hints = "Tab complete \u{00b7} /help \u{00b7} \u{21e7}\u{21b5} newline \u{00b7} Enter send \u{00b7} Esc close";
-    let label = format!(" {hints} ");
-    let w = label.chars().count() as u16;
-    if w + 3 >= cols {
-        return;
-    }
-    for (hx, c) in (cols - 2 - w..).zip(label.chars()) {
-        cells.push(cell(hx, row, c, t.text_muted, false));
-    }
-}
-
 /// Render the composer into the bottom `composer_rows(input, cols, rows)`
 /// rows: a bordered fieldset card that grows with the wrapped input on tall
 /// panes, a bare prompt row on short ones.
@@ -285,7 +270,6 @@ pub(crate) fn composer_cells(
     }
     // Interior prompt lines, kept clear of the right border at `cols - 1`.
     cells.extend(prompt_lines(input, agents, 2, cols - 1, top + 1, total - 2));
-    hints_on_border(&mut cells, cols, rows - 1);
     cells
 }
 
