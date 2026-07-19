@@ -11,11 +11,30 @@ impl CrewApp {
         self.spawn_plugin_pane(cmd, &[], None, None);
     }
 
-    /// Spawn the `/crew` pane: a chat pane backed by the multi-agent broker.
-    /// The broker is `crew` itself re-exec'd with `--broker-plugin`, so it works
-    /// wherever Crew is installed without a separate plugin binary. Named "crew"
-    /// so its title bar distinguishes it from chat panes.
+    /// Spawn the `/smith` (alias `/crew`) pane: a chat pane backed by the
+    /// multi-agent broker. The broker is `crew` itself re-exec'd with
+    /// `--broker-plugin`, so it works wherever Crew is installed without a
+    /// separate plugin binary. Named "crew" so its title bar distinguishes it
+    /// from chat panes.
+    ///
+    /// **Guardrail:** `/smith` drives a heavyweight multi-agent broker
+    /// subprocess (LLM agents, real spend), and the pane's `"crew"` label is its
+    /// routing identity — session restore snapshots it by that name and host
+    /// actions address it by it. A second broker would double the running cost
+    /// and make label routing ambiguous, so if a crew pane is already open we
+    /// focus it (restoring it if minimized, via `reconcile_grid`) instead of
+    /// spawning a duplicate.
     pub(crate) fn spawn_crew_pane(&mut self) {
+        if let Some(idx) = self
+            .panes
+            .iter()
+            .position(|p| p.label.as_deref() == Some("crew"))
+        {
+            self.focused = idx;
+            self.input.focused = false;
+            self.set_status("crew pane already open — focusing it");
+            return;
+        }
         let cmd = Self::crew_broker_cmd();
         // label "crew" is the pane's routing identity — session restore
         // snapshots it by this, and host actions could address it.
@@ -102,5 +121,73 @@ impl CrewApp {
                 .map(|p| p.to_string_lossy().into_owned())
                 .unwrap_or_else(|_| "crew".to_string())
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::app::CrewApp;
+    use crate::farpane::FarPane;
+    use crate::layout::Rect;
+    use crate::pane::{Pane, PaneContent};
+    use crew_term::GridSize;
+
+    /// A stand-in pane carrying `label` — enough to exercise the `/smith`
+    /// single-instance guardrail without a real broker subprocess.
+    fn labeled_pane(label: Option<&str>) -> Pane {
+        Pane {
+            content: PaneContent::Far(FarPane::new(std::env::temp_dir())),
+            grid: GridSize { cols: 80, rows: 24 },
+            rect: Rect {
+                x: 0.0,
+                y: 0.0,
+                w: 0.0,
+                h: 0.0,
+            },
+            label: label.map(str::to_string),
+            name: None,
+            dir: None,
+            activity: false,
+            bell: false,
+            hidden: false,
+            attention: None,
+        }
+    }
+
+    #[test]
+    fn smith_focuses_the_existing_crew_pane_instead_of_spawning_a_second_broker() {
+        let mut app = CrewApp::default();
+        // A couple of unrelated panes, then the crew pane at index 2.
+        app.panes.push(labeled_pane(None));
+        app.panes.push(labeled_pane(None));
+        app.panes.push(labeled_pane(Some("crew")));
+        app.focused = 0;
+        app.input.focused = true;
+
+        app.spawn_crew_pane();
+
+        assert_eq!(app.panes.len(), 3, "no duplicate broker pane was spawned");
+        assert_eq!(app.focused, 2, "focus moved to the existing crew pane");
+        assert!(!app.input.focused, "focus left the input bar for the pane");
+    }
+
+    #[test]
+    fn a_minimized_crew_pane_is_the_guardrail_target_too() {
+        // The guard matches by label regardless of hidden state; reconcile_grid
+        // restores it on the next render because focus left the input bar.
+        let mut app = CrewApp::default();
+        app.panes.push(labeled_pane(Some("crew")));
+        app.panes[0].hidden = true;
+        app.focused = 0;
+        app.input.focused = true;
+
+        app.spawn_crew_pane();
+
+        assert_eq!(app.panes.len(), 1, "still no second broker");
+        assert_eq!(app.focused, 0);
+        assert!(
+            !app.input.focused,
+            "focus off the input bar lets reconcile_grid restore the pane"
+        );
     }
 }
