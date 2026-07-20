@@ -55,7 +55,7 @@ fn tasks_lists_running_and_reports_idle_when_none_are() {
     let msgs = messages(&ev);
     assert!(
         msgs.iter()
-            .any(|(s, t)| s == "crew" && t.contains("no background tasks running")),
+            .any(|(s, t)| s == "agent smith" && t.contains("no background tasks running")),
         "{msgs:?}"
     );
 
@@ -95,7 +95,7 @@ fn stop_reports_unknown_id_and_idle_deterministically() {
     let msgs = messages(&ev);
     assert!(
         msgs.iter()
-            .any(|(s, t)| s == "crew" && t.contains("no task #999")),
+            .any(|(s, t)| s == "agent smith" && t.contains("no task #999")),
         "{msgs:?}"
     );
 
@@ -107,7 +107,7 @@ fn stop_reports_unknown_id_and_idle_deterministically() {
     assert!(
         msgs2
             .iter()
-            .any(|(s, t)| s == "crew" && t.contains("nothing is running")),
+            .any(|(s, t)| s == "agent smith" && t.contains("nothing is running")),
         "{msgs2:?}"
     );
 }

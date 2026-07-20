@@ -40,6 +40,7 @@ pub(crate) const HELP: &str = "constructs:\n\
     /help — this list\n\
     /agents — the roster with each agent's model\n\
     /model <agent> <model|default> — pin an agent to a model (mix models freely)\n\
+    /model all <model|default> — set every agent's model at once\n\
     /fan <task> — every agent answers the same task in parallel\n\
     /loop <n> <task> — n relay rounds, each improving the last answer\n\
     /goal <text> — keep working until a judge agent rules the goal met\n\
@@ -184,13 +185,13 @@ pub(crate) fn handle(
     let line = text.trim().trim_start_matches('/');
     let (cmd, rest) = line.split_once(char::is_whitespace).unwrap_or((line, ""));
     match cmd {
-        "help" => emit(msg("crew", HELP)),
+        "help" => emit(msg("agent smith", HELP)),
         "agents" => {
             // Fresh Roster first so the pane's badges pick up manifest edits.
             emit(PluginEvent::Roster {
                 agents: session.registry().infos(),
             })?;
-            emit(msg("crew", agents_report(session)))
+            emit(msg("agent smith", agents_report(session)))
         }
         "model" => model_cmd(session, rest, emit),
         "fan" => fan_cmd(session, rest, tick_emit, emit),
@@ -205,7 +206,10 @@ pub(crate) fn handle(
         "diff" => super::diff::diff_cmd(emit),
         "commit" => super::gitmsg::commit_cmd(session, rest, emit),
         "review" => super::review::review_cmd(session, emit),
-        "doctor" => emit(msg("crew", super::doctor::render(&super::doctor::gather()))),
+        "doctor" => emit(msg(
+            "agent smith",
+            super::doctor::render(&super::doctor::gather()),
+        )),
         "standup" => super::standup::standup_cmd(session, rest, emit),
         "resume" => {
             let m = match super::sessionlog::tail() {
@@ -219,22 +223,22 @@ pub(crate) fn handle(
                 }
                 None => "nothing to resume — no previous session found".into(),
             };
-            emit(msg("crew", m))
+            emit(msg("agent smith", m))
         }
         "cwd" => cwd_cmd(emit),
         "skills" => emit(msg(
-            "crew",
+            "agent smith",
             super::skillframe::list_report(&super::skills::load()),
         )),
         "skill" => super::skills::skill_cmd(session, rest, tick_emit, emit),
-        "memory" => emit(msg("crew", super::memory::report())),
+        "memory" => emit(msg("agent smith", super::memory::report())),
         "mcp" => {
             let report = session.lock_mcp().report();
-            emit(msg("crew", report))
+            emit(msg("agent smith", report))
         }
         "reload" => reload_cmd(session, emit),
         other => emit(msg(
-            "crew",
+            "agent smith",
             match closest_construct(other) {
                 Some(s) => format!("unknown construct /{other} — did you mean /{s}? (or /help)"),
                 None => format!("unknown construct /{other} — try /help"),
@@ -269,7 +273,7 @@ fn reload_cmd(
         }
     };
     emit(msg(
-        "crew",
+        "agent smith",
         format!(
             "reloaded from disk:\n\
              \u{25aa} skills: {}\n\
@@ -299,7 +303,7 @@ fn cwd_cmd(emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>) -> anyhow::R
         Ok(dir) => cwd_report(&dir, super::systools::read_only()),
         Err(e) => format!("cwd unavailable: {e}"),
     };
-    emit(msg("crew", report))
+    emit(msg("agent smith", report))
 }
 
 /// `/model` — list each agent's model; `/model <agent> <model>` — pin the
@@ -313,8 +317,34 @@ fn model_cmd(
     let mut parts = rest.split_whitespace();
     let (agent, model) = (parts.next(), parts.next());
     let Some(agent) = agent else {
-        return emit(msg("crew", agents_report(session)));
+        return emit(msg("agent smith", agents_report(session)));
     };
+    // `/model all <model|default>` — apply one model across the whole roster
+    // in a single step (what the pane's `/model` picker forwards).
+    if agent.eq_ignore_ascii_case("all") {
+        let Some(model) = model else {
+            return emit(msg("agent smith", "usage: /model all <model|default>"));
+        };
+        let names = session.registry().names();
+        if names.is_empty() {
+            return emit(msg("agent smith", "no agents to configure"));
+        }
+        let note = if model.eq_ignore_ascii_case("default") {
+            for n in &names {
+                session.overrides.remove(n);
+            }
+            "all agents back on the provider default model".to_string()
+        } else {
+            for n in &names {
+                session.overrides.insert(n.clone(), model.to_string());
+            }
+            format!("all agents now run {model}")
+        };
+        emit(PluginEvent::Roster {
+            agents: session.registry().infos(),
+        })?;
+        return emit(msg("agent smith", note));
+    }
     let reg = session.registry();
     let Some(name) = reg
         .names()
@@ -322,7 +352,7 @@ fn model_cmd(
         .find(|n| n.eq_ignore_ascii_case(agent))
     else {
         return emit(msg(
-            "crew",
+            "agent smith",
             format!(
                 "unknown agent \u{201c}{agent}\u{201d} — agents: {}",
                 reg.names().join(", ")
@@ -330,7 +360,10 @@ fn model_cmd(
         ));
     };
     let Some(model) = model else {
-        return emit(msg("crew", format!("usage: /model {name} <model|default>")));
+        return emit(msg(
+            "agent smith",
+            format!("usage: /model {name} <model|default>"),
+        ));
     };
     let note = if model.eq_ignore_ascii_case("default") {
         session.overrides.remove(&name);
@@ -342,7 +375,7 @@ fn model_cmd(
     emit(PluginEvent::Roster {
         agents: session.registry().infos(),
     })?;
-    emit(msg("crew", note))
+    emit(msg("agent smith", note))
 }
 
 /// `/fan <task>` — every agent answers `task` concurrently.
@@ -354,15 +387,15 @@ fn fan_cmd(
 ) -> anyhow::Result<()> {
     let task = task.trim();
     if task.is_empty() {
-        return emit(msg("crew", "usage: /fan <task>"));
+        return emit(msg("agent smith", "usage: /fan <task>"));
     }
     let reg = session.registry();
     if reg.is_empty() {
-        return emit(msg("crew", super::stdio::roster(&reg)));
+        return emit(msg("agent smith", super::stdio::roster(&reg)));
     }
     let names = reg.names();
     emit(msg(
-        "crew",
+        "agent smith",
         format!("fanning out to {} agents in parallel\u{2026}", names.len()),
     ))?;
     super::fan::fan_out(

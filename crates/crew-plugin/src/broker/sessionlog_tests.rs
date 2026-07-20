@@ -12,12 +12,12 @@ fn append_logs_conversation_but_skips_system_noise() {
     let base = scratch("append");
     append_at(&base, "user", "fix the flaky test");
     append_at(&base, "coder → user", "done — it raced on the clock");
-    append_at(&base, "crew", "starting with coder…");
+    append_at(&base, "agent smith", "starting with coder…");
     append_at(&base, "planner", "   ");
     let text = std::fs::read_to_string(live(&base)).unwrap();
     assert!(text.contains("user: fix the flaky test"));
     assert!(text.contains("coder → user: done"));
-    assert!(!text.contains("starting with"), "crew voice skipped");
+    assert!(!text.contains("starting with"), "agent smith voice skipped");
     assert_eq!(text.lines().count(), 2, "blank text skipped");
 }
 

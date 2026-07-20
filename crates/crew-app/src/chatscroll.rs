@@ -134,7 +134,7 @@ mod tests {
         let mut p = ChatPane::new(plugin, "crew".into());
         for i in 0..100 {
             p.messages.push(crate::chatlayout::Message {
-                sender: "crew".into(),
+                sender: "agent smith".into(),
                 text: format!("message number {i}"),
                 ts: String::new(),
                 meta: String::new(),

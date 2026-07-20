@@ -53,15 +53,15 @@ pub(crate) fn rotate_at(base: &Path) {
 }
 
 /// Append one line of conversation to the live log (best-effort — logging
-/// must never break the relay). Empty text and the `crew` system voice are
-/// skipped; the file is capped at [`LOG_CAP`] by dropping the oldest half.
+/// must never break the relay). Empty text and the `agent smith` system voice
+/// are skipped; the file is capped at [`LOG_CAP`] by dropping the oldest half.
 pub(crate) fn append(sender: &str, text: &str) {
     append_at(&base_dir(), sender, text);
 }
 
 pub(crate) fn append_at(base: &Path, sender: &str, text: &str) {
     let text = text.trim();
-    if text.is_empty() || sender == "crew" {
+    if text.is_empty() || sender == "agent smith" || sender == "crew" {
         return;
     }
     let path = live(base);

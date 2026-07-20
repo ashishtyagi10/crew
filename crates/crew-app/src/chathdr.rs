@@ -1,4 +1,4 @@
-//! The crew pane's header row: a title on the left and a right-aligned live
+//! The agent smith pane's header row: a title on the left and a right-aligned live
 //! status — a connection dot, the message count, and an animated "thinking"
 //! spinner while a reply is pending. Rendered as row 0 of the pane, with the
 //! message body laid out below it.
@@ -50,19 +50,20 @@ const COMPACT_CHIP: &str = "\u{00b7} compact";
 /// The right-aligned status segments as `(text, colour)`, in left-to-right order.
 /// While an agent is active the spinner names it and counts the elapsed
 /// seconds (`| coder · 12s`, in the agent's roster colour); otherwise a plain
-/// `thinking` spinner appears while a send is unanswered. One muted
-/// session-token estimate (`~9.5k tok`) follows once spend is nonzero; the
-/// trailing connection dot keeps the tighter single-space gap it always had.
+/// `thinking` spinner appears while a send is unanswered. The trailing
+/// connection dot keeps the tighter single-space gap it always had. Session
+/// stats (model, context, tokens) live in the below-input summary footer
+/// (`chatsummary`) — the header is identity and liveness only, never a second
+/// place the same numbers get repeated.
 /// `hint`, when the pane is busy, adds the muted "esc interrupts" segment
 /// just before the dot — callers drop it (`hint: false`) to reclaim width on
 /// narrow panes. `compact`, when the transcript is in compact view, adds the
-/// muted "compact" chip after the token meter (dropped first of the two —
+/// muted "compact" chip after the spinner (dropped first of the two —
 /// see [`COMPACT_CHIP`] — via `compact: false`).
 fn status_segments(
     connected: bool,
     awaiting: bool,
     active: Option<(&str, u64, (u8, u8, u8))>,
-    tokens: u64,
     compact: bool,
     hint: bool,
 ) -> Vec<(String, (u8, u8, u8))> {
@@ -75,13 +76,7 @@ fn status_segments(
         segs.push((format!("{} thinking", SPINNER[f]), crate::palette::accent()));
     }
 
-    // The one surviving counter: the muted session-token estimate. The
-    // transcript itself is the message/turn count, so those are gone.
-    if tokens > 0 {
-        segs.push((format!("~{} tok", fmt_tokens(tokens)), t.text_muted));
-    }
-
-    // Compact-view chip, width-permitting — appended after the token meter,
+    // Compact-view chip, width-permitting — appended after the spinner,
     // ahead of the busy hint (see `header_cells`: it's the first of the two
     // dropped on a narrow pane).
     if compact {
@@ -112,18 +107,16 @@ pub(crate) fn fmt_tokens(tokens: u64) -> String {
     }
 }
 
-/// Build the single-row header for a `cols`-wide crew pane. `tokens` is the
-/// session's approximate spend, shown as a muted `~<N> tok` only when
-/// nonzero. `compact` (Ctrl+O — `ChatPane::compact_view`) shows a muted
-/// "compact" chip; it's the first thing dropped on a narrow pane, ahead of
-/// the busy hint.
+/// Build the single-row header for a `cols`-wide agent smith pane — identity
+/// and liveness only; session stats live in the below-input summary footer.
+/// `compact` (Ctrl+O — `ChatPane::compact_view`) shows a muted "compact" chip;
+/// it's the first thing dropped on a narrow pane, ahead of the busy hint.
 pub(crate) fn header_cells(
     cols: u16,
     channel: &str,
     connected: bool,
     awaiting: bool,
     active: Option<(&str, u64, (u8, u8, u8))>,
-    tokens: u64,
     compact: bool,
 ) -> Vec<CellView> {
     if cols == 0 {
@@ -133,9 +126,9 @@ pub(crate) fn header_cells(
 
     // Title, left-aligned (truncated by the right-side status if space is tight).
     let title = if channel.is_empty() {
-        "crew".to_string()
+        "agent smith".to_string()
     } else {
-        format!("crew \u{00b7} {channel}") // crew · <channel>
+        format!("agent smith \u{00b7} {channel}") // agent smith · <channel>
     };
 
     // Right-aligned status, laid out from the right edge. Segments get the
@@ -163,12 +156,12 @@ pub(crate) fn header_cells(
     // essential of the two); if it still doesn't fit, the hint goes too —
     // everything else (spinner/active label, token meter, connection dot)
     // renders exactly as it would without either.
-    let mut segs = status_segments(connected, awaiting, active, tokens, compact, true);
+    let mut segs = status_segments(connected, awaiting, active, compact, true);
     if segs_width(&segs) as u16 > cols {
-        segs = status_segments(connected, awaiting, active, tokens, false, true);
+        segs = status_segments(connected, awaiting, active, false, true);
     }
     if segs_width(&segs) as u16 > cols {
-        segs = status_segments(connected, awaiting, active, tokens, false, false);
+        segs = status_segments(connected, awaiting, active, false, false);
     }
     let gap = |i: usize| -> u16 {
         if i == 0 {

@@ -132,7 +132,7 @@ fn folding_leaves_the_existing_transcript_untouched() {
     let mut p = pane();
     for i in 0..500 {
         p.messages.push(crate::chatlayout::Message {
-            sender: "crew".into(),
+            sender: "agent smith".into(),
             text: format!("m{i}"),
             ts: String::new(),
             meta: String::new(),

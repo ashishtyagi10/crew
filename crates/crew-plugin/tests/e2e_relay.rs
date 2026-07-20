@@ -32,7 +32,7 @@ fn relay_runs_through_the_binary_and_finishes() {
     // A per-turn timeline + cost summary is surfaced at the end…
     assert!(
         msgs.iter()
-            .any(|(s, t)| s == "crew" && t.starts_with("turn done") && t.contains("tok")),
+            .any(|(s, t)| s == "agent smith" && t.starts_with("turn done") && t.contains("tok")),
         "{msgs:?}"
     );
     // …alongside a structured Stats event for the host's token meter.
@@ -52,7 +52,7 @@ fn stop_with_nothing_running_reports_idle() {
     let msgs = messages(&ev);
     assert!(
         msgs.iter()
-            .any(|(s, t)| s == "crew" && t.contains("nothing is running")),
+            .any(|(s, t)| s == "agent smith" && t.contains("nothing is running")),
         "{msgs:?}"
     );
 }

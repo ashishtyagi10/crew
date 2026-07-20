@@ -78,7 +78,7 @@ fn hello(out: &Out, session: &Session) -> anyhow::Result<()> {
             agents: reg.infos(),
         },
     )?;
-    emit(out, &msg("crew", roster(&reg)))
+    emit(out, &msg("agent smith", roster(&reg)))
 }
 
 /// Route one Send. `/stop [#N]`, `/tasks`, `/status`, and quick constructs
@@ -111,7 +111,7 @@ fn send(
             } else {
                 format!("stopping all {n} task(s)\u{2026}")
             };
-            return emit(out, &msg("crew", m));
+            return emit(out, &msg("agent smith", m));
         }
         let id: Option<u64> = arg.trim_start_matches('#').parse().ok();
         let m = match id {
@@ -119,7 +119,7 @@ fn send(
             Some(id) => format!("no task #{id}"),
             None => "usage: /stop [#id]".to_string(),
         };
-        return emit(out, &msg("crew", m));
+        return emit(out, &msg("agent smith", m));
     }
 
     // /tasks — list running tasks.
@@ -130,7 +130,7 @@ fn send(
         } else {
             lines.join("\n")
         };
-        return emit(out, &msg("crew", body));
+        return emit(out, &msg("agent smith", body));
     }
 
     // /status — session totals plus the LIVE task count (needs the registry,
@@ -138,7 +138,10 @@ fn send(
     if cmd0 == "/status" {
         return emit(
             out,
-            &msg("crew", super::commands::status_report(session, tasks.len())),
+            &msg(
+                "agent smith",
+                super::commands::status_report(session, tasks.len()),
+            ),
         );
     }
 
@@ -146,7 +149,7 @@ fn send(
     // appended to ./.crew/memory.md and prepended to every task from now on.
     // Answered inline; nothing dials an agent.
     if let Some(note) = trimmed.strip_prefix('#') {
-        return emit(out, &msg("crew", super::memory::remember(note)));
+        return emit(out, &msg("agent smith", super::memory::remember(note)));
     }
 
     if super::commands::is_quick(&trimmed) {
@@ -164,7 +167,7 @@ fn send(
         return emit(
             out,
             &msg(
-                "crew",
+                "agent smith",
                 format!(
                     "at capacity ({} tasks) \u{2014} /stop one first",
                     tasks.len()
@@ -233,7 +236,7 @@ fn send(
             (Ok(_), false) => None,
         };
         if let Some(done) = done {
-            let _ = emit(&out_thread, &msg("crew", done));
+            let _ = emit(&out_thread, &msg("agent smith", done));
         }
     });
     tasks.attach(id, label, cancel, handle, Instant::now());
@@ -286,7 +289,7 @@ fn relay_counting(
 ) -> anyhow::Result<()> {
     let reg = session.registry();
     if reg.is_empty() {
-        return emit(msg("crew", roster(&reg)));
+        return emit(msg("agent smith", roster(&reg)));
     }
     let task = input.trim();
     if task.is_empty() {
@@ -295,7 +298,7 @@ fn relay_counting(
     // `@a+b <task>` fans out to that subset in parallel instead of relaying.
     if let Some((names, body)) = multi_targets(task, &reg) {
         emit(msg(
-            "crew",
+            "agent smith",
             format!("fanning out to {} in parallel\u{2026}", names.join("+")),
         ))?;
         return super::fan::fan_out(&reg, &names, &body, call_timeout(), tick_emit, emit);
@@ -324,7 +327,7 @@ fn relay_counting(
     let (start, body) = split_target(&task_owned, &reg);
     let tid = format!("t{}", THREAD_SEQ.fetch_add(1, Ordering::Relaxed));
     emit(msg(
-        "crew",
+        "agent smith",
         format!("starting with {start} — relaying until an agent says @done"),
     ))?;
     let broker = session.broker(reg);

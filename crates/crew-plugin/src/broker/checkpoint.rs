@@ -111,20 +111,20 @@ pub(crate) fn checkpoint_cmd(
         .unwrap_or("checkpoint");
     let dir = match std::env::current_dir() {
         Ok(d) => d,
-        Err(e) => return emit(msg("crew", format!("checkpoint failed: {e}"))),
+        Err(e) => return emit(msg("agent smith", format!("checkpoint failed: {e}"))),
     };
     match snapshot(&dir, label) {
         Ok(short) => {
             let n = list(&dir).map(|l| l.len()).unwrap_or(0);
             emit(msg(
-                "crew",
+                "agent smith",
                 format!(
                     "checkpoint #{n} saved \u{00b7} {short} \u{00b7} \u{201c}{label}\u{201d} \
                      \u{2014} /restore {n} brings these files back"
                 ),
             ))
         }
-        Err(e) => emit(msg("crew", format!("checkpoint failed: {e}"))),
+        Err(e) => emit(msg("agent smith", format!("checkpoint failed: {e}"))),
     }
 }
 
@@ -134,11 +134,11 @@ pub(crate) fn list_cmd(
 ) -> anyhow::Result<()> {
     let dir = match std::env::current_dir() {
         Ok(d) => d,
-        Err(e) => return emit(msg("crew", format!("checkpoints failed: {e}"))),
+        Err(e) => return emit(msg("agent smith", format!("checkpoints failed: {e}"))),
     };
     match list(&dir) {
         Ok(items) if items.is_empty() => emit(msg(
-            "crew",
+            "agent smith",
             "no checkpoints yet \u{2014} save one with /checkpoint [label]",
         )),
         Ok(items) => {
@@ -148,14 +148,14 @@ pub(crate) fn list_cmd(
                 .map(|(i, (sha, label))| format!("#{} \u{00b7} {sha} \u{00b7} {label}", i + 1))
                 .collect();
             emit(msg(
-                "crew",
+                "agent smith",
                 format!(
                     "checkpoints (restore with /restore <n>):\n{}",
                     lines.join("\n")
                 ),
             ))
         }
-        Err(e) => emit(msg("crew", format!("checkpoints failed: {e}"))),
+        Err(e) => emit(msg("agent smith", format!("checkpoints failed: {e}"))),
     }
 }
 
@@ -166,16 +166,16 @@ pub(crate) fn restore_cmd(
 ) -> anyhow::Result<()> {
     let dir = match std::env::current_dir() {
         Ok(d) => d,
-        Err(e) => return emit(msg("crew", format!("restore failed: {e}"))),
+        Err(e) => return emit(msg("agent smith", format!("restore failed: {e}"))),
     };
     let items = match list(&dir) {
         Ok(items) => items,
-        Err(e) => return emit(msg("crew", format!("restore failed: {e}"))),
+        Err(e) => return emit(msg("agent smith", format!("restore failed: {e}"))),
     };
     let n: Option<usize> = rest.trim().parse().ok();
     let Some((sha, label)) = n.and_then(|n| n.checked_sub(1)).and_then(|i| items.get(i)) else {
         return emit(msg(
-            "crew",
+            "agent smith",
             format!(
                 "usage: /restore <1-{}> \u{2014} see /checkpoints",
                 items.len().max(1)
@@ -184,13 +184,13 @@ pub(crate) fn restore_cmd(
     };
     match restore(&dir, sha) {
         Ok(()) => emit(msg(
-            "crew",
+            "agent smith",
             format!(
                 "restored \u{201c}{label}\u{201d} ({sha}) \u{2014} snapshot files are back; \
                  files created since the snapshot were left in place"
             ),
         )),
-        Err(e) => emit(msg("crew", format!("restore failed: {e}"))),
+        Err(e) => emit(msg("agent smith", format!("restore failed: {e}"))),
     }
 }
 

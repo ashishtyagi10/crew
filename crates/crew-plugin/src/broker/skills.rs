@@ -137,7 +137,7 @@ pub(crate) fn skill_cmd(
     let (name, task) = (normalize_name(name), task.trim());
     if name.is_empty() || task.is_empty() {
         return emit(msg(
-            "crew",
+            "agent smith",
             "usage: /skill <name> <task> \u{2014} /skills lists them",
         ));
     }
@@ -150,17 +150,17 @@ pub(crate) fn skill_cmd(
             known.join(", ")
         };
         return emit(msg(
-            "crew",
+            "agent smith",
             format!("unknown skill \u{201c}{name}\u{201d} \u{2014} skills: {hint}"),
         ));
     };
     let reg = session.registry();
     if reg.is_empty() {
-        return emit(msg("crew", roster(&reg)));
+        return emit(msg("agent smith", roster(&reg)));
     }
     let (start, task) = split_target(task, &reg);
     emit(msg(
-        "crew",
+        "agent smith",
         format!("skill \u{201c}{name}\u{201d} \u{2014} starting with {start}"),
     ))?;
     let broker = session.broker(reg);

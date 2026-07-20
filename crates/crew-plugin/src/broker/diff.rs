@@ -46,11 +46,11 @@ pub(crate) fn diff_cmd(
 ) -> anyhow::Result<()> {
     let dir = match std::env::current_dir() {
         Ok(d) => d,
-        Err(e) => return emit(msg("crew", format!("diff failed: {e}"))),
+        Err(e) => return emit(msg("agent smith", format!("diff failed: {e}"))),
     };
     match git_diff_stat(&dir) {
-        Ok(raw) => emit(msg("crew", diff_report(&raw))),
-        Err(e) => emit(msg("crew", format!("diff failed: {e}"))),
+        Ok(raw) => emit(msg("agent smith", diff_report(&raw))),
+        Err(e) => emit(msg("agent smith", format!("diff failed: {e}"))),
     }
 }
 

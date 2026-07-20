@@ -14,8 +14,8 @@ impl CrewApp {
     /// Spawn the `/smith` (alias `/crew`) pane: a chat pane backed by the
     /// multi-agent broker. The broker is `crew` itself re-exec'd with
     /// `--broker-plugin`, so it works wherever Crew is installed without a
-    /// separate plugin binary. Named "crew" so its title bar distinguishes it
-    /// from chat panes.
+    /// separate plugin binary. Shown as "agent smith" so its legend
+    /// distinguishes it from chat panes.
     ///
     /// **Guardrail:** `/smith` drives a heavyweight multi-agent broker
     /// subprocess (LLM agents, real spend), and the pane's `"crew"` label is its
@@ -32,18 +32,47 @@ impl CrewApp {
         {
             self.focused = idx;
             self.input.focused = false;
-            self.set_status("crew pane already open — focusing it");
+            self.set_status("agent smith pane already open — focusing it");
             return;
         }
         let cmd = Self::crew_broker_cmd();
-        // label "crew" is the pane's routing identity — session restore
-        // snapshots it by this, and host actions could address it.
+        // Visible name is "agent smith" (the /smith pane's brand); the routing
+        // label stays "crew" — session restore snapshots it by that, and host
+        // actions could address it.
         self.spawn_plugin_pane(
             &cmd,
             &["--broker-plugin".to_string()],
-            Some("crew".to_string()),
+            Some("agent smith".to_string()),
             Some("crew".to_string()),
         );
+    }
+
+    /// `/model <slug>` — forward a model change to the open agent smith pane so
+    /// every agent switches to `slug` (`default` restores the provider default).
+    /// The palette picker (`suggest::options_for`) feeds this, and any freeform
+    /// slug works too. With no open pane there's nothing to configure, so it
+    /// flashes a hint instead. Forwarded as `/model all <slug>`, which the
+    /// broker applies across the whole roster.
+    pub(crate) fn set_model_cmd(&mut self, model: &str) {
+        let model = model.trim();
+        if model.is_empty() {
+            self.set_status("usage: /model <slug> — e.g. /model qwen-max (open /smith first)");
+            return;
+        }
+        let Some(idx) = self
+            .panes
+            .iter()
+            .position(|p| p.label.as_deref() == Some("crew"))
+        else {
+            self.set_status("open /smith first, then pick a model");
+            return;
+        };
+        if let PaneContent::Chat(chat) = &mut self.panes[idx].content {
+            chat.submit_command(format!("/model all {model}"));
+            self.focused = idx;
+            self.input.focused = false;
+            self.set_status(format!("agent smith \u{2192} {model}"));
+        }
     }
 
     /// Shared spawn path for plugin-backed panes (chat and crew). `name` sets

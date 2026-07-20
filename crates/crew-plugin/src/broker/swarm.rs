@@ -118,7 +118,7 @@ pub(crate) fn run_with(
         Ok(g) => g,
         Err(e) => {
             emit(msg(
-                "crew",
+                "agent smith",
                 format!("planning failed ({e}) — answering directly"),
             ))?;
             emit(PluginEvent::Activity {
@@ -151,7 +151,7 @@ pub(crate) fn run_with(
         tasks: tasks.clone(),
     })?;
     emit(msg(
-        "crew",
+        "agent smith",
         format!(
             "planned {} task(s): {}",
             tasks.len(),
@@ -235,7 +235,7 @@ pub(crate) fn run_with(
         return Err(e);
     }
     if lagged_total > 0 {
-        emit(msg("crew", lagged_note(lagged_total)))?;
+        emit(msg("agent smith", lagged_note(lagged_total)))?;
     }
 
     // Final aggregate: a status line only. Sink tasks' outputs already
@@ -272,7 +272,7 @@ pub(crate) fn run_with(
         ctx: 0,
     })?;
     if let Some(summary) = summary {
-        emit(msg("crew", summary))?;
+        emit(msg("agent smith", summary))?;
     }
     emit(PluginEvent::Activity {
         agent: String::new(),

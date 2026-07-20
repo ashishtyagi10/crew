@@ -88,7 +88,7 @@ pub(crate) fn relay_turn(
         ctx: 0,
     })?;
     emit(msg(
-        "crew",
+        "agent smith",
         turn_summary(&segments, stats.exchanges, total, approx),
     ))?;
     emit(PluginEvent::Activity {

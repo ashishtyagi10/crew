@@ -135,7 +135,7 @@ pub(crate) fn fan_out(
         ctx: 0,
     })?;
     emit(msg(
-        "crew",
+        "agent smith",
         format!(
             "fan done \u{2014} {} of {} replied \u{2225} {} \u{00b7} {cost}",
             timings.len(),

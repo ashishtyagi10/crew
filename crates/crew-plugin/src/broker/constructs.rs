@@ -24,24 +24,30 @@ pub(crate) fn loop_cmd(
         None => (None, ""),
     };
     let Some(n) = n.filter(|n| (1..=MAX_ROUNDS).contains(n)) else {
-        return emit(msg("crew", format!("usage: /loop <1-{MAX_ROUNDS}> <task>")));
+        return emit(msg(
+            "agent smith",
+            format!("usage: /loop <1-{MAX_ROUNDS}> <task>"),
+        ));
     };
     if task.is_empty() {
-        return emit(msg("crew", format!("usage: /loop <1-{MAX_ROUNDS}> <task>")));
+        return emit(msg(
+            "agent smith",
+            format!("usage: /loop <1-{MAX_ROUNDS}> <task>"),
+        ));
     }
     let reg = session.registry();
     if reg.is_empty() {
-        return emit(msg("crew", roster(&reg)));
+        return emit(msg("agent smith", roster(&reg)));
     }
     let (start, task) = split_target(task, &reg);
     let broker = session.broker(reg);
     let mut answer: Option<String> = None;
     for round in 1..=n {
         if session.cancelled() {
-            return emit(msg("crew", "loop cancelled by /stop"));
+            return emit(msg("agent smith", "loop cancelled by /stop"));
         }
         emit(msg(
-            "crew",
+            "agent smith",
             format!("loop round {round}/{n} \u{2014} starting with {start}"),
         ))?;
         let body = round_body(&task, answer.as_deref());
@@ -49,7 +55,7 @@ pub(crate) fn loop_cmd(
         answer = relay_turn(&broker, &start, &body, &tid, tick_emit, emit)?.or(answer);
     }
     emit(msg(
-        "crew",
+        "agent smith",
         format!("loop done \u{2014} {n} round(s) complete"),
     ))
 }
@@ -68,11 +74,14 @@ pub(crate) fn goal_cmd(
 ) -> anyhow::Result<()> {
     let goal = rest.trim();
     if goal.is_empty() {
-        return emit(msg("crew", "usage: /goal <what must be true when done>"));
+        return emit(msg(
+            "agent smith",
+            "usage: /goal <what must be true when done>",
+        ));
     }
     let reg = session.registry();
     if reg.is_empty() {
-        return emit(msg("crew", roster(&reg)));
+        return emit(msg("agent smith", roster(&reg)));
     }
     let (start, goal) = split_target(goal, &reg);
     let judge = pick_judge(&reg.infos(), &start);
@@ -81,10 +90,10 @@ pub(crate) fn goal_cmd(
     let mut answer: Option<String> = None;
     for round in 1..=GOAL_ROUNDS {
         if session.cancelled() {
-            return emit(msg("crew", "goal cancelled by /stop"));
+            return emit(msg("agent smith", "goal cancelled by /stop"));
         }
         emit(msg(
-            "crew",
+            "agent smith",
             format!("goal round {round}/{GOAL_ROUNDS} \u{2014} {start} works, {judge} judges"),
         ))?;
         let body = round_body(&goal, answer.as_deref());
@@ -98,7 +107,10 @@ pub(crate) fn goal_cmd(
         )?
         .or(answer);
         let Some(ans) = answer.as_deref() else {
-            return emit(msg("crew", "goal stopped \u{2014} no answer was produced"));
+            return emit(msg(
+                "agent smith",
+                "goal stopped \u{2014} no answer was produced",
+            ));
         };
         emit(PluginEvent::Activity {
             agent: judge.clone(),
@@ -117,15 +129,23 @@ pub(crate) fn goal_cmd(
         let reply = match verdict {
             Some(Ok(r)) => r,
             Some(Err(e)) => {
-                emit(msg("crew", format!("judge failed: {e} \u{2014} stopping")))?;
+                emit(msg(
+                    "agent smith",
+                    format!("judge failed: {e} \u{2014} stopping"),
+                ))?;
                 return Ok(());
             }
-            None => return emit(msg("crew", "goal stopped \u{2014} judge went missing")),
+            None => {
+                return emit(msg(
+                    "agent smith",
+                    "goal stopped \u{2014} judge went missing",
+                ))
+            }
         };
         let (met, why) = parse_verdict(&reply);
         if met {
             return emit(msg(
-                "crew",
+                "agent smith",
                 format!("goal met after {round} round(s) \u{2713} \u{2014} {why}"),
             ));
         }
@@ -135,7 +155,7 @@ pub(crate) fn goal_cmd(
         ))?;
     }
     emit(msg(
-        "crew",
+        "agent smith",
         format!("goal not met after {GOAL_ROUNDS} rounds \u{2014} stopping (last answer above)"),
     ))
 }

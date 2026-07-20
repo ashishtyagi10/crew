@@ -17,28 +17,34 @@ pub fn card_inner_cells(w: f32, h: f32, cell_w: f32, cell_h: f32) -> (u16, u16) 
     (cols, rows)
 }
 
-/// Pack `n` tiles near-square into `w`x`h` offset by `(ox, oy)`. Outer edges
-/// keep the full `gap`; interior edges take half each, so the seam between two
-/// adjacent panes is one `gap` — tiles sit closer to each other than to the
-/// window chrome. Bento fill: a short last row stretches its tiles across the
-/// full width, so the grid always covers the whole area with no empty cell.
+/// Pack `n` tiles into `w`x`h` offset by `(ox, oy)` as a **vertical split**:
+/// the area is divided into `ceil(sqrt(n))` equal-width columns, and a column
+/// is split into rows only when it must hold more than one pane. When `n`
+/// isn't a multiple of the column count the surplus lands in the *earlier*
+/// (left) columns, so the later columns stay full height — e.g. three panes
+/// give two columns, the first split in two and the second full height.
+///
+/// Outer edges keep the full `gap`; interior edges take half each, so the seam
+/// between two adjacent panes is one `gap` — tiles sit closer to each other
+/// than to the window chrome.
 pub fn pane_rects_at(n: usize, ox: f32, oy: f32, w: f32, h: f32, gap: f32) -> Vec<Rect> {
     if n == 0 {
         return Vec::new();
     }
     let cols = (n as f32).sqrt().ceil() as usize;
-    let rows = n.div_ceil(cols);
-    let tile_h = h / rows as f32;
+    let base = n / cols; // rows in the shortest (right-hand) columns
+    let extra = n % cols; // the first `extra` columns carry one more pane
+    let tile_w = w / cols as f32;
     let half = gap / 2.0;
     let mut out = Vec::with_capacity(n);
-    for r in 0..rows {
-        let row_n = cols.min(n - r * cols);
-        let tile_w = w / row_n as f32;
-        for c in 0..row_n {
-            let left = if c == 0 { gap } else { half };
-            let right = if c == row_n - 1 { gap } else { half };
+    for c in 0..cols {
+        let col_n = base + if c < extra { 1 } else { 0 };
+        let tile_h = h / col_n as f32;
+        let left = if c == 0 { gap } else { half };
+        let right = if c == cols - 1 { gap } else { half };
+        for r in 0..col_n {
             let top = if r == 0 { gap } else { half };
-            let bottom = if r == rows - 1 { gap } else { half };
+            let bottom = if r == col_n - 1 { gap } else { half };
             out.push(Rect {
                 x: ox + c as f32 * tile_w + left,
                 y: oy + r as f32 * tile_h + top,
@@ -95,39 +101,58 @@ mod tests {
     }
 
     #[test]
-    fn three_panes_last_row_fills_full_width() {
-        // Bento fill: a short last row stretches its tiles so the grid always
-        // covers the whole area — no empty cell to the right of pane 3.
+    fn three_panes_left_column_splits_right_full_height() {
+        // Vertical split: two equal columns. The left column carries the
+        // surplus pane (split into two rows); the right column stays a single
+        // full-height pane.
         let r = pane_rects_at(3, 0.0, 0.0, 800.0, 600.0, 0.0);
         assert_eq!(r.len(), 3);
+        // Left column: two stacked half-height tiles.
+        approx(r[0].x, 0.0);
         approx(r[0].w, 400.0);
-        approx(r[1].w, 400.0);
-        approx(r[2].x, 0.0);
-        approx(r[2].w, 800.0);
-        approx(r[2].y, 300.0);
-        approx(r[2].h, 300.0);
+        approx(r[0].h, 300.0);
+        approx(r[1].x, 0.0);
+        approx(r[1].y, 300.0);
+        approx(r[1].h, 300.0);
+        // Right column: one full-height tile.
+        approx(r[2].x, 400.0);
+        approx(r[2].y, 0.0);
+        approx(r[2].w, 400.0);
+        approx(r[2].h, 600.0);
     }
 
     #[test]
-    fn five_panes_last_row_splits_leftover_width() {
-        // n=5 → 3 columns, 2 rows: top row three tiles, bottom row two tiles
-        // that widen to cover the full width between them.
+    fn five_panes_fill_left_columns_first() {
+        // n=5 → 3 columns. The surplus (5 - 3 = 2) fills the first two columns
+        // (two rows each); the last column stays full height.
         let r = pane_rects_at(5, 0.0, 0.0, 900.0, 600.0, 0.0);
         assert_eq!(r.len(), 5);
-        approx(r[3].x, 0.0);
-        approx(r[3].w, 450.0);
-        approx(r[4].x, 450.0);
-        approx(r[4].w, 450.0);
-        approx(r[4].x + r[4].w, 900.0);
+        // Columns 0 and 1: two stacked tiles each.
+        approx(r[0].x, 0.0);
+        approx(r[0].h, 300.0);
+        approx(r[1].x, 0.0);
+        approx(r[1].y, 300.0);
+        approx(r[2].x, 300.0);
+        approx(r[3].x, 300.0);
+        approx(r[3].y, 300.0);
+        // Column 2: a single full-height tile on the right.
+        approx(r[4].x, 600.0);
+        approx(r[4].y, 0.0);
+        approx(r[4].h, 600.0);
     }
 
     #[test]
-    fn short_last_row_keeps_gap_conventions() {
-        // With a gap, the stretched last-row tile still keeps full outer
-        // margins and half-gap interior seams like every other tile.
+    fn full_height_column_keeps_gap_conventions() {
+        // With a gap, the full-height right column still keeps full outer
+        // margins (right/top/bottom) and a half-gap seam on its inner (left)
+        // edge, like every other tile.
         let r = pane_rects_at(3, 0.0, 0.0, 800.0, 600.0, 8.0);
-        approx(r[2].x, 8.0);
-        approx(r[2].x + r[2].w, 792.0);
+        // r[2] is the right, full-height column.
+        approx(r[2].x + r[2].w, 792.0); // full outer margin on the right
+        approx(r[2].y, 8.0); // full outer margin on top
+        approx(r[2].y + r[2].h, 592.0); // full outer margin on the bottom
+                                        // Inner seam against the left column is a single gap.
+        approx(r[2].x - (r[0].x + r[0].w), 8.0);
     }
 
     #[test]

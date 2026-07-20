@@ -90,7 +90,7 @@ mod tests {
             panic!("chat pane replaced");
         };
         let last = c.messages.last().expect("a status note in the transcript");
-        assert_eq!(last.sender, "crew");
+        assert_eq!(last.sender, "agent smith");
         assert!(
             last.text.contains("font size 18"),
             "note should carry the /font status: {}",

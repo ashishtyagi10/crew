@@ -17,7 +17,7 @@ pub(crate) fn compact_messages(msgs: Vec<Message>, keep: usize) -> Vec<Message> 
     let folded = msgs.len() - keep;
     let mut out = Vec::with_capacity(keep + 1);
     out.push(Message {
-        sender: "crew".into(),
+        sender: "agent smith".into(),
         text: format!(
             "(compacted {folded} earlier message{})",
             if folded == 1 { "" } else { "s" }
@@ -81,7 +81,7 @@ mod tests {
         let v = msgs(30);
         let out = compact_messages(v, 20);
         assert_eq!(out.len(), 21);
-        assert_eq!(out[0].sender, "crew");
+        assert_eq!(out[0].sender, "agent smith");
         assert!(out[0].text.contains("compacted 10"), "got: {}", out[0].text);
         // The last message is preserved verbatim.
         assert_eq!(out[20].text, "m29");
