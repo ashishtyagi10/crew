@@ -40,7 +40,6 @@ mod chatscroll;
 mod chatspawn;
 mod chatsummary;
 mod chatswarm;
-mod chatswarmrec;
 mod chatswarmview;
 mod chattheme;
 mod chattime;

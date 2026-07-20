@@ -188,7 +188,7 @@ Press **`/keys`** in the input bar for this list in-app.
 | Font bigger / smaller / reset | **Cmd+=** / **Cmd+-** / **Cmd+0** |
 | Copy visible screen / paste | **Cmd+C** / **Cmd+V** |
 | Open URL / file / dir under cursor | **Cmd+Click** |
-| Cycle themes (fixed presets, then random-dark/light, then auto) | **Ctrl+Shift+L** |
+| Cycle themes (dark → light → crt) | **Ctrl+Shift+L** |
 | Toggle chat markdown preview ↔ raw source | **Ctrl+Shift+M** |
 | Insert a newline in a terminal | **Shift+Enter** (line feed, not submit) |
 | Close pane / maximize window | **Cmd+W** / **Cmd+M** |
@@ -262,7 +262,7 @@ The docked command bar supports:
 - **`/font <n>`** — sets the font size to an exact value (clamped 12–32), unlike
   the `Cmd+=`/`Cmd+-` chords that step by one; no argument reports the current size
   (and rotation state, if on). **`/font random`** toggles a 10-minute rotation
-  through the installed monospace families (same clock as `/theme random`) —
+  through the installed monospace families (same clock as the theme rotation) —
   run it again to stop and return to the pinned family. Rotation only ever
   touches the live renderer, never the pinned `font_family` in Settings, and
   a manual family pick there also turns rotation back off.
@@ -279,15 +279,16 @@ The docked command bar supports:
   one: the way to apply a binary installed by `/update`, and the fresh process
   re-reads `config.toml`, so edits made outside the `/settings` pane take
   effect too.
-- **`/theme [name]`** — switches the theme live and persists it (thirteen
-  themes — `paper-dark`, `paper-light`, `sepia-dark`, `sepia-light`,
-  `midnight-ink`, `graphite`, `coldpress-gray`, `salmon-broadsheet`,
-  `ivory-ledger`, `crt-green`, `crt-amber`, `crt-blue`, `crt-violet` — plus
-  the rotation modes `random-dark`/`random` (alias), `random-light`, and
-  `auto` (follows the OS appearance)); no argument reports the current
-  selection. Selecting `/theme` in the palette opens an arrow-selectable
-  **picker** of the themes, so you don't have to type the name. `Ctrl+Shift+L`
-  cycles through all of them. See [Themes](#themes).
+- **`/theme [name]`** — switches the theme live and persists it. There are
+  three themes — **`dark`**, **`light`**, and **`crt`** — and each one *rotates*
+  through a pool of palettes every 10 minutes (dark paper palettes, light paper
+  palettes, and CRT phosphor palettes respectively). No argument reports the
+  current selection. Selecting `/theme` in the palette opens an arrow-selectable
+  **picker** of the three themes, so you don't have to type the name.
+  `Ctrl+Shift+L` cycles `dark → light → crt`. The old names — the individual
+  palettes (`paper-dark`, `crt-green`, …) and the pre-consolidation rotation
+  modes (`random-dark`/`random`, `random-light`, `auto`) — still resolve for
+  back-compat but aren't listed. See [Themes](#themes).
 - **`/only`** — closes every pane except the focused one (a quick "focus mode");
   a no-op when only one pane is open.
 - **File operations live in Far and Cmd+click**, not slash commands: the old
@@ -513,27 +514,21 @@ instead of transcript spam, and each
 turn ends with a `stats` event plus a timeline summary: `turn done — planner
 4.2s → coder 8.1s · 2 exchange(s) · ~950 tok (approx)`.
 
-**Swarm runs stream inline.** When a plain `/smith` message runs as a broker-side
-swarm, the pane opens a **live task-list block** above the composer — one row
-per planned task with a state glyph (a spinner while it runs), its title, live
-elapsed seconds, a right-aligned token count, and — when the run bills real
-API spend — a per-task **cost column** (`$0.0031`; sub-cent costs keep four
-decimals). As the pane narrows the metric columns shed in reverse order of
-urgency: cost first, then tokens, then elapsed. When every task reaches a
-terminal state the block **folds into the transcript** as the run's durable
-record: a task list with per-task token totals, costs, and durations, capped
-by a `Σ 13.0k tok · $0.04` run-total line (the only place the whole run's
-spend surfaces in chat), plus — for runs
-where two or more tasks actually started — a **timeline**: a Gantt-style
-fenced block mapping each task's start→end span onto a 20-cell bar
-(`timeline · 12.4s` header, `█` active / `·` idle), so the run's concurrency
-shape and critical path stay readable long after the run ends. Tasks cancelled
-before starting are listed (`⊘`) but omitted from the timeline; a task still
-running when a broker error folds the block closes its bar at the fold moment.
-Telemetry rides a bounded broadcast bus (4096-event ring); if a burst ever
-outruns the drain, the skipped count is reported in the transcript —
-`telemetry gap: N events dropped (bus overflow)` — instead of the pane's
-per-task stats silently under-counting.
+**Swarm runs stream inline, then get out of the way.** When a plain `/smith`
+message runs as a broker-side swarm, the pane opens a **live task-list block**
+above the composer while the run is in flight — one row per planned task with a
+state glyph (a spinner while it runs), its title, live elapsed seconds, and a
+right-aligned token count. The agents' own replies stream into the transcript
+as they arrive. When every task reaches a terminal state the block simply
+**disappears** — no folded summary record, no `Σ` token/cost/time line, no
+per-task accounting is left behind (the design deliberately favours a clean,
+Opencode-style stream over a progress-and-billing readout). A clean run also
+adds no "swarm done" or "task started/done" status lines; only the exceptional
+endings stay visible — a task **error**, a user **stop**, or a run that
+**finished with failed tasks**. Telemetry still rides a bounded broadcast bus
+(4096-event ring) that drives the live block; if a burst ever outruns the
+drain, the skipped count is reported in the transcript — `telemetry gap: N
+events dropped (bus overflow)`.
 
 Message bodies are newline-aware, and fenced ```code``` blocks render as
 bordered cards — a muted `╭─ lang` header, verbatim hard-wrapped lines on a
@@ -872,10 +867,15 @@ Settings persist to `$XDG_CONFIG/crew/config.toml` and apply live on Save.
 
 ## Themes
 
-Crew ships **thirteen themes**: nine paper/ink looks designed to read like a
-page rather than a screen, and four old-school CRT phosphor tubes.
+Crew offers **three themes** — **`dark`**, **`light`**, and **`crt`** — and each
+one is a *rotation*: it cycles through a pool of hand-tuned palettes every 10
+minutes. `dark` rotates the dark paper/ink looks, `light` rotates the light
+ones, and `crt` rotates the old-school phosphor tubes. The thirteen palettes
+below are those pool members (nine paper/ink looks designed to read like a page
+rather than a screen, plus four CRT tubes); they're no longer selected on their
+own, but each name still resolves if you type it.
 
-- **`paper-dark`** (default) — a high-contrast "newspaper" look: a near-black
+- **`paper-dark`** (default dark-pool member) — a high-contrast "newspaper" look: a near-black
   page (`#0a0a0a`) with near-white ink (`#ececec`) and grey rules. Terminal
   output keeps muted-but-readable ANSI colours so error/diff cues survive.
 - **`paper-light`** — a warm off-white page (`#f4f1ea`) with soft dark ink and
@@ -905,23 +905,28 @@ A faint procedural **grain** + edge vignette is drawn behind everything (GPU) �
 it reads as paper texture on the paper themes and as a subtle **tube glow** on
 the CRT ones. Every palette's colours are picked for measured WCAG contrast.
 
-**Switching:** `/theme <name>` (e.g. `/theme crt-green`) — selecting `/theme`
-in the palette opens an arrow-selectable picker — or cycle through every
-theme live with **`Ctrl+Shift+L`**. The choice persists to `config.toml`.
+**Switching:** `/theme dark` | `/theme light` | `/theme crt` — selecting
+`/theme` in the palette opens an arrow-selectable picker — or cycle the three
+live with **`Ctrl+Shift+L`** (`dark → light → crt`). The choice persists to
+`config.toml`.
 
-**Rotation modes:** three modes rotate to a different theme every
-**10 minutes**, and are also the last three stops on the `Ctrl+Shift+L`
-cycle, in this order:
+**Each theme rotates** to a different palette from its pool every **10 minutes**:
 
-- **`/theme random-dark`** (alias: `/theme random`) — rotates the dark
-  themes only.
-- **`/theme random-light`** — rotates the light themes only.
-- **`/theme auto`** — follows the OS appearance: the light pool by day, the
-  dark pool by night, re-checked on every OS appearance change and rotation
-  tick.
+- **`/theme dark`** — rotates the dark paper palettes (`paper-dark`,
+  `sepia-dark`, `midnight-ink`, `graphite`).
+- **`/theme light`** — rotates the light paper palettes (`paper-light`,
+  `sepia-light`, `coldpress-gray`, `salmon-broadsheet`, `ivory-ledger`).
+- **`/theme crt`** — rotates the CRT phosphor palettes (`crt-green`,
+  `crt-amber`, `crt-blue`, `crt-violet`).
 
-Each switches immediately to a pick from its pool, so the effect is visible
-right away.
+Selecting a theme switches immediately to a pick from its pool, so the effect
+is visible right away.
+
+**Back-compat.** The old names still resolve when typed or loaded from an
+existing config: any individual palette name (`/theme crt-green`) pins that one
+palette (no rotation), and the pre-consolidation modes `random-dark`/`random`,
+`random-light`, and `auto` (follows the OS appearance — light pool by day, dark
+pool by night) still work. None of these appear in the picker.
 
 **Programs keep reading after a switch.** Terminal panes answer color queries
 (OSC 10/11) and set `$COLORFGBG` from the active theme, so CLIs that probe the

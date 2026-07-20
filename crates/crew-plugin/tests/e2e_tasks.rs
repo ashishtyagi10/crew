@@ -17,55 +17,25 @@ const STOP: &str = r#"{"type":"send","channel":"crew","text":"/stop"}"#;
 const STOP_999: &str = r#"{"type":"send","channel":"crew","text":"/stop #999"}"#;
 
 #[test]
-fn two_sends_both_start_as_separate_tasks_not_busy() {
+fn two_sends_both_run_as_separate_tasks_not_busy() {
     let dir = unique_dir("tasks-concurrent");
     seed_specialists(&dir, &["planner"]);
     let mock = ("CREW_BROKER_MOCK_REPLY", "did it\n@done");
     let ev = run_broker(&dir, &[mock], &[SEND_A, SEND_B]);
     let msgs = messages(&ev);
-    assert!(
-        msgs.iter()
-            .any(|(s, t)| s == "crew" && t.contains("task #1 started")),
-        "{msgs:?}"
-    );
-    assert!(
-        msgs.iter()
-            .any(|(s, t)| s == "crew" && t.contains("task #2 started")),
-        "{msgs:?}"
-    );
-    // Live task-pool capacity (`n/max`) is stamped on each start line and
-    // increments as tasks are admitted.
-    assert!(
-        msgs.iter()
-            .any(|(s, t)| s == "crew" && t.contains("task #1 started") && t.contains("1/")),
-        "first start line missing 1/max capacity: {msgs:?}"
-    );
-    assert!(
-        msgs.iter()
-            .any(|(s, t)| s == "crew" && t.contains("task #2 started") && t.contains("2/")),
-        "second start line missing 2/max capacity: {msgs:?}"
-    );
     // No "busy" rejection anywhere — both sends were admitted concurrently.
+    // (The old "task #N started/done" status lines were retired for a cleaner,
+    // Opencode-style stream; the agent replies themselves are now the proof a
+    // task ran.)
     assert!(
         !msgs.iter().any(|(_, t)| t.contains("busy")),
         "second Send was rejected as busy: {msgs:?}"
     );
-    // Both tasks actually RAN to completion (not just admitted): each emits its
-    // own `done` line and its own agent reply. `send` spawns each worker without
-    // joining the previous handle (see stdio.rs), so the two run concurrently;
-    // the harness joins both on EOF, so both must have finished before exit.
-    assert!(
-        msgs.iter()
-            .any(|(s, t)| s == "crew" && t.contains("task #1 done")),
-        "task #1 never completed: {msgs:?}"
-    );
-    assert!(
-        msgs.iter()
-            .any(|(s, t)| s == "crew" && t.contains("task #2 done")),
-        "task #2 never completed: {msgs:?}"
-    );
     // Two independent agent replies landed — one per task — proving both tasks
-    // did real work, not that one was dropped or serialized out.
+    // did real work, not that one was dropped or serialized out. `send` spawns
+    // each worker without joining the previous handle (see stdio.rs), so the
+    // two run concurrently; the harness joins both on EOF, so both must have
+    // finished before exit.
     let replies = msgs
         .iter()
         .filter(|(s, t)| s.contains(" \u{2192} ") && t.contains("did it"))
@@ -89,24 +59,20 @@ fn tasks_lists_running_and_reports_idle_when_none_are() {
         "{msgs:?}"
     );
 
-    // Two tasks are started (order-independent from any racy /tasks listing,
-    // per the harness's determinism note: the synchronous "started" lines are
-    // emitted before spawn, so they always appear in order).
+    // Two tasks run to completion (the retired "started" status lines are no
+    // longer observable, so the two agent replies are the deterministic proof
+    // both were admitted and ran — the harness joins both workers on EOF).
     let dir2 = unique_dir("tasks-list-started");
     seed_specialists(&dir2, &["planner"]);
     let ev2 = run_broker(&dir2, &[mock], &[SEND_A, SEND_B]);
     let msgs2 = messages(&ev2);
+    let replies = msgs2
+        .iter()
+        .filter(|(s, t)| s.contains(" \u{2192} ") && t.contains("did it"))
+        .count();
     assert!(
-        msgs2
-            .iter()
-            .any(|(s, t)| s == "crew" && t.contains("task #1 started")),
-        "{msgs2:?}"
-    );
-    assert!(
-        msgs2
-            .iter()
-            .any(|(s, t)| s == "crew" && t.contains("task #2 started")),
-        "{msgs2:?}"
+        replies >= 2,
+        "expected a reply from each task, got {replies}: {msgs2:?}"
     );
 }
 

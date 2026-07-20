@@ -1,16 +1,15 @@
 //! Live swarm-run status for the chat pane: `HivePlan` opens the run's status
 //! line, `Hive` telemetry updates it, and when every task reaches a terminal
-//! state the line folds into a transcript message — the durable record of
-//! the run. Live rendering (one status line: spinner, focused task, elapsed,
-//! settled count) lives in `chatswarmview`; the folded record (task list + Σ
-//! totals) in `chatswarmrec`.
+//! state the line simply disappears — the per-agent replies already streamed
+//! into the transcript, so no summary record is left behind. Live rendering
+//! (one status line: spinner, focused task, elapsed, settled count) lives in
+//! `chatswarmview`.
 use std::collections::HashMap;
 use std::time::Instant;
 
 use crew_hive::{HiveEvent, TaskId, TaskSpec, TaskState};
 
 use crate::chat::ChatPane;
-use crate::chatlayout::Message;
 
 /// One planned task's live state in the block.
 pub(crate) struct SwarmTask {
@@ -21,26 +20,11 @@ pub(crate) struct SwarmTask {
     pub tokens_in: u64,
     /// Output tokens spent by the agent running this task.
     pub tokens_out: u64,
-    /// Micro-USD spent by the agent running this task (`CostDelta`) — 0 for
-    /// stub/keyless runs, which never emit cost.
-    pub cost_micros: u64,
     /// When the task started running — stamped once by whichever of
     /// `AgentSpawned`/`TaskStateChanged(Running)` arrives first. `None` until
     /// then (and forever, if the task is cancelled before either arrives).
+    /// Drives the live line's focused-task ordering and elapsed readout.
     pub started: Option<Instant>,
-    /// Duration captured when a terminal state is reached (`started.elapsed()`
-    /// at that moment). `None` if the task never started.
-    pub elapsed_ms: Option<u64>,
-}
-
-impl SwarmTask {
-    /// Total tokens spent on this task — input plus output. The folded record
-    /// (`chatswarmrec`) reports one combined figure per task; the live line
-    /// (`chatswarmview`) reports the run's `↑in ↓out` split via
-    /// [`SwarmStatus::token_totals`].
-    pub(crate) fn tokens(&self) -> u64 {
-        self.tokens_in + self.tokens_out
-    }
 }
 
 /// The whole run's live state, built from `HivePlan` and fed by `Hive` events.
@@ -48,15 +32,11 @@ pub(crate) struct SwarmStatus {
     pub tasks: Vec<SwarmTask>,
     /// agent id → task id (from `AgentSpawned`) — `TokenDelta` only names agents.
     agent_task: HashMap<u64, TaskId>,
-    /// When the plan arrived — the zero point for the run's wall-clock
-    /// duration on the folded record's Σ line (`chatswarmrec`).
-    pub(crate) run_started: Instant,
 }
 
 impl SwarmStatus {
     pub(crate) fn new(tasks: Vec<TaskSpec>) -> Self {
         SwarmStatus {
-            run_started: Instant::now(),
             tasks: tasks
                 .into_iter()
                 .map(|t| SwarmTask {
@@ -65,9 +45,7 @@ impl SwarmStatus {
                     state: TaskState::Pending,
                     tokens_in: 0,
                     tokens_out: 0,
-                    cost_micros: 0,
                     started: None,
-                    elapsed_ms: None,
                 })
                 .collect(),
             agent_task: HashMap::new(),
@@ -122,11 +100,6 @@ impl SwarmStatus {
                     t.state = *state;
                     if *state == TaskState::Running {
                         t.started.get_or_insert_with(Instant::now);
-                    } else if matches!(
-                        state,
-                        TaskState::Done | TaskState::Failed | TaskState::Cancelled
-                    ) {
-                        t.elapsed_ms = t.started.map(|s| s.elapsed().as_millis() as u64);
                     }
                 }
             }
@@ -142,16 +115,12 @@ impl SwarmStatus {
                     }
                 }
             }
-            HiveEvent::CostDelta { agent, micros_usd } => {
-                if let Some(&task) = self.agent_task.get(&agent.0) {
-                    if let Some(t) = self.task_mut(task) {
-                        t.cost_micros += *micros_usd;
-                    }
-                }
-            }
+            // CostDelta is no longer surfaced (the folded cost summary is gone);
             // Failed also arrives as TaskStateChanged(Failed); chunks land in
             // the transcript via the broker's Message translation.
-            HiveEvent::OutputChunk { .. } | HiveEvent::Failed { .. } => {}
+            HiveEvent::CostDelta { .. }
+            | HiveEvent::OutputChunk { .. }
+            | HiveEvent::Failed { .. } => {}
         }
     }
 
@@ -190,23 +159,12 @@ impl ChatPane {
         }
     }
 
-    /// Retire the live block into a transcript message (the run's record).
-    /// Also called on broker `Error` so a dead run leaves its partial state
-    /// in the transcript instead of a forever-frozen block.
+    /// Retire the live block when the run ends. The run leaves no summary
+    /// record behind — the per-agent replies already streamed into the
+    /// transcript, and the token/cost/time accounting was chrome. Also called
+    /// on broker `Error`, which simply drops the frozen block.
     pub(crate) fn fold_swarm(&mut self) {
-        let Some(s) = self.swarm.take() else {
-            return;
-        };
-        if self.scroll > 0 {
-            self.unread += 1;
-        }
-        let run_ms = s.run_started.elapsed().as_millis() as u64;
-        self.push_capped(Message {
-            sender: "crew".into(),
-            text: s.record_text(Some(run_ms)),
-            ts: String::new(),
-            meta: String::new(),
-        });
+        self.swarm = None;
     }
 }
 

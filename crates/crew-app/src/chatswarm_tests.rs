@@ -1,7 +1,4 @@
-use std::time::{Duration, Instant};
-
 use crate::chat::ChatPane;
-use crate::chatswarm::{SwarmStatus, SwarmTask};
 use crew_hive::{AgentId, AgentKind, HiveEvent, ModelTier, TaskId, TaskSpec, TaskState};
 use crew_plugin::Plugin;
 
@@ -70,18 +67,18 @@ fn agent_spawned_marks_running_and_token_deltas_accumulate_via_agent_map() {
     // Task 0 should be Running, crediting agent 7's split (100 in / 50 out).
     assert_eq!(s.tasks[0].state, TaskState::Running);
     assert_eq!((s.tasks[0].tokens_in, s.tasks[0].tokens_out), (100, 50));
-    assert_eq!(s.tasks[0].tokens(), 150);
     // Task 1 should be Running with agent 8's split (1 in / 2 out), not summed
     // into task 0.
     assert_eq!(s.tasks[1].state, TaskState::Running);
     assert_eq!((s.tasks[1].tokens_in, s.tasks[1].tokens_out), (1, 2));
-    assert_eq!(s.tasks[1].tokens(), 3);
     // The run rolls both tasks' splits up for the live line's ↑in ↓out.
     assert_eq!(s.token_totals(), (101, 52));
 }
 
 #[test]
-fn run_completion_folds_the_block_into_a_transcript_message() {
+fn run_completion_clears_the_block_and_leaves_no_summary() {
+    // Every task terminal → the live block is retired, but no summary record
+    // is pushed: the per-agent replies already streamed into the transcript.
     let mut p = pane();
     p.absorb_hive_plan(vec![spec(0, "research"), spec(1, "merge")]);
     p.absorb_hive(&HiveEvent::TaskStateChanged {
@@ -93,36 +90,13 @@ fn run_completion_folds_the_block_into_a_transcript_message() {
         task: TaskId(1),
         state: TaskState::Failed,
     });
-    // All terminal: state cleared, record message pushed.
+    // All terminal: block cleared, and nothing appended to the transcript.
     assert!(p.swarm.is_none());
-    let last = p.messages.last().unwrap();
-    assert_eq!(last.sender, "crew");
-    assert!(last.text.contains("✓ research"));
-    assert!(last.text.contains("✗ merge"));
-}
-
-#[test]
-fn record_text_uses_the_compact_token_format() {
-    let mut p = pane();
-    p.absorb_hive_plan(vec![spec(0, "research")]);
-    p.absorb_hive(&HiveEvent::AgentSpawned {
-        agent: AgentId(1),
-        task: TaskId(0),
-    });
-    // 12,000 + 400 = 12,400 tokens — the live block shows "12.4k", so the
-    // folded record must match instead of writing the raw "12400 tok".
-    p.absorb_hive(&HiveEvent::TokenDelta {
-        agent: AgentId(1),
-        input: 12_000,
-        output: 400,
-    });
-    p.absorb_hive(&HiveEvent::TaskStateChanged {
-        task: TaskId(0),
-        state: TaskState::Done,
-    });
-    let last = p.messages.last().unwrap();
-    assert!(last.text.contains("12.4k tok"), "{}", last.text);
-    assert!(!last.text.contains("12400 tok"), "{}", last.text);
+    assert!(
+        p.messages.is_empty(),
+        "fold must not push a summary message: {:?}",
+        p.messages.last().map(|m| &m.text)
+    );
 }
 
 #[test]
@@ -152,7 +126,9 @@ fn swarm_in_flight_keeps_the_pane_busy() {
 }
 
 #[test]
-fn fold_swarm_respects_the_500_message_cap() {
+fn folding_leaves_the_existing_transcript_untouched() {
+    // The fold no longer pushes anything, so a full transcript neither grows
+    // nor drains when a run ends.
     let mut p = pane();
     for i in 0..500 {
         p.messages.push(crate::chatlayout::Message {
@@ -171,11 +147,10 @@ fn fold_swarm_respects_the_500_message_cap() {
     assert_eq!(
         p.messages.len(),
         500,
-        "fold_swarm's push must respect the same 500-message drain as Message events"
+        "fold must not push or drain messages"
     );
-    // The oldest message was drained and the new record is the newest.
-    assert_eq!(p.messages.first().unwrap().text, "m1");
-    assert!(p.messages.last().unwrap().text.contains("research"));
+    assert_eq!(p.messages.first().unwrap().text, "m0");
+    assert_eq!(p.messages.last().unwrap().text, "m499");
 }
 
 #[test]
@@ -192,7 +167,9 @@ fn empty_plan_never_opens_a_block_or_wedges_busy() {
     assert!(!p.is_busy());
 }
 
-// --- Per-task timings (2026-07-13-swarm-task-timings-design.md) ---
+// --- Per-task timing: `started` still drives the live line's focused-task
+// ordering and elapsed readout (chatswarmview), even though the folded record
+// that once reported final durations is gone.
 
 #[test]
 fn agent_spawned_sets_started_once_and_running_does_not_reset_it() {
@@ -230,227 +207,22 @@ fn running_state_stamps_started_when_it_arrives_before_agent_spawned() {
 }
 
 #[test]
-fn terminal_state_captures_elapsed_ms_when_started() {
+fn cost_deltas_are_accepted_but_no_longer_tracked() {
+    // CostDelta used to accumulate per task for the folded cost summary; that
+    // summary is gone, so the event is simply absorbed without panic and
+    // without opening/altering task state.
     let mut p = pane();
     p.absorb_hive_plan(vec![spec(0, "research")]);
-    p.absorb_hive(&HiveEvent::AgentSpawned {
-        agent: AgentId(1),
-        task: TaskId(0),
-    });
-    p.absorb_hive(&HiveEvent::TaskStateChanged {
-        task: TaskId(0),
-        state: TaskState::Done,
-    });
-    // Instant can't be mocked cheaply — assert presence and monotonic sanity
-    // (a few ms in a fast test run), not an exact value. The record's fold
-    // happened after `started`, so `elapsed_ms` must be non-negative and
-    // small.
-    let last = p.messages.last().unwrap();
-    assert!(last.text.contains('s'), "{}", last.text); // formatter suffix landed
-}
-
-#[test]
-fn cancelled_before_start_leaves_elapsed_none() {
-    // No AgentSpawned/Running ever arrives — task is cancelled straight out
-    // of Pending.
-    let mut p = pane();
-    p.absorb_hive_plan(vec![spec(0, "research")]);
-    p.absorb_hive(&HiveEvent::TaskStateChanged {
-        task: TaskId(0),
-        state: TaskState::Cancelled,
-    });
-    let last = p.messages.last().unwrap();
-    assert_eq!(
-        last.text, "- \u{2298} research",
-        "no elapsed suffix expected"
-    );
-}
-
-#[test]
-fn record_text_appends_elapsed_suffix_when_captured() {
-    let s = SwarmStatus {
-        tasks: vec![SwarmTask {
-            id: TaskId(0),
-            title: "research".into(),
-            state: TaskState::Done,
-            tokens_in: 0,
-            tokens_out: 0,
-            cost_micros: 0,
-            started: None,
-            elapsed_ms: Some(3_200),
-        }],
-        agent_task: Default::default(),
-        run_started: Instant::now(),
-    };
-    assert_eq!(s.record_text(None), "- \u{2713} research \u{00b7} 3.2s");
-}
-
-#[test]
-fn record_text_appends_elapsed_after_the_token_part() {
-    let s = SwarmStatus {
-        tasks: vec![SwarmTask {
-            id: TaskId(0),
-            title: "research".into(),
-            state: TaskState::Done,
-            tokens_in: 12_400,
-            tokens_out: 0,
-            cost_micros: 0,
-            started: None,
-            elapsed_ms: Some(900),
-        }],
-        agent_task: Default::default(),
-        run_started: Instant::now(),
-    };
-    assert_eq!(
-        s.record_text(None),
-        "- \u{2713} research \u{2014} 12.4k tok \u{00b7} 0.9s"
-    );
-}
-
-#[test]
-fn record_text_omits_suffix_when_elapsed_is_none() {
-    let s = SwarmStatus {
-        tasks: vec![SwarmTask {
-            id: TaskId(0),
-            title: "research".into(),
-            state: TaskState::Done,
-            tokens_in: 0,
-            tokens_out: 0,
-            cost_micros: 0,
-            started: None,
-            elapsed_ms: None,
-        }],
-        agent_task: Default::default(),
-        run_started: Instant::now(),
-    };
-    assert_eq!(s.record_text(None), "- \u{2713} research");
-}
-
-fn done_task(id: u64, title: &str, started: Instant, elapsed_ms: u64) -> SwarmTask {
-    SwarmTask {
-        id: TaskId(id),
-        title: title.into(),
-        state: TaskState::Done,
-        tokens_in: 0,
-        tokens_out: 0,
-        cost_micros: 0,
-        started: Some(started),
-        elapsed_ms: Some(elapsed_ms),
-    }
-}
-
-#[test]
-fn keyless_runs_get_a_sigma_line_without_cost() {
-    // A keyless/stub run reports TokenDelta but never CostDelta. It used to
-    // get no Σ at all and so lost its total; it now gets one, minus the $.
-    let run_started = Instant::now();
-    let mut a = done_task(0, "research", run_started, 3_200);
-    a.tokens_in = 12_400;
-    let s = SwarmStatus {
-        tasks: vec![a],
-        agent_task: Default::default(),
-        run_started,
-    };
-    let text = s.record_text(Some(3_200));
-    assert!(text.contains("\u{03a3} 12.4k tok \u{00b7} 3.2s"), "{text}");
-    assert!(!text.contains('$'), "{text}");
-}
-
-#[test]
-fn a_run_that_consumed_nothing_gets_no_sigma_line() {
-    // Σ summarises spend. With no tokens and no cost there is nothing to
-    // summarise, and "Σ 0 tok" is noise.
-    let run_started = Instant::now();
-    let s = SwarmStatus {
-        tasks: vec![done_task(0, "solo", run_started, 5_000)],
-        agent_task: Default::default(),
-        run_started,
-    };
-    let text = s.record_text(Some(5_000));
-    assert!(!text.contains('\u{03a3}'), "{text}");
-}
-
-#[test]
-fn the_record_carries_no_timeline_block() {
-    let run_started = Instant::now();
-    let mut a = done_task(0, "research", run_started, 3_200);
-    a.tokens_in = 100;
-    let mut b = done_task(
-        1,
-        "merge",
-        run_started + Duration::from_millis(3_000),
-        9_400,
-    );
-    b.tokens_in = 100;
-    let s = SwarmStatus {
-        tasks: vec![a, b],
-        agent_task: Default::default(),
-        run_started,
-    };
-    let text = s.record_text(Some(12_400));
-    assert!(!text.contains("timeline"), "{text}");
-    assert!(!text.contains('`'), "no code fence survives: {text}");
-    assert!(!text.contains('\u{2588}'), "{text}");
-}
-
-// --- Per-task cost (CostDelta) ---
-
-#[test]
-fn cost_deltas_accumulate_per_task_via_the_agent_map() {
-    let mut p = pane();
-    p.absorb_hive_plan(vec![spec(0, "research"), spec(1, "merge")]);
     p.absorb_hive(&HiveEvent::AgentSpawned {
         agent: AgentId(7),
         task: TaskId(0),
-    });
-    p.absorb_hive(&HiveEvent::AgentSpawned {
-        agent: AgentId(8),
-        task: TaskId(1),
     });
     p.absorb_hive(&HiveEvent::CostDelta {
         agent: AgentId(7),
         micros_usd: 3_100,
     });
-    p.absorb_hive(&HiveEvent::CostDelta {
-        agent: AgentId(7),
-        micros_usd: 900,
-    });
-    p.absorb_hive(&HiveEvent::CostDelta {
-        agent: AgentId(8),
-        micros_usd: 50,
-    });
+    // Still just the one running task; nothing crashed, nothing summarised.
     let s = p.swarm.as_ref().unwrap();
-    assert_eq!(s.tasks[0].cost_micros, 4_000);
-    assert_eq!(s.tasks[1].cost_micros, 50);
-}
-
-#[test]
-fn record_shows_per_task_cost_and_a_run_total() {
-    let run_started = Instant::now();
-    let mut a = done_task(0, "research", run_started, 3_200);
-    a.tokens_in = 12_400;
-    a.cost_micros = 3_100; // $0.0031 — sub-cent keeps 4 decimals
-    let mut b = done_task(1, "merge", run_started, 900);
-    b.tokens_in = 600;
-    b.cost_micros = 41_200; // $0.04 — cent-plus rounds to 2
-    let s = SwarmStatus {
-        tasks: vec![a, b],
-        agent_task: Default::default(),
-        run_started,
-    };
-    let text = s.record_text(Some(3_200));
-    assert!(
-        text.contains("research — 12.4k tok \u{00b7} $0.0031 \u{00b7} 3.2s"),
-        "{text}"
-    );
-    assert!(
-        text.contains("merge — 600 tok \u{00b7} $0.04 \u{00b7} 0.9s"),
-        "{text}"
-    );
-    // The Σ line totals the whole run: 13k tok, $0.0443 → cent-plus → $0.04,
-    // and the run's wall-clock duration.
-    assert!(
-        text.contains("\u{03a3} 13.0k tok \u{00b7} $0.04 \u{00b7} 3.2s"),
-        "{text}"
-    );
+    assert_eq!(s.tasks.len(), 1);
+    assert_eq!(s.tasks[0].state, TaskState::Running);
 }

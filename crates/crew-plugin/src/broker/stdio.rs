@@ -183,18 +183,9 @@ fn send(
     let out_thread = Arc::clone(out);
     let is_cmd = super::commands::is_command(&trimmed);
     let id = tasks.reserve();
-    // `tasks` doesn't count this task yet (it's attached below, once the
-    // JoinHandle exists) — `+ 1` accounts for it so the line reflects live
-    // capacity right as the task starts.
-    let n = tasks.len() + 1;
-    let max = super::tasks::Tasks::max();
-    emit(
-        out,
-        &msg(
-            "crew",
-            format!("\u{25b8} task #{id} started \u{00b7} {n}/{max} \u{00b7} {label}"),
-        ),
-    )?;
+    // No "task started" line: the agent's own streamed output is the
+    // acknowledgment (Opencode-style). Only exceptional endings (error/stop)
+    // are announced, below.
     let handle = std::thread::spawn(move || {
         let tokens = Arc::clone(&snap.tokens);
         // StatsTicks fire while an agent hop blocks this worker thread — from
@@ -233,12 +224,17 @@ fn send(
         } else {
             super::swarm::run_task(&trimmed, &snap, &mut counting)
         };
+        // Announce only the exceptional endings — a clean finish says nothing
+        // (the streamed reply is the result). Errors and user stops must stay
+        // visible.
         let done = match (res, snap.cancelled()) {
-            (Err(e), _) => format!("\u{2717} task #{id}: {e}"),
-            (Ok(_), true) => format!("\u{2717} task #{id} stopped"),
-            (Ok(_), false) => format!("\u{2713} task #{id} done"),
+            (Err(e), _) => Some(format!("\u{2717} task #{id}: {e}")),
+            (Ok(_), true) => Some(format!("\u{2717} task #{id} stopped")),
+            (Ok(_), false) => None,
         };
-        let _ = emit(&out_thread, &msg("crew", done));
+        if let Some(done) = done {
+            let _ = emit(&out_thread, &msg("crew", done));
+        }
     });
     tasks.attach(id, label, cancel, handle, Instant::now());
     Ok(())

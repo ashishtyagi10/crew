@@ -62,7 +62,8 @@ fn no_key_runs_offline_stub_swarm() {
     let ev = run_broker(&dir, &[], &[send]);
     // A plain (unaddressed) message is now the default swarm. With no provider
     // key it runs the deterministic offline stub swarm — no network relay —
-    // announcing a plan and closing with a "swarm done" summary.
+    // announcing a plan. A clean run closes silently (no "swarm done" chrome),
+    // so the plan announcement is the proof the swarm ran.
     let msgs = messages(&ev);
     assert!(
         msgs.iter()
@@ -70,9 +71,10 @@ fn no_key_runs_offline_stub_swarm() {
         "{msgs:?}"
     );
     assert!(
-        msgs.iter()
+        !msgs
+            .iter()
             .any(|(s, t)| s == "crew" && t.contains("swarm done")),
-        "{msgs:?}"
+        "a clean run must close without a swarm-done summary: {msgs:?}"
     );
 }
 

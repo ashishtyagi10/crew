@@ -34,7 +34,7 @@ fn collect(task: &str, cancel: Arc<AtomicBool>) -> Vec<PluginEvent> {
 }
 
 #[test]
-fn plain_task_emits_plan_then_hive_events_then_summary() {
+fn plain_task_emits_plan_then_hive_events_then_no_summary() {
     let evs = collect("build the thing", Arc::new(AtomicBool::new(false)));
     // A HivePlan with 3 tasks (2 leaves + merge) is announced first.
     assert!(matches!(
@@ -47,39 +47,35 @@ fn plain_task_emits_plan_then_hive_events_then_summary() {
     assert!(evs
         .iter()
         .any(|e| matches!(e, PluginEvent::Message { text, .. } if text.contains("leaf-0"))));
-    // The final aggregate message closes the run.
-    assert!(evs
-        .iter()
-        .rev()
-        .any(|e| matches!(e, PluginEvent::Message { text, .. } if text.contains("swarm done"))));
+    // A clean run closes silently — no "swarm done" chrome. The sink tasks'
+    // answers already streamed as their own per-task messages.
+    assert!(
+        !evs.iter()
+            .any(|e| matches!(e, PluginEvent::Message { text, .. } if text.contains("swarm done"))),
+        "a clean run must not emit a swarm-done summary: {evs:?}"
+    );
 }
 
-// The merge (sink) task's output already streams live as its own
-// per-task Message the moment it completes (OutputChunk -> translate).
-// The final "swarm done" summary must not repeat that text — otherwise
-// the same answer appears twice back-to-back in the transcript.
+// The merge (sink) task's output streams live as its own per-task Message the
+// moment it completes (OutputChunk -> translate). A clean run adds no closing
+// summary at all, so that answer appears exactly once.
 #[test]
-fn final_summary_does_not_repeat_sink_task_output() {
+fn a_clean_run_streams_sink_output_once_with_no_summary() {
     let evs = collect("build the thing", Arc::new(AtomicBool::new(false)));
-    // The merge task (id 2, depending on both leaves) streamed its own
-    // output as a per-task message already.
+    // The merge task (id 2, depending on both leaves) streamed its own output.
     assert!(
         evs.iter()
             .any(|e| matches!(e, PluginEvent::Message { text, .. } if text.contains("deps=2"))),
         "expected the merge task's own streamed output message: {evs:?}"
     );
-    // The closing summary must be status-only, not a repeat of that text.
-    let summary = evs
-        .iter()
-        .rev()
-        .find_map(|e| match e {
-            PluginEvent::Message { text, .. } if text.contains("swarm done") => Some(text.clone()),
-            _ => None,
-        })
-        .expect("expected a swarm done summary message");
+    // No status-only summary follows to duplicate or clutter it.
     assert!(
-        !summary.contains("deps="),
-        "summary must not duplicate sink task output: {summary:?}"
+        !evs.iter().any(|e| matches!(
+            e,
+            PluginEvent::Message { text, .. }
+                if text.contains("swarm done") || text.contains("swarm finished")
+        )),
+        "a clean run must not emit any swarm summary: {evs:?}"
     );
 }
 
@@ -256,19 +252,19 @@ fn run_emits_an_aggregate_stats_event_with_tokens_and_exchange_count() {
         agent.is_empty(),
         "empty agent = turn-total per protocol.rs Stats docs"
     );
+    // The aggregate Stats lands near the end of the run (after the per-task
+    // telemetry), even though a clean run emits no summary message after it.
     let stats_pos = evs
         .iter()
         .position(|e| matches!(e, PluginEvent::Stats { .. }))
         .unwrap();
-    let summary_pos = evs
+    let last_hive = evs
         .iter()
-        .rposition(
-            |e| matches!(e, PluginEvent::Message { text, .. } if text.contains("swarm done")),
-        )
+        .rposition(|e| matches!(e, PluginEvent::Hive { .. }))
         .unwrap();
     assert!(
-        stats_pos < summary_pos,
-        "Stats must land before the final summary message"
+        stats_pos > last_hive,
+        "the aggregate Stats must land after the per-task Hive telemetry"
     );
 }
 

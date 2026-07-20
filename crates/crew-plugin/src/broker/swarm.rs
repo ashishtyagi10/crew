@@ -242,20 +242,24 @@ pub(crate) fn run_with(
     // streamed live as their own per-task Messages the moment they completed
     // (OutputChunk -> `translate` -> `msg`), so repeating them here would
     // duplicate the same answer back-to-back in the transcript.
+    // A clean run says nothing — the sink tasks' answers already streamed
+    // live, so a "swarm done" line is just chrome. Only a cancellation or a
+    // failure gets an aggregate note, since those aren't otherwise obvious.
     let cancelled = cancel.load(std::sync::atomic::Ordering::Relaxed);
     let summary = if cancelled {
-        format!(
+        Some(format!(
             "swarm cancelled (budget or /stop) — {} done, {} failed, {} cancelled",
             outcome.done.len(),
             outcome.failed.len(),
             outcome.cancelled.len()
-        )
-    } else {
-        format!(
-            "swarm done — {} task(s), {} failed",
-            outcome.done.len(),
+        ))
+    } else if !outcome.failed.is_empty() {
+        Some(format!(
+            "swarm finished with {} failed task(s)",
             outcome.failed.len()
-        )
+        ))
+    } else {
+        None
     };
     // One aggregate Stats for the whole run (empty `agent` = turn-total, per
     // the field docs in protocol.rs) so the chat header's token/cost meter
@@ -267,7 +271,9 @@ pub(crate) fn run_with(
         ms: 0,
         ctx: 0,
     })?;
-    emit(msg("crew", summary))?;
+    if let Some(summary) = summary {
+        emit(msg("crew", summary))?;
+    }
     emit(PluginEvent::Activity {
         agent: String::new(),
         state: "idle".into(),

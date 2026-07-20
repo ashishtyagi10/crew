@@ -47,7 +47,7 @@ mod tests {
         );
         let mut app = CrewApp::default();
         app.apply_chat_action(ChatAction::PersistTheme, 0);
-        assert_eq!(app.config.theme.as_deref(), Some("random-light"));
+        assert_eq!(app.config.theme.as_deref(), Some("light"));
     }
 
     #[test]
