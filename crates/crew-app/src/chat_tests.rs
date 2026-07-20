@@ -198,6 +198,69 @@ fn esc_interrupts_a_busy_connected_pane_instead_of_closing() {
 }
 
 #[test]
+fn submitting_a_prompt_echoes_it_into_the_transcript_as_the_user() {
+    use crate::chatkeys::ChatInput;
+
+    let mut p = pane();
+    let cwd = std::env::temp_dir();
+    p.connected = true;
+
+    // Type a prompt and press Enter — idle, so it sends immediately.
+    p.input = "hello crew".to_string();
+    assert!(p.on_input(ChatInput::Enter, &cwd).is_none());
+
+    // The user's own message must appear in the transcript. Previously only
+    // agent output (the `PluginEvent::Message` arm) was ever appended, so the
+    // submitted prompt vanished and the pane showed only replies.
+    assert_eq!(p.messages.len(), 1, "the submitted prompt is echoed once");
+    assert_eq!(p.messages[0].sender, "user");
+    assert_eq!(p.messages[0].text, "hello crew");
+    assert!(p.awaiting, "an idle send still latches awaiting");
+}
+
+#[test]
+fn a_prompt_queued_while_busy_still_echoes_immediately() {
+    use crate::chatkeys::ChatInput;
+
+    let mut p = pane();
+    let cwd = std::env::temp_dir();
+    p.connected = true;
+    // Busy via a live agent, so a fresh submit is queued, not sent.
+    p.absorb_activity("planner".into(), "thinking", "user".into());
+    assert!(p.is_busy());
+
+    p.input = "do the thing".to_string();
+    assert!(p.on_input(ChatInput::Enter, &cwd).is_none());
+
+    // Echoed to the transcript now — the user sees their message the instant
+    // they hit Enter, even though the send itself waits behind the busy turn.
+    assert_eq!(
+        p.messages.len(),
+        1,
+        "the queued prompt is echoed immediately"
+    );
+    assert_eq!(p.messages[0].sender, "user");
+    assert_eq!(p.messages[0].text, "do the thing");
+    assert_eq!(p.queued.len(), 1, "the send is queued behind the busy turn");
+}
+
+#[test]
+fn locally_handled_slash_commands_are_not_echoed_as_user_messages() {
+    use crate::chatkeys::ChatInput;
+
+    // `/compact` is answered locally (folds messages) and must not leave a
+    // stray "user: /compact" line — only genuine prompts get echoed.
+    let mut p = pane();
+    let cwd = std::env::temp_dir();
+    p.input = "/compact".to_string();
+    assert!(p.on_input(ChatInput::Enter, &cwd).is_none());
+    assert!(
+        !p.messages.iter().any(|m| m.sender == "user"),
+        "a locally-intercepted command must not echo as a user message"
+    );
+}
+
+#[test]
 fn esc_closes_the_pane_when_idle() {
     use crate::chatkeys::{ChatAction, ChatInput};
 

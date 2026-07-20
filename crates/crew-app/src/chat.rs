@@ -380,6 +380,19 @@ impl ChatPane {
                 return Some(ChatAction::Font(arg));
             }
             if !text.is_empty() {
+                // Echo the user's own prompt into the transcript, mirroring how
+                // agent replies are appended in `poll` (the `PluginEvent::Message`
+                // arm). Without this only replies were ever added, so the pane
+                // showed output with no matching input. Echo the RAW typed text,
+                // not `expanded`: mention expansion appends whole file bodies
+                // meant for the broker, which don't belong in the display.
+                // Scroll was already snapped to 0 above, so this lands in view.
+                self.push_capped(Message {
+                    sender: "user".into(),
+                    text: text.clone(),
+                    ts: chrono::Local::now().timestamp_millis().to_string(),
+                    meta: String::new(),
+                });
                 let expanded = crate::chatmention::expand(&text, cwd);
                 // Busy: queue instead of writing to a broker that's still
                 // mid-turn — except `/stop`, which must reach it immediately
