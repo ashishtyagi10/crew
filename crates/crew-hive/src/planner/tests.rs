@@ -104,6 +104,96 @@ fn parse_plan_every_specialty_is_a_valid_slug() {
     }
 }
 
+/// The goal end-to-end, deterministically: a plan whose tasks are independent
+/// must actually EXECUTE independently. `planner_leaves_independent_work_
+/// independent` proves the real LLM emits wide graphs, but it is `#[ignore]`d
+/// (network + key), so nothing in default CI guards the link from planner
+/// output shape to parallel execution. This closes that gap without a network:
+/// it runs a `parse_plan` graph through the real `Scheduler` and asserts the
+/// independent tasks overlap in time (peak concurrency reaches their count),
+/// while a task that genuinely depends on them still waits.
+///
+/// If `parse_plan` ever regressed to chain independent tasks (a spurious dep),
+/// peak concurrency would collapse to 1 and this fails — the scheduler cannot
+/// recover width the plan never had.
+#[tokio::test]
+async fn parse_plan_independent_tasks_execute_concurrently() {
+    use crate::agent::{Agent, AgentContext, AgentFactory};
+    use crate::board::{Blackboard, TaskResult};
+    use crate::bus::EventBus;
+    use crate::graph::AgentKind;
+    use crate::sched::Scheduler;
+    use std::future::Future;
+    use std::pin::Pin;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
+
+    // Tracks live/peak concurrency across all agents.
+    struct Counting {
+        cur: Arc<AtomicUsize>,
+        max: Arc<AtomicUsize>,
+    }
+    impl Agent for Counting {
+        fn run(&self, ctx: AgentContext) -> Pin<Box<dyn Future<Output = TaskResult> + Send>> {
+            let (cur, max) = (self.cur.clone(), self.max.clone());
+            Box::pin(async move {
+                let now = cur.fetch_add(1, Ordering::SeqCst) + 1;
+                max.fetch_max(now, Ordering::SeqCst);
+                tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+                cur.fetch_sub(1, Ordering::SeqCst);
+                TaskResult {
+                    task: ctx.task.id,
+                    output: String::new(),
+                    success: true,
+                }
+            })
+        }
+    }
+    struct CountingFactory {
+        cur: Arc<AtomicUsize>,
+        max: Arc<AtomicUsize>,
+    }
+    impl AgentFactory for CountingFactory {
+        fn make(&self, _k: &AgentKind) -> Box<dyn Agent> {
+            Box::new(Counting {
+                cur: self.cur.clone(),
+                max: self.max.clone(),
+            })
+        }
+    }
+
+    // Three independent workers + a merge that needs all three. This is the
+    // exact shape the planner is prompted to produce for parallelisable goals.
+    let json = r#"[
+        {"id": 0, "title": "research A", "prompt": "a", "deps": []},
+        {"id": 1, "title": "research B", "prompt": "b", "deps": []},
+        {"id": 2, "title": "research C", "prompt": "c", "deps": []},
+        {"id": 3, "title": "synthesize", "prompt": "merge", "deps": [0, 1, 2]}
+    ]"#;
+    let graph = parse_plan(json).expect("valid plan");
+
+    let cur = Arc::new(AtomicUsize::new(0));
+    let max = Arc::new(AtomicUsize::new(0));
+    let factory = Arc::new(CountingFactory {
+        cur: cur.clone(),
+        max: max.clone(),
+    });
+    // Cap comfortably above the width so the cap is never the limiting factor:
+    // any serialisation this test sees comes from the plan, not the pool.
+    let out = Scheduler::new(graph, Blackboard::new(), EventBus::new(64), factory, 4)
+        .run()
+        .await;
+
+    assert_eq!(out.done.len(), 4, "all four tasks must complete");
+    assert_eq!(
+        max.load(Ordering::SeqCst),
+        3,
+        "the three independent tasks must run at the same time (peak {}); \
+         a peak below 3 means parse_plan chained work that should be parallel",
+        max.load(Ordering::SeqCst)
+    );
+}
+
 #[tokio::test]
 async fn llm_planner_parses_provider_json() {
     let reply = r#"[{"id":0,"title":"t","prompt":"p","deps":[]}]"#;

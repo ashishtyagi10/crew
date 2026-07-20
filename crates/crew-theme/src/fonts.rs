@@ -91,11 +91,13 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "Noto Sans Mono",
             "DejaVu Sans Mono",
         ],
-        // CRT: a terminal face with squared-off shoulders.
+        // CRT: a terminal face with squared-off shoulders — straight faces
+        // only (no ligature/cursive `Cascadia Code`).
         ThemeId::CrtGreen | ThemeId::CrtAmber | ThemeId::CrtBlue | ThemeId::CrtViolet => &[
             "Comic Mono",
-            "Cascadia Code",
             "JetBrains Mono",
+            "Fira Code",
+            "Google Sans Code",
             "Monaco",
             "Menlo",
             "Noto Sans Mono",
