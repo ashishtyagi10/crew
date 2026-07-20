@@ -402,12 +402,12 @@ fn slash_theme_lists_and_switches_without_reaching_the_broker() {
     let mut p = pane();
     let cwd = std::env::temp_dir();
 
-    // No arg: lists the themes locally, pane stays open, nothing sent.
+    // No arg: lists the three themes locally, pane stays open, nothing sent.
     p.input = "/theme".to_string();
     assert!(p.on_input(ChatInput::Enter, &cwd).is_none());
     let note = &p.messages.last().expect("a crew note was pushed").text;
     assert!(
-        note.contains("paper-dark") && note.contains("crt-blue"),
+        note.contains("dark") && note.contains("light") && note.contains("crt"),
         "got: {note}"
     );
 
@@ -446,8 +446,8 @@ fn slash_theme_random_enters_rotation_and_a_named_switch_clears_it() {
         0,
     );
 
-    // `/theme random` enters rotation mode (the `random-dark` alias) and
-    // echoes it, without reaching the broker.
+    // `/theme random` enters the dark rotation (back-compat alias for `dark`)
+    // and echoes it, without reaching the broker.
     p.input = "/theme random".to_string();
     assert!(matches!(
         p.on_input(ChatInput::Enter, &cwd),
@@ -456,13 +456,13 @@ fn slash_theme_random_enters_rotation_and_a_named_switch_clears_it() {
     assert!(crew_theme::is_random());
     assert_eq!(crew_theme::mode(), Some(crew_theme::RandomMode::Dark));
     let note = &p.messages.last().unwrap().text;
-    assert!(note.contains("random-dark"), "got: {note}");
+    assert!(note.contains("dark"), "got: {note}");
 
-    // The listing marks `random-dark`, not any fixed theme, while rotation is on.
+    // The listing marks `dark`, the active mode, while rotation is on.
     p.input = "/theme".to_string();
     assert!(p.on_input(ChatInput::Enter, &cwd).is_none());
     let note = &p.messages.last().unwrap().text;
-    assert!(note.contains("\u{25cf} random-dark"), "got: {note}");
+    assert!(note.contains("\u{25cf} dark"), "got: {note}");
 
     // Switching to a named theme turns rotation back off (and persists too —
     // a fixed pick must not leave a stale rotation mode in the config).

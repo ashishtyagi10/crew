@@ -117,15 +117,22 @@ fn random_pick_never_returns_current_and_is_deterministic() {
     let _g = guard();
     for current in ALL_THEMES {
         for seed in [0u64, 1, 2, 42, 1_000, 600_000, u64::MAX, 123_456_789] {
-            let picked = random_pick(current, seed, true);
-            assert_ne!(picked, current, "seed {seed} picked the current theme");
+            let picked = random_pick(current, seed, RandomMode::Dark);
+            // A pick from a pool the current theme isn't in still holds the
+            // never-empty / determinism contract; it just may equal nothing
+            // special. Only assert inequality when current is in the pool.
+            if RandomMode::Dark.in_pool(current) {
+                assert_ne!(picked, current, "seed {seed} picked the current theme");
+            }
             // Same seed -> same pick (determinism).
-            assert_eq!(random_pick(current, seed, true), picked);
+            assert_eq!(random_pick(current, seed, RandomMode::Dark), picked);
         }
     }
     // Varying the seed actually varies the pick (not a constant function).
     let current = ThemeId::PaperDark;
-    let picks: Vec<ThemeId> = (0u64..20).map(|s| random_pick(current, s, true)).collect();
+    let picks: Vec<ThemeId> = (0u64..20)
+        .map(|s| random_pick(current, s, RandomMode::Dark))
+        .collect();
     assert!(
         picks.iter().any(|&p| p != picks[0]),
         "random_pick looks constant across seeds: {picks:?}"
@@ -151,39 +158,22 @@ fn tick_random_fires_at_rotate_ms_when_on() {
 }
 
 #[test]
-fn cycle_next_walks_all_themes_then_random_then_wraps() {
+fn cycle_next_walks_the_three_modes_and_wraps() {
     let _g = guard();
+    // From a pinned palette, the first step enters the dark rotation...
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
-    // Starting at paper-dark, each call steps to the next fixed theme...
-    for want in [
-        "paper-light",
-        "sepia-dark",
-        "sepia-light",
-        "midnight-ink",
-        "graphite",
-        "coldpress-gray",
-        "salmon-broadsheet",
-        "ivory-ledger",
-        "crt-green",
-        "crt-amber",
-        "crt-blue",
-        "crt-violet",
-    ] {
-        assert_eq!(cycle_next(1), want);
-    }
-    // ...then from the last fixed theme it enters random-dark...
-    assert_eq!(cycle_next(5), "random-dark");
+    assert_eq!(cycle_next(1), "dark");
     assert!(is_random());
-    // ...then random-light...
-    assert_eq!(cycle_next(6), "random-light");
-    assert!(is_random());
-    // ...then auto...
-    assert_eq!(cycle_next(7), "auto");
-    assert!(is_random());
-    // ...and from auto it wraps back to the first fixed theme, off.
-    assert_eq!(cycle_next(8), "paper-dark");
-    assert!(!is_random());
-    assert_eq!(current_id(), ThemeId::PaperDark);
+    assert!(current_id().is_dark() && !current_id().theme().crt);
+    // ...then light...
+    assert_eq!(cycle_next(2), "light");
+    assert!(!current_id().is_dark());
+    // ...then crt...
+    assert_eq!(cycle_next(3), "crt");
+    assert!(current_id().theme().crt);
+    // ...and wraps back to dark.
+    assert_eq!(cycle_next(4), "dark");
+    assert!(current_id().is_dark() && !current_id().theme().crt);
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
 }
 
@@ -314,10 +304,25 @@ fn grain_is_newsprint_on_every_theme() {
 
 #[test]
 fn parse_selection_names_modes_and_alias() {
+    // The three canonical names.
+    assert_eq!(
+        parse_selection("dark"),
+        Some(Selection::Mode(RandomMode::Dark))
+    );
+    assert_eq!(
+        parse_selection(" Light "),
+        Some(Selection::Mode(RandomMode::Light))
+    );
+    assert_eq!(
+        parse_selection("CRT"),
+        Some(Selection::Mode(RandomMode::Crt))
+    );
+    // A pinned palette name still resolves (back-compat).
     assert_eq!(
         parse_selection("paper-light"),
         Some(Selection::Fixed(ThemeId::PaperLight))
     );
+    // Pre-consolidation mode names still parse.
     assert_eq!(
         parse_selection(" random-dark "),
         Some(Selection::Mode(RandomMode::Dark))
@@ -342,10 +347,14 @@ fn parse_selection_names_modes_and_alias() {
 fn random_pick_pools_are_pure() {
     for current in ALL_THEMES {
         for seed in [0u64, 1, 42, 600_000, u64::MAX] {
-            assert!(random_pick(current, seed, true).is_dark());
-            assert!(!random_pick(current, seed, false).is_dark());
-            assert_ne!(random_pick(current, seed, true), current);
-            assert_ne!(random_pick(current, seed, false), current);
+            // Dark pool: dark, non-CRT. Light pool: light, non-CRT. CRT pool:
+            // the phosphor palettes. Each pick lands in the right pool.
+            let d = random_pick(current, seed, RandomMode::Dark);
+            assert!(d.is_dark() && !d.theme().crt, "dark pool: {}", d.as_str());
+            let l = random_pick(current, seed, RandomMode::Light);
+            assert!(!l.is_dark() && !l.theme().crt, "light pool: {}", l.as_str());
+            let c = random_pick(current, seed, RandomMode::Crt);
+            assert!(c.theme().crt, "crt pool: {}", c.as_str());
         }
     }
 }

@@ -86,7 +86,8 @@ fn tiny_pane_renders_nothing() {
 
 #[test]
 fn theme_value_names_the_current_theme() {
+    // An unset config now labels as the default consolidated mode, `dark`.
     let (v, cursor) = value_of(&pane(), Field::Theme);
-    assert!(v.contains("paper-dark"), "got: {v}");
+    assert!(v.contains("dark"), "got: {v}");
     assert!(!cursor, "theme is a picker, not a text field");
 }

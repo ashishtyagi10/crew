@@ -107,7 +107,8 @@ fn cycle_key(p: &mut SettingsPane, key: &KeyEvent) -> Option<SettingsAction> {
     None
 }
 
-/// Flip the focused toggle, or step the theme picker through `ALL_THEMES`.
+/// Flip the focused toggle, or step the theme picker through the three
+/// consolidated themes (`dark`, `light`, `crt`).
 fn cycle_value(p: &mut SettingsPane, back: bool) {
     let field = p.focused_field();
     let d = &mut p.draft;
@@ -120,14 +121,22 @@ fn cycle_value(p: &mut SettingsPane, back: bool) {
         Field::NotifyBell => d.notify_bell = !d.notify_bell,
         Field::NotifyExit => d.notify_exit = !d.notify_exit,
         Field::Theme => {
-            let all = crew_theme::ALL_THEMES;
-            let cur = all.iter().position(|&t| t == d.theme_id()).unwrap_or(0);
+            let modes = crew_theme::THEME_MODES;
+            let cur = d
+                .theme
+                .as_deref()
+                .and_then(crew_theme::parse_selection)
+                .and_then(|sel| match sel {
+                    crew_theme::Selection::Mode(m) => modes.iter().position(|&x| x == m),
+                    crew_theme::Selection::Fixed(_) => None,
+                })
+                .unwrap_or(0);
             let next = if back {
-                (cur + all.len() - 1) % all.len()
+                (cur + modes.len() - 1) % modes.len()
             } else {
-                (cur + 1) % all.len()
+                (cur + 1) % modes.len()
             };
-            d.theme = Some(all[next].as_str().to_string());
+            d.theme = Some(modes[next].as_str().to_string());
         }
         _ => {}
     }

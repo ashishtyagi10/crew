@@ -31,54 +31,30 @@ fn parse_theme_cmd(arg: &str) -> ThemeCmd {
     }
 }
 
-/// The `/theme` (no-arg) listing: every theme's name and description, plus the
-/// three rotation modes, the active one marked with `\u{25cf}`. When a mode is
-/// on no fixed theme is marked (rotation owns the pick).
-fn theme_list_line(current: crew_theme::ThemeId, mode: Option<crew_theme::RandomMode>) -> String {
-    // The two rotation modes lead the list (then auto), ahead of the fixed
-    // themes — the rotations are the headline choices.
-    let modes: [(crew_theme::RandomMode, &str); 3] = [
-        (
-            crew_theme::RandomMode::Dark,
-            "rotates dark themes every 10 min",
-        ),
-        (
-            crew_theme::RandomMode::Light,
-            "rotates light themes every 10 min",
-        ),
-        (
-            crew_theme::RandomMode::Auto,
-            "light by day, dark by night \u{2014} follows the OS",
-        ),
-    ];
-    let mut items: Vec<String> = modes
-        .into_iter()
-        .map(|(m, desc)| {
+/// The `/theme` (no-arg) listing: the three themes (`dark`, `light`, `crt`),
+/// each a rotation over its own palette pool, the active one marked with
+/// `\u{25cf}`. The individual palettes are pool members, not list entries.
+fn theme_list_line(mode: Option<crew_theme::RandomMode>) -> String {
+    let items: Vec<String> = crew_theme::THEME_MODES
+        .iter()
+        .map(|&m| {
             let mark = if mode == Some(m) { "\u{25cf} " } else { "" };
-            format!("{mark}{} ({desc})", m.as_str())
+            format!("{mark}{} ({})", m.as_str(), m.describe())
         })
         .collect();
-    items.extend(crew_theme::ALL_THEMES.iter().map(|&id| {
-        let mark = if mode.is_none() && id == current {
-            "\u{25cf} "
-        } else {
-            ""
-        };
-        format!("{mark}{} ({})", id.as_str(), id.describe())
-    }));
     format!(
         "themes: {} \u{2014} /theme <name> to switch",
         items.join(", ")
     )
 }
 
-/// The comma-joined list of valid theme names, for the "unknown theme" echo.
-/// The two rotation modes lead, then the fixed themes. The bare `random`
-/// alias still parses but isn't advertised (random-dark is canonical).
+/// The comma-joined list of valid theme names, for the "unknown theme" echo:
+/// the three canonical modes. Legacy names (`random-*`, `auto`, the palette
+/// names) still parse but aren't advertised.
 fn theme_names() -> String {
-    ["random-dark", "random-light", "auto"]
-        .into_iter()
-        .chain(crew_theme::ALL_THEMES.iter().map(|id| id.as_str()))
+    crew_theme::THEME_MODES
+        .iter()
+        .map(|m| m.as_str())
         .collect::<Vec<_>>()
         .join(", ")
 }
@@ -107,7 +83,7 @@ pub(crate) fn intercept(pane: &mut ChatPane, text: &str) -> ThemeIntercept {
     let now_ms = chrono::Local::now().timestamp_millis() as u64;
     let mut outcome = ThemeIntercept::Handled;
     let note = match parse_theme_cmd(arg) {
-        ThemeCmd::List => theme_list_line(crew_theme::current_id(), crew_theme::mode()),
+        ThemeCmd::List => theme_list_line(crew_theme::mode()),
         ThemeCmd::Select(sel) => {
             crew_theme::apply_selection(sel, now_ms);
             outcome = ThemeIntercept::Switched;
@@ -157,6 +133,20 @@ mod tests {
 
     #[test]
     fn parse_modes_and_alias() {
+        // The three canonical names.
+        assert_eq!(
+            parse_theme_cmd("dark"),
+            ThemeCmd::Select(crew_theme::Selection::Mode(crew_theme::RandomMode::Dark))
+        );
+        assert_eq!(
+            parse_theme_cmd("light"),
+            ThemeCmd::Select(crew_theme::Selection::Mode(crew_theme::RandomMode::Light))
+        );
+        assert_eq!(
+            parse_theme_cmd(" CRT "),
+            ThemeCmd::Select(crew_theme::Selection::Mode(crew_theme::RandomMode::Crt))
+        );
+        // Pre-consolidation names still parse.
         assert_eq!(
             parse_theme_cmd("random"),
             ThemeCmd::Select(crew_theme::Selection::Mode(crew_theme::RandomMode::Dark))
@@ -172,64 +162,48 @@ mod tests {
     }
 
     #[test]
-    fn list_line_names_every_theme_and_marks_the_current_one() {
-        let line = theme_list_line(ThemeId::PaperLight, None);
-        for id in crew_theme::ALL_THEMES {
+    fn list_line_names_the_three_modes_and_marks_the_active_one() {
+        let line = theme_list_line(None);
+        for m in crew_theme::THEME_MODES {
+            assert!(line.contains(m.as_str()), "missing {}: {line}", m.as_str());
+            assert!(line.contains(m.describe()), "missing desc: {line}");
+        }
+        // Nothing is marked while no mode is on.
+        assert!(
+            !line.contains("\u{25cf}"),
+            "nothing should be marked: {line}"
+        );
+        // The pooled palettes are not listed as entries.
+        assert!(
+            !line.contains("paper-dark") && !line.contains("crt-green"),
+            "individual palettes must not be listed: {line}"
+        );
+    }
+
+    #[test]
+    fn list_line_marks_the_active_mode() {
+        let line = theme_list_line(Some(crew_theme::RandomMode::Light));
+        assert!(
+            line.contains("\u{25cf} light"),
+            "light mode not marked: {line}"
+        );
+        assert!(!line.contains("\u{25cf} dark"), "wrong mode marked: {line}");
+    }
+
+    #[test]
+    fn theme_names_lists_the_three_modes() {
+        let names = theme_names();
+        for m in crew_theme::THEME_MODES {
             assert!(
-                line.contains(id.as_str()),
-                "missing {}: {line}",
-                id.as_str()
+                names.contains(m.as_str()),
+                "missing {}: {names}",
+                m.as_str()
             );
         }
+        // Legacy/pooled names are not advertised (they still parse).
         assert!(
-            line.contains("random-dark (rotates dark themes every 10 min)"),
-            "random-dark not listed: {line}"
-        );
-        assert!(
-            line.contains("random-light (rotates light themes every 10 min)"),
-            "random-light not listed: {line}"
-        );
-        assert!(
-            line.contains("auto (light by day, dark by night \u{2014} follows the OS)"),
-            "auto not listed: {line}"
-        );
-        assert!(
-            line.contains("\u{25cf} paper-light"),
-            "current theme not marked: {line}"
-        );
-        assert!(
-            !line.contains("\u{25cf} paper-dark"),
-            "wrong theme marked: {line}"
-        );
-        assert!(
-            !line.contains("\u{25cf} random-dark"),
-            "random-dark marked while off: {line}"
-        );
-    }
-
-    #[test]
-    fn list_line_marks_mode_and_no_fixed_theme_when_mode_is_on() {
-        let line = theme_list_line(ThemeId::PaperDark, Some(crew_theme::RandomMode::Light));
-        assert!(
-            line.contains("\u{25cf} random-light"),
-            "random-light not marked: {line}"
-        );
-        assert!(
-            !line.contains("\u{25cf} paper-dark"),
-            "fixed theme marked while a mode is on: {line}"
-        );
-    }
-
-    #[test]
-    fn theme_names_lists_modes_but_not_the_bare_random_alias() {
-        let names = theme_names();
-        assert!(names.contains("random-dark"), "{names}");
-        assert!(names.contains("random-light"), "{names}");
-        assert!(names.contains("auto"), "{names}");
-        // The bare `random` alias is not advertised (it still parses).
-        assert!(
-            !names.split(", ").any(|n| n == "random"),
-            "bare `random` must not be listed: {names}"
+            !names.contains("random-dark") && !names.contains("paper-dark"),
+            "legacy names must not be listed: {names}"
         );
     }
 

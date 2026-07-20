@@ -347,11 +347,11 @@ impl CrewApp {
         self.set_status(format!("font size {}", self.config.font_size as i32));
     }
 
-    /// `/theme [<name>|random-dark|random-light|auto]`: switch the active
-    /// theme live, persist the choice, and repaint. A mode name enters
-    /// rotation (dark pool, light pool, or OS-appearance-following); any
-    /// fixed theme name pins that theme and stops rotation. With no/unknown
-    /// arg, report the current selection.
+    /// `/theme [dark|light|crt]`: switch the active theme live, persist the
+    /// choice, and repaint. Each name enters a rotation over its palette pool.
+    /// Legacy names (`random-*`, `auto`, and the individual palette names)
+    /// still resolve for back-compat. With no/unknown arg, report the current
+    /// selection.
     pub(crate) fn set_theme_cmd(&mut self, arg: &str) {
         let arg = arg.trim();
         if arg.is_empty() {
@@ -359,10 +359,9 @@ impl CrewApp {
             return;
         }
         let Some(sel) = crew_theme::parse_selection(arg) else {
-            let names = crew_theme::ALL_THEMES
+            let names = crew_theme::THEME_MODES
                 .iter()
-                .map(|t| t.as_str())
-                .chain(["random-dark", "random-light", "auto"])
+                .map(|m| m.as_str())
                 .collect::<Vec<_>>()
                 .join(" | ");
             self.set_status(format!("unknown theme '{arg}' ({names})"));

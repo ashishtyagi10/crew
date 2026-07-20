@@ -14,10 +14,9 @@ impl CrewApp {
         self.redraw();
     }
 
-    /// Advance the theme cycle (Ctrl+Shift+L): every fixed theme in order, then
-    /// `random-dark`, `random-light`, `auto`, then wraps — so the one hotkey
-    /// reaches all of them, persists the choice, and repaints exactly like the
-    /// `/theme` command.
+    /// Advance the theme cycle (Ctrl+Shift+L): `dark` → `light` → `crt`,
+    /// wrapping — so the one hotkey reaches all three consolidated themes,
+    /// persists the choice, and repaints exactly like the `/theme` command.
     pub(crate) fn toggle_theme(&mut self) {
         let label = crew_theme::cycle_next(crate::chattime::unix_now_ms());
         self.config.theme = Some(label.to_string());
@@ -40,40 +39,31 @@ mod tests {
     use crate::app::CrewApp;
 
     #[test]
-    fn toggle_theme_cycles_forward() {
+    fn toggle_theme_cycles_the_three_modes_and_wraps() {
         let _g = crate::app::theme_test_guard();
-        crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+        // From a pinned palette the first press enters the dark rotation.
+        crew_theme::apply_selection(
+            crew_theme::Selection::Fixed(crew_theme::ThemeId::PaperDark),
+            0,
+        );
         let mut app = crate::app::CrewApp::default();
-        app.toggle_theme();
-        assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::PaperLight);
-        app.toggle_theme();
-        // Past the two paper themes it steps into the sepia-dark paper variant.
-        assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::SepiaDark);
-        crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
-    }
-
-    #[test]
-    fn toggle_theme_enters_random_after_the_last_fixed_theme_then_wraps() {
-        let _g = crate::app::theme_test_guard();
-        crew_theme::apply_selection(crew_theme::Selection::Fixed(crew_theme::current_id()), 0);
-        crew_theme::set_theme(crew_theme::ThemeId::CrtViolet);
-        let mut app = crate::app::CrewApp::default();
-        // Past the last fixed theme, the cycle steps through all three
-        // rotation modes before wrapping back to the first fixed theme.
         app.toggle_theme();
         assert_eq!(crew_theme::mode(), Some(crew_theme::RandomMode::Dark));
-        assert_eq!(app.config.theme.as_deref(), Some("random-dark"));
+        assert_eq!(app.config.theme.as_deref(), Some("dark"));
         app.toggle_theme();
         assert_eq!(crew_theme::mode(), Some(crew_theme::RandomMode::Light));
-        assert_eq!(app.config.theme.as_deref(), Some("random-light"));
+        assert_eq!(app.config.theme.as_deref(), Some("light"));
         app.toggle_theme();
-        assert_eq!(crew_theme::mode(), Some(crew_theme::RandomMode::Auto));
-        assert_eq!(app.config.theme.as_deref(), Some("auto"));
+        assert_eq!(crew_theme::mode(), Some(crew_theme::RandomMode::Crt));
+        assert_eq!(app.config.theme.as_deref(), Some("crt"));
+        // Wraps back to dark.
         app.toggle_theme();
-        assert!(!crew_theme::is_random());
-        assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::PaperDark);
-        assert_eq!(app.config.theme.as_deref(), Some("paper-dark"));
-        crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+        assert_eq!(crew_theme::mode(), Some(crew_theme::RandomMode::Dark));
+        assert_eq!(app.config.theme.as_deref(), Some("dark"));
+        crew_theme::apply_selection(
+            crew_theme::Selection::Fixed(crew_theme::ThemeId::PaperDark),
+            0,
+        );
     }
 
     #[test]

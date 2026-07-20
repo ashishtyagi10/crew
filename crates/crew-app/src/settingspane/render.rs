@@ -42,7 +42,7 @@ pub(crate) fn value_of(p: &SettingsPane, f: Field) -> (String, bool) {
         Field::NavWidth => (p.nav_buf.clone(), true),
         Field::ShowNav => (onoff(p.draft.show_nav), false),
         Field::Theme => (
-            format!("\u{2039} {} \u{203a}", p.draft.theme_id().as_str()),
+            format!("\u{2039} {} \u{203a}", p.draft.theme_label()),
             false,
         ),
         Field::Accent => (p.accent_buf.clone(), true),

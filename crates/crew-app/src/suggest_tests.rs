@@ -99,55 +99,27 @@ fn theme_command_expands_into_a_value_picker() {
 }
 
 #[test]
-fn theme_space_lists_all_themes_as_runnable_values() {
+fn theme_space_lists_the_three_modes_as_runnable_values() {
     let items = menu_items("/theme ");
     let labels: Vec<&str> = items.iter().map(|m| m.label.as_str()).collect();
-    for name in [
-        "paper-dark",
-        "paper-light",
-        "sepia-dark",
-        "midnight-ink",
-        "graphite",
-        "crt-green",
-        "crt-amber",
-        "crt-blue",
-        "crt-violet",
-    ] {
-        assert!(labels.contains(&name), "{name} missing from picker");
+    // Exactly the three consolidated themes — no individual palettes.
+    assert_eq!(labels, vec!["dark", "light", "crt"], "picker: {labels:?}");
+    for name in ["paper-dark", "crt-green", "sepia-dark"] {
+        assert!(!labels.contains(&name), "{name} must not be a picker entry");
     }
     // Each value fills the full command and submits on Enter.
-    let green = items.iter().find(|m| m.label == "crt-green").unwrap();
-    assert_eq!(green.fill, "/theme crt-green");
-    assert!(green.submit);
+    let crt = items.iter().find(|m| m.label == "crt").unwrap();
+    assert_eq!(crt.fill, "/theme crt");
+    assert!(crt.submit);
 }
 
 #[test]
-fn theme_picker_offers_rotation_modes() {
-    // The picker offers the three rotation modes (the bare `random` alias is
-    // not listed — it still parses, but random-dark is the canonical name).
+fn theme_picker_describes_each_mode() {
     let items = menu_items("/theme ");
-    let labels: Vec<&str> = items.iter().map(|m| m.label.as_str()).collect();
-    for mode in ["random-dark", "random-light", "auto"] {
-        assert!(labels.contains(&mode), "{mode} missing from picker");
-    }
-    assert!(
-        !labels.contains(&"random"),
-        "bare `random` alias must not be listed: {labels:?}"
-    );
-    // The two rotation modes float to the top of the list, ahead of the
-    // fixed themes.
-    let first_fixed = labels.iter().position(|l| *l == "paper-dark").unwrap();
-    let rd = labels.iter().position(|l| *l == "random-dark").unwrap();
-    let rl = labels.iter().position(|l| *l == "random-light").unwrap();
-    assert!(
-        rd < first_fixed && rl < first_fixed,
-        "modes lead: {labels:?}"
-    );
-    // Each mode fills the full command and submits on Enter.
     for (mode, desc) in [
-        ("random-dark", "rotates dark themes every 10 min"),
-        ("random-light", "rotates light themes every 10 min"),
-        ("auto", "light by day, dark by night — follows the OS"),
+        ("dark", "rotating dark paper themes"),
+        ("light", "rotating light paper themes"),
+        ("crt", "rotating CRT phosphor themes"),
     ] {
         let item = items
             .iter()
@@ -161,15 +133,14 @@ fn theme_picker_offers_rotation_modes() {
 
 #[test]
 fn theme_partial_value_filters_and_ghosts() {
-    // "/theme cr" narrows to the CRT themes…
+    // "/theme cr" narrows to the crt mode…
     let labels: Vec<String> = menu_items("/theme cr")
         .into_iter()
         .map(|m| m.label)
         .collect();
-    assert!(labels.iter().all(|l| l.starts_with("cr")));
-    assert!(labels.contains(&"crt-green".to_string()));
-    // …and ghost-completes the first match like a command.
-    assert_eq!(suggest("/theme crt-a", &[]).as_deref(), Some("mber"));
+    assert_eq!(labels, vec!["crt".to_string()], "picker: {labels:?}");
+    // …and ghost-completes it like a command.
+    assert_eq!(suggest("/theme cr", &[]).as_deref(), Some("t"));
 }
 
 #[test]

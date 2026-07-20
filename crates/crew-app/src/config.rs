@@ -149,6 +149,18 @@ impl CrewConfig {
             .unwrap_or(crew_theme::ThemeId::PaperDark)
     }
 
+    /// A display label for the configured selection: the rotation mode name
+    /// (`dark`/`light`/`crt`/`auto`) if it is one, the pinned palette name if
+    /// a specific palette is saved, or `dark` when unset. Used by the settings
+    /// picker, which now offers only the consolidated modes.
+    pub fn theme_label(&self) -> String {
+        match self.theme.as_deref().and_then(crew_theme::parse_selection) {
+            Some(crew_theme::Selection::Mode(m)) => m.as_str().to_string(),
+            Some(crew_theme::Selection::Fixed(id)) => id.as_str().to_string(),
+            None => crew_theme::RandomMode::Dark.as_str().to_string(),
+        }
+    }
+
     /// The configured accent colour, or the active theme's default when unset/invalid.
     pub fn accent_rgb(&self) -> (u8, u8, u8) {
         self.accent

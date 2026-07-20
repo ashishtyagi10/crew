@@ -279,20 +279,42 @@ static OS_DARK: AtomicBool = AtomicBool::new(true);
 /// How long each rotated theme is shown: 10 minutes (fonts share this).
 pub const ROTATE_MS: u64 = 600_000;
 
-/// The rotation pools: dark, light, or follow-the-OS.
+/// A rotating theme: each mode owns a pool of palettes and cycles through them
+/// every [`ROTATE_MS`]. These ARE crew's themes now — the individual palettes
+/// (`PAPER_DARK`, `CRT_GREEN`, …) are the pool members, no longer offered on
+/// their own. `Auto` is an unlisted back-compat mode (its pool follows the OS
+/// appearance); [`THEME_MODES`] is the three the picker advertises.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RandomMode {
     Dark,
     Light,
+    Crt,
     Auto,
 }
+
+/// The three themes crew offers — each a rotation over its own pool. This is
+/// the whole user-facing theme list (`/theme`, the settings picker, the
+/// `Ctrl+Shift+L` cycle); everything else parses for back-compat but isn't
+/// advertised.
+pub const THEME_MODES: [RandomMode; 3] = [RandomMode::Dark, RandomMode::Light, RandomMode::Crt];
 
 impl RandomMode {
     pub fn as_str(self) -> &'static str {
         match self {
-            RandomMode::Dark => "random-dark",
-            RandomMode::Light => "random-light",
+            RandomMode::Dark => "dark",
+            RandomMode::Light => "light",
+            RandomMode::Crt => "crt",
             RandomMode::Auto => "auto",
+        }
+    }
+
+    /// A short human description, for the `/theme` value picker and listings.
+    pub fn describe(self) -> &'static str {
+        match self {
+            RandomMode::Dark => "rotating dark paper themes",
+            RandomMode::Light => "rotating light paper themes",
+            RandomMode::Crt => "rotating CRT phosphor themes",
+            RandomMode::Auto => "light by day, dark by night \u{2014} follows the OS",
         }
     }
 
@@ -301,6 +323,7 @@ impl RandomMode {
             RandomMode::Dark => 1,
             RandomMode::Light => 2,
             RandomMode::Auto => 3,
+            RandomMode::Crt => 4,
         }
     }
 
@@ -309,16 +332,22 @@ impl RandomMode {
             1 => Some(RandomMode::Dark),
             2 => Some(RandomMode::Light),
             3 => Some(RandomMode::Auto),
+            4 => Some(RandomMode::Crt),
             _ => None,
         }
     }
 
-    /// Which pool this mode draws from right now (auto asks the OS).
-    fn pool_is_dark(self) -> bool {
+    /// Whether `id` belongs to this mode's rotation pool. Every palette lands
+    /// in exactly one of Dark/Light/Crt (CRT palettes are `dark` too, so the
+    /// `!crt` guard keeps them out of the plain dark pool); `Auto` borrows the
+    /// dark or light pool depending on the OS appearance.
+    fn in_pool(self, id: ThemeId) -> bool {
+        let t = id.theme();
         match self {
-            RandomMode::Dark => true,
-            RandomMode::Light => false,
-            RandomMode::Auto => os_dark(),
+            RandomMode::Dark => t.dark && !t.crt,
+            RandomMode::Light => !t.dark && !t.crt,
+            RandomMode::Crt => t.crt,
+            RandomMode::Auto => !t.crt && t.dark == os_dark(),
         }
     }
 }
@@ -330,15 +359,23 @@ pub enum Selection {
     Mode(RandomMode),
 }
 
-/// Parse a `/theme` argument / config value. `random` is a back-compat
-/// alias for `random-dark` (the pre-split behaviour).
+/// Parse a `/theme` argument / config value. The three canonical names are
+/// `dark`, `light`, `crt`; the pre-consolidation names (`random`,
+/// `random-dark`, `random-light`, `auto`) and every individual palette name
+/// still parse so old configs keep loading.
 pub fn parse_selection(s: &str) -> Option<Selection> {
     let s = s.trim();
-    if s.eq_ignore_ascii_case("random") || s.eq_ignore_ascii_case("random-dark") {
+    if s.eq_ignore_ascii_case("dark")
+        || s.eq_ignore_ascii_case("random")
+        || s.eq_ignore_ascii_case("random-dark")
+    {
         return Some(Selection::Mode(RandomMode::Dark));
     }
-    if s.eq_ignore_ascii_case("random-light") {
+    if s.eq_ignore_ascii_case("light") || s.eq_ignore_ascii_case("random-light") {
         return Some(Selection::Mode(RandomMode::Light));
+    }
+    if s.eq_ignore_ascii_case("crt") || s.eq_ignore_ascii_case("random-crt") {
+        return Some(Selection::Mode(RandomMode::Crt));
     }
     if s.eq_ignore_ascii_case("auto") {
         return Some(Selection::Mode(RandomMode::Auto));
@@ -368,15 +405,23 @@ pub fn os_dark() -> bool {
     OS_DARK.load(Ordering::Relaxed)
 }
 
-/// Pick a theme from the dark (`dark = true`) or light pool that is NOT
-/// `current`, deterministically from `seed`. Both pools have ≥ 5 entries,
-/// so minus `current` they are never empty.
-pub fn random_pick(current: ThemeId, seed: u64, dark: bool) -> ThemeId {
-    let others: Vec<ThemeId> = ALL_THEMES
+/// Pick a theme from `mode`'s pool that is NOT `current`, deterministically
+/// from `seed`. Every pool has ≥ 4 entries, so minus `current` it is never
+/// empty; the `current` filter is skipped only in the impossible case where it
+/// would empty the pool (keeps the modulo safe).
+pub fn random_pick(current: ThemeId, seed: u64, mode: RandomMode) -> ThemeId {
+    let mut others: Vec<ThemeId> = ALL_THEMES
         .iter()
         .copied()
-        .filter(|&t| t.is_dark() == dark && t != current)
+        .filter(|&t| mode.in_pool(t) && t != current)
         .collect();
+    if others.is_empty() {
+        others = ALL_THEMES
+            .iter()
+            .copied()
+            .filter(|&t| mode.in_pool(t))
+            .collect();
+    }
     let idx = (seed.wrapping_mul(6364136223846793005).rotate_right(29) as usize) % others.len();
     others[idx]
 }
@@ -392,7 +437,7 @@ pub fn apply_selection(sel: Selection, now_ms: u64) {
         }
         Selection::Mode(m) => {
             MODE.store(m.as_u8(), Ordering::Relaxed);
-            set_theme(random_pick(current_id(), now_ms, m.pool_is_dark()));
+            set_theme(random_pick(current_id(), now_ms, m));
             ROTATED_MS.store(now_ms, Ordering::Relaxed);
         }
     }
@@ -419,40 +464,23 @@ pub fn tick_random(now_ms: u64) -> bool {
     if now_ms.saturating_sub(last) < ROTATE_MS {
         return false;
     }
-    set_theme(random_pick(current_id(), now_ms, m.pool_is_dark()));
+    set_theme(random_pick(current_id(), now_ms, m));
     ROTATED_MS.store(now_ms, Ordering::Relaxed);
     true
 }
 
-/// Advance the Ctrl+Shift+L cycle one step: the 13 fixed themes in
-/// [`ALL_THEMES`] order, then random-dark → random-light → auto, wrapping
-/// back to the first fixed theme (mode off). Returns the status-line label.
+/// Advance the `Ctrl+Shift+L` cycle one step through [`THEME_MODES`]:
+/// dark → light → crt → dark, wrapping. Any other state (a pinned palette or
+/// the unlisted `auto`) enters at `dark`. Returns the status-line label.
 pub fn cycle_next(now_ms: u64) -> &'static str {
-    match mode() {
-        Some(RandomMode::Dark) => {
-            apply_selection(Selection::Mode(RandomMode::Light), now_ms);
-            "random-light"
-        }
-        Some(RandomMode::Light) => {
-            apply_selection(Selection::Mode(RandomMode::Auto), now_ms);
-            "auto"
-        }
-        Some(RandomMode::Auto) => {
-            apply_selection(Selection::Fixed(ALL_THEMES[0]), now_ms);
-            ALL_THEMES[0].as_str()
-        }
-        None => {
-            let cur = current_id();
-            let i = ALL_THEMES.iter().position(|&t| t == cur).unwrap_or(0);
-            if i + 1 < ALL_THEMES.len() {
-                set_theme(ALL_THEMES[i + 1]);
-                ALL_THEMES[i + 1].as_str()
-            } else {
-                apply_selection(Selection::Mode(RandomMode::Dark), now_ms);
-                "random-dark"
-            }
-        }
-    }
+    let next = match mode() {
+        Some(RandomMode::Dark) => RandomMode::Light,
+        Some(RandomMode::Light) => RandomMode::Crt,
+        Some(RandomMode::Crt) => RandomMode::Dark,
+        _ => RandomMode::Dark,
+    };
+    apply_selection(Selection::Mode(next), now_ms);
+    next.as_str()
 }
 
 #[cfg(test)]

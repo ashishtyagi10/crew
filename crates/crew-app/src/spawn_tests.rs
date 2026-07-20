@@ -183,7 +183,8 @@ fn set_theme_cmd_random_enters_rotation_mode() {
     let mut app = CrewApp::default();
     app.set_theme_cmd("random");
     assert!(crew_theme::is_random());
-    assert_eq!(app.config.theme.as_deref(), Some("random-dark"));
+    // The `random` alias resolves to the canonical `dark` mode name.
+    assert_eq!(app.config.theme.as_deref(), Some("dark"));
 
     // Switching to a fixed theme through this path also turns rotation off.
     app.set_theme_cmd("paper-light");

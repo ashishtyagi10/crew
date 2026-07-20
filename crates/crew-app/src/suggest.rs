@@ -29,31 +29,14 @@ pub(crate) struct MenuItem {
 /// picker for free (its rows run on Enter; unknown text still submits freeform).
 pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
     match cmd {
-        // Rotation modes lead the list (the two `random-*` first), then the
-        // fixed themes. The bare `random` alias is intentionally omitted — it
-        // still parses, but random-dark is the canonical name.
+        // The three themes — each a rotation over its own palette pool. The
+        // individual palettes and the legacy `random-*`/`auto` names still
+        // parse but aren't offered here.
         "/theme" => Some(
-            vec![
-                (
-                    "random-dark".to_string(),
-                    "rotates dark themes every 10 min".to_string(),
-                ),
-                (
-                    "random-light".to_string(),
-                    "rotates light themes every 10 min".to_string(),
-                ),
-                (
-                    "auto".to_string(),
-                    "light by day, dark by night — follows the OS".to_string(),
-                ),
-            ]
-            .into_iter()
-            .chain(
-                crew_theme::ALL_THEMES
-                    .iter()
-                    .map(|t| (t.as_str().to_string(), t.describe().to_string())),
-            )
-            .collect(),
+            crew_theme::THEME_MODES
+                .iter()
+                .map(|m| (m.as_str().to_string(), m.describe().to_string()))
+                .collect(),
         ),
         "/crt" => Some(vec![
             ("on".to_string(), "force the CRT tube look on".to_string()),
