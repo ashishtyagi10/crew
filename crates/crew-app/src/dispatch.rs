@@ -11,6 +11,7 @@ impl CrewApp {
             "keys" => self.help_open = true,
             "far" => self.spawn_far_pane(),
             "goal" => self.spawn_goal_pane(""), // show usage hint
+            "model" => self.set_model_cmd(""),  // show usage hint
             "batch" => self.spawn_batch_pane(""), // show usage hint
             "md" => self.spawn_md_pane(""),     // show usage hint
             "smith" | "crew" => self.spawn_crew_pane(), // /crew kept as an alias
@@ -72,6 +73,8 @@ impl CrewApp {
                     self.crt_command(a.trim());
                 } else if let Some(w) = other.strip_prefix("weight ") {
                     self.weight_command(w.trim());
+                } else if let Some(m) = other.strip_prefix("model ") {
+                    self.set_model_cmd(m.trim());
                 }
             }
         }

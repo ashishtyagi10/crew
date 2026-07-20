@@ -80,7 +80,7 @@ fn cells_render_header_and_summary_footer_not_agent_chips() {
             .collect::<Vec<_>>()
             .join("\n")
     };
-    assert!(text.contains("crew"), "header present:\n{text}");
+    assert!(text.contains("agent smith"), "header present:\n{text}");
     // The summary footer replaces the per-agent chip grid: one shared model,
     // the (full, since no fill recorded) context window, and session spend.
     assert!(text.contains("qwen"), "footer model:\n{text}");
@@ -104,7 +104,7 @@ fn relay_reply_ends_the_hop_and_records_it() {
     assert_eq!(p.pulse.hops().len(), 1, "hop recorded for the waterfall");
     assert!(p.pulse.hist("planner").is_some());
     // Unrelated senders (system notices) never match an agent.
-    p.note_reply("crew");
+    p.note_reply("agent smith");
     assert_eq!(p.pulse.hops().len(), 1);
 }
 
@@ -189,7 +189,7 @@ fn esc_interrupts_a_busy_connected_pane_instead_of_closing() {
         "Esc sent /stop directly (bypassing the queue), latching awaiting like any direct send"
     );
     assert_eq!(p.messages.len(), 1, "one interrupt note pushed");
-    assert_eq!(p.messages[0].sender, "crew");
+    assert_eq!(p.messages[0].sender, "agent smith");
     assert!(
         p.messages[0].text.contains("interrupting") && p.messages[0].text.contains("/stop"),
         "note text: {}",
@@ -274,10 +274,10 @@ fn esc_after_a_broker_message_pushes_a_second_interrupt_note() {
     // A broker Message arrives mid-turn — mirrors chat.rs::poll's Message arm
     // (`note_reply` + `push_capped`) — from a sender unrelated to the still-
     // thinking `planner`, so the pane stays busy throughout (like the
-    // swarm's own "crew" status lines).
-    p.note_reply("crew");
+    // swarm's own "agent smith" status lines).
+    p.note_reply("agent smith");
     p.push_capped(Message {
-        sender: "crew".into(),
+        sender: "agent smith".into(),
         text: "swarm done \u{2014} 1 task(s), 0 failed".into(),
         ts: String::new(),
         meta: String::new(),

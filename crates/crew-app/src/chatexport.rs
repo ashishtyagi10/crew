@@ -20,7 +20,7 @@ pub(crate) fn intercept(pane: &mut ChatPane, text: &str) -> bool {
     };
     let ts = chrono::Local::now().timestamp_millis().to_string();
     pane.messages.push(Message {
-        sender: "crew".into(),
+        sender: "agent smith".into(),
         text: note,
         ts,
         meta: String::new(),
@@ -59,9 +59,9 @@ pub(crate) fn transcript_markdown(
     now: &chrono::DateTime<chrono::Local>,
 ) -> String {
     let title = if channel.is_empty() {
-        "crew".to_string()
+        "agent smith".to_string()
     } else {
-        format!("crew \u{00b7} {channel}")
+        format!("agent smith \u{00b7} {channel}")
     };
     let mut out = format!(
         "# {title}\n\nExported {} \u{00b7} {} message(s)\n",
@@ -116,16 +116,19 @@ mod tests {
             msg("planner", "plan:\n1. do", "", "4.2s"),
         ];
         let md = transcript_markdown("general", &msgs, &chrono::Local::now());
-        assert!(md.starts_with("# crew \u{00b7} general\n"), "got: {md}");
+        assert!(
+            md.starts_with("# agent smith \u{00b7} general\n"),
+            "got: {md}"
+        );
         assert!(md.contains("\n## user\n\nbuild it\n"), "got: {md}");
         assert!(md.contains("\n## planner \u{00b7} 4.2s\n"), "got: {md}");
         assert!(md.contains("plan:\n1. do\n"), "got: {md}");
     }
 
     #[test]
-    fn empty_channel_titles_plain_crew_and_counts_messages() {
+    fn empty_channel_titles_plain_agent_smith_and_counts_messages() {
         let md = transcript_markdown("", &[], &chrono::Local::now());
-        assert!(md.starts_with("# crew\n"), "got: {md}");
+        assert!(md.starts_with("# agent smith\n"), "got: {md}");
         assert!(md.contains("0 message(s)"), "got: {md}");
     }
 

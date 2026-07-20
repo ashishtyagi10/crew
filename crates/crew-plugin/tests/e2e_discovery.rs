@@ -18,7 +18,7 @@ const MOCK: (&str, &str) = ("CREW_BROKER_MOCK_REPLY", "ok\n@done");
 fn roster(events: &[common::PluginEvent]) -> String {
     messages(events)
         .into_iter()
-        .find(|(s, _)| s == "crew")
+        .find(|(s, _)| s == "agent smith")
         .map(|(_, t)| t)
         .unwrap_or_default()
 }
@@ -67,13 +67,13 @@ fn no_key_runs_offline_stub_swarm() {
     let msgs = messages(&ev);
     assert!(
         msgs.iter()
-            .any(|(s, t)| s == "crew" && t.contains("planned")),
+            .any(|(s, t)| s == "agent smith" && t.contains("planned")),
         "{msgs:?}"
     );
     assert!(
         !msgs
             .iter()
-            .any(|(s, t)| s == "crew" && t.contains("swarm done")),
+            .any(|(s, t)| s == "agent smith" && t.contains("swarm done")),
         "a clean run must close without a swarm-done summary: {msgs:?}"
     );
 }

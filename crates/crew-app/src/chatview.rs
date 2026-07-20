@@ -57,17 +57,15 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
         };
         (label, secs, color)
     });
-    // The summary footer owns the token spend when it's showing; suppress the
-    // header's duplicate `~N tok` then (tokens=0 omits it). Short panes with no
-    // footer keep it in the header as the only cost readout.
-    let header_tokens = if g.summary > 0 { 0 } else { pane.tokens };
+    // Session stats (model, context, tokens) live only in the below-input
+    // summary footer (`chatsummary`); the header stays identity + liveness so
+    // the same numbers are never repeated in two places.
     let mut cells = crate::chathdr::header_cells(
         cols,
         &pane.channel,
         pane.connected,
         pane.is_busy(),
         status.as_ref().map(|(l, s, c)| (l.as_str(), *s, *c)),
-        header_tokens,
         pane.compact_view,
     );
     // The per-agent statusline grid that used to sit here (rows 1..) was

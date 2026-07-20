@@ -95,7 +95,7 @@ pub(crate) fn intercept(pane: &mut ChatPane, text: &str) -> ThemeIntercept {
     };
     let ts = chrono::Local::now().timestamp_millis().to_string();
     pane.messages.push(Message {
-        sender: "crew".into(),
+        sender: "agent smith".into(),
         text: note,
         ts,
         meta: String::new(),

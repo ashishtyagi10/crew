@@ -127,30 +127,35 @@ pub(crate) fn commit_cmd(
 ) -> anyhow::Result<()> {
     let dir = match std::env::current_dir() {
         Ok(d) => d,
-        Err(e) => return emit(msg("crew", format!("commit: no working directory: {e}"))),
+        Err(e) => {
+            return emit(msg(
+                "agent smith",
+                format!("commit: no working directory: {e}"),
+            ))
+        }
     };
     if rest.trim() == "apply" {
         let pending = lock(&session.commit).take();
         let Some(p) = pending else {
-            return emit(msg("crew", "no proposal — run /commit first"));
+            return emit(msg("agent smith", "no proposal — run /commit first"));
         };
         let m = match do_commit(&dir, &p.message, p.staged) {
             Ok(s) => s,
             Err(e) => format!("commit failed: {e}"),
         };
-        return emit(msg("crew", m));
+        return emit(msg("agent smith", m));
     }
     if !rest.trim().is_empty() {
         return emit(msg(
-            "crew",
+            "agent smith",
             "usage: /commit — propose · /commit apply — run it",
         ));
     }
     let (diff, staged) = match pick_diff(&dir) {
-        Err(e) => return emit(msg("crew", format!("commit: {e}"))),
+        Err(e) => return emit(msg("agent smith", format!("commit: {e}"))),
         Ok(None) => {
             return emit(msg(
-                "crew",
+                "agent smith",
                 "nothing to commit — the tree is clean (stage or edit something)",
             ))
         }
@@ -158,13 +163,13 @@ pub(crate) fn commit_cmd(
     };
     let reg = session.registry();
     if reg.is_empty() {
-        return emit(msg("crew", roster(&reg)));
+        return emit(msg("agent smith", roster(&reg)));
     }
     // Elected by the agent's OWN role (`is_writer`), not the literal name
     // "coder" — see `review.rs`'s identical fix and `constructs::pick_judge`.
     let author = pick_by_role(&reg.infos(), is_writer);
     emit(msg(
-        "crew",
+        "agent smith",
         format!(
             "drafting a commit message for the {} diff…",
             if staged { "staged" } else { "unstaged" }
@@ -185,16 +190,21 @@ pub(crate) fn commit_cmd(
     })?;
     let message = match reply {
         Some(Ok(r)) => clean_message(&r),
-        Some(Err(e)) => return emit(msg("crew", format!("commit draft failed: {e}"))),
-        None => return emit(msg("crew", "commit stopped — the coder went missing")),
+        Some(Err(e)) => return emit(msg("agent smith", format!("commit draft failed: {e}"))),
+        None => {
+            return emit(msg(
+                "agent smith",
+                "commit stopped — the coder went missing",
+            ))
+        }
     };
     if message.is_empty() {
-        return emit(msg("crew", "the draft came back empty — try again"));
+        return emit(msg("agent smith", "the draft came back empty — try again"));
     }
     emit(msg(&format!("{author} → user"), message.clone()))?;
     *lock(&session.commit) = Some(PendingCommit { message, staged });
     emit(msg(
-        "crew",
+        "agent smith",
         "proposal ready — /commit apply creates the commit, /commit re-drafts",
     ))
 }

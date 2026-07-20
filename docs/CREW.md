@@ -354,9 +354,9 @@ The docked command bar supports:
   typing to edit` hint: `Enter` runs it like any typed command, `Esc`
   restores the original `!` text, and typing further just edits the
   suggestion as plain text.
-- **`/smith`** — opens a **multi-agent pane** where the installed CLI coding
-  agents (claude, codex, opencode) message each other to work a task. See
-  [Multi-agent relay](#multi-agent-relay-crew) below.
+- **`/smith`** — opens **agent smith**, a **multi-agent pane** where the
+  installed CLI coding agents (claude, codex, opencode) message each other to
+  work a task. See [Multi-agent relay](#multi-agent-relay-crew) below.
 - **Autosuggest** — fish-style ghost text from history; Tab/→ accepts it.
 - **History** — **Up/Down** recall previous lines; type a prefix first and they
   recall only entries **starting with it** (zsh/fish-style prefix search; an empty
@@ -452,8 +452,10 @@ render verbatim instead of disappearing.
 
 ## Multi-agent relay (`/smith`, alias `/crew`)
 
-`/smith` opens a pane that lets independent headless CLI coding agents talk to
-each other to work a task you give them. Any registered agent can be sender or
+`/smith` opens **agent smith** — a pane that lets independent headless CLI
+coding agents talk to each other to work a task you give them. The pane's own
+voice (status notes, swarm summaries) speaks as `agent smith`; its routing
+channel stays `crew` for session restore. Any registered agent can be sender or
 recipient — claude ↔ codex ↔ opencode.
 
 **Discovery.** On open, the broker probes each known agent (claude, codex,

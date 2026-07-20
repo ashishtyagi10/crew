@@ -34,7 +34,7 @@ fn mid_run_pane() -> ChatPane {
     let mut p = ChatPane::new(plugin, "crew".into());
     p.connected = true;
     p.messages.push(crate::chatlayout::Message {
-        sender: "crew".into(),
+        sender: "agent smith".into(),
         text: "Planned 5 tasks.".into(),
         ts: String::new(),
         meta: String::new(),

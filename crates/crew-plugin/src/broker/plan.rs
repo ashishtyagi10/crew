@@ -36,17 +36,17 @@ pub(crate) fn plan_cmd(
     let task = rest.trim();
     if task.is_empty() {
         return emit(msg(
-            "crew",
+            "agent smith",
             "usage: /plan <task> \u{2014} draft first, run on /approve",
         ));
     }
     let reg = session.registry();
     if reg.is_empty() {
-        return emit(msg("crew", roster(&reg)));
+        return emit(msg("agent smith", roster(&reg)));
     }
     let (author, task) = split_target(task, &reg);
     emit(msg(
-        "crew",
+        "agent smith",
         format!("plan mode \u{2014} {author} drafts; nothing runs until /approve"),
     ))?;
     emit(PluginEvent::Activity {
@@ -64,21 +64,24 @@ pub(crate) fn plan_cmd(
     })?;
     let plan = match reply {
         Some(Ok(r)) => strip_control(&r),
-        Some(Err(e)) => return emit(msg("crew", format!("plan draft failed: {e}"))),
+        Some(Err(e)) => return emit(msg("agent smith", format!("plan draft failed: {e}"))),
         None => {
             return emit(msg(
-                "crew",
+                "agent smith",
                 "plan stopped \u{2014} the drafting agent went missing",
             ))
         }
     };
     if plan.is_empty() {
-        return emit(msg("crew", "plan draft came back empty \u{2014} try again"));
+        return emit(msg(
+            "agent smith",
+            "plan draft came back empty \u{2014} try again",
+        ));
     }
     emit(msg(&format!("{author} \u{2192} user"), plan.clone()))?;
     *lock(&session.plan) = Some(PendingPlan { task, plan, author });
     emit(msg(
-        "crew",
+        "agent smith",
         "plan ready \u{2014} /approve runs it, /reject discards it",
     ))
 }
@@ -91,13 +94,13 @@ pub(crate) fn approve_cmd(
 ) -> anyhow::Result<()> {
     let Some(p) = lock(&session.plan).take() else {
         return emit(msg(
-            "crew",
+            "agent smith",
             "no plan pending \u{2014} draft one with /plan <task>",
         ));
     };
     let reg = session.registry();
     if reg.is_empty() {
-        return emit(msg("crew", roster(&reg)));
+        return emit(msg("agent smith", roster(&reg)));
     }
     // The author leads execution while it is still on the roster.
     let start = if reg.get(&p.author).is_some() {
@@ -106,7 +109,7 @@ pub(crate) fn approve_cmd(
         reg.names().into_iter().next().unwrap_or_default()
     };
     emit(msg(
-        "crew",
+        "agent smith",
         format!("plan approved \u{2014} {start} leads execution"),
     ))?;
     let broker = session.broker(reg);
@@ -128,7 +131,7 @@ pub(crate) fn reject_cmd(
 ) -> anyhow::Result<()> {
     let had = lock(&session.plan).take().is_some();
     emit(msg(
-        "crew",
+        "agent smith",
         if had {
             "plan discarded"
         } else {

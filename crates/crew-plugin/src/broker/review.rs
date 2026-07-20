@@ -30,13 +30,18 @@ pub(crate) fn review_cmd(
 ) -> anyhow::Result<()> {
     let dir = match std::env::current_dir() {
         Ok(d) => d,
-        Err(e) => return emit(msg("crew", format!("review: no working directory: {e}"))),
+        Err(e) => {
+            return emit(msg(
+                "agent smith",
+                format!("review: no working directory: {e}"),
+            ))
+        }
     };
     let (diff, staged) = match super::gitmsg::pick_diff(&dir) {
-        Err(e) => return emit(msg("crew", format!("review: {e}"))),
+        Err(e) => return emit(msg("agent smith", format!("review: {e}"))),
         Ok(None) => {
             return emit(msg(
-                "crew",
+                "agent smith",
                 "nothing to review — the tree is clean (stage or edit something)",
             ))
         }
@@ -44,7 +49,7 @@ pub(crate) fn review_cmd(
     };
     let reg = session.registry();
     if reg.is_empty() {
-        return emit(msg("crew", roster(&reg)));
+        return emit(msg("agent smith", roster(&reg)));
     }
     // Elected by the agent's OWN role (`is_critic`), not the literal name
     // "reviewer" — no invented specialist is ever literally called that, so
@@ -53,7 +58,7 @@ pub(crate) fn review_cmd(
     // identical problem for `/goal`.
     let author = pick_by_role(&reg.infos(), is_critic);
     emit(msg(
-        "crew",
+        "agent smith",
         format!(
             "reviewing the {} diff…",
             if staged { "staged" } else { "unstaged" }
@@ -74,9 +79,12 @@ pub(crate) fn review_cmd(
     })?;
     match reply {
         Some(Ok(r)) if !r.trim().is_empty() => emit(msg(&format!("{author} → user"), r)),
-        Some(Ok(_)) => emit(msg("crew", "the review came back empty — try again")),
-        Some(Err(e)) => emit(msg("crew", format!("review failed: {e}"))),
-        None => emit(msg("crew", "review stopped — the reviewer went missing")),
+        Some(Ok(_)) => emit(msg("agent smith", "the review came back empty — try again")),
+        Some(Err(e)) => emit(msg("agent smith", format!("review failed: {e}"))),
+        None => emit(msg(
+            "agent smith",
+            "review stopped — the reviewer went missing",
+        )),
     }
 }
 

@@ -85,19 +85,24 @@ pub(crate) fn standup_cmd(
 ) -> anyhow::Result<()> {
     let Some(days) = parse_days(rest) else {
         return emit(msg(
-            "crew",
+            "agent smith",
             "usage: /standup [days] — summarize recent commits",
         ));
     };
     let dir = match std::env::current_dir() {
         Ok(d) => d,
-        Err(e) => return emit(msg("crew", format!("standup: no working directory: {e}"))),
+        Err(e) => {
+            return emit(msg(
+                "agent smith",
+                format!("standup: no working directory: {e}"),
+            ))
+        }
     };
     let log = match recent_log(&dir, days) {
-        Err(e) => return emit(msg("crew", format!("standup: {e}"))),
+        Err(e) => return emit(msg("agent smith", format!("standup: {e}"))),
         Ok(None) => {
             return emit(msg(
-                "crew",
+                "agent smith",
                 format!("no commits in the last {days} day(s) — nothing to report"),
             ))
         }
@@ -105,13 +110,13 @@ pub(crate) fn standup_cmd(
     };
     let reg = session.registry();
     if reg.is_empty() {
-        return emit(msg("crew", roster(&reg)));
+        return emit(msg("agent smith", roster(&reg)));
     }
     // Elected by the agent's OWN role (`is_writer`), not the literal name
     // "coder" — see `review.rs`'s identical fix and `constructs::pick_judge`.
     let author = pick_by_role(&reg.infos(), is_writer);
     emit(msg(
-        "crew",
+        "agent smith",
         format!("drafting a standup from the last {days} day(s) of commits…"),
     ))?;
     emit(PluginEvent::Activity {
@@ -129,9 +134,15 @@ pub(crate) fn standup_cmd(
     })?;
     match reply {
         Some(Ok(r)) if !r.trim().is_empty() => emit(msg(&format!("{author} → user"), r)),
-        Some(Ok(_)) => emit(msg("crew", "the standup came back empty — try again")),
-        Some(Err(e)) => emit(msg("crew", format!("standup failed: {e}"))),
-        None => emit(msg("crew", "standup stopped — the coder went missing")),
+        Some(Ok(_)) => emit(msg(
+            "agent smith",
+            "the standup came back empty — try again",
+        )),
+        Some(Err(e)) => emit(msg("agent smith", format!("standup failed: {e}"))),
+        None => emit(msg(
+            "agent smith",
+            "standup stopped — the coder went missing",
+        )),
     }
 }
 

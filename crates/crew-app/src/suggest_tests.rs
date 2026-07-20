@@ -114,6 +114,47 @@ fn theme_space_lists_the_three_modes_as_runnable_values() {
 }
 
 #[test]
+fn model_command_expands_into_a_value_picker() {
+    // Typing "/model" offers the command row, filling a trailing space so the
+    // value picker opens rather than running.
+    let model = menu_items("/model")
+        .into_iter()
+        .find(|m| m.label == "/model")
+        .expect("/model in palette");
+    assert_eq!(model.fill, "/model ");
+    assert!(!model.submit, "the command expands into its picker");
+}
+
+#[test]
+fn model_space_lists_runnable_model_values() {
+    let items = menu_items("/model ");
+    let labels: Vec<&str> = items.iter().map(|m| m.label.as_str()).collect();
+    assert!(
+        labels.contains(&"default"),
+        "picker offers default: {labels:?}"
+    );
+    assert!(
+        labels.contains(&"qwen-max"),
+        "picker offers qwen-max: {labels:?}"
+    );
+    // Each value fills the full command and submits on Enter.
+    let qwen = items.iter().find(|m| m.label == "qwen-max").unwrap();
+    assert_eq!(qwen.fill, "/model qwen-max");
+    assert!(qwen.submit);
+}
+
+#[test]
+fn model_picker_filters_by_partial_value() {
+    let items = menu_items("/model claude");
+    assert!(!items.is_empty(), "claude-* models match");
+    assert!(
+        items.iter().all(|m| m.label.starts_with("claude")),
+        "only claude models survive the filter: {:?}",
+        items.iter().map(|m| &m.label).collect::<Vec<_>>()
+    );
+}
+
+#[test]
 fn theme_picker_describes_each_mode() {
     let items = menu_items("/theme ");
     for (mode, desc) in [

@@ -94,11 +94,11 @@ impl ChatPane {
         }
     }
 
-    /// Append a local "crew" note to the transcript — composer intercepts
+    /// Append a local "agent smith" note to the transcript — composer intercepts
     /// (`/theme`, `/export`) and app-side command echoes (`/font`) share it.
     pub(crate) fn push_note(&mut self, text: String) {
         self.messages.push(Message {
-            sender: "crew".into(),
+            sender: "agent smith".into(),
             text,
             ts: chrono::Local::now().timestamp_millis().to_string(),
             meta: String::new(),
@@ -234,6 +234,22 @@ impl ChatPane {
         }
     }
 
+    /// Submit `text` to the broker as if it were typed in the composer: queued
+    /// while the pane is busy (except `/stop`), sent immediately when idle —
+    /// the same rule the composer's own Enter uses. Lets app-level commands
+    /// that target this pane (e.g. the `/model` picker) reach the broker
+    /// without a synthetic keystroke path.
+    pub(crate) fn submit_command(&mut self, text: String) {
+        if text.is_empty() {
+            return;
+        }
+        if self.is_busy() && !crate::chatqueue::is_stop(&text) {
+            self.queued.push_back(text);
+        } else {
+            self.send_now(text);
+        }
+    }
+
     /// The transcript text noting an Esc-interrupt — a single constant so the
     /// dedup check in [`Self::interrupt`] can compare against exactly what it
     /// pushes.
@@ -254,7 +270,7 @@ impl ChatPane {
         let already_noted = self
             .messages
             .last()
-            .is_some_and(|m| m.sender == "crew" && m.text == Self::INTERRUPT_NOTE);
+            .is_some_and(|m| m.sender == "agent smith" && m.text == Self::INTERRUPT_NOTE);
         if already_noted {
             return;
         }
@@ -262,7 +278,7 @@ impl ChatPane {
             self.unread += 1;
         }
         self.push_capped(Message {
-            sender: "crew".into(),
+            sender: "agent smith".into(),
             text: Self::INTERRUPT_NOTE.into(),
             ts: String::new(),
             meta: String::new(),

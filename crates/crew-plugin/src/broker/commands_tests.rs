@@ -183,6 +183,61 @@ fn model_default_clears_the_pin() {
 }
 
 #[test]
+fn model_all_pins_every_agent_and_reemits_the_roster() {
+    let _g = testenv::mock_with_specialists("ok\n@done", testenv::TRIO);
+    let mut session = Session::new();
+    let names = session.registry().names();
+    assert!(names.len() >= 2, "the trio registers several agents");
+    let mut evs = Vec::new();
+    handle(
+        &mut session,
+        "/model all qwen-turbo",
+        &crate::broker::tick::noop_tick_emit(),
+        &mut |ev| {
+            evs.push(ev);
+            Ok(())
+        },
+    )
+    .unwrap();
+    // Every registered agent is now pinned to the picked model.
+    for n in &names {
+        assert_eq!(
+            session.overrides.get(n).map(String::as_str),
+            Some("qwen-turbo")
+        );
+    }
+    match &evs[0] {
+        PluginEvent::Roster { agents } => {
+            assert!(agents.iter().all(|a| a.model == "qwen-turbo"));
+        }
+        ev => panic!("expected Roster first, got {ev:?}"),
+    }
+    assert!(text_of(&evs[1]).contains("all agents now run qwen-turbo"));
+}
+
+#[test]
+fn model_all_default_clears_every_pin() {
+    let _g = testenv::mock_with_specialists("ok\n@done", testenv::TRIO);
+    let mut session = Session::new();
+    for n in session.registry().names() {
+        session.overrides.insert(n, "x".into());
+    }
+    let mut evs = Vec::new();
+    handle(
+        &mut session,
+        "/model all default",
+        &crate::broker::tick::noop_tick_emit(),
+        &mut |ev| {
+            evs.push(ev);
+            Ok(())
+        },
+    )
+    .unwrap();
+    assert!(session.overrides.is_empty(), "all pins cleared");
+    assert!(text_of(&evs[1]).contains("provider default"));
+}
+
+#[test]
 fn status_reports_totals_pins_and_running_state() {
     let _g = testenv::mock_with_specialists("ok\n@done", testenv::TRIO);
     let mut session = Session::new();

@@ -57,8 +57,8 @@ pub(crate) struct View {
 /// the solid bar for agents and the user.
 fn gutter_for(sender: &str) -> char {
     match sender {
-        "crew" | "system" | "broker" => '\u{2506}', // ┆ dotted — quieter
-        _ => GUTTER,                                // ▍ solid
+        "agent smith" | "crew" | "system" | "broker" => '\u{2506}', // ┆ dotted — quieter
+        _ => GUTTER,                                                // ▍ solid
     }
 }
 
@@ -66,7 +66,7 @@ fn gutter_for(sender: &str) -> char {
 /// agent (and the user) gets its stable roster colour.
 fn sender_color(sender: &str) -> Color {
     match sender {
-        "crew" | "system" | "broker" => crew_theme::theme().text_muted,
+        "agent smith" | "crew" | "system" | "broker" => crew_theme::theme().text_muted,
         _ => crate::chatroster::agent_color(sender),
     }
 }
@@ -136,7 +136,7 @@ pub(crate) fn card_lines(
         out.push(header_line(m, now_ms));
         // Body text: agents speak in ink; the system voice stays muted.
         let fg = match m.sender.as_str() {
-            "crew" | "system" | "broker" => crew_theme::theme().text_muted,
+            "agent smith" | "crew" | "system" | "broker" => crew_theme::theme().text_muted,
             _ => crew_theme::theme().ink,
         };
         let mut body = body_lines(&m.text, cols, fg, view.source);

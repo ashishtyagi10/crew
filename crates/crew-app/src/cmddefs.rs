@@ -17,7 +17,7 @@ pub(crate) const COMMANDS: &[Cmd] = &[
     },
     Cmd {
         name: "/smith",
-        desc: "Open the multi-agent pane — the agent relay (alias: /crew)",
+        desc: "Open agent smith — the multi-agent relay pane (alias: /crew)",
     },
     Cmd {
         name: "/diff",
@@ -122,6 +122,10 @@ pub(crate) const COMMANDS: &[Cmd] = &[
     Cmd {
         name: "/far",
         desc: "Open a dual-pane file manager",
+    },
+    Cmd {
+        name: "/model",
+        desc: "Set the model for agent smith's agents — pick from the list",
     },
     Cmd {
         name: "/goal",
