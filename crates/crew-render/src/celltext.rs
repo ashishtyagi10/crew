@@ -28,9 +28,7 @@ pub(crate) struct FontParams {
 /// more legible body.) `dark` is retained for the signature/hash key and a
 /// possible future per-appearance split.
 pub(crate) fn base_weight(_dark: bool) -> u16 {
-    // TEMP PROBE (revert to 500): render body at Bold to test whether the
-    // "weird l" is just an under-thickened thin stem vs a swash hinting issue.
-    700
+    500
 }
 
 /// The cosmic-text `Family` for an optional family name (empty/`None` → system monospace).
