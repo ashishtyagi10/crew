@@ -13,6 +13,66 @@ fn ctx(pairs: &[(&str, u64)]) -> HashMap<String, u64> {
     pairs.iter().map(|(n, v)| (n.to_string(), *v)).collect()
 }
 
+fn stats(pairs: &[(&str, u32, u64)]) -> HashMap<String, (u32, u64)> {
+    pairs
+        .iter()
+        .map(|(n, r, ms)| (n.to_string(), (*r, *ms)))
+        .collect()
+}
+
+#[test]
+fn block_shows_every_stat_row_with_data() {
+    let agents = [agent("smith", "anthropic/claude-opus-4-8")];
+    let rows = summary_block(
+        &agents,
+        &ctx(&[("smith", 100_000)]),
+        120_000,
+        8,
+        &stats(&[("smith", 5, 21_000)]), // 5 replies, 21s total → avg 4.2s
+    );
+    let labels: Vec<&str> = rows.iter().map(|(l, _)| *l).collect();
+    assert_eq!(labels, ["model", "ctx", "usage", "agents"]);
+    let by = |k: &str| rows.iter().find(|(l, _)| *l == k).unwrap().1.clone();
+    assert_eq!(by("model"), "claude-opus-4-8");
+    // claude window is 200k; 100k used → 100k/200k · 50% left
+    assert_eq!(by("ctx"), "100.0k/200.0k \u{00b7} 50% left");
+    assert_eq!(by("usage"), "~120.0k tok \u{00b7} 8 turns");
+    assert_eq!(by("agents"), "1 \u{00b7} avg 4.2s/reply");
+}
+
+#[test]
+fn block_omits_rows_without_data() {
+    // Tokens alone: no roster → no model/ctx/agents rows, only usage.
+    let rows = summary_block(&[], &HashMap::new(), 9_500, 0, &HashMap::new());
+    let labels: Vec<&str> = rows.iter().map(|(l, _)| *l).collect();
+    assert_eq!(labels, ["usage"]);
+    assert_eq!(rows[0].1, "~9.5k tok"); // no turns suffix at 0 turns
+}
+
+#[test]
+fn block_mixed_models_collapse_to_a_count() {
+    let agents = [agent("a", "claude"), agent("b", "gpt-5")];
+    let rows = summary_block(&agents, &HashMap::new(), 0, 0, &HashMap::new());
+    assert_eq!(rows[0], ("model", "mixed (2)".to_string()));
+}
+
+#[test]
+fn block_agents_row_omits_latency_without_replies() {
+    let agents = [agent("a", "claude"), agent("b", "claude")];
+    let rows = summary_block(&agents, &HashMap::new(), 0, 0, &HashMap::new());
+    let agents_row = rows.iter().find(|(l, _)| *l == "agents").unwrap();
+    assert_eq!(agents_row.1, "2", "no reply stats → count only, no avg");
+}
+
+#[test]
+fn block_lines_pad_labels_into_a_column() {
+    let rows = vec![("model", "x".to_string()), ("agents", "y".to_string())];
+    let lines = block_lines(&rows);
+    // Widest label is "agents" (6); "model" pads to 6 so values align at col 7.
+    assert_eq!(lines[0], "model  x");
+    assert_eq!(lines[1], "agents y");
+}
+
 #[test]
 fn nothing_to_summarise_is_none() {
     // No agents and no spend → no footer at all.

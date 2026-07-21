@@ -81,10 +81,11 @@ fn cells_render_header_and_summary_footer_not_agent_chips() {
             .join("\n")
     };
     assert!(text.contains("agent smith"), "header present:\n{text}");
-    // The summary footer replaces the per-agent chip grid: one shared model,
-    // the (full, since no fill recorded) context window, and session spend.
+    // The summary footer replaces the per-agent chip grid: a multi-row stats
+    // block with one shared model, the (full, since no fill recorded) context
+    // window, and session spend. A tall pane (20 rows) shows the full block.
     assert!(text.contains("qwen"), "footer model:\n{text}");
-    assert!(text.contains("100% context"), "footer context:\n{text}");
+    assert!(text.contains("100% left"), "footer context row:\n{text}");
     assert!(text.contains("~950 tok"), "footer token spend:\n{text}");
     // The retired chip markers must be gone.
     assert!(
