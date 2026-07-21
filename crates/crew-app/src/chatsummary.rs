@@ -1,10 +1,11 @@
-//! The crew pane's summary line: a single muted row rendered directly BELOW
+//! The crew pane's summary footer: a muted stats block rendered directly BELOW
 //! the input composer (Claude-Code footer style), consolidating what the old
-//! per-agent statusline rows used to spread across the top — the model, the
-//! tightest remaining context window, and the session's token spend — into one
-//! whole-pane summary. `summary_text` is pure (model list + ctx map + tokens)
-//! so it unit-tests without a live pane; `summary_rows`/`summary_cells` gate
-//! and place it.
+//! per-agent statusline rows spread across the top. On a tall pane it is a
+//! labelled multi-row block (`summary_block`) — model, context (used/limit ·
+//! % left), usage (tokens · turns), and agents (count · avg latency); a short
+//! pane collapses to the dense single line (`summary_text`). Both builders are
+//! pure so they unit-test without a live pane; `summary_rows`/`summary_cells`
+//! gate the height and place the rows.
 use crew_plugin::AgentInfo;
 use crew_render::CellView;
 use std::collections::HashMap;
