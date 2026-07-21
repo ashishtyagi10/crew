@@ -78,7 +78,31 @@ fn hello(out: &Out, session: &Session) -> anyhow::Result<()> {
             agents: reg.infos(),
         },
     )?;
-    emit(out, &msg("agent smith", roster(&reg)))
+    emit(out, &msg("agent smith", startup_banner(&reg)))
+}
+
+/// The Agent Smith opening splash — a boxed nameplate over a binary "code
+/// rain" tagline, in the spirit of the opencode/claude/codex startup banners.
+/// Rendered in the theme ink (Matrix green on the CRT themes). Kept
+/// ASCII-narrow so it survives slim panes; the chat renderer preserves its
+/// line breaks (soft breaks are hard breaks in chat), so the box stays intact.
+fn nameplate_art() -> String {
+    let plate = "A G E N T   S M I T H";
+    let pad = 3;
+    let bar = "\u{2550}".repeat(plate.chars().count() + pad * 2);
+    let sp = " ".repeat(pad);
+    format!(
+        "\u{2554}{bar}\u{2557}\n\
+         \u{2551}{sp}{plate}{sp}\u{2551}\n\
+         \u{255a}{bar}\u{255d}\n\
+         01001101 \u{22ee} the sound of inevitability"
+    )
+}
+
+/// The pane's opening message: the [`nameplate_art`] splash over the roster
+/// hint, which still adapts to provider/roster state (see [`roster`]).
+pub(crate) fn startup_banner(reg: &Registry) -> String {
+    format!("{}\n\n{}", nameplate_art(), roster(reg))
 }
 
 /// Route one Send. `/stop [#N]`, `/tasks`, `/status`, and quick constructs

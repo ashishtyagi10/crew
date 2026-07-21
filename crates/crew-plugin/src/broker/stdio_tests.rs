@@ -124,3 +124,34 @@ fn at_dial_of_an_existing_specialist_defers_its_eviction() {
         "addressing favourite must have deferred its eviction: {names:?}"
     );
 }
+
+#[test]
+fn nameplate_box_edges_align() {
+    // The top/bottom rules must be exactly as wide as the content row between
+    // the vertical bars, or the box looks broken.
+    let art = super::nameplate_art();
+    let lines: Vec<&str> = art.lines().collect();
+    let top = lines[0].chars().count();
+    let mid = lines[1].chars().count();
+    let bot = lines[2].chars().count();
+    assert_eq!(top, mid, "top rule width must match the nameplate row");
+    assert_eq!(top, bot, "bottom rule width must match the top rule");
+    assert!(
+        lines[1].contains("A G E N T   S M I T H"),
+        "nameplate present"
+    );
+    assert!(lines[3].contains("inevitability"), "Smith tagline present");
+}
+
+#[test]
+fn startup_banner_carries_the_roster_hint_below_the_art() {
+    // The splash still shows the roster guidance underneath, so a fresh pane
+    // both greets AND tells you what to do.
+    let banner = super::startup_banner(&reg(&[]));
+    assert!(banner.contains("A G E N T   S M I T H"), "art on top");
+    // Empty registry → whichever roster() branch fires ends with the same tail.
+    assert!(
+        banner.contains("No specialists yet") || banner.contains("No inbuilt agents"),
+        "roster hint follows the art: {banner}"
+    );
+}
