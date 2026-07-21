@@ -21,6 +21,7 @@ mod fileops;
 mod icons;
 mod keys;
 mod list;
+mod location;
 mod render;
 mod run;
 
