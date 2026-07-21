@@ -180,7 +180,14 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
         rows - summary_h,
     ));
     if summary_h > 0 {
-        cells.extend(crate::chatsummary::summary_cells(pane, cols, rows - 1));
+        // The block occupies the last `summary_h` rows, drawn top-down from
+        // where the composer ends.
+        cells.extend(crate::chatsummary::summary_cells(
+            pane,
+            cols,
+            rows - summary_h,
+            summary_h,
+        ));
     }
     cells
 }
