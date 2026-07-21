@@ -66,14 +66,21 @@ impl CrewApp {
     }
 
     /// The cached monospace pool, scanning once on first use (loads faces).
+    ///
+    /// Restricted to [`crew_theme::FONT_ALLOWLIST`]: crew only ever
+    /// auto-selects (rotation + theme resolution both draw from this) a
+    /// curated set of coding faces, so a rotation can never land on Courier or
+    /// another typewriter face. If a machine has *none* of the allowlisted
+    /// families installed, we fall back to the full installed set rather than
+    /// leave the app with no font at all.
     pub(crate) fn font_pool(&mut self) -> Vec<String> {
         if self.font_rotate.pool.is_none() {
-            let pool = self
+            let installed = self
                 .renderer
                 .as_mut()
                 .map(|r| r.monospace_families())
                 .unwrap_or_default();
-            self.font_rotate.pool = Some(pool);
+            self.font_rotate.pool = Some(allowed_pool(installed));
         }
         self.font_rotate.pool.clone().unwrap_or_default()
     }
@@ -185,9 +192,50 @@ impl CrewApp {
     }
 }
 
+/// Keep only families in [`crew_theme::FONT_ALLOWLIST`]. If a machine has none
+/// of them installed, fall back to the full set so the app still has a font
+/// rather than none at all.
+fn allowed_pool(installed: Vec<String>) -> Vec<String> {
+    let allowed: Vec<String> = installed
+        .iter()
+        .filter(|f| crew_theme::FONT_ALLOWLIST.contains(&f.as_str()))
+        .cloned()
+        .collect();
+    if allowed.is_empty() {
+        installed
+    } else {
+        allowed
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::app::CrewApp;
+
+    #[test]
+    fn allowed_pool_keeps_only_allowlisted() {
+        let installed = vec![
+            "Courier New".into(),
+            "MonoLisa".into(),
+            "Some Random Face".into(),
+            "JetBrainsMono NF".into(),
+        ];
+        let pool = super::allowed_pool(installed);
+        assert!(pool.contains(&"MonoLisa".to_string()));
+        assert!(pool.contains(&"JetBrainsMono NF".to_string()));
+        assert!(
+            !pool.iter().any(|f| f == "Courier New"),
+            "Courier is not allowlisted"
+        );
+        assert!(!pool.iter().any(|f| f == "Some Random Face"));
+    }
+
+    #[test]
+    fn allowed_pool_falls_back_when_none_allowlisted() {
+        let installed = vec!["Some Random Face".into(), "Another Face".into()];
+        let pool = super::allowed_pool(installed.clone());
+        assert_eq!(pool, installed, "no allowlisted face → keep the full set");
+    }
 
     #[test]
     fn parses_and_clamps_to_range() {

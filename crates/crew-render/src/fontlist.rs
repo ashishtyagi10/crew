@@ -24,6 +24,17 @@ pub(crate) fn sounds_monospace(name: &str) -> bool {
     .any(|h| l.contains(h))
 }
 
+/// Families crew refuses to offer at all — legacy typewriter/dated faces the
+/// design never wants, whatever their font tables claim. Courier ships flagged
+/// monospaced and passes the fixed-pitch check, so without this it would slip
+/// into the picker and the `/font` rotation pool.
+pub(crate) fn is_blocked(name: &str) -> bool {
+    let l = name.to_lowercase();
+    ["courier", "pt mono", "andale", "consolas"]
+        .iter()
+        .any(|b| l.contains(b))
+}
+
 /// Measured check: the face renders fixed-pitch Latin — `i`, `m` and `0` all
 /// map to real glyphs and share one advance. Excludes proportional fallbacks
 /// and symbol fonts whatever their tables claim.
@@ -54,7 +65,7 @@ pub(crate) fn monospace_families(font_system: &mut FontSystem) -> Vec<String> {
             let (mono, id, weight) = (f.monospaced, f.id, f.weight);
             f.families
                 .iter()
-                .filter(move |(name, _)| mono || sounds_monospace(name))
+                .filter(move |(name, _)| (mono || sounds_monospace(name)) && !is_blocked(name))
                 .map(move |(name, _)| (name.clone(), id, weight))
         })
         .collect();
@@ -76,6 +87,24 @@ mod tests {
         for name in ["Helvetica", "Times New Roman", "Arial"] {
             assert!(!sounds_monospace(name), "{name} should not");
         }
+    }
+
+    #[test]
+    fn blocked_faces_never_appear() {
+        assert!(is_blocked("Courier"));
+        assert!(is_blocked("Courier New"));
+        assert!(is_blocked("PT Mono"));
+        assert!(is_blocked("Andale Mono"));
+        assert!(is_blocked("Consolas"));
+        assert!(!is_blocked("JetBrains Mono"));
+        assert!(!is_blocked("MonoLisa"));
+        // Even installed, a blocked face must not survive the family scan.
+        let mut fs = FontSystem::new();
+        let names = monospace_families(&mut fs);
+        assert!(
+            !names.iter().any(|n| is_blocked(n)),
+            "a blocked face leaked into the monospace list: {names:?}"
+        );
     }
 
     #[test]
