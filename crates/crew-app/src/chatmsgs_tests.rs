@@ -238,22 +238,16 @@ fn splash_renders_headerless_and_centered() {
 }
 
 #[test]
-fn splash_box_glyphs_blink_on_the_animation_clock() {
+fn splash_art_is_centered_verbatim_no_injected_glyphs() {
+    // The nameplate interior renders exactly as the broker sent it — no
+    // decorations inside the box (review feedback: the side glyphs read as
+    // typos next to the name) — just centered.
     let art = "\u{2551}      AGENT      \u{2551}";
-    let mut lit: Vec<CardLine> = crate::chatbody::body_lines(art, 40, (9, 9, 9), true);
-    // A lit beat (tick % 4 != 3 on both sides) swaps pad cells for glyphs.
-    splash_style(&mut lit, 40, 160); // ticks 1 and 4 — both lit
-    let text: String = lit[0].iter().map(|c| c.c).collect();
-    assert_ne!(
-        text.trim_start(),
-        art,
-        "a lit beat must inject rain glyphs: {text:?}"
-    );
-    // The counting pass (now == 0) leaves the art static.
-    let mut counted: Vec<CardLine> = crate::chatbody::body_lines(art, 40, (9, 9, 9), true);
-    splash_style(&mut counted, 40, 0);
-    let text: String = counted[0].iter().map(|c| c.c).collect();
-    assert_eq!(text.trim_start(), art, "counting pass stays static");
+    let mut body: Vec<CardLine> = crate::chatbody::body_lines(art, 40, (9, 9, 9), true);
+    splash_style(&mut body, 40);
+    let text: String = body[0].iter().map(|c| c.c).collect();
+    assert_eq!(text.trim_start(), art, "art must be untouched: {text:?}");
+    assert!(text.starts_with(' '), "and centered");
 }
 
 #[test]

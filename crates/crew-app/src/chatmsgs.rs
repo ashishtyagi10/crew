@@ -104,7 +104,7 @@ fn header_line(m: &Message, now_ms: u64, chained: bool) -> CardLine {
 
 /// The broker's Agent-Smith startup splash — the boxed nameplate art, spotted
 /// by its `╔` top-left corner in the system voice. It renders header-less and
-/// centered, with blinking matrix glyphs inside the box (see `splash_style`).
+/// centered (see `splash_style`).
 pub(crate) fn is_splash(m: &Message) -> bool {
     matches!(
         m.sender.as_str(),
@@ -112,42 +112,18 @@ pub(crate) fn is_splash(m: &Message) -> bool {
     ) && m.text.starts_with('\u{2554}')
 }
 
-/// Style the splash body in place: center every line in `cols`, and swap the
-/// nameplate box's inner padding cells for blinking rain-alphabet glyphs in
-/// the accent colour — each side on its own phase so they don't blink in
-/// lockstep. `now_ms == 0` (the counting pass) leaves the art static; the
-/// centering is width-only either way, so line counts can never drift between
-/// the counting and drawing passes.
-fn splash_style(body: &mut [CardLine], cols: usize, now_ms: u64) {
-    let accent = crate::palette::accent();
+/// Style the splash body in place: center every line in `cols`. Width-only,
+/// so line counts can never drift between the counting and drawing passes.
+fn splash_style(body: &mut [CardLine], cols: usize) {
+    let muted = crew_theme::theme().text_muted;
     for line in body.iter_mut() {
         if line.is_empty() {
             continue;
         }
-        // The box interior row (`║ … ║`): light one pad cell inside each bar.
-        let bars: Vec<usize> = line
-            .iter()
-            .enumerate()
-            .filter(|(_, c)| c.c == '\u{2551}')
-            .map(|(i, _)| i)
-            .collect();
-        if now_ms > 0 {
-            if let [l, r] = bars[..] {
-                if r > l + 4 {
-                    for (side, idx) in [(0u64, l + 2), (1, r - 2)] {
-                        let tick = now_ms / 160 + side * 3;
-                        // Three beats lit, one dark — the wink reads as a blink.
-                        if tick % 4 != 3 {
-                            line[idx] = plain(crate::charrain::glyph(tick), accent, true);
-                        }
-                    }
-                }
-            }
-        }
         let w: usize = line.iter().map(|c| crate::chatwidth::char_w(c.c)).sum();
         let pad = cols.saturating_sub(w) / 2;
         if pad > 0 {
-            let fill: Vec<CardCell> = (0..pad).map(|_| plain(' ', accent, false)).collect();
+            let fill: Vec<CardCell> = (0..pad).map(|_| plain(' ', muted, false)).collect();
             line.splice(0..0, fill);
         }
     }
@@ -212,7 +188,7 @@ pub(crate) fn card_lines(
             append_hidden_suffix(&mut body[0], hidden, cols);
         }
         if splash {
-            splash_style(&mut body, cols, now_ms);
+            splash_style(&mut body, cols);
         }
         out.extend(body);
         // A just-landed card fades in from the page colour (see `fade_t`).
