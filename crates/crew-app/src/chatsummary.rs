@@ -26,20 +26,25 @@ fn short_model(model: &str) -> &str {
 }
 
 /// The summary line for a pane with these `agents`, per-agent context fill
-/// (`ctx` tokens by agent name), and session `tokens` spend — or `None` when
-/// there's nothing yet to summarise (no agents and no spend).
+/// (`ctx` tokens by agent name), session `tokens` spend, and the repo
+/// `branch`. Always returns a line — the Claude-Code statusline is always
+/// there, and this footer earns trust the same way: a fresh pane shows what
+/// little it knows (branch + zero spend) rather than nothing.
 ///
-/// Segments, in order, each shown only when it has a value:
+/// Segments, `|`-separated in statusline style, each shown when it has a
+/// value:
 /// - **model**: the one model when the roster shares it, else `N agents`.
+/// - **branch**: the watched repo's current branch.
 /// - **context**: the *tightest* remaining window across agents whose model
 ///   has a known limit (`{left}% context`) — the agent nearest its ceiling is
 ///   the one that matters, so the minimum-remaining wins.
-/// - **tokens**: `~{n} tok`, the session spend, once nonzero.
+/// - **tokens**: `~{n} tok`, the session spend — always, even at zero.
 pub(crate) fn summary_text(
     agents: &[AgentInfo],
     ctx: &HashMap<String, u64>,
     tokens: u64,
-) -> Option<String> {
+    branch: Option<&str>,
+) -> String {
     let mut segs: Vec<String> = Vec::new();
 
     // Distinct models across the roster, order-preserving.
@@ -54,6 +59,10 @@ pub(crate) fn summary_text(
         [] => {}
         [one] => segs.push((*one).to_string()),
         many => segs.push(format!("{} agents", many.len())),
+    }
+
+    if let Some(b) = branch {
+        segs.push(b.to_string());
     }
 
     // Tightest remaining context across agents with a known window.
@@ -71,20 +80,20 @@ pub(crate) fn summary_text(
         segs.push(format!("{left}% context"));
     }
 
-    if tokens > 0 {
-        segs.push(format!("~{} tok", fmt_tokens(tokens)));
-    }
+    segs.push(format!("~{} tok", fmt_tokens(tokens)));
 
-    (!segs.is_empty()).then(|| segs.join(" \u{00b7} "))
+    segs.join(" | ")
 }
 
-/// The most rows the summary block ever claims (model / ctx / usage / agents).
-const MAX_BLOCK: u16 = 4;
+/// The most rows the summary block ever claims (model / git / ctx / usage /
+/// agents).
+const MAX_BLOCK: u16 = 5;
 
 /// The multi-row stats block shown below the composer when the pane is tall
-/// enough, most-important row first. Each `(label, value)` row appears only
-/// when it has data, so the block is 0–4 rows:
+/// enough, most-important row first. Rows appear when they have data — except
+/// **usage**, which is always there, so a fresh pane still shows a footer:
 /// - **model**: the shared model, or `mixed (N)` across a mixed roster.
+/// - **git**: the watched repo's current branch.
 /// - **ctx**: the tightest agent's window — `{used}/{limit} \u{b7} {left}% left`.
 /// - **usage**: `~{n} tok` session spend, and `\u{b7} {t} turns` once turns land.
 /// - **agents**: roster size, and `\u{b7} avg {s}s/reply` from reply stats.
@@ -97,6 +106,7 @@ fn summary_block(
     tokens: u64,
     turns: u64,
     agent_stats: &HashMap<String, (u32, u64)>,
+    branch: Option<&str>,
 ) -> Vec<(&'static str, String)> {
     let mut rows: Vec<(&'static str, String)> = Vec::new();
 
@@ -112,6 +122,11 @@ fn summary_block(
         [] => {}
         [one] => rows.push(("model", (*one).to_string())),
         many => rows.push(("model", format!("mixed ({})", many.len()))),
+    }
+
+    // git: the branch the sidebar's watch already tracks (never run git here).
+    if let Some(b) = branch {
+        rows.push(("git", b.to_string()));
     }
 
     // ctx: the agent nearest its ceiling — absolute used/limit plus % left.
@@ -137,15 +152,14 @@ fn summary_block(
         ));
     }
 
-    // usage: session token spend and completed turns.
-    if tokens > 0 || turns > 0 {
-        let mut v = format!("~{} tok", fmt_tokens(tokens));
-        if turns > 0 {
-            let unit = if turns == 1 { "turn" } else { "turns" };
-            v.push_str(&format!(" \u{00b7} {turns} {unit}"));
-        }
-        rows.push(("usage", v));
+    // usage: session token spend and completed turns. Unconditional — this
+    // row is what guarantees a fresh pane still shows a footer at all.
+    let mut v = format!("~{} tok", fmt_tokens(tokens));
+    if turns > 0 {
+        let unit = if turns == 1 { "turn" } else { "turns" };
+        v.push_str(&format!(" \u{00b7} {turns} {unit}"));
     }
+    rows.push(("usage", v));
 
     // agents: roster size and the average reply latency across it.
     if !agents.is_empty() {
@@ -186,16 +200,17 @@ pub(crate) fn summary_rows(pane: &ChatPane, cols: u16, rows: u16) -> u16 {
     if rows < MIN_ROWS || cols < 6 {
         return 0;
     }
+    // The usage row is unconditional, so the block is never empty — a tall
+    // enough pane ALWAYS shows the footer (statusline-style, like Claude
+    // Code's), fresh or not.
     let lines = summary_block(
         &pane.agents,
         &pane.ctx,
         pane.tokens,
         pane.turns,
         &pane.agent_stats,
+        pane.git_branch.as_deref(),
     );
-    if lines.is_empty() {
-        return 0;
-    }
     let budget = rows - (MIN_ROWS - 1); // ≥ 1, since rows ≥ MIN_ROWS
     (lines.len() as u16).min(budget).min(MAX_BLOCK)
 }
@@ -210,9 +225,12 @@ pub(crate) fn summary_cells(pane: &ChatPane, cols: u16, top: u16, height: u16) -
         return Vec::new();
     }
     let texts: Vec<String> = if height == 1 {
-        summary_text(&pane.agents, &pane.ctx, pane.tokens)
-            .into_iter()
-            .collect()
+        vec![summary_text(
+            &pane.agents,
+            &pane.ctx,
+            pane.tokens,
+            pane.git_branch.as_deref(),
+        )]
     } else {
         let rows = summary_block(
             &pane.agents,
@@ -220,6 +238,7 @@ pub(crate) fn summary_cells(pane: &ChatPane, cols: u16, top: u16, height: u16) -
             pane.tokens,
             pane.turns,
             &pane.agent_stats,
+            pane.git_branch.as_deref(),
         );
         block_lines(&rows)
     };

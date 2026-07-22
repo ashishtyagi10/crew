@@ -80,7 +80,12 @@ fn cells_render_header_and_summary_footer_not_agent_chips() {
             .collect::<Vec<_>>()
             .join("\n")
     };
-    assert!(text.contains("agent smith"), "header present:\n{text}");
+    // The header row is liveness-only now — the fieldset legend names the
+    // pane, so no `agent smith` title text renders inside it.
+    assert!(
+        !text.contains("agent smith"),
+        "header title must be gone:\n{text}"
+    );
     // The summary footer replaces the per-agent chip grid: a multi-row stats
     // block with one shared model, the (full, since no fill recorded) context
     // window, and session spend. A tall pane (20 rows) shows the full block.

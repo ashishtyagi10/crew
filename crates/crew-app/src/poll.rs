@@ -179,6 +179,18 @@ impl CrewApp {
         if self.sidebar.refresh(&self.cwd) {
             any_changed = true;
         }
+        // Mirror the watched repo's branch into every smith pane: the summary
+        // footer shows `model | branch | …` and must never run git itself on
+        // this thread — the sidebar's GitWatch already polls off-thread.
+        let branch = self.sidebar.branch().map(str::to_string);
+        for p in &mut self.panes {
+            if let PaneContent::Chat(c) = &mut p.content {
+                if c.git_branch != branch {
+                    c.git_branch.clone_from(&branch);
+                    any_changed = true;
+                }
+            }
+        }
         // Name the foreground command in each terminal pane (claude/codex/…), so
         // it rides the title beside the directory. Throttled to ~1×/s.
         if self.procnames.due() {

@@ -11,11 +11,13 @@ fn text(cells: &[CellView], row: u16) -> String {
 }
 
 #[test]
-fn header_shows_title_channel_and_dot() {
+fn header_is_status_only_no_title() {
+    // The fieldset legend already names the pane, so the header row carries
+    // no `agent smith · <channel>` title — just the right-aligned liveness.
     let cells = header_cells(60, "general", true, false, None, false);
     let line = text(&cells, 0);
-    assert!(line.contains("agent smith"), "title missing: {line}");
-    assert!(line.contains("general"), "channel missing: {line}");
+    assert!(!line.contains("agent smith"), "title must be gone: {line}");
+    assert!(!line.contains("general"), "channel must be gone: {line}");
     assert!(line.contains('\u{25cf}'), "connected dot missing: {line}");
 }
 

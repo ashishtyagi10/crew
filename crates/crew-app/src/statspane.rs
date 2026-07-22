@@ -42,6 +42,12 @@ impl StatsPane {
 
     /// Returns true when the sidebar should repaint — fresh stats (~1s throttle),
     /// a new wall-clock second for the clock, or changed git status for `cwd`.
+    /// The watched repo's current branch, when `cwd` is a git repo — read by
+    /// `poll_panes` to mirror into each smith pane's summary footer.
+    pub fn branch(&self) -> Option<&str> {
+        self.git.info().map(|g| g.branch.as_str())
+    }
+
     pub fn refresh(&mut self, cwd: &Path) -> bool {
         let stats_changed = self.sampler.refresh();
         if stats_changed {

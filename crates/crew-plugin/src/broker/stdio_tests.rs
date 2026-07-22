@@ -144,14 +144,31 @@ fn nameplate_box_edges_align() {
 }
 
 #[test]
-fn startup_banner_carries_the_roster_hint_below_the_art() {
-    // The splash still shows the roster guidance underneath, so a fresh pane
-    // both greets AND tells you what to do.
+fn startup_banner_is_the_art_alone_unless_no_provider_resolves() {
+    // The splash opens clean — no roster chatter under the art. Only a
+    // session with no provider key at all keeps the warning line, because
+    // without it the user can't know why nothing will ever answer.
     let banner = super::startup_banner(&reg(&[]));
     assert!(banner.contains("A G E N T   S M I T H"), "art on top");
-    // Empty registry → whichever roster() branch fires ends with the same tail.
     assert!(
-        banner.contains("No specialists yet") || banner.contains("No inbuilt agents"),
-        "roster hint follows the art: {banner}"
+        !banner.contains("No specialists yet"),
+        "roster hint must be gone from the splash: {banner}"
+    );
+    if super::provider_resolves() {
+        assert!(
+            !banner.contains("No inbuilt agents"),
+            "no warning when a provider resolves: {banner}"
+        );
+    } else {
+        assert!(
+            banner.contains("No inbuilt agents"),
+            "the no-key warning must survive: {banner}"
+        );
+    }
+    // With agents on the roster the art always stands alone.
+    let banner = super::startup_banner(&reg(&["coder"]));
+    assert!(
+        !banner.contains("Detected"),
+        "no roster dump under the art: {banner}"
     );
 }

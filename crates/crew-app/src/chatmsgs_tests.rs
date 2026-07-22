@@ -77,7 +77,10 @@ fn header_tail_keeps_relative_time_but_drops_latency() {
         ts: "999700000".into(),
         meta: "4.2s".into(),
     };
-    let chars: String = header_line(&m, 1_000_000_000).iter().map(|c| c.c).collect();
+    let chars: String = header_line(&m, 1_000_000_000, false)
+        .iter()
+        .map(|c| c.c)
+        .collect();
     assert!(chars.contains("5m ago"), "relative time shown: {chars}");
     assert!(!chars.contains("4.2s"), "latency must be gone: {chars}");
 }
@@ -179,7 +182,7 @@ fn header_line_shows_a_dim_chip_for_task_tagged_messages() {
         ts: String::new(),
         meta: "task:2 \u{00b7} 0.0s".into(),
     };
-    let line = header_line(&m, 0);
+    let line = header_line(&m, 0, false);
     let muted = crew_theme::theme().text_muted;
     let hash = line.iter().find(|c| c.c == '#').expect("chip # present");
     assert_eq!(hash.fg, muted, "chip # is muted");
@@ -200,11 +203,85 @@ fn header_line_shows_a_dim_chip_for_task_tagged_messages() {
 fn header_line_has_no_chip_for_untagged_messages() {
     let mut m = msg("coder", "done");
     m.meta = "4.2s".into();
-    let line = header_line(&m, 0);
+    let line = header_line(&m, 0, false);
     assert!(
         !line.iter().any(|c| c.c == '#'),
         "no task tag means no chip"
     );
+}
+
+#[test]
+fn splash_renders_headerless_and_centered() {
+    // The startup nameplate: no `agent smith · time` header line above it,
+    // and every line centered in the pane width.
+    let art = "\u{2554}\u{2550}\u{2550}\u{2557}\n\u{2551} AGENT \u{2551}\n\u{255a}\u{2550}\u{2550}\u{255d}";
+    let m = msg("agent smith", art);
+    assert!(
+        is_splash(&m),
+        "nameplate art must be detected as the splash"
+    );
+    let lines = card_lines(&[m], 40, 0, View::default());
+    let texts: Vec<String> = lines
+        .iter()
+        .map(|l| l.iter().map(|c| c.c).collect())
+        .collect();
+    assert!(
+        !texts.iter().any(|t| t.contains("agent smith")),
+        "no header line on the splash: {texts:?}"
+    );
+    let top = texts
+        .iter()
+        .find(|t| t.contains('\u{2554}'))
+        .expect("box top present");
+    let lead = top.chars().take_while(|c| *c == ' ').count();
+    assert!(lead > 10, "box must be centered, got lead {lead}: {top:?}");
+}
+
+#[test]
+fn splash_box_glyphs_blink_on_the_animation_clock() {
+    let art = "\u{2551}      AGENT      \u{2551}";
+    let mut lit: Vec<CardLine> = crate::chatbody::body_lines(art, 40, (9, 9, 9), true);
+    // A lit beat (tick % 4 != 3 on both sides) swaps pad cells for glyphs.
+    splash_style(&mut lit, 40, 160); // ticks 1 and 4 — both lit
+    let text: String = lit[0].iter().map(|c| c.c).collect();
+    assert_ne!(
+        text.trim_start(),
+        art,
+        "a lit beat must inject rain glyphs: {text:?}"
+    );
+    // The counting pass (now == 0) leaves the art static.
+    let mut counted: Vec<CardLine> = crate::chatbody::body_lines(art, 40, (9, 9, 9), true);
+    splash_style(&mut counted, 40, 0);
+    let text: String = counted[0].iter().map(|c| c.c).collect();
+    assert_eq!(text.trim_start(), art, "counting pass stays static");
+}
+
+#[test]
+fn same_task_cards_chain_with_a_tree_connector_and_no_spacer() {
+    let mk = |sender: &str, meta: &str| Message {
+        sender: sender.into(),
+        text: "x".into(),
+        ts: String::new(),
+        meta: meta.into(),
+    };
+    let m = [
+        mk("planner \u{2192} user", "task:2 \u{00b7} 0.0s"),
+        mk("coder \u{2192} user", "task:2 \u{00b7} 1.0s"),
+        mk("planner \u{2192} user", "task:3"),
+    ];
+    let cells = message_cells(&m, 60, 12, 0, 0, View::default());
+    // Card 1: header + body. Card 2 chains directly underneath (no spacer),
+    // its header led by the muted └ connector and without a repeated #2.
+    let follow = row_text(&cells, 2);
+    assert!(
+        follow.starts_with("\u{2514} coder"),
+        "chained header connects with \u{2514}: {follow:?}"
+    );
+    assert!(!follow.contains("#2"), "no repeated task chip: {follow:?}");
+    // Card 3 is a different task: spacer, then a fresh gutter header with #3.
+    assert_eq!(row_text(&cells, 4), "", "unrelated cards keep the spacer");
+    let fresh = row_text(&cells, 5);
+    assert!(fresh.contains("#3"), "chain root keeps its chip: {fresh:?}");
 }
 
 #[test]

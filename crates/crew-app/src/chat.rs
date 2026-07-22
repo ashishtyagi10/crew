@@ -65,6 +65,10 @@ pub struct ChatPane {
     /// since it needs `plugin`/`awaiting`). `/stop` bypasses this queue
     /// entirely (it must reach the broker mid-run to cancel).
     pub(crate) queued: std::collections::VecDeque<String>,
+    /// The watched repo's current branch, mirrored in from the sidebar's
+    /// GitWatch each poll tick (`poll_panes`) — the summary footer shows it
+    /// and must never run git itself on the winit thread.
+    pub(crate) git_branch: Option<String>,
 }
 
 impl ChatPane {
@@ -91,6 +95,7 @@ impl ChatPane {
             compact_view: false,
             swarm: None,
             queued: std::collections::VecDeque::new(),
+            git_branch: None,
         }
     }
 

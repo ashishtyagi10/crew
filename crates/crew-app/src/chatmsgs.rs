@@ -5,9 +5,7 @@
 //! (`planner → coder`) keep a per-name colour on each side.
 use crew_render::CellView;
 
-#[cfg(test)]
-use crate::chatbody::CardCell;
-use crate::chatbody::{body_lines, plain, CardLine, Color};
+use crate::chatbody::{body_lines, plain, CardCell, CardLine, Color};
 use crate::chatlayout::Message;
 use crate::chatplace::{line_cells, window};
 
@@ -75,13 +73,21 @@ fn sender_color(sender: &str) -> Color {
 /// each name separately with a muted arrow, so hand-offs read as from → to;
 /// the muted tail carries only the relative time (the per-card reply latency
 /// was dropped in the reductionist pass — one signal per question).
-fn header_line(m: &Message, now_ms: u64) -> CardLine {
+/// `chained` marks a follow-up card of the same task as the card above: it
+/// swaps the gutter for a muted `└` tree connector and drops the repeated
+/// `#id` tag (the chain root already carries it), so one task's replies read
+/// as one thread.
+fn header_line(m: &Message, now_ms: u64, chained: bool) -> CardLine {
     let muted = crew_theme::theme().text_muted;
     let mut line: CardLine = Vec::new();
     let parts: Vec<&str> = m.sender.split(" \u{2192} ").collect();
-    line.push(plain(gutter_for(&m.sender), sender_color(parts[0]), false));
-    if let Some(id) = crate::chattime::task_tag(&m.meta) {
-        line.extend(format!("#{id} ").chars().map(|c| plain(c, muted, false)));
+    if chained {
+        line.extend("\u{2514} ".chars().map(|c| plain(c, muted, false)));
+    } else {
+        line.push(plain(gutter_for(&m.sender), sender_color(parts[0]), false));
+        if let Some(id) = crate::chattime::task_tag(&m.meta) {
+            line.extend(format!("#{id} ").chars().map(|c| plain(c, muted, false)));
+        }
     }
     for (i, part) in parts.iter().enumerate() {
         if i > 0 {
@@ -94,6 +100,57 @@ fn header_line(m: &Message, now_ms: u64) -> CardLine {
         line.extend(tail.chars().map(|c| plain(c, muted, false)));
     }
     line
+}
+
+/// The broker's Agent-Smith startup splash — the boxed nameplate art, spotted
+/// by its `╔` top-left corner in the system voice. It renders header-less and
+/// centered, with blinking matrix glyphs inside the box (see `splash_style`).
+pub(crate) fn is_splash(m: &Message) -> bool {
+    matches!(
+        m.sender.as_str(),
+        "agent smith" | "crew" | "system" | "broker"
+    ) && m.text.starts_with('\u{2554}')
+}
+
+/// Style the splash body in place: center every line in `cols`, and swap the
+/// nameplate box's inner padding cells for blinking rain-alphabet glyphs in
+/// the accent colour — each side on its own phase so they don't blink in
+/// lockstep. `now_ms == 0` (the counting pass) leaves the art static; the
+/// centering is width-only either way, so line counts can never drift between
+/// the counting and drawing passes.
+fn splash_style(body: &mut [CardLine], cols: usize, now_ms: u64) {
+    let accent = crate::palette::accent();
+    for line in body.iter_mut() {
+        if line.is_empty() {
+            continue;
+        }
+        // The box interior row (`║ … ║`): light one pad cell inside each bar.
+        let bars: Vec<usize> = line
+            .iter()
+            .enumerate()
+            .filter(|(_, c)| c.c == '\u{2551}')
+            .map(|(i, _)| i)
+            .collect();
+        if now_ms > 0 {
+            if let [l, r] = bars[..] {
+                if r > l + 4 {
+                    for (side, idx) in [(0u64, l + 2), (1, r - 2)] {
+                        let tick = now_ms / 160 + side * 3;
+                        // Three beats lit, one dark — the wink reads as a blink.
+                        if tick % 4 != 3 {
+                            line[idx] = plain(crate::charrain::glyph(tick), accent, true);
+                        }
+                    }
+                }
+            }
+        }
+        let w: usize = line.iter().map(|c| crate::chatwidth::char_w(c.c)).sum();
+        let pad = cols.saturating_sub(w) / 2;
+        if pad > 0 {
+            let fill: Vec<CardCell> = (0..pad).map(|_| plain(' ', accent, false)).collect();
+            line.splice(0..0, fill);
+        }
+    }
 }
 
 /// Appends a muted ` … +N` suffix (`hidden` = number of clamped-away body
@@ -129,11 +186,20 @@ pub(crate) fn card_lines(
 ) -> Vec<CardLine> {
     let mut out: Vec<CardLine> = Vec::new();
     for (i, m) in messages.iter().enumerate() {
-        if i > 0 {
-            out.push(Vec::new()); // spacer between cards
+        // A card continuing the task of the card above chains onto it: no
+        // spacer, and its header renders a `└` tree connector instead of the
+        // gutter (see `header_line`), so one task's replies read as a thread.
+        let tid = crate::chattime::task_tag(&m.meta);
+        let chained =
+            tid.is_some() && i > 0 && tid == crate::chattime::task_tag(&messages[i - 1].meta);
+        if i > 0 && !chained {
+            out.push(Vec::new()); // spacer between unrelated cards
         }
         let first = out.len();
-        out.push(header_line(m, now_ms));
+        let splash = is_splash(m);
+        if !splash {
+            out.push(header_line(m, now_ms, chained));
+        }
         // Body text: agents speak in ink; the system voice stays muted.
         let fg = match m.sender.as_str() {
             "agent smith" | "crew" | "system" | "broker" => crew_theme::theme().text_muted,
@@ -144,6 +210,9 @@ pub(crate) fn card_lines(
             let hidden = body.len() - 1;
             body.truncate(1);
             append_hidden_suffix(&mut body[0], hidden, cols);
+        }
+        if splash {
+            splash_style(&mut body, cols, now_ms);
         }
         out.extend(body);
         // A just-landed card fades in from the page colour (see `fade_t`).

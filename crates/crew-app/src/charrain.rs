@@ -6,19 +6,26 @@
 //! globe); busy panes use a progress bar instead (see [`crate::chatprog`]).
 use crew_render::CellView;
 
-/// Default rain box: 44×22 cells, matching the welcome layout it inherits.
-pub const RAIN_W: u16 = 44;
-pub const RAIN_H: u16 = RAIN_W / 2;
+/// Default rain box: 64×16 cells — a wide, low 4:1 rectangle (~2:1 on screen
+/// with ~2:1 cell aspect), framing the welcome nameplate.
+pub const RAIN_W: u16 = 64;
+pub const RAIN_H: u16 = RAIN_W / 4;
 /// Smallest box still worth drawing; below this the welcome screen falls back
 /// to its single-line banner.
-pub const RAIN_MIN_W: u16 = 16;
-pub const RAIN_MIN_H: u16 = RAIN_MIN_W / 2;
+pub const RAIN_MIN_W: u16 = 20;
+pub const RAIN_MIN_H: u16 = RAIN_MIN_W / 4;
 
 /// Trail length in cells behind each falling head.
 const TRAIL: u16 = 6;
 /// Glyph alphabet — ASCII/symbol only (single-width, font-safe; no CJK, which
 /// has advance-width hazards on some fonts).
 const GLYPHS: &[u8] = b"01<>[]{}()/\\|=+*-_#%&$?!:abcdefhkmnrsvyz3579";
+
+/// One glyph from the rain alphabet for `seed` — lets other surfaces (the
+/// smith splash's blinking box glyphs) flicker in the same character set.
+pub(crate) fn glyph(seed: u64) -> char {
+    GLYPHS[(hash(seed, 0xA7) % GLYPHS.len() as u64) as usize] as char
+}
 
 /// A fast integer hash (SplitMix-style) — the deterministic stand-in for RNG.
 fn hash(a: u64, b: u64) -> u64 {
