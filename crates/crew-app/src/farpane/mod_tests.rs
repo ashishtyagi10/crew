@@ -583,3 +583,15 @@ fn bang_ask_end_to_end_with_the_mock_provider() {
     assert_eq!(p.cmdline, "ls -la");
     assert!(matches!(&p.ask, Some(AskState::Suggested { original }) if original == "! list files"));
 }
+
+#[test]
+fn active_panel_folder_ignores_trailing_separator_on_local_path() {
+    // Regression: a trailing `/` (e.g. from `cd sub/` in the command line,
+    // whose expanded path keeps the slash) must be insignificant — matching
+    // `Path::file_name()`'s pre-refactor behavior — not fall back to showing
+    // the whole path.
+    let (base, mut p) = fixture("trailingslash");
+    let with_slash = format!("{}/", base.join("sub").to_string_lossy());
+    p.left.loc = Location::local(std::path::Path::new(&with_slash));
+    assert_eq!(p.active_panel_folder(), "sub");
+}

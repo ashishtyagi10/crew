@@ -247,12 +247,24 @@ impl FarPane {
     }
 
     /// The active panel's directory label for the command bar: the last path
-    /// segment of its display string (or the whole string when there's no
-    /// separator) — mirrors the previous `cwd.file_name()` behavior for local
-    /// paths, extended to remote locations via `Location::display`.
+    /// segment (or the whole string when there's no segment, e.g. at a root).
+    /// For a LOCAL panel this uses `Path::file_name()` exactly as before the
+    /// `Location` refactor, so a trailing separator (e.g. from `cd sub/`) is
+    /// insignificant — `/tmp/sub/` shows `sub`, not the full path. Remote
+    /// panels have no `Path` to lean on, so they derive the label from
+    /// `Location::display`, trimming a trailing `/` first for the same
+    /// trailing-separator insensitivity (`gdrive:Photos/` shows `Photos`).
     pub(crate) fn active_panel_folder(&self) -> String {
-        let display = self.active_loc().display();
+        let loc = self.active_loc();
+        if let Some(path) = loc.local_path() {
+            return path
+                .file_name()
+                .map(|s| s.to_string_lossy().into_owned())
+                .unwrap_or_else(|| loc.display());
+        }
+        let display = loc.display();
         display
+            .trim_end_matches(['/', '\\'])
             .rsplit(['/', '\\'])
             .next()
             .filter(|s| !s.is_empty())
