@@ -21,12 +21,6 @@ const TRAIL: u16 = 6;
 /// has advance-width hazards on some fonts).
 const GLYPHS: &[u8] = b"01<>[]{}()/\\|=+*-_#%&$?!:abcdefhkmnrsvyz3579";
 
-/// One glyph from the rain alphabet for `seed` — lets other surfaces (the
-/// smith splash's blinking box glyphs) flicker in the same character set.
-pub(crate) fn glyph(seed: u64) -> char {
-    GLYPHS[(hash(seed, 0xA7) % GLYPHS.len() as u64) as usize] as char
-}
-
 /// A fast integer hash (SplitMix-style) — the deterministic stand-in for RNG.
 fn hash(a: u64, b: u64) -> u64 {
     let mut x = a.wrapping_mul(0x9E37_79B9_7F4A_7C15) ^ b.wrapping_mul(0xC2B2_AE3D_27D4_EB4F);

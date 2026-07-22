@@ -140,7 +140,14 @@ fn nameplate_box_edges_align() {
         lines[1].contains("A G E N T   S M I T H"),
         "nameplate present"
     );
-    assert!(lines[3].contains("inevitability"), "Smith tagline present");
+    // The tagline is one of Smith's dialog-pool lines, behind the binary M.
+    let tag = lines[3]
+        .strip_prefix("01001101 \u{22ee} ")
+        .expect("binary-M prefix");
+    assert!(
+        super::SMITH_LINES.contains(&tag),
+        "tagline drawn from the pool: {tag:?}"
+    );
 }
 
 #[test]

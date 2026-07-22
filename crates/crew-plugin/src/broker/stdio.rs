@@ -81,11 +81,34 @@ fn hello(out: &Out, session: &Session) -> anyhow::Result<()> {
     emit(out, &msg("agent smith", startup_banner(&reg)))
 }
 
+/// Smith's dialog pool: the tagline under the nameplate, one line per pane.
+/// Every pane spawns its own broker process, so seeding off the wall clock at
+/// startup gives each new pane a different opening line.
+const SMITH_LINES: &[&str] = &[
+    "the sound of inevitability",
+    "never send a human to do a machine's job",
+    "it is purpose that created us",
+    "we're not here because we're free",
+    "everything that has a beginning has an end",
+    "you hear that, Mr. Anderson?",
+    "the best thing about being me\u{2026} there are so many mes",
+];
+
+/// One line from [`SMITH_LINES`], picked at broker start.
+fn smith_line() -> &'static str {
+    let seed = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() ^ u64::from(d.subsec_nanos()))
+        .unwrap_or(0);
+    SMITH_LINES[(seed % SMITH_LINES.len() as u64) as usize]
+}
+
 /// The Agent Smith opening splash — a boxed nameplate over a binary "code
-/// rain" tagline, in the spirit of the opencode/claude/codex startup banners.
-/// Rendered in the theme ink (Matrix green on the CRT themes). Kept
-/// ASCII-narrow so it survives slim panes; the chat renderer preserves its
-/// line breaks (soft breaks are hard breaks in chat), so the box stays intact.
+/// rain" tagline drawn from his dialog pool ([`smith_line`]), in the spirit
+/// of the opencode/claude/codex startup banners. Rendered in the theme ink
+/// (Matrix green on the CRT themes). Kept ASCII-narrow so it survives slim
+/// panes; the chat renderer preserves its line breaks (soft breaks are hard
+/// breaks in chat), so the box stays intact.
 fn nameplate_art() -> String {
     let plate = "A G E N T   S M I T H";
     let pad = 3;
@@ -95,7 +118,8 @@ fn nameplate_art() -> String {
         "\u{2554}{bar}\u{2557}\n\
          \u{2551}{sp}{plate}{sp}\u{2551}\n\
          \u{255a}{bar}\u{255d}\n\
-         01001101 \u{22ee} the sound of inevitability"
+         01001101 \u{22ee} {}",
+        smith_line()
     )
 }
 
