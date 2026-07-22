@@ -13,8 +13,9 @@ impl CrewApp {
     /// Snapshot every restorable pane, hidden ones included (they're live):
     /// shells save the OS-reported *current* directory of the shell process
     /// (the user cd's around; spawn dir is the Windows/dead-shell fallback),
-    /// Far panes their active panel's directory, the `/crew` chat pane
-    /// (routing label "crew") its presence.
+    /// Far panes their active panel's location (a local dir, or an rclone
+    /// `remote:path` address when the active panel is browsing a remote),
+    /// the `/crew` chat pane (routing label "crew") its presence.
     pub(crate) fn session_panes(&self) -> Vec<SavedPane> {
         let pids: Vec<Pid> = self
             .panes
@@ -44,9 +45,15 @@ impl CrewApp {
                         .map(|c| c.to_path_buf())
                         .or_else(|| p.dir.clone())
                         .map(|d| SavedPane::shell(d.to_string_lossy().into_owned())),
-                    PaneContent::Far(f) => Some(SavedPane::far(
-                        f.active_cwd().to_string_lossy().into_owned(),
-                    )),
+                    PaneContent::Far(f) => {
+                        let loc = f.active_loc();
+                        if loc.is_remote() {
+                            Some(SavedPane::far_remote(loc.rclone_addr()))
+                        } else {
+                            loc.local_path()
+                                .map(|p| SavedPane::far(p.to_string_lossy().into_owned()))
+                        }
+                    }
                     PaneContent::Chat(_) if p.label.as_deref() == Some("crew") => {
                         Some(SavedPane::crew())
                     }
@@ -87,7 +94,9 @@ impl CrewApp {
 
     /// Reopen each saved pane through its normal spawn path (grid sizing,
     /// notify patterns, focus, error status all included) — shells and Far
-    /// panes by steering the tracked cwd, `/crew` by its own spawner.
+    /// panes by steering the tracked cwd, `/crew` by its own spawner. A
+    /// remote Far pane also gets its active panel re-rooted onto the saved
+    /// `remote:path` address, and its listing kicked off, right after spawn.
     pub(crate) fn restore_from(&mut self, panes: Vec<SavedPane>) {
         if panes.is_empty() {
             self.set_status("no saved session to restore".to_string());
@@ -97,12 +106,21 @@ impl CrewApp {
         let before = self.panes.len();
         let kept = std::mem::take(&mut self.cwd);
         for sp in panes {
+            // A remote Far pane's `dir` is an rclone address, not a local
+            // path — spawn it at the tracked cwd like a dir-less entry, and
+            // reconstruct the remote location below once it exists.
+            let remote_addr = (sp.kind == "far" && sp.remote)
+                .then(|| sp.dir.clone())
+                .flatten();
             // Reset each iteration: a dir-less entry must spawn in the
             // tracked cwd, not leak the previous entry's directory.
-            self.cwd = sp
-                .dir
-                .as_deref()
-                .map_or_else(|| kept.clone(), PathBuf::from);
+            self.cwd = if remote_addr.is_some() {
+                kept.clone()
+            } else {
+                sp.dir
+                    .as_deref()
+                    .map_or_else(|| kept.clone(), PathBuf::from)
+            };
             let count = self.panes.len();
             match sp.kind.as_str() {
                 "shell" => self.spawn_new_pane(),
@@ -115,6 +133,13 @@ impl CrewApp {
             if sp.min && self.panes.len() > count {
                 if let Some(p) = self.panes.last_mut() {
                     p.hidden = true;
+                }
+            }
+            if let Some(addr) = remote_addr {
+                if let Some(pane) = self.panes.last_mut() {
+                    if let PaneContent::Far(f) = &mut pane.content {
+                        let _ = f.restore_remote(&addr);
+                    }
                 }
             }
         }

@@ -28,14 +28,27 @@ pub enum FarAction {
     Status(String),
 }
 
-pub(crate) fn reduce(p: &mut FarPane, key: &KeyEvent) -> Option<FarAction> {
+pub(crate) fn reduce(p: &mut FarPane, key: &KeyEvent, alt: bool) -> Option<FarAction> {
     if !key.state.is_pressed() {
         return None;
+    }
+    // The drive-select overlay (Alt+F1/F2) swallows every key until it's
+    // confirmed (Enter) or cancelled (Esc) — checked before the prompt and
+    // the main match so nothing leaks through while it's open.
+    if p.drive_select.is_some() {
+        return drive_select_key(p, key);
     }
     // A live text prompt (F7 make-folder) swallows every key until it's
     // confirmed (Enter) or cancelled (Esc).
     if p.prompt.is_some() {
         return prompt_key(p, key);
+    }
+    if alt {
+        match &key.logical_key {
+            Key::Named(NamedKey::F1) => return Some(p.open_drive_select(super::Side::Left)),
+            Key::Named(NamedKey::F2) => return Some(p.open_drive_select(super::Side::Right)),
+            _ => {}
+        }
     }
     let typing = !p.cmdline.is_empty();
     match &key.logical_key {
@@ -107,7 +120,7 @@ pub(crate) fn reduce(p: &mut FarPane, key: &KeyEvent) -> Option<FarAction> {
                 p.complete = None;
                 p.ask = None;
             } else {
-                ascend(p);
+                return ascend(p);
             }
         }
         // F3 View / F4 Edit both open the selected file with the OS default app.
@@ -258,6 +271,36 @@ pub(crate) fn accept_ghost(p: &mut FarPane) {
     }
 }
 
+/// Handle a key while the drive-select overlay (Alt+F1/F2) is open: Up/Down
+/// move the highlighted row, Enter applies it (`choose_drive`), Esc closes
+/// the overlay without changing anything.
+fn drive_select_key(p: &mut FarPane, key: &KeyEvent) -> Option<FarAction> {
+    match &key.logical_key {
+        Key::Named(NamedKey::Escape) => {
+            p.drive_select = None;
+            None
+        }
+        Key::Named(NamedKey::Enter) => p.choose_drive(),
+        Key::Named(NamedKey::ArrowDown) => {
+            if let Some(ds) = p.drive_select.as_mut() {
+                if !ds.options.is_empty() {
+                    ds.sel = (ds.sel + 1) % ds.options.len();
+                }
+            }
+            None
+        }
+        Key::Named(NamedKey::ArrowUp) => {
+            if let Some(ds) = p.drive_select.as_mut() {
+                if !ds.options.is_empty() {
+                    ds.sel = (ds.sel + ds.options.len() - 1) % ds.options.len();
+                }
+            }
+            None
+        }
+        _ => None,
+    }
+}
+
 /// Handle a key while the make-folder prompt is open.
 fn prompt_key(p: &mut FarPane, key: &KeyEvent) -> Option<FarAction> {
     match &key.logical_key {
@@ -315,38 +358,54 @@ fn set_sel(p: &mut FarPane, idx: usize) {
 
 /// Enter the selected directory (or `..`), or ask the app to open a file.
 pub(crate) fn activate(p: &mut FarPane) -> Option<FarAction> {
+    let side = p.active;
     let panel = p.active_panel_mut();
     let entry = panel.entries.get(panel.sel)?;
     let (is_parent, is_dir, name) = (entry.is_parent, entry.is_dir, entry.name.clone());
     if is_parent {
-        ascend(p);
-        None
-    } else if is_dir {
-        panel.cwd.push(name);
+        return ascend(p);
+    }
+    if is_dir {
+        panel.loc = panel.loc.child(&name);
         panel.sel = 0;
-        panel.reload();
-        None
-    } else {
-        Some(FarAction::Open(panel.cwd.join(name)))
+        panel.reload(); // no-op for a remote panel — its listing lands via begin_list below
+        if p.panel(side).loc.is_remote() {
+            return Some(p.begin_list(side));
+        }
+        return None;
+    }
+    match panel.loc.local_path() {
+        Some(dir) => Some(FarAction::Open(dir.join(name))),
+        None => Some(p.begin_download(&name)), // remote file: download, then open
     }
 }
 
-/// F3/F4: open the selected file with the OS default app (directories ignored).
-fn open_selected(p: &FarPane) -> Option<FarAction> {
+/// F3/F4: open the selected file with the OS default app (directories
+/// ignored); a remote file downloads first (`begin_download`).
+fn open_selected(p: &mut FarPane) -> Option<FarAction> {
     let panel = p.panel(p.active);
     let entry = panel.entries.get(panel.sel)?;
     if entry.is_parent || entry.is_dir {
         return None;
     }
-    Some(FarAction::Open(panel.cwd.join(&entry.name)))
+    let name = entry.name.clone();
+    let local = panel.loc.local_path();
+    match local {
+        Some(dir) => Some(FarAction::Open(dir.join(&name))),
+        None => Some(p.begin_download(&name)),
+    }
 }
 
 /// Move the active panel up to its parent directory.
-pub(crate) fn ascend(p: &mut FarPane) {
+pub(crate) fn ascend(p: &mut FarPane) -> Option<FarAction> {
+    let side = p.active;
     let panel = p.active_panel_mut();
-    if let Some(parent) = panel.cwd.parent().map(PathBuf::from) {
-        panel.cwd = parent;
-        panel.sel = 0;
-        panel.reload();
+    let parent = panel.loc.parent()?;
+    panel.loc = parent;
+    panel.sel = 0;
+    panel.reload(); // no-op for a remote panel — its listing lands via begin_list below
+    if p.panel(side).loc.is_remote() {
+        return Some(p.begin_list(side));
     }
+    None
 }

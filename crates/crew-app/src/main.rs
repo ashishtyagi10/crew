@@ -63,6 +63,7 @@ mod dump;
 mod editpane;
 mod envexpand;
 mod events;
+mod faraction;
 mod farpane;
 mod fileindex;
 mod findhl;

@@ -89,8 +89,7 @@ fn tiny_renders_nothing() {
 #[test]
 fn legend_shows_the_entry_count() {
     use super::legend;
-    use std::path::Path;
-    let s = legend(Path::new("/tmp/project"), 3, 0, 40);
+    let s = legend("/tmp/project", 3, 0, 40);
     assert!(s.contains("/tmp/project"), "{s}");
     assert!(s.contains("\u{00b7} 3"), "{s}");
 }
@@ -98,16 +97,14 @@ fn legend_shows_the_entry_count() {
 #[test]
 fn legend_shows_empty_for_a_zero_entry_dir() {
     use super::legend;
-    use std::path::Path;
-    let s = legend(Path::new("/tmp/empty"), 0, 0, 40);
+    let s = legend("/tmp/empty", 0, 0, 40);
     assert!(s.contains("\u{00b7} empty"), "{s}");
 }
 
 #[test]
 fn legend_keeps_the_count_suffix_intact_when_the_path_is_truncated() {
     use super::legend;
-    use std::path::Path;
-    let long = Path::new("/very/long/nested/path/that/does/not/fit/at/all/here");
+    let long = "/very/long/nested/path/that/does/not/fit/at/all/here";
     let s = legend(long, 12, 0, 24);
     assert!(s.contains("\u{00b7} 12"), "count suffix dropped: {s}");
     assert!(s.contains('\u{2026}'), "path should be ellipsized: {s}");
@@ -116,16 +113,14 @@ fn legend_keeps_the_count_suffix_intact_when_the_path_is_truncated() {
 #[test]
 fn legend_shows_total_size_after_the_count() {
     use super::legend;
-    use std::path::Path;
-    let s = legend(Path::new("/tmp/project"), 3, 2048, 40);
+    let s = legend("/tmp/project", 3, 2048, 40);
     assert!(s.contains("\u{00b7} 3 \u{00b7} 2.0K"), "{s}");
 }
 
 #[test]
 fn legend_says_empty_not_zero_bytes_for_a_zero_entry_dir() {
     use super::legend;
-    use std::path::Path;
-    let s = legend(Path::new("/tmp/empty"), 0, 0, 40);
+    let s = legend("/tmp/empty", 0, 0, 40);
     assert!(s.contains("\u{00b7} empty"), "{s}");
     assert!(
         !s.contains("0 B"),

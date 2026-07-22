@@ -144,6 +144,32 @@ fn min_flag_round_trips_through_toml_and_false_is_omitted() {
 }
 
 #[test]
+fn remote_far_pane_round_trips_and_false_is_omitted() {
+    // Task 12: a remote Far pane's `dir` is an rclone address, and `remote`
+    // must round-trip alongside it — false (local, the pre-Task-12 shape)
+    // stays omitted from the file so old readers still see a bare `dir`.
+    let p = tmp("remote");
+    save_at(
+        Some(p.clone()),
+        vec![
+            SavedPane::far_remote("gdrive:Photos".into()),
+            SavedPane::far(tmp_dir_str()),
+        ],
+    );
+    let text = std::fs::read_to_string(&p).unwrap();
+    assert_eq!(text.matches("remote = true").count(), 1, "{text}");
+    assert!(!text.contains("remote = false"), "false is skipped: {text}");
+    assert_eq!(
+        load_at(Some(p.clone())),
+        vec![
+            SavedPane::far_remote("gdrive:Photos".into()),
+            SavedPane::far(tmp_dir_str())
+        ]
+    );
+    let _ = std::fs::remove_file(p);
+}
+
+#[test]
 fn same_dir_shells_with_different_min_both_survive_dedupe() {
     // Two real panes (one minimized) in the same cwd must not collapse into
     // one arbitrary survivor — min is part of the dedupe key.

@@ -24,6 +24,12 @@ pub(crate) struct SavedPane {
     /// Minimized into the left nav when saved — restored the same way.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub min: bool,
+    /// `far` only: `dir` holds an rclone `remote:path` address (its panel's
+    /// `Location::rclone_addr()`), not a local filesystem path. Absent —
+    /// e.g. every session file from before Task 12 — means local, so old
+    /// files keep loading exactly as before.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub remote: bool,
 }
 
 impl SavedPane {
@@ -32,6 +38,7 @@ impl SavedPane {
             kind: "shell".into(),
             dir: Some(dir),
             min: false,
+            remote: false,
         }
     }
     pub(crate) fn far(dir: String) -> Self {
@@ -39,6 +46,17 @@ impl SavedPane {
             kind: "far".into(),
             dir: Some(dir),
             min: false,
+            remote: false,
+        }
+    }
+    /// A Far pane whose active panel was browsing an rclone remote —
+    /// `addr` is that panel's `Location::rclone_addr()` (`remote:sub/path`).
+    pub(crate) fn far_remote(addr: String) -> Self {
+        SavedPane {
+            kind: "far".into(),
+            dir: Some(addr),
+            min: false,
+            remote: true,
         }
     }
     pub(crate) fn crew() -> Self {
@@ -46,13 +64,19 @@ impl SavedPane {
             kind: "crew".into(),
             dir: None,
             min: false,
+            remote: false,
         }
     }
 
     /// Valid to restore: known kind, and dir-backed kinds still have their
-    /// directory.
+    /// directory. A remote Far pane's `dir` is an rclone address rather than
+    /// a filesystem path, so it's restorable whenever non-empty — there's no
+    /// cheap local check (that would mean shelling out to `rclone`), and a
+    /// stale/renamed remote simply fails on the listing `begin_list` kicks
+    /// off, same as any other rclone error.
     fn restorable(&self) -> bool {
         match self.kind.as_str() {
+            "far" if self.remote => self.dir.as_deref().is_some_and(|d| !d.is_empty()),
             "shell" | "far" => self
                 .dir
                 .as_deref()
@@ -84,7 +108,7 @@ pub(crate) fn save_at(p: Option<PathBuf>, panes: Vec<SavedPane>) {
     let mut seen = std::collections::HashSet::new();
     let panes: Vec<SavedPane> = panes
         .into_iter()
-        .filter(|sp| seen.insert((sp.kind.clone(), sp.dir.clone(), sp.min)))
+        .filter(|sp| seen.insert((sp.kind.clone(), sp.dir.clone(), sp.min, sp.remote)))
         .take(MAX_PANES)
         .collect();
     if panes.is_empty() {
@@ -120,7 +144,7 @@ pub(crate) fn load_at(p: Option<PathBuf>) -> Vec<SavedPane> {
     panes
         .into_iter()
         .filter(SavedPane::restorable)
-        .filter(|sp| seen.insert((sp.kind.clone(), sp.dir.clone(), sp.min)))
+        .filter(|sp| seen.insert((sp.kind.clone(), sp.dir.clone(), sp.min, sp.remote)))
         .take(MAX_PANES)
         .collect()
 }

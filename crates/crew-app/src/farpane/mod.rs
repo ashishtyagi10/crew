@@ -21,6 +21,9 @@ mod fileops;
 mod icons;
 mod keys;
 mod list;
+mod location;
+mod rclone;
+mod remote;
 mod render;
 mod run;
 
@@ -30,6 +33,7 @@ use crew_render::CellView;
 use winit::event::KeyEvent;
 
 pub use keys::FarAction;
+use location::Location;
 
 /// Which panel currently has the cursor.
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -68,26 +72,36 @@ impl Prompt {
     }
 }
 
-/// One side of the dual-pane manager: a directory and its sorted listing.
+/// One side of the dual-pane manager: a location and its sorted listing.
 pub(crate) struct Panel {
-    pub cwd: PathBuf,
+    pub loc: Location,
     pub entries: Vec<Entry>,
     pub sel: usize,
+    /// True while a remote listing (`rclone lsjson`) is in flight for this
+    /// side — cleared by `FarPane::absorb_list`. Always `false` for local
+    /// panels, which reload synchronously.
+    pub loading: bool,
 }
 
 impl Panel {
     fn new(cwd: PathBuf) -> Self {
+        let loc = Location::local(&cwd);
         let entries = list::read_dir(&cwd);
         Self {
-            cwd,
+            loc,
             entries,
             sel: 0,
+            loading: false,
         }
     }
 
-    /// Re-read the current directory and clamp the cursor into range.
+    /// Re-read the current location and clamp the cursor into range. Local
+    /// reads synchronously; remote reload is driven asynchronously via
+    /// `remote.rs` (a later task) and is a no-op stub here.
     fn reload(&mut self) {
-        self.entries = list::read_dir(&self.cwd);
+        if let Some(path) = self.loc.local_path() {
+            self.entries = list::read_dir(&path);
+        }
         self.sel = self.sel.min(self.entries.len().saturating_sub(1));
     }
 }
@@ -124,6 +138,17 @@ pub struct FarPane {
     /// The in-flight or landed `!` AI ask, if any — invalidated (`None`) by
     /// any edit to `cmdline`, same lifecycle rule as `complete`.
     pub(crate) ask: Option<ask::AskState>,
+    /// The single in-flight remote (`rclone`) op, if any — a second request
+    /// while one is running is rejected with a "busy" status (see
+    /// `remote::begin_list`). Landed each tick via `poll_ops`.
+    pub(crate) pending: Option<remote::PendingOp>,
+    /// The Alt+F1/F2 drive-select overlay, if open — swallows keys until
+    /// `choose_drive` (Enter) or a close (Esc) clears it back to `None`.
+    pub(crate) drive_select: Option<remote::DriveSelect>,
+    /// Downloaded remote files (F3/F4/Enter on a remote entry) being watched
+    /// for local edits to push back — populated by `remote::absorb_download`,
+    /// consumed by Task 11's auto-upload.
+    pub(crate) watches: Vec<remote::Watch>,
 }
 
 /// The session-wide `$PATH` binaries cache backing [`FarPane::bins`]: every
@@ -152,14 +177,19 @@ impl FarPane {
             bins: shared_bins(),
             bins_scan_started: false,
             ask: None,
+            pending: None,
+            drive_select: None,
+            watches: Vec::new(),
         }
     }
 
-    /// Whether a command-line command is still running or an AI ask is in
-    /// flight (drives the busy sweep — which is also what repaints the
-    /// `thinking… Ns` counter while waiting).
+    /// Whether a command-line command is still running, an AI ask is in
+    /// flight, or a remote op is in flight (drives the busy sweep — which is
+    /// also what repaints the `thinking… Ns` counter while waiting).
     pub fn is_busy(&self) -> bool {
-        self.running.is_some() || matches!(self.ask, Some(ask::AskState::Thinking { .. }))
+        self.running.is_some()
+            || matches!(self.ask, Some(ask::AskState::Thinking { .. }))
+            || self.ops_busy()
     }
 
     /// Drain the running command’s result, if it finished this tick: reload
@@ -223,17 +253,53 @@ impl FarPane {
         }
     }
 
-    /// The directory of the currently active panel — where a typed command runs.
+    /// The active panel's location.
+    pub(crate) fn active_loc(&self) -> Location {
+        self.panel(self.active).loc.clone()
+    }
+
+    /// The active panel's directory as a local path — the working dir for the
+    /// bottom command line, which is LOCAL-ONLY in v1. A remote active panel
+    /// yields the temp dir as an inert fallback (the command line is disabled
+    /// for remote panels in `run.rs`).
     pub(crate) fn active_cwd(&self) -> PathBuf {
-        self.panel(self.active).cwd.clone()
+        self.active_loc()
+            .local_path()
+            .unwrap_or_else(std::env::temp_dir)
+    }
+
+    /// The active panel's directory label for the command bar: the last path
+    /// segment (or the whole string when there's no segment, e.g. at a root).
+    /// For a LOCAL panel this uses `Path::file_name()` exactly as before the
+    /// `Location` refactor, so a trailing separator (e.g. from `cd sub/`) is
+    /// insignificant — `/tmp/sub/` shows `sub`, not the full path. Remote
+    /// panels have no `Path` to lean on, so they derive the label from
+    /// `Location::display`, trimming a trailing `/` first for the same
+    /// trailing-separator insensitivity (`gdrive:Photos/` shows `Photos`).
+    pub(crate) fn active_panel_folder(&self) -> String {
+        let loc = self.active_loc();
+        if let Some(path) = loc.local_path() {
+            return path
+                .file_name()
+                .map(|s| s.to_string_lossy().into_owned())
+                .unwrap_or_else(|| loc.display());
+        }
+        let display = loc.display();
+        display
+            .trim_end_matches(['/', '\\'])
+            .rsplit(['/', '\\'])
+            .next()
+            .filter(|s| !s.is_empty())
+            .map(str::to_string)
+            .unwrap_or(display)
     }
 
     pub fn cells(&self, cols: u16, rows: u16) -> Vec<CellView> {
         render::render(self, cols, rows)
     }
 
-    pub fn on_key(&mut self, key: &KeyEvent) -> Option<FarAction> {
-        keys::reduce(self, key)
+    pub fn on_key(&mut self, key: &KeyEvent, alt: bool) -> Option<FarAction> {
+        keys::reduce(self, key, alt)
     }
 
     /// Scroll the active panel by moving its cursor; `render` follows it.

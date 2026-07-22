@@ -78,7 +78,7 @@ pub(crate) fn render(p: &FarPane, cols: u16, rows: u16) -> Vec<CellView> {
     command_bar(
         &mut buf,
         split[1],
-        &p.active_cwd(),
+        &p.active_panel_folder(),
         &p.cmdline,
         ghost.as_deref(),
         ask_hint.as_deref(),
@@ -90,7 +90,62 @@ pub(crate) fn render(p: &FarPane, cols: u16, rows: u16) -> Vec<CellView> {
         Some(prompt) => prompt_bar(&mut buf, split[2], prompt),
         None => function_bar(&mut buf, split[2]),
     }
+    if let Some(ds) = &p.drive_select {
+        drive_select_overlay(&mut buf, area, ds);
+    }
     crate::tui::to_cells(&buf)
+}
+
+/// The Alt+F1/F2 drive-select overlay: a small centered box listing "Local
+/// disk" plus each configured rclone remote, highlighting `sel`. Shows a
+/// "listing remotes…" placeholder while `listremotes` is still running
+/// (`options` empty).
+fn drive_select_overlay(buf: &mut Buffer, area: Rect, ds: &super::remote::DriveSelect) {
+    let t = crew_theme::theme();
+    let bg = Color::Rgb(t.page_bg.0, t.page_bg.1, t.page_bg.2);
+    let ink = Color::Rgb(t.ink.0, t.ink.1, t.ink.2);
+    let page_col = bg;
+    let rows = ds.options.len().max(1) as u16;
+    let h = (rows + 2).min(area.height);
+    let w = 32u16.min(area.width);
+    let x = area.x + (area.width.saturating_sub(w)) / 2;
+    let y = area.y + (area.height.saturating_sub(h)) / 2;
+    let box_area = Rect::new(x, y, w, h);
+    let block = Block::bordered()
+        .border_type(BorderType::Rounded)
+        .border_style(Style::new().fg(accent_color()))
+        .title(Span::styled(
+            "Select drive",
+            Style::new().fg(accent_color()),
+        ))
+        .style(Style::new().bg(bg));
+    let inner = block.inner(box_area);
+    Widget::render(ratatui::widgets::Clear, box_area, buf);
+    block.render(box_area, buf);
+    if ds.options.is_empty() {
+        Paragraph::new(Line::from(Span::styled(
+            "listing remotes\u{2026}",
+            Style::new().fg(ink).bg(bg),
+        )))
+        .style(Style::new().bg(bg))
+        .render(inner, buf);
+        return;
+    }
+    let items: Vec<ListItem> = ds
+        .options
+        .iter()
+        .map(|opt| {
+            let label = match opt {
+                super::remote::DriveOption::Local => "Local disk".to_string(),
+                super::remote::DriveOption::Remote(name) => name.clone(),
+            };
+            ListItem::new(Line::from(Span::styled(label, Style::new().fg(ink).bg(bg))))
+        })
+        .collect();
+    let hl = Style::new().fg(page_col).bg(accent_color());
+    let mut state = ListState::default();
+    state.select(Some(ds.sel));
+    StatefulWidget::render(List::new(items).highlight_style(hl), inner, buf, &mut state);
 }
 
 /// The Far command line: `<cwd> $ <typed>▏`, the directory dimmed and the typed
@@ -100,7 +155,7 @@ pub(crate) fn render(p: &FarPane, cols: u16, rows: u16) -> Vec<CellView> {
 fn command_bar(
     buf: &mut Buffer,
     area: Rect,
-    cwd: &std::path::Path,
+    folder: &str,
     cmdline: &str,
     ghost: Option<&str>,
     ask_hint: Option<&str>,
@@ -111,10 +166,6 @@ fn command_bar(
     let bg = Color::Rgb(t.page_bg.0, t.page_bg.1, t.page_bg.2);
     let dim = Color::Rgb(t.text_muted.0, t.text_muted.1, t.text_muted.2);
     let ink = Color::Rgb(t.ink.0, t.ink.1, t.ink.2);
-    let folder = cwd
-        .file_name()
-        .map(|s| s.to_string_lossy().into_owned())
-        .unwrap_or_else(|| cwd.to_string_lossy().into_owned());
     // A landed `!` suggestion REPLACES the bar's normal styling with the
     // same selected look the panel listing uses for its cursor row (ink on
     // an accent fill) — a highlighted, still-editable suggestion.
@@ -189,7 +240,7 @@ fn panel(buf: &mut Buffer, area: Rect, panel: &Panel, active: bool) {
         .border_style(Style::new().fg(edge))
         .title(Span::styled(
             legend(
-                &panel.cwd,
+                &panel.loc.display(),
                 panel.entries.len(),
                 panel.entries.iter().map(|e| e.size).sum::<u64>(),
                 area.width,
@@ -201,6 +252,19 @@ fn panel(buf: &mut Buffer, area: Rect, panel: &Panel, active: bool) {
     let h = inner.height.max(1) as usize;
     // Scroll so the cursor stays visible (bottom-anchored once it passes `h`).
     let start = panel.sel.saturating_sub(h.saturating_sub(1)).min(panel.sel);
+    // A remote listing in flight (and nothing to show yet): one dim row
+    // instead of an empty panel, so the pane doesn't look inert while the
+    // `rclone lsjson` worker (see `remote.rs`) is still running.
+    if panel.loading && panel.entries.is_empty() {
+        let items = vec![ListItem::new(Line::from(Span::styled(
+            "\u{27f3} listing\u{2026}",
+            Style::new().fg(dim_col),
+        )))];
+        let mut state = ListState::default();
+        state.select(Some(0));
+        StatefulWidget::render(List::new(items), inner, buf, &mut state);
+        return;
+    }
     let items: Vec<ListItem> = panel
         .entries
         .iter()
@@ -299,18 +363,17 @@ fn fmt_size(bytes: u64) -> String {
 /// word reads faster than two zeros. The suffix stays intact whenever
 /// there's room for it at all; the path truncates from the left (keeping the
 /// tail) to fit `width`, same as before the count/size were added.
-fn legend(cwd: &std::path::Path, count: usize, total: u64, width: u16) -> String {
-    let full = cwd.to_string_lossy();
+fn legend(display: &str, count: usize, total: u64, width: u16) -> String {
     let suffix = if count == 0 {
         " \u{00b7} empty ".to_string()
     } else {
         format!(" \u{00b7} {count} \u{00b7} {} ", fmt_size(total))
     };
     let max = (width as usize).saturating_sub(1 + suffix.chars().count());
-    if full.chars().count() <= max || max == 0 {
-        return format!(" {full}{suffix}");
+    if display.chars().count() <= max || max == 0 {
+        return format!(" {display}{suffix}");
     }
-    let tail: String = full
+    let tail: String = display
         .chars()
         .rev()
         .take(max.saturating_sub(1))

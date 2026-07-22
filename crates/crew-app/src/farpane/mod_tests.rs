@@ -4,6 +4,7 @@ use super::keys::{
     accept_ghost, activate, ascend, escape_cmdline, history_next, history_prev, move_sel,
     tab_complete,
 };
+use super::location::Location;
 use super::run::{run_cmdline, submit_ask};
 use super::{FarAction, FarPane, Side};
 
@@ -23,8 +24,8 @@ fn fixture(key: &str) -> (std::path::PathBuf, FarPane) {
 fn starts_active_left_on_given_dir() {
     let (base, p) = fixture("start");
     assert!(matches!(p.active, Side::Left));
-    assert_eq!(p.left.cwd, base);
-    assert_eq!(p.right.cwd, base);
+    assert_eq!(p.left.loc.local_path().unwrap(), base);
+    assert_eq!(p.right.loc.local_path().unwrap(), base);
     // ".." + "sub/" + "f.txt"
     assert_eq!(p.left.entries.len(), 3);
 }
@@ -44,11 +45,11 @@ fn enter_descends_into_dir_and_back() {
     // entries[1] is "sub/" (dirs sort before files, after "..")
     p.left.sel = 1;
     activate(&mut p);
-    assert_eq!(p.left.cwd, base.join("sub"));
+    assert_eq!(p.left.loc.local_path().unwrap(), base.join("sub"));
     // the child dir has a ".." entry to climb back out
     assert!(p.left.entries.iter().any(|e| e.is_parent));
     ascend(&mut p);
-    assert_eq!(p.left.cwd, base);
+    assert_eq!(p.left.loc.local_path().unwrap(), base);
 }
 
 #[test]
@@ -57,7 +58,7 @@ fn command_line_runs_in_active_panel_dir_without_new_pane() {
     // Run a command from the right panel (which points at a subdir): it must
     // execute there — in place, no pane spawn — and reload when it finishes.
     p.active = Side::Right;
-    p.right.cwd = base.join("sub");
+    p.right.loc = Location::local(&base.join("sub"));
     p.cmdline = "touch made-here".into();
     assert!(matches!(run_cmdline(&mut p), FarAction::Status(_)));
     assert!(p.cmdline.is_empty(), "running consumes the command line");
@@ -87,11 +88,15 @@ fn cd_moves_only_the_active_panel() {
     p.cmdline = "cd sub".into();
     assert!(matches!(run_cmdline(&mut p), FarAction::Status(_)));
     assert_eq!(
-        p.left.cwd,
+        p.left.loc.local_path().unwrap(),
         base.join("sub"),
         "active (left) panel navigated"
     );
-    assert_eq!(p.right.cwd, base, "inactive panel untouched");
+    assert_eq!(
+        p.right.loc.local_path().unwrap(),
+        base,
+        "inactive panel untouched"
+    );
     assert!(!p.is_busy(), "cd is handled in-process, nothing spawns");
 }
 
@@ -103,7 +108,7 @@ fn cd_to_a_missing_directory_reports_and_stays() {
         FarAction::Status(msg) => assert!(msg.contains("not a directory"), "{msg}"),
         _ => panic!("expected a status"),
     }
-    assert_eq!(p.left.cwd, base);
+    assert_eq!(p.left.loc.local_path().unwrap(), base);
 }
 
 #[test]
@@ -335,7 +340,7 @@ fn run_cmdline_pushes_the_command_into_history() {
     let _g = super::cmdhist::test_guard();
     with_tmp_home(|| {
         let (base, mut p) = fixture("histpush");
-        p.right.cwd = base.join("sub");
+        p.right.loc = Location::local(&base.join("sub"));
         p.active = Side::Right;
         p.cmdline = "touch made-here".into();
         run_cmdline(&mut p);
@@ -505,7 +510,7 @@ fn run_cmdline_after_accepting_a_suggestion_clears_the_ask_state() {
     let _g = super::ask::test_guard();
     with_tmp_home(|| {
         let (base, mut p) = fixture("bangaccept");
-        p.right.cwd = base.join("sub");
+        p.right.loc = Location::local(&base.join("sub"));
         p.active = Side::Right;
         p.cmdline = "touch made-here".into();
         p.ask = Some(AskState::Suggested {
@@ -577,4 +582,16 @@ fn bang_ask_end_to_end_with_the_mock_provider() {
     );
     assert_eq!(p.cmdline, "ls -la");
     assert!(matches!(&p.ask, Some(AskState::Suggested { original }) if original == "! list files"));
+}
+
+#[test]
+fn active_panel_folder_ignores_trailing_separator_on_local_path() {
+    // Regression: a trailing `/` (e.g. from `cd sub/` in the command line,
+    // whose expanded path keeps the slash) must be insignificant — matching
+    // `Path::file_name()`'s pre-refactor behavior — not fall back to showing
+    // the whole path.
+    let (base, mut p) = fixture("trailingslash");
+    let with_slash = format!("{}/", base.join("sub").to_string_lossy());
+    p.left.loc = Location::local(std::path::Path::new(&with_slash));
+    assert_eq!(p.active_panel_folder(), "sub");
 }

@@ -1,16 +1,38 @@
 //! Filesystem operations behind the Far function keys: F5 copy and F6 move
 //! into the other panel, F7 make-folder, F8 delete to trash. Mutations happen
 //! in place and both panels reload so each side reflects the change.
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use super::keys::FarAction;
 use super::FarPane;
 
-/// F5: copy the active panel's selection into the other panel's directory.
+/// F5: copy the active panel's selection into the other panel's directory —
+/// synchronously via `std::fs` when both endpoints are local, or via
+/// `rclone copy`/`copyto` (async, see `remote::begin_transfer`) when either
+/// side is a remote panel.
 pub(crate) fn copy(p: &mut FarPane) -> FarAction {
-    let Some((name, is_dir, src, dst)) = transfer_paths(p) else {
+    let src_panel = p.panel(p.active);
+    let Some(entry) = src_panel.entries.get(src_panel.sel) else {
         return FarAction::Status("nothing to copy".into());
     };
+    if entry.is_parent {
+        return FarAction::Status("can't copy the ‘..’ entry".into());
+    }
+    let name = entry.name.clone();
+    let is_dir = entry.is_dir;
+    let src = src_panel.loc.child(&name);
+    let dst = p.panel(p.other_side()).loc.child(&name);
+    if src.is_remote() || dst.is_remote() {
+        let argv = super::rclone::argv_copy(&src, &dst, is_dir);
+        let note = format!(
+            "copying {} \u{2192} {}",
+            src.rclone_addr(),
+            dst.rclone_addr()
+        );
+        return p.begin_transfer(argv, "copied", note);
+    }
+    let src = src.local_path().expect("checked not remote above");
+    let dst = dst.local_path().expect("checked not remote above");
     if dst.exists() {
         return FarAction::Status(format!("‘{name}’ already exists in the other panel"));
     }
@@ -28,11 +50,33 @@ pub(crate) fn copy(p: &mut FarPane) -> FarAction {
     }
 }
 
-/// F6: move (rename) the active panel's selection into the other panel's dir.
+/// F6: move (rename) the active panel's selection into the other panel's
+/// directory — synchronously via `std::fs` when both endpoints are local, or
+/// via `rclone move`/`moveto` (async, see `remote::begin_transfer`) when
+/// either side is a remote panel.
 pub(crate) fn rename_move(p: &mut FarPane) -> FarAction {
-    let Some((name, is_dir, src, dst)) = transfer_paths(p) else {
+    let src_panel = p.panel(p.active);
+    let Some(entry) = src_panel.entries.get(src_panel.sel) else {
         return FarAction::Status("nothing to move".into());
     };
+    if entry.is_parent {
+        return FarAction::Status("can't move the ‘..’ entry".into());
+    }
+    let name = entry.name.clone();
+    let is_dir = entry.is_dir;
+    let src = src_panel.loc.child(&name);
+    let dst = p.panel(p.other_side()).loc.child(&name);
+    if src.is_remote() || dst.is_remote() {
+        let argv = super::rclone::argv_move(&src, &dst, is_dir);
+        let note = format!(
+            "moving {} \u{2192} {}",
+            src.rclone_addr(),
+            dst.rclone_addr()
+        );
+        return p.begin_transfer(argv, "moved", note);
+    }
+    let src = src.local_path().expect("checked not remote above");
+    let dst = dst.local_path().expect("checked not remote above");
     if dst.exists() {
         return FarAction::Status(format!("‘{name}’ already exists in the other panel"));
     }
@@ -61,8 +105,27 @@ pub(crate) fn rename_move(p: &mut FarPane) -> FarAction {
     }
 }
 
-/// F8: send the active panel's selection to the OS trash (recoverable).
+/// F8: send the active panel's selection to the OS trash (recoverable), or
+/// run `rclone deletefile`/`purge` for a remote panel.
 pub(crate) fn delete(p: &mut FarPane) -> FarAction {
+    if p.panel(p.active).loc.is_remote() {
+        let panel = p.panel(p.active);
+        let Some(entry) = panel.entries.get(panel.sel) else {
+            return FarAction::Status("nothing to delete".into());
+        };
+        if entry.is_parent {
+            return FarAction::Status("can't delete the ‘..’ entry".into());
+        }
+        let target = panel.loc.child(&entry.name);
+        let is_dir = entry.is_dir;
+        let side = p.active;
+        return p.begin_simple(
+            super::rclone::argv_delete(&target, is_dir),
+            side,
+            "deleted",
+            format!("deleting {}", target.rclone_addr()),
+        );
+    }
     let panel = p.panel(p.active);
     let Some(entry) = panel.entries.get(panel.sel) else {
         return FarAction::Status("nothing to delete".into());
@@ -71,7 +134,10 @@ pub(crate) fn delete(p: &mut FarPane) -> FarAction {
         return FarAction::Status("can't delete the ‘..’ entry".into());
     }
     let name = entry.name.clone();
-    let path = panel.cwd.join(&name);
+    let Some(dir) = panel.loc.local_path() else {
+        return FarAction::Status("remote copy/move/delete lands in a later task".into());
+    };
+    let path = dir.join(&name);
     match trash::delete(&path) {
         Ok(()) => {
             p.reload_both();
@@ -81,9 +147,23 @@ pub(crate) fn delete(p: &mut FarPane) -> FarAction {
     }
 }
 
-/// F7 (on confirm): create `name` as a directory in the active panel.
+/// F7 (on confirm): create `name` as a directory in the active panel, or run
+/// `rclone mkdir` for a remote panel.
 pub(crate) fn make_dir(p: &mut FarPane, name: &str) -> FarAction {
-    let dir = p.panel(p.active).cwd.join(name);
+    if p.panel(p.active).loc.is_remote() {
+        let target = p.panel(p.active).loc.child(name);
+        let side = p.active;
+        return p.begin_simple(
+            super::rclone::argv_mkdir(&target),
+            side,
+            "created folder",
+            format!("mkdir {}", target.rclone_addr()),
+        );
+    }
+    let Some(base) = p.panel(p.active).loc.local_path() else {
+        return FarAction::Status("remote copy/move/delete lands in a later task".into());
+    };
+    let dir = base.join(name);
     if dir.exists() {
         return FarAction::Status(format!("‘{name}’ already exists"));
     }
@@ -94,21 +174,6 @@ pub(crate) fn make_dir(p: &mut FarPane, name: &str) -> FarAction {
         }
         Err(e) => FarAction::Status(format!("mkdir failed: {e}")),
     }
-}
-
-/// `(name, is_dir, source, destination)` for a copy/move of the active panel's
-/// selection into the other panel's directory, or `None` when there's nothing
-/// transferable selected (empty list or the `..` row).
-fn transfer_paths(p: &FarPane) -> Option<(String, bool, PathBuf, PathBuf)> {
-    let src_panel = p.panel(p.active);
-    let entry = src_panel.entries.get(src_panel.sel)?;
-    if entry.is_parent {
-        return None;
-    }
-    let name = entry.name.clone();
-    let src = src_panel.cwd.join(&name);
-    let dst = p.panel(p.other_side()).cwd.join(&name);
-    Some((name, entry.is_dir, src, dst))
 }
 
 /// Recursively copy directory `src` to `dst` (std has no built-in for this).
