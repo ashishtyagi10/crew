@@ -96,6 +96,15 @@ fn absorb_simple_success_triggers_relist() {
 }
 
 #[test]
+fn remote_mkdir_starts_a_simple_op() {
+    let mut f = remote_pane(); // left active, remote
+    f.active = Side::Left;
+    let action = crate::farpane::fileops::make_dir(&mut f, "New");
+    assert!(matches!(action, crate::farpane::keys::FarAction::Status(_)));
+    assert!(f.pending.is_some());
+}
+
+#[test]
 fn absorb_simple_failure_surfaces_stderr_no_relist() {
     let mut f = remote_pane();
     let status = f.absorb_simple(

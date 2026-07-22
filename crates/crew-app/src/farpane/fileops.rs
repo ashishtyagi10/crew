@@ -103,8 +103,19 @@ pub(crate) fn delete(p: &mut FarPane) -> FarAction {
     }
 }
 
-/// F7 (on confirm): create `name` as a directory in the active panel.
+/// F7 (on confirm): create `name` as a directory in the active panel, or run
+/// `rclone mkdir` for a remote panel.
 pub(crate) fn make_dir(p: &mut FarPane, name: &str) -> FarAction {
+    if p.panel(p.active).loc.is_remote() {
+        let target = p.panel(p.active).loc.child(name);
+        let side = p.active;
+        return p.begin_simple(
+            super::rclone::argv_mkdir(&target),
+            side,
+            "created folder",
+            format!("mkdir {}", target.rclone_addr()),
+        );
+    }
     let Some(base) = p.panel(p.active).loc.local_path() else {
         return FarAction::Status("remote copy/move/delete lands in a later task".into());
     };
