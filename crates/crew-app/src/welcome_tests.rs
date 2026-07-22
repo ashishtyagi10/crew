@@ -53,13 +53,14 @@ fn anim_redraws_one_in_every_anim_div_ticks() {
 
 #[test]
 fn rain_width_picks_the_default_size_when_roomy() {
-    assert_eq!(rain_width(90, 30), Some(44));
+    assert_eq!(rain_width(90, 30), Some(64));
 }
 
 #[test]
 fn rain_width_scales_down_to_fit_the_rows() {
-    // Default 44x22 needs rows > 25 (22 + 3); at rows=24 it steps down to 40x20.
-    assert_eq!(rain_width(90, 24), Some(40));
+    // Default 64x16 needs rows > 19 (16 + 3); at rows=18 it steps down to
+    // 58x14 (the first even width whose h+3 stack fits).
+    assert_eq!(rain_width(90, 18), Some(58));
 }
 
 #[test]
@@ -69,11 +70,7 @@ fn rain_width_falls_back_when_nothing_fits() {
         None,
         "too narrow for even the min width"
     );
-    assert_eq!(
-        rain_width(90, 10),
-        None,
-        "too short for even the min height"
-    );
+    assert_eq!(rain_width(90, 8), None, "too short for even the min height");
 }
 
 #[test]
@@ -151,4 +148,27 @@ fn restore_hint_never_shares_the_version_stamp_row() {
         cells.iter().all(|c| c.row != stamp_row || c.fg != hint_fg),
         "no hint-coloured cells may share the version stamp row"
     );
+}
+
+#[test]
+fn rain_box_is_framed_with_an_inner_crew_nameplate() {
+    let cells = welcome_cells_animated(80, 30, 0, None);
+    let chars: std::collections::HashSet<char> = cells.iter().map(|c| c.c).collect();
+    // The rectangular frame's corners…
+    for c in ['\u{250c}', '\u{2510}', '\u{2514}', '\u{2518}'] {
+        assert!(chars.contains(&c), "frame corner {c} missing");
+    }
+    // …and the double-line CREW nameplate over the rain, letters in bold.
+    for c in ['\u{2554}', '\u{255d}'] {
+        assert!(chars.contains(&c), "nameplate corner {c} missing");
+    }
+    for l in ['C', 'R', 'E', 'W'] {
+        assert!(
+            cells.iter().any(|c| c.c == l && c.bold),
+            "nameplate letter {l} missing"
+        );
+    }
+    // The rain stays inside the frame: no glyph cells on the frame's ring is
+    // hard to assert cheaply, but everything must stay in bounds.
+    assert!(cells.iter().all(|c| c.row < 30 && c.col < 80));
 }

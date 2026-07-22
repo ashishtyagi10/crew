@@ -1,7 +1,8 @@
-//! The agent smith pane's header row: a title on the left and a right-aligned live
-//! status — a connection dot, the message count, and an animated "thinking"
-//! spinner while a reply is pending. Rendered as row 0 of the pane, with the
-//! message body laid out below it.
+//! The agent smith pane's header row: a right-aligned live status only — a
+//! connection dot and an animated "thinking" spinner while a reply is pending.
+//! The pane's fieldset legend already names it, so the old in-pane
+//! `agent smith · <channel>` title was pure repetition and is gone. Rendered
+//! as row 0 of the pane, with the message body laid out below it.
 use crew_render::CellView;
 
 /// ASCII spinner frames for the "thinking" indicator (Nerd-Font-independent).
@@ -107,13 +108,14 @@ pub(crate) fn fmt_tokens(tokens: u64) -> String {
     }
 }
 
-/// Build the single-row header for a `cols`-wide agent smith pane — identity
-/// and liveness only; session stats live in the below-input summary footer.
+/// Build the single-row header for a `cols`-wide agent smith pane — liveness
+/// only (the fieldset legend carries the identity); session stats live in the
+/// below-input summary footer.
 /// `compact` (Ctrl+O — `ChatPane::compact_view`) shows a muted "compact" chip;
 /// it's the first thing dropped on a narrow pane, ahead of the busy hint.
 pub(crate) fn header_cells(
     cols: u16,
-    channel: &str,
+    _channel: &str,
     connected: bool,
     awaiting: bool,
     active: Option<(&str, u64, (u8, u8, u8))>,
@@ -123,13 +125,6 @@ pub(crate) fn header_cells(
         return Vec::new();
     }
     let mut cells = Vec::new();
-
-    // Title, left-aligned (truncated by the right-side status if space is tight).
-    let title = if channel.is_empty() {
-        "agent smith".to_string()
-    } else {
-        format!("agent smith \u{00b7} {channel}") // agent smith · <channel>
-    };
 
     // Right-aligned status, laid out from the right edge. Segments get the
     // usual two-space gap, except the trailing connection dot, which sits a
@@ -180,21 +175,6 @@ pub(crate) fn header_cells(
             x = push(&mut cells, 0, x, cols, s, *c, false);
         }
     }
-
-    // Title only up to where the status begins (measured in display columns).
-    let title_room = cols.saturating_sub(status_w as u16 + 1) as usize;
-    let full: Vec<char> = title.chars().collect();
-    let end = crate::chatwidth::fit_end(&full, 0, title_room);
-    let title: String = full[..end].iter().collect();
-    push(
-        &mut cells,
-        0,
-        0,
-        cols,
-        &title,
-        crate::palette::accent(),
-        true,
-    );
 
     cells
 }

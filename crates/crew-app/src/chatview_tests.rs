@@ -61,7 +61,7 @@ fn empty_state_card_never_collides_with_a_live_runs_rows() {
             // Rows the live run owns: the status line, the bar, and the
             // queued indicator when showing. Nothing from the empty-state
             // card may share a row with them.
-            let bottom = crate::chatinput::composer_rows(&pane.input, cols, rows);
+            let bottom = bottom_rows(&pane, cols, rows);
             let prog = crate::chatprog::progress_rows(&pane, cols);
             let block_max = rows.saturating_sub(bottom + prog);
             let line_rows: std::collections::HashSet<u16> =
@@ -317,12 +317,19 @@ fn row_text(cells: &[CellView], row: u16) -> String {
     v.into_iter().map(|(_, c)| c).collect()
 }
 
+/// The pane's real bottom reservation — the composer measured against the
+/// always-on summary footer, exactly as `chatplace::grants` computes it.
+fn bottom_rows(pane: &ChatPane, cols: u16, rows: u16) -> u16 {
+    let summary = crate::chatsummary::summary_rows(pane, cols, rows);
+    crate::chatinput::composer_rows(&pane.input, cols, rows - summary) + summary
+}
+
 #[test]
 fn queued_indicator_renders_directly_above_the_composer() {
     let mut pane = test_pane(vec![msg("planner", "hi")]);
     pane.queued.push_back("later".into());
     let (cols, rows) = (60u16, 20u16);
-    let bottom = crate::chatinput::composer_rows(&pane.input, cols, rows);
+    let bottom = bottom_rows(&pane, cols, rows);
     let indicator_row = rows - bottom - 1;
 
     let cells_out = cells(&pane, cols, rows);
@@ -405,7 +412,7 @@ fn queued_indicator_renders_on_the_empty_messages_branch_too() {
     pane.queued.push_back("a".into());
     pane.queued.push_back("b".into());
     let (cols, rows) = (60u16, 20u16);
-    let bottom = crate::chatinput::composer_rows(&pane.input, cols, rows);
+    let bottom = bottom_rows(&pane, cols, rows);
     let indicator_row = rows - bottom - 1;
 
     let cells_out = cells(&pane, cols, rows);
@@ -445,7 +452,7 @@ fn mid_run_pane() -> ChatPane {
 fn progress_bar_renders_directly_above_the_composer() {
     let pane = mid_run_pane();
     let (cols, rows) = (60u16, 20u16);
-    let bottom = crate::chatinput::composer_rows(&pane.input, cols, rows);
+    let bottom = bottom_rows(&pane, cols, rows);
     let bar_row = rows - bottom - 1;
 
     let cells_out = cells(&pane, cols, rows);
@@ -466,7 +473,7 @@ fn progress_bar_and_queued_indicator_stack_without_colliding() {
     let mut pane = mid_run_pane();
     pane.queued.push_back("later".into());
     let (cols, rows) = (60u16, 20u16);
-    let bottom = crate::chatinput::composer_rows(&pane.input, cols, rows);
+    let bottom = bottom_rows(&pane, cols, rows);
     let cells_out = cells(&pane, cols, rows);
 
     // Bar innermost (directly above the composer), queued indicator above it.
@@ -509,7 +516,7 @@ fn status_line_queued_indicator_bar_and_composer_stack_without_colliding() {
     // dropped entirely are skipped by the guard below.
     for cols in [20u16, 40, 80] {
         for rows in [8u16, 10, 12, 20, 40] {
-            let bottom = crate::chatinput::composer_rows(&pane.input, cols, rows);
+            let bottom = bottom_rows(&pane, cols, rows);
             let prog_rows = crate::chatprog::progress_rows(&pane, cols);
             let queued_rows = crate::chatqueue::queued_rows(&pane);
             let swarm_rows = crate::chatswarmview::swarm_rows(&pane, cols);

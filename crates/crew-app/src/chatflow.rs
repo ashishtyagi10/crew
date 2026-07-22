@@ -96,6 +96,13 @@ impl crate::chat::ChatPane {
             .is_some_and(|m| crate::chatmsgs::fade_t(&m.ts, crate::chattime::unix_now_ms()) < 1.0)
     }
 
+    /// Whether the pane shows only the startup splash — its blinking box
+    /// glyphs need redraw frames while it's the whole transcript. The first
+    /// real message ends this, so an idle working pane never animates.
+    pub(crate) fn splash_blinking(&self) -> bool {
+        matches!(&self.messages[..], [only] if crate::chatmsgs::is_splash(only))
+    }
+
     /// The live status label: the thinking agent's name (one active) or a
     /// `N working` count (parallel fan), with the oldest elapsed seconds.
     pub(crate) fn active_status(&self) -> Option<(String, u64)> {

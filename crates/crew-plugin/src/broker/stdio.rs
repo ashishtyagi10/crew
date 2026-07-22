@@ -99,10 +99,16 @@ fn nameplate_art() -> String {
     )
 }
 
-/// The pane's opening message: the [`nameplate_art`] splash over the roster
-/// hint, which still adapts to provider/roster state (see [`roster`]).
+/// The pane's opening message: the [`nameplate_art`] splash alone — the pane
+/// opens on just the centered nameplate, no roster chatter. The one exception
+/// is a dead-on-arrival session (no provider key at all), where the [`roster`]
+/// warning still rides below the art because without it the user has no way
+/// to know why nothing will ever answer.
 pub(crate) fn startup_banner(reg: &Registry) -> String {
-    format!("{}\n\n{}", nameplate_art(), roster(reg))
+    if reg.is_empty() && !provider_resolves() {
+        return format!("{}\n\n{}", nameplate_art(), roster(reg));
+    }
+    nameplate_art()
 }
 
 /// Route one Send. `/stop [#N]`, `/tasks`, `/status`, and quick constructs
