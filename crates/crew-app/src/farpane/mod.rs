@@ -32,6 +32,7 @@ use crew_render::CellView;
 use winit::event::KeyEvent;
 
 pub use keys::FarAction;
+use location::Location;
 
 /// Which panel currently has the cursor.
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -70,26 +71,31 @@ impl Prompt {
     }
 }
 
-/// One side of the dual-pane manager: a directory and its sorted listing.
+/// One side of the dual-pane manager: a location and its sorted listing.
 pub(crate) struct Panel {
-    pub cwd: PathBuf,
+    pub loc: Location,
     pub entries: Vec<Entry>,
     pub sel: usize,
 }
 
 impl Panel {
     fn new(cwd: PathBuf) -> Self {
+        let loc = Location::local(&cwd);
         let entries = list::read_dir(&cwd);
         Self {
-            cwd,
+            loc,
             entries,
             sel: 0,
         }
     }
 
-    /// Re-read the current directory and clamp the cursor into range.
+    /// Re-read the current location and clamp the cursor into range. Local
+    /// reads synchronously; remote reload is driven asynchronously via
+    /// `remote.rs` (a later task) and is a no-op stub here.
     fn reload(&mut self) {
-        self.entries = list::read_dir(&self.cwd);
+        if let Some(path) = self.loc.local_path() {
+            self.entries = list::read_dir(&path);
+        }
         self.sel = self.sel.min(self.entries.len().saturating_sub(1));
     }
 }
@@ -225,9 +231,33 @@ impl FarPane {
         }
     }
 
-    /// The directory of the currently active panel — where a typed command runs.
+    /// The active panel's location.
+    pub(crate) fn active_loc(&self) -> Location {
+        self.panel(self.active).loc.clone()
+    }
+
+    /// The active panel's directory as a local path — the working dir for the
+    /// bottom command line, which is LOCAL-ONLY in v1. A remote active panel
+    /// yields the temp dir as an inert fallback (the command line is disabled
+    /// for remote panels in `run.rs`).
     pub(crate) fn active_cwd(&self) -> PathBuf {
-        self.panel(self.active).cwd.clone()
+        self.active_loc()
+            .local_path()
+            .unwrap_or_else(std::env::temp_dir)
+    }
+
+    /// The active panel's directory label for the command bar: the last path
+    /// segment of its display string (or the whole string when there's no
+    /// separator) — mirrors the previous `cwd.file_name()` behavior for local
+    /// paths, extended to remote locations via `Location::display`.
+    pub(crate) fn active_panel_folder(&self) -> String {
+        let display = self.active_loc().display();
+        display
+            .rsplit(['/', '\\'])
+            .next()
+            .filter(|s| !s.is_empty())
+            .map(str::to_string)
+            .unwrap_or(display)
     }
 
     pub fn cells(&self, cols: u16, rows: u16) -> Vec<CellView> {

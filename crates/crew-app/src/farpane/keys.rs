@@ -322,12 +322,15 @@ pub(crate) fn activate(p: &mut FarPane) -> Option<FarAction> {
         ascend(p);
         None
     } else if is_dir {
-        panel.cwd.push(name);
+        panel.loc = panel.loc.child(&name);
         panel.sel = 0;
         panel.reload();
         None
     } else {
-        Some(FarAction::Open(panel.cwd.join(name)))
+        match panel.loc.local_path() {
+            Some(dir) => Some(FarAction::Open(dir.join(name))),
+            None => None, // remote open handled in a later task
+        }
     }
 }
 
@@ -338,14 +341,17 @@ fn open_selected(p: &FarPane) -> Option<FarAction> {
     if entry.is_parent || entry.is_dir {
         return None;
     }
-    Some(FarAction::Open(panel.cwd.join(&entry.name)))
+    match panel.loc.local_path() {
+        Some(dir) => Some(FarAction::Open(dir.join(&entry.name))),
+        None => None, // remote open handled in a later task
+    }
 }
 
 /// Move the active panel up to its parent directory.
 pub(crate) fn ascend(p: &mut FarPane) {
     let panel = p.active_panel_mut();
-    if let Some(parent) = panel.cwd.parent().map(PathBuf::from) {
-        panel.cwd = parent;
+    if let Some(parent) = panel.loc.parent() {
+        panel.loc = parent;
         panel.sel = 0;
         panel.reload();
     }

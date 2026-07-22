@@ -44,9 +44,10 @@ impl CrewApp {
                         .map(|c| c.to_path_buf())
                         .or_else(|| p.dir.clone())
                         .map(|d| SavedPane::shell(d.to_string_lossy().into_owned())),
-                    PaneContent::Far(f) => Some(SavedPane::far(
-                        f.active_cwd().to_string_lossy().into_owned(),
-                    )),
+                    PaneContent::Far(f) => f
+                        .active_loc()
+                        .local_path()
+                        .map(|p| SavedPane::far(p.to_string_lossy().into_owned())),
                     PaneContent::Chat(_) if p.label.as_deref() == Some("crew") => {
                         Some(SavedPane::crew())
                     }

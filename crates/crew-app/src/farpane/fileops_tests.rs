@@ -1,5 +1,6 @@
 use super::*;
 use crate::farpane::keys::FarAction;
+use crate::farpane::location::Location;
 use crate::farpane::FarPane;
 
 /// A FarPane rooted at a unique temp dir containing one subdirectory and one
@@ -23,7 +24,7 @@ fn select(p: &mut FarPane, name: &str) {
 #[test]
 fn f5_copies_selected_file_to_the_other_panel() {
     let (base, mut p) = fixture("copy");
-    p.right.cwd = base.join("sub");
+    p.right.loc = Location::local(&base.join("sub"));
     p.right.reload();
     select(&mut p, "f.txt");
     let action = copy(&mut p);
@@ -40,7 +41,7 @@ fn f5_copy_will_not_clobber_an_existing_file() {
     let (base, mut p) = fixture("copy_clobber");
     std::fs::create_dir_all(base.join("sub")).unwrap();
     std::fs::write(base.join("sub/f.txt"), b"original").unwrap();
-    p.right.cwd = base.join("sub");
+    p.right.loc = Location::local(&base.join("sub"));
     p.right.reload();
     select(&mut p, "f.txt");
     copy(&mut p);
@@ -51,7 +52,7 @@ fn f5_copy_will_not_clobber_an_existing_file() {
 #[test]
 fn f6_moves_selected_file_to_the_other_panel() {
     let (base, mut p) = fixture("move");
-    p.right.cwd = base.join("sub");
+    p.right.loc = Location::local(&base.join("sub"));
     p.right.reload();
     select(&mut p, "f.txt");
     rename_move(&mut p);

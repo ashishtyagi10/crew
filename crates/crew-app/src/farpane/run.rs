@@ -7,6 +7,7 @@ use std::sync::mpsc::{self, Receiver};
 
 use super::ask;
 use super::keys::FarAction;
+use super::location::Location;
 use super::FarPane;
 
 /// What a finished command reports back: its exit code (None = killed by a
@@ -61,6 +62,9 @@ fn tail_line(bytes: &[u8]) -> Option<String> {
 /// `cd` navigates the panel in place; anything else executes in the panel's
 /// directory on a worker thread (the listing reloads when it finishes).
 pub(crate) fn run_cmdline(p: &mut FarPane) -> FarAction {
+    if p.active_loc().is_remote() {
+        return FarAction::Status("command line is local-only — switch this panel to local".into());
+    }
     let cwd = p.active_cwd();
     let cmd = std::mem::take(&mut p.cmdline);
     let cmd = cmd.trim().to_string();
@@ -89,6 +93,9 @@ pub(crate) fn run_cmdline(p: &mut FarPane) -> FarAction {
 /// editable, highlighted suggestion). Refused, with no thread spawned, while
 /// another ask is already in flight or when `desc` is blank.
 pub(crate) fn submit_ask(p: &mut FarPane, desc: &str) -> FarAction {
+    if p.active_loc().is_remote() {
+        return FarAction::Status("command line is local-only — switch this panel to local".into());
+    }
     if p.ask.is_some() {
         return FarAction::Status("still asking — wait for it".into());
     }
@@ -121,7 +128,7 @@ fn change_dir(p: &mut FarPane, cwd: &Path, target: &str) -> FarAction {
         return FarAction::Status(format!("cd: not a directory: {}", dest.display()));
     }
     let panel = p.active_panel_mut();
-    panel.cwd = dest.clone();
+    panel.loc = Location::local(&dest);
     panel.sel = 0;
     panel.reload();
     FarAction::Status(format!("cd {}", dest.display()))

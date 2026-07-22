@@ -71,7 +71,10 @@ pub(crate) fn delete(p: &mut FarPane) -> FarAction {
         return FarAction::Status("can't delete the ‘..’ entry".into());
     }
     let name = entry.name.clone();
-    let path = panel.cwd.join(&name);
+    let Some(dir) = panel.loc.local_path() else {
+        return FarAction::Status("remote copy/move/delete lands in a later task".into());
+    };
+    let path = dir.join(&name);
     match trash::delete(&path) {
         Ok(()) => {
             p.reload_both();
@@ -83,7 +86,10 @@ pub(crate) fn delete(p: &mut FarPane) -> FarAction {
 
 /// F7 (on confirm): create `name` as a directory in the active panel.
 pub(crate) fn make_dir(p: &mut FarPane, name: &str) -> FarAction {
-    let dir = p.panel(p.active).cwd.join(name);
+    let Some(base) = p.panel(p.active).loc.local_path() else {
+        return FarAction::Status("remote copy/move/delete lands in a later task".into());
+    };
+    let dir = base.join(name);
     if dir.exists() {
         return FarAction::Status(format!("‘{name}’ already exists"));
     }
@@ -106,8 +112,10 @@ fn transfer_paths(p: &FarPane) -> Option<(String, bool, PathBuf, PathBuf)> {
         return None;
     }
     let name = entry.name.clone();
-    let src = src_panel.cwd.join(&name);
-    let dst = p.panel(p.other_side()).cwd.join(&name);
+    let src_dir = src_panel.loc.local_path()?;
+    let dst_dir = p.panel(p.other_side()).loc.local_path()?;
+    let src = src_dir.join(&name);
+    let dst = dst_dir.join(&name);
     Some((name, entry.is_dir, src, dst))
 }
 

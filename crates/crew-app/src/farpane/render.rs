@@ -78,7 +78,7 @@ pub(crate) fn render(p: &FarPane, cols: u16, rows: u16) -> Vec<CellView> {
     command_bar(
         &mut buf,
         split[1],
-        &p.active_cwd(),
+        &p.active_panel_folder(),
         &p.cmdline,
         ghost.as_deref(),
         ask_hint.as_deref(),
@@ -100,7 +100,7 @@ pub(crate) fn render(p: &FarPane, cols: u16, rows: u16) -> Vec<CellView> {
 fn command_bar(
     buf: &mut Buffer,
     area: Rect,
-    cwd: &std::path::Path,
+    folder: &str,
     cmdline: &str,
     ghost: Option<&str>,
     ask_hint: Option<&str>,
@@ -111,10 +111,6 @@ fn command_bar(
     let bg = Color::Rgb(t.page_bg.0, t.page_bg.1, t.page_bg.2);
     let dim = Color::Rgb(t.text_muted.0, t.text_muted.1, t.text_muted.2);
     let ink = Color::Rgb(t.ink.0, t.ink.1, t.ink.2);
-    let folder = cwd
-        .file_name()
-        .map(|s| s.to_string_lossy().into_owned())
-        .unwrap_or_else(|| cwd.to_string_lossy().into_owned());
     // A landed `!` suggestion REPLACES the bar's normal styling with the
     // same selected look the panel listing uses for its cursor row (ink on
     // an accent fill) — a highlighted, still-editable suggestion.
@@ -189,7 +185,7 @@ fn panel(buf: &mut Buffer, area: Rect, panel: &Panel, active: bool) {
         .border_style(Style::new().fg(edge))
         .title(Span::styled(
             legend(
-                &panel.cwd,
+                &panel.loc.display(),
                 panel.entries.len(),
                 panel.entries.iter().map(|e| e.size).sum::<u64>(),
                 area.width,
@@ -299,18 +295,17 @@ fn fmt_size(bytes: u64) -> String {
 /// word reads faster than two zeros. The suffix stays intact whenever
 /// there's room for it at all; the path truncates from the left (keeping the
 /// tail) to fit `width`, same as before the count/size were added.
-fn legend(cwd: &std::path::Path, count: usize, total: u64, width: u16) -> String {
-    let full = cwd.to_string_lossy();
+fn legend(display: &str, count: usize, total: u64, width: u16) -> String {
     let suffix = if count == 0 {
         " \u{00b7} empty ".to_string()
     } else {
         format!(" \u{00b7} {count} \u{00b7} {} ", fmt_size(total))
     };
     let max = (width as usize).saturating_sub(1 + suffix.chars().count());
-    if full.chars().count() <= max || max == 0 {
-        return format!(" {full}{suffix}");
+    if display.chars().count() <= max || max == 0 {
+        return format!(" {display}{suffix}");
     }
-    let tail: String = full
+    let tail: String = display
         .chars()
         .rev()
         .take(max.saturating_sub(1))
