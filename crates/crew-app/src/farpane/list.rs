@@ -36,14 +36,21 @@ pub(crate) fn read_dir(dir: &Path) -> Vec<Entry> {
             }
         })
         .collect();
+    sort_entries(&mut items);
+    out.extend(items);
+    out
+}
+
+/// Sort a listing folders-first, then files largest-first, name as tiebreak
+/// (case-insensitive). Shared by the local reader and remote `lsjson`
+/// parsing so both panels order identically.
+pub(crate) fn sort_entries(items: &mut [Entry]) {
     items.sort_by(|a, b| {
         b.is_dir
             .cmp(&a.is_dir)
             .then_with(|| b.size.cmp(&a.size))
             .then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase()))
     });
-    out.extend(items);
-    out
 }
 
 #[cfg(test)]

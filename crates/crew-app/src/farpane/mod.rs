@@ -22,6 +22,7 @@ mod icons;
 mod keys;
 mod list;
 mod location;
+mod rclone;
 mod render;
 mod run;
 
