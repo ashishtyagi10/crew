@@ -328,6 +328,94 @@ fn changed_watch_refreshes_the_side_actually_showing_its_remote() {
 }
 
 #[test]
+fn download_temp_differs_for_same_basename_different_remotes() {
+    // Regression for I1 (silent wrong-file overwrite): F3 on
+    // gdrive:Photos/notes.txt and gdrive:Docs/notes.txt must NOT resolve to
+    // the same local temp file just because both are named "notes.txt" —
+    // otherwise the second download clobbers the first's temp, and a later
+    // save uploads the wrong content to the wrong remote address.
+    let photos = Location {
+        backend: Backend::Rclone {
+            remote: "gdrive".into(),
+        },
+        path: "Photos/notes.txt".into(),
+    };
+    let docs = Location {
+        backend: Backend::Rclone {
+            remote: "gdrive".into(),
+        },
+        path: "Docs/notes.txt".into(),
+    };
+    let t1 = super::download_temp(&photos, "notes.txt");
+    let t2 = super::download_temp(&docs, "notes.txt");
+    assert_ne!(
+        t1, t2,
+        "different remote addresses must map to different temp paths, even with the same basename"
+    );
+    assert_eq!(
+        t1.file_name().unwrap().to_str().unwrap(),
+        "notes.txt",
+        "the temp file must keep the entry's real basename so the OS opens it with the right app"
+    );
+
+    // Stable: the SAME remote address yields the SAME temp path every time
+    // (so re-opening an already-downloaded file reuses the same watch).
+    let t1_again = super::download_temp(&photos, "notes.txt");
+    assert_eq!(
+        t1, t1_again,
+        "the same remote address must be stable across calls"
+    );
+}
+
+#[test]
+fn absorb_download_dedupes_watches_by_temp_path() {
+    // Regression for I1's second half: re-downloading the SAME remote
+    // address (same temp, per `download_temp`'s stability) must update the
+    // existing `Watch` in place rather than pushing a duplicate — otherwise
+    // `poll_watches` can fire a stale, earlier watch entry first and upload
+    // to the wrong remote (or just leak watches unboundedly).
+    let mut f = remote_pane();
+    let remote = f.left.loc.child("notes.txt");
+    let temp = super::download_temp(&remote, "notes.txt");
+    std::fs::create_dir_all(temp.parent().unwrap()).unwrap();
+    std::fs::write(&temp, b"first").unwrap();
+
+    let ok = |stdout: &str| RcloneDone {
+        code: Some(0),
+        stdout: stdout.into(),
+        stderr_tail: String::new(),
+    };
+
+    let _ = f.absorb_download(remote.clone(), temp.clone(), ok(""));
+    assert_eq!(f.watches.len(), 1);
+    // Same remote address again (e.g. the user re-opened the same file) —
+    // same temp path — must update in place, not duplicate.
+    let _ = f.absorb_download(remote.clone(), temp.clone(), ok(""));
+    assert_eq!(
+        f.watches.len(),
+        1,
+        "re-downloading the same remote address must update the existing watch, not duplicate it"
+    );
+    assert_eq!(f.watches[0].remote.rclone_addr(), remote.rclone_addr());
+
+    // A genuinely different remote address (different basename dir here,
+    // but the important thing is a different temp path) gets its own watch.
+    let other_remote = f.left.loc.child("other.txt");
+    let other_temp = super::download_temp(&other_remote, "other.txt");
+    std::fs::create_dir_all(other_temp.parent().unwrap()).unwrap();
+    std::fs::write(&other_temp, b"second").unwrap();
+    let _ = f.absorb_download(other_remote, other_temp.clone(), ok(""));
+    assert_eq!(
+        f.watches.len(),
+        2,
+        "a different remote address (different temp) must get its own watch"
+    );
+
+    let _ = std::fs::remove_file(&temp);
+    let _ = std::fs::remove_file(&other_temp);
+}
+
+#[test]
 fn absorb_simple_failure_surfaces_stderr_no_relist() {
     let mut f = remote_pane();
     let status = f.absorb_simple(

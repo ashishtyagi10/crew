@@ -82,6 +82,23 @@ impl DriveSelect {
     }
 }
 
+/// The local temp path a download of `remote` (whose basename is `name`)
+/// lands at: `<tmp>/far-drive/<key>/<name>`, where `<key>` is a deterministic
+/// hex digest of the FULL remote address (`remote.rclone_addr()`), not just
+/// the basename. This is the fix for the I1 review bug (silent wrong-file
+/// overwrite): `gdrive:Photos/notes.txt` and `gdrive:Docs/notes.txt` share a
+/// basename but hash to different keys, so they never share a temp file —
+/// while the SAME remote address always hashes to the SAME key, giving it a
+/// stable temp path across calls/re-opens. The basename itself is preserved
+/// as the final path component so the OS still opens the file by extension.
+fn download_temp(remote: &Location, name: &str) -> PathBuf {
+    use std::hash::{Hash, Hasher};
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    remote.rclone_addr().hash(&mut hasher);
+    let key = format!("{:016x}", hasher.finish());
+    std::env::temp_dir().join("far-drive").join(key).join(name)
+}
+
 impl FarPane {
     /// Kick off an `rclone lsjson` for `side`'s current remote location.
     pub(crate) fn begin_list(&mut self, side: Side) -> FarAction {
@@ -278,19 +295,22 @@ impl FarPane {
     }
 
     /// F3/F4/Enter on a remote file: `rclone copyto` it to a local temp path
-    /// under `<tmp>/far-drive/<name>`, so the OS-default app opens a real
-    /// local file. `entry_name` is the selected file's name in the active
-    /// panel; `remote` is that panel's location joined with it.
+    /// (see `download_temp` for the `<tmp>/far-drive/<key>/<name>` scheme),
+    /// so the OS-default app opens a real local file. `entry_name` is the
+    /// selected file's name in the active panel; `remote` is that panel's
+    /// location joined with it.
     pub(crate) fn begin_download(&mut self, entry_name: &str) -> FarAction {
         if self.pending.is_some() {
             return FarAction::Status("rclone busy — wait for it".into());
         }
         let remote = self.panel(self.active).loc.child(entry_name);
-        let dir = std::env::temp_dir().join("far-drive");
-        if let Err(e) = std::fs::create_dir_all(&dir) {
+        let temp = download_temp(&remote, entry_name);
+        let Some(dir) = temp.parent() else {
+            return FarAction::Status("download: bad temp path".into());
+        };
+        if let Err(e) = std::fs::create_dir_all(dir) {
             return FarAction::Status(format!("download: {e}"));
         }
-        let temp = dir.join(entry_name);
         let note = format!("downloading {}", remote.rclone_addr());
         let argv = rclone::argv_copy(&remote, &Location::local(&temp), false);
         let rx = rclone::run(argv);
@@ -322,11 +342,22 @@ impl FarPane {
             ));
         }
         let mtime = std::fs::metadata(&temp).and_then(|m| m.modified()).ok();
-        self.watches.push(Watch {
-            temp: temp.clone(),
-            remote,
-            mtime,
-        });
+        // Dedupe by temp path: re-downloading the same remote address (which
+        // — per `download_temp` — always resolves to the same temp) updates
+        // the existing `Watch` in place instead of pushing a duplicate. With
+        // unique-per-address temps from part 1, two DIFFERENT remotes never
+        // share a temp, so this can only ever collapse re-downloads of the
+        // SAME file — it never merges two distinct files' watches.
+        if let Some(w) = self.watches.iter_mut().find(|w| w.temp == temp) {
+            w.remote = remote;
+            w.mtime = mtime;
+        } else {
+            self.watches.push(Watch {
+                temp: temp.clone(),
+                remote,
+                mtime,
+            });
+        }
         FarAction::Open(temp)
     }
 
