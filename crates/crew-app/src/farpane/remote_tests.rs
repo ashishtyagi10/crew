@@ -131,6 +131,50 @@ fn copy_local_to_remote_is_async() {
 }
 
 #[test]
+fn absorb_transfer_reloads_local_right_when_remote_is_left() {
+    // Regression for the review bug: the old loop `break`d the instant it
+    // found a remote side, so with Left=remote/Right=local the local Right
+    // panel was never reloaded after a successful transfer.
+    let dir = std::env::temp_dir().join(format!(
+        "far_absorb_transfer_regress_{}",
+        std::process::id()
+    ));
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("new.txt"), b"hi").unwrap();
+
+    let mut f = FarPane::new(std::env::temp_dir());
+    f.left.loc = Location {
+        backend: Backend::Rclone {
+            remote: "gdrive".into(),
+        },
+        path: String::new(),
+    };
+    f.right.loc = crate::farpane::location::Location::local(&dir);
+    f.right.entries = vec![]; // deliberately stale
+
+    let status = f.absorb_transfer(
+        "copied",
+        RcloneDone {
+            code: Some(0),
+            stdout: String::new(),
+            stderr_tail: String::new(),
+        },
+    );
+
+    assert!(status.contains("copied"));
+    assert!(
+        !f.right.entries.is_empty(),
+        "local Right panel must reload even though Left is remote"
+    );
+    assert!(
+        f.pending.is_some(),
+        "remote Left panel must still kick off a listing"
+    );
+
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
 fn absorb_simple_failure_surfaces_stderr_no_relist() {
     let mut f = remote_pane();
     let status = f.absorb_simple(

@@ -195,10 +195,13 @@ impl FarPane {
             );
         }
         // Re-list whichever sides are remote; local sides reload synchronously.
+        let mut remote_listed = false;
         for side in [Side::Left, Side::Right] {
             if self.panel(side).loc.is_remote() {
-                let _ = self.begin_list(side);
-                break;
+                if !remote_listed {
+                    let _ = self.begin_list(side);
+                    remote_listed = true;
+                }
             } else {
                 self.panel_mut(side).reload();
             }
