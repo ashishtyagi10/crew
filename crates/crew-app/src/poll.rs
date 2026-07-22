@@ -62,6 +62,11 @@ impl CrewApp {
         // Status flashes from Far panes whose command finished this tick
         // (surfaced after the loop to avoid fighting the panes borrow).
         let mut far_statuses: Vec<String> = Vec::new();
+        // `FarAction`s a Far pane's `poll_ops` produced this tick (e.g. a
+        // finished remote download's `Open`), paired with the pane index —
+        // applied after the loop via the shared `apply_far_action` (see
+        // `faraction.rs`), same reason as `far_statuses`.
+        let mut far_actions: Vec<(usize, crate::farpane::FarAction)> = Vec::new();
         // Notification events detected this tick, surfaced after the pane loops so
         // they don't fight the `&mut self.panes` borrow. (kind, pane title, detail).
         let mut notify_events: Vec<(crate::notify::NotifyKind, String, String)> = Vec::new();
@@ -99,14 +104,12 @@ impl CrewApp {
                         changed = true;
                     }
                     if let Some(action) = f.poll_ops() {
-                        if let crate::farpane::FarAction::Status(msg) = action {
-                            far_statuses.push(msg);
-                        }
-                        // Other FarAction variants (e.g. Open, for a remote
-                        // file download) aren't produced by poll_ops yet —
-                        // only List lands in Task 5 — so there's no routing
-                        // helper for them here. Wire that up in Task 10
-                        // alongside the variant that needs it.
+                        // Deferred past the borrow of `p`/`f` — apply_far_action
+                        // takes `&mut self` (e.g. to `close_pane` or flash a
+                        // status), which can't happen while this pane is
+                        // borrowed. `i` is the pane being polled, standing in
+                        // for the key path's `focused`.
+                        far_actions.push((i, action));
                         changed = true;
                     }
                     changed
@@ -227,6 +230,9 @@ impl CrewApp {
         }
         for msg in far_statuses.drain(..) {
             self.set_status(&msg);
+        }
+        for (idx, action) in far_actions.drain(..) {
+            self.apply_far_action(action, idx);
         }
         // Drive the background self-update: animate its card and dismiss it when
         // done. The new binary applies on `/restart` — Crew does not restart itself.

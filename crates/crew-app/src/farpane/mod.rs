@@ -145,6 +145,10 @@ pub struct FarPane {
     /// The Alt+F1/F2 drive-select overlay, if open — swallows keys until
     /// `choose_drive` (Enter) or a close (Esc) clears it back to `None`.
     pub(crate) drive_select: Option<remote::DriveSelect>,
+    /// Downloaded remote files (F3/F4/Enter on a remote entry) being watched
+    /// for local edits to push back — populated by `remote::absorb_download`,
+    /// consumed by Task 11's auto-upload.
+    pub(crate) watches: Vec<remote::Watch>,
 }
 
 /// The session-wide `$PATH` binaries cache backing [`FarPane::bins`]: every
@@ -175,6 +179,7 @@ impl FarPane {
             ask: None,
             pending: None,
             drive_select: None,
+            watches: Vec::new(),
         }
     }
 

@@ -175,6 +175,61 @@ fn absorb_transfer_reloads_local_right_when_remote_is_left() {
 }
 
 #[test]
+fn absorb_download_opens_temp_and_registers_watch() {
+    let mut f = remote_pane();
+    let remote = f.left.loc.child("notes.txt");
+    let temp = std::env::temp_dir().join("far-drive-test-notes.txt");
+    std::fs::write(&temp, b"hi").unwrap();
+    let action = f.absorb_download(
+        remote.clone(),
+        temp.clone(),
+        RcloneDone {
+            code: Some(0),
+            stdout: String::new(),
+            stderr_tail: String::new(),
+        },
+    );
+    assert!(matches!(action, crate::farpane::keys::FarAction::Open(ref p) if p == &temp));
+    assert_eq!(f.watches.len(), 1);
+    let _ = std::fs::remove_file(&temp);
+}
+
+#[test]
+fn absorb_download_failure_surfaces_stderr_no_watch() {
+    let mut f = remote_pane();
+    let remote = f.left.loc.child("notes.txt");
+    let temp = std::env::temp_dir().join("far-drive-test-notes-fail.txt");
+    let action = f.absorb_download(
+        remote,
+        temp,
+        RcloneDone {
+            code: Some(1),
+            stdout: String::new(),
+            stderr_tail: "auth failed".into(),
+        },
+    );
+    assert!(
+        matches!(action, crate::farpane::keys::FarAction::Status(ref s) if s.contains("auth failed"))
+    );
+    assert!(f.watches.is_empty());
+}
+
+#[test]
+fn begin_download_starts_a_pending_transfer() {
+    let mut f = remote_pane(); // left = gdrive root, active by default
+    f.left.entries = vec![crate::farpane::Entry {
+        name: "notes.txt".into(),
+        is_dir: false,
+        is_parent: false,
+        size: 3,
+    }];
+    f.left.sel = 0;
+    let action = f.begin_download("notes.txt");
+    assert!(matches!(action, crate::farpane::keys::FarAction::Status(_)));
+    assert!(f.pending.is_some(), "download runs on rclone");
+}
+
+#[test]
 fn absorb_simple_failure_surfaces_stderr_no_relist() {
     let mut f = remote_pane();
     let status = f.absorb_simple(

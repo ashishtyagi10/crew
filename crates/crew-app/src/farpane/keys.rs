@@ -376,20 +376,23 @@ pub(crate) fn activate(p: &mut FarPane) -> Option<FarAction> {
     }
     match panel.loc.local_path() {
         Some(dir) => Some(FarAction::Open(dir.join(name))),
-        None => None, // remote open handled in a later task
+        None => Some(p.begin_download(&name)), // remote file: download, then open
     }
 }
 
-/// F3/F4: open the selected file with the OS default app (directories ignored).
-fn open_selected(p: &FarPane) -> Option<FarAction> {
+/// F3/F4: open the selected file with the OS default app (directories
+/// ignored); a remote file downloads first (`begin_download`).
+fn open_selected(p: &mut FarPane) -> Option<FarAction> {
     let panel = p.panel(p.active);
     let entry = panel.entries.get(panel.sel)?;
     if entry.is_parent || entry.is_dir {
         return None;
     }
-    match panel.loc.local_path() {
-        Some(dir) => Some(FarAction::Open(dir.join(&entry.name))),
-        None => None, // remote open handled in a later task
+    let name = entry.name.clone();
+    let local = panel.loc.local_path();
+    match local {
+        Some(dir) => Some(FarAction::Open(dir.join(&name))),
+        None => Some(p.begin_download(&name)),
     }
 }
 

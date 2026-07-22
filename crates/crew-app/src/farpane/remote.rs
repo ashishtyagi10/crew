@@ -2,12 +2,25 @@
 //! the single in-flight op in `FarPane::pending`, and land its result in the
 //! per-tick `poll_ops` — the same worker + mpsc + poll shape as `ask.rs`, so
 //! the winit thread never blocks on the network.
+use std::path::PathBuf;
 use std::sync::mpsc::Receiver;
+use std::time::SystemTime;
 
 use super::keys::FarAction;
 use super::location::Location;
 use super::rclone::{self, RcloneDone};
 use super::{FarPane, Side};
+
+/// A downloaded remote file being watched for local edits to push back
+/// (Task 11 uploads on change; this task only registers the mapping).
+pub(crate) struct Watch {
+    #[allow(dead_code)]
+    pub temp: PathBuf,
+    #[allow(dead_code)]
+    pub remote: Location,
+    #[allow(dead_code)]
+    pub mtime: Option<SystemTime>,
+}
 
 /// Which remote op a `PendingOp` represents (extended in Tasks 7-10).
 pub(crate) enum PendingKind {
@@ -29,6 +42,12 @@ pub(crate) enum PendingKind {
         verb: &'static str,
         #[allow(dead_code)]
         refresh_both: bool,
+    },
+    /// F3/F4/Enter on a remote file (Task 10): `rclone copyto` the file to a
+    /// local temp path, then open it and register a `Watch` for Task 11.
+    Download {
+        remote: Location,
+        temp: PathBuf,
     },
 }
 
@@ -102,6 +121,9 @@ impl FarPane {
             }
             PendingKind::Transfer { verb, .. } => {
                 Some(FarAction::Status(self.absorb_transfer(verb, done)))
+            }
+            PendingKind::Download { remote, temp } => {
+                Some(self.absorb_download(remote, temp, done))
             }
         }
     }
@@ -207,6 +229,59 @@ impl FarPane {
             }
         }
         format!("{verb} \u{2713}")
+    }
+
+    /// F3/F4/Enter on a remote file: `rclone copyto` it to a local temp path
+    /// under `<tmp>/far-drive/<name>`, so the OS-default app opens a real
+    /// local file. `entry_name` is the selected file's name in the active
+    /// panel; `remote` is that panel's location joined with it.
+    pub(crate) fn begin_download(&mut self, entry_name: &str) -> FarAction {
+        if self.pending.is_some() {
+            return FarAction::Status("rclone busy — wait for it".into());
+        }
+        let remote = self.panel(self.active).loc.child(entry_name);
+        let dir = std::env::temp_dir().join("far-drive");
+        if let Err(e) = std::fs::create_dir_all(&dir) {
+            return FarAction::Status(format!("download: {e}"));
+        }
+        let temp = dir.join(entry_name);
+        let note = format!("downloading {}", remote.rclone_addr());
+        let argv = rclone::argv_copy(&remote, &Location::local(&temp), false);
+        let rx = rclone::run(argv);
+        self.pending = Some(PendingOp {
+            kind: PendingKind::Download { remote, temp },
+            rx,
+            note: note.clone(),
+        });
+        FarAction::Status(note)
+    }
+
+    /// Land a finished `Download`: surface the error, or open the temp file
+    /// and register a `Watch` (temp → remote) so a future save can push the
+    /// edit back (Task 11). Split out for tests, like `absorb_list`.
+    pub(crate) fn absorb_download(
+        &mut self,
+        remote: Location,
+        temp: PathBuf,
+        done: RcloneDone,
+    ) -> FarAction {
+        if done.code != Some(0) {
+            return FarAction::Status(format!(
+                "rclone: download failed: {}",
+                if done.stderr_tail.is_empty() {
+                    "error".into()
+                } else {
+                    done.stderr_tail
+                }
+            ));
+        }
+        let mtime = std::fs::metadata(&temp).and_then(|m| m.modified()).ok();
+        self.watches.push(Watch {
+            temp: temp.clone(),
+            remote,
+            mtime,
+        });
+        FarAction::Open(temp)
     }
 
     /// Install a finished listing (or surface its error). Split out for tests.
