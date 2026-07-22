@@ -255,6 +255,60 @@ fn changed_watch_triggers_upload() {
 }
 
 #[test]
+fn changed_watch_refreshes_the_side_actually_showing_its_remote() {
+    // Regression for the review bug: Left and Right can browse two
+    // DIFFERENT remotes at once. A watch registered from a download on the
+    // RIGHT panel (dropbox:) must refresh Right, not unconditionally Left
+    // just because Left also happens to be remote (gdrive:).
+    let mut f = FarPane::new(std::env::temp_dir());
+    f.left.loc = Location {
+        backend: Backend::Rclone {
+            remote: "gdrive".into(),
+        },
+        path: String::new(),
+    };
+    f.right.loc = Location {
+        backend: Backend::Rclone {
+            remote: "dropbox".into(),
+        },
+        path: String::new(),
+    };
+
+    let temp = std::env::temp_dir().join("far-drive-dual-remote-watch-test.txt");
+    std::fs::write(&temp, b"one").unwrap();
+    let old = std::fs::metadata(&temp).unwrap().modified().unwrap();
+    f.watches.push(super::Watch {
+        temp: temp.clone(),
+        remote: f.right.loc.child("notes.txt"), // watch is under dropbox:, i.e. Right
+        mtime: Some(old),
+    });
+    // Simulate an edit with a strictly newer mtime.
+    std::thread::sleep(std::time::Duration::from_millis(10));
+    std::fs::write(&temp, b"two").unwrap();
+
+    let action = f.poll_watches();
+    assert!(
+        matches!(action, Some(crate::farpane::keys::FarAction::Status(ref m)) if m.contains("syncing")),
+        "an edit under dropbox: should still kick off an upload"
+    );
+    assert!(
+        f.pending.is_some(),
+        "an edit pushes the file back to the remote"
+    );
+    match f.pending.as_ref().unwrap().kind {
+        super::PendingKind::Simple { refresh, .. } => {
+            assert!(
+                matches!(refresh, Side::Right),
+                "must refresh Right (dropbox:, where the watched file lives), not Left (gdrive:, unrelated)"
+            );
+        }
+        _ => panic!("expected a Simple pending op"),
+    }
+
+    let _ = std::fs::remove_file(&temp);
+}
+
+#[test]
 fn absorb_simple_failure_surfaces_stderr_no_relist() {
     let mut f = remote_pane();
     let status = f.absorb_simple(

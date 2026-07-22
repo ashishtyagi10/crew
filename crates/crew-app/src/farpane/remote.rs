@@ -128,11 +128,24 @@ impl FarPane {
                 let w = &self.watches[i];
                 let argv = rclone::argv_copy(&Location::local(&w.temp), &w.remote, false);
                 let note = format!("\u{2191} syncing {}", w.remote.rclone_addr());
-                let remote_side = if self.left.loc.is_remote() {
-                    Side::Left
-                } else {
-                    Side::Right
-                };
+                let watch_remote = w.remote.remote_name().map(str::to_string);
+                // Refresh whichever panel is actually showing the watch's
+                // remote (Left and Right can browse different remotes at
+                // once — see the review note above `Watch`). Fall back to
+                // any remote panel, then to the active side, so the upload
+                // itself is never blocked on finding a perfect match.
+                let remote_side = [Side::Left, Side::Right]
+                    .into_iter()
+                    .find(|&side| {
+                        self.panel(side).loc.remote_name().is_some()
+                            && self.panel(side).loc.remote_name() == watch_remote.as_deref()
+                    })
+                    .or_else(|| {
+                        [Side::Left, Side::Right]
+                            .into_iter()
+                            .find(|&side| self.panel(side).loc.is_remote())
+                    })
+                    .unwrap_or(self.active);
                 return Some(self.begin_simple(argv, remote_side, "synced", note));
             }
         }

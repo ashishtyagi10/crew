@@ -32,6 +32,17 @@ impl Location {
         matches!(self.backend, Backend::Rclone { .. })
     }
 
+    /// The rclone remote name (without the trailing `:`) this location is
+    /// under, or `None` for a local path. Used to tell two remote panels
+    /// apart when both `is_remote()` (Left and Right can browse different
+    /// remotes independently via Alt+F1/Alt+F2).
+    pub(crate) fn remote_name(&self) -> Option<&str> {
+        match &self.backend {
+            Backend::Local => None,
+            Backend::Rclone { remote } => Some(remote.as_str()),
+        }
+    }
+
     pub(crate) fn local_path(&self) -> Option<PathBuf> {
         match self.backend {
             Backend::Local => Some(PathBuf::from(&self.path)),
