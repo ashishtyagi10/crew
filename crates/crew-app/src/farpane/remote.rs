@@ -23,6 +23,13 @@ pub(crate) enum PendingKind {
         refresh: Side,
         verb: &'static str,
     },
+    /// A copy/move (F5/F6) touching at least one remote endpoint (Task 9) —
+    /// re-lists both panels on success (see `absorb_transfer`).
+    Transfer {
+        verb: &'static str,
+        #[allow(dead_code)]
+        refresh_both: bool,
+    },
 }
 
 pub(crate) struct PendingOp {
@@ -93,6 +100,9 @@ impl FarPane {
             PendingKind::Simple { refresh, verb } => {
                 Some(FarAction::Status(self.absorb_simple(refresh, verb, done)))
             }
+            PendingKind::Transfer { verb, .. } => {
+                Some(FarAction::Status(self.absorb_transfer(verb, done)))
+            }
         }
     }
 
@@ -139,6 +149,60 @@ impl FarPane {
         }
         // Re-list the affected panel to reflect the change.
         let _ = self.begin_list(refresh);
+        format!("{verb} \u{2713}")
+    }
+
+    /// Kick off a copy/move (F5/F6) that touches at least one remote
+    /// endpoint — `argv` is `rclone`'s `copy(to)`/`move(to)` invocation built
+    /// by `fileops::copy`/`rename_move`. Re-lists both panels on success (see
+    /// `absorb_transfer`).
+    pub(crate) fn begin_transfer(
+        &mut self,
+        argv: Vec<String>,
+        verb: &'static str,
+        note: String,
+    ) -> FarAction {
+        if self.pending.is_some() {
+            return FarAction::Status("rclone busy — wait for it".into());
+        }
+        let rx = rclone::run(argv);
+        self.pending = Some(PendingOp {
+            kind: PendingKind::Transfer {
+                verb,
+                refresh_both: true,
+            },
+            rx,
+            note: note.clone(),
+        });
+        FarAction::Status(note)
+    }
+
+    /// Land a finished `Transfer` op: surface the error, or re-list both
+    /// panels to reflect the change. Only one remote listing can be pending
+    /// at a time, so when both sides are remote only the first (in
+    /// `[Left, Right]` order) is re-listed this tick — the other is left
+    /// stale until focused (accepted v1). Split out for tests, like
+    /// `absorb_simple`.
+    pub(crate) fn absorb_transfer(&mut self, verb: &'static str, done: RcloneDone) -> String {
+        if done.code != Some(0) {
+            return format!(
+                "rclone: {verb} failed: {}",
+                if done.stderr_tail.is_empty() {
+                    "error".into()
+                } else {
+                    done.stderr_tail
+                }
+            );
+        }
+        // Re-list whichever sides are remote; local sides reload synchronously.
+        for side in [Side::Left, Side::Right] {
+            if self.panel(side).loc.is_remote() {
+                let _ = self.begin_list(side);
+                break;
+            } else {
+                self.panel_mut(side).reload();
+            }
+        }
         format!("{verb} \u{2713}")
     }
 

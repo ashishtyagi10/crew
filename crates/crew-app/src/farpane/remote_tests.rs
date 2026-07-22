@@ -105,6 +105,32 @@ fn remote_mkdir_starts_a_simple_op() {
 }
 
 #[test]
+fn copy_local_to_remote_is_async() {
+    let mut f = FarPane::new(std::env::temp_dir()); // left local
+    f.right.loc = Location {
+        backend: Backend::Rclone {
+            remote: "gdrive".into(),
+        },
+        path: String::new(),
+    };
+    f.active = Side::Left;
+    // put a fake selected file in the local panel
+    f.left.entries = vec![crate::farpane::Entry {
+        name: "a.txt".into(),
+        is_dir: false,
+        is_parent: false,
+        size: 1,
+    }];
+    f.left.sel = 0;
+    let action = crate::farpane::fileops::copy(&mut f);
+    assert!(matches!(action, crate::farpane::keys::FarAction::Status(_)));
+    assert!(
+        f.pending.is_some(),
+        "a transfer touching a remote runs on rclone"
+    );
+}
+
+#[test]
 fn absorb_simple_failure_surfaces_stderr_no_relist() {
     let mut f = remote_pane();
     let status = f.absorb_simple(
