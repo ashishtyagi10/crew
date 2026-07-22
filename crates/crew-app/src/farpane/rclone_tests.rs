@@ -94,3 +94,29 @@ fn parse_lsjson_rejects_garbage() {
     };
     assert!(parse_lsjson("not json", &loc).is_err());
 }
+
+use std::time::Duration;
+
+#[test]
+fn runner_captures_stdout_and_exit_code() {
+    let rx = run_with("/bin/echo", vec!["hello".into()]);
+    let done = rx.recv_timeout(Duration::from_secs(5)).expect("result");
+    assert_eq!(done.code, Some(0));
+    assert_eq!(done.stdout.trim(), "hello");
+}
+
+#[test]
+fn runner_reports_stderr_tail_and_nonzero() {
+    let rx = run_with("/bin/sh", vec!["-c".into(), "echo boom >&2; exit 2".into()]);
+    let done = rx.recv_timeout(Duration::from_secs(5)).expect("result");
+    assert_eq!(done.code, Some(2));
+    assert_eq!(done.stderr_tail, "boom");
+}
+
+#[test]
+fn runner_missing_binary_is_a_none_code() {
+    let rx = run_with("/definitely/not/here", vec![]);
+    let done = rx.recv_timeout(Duration::from_secs(5)).expect("result");
+    assert_eq!(done.code, None);
+    assert!(!done.stderr_tail.is_empty());
+}

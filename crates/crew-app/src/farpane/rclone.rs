@@ -2,6 +2,8 @@
 //! Everything here is pure — argv vectors and JSON→`Entry` mapping — so it is
 //! unit-tested without a network or an installed `rclone`. The worker that
 //! actually runs these argv lives alongside in `run` (Task 3).
+use std::sync::mpsc::{self, Receiver};
+
 use serde::Deserialize;
 
 use super::list;
@@ -78,6 +80,60 @@ pub(crate) fn parse_lsjson(json: &str, loc: &Location) -> Result<Vec<Entry>, Str
     list::sort_entries(&mut items);
     out.extend(items);
     Ok(out)
+}
+
+/// What a finished `rclone` run reports: exit code (None = failed to spawn or
+/// killed), full stdout, and the last non-empty stderr line for status.
+pub(crate) struct RcloneDone {
+    pub code: Option<i32>,
+    pub stdout: String,
+    pub stderr_tail: String,
+}
+
+/// Run `rclone <argv...>` on a worker thread.
+pub(crate) fn run(argv: Vec<String>) -> Receiver<RcloneDone> {
+    run_with("rclone", argv)
+}
+
+/// Run `program <argv...>` on a worker thread; the result arrives on the
+/// returned channel. Split from `run` so tests can drive a stub binary.
+pub(crate) fn run_with(program: &str, argv: Vec<String>) -> Receiver<RcloneDone> {
+    let (tx, rx) = mpsc::channel();
+    let program = program.to_string();
+    std::thread::spawn(move || {
+        let done = match std::process::Command::new(&program).args(&argv).output() {
+            Ok(out) => RcloneDone {
+                code: out.status.code(),
+                stdout: String::from_utf8_lossy(&out.stdout).into_owned(),
+                stderr_tail: tail_line(&out.stderr).unwrap_or_default(),
+            },
+            Err(e) => RcloneDone {
+                code: None,
+                stdout: String::new(),
+                stderr_tail: format!("failed to start rclone: {e}"),
+            },
+        };
+        let _ = tx.send(done);
+    });
+    rx
+}
+
+fn tail_line(bytes: &[u8]) -> Option<String> {
+    String::from_utf8_lossy(bytes)
+        .lines()
+        .rev()
+        .map(str::trim)
+        .find(|l| !l.is_empty())
+        .map(str::to_string)
+}
+
+/// Whether the `rclone` binary resolves on `$PATH`.
+pub(crate) fn available() -> bool {
+    std::process::Command::new("rclone")
+        .arg("version")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
 }
 
 #[cfg(test)]
