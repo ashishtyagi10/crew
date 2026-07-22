@@ -32,6 +32,25 @@ fn choose_remote_reroots_and_lists() {
     assert!(f.drive_select.is_none(), "overlay closes on choose");
 }
 
+#[test]
+fn restore_remote_parses_the_address_reroots_and_lists() {
+    // Task 12: session restore hands the active panel's persisted
+    // `Location::rclone_addr()` string back to `restore_remote`.
+    let mut f = FarPane::new(std::env::temp_dir());
+    let _ = f.restore_remote("gdrive:Photos/2026");
+    assert!(f.left.loc.is_remote());
+    assert_eq!(f.left.loc.rclone_addr(), "gdrive:Photos/2026");
+    assert!(f.pending.is_some(), "restore kicks off a listing");
+}
+
+#[test]
+fn restore_remote_root_address_has_an_empty_path() {
+    let mut f = FarPane::new(std::env::temp_dir());
+    let _ = f.restore_remote("gdrive:");
+    assert!(f.left.loc.is_remote());
+    assert_eq!(f.left.loc.rclone_addr(), "gdrive:");
+}
+
 fn remote_pane() -> FarPane {
     let mut f = FarPane::new(std::env::temp_dir());
     f.left.loc = Location {

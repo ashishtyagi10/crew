@@ -49,6 +49,7 @@ fn unknown_kind_spawns_nothing() {
         kind: "hologram".into(),
         dir: None,
         min: false,
+        remote: false,
     }]);
     assert!(app.panes.is_empty());
 }
@@ -84,6 +85,28 @@ fn session_panes_snapshots_a_crew_chat_pane_by_its_routing_label() {
     // A label-less chat pane (Cmd+J) is NOT snapshot.
     app.panes[0].label = None;
     assert!(app.session_panes().is_empty());
+}
+
+#[test]
+fn restore_from_reroots_a_remote_far_pane_and_starts_listing() {
+    // Task 12: a Far pane whose active panel was browsing a remote persists
+    // as `SavedPane::far_remote` and must come back pointed at the same
+    // rclone address (re-rooted after the normal local spawn), not at the
+    // tracked cwd it was spawned in.
+    let mut app = CrewApp {
+        cwd: PathBuf::from(tmp_dir_str()),
+        ..Default::default()
+    };
+    app.restore_from(vec![SavedPane::far_remote("gdrive:Photos".into())]);
+    assert_eq!(app.panes.len(), 1);
+    let PaneContent::Far(f) = &app.panes[0].content else {
+        panic!("expected a Far pane");
+    };
+    let loc = f.active_loc();
+    assert!(loc.is_remote(), "restored panel must be remote");
+    assert_eq!(loc.rclone_addr(), "gdrive:Photos");
+    // Re-rooting also kicks off `begin_list`, mirroring `choose_drive`.
+    assert!(f.ops_busy(), "restore should start listing the remote");
 }
 
 #[test]

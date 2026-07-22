@@ -445,6 +445,30 @@ impl FarPane {
             }
         }
     }
+
+    /// Session restore (Task 12) of a remote Far panel: the pane was just
+    /// spawned fresh (both panels local, rooted at the tracked cwd) — parse
+    /// the persisted `remote:path` address (a `Location::rclone_addr()`
+    /// string) back into a `Location`, re-root the active panel onto it, and
+    /// kick off its listing so the restored pane comes back populated
+    /// instead of sitting on a stale local listing. Mirrors
+    /// `choose_drive`'s `DriveOption::Remote` arm. A malformed address (no
+    /// `:`) is treated as a remote with an empty sub-path rather than
+    /// silently doing nothing.
+    pub(crate) fn restore_remote(&mut self, addr: &str) -> FarAction {
+        let (remote, path) = addr.split_once(':').unwrap_or((addr, ""));
+        let side = self.active;
+        let panel = self.panel_mut(side);
+        panel.loc = Location {
+            backend: super::location::Backend::Rclone {
+                remote: remote.to_string(),
+            },
+            path: path.to_string(),
+        };
+        panel.sel = 0;
+        panel.entries.clear();
+        self.begin_list(side)
+    }
 }
 
 #[cfg(test)]
