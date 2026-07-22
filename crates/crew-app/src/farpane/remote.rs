@@ -11,7 +11,12 @@ use super::{FarPane, Side};
 
 /// Which remote op a `PendingOp` represents (extended in Tasks 7-10).
 pub(crate) enum PendingKind {
-    List { side: Side, loc: Location },
+    List {
+        side: Side,
+        loc: Location,
+    },
+    /// `rclone listremotes`, landing into the drive-select overlay.
+    Remotes,
 }
 
 pub(crate) struct PendingOp {
@@ -21,6 +26,31 @@ pub(crate) struct PendingOp {
     /// into the render loading state by a later task.
     #[allow(dead_code)]
     pub note: String,
+}
+
+/// One selectable row in the drive-select overlay (Alt+F1/F2).
+pub(crate) enum DriveOption {
+    Local,
+    Remote(String), // remote name without the trailing ':'
+}
+
+/// The Alt+F1/F2 drive-select overlay: which panel it targets, the choices
+/// (empty while `listremotes` is still running), and the highlighted row.
+pub(crate) struct DriveSelect {
+    pub side: Side,
+    pub options: Vec<DriveOption>,
+    pub sel: usize,
+}
+
+impl DriveSelect {
+    /// The overlay shown while `listremotes` is still running.
+    pub(crate) fn loading(side: Side) -> Self {
+        Self {
+            side,
+            options: Vec::new(),
+            sel: 0,
+        }
+    }
 }
 
 impl FarPane {
@@ -53,6 +83,7 @@ impl FarPane {
             PendingKind::List { side, loc } => {
                 Some(FarAction::Status(self.absorb_list(side, loc, done)))
             }
+            PendingKind::Remotes => Some(FarAction::Status(self.absorb_remotes(done))),
         }
     }
 
@@ -87,6 +118,89 @@ impl FarPane {
     /// Whether a remote op is in flight (feeds the busy sweep / spinner).
     pub(crate) fn ops_busy(&self) -> bool {
         self.pending.is_some()
+    }
+
+    /// Alt+F1 (left) / Alt+F2 (right): open the drive-select overlay for
+    /// `side` and kick off `rclone listremotes` in the background. Refuses
+    /// (with a status line, no overlay) when `rclone` isn't installed or
+    /// another remote op is already in flight.
+    pub(crate) fn open_drive_select(&mut self, side: Side) -> FarAction {
+        if !rclone::available() {
+            return FarAction::Status(
+                "rclone not found — install it and run `rclone config`".into(),
+            );
+        }
+        if self.pending.is_some() {
+            return FarAction::Status("rclone busy — wait for it".into());
+        }
+        self.drive_select = Some(DriveSelect::loading(side));
+        let rx = rclone::run(rclone::argv_listremotes());
+        self.pending = Some(PendingOp {
+            kind: PendingKind::Remotes,
+            rx,
+            note: "listing remotes".into(),
+        });
+        FarAction::Status("choose a drive\u{2026}".into())
+    }
+
+    /// Land a finished `listremotes`: populate the overlay's options (`Local`
+    /// plus one `Remote` per non-blank output line) or close it and surface
+    /// the error. Split out for tests, like `absorb_list`.
+    pub(crate) fn absorb_remotes(&mut self, done: RcloneDone) -> String {
+        let Some(ds) = self.drive_select.as_mut() else {
+            return String::new();
+        };
+        if done.code != Some(0) {
+            self.drive_select = None;
+            return format!(
+                "rclone: {}",
+                if done.stderr_tail.is_empty() {
+                    "listremotes failed".to_string()
+                } else {
+                    done.stderr_tail
+                }
+            );
+        }
+        let mut options = vec![DriveOption::Local];
+        for line in done.stdout.lines().map(str::trim).filter(|l| !l.is_empty()) {
+            options.push(DriveOption::Remote(line.trim_end_matches(':').to_string()));
+        }
+        ds.options = options;
+        ds.sel = 0;
+        "choose a drive \u{2014} Enter to open, Esc to cancel".into()
+    }
+
+    /// Apply the highlighted overlay option: re-root `side`'s panel to the
+    /// local cwd (`Local`) or to a remote's root, kicking off its listing
+    /// (`Remote`). Closes the overlay either way.
+    pub(crate) fn choose_drive(&mut self) -> Option<FarAction> {
+        let ds = self.drive_select.take()?;
+        let option = ds.options.into_iter().nth(ds.sel)?;
+        let side = ds.side;
+        match option {
+            DriveOption::Local => {
+                // Re-root to the process cwd (or temp as a last resort).
+                let cwd = std::env::current_dir().unwrap_or_else(|_| std::env::temp_dir());
+                let panel = self.panel_mut(side);
+                panel.loc = Location::local(&cwd);
+                panel.sel = 0;
+                panel.reload();
+                Some(FarAction::Status(format!(
+                    "local \u{2014} {}",
+                    cwd.display()
+                )))
+            }
+            DriveOption::Remote(remote) => {
+                let panel = self.panel_mut(side);
+                panel.loc = Location {
+                    backend: super::location::Backend::Rclone { remote },
+                    path: String::new(),
+                };
+                panel.sel = 0;
+                panel.entries.clear();
+                Some(self.begin_list(side))
+            }
+        }
     }
 }
 

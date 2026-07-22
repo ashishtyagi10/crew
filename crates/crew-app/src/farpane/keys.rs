@@ -28,14 +28,27 @@ pub enum FarAction {
     Status(String),
 }
 
-pub(crate) fn reduce(p: &mut FarPane, key: &KeyEvent) -> Option<FarAction> {
+pub(crate) fn reduce(p: &mut FarPane, key: &KeyEvent, alt: bool) -> Option<FarAction> {
     if !key.state.is_pressed() {
         return None;
+    }
+    // The drive-select overlay (Alt+F1/F2) swallows every key until it's
+    // confirmed (Enter) or cancelled (Esc) — checked before the prompt and
+    // the main match so nothing leaks through while it's open.
+    if p.drive_select.is_some() {
+        return drive_select_key(p, key);
     }
     // A live text prompt (F7 make-folder) swallows every key until it's
     // confirmed (Enter) or cancelled (Esc).
     if p.prompt.is_some() {
         return prompt_key(p, key);
+    }
+    if alt {
+        match &key.logical_key {
+            Key::Named(NamedKey::F1) => return Some(p.open_drive_select(super::Side::Left)),
+            Key::Named(NamedKey::F2) => return Some(p.open_drive_select(super::Side::Right)),
+            _ => {}
+        }
     }
     let typing = !p.cmdline.is_empty();
     match &key.logical_key {
@@ -255,6 +268,36 @@ pub(crate) fn accept_ghost(p: &mut FarPane) {
     }
     if let Some(g) = p.history.ghost(&p.cmdline) {
         p.cmdline = g.to_string();
+    }
+}
+
+/// Handle a key while the drive-select overlay (Alt+F1/F2) is open: Up/Down
+/// move the highlighted row, Enter applies it (`choose_drive`), Esc closes
+/// the overlay without changing anything.
+fn drive_select_key(p: &mut FarPane, key: &KeyEvent) -> Option<FarAction> {
+    match &key.logical_key {
+        Key::Named(NamedKey::Escape) => {
+            p.drive_select = None;
+            None
+        }
+        Key::Named(NamedKey::Enter) => p.choose_drive(),
+        Key::Named(NamedKey::ArrowDown) => {
+            if let Some(ds) = p.drive_select.as_mut() {
+                if !ds.options.is_empty() {
+                    ds.sel = (ds.sel + 1) % ds.options.len();
+                }
+            }
+            None
+        }
+        Key::Named(NamedKey::ArrowUp) => {
+            if let Some(ds) = p.drive_select.as_mut() {
+                if !ds.options.is_empty() {
+                    ds.sel = (ds.sel + ds.options.len() - 1) % ds.options.len();
+                }
+            }
+            None
+        }
+        _ => None,
     }
 }
 

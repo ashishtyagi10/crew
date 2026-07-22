@@ -90,7 +90,62 @@ pub(crate) fn render(p: &FarPane, cols: u16, rows: u16) -> Vec<CellView> {
         Some(prompt) => prompt_bar(&mut buf, split[2], prompt),
         None => function_bar(&mut buf, split[2]),
     }
+    if let Some(ds) = &p.drive_select {
+        drive_select_overlay(&mut buf, area, ds);
+    }
     crate::tui::to_cells(&buf)
+}
+
+/// The Alt+F1/F2 drive-select overlay: a small centered box listing "Local
+/// disk" plus each configured rclone remote, highlighting `sel`. Shows a
+/// "listing remotes…" placeholder while `listremotes` is still running
+/// (`options` empty).
+fn drive_select_overlay(buf: &mut Buffer, area: Rect, ds: &super::remote::DriveSelect) {
+    let t = crew_theme::theme();
+    let bg = Color::Rgb(t.page_bg.0, t.page_bg.1, t.page_bg.2);
+    let ink = Color::Rgb(t.ink.0, t.ink.1, t.ink.2);
+    let page_col = bg;
+    let rows = ds.options.len().max(1) as u16;
+    let h = (rows + 2).min(area.height);
+    let w = 32u16.min(area.width);
+    let x = area.x + (area.width.saturating_sub(w)) / 2;
+    let y = area.y + (area.height.saturating_sub(h)) / 2;
+    let box_area = Rect::new(x, y, w, h);
+    let block = Block::bordered()
+        .border_type(BorderType::Rounded)
+        .border_style(Style::new().fg(accent_color()))
+        .title(Span::styled(
+            "Select drive",
+            Style::new().fg(accent_color()),
+        ))
+        .style(Style::new().bg(bg));
+    let inner = block.inner(box_area);
+    Widget::render(ratatui::widgets::Clear, box_area, buf);
+    block.render(box_area, buf);
+    if ds.options.is_empty() {
+        Paragraph::new(Line::from(Span::styled(
+            "listing remotes\u{2026}",
+            Style::new().fg(ink).bg(bg),
+        )))
+        .style(Style::new().bg(bg))
+        .render(inner, buf);
+        return;
+    }
+    let items: Vec<ListItem> = ds
+        .options
+        .iter()
+        .map(|opt| {
+            let label = match opt {
+                super::remote::DriveOption::Local => "Local disk".to_string(),
+                super::remote::DriveOption::Remote(name) => name.clone(),
+            };
+            ListItem::new(Line::from(Span::styled(label, Style::new().fg(ink).bg(bg))))
+        })
+        .collect();
+    let hl = Style::new().fg(page_col).bg(accent_color());
+    let mut state = ListState::default();
+    state.select(Some(ds.sel));
+    StatefulWidget::render(List::new(items).highlight_style(hl), inner, buf, &mut state);
 }
 
 /// The Far command line: `<cwd> $ <typed>▏`, the directory dimmed and the typed

@@ -142,6 +142,9 @@ pub struct FarPane {
     /// while one is running is rejected with a "busy" status (see
     /// `remote::begin_list`). Landed each tick via `poll_ops`.
     pub(crate) pending: Option<remote::PendingOp>,
+    /// The Alt+F1/F2 drive-select overlay, if open — swallows keys until
+    /// `choose_drive` (Enter) or a close (Esc) clears it back to `None`.
+    pub(crate) drive_select: Option<remote::DriveSelect>,
 }
 
 /// The session-wide `$PATH` binaries cache backing [`FarPane::bins`]: every
@@ -171,6 +174,7 @@ impl FarPane {
             bins_scan_started: false,
             ask: None,
             pending: None,
+            drive_select: None,
         }
     }
 
@@ -289,8 +293,8 @@ impl FarPane {
         render::render(self, cols, rows)
     }
 
-    pub fn on_key(&mut self, key: &KeyEvent) -> Option<FarAction> {
-        keys::reduce(self, key)
+    pub fn on_key(&mut self, key: &KeyEvent, alt: bool) -> Option<FarAction> {
+        keys::reduce(self, key, alt)
     }
 
     /// Scroll the active panel by moving its cursor; `render` follows it.

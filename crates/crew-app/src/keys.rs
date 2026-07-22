@@ -162,6 +162,7 @@ impl CrewApp {
         // Route non-super keys to the focused pane.
         let focused = self.focused;
         let shift = mstate.shift_key();
+        let alt = mstate.alt_key();
         let mut settings_action: Option<SettingsAction> = None;
         let mut far_action: Option<crate::farpane::FarAction> = None;
         let mut chat_action: Option<crate::chatkeys::ChatAction> = None;
@@ -177,7 +178,7 @@ impl CrewApp {
                     settings_action = s.on_key(event, shift);
                 }
                 PaneContent::Far(f) => {
-                    far_action = f.on_key(event);
+                    far_action = f.on_key(event, alt);
                 }
                 // The swarm view is display-only; Escape closes it.
                 PaneContent::Swarm(_) => {

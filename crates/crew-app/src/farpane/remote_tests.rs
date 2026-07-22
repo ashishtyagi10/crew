@@ -2,6 +2,36 @@ use super::rclone::RcloneDone;
 use super::{FarPane, Location, Side};
 use crate::farpane::location::Backend;
 
+#[test]
+fn absorb_remotes_populates_the_overlay() {
+    let mut f = FarPane::new(std::env::temp_dir());
+    f.drive_select = Some(super::DriveSelect::loading(Side::Left));
+    let done = RcloneDone {
+        code: Some(0),
+        stdout: "gdrive:\ndropbox:\n".into(),
+        stderr_tail: String::new(),
+    };
+    f.absorb_remotes(done);
+    let ds = f.drive_select.as_ref().unwrap();
+    // Local + two remotes
+    assert_eq!(ds.options.len(), 3);
+}
+
+#[test]
+fn choose_remote_reroots_and_lists() {
+    let mut f = FarPane::new(std::env::temp_dir());
+    f.drive_select = Some(super::DriveSelect {
+        side: Side::Left,
+        options: vec![super::DriveOption::Remote("gdrive".into())],
+        sel: 0,
+    });
+    let _ = f.choose_drive();
+    assert!(f.left.loc.is_remote());
+    assert_eq!(f.left.loc.rclone_addr(), "gdrive:");
+    assert!(f.pending.is_some(), "re-rooting kicks off a listing");
+    assert!(f.drive_select.is_none(), "overlay closes on choose");
+}
+
 fn remote_pane() -> FarPane {
     let mut f = FarPane::new(std::env::temp_dir());
     f.left.loc = Location {
