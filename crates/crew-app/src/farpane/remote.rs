@@ -17,6 +17,12 @@ pub(crate) enum PendingKind {
     },
     /// `rclone listremotes`, landing into the drive-select overlay.
     Remotes,
+    /// A generic "run this rclone op, then re-list the affected panel" op —
+    /// delete (Task 7), mkdir (Task 8), and further mutations reuse this.
+    Simple {
+        refresh: Side,
+        verb: &'static str,
+    },
 }
 
 pub(crate) struct PendingOp {
@@ -84,7 +90,56 @@ impl FarPane {
                 Some(FarAction::Status(self.absorb_list(side, loc, done)))
             }
             PendingKind::Remotes => Some(FarAction::Status(self.absorb_remotes(done))),
+            PendingKind::Simple { refresh, verb } => {
+                Some(FarAction::Status(self.absorb_simple(refresh, verb, done)))
+            }
         }
+    }
+
+    /// Kick off a generic rclone mutation (delete, mkdir, ...) that re-lists
+    /// `refresh`'s panel on success. `verb` labels the status line (e.g.
+    /// "deleted").
+    pub(crate) fn begin_simple(
+        &mut self,
+        argv: Vec<String>,
+        refresh: Side,
+        verb: &'static str,
+        note: String,
+    ) -> FarAction {
+        if self.pending.is_some() {
+            return FarAction::Status("rclone busy — wait for it".into());
+        }
+        let rx = rclone::run(argv);
+        self.pending = Some(PendingOp {
+            kind: PendingKind::Simple { refresh, verb },
+            rx,
+            note: note.clone(),
+        });
+        FarAction::Status(note)
+    }
+
+    /// Land a finished `Simple` op: surface the error, or re-list `refresh`'s
+    /// panel to reflect the change. Split out for tests, like `absorb_list`.
+    pub(crate) fn absorb_simple(
+        &mut self,
+        refresh: Side,
+        verb: &'static str,
+        done: RcloneDone,
+    ) -> String {
+        if done.code != Some(0) {
+            return format!(
+                "rclone: {} failed: {}",
+                verb,
+                if done.stderr_tail.is_empty() {
+                    "error".into()
+                } else {
+                    done.stderr_tail
+                }
+            );
+        }
+        // Re-list the affected panel to reflect the change.
+        let _ = self.begin_list(refresh);
+        format!("{verb} \u{2713}")
     }
 
     /// Install a finished listing (or surface its error). Split out for tests.

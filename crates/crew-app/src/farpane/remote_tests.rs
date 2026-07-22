@@ -75,3 +75,38 @@ fn absorb_list_surfaces_rclone_error() {
     assert!(!f.left.loading);
     assert!(status.contains("auth failed"));
 }
+
+#[test]
+fn absorb_simple_success_triggers_relist() {
+    let mut f = remote_pane(); // left = gdrive root
+    let status = f.absorb_simple(
+        Side::Left,
+        "deleted",
+        RcloneDone {
+            code: Some(0),
+            stdout: String::new(),
+            stderr_tail: String::new(),
+        },
+    );
+    assert!(status.contains("deleted"));
+    assert!(
+        f.pending.is_some(),
+        "a successful mutation re-lists the panel"
+    );
+}
+
+#[test]
+fn absorb_simple_failure_surfaces_stderr_no_relist() {
+    let mut f = remote_pane();
+    let status = f.absorb_simple(
+        Side::Left,
+        "deleted",
+        RcloneDone {
+            code: Some(1),
+            stdout: String::new(),
+            stderr_tail: "permission denied".into(),
+        },
+    );
+    assert!(status.contains("permission denied"));
+    assert!(f.pending.is_none());
+}

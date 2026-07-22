@@ -61,8 +61,27 @@ pub(crate) fn rename_move(p: &mut FarPane) -> FarAction {
     }
 }
 
-/// F8: send the active panel's selection to the OS trash (recoverable).
+/// F8: send the active panel's selection to the OS trash (recoverable), or
+/// run `rclone deletefile`/`purge` for a remote panel.
 pub(crate) fn delete(p: &mut FarPane) -> FarAction {
+    if p.panel(p.active).loc.is_remote() {
+        let panel = p.panel(p.active);
+        let Some(entry) = panel.entries.get(panel.sel) else {
+            return FarAction::Status("nothing to delete".into());
+        };
+        if entry.is_parent {
+            return FarAction::Status("can't delete the ‘..’ entry".into());
+        }
+        let target = panel.loc.child(&entry.name);
+        let is_dir = entry.is_dir;
+        let side = p.active;
+        return p.begin_simple(
+            super::rclone::argv_delete(&target, is_dir),
+            side,
+            "deleted",
+            format!("deleting {}", target.rclone_addr()),
+        );
+    }
     let panel = p.panel(p.active);
     let Some(entry) = panel.entries.get(panel.sel) else {
         return FarAction::Status("nothing to delete".into());
