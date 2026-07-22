@@ -14,11 +14,8 @@ use super::{FarPane, Side};
 /// A downloaded remote file being watched for local edits to push back
 /// (Task 11 uploads on change; this task only registers the mapping).
 pub(crate) struct Watch {
-    #[allow(dead_code)]
     pub temp: PathBuf,
-    #[allow(dead_code)]
     pub remote: Location,
-    #[allow(dead_code)]
     pub mtime: Option<SystemTime>,
 }
 
@@ -104,6 +101,42 @@ impl FarPane {
             note: note.clone(),
         });
         FarAction::Status(note)
+    }
+
+    /// Each tick: stat every registered `Watch`'s temp file, and if its mtime
+    /// advanced past the recorded one (i.e. the user edited and saved it),
+    /// push it back to the remote via `rclone copyto`. Only one rclone op
+    /// can run at a time (mirrors `begin_*`'s "busy" guard), so a change is
+    /// simply left for a later tick when something else is in flight — the
+    /// mtime is only updated once the upload is actually kicked off, so it
+    /// isn't missed.
+    pub fn poll_watches(&mut self) -> Option<FarAction> {
+        if self.pending.is_some() {
+            return None; // one rclone op at a time
+        }
+        for i in 0..self.watches.len() {
+            let current = std::fs::metadata(&self.watches[i].temp)
+                .and_then(|m| m.modified())
+                .ok();
+            let changed = match (current, self.watches[i].mtime) {
+                (Some(c), Some(prev)) => c > prev,
+                (Some(_), None) => true,
+                _ => false,
+            };
+            if changed {
+                self.watches[i].mtime = current;
+                let w = &self.watches[i];
+                let argv = rclone::argv_copy(&Location::local(&w.temp), &w.remote, false);
+                let note = format!("\u{2191} syncing {}", w.remote.rclone_addr());
+                let remote_side = if self.left.loc.is_remote() {
+                    Side::Left
+                } else {
+                    Side::Right
+                };
+                return Some(self.begin_simple(argv, remote_side, "synced", note));
+            }
+        }
+        None
     }
 
     /// Drain a finished remote op this tick, if any.

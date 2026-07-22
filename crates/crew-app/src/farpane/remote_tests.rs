@@ -230,6 +230,31 @@ fn begin_download_starts_a_pending_transfer() {
 }
 
 #[test]
+fn changed_watch_triggers_upload() {
+    let mut f = remote_pane();
+    let temp = std::env::temp_dir().join("far-drive-watch-test.txt");
+    std::fs::write(&temp, b"one").unwrap();
+    let old = std::fs::metadata(&temp).unwrap().modified().unwrap();
+    f.watches.push(super::Watch {
+        temp: temp.clone(),
+        remote: f.left.loc.child("w.txt"),
+        mtime: Some(old),
+    });
+    // Simulate an edit with a strictly newer mtime.
+    std::thread::sleep(std::time::Duration::from_millis(10));
+    std::fs::write(&temp, b"two").unwrap();
+    let action = f.poll_watches();
+    assert!(
+        matches!(action, Some(crate::farpane::keys::FarAction::Status(ref m)) if m.contains("syncing"))
+    );
+    assert!(
+        f.pending.is_some(),
+        "an edit pushes the file back to the remote"
+    );
+    let _ = std::fs::remove_file(&temp);
+}
+
+#[test]
 fn absorb_simple_failure_surfaces_stderr_no_relist() {
     let mut f = remote_pane();
     let status = f.absorb_simple(

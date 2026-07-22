@@ -112,6 +112,16 @@ impl CrewApp {
                         far_actions.push((i, action));
                         changed = true;
                     }
+                    // Auto-upload: a watched temp file's mtime advancing means
+                    // the OS-default app saved an edit — push it back to the
+                    // remote. Runs every tick regardless of `is_busy()` (the
+                    // event loop wakes on its own `POLL_MS` timer even while
+                    // idle, so a watch is never starved), but only actually
+                    // kicks off an upload when no other rclone op is pending.
+                    if let Some(action) = f.poll_watches() {
+                        far_actions.push((i, action));
+                        changed = true;
+                    }
                     changed
                 }
                 PaneContent::Settings(_) => false,
