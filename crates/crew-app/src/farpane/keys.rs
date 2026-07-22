@@ -107,7 +107,7 @@ pub(crate) fn reduce(p: &mut FarPane, key: &KeyEvent) -> Option<FarAction> {
                 p.complete = None;
                 p.ask = None;
             } else {
-                ascend(p);
+                return ascend(p);
             }
         }
         // F3 View / F4 Edit both open the selected file with the OS default app.
@@ -315,22 +315,25 @@ fn set_sel(p: &mut FarPane, idx: usize) {
 
 /// Enter the selected directory (or `..`), or ask the app to open a file.
 pub(crate) fn activate(p: &mut FarPane) -> Option<FarAction> {
+    let side = p.active;
     let panel = p.active_panel_mut();
     let entry = panel.entries.get(panel.sel)?;
     let (is_parent, is_dir, name) = (entry.is_parent, entry.is_dir, entry.name.clone());
     if is_parent {
-        ascend(p);
-        None
-    } else if is_dir {
+        return ascend(p);
+    }
+    if is_dir {
         panel.loc = panel.loc.child(&name);
         panel.sel = 0;
-        panel.reload();
-        None
-    } else {
-        match panel.loc.local_path() {
-            Some(dir) => Some(FarAction::Open(dir.join(name))),
-            None => None, // remote open handled in a later task
+        panel.reload(); // no-op for a remote panel — its listing lands via begin_list below
+        if p.panel(side).loc.is_remote() {
+            return Some(p.begin_list(side));
         }
+        return None;
+    }
+    match panel.loc.local_path() {
+        Some(dir) => Some(FarAction::Open(dir.join(name))),
+        None => None, // remote open handled in a later task
     }
 }
 
@@ -348,11 +351,15 @@ fn open_selected(p: &FarPane) -> Option<FarAction> {
 }
 
 /// Move the active panel up to its parent directory.
-pub(crate) fn ascend(p: &mut FarPane) {
+pub(crate) fn ascend(p: &mut FarPane) -> Option<FarAction> {
+    let side = p.active;
     let panel = p.active_panel_mut();
-    if let Some(parent) = panel.loc.parent() {
-        panel.loc = parent;
-        panel.sel = 0;
-        panel.reload();
+    let parent = panel.loc.parent()?;
+    panel.loc = parent;
+    panel.sel = 0;
+    panel.reload(); // no-op for a remote panel — its listing lands via begin_list below
+    if p.panel(side).loc.is_remote() {
+        return Some(p.begin_list(side));
     }
+    None
 }

@@ -23,6 +23,7 @@ mod keys;
 mod list;
 mod location;
 mod rclone;
+mod remote;
 mod render;
 mod run;
 
@@ -76,6 +77,10 @@ pub(crate) struct Panel {
     pub loc: Location,
     pub entries: Vec<Entry>,
     pub sel: usize,
+    /// True while a remote listing (`rclone lsjson`) is in flight for this
+    /// side — cleared by `FarPane::absorb_list`. Always `false` for local
+    /// panels, which reload synchronously.
+    pub loading: bool,
 }
 
 impl Panel {
@@ -86,6 +91,7 @@ impl Panel {
             loc,
             entries,
             sel: 0,
+            loading: false,
         }
     }
 
@@ -132,6 +138,10 @@ pub struct FarPane {
     /// The in-flight or landed `!` AI ask, if any — invalidated (`None`) by
     /// any edit to `cmdline`, same lifecycle rule as `complete`.
     pub(crate) ask: Option<ask::AskState>,
+    /// The single in-flight remote (`rclone`) op, if any — a second request
+    /// while one is running is rejected with a "busy" status (see
+    /// `remote::begin_list`). Landed each tick via `poll_ops`.
+    pub(crate) pending: Option<remote::PendingOp>,
 }
 
 /// The session-wide `$PATH` binaries cache backing [`FarPane::bins`]: every
@@ -160,14 +170,17 @@ impl FarPane {
             bins: shared_bins(),
             bins_scan_started: false,
             ask: None,
+            pending: None,
         }
     }
 
-    /// Whether a command-line command is still running or an AI ask is in
-    /// flight (drives the busy sweep — which is also what repaints the
-    /// `thinking… Ns` counter while waiting).
+    /// Whether a command-line command is still running, an AI ask is in
+    /// flight, or a remote op is in flight (drives the busy sweep — which is
+    /// also what repaints the `thinking… Ns` counter while waiting).
     pub fn is_busy(&self) -> bool {
-        self.running.is_some() || matches!(self.ask, Some(ask::AskState::Thinking { .. }))
+        self.running.is_some()
+            || matches!(self.ask, Some(ask::AskState::Thinking { .. }))
+            || self.ops_busy()
     }
 
     /// Drain the running command’s result, if it finished this tick: reload

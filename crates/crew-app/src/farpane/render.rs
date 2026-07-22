@@ -197,6 +197,19 @@ fn panel(buf: &mut Buffer, area: Rect, panel: &Panel, active: bool) {
     let h = inner.height.max(1) as usize;
     // Scroll so the cursor stays visible (bottom-anchored once it passes `h`).
     let start = panel.sel.saturating_sub(h.saturating_sub(1)).min(panel.sel);
+    // A remote listing in flight (and nothing to show yet): one dim row
+    // instead of an empty panel, so the pane doesn't look inert while the
+    // `rclone lsjson` worker (see `remote.rs`) is still running.
+    if panel.loading && panel.entries.is_empty() {
+        let items = vec![ListItem::new(Line::from(Span::styled(
+            "\u{27f3} listing\u{2026}",
+            Style::new().fg(dim_col),
+        )))];
+        let mut state = ListState::default();
+        state.select(Some(0));
+        StatefulWidget::render(List::new(items), inner, buf, &mut state);
+        return;
+    }
     let items: Vec<ListItem> = panel
         .entries
         .iter()

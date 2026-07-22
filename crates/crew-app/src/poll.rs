@@ -98,6 +98,17 @@ impl CrewApp {
                         far_statuses.push(msg);
                         changed = true;
                     }
+                    if let Some(action) = f.poll_ops() {
+                        if let crate::farpane::FarAction::Status(msg) = action {
+                            far_statuses.push(msg);
+                        }
+                        // Other FarAction variants (e.g. Open, for a remote
+                        // file download) aren't produced by poll_ops yet —
+                        // only List lands in Task 5 — so there's no routing
+                        // helper for them here. Wire that up in Task 10
+                        // alongside the variant that needs it.
+                        changed = true;
+                    }
                     changed
                 }
                 PaneContent::Settings(_) => false,
