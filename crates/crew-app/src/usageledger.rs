@@ -140,9 +140,16 @@ pub(crate) fn init(budget_5h: u64, budget_7d: u64) {
     *LEDGER.lock().unwrap_or_else(|e| e.into_inner()) = Some(l);
 }
 
+/// Predicate: does this turn record usage? Guards against mock/CLI backend
+/// zero-usage turns (which must not open a rolling window).
+#[inline]
+pub(crate) fn records_usage(tok_in: u64, tok_out: u64) -> bool {
+    !(tok_in == 0 && tok_out == 0)
+}
+
 /// Record one turn's usage: in-memory always, appended to disk outside tests.
 pub(crate) fn record(tok_in: u64, tok_out: u64, cost_microusd: u64) {
-    if tok_in == 0 && tok_out == 0 {
+    if !records_usage(tok_in, tok_out) {
         return; // mock/CLI backends report no usage — nothing to window
     }
     let e = Entry {

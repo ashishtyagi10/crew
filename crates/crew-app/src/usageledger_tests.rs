@@ -62,3 +62,12 @@ fn prune_drops_entries_older_than_seven_days() {
     l.prune(8 * 24 * H + H);
     assert_eq!(l.entries.len(), 1);
 }
+
+#[test]
+fn zero_usage_turns_never_open_a_rolling_window() {
+    // Zero-usage (0,0) must not be recorded; non-zero usage opens windows.
+    assert!(!super::records_usage(0, 0));
+    assert!(super::records_usage(1, 0));
+    assert!(super::records_usage(0, 1));
+    assert!(super::records_usage(1, 1));
+}
