@@ -97,7 +97,7 @@ impl Location {
     /// Ascend one level; `None` at a root (filesystem root or remote root).
     pub(crate) fn parent(&self) -> Option<Self> {
         match &self.backend {
-            Backend::Local => PathBuf::from(&self.path).parent().map(|p| Self::local(p)),
+            Backend::Local => PathBuf::from(&self.path).parent().map(Self::local),
             Backend::Rclone { remote } => {
                 if self.path.is_empty() {
                     return None;

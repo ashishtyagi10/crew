@@ -175,7 +175,7 @@ pub(crate) fn card_lines(
                 .is_some_and(|n| tid == crate::chattime::task_tag(&n.meta));
         // ├ while more replies of this task follow, └ on the last — the
         // Claude-Code tree look, so a task's replies read as one thread.
-        let connector = chained.then(|| if continues { '\u{251c}' } else { '\u{2514}' });
+        let connector = chained.then_some(if continues { '\u{251c}' } else { '\u{2514}' });
         if i > 0 && !chained {
             out.push(Vec::new()); // spacer between unrelated cards
         }

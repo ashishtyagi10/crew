@@ -229,7 +229,7 @@ pub(crate) fn summary_cells(pane: &ChatPane, cols: u16, top: u16, height: u16) -
     let mut cells = Vec::new();
     for (i, line) in lines.into_iter().take(height as usize).enumerate() {
         let row = top + i as u16;
-        crate::chatwidth::place_row(1, cols, line.into_iter(), |x, c, fg| {
+        crate::chatwidth::place_row(1, cols, line, |x, c, fg| {
             cells.push(CellView {
                 col: x,
                 row,
