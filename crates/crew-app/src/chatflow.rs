@@ -18,14 +18,28 @@ pub(crate) struct ActiveAgent {
 
 impl crate::chat::ChatPane {
     /// Fold one `Stats` event into the pane's totals: turn-level events (empty
-    /// `agent`) feed the token meter and turn counter; reply-level events feed
+    /// `agent`) feed the token meter and turn counter plus the session's
+    /// prompt/completion split and micro-USD cost; reply-level events feed
     /// that agent's `(replies, total ms)` and — when the backend reported real
     /// usage — its live context fill (`ctx`), which the summary footer reads to
     /// derive the tightest remaining context window.
-    pub(crate) fn absorb_stats(&mut self, tokens: u64, agent: String, ms: u64, ctx: u64) {
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn absorb_stats(
+        &mut self,
+        tokens: u64,
+        agent: String,
+        ms: u64,
+        ctx: u64,
+        tok_in: u64,
+        tok_out: u64,
+        cost_microusd: u64,
+    ) {
         if agent.is_empty() {
             self.tokens = self.tokens.saturating_add(tokens);
             self.turns = self.turns.saturating_add(1);
+            self.tok_in = self.tok_in.saturating_add(tok_in);
+            self.tok_out = self.tok_out.saturating_add(tok_out);
+            self.cost_microusd = self.cost_microusd.saturating_add(cost_microusd);
         } else {
             // A follow-up event reporting no usage must not clear a known fill,
             // so only a nonzero `ctx` overwrites.
@@ -115,3 +129,7 @@ impl crate::chat::ChatPane {
         self.active.iter().map(|a| a.name.as_str()).collect()
     }
 }
+
+#[cfg(test)]
+#[path = "chatflow_tests.rs"]
+mod tests;
