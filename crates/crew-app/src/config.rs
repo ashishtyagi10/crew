@@ -20,6 +20,13 @@ fn default_notify_min_secs() -> u64 {
     10
 }
 
+fn default_usage_budget_5h() -> u64 {
+    5_000_000
+}
+fn default_usage_budget_7d() -> u64 {
+    25_000_000
+}
+
 fn default_paper_grain() -> f32 {
     // ~2.6% luminance grain — clearly reads as paper texture without looking
     // noisy (chosen by comparing a rendered 0.0/0.6/1.0/1.6 sweep). Tunable in
@@ -106,6 +113,12 @@ pub struct CrewConfig {
     /// SemiBold (600) for a thicker body; set live with `/weight`.
     #[serde(default = "default_font_weight")]
     pub font_weight: u16,
+    /// Token budgets for the footer's rolling usage windows (the `%` the
+    /// bars are drawn against). Approximate by nature — tune to taste.
+    #[serde(default = "default_usage_budget_5h")]
+    pub usage_budget_5h: u64,
+    #[serde(default = "default_usage_budget_7d")]
+    pub usage_budget_7d: u64,
 }
 
 impl Default for CrewConfig {
@@ -132,6 +145,8 @@ impl Default for CrewConfig {
             paper_grain: default_paper_grain(),
             crt: None,
             font_weight: default_font_weight(),
+            usage_budget_5h: default_usage_budget_5h(),
+            usage_budget_7d: default_usage_budget_7d(),
         }
     }
 }
@@ -196,6 +211,8 @@ impl CrewConfig {
             paper_grain: self.paper_grain.clamp(0.0, 2.0),
             crt: self.crt,
             font_weight: self.font_weight.clamp(300, 900),
+            usage_budget_5h: self.usage_budget_5h.max(10_000),
+            usage_budget_7d: self.usage_budget_7d.max(10_000),
         }
     }
 
@@ -273,6 +290,15 @@ mod tests {
     }
 
     #[test]
+    fn usage_budgets_default_and_clamp() {
+        let cfg = CrewConfig::from_toml_str("");
+        assert_eq!(cfg.usage_budget_5h, 5_000_000);
+        assert_eq!(cfg.usage_budget_7d, 25_000_000);
+        let cfg = CrewConfig::from_toml_str("usage_budget_5h = 1\n");
+        assert_eq!(cfg.usage_budget_5h, 10_000);
+    }
+
+    #[test]
     fn notify_patterns_drop_blanks() {
         let cfg = CrewConfig::from_toml_str("notify_patterns = [\"error\", \"\", \"done\"]\n");
         assert_eq!(
@@ -342,6 +368,8 @@ mod tests {
             paper_grain: 0.5,
             crt: Some(true),
             font_weight: 700,
+            usage_budget_5h: 1_000_000,
+            usage_budget_7d: 12_000_000,
         };
         assert_eq!(CrewConfig::from_toml_str(&c.to_toml_str()), c);
     }

@@ -147,6 +147,7 @@ mod tui;
 mod update;
 mod updatecard;
 mod updatefetch;
+mod usageledger;
 mod welcome;
 mod windowtitle;
 

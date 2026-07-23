@@ -40,6 +40,7 @@ impl crate::chat::ChatPane {
             self.tok_in = self.tok_in.saturating_add(tok_in);
             self.tok_out = self.tok_out.saturating_add(tok_out);
             self.cost_microusd = self.cost_microusd.saturating_add(cost_microusd);
+            crate::usageledger::record(tok_in, tok_out, cost_microusd);
         } else {
             // A follow-up event reporting no usage must not clear a known fill,
             // so only a nonzero `ctx` overwrites.

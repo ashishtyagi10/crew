@@ -102,6 +102,7 @@ pub fn run() -> anyhow::Result<()> {
     #[cfg(target_os = "macos")]
     crate::dockicon::set();
     let config = CrewConfig::load();
+    crate::usageledger::init(config.usage_budget_5h, config.usage_budget_7d);
     // Apply the theme first; the accent default reads the active theme.
     // A saved rotation mode (random/random-dark/random-light/auto) resumes
     // that mode; `theme_id()` would otherwise silently default it to
