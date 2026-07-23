@@ -414,9 +414,10 @@ struct Usage {
     #[serde(default)]
     completion_tokens: u32,
     /// OpenRouter-only: exact request cost in USD when the request asked
-    /// for it (`usage: {include: true}`). Absent everywhere else.
+    /// for it (`usage: {include: true}`). Absent everywhere else; `Option`
+    /// so an explicit `"cost": null` decodes instead of failing the parse.
     #[serde(default)]
-    cost: f64,
+    cost: Option<f64>,
 }
 
 #[derive(Deserialize)]
@@ -447,6 +448,6 @@ pub(super) fn parse_response(body: &str) -> Result<Completion, ProviderError> {
         text,
         input_tokens: usage.prompt_tokens,
         output_tokens: usage.completion_tokens,
-        cost_microusd: (usage.cost * 1_000_000.0) as u64,
+        cost_microusd: (usage.cost.unwrap_or(0.0) * 1_000_000.0) as u64,
     })
 }

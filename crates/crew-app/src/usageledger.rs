@@ -12,6 +12,8 @@ use std::sync::Mutex;
 pub(crate) const FIVE_H_MS: u64 = 5 * 3_600_000;
 pub(crate) const SEVEN_D_MS: u64 = 7 * 24 * 3_600_000;
 
+/// One usage.jsonl line. Any future field must ship with `#[serde(default)]`
+/// in the same commit that adds it, so older files keep loading.
 #[derive(Clone, Copy, Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct Entry {
     pub ts_ms: u64,
