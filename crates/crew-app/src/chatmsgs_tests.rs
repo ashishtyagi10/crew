@@ -77,7 +77,7 @@ fn header_tail_keeps_relative_time_but_drops_latency() {
         ts: "999700000".into(),
         meta: "4.2s".into(),
     };
-    let chars: String = header_line(&m, 1_000_000_000, false)
+    let chars: String = header_line(&m, 1_000_000_000, None)
         .iter()
         .map(|c| c.c)
         .collect();
@@ -182,7 +182,7 @@ fn header_line_shows_a_dim_chip_for_task_tagged_messages() {
         ts: String::new(),
         meta: "task:2 \u{00b7} 0.0s".into(),
     };
-    let line = header_line(&m, 0, false);
+    let line = header_line(&m, 0, None);
     let muted = crew_theme::theme().text_muted;
     let hash = line.iter().find(|c| c.c == '#').expect("chip # present");
     assert_eq!(hash.fg, muted, "chip # is muted");
@@ -203,7 +203,7 @@ fn header_line_shows_a_dim_chip_for_task_tagged_messages() {
 fn header_line_has_no_chip_for_untagged_messages() {
     let mut m = msg("coder", "done");
     m.meta = "4.2s".into();
-    let line = header_line(&m, 0, false);
+    let line = header_line(&m, 0, None);
     assert!(
         !line.iter().any(|c| c.c == '#'),
         "no task tag means no chip"
@@ -276,6 +276,27 @@ fn same_task_cards_chain_with_a_tree_connector_and_no_spacer() {
     assert_eq!(row_text(&cells, 4), "", "unrelated cards keep the spacer");
     let fresh = row_text(&cells, 5);
     assert!(fresh.contains("#3"), "chain root keeps its chip: {fresh:?}");
+}
+
+#[test]
+fn middle_chained_cards_get_tee_last_gets_corner() {
+    // Three replies on task #7: root keeps its gutter, the middle chained
+    // card connects with ├, the final one closes with └.
+    let mk = |text: &str| Message {
+        sender: "coder".into(),
+        text: text.into(),
+        ts: String::new(),
+        meta: "task:7".into(),
+    };
+    let msgs = [mk("root"), mk("mid"), mk("last")];
+    let lines = card_lines(&msgs, 80, 0, View::default());
+    let texts: Vec<String> = lines
+        .iter()
+        .map(|l| l.iter().map(|c| c.c).collect())
+        .collect();
+    let headers: Vec<&String> = texts.iter().filter(|t| t.contains("coder")).collect();
+    assert!(headers[1].starts_with("\u{251c} "), "{:?}", headers[1]);
+    assert!(headers[2].starts_with("\u{2514} "), "{:?}", headers[2]);
 }
 
 #[test]

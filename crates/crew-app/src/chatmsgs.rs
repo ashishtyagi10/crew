@@ -73,16 +73,17 @@ fn sender_color(sender: &str) -> Color {
 /// each name separately with a muted arrow, so hand-offs read as from → to;
 /// the muted tail carries only the relative time (the per-card reply latency
 /// was dropped in the reductionist pass — one signal per question).
-/// `chained` marks a follow-up card of the same task as the card above: it
-/// swaps the gutter for a muted `└` tree connector and drops the repeated
-/// `#id` tag (the chain root already carries it), so one task's replies read
-/// as one thread.
-fn header_line(m: &Message, now_ms: u64, chained: bool) -> CardLine {
+/// `connector` marks a follow-up card of the same task as the card above: it
+/// swaps the gutter for a muted tree connector — `├` while more replies of
+/// this task follow, `└` on the last one — and drops the repeated `#id` tag
+/// (the chain root already carries it), so one task's replies read as one
+/// thread (Claude-Code background-agent tree look).
+fn header_line(m: &Message, now_ms: u64, connector: Option<char>) -> CardLine {
     let muted = crew_theme::theme().text_muted;
     let mut line: CardLine = Vec::new();
     let parts: Vec<&str> = m.sender.split(" \u{2192} ").collect();
-    if chained {
-        line.extend("\u{2514} ".chars().map(|c| plain(c, muted, false)));
+    if let Some(conn) = connector {
+        line.extend(format!("{conn} ").chars().map(|c| plain(c, muted, false)));
     } else {
         line.push(plain(gutter_for(&m.sender), sender_color(parts[0]), false));
         if let Some(id) = crate::chattime::task_tag(&m.meta) {
@@ -163,18 +164,25 @@ pub(crate) fn card_lines(
     let mut out: Vec<CardLine> = Vec::new();
     for (i, m) in messages.iter().enumerate() {
         // A card continuing the task of the card above chains onto it: no
-        // spacer, and its header renders a `└` tree connector instead of the
+        // spacer, and its header renders a tree connector instead of the
         // gutter (see `header_line`), so one task's replies read as a thread.
         let tid = crate::chattime::task_tag(&m.meta);
         let chained =
             tid.is_some() && i > 0 && tid == crate::chattime::task_tag(&messages[i - 1].meta);
+        let continues = tid.is_some()
+            && messages
+                .get(i + 1)
+                .is_some_and(|n| tid == crate::chattime::task_tag(&n.meta));
+        // ├ while more replies of this task follow, └ on the last — the
+        // Claude-Code tree look, so a task's replies read as one thread.
+        let connector = chained.then(|| if continues { '\u{251c}' } else { '\u{2514}' });
         if i > 0 && !chained {
             out.push(Vec::new()); // spacer between unrelated cards
         }
         let first = out.len();
         let splash = is_splash(m);
         if !splash {
-            out.push(header_line(m, now_ms, chained));
+            out.push(header_line(m, now_ms, connector));
         }
         // Body text: agents speak in ink; the system voice stays muted.
         let fg = match m.sender.as_str() {
