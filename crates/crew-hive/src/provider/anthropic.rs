@@ -76,6 +76,7 @@ impl AnthropicProvider {
             text,
             input_tokens: usage.input_tokens,
             output_tokens: usage.output_tokens,
+            cost_microusd: 0,
         })
     }
 }

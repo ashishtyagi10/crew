@@ -191,7 +191,10 @@ fn link_at_resolves_after_scrolling() {
     messages.push(msg("user", "see [k](https://x.io/p)"));
     messages.push(msg("planner", "tail"));
     let mut pane = test_pane(messages);
-    let (cols, rows) = (40u16, 10u16);
+    // The always-on 3-line statusline footer (Task 6) claims more of the
+    // bottom budget than the old 1-line fallback did, so this needs more
+    // rows than before to keep the same overflow-and-shift scenario.
+    let (cols, rows) = (40u16, 16u16);
 
     let before = cells(&pane, cols, rows);
     let k0 = before

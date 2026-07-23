@@ -238,11 +238,22 @@ fn run_emits_an_aggregate_stats_event_with_tokens_and_exchange_count() {
             exchanges,
             tokens,
             agent,
+            tok_in,
+            tok_out,
+            cost_microusd,
             ..
-        } => Some((*exchanges, *tokens, agent.clone())),
+        } => Some((
+            *exchanges,
+            *tokens,
+            agent.clone(),
+            *tok_in,
+            *tok_out,
+            *cost_microusd,
+        )),
         _ => None,
     });
-    let (exchanges, tokens, agent) = stats.expect("expected an aggregate Stats event");
+    let (exchanges, tokens, agent, tok_in, tok_out, cost_microusd) =
+        stats.expect("expected an aggregate Stats event");
     assert!(
         tokens > 0,
         "stub agents emit TokenDelta so the aggregate should be > 0"
@@ -251,6 +262,13 @@ fn run_emits_an_aggregate_stats_event_with_tokens_and_exchange_count() {
     assert!(
         agent.is_empty(),
         "empty agent = turn-total per protocol.rs Stats docs"
+    );
+    assert!(tok_in > 0, "stub agents emit input tokens in TokenDelta");
+    assert!(tok_out > 0, "stub agents emit output tokens in TokenDelta");
+    assert_eq!(
+        tok_in + tok_out,
+        tokens,
+        "tok_in + tok_out should sum to the total tokens"
     );
     // The aggregate Stats lands near the end of the run (after the per-task
     // telemetry), even though a clean run emits no summary message after it.

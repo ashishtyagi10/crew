@@ -35,9 +35,9 @@ fn stats_events_split_turn_and_agent_totals() {
     // An idle child stands in for the broker; only pane state is under test.
     let plugin = Plugin::spawn("sh", &["-c".to_string(), "cat >/dev/null".to_string()]).unwrap();
     let mut pane = ChatPane::new(plugin, "crew".into());
-    pane.absorb_stats(950, String::new(), 0, 0); // turn-level
-    pane.absorb_stats(0, "planner".into(), 4_200, 8_100); // reply-level, ctx 8.1k
-    pane.absorb_stats(0, "planner".into(), 2_200, 9_400);
+    pane.absorb_stats(950, String::new(), 0, 0, 0, 0, 0); // turn-level
+    pane.absorb_stats(0, "planner".into(), 4_200, 8_100, 0, 0, 0); // reply-level, ctx 8.1k
+    pane.absorb_stats(0, "planner".into(), 2_200, 9_400, 0, 0, 0);
     assert_eq!((pane.tokens, pane.turns), (950, 1));
     assert_eq!(pane.agent_stats.get("planner"), Some(&(2, 6_400)));
     // The latest reply's prompt size is the live context fill.
@@ -65,7 +65,7 @@ fn cells_render_header_and_summary_footer_not_agent_chips() {
             model: "qwen".into(),
         },
     ];
-    p.absorb_stats(950, String::new(), 0, 0);
+    p.absorb_stats(950, String::new(), 0, 0, 600, 350, 0);
     let cells = p.cells(120, 20);
     let text: String = {
         let mut rows: std::collections::BTreeMap<u16, Vec<(u16, char)>> = Default::default();
@@ -86,12 +86,16 @@ fn cells_render_header_and_summary_footer_not_agent_chips() {
         !text.contains("agent smith"),
         "header title must be gone:\n{text}"
     );
-    // The summary footer replaces the per-agent chip grid: a multi-row stats
-    // block with one shared model, the (full, since no fill recorded) context
-    // window, and session spend. A tall pane (20 rows) shows the full block.
+    // The summary footer replaces the per-agent chip grid: a 3-line
+    // statusline with the shared model, the token split, and the (empty,
+    // since no fill recorded) context bar. A tall pane (20 rows) shows all
+    // three lines.
     assert!(text.contains("qwen"), "footer model:\n{text}");
-    assert!(text.contains("100% left"), "footer context row:\n{text}");
-    assert!(text.contains("~950 tok"), "footer token spend:\n{text}");
+    assert!(text.contains("0% (ctx)"), "footer context row:\n{text}");
+    assert!(
+        text.contains("600 in / 350 out"),
+        "footer token split:\n{text}"
+    );
     // The retired chip markers must be gone.
     assert!(
         !text.contains('\u{25b8}') && !text.contains('\u{25aa}'),
@@ -157,7 +161,7 @@ fn status_rows_is_header_only() {
         },
     ];
     assert_eq!(p.status_rows(200, 20), 1, "just the header on a tall pane");
-    p.absorb_stats(950, String::new(), 0, 0);
+    p.absorb_stats(950, String::new(), 0, 0, 0, 0, 0);
     p.pulse.record_hop("planner", 1200);
     p.pulse.end_turn();
     assert_eq!(p.status_rows(200, 20), 1, "unchanged after a turn");
@@ -718,13 +722,13 @@ fn absorb_stats_records_ctx_and_keeps_last_nonzero() {
     // so a per-agent Stats must record real usage — and a follow-up event
     // reporting no usage must NOT clear it (else the footer would flap to full).
     let mut c = pane();
-    c.absorb_stats(0, "planner".into(), 800, 100_000);
+    c.absorb_stats(0, "planner".into(), 800, 100_000, 0, 0, 0);
     assert_eq!(
         c.ctx.get("planner").copied(),
         Some(100_000),
         "ctx fill recorded from the Stats event"
     );
-    c.absorb_stats(0, "planner".into(), 200, 0);
+    c.absorb_stats(0, "planner".into(), 200, 0, 0, 0, 0);
     assert_eq!(
         c.ctx.get("planner").copied(),
         Some(100_000),

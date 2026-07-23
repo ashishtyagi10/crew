@@ -58,6 +58,15 @@ pub enum PluginEvent {
         /// fill — when the backend reports usage; 0 = unknown.
         #[serde(default)]
         ctx: u64,
+        /// Prompt/completion token split for the same usage `tokens` reports,
+        /// and the broker-computed cost in micro-USD (0 = unpriced model).
+        /// All serde-defaulted so old payloads still decode.
+        #[serde(default)]
+        tok_in: u64,
+        #[serde(default)]
+        tok_out: u64,
+        #[serde(default)]
+        cost_microusd: u64,
     },
     /// Mid-reply progress: `agent` has produced roughly `tokens` output
     /// tokens so far in its in-flight reply. Advisory — the end-of-hop
@@ -166,6 +175,46 @@ mod tests {
                 assert_eq!((agent.as_str(), ms), ("", 0));
             }
             _ => panic!("wrong variant"),
+        }
+    }
+
+    #[test]
+    fn stats_roundtrips_cost_fields_and_defaults_when_missing() {
+        // Old-broker payload (no new fields) must still decode.
+        let old = r#"{"type":"stats","exchanges":3,"tokens":950}"#;
+        match serde_json::from_str::<PluginEvent>(old).unwrap() {
+            PluginEvent::Stats {
+                tok_in,
+                tok_out,
+                cost_microusd,
+                ..
+            } => {
+                assert_eq!((tok_in, tok_out, cost_microusd), (0, 0, 0));
+            }
+            other => panic!("wrong variant: {other:?}"),
+        }
+        // New payload round-trips.
+        let ev = PluginEvent::Stats {
+            exchanges: 1,
+            tokens: 950,
+            agent: String::new(),
+            ms: 0,
+            ctx: 0,
+            tok_in: 900,
+            tok_out: 50,
+            cost_microusd: 12_345,
+        };
+        let s = serde_json::to_string(&ev).unwrap();
+        match serde_json::from_str::<PluginEvent>(&s).unwrap() {
+            PluginEvent::Stats {
+                tok_in,
+                tok_out,
+                cost_microusd,
+                ..
+            } => {
+                assert_eq!((tok_in, tok_out, cost_microusd), (900, 50, 12_345));
+            }
+            other => panic!("wrong variant: {other:?}"),
         }
     }
 

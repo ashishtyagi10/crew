@@ -174,6 +174,7 @@ async fn api_factory_model_override_reaches_request() {
                     text: "done".into(),
                     input_tokens: 1,
                     output_tokens: 1,
+                    cost_microusd: 0,
                 })
             })
         }

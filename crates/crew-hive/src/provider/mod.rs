@@ -62,6 +62,9 @@ pub struct Completion {
     pub text: String,
     pub input_tokens: u32,
     pub output_tokens: u32,
+    /// Exact provider-reported cost in micro-USD (OpenRouter `usage.cost`);
+    /// 0 when the provider doesn't report cost.
+    pub cost_microusd: u64,
 }
 
 #[derive(Debug)]

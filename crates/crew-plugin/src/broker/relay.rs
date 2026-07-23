@@ -71,6 +71,9 @@ pub(crate) fn relay_turn(
             agent: agent.clone(),
             ms: d.as_millis() as u64,
             ctx: 0,
+            tok_in: 0,
+            tok_out: 0,
+            cost_microusd: 0,
         })?;
         segments.push((agent, d));
     }
@@ -86,6 +89,9 @@ pub(crate) fn relay_turn(
         agent: String::new(),
         ms: 0,
         ctx: 0,
+        tok_in: stats.tok_in,
+        tok_out: stats.tok_out,
+        cost_microusd: stats.cost_microusd,
     })?;
     emit(msg(
         "agent smith",
@@ -108,6 +114,9 @@ fn reply_stat(agent: &str, d: Duration, hop: &Hop) -> PluginEvent {
         agent: agent.to_string(),
         ms: d.as_millis() as u64,
         ctx: hop.usage.input_tokens as u64,
+        tok_in: u64::from(hop.usage.input_tokens),
+        tok_out: u64::from(hop.usage.output_tokens),
+        cost_microusd: hop.usage.cost_microusd,
     }
 }
 

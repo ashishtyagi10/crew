@@ -29,6 +29,11 @@ pub struct ChatPane {
     /// Session-wide approximate token spend (from `Stats` events), for the
     /// header's running cost meter.
     pub(crate) tokens: u64,
+    /// Session prompt/completion token split and micro-USD cost, from
+    /// turn-level `Stats` events (same cadence as `tokens`).
+    pub(crate) tok_in: u64,
+    pub(crate) tok_out: u64,
+    pub(crate) cost_microusd: u64,
     /// Completed turns (turn-level `Stats` events), for the header.
     pub(crate) turns: u64,
     /// Per-agent totals from reply-level `Stats` events: name → (replies,
@@ -84,6 +89,9 @@ impl ChatPane {
             awaiting: false,
             active: Vec::new(),
             tokens: 0,
+            tok_in: 0,
+            tok_out: 0,
+            cost_microusd: 0,
             turns: 0,
             agent_stats: std::collections::HashMap::new(),
             ctx: std::collections::HashMap::new(),
@@ -150,8 +158,11 @@ impl ChatPane {
                         agent,
                         ms,
                         ctx,
+                        tok_in,
+                        tok_out,
+                        cost_microusd,
                         ..
-                    } => self.absorb_stats(tokens, agent, ms, ctx),
+                    } => self.absorb_stats(tokens, agent, ms, ctx, tok_in, tok_out, cost_microusd),
                     // Mid-reply token ticks fed only the retired per-agent tok
                     // ease; the summary footer reads settled per-turn `ctx`, so
                     // there's nothing live to update here now.

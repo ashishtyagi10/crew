@@ -131,6 +131,15 @@ impl Adapter for ApiAdapter {
                 super::adapter::Usage {
                     input_tokens: c.input_tokens,
                     output_tokens: c.output_tokens,
+                    cost_microusd: if c.cost_microusd > 0 {
+                        c.cost_microusd
+                    } else {
+                        crew_hive::pricing::cost_microusd(
+                            &self.model,
+                            c.input_tokens,
+                            c.output_tokens,
+                        )
+                    },
                 },
             )),
             Ok(Err(e)) => Err(e.to_string()),
@@ -174,6 +183,15 @@ impl Adapter for ApiAdapter {
                 super::adapter::Usage {
                     input_tokens: c.input_tokens,
                     output_tokens: c.output_tokens,
+                    cost_microusd: if c.cost_microusd > 0 {
+                        c.cost_microusd
+                    } else {
+                        crew_hive::pricing::cost_microusd(
+                            &self.model,
+                            c.input_tokens,
+                            c.output_tokens,
+                        )
+                    },
                 },
             )),
             Ok(Err(e)) => Err(e.to_string()),

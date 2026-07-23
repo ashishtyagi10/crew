@@ -56,18 +56,30 @@ fn build_messages(req: &CompletionRequest) -> Vec<serde_json::Value> {
     messages
 }
 
+/// OpenRouter reports exact request cost when asked. Other OpenAI-compatible
+/// endpoints (DashScope!) may 400 on the unknown `usage` field, so the ask is
+/// gated on the real openrouter.ai endpoint.
+fn wants_cost(endpoint: &str) -> bool {
+    endpoint.contains("openrouter.ai")
+}
+
 /// One model attempt's base request body (before `stream`/`stream_options`
 /// are layered on for the streaming path — see `request_with_retry_streaming`).
 fn build_body(
     model: &str,
     req: &CompletionRequest,
     messages: &[serde_json::Value],
+    report_cost: bool,
 ) -> serde_json::Value {
-    serde_json::json!({
+    let mut body = serde_json::json!({
         "model": model,
         "max_tokens": req.max_tokens,
         "messages": messages,
-    })
+    });
+    if report_cost {
+        body["usage"] = serde_json::json!({"include": true});
+    }
+    body
 }
 
 impl OpenRouterProvider {
@@ -117,6 +129,7 @@ impl Provider for OpenRouterProvider {
         let key = self.api_key.clone();
         let endpoint = self.endpoint.clone();
         let chain = attempt_chain(&req.model, &self.fallbacks);
+        let report_cost = wants_cost(&endpoint);
         Box::pin(async move {
             let messages = build_messages(&req);
             // Try each model in turn; a model that stays rate-limited or is
@@ -124,7 +137,7 @@ impl Provider for OpenRouterProvider {
             // next. Only a missing key short-circuits — no model can fix that.
             let mut last_err = ProviderError::Api("no model attempted".into());
             for model in &chain {
-                let body = build_body(model, &req, &messages);
+                let body = build_body(model, &req, &messages, report_cost);
                 match request_with_retry(&client, &endpoint, &key, &body).await {
                     Ok(c) => return Ok(c),
                     Err(ProviderError::MissingKey) => return Err(ProviderError::MissingKey),
@@ -153,11 +166,12 @@ impl Provider for OpenRouterProvider {
         let key = self.api_key.clone();
         let endpoint = self.endpoint.clone();
         let chain = attempt_chain(&req.model, &self.fallbacks);
+        let report_cost = wants_cost(&endpoint);
         Box::pin(async move {
             let messages = build_messages(&req);
             let mut last_err = ProviderError::Api("no model attempted".into());
             for model in &chain {
-                let body = build_body(model, &req, &messages);
+                let body = build_body(model, &req, &messages, report_cost);
                 let started = std::sync::atomic::AtomicBool::new(false);
                 match request_with_retry_streaming(
                     &client, &endpoint, &key, &body, &on_chunk, &started,

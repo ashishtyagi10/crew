@@ -192,6 +192,9 @@ pub(crate) fn run_with(
     // the host as it happens instead of after the run (frozen-looking runs).
     let mut agent_task: HashMap<u64, TaskId> = HashMap::new();
     let mut tokens_total: u64 = 0;
+    let mut in_total: u64 = 0;
+    let mut out_total: u64 = 0;
+    let mut cost_total: u64 = 0;
     let mut lagged_total: u64 = 0;
     let mut emit_err: Option<anyhow::Error> = None;
     let outcome = rt.block_on(async {
@@ -202,8 +205,18 @@ pub(crate) fn run_with(
                         if emit_err.is_some() {
                             continue; // keep consuming so the scheduler finishes
                         }
-                        if let HiveEvent::TokenDelta { input, output, .. } = &ev {
-                            tokens_total += u64::from(*input) + u64::from(*output);
+                        match &ev {
+                            HiveEvent::TokenDelta { input, output, .. } => {
+                                let in_count = u64::from(*input);
+                                let out_count = u64::from(*output);
+                                tokens_total += in_count + out_count;
+                                in_total += in_count;
+                                out_total += out_count;
+                            }
+                            HiveEvent::CostDelta { micros_usd, .. } => {
+                                cost_total += micros_usd;
+                            }
+                            _ => {}
                         }
                         let r = emit(PluginEvent::Hive { event: ev.clone() }).and_then(|()| {
                             for out in translate(&ev, &specialties, &mut agent_task) {
@@ -270,6 +283,9 @@ pub(crate) fn run_with(
         agent: String::new(),
         ms: 0,
         ctx: 0,
+        tok_in: in_total,
+        tok_out: out_total,
+        cost_microusd: cost_total,
     })?;
     if let Some(summary) = summary {
         emit(msg("agent smith", summary))?;

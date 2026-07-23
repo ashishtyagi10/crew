@@ -177,6 +177,7 @@ impl crate::Adapter for UsageAgent {
             crate::broker::adapter::Usage {
                 input_tokens: 8_192,
                 output_tokens: 40,
+                cost_microusd: 0,
             },
         ))
     }

@@ -38,6 +38,9 @@ pub(crate) fn fan_out(
     );
     let mut tokens = 0usize;
     let mut real_tokens = 0usize;
+    let mut tok_in = 0u64;
+    let mut tok_out = 0u64;
+    let mut cost_microusd = 0u64;
     let mut timings: Vec<(String, Duration)> = Vec::new();
     let mut werr: anyhow::Result<()> = Ok(());
     std::thread::scope(|s| {
@@ -72,6 +75,9 @@ pub(crate) fn fan_out(
                 Ok((reply, u)) => {
                     tokens += (prompt.len() + reply.len()) / 4;
                     real_tokens += (u.input_tokens + u.output_tokens) as usize;
+                    tok_in += u64::from(u.input_tokens);
+                    tok_out += u64::from(u.output_tokens);
+                    cost_microusd += u.cost_microusd;
                     timings.push((name.clone(), dt));
                     // The agent's live reply stat, real usage when reported.
                     let stat = PluginEvent::Stats {
@@ -80,6 +86,9 @@ pub(crate) fn fan_out(
                         agent: name.clone(),
                         ms: dt.as_millis() as u64,
                         ctx: u.input_tokens as u64,
+                        tok_in: u64::from(u.input_tokens),
+                        tok_out: u64::from(u.output_tokens),
+                        cost_microusd: u.cost_microusd,
                     };
                     (reply_msg(&name, &reply, dt), Some(stat))
                 }
@@ -94,6 +103,9 @@ pub(crate) fn fan_out(
                         agent: name.clone(),
                         ms: dt.as_millis() as u64,
                         ctx: 0,
+                        tok_in: 0,
+                        tok_out: 0,
+                        cost_microusd: 0,
                     };
                     (
                         msg(&format!("{name} \u{2192} user"), format!("[error] {e}")),
@@ -133,6 +145,9 @@ pub(crate) fn fan_out(
         agent: String::new(),
         ms: 0,
         ctx: 0,
+        tok_in,
+        tok_out,
+        cost_microusd,
     })?;
     emit(msg(
         "agent smith",

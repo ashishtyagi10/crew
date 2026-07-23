@@ -143,6 +143,9 @@ impl Broker {
             stats.exchanges += 1;
             stats.approx_tokens += (prompt.len() + reply.len()) / 4;
             stats.real_tokens += (usage.input_tokens + usage.output_tokens) as usize;
+            stats.tok_in += u64::from(usage.input_tokens);
+            stats.tok_out += u64::from(usage.output_tokens);
+            stats.cost_microusd += usage.cost_microusd;
             // Resolve any `@tool` directives before routing (no-op without tools).
             // Reuse this hop's ticker for every follow-up dial too, so the
             // per-agent 150ms gate and growth rule span the whole hop instead
@@ -161,6 +164,9 @@ impl Broker {
                         stats.exchanges += 1;
                         stats.approx_tokens += (nudge.len() + r.len()) / 4;
                         stats.real_tokens += (u.input_tokens + u.output_tokens) as usize;
+                        stats.tok_in += u64::from(u.input_tokens);
+                        stats.tok_out += u64::from(u.output_tokens);
+                        stats.cost_microusd += u.cost_microusd;
                         usage = u; // the repair call's context is the latest
                         r
                     }

@@ -37,6 +37,9 @@ pub struct RunStats {
     pub exchanges: u32,
     pub approx_tokens: usize,
     pub real_tokens: usize,
+    pub tok_in: u64,
+    pub tok_out: u64,
+    pub cost_microusd: u64,
 }
 
 use super::Envelope;

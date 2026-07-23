@@ -74,24 +74,27 @@ fn cell(col: u16, row: u16, c: char, fg: (u8, u8, u8), bold: bool) -> CellView {
     }
 }
 
+/// The rostered agent a leading `@mention` addresses, if any — the same rule
+/// `mention_len` colours by, shared with the footer's mode line.
+pub(crate) fn relay_target<'a>(input: &'a str, agents: &[AgentInfo]) -> Option<&'a str> {
+    let rest = input.strip_prefix('@')?;
+    let name = rest.split_whitespace().next().unwrap_or("");
+    agents
+        .iter()
+        .any(|a| a.name.eq_ignore_ascii_case(name))
+        .then_some(name)
+}
+
 /// Chars of the leading `@agent` mention when it names a known agent
 /// (`@coder fix this` → 6), else 0.
 fn mention_len(input: &str, agents: &[AgentInfo]) -> usize {
-    let Some(rest) = input.strip_prefix('@') else {
-        return 0;
-    };
-    let name = rest.split_whitespace().next().unwrap_or("");
-    if agents.iter().any(|a| a.name.eq_ignore_ascii_case(name)) {
-        1 + name.len()
-    } else {
-        0
-    }
+    relay_target(input, agents).map_or(0, |n| 1 + n.len())
 }
 
 /// The dim hint shown in place of the caret/typed text while the composer is
 /// empty — purely visual: it's never written into the input buffer, so typing
 /// simply replaces it and it never touches the cursor or what Enter submits.
-const PLACEHOLDER_HINT: &str = "type a task \u{00b7} / for constructs \u{00b7} @ to pick an agent";
+const PLACEHOLDER_HINT: &str = "type a task";
 
 /// Placeholder cells for [`PLACEHOLDER_HINT`], starting at column `x0`,
 /// clipped to `[x0, max)` (truncated on panes narrower than the hint).

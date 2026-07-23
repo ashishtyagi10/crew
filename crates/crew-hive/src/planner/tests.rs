@@ -233,6 +233,7 @@ async fn llm_planner_model_override_reaches_request() {
                     text: r#"[{"id":0,"title":"t","prompt":"p","deps":[]}]"#.into(),
                     input_tokens: 1,
                     output_tokens: 1,
+                    cost_microusd: 0,
                 })
             })
         }

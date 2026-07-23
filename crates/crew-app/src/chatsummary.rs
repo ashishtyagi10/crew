@@ -1,11 +1,11 @@
-//! The crew pane's summary footer: a muted stats block rendered directly BELOW
-//! the input composer (Claude-Code footer style), consolidating what the old
-//! per-agent statusline rows spread across the top. On a tall pane it is a
-//! labelled multi-row block (`summary_block`) — model, context (used/limit ·
-//! % left), usage (tokens · turns), and agents (count · avg latency); a short
-//! pane collapses to the dense single line (`summary_text`). Both builders are
-//! pure so they unit-test without a live pane; `summary_rows`/`summary_cells`
-//! gate the height and place the rows.
+//! The crew pane's statusline footer: three colored lines rendered directly
+//! BELOW the input composer (Claude-Code footer style). Line 1 is identity &
+//! spend (model/roster · branch · $cost · token split), line 2 is the rolling
+//! 5h/7d usage windows plus budget & context bars, and line 3 is the live
+//! routing mode (swarm vs. `@agent` relay) followed by the hints that used to
+//! crowd the composer placeholder. The builder (`footer_lines`) is pure so it
+//! unit-tests without a live pane; `summary_rows`/`summary_cells` gate the
+//! height and place the rows.
 use crew_plugin::AgentInfo;
 use crew_render::CellView;
 use std::collections::HashMap;
@@ -25,94 +25,101 @@ fn short_model(model: &str) -> &str {
     model.rsplit('/').next().unwrap_or(model)
 }
 
-/// The summary line for a pane with these `agents`, per-agent context fill
-/// (`ctx` tokens by agent name), session `tokens` spend, and the repo
-/// `branch`. Always returns a line — the Claude-Code statusline is always
-/// there, and this footer earns trust the same way: a fresh pane shows what
-/// little it knows (branch + zero spend) rather than nothing.
-///
-/// Segments, `|`-separated in statusline style, each shown when it has a
-/// value:
-/// - **model**: the one model when the roster shares it, else `N agents`.
-/// - **branch**: the watched repo's current branch.
-/// - **context**: the *tightest* remaining window across agents whose model
-///   has a known limit (`{left}% context`) — the agent nearest its ceiling is
-///   the one that matters, so the minimum-remaining wins.
-/// - **tokens**: `~{n} tok`, the session spend — always, even at zero.
-pub(crate) fn summary_text(
-    agents: &[AgentInfo],
-    ctx: &HashMap<String, u64>,
-    tokens: u64,
-    branch: Option<&str>,
-) -> String {
-    let mut segs: Vec<String> = Vec::new();
+type Fg = (u8, u8, u8);
+type Seg = (String, Fg);
 
-    // Distinct models across the roster, order-preserving.
-    let mut models: Vec<&str> = Vec::new();
-    for a in agents {
-        let m = short_model(&a.model);
-        if !models.contains(&m) {
-            models.push(m);
+pub(crate) struct FooterCtx<'a> {
+    pub agents: &'a [AgentInfo],
+    pub ctx: &'a HashMap<String, u64>,
+    pub tok_in: u64,
+    pub tok_out: u64,
+    pub cost_microusd: u64,
+    pub branch: Option<&'a str>,
+    /// The composer's current text, for the live routing-mode line.
+    pub input: &'a str,
+    pub windows: crate::usageledger::Windows,
+}
+
+/// `$0.129` under $10, `$12.35` above — micro-USD in, display string out.
+fn fmt_cost(microusd: u64) -> String {
+    let d = microusd as f64 / 1_000_000.0;
+    if d < 10.0 {
+        format!("${d:.3}")
+    } else {
+        format!("${d:.2}")
+    }
+}
+
+/// `3h52m` under a day, `3d23h` from one up — window countdowns.
+fn fmt_left(ms: u64) -> String {
+    let mins = ms / 60_000;
+    let (d, h, m) = (mins / 1_440, (mins % 1_440) / 60, mins % 60);
+    if d > 0 {
+        format!("{d}d{h}h")
+    } else {
+        format!("{h}h{m:02}m")
+    }
+}
+
+/// An 8-cell dithered meter: `▓` filled, `░` empty. 1-99% always shows at
+/// least one of each so "almost empty" and "almost full" stay legible.
+fn bar(pct: u8) -> String {
+    const W: usize = 8;
+    let filled = (usize::from(pct.min(100)) * W + 50) / 100;
+    let filled = match pct {
+        0 => 0,
+        1..=99 => filled.clamp(1, W - 1),
+        _ => W,
+    };
+    "\u{2593}".repeat(filled) + &"\u{2591}".repeat(W - filled)
+}
+
+/// Join colored segments with a muted ` | `, then explode to per-char cells.
+fn join(segs: &[Seg]) -> Vec<(char, Fg)> {
+    let muted = crew_theme::theme().text_muted;
+    let mut out = Vec::new();
+    for (i, (s, fg)) in segs.iter().enumerate() {
+        if i > 0 {
+            out.extend(" | ".chars().map(|c| (c, muted)));
         }
+        out.extend(s.chars().map(|c| (c, *fg)));
     }
-    match models.as_slice() {
-        [] => {}
-        [one] => segs.push((*one).to_string()),
-        many => segs.push(format!("{} agents", many.len())),
-    }
+    out
+}
 
-    if let Some(b) = branch {
-        segs.push(b.to_string());
-    }
-
-    // Tightest remaining context across agents with a known window.
-    let mut min_left: Option<u8> = None;
+/// The tightest remaining context across agents with a known window, as a
+/// fill percentage — the agent nearest its ceiling is the one that matters.
+fn ctx_fill(agents: &[AgentInfo], ctx: &HashMap<String, u64>) -> Option<u8> {
+    let mut max_fill: Option<u8> = None;
     for a in agents {
         let Some(limit) = crate::ctxlimit::context_limit(&a.model).filter(|&l| l > 0) else {
             continue;
         };
         let used = ctx.get(&a.name).copied().unwrap_or(0);
         let fill = ((used.saturating_mul(100)) / limit).min(100) as u8;
-        let left = 100 - fill;
-        min_left = Some(min_left.map_or(left, |m| m.min(left)));
+        max_fill = Some(max_fill.map_or(fill, |m| m.max(fill)));
     }
-    if let Some(left) = min_left {
-        segs.push(format!("{left}% context"));
-    }
-
-    segs.push(format!("~{} tok", fmt_tokens(tokens)));
-
-    segs.join(" | ")
+    max_fill
 }
 
-/// The most rows the summary block ever claims (model / git / ctx / usage /
-/// agents).
-const MAX_BLOCK: u16 = 5;
+/// The Claude-Code-style statusline: up to three colored lines (identity &
+/// spend / rolling windows & bars / routing mode & hints). Pure — everything
+/// it shows arrives via `FooterCtx`, so it unit-tests without a live pane.
+pub(crate) fn footer_lines(fc: &FooterCtx, cols: usize) -> Vec<Vec<(char, Fg)>> {
+    let th = crew_theme::theme();
+    let (cyan, blue, green, magenta, yellow) = (
+        th.ansi[14],
+        th.ansi[12],
+        th.ansi[10],
+        th.ansi[13],
+        th.ansi[11],
+    );
+    let muted = th.text_muted;
 
-/// The multi-row stats block shown below the composer when the pane is tall
-/// enough, most-important row first. Rows appear when they have data — except
-/// **usage**, which is always there, so a fresh pane still shows a footer:
-/// - **model**: the shared model, or `mixed (N)` across a mixed roster.
-/// - **git**: the watched repo's current branch.
-/// - **ctx**: the tightest agent's window — `{used}/{limit} \u{b7} {left}% left`.
-/// - **usage**: `~{n} tok` session spend, and `\u{b7} {t} turns` once turns land.
-/// - **agents**: roster size, and `\u{b7} avg {s}s/reply` from reply stats.
-///
-/// On a shorter pane only the first few rows are shown (see `summary_rows`); a
-/// one-row budget falls back to the dense [`summary_text`] line instead.
-fn summary_block(
-    agents: &[AgentInfo],
-    ctx: &HashMap<String, u64>,
-    tokens: u64,
-    turns: u64,
-    agent_stats: &HashMap<String, (u32, u64)>,
-    branch: Option<&str>,
-) -> Vec<(&'static str, String)> {
-    let mut rows: Vec<(&'static str, String)> = Vec::new();
-
-    // model: one shared name, or a count when the roster mixes models.
+    // Line 1: model | branch | $cost | in/out.
+    let mut l1: Vec<Seg> = Vec::new();
     let mut models: Vec<&str> = Vec::new();
-    for a in agents {
+    for a in fc.agents {
         let m = short_model(&a.model);
         if !models.contains(&m) {
             models.push(m);
@@ -120,134 +127,109 @@ fn summary_block(
     }
     match models.as_slice() {
         [] => {}
-        [one] => rows.push(("model", (*one).to_string())),
-        many => rows.push(("model", format!("mixed ({})", many.len()))),
+        [one] => l1.push(((*one).to_string(), cyan)),
+        many => l1.push((format!("{} agents", many.len()), cyan)),
     }
-
-    // git: the branch the sidebar's watch already tracks (never run git here).
-    if let Some(b) = branch {
-        rows.push(("git", b.to_string()));
+    if let Some(b) = fc.branch {
+        l1.push((b.to_string(), yellow));
     }
+    if fc.cost_microusd > 0 {
+        l1.push((fmt_cost(fc.cost_microusd), green));
+    }
+    l1.push((
+        format!(
+            "{} in / {} out",
+            fmt_tokens(fc.tok_in),
+            fmt_tokens(fc.tok_out)
+        ),
+        magenta,
+    ));
 
-    // ctx: the agent nearest its ceiling — absolute used/limit plus % left.
-    let mut tightest: Option<(u64, u64, u8)> = None; // (used, limit, left%)
-    for a in agents {
-        let Some(limit) = crate::ctxlimit::context_limit(&a.model).filter(|&l| l > 0) else {
-            continue;
-        };
-        let used = ctx.get(&a.name).copied().unwrap_or(0);
-        let left = (100 - ((used.saturating_mul(100)) / limit).min(100)) as u8;
-        if tightest.map_or(true, |(_, _, l)| left < l) {
-            tightest = Some((used, limit, left));
+    // Line 2: 5h/7d countdowns, then budget + context bars (bars are the
+    // first thing to go on a narrow pane).
+    let mut l2: Vec<Seg> = Vec::new();
+    let left = |w: Option<crate::usageledger::WindowStat>| {
+        w.map_or("--".to_string(), |w| fmt_left(w.left_ms))
+    };
+    l2.push((format!("5h:{}", left(fc.windows.five_h)), blue));
+    l2.push((format!("7d:{}", left(fc.windows.seven_d)), blue));
+    if cols >= 60 {
+        if let Some(w) = fc.windows.five_h {
+            let pct = ((w.spent.saturating_mul(100)) / w.budget.max(1)).min(100) as u8;
+            l2.push((format!("{} {pct}% (5h)", bar(pct)), muted));
+        }
+        if let Some(fill) = ctx_fill(fc.agents, fc.ctx) {
+            l2.push((format!("{} {fill}% (ctx)", bar(fill)), muted));
         }
     }
-    if let Some((used, limit, left)) = tightest {
-        rows.push((
-            "ctx",
-            format!(
-                "{}/{} \u{00b7} {left}% left",
-                fmt_tokens(used),
-                fmt_tokens(limit)
-            ),
-        ));
-    }
 
-    // usage: session token spend and completed turns. Unconditional — this
-    // row is what guarantees a fresh pane still shows a footer at all.
-    let mut v = format!("~{} tok", fmt_tokens(tokens));
-    if turns > 0 {
-        let unit = if turns == 1 { "turn" } else { "turns" };
-        v.push_str(&format!(" \u{00b7} {turns} {unit}"));
-    }
-    rows.push(("usage", v));
+    // Line 3: live routing mode + the hints that used to crowd the composer.
+    let mode = match crate::chatinput::relay_target(fc.input, fc.agents) {
+        Some(name) => format!("\u{25b6}\u{25b6} @{name} relay"),
+        None => "\u{25b6}\u{25b6} swarm mode".to_string(),
+    };
+    let hints = " \u{00b7} / for constructs \u{00b7} @ to relay to an agent";
+    let mut l3: Vec<(char, Fg)> = mode.chars().map(|c| (c, yellow)).collect();
+    l3.extend(hints.chars().map(|c| (c, muted)));
 
-    // agents: roster size and the average reply latency across it.
-    if !agents.is_empty() {
-        let (replies, ms): (u32, u64) = agent_stats
-            .values()
-            .fold((0, 0), |(r, m), (ar, am)| (r + ar, m + am));
-        let mut v = agents.len().to_string();
-        if replies > 0 {
-            let avg_s = (ms / replies as u64) as f64 / 1000.0;
-            v.push_str(&format!(" \u{00b7} avg {avg_s:.1}s/reply"));
-        }
-        rows.push(("agents", v));
-    }
-
-    rows
+    vec![join(&l1), join(&l2), l3]
 }
 
-/// Pad each block row's label to a common width so the values align into a
-/// column: `"model  claude\u{2026}"`, `"ctx    45k\u{2026}"`.
-fn block_lines(rows: &[(&'static str, String)]) -> Vec<String> {
-    let w = rows.iter().map(|(l, _)| l.len()).max().unwrap_or(0);
-    rows.iter()
-        .map(|(label, value)| format!("{label:<w$} {value}"))
-        .collect()
+/// The most rows the footer ever claims (identity/spend, windows/bars,
+/// routing mode).
+const MAX_BLOCK: u16 = 3;
+
+fn footer_ctx(pane: &ChatPane, now_ms: u64) -> FooterCtx<'_> {
+    FooterCtx {
+        agents: &pane.agents,
+        ctx: &pane.ctx,
+        tok_in: pane.tok_in,
+        tok_out: pane.tok_out,
+        cost_microusd: pane.cost_microusd,
+        branch: pane.git_branch.as_deref(),
+        input: &pane.input,
+        windows: crate::usageledger::windows(now_ms),
+    }
 }
 
-/// Rows the summary block claims at the very bottom of a `cols`×`rows` pane.
+/// Rows the footer claims at the very bottom of a `cols`×`rows` pane.
 ///
-/// `0` when the pane is too short/narrow (below `MIN_ROWS`) or there is nothing
-/// to summarise. Otherwise the block grows one row at a time with pane height —
-/// `rows - (MIN_ROWS - 1)` rows, capped at [`MAX_BLOCK`] and at however many
-/// stat rows actually have data. The `rows - (MIN_ROWS-1)` budget guarantees
+/// `0` when the pane is too short/narrow (below `MIN_ROWS`). Otherwise the
+/// footer grows one row at a time with pane height — `rows - (MIN_ROWS - 1)`
+/// rows, capped at [`MAX_BLOCK`]. The `rows - (MIN_ROWS-1)` budget guarantees
 /// the composer is always measured against at least `MIN_ROWS - 1` rows, so
-/// growing the block never shrinks the composer below its bordered threshold.
-/// The single source both `chatplace::grants` (row budget) and `chatview::cells`
-/// (placement) read, so the reserved rows and the drawn rows never disagree.
+/// growing the footer never shrinks the composer below its bordered
+/// threshold. The single source both `chatplace::grants` (row budget) and
+/// `chatview::cells` (placement) read, so the reserved rows and the drawn
+/// rows never disagree.
 pub(crate) fn summary_rows(pane: &ChatPane, cols: u16, rows: u16) -> u16 {
     if rows < MIN_ROWS || cols < 6 {
         return 0;
     }
-    // The usage row is unconditional, so the block is never empty — a tall
-    // enough pane ALWAYS shows the footer (statusline-style, like Claude
-    // Code's), fresh or not.
-    let lines = summary_block(
-        &pane.agents,
-        &pane.ctx,
-        pane.tokens,
-        pane.turns,
-        &pane.agent_stats,
-        pane.git_branch.as_deref(),
-    );
-    let budget = rows - (MIN_ROWS - 1); // ≥ 1, since rows ≥ MIN_ROWS
-    (lines.len() as u16).min(budget).min(MAX_BLOCK)
+    let _ = pane;
+    // Always 3 lines when the budget allows — line 1 alone otherwise. The
+    // `rows - (MIN_ROWS-1)` budget keeps the composer's bordered threshold.
+    let budget = rows - (MIN_ROWS - 1);
+    budget.min(MAX_BLOCK)
 }
 
-/// Render the summary block as muted rows, `height` of them starting at `top`,
-/// each indented one column so it reads as a footer rather than a continuation
-/// of the composer border. A one-row budget falls back to the dense
-/// [`summary_text`] line; taller budgets draw the labelled block, most-important
-/// row first. Clipped to `cols`; empty when there's nothing to summarise.
+/// Render the footer's `height` lines starting at `top`, each indented one
+/// column so it reads as a footer rather than a continuation of the composer
+/// border. Clipped to `cols`; empty when `height` is 0.
 pub(crate) fn summary_cells(pane: &ChatPane, cols: u16, top: u16, height: u16) -> Vec<CellView> {
     if height == 0 {
         return Vec::new();
     }
-    let texts: Vec<String> = if height == 1 {
-        vec![summary_text(
-            &pane.agents,
-            &pane.ctx,
-            pane.tokens,
-            pane.git_branch.as_deref(),
-        )]
-    } else {
-        let rows = summary_block(
-            &pane.agents,
-            &pane.ctx,
-            pane.tokens,
-            pane.turns,
-            &pane.agent_stats,
-            pane.git_branch.as_deref(),
-        );
-        block_lines(&rows)
-    };
-    let muted = crew_theme::theme().text_muted;
+    let now_ms = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0);
+    let lines = footer_lines(&footer_ctx(pane, now_ms), cols as usize);
     let bg = crew_theme::theme().page_bg;
     let mut cells = Vec::new();
-    for (i, text) in texts.iter().take(height as usize).enumerate() {
+    for (i, line) in lines.into_iter().take(height as usize).enumerate() {
         let row = top + i as u16;
-        crate::chatwidth::place_row(1, cols, text.chars().map(|c| (c, muted)), |x, c, fg| {
+        crate::chatwidth::place_row(1, cols, line, |x, c, fg| {
             cells.push(CellView {
                 col: x,
                 row,
