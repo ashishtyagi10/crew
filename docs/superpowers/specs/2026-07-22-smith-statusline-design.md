@@ -96,6 +96,22 @@ model):
 `ChatPane` accumulates `tok_in`, `tok_out`, `cost_microusd` alongside the
 existing `tokens`. Ledger writes happen where Stats events are applied.
 
+## Tree connectors for chained replies (added mid-design)
+
+Chat cards continuing the same task currently all chain with `└`. Adopt the
+Claude-Code background-agent tree look: a chained card renders `├ ` when
+another card of the same task follows it, `└ ` only on the last — so a
+multi-reply action reads as one tree:
+
+```
+▍coder #7 · 2m ago        (root keeps its gutter)
+├ mid reply
+└ final reply
+```
+
+Implementation is a one-step look-ahead in `chatmsgs::card_lines`
+(`header_line` takes `connector: Option<char>` instead of `chained: bool`).
+
 ## Not in scope
 - No user-cyclable mode (shift+tab) — line 3 reflects routing state, it does
   not add a mode machine.
