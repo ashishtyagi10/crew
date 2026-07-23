@@ -1,4 +1,5 @@
 use super::*;
+use crew_plugin::AgentInfo;
 use std::collections::HashMap;
 
 fn agent(name: &str, model: &str) -> AgentInfo {
@@ -13,144 +14,114 @@ fn ctx(pairs: &[(&str, u64)]) -> HashMap<String, u64> {
     pairs.iter().map(|(n, v)| (n.to_string(), *v)).collect()
 }
 
-fn stats(pairs: &[(&str, u32, u64)]) -> HashMap<String, (u32, u64)> {
-    pairs
-        .iter()
-        .map(|(n, r, ms)| (n.to_string(), (*r, *ms)))
-        .collect()
+fn text(line: &[(char, (u8, u8, u8))]) -> String {
+    line.iter().map(|(c, _)| *c).collect()
+}
+
+fn fc<'a>(agents: &'a [AgentInfo], ctxm: &'a HashMap<String, u64>) -> FooterCtx<'a> {
+    FooterCtx {
+        agents,
+        ctx: ctxm,
+        tok_in: 41_600,
+        tok_out: 314,
+        cost_microusd: 129_000, // $0.129
+        branch: Some("main"),
+        input: "",
+        windows: crate::usageledger::Windows {
+            five_h: Some(crate::usageledger::WindowStat {
+                left_ms: (3 * 60 + 52) * 60_000, // 3h52m
+                spent: 150_000,
+                budget: 5_000_000, // 3%
+            }),
+            seven_d: Some(crate::usageledger::WindowStat {
+                left_ms: (3 * 24 + 23) * 3_600_000, // 3d23h
+                spent: 0,
+                budget: 25_000_000,
+            }),
+        },
+    }
 }
 
 #[test]
-fn block_shows_every_stat_row_with_data() {
-    let agents = [agent("smith", "anthropic/claude-opus-4-8")];
-    let rows = summary_block(
-        &agents,
-        &ctx(&[("smith", 100_000)]),
-        120_000,
-        8,
-        &stats(&[("smith", 5, 21_000)]), // 5 replies, 21s total → avg 4.2s
-        Some("main"),
-    );
-    let labels: Vec<&str> = rows.iter().map(|(l, _)| *l).collect();
-    assert_eq!(labels, ["model", "git", "ctx", "usage", "agents"]);
-    let by = |k: &str| rows.iter().find(|(l, _)| *l == k).unwrap().1.clone();
-    assert_eq!(by("model"), "claude-opus-4-8");
-    assert_eq!(by("git"), "main");
-    // claude window is 200k; 100k used → 100k/200k · 50% left
-    assert_eq!(by("ctx"), "100.0k/200.0k \u{00b7} 50% left");
-    assert_eq!(by("usage"), "~120.0k tok \u{00b7} 8 turns");
-    assert_eq!(by("agents"), "1 \u{00b7} avg 4.2s/reply");
-}
-
-#[test]
-fn block_omits_rows_without_data_but_always_keeps_usage() {
-    // No roster, no branch → only the unconditional usage row. This is the
-    // fresh-pane guarantee: the footer never disappears entirely.
-    let rows = summary_block(&[], &HashMap::new(), 9_500, 0, &HashMap::new(), None);
-    let labels: Vec<&str> = rows.iter().map(|(l, _)| *l).collect();
-    assert_eq!(labels, ["usage"]);
-    assert_eq!(rows[0].1, "~9.5k tok"); // no turns suffix at 0 turns
-}
-
-#[test]
-fn block_mixed_models_collapse_to_a_count() {
-    let agents = [agent("a", "claude"), agent("b", "gpt-5")];
-    let rows = summary_block(&agents, &HashMap::new(), 0, 0, &HashMap::new(), None);
-    assert_eq!(rows[0], ("model", "mixed (2)".to_string()));
-}
-
-#[test]
-fn block_agents_row_omits_latency_without_replies() {
-    let agents = [agent("a", "claude"), agent("b", "claude")];
-    let rows = summary_block(&agents, &HashMap::new(), 0, 0, &HashMap::new(), None);
-    let agents_row = rows.iter().find(|(l, _)| *l == "agents").unwrap();
-    assert_eq!(agents_row.1, "2", "no reply stats → count only, no avg");
-}
-
-#[test]
-fn block_lines_pad_labels_into_a_column() {
-    let rows = vec![("model", "x".to_string()), ("agents", "y".to_string())];
-    let lines = block_lines(&rows);
-    // Widest label is "agents" (6); "model" pads to 6 so values align at col 7.
-    assert_eq!(lines[0], "model  x");
-    assert_eq!(lines[1], "agents y");
-}
-
-#[test]
-fn fresh_pane_still_gets_a_statusline() {
-    // Nothing known yet → the footer still shows the zero spend (and the
-    // branch when there is one) instead of vanishing — statusline style.
-    assert_eq!(summary_text(&[], &HashMap::new(), 0, None), "~0 tok");
+fn line1_shows_model_branch_cost_and_split() {
+    let agents = [agent("smith", "qwen/qwen3-coder-plus")];
+    let lines = footer_lines(&fc(&agents, &ctx(&[("smith", 100_000)])), 120);
     assert_eq!(
-        summary_text(&[], &HashMap::new(), 0, Some("main")),
-        "main | ~0 tok"
+        text(&lines[0]),
+        "qwen3-coder-plus | main | $0.129 | 41.6k in / 314 out"
     );
 }
 
 #[test]
-fn tokens_alone_still_summarise() {
-    let s = summary_text(&[], &HashMap::new(), 9_500, None);
-    assert_eq!(s, "~9.5k tok");
+fn line1_hides_cost_when_unpriced_but_always_shows_tokens() {
+    let empty_ctx = HashMap::new();
+    let mut f = fc(&[], &empty_ctx);
+    f.cost_microusd = 0;
+    f.tok_in = 0;
+    f.tok_out = 0;
+    f.branch = None;
+    let lines = footer_lines(&f, 120);
+    assert_eq!(text(&lines[0]), "0 in / 0 out");
 }
 
 #[test]
-fn single_agent_shows_model_branch_and_full_context() {
-    // A fresh agent (no ctx recorded) reads as a full window: 100% remaining.
-    let agents = [agent("planner", "anthropic/claude-sonnet-5")];
-    let s = summary_text(&agents, &HashMap::new(), 0, Some("main"));
-    assert_eq!(s, "claude-sonnet-5 | main | 100% context | ~0 tok");
+fn line2_shows_countdowns_and_bars() {
+    let agents = [agent("smith", "anthropic/claude-opus-4-8")];
+    // opus limit 200k, 100k used → ctx bar 50%.
+    let lines = footer_lines(&fc(&agents, &ctx(&[("smith", 100_000)])), 120);
+    let l2 = text(&lines[1]);
+    assert!(l2.starts_with("5h:3h52m | 7d:3d23h | "), "{l2}");
+    assert!(l2.contains("3% (5h)"), "{l2}");
+    assert!(l2.ends_with("50% (ctx)"), "{l2}");
 }
 
 #[test]
-fn context_derives_from_fill_over_the_model_limit() {
-    // claude → 200k window; 100k used → 50% fill → 50% remaining.
-    let agents = [agent("planner", "claude")];
-    let s = summary_text(&agents, &ctx(&[("planner", 100_000)]), 0, None);
-    assert!(s.contains("50% context"), "got: {s}");
+fn line2_dashes_when_no_window_and_drops_ctx_without_agents() {
+    let empty_ctx = HashMap::new();
+    let mut f = fc(&[], &empty_ctx);
+    f.windows = crate::usageledger::Windows::default();
+    let l2 = text(&footer_lines(&f, 120)[1]);
+    assert_eq!(l2, "5h:-- | 7d:--");
 }
 
 #[test]
-fn session_tokens_trail_the_line() {
-    let agents = [agent("planner", "claude")];
-    let s = summary_text(&agents, &HashMap::new(), 12_000, None);
-    assert!(s.ends_with("~12.0k tok"), "token spend trails: {s}");
-    assert!(s.starts_with("claude"), "model leads: {s}");
+fn line2_drops_bars_on_narrow_panes() {
+    let agents = [agent("smith", "anthropic/claude-opus-4-8")];
+    let lines = footer_lines(&fc(&agents, &ctx(&[("smith", 100_000)])), 40);
+    assert_eq!(text(&lines[1]), "5h:3h52m | 7d:3d23h");
 }
 
 #[test]
-fn shared_model_shows_once_distinct_models_collapse_to_a_count() {
-    let same = [agent("a", "claude"), agent("b", "claude")];
-    assert!(
-        summary_text(&same, &HashMap::new(), 0, None).starts_with("claude"),
-        "one shared model shows by name"
+fn line3_swarm_by_default_relay_when_mentioning() {
+    let agents = [agent("coder", "m")];
+    let empty_ctx = HashMap::new();
+    let f = fc(&agents, &empty_ctx);
+    let l3 = text(&footer_lines(&f, 120)[2]);
+    assert_eq!(
+        l3,
+        "\u{25b6}\u{25b6} swarm mode \u{00b7} / for constructs \u{00b7} @ to relay to an agent"
     );
-    let diff = [agent("a", "claude"), agent("b", "gpt-5")];
-    assert!(
-        summary_text(&diff, &HashMap::new(), 0, None).starts_with("2 agents"),
-        "mixed models collapse to an agent count"
-    );
+    let mut f = fc(&agents, &empty_ctx);
+    f.input = "@coder fix the tests";
+    let l3 = text(&footer_lines(&f, 120)[2]);
+    assert!(l3.starts_with("\u{25b6}\u{25b6} @coder relay"), "{l3}");
 }
 
 #[test]
-fn tightest_remaining_context_wins() {
-    // planner at 50% fill (100k/200k), coder at 90% fill (180k/200k). The
-    // footer must report the agent NEAREST its ceiling: 10% remaining.
-    let agents = [agent("planner", "claude"), agent("coder", "claude")];
-    let s = summary_text(
-        &agents,
-        &ctx(&[("planner", 100_000), ("coder", 180_000)]),
-        0,
-        None,
-    );
-    assert!(s.contains("10% context"), "min remaining wins: {s}");
+fn segments_are_colored_separators_muted() {
+    let agents = [agent("smith", "qwen3-coder-plus")];
+    let lines = footer_lines(&fc(&agents, &ctx(&[])), 120);
+    let th = crew_theme::theme();
+    // First char of line 1 is the model segment → cyan (ansi[14]).
+    assert_eq!(lines[0][0].1, th.ansi[14]);
+    // The separator chars are muted.
+    let sep = lines[0].iter().find(|(c, _)| *c == '|').unwrap();
+    assert_eq!(sep.1, th.text_muted);
 }
 
 #[test]
-fn unknown_model_limit_drops_the_context_segment() {
-    // A model with no known window can't yield a percentage — the context
-    // segment is omitted rather than guessed.
-    let agents = [agent("planner", "some-exotic-model")];
-    let s = summary_text(&agents, &ctx(&[("planner", 5_000)]), 3_000, None);
-    assert!(!s.contains("context"), "no ctx% without a known limit: {s}");
-    assert!(s.contains("~3.0k tok"), "other segments still show: {s}");
+fn mixed_roster_counts_models() {
+    let agents = [agent("a", "m1"), agent("b", "m2")];
+    let lines = footer_lines(&fc(&agents, &HashMap::new()), 120);
+    assert!(text(&lines[0]).starts_with("2 agents | "));
 }

@@ -9,10 +9,6 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::sync::Mutex;
 
-// `windows()`/`Windows`/`WindowStat` are consumed by the footer in Task 6;
-// until then these are only reachable from tests, so allow the dead-code
-// warnings rather than leaving the build noisy.
-#[allow(dead_code)]
 pub(crate) const FIVE_H_MS: u64 = 5 * 3_600_000;
 pub(crate) const SEVEN_D_MS: u64 = 7 * 24 * 3_600_000;
 
@@ -34,7 +30,6 @@ pub(crate) struct WindowStat {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-#[allow(dead_code)]
 pub(crate) struct Windows {
     pub five_h: Option<WindowStat>,
     pub seven_d: Option<WindowStat>,
@@ -43,9 +38,7 @@ pub(crate) struct Windows {
 #[derive(Default)]
 pub(crate) struct Ledger {
     pub(crate) entries: Vec<Entry>,
-    #[allow(dead_code)]
     pub(crate) budget_5h: u64,
-    #[allow(dead_code)]
     pub(crate) budget_7d: u64,
 }
 
@@ -79,7 +72,6 @@ impl Ledger {
         })
     }
 
-    #[allow(dead_code)]
     pub(crate) fn windows(&self, now_ms: u64) -> Windows {
         Windows {
             five_h: self.window(now_ms, FIVE_H_MS, self.budget_5h),
@@ -181,7 +173,6 @@ pub(crate) fn record(tok_in: u64, tok_out: u64, cost_microusd: u64) {
 
 /// The current rolling windows, for the footer. Cheap: a scan over ≤7d of
 /// per-turn entries under a mutex — fine on the render path.
-#[allow(dead_code)]
 pub(crate) fn windows(now_ms: u64) -> Windows {
     let guard = LEDGER.lock().unwrap_or_else(|e| e.into_inner());
     guard

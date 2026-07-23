@@ -65,7 +65,7 @@ fn cells_render_header_and_summary_footer_not_agent_chips() {
             model: "qwen".into(),
         },
     ];
-    p.absorb_stats(950, String::new(), 0, 0, 0, 0, 0);
+    p.absorb_stats(950, String::new(), 0, 0, 600, 350, 0);
     let cells = p.cells(120, 20);
     let text: String = {
         let mut rows: std::collections::BTreeMap<u16, Vec<(u16, char)>> = Default::default();
@@ -86,12 +86,16 @@ fn cells_render_header_and_summary_footer_not_agent_chips() {
         !text.contains("agent smith"),
         "header title must be gone:\n{text}"
     );
-    // The summary footer replaces the per-agent chip grid: a multi-row stats
-    // block with one shared model, the (full, since no fill recorded) context
-    // window, and session spend. A tall pane (20 rows) shows the full block.
+    // The summary footer replaces the per-agent chip grid: a 3-line
+    // statusline with the shared model, the token split, and the (empty,
+    // since no fill recorded) context bar. A tall pane (20 rows) shows all
+    // three lines.
     assert!(text.contains("qwen"), "footer model:\n{text}");
-    assert!(text.contains("100% left"), "footer context row:\n{text}");
-    assert!(text.contains("~950 tok"), "footer token spend:\n{text}");
+    assert!(text.contains("0% (ctx)"), "footer context row:\n{text}");
+    assert!(
+        text.contains("600 in / 350 out"),
+        "footer token split:\n{text}"
+    );
     // The retired chip markers must be gone.
     assert!(
         !text.contains('\u{25b8}') && !text.contains('\u{25aa}'),
