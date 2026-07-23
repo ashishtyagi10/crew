@@ -53,6 +53,7 @@ async fn default_streaming_falls_back_without_chunks() {
                     text: "whole".into(),
                     input_tokens: 1,
                     output_tokens: 1,
+                    cost_microusd: 0,
                 })
             })
         }
@@ -153,6 +154,23 @@ fn openrouter_parse_response_errors_on_api_error_payload() {
 }
 
 #[test]
+fn parse_response_reads_openrouter_cost() {
+    use super::openai_http::parse_response;
+    let body = r#"{"choices":[{"message":{"content":"hi"}}],
+        "usage":{"prompt_tokens":10,"completion_tokens":5,"cost":0.000129}}"#;
+    let c = parse_response(body).unwrap();
+    assert_eq!(c.cost_microusd, 129);
+}
+
+#[test]
+fn parse_response_without_cost_is_zero() {
+    use super::openai_http::parse_response;
+    let body = r#"{"choices":[{"message":{"content":"hi"}}],
+        "usage":{"prompt_tokens":10,"completion_tokens":5}}"#;
+    assert_eq!(parse_response(body).unwrap().cost_microusd, 0);
+}
+
+#[test]
 fn sse_parser_extracts_deltas_usage_and_done() {
     use super::openai_http::{parse_sse_line, SseItem};
     assert!(matches!(parse_sse_line(""), SseItem::Skip));
@@ -171,7 +189,14 @@ fn sse_parser_extracts_deltas_usage_and_done() {
     match parse_sse_line(
         r#"data: {"choices":[],"usage":{"prompt_tokens":10,"completion_tokens":42}}"#,
     ) {
-        SseItem::Usage(i, o) => assert_eq!((i, o), (10, 42)),
+        SseItem::Usage(i, o, cost) => assert_eq!((i, o, cost), (10, 42, 0)),
+        _ => panic!("usage expected"),
+    }
+    // OpenRouter usage frame with exact cost (dollars, converted to micro-USD).
+    match parse_sse_line(
+        r#"data: {"choices":[],"usage":{"prompt_tokens":10,"completion_tokens":42,"cost":0.000129}}"#,
+    ) {
+        SseItem::Usage(i, o, cost) => assert_eq!((i, o, cost), (10, 42, 129)),
         _ => panic!("usage expected"),
     }
     assert!(matches!(parse_sse_line("data: {not json"), SseItem::Skip));

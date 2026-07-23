@@ -223,7 +223,7 @@ async fn consume_sse(
     let mut carry: Vec<u8> = Vec::new();
     let mut raw_bytes: Vec<u8> = Vec::new();
     let mut text = String::new();
-    let mut usage: Option<(u64, u64)> = None;
+    let mut usage: Option<(u64, u64, u64)> = None;
     // Any Done/Delta/Usage frame ever seen — distinguishes a genuine (if
     // empty) stream from a non-SSE error body (Critical-1).
     let mut any_frame = false;
@@ -265,17 +265,23 @@ async fn consume_sse(
             String::from_utf8_lossy(&raw_bytes).into_owned(),
         ));
     }
-    let (input_tokens, output_tokens) = match usage {
-        Some((i, o)) => (i.min(u32::MAX as u64) as u32, o.min(u32::MAX as u64) as u32),
+    let (input_tokens, output_tokens, cost_microusd) = match usage {
+        Some((i, o, cost)) => (
+            i.min(u32::MAX as u64) as u32,
+            o.min(u32::MAX as u64) as u32,
+            cost,
+        ),
         None => (
             estimate_input_tokens(req_body),
             estimate_output_tokens(&text),
+            0,
         ),
     };
     Ok(SseOutcome::Completion(Completion {
         text,
         input_tokens,
         output_tokens,
+        cost_microusd,
     }))
 }
 
@@ -289,7 +295,7 @@ fn apply_sse_line(
     started: &std::sync::atomic::AtomicBool,
     any_frame: &mut bool,
     text: &mut String,
-    usage: &mut Option<(u64, u64)>,
+    usage: &mut Option<(u64, u64, u64)>,
 ) -> bool {
     match parse_sse_line(line) {
         SseItem::Delta(s) => {
@@ -304,8 +310,8 @@ fn apply_sse_line(
             on_chunk(&s);
             false
         }
-        SseItem::Usage(i, o) => {
-            *usage = Some((i, o));
+        SseItem::Usage(i, o, cost) => {
+            *usage = Some((i, o, cost));
             *any_frame = true;
             false
         }
@@ -355,7 +361,7 @@ fn chars_to_tokens(chars: usize) -> u32 {
 /// One parsed SSE line from an OpenAI-compatible streaming response.
 pub(crate) enum SseItem {
     Delta(String),
-    Usage(u64, u64),
+    Usage(u64, u64, u64),
     Done,
     Skip,
 }
@@ -381,8 +387,9 @@ pub(crate) fn parse_sse_line(line: &str) -> SseItem {
     if let Some(u) = v.get("usage").filter(|u| !u.is_null()) {
         let i = u["prompt_tokens"].as_u64().unwrap_or(0);
         let o = u["completion_tokens"].as_u64().unwrap_or(0);
+        let cost = (u["cost"].as_f64().unwrap_or(0.0) * 1_000_000.0) as u64;
         if i > 0 || o > 0 {
-            return SseItem::Usage(i, o);
+            return SseItem::Usage(i, o, cost);
         }
     }
     SseItem::Skip
@@ -406,6 +413,10 @@ struct Usage {
     prompt_tokens: u32,
     #[serde(default)]
     completion_tokens: u32,
+    /// OpenRouter-only: exact request cost in USD when the request asked
+    /// for it (`usage: {include: true}`). Absent everywhere else.
+    #[serde(default)]
+    cost: f64,
 }
 
 #[derive(Deserialize)]
@@ -436,5 +447,6 @@ pub(super) fn parse_response(body: &str) -> Result<Completion, ProviderError> {
         text,
         input_tokens: usage.prompt_tokens,
         output_tokens: usage.completion_tokens,
+        cost_microusd: (usage.cost * 1_000_000.0) as u64,
     })
 }

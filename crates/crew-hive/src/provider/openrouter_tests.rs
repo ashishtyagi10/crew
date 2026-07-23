@@ -2,7 +2,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use super::{attempt_chain, OpenRouterProvider};
+use super::{attempt_chain, build_body, OpenRouterProvider};
 use crate::provider::openai_http::retry_delay;
 use crate::provider::{ChunkFn, CompletionRequest, Provider, ProviderError};
 
@@ -26,6 +26,24 @@ fn chain_dedups_and_skips_empty() {
 #[test]
 fn chain_of_one_when_no_fallbacks() {
     assert_eq!(attempt_chain("only:free", &[]), vec!["only:free"]);
+}
+
+#[test]
+fn openrouter_body_asks_for_cost_but_custom_endpoint_does_not() {
+    let req = CompletionRequest {
+        model: "m".into(),
+        system: None,
+        prompt: "hi".into(),
+        max_tokens: 8,
+    };
+    let messages = vec![serde_json::json!({"role": "user", "content": "hi"})];
+    let with_cost = build_body("m", &req, &messages, true);
+    assert_eq!(with_cost["usage"]["include"], true);
+    let without_cost = build_body("m", &req, &messages, false);
+    assert!(
+        without_cost.get("usage").is_none(),
+        "must not send `usage` at all when cost reporting is not requested"
+    );
 }
 
 // The exact OpenRouter free-tier body the user hit: a 200 wrapping an
@@ -174,7 +192,7 @@ async fn streams_deltas_and_reports_final_usage_over_http() {
         "data: {\"choices\":[{\"delta\":{\"role\":\"assistant\"}}]}\n",
         "data: {\"choices\":[{\"delta\":{\"content\":\"Hel\"}}]}\n",
         "data: {\"choices\":[{\"delta\":{\"content\":\"lo\"}}]}\n",
-        "data: {\"choices\":[],\"usage\":{\"prompt_tokens\":5,\"completion_tokens\":2}}\n",
+        "data: {\"choices\":[],\"usage\":{\"prompt_tokens\":5,\"completion_tokens\":2,\"cost\":0.000042}}\n",
         "data: [DONE]\n",
     );
     let head = format!(
@@ -196,6 +214,7 @@ async fn streams_deltas_and_reports_final_usage_over_http() {
     assert_eq!(done.text, "Hello");
     assert_eq!(done.input_tokens, 5);
     assert_eq!(done.output_tokens, 2);
+    assert_eq!(done.cost_microusd, 42);
 }
 
 #[tokio::test]
