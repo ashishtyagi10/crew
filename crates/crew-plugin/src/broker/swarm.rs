@@ -270,6 +270,9 @@ pub(crate) fn run_with(
         agent: String::new(),
         ms: 0,
         ctx: 0,
+        tok_in: 0,
+        tok_out: 0,
+        cost_microusd: 0,
     })?;
     if let Some(summary) = summary {
         emit(msg("agent smith", summary))?;

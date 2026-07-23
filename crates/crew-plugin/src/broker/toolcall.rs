@@ -193,6 +193,9 @@ impl Broker {
                     stats.exchanges += 1;
                     stats.approx_tokens += (follow.len() + r.len()) / 4;
                     stats.real_tokens += (u.input_tokens + u.output_tokens) as usize;
+                    stats.tok_in += u64::from(u.input_tokens);
+                    stats.tok_out += u64::from(u.output_tokens);
+                    stats.cost_microusd += u.cost_microusd;
                     *usage = u; // latest context fill, mirroring the primary dial's repair call
                     tick_base += (r.chars().count() as u64) / 4;
                     reply = r;

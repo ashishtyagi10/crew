@@ -32,6 +32,9 @@ impl Normalize {
 pub struct Usage {
     pub input_tokens: u32,
     pub output_tokens: u32,
+    /// Micro-USD for this reply: the provider's exact figure when reported,
+    /// else the pricing-table estimate for the adapter's model; 0 = unknown.
+    pub cost_microusd: u64,
 }
 
 /// A registered agent the broker can address by name.
