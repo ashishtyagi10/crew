@@ -44,6 +44,7 @@ pub mod bus;
 pub mod govern;
 pub mod graph;
 pub mod planner;
+pub mod pricing;
 pub mod provider;
 pub mod remoteagent;
 pub mod sched;
