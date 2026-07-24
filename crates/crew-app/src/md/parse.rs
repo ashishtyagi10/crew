@@ -1,10 +1,6 @@
 //! Folds a stream of pulldown-cmark events into a tree of `Block`s. Inline
 //! styling lives in `inline.rs`; bare-URL detection lives in `autolink.rs`.
-//!
-//! Nothing outside `#[cfg(test)]` calls `parse` yet — `md::layout` (Task 2)
-//! is the real consumer, so the whole tree reads as dead code to a release
-//! build until then.
-#![allow(dead_code)]
+//! `md::layout` is the consumer.
 use pulldown_cmark::{Event, HeadingLevel, Options, Parser, Tag, TagEnd};
 
 use super::MdSpan;
