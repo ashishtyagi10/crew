@@ -228,22 +228,32 @@ pub(crate) fn spans(input: &str) -> Vec<(usize, usize)> {
 /// instead of blowing up the agents' context.
 pub(crate) const MAX_FILE_BYTES: usize = 64 * 1024;
 
-/// Expand `@path` mentions in an outgoing message: every non-leading token
-/// that resolves to a file under `cwd` gets its contents appended as a
-/// `--- file: … ---` block. The tokens stay in place; unresolvable ones are
-/// left alone (they may be genuine prose). Never blocks sending.
-pub(crate) fn expand(text: &str, cwd: &std::path::Path) -> String {
+/// Expand mentions in an outgoing message: every mention token gets its
+/// referent appended — file contents as a `--- file ---` block, `@skill:`
+/// playbooks as a `--- skill ---` block. Token 0 is the routing selector
+/// only while it names rostered agents (every `+` segment); otherwise it
+/// expands like any other token, so attachments picked at the leading
+/// position aren't silently dropped. Never blocks sending.
+pub(crate) fn expand(text: &str, cwd: &std::path::Path, agent_names: &[String]) -> String {
     let mut out = text.to_string();
     let mut seen: Vec<&str> = Vec::new();
+    let mut skills: Option<Vec<crew_plugin::Skill>> = None;
     for (i, tok) in text.split_whitespace().enumerate() {
-        // Token 0 is the @agent selector position, never a file mention.
-        if i == 0 {
-            continue;
-        }
         let Some(rel) = tok.strip_prefix('@') else {
             continue;
         };
+        if i == 0 && !rel.is_empty() && rel.split('+').all(|s| agent_names.iter().any(|a| a == s)) {
+            continue; // the @agent routing selector
+        }
         if rel.is_empty() || seen.contains(&rel) {
+            continue;
+        }
+        if let Some(name) = rel.strip_prefix("skill:") {
+            let list = skills.get_or_insert_with(|| crew_plugin::skills_list(cwd));
+            if let Some(s) = list.iter().find(|s| s.name == name) {
+                seen.push(rel);
+                out.push_str(&skill_attachment(s));
+            }
             continue;
         }
         let path = cwd.join(rel);
@@ -268,6 +278,17 @@ fn attachment(rel: &str, path: &std::path::Path) -> String {
         },
         Err(e) => format!("\n\n--- file: {rel} skipped: {e} ---"),
     }
+}
+
+/// One skill mention's appended block: the playbook body, or a skip note.
+fn skill_attachment(s: &crew_plugin::Skill) -> String {
+    if s.body.len() > MAX_FILE_BYTES {
+        return format!("\n\n--- skill: {} skipped: too large ---", s.name);
+    }
+    format!(
+        "\n\n--- skill: {} ---\n{}\n--- end skill ---",
+        s.name, s.body
+    )
 }
 
 #[cfg(test)]
@@ -387,7 +408,7 @@ mod tests {
     fn expand_appends_mentioned_file_contents() {
         let dir = tmp("expand");
         std::fs::write(dir.join("note.txt"), "hello world").unwrap();
-        let out = expand("summarize @note.txt please", &dir);
+        let out = expand("summarize @note.txt please", &dir, &[]);
         assert!(out.starts_with("summarize @note.txt please"));
         assert!(out.contains("--- file: note.txt ---\nhello world\n--- end file ---"));
         let _ = std::fs::remove_dir_all(&dir);
@@ -398,7 +419,7 @@ mod tests {
         let dir = tmp("caps");
         std::fs::write(dir.join("big.txt"), vec![b'a'; MAX_FILE_BYTES + 1]).unwrap();
         std::fs::write(dir.join("bin.dat"), [0u8, 159, 146, 150]).unwrap();
-        let out = expand("see @big.txt @bin.dat @gone.txt", &dir);
+        let out = expand("see @big.txt @bin.dat @gone.txt", &dir, &[]);
         assert!(out.contains("--- file: big.txt skipped: too large ---"));
         assert!(out.contains("--- file: bin.dat skipped: binary ---"));
         assert!(!out.contains("gone.txt ---")); // unresolvable token left alone
@@ -477,11 +498,50 @@ mod tests {
     fn expand_ignores_the_leading_selector_and_dedups() {
         let dir = tmp("lead");
         std::fs::write(dir.join("a.txt"), "A").unwrap();
-        // Leading token is the @agent selector even if it happens to be a path.
-        let out = expand("@a.txt do it", &dir);
+        // Leading token is the @agent selector even if it happens to be a path,
+        // as long as it names a rostered agent.
+        let out = expand("@a.txt do it", &dir, &["a.txt".to_string()]);
         assert_eq!(out, "@a.txt do it");
-        let out = expand("x @a.txt and @a.txt", &dir);
+        let out = expand("x @a.txt and @a.txt", &dir, &[]);
         assert_eq!(out.matches("--- file: a.txt ---").count(), 1);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn expand_attaches_a_leading_non_agent_mention() {
+        let dir = tmp("leadfile");
+        std::fs::write(dir.join("a.txt"), "A").unwrap();
+        // roster contains planner only: leading @a.txt is a mention, not routing.
+        let out = expand("@a.txt summarize", &dir, &["planner".to_string()]);
+        assert!(out.contains("--- file: a.txt ---"), "{out}");
+        // rostered leading selector still skipped, including multi-target
+        let out = expand("@planner do it @a.txt", &dir, &["planner".to_string()]);
+        assert!(out.starts_with("@planner do it @a.txt"));
+        assert_eq!(out.matches("--- file: a.txt ---").count(), 1);
+        let out = expand(
+            "@planner+coder go",
+            &dir,
+            &["planner".to_string(), "coder".to_string()],
+        );
+        assert_eq!(out, "@planner+coder go");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn expand_attaches_skill_playbooks_and_leaves_unknown_skills_alone() {
+        let dir = tmp("skilltok");
+        let sk = dir.join(".crew/skills");
+        std::fs::create_dir_all(&sk).unwrap();
+        std::fs::write(sk.join("deploy.md"), "---\ndescription: d\n---\nship it").unwrap();
+        let out = expand("use @skill:deploy now", &dir, &[]);
+        assert!(
+            out.contains("--- skill: deploy ---\nship it\n--- end skill ---"),
+            "{out}"
+        );
+        // dedup + unknown left alone
+        let out = expand("x @skill:deploy @skill:deploy @skill:ghost", &dir, &[]);
+        assert_eq!(out.matches("--- skill: deploy ---").count(), 1);
+        assert!(!out.contains("--- skill: ghost"));
         let _ = std::fs::remove_dir_all(&dir);
     }
 }

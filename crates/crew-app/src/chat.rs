@@ -409,7 +409,8 @@ impl ChatPane {
                     ts: chrono::Local::now().timestamp_millis().to_string(),
                     meta: String::new(),
                 });
-                let expanded = crate::chatmention::expand(&text, cwd);
+                let agent_names: Vec<String> = self.agents.iter().map(|a| a.name.clone()).collect();
+                let expanded = crate::chatmention::expand(&text, cwd, &agent_names);
                 // Busy: queue instead of writing to a broker that's still
                 // mid-turn — except `/stop`, which must reach it immediately
                 // to cancel. Idle: send straight away, as before.
