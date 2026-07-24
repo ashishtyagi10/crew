@@ -303,6 +303,22 @@ fn grain_is_newsprint_on_every_theme() {
 }
 
 #[test]
+fn dark_paper_pages_lean_warm() {
+    // Dark non-CRT pages read as warm charcoal/kraft: R strictly above B.
+    for id in ALL_THEMES {
+        let t = id.theme();
+        if t.dark && !t.crt {
+            assert!(
+                t.page_bg.0 > t.page_bg.2,
+                "{}: page_bg {:?} not warm (R must exceed B)",
+                id.as_str(),
+                t.page_bg
+            );
+        }
+    }
+}
+
+#[test]
 fn parse_selection_names_modes_and_alias() {
     // The three canonical names.
     assert_eq!(
