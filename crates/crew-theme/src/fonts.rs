@@ -25,7 +25,8 @@ use crate::ThemeId;
 /// NF`, …) so the intersection matches whichever spelling is present.
 ///
 /// Deliberately excludes typewriter/legacy faces (Courier, Courier New, PT
-/// Mono, Andale, Consolas): a rotation must never land on one. The *manual*
+/// Mono, Andale, Consolas) and Stelo (its lowercase `l` renders as a broken
+/// bar — user bug report 2026-07-24): a rotation must never land on one. The *manual*
 /// `/font` picker is unaffected — it still offers every installed coding
 /// face; this only governs what crew picks on its own.
 pub const FONT_ALLOWLIST: &[&str] = &[
@@ -51,7 +52,6 @@ pub const FONT_ALLOWLIST: &[&str] = &[
     "RobotoMono Nerd Font Mono",
     "Monaco",
     "SF Mono",
-    "Stelo",
 ];
 
 /// The families this theme would like, best first. Empty = no opinion.
