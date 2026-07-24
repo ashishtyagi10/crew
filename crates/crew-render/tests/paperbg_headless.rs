@@ -9,6 +9,35 @@ fn pixel_r(buf: &[u8], x: usize, y: usize) -> u8 {
     buf[y * 256 + x * 4]
 }
 
+/// Per-pixel R stddev over the flat 24..40 centre block (vignette-flat).
+fn centre_stddev(buf: &[u8]) -> f64 {
+    let mut vals = Vec::new();
+    for y in 24..40 {
+        for x in 24..40 {
+            vals.push(pixel_r(buf, x, y) as f64);
+        }
+    }
+    let mean = vals.iter().sum::<f64>() / vals.len() as f64;
+    (vals.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / vals.len() as f64).sqrt()
+}
+
+/// Stddev of the same block after 2x2 box-downsampling: white noise
+/// collapses (~/2), coarse structure survives — the "fiber present" signal.
+fn downsampled_stddev(buf: &[u8]) -> f64 {
+    let mut vals = Vec::new();
+    for y in (24..40).step_by(2) {
+        for x in (24..40).step_by(2) {
+            let s = pixel_r(buf, x, y) as f64
+                + pixel_r(buf, x + 1, y) as f64
+                + pixel_r(buf, x, y + 1) as f64
+                + pixel_r(buf, x + 1, y + 1) as f64;
+            vals.push(s / 4.0);
+        }
+    }
+    let mean = vals.iter().sum::<f64>() / vals.len() as f64;
+    (vals.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / vals.len() as f64).sqrt()
+}
+
 fn render_64x64(device: &wgpu::Device, queue: &wgpu::Queue, pass: &PaperBgPass) -> Vec<u8> {
     // Offscreen 64×64 texture.
     let tex = device.create_texture(&wgpu::TextureDescriptor {
@@ -269,5 +298,36 @@ fn paperbg_headless() {
     assert!(
         spread_24 > spread_1,
         "D1 failed: grain_mul=2.4 spread={spread_24} should exceed grain_mul=1 spread={spread_1}"
+    );
+
+    // -------------------------------------------------------
+    // Case 5: dark page (8,8,8) at the app's default dark drive
+    // (grain_mul = 1.56 = knob 1.3 × theme.grain 1.2): newsprint-band
+    // per-pixel spread AND surviving coarse structure after 2x2 downsample.
+    // -------------------------------------------------------
+    let dark_bg = [8.0_f32 / 255.0, 8.0 / 255.0, 8.0 / 255.0, 1.0];
+    paper_bg.update_uniform(&queue, dark_bg, 64.0, 64.0, 1.0, 1.56);
+    let dark_pixels = render_64x64(&device, &queue, &paper_bg);
+    let dark_std = centre_stddev(&dark_pixels);
+    let dark_coarse = downsampled_stddev(&dark_pixels);
+    eprintln!("paperbg_headless dark: std={dark_std:.2} coarse={dark_coarse:.2}");
+    assert!(
+        (4.0..=9.0).contains(&dark_std),
+        "dark grain out of newsprint band: {dark_std:.2}"
+    );
+    assert!(
+        dark_coarse >= dark_std * 0.55,
+        "no fiber structure: coarse {dark_coarse:.2} vs fine {dark_std:.2} — \
+         pure white noise would collapse to ~0.5x under 2x2 downsampling"
+    );
+
+    // Light page must stay fiber-free: downsampled spread collapses like
+    // white noise (octave is dark_weight-gated).
+    let light_std = centre_stddev(&pixels);
+    let light_coarse = downsampled_stddev(&pixels);
+    eprintln!("paperbg_headless light: std={light_std:.2} coarse={light_coarse:.2}");
+    assert!(
+        light_coarse <= light_std * 0.7,
+        "light page grew coarse structure: {light_coarse:.2} vs {light_std:.2}"
     );
 }

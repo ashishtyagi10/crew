@@ -151,7 +151,7 @@ impl ThemeId {
             ThemeId::PaperLight => "warm paper page (light)",
             ThemeId::SepiaDark => "dark sepia paper (warm cream ink)",
             ThemeId::SepiaLight => "aged-newsprint cream page (light sepia)",
-            ThemeId::MidnightInk => "deep navy page, cool off-white ink",
+            ThemeId::MidnightInk => "warm slate-charcoal page, cool off-white ink",
             ThemeId::Graphite => "soft charcoal paper (gentle dark)",
             ThemeId::ColdpressGray => "cool pale-gray page (light graphite)",
             ThemeId::SalmonBroadsheet => "FT salmon-pink broadsheet (light)",

@@ -2,26 +2,26 @@
 
 use crate::Theme;
 
-/// **Neon green phosphor** (P1, electrified): hot Tron-grid green on a
-/// near-black tube, with a monochrome-green ANSI palette (brightness tiers,
-/// faint hue tilts) for that single-gun terminal look. The paper-grain pass
-/// reads as a subtle glow.
+/// **Neon green phosphor** (P1, Tron-grid): hot saturated green traced over
+/// a deep cool near-black tube, with a monochrome-green ANSI palette
+/// (brightness tiers, faint hue tilts) for that single-gun terminal look.
+/// The paper-grain pass reads as a subtle glow off the grid lines.
 pub static CRT_GREEN: Theme = Theme {
-    page_bg: (3, 10, 5),
+    page_bg: (2, 6, 5),
     ink: (0, 255, 102),
     text_muted: (0, 204, 82),
     term_fg: (0, 255, 102),
-    term_bg: (3, 10, 5),
+    term_bg: (2, 6, 5),
     // Unfocused borders sit back (matching paper-dark's focus-led hierarchy)
     // so the bright phosphor frame alone says which pane is live.
     border_normal: (0, 88, 42),
-    border_focused: (0, 255, 140),
+    border_focused: (0, 255, 120),
     border_thickness: 2.5,
     legend_off: (0, 160, 70),
-    accent_default: (64, 255, 160),
+    accent_default: (30, 255, 140),
     status_fg: (190, 255, 80),
     broadcast: (150, 255, 150),
-    activity: (0, 230, 120),
+    activity: (0, 255, 110),
     bell: (200, 255, 90),
     dim: (0, 110, 55),
     placeholder: (0, 135, 60),
@@ -50,23 +50,24 @@ pub static CRT_GREEN: Theme = Theme {
     crt: true,
 };
 
-/// **Neon amber phosphor** (P3, electrified): saturated Tron-orange amber on a
-/// near-black tube — the warm counterpart of the green grid.
+/// **Neon amber phosphor** (P3, Tron-grid): saturated amber traced over a
+/// deep cool near-black tube — the phosphor still runs hot orange even
+/// though, like every CRT preset, the tube glass itself reads cool black.
 pub static CRT_AMBER: Theme = Theme {
-    page_bg: (14, 8, 2),
+    page_bg: (6, 5, 6),
     ink: (255, 184, 0),
     text_muted: (226, 148, 0),
     term_fg: (255, 184, 0),
-    term_bg: (14, 8, 2),
+    term_bg: (6, 5, 6),
     // Unfocused borders sit back (focus-led hierarchy, as in paper-dark).
     border_normal: (112, 70, 16),
-    border_focused: (255, 170, 40),
+    border_focused: (255, 165, 20),
     border_thickness: 2.5,
     legend_off: (180, 115, 20),
-    accent_default: (255, 210, 60),
+    accent_default: (255, 200, 30),
     status_fg: (255, 200, 70),
     broadcast: (255, 170, 110),
-    activity: (255, 170, 50),
+    activity: (255, 160, 20),
     bell: (255, 190, 40),
     dim: (130, 85, 25),
     placeholder: (155, 100, 25),
@@ -95,23 +96,23 @@ pub static CRT_AMBER: Theme = Theme {
     crt: true,
 };
 
-/// **Neon violet phosphor** (electrified): ultraviolet orchid on a
-/// near-black tube — the fourth phosphor, glowing purple.
+/// **Neon violet phosphor** (Tron-grid): ultraviolet orchid traced over a
+/// deep cool near-black tube — the fourth phosphor, glowing purple.
 pub static CRT_VIOLET: Theme = Theme {
-    page_bg: (12, 4, 18),
+    page_bg: (5, 2, 8),
     ink: (232, 170, 255),
     text_muted: (205, 140, 235),
     term_fg: (232, 170, 255),
-    term_bg: (12, 4, 18),
+    term_bg: (5, 2, 8),
     // Unfocused borders sit back (focus-led hierarchy, as in paper-dark).
     border_normal: (88, 50, 110),
-    border_focused: (225, 160, 255),
+    border_focused: (235, 150, 255),
     border_thickness: 2.5,
     legend_off: (170, 115, 200),
-    accent_default: (240, 180, 255),
+    accent_default: (245, 170, 255),
     status_fg: (245, 185, 250),
     broadcast: (255, 150, 200),
-    activity: (190, 140, 255),
+    activity: (205, 130, 255),
     bell: (255, 190, 240),
     dim: (120, 78, 145),
     placeholder: (135, 88, 162),
@@ -140,23 +141,24 @@ pub static CRT_VIOLET: Theme = Theme {
     crt: true,
 };
 
-/// **Neon blue phosphor** (electrified): Tron light-cycle cyan on a
-/// near-black tube — electric edge-glow blues, the coolest of the three grids.
+/// **Neon blue phosphor** (Tron light-cycle grid): electric edge-glow cyan
+/// traced over a deep near-black tube — the coolest of the four grids, page
+/// and phosphor alike.
 pub static CRT_BLUE: Theme = Theme {
-    page_bg: (2, 8, 18),
+    page_bg: (1, 4, 8),
     ink: (0, 229, 255),
     text_muted: (0, 182, 214),
     term_fg: (0, 229, 255),
-    term_bg: (2, 8, 18),
+    term_bg: (1, 4, 8),
     // Unfocused borders sit back (focus-led hierarchy, as in paper-dark).
     border_normal: (0, 78, 110),
-    border_focused: (0, 215, 255),
+    border_focused: (0, 225, 255),
     border_thickness: 2.5,
     legend_off: (0, 145, 180),
-    accent_default: (120, 255, 255),
+    accent_default: (90, 255, 255),
     status_fg: (150, 230, 255),
     broadcast: (170, 180, 255),
-    activity: (0, 200, 240),
+    activity: (0, 220, 255),
     bell: (170, 220, 255),
     dim: (0, 105, 140),
     placeholder: (0, 122, 155),

@@ -2,16 +2,16 @@
 
 use crate::Theme;
 
-/// High-contrast monochrome ("newspaper") dark theme — near-black/near-white
-/// chrome for maximum legibility with minimal glare. Terminal ANSI output
-/// keeps muted-but-readable colours so error/diff colour cues survive.
-/// The default.
+/// High-contrast monochrome ("newspaper") dark theme — warm near-black/near-white
+/// chrome for maximum legibility with minimal glare. The page leans warm
+/// charcoal since the 2026-07-24 retune. Terminal ANSI output keeps
+/// muted-but-readable colours so error/diff colour cues survive. The default.
 pub static PAPER_DARK: Theme = Theme {
-    page_bg: (8, 8, 8),
+    page_bg: (12, 8, 5),
     ink: (247, 247, 247),
     text_muted: (196, 196, 196),
     term_fg: (247, 247, 247),
-    term_bg: (8, 8, 8),
+    term_bg: (12, 8, 5),
     // Unfocused borders sit back (~3.4:1 on the page — visual parity with the
     // light theme's ~1.9:1 weight) so the FOCUSED near-white frame carries the
     // "where am I" signal instead of every card shouting equally.
@@ -145,14 +145,15 @@ pub static SEPIA_DARK: Theme = Theme {
     crt: false,
 };
 
-/// **Midnight ink**: deep navy page with cool off-white ink — a calm
-/// blue-black newspaper.
+/// **Midnight ink**: warm slate-charcoal page with cool off-white ink — a
+/// calm newspaper that trades the old blue-black cast for warmth while
+/// keeping the ink itself cool.
 pub static MIDNIGHT_INK: Theme = Theme {
-    page_bg: (10, 14, 28),
+    page_bg: (16, 14, 12),
     ink: (232, 238, 248),
     text_muted: (185, 196, 215),
     term_fg: (232, 238, 248),
-    term_bg: (10, 14, 28),
+    term_bg: (16, 14, 12),
     // Focus-led border hierarchy, as in paper-dark.
     border_normal: (66, 76, 100),
     border_focused: (200, 214, 235),
@@ -190,14 +191,14 @@ pub static MIDNIGHT_INK: Theme = Theme {
     crt: false,
 };
 
-/// **Graphite**: neutral charcoal page with soft white ink — a gentler,
+/// **Graphite**: warm charcoal page with soft white ink — a gentler,
 /// lower-glare paper-dark.
 pub static GRAPHITE: Theme = Theme {
-    page_bg: (28, 28, 30),
+    page_bg: (32, 28, 27),
     ink: (226, 226, 228),
     text_muted: (183, 183, 186),
     term_fg: (226, 226, 228),
-    term_bg: (28, 28, 30),
+    term_bg: (32, 28, 27),
     // Focus-led border hierarchy, as in paper-dark.
     border_normal: (85, 85, 88),
     border_focused: (215, 215, 218),
