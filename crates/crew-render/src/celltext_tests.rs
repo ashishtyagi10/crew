@@ -343,9 +343,12 @@ fn roster_symbol_glyphs_stay_on_cell_grid() {
     // cell column, whatever family is configured.
     //
     // Font-environment-sensitive: the ComicMono Nerd Font Mono iteration
-    // exercises the real repro only where that font is installed; elsewhere
-    // it degrades to the fallback path, but the on-grid assertions still
-    // hold either way.
+    // exercises the real repro only where that font is installed. Elsewhere
+    // it is SKIPPED: requesting an absent family makes fontdb substitute
+    // per-glyph fallbacks whose advances may round to 2 cells (bare CI
+    // runners proved the grid does NOT survive that) — a state production
+    // can't reach, since resolve_family/font_pool never apply a family that
+    // isn't installed. The None iteration covers the bare-fallback path.
     let mk = |col: u16, c: char| CellView {
         col,
         row: 0,
@@ -362,6 +365,15 @@ fn roster_symbol_glyphs_stay_on_cell_grid() {
             .collect();
     for family in [None, Some("ComicMono Nerd Font Mono".to_string())] {
         let mut fs = FontSystem::new();
+        if let Some(fam) = &family {
+            let installed = fs
+                .db()
+                .faces()
+                .any(|face| face.families.iter().any(|(name, _)| name == fam));
+            if !installed {
+                continue; // see the doc comment — unreachable in production
+            }
+        }
         let cells: Vec<CellView> = chars
             .iter()
             .enumerate()
