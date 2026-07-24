@@ -62,6 +62,7 @@ mod dockicon;
 mod dump;
 mod editpane;
 mod envexpand;
+mod envlock;
 mod events;
 mod faraction;
 mod farpane;

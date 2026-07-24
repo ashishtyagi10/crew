@@ -319,25 +319,17 @@ fn accept_ghost_during_a_cycle_does_not_insert_an_invisible_ghost() {
 }
 
 /// Point `$HOME` at a fresh tempdir for the duration of `f`, then restore it
-/// — callers must hold `super::cmdhist::test_guard()` first. `run_cmdline`
-/// persists history via the real `dirs`-based path, so any test exercising
-/// it needs this isolation (mirrors `cmdhist.rs`'s own test helper — kept
-/// separate since it's a different file/module).
+/// — locked crate-wide via `envlock::with_home`. `run_cmdline` persists
+/// history via the real `dirs`-based path, so any test exercising it needs
+/// this isolation (mirrors `cmdhist.rs`'s own test helper — kept separate
+/// since it's a different file/module).
 fn with_tmp_home<T>(f: impl FnOnce() -> T) -> T {
     let dir = tempfile::tempdir().unwrap();
-    let prev = std::env::var_os("HOME");
-    std::env::set_var("HOME", dir.path());
-    let out = f();
-    match prev {
-        Some(p) => std::env::set_var("HOME", p),
-        None => std::env::remove_var("HOME"),
-    }
-    out
+    crate::envlock::with_home(dir.path(), f)
 }
 
 #[test]
 fn run_cmdline_pushes_the_command_into_history() {
-    let _g = super::cmdhist::test_guard();
     with_tmp_home(|| {
         let (base, mut p) = fixture("histpush");
         p.right.loc = Location::local(&base.join("sub"));
@@ -350,7 +342,6 @@ fn run_cmdline_pushes_the_command_into_history() {
 
 #[test]
 fn cd_is_pushed_into_history_too() {
-    let _g = super::cmdhist::test_guard();
     with_tmp_home(|| {
         let (_b, mut p) = fixture("histpushcd");
         p.cmdline = "cd sub".into();

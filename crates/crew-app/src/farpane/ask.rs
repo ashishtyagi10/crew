@@ -40,7 +40,7 @@ pub(crate) fn bang_ask(line: &str) -> Option<&str> {
 /// Serialises tests that mutate `CREW_BROKER_MOCK_REPLY` — several tests
 /// spawn a real worker thread that reads this env var via
 /// `crew_plugin::suggest_far_command` and would otherwise race under the
-/// default parallel test runner. Mirrors `cmdhist::test_guard`.
+/// default parallel test runner. Mirrors `crate::palette::test_guard`.
 #[cfg(test)]
 pub(crate) fn test_guard() -> std::sync::MutexGuard<'static, ()> {
     static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
