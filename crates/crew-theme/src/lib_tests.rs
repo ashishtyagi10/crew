@@ -319,6 +319,30 @@ fn dark_paper_pages_lean_warm() {
 }
 
 #[test]
+fn crt_pages_are_deep_cool_black() {
+    // Neon retune: CRT tubes sit on a darker, cooler near-black so the
+    // phosphor halo pops — max page channel ≤ 8, and never warm (R ≤ B+2).
+    for id in ALL_THEMES {
+        let t = id.theme();
+        if t.crt {
+            let (r, g, b) = t.page_bg;
+            assert!(
+                r.max(g).max(b) <= 8,
+                "{}: page_bg {:?} too bright for a neon tube",
+                id.as_str(),
+                t.page_bg
+            );
+            assert!(
+                r <= b.saturating_add(2),
+                "{}: page_bg {:?} warm — CRT pages stay cool",
+                id.as_str(),
+                t.page_bg
+            );
+        }
+    }
+}
+
+#[test]
 fn parse_selection_names_modes_and_alias() {
     // The three canonical names.
     assert_eq!(
