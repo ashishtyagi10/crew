@@ -42,12 +42,16 @@ mod tests {
 
     #[test]
     fn expands_tilde_and_env() {
-        std::env::set_var("HOME", "/home/u");
-        assert_eq!(expand_path(Path::new("/x"), "~"), PathBuf::from("/home/u"));
-        assert_eq!(
-            expand_path(Path::new("/x"), "~/notes.md"),
-            PathBuf::from("/home/u/notes.md")
-        );
+        // `with_home` holds the crate-wide `$HOME` lock and restores the
+        // prior value — a bare `set_var` here raced every other `$HOME`
+        // reader and leaked `/home/u` into the rest of the test run.
+        crate::envlock::with_home(Path::new("/home/u"), || {
+            assert_eq!(expand_path(Path::new("/x"), "~"), PathBuf::from("/home/u"));
+            assert_eq!(
+                expand_path(Path::new("/x"), "~/notes.md"),
+                PathBuf::from("/home/u/notes.md")
+            );
+        });
         std::env::set_var("CREW_PE_DIR", "/data");
         // `$VAR` expands, then is treated as the (absolute) path.
         assert_eq!(

@@ -4,7 +4,7 @@
 use crew_render::CellView;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Layout, Rect};
-use ratatui::style::{Color, Style};
+use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{
     Block, BorderType, List, ListItem, ListState, Paragraph, StatefulWidget, Widget,
@@ -15,18 +15,6 @@ use super::{FarPane, Panel, Side};
 use crate::palette::accent_color;
 /// Blue-cyan for directory entries (semantic file type indicator).
 const DIR: Color = Color::Rgb(120, 200, 255);
-
-/// Function-key labels shown along the bottom bar (classic Far layout).
-const FKEYS: [(&str, &str); 8] = [
-    ("1", "Help"),
-    ("3", "View"),
-    ("4", "Edit"),
-    ("5", "Copy"),
-    ("6", "RenMov"),
-    ("7", "MkFold"),
-    ("8", "Delete"),
-    ("10", "Quit"),
-];
 
 pub(crate) fn render(p: &FarPane, cols: u16, rows: u16) -> Vec<CellView> {
     if cols < 16 || rows < 5 {
@@ -75,6 +63,14 @@ pub(crate) fn render(p: &FarPane, cols: u16, rows: u16) -> Vec<CellView> {
         None => (None, false),
     };
     let running = p.running.as_ref().map(|(cmd, _)| cmd.as_str());
+    // The active panel's selected entry, in full — listing rows truncate
+    // long names, so the command bar carries the readable copy.
+    let active = if p.active == Side::Left {
+        &p.left
+    } else {
+        &p.right
+    };
+    let sel_label = bars::selected_label(active);
     command_bar(
         &mut buf,
         split[1],
@@ -84,6 +80,7 @@ pub(crate) fn render(p: &FarPane, cols: u16, rows: u16) -> Vec<CellView> {
         ask_hint.as_deref(),
         suggested,
         running,
+        sel_label.as_deref(),
     );
     // The make-folder prompt takes over the function-key row while it's open.
     match &p.prompt {
@@ -146,57 +143,6 @@ fn drive_select_overlay(buf: &mut Buffer, area: Rect, ds: &super::remote::DriveS
     let mut state = ListState::default();
     state.select(Some(ds.sel));
     StatefulWidget::render(List::new(items).highlight_style(hl), inner, buf, &mut state);
-}
-
-/// The Far command line: `<cwd> $ <typed>▏`, the directory dimmed and the typed
-/// command in the ink colour with a cursor bar. While a command runs, a dimmed
-/// `⟳ <cmd>` note follows the prompt. Truncated from the left to fit.
-#[allow(clippy::too_many_arguments)] // one bar, eight independent knobs
-fn command_bar(
-    buf: &mut Buffer,
-    area: Rect,
-    folder: &str,
-    cmdline: &str,
-    ghost: Option<&str>,
-    ask_hint: Option<&str>,
-    suggested: bool,
-    running: Option<&str>,
-) {
-    let t = crew_theme::theme();
-    let bg = Color::Rgb(t.page_bg.0, t.page_bg.1, t.page_bg.2);
-    let dim = Color::Rgb(t.text_muted.0, t.text_muted.1, t.text_muted.2);
-    let ink = Color::Rgb(t.ink.0, t.ink.1, t.ink.2);
-    // A landed `!` suggestion REPLACES the bar's normal styling with the
-    // same selected look the panel listing uses for its cursor row (ink on
-    // an accent fill) — a highlighted, still-editable suggestion.
-    let cmd_style = if suggested {
-        Style::new().fg(bg).bg(accent_color())
-    } else {
-        Style::new().fg(ink).bg(bg)
-    };
-    let mut spans = vec![
-        Span::styled(format!("{folder} "), Style::new().fg(dim).bg(bg)),
-        Span::styled("$ ", Style::new().fg(accent_color()).bg(bg)),
-        Span::styled(format!("{cmdline}▏"), cmd_style),
-    ];
-    if let Some(g) = ghost {
-        spans.push(Span::styled(g.to_string(), Style::new().fg(dim).bg(bg)));
-    }
-    if let Some(hint) = ask_hint {
-        spans.push(Span::styled(
-            format!("  {hint}"),
-            Style::new().fg(dim).bg(bg),
-        ));
-    }
-    if let Some(cmd) = running {
-        spans.push(Span::styled(
-            format!("  \u{27f3} {cmd}"),
-            Style::new().fg(dim).bg(bg),
-        ));
-    }
-    Paragraph::new(Line::from(spans))
-        .style(Style::new().bg(bg))
-        .render(area, buf);
 }
 
 /// Halve `area` with a one-column overlap, so the panels share their middle
@@ -300,10 +246,14 @@ fn panel(buf: &mut Buffer, area: Rect, panel: &Panel, active: bool) {
             ListItem::new(Line::from(spans))
         })
         .collect();
+    // Only the ACTIVE panel gets a filled cursor bar — with a fill on both
+    // sides it was ambiguous which panel keys would act on (the inactive
+    // side's bar often sits on `../` and reads as "selected"). The inactive
+    // panel remembers its place with a bold row instead of a bar.
     let hl = if active {
         Style::new().fg(page_col).bg(accent_color())
     } else {
-        Style::new().fg(page_col).bg(dim_col)
+        Style::new().add_modifier(Modifier::BOLD)
     };
     let mut state = ListState::default();
     state.select(Some(panel.sel - start));
@@ -387,42 +337,9 @@ fn legend(display: &str, count: usize, total: u64, width: u16) -> String {
 /// The Far-style function-key bar across the bottom row: the key number in
 /// accent, a gap, then the action label on a solid accent pill. The pill's
 /// padding is half-block glyphs (`▐label▌`), not spaces — `to_cells` drops
-/// blank cells, so a bg-only space would never reach the GPU.
-fn function_bar(buf: &mut Buffer, area: Rect) {
-    let t = crew_theme::theme();
-    let bar_bg = Color::Rgb(t.page_bg.0, t.page_bg.1, t.page_bg.2);
-    let cap = Style::new().fg(accent_color());
-    let mut spans = Vec::new();
-    for (k, label) in FKEYS {
-        spans.push(Span::styled(format!("F{k} "), cap));
-        spans.push(Span::styled("\u{2590}", cap)); // ▐ left pill edge
-        spans.push(Span::styled(
-            label,
-            Style::new().fg(bar_bg).bg(accent_color()),
-        ));
-        spans.push(Span::styled("\u{258c}", cap)); // ▌ right pill edge
-    }
-    Paragraph::new(Line::from(spans))
-        .style(Style::new().bg(bar_bg))
-        .render(area, buf);
-}
-
-/// The bottom-row text prompt (F7 make-folder), replacing the function bar.
-fn prompt_bar(buf: &mut Buffer, area: Rect, prompt: &super::Prompt) {
-    let t = crew_theme::theme();
-    let bar_bg = Color::Rgb(t.page_bg.0, t.page_bg.1, t.page_bg.2);
-    let bar_fg = Color::Rgb(t.ink.0, t.ink.1, t.ink.2);
-    let label = match prompt.kind {
-        super::PromptKind::MkDir => "Create folder: ",
-    };
-    let line = format!("{label}{}▏", prompt.input);
-    Paragraph::new(Line::from(Span::styled(
-        line,
-        Style::new().fg(bar_fg).bg(bar_bg),
-    )))
-    .style(Style::new().bg(bar_bg))
-    .render(area, buf);
-}
+#[path = "bars.rs"]
+mod bars;
+use bars::{command_bar, function_bar, prompt_bar};
 
 #[cfg(test)]
 #[path = "render_tests.rs"]

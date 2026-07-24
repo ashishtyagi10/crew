@@ -7,12 +7,14 @@
 //! nothing when none of them are. Pure data: resolving needs the renderer's
 //! installed-family list, which lives in `crew-app`, not here.
 //!
-//! Every list leads with `Comic Mono` (a rounded, friendly coding face) and
-//! ends in faces that ship
-//! with the OS (`Menlo`/`SF Mono` on macOS, `Noto Sans Mono`/`DejaVu Sans Mono`
-//! on Linux, `Cascadia Mono` on Windows 11) so a bare machine still resolves
-//! something rather than silently opting out. The dated `Consolas` is
-//! deliberately not listed — `Cascadia Mono` is the modern Windows stock face.
+//! Every list LEADS with a face that suits that theme's character — the
+//! leads deliberately differ across themes, so changing themes usually
+//! changes the font too (a shared lead would pin every theme to the same
+//! face on any machine that has it installed). Lists end in faces that ship
+//! with the OS (`Menlo`/`SF Mono` on macOS, `Noto Sans Mono`/`DejaVu Sans
+//! Mono` on Linux, `Cascadia Mono` on Windows 11) so a bare machine still
+//! resolves something rather than silently opting out. The dated `Consolas`
+//! is deliberately not listed — `Cascadia Mono` is the modern Windows face.
 use crate::ThemeId;
 
 /// The only monospace families crew will *auto*-select — both theme
@@ -54,24 +56,27 @@ pub const FONT_ALLOWLIST: &[&str] = &[
 
 /// The families this theme would like, best first. Empty = no opinion.
 ///
-/// Each list leads with `Comic Mono` and its installed `ComicMono Nerd Font
-/// Mono` variant (so the friendly default resolves whether you have the base
-/// face or the Nerd Font build), then theme-appropriate picks, and ends in an
-/// OS-stock face (`Menlo`/`SF Mono`/`Noto Sans Mono`) so a bare machine still
-/// resolves something. Every entry is in [`FONT_ALLOWLIST`].
+/// Each list leads with a DISTINCT theme-appropriate pick — a universal lead
+/// (the old `Comic Mono` prefix) meant every theme resolved to the same face
+/// wherever it was installed, so a theme rotation changed the palette but
+/// never the font. Warm/paper themes keep `Comic Mono` as a mid-list option;
+/// every list ends in an OS-stock face (`Menlo`/`SF Mono`/`Noto Sans Mono`)
+/// so a bare machine still resolves something. Every entry is in
+/// [`FONT_ALLOWLIST`].
 pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
     match id {
         // Paper: a book face — humanist, generous counters.
         ThemeId::PaperDark | ThemeId::PaperLight => &[
-            "Comic Mono",
-            "ComicMono Nerd Font Mono",
             "MonoLisa",
             "IBM Plex Mono",
+            "Comic Mono",
+            "ComicMono Nerd Font Mono",
             "SF Mono",
             "Menlo",
             "Noto Sans Mono",
         ],
-        // Sepia: warm and typewritten — a modern humanist face, no old Courier.
+        // Sepia: warm and typewritten — friendly rounded shapes suit it, so
+        // this is where the Comic Mono lead lives on.
         ThemeId::SepiaDark | ThemeId::SepiaLight => &[
             "Comic Mono",
             "ComicMono Nerd Font Mono",
@@ -83,8 +88,6 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
         ],
         // Midnight ink: high-contrast, tight.
         ThemeId::MidnightInk => &[
-            "Comic Mono",
-            "ComicMono Nerd Font Mono",
             "JetBrainsMono NF",
             "JetBrains Mono",
             "Geist Mono",
@@ -94,8 +97,6 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
         ],
         // Graphite: the system's own neutral.
         ThemeId::Graphite => &[
-            "Comic Mono",
-            "ComicMono Nerd Font Mono",
             "SF Mono",
             "Geist Mono",
             "JetBrainsMono NF",
@@ -105,11 +106,10 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
         ],
         // Coldpress: flat, drafting-table — geometric and even.
         ThemeId::ColdpressGray => &[
-            "Comic Mono",
-            "ComicMono Nerd Font Mono",
             "FiraCode Nerd Font Mono",
             "Fira Code",
             "Google Sans Code",
+            "Geist Mono",
             "SF Mono",
             "Menlo",
             "Noto Sans Mono",
@@ -117,30 +117,28 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
         // Broadsheet / ledger: newsprint and accounting — a clean modern
         // humanist face, no old typewriter Courier.
         ThemeId::SalmonBroadsheet => &[
+            "MonoLisa",
+            "IBM Plex Mono",
             "Comic Mono",
             "ComicMono Nerd Font Mono",
-            "IBM Plex Mono",
-            "MonoLisa",
             "Menlo",
             "Noto Sans Mono",
         ],
         ThemeId::IvoryLedger => &[
-            "Comic Mono",
-            "ComicMono Nerd Font Mono",
             "IBM Plex Mono",
             "SF Mono",
+            "Comic Mono",
+            "ComicMono Nerd Font Mono",
             "Menlo",
             "Noto Sans Mono",
         ],
         // CRT: a terminal face with squared-off shoulders — straight faces
         // only (no ligature/cursive `Cascadia Code`).
         ThemeId::CrtGreen | ThemeId::CrtAmber | ThemeId::CrtBlue | ThemeId::CrtViolet => &[
-            "Comic Mono",
-            "ComicMono Nerd Font Mono",
+            "Monaco",
             "JetBrainsMono NF",
             "JetBrains Mono",
             "Google Sans Code",
-            "Monaco",
             "Menlo",
             "Noto Sans Mono",
         ],
@@ -195,6 +193,21 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn theme_leads_are_diverse_so_rotation_changes_the_font() {
+        // The regression behind "the theme rotates but the font never
+        // changes": every list led with the same Comic Mono pair, so any
+        // machine with it installed resolved every theme to the same face.
+        let mut leads: Vec<&str> = ALL_THEMES.map(|id| font_prefs(id)[0]).to_vec();
+        leads.sort_unstable();
+        leads.dedup();
+        assert!(
+            leads.len() >= 5,
+            "only {} distinct lead families across all themes: {leads:?}",
+            leads.len()
+        );
     }
 
     #[test]

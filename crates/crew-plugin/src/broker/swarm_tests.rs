@@ -266,6 +266,10 @@ fn run_emits_an_aggregate_stats_event_with_tokens_and_exchange_count() {
     assert!(tok_in > 0, "stub agents emit input tokens in TokenDelta");
     assert!(tok_out > 0, "stub agents emit output tokens in TokenDelta");
     assert_eq!(
+        cost_microusd, 0,
+        "stub agents emit no CostDelta, so the aggregate must not invent cost"
+    );
+    assert_eq!(
         tok_in + tok_out,
         tokens,
         "tok_in + tok_out should sum to the total tokens"

@@ -129,6 +129,20 @@ pub fn messages(events: &[PluginEvent]) -> Vec<(String, String)> {
         .collect()
 }
 
+/// Agent names from the structured `Roster` event `hello` emits — the
+/// machine-readable roster. Since the v0.6.21 splash, `hello`'s chat message
+/// is the Agent Smith nameplate alone (no roster text), so tests that care
+/// about WHO was discovered must read this event, not the message stream.
+pub fn roster_names(events: &[PluginEvent]) -> Vec<String> {
+    events
+        .iter()
+        .find_map(|e| match e {
+            PluginEvent::Roster { agents } => Some(agents.iter().map(|a| a.name.clone()).collect()),
+            _ => None,
+        })
+        .unwrap_or_default()
+}
+
 /// True if any message has exactly this sender label (e.g. `"claude → codex"`).
 pub fn has_leg(events: &[PluginEvent], sender: &str) -> bool {
     messages(events).iter().any(|(s, _)| s == sender)

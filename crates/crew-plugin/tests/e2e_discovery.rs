@@ -8,14 +8,17 @@
 //! deterministically without a network. With no API key and no mock, the
 //! broker reports that none are available.
 mod common;
-use common::{has_leg, messages, run_broker, seed_specialists, unique_dir};
+use common::{has_leg, messages, roster_names, run_broker, seed_specialists, unique_dir};
 
 const HELLO: &str = r#"{"type":"hello","v":1}"#;
 /// Enables the inbuilt roster offline: every agent replies with this, then `@done`.
 const MOCK: (&str, &str) = ("CREW_BROKER_MOCK_REPLY", "ok\n@done");
 
-/// The roster line is the first `crew`-sender message emitted on hello.
-fn roster(events: &[common::PluginEvent]) -> String {
+/// The opening chat message `hello` emits — since the v0.6.21 splash this is
+/// the Agent Smith nameplate, with the roster/key warning riding below the
+/// art only on a dead-on-arrival session (no provider key). Who was actually
+/// discovered lives in the structured `Roster` event (`common::roster_names`).
+fn smith_text(events: &[common::PluginEvent]) -> String {
     messages(events)
         .into_iter()
         .find(|(s, _)| s == "agent smith")
@@ -40,18 +43,17 @@ fn a_runs_invented_cast_becomes_the_roster() {
     let dir = unique_dir("disc-invent");
     let send = r#"{"type":"send","channel":"crew","text":"do it"}"#;
     run_broker(&dir, &[MOCK], &[send]);
-    let r = roster(&run_broker(&dir, &[MOCK], &[HELLO]));
-    assert!(r.contains("3 agent(s)"), "{r}");
-    assert!(
-        r.contains("leaf-0") && r.contains("leaf-1") && r.contains("merge"),
-        "{r}"
-    );
+    let names = roster_names(&run_broker(&dir, &[MOCK], &[HELLO]));
+    assert_eq!(names.len(), 3, "{names:?}");
+    for expected in ["leaf-0", "leaf-1", "merge"] {
+        assert!(names.iter().any(|n| n == expected), "{names:?}");
+    }
 }
 
 #[test]
 fn discovery_reports_no_key() {
     let dir = unique_dir("disc0"); // harness clears any inherited key
-    let r = roster(&run_broker(&dir, &[], &[HELLO]));
+    let r = smith_text(&run_broker(&dir, &[], &[HELLO]));
     assert!(r.contains("ANTHROPIC_API_KEY"), "{r}");
 }
 
@@ -100,8 +102,8 @@ fn shell_env_probe_recovers_missing_provider_key() {
         ("CREW_SHELL_ENV", "1"), // re-enable the probe the harness disables
         ("SHELL", fake.to_str().unwrap()),
     ];
-    let r = roster(&run_broker(&dir, &env, &[HELLO]));
-    assert!(r.contains("1 agent(s)") && r.contains("scout"), "{r}");
+    let names = roster_names(&run_broker(&dir, &env, &[HELLO]));
+    assert_eq!(names, ["scout"], "{names:?}");
 }
 
 /// The real subject: `@name` addressing picks who starts, rather than

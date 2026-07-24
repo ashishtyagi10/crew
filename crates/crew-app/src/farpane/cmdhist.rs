@@ -129,36 +129,19 @@ impl CmdHistory {
     }
 }
 
-/// Serialises tests that mutate `$HOME` to point at a tempdir — several
-/// tests below load/save real history files and would race under the
-/// default parallel test runner. Mirrors `crate::palette::test_guard`.
-#[cfg(test)]
-pub(crate) fn test_guard() -> std::sync::MutexGuard<'static, ()> {
-    static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
-    LOCK.lock().unwrap_or_else(|e| e.into_inner())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     /// Point `$HOME` at a fresh tempdir for the duration of `f`, then
-    /// restore it. Callers must hold `test_guard()` first.
+    /// restore it — locked crate-wide via `envlock::with_home`.
     fn with_tmp_home<T>(f: impl FnOnce() -> T) -> T {
         let dir = tempfile::tempdir().unwrap();
-        let prev = std::env::var_os("HOME");
-        std::env::set_var("HOME", dir.path());
-        let out = f();
-        match prev {
-            Some(p) => std::env::set_var("HOME", p),
-            None => std::env::remove_var("HOME"),
-        }
-        out
+        crate::envlock::with_home(dir.path(), f)
     }
 
     #[test]
     fn load_is_empty_when_no_file_exists() {
-        let _g = test_guard();
         with_tmp_home(|| {
             assert!(CmdHistory::load().entries.is_empty());
         });
@@ -166,7 +149,6 @@ mod tests {
 
     #[test]
     fn push_persists_and_reloads() {
-        let _g = test_guard();
         with_tmp_home(|| {
             let mut h = CmdHistory::load();
             h.push("ls");
@@ -181,7 +163,6 @@ mod tests {
 
     #[test]
     fn push_skips_blank_and_adjacent_duplicate() {
-        let _g = test_guard();
         with_tmp_home(|| {
             let mut h = CmdHistory::load();
             h.push("ls");
@@ -198,7 +179,6 @@ mod tests {
 
     #[test]
     fn push_caps_at_max_dropping_oldest() {
-        let _g = test_guard();
         with_tmp_home(|| {
             let mut h = CmdHistory::load();
             for i in 0..MAX + 10 {
