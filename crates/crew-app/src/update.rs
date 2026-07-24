@@ -80,7 +80,8 @@ impl UpdateState {
 
     fn apply(&mut self, msg: UpdateMsg, now: Instant) {
         // Loud mode lingers a terminal card for `NOTE_TTL` before clearing; a
-        // silent run clears on the very next tick instead — nothing to show,
+        // silent run clears within the same `poll_update` call — deadline == now,
+        // so `clear_due` fires immediately after the drain. Nothing to show,
         // and (for `Installed`) the parked-update reminder captured in
         // `poll_update` carries the news instead of a lingering card.
         let clear_at = if self.silent { now } else { now + NOTE_TTL };
@@ -261,7 +262,8 @@ mod tests {
         tx.send(UpdateMsg::UpToDate("1.0.0".into())).unwrap();
         let now = Instant::now();
         app.poll_update(now);
-        // Silent up-to-date does NOT park a 5s note card — cleared by the next tick.
+        // Silent up-to-date does NOT park a 5s note card — cleared within the
+        // same poll_update call that drains the message (deadline == now).
         app.poll_update(now);
         assert!(
             app.update.is_none(),
@@ -279,5 +281,17 @@ mod tests {
         app.start_update();
         let u = app.update.as_ref().unwrap();
         assert!(!u.silent, "manual /update takes over the silent run loudly");
+    }
+
+    #[test]
+    #[allow(clippy::field_reassign_with_default)]
+    fn auto_update_is_a_noop_while_an_install_is_parked() {
+        let mut app = CrewApp::default();
+        app.parked_update = Some(("9.9.9".into(), 0));
+        app.start_auto_update();
+        assert!(
+            app.update.is_none(),
+            "parked install suppresses further auto checks"
+        );
     }
 }

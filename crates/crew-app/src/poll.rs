@@ -258,7 +258,9 @@ impl CrewApp {
         }
         // Quiet auto-update: fire the same worker the manual /update uses,
         // silently, shortly after launch and then six-hourly. Restart stays
-        // manual — an install only parks the nav-legend reminder.
+        // manual — an install only parks the nav-legend reminder. The silent
+        // state is poll-driven immediately below in the same frame (first drain
+        // is empty, no side effects beyond spawning the worker).
         if self.autoupdate.take_due(Instant::now()) {
             self.start_auto_update();
         }
