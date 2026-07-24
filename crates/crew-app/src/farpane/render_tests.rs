@@ -423,3 +423,32 @@ fn command_bar_carries_the_selected_entrys_full_name() {
     let t = text(&render(&p, 120, 24));
     assert!(t.contains(long), "full name missing from the bar:\n{t}");
 }
+
+#[test]
+fn active_panel_legend_is_a_filled_accent_tab() {
+    // Post-v0.6.23 feedback: the accent border alone was still too subtle.
+    // The active panel's legend now carries an accent bg fill (a "selected
+    // tab"); the inactive legend stays plain — bg fill on row 0 must appear
+    // on exactly one side of the divider.
+    let cells = render(&fixture_pane("legendtab"), 80, 24);
+    let page = crew_theme::theme().page_bg;
+    let divider_x = cells
+        .iter()
+        .filter(|c| c.c == '┬')
+        .map(|c| c.col)
+        .next()
+        .expect("shared divider column");
+    let filled_top: Vec<u16> = cells
+        .iter()
+        .filter(|c| c.row == 0 && c.bg != page)
+        .map(|c| c.col)
+        .collect();
+    assert!(
+        filled_top.iter().any(|&x| x < divider_x),
+        "active (left) legend must carry the accent fill"
+    );
+    assert!(
+        filled_top.iter().all(|&x| x < divider_x),
+        "inactive (right) legend must stay unfilled"
+    );
+}
