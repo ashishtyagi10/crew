@@ -181,6 +181,17 @@ fn panel(buf: &mut Buffer, area: Rect, panel: &Panel, active: bool) {
     let text_col = Color::Rgb(t.ink.0, t.ink.1, t.ink.2);
     let page_col = Color::Rgb(t.page_bg.0, t.page_bg.1, t.page_bg.2);
     let edge = if active { accent_color() } else { dim_col };
+    // The active panel's legend is a FILLED accent tab (the F-key bar's pill
+    // language) — the accent border alone was too subtle to tell which side
+    // keys act on (user feedback, v0.6.23). Inactive stays plain dim text.
+    let legend_style = if active {
+        Style::new()
+            .fg(page_col)
+            .bg(accent_color())
+            .add_modifier(Modifier::BOLD)
+    } else {
+        Style::new().fg(dim_col)
+    };
     let block = Block::bordered()
         .border_type(BorderType::Rounded)
         .border_style(Style::new().fg(edge))
@@ -191,7 +202,7 @@ fn panel(buf: &mut Buffer, area: Rect, panel: &Panel, active: bool) {
                 panel.entries.iter().map(|e| e.size).sum::<u64>(),
                 area.width,
             ),
-            Style::new().fg(edge),
+            legend_style,
         ));
     let inner = block.inner(area);
     block.render(area, buf);
