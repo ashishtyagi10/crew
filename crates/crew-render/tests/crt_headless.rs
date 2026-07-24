@@ -201,6 +201,10 @@ fn crt_headless() {
     );
 
     // --- Case 2: a bright block on black → phosphor glow bleed ---
+    // Hot block spans x in 28..36, y in 28..36 (see the `hot` closure below);
+    // its right edge (first dark column) is x=36, its vertical middle is y=32.
+    let block_right_x = 36usize;
+    let block_mid_y = 32usize;
     let block = source(&device, &queue, |x, y| {
         let hot = (28..36).contains(&x) && (28..36).contains(&y);
         if hot {
@@ -219,6 +223,14 @@ fn crt_headless() {
         "glow should bleed past the block edge, got {}",
         r_at(&g, 37, 32)
     );
+
+    // Neon reach: 3px from the bright block's edge must still visibly glow
+    // (the old single 1.5px ring left it dark), while 8px out stays black —
+    // the halo is wider, not a wash.
+    let near = r_at(&g, block_right_x + 3, block_mid_y);
+    let far = r_at(&g, block_right_x + 8, block_mid_y);
+    assert!(near >= 8, "3px halo too weak: {near}");
+    assert!(far <= 4, "glow washed out at 8px: {far}");
 
     // --- Case 3: flicker = 0 is perfectly static (deterministic) ---
     crt.set_source(&device, &gray);

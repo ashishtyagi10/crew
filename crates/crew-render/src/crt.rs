@@ -16,7 +16,11 @@ fn f32s_as_bytes(data: &[f32]) -> &[u8] {
 /// supplies it per frame (0 idle, a small value while output streams).
 pub const CURVATURE: f32 = 0.0;
 pub const SCANLINE: f32 = 0.18;
-pub const GLOW: f32 = 0.35;
+/// Inner-ring (1.5px) weight. The neon retune (2026-07-24) widened the halo
+/// with a second, wider ring at 3.5px carrying 0.45 of this weight — see
+/// `crt.wgsl`'s two-ring bloom block — and raised this base weight 0.35 → 0.55
+/// so the combined halo reaches ~8px out instead of dying at the block edge.
+pub const GLOW: f32 = 0.55;
 pub const CORNER: f32 = 0.0;
 
 pub struct CrtPass {

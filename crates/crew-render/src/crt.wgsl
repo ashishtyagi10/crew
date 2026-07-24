@@ -1,7 +1,7 @@
 // CRT post-process: samples the off-screen scene texture and draws it onto a
 // flat phosphor panel — a laptop LCD wearing the tube's phosphor glow (a cheap
-// single-pass neighbour bloom), scanlines, and an activity-driven flicker. The
-// barrel-curvature and corner-vignette math is kept but driven by uniforms that
+// two-ring single-pass neighbour bloom), scanlines, and an activity-driven
+// flicker. The barrel-curvature and corner-vignette math is kept but driven by uniforms that
 // default to 0, so the geometry is flat and edge-to-edge (identity warp, no
 // bezel). All amounts are uniforms so each theme can dial the look; flicker is
 // 0 while idle, which makes the whole pass static (the app only advances `time`
@@ -61,9 +61,12 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
 
     var col = textureSample(tex, samp, warped).rgb;
 
-    // Phosphor glow: a cheap 8-tap ring adds a fraction of neighbouring
-    // brightness so bright glyphs bleed a soft halo (real bloom would be a
-    // separate blur chain; this reads convincingly for text at one pass).
+    // Phosphor glow: a cheap two-ring neighbour bloom adds a fraction of
+    // nearby brightness so bright glyphs bleed a soft halo (real bloom would
+    // be a separate blur chain; this reads convincingly for text at one
+    // pass). The inner ring (1.5px) gives the sharp near-edge lift; the outer
+    // ring (3.5px, 0.45 weight) widens the reach so the halo carries several
+    // pixels out instead of stopping dead at the block edge.
     if (u.glow > 0.0) {
         let o = (1.5 / u.resolution);
         var bloom = vec3<f32>(0.0);
@@ -75,8 +78,28 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
         bloom += textureSample(tex, samp, warped + vec2<f32>(-o.x,  o.y)).rgb;
         bloom += textureSample(tex, samp, warped + vec2<f32>( o.x, -o.y)).rgb;
         bloom += textureSample(tex, samp, warped + vec2<f32>(-o.x, -o.y)).rgb;
-        col += bloom * (u.glow / 8.0);
+        let o2 = (3.5 / u.resolution);
+        var bloom2 = vec3<f32>(0.0);
+        bloom2 += textureSample(tex, samp, warped + vec2<f32>( o2.x, 0.0)).rgb;
+        bloom2 += textureSample(tex, samp, warped + vec2<f32>(-o2.x, 0.0)).rgb;
+        bloom2 += textureSample(tex, samp, warped + vec2<f32>(0.0,  o2.y)).rgb;
+        bloom2 += textureSample(tex, samp, warped + vec2<f32>(0.0, -o2.y)).rgb;
+        bloom2 += textureSample(tex, samp, warped + vec2<f32>( o2.x,  o2.y)).rgb;
+        bloom2 += textureSample(tex, samp, warped + vec2<f32>(-o2.x,  o2.y)).rgb;
+        bloom2 += textureSample(tex, samp, warped + vec2<f32>( o2.x, -o2.y)).rgb;
+        bloom2 += textureSample(tex, samp, warped + vec2<f32>(-o2.x, -o2.y)).rgb;
+        col += bloom * (u.glow / 8.0) + bloom2 * (u.glow * 0.45 / 8.0);
     }
+
+    // Glow can push col past 1.0 on bright/saturated fields (e.g. a uniform
+    // bright field with two rings summing in). Clamp here, before the
+    // scanline multiply, so the darkened rows are always a fraction of a
+    // bounded value — otherwise every row clips to the same ceiling and the
+    // scanline's row-to-row delta washes out (the pre-fix failure mode: a
+    // stronger glow silently erased the scanlines it was drawn on top of).
+    // The final return-clamp still applies after flicker, which can push
+    // values out of range again post-scanline.
+    col = clamp(col, vec3<f32>(0.0), vec3<f32>(1.0));
 
     // Scanlines: a cosine keyed to physical rows darkens a line every
     // SCANLINE_PERIOD pixels, the signature horizontal texture of a raster tube.
