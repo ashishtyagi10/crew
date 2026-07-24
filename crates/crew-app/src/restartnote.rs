@@ -2,16 +2,25 @@
 //! the nav stats card while a newer installed binary waits for /restart.
 //! Pure helpers — state lives on CrewApp.parked_update, painting in navcard.
 
-/// `crew v<current> → v<new> · /restart`
-pub(crate) fn legend(new_version: &str) -> String {
-    format!(
+/// `crew v<current> → v<new> · /restart` when it fits in `max_cols` title
+/// columns; otherwise the compact `→ v<new> · /restart` form that keeps the
+/// actionable half (the new version and the `/restart` call-to-action) —
+/// the narrow nav sidebar rarely has room for the full form. Even the
+/// compact form is prefix-truncated by `titled_card` if it still overflows
+/// (acceptable — the version and `/restart` lead the string).
+pub(crate) fn legend(new_version: &str, max_cols: usize) -> String {
+    let full = format!(
         concat!(
             "crew v",
             env!("CARGO_PKG_VERSION"),
             " \u{2192} v{} \u{b7} /restart"
         ),
         new_version
-    )
+    );
+    if full.chars().count() <= max_cols {
+        return full;
+    }
+    format!("\u{2192} v{} \u{b7} /restart", new_version)
 }
 
 /// Accent↔dim alternation on the attention clock for the first PULSE_MS,
@@ -37,14 +46,27 @@ mod tests {
     use super::*;
 
     #[test]
-    fn legend_names_both_versions_and_the_restart_command() {
-        let s = legend("9.9.9");
+    fn legend_names_both_versions_and_the_restart_command_at_generous_width() {
+        let s = legend("9.9.9", 100);
         assert!(
             s.starts_with(concat!("crew v", env!("CARGO_PKG_VERSION"))),
             "{s}"
         );
         assert!(s.contains("\u{2192} v9.9.9"), "{s}"); // →
         assert!(s.ends_with("\u{b7} /restart"), "{s}"); // ·
+    }
+
+    #[test]
+    fn legend_falls_back_to_the_compact_form_when_narrow() {
+        let s = legend("9.9.9", 25);
+        assert!(
+            !s.starts_with("crew v"),
+            "narrow width must drop the current-version prefix: {s}"
+        );
+        assert!(s.contains("v9.9.9"), "{s}");
+        assert!(s.contains("\u{b7} /restart"), "{s}"); // ·
+        assert!(s.ends_with("/restart"), "{s}");
+        assert!(s.chars().count() <= 25, "{s}");
     }
 
     #[test]

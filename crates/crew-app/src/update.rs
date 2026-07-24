@@ -189,11 +189,23 @@ impl CrewApp {
         let mut clear = false;
         if let Some(u) = self.update.as_mut() {
             tick.redraw = u.drain(now);
-            if u.animating() && u.tick_anim() {
+            // A silent background run has no UPDATE card to animate — driving
+            // `tick.redraw` off its spinner ticks would repaint the whole
+            // window at ~10 fps for nothing visible. Loud runs still animate.
+            if !u.silent && u.animating() && u.tick_anim() {
                 tick.redraw = true;
             }
             if let Stage::Done(v) = &u.stage {
-                if self.parked_update.is_none() {
+                // Park on first install, and re-park (with a fresh stamp so
+                // the blink pulse re-fires) whenever a *different* version
+                // lands — e.g. a manual `/update` after an auto-parked one.
+                // A repeat Done for the same version is a no-op: no stamp
+                // refresh, no re-triggered blink nag.
+                let should_park = match &self.parked_update {
+                    None => true,
+                    Some((pv, _)) => pv != v,
+                };
+                if should_park {
                     self.parked_update = Some((v.clone(), crate::anim::now_ms()));
                 }
             }
@@ -281,6 +293,55 @@ mod tests {
         app.start_update();
         let u = app.update.as_ref().unwrap();
         assert!(!u.silent, "manual /update takes over the silent run loudly");
+    }
+
+    #[test]
+    #[allow(clippy::field_reassign_with_default)]
+    fn silent_animation_ticks_do_not_redraw_but_loud_does() {
+        for silent in [true, false] {
+            let (_tx, rx) = std::sync::mpsc::channel();
+            let mut app = CrewApp::default();
+            app.update = Some(UpdateState::new_with(rx, silent));
+            let now = Instant::now();
+            let mut redrew = false;
+            // Enough ticks to cross the SPINNER_DIV frame boundary at least once.
+            for _ in 0..(SPINNER_DIV as usize + 1) {
+                let tick = app.poll_update(now);
+                redrew |= tick.redraw;
+            }
+            assert_eq!(
+                redrew, !silent,
+                "silent={silent}: animation-tick redraw must only fire when loud"
+            );
+        }
+    }
+
+    #[test]
+    #[allow(clippy::field_reassign_with_default)]
+    fn reparks_when_a_second_install_lands_a_different_version() {
+        let mut app = CrewApp::default();
+        let stale_stamp = 1u64; // predates any real `anim::now_ms()` reading
+        app.parked_update = Some(("1.0.1".into(), stale_stamp));
+
+        let (tx, rx) = std::sync::mpsc::channel();
+        app.update = Some(UpdateState::new_with(rx, true));
+        tx.send(UpdateMsg::Installed("1.0.2".into())).unwrap();
+        app.poll_update(Instant::now());
+        let (v, at) = app.parked_update.clone().expect("still parked");
+        assert_eq!(v, "1.0.2", "legend updates to the newly installed version");
+        assert!(
+            at > stale_stamp,
+            "stamp refreshes so the blink pulse re-fires"
+        );
+
+        // A second Done for the SAME version must not re-stamp (no repeat nag).
+        let (tx2, rx2) = std::sync::mpsc::channel();
+        app.update = Some(UpdateState::new_with(rx2, true));
+        tx2.send(UpdateMsg::Installed("1.0.2".into())).unwrap();
+        app.poll_update(Instant::now());
+        let (v2, at2) = app.parked_update.clone().expect("still parked");
+        assert_eq!(v2, "1.0.2");
+        assert_eq!(at2, at, "same-version reinstall does not re-stamp");
     }
 
     #[test]
