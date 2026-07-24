@@ -17,14 +17,16 @@ use crate::palette::accent_color;
 const DIR: Color = Color::Rgb(120, 200, 255);
 
 pub(crate) fn render(p: &FarPane, cols: u16, rows: u16) -> Vec<CellView> {
-    if cols < 16 || rows < 5 {
+    if cols < 16 || rows < 6 {
         return Vec::new();
     }
     let area = Rect::new(0, 0, cols, rows);
     let mut buf = Buffer::empty(area);
-    // Panels, then the command line, then the function-key bar.
+    // Panels, then the status line (selected entry in full), then the
+    // command line, then the function-key bar.
     let split = Layout::vertical([
         Constraint::Min(3),
+        Constraint::Length(1),
         Constraint::Length(1),
         Constraint::Length(1),
     ])
@@ -71,9 +73,10 @@ pub(crate) fn render(p: &FarPane, cols: u16, rows: u16) -> Vec<CellView> {
         &p.right
     };
     let sel_label = bars::selected_label(active);
+    status_bar(&mut buf, split[1], sel_label.as_deref());
     command_bar(
         &mut buf,
-        split[1],
+        split[2],
         &p.active_panel_folder(),
         &p.cmdline,
         ghost.as_deref(),
@@ -84,8 +87,8 @@ pub(crate) fn render(p: &FarPane, cols: u16, rows: u16) -> Vec<CellView> {
     );
     // The make-folder prompt takes over the function-key row while it's open.
     match &p.prompt {
-        Some(prompt) => prompt_bar(&mut buf, split[2], prompt),
-        None => function_bar(&mut buf, split[2]),
+        Some(prompt) => prompt_bar(&mut buf, split[3], prompt),
+        None => function_bar(&mut buf, split[3]),
     }
     if let Some(ds) = &p.drive_select {
         drive_select_overlay(&mut buf, area, ds);
@@ -350,7 +353,7 @@ fn legend(display: &str, count: usize, total: u64, width: u16) -> String {
 /// padding is half-block glyphs (`▐label▌`), not spaces — `to_cells` drops
 #[path = "bars.rs"]
 mod bars;
-use bars::{command_bar, function_bar, prompt_bar};
+use bars::{command_bar, function_bar, prompt_bar, status_bar};
 
 #[cfg(test)]
 #[path = "render_tests.rs"]
