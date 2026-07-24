@@ -62,7 +62,7 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     // essentially flat on dark pages.
     //
     // 0.048 gave the near-black "newspaper" page the SAME newsprint spread
-    // the bright paper page has (light-page std ≈ 5.67), so the dark themes
+    // the bright paper page has (light-page std ≈ 5.67 (measured at the 1.56 dark drive)), so the dark themes
     // read as textured newsprint rather than flat black — the deliberate
     // choice after dark themes previously kept a much subtler ~±3-level grain.
     // Dark themes now also carry theme.grain 1.2 (matching light), so the two
@@ -101,7 +101,7 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     // targets on the first try, so no further iteration was needed: measured
     // dark_std=6.40 (in the 5-7 band), dark_coarse=4.19 (ratio 0.65, clears
     // the 0.6 margin). Light page (Cases 1-3, grain_mul<=2.4) statistically
-    // unaffected: light_std=3.56, light_coarse=1.49 (ratio 0.42, well under
+    // unaffected: light_std=3.56 (at grain_mul 1.0), light_coarse=1.49 (ratio 0.42, well under
     // the 0.7 white-noise ceiling — dark_weight keeps n2 negligible there).
     const A_DARK: f32 = 0.075;
     let page_luma = dot(u.page_bg.rgb, vec3<f32>(0.299, 0.587, 0.114));

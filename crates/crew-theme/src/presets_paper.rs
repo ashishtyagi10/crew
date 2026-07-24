@@ -2,10 +2,10 @@
 
 use crate::Theme;
 
-/// High-contrast monochrome ("newspaper") dark theme — near-black/near-white
-/// chrome for maximum legibility with minimal glare. Terminal ANSI output
-/// keeps muted-but-readable colours so error/diff colour cues survive.
-/// The default.
+/// High-contrast monochrome ("newspaper") dark theme — warm near-black/near-white
+/// chrome for maximum legibility with minimal glare. The page leans warm
+/// charcoal since the 2026-07-24 retune. Terminal ANSI output keeps
+/// muted-but-readable colours so error/diff colour cues survive. The default.
 pub static PAPER_DARK: Theme = Theme {
     page_bg: (12, 8, 5),
     ink: (247, 247, 247),

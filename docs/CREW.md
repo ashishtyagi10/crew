@@ -878,14 +878,14 @@ rather than a screen, plus four CRT tubes); they're no longer selected on their
 own, but each name still resolves if you type it.
 
 - **`paper-dark`** (default dark-pool member) — a high-contrast "newspaper" look: a near-black
-  page (`#0a0a0a`) with near-white ink (`#ececec`) and grey rules. Terminal
+  page (`#0c0805`) with near-white ink (`#ececec`) and grey rules. Terminal
   output keeps muted-but-readable ANSI colours so error/diff cues survive.
 - **`paper-light`** — a warm off-white page (`#f4f1ea`) with soft dark ink and
   ink-toned ANSI colours (sage, brick, faded indigo). No pure black or white
   anywhere; every surface reads as the same sheet of paper.
 - **`sepia-dark`** — dark sepia paper with warm cream ink.
 - **`sepia-light`** — an aged-newsprint cream page with dark sepia ink.
-- **`midnight-ink`** — a deep navy page with cool off-white ink.
+- **`midnight-ink`** — a warm slate-charcoal page with cool off-white ink.
 - **`graphite`** — a soft charcoal page; the gentlest of the darks.
 - **`coldpress-gray`** — a cool pale-gray page with light graphite ink.
 - **`salmon-broadsheet`** — an FT-style salmon-pink broadsheet page (light).
