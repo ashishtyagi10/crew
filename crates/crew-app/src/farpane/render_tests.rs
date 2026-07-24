@@ -374,3 +374,52 @@ fn no_ask_status_when_ask_is_absent() {
     assert!(!line.contains("thinking"));
     assert!(!line.contains("Enterrun"));
 }
+
+#[test]
+fn only_the_active_panel_draws_a_filled_cursor_bar() {
+    // A filled bar on BOTH sides made it ambiguous which panel keys act on
+    // (the inactive bar usually sits on `../` and reads as "selected"). The
+    // fill is now exclusive to the active panel; the inactive side remembers
+    // its row in bold.
+    let p = fixture_pane("activebar"); // active defaults to Side::Left
+    let cells = render(&p, 80, 24);
+    let page = crew_theme::theme().page_bg;
+    let divider_x = cells
+        .iter()
+        .filter(|c| c.c == '┬')
+        .map(|c| c.col)
+        .next()
+        .expect("shared divider column");
+    // Panel body rows only — the function-key bar's pills legitimately fill
+    // their bg across the whole row (rows 22/23 at this size), and row 0 is
+    // the border/legend.
+    let body = |c: &&crew_render::CellView| c.row >= 1 && c.row <= 20;
+    let filled: Vec<_> = cells.iter().filter(body).filter(|c| c.bg != page).collect();
+    assert!(!filled.is_empty(), "active panel must keep its cursor bar");
+    assert!(
+        filled.iter().all(|c| c.col < divider_x),
+        "no filled bar may appear in the inactive (right) panel"
+    );
+    assert!(
+        cells
+            .iter()
+            .filter(body)
+            .any(|c| c.bold && c.col > divider_x),
+        "the inactive panel marks its remembered row in bold instead"
+    );
+}
+
+#[test]
+fn command_bar_carries_the_selected_entrys_full_name() {
+    // Listing rows truncate long names to fit beside the size column; the
+    // command bar shows the active panel's selection in full.
+    let long = "a_really_long_filename_that_the_listing_row_truncates.txt";
+    let base = std::env::temp_dir().join("crew_far_render_selname");
+    let _ = std::fs::remove_dir_all(&base);
+    std::fs::create_dir_all(&base).unwrap();
+    std::fs::write(base.join(long), b"x").unwrap();
+    let mut p = FarPane::new(base);
+    p.left.sel = 1; // 0 is "..", 1 is the file
+    let t = text(&render(&p, 120, 24));
+    assert!(t.contains(long), "full name missing from the bar:\n{t}");
+}
