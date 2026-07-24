@@ -13,7 +13,7 @@ use super::stdio::roster;
 
 /// One loaded playbook.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct Skill {
+pub struct Skill {
     pub name: String,
     pub description: String,
     pub body: String,
@@ -116,10 +116,17 @@ pub(crate) fn merge(user: Vec<Skill>, project: Vec<Skill>) -> Vec<Skill> {
 
 /// Load every skill visible from the broker's cwd.
 pub(crate) fn load() -> Vec<Skill> {
+    list(Path::new("."))
+}
+
+/// User + project skills, the project dir rooted explicitly at
+/// `project_root` — the GUI's attach picker lists skills for a pane whose
+/// cwd is not the process cwd.
+pub fn list(project_root: &Path) -> Vec<Skill> {
     let user = dirs::config_dir()
         .map(|d| load_dir(&d.join("crew").join("skills"), "user"))
         .unwrap_or_default();
-    let project = load_dir(Path::new(".crew/skills"), "project");
+    let project = load_dir(&project_root.join(".crew/skills"), "project");
     merge(user, project)
 }
 

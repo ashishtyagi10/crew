@@ -143,7 +143,7 @@ impl CrewApp {
             });
         }
 
-        // @file mention popup: a "files" fieldset card sitting above the focused
+        // Attach picker popup: an "attach" fieldset card (agents · skills · files) sitting above the focused
         // crew pane's composer while a mention is being typed. Overlay scene, so
         // the overlay pass backs it with an opaque page background.
         if !self.input.focused {
@@ -154,9 +154,9 @@ impl CrewApp {
                             let items: Vec<crate::suggest::MenuItem> = m
                                 .matches
                                 .iter()
-                                .map(|p| crate::suggest::MenuItem {
-                                    label: format!("@{p}"),
-                                    desc: String::new(),
+                                .map(|e| crate::suggest::MenuItem {
+                                    label: format!("@{}", e.token()),
+                                    desc: e.desc(),
                                     fill: String::new(),
                                     submit: false,
                                 })
@@ -172,7 +172,7 @@ impl CrewApp {
                             let mh = f32::from(mr) * ch;
                             let my = (r.y + r.h - comp - mh).max(0.0);
                             scenes.push(PaneScene {
-                                cells: crate::cmdmenu::menu_card("files", &items, m.sel, cols, mr),
+                                cells: crate::cmdmenu::menu_card("attach", &items, m.sel, cols, mr),
                                 x: r.x,
                                 y: my,
                                 w: r.w,
@@ -187,7 +187,7 @@ impl CrewApp {
             }
         }
 
-        // Composer palette: a "commands"/"agents" fieldset card sitting above the
+        // Composer palette: a "commands"/"attach" fieldset card sitting above the
         // focused crew pane's composer while a leading `/` or `@` token is being
         // typed (see `chatpalette`). Mutually exclusive with the mention popup
         // above by construction, so both blocks can push independently. Overlay
@@ -265,11 +265,11 @@ pub(crate) fn frame_hit_rects(
 }
 
 /// Card legend for the composer palette: "commands" for the slash palette,
-/// "agents" for the leading-`@` picker.
+/// "attach" for the leading-`@` picker (agents, skills, files).
 fn palette_card_title(kind: crate::chatpalette::Kind) -> &'static str {
     match kind {
         crate::chatpalette::Kind::Slash => "commands",
-        crate::chatpalette::Kind::Agent => "agents",
+        crate::chatpalette::Kind::Agent => "attach",
     }
 }
 

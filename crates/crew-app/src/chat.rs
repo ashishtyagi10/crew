@@ -409,7 +409,8 @@ impl ChatPane {
                     ts: chrono::Local::now().timestamp_millis().to_string(),
                     meta: String::new(),
                 });
-                let expanded = crate::chatmention::expand(&text, cwd);
+                let agent_names: Vec<String> = self.agents.iter().map(|a| a.name.clone()).collect();
+                let expanded = crate::chatmention::expand(&text, cwd, &agent_names);
                 // Busy: queue instead of writing to a broker that's still
                 // mid-turn — except `/stop`, which must reach it immediately
                 // to cancel. Idle: send straight away, as before.
@@ -421,10 +422,13 @@ impl ChatPane {
             }
         } else {
             // A Char/Backspace edit: sync the mention popup to the new input.
+            let agents = self.agents.clone();
             crate::chatmention::after_edit(&mut self.mention, &self.input, || {
-                crate::fileindex::scan(cwd)
+                crate::chatmention::scan_entries(cwd, &agents)
             });
-            crate::chatpalette::after_edit(&mut self.palette, &self.input, &self.agents);
+            crate::chatpalette::after_edit(&mut self.palette, &self.input, || {
+                crate::chatmention::scan_entries(cwd, &agents)
+            });
         }
         None
     }

@@ -74,13 +74,13 @@ fn legend(cells: &[crew_render::CellView]) -> String {
 #[test]
 fn palette_card_title_matches_kind() {
     assert_eq!(palette_card_title(chatpalette::Kind::Slash), "commands");
-    assert_eq!(palette_card_title(chatpalette::Kind::Agent), "agents");
+    assert_eq!(palette_card_title(chatpalette::Kind::Agent), "attach");
 }
 
 #[test]
 fn slash_palette_card_shows_commands_legend_and_construct_row() {
     let mut palette = None;
-    chatpalette::after_edit(&mut palette, "/mo", &[]);
+    chatpalette::after_edit(&mut palette, "/mo", Vec::new);
     let p = palette.unwrap();
     let cells = crate::cmdmenu::menu_card(
         palette_card_title(p.kind),
@@ -94,9 +94,17 @@ fn slash_palette_card_shows_commands_legend_and_construct_row() {
 }
 
 #[test]
-fn agent_palette_card_shows_agents_legend_and_name_row() {
+fn agent_palette_card_shows_attach_legend_and_name_row() {
     let mut palette = None;
-    chatpalette::after_edit(&mut palette, "@", &agents());
+    chatpalette::after_edit(&mut palette, "@", || {
+        agents()
+            .iter()
+            .map(|a| crate::chatmention::MentionEntry::Agent {
+                name: a.name.clone(),
+                role: a.role.clone(),
+            })
+            .collect()
+    });
     let p = palette.unwrap();
     let cells = crate::cmdmenu::menu_card(
         palette_card_title(p.kind),
@@ -105,6 +113,6 @@ fn agent_palette_card_shows_agents_legend_and_name_row() {
         40,
         crate::cmdmenu::menu_rows(p.items.len()),
     );
-    assert!(legend(&cells).contains("agents"));
+    assert!(legend(&cells).contains("attach"));
     assert!(cells.iter().any(|c| c.c == 'c')); // "coder" row text
 }

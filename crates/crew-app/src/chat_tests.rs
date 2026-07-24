@@ -404,15 +404,21 @@ fn palette_and_file_mention_are_mutually_exclusive() {
     // leading token). At most one popup is ever open.
     let mut p = pane();
     p.input = "/mo".to_string();
-    crate::chatpalette::after_edit(&mut p.palette, &p.input, &p.agents);
-    crate::chatmention::after_edit(&mut p.mention, &p.input, || vec!["mod.rs".into()]);
+    crate::chatpalette::after_edit(&mut p.palette, &p.input, Vec::new);
+    crate::chatmention::after_edit(&mut p.mention, &p.input, || {
+        vec![crate::chatmention::MentionEntry::File("mod.rs".into())]
+    });
     assert!(p.palette.is_some());
     assert!(p.mention.is_none());
 
     let mut p = pane();
     p.input = "hey @mo".to_string();
-    crate::chatpalette::after_edit(&mut p.palette, &p.input, &p.agents);
-    crate::chatmention::after_edit(&mut p.mention, &p.input, || vec!["mod.rs".into()]);
+    crate::chatpalette::after_edit(&mut p.palette, &p.input, || {
+        vec![crate::chatmention::MentionEntry::File("mod.rs".into())]
+    });
+    crate::chatmention::after_edit(&mut p.mention, &p.input, || {
+        vec![crate::chatmention::MentionEntry::File("mod.rs".into())]
+    });
     assert!(p.palette.is_none());
     assert!(p.mention.is_some());
 }

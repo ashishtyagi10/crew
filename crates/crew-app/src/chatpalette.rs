@@ -1,9 +1,8 @@
 //! Leading-token pop-ups in the crew composer: a `/` command palette and a
-//! leading `@agent` picker. Distinct from the mid-line `@file` mention
-//! (chatmention): this handles ONLY the leading token, that only non-leading
-//! ones, so at most one is open. Pure string logic + popup state.
-use crew_plugin::AgentInfo;
-
+//! leading `@` attach picker (agents, skills, files). Distinct from the
+//! mid-line `@file` mention (chatmention): this handles ONLY the leading
+//! token, that only non-leading ones, so at most one is open. Pure string
+//! logic + popup state.
 use crate::chatcomplete::{describe, CONSTRUCTS};
 use crate::chatkeys::ChatInput;
 use crate::suggest::MenuItem;
@@ -14,11 +13,14 @@ pub(crate) enum Kind {
     Agent,
 }
 
-/// The open leading-token palette: already-filtered rows + selection.
+/// The open leading-token palette: already-filtered rows + selection, plus
+/// the scanned entries (agents/skills/files) so narrowing the query doesn't
+/// rescan — like `chatmention::MentionState`.
 pub(crate) struct PaletteState {
     pub kind: Kind,
     pub items: Vec<MenuItem>,
     pub sel: usize,
+    pub entries: Vec<crate::chatmention::MentionEntry>,
 }
 
 pub(crate) enum PaletteKey {
@@ -44,14 +46,26 @@ pub(crate) fn pending_palette(input: &str) -> Option<(Kind, &str)> {
 
 /// Sync the palette to the input after an edit: open on a leading `/`/`@`
 /// token, refilter as it narrows, close when it ends or nothing matches.
-pub(crate) fn after_edit(palette: &mut Option<PaletteState>, input: &str, agents: &[AgentInfo]) {
+pub(crate) fn after_edit(
+    palette: &mut Option<PaletteState>,
+    input: &str,
+    scan: impl FnOnce() -> Vec<crate::chatmention::MentionEntry>,
+) {
     let Some((kind, query)) = pending_palette(input) else {
         *palette = None;
         return;
     };
+    // Reuse the open palette's scan; (re)scan when opening or kind changed.
+    let entries = match palette {
+        Some(p) if p.kind == kind => std::mem::take(&mut p.entries),
+        _ => match kind {
+            Kind::Agent => scan(),
+            Kind::Slash => Vec::new(),
+        },
+    };
     let items = match kind {
         Kind::Slash => slash_items(query),
-        Kind::Agent => agent_items(query, agents),
+        Kind::Agent => attach_items(query, &entries, input.contains('+')),
     };
     if items.is_empty() {
         *palette = None;
@@ -61,12 +75,14 @@ pub(crate) fn after_edit(palette: &mut Option<PaletteState>, input: &str, agents
         Some(p) if p.kind == kind => {
             p.sel = p.sel.min(items.len() - 1);
             p.items = items;
+            p.entries = entries;
         }
         _ => {
             *palette = Some(PaletteState {
                 kind,
                 items,
                 sel: 0,
+                entries,
             })
         }
     }
@@ -85,15 +101,22 @@ fn slash_items(query: &str) -> Vec<MenuItem> {
         .collect()
 }
 
-fn agent_items(query: &str, agents: &[AgentInfo]) -> Vec<MenuItem> {
-    let q = query.to_lowercase();
-    agents
-        .iter()
-        .filter(|a| a.name.to_lowercase().starts_with(&q))
-        .map(|a| MenuItem {
-            label: format!("@{}", a.name),
-            desc: a.role.clone(),
-            fill: a.name.clone(),
+/// Rows for the leading `@`: the full attach picker (agents, skills, files
+/// — `chatmention::filter`'s section order), agents only once the token has
+/// a `+` (multi-target selectors route, they don't attach).
+fn attach_items(
+    query: &str,
+    entries: &[crate::chatmention::MentionEntry],
+    multi: bool,
+) -> Vec<MenuItem> {
+    use crate::chatmention::MentionEntry;
+    crate::chatmention::filter(entries, query)
+        .into_iter()
+        .filter(|e| !multi || matches!(e, MentionEntry::Agent { .. }))
+        .map(|e| MenuItem {
+            label: format!("@{}", e.token()),
+            desc: e.desc(),
+            fill: e.token(),
             submit: false,
         })
         .collect()
@@ -173,29 +196,84 @@ mod tests {
         assert_eq!(accept("@a+co", Kind::Agent, "coder"), "@a+coder ");
     }
 
+    fn agent_entries() -> Vec<crate::chatmention::MentionEntry> {
+        agents()
+            .iter()
+            .map(|a| crate::chatmention::MentionEntry::Agent {
+                name: a.name.clone(),
+                role: a.role.clone(),
+            })
+            .collect()
+    }
+
     #[test]
     fn after_edit_opens_refilters_and_closes() {
-        let a = agents();
         let mut p = None;
-        after_edit(&mut p, "@", &a);
+        after_edit(&mut p, "@", || agent_entries());
         assert_eq!(p.as_ref().unwrap().items.len(), 2);
         assert_eq!(p.as_ref().unwrap().kind, Kind::Agent);
-        after_edit(&mut p, "@co", &a);
+        after_edit(&mut p, "@co", || agent_entries());
         assert_eq!(p.as_ref().unwrap().items.len(), 1); // only coder
-        after_edit(&mut p, "@zzz", &a);
+        after_edit(&mut p, "@zzz", || agent_entries());
         assert!(p.is_none()); // no match closes
-        after_edit(&mut p, "/mo", &a);
+        after_edit(&mut p, "/mo", || Vec::new());
         assert_eq!(p.as_ref().unwrap().kind, Kind::Slash);
         assert!(p.as_ref().unwrap().items.iter().any(|i| i.fill == "/model"));
-        after_edit(&mut p, "hey", &a);
+        after_edit(&mut p, "hey", || agent_entries());
         assert!(p.is_none()); // no leading selector
     }
 
     #[test]
-    fn popup_key_navigates_accepts_and_closes() {
-        let a = agents();
+    fn leading_at_offers_agents_skills_and_files_in_order() {
         let mut p = None;
-        after_edit(&mut p, "@", &a);
+        let mut entries: Vec<crate::chatmention::MentionEntry> = vec![
+            crate::chatmention::MentionEntry::Agent {
+                name: "reviewer".into(),
+                role: "r".into(),
+            },
+            crate::chatmention::MentionEntry::Skill {
+                name: "review".into(),
+                desc: "d".into(),
+            },
+            crate::chatmention::MentionEntry::File("review.md".into()),
+        ];
+        after_edit(&mut p, "@rev", || entries.clone());
+        let items = &p.as_ref().unwrap().items;
+        let labels: Vec<&str> = items.iter().map(|i| i.label.as_str()).collect();
+        assert_eq!(labels, vec!["@reviewer", "@skill:review", "@review.md"]);
+        assert_eq!(items[1].fill, "skill:review");
+        assert_eq!(items[2].fill, "review.md");
+        // narrowing refilters without rescanning
+        entries.clear();
+        after_edit(&mut p, "@revi", || unreachable!("no rescan while open"));
+        assert!(p.is_some());
+    }
+
+    #[test]
+    fn multi_target_plus_offers_agents_only() {
+        let mut p = None;
+        let entries = vec![
+            crate::chatmention::MentionEntry::Agent {
+                name: "coder".into(),
+                role: "c".into(),
+            },
+            crate::chatmention::MentionEntry::File("coder.md".into()),
+        ];
+        after_edit(&mut p, "@planner+co", || entries.clone());
+        let labels: Vec<&str> = p
+            .as_ref()
+            .unwrap()
+            .items
+            .iter()
+            .map(|i| i.label.as_str())
+            .collect();
+        assert_eq!(labels, vec!["@coder"]);
+    }
+
+    #[test]
+    fn popup_key_navigates_accepts_and_closes() {
+        let mut p = None;
+        after_edit(&mut p, "@", || agent_entries());
         let mut input = "@".to_string();
         assert!(matches!(
             popup_key(&mut p, &mut input, &ChatInput::Down),
@@ -208,7 +286,7 @@ mod tests {
         assert!(input.starts_with('@') && input.ends_with(' '));
         assert!(p.is_none());
         // Esc closes the popup, not the pane.
-        after_edit(&mut p, "/", &a);
+        after_edit(&mut p, "/", || Vec::new());
         assert!(matches!(
             popup_key(&mut p, &mut input, &ChatInput::Close),
             PaletteKey::Consumed
