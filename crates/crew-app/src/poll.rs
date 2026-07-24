@@ -268,6 +268,14 @@ impl CrewApp {
             let tick = self.poll_update(Instant::now());
             any_changed |= tick.redraw;
         }
+        // Keep the nav legend blinking while a parked install's reminder is
+        // still inside its pulse window — settles to a steady accent (and
+        // stops costing frames) once the window elapses.
+        if let Some((_, at)) = &self.parked_update {
+            if crate::restartnote::animating(crate::anim::now_ms(), *at) {
+                any_changed = true;
+            }
+        }
         // Clear a status message once it has aged out, repainting the border.
         if self.expire_status() {
             any_changed = true;

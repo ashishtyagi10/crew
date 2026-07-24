@@ -121,6 +121,7 @@ mod quit;
 mod relay;
 mod render;
 mod restart;
+mod restartnote;
 mod route;
 mod runpane;
 mod scroll;

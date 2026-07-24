@@ -41,8 +41,17 @@ impl CrewApp {
         let pane_rows = self.pane_rows();
         let sidebar = &self.sidebar;
         let log = &self.log;
-        let legend = concat!("crew v", env!("CARGO_PKG_VERSION"));
-        crate::panelcard::push_card(scenes, sb, cw, ch, legend, |cols, rows| {
+        let (legend, legend_fg) = match &self.parked_update {
+            Some((v, at)) => (
+                crate::restartnote::legend(v),
+                crate::restartnote::legend_fg(crate::anim::now_ms(), *at),
+            ),
+            None => (
+                concat!("crew v", env!("CARGO_PKG_VERSION")).to_string(),
+                crew_theme::theme().legend_off,
+            ),
+        };
+        crate::panelcard::push_card_titled(scenes, sb, cw, ch, &legend, legend_fg, |cols, rows| {
             sidebar.cells(cols, rows, &pane_rows, log)
         });
     }

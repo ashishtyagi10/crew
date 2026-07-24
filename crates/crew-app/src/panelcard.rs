@@ -18,6 +18,29 @@ pub fn push_card(
     legend: &str,
     content: impl FnOnce(u16, u16) -> Vec<CellView>,
 ) {
+    push_card_titled(
+        scenes,
+        rect,
+        cw,
+        ch,
+        legend,
+        crew_theme::theme().legend_off,
+        content,
+    );
+}
+
+/// Same as [`push_card`], but with the legend text drawn in `title_fg`
+/// instead of the default dim `legend_off` — for legends that need to call
+/// out for attention (e.g. the parked-update restart reminder).
+pub fn push_card_titled(
+    scenes: &mut Vec<PaneScene>,
+    rect: Rect,
+    cw: f32,
+    ch: f32,
+    legend: &str,
+    title_fg: (u8, u8, u8),
+    content: impl FnOnce(u16, u16) -> Vec<CellView>,
+) {
     let (icols, irows) = crate::layout::card_inner_cells(rect.w, rect.h, cw, ch);
     scenes.push(PaneScene {
         cells: content(icols, irows),
@@ -35,7 +58,7 @@ pub fn push_card(
             irows + 2,
             legend,
             crew_theme::theme().border_normal,
-            crew_theme::theme().legend_off,
+            title_fg,
             crew_theme::theme().page_bg,
         ),
         x: rect.x,

@@ -193,7 +193,7 @@ impl CrewApp {
             }
             if let Stage::Done(v) = &u.stage {
                 if self.parked_update.is_none() {
-                    self.parked_update = Some(v.clone());
+                    self.parked_update = Some((v.clone(), crate::anim::now_ms()));
                 }
             }
             clear = u.clear_due(now);
@@ -245,7 +245,7 @@ mod tests {
             tx.send(UpdateMsg::Installed("9.9.9".into())).unwrap();
             app.poll_update(Instant::now());
             assert_eq!(
-                app.parked_update.as_deref(),
+                app.parked_update.as_ref().map(|(v, _)| v.as_str()),
                 Some("9.9.9"),
                 "silent={silent}"
             );
