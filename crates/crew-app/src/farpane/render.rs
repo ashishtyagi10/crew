@@ -66,7 +66,7 @@ pub(crate) fn render(p: &FarPane, cols: u16, rows: u16) -> Vec<CellView> {
     };
     let running = p.running.as_ref().map(|(cmd, _)| cmd.as_str());
     // The active panel's selected entry, in full — listing rows truncate
-    // long names, so the command bar carries the readable copy.
+    // long names, so the status row carries the readable copy.
     let active = if p.active == Side::Left {
         &p.left
     } else {
@@ -83,7 +83,6 @@ pub(crate) fn render(p: &FarPane, cols: u16, rows: u16) -> Vec<CellView> {
         ask_hint.as_deref(),
         suggested,
         running,
-        sel_label.as_deref(),
     );
     // The make-folder prompt takes over the function-key row while it's open.
     match &p.prompt {

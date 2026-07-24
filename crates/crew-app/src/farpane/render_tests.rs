@@ -518,3 +518,27 @@ fn active_panel_legend_is_a_filled_accent_tab() {
         "inactive (right) legend must stay unfilled"
     );
 }
+
+#[test]
+fn command_bar_no_longer_carries_the_selected_name() {
+    // The status row (Task 1) is the single home of the selected name; the
+    // command line keeps its full width for typing/ghost/running hints.
+    let name = "unique_marker_filename.txt";
+    let base = std::env::temp_dir().join("crew_far_render_cmdnosel");
+    let _ = std::fs::remove_dir_all(&base);
+    std::fs::create_dir_all(&base).unwrap();
+    std::fs::write(base.join(name), b"x").unwrap();
+    let mut p = FarPane::new(base);
+    p.left.sel = 1;
+    let cells = render(&p, 120, 24);
+    let cmd_row = 22;
+    let line: String = cells
+        .iter()
+        .filter(|c| c.row == cmd_row)
+        .map(|c| c.c)
+        .collect();
+    assert!(
+        !line.contains("unique_marker"),
+        "selected name must not render on the command row: {line:?}"
+    );
+}

@@ -18,7 +18,7 @@ const FKEYS: [(&str, &str); 8] = [
 /// The Far command line: `<cwd> $ <typed>▏`, the directory dimmed and the typed
 /// command in the ink colour with a cursor bar. While a command runs, a dimmed
 /// `⟳ <cmd>` note follows the prompt. Truncated from the left to fit.
-#[allow(clippy::too_many_arguments)] // one bar, nine independent knobs
+#[allow(clippy::too_many_arguments)] // one bar, eight independent knobs
 pub(super) fn command_bar(
     buf: &mut Buffer,
     area: Rect,
@@ -28,7 +28,6 @@ pub(super) fn command_bar(
     ask_hint: Option<&str>,
     suggested: bool,
     running: Option<&str>,
-    selected: Option<&str>,
 ) {
     let t = crew_theme::theme();
     let bg = Color::Rgb(t.page_bg.0, t.page_bg.1, t.page_bg.2);
@@ -61,20 +60,6 @@ pub(super) fn command_bar(
             format!("  \u{27f3} {cmd}"),
             Style::new().fg(dim).bg(bg),
         ));
-    }
-    // The selected entry's full name, right-aligned and dimmed, whenever it
-    // fits after the prompt/typed text with a 2-column gap. Dropped rather
-    // than truncated — the listing already shows the truncated form.
-    if let Some(sel) = selected {
-        let used: usize = spans.iter().map(|s| s.content.chars().count()).sum();
-        let avail = (area.width as usize).saturating_sub(used);
-        if sel.chars().count() + 2 <= avail {
-            let pad = avail - sel.chars().count();
-            spans.push(Span::styled(
-                format!("{}{sel}", " ".repeat(pad)),
-                Style::new().fg(dim).bg(bg),
-            ));
-        }
     }
     Paragraph::new(Line::from(spans))
         .style(Style::new().bg(bg))
