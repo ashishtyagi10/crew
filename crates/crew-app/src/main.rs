@@ -70,6 +70,7 @@ mod fileindex;
 mod findhl;
 mod fontcmd;
 mod fontrotate;
+mod fonttick;
 mod framegeo;
 mod gauges;
 mod git;
