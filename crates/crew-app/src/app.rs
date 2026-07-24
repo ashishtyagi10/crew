@@ -92,6 +92,13 @@ pub struct CrewApp {
     /// In-progress background self-update (`/update`): drives the left-nav UPDATE
     /// card and the auto-restart. `None` when no update is running.
     pub(crate) update: Option<crate::update::UpdateState>,
+    /// Pure-timing scheduler for the quiet background update check: 30 s after
+    /// launch, then every 6 h. See [`crate::autoupdate`].
+    pub(crate) autoupdate: crate::autoupdate::AutoUpdate,
+    /// Version string of the most recently installed-but-not-yet-running
+    /// update, set the moment any run (silent or manual) reaches `Installed`.
+    /// Consumed by `/restart`'s nav-legend reminder.
+    pub(crate) parked_update: Option<String>,
     /// In-flight `?` ask (AI command suggestion) on a worker thread. `None`
     /// when idle. See [`crate::askbar`].
     pub(crate) ask: Option<crate::askbar::Ask>,

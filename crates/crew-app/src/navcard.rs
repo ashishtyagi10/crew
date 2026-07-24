@@ -22,10 +22,13 @@ impl CrewApp {
             return;
         }
         let full = chrome::sidebar_rect(sh, self.nav_px(scale), GAP);
-        // While a `/update` runs, dock a distinct UPDATE card on top of the stats
-        // card, shrinking the stats card below it (chrome::stats_card_rect — the
-        // same rect the PANES hit-test uses). It vanishes once the update ends.
-        if let Some(u) = &self.update {
+        // While a LOUD `/update` runs, dock a distinct UPDATE card on top of the
+        // stats card, shrinking the stats card below it (chrome::stats_card_rect —
+        // the same rect the PANES hit-test uses). A silent background run (see
+        // `crate::autoupdate`) stays invisible — no card, no reserved space —
+        // until a manual `/update` upgrades it to loud.
+        let loud = self.update.as_ref().filter(|u| !u.silent);
+        if let Some(u) = loud {
             let top = Rect {
                 h: (chrome::UPDATE_CARD_ROWS * ch).min(full.h),
                 ..full
@@ -34,7 +37,7 @@ impl CrewApp {
                 crate::updatecard::update_cells(u, cols, rows)
             });
         }
-        let sb = chrome::stats_card_rect(sh, self.nav_px(scale), GAP, ch, self.update.is_some());
+        let sb = chrome::stats_card_rect(sh, self.nav_px(scale), GAP, ch, loud.is_some());
         let pane_rows = self.pane_rows();
         let sidebar = &self.sidebar;
         let log = &self.log;

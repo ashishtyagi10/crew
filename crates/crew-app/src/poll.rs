@@ -256,6 +256,12 @@ impl CrewApp {
         for (idx, action) in far_actions.drain(..) {
             self.apply_far_action(action, idx);
         }
+        // Quiet auto-update: fire the same worker the manual /update uses,
+        // silently, shortly after launch and then six-hourly. Restart stays
+        // manual — an install only parks the nav-legend reminder.
+        if self.autoupdate.take_due(Instant::now()) {
+            self.start_auto_update();
+        }
         // Drive the background self-update: animate its card and dismiss it when
         // done. The new binary applies on `/restart` — Crew does not restart itself.
         if self.update.is_some() {

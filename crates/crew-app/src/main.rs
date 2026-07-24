@@ -11,6 +11,7 @@ mod askrender;
 mod askroute;
 mod askwait;
 mod attention;
+mod autoupdate;
 mod boxdraw;
 mod charrain;
 mod chat;
