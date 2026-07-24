@@ -22,10 +22,13 @@ impl CrewApp {
             return;
         }
         let full = chrome::sidebar_rect(sh, self.nav_px(scale), GAP);
-        // While a `/update` runs, dock a distinct UPDATE card on top of the stats
-        // card, shrinking the stats card below it (chrome::stats_card_rect — the
-        // same rect the PANES hit-test uses). It vanishes once the update ends.
-        if let Some(u) = &self.update {
+        // While a LOUD `/update` runs, dock a distinct UPDATE card on top of the
+        // stats card, shrinking the stats card below it (chrome::stats_card_rect —
+        // the same rect the PANES hit-test uses). A silent background run (see
+        // `crate::autoupdate`) stays invisible — no card, no reserved space —
+        // until a manual `/update` upgrades it to loud.
+        let loud = self.update.as_ref().filter(|u| !u.silent);
+        if let Some(u) = loud {
             let top = Rect {
                 h: (chrome::UPDATE_CARD_ROWS * ch).min(full.h),
                 ..full
@@ -34,12 +37,21 @@ impl CrewApp {
                 crate::updatecard::update_cells(u, cols, rows)
             });
         }
-        let sb = chrome::stats_card_rect(sh, self.nav_px(scale), GAP, ch, self.update.is_some());
+        let sb = chrome::stats_card_rect(sh, self.nav_px(scale), GAP, ch, loud.is_some());
         let pane_rows = self.pane_rows();
         let sidebar = &self.sidebar;
         let log = &self.log;
-        let legend = concat!("crew v", env!("CARGO_PKG_VERSION"));
-        crate::panelcard::push_card(scenes, sb, cw, ch, legend, |cols, rows| {
+        let (legend, legend_fg) = match &self.parked_update {
+            Some((v, at)) => (
+                crate::restartnote::legend(v, title_max_cols(sb, cw, ch)),
+                crate::restartnote::legend_fg(crate::anim::now_ms(), *at),
+            ),
+            None => (
+                concat!("crew v", env!("CARGO_PKG_VERSION")).to_string(),
+                crew_theme::theme().legend_off,
+            ),
+        };
+        crate::panelcard::push_card_titled(scenes, sb, cw, ch, &legend, legend_fg, |cols, rows| {
             sidebar.cells(cols, rows, &pane_rows, log)
         });
     }
@@ -69,6 +81,18 @@ impl CrewApp {
     }
 }
 
+/// Available title character budget for the parked-update legend, mirroring
+/// the column math `panelcard::push_card_titled` feeds into
+/// `boxdraw::titled_card` → `section_header`: the card's total column count
+/// is `card_inner_cells(rect, cw, ch).0 + 2` (the two border columns), and
+/// `section_header` spends 4 of those on non-title glyphs — the leading
+/// rule char, a space on each side of the title, and the right corner —
+/// leaving `total_cols - 4 == inner_cols - 2` for the title text itself.
+fn title_max_cols(rect: Rect, cw: f32, ch: f32) -> usize {
+    let (icols, _) = crate::layout::card_inner_cells(rect.w, rect.h, cw, ch);
+    icols.saturating_sub(2) as usize
+}
+
 #[cfg(test)]
 mod tests {
     use crate::app::CrewApp;
@@ -76,6 +100,43 @@ mod tests {
     use crate::layout::Rect;
     use crate::pane::{Pane, PaneContent};
     use crew_term::GridSize;
+
+    #[test]
+    fn title_max_cols_is_exactly_titled_cards_truncation_budget() {
+        let rect = Rect {
+            x: 0.0,
+            y: 0.0,
+            w: 200.0,
+            h: 100.0,
+        };
+        let (cw, ch) = (8.0f32, 16.0f32);
+        let max = super::title_max_cols(rect, cw, ch);
+        let (icols, irows) = crate::layout::card_inner_cells(rect.w, rect.h, cw, ch);
+
+        // A title exactly `max` chars long survives untruncated.
+        let fits: String = "x".repeat(max);
+        let cells = crate::boxdraw::titled_card(
+            icols + 2,
+            irows + 2,
+            &fits,
+            (0, 0, 0),
+            (0, 0, 0),
+            (0, 0, 0),
+        );
+        assert_eq!(cells.iter().filter(|c| c.c == 'x').count(), max);
+
+        // One char more than `max` gets truncated back down to `max`.
+        let overflows: String = "x".repeat(max + 1);
+        let cells2 = crate::boxdraw::titled_card(
+            icols + 2,
+            irows + 2,
+            &overflows,
+            (0, 0, 0),
+            (0, 0, 0),
+            (0, 0, 0),
+        );
+        assert_eq!(cells2.iter().filter(|c| c.c == 'x').count(), max);
+    }
 
     fn far_pane(name: &str) -> Pane {
         Pane {

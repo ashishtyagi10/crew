@@ -256,11 +256,27 @@ impl CrewApp {
         for (idx, action) in far_actions.drain(..) {
             self.apply_far_action(action, idx);
         }
+        // Quiet auto-update: fire the same worker the manual /update uses,
+        // silently, shortly after launch and then six-hourly. Restart stays
+        // manual — an install only parks the nav-legend reminder. The silent
+        // state is poll-driven immediately below in the same frame (first drain
+        // is empty, no side effects beyond spawning the worker).
+        if self.autoupdate.take_due(Instant::now()) {
+            self.start_auto_update();
+        }
         // Drive the background self-update: animate its card and dismiss it when
         // done. The new binary applies on `/restart` — Crew does not restart itself.
         if self.update.is_some() {
             let tick = self.poll_update(Instant::now());
             any_changed |= tick.redraw;
+        }
+        // Keep the nav legend blinking while a parked install's reminder is
+        // still inside its pulse window — settles to a steady accent (and
+        // stops costing frames) once the window elapses.
+        if let Some((_, at)) = &self.parked_update {
+            if crate::restartnote::animating(crate::anim::now_ms(), *at) {
+                any_changed = true;
+            }
         }
         // Clear a status message once it has aged out, repainting the border.
         if self.expire_status() {
