@@ -18,15 +18,16 @@ pub(crate) fn legend(new_version: &str) -> String {
 /// then steady accent — same cost model as pane attention markers.
 pub(crate) fn legend_fg(now_ms: u64, parked_at_ms: u64) -> (u8, u8, u8) {
     let t = crew_theme::theme();
-    if animating(now_ms, parked_at_ms)
-        && ((now_ms - parked_at_ms) / crate::attention::BLINK_MS) % 2 == 1
-    {
+    let dt = now_ms.saturating_sub(parked_at_ms);
+    if dt < crate::attention::PULSE_MS && (dt / crate::attention::BLINK_MS) % 2 == 1 {
         return t.legend_off;
     }
     crate::palette::accent()
 }
 
-/// True only inside the blink window — the only time redraws are driven.
+/// True only inside the blink window (the elapsed time since `parked_at_ms`
+/// is under `PULSE_MS`) — never panics or wraps if `now_ms` precedes
+/// `parked_at_ms`, since the elapsed time is computed with `saturating_sub`.
 pub(crate) fn animating(now_ms: u64, parked_at_ms: u64) -> bool {
     now_ms.saturating_sub(parked_at_ms) < crate::attention::PULSE_MS
 }
@@ -61,5 +62,16 @@ mod tests {
         assert_eq!(legend_fg(late, t0), accent);
         assert!(animating(t0 + 1, t0));
         assert!(!animating(late, t0));
+    }
+
+    #[test]
+    fn legend_fg_does_not_panic_when_now_precedes_parked_at() {
+        let _g = crate::palette::test_guard();
+        let accent = crate::palette::accent();
+        let parked_at = 10_000u64;
+        // now < parked_at can't happen with the shared anim clock in practice,
+        // but the saturating elapsed-time math must not panic/wrap on it —
+        // it should read as "just parked" (phase 0, accent).
+        assert_eq!(legend_fg(parked_at.saturating_sub(1), parked_at), accent);
     }
 }
