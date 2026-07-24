@@ -154,9 +154,9 @@ impl CrewApp {
                             let items: Vec<crate::suggest::MenuItem> = m
                                 .matches
                                 .iter()
-                                .map(|p| crate::suggest::MenuItem {
-                                    label: format!("@{p}"),
-                                    desc: String::new(),
+                                .map(|e| crate::suggest::MenuItem {
+                                    label: format!("@{}", e.token()),
+                                    desc: e.desc(),
                                     fill: String::new(),
                                     submit: false,
                                 })
@@ -172,7 +172,7 @@ impl CrewApp {
                             let mh = f32::from(mr) * ch;
                             let my = (r.y + r.h - comp - mh).max(0.0);
                             scenes.push(PaneScene {
-                                cells: crate::cmdmenu::menu_card("files", &items, m.sel, cols, mr),
+                                cells: crate::cmdmenu::menu_card("attach", &items, m.sel, cols, mr),
                                 x: r.x,
                                 y: my,
                                 w: r.w,

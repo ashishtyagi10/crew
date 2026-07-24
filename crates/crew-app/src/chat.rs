@@ -421,8 +421,9 @@ impl ChatPane {
             }
         } else {
             // A Char/Backspace edit: sync the mention popup to the new input.
+            let agents = self.agents.clone();
             crate::chatmention::after_edit(&mut self.mention, &self.input, || {
-                crate::fileindex::scan(cwd)
+                crate::chatmention::scan_entries(cwd, &agents)
             });
             crate::chatpalette::after_edit(&mut self.palette, &self.input, &self.agents);
         }
