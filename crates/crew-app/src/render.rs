@@ -265,11 +265,11 @@ pub(crate) fn frame_hit_rects(
 }
 
 /// Card legend for the composer palette: "commands" for the slash palette,
-/// "agents" for the leading-`@` picker.
+/// "attach" for the leading-`@` picker (agents, skills, files).
 fn palette_card_title(kind: crate::chatpalette::Kind) -> &'static str {
     match kind {
         crate::chatpalette::Kind::Slash => "commands",
-        crate::chatpalette::Kind::Agent => "agents",
+        crate::chatpalette::Kind::Agent => "attach",
     }
 }
 

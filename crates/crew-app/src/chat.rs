@@ -426,7 +426,9 @@ impl ChatPane {
             crate::chatmention::after_edit(&mut self.mention, &self.input, || {
                 crate::chatmention::scan_entries(cwd, &agents)
             });
-            crate::chatpalette::after_edit(&mut self.palette, &self.input, &self.agents);
+            crate::chatpalette::after_edit(&mut self.palette, &self.input, || {
+                crate::chatmention::scan_entries(cwd, &agents)
+            });
         }
         None
     }
