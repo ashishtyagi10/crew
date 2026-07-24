@@ -193,3 +193,25 @@ fn subdir_without_skill_md_is_skipped_and_flat_files_get_path() {
     assert_eq!(skills[0].dir, None);
     let _ = std::fs::remove_dir_all(&d);
 }
+
+#[test]
+fn list_is_rooted_at_the_given_project_dir_not_the_cwd() {
+    let root = std::env::temp_dir().join(format!("crew-skills-list-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&root);
+    let dir = root.join(".crew/skills");
+    std::fs::create_dir_all(dir.join("deploy")).unwrap();
+    std::fs::write(
+        dir.join("review.md"),
+        "---\ndescription: review playbook\n---\nsteps",
+    )
+    .unwrap();
+    std::fs::write(dir.join("deploy").join("SKILL.md"), "deploy steps").unwrap();
+    let got = list(&root);
+    let names: Vec<&str> = got.iter().map(|s| s.name.as_str()).collect();
+    assert!(names.contains(&"review"), "flat skill missing: {names:?}");
+    assert!(names.contains(&"deploy"), "dir skill missing: {names:?}");
+    let review = got.iter().find(|s| s.name == "review").unwrap();
+    assert_eq!(review.description, "review playbook");
+    assert_eq!(review.origin, "project");
+    let _ = std::fs::remove_dir_all(&root);
+}

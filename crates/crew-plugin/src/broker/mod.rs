@@ -57,6 +57,7 @@ pub use engine::Broker;
 pub use hop::{Hop, HopKind, RunStats};
 pub use registry::Registry;
 pub use route::{parse_routing, Routing};
+pub use skills::{list as skills_list, Skill};
 pub use stdio::run_broker_stdio;
 pub use toolcall::ToolRunner;
 
