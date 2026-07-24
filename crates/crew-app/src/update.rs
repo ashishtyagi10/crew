@@ -320,7 +320,11 @@ mod tests {
     #[allow(clippy::field_reassign_with_default)]
     fn reparks_when_a_second_install_lands_a_different_version() {
         let mut app = CrewApp::default();
-        let stale_stamp = 1u64; // predates any real `anim::now_ms()` reading
+        // Baseline against the live clock, not a literal: `anim::now_ms()` is
+        // ms-since-first-call, so a hardcoded stale stamp could race a fresh
+        // clock in the first milliseconds of the test process.
+        let baseline = crate::anim::now_ms();
+        let stale_stamp = baseline.saturating_sub(10);
         app.parked_update = Some(("1.0.1".into(), stale_stamp));
 
         let (tx, rx) = std::sync::mpsc::channel();
@@ -330,7 +334,7 @@ mod tests {
         let (v, at) = app.parked_update.clone().expect("still parked");
         assert_eq!(v, "1.0.2", "legend updates to the newly installed version");
         assert!(
-            at > stale_stamp,
+            at >= baseline,
             "stamp refreshes so the blink pulse re-fires"
         );
 
