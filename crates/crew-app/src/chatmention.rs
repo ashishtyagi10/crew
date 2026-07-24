@@ -242,7 +242,12 @@ pub(crate) fn expand(text: &str, cwd: &std::path::Path, agent_names: &[String]) 
         let Some(rel) = tok.strip_prefix('@') else {
             continue;
         };
-        if i == 0 && !rel.is_empty() && rel.split('+').all(|s| agent_names.iter().any(|a| a == s)) {
+        if i == 0
+            && !rel.is_empty()
+            && rel
+                .split('+')
+                .all(|s| agent_names.iter().any(|a| a.eq_ignore_ascii_case(s)))
+        {
             continue; // the @agent routing selector
         }
         if rel.is_empty() || seen.contains(&rel) {
@@ -518,6 +523,8 @@ mod tests {
         let out = expand("@planner do it @a.txt", &dir, &["planner".to_string()]);
         assert!(out.starts_with("@planner do it @a.txt"));
         assert_eq!(out.matches("--- file: a.txt ---").count(), 1);
+        let out = expand("@Planner do it", &dir, &["planner".to_string()]);
+        assert_eq!(out, "@Planner do it"); // roster match is case-insensitive, like broker routing
         let out = expand(
             "@planner+coder go",
             &dir,

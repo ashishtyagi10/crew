@@ -143,7 +143,7 @@ impl CrewApp {
             });
         }
 
-        // @file mention popup: a "files" fieldset card sitting above the focused
+        // Attach picker popup: an "attach" fieldset card (agents · skills · files) sitting above the focused
         // crew pane's composer while a mention is being typed. Overlay scene, so
         // the overlay pass backs it with an opaque page background.
         if !self.input.focused {
@@ -187,7 +187,7 @@ impl CrewApp {
             }
         }
 
-        // Composer palette: a "commands"/"agents" fieldset card sitting above the
+        // Composer palette: a "commands"/"attach" fieldset card sitting above the
         // focused crew pane's composer while a leading `/` or `@` token is being
         // typed (see `chatpalette`). Mutually exclusive with the mention popup
         // above by construction, so both blocks can push independently. Overlay
