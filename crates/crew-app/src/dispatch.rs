@@ -20,7 +20,7 @@ impl CrewApp {
             // Reopen last session's shells (their cwds snapshot on quit).
             "restore" => self.restore_session(),
             // Self-update in the background: progress shows in the left-nav UPDATE
-            // card and Crew auto-restarts into the new build — no separate shell.
+            // card; the new binary applies on /restart — Crew never restarts itself.
             "update" => self.start_update(),
             "clear" => self.clear_focused_scrollback(),
             "clearall" => self.clear_all_scrollback(),

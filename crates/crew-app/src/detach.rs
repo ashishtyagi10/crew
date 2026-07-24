@@ -38,11 +38,20 @@ pub fn should_detach() -> bool {
     !has_foreground_flag(std::env::args().skip(1))
 }
 
+/// The (exe, args) a restart will spawn: OUR OWN PATH with detach flags
+/// stripped. self_update replaces the file at this path atomically, so
+/// re-exec here is the guarantee that /restart (and any relaunch) always
+/// loads the newest installed binary.
+pub fn restart_command() -> anyhow::Result<(std::path::PathBuf, Vec<String>)> {
+    let exe = std::env::current_exe()?;
+    let args = strip_detach_flags(std::env::args().skip(1));
+    Ok((exe, args))
+}
+
 /// Spawn a detached copy of ourselves (new session, stdio → null) and return
 /// its pid — shared by the detached launch path and `/restart`.
 pub fn spawn_detached_copy() -> anyhow::Result<u32> {
-    let exe = std::env::current_exe()?;
-    let args = strip_detach_flags(std::env::args().skip(1));
+    let (exe, args) = restart_command()?;
     let mut cmd = Command::new(exe);
     cmd.args(&args)
         .env(DETACHED_ENV, "1")
@@ -115,5 +124,19 @@ mod tests {
         assert_eq!(strip_detach_flags(args), vec!["--self-update", "x"]);
         let clean = ["--broker-plugin".to_string()];
         assert_eq!(strip_detach_flags(clean.clone()), vec!["--broker-plugin"]);
+    }
+
+    #[test]
+    fn restart_reexecs_the_installed_binary_path() {
+        let (exe, args) = restart_command().unwrap();
+        // self_update atomically replaces the file at current_exe()'s path, so
+        // re-execing that path is what makes /restart load the newest install.
+        assert_eq!(exe, std::env::current_exe().unwrap());
+        assert!(
+            !args
+                .iter()
+                .any(|a| a == "--detach" || a == "-d" || a == "--no-detach" || a == "--foreground"),
+            "detach flags must be stripped: {args:?}"
+        );
     }
 }
