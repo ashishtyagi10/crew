@@ -84,6 +84,8 @@ fn function_bar_highlights_actions_far_style() {
 #[test]
 fn tiny_renders_nothing() {
     assert!(render(&fixture_pane("tiny"), 8, 2).is_empty());
+    // 5 rows can no longer hold panels + status + command + fkey rows.
+    assert!(render(&fixture_pane("tiny5"), 40, 5).is_empty());
 }
 
 #[test]
@@ -410,18 +412,82 @@ fn only_the_active_panel_draws_a_filled_cursor_bar() {
 }
 
 #[test]
-fn command_bar_carries_the_selected_entrys_full_name() {
+fn status_line_carries_the_selected_entrys_full_name() {
     // Listing rows truncate long names to fit beside the size column; the
-    // command bar shows the active panel's selection in full.
-    let long = "a_really_long_filename_that_the_listing_row_truncates.txt";
-    let base = std::env::temp_dir().join("crew_far_render_selname");
+    // status line above the command bar shows the active panel's selection
+    // in full.
+    let long = "a_very_long_filename_here.txt"; // 29 chars: fits a 40-col row
+    let base = std::env::temp_dir().join("crew_far_render_statusname");
     let _ = std::fs::remove_dir_all(&base);
     std::fs::create_dir_all(&base).unwrap();
     std::fs::write(base.join(long), b"x").unwrap();
     let mut p = FarPane::new(base);
     p.left.sel = 1; // 0 is "..", 1 is the file
-    let t = text(&render(&p, 120, 24));
-    assert!(t.contains(long), "full name missing from the bar:\n{t}");
+    let cells = render(&p, 40, 24);
+    let status_row = 21; // rows(24) - cmd(1) - fkeys(1) - status(1)
+    let mut row: Vec<(u16, char)> = cells
+        .iter()
+        .filter(|c| c.row == status_row)
+        .map(|c| (c.col, c.c))
+        .collect();
+    row.sort_unstable_by_key(|(col, _)| *col);
+    let line: String = row.into_iter().map(|(_, c)| c).collect();
+    assert!(
+        line.contains(long),
+        "full name missing from status row: {line:?}"
+    );
+    // The panel column itself must have truncated it (else this test proves
+    // nothing) — the full name may appear on no other row.
+    let t = text(&cells);
+    assert_eq!(
+        t.lines().filter(|l| l.contains(long)).count(),
+        1,
+        "panel row should truncate the long name:\n{t}"
+    );
+}
+
+#[test]
+fn status_line_truncation_keeps_the_size_suffix() {
+    // A name longer than the whole row ellipsizes, but ` · size` survives.
+    let long = "an_extremely_long_filename_that_cannot_fit_even_a_full_row.txt";
+    let base = std::env::temp_dir().join("crew_far_render_statustrunc");
+    let _ = std::fs::remove_dir_all(&base);
+    std::fs::create_dir_all(&base).unwrap();
+    std::fs::write(base.join(long), b"x").unwrap();
+    let mut p = FarPane::new(base);
+    p.left.sel = 1;
+    let cells = render(&p, 40, 24);
+    let status_row = 21;
+    let mut row: Vec<(u16, char)> = cells
+        .iter()
+        .filter(|c| c.row == status_row)
+        .map(|c| (c.col, c.c))
+        .collect();
+    row.sort_unstable_by_key(|(col, _)| *col);
+    let line: String = row.into_iter().map(|(_, c)| c).collect();
+    // to_cells drops blank (space) cells, so assert the squished suffix.
+    assert!(
+        line.contains("\u{2026}\u{b7}1B"),
+        "ellipsis+suffix missing: {line:?}"
+    );
+}
+
+#[test]
+fn status_line_blank_for_an_empty_listing() {
+    let base = std::env::temp_dir().join("crew_far_render_statusempty");
+    let _ = std::fs::remove_dir_all(&base);
+    std::fs::create_dir_all(&base).unwrap();
+    // A real pane always lists `..`, so force an empty listing directly.
+    let mut p = FarPane::new(base);
+    p.left.entries.clear();
+    p.left.sel = 0;
+    let cells = render(&p, 40, 24);
+    let status_row = 21;
+    // `to_cells` drops blank cells, so "blank" means no cells on the row.
+    assert!(
+        cells.iter().all(|c| c.row != status_row),
+        "status row must be blank on an empty listing"
+    );
 }
 
 #[test]
@@ -450,5 +516,29 @@ fn active_panel_legend_is_a_filled_accent_tab() {
     assert!(
         filled_top.iter().all(|&x| x < divider_x),
         "inactive (right) legend must stay unfilled"
+    );
+}
+
+#[test]
+fn command_bar_no_longer_carries_the_selected_name() {
+    // The status row (Task 1) is the single home of the selected name; the
+    // command line keeps its full width for typing/ghost/running hints.
+    let name = "unique_marker_filename.txt";
+    let base = std::env::temp_dir().join("crew_far_render_cmdnosel");
+    let _ = std::fs::remove_dir_all(&base);
+    std::fs::create_dir_all(&base).unwrap();
+    std::fs::write(base.join(name), b"x").unwrap();
+    let mut p = FarPane::new(base);
+    p.left.sel = 1;
+    let cells = render(&p, 120, 24);
+    let cmd_row = 22;
+    let line: String = cells
+        .iter()
+        .filter(|c| c.row == cmd_row)
+        .map(|c| c.c)
+        .collect();
+    assert!(
+        !line.contains("unique_marker"),
+        "selected name must not render on the command row: {line:?}"
     );
 }

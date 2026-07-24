@@ -18,7 +18,7 @@ const FKEYS: [(&str, &str); 8] = [
 /// The Far command line: `<cwd> $ <typed>▏`, the directory dimmed and the typed
 /// command in the ink colour with a cursor bar. While a command runs, a dimmed
 /// `⟳ <cmd>` note follows the prompt. Truncated from the left to fit.
-#[allow(clippy::too_many_arguments)] // one bar, nine independent knobs
+#[allow(clippy::too_many_arguments)] // one bar, eight independent knobs
 pub(super) fn command_bar(
     buf: &mut Buffer,
     area: Rect,
@@ -28,7 +28,6 @@ pub(super) fn command_bar(
     ask_hint: Option<&str>,
     suggested: bool,
     running: Option<&str>,
-    selected: Option<&str>,
 ) {
     let t = crew_theme::theme();
     let bg = Color::Rgb(t.page_bg.0, t.page_bg.1, t.page_bg.2);
@@ -62,20 +61,6 @@ pub(super) fn command_bar(
             Style::new().fg(dim).bg(bg),
         ));
     }
-    // The selected entry's full name, right-aligned and dimmed, whenever it
-    // fits after the prompt/typed text with a 2-column gap. Dropped rather
-    // than truncated — the listing already shows the truncated form.
-    if let Some(sel) = selected {
-        let used: usize = spans.iter().map(|s| s.content.chars().count()).sum();
-        let avail = (area.width as usize).saturating_sub(used);
-        if sel.chars().count() + 2 <= avail {
-            let pad = avail - sel.chars().count();
-            spans.push(Span::styled(
-                format!("{}{sel}", " ".repeat(pad)),
-                Style::new().fg(dim).bg(bg),
-            ));
-        }
-    }
     Paragraph::new(Line::from(spans))
         .style(Style::new().bg(bg))
         .render(area, buf);
@@ -90,6 +75,42 @@ pub(super) fn selected_label(panel: &Panel) -> Option<String> {
     } else {
         format!("{} \u{b7} {}", e.name, fmt_size(e.size))
     })
+}
+
+/// The mini-status row above the command line: the active panel's selected
+/// entry in full (the listing truncates long names; this row is the readable
+/// copy). Blank on an empty listing — the row is always present, so the
+/// layout never jumps.
+pub(super) fn status_bar(buf: &mut Buffer, area: Rect, label: Option<&str>) {
+    let t = crew_theme::theme();
+    let bg = Color::Rgb(t.page_bg.0, t.page_bg.1, t.page_bg.2);
+    let ink = Color::Rgb(t.ink.0, t.ink.1, t.ink.2);
+    let line = match label {
+        Some(l) => Line::from(Span::styled(
+            ellipsize_keeping_suffix(l, area.width as usize),
+            Style::new().fg(ink).bg(bg),
+        )),
+        None => Line::default(),
+    };
+    Paragraph::new(line)
+        .style(Style::new().bg(bg))
+        .render(area, buf);
+}
+
+/// Fit `label` into `width` columns: the ` · size` suffix stays intact and
+/// the name ellipsizes (the same rule the listing rows use). A label without
+/// the separator (a directory) ellipsizes plainly from the end.
+fn ellipsize_keeping_suffix(label: &str, width: usize) -> String {
+    if label.chars().count() <= width || width == 0 {
+        return label.to_string();
+    }
+    let (name, suffix) = match label.rfind(" \u{b7} ") {
+        Some(i) => label.split_at(i),
+        None => (label, ""),
+    };
+    let keep = width.saturating_sub(suffix.chars().count() + 1);
+    let head: String = name.chars().take(keep).collect();
+    format!("{head}\u{2026}{suffix}")
 }
 
 /// blank cells, so a bg-only space would never reach the GPU.
