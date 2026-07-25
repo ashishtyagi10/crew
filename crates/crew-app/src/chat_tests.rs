@@ -404,7 +404,7 @@ fn palette_and_file_mention_are_mutually_exclusive() {
     // leading token). At most one popup is ever open.
     let mut p = pane();
     p.input = "/mo".to_string();
-    crate::chatpalette::after_edit(&mut p.palette, &p.input, Vec::new);
+    crate::chatpalette::after_edit(&mut p.palette, &p.input, None, Vec::new);
     crate::chatmention::after_edit(&mut p.mention, &p.input, || {
         vec![crate::chatmention::MentionEntry::File("mod.rs".into())]
     });
@@ -413,7 +413,7 @@ fn palette_and_file_mention_are_mutually_exclusive() {
 
     let mut p = pane();
     p.input = "hey @mo".to_string();
-    crate::chatpalette::after_edit(&mut p.palette, &p.input, || {
+    crate::chatpalette::after_edit(&mut p.palette, &p.input, None, || {
         vec![crate::chatmention::MentionEntry::File("mod.rs".into())]
     });
     crate::chatmention::after_edit(&mut p.mention, &p.input, || {
@@ -421,6 +421,47 @@ fn palette_and_file_mention_are_mutually_exclusive() {
     });
     assert!(p.palette.is_none());
     assert!(p.mention.is_some());
+}
+
+#[test]
+fn model_pick_sends_one_broker_command() {
+    let mut chat = pane();
+    let cwd = std::path::Path::new(".");
+    for c in "/model ".chars() {
+        chat.on_input(crate::chatkeys::ChatInput::Char(c), cwd);
+    }
+    assert!(chat.palette.is_some(), "picker should be open");
+    // Move off the opening `default` row before picking — Enter on an
+    // untouched, still-empty query has its own behavior (see the next test).
+    chat.on_input(crate::chatkeys::ChatInput::Down, cwd);
+    chat.on_input(crate::chatkeys::ChatInput::Enter, cwd);
+    // The pick ran: input cleared, and the echoed message is a `/model all …`.
+    assert!(chat.input.is_empty());
+    let last = chat.messages.last().expect("the pick was echoed");
+    assert!(last.text.starts_with("/model all "), "{}", last.text);
+}
+
+#[test]
+fn bare_model_space_enter_lists_instead_of_resetting_every_pin() {
+    // A bare `/model ` + Enter, selection never touched, must send the raw
+    // `/model` listing — NOT the highlighted `default` row's destructive
+    // `/model all default`, which would clear every agent's pin (see
+    // `chatpalettemodel_tests.rs` for the pure-logic half of this).
+    let mut chat = pane();
+    let cwd = std::path::Path::new(".");
+    for c in "/model ".chars() {
+        chat.on_input(crate::chatkeys::ChatInput::Char(c), cwd);
+    }
+    assert!(chat.palette.is_some(), "picker should be open");
+    chat.on_input(crate::chatkeys::ChatInput::Enter, cwd);
+    assert!(chat.input.is_empty());
+    let last = chat.messages.last().expect("the raw command was echoed");
+    assert_eq!(last.text, "/model ");
+    assert!(
+        !last.text.starts_with("/model all"),
+        "must not clear every agent's pin: {}",
+        last.text
+    );
 }
 
 #[test]

@@ -68,6 +68,14 @@ impl CrewApp {
             return;
         };
         if let PaneContent::Chat(chat) = &mut self.panes[idx].content {
+            // Same app-side bookkeeping as the composer popup's pick
+            // (`ChatPane::on_input`) — this is the OTHER surface `modelpick`
+            // serves (the input bar's own value picker, `suggest::options_for`),
+            // and it bypasses `on_input` entirely by calling `submit_command`
+            // directly, so it needs its own note here.
+            if model != "default" {
+                chat.pending_recent = Some(model.to_string());
+            }
             chat.submit_command(format!("/model all {model}"));
             self.focused = idx;
             self.input.focused = false;

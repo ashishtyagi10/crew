@@ -24,6 +24,10 @@ pub(crate) struct MenuItem {
     /// A section title, not a choice: never selected, drawn dim without the
     /// selection marker. The picker groups rows by provider with these.
     pub header: bool,
+    /// A choice the active stack can't currently serve (`Route::unserveable`)
+    /// — renders muted like a header, but keeps its desc column and its
+    /// selectability, unlike one. Always `false` outside the model picker.
+    pub dim: bool,
 }
 
 /// The first row a selection may land on — headers are titles, not choices.
@@ -81,34 +85,20 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
                 "700 — thickest for body text".to_string(),
             ),
         ]),
-        // Model picker for the agent smith pane — a curated set applied to every
-        // agent (forwarded as `/model all <slug>` to the open pane). Any other
-        // slug still works: type it freeform after `/model `. Provider must be
-        // able to serve the pick (see the DashScope/OpenRouter/Anthropic stack).
-        "/model" => Some(vec![
-            (
-                "default".to_string(),
-                "back to the provider default".to_string(),
-            ),
-            (
-                "qwen-max".to_string(),
-                "Alibaba Qwen — DashScope".to_string(),
-            ),
-            (
-                "qwen-plus".to_string(),
-                "Alibaba Qwen — larger context".to_string(),
-            ),
-            (
-                "claude-sonnet-5".to_string(),
-                "Anthropic Claude Sonnet".to_string(),
-            ),
-            (
-                "claude-opus-4-8".to_string(),
-                "Anthropic Claude Opus".to_string(),
-            ),
-            ("gpt-5".to_string(), "OpenAI GPT-5".to_string()),
-            ("deepseek-chat".to_string(), "DeepSeek".to_string()),
-        ]),
+        // Model picker for the agent smith pane — the catalog grouped by
+        // provider (see `modelpick`), applied to every agent (forwarded as
+        // `/model all <slug>`). Any other slug still works: type it freeform
+        // after `/model `. The value picker only takes flat (value, desc)
+        // pairs, so section headers are dropped here (`.filter` below) for
+        // this input-bar surface; the composer's `Kind::Model` popup
+        // (chatpalette) is where the grouped sections actually render.
+        "/model" => Some(
+            crate::modelpick::rows("", None)
+                .into_iter()
+                .filter(|i| !i.header)
+                .map(|i| (i.fill, i.desc))
+                .collect(),
+        ),
         _ => None,
     }
 }
@@ -136,6 +126,7 @@ pub(crate) fn menu_items(text: &str) -> Vec<MenuItem> {
                 desc,
                 submit: true,
                 header: false,
+                dim: false,
             })
             .collect();
     }
@@ -153,6 +144,7 @@ pub(crate) fn menu_items(text: &str) -> Vec<MenuItem> {
                 },
                 submit: !expands,
                 header: false,
+                dim: false,
             }
         })
         .collect()

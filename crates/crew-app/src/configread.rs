@@ -64,6 +64,7 @@ impl CrewConfig {
             font_weight: self.font_weight.clamp(300, 900),
             usage_budget_5h: self.usage_budget_5h.max(10_000),
             usage_budget_7d: self.usage_budget_7d.max(10_000),
+            model_recents: self.model_recents,
         }
     }
 }

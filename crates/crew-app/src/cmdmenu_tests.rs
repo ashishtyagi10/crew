@@ -82,6 +82,7 @@ fn header_rows_are_dim_and_unmarked() {
             fill: String::new(),
             submit: false,
             header: true,
+            dim: false,
         },
         crate::suggest::MenuItem {
             label: "Claude Sonnet 5".into(),
@@ -89,6 +90,7 @@ fn header_rows_are_dim_and_unmarked() {
             fill: "claude-sonnet-5".into(),
             submit: true,
             header: false,
+            dim: false,
         },
     ];
     // Selection sits on the model row (interior row 1 → card row 2).
@@ -106,4 +108,56 @@ fn header_rows_are_dim_and_unmarked() {
         .iter()
         .filter(|c| c.row == 1 && !c.c.is_whitespace() && c.c != '│')
         .all(|c| c.bold));
+}
+
+#[test]
+fn unserveable_rows_render_dim_distinct_from_both_normal_and_header() {
+    let items = vec![
+        crate::suggest::MenuItem {
+            label: "anthropic".into(),
+            desc: String::new(),
+            fill: String::new(),
+            submit: false,
+            header: true,
+            dim: false,
+        },
+        crate::suggest::MenuItem {
+            label: "Claude Sonnet 5".into(),
+            desc: "claude-sonnet-5".into(),
+            fill: "claude-sonnet-5".into(),
+            submit: true,
+            header: false,
+            dim: false,
+        },
+        crate::suggest::MenuItem {
+            label: "GPT-4.1".into(),
+            desc: "needs OPENROUTER_API_KEY".into(),
+            fill: "gpt-4.1".into(),
+            submit: true,
+            header: false,
+            dim: true,
+        },
+    ];
+    let cells = menu_cells(&items, 1, 40, items.len() as u16);
+    // Sample by (row, char) rather than "first non-blank on the row": the
+    // selected row's `›` marker glyph is unstyled, and would otherwise be
+    // mistaken for the label's own colour.
+    let fg_of = |row: u16, c: char| -> (u8, u8, u8) {
+        cells
+            .iter()
+            .find(|cell| cell.row == row && cell.c == c)
+            .map(|cell| cell.fg)
+            .unwrap_or_else(|| panic!("glyph {c:?} not found on row {row}"))
+    };
+    let header_fg = fg_of(0, 'a'); // "anthropic"
+    let normal_fg = fg_of(1, 'C'); // "Claude Sonnet 5"
+    let dim_fg = fg_of(2, 'G'); // "GPT-4.1"
+                                // The unserveable row's label is dim like the header, NOT the accent
+                                // colour a normal row's label gets.
+    assert_ne!(dim_fg, normal_fg);
+    assert_eq!(dim_fg, header_fg);
+    // But it is NOT bold — that's what still sets it apart from a header.
+    assert!(!cells.iter().any(|c| c.row == 2 && c.c == 'G' && c.bold));
+    // And unlike a header, it keeps its desc column.
+    assert!(cells.iter().any(|c| c.row == 2 && c.c == 'n')); // "needs …"
 }

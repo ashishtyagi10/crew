@@ -115,6 +115,14 @@ pub struct CrewApp {
     /// Live broadcast asks (`crew ask --all` / `--any`): each fans one question
     /// across a set of panes and aggregates their verdicts. See [`crate::askcast`].
     pub(crate) castings: Vec<crate::askcast::Casting>,
+    /// The live OpenRouter enrichment fetch (`crate::modelfetch`), once
+    /// kicked off. `None` before the first `/model` picker open, and again
+    /// forever after that fetch lands or fails — `try_recv` on an empty,
+    /// disconnected channel is a cheap no-op either way.
+    pub(crate) model_fetch: Option<std::sync::mpsc::Receiver<Vec<crew_hive::catalog::LiveModel>>>,
+    /// Whether the enrichment fetch has been kicked off this process — a
+    /// picker reopening must not spawn a second worker.
+    pub(crate) model_fetch_started: bool,
 }
 
 impl CrewApp {

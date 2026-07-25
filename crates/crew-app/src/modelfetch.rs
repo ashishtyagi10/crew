@@ -1,0 +1,119 @@
+//! Background enrichment of the model catalog. The fetch is an async HTTP call
+//! in `crew-hive`; here it runs on a short-lived worker thread owning its own
+//! current-thread tokio runtime (the `swarm::plan` pattern) and delivers over
+//! an mpsc channel drained each frame — the winit thread never blocks. A disk
+//! cache beside the config makes the second launch instant and keeps the
+//! picker useful offline.
+use std::sync::mpsc::{self, Receiver};
+use std::time::Duration;
+
+use crew_hive::catalog::LiveModel;
+
+/// How long a cached catalog stays fresh.
+const TTL: Duration = Duration::from_secs(24 * 60 * 60);
+
+fn cache_path() -> Option<std::path::PathBuf> {
+    dirs::config_dir().map(|d| d.join("crew").join("models-openrouter.json"))
+}
+
+/// Spawn the enrichment worker: cache first, network only when stale.
+/// Returns immediately; `None` when there's nothing to do (no API key).
+///
+/// The key comes from [`crate::modelkeys::openrouter_key`], not this
+/// process's env directly: a Finder/Dock-launched app doesn't inherit the
+/// login shell, so a key living only in `~/.zshrc`/`~/.zshenv` would
+/// otherwise never be seen and enrichment would silently never fire on the
+/// app's primary launch mode. That accessor already applies the broker's
+/// precedence (a value already in this process's env wins) and falls back
+/// to the process env itself before the probe lands.
+pub(crate) fn spawn() -> Option<Receiver<Vec<LiveModel>>> {
+    let key = crate::modelkeys::openrouter_key()?;
+    let (tx, rx) = mpsc::channel();
+    std::thread::spawn(move || {
+        if let Some(cached) = read_cache() {
+            let _ = tx.send(cached);
+            return;
+        }
+        let Ok(rt) = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+        else {
+            return;
+        };
+        if let Ok(models) = rt.block_on(crew_hive::catalog::fetch_openrouter(&key)) {
+            write_cache(&models);
+            let _ = tx.send(models);
+        }
+    });
+    Some(rx)
+}
+
+/// A generous ceiling on the cache file's size: the real OpenRouter catalog
+/// is a few hundred KB. Past this it's either corrupt or a planted file
+/// designed to make this worker thread `read_to_string` an oversized blob.
+const MAX_CACHE_BYTES: u64 = 1024 * 1024;
+
+/// The cached catalog when it exists and is younger than [`TTL`].
+fn read_cache() -> Option<Vec<LiveModel>> {
+    read_cache_at(&cache_path()?)
+}
+
+/// `read_cache`'s body, taking an explicit path so the size bound is
+/// testable without touching the real config dir.
+fn read_cache_at(path: &std::path::Path) -> Option<Vec<LiveModel>> {
+    let meta = std::fs::metadata(path).ok()?;
+    if meta.len() > MAX_CACHE_BYTES {
+        return None;
+    }
+    let age = meta.modified().ok()?.elapsed().ok()?;
+    if age > TTL {
+        return None;
+    }
+    let raw = std::fs::read_to_string(path).ok()?;
+    crew_hive::catalog::parse_models(&raw).ok()
+}
+
+/// Best-effort cache write — a failure just means a fetch next launch. The
+/// file's own mtime (set by `fs::write`) is the freshness stamp `read_cache`
+/// checks; nothing else needs to record when this ran.
+fn write_cache(models: &[LiveModel]) {
+    let Some(path) = cache_path() else { return };
+    if let Some(dir) = path.parent() {
+        let _ = std::fs::create_dir_all(dir);
+    }
+    let _ = std::fs::write(&path, cache_body(models));
+}
+
+/// Serialise into the same `{"data": [{"pricing": {"prompt": "...", ...}}]}`
+/// shape [`crew_hive::catalog::parse_models`] reads, so a written cache reads
+/// back byte-for-byte identical in price and context — split out from
+/// `write_cache` so the round trip is testable without touching disk.
+fn cache_body(models: &[LiveModel]) -> String {
+    serde_json::json!({
+        "data": models.iter().map(|m| serde_json::json!({
+            "id": m.id,
+            "name": m.name,
+            "context_length": m.context,
+            "pricing": {
+                "prompt": m.price.map_or(String::new(), |(i, _)| per_token(i)),
+                "completion": m.price.map_or(String::new(), |(_, o)| per_token(o)),
+            },
+        })).collect::<Vec<_>>(),
+    })
+    .to_string()
+}
+
+/// µ$/Mtok → the USD-per-token decimal string shape `parse_models` reads back.
+/// µ$/Mtok is an integer number of millionths of a dollar per million tokens,
+/// i.e. `1e-12` dollars per token exactly — so it's rendered as a fixed-point
+/// string at 12 decimal places rather than through `f64`, which can't
+/// represent most of these fractions exactly and would drift on read-back.
+fn per_token(microusd_per_mtok: u64) -> String {
+    let whole = microusd_per_mtok / 1_000_000_000_000;
+    let frac = microusd_per_mtok % 1_000_000_000_000;
+    format!("{whole}.{frac:012}")
+}
+
+#[cfg(test)]
+#[path = "modelfetch_tests.rs"]
+mod tests;

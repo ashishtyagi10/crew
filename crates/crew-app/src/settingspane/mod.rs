@@ -61,8 +61,12 @@ pub(crate) const FIELDS: [Field; 17] = [
 
 /// Outcome of a key press in the settings form.
 pub enum SettingsAction {
-    /// Save: apply this config and close the pane.
-    Apply(CrewConfig),
+    /// Save: apply this config and close the pane. Boxed: `CrewConfig` has
+    /// grown past clippy's large-enum-variant threshold (it now carries
+    /// `model_recents`), and `Cancel` is a bare unit variant — without the
+    /// indirection every `Option<SettingsAction>` pays for the config's full
+    /// size even on the no-op path.
+    Apply(Box<CrewConfig>),
     /// Cancel: discard edits and close the pane.
     Cancel,
 }
@@ -125,7 +129,7 @@ impl SettingsPane {
     /// Cmd+S / Alt+S: commit the focused field and save the whole form.
     pub fn save(&mut self) -> SettingsAction {
         commit::commit_field(self);
-        SettingsAction::Apply(commit::build_config(self))
+        SettingsAction::Apply(Box::new(commit::build_config(self)))
     }
 
     /// Mouse-wheel / page scroll: move the open font dropdown's selection, or

@@ -216,7 +216,7 @@ impl CrewApp {
         }
         if let Some(action) = settings_action {
             if let SettingsAction::Apply(cfg) = action {
-                self.apply_settings(cfg);
+                self.apply_settings(*cfg);
             }
             // Save and Cancel both close the settings pane.
             self.close_pane(focused);
@@ -235,7 +235,7 @@ impl CrewApp {
             return false;
         };
         if let SettingsAction::Apply(cfg) = s.save() {
-            self.apply_settings(cfg);
+            self.apply_settings(*cfg);
         }
         self.close_pane(focused);
         true

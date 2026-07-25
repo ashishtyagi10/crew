@@ -47,6 +47,18 @@ fn notify_patterns_drop_blanks() {
 }
 
 #[test]
+fn model_recents_default_empty_and_round_trip() {
+    let c: CrewConfig = toml::from_str("").unwrap();
+    assert!(c.model_recents.is_empty()); // old config files still load
+    let c = CrewConfig {
+        model_recents: vec!["qwen-max".into()],
+        ..c
+    };
+    let back: CrewConfig = toml::from_str(&toml::to_string(&c).unwrap()).unwrap();
+    assert_eq!(back.model_recents, vec!["qwen-max".to_string()]);
+}
+
+#[test]
 fn clamped_out_of_range() {
     let cfg = CrewConfig {
         font_size: 99.0,
@@ -109,6 +121,7 @@ fn round_trip() {
         font_weight: 700,
         usage_budget_5h: 1_000_000,
         usage_budget_7d: 12_000_000,
+        model_recents: vec!["qwen-max".to_string()],
     };
     assert_eq!(CrewConfig::from_toml_str(&c.to_toml_str()), c);
 }

@@ -103,6 +103,10 @@ pub fn run() -> anyhow::Result<()> {
     crate::dockicon::set();
     let config = CrewConfig::load();
     crate::usageledger::init(config.usage_budget_5h, config.usage_budget_7d);
+    // Publish the persisted recents once at startup so the `/model` picker's
+    // recent section is populated before the first pick (`poll.rs` republishes
+    // it after every subsequent pick).
+    crate::modelpick::set_recents(config.model_recents.clone());
     // Apply the theme first; the accent default reads the active theme.
     // A saved rotation mode (random/random-dark/random-light/auto) resumes
     // that mode; `theme_id()` would otherwise silently default it to

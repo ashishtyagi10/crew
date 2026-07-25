@@ -99,7 +99,9 @@ mod mdkeys;
 mod mdpane;
 mod mdpane_view;
 mod minstrip;
+mod modelfetch;
 mod modelkeys;
+mod modelpick;
 mod modelroute;
 mod navcard;
 mod navlog;
@@ -207,5 +209,6 @@ fn main() -> anyhow::Result<()> {
     // above (broker/self-update/list-fonts/install-app/detach re-exec) return
     // before this line, so they never pay for a shell they don't use.
     cmdcheck::init_shell_path();
+    modelkeys::init_probe();
     handler::run()
 }
