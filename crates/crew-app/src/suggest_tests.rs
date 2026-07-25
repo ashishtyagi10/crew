@@ -301,6 +301,7 @@ fn step_sel_skips_header_rows_in_both_directions() {
             fill: label.to_string(),
             submit: false,
             header,
+            dim: false,
         }
     }
     // [hdr, a, b, hdr, c]

@@ -160,6 +160,7 @@ impl CrewApp {
                                     fill: String::new(),
                                     submit: false,
                                     header: false,
+                                    dim: false,
                                 })
                                 .collect();
                             let r = pane.rect;

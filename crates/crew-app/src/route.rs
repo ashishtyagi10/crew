@@ -62,6 +62,7 @@ impl crate::app::CrewApp {
                 fill: text.clone(),
                 submit,
                 header: false,
+                dim: false,
             }]
         };
         if let Some(cmd) = crate::app::star_command(&text) {

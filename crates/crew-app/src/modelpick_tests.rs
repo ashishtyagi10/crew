@@ -73,3 +73,26 @@ fn rows_submit_and_carry_a_slug() {
         assert!(!item.fill.is_empty());
     }
 }
+
+#[test]
+fn model_row_dims_exactly_the_unserveable_routes() {
+    // `rows()` itself can't be driven to a known route in a unit test — the
+    // active provider comes from a live, once-per-process probe
+    // (`modelkeys::provider_now`) that's never initialized under `cargo
+    // test`, so every row it builds sees `Route::Unknown`. `model_row` is
+    // the row-building step factored out so the dim wiring is testable on
+    // its own, with an explicit route standing in for the probe result.
+    use crew_hive::catalog::{ModelInfo, Vendor};
+    let m = ModelInfo {
+        name: "n",
+        slug: "s",
+        or_slug: None,
+        vendor: Vendor::Anthropic,
+        price: None,
+        free: false,
+        context: 0,
+    };
+    assert!(model_row(&m, Route::Missing("X"), false).dim);
+    assert!(!model_row(&m, Route::Direct("anthropic"), false).dim);
+    assert!(!model_row(&m, Route::Unknown, false).dim);
+}

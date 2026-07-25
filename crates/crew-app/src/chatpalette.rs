@@ -116,6 +116,7 @@ fn slash_items(query: &str) -> Vec<MenuItem> {
             fill: c.to_string(),
             submit: false,
             header: false,
+            dim: false,
         })
         .collect()
 }
@@ -138,6 +139,7 @@ fn attach_items(
             fill: e.token(),
             submit: false,
             header: false,
+            dim: false,
         })
         .collect()
 }

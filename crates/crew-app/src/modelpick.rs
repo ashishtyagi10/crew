@@ -91,6 +91,7 @@ pub(crate) fn rows(query: &str, current: Option<&str>) -> Vec<MenuItem> {
             fill: "default".to_string(),
             submit: true,
             header: false,
+            dim: false,
         });
     }
     for vendor in Vendor::ORDER {
@@ -107,20 +108,32 @@ pub(crate) fn rows(query: &str, current: Option<&str>) -> Vec<MenuItem> {
             fill: String::new(),
             submit: false,
             header: true,
+            dim: false,
         });
         for m in hits {
             let route = route_for(m, provider, probed);
             let is_current = current.is_some_and(|c| c == m.slug || Some(c) == m.or_slug);
-            out.push(MenuItem {
-                label: m.name.to_string(),
-                desc: desc(m, route, is_current),
-                fill: route.fill_slug(m),
-                submit: true,
-                header: false,
-            });
+            out.push(model_row(m, route, is_current));
         }
     }
     out
+}
+
+/// One model's row: label, badged desc, the slug to run, and whether the
+/// active stack can't actually serve it (`route.unserveable()`) — the
+/// composer popup renders that row dim rather than hiding it, so a user
+/// still sees the model exists and what would fix it (see `desc`'s hint).
+/// Factored out of `rows` so the dim wiring is unit-testable against an
+/// explicit route, without the live provider probe `rows` itself depends on.
+fn model_row(m: &ModelInfo, route: Route, current: bool) -> MenuItem {
+    MenuItem {
+        label: m.name.to_string(),
+        desc: desc(m, route, current),
+        fill: route.fill_slug(m),
+        submit: true,
+        header: false,
+        dim: route.unserveable(),
+    }
 }
 
 #[cfg(test)]

@@ -24,6 +24,10 @@ pub(crate) struct MenuItem {
     /// A section title, not a choice: never selected, drawn dim without the
     /// selection marker. The picker groups rows by provider with these.
     pub header: bool,
+    /// A choice the active stack can't currently serve (`Route::unserveable`)
+    /// — renders muted like a header, but keeps its desc column and its
+    /// selectability, unlike one. Always `false` outside the model picker.
+    pub dim: bool,
 }
 
 /// The first row a selection may land on — headers are titles, not choices.
@@ -84,8 +88,10 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
         // Model picker for the agent smith pane — the catalog grouped by
         // provider (see `modelpick`), applied to every agent (forwarded as
         // `/model all <slug>`). Any other slug still works: type it freeform
-        // after `/model `. The value picker takes (value, desc) pairs, so the
-        // section headers are re-derived by `menu_items` below.
+        // after `/model `. The value picker only takes flat (value, desc)
+        // pairs, so section headers are dropped here (`.filter` below) for
+        // this input-bar surface; the composer's `Kind::Model` popup
+        // (chatpalette) is where the grouped sections actually render.
         "/model" => Some(
             crate::modelpick::rows("", None)
                 .into_iter()
@@ -120,6 +126,7 @@ pub(crate) fn menu_items(text: &str) -> Vec<MenuItem> {
                 desc,
                 submit: true,
                 header: false,
+                dim: false,
             })
             .collect();
     }
@@ -137,6 +144,7 @@ pub(crate) fn menu_items(text: &str) -> Vec<MenuItem> {
                 },
                 submit: !expands,
                 header: false,
+                dim: false,
             }
         })
         .collect()

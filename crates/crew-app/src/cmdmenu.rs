@@ -71,8 +71,13 @@ fn menu_cells(matches: &[MenuItem], sel: usize, cols: u16, rows: u16) -> Vec<Cel
                     Style::new().fg(DIM).add_modifier(Modifier::BOLD),
                 )));
             }
+            // A choice the active stack can't serve: dim like a header, but
+            // never bold and it keeps its desc column — that's what tells it
+            // apart from a section title, while the dim (not accent) label
+            // tells it apart from a normal, serveable row.
+            let label_fg = if c.dim { DIM } else { accent_color() };
             ListItem::new(Line::from(vec![
-                Span::styled(c.label.clone(), Style::new().fg(accent_color())),
+                Span::styled(c.label.clone(), Style::new().fg(label_fg)),
                 Span::raw("  "),
                 Span::styled(c.desc.clone(), Style::new().fg(DIM)),
             ]))

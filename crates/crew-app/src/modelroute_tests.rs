@@ -104,6 +104,15 @@ fn unknown_until_the_probe_lands_and_mock_serves_everything() {
 }
 
 #[test]
+fn unserveable_flags_missing_routes_only() {
+    assert!(Route::Missing("DASHSCOPE_API_KEY").unserveable());
+    assert!(!Route::Direct("anthropic").unserveable());
+    assert!(!Route::ViaOpenRouter.unserveable());
+    assert!(!Route::Mock.unserveable());
+    assert!(!Route::Unknown.unserveable());
+}
+
+#[test]
 fn fill_slug_follows_the_route() {
     let claude = row(
         "claude-sonnet-5",
