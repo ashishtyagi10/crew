@@ -334,11 +334,13 @@ impl ChatPane {
         // palette (leading token) and mention (mid-line) are mutually
         // exclusive, so their relative order is free — but both must precede
         // the pane's own key handling.
-        if matches!(
-            crate::chatpalette::popup_key(&mut self.palette, &mut self.input, &k),
-            crate::chatpalette::PaletteKey::Consumed
-        ) {
-            return None;
+        match crate::chatpalette::popup_key(&mut self.palette, &mut self.input, &k) {
+            crate::chatpalette::PaletteKey::Consumed => return None,
+            // A picked row is a command to run: the palette is closed and the
+            // input holds it, so re-enter our own Enter path (no recursion —
+            // `self.palette` is `None` now).
+            crate::chatpalette::PaletteKey::Submit => return self.on_input(ChatInput::Enter, cwd),
+            crate::chatpalette::PaletteKey::Forward => {}
         }
         if matches!(
             crate::chatmention::popup_key(&mut self.mention, &mut self.input, &k),
@@ -426,9 +428,13 @@ impl ChatPane {
             crate::chatmention::after_edit(&mut self.mention, &self.input, || {
                 crate::chatmention::scan_entries(cwd, &agents)
             });
-            crate::chatpalette::after_edit(&mut self.palette, &self.input, || {
-                crate::chatmention::scan_entries(cwd, &agents)
-            });
+            let current = crate::chatpalette::shared_model(&self.agents);
+            crate::chatpalette::after_edit(
+                &mut self.palette,
+                &self.input,
+                current.as_deref(),
+                || crate::chatmention::scan_entries(cwd, &agents),
+            );
         }
         None
     }

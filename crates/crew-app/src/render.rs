@@ -271,6 +271,7 @@ fn palette_card_title(kind: crate::chatpalette::Kind) -> &'static str {
     match kind {
         crate::chatpalette::Kind::Slash => "commands",
         crate::chatpalette::Kind::Agent => "attach",
+        crate::chatpalette::Kind::Model => "models",
     }
 }
 

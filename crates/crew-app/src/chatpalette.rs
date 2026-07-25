@@ -11,6 +11,8 @@ use crate::suggest::MenuItem;
 pub(crate) enum Kind {
     Slash,
     Agent,
+    /// The `/model ` argument phase — the grouped model picker.
+    Model,
 }
 
 /// The open leading-token palette: already-filtered rows + selection, plus
@@ -25,6 +27,9 @@ pub(crate) struct PaletteState {
 
 pub(crate) enum PaletteKey {
     Consumed,
+    /// The accepted row is a command to RUN: `input` now holds it, and the
+    /// caller must submit as if Enter had been pressed on the composer.
+    Submit,
     Forward,
 }
 
@@ -32,6 +37,13 @@ pub(crate) enum PaletteKey {
 /// (nothing before it — no whitespace yet). For a multi-target `@a+b`, the
 /// query is the segment after the last `+` (matching chatcomplete's Tab).
 pub(crate) fn pending_palette(input: &str) -> Option<(Kind, &str)> {
+    // `/model <arg>` is the one command with a value picker in the composer:
+    // one whitespace-free argument token opens it. A second token means the
+    // freeform `/model <agent> <slug>` (or explicit `all`) form — leave it be.
+    if let Some(rest) = input.strip_prefix("/model ") {
+        let arg = rest.trim_start();
+        return (!arg.contains(char::is_whitespace)).then_some((Kind::Model, arg));
+    }
     if input.contains(char::is_whitespace) {
         return None;
     }
@@ -49,6 +61,7 @@ pub(crate) fn pending_palette(input: &str) -> Option<(Kind, &str)> {
 pub(crate) fn after_edit(
     palette: &mut Option<PaletteState>,
     input: &str,
+    current_model: Option<&str>,
     scan: impl FnOnce() -> Vec<crate::chatmention::MentionEntry>,
 ) {
     let Some((kind, query)) = pending_palette(input) else {
@@ -60,12 +73,13 @@ pub(crate) fn after_edit(
         Some(p) if p.kind == kind => std::mem::take(&mut p.entries),
         _ => match kind {
             Kind::Agent => scan(),
-            Kind::Slash => Vec::new(),
+            Kind::Slash | Kind::Model => Vec::new(),
         },
     };
     let items = match kind {
         Kind::Slash => slash_items(query),
         Kind::Agent => attach_items(query, &entries, input.contains('+')),
+        Kind::Model => crate::modelpick::rows(query, current_model),
     };
     if items.is_empty() {
         *palette = None;
@@ -142,10 +156,15 @@ pub(crate) fn popup_key(
         ChatInput::Up => p.sel = crate::suggest::step_sel(&p.items, p.sel, false),
         ChatInput::Down => p.sel = crate::suggest::step_sel(&p.items, p.sel, true),
         ChatInput::Complete | ChatInput::Enter => {
+            let mut submit = false;
             if let Some(item) = p.items.get(p.sel) {
+                submit = item.submit && matches!(key, ChatInput::Enter);
                 *input = accept(input, p.kind, &item.fill);
             }
             *palette = None;
+            if submit {
+                return PaletteKey::Submit;
+            }
         }
         ChatInput::Close => *palette = None,
         _ => return PaletteKey::Forward,
@@ -158,11 +177,24 @@ pub(crate) fn popup_key(
 pub(crate) fn accept(input: &str, kind: Kind, fill: &str) -> String {
     match kind {
         Kind::Slash => format!("{fill} "),
+        // The broker reads `/model <agent> <slug>`; the picker applies the
+        // pick to the whole roster, so it must send the `all` target.
+        Kind::Model => format!("/model all {fill}"),
         Kind::Agent => match input.rfind('+') {
             Some(plus) => format!("{}{fill} ", &input[..=plus]),
             None => format!("@{fill} "),
         },
     }
+}
+
+/// The model every agent runs, or `None` when the roster disagrees (mixed
+/// pins) or reports nothing — only an unambiguous answer earns the `●` mark.
+pub(crate) fn shared_model(agents: &[crew_plugin::AgentInfo]) -> Option<String> {
+    let first = agents.iter().find(|a| !a.model.is_empty())?;
+    agents
+        .iter()
+        .all(|a| a.model.is_empty() || a.model == first.model)
+        .then(|| first.model.clone())
 }
 
 #[cfg(test)]
@@ -190,7 +222,7 @@ mod tests {
         assert_eq!(pending_palette("@a+co"), Some((Kind::Agent, "co"))); // segment after '+'
         assert_eq!(pending_palette("@planner"), Some((Kind::Agent, "planner")));
         assert_eq!(pending_palette("hey @co"), None); // non-leading → file mention's job
-        assert_eq!(pending_palette("/model x"), None); // token ended
+        assert_eq!(pending_palette("/theme x"), None); // token ended (no arg picker)
         assert_eq!(pending_palette("plain"), None);
         assert_eq!(pending_palette(""), None);
     }
@@ -215,17 +247,17 @@ mod tests {
     #[test]
     fn after_edit_opens_refilters_and_closes() {
         let mut p = None;
-        after_edit(&mut p, "@", agent_entries);
+        after_edit(&mut p, "@", None, agent_entries);
         assert_eq!(p.as_ref().unwrap().items.len(), 2);
         assert_eq!(p.as_ref().unwrap().kind, Kind::Agent);
-        after_edit(&mut p, "@co", agent_entries);
+        after_edit(&mut p, "@co", None, agent_entries);
         assert_eq!(p.as_ref().unwrap().items.len(), 1); // only coder
-        after_edit(&mut p, "@zzz", agent_entries);
+        after_edit(&mut p, "@zzz", None, agent_entries);
         assert!(p.is_none()); // no match closes
-        after_edit(&mut p, "/mo", Vec::new);
+        after_edit(&mut p, "/mo", None, Vec::new);
         assert_eq!(p.as_ref().unwrap().kind, Kind::Slash);
         assert!(p.as_ref().unwrap().items.iter().any(|i| i.fill == "/model"));
-        after_edit(&mut p, "hey", agent_entries);
+        after_edit(&mut p, "hey", None, agent_entries);
         assert!(p.is_none()); // no leading selector
     }
 
@@ -243,7 +275,7 @@ mod tests {
             },
             crate::chatmention::MentionEntry::File("review.md".into()),
         ];
-        after_edit(&mut p, "@rev", || entries.clone());
+        after_edit(&mut p, "@rev", None, || entries.clone());
         let items = &p.as_ref().unwrap().items;
         let labels: Vec<&str> = items.iter().map(|i| i.label.as_str()).collect();
         assert_eq!(labels, vec!["@reviewer", "@skill:review", "@review.md"]);
@@ -251,7 +283,9 @@ mod tests {
         assert_eq!(items[2].fill, "review.md");
         // narrowing refilters without rescanning
         entries.clear();
-        after_edit(&mut p, "@revi", || unreachable!("no rescan while open"));
+        after_edit(&mut p, "@revi", None, || {
+            unreachable!("no rescan while open")
+        });
         assert!(p.is_some());
     }
 
@@ -265,7 +299,7 @@ mod tests {
             },
             crate::chatmention::MentionEntry::File("coder.md".into()),
         ];
-        after_edit(&mut p, "@planner+co", || entries.clone());
+        after_edit(&mut p, "@planner+co", None, || entries.clone());
         let labels: Vec<&str> = p
             .as_ref()
             .unwrap()
@@ -277,9 +311,39 @@ mod tests {
     }
 
     #[test]
+    fn pending_palette_detects_the_model_arg_phase() {
+        assert_eq!(pending_palette("/model "), Some((Kind::Model, "")));
+        assert_eq!(pending_palette("/model son"), Some((Kind::Model, "son")));
+        assert_eq!(pending_palette("/model  son"), Some((Kind::Model, "son")));
+        // Two argument tokens = the freeform per-agent / explicit-all form.
+        assert_eq!(pending_palette("/model all qwen-max"), None);
+        assert_eq!(pending_palette("/model coder qwen"), None);
+        // Still the plain slash palette before the space.
+        assert_eq!(pending_palette("/model"), Some((Kind::Slash, "model")));
+        // Other commands keep their old behaviour.
+        assert_eq!(pending_palette("/theme dark"), None);
+    }
+
+    #[test]
+    fn model_rows_accept_into_a_full_broker_command_and_submit() {
+        let mut p = None;
+        after_edit(&mut p, "/model son", None, Vec::new);
+        let open = p.as_ref().expect("model picker opens");
+        assert_eq!(open.kind, Kind::Model);
+        assert!(open.items.iter().any(|i| i.header)); // grouped
+        assert!(!open.items[open.sel].header); // selection never starts on a header
+
+        let mut input = "/model son".to_string();
+        let key = popup_key(&mut p, &mut input, &ChatInput::Enter);
+        assert!(matches!(key, PaletteKey::Submit));
+        assert!(input.starts_with("/model all "), "{input}");
+        assert!(p.is_none()); // accepting closes
+    }
+
+    #[test]
     fn popup_key_navigates_accepts_and_closes() {
         let mut p = None;
-        after_edit(&mut p, "@", agent_entries);
+        after_edit(&mut p, "@", None, agent_entries);
         let mut input = "@".to_string();
         assert!(matches!(
             popup_key(&mut p, &mut input, &ChatInput::Down),
@@ -292,7 +356,7 @@ mod tests {
         assert!(input.starts_with('@') && input.ends_with(' '));
         assert!(p.is_none());
         // Esc closes the popup, not the pane.
-        after_edit(&mut p, "/", Vec::new);
+        after_edit(&mut p, "/", None, Vec::new);
         assert!(matches!(
             popup_key(&mut p, &mut input, &ChatInput::Close),
             PaletteKey::Consumed

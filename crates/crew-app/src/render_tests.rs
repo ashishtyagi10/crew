@@ -75,12 +75,13 @@ fn legend(cells: &[crew_render::CellView]) -> String {
 fn palette_card_title_matches_kind() {
     assert_eq!(palette_card_title(chatpalette::Kind::Slash), "commands");
     assert_eq!(palette_card_title(chatpalette::Kind::Agent), "attach");
+    assert_eq!(palette_card_title(chatpalette::Kind::Model), "models");
 }
 
 #[test]
 fn slash_palette_card_shows_commands_legend_and_construct_row() {
     let mut palette = None;
-    chatpalette::after_edit(&mut palette, "/mo", Vec::new);
+    chatpalette::after_edit(&mut palette, "/mo", None, Vec::new);
     let p = palette.unwrap();
     let cells = crate::cmdmenu::menu_card(
         palette_card_title(p.kind),
@@ -96,7 +97,7 @@ fn slash_palette_card_shows_commands_legend_and_construct_row() {
 #[test]
 fn agent_palette_card_shows_attach_legend_and_name_row() {
     let mut palette = None;
-    chatpalette::after_edit(&mut palette, "@", || {
+    chatpalette::after_edit(&mut palette, "@", None, || {
         agents()
             .iter()
             .map(|a| crate::chatmention::MentionEntry::Agent {
