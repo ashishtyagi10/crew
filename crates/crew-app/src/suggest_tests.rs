@@ -290,3 +290,35 @@ fn slash_completes_restore_past_the_restart_prefix() {
     let names: Vec<&str> = matches("/res").iter().map(|c| c.name).collect();
     assert!(names.contains(&"/restore") && names.contains(&"/restart"));
 }
+
+#[test]
+fn step_sel_skips_header_rows_in_both_directions() {
+    use crate::suggest::{first_selectable, step_sel, MenuItem};
+    fn row(label: &str, header: bool) -> MenuItem {
+        MenuItem {
+            label: label.to_string(),
+            desc: String::new(),
+            fill: label.to_string(),
+            submit: false,
+            header,
+        }
+    }
+    // [hdr, a, b, hdr, c]
+    let items = vec![
+        row("anthropic", true),
+        row("a", false),
+        row("b", false),
+        row("openai", true),
+        row("c", false),
+    ];
+    assert_eq!(first_selectable(&items), 1); // never lands on a header
+    assert_eq!(step_sel(&items, 1, true), 2);
+    assert_eq!(step_sel(&items, 2, true), 4); // hops the header at 3
+    assert_eq!(step_sel(&items, 4, true), 1); // wraps past the leading header
+    assert_eq!(step_sel(&items, 1, false), 4); // wraps backwards
+    assert_eq!(step_sel(&items, 4, false), 2);
+    // All-headers can't move anywhere: stay put rather than spin.
+    let only = vec![row("anthropic", true)];
+    assert_eq!(step_sel(&only, 0, true), 0);
+    assert_eq!(first_selectable(&only), 0);
+}

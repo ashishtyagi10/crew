@@ -64,6 +64,13 @@ fn menu_cells(matches: &[MenuItem], sel: usize, cols: u16, rows: u16) -> Vec<Cel
     let items: Vec<ListItem> = matches
         .iter()
         .map(|c| {
+            if c.header {
+                // A section title, not a choice: dim + bold, no desc column.
+                return ListItem::new(Line::from(Span::styled(
+                    c.label.clone(),
+                    Style::new().fg(DIM).add_modifier(Modifier::BOLD),
+                )));
+            }
             ListItem::new(Line::from(vec![
                 Span::styled(c.label.clone(), Style::new().fg(accent_color())),
                 Span::raw("  "),
@@ -156,5 +163,40 @@ mod tests {
                                                  // selection marker is drawn within the capped popup.
         let cells = menu_cells(&all, all.len() - 1, 40, rows);
         assert!(cells.iter().any(|c| c.c == '›'));
+    }
+
+    #[test]
+    fn header_rows_are_dim_and_unmarked() {
+        let items = vec![
+            crate::suggest::MenuItem {
+                label: "anthropic".into(),
+                desc: String::new(),
+                fill: String::new(),
+                submit: false,
+                header: true,
+            },
+            crate::suggest::MenuItem {
+                label: "Claude Sonnet 5".into(),
+                desc: "claude-sonnet-5".into(),
+                fill: "claude-sonnet-5".into(),
+                submit: true,
+                header: false,
+            },
+        ];
+        // Selection sits on the model row (interior row 1 → card row 2).
+        let cells = menu_card("models", &items, 1, 40, menu_rows(items.len()));
+        assert!(cells.iter().any(|c| c.c == '\u{203a}' && c.row == 2));
+        // The header row (card row 1) carries no selection marker...
+        assert!(cells
+            .iter()
+            .filter(|c| c.row == 1)
+            .all(|c| c.c != '\u{203a}'));
+        // ...and is bold despite not being selected — that's the section styling.
+        // (Excludes the card's own side border, which is drawn separately by
+        // `titled_card` and is never bold regardless of row content.)
+        assert!(cells
+            .iter()
+            .filter(|c| c.row == 1 && !c.c.is_whitespace() && c.c != '│')
+            .all(|c| c.bold));
     }
 }

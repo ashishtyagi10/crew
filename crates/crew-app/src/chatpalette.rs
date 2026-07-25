@@ -74,14 +74,18 @@ pub(crate) fn after_edit(
     match palette {
         Some(p) if p.kind == kind => {
             p.sel = p.sel.min(items.len() - 1);
+            if items[p.sel].header {
+                p.sel = crate::suggest::first_selectable(&items);
+            }
             p.items = items;
             p.entries = entries;
         }
         _ => {
+            let sel = crate::suggest::first_selectable(&items);
             *palette = Some(PaletteState {
                 kind,
                 items,
-                sel: 0,
+                sel,
                 entries,
             })
         }
@@ -97,6 +101,7 @@ fn slash_items(query: &str) -> Vec<MenuItem> {
             desc: describe(c).to_string(),
             fill: c.to_string(),
             submit: false,
+            header: false,
         })
         .collect()
 }
@@ -118,6 +123,7 @@ fn attach_items(
             desc: e.desc(),
             fill: e.token(),
             submit: false,
+            header: false,
         })
         .collect()
 }
@@ -133,8 +139,8 @@ pub(crate) fn popup_key(
         return PaletteKey::Forward;
     };
     match key {
-        ChatInput::Up => p.sel = p.sel.saturating_sub(1),
-        ChatInput::Down => p.sel = (p.sel + 1).min(p.items.len().saturating_sub(1)),
+        ChatInput::Up => p.sel = crate::suggest::step_sel(&p.items, p.sel, false),
+        ChatInput::Down => p.sel = crate::suggest::step_sel(&p.items, p.sel, true),
         ChatInput::Complete | ChatInput::Enter => {
             if let Some(item) = p.items.get(p.sel) {
                 *input = accept(input, p.kind, &item.fill);
@@ -209,17 +215,17 @@ mod tests {
     #[test]
     fn after_edit_opens_refilters_and_closes() {
         let mut p = None;
-        after_edit(&mut p, "@", || agent_entries());
+        after_edit(&mut p, "@", agent_entries);
         assert_eq!(p.as_ref().unwrap().items.len(), 2);
         assert_eq!(p.as_ref().unwrap().kind, Kind::Agent);
-        after_edit(&mut p, "@co", || agent_entries());
+        after_edit(&mut p, "@co", agent_entries);
         assert_eq!(p.as_ref().unwrap().items.len(), 1); // only coder
-        after_edit(&mut p, "@zzz", || agent_entries());
+        after_edit(&mut p, "@zzz", agent_entries);
         assert!(p.is_none()); // no match closes
-        after_edit(&mut p, "/mo", || Vec::new());
+        after_edit(&mut p, "/mo", Vec::new);
         assert_eq!(p.as_ref().unwrap().kind, Kind::Slash);
         assert!(p.as_ref().unwrap().items.iter().any(|i| i.fill == "/model"));
-        after_edit(&mut p, "hey", || agent_entries());
+        after_edit(&mut p, "hey", agent_entries);
         assert!(p.is_none()); // no leading selector
     }
 
@@ -273,7 +279,7 @@ mod tests {
     #[test]
     fn popup_key_navigates_accepts_and_closes() {
         let mut p = None;
-        after_edit(&mut p, "@", || agent_entries());
+        after_edit(&mut p, "@", agent_entries);
         let mut input = "@".to_string();
         assert!(matches!(
             popup_key(&mut p, &mut input, &ChatInput::Down),
@@ -286,7 +292,7 @@ mod tests {
         assert!(input.starts_with('@') && input.ends_with(' '));
         assert!(p.is_none());
         // Esc closes the popup, not the pane.
-        after_edit(&mut p, "/", || Vec::new());
+        after_edit(&mut p, "/", Vec::new);
         assert!(matches!(
             popup_key(&mut p, &mut input, &ChatInput::Close),
             PaletteKey::Consumed
