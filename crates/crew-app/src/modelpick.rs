@@ -117,9 +117,13 @@ pub(crate) fn rows_with_recents(
     // A shortcut, not a move: a recent model still appears in its own vendor
     // section below too. An unknown slug (a model that left the catalog) is
     // skipped rather than rendered blank; if none survive, no header either
-    // — this picker never emits an empty section.
+    // — this picker never emits an empty section. `seen` dedupes the raw
+    // list first: a hand-edited config carrying the same slug twice must
+    // still render exactly one recent row for it, not two identical ones.
+    let mut seen = std::collections::HashSet::new();
     let recent: Vec<&ModelInfo> = recents
         .iter()
+        .filter(|slug| seen.insert(slug.as_str()))
         .take(MAX_RECENTS)
         .filter_map(|slug| catalog().iter().find(|m| m.slug == *slug))
         .filter(|m| matches(m, &q))

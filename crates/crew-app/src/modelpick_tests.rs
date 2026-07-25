@@ -89,6 +89,24 @@ fn recents_lead_the_list_and_dont_duplicate_a_section_row() {
 }
 
 #[test]
+fn a_duplicated_recent_slug_renders_only_one_recent_row() {
+    // A hand-edited config could carry the same slug twice; the recent
+    // section must still show it once, not twice.
+    let r = rows_with_recents("", None, &["qwen-max".to_string(), "qwen-max".to_string()]);
+    let recent_header = r
+        .iter()
+        .position(|i| i.header && i.label == "recent")
+        .unwrap();
+    let next_header = r
+        .iter()
+        .skip(recent_header + 1)
+        .position(|i| i.header)
+        .unwrap();
+    // Exactly one non-header row between "recent" and the next section.
+    assert_eq!(next_header, 1);
+}
+
+#[test]
 fn model_row_dims_exactly_the_unserveable_routes() {
     // `rows()` itself can't be driven to a known route in a unit test — the
     // active provider comes from a live, once-per-process probe
