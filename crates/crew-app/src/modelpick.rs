@@ -8,37 +8,9 @@ use crew_hive::catalog::{catalog, ModelInfo, Vendor};
 use crate::modelroute::{route_for, Route};
 use crate::suggest::MenuItem;
 
-/// Dollars-per-Mtok badge, or an em dash when the rate is unknown.
-fn price_badge(price: Option<(u64, u64)>, free: bool) -> String {
-    if free {
-        return "free".to_string();
-    }
-    match price {
-        Some((inp, out)) => format!("${}/${}", dollars(inp), dollars(out)),
-        None => "\u{2014}".to_string(),
-    }
-}
-
-/// µ$/Mtok → a short dollar string ("3", "0.4", "1.6").
-fn dollars(microusd: u64) -> String {
-    let whole = microusd / 1_000_000;
-    let tenths = (microusd % 1_000_000) / 100_000;
-    let hundredths = (microusd % 100_000) / 10_000;
-    match (tenths, hundredths) {
-        (0, 0) => whole.to_string(),
-        (_, 0) => format!("{whole}.{tenths}"),
-        _ => format!("{whole}.{tenths}{hundredths}"),
-    }
-}
-
-/// Context window as a short badge ("1M", "200k"); empty when unknown.
-fn context_badge(tokens: u32) -> String {
-    match tokens {
-        0 => String::new(),
-        t if t >= 1_000_000 => format!("{}M", t / 1_000_000),
-        t => format!("{}k", t / 1000),
-    }
-}
+#[path = "modelbadge.rs"]
+mod modelbadge;
+use modelbadge::{context_badge, price_badge};
 
 /// Everything the query filters against: name, slug, alias, vendor, badges.
 fn haystack(m: &ModelInfo) -> String {
