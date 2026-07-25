@@ -51,15 +51,16 @@ pub(super) const MODELS: &[ModelInfo] = &[
     m("DeepSeek Chat", "deepseek-chat", Some("deepseek/deepseek-chat"), Vendor::DeepSeek, Some((270_000, 1_100_000)), false, 0),
     m("DeepSeek Reasoner", "deepseek-reasoner", Some("deepseek/deepseek-r1"), Vendor::DeepSeek, Some((550_000, 2_190_000)), false, 0),
     m("Kimi K2", "kimi-k2", Some("moonshotai/kimi-k2"), Vendor::Moonshot, Some((600_000, 2_500_000)), false, 0),
+    // Meta — rates unknown; enrichment fills these.
+    m("Llama 3.3 70B", "meta-llama/llama-3.3-70b-instruct", Some("meta-llama/llama-3.3-70b-instruct"), Vendor::Meta, None, false, 131_072),
     // Google — no verified first-party rate in-repo; enrichment fills these.
     m("Gemini 2.5 Pro", "gemini-2.5-pro", Some("google/gemini-2.5-pro"), Vendor::Google, None, false, 0),
     m("Gemini 2.5 Flash", "gemini-2.5-flash", Some("google/gemini-2.5-flash"), Vendor::Google, None, false, 0),
-    // Free tier — the chain crew already ships in `broker/discover.rs`. Their
-    // `:free` OpenRouter aliases have since dropped off the public `/models`
-    // list (verified 2026-07-25), so `or_slug` is `None`; the row still
-    // routes through OpenRouter via `slug`, unverified.
-    m("Llama 3.3 70B", "meta-llama/llama-3.3-70b-instruct:free", None, Vendor::Meta, Some((0, 0)), true, 0),
-    m("Llama 4 Scout", "meta-llama/llama-4-scout:free", None, Vendor::Meta, Some((0, 0)), true, 0),
-    m("DeepSeek V3.1", "deepseek/deepseek-chat-v3.1:free", None, Vendor::DeepSeek, Some((0, 0)), true, 0),
-    m("Qwen3 235B", "qwen/qwen3-235b-a22b:free", None, Vendor::Alibaba, Some((0, 0)), true, 0),
+    // Free tier — verified live on OpenRouter's public `/models` endpoint
+    // (2026-07-25), spanning different vendors so a provider-specific throttle
+    // doesn't collapse the entire fallback chain.
+    m("Nemotron 3 Ultra", "nvidia/nemotron-3-ultra-550b-a55b:free", Some("nvidia/nemotron-3-ultra-550b-a55b:free"), Vendor::Nvidia, Some((0, 0)), true, 1_000_000),
+    m("GPT-OSS 20B", "openai/gpt-oss-20b:free", Some("openai/gpt-oss-20b:free"), Vendor::OpenAI, Some((0, 0)), true, 131_072),
+    m("Gemma 4 31B", "google/gemma-4-31b-it:free", Some("google/gemma-4-31b-it:free"), Vendor::Google, Some((0, 0)), true, 262_144),
+    m("North Mini Code", "cohere/north-mini-code:free", Some("cohere/north-mini-code:free"), Vendor::Cohere, Some((0, 0)), true, 256_000),
 ];
