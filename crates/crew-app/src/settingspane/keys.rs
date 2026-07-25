@@ -176,7 +176,7 @@ fn button_key(p: &mut SettingsPane, key: &KeyEvent, is_save: bool) -> Option<Set
     match &key.logical_key {
         Key::Named(NamedKey::Enter) | Key::Named(NamedKey::Space) if is_save => {
             commit_field(p);
-            Some(SettingsAction::Apply(build_config(p)))
+            Some(SettingsAction::Apply(Box::new(build_config(p))))
         }
         Key::Named(NamedKey::Enter) | Key::Named(NamedKey::Space) => Some(SettingsAction::Cancel),
         _ => None,

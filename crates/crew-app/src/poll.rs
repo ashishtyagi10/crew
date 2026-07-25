@@ -87,6 +87,21 @@ impl CrewApp {
                 PaneContent::Chat(c) => {
                     let result = c.poll();
                     collected_actions.extend(result.actions);
+                    // A `/model` pick this pane just noted (composer popup or
+                    // input-bar picker) → move it to the front of the recents
+                    // list, cap it, republish the process-global `rows()`
+                    // reads, and persist. Drained here rather than via a
+                    // `ChatAction` because that would end `on_input`'s call
+                    // and swallow the send — this is pure app-side
+                    // bookkeeping alongside the pane's other per-tick drains.
+                    if let Some(slug) = c.pending_recent.take() {
+                        let recents = &mut self.config.model_recents;
+                        recents.retain(|s| *s != slug);
+                        recents.insert(0, slug);
+                        recents.truncate(crate::modelpick::MAX_RECENTS);
+                        crate::modelpick::set_recents(recents.clone());
+                        self.config.save();
+                    }
                     result.changed
                 }
                 PaneContent::Swarm(s) => s.poll(),

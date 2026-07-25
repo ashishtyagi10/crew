@@ -119,6 +119,10 @@ pub struct CrewConfig {
     pub usage_budget_5h: u64,
     #[serde(default = "default_usage_budget_7d")]
     pub usage_budget_7d: u64,
+    /// Recently picked models, most recent first (cap 5) — the `/model`
+    /// picker's shortcut section. Slugs only; unknown ones are skipped.
+    #[serde(default)]
+    pub model_recents: Vec<String>,
 }
 
 impl Default for CrewConfig {
@@ -147,6 +151,7 @@ impl Default for CrewConfig {
             font_weight: default_font_weight(),
             usage_budget_5h: default_usage_budget_5h(),
             usage_budget_7d: default_usage_budget_7d(),
+            model_recents: Vec::new(),
         }
     }
 }

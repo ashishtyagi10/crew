@@ -78,21 +78,67 @@ fn desc(m: &ModelInfo, route: Route, current: bool) -> String {
     parts.join(" \u{b7} ")
 }
 
+/// Cap on the recent section — beyond a handful it stops being a shortcut.
+pub(crate) const MAX_RECENTS: usize = 5;
+
+/// The persisted recents, published at config load and after each pick (see
+/// `set_recents`). A process-global rather than a `rows()` parameter: the
+/// chat pane that calls `rows()` via `chatpalette::after_edit` has no config
+/// handle, and threading one through would grow that call's signature for
+/// every caller just to serve this one section.
+static RECENTS: std::sync::Mutex<Vec<String>> = std::sync::Mutex::new(Vec::new());
+
+/// Publish the persisted recents list. Called once at config load and again
+/// after every pick (`poll.rs`'s drain of `ChatPane::pending_recent`). A
+/// poisoned lock is left as-is rather than panicking — the picker just runs
+/// one tick behind on the recents section, which is cosmetic.
+pub(crate) fn set_recents(list: Vec<String>) {
+    if let Ok(mut g) = RECENTS.lock() {
+        *g = list;
+    }
+}
+
+fn recents_now() -> Vec<String> {
+    RECENTS.lock().map(|g| g.clone()).unwrap_or_default()
+}
+
 /// The picker rows for `query`. `current` is the slug every agent is pinned to
 /// (`None` when the roster disagrees or nothing is pinned) — it gets the `●`.
 pub(crate) fn rows(query: &str, current: Option<&str>) -> Vec<MenuItem> {
+    rows_with_recents(query, current, &recents_now())
+}
+
+/// `rows`, with the recent-picks list passed explicitly — split out so the
+/// section is unit-testable without going through the process-global (see
+/// `rows`'s doc comment for why the global exists at all).
+pub(crate) fn rows_with_recents(
+    query: &str,
+    current: Option<&str>,
+    recents: &[String],
+) -> Vec<MenuItem> {
     let q = query.trim().to_lowercase();
     let (provider, probed) = crate::modelkeys::provider_now();
     let mut out = Vec::new();
     if "default".starts_with(&q) {
-        out.push(MenuItem {
-            label: "default".to_string(),
-            desc: "back to the provider default".to_string(),
-            fill: "default".to_string(),
-            submit: true,
-            header: false,
-            dim: false,
-        });
+        out.push(default_row());
+    }
+    // A shortcut, not a move: a recent model still appears in its own vendor
+    // section below too. An unknown slug (a model that left the catalog) is
+    // skipped rather than rendered blank; if none survive, no header either
+    // — this picker never emits an empty section.
+    let recent: Vec<&ModelInfo> = recents
+        .iter()
+        .take(MAX_RECENTS)
+        .filter_map(|slug| catalog().iter().find(|m| m.slug == *slug))
+        .filter(|m| matches(m, &q))
+        .collect();
+    if !recent.is_empty() {
+        out.push(header_row("recent"));
+        for m in recent {
+            let route = route_for(m, provider, probed);
+            let is_current = current.is_some_and(|c| c == m.slug || Some(c) == m.or_slug);
+            out.push(model_row(m, route, is_current));
+        }
     }
     for vendor in Vendor::ORDER {
         let hits: Vec<&ModelInfo> = catalog()
@@ -102,14 +148,7 @@ pub(crate) fn rows(query: &str, current: Option<&str>) -> Vec<MenuItem> {
         if hits.is_empty() {
             continue; // never emit an empty section
         }
-        out.push(MenuItem {
-            label: vendor.label().to_string(),
-            desc: String::new(),
-            fill: String::new(),
-            submit: false,
-            header: true,
-            dim: false,
-        });
+        out.push(header_row(vendor.label()));
         for m in hits {
             let route = route_for(m, provider, probed);
             let is_current = current.is_some_and(|c| c == m.slug || Some(c) == m.or_slug);
@@ -117,6 +156,28 @@ pub(crate) fn rows(query: &str, current: Option<&str>) -> Vec<MenuItem> {
         }
     }
     out
+}
+
+fn default_row() -> MenuItem {
+    MenuItem {
+        label: "default".to_string(),
+        desc: "back to the provider default".to_string(),
+        fill: "default".to_string(),
+        submit: true,
+        header: false,
+        dim: false,
+    }
+}
+
+fn header_row(label: &str) -> MenuItem {
+    MenuItem {
+        label: label.to_string(),
+        desc: String::new(),
+        fill: String::new(),
+        submit: false,
+        header: true,
+        dim: false,
+    }
 }
 
 /// One model's row: label, badged desc, the slug to run, and whether the

@@ -75,6 +75,20 @@ fn rows_submit_and_carry_a_slug() {
 }
 
 #[test]
+fn recents_lead_the_list_and_dont_duplicate_a_section_row() {
+    let r = rows_with_recents("", None, &["qwen-max".to_string()]);
+    let header = r.iter().position(|i| i.header && i.label == "recent");
+    let anthropic = r.iter().position(|i| i.header && i.label == "anthropic");
+    assert!(header < anthropic, "recent must lead the sections");
+    // The recent row still appears in its own vendor section (it's a shortcut,
+    // not a move) — exactly two rows carry the slug.
+    assert_eq!(r.iter().filter(|i| i.fill == "qwen-max").count(), 2);
+    // An unknown slug in recents is skipped rather than rendered blank.
+    let r = rows_with_recents("", None, &["ghost-model".to_string()]);
+    assert!(!r.iter().any(|i| i.header && i.label == "recent"));
+}
+
+#[test]
 fn model_row_dims_exactly_the_unserveable_routes() {
     // `rows()` itself can't be driven to a known route in a unit test — the
     // active provider comes from a live, once-per-process probe

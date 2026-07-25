@@ -74,6 +74,10 @@ pub struct ChatPane {
     /// GitWatch each poll tick (`poll_panes`) — the summary footer shows it
     /// and must never run git itself on the winit thread.
     pub(crate) git_branch: Option<String>,
+    /// A `/model all <slug>` the app should add to the recents list. Set on
+    /// submit, drained by the poll — the command itself still goes to the
+    /// broker untouched, this is only the app-side note.
+    pub(crate) pending_recent: Option<String>,
 }
 
 impl ChatPane {
@@ -104,6 +108,7 @@ impl ChatPane {
             swarm: None,
             queued: std::collections::VecDeque::new(),
             git_branch: None,
+            pending_recent: None,
         }
     }
 
@@ -396,6 +401,16 @@ impl ChatPane {
             // status back here) — sending it to the broker did nothing.
             if let Some(arg) = crate::chatfont::parse(&text) {
                 return Some(ChatAction::Font(arg));
+            }
+            // Note a `/model all <slug>` pick for the recents list — bare
+            // bookkeeping, not a `ChatAction`: returning one here would end
+            // the call and swallow the send below. The broker still gets the
+            // command untouched; `poll` drains this into the config.
+            if let Some(slug) = text.strip_prefix("/model all ") {
+                let slug = slug.trim();
+                if !slug.is_empty() && slug != "default" {
+                    self.pending_recent = Some(slug.to_string());
+                }
             }
             if !text.is_empty() {
                 // Echo the user's own prompt into the transcript, mirroring how
