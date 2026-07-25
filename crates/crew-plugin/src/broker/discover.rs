@@ -21,7 +21,11 @@ pub(crate) fn default_openrouter_chain() -> Vec<String> {
     crew_hive::catalog::catalog()
         .iter()
         .filter(|m| m.free)
-        .map(|m| m.or_slug.unwrap_or(m.slug).to_string())
+        .map(|m| {
+            // Free rows are expected to carry OpenRouter-shaped model ids.
+            // The fallback assumes `slug` is already OpenRouter-compatible.
+            m.or_slug.unwrap_or(m.slug).to_string()
+        })
         .collect()
 }
 
@@ -146,7 +150,7 @@ pub(crate) fn provider_and_model_for(
             );
             let url = std::env::var("CREW_DASHSCOPE_BASE_URL")
                 .unwrap_or_else(|_| DASHSCOPE_ENDPOINT.to_string());
-            let model = chain[0].clone();
+            let model = chain.first().cloned()?;
             let provider = crew_hive::OpenRouterProvider::new(key)
                 .with_endpoint(url)
                 .with_fallbacks(chain);
@@ -158,7 +162,7 @@ pub(crate) fn provider_and_model_for(
                 std::env::var("CREW_OPENROUTER_MODEL").ok(),
                 default_openrouter_chain(),
             );
-            let model = chain[0].clone();
+            let model = chain.first().cloned()?;
             let provider = provider.with_fallbacks(chain);
             Some((Arc::new(provider) as Arc<dyn crew_hive::Provider>, model))
         }

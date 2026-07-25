@@ -101,14 +101,20 @@ fn model_chain_defaults_when_unset() {
 fn default_openrouter_chain_matches_the_catalogs_free_rows_in_order() {
     // Regression: the chain used to restate the catalog's four free ids
     // independently, so a rotation had to be fixed in two places. Now it's
-    // derived, so this just pins the derivation.
-    let expected: Vec<String> = crew_hive::catalog::catalog()
-        .iter()
-        .filter(|m| m.free)
-        .map(|m| m.or_slug.unwrap_or(m.slug).to_string())
-        .collect();
-    assert_eq!(default_openrouter_chain(), expected);
-    assert!(!expected.is_empty(), "catalog has no free rows");
+    // derived, so this pins the actual shipped chain. A catalog edit that
+    // reorders, drops, or mis-tags a free row must update this literal list
+    // and re-verify against OpenRouter's live `/models` endpoint — the sole
+    // guard against silent id retirement.
+    let expected = [
+        "nvidia/nemotron-3-ultra-550b-a55b:free",
+        "openai/gpt-oss-20b:free",
+        "google/gemma-4-31b-it:free",
+        "cohere/north-mini-code:free",
+    ];
+    assert_eq!(
+        default_openrouter_chain(),
+        expected.iter().map(|s| s.to_string()).collect::<Vec<_>>()
+    );
 }
 
 #[test]
