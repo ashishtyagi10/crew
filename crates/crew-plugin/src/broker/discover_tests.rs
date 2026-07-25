@@ -91,21 +91,42 @@ fn pick_mock_beats_everything() {
 
 #[test]
 fn model_chain_defaults_when_unset() {
-    let chain = parse_model_chain(None, DEFAULT_OPENROUTER_CHAIN);
-    assert_eq!(chain.len(), DEFAULT_OPENROUTER_CHAIN.len());
-    assert_eq!(chain[0], DEFAULT_OPENROUTER_CHAIN[0]);
+    let default = default_openrouter_chain();
+    let chain = parse_model_chain(None, default.clone());
+    assert_eq!(chain.len(), default.len());
+    assert_eq!(chain[0], default[0]);
+}
+
+#[test]
+fn default_openrouter_chain_matches_the_catalogs_free_rows_in_order() {
+    // Regression: the chain used to restate the catalog's four free ids
+    // independently, so a rotation had to be fixed in two places. Now it's
+    // derived, so this pins the actual shipped chain. A catalog edit that
+    // reorders, drops, or mis-tags a free row must update this literal list
+    // and re-verify against OpenRouter's live `/models` endpoint — the sole
+    // guard against silent id retirement.
+    let expected = [
+        "nvidia/nemotron-3-ultra-550b-a55b:free",
+        "openai/gpt-oss-20b:free",
+        "google/gemma-4-31b-it:free",
+        "cohere/north-mini-code:free",
+    ];
+    assert_eq!(
+        default_openrouter_chain(),
+        expected.iter().map(|s| s.to_string()).collect::<Vec<_>>()
+    );
 }
 
 #[test]
 fn model_chain_parses_comma_separated_override() {
-    let chain = parse_model_chain(Some(" a:free , b:free ,, c ".into()), &["x"]);
+    let chain = parse_model_chain(Some(" a:free , b:free ,, c ".into()), vec!["x".to_string()]);
     assert_eq!(chain, vec!["a:free", "b:free", "c"]); // trimmed, empties dropped
 }
 
 #[test]
 fn model_chain_falls_back_to_default_when_blank() {
     assert_eq!(
-        parse_model_chain(Some("  ,  ".into()), &["x", "y"]),
+        parse_model_chain(Some("  ,  ".into()), vec!["x".to_string(), "y".to_string()]),
         vec!["x", "y"]
     );
 }

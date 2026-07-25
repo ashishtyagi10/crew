@@ -663,12 +663,13 @@ fn header_rows_are_dim_and_unmarked() {
     // Selection sits on the model row (interior row 1 → card row 2).
     let cells = menu_card("models", &items, 1, 40, menu_rows(items.len()));
     assert!(cells.iter().any(|c| c.c == '\u{203a}' && c.row == 2));
-    // The header row carries no marker and is not the accent colour.
+    // The header row (card row 1) carries no selection marker...
     assert!(cells.iter().filter(|c| c.row == 1).all(|c| c.c != '\u{203a}'));
+    // ...and is bold despite not being selected — that's the section styling.
     assert!(cells
         .iter()
         .filter(|c| c.row == 1 && !c.c.is_whitespace())
-        .all(|c| c.fg != accent_color()));
+        .all(|c| c.bold));
 }
 ```
 
@@ -1137,7 +1138,7 @@ In `crates/crew-app/src/chat_tests.rs`, add:
 ```rust
 #[test]
 fn model_pick_sends_one_broker_command() {
-    let mut chat = test_pane(); // whatever this file's existing constructor is
+    let mut chat = pane(); // the file's existing ChatPane constructor (line ~47)
     let cwd = std::path::Path::new(".");
     for c in "/model ".chars() {
         chat.on_input(crate::chatkeys::ChatInput::Char(c), cwd);
@@ -1555,13 +1556,12 @@ value and fold it into the config:
             recents.insert(0, slug);
             recents.truncate(crate::modelpick::MAX_RECENTS);
             crate::modelpick::set_recents(recents.clone());
-            self.save_config();
+            self.config.save();
         }
 ```
 
-(Use whatever the app's existing config-save helper is called; `save_config` is
-a placeholder for it — grep for the call the `/theme` persist path already
-makes and reuse that.) Make `MAX_RECENTS` `pub(crate)`.
+`self.config.save()` is the same persist call `ChatAction::PersistTheme` makes
+(`chataction.rs:18`). Make `MAX_RECENTS` `pub(crate)`.
 
 At config load, publish the persisted list once: `crate::modelpick::set_recents(cfg.model_recents.clone());`
 

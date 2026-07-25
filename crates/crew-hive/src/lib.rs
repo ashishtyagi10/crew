@@ -41,6 +41,7 @@ pub mod apiagent;
 pub mod batch;
 pub mod board;
 pub mod bus;
+pub mod catalog;
 pub mod govern;
 pub mod graph;
 pub mod planner;

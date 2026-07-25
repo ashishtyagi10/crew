@@ -21,6 +21,32 @@ pub(crate) struct MenuItem {
     /// Enter **runs** `fill` when true; when false Enter just inserts `fill` and
     /// keeps the palette open — a command expanding into its value picker.
     pub submit: bool,
+    /// A section title, not a choice: never selected, drawn dim without the
+    /// selection marker. The picker groups rows by provider with these.
+    pub header: bool,
+}
+
+/// The first row a selection may land on — headers are titles, not choices.
+/// Falls back to 0 when every row is a header (nothing to select).
+pub(crate) fn first_selectable(items: &[MenuItem]) -> usize {
+    items.iter().position(|i| !i.header).unwrap_or(0)
+}
+
+/// Move the selection one row down (`down`) or up, wrapping, skipping header
+/// rows. Returns `sel` unchanged when no row is selectable.
+pub(crate) fn step_sel(items: &[MenuItem], sel: usize, down: bool) -> usize {
+    if items.is_empty() || items.iter().all(|i| i.header) {
+        return sel;
+    }
+    let n = items.len();
+    let mut i = sel;
+    for _ in 0..n {
+        i = if down { (i + 1) % n } else { (i + n - 1) % n };
+        if !items[i].header {
+            return i;
+        }
+    }
+    sel
 }
 
 /// The predefined `(value, description)` choices a command offers, or `None` for
@@ -109,6 +135,7 @@ pub(crate) fn menu_items(text: &str) -> Vec<MenuItem> {
                 label: v,
                 desc,
                 submit: true,
+                header: false,
             })
             .collect();
     }
@@ -125,6 +152,7 @@ pub(crate) fn menu_items(text: &str) -> Vec<MenuItem> {
                     c.name.to_string()
                 },
                 submit: !expands,
+                header: false,
             }
         })
         .collect()

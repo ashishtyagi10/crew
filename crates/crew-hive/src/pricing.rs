@@ -9,10 +9,10 @@
 /// 2026-07. Order does not matter — the longest matching pattern wins.
 const RATES: &[(&str, u64, u64)] = &[
     // Anthropic
-    ("claude-opus", 15_000_000, 75_000_000),
+    ("claude-opus", 5_000_000, 25_000_000),
     ("claude-sonnet", 3_000_000, 15_000_000),
     ("claude-haiku", 1_000_000, 5_000_000),
-    ("claude-fable", 15_000_000, 75_000_000),
+    ("claude-fable", 10_000_000, 50_000_000),
     // Qwen / DashScope
     ("qwen3-coder-plus", 1_000_000, 5_000_000),
     ("qwen3-coder-flash", 300_000, 1_500_000),

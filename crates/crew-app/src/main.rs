@@ -99,6 +99,8 @@ mod mdkeys;
 mod mdpane;
 mod mdpane_view;
 mod minstrip;
+mod modelkeys;
+mod modelroute;
 mod navcard;
 mod navlog;
 mod net;

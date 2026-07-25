@@ -8,17 +8,26 @@ use super::adapter::Adapter;
 use super::apiadapter::specialist_agents;
 
 /// Default OpenRouter fallback chain for the project's API-backed agents —
-/// free slugs across *different* upstream providers, so a provider-specific
-/// throttle on one model rolls to the next instead of failing the relay.
-/// Quality isn't the goal here. OpenRouter rotates its free models; override
-/// the whole chain with a comma-separated `CREW_OPENROUTER_MODEL=slug1,slug2,…`
+/// every catalog row marked `free`, in catalog order (currently Nvidia,
+/// OpenAI, Google, Cohere: different upstream providers, so a
+/// provider-specific throttle on one model rolls to the next instead of
+/// failing the relay). Quality isn't the goal here. Derived from
+/// `crew_hive::catalog` — the picker's free-tier badge and this fallback
+/// chain must never drift apart, as they did when OpenRouter rotated all four
+/// free slugs the same day. OpenRouter rotates its free models; override the
+/// whole chain with a comma-separated `CREW_OPENROUTER_MODEL=slug1,slug2,…`
 /// (a retired slug is skipped automatically when it errors).
-pub(crate) const DEFAULT_OPENROUTER_CHAIN: &[&str] = &[
-    "meta-llama/llama-3.3-70b-instruct:free",
-    "deepseek/deepseek-chat-v3.1:free",
-    "qwen/qwen3-235b-a22b:free",
-    "meta-llama/llama-4-scout:free",
-];
+pub(crate) fn default_openrouter_chain() -> Vec<String> {
+    crew_hive::catalog::catalog()
+        .iter()
+        .filter(|m| m.free)
+        .map(|m| {
+            // Free rows are expected to carry OpenRouter-shaped model ids.
+            // The fallback assumes `slug` is already OpenRouter-compatible.
+            m.or_slug.unwrap_or(m.slug).to_string()
+        })
+        .collect()
+}
 
 /// Default Qwen chain for Alibaba Cloud DashScope (`DASHSCOPE_API_KEY`): the
 /// most capable commercial alias first, rolling to cheaper tiers on limits.
@@ -32,7 +41,7 @@ const DASHSCOPE_ENDPOINT: &str =
 
 /// Parse a comma-separated model chain into an ordered list, falling back to
 /// `default` when unset or empty.
-pub(crate) fn parse_model_chain(env_val: Option<String>, default: &[&str]) -> Vec<String> {
+pub(crate) fn parse_model_chain(env_val: Option<String>, default: Vec<String>) -> Vec<String> {
     let parsed: Vec<String> = env_val
         .unwrap_or_default()
         .split(',')
@@ -40,7 +49,7 @@ pub(crate) fn parse_model_chain(env_val: Option<String>, default: &[&str]) -> Ve
         .filter(|s| !s.is_empty())
         .collect();
     if parsed.is_empty() {
-        default.iter().map(|s| s.to_string()).collect()
+        default
     } else {
         parsed
     }
@@ -48,7 +57,7 @@ pub(crate) fn parse_model_chain(env_val: Option<String>, default: &[&str]) -> Ve
 
 /// The provider backing the project's API-backed agents.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub(crate) enum ProviderKind {
+pub enum ProviderKind {
     Mock,
     DashScope,
     OpenRouter,
@@ -59,10 +68,7 @@ pub(crate) enum ProviderKind {
 /// (tests) always wins; then an explicit `CREW_PROVIDER`
 /// (dashscope|openrouter|anthropic); then auto-discovery in preference order
 /// — DashScope (paid Qwen) before OpenRouter (free chains) before Anthropic.
-pub(crate) fn pick_provider(
-    force: Option<&str>,
-    has_key: impl Fn(&str) -> bool,
-) -> Option<ProviderKind> {
+pub fn pick_provider(force: Option<&str>, has_key: impl Fn(&str) -> bool) -> Option<ProviderKind> {
     if has_key("CREW_BROKER_MOCK_REPLY") {
         return Some(ProviderKind::Mock);
     }
@@ -134,11 +140,14 @@ pub(crate) fn provider_and_model_for(
             let key = std::env::var("DASHSCOPE_API_KEY").ok()?;
             let chain = parse_model_chain(
                 std::env::var("CREW_DASHSCOPE_MODEL").ok(),
-                DEFAULT_DASHSCOPE_CHAIN,
+                DEFAULT_DASHSCOPE_CHAIN
+                    .iter()
+                    .map(|s| s.to_string())
+                    .collect(),
             );
             let url = std::env::var("CREW_DASHSCOPE_BASE_URL")
                 .unwrap_or_else(|_| DASHSCOPE_ENDPOINT.to_string());
-            let model = chain[0].clone();
+            let model = chain.first().cloned()?;
             let provider = crew_hive::OpenRouterProvider::new(key)
                 .with_endpoint(url)
                 .with_fallbacks(chain);
@@ -148,9 +157,9 @@ pub(crate) fn provider_and_model_for(
             let provider = crew_hive::OpenRouterProvider::from_env().ok()?;
             let chain = parse_model_chain(
                 std::env::var("CREW_OPENROUTER_MODEL").ok(),
-                DEFAULT_OPENROUTER_CHAIN,
+                default_openrouter_chain(),
             );
-            let model = chain[0].clone();
+            let model = chain.first().cloned()?;
             let provider = provider.with_fallbacks(chain);
             Some((Arc::new(provider) as Arc<dyn crew_hive::Provider>, model))
         }

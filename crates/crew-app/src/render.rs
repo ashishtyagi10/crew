@@ -159,6 +159,7 @@ impl CrewApp {
                                     desc: e.desc(),
                                     fill: String::new(),
                                     submit: false,
+                                    header: false,
                                 })
                                 .collect();
                             let r = pane.rect;

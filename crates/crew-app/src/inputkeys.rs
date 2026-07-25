@@ -34,11 +34,11 @@ impl InputBar {
         if menu_open {
             match &key.logical_key {
                 Key::Named(NamedKey::ArrowDown) => {
-                    self.menu_sel = (self.menu_sel + 1) % menu.len();
+                    self.menu_sel = crate::suggest::step_sel(&menu, self.menu_sel, true);
                     return None;
                 }
                 Key::Named(NamedKey::ArrowUp) => {
-                    self.menu_sel = (self.menu_sel + menu.len() - 1) % menu.len();
+                    self.menu_sel = crate::suggest::step_sel(&menu, self.menu_sel, false);
                     return None;
                 }
                 _ => {}
