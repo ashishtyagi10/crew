@@ -14,8 +14,13 @@ static RECENTS: Mutex<Vec<String>> = Mutex::new(Vec::new());
 /// Publish the persisted recents list. Called once at config load
 /// (`handler.rs`) and again after every pick (`poll.rs`'s drain of
 /// `ChatPane::pending_recent`). A poisoned lock is left as-is rather than
-/// panicking — the picker just runs one tick behind on the recents section,
-/// which is cosmetic.
+/// panicking — but note that's not cosmetic: `std::sync::Mutex::lock` on a
+/// poisoned lock returns `Err` *permanently* (nothing here ever calls
+/// `clear_poison`/`into_inner`), so the recents section would stay empty for
+/// the rest of the process's life, not just "one tick behind". In practice
+/// this is inert rather than dangerous: neither `set_recents` nor
+/// `recents_now` ever panics while holding the lock (an assignment and a
+/// clone), so there's nothing here to poison it in the first place.
 pub(crate) fn set_recents(list: Vec<String>) {
     if let Ok(mut g) = RECENTS.lock() {
         *g = list;
