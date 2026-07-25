@@ -78,29 +78,10 @@ fn desc(m: &ModelInfo, route: Route, current: bool) -> String {
     parts.join(" \u{b7} ")
 }
 
-/// Cap on the recent section — beyond a handful it stops being a shortcut.
-pub(crate) const MAX_RECENTS: usize = 5;
-
-/// The persisted recents, published at config load and after each pick (see
-/// `set_recents`). A process-global rather than a `rows()` parameter: the
-/// chat pane that calls `rows()` via `chatpalette::after_edit` has no config
-/// handle, and threading one through would grow that call's signature for
-/// every caller just to serve this one section.
-static RECENTS: std::sync::Mutex<Vec<String>> = std::sync::Mutex::new(Vec::new());
-
-/// Publish the persisted recents list. Called once at config load and again
-/// after every pick (`poll.rs`'s drain of `ChatPane::pending_recent`). A
-/// poisoned lock is left as-is rather than panicking — the picker just runs
-/// one tick behind on the recents section, which is cosmetic.
-pub(crate) fn set_recents(list: Vec<String>) {
-    if let Ok(mut g) = RECENTS.lock() {
-        *g = list;
-    }
-}
-
-fn recents_now() -> Vec<String> {
-    RECENTS.lock().map(|g| g.clone()).unwrap_or_default()
-}
+#[path = "modelrecents.rs"]
+mod modelrecents;
+use modelrecents::recents_now;
+pub(crate) use modelrecents::{set_recents, MAX_RECENTS};
 
 /// The picker rows for `query`. `current` is the slug every agent is pinned to
 /// (`None` when the roster disagrees or nothing is pinned) — it gets the `●`.
