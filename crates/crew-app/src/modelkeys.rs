@@ -6,20 +6,24 @@
 //! thread (NEVER the winit thread), cached in a `OnceLock`.
 //! `CREW_SHELL_ENV=0` skips the probe, matching the broker's switch.
 //!
-//! NOT CALLED YET. [`init_probe`] is deliberately unwired: its only consumer is
-//! [`provider_now`], which the `/model` picker lands with. Wiring it now would
-//! make every launch pay a second login-shell startup and discard the result.
-//! Before re-adding the call, bound the subprocess the way the broker does
-//! (`shellenv::hydrate` kills it after 3s) — `Command::output()` waits on pipe
-//! EOF forever, so an rc file that blocks would park the thread for the
-//! process lifetime.
-// Every item here is unused until the `/model` picker wires `provider_now` up;
-// the module is kept compiled and tested in the meantime. Remove this allow
-// (and the per-item ones below it) when the picker lands.
-#![allow(dead_code)]
-
+//! [`init_probe`] is wired from `main.rs`, beside `init_shell_path`, now that
+//! the `/model` picker (`crate::modelpick`) consumes [`provider_now`]. The
+//! subprocess is bounded the same way `crew_plugin::broker::shellenv::hydrate`
+//! bounds its probe: stdout is drained on a side thread while the spawning
+//! thread polls for a result, and the child is killed if a blocking rc file
+//! hasn't produced output within [`PROBE_TIMEOUT`] — `Command::output()` has
+//! no such deadline and would otherwise park this thread for the process
+//! lifetime.
 use std::collections::HashSet;
+use std::io::Read;
+use std::process::{Command, Stdio};
+use std::sync::mpsc;
 use std::sync::OnceLock;
+use std::time::{Duration, Instant};
+
+/// How long the login-shell probe gets before it's killed and the process env
+/// is used as-is. Matches the broker's `shellenv::hydrate` bound.
+const PROBE_TIMEOUT: Duration = Duration::from_secs(3);
 
 /// Provider vars worth probing — the same set `shellenv::interesting` imports.
 const KEYS: &[&str] = &[
@@ -67,16 +71,54 @@ pub(crate) fn init_probe() {
     std::thread::spawn(|| {
         let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".into());
         let mut probed = process_probe();
-        if let Ok(out) = std::process::Command::new(&shell)
-            .args(["-ilc", "env"])
-            .output()
-        {
-            if let Ok(text) = String::from_utf8(out.stdout) {
-                merge_shell_env(&mut probed, &text);
-            }
+        if let Some(text) = bounded_shell_env(&shell, PROBE_TIMEOUT) {
+            merge_shell_env(&mut probed, &text);
         }
         let _ = SHELL_PROBE.set(probed);
     });
+}
+
+/// Run `shell -ilc env`, killing it if it hasn't produced output within
+/// `timeout`. A blocking rc file (a stray prompt, a hung network mount) must
+/// never park this thread forever — `Command::output()` alone waits on pipe
+/// EOF with no deadline, so stdout is drained on a side thread while this one
+/// polls for either a result or the deadline.
+fn bounded_shell_env(shell: &str, timeout: Duration) -> Option<String> {
+    let mut child = Command::new(shell)
+        .args(["-ilc", "env"])
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .ok()?;
+    let stdout = child.stdout.take()?;
+    let (tx, rx) = mpsc::channel();
+    std::thread::spawn(move || {
+        let mut s = String::new();
+        let mut r = stdout;
+        let _ = r.read_to_string(&mut s);
+        let _ = tx.send(s);
+    });
+    let deadline = Instant::now() + timeout;
+    loop {
+        match rx.recv_timeout(Duration::from_millis(50)) {
+            Ok(out) => {
+                let _ = child.wait();
+                return Some(out);
+            }
+            Err(mpsc::RecvTimeoutError::Disconnected) => {
+                let _ = child.wait();
+                return None;
+            }
+            Err(mpsc::RecvTimeoutError::Timeout) => {
+                if Instant::now() >= deadline {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    return None;
+                }
+            }
+        }
+    }
 }
 
 /// Keys and `CREW_PROVIDER` value already visible in this process, before the
@@ -103,9 +145,8 @@ fn resolve(keys: &HashSet<String>, forced: Option<&str>) -> Option<crew_plugin::
 
 /// The provider the broker would pick, and whether the probe has landed.
 /// Before it lands the answer is `(None, false)` and every row reads
-/// `Route::Unknown` — no row is dimmed on a guess. Consumed by the /model
-/// picker (a later task in this series); dead by clippy's count until then.
-#[allow(dead_code)]
+/// `Route::Unknown` — no row is dimmed on a guess. Consumed by the `/model`
+/// picker (`crate::modelpick`).
 pub(crate) fn provider_now() -> (Option<crew_plugin::Provider>, bool) {
     let Some(probed) = SHELL_PROBE.get() else {
         return (None, false);
@@ -114,110 +155,5 @@ pub(crate) fn provider_now() -> (Option<crew_plugin::Provider>, bool) {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn shell_probed_pin_is_honoured() {
-        let keys: HashSet<String> = ["OPENROUTER_API_KEY".to_string()].into_iter().collect();
-        assert_eq!(
-            resolve(&keys, Some("openrouter")),
-            Some(crew_plugin::Provider::OpenRouter)
-        );
-    }
-
-    #[test]
-    fn pin_absent_from_process_env_but_present_in_probe_is_still_honoured() {
-        // Simulates a GUI-launched process: this process never saw
-        // CREW_PROVIDER, but the login-shell probe found it in an rc file.
-        let keys: HashSet<String> = ["ANTHROPIC_API_KEY".to_string()].into_iter().collect();
-        // Without the pin, auto-discovery lands on the only key present.
-        assert_eq!(resolve(&keys, None), Some(crew_plugin::Provider::Anthropic));
-        // With the probed pin honoured, the explicit forced provider wins
-        // instead — even though no OPENROUTER_API_KEY is in the key set.
-        assert_eq!(
-            resolve(&keys, Some("openrouter")),
-            Some(crew_plugin::Provider::OpenRouter)
-        );
-    }
-
-    #[test]
-    fn key_order_auto_discovery_applies_when_there_is_no_pin() {
-        let keys: HashSet<String> = ["DASHSCOPE_API_KEY".to_string()].into_iter().collect();
-        assert_eq!(resolve(&keys, None), Some(crew_plugin::Provider::DashScope));
-        assert_eq!(resolve(&HashSet::new(), None), None);
-    }
-
-    #[test]
-    fn merge_process_pin_wins_over_shell_pin() {
-        // Process already has CREW_PROVIDER=anthropic; shell output has
-        // CREW_PROVIDER=openrouter. The process value must win.
-        let mut probed = Probed {
-            keys: HashSet::new(),
-            provider_pin: Some("anthropic".to_string()),
-        };
-        let shell_env = "CREW_PROVIDER=openrouter\nOPENROUTER_API_KEY=sk-or-123\n";
-        merge_shell_env(&mut probed, shell_env);
-        assert_eq!(
-            probed.provider_pin,
-            Some("anthropic".to_string()),
-            "process pin must not be overwritten"
-        );
-        // The key should be added though.
-        assert!(probed.keys.contains("OPENROUTER_API_KEY"));
-    }
-
-    #[test]
-    fn merge_adopts_shell_pin_when_process_has_none() {
-        // Process has no CREW_PROVIDER; shell has CREW_PROVIDER=openrouter.
-        // The shell value must be adopted.
-        let mut probed = Probed {
-            keys: HashSet::new(),
-            provider_pin: None,
-        };
-        let shell_env = "CREW_PROVIDER=openrouter\nOPENROUTER_API_KEY=sk-or-123\n";
-        merge_shell_env(&mut probed, shell_env);
-        assert_eq!(
-            probed.provider_pin,
-            Some("openrouter".to_string()),
-            "shell pin must be adopted when process has none"
-        );
-    }
-
-    #[test]
-    fn merge_ignores_empty_values() {
-        // Shell has CREW_PROVIDER with an empty value; should not record it.
-        let mut probed = Probed {
-            keys: HashSet::new(),
-            provider_pin: None,
-        };
-        let shell_env = "CREW_PROVIDER=\nDASHSCOPE_API_KEY=sk-aak-123\n";
-        merge_shell_env(&mut probed, shell_env);
-        assert_eq!(
-            probed.provider_pin, None,
-            "empty shell value must not overwrite process None"
-        );
-        // Non-empty values are still recorded.
-        assert!(probed.keys.contains("DASHSCOPE_API_KEY"));
-    }
-
-    #[test]
-    fn merge_ignores_keys_outside_the_interesting_set() {
-        // Shell has HOME and UNKNOWN_VAR; should ignore them.
-        let mut probed = Probed {
-            keys: HashSet::new(),
-            provider_pin: None,
-        };
-        let shell_env = "HOME=/Users/ashish\nUNKNOWN_VAR=value\nANTHROPIC_API_KEY=sk-ant-123\n";
-        merge_shell_env(&mut probed, shell_env);
-        assert!(
-            !probed.keys.contains("HOME"),
-            "HOME must not be recorded (not in KEYS)"
-        );
-        assert!(
-            !probed.keys.contains("UNKNOWN_VAR"),
-            "unknown vars must not be recorded"
-        );
-        assert!(probed.keys.contains("ANTHROPIC_API_KEY"));
-    }
-}
+#[path = "modelkeys_tests.rs"]
+mod tests;

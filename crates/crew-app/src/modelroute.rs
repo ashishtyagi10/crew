@@ -8,9 +8,6 @@
 use crew_hive::catalog::{ModelInfo, Vendor};
 pub(crate) use crew_plugin::Provider;
 
-// Data layer for the /model picker (a later task in this series); nothing
-// renders it yet, so every item below is dead by clippy's count until then.
-#[allow(dead_code)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Route {
     /// Served straight by the named provider ("anthropic", "dashscope").
@@ -25,7 +22,6 @@ pub(crate) enum Route {
     Missing(&'static str),
 }
 
-#[allow(dead_code)]
 impl Route {
     /// The slug to send: the OpenRouter alias when OpenRouter serves it, the
     /// native slug otherwise.
@@ -45,7 +41,10 @@ impl Route {
             Self::Missing(k) => format!("needs {k}"),
         }
     }
-    /// Rows we know the stack can't serve render dim.
+    /// Rows we know the stack can't serve render dim. Not consumed yet — the
+    /// picker rows built in this task don't dim; the composer popup (Task 5)
+    /// is where an unserveable row needs to render differently.
+    #[allow(dead_code)]
     pub(crate) fn unserveable(&self) -> bool {
         matches!(self, Self::Missing(_))
     }
@@ -53,11 +52,12 @@ impl Route {
 
 /// Resolve the route for one catalog row. `probed` is whether the login-shell
 /// key probe has completed; before it has, everything is `Unknown`.
-#[allow(dead_code)]
 pub(crate) fn route_for(m: &ModelInfo, provider: Option<Provider>, probed: bool) -> Route {
     let Some(provider) = provider else {
+        // Discovery order is DashScope, then OpenRouter, then Anthropic — name
+        // the first key a user would set, not the last-resort one.
         return if probed {
-            Route::Missing("ANTHROPIC_API_KEY")
+            Route::Missing("DASHSCOPE_API_KEY")
         } else {
             Route::Unknown
         };
@@ -78,110 +78,5 @@ pub(crate) fn route_for(m: &ModelInfo, provider: Option<Provider>, probed: bool)
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crew_hive::catalog::{ModelInfo, Vendor};
-
-    fn row(slug: &'static str, or_slug: Option<&'static str>, vendor: Vendor) -> ModelInfo {
-        ModelInfo {
-            name: "n",
-            slug,
-            or_slug,
-            vendor,
-            price: None,
-            free: false,
-            context: 0,
-        }
-    }
-
-    #[test]
-    fn direct_routes_match_the_active_provider() {
-        let claude = row(
-            "claude-sonnet-5",
-            Some("anthropic/claude-sonnet-5"),
-            Vendor::Anthropic,
-        );
-        let qwen = row("qwen-max", Some("qwen/qwen-max"), Vendor::Alibaba);
-        assert_eq!(
-            route_for(&claude, Some(Provider::Anthropic), true),
-            Route::Direct("anthropic")
-        );
-        assert_eq!(
-            route_for(&qwen, Some(Provider::DashScope), true),
-            Route::Direct("dashscope")
-        );
-    }
-
-    #[test]
-    fn openrouter_serves_anything_with_an_alias() {
-        let claude = row(
-            "claude-sonnet-5",
-            Some("anthropic/claude-sonnet-5"),
-            Vendor::Anthropic,
-        );
-        let native_only = row("qwen-turbo", None, Vendor::Alibaba);
-        assert_eq!(
-            route_for(&claude, Some(Provider::OpenRouter), true),
-            Route::ViaOpenRouter
-        );
-        // No alias and OpenRouter can't reach the native endpoint.
-        assert!(matches!(
-            route_for(&native_only, Some(Provider::OpenRouter), true),
-            Route::Missing(_)
-        ));
-    }
-
-    #[test]
-    fn openrouter_routes_a_native_slug_already_in_vendor_slash_model_form() {
-        // No separate or_slug, but the native slug is already `vendor/model`
-        // — that shape IS an OpenRouter id, so it must route, not be Missing.
-        let native_slash = row("mistralai/mixtral-8x7b", None, Vendor::OpenAI);
-        assert_eq!(
-            route_for(&native_slash, Some(Provider::OpenRouter), true),
-            Route::ViaOpenRouter
-        );
-        assert_eq!(
-            Route::ViaOpenRouter.fill_slug(&native_slash),
-            "mistralai/mixtral-8x7b"
-        );
-    }
-
-    #[test]
-    fn missing_names_the_key_the_user_would_have_to_set() {
-        let gpt = row("gpt-4.1", Some("openai/gpt-4.1"), Vendor::OpenAI);
-        assert_eq!(
-            route_for(&gpt, Some(Provider::Anthropic), true),
-            Route::Missing("OPENROUTER_API_KEY")
-        );
-    }
-
-    #[test]
-    fn unknown_until_the_probe_lands_and_mock_serves_everything() {
-        let gpt = row("gpt-4.1", Some("openai/gpt-4.1"), Vendor::OpenAI);
-        // Probe not finished: never claim a key is missing on evidence we lack.
-        assert_eq!(
-            route_for(&gpt, Some(Provider::Anthropic), false),
-            Route::Unknown
-        );
-        assert_eq!(route_for(&gpt, None, false), Route::Unknown);
-        assert_eq!(route_for(&gpt, Some(Provider::Mock), true), Route::Mock);
-    }
-
-    #[test]
-    fn fill_slug_follows_the_route() {
-        let claude = row(
-            "claude-sonnet-5",
-            Some("anthropic/claude-sonnet-5"),
-            Vendor::Anthropic,
-        );
-        assert_eq!(
-            Route::ViaOpenRouter.fill_slug(&claude),
-            "anthropic/claude-sonnet-5"
-        );
-        assert_eq!(
-            Route::Direct("anthropic").fill_slug(&claude),
-            "claude-sonnet-5"
-        );
-        assert_eq!(Route::Unknown.fill_slug(&claude), "claude-sonnet-5");
-    }
-}
+#[path = "modelroute_tests.rs"]
+mod tests;
