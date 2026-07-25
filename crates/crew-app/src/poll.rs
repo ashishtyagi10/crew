@@ -34,8 +34,14 @@ impl CrewApp {
         // costs nothing on every other tick — including forever offline or
         // with no key, where `spawn()` never even returned a receiver.
         if !self.model_fetch_started && self.model_picker_open() {
-            self.model_fetch_started = true;
+            // Only latch the guard when `spawn()` actually returned a
+            // receiver. If the picker opens before the login-shell key probe
+            // lands (up to its 3s timeout), the key lookup falls back to the
+            // process env and `spawn()` returns `None` on a GUI launch —
+            // latching anyway would disable enrichment for the rest of the
+            // session even once the probe finishes and a key is available.
             self.model_fetch = crate::modelfetch::spawn();
+            self.model_fetch_started = self.model_fetch.is_some();
         }
         let mut model_fetch_landed = false;
         if let Some(rx) = &self.model_fetch {

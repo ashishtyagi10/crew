@@ -42,10 +42,14 @@ pub fn parse_models(body: &str) -> Result<Vec<LiveModel>, String> {
                 .and_then(|p| p.as_str())
                 .and_then(per_mtok);
             let price = inp.zip(out);
+            // `try_from` rather than `as u32`: a garbage value past u32::MAX
+            // (e.g. `4294967296`) must fall back to "unknown" (0), not wrap
+            // silently into a small, wrong context window.
             let context = m
                 .get("context_length")
                 .and_then(|c| c.as_u64())
-                .unwrap_or(0) as u32;
+                .and_then(|c| u32::try_from(c).ok())
+                .unwrap_or(0);
             Some(LiveModel {
                 free: price == Some((0, 0)),
                 id,
@@ -119,5 +123,20 @@ mod tests {
     fn malformed_json_is_an_error_not_a_panic() {
         assert!(parse_models("not json").is_err());
         assert!(parse_models("{}").is_err());
+    }
+
+    #[test]
+    fn a_context_length_past_u32_max_falls_back_to_unknown_not_a_wrapped_value() {
+        // 4294967297 = u32::MAX + 2. The old `as u32` cast would silently
+        // wrap this to `1` — a small, wrong, but plausible-looking context
+        // window. `try_from(..).unwrap_or(0)` must land on the honest
+        // "unknown" (0) instead.
+        let body = r#"{"data":[
+          {"id":"garbage/context","name":"Garbage",
+           "context_length":4294967297,
+           "pricing":{"prompt":"0.000003","completion":"0.000015"}}
+        ]}"#;
+        let got = parse_models(body).unwrap();
+        assert_eq!(got[0].context, 0);
     }
 }

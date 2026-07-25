@@ -48,19 +48,28 @@ pub(crate) fn spawn() -> Option<Receiver<Vec<LiveModel>>> {
     Some(rx)
 }
 
+/// A generous ceiling on the cache file's size: the real OpenRouter catalog
+/// is a few hundred KB. Past this it's either corrupt or a planted file
+/// designed to make this worker thread `read_to_string` an oversized blob.
+const MAX_CACHE_BYTES: u64 = 1024 * 1024;
+
 /// The cached catalog when it exists and is younger than [`TTL`].
 fn read_cache() -> Option<Vec<LiveModel>> {
-    let path = cache_path()?;
-    let age = std::fs::metadata(&path)
-        .ok()?
-        .modified()
-        .ok()?
-        .elapsed()
-        .ok()?;
+    read_cache_at(&cache_path()?)
+}
+
+/// `read_cache`'s body, taking an explicit path so the size bound is
+/// testable without touching the real config dir.
+fn read_cache_at(path: &std::path::Path) -> Option<Vec<LiveModel>> {
+    let meta = std::fs::metadata(path).ok()?;
+    if meta.len() > MAX_CACHE_BYTES {
+        return None;
+    }
+    let age = meta.modified().ok()?.elapsed().ok()?;
     if age > TTL {
         return None;
     }
-    let raw = std::fs::read_to_string(&path).ok()?;
+    let raw = std::fs::read_to_string(path).ok()?;
     crew_hive::catalog::parse_models(&raw).ok()
 }
 
