@@ -69,6 +69,8 @@ pub(crate) fn route_for(m: &ModelInfo, provider: Option<Provider>, probed: bool)
         Provider::Mock => Route::Mock,
         Provider::Anthropic if m.vendor == Vendor::Anthropic => Route::Direct("anthropic"),
         Provider::DashScope if m.vendor == Vendor::Alibaba => Route::Direct("dashscope"),
+        // A native slug already in `vendor/model` form IS an OpenRouter id
+        // (OpenRouter routes by that shape), even with no separate `or_slug`.
         Provider::OpenRouter if m.or_slug.is_some() || m.slug.contains('/') => Route::ViaOpenRouter,
         Provider::OpenRouter => Route::Missing("a model OpenRouter serves"),
         _ => Route::Missing("OPENROUTER_API_KEY"),
@@ -127,6 +129,21 @@ mod tests {
             route_for(&native_only, Some(Provider::OpenRouter), true),
             Route::Missing(_)
         ));
+    }
+
+    #[test]
+    fn openrouter_routes_a_native_slug_already_in_vendor_slash_model_form() {
+        // No separate or_slug, but the native slug is already `vendor/model`
+        // — that shape IS an OpenRouter id, so it must route, not be Missing.
+        let native_slash = row("mistralai/mixtral-8x7b", None, Vendor::OpenAI);
+        assert_eq!(
+            route_for(&native_slash, Some(Provider::OpenRouter), true),
+            Route::ViaOpenRouter
+        );
+        assert_eq!(
+            Route::ViaOpenRouter.fill_slug(&native_slash),
+            "mistralai/mixtral-8x7b"
+        );
     }
 
     #[test]
