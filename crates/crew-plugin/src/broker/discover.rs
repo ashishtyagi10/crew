@@ -8,16 +8,17 @@ use super::adapter::Adapter;
 use super::apiadapter::specialist_agents;
 
 /// Default OpenRouter fallback chain for the project's API-backed agents —
-/// free slugs across *different* upstream providers, so a provider-specific
-/// throttle on one model rolls to the next instead of failing the relay.
-/// Quality isn't the goal here. OpenRouter rotates its free models; override
-/// the whole chain with a comma-separated `CREW_OPENROUTER_MODEL=slug1,slug2,…`
-/// (a retired slug is skipped automatically when it errors).
+/// free slugs across *different* upstream providers (Nvidia, OpenAI, Google,
+/// Cohere), so a provider-specific throttle on one model rolls to the next
+/// instead of failing the relay. Quality isn't the goal here. OpenRouter
+/// rotates its free models; override the whole chain with a comma-separated
+/// `CREW_OPENROUTER_MODEL=slug1,slug2,…` (a retired slug is skipped
+/// automatically when it errors).
 pub(crate) const DEFAULT_OPENROUTER_CHAIN: &[&str] = &[
-    "meta-llama/llama-3.3-70b-instruct:free",
-    "deepseek/deepseek-chat-v3.1:free",
-    "qwen/qwen3-235b-a22b:free",
-    "meta-llama/llama-4-scout:free",
+    "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "openai/gpt-oss-20b:free",
+    "google/gemma-4-31b-it:free",
+    "cohere/north-mini-code:free",
 ];
 
 /// Default Qwen chain for Alibaba Cloud DashScope (`DASHSCOPE_API_KEY`): the
