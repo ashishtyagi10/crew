@@ -81,7 +81,7 @@ pub(crate) fn rows_with_recents(
     recents: &[String],
 ) -> Vec<MenuItem> {
     let q = query.trim().to_lowercase();
-    let (provider, probed) = crate::modelkeys::provider_now();
+    let (provider, probed) = crate::shellprobe::provider_now();
     let mut out = Vec::new();
     if "default".starts_with(&q) {
         out.push(default_row());

@@ -77,6 +77,7 @@ fn merge_process_pin_wins_over_shell_pin() {
         keys: HashSet::new(),
         provider_pin: Some("anthropic".to_string()),
         openrouter_key: None,
+        path: None,
     };
     let shell_env = "CREW_PROVIDER=openrouter\nOPENROUTER_API_KEY=sk-or-123\n";
     merge_shell_env(&mut probed, shell_env);
@@ -97,6 +98,7 @@ fn merge_adopts_shell_pin_when_process_has_none() {
         keys: HashSet::new(),
         provider_pin: None,
         openrouter_key: None,
+        path: None,
     };
     let shell_env = "CREW_PROVIDER=openrouter\nOPENROUTER_API_KEY=sk-or-123\n";
     merge_shell_env(&mut probed, shell_env);
@@ -116,6 +118,7 @@ fn merge_process_openrouter_key_wins_over_shell_key() {
         keys: HashSet::new(),
         provider_pin: None,
         openrouter_key: Some("sk-or-process".to_string()),
+        path: None,
     };
     let shell_env = "OPENROUTER_API_KEY=sk-or-shell\n";
     merge_shell_env(&mut probed, shell_env);
@@ -135,6 +138,7 @@ fn merge_adopts_shell_openrouter_key_when_process_has_none() {
         keys: HashSet::new(),
         provider_pin: None,
         openrouter_key: None,
+        path: None,
     };
     let shell_env = "OPENROUTER_API_KEY=sk-or-shell\n";
     merge_shell_env(&mut probed, shell_env);
@@ -152,6 +156,7 @@ fn merge_ignores_empty_values() {
         keys: HashSet::new(),
         provider_pin: None,
         openrouter_key: None,
+        path: None,
     };
     let shell_env = "CREW_PROVIDER=\nDASHSCOPE_API_KEY=sk-aak-123\n";
     merge_shell_env(&mut probed, shell_env);
@@ -170,6 +175,7 @@ fn merge_ignores_keys_outside_the_interesting_set() {
         keys: HashSet::new(),
         provider_pin: None,
         openrouter_key: None,
+        path: None,
     };
     let shell_env = "HOME=/Users/ashish\nUNKNOWN_VAR=value\nANTHROPIC_API_KEY=sk-ant-123\n";
     merge_shell_env(&mut probed, shell_env);
@@ -182,4 +188,65 @@ fn merge_ignores_keys_outside_the_interesting_set() {
         "unknown vars must not be recorded"
     );
     assert!(probed.keys.contains("ANTHROPIC_API_KEY"));
+}
+
+#[test]
+fn merge_extracts_path_from_representative_env_output() {
+    let mut probed = Probed {
+        keys: HashSet::new(),
+        provider_pin: None,
+        openrouter_key: None,
+        path: None,
+    };
+    let shell_env = "HOME=/Users/ashish\nPATH=/usr/local/bin:/usr/bin:/bin\nSHELL=/bin/zsh\n";
+    merge_shell_env(&mut probed, shell_env);
+    assert_eq!(
+        probed.path,
+        Some("/usr/local/bin:/usr/bin:/bin".to_string())
+    );
+}
+
+#[test]
+fn merge_path_value_containing_equals_splits_on_the_first_one_only() {
+    // A PATH entry can itself contain `=`; only the line's first `=` may
+    // separate the key from the value or the rest gets truncated.
+    let mut probed = Probed {
+        keys: HashSet::new(),
+        provider_pin: None,
+        openrouter_key: None,
+        path: None,
+    };
+    let shell_env = "PATH=/usr/bin:/opt/weird=dir:/bin\n";
+    merge_shell_env(&mut probed, shell_env);
+    assert_eq!(
+        probed.path,
+        Some("/usr/bin:/opt/weird=dir:/bin".to_string())
+    );
+}
+
+#[test]
+fn merge_rejects_blank_path() {
+    let mut probed = Probed {
+        keys: HashSet::new(),
+        provider_pin: None,
+        openrouter_key: None,
+        path: None,
+    };
+    merge_shell_env(&mut probed, "PATH=   \n");
+    assert_eq!(
+        probed.path, None,
+        "whitespace-only PATH must not be adopted"
+    );
+}
+
+#[test]
+fn merge_leaves_path_unset_when_env_output_has_no_path_line() {
+    let mut probed = Probed {
+        keys: HashSet::new(),
+        provider_pin: None,
+        openrouter_key: None,
+        path: None,
+    };
+    merge_shell_env(&mut probed, "ANTHROPIC_API_KEY=sk-ant-1\n");
+    assert_eq!(probed.path, None, "fallback stays intact with no PATH line");
 }
