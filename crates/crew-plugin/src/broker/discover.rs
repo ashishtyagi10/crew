@@ -8,18 +8,22 @@ use super::adapter::Adapter;
 use super::apiadapter::specialist_agents;
 
 /// Default OpenRouter fallback chain for the project's API-backed agents —
-/// free slugs across *different* upstream providers (Nvidia, OpenAI, Google,
-/// Cohere), so a provider-specific throttle on one model rolls to the next
-/// instead of failing the relay. Quality isn't the goal here. OpenRouter
-/// rotates its free models; override the whole chain with a comma-separated
-/// `CREW_OPENROUTER_MODEL=slug1,slug2,…` (a retired slug is skipped
-/// automatically when it errors).
-pub(crate) const DEFAULT_OPENROUTER_CHAIN: &[&str] = &[
-    "nvidia/nemotron-3-ultra-550b-a55b:free",
-    "openai/gpt-oss-20b:free",
-    "google/gemma-4-31b-it:free",
-    "cohere/north-mini-code:free",
-];
+/// every catalog row marked `free`, in catalog order (currently Nvidia,
+/// OpenAI, Google, Cohere: different upstream providers, so a
+/// provider-specific throttle on one model rolls to the next instead of
+/// failing the relay). Quality isn't the goal here. Derived from
+/// `crew_hive::catalog` — the picker's free-tier badge and this fallback
+/// chain must never drift apart, as they did when OpenRouter rotated all four
+/// free slugs the same day. OpenRouter rotates its free models; override the
+/// whole chain with a comma-separated `CREW_OPENROUTER_MODEL=slug1,slug2,…`
+/// (a retired slug is skipped automatically when it errors).
+pub(crate) fn default_openrouter_chain() -> Vec<String> {
+    crew_hive::catalog::catalog()
+        .iter()
+        .filter(|m| m.free)
+        .map(|m| m.or_slug.unwrap_or(m.slug).to_string())
+        .collect()
+}
 
 /// Default Qwen chain for Alibaba Cloud DashScope (`DASHSCOPE_API_KEY`): the
 /// most capable commercial alias first, rolling to cheaper tiers on limits.
@@ -33,7 +37,7 @@ const DASHSCOPE_ENDPOINT: &str =
 
 /// Parse a comma-separated model chain into an ordered list, falling back to
 /// `default` when unset or empty.
-pub(crate) fn parse_model_chain(env_val: Option<String>, default: &[&str]) -> Vec<String> {
+pub(crate) fn parse_model_chain(env_val: Option<String>, default: Vec<String>) -> Vec<String> {
     let parsed: Vec<String> = env_val
         .unwrap_or_default()
         .split(',')
@@ -41,7 +45,7 @@ pub(crate) fn parse_model_chain(env_val: Option<String>, default: &[&str]) -> Ve
         .filter(|s| !s.is_empty())
         .collect();
     if parsed.is_empty() {
-        default.iter().map(|s| s.to_string()).collect()
+        default
     } else {
         parsed
     }
@@ -135,7 +139,10 @@ pub(crate) fn provider_and_model_for(
             let key = std::env::var("DASHSCOPE_API_KEY").ok()?;
             let chain = parse_model_chain(
                 std::env::var("CREW_DASHSCOPE_MODEL").ok(),
-                DEFAULT_DASHSCOPE_CHAIN,
+                DEFAULT_DASHSCOPE_CHAIN
+                    .iter()
+                    .map(|s| s.to_string())
+                    .collect(),
             );
             let url = std::env::var("CREW_DASHSCOPE_BASE_URL")
                 .unwrap_or_else(|_| DASHSCOPE_ENDPOINT.to_string());
@@ -149,7 +156,7 @@ pub(crate) fn provider_and_model_for(
             let provider = crew_hive::OpenRouterProvider::from_env().ok()?;
             let chain = parse_model_chain(
                 std::env::var("CREW_OPENROUTER_MODEL").ok(),
-                DEFAULT_OPENROUTER_CHAIN,
+                default_openrouter_chain(),
             );
             let model = chain[0].clone();
             let provider = provider.with_fallbacks(chain);

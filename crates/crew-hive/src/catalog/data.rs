@@ -58,7 +58,10 @@ pub(super) const MODELS: &[ModelInfo] = &[
     m("Gemini 2.5 Flash", "gemini-2.5-flash", Some("google/gemini-2.5-flash"), Vendor::Google, None, false, 0),
     // Free tier — verified live on OpenRouter's public `/models` endpoint
     // (2026-07-25), spanning different vendors so a provider-specific throttle
-    // doesn't collapse the entire fallback chain.
+    // doesn't collapse the entire fallback chain. Unlike the `context: 0`
+    // rows above (unconfirmed), these four `context` values were read
+    // straight off that live response's `context_length` field, not
+    // guessed — keep them in sync with OpenRouter if the rows are refreshed.
     m("Nemotron 3 Ultra", "nvidia/nemotron-3-ultra-550b-a55b:free", Some("nvidia/nemotron-3-ultra-550b-a55b:free"), Vendor::Nvidia, Some((0, 0)), true, 1_000_000),
     m("GPT-OSS 20B", "openai/gpt-oss-20b:free", Some("openai/gpt-oss-20b:free"), Vendor::OpenAI, Some((0, 0)), true, 131_072),
     m("Gemma 4 31B", "google/gemma-4-31b-it:free", Some("google/gemma-4-31b-it:free"), Vendor::Google, Some((0, 0)), true, 262_144),

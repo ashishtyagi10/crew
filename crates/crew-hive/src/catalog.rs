@@ -129,17 +129,21 @@ mod tests {
     }
 
     #[test]
-    fn anthropic_rates_match_the_pricing_table() {
+    fn priced_rows_match_the_pricing_table() {
         // The catalog badge and the statusline `$` must agree: a 1M-in call on
-        // the catalog's price equals `pricing::cost_microusd` for the same slug.
-        for m in catalog().iter().filter(|m| m.vendor == Vendor::Anthropic) {
-            let (inp, _) = m.price.expect("Anthropic rows are all priced");
-            assert_eq!(
-                crate::pricing::cost_microusd(m.slug, 1_000_000, 0),
-                inp,
-                "catalog and pricing disagree on {}",
-                m.slug
-            );
+        // the catalog's price equals `pricing::cost_microusd` for the same
+        // slug, for *any* row — not just Anthropic's. `cost_microusd` returns
+        // 0 for a slug that matches no `RATES` pattern (and legitimately for
+        // free rows, which are `(0, 0)` in the catalog too), so those are
+        // skipped rather than asserted on: an unmatched row proves nothing
+        // about agreement.
+        for m in catalog().iter().filter(|m| m.price.is_some()) {
+            let (inp, _) = m.price.expect("filtered to priced rows");
+            let got = crate::pricing::cost_microusd(m.slug, 1_000_000, 0);
+            if got == 0 {
+                continue;
+            }
+            assert_eq!(got, inp, "catalog and pricing disagree on {}", m.slug);
         }
     }
 }
