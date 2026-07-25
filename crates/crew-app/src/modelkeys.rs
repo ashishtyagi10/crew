@@ -2,9 +2,22 @@
 //! broker hydrates missing provider keys from the login shell before deciding
 //! (`crew-plugin`'s `broker/shellenv.rs`), so reading this process's env alone
 //! would under-report on a Finder-launched app. Mirrors
-//! [`crate::cmdcheck::init_shell_path`]: one bounded `$SHELL -ilc env` on a
-//! background thread (NEVER the winit thread), cached in a `OnceLock`.
+//! [`crate::cmdcheck::init_shell_path`]: one `$SHELL -ilc env` on a background
+//! thread (NEVER the winit thread), cached in a `OnceLock`.
 //! `CREW_SHELL_ENV=0` skips the probe, matching the broker's switch.
+//!
+//! NOT CALLED YET. [`init_probe`] is deliberately unwired: its only consumer is
+//! [`provider_now`], which the `/model` picker lands with. Wiring it now would
+//! make every launch pay a second login-shell startup and discard the result.
+//! Before re-adding the call, bound the subprocess the way the broker does
+//! (`shellenv::hydrate` kills it after 3s) — `Command::output()` waits on pipe
+//! EOF forever, so an rc file that blocks would park the thread for the
+//! process lifetime.
+// Every item here is unused until the `/model` picker wires `provider_now` up;
+// the module is kept compiled and tested in the meantime. Remove this allow
+// (and the per-item ones below it) when the picker lands.
+#![allow(dead_code)]
+
 use std::collections::HashSet;
 use std::sync::OnceLock;
 

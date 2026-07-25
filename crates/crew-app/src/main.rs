@@ -207,6 +207,5 @@ fn main() -> anyhow::Result<()> {
     // above (broker/self-update/list-fonts/install-app/detach re-exec) return
     // before this line, so they never pay for a shell they don't use.
     cmdcheck::init_shell_path();
-    modelkeys::init_probe();
     handler::run()
 }
