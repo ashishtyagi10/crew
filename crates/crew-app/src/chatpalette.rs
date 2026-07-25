@@ -3,9 +3,12 @@
 //! mid-line `@file` mention (chatmention): this handles ONLY the leading
 //! token, that only non-leading ones, so at most one is open. Pure string
 //! logic + popup state.
-use crate::chatcomplete::{describe, CONSTRUCTS};
 use crate::chatkeys::ChatInput;
 use crate::suggest::MenuItem;
+
+#[path = "chatpaletteitems.rs"]
+mod chatpaletteitems;
+use chatpaletteitems::{attach_items, slash_items};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) enum Kind {
@@ -23,6 +26,9 @@ pub(crate) struct PaletteState {
     pub items: Vec<MenuItem>,
     pub sel: usize,
     pub entries: Vec<crate::chatmention::MentionEntry>,
+    /// Whether Up/Down has moved the selection since the palette opened.
+    /// Only meaningful for `Kind::Model` — see `popup_key`'s Enter arm.
+    pub touched: bool,
 }
 
 pub(crate) enum PaletteKey {
@@ -37,12 +43,15 @@ pub(crate) enum PaletteKey {
 /// (nothing before it — no whitespace yet). For a multi-target `@a+b`, the
 /// query is the segment after the last `+` (matching chatcomplete's Tab).
 pub(crate) fn pending_palette(input: &str) -> Option<(Kind, &str)> {
-    // `/model <arg>` is the one command with a value picker in the composer:
+    // `/model <arg>` (and its broker alias `/m`, see `expand_alias` in
+    // commands.rs) is the one command with a value picker in the composer:
     // one whitespace-free argument token opens it. A second token means the
     // freeform `/model <agent> <slug>` (or explicit `all`) form — leave it be.
-    if let Some(rest) = input.strip_prefix("/model ") {
-        let arg = rest.trim_start();
-        return (!arg.contains(char::is_whitespace)).then_some((Kind::Model, arg));
+    for prefix in ["/model ", "/m "] {
+        if let Some(rest) = input.strip_prefix(prefix) {
+            let arg = rest.trim_start();
+            return (!arg.contains(char::is_whitespace)).then_some((Kind::Model, arg));
+        }
     }
     if input.contains(char::is_whitespace) {
         return None;
@@ -101,47 +110,10 @@ pub(crate) fn after_edit(
                 items,
                 sel,
                 entries,
+                touched: false,
             })
         }
     }
-}
-
-fn slash_items(query: &str) -> Vec<MenuItem> {
-    CONSTRUCTS
-        .iter()
-        .filter(|c| c[1..].starts_with(query))
-        .map(|c| MenuItem {
-            label: c.to_string(),
-            desc: describe(c).to_string(),
-            fill: c.to_string(),
-            submit: false,
-            header: false,
-            dim: false,
-        })
-        .collect()
-}
-
-/// Rows for the leading `@`: the full attach picker (agents, skills, files
-/// — `chatmention::filter`'s section order), agents only once the token has
-/// a `+` (multi-target selectors route, they don't attach).
-fn attach_items(
-    query: &str,
-    entries: &[crate::chatmention::MentionEntry],
-    multi: bool,
-) -> Vec<MenuItem> {
-    use crate::chatmention::MentionEntry;
-    crate::chatmention::filter(entries, query)
-        .into_iter()
-        .filter(|e| !multi || matches!(e, MentionEntry::Agent { .. }))
-        .map(|e| MenuItem {
-            label: format!("@{}", e.token()),
-            desc: e.desc(),
-            fill: e.token(),
-            submit: false,
-            header: false,
-            dim: false,
-        })
-        .collect()
 }
 
 /// Popup-first key routing: arrows move, Tab/Enter accept, Esc closes the
@@ -155,9 +127,26 @@ pub(crate) fn popup_key(
         return PaletteKey::Forward;
     };
     match key {
-        ChatInput::Up => p.sel = crate::suggest::step_sel(&p.items, p.sel, false),
-        ChatInput::Down => p.sel = crate::suggest::step_sel(&p.items, p.sel, true),
+        ChatInput::Up => {
+            p.sel = crate::suggest::step_sel(&p.items, p.sel, false);
+            p.touched = true;
+        }
+        ChatInput::Down => {
+            p.sel = crate::suggest::step_sel(&p.items, p.sel, true);
+            p.touched = true;
+        }
         ChatInput::Complete | ChatInput::Enter => {
+            // Bare `/model `/`/m ` + untouched Enter: submit the input as-is
+            // (the broker's read-only listing) instead of accepting the
+            // highlighted `default` row's destructive `/model all default`.
+            if p.kind == Kind::Model
+                && !p.touched
+                && matches!(key, ChatInput::Enter)
+                && matches!(pending_palette(input), Some((Kind::Model, q)) if q.trim().is_empty())
+            {
+                *palette = None;
+                return PaletteKey::Submit;
+            }
             let mut submit = false;
             if let Some(item) = p.items.get(p.sel) {
                 submit = item.submit && matches!(key, ChatInput::Enter);
@@ -202,3 +191,7 @@ pub(crate) fn shared_model(agents: &[crew_plugin::AgentInfo]) -> Option<String> 
 #[cfg(test)]
 #[path = "chatpalette_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "chatpalettemodel_tests.rs"]
+mod model_tests;

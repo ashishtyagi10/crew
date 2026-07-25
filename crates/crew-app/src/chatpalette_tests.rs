@@ -124,6 +124,18 @@ fn pending_palette_detects_the_model_arg_phase() {
 }
 
 #[test]
+fn the_m_alias_opens_the_same_model_picker() {
+    // `/m` is the broker's built-in alias for `/model` (`expand_alias`); it
+    // must open the same picker.
+    assert_eq!(pending_palette("/m "), Some((Kind::Model, "")));
+    assert_eq!(pending_palette("/m son"), Some((Kind::Model, "son")));
+    // Two argument tokens: freeform passthrough, same as the long form.
+    assert_eq!(pending_palette("/m coder qwen"), None);
+    // A command that merely starts with "/m" must not false-match.
+    assert_eq!(pending_palette("/memory foo"), None);
+}
+
+#[test]
 fn model_rows_accept_into_a_full_broker_command_and_submit() {
     let mut p = None;
     after_edit(&mut p, "/model son", None, Vec::new);
@@ -168,8 +180,6 @@ fn popup_key_navigates_accepts_and_closes() {
         PaletteKey::Forward
     ));
 }
-
-// --- shared_model coverage (Finding 2) ---
 
 fn agent(name: &str, model: &str) -> crew_plugin::AgentInfo {
     crew_plugin::AgentInfo {
