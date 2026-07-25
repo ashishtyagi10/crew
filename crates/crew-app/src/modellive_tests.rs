@@ -64,6 +64,22 @@ fn fills_a_zero_curated_context_but_not_a_known_one() {
 }
 
 #[test]
+fn curated_free_survives_a_live_match_that_contributes_no_price() {
+    // A future curated row: `free: true`, `price: None` (not yet true of any
+    // row today, but not disallowed). A live match that itself has no price
+    // must not flip `free` to `false` just because the merged price is
+    // still `None` — the curated flag stands untouched.
+    let m = info(None, true, 0);
+    let live = [live("vendor/alias", None, false, 0)];
+    let (price, _, free) = enrich_with(&m, "vendor/alias", &live);
+    assert_eq!(price, None);
+    assert!(
+        free,
+        "curated free:true must survive a live match with no price to contribute"
+    );
+}
+
+#[test]
 fn no_matching_live_row_leaves_the_curated_row_untouched() {
     let m = info(None, false, 0);
     let live = [live("some/other-model", Some((5, 10)), false, 42)];

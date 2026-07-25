@@ -40,16 +40,26 @@ pub(crate) fn enrich(m: &ModelInfo) -> (Option<(u64, u64)>, u32, bool) {
 /// context, but never overwrites a curated value that's already known, and a
 /// row with no live match just falls back to the curated numbers untouched
 /// — nothing here can delete or replace a catalog row. `free` is derived
-/// from whichever price wins, the same way `parse_models` derives it, rather
-/// than OR'd in from the live row separately — that would let a live
-/// `free: true` override a curated *paid* price the merge just decided to
-/// keep.
+/// from the price only when live actually supplied it (curated `None` price,
+/// live `Some`) — the same way `parse_models` derives it — rather than OR'd
+/// in from the live row separately, which would let a live `free: true`
+/// override a curated *paid* price the merge just decided to keep. Whenever
+/// live didn't contribute the price (curated already had one, or live has
+/// none either), `free` falls back to the curated `m.free` untouched too: a
+/// merged price of `None` must never be read as "not free" when the curated
+/// row already said otherwise.
 fn enrich_with(m: &ModelInfo, alias: &str, live: &[LiveModel]) -> (Option<(u64, u64)>, u32, bool) {
     match live.iter().find(|l| l.id == alias) {
         Some(l) => {
             let price = m.price.or(l.price);
             let context = if m.context > 0 { m.context } else { l.context };
-            (price, context, price == Some((0, 0)))
+            let live_supplied_price = m.price.is_none() && l.price.is_some();
+            let free = if live_supplied_price {
+                price == Some((0, 0))
+            } else {
+                m.free
+            };
+            (price, context, free)
         }
         None => (m.price, m.context, m.free),
     }
