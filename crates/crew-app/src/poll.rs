@@ -27,6 +27,24 @@ impl CrewApp {
             return;
         }
 
+        // Live OpenRouter enrichment: kick off the background fetch the
+        // first time a `/model` picker opens (guarded so it fires once per
+        // process), then drain whatever's landed. `try_recv` on a `None`
+        // handle or an empty/disconnected channel is a cheap no-op, so this
+        // costs nothing on every other tick — including forever offline or
+        // with no key, where `spawn()` never even returned a receiver.
+        if !self.model_fetch_started && self.model_picker_open() {
+            self.model_fetch_started = true;
+            self.model_fetch = crate::modelfetch::spawn();
+        }
+        let mut model_fetch_landed = false;
+        if let Some(rx) = &self.model_fetch {
+            if let Ok(models) = rx.try_recv() {
+                crate::modelpick::set_live(models);
+                model_fetch_landed = true;
+            }
+        }
+
         // Random theme mode: rotate on its 10-minute clock. Cheap + lock-free.
         // Seeds `any_changed` so a rotation repaints every pane in the new theme.
         // A rotation changes the active theme app-wide, so re-apply the themeable
@@ -52,7 +70,7 @@ impl CrewApp {
         // Drain EVERY pane each tick. A `for` loop (not `any()`/`fold`) so all
         // panes are polled for their side effects — `any()` would short-circuit
         // and starve later panes when an earlier one has output.
-        let mut any_changed = rotated;
+        let mut any_changed = rotated || model_fetch_landed;
         // Set when any pane still has buffered PTY output past this tick's read
         // budget. We then keep the loop hot (ControlFlow::Poll) so a flood drains
         // quickly across ticks instead of trickling one budget per 16 ms — while
@@ -368,6 +386,21 @@ impl CrewApp {
                 Instant::now() + Duration::from_millis(POLL_MS),
             ));
         }
+    }
+
+    /// Whether a `/model` picker is open right now, on either of its two
+    /// surfaces: the input bar's value picker (`self.input`, a plain text
+    /// prefix — it has no persisted "open" flag, it's recomputed from the
+    /// text each render) or a chat pane's composer popup (`ChatPane::palette`,
+    /// which does persist while typing). Checked every tick rather than at
+    /// every place a palette can open, so the once-per-process fetch trigger
+    /// is a single guarded call site here.
+    fn model_picker_open(&self) -> bool {
+        self.input.focused && self.input.text.trim_start().starts_with("/model")
+            || self.panes.iter().any(|p| {
+                matches!(&p.content, PaneContent::Chat(c)
+                    if c.palette.as_ref().is_some_and(|pl| pl.kind == crate::chatpalette::Kind::Model))
+            })
     }
 
     /// Persist the window size once resizing has settled (~400ms idle), so a

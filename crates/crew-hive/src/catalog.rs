@@ -5,6 +5,19 @@
 //! same unit as [`crate::pricing`] — an unknown price is `None`, never a
 //! guess (the badge renders `—`).
 mod data;
+mod live;
+
+pub use live::{fetch as fetch_openrouter, parse_models};
+
+/// One row from the live OpenRouter catalog (owned, unlike [`ModelInfo`]).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LiveModel {
+    pub id: String,
+    pub name: String,
+    pub price: Option<(u64, u64)>,
+    pub free: bool,
+    pub context: u32,
+}
 
 /// The company behind a model — the picker's section key.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

@@ -9,11 +9,11 @@ use crate::modelroute::{route_for, Route};
 use crate::suggest::MenuItem;
 
 /// Dollars-per-Mtok badge, or an em dash when the rate is unknown.
-fn price_badge(m: &ModelInfo) -> String {
-    if m.free {
+fn price_badge(price: Option<(u64, u64)>, free: bool) -> String {
+    if free {
         return "free".to_string();
     }
-    match m.price {
+    match price {
         Some((inp, out)) => format!("${}/${}", dollars(inp), dollars(out)),
         None => "\u{2014}".to_string(),
     }
@@ -61,10 +61,21 @@ fn matches(m: &ModelInfo, query: &str) -> bool {
     hay.contains(query) || crate::suggest::is_subsequence(query, &hay)
 }
 
-/// The dim column: slug, price, context, current-mark, and route hint.
-fn desc(m: &ModelInfo, route: Route, current: bool) -> String {
-    let mut parts: Vec<String> = vec![m.slug.to_string(), price_badge(m)];
-    let ctx = context_badge(m.context);
+/// The dim column: slug, price, context, current-mark, and route hint. Price,
+/// free, and context are passed in already enriched (see [`enrich`]) rather
+/// than read straight off `m`, so a live OpenRouter rate can fill a curated
+/// `None`/`0` without this function needing to know where its numbers came
+/// from.
+fn desc(
+    m: &ModelInfo,
+    price: Option<(u64, u64)>,
+    free: bool,
+    context: u32,
+    route: Route,
+    current: bool,
+) -> String {
+    let mut parts: Vec<String> = vec![m.slug.to_string(), price_badge(price, free)];
+    let ctx = context_badge(context);
     if !ctx.is_empty() {
         parts.push(ctx);
     }
@@ -168,15 +179,20 @@ fn header_row(label: &str) -> MenuItem {
 /// Factored out of `rows` so the dim wiring is unit-testable against an
 /// explicit route, without the live provider probe `rows` itself depends on.
 fn model_row(m: &ModelInfo, route: Route, current: bool) -> MenuItem {
+    let (price, context, free) = modellive::enrich(m);
     MenuItem {
         label: m.name.to_string(),
-        desc: desc(m, route, current),
+        desc: desc(m, price, free, context, route, current),
         fill: route.fill_slug(m),
         submit: true,
         header: false,
         dim: route.unserveable(),
     }
 }
+
+#[path = "modellive.rs"]
+mod modellive;
+pub(crate) use modellive::set_live;
 
 #[cfg(test)]
 #[path = "modelpick_tests.rs"]

@@ -99,6 +99,7 @@ mod mdkeys;
 mod mdpane;
 mod mdpane_view;
 mod minstrip;
+mod modelfetch;
 mod modelkeys;
 mod modelpick;
 mod modelroute;
