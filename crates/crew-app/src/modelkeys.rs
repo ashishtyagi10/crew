@@ -7,7 +7,10 @@
 //! `CREW_SHELL_ENV=0` skips the probe, matching the broker's switch.
 //!
 //! [`init_probe`] is wired from `main.rs`, beside `init_shell_path`, now that
-//! the `/model` picker (`crate::modelpick`) consumes [`provider_now`]. The
+//! the `/model` picker (`crate::modelpick`) consumes [`provider_now`], and
+//! `crate::modelfetch` consumes [`openrouter_key`] for the same reason: a
+//! Finder-launched app never sees a shell-only `OPENROUTER_API_KEY` either,
+//! so enrichment would silently never fire without this probe. The
 //! subprocess is bounded the same way `crew_plugin::broker::shellenv::hydrate`
 //! bounds its probe: stdout is drained on a side thread while the spawning
 //! thread polls for a result, and the child is killed if a blocking rc file
@@ -34,13 +37,16 @@ const KEYS: &[&str] = &[
     "CREW_BROKER_MOCK_REPLY",
 ];
 
-/// What the probe found: which vars were non-empty, and — since it's the
-/// decisive input to routing, not just a presence check — `CREW_PROVIDER`'s
-/// actual value. Mirrors [`crate::cmdcheck::init_shell_path`] /
-/// `effective_path`: capture the real shell value, don't just note it existed.
+/// What the probe found: which vars were non-empty, and — since they're
+/// decisive inputs downstream, not just presence checks — `CREW_PROVIDER`'s
+/// and the OpenRouter key's actual values. Mirrors
+/// [`crate::cmdcheck::init_shell_path`] / `effective_path`: capture the real
+/// shell value, don't just note it existed. Deliberately doesn't derive
+/// `Debug`: `openrouter_key` is a secret and must never end up in a log line.
 struct Probed {
     keys: HashSet<String>,
     provider_pin: Option<String>,
+    openrouter_key: Option<String>,
 }
 
 /// Probe results, once the probe lands.
@@ -56,6 +62,9 @@ fn merge_shell_env(probed: &mut Probed, shell_output: &str) {
             // Process vars always win: only adopt the shell value if absent.
             if k == "CREW_PROVIDER" && probed.provider_pin.is_none() {
                 probed.provider_pin = Some(v.to_string());
+            }
+            if k == "OPENROUTER_API_KEY" && probed.openrouter_key.is_none() {
+                probed.openrouter_key = Some(v.to_string());
             }
         }
     }
@@ -121,18 +130,27 @@ fn bounded_shell_env(shell: &str, timeout: Duration) -> Option<String> {
     }
 }
 
-/// Keys and `CREW_PROVIDER` value already visible in this process, before the
-/// probe lands (or when it's skipped).
+/// Keys, `CREW_PROVIDER`, and the OpenRouter key already visible in this
+/// process, before the probe lands (or when it's skipped).
 fn process_probe() -> Probed {
     let keys = KEYS
         .iter()
         .filter(|k| std::env::var(k).is_ok_and(|v| !v.is_empty()))
         .map(|k| (*k).to_string())
         .collect();
-    let provider_pin = std::env::var("CREW_PROVIDER")
-        .ok()
-        .filter(|v| !v.is_empty());
-    Probed { keys, provider_pin }
+    let provider_pin = env_nonempty("CREW_PROVIDER");
+    let openrouter_key = env_nonempty("OPENROUTER_API_KEY");
+    Probed {
+        keys,
+        provider_pin,
+        openrouter_key,
+    }
+}
+
+/// This process's own value for `k`, or `None` if unset/empty. Shared by
+/// [`process_probe`] and [`openrouter_key`]'s pre-probe fallback.
+fn env_nonempty(k: &str) -> Option<String> {
+    std::env::var(k).ok().filter(|v| !v.is_empty())
 }
 
 /// Pure resolution logic: given the keys visible to the broker and an
@@ -152,6 +170,21 @@ pub(crate) fn provider_now() -> (Option<crew_plugin::Provider>, bool) {
         return (None, false);
     };
     (resolve(&probed.keys, probed.provider_pin.as_deref()), true)
+}
+
+/// The OpenRouter API key's value: this process's own env wins if it has one
+/// (the same precedence [`merge_shell_env`] applies), otherwise whatever the
+/// login-shell probe found, otherwise `None`. Before the probe lands, falls
+/// back to reading the process env directly — same behaviour as if this
+/// accessor didn't exist. Consumed by `crate::modelfetch::spawn`, which fires
+/// lazily on first `/model` picker open — well after the probe typically
+/// lands, but this must still be correct on the rare early call. Never log
+/// this value: it's a secret.
+pub(crate) fn openrouter_key() -> Option<String> {
+    match SHELL_PROBE.get() {
+        Some(probed) => probed.openrouter_key.clone(),
+        None => env_nonempty("OPENROUTER_API_KEY"),
+    }
 }
 
 #[cfg(test)]

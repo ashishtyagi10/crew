@@ -76,6 +76,7 @@ fn merge_process_pin_wins_over_shell_pin() {
     let mut probed = Probed {
         keys: HashSet::new(),
         provider_pin: Some("anthropic".to_string()),
+        openrouter_key: None,
     };
     let shell_env = "CREW_PROVIDER=openrouter\nOPENROUTER_API_KEY=sk-or-123\n";
     merge_shell_env(&mut probed, shell_env);
@@ -95,6 +96,7 @@ fn merge_adopts_shell_pin_when_process_has_none() {
     let mut probed = Probed {
         keys: HashSet::new(),
         provider_pin: None,
+        openrouter_key: None,
     };
     let shell_env = "CREW_PROVIDER=openrouter\nOPENROUTER_API_KEY=sk-or-123\n";
     merge_shell_env(&mut probed, shell_env);
@@ -106,11 +108,50 @@ fn merge_adopts_shell_pin_when_process_has_none() {
 }
 
 #[test]
+fn merge_process_openrouter_key_wins_over_shell_key() {
+    // Process already has a value (e.g. this test process's own env);
+    // shell output has a different one. The process value must win — same
+    // precedence as `CREW_PROVIDER` above, per the broker's shellenv rule.
+    let mut probed = Probed {
+        keys: HashSet::new(),
+        provider_pin: None,
+        openrouter_key: Some("sk-or-process".to_string()),
+    };
+    let shell_env = "OPENROUTER_API_KEY=sk-or-shell\n";
+    merge_shell_env(&mut probed, shell_env);
+    assert_eq!(
+        probed.openrouter_key,
+        Some("sk-or-process".to_string()),
+        "process key must not be overwritten by the shell-probed value"
+    );
+}
+
+#[test]
+fn merge_adopts_shell_openrouter_key_when_process_has_none() {
+    // Process never saw OPENROUTER_API_KEY (the Finder-launch case this
+    // probe exists for); shell has it. The shell value must be adopted so
+    // `crate::modelfetch::spawn` can actually see a key.
+    let mut probed = Probed {
+        keys: HashSet::new(),
+        provider_pin: None,
+        openrouter_key: None,
+    };
+    let shell_env = "OPENROUTER_API_KEY=sk-or-shell\n";
+    merge_shell_env(&mut probed, shell_env);
+    assert_eq!(
+        probed.openrouter_key,
+        Some("sk-or-shell".to_string()),
+        "shell key must be adopted when the process has none"
+    );
+}
+
+#[test]
 fn merge_ignores_empty_values() {
     // Shell has CREW_PROVIDER with an empty value; should not record it.
     let mut probed = Probed {
         keys: HashSet::new(),
         provider_pin: None,
+        openrouter_key: None,
     };
     let shell_env = "CREW_PROVIDER=\nDASHSCOPE_API_KEY=sk-aak-123\n";
     merge_shell_env(&mut probed, shell_env);
@@ -128,6 +169,7 @@ fn merge_ignores_keys_outside_the_interesting_set() {
     let mut probed = Probed {
         keys: HashSet::new(),
         provider_pin: None,
+        openrouter_key: None,
     };
     let shell_env = "HOME=/Users/ashish\nUNKNOWN_VAR=value\nANTHROPIC_API_KEY=sk-ant-123\n";
     merge_shell_env(&mut probed, shell_env);

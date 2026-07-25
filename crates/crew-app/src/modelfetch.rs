@@ -18,10 +18,16 @@ fn cache_path() -> Option<std::path::PathBuf> {
 
 /// Spawn the enrichment worker: cache first, network only when stale.
 /// Returns immediately; `None` when there's nothing to do (no API key).
+///
+/// The key comes from [`crate::modelkeys::openrouter_key`], not this
+/// process's env directly: a Finder/Dock-launched app doesn't inherit the
+/// login shell, so a key living only in `~/.zshrc`/`~/.zshenv` would
+/// otherwise never be seen and enrichment would silently never fire on the
+/// app's primary launch mode. That accessor already applies the broker's
+/// precedence (a value already in this process's env wins) and falls back
+/// to the process env itself before the probe lands.
 pub(crate) fn spawn() -> Option<Receiver<Vec<LiveModel>>> {
-    let key = std::env::var("OPENROUTER_API_KEY")
-        .ok()
-        .filter(|k| !k.is_empty())?;
+    let key = crate::modelkeys::openrouter_key()?;
     let (tx, rx) = mpsc::channel();
     std::thread::spawn(move || {
         if let Some(cached) = read_cache() {
