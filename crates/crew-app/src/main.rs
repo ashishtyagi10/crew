@@ -100,6 +100,7 @@ mod mdpane;
 mod mdpane_view;
 mod minstrip;
 mod modelkeys;
+mod modelpick;
 mod modelroute;
 mod navcard;
 mod navlog;

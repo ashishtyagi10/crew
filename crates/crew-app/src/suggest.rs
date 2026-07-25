@@ -81,34 +81,18 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
                 "700 — thickest for body text".to_string(),
             ),
         ]),
-        // Model picker for the agent smith pane — a curated set applied to every
-        // agent (forwarded as `/model all <slug>` to the open pane). Any other
-        // slug still works: type it freeform after `/model `. Provider must be
-        // able to serve the pick (see the DashScope/OpenRouter/Anthropic stack).
-        "/model" => Some(vec![
-            (
-                "default".to_string(),
-                "back to the provider default".to_string(),
-            ),
-            (
-                "qwen-max".to_string(),
-                "Alibaba Qwen — DashScope".to_string(),
-            ),
-            (
-                "qwen-plus".to_string(),
-                "Alibaba Qwen — larger context".to_string(),
-            ),
-            (
-                "claude-sonnet-5".to_string(),
-                "Anthropic Claude Sonnet".to_string(),
-            ),
-            (
-                "claude-opus-4-8".to_string(),
-                "Anthropic Claude Opus".to_string(),
-            ),
-            ("gpt-5".to_string(), "OpenAI GPT-5".to_string()),
-            ("deepseek-chat".to_string(), "DeepSeek".to_string()),
-        ]),
+        // Model picker for the agent smith pane — the catalog grouped by
+        // provider (see `modelpick`), applied to every agent (forwarded as
+        // `/model all <slug>`). Any other slug still works: type it freeform
+        // after `/model `. The value picker takes (value, desc) pairs, so the
+        // section headers are re-derived by `menu_items` below.
+        "/model" => Some(
+            crate::modelpick::rows("", None)
+                .into_iter()
+                .filter(|i| !i.header)
+                .map(|i| (i.fill, i.desc))
+                .collect(),
+        ),
         _ => None,
     }
 }

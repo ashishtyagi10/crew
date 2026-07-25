@@ -1,0 +1,75 @@
+use super::*;
+
+fn labels(q: &str) -> Vec<String> {
+    rows(q, None).into_iter().map(|i| i.label).collect()
+}
+
+#[test]
+fn default_row_leads_and_sections_are_headed() {
+    let r = rows("", None);
+    assert_eq!(r[0].label, "default");
+    assert!(!r[0].header);
+    assert_eq!(r[0].fill, "default");
+    // The first section header is Anthropic, and every header is inert.
+    let first_header = r.iter().find(|i| i.header).expect("a section header");
+    assert_eq!(first_header.label, "anthropic");
+    assert!(r.iter().filter(|i| i.header).all(|i| i.fill.is_empty()));
+}
+
+#[test]
+fn every_header_has_at_least_one_row_under_it() {
+    for q in ["", "claude", "free", "qwen"] {
+        let r = rows(q, None);
+        for (i, item) in r.iter().enumerate() {
+            if item.header {
+                assert!(
+                    r.get(i + 1).is_some_and(|next| !next.header),
+                    "empty section {:?} for query {q:?}",
+                    item.label
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn query_matches_name_slug_vendor_and_free_badge() {
+    assert!(labels("sonnet").iter().any(|l| l.contains("Sonnet")));
+    assert!(labels("claude-opus-5").iter().any(|l| l.contains("Opus 5")));
+    assert!(labels("anthropic").iter().any(|l| l.contains("Claude")));
+    // "free" is a first-class filter term.
+    let free = rows("free", None);
+    assert!(!free.is_empty());
+    assert!(free
+        .iter()
+        .filter(|i| !i.header && i.fill != "default")
+        .all(|i| i.desc.contains("free")));
+}
+
+#[test]
+fn the_current_model_is_marked_once() {
+    let r = rows("", Some("claude-sonnet-5"));
+    let marked: Vec<&MenuItem> = r.iter().filter(|i| i.desc.contains('\u{25cf}')).collect();
+    assert_eq!(marked.len(), 1);
+    assert!(marked[0].label.contains("Sonnet 5"));
+    // No current model → no mark anywhere.
+    assert!(rows("", None).iter().all(|i| !i.desc.contains('\u{25cf}')));
+}
+
+#[test]
+fn priced_rows_badge_dollars_and_unpriced_rows_badge_a_dash() {
+    let r = rows("claude-sonnet-5", Some("x"));
+    let row = r.iter().find(|i| !i.header && i.fill != "default").unwrap();
+    assert!(row.desc.contains("$3/$15"), "{}", row.desc);
+    let g = rows("gemini-2.5-pro", None);
+    let row = g.iter().find(|i| !i.header && i.fill != "default").unwrap();
+    assert!(row.desc.contains('\u{2014}'), "{}", row.desc);
+}
+
+#[test]
+fn rows_submit_and_carry_a_slug() {
+    for item in rows("", None).iter().filter(|i| !i.header) {
+        assert!(item.submit, "{} should run on Enter", item.label);
+        assert!(!item.fill.is_empty());
+    }
+}
