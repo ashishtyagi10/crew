@@ -57,7 +57,7 @@ pub(crate) fn parse_model_chain(env_val: Option<String>, default: Vec<String>) -
 
 /// The provider backing the project's API-backed agents.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub(crate) enum ProviderKind {
+pub enum ProviderKind {
     Mock,
     DashScope,
     OpenRouter,
@@ -68,10 +68,7 @@ pub(crate) enum ProviderKind {
 /// (tests) always wins; then an explicit `CREW_PROVIDER`
 /// (dashscope|openrouter|anthropic); then auto-discovery in preference order
 /// — DashScope (paid Qwen) before OpenRouter (free chains) before Anthropic.
-pub(crate) fn pick_provider(
-    force: Option<&str>,
-    has_key: impl Fn(&str) -> bool,
-) -> Option<ProviderKind> {
+pub fn pick_provider(force: Option<&str>, has_key: impl Fn(&str) -> bool) -> Option<ProviderKind> {
     if has_key("CREW_BROKER_MOCK_REPLY") {
         return Some(ProviderKind::Mock);
     }
