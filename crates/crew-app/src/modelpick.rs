@@ -93,12 +93,23 @@ pub(crate) fn rows_with_recents(
     // list first: a hand-edited config carrying the same slug twice must
     // still render exactly one recent row for it, not two identical ones.
     let mut seen = std::collections::HashSet::new();
+    // A persisted recent may be the OpenRouter alias (`Route::fill_slug`
+    // writes `m.or_slug` when OpenRouter is the active provider — both write
+    // paths, the composer popup and the input bar, carry that value
+    // verbatim), not the native `m.slug`. Match either, same as `is_current`
+    // below, or an OpenRouter-primary user's recents never resolve to a row.
+    // `.take` runs AFTER the catalog match (not before): an unresolvable
+    // slug — a model that left the catalog — must not consume a recent slot.
     let recent: Vec<&ModelInfo> = recents
         .iter()
         .filter(|slug| seen.insert(slug.as_str()))
-        .take(MAX_RECENTS)
-        .filter_map(|slug| catalog().iter().find(|m| m.slug == *slug))
+        .filter_map(|slug| {
+            catalog()
+                .iter()
+                .find(|m| m.slug == *slug || m.or_slug == Some(slug.as_str()))
+        })
         .filter(|m| matches(m, &q))
+        .take(MAX_RECENTS)
         .collect();
     if !recent.is_empty() {
         out.push(header_row("recent"));

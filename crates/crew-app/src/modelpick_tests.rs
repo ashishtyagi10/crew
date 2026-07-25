@@ -107,6 +107,28 @@ fn a_duplicated_recent_slug_renders_only_one_recent_row() {
 }
 
 #[test]
+fn a_recent_stored_as_an_openrouter_alias_resolves_and_renders() {
+    // `Route::fill_slug` persists `m.or_slug` (not `m.slug`) when OpenRouter
+    // is the active provider, so an OpenRouter-primary user's recents list
+    // carries the alias verbatim — e.g. "qwen-max" is stored as
+    // "qwen/qwen3-max". That must still resolve to a row (and lead the
+    // list), not silently vanish.
+    let r = rows_with_recents("", None, &["qwen/qwen3-max".to_string()]);
+    let header = r
+        .iter()
+        .position(|i| i.header && i.label == "recent")
+        .expect("recent section renders for an OpenRouter-alias entry");
+    let recent_row = &r[header + 1];
+    assert_eq!(recent_row.label, "Qwen Max");
+    // The current-model mark uses the same either/or match, so a current
+    // pick stored as the alias is marked too.
+    let r2 = rows_with_recents("", Some("qwen/qwen3-max"), &[]);
+    let marked: Vec<&MenuItem> = r2.iter().filter(|i| i.desc.contains('\u{25cf}')).collect();
+    assert_eq!(marked.len(), 1);
+    assert_eq!(marked[0].label, "Qwen Max");
+}
+
+#[test]
 fn model_row_dims_exactly_the_unserveable_routes() {
     // `rows()` itself can't be driven to a known route in a unit test — the
     // active provider comes from a live, once-per-process probe
