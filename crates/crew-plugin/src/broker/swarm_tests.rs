@@ -227,6 +227,102 @@ fn events_are_emitted_during_the_run_not_after() {
     );
 }
 
+// FINDING 1: `OutputDelta` is published once per SSE fragment by `ApiAgent`,
+// so forwarding it raw as `PluginEvent::Hive` would flood the wire with
+// exactly what the `TextGate` in `tick.rs` exists to coalesce — and the app
+// ignores raw `Hive{OutputDelta}` entirely (`chatswarm.rs`'s no-op arm), so
+// every one of those lines is pure waste. Only the coalesced `Delta` from
+// `translate` may cross the wire; every other Hive variant must still
+// forward raw, unaffected.
+#[test]
+fn raw_output_delta_never_crosses_the_wire_as_a_hive_event() {
+    use crew_hive::agent::{Agent, AgentContext};
+    use crew_hive::board::TaskResult;
+
+    struct ChattyAgent;
+    impl Agent for ChattyAgent {
+        fn run(
+            &self,
+            ctx: AgentContext,
+        ) -> std::pin::Pin<Box<dyn std::future::Future<Output = TaskResult> + Send>> {
+            Box::pin(async move {
+                for frag in ["frag-a", "frag-b", "frag-c"] {
+                    ctx.bus.publish(crew_hive::HiveEvent::OutputDelta {
+                        agent: ctx.agent.clone(),
+                        text: frag.into(),
+                    });
+                }
+                let output = format!("chatty:{}", ctx.task.id.0);
+                ctx.bus.publish(crew_hive::HiveEvent::OutputChunk {
+                    agent: ctx.agent.clone(),
+                    text: output.clone(),
+                });
+                TaskResult {
+                    task: ctx.task.id,
+                    output,
+                    success: true,
+                }
+            })
+        }
+    }
+    struct ChattyFactory;
+    impl crew_hive::AgentFactory for ChattyFactory {
+        fn make(&self, _kind: &crew_hive::AgentKind) -> Box<dyn Agent> {
+            Box::new(ChattyAgent)
+        }
+    }
+
+    let _env = testenv::mock("unused"); // see `collect`'s doc — isolates CREW_PROJECT_DIR
+    let mut evs = Vec::new();
+    run_with(
+        "build the thing",
+        Arc::new(StubPlanner { fanout: 2 }),
+        Arc::new(ChattyFactory),
+        None,
+        Arc::new(AtomicBool::new(false)),
+        &mut |ev| {
+            evs.push(ev);
+            Ok(())
+        },
+    )
+    .unwrap();
+
+    assert!(
+        !evs.iter().any(|e| matches!(
+            e,
+            PluginEvent::Hive {
+                event: HiveEvent::OutputDelta { .. }
+            }
+        )),
+        "a raw Hive{{OutputDelta}} crossed the wire, defeating the TextGate: {evs:?}"
+    );
+    // Other variants must still forward raw, unaffected by the exclusion.
+    assert!(
+        evs.iter().any(|e| matches!(
+            e,
+            PluginEvent::Hive {
+                event: HiveEvent::AgentSpawned { .. }
+            }
+        )),
+        "AgentSpawned must still forward raw: {evs:?}"
+    );
+    assert!(
+        evs.iter().any(|e| matches!(
+            e,
+            PluginEvent::Hive {
+                event: HiveEvent::TaskStateChanged { .. }
+            }
+        )),
+        "TaskStateChanged must still forward raw: {evs:?}"
+    );
+    // The coalesced Delta must still reach the wire.
+    assert!(
+        evs.iter()
+            .any(|e| matches!(e, PluginEvent::Delta { text, .. } if text.contains("frag-a"))),
+        "the coalesced Delta must still cross the wire: {evs:?}"
+    );
+}
+
 // F4: the run emits one aggregate Stats event (turn-total: empty agent)
 // summing the drained TokenDelta events, before the final summary
 // message closes the run, so the chat header's token/cost meter isn't
