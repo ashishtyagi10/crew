@@ -191,9 +191,9 @@ pub(crate) fn run_with(
     // the three futures on this current-thread runtime, so each event reaches
     // the host as it happens instead of after the run (frozen-looking runs).
     let mut agent_task: HashMap<u64, TaskId> = HashMap::new();
-    // One TextGate per agent name, plus the run clock they pace against —
+    // One TextGate per agent id, plus the run clock they pace against —
     // `translate` has neither, so both are threaded in (see its doc comment).
-    let mut gates: HashMap<String, crate::broker::tick::TextGate> = HashMap::new();
+    let mut gates: HashMap<u64, crate::broker::tick::TextGate> = HashMap::new();
     let run_start = std::time::Instant::now();
     let mut tokens_total: u64 = 0;
     let mut in_total: u64 = 0;

@@ -12,16 +12,34 @@ use crate::broker::tick::{text_streaming_enabled, TextGate};
 /// `HivePlan` — this translation is not given them at all, so naming an agent
 /// after one is impossible here rather than merely discouraged.
 ///
-/// `gates` holds one [`TextGate`] per agent NAME and `now_ms` is the run's
+/// `gates` holds one [`TextGate`] per agent, keyed by the `AgentId`'s numeric
+/// id (`agent.0`) rather than its display name, and `now_ms` is the run's
 /// elapsed clock: `translate` sees one event at a time and has no clock of
 /// its own, so mid-reply pacing has to be threaded in from the drain loop the
-/// same way `agent_task` is. Per-agent gates keep a parallel run's
-/// interleaved fragments from being merged into one another.
+/// same way `agent_task` is.
+///
+/// Keying by id — not by `agent_name(...)`'s specialty string — matters
+/// because specialty is LLM-authored free text with no uniqueness
+/// constraint, and the scheduler runs up to `CONCURRENCY` tasks in
+/// parallel: two concurrently-running tasks CAN share a specialty. Keying
+/// the gate by name would collapse both agents onto one `TextGate`, so
+/// their fragments would interleave into a single buffer and be emitted as
+/// one `Delta` — genuine cross-agent text concatenation, not merely shared
+/// attribution. Keying by `agent.0` gives every real agent its own buffer,
+/// so no two agents' text can ever land in one payload.
+///
+/// This does NOT fix same-specialty agents being *displayed* as one: the
+/// emitted `Delta`'s `agent` field is still `agent_name(...)`, so two
+/// concurrent agents sharing a specialty still emit Deltas under the same
+/// name and the app still merges them into one card. That is the
+/// pre-existing agent-naming conflation — `Activity` and `StatsTick` already
+/// name agents by specialty the same way — not something this gate solves
+/// or was ever meant to.
 pub(super) fn translate(
     ev: &HiveEvent,
     specialties: &HashMap<TaskId, String>,
     agent_task: &mut HashMap<u64, TaskId>,
-    gates: &mut HashMap<String, TextGate>,
+    gates: &mut HashMap<u64, TextGate>,
     now_ms: u64,
 ) -> Vec<PluginEvent> {
     let specialist_of = |t: &TaskId| {
@@ -65,7 +83,7 @@ pub(super) fn translate(
                 return vec![];
             }
             let name = agent_name(agent, agent_task);
-            let gate = gates.entry(name.clone()).or_insert_with(TextGate::new);
+            let gate = gates.entry(agent.0).or_insert_with(TextGate::new);
             match gate.push(text, now_ms) {
                 Some(payload) => vec![PluginEvent::Delta {
                     agent: name,
