@@ -1,4 +1,5 @@
 use super::*;
+use std::time::Instant;
 
 /// A throwaway executable shell script at `d/name`, `chmod +x`'d.
 fn script(d: &std::path::Path, name: &str, body: &str) -> std::path::PathBuf {
@@ -249,4 +250,65 @@ fn merge_leaves_path_unset_when_env_output_has_no_path_line() {
     };
     merge_shell_env(&mut probed, "ANTHROPIC_API_KEY=sk-ant-1\n");
     assert_eq!(probed.path, None, "fallback stays intact with no PATH line");
+}
+
+#[test]
+fn bounded_shell_path_captures_a_quick_probe() {
+    let dir = tempfile::tempdir().unwrap();
+    let sh = script(dir.path(), "sh", "printf '/usr/local/bin:/usr/bin:/bin'");
+    let out = bounded_shell_path(sh.to_str().unwrap(), Duration::from_secs(3))
+        .expect("a fast script must produce output before the deadline");
+    assert_eq!(out, "/usr/local/bin:/usr/bin:/bin");
+}
+
+#[test]
+fn adopt_fallback_path_uses_the_fallback_value_when_present() {
+    // The pure decision this whole mitigation rests on: once the caller has
+    // already determined the primary `-ilc env` probe produced nothing (by
+    // matching `bounded_shell_env`'s `None`), the fast PATH-only fallback
+    // value must be adopted — no process spawn needed to verify this.
+    let mut probed = Probed {
+        keys: HashSet::new(),
+        provider_pin: None,
+        openrouter_key: None,
+        path: None,
+    };
+    adopt_fallback_path(&mut probed, Some("/usr/local/bin:/usr/bin:/bin"));
+    assert_eq!(
+        probed.path,
+        Some("/usr/local/bin:/usr/bin:/bin".to_string())
+    );
+}
+
+#[test]
+fn adopt_fallback_path_leaves_path_unset_when_fallback_also_failed() {
+    // Both shells struck out (e.g. both timed out): PATH must stay unset so
+    // `effective_path` falls back to the process PATH, never panicking or
+    // fabricating a value.
+    let mut probed = Probed {
+        keys: HashSet::new(),
+        provider_pin: None,
+        openrouter_key: None,
+        path: None,
+    };
+    adopt_fallback_path(&mut probed, None);
+    assert_eq!(probed.path, None);
+}
+
+#[test]
+fn adopt_fallback_path_rejects_blank_fallback_value() {
+    // Same blank/whitespace-only guard as the primary probe's PATH= line in
+    // `merge_shell_env` — a shell that "succeeds" but prints nothing useful
+    // must not overwrite an unset PATH with an empty string.
+    let mut probed = Probed {
+        keys: HashSet::new(),
+        provider_pin: None,
+        openrouter_key: None,
+        path: None,
+    };
+    adopt_fallback_path(&mut probed, Some("   "));
+    assert_eq!(
+        probed.path, None,
+        "whitespace-only fallback must not be adopted"
+    );
 }

@@ -4,27 +4,38 @@
 //! command detection and the broker's provider pick would under-report
 //! reading this process's env alone (`crew-plugin`'s `broker/shellenv.rs`
 //! hydrates the same way). A single `$SHELL -ilc env` on a background
-//! thread (NEVER the winit thread) covers both — its output already
-//! contains `PATH=` alongside the provider vars, so a second shell just for
-//! PATH is redundant. Was two probes: this module (`modelkeys`, provider
-//! keys only) plus `cmdcheck`'s own unbounded `$SHELL -lc` for PATH; now
-//! one, cached in a `OnceLock`. Two intended behaviour changes: PATH now
-//! comes from `-ilc` rather than `-lc` — a strict superset, picking up a
-//! PATH exported only from `~/.zshrc` (the broker already uses `-ilc`); and
-//! PATH capture is now bounded by [`PROBE_TIMEOUT`] rather than unbounded,
-//! so a pathologically slow rc file yields the process PATH instead of the
-//! shell one eventually. `CREW_SHELL_ENV=0` skips the probe, matching the
-//! broker's switch.
+//! thread (NEVER the winit thread) covers both in the common case: its
+//! output already contains `PATH=` alongside the provider vars, so a second
+//! shell just for PATH would be redundant. Was two probes: this module
+//! (`modelkeys`, provider keys only) plus `cmdcheck`'s own unbounded
+//! `$SHELL -lc` for PATH; now one normally, cached in a `OnceLock`. PATH
+//! also switched from `-lc` to `-ilc` (a strict superset, picking up a PATH
+//! exported only from `~/.zshrc`) and is now bounded by [`PROBE_TIMEOUT`]
+//! rather than unbounded — but `-ilc` sourcing `~/.zshrc` where `-lc` only
+//! read `~/.zprofile` measured ~24x slower on one machine, so the variable
+//! most likely to blow that budget is PATH, the one value that previously
+//! could never time out at all. So on a timeout or spawn error, a second,
+//! fast `$SHELL -lc 'printf %s "$PATH"'` runs for PATH alone, itself
+//! bounded by [`PATH_FALLBACK_TIMEOUT`]; provider keys stay unrecovered in
+//! that case, since [`provider_now`] already degrades to `Unknown` rather
+//! than claiming a key that was never actually seen. `CREW_SHELL_ENV=0`
+//! skips both shells, matching the broker's switch.
 use std::collections::HashSet;
-use std::io::Read;
-use std::process::{Command, Stdio};
-use std::sync::mpsc;
 use std::sync::OnceLock;
-use std::time::{Duration, Instant};
+use std::time::Duration;
+
+#[path = "shellprobe_shell.rs"]
+mod shell;
+use shell::{bounded_shell_env, bounded_shell_path};
 
 /// How long the probe gets before it's killed and the process env is used
 /// as-is. Matches the broker's `shellenv::hydrate` bound.
 const PROBE_TIMEOUT: Duration = Duration::from_secs(3);
+
+/// How long the PATH-only fallback gets. Only reached after the primary
+/// probe already burned [`PROBE_TIMEOUT`], so this stays short: the fast
+/// form measured 0.031s on a normal machine; 1s is generous headroom.
+const PATH_FALLBACK_TIMEOUT: Duration = Duration::from_secs(1);
 
 /// Provider vars worth probing, matching `shellenv::interesting`.
 const KEYS: &[&str] = &[
@@ -55,9 +66,15 @@ static SHELL_PROBE: OnceLock<Probed> = OnceLock::new();
 
 /// Merge shell environment into probed state. Provider vars: existing
 /// process vars always win, only adopting a shell value when absent (see
-/// [`crate::broker::shellenv`]). PATH is the opposite — see [`Probed`].
-/// Splits on the *first* `=` per line, since a PATH value can itself
-/// contain `=`; multi-line values aren't disambiguated (prior behaviour).
+/// `crew_plugin`'s `broker/shellenv.rs`). PATH is the opposite — see
+/// [`Probed`]. Splits on the *first* `=` per line, since a PATH value can
+/// itself contain `=`; multi-line values aren't disambiguated. Prior
+/// behaviour for the provider vars, which always came from this `env`
+/// dump — but new for PATH, which previously came from a dedicated
+/// `printf` unaffected by any other variable's content. Last `PATH=` line
+/// wins, which is the right order: rc-file output prints *before* the
+/// trailing `env` dump, so anything an rc file echoes gets overwritten by
+/// the real, final PATH.
 fn merge_shell_env(probed: &mut Probed, shell_output: &str) {
     for (k, v) in shell_output.lines().filter_map(|l| l.split_once('=')) {
         if k == "PATH" {
@@ -89,50 +106,29 @@ pub(crate) fn init_probe() {
     std::thread::spawn(|| {
         let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".into());
         let mut probed = process_probe();
-        if let Some(text) = bounded_shell_env(&shell, PROBE_TIMEOUT) {
-            merge_shell_env(&mut probed, &text);
+        match bounded_shell_env(&shell, PROBE_TIMEOUT) {
+            Some(text) => merge_shell_env(&mut probed, &text),
+            // Timed out or failed to spawn: fall back to the fast
+            // PATH-only form (see `adopt_fallback_path`).
+            None => {
+                let fallback = bounded_shell_path(&shell, PATH_FALLBACK_TIMEOUT);
+                adopt_fallback_path(&mut probed, fallback.as_deref());
+            }
         }
         let _ = SHELL_PROBE.set(probed);
     });
 }
 
-/// Run `shell -ilc env`, killing it if it hasn't produced output within
-/// `timeout`. `Command::output()` alone waits on pipe EOF with no deadline,
-/// so a blocking rc file would park this thread forever; stdout is drained
-/// on a side thread while this one polls for a result or the deadline.
-fn bounded_shell_env(shell: &str, timeout: Duration) -> Option<String> {
-    let mut child = Command::new(shell)
-        .args(["-ilc", "env"])
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .spawn()
-        .ok()?;
-    let mut stdout = child.stdout.take()?;
-    let (tx, rx) = mpsc::channel();
-    std::thread::spawn(move || {
-        let mut s = String::new();
-        let _ = stdout.read_to_string(&mut s);
-        let _ = tx.send(s);
-    });
-    let deadline = Instant::now() + timeout;
-    loop {
-        match rx.recv_timeout(Duration::from_millis(50)) {
-            Ok(out) => {
-                let _ = child.wait();
-                return Some(out);
-            }
-            Err(mpsc::RecvTimeoutError::Disconnected) => {
-                let _ = child.wait();
-                return None;
-            }
-            Err(mpsc::RecvTimeoutError::Timeout) => {
-                if Instant::now() >= deadline {
-                    let _ = child.kill();
-                    let _ = child.wait();
-                    return None;
-                }
-            }
+/// Adopt `fallback` (the fast probe's raw `$PATH` value, not an `env`-style
+/// line) as `probed.path` if non-blank. Pure and spawn-free, extracted so
+/// the fallback's trigger — "primary probe produced nothing, so use the
+/// fast PATH-only value instead" — is unit-testable without a real shell,
+/// like [`merge_shell_env`] and [`resolve`]. The decision to call this at
+/// all is the caller matching on [`bounded_shell_env`]'s `Option`.
+fn adopt_fallback_path(probed: &mut Probed, fallback: Option<&str>) {
+    if let Some(path) = fallback {
+        if !path.trim().is_empty() {
+            probed.path = Some(path.to_string());
         }
     }
 }
