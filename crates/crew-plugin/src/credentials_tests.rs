@@ -100,6 +100,28 @@ fn the_file_is_owner_only() {
     assert_eq!(dir, 0o700, "credentials dir must be owner-only");
 }
 
+#[cfg(unix)]
+#[test]
+fn a_planted_temp_file_is_replaced_rather_than_written_through() {
+    // A pre-existing (or symlinked) temp entry must never receive the secret,
+    // and must never dictate its permissions.
+    use std::os::unix::fs::PermissionsExt;
+    let p = scratch("planted");
+    std::fs::create_dir_all(p.parent().unwrap()).unwrap();
+    let tmp = p.with_extension("json.tmp");
+    std::fs::write(&tmp, "planted").unwrap();
+    std::fs::set_permissions(&tmp, std::fs::Permissions::from_mode(0o666)).unwrap();
+
+    save_key_at(&p, "OPENROUTER_API_KEY", "sk-test-not-a-real-key", None).unwrap();
+
+    assert_eq!(
+        std::fs::metadata(&p).unwrap().permissions().mode() & 0o777,
+        0o600,
+        "the planted entry must not dictate the stored file's mode"
+    );
+    assert!(!tmp.exists(), "no temp file survives the write");
+}
+
 #[test]
 fn provider_for_maps_every_var_and_nothing_else() {
     assert_eq!(provider_for("DASHSCOPE_API_KEY"), Some("dashscope"));

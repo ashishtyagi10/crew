@@ -113,8 +113,15 @@ pub fn save_key_at(
 fn write_atomic(path: &Path, bytes: &[u8]) -> anyhow::Result<()> {
     use std::io::Write;
     let tmp = path.with_extension("json.tmp");
+    // Remove any stale temp entry before creating our own. `create_new` alone
+    // would fail forever after an interrupted write; removing first and then
+    // refusing to open anything that still exists means we only ever write to
+    // an inode we just made, at the mode we chose. `remove_file` unlinks a
+    // symlink itself rather than following it, so a planted link is destroyed,
+    // not written through.
+    let _ = std::fs::remove_file(&tmp);
     let mut opts = std::fs::OpenOptions::new();
-    opts.write(true).create(true).truncate(true);
+    opts.write(true).create_new(true);
     #[cfg(unix)]
     {
         use std::os::unix::fs::OpenOptionsExt;
