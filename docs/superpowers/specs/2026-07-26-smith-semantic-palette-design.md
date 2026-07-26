@@ -53,6 +53,13 @@ Every candidate clears 4.5:1 everywhere — comfortably past the 3.0 floor
 precedent set in crew-term's fg/bg flooring. The two slots this design uses are
 locked in by a test (§5).
 
+Note the table above measures against `page_bg`, which is the right background
+for **markers** (they draw with no background) but not for **code**, which always
+draws on `code_bg()` = `page_bg` lerped 8% toward `ink`. Against the code card the
+cyan runs about 0.9 lower on light presets — SEPIA_LIGHT is 4.95, not 5.85. Still
+above the floor, but the test in §5 measures the code slot against `code_bg`, not
+against the page, so the guard covers what is actually drawn.
+
 ## 2. The palette
 
 Chosen assignment — cool code, warm structure, so the two never compete, and
@@ -73,6 +80,16 @@ code sits far from the existing link blue:
 
 Headings change from "`ink` at h1/h2, bold-only at h3+" to "`ink` + bold at every
 level" — a unification, not a new hue.
+
+**Quoted prose steps back only where the body is `ink`.** `chatmsgs.rs` draws
+message bodies from `agent smith`/`crew`/`system`/`broker` in `text_muted`
+already, so for those senders — most markdown-bearing content in the pane —
+quoted text lands on the same RGB as the prose around it and only the `ansi[3]`
+bar distinguishes the quote. This is deliberate. Dropping quotes a further step
+to `dim`/`hint_fg` would push body-sized text toward `hint_fg`'s asserted floor
+of 2.5:1 on the light presets, below WCAG AA for prose; legibility beats
+differentiation, and the coloured bar carries the signal. Where the body is
+`ink` (user messages), the step back to `text_muted` is real.
 
 ## 3. Architecture
 
@@ -166,9 +183,12 @@ where chrome lines take `muted`.
 ## 5. Testing
 
 **crew-theme — the guard that matters.** Extend `contrast_thresholds`
-(`lib_tests.rs`) with `ansi[3]` and `ansi[6]` ≥ 4.5:1 against `page_bg`, asserted
-across `ALL_THEMES`. This is what stops a future preset from shipping an
-unreadable code or marker colour; the palette's correctness rests on it.
+(`lib_tests.rs`) with two assertions across `ALL_THEMES`, each measured against
+the background the colour is actually drawn on: `ansi[3]` ≥ 4.5:1 against
+`page_bg` (markers carry no background), and `ansi[6]` ≥ 4.5:1 against the 8%
+ink lerp that is `code_bg()` (code always draws on the card). This is what stops
+a future preset from shipping an unreadable code or marker colour; the palette's
+correctness rests on it.
 
 Because the active theme is global mutable state and tests run in parallel,
 crew-app tests assert cell colours against `crew_theme::theme()`'s own slots

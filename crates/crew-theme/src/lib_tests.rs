@@ -198,6 +198,15 @@ fn u8_mapping_round_trips_all_ids() {
     set_theme(ThemeId::PaperDark);
 }
 
+/// Mirrors `crew_app::anim::lerp_rgb`'s per-channel rounding exactly (crew-theme
+/// has no dependency on crew-app, so this is inlined rather than shared) —
+/// used below to reproduce `chatink::code_bg()`'s "page nudged 8% toward ink"
+/// tint without importing crew-app.
+fn lerp_rgb(a: (u8, u8, u8), b: (u8, u8, u8), t: f32) -> (u8, u8, u8) {
+    let mix = |x: u8, y: u8| (x as f32 + (y as f32 - x as f32) * t).round() as u8;
+    (mix(a.0, b.0), mix(a.1, b.1), mix(a.2, b.2))
+}
+
 #[test]
 fn contrast_thresholds() {
     let cr = contrast_ratio;
@@ -264,15 +273,21 @@ fn contrast_thresholds() {
 
         // The chat markdown palette (crew-app `chatink`) draws code from
         // ansi[6] and structural markers (list bullets, quote bars) from
-        // ansi[3], both on the page. Their readability is therefore a
-        // theme-level promise, not a crew-app detail: a new preset with a
-        // washed-out cyan or yellow breaks chat rendering, and this is where
-        // that gets caught. Measured worst cases when written: ansi[6] 5.85
-        // (SEPIA_LIGHT), ansi[3] 4.64 (IVORY_LEDGER).
+        // ansi[3]. Code text is never drawn on the bare page — it always sits
+        // on `code_bg()`, the page lerped 8% toward ink (see
+        // `chatink::code_bg`) — so ansi[6] is measured against that tint here,
+        // not against page_bg. Markers (bullets, quote bars) really are drawn
+        // with no background, so ansi[3] stays measured against page_bg. A new
+        // preset with a washed-out cyan or yellow breaks chat rendering, and
+        // this is where that gets caught. Measured worst cases when written:
+        // ansi[6] 4.95 vs the code card (SEPIA_LIGHT), ansi[3] 4.64 vs
+        // page_bg (IVORY_LEDGER).
+        let code_bg = lerp_rgb(bg, t.ink, 0.08);
         assert!(
-            cr(t.ansi[6], bg) >= 4.5,
-            "{name}: ansi[6] (chat code) vs page_bg = {:.3} (need >= 4.5)",
-            cr(t.ansi[6], bg)
+            cr(t.ansi[6], code_bg) >= 4.5,
+            "{name}: ansi[6] (chat code) vs code card {:?} = {:.3} (need >= 4.5)",
+            code_bg,
+            cr(t.ansi[6], code_bg)
         );
         assert!(
             cr(t.ansi[3], bg) >= 4.5,
