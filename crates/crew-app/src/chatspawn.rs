@@ -49,7 +49,7 @@ impl CrewApp {
 
     /// `/model <slug>` — forward a model change to the open agent smith pane so
     /// every agent switches to `slug` (`default` restores the provider default).
-    /// The palette picker (`suggest::options_for`) feeds this, and any freeform
+    /// The palette picker (`suggestvalues::options_for`) feeds this, and any freeform
     /// slug works too. With no open pane there's nothing to configure, so it
     /// flashes a hint instead. Forwarded as `/model all <slug>`, which the
     /// broker applies across the whole roster.
@@ -70,7 +70,7 @@ impl CrewApp {
         if let PaneContent::Chat(chat) = &mut self.panes[idx].content {
             // Same app-side bookkeeping as the composer popup's pick
             // (`ChatPane::on_input`) — this is the OTHER surface `modelpick`
-            // serves (the input bar's own value picker, `suggest::options_for`),
+            // serves (the input bar's own value picker, `suggestvalues::options_for`),
             // and it bypasses `on_input` entirely by calling `submit_command`
             // directly, so it needs its own note here.
             if model != "default" {

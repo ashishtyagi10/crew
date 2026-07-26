@@ -44,7 +44,7 @@ impl Route {
     /// Rows we know the stack can't serve render dim — in the composer
     /// popup only (`modelpick::model_row` reads this into `MenuItem::dim`;
     /// `cmdmenu::menu_cells` honours it). The input-bar picker
-    /// (`suggest::options_for`) flattens rows to bare `(value, desc)` pairs
+    /// (`suggestvalues::options_for`) flattens rows to bare `(value, desc)` pairs
     /// and never sees this field.
     pub(crate) fn unserveable(&self) -> bool {
         matches!(self, Self::Missing(_))

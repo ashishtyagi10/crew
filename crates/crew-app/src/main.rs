@@ -144,6 +144,7 @@ pub mod stats;
 mod statspane;
 mod status;
 mod suggest;
+mod suggestvalues;
 mod swarm;
 mod swarmpane;
 #[cfg(test)]

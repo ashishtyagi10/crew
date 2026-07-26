@@ -5,6 +5,7 @@
 use std::path::Path;
 
 pub(crate) use crate::cmddefs::{Cmd, COMMANDS};
+use crate::suggestvalues::{expands, options_for};
 
 /// One row in the input-bar palette: either a slash command, or a predefined
 /// **value** for a command that offers a fixed set (e.g. `/theme` → the theme
@@ -51,66 +52,6 @@ pub(crate) fn step_sel(items: &[MenuItem], sel: usize, down: bool) -> usize {
         }
     }
     sel
-}
-
-/// The predefined `(value, description)` choices a command offers, or `None` for
-/// a freeform / no-value command. **The single extension point** for the value
-/// picker: give a command a closed set of values here and it gains an inline
-/// picker for free (its rows run on Enter; unknown text still submits freeform).
-pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
-    match cmd {
-        // The three themes — each a rotation over its own palette pool. The
-        // individual palettes and the legacy `random-*`/`auto` names still
-        // parse but aren't offered here.
-        "/theme" => Some(
-            crew_theme::THEME_MODES
-                .iter()
-                .map(|m| (m.as_str().to_string(), m.describe().to_string()))
-                .collect(),
-        ),
-        "/crt" => Some(vec![
-            ("on".to_string(), "force the CRT tube look on".to_string()),
-            ("off".to_string(), "force the CRT tube look off".to_string()),
-            (
-                "auto".to_string(),
-                "follow the theme (on for crt-* themes)".to_string(),
-            ),
-        ]),
-        "/weight" => Some(vec![
-            ("normal".to_string(), "400 — regular".to_string()),
-            ("medium".to_string(), "500 — the old default".to_string()),
-            ("semibold".to_string(), "600 — the new default".to_string()),
-            (
-                "bold".to_string(),
-                "700 — thickest for body text".to_string(),
-            ),
-        ]),
-        // Model picker for the agent smith pane — the catalog grouped by
-        // provider (see `modelpick`), applied to every agent (forwarded as
-        // `/model all <slug>`). Any other slug still works: type it freeform
-        // after `/model `. The value picker only takes flat (value, desc)
-        // pairs, so section headers are dropped here (`.filter` below) for
-        // this input-bar surface; the composer's `Kind::Model` popup
-        // (chatpalette) is where the grouped sections actually render.
-        "/model" => Some(
-            crate::modelpick::rows("", None)
-                .into_iter()
-                .filter(|i| !i.header)
-                .map(|i| (i.fill, i.desc))
-                .collect(),
-        ),
-        _ => None,
-    }
-}
-
-/// Whether `cmd` expands into a value picker rather than running on Enter.
-/// Kept separate from `options_for` so the palette can answer "does this
-/// expand?" for every matched command without building any rows — `/model`'s
-/// arm builds the whole catalog, which used to happen on every keystroke.
-/// Must stay in lockstep with `options_for`'s arms; `suggest_tests` walks
-/// `COMMANDS` and asserts the two never disagree.
-fn expands(cmd: &str) -> bool {
-    matches!(cmd, "/theme" | "/crt" | "/weight" | "/model")
 }
 
 /// The palette rows for the current input. Once a value-picker command has been
