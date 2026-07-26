@@ -76,7 +76,11 @@ level" — a unification, not a new hue.
 
 ## 3. Architecture
 
-### 3.1 `crew-app/src/chatpal.rs` (new)
+### 3.1 `crew-app/src/chatink.rs` (new)
+
+Named `chatink`, not `chatpal`/`chatpalette` — `crew-app/src/chatpalette.rs`
+already exists and is the slash-command palette UI. "Ink" is the theme's own
+word for text colour.
 
 One home for chat colour derivation. `code_bg()` and `link_color()` move here
 verbatim from `chatmd.rs`; four siblings join them:
@@ -121,19 +125,24 @@ code card; a `Rule` inside a quote stays a rule; `Blank` is skipped as today.
 
 ### 3.4 `chatmd.rs` maps kind → colour
 
-`Body` and `Quote` share one styling function that differs only in base colour —
-prose `fg` for `Body`, `quote_fg()` for `Quote` — so bold, italic, inline code and
-links behave identically inside and outside a quote. Precedence within that
-function, highest first:
+A `marker` span is checked **before** the line's kind is consulted at all. The
+`▎` bar is prefixed to every line of a blockquote, including the `Code` lines of
+a fenced block inside it; if kind won, that bar would draw in code colour on the
+code tint and read as part of the code. Markers are chrome and always win.
 
-1. `marker` → `marker_fg()`
-2. link → `link_color()` + bold
-3. `heading >= 1` → `heading_fg()` + bold
-4. `style.code` → `code_fg()` + `code_bg()` background
-5. otherwise → the base colour
+Below that, `Body` and `Quote` share one styling function that differs only in
+base colour — prose `fg` for `Body`, `quote_fg()` for `Quote` — so bold, italic,
+inline code and links behave identically inside and outside a quote. Precedence
+within that function, highest first:
 
-A span cannot be both a marker and content: markers are `plain_span`s with a
-default `MdStyle`, so rules 2–4 cannot fire on them.
+1. link → `link_color()` + bold
+2. `heading >= 1` → `heading_fg()` + bold
+3. `style.code` → `code_fg()` + `code_bg()` background
+4. otherwise → the base colour
+
+A span is never both a marker and content: markers are built by their own
+constructor with an otherwise-default `MdStyle`, so none of rules 1–3 can fire on
+one.
 
 `LineKind::Code` moves from `fg` to `code_fg()`, keeping `code_bg()`.
 `CodeHeader`, `CodeFooter`, `Rule` and `Blank` are untouched.
@@ -160,6 +169,12 @@ where chrome lines take `muted`.
 (`lib_tests.rs`) with `ansi[3]` and `ansi[6]` ≥ 4.5:1 against `page_bg`, asserted
 across `ALL_THEMES`. This is what stops a future preset from shipping an
 unreadable code or marker colour; the palette's correctness rests on it.
+
+Because the active theme is global mutable state and tests run in parallel,
+crew-app tests assert cell colours against `crew_theme::theme()`'s own slots
+(`theme().ansi[6]`, `theme().ink`, …) rather than hardcoded RGB triples. A test
+that hardcodes a preset's values passes or fails depending on which test set the
+theme last.
 
 **md layout** — structure, not colour:
 - a blockquote's lines come back as `LineKind::Quote`
