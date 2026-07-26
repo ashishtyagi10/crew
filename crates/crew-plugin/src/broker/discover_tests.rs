@@ -41,6 +41,55 @@ fn roster_with_falls_back_to_plugins_when_no_provider_resolves() {
     );
 }
 
+/// The guard's promise ("even on a machine that exports a real key") has to
+/// cover the credential store too: `forced_provider()` reads
+/// `credentials::load()`, which resolves through `CREW_CREDENTIALS_PATH`.
+/// Simulate a machine where the in-app key popup already saved a pin —
+/// exactly what a real `~/.config/crew/credentials.json` would hold — by
+/// pointing that override at a store we control (never the real path, via
+/// `save_key_at`) BEFORE the guard exists, so `no_provider()` has to capture
+/// and override it out from under us, same as the other four keys. If
+/// `no_provider()` stopped setting `CREW_CREDENTIALS_PATH`, this stored pin
+/// would leak straight through and `forced_provider()` would return
+/// `Some("anthropic")` instead of `None`.
+#[test]
+fn no_provider_also_neutralises_a_stored_credential_pin() {
+    // A fresh subdirectory, not a file directly under the shared system temp
+    // dir: `save_key_at` chmods its parent 0o700, which the shared temp dir
+    // itself will refuse.
+    let fake_dir = std::env::temp_dir().join(format!(
+        "crew-no-provider-cred-guard-{}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_dir_all(&fake_dir);
+    let fake_store = fake_dir.join("credentials.json");
+    crate::credentials::save_key_at(
+        &fake_store,
+        "ANTHROPIC_API_KEY",
+        "sk-test-not-a-real-key",
+        Some("anthropic"),
+    )
+    .unwrap();
+    std::env::set_var("CREW_CREDENTIALS_PATH", &fake_store);
+
+    let _env = testenv::no_provider();
+    assert_eq!(
+        forced_provider(),
+        None,
+        "no_provider() must neutralise a stored credential pin, not just the four env vars"
+    );
+    drop(_env);
+
+    assert_eq!(
+        std::env::var("CREW_CREDENTIALS_PATH").as_deref(),
+        Ok(fake_store.to_str().unwrap()),
+        "CREW_CREDENTIALS_PATH must be restored to its pre-guard value on drop, same as the others"
+    );
+
+    std::env::remove_var("CREW_CREDENTIALS_PATH");
+    let _ = std::fs::remove_dir_all(&fake_dir);
+}
+
 #[test]
 fn pick_prefers_dashscope_over_openrouter() {
     let has = keys(&[

@@ -137,21 +137,31 @@ pub(crate) mod testenv {
     }
 
     /// Provider keys `roster_with` auto-discovers from, plus the forcing
-    /// `CREW_PROVIDER` override.
+    /// `CREW_PROVIDER` override and the credential store's own path override
+    /// (`credentials::path`) — `forced_provider()` and `shellenv::hydrate()`
+    /// both read the store, so a real `credentials.json` is exactly as much a
+    /// source of a provider pin as the four env vars are.
     const PROVIDER_KEYS: &[&str] = &[
         "DASHSCOPE_API_KEY",
         "OPENROUTER_API_KEY",
         "ANTHROPIC_API_KEY",
         "CREW_PROVIDER",
+        "CREW_CREDENTIALS_PATH",
     ];
 
     /// Force `roster_with`'s provider discovery to fail, deterministically —
     /// even on a machine that exports a real key (this one has
-    /// `DASHSCOPE_API_KEY` in the login shell). Clears every auto-discovered
-    /// key and `CREW_PROVIDER` for the guard's lifetime, restoring each to its
-    /// prior value (present or absent) on drop. Also points `CREW_PROJECT_DIR`
-    /// at a fresh empty dir, same as [`mock`]. For tests proving the
-    /// plugin-only fallback works when no provider resolves.
+    /// `DASHSCOPE_API_KEY` in the login shell) or has saved a real credential
+    /// pin through the in-app key popup (`credentials::save_key`, backed by
+    /// `~/.config/crew/credentials.json` or equivalent). Clears every
+    /// auto-discovered key and `CREW_PROVIDER` for the guard's lifetime, and
+    /// points `CREW_CREDENTIALS_PATH` at a sibling path that cannot exist, so
+    /// `credentials::load()` (reached via `forced_provider()` and
+    /// `shellenv::hydrate()`) reads as empty rather than the real store.
+    /// Restores every variable to its prior value (present or absent) on
+    /// drop. Also points `CREW_PROJECT_DIR` at a fresh empty dir, same as
+    /// [`mock`]. For tests proving the plugin-only fallback works when no
+    /// provider resolves.
     pub(crate) fn no_provider() -> MockEnv {
         let guard = LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let restore = PROVIDER_KEYS
@@ -163,6 +173,7 @@ pub(crate) mod testenv {
         }
         let dir = empty_project_dir();
         std::env::set_var("CREW_PROJECT_DIR", &dir);
+        std::env::set_var("CREW_CREDENTIALS_PATH", dir.join("credentials.json"));
         MockEnv {
             guard,
             dir: Some(dir),

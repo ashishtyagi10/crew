@@ -43,8 +43,27 @@ pub struct Store {
     pub keys: BTreeMap<String, String>,
 }
 
-/// `<config_dir>/crew/credentials.json`, a sibling of `config.toml`.
+/// `<config_dir>/crew/credentials.json`, a sibling of `config.toml` — unless
+/// `CREW_CREDENTIALS_PATH` is set (non-empty), in which case that path wins.
+///
+/// This exists purely for test isolation. The store is a process-global,
+/// real-disk singleton with no equivalent of `CREW_PROJECT_DIR`'s CWD seam:
+/// every other on-disk store here (`specialists`, `plugins`, `sessionlog`)
+/// takes a base directory tests can point elsewhere, but credentials always
+/// resolved through `dirs::config_dir()` with no override. That made
+/// `broker::testenv::no_provider()` — which promises to force provider
+/// discovery to fail even on a machine with real keys exported — silently
+/// unable to keep that promise once a real `credentials.json` existed: reads
+/// through `forced_provider()`/`shellenv::hydrate()` reached past the guard
+/// straight to the real config directory. Do not remove this override to
+/// "simplify" the function; it is what lets tests neutralise the store the
+/// same way they neutralise the environment.
 pub fn path() -> Option<PathBuf> {
+    if let Ok(p) = std::env::var("CREW_CREDENTIALS_PATH") {
+        if !p.is_empty() {
+            return Some(PathBuf::from(p));
+        }
+    }
     dirs::config_dir().map(|d| d.join("crew").join("credentials.json"))
 }
 
