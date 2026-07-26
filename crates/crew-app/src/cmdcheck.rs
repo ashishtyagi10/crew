@@ -3,7 +3,6 @@
 //! PATH, explicit path) or a shell builtin before crew will spawn a pane
 //! for it — so typos hint instead of littering dead panes.
 use std::path::{Path, PathBuf};
-use std::sync::OnceLock;
 
 /// What the first word of an input line turned out to be.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -100,45 +99,13 @@ fn is_executable(p: &Path) -> bool {
     }
 }
 
-/// Login-shell PATH captured once by [`init_shell_path`]. Dock-launched crew
-/// inherits launchd's minimal PATH, so a command like `claude` in
-/// `~/.local/bin` would *run* fine (spawns go through `$SHELL -c`) yet fail
-/// detection without this.
-static SHELL_PATH: OnceLock<String> = OnceLock::new();
-
-/// Capture `$SHELL -lc 'printf %s "$PATH"'` on a background thread (the winit
-/// thread must never block on a subprocess). `CREW_SHELL_ENV=0` skips it,
-/// mirroring the broker's env hydration switch.
-pub(crate) fn init_shell_path() {
-    if std::env::var("CREW_SHELL_ENV").is_ok_and(|v| v == "0") {
-        return;
-    }
-    std::thread::spawn(|| {
-        let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".into());
-        let Ok(out) = std::process::Command::new(&shell)
-            .args(["-lc", "printf %s \"$PATH\""])
-            .output()
-        else {
-            return;
-        };
-        if !out.status.success() {
-            return;
-        }
-        if let Ok(p) = String::from_utf8(out.stdout) {
-            if !p.trim().is_empty() {
-                let _ = SHELL_PATH.set(p);
-            }
-        }
-    });
-}
-
-/// The PATH detection resolves against: hydrated login-shell PATH once it
-/// lands, the process PATH until then.
+/// The PATH detection resolves against: hydrated login-shell PATH once
+/// [`crate::shellprobe::init_probe`]'s probe lands, the process PATH until
+/// then. The probe (one `$SHELL -ilc env`, shared with provider-key
+/// discovery) is kicked off once from `main.rs` — this crate no longer runs
+/// its own separate shell just for PATH.
 pub(crate) fn effective_path() -> String {
-    SHELL_PATH
-        .get()
-        .cloned()
-        .unwrap_or_else(|| std::env::var("PATH").unwrap_or_default())
+    crate::shellprobe::effective_path()
 }
 
 #[cfg(test)]

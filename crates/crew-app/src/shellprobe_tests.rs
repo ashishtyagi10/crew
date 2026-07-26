@@ -1,4 +1,5 @@
 use super::*;
+use std::time::Instant;
 
 /// A throwaway executable shell script at `d/name`, `chmod +x`'d.
 fn script(d: &std::path::Path, name: &str, body: &str) -> std::path::PathBuf {
@@ -77,6 +78,7 @@ fn merge_process_pin_wins_over_shell_pin() {
         keys: HashSet::new(),
         provider_pin: Some("anthropic".to_string()),
         openrouter_key: None,
+        path: None,
     };
     let shell_env = "CREW_PROVIDER=openrouter\nOPENROUTER_API_KEY=sk-or-123\n";
     merge_shell_env(&mut probed, shell_env);
@@ -97,6 +99,7 @@ fn merge_adopts_shell_pin_when_process_has_none() {
         keys: HashSet::new(),
         provider_pin: None,
         openrouter_key: None,
+        path: None,
     };
     let shell_env = "CREW_PROVIDER=openrouter\nOPENROUTER_API_KEY=sk-or-123\n";
     merge_shell_env(&mut probed, shell_env);
@@ -116,6 +119,7 @@ fn merge_process_openrouter_key_wins_over_shell_key() {
         keys: HashSet::new(),
         provider_pin: None,
         openrouter_key: Some("sk-or-process".to_string()),
+        path: None,
     };
     let shell_env = "OPENROUTER_API_KEY=sk-or-shell\n";
     merge_shell_env(&mut probed, shell_env);
@@ -135,6 +139,7 @@ fn merge_adopts_shell_openrouter_key_when_process_has_none() {
         keys: HashSet::new(),
         provider_pin: None,
         openrouter_key: None,
+        path: None,
     };
     let shell_env = "OPENROUTER_API_KEY=sk-or-shell\n";
     merge_shell_env(&mut probed, shell_env);
@@ -152,6 +157,7 @@ fn merge_ignores_empty_values() {
         keys: HashSet::new(),
         provider_pin: None,
         openrouter_key: None,
+        path: None,
     };
     let shell_env = "CREW_PROVIDER=\nDASHSCOPE_API_KEY=sk-aak-123\n";
     merge_shell_env(&mut probed, shell_env);
@@ -170,6 +176,7 @@ fn merge_ignores_keys_outside_the_interesting_set() {
         keys: HashSet::new(),
         provider_pin: None,
         openrouter_key: None,
+        path: None,
     };
     let shell_env = "HOME=/Users/ashish\nUNKNOWN_VAR=value\nANTHROPIC_API_KEY=sk-ant-123\n";
     merge_shell_env(&mut probed, shell_env);
@@ -182,4 +189,126 @@ fn merge_ignores_keys_outside_the_interesting_set() {
         "unknown vars must not be recorded"
     );
     assert!(probed.keys.contains("ANTHROPIC_API_KEY"));
+}
+
+#[test]
+fn merge_extracts_path_from_representative_env_output() {
+    let mut probed = Probed {
+        keys: HashSet::new(),
+        provider_pin: None,
+        openrouter_key: None,
+        path: None,
+    };
+    let shell_env = "HOME=/Users/ashish\nPATH=/usr/local/bin:/usr/bin:/bin\nSHELL=/bin/zsh\n";
+    merge_shell_env(&mut probed, shell_env);
+    assert_eq!(
+        probed.path,
+        Some("/usr/local/bin:/usr/bin:/bin".to_string())
+    );
+}
+
+#[test]
+fn merge_path_value_containing_equals_splits_on_the_first_one_only() {
+    // A PATH entry can itself contain `=`; only the line's first `=` may
+    // separate the key from the value or the rest gets truncated.
+    let mut probed = Probed {
+        keys: HashSet::new(),
+        provider_pin: None,
+        openrouter_key: None,
+        path: None,
+    };
+    let shell_env = "PATH=/usr/bin:/opt/weird=dir:/bin\n";
+    merge_shell_env(&mut probed, shell_env);
+    assert_eq!(
+        probed.path,
+        Some("/usr/bin:/opt/weird=dir:/bin".to_string())
+    );
+}
+
+#[test]
+fn merge_rejects_blank_path() {
+    let mut probed = Probed {
+        keys: HashSet::new(),
+        provider_pin: None,
+        openrouter_key: None,
+        path: None,
+    };
+    merge_shell_env(&mut probed, "PATH=   \n");
+    assert_eq!(
+        probed.path, None,
+        "whitespace-only PATH must not be adopted"
+    );
+}
+
+#[test]
+fn merge_leaves_path_unset_when_env_output_has_no_path_line() {
+    let mut probed = Probed {
+        keys: HashSet::new(),
+        provider_pin: None,
+        openrouter_key: None,
+        path: None,
+    };
+    merge_shell_env(&mut probed, "ANTHROPIC_API_KEY=sk-ant-1\n");
+    assert_eq!(probed.path, None, "fallback stays intact with no PATH line");
+}
+
+#[test]
+fn bounded_shell_path_captures_a_quick_probe() {
+    let dir = tempfile::tempdir().unwrap();
+    let sh = script(dir.path(), "sh", "printf '/usr/local/bin:/usr/bin:/bin'");
+    let out = bounded_shell_path(sh.to_str().unwrap(), Duration::from_secs(3))
+        .expect("a fast script must produce output before the deadline");
+    assert_eq!(out, "/usr/local/bin:/usr/bin:/bin");
+}
+
+#[test]
+fn adopt_fallback_path_uses_the_fallback_value_when_present() {
+    // The pure decision this whole mitigation rests on: once the caller has
+    // already determined the primary `-ilc env` probe produced nothing (by
+    // matching `bounded_shell_env`'s `None`), the fast PATH-only fallback
+    // value must be adopted — no process spawn needed to verify this.
+    let mut probed = Probed {
+        keys: HashSet::new(),
+        provider_pin: None,
+        openrouter_key: None,
+        path: None,
+    };
+    adopt_fallback_path(&mut probed, Some("/usr/local/bin:/usr/bin:/bin"));
+    assert_eq!(
+        probed.path,
+        Some("/usr/local/bin:/usr/bin:/bin".to_string())
+    );
+}
+
+#[test]
+fn adopt_fallback_path_leaves_path_unset_when_fallback_also_failed() {
+    // Both shells struck out (e.g. both timed out): PATH must stay unset so
+    // `effective_path` falls back to the process PATH, never panicking or
+    // fabricating a value.
+    let mut probed = Probed {
+        keys: HashSet::new(),
+        provider_pin: None,
+        openrouter_key: None,
+        path: None,
+    };
+    adopt_fallback_path(&mut probed, None);
+    assert_eq!(probed.path, None);
+}
+
+#[test]
+fn adopt_fallback_path_rejects_blank_fallback_value() {
+    // Same blank/whitespace-only guard as the primary probe's PATH= line in
+    // `merge_shell_env` — a shell that "succeeds" but prints nothing useful
+    // must not overwrite an unset PATH with an empty string.
+    let mut probed = Probed {
+        keys: HashSet::new(),
+        provider_pin: None,
+        openrouter_key: None,
+        path: None,
+    };
+    adopt_fallback_path(&mut probed, Some("   "));
+    assert_eq!(
+        probed.path, None,
+        "whitespace-only fallback must not be adopted"
+    );
 }

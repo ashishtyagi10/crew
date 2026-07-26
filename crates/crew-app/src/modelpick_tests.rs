@@ -132,7 +132,7 @@ fn a_recent_stored_as_an_openrouter_alias_resolves_and_renders() {
 fn model_row_dims_exactly_the_unserveable_routes() {
     // `rows()` itself can't be driven to a known route in a unit test — the
     // active provider comes from a live, once-per-process probe
-    // (`modelkeys::provider_now`) that's never initialized under `cargo
+    // (`shellprobe::provider_now`) that's never initialized under `cargo
     // test`, so every row it builds sees `Route::Unknown`. `model_row` is
     // the row-building step factored out so the dim wiring is testable on
     // its own, with an explicit route standing in for the probe result.

@@ -100,7 +100,6 @@ mod mdpane;
 mod mdpane_view;
 mod minstrip;
 mod modelfetch;
-mod modelkeys;
 mod modelpick;
 mod modelroute;
 mod navcard;
@@ -137,6 +136,7 @@ mod session;
 mod sessionrestore;
 mod sessionsave;
 mod settingspane;
+mod shellprobe;
 mod spark;
 mod spawn;
 mod spawnmd;
@@ -205,10 +205,11 @@ fn main() -> anyhow::Result<()> {
     if detach::should_detach() && !detach::is_detached_child() {
         return detach::relaunch_detached();
     }
-    // Only the GUI path forks/reads a login shell to seed PATH — CLI modes
-    // above (broker/self-update/list-fonts/install-app/detach re-exec) return
-    // before this line, so they never pay for a shell they don't use.
-    cmdcheck::init_shell_path();
-    modelkeys::init_probe();
+    // Only the GUI path forks/reads a login shell to seed PATH and provider
+    // keys — CLI modes above (broker/self-update/list-fonts/install-app/detach
+    // re-exec) return before this line, so they never pay for a shell they
+    // don't use. One probe covers both PATH (`cmdcheck::effective_path`) and
+    // provider-key discovery (`shellprobe::provider_now`/`openrouter_key`).
+    shellprobe::init_probe();
     handler::run()
 }
