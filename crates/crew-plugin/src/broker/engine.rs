@@ -5,9 +5,10 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+use super::adapter::HopStream;
 use super::hop::{back, note, transcript_tail, Hop, HopKind, RunStats};
 use super::route::{clip, frame, has_directive, repair_prompt};
-use super::tick::hop_ticker;
+use super::tick::{hop_texter, hop_ticker};
 use super::{parse_routing, Envelope, Registry, Routing};
 use crate::PluginEvent;
 
@@ -127,9 +128,12 @@ impl Broker {
                 text: String::new(),
                 usage: Default::default(),
             });
-            let on_tokens = hop_ticker(tick_emit.clone(), env.to.clone());
+            let stream = HopStream {
+                on_tokens: hop_ticker(tick_emit.clone(), env.to.clone()),
+                on_text: hop_texter(tick_emit.clone(), env.to.clone()),
+            };
             let (reply, mut usage) =
-                match agent.call_with_usage_ticked(&prompt, self.timeout, on_tokens.clone()) {
+                match agent.call_with_usage_ticked(&prompt, self.timeout, &stream) {
                     Ok((r, u)) if !r.trim().is_empty() => (r, u),
                     Ok(_) => {
                         sink(back(&env, HopKind::Error, "empty reply".into()));
@@ -151,15 +155,18 @@ impl Broker {
             // per-agent 150ms gate and growth rule span the whole hop instead
             // of resetting per tool round.
             let reply = self.run_tools(
-                agent, &prompt, reply, &mut stats, &mut usage, &env, &on_tokens, sink,
+                agent, &prompt, reply, &mut stats, &mut usage, &env, &stream, sink,
             );
             // If the agent forgot its control line and a hand-off is possible,
             // re-ask it once to add one (bounded to a single repair per thread).
             let reply = if !repaired && !peers.is_empty() && !has_directive(&reply) {
                 repaired = true;
                 let nudge = repair_prompt(&peers, &reply);
-                let on_tokens = hop_ticker(tick_emit.clone(), env.to.clone());
-                match agent.call_with_usage_ticked(&nudge, self.timeout, on_tokens) {
+                let stream = HopStream {
+                    on_tokens: hop_ticker(tick_emit.clone(), env.to.clone()),
+                    on_text: hop_texter(tick_emit.clone(), env.to.clone()),
+                };
+                match agent.call_with_usage_ticked(&nudge, self.timeout, &stream) {
                     Ok((r, u)) if !r.trim().is_empty() => {
                         stats.exchanges += 1;
                         stats.approx_tokens += (nudge.len() + r.len()) / 4;

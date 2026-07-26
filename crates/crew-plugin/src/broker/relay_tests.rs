@@ -290,3 +290,76 @@ fn relay_emits_rate_limited_stats_ticks_between_activity_and_stats() {
         "ticks only fire when the estimate grew: {ticks:?}"
     );
 }
+
+#[test]
+fn relay_hop_streams_delta_text_mid_hop() {
+    // Same harness as the StatsTick ordering test above: run one relay hop
+    // against the mock provider and collect every emitted PluginEvent into
+    // `events`.
+    let provider: std::sync::Arc<dyn crew_hive::Provider> =
+        std::sync::Arc::new(crew_hive::MockProvider {
+            reply: "one two three four five six seven eight\n@done".into(),
+        });
+    let agent =
+        crate::broker::apiadapter::ApiAdapter::new("planner", "m", "", None, provider).unwrap();
+    let registry = Registry::new(vec![Box::new(agent)]);
+    let broker = Broker::new(registry, 6, std::time::Duration::from_secs(5));
+
+    // Both `emit` and `tick_emit` push into the SAME ordered log — ticks and
+    // hop events come from two different closures, but the call is single-
+    // threaded (ApiAdapter blocks a current-thread tokio runtime), so a shared
+    // Vec behind one Mutex preserves the true temporal order.
+    let events: std::sync::Arc<std::sync::Mutex<Vec<PluginEvent>>> = Default::default();
+    let tick_sink = events.clone();
+    let tick_emit: std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync> =
+        std::sync::Arc::new(move |ev| tick_sink.lock().unwrap().push(ev));
+    let emit_sink = events.clone();
+    relay_turn(
+        &broker,
+        "planner",
+        "task",
+        "t1",
+        &tick_emit,
+        &mut move |ev| {
+            emit_sink.lock().unwrap().push(ev);
+            Ok(())
+        },
+    )
+    .unwrap();
+    let events = events.lock().unwrap().clone();
+
+    let idx = |pred: &dyn Fn(&PluginEvent) -> bool| events.iter().position(pred);
+    let thinking =
+        idx(&|e| matches!(e, PluginEvent::Activity { state, .. } if state == "thinking"))
+            .expect("a thinking activity");
+    let first_delta =
+        idx(&|e| matches!(e, PluginEvent::Delta { .. })).expect("at least one Delta mid-hop");
+    let stats = idx(&|e| matches!(e, PluginEvent::Stats { agent, .. } if !agent.is_empty()))
+        .expect("a per-agent Stats event");
+    assert!(
+        thinking < first_delta && first_delta < stats,
+        "the Delta lands mid-hop, not after it: {events:?}"
+    );
+
+    // The mock streams synchronously so every fragment can land inside one
+    // 80ms gap — that collapses to a single Delta, which is spec-correct.
+    // Assert on content, never on an exact count.
+    let streamed: String = events
+        .iter()
+        .filter_map(|e| match e {
+            PluginEvent::Delta { text, .. } => Some(text.as_str()),
+            _ => None,
+        })
+        .collect();
+    let settled = events
+        .iter()
+        .find_map(|e| match e {
+            PluginEvent::Message { text, .. } => Some(text.clone()),
+            _ => None,
+        })
+        .expect("a settled reply Message");
+    assert!(
+        settled.contains(streamed.trim()),
+        "streamed text is a prefix of the settled reply: streamed={streamed:?} settled={settled:?}"
+    );
+}

@@ -6,7 +6,7 @@
 //! and result is logged as a hop, so tool use is visible in the pane.
 use std::sync::Arc;
 
-use super::adapter::{Adapter, Usage};
+use super::adapter::{Adapter, HopStream, Usage};
 use super::hop::{back, Hop, HopKind, RunStats};
 use super::route::clip;
 use super::toolclip::clip_result;
@@ -102,20 +102,22 @@ impl Broker {
     /// for its own repair call, so the hop's reply-stat and context-fill
     /// stay accurate through tool rounds.
     ///
-    /// `on_tokens` is the SAME hop ticker the primary dial was given (built
-    /// once, by `crate::broker::tick::hop_ticker`, at the engine call site)
-    /// — reused rather than rebuilt per follow-up so the per-agent 150ms
-    /// gate spans the whole hop, primary dial plus every follow-up. But that
-    /// gate only ever emits on GROWTH, and each `call_with_usage_ticked`
-    /// restarts its own chars/4 estimate at 0 — so a follow-up dial can't
-    /// just report its own running total, or a short follow-up would never
-    /// climb past a long primary dial's last tick and would tick zero times
-    /// for its whole duration. Each follow-up dial instead reports an
-    /// OFFSET estimate: its own total plus `tick_base`, the running sum of
-    /// every prior dial's final chars/4 in this hop (primary dial included).
-    /// That keeps every follow-up's reported value monotonically past
-    /// wherever the hop's shared gate left off, so it survives the growth
-    /// check instead of being swallowed by it.
+    /// `stream` is the SAME `HopStream` the primary dial was given (built
+    /// once at the engine call site) — reused rather than rebuilt per
+    /// follow-up so the per-agent 150ms tick gate spans the whole hop,
+    /// primary dial plus every follow-up. But that gate only ever emits on
+    /// GROWTH, and each `call_with_usage_ticked` restarts its own chars/4
+    /// estimate at 0 — so a follow-up dial can't just report its own running
+    /// total, or a short follow-up would never climb past a long primary
+    /// dial's last tick and would tick zero times for its whole duration.
+    /// Each follow-up dial instead reports an OFFSET token estimate: its own
+    /// total plus `tick_base`, the running sum of every prior dial's final
+    /// chars/4 in this hop (primary dial included). That keeps every
+    /// follow-up's reported value monotonically past wherever the hop's
+    /// shared gate left off, so it survives the growth check instead of
+    /// being swallowed by it. The TEXT side needs no such offset: fragments
+    /// are appended to a buffer, never compared against a running total, so
+    /// `stream.on_text` is reused as-is across every follow-up dial.
     #[allow(clippy::too_many_arguments)] // engine-loop plumbing, one call site
     pub(crate) fn run_tools(
         &self,
@@ -125,7 +127,7 @@ impl Broker {
         stats: &mut RunStats,
         usage: &mut Usage,
         env: &Envelope,
-        on_tokens: &Arc<dyn Fn(u64) + Send + Sync>,
+        stream: &HopStream,
         sink: &mut dyn FnMut(Hop),
     ) -> String {
         let Some(runner) = self.tools.as_deref() else {
@@ -184,11 +186,19 @@ impl Broker {
                 usage: Default::default(),
             });
             let base = tick_base;
-            let ticked: Arc<dyn Fn(u64) + Send + Sync> = {
-                let on = on_tokens.clone();
-                Arc::new(move |t| on(base + t))
+            let ticked = HopStream {
+                // Tokens need the running offset (see this fn's doc): each
+                // dial restarts its own chars/4 estimate at 0, and the gate
+                // only emits on growth.
+                on_tokens: {
+                    let on = Arc::clone(&stream.on_tokens);
+                    Arc::new(move |t| on(base + t))
+                },
+                // Text needs NO offset — fragments are appended, not
+                // compared against a running total.
+                on_text: Arc::clone(&stream.on_text),
             };
-            match agent.call_with_usage_ticked(&follow, self.timeout, ticked) {
+            match agent.call_with_usage_ticked(&follow, self.timeout, &ticked) {
                 Ok((r, u)) if !r.trim().is_empty() => {
                     stats.exchanges += 1;
                     stats.approx_tokens += (follow.len() + r.len()) / 4;
