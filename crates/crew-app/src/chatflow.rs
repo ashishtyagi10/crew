@@ -116,10 +116,15 @@ impl crate::chat::ChatPane {
     /// the END of `streaming`, so the last entry is always the most recently
     /// updated one. Advisory — `settle_stream` discards whatever accumulated.
     pub(crate) fn absorb_delta(&mut self, agent: String, text: String) {
+        // `stream_key` normalizes BOTH sides, matching `settle_stream`: no
+        // current caller sends an arrow-form `agent`, but if one ever did,
+        // comparing it raw against the normalized `m.sender` would never
+        // match an already-open card, opening a spurious new one per delta.
+        let key = stream_key(&agent);
         if let Some(i) = self
             .streaming
             .iter()
-            .position(|m| stream_key(&m.sender) == agent)
+            .position(|m| stream_key(&m.sender) == key)
         {
             let mut card = self.streaming.remove(i);
             card.text.push_str(&text);
