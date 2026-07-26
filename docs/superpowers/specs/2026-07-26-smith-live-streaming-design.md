@@ -210,11 +210,28 @@ the still-live one — a small reorder, and the right way round.
 **The dimmed tail.** The `chatswarmview` status row grows a dimmed tail — the
 last 2 rows of the **most recently updated** streaming card (the agent whose
 delta arrived last, not the one that started first), in `text_muted`,
-front-ellipsized — but **only when the growing card cannot be seen**: the user
-has scrolled up
-(`scroll > 0`), or more than one agent is streaming (the scheduler's cap is 4)
-so the newest is not the one drawing the eye. The tail is an overflow view, not
-a second copy of what is already on screen.
+front-ellipsized — but **only when the growing card cannot be seen**, which
+means exactly one thing: the user has scrolled up (`scroll > 0`). The tail is
+an overflow view, not a second copy of what is already on screen.
+
+> **Corrected during implementation.** This section originally added a second
+> trigger — show the tail when more than one agent is streaming, on the theory
+> that "the newest is not the one drawing the eye". That reasoning was wrong.
+> `chatplace::window` is bottom-anchored, so at `scroll == 0` the drawn window
+> always ends at the last line; provisional cards render last and the newest
+> renders last among them, so the newest card's trailing lines are *always* on
+> screen at the live bottom. Shrinking the message budget to seat the tail does
+> not push them off — it just moves them up. The multi-agent trigger therefore
+> redrew text the user could already see, which is the precise failure this
+> feature is defined against. Scroll position is the only honest signal.
+>
+> The tail also renders through the card's own pipeline (`chatbody::body_lines`
+> + `chatplace::line_cells`, recoloured muted) rather than a separate wrapper,
+> so its line breaks and markdown treatment cannot drift from the card it
+> mirrors. It is drawn directly above the swarm status line, with both
+> positions derived from the bottom of the pane — deriving one from `msg_rows`
+> and the other from the bottom made them land on the same row once `grants`
+> began taking a `tail` slice.
 
 ### Non-goals
 
