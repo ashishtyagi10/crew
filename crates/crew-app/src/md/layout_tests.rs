@@ -127,3 +127,47 @@ fn code_chrome_lines_respect_cols() {
         }
     }
 }
+
+#[test]
+fn blockquote_lines_are_marked_as_quotes() {
+    let out = render("> hi there", 40);
+    assert_eq!(out[0].kind, LineKind::Quote);
+    assert_eq!(out[0].spans[0].text, "▎ ");
+    assert!(out[0].spans[0].style.marker, "the bar is a marker");
+    assert!(
+        out[0].spans[1..].iter().all(|s| !s.style.marker),
+        "quoted text is not a marker"
+    );
+}
+
+#[test]
+fn fenced_code_inside_a_quote_keeps_its_code_kinds() {
+    let out = render("> ```\n> x = 1\n> ```", 40);
+    let kinds: Vec<LineKind> = out.iter().map(|l| l.kind).collect();
+    assert!(kinds.contains(&LineKind::CodeHeader), "{kinds:?}");
+    assert!(kinds.contains(&LineKind::Code), "{kinds:?}");
+    assert!(kinds.contains(&LineKind::CodeFooter), "{kinds:?}");
+    assert!(
+        !kinds.contains(&LineKind::Quote),
+        "a quoted code block is all code lines, no prose: {kinds:?}"
+    );
+}
+
+#[test]
+fn list_bullet_is_a_marker_but_its_text_is_not() {
+    let out = render("- one", 40);
+    assert_eq!(out[0].spans[0].text, "• ");
+    assert!(out[0].spans[0].style.marker);
+    assert!(out[0].spans[1..].iter().all(|s| !s.style.marker));
+}
+
+#[test]
+fn wrapped_list_continuation_carries_no_marker() {
+    // Bullet "• " is 2 cols, leaving 10: "aaaa bbbb" then "cccc dddd".
+    let out = render("- aaaa bbbb cccc dddd", 12);
+    assert!(out.len() > 1, "expected the item to wrap: {out:?}");
+    assert!(
+        out[1].spans.iter().all(|s| !s.style.marker),
+        "continuation padding is not a marker"
+    );
+}
