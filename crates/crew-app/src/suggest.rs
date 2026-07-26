@@ -103,6 +103,16 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
     }
 }
 
+/// Whether `cmd` expands into a value picker rather than running on Enter.
+/// Kept separate from `options_for` so the palette can answer "does this
+/// expand?" for every matched command without building any rows — `/model`'s
+/// arm builds the whole catalog, which used to happen on every keystroke.
+/// Must stay in lockstep with `options_for`'s arms; `suggest_tests` walks
+/// `COMMANDS` and asserts the two never disagree.
+fn expands(cmd: &str) -> bool {
+    matches!(cmd, "/theme" | "/crt" | "/weight" | "/model")
+}
+
 /// The palette rows for the current input. Once a value-picker command has been
 /// typed with a trailing space (`/theme …`), its value options are shown
 /// (filtered by any partial value); otherwise the matching command names are
@@ -133,16 +143,16 @@ pub(crate) fn menu_items(text: &str) -> Vec<MenuItem> {
     matches(text)
         .into_iter()
         .map(|c| {
-            let expands = options_for(c.name).is_some();
+            let exp = expands(c.name);
             MenuItem {
                 label: c.name.to_string(),
                 desc: c.desc.to_string(),
-                fill: if expands {
+                fill: if exp {
                     format!("{} ", c.name)
                 } else {
                     c.name.to_string()
                 },
-                submit: !expands,
+                submit: !exp,
                 header: false,
                 dim: false,
             }
