@@ -292,6 +292,22 @@ fn slash_completes_restore_past_the_restart_prefix() {
 }
 
 #[test]
+fn expands_agrees_with_options_for_across_every_command() {
+    // `expands` is a cheap shortcut for "does options_for(cmd).is_some()" —
+    // duplicated so the palette never has to build rows just to answer a
+    // bool. The two lists must never drift apart: a command in one but not
+    // the other would silently gain or lose its value picker.
+    for c in COMMANDS {
+        assert_eq!(
+            expands(c.name),
+            options_for(c.name).is_some(),
+            "{} : expands() and options_for() disagree",
+            c.name
+        );
+    }
+}
+
+#[test]
 fn step_sel_skips_header_rows_in_both_directions() {
     use crate::suggest::{first_selectable, step_sel, MenuItem};
     fn row(label: &str, header: bool) -> MenuItem {
