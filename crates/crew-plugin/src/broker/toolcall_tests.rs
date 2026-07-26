@@ -2,6 +2,7 @@ use std::sync::Mutex;
 use std::time::Duration;
 
 use super::*;
+use crate::broker::adapter::HopStream;
 use crate::{PluginEvent, Registry};
 
 /// An agent whose replies are scripted; repeats the last one when exhausted.
@@ -62,13 +63,6 @@ fn env() -> Envelope {
     Envelope::new("user", "planner", "t1", "task")
 }
 
-/// A ticker that discards every call — for `run_tools` tests that don't care
-/// about ticking (see `run_tools_follow_up_dial_reports_usage_and_emits_ticks`
-/// for the one that does).
-fn noop_ticker() -> std::sync::Arc<dyn Fn(u64) + Send + Sync> {
-    std::sync::Arc::new(|_| {})
-}
-
 #[test]
 fn parse_tool_call_reads_the_last_line() {
     let c = parse_tool_call("thinking\n@tool fs:read {\"path\": \"x\"}").unwrap();
@@ -124,7 +118,7 @@ fn run_tools_feeds_the_result_back_and_returns_the_final_reply() {
     let agent = Scripted::new(&["used the file\n@done"]);
     let mut stats = RunStats::default();
     let mut usage = Usage::default();
-    let on_tokens = noop_ticker();
+    let stream = HopStream::noop();
     let mut hops = Vec::new();
     let reply = b.run_tools(
         &agent,
@@ -133,7 +127,7 @@ fn run_tools_feeds_the_result_back_and_returns_the_final_reply() {
         &mut stats,
         &mut usage,
         &env(),
-        &on_tokens,
+        &stream,
         &mut |h| hops.push(h),
     );
     assert_eq!(reply, "used the file\n@done");
@@ -148,7 +142,7 @@ fn run_tools_shows_errors_to_the_agent_and_continues() {
     let agent = Scripted::new(&["cannot read it\n@done"]);
     let mut stats = RunStats::default();
     let mut usage = Usage::default();
-    let on_tokens = noop_ticker();
+    let stream = HopStream::noop();
     let mut hops = Vec::new();
     let reply = b.run_tools(
         &agent,
@@ -157,7 +151,7 @@ fn run_tools_shows_errors_to_the_agent_and_continues() {
         &mut stats,
         &mut usage,
         &env(),
-        &on_tokens,
+        &stream,
         &mut |h| hops.push(h),
     );
     assert_eq!(reply, "cannot read it\n@done");
@@ -171,7 +165,7 @@ fn run_tools_stops_at_the_round_cap() {
     let agent = Scripted::new(&["again\n@tool fs:read {\"path\": \"x\"}"]);
     let mut stats = RunStats::default();
     let mut usage = Usage::default();
-    let on_tokens = noop_ticker();
+    let stream = HopStream::noop();
     let reply = b.run_tools(
         &agent,
         "base",
@@ -179,7 +173,7 @@ fn run_tools_stops_at_the_round_cap() {
         &mut stats,
         &mut usage,
         &env(),
-        &on_tokens,
+        &stream,
         &mut |_| {},
     );
     assert_eq!(stats.exchanges, MAX_TOOL_ROUNDS);
@@ -192,7 +186,7 @@ fn run_tools_without_a_runner_is_a_no_op() {
     let agent = Scripted::new(&[]);
     let mut stats = RunStats::default();
     let mut usage = Usage::default();
-    let on_tokens = noop_ticker();
+    let stream = HopStream::noop();
     let reply = b.run_tools(
         &agent,
         "base",
@@ -200,7 +194,7 @@ fn run_tools_without_a_runner_is_a_no_op() {
         &mut stats,
         &mut usage,
         &env(),
-        &on_tokens,
+        &stream,
         &mut |_| {},
     );
     assert_eq!(reply, "answer\n@tool fs:read {}");
@@ -232,7 +226,7 @@ fn relay_runs_a_real_sys_command_and_logs_hops() {
     let mut hops = Vec::new();
     let mut stats = RunStats::default();
     let mut usage = Usage::default();
-    let on_tokens = noop_ticker();
+    let stream = HopStream::noop();
     let reply = broker.run_tools(
         &agent,
         "task",
@@ -240,7 +234,7 @@ fn relay_runs_a_real_sys_command_and_logs_hops() {
         &mut stats,
         &mut usage,
         &env(),
-        &on_tokens,
+        &stream,
         &mut |h| hops.push(h),
     );
     assert_eq!(reply, "the command printed tool-e2e");
@@ -276,7 +270,7 @@ fn pointer_framed_skill_lets_the_agent_read_the_playbook() {
     let mut hops = Vec::new();
     let mut stats = RunStats::default();
     let mut usage = Usage::default();
-    let on_tokens = noop_ticker();
+    let stream = HopStream::noop();
     let reply = broker.run_tools(
         &agent,
         &frame,
@@ -287,7 +281,7 @@ fn pointer_framed_skill_lets_the_agent_read_the_playbook() {
         &mut stats,
         &mut usage,
         &env(),
-        &on_tokens,
+        &stream,
         &mut |h| hops.push(h),
     );
     assert_eq!(reply, "read it, proceeding");
@@ -316,7 +310,7 @@ fn run_tools_clips_large_results_but_keeps_newlines_and_the_final_line() {
     let agent = std::sync::Arc::new(Scripted::new(&["got it\n@done"]));
     let mut stats = RunStats::default();
     let mut usage = Usage::default();
-    let on_tokens = noop_ticker();
+    let stream = HopStream::noop();
     let reply = b.run_tools(
         agent.as_ref(),
         "base prompt",
@@ -324,7 +318,7 @@ fn run_tools_clips_large_results_but_keeps_newlines_and_the_final_line() {
         &mut stats,
         &mut usage,
         &env(),
-        &on_tokens,
+        &stream,
         &mut |_| {},
     );
     assert_eq!(reply, "got it\n@done");
@@ -373,7 +367,7 @@ fn run_tools_clips_single_line_results_with_no_newline() {
     let agent = std::sync::Arc::new(Scripted::new(&["got it\n@done"]));
     let mut stats = RunStats::default();
     let mut usage = Usage::default();
-    let on_tokens = noop_ticker();
+    let stream = HopStream::noop();
     let reply = b.run_tools(
         agent.as_ref(),
         "base prompt",
@@ -381,7 +375,7 @@ fn run_tools_clips_single_line_results_with_no_newline() {
         &mut stats,
         &mut usage,
         &env(),
-        &on_tokens,
+        &stream,
         &mut |_| {},
     );
     assert_eq!(reply, "got it\n@done");
@@ -417,7 +411,10 @@ fn run_tools_follow_up_dial_reports_usage_and_emits_ticks() {
     let tick_sink = events.clone();
     let tick_emit: std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync> =
         std::sync::Arc::new(move |ev| tick_sink.lock().unwrap().push(ev));
-    let on_tokens = crate::broker::tick::hop_ticker(tick_emit, "planner".into());
+    let stream = HopStream {
+        on_tokens: crate::broker::tick::hop_ticker(tick_emit.clone(), "planner".into()),
+        on_text: crate::broker::tick::hop_texter(tick_emit, "planner".into()),
+    };
 
     let mut hops = Vec::new();
     let reply = b.run_tools(
@@ -427,7 +424,7 @@ fn run_tools_follow_up_dial_reports_usage_and_emits_ticks() {
         &mut stats,
         &mut usage,
         &env(),
-        &on_tokens,
+        &stream,
         &mut |h| hops.push(h),
     );
 
@@ -447,6 +444,15 @@ fn run_tools_follow_up_dial_reports_usage_and_emits_ticks() {
             PluginEvent::StatsTick { agent, .. } if agent == "planner"
         )),
         "the follow-up dial must emit at least one StatsTick when the gate allows: {:?}",
+        events.lock().unwrap()
+    );
+    assert!(
+        events
+            .lock()
+            .unwrap()
+            .iter()
+            .any(|e| matches!(e, PluginEvent::Delta { agent, .. } if agent == "planner")),
+        "the follow-up dial streams text too, not just token ticks: {:?}",
         events.lock().unwrap()
     );
 }
@@ -492,6 +498,10 @@ fn run_tools_follow_up_dial_ticks_past_the_hops_running_estimate() {
     let mut usage = crate::broker::adapter::Usage::default();
     let mut hops = Vec::new();
 
+    let stream = HopStream {
+        on_tokens,
+        on_text: std::sync::Arc::new(|_| {}),
+    };
     let primed = events.lock().unwrap().len(); // the priming tick recorded above
     let reply = b.run_tools(
         &agent,
@@ -500,7 +510,7 @@ fn run_tools_follow_up_dial_ticks_past_the_hops_running_estimate() {
         &mut stats,
         &mut usage,
         &env(),
-        &on_tokens,
+        &stream,
         &mut |h| hops.push(h),
     );
 

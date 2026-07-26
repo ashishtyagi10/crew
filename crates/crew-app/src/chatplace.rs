@@ -95,6 +95,8 @@ pub(crate) struct Grants {
     pub swarm: u16,
     pub queued: u16,
     pub prog: u16,
+    /// The dimmed streaming overflow tail (0 or `TAIL_ROWS`).
+    pub tail: u16,
     /// What's left for the transcript.
     pub msg: u16,
 }
@@ -117,6 +119,10 @@ pub(crate) fn grants(pane: &ChatPane, cols: u16, rows: u16) -> Grants {
     let swarm = take(crate::chatswarmview::swarm_rows(pane, cols));
     let queued = take(crate::chatqueue::queued_rows(pane));
     let prog = take(crate::chatprog::progress_rows(pane, cols));
+    // The tail is the most expendable surface: the text it mirrors also
+    // exists in the transcript (or the streaming card itself), so it takes
+    // last, after everything load-bearing has already claimed its rows.
+    let tail = take(crate::chattail::tail_rows(pane, cols));
     Grants {
         top,
         bottom,
@@ -124,6 +130,7 @@ pub(crate) fn grants(pane: &ChatPane, cols: u16, rows: u16) -> Grants {
         swarm,
         queued,
         prog,
+        tail,
         msg: left,
     }
 }
@@ -143,7 +150,8 @@ pub(crate) fn msg_rows_budget(pane: &ChatPane, cols: u16, rows: u16) -> u16 {
 /// `clickopen`'s link hit-test (`chatview::link_at`) reads this to map a
 /// click back to its source line without re-deriving the card layout.
 pub(crate) fn placed_lines(pane: &ChatPane, cols: u16, rows: u16) -> Vec<(u16, CardLine)> {
-    if cols == 0 || rows == 0 || pane.messages.is_empty() {
+    let visible = pane.visible_messages();
+    if cols == 0 || rows == 0 || visible.is_empty() {
         return Vec::new();
     }
     let top = pane.status_rows(cols, rows);
@@ -159,7 +167,7 @@ pub(crate) fn placed_lines(pane: &ChatPane, cols: u16, rows: u16) -> Vec<(u16, C
         compact: pane.compact_view,
     };
     let lines = crate::chatmsgs::card_lines(
-        &pane.messages,
+        &visible,
         cols as usize,
         crate::chattime::unix_now_ms(),
         view,

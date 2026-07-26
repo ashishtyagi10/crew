@@ -78,6 +78,15 @@ pub struct ChatPane {
     /// submit, drained by the poll — the command itself still goes to the
     /// broker untouched, this is only the app-side note.
     pub(crate) pending_recent: Option<String>,
+    /// Agents mid-reply: one provisional card each, accumulating `Delta` text
+    /// (most recently updated LAST — `absorb_delta` moves the card it touches
+    /// to the end, which is how the overflow tail finds the newest without a
+    /// timestamp field).
+    ///
+    /// NEVER stored in `messages`: the transcript holds only settled replies,
+    /// so `/export`, `/restore`, the session log and the swarm fold are
+    /// correct here by construction instead of each needing its own filter.
+    pub(crate) streaming: Vec<Message>,
 }
 
 impl ChatPane {
@@ -109,6 +118,7 @@ impl ChatPane {
             queued: std::collections::VecDeque::new(),
             git_branch: None,
             pending_recent: None,
+            streaming: Vec::new(),
         }
     }
 
@@ -172,6 +182,7 @@ impl ChatPane {
                     // ease; the summary footer reads settled per-turn `ctx`, so
                     // there's nothing live to update here now.
                     PluginEvent::StatsTick { .. } => {}
+                    PluginEvent::Delta { agent, text } => self.absorb_delta(agent, text),
                     PluginEvent::Message {
                         sender,
                         text,
@@ -179,6 +190,7 @@ impl ChatPane {
                         meta,
                         ..
                     } => {
+                        self.settle_stream(&sender);
                         self.awaiting = false; // a reply landed
                         self.note_reply(&sender);
                         if self.scroll > 0 {
@@ -311,6 +323,14 @@ impl ChatPane {
     /// panes (no room for a header) fall back to the plain body.
     pub fn cells(&self, cols: u16, rows: u16) -> Vec<CellView> {
         crate::chatview::cells(self, cols, rows)
+    }
+
+    /// Every card the transcript should draw this frame. ONE source, so the
+    /// scroll clamp, the scrollbar, the link hit-test and the unread pill can
+    /// never disagree about what is on screen — the same reason `View` is
+    /// threaded through all four render entry points.
+    pub(crate) fn visible_messages(&self) -> Vec<&Message> {
+        self.messages.iter().chain(self.streaming.iter()).collect()
     }
 
     /// Handle a winit key event. Returns [`ChatAction::Close`] when the user asks
@@ -469,4 +489,4 @@ impl ChatPane {
 
 #[cfg(test)]
 #[path = "chat_tests.rs"]
-mod tests;
+pub(crate) mod tests;

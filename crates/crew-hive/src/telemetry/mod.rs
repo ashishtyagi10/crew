@@ -87,6 +87,8 @@ impl Fleet {
                     }
                 }
             }
+            // Fragments are liveness only; `last_line` tracks settled output.
+            HiveEvent::OutputDelta { .. } => {}
             HiveEvent::Failed { agent, error } => {
                 if let Some(rec) = self.agents.get_mut(&agent.0) {
                     rec.state = TaskState::Failed;

@@ -191,6 +191,10 @@ pub(crate) fn run_with(
     // the three futures on this current-thread runtime, so each event reaches
     // the host as it happens instead of after the run (frozen-looking runs).
     let mut agent_task: HashMap<u64, TaskId> = HashMap::new();
+    // One TextGate per agent id, plus the run clock they pace against —
+    // `translate` has neither, so both are threaded in (see its doc comment).
+    let mut gates: HashMap<u64, crate::broker::tick::TextGate> = HashMap::new();
+    let run_start = std::time::Instant::now();
     let mut tokens_total: u64 = 0;
     let mut in_total: u64 = 0;
     let mut out_total: u64 = 0;
@@ -218,8 +222,29 @@ pub(crate) fn run_with(
                             }
                             _ => {}
                         }
-                        let r = emit(PluginEvent::Hive { event: ev.clone() }).and_then(|()| {
-                            for out in translate(&ev, &specialties, &mut agent_task) {
+                        // `OutputDelta` fires once per SSE fragment (see
+                        // `ApiAgent`), so forwarding it raw here would flood
+                        // the wire with exactly what `TextGate` (tick.rs)
+                        // exists to coalesce — and the app ignores raw
+                        // `Hive{OutputDelta}` outright (chatswarm.rs's no-op
+                        // arm), so every one of those lines is pure waste.
+                        // Only the coalesced `Delta` that `translate` derives
+                        // from it may cross the wire. Every other variant
+                        // still forwards raw below, unaffected — do not
+                        // widen this exclusion.
+                        let mut r = if matches!(ev, HiveEvent::OutputDelta { .. }) {
+                            Ok(())
+                        } else {
+                            emit(PluginEvent::Hive { event: ev.clone() })
+                        };
+                        r = r.and_then(|()| {
+                            for out in translate(
+                                &ev,
+                                &specialties,
+                                &mut agent_task,
+                                &mut gates,
+                                run_start.elapsed().as_millis() as u64,
+                            ) {
                                 emit(out)?;
                             }
                             Ok(())

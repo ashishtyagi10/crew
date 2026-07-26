@@ -46,18 +46,86 @@ pub(crate) fn noop_tick_emit() -> std::sync::Arc<dyn Fn(PluginEvent) + Send + Sy
     std::sync::Arc::new(|_| {})
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+/// Minimum gap between two Delta flushes for one agent. Tighter than
+/// `TICK_GAP_MS`: text is what the eye tracks and wants to feel continuous,
+/// while a token counter reads fine at 150ms.
+pub(crate) const TEXT_GAP_MS: u64 = 80;
 
-    #[test]
-    fn first_tick_passes_then_gap_enforced() {
-        assert!(should_tick(None, 0, TICK_GAP_MS));
-        assert!(!should_tick(Some(1000), 1149, TICK_GAP_MS));
-        assert!(should_tick(Some(1000), 1150, TICK_GAP_MS));
-        assert!(
-            !should_tick(Some(1000), 999, TICK_GAP_MS),
-            "clock skew saturates, no panic"
-        );
+/// Whether streamed text is forwarded at all. `CREW_STREAM_TEXT=0` turns
+/// every gate into a no-op, restoring the pre-streaming behaviour for a
+/// regressed run or a deterministic test.
+pub(crate) fn text_streaming_enabled() -> bool {
+    !matches!(std::env::var("CREW_STREAM_TEXT").as_deref(), Ok("0"))
+}
+
+/// Coalescing buffer for ONE agent's streamed text, so a provider emitting
+/// per-token fragments cannot flood the host (the app polls plugin events
+/// synchronously on the winit thread).
+///
+/// Unlike [`should_tick`]'s numeric gate, a fragment arriving inside the gap
+/// is BUFFERED, never dropped: a token estimate is monotonic, so a skipped
+/// tick is corrected by the next one, but text is cumulative and a dropped
+/// fragment would stay missing until the settled `Message` replaced the whole
+/// reply. `now_ms` is a parameter rather than a clock read, so this stays a
+/// pure, testable gate — the same convention as `should_tick`.
+pub(crate) struct TextGate {
+    buf: String,
+    last_ms: Option<u64>,
+}
+
+impl TextGate {
+    pub(crate) fn new() -> Self {
+        Self {
+            buf: String::new(),
+            last_ms: None,
+        }
+    }
+
+    /// Buffer `text`, returning the payload to send as one `Delta` when the
+    /// gap has elapsed (the first non-empty push always passes).
+    pub(crate) fn push(&mut self, text: &str, now_ms: u64) -> Option<String> {
+        self.buf.push_str(text);
+        // An empty buffer must not consume the first-flush allowance, or a
+        // provider's empty keep-alive frame would delay the first real text.
+        if self.buf.is_empty() || !should_tick(self.last_ms, now_ms, TEXT_GAP_MS) {
+            return None;
+        }
+        self.last_ms = Some(now_ms);
+        Some(std::mem::take(&mut self.buf))
     }
 }
+
+/// Build a rate-limited `on_text` callback for one agent hop: fragments go
+/// through a [`TextGate`] and each flush is emitted as a `PluginEvent::Delta`
+/// via `tick_emit`. Own clock and own state per call, exactly like
+/// [`hop_ticker`], so concurrent hops gate independently.
+///
+/// There is deliberately NO end-of-hop flush: the gate may swallow the final
+/// fragment, and that is fine — deltas are advisory and the settled `Message`
+/// carries the full reply milliseconds later. Skipping the flush keeps this a
+/// pure function of its inputs with no lifecycle to get wrong.
+pub(crate) fn hop_texter(
+    tick_emit: std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,
+    agent: String,
+) -> std::sync::Arc<dyn Fn(&str) + Send + Sync> {
+    let gate = std::sync::Mutex::new(TextGate::new());
+    let hop_start = std::time::Instant::now();
+    let enabled = text_streaming_enabled();
+    std::sync::Arc::new(move |text: &str| {
+        if !enabled {
+            return;
+        }
+        let now_ms = hop_start.elapsed().as_millis() as u64;
+        let mut g = gate.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(payload) = g.push(text, now_ms) {
+            tick_emit(PluginEvent::Delta {
+                agent: agent.clone(),
+                text: payload,
+            });
+        }
+    })
+}
+
+#[cfg(test)]
+#[path = "tick_tests.rs"]
+mod tests;

@@ -75,6 +75,15 @@ pub enum PluginEvent {
         agent: String,
         tokens: u64,
     },
+    /// Mid-reply text: `agent` produced `text` since the previous Delta of
+    /// this hop. ADVISORY, exactly like `StatsTick` — the end-of-hop
+    /// `Message` carries the full normalized reply and REPLACES anything
+    /// streamed here, so a dropped or coalesced fragment can never corrupt
+    /// the transcript.
+    Delta {
+        agent: String,
+        text: String,
+    },
     Message {
         channel: String,
         sender: String,
@@ -299,6 +308,29 @@ mod tests {
             }
             _ => panic!("wrong variant"),
         }
+    }
+
+    #[test]
+    fn delta_round_trips_with_type_tag() {
+        let ev = PluginEvent::Delta {
+            agent: "coder".into(),
+            text: "partial ".into(),
+        };
+        let s = serde_json::to_string(&ev).unwrap();
+        assert!(s.contains(r#""type":"delta""#), "got: {s}");
+        match serde_json::from_str::<PluginEvent>(&s).unwrap() {
+            PluginEvent::Delta { agent, text } => {
+                assert_eq!((agent.as_str(), text.as_str()), ("coder", "partial "));
+            }
+            other => panic!("wrong variant: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn unknown_event_type_fails_to_parse_so_the_host_can_skip_it() {
+        // host.rs uses `if let Ok(ev) = from_str(...)`, so an Err here is how
+        // an older app tolerates a newer broker's events. Pin that contract.
+        assert!(serde_json::from_str::<PluginEvent>(r#"{"type":"not_a_real_event"}"#).is_err());
     }
 
     #[test]

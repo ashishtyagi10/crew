@@ -37,6 +37,29 @@ pub struct Usage {
     pub cost_microusd: u64,
 }
 
+/// The two live signals of one in-flight hop, passed together so each call
+/// site threads one value instead of two. Both are ADVISORY — the end-of-hop
+/// reply and its `Stats` stay authoritative — so a backend that cannot stream
+/// simply never calls them.
+#[derive(Clone)]
+pub struct HopStream {
+    /// Running chars/4 OUTPUT-token estimate for this hop.
+    pub on_tokens: std::sync::Arc<dyn Fn(u64) + Send + Sync>,
+    /// Each raw text fragment as it arrives, already agent-scoped.
+    pub on_text: std::sync::Arc<dyn Fn(&str) + Send + Sync>,
+}
+
+impl HopStream {
+    /// Discards both signals — for call paths that never dial an agent and
+    /// for tests that don't care about liveness.
+    pub fn noop() -> Self {
+        Self {
+            on_tokens: std::sync::Arc::new(|_| {}),
+            on_text: std::sync::Arc::new(|_| {}),
+        }
+    }
+}
+
 /// A registered agent the broker can address by name.
 pub trait Adapter: Send + Sync {
     /// The name messages are addressed to (lowercase, e.g. `"claude"`).
@@ -62,15 +85,17 @@ pub trait Adapter: Send + Sync {
     fn call_with_usage(&self, body: &str, timeout: Duration) -> Result<(String, Usage), String> {
         self.call(body, timeout).map(|t| (t, Usage::default()))
     }
-    /// Like `call_with_usage`, reporting a running OUTPUT-token estimate to
-    /// `on_tokens` while the reply streams. Default: no ticks.
+    /// Like `call_with_usage`, also reporting this hop's live signals — a
+    /// running OUTPUT-token estimate and each streamed text fragment — while
+    /// the reply arrives. Default: no live signals (external CLIs return one
+    /// blob and have nothing incremental to forward).
     fn call_with_usage_ticked(
         &self,
         body: &str,
         timeout: Duration,
-        on_tokens: std::sync::Arc<dyn Fn(u64) + Send + Sync>,
+        stream: &HopStream,
     ) -> Result<(String, Usage), String> {
-        let _ = on_tokens;
+        let _ = stream;
         self.call_with_usage(body, timeout)
     }
 }

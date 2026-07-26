@@ -16,6 +16,12 @@ pub(crate) struct ActiveAgent {
     pub since: Instant,
 }
 
+/// The agent name a sender or delta is keyed by: the part before a relay's
+/// ` → `, so `"coder → user"` and a bare `"coder"` name the same agent.
+pub(crate) fn stream_key(sender: &str) -> &str {
+    sender.split(" \u{2192} ").next().unwrap_or(sender)
+}
+
 impl crate::chat::ChatPane {
     /// Fold one `Stats` event into the pane's totals: turn-level events (empty
     /// `agent`) feed the token meter and turn counter plus the session's
@@ -85,7 +91,7 @@ impl crate::chat::ChatPane {
     /// message itself (`sender` = `"agent → to"`) is the hop-end signal — stop
     /// that agent's clock and record the hop.
     pub(crate) fn note_reply(&mut self, sender: &str) {
-        let name = sender.split(" \u{2192} ").next().unwrap_or(sender);
+        let name = stream_key(sender);
         if let Some(i) = self.active.iter().position(|a| a.name == name) {
             let a = self.active.remove(i);
             self.pulse
@@ -101,6 +107,44 @@ impl crate::chat::ChatPane {
                 .record_hop(&a.name, a.since.elapsed().as_millis() as u64);
         }
         self.pulse.end_turn();
+        // A hop that never produced a Message must not strand its card.
+        self.streaming.clear();
+    }
+
+    /// One streamed fragment landed: append it to that agent's provisional
+    /// card, opening one on the hop's first delta. The touched card moves to
+    /// the END of `streaming`, so the last entry is always the most recently
+    /// updated one. Advisory — `settle_stream` discards whatever accumulated.
+    pub(crate) fn absorb_delta(&mut self, agent: String, text: String) {
+        // `stream_key` normalizes BOTH sides, matching `settle_stream`: no
+        // current caller sends an arrow-form `agent`, but if one ever did,
+        // comparing it raw against the normalized `m.sender` would never
+        // match an already-open card, opening a spurious new one per delta.
+        let key = stream_key(&agent);
+        if let Some(i) = self
+            .streaming
+            .iter()
+            .position(|m| stream_key(&m.sender) == key)
+        {
+            let mut card = self.streaming.remove(i);
+            card.text.push_str(&text);
+            self.streaming.push(card);
+            return;
+        }
+        self.streaming.push(crate::chatlayout::Message {
+            sender: agent,
+            text,
+            ts: crate::chattime::unix_now_ms().to_string(),
+            meta: String::new(),
+        });
+    }
+
+    /// A settled reply arrived from `sender`: drop that agent's provisional
+    /// card so the real `Message` takes its place. Any fragment the broker's
+    /// gate swallowed is healed by the replacement.
+    pub(crate) fn settle_stream(&mut self, sender: &str) {
+        let name = stream_key(sender);
+        self.streaming.retain(|m| stream_key(&m.sender) != name);
     }
 
     /// Whether the newest message is still fading in — keeps redraw frames

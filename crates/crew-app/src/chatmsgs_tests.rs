@@ -23,7 +23,7 @@ fn row_text(cells: &[CellView], row: u16) -> String {
 
 #[test]
 fn card_has_header_then_indented_body() {
-    let cells = message_cells(&[msg("planner", "hello")], 40, 10, 0, 0, View::default());
+    let cells = message_cells(&[&msg("planner", "hello")], 40, 10, 0, 0, View::default());
     assert_eq!(row_text(&cells, 0), format!("{GUTTER}planner"));
     assert_eq!(row_text(&cells, 1), " hello");
 }
@@ -31,14 +31,15 @@ fn card_has_header_then_indented_body() {
 #[test]
 fn cards_are_separated_by_a_blank_line() {
     let m = [msg("planner", "a"), msg("coder", "b")];
-    let cells = message_cells(&m, 40, 10, 0, 0, View::default());
+    let refs: Vec<&Message> = m.iter().collect();
+    let cells = message_cells(&refs, 40, 10, 0, 0, View::default());
     assert_eq!(row_text(&cells, 2), ""); // spacer
     assert_eq!(row_text(&cells, 3), format!("{GUTTER}coder"));
 }
 
 #[test]
 fn multiline_reply_renders_each_line() {
-    let cells = message_cells(&[msg("coder", "one\ntwo")], 40, 10, 0, 0, View::default());
+    let cells = message_cells(&[&msg("coder", "one\ntwo")], 40, 10, 0, 0, View::default());
     assert_eq!(row_text(&cells, 1), " one");
     assert_eq!(row_text(&cells, 2), " two");
 }
@@ -46,7 +47,7 @@ fn multiline_reply_renders_each_line() {
 #[test]
 fn fenced_code_renders_as_bordered_card() {
     let cells = message_cells(
-        &[msg("coder", "fix:\n```rust\nlet x = 1;\n```")],
+        &[&msg("coder", "fix:\n```rust\nlet x = 1;\n```")],
         40,
         10,
         0,
@@ -88,7 +89,7 @@ fn header_tail_keeps_relative_time_but_drops_latency() {
 #[test]
 fn handoff_sender_colours_each_name_separately() {
     let cells = message_cells(
-        &[msg("planner \u{2192} coder", "x")],
+        &[&msg("planner \u{2192} coder", "x")],
         40,
         10,
         0,
@@ -113,14 +114,14 @@ fn system_sender_is_muted_and_agents_are_not() {
 
 #[test]
 fn crew_message_uses_the_dotted_system_gutter() {
-    let cells = message_cells(&[msg("crew", "hello")], 40, 10, 0, 0, View::default());
+    let cells = message_cells(&[&msg("crew", "hello")], 40, 10, 0, 0, View::default());
     assert_eq!(row_text(&cells, 0), "\u{2506}crew");
 }
 
 #[test]
 fn agent_message_keeps_the_solid_gutter() {
     let cells = message_cells(
-        &[msg("planner \u{2192} user", "hello")],
+        &[&msg("planner \u{2192} user", "hello")],
         40,
         10,
         0,
@@ -136,17 +137,18 @@ fn agent_message_keeps_the_solid_gutter() {
 #[test]
 fn count_matches_rendered_lines_and_scroll_shows_older() {
     let m = [msg("a", "one"), msg("b", "two")];
+    let refs: Vec<&Message> = m.iter().collect();
     // 2 cards × (header + body) + 1 spacer = 5 lines.
-    assert_eq!(card_line_count(&m, 40, View::default()), 5);
+    assert_eq!(card_line_count(&refs, 40, View::default()), 5);
     // A 2-row window scrolled 3 up from the bottom shows the first card.
-    let cells = message_cells(&m, 40, 2, 0, 3, View::default());
+    let cells = message_cells(&refs, 40, 2, 0, 3, View::default());
     assert_eq!(row_text(&cells, 0), format!("{GUTTER}a"));
 }
 
 #[test]
 fn top_row_offsets_and_width_clips() {
     let cells = message_cells(
-        &[msg("planner", "wide text here")],
+        &[&msg("planner", "wide text here")],
         5,
         4,
         3,
@@ -160,7 +162,7 @@ fn top_row_offsets_and_width_clips() {
 fn wide_glyphs_advance_two_columns() {
     // "中x": the wide glyph sits at its column and `x` lands TWO columns
     // later, so it can't overlap the glyph's second cell.
-    let cells = message_cells(&[msg("a", "\u{4e2d}x")], 20, 4, 0, 0, View::default());
+    let cells = message_cells(&[&msg("a", "\u{4e2d}x")], 20, 4, 0, 0, View::default());
     let body: Vec<(u16, char)> = cells
         .iter()
         .filter(|c| c.row == 1 && c.c != ' ')
@@ -220,7 +222,7 @@ fn splash_renders_headerless_and_centered() {
         is_splash(&m),
         "nameplate art must be detected as the splash"
     );
-    let lines = card_lines(&[m], 40, 0, View::default());
+    let lines = card_lines(&[&m], 40, 0, View::default());
     let texts: Vec<String> = lines
         .iter()
         .map(|l| l.iter().map(|c| c.c).collect())
@@ -263,7 +265,8 @@ fn same_task_cards_chain_with_a_tree_connector_and_no_spacer() {
         mk("coder \u{2192} user", "task:2 \u{00b7} 1.0s"),
         mk("planner \u{2192} user", "task:3"),
     ];
-    let cells = message_cells(&m, 60, 12, 0, 0, View::default());
+    let refs: Vec<&Message> = m.iter().collect();
+    let cells = message_cells(&refs, 60, 12, 0, 0, View::default());
     // Card 1: header + body. Card 2 chains directly underneath (no spacer),
     // its header led by the muted └ connector and without a repeated #2.
     let follow = row_text(&cells, 2);
@@ -289,7 +292,8 @@ fn middle_chained_cards_get_tee_last_gets_corner() {
         meta: "task:7".into(),
     };
     let msgs = [mk("root"), mk("mid"), mk("last")];
-    let lines = card_lines(&msgs, 80, 0, View::default());
+    let refs: Vec<&Message> = msgs.iter().collect();
+    let lines = card_lines(&refs, 80, 0, View::default());
     let texts: Vec<String> = lines
         .iter()
         .map(|l| l.iter().map(|c| c.c).collect())
@@ -359,7 +363,8 @@ fn message_cells_is_a_thin_map_over_placed_lines_in_both_modes() {
         let top = pane.status_rows(cols, rows);
         let bottom = crate::chatinput::composer_rows(&pane.input, cols, rows);
         let msg_rows = rows.saturating_sub(top + bottom);
-        let cells = message_cells(&pane.messages, cols, msg_rows, top, pane.scroll, view);
+        let refs: Vec<&Message> = pane.messages.iter().collect();
+        let cells = message_cells(&refs, cols, msg_rows, top, pane.scroll, view);
         let placed = placed_lines(&pane, cols, rows);
 
         // Coverage independently derived from `placed_lines`, using the same
@@ -456,8 +461,9 @@ fn msg_rows_budget_shrinks_by_one_when_a_message_is_queued() {
 #[test]
 fn compact_view_clamps_multiline_body_and_appends_hidden_suffix() {
     let m = [msg("coder", "one\ntwo\nthree")];
+    let refs: Vec<&Message> = m.iter().collect();
     let full = card_lines(
-        &m,
+        &refs,
         40,
         0,
         View {
@@ -468,7 +474,7 @@ fn compact_view_clamps_multiline_body_and_appends_hidden_suffix() {
     assert_eq!(full.len(), 4, "header + 3 body lines, no spacer (one msg)");
 
     let compact = card_lines(
-        &m,
+        &refs,
         40,
         0,
         View {
@@ -497,9 +503,10 @@ fn compact_view_clamps_multiline_body_and_appends_hidden_suffix() {
 #[test]
 fn compact_view_leaves_single_line_message_unchanged() {
     let m = [msg("planner", "just one line")];
-    let full = card_lines(&m, 40, 0, View::default());
+    let refs: Vec<&Message> = m.iter().collect();
+    let full = card_lines(&refs, 40, 0, View::default());
     let compact = card_lines(
-        &m,
+        &refs,
         40,
         0,
         View {
@@ -526,9 +533,10 @@ fn compact_view_shrinks_card_line_count() {
         msg("planner", "one\ntwo\nthree"),
         msg("coder", "just one line"),
     ];
-    let full = card_line_count(&m, 40, View::default());
+    let refs: Vec<&Message> = m.iter().collect();
+    let full = card_line_count(&refs, 40, View::default());
     let compact = card_line_count(
-        &m,
+        &refs,
         40,
         View {
             source: false,
@@ -547,8 +555,9 @@ fn compact_view_shrinks_card_line_count() {
 fn compact_view_and_source_view_are_orthogonal() {
     // Both on at once: raw text, clamped to one line — no special case.
     let m = [msg("coder", "**one**\ntwo\nthree")];
+    let refs: Vec<&Message> = m.iter().collect();
     let both = card_lines(
-        &m,
+        &refs,
         40,
         0,
         View {

@@ -1,6 +1,7 @@
 //! HiveEvent → chat-facing PluginEvent translation for swarm runs — child
 //! module of `swarm` (split for the 200-line cap).
 use super::*;
+use crate::broker::tick::{text_streaming_enabled, TextGate};
 
 /// Map one HiveEvent to chat-facing events. Raw `Hive` forwarding happens at
 /// the call site; this returns only the human-readable translations.
@@ -10,10 +11,36 @@ use super::*;
 /// could never match. Titles still name the *work*, but they reach the app on
 /// `HivePlan` — this translation is not given them at all, so naming an agent
 /// after one is impossible here rather than merely discouraged.
+///
+/// `gates` holds one [`TextGate`] per agent, keyed by the `AgentId`'s numeric
+/// id (`agent.0`) rather than its display name, and `now_ms` is the run's
+/// elapsed clock: `translate` sees one event at a time and has no clock of
+/// its own, so mid-reply pacing has to be threaded in from the drain loop the
+/// same way `agent_task` is.
+///
+/// Keying by id — not by `agent_name(...)`'s specialty string — matters
+/// because specialty is LLM-authored free text with no uniqueness
+/// constraint, and the scheduler runs up to `CONCURRENCY` tasks in
+/// parallel: two concurrently-running tasks CAN share a specialty. Keying
+/// the gate by name would collapse both agents onto one `TextGate`, so
+/// their fragments would interleave into a single buffer and be emitted as
+/// one `Delta` — genuine cross-agent text concatenation, not merely shared
+/// attribution. Keying by `agent.0` gives every real agent its own buffer,
+/// so no two agents' text can ever land in one payload.
+///
+/// This does NOT fix same-specialty agents being *displayed* as one: the
+/// emitted `Delta`'s `agent` field is still `agent_name(...)`, so two
+/// concurrent agents sharing a specialty still emit Deltas under the same
+/// name and the app still merges them into one card. That is the
+/// pre-existing agent-naming conflation — `Activity` and `StatsTick` already
+/// name agents by specialty the same way — not something this gate solves
+/// or was ever meant to.
 pub(super) fn translate(
     ev: &HiveEvent,
     specialties: &HashMap<TaskId, String>,
     agent_task: &mut HashMap<u64, TaskId>,
+    gates: &mut HashMap<u64, TextGate>,
+    now_ms: u64,
 ) -> Vec<PluginEvent> {
     let specialist_of = |t: &TaskId| {
         specialties
@@ -51,6 +78,20 @@ pub(super) fn translate(
             tokens: u64::from(*output),
         }],
         HiveEvent::CostDelta { .. } => vec![],
+        HiveEvent::OutputDelta { agent, text } => {
+            if !text_streaming_enabled() {
+                return vec![];
+            }
+            let name = agent_name(agent, agent_task);
+            let gate = gates.entry(agent.0).or_insert_with(TextGate::new);
+            match gate.push(text, now_ms) {
+                Some(payload) => vec![PluginEvent::Delta {
+                    agent: name,
+                    text: payload,
+                }],
+                None => vec![],
+            }
+        }
         HiveEvent::OutputChunk { agent, text } => {
             vec![msg(agent_name(agent, agent_task).as_str(), text.clone())]
         }

@@ -14,7 +14,7 @@ use std::time::Duration;
 
 use crew_hive::{CompletionRequest, Provider};
 
-use super::adapter::Adapter;
+use super::adapter::{Adapter, HopStream};
 
 /// Output token ceiling per agent reply. Bounded so a runaway reply can't blow
 /// the thread's cost; the relay favours concise hand-offs anyway.
@@ -150,13 +150,14 @@ impl Adapter for ApiAdapter {
         }
     }
 
-    /// Same call as `call_with_usage`, but streams the reply and reports a
-    /// running chars/4 OUTPUT-token estimate to `on_tokens` as chunks arrive.
+    /// Same call as `call_with_usage`, but streams the reply: reports a
+    /// running chars/4 OUTPUT-token estimate AND each raw text fragment,
+    /// through `stream`, as chunks arrive.
     fn call_with_usage_ticked(
         &self,
         body: &str,
         timeout: Duration,
-        on_tokens: Arc<dyn Fn(u64) + Send + Sync>,
+        stream: &HopStream,
     ) -> Result<(String, super::adapter::Usage), String> {
         let req = CompletionRequest {
             model: self.model.clone(),
@@ -166,7 +167,12 @@ impl Adapter for ApiAdapter {
         };
         let chars = Arc::new(std::sync::atomic::AtomicU64::new(0));
         let counter = chars.clone();
+        let on_tokens = Arc::clone(&stream.on_tokens);
+        let on_text = Arc::clone(&stream.on_text);
         let on_chunk: crew_hive::ChunkFn = Arc::new(move |s: &str| {
+            // Text first: it is what the user sees, and the token estimate
+            // must never delay it.
+            on_text(s);
             // Unicode chars, not bytes — byte counts over-report CJK ~3×
             // (same convention as the provider-side chars/4 estimators).
             let n = s.chars().count() as u64;
@@ -293,8 +299,12 @@ mod tests {
         let on_tokens: Arc<dyn Fn(u64) + Send + Sync> = Arc::new(move |t| {
             sink.lock().unwrap().push(t);
         });
+        let stream = HopStream {
+            on_tokens,
+            on_text: Arc::new(|_| {}),
+        };
         let (text, _usage) = adapter
-            .call_with_usage_ticked("task", Duration::from_secs(5), on_tokens)
+            .call_with_usage_ticked("task", Duration::from_secs(5), &stream)
             .unwrap();
         assert_eq!(text, "one two three four five six");
         let ticks = seen.lock().unwrap();
@@ -321,8 +331,12 @@ mod tests {
         let on_tokens: Arc<dyn Fn(u64) + Send + Sync> = Arc::new(move |t| {
             sink.lock().unwrap().push(t);
         });
+        let stream = HopStream {
+            on_tokens,
+            on_text: Arc::new(|_| {}),
+        };
         let (text, _usage) = adapter
-            .call_with_usage_ticked("task", Duration::from_secs(5), on_tokens)
+            .call_with_usage_ticked("task", Duration::from_secs(5), &stream)
             .unwrap();
         assert_eq!(text, "文文文文 文文文文");
         let ticks = seen.lock().unwrap();

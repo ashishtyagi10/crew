@@ -586,6 +586,106 @@ fn status_line_queued_indicator_bar_and_composer_stack_without_colliding() {
     }
 }
 
+/// The exact gap Finding 1 caught: `messages` is empty on a fresh hop's first
+/// `Delta` (nothing has settled yet), so branching on `messages.is_empty()`
+/// alone sent the live text down the onboarding/empty-state branch, which
+/// never calls `visible_messages()` — the provisional card was invisible for
+/// as long as it was actually streaming, appearing only once the settled
+/// reply replaced it. `cells()` must render the streamed text even with
+/// `messages` empty.
+#[test]
+fn provisional_card_renders_even_with_no_settled_messages() {
+    let mut pane = test_pane(vec![]);
+    pane.absorb_delta("coder".into(), "streaming live text".into());
+    assert!(
+        pane.messages.is_empty(),
+        "fixture check: nothing has settled"
+    );
+    let (cols, rows) = (60u16, 20u16);
+    let cells_out = cells(&pane, cols, rows);
+    let text: String = cells_out.iter().map(|c| c.c).collect();
+    assert!(
+        text.contains("streaming live text"),
+        "the provisional card must render on the empty-`messages` branch: {text}"
+    );
+}
+
+/// Regression: `chatview::cells` used to position the swarm status block at
+/// `top + msg_rows`, and the streaming tail at
+/// `rows - (bottom + prog + queued + swarm + tail)`. Once `chatplace::grants`
+/// started taking a `tail` slice out of the same row pool `msg_rows` is sized
+/// from, those two formulas reduce to the exact same value — `top + msg_rows`
+/// simplifies to `rows - bottom - prog - queued - swarm - tail`, which IS the
+/// tail's start row — so whenever both surfaces were granted at once (a swarm
+/// run streaming while the user has scrolled up, precisely the state the tail
+/// exists to serve) they drew on the same row and the later draw silently
+/// won. Fixed by anchoring the swarm block from the bottom of the pane too,
+/// independent of `msg_rows`, with the tail stacked directly above it.
+#[test]
+fn swarm_block_and_streaming_tail_never_share_a_row() {
+    // Enough settled filler that the transcript is genuinely longer than any
+    // row budget used below, so a big scroll shows only the OLDEST lines —
+    // the newest streaming card (and its marker text) is then only visible
+    // via the tail, never via the ordinary transcript view. That isolates
+    // the row check below to the swarm-vs-tail collision this test targets,
+    // rather than the transcript incidentally repeating the same text.
+    let filler: Vec<Message> = (0..30)
+        .map(|i| msg("planner", &format!("filler {i}")))
+        .collect();
+    let mut pane = test_pane(filler);
+    pane.absorb_hive_plan(
+        (0..4)
+            .map(|i| TaskSpec {
+                id: TaskId(i),
+                title: format!("task-{i}"),
+                agent: AgentKind::Api { system: None },
+                model: ModelTier::Cheap,
+                deps: vec![],
+                prompt: "p".into(),
+                specialty: String::new(),
+                expertise: String::new(),
+            })
+            .collect(),
+    );
+    pane.absorb_hive(&HiveEvent::TaskStateChanged {
+        task: TaskId(0),
+        state: TaskState::Running,
+    });
+    pane.absorb_delta("coder".into(), "TAILMARKtext".into());
+    pane.scroll = 9_999; // scrolled far past the top: the newest card is off screen
+
+    let (cols, rows) = (60u16, 24u16);
+    let g = crate::chatplace::grants(&pane, cols, rows);
+    assert!(g.swarm > 0, "fixture must actually grant the swarm block");
+    assert!(g.tail > 0, "fixture must actually grant the tail");
+
+    let grid = merge_grid(&cells(&pane, cols, rows));
+    let row_text =
+        |row: u16| -> String { (0..cols).filter_map(|col| grid.get(&(row, col))).collect() };
+    let swarm_rows: Vec<u16> = (0..rows)
+        .filter(|&r| row_text(r).contains("task-0"))
+        .collect();
+    let tail_rows: Vec<u16> = (0..rows)
+        .filter(|&r| row_text(r).contains("TAILMARKtext"))
+        .collect();
+
+    assert!(
+        !swarm_rows.is_empty(),
+        "swarm status line not found anywhere in the rendered pane"
+    );
+    assert!(
+        !tail_rows.is_empty(),
+        "streaming tail not found anywhere in the rendered pane"
+    );
+    for r in &tail_rows {
+        assert!(
+            !swarm_rows.contains(r),
+            "row {r} carries both the swarm status line and the streaming tail: {:?}",
+            row_text(*r)
+        );
+    }
+}
+
 #[test]
 fn compact_view_shows_the_header_chip_end_to_end() {
     let mut pane = test_pane(vec![msg("planner", "hi")]);

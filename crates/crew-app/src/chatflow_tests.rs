@@ -20,3 +20,22 @@ fn turn_total_accumulates_split_and_cost() {
     assert_eq!(pane.tok_out, 60);
     assert_eq!(pane.cost_microusd, 150);
 }
+
+// `absorb_delta` compares `stream_key(&m.sender) == agent`, normalizing the
+// stored sender but not the incoming `agent` — so an arrow-form agent name
+// (`"coder \u{2192} user"`, as a relay hop would send) must still match a
+// card already opened under the bare name `"coder"`, exactly like
+// `settle_stream` (which normalizes both sides) already does.
+#[test]
+fn absorb_delta_normalizes_arrow_form_agent_name_like_settle_stream_does() {
+    let mut pane = test_pane();
+    pane.absorb_delta("coder".into(), "Hello".into());
+    pane.absorb_delta("coder \u{2192} user".into(), ", world".into());
+    assert_eq!(
+        pane.streaming.len(),
+        1,
+        "an arrow-form agent name must append to the existing bare-name card, \
+         not open a second one"
+    );
+    assert_eq!(pane.streaming[0].text, "Hello, world");
+}

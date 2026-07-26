@@ -83,7 +83,16 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
     let queued_rows = g.queued;
     let bar_row = rows.saturating_sub(bottom + prog_rows);
     let indicator_row = rows.saturating_sub(bottom + prog_rows + queued_rows);
-    if pane.messages.is_empty() {
+    // Decide on what will actually be DRAWN (`visible_messages`, which
+    // includes any provisional `streaming` card), not just settled history:
+    // a fresh hop's first `Delta` lands before anything ever settles into
+    // `pane.messages`, so branching on `messages.is_empty()` alone sent the
+    // live text down the onboarding/empty-state branch, which never calls
+    // `visible_messages()` — the reply was invisible for exactly as long as
+    // it was actually streaming. Same correction `chatplace::placed_lines`
+    // already makes.
+    let visible = pane.visible_messages();
+    if visible.is_empty() {
         // A run can start before any reply lands — the plan-summary message
         // usually exists by fold time, but don't rely on it here. `g.swarm` is
         // 0 when the pane had no row to seat the line in, and then nothing is
@@ -117,7 +126,7 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
         };
         let msg_rows = crate::chatplace::msg_rows_budget(pane, cols, rows);
         cells.extend(crate::chatmsgs::message_cells(
-            &pane.messages,
+            &visible,
             cols,
             msg_rows,
             top,
@@ -125,7 +134,7 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
             view,
         ));
         // Scroll affordances sit over the message area's last column/row.
-        let total = crate::chatmsgs::card_line_count(&pane.messages, cols, view);
+        let total = crate::chatmsgs::card_line_count(&visible, cols, view);
         cells.extend(crate::chatscroll::scrollbar_cells(
             total,
             msg_rows as usize,
@@ -138,23 +147,33 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
             cells.extend(crate::chatscroll::new_pill_cells(pane.unread, cols, last));
         }
         // The live swarm block sits under the messages, above the composer
-        // (and the queued indicator, when showing) — msg_rows_budget already
-        // reserved its rows so nothing overlaps in the normal case, but clamp
-        // anyway so a saturated row budget can never push block rows onto the
-        // composer row (see the empty-branch comment above for why the
-        // composer doesn't reliably overdraw them).
+        // (and the queued indicator, when showing). Its start row is derived
+        // from the BOTTOM of the pane, the same anchor `grants` used to size
+        // `msg_rows` from — not `top + msg_rows`, which used to be equivalent
+        // only because `tail` didn't exist yet. Now that `grants` also takes
+        // a `tail` slice out of the same pool, `top + msg_rows` has `g.tail`
+        // baked into it and lands on the SAME row as the tail (both reduce to
+        // `rows - bottom - prog - queued - swarm - tail`) — the two surfaces
+        // silently overwrote each other whenever both were granted at once
+        // (a swarm run streaming while the user has scrolled up, exactly the
+        // state the tail exists to serve). Anchoring both independently from
+        // `rows` keeps them stacked instead: swarm right above the composer
+        // stack, tail directly above swarm.
         let block_max = rows.saturating_sub(bottom + prog_rows + queued_rows);
+        let swarm_start = block_max.saturating_sub(g.swarm);
         if g.swarm > 0 {
             cells.extend(
-                crate::chatswarmview::block_cells(
-                    pane,
-                    cols,
-                    top + msg_rows,
-                    crate::anim::now_ms(),
-                )
-                .into_iter()
-                .filter(|c| c.row < block_max),
+                crate::chatswarmview::block_cells(pane, cols, swarm_start, crate::anim::now_ms())
+                    .into_iter()
+                    .filter(|c| c.row < block_max),
             );
+        }
+        // Above the live status line: the streaming overflow tail, when
+        // `grants` could seat it (0 rows means it was not budgeted, so it is
+        // skipped entirely rather than sharing another surface's row).
+        if g.tail > 0 {
+            let tail_start = swarm_start.saturating_sub(g.tail);
+            cells.extend(crate::chattail::tail_cells(pane, cols, tail_start));
         }
     }
     if queued_rows > 0 {
