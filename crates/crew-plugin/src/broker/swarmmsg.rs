@@ -1,6 +1,7 @@
 //! HiveEvent → chat-facing PluginEvent translation for swarm runs — child
 //! module of `swarm` (split for the 200-line cap).
 use super::*;
+use crate::broker::tick::{text_streaming_enabled, TextGate};
 
 /// Map one HiveEvent to chat-facing events. Raw `Hive` forwarding happens at
 /// the call site; this returns only the human-readable translations.
@@ -10,10 +11,18 @@ use super::*;
 /// could never match. Titles still name the *work*, but they reach the app on
 /// `HivePlan` — this translation is not given them at all, so naming an agent
 /// after one is impossible here rather than merely discouraged.
+///
+/// `gates` holds one [`TextGate`] per agent NAME and `now_ms` is the run's
+/// elapsed clock: `translate` sees one event at a time and has no clock of
+/// its own, so mid-reply pacing has to be threaded in from the drain loop the
+/// same way `agent_task` is. Per-agent gates keep a parallel run's
+/// interleaved fragments from being merged into one another.
 pub(super) fn translate(
     ev: &HiveEvent,
     specialties: &HashMap<TaskId, String>,
     agent_task: &mut HashMap<u64, TaskId>,
+    gates: &mut HashMap<String, TextGate>,
+    now_ms: u64,
 ) -> Vec<PluginEvent> {
     let specialist_of = |t: &TaskId| {
         specialties
@@ -51,8 +60,20 @@ pub(super) fn translate(
             tokens: u64::from(*output),
         }],
         HiveEvent::CostDelta { .. } => vec![],
-        // Wired to PluginEvent::Delta in a later task.
-        HiveEvent::OutputDelta { .. } => vec![],
+        HiveEvent::OutputDelta { agent, text } => {
+            if !text_streaming_enabled() {
+                return vec![];
+            }
+            let name = agent_name(agent, agent_task);
+            let gate = gates.entry(name.clone()).or_insert_with(TextGate::new);
+            match gate.push(text, now_ms) {
+                Some(payload) => vec![PluginEvent::Delta {
+                    agent: name,
+                    text: payload,
+                }],
+                None => vec![],
+            }
+        }
         HiveEvent::OutputChunk { agent, text } => {
             vec![msg(agent_name(agent, agent_task).as_str(), text.clone())]
         }

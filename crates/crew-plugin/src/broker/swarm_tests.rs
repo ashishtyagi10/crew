@@ -1,5 +1,6 @@
 use super::*;
 use crate::broker::testenv;
+use crate::broker::tick::TextGate;
 use crew_hive::agent::StubFactory;
 use crew_hive::StubPlanner;
 use std::sync::atomic::AtomicBool;
@@ -307,6 +308,8 @@ fn activity_names_the_specialist_not_the_task_title() {
         },
         &specialties,
         &mut agent_task,
+        &mut HashMap::new(),
+        0,
     );
     match &evs[0] {
         PluginEvent::Activity { agent, .. } => assert_eq!(agent, "archivist"),
@@ -321,4 +324,75 @@ fn lagged_note_wording_and_plural() {
         "telemetry gap: 1 event dropped (bus overflow) \u{2014} task stats may under-count"
     );
     assert!(super::lagged_note(42).contains("42 events dropped"));
+}
+
+#[test]
+fn output_delta_coalesces_per_agent_and_never_crosses_agents() {
+    let mut specialties = HashMap::new();
+    specialties.insert(TaskId(1), "planner".to_string());
+    specialties.insert(TaskId(2), "coder".to_string());
+    let mut agent_task = HashMap::new();
+    let mut gates: HashMap<String, TextGate> = HashMap::new();
+
+    // Spawns teach `agent_task` which task (and so which specialty) each
+    // AgentId belongs to — delta naming depends on it.
+    for (a, t) in [(10u64, TaskId(1)), (20, TaskId(2))] {
+        translate(
+            &HiveEvent::AgentSpawned {
+                agent: AgentId(a),
+                task: t,
+            },
+            &specialties,
+            &mut agent_task,
+            &mut gates,
+            0,
+        );
+    }
+
+    let d = |a: u64, t: &str| HiveEvent::OutputDelta {
+        agent: AgentId(a),
+        text: t.into(),
+    };
+    let one = |evs: &[PluginEvent]| match evs {
+        [PluginEvent::Delta { agent, text }] => (agent.clone(), text.clone()),
+        other => panic!("expected exactly one Delta, got {other:?}"),
+    };
+
+    // First fragment per agent flushes immediately.
+    let a0 = translate(
+        &d(10, "plan-"),
+        &specialties,
+        &mut agent_task,
+        &mut gates,
+        0,
+    );
+    let b0 = translate(
+        &d(20, "code-"),
+        &specialties,
+        &mut agent_task,
+        &mut gates,
+        0,
+    );
+    // Inside the 80ms gap: buffered, nothing emitted.
+    let a1 = translate(
+        &d(10, "more"),
+        &specialties,
+        &mut agent_task,
+        &mut gates,
+        10,
+    );
+    // Past the gap: one Delta carrying the buffered text plus this fragment.
+    let a2 = translate(&d(10, "!"), &specialties, &mut agent_task, &mut gates, 200);
+
+    assert_eq!(one(&a0), ("planner".to_string(), "plan-".to_string()));
+    assert_eq!(one(&b0), ("coder".to_string(), "code-".to_string()));
+    assert!(
+        a1.is_empty(),
+        "a fragment inside the gap buffers, not emits"
+    );
+    assert_eq!(
+        one(&a2),
+        ("planner".to_string(), "more!".to_string()),
+        "buffered text flushes with the next fragment, and coder's text never leaks in"
+    );
 }
