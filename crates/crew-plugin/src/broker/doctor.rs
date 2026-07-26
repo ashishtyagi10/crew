@@ -132,7 +132,7 @@ pub(crate) fn on_path(bin: &str, path: &str) -> bool {
 
 /// Probe the live environment for the report.
 pub(crate) fn gather() -> DoctorInputs {
-    let force = std::env::var("CREW_PROVIDER").ok();
+    let force = super::discover::forced_provider();
     let has = |k: &str| std::env::var(k).is_ok_and(|v| !v.is_empty());
     let path = std::env::var("PATH").unwrap_or_default();
     DoctorInputs {

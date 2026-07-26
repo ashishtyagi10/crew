@@ -302,7 +302,7 @@ fn send(
 /// two very different things depending on this: no provider at all, versus a
 /// working provider whose per-project specialist store is simply still empty.
 pub(crate) fn provider_resolves() -> bool {
-    let force = std::env::var("CREW_PROVIDER").ok();
+    let force = super::discover::forced_provider();
     let has = |k: &str| std::env::var(k).is_ok_and(|v| !v.is_empty());
     super::discover::pick_provider(force.as_deref(), has).is_some()
 }

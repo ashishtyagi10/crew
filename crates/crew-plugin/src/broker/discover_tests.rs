@@ -130,3 +130,35 @@ fn model_chain_falls_back_to_default_when_blank() {
         vec!["x", "y"]
     );
 }
+
+#[test]
+fn the_env_pin_outranks_the_stored_pin() {
+    assert_eq!(
+        resolve_forced(
+            Some("openrouter".to_string()),
+            Some("anthropic".to_string())
+        )
+        .as_deref(),
+        Some("openrouter"),
+        "an explicit CREW_PROVIDER=… crew must never be overridden by a stored pin"
+    );
+}
+
+#[test]
+fn the_stored_pin_applies_when_the_env_is_unset_or_blank() {
+    assert_eq!(
+        resolve_forced(None, Some("anthropic".to_string())).as_deref(),
+        Some("anthropic")
+    );
+    assert_eq!(
+        resolve_forced(Some(String::new()), Some("anthropic".to_string())).as_deref(),
+        Some("anthropic"),
+        "a blank CREW_PROVIDER is not a pin"
+    );
+}
+
+#[test]
+fn no_pin_anywhere_leaves_auto_discovery_alone() {
+    assert_eq!(resolve_forced(None, None), None);
+    assert_eq!(resolve_forced(None, Some(String::new())), None);
+}

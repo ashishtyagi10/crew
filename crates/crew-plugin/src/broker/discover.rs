@@ -89,6 +89,23 @@ pub fn pick_provider(force: Option<&str>, has_key: impl Fn(&str) -> bool) -> Opt
     }
 }
 
+/// Which provider is pinned: `CREW_PROVIDER` if it names one, else the pin the
+/// credential store recorded when a key was saved. Env wins, so an explicit
+/// `CREW_PROVIDER=… crew` is never overridden by something crew stored itself.
+pub(crate) fn forced_provider() -> Option<String> {
+    resolve_forced(
+        std::env::var("CREW_PROVIDER").ok(),
+        crate::credentials::load().provider,
+    )
+}
+
+/// The pure half of [`forced_provider`], so the precedence is testable without
+/// the process environment or the real config directory.
+fn resolve_forced(env: Option<String>, stored: Option<String>) -> Option<String> {
+    env.filter(|v| !v.is_empty())
+        .or_else(|| stored.filter(|v| !v.is_empty()))
+}
+
 /// The full adapter roster: stored specialists (see [`super::specialists`])
 /// composed over the picked provider — or, with no provider, none at all —
 /// then every installed manifest plugin agent (see [`super::plugins`])
@@ -107,7 +124,7 @@ pub(crate) fn roster_with(
     // The mock roster stays plugin-free so end-to-end tests are deterministic
     // on any machine.
     if !matches!(
-        pick_provider(std::env::var("CREW_PROVIDER").ok().as_deref(), |k| {
+        pick_provider(forced_provider().as_deref(), |k| {
             std::env::var(k).is_ok_and(|v| !v.is_empty())
         }),
         Some(ProviderKind::Mock)
@@ -125,7 +142,7 @@ pub(crate) fn roster_with(
 pub(crate) fn provider_and_model_for(
     tier: crew_hive::ModelTier,
 ) -> Option<(Arc<dyn crew_hive::Provider>, String)> {
-    let force = std::env::var("CREW_PROVIDER").ok();
+    let force = forced_provider();
     let has = |k: &str| std::env::var(k).is_ok_and(|v| !v.is_empty());
     match pick_provider(force.as_deref(), has)? {
         ProviderKind::Mock => {
