@@ -261,6 +261,24 @@ fn contrast_thresholds() {
                 cr(t.ansi[i], tbg)
             );
         }
+
+        // The chat markdown palette (crew-app `chatink`) draws code from
+        // ansi[6] and structural markers (list bullets, quote bars) from
+        // ansi[3], both on the page. Their readability is therefore a
+        // theme-level promise, not a crew-app detail: a new preset with a
+        // washed-out cyan or yellow breaks chat rendering, and this is where
+        // that gets caught. Measured worst cases when written: ansi[6] 5.85
+        // (SEPIA_LIGHT), ansi[3] 4.64 (IVORY_LEDGER).
+        assert!(
+            cr(t.ansi[6], bg) >= 4.5,
+            "{name}: ansi[6] (chat code) vs page_bg = {:.3} (need >= 4.5)",
+            cr(t.ansi[6], bg)
+        );
+        assert!(
+            cr(t.ansi[3], bg) >= 4.5,
+            "{name}: ansi[3] (chat marker) vs page_bg = {:.3} (need >= 4.5)",
+            cr(t.ansi[3], bg)
+        );
     }
 }
 
