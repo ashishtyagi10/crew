@@ -44,10 +44,102 @@ fn stats_events_split_turn_and_agent_totals() {
     assert_eq!(pane.ctx.get("planner"), Some(&9_400));
 }
 
-fn pane() -> ChatPane {
+pub(crate) fn pane() -> ChatPane {
     // An idle child stands in for the broker; only pane state is under test.
     let plugin = Plugin::spawn("sh", &["-c".to_string(), "cat >/dev/null".to_string()]).unwrap();
     ChatPane::new(plugin, "crew".into())
+}
+
+#[test]
+fn delta_opens_a_provisional_card_then_appends_to_it() {
+    let mut p = pane();
+    p.absorb_delta("coder".into(), "Hello".into());
+    p.absorb_delta("coder".into(), ", world".into());
+    assert!(
+        p.messages.is_empty(),
+        "nothing settled reaches the transcript"
+    );
+    assert_eq!(p.streaming.len(), 1, "one card per agent, not per delta");
+    assert_eq!(p.streaming[0].text, "Hello, world");
+    let visible = p.visible_messages();
+    assert_eq!(visible.len(), 1, "the provisional card is drawn");
+    assert_eq!(visible[0].text, "Hello, world");
+}
+
+#[test]
+fn settled_message_replaces_the_provisional_card() {
+    let mut p = pane();
+    p.absorb_delta("coder".into(), "Hel".into());
+    p.settle_stream("coder \u{2192} user");
+    p.push_capped(Message {
+        sender: "coder \u{2192} user".into(),
+        text: "Hello, world".into(),
+        ts: "1".into(),
+        meta: String::new(),
+    });
+    assert!(
+        p.streaming.is_empty(),
+        "a relay sender settles the bare-name card"
+    );
+    assert_eq!(
+        p.messages.len(),
+        1,
+        "exactly one card, not the stream plus the reply"
+    );
+    assert_eq!(p.visible_messages().len(), 1);
+    assert_eq!(p.messages[0].text, "Hello, world");
+}
+
+#[test]
+fn two_agents_stream_into_separate_cards() {
+    let mut p = pane();
+    p.absorb_delta("planner".into(), "plan".into());
+    p.absorb_delta("coder".into(), "code".into());
+    p.absorb_delta("planner".into(), "ning".into());
+    assert_eq!(p.streaming.len(), 2);
+    let texts: Vec<&str> = p.streaming.iter().map(|m| m.text.as_str()).collect();
+    assert!(
+        texts.contains(&"planning") && texts.contains(&"code"),
+        "{texts:?}"
+    );
+}
+
+#[test]
+fn provisional_card_never_bumps_the_unread_pill() {
+    let mut p = pane();
+    p.scroll = 5; // scrolled up: a settled reply WOULD count as unread
+    p.absorb_delta("coder".into(), "text".into());
+    assert_eq!(p.unread, 0, "only settled replies are 'new'");
+}
+
+#[test]
+fn turn_end_clears_a_stranded_provisional_card() {
+    let mut p = pane();
+    p.absorb_delta("coder".into(), "half a reply".into());
+    // The empty-agent idle: the turn is over and no Message ever arrived.
+    p.absorb_activity(String::new(), "idle", String::new());
+    assert!(
+        p.streaming.is_empty(),
+        "an interrupted hop leaves no stranded card"
+    );
+}
+
+#[test]
+fn export_never_contains_a_provisional_card() {
+    let mut p = pane();
+    p.push_capped(Message {
+        sender: "coder".into(),
+        text: "SETTLED".into(),
+        ts: "1".into(),
+        meta: String::new(),
+    });
+    p.absorb_delta("coder".into(), "HALFWRITTEN".into());
+    let md = crate::chatexport::transcript_markdown("c", &p.messages, &chrono::Local::now());
+    assert!(md.contains("SETTLED"));
+    assert!(
+        !md.contains("HALFWRITTEN"),
+        "provisional cards live outside `messages`, so export cannot see them"
+    );
 }
 
 #[test]
