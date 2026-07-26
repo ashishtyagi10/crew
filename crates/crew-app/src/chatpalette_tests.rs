@@ -160,9 +160,11 @@ fn popup_key_navigates_accepts_and_closes() {
         popup_key(&mut p, &mut input, &ChatInput::Down),
         PaletteKey::Consumed
     ));
+    // Filling a row without running it reports `Accepted`, not `Consumed`:
+    // the input changed, so the caller has to re-sync the palette to it.
     assert!(matches!(
         popup_key(&mut p, &mut input, &ChatInput::Enter),
-        PaletteKey::Consumed
+        PaletteKey::Accepted
     ));
     assert!(input.starts_with('@') && input.ends_with(' '));
     assert!(p.is_none());
