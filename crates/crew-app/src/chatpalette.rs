@@ -44,6 +44,10 @@ pub(crate) enum PaletteKey {
     /// caller must submit as if Enter had been pressed on the composer.
     Submit,
     Forward,
+    /// The accepted row can't run until a provider key exists; the payload is
+    /// the variable it needs. The palette is closed and `input` is UNCHANGED —
+    /// the model is not chosen until it can actually be served.
+    NeedsKey(String),
 }
 
 /// The leading token being typed, if it's a `/command` or `@agent` selector
@@ -156,6 +160,10 @@ pub(crate) fn popup_key(
             }
             let mut submit = false;
             if let Some(item) = p.items.get(p.sel) {
+                if let Some(var) = item.needs.clone() {
+                    *palette = None;
+                    return PaletteKey::NeedsKey(var);
+                }
                 submit = item.submit && matches!(key, ChatInput::Enter);
                 *input = accept(input, p.kind, &item.fill);
             }

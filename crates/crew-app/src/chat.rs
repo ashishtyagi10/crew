@@ -373,6 +373,11 @@ impl ChatPane {
             // `self.palette` is `None` now).
             crate::chatpalette::PaletteKey::Submit => return self.on_input(ChatInput::Enter, cwd),
             crate::chatpalette::PaletteKey::Forward => {}
+            // Task 5 opens the key popup here.
+            crate::chatpalette::PaletteKey::NeedsKey(var) => {
+                let _ = var;
+                return None;
+            }
         }
         if matches!(
             crate::chatmention::popup_key(&mut self.mention, &mut self.input, &k),

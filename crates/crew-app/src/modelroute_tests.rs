@@ -129,3 +129,21 @@ fn fill_slug_follows_the_route() {
     );
     assert_eq!(Route::Unknown.fill_slug(&claude), "claude-sonnet-5");
 }
+
+#[test]
+fn needs_key_names_only_real_variables() {
+    assert_eq!(
+        Route::Missing("ANTHROPIC_API_KEY").needs_key(),
+        Some("ANTHROPIC_API_KEY")
+    );
+    // `route_for` also produces this human phrase for an OpenRouter-unservable
+    // model. It names no variable, and must never open a key prompt.
+    assert_eq!(
+        Route::Missing("a model OpenRouter serves").needs_key(),
+        None
+    );
+    assert_eq!(Route::Direct("anthropic").needs_key(), None);
+    assert_eq!(Route::ViaOpenRouter.needs_key(), None);
+    assert_eq!(Route::Unknown.needs_key(), None);
+    assert_eq!(Route::Mock.needs_key(), None);
+}

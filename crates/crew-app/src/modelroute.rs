@@ -49,6 +49,16 @@ impl Route {
     pub(crate) fn unserveable(&self) -> bool {
         matches!(self, Self::Missing(_))
     }
+    /// The environment variable this row is blocked on, when that is a key
+    /// crew can actually store. `Missing` also carries human phrases — see
+    /// `route_for`'s `Missing("a model OpenRouter serves")` — which name no
+    /// variable and must not produce a key prompt for a nonsense name.
+    pub(crate) fn needs_key(&self) -> Option<&'static str> {
+        match self {
+            Self::Missing(k) => crew_plugin::credentials::VARS.contains(k).then_some(*k),
+            _ => None,
+        }
+    }
 }
 
 /// Resolve the route for one catalog row. `probed` is whether the login-shell

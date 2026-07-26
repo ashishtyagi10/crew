@@ -161,6 +161,7 @@ impl CrewApp {
                                     submit: false,
                                     header: false,
                                     dim: false,
+                                    needs: None,
                                 })
                                 .collect();
                             let r = pane.rect;

@@ -63,6 +63,7 @@ impl crate::app::CrewApp {
                 submit,
                 header: false,
                 dim: false,
+                needs: None,
             }]
         };
         if let Some(cmd) = crate::app::star_command(&text) {
