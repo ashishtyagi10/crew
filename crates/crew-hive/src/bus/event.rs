@@ -23,6 +23,15 @@ pub enum HiveEvent {
         agent: AgentId,
         micros_usd: u64,
     },
+    /// One streamed fragment of an agent's in-flight reply, published as it
+    /// arrives from the provider. ADVISORY: the `OutputChunk` published when
+    /// the agent finishes carries the COMPLETE output and is what the
+    /// transcript keeps, so a subscriber that misses deltas — or ignores them
+    /// entirely — loses liveness, never content.
+    OutputDelta {
+        agent: AgentId,
+        text: String,
+    },
     OutputChunk {
         agent: AgentId,
         text: String,

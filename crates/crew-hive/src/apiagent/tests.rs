@@ -195,6 +195,51 @@ async fn api_factory_model_override_reaches_request() {
 }
 
 #[tokio::test]
+async fn api_agent_streams_deltas_then_one_complete_chunk() {
+    let bus = EventBus::new(64);
+    let mut rx = bus.subscribe();
+    let reply = "alpha beta gamma delta epsilon zeta";
+    let agent = ApiAgent::new(
+        Arc::new(MockProvider {
+            reply: reply.into(),
+        }),
+        256,
+    );
+    let ctx = AgentContext {
+        agent: AgentId(7),
+        task: spec(1),
+        deps: vec![],
+        bus,
+    };
+    let res = agent.run(ctx).await;
+    assert!(res.success);
+
+    let mut deltas: Vec<String> = Vec::new();
+    let mut chunks: Vec<String> = Vec::new();
+    while let Ok(ev) = rx.try_recv() {
+        match ev {
+            HiveEvent::OutputDelta { text, .. } => deltas.push(text),
+            HiveEvent::OutputChunk { text, .. } => chunks.push(text),
+            _ => {}
+        }
+    }
+    assert!(
+        deltas.len() > 1,
+        "MockProvider splits into 3 groups, so the reply must arrive in pieces: {deltas:?}"
+    );
+    assert_eq!(
+        deltas.concat(),
+        reply,
+        "fragments concatenate to the whole reply, losing nothing"
+    );
+    assert_eq!(
+        chunks,
+        vec![reply.to_string()],
+        "exactly ONE OutputChunk, carrying the complete output"
+    );
+}
+
+#[tokio::test]
 async fn api_agent_bills_at_the_tasks_own_tier() {
     // Same prompt + reply (so token counts are identical), different task tier:
     // the emitted CostDelta must reflect the task's model, proving the agent

@@ -51,6 +51,8 @@ pub(super) fn translate(
             tokens: u64::from(*output),
         }],
         HiveEvent::CostDelta { .. } => vec![],
+        // Wired to PluginEvent::Delta in a later task.
+        HiveEvent::OutputDelta { .. } => vec![],
         HiveEvent::OutputChunk { agent, text } => {
             vec![msg(agent_name(agent, agent_task).as_str(), text.clone())]
         }

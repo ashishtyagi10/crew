@@ -120,6 +120,7 @@ impl SwarmStatus {
             // the transcript via the broker's Message translation.
             HiveEvent::CostDelta { .. }
             | HiveEvent::OutputChunk { .. }
+            | HiveEvent::OutputDelta { .. }
             | HiveEvent::Failed { .. } => {}
         }
     }

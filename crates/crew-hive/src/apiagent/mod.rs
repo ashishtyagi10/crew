@@ -95,7 +95,20 @@ impl Agent for ApiAgent {
                 prompt,
                 max_tokens,
             };
-            match provider.complete(req).await {
+            // Fragments publish as they arrive; the completed reply still
+            // publishes as one OutputChunk below, so every existing consumer
+            // (telemetry's last_line, the broker's transcript Message) is
+            // unchanged. A provider without streaming support falls back to
+            // `complete` via the trait default and simply emits no deltas.
+            let delta_bus = ctx.bus.clone();
+            let delta_agent = agent_id.clone();
+            let on_chunk: crate::provider::ChunkFn = Arc::new(move |s: &str| {
+                delta_bus.publish(HiveEvent::OutputDelta {
+                    agent: delta_agent.clone(),
+                    text: s.to_string(),
+                });
+            });
+            match provider.complete_streaming(req, on_chunk).await {
                 Ok(completion) => {
                     ctx.bus.publish(HiveEvent::TokenDelta {
                         agent: agent_id.clone(),
