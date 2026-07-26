@@ -165,6 +165,14 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
                 .filter(|c| c.row < block_max),
             );
         }
+        // Above the live status line: the streaming overflow tail, when
+        // `grants` could seat it (0 rows means it was not budgeted, so it is
+        // skipped entirely rather than sharing another surface's row).
+        if g.tail > 0 {
+            let tail_start =
+                rows.saturating_sub(bottom + prog_rows + queued_rows + g.swarm + g.tail);
+            cells.extend(crate::chattail::tail_cells(pane, cols, tail_start));
+        }
     }
     if queued_rows > 0 {
         cells.extend(crate::chatqueue::indicator_cells(pane, cols, indicator_row));

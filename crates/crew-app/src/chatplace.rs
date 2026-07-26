@@ -95,6 +95,8 @@ pub(crate) struct Grants {
     pub swarm: u16,
     pub queued: u16,
     pub prog: u16,
+    /// The dimmed streaming overflow tail (0 or `TAIL_ROWS`).
+    pub tail: u16,
     /// What's left for the transcript.
     pub msg: u16,
 }
@@ -117,6 +119,10 @@ pub(crate) fn grants(pane: &ChatPane, cols: u16, rows: u16) -> Grants {
     let swarm = take(crate::chatswarmview::swarm_rows(pane, cols));
     let queued = take(crate::chatqueue::queued_rows(pane));
     let prog = take(crate::chatprog::progress_rows(pane, cols));
+    // The tail is the most expendable surface: the text it mirrors also
+    // exists in the transcript (or the streaming card itself), so it takes
+    // last, after everything load-bearing has already claimed its rows.
+    let tail = take(crate::chattail::tail_rows(pane, cols));
     Grants {
         top,
         bottom,
@@ -124,6 +130,7 @@ pub(crate) fn grants(pane: &ChatPane, cols: u16, rows: u16) -> Grants {
         swarm,
         queued,
         prog,
+        tail,
         msg: left,
     }
 }

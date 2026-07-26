@@ -42,6 +42,7 @@ mod chatspawn;
 mod chatsummary;
 mod chatswarm;
 mod chatswarmview;
+mod chattail;
 mod chattheme;
 mod chattime;
 mod chatview;

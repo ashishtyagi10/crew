@@ -489,4 +489,4 @@ impl ChatPane {
 
 #[cfg(test)]
 #[path = "chat_tests.rs"]
-mod tests;
+pub(crate) mod tests;
