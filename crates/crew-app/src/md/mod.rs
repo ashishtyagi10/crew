@@ -27,6 +27,10 @@ pub(crate) struct MdStyle {
     pub italic: bool,
     pub code: bool,  // inline code span
     pub heading: u8, // 0 = body text, 1..=6 = heading level
+    /// A structural marker glyph — a list bullet/ordinal or a blockquote bar
+    /// — rather than authored content. The chat renderer colours markers
+    /// separately from the text they introduce.
+    pub marker: bool,
 }
 
 /// A run of text sharing one style, optionally linking to a URL.
@@ -42,6 +46,7 @@ pub(crate) struct MdSpan {
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) enum LineKind {
     Body,
+    Quote,      // a line of blockquote prose (bar + quoted text)
     CodeHeader, // "╭─ lang" chrome line (chat draws it muted, no bg)
     Code,       // verbatim code content (chat draws it on code_bg)
     CodeFooter, // "╰─"

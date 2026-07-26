@@ -16,6 +16,19 @@ pub(super) fn plain_span(text: String) -> MdSpan {
     }
 }
 
+/// A structural marker glyph (list bullet/ordinal, blockquote bar) rather
+/// than authored content — `chatmd` colours these separately.
+pub(super) fn marker_span(text: String) -> MdSpan {
+    MdSpan {
+        text,
+        style: MdStyle {
+            marker: true,
+            ..MdStyle::default()
+        },
+        link: None,
+    }
+}
+
 /// Hard-truncates `spans` to the first `cols` chars, splitting the boundary
 /// span if needed. Used both as the narrow-column degrade path and to clip
 /// table lines that don't fit.

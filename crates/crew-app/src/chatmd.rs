@@ -6,20 +6,8 @@
 use std::sync::Arc;
 
 use crate::chatbody::{plain, CardCell, CardLine, Color};
+use crate::chatink;
 use crate::md::{LineKind, MdLine, MdSpan};
-
-/// The code card's background: the page nudged toward the ink colour, so the
-/// block reads as a card in every theme without a dedicated theme slot.
-fn code_bg() -> Color {
-    let t = crew_theme::theme();
-    crate::anim::lerp_rgb(t.page_bg, t.ink, 0.08)
-}
-
-/// Link tint: reuse the terminal pane's own URL-highlight colour (`linkhl`)
-/// so a link reads the same whether it's in a pane or a chat card.
-fn link_color() -> Color {
-    crate::linkhl::LINK_FG
-}
 
 /// Maps one rendered markdown document to card lines, indented one column
 /// and re-chunked to `width` display columns per row.
@@ -42,6 +30,7 @@ pub(crate) fn map_lines(md_lines: Vec<MdLine>, width: usize, fg: Color) -> Vec<C
         }
         let line_fg = match line.kind {
             LineKind::CodeHeader | LineKind::CodeFooter | LineKind::Rule => muted,
+            LineKind::Quote => chatink::quote_fg(),
             _ => fg,
         };
         let cells: Vec<CardCell> = line
@@ -99,32 +88,63 @@ fn span_style(
     fg: Color,
     muted: Color,
 ) -> (Color, bool, bool, Option<Color>, Option<Arc<str>>) {
+    // Checked before `kind`: the quote bar is prefixed to EVERY line of a
+    // quote, including the Code lines of a fenced block inside it, and a bar
+    // drawn in code colour on a code tint would read as part of the code.
+    if span.style.marker {
+        return (chatink::marker_fg(), false, false, None, None);
+    }
     match kind {
         LineKind::CodeHeader | LineKind::CodeFooter | LineKind::Rule => {
             (muted, false, false, None, None)
         }
-        LineKind::Code => (fg, false, false, Some(code_bg()), None),
+        LineKind::Code => (
+            chatink::code_fg(),
+            false,
+            false,
+            Some(chatink::code_bg()),
+            None,
+        ),
         LineKind::Blank => (fg, false, false, None, None),
-        LineKind::Body => {
-            let style = span.style;
-            let mut cell_fg = fg;
-            let mut bold = style.bold;
-            match style.heading {
-                1 | 2 => {
-                    cell_fg = crew_theme::theme().ink;
-                    bold = true;
-                }
-                h if h >= 3 => bold = true,
-                _ => {}
-            }
-            let bg = if style.code { Some(code_bg()) } else { None };
-            let mut link = None;
-            if let Some(url) = &span.link {
-                bold = true;
-                cell_fg = link_color();
-                link = Some(Arc::from(url.as_str()));
-            }
-            (cell_fg, bold, style.italic, bg, link)
-        }
+        LineKind::Body => body_span_style(span, fg),
+        LineKind::Quote => body_span_style(span, chatink::quote_fg()),
     }
 }
+
+/// Styles one prose span over `base` — the colour its plain text draws in.
+/// Precedence, highest first: link, heading, inline code, then `base`. A span
+/// can carry several of these at once (`# A [link](u)`), so the order is what
+/// decides; it is checked top-down rather than accumulated, so each branch
+/// states its whole result.
+fn body_span_style(
+    span: &MdSpan,
+    base: Color,
+) -> (Color, bool, bool, Option<Color>, Option<Arc<str>>) {
+    let style = span.style;
+    // Inline code inside a link keeps the code tint, as it did before.
+    let code_bg = if style.code {
+        Some(chatink::code_bg())
+    } else {
+        None
+    };
+    if let Some(url) = &span.link {
+        return (
+            chatink::link_color(),
+            true,
+            style.italic,
+            code_bg,
+            Some(Arc::from(url.as_str())),
+        );
+    }
+    if style.heading >= 1 {
+        return (chatink::heading_fg(), true, style.italic, code_bg, None);
+    }
+    if style.code {
+        return (chatink::code_fg(), style.bold, style.italic, code_bg, None);
+    }
+    (base, style.bold, style.italic, None, None)
+}
+
+#[cfg(test)]
+#[path = "chatmd_tests.rs"]
+mod tests;

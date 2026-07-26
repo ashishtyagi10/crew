@@ -31,6 +31,7 @@ impl InlineState {
             italic: self.italic > 0,
             code: false,
             heading: 0,
+            marker: false,
         }
     }
 

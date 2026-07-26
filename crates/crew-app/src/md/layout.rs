@@ -5,7 +5,7 @@ use super::parse::{Block, ListItem};
 #[cfg(test)]
 use super::render;
 use super::{LineKind, MdLine, MdSpan};
-use wrap::{plain_span, split_hardbreaks, wrap_group};
+use wrap::{marker_span, plain_span, split_hardbreaks, wrap_group};
 
 #[path = "table.rs"]
 mod table;
@@ -106,11 +106,11 @@ fn list_lines(items: Vec<ListItem>, cols: usize) -> Vec<MdLine> {
         let mut first = true;
         for group in split_hardbreaks(item.spans) {
             for line_spans in wrap_group(&group, avail) {
-                let mut spans = vec![plain_span(if first {
-                    prefix.clone()
+                let mut spans = vec![if first {
+                    marker_span(prefix.clone())
                 } else {
-                    " ".repeat(prefix_len)
-                })];
+                    plain_span(" ".repeat(prefix_len))
+                }];
                 first = false;
                 spans.extend(line_spans);
                 out.push(MdLine {
@@ -132,9 +132,16 @@ fn quote_lines(inner: Vec<Block>, cols: usize) -> Vec<MdLine> {
         if line.kind == LineKind::Blank {
             continue;
         }
-        let mut spans = vec![plain_span(PREFIX.to_string())];
+        let mut spans = vec![marker_span(PREFIX.to_string())];
         spans.append(&mut line.spans);
         line.spans = spans;
+        // ONLY prose becomes Quote. A fenced block inside a quote keeps its
+        // Code/CodeHeader/CodeFooter kind so it still renders as a code card,
+        // and a rule stays a rule — the bar is prepended to all of them, but
+        // the kind is what decides how the line is drawn.
+        if line.kind == LineKind::Body {
+            line.kind = LineKind::Quote;
+        }
     }
     sub
 }

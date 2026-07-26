@@ -180,6 +180,18 @@ mod tests {
     }
 
     #[test]
+    fn source_mode_stays_flat() {
+        let fg = (9, 9, 9);
+        let lines = body_lines("see `this`:\n```rust\nfn x() {}\n```", 40, fg, true);
+        for line in &lines {
+            for cell in line {
+                assert_eq!(cell.fg, fg, "source mode must not colour cells");
+                assert_eq!(cell.bg, None, "source mode must not tint cells");
+            }
+        }
+    }
+
+    #[test]
     fn cjk_prose_rechunks_to_display_width_budget() {
         let text_in = "\u{6f22}\u{5b57}".repeat(30);
         let lines = body_lines(&text_in, 20, (9, 9, 9), false);
