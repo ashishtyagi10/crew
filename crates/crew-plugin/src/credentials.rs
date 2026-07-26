@@ -1,0 +1,133 @@
+//! Provider credentials supplied from inside crew, rather than from the
+//! environment. Stored as JSON next to `config.toml` — deliberately NOT inside
+//! `CrewConfig`, which is user-visible, hand-edited and safe to paste around;
+//! a key in there would leak the first time someone shared their config.
+//!
+//! Lives in `crew-plugin` because both consumers reach it here: the broker IS
+//! this crate, and `crew-app` already depends on it.
+//!
+//! Not the macOS Keychain: crew ships Linux binaries too, so Keychain would
+//! mean two code paths and a platform-specific failure mode for a v1. An
+//! owner-only file is what `gh` and `aws` do. Keychain stays open as an upgrade.
+use std::collections::BTreeMap;
+use std::path::{Path, PathBuf};
+
+/// The only variables this store will hold, so a key typed into the UI can
+/// never name an arbitrary environment variable.
+pub const VARS: [&str; 3] = [
+    "DASHSCOPE_API_KEY",
+    "OPENROUTER_API_KEY",
+    "ANTHROPIC_API_KEY",
+];
+
+/// The provider a variable authenticates, spelled as `CREW_PROVIDER` and
+/// `pick_provider` spell it.
+pub fn provider_for(var: &str) -> Option<&'static str> {
+    match var {
+        "DASHSCOPE_API_KEY" => Some("dashscope"),
+        "OPENROUTER_API_KEY" => Some("openrouter"),
+        "ANTHROPIC_API_KEY" => Some("anthropic"),
+        _ => None,
+    }
+}
+
+/// The on-disk shape. `provider` is the pin written when a key is saved: with
+/// `pick_provider`'s fixed DashScope → OpenRouter → Anthropic order, supplying
+/// an Anthropic key while a DashScope key exists would otherwise change
+/// nothing the user can see.
+#[derive(Default, Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct Store {
+    #[serde(default)]
+    pub provider: Option<String>,
+    #[serde(default)]
+    pub keys: BTreeMap<String, String>,
+}
+
+/// `<config_dir>/crew/credentials.json`, a sibling of `config.toml`.
+pub fn path() -> Option<PathBuf> {
+    dirs::config_dir().map(|d| d.join("crew").join("credentials.json"))
+}
+
+/// The stored credentials, or an empty store. EVERY failure — no config dir,
+/// no file, unreadable, malformed JSON — reads as empty: a broken credentials
+/// file must never stop crew from starting.
+pub fn load() -> Store {
+    path().map(|p| load_from(&p)).unwrap_or_default()
+}
+
+/// [`load`] from an explicit path (the testable half).
+pub fn load_from(path: &Path) -> Store {
+    std::fs::read_to_string(path)
+        .ok()
+        .and_then(|t| serde_json::from_str(&t).ok())
+        .unwrap_or_default()
+}
+
+/// Store `value` for `var`, optionally moving the provider pin. An empty
+/// `value` REMOVES the key rather than storing a blank — an empty
+/// `ANTHROPIC_API_KEY` still outranks a valid OAuth profile, so a blank is
+/// worse than nothing.
+///
+/// Never logs `value`.
+pub fn save_key(var: &str, value: &str, provider: Option<&str>) -> anyhow::Result<()> {
+    let path =
+        path().ok_or_else(|| anyhow::anyhow!("no config directory to store credentials in"))?;
+    save_key_at(&path, var, value, provider)
+}
+
+/// [`save_key`] at an explicit path (the testable half).
+pub fn save_key_at(
+    path: &Path,
+    var: &str,
+    value: &str,
+    provider: Option<&str>,
+) -> anyhow::Result<()> {
+    if !VARS.contains(&var) {
+        anyhow::bail!("{var} is not a provider key crew stores");
+    }
+    let dir = path
+        .parent()
+        .ok_or_else(|| anyhow::anyhow!("credentials path has no parent directory"))?;
+    std::fs::create_dir_all(dir)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o700))?;
+    }
+    let mut store = load_from(path);
+    if value.is_empty() {
+        store.keys.remove(var);
+    } else {
+        store.keys.insert(var.to_string(), value.to_string());
+    }
+    if let Some(p) = provider {
+        store.provider = Some(p.to_string());
+    }
+    write_atomic(path, &serde_json::to_vec_pretty(&store)?)
+}
+
+/// Write via a same-directory temp file created 0600 BEFORE any content lands
+/// in it, then rename over the target. There is never a moment when the
+/// secret exists in a world-readable file, and a crash leaves either the old
+/// file or the temp — never a truncated one.
+fn write_atomic(path: &Path, bytes: &[u8]) -> anyhow::Result<()> {
+    use std::io::Write;
+    let tmp = path.with_extension("json.tmp");
+    let mut opts = std::fs::OpenOptions::new();
+    opts.write(true).create(true).truncate(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        opts.mode(0o600);
+    }
+    let mut f = opts.open(&tmp)?;
+    f.write_all(bytes)?;
+    f.sync_all()?;
+    drop(f);
+    std::fs::rename(&tmp, path)?;
+    Ok(())
+}
+
+#[cfg(test)]
+#[path = "credentials_tests.rs"]
+mod tests;

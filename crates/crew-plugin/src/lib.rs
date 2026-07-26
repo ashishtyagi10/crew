@@ -1,4 +1,5 @@
 mod broker;
+pub mod credentials;
 mod echo;
 mod host;
 pub mod mcp;
