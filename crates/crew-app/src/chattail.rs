@@ -3,10 +3,16 @@
 //!
 //! It is an OVERFLOW view, not a second copy of the transcript. A growing
 //! provisional card (`ChatPane::streaming`) is normally visible at the bottom
-//! of the message area, and duplicating it there would be noise — so the tail
-//! only appears when that card cannot be seen: the user has scrolled up, or
-//! several agents are streaming at once so the newest is not the one drawing
-//! the eye.
+//! of the message area, and duplicating it there would be noise. `chatplace::
+//! window` is bottom-anchored: at `pane.scroll == 0` it always ends at the
+//! newest line, for any row budget — shrinking `msg_rows` to make room for a
+//! surface only moves the newest card up, it never pushes it off screen. So
+//! the newest streaming card (last in `visible_messages()`, by construction)
+//! is ALWAYS on screen at `scroll == 0`, no matter how many agents are
+//! streaming at once — parallelism alone is not a reason to show the tail.
+//! The tail therefore appears in exactly one case: the user has scrolled up
+//! (`pane.scroll > 0`), so the live bottom — and the card growing there — is
+//! genuinely off screen.
 use crew_render::CellView;
 
 use crate::chat::ChatPane;
@@ -22,11 +28,11 @@ fn newest(pane: &ChatPane) -> Option<&Message> {
     pane.streaming.last()
 }
 
-/// What the tail WANTS: nothing unless a streaming card exists that the user
-/// cannot already see. `grants` decides what it actually gets.
+/// What the tail WANTS: nothing unless a streaming card exists AND the user
+/// has scrolled away from the live bottom, where that card lives. `grants`
+/// decides what it actually gets.
 pub(crate) fn tail_rows(pane: &ChatPane, _cols: u16) -> u16 {
-    let hidden = pane.scroll > 0 || pane.streaming.len() > 1;
-    if hidden && newest(pane).is_some() {
+    if pane.scroll > 0 && newest(pane).is_some() {
         TAIL_ROWS
     } else {
         0
@@ -34,7 +40,19 @@ pub(crate) fn tail_rows(pane: &ChatPane, _cols: u16) -> u16 {
 }
 
 /// Draw the tail into `TAIL_ROWS` rows starting at `start_row`: the last rows
-/// of the newest card's text, wrapped to `cols` and muted.
+/// of the newest card's rendered body, recoloured muted.
+///
+/// This renders through `chatbody::body_lines` — the exact function the
+/// transcript itself calls for a message body (`chatmsgs::card_lines`) — with
+/// the pane's own `show_source` flag, so the tail can never wrap, markdown-
+/// style or word-break text differently than the card it mirrors. (An
+/// earlier version re-wrapped the raw string with `chatlayout::wrap_indices`,
+/// which is only the source-mode path; the default path renders through
+/// `md::render_chat` + `chatmd::map_lines` instead, with different width
+/// accounting and content — markdown would show raw in the tail while
+/// rendered in the card above it.) Every cell's colour is then overwritten to
+/// the muted tone, so the tail always reads as dim regardless of what the
+/// card's markdown styled it as (headings, links, ...).
 pub(crate) fn tail_cells(pane: &ChatPane, cols: u16, start_row: u16) -> Vec<CellView> {
     let Some(card) = newest(pane) else {
         return Vec::new();
@@ -43,38 +61,18 @@ pub(crate) fn tail_cells(pane: &ChatPane, cols: u16, start_row: u16) -> Vec<Cell
         return Vec::new();
     }
     let theme = crew_theme::theme();
-    let fg = theme.text_muted;
-    let bg = theme.page_bg;
-    // Reuse the transcript's own wrapper so the tail breaks text exactly the
-    // way the card above it does.
-    let chars: Vec<char> = card.text.chars().collect();
-    let wrapped = crate::chatlayout::wrap_indices(&chars, cols as usize);
-    let last: Vec<(usize, usize)> = wrapped
-        .iter()
-        .rev()
-        .take(TAIL_ROWS as usize)
-        .rev()
-        .copied()
-        .collect();
+    let muted = theme.text_muted;
+    let page = theme.page_bg;
+    let body = crate::chatbody::body_lines(&card.text, cols as usize, muted, pane.show_source);
+    let last = body.iter().rev().take(TAIL_ROWS as usize).rev();
     let mut out = Vec::new();
-    for (i, (s, e)) in last.iter().enumerate() {
+    for (i, line) in last.enumerate() {
         let row = start_row + i as u16;
-        crate::chatwidth::place_row(
-            0,
-            cols,
-            chars[*s..*e].iter().map(|&c| (c, fg)),
-            |col, c, fg| {
-                out.push(CellView {
-                    col,
-                    row,
-                    c,
-                    fg,
-                    bg,
-                    bold: false,
-                    italic: false,
-                });
-            },
-        );
+        let mut muted_line = line.clone();
+        for cell in muted_line.iter_mut() {
+            cell.fg = muted;
+        }
+        out.extend(crate::chatplace::line_cells(row, &muted_line, cols, page));
     }
     out
 }
