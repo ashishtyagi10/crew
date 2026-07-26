@@ -137,6 +137,7 @@ fn the_bar_of_a_quoted_fence_is_a_marker_not_code() {
 
 #[test]
 fn a_link_inside_a_list_item_keeps_the_link_colour() {
+    let _guard = crate::app::theme_test_guard();
     let out = lines("- see [site](https://s.io)", 60, (9, 9, 9));
     let cell = out[0]
         .iter()
