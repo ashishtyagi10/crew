@@ -104,6 +104,31 @@ fn two_agents_stream_into_separate_cards() {
     );
 }
 
+/// The next task's UI finds the most-recently-updated agent via
+/// `streaming.last()`, with no timestamp field — so touching an OLDER card
+/// must move it to the end, not just mutate it in place. This would still
+/// pass `two_agents_stream_into_separate_cards` above (which only checks
+/// membership) even if `absorb_delta` regressed to an in-place mutation; this
+/// test asserts POSITION and fails on that regression.
+#[test]
+fn absorb_delta_moves_the_touched_card_to_the_end() {
+    let mut p = pane();
+    p.absorb_delta("planner".into(), "plan".into());
+    p.absorb_delta("coder".into(), "code".into());
+    // `planner` is the OLDER card (opened first); touching it again must move
+    // it to the end, ahead of `coder`, which is untouched since.
+    p.absorb_delta("planner".into(), "ning".into());
+    assert_eq!(
+        p.streaming
+            .iter()
+            .map(|m| m.sender.as_str())
+            .collect::<Vec<_>>(),
+        vec!["coder", "planner"],
+        "the touched (planner) card must be last, not left in its original slot"
+    );
+    assert_eq!(p.streaming.last().unwrap().text, "planning");
+}
+
 #[test]
 fn provisional_card_never_bumps_the_unread_pill() {
     let mut p = pane();

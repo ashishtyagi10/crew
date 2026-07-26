@@ -83,7 +83,16 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
     let queued_rows = g.queued;
     let bar_row = rows.saturating_sub(bottom + prog_rows);
     let indicator_row = rows.saturating_sub(bottom + prog_rows + queued_rows);
-    if pane.messages.is_empty() {
+    // Decide on what will actually be DRAWN (`visible_messages`, which
+    // includes any provisional `streaming` card), not just settled history:
+    // a fresh hop's first `Delta` lands before anything ever settles into
+    // `pane.messages`, so branching on `messages.is_empty()` alone sent the
+    // live text down the onboarding/empty-state branch, which never calls
+    // `visible_messages()` — the reply was invisible for exactly as long as
+    // it was actually streaming. Same correction `chatplace::placed_lines`
+    // already makes.
+    let visible = pane.visible_messages();
+    if visible.is_empty() {
         // A run can start before any reply lands — the plan-summary message
         // usually exists by fold time, but don't rely on it here. `g.swarm` is
         // 0 when the pane had no row to seat the line in, and then nothing is
@@ -116,7 +125,6 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
             compact: pane.compact_view,
         };
         let msg_rows = crate::chatplace::msg_rows_budget(pane, cols, rows);
-        let visible = pane.visible_messages();
         cells.extend(crate::chatmsgs::message_cells(
             &visible,
             cols,

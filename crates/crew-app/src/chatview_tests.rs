@@ -586,6 +586,30 @@ fn status_line_queued_indicator_bar_and_composer_stack_without_colliding() {
     }
 }
 
+/// The exact gap Finding 1 caught: `messages` is empty on a fresh hop's first
+/// `Delta` (nothing has settled yet), so branching on `messages.is_empty()`
+/// alone sent the live text down the onboarding/empty-state branch, which
+/// never calls `visible_messages()` — the provisional card was invisible for
+/// as long as it was actually streaming, appearing only once the settled
+/// reply replaced it. `cells()` must render the streamed text even with
+/// `messages` empty.
+#[test]
+fn provisional_card_renders_even_with_no_settled_messages() {
+    let mut pane = test_pane(vec![]);
+    pane.absorb_delta("coder".into(), "streaming live text".into());
+    assert!(
+        pane.messages.is_empty(),
+        "fixture check: nothing has settled"
+    );
+    let (cols, rows) = (60u16, 20u16);
+    let cells_out = cells(&pane, cols, rows);
+    let text: String = cells_out.iter().map(|c| c.c).collect();
+    assert!(
+        text.contains("streaming live text"),
+        "the provisional card must render on the empty-`messages` branch: {text}"
+    );
+}
+
 #[test]
 fn compact_view_shows_the_header_chip_end_to_end() {
     let mut pane = test_pane(vec![msg("planner", "hi")]);
