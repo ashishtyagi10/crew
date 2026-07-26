@@ -33,6 +33,13 @@ pub(crate) struct PaletteState {
 
 pub(crate) enum PaletteKey {
     Consumed,
+    /// A row was accepted without running: `input` now holds the filled text
+    /// and the palette is closed. The caller MUST re-sync it against the new
+    /// input (`after_edit`) — accepting `/model` fills `/model `, which is
+    /// itself a palette token, and the model picker only opens if something
+    /// re-runs the sync. Without this the picker never appeared for the most
+    /// natural flow of all: type `/mod`, press Enter on the row.
+    Accepted,
     /// The accepted row is a command to RUN: `input` now holds it, and the
     /// caller must submit as if Enter had been pressed on the composer.
     Submit,
@@ -153,9 +160,11 @@ pub(crate) fn popup_key(
                 *input = accept(input, p.kind, &item.fill);
             }
             *palette = None;
-            if submit {
-                return PaletteKey::Submit;
-            }
+            return if submit {
+                PaletteKey::Submit
+            } else {
+                PaletteKey::Accepted
+            };
         }
         ChatInput::Close => *palette = None,
         _ => return PaletteKey::Forward,

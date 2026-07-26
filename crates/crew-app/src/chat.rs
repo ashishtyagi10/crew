@@ -341,6 +341,13 @@ impl ChatPane {
         // the pane's own key handling.
         match crate::chatpalette::popup_key(&mut self.palette, &mut self.input, &k) {
             crate::chatpalette::PaletteKey::Consumed => return None,
+            // A filled-but-not-run row: the input changed, so the palette has
+            // to be re-synced against it exactly as a typed character would.
+            // `/model` fills `/model `, which opens the model picker.
+            crate::chatpalette::PaletteKey::Accepted => {
+                self.sync_palette(cwd);
+                return None;
+            }
             // A picked row is a command to run: the palette is closed and the
             // input holds it, so re-enter our own Enter path (no recursion —
             // `self.palette` is `None` now).
@@ -443,15 +450,20 @@ impl ChatPane {
             crate::chatmention::after_edit(&mut self.mention, &self.input, || {
                 crate::chatmention::scan_entries(cwd, &agents)
             });
-            let current = crate::chatpalette::shared_model(&self.agents);
-            crate::chatpalette::after_edit(
-                &mut self.palette,
-                &self.input,
-                current.as_deref(),
-                || crate::chatmention::scan_entries(cwd, &agents),
-            );
+            self.sync_palette(cwd);
         }
         None
+    }
+
+    /// Re-sync the leading-token palette to the current input. Called after a
+    /// character edit and after a palette row is accepted (`PaletteKey::
+    /// Accepted`) — both change the input, and the palette must follow it.
+    fn sync_palette(&mut self, cwd: &std::path::Path) {
+        let agents = self.agents.clone();
+        let current = crate::chatpalette::shared_model(&self.agents);
+        crate::chatpalette::after_edit(&mut self.palette, &self.input, current.as_deref(), || {
+            crate::chatmention::scan_entries(cwd, &agents)
+        });
     }
 }
 

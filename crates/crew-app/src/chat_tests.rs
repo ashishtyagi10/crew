@@ -1042,3 +1042,27 @@ cat >/dev/null
         "the post-reconnect flush re-latches awaiting for its own reply"
     );
 }
+
+#[test]
+fn accepting_the_model_row_from_the_slash_palette_opens_the_picker() {
+    // The natural flow: type `/mod`, see the slash palette, press Enter on
+    // the `/model` row. The input becomes `/model ` — and the grouped model
+    // picker must be showing, not nothing.
+    let mut p = pane();
+    let cwd = std::path::Path::new(".");
+    for c in "/model".chars() {
+        p.on_input(crate::chatkeys::ChatInput::Char(c), cwd);
+    }
+    assert_eq!(
+        p.palette.as_ref().map(|x| x.kind),
+        Some(crate::chatpalette::Kind::Slash),
+        "the slash palette should be listing /model"
+    );
+    p.on_input(crate::chatkeys::ChatInput::Enter, cwd);
+    assert_eq!(p.input, "/model ");
+    assert_eq!(
+        p.palette.as_ref().map(|x| x.kind),
+        Some(crate::chatpalette::Kind::Model),
+        "accepting /model must open the model picker"
+    );
+}
