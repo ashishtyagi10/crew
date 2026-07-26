@@ -657,8 +657,9 @@ fn show_source_false_renders_bold_markdown() {
     });
     assert!(!p.show_source, "show_source defaults to false");
 
+    let refs: Vec<&crate::chatlayout::Message> = p.messages.iter().collect();
     let lines = crate::chatmsgs::card_lines(
-        &p.messages,
+        &refs,
         80,
         0,
         crate::chatmsgs::View {
@@ -701,8 +702,9 @@ fn show_source_true_shows_literal_text() {
         meta: String::new(),
     });
 
+    let refs: Vec<&crate::chatlayout::Message> = p.messages.iter().collect();
     let lines = crate::chatmsgs::card_lines(
-        &p.messages,
+        &refs,
         80,
         0,
         crate::chatmsgs::View {

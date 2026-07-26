@@ -156,7 +156,7 @@ fn append_hidden_suffix(line: &mut CardLine, hidden: usize, cols: usize) {
 /// clamps each message's body to its first line, appending a muted ` … +N`
 /// suffix when lines were hidden (single-line bodies render unchanged).
 pub(crate) fn card_lines(
-    messages: &[Message],
+    messages: &[&Message],
     cols: usize,
     now_ms: u64,
     view: View,
@@ -214,7 +214,7 @@ pub(crate) fn card_lines(
 }
 
 /// Total card lines for the given width — the scroll clamp for the card view.
-pub(crate) fn card_line_count(messages: &[Message], cols: u16, view: View) -> usize {
+pub(crate) fn card_line_count(messages: &[&Message], cols: u16, view: View) -> usize {
     if cols == 0 {
         return 0;
     }
@@ -225,7 +225,7 @@ pub(crate) fn card_line_count(messages: &[Message], cols: u16, view: View) -> us
 /// scrolled `scroll` lines up from the live bottom, in the given render `view`
 /// (see [`View`]).
 pub(crate) fn message_cells(
-    messages: &[Message],
+    messages: &[&Message],
     cols: u16,
     rows: u16,
     top_row: u16,

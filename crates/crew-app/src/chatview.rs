@@ -116,8 +116,9 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
             compact: pane.compact_view,
         };
         let msg_rows = crate::chatplace::msg_rows_budget(pane, cols, rows);
+        let visible = pane.visible_messages();
         cells.extend(crate::chatmsgs::message_cells(
-            &pane.messages,
+            &visible,
             cols,
             msg_rows,
             top,
@@ -125,7 +126,7 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
             view,
         ));
         // Scroll affordances sit over the message area's last column/row.
-        let total = crate::chatmsgs::card_line_count(&pane.messages, cols, view);
+        let total = crate::chatmsgs::card_line_count(&visible, cols, view);
         cells.extend(crate::chatscroll::scrollbar_cells(
             total,
             msg_rows as usize,

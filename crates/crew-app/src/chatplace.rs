@@ -143,7 +143,8 @@ pub(crate) fn msg_rows_budget(pane: &ChatPane, cols: u16, rows: u16) -> u16 {
 /// `clickopen`'s link hit-test (`chatview::link_at`) reads this to map a
 /// click back to its source line without re-deriving the card layout.
 pub(crate) fn placed_lines(pane: &ChatPane, cols: u16, rows: u16) -> Vec<(u16, CardLine)> {
-    if cols == 0 || rows == 0 || pane.messages.is_empty() {
+    let visible = pane.visible_messages();
+    if cols == 0 || rows == 0 || visible.is_empty() {
         return Vec::new();
     }
     let top = pane.status_rows(cols, rows);
@@ -159,7 +160,7 @@ pub(crate) fn placed_lines(pane: &ChatPane, cols: u16, rows: u16) -> Vec<(u16, C
         compact: pane.compact_view,
     };
     let lines = crate::chatmsgs::card_lines(
-        &pane.messages,
+        &visible,
         cols as usize,
         crate::chattime::unix_now_ms(),
         view,

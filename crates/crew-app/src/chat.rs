@@ -313,6 +313,14 @@ impl ChatPane {
         crate::chatview::cells(self, cols, rows)
     }
 
+    /// Every card the transcript should draw this frame. ONE source, so the
+    /// scroll clamp, the scrollbar, the link hit-test and the unread pill can
+    /// never disagree about what is on screen — the same reason `View` is
+    /// threaded through all four render entry points.
+    pub(crate) fn visible_messages(&self) -> Vec<&Message> {
+        self.messages.iter().collect()
+    }
+
     /// Handle a winit key event. Returns [`ChatAction::Close`] when the user asks
     /// to close the pane (Escape) — mirroring the Far/Settings panes. While the
     /// @file popup is open it gets keys first (Escape then closes the popup, not

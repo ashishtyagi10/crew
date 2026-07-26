@@ -29,7 +29,8 @@ impl crate::chat::ChatPane {
                 source: self.show_source,
                 compact: self.compact_view,
             };
-            crate::chatmsgs::card_line_count(&self.messages, cols, view)
+            let visible = self.visible_messages();
+            crate::chatmsgs::card_line_count(&visible, cols, view)
         };
         let max = total.saturating_sub(msg_rows);
         let next = self.scroll as i64 + delta as i64;
