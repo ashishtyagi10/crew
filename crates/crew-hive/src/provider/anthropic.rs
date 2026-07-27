@@ -53,7 +53,7 @@ impl AnthropicProvider {
     pub fn from_env() -> Result<Self, ProviderError> {
         match std::env::var("ANTHROPIC_API_KEY") {
             Ok(k) if !k.is_empty() => Ok(Self::new(k)),
-            _ => Err(ProviderError::MissingKey),
+            _ => Err(ProviderError::MissingKey("ANTHROPIC_API_KEY")),
         }
     }
 

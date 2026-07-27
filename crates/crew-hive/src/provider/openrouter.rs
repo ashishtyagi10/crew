@@ -115,7 +115,7 @@ impl OpenRouterProvider {
     pub fn from_env() -> Result<Self, ProviderError> {
         match std::env::var("OPENROUTER_API_KEY") {
             Ok(k) if !k.is_empty() => Ok(Self::new(k)),
-            _ => Err(ProviderError::MissingKey),
+            _ => Err(ProviderError::MissingKey("OPENROUTER_API_KEY")),
         }
     }
 }
@@ -140,7 +140,7 @@ impl Provider for OpenRouterProvider {
                 let body = build_body(model, &req, &messages, report_cost);
                 match request_with_retry(&client, &endpoint, &key, &body).await {
                     Ok(c) => return Ok(c),
-                    Err(ProviderError::MissingKey) => return Err(ProviderError::MissingKey),
+                    Err(ProviderError::MissingKey(v)) => return Err(ProviderError::MissingKey(v)),
                     Err(e) => last_err = e,
                 }
             }
@@ -179,7 +179,7 @@ impl Provider for OpenRouterProvider {
                 .await
                 {
                     Ok(c) => return Ok(c),
-                    Err(ProviderError::MissingKey) => return Err(ProviderError::MissingKey),
+                    Err(ProviderError::MissingKey(v)) => return Err(ProviderError::MissingKey(v)),
                     Err(e) => {
                         if started.load(std::sync::atomic::Ordering::SeqCst) {
                             return Err(e);
