@@ -166,6 +166,7 @@ fn run_tools_stops_at_the_round_cap() {
     let mut stats = RunStats::default();
     let mut usage = Usage::default();
     let stream = HopStream::noop();
+    let mut hops = Vec::new();
     let reply = b.run_tools(
         &agent,
         "base",
@@ -174,10 +175,86 @@ fn run_tools_stops_at_the_round_cap() {
         &mut usage,
         &env(),
         &stream,
-        &mut |_| {},
+        &mut |h| hops.push(h),
     );
     assert_eq!(stats.exchanges, MAX_TOOL_ROUNDS);
     assert!(reply.contains("@tool"), "cap leaves the last reply as-is");
+    // …and SAYS the budget ran out. The reply left standing is an unrun tool
+    // call; without this the pane showed that as the agent's answer, with
+    // nothing anywhere explaining why it stopped mid-sequence.
+    let note = hops
+        .iter()
+        .find(|h| h.kind == HopKind::Terminated)
+        .unwrap_or_else(|| {
+            panic!(
+                "no budget note: {:?}",
+                hops.iter().map(|h| &h.text).collect::<Vec<_>>()
+            )
+        });
+    assert!(note.text.contains("tool budget spent"), "{}", note.text);
+    assert!(note.text.contains("not run"), "{}", note.text);
+}
+
+/// An agent that finishes inside its budget is told nothing about budgets —
+/// the note is for the turn that actually hit the wall.
+#[test]
+fn finishing_within_the_budget_says_nothing_about_it() {
+    let b = broker_with(FakeTools(Ok("contents".into())));
+    let agent = Scripted::new(&["all done\n@done"]);
+    let mut stats = RunStats::default();
+    let mut usage = Usage::default();
+    let stream = HopStream::noop();
+    let mut hops = Vec::new();
+    let reply = b.run_tools(
+        &agent,
+        "base",
+        "let me look\n@tool fs:read {\"path\": \"x\"}".into(),
+        &mut stats,
+        &mut usage,
+        &env(),
+        &stream,
+        &mut |h| hops.push(h),
+    );
+    assert_eq!(reply, "all done\n@done");
+    assert!(
+        !hops.iter().any(|h| h.kind == HopKind::Terminated),
+        "budget note on a turn that never hit the cap: {:?}",
+        hops.iter().map(|h| &h.text).collect::<Vec<_>>()
+    );
+}
+
+/// The agent is told what it has left, and told plainly when the next call
+/// would be its last. A budget it cannot see is one it plans straight past.
+#[test]
+fn the_follow_up_prompt_states_the_remaining_budget() {
+    let b = broker_with(FakeTools(Ok("contents".into())));
+    // Always asks for another tool, so the budget is spent in full.
+    let agent = Scripted::new(&["again\n@tool fs:read {\"path\": \"x\"}"]);
+    let mut stats = RunStats::default();
+    let mut usage = Usage::default();
+    let stream = HopStream::noop();
+    let _ = b.run_tools(
+        &agent,
+        "base",
+        "look\n@tool fs:read {\"path\": \"x\"}".into(),
+        &mut stats,
+        &mut usage,
+        &env(),
+        &stream,
+        &mut |_| {},
+    );
+    let seen = agent.seen();
+    assert_eq!(seen.len(), MAX_TOOL_ROUNDS as usize, "one dial per round");
+    assert!(
+        seen[0].contains("more tool call"),
+        "the first follow-up must state the remaining budget: {}",
+        seen[0]
+    );
+    assert!(
+        seen.last().unwrap().contains("LAST tool call"),
+        "the final round must say so plainly: {}",
+        seen.last().unwrap()
+    );
 }
 
 #[test]

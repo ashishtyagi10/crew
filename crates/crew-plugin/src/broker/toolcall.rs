@@ -139,7 +139,7 @@ impl Broker {
         // gate never swallows a short follow-up after a long primary reply.
         let mut tick_base: u64 = (reply.chars().count() as u64) / 4;
         let mut exchanges: Vec<String> = Vec::new();
-        for _ in 0..MAX_TOOL_ROUNDS {
+        for round in 0..MAX_TOOL_ROUNDS {
             let Some(call) = parse_tool_call(&reply) else {
                 return reply;
             };
@@ -174,9 +174,20 @@ impl Broker {
                 call.args,
                 clip_result(&text, 6000)
             ));
+            // The agent is TOLD what it has left. A budget it cannot see is
+            // one it plans straight past, and then the turn ends mid-sequence
+            // with a tool call nobody ran.
+            let left = MAX_TOOL_ROUNDS - round - 1;
+            let budget = if left == 0 {
+                "This was your LAST tool call this turn: answer with what you \
+                 have now."
+                    .to_string()
+            } else {
+                format!("You may make {left} more tool call(s) this turn.")
+            };
             let follow = format!(
-                "{base_prompt}\n\nTOOL EXCHANGES THIS TURN:\n{}\n\nContinue the task \
-                 using these results. You may call another tool, or answer and end \
+                "{base_prompt}\n\nTOOL EXCHANGES THIS TURN:\n{}\n\n{budget} Continue the \
+                 task using these results. You may call another tool, or answer and end \
                  with your routing line (`@next <agent>` or `@done`).",
                 exchanges.join("\n\n")
             );
@@ -226,6 +237,20 @@ impl Broker {
                     return reply;
                 }
             }
+        }
+        // Falling out of the loop means the last reply asked for ANOTHER tool
+        // and the budget is gone. It used to be returned as-is: the pane
+        // showed an agent's unrun `@tool` line as its answer, with nothing
+        // anywhere saying why it stopped halfway through what it was doing.
+        if parse_tool_call(&reply).is_some() {
+            sink(back(
+                env,
+                HopKind::Terminated,
+                format!(
+                    "tool budget spent \u{2014} {MAX_TOOL_ROUNDS} calls in one turn; \
+                     the last request was not run"
+                ),
+            ));
         }
         reply
     }
