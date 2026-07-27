@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.6.65
+
+- `/keys` documents the agent pane: enter and esc answering a drafted plan,
+  Shift+Enter, Tab completion, `@` and `#`. It listed none of them.
+- `/keys` stops repeating the slash commands. With them it was 58 rows —
+  taller than a default window, so ratatui cut the bottom off in silence. The
+  composer's palette has listed them since 0.6.52, grouped and filterable.
+
 ## 0.6.64
 
 - The "updated to" note waits for the first rendered frame instead of being
