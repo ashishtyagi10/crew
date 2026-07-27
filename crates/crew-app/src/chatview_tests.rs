@@ -700,3 +700,46 @@ fn compact_view_shows_the_header_chip_end_to_end() {
     let after = row_text(&cells(&pane, cols, rows), 0);
     assert!(after.contains("compact"), "chip missing: {after}");
 }
+
+/// Cmd+click inside a fenced block yields the whole block, without the fence
+/// chrome. Reading an answer and USING it are different acts, and the second
+/// had no support beyond selecting text with the mouse.
+#[test]
+fn a_click_inside_a_code_block_yields_the_whole_block() {
+    let _guard = crate::app::theme_test_guard();
+    let pane = test_pane(vec![msg(
+        "planner",
+        "Here:\n\n```rust\nfn a() {}\nfn b() {}\n```\n\nDone.",
+    )]);
+    let (cols, rows) = (60u16, 30u16);
+    // Find a row that is inside the block, by looking for its first line.
+    let placed = crate::chatplace::placed_lines(&pane, cols, rows);
+    let row = placed
+        .iter()
+        .find(|(_, l)| l.iter().map(|c| c.c).collect::<String>().contains("fn a()"))
+        .map(|(r, _)| *r)
+        .expect("the code line is on screen");
+
+    let got = crate::chatview::code_block_at(&pane, cols, rows, row).expect("a block");
+    assert!(got.contains("fn a() {}"), "{got:?}");
+    assert!(got.contains("fn b() {}"), "both lines: {got:?}");
+    // The fence chrome and the language tag must not come with it.
+    assert!(!got.contains('╭') && !got.contains('╰'), "chrome: {got:?}");
+    assert!(!got.contains("rust"), "language tag: {got:?}");
+    // Nothing to strip after pasting: no leading indent from placement.
+    assert!(got.starts_with("fn a()"), "leading indent: {got:?}");
+}
+
+/// A click on prose is not a copy — it must fall through so a link or a
+/// selection still behaves normally.
+#[test]
+fn a_click_outside_a_code_block_yields_nothing() {
+    let _guard = crate::app::theme_test_guard();
+    let pane = test_pane(vec![msg("planner", "just prose, no code here")]);
+    for row in 0..12u16 {
+        assert!(
+            crate::chatview::code_block_at(&pane, 60, 30, row).is_none(),
+            "row {row} claimed to be code"
+        );
+    }
+}

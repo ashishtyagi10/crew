@@ -229,6 +229,66 @@ pub(crate) fn link_at(pane: &ChatPane, cols: u16, rows: u16, row: u16, col: u16)
         .map(|l| l.to_string())
 }
 
+/// The whole fenced code block a click landed in, as text — `None` when the
+/// click was not inside one.
+///
+/// Reading an answer and then USING it are different acts, and the second had
+/// no support: a code block could be selected with the mouse like any other
+/// text, which is the same amount of work as retyping it for anything longer
+/// than a line. Cmd+click already means "act on what is under the cursor"
+/// for links; this gives it the other thing worth acting on.
+///
+/// A block is the run of contiguous rows whose cells carry the code
+/// background. The `╭─ lang` and `╰─` chrome deliberately do not (see
+/// `chatmd::span_style`), so the run is exactly the code — no fence markers,
+/// no language tag, nothing to strip after pasting.
+pub(crate) fn code_block_at(pane: &ChatPane, cols: u16, rows: u16, row: u16) -> Option<String> {
+    let code_bg = Some(crate::chatink::code_bg());
+    let placed = crate::chatplace::placed_lines(pane, cols, rows);
+    let is_code = |r: u16| {
+        placed
+            .iter()
+            .find(|(pr, _)| *pr == r)
+            .is_some_and(|(_, line)| {
+                !line.is_empty() && line.iter().any(|c: &CardCell| c.bg == code_bg)
+            })
+    };
+    if !is_code(row) {
+        return None;
+    }
+    let (mut first, mut last) = (row, row);
+    while first > 0 && is_code(first - 1) {
+        first -= 1;
+    }
+    while last + 1 < rows && is_code(last + 1) {
+        last += 1;
+    }
+    let text = |r: u16| -> String {
+        placed
+            .iter()
+            .find(|(pr, _)| *pr == r)
+            .map(|(_, line)| line.iter().map(|c| c.c).collect::<String>())
+            .unwrap_or_default()
+            .trim_end()
+            .to_string()
+    };
+    let body: Vec<String> = (first..=last).map(text).collect();
+    // Every code line is indented by one column when placed; strip that back
+    // off so what lands on the clipboard is what the agent wrote.
+    let indent = body
+        .iter()
+        .filter(|l| !l.trim().is_empty())
+        .map(|l| l.len() - l.trim_start().len())
+        .min()
+        .unwrap_or(0);
+    Some(
+        body.iter()
+            .map(|l| l.chars().skip(indent).collect::<String>())
+            .collect::<Vec<_>>()
+            .join("\n"),
+    )
+}
+
 #[cfg(test)]
 #[path = "chatview_tests.rs"]
 mod tests;
