@@ -165,7 +165,61 @@ mod usageledger;
 mod welcome;
 mod windowtitle;
 
+/// What a bare `crew <args>` invocation wants before any GUI exists.
+///
+/// Nothing handled `--version`, so it fell through every check and LAUNCHED
+/// THE WINDOW — the one thing a person typing `--version` in a terminal
+/// definitely does not want, and the natural way to ask which build you are
+/// on. `--help` was equally absent while the binary quietly grew half a dozen
+/// CLI modes.
+///
+/// `--help` is honoured only as the FIRST argument, so `crew ask --help`
+/// still belongs to the `ask` subcommand rather than being intercepted here.
+#[derive(PartialEq, Debug)]
+enum CliIntent {
+    Version,
+    Help,
+}
+
+fn cli_intent(args: &[String]) -> Option<CliIntent> {
+    if args.iter().any(|a| a == "--version" || a == "-V") {
+        return Some(CliIntent::Version);
+    }
+    match args.first().map(String::as_str) {
+        Some("--help" | "-h") => Some(CliIntent::Help),
+        _ => None,
+    }
+}
+
+/// The CLI modes this binary answers, for `--help`.
+const CLI_HELP: &str = "\
+crew — a multi-pane terminal with agents
+
+usage:
+  crew                     open the app (detached from this shell)
+  crew --no-detach         open it attached to this shell
+  crew ask <agent> <task>  ask a RUNNING crew, print the reply
+  crew panes               list a running crew's panes
+  crew install-app         add the OS app-menu entry (--remove deletes it)
+  crew --list-fonts        print every monospace family the picker offers
+  crew --self-update       replace this binary with the latest release
+  crew --version           print the version
+";
+
 fn main() -> anyhow::Result<()> {
+    // Answered before anything else: these must never reach the GUI launch.
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    match cli_intent(&args) {
+        Some(CliIntent::Version) => {
+            println!("crew {}", appregister::VERSION);
+            return Ok(());
+        }
+        Some(CliIntent::Help) => {
+            print!("{CLI_HELP}");
+            return Ok(());
+        }
+        None => {}
+    }
     // When the `/crew` pane spawns this binary as its multi-agent broker (a
     // re-exec of `crew` with this flag), run the JSON-line broker loop and exit
     // before any GUI initialization. This means `/crew` works wherever `crew`
@@ -218,4 +272,49 @@ fn main() -> anyhow::Result<()> {
     // provider-key discovery (`shellprobe::provider_now`/`openrouter_key`).
     shellprobe::init_probe();
     handler::run()
+}
+
+#[cfg(test)]
+mod cli_intent_tests {
+    use super::{cli_intent, CliIntent};
+
+    fn args(v: &[&str]) -> Vec<String> {
+        v.iter().map(|s| (*s).to_string()).collect()
+    }
+
+    /// The bug this exists for: `--version` used to match nothing and fall
+    /// through to launching the window.
+    #[test]
+    fn version_is_answered_not_launched() {
+        assert_eq!(cli_intent(&args(&["--version"])), Some(CliIntent::Version));
+        assert_eq!(cli_intent(&args(&["-V"])), Some(CliIntent::Version));
+        // Anywhere in the line — nobody should have to remember the position.
+        assert_eq!(
+            cli_intent(&args(&["--no-detach", "--version"])),
+            Some(CliIntent::Version)
+        );
+    }
+
+    #[test]
+    fn help_is_answered_when_it_leads() {
+        assert_eq!(cli_intent(&args(&["--help"])), Some(CliIntent::Help));
+        assert_eq!(cli_intent(&args(&["-h"])), Some(CliIntent::Help));
+    }
+
+    /// …but a subcommand owns its own `--help`. `crew ask --help` is a
+    /// question about `ask`, and intercepting it here would answer the wrong
+    /// one.
+    #[test]
+    fn a_subcommand_keeps_its_own_help() {
+        assert_eq!(cli_intent(&args(&["ask", "--help"])), None);
+        assert_eq!(cli_intent(&args(&["panes", "-h"])), None);
+    }
+
+    /// Everything else falls through to the launcher, as before.
+    #[test]
+    fn ordinary_invocations_still_launch() {
+        assert_eq!(cli_intent(&args(&[])), None);
+        assert_eq!(cli_intent(&args(&["--no-detach"])), None);
+        assert_eq!(cli_intent(&args(&["install-app"])), None);
+    }
 }

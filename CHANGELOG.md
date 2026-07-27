@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.6.71
+
+- `crew --version` prints the version. It used to match nothing, fall through
+  every check and launch the window — which is the one thing someone typing it
+  into a terminal does not want, and the natural way to ask which of tonight's
+  builds you are on.
+- `crew --help` lists the CLI modes, which had grown to six with nothing
+  documenting them. A subcommand keeps its own help: `crew ask --help` still
+  answers about `ask`.
+
 ## 0.6.70
 
 - The end-to-end test harness clears every provider key, not the three it was
