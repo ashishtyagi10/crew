@@ -269,7 +269,7 @@ fn send(
         // safety net that announced itself on every task would be noise. Not
         // being in a git repository is a normal way to run crew, so the error
         // is deliberately ignored rather than reported.
-        auto_checkpoint(&snap, &label_for_ckpt);
+        auto_checkpoint(&snap, &label_for_ckpt, &out_thread);
         let res = if is_cmd {
             super::commands::handle(&mut snap, &trimmed, &tick_emit, &mut counting)
         } else if trimmed.starts_with('@') {
@@ -381,12 +381,34 @@ pub(crate) fn roster_for(reg: &Registry, provider: bool) -> String {
 /// This replaced `/checkpoint`. Asking a user to predict which task is the one
 /// worth protecting is asking them to be right in advance; the safety net is
 /// worth more when nobody has to think about it.
-fn auto_checkpoint(session: &Session, label: &str) {
+fn auto_checkpoint(session: &Session, label: &str, out: &Out) {
     let Ok(dir) = std::env::current_dir() else {
         return;
     };
-    let mut last = session.last_tree.lock().unwrap_or_else(|e| e.into_inner());
-    let _ = super::checkpoint::auto_snapshot(&dir, &format!("before: {label}"), &mut last);
+    let took = {
+        let mut last = session.last_tree.lock().unwrap_or_else(|e| e.into_inner());
+        super::checkpoint::auto_snapshot(&dir, &format!("before: {label}"), &mut last)
+    };
+    // Say it ONCE, the first time one is actually written. Before that there
+    // is nothing to restore and the note would be a promise; after it, a note
+    // on every task would be the noise this feature stays silent to avoid.
+    if matches!(took, Ok(Some(_))) && !announced(session) {
+        let _ = emit(
+            out,
+            &msg(
+                "agent smith",
+                "snapshot taken before this task \u{2014} /restore lists them, \
+                 /restore <n> puts one back",
+            ),
+        );
+    }
+}
+
+/// Whether this session has already mentioned checkpoints; marks it as told.
+fn announced(session: &Session) -> bool {
+    session
+        .announced_ckpt
+        .swap(true, std::sync::atomic::Ordering::Relaxed)
 }
 
 /// Who should answer a plain (unaddressed) task when there is no API provider.

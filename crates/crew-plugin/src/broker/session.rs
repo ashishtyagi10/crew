@@ -48,6 +48,11 @@ pub(crate) struct Session {
     /// changed nothing does not write an identical restore point. Shared with
     /// worker snapshots because the checkpoint is taken ON the worker.
     pub last_tree: Arc<Mutex<Option<String>>>,
+    /// Whether this session has already mentioned that checkpoints exist.
+    /// Once, at the moment the first one is actually taken — an undo nobody
+    /// knows about is an undo nobody uses, and a note on every task would be
+    /// the noise the silence was protecting against.
+    pub announced_ckpt: Arc<AtomicBool>,
 }
 
 impl Default for Session {
@@ -62,6 +67,7 @@ impl Default for Session {
             commit: Arc::new(Mutex::new(None)),
             resume: Arc::new(Mutex::new(None)),
             last_tree: Arc::new(Mutex::new(None)),
+            announced_ckpt: Arc::new(AtomicBool::new(false)),
         }
     }
 }
@@ -85,6 +91,7 @@ impl Session {
             commit: Arc::clone(&self.commit),
             resume: Arc::clone(&self.resume),
             last_tree: Arc::clone(&self.last_tree),
+            announced_ckpt: Arc::clone(&self.announced_ckpt),
         }
     }
 
