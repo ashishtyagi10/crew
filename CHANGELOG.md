@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.6.93
+
+- An agent that runs out of tool calls in a turn says so. There is a budget of
+  four per turn; spending it just ended the turn, leaving the agent's unrun
+  `@tool` line standing as its answer with nothing anywhere explaining why it
+  stopped halfway through what it was doing.
+- The agent is also told how many it has left, and told plainly when the next
+  one is its last. A budget it cannot see is one it plans straight past.
+
 ## 0.6.92
 
 - `@src/main.rs:120-180` attaches just those lines. `@file` attached the whole
