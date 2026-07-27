@@ -30,7 +30,6 @@ pub(crate) fn is_quick(text: &str) -> bool {
                 | "mcp"
                 | "plan"
                 | "approve"
-                | "checkpoint"
                 | "restore"
         )
 }
@@ -47,8 +46,7 @@ pub(crate) const HELP: &str = "constructs:\n\
     /plan <task> — draft a numbered plan; nothing runs until /approve\n\
     /approve — execute the pending plan\n\
     /reject — discard the pending plan\n\
-    /checkpoint [label] — snapshot the working tree (HEAD and index untouched)\n\
-    /checkpoints — list saved snapshots\n\
+    /checkpoints — list the automatic snapshots (one per task that changed files)\n\
     /restore <n> — put checkpoint n's files back\n\
     /diff — show the working tree's changes (git diff --stat)\n\
     /commit — draft an AI commit message · /commit apply — create the commit\n\
@@ -105,7 +103,6 @@ const CONSTRUCTS: &[&str] = &[
     "plan",
     "approve",
     "reject",
-    "checkpoint",
     "checkpoints",
     "commit",
     "review",
@@ -183,7 +180,6 @@ pub(crate) fn handle(
         "plan" => super::plan::plan_cmd(session, rest, emit),
         "approve" => super::plan::approve_cmd(session, tick_emit, emit),
         "reject" => super::plan::reject_cmd(session, emit),
-        "checkpoint" => super::checkpoint::checkpoint_cmd(rest, emit),
         "checkpoints" => super::checkpoint::list_cmd(emit),
         "restore" => super::checkpoint::restore_cmd(rest, emit),
         "diff" => super::diff::diff_cmd(emit),

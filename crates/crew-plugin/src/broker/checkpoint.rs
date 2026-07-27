@@ -1,8 +1,14 @@
-//! Cline-style workspace checkpoints: `/checkpoint [label]` snapshots the
-//! working tree as a hidden commit pinned under `refs/crew/`, `/checkpoints`
-//! lists them, and `/restore <n>` puts a snapshot's files back. Snapshots use
-//! a temporary index, so they never touch HEAD, the user's index, or any
-//! branch — and the refs survive broker restarts.
+//! Cline-style workspace checkpoints, taken AUTOMATICALLY: every task that
+//! reaches a worker pins the working tree first as a hidden commit under
+//! `refs/crew/` (see `stdio::auto_checkpoint`), `/checkpoints` lists them and
+//! `/restore <n>` puts one back. Snapshots use a temporary index, so they
+//! never touch HEAD, the user's index, or any branch — and the refs survive
+//! broker restarts.
+//!
+//! There is no `/checkpoint` construct any more. Asking a user to predict
+//! which task is the one worth protecting is asking them to be right in
+//! advance; an identical tree writes no new ref, so the automatic ones stay
+//! meaningful, and [`prune`] caps the space they can take.
 use std::path::Path;
 use std::process::Command;
 
@@ -31,9 +37,16 @@ fn git(dir: &Path, args: &[&str], index: Option<&Path>) -> Result<String, String
     }
 }
 
-/// Snapshot `dir`'s working tree — tracked and untracked files, `.gitignore`
-/// respected — and pin it under `refs/crew/`. Returns the short commit id.
-pub(crate) fn snapshot(dir: &Path, label: &str) -> Result<String, String> {
+/// The working tree's content hash — tracked and untracked files, `.gitignore`
+/// respected — computed through a throwaway index so HEAD, the user's index
+/// and every branch are untouched.
+///
+/// Split out from [`snapshot`] so an automatic checkpoint can ask "has
+/// anything actually changed?" before writing a ref. Two questions in a row
+/// that touch no files produce the same tree, and a session that snapshotted
+/// every task regardless would bury the real restore points under identical
+/// ones.
+fn worktree_tree(dir: &Path) -> Result<String, String> {
     git(dir, &["rev-parse", "--git-dir"], None).map_err(|_| "not a git repository".to_string())?;
     // pid + a process-wide counter: unique even for simultaneous snapshots
     // (a wall-clock stamp collided under parallel tests).
@@ -45,7 +58,22 @@ pub(crate) fn snapshot(dir: &Path, label: &str) -> Result<String, String> {
     ));
     let result = (|| {
         git(dir, &["add", "-A"], Some(&tmp))?;
-        let tree = git(dir, &["write-tree"], Some(&tmp))?;
+        git(dir, &["write-tree"], Some(&tmp))
+    })();
+    let _ = std::fs::remove_file(&tmp);
+    result
+}
+
+/// How many checkpoints to keep. Snapshots became automatic in v0.6.44, so
+/// the ref space grows on its own now — an autonomous feature owns its own
+/// cleanup rather than quietly filling a user's repo with refs.
+const KEEP: usize = 25;
+
+/// Snapshot `dir`'s working tree and pin it under `refs/crew/`. Returns the
+/// short commit id.
+pub(crate) fn snapshot(dir: &Path, label: &str) -> Result<String, String> {
+    let tree = worktree_tree(dir)?;
+    let result = (|| {
         let subject = format!("{SUBJECT_PREFIX}{label}");
         // HEAD is the parent when it exists (unborn branches snapshot fine).
         let sha = match git(dir, &["rev-parse", "--verify", "HEAD"], None) {
@@ -57,36 +85,125 @@ pub(crate) fn snapshot(dir: &Path, label: &str) -> Result<String, String> {
             Err(_) => git(dir, &["commit-tree", &tree, "-m", &subject], None)?,
         };
         let short = &sha[..sha.len().min(12)];
+        // The ref NAME carries the order. Git commit timestamps have only
+        // second resolution, and checkpoints are automatic now, so two can
+        // easily share a second — `--sort=creatordate` then falls back to the
+        // object id, which is creation order only by accident. `/restore <n>`
+        // counts these ordinals, so "by accident" is not good enough.
         git(
             dir,
-            &["update-ref", &format!("{REF_SPACE}ckpt-{short}"), &sha],
+            &[
+                "update-ref",
+                &format!("{REF_SPACE}ckpt-{:06}-{short}", next_seq(dir)),
+                &sha,
+            ],
             None,
         )?;
+        prune(dir, KEEP);
         Ok(short.to_string())
     })();
-    let _ = std::fs::remove_file(&tmp);
     result
 }
 
-/// The saved checkpoints, oldest first, as `(short id, label)`.
-pub(crate) fn list(dir: &Path) -> Result<Vec<(String, String)>, String> {
+/// Drop all but the newest `keep` checkpoints. Best-effort: a failure here
+/// must never fail the snapshot that triggered it.
+fn prune(dir: &Path, keep: usize) {
+    let Ok(all) = refs(dir) else { return };
+    let Some(excess) = all.len().checked_sub(keep) else {
+        return;
+    };
+    for (refname, _, _) in all.iter().take(excess) {
+        let _ = git(dir, &["update-ref", "-d", refname], None);
+    }
+}
+
+/// Snapshot before a task, but only if the working tree differs from
+/// `last_tree` — which this updates. `Ok(None)` means "nothing had changed,
+/// nothing was written", which is the common case and must stay silent.
+///
+/// Errors are the caller's to ignore: not being in a git repository is a
+/// perfectly normal way to run crew, and an automatic safety net that
+/// announced its own absence on every task would be noise, not safety.
+pub(crate) fn auto_snapshot(
+    dir: &Path,
+    label: &str,
+    last_tree: &mut Option<String>,
+) -> Result<Option<String>, String> {
+    let tree = worktree_tree(dir)?;
+    if last_tree.as_deref() == Some(tree.as_str()) {
+        return Ok(None);
+    }
+    let short = snapshot(dir, label)?;
+    *last_tree = Some(tree);
+    Ok(Some(short))
+}
+
+/// The next ordering number, one past the highest already written. Derived
+/// from the refs themselves rather than held in memory, so it survives broker
+/// restarts and stays correct across two brokers sharing a repository.
+fn next_seq(dir: &Path) -> u64 {
+    git(
+        dir,
+        &["for-each-ref", "--format=%(refname:lstrip=2)", REF_SPACE],
+        None,
+    )
+    .map(|out| {
+        out.lines()
+            .filter_map(|n| n.strip_prefix("ckpt-"))
+            .filter_map(|rest| rest.split_once('-'))
+            .filter_map(|(seq, _)| seq.parse::<u64>().ok())
+            .max()
+            .map_or(0, |m| m + 1)
+    })
+    .unwrap_or(0)
+}
+
+/// Every checkpoint ref, oldest first, as `(full refname, short id, label)`.
+///
+/// `refname` matters: it is the only safe handle for deletion. Commit ids are
+/// created here at 12 characters but `%(objectname:short)` abbreviates to
+/// git's default (often 7), so rebuilding a ref name from a listed id deletes
+/// nothing — silently, since `update-ref -d` on an absent ref succeeds.
+///
+/// The sort is by refname, not by date, because the name carries a zero-padded
+/// creation sequence (see [`next_seq`]) and git commit dates do not have the
+/// resolution to order automatic checkpoints. Refs written before v0.6.44 have
+/// no sequence and sort among themselves by object id — historical ones may
+/// therefore interleave, but every checkpoint taken from here on is ordered
+/// exactly as it was created.
+fn refs(dir: &Path) -> Result<Vec<(String, String, String)>, String> {
     let out = git(
         dir,
         &[
             "for-each-ref",
-            "--sort=creatordate",
-            "--format=%(objectname:short)\t%(contents:subject)",
+            "--sort=refname",
+            "--format=%(refname)\t%(objectname:short)\t%(contents:subject)",
             REF_SPACE,
         ],
         None,
     )?;
     Ok(out
         .lines()
-        .filter_map(|l| l.split_once('\t'))
-        .map(|(sha, subject)| {
-            let label = subject.strip_prefix(SUBJECT_PREFIX).unwrap_or(subject);
-            (sha.to_string(), label.to_string())
+        .filter_map(|l| {
+            let mut parts = l.splitn(3, '\t');
+            Some((
+                parts.next()?.to_string(),
+                parts.next()?.to_string(),
+                parts.next()?.to_string(),
+            ))
         })
+        .map(|(refname, sha, subject)| {
+            let label = subject.strip_prefix(SUBJECT_PREFIX).unwrap_or(&subject);
+            (refname, sha, label.to_string())
+        })
+        .collect())
+}
+
+/// The saved checkpoints, oldest first, as `(short id, label)`.
+pub(crate) fn list(dir: &Path) -> Result<Vec<(String, String)>, String> {
+    Ok(refs(dir)?
+        .into_iter()
+        .map(|(_, sha, label)| (sha, label))
         .collect())
 }
 
@@ -99,33 +216,6 @@ pub(crate) fn restore(dir: &Path, sha: &str) -> Result<(), String> {
         None,
     )
     .map(|_| ())
-}
-
-/// `/checkpoint [label]` — snapshot the working directory.
-pub(crate) fn checkpoint_cmd(
-    rest: &str,
-    emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
-) -> anyhow::Result<()> {
-    let label = Some(rest.trim())
-        .filter(|l| !l.is_empty())
-        .unwrap_or("checkpoint");
-    let dir = match std::env::current_dir() {
-        Ok(d) => d,
-        Err(e) => return emit(msg("agent smith", format!("checkpoint failed: {e}"))),
-    };
-    match snapshot(&dir, label) {
-        Ok(short) => {
-            let n = list(&dir).map(|l| l.len()).unwrap_or(0);
-            emit(msg(
-                "agent smith",
-                format!(
-                    "checkpoint #{n} saved \u{00b7} {short} \u{00b7} \u{201c}{label}\u{201d} \
-                     \u{2014} /restore {n} brings these files back"
-                ),
-            ))
-        }
-        Err(e) => emit(msg("agent smith", format!("checkpoint failed: {e}"))),
-    }
 }
 
 /// `/checkpoints` — list the saved snapshots.

@@ -7,7 +7,7 @@ use crew_plugin::AgentInfo;
 /// Every composer slash action: broker constructs plus the pane-local
 /// `/export`, `/theme`, `/compact`, and `/exit` (see `chatexport` /
 /// `chattheme` / `chatcompact` / `chat`).
-pub(crate) const CONSTRUCTS: [&str; 26] = [
+pub(crate) const CONSTRUCTS: [&str; 25] = [
     "/help",
     "/model",
     "/fan",
@@ -16,7 +16,6 @@ pub(crate) const CONSTRUCTS: [&str; 26] = [
     "/plan",
     "/approve",
     "/reject",
-    "/checkpoint",
     "/checkpoints",
     "/restore",
     "/diff",
@@ -48,8 +47,7 @@ pub(crate) fn describe(construct: &str) -> &'static str {
         "/plan" => "draft a plan for approval",
         "/approve" => "approve the drafted plan",
         "/reject" => "reject the drafted plan",
-        "/checkpoint" => "snapshot the session",
-        "/checkpoints" => "list checkpoints",
+        "/checkpoints" => "list the automatic snapshots",
         "/restore" => "restore a checkpoint",
         "/diff" => "show working-tree changes",
         "/skills" => "list available skills",
@@ -213,7 +211,7 @@ mod tests {
     /// completes but no longer routes is worse than one that never existed.
     #[test]
     fn deleted_constructs_do_not_complete() {
-        for gone in ["/cwd", "/agents", "/tasks", "/status"] {
+        for gone in ["/cwd", "/agents", "/tasks", "/status", "/checkpoint"] {
             assert!(!CONSTRUCTS.contains(&gone), "{gone} still listed");
             assert_eq!(describe(gone), "", "{gone} still described");
         }

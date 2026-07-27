@@ -120,3 +120,85 @@ fn ordinals_map_oldest_first() {
     assert_eq!(items[1].1, "second");
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// The dedupe that makes automatic checkpoints usable: a task that changed
+/// nothing must not write a restore point identical to the last one, or the
+/// real ones drown in noise.
+#[test]
+fn an_unchanged_tree_writes_no_new_checkpoint() {
+    let dir = temp_repo("auto-dedupe");
+    let mut last = None;
+    let first = auto_snapshot(&dir, "before: task one", &mut last).unwrap();
+    assert!(first.is_some(), "the first task always snapshots");
+    assert_eq!(list(&dir).unwrap().len(), 1);
+
+    // Nothing touched the tree — no second snapshot, and `last` still holds.
+    let again = auto_snapshot(&dir, "before: task two", &mut last).unwrap();
+    assert_eq!(again, None, "identical tree wrote a checkpoint anyway");
+    assert_eq!(list(&dir).unwrap().len(), 1);
+
+    // A real edit is a real restore point.
+    std::fs::write(dir.join("a.txt"), "two").unwrap();
+    let third = auto_snapshot(&dir, "before: task three", &mut last).unwrap();
+    assert!(third.is_some(), "a changed tree must snapshot");
+    assert_eq!(list(&dir).unwrap().len(), 2);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// Outside a repository there is nothing to pin, and that is a normal way to
+/// run crew — the caller ignores this, so it must be an error and not a panic.
+#[test]
+fn auto_snapshot_outside_a_repo_is_an_error_not_a_panic() {
+    let dir = std::env::temp_dir().join(format!("crew-ckpt-norepo-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let mut last = None;
+    assert!(auto_snapshot(&dir, "before: x", &mut last).is_err());
+    assert_eq!(last, None, "a failed snapshot must not claim a tree");
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// An automatic feature owns its own cleanup: snapshots are now written
+/// without anyone asking, so the ref space must not grow without bound.
+#[test]
+fn prune_keeps_only_the_newest() {
+    let dir = temp_repo("auto-prune");
+    for i in 0..5 {
+        std::fs::write(dir.join("a.txt"), format!("{i}")).unwrap();
+        snapshot(&dir, &format!("n{i}")).unwrap();
+    }
+    assert_eq!(list(&dir).unwrap().len(), 5);
+    prune(&dir, 2);
+    let left = list(&dir).unwrap();
+    assert_eq!(left.len(), 2, "{left:?}");
+    // Oldest-first ordering: the survivors are the LAST two written.
+    assert_eq!(left[1].1, "n4", "{left:?}");
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// Five checkpoints inside one second. Git commit dates cannot order these —
+/// only the sequence in the ref name can, and `/restore <n>` counts on it.
+#[test]
+fn checkpoints_taken_in_the_same_second_keep_their_order() {
+    let dir = temp_repo("auto-order");
+    for i in 0..5 {
+        std::fs::write(dir.join("a.txt"), format!("{i}")).unwrap();
+        snapshot(&dir, &format!("n{i}")).unwrap();
+    }
+    let labels: Vec<String> = list(&dir).unwrap().into_iter().map(|(_, l)| l).collect();
+    assert_eq!(labels, vec!["n0", "n1", "n2", "n3", "n4"], "{labels:?}");
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// The sequence comes off the refs, not off memory, so a restarted broker
+/// keeps counting where the last one stopped instead of colliding.
+#[test]
+fn the_sequence_survives_a_restart() {
+    let dir = temp_repo("auto-seq");
+    std::fs::write(dir.join("a.txt"), "x").unwrap();
+    snapshot(&dir, "first").unwrap();
+    assert_eq!(next_seq(&dir), 1);
+    std::fs::write(dir.join("a.txt"), "y").unwrap();
+    snapshot(&dir, "second").unwrap();
+    assert_eq!(next_seq(&dir), 2, "a fresh process must not reuse a number");
+    let _ = std::fs::remove_dir_all(&dir);
+}
