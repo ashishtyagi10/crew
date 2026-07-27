@@ -648,7 +648,8 @@ and a typo gets a **did-you-mean** suggestion):
 
 **Built-in sys tools.** Agents can touch the workspace without any MCP server:
 four bounded tools ride the same `@tool` surface — **`sys:run`** (one
-non-interactive shell command via `/bin/sh -c`, 30s deadline, 64 KB per pipe,
+non-interactive shell command via `/bin/sh -c`, 120s deadline —
+`CREW_SYS_TIMEOUT_MS` overrides, and the timeout message says so — 64 KB per pipe,
 its whole process group reaped on timeout so backgrounded children can't
 linger), **`sys:read_file`** (UTF-8, 64 KB per call; a truncation note carries
 the byte `offset` to continue with, so agents read big files in chunks),

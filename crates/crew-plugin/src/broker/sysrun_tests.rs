@@ -23,7 +23,13 @@ fn run_times_out_and_kills() {
     let e = run_with("sleep 30", Duration::from_millis(200)).unwrap_err();
     assert!(start.elapsed() < Duration::from_secs(5), "killed promptly");
     assert!(e.contains("timed out"), "{e}");
+    // A limit that only says no leaves the user to guess it is adjustable.
+    assert!(e.contains("CREW_SYS_TIMEOUT_MS"), "{e}");
 }
+
+/// The default deadline itself is pinned by a `const` assertion next to the
+/// constant in `sysrun.rs` — a compile error beats a test failure for an
+/// invariant that is knowable without running anything.
 
 #[test]
 fn run_caps_output() {
