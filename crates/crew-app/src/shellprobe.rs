@@ -258,6 +258,21 @@ pub(crate) fn provider_now() -> (Option<crew_plugin::Provider>, bool) {
     (resolve(&keys, pin), true)
 }
 
+/// Which provider keys the user holds right now — probed shell env plus
+/// anything typed into the key popup this session. The model picker asks so a
+/// row whose vendor the user CAN reach is not dimmed and does not prompt for
+/// a key they already have.
+pub(crate) fn keys_now() -> HashSet<String> {
+    let Some(probed) = SHELL_PROBE.get() else {
+        return HashSet::new();
+    };
+    let mut keys = probed.keys.clone();
+    if let Ok(entered) = ENTERED.read() {
+        merge_entered(&mut keys, &entered);
+    }
+    keys
+}
+
 /// The OpenRouter key: this process's own env wins if set (same precedence
 /// as [`merge_shell_env`]), else the probed value, else `None`. Never log
 /// this value: it's a secret.

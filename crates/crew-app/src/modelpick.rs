@@ -5,7 +5,7 @@
 //! composer's `Kind::Model` popup) render the same list.
 use crew_hive::catalog::{catalog, ModelInfo, Vendor};
 
-use crate::modelroute::{route_for, Route};
+use crate::modelroute::{route_with_keys, Route};
 use crate::suggest::MenuItem;
 
 #[path = "modelbadge.rs"]
@@ -82,6 +82,9 @@ pub(crate) fn rows_with_recents(
 ) -> Vec<MenuItem> {
     let q = query.trim().to_lowercase();
     let (provider, probed) = crate::shellprobe::provider_now();
+    // What the user actually holds, so a row they can already reach is
+    // neither dimmed nor turned into a prompt for a key they have.
+    let held = crate::shellprobe::keys_now();
     let mut out = Vec::new();
     if "default".starts_with(&q) {
         out.push(default_row());
@@ -114,7 +117,7 @@ pub(crate) fn rows_with_recents(
     if !recent.is_empty() {
         out.push(header_row("recent"));
         for m in recent {
-            let route = route_for(m, provider, probed);
+            let route = route_with_keys(m, provider, probed, |v| held.contains(v));
             let is_current = current.is_some_and(|c| c == m.slug || Some(c) == m.or_slug);
             out.push(model_row(m, route, is_current));
         }
@@ -129,7 +132,7 @@ pub(crate) fn rows_with_recents(
         }
         out.push(header_row(vendor.label()));
         for m in hits {
-            let route = route_for(m, provider, probed);
+            let route = route_with_keys(m, provider, probed, |v| held.contains(v));
             let is_current = current.is_some_and(|c| c == m.slug || Some(c) == m.or_slug);
             out.push(model_row(m, route, is_current));
         }

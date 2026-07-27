@@ -431,3 +431,41 @@ fn provider_rows_are_distinct_and_addressable() {
         assert_eq!(super::direct_by_name(d.name), Some(d));
     }
 }
+
+/// Choosing a model is choosing a provider. With an Anthropic key held but
+/// another provider active, picking a Claude model moves the pin — otherwise
+/// the fixed discovery order would keep answering with the wrong vendor and
+/// the user would have to know `CREW_PROVIDER` exists.
+#[test]
+fn picking_a_model_moves_the_pin_to_whoever_can_serve_it() {
+    let _env = crate::broker::testenv::no_provider();
+    // The guard points CREW_CREDENTIALS_PATH at a per-test store; write
+    // through the same path the code under test will read.
+    let store = crate::credentials::path().expect("guarded store path");
+    crate::credentials::save_key_at(&store, "ANTHROPIC_API_KEY", "sk-a", Some("anthropic"))
+        .unwrap();
+    crate::credentials::save_pin_at(&store, "openrouter").unwrap();
+    // Anthropic model, anthropic key held, openrouter pinned → switch.
+    assert_eq!(
+        super::pin_provider_for_model("claude-sonnet-5"),
+        Some("anthropic")
+    );
+    assert_eq!(
+        crate::credentials::load_from(&store).provider.as_deref(),
+        Some("anthropic")
+    );
+    // Already active → nothing to move, and no needless write.
+    assert_eq!(super::pin_provider_for_model("claude-sonnet-5"), None);
+}
+
+/// An OpenRouter-shaped id is a routing instruction in itself and must never
+/// drag the pin somewhere else; an unknown slug is nobody's business.
+#[test]
+fn slugs_that_name_no_direct_vendor_leave_the_pin_alone() {
+    let _env = crate::broker::testenv::no_provider();
+    assert_eq!(
+        super::pin_provider_for_model("anthropic/claude-sonnet-5"),
+        None
+    );
+    assert_eq!(super::pin_provider_for_model("not-a-real-model"), None);
+}
