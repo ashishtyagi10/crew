@@ -80,13 +80,63 @@ impl std::fmt::Display for ProviderError {
         match self {
             ProviderError::Http(s) => write!(f, "http error: {s}"),
             ProviderError::Decode(s) => write!(f, "decode error: {s}"),
-            ProviderError::Api(s) => write!(f, "api error: {s}"),
+            ProviderError::Api(s) => write!(f, "{}", api_message(s)),
             ProviderError::MissingKey => write!(f, "ANTHROPIC_API_KEY not set"),
         }
     }
 }
 
 impl std::error::Error for ProviderError {}
+
+/// A provider's API error, in a sentence rather than a JSON blob.
+///
+/// Providers answer failures with a JSON envelope, and it used to reach the
+/// user verbatim — pasted into the chat and truncated mid-structure, so the
+/// one useful sentence inside it arrived cut in half. The message field is
+/// what a person needs; the envelope is what a debugger needs, and a
+/// debugger can read the log.
+///
+/// An authentication failure additionally gets told what to DO. It is the
+/// most common provider error there is (a typo'd, expired or revoked key)
+/// and the only one the user can always fix.
+pub fn api_message(body: &str) -> String {
+    let msg = extract_message(body).unwrap_or_else(|| one_line(body));
+    let low = msg.to_lowercase();
+    let auth = [
+        "api key",
+        "unauthorized",
+        "invalid_api_key",
+        "authentication",
+        "401",
+    ]
+    .iter()
+    .any(|p| low.contains(p));
+    if auth {
+        return format!("provider rejected the key \u{2014} {msg} (/model replaces it)");
+    }
+    format!("api error: {msg}")
+}
+
+/// The `error.message` string from a provider's JSON envelope, if it has one.
+/// Hand-rolled rather than a serde type: every provider nests it slightly
+/// differently, and a parse failure here must degrade to showing the body,
+/// never to hiding the error.
+fn extract_message(body: &str) -> Option<String> {
+    let v: serde_json::Value = serde_json::from_str(body).ok()?;
+    let msg = v
+        .get("error")
+        .and_then(|e| e.get("message"))
+        .or_else(|| v.get("message"))?
+        .as_str()?;
+    (!msg.trim().is_empty()).then(|| one_line(msg))
+}
+
+/// Whitespace collapsed to single spaces and trimmed to something a status
+/// line can hold — a multi-line body must not become a multi-line error.
+fn one_line(s: &str) -> String {
+    let flat: String = s.split_whitespace().collect::<Vec<_>>().join(" ");
+    flat.chars().take(200).collect()
+}
 
 /// Callback for a streamed completion: invoked with each text delta as it
 /// arrives. `Arc` (not `Box`) so callers can clone it into an async block
@@ -129,5 +179,45 @@ impl<P: Provider + ?Sized> Provider for std::sync::Arc<P> {
         on_chunk: ChunkFn,
     ) -> Pin<Box<dyn Future<Output = Result<Completion, ProviderError>> + Send>> {
         (**self).complete_streaming(req, on_chunk)
+    }
+}
+
+#[cfg(test)]
+mod api_message_tests {
+    use super::*;
+
+    #[test]
+    fn a_rejected_key_says_so_and_says_what_to_do() {
+        let body = r#"{"error":{"message":"Incorrect API key provided: sk-abc***.","type":"invalid_request_error"}}"#;
+        let m = api_message(body);
+        assert!(m.contains("rejected the key"), "{m}");
+        assert!(m.contains("Incorrect API key provided"), "{m}");
+        assert!(m.contains("/model"), "the way to fix it: {m}");
+        assert!(!m.contains('{'), "no JSON envelope: {m}");
+    }
+
+    #[test]
+    fn other_errors_keep_their_sentence_without_the_envelope() {
+        let body = r#"{"error":{"message":"This model is overloaded","type":"server_error"}}"#;
+        let m = api_message(body);
+        assert_eq!(m, "api error: This model is overloaded");
+    }
+
+    /// A body that is not the expected shape must still show the error. The
+    /// worst outcome here is hiding a failure behind a parse miss.
+    #[test]
+    fn an_unparseable_body_is_shown_not_swallowed() {
+        let m = api_message("<html>502 Bad Gateway</html>");
+        assert!(m.contains("502 Bad Gateway"), "{m}");
+        assert!(!api_message("").is_empty());
+    }
+
+    /// Multi-line bodies collapse: an error is one line, however it arrived.
+    #[test]
+    fn a_sprawling_body_becomes_one_bounded_line() {
+        let body = format!("{{\"error\":{{\"message\":\"{}\"}}}}", "x ".repeat(400));
+        let m = api_message(&body);
+        assert!(!m.contains('\n'), "{m}");
+        assert!(m.chars().count() < 240, "len {}", m.chars().count());
     }
 }
