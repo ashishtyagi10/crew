@@ -43,6 +43,8 @@ notify = { version = "7", default-features = false, features = ["macos_fsevent"]
 
 # Hashing
 sha2 = "0.10"
+base64 = "0.22"
+getrandom = "0.2"
 
 # Archives
 zip = { version = "2", default-features = false, features = ["deflate"] }

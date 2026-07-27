@@ -24,6 +24,9 @@
 //! - [`batch`] — flat parallel-job graph: [`batch_graph`], [`Job`]
 //! - [`govern`] — cost ceiling: [`Budget`], [`budget_governor`]
 //!
+//! Auth:
+//! - [`oauth`] — OpenRouter browser sign-in (PKCE + code exchange): [`oauth::pkce`], [`oauth::exchange_openrouter_code`]
+//!
 //! Remote / sidecar (out-of-process & external engines):
 //! - [`wire`] — JSON wire protocol + [`Transport`]: [`RemoteTask`], [`RemoteReply`]
 //! - [`worker`] — [`LoopbackTransport`] + [`serve_stdio`] worker codec
@@ -44,6 +47,7 @@ pub mod bus;
 pub mod catalog;
 pub mod govern;
 pub mod graph;
+pub mod oauth;
 pub mod planner;
 pub mod pricing;
 pub mod provider;
@@ -91,6 +95,9 @@ pub use batch::{batch_graph, Job};
 
 // Govern
 pub use govern::{budget_governor, Budget};
+
+// OAuth
+pub use oauth::{authorize_url, exchange_openrouter_code, pkce, random_token, Pkce};
 
 // Wire
 pub use wire::{DepResult, RemoteReply, RemoteTask, Transport, TransportError};
