@@ -41,7 +41,11 @@ impl ApplicationHandler for CrewApp {
         if let Some(note) =
             crate::appregister::version_change_note(self.config.last_seen_version.as_deref())
         {
-            self.set_status(note);
+            // Held for the first FRAME, not flashed now: a status expires
+            // after three seconds and a cold launch takes far longer than
+            // that to draw anything, so flashing here would lose the note on
+            // exactly the launch it exists for.
+            self.pending_note = Some(note);
         }
         if self.config.last_seen_version.as_deref() != Some(crate::appregister::VERSION) {
             self.config.last_seen_version = Some(crate::appregister::VERSION.to_string());

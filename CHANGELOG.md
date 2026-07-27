@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.6.64
+
+- The "updated to" note waits for the first rendered frame instead of being
+  flashed during startup. Status messages expire after three seconds and a
+  cold launch takes far longer than that to draw anything, so the note was
+  being lost on exactly the launch it exists for.
+
 ## 0.6.63
 
 - `/about` opens the changelog that shipped with this binary, in the markdown

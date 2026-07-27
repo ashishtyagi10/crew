@@ -926,3 +926,28 @@ fn switching_panes_or_opening_help_discards_an_open_key_prompt() {
         "the help overlay covers the card, so the prompt must not linger under it"
     );
 }
+
+/// A note decided at startup must survive to a frame. Status messages expire
+/// after three seconds and a cold launch takes minutes to draw anything, so
+/// the version-change announcement is held rather than flashed — otherwise it
+/// would be gone on exactly the launch it exists for.
+#[test]
+fn a_pending_note_waits_for_a_frame_and_flashes_once() {
+    let mut app = CrewApp {
+        pending_note: Some("updated to crew 9.9.9".into()),
+        ..CrewApp::default()
+    };
+    assert!(app.status.is_none(), "nothing flashes before a frame");
+
+    // What the redraw arm does: take it, then flash it.
+    if let Some(n) = app.pending_note.take() {
+        app.set_status(n);
+    }
+    let shown = app
+        .status
+        .as_ref()
+        .map(|(m, _)| m.clone())
+        .unwrap_or_default();
+    assert!(shown.contains("9.9.9"), "{shown}");
+    assert!(app.pending_note.is_none(), "a note must flash exactly once");
+}

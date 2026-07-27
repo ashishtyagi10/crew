@@ -131,6 +131,11 @@ impl CrewApp {
                 if self.renderer.is_none() {
                     return;
                 }
+                // The first frame is the earliest moment a message can
+                // actually be seen; `resumed` is not (see `pending_note`).
+                if let Some(note) = self.pending_note.take() {
+                    self.set_status(note);
+                }
                 let scenes = self.build_frame();
                 // CRT state, refreshed per frame so it tracks live theme changes.
                 // Flicker rides the existing busy-anim redraws (poll_panes drives
