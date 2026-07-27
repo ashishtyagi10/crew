@@ -63,6 +63,31 @@ impl Route {
 
 /// Resolve the route for one catalog row. `probed` is whether the login-shell
 /// key probe has completed; before it has, everything is `Unknown`.
+/// [`route_for`] plus what the user actually holds. A row whose vendor crew
+/// can reach with a key the user ALREADY has is serveable — picking it
+/// switches the active provider (the broker does that in `/model`), and the
+/// old behaviour of asking for a key they had was the papercut six providers
+/// made likely.
+pub(crate) fn route_with_keys(
+    m: &ModelInfo,
+    provider: Option<Provider>,
+    probed: bool,
+    has_key: impl Fn(&str) -> bool,
+) -> Route {
+    let base = route_for(m, provider, probed);
+    let Route::Missing(var) = base else {
+        return base;
+    };
+    // Only a real variable can be held; `Missing` also carries prose.
+    if !crew_plugin::credentials::VARS.contains(&var) || !has_key(var) {
+        return base;
+    }
+    match crew_plugin::credentials::provider_for(var) {
+        Some(name) => Route::Direct(name),
+        None => base,
+    }
+}
+
 pub(crate) fn route_for(m: &ModelInfo, provider: Option<Provider>, probed: bool) -> Route {
     let Some(provider) = provider else {
         // Name the key THIS row needs, not the first one discovery happens to
@@ -92,7 +117,13 @@ pub(crate) fn route_for(m: &ModelInfo, provider: Option<Provider>, probed: bool)
         // (OpenRouter routes by that shape), even with no separate `or_slug`.
         Provider::OpenRouter if m.or_slug.is_some() || m.slug.contains('/') => Route::ViaOpenRouter,
         Provider::OpenRouter => Route::Missing("a model OpenRouter serves"),
-        _ => Route::Missing("OPENROUTER_API_KEY"),
+        // The active provider cannot serve this row, so name the key that
+        // WOULD — the row's own vendor. This used to answer
+        // `OPENROUTER_API_KEY` for every such row regardless of vendor, which
+        // was harmless while there were three providers and one of them
+        // routed everything, and became wrong as soon as a user could hold an
+        // Anthropic key while OpenAI was active.
+        _ => Route::Missing(vendor_key(m.vendor)),
     }
 }
 

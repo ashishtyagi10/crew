@@ -65,11 +65,21 @@ fn openrouter_routes_a_native_slug_already_in_vendor_slash_model_form() {
     );
 }
 
+/// The key named is the one that would make THIS row work, not whichever
+/// provider happens to route the most. With Anthropic active, an OpenAI row
+/// needs an OpenAI key — it answered `OPENROUTER_API_KEY` for every such row
+/// while three providers existed and one of them routed everything.
 #[test]
 fn missing_names_the_key_the_user_would_have_to_set() {
     let gpt = row("gpt-4.1", Some("openai/gpt-4.1"), Vendor::OpenAI);
     assert_eq!(
         route_for(&gpt, Some(Provider::Anthropic), true),
+        Route::Missing("OPENAI_API_KEY")
+    );
+    // A vendor crew reaches only through OpenRouter still says so.
+    let llama = row("llama-4", Some("meta/llama-4"), Vendor::Meta);
+    assert_eq!(
+        route_for(&llama, Some(Provider::Anthropic), true),
         Route::Missing("OPENROUTER_API_KEY")
     );
 }
@@ -213,4 +223,57 @@ fn needs_key_names_only_real_variables() {
     assert_eq!(Route::ViaOpenRouter.needs_key(), None);
     assert_eq!(Route::Unknown.needs_key(), None);
     assert_eq!(Route::Mock.needs_key(), None);
+}
+
+/// A row whose vendor the user CAN already reach must not be dimmed, and must
+/// not prompt for a key they hold. Six providers made this likely: the active
+/// one is a single choice, but keys are plural.
+#[test]
+fn a_held_key_makes_a_row_serveable_even_when_another_provider_is_active() {
+    let claude = row(
+        "claude-sonnet-5",
+        Some("anthropic/claude-sonnet-5"),
+        Vendor::Anthropic,
+    );
+    let openai = crew_plugin::direct_by_name("openai").expect("openai row");
+    // OpenAI is active; the user also holds an Anthropic key.
+    let route = route_with_keys(&claude, Some(Provider::Direct(openai)), true, |v| {
+        v == "ANTHROPIC_API_KEY"
+    });
+    assert_eq!(route, Route::Direct("anthropic"));
+    assert!(!route.unserveable(), "a reachable row must not dim");
+    assert_eq!(
+        route.needs_key(),
+        None,
+        "must not ask for a key already held"
+    );
+}
+
+/// Without the key it is still honestly missing.
+#[test]
+fn an_unheld_key_still_reads_as_missing() {
+    let claude = row(
+        "claude-sonnet-5",
+        Some("anthropic/claude-sonnet-5"),
+        Vendor::Anthropic,
+    );
+    let openai = crew_plugin::direct_by_name("openai").expect("openai row");
+    let route = route_with_keys(&claude, Some(Provider::Direct(openai)), true, |_| false);
+    assert_eq!(route, Route::Missing("ANTHROPIC_API_KEY"));
+}
+
+/// The probe-pending and already-serveable cases pass straight through —
+/// holding keys must not invent a route before the probe lands.
+#[test]
+fn key_awareness_does_not_disturb_the_other_routes() {
+    let gpt = row("gpt-4.1", Some("openai/gpt-4.1"), Vendor::OpenAI);
+    assert_eq!(
+        route_with_keys(&gpt, None, false, |_| true),
+        Route::Unknown,
+        "no promise before the probe lands"
+    );
+    assert_eq!(
+        route_with_keys(&gpt, Some(Provider::OpenRouter), true, |_| true),
+        Route::ViaOpenRouter
+    );
 }

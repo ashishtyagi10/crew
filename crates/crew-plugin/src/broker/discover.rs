@@ -287,6 +287,41 @@ pub(crate) fn resolved_provider() -> Option<ProviderKind> {
     picked(&crate::credentials::load())
 }
 
+/// Switch the stored provider pin to whoever can actually serve `model`, if
+/// that is not already the active provider and the user holds its key.
+/// Returns the provider it moved to.
+///
+/// Choosing a model IS choosing a provider — `pick_provider`'s fixed order
+/// would otherwise keep answering with whichever provider ranks first, so a
+/// user with both an OpenAI and an Anthropic key who picked Claude would get
+/// silence or an OpenAI reply. Requiring them to know `CREW_PROVIDER` exists
+/// is the manual step this removes.
+pub(crate) fn pin_provider_for_model(model: &str) -> Option<&'static str> {
+    let store = crate::credentials::load();
+    let active = picked(&store);
+    // An OpenRouter-shaped id (`vendor/model`) is a routing instruction in
+    // itself and must not drag the pin somewhere else.
+    if model.contains('/') {
+        return None;
+    }
+    let vendor = crew_hive::catalog::catalog()
+        .iter()
+        .find(|m| m.slug == model)?
+        .vendor;
+    let (name, var) = match vendor {
+        crew_hive::catalog::Vendor::Anthropic => ("anthropic", "ANTHROPIC_API_KEY"),
+        crew_hive::catalog::Vendor::Alibaba => ("dashscope", "DASHSCOPE_API_KEY"),
+        v => {
+            let d = DIRECT.iter().find(|d| d.vendor == v)?;
+            (d.name, d.var)
+        }
+    };
+    if active.map(|p| p.name()) == Some(name) || key_for(&store, var).is_none() {
+        return None;
+    }
+    crate::credentials::save_pin(name).ok().map(|()| name)
+}
+
 /// What to tell a user who has no provider at all — the one copy of it.
 ///
 /// There were four wordings of this across the broker and the app, and they

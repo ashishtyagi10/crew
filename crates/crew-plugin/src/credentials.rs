@@ -121,6 +121,30 @@ pub fn save_key(var: &str, value: &str, provider: Option<&str>) -> anyhow::Resul
     save_key_at(&path, var, value, provider)
 }
 
+/// Move the provider pin without touching any key.
+///
+/// Picking a model whose vendor crew can reach with a key the user already
+/// holds should just work — `pick_provider`'s fixed order would otherwise
+/// keep answering with whichever provider happens to rank first, and the user
+/// would have to know that `CREW_PROVIDER` exists to get the model they just
+/// chose. Storing the pin is how the choice survives to the next request.
+pub fn save_pin(provider: &str) -> anyhow::Result<()> {
+    let path =
+        path().ok_or_else(|| anyhow::anyhow!("no config directory to store credentials in"))?;
+    save_pin_at(&path, provider)
+}
+
+/// [`save_pin`] at an explicit path (the testable half).
+pub fn save_pin_at(path: &Path, provider: &str) -> anyhow::Result<()> {
+    let mut store = load_from(path);
+    store.provider = Some(provider.to_string());
+    let bytes = serde_json::to_vec_pretty(&store)?;
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir)?;
+    }
+    write_atomic(path, &bytes)
+}
+
 /// [`save_key`] at an explicit path (the testable half).
 pub fn save_key_at(
     path: &Path,

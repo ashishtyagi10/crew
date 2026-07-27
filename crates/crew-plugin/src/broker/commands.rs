@@ -305,7 +305,10 @@ fn model_cmd(
             for n in &names {
                 session.overrides.insert(n.clone(), model.to_string());
             }
-            format!("all agents now run {model}")
+            match super::discover::pin_provider_for_model(model) {
+                Some(p) => format!("all agents now run {model} (switched to {p})"),
+                None => format!("all agents now run {model}"),
+            }
         };
         emit(PluginEvent::Roster {
             agents: session.registry().infos(),
