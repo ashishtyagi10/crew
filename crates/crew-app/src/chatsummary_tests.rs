@@ -119,9 +119,62 @@ fn segments_are_colored_separators_muted() {
     assert_eq!(sep.1, th.text_muted);
 }
 
+/// Agents on different models are named rather than counted: the name is what
+/// you type to reach one, and two names cost less width than "2 agents".
 #[test]
-fn mixed_roster_counts_models() {
+fn a_mixed_roster_names_its_agents() {
     let agents = [agent("a", "m1"), agent("b", "m2")];
     let lines = footer_lines(&fc(&agents, &HashMap::new()), 120);
-    assert!(text(&lines[0]).starts_with("2 agents | "));
+    assert!(
+        text(&lines[0]).starts_with("a\u{00b7}b | "),
+        "{}",
+        text(&lines[0])
+    );
+}
+
+/// The keyless roster: external CLI agents report NO model, because the CLI
+/// picks it. The old model-only rendering drew a bare separator with nothing
+/// before it for exactly this case.
+#[test]
+fn a_modelless_cli_roster_shows_names_not_a_gap() {
+    let agents = [
+        agent("claude", ""),
+        agent("codex", ""),
+        agent("opencode", ""),
+    ];
+    let line = text(&footer_lines(&fc(&agents, &HashMap::new()), 120)[0]);
+    assert!(
+        line.starts_with("claude\u{00b7}codex\u{00b7}opencode | "),
+        "{line}"
+    );
+    assert!(!line.starts_with(" |"), "empty leading segment: {line}");
+}
+
+/// One agent with a model keeps naming the MODEL — that is the identity worth
+/// the width when there is only one thing to route to.
+#[test]
+fn a_single_modelled_agent_still_shows_its_model() {
+    let agents = [agent("smith", "anthropic/claude-opus-4-8")];
+    let line = text(&footer_lines(&fc(&agents, &HashMap::new()), 120)[0]);
+    assert!(line.starts_with("claude-opus-4-8 | "), "{line}");
+}
+
+/// Past a few, names stop fitting and stop informing.
+#[test]
+fn a_crowded_roster_falls_back_to_a_count() {
+    let agents = [
+        agent("a", ""),
+        agent("b", ""),
+        agent("c", ""),
+        agent("d", ""),
+    ];
+    let line = text(&footer_lines(&fc(&agents, &HashMap::new()), 120)[0]);
+    assert!(line.starts_with("4 agents | "), "{line}");
+}
+
+/// An empty roster contributes no segment at all — not an empty one.
+#[test]
+fn an_empty_roster_contributes_nothing() {
+    let line = text(&footer_lines(&fc(&[], &HashMap::new()), 120)[0]);
+    assert!(!line.starts_with(" |") && !line.starts_with("|"), "{line}");
 }

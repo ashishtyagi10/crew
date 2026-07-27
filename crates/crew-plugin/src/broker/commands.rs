@@ -1,6 +1,6 @@
 //! Slash constructs typed into the `/crew` pane. Anything starting with `/`
 //! is a broker command rather than a task: `/help` lists the constructs,
-//! `/agents` reports the roster with each agent's current model.
+//! `/model` reports the roster with each agent's current model.
 use crate::PluginEvent;
 
 use super::adapter::Adapter;
@@ -38,7 +38,7 @@ pub(crate) fn is_quick(text: &str) -> bool {
 /// One-line summaries of every construct, shown by `/help`.
 pub(crate) const HELP: &str = "constructs:\n\
     /help — this list\n\
-    /agents — the roster with each agent's model\n\
+    /model — the roster with each agent's model (also in the pane footer)\n\
     /model <agent> <model|default> — pin an agent to a model (mix models freely)\n\
     /model all <model|default> — set every agent's model at once\n\
     /fan <task> — every agent answers the same task in parallel\n\
@@ -69,7 +69,7 @@ pub(crate) const HELP: &str = "constructs:\n\
     @<agent> <task> — choose who starts the relay\n\
     @<a>+<b> <task> — those agents answer in parallel\n\
     \u{2026} tip: tasks run in the background — /tasks lists them, /stop #n cancels one\n\
-    aliases: /h /a /s /t /d /m /r\n\
+    aliases: /h /s /t /d /m /r\n\
     ";
 
 /// Expand a built-in single-letter slash alias in the FIRST token, preserving
@@ -78,7 +78,6 @@ pub(crate) const HELP: &str = "constructs:\n\
 pub(crate) fn expand_alias(trimmed: &str) -> String {
     const ALIASES: &[(&str, &str)] = &[
         ("/h", "/help"),
-        ("/a", "/agents"),
         ("/s", "/status"),
         ("/t", "/tasks"),
         ("/d", "/diff"),
@@ -104,7 +103,6 @@ pub(crate) fn expand_alias(trimmed: &str) -> String {
 /// `/status`) recognizes — the candidate list for [`closest_construct`].
 const CONSTRUCTS: &[&str] = &[
     "help",
-    "agents",
     "model",
     "fan",
     "loop",
@@ -186,13 +184,6 @@ pub(crate) fn handle(
     let (cmd, rest) = line.split_once(char::is_whitespace).unwrap_or((line, ""));
     match cmd {
         "help" => emit(msg("agent smith", HELP)),
-        "agents" => {
-            // Fresh Roster first so the pane's badges pick up manifest edits.
-            emit(PluginEvent::Roster {
-                agents: session.registry().infos(),
-            })?;
-            emit(msg("agent smith", agents_report(session)))
-        }
         "model" => model_cmd(session, rest, emit),
         "fan" => fan_cmd(session, rest, tick_emit, emit),
         "loop" => super::constructs::loop_cmd(session, rest, tick_emit, emit),
@@ -317,6 +308,13 @@ fn model_cmd(
     let mut parts = rest.split_whitespace();
     let (agent, model) = (parts.next(), parts.next());
     let Some(agent) = agent else {
+        // The listing role `/agents` used to hold. It emitted a fresh Roster
+        // first so the pane's badges picked up manifest edits without a
+        // restart, and inheriting the report without inheriting that would
+        // have quietly dropped a live-reload path.
+        emit(PluginEvent::Roster {
+            agents: session.registry().infos(),
+        })?;
         return emit(msg("agent smith", agents_report(session)));
     };
     // `/model all <model|default>` — apply one model across the whole roster
