@@ -28,7 +28,7 @@ impl CrewApp {
             "only" => self.close_other_panes(),
             "closeall" => self.close_all_panes(),
             "pwd" => self.copy_cwd(),
-            "about" => self.set_status(concat!("crew v", env!("CARGO_PKG_VERSION"))),
+            "about" => self.spawn_about_pane(),
             "copy" => self.copy_scrollback(),
             "dump" => self.dump_focused_pane(""),
             "diff" => self.diff_in_pane(),

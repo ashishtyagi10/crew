@@ -35,6 +35,19 @@ impl ApplicationHandler for CrewApp {
         };
         let window = Arc::new(event_loop.create_window(attrs).expect("create window"));
 
+        // Say so when this is not the build that ran last. Auto-update lands
+        // quietly and applies on restart, so without this a user can find
+        // themselves in a different app with no idea why.
+        if let Some(note) =
+            crate::appregister::version_change_note(self.config.last_seen_version.as_deref())
+        {
+            self.set_status(note);
+        }
+        if self.config.last_seen_version.as_deref() != Some(crate::appregister::VERSION) {
+            self.config.last_seen_version = Some(crate::appregister::VERSION.to_string());
+            self.config.save();
+        }
+
         // Seed the OS appearance for `/theme auto` (ThemeChanged keeps it live).
         if let Some(t) = window.theme() {
             crew_theme::set_os_dark(t == winit::window::Theme::Dark);

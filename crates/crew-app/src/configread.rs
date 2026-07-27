@@ -37,6 +37,7 @@ impl CrewConfig {
 
     pub fn clamped(self) -> Self {
         Self {
+            last_seen_version: None,
             font_size: self.font_size.clamp(12.0, 32.0),
             nav_width: self.nav_width.clamp(160.0, 320.0),
             show_nav: self.show_nav,

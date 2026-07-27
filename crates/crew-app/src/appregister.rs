@@ -178,16 +178,13 @@ pub use regwin::*;
 #[path = "appregister_tests.rs"]
 mod tests;
 
-/// The changelog, compiled in so the guard below cannot be satisfied by a
-/// file that is not the one shipped. Test-only: this is a build-time
-/// contract between the version and its release note, not a runtime feature
-/// — showing "what's new" in the app after an update is a separate job.
-#[cfg(test)]
-const CHANGELOG: &str = include_str!("../../../CHANGELOG.md");
+/// The changelog, compiled in — so it ships with the binary that it
+/// describes, and `/about` can show what this exact build changed even when
+/// the source tree is nowhere near.
+pub(crate) const CHANGELOG: &str = include_str!("../../../CHANGELOG.md");
 
 /// The newest changelog heading, e.g. `0.6.62` — `None` if there is none.
-#[cfg(test)]
-fn newest_changelog_version() -> Option<&'static str> {
+pub(crate) fn newest_changelog_version() -> Option<&'static str> {
     CHANGELOG
         .lines()
         .filter_map(|l| l.strip_prefix("## "))
@@ -221,5 +218,47 @@ mod changelog_tests {
             !newest.contains('\u{2013}') && !newest.contains('-'),
             "newest entry {newest} is a range; give this release its own line"
         );
+    }
+}
+
+/// The note to flash when the running version is not the one that ran last,
+/// and the version to remember. `None` on a first run (nothing to compare)
+/// and when the version is unchanged.
+///
+/// Auto-update lands quietly and applies on the next restart, so a user can
+/// be running a build they never chose to install. Arriving as a silently
+/// different app is the part worth fixing; the note points at the document
+/// that says what moved.
+pub(crate) fn version_change_note(last_seen: Option<&str>) -> Option<String> {
+    match last_seen {
+        Some(prev) if prev != VERSION => Some(format!(
+            "updated to crew {VERSION} \u{2014} /about shows what changed"
+        )),
+        _ => None,
+    }
+}
+
+#[cfg(test)]
+mod version_note_tests {
+    use super::*;
+
+    #[test]
+    fn only_a_real_change_is_announced() {
+        assert!(version_change_note(Some("0.0.1")).is_some());
+        assert!(
+            version_change_note(Some(VERSION)).is_none(),
+            "the same version must not announce itself every launch"
+        );
+        assert!(
+            version_change_note(None).is_none(),
+            "a first run has nothing to compare and nothing to say"
+        );
+    }
+
+    #[test]
+    fn the_note_names_the_version_and_where_to_look() {
+        let n = version_change_note(Some("0.0.1")).expect("a note");
+        assert!(n.contains(VERSION), "{n}");
+        assert!(n.contains("/about"), "{n}");
     }
 }

@@ -98,6 +98,7 @@ fn from_toml_garbage() {
 #[test]
 fn round_trip() {
     let c = CrewConfig {
+        last_seen_version: None,
         font_size: 20.0,
         nav_width: 200.0,
         show_nav: true,
