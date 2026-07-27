@@ -57,8 +57,10 @@ pub struct ChatPane {
     /// Modal: it takes every key before the palette, the mention popup and the
     /// pane's own handling.
     pub(crate) keyentry: Option<crate::keyentry::KeyEntry>,
-    /// An in-flight OpenRouter browser sign-in (see `oauth`). Dropped when the
-    /// prompt closes, which is what cancels the worker thread.
+    /// An in-flight OpenRouter browser sign-in (see `oauth`). Dropping the
+    /// receiver is what cancels the worker thread (its send then fails), so
+    /// it MUST be cleared everywhere the prompt goes away: Escape and submit
+    /// here, and `close_hidden_keyentry` for a prompt the frame discards.
     pub(crate) oauth: Option<std::sync::mpsc::Receiver<crate::oauth::OauthOutcome>>,
     /// When true, show raw message text instead of markdown rendering.
     /// Toggled with Ctrl+Shift+M; not persisted.

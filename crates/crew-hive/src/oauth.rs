@@ -95,6 +95,11 @@ fn percent_encode(s: &str) -> String {
 ///
 /// Never logs `code`, `verifier` or the key: on a non-2xx the error names the
 /// STATUS only, deliberately not the body, which could echo the code back.
+///
+/// The errors this returns are shown to the user by `crew-app`, which prints
+/// only `anyhow`'s outermost message on purpose — a decode failure from
+/// `resp.json()` can quote the response bytes it choked on, and those stay in
+/// the `source()` chain where nothing prints them.
 pub async fn exchange_openrouter_code(code: &str, verifier: &str) -> anyhow::Result<String> {
     let body = serde_json::json!({
         "code": code,

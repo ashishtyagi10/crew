@@ -51,30 +51,7 @@ impl CrewApp {
             }
         }
 
-        // OpenRouter browser sign-in: poll only the FOCUSED pane's receiver —
-        // the prompt is modal to its pane, and a background pane cannot have
-        // started a flow. `try_recv` on a `None` handle is a cheap no-op.
-        let mut oauth_landed = false;
-        if let Some(PaneContent::Chat(pane)) =
-            self.panes.get_mut(self.focused).map(|p| &mut p.content)
-        {
-            if let Some(outcome) = pane.oauth.as_ref().and_then(|rx| rx.try_recv().ok()) {
-                match outcome {
-                    crate::oauth::OauthOutcome::Key(key) => {
-                        crate::chatkeystore::store_provider_key(pane, "OPENROUTER_API_KEY", &key);
-                        pane.keyentry = None;
-                    }
-                    crate::oauth::OauthOutcome::Failed(why) => {
-                        pane.push_note(format!("openrouter sign-in failed: {why}"));
-                        if let Some(e) = pane.keyentry.as_mut() {
-                            e.set_waiting(false);
-                        }
-                    }
-                }
-                pane.oauth = None;
-                oauth_landed = true;
-            }
-        }
+        let oauth_landed = self.drain_oauth();
 
         // Random theme mode: rotate on its 10-minute clock. Cheap + lock-free.
         // Seeds `any_changed` so a rotation repaints every pane in the new theme.
@@ -417,6 +394,50 @@ impl CrewApp {
                 Instant::now() + Duration::from_millis(POLL_MS),
             ));
         }
+    }
+
+    /// Land any finished OpenRouter browser sign-in, in EVERY pane — not just
+    /// the focused one. Window focus is not pane focus, so alt-tabbing to the
+    /// browser was never the problem; deliberately switching to another pane
+    /// mid-flow was. Polling only `self.focused` left the started-it pane's
+    /// receiver undrained: the user approved and nothing happened, a "saved ·
+    /// pinned" note appeared out of nowhere on returning minutes later, and
+    /// closing that pane silently discarded a key OpenRouter had already
+    /// issued. Each outcome goes to the pane that started the flow, which is
+    /// also the pane holding the prompt the note belongs under.
+    ///
+    /// `try_recv` on a `None` handle or an empty channel is a cheap no-op, so
+    /// this costs nothing on every tick where no sign-in is in flight.
+    /// Returns whether anything landed (a repaint is due).
+    pub(crate) fn drain_oauth(&mut self) -> bool {
+        let mut landed = false;
+        for p in &mut self.panes {
+            let PaneContent::Chat(pane) = &mut p.content else {
+                continue;
+            };
+            let Some(outcome) = pane.oauth.as_ref().and_then(|rx| rx.try_recv().ok()) else {
+                continue;
+            };
+            match outcome {
+                crate::oauth::OauthOutcome::Key(key) => {
+                    crate::chatkeystore::store_provider_key(pane, "OPENROUTER_API_KEY", &key);
+                    pane.keyentry = None;
+                }
+                crate::oauth::OauthOutcome::Failed(why) => {
+                    // `why` can carry text the callback supplied. It is
+                    // clamped where it is produced; clamped again here so a
+                    // future producer cannot widen a pane note by accident.
+                    let why = crate::oauth::short_reason(&why);
+                    pane.push_note(format!("openrouter sign-in failed: {why}"));
+                    if let Some(e) = pane.keyentry.as_mut() {
+                        e.set_waiting(false);
+                    }
+                }
+            }
+            pane.oauth = None;
+            landed = true;
+        }
+        landed
     }
 
     /// Whether a `/model` picker is open right now, on either of its two

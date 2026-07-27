@@ -13,8 +13,10 @@ use crew_render::CellView;
 
 use crate::chatkeys::ChatInput;
 
-/// Total height: top border, input row, waiting-hint row, bottom border.
-pub(crate) const ROWS: u16 = 4;
+/// Height without the waiting hint: top border, input row, bottom border.
+const ROWS_PLAIN: u16 = 3;
+/// Height with it: the hint gets an interior row of its own.
+const ROWS_WAITING: u16 = 4;
 
 /// What one key did to the prompt.
 pub(crate) enum KeyOutcome {
@@ -51,6 +53,19 @@ impl KeyEntry {
     /// types, since that means they are pasting instead.
     pub(crate) fn set_waiting(&mut self, waiting: bool) {
         self.waiting = waiting;
+    }
+
+    /// How tall this prompt's card is right now. The hint row only exists
+    /// while a sign-in is in flight, so an `ANTHROPIC_API_KEY` prompt (which
+    /// has no browser flow at all) must not reserve — and draw a blank —
+    /// interior row for it. The renderer sizes the card from this, so the
+    /// height and the drawn cells can never disagree.
+    pub(crate) fn rows(&self) -> u16 {
+        if self.waiting {
+            ROWS_WAITING
+        } else {
+            ROWS_PLAIN
+        }
     }
 
     /// Route one key. Enter submits a non-blank buffer, Escape cancels,
@@ -117,7 +132,7 @@ impl KeyEntry {
         );
         let mut cells = crate::boxdraw::titled_card(
             cols,
-            ROWS,
+            self.rows(),
             &title,
             t.border_normal,
             t.legend_off,
@@ -139,6 +154,10 @@ impl KeyEntry {
             });
         }
         if self.waiting {
+            // ROW 2 IS LOAD-BEARING, not decoration: the hint text contains
+            // almost every character of a typical key, so drawing it on row 1
+            // would make the leak assertion (which scopes itself to row 1)
+            // vacuous. A test pins it here.
             let hint = "waiting for browser · or paste the key";
             for (i, ch) in hint.chars().take(inner).enumerate() {
                 cells.push(CellView {

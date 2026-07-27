@@ -75,9 +75,17 @@ impl CrewApp {
     /// by the help overlay, not just by the input bar; refusing all of those
     /// would make it a modal the user cannot click out of, and there is no
     /// focus chokepoint to enforce it in (nine call sites set
-    /// `input.focused`). Discarding the buffer is exactly what Escape already
-    /// does, and the invariant then holds by construction, once per frame,
-    /// however focus moved.
+    /// `input.focused`). This is the same discard Escape performs
+    /// (`ChatPane::on_input`'s `Cancelled` arm), and the invariant then holds
+    /// by construction, once per frame, however focus moved.
+    ///
+    /// That equivalence with Escape is why the in-flight browser sign-in goes
+    /// with it. A discarded prompt that left `oauth` set would still be
+    /// holding a live receiver: the user approves in the browser minutes
+    /// later, `poll.rs` finds the pane, stores the key and pins the provider
+    /// globally — from a prompt the app itself threw away, with nothing on
+    /// screen to have asked. Dropping the receiver is what makes the worker
+    /// thread's send fail, so it also ends the flow.
     pub(crate) fn close_hidden_keyentry(&mut self) {
         let drawn = (!self.input.focused && !self.help_open).then_some(self.focused);
         for (i, pane) in self.panes.iter_mut().enumerate() {
@@ -85,8 +93,11 @@ impl CrewApp {
                 continue;
             }
             if let crate::pane::PaneContent::Chat(c) = &mut pane.content {
-                // Dropping the `KeyEntry` drops its buffer with it.
+                // Dropping the `KeyEntry` drops its buffer with it, and
+                // dropping the receiver cancels the sign-in behind it. BOTH,
+                // always together — see the doc comment above.
                 c.keyentry = None;
+                c.oauth = None;
             }
         }
     }

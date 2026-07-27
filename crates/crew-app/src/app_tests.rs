@@ -624,6 +624,137 @@ fn open_keyentry(app: &mut CrewApp, i: usize) {
     }
 }
 
+/// Whether the chat pane at `i` still holds a live browser sign-in.
+fn has_oauth(app: &CrewApp, i: usize) -> bool {
+    match &app.panes[i].content {
+        crate::pane::PaneContent::Chat(c) => c.oauth.is_some(),
+        _ => unreachable!("expected a chat pane"),
+    }
+}
+
+/// Open an OpenRouter prompt with a sign-in in flight behind it, as accepting
+/// the dimmed row does. Hands back the sender so the test can decide whether
+/// the worker's send still has a receiver to reach.
+fn open_oauth_keyentry(
+    app: &mut CrewApp,
+    i: usize,
+) -> std::sync::mpsc::Sender<crate::oauth::OauthOutcome> {
+    let (tx, rx) = std::sync::mpsc::channel();
+    match &mut app.panes[i].content {
+        crate::pane::PaneContent::Chat(c) => {
+            let mut entry = crate::keyentry::KeyEntry::new("OPENROUTER_API_KEY".into());
+            entry.set_waiting(true);
+            c.keyentry = Some(entry);
+            c.oauth = Some(rx);
+        }
+        _ => unreachable!("expected a chat pane"),
+    }
+    tx
+}
+
+/// Discarding the prompt must discard the flow behind it. Without this, a
+/// click on the input bar takes the card off the screen while the receiver
+/// lives on: the user then approves in the browser and `poll.rs` stores the
+/// key and pins the provider globally, from a prompt the app threw away.
+#[test]
+fn discarding_a_hidden_prompt_also_cancels_the_browser_sign_in() {
+    let mut app = CrewApp::default();
+    app.panes.push(tests_chat_pane());
+    app.focused = 0;
+    let tx = open_oauth_keyentry(&mut app, 0);
+
+    app.input.focused = true; // a click on the input bar
+    app.close_hidden_keyentry();
+
+    assert!(!has_keyentry(&app, 0), "the prompt must not survive");
+    assert!(
+        !has_oauth(&app, 0),
+        "the sign-in behind the prompt must not survive it either"
+    );
+    // Dropping the receiver is what ends the worker thread, so the outcome
+    // has nowhere to land — no key can be stored from here.
+    assert!(
+        tx.send(crate::oauth::OauthOutcome::Failed("late".into()))
+            .is_err(),
+        "the worker's send must fail once the prompt is discarded"
+    );
+}
+
+/// The same for the other two ways the card stops being drawn.
+#[test]
+fn switching_panes_or_opening_help_cancels_the_browser_sign_in() {
+    let mut app = CrewApp::default();
+    app.panes.push(tests_chat_pane());
+    app.panes.push(tests_chat_pane());
+    app.focused = 0;
+    open_oauth_keyentry(&mut app, 0);
+    app.focused = 1;
+    app.close_hidden_keyentry();
+    assert!(!has_oauth(&app, 0), "an unfocused pane's sign-in is gone");
+
+    open_oauth_keyentry(&mut app, 1);
+    app.help_open = true;
+    app.close_hidden_keyentry();
+    assert!(!has_oauth(&app, 1), "help covers the card: the flow ends");
+}
+
+/// The outcome belongs to the pane that started the flow, whether or not you
+/// are still looking at it. Polling only the focused pane stranded it: the
+/// user approved, nothing happened, and the note turned up minutes later.
+#[test]
+fn a_sign_in_lands_in_its_own_pane_even_while_another_is_focused() {
+    let mut app = CrewApp::default();
+    app.panes.push(tests_chat_pane());
+    app.panes.push(tests_chat_pane());
+    app.focused = 0;
+    let tx = open_oauth_keyentry(&mut app, 0);
+    app.focused = 1; // the user wandered off to another pane
+
+    tx.send(crate::oauth::OauthOutcome::Failed("access_denied".into()))
+        .unwrap();
+    assert!(app.drain_oauth(), "the outcome must land on this tick");
+
+    assert!(!has_oauth(&app, 0), "the receiver is spent and cleared");
+    match &app.panes[0].content {
+        crate::pane::PaneContent::Chat(c) => {
+            let note = c
+                .messages
+                .last()
+                .expect("a note reached pane 0")
+                .text
+                .clone();
+            assert!(note.contains("access_denied"), "got: {note:?}");
+        }
+        _ => unreachable!("expected a chat pane"),
+    }
+    match &app.panes[1].content {
+        crate::pane::PaneContent::Chat(c) => assert!(
+            c.messages.is_empty(),
+            "the note belongs to the pane that started the flow, not the focused one"
+        ),
+        _ => unreachable!("expected a chat pane"),
+    }
+}
+
+/// Remote-supplied callback text must not reach a pane note at full length.
+#[test]
+fn a_failure_note_clamps_text_that_came_from_the_callback() {
+    let mut app = CrewApp::default();
+    app.panes.push(tests_chat_pane());
+    app.focused = 0;
+    let tx = open_oauth_keyentry(&mut app, 0);
+    tx.send(crate::oauth::OauthOutcome::Failed("e".repeat(5_000)))
+        .unwrap();
+    assert!(app.drain_oauth());
+    match &app.panes[0].content {
+        crate::pane::PaneContent::Chat(c) => {
+            let note = &c.messages.last().expect("a note").text;
+            assert!(note.chars().count() < 200, "note ran to {}", note.len());
+        }
+        _ => unreachable!("expected a chat pane"),
+    }
+}
+
 /// Focusing the input bar is a plain mouse click (`focus_at_cursor`), and
 /// `render.rs` draws the key card only while the bar is NOT focused. The
 /// prompt would otherwise survive open-but-invisible, still holding a
