@@ -72,6 +72,12 @@ pub struct CrewApp {
     pub(crate) prev_cwd: PathBuf,
     /// When the window was last resized; drives a debounced save of its size.
     pub(crate) resize_at: Option<Instant>,
+    /// A note to flash on the FIRST rendered frame rather than when it was
+    /// decided. Status messages expire after three seconds, and a cold launch
+    /// takes far longer than that to reach its first frame — so a note set
+    /// during `resumed()` (the version-change announcement is the only one)
+    /// would expire unseen on exactly the launch it exists for.
+    pub(crate) pending_note: Option<String>,
     /// Transient status message + when it was set, shown on the input bar.
     pub(crate) status: Option<(String, Instant)>,
     /// Ring buffer of recent status messages, shown as the live LOG section in
