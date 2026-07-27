@@ -289,6 +289,16 @@ The docked command bar supports:
   palettes (`paper-dark`, `crt-green`, …) and the pre-consolidation rotation
   modes (`random-dark`/`random`, `random-light`, `auto`) — still resolve for
   back-compat but aren't listed. See [Themes](#themes).
+- **`/crt [on|off|auto]`** — the CRT tube post-process (screen curvature,
+  scanlines, phosphor glow, a slight flicker while a pane is busy), independent
+  of which theme is active. `auto` follows the theme — on for `crt`, off
+  otherwise — and is the default; `on`/`off` pin it either way, so you can run a
+  paper theme through the tube or a CRT palette flat. No argument reports the
+  current setting.
+- **`/weight [medium|semibold|bold|…]`** — the weight the text is rendered at,
+  live and persisted. Useful when a font renders thin at your size or on a
+  low-contrast display. No argument reports the current weight; selecting
+  `/weight` in the palette opens a value picker.
 - **`/only`** — closes every pane except the focused one (a quick "focus mode");
   a no-op when only one pane is open.
 - **File operations live in Far and Cmd+click**, not slash commands: the old
@@ -357,7 +367,7 @@ The docked command bar supports:
   suggestion as plain text.
 - **`/smith`** — opens **agent smith**, a **multi-agent pane** where the
   installed CLI coding agents (claude, codex, opencode) message each other to
-  work a task. See [Multi-agent relay](#multi-agent-relay-crew) below.
+  work a task. See [Multi-agent relay](#multi-agent-relay-smith-alias-crew) below.
 - **Autosuggest** — fish-style ghost text from history; Tab/→ accepts it.
 - **History** — **Up/Down** recall previous lines; type a prefix first and they
   recall only entries **starting with it** (zsh/fish-style prefix search; an empty

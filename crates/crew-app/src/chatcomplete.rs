@@ -520,6 +520,91 @@ mod doc_drift {
         out
     }
 
+    /// Command-bar commands the manual deliberately does not carry: session
+    /// plumbing and aliases whose target is documented instead. Declared, so
+    /// "not worth a paragraph" stays distinguishable from "nobody wrote one".
+    const UNDOCUMENTED_BY_CHOICE: &[&str] = &["/crew"];
+
+    /// Every command the command-bar palette offers is described somewhere a
+    /// user can read. `/crt` and `/weight` shipped as working, palette-listed
+    /// commands with no mention in either page — the `/reload` shape again, one
+    /// list further out.
+    #[test]
+    fn every_command_bar_command_is_documented() {
+        let mut docs = String::new();
+        for rel in DOCS {
+            let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(rel);
+            if let Ok(s) = std::fs::read_to_string(&path) {
+                docs.push_str(&s);
+            }
+        }
+        if docs.is_empty() {
+            return; // docs not shipped in this build context
+        }
+        for c in crate::cmddefs::COMMANDS {
+            assert!(
+                docs.contains(c.name) || UNDOCUMENTED_BY_CHOICE.contains(&c.name),
+                "{} is in the command palette and in no doc",
+                c.name
+            );
+        }
+    }
+
+    /// A heading's GitHub anchor: lowercased, punctuation dropped, spaces
+    /// hyphenated. `## Multi-agent relay (`/smith`, alias `/crew`)` becomes
+    /// `multi-agent-relay-smith-alias-crew`.
+    fn anchor_of(heading: &str) -> String {
+        heading
+            .trim()
+            .to_lowercase()
+            .chars()
+            .filter(|c| c.is_alphanumeric() || *c == ' ' || *c == '-' || *c == '_')
+            .collect::<String>()
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join("-")
+    }
+
+    /// An in-document link must land on a heading that exists. Renaming a
+    /// section silently breaks every link to it — `#multi-agent-relay-crew`
+    /// outlived the `/smith` rename by months, and a link that goes nowhere
+    /// reads as a missing feature rather than a stale anchor. (Caught a second
+    /// one written during this very loop, which is why it is a test.)
+    #[test]
+    fn internal_doc_links_land_on_a_real_heading() {
+        for rel in DOCS {
+            let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(rel);
+            let Ok(src) = std::fs::read_to_string(&path) else {
+                continue; // not shipped in every build context
+            };
+            let anchors: Vec<String> = src
+                .lines()
+                .filter_map(|l| l.trim_start().strip_prefix('#'))
+                .map(|h| anchor_of(h.trim_start_matches('#')))
+                .collect();
+            for target in internal_link_targets(&src) {
+                assert!(
+                    anchors.contains(&target),
+                    "{} links to #{target}, which is no heading in it",
+                    path.display()
+                );
+            }
+        }
+    }
+
+    /// Every `](#target)` in `src`.
+    fn internal_link_targets(src: &str) -> Vec<String> {
+        let mut out = Vec::new();
+        let mut rest = src;
+        while let Some(i) = rest.find("](#") {
+            rest = &rest[i + 3..];
+            if let Some(end) = rest.find(')') {
+                out.push(rest[..end].to_string());
+            }
+        }
+        out
+    }
+
     fn scan_env_names(src: &str, out: &mut Vec<String>) {
         let chars: Vec<char> = src.chars().collect();
         let mut i = 0;

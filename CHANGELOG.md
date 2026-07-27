@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.6.99
+
+- `/crt` and `/weight` are in the manual. Both have been working, palette-listed
+  commands with no mention in either page — `/crt [on|off|auto]` runs the CRT
+  tube post-process independently of the theme, so a paper theme can go through
+  the tube or a CRT palette can render flat.
+- A link in the manual pointing at `#multi-agent-relay-crew` has gone nowhere
+  since the `/smith` rename. Internal doc links are now checked against the
+  headings they claim to target.
+
 ## 0.6.98
 
 - Six environment knobs the code has always read are now in the manual:
