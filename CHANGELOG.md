@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.6.91
+
+- A tool call reads as what it is. Every call an agent makes is logged in the
+  pane so you can see what is happening to your machine, but it was shown in
+  wire form — `[tool] sys:write_file {"path": "src/lib.rs", "content": "use
+  std::fmt;\n…` — where the one thing worth reading is buried in punctuation
+  and, for a write, the line is mostly the first 150 bytes of the file. It now
+  reads `sys:write_file  src/lib.rs`. A tool whose arguments say nothing
+  identifiable still shows them, so nothing goes missing.
+
 ## 0.6.90
 
 - The built-in `sys` tool surface is decided once, when a session's broker is

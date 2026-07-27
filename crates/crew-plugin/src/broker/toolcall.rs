@@ -149,7 +149,10 @@ impl Broker {
                 to: label.clone(),
                 hop: env.hop,
                 kind: HopKind::Reply,
-                text: format!("[tool] {label} {}", clip(&call.args, 200)),
+                text: format!(
+                    "[tool] {}",
+                    super::toolline::call_line(&label, &call.args, 200)
+                ),
                 usage: Default::default(),
             });
             let text = match runner.call(&call.server, &call.tool, &call.args) {

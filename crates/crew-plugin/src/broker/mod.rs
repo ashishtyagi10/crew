@@ -50,6 +50,7 @@ mod tasks;
 mod tick;
 mod toolcall;
 mod toolclip;
+mod toolline;
 
 pub use adapter::{Adapter, CliAdapter, Normalize};
 pub use agents::known_adapters;
