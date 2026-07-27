@@ -66,17 +66,34 @@ impl CrewApp {
         let pane = &self.panes[i];
         match &pane.content {
             PaneContent::Chat(chat) => {
-                let Some(url) = crate::chatview::link_at(
+                if let Some(url) = crate::chatview::link_at(
                     chat,
                     pane.grid.cols,
                     pane.grid.rows,
                     row as u16,
                     col as u16,
+                ) {
+                    let _ = open::that(&url);
+                    self.set_status(format!("opening {url}"));
+                    return true;
+                }
+                // Not a link: a code block is the other thing worth acting on.
+                let Some(code) = crate::chatview::code_block_at(
+                    chat,
+                    pane.grid.cols,
+                    pane.grid.rows,
+                    row as u16,
                 ) else {
                     return false;
                 };
-                let _ = open::that(&url);
-                self.set_status(format!("opening {url}"));
+                let lines = code.lines().count();
+                if let Ok(mut cb) = arboard::Clipboard::new() {
+                    let _ = cb.set_text(code.clone());
+                }
+                self.set_status(format!(
+                    "copied {lines} line{}",
+                    if lines == 1 { "" } else { "s" }
+                ));
                 true
             }
             PaneContent::Markdown(md) => {

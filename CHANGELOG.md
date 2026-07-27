@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.6.78
+
+- Cmd+click a code block in an agent pane to copy it. Reading an answer and
+  using it are different acts, and the second had no support beyond selecting
+  text with the mouse. The fence chrome and language tag do not come with it,
+  so there is nothing to strip after pasting.
+
 ## 0.6.77
 
 - The first automatic snapshot of a session says so, once, and names

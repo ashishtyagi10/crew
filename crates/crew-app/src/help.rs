@@ -23,7 +23,10 @@ const BINDINGS: &[(&str, &str)] = &[
     ("Cmd+S", "Broadcast to all panes"),
     ("Cmd+= / Cmd+- / Cmd+0", "Font size + / - / reset"),
     ("Cmd+C / Cmd+V", "Copy screen / paste"),
-    ("Cmd+Click", "open URL, file, or dir"),
+    (
+        "Cmd+Click",
+        "open URL/file/dir · copy a code block in an agent pane",
+    ),
     ("Cmd+W / Cmd+M", "Close pane / maximize"),
     ("Cmd+K", "Clear focused pane scrollback"),
     ("Shift+PageUp / PageDown", "Scroll focused pane"),
