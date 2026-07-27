@@ -15,7 +15,17 @@ impl InputBar {
     /// Render the input card: a rounded border with the working directory as its
     /// top-border legend, `> text` on the interior row, and an optional transient
     /// `status` message on the bottom border. Prompt and border brighten on focus.
-    pub fn cells(&self, cols: u16, rows: u16, status: Option<&str>) -> Vec<CellView> {
+    ///
+    /// `pane` is the focused pane's name, drawn as a right-aligned legend on the
+    /// bottom border — the mirror of the cwd riding the top one. Typing here acts
+    /// on whichever pane is selected, and until now the bar never said which.
+    pub fn cells(
+        &self,
+        cols: u16,
+        rows: u16,
+        status: Option<&str>,
+        pane: Option<&str>,
+    ) -> Vec<CellView> {
         if cols < 6 || rows < 3 {
             return Vec::new();
         }
@@ -109,12 +119,23 @@ impl InputBar {
             );
         }
 
-        // Transient status flashed on the bottom border, right-aligned.
-        if let Some(s) = status {
-            let label = format!(" {s} ");
+        // Transient status flashed on the bottom border, right-aligned — and
+        // when nothing is flashing, the focused pane's name in the same spot.
+        // A status is a moment; the pane legend is the bar's standing answer to
+        // "where does this go?", so the flash borrows the slot and gives it back.
+        let bottom = match status {
+            Some(s) => Some((format!(" {s} "), crew_theme::theme().status_fg)),
+            None => pane
+                .map(str::trim)
+                .filter(|n| !n.is_empty())
+                .map(|n| (format!(" {n} "), crew_theme::theme().legend_off)),
+        };
+        if let Some((label, fg)) = bottom {
+            // Clip to the columns the bottom rule actually owns, so a long pane
+            // title can never overrun the `╯` corner.
+            let label = clip_w(&label, cols.saturating_sub(4) as usize);
             let w = str_w(&label) as u16;
             if w + 3 < cols {
-                let fg = crew_theme::theme().status_fg;
                 place_row(
                     cols - 2 - w,
                     cols,
@@ -125,6 +146,26 @@ impl InputBar {
         }
         out
     }
+}
+
+/// Truncate `s` to `max` display columns, keeping the head and marking the cut
+/// with `…` — wide glyphs count two, so a CJK pane title clips on a boundary
+/// rather than half a cell past it.
+fn clip_w(s: &str, max: usize) -> String {
+    if str_w(s) <= max || max == 0 {
+        return s.to_string();
+    }
+    let mut out = String::new();
+    let mut w = 0;
+    for c in s.chars() {
+        if w + char_w(c) > max.saturating_sub(1) {
+            break;
+        }
+        w += char_w(c);
+        out.push(c);
+    }
+    out.push('\u{2026}');
+    out
 }
 
 fn cell(col: u16, row: u16, c: char, fg: (u8, u8, u8)) -> CellView {

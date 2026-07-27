@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.6.96
+
+- The input bar says which pane it is talking to. The focused pane's name now
+  rides the bottom border as a right-aligned legend, mirroring the working
+  directory on the top one — typing there has always acted on the selected
+  pane, and the bar never said which one that was. A transient status message
+  borrows the slot while it flashes and gives it back.
+
 ## 0.6.95
 
 - The slash palette stopped disagreeing with the commands it labels. `/goal`
