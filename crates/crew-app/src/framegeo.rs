@@ -57,7 +57,7 @@ impl CrewApp {
         frame_hit_rects(self.zoomed, self.focused, self.panes.len(), content, placed)
     }
 
-    /// Discard any provider-key prompt this frame will NOT draw. `render.rs`
+    /// Take down any provider-key prompt this frame will NOT draw. `render.rs`
     /// draws the masked card for the focused chat pane only, and only while
     /// neither the input bar nor the help overlay is covering it — so any
     /// focus move (a plain click on the input bar, `focus_at_cursor`; a click
@@ -70,34 +70,57 @@ impl CrewApp {
     /// preview card — and Enter pushes the line into the command history,
     /// which is written to disk and replayed as ghost text next launch.
     ///
-    /// Closing rather than REFUSING the focus change is deliberate. The prompt
-    /// is hidden by a click anywhere outside its pane, by pane switching and
-    /// by the help overlay, not just by the input bar; refusing all of those
-    /// would make it a modal the user cannot click out of, and there is no
-    /// focus chokepoint to enforce it in (nine call sites set
-    /// `input.focused`). This is the same discard Escape performs
-    /// (`ChatPane::on_input`'s `Cancelled` arm), and the invariant then holds
-    /// by construction, once per frame, however focus moved.
+    /// Acting here rather than REFUSING the focus change is deliberate. The
+    /// prompt is hidden by a click anywhere outside its pane, by pane
+    /// switching and by the help overlay, not just by the input bar; refusing
+    /// all of those would make it a modal the user cannot click out of, and
+    /// there is no focus chokepoint to enforce it in (nine call sites set
+    /// `input.focused`). Doing it once per frame instead means the buffer
+    /// invariant holds by construction, however focus moved.
     ///
-    /// That equivalence with Escape is why the in-flight browser sign-in goes
-    /// with it. A discarded prompt that left `oauth` set would still be
-    /// holding a live receiver: the user approves in the browser minutes
-    /// later, `poll.rs` finds the pane, stores the key and pins the provider
-    /// globally — from a prompt the app itself threw away, with nothing on
-    /// screen to have asked. Dropping the receiver is what makes the worker
-    /// thread's send fail, so it also ends the flow.
+    /// HIDDEN IS NOT DISMISSED, and an in-flight browser sign-in is where the
+    /// difference bites. The most ordinary step of that flow is: the browser
+    /// says "you can close this tab", the user clicks back into crew, and the
+    /// activating click lands on the input bar (`hit.rs`). If that cancelled
+    /// the flow, a sign-in the user just completed would be thrown away with
+    /// nothing on screen to say so — and OpenRouter would be left holding a
+    /// real key, minted against the user's account, that crew never stored and
+    /// they now have to revoke by hand. Switching panes and the help overlay
+    /// have the same shape: none of them is the user abandoning the sign-in.
+    ///
+    /// So a pane with a live `oauth` keeps BOTH the flow and the prompt, and
+    /// the prompt comes back the moment the pane is drawn again. What it does
+    /// not keep is the typed buffer ([`crate::keyentry::KeyEntry::forget_typing`]):
+    /// no secret outlives the card that showed it, which is the invariant this
+    /// function exists for.
+    ///
+    /// The original Critical still holds, because it was never really about
+    /// hiding: a key must not be stored into a prompt the user DISMISSED, and
+    /// dismissal has exactly three call sites, all of which drop the receiver
+    /// (and say so) rather than relying on this pass — Escape and Submit in
+    /// `ChatPane::on_input` via `cancel_oauth`, and closing the pane, which
+    /// takes the receiver down with the whole pane. A dropped receiver is what
+    /// makes the worker's `send` fail, so the flow ends there and no outcome
+    /// can land.
     pub(crate) fn close_hidden_keyentry(&mut self) {
         let drawn = (!self.input.focused && !self.help_open).then_some(self.focused);
         for (i, pane) in self.panes.iter_mut().enumerate() {
             if Some(i) == drawn {
                 continue;
             }
-            if let crate::pane::PaneContent::Chat(c) = &mut pane.content {
-                // Dropping the `KeyEntry` drops its buffer with it, and
-                // dropping the receiver cancels the sign-in behind it. BOTH,
-                // always together — see the doc comment above.
+            let crate::pane::PaneContent::Chat(c) = &mut pane.content else {
+                continue;
+            };
+            if c.oauth.is_some() {
+                // Hidden mid-sign-in: keep the flow, keep the prompt, forget
+                // the typing.
+                if let Some(e) = c.keyentry.as_mut() {
+                    e.forget_typing();
+                }
+            } else {
+                // No flow to protect: dropping the `KeyEntry` drops its
+                // buffer with it, the same discard Escape performs.
                 c.keyentry = None;
-                c.oauth = None;
             }
         }
     }

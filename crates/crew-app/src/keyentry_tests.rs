@@ -180,13 +180,49 @@ fn the_card_is_only_as_tall_as_it_needs_the_hint_row_to_be() {
 }
 
 #[test]
-fn typing_clears_the_waiting_state() {
-    // Once the user starts pasting, the card should stop claiming to wait.
+fn typing_clears_the_waiting_state_but_pasting_does_not() {
+    // Typing a character by hand means the user has stopped waiting on the
+    // browser, so the card stops claiming to. A PASTE is not that: Cmd+V is
+    // routed to `paste`, one gesture that may not be the user's final answer,
+    // and the flow behind the hint is still live until it lands or is
+    // dismissed. The two arms differ on purpose — the doc comments say so.
+    let mut typing = KeyEntry::new("OPENROUTER_API_KEY".into());
+    typing.set_waiting(true);
+    typed(&mut typing, "s");
+    let drawn: String = typing.card(60).iter().map(|c| c.c).collect();
+    assert!(!drawn.contains("waiting for browser"), "{drawn}");
+
+    let mut pasting = KeyEntry::new("OPENROUTER_API_KEY".into());
+    pasting.set_waiting(true);
+    pasting.paste("sk-pasted");
+    let drawn: String = pasting.card(60).iter().map(|c| c.c).collect();
+    assert!(
+        drawn.contains("waiting for browser"),
+        "a paste leaves the hint up: {drawn}"
+    );
+}
+
+#[test]
+fn forgetting_the_typing_empties_the_buffer_and_restores_the_hint() {
+    // What a prompt becomes while it is hidden with its sign-in still in
+    // flight: no secret survives off screen, and what comes back is the
+    // waiting prompt it started as.
     let mut e = KeyEntry::new("OPENROUTER_API_KEY".into());
     e.set_waiting(true);
-    typed(&mut e, "s");
-    let drawn: String = e.card(60).iter().map(|c| c.c).collect();
-    assert!(!drawn.contains("waiting for browser"), "{drawn}");
+    typed(&mut e, "sk-half"); // typing also cleared `waiting`
+
+    e.forget_typing();
+
+    let cells = e.card(60);
+    assert_eq!(
+        cells.iter().filter(|c| c.c == '•').count(),
+        0,
+        "not one character of the buffer survives"
+    );
+    let drawn: String = cells.iter().map(|c| c.c).collect();
+    assert!(drawn.contains("waiting for browser"), "{drawn}");
+    // And nothing is left to submit.
+    assert!(matches!(e.key(&ChatInput::Enter), KeyOutcome::Consumed));
 }
 
 #[test]

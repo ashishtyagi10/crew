@@ -10,8 +10,25 @@ use crate::chat::ChatPane;
 /// picker resolve against it immediately. Reports what happened by NAME —
 /// the value never reaches a message, a log or the transcript.
 pub(crate) fn store_provider_key(pane: &mut ChatPane, var: &str, value: &str) {
-    match crew_plugin::credentials::path() {
-        Some(path) => store_provider_key_at(pane, &path, var, value),
+    store_provider_key_in(
+        pane,
+        crew_plugin::credentials::path().as_deref(),
+        var,
+        value,
+    )
+}
+
+/// [`store_provider_key`] with the resolved destination — including "there
+/// isn't one" — passed in, so a caller that already has a path (or a test that
+/// wants a temporary one) can hand it straight over.
+pub(crate) fn store_provider_key_in(
+    pane: &mut ChatPane,
+    path: Option<&Path>,
+    var: &str,
+    value: &str,
+) {
+    match path {
+        Some(path) => store_provider_key_at(pane, path, var, value),
         None => pane.push_note(format!(
             "could not save {var}: no config directory to store credentials in"
         )),

@@ -35,8 +35,13 @@ pub(crate) struct KeyEntry {
     pub(crate) var: String,
     buf: String,
     /// A browser sign-in is in flight for this prompt (OpenRouter only).
-    /// Cleared the moment the user types, since that means they are pasting
-    /// instead of waiting on the browser.
+    ///
+    /// Cleared when the user TYPES a character ([`Self::key`]'s `Char` arm):
+    /// entering a key by hand means they are no longer waiting on the browser.
+    /// A real paste does NOT clear it — Cmd+V and right-click-paste are routed
+    /// to [`Self::paste`], which leaves the hint up on purpose, because the
+    /// browser flow can still land and is still the thing that will close this
+    /// prompt.
     waiting: bool,
 }
 
@@ -49,10 +54,24 @@ impl KeyEntry {
         }
     }
 
-    /// Show that a browser sign-in is in flight. Cleared as soon as the user
-    /// types, since that means they are pasting instead.
+    /// Show (or stop showing) that a browser sign-in is in flight. Typing a
+    /// character clears it again; pasting does not — see the field's doc.
     pub(crate) fn set_waiting(&mut self, waiting: bool) {
         self.waiting = waiting;
+    }
+
+    /// Drop anything typed and go back to showing the browser hint: what this
+    /// prompt becomes while it is HIDDEN with its sign-in still in flight.
+    ///
+    /// Being hidden (the input bar took focus, another pane did, the help
+    /// overlay opened) is not the user dismissing the prompt, so the flow —
+    /// and the prompt that comes back with it — survives. The half-typed
+    /// buffer does not: nothing on screen would be holding it, and the whole
+    /// point of the masked field is that a secret never outlives the card
+    /// showing it.
+    pub(crate) fn forget_typing(&mut self) {
+        self.buf.clear();
+        self.waiting = true;
     }
 
     /// How tall this prompt's card is right now. The hint row only exists
@@ -80,6 +99,9 @@ impl KeyEntry {
         match k {
             ChatInput::Char(c) => {
                 self.buf.push(*c);
+                // Typed, not pasted (a paste never reaches here — see above):
+                // the user is entering the key by hand, so the card should
+                // stop claiming to be waiting on a browser.
                 self.waiting = false;
                 KeyOutcome::Consumed
             }
@@ -105,6 +127,11 @@ impl KeyEntry {
     /// uses instead of routing a paste into the composer while this prompt is
     /// open. Strips newlines — a copied key commonly carries a trailing one,
     /// and the buffer is trimmed again on submit regardless.
+    ///
+    /// Deliberately leaves `waiting` alone, unlike [`Self::key`]'s `Char` arm:
+    /// a paste is one gesture that may or may not be the user's final answer,
+    /// and the browser flow behind the hint is still live until it lands or is
+    /// dismissed.
     pub(crate) fn paste(&mut self, text: &str) {
         self.buf.push_str(&text.replace(['\n', '\r'], ""));
     }

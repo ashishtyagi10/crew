@@ -410,6 +410,16 @@ impl CrewApp {
     /// this costs nothing on every tick where no sign-in is in flight.
     /// Returns whether anything landed (a repaint is due).
     pub(crate) fn drain_oauth(&mut self) -> bool {
+        self.drain_oauth_into(crew_plugin::credentials::path().as_deref())
+    }
+
+    /// [`Self::drain_oauth`] against an explicit credentials path — the
+    /// testable half, resolved once here rather than per pane. A test can then
+    /// prove that a completed sign-in really is STORED (and that a dismissed
+    /// one stores nothing) against a temporary file, without writing to the
+    /// user's real credentials or touching a process-global (see
+    /// `chatkeystore`'s own `_at` seam, and its doc for why).
+    pub(crate) fn drain_oauth_into(&mut self, creds: Option<&std::path::Path>) -> bool {
         let mut landed = false;
         for p in &mut self.panes {
             let PaneContent::Chat(pane) = &mut p.content else {
@@ -420,7 +430,12 @@ impl CrewApp {
             };
             match outcome {
                 crate::oauth::OauthOutcome::Key(key) => {
-                    crate::chatkeystore::store_provider_key(pane, "OPENROUTER_API_KEY", &key);
+                    crate::chatkeystore::store_provider_key_in(
+                        pane,
+                        creds,
+                        crate::oauth::OPENROUTER_KEY_VAR,
+                        &key,
+                    );
                     pane.keyentry = None;
                 }
                 crate::oauth::OauthOutcome::Failed(why) => {

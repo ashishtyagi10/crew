@@ -30,11 +30,27 @@ impl std::fmt::Debug for Callback {
     }
 }
 
+/// The one variable this flow supplies. Shared so the gate that STARTS the
+/// sign-in (`chat.rs`) and the one that stores its result (`poll.rs`) cannot
+/// drift apart on a typo.
+pub(crate) const OPENROUTER_KEY_VAR: &str = "OPENROUTER_API_KEY";
+
 /// Parse the request line of the one callback we expect.
 ///
-/// `nonce` guards the port: it is loopback, but any process on this machine
-/// can connect to it, so a request whose path is not exactly our nonce is not
-/// ours. This is the `state` equivalent for a localhost callback.
+/// `nonce` keeps us from acting on requests that are not part of THIS flow: a
+/// stray probe, another crew window's callback, a browser prefetch. It is the
+/// nearest thing to an OAuth `state` a localhost callback has.
+///
+/// Do not read more into it than that. It is not a secret from other local
+/// processes: the nonce, the port and the challenge all travel in the URL
+/// handed to `open::that`, which execs a helper with that URL as an argv
+/// element any local `ps` can read. PKCE stops a stolen code being REDEEMED by
+/// someone else; it does not stop a local user authorizing against this same
+/// challenge from their own account and posting that code here, which would
+/// have crew store THEIR key. That is inherent to desktop loopback OAuth (`gh`
+/// and VS Code carry the same exposure), and OpenRouter offers no `state`
+/// parameter to bind the flow with, so there is no clean fix to reach for —
+/// only an accurate account of what this check does and does not buy.
 pub(crate) fn parse_request(line: &str, nonce: &str) -> Callback {
     let mut parts = line.split_whitespace();
     if parts.next() != Some("GET") {
@@ -72,12 +88,18 @@ use std::time::{Duration, Instant};
 const FLOW_TIMEOUT: Duration = Duration::from_secs(180);
 /// How often the listener wakes to re-check the deadline.
 const POLL_GAP: Duration = Duration::from_millis(100);
-/// How long ONE accepted connection gets to send its request line. Any local
-/// process can reach this port; without this a peer that connects and sends
-/// nothing would pin the worker thread in `read_line` forever — past
-/// `FLOW_TIMEOUT`, holding the ephemeral port, surviving the user cancelling.
-/// A silent peer now costs at most this, then is abandoned while the listener
-/// goes back to waiting for the real callback.
+/// Wall-clock budget for ONE accepted connection, start to finish. THIS is
+/// the bound that matters: `set_read_timeout` is a per-`read()` deadline and
+/// [`MAX_REQUEST_BYTES`] is a byte cap, and a peer that dribbles one byte just
+/// inside the read timeout satisfies both while parking the listener for
+/// hours — 8192 reads at just under [`READ_TIMEOUT`] apiece is over four,
+/// well past `FLOW_TIMEOUT`, holding the ephemeral port with the real callback
+/// unaccepted behind it. Against a wall-clock deadline the dribble buys
+/// nothing: the connection is abandoned at the deadline and the listener goes
+/// straight back to waiting for the real callback.
+const CONN_TIMEOUT: Duration = Duration::from_secs(5);
+/// How long ONE `read()` may block. Bounds a peer that connects and says
+/// nothing at all; [`CONN_TIMEOUT`] bounds everything else.
 const READ_TIMEOUT: Duration = Duration::from_secs(2);
 /// Hard cap on the request line we will accumulate. `read_line` has no cap of
 /// its own, so a peer streaming bytes with no newline would otherwise grow
@@ -162,11 +184,23 @@ impl std::fmt::Debug for Waited {
 /// every request (matching or not) so no browser tab hangs, but only a
 /// matching one ends the wait.
 ///
-/// Every connection is bounded in BOTH time and bytes (see [`READ_TIMEOUT`]
-/// and [`MAX_REQUEST_BYTES`]) before it is even parsed: the nonce check
-/// happens after the read, so it protects the flow's INTEGRITY but offers no
-/// protection at all against a peer that just holds the socket open.
+/// Every connection is bounded in wall-clock TIME (see [`CONN_TIMEOUT`]) and
+/// in bytes (see [`MAX_REQUEST_BYTES`]) before it is even parsed: the nonce
+/// check happens after the read, so it protects the flow's INTEGRITY but
+/// offers no protection at all against a peer that holds the socket open or
+/// feeds it one byte at a time.
 fn await_callback(listener: std::net::TcpListener, nonce: &str, timeout: Duration) -> Waited {
+    await_callback_within(listener, nonce, timeout, CONN_TIMEOUT)
+}
+
+/// [`await_callback`] with the per-connection budget injected, so a test can
+/// pin the deadline without waiting [`CONN_TIMEOUT`] for it.
+fn await_callback_within(
+    listener: std::net::TcpListener,
+    nonce: &str,
+    timeout: Duration,
+    conn_budget: Duration,
+) -> Waited {
     use std::io::Write;
     if listener.set_nonblocking(true).is_err() {
         return Waited::Broken("could not watch the sign-in port");
@@ -175,7 +209,11 @@ fn await_callback(listener: std::net::TcpListener, nonce: &str, timeout: Duratio
     while Instant::now() < deadline {
         match listener.accept() {
             Ok((stream, _)) => {
-                let line = read_request_line(&stream);
+                // Never past the flow's own deadline: a connection accepted in
+                // the last second of the wait gets that second, not the full
+                // budget.
+                let until = (Instant::now() + conn_budget).min(deadline);
+                let line = read_request_line(&stream, until);
                 let got = parse_request(line.trim_end(), nonce);
                 let body = match got {
                     Callback::Ignore => "not this crew window",
@@ -205,24 +243,63 @@ fn await_callback(listener: std::net::TcpListener, nonce: &str, timeout: Duratio
     Waited::TimedOut
 }
 
-/// Read one accepted connection's request line, bounded in time and length.
-fn read_request_line(stream: &std::net::TcpStream) -> String {
-    // Back to blocking, but with a deadline of its own — a blocking read with
-    // no timeout is exactly what a silent peer would exploit.
+/// Read one accepted connection's request line, abandoning it at `until`
+/// however the peer behaves.
+fn read_request_line(stream: &std::net::TcpStream, until: Instant) -> String {
+    // Back to blocking, but never for longer than the time this connection has
+    // left: `set_read_timeout` alone bounds one syscall, not the connection,
+    // and re-arming it against the remaining time is what turns a per-read
+    // deadline into a per-connection one.
     let _ = stream.set_nonblocking(false);
-    let _ = stream.set_read_timeout(Some(READ_TIMEOUT));
-    read_bounded(stream)
+    read_bounded(stream, until, |left| {
+        let _ = stream.set_read_timeout(Some(left.min(READ_TIMEOUT)));
+    })
 }
 
-/// The length cap on its own, over any reader — the part a test can drive
-/// without a socket. Returns at most [`MAX_REQUEST_BYTES`] of input.
-fn read_bounded<R: std::io::Read>(r: R) -> String {
-    use std::io::BufRead;
-    let mut line = String::new();
-    // `take` is the cap: `read_line` would otherwise grow `line` for as long
-    // as the peer keeps sending bytes without a newline.
-    let _ = std::io::BufReader::new(r.take(MAX_REQUEST_BYTES)).read_line(&mut line);
-    line
+/// The caps on their own, over any reader — the part a test can drive without
+/// a socket. Returns at most [`MAX_REQUEST_BYTES`], stops at the first
+/// newline, and gives up at `until` whatever it has.
+///
+/// `arm` is handed the time left before every read, so a socket can re-derive
+/// its `set_read_timeout` from it; anything with a deadline of its own can
+/// ignore it.
+fn read_bounded<R: std::io::Read>(
+    mut r: R,
+    until: Instant,
+    mut arm: impl FnMut(Duration),
+) -> String {
+    let mut buf: Vec<u8> = Vec::new();
+    let mut chunk = [0u8; 256];
+    while (buf.len() as u64) < MAX_REQUEST_BYTES {
+        let left = until.saturating_duration_since(Instant::now());
+        // Also the zero guard: `set_read_timeout(Some(ZERO))` means "block
+        // forever" and is rejected outright by the OS — the one value that
+        // must never reach `arm`.
+        if left.is_zero() {
+            break;
+        }
+        arm(left);
+        let want = chunk.len().min((MAX_REQUEST_BYTES as usize) - buf.len());
+        match r.read(&mut chunk[..want]) {
+            // A signal, not the peer. Retrying is safe: the deadline check at
+            // the top of the loop is what stops this spinning.
+            Err(ref e) if e.kind() == std::io::ErrorKind::Interrupted => {}
+            // The peer hung up, or the read timed out, or the socket died: all
+            // three end this connection, and the caller keeps waiting for the
+            // real callback.
+            Ok(0) | Err(_) => break,
+            Ok(n) => {
+                buf.extend_from_slice(&chunk[..n]);
+                if let Some(nl) = buf.iter().position(|b| *b == b'\n') {
+                    // Only the request line is ours; whatever headers came
+                    // along in the same chunk are dropped unread.
+                    buf.truncate(nl + 1);
+                    break;
+                }
+            }
+        }
+    }
+    String::from_utf8_lossy(&buf).into_owned()
 }
 
 /// Clamp remote-supplied text to something a pane note can hold. The `error=`
