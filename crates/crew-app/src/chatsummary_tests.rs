@@ -267,3 +267,62 @@ fn a_pending_plan_owns_line3() {
         "tasks outranked the question: {l3}"
     );
 }
+
+/// The footer must FIT. `place_row` clips whatever overruns, silently and
+/// from the right, so an unbudgeted line lost the spend meter on a narrow
+/// pane while keeping the branch name — purely because of where each sat.
+#[test]
+fn every_footer_line_fits_its_pane() {
+    let agents = [
+        agent("claude", ""),
+        agent("codex", ""),
+        agent("opencode", ""),
+    ];
+    let ctxm = ctx(&[("claude", 100_000)]);
+    for cols in [24usize, 32, 40, 60, 72, 80, 100, 120] {
+        let mut f = fc(&agents, &ctxm);
+        f.cwd = Some("~/some/deep/project/path");
+        for (i, line) in footer_lines(&f, cols).iter().enumerate() {
+            let w = text(line).chars().count();
+            // Line 3 is prose and is clipped by design; lines 1 and 2 are
+            // segment lists and must budget themselves.
+            if i < 2 {
+                assert!(
+                    w <= cols,
+                    "line {} is {w} wide in {cols} cols: {}",
+                    i + 1,
+                    text(line)
+                );
+            }
+        }
+    }
+}
+
+/// What survives when it cannot all fit: who is answering outranks what it
+/// cost, which outranks where and on what branch.
+#[test]
+fn the_roster_is_the_last_thing_to_go() {
+    let agents = [agent("smith", "qwen3-coder-plus")];
+    let ctxm = HashMap::new();
+    let mut f = fc(&agents, &ctxm);
+    f.cwd = Some("~/code/crew");
+    // Wide: everything shows.
+    let wide = text(&footer_lines(&f, 120)[0]);
+    assert!(wide.contains("~/code/crew") && wide.contains("main") && wide.contains("in /"));
+    // Narrow: the directory goes first, the branch next, the model last.
+    let narrow = text(&footer_lines(&f, 44)[0]);
+    assert!(
+        !narrow.contains("~/code/crew"),
+        "cwd survived 44 cols: {narrow}"
+    );
+    assert!(
+        narrow.contains("qwen3-coder-plus"),
+        "identity lost first: {narrow}"
+    );
+    let tiny = text(&footer_lines(&f, 20)[0]);
+    assert!(
+        tiny.contains("qwen3-coder-plus"),
+        "identity lost at 20: {tiny}"
+    );
+    assert!(tiny.chars().count() <= 20, "{tiny}");
+}

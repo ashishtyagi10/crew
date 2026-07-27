@@ -133,6 +133,47 @@ fn bar(pct: u8) -> String {
     "\u{2593}".repeat(filled) + &"\u{2591}".repeat(W - filled)
 }
 
+/// Drop the least important segments until the joined line fits `cols`.
+///
+/// `place_row` clips whatever overruns, which is silent and drops from the
+/// RIGHT — so a narrow pane lost the spend meter while keeping the branch
+/// name, purely because of where each sat in the line. Dropping by stated
+/// priority instead means a 40-column pane loses the directory and the
+/// branch, not the numbers the line exists to show.
+///
+/// `keep` is an index list into `segs`, most important first. Anything not
+/// named is treated as least important and goes first.
+fn budget(segs: Vec<(Seg, u8)>, cols: usize) -> Vec<Seg> {
+    let width = |v: &[(Seg, u8)]| {
+        v.iter().map(|((s, _), _)| s.chars().count()).sum::<usize>() + 3 * v.len().saturating_sub(1)
+    };
+    let mut alive = segs;
+    while width(&alive) > cols && alive.len() > 1 {
+        // Highest number is least important; ties break toward the right, so
+        // a line never loses its leading identity to a trailing detail.
+        let victim = alive
+            .iter()
+            .enumerate()
+            .max_by_key(|(i, (_, p))| (*p, *i))
+            .map(|(i, _)| i);
+        match victim {
+            Some(i) => {
+                alive.remove(i);
+            }
+            None => break,
+        }
+    }
+    alive.into_iter().map(|(seg, _)| seg).collect()
+}
+
+/// Segment importance for [`budget`], lowest kept longest. Who is answering
+/// outranks what it cost, which outranks where and on what branch.
+const P_ROSTER: u8 = 0;
+const P_TOKENS: u8 = 1;
+const P_COST: u8 = 2;
+const P_BRANCH: u8 = 3;
+const P_CWD: u8 = 4;
+
 /// Join colored segments with a muted ` | `, then explode to per-char cells.
 fn join(segs: &[Seg]) -> Vec<(char, Fg)> {
     let muted = crew_theme::theme().text_muted;
@@ -179,47 +220,51 @@ pub(crate) fn footer_lines(fc: &FooterCtx, cols: usize) -> Vec<Vec<(char, Fg)>> 
     // Claude-Code style — it is the answer to "where will this actually run",
     // which is what `/cwd` existed to ask. First to go on a narrow pane: it is
     // the most stable value on the line, so it is the least costly to lose.
-    let mut l1: Vec<Seg> = Vec::new();
-    if cols >= 60 {
-        if let Some(d) = fc.cwd.filter(|d| !d.is_empty()) {
-            l1.push((d.to_string(), muted));
-        }
+    let mut l1: Vec<(Seg, u8)> = Vec::new();
+    if let Some(d) = fc.cwd.filter(|d| !d.is_empty()) {
+        l1.push(((d.to_string(), muted), P_CWD));
     }
     if let Some(r) = roster_seg(fc.agents) {
-        l1.push((r, cyan));
+        l1.push(((r, cyan), P_ROSTER));
     }
     if let Some(b) = fc.branch {
-        l1.push((b.to_string(), yellow));
+        l1.push(((b.to_string(), yellow), P_BRANCH));
     }
     if fc.cost_microusd > 0 {
-        l1.push((fmt_cost(fc.cost_microusd), green));
+        l1.push(((fmt_cost(fc.cost_microusd), green), P_COST));
     }
     l1.push((
-        format!(
-            "{} in / {} out",
-            fmt_tokens(fc.tok_in),
-            fmt_tokens(fc.tok_out)
+        (
+            format!(
+                "{} in / {} out",
+                fmt_tokens(fc.tok_in),
+                fmt_tokens(fc.tok_out)
+            ),
+            magenta,
         ),
-        magenta,
+        P_TOKENS,
     ));
 
     // Line 2: 5h/7d countdowns, then budget + context bars (bars are the
     // first thing to go on a narrow pane).
-    let mut l2: Vec<Seg> = Vec::new();
+    let mut l2: Vec<(Seg, u8)> = Vec::new();
     let left = |w: Option<crate::usageledger::WindowStat>| {
         w.map_or("--".to_string(), |w| fmt_left(w.left_ms))
     };
-    l2.push((format!("5h:{}", left(fc.windows.five_h)), blue));
-    l2.push((format!("7d:{}", left(fc.windows.seven_d)), blue));
+    l2.push(((format!("5h:{}", left(fc.windows.five_h)), blue), 0));
+    l2.push(((format!("7d:{}", left(fc.windows.seven_d)), blue), 1));
     if cols >= 60 {
         if let Some(w) = fc.windows.five_h {
             let pct = ((w.spent.saturating_mul(100)) / w.budget.max(1)).min(100) as u8;
-            l2.push((format!("{} {pct}% (5h)", bar(pct)), muted));
+            l2.push(((format!("{} {pct}% (5h)", bar(pct)), muted), 2));
         }
         if let Some(fill) = ctx_fill(fc.agents, fc.ctx) {
-            l2.push((format!("{} {fill}% (ctx)", bar(fill)), muted));
+            l2.push(((format!("{} {fill}% (ctx)", bar(fill)), muted), 3));
         }
     }
+
+    let l1 = budget(l1, cols);
+    let l2 = budget(l2, cols);
 
     // Line 3: live routing mode, then either what is RUNNING or — when
     // nothing is — the hints. Work in flight outranks teaching: the hints are
@@ -245,6 +290,9 @@ pub(crate) fn footer_lines(fc: &FooterCtx, cols: usize) -> Vec<Vec<(char, Fg)>> 
         }
     }
 
+    // Line 1 priorities: who is answering, then the spend, then the cost,
+    // then the branch; the directory is the first thing to go (it is also
+    // gated on width above, so on a wide pane nothing is lost at all).
     vec![join(&l1), join(&l2), l3]
 }
 
