@@ -55,6 +55,27 @@ fn credential_imports(
         .collect()
 }
 
+/// Variables [`hydrate`] copied out of the credential store into this
+/// process's environment.
+///
+/// They are exported rather than merely resolved, because CHILD processes
+/// inherit this environment — a plugin agent that shells out to a CLI reads
+/// `ANTHROPIC_API_KEY` from it, and would otherwise never see a key the user
+/// typed into crew. But crew's OWN lookups must not treat them as user intent:
+/// `hydrate` runs once per broker process, so a key rotated in a later session
+/// would be shadowed forever by the value crew itself injected at startup, and
+/// the user would face unfixable 401s until they quit. For these variables the
+/// store stays the source of truth (see `discover::key_for`).
+static CREW_INJECTED: std::sync::OnceLock<Vec<String>> = std::sync::OnceLock::new();
+
+/// Whether `var`'s value in this process's environment was put there by
+/// [`hydrate`] from the credential store, rather than by the user.
+pub(crate) fn crew_injected(var: &str) -> bool {
+    CREW_INJECTED
+        .get()
+        .is_some_and(|vars| vars.iter().any(|k| k == var))
+}
+
 /// Import missing provider vars from the login shell into this process. Must
 /// run before the broker spawns any thread (`set_var` is process-global). A
 /// hung or odd shell is harmless: the probe is killed after the timeout and
@@ -67,9 +88,11 @@ pub(crate) fn hydrate() {
     // e2e harness never inherits a developer's real keys, and stored
     // credentials are exactly as much "the developer's real keys" as their
     // shell env is.
-    for (k, v) in credential_imports(&crate::credentials::load(), |k| std::env::var(k).ok()) {
+    let imported = credential_imports(&crate::credentials::load(), |k| std::env::var(k).ok());
+    for (k, v) in &imported {
         std::env::set_var(k, v);
     }
+    let _ = CREW_INJECTED.set(imported.into_iter().map(|(k, _)| k).collect());
     let shell = std::env::var("SHELL")
         .ok()
         .filter(|s| !s.is_empty())

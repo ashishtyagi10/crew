@@ -137,24 +137,30 @@ fn an_exported_key_still_outranks_the_stored_one() {
     // on the read side: an exported variable is the most deliberate signal a
     // user can send and must never be shadowed by something crew stored.
     assert_eq!(
-        resolve_key(
+        resolve_key_with(
             Some("sk-from-the-environment".to_string()),
-            Some("sk-from-the-store".to_string())
+            Some("sk-from-the-store".to_string()),
+            false
         )
         .as_deref(),
         Some("sk-from-the-environment")
     );
     assert_eq!(
-        resolve_key(None, Some("sk-from-the-store".to_string())).as_deref(),
+        resolve_key_with(None, Some("sk-from-the-store".to_string()), false).as_deref(),
         Some("sk-from-the-store")
     );
     assert_eq!(
-        resolve_key(Some(String::new()), Some("sk-from-the-store".to_string())).as_deref(),
+        resolve_key_with(
+            Some(String::new()),
+            Some("sk-from-the-store".to_string()),
+            false
+        )
+        .as_deref(),
         Some("sk-from-the-store"),
         "an empty export is not a key"
     );
-    assert_eq!(resolve_key(None, None), None);
-    assert_eq!(resolve_key(None, Some(String::new())), None);
+    assert_eq!(resolve_key_with(None, None, false), None);
+    assert_eq!(resolve_key_with(None, Some(String::new()), false), None);
 }
 
 #[test]
@@ -277,4 +283,45 @@ fn the_stored_pin_applies_when_the_env_is_unset_or_blank() {
 fn no_pin_anywhere_leaves_auto_discovery_alone() {
     assert_eq!(resolve_forced(None, None), None);
     assert_eq!(resolve_forced(None, Some(String::new())), None);
+}
+
+#[test]
+fn a_rotated_key_beats_crews_own_startup_injection() {
+    // shellenv::hydrate copies the store into the env once per broker process,
+    // but the store is re-read every request. Without this, pasting a
+    // replacement key in a later session would update the store and change
+    // nothing — crew's own stale injection would win every request.
+    assert_eq!(
+        resolve_key_with(Some("sk-old".into()), Some("sk-new".into()), true).as_deref(),
+        Some("sk-new")
+    );
+}
+
+#[test]
+fn a_user_exported_key_still_beats_the_store() {
+    // The precedence that must NOT change: an explicit export is the most
+    // deliberate signal a user can send.
+    assert_eq!(
+        resolve_key_with(Some("sk-env".into()), Some("sk-stored".into()), false).as_deref(),
+        Some("sk-env")
+    );
+}
+
+#[test]
+fn a_crew_injected_key_falls_back_to_the_env_when_the_store_is_emptied() {
+    // Degrade to the old value rather than to no provider at all.
+    assert_eq!(
+        resolve_key_with(Some("sk-old".into()), None, true).as_deref(),
+        Some("sk-old")
+    );
+    assert_eq!(
+        resolve_key_with(Some("sk-old".into()), Some(String::new()), true).as_deref(),
+        Some("sk-old")
+    );
+}
+
+#[test]
+fn nothing_anywhere_resolves_to_nothing() {
+    assert_eq!(resolve_key_with(None, None, true), None);
+    assert_eq!(resolve_key_with(Some(String::new()), None, false), None);
 }

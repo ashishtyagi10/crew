@@ -124,16 +124,43 @@ fn resolve_forced(env: Option<String>, stored: Option<String>) -> Option<String>
 ///
 /// Never logs the value.
 fn key_for(store: &crate::credentials::Store, var: &str) -> Option<String> {
-    resolve_key(std::env::var(var).ok(), store.keys.get(var).cloned())
+    resolve_key_with(
+        std::env::var(var).ok(),
+        store.keys.get(var).cloned(),
+        super::shellenv::crew_injected(var),
+    )
 }
 
 /// The pure half of [`key_for`]. A variable exported non-empty into this
 /// process WINS over the stored value — the most deliberate signal a user can
 /// send, and the same precedence `shellenv::credential_imports` already
 /// applies when it imports the store at startup.
-fn resolve_key(env: Option<String>, stored: Option<String>) -> Option<String> {
-    env.filter(|v| !v.is_empty())
-        .or_else(|| stored.filter(|v| !v.is_empty()))
+///
+/// `env_is_crew_injected` says whether the environment's value is crew's OWN
+/// injection rather than the user's.
+///
+/// `shellenv::hydrate` copies stored keys into this process's environment so
+/// child processes inherit them, but it runs once per broker process while the
+/// store is re-read every request. Without this distinction, rotating a key in
+/// a later session would update the store and change nothing: crew's startup
+/// injection would outrank it on every request, and the user would get 401s
+/// they could not fix without quitting crew. So for a variable crew injected
+/// itself, the store wins — it is where that value came from in the first
+/// place. The environment still wins for anything the USER exported.
+fn resolve_key_with(
+    env: Option<String>,
+    stored: Option<String>,
+    env_is_crew_injected: bool,
+) -> Option<String> {
+    let env = env.filter(|v| !v.is_empty());
+    let stored = stored.filter(|v| !v.is_empty());
+    if env_is_crew_injected {
+        // Fall back to the environment when the store has since been emptied,
+        // so a half-removed credential degrades to the old behaviour rather
+        // than to no provider at all.
+        return stored.or(env);
+    }
+    env.or(stored)
 }
 
 /// The provider this request resolves to, reading the pin and the keys the
