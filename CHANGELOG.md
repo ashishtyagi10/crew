@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.6.76
+
+- The welcome screen names the agent pane. It said "new shell" and "commands"
+  and nothing else, so the reason crew is not just a terminal went unmentioned
+  on the one screen a first run is guaranteed to see. It also picks a form
+  that fits the window instead of vanishing on a narrow one.
+- The installer says that agents work with no API key at all when you are
+  already signed in to claude, codex or opencode.
+
 ## 0.6.75
 
 - Grouped the entries below by what the work was for. Thirteen consecutive
