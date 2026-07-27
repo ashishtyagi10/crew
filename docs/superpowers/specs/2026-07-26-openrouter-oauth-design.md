@@ -62,15 +62,21 @@ pub struct Pkce { pub verifier: String, pub challenge: String }
 /// challenge: base64url-nopad(sha256(verifier)).
 pub fn pkce() -> Pkce;
 
+/// `chars` URL-safe random characters from the OS CSPRNG — shared by the PKCE
+/// verifier and by crew-app's callback nonce.
+pub fn random_token(chars: usize) -> String;
+
 /// Exchange an authorization code for the user's own OpenRouter key.
 /// Never logs `code`, `verifier` or the returned key.
 pub async fn exchange_openrouter_code(code: &str, verifier: &str)
     -> anyhow::Result<String>;
 ```
 
-**New dependencies:** `base64` and `rand`, added to `crew-hive` only. Both are
-already in `Cargo.lock` transitively, so this costs no new compilation.
-`sha2` is already a workspace dependency.
+**New dependencies:** `base64` and `getrandom`, added to `crew-hive` only. Both
+are already in `Cargo.lock` transitively, so this costs no new compilation.
+`sha2` is already a workspace dependency. `getrandom` rather than `rand`: the
+only need is raw OS entropy, and base64url-encoding those bytes gives a uniform
+URL-safe token with no modulo bias to reason about.
 
 ### 3.2 `crew-app/src/oauth.rs` — the flow driver
 
@@ -100,14 +106,15 @@ receiver — non-blocking, one branch, no new machinery.
   so it cannot collide with anything the user is running.
 - The callback path carries **32 random URL-safe characters**:
   `http://127.0.0.1:<port>/<nonce>`. Any other local process can reach the
-  port, so a request whose path does not match the nonce is answered `404` and
-  ignored. This is the CSRF/`state` equivalent for a loopback callback.
+  port, so a request whose path does not match the nonce is answered politely
+  and ignored — it does NOT end the wait. This is the CSRF/`state` equivalent
+  for a loopback callback.
 - **Single-shot.** One matching request is served, then the listener drops.
 - **Three-minute timeout** via `set_nonblocking` + a poll loop, so an abandoned
   flow never leaks a thread or holds a port. On timeout the outcome is
   `Failed("timed out")`.
-- The reply is a tiny HTML page telling the user to return to crew. It contains
-  no key and no code.
+- The reply is one line of `text/plain` telling the user to return to crew,
+  with `Connection: close`. It contains no key and no code, and needs no HTML.
 - Only `code` is read from the query. An `error=` response yields
   `Failed(<error>)`.
 
