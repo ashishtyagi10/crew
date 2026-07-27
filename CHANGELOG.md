@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.6.70
+
+- The end-to-end test harness clears every provider key, not the three it was
+  written against. With an `OPENAI_API_KEY` exported, the "no provider" tests
+  were not isolated and failed — so nobody holding one could run the suite
+  green.
+
 ## 0.6.69
 
 - A missing provider key names the variable that is actually missing. The
