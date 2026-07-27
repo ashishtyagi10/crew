@@ -120,10 +120,11 @@ impl Session {
         let b = Broker::new(reg, max_hops(), call_timeout())
             .with_budget(token_budget())
             .with_cancel_flag(Arc::clone(&self.cancel));
-        if !super::systools::enabled() && self.lock_mcp().is_empty() {
+        let sys = super::systools::enabled();
+        if !sys && self.lock_mcp().is_empty() {
             return b;
         }
-        b.with_tools(Arc::new(SessionTools(Arc::clone(&self.mcp))))
+        b.with_tools(Arc::new(SessionTools::new(Arc::clone(&self.mcp), sys)))
     }
 
     /// The shared MCP host, poison-tolerant.
@@ -135,24 +136,43 @@ impl Session {
 /// Bridges the engine's [`super::toolcall::ToolRunner`] to the built-in `sys`
 /// tools plus the session's shared [`crate::mcp::McpHost`]: one merged TOOLS
 /// hint, `sys:` dispatched locally, everything else to MCP.
-struct SessionTools(Arc<Mutex<crate::mcp::McpHost>>);
+struct SessionTools {
+    mcp: Arc<Mutex<crate::mcp::McpHost>>,
+    /// Whether the built-in `sys` surface is on, decided ONCE when the broker
+    /// is built rather than re-read on every hint and every call.
+    ///
+    /// `systools::enabled()` reads two process-global env vars, one of which
+    /// (`CREW_BROKER_MOCK_REPLY`) the mock test harness sets and clears while
+    /// other tests are running. Two tests here asserted `sys` was on because
+    /// "under cargo test no gate is set" — true of a suite running alone, and
+    /// false roughly one run in six against a concurrent mocked test, which
+    /// is exactly the flake that turned up. It also makes the surface stable
+    /// for the life of a session, which is what it was always meant to be.
+    sys: bool,
+}
+
+impl SessionTools {
+    fn new(mcp: Arc<Mutex<crate::mcp::McpHost>>, sys: bool) -> Self {
+        Self { mcp, sys }
+    }
+}
 
 impl super::toolcall::ToolRunner for SessionTools {
     fn hint(&self) -> String {
-        let mut tools = if super::systools::enabled() {
+        let mut tools = if self.sys {
             super::systools::tools()
         } else {
             Vec::new()
         };
-        tools.extend(self.0.lock().unwrap_or_else(|e| e.into_inner()).tools());
+        tools.extend(self.mcp.lock().unwrap_or_else(|e| e.into_inner()).tools());
         super::toolcall::hint_for(&tools)
     }
 
     fn call(&self, server: &str, tool: &str, args: &str) -> Result<String, String> {
-        if server == "sys" && super::systools::enabled() {
+        if server == "sys" && self.sys {
             return super::systools::call(tool, args);
         }
-        self.0
+        self.mcp
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .call(server, tool, args)
@@ -187,24 +207,42 @@ mod tests {
     fn session_tools_hint_lists_sys_tools_with_empty_mcp() {
         use super::super::toolcall::ToolRunner;
         let host = Arc::new(Mutex::new(crate::mcp::McpHost::default()));
-        let t = SessionTools(host);
+        // The verdict is HANDED IN. It used to read the process environment
+        // and the comment here said "under `cargo test` no mock/env gate is
+        // set, so sys tools are on" — true of this suite running alone, and
+        // false whenever a mocked test held CREW_BROKER_MOCK_REPLY, which is
+        // about one full run in six.
+        let t = SessionTools::new(host, true);
         let h = t.hint();
-        // Under `cargo test` no mock/env gate is set, so sys tools are on.
         assert!(h.contains("sys:run"), "{h}");
         assert!(h.contains("sys:read_file"), "{h}");
+    }
+
+    /// …and with the surface off, the hint offers nothing it cannot serve.
+    #[test]
+    fn session_tools_hint_omits_sys_when_the_surface_is_off() {
+        use super::super::toolcall::ToolRunner;
+        let host = Arc::new(Mutex::new(crate::mcp::McpHost::default()));
+        let h = SessionTools::new(host, false).hint();
+        assert!(!h.contains("sys:"), "{h}");
     }
 
     #[test]
     fn session_tools_dispatches_sys_locally() {
         use super::super::toolcall::ToolRunner;
         let host = Arc::new(Mutex::new(crate::mcp::McpHost::default()));
-        let t = SessionTools(host);
+        let t = SessionTools::new(host, true);
         let r = t
             .call("sys", "run", r#"{"cmd":"echo via-session"}"#)
             .unwrap();
         assert!(r.contains("via-session"), "{r}");
         // Unknown server still falls through to the (empty) MCP host's error.
         let e = t.call("nope", "x", "{}").unwrap_err();
+        assert!(e.contains("unknown MCP server"), "{e}");
+        // With the surface off, `sys` is not special — it is just another
+        // server the empty MCP host has never heard of.
+        let off = SessionTools::new(Arc::new(Mutex::new(crate::mcp::McpHost::default())), false);
+        let e = off.call("sys", "run", r#"{"cmd":"echo x"}"#).unwrap_err();
         assert!(e.contains("unknown MCP server"), "{e}");
     }
 }
