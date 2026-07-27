@@ -92,6 +92,8 @@ pub(crate) struct FooterCtx<'a> {
     pub input: &'a str,
     /// Broker task ids in flight right now (see `ChatPane::running_tasks`).
     pub running_tasks: &'a [u64],
+    /// Where this pane's broker operates, already `~`-abbreviated.
+    pub cwd: Option<&'a str>,
     pub windows: crate::usageledger::Windows,
 }
 
@@ -171,8 +173,16 @@ pub(crate) fn footer_lines(fc: &FooterCtx, cols: usize) -> Vec<Vec<(char, Fg)>> 
     );
     let muted = th.text_muted;
 
-    // Line 1: roster | branch | $cost | in/out.
+    // Line 1: cwd | roster | branch | $cost | in/out. The directory leads,
+    // Claude-Code style — it is the answer to "where will this actually run",
+    // which is what `/cwd` existed to ask. First to go on a narrow pane: it is
+    // the most stable value on the line, so it is the least costly to lose.
     let mut l1: Vec<Seg> = Vec::new();
+    if cols >= 60 {
+        if let Some(d) = fc.cwd.filter(|d| !d.is_empty()) {
+            l1.push((d.to_string(), muted));
+        }
+    }
     if let Some(r) = roster_seg(fc.agents) {
         l1.push((r, cyan));
     }
@@ -243,6 +253,7 @@ fn footer_ctx(pane: &ChatPane, now_ms: u64) -> FooterCtx<'_> {
         branch: pane.git_branch.as_deref(),
         input: &pane.input,
         running_tasks: &pane.running_tasks,
+        cwd: pane.cwd.as_deref(),
         windows: crate::usageledger::windows(now_ms),
     }
 }

@@ -89,6 +89,11 @@ pub struct ChatPane {
     /// submit, drained by the poll — the command itself still goes to the
     /// broker untouched, this is only the app-side note.
     pub(crate) pending_recent: Option<String>,
+    /// Where this pane's broker operates, mirrored in from the owning `Pane`
+    /// each poll tick alongside `git_branch` — for the same reason: the footer
+    /// shows it and the winit thread must never call `current_dir()` per frame
+    /// to find out. `~`-abbreviated at mirror time, not at render time.
+    pub(crate) cwd: Option<String>,
     /// Background task ids running in the broker right now, oldest first, fed
     /// by `PluginEvent::Task`. The footer shows these so the pane REPORTS what
     /// is in flight instead of the user having to ask — which is why `/tasks`
@@ -135,6 +140,7 @@ impl ChatPane {
             swarm: None,
             queued: std::collections::VecDeque::new(),
             git_branch: None,
+            cwd: None,
             pending_recent: None,
             running_tasks: Vec::new(),
             streaming: Vec::new(),

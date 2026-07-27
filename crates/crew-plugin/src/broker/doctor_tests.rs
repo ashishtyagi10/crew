@@ -127,3 +127,19 @@ fn a_missing_provider_offers_the_keyless_route_first() {
     assert!(r.contains("sign in to claude"), "{r}");
     assert!(r.contains("OPENROUTER_API_KEY"), "{r}");
 }
+
+/// The sandbox mode `/cwd` used to report alongside the directory. The
+/// directory itself is in the pane footer now; the mode is a stack fact and
+/// belongs here — but it still has to be asserted somewhere.
+#[test]
+fn the_sandbox_mode_is_reported_both_ways() {
+    let mut i = healthy();
+    i.sys_mode = "read-only";
+    assert!(
+        render(&i).contains("sys tools: read-only"),
+        "{}",
+        render(&i)
+    );
+    i.sys_tools = false;
+    assert!(render(&i).contains("CREW_SYS_TOOLS=0"), "{}", render(&i));
+}

@@ -7,7 +7,7 @@ use crew_plugin::AgentInfo;
 /// Every composer slash action: broker constructs plus the pane-local
 /// `/export`, `/theme`, `/compact`, and `/exit` (see `chatexport` /
 /// `chattheme` / `chatcompact` / `chat`).
-pub(crate) const CONSTRUCTS: [&str; 27] = [
+pub(crate) const CONSTRUCTS: [&str; 26] = [
     "/help",
     "/model",
     "/fan",
@@ -20,7 +20,6 @@ pub(crate) const CONSTRUCTS: [&str; 27] = [
     "/checkpoints",
     "/restore",
     "/diff",
-    "/cwd",
     "/skills",
     "/skill",
     "/memory",
@@ -53,7 +52,6 @@ pub(crate) fn describe(construct: &str) -> &'static str {
         "/checkpoints" => "list checkpoints",
         "/restore" => "restore a checkpoint",
         "/diff" => "show working-tree changes",
-        "/cwd" => "show the working directory",
         "/skills" => "list available skills",
         "/skill" => "run a skill",
         "/memory" => "show the standing memory (add with #<note>)",
@@ -211,10 +209,15 @@ mod tests {
         assert_eq!(describe("/diff"), "show working-tree changes");
     }
 
+    /// Deleted constructs must leave the palette entirely — a name that still
+    /// completes but no longer routes is worse than one that never existed.
     #[test]
-    fn completes_and_describes_cwd() {
-        assert_eq!(complete("/cw", &[]).unwrap(), "/cwd ");
-        assert_eq!(describe("/cwd"), "show the working directory");
+    fn deleted_constructs_do_not_complete() {
+        for gone in ["/cwd", "/agents", "/tasks", "/status"] {
+            assert!(!CONSTRUCTS.contains(&gone), "{gone} still listed");
+            assert_eq!(describe(gone), "", "{gone} still described");
+        }
+        assert_eq!(complete("/cw", &[]), None);
     }
 
     #[test]

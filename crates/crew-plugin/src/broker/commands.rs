@@ -56,7 +56,6 @@ pub(crate) const HELP: &str = "constructs:\n\
     /resume — fold the previous session's tail into the next task\n\
     /doctor — health-check the AI stack (provider, CLIs, MCP, memory, session)\n\
     /standup [days] — an AI standup update from recent commits\n\
-    /cwd — show the working directory and sandbox mode\n\
     /skills — list prompt playbooks (~/.config/crew/skills, .crew/skills)\n\
     /skill <name> <task> — run the relay with that playbook prepended\n\
     /memory — show the standing memory prepended to every task\n\
@@ -120,7 +119,6 @@ const CONSTRUCTS: &[&str] = &[
     "mcp",
     "reload",
     "diff",
-    "cwd",
     "stop",
 ];
 
@@ -210,7 +208,6 @@ pub(crate) fn handle(
             };
             emit(msg("agent smith", m))
         }
-        "cwd" => cwd_cmd(emit),
         "skills" => emit(msg(
             "agent smith",
             super::skillframe::list_report(&super::skills::load()),
@@ -273,22 +270,6 @@ fn reload_cmd(
             },
         ),
     ))
-}
-
-/// `/cwd` — where the sys tools operate, and the sandbox mode.
-fn cwd_report(dir: &std::path::Path, read_only: bool) -> String {
-    let mode = if read_only { "read-only" } else { "full" };
-    format!("working dir: {}\nsys: {mode}", dir.display())
-}
-
-/// `/cwd` — reports the sys tools' working directory and sandbox mode
-/// (codex-style: read-only, no agent calls).
-fn cwd_cmd(emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>) -> anyhow::Result<()> {
-    let report = match std::env::current_dir() {
-        Ok(dir) => cwd_report(&dir, super::systools::read_only()),
-        Err(e) => format!("cwd unavailable: {e}"),
-    };
-    emit(msg("agent smith", report))
 }
 
 /// `/model` — list each agent's model; `/model <agent> <model>` — pin the
