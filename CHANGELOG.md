@@ -8,6 +8,12 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.6.73
+
+- README and docs/CREW.md no longer describe the ten constructs deleted this
+  release run, and a test fails the build if they ever describe one that
+  nothing answers.
+
 ## 0.6.72
 
 - Closing an agent pane now stops the agents it was running. The broker was

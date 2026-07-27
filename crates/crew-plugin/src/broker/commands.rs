@@ -67,7 +67,7 @@ pub(crate) const HELP: &str = "constructs:\n\
 /// Expand a built-in single-letter slash alias in the FIRST token, preserving
 /// the rest: `/s` → `/status`, `/m coder qwen` → `/model coder qwen`. Returns
 /// the input unchanged when the first token isn't a known alias.
-pub(crate) fn expand_alias(trimmed: &str) -> String {
+pub fn expand_alias(trimmed: &str) -> String {
     const ALIASES: &[(&str, &str)] = &[
         ("/h", "/help"),
         ("/d", "/diff"),
