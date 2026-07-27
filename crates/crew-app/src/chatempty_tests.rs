@@ -27,11 +27,17 @@ fn connecting_state_says_so() {
     assert!(row_text(&cells, 3).contains("connecting"));
 }
 
+/// Both routes out of an empty roster are offered, keyless one first: an
+/// installed CLI now joins the roster by itself, so a key is no longer the
+/// only answer and the pane must not imply it is.
 #[test]
 fn missing_agents_explain_the_fix() {
     let cells = empty_cells(80, 20, 2, true, &[]);
     assert!(row_text(&cells, 3).contains("No agents"));
-    assert!(row_text(&cells, 5).contains("OPENROUTER_API_KEY"));
+    let advice = format!("{} {}", row_text(&cells, 5), row_text(&cells, 6));
+    assert!(advice.contains("claude"), "{advice}");
+    assert!(advice.contains("codex"), "{advice}");
+    assert!(advice.contains("/model"), "{advice}");
 }
 
 #[test]

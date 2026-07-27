@@ -278,6 +278,13 @@ fn send(
             super::commands::handle(&mut snap, &trimmed, &tick_emit, &mut counting)
         } else if trimmed.starts_with('@') {
             relay_counting(&trimmed, &snap, &tick_emit, &mut counting)
+        } else if let Some(starter) = keyless_starter(&snap) {
+            relay_counting(
+                &format!("@{starter} {trimmed}"),
+                &snap,
+                &tick_emit,
+                &mut counting,
+            )
         } else {
             super::swarm::run_task(&trimmed, &snap, &mut counting)
         };
@@ -323,8 +330,13 @@ pub(crate) fn roster(reg: &Registry) -> String {
              team for it and saves each one, so your @roster grows as you go."
                 .into()
         } else {
-            "No inbuilt agents available. Set OPENROUTER_API_KEY, \
-             DASHSCOPE_API_KEY, or ANTHROPIC_API_KEY and reopen /crew."
+            // A key is no longer the only way out of here: an installed and
+            // signed-in claude/codex/opencode joins the roster on its own
+            // (`agents::append_installed`), so naming only the variables would
+            // now be wrong as well as unfriendly.
+            "No agents available. Either install and sign in to claude, codex \
+             or opencode — crew picks them up automatically — or set \
+             OPENROUTER_API_KEY, DASHSCOPE_API_KEY or ANTHROPIC_API_KEY."
                 .into()
         };
     }
@@ -335,6 +347,36 @@ pub(crate) fn roster(reg: &Registry) -> String {
         reg.len(),
         reg.names().join(", "),
     )
+}
+
+/// Who should answer a plain (unaddressed) task when there is no API provider.
+///
+/// The swarm cannot run without one — planning is an LLM call, so keyless
+/// `run_task` falls back to `StubPlanner` and answers "stub:0". That was
+/// tolerable while a keyless machine had no agents at all; it is not tolerable
+/// now that a logged-in `claude`/`codex`/`opencode` install puts real agents
+/// on the roster, because the user would see three capable agents and get
+/// stub output. When there is someone who can actually answer, relay to them
+/// instead — which is exactly what typing `@claude <task>` already does, minus
+/// the requirement that the user know to type it.
+///
+/// `provider_resolves` is checked FIRST and short-circuits: it reads the
+/// credential store, while `registry()` re-runs discovery (manifest reads plus
+/// PATH probes). Anyone with a key pays nothing for this.
+fn keyless_starter(session: &Session) -> Option<String> {
+    if provider_resolves() {
+        return None;
+    }
+    first_starter(session.registry().names())
+}
+
+/// The pure half of [`keyless_starter`]: who leads, given the roster. First
+/// registered wins — `roster_with` orders manifest agents ahead of built-ins,
+/// so a user's own declaration leads if they wrote one, and otherwise it is
+/// `claude` ("planning, analysis, prose"), the right default to open on.
+/// `None` when nobody is there, which leaves the stub swarm exactly as it was.
+fn first_starter(names: Vec<String>) -> Option<String> {
+    names.into_iter().next()
 }
 
 fn relay_counting(

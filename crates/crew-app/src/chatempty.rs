@@ -80,12 +80,17 @@ pub(crate) fn empty_cells(
             true,
         );
         put(&mut cells, &mut row, max_row, cols, "", t.text_muted, false);
+        // The friendlier of the two routes goes first, and it is now a real
+        // route: an installed, signed-in claude/codex/opencode joins the
+        // roster by itself (`agents::append_installed`), no key and no
+        // configuration. Naming only the variables would be wrong as well as
+        // unwelcoming.
         put(
             &mut cells,
             &mut row,
             max_row,
             cols,
-            "Set OPENROUTER_API_KEY, DASHSCOPE_API_KEY, or",
+            "Sign in to claude, codex or opencode \u{2014} crew",
             t.text_muted,
             false,
         );
@@ -94,7 +99,7 @@ pub(crate) fn empty_cells(
             &mut row,
             max_row,
             cols,
-            "ANTHROPIC_API_KEY, then reopen /smith.",
+            "finds them \u{2014} or /model to add a provider key.",
             t.text_muted,
             false,
         );

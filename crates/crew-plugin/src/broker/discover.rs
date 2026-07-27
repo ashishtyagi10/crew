@@ -179,14 +179,22 @@ fn picked(store: &crate::credentials::Store) -> Option<ProviderKind> {
     })
 }
 
-/// The full adapter roster: stored specialists (see [`super::specialists`])
-/// composed over the picked provider — or, with no provider, none at all —
-/// then every installed manifest plugin agent (see [`super::plugins`])
-/// appended in *either* case. Plugin agents shell out to an installed CLI and
-/// need no API key, so a user with zero keys but a `.crew/agents/` manifest
-/// still gets a working, plugin-only roster instead of an empty one. The mock
-/// roster stays plugin-free so end-to-end tests are deterministic on any
-/// machine.
+/// The full adapter roster, in precedence order: stored specialists (see
+/// [`super::specialists`]) composed over the picked provider — or, with no
+/// provider, none at all — then every installed manifest plugin agent (see
+/// [`super::plugins`]), then every installed built-in CLI agent (see
+/// [`super::agents::append_installed`]).
+///
+/// The last two are appended whether or not a provider resolved, because
+/// neither needs an API key: a manifest agent and a `claude`/`codex`/
+/// `opencode` install both shell out to a CLI that carries its own sign-in.
+/// A user with zero keys is therefore not a user with zero agents — which is
+/// the whole point, and was not true until v0.6.39 despite the built-in
+/// adapters having existed all along with no caller.
+///
+/// Manifests come before built-ins so an explicit local declaration wins the
+/// name. The mock roster stays free of both so end-to-end tests are
+/// deterministic on any machine.
 pub(crate) fn roster_with(
     overrides: &std::collections::HashMap<String, String>,
 ) -> Vec<Box<dyn Adapter>> {
@@ -195,10 +203,11 @@ pub(crate) fn roster_with(
         Some((provider, model)) => specialist_agents(provider, &model, overrides),
         None => Vec::new(),
     };
-    // The mock roster stays plugin-free so end-to-end tests are deterministic
-    // on any machine.
+    // The mock roster stays plugin- and CLI-free so end-to-end tests are
+    // deterministic on any machine.
     if !matches!(picked(&store), Some(ProviderKind::Mock)) {
         super::plugins::append(&mut agents);
+        super::agents::append_installed(&mut agents);
     }
     agents
 }
