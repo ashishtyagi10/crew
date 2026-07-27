@@ -130,8 +130,21 @@ fn nameplate_art() -> String {
 /// warning still rides below the art because without it the user has no way
 /// to know why nothing will ever answer.
 pub(crate) fn startup_banner(reg: &Registry) -> String {
-    if reg.is_empty() && !provider_resolves() {
-        return format!("{}\n\n{}", nameplate_art(), roster(reg));
+    banner_for(reg, provider_resolves())
+}
+
+/// [`startup_banner`] with the provider verdict passed in.
+///
+/// Split out because the verdict comes from process-wide state — env vars and
+/// an on-disk credential store — that other tests mutate as they run. A test
+/// calling `provider_resolves()` to decide what to assert therefore exercises
+/// whichever branch the scheduler hands it, which is how a warning string that
+/// changed in v0.6.39 went on passing for five releases: the assertion naming
+/// the old text simply was not reached. With the verdict as a parameter, both
+/// branches are checked on every run and neither can rot unobserved.
+fn banner_for(reg: &Registry, provider: bool) -> String {
+    if reg.is_empty() && !provider {
+        return format!("{}\n\n{}", nameplate_art(), roster_for(reg, provider));
     }
     nameplate_art()
 }
@@ -327,8 +340,16 @@ pub(crate) fn provider_resolves() -> bool {
 /// on a fresh project). The provider check reads the live env, same as every
 /// other consumer of [`provider_resolves`].
 pub(crate) fn roster(reg: &Registry) -> String {
+    roster_for(reg, provider_resolves())
+}
+
+/// [`roster`] with the provider verdict passed in, for the same reason
+/// [`banner_for`] takes one: the verdict is process-wide state, and a caller
+/// that has already decided must not have that decision silently re-made
+/// underneath it by an env var another thread changed mid-call.
+pub(crate) fn roster_for(reg: &Registry, provider: bool) -> String {
     if reg.is_empty() {
-        return if provider_resolves() {
+        return if provider {
             "No specialists yet — type a task and press Enter; crew assembles a \
              team for it and saves each one, so your @roster grows as you go."
                 .into()

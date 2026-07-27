@@ -3,6 +3,7 @@
 //! inline styling.
 mod layout;
 mod parse;
+pub(crate) mod syntax;
 
 /// Parses `text` and lays it out into wrapped, styled lines ready to draw at
 /// `cols` columns. Never panics, regardless of input. CommonMark semantics:
@@ -31,6 +32,10 @@ pub(crate) struct MdStyle {
     /// — rather than authored content. The chat renderer colours markers
     /// separately from the text they introduce.
     pub marker: bool,
+    /// What this run of a fenced code block is — comment, string, keyword —
+    /// so the chat renderer can colour inside code rather than painting the
+    /// whole block one colour. `Plain` everywhere outside a fence.
+    pub token: syntax::Token,
 }
 
 /// A run of text sharing one style, optionally linking to a URL.
