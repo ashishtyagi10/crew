@@ -224,10 +224,20 @@ impl CrewApp {
         // footer shows `model | branch | …` and must never run git itself on
         // this thread — the sidebar's GitWatch already polls off-thread.
         let branch = self.sidebar.branch().map(str::to_string);
+        // Same trip, same reason, for the working directory the footer shows:
+        // the pane's own spawn dir when it has one, else the app's. Abbreviated
+        // here rather than at render time — `cwd::display` reads $HOME, and the
+        // winit thread should not be doing that per frame either.
+        let app_cwd = self.cwd.clone();
         for p in &mut self.panes {
+            let dir = crate::cwd::display(p.dir.as_deref().unwrap_or(&app_cwd));
             if let PaneContent::Chat(c) = &mut p.content {
                 if c.git_branch != branch {
                     c.git_branch.clone_from(&branch);
+                    any_changed = true;
+                }
+                if c.cwd.as_deref() != Some(dir.as_str()) {
+                    c.cwd = Some(dir);
                     any_changed = true;
                 }
             }

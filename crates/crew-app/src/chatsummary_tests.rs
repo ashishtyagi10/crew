@@ -28,6 +28,7 @@ fn fc<'a>(agents: &'a [AgentInfo], ctxm: &'a HashMap<String, u64>) -> FooterCtx<
         branch: Some("main"),
         input: "",
         running_tasks: &[],
+        cwd: None,
         windows: crate::usageledger::Windows {
             five_h: Some(crate::usageledger::WindowStat {
                 left_ms: (3 * 60 + 52) * 60_000, // 3h52m
@@ -211,4 +212,38 @@ fn a_crowd_of_tasks_collapses_to_a_count() {
     f.running_tasks = &[1, 2, 3, 4];
     let l3 = text(&footer_lines(&f, 120)[2]);
     assert!(l3.ends_with("4 running"), "{l3}");
+}
+
+/// The directory leads line 1 — it answers "where will this actually run",
+/// which is the question `/cwd` existed to ask.
+#[test]
+fn the_working_directory_leads_line1() {
+    let empty_ctx = HashMap::new();
+    let mut f = fc(&[], &empty_ctx);
+    f.cwd = Some("~/code/crew");
+    let l1 = text(&footer_lines(&f, 120)[0]);
+    assert!(l1.starts_with("~/code/crew | "), "{l1}");
+}
+
+/// First to go when width is short: it is the most stable value on the line,
+/// so it is the least costly to lose.
+#[test]
+fn a_narrow_pane_drops_the_directory_first() {
+    let empty_ctx = HashMap::new();
+    let mut f = fc(&[], &empty_ctx);
+    f.cwd = Some("~/code/crew");
+    let l1 = text(&footer_lines(&f, 40)[0]);
+    assert!(!l1.contains("~/code/crew"), "{l1}");
+    assert!(l1.contains("in / "), "the rest of the line survived: {l1}");
+}
+
+/// A pane whose directory is not known yet contributes no segment — not an
+/// empty one, and not a stray separator.
+#[test]
+fn an_unknown_directory_contributes_nothing() {
+    let empty_ctx = HashMap::new();
+    let mut f = fc(&[], &empty_ctx);
+    f.cwd = Some("");
+    let l1 = text(&footer_lines(&f, 120)[0]);
+    assert!(!l1.starts_with(" |") && !l1.starts_with("|"), "{l1}");
 }
