@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.6.68
+
+- A provider's API error arrives as a sentence rather than a JSON envelope
+  pasted into the chat and truncated mid-structure.
+- A rejected key says so and names the fix: "provider rejected the key — …
+  (/model replaces it)". It is the most common provider error there is, and
+  the only one a user can always fix.
+
 ## 0.6.67
 
 - A lost broker no longer leaves phantom running tasks in the footer or a
