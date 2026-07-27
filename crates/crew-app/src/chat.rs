@@ -89,6 +89,10 @@ pub struct ChatPane {
     /// submit, drained by the poll — the command itself still goes to the
     /// broker untouched, this is only the app-side note.
     pub(crate) pending_recent: Option<String>,
+    /// A drafted plan is waiting for yes or no. Set by `PluginEvent::Plan`;
+    /// while it is true the composer's Enter and Esc mean approve and discard,
+    /// which is why `/approve` and `/reject` are no longer in the palette.
+    pub(crate) plan_pending: bool,
     /// Where this pane's broker operates, mirrored in from the owning `Pane`
     /// each poll tick alongside `git_branch` — for the same reason: the footer
     /// shows it and the winit thread must never call `current_dir()` per frame
@@ -139,6 +143,7 @@ impl ChatPane {
             compact_view: false,
             swarm: None,
             queued: std::collections::VecDeque::new(),
+            plan_pending: false,
             git_branch: None,
             cwd: None,
             pending_recent: None,
@@ -216,6 +221,7 @@ impl ChatPane {
                         self.agents = agents;
                     }
                     PluginEvent::Task { id, running, .. } => self.absorb_task(id, running),
+                    PluginEvent::Plan { pending } => self.plan_pending = pending,
                     PluginEvent::Activity { agent, state, from } => {
                         self.absorb_activity(agent, &state, from);
                     }
@@ -469,6 +475,15 @@ impl ChatPane {
         }
         let (ch, enter, backspace) = match k {
             ChatInput::Close => {
+                // A pending plan owns Esc: it is the foreground question, and
+                // answering it is what the user means. Only with an empty
+                // composer — half-typed text means they moved on, and Esc
+                // should not silently throw away a plan behind it.
+                if self.plan_pending && self.input.is_empty() {
+                    self.plan_pending = false;
+                    self.submit_command("/reject".to_string());
+                    return None;
+                }
                 // Esc means "interrupt the running turn" while busy (mirrors
                 // Codex/Claude Code); it only means "close the pane" once
                 // idle. A dead connection can't be interrupted, so it falls
@@ -488,7 +503,17 @@ impl ChatPane {
             }
             ChatInput::Char(c) => (Some(c), false, false),
             ChatInput::Newline => (Some('\n'), false, false),
-            ChatInput::Enter => (None, true, false),
+            ChatInput::Enter => {
+                // Enter on an empty composer answers the pending plan. With
+                // text typed it sends that text as usual — the plan stays
+                // pending, since the user plainly had something else to say.
+                if self.plan_pending && self.input.is_empty() {
+                    self.plan_pending = false;
+                    self.submit_command("/approve".to_string());
+                    return None;
+                }
+                (None, true, false)
+            }
             ChatInput::Backspace => (None, false, true),
         };
         if let Some(text) = input_reduce(&mut self.input, ch, enter, backspace) {

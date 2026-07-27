@@ -68,6 +68,16 @@ pub enum PluginEvent {
         #[serde(default)]
         cost_microusd: u64,
     },
+    /// A drafted plan is waiting for a decision (`pending: true`), or that
+    /// decision has been made (`false`).
+    ///
+    /// `/plan` drafts and stops; something has to say yes. That used to be two
+    /// more constructs to know — `/approve` and `/reject` — for a question with
+    /// exactly two answers, which is a keypress, not a vocabulary. The host
+    /// shows the pending state and sends the construct itself.
+    Plan {
+        pending: bool,
+    },
     /// A background task started (`running: true`) or ended (`false`).
     ///
     /// The broker runs several tasks at once, each on its own worker thread
