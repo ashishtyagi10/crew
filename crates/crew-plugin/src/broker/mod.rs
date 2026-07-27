@@ -53,7 +53,16 @@ mod toolclip;
 pub use adapter::{Adapter, CliAdapter, Normalize};
 pub use agents::known_adapters;
 pub use ask::{explain_output, suggest_command, suggest_far_command};
-pub use discover::{pick_provider as active_provider, ProviderKind as Provider};
+pub use discover::{
+    direct_by_name, pick_provider as active_provider, DirectProvider, ProviderKind as Provider,
+    DIRECT,
+};
+
+/// The provider table row whose key variable is `var`, if any. Lives here so
+/// `credentials` can ask without depending on `broker::discover` directly.
+pub fn direct_by_name_for_var(var: &str) -> Option<&'static DirectProvider> {
+    DIRECT.iter().find(|d| d.var == var)
+}
 pub use engine::Broker;
 pub use hop::{Hop, HopKind, RunStats};
 pub use registry::Registry;

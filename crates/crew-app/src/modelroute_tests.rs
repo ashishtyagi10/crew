@@ -111,13 +111,49 @@ fn no_provider_names_dashscope_for_an_alibaba_row() {
     );
 }
 
+/// A row asks for the key that would actually light IT up. crew reaches
+/// OpenAI directly now (`crew_plugin::DIRECT`), so an OpenAI row asks for an
+/// OpenAI key — it used to ask every non-Anthropic, non-Alibaba row for an
+/// OpenRouter key, which was the literal reason OpenRouter felt mandatory.
 #[test]
-fn no_provider_names_openrouter_for_a_vendor_crew_reaches_only_through_it() {
-    // No direct provider exists for OpenAI/Google/… in `pick_provider`, so
-    // OpenRouter is the only key that would light this row up.
+fn a_row_asks_for_its_own_vendors_key_when_crew_can_reach_that_vendor() {
     let gpt = row("gpt-4.1", Some("openai/gpt-4.1"), Vendor::OpenAI);
     assert_eq!(
         route_for(&gpt, None, true),
+        Route::Missing("OPENAI_API_KEY")
+    );
+    // …and the popup can actually ask for it, which requires the credential
+    // store to accept the variable.
+    assert_eq!(
+        route_for(&gpt, None, true).needs_key(),
+        Some("OPENAI_API_KEY")
+    );
+}
+
+/// OpenRouter stays the honest answer for vendors it really is the only route
+/// to — the change narrows that claim, it does not abolish it.
+#[test]
+fn no_provider_still_names_openrouter_for_a_vendor_only_it_reaches() {
+    let llama = row("llama-4", Some("meta/llama-4"), Vendor::Meta);
+    assert_eq!(
+        route_for(&llama, None, true),
+        Route::Missing("OPENROUTER_API_KEY")
+    );
+}
+
+/// The active OpenAI provider serves an OpenAI row natively, and still cannot
+/// serve someone else's — a direct provider is not a router.
+#[test]
+fn a_direct_provider_serves_its_own_vendor_only() {
+    let d = crew_plugin::direct_by_name("openai").expect("openai row");
+    let gpt = row("gpt-4.1", Some("openai/gpt-4.1"), Vendor::OpenAI);
+    assert_eq!(
+        route_for(&gpt, Some(Provider::Direct(d)), true),
+        Route::Direct("openai")
+    );
+    let llama = row("llama-4", Some("meta/llama-4"), Vendor::Meta);
+    assert_eq!(
+        route_for(&llama, Some(Provider::Direct(d)), true),
         Route::Missing("OPENROUTER_API_KEY")
     );
 }

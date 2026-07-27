@@ -14,10 +14,14 @@ use std::path::{Path, PathBuf};
 
 /// The only variables this store will hold, so a key typed into the UI can
 /// never name an arbitrary environment variable.
-pub const VARS: [&str; 3] = [
+/// Kept as a slice, not a fixed array: providers are a table now
+/// (`broker::discover::DIRECT`), and a length in the type would have to be
+/// hand-edited every time one is added.
+pub const VARS: &[&str] = &[
     "DASHSCOPE_API_KEY",
     "OPENROUTER_API_KEY",
     "ANTHROPIC_API_KEY",
+    "OPENAI_API_KEY",
 ];
 
 /// The provider a variable authenticates, spelled as `CREW_PROVIDER` and
@@ -27,7 +31,9 @@ pub fn provider_for(var: &str) -> Option<&'static str> {
         "DASHSCOPE_API_KEY" => Some("dashscope"),
         "OPENROUTER_API_KEY" => Some("openrouter"),
         "ANTHROPIC_API_KEY" => Some("anthropic"),
-        _ => None,
+        // Everything else comes from the provider table, so adding a row
+        // teaches the credential store about it too.
+        other => crate::broker::direct_by_name_for_var(other).map(|d| d.name),
     }
 }
 

@@ -55,6 +55,46 @@ pub(crate) fn parse_model_chain(env_val: Option<String>, default: Vec<String>) -
     }
 }
 
+/// A provider crew reaches over the OpenAI chat-completions wire, which is
+/// most of them. Adding one is a row here: an endpoint, a key variable and a
+/// default model chain. `OpenRouterProvider` already speaks this wire — it
+/// has backed DashScope from the beginning with nothing but a different base
+/// URL — so no client code is involved.
+///
+/// This exists because OpenRouter was the only multi-vendor route crew had,
+/// which made `OPENROUTER_API_KEY` the answer for every OpenAI, Google or
+/// Mistral row in the picker whether or not the user held a key for the
+/// vendor itself.
+pub struct DirectProvider {
+    /// As `CREW_PROVIDER` and the credential store spell it.
+    pub name: &'static str,
+    pub var: &'static str,
+    pub endpoint: &'static str,
+    pub chain: &'static [&'static str],
+    /// Comma-separated override, e.g. `CREW_OPENAI_MODEL=gpt-5,gpt-4.1`.
+    pub chain_env: &'static str,
+    pub base_url_env: &'static str,
+    /// The catalog vendor this provider serves natively, so the model picker
+    /// can route a row to it instead of to OpenRouter.
+    pub vendor: crew_hive::catalog::Vendor,
+}
+
+/// Every OpenAI-wire provider crew knows, in discovery order.
+pub static DIRECT: &[DirectProvider] = &[DirectProvider {
+    name: "openai",
+    var: "OPENAI_API_KEY",
+    endpoint: "https://api.openai.com/v1/chat/completions",
+    chain: &["gpt-5", "gpt-4.1"],
+    chain_env: "CREW_OPENAI_MODEL",
+    base_url_env: "CREW_OPENAI_BASE_URL",
+    vendor: crew_hive::catalog::Vendor::OpenAI,
+}];
+
+/// The `DIRECT` row named by `name`, if any.
+pub fn direct_by_name(name: &str) -> Option<&'static DirectProvider> {
+    DIRECT.iter().find(|d| d.name.eq_ignore_ascii_case(name))
+}
+
 /// The provider backing the project's API-backed agents.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ProviderKind {
@@ -62,6 +102,42 @@ pub enum ProviderKind {
     DashScope,
     OpenRouter,
     Anthropic,
+    /// One of the [`DIRECT`] rows. Carried by reference because the table is
+    /// static, so this stays `Copy` and comparisons stay cheap.
+    Direct(&'static DirectProvider),
+}
+
+impl ProviderKind {
+    /// How this provider is named to a user and in `CREW_PROVIDER`. Not the
+    /// `Debug` spelling: that nests the table row inside the variant and
+    /// `/doctor` printed `direct(direct(openai))` for a while because of it.
+    pub fn name(self) -> &'static str {
+        match self {
+            ProviderKind::Mock => "mock",
+            ProviderKind::DashScope => "dashscope",
+            ProviderKind::OpenRouter => "openrouter",
+            ProviderKind::Anthropic => "anthropic",
+            ProviderKind::Direct(d) => d.name,
+        }
+    }
+}
+
+impl Clone for DirectProvider {
+    fn clone(&self) -> Self {
+        unreachable!("DirectProvider lives in a static table and is never cloned")
+    }
+}
+
+impl PartialEq for DirectProvider {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+    }
+}
+impl Eq for DirectProvider {}
+impl std::fmt::Debug for DirectProvider {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Direct({})", self.name)
+    }
 }
 
 /// Resolve which provider backs the project's API-backed agents. The mock
@@ -76,6 +152,11 @@ pub fn pick_provider(force: Option<&str>, has_key: impl Fn(&str) -> bool) -> Opt
         Some("dashscope") => return Some(ProviderKind::DashScope),
         Some("openrouter") => return Some(ProviderKind::OpenRouter),
         Some("anthropic") => return Some(ProviderKind::Anthropic),
+        Some(other) => {
+            if let Some(d) = direct_by_name(other) {
+                return Some(ProviderKind::Direct(d));
+            }
+        }
         _ => {}
     }
     if has_key("DASHSCOPE_API_KEY") {
@@ -85,7 +166,12 @@ pub fn pick_provider(force: Option<&str>, has_key: impl Fn(&str) -> bool) -> Opt
     } else if has_key("ANTHROPIC_API_KEY") {
         Some(ProviderKind::Anthropic)
     } else {
-        None
+        // New providers probe LAST, so adding a row can never change which
+        // provider an existing install resolves to.
+        DIRECT
+            .iter()
+            .find(|d| has_key(d.var))
+            .map(ProviderKind::Direct)
     }
 }
 
@@ -268,6 +354,19 @@ fn provider_and_model_with(
             );
             let model = chain.first().cloned()?;
             let provider = provider.with_fallbacks(chain);
+            Some((Arc::new(provider) as Arc<dyn crew_hive::Provider>, model))
+        }
+        ProviderKind::Direct(d) => {
+            let key = key_for(store, d.var)?;
+            let chain = parse_model_chain(
+                std::env::var(d.chain_env).ok(),
+                d.chain.iter().map(|s| s.to_string()).collect(),
+            );
+            let url = std::env::var(d.base_url_env).unwrap_or_else(|_| d.endpoint.to_string());
+            let model = chain.first().cloned()?;
+            let provider = crew_hive::OpenRouterProvider::new(key)
+                .with_endpoint(url)
+                .with_fallbacks(chain);
             Some((Arc::new(provider) as Arc<dyn crew_hive::Provider>, model))
         }
         ProviderKind::Anthropic => {
