@@ -44,6 +44,10 @@ pub(crate) struct Session {
     pub commit: super::gitmsg::SharedCommit,
     /// Restored context set by `/resume`, consumed by the next task.
     pub resume: super::sessionlog::SharedResume,
+    /// The working tree as of the last automatic checkpoint, so a task that
+    /// changed nothing does not write an identical restore point. Shared with
+    /// worker snapshots because the checkpoint is taken ON the worker.
+    pub last_tree: Arc<Mutex<Option<String>>>,
 }
 
 impl Default for Session {
@@ -57,6 +61,7 @@ impl Default for Session {
             plan: Arc::new(Mutex::new(None)),
             commit: Arc::new(Mutex::new(None)),
             resume: Arc::new(Mutex::new(None)),
+            last_tree: Arc::new(Mutex::new(None)),
         }
     }
 }
@@ -79,6 +84,7 @@ impl Session {
             plan: Arc::clone(&self.plan),
             commit: Arc::clone(&self.commit),
             resume: Arc::clone(&self.resume),
+            last_tree: Arc::clone(&self.last_tree),
         }
     }
 

@@ -209,6 +209,7 @@ fn send(
     // after `spawn` — so reserve the id first, spawn, then attach.
     session.turns.fetch_add(1, Ordering::Relaxed);
     let label: String = trimmed.chars().take(40).collect();
+    let label_for_ckpt = label.clone();
     let cancel = std::sync::Arc::new(AtomicBool::new(false));
     let mut snap = session.snapshot_with_cancel(std::sync::Arc::clone(&cancel));
     let out_thread = Arc::clone(out);
@@ -248,6 +249,14 @@ fn send(
             }
             emit(&out_thread, &ev)
         };
+        // Undo, without anyone having to remember to ask for it. Every task
+        // that reaches a worker can reach the user's files (sys tools, an
+        // agent CLI editing in place), so the working tree is pinned first.
+        // Silent by design: it writes nothing when nothing changed, and a
+        // safety net that announced itself on every task would be noise. Not
+        // being in a git repository is a normal way to run crew, so the error
+        // is deliberately ignored rather than reported.
+        auto_checkpoint(&snap, &label_for_ckpt);
         let res = if is_cmd {
             super::commands::handle(&mut snap, &trimmed, &tick_emit, &mut counting)
         } else if trimmed.starts_with('@') {
@@ -341,6 +350,22 @@ pub(crate) fn roster(reg: &Registry) -> String {
         reg.len(),
         reg.names().join(", "),
     )
+}
+
+/// Pin the working tree before a task runs, so anything it changes can be put
+/// back. Best-effort and silent: `auto_snapshot` writes nothing when the tree
+/// is unchanged since the last one, and a machine outside a git repository —
+/// a normal way to run crew — simply has no checkpoints.
+///
+/// This replaced `/checkpoint`. Asking a user to predict which task is the one
+/// worth protecting is asking them to be right in advance; the safety net is
+/// worth more when nobody has to think about it.
+fn auto_checkpoint(session: &Session, label: &str) {
+    let Ok(dir) = std::env::current_dir() else {
+        return;
+    };
+    let mut last = session.last_tree.lock().unwrap_or_else(|e| e.into_inner());
+    let _ = super::checkpoint::auto_snapshot(&dir, &format!("before: {label}"), &mut last);
 }
 
 /// Who should answer a plain (unaddressed) task when there is no API provider.
