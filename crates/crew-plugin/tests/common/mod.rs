@@ -98,6 +98,17 @@ pub fn run_broker(path_dir: &Path, env: &[(&str, &str)], cmds: &[&str]) -> Vec<P
         // …and never let the shell-env probe re-import those keys from the
         // developer's real shell config. Tests opt in via the `env` pairs.
         .env("CREW_SHELL_ENV", "0")
+        // Clearing the environment stopped being enough once keys could be
+        // supplied from inside crew (v0.6.35 key popup, v0.6.37 OpenRouter
+        // sign-in): the credential store is a real-disk singleton under
+        // `dirs::config_dir()`, so a developer who has signed in makes every
+        // "no provider" test resolve a provider anyway — silently, since the
+        // store is read through `key_for` and never mentions itself. Point it
+        // at a path inside this test's own dir, which is exactly what
+        // `credentials::path`'s `CREW_CREDENTIALS_PATH` override exists for.
+        // A test that WANTS a stored key writes that file and passes its own
+        // pair in `env`.
+        .env("CREW_CREDENTIALS_PATH", path_dir.join("credentials.json"))
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::null());
