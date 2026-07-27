@@ -75,6 +75,18 @@ impl CrewApp {
                     self.weight_command(w.trim());
                 } else if let Some(m) = other.strip_prefix("model ") {
                     self.set_model_cmd(m.trim());
+                } else {
+                    // Nothing matched. This used to fall through in silence,
+                    // so a typo did nothing and looked exactly like a command
+                    // that ran and had nothing to say — and a palette row
+                    // whose arm was deleted would have looked the same. The
+                    // broker has always answered "unknown construct"; the app
+                    // owes the same courtesy.
+                    let hint = crate::suggest::closest_command(other);
+                    self.set_status(match hint {
+                        Some(c) => format!("unknown command /{other} — did you mean {c}?"),
+                        None => format!("unknown command /{other}"),
+                    });
                 }
             }
         }
@@ -265,6 +277,24 @@ mod tests {
         assert_eq!(app.config.crt, Some(!before));
         app.crt_command("");
         assert_eq!(app.config.crt, Some(before));
+    }
+
+    /// An unrecognised command must SAY so. It used to fall through in
+    /// silence, which looked exactly like a command that ran and had nothing
+    /// to report — and would have hidden a palette row whose dispatch arm was
+    /// deleted.
+    #[test]
+    fn an_unknown_command_says_so_and_guesses() {
+        let mut app = CrewApp::default();
+        app.run_slash_command("setings");
+        let s = app.status.clone().expect("a status was set").0;
+        assert!(s.contains("unknown command /setings"), "{s}");
+        assert!(s.contains("/settings"), "a near miss should be named: {s}");
+
+        app.run_slash_command("wobblefish");
+        let s = app.status.clone().expect("a status was set").0;
+        assert!(s.contains("unknown command /wobblefish"), "{s}");
+        assert!(!s.contains("did you mean"), "no guess from nonsense: {s}");
     }
 
     #[test]

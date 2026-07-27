@@ -189,3 +189,32 @@ pub(crate) fn dir_suggest(text: &str, base: &Path) -> Option<String> {
 #[cfg(test)]
 #[path = "suggest_tests.rs"]
 mod tests;
+
+/// The palette command closest to `typo`, when one is close enough to be
+/// worth naming. Longest shared prefix, at least three characters — enough to
+/// catch `/setings` and `/reslore` without inventing a suggestion for
+/// something the user never meant.
+pub(crate) fn closest_command(typo: &str) -> Option<&'static str> {
+    let typo = typo.split_whitespace().next().unwrap_or("").to_lowercase();
+    let shared = |a: &str, b: &str| a.chars().zip(b.chars()).take_while(|(x, y)| x == y).count();
+    crate::cmddefs::COMMANDS
+        .iter()
+        .map(|c| (c.name, shared(&typo, c.name.trim_start_matches('/'))))
+        .filter(|(_, n)| *n >= 3)
+        .max_by_key(|(_, n)| *n)
+        .map(|(name, _)| name)
+}
+
+#[cfg(test)]
+mod closest_tests {
+    #[test]
+    fn near_misses_get_a_suggestion_and_nonsense_does_not() {
+        assert_eq!(super::closest_command("setings"), Some("/settings"));
+        assert_eq!(super::closest_command("clearal"), Some("/clearall"));
+        // Two characters is not enough to guess from.
+        assert_eq!(super::closest_command("zx"), None);
+        assert_eq!(super::closest_command("wobble"), None);
+        // An argument must not confuse the match.
+        assert_eq!(super::closest_command("thme dark"), None);
+    }
+}
