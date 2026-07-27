@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.6.72
+
+- Closing an agent pane now stops the agents it was running. The broker was
+  killed, but the CLI it had spawned — `claude`, `codex` — survived,
+  reparented and still working. The broker runs in its own process group and
+  the group is what gets killed.
+
 ## 0.6.71
 
 - `crew --version` prints the version. It used to match nothing, fall through
