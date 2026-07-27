@@ -54,7 +54,7 @@ pub(crate) const HELP: &str = "constructs:\n\
     /commit — draft an AI commit message · /commit apply — create the commit\n\
     /review — AI code review of the working diff, findings worst-first\n\
     /resume — fold the previous session's tail into the next task\n\
-    /doctor — health-check the AI stack (provider, CLIs, MCP, memory)\n\
+    /doctor — health-check the AI stack (provider, CLIs, MCP, memory, session)\n\
     /standup [days] — an AI standup update from recent commits\n\
     /cwd — show the working directory and sandbox mode\n\
     /skills — list prompt playbooks (~/.config/crew/skills, .crew/skills)\n\
@@ -64,11 +64,10 @@ pub(crate) const HELP: &str = "constructs:\n\
     /mcp — MCP servers and their tools (~/.config/crew/mcp.json, .crew/mcp.json)\n\
     /reload — re-read skills, plugin agents, and mcp.json without a restart\n\
     /stop [#n] — cancel all background tasks, or just task #n\n\
-    /status — session totals, models, and the live task count\n\
     @<agent> <task> — choose who starts the relay\n\
     @<a>+<b> <task> — those agents answer in parallel\n\
     \u{2026} tip: tasks run in the background — the footer lists them, /stop #n cancels one\n\
-    aliases: /h /s /d /m /r\n\
+    aliases: /h /d /m /r\n\
     ";
 
 /// Expand a built-in single-letter slash alias in the FIRST token, preserving
@@ -77,7 +76,6 @@ pub(crate) const HELP: &str = "constructs:\n\
 pub(crate) fn expand_alias(trimmed: &str) -> String {
     const ALIASES: &[(&str, &str)] = &[
         ("/h", "/help"),
-        ("/s", "/status"),
         ("/d", "/diff"),
         ("/m", "/model"),
         ("/r", "/reload"),
@@ -123,7 +121,6 @@ const CONSTRUCTS: &[&str] = &[
     "reload",
     "diff",
     "cwd",
-    "status",
     "stop",
 ];
 
@@ -196,7 +193,7 @@ pub(crate) fn handle(
         "review" => super::review::review_cmd(session, emit),
         "doctor" => emit(msg(
             "agent smith",
-            super::doctor::render(&super::doctor::gather()),
+            super::doctor::render(&super::doctor::gather(session)),
         )),
         "standup" => super::standup::standup_cmd(session, rest, emit),
         "resume" => {
@@ -401,59 +398,6 @@ fn fan_cmd(
         tick_emit,
         emit,
     )
-}
-
-/// `/status` — what the session has done and is doing right now. `tasks_running`
-/// is the broker's live background-task count (0 = idle).
-pub(crate) fn status_report(session: &Session, tasks_running: usize) -> String {
-    use std::sync::atomic::Ordering;
-    let running = if tasks_running == 0 {
-        "idle".to_string()
-    } else {
-        format!(
-            "{tasks_running} task{} running",
-            if tasks_running == 1 { "" } else { "s" }
-        )
-    };
-    let pins = if session.overrides.is_empty() {
-        "none".to_string()
-    } else {
-        let mut pins: Vec<String> = session
-            .overrides
-            .iter()
-            .map(|(a, m)| format!("{a} \u{2192} {m}"))
-            .collect();
-        pins.sort();
-        pins.join(", ")
-    };
-    let turns = session.turns.load(Ordering::Relaxed);
-    let tokens = session.tokens.load(Ordering::Relaxed);
-    // "approx" until there's at least one turn to average over — a `0/turn`
-    // reading would be meaningless (and turns == 0 would divide by zero).
-    let approx = match tokens.checked_div(turns) {
-        Some(avg) => format!("~{avg}/turn"),
-        None => "approx".to_string(),
-    };
-    format!(
-        "status: {running}\n\
-         turns: {turns} \u{00b7} ~{tokens} tok ({approx})\n\
-         model pins: {pins}\n\
-         sys: {}\n\
-         budget: {}\n\n{}",
-        super::systools::mode_label(),
-        budget_label(super::session::token_budget()),
-        agents_report(session),
-    )
-}
-
-/// The relay token budget as a human label: `"unlimited"` when unset (0,
-/// `CREW_BROKER_TOKEN_BUDGET`), else `"~<n> tok"`.
-fn budget_label(budget: usize) -> String {
-    if budget == 0 {
-        "unlimited".to_string()
-    } else {
-        format!("~{budget} tok")
-    }
 }
 
 /// The roster, one agent per line: name, role hint, and the model it runs.

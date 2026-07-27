@@ -136,7 +136,7 @@ pub(crate) fn startup_banner(reg: &Registry) -> String {
     nameplate_art()
 }
 
-/// Route one Send. `/stop [#N]`, `/status`, and quick constructs
+/// Route one Send. `/stop [#N]` and quick constructs
 /// answer inline; every other task spawns a NEW background worker (up to the
 /// cap), so several run at once.
 fn send(
@@ -148,12 +148,9 @@ fn send(
     use std::sync::atomic::AtomicBool;
     tasks.reap();
     let trimmed = text.trim().to_string();
-    // Resolve built-in single-letter aliases (`/s` → `/status`) before ANY
+    // Resolve built-in single-letter aliases (`/d` → `/diff`) before ANY
     // routing below, so they reach the same interceptors their long form does.
     let trimmed = super::commands::expand_alias(&trimmed);
-    // First whitespace token, so `/status` tolerates trailing args (it takes
-    // none) instead of misrouting to "unknown construct".
-    let cmd0 = trimmed.split_whitespace().next().unwrap_or("");
 
     // /stop [#N] — cancel one task or all.
     if trimmed == "/stop" || trimmed.starts_with("/stop ") {
@@ -174,18 +171,6 @@ fn send(
             None => "usage: /stop [#id]".to_string(),
         };
         return emit(out, &msg("agent smith", m));
-    }
-
-    // /status — session totals plus the LIVE task count (needs the registry,
-    // so it's handled here rather than in commands::handle).
-    if cmd0 == "/status" {
-        return emit(
-            out,
-            &msg(
-                "agent smith",
-                super::commands::status_report(session, tasks.len()),
-            ),
-        );
     }
 
     // `#note` — remember a standing preference (à la Claude Code's # memory):

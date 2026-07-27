@@ -237,54 +237,6 @@ fn model_all_default_clears_every_pin() {
 }
 
 #[test]
-fn status_reports_totals_pins_and_running_state() {
-    let _g = testenv::mock_with_specialists("ok\n@done", testenv::TRIO);
-    let mut session = Session::new();
-    session
-        .overrides
-        .insert("coder".into(), "qwen-turbo".into());
-    session.turns.store(4, std::sync::atomic::Ordering::Relaxed);
-    session
-        .tokens
-        .store(950, std::sync::atomic::Ordering::Relaxed);
-    let t = super::status_report(&session, 2);
-    assert!(t.contains("2 tasks running"), "{t}");
-    assert!(t.contains("turns: 4"), "{t}");
-    assert!(t.contains("~950 tok"), "{t}");
-    assert!(t.contains("~237/turn"), "{t}");
-    assert!(t.contains("coder \u{2192} qwen-turbo"), "{t}");
-    assert!(t.contains("sys: full"), "{t}"); // CREW_SYS_MODE unset under cargo test
-    assert!(t.contains("budget: unlimited"), "{t}"); // CREW_BROKER_TOKEN_BUDGET unset under cargo test
-    assert!(t.contains("planner"), "roster included: {t}");
-}
-
-#[test]
-fn status_singularizes_a_single_running_task() {
-    let _g = testenv::mock("ok\n@done");
-    let session = Session::new();
-    let one = super::status_report(&session, 1);
-    assert!(one.contains("1 task running"), "{one}");
-    assert!(!one.contains("task(s)"), "{one}");
-    let two = super::status_report(&session, 2);
-    assert!(two.contains("2 tasks running"), "{two}");
-}
-
-#[test]
-fn budget_label_reports_unlimited_or_the_token_count() {
-    assert_eq!(budget_label(0), "unlimited");
-    assert_eq!(budget_label(50_000), "~50000 tok");
-}
-
-#[test]
-fn status_omits_the_per_turn_average_when_no_turns_yet() {
-    let _g = testenv::mock("ok\n@done");
-    let session = Session::new();
-    let t = super::status_report(&session, 0);
-    assert!(t.contains("turns: 0"), "{t}");
-    assert!(!t.contains("/turn"), "no turns yet, no rate to show: {t}");
-}
-
-#[test]
 fn model_unknown_agent_lists_the_roster() {
     let _g = testenv::mock("ok\n@done");
     let evs = run("/model ghost qwen-max");
@@ -293,7 +245,8 @@ fn model_unknown_agent_lists_the_roster() {
 
 #[test]
 fn expand_alias_maps_known_short_forms() {
-    assert_eq!(expand_alias("/s"), "/status");
+    // `/s` is gone with the construct it pointed at.
+    assert_eq!(expand_alias("/s"), "/s");
     assert_eq!(expand_alias("/m coder qwen"), "/model coder qwen");
     assert_eq!(expand_alias("/h"), "/help");
     // `/a` is gone with the construct it pointed at.
@@ -316,12 +269,12 @@ fn expand_alias_leaves_non_aliases_unchanged() {
 fn help_documents_the_aliases() {
     let evs = run("/help");
     let t = text_of(&evs[0]);
-    assert!(t.contains("aliases: /h /s /d /m /r"), "{t}");
+    assert!(t.contains("aliases: /h /d /m /r"), "{t}");
 }
 
 #[test]
 fn closest_construct_suggests_near_typos() {
-    assert_eq!(closest_construct("stauts"), Some("status"));
+    assert_eq!(closest_construct("stauts"), Some("standup"));
     assert_eq!(closest_construct("hlep"), Some("help"));
     assert_eq!(closest_construct("relaod"), Some("reload"));
     assert_eq!(closest_construct("zzzzz"), None);
@@ -365,7 +318,7 @@ fn reload_reemits_the_roster_and_reports_every_surface() {
 
 #[test]
 fn unknown_construct_suggests_the_closest_match() {
-    let evs = run("/stauts");
+    let evs = run("/dcotor");
     let t = text_of(&evs[0]);
-    assert!(t.contains("did you mean /status"), "{t}");
+    assert!(t.contains("did you mean /doctor"), "{t}");
 }
