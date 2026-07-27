@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.6.82
+
+- A finished task says which of your files it changed. A clean run printed its
+  reply and nothing else, so an agent that edited four files and answered
+  "done" left no record anywhere of which four — you had to know about `/diff`
+  and remember to run it. No new bookkeeping: the checkpoint taken before
+  every task already pins the tree to compare against.
+- It stays quiet when nothing of yours changed, which needed care — the broker
+  rewrites `.crew/session-live.md` as every reply streams, so the answer to
+  "what changed?" would otherwise have been "the transcript" after every
+  question ever asked, in every repo but crew's own.
+
 ## 0.6.81
 
 - Up and Down in an agent pane recall what you already sent, filtered by what
