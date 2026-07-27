@@ -192,8 +192,10 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
     // very last row. `g.summary` is the same reservation `grants` budgeted, so
     // nothing above can overdraw the footer.
     let summary_h = g.summary;
+    let ghost = pane.ghost();
     cells.extend(crate::chatinput::composer_cells(
         &pane.input,
+        ghost.as_deref(),
         &pane.agents,
         cols,
         rows - summary_h,

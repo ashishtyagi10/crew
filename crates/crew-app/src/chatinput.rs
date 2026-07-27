@@ -113,6 +113,7 @@ fn placeholder_cells(x0: u16, max: u16, row: u16) -> Vec<CellView> {
 /// marks the first visible row; the caret rides the last one.
 fn prompt_lines(
     input: &str,
+    ghost: Option<&str>,
     agents: &[AgentInfo],
     x0: u16,
     max: u16,
@@ -163,6 +164,20 @@ fn prompt_lines(
     }
     if end_x < max {
         cells.push(cell(end_x, end_row, '\u{258f}', accent, false)); // ▏ caret
+    }
+    // The suggestion, dim, after the caret. Only on the caret's row and only
+    // as far as that row goes: it is a preview of what Tab would take, and
+    // wrapping it would change the composer's HEIGHT as you type — the card
+    // growing under a suggestion nobody asked for.
+    if let Some(g) = ghost {
+        let mut x = end_x + 1;
+        for c in g.chars() {
+            if x >= max {
+                break;
+            }
+            cells.push(cell(x, end_row, c, t.text_muted, false));
+            x += crate::chatwidth::char_w(c) as u16;
+        }
     }
     cells
 }
@@ -240,6 +255,7 @@ fn badge_on_border(cells: &mut Vec<CellView>, badge: &str, chips_end: u16, cols:
 /// panes, a bare prompt row on short ones.
 pub(crate) fn composer_cells(
     input: &str,
+    ghost: Option<&str>,
     agents: &[AgentInfo],
     cols: u16,
     rows: u16,
@@ -249,7 +265,7 @@ pub(crate) fn composer_cells(
     }
     let total = composer_rows(input, cols, rows);
     if total == 1 {
-        return prompt_lines(input, agents, 0, cols, rows - 1, 1);
+        return prompt_lines(input, ghost, agents, 0, cols, rows - 1, 1);
     }
     let t = crew_theme::theme();
     let top = rows - total;
@@ -272,7 +288,15 @@ pub(crate) fn composer_cells(
         badge_on_border(&mut cells, &badge, chips_end, cols, top);
     }
     // Interior prompt lines, kept clear of the right border at `cols - 1`.
-    cells.extend(prompt_lines(input, agents, 2, cols - 1, top + 1, total - 2));
+    cells.extend(prompt_lines(
+        input,
+        ghost,
+        agents,
+        2,
+        cols - 1,
+        top + 1,
+        total - 2,
+    ));
     cells
 }
 

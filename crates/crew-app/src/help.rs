@@ -58,6 +58,10 @@ const CHAT_BINDINGS: &[(&str, &str)] = &[
         "Recall a prompt you already sent · navigate an open popup",
     ),
     (
+        "Tab / Right",
+        "Take the suggested rest of a prompt you sent before",
+    ),
+    (
         "@ · # (in composer)",
         "Attach an agent, skill or file · remember a note",
     ),

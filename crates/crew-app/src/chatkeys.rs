@@ -11,8 +11,12 @@ pub(crate) enum ChatInput {
     /// Shift+Enter — insert a newline instead of sending.
     Newline,
     Backspace,
-    /// Tab — complete the leading @agent / /construct token.
+    /// Tab — complete the leading @agent / /construct token, or take the
+    /// ghost suggestion when there is no token to complete.
     Complete,
+    /// Right arrow — take the ghost suggestion. The input bar's second accept
+    /// key, so the two composers agree on how a suggestion is taken.
+    Accept,
     /// Arrow keys — navigate a popup when one is open, otherwise walk the
     /// composer's prompt history (see `chathistory`).
     Up,
@@ -45,6 +49,7 @@ pub(crate) fn chat_key(logical: &Key, pressed: bool, shift: bool) -> ChatInput {
     match logical {
         Key::Named(NamedKey::Escape) => ChatInput::Close,
         Key::Named(NamedKey::Tab) => ChatInput::Complete,
+        Key::Named(NamedKey::ArrowRight) => ChatInput::Accept,
         Key::Named(NamedKey::ArrowUp) => ChatInput::Up,
         Key::Named(NamedKey::ArrowDown) => ChatInput::Down,
         Key::Named(NamedKey::Enter) if shift => ChatInput::Newline,
@@ -94,6 +99,19 @@ mod tests {
         assert_eq!(
             chat_key(&Key::Named(NamedKey::ArrowDown), true, false),
             ChatInput::Down
+        );
+    }
+
+    #[test]
+    fn right_arrow_accepts_a_suggestion() {
+        assert_eq!(
+            chat_key(&Key::Named(NamedKey::ArrowRight), true, false),
+            ChatInput::Accept
+        );
+        // Left is still nothing — the composer has no cursor to move.
+        assert_eq!(
+            chat_key(&Key::Named(NamedKey::ArrowLeft), true, false),
+            ChatInput::Ignore
         );
     }
 

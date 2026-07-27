@@ -1469,3 +1469,87 @@ fn editing_a_recalled_prompt_keeps_the_edit() {
     p.on_input(ChatInput::Down, &cwd);
     assert_eq!(p.input, "run it!");
 }
+
+/// The rest of a previous prompt, offered as you retype its beginning — the
+/// input bar's fish-style autosuggestion, which the composer did not have.
+#[test]
+fn typing_the_start_of_a_past_prompt_suggests_the_rest() {
+    use crate::chatkeys::ChatInput;
+
+    let mut p = pane();
+    let cwd = std::env::temp_dir();
+    for c in "refactor the parser".chars() {
+        p.on_input(ChatInput::Char(c), &cwd);
+    }
+    p.on_input(ChatInput::Enter, &cwd);
+    for c in "refac".chars() {
+        p.on_input(ChatInput::Char(c), &cwd);
+    }
+    assert_eq!(p.ghost().as_deref(), Some("tor the parser"));
+
+    // Right takes it, and the result is the user's own text — Down must not
+    // then swap it for a stashed draft.
+    p.on_input(ChatInput::Accept, &cwd);
+    assert_eq!(p.input, "refactor the parser");
+    p.on_input(ChatInput::Down, &cwd);
+    assert_eq!(p.input, "refactor the parser");
+}
+
+/// Tab already meant "complete the leading token". It keeps that meaning and
+/// gains the ghost only where it previously did nothing at all.
+#[test]
+fn tab_completes_a_token_first_and_the_suggestion_otherwise() {
+    use crate::chatkeys::ChatInput;
+
+    let mut p = pane();
+    let cwd = std::env::temp_dir();
+    for c in "deploy to staging".chars() {
+        p.on_input(ChatInput::Char(c), &cwd);
+    }
+    p.on_input(ChatInput::Enter, &cwd);
+    for c in "dep".chars() {
+        p.on_input(ChatInput::Char(c), &cwd);
+    }
+    p.on_input(ChatInput::Complete, &cwd);
+    assert_eq!(p.input, "deploy to staging", "Tab took the suggestion");
+}
+
+/// A leading `/` belongs to the palette, which is already showing the same
+/// answer as a popup — two answers to one question is worse than one.
+#[test]
+fn a_slash_command_is_the_palettes_to_answer_not_the_ghosts() {
+    use crate::chatkeys::ChatInput;
+
+    let mut p = pane();
+    let cwd = std::env::temp_dir();
+    for c in "/doctor".chars() {
+        p.on_input(ChatInput::Char(c), &cwd);
+    }
+    p.on_input(ChatInput::Close, &cwd); // dismiss the palette
+    p.on_input(ChatInput::Enter, &cwd);
+    for c in "/doc".chars() {
+        p.on_input(ChatInput::Char(c), &cwd);
+    }
+    assert_eq!(p.ghost(), None, "the palette owns a leading slash");
+}
+
+#[test]
+fn nothing_typed_and_nothing_matching_suggest_nothing() {
+    use crate::chatkeys::ChatInput;
+
+    let mut p = pane();
+    let cwd = std::env::temp_dir();
+    assert_eq!(p.ghost(), None, "an empty composer suggests nothing");
+    for c in "one".chars() {
+        p.on_input(ChatInput::Char(c), &cwd);
+    }
+    p.on_input(ChatInput::Enter, &cwd);
+    for c in "zzz".chars() {
+        p.on_input(ChatInput::Char(c), &cwd);
+    }
+    assert_eq!(p.ghost(), None);
+    // Accepting nothing is not an error — both keys are pressed speculatively.
+    p.on_input(ChatInput::Accept, &cwd);
+    p.on_input(ChatInput::Complete, &cwd);
+    assert_eq!(p.input, "zzz");
+}
