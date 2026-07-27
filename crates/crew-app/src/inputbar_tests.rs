@@ -7,7 +7,7 @@ fn empty_focused_shows_placeholder() {
         focused: true,
         ..Default::default()
     };
-    let cells = bar.cells(40, 3, None);
+    let cells = bar.cells(40, 3, None, None);
     // the placeholder hint renders in the faint placeholder colour
     assert!(cells
         .iter()
@@ -19,7 +19,7 @@ fn empty_focused_shows_placeholder() {
         ..Default::default()
     };
     assert!(!typed
-        .cells(40, 3, None)
+        .cells(40, 3, None, None)
         .iter()
         .any(|c| c.fg == crew_theme::theme().placeholder));
 }
@@ -33,7 +33,7 @@ fn cells_focused_shows_accent_prompt_and_text() {
         focused: true,
         ..Default::default()
     };
-    let cells = bar.cells(40, 3, None);
+    let cells = bar.cells(40, 3, None, None);
     assert!(cells.iter().any(|c| c.c == '>'));
     assert!(cells.iter().any(|c| c.c == 'l'));
     assert!(cells.iter().any(|c| c.c == 's'));
@@ -51,7 +51,7 @@ fn cells_long_text_follows_cursor_tail() {
         focused: true,
         ..Default::default()
     };
-    let cells = bar.cells(20, 3, None);
+    let cells = bar.cells(20, 3, None, None);
     assert!(cells.iter().any(|c| c.c == 'E'));
     assert!(cells.iter().any(|c| c.c == '█'));
     assert!(!cells.iter().any(|c| c.c == 'S'));
@@ -64,7 +64,7 @@ fn cells_shows_dim_ghost_suggestion() {
         focused: true,
         ..Default::default()
     };
-    let cells = bar.cells(40, 3, None);
+    let cells = bar.cells(40, 3, None, None);
     assert!(cells
         .iter()
         .any(|c| c.c == 't' && c.fg == crew_theme::theme().dim));
@@ -78,7 +78,7 @@ fn cells_unfocused_has_no_cursor() {
         focused: false,
         ..Default::default()
     };
-    assert!(!bar.cells(40, 3, None).iter().any(|c| c.c == '█'));
+    assert!(!bar.cells(40, 3, None, None).iter().any(|c| c.c == '█'));
 }
 
 #[test]
@@ -89,7 +89,7 @@ fn cells_unfocused_prompt_is_dim() {
         ..Default::default()
     };
     let prompt = bar
-        .cells(40, 3, None)
+        .cells(40, 3, None, None)
         .into_iter()
         .find(|c| c.c == '>')
         .unwrap();
@@ -121,7 +121,7 @@ fn broadcast_prompt_is_magenta() {
         broadcast: true,
         ..Default::default()
     };
-    let cells = bar.cells(40, 3, None);
+    let cells = bar.cells(40, 3, None, None);
     assert!(cells
         .iter()
         .any(|c| c.c == '»' && c.fg == crew_theme::theme().broadcast));
@@ -137,7 +137,7 @@ fn cells_show_cwd_legend_on_top_border() {
         cwd: "/code/crew".into(),
         ..Default::default()
     };
-    let cells = bar.cells(40, 3, None);
+    let cells = bar.cells(40, 3, None, None);
     // the cwd legend rides the top border (row 0) in the accent colour
     assert!(cells
         .iter()
@@ -153,20 +153,92 @@ fn cells_show_status_on_bottom_border() {
         focused: true,
         ..Default::default()
     };
-    let cells = bar.cells(40, 3, Some("copied 4 lines"));
+    let cells = bar.cells(40, 3, Some("copied 4 lines"), None);
     // status characters appear on the bottom border row in the amber colour
     assert!(cells
         .iter()
         .any(|c| c.c == 'c' && c.row == 2 && c.fg == crew_theme::theme().status_fg));
     // without a status, the bottom row carries no amber text
-    let plain = bar.cells(40, 3, None);
+    let plain = bar.cells(40, 3, None, None);
     assert!(!plain.iter().any(|c| c.fg == crew_theme::theme().status_fg));
+}
+
+/// Typing in the bar acts on whichever pane is selected, and the bar never
+/// said which. The name rides the bottom border as a legend, mirroring the cwd
+/// on the top one.
+#[test]
+fn the_focused_pane_names_itself_on_the_bottom_border() {
+    let bar = InputBar {
+        focused: true,
+        ..Default::default()
+    };
+    let cells = bar.cells(40, 3, None, Some("agent smith"));
+    let bottom: String = row_text(&cells, 2);
+    assert!(bottom.contains("agent smith"), "{bottom}");
+    // Drawn as a legend, not as a status flash.
+    assert!(cells
+        .iter()
+        .any(|c| c.c == 'a' && c.row == 2 && c.fg == crew_theme::theme().legend_off));
+}
+
+/// A status flash borrows the slot and gives it back — two right-aligned
+/// labels on one border row would overprint each other.
+#[test]
+fn a_status_flash_supersedes_the_pane_legend() {
+    let bar = InputBar {
+        focused: true,
+        ..Default::default()
+    };
+    let cells = bar.cells(40, 3, Some("copied 4 lines"), Some("agent smith"));
+    let bottom = row_text(&cells, 2);
+    assert!(bottom.contains("copied 4 lines"), "{bottom}");
+    assert!(!bottom.contains("agent smith"), "{bottom}");
+}
+
+/// A pane title longer than the bar clips instead of running over the corner.
+#[test]
+fn a_long_pane_name_clips_inside_the_border() {
+    let bar = InputBar::default();
+    let long = "a-really-very-extremely-long-pane-title-that-cannot-fit";
+    let cells = bar.cells(30, 3, None, Some(long));
+    assert!(
+        cells.iter().all(|c| c.col < 30),
+        "legend overran the card width"
+    );
+    // The closing corner survives.
+    assert!(cells.iter().any(|c| c.c == '\u{256f}' && c.row == 2));
+    assert!(row_text(&cells, 2).contains('\u{2026}'));
+}
+
+/// No panes at all (the welcome screen) is the one moment the question has no
+/// answer, and an empty name must not draw a bare `  ` gap in the rule.
+#[test]
+fn no_pane_leaves_the_bottom_rule_intact() {
+    let bar = InputBar::default();
+    for name in [None, Some(""), Some("   ")] {
+        let cells = bar.cells(40, 3, None, name);
+        let bottom = row_text(&cells, 2);
+        assert!(
+            bottom.chars().filter(|c| *c == '\u{2500}').count() >= 36,
+            "{name:?} broke the rule: {bottom}"
+        );
+    }
+}
+
+/// Read row `row` left-to-right as text (last write per column wins, matching
+/// how the renderer paints overlapping cells).
+fn row_text(cells: &[crew_render::CellView], row: u16) -> String {
+    let mut cols: std::collections::BTreeMap<u16, char> = std::collections::BTreeMap::new();
+    for c in cells.iter().filter(|c| c.row == row) {
+        cols.insert(c.col, c.c);
+    }
+    cols.values().collect()
 }
 
 #[test]
 fn cells_tiny_returns_empty() {
-    assert!(InputBar::default().cells(3, 3, None).is_empty());
-    assert!(InputBar::default().cells(40, 0, None).is_empty());
+    assert!(InputBar::default().cells(3, 3, None, None).is_empty());
+    assert!(InputBar::default().cells(40, 0, None, None).is_empty());
 }
 
 #[test]

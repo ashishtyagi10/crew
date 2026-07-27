@@ -61,6 +61,15 @@ impl CrewApp {
     /// area — minimized into the nav, or covered while another pane is zoomed
     /// — so the list always says which panes are actually on screen. Clicking
     /// (or Cmd+N-focusing) such a row brings the pane back either way.
+    /// The focused pane's name, for the input bar's bottom-border legend. The
+    /// same `title_text()` the PANES list and the pane's own card legend show,
+    /// so one pane is never called two things on one screen. `None` when there
+    /// are no panes at all (the welcome screen), which is the one moment the
+    /// question has no answer.
+    pub(crate) fn focused_pane_name(&self) -> Option<String> {
+        self.panes.get(self.focused).map(|p| p.title_text())
+    }
+
     pub(crate) fn pane_rows(&self) -> Vec<crate::panelist::PaneRow> {
         // Zoom draws only the focused pane (clamped like build_frame clamps).
         let zoomed_on = self.focused.min(self.panes.len().saturating_sub(1));

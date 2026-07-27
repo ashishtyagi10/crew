@@ -9,6 +9,33 @@ is not an empty hunt; see the playbook's six lenses.
 
 ---
 
+## Iteration 3 — 2026-07-27 17:24 EDT — RELEASED v0.6.96 — user-requested
+- Gap (user request, not a hunt finding): the input bar acts on the focused
+  pane and never named it. The cwd rides the top border as a legend; the bottom
+  border carried only a transient status, so the bar's standing answer to "where
+  does this go?" was nowhere on screen. Missing leg: **reachability** — the
+  information existed (`pane_rows`, the sidebar `▸` marker) but not where you
+  are looking while typing.
+- Evidence: rendered-cell dump of `InputBar::cells` before/after; four new tests.
+- Fix: `cells()` takes the focused pane's name and draws it right-aligned on the
+  bottom border in `legend_off`, clipped with `…` so a long title cannot overrun
+  the `╯` corner. A status flash supersedes it and gives the slot back. The name
+  is `title_text()` — the same string the PANES list and the pane's own card
+  legend show, so one pane is never called two things on one screen.
+  [inputbar_render.rs, navcard.rs, render.rs, inputbar_tests.rs]
+- Class closed: n/a — new surface, not a drift. The name is sourced from
+  `title_text()` rather than re-derived, which is what would have caused drift.
+- Docs: `CHANGELOG.md` 0.6.96.
+- Gate: fmt ok · clippy clean · tests 2031 pass, 0 failures
+- Release: v0.6.96
+- **GUI verification unavailable:** osascript is denied both assistive access
+  and screen recording in this environment, so keystroke/screencapture
+  verification per `.claude/skills/verify` could not run. The isolated dev
+  instance built, launched and reached frontmost; visual confirmation came from
+  dumping the real `InputBar::cells` grid as text instead. The headless
+  `crew-render` screenshot harness cannot cover this — it hand-rolls its own
+  mock input bar rather than calling `InputBar::cells`.
+
 ## Iteration 2 — 2026-07-27 16:52 EDT — RELEASED v0.6.95
 - Gap: the composer's slash palette described `/goal` as "set the crew's shared
   goal" — a feature that exists in no engine. The broker runs relay rounds until

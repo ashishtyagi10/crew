@@ -83,7 +83,12 @@ impl CrewApp {
         let ic = (ib.w / cw).floor() as u16;
         let ir = (ib.h / ch).round() as u16;
         scenes.push(PaneScene {
-            cells: self.input.cells(ic, ir, self.active_status()),
+            cells: self.input.cells(
+                ic,
+                ir,
+                self.active_status(),
+                self.focused_pane_name().as_deref(),
+            ),
             x: ib.x,
             y: ib.y,
             w: ib.w,
