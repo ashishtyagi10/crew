@@ -141,3 +141,52 @@ fn relay_message_events_carry_the_task_meta_tag() {
         "the agent reply must be tagged task:<id>, got {ev:?}"
     );
 }
+
+/// An undo nobody knows about is an undo nobody uses. Checkpoints have been
+/// automatic and entirely silent since v0.6.44, so a user whose files an agent
+/// had just rewritten had no way to learn they could be put back.
+///
+/// Said ONCE, at the moment the first snapshot is actually written — before
+/// that there is nothing to restore and the note would be a promise; after it,
+/// a note per task would be the noise the silence was protecting.
+#[test]
+fn checkpoints_announce_themselves_exactly_once() {
+    let dir = unique_dir("ckpt-announce");
+    seed_specialists(&dir, &["planner"]);
+    // A git repo, or there is nothing to snapshot and nothing to say.
+    for args in [
+        &["init", "-q"][..],
+        &["config", "user.email", "t@t"],
+        &["config", "user.name", "t"],
+    ] {
+        assert!(std::process::Command::new("git")
+            .args(args)
+            .current_dir(&dir)
+            .status()
+            .unwrap()
+            .success());
+    }
+    std::fs::write(dir.join("f.txt"), "a").unwrap();
+
+    let mock = ("CREW_BROKER_MOCK_REPLY", "ok\n@done");
+    // The harness pins PATH to the test directory so CLI discovery is
+    // controlled; a checkpoint needs `git`, so this test hands it back. Worth
+    // knowing: every other e2e runs with checkpoints silently impossible.
+    let path = ("PATH", "/usr/bin:/bin");
+    let sends: Vec<&str> = vec![SEND_A, SEND_B, SEND_A];
+    let msgs = messages(&run_broker(&dir, &[mock, path], &sends));
+    let said = msgs
+        .iter()
+        .filter(|(_, t)| t.contains("snapshot taken"))
+        .count();
+    assert_eq!(
+        said, 1,
+        "announced {said} times across three tasks: {msgs:?}"
+    );
+    // …and it names how to use it, or it is just trivia.
+    assert!(
+        msgs.iter()
+            .any(|(_, t)| t.contains("snapshot taken") && t.contains("/restore")),
+        "the note must name /restore: {msgs:?}"
+    );
+}

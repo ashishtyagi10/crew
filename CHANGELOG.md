@@ -8,6 +8,12 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.6.77
+
+- The first automatic snapshot of a session says so, once, and names
+  `/restore`. Checkpoints have been automatic and entirely silent since
+  0.6.44 — an undo nobody knows about is an undo nobody uses.
+
 ## 0.6.76
 
 - The welcome screen names the agent pane. It said "new shell" and "commands"
