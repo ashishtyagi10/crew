@@ -1361,3 +1361,31 @@ fn a_pending_plan_binds_enter_and_esc() {
     );
     assert!(p.plan_pending, "closing must not answer the plan");
 }
+
+/// State that belonged to a dead broker must not outlive it. A task killed
+/// with its process never sends its end event, so the footer would offer
+/// `/stop #3` for a task that no longer exists — and a plan it was holding
+/// would still answer to enter, against a broker that never saw it.
+#[test]
+fn a_lost_broker_takes_its_running_tasks_and_pending_plan_with_it() {
+    let mut p = pane();
+    p.absorb_task(3, true);
+    p.absorb_task(5, true);
+    p.plan_pending = true;
+    assert_eq!(p.running_tasks, vec![3, 5]);
+
+    p.reset_broker_state();
+    assert!(p.running_tasks.is_empty(), "phantom tasks survived");
+    assert!(!p.plan_pending, "a plan survived the broker holding it");
+}
+
+/// …and a FRESH broker starts counting from 1, so anything left over would
+/// both lie and collide with a real id.
+#[test]
+fn a_fresh_broker_starts_from_an_empty_task_list() {
+    let mut p = pane();
+    p.absorb_task(1, true);
+    p.reset_broker_state();
+    p.absorb_task(1, true);
+    assert_eq!(p.running_tasks, vec![1], "an id was double-counted");
+}
