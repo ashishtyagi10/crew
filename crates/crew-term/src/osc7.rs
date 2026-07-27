@@ -6,7 +6,10 @@
 //! latest reported path. It's a small state machine, so a sequence split across
 //! `feed()` chunks is still recognised. Cheap and allocation-free until a real
 //! `cd` lands.
-use std::path::{Path, PathBuf};
+/// Only the `cfg(test)` peek helper and its tests deal in borrowed paths.
+#[cfg(test)]
+use std::path::Path;
+use std::path::PathBuf;
 
 /// Cap on a single OSC 7 payload — a real `file://` path is far shorter; this
 /// guards against an unterminated sequence growing the buffer without bound.
@@ -167,9 +170,12 @@ fn percent_decode(s: &str) -> String {
     String::from_utf8_lossy(&out).into_owned()
 }
 
-#[allow(dead_code)]
+#[cfg(test)]
 impl Osc7Scanner {
     /// Peek the current cwd without clearing the dirty flag (test helper).
+    /// `cfg(test)` rather than `allow(dead_code)`: it is not code that happens
+    /// to be unused, it is code that exists only for the tests, and the
+    /// stricter gate says so and keeps it out of the shipped binary.
     fn cwd(&self) -> Option<&Path> {
         self.cwd.as_deref()
     }

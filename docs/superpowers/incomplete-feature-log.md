@@ -9,6 +9,40 @@ is not an empty hunt; see the playbook's six lenses.
 
 ---
 
+## Iteration 6 — 2026-07-27 18:24 EDT — RELEASED v0.6.99
+- Gaps (three, all small, all the same class one list further out):
+  1. `/crt` and `/weight` are implemented, dispatched and offered in the command
+     palette, and appear in neither `README.md` nor `docs/CREW.md`. **Docs leg.**
+  2. `docs/CREW.md` links to `#multi-agent-relay-crew`, which stopped existing at
+     the `/smith` rename. **Inverse-docs leg** — a link that goes nowhere reads
+     as a missing feature.
+  3. `osc7.rs`'s `cwd()` peek helper is `#[allow(dead_code)]` when it is
+     test-only. **Suppression instead of intent.**
+- Evidence: `cmddefs::COMMANDS` names diffed against both pages (2 missing); an
+  anchor-vs-heading pass over all four docs (1 broken, pre-existing).
+- Fix: documented both commands; corrected the anchor; `cwd()` is now
+  `#[cfg(test)]`, which also keeps it out of the shipped binary (the borrowed-path
+  import had to be test-gated with it). [docs/CREW.md, chatcomplete.rs, osc7.rs]
+- Class closed: two more guards in `doc_drift` —
+  `every_command_bar_command_is_documented` (with a declared
+  `UNDOCUMENTED_BY_CHOICE` for `/crew`, an alias whose target is documented) and
+  `internal_doc_links_land_on_a_real_heading`. The latter also catches the anchor
+  I got wrong while writing iteration 3, which is why it is a test and not a
+  one-time grep.
+- Docs: `docs/CREW.md` input-bar command list + anchor, `CHANGELOG.md` 0.6.99.
+- Gate: fmt ok · clippy clean · tests 2035 pass, 0 failures
+- Release: v0.6.99
+- **Hunt status — converging.** Six lenses re-run this iteration. Lens 1
+  (two-list drift) is now mechanically closed in five places: constructs both
+  directions, `/help` both directions, palette hints, env knobs, command-bar
+  docs, doc anchors. Lens 4 (cfg asymmetry, 13 `target_os = "macos"` sites) and
+  lens 6 (12 silent-error sites) are un-triaged and are the honest remaining
+  surface — neither is a known defect, both are places a defect could hide.
+- Candidates found, not fixed: triage the 13 macOS-only sites for stubbed
+  non-Darwin arms; triage the 12 `.ok()`/`let _ =` sites for swallowed failures;
+  commands that report success on a no-op (the `/export` shape) have no
+  systematic check.
+
 ## Iteration 5 — 2026-07-27 18:02 EDT — RELEASED v0.6.98
 - Gap: six `CREW_*` knobs the shipped source reads appear in no doc —
   `CREW_HTTP_TIMEOUT_MS`, `CREW_STREAM_TEXT`, `CREW_BROKER_PLUGIN`,
