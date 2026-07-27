@@ -14,9 +14,17 @@ pub(crate) fn intercept(pane: &mut ChatPane, text: &str) -> bool {
         return false;
     }
     let n = pane.messages.len();
-    let note = match export_transcript(&pane.channel, &pane.messages) {
-        Ok(path) => success_note(n, &path),
-        Err(e) => format!("export failed: {e}"),
+    // An export of nothing is not an export. Writing it anyway left 68-byte
+    // "0 message(s)" files wherever crew happened to be running — 54 of them
+    // reached this repo's history before anyone noticed, because the command
+    // reported success every time.
+    let note = if n == 0 {
+        "nothing to export \u{2014} this pane has no messages yet".to_string()
+    } else {
+        match export_transcript(&pane.channel, &pane.messages) {
+            Ok(path) => success_note(n, &path),
+            Err(e) => format!("export failed: {e}"),
+        }
     };
     let ts = chrono::Local::now().timestamp_millis().to_string();
     pane.messages.push(Message {
@@ -155,5 +163,44 @@ mod tests {
         let md = transcript_markdown("general", &msgs, &chrono::Local::now());
         assert!(md.contains("0.0s"), "got: {md}");
         assert!(!md.contains("task:"), "tag must not leak into export: {md}");
+    }
+    /// `/export` on a pane with no messages must not touch the disk. Every one
+    /// of the 64 stray `crew-transcript-*.md` files this repo accumulated was a
+    /// 68-byte "0 message(s)" export, and 54 of them were committed — the
+    /// command reported success each time, so nothing ever looked wrong.
+    #[test]
+    fn exporting_an_empty_pane_writes_no_file() {
+        let before = stray_transcripts();
+        // An idle child stands in for the broker; only pane state is under test.
+        let plugin =
+            crew_plugin::Plugin::spawn("sh", &["-c".to_string(), "cat >/dev/null".to_string()])
+                .unwrap();
+        let mut pane = ChatPane::new(plugin, "crew".into());
+        pane.messages.clear();
+        assert!(intercept(&mut pane, "/export"));
+        let note = &pane.messages.last().unwrap().text;
+        assert!(note.contains("nothing to export"), "got: {note}");
+        assert_eq!(
+            stray_transcripts(),
+            before,
+            "an empty export still wrote a file"
+        );
+    }
+
+    /// Transcripts land in the process's working directory, which for a test
+    /// binary is the crate root — so this counts what a stray export would drop
+    /// into the source tree.
+    fn stray_transcripts() -> usize {
+        std::fs::read_dir(".")
+            .map(|d| {
+                d.filter_map(Result::ok)
+                    .filter(|e| {
+                        e.file_name()
+                            .to_string_lossy()
+                            .starts_with("crew-transcript-")
+                    })
+                    .count()
+            })
+            .unwrap_or(0)
     }
 }

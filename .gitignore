@@ -5,3 +5,6 @@ target/
 
 # broker session artifacts
 .crew/
+
+# stray /export transcripts (an export lands in the cwd)
+crew-transcript-*.md

@@ -9,6 +9,35 @@ is not an empty hunt; see the playbook's six lenses.
 
 ---
 
+## Iteration 4 — 2026-07-27 17:41 EDT — RELEASED v0.6.97
+- Gap: `/export` wrote a transcript file even with zero messages, and reported
+  success. Missing leg: **error-path stub** — the empty case was never
+  considered, so the failure was silent and looked like success every time.
+- Evidence: 64 `crew-transcript-*.md` files in `crates/crew-app/`, every one
+  exactly 68 bytes containing "0 message(s)"; **54 were tracked in git**. New
+  ones appeared during this session's own runs.
+- Fix: `intercept` answers an empty pane with "nothing to export" and does not
+  touch the disk; `exporting_an_empty_pane_writes_no_file` counts stray files in
+  the crate root before and after, so a regression is caught by the litter it
+  would create rather than by inspection. Deleted all 64 files (verified
+  byte-identical and message-free first) and gitignored the pattern so a real
+  export made inside a repo cannot be committed by accident.
+  [chatexport.rs, .gitignore]
+- Class closed: partially. The guard plus the ignore rule stops this specific
+  litter. The broader shape — commands that report success on a no-op — is not
+  systematically checked anywhere; noted for a future iteration.
+- Docs: `CHANGELOG.md` 0.6.97.
+- Gate: fmt ok · clippy clean · tests 2032 pass, 0 failures
+- Release: v0.6.97
+- Note: the trigger that submitted `/export` to empty panes was not identified —
+  the litter's timestamps span months and include this session. The fix is at
+  the write site, so it holds whatever the caller was.
+- Candidates found, not fixed: carried forward — undocumented env vars, doc
+  anchor validation, `osc7.rs:170`'s test-only helper marked
+  `#[allow(dead_code)]` instead of `#[cfg(test)]` (the other three dead-code
+  allows were inspected and carry explicit keep-for-future rationale with
+  tested contracts — deliberate, not oversights).
+
 ## Iteration 3 — 2026-07-27 17:24 EDT — RELEASED v0.6.96 — user-requested
 - Gap (user request, not a hunt finding): the input bar acts on the focused
   pane and never named it. The cwd rides the top border as a legend; the bottom
