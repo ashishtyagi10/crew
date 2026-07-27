@@ -64,6 +64,27 @@ pub(crate) const HELP: &str = "constructs:\n\
     aliases: /h /d /m /r\n\
     ";
 
+/// The one-line summary `/help` gives for `name` (no leading slash), if it has
+/// one: the text after the em dash on the first `HELP` line naming it.
+///
+/// Exposed so a host's palette shows the broker's own words rather than a
+/// fourth hand-written copy of them. Membership of the construct lists is
+/// pinned in every direction by tests; their DESCRIPTIONS were not, and drifted
+/// — the palette told users `/goal` "set the crew's shared goal" while the
+/// broker looped until a judge ruled it met. Neither the palette's sentence nor
+/// any other list was wrong about which commands exist; it was wrong about what
+/// one of them does, which no membership test can catch.
+pub fn construct_summary(name: &str) -> Option<&'static str> {
+    HELP.lines().find_map(|line| {
+        let line = line.trim_start();
+        let rest = line.strip_prefix('/')?;
+        let end = rest.chars().take_while(char::is_ascii_alphanumeric).count();
+        (rest.get(..end)? == name)
+            .then(|| line.split_once(" \u{2014} ").map(|(_, s)| s.trim()))
+            .flatten()
+    })
+}
+
 /// Expand a built-in single-letter slash alias in the FIRST token, preserving
 /// the rest: `/s` → `/status`, `/m coder qwen` → `/model coder qwen`. Returns
 /// the input unchanged when the first token isn't a known alias.

@@ -8,6 +8,35 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.6.95
+
+- The slash palette stopped disagreeing with the commands it labels. `/goal`
+  was described as "set the crew's shared goal" — a feature that exists
+  nowhere; it runs relay rounds until a judge agent rules the goal met. Every
+  hint the pane does not deliberately own is now the broker's own `/help`
+  sentence, so the two cannot drift apart again.
+- `/goal` means two different things and now says so. In the agent smith
+  composer it is the judged relay; in the command bar it plans a task graph and
+  runs it as a swarm. Same word, two engines — the docs and the command-bar
+  palette both name the split.
+- The shell's deadline fits a real build. `sys:run` had 30 seconds, which
+  `cargo test` cannot finish inside on any real project, so the shell's most
+  valuable use was its broken one. It is 120 seconds now, and the timeout
+  message names `CREW_SYS_TIMEOUT_MS` instead of leaving you to guess a knob
+  exists.
+
+## 0.6.94
+
+- Three providers that shipped fully wired and entirely unmentioned are
+  documented: **OpenAI**, **Gemini** and **DeepSeek** each have a key variable,
+  an endpoint and a native model chain, and neither the README nor the manual
+  ever said so. `docs/CREW.md` now carries the table.
+- They probe **last** in discovery on purpose, so adding one never changes
+  which provider an existing install resolves to — which means
+  `CREW_PROVIDER=gemini` is the only way to reach one while another key is set.
+  That pin worked all along and was documented nowhere, including in the
+  function's own comment.
+
 ## 0.6.93
 
 - An agent that runs out of tool calls in a turn says so. There is a budget of
