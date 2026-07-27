@@ -73,3 +73,14 @@ fn credentials_never_import_a_variable_outside_vars() {
     };
     assert!(super::credential_imports(&store, |_| None).is_empty());
 }
+
+/// Same contract on the broker side: `interesting` gates what the login-shell
+/// pass imports, so a provider variable missing from it can never be hydrated.
+#[test]
+fn every_provider_variable_is_interesting() {
+    for var in crate::credentials::VARS {
+        assert!(interesting(var), "{var} would never be imported");
+    }
+    assert!(interesting("CREW_PROVIDER"));
+    assert!(!interesting("HOME"), "unrelated vars stay out");
+}

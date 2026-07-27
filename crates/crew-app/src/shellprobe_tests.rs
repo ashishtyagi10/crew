@@ -376,3 +376,18 @@ fn adopt_fallback_path_rejects_blank_fallback_value() {
         "whitespace-only fallback must not be adopted"
     );
 }
+
+/// The probe list must cover every provider variable crew knows about. A
+/// hand-kept copy drifts the moment a provider row is added, and the symptom
+/// is invisible: a key sitting in the user's shell config that crew never
+/// imports looks exactly like having no key at all.
+#[test]
+fn every_provider_variable_is_probed() {
+    let probed = keys();
+    for var in crew_plugin::credentials::VARS {
+        assert!(probed.contains(var), "{var} is never probed for");
+    }
+    // …plus the two knobs that are not credentials.
+    assert!(probed.contains(&"CREW_PROVIDER"));
+    assert!(probed.contains(&"CREW_BROKER_MOCK_REPLY"));
+}

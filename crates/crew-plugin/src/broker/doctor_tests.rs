@@ -3,6 +3,7 @@ use super::*;
 fn healthy() -> DoctorInputs {
     DoctorInputs {
         provider: Some("dashscope".into()),
+        others: Vec::new(),
         clis: vec![("claude".into(), true), ("codex".into(), false)],
         bash: true,
         git: true,
@@ -142,4 +143,23 @@ fn the_sandbox_mode_is_reported_both_ways() {
     );
     i.sys_tools = false;
     assert!(render(&i).contains("CREW_SYS_TOOLS=0"), "{}", render(&i));
+}
+
+/// A key that appears to do nothing is a mystery worth answering. With six
+/// providers and a fixed discovery order, the report has to say which other
+/// keys it found and how to pick one.
+#[test]
+fn other_configured_providers_are_named() {
+    let mut i = healthy();
+    i.others = vec!["openai".into(), "gemini".into()];
+    let r = render(&i);
+    assert!(r.contains("dashscope (also keyed: openai, gemini"), "{r}");
+    assert!(
+        r.contains("CREW_PROVIDER"),
+        "the way out must be named: {r}"
+    );
+    // With nothing else configured the line stays short.
+    let plain = render(&healthy());
+    assert!(plain.contains("provider: dashscope"), "{plain}");
+    assert!(!plain.contains("also keyed"), "{plain}");
 }

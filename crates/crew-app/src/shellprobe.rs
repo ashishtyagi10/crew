@@ -38,13 +38,17 @@ const PROBE_TIMEOUT: Duration = Duration::from_secs(3);
 const PATH_FALLBACK_TIMEOUT: Duration = Duration::from_secs(1);
 
 /// Provider vars worth probing, matching `shellenv::interesting`.
-const KEYS: &[&str] = &[
-    "DASHSCOPE_API_KEY",
-    "OPENROUTER_API_KEY",
-    "ANTHROPIC_API_KEY",
-    "CREW_PROVIDER",
-    "CREW_BROKER_MOCK_REPLY",
-];
+///
+/// Built from `credentials::VARS` so it cannot drift from the provider table
+/// the way a hand-kept list does. The failure mode of drift is invisible: a
+/// key sitting in the user's shell config that crew never imports is
+/// indistinguishable, from the pane, from having no key at all.
+fn keys() -> Vec<&'static str> {
+    let mut v: Vec<&'static str> = crew_plugin::credentials::VARS.to_vec();
+    v.push("CREW_PROVIDER");
+    v.push("CREW_BROKER_MOCK_REPLY");
+    v
+}
 
 /// What the probe found. No `Debug`: `openrouter_key` is a secret and must
 /// never end up in a log line.
@@ -148,7 +152,7 @@ fn merge_shell_env(probed: &mut Probed, shell_output: &str) {
             }
             continue;
         }
-        if !v.is_empty() && KEYS.contains(&k) {
+        if !v.is_empty() && keys().contains(&k) {
             probed.keys.insert(k.to_string());
             // Process vars always win: only adopt the shell value if absent.
             if k == "CREW_PROVIDER" && probed.provider_pin.is_none() {
@@ -213,7 +217,7 @@ fn adopt_fallback_path(probed: &mut Probed, fallback: Option<&str>) {
 /// Keys/pin/key already visible in this process. `path` stays unset — see
 /// [`Probed`] for why PATH gets no process-wins fallback.
 fn process_probe() -> Probed {
-    let keys = KEYS
+    let keys = keys()
         .iter()
         .filter(|k| std::env::var(k).is_ok_and(|v| !v.is_empty()))
         .map(|k| (*k).to_string())

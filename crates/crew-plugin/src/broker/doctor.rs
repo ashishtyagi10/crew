@@ -9,6 +9,10 @@ use std::path::Path;
 pub(crate) struct DoctorInputs {
     /// The provider that will back the inbuilt agents, if any.
     pub provider: Option<String>,
+    /// Providers that ALSO have a key but are not the active one. With six
+    /// providers and a fixed discovery order, a key that appears to do
+    /// nothing is a mystery worth answering before it is reported as a bug.
+    pub others: Vec<String>,
     /// Which of the known agent CLIs (claude, codex, opencode) are on PATH.
     pub clis: Vec<(String, bool)>,
     /// `/bin/bash` present (run panes' job-control wrapper needs it).
@@ -48,6 +52,14 @@ fn line(mark: char, label: &str, detail: &str) -> String {
 pub(crate) fn render(i: &DoctorInputs) -> String {
     let mut out = vec!["crew doctor — the AI stack at a glance".to_string()];
     out.push(match &i.provider {
+        Some(p) if !i.others.is_empty() => line(
+            '✓',
+            "provider",
+            &format!(
+                "{p} (also keyed: {} — CREW_PROVIDER picks another)",
+                i.others.join(", ")
+            ),
+        ),
         Some(p) => line('✓', "provider", p),
         None => line(
             '✗',
@@ -170,10 +182,15 @@ pub(crate) fn on_path(bin: &str, path: &str) -> bool {
 pub(crate) fn gather(session: &super::session::Session) -> DoctorInputs {
     use std::sync::atomic::Ordering;
     let path = std::env::var("PATH").unwrap_or_default();
+    let active = super::discover::resolved_provider();
     DoctorInputs {
         // The same resolution the roster is built from, so `/doctor` reports a
         // stored key's provider rather than only an exported one's.
-        provider: super::discover::resolved_provider().map(|p| p.name().to_string()),
+        provider: active.map(|p| p.name().to_string()),
+        others: super::discover::configured_providers()
+            .into_iter()
+            .filter(|n| Some(n.as_str()) != active.map(|p| p.name()))
+            .collect(),
         clis: ["claude", "codex", "opencode"]
             .iter()
             .map(|b| (b.to_string(), on_path(b, &path)))

@@ -10,13 +10,16 @@
 //! never inherit a developer's real keys).
 use std::time::Duration;
 
-/// Provider-relevant vars worth importing: the API keys discovery looks for,
+/// Provider-relevant vars worth importing: every key discovery looks for,
 /// plus every `CREW_*` knob (provider pin, model chains, endpoints, budgets).
+///
+/// Read from `credentials::VARS` rather than listed here. Providers are a
+/// table now (`discover::DIRECT`), and a hand-kept copy of that table in a
+/// `matches!` would go stale the first time a row was added — silently, since
+/// the only symptom is a key in the user's shell config that crew never picks
+/// up, which looks exactly like no key at all.
 fn interesting(key: &str) -> bool {
-    matches!(
-        key,
-        "DASHSCOPE_API_KEY" | "OPENROUTER_API_KEY" | "ANTHROPIC_API_KEY"
-    ) || key.starts_with("CREW_")
+    crate::credentials::VARS.contains(&key) || key.starts_with("CREW_")
 }
 
 /// Parse `env` output, keeping `KEY=VALUE` lines that are interesting,
