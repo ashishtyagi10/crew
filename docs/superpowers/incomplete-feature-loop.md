@@ -99,6 +99,12 @@ Branch off current `main`: `auto/finish-<N>-<slug>`.
 
 ## Gate
 
+**Bump the version FIRST, then gate.** `changelog_covers_the_current_version`
+asserts `CHANGELOG.md`'s top entry names the workspace version, so bumping after
+a green gate turns it red and ships anyway — `release.yml` only builds, it never
+runs tests. Iteration 1 did exactly that. Order: bump `Cargo.toml` → write the
+`CHANGELOG.md` entry → `cargo check` (regenerates `Cargo.lock`) → gate.
+
 From the branch, run ALL of:
 
 - `cargo fmt --all` (then confirm no diff)

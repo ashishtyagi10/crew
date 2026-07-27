@@ -9,6 +9,41 @@ is not an empty hunt; see the playbook's six lenses.
 
 ---
 
+## Iteration 2 — 2026-07-27 16:52 EDT — RELEASED v0.6.95
+- Gap: the composer's slash palette described `/goal` as "set the crew's shared
+  goal" — a feature that exists in no engine. The broker runs relay rounds until
+  a judge rules `MET:`. Missing leg: **inverse-docs**. Membership of the three
+  construct lists is pinned in every direction by four existing tests; their
+  DESCRIPTIONS were pinned by nothing, and a fourth hand-written copy of them
+  (`chatcomplete::describe`) had drifted.
+- Evidence: `describe("/goal")` vs `HELP`'s `/goal` line, side by side. No test
+  could have caught it — every membership test passed the whole time.
+- Fix: `crew_plugin::construct_summary(name)` exposes the broker's own `/help`
+  line; `describe()` returns it for every offered construct except a short,
+  declared `PANE_WORDS` list where the pane genuinely changes what is worth
+  saying (`/plan`'s enter/esc, `/memory`'s `#<note>`, "this list", and the three
+  pane-local constructs). Also documented the `/goal` name collision — composer
+  = judged relay, command bar = swarm task graph — in `docs/CREW.md` and the
+  command-bar palette. [broker/commands.rs, broker/mod.rs, lib.rs,
+  chatcomplete.rs, cmddefs.rs, docs/CREW.md]
+- Class closed: the fourth copy is gone. A hint is now the broker's sentence
+  unless someone deliberately overrode it, and `derived_hints_are_the_brokers_own_words`
+  asserts exactly that; `pane_words_only_override_offered_constructs` keeps the
+  override list from accumulating dead rows.
+- Docs: `docs/CREW.md` `/goal` entry (collision note), `CHANGELOG.md` 0.6.94 + 0.6.95.
+- Gate: fmt ok · clippy clean · tests 2027 pass, 0 failures
+- Release: v0.6.95
+- **Process bug found and fixed in the playbook:** iteration 1 gated BEFORE
+  bumping the version, which turned `changelog_covers_the_current_version` red
+  after the gate had already passed — and `release.yml` only builds, so v0.6.94
+  shipped with a red test and no CHANGELOG entry. Both entries written
+  retroactively; the playbook now says bump-then-gate.
+- Candidates found, not fixed: carried forward from iteration 1 (dead-code
+  allows, transcript litter, undocumented env vars), plus:
+  - **`docs/CREW.md` internal anchors are unchecked.** Writing `#swarm` instead
+    of `#swarm-orchestration-crew-hive` produced a silently broken link that only
+    a manual grep caught. Nothing validates in-document anchor targets.
+
 ## Iteration 1 — 2026-07-27 16:31 EDT — RELEASED v0.6.94
 - Gap: the three `DIRECT` providers — `openai`, `gemini`, `deepseek` — ship fully
   wired (key var, endpoint, native model chain, catalog vendor, model-picker

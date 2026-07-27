@@ -567,6 +567,11 @@ and a typo gets a **did-you-mean** suggestion):
 - **`/goal <text>`** — relay rounds until a judge agent (the reviewer when it
   isn't the worker) rules `MET:`/`NOT MET:` on the goal; NOT-MET reasons feed
   the next round. Caps at 5 rounds.
+  **Note the name collides.** Typed in the **agent smith composer** you get this
+  — one worker, a judge, up to five rounds. Typed in the **command bar** you get
+  the [swarm pane](#swarm-orchestration-crew-hive) instead: the goal is planned
+  into a task graph and run in parallel under a cost ceiling. Same word, two
+  engines; the pane you are typing into decides which one answers.
 - **`/plan <task>`** — plan mode (à la Claude Code): an agent (prefix
   `@agent` to pick who) drafts a numbered plan and **nothing executes** until
   enter hands the approved plan to the relay; esc discards

@@ -13,33 +13,44 @@ pub(crate) const CONSTRUCTS: [&str; 21] = [
     "/theme", "/exit",
 ];
 
+/// Hints that belong to the PANE rather than to the broker, and so are written
+/// here instead of derived: the three pane-local constructs the broker has
+/// never heard of, plus the four where standing in the pane changes what is
+/// worth saying — `/plan` is answered with enter/esc *here*, `#<note>` is how
+/// you add memory *here*, and "this list" reads as nothing in a palette that
+/// IS the list.
+///
+/// Being a short, declared list is the point. Everything absent from it shows
+/// the broker's own sentence, so a hint cannot quietly contradict the command
+/// it labels — which is exactly what `/goal` did.
+const PANE_WORDS: &[(&str, &str)] = &[
+    ("/help", "list the constructs"),
+    (
+        "/model",
+        "the roster and each agent's model (set one: /model <agent> <model>)",
+    ),
+    (
+        "/plan",
+        "draft a plan \u{2014} enter runs it, esc discards it",
+    ),
+    ("/memory", "show the standing memory (add with #<note>)"),
+    ("/export", "export the transcript"),
+    ("/theme", "list or switch the color theme"),
+    ("/exit", "close this pane"),
+];
+
 /// One-line description for each construct, shown as the dim hint in the
-/// composer's slash palette. Falls back to "" for anything unlisted.
+/// composer's slash palette. "" for anything the palette does not offer — a
+/// construct that is deliberately withheld (`/approve`) or gone entirely has
+/// no hint, because there is no row to hint at.
 pub(crate) fn describe(construct: &str) -> &'static str {
-    match construct {
-        "/help" => "list the constructs",
-        "/model" => "the roster and each agent's model (set one: /model <agent> <model>)",
-        "/fan" => "fan a task out to every agent",
-        "/loop" => "run a task on a loop",
-        "/goal" => "set the crew's shared goal",
-        "/plan" => "draft a plan \u{2014} enter runs it, esc discards it",
-        "/restore" => "list snapshots, or put one back (/restore <n>)",
-        "/diff" => "show working-tree changes",
-        "/skill" => "list playbooks, or run one (/skill <name> <task>)",
-        "/memory" => "show the standing memory (add with #<note>)",
-        "/commit" => "draft an AI commit message (apply to run)",
-        "/review" => "AI code review of the working diff",
-        "/resume" => "continue the previous session as context",
-        "/doctor" => "health-check the AI stack and this session",
-        "/standup" => "AI standup update from recent commits",
-        "/mcp" => "list MCP servers and tools",
-        "/reload" => "re-read skills, agents and mcp.json",
-        "/stop" => "stop all tasks (/stop #n for one)",
-        "/export" => "export the transcript",
-        "/theme" => "list or switch the color theme",
-        "/exit" => "close this pane",
-        _ => "",
+    if !CONSTRUCTS.contains(&construct) {
+        return "";
     }
+    if let Some((_, words)) = PANE_WORDS.iter().find(|(c, _)| *c == construct) {
+        return words;
+    }
+    crew_plugin::construct_summary(construct.trim_start_matches('/')).unwrap_or("")
 }
 
 /// Complete `input`'s leading token. Returns the new input when something
@@ -178,7 +189,45 @@ mod tests {
     #[test]
     fn completes_and_describes_diff() {
         assert_eq!(complete("/di", &[]).unwrap(), "/diff ");
-        assert_eq!(describe("/diff"), "show working-tree changes");
+        // Not the palette's own sentence any more — the broker's, verbatim.
+        assert_eq!(
+            describe("/diff"),
+            "everything different from the last commit, new files included"
+        );
+    }
+
+    /// The hint for a derived construct IS the broker's `/help` line, so the
+    /// two cannot disagree. `/goal` is the regression: the palette called it
+    /// "set the crew's shared goal" — a feature that exists nowhere — while
+    /// the broker looped rounds until a judge ruled the goal met.
+    #[test]
+    fn derived_hints_are_the_brokers_own_words() {
+        for c in CONSTRUCTS {
+            if PANE_WORDS.iter().any(|(p, _)| *p == c) {
+                continue;
+            }
+            let bare = c.trim_start_matches('/');
+            assert_eq!(
+                describe(c),
+                crew_plugin::construct_summary(bare).unwrap_or(""),
+                "{c}'s hint is not the broker's own line"
+            );
+        }
+        assert!(
+            describe("/goal").contains("judge"),
+            "/goal: {}",
+            describe("/goal")
+        );
+    }
+
+    /// Every pane-written hint must name a construct the palette actually
+    /// offers, or it is dead text nobody will ever see — and the next reader
+    /// will trust it anyway.
+    #[test]
+    fn pane_words_only_override_offered_constructs() {
+        for (c, _) in PANE_WORDS {
+            assert!(CONSTRUCTS.contains(c), "{c} is overridden but not offered");
+        }
     }
 
     /// Deleted constructs must leave the palette entirely — a name that still

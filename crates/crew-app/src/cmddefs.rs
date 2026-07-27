@@ -129,7 +129,7 @@ pub(crate) const COMMANDS: &[Cmd] = &[
     },
     Cmd {
         name: "/goal",
-        desc: "Plan a goal into a task graph and run it as a swarm (/goal <text>)",
+        desc: "Plan a goal into a task graph and run it as a swarm (in agent smith, /goal judges rounds instead)",
     },
     Cmd {
         name: "/batch",
