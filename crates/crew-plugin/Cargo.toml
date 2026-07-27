@@ -19,3 +19,6 @@ dirs = { workspace = true }
 # Integration tests (tests/) parse the broker's JSON event lines.
 [dev-dependencies]
 serde_json.workspace = true
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
