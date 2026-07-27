@@ -1,12 +1,11 @@
-//! `/compact`: a pane-local composer command (claude-code-style) that
-//! collapses the crew pane's message history down to the most recent
-//! messages plus a marker, decluttering a long session. Handled app-side,
-//! like `/export`/`/theme` — the broker never sees it.
-use crate::chat::ChatPane;
+//! Transcript folding: collapse a pane's message history down to the most
+//! recent messages plus a marker saying how many went.
+//!
+//! This was `/compact`, a command. It is automatic now — `push_capped` folds
+//! at `ChatPane::TRANSCRIPT_CAP` — because the cap already existed and only
+//! ever dropped messages in silence, and a fold that announces itself is
+//! strictly better than a manual command doing the same thing on request.
 use crate::chatlayout::Message;
-
-/// Default number of most-recent messages a bare `/compact` keeps.
-const DEFAULT_KEEP: usize = 20;
 
 /// Collapse `msgs` to the last `keep`, prepended with a dim `crew` marker
 /// noting how many older messages were folded away. No-op when already short.
@@ -27,27 +26,6 @@ pub(crate) fn compact_messages(msgs: Vec<Message>, keep: usize) -> Vec<Message> 
     });
     out.extend(msgs.into_iter().skip(folded));
     out
-}
-
-/// Parse the `/compact [n]` argument: `n` when it parses as a count, else the
-/// default (also on a missing or invalid argument).
-fn parse_keep(arg: &str) -> usize {
-    arg.trim().parse().unwrap_or(DEFAULT_KEEP)
-}
-
-/// Intercept composer submissions the pane answers locally. Returns `true`
-/// when `text` was consumed (nothing should be sent to the broker).
-pub(crate) fn intercept(pane: &mut ChatPane, text: &str) -> bool {
-    let trimmed = text.trim();
-    if trimmed != "/compact" && !trimmed.starts_with("/compact ") {
-        return false;
-    }
-    let arg = trimmed.strip_prefix("/compact").unwrap_or("");
-    let keep = parse_keep(arg);
-    pane.messages = compact_messages(std::mem::take(&mut pane.messages), keep);
-    pane.scroll = 0;
-    pane.unread = 0;
-    true
 }
 
 #[cfg(test)]
@@ -104,13 +82,5 @@ mod tests {
             "got: {}",
             out[0].text
         );
-    }
-
-    #[test]
-    fn parse_keep_falls_back_to_default_on_missing_or_invalid() {
-        assert_eq!(parse_keep(""), DEFAULT_KEEP);
-        assert_eq!(parse_keep(" "), DEFAULT_KEEP);
-        assert_eq!(parse_keep("nope"), DEFAULT_KEEP);
-        assert_eq!(parse_keep(" 5 "), 5);
     }
 }
