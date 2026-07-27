@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.6.97
+
+- `/export` on a pane with no messages no longer writes a file. It reported
+  success and left a 68-byte "0 message(s)" transcript wherever crew happened
+  to be running; 64 of them had accumulated in this repo and 54 were committed.
+  An export of nothing now says so and touches nothing.
+- Stray `crew-transcript-*.md` files are gitignored, so a real export made
+  inside a repo cannot be committed by accident.
+
 ## 0.6.96
 
 - The input bar says which pane it is talking to. The focused pane's name now
