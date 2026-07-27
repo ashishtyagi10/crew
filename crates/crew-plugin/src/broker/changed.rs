@@ -41,7 +41,7 @@ pub(crate) fn since(dir: &Path, base: &str) -> Result<Vec<Change>, String> {
 /// is the case this feature most needs to stay quiet for. It goes unnoticed in
 /// crew's own repo, where `.crew/` is gitignored and so never in the tree at
 /// all; in a user's repo it is not ignored and would be the only line.
-fn is_crew_artifact(path: &str) -> bool {
+pub(super) fn is_crew_artifact(path: &str) -> bool {
     path == ".crew" || path.starts_with(".crew/")
 }
 

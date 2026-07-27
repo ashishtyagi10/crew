@@ -202,3 +202,95 @@ fn the_sequence_survives_a_restart() {
     assert_eq!(next_seq(&dir), 2, "a fresh process must not reuse a number");
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// An undo that leaves half the change is not an undo. The agent edits a file
+/// AND writes a new one; restoring put the edit back and left the new module
+/// sitting there, for the user to find and delete by hand.
+#[test]
+fn restore_removes_what_the_task_created() {
+    let dir = temp_repo("undo-created");
+    snapshot(&dir, "before the task").unwrap();
+    let sha = &list(&dir).unwrap()[0].0.clone();
+
+    std::fs::write(dir.join("a.txt"), "wrecked").unwrap();
+    std::fs::create_dir_all(dir.join("src/deep")).unwrap();
+    std::fs::write(dir.join("src/deep/half_written.rs"), "fn oops() {").unwrap();
+
+    let removed = restore(&dir, sha).unwrap();
+    assert_eq!(removed, vec!["src/deep/half_written.rs".to_string()]);
+    assert_eq!(std::fs::read_to_string(dir.join("a.txt")).unwrap(), "one");
+    assert!(!dir.join("src/deep/half_written.rs").exists());
+    // …and no trail of empty folders where the file used to be.
+    assert!(!dir.join("src").exists(), "empty directories survived");
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// Files that were ALREADY there when the snapshot was taken are not part of
+/// the change and must survive. This is why the removal is a set difference
+/// against the snapshot and not `git clean`, which would take them.
+#[test]
+fn restore_keeps_files_that_predate_the_snapshot() {
+    let dir = temp_repo("undo-predates");
+    std::fs::write(dir.join("mine.txt"), "written before any agent ran").unwrap();
+    snapshot(&dir, "before the task").unwrap();
+    let sha = &list(&dir).unwrap()[0].0.clone();
+
+    std::fs::write(dir.join("agents.txt"), "written by the task").unwrap();
+    let removed = restore(&dir, sha).unwrap();
+
+    assert_eq!(removed, vec!["agents.txt".to_string()]);
+    assert!(dir.join("mine.txt").exists(), "an older file was deleted");
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// Build output and untracked secrets are ignored files: absent from the
+/// snapshot AND from the worktree listing, so they can never be candidates.
+/// Deleting somebody's `.env` because an agent ran would be unforgivable.
+#[test]
+fn restore_never_touches_ignored_files() {
+    let dir = temp_repo("undo-ignored");
+    std::fs::write(dir.join(".gitignore"), "target/\n.env\n").unwrap();
+    snapshot(&dir, "before the task").unwrap();
+    let sha = &list(&dir).unwrap()[0].0.clone();
+
+    std::fs::create_dir_all(dir.join("target")).unwrap();
+    std::fs::write(dir.join("target/build.o"), "artifact").unwrap();
+    std::fs::write(dir.join(".env"), "SECRET=1").unwrap();
+
+    let removed = restore(&dir, sha).unwrap();
+    assert!(removed.is_empty(), "removed ignored files: {removed:?}");
+    assert!(dir.join(".env").exists(), "deleted a secret");
+    assert!(dir.join("target/build.o").exists(), "deleted build output");
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// Crew's own live transcript is written DURING the session doing the
+/// restoring. Deleting it would be the tool undoing itself.
+#[test]
+fn restore_leaves_crews_own_transcript_alone() {
+    let dir = temp_repo("undo-crewdir");
+    snapshot(&dir, "before the task").unwrap();
+    let sha = &list(&dir).unwrap()[0].0.clone();
+
+    std::fs::create_dir_all(dir.join(".crew")).unwrap();
+    std::fs::write(dir.join(".crew/session-live.md"), "## this session").unwrap();
+
+    let removed = restore(&dir, sha).unwrap();
+    assert!(removed.is_empty(), "{removed:?}");
+    assert!(dir.join(".crew/session-live.md").exists());
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// A deletion nobody is told about is not an undo, it is a surprise.
+#[test]
+fn the_reply_names_what_it_deleted() {
+    assert_eq!(removed_note(&[]), "", "a plain restore says nothing extra");
+    let one = removed_note(&["src/a.rs".to_string()]);
+    assert!(one.contains("removed 1 file created since"), "{one}");
+    assert!(one.contains("src/a.rs"), "{one}");
+    let many: Vec<String> = (0..7).map(|i| format!("f{i}.rs")).collect();
+    let note = removed_note(&many);
+    assert!(note.contains("removed 7 files"), "{note}");
+    assert!(note.contains("f3.rs") && !note.contains("f4.rs"), "{note}");
+    assert!(note.ends_with(", +3 more"), "{note}");
+}

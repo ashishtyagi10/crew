@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.6.85
+
+- `/restore` removes the files the task created, instead of putting the edits
+  back and leaving the new ones for you to find and delete by hand. An undo
+  that covers half a change is not an undo, and the half it skipped was the
+  one most likely to be unwanted — the half-written module a run was abandoned
+  over. It names every file it deletes.
+- Nothing that predates the snapshot is touched, and ignored files — build
+  output, an untracked `.env` — are never candidates.
+
 ## 0.6.84
 
 - `/review` reviews the files the agent created, and `/commit` describes them.
