@@ -33,17 +33,14 @@ type Seg = (String, Fg);
 /// Ids, not just a count, because `/stop #n` cancels one and the id is the
 /// only way to name it. Past three, the ids stop fitting and the count is the
 /// information; anyone at that point wants `/stop` (all) anyway.
-fn running_seg(ids: &[u64]) -> Option<String> {
+fn running_seg(ids: &[u64], cols: usize) -> Option<(String, Option<String>)> {
     match ids {
         [] => None,
-        many if many.len() > 3 => Some(format!(" \u{00b7} {} running", many.len())),
+        many if many.len() > 3 => Some((format!("{} running", many.len()), None)),
         many => {
             let list: Vec<String> = many.iter().map(|i| format!("#{i}")).collect();
-            Some(format!(
-                " \u{00b7} running {} \u{00b7} /stop {} to cancel",
-                list.join(" "),
-                list[0],
-            ))
+            let how = (cols >= 60).then(|| format!("/stop {} to cancel", list[0]));
+            Some((format!("running {}", list.join(" ")), how))
         }
     }
 }
@@ -176,11 +173,17 @@ const P_CWD: u8 = 4;
 
 /// Join colored segments with a muted ` | `, then explode to per-char cells.
 fn join(segs: &[Seg]) -> Vec<(char, Fg)> {
+    join_with(segs, " | ")
+}
+
+/// [`join`] with an explicit separator. Line 3 keeps the lighter `·` it has
+/// always used — it is one thought with asides, not a row of readings.
+fn join_with(segs: &[Seg], sep: &str) -> Vec<(char, Fg)> {
     let muted = crew_theme::theme().text_muted;
     let mut out = Vec::new();
     for (i, (s, fg)) in segs.iter().enumerate() {
         if i > 0 {
-            out.extend(" | ".chars().map(|c| (c, muted)));
+            out.extend(sep.chars().map(|c| (c, muted)));
         }
         out.extend(s.chars().map(|c| (c, *fg)));
     }
@@ -274,21 +277,32 @@ pub(crate) fn footer_lines(fc: &FooterCtx, cols: usize) -> Vec<Vec<(char, Fg)>> 
         Some(name) => format!("\u{25b6}\u{25b6} @{name} relay"),
         None => "\u{25b6}\u{25b6} swarm mode".to_string(),
     };
-    let mut l3: Vec<(char, Fg)> = mode.chars().map(|c| (c, yellow)).collect();
-    // A pending plan outranks everything else on this line: it is a question
-    // addressed to the user, and nothing else here is.
+    // Line 3 budgets like the others. It used to be built as one string and
+    // clipped, which on a 40-column pane cut "enter runs it · esc discards
+    // it" in half — teaching the user how to accept a plan and not how to
+    // decline it. Half an instruction is worse than none.
+    let mut l3s: Vec<(Seg, u8)> = vec![((mode, yellow), 1)];
     if fc.plan_pending {
-        let ask = " \u{00b7} plan ready \u{00b7} enter runs it \u{00b7} esc discards it";
-        l3.extend(ask.chars().map(|c| (c, green)));
-        return vec![join(&l1), join(&l2), l3];
-    }
-    match running_seg(fc.running_tasks) {
-        Some(s) => l3.extend(s.chars().map(|c| (c, green))),
-        None => {
-            let hints = " \u{00b7} / for constructs \u{00b7} @ to relay to an agent";
-            l3.extend(hints.chars().map(|c| (c, muted)));
+        // A pending plan outranks everything else here: it is the only thing
+        // on this line addressed TO the user. The keys go compact rather than
+        // missing when the pane is narrow.
+        let keys = if cols >= 60 {
+            "enter runs it \u{00b7} esc discards it"
+        } else {
+            "enter/esc"
+        };
+        l3s.push((("plan ready".to_string(), green), 0));
+        l3s.push(((keys.to_string(), green), 0));
+    } else if let Some((what, how)) = running_seg(fc.running_tasks, cols) {
+        l3s.push(((what, green), 0));
+        if let Some(how) = how {
+            l3s.push(((how, green), 2));
         }
+    } else {
+        l3s.push((("/ for constructs".to_string(), muted), 2));
+        l3s.push((("@ to relay to an agent".to_string(), muted), 3));
     }
+    let l3 = join_with(&budget(l3s, cols), " \u{00b7} ");
 
     // Line 1 priorities: who is answering, then the spend, then the cost,
     // then the branch; the directory is the first thing to go (it is also

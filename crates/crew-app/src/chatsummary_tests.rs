@@ -326,3 +326,39 @@ fn the_roster_is_the_last_thing_to_go() {
     );
     assert!(tiny.chars().count() <= 20, "{tiny}");
 }
+
+/// Line 3 budgets too. It used to be one string, clipped — so a 40-column
+/// pane showed "enter runs it" and cut "esc discards it", teaching how to
+/// accept a plan and not how to decline it. Half an instruction is worse
+/// than none.
+#[test]
+fn line3_fits_and_never_teaches_half_an_answer() {
+    let agents = [agent("coder", "m")];
+    let ctxm = HashMap::new();
+    for cols in [24usize, 30, 40, 60, 80, 120] {
+        // Idle: the mode outranks the hints.
+        let f = fc(&agents, &ctxm);
+        let idle = text(&footer_lines(&f, cols)[2]);
+        assert!(idle.chars().count() <= cols, "idle {cols}: {idle}");
+
+        // A pending plan: both keys survive together or neither does.
+        let mut g = fc(&agents, &ctxm);
+        g.plan_pending = true;
+        let plan = text(&footer_lines(&g, cols)[2]);
+        assert!(plan.chars().count() <= cols, "plan {cols}: {plan}");
+        assert!(plan.contains("plan ready"), "plan {cols}: {plan}");
+        let has_accept = plan.contains("enter");
+        let has_decline = plan.contains("esc");
+        assert_eq!(
+            has_accept, has_decline,
+            "{cols} cols taught half the answer: {plan}"
+        );
+
+        // Running: the ids outrank the way to cancel them.
+        let mut h = fc(&agents, &ctxm);
+        h.running_tasks = &[3, 5];
+        let busy = text(&footer_lines(&h, cols)[2]);
+        assert!(busy.chars().count() <= cols, "busy {cols}: {busy}");
+        assert!(busy.contains("running #3 #5"), "busy {cols}: {busy}");
+    }
+}
