@@ -35,6 +35,12 @@ impl CrewConfig {
             .unwrap_or_else(|| crew_theme::theme().accent_default)
     }
 
+    /// The configured frosted-glass strength; an unknown name falls back to the
+    /// default rather than silently rendering flat.
+    pub fn glass_level(&self) -> crew_theme::GlassLevel {
+        crew_theme::GlassLevel::parse(&self.glass).unwrap_or(crew_theme::GlassLevel::Medium)
+    }
+
     pub fn clamped(self) -> Self {
         Self {
             last_seen_version: None,
@@ -62,6 +68,10 @@ impl CrewConfig {
             paper_texture: self.paper_texture,
             paper_grain: self.paper_grain.clamp(0.0, 2.0),
             crt: self.crt,
+            glass: self.glass,
+            // A window that can be dialled to invisible is a window you cannot
+            // find again; the floor keeps crew recoverable from any setting.
+            window_opacity: self.window_opacity.clamp(MIN_WINDOW_OPACITY, 1.0),
             font_weight: self.font_weight.clamp(300, 900),
             usage_budget_5h: self.usage_budget_5h.max(10_000),
             usage_budget_7d: self.usage_budget_7d.max(10_000),

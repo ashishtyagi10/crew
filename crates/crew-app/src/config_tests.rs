@@ -119,6 +119,8 @@ fn round_trip() {
         paper_texture: false,
         paper_grain: 0.5,
         crt: Some(true),
+        glass: "high".to_string(),
+        window_opacity: 0.85,
         font_weight: 700,
         usage_budget_5h: 1_000_000,
         usage_budget_7d: 12_000_000,

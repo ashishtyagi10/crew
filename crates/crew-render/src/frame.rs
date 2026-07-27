@@ -33,7 +33,11 @@ pub(crate) fn encode(
                         r: bg_f32[0] as f64,
                         g: bg_f32[1] as f64,
                         b: bg_f32[2] as f64,
-                        a: 1.0,
+                        // Carries the window opacity (see `Renderer::frame`) —
+                        // a hard 1.0 here would make the window opaque no
+                        // matter what the paper pass writes, and with the paper
+                        // texture off there IS no paper pass.
+                        a: bg_f32[3] as f64,
                     }),
                     store: wgpu::StoreOp::Store,
                 },

@@ -1,6 +1,7 @@
 use super::*;
 use crate::cellgrid::{default_bg, CellView};
 use crate::celltext::FontParams;
+use crew_theme::GlassLevel;
 use glyphon::FontSystem;
 
 fn cell(col: u16, row: u16, c: char, bg: (u8, u8, u8)) -> CellView {
@@ -38,6 +39,27 @@ fn pane(cells: Vec<CellView>, bordered: bool, overlay: bool) -> PaneScene {
     }
 }
 
+/// `build_scene` with the arguments these tests never vary. `glass` stays
+/// explicit — several tests below are about exactly that argument.
+fn build(
+    panes: &[PaneScene],
+    fs: &mut FontSystem,
+    want_overlay: bool,
+    glass: GlassLevel,
+) -> ScenePass {
+    build_scene(
+        panes,
+        8.0,
+        16.0,
+        fs,
+        &params(),
+        want_overlay,
+        false,
+        glass,
+        (vec![], vec![]),
+    )
+}
+
 #[test]
 fn bg_quads_only_for_non_default_cells() {
     let mut fs = FontSystem::new();
@@ -46,16 +68,7 @@ fn bg_quads_only_for_non_default_cells() {
         false,
         false,
     )];
-    let (quads, buffers, _sigs, borders) = build_scene(
-        &panes,
-        8.0,
-        16.0,
-        &mut fs,
-        &params(),
-        false,
-        false,
-        (vec![], vec![]),
-    );
+    let (quads, buffers, _sigs, borders, _cards) = build(&panes, &mut fs, false, GlassLevel::Off);
     assert_eq!(quads.len(), 1, "only the non-default-bg cell gets a quad");
     assert_eq!(buffers.len(), 1);
     assert!(borders.is_empty());
@@ -66,15 +79,11 @@ fn bg_quads_only_for_non_default_cells() {
 #[test]
 fn bordered_pane_emits_a_border() {
     let mut fs = FontSystem::new();
-    let (_q, _b, _s, borders) = build_scene(
+    let (_q, _b, _s, borders, _c) = build(
         &[pane(vec![], true, false)],
-        8.0,
-        16.0,
         &mut fs,
-        &params(),
         false,
-        false,
-        (vec![], vec![]),
+        GlassLevel::Off,
     );
     assert_eq!(borders.len(), 1);
 }
@@ -87,29 +96,11 @@ fn want_overlay_partitions_panes() {
         pane(vec![cell(0, 0, 'y', (4, 5, 6))], false, true),
     ];
     // Base pass: only the non-overlay pane (bordered → one border).
-    let (q, b, _s, bd) = build_scene(
-        &panes,
-        8.0,
-        16.0,
-        &mut fs,
-        &params(),
-        false,
-        false,
-        (vec![], vec![]),
-    );
+    let (q, b, _s, bd, _c) = build(&panes, &mut fs, false, GlassLevel::Off);
     assert_eq!((q.len(), b.len(), bd.len()), (1, 1, 1));
     // Overlay pass: only the overlay pane (bordered:false → no border). Two
     // quads: the full-rect black backdrop plus the one non-default-bg cell.
-    let (q2, b2, _s2, bd2) = build_scene(
-        &panes,
-        8.0,
-        16.0,
-        &mut fs,
-        &params(),
-        true,
-        false,
-        (vec![], vec![]),
-    );
+    let (q2, b2, _s2, bd2, _c2) = build(&panes, &mut fs, true, GlassLevel::Off);
     assert_eq!((q2.len(), b2.len(), bd2.len()), (2, 1, 0));
 }
 
@@ -118,16 +109,7 @@ fn overlay_pane_gets_an_opaque_page_bg_backdrop() {
     let mut fs = FontSystem::new();
     // An overlay pane with only default-bg cells still gets a backdrop.
     let panes = vec![pane(vec![cell(0, 0, 'y', default_bg())], false, true)];
-    let (quads, _b, _s, _bd) = build_scene(
-        &panes,
-        8.0,
-        16.0,
-        &mut fs,
-        &params(),
-        true,
-        false,
-        (vec![], vec![]),
-    );
+    let (quads, _b, _s, _bd, _c) = build(&panes, &mut fs, true, GlassLevel::Off);
     assert_eq!(quads.len(), 1, "the backdrop quad, no per-cell quad");
     let q = &quads[0];
     assert_eq!((q.x, q.y, q.w, q.h), (0.0, 0.0, 80.0, 40.0)); // spans the pane
@@ -144,25 +126,12 @@ fn focused_border_is_brighter_than_unfocused() {
     let mut fs = FontSystem::new();
     let mut p = pane(vec![], true, false);
     p.focused = true;
-    let (_q, _b, _s, focused) = build_scene(
-        &[p],
-        8.0,
-        16.0,
-        &mut fs,
-        &params(),
-        false,
-        false,
-        (vec![], vec![]),
-    );
-    let (_q2, _b2, _s2, normal) = build_scene(
+    let (_q, _b, _s, focused, _c) = build(&[p], &mut fs, false, GlassLevel::Off);
+    let (_q2, _b2, _s2, normal, _c2) = build(
         &[pane(vec![], true, false)],
-        8.0,
-        16.0,
         &mut fs,
-        &params(),
         false,
-        false,
-        (vec![], vec![]),
+        GlassLevel::Off,
     );
     let t = crew_theme::theme();
     let f = |c: (u8, u8, u8)| {
@@ -175,4 +144,71 @@ fn focused_border_is_brighter_than_unfocused() {
     };
     assert_eq!(focused[0].color, f(t.border_focused));
     assert_eq!(normal[0].color, f(t.border_normal));
+}
+
+// --- glass ------------------------------------------------------------------
+
+#[test]
+fn glass_card_matches_the_pane_rect_and_border_radius() {
+    let mut fs = FontSystem::new();
+    let (_q, _b, _s, borders, cards) = build(
+        &[pane(vec![], true, false)],
+        &mut fs,
+        false,
+        GlassLevel::Medium,
+    );
+    assert_eq!(cards.len(), 1);
+    let c = &cards[0];
+    assert_eq!((c.x, c.y, c.w, c.h), (0.0, 0.0, 80.0, 40.0));
+    // The sheet must share the border's geometry exactly, or the frost and the
+    // stroke drift apart at the corners.
+    assert_eq!(c.radius, borders[0].radius);
+}
+
+#[test]
+fn glass_off_builds_no_cards() {
+    let mut fs = FontSystem::new();
+    let (_q, _b, _s, _bd, cards) = build(
+        &[pane(vec![], true, false)],
+        &mut fs,
+        false,
+        GlassLevel::Off,
+    );
+    assert!(cards.is_empty(), "Off must cost nothing to draw");
+}
+
+/// A pane drawing its own cell-based frame has no rounded rect to fill, so a
+/// glass card would be a floating sheet with no border to sit inside.
+#[test]
+fn unbordered_panes_get_no_glass() {
+    let mut fs = FontSystem::new();
+    let (_q, _b, _s, _bd, cards) = build(
+        &[pane(vec![], false, false)],
+        &mut fs,
+        false,
+        GlassLevel::High,
+    );
+    assert!(cards.is_empty());
+}
+
+/// Overlay popups are deliberately opaque so nothing behind them bleeds
+/// through — glass under one would undo that.
+#[test]
+fn overlay_panes_get_no_glass() {
+    let mut fs = FontSystem::new();
+    let (_q, _b, _s, _bd, cards) =
+        build(&[pane(vec![], true, true)], &mut fs, true, GlassLevel::High);
+    assert!(cards.is_empty());
+}
+
+#[test]
+fn level_scales_the_cards_it_builds() {
+    let mut fs = FontSystem::new();
+    let mut card = |lvl| {
+        let (_q, _b, _s, _bd, cards) = build(&[pane(vec![], true, false)], &mut fs, false, lvl);
+        cards.into_iter().next().expect("expected a glass card")
+    };
+    let low = card(GlassLevel::Low).alpha_top;
+    let high = card(GlassLevel::High).alpha_top;
+    assert!(low < high, "Low {low} should be fainter than High {high}");
 }

@@ -18,9 +18,16 @@ impl ApplicationHandler for CrewApp {
         // Restore the last window size (logical px), defaulting to 1200x800.
         let w = self.config.win_w.unwrap_or(1200.0).max(400.0);
         let h = self.config.win_h.unwrap_or(800.0).max(300.0);
+        // Always transparency-CAPABLE, even when fully opaque. Transparency is
+        // a window-creation attribute — asking for it later would mean tearing
+        // the window down — so requesting it up front is what lets
+        // `/glass window` take effect live instead of after a restart. At
+        // opacity 1.0 (the default) the frame is byte-identical to an opaque
+        // one, because nothing crew draws leaves alpha below 1.
         let attrs = Window::default_attributes()
             .with_title("Crew")
             .with_resizable(true)
+            .with_transparent(true)
             .with_inner_size(LogicalSize::new(w, h));
         // Taskbar/window icon + app_id so Windows/Linux match the menu entry
         // (macOS gets its icon from the bundle + dockicon::set()).
@@ -35,18 +42,24 @@ impl ApplicationHandler for CrewApp {
         };
         let window = Arc::new(event_loop.create_window(attrs).expect("create window"));
 
-        // Say so when this is not the build that ran last. Auto-update lands
-        // quietly and applies on restart, so without this a user can find
-        // themselves in a different app with no idea why.
-        if let Some(note) =
-            crate::appregister::version_change_note(self.config.last_seen_version.as_deref())
-        {
-            // Held for the first FRAME, not flashed now: a status expires
-            // after three seconds and a cold launch takes far longer than
-            // that to draw anything, so flashing here would lose the note on
-            // exactly the launch it exists for.
-            self.pending_note = Some(note);
-        }
+        // Two things can want the launch note. A crash outranks a version
+        // banner — the user watched the window vanish for no stated reason, and
+        // saying so is the whole point of `crashlog` — but when BOTH happened
+        // (an update landed and then the run died) neither is dropped, because
+        // `last_seen_version` is stamped below either way and a suppressed
+        // version note would never come back.
+        let crash = crate::crashlog::take_report().map(|s| crate::crashlog::crash_note(&s));
+        let version =
+            crate::appregister::version_change_note(self.config.last_seen_version.as_deref());
+        // Held for the first FRAME, not flashed now: a status expires after
+        // three seconds and a cold launch takes far longer than that to draw
+        // anything, so flashing here would lose the note on exactly the launch
+        // it exists for.
+        self.pending_note = match (crash, version) {
+            (Some(c), Some(v)) => Some(format!("{c} · {v}")),
+            (Some(c), None) => Some(c),
+            (None, v) => v,
+        };
         if self.config.last_seen_version.as_deref() != Some(crate::appregister::VERSION) {
             self.config.last_seen_version = Some(crate::appregister::VERSION.to_string());
             self.config.save();
@@ -77,6 +90,8 @@ impl ApplicationHandler for CrewApp {
                 renderer.set_font_weight(Some(self.config.font_weight));
                 renderer.set_paper_texture(self.config.paper_texture);
                 renderer.set_paper_grain(self.config.paper_grain);
+                renderer.set_glass(self.config.glass_level());
+                renderer.set_window_opacity(self.config.window_opacity);
                 if self.config.maximized {
                     window.set_maximized(true);
                 }

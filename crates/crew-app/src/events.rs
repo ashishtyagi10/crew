@@ -28,7 +28,19 @@ impl CrewApp {
     /// Handle one `WindowEvent` for the main window.
     pub(crate) fn handle_window_event(&mut self, event_loop: &ActiveEventLoop, event: WindowEvent) {
         match event {
-            WindowEvent::CloseRequested => event_loop.exit(),
+            // The close button gets the SAME confirmation as Cmd+Q. It used to
+            // exit outright, which meant the guard protecting running
+            // shells/agents from a stray keystroke did nothing about a stray
+            // click on the traffic light — the easier of the two to hit by
+            // accident, and unlike a keystroke it can't be typed into a pane
+            // instead. A second click within the window still closes.
+            WindowEvent::CloseRequested => {
+                if self.confirm_quit() {
+                    event_loop.exit();
+                } else {
+                    self.redraw();
+                }
+            }
             WindowEvent::ModifiersChanged(mods) => self.mods = mods,
             WindowEvent::CursorMoved { position, .. } => {
                 self.cursor = (position.x as f32, position.y as f32);

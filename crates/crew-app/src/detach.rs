@@ -48,7 +48,30 @@ pub fn restart_command() -> anyhow::Result<(std::path::PathBuf, Vec<String>)> {
     Ok((exe, args))
 }
 
-/// Spawn a detached copy of ourselves (new session, stdio → null) and return
+/// Where the detached child's stderr goes. A file if we can open one, else
+/// null as before.
+///
+/// This used to be unconditionally `/dev/null`, which meant a detached crew
+/// threw away every panic message, every wgpu/winit warning, and the
+/// `eprintln!`s this crate already writes on GPU-init and socket failures. A
+/// crash then left NOTHING behind — see [`crate::crashlog`]. Appending (never
+/// truncating) matters: the log has to survive the restart that follows a
+/// crash, or it is erased by exactly the event it exists to explain.
+fn child_stderr() -> Stdio {
+    let Some(path) = crate::crashlog::stderr_path() else {
+        return Stdio::null();
+    };
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&path)
+        .map_or_else(|_| Stdio::null(), Stdio::from)
+}
+
+/// Spawn a detached copy of ourselves (new session, stderr → log) and return
 /// its pid — shared by the detached launch path and `/restart`.
 pub fn spawn_detached_copy() -> anyhow::Result<u32> {
     let (exe, args) = restart_command()?;
@@ -57,7 +80,7 @@ pub fn spawn_detached_copy() -> anyhow::Result<u32> {
         .env(DETACHED_ENV, "1")
         .stdin(Stdio::null())
         .stdout(Stdio::null())
-        .stderr(Stdio::null());
+        .stderr(child_stderr());
     detach_session(&mut cmd);
     Ok(cmd.spawn()?.id())
 }

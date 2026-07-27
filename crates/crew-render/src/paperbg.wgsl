@@ -110,5 +110,8 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
         base * (1.0 + n * 0.05)
             + vec3<f32>((n * 0.5 + n2 * 0.7) * A_DARK * dark_weight),
         vec3<f32>(0.0), vec3<f32>(1.0));
-    return vec4<f32>(rgb, 1.0);
+    // Alpha comes from the page colour, not a hard 1.0: it carries the window
+    // opacity, so a translucent window lets the desktop through the paper while
+    // text and pane fills (which blend on top) stay solid.
+    return vec4<f32>(rgb, u.page_bg.a);
 }

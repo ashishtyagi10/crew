@@ -60,6 +60,7 @@ mod cmdcheck;
 mod cmddefs;
 mod cmdmenu;
 pub mod config;
+mod crashlog;
 mod ctxlimit;
 mod cwd;
 mod detach;
@@ -80,6 +81,9 @@ mod fonttick;
 mod framegeo;
 mod gauges;
 mod git;
+#[cfg(test)]
+#[path = "glassshot_tests.rs"]
+mod glassshot_tests;
 pub(crate) mod grid;
 mod gridrows;
 mod gridsel;
@@ -210,6 +214,11 @@ usage:
 ";
 
 fn main() -> anyhow::Result<()> {
+    // First line of the program: a panic before this point would be invisible.
+    // A detached crew has stderr on /dev/null and a panic exits through the
+    // normal path (so the OS files no crash report) — without this hook the
+    // window just disappears and leaves nothing to diagnose.
+    crashlog::install();
     // Answered before anything else: these must never reach the GUI launch.
     let args: Vec<String> = std::env::args().skip(1).collect();
     match cli_intent(&args) {

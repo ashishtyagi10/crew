@@ -4,6 +4,7 @@ use glyphon::{
 
 use crate::celltext::{base_weight, cell_metrics, FontParams};
 use crate::fontlist::monospace_families;
+use crate::glass::GlassLayer;
 use crate::quads::QuadLayer;
 use crate::roundborder::RoundBorderLayer;
 use crate::scene::{build_both, PaneScene};
@@ -58,6 +59,10 @@ pub struct CellGrid {
     quad_layer: QuadLayer,
     overlay_quad_layer: QuadLayer,
     round_border_layer: RoundBorderLayer,
+    /// Frosted sheets drawn beneath everything else in the base pass.
+    glass_layer: GlassLayer,
+    /// How strong the glass is; `Off` builds no cards at all.
+    glass_level: crew_theme::GlassLevel,
     pub(crate) cell_w: f32,
     pub(crate) cell_h: f32,
     font_size: f32,
@@ -103,6 +108,7 @@ impl CellGrid {
         let quad_layer = QuadLayer::new(device, format);
         let overlay_quad_layer = QuadLayer::new(device, format);
         let round_border_layer = RoundBorderLayer::new(device, format);
+        let glass_layer = GlassLayer::new(device, format);
 
         Self {
             font_system,
@@ -116,6 +122,8 @@ impl CellGrid {
             quad_layer,
             overlay_quad_layer,
             round_border_layer,
+            glass_layer,
+            glass_level: crew_theme::GlassLevel::Medium,
             cell_w,
             cell_h,
             font_size,
@@ -148,6 +156,11 @@ impl CellGrid {
         self.font_family = family.filter(|n| !n.is_empty());
     }
 
+    /// Set the frosted-glass strength. Applied next frame.
+    pub fn set_glass(&mut self, level: crew_theme::GlassLevel) {
+        self.glass_level = level;
+    }
+
     /// Sorted, de-duplicated names of all installed monospace font families
     /// (verified fixed-pitch — `&mut` because verification loads the faces).
     pub fn monospace_families(&mut self) -> Vec<String> {
@@ -177,19 +190,21 @@ impl CellGrid {
                 .unwrap_or_else(|| base_weight(crew_theme::theme().dark)),
         };
         let (cw, ch) = (self.cell_w, self.cell_h);
-        let ((quads, buffers, sigs, borders), (oquads, obuffers, osigs, _)) = build_both(
+        let ((quads, buffers, sigs, borders, cards), (oquads, obuffers, osigs, _, _)) = build_both(
             panes,
             cw,
             ch,
             &mut self.font_system,
             &params,
             self.srgb,
+            self.glass_level,
             self.base.take_prev(),
             self.overlay.take_prev(),
         );
         self.quad_layer.set_quads(device, &quads);
         self.overlay_quad_layer.set_quads(device, &oquads);
         self.round_border_layer.set_borders(device, &borders);
+        self.glass_layer.set_cards(device, &cards);
         self.base.set(sigs, buffers);
         self.overlay.set(osigs, obuffers);
     }
@@ -201,6 +216,7 @@ impl CellGrid {
         self.quad_layer.set_viewport(queue, w, h);
         self.overlay_quad_layer.set_viewport(queue, w, h);
         self.round_border_layer.set_viewport(queue, w, h);
+        self.glass_layer.set_viewport(queue, w, h);
         self.viewport.update(queue, Resolution { width, height });
 
         prepare_renderer(
@@ -225,10 +241,15 @@ impl CellGrid {
         );
     }
 
-    /// Draw base panes (backgrounds → borders → text), then overlay popups
-    /// (backgrounds → text) on top, so overlays are fully opaque — no pane text
-    /// behind them can bleed through.
+    /// Draw base panes (glass → backgrounds → borders → text), then overlay
+    /// popups (backgrounds → text) on top, so overlays are fully opaque — no
+    /// pane text behind them can bleed through.
+    ///
+    /// Glass goes first, over the paper background but under everything the
+    /// pane itself draws: the sheet must tint the page it sits on, never the
+    /// text or selection highlights sitting on the sheet.
     pub fn draw<'a>(&'a self, pass: &mut wgpu::RenderPass<'a>) {
+        self.glass_layer.draw(pass);
         self.quad_layer.draw(pass);
         self.round_border_layer.draw(pass);
         self.renderer

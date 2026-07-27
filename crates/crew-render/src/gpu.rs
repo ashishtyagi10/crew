@@ -24,6 +24,22 @@ pub(crate) fn pick_surface_format(formats: &[wgpu::TextureFormat]) -> wgpu::Text
         .unwrap_or(formats[0])
 }
 
+/// Prefer an alpha mode the compositor actually honours, so the window can be
+/// made translucent at runtime (`/glass window …`). Our shaders write STRAIGHT
+/// (non-premultiplied) alpha, hence `PostMultiplied` first; `PreMultiplied` is
+/// accepted as a fallback because on the platforms that offer only it, an
+/// opaque frame (alpha 1.0 — the default) is identical either way. `Opaque`
+/// discards alpha entirely and is the last resort.
+pub(crate) fn pick_alpha_mode(modes: &[wgpu::CompositeAlphaMode]) -> wgpu::CompositeAlphaMode {
+    use wgpu::CompositeAlphaMode as M;
+    for want in [M::PostMultiplied, M::PreMultiplied] {
+        if modes.contains(&want) {
+            return want;
+        }
+    }
+    modes.first().copied().unwrap_or(M::Auto)
+}
+
 impl Gpu {
     pub fn new(window: Arc<Window>) -> anyhow::Result<Self> {
         let size = window.inner_size();
@@ -48,7 +64,7 @@ impl Gpu {
             width: size.width.max(1),
             height: size.height.max(1),
             present_mode: wgpu::PresentMode::Fifo,
-            alpha_mode: caps.alpha_modes[0],
+            alpha_mode: pick_alpha_mode(&caps.alpha_modes),
             view_formats: vec![],
             desired_maximum_frame_latency: 2,
         };
@@ -95,5 +111,37 @@ mod tests {
             pick_surface_format(&[F::Bgra8UnormSrgb, F::Rgba8UnormSrgb]),
             F::Bgra8UnormSrgb
         );
+    }
+
+    mod alpha {
+        use wgpu::CompositeAlphaMode as M;
+
+        use super::super::pick_alpha_mode;
+
+        /// Our shaders write straight alpha, so PostMultiplied is the mode that
+        /// composites a translucent window correctly.
+        #[test]
+        fn prefers_post_multiplied() {
+            assert_eq!(
+                pick_alpha_mode(&[M::Opaque, M::PostMultiplied]),
+                M::PostMultiplied
+            );
+            assert_eq!(
+                pick_alpha_mode(&[M::PostMultiplied, M::PreMultiplied, M::Opaque]),
+                M::PostMultiplied
+            );
+        }
+
+        #[test]
+        fn falls_back_to_premultiplied_then_to_whatever_exists() {
+            assert_eq!(
+                pick_alpha_mode(&[M::Opaque, M::PreMultiplied]),
+                M::PreMultiplied
+            );
+            // An Opaque-only platform still has to produce a working surface —
+            // the window simply cannot go translucent there.
+            assert_eq!(pick_alpha_mode(&[M::Opaque]), M::Opaque);
+            assert_eq!(pick_alpha_mode(&[]), M::Auto);
+        }
     }
 }

@@ -34,6 +34,22 @@ fn default_paper_grain() -> f32 {
     1.3
 }
 
+fn default_glass() -> String {
+    // Panes ship frosted. The look is derived per-theme (see `crew_theme::glass`),
+    // so this is only the strength; `/glass off` returns the flat cards.
+    "medium".to_string()
+}
+
+/// Floor for [`CrewConfig::window_opacity`]. Mirrors the renderer's own clamp:
+/// a window dialled to invisible is a window the user cannot get back.
+pub const MIN_WINDOW_OPACITY: f32 = 0.35;
+
+fn default_window_opacity() -> f32 {
+    // Opaque. Window translucency is opt-in via `/glass window <pct>` — a
+    // see-through terminal is a taste, not a default.
+    1.0
+}
+
 fn default_font_weight() -> u16 {
     // SemiBold. Heavier than the old Medium (500) base so body text reads
     // thicker and more substantial out of the box; /weight tunes it live.
@@ -114,6 +130,15 @@ pub struct CrewConfig {
     /// theme.
     #[serde(default)]
     pub crt: Option<bool>,
+    /// Frosted-glass strength for pane cards: `off`, `low`, `medium`, `high`.
+    /// The per-theme look is derived from the active theme, so this is the
+    /// intensity knob only. Set live with `/glass`.
+    #[serde(default = "default_glass")]
+    pub glass: String,
+    /// Window opacity, `1.0` = fully opaque. Below 1.0 the desktop shows
+    /// through the page (text and pane fills stay solid). `/glass window <pct>`.
+    #[serde(default = "default_window_opacity")]
+    pub window_opacity: f32,
     /// Base text weight on the CSS scale (400 normal … 900 black). Defaults to
     /// SemiBold (600) for a thicker body; set live with `/weight`.
     #[serde(default = "default_font_weight")]
@@ -154,6 +179,8 @@ impl Default for CrewConfig {
             paper_texture: true,
             paper_grain: default_paper_grain(),
             crt: None,
+            glass: default_glass(),
+            window_opacity: default_window_opacity(),
             font_weight: default_font_weight(),
             usage_budget_5h: default_usage_budget_5h(),
             usage_budget_7d: default_usage_budget_7d(),

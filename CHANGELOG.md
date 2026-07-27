@@ -8,6 +8,42 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.7.0
+
+- **Crew never disappears in silence again.** A panic on the winit thread used
+  to take the whole app down leaving *nothing* behind: a detached crew runs with
+  stderr on `/dev/null`, and a panic exits through the normal path so macOS
+  files no crash report — the window simply vanished. There is now a panic hook
+  that writes the message, location and backtrace to `crash.log` beside the
+  config, the detached child's stderr goes to `stderr.log` instead of being
+  thrown away, and the next launch says what happened and where to look.
+- **The window close button now confirms too.** Cmd+Q has always asked twice
+  when panes are open, so a stray keystroke couldn't kill running shells and
+  agents — but the traffic-light button called exit outright, and it is the
+  easier of the two to hit by accident (a misplaced keystroke usually just
+  lands in a pane; a misplaced click doesn't). Both paths now share one guard,
+  and the prompt names how many panes are at stake.
+- **Frosted glass on every theme.** Each pane card now sits on a translucent
+  sheet — a fill that fades from the top down, a specular hairline along the
+  upper edge, a soft drop shadow, and a whisper of frost grain. The look is
+  *derived* from the active theme rather than configured per palette, so all
+  thirteen get their own treatment and no future theme can ship without one:
+  dark themes lift a lighter sheet off the page, light themes lean on a whiter
+  sheet plus a real shadow, and CRT stays faint and grain-free because the tube
+  already supplies bloom and noise. `/glass [off|low|medium|high]`.
+- **`/glass window <pct>`** makes the window itself translucent, so the desktop
+  shows through the page while text and pane fills stay solid. Works under the
+  CRT post-process too. Opacity floors at 35% — a window any sheerer is one you
+  cannot find again.
+- Three keyboard shortcuts the app has always answered are now in the `/keys`
+  overlay: **Ctrl+Shift+L** (cycle themes) and **Ctrl+Shift+M** (chat markdown
+  preview ↔ source), which the manual documented and the overlay did not, and
+  **Ctrl+O** (compact transcript view), which was implemented, tested, and
+  listed nowhere a user could find it.
+- The overlay and the manual are now checked against each other, so a binding
+  cannot be added to one and forgotten in the other. The manual said `/keys`
+  shows "this list in-app"; that is now true.
+
 ## 0.6.99
 
 - `/crt` and `/weight` are in the manual. Both have been working, palette-listed

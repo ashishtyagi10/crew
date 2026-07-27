@@ -9,6 +9,11 @@ use crate::paperbg::PaperBgPass;
 use crate::scene::PaneScene;
 use crate::scenetarget::SceneTarget;
 
+/// Never let the window go so sheer that crew becomes unreadable (or, worse,
+/// unclickable-looking) — a translucency slider that can reach 0 is a way to
+/// lose the app entirely.
+const MIN_WINDOW_OPACITY: f32 = 0.35;
+
 /// Top-level renderer: owns `Gpu` + `CellGrid` and orchestrates the full frame.
 pub struct Renderer {
     gpu: Gpu,
@@ -16,6 +21,9 @@ pub struct Renderer {
     paper_bg: PaperBgPass,
     paper_texture: bool,
     paper_grain: f32,
+    /// Alpha the page background is cleared/drawn with. `1.0` is the opaque
+    /// window; lower lets the desktop through (see [`Self::set_window_opacity`]).
+    window_opacity: f32,
     // CRT post-process: when `crt_on`, render into `scene_target` then
     // reproject through `crt`; otherwise the frame draws straight to the surface.
     crt: CrtPass,
@@ -42,6 +50,7 @@ impl Renderer {
             // Matches config's default_paper_grain; the app calls set_paper_grain
             // right after construction, so this is just a sane standalone default.
             paper_grain: 1.3,
+            window_opacity: 1.0,
             crt,
             scene_target,
             crt_on: false,
@@ -68,6 +77,18 @@ impl Renderer {
     /// Enable or disable the paper grain + vignette background pass.
     pub fn set_paper_texture(&mut self, enabled: bool) {
         self.paper_texture = enabled;
+    }
+
+    /// Set the frosted-glass strength for pane cards. The per-theme look is
+    /// derived from the active theme, so this is only the intensity knob.
+    pub fn set_glass(&mut self, level: crew_theme::GlassLevel) {
+        self.cell_grid.set_glass(level);
+    }
+
+    /// Set the window's opacity (1.0 = fully opaque). Below 1.0 the desktop
+    /// shows through everything crew draws.
+    pub fn set_window_opacity(&mut self, opacity: f32) {
+        self.window_opacity = opacity.clamp(MIN_WINDOW_OPACITY, 1.0);
     }
 
     /// Set the grain amplitude multiplier (0.0 = no grain, 1.0 = default ~±3%, 2.0 = double).
@@ -163,7 +184,10 @@ impl Renderer {
         // the surface (the original, zero-overhead path). See `frame::encode`.
         let use_crt = self.crt_on;
         let bg = crew_theme::theme().page_bg;
-        let bg_f32 = crate::color::target_rgba(bg, 1.0, self.gpu.format.is_srgb());
+        // The page alpha IS the window opacity: it seeds the clear and the
+        // paper pass, and everything drawn afterwards blends over it, so pane
+        // fills and text stay solid while the bare page shows the desktop.
+        let bg_f32 = crate::color::target_rgba(bg, self.window_opacity, self.gpu.format.is_srgb());
 
         if self.paper_texture {
             self.paper_bg.update_uniform(

@@ -190,11 +190,14 @@ Press **`/keys`** in the input bar for this list in-app.
 | Open URL / file / dir under cursor | **Cmd+Click** |
 | Cycle themes (dark → light → crt) | **Ctrl+Shift+L** |
 | Toggle chat markdown preview ↔ raw source | **Ctrl+Shift+M** |
+| Toggle the chat's compact transcript view | **Ctrl+O** (falls through to the terminal when the focused pane isn't a chat) |
+| Complete the leading `@agent` name or slash construct | **Tab** |
 | Insert a newline in a terminal | **Shift+Enter** (line feed, not submit) |
 | Close pane / maximize window | **Cmd+W** / **Cmd+M** |
 | Clear focused pane scrollback | **Cmd+K** (or `/clear`) |
-| Scroll any pane | **Shift+PageUp** / **Shift+PageDown** (Shift+Home/End jump to top/bottom), or mouse wheel |
-| Quit | **Cmd+Q** (press twice to confirm when panes are open) |
+| Scroll any pane | **Shift+PageUp** / **Shift+PageDown**, or mouse wheel |
+| Scroll to top / bottom | **Shift+Home** / **Shift+End** |
+| Quit | **Cmd+Q** — twice to confirm when panes are open, same as the window close button |
 
 Click a pane to focus it (click the input bar to focus that); double-click a
 pane to toggle zoom.
@@ -295,6 +298,23 @@ The docked command bar supports:
   otherwise — and is the default; `on`/`off` pin it either way, so you can run a
   paper theme through the tube or a CRT palette flat. No argument reports the
   current setting.
+- **`/glass [off|low|medium|high]`** — how frosted the pane cards are. Each
+  pane sits on a translucent sheet: a tinted fill that fades from the top down,
+  a bright specular hairline along the upper edge, a soft drop shadow, and a
+  whisper of frost grain. The *look* is derived from whichever theme is active
+  rather than configured per palette, so **every theme** — light, dark and CRT —
+  gets its own treatment automatically: dark themes lift a lighter sheet off the
+  page, light themes lean on a whiter sheet plus a real shadow (a light page
+  can't get lighter), and CRT stays deliberately faint and grain-free because
+  the tube already supplies bloom and noise. `medium` is the default; `off`
+  restores flat cards and costs nothing to draw. No argument reports the current
+  setting.
+- **`/glass window [<pct>|on|off]`** — makes the **window itself** translucent,
+  so your desktop shows through the page. Text, pane fills and selections stay
+  solid — only the bare page goes sheer. `on` is a sensible 85%, `off` is
+  opaque, or give a percentage (`/glass window 70`). Opacity floors at 35%: a
+  window dialled any sheerer is one you can't find again. Works with the CRT
+  post-process too — the tube shapes light, not transparency.
 - **`/weight [medium|semibold|bold|…]`** — the weight the text is rendered at,
   live and persisted. Useful when a font renders thin at your size or on a
   low-contrast display. No argument reports the current weight; selecting

@@ -72,7 +72,7 @@ fn pane_sig_ignores_position_but_not_size() {
 fn unchanged_pane_reuses_last_frames_buffer() {
     let mut fs = FontSystem::new();
     let panes = vec![pane(vec![cell(0, 0, 'a', (1, 2, 3))], false, false)];
-    let (_q, bufs, sigs, _bd) = build_scene(
+    let (_q, bufs, sigs, _bd, _c) = build_scene(
         &panes,
         8.0,
         16.0,
@@ -80,11 +80,12 @@ fn unchanged_pane_reuses_last_frames_buffer() {
         &params(),
         false,
         false,
+        crew_theme::GlassLevel::Off,
         (vec![], vec![]),
     );
     // Second frame, same content: the same signature comes back out and the
     // build succeeds while consuming the previous pass (buffer moved through).
-    let (_q2, bufs2, sigs2, _bd2) = build_scene(
+    let (_q2, bufs2, sigs2, _bd2, _c2) = build_scene(
         &panes,
         8.0,
         16.0,
@@ -92,6 +93,7 @@ fn unchanged_pane_reuses_last_frames_buffer() {
         &params(),
         false,
         false,
+        crew_theme::GlassLevel::Off,
         (sigs.clone(), bufs),
     );
     assert_eq!(sigs, sigs2);

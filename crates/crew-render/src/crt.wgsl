@@ -59,7 +59,8 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
         return vec4<f32>(0.0, 0.0, 0.0, 1.0);
     }
 
-    var col = textureSample(tex, samp, warped).rgb;
+    let scene = textureSample(tex, samp, warped);
+    var col = scene.rgb;
 
     // Phosphor glow: a cheap two-ring neighbour bloom adds a fraction of
     // nearby brightness so bright glyphs bleed a soft halo (real bloom would
@@ -118,5 +119,7 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     // Activity flicker: a small brightness wobble, exactly 0 when idle.
     col *= 1.0 + u.flicker * (hash1(u.time) - 0.5);
 
-    return vec4<f32>(clamp(col, vec3<f32>(0.0), vec3<f32>(1.0)), 1.0);
+    // Carry the scene's alpha through untouched — the tube effects shape light,
+    // not transparency, so a translucent window stays translucent under CRT.
+    return vec4<f32>(clamp(col, vec3<f32>(0.0), vec3<f32>(1.0)), scene.a);
 }

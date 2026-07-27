@@ -65,9 +65,11 @@ pub struct Theme {
     pub crt: bool,
 }
 
+mod glass;
 mod presets_crt;
 mod presets_paper;
 mod presets_paper_light;
+pub use glass::{style as glass_style, style_for as glass_style_for, GlassLevel, GlassStyle};
 pub use presets_crt::{CRT_AMBER, CRT_BLUE, CRT_GREEN, CRT_VIOLET};
 pub use presets_paper::{GRAPHITE, MIDNIGHT_INK, PAPER_DARK, PAPER_LIGHT, SEPIA_DARK};
 pub use presets_paper_light::{COLDPRESS_GRAY, IVORY_LEDGER, SALMON_BROADSHEET, SEPIA_LIGHT};

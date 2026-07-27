@@ -5,6 +5,7 @@ use glyphon::Buffer;
 
 use crate::cellgrid::{default_bg, CellView};
 use crate::celltext::{build_pane_buffer, FontParams};
+use crate::glass::GlassCard;
 use crate::quads::Quad;
 use crate::roundborder::Border;
 use crate::scenecache::{pane_sig, PrevPass};
@@ -31,8 +32,15 @@ pub struct PaneScene {
 
 const BORDER_RADIUS: f32 = 10.0;
 
-/// One built pass: quads, buffers (with this frame's signatures), borders.
-type ScenePass = (Vec<Quad>, Vec<PaneBuffer>, Vec<u64>, Vec<Border>);
+/// One built pass: quads, buffers (with this frame's signatures), borders and
+/// the frosted-glass cards drawn beneath them.
+type ScenePass = (
+    Vec<Quad>,
+    Vec<PaneBuffer>,
+    Vec<u64>,
+    Vec<Border>,
+    Vec<GlassCard>,
+);
 
 /// [`build_scene`] for both passes at once: `(base, overlay)`.
 #[allow(clippy::too_many_arguments)]
@@ -43,6 +51,7 @@ pub(crate) fn build_both(
     font_system: &mut glyphon::FontSystem,
     params: &FontParams,
     srgb: bool,
+    glass: crew_theme::GlassLevel,
     prev_base: PrevPass,
     prev_overlay: PrevPass,
 ) -> (ScenePass, ScenePass) {
@@ -54,6 +63,7 @@ pub(crate) fn build_both(
         params,
         false,
         srgb,
+        glass,
         prev_base,
     );
     let overlay = build_scene(
@@ -64,6 +74,7 @@ pub(crate) fn build_both(
         params,
         true,
         srgb,
+        glass,
         prev_overlay,
     );
     (base, overlay)
@@ -85,12 +96,17 @@ pub(crate) fn build_scene(
     params: &FontParams,
     want_overlay: bool,
     srgb: bool,
+    glass: crew_theme::GlassLevel,
     prev: PrevPass,
 ) -> ScenePass {
     let mut quads: Vec<Quad> = Vec::new();
     let mut buffers: Vec<PaneBuffer> = Vec::new();
     let mut sigs: Vec<u64> = Vec::new();
     let mut borders: Vec<Border> = Vec::new();
+    let mut cards: Vec<GlassCard> = Vec::new();
+    // Derived from the active theme, so light, dark and CRT each get their own
+    // treatment without any per-preset configuration (see `crew_theme::glass`).
+    let glass_style = crew_theme::glass_style().scaled(glass);
     let (prev_sigs, prev_bufs) = prev;
     let mut prev_bufs: Vec<Option<PaneBuffer>> = prev_bufs.into_iter().map(Some).collect();
 
@@ -130,6 +146,27 @@ pub(crate) fn build_scene(
             }
         }
 
+        // The frosted sheet this pane sits on. Only bordered, non-overlay panes
+        // get one: a pane that draws its own cell-based frame has no rounded
+        // rect to fill, and overlay popups are deliberately opaque so nothing
+        // behind them bleeds through (see `PaneScene::overlay`).
+        if pane.bordered && !pane.overlay && glass_style.visible() {
+            cards.push(GlassCard {
+                x: pane.x,
+                y: pane.y,
+                w: pane.w,
+                h: pane.h,
+                radius: BORDER_RADIUS,
+                alpha_top: glass_style.alpha_top,
+                alpha_bottom: glass_style.alpha_bottom,
+                noise: glass_style.noise,
+                tint: crate::color::target_rgba(glass_style.tint, 1.0, srgb),
+                highlight: crate::color::target_rgba(glass_style.highlight, 1.0, srgb),
+                highlight_alpha: glass_style.highlight_alpha,
+                shadow_alpha: glass_style.shadow_alpha,
+            });
+        }
+
         // Rounded-corner border for this pane (unless it draws its own).
         if pane.bordered {
             let t = crew_theme::theme();
@@ -165,7 +202,7 @@ pub(crate) fn build_scene(
         buffers.push((buf, pane.x, pane.y, pane.w, pane.h));
     }
 
-    (quads, buffers, sigs, borders)
+    (quads, buffers, sigs, borders, cards)
 }
 
 #[cfg(test)]

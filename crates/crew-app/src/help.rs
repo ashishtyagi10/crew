@@ -29,8 +29,14 @@ const BINDINGS: &[(&str, &str)] = &[
     ),
     ("Cmd+W / Cmd+M", "Close pane / maximize"),
     ("Cmd+K", "Clear focused pane scrollback"),
-    ("Shift+PageUp / PageDown", "Scroll focused pane"),
-    ("Shift+Home / End", "Scroll to top / bottom"),
+    (
+        "Ctrl+Shift+L",
+        "Cycle themes (dark \u{2192} light \u{2192} crt)",
+    ),
+    ("Ctrl+Shift+M", "Chat: markdown preview \u{2194} raw source"),
+    ("Ctrl+O", "Chat: compact transcript view"),
+    ("Shift+PageUp / Shift+PageDown", "Scroll focused pane"),
+    ("Shift+Home / Shift+End", "Scroll to top / bottom"),
     ("/ (in input)", "Command palette"),
     (
         "! · * · ? · ?? (in input)",
@@ -238,5 +244,82 @@ mod tests {
     #[test]
     fn tiny_renders_nothing() {
         assert!(help_cells(8, 3).is_empty());
+    }
+
+    /// Chords the manual carries that the overlay deliberately does not: pane
+    /// cycling has a documented second spelling, and the overlay lists the
+    /// primary one. Declared, so a real omission stays visible.
+    const OVERLAY_OMITS: &[&str] = &["Cmd+]", "Cmd+["];
+
+    /// The manual says `/keys` shows "this list in-app". It did not:
+    /// **Ctrl+Shift+L** and **Ctrl+Shift+M** were documented and missing from
+    /// the overlay, and **Ctrl+O** was implemented, tested, and in neither list
+    /// — a working binding no user could discover from anywhere. Two lists,
+    /// nothing comparing them, exactly as before.
+    #[test]
+    fn the_overlay_and_the_manual_list_the_same_chords() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs/CREW.md");
+        let Ok(docs) = std::fs::read_to_string(&path) else {
+            return; // docs not shipped in this build context
+        };
+        for (keys, _) in BINDINGS.iter().chain(CHAT_BINDINGS) {
+            for chord in keys.split(" / ") {
+                let chord = chord.trim();
+                // Only modifier chords. Bare keys (`Enter`, `Right`, `Tab`) are
+                // the composer's own editing verbs, and composer syntax
+                // (`@a+b`) merely contains a `+` — a chord is where drift
+                // hides, and a chord starts with a modifier.
+                if !is_chord(chord) {
+                    continue;
+                }
+                assert!(
+                    docs.contains(chord),
+                    "the overlay shows `{chord}`, which docs/CREW.md never mentions"
+                );
+            }
+        }
+        for chord in documented_chords(&docs) {
+            let listed = BINDINGS
+                .iter()
+                .chain(CHAT_BINDINGS)
+                .any(|(k, _)| k.contains(&chord));
+            assert!(
+                listed || OVERLAY_OMITS.contains(&chord.as_str()),
+                "docs/CREW.md documents `{chord}`, which /keys never shows"
+            );
+        }
+    }
+
+    /// A modifier chord, as opposed to a bare key or composer syntax.
+    fn is_chord(s: &str) -> bool {
+        ["Cmd+", "Ctrl+", "Alt+", "Shift+"]
+            .iter()
+            .any(|m| s.starts_with(m))
+    }
+
+    /// The bolded chords in the manual's shortcuts table.
+    fn documented_chords(docs: &str) -> Vec<String> {
+        let Some(start) = docs.find("## Keyboard shortcuts") else {
+            return Vec::new();
+        };
+        let table = &docs[start..];
+        let end = table[3..]
+            .find("\n## ")
+            .map(|i| i + 3)
+            .unwrap_or(table.len());
+        let mut out = Vec::new();
+        let mut rest = &table[..end];
+        while let Some(i) = rest.find("**") {
+            rest = &rest[i + 2..];
+            let Some(j) = rest.find("**") else { break };
+            let span = rest[..j].trim().to_string();
+            rest = &rest[j + 2..];
+            if is_chord(&span) {
+                out.push(span);
+            }
+        }
+        out.sort();
+        out.dedup();
+        out
     }
 }
