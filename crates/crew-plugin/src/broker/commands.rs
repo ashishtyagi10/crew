@@ -44,16 +44,14 @@ pub(crate) const HELP: &str = "constructs:\n\
     /loop <n> <task> — n relay rounds, each improving the last answer\n\
     /goal <text> — keep working until a judge agent rules the goal met\n\
     /plan <task> — draft a numbered plan; the pane's enter/esc runs or discards it\n\
-    /checkpoints — list the automatic snapshots (one per task that changed files)\n\
-    /restore <n> — put checkpoint n's files back\n\
+    /restore [n] — list the automatic snapshots, or put snapshot n's files back\n\
     /diff — show the working tree's changes (git diff --stat)\n\
     /commit — draft an AI commit message · /commit apply — create the commit\n\
     /review — AI code review of the working diff, findings worst-first\n\
     /resume — fold the previous session's tail into the next task\n\
     /doctor — health-check the AI stack (provider, CLIs, MCP, memory, session)\n\
     /standup [days] — an AI standup update from recent commits\n\
-    /skills — list prompt playbooks (~/.config/crew/skills, .crew/skills)\n\
-    /skill <name> <task> — run the relay with that playbook prepended\n\
+    /skill [<name> <task>] — list prompt playbooks, or run the relay with one prepended\n\
     /memory — show the standing memory prepended to every task\n\
     #<note> — remember a preference in ./.crew/memory.md\n\
     /mcp — MCP servers and their tools (~/.config/crew/mcp.json, .crew/mcp.json)\n\
@@ -94,28 +92,8 @@ pub(crate) fn expand_alias(trimmed: &str) -> String {
 /// [`closest_construct`], and the source a host should build its palette
 /// from rather than keeping a second copy (see [`constructs`]).
 const CONSTRUCTS: &[&str] = &[
-    "help",
-    "model",
-    "fan",
-    "loop",
-    "goal",
-    "plan",
-    "approve",
-    "reject",
-    "checkpoints",
-    "commit",
-    "review",
-    "resume",
-    "doctor",
-    "standup",
-    "restore",
-    "skills",
-    "skill",
-    "memory",
-    "mcp",
-    "reload",
-    "diff",
-    "stop",
+    "help", "model", "fan", "loop", "goal", "plan", "approve", "reject", "commit", "review",
+    "resume", "doctor", "standup", "restore", "skill", "memory", "mcp", "reload", "diff", "stop",
 ];
 
 /// Every construct the broker answers, without the leading slash. Exposed so
@@ -187,7 +165,6 @@ pub(crate) fn handle(
         "plan" => super::plan::plan_cmd(session, rest, emit),
         "approve" => super::plan::approve_cmd(session, tick_emit, emit),
         "reject" => super::plan::reject_cmd(session, emit),
-        "checkpoints" => super::checkpoint::list_cmd(emit),
         "restore" => super::checkpoint::restore_cmd(rest, emit),
         "diff" => super::diff::diff_cmd(emit),
         "commit" => super::gitmsg::commit_cmd(session, rest, emit),
@@ -211,10 +188,6 @@ pub(crate) fn handle(
             };
             emit(msg("agent smith", m))
         }
-        "skills" => emit(msg(
-            "agent smith",
-            super::skillframe::list_report(&super::skills::load()),
-        )),
         "skill" => super::skills::skill_cmd(session, rest, tick_emit, emit),
         "memory" => emit(msg("agent smith", super::memory::report())),
         "mcp" => {

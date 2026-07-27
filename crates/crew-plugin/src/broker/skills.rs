@@ -142,10 +142,15 @@ pub(crate) fn skill_cmd(
         .split_once(char::is_whitespace)
         .unwrap_or((rest.trim(), ""));
     let (name, task) = (normalize_name(name), task.trim());
+    // Bare `/skill` lists them: a construct that only lists is a construct
+    // whose subject can answer for itself (see `/model`, `/restore`).
+    if rest.trim().is_empty() {
+        return emit(msg("agent smith", super::skillframe::list_report(&load())));
+    }
     if name.is_empty() || task.is_empty() {
         return emit(msg(
             "agent smith",
-            "usage: /skill <name> <task> \u{2014} /skills lists them",
+            "usage: /skill <name> <task> \u{2014} bare /skill lists them",
         ));
     }
     let skills = load();

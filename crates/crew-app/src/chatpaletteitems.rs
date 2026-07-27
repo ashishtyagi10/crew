@@ -13,18 +13,15 @@ use crate::suggest::MenuItem;
 /// here still appears, under "other": a construct must never be invisible
 /// because someone forgot to file it.
 const SECTIONS: &[(&str, &[&str])] = &[
-    ("work", &["/goal", "/plan", "/fan", "/loop", "/skill"]),
-    (
-        "changes",
-        &["/diff", "/commit", "/review", "/checkpoints", "/restore"],
-    ),
+    ("work", &["/goal", "/plan", "/fan", "/loop"]),
+    ("changes", &["/diff", "/commit", "/review", "/restore"]),
     (
         "session",
         &["/resume", "/memory", "/compact", "/export", "/stop"],
     ),
     (
         "setup",
-        &["/model", "/skills", "/mcp", "/reload", "/doctor", "/theme"],
+        &["/model", "/skill", "/mcp", "/reload", "/doctor", "/theme"],
     ),
     ("help", &["/help", "/exit"]),
 ];
