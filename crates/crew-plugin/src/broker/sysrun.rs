@@ -26,13 +26,35 @@ pub(crate) fn run(_cmd: &str) -> Result<String, String> {
     Err("sys:run is only supported on Unix platforms".into())
 }
 
-/// Per-command deadline. `CREW_SYS_TIMEOUT_MS` overrides (default 30 s).
+/// Per-command deadline. `CREW_SYS_TIMEOUT_MS` overrides.
+///
+/// Two minutes, not thirty seconds. A build or a test suite is the command an
+/// agent most wants to run and the one most likely to be slow, and at 30 s
+/// `cargo test` on any real project failed — so the most valuable use of the
+/// shell was the one that did not work. One model call already gets 180 s
+/// (`session::call_timeout`); giving the agent's slowest operation a sixth of
+/// what its own thinking gets was the wrong way round.
+///
+/// It stays under that 180 s so a command cannot outlive the dial it belongs
+/// to, and a genuinely hung command is still bounded — and interruptible, with
+/// Esc, which stops the whole run.
+#[cfg(unix)]
+pub(crate) const DEFAULT_TIMEOUT_MS: u64 = 120_000;
+
+/// The two halves of that reasoning, pinned at compile time rather than in a
+/// test: long enough for a real build, and strictly inside the hop waiting on
+/// it. Lower either bound and the build stops, not the suite.
+#[cfg(unix)]
+const _: () = assert!(
+    DEFAULT_TIMEOUT_MS >= 120_000 && DEFAULT_TIMEOUT_MS < super::session::DEFAULT_CALL_TIMEOUT_MS
+);
+
 #[cfg(unix)]
 fn timeout() -> Duration {
     let ms = std::env::var("CREW_SYS_TIMEOUT_MS")
         .ok()
         .and_then(|s| s.parse().ok())
-        .unwrap_or(30_000);
+        .unwrap_or(DEFAULT_TIMEOUT_MS);
     Duration::from_millis(ms)
 }
 
@@ -84,7 +106,12 @@ pub(crate) fn run_with(cmd: &str, timeout: Duration) -> Result<String, String> {
                 // already returning an error and don't wait on the drain
                 // threads here, so this is purely process hygiene).
                 kill_group(pgid);
-                return Err(format!("timed out after {timeout:?}; command killed"));
+                // Name the knob. A limit that only says no leaves the user
+                // to guess that it is adjustable at all.
+                return Err(format!(
+                    "timed out after {timeout:?}; command killed \u{2014} raise it with \
+                     CREW_SYS_TIMEOUT_MS"
+                ));
             }
             Ok(None) => std::thread::sleep(Duration::from_millis(20)),
             Err(e) => return Err(format!("wait: {e}")),

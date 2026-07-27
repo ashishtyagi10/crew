@@ -12,8 +12,11 @@ use super::{Broker, Registry};
 pub(crate) fn max_hops() -> u32 {
     env_num("CREW_BROKER_MAX_HOPS").unwrap_or(6)
 }
+/// Default per-model-call deadline. `sysrun::DEFAULT_TIMEOUT_MS` is pinned
+/// below this so a shell command cannot outlive the hop that is waiting on it.
+pub(crate) const DEFAULT_CALL_TIMEOUT_MS: u64 = 180_000;
 pub(crate) fn call_timeout() -> Duration {
-    Duration::from_millis(env_num("CREW_BROKER_TIMEOUT_MS").unwrap_or(180_000))
+    Duration::from_millis(env_num("CREW_BROKER_TIMEOUT_MS").unwrap_or(DEFAULT_CALL_TIMEOUT_MS))
 }
 /// Approximate per-thread token budget (0 = unlimited). `CREW_BROKER_TOKEN_BUDGET`.
 pub(crate) fn token_budget() -> usize {
