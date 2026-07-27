@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.6.80
+
+- The provider-key tests assert the same thing on every machine. They read the
+  process environment and asserted only when the key was absent, so on any
+  machine that had one they passed without testing anything — and they never
+  covered an exported but blank key, which is the case that matters.
+
 ## 0.6.79
 
 - The `@` picker says that `@a+b` fans a task out to both agents in parallel,

@@ -121,17 +121,24 @@ fn parse_response_errors_on_api_error_payload() {
     ));
 }
 
+/// The rule, tested against a value rather than the process environment.
+///
+/// This used to read `ANTHROPIC_API_KEY` and assert only when it was absent,
+/// so on any machine that had one it asserted NOTHING and passed — silently,
+/// and on exactly the machines most likely to run it. It also never covered
+/// the empty-string case, which is the one that matters: an exported but
+/// blank key is not a key.
 #[test]
-fn from_env_missing_key_errors() {
-    // Only assert the error shape when the key is absent; skip otherwise.
-    if std::env::var("ANTHROPIC_API_KEY").is_err() {
-        // The variable is named by the error, so the message can never
-        // point at a different provider's key than the one it wanted.
-        assert!(matches!(
-            AnthropicProvider::from_env(),
-            Err(ProviderError::MissingKey("ANTHROPIC_API_KEY"))
-        ));
-    }
+fn a_missing_or_blank_anthropic_key_errors() {
+    assert!(matches!(
+        AnthropicProvider::from_key(None),
+        Err(ProviderError::MissingKey("ANTHROPIC_API_KEY"))
+    ));
+    assert!(matches!(
+        AnthropicProvider::from_key(Some(String::new())),
+        Err(ProviderError::MissingKey("ANTHROPIC_API_KEY"))
+    ));
+    assert!(AnthropicProvider::from_key(Some("sk-x".into())).is_ok());
 }
 
 #[test]
@@ -205,13 +212,16 @@ fn sse_parser_extracts_deltas_usage_and_done() {
 }
 
 #[test]
-fn openrouter_from_env_missing_key_errors() {
-    if std::env::var("OPENROUTER_API_KEY").is_err() {
-        assert!(matches!(
-            OpenRouterProvider::from_env(),
-            Err(ProviderError::MissingKey("OPENROUTER_API_KEY"))
-        ));
-    }
+fn a_missing_or_blank_openrouter_key_errors() {
+    assert!(matches!(
+        OpenRouterProvider::from_key(None),
+        Err(ProviderError::MissingKey("OPENROUTER_API_KEY"))
+    ));
+    assert!(matches!(
+        OpenRouterProvider::from_key(Some(String::new())),
+        Err(ProviderError::MissingKey("OPENROUTER_API_KEY"))
+    ));
+    assert!(OpenRouterProvider::from_key(Some("sk-x".into())).is_ok());
 }
 
 #[tokio::test]

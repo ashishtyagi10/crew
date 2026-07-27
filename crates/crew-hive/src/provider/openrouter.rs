@@ -113,8 +113,15 @@ impl OpenRouterProvider {
     }
 
     pub fn from_env() -> Result<Self, ProviderError> {
-        match std::env::var("OPENROUTER_API_KEY") {
-            Ok(k) if !k.is_empty() => Ok(Self::new(k)),
+        Self::from_key(std::env::var("OPENROUTER_API_KEY").ok())
+    }
+
+    /// [`Self::from_env`]'s decision, with the value passed in — see
+    /// `AnthropicProvider::from_key` for why this is not read from the
+    /// environment at test time.
+    pub fn from_key(key: Option<String>) -> Result<Self, ProviderError> {
+        match key {
+            Some(k) if !k.is_empty() => Ok(Self::new(k)),
             _ => Err(ProviderError::MissingKey("OPENROUTER_API_KEY")),
         }
     }
