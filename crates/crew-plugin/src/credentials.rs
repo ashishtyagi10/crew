@@ -22,6 +22,8 @@ pub const VARS: &[&str] = &[
     "OPENROUTER_API_KEY",
     "ANTHROPIC_API_KEY",
     "OPENAI_API_KEY",
+    "GEMINI_API_KEY",
+    "DEEPSEEK_API_KEY",
 ];
 
 /// The provider a variable authenticates, spelled as `CREW_PROVIDER` and

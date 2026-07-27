@@ -80,15 +80,44 @@ pub struct DirectProvider {
 }
 
 /// Every OpenAI-wire provider crew knows, in discovery order.
-pub static DIRECT: &[DirectProvider] = &[DirectProvider {
-    name: "openai",
-    var: "OPENAI_API_KEY",
-    endpoint: "https://api.openai.com/v1/chat/completions",
-    chain: &["gpt-5", "gpt-4.1"],
-    chain_env: "CREW_OPENAI_MODEL",
-    base_url_env: "CREW_OPENAI_BASE_URL",
-    vendor: crew_hive::catalog::Vendor::OpenAI,
-}];
+///
+/// Model ids are NOT invented here. Every slug in every chain is a native
+/// (non-OpenRouter) slug that already exists in `crew_hive::catalog` for that
+/// vendor, and `chains_are_native_catalog_slugs` enforces it — a default model
+/// that 404s on first use is a worse first run than no provider at all. That
+/// is also why xAI, Mistral and Groq are absent despite speaking this same
+/// wire: the catalog carries no rows for them, so their ids would be guesses.
+pub static DIRECT: &[DirectProvider] = &[
+    DirectProvider {
+        name: "openai",
+        var: "OPENAI_API_KEY",
+        endpoint: "https://api.openai.com/v1/chat/completions",
+        chain: &["gpt-5", "gpt-4.1"],
+        chain_env: "CREW_OPENAI_MODEL",
+        base_url_env: "CREW_OPENAI_BASE_URL",
+        vendor: crew_hive::catalog::Vendor::OpenAI,
+    },
+    DirectProvider {
+        name: "gemini",
+        var: "GEMINI_API_KEY",
+        // Google's own OpenAI-compatibility endpoint, so the same client
+        // works — no Google SDK, no second wire format.
+        endpoint: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+        chain: &["gemini-2.5-pro", "gemini-2.5-flash"],
+        chain_env: "CREW_GEMINI_MODEL",
+        base_url_env: "CREW_GEMINI_BASE_URL",
+        vendor: crew_hive::catalog::Vendor::Google,
+    },
+    DirectProvider {
+        name: "deepseek",
+        var: "DEEPSEEK_API_KEY",
+        endpoint: "https://api.deepseek.com/chat/completions",
+        chain: &["deepseek-chat", "deepseek-reasoner"],
+        chain_env: "CREW_DEEPSEEK_MODEL",
+        base_url_env: "CREW_DEEPSEEK_BASE_URL",
+        vendor: crew_hive::catalog::Vendor::DeepSeek,
+    },
+];
 
 /// The `DIRECT` row named by `name`, if any.
 pub fn direct_by_name(name: &str) -> Option<&'static DirectProvider> {
