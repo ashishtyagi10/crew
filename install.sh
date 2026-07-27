@@ -97,7 +97,12 @@ main() {
     esac
 
     echo ""
-    echo "Run 'crew' to start. Type '/update' inside crew to install new releases."
+    echo "Run 'crew' to start."
+    echo ""
+    echo "Agents work with no API key at all if you are already signed in to"
+    echo "claude, codex or opencode — crew finds them on PATH. Otherwise open"
+    echo "the model picker with '/model' and add a provider key there."
+    echo "Type '/update' inside crew to install new releases."
 }
 
 detect_os() {

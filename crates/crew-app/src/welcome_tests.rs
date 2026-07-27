@@ -172,3 +172,38 @@ fn rain_box_is_framed_with_an_inner_crew_nameplate() {
     // hard to assert cheaply, but everything must stay in bounds.
     assert!(cells.iter().all(|c| c.row < 30 && c.col < 80));
 }
+
+/// The one piece of guidance a first run gets must name the agents. crew is
+/// not just a terminal, and a welcome screen that says "shell" and "commands"
+/// and nothing else is a welcome screen nobody finds the agents from.
+#[test]
+fn the_welcome_hint_names_the_agent_pane() {
+    for cols in [30u16, 40, 60, 80, 120] {
+        let hint = super::hint_for(cols).unwrap_or_else(|| panic!("no hint fits {cols}"));
+        assert!(
+            (hint.chars().count() as u16) < cols,
+            "{cols}: hint is {} wide: {hint}",
+            hint.chars().count()
+        );
+        assert!(hint.contains("Cmd+J"), "{cols}: agents unmentioned: {hint}");
+    }
+}
+
+/// Below the shortest form there is genuinely nothing to say, and saying it
+/// badly is worse than the blank.
+#[test]
+fn a_pane_too_narrow_for_any_hint_gets_none() {
+    assert!(super::hint_for(8).is_none());
+}
+
+/// Wider windows get the roomier form — the ladder must be ordered widest
+/// first, or a 120-column window would show the cramped one.
+#[test]
+fn a_wide_window_gets_the_roomiest_form() {
+    let wide = super::hint_for(120).unwrap();
+    let narrow = super::hint_for(45).unwrap();
+    assert!(
+        wide.chars().count() > narrow.chars().count(),
+        "wide {wide:?} is not roomier than narrow {narrow:?}"
+    );
+}

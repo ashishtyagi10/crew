@@ -6,7 +6,29 @@ use crew_render::CellView;
 use crate::charrain::{rain, RAIN_H, RAIN_MIN_H, RAIN_MIN_W, RAIN_W};
 
 const TAGLINE: &str = "fast terminals. clean flow.";
-const HINT: &str = "Cmd+T  new shell    ·    /  commands";
+/// The opening hint, widest form first. It named the shell and the command
+/// palette and not the agents, which are the reason crew is not just a
+/// terminal — and a first run that never mentions them is a first run that
+/// never finds them.
+///
+/// Chosen by width rather than dropped: the whole line used to vanish on a
+/// narrow window, which is the wrong trade for the one piece of guidance a
+/// new user gets.
+const HINTS: &[&str] = &[
+    "Cmd+T  shell    \u{00b7}    Cmd+J  agents    \u{00b7}    /  commands",
+    "Cmd+T  shell  \u{00b7}  Cmd+J  agents  \u{00b7}  /  commands",
+    "Cmd+T shell \u{00b7} Cmd+J agents \u{00b7} / commands",
+    "Cmd+J  agents    \u{00b7}    /  commands",
+    "Cmd+J agents",
+];
+
+/// The widest hint that fits `cols`, or `None` when even the shortest does not.
+fn hint_for(cols: u16) -> Option<&'static str> {
+    HINTS
+        .iter()
+        .copied()
+        .find(|h| (h.chars().count() as u16) < cols)
+}
 /// Poll ticks per rendered frame. The tick doubles as the rain's clock, so this
 /// sets the fall speed as well as the frame rate: at the loop's ~62 Hz this
 /// lands the welcome field on the same calm few-cells-per-second cadence as the
@@ -155,9 +177,11 @@ pub fn welcome_cells_animated(cols: u16, rows: u16, tick: u64, restore: Option<u
             push_str(&mut cells, tl_row, (cols - tl_w) / 2, TAGLINE, t.hint_fg, bg);
         }
         let hint_row = tl_row + 1;
-        let hint_w = HINT.chars().count() as u16;
-        if hint_row < rows && hint_w < cols {
-            push_str(&mut cells, hint_row, (cols - hint_w) / 2, HINT, t.hint_fg, bg);
+        if hint_row < rows {
+            if let Some(hint) = hint_for(cols) {
+                let hint_w = hint.chars().count() as u16;
+                push_str(&mut cells, hint_row, (cols - hint_w) / 2, hint, t.hint_fg, bg);
+            }
         }
         if let Some(n) = restore {
             let line = restore_hint(n);
@@ -179,10 +203,12 @@ pub fn welcome_cells_animated(cols: u16, rows: u16, tick: u64, restore: Option<u
             for (i, &ch) in letters.iter().enumerate() {
                 cells.push(CellView { col: start + i as u16 * 2, row, c: ch, fg: t.ink, bg, bold: true, italic: false });
             }
-            let hint_w   = HINT.chars().count() as u16;
             let hint_row = row + 2;
-            if hint_w < cols && hint_row < rows {
-                push_str(&mut cells, hint_row, (cols - hint_w) / 2, HINT, t.hint_fg, bg);
+            if hint_row < rows {
+                if let Some(hint) = hint_for(cols) {
+                    let hint_w = hint.chars().count() as u16;
+                    push_str(&mut cells, hint_row, (cols - hint_w) / 2, hint, t.hint_fg, bg);
+                }
             }
         }
     }
