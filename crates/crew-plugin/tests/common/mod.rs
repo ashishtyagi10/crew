@@ -91,9 +91,11 @@ pub fn run_broker(path_dir: &Path, env: &[(&str, &str)], cmds: &[&str]) -> Vec<P
         .current_dir(path_dir)
         // Determinism: never let an inherited API key make the broker reach the
         // real network during tests. Tests opt into agents via the mock hook.
-        .env_remove("ANTHROPIC_API_KEY")
-        .env_remove("OPENROUTER_API_KEY")
-        .env_remove("DASHSCOPE_API_KEY")
+        //
+        // From `credentials::VARS`, not a list. This was the third hand-kept
+        // copy of "the provider keys" — the unit guard was the second — and a
+        // list that names three of six silently stops isolating the moment a
+        // developer exports one of the others.
         .env_remove("CREW_BROKER_MOCK_REPLY")
         // …and never let the shell-env probe re-import those keys from the
         // developer's real shell config. Tests opt in via the `env` pairs.
@@ -112,6 +114,9 @@ pub fn run_broker(path_dir: &Path, env: &[(&str, &str)], cmds: &[&str]) -> Vec<P
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::null());
+    for var in crew_plugin::credentials::VARS {
+        command.env_remove(var);
+    }
     for (k, v) in env {
         command.env(k, v);
     }
@@ -183,4 +188,22 @@ pub fn seed_specialists(dir: &Path, names: &[&str]) {
         })
         .collect();
     std::fs::write(&store, serde_json::to_string_pretty(&entries).unwrap()).unwrap();
+}
+
+/// A tripwire on the SHAPE of the list this harness clears, not on the
+/// clearing itself — the clearing is proved by `discovery_reports_no_key`,
+/// which fails outright if any provider key reaches the child.
+///
+/// Worth having anyway: it fires if a credential variable stops looking like
+/// one, which is the change most likely to slip past a harness that now
+/// derives its list instead of naming it.
+#[test]
+fn credential_variables_look_like_credential_variables() {
+    for var in crew_plugin::credentials::VARS {
+        assert!(
+            var.ends_with("_API_KEY"),
+            "{var} does not look like a provider key; check `run_broker` still \
+             clears everything it should"
+        );
+    }
 }
