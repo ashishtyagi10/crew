@@ -287,6 +287,19 @@ pub(crate) fn resolved_provider() -> Option<ProviderKind> {
     picked(&crate::credentials::load())
 }
 
+/// What to tell a user who has no provider at all — the one copy of it.
+///
+/// There were four wordings of this across the broker and the app, and they
+/// drifted apart the moment a signed-in CLI became a valid answer (v0.6.39):
+/// two of them went on naming three environment variables as the only way in,
+/// for two more releases. Enumerating keys also stopped scaling at six
+/// providers, so this names the friendliest route and points at the picker
+/// rather than reciting a list that will be wrong again by the next release.
+pub fn no_provider_advice() -> &'static str {
+    "sign in to claude, codex or opencode and crew picks them up \
+     automatically, or add a provider key from the model picker (/model)"
+}
+
 /// Every provider that has a key right now, active or not, in discovery
 /// order. `/doctor` reports the ones it is NOT using: with six providers and a
 /// fixed order, a key that appears to do nothing needs an explanation more

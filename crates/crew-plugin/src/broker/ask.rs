@@ -45,10 +45,7 @@ fn one_shot(role: &str) -> Result<Box<dyn Adapter>, String> {
     super::discover::roster_with(&std::collections::HashMap::new())
         .into_iter()
         .next()
-        .ok_or_else(|| {
-            "no AI provider — set DASHSCOPE_API_KEY, OPENROUTER_API_KEY, or ANTHROPIC_API_KEY"
-                .to_string()
-        })
+        .ok_or_else(|| format!("no AI provider — {}", super::discover::no_provider_advice()))
 }
 
 /// Explain a terminal pane's output (à la Warp's "ask AI about this"):
@@ -147,10 +144,8 @@ pub fn suggest_far_command(
         static HYDRATE: std::sync::Once = std::sync::Once::new();
         HYDRATE.call_once(super::shellenv::hydrate);
     }
-    let (provider, model) = super::discover::provider_and_model().ok_or_else(|| {
-        "no AI provider — set DASHSCOPE_API_KEY, OPENROUTER_API_KEY, or ANTHROPIC_API_KEY"
-            .to_string()
-    })?;
+    let (provider, model) = super::discover::provider_and_model()
+        .ok_or_else(|| format!("no AI provider — {}", super::discover::no_provider_advice()))?;
     let req = far_request(query, cwd, model);
     let rt = tokio::runtime::Builder::new_current_thread()
         .enable_all()

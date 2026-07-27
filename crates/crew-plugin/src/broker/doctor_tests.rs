@@ -42,7 +42,7 @@ fn render_flags_the_broken_bits_with_hints() {
     i.git = false;
     let r = render(&i);
     assert!(
-        r.contains("✗ provider") && r.contains("DASHSCOPE_API_KEY"),
+        r.contains("✗ provider") && r.contains(crate::broker::discover::no_provider_advice()),
         "missing provider names the fix: {r}"
     );
     assert!(r.contains("✗ bash"), "{r}");
@@ -125,8 +125,13 @@ fn a_missing_provider_offers_the_keyless_route_first() {
     let mut i = healthy();
     i.provider = None;
     let r = render(&i);
-    assert!(r.contains("sign in to claude"), "{r}");
-    assert!(r.contains("OPENROUTER_API_KEY"), "{r}");
+    // Asserted through the one copy of the advice, not a literal of it —
+    // literals here are exactly how two surfaces went on naming three env
+    // vars as the only way in for two releases after that stopped being true.
+    assert!(
+        r.contains(crate::broker::discover::no_provider_advice()),
+        "{r}"
+    );
 }
 
 /// The sandbox mode `/cwd` used to report alongside the directory. The

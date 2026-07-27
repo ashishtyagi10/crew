@@ -27,17 +27,46 @@ fn connecting_state_says_so() {
     assert!(row_text(&cells, 3).contains("connecting"));
 }
 
-/// Both routes out of an empty roster are offered, keyless one first: an
-/// installed CLI now joins the roster by itself, so a key is no longer the
-/// only answer and the pane must not imply it is.
+/// The pane shows the SAME advice the broker gives, wrapped. Asserted by
+/// reassembling the rows and comparing against the shared source: four
+/// wordings of this used to exist across two processes, and the two the tests
+/// did not pin went stale for two releases.
 #[test]
 fn missing_agents_explain_the_fix() {
     let cells = empty_cells(80, 20, 2, true, &[]);
     assert!(row_text(&cells, 3).contains("No agents"));
-    let advice = format!("{} {}", row_text(&cells, 5), row_text(&cells, 6));
-    assert!(advice.contains("claude"), "{advice}");
-    assert!(advice.contains("codex"), "{advice}");
-    assert!(advice.contains("/model"), "{advice}");
+    let shown: String = (5..9)
+        .map(|r| row_text(&cells, r))
+        .collect::<Vec<_>>()
+        .join(" ");
+    let flat: String = shown.split_whitespace().collect::<Vec<_>>().join(" ");
+    let want: String = crew_plugin::no_provider_advice()
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ");
+    assert!(
+        flat.to_lowercase().contains(&want.to_lowercase()),
+        "pane advice drifted from the broker's\n pane: {flat}\n want: {want}"
+    );
+}
+
+/// Wrapping keeps every word and never exceeds the pane.
+#[test]
+fn advice_wraps_without_losing_words() {
+    for cols in [20u16, 40, 80] {
+        let lines = wrap_advice(crew_plugin::no_provider_advice(), cols);
+        let width = (cols.saturating_sub(4)).max(12) as usize;
+        for l in &lines {
+            assert!(l.chars().count() <= width, "{cols}: too wide: {l}");
+        }
+        let rejoined: String = lines.join(" ").to_lowercase();
+        for word in crew_plugin::no_provider_advice().split_whitespace() {
+            assert!(
+                rejoined.contains(&word.to_lowercase()),
+                "{cols}: lost {word}"
+            );
+        }
+    }
 }
 
 #[test]

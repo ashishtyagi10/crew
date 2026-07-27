@@ -354,14 +354,14 @@ pub(crate) fn roster_for(reg: &Registry, provider: bool) -> String {
              team for it and saves each one, so your @roster grows as you go."
                 .into()
         } else {
-            // A key is no longer the only way out of here: an installed and
-            // signed-in claude/codex/opencode joins the roster on its own
-            // (`agents::append_installed`), so naming only the variables would
-            // now be wrong as well as unfriendly.
-            "No agents available. Either install and sign in to claude, codex \
-             or opencode — crew picks them up automatically — or set \
-             OPENROUTER_API_KEY, DASHSCOPE_API_KEY or ANTHROPIC_API_KEY."
-                .into()
+            // One copy of this advice, shared with `/doctor` and the Far
+            // pane's ask (`discover::no_provider_advice`). Four wordings of it
+            // existed and two went stale for two releases when a signed-in CLI
+            // became a valid answer.
+            format!(
+                "No agents available — {}.",
+                super::discover::no_provider_advice()
+            )
         };
     }
     format!(

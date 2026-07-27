@@ -54,8 +54,8 @@ pub use adapter::{Adapter, CliAdapter, Normalize};
 pub use agents::known_adapters;
 pub use ask::{explain_output, suggest_command, suggest_far_command};
 pub use discover::{
-    direct_by_name, pick_provider as active_provider, DirectProvider, ProviderKind as Provider,
-    DIRECT,
+    direct_by_name, no_provider_advice, pick_provider as active_provider, DirectProvider,
+    ProviderKind as Provider, DIRECT,
 };
 
 /// The provider table row whose key variable is `var`, if any. Lives here so
@@ -160,13 +160,16 @@ pub(crate) mod testenv {
     /// (`credentials::path`) — `forced_provider()` and `shellenv::hydrate()`
     /// both read the store, so a real `credentials.json` is exactly as much a
     /// source of a provider pin as the four env vars are.
-    const PROVIDER_KEYS: &[&str] = &[
-        "DASHSCOPE_API_KEY",
-        "OPENROUTER_API_KEY",
-        "ANTHROPIC_API_KEY",
-        "CREW_PROVIDER",
-        "CREW_CREDENTIALS_PATH",
-    ];
+    fn provider_keys() -> Vec<&'static str> {
+        // From `credentials::VARS`, not a list: providers are a table now, and
+        // a guard that promises "no provider will resolve" while clearing only
+        // three of six keys does not fail loudly — it quietly stops guarding
+        // on any machine that exports one of the others.
+        let mut v: Vec<&'static str> = crate::credentials::VARS.to_vec();
+        v.push("CREW_PROVIDER");
+        v.push("CREW_CREDENTIALS_PATH");
+        v
+    }
 
     /// Force `roster_with`'s provider discovery to fail, deterministically —
     /// even on a machine that exports a real key (this one has
@@ -215,14 +218,14 @@ pub(crate) mod testenv {
         store: Option<&std::path::Path>,
     ) -> MockEnv {
         let guard = LOCK.lock().unwrap_or_else(|e| e.into_inner());
-        let restore = PROVIDER_KEYS
+        let restore = provider_keys()
             .iter()
             .map(|&k| (k, std::env::var(k).ok()))
             .collect();
         if let Some(m) = masked {
             std::env::set_var("CREW_CREDENTIALS_PATH", m);
         }
-        for k in PROVIDER_KEYS {
+        for k in provider_keys() {
             std::env::remove_var(k);
         }
         let dir = empty_project_dir();
