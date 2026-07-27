@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.6.74
+
+- An end-to-end test sends every construct the router advertises to a real
+  broker and fails if any of them cannot answer. The command surface changed
+  heavily across this release run; the lists were bound to each other, and
+  this binds them to a running broker.
+
 ## 0.6.73
 
 - README and docs/CREW.md no longer describe the ten constructs deleted this
