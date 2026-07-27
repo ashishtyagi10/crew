@@ -302,9 +302,11 @@ fn send(
 /// two very different things depending on this: no provider at all, versus a
 /// working provider whose per-project specialist store is simply still empty.
 pub(crate) fn provider_resolves() -> bool {
-    let force = super::discover::forced_provider();
-    let has = |k: &str| std::env::var(k).is_ok_and(|v| !v.is_empty());
-    super::discover::pick_provider(force.as_deref(), has).is_some()
+    // Through `resolved_provider`, so a key supplied from inside crew (stored,
+    // never exported into this process) counts here exactly as it counts when
+    // the roster is actually built — otherwise this would tell the user to set
+    // a key they had already typed in.
+    super::discover::resolved_provider().is_some()
 }
 
 /// A human-readable description of which agents were discovered. When the

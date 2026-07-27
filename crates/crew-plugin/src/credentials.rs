@@ -35,12 +35,31 @@ pub fn provider_for(var: &str) -> Option<&'static str> {
 /// `pick_provider`'s fixed DashScope → OpenRouter → Anthropic order, supplying
 /// an Anthropic key while a DashScope key exists would otherwise change
 /// nothing the user can see.
-#[derive(Default, Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Default, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Store {
     #[serde(default)]
     pub provider: Option<String>,
     #[serde(default)]
     pub keys: BTreeMap<String, String>,
+}
+
+/// Hand-written so the key VALUES can never be printed. A derived `Debug`
+/// would put raw secrets into any `dbg!`, `assert_eq!` failure, `anyhow`
+/// context or panic message that ever touches a `Store` — none of which the
+/// author of that line would be thinking about. The names and the provider pin
+/// are not secret and stay visible, so the output is still useful.
+impl std::fmt::Debug for Store {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let redacted: BTreeMap<&str, &str> = self
+            .keys
+            .keys()
+            .map(|k| (k.as_str(), "<redacted>"))
+            .collect();
+        f.debug_struct("Store")
+            .field("provider", &self.provider)
+            .field("keys", &redacted)
+            .finish()
+    }
 }
 
 /// `<config_dir>/crew/credentials.json`, a sibling of `config.toml` — unless
@@ -129,9 +148,21 @@ pub fn save_key_at(
 /// in it, then rename over the target. There is never a moment when the
 /// secret exists in a world-readable file, and a crash leaves either the old
 /// file or the temp — never a truncated one.
-fn write_atomic(path: &Path, bytes: &[u8]) -> anyhow::Result<()> {
+///
+/// Public because the credential store is not the only file that must never be
+/// world-readable: `crew-app`'s `history` captures every line typed into the
+/// input bar, which can include a secret typed into the wrong surface, and it
+/// gets the same treatment through here rather than a second copy of this
+/// reasoning. `std::fs::write` is the thing to avoid — it creates 0644 and can
+/// only be chmod'd *after* the bytes have landed.
+pub fn write_atomic(path: &Path, bytes: &[u8]) -> anyhow::Result<()> {
     use std::io::Write;
-    let tmp = path.with_extension("json.tmp");
+    // `<name>.tmp`, appended rather than substituted: `with_extension` would
+    // have to know the target's extension (and this now writes an extensionless
+    // history file too). For `credentials.json` both spell `credentials.json.tmp`.
+    let mut tmp = path.as_os_str().to_owned();
+    tmp.push(".tmp");
+    let tmp = PathBuf::from(tmp);
     // Remove any stale temp entry before creating our own. `create_new` alone
     // would fail forever after an interrupted write; removing first and then
     // refusing to open anything that still exists means we only ever write to

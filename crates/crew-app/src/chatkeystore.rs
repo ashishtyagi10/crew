@@ -30,7 +30,14 @@ fn store_provider_key_at(pane: &mut ChatPane, path: &Path, var: &str, value: &st
         Ok(()) => {
             crate::shellprobe::note_key(var, value);
             match provider {
-                Some(p) => format!("{var} saved · {p} pinned"),
+                Some(p) => {
+                    // The pin the store just recorded has to reach the app's
+                    // own resolution too, or the row stays dim, accepting it
+                    // re-opens this same prompt, and the app and the broker
+                    // disagree about which provider is active.
+                    crate::shellprobe::note_pin(p);
+                    format!("{var} saved · {p} pinned")
+                }
                 None => format!("{var} saved"),
             }
         }

@@ -96,6 +96,16 @@ pub(crate) mod testenv {
         restore: Vec<(&'static str, Option<String>)>,
     }
 
+    impl MockEnv {
+        /// Whether this guard captured `k` and will therefore put its
+        /// pre-guard value back on drop. Lets a test assert the restore
+        /// contract without reading process env *after* the lock is released,
+        /// which would race every other test in the binary.
+        pub(crate) fn restores(&self, k: &str) -> bool {
+            self.restore.iter().any(|(rk, _)| *rk == k)
+        }
+    }
+
     impl Drop for MockEnv {
         fn drop(&mut self) {
             std::env::remove_var("CREW_BROKER_MOCK_REPLY");
@@ -163,17 +173,53 @@ pub(crate) mod testenv {
     /// [`mock`]. For tests proving the plugin-only fallback works when no
     /// provider resolves.
     pub(crate) fn no_provider() -> MockEnv {
+        no_provider_inner(None, None)
+    }
+
+    /// [`no_provider`] on a machine that already has `CREW_CREDENTIALS_PATH`
+    /// pointing at a real store: `masked` is set *inside the guard's lock*,
+    /// before the neutralisation runs, so the guard has to capture and
+    /// override a live value rather than an absent one. A test cannot do this
+    /// itself — setting the variable before calling `no_provider()` would
+    /// mutate process-global env outside the lock, racing every other test in
+    /// this binary. The pre-guard value is still what's restored on drop, so
+    /// `masked` never escapes the guard's lifetime.
+    pub(crate) fn no_provider_masking(masked: &std::path::Path) -> MockEnv {
+        no_provider_inner(Some(masked), None)
+    }
+
+    /// No provider in the ENVIRONMENT, but the credential store at `store`
+    /// left visible — the machine where the in-app key popup saved the only
+    /// key there is. Everything else matches [`no_provider`], including the
+    /// lock and the restore-on-drop.
+    pub(crate) fn no_provider_with_store(store: &std::path::Path) -> MockEnv {
+        no_provider_inner(None, Some(store))
+    }
+
+    /// The shared body of the `no_provider*` guards. `masked` is a store path
+    /// to install *before* neutralising (so the neutralisation has something
+    /// to override); `store` is the store path to leave in place *after* it
+    /// (defaulting to a path inside the throwaway project dir, which cannot
+    /// exist).
+    fn no_provider_inner(
+        masked: Option<&std::path::Path>,
+        store: Option<&std::path::Path>,
+    ) -> MockEnv {
         let guard = LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let restore = PROVIDER_KEYS
             .iter()
             .map(|&k| (k, std::env::var(k).ok()))
             .collect();
+        if let Some(m) = masked {
+            std::env::set_var("CREW_CREDENTIALS_PATH", m);
+        }
         for k in PROVIDER_KEYS {
             std::env::remove_var(k);
         }
         let dir = empty_project_dir();
         std::env::set_var("CREW_PROJECT_DIR", &dir);
-        std::env::set_var("CREW_CREDENTIALS_PATH", dir.join("credentials.json"));
+        let cred = store.map_or_else(|| dir.join("credentials.json"), PathBuf::from);
+        std::env::set_var("CREW_CREDENTIALS_PATH", cred);
         MockEnv {
             guard,
             dir: Some(dir),

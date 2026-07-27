@@ -132,12 +132,11 @@ pub(crate) fn on_path(bin: &str, path: &str) -> bool {
 
 /// Probe the live environment for the report.
 pub(crate) fn gather() -> DoctorInputs {
-    let force = super::discover::forced_provider();
-    let has = |k: &str| std::env::var(k).is_ok_and(|v| !v.is_empty());
     let path = std::env::var("PATH").unwrap_or_default();
     DoctorInputs {
-        provider: super::discover::pick_provider(force.as_deref(), has)
-            .map(|p| format!("{p:?}").to_lowercase()),
+        // The same resolution the roster is built from, so `/doctor` reports a
+        // stored key's provider rather than only an exported one's.
+        provider: super::discover::resolved_provider().map(|p| format!("{p:?}").to_lowercase()),
         clis: ["claude", "codex", "opencode"]
             .iter()
             .map(|b| (b.to_string(), on_path(b, &path)))

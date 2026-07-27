@@ -41,53 +41,120 @@ fn roster_with_falls_back_to_plugins_when_no_provider_resolves() {
     );
 }
 
+/// A store on disk, seeded through `save_key_at` (never the real
+/// `credentials::path()`), in a fresh subdirectory of its own: `save_key_at`
+/// chmods its parent 0o700, which the shared system temp dir itself refuses.
+/// Returns `(dir, store_path)`; the caller removes `dir` when done.
+fn seeded_store(
+    tag: &str,
+    var: &str,
+    value: &str,
+    pin: &str,
+) -> (std::path::PathBuf, std::path::PathBuf) {
+    let dir = std::env::temp_dir().join(format!("crew-{tag}-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    let store = dir.join("credentials.json");
+    crate::credentials::save_key_at(&store, var, value, Some(pin)).unwrap();
+    (dir, store)
+}
+
 /// The guard's promise ("even on a machine that exports a real key") has to
 /// cover the credential store too: `forced_provider()` reads
 /// `credentials::load()`, which resolves through `CREW_CREDENTIALS_PATH`.
 /// Simulate a machine where the in-app key popup already saved a pin —
-/// exactly what a real `~/.config/crew/credentials.json` would hold — by
-/// pointing that override at a store we control (never the real path, via
-/// `save_key_at`) BEFORE the guard exists, so `no_provider()` has to capture
-/// and override it out from under us, same as the other four keys. If
-/// `no_provider()` stopped setting `CREW_CREDENTIALS_PATH`, this stored pin
-/// would leak straight through and `forced_provider()` would return
-/// `Some("anthropic")` instead of `None`.
+/// exactly what a real `~/.config/crew/credentials.json` would hold — with
+/// `no_provider_masking`, which installs that path and then has to override it
+/// out from under us, same as the other four keys. If `no_provider()` stopped
+/// neutralising `CREW_CREDENTIALS_PATH`, this stored pin would leak straight
+/// through and `forced_provider()` would return `Some("anthropic")` instead of
+/// `None`.
+///
+/// Every write to the process environment here happens inside the guard's own
+/// lock (that is what `no_provider_masking` is for): this test used to
+/// `set_var`/`remove_var` around the guard, racing the hundreds of other tests
+/// in this binary.
 #[test]
 fn no_provider_also_neutralises_a_stored_credential_pin() {
-    // A fresh subdirectory, not a file directly under the shared system temp
-    // dir: `save_key_at` chmods its parent 0o700, which the shared temp dir
-    // itself will refuse.
-    let fake_dir = std::env::temp_dir().join(format!(
-        "crew-no-provider-cred-guard-{}",
-        std::process::id()
-    ));
-    let _ = std::fs::remove_dir_all(&fake_dir);
-    let fake_store = fake_dir.join("credentials.json");
-    crate::credentials::save_key_at(
-        &fake_store,
+    let (fake_dir, fake_store) = seeded_store(
+        "no-provider-cred-guard",
         "ANTHROPIC_API_KEY",
         "sk-test-not-a-real-key",
-        Some("anthropic"),
-    )
-    .unwrap();
-    std::env::set_var("CREW_CREDENTIALS_PATH", &fake_store);
+        "anthropic",
+    );
 
-    let _env = testenv::no_provider();
+    let env = testenv::no_provider_masking(&fake_store);
     assert_eq!(
-        forced_provider(),
+        forced_provider(&crate::credentials::load()),
         None,
         "no_provider() must neutralise a stored credential pin, not just the four env vars"
     );
-    drop(_env);
-
-    assert_eq!(
-        std::env::var("CREW_CREDENTIALS_PATH").as_deref(),
-        Ok(fake_store.to_str().unwrap()),
-        "CREW_CREDENTIALS_PATH must be restored to its pre-guard value on drop, same as the others"
+    assert!(
+        env.restores("CREW_CREDENTIALS_PATH"),
+        "CREW_CREDENTIALS_PATH must be captured for restore on drop, same as the others"
     );
+    drop(env);
 
-    std::env::remove_var("CREW_CREDENTIALS_PATH");
     let _ = std::fs::remove_dir_all(&fake_dir);
+}
+
+/// C1: a key typed into the in-app popup lands in the credential store, never
+/// in this process's environment — and the broker child was already running
+/// when it was saved, so `shellenv::hydrate()`'s one-shot import never saw it.
+/// The provider/key resolution therefore has to read the store per request,
+/// exactly as the pin already is.
+///
+/// Before the fix this returned `None`: `picked` resolved DashScope from the
+/// stored pin, then the key lookup read only `std::env::var`, found nothing,
+/// and `roster_with` collapsed to plugins only — the user's specialists
+/// vanishing the moment they saved a key.
+#[test]
+fn a_stored_key_resolves_a_provider_with_nothing_in_the_environment() {
+    let (dir, store) = seeded_store(
+        "stored-key-resolves",
+        "DASHSCOPE_API_KEY",
+        "sk-fake-not-a-real-key",
+        "dashscope",
+    );
+    let env = testenv::no_provider_with_store(&store);
+    assert_eq!(
+        picked(&crate::credentials::load()),
+        Some(ProviderKind::DashScope),
+        "the stored pin picks the provider"
+    );
+    let resolved = provider_and_model_for(crew_hive::ModelTier::Standard);
+    assert!(
+        resolved.is_some(),
+        "a stored key must resolve a provider with an empty environment — \
+         without it roster_with returns plugins only"
+    );
+    drop(env);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn an_exported_key_still_outranks_the_stored_one() {
+    // The precedence `shellenv::credential_imports` already applies, restated
+    // on the read side: an exported variable is the most deliberate signal a
+    // user can send and must never be shadowed by something crew stored.
+    assert_eq!(
+        resolve_key(
+            Some("sk-from-the-environment".to_string()),
+            Some("sk-from-the-store".to_string())
+        )
+        .as_deref(),
+        Some("sk-from-the-environment")
+    );
+    assert_eq!(
+        resolve_key(None, Some("sk-from-the-store".to_string())).as_deref(),
+        Some("sk-from-the-store")
+    );
+    assert_eq!(
+        resolve_key(Some(String::new()), Some("sk-from-the-store".to_string())).as_deref(),
+        Some("sk-from-the-store"),
+        "an empty export is not a key"
+    );
+    assert_eq!(resolve_key(None, None), None);
+    assert_eq!(resolve_key(None, Some(String::new())), None);
 }
 
 #[test]

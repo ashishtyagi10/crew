@@ -8,6 +8,30 @@ fn scratch(tag: &str) -> std::path::PathBuf {
     dir.join("credentials.json")
 }
 
+/// A `Store` is the one value in this crate that must never survive a `dbg!`,
+/// an `anyhow` context or an `assert_eq!` failure with its contents intact.
+/// The derived `Debug` printed raw keys; this is the hand-written replacement.
+#[test]
+fn debug_redacts_the_key_values_but_keeps_the_names() {
+    let s = Store {
+        provider: Some("anthropic".to_string()),
+        keys: [(
+            "ANTHROPIC_API_KEY".to_string(),
+            "sk-test-not-a-real-key".to_string(),
+        )]
+        .into_iter()
+        .collect(),
+    };
+    let printed = format!("{s:?}");
+    assert!(
+        !printed.contains("sk-test-not-a-real-key"),
+        "a key value must never reach a Debug rendering: {printed}"
+    );
+    assert!(printed.contains("ANTHROPIC_API_KEY"), "{printed}");
+    assert!(printed.contains("<redacted>"), "{printed}");
+    assert!(printed.contains("anthropic"), "the pin is not a secret");
+}
+
 #[test]
 fn save_then_load_round_trips_the_key_and_pin() {
     let p = scratch("roundtrip");

@@ -92,11 +92,12 @@ pub fn pick_provider(force: Option<&str>, has_key: impl Fn(&str) -> bool) -> Opt
 /// Which provider is pinned: `CREW_PROVIDER` if it names one, else the pin the
 /// credential store recorded when a key was saved. Env wins, so an explicit
 /// `CREW_PROVIDER=… crew` is never overridden by something crew stored itself.
-pub(crate) fn forced_provider() -> Option<String> {
-    resolve_forced(
-        std::env::var("CREW_PROVIDER").ok(),
-        crate::credentials::load().provider,
-    )
+///
+/// Takes an already-loaded `store` so one request reads the file once — for
+/// the pin AND the key it goes with (see [`key_for`]) — rather than once per
+/// lookup.
+fn forced_provider(store: &crate::credentials::Store) -> Option<String> {
+    resolve_forced(std::env::var("CREW_PROVIDER").ok(), store.provider.clone())
 }
 
 /// The pure half of [`forced_provider`], so the precedence is testable without
@@ -104,6 +105,51 @@ pub(crate) fn forced_provider() -> Option<String> {
 fn resolve_forced(env: Option<String>, stored: Option<String>) -> Option<String> {
     env.filter(|v| !v.is_empty())
         .or_else(|| stored.filter(|v| !v.is_empty()))
+}
+
+/// The value backing `var` for THIS request: the process environment first,
+/// then the credential store.
+///
+/// Read per request, exactly like the pin in [`forced_provider`] — and for the
+/// same reason. `shellenv::hydrate()` imports the store into the environment
+/// ONCE per broker process, at startup; the broker child is spawned when the
+/// chat pane opens, and the key prompt only exists *inside* a chat pane, so a
+/// key typed into crew is always written after the only import that would have
+/// picked it up. Reading only the environment here meant a saved key never
+/// reached the running broker at all — and, because saving one also writes the
+/// provider pin (which IS re-read per request), it actively broke a working
+/// session: `pick_provider` would return the pinned provider, this lookup
+/// would find nothing, and `roster_with` would fall back to plugins only,
+/// silently dropping the user's specialists until the pane was reopened.
+///
+/// Never logs the value.
+fn key_for(store: &crate::credentials::Store, var: &str) -> Option<String> {
+    resolve_key(std::env::var(var).ok(), store.keys.get(var).cloned())
+}
+
+/// The pure half of [`key_for`]. A variable exported non-empty into this
+/// process WINS over the stored value — the most deliberate signal a user can
+/// send, and the same precedence `shellenv::credential_imports` already
+/// applies when it imports the store at startup.
+fn resolve_key(env: Option<String>, stored: Option<String>) -> Option<String> {
+    env.filter(|v| !v.is_empty())
+        .or_else(|| stored.filter(|v| !v.is_empty()))
+}
+
+/// The provider this request resolves to, reading the pin and the keys the
+/// same way: process environment first, credential store second. The single
+/// answer to "which provider is active right now" — [`roster_with`],
+/// `stdio::provider_resolves` and `doctor::gather` all come through here, so
+/// none of them can disagree with the roster that actually gets built.
+pub(crate) fn resolved_provider() -> Option<ProviderKind> {
+    picked(&crate::credentials::load())
+}
+
+/// [`resolved_provider`] over an already-loaded store.
+fn picked(store: &crate::credentials::Store) -> Option<ProviderKind> {
+    pick_provider(forced_provider(store).as_deref(), |k| {
+        key_for(store, k).is_some()
+    })
 }
 
 /// The full adapter roster: stored specialists (see [`super::specialists`])
@@ -117,18 +163,14 @@ fn resolve_forced(env: Option<String>, stored: Option<String>) -> Option<String>
 pub(crate) fn roster_with(
     overrides: &std::collections::HashMap<String, String>,
 ) -> Vec<Box<dyn Adapter>> {
-    let mut agents = match provider_and_model_for(crew_hive::ModelTier::Standard) {
+    let store = crate::credentials::load();
+    let mut agents = match provider_and_model_with(&store, crew_hive::ModelTier::Standard) {
         Some((provider, model)) => specialist_agents(provider, &model, overrides),
         None => Vec::new(),
     };
     // The mock roster stays plugin-free so end-to-end tests are deterministic
     // on any machine.
-    if !matches!(
-        pick_provider(forced_provider().as_deref(), |k| {
-            std::env::var(k).is_ok_and(|v| !v.is_empty())
-        }),
-        Some(ProviderKind::Mock)
-    ) {
+    if !matches!(picked(&store), Some(ProviderKind::Mock)) {
         super::plugins::append(&mut agents);
     }
     agents
@@ -142,9 +184,18 @@ pub(crate) fn roster_with(
 pub(crate) fn provider_and_model_for(
     tier: crew_hive::ModelTier,
 ) -> Option<(Arc<dyn crew_hive::Provider>, String)> {
-    let force = forced_provider();
-    let has = |k: &str| std::env::var(k).is_ok_and(|v| !v.is_empty());
-    match pick_provider(force.as_deref(), has)? {
+    provider_and_model_with(&crate::credentials::load(), tier)
+}
+
+/// [`provider_and_model_for`] over an already-loaded credential store: one
+/// read of the store answers both "which provider" and "with which key", so a
+/// request can never resolve a provider from the store and then fail to find
+/// the key that goes with it.
+fn provider_and_model_with(
+    store: &crate::credentials::Store,
+    tier: crew_hive::ModelTier,
+) -> Option<(Arc<dyn crew_hive::Provider>, String)> {
+    match picked(store)? {
         ProviderKind::Mock => {
             let reply = std::env::var("CREW_BROKER_MOCK_REPLY").unwrap_or_default();
             let provider = crew_hive::MockProvider { reply };
@@ -154,7 +205,7 @@ pub(crate) fn provider_and_model_for(
             ))
         }
         ProviderKind::DashScope => {
-            let key = std::env::var("DASHSCOPE_API_KEY").ok()?;
+            let key = key_for(store, "DASHSCOPE_API_KEY")?;
             let chain = parse_model_chain(
                 std::env::var("CREW_DASHSCOPE_MODEL").ok(),
                 DEFAULT_DASHSCOPE_CHAIN
@@ -171,7 +222,10 @@ pub(crate) fn provider_and_model_for(
             Some((Arc::new(provider) as Arc<dyn crew_hive::Provider>, model))
         }
         ProviderKind::OpenRouter => {
-            let provider = crew_hive::OpenRouterProvider::from_env().ok()?;
+            // Not `from_env()`: that reads the environment only, and the key
+            // may live in the store (see [`key_for`]).
+            let provider =
+                crew_hive::OpenRouterProvider::new(key_for(store, "OPENROUTER_API_KEY")?);
             let chain = parse_model_chain(
                 std::env::var("CREW_OPENROUTER_MODEL").ok(),
                 default_openrouter_chain(),
@@ -181,7 +235,8 @@ pub(crate) fn provider_and_model_for(
             Some((Arc::new(provider) as Arc<dyn crew_hive::Provider>, model))
         }
         ProviderKind::Anthropic => {
-            let provider = crew_hive::AnthropicProvider::from_env().ok()?;
+            // Not `from_env()` — same reason as OpenRouter above.
+            let provider = crew_hive::AnthropicProvider::new(key_for(store, "ANTHROPIC_API_KEY")?);
             Some((
                 Arc::new(provider) as Arc<dyn crew_hive::Provider>,
                 tier.model_id().to_string(),

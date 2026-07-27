@@ -322,6 +322,44 @@ fn noting_a_key_makes_resolve_pick_its_provider() {
 }
 
 #[test]
+fn a_stored_pin_resolves_the_provider_and_the_env_pin_still_outranks_it() {
+    // Finding #4, on the pure seam (`provider_now` reads the process-global
+    // `SHELL_PROBE`/`PINNED`, which ~1180 parallel tests in this binary must
+    // not fight over — see `noting_a_key_makes_resolve_pick_its_provider`).
+    let keys: HashSet<String> = [
+        "DASHSCOPE_API_KEY".to_string(),
+        "OPENROUTER_API_KEY".to_string(),
+    ]
+    .into_iter()
+    .collect();
+    // No pin anywhere: the fixed discovery order takes DashScope first.
+    assert_eq!(
+        resolve(&keys, resolve_pin(None, None)),
+        Some(crew_plugin::Provider::DashScope)
+    );
+    // The stored pin — what the key popup writes, and what the broker has
+    // always honoured — must move the app's answer too. Without this the user
+    // saves an OpenRouter key, the app keeps resolving DashScope, the row
+    // stays dim, and accepting it re-opens the same prompt forever.
+    assert_eq!(
+        resolve(&keys, resolve_pin(None, Some("openrouter"))),
+        Some(crew_plugin::Provider::OpenRouter)
+    );
+    // …and an explicit CREW_PROVIDER still outranks it, exactly as in
+    // `crew_plugin`'s `discover::resolve_forced`.
+    assert_eq!(
+        resolve(&keys, resolve_pin(Some("anthropic"), Some("openrouter"))),
+        Some(crew_plugin::Provider::Anthropic)
+    );
+    // A blank CREW_PROVIDER is not a pin.
+    assert_eq!(
+        resolve_pin(Some(""), Some("openrouter")),
+        Some("openrouter")
+    );
+    assert_eq!(resolve_pin(None, Some("")), None);
+}
+
+#[test]
 fn adopt_fallback_path_rejects_blank_fallback_value() {
     // Same blank/whitespace-only guard as the primary probe's PATH= line in
     // `merge_shell_env` — a shell that "succeeds" but prints nothing useful

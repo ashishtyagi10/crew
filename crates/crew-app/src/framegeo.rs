@@ -57,6 +57,40 @@ impl CrewApp {
         frame_hit_rects(self.zoomed, self.focused, self.panes.len(), content, placed)
     }
 
+    /// Discard any provider-key prompt this frame will NOT draw. `render.rs`
+    /// draws the masked card for the focused chat pane only, and only while
+    /// neither the input bar nor the help overlay is covering it — so any
+    /// focus move (a plain click on the input bar, `focus_at_cursor`; a click
+    /// on another pane; Cmd+P; the help overlay) would otherwise leave the
+    /// prompt open but INVISIBLE while still holding a half-typed secret.
+    ///
+    /// With the input bar focused that is not merely cosmetic: keys never
+    /// reach `ChatPane::on_input` at all, so ordinary typing lands in
+    /// `self.input.text` — drawn in plaintext in the bar and in the input
+    /// preview card — and Enter pushes the line into the command history,
+    /// which is written to disk and replayed as ghost text next launch.
+    ///
+    /// Closing rather than REFUSING the focus change is deliberate. The prompt
+    /// is hidden by a click anywhere outside its pane, by pane switching and
+    /// by the help overlay, not just by the input bar; refusing all of those
+    /// would make it a modal the user cannot click out of, and there is no
+    /// focus chokepoint to enforce it in (nine call sites set
+    /// `input.focused`). Discarding the buffer is exactly what Escape already
+    /// does, and the invariant then holds by construction, once per frame,
+    /// however focus moved.
+    pub(crate) fn close_hidden_keyentry(&mut self) {
+        let drawn = (!self.input.focused && !self.help_open).then_some(self.focused);
+        for (i, pane) in self.panes.iter_mut().enumerate() {
+            if Some(i) == drawn {
+                continue;
+            }
+            if let crate::pane::PaneContent::Chat(c) = &mut pane.content {
+                // Dropping the `KeyEntry` drops its buffer with it.
+                c.keyentry = None;
+            }
+        }
+    }
+
     /// The pane you're looking at has no unseen activity: clear its activity
     /// dot, bell, and attention marker. Skipped while the input bar is focused
     /// — typing in the bar isn't looking at the pane.

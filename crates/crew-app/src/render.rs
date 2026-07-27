@@ -15,6 +15,9 @@ impl CrewApp {
             return Vec::new();
         };
         self.reconcile_grid();
+        // Before anything is drawn: a key prompt this frame won't show must
+        // not survive holding a secret (see `close_hidden_keyentry`).
+        self.close_hidden_keyentry();
         self.mark_focused_seen();
         // A pane highlights only when the input bar is NOT focused (one active surface).
         let Some((content, placed)) = self.placed_grid() else {

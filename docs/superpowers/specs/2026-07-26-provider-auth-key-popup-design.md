@@ -116,8 +116,10 @@ An explicitly exported variable is the most deliberate signal and keeps winning.
 A key typed into the app beats a stale value in a shell rc file — otherwise the
 user types a key, sees nothing change, and has no way to find out why.
 
-This falls out of the existing design rather than fighting it. `shellenv::hydrate`
-already only fills variables *missing* from the process environment, so:
+Two passes, in two different places, both applying that precedence.
+
+At broker startup, `shellenv::hydrate` already only fills variables *missing*
+from the process environment, so:
 
 ```
 hydrate():
@@ -128,6 +130,22 @@ hydrate():
 Step 1 runs inside `hydrate()`, which is already documented as running before the
 broker spawns any thread — `set_var` is process-global and unsound once threads
 are live. Nothing new about the threading contract.
+
+**But `hydrate()` alone is not enough, and this was originally missed.** It runs
+exactly ONCE per broker process, and the broker is a long-lived child spawned
+when the chat pane opens. The key prompt is only reachable *from inside* a chat
+pane — so the file is always written after the only import that would have
+picked it up. A key saved this session would never reach the running broker at
+all; worse, because the *pin* is re-read per request, saving one would resolve a
+provider whose key the process could not see, `provider_and_model_for` would
+return `None`, and `roster_with` would fall back to plugins only — the user's
+working specialist roster vanishing until they reopened the pane.
+
+So `discover.rs` reads the store per request as well, with the same precedence:
+`key_for(store, VAR)` returns the process environment's value when it is set
+non-empty, else the stored one. That is the same shape `forced_provider()`
+already had for the pin, and it is what makes a saved key take effect on the
+next message.
 
 ## 5. Provider pinning
 
@@ -219,7 +237,17 @@ an earlier session make their rows live at startup.
 has not landed yet, rows still render `Unknown` even with a key in the overlay —
 crew does not claim a route on evidence it hasn't finished gathering. In practice
 the probe lands within its 3-second bound at startup. The stored key still
-reaches the broker regardless, because the broker reads the file itself.
+reaches the broker regardless, because the broker's per-request resolution reads
+the file itself (§4) — *not* because of the startup `hydrate()` pass, which has
+already run by the time any key can be typed.
+
+The overlay carries the stored **pin** as well as the key names
+(`shellprobe::note_pin`, seeded from `credentials::load().provider` at startup).
+Without it the app would keep resolving its own fixed discovery order while the
+broker honoured the pin: the row the user just supplied a key for would stay dim,
+accepting it would re-open the same prompt, and the two halves of crew would
+disagree permanently. `CREW_PROVIDER` still outranks the stored pin here, exactly
+as it does in the broker.
 
 ## 8. Testing
 
