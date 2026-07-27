@@ -8,102 +8,70 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
-## 0.6.74
+## 0.6.75
 
+- Grouped the entries below by what the work was for. Thirteen consecutive
+  per-release sections trace history well and read badly; the run was one body
+  of work and now says so.
+
+## 0.6.62 – 0.6.74
+
+The second half of the same run. Mostly the consequences of the first half —
+six providers where there had been three, ten fewer constructs — arriving as
+messages that named the wrong thing, state that outlived what owned it, and
+documents describing commands that no longer existed.
+
+### Failures that now say something
+
+- A provider's API error is a sentence, not a JSON envelope pasted into the
+  chat and truncated mid-structure. A rejected key names the fix; it is the
+  most common provider error and the only one a user can always fix. (0.6.68)
+- A missing key names the variable that is actually missing. It said
+  `ANTHROPIC_API_KEY` whatever had failed, and the OpenAI-wire client backs
+  six providers through six variables. (0.6.69)
+- An unknown `/command` says so and guesses, rather than doing nothing.
+  (0.6.53)
+- A CLI that is installed but not signed in says so. Empty output from it was
+  being treated as a successful empty reply. (0.6.60)
+
+### Things that stopped outliving what owned them
+
+- Closing an agent pane stops the agents it was running. The broker died; the
+  `claude` or `codex` it had spawned survived, reparented and still working.
+  (0.6.72)
+- A lost broker no longer leaves phantom running tasks in the footer, or a
+  pending plan that still answers to enter. (0.6.67)
+- The transcript fold marker counts everything it ever folded, and folds in
+  batches rather than copying the whole transcript on every message past the
+  cap. (0.6.66)
+
+### The pane fits
+
+- All three footer lines budget themselves and drop the least important
+  segment rather than being clipped from the right. A 40-column pane was
+  showing "enter runs it" and cutting "esc discards it" — half an
+  instruction. (0.6.57, 0.6.58)
+- `/keys` documents the agent pane, and fits a default window; it was 58 rows
+  and silently truncated. (0.6.65)
+
+### Knowing what you are running
+
+- `crew --version` prints a version instead of launching the window;
+  `crew --help` lists the CLI modes. (0.6.71)
+- `/about` opens the changelog that shipped with the binary, and a build that
+  is not the one that ran last says so on startup. (0.6.63, 0.6.64)
+- This changelog exists, bound by a test to the version it ships with.
+  (0.6.62)
+
+### Guards, so this does not happen again
+
+- The docs stop describing constructs that no longer exist, and a test fails
+  the build if they ever do. (0.6.73)
 - An end-to-end test sends every construct the router advertises to a real
-  broker and fails if any of them cannot answer. The command surface changed
-  heavily across this release run; the lists were bound to each other, and
-  this binds them to a running broker.
-
-## 0.6.73
-
-- README and docs/CREW.md no longer describe the ten constructs deleted this
-  release run, and a test fails the build if they ever describe one that
-  nothing answers.
-
-## 0.6.72
-
-- Closing an agent pane now stops the agents it was running. The broker was
-  killed, but the CLI it had spawned — `claude`, `codex` — survived,
-  reparented and still working. The broker runs in its own process group and
-  the group is what gets killed.
-
-## 0.6.71
-
-- `crew --version` prints the version. It used to match nothing, fall through
-  every check and launch the window — which is the one thing someone typing it
-  into a terminal does not want, and the natural way to ask which of tonight's
-  builds you are on.
-- `crew --help` lists the CLI modes, which had grown to six with nothing
-  documenting them. A subcommand keeps its own help: `crew ask --help` still
-  answers about `ask`.
-
-## 0.6.70
-
-- The end-to-end test harness clears every provider key, not the three it was
-  written against. With an `OPENAI_API_KEY` exported, the "no provider" tests
-  were not isolated and failed — so nobody holding one could run the suite
-  green.
-
-## 0.6.69
-
-- A missing provider key names the variable that is actually missing. The
-  error said `ANTHROPIC_API_KEY` whatever had failed, and the OpenAI-wire
-  client backs six providers through six different variables — so it was
-  usually naming someone else's key.
-
-## 0.6.68
-
-- A provider's API error arrives as a sentence rather than a JSON envelope
-  pasted into the chat and truncated mid-structure.
-- A rejected key says so and names the fix: "provider rejected the key — …
-  (/model replaces it)". It is the most common provider error there is, and
-  the only one a user can always fix.
-
-## 0.6.67
-
-- A lost broker no longer leaves phantom running tasks in the footer or a
-  pending plan that answers to enter. A task killed with its process never
-  sends its end event, so both outlived the broker that owned them — and a
-  fresh broker numbers its tasks from 1 again, so the leftovers would collide
-  with real ones.
-
-## 0.6.66
-
-- The transcript fold marker counts everything it has ever folded. It reported
-  only the last pass, so a hundred messages past the cap it still read
-  "compacted 2 earlier messages".
-- Folding takes a batch instead of running on every message once the cap is
-  reached, where it copied the whole transcript each time.
-
-## 0.6.65
-
-- `/keys` documents the agent pane: enter and esc answering a drafted plan,
-  Shift+Enter, Tab completion, `@` and `#`. It listed none of them.
-- `/keys` stops repeating the slash commands. With them it was 58 rows —
-  taller than a default window, so ratatui cut the bottom off in silence. The
-  composer's palette has listed them since 0.6.52, grouped and filterable.
-
-## 0.6.64
-
-- The "updated to" note waits for the first rendered frame instead of being
-  flashed during startup. Status messages expire after three seconds and a
-  cold launch takes far longer than that to draw anything, so the note was
-  being lost on exactly the launch it exists for.
-
-## 0.6.63
-
-- `/about` opens the changelog that shipped with this binary, in the markdown
-  viewer, rather than flashing a version number. The number is only useful as
-  a way to find out what changed.
-- A build that is not the one that ran last says so on startup and points at
-  `/about`. Auto-update lands quietly and applies on the next restart, so
-  without this a user can find themselves in a different app with no idea why.
-
-## 0.6.62
-
-- Added this changelog, covering the run of releases below, plus a test
-  binding its newest entry to the workspace version.
+  broker. (0.6.74)
+- The test harness clears every provider key rather than the three it was
+  written against — with an `OPENAI_API_KEY` exported, nobody could run the
+  suite green. (0.6.70)
 
 ## 0.6.38 – 0.6.61
 
