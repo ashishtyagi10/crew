@@ -96,7 +96,12 @@ pub(super) fn attach_items(
     multi: bool,
 ) -> Vec<MenuItem> {
     use crate::chatmention::MentionEntry;
-    crate::chatmention::filter(entries, query)
+    let hits = crate::chatmention::filter(entries, query);
+    let agents = hits
+        .iter()
+        .filter(|e| matches!(e, MentionEntry::Agent { .. }))
+        .count();
+    let mut out: Vec<MenuItem> = hits
         .into_iter()
         .filter(|e| !multi || matches!(e, MentionEntry::Agent { .. }))
         .map(|e| MenuItem {
@@ -108,5 +113,17 @@ pub(super) fn attach_items(
             dim: false,
             needs: None,
         })
-        .collect()
+        .collect();
+    // `@a+b` fans one task out to several agents at once. It was implemented,
+    // filtered for correctly two lines up, and documented in exactly one
+    // place the app never shows — so the popup says it, at the moment the
+    // user is looking at the agents it applies to.
+    //
+    // Only when there are two to chain, and not while already chaining: the
+    // hint is for someone who does not know the idiom, and repeating it to
+    // someone mid-selector is noise.
+    if !multi && agents >= 2 && !out.is_empty() {
+        out.push(header("@a+b  fans the task out to both, in parallel"));
+    }
+    out
 }

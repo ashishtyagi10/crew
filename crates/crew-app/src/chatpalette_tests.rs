@@ -45,12 +45,24 @@ fn agent_entries() -> Vec<crate::chatmention::MentionEntry> {
 
 #[test]
 fn after_edit_opens_refilters_and_closes() {
+    // Counted as CHOICES: a header row (the `@a+b` hint) is not selectable,
+    // so it must not be counted as one.
+    macro_rules! choices {
+        ($p:expr) => {
+            $p.as_ref()
+                .unwrap()
+                .items
+                .iter()
+                .filter(|i| !i.header)
+                .count()
+        };
+    }
     let mut p = None;
     after_edit(&mut p, "@", None, agent_entries);
-    assert_eq!(p.as_ref().unwrap().items.len(), 2);
+    assert_eq!(choices!(p), 2);
     assert_eq!(p.as_ref().unwrap().kind, Kind::Agent);
     after_edit(&mut p, "@co", None, agent_entries);
-    assert_eq!(p.as_ref().unwrap().items.len(), 1); // only coder
+    assert_eq!(choices!(p), 1); // only coder
     after_edit(&mut p, "@zzz", None, agent_entries);
     assert!(p.is_none()); // no match closes
     after_edit(&mut p, "/mo", None, Vec::new);
@@ -290,4 +302,45 @@ fn filtering_is_a_flat_list() {
         items.iter().map(|i| &i.label).collect::<Vec<_>>()
     );
     assert!(items.iter().all(|i| i.label.starts_with("/mo")));
+}
+
+/// `@a+b` fans a task out to several agents at once. It was implemented and
+/// documented in exactly one place the app never shows, so the popup says it
+/// where the agents it applies to are on screen.
+#[test]
+fn the_attach_popup_mentions_fanning_out() {
+    let entries = vec![
+        crate::chatmention::MentionEntry::Agent {
+            name: "planner".into(),
+            role: "planning".into(),
+        },
+        crate::chatmention::MentionEntry::Agent {
+            name: "coder".into(),
+            role: "building".into(),
+        },
+    ];
+    let rows = super::chatpaletteitems::attach_items("", &entries, false);
+    let hint = rows.iter().find(|r| r.header).map(|r| r.label.clone());
+    assert!(
+        hint.is_some_and(|h| h.contains("+") && h.contains("parallel")),
+        "no fan-out hint: {:?}",
+        rows.iter().map(|r| &r.label).collect::<Vec<_>>()
+    );
+
+    // Not while already chaining — the hint is for someone who does not know
+    // the idiom, not someone mid-selector.
+    let chaining = super::chatpaletteitems::attach_items("", &entries, true);
+    assert!(
+        !chaining.iter().any(|r| r.header),
+        "hint repeated mid-selector"
+    );
+
+    // …and not with a single agent, where there is nothing to chain to.
+    let one = vec![crate::chatmention::MentionEntry::Agent {
+        name: "solo".into(),
+        role: "everything".into(),
+    }];
+    assert!(!super::chatpaletteitems::attach_items("", &one, false)
+        .iter()
+        .any(|r| r.header));
 }
