@@ -577,7 +577,9 @@ and a typo gets a **did-you-mean** suggestion):
   temporary index and pinned under `refs/crew/` — HEAD, your index, and
   branches are never touched, and snapshots survive broker restarts.
   bare **`/restore`** lists them oldest-first; **`/restore <n>`** puts that
-  snapshot's files back (files created after the snapshot are left in place).
+  snapshot's files back and removes the files that appeared after it, naming
+  each one it deleted. Ignored files (build output, secrets) are never
+  candidates, and neither is anything that predates the snapshot.
 - bare **`/skill`** — list the loaded prompt playbooks; **`/skill <name> <task>`**
   — run the relay with that playbook prepended to the task (see *Extending*
   below).

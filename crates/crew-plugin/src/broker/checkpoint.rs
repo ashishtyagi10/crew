@@ -207,15 +207,85 @@ pub(crate) fn list(dir: &Path) -> Result<Vec<(String, String)>, String> {
         .collect())
 }
 
-/// Put checkpoint `sha`'s files back into the working tree. Only the worktree
-/// changes — files created after the snapshot are left in place.
-pub(crate) fn restore(dir: &Path, sha: &str) -> Result<(), String> {
+/// Files in `sha`'s tree, repo-relative.
+fn tree_files(dir: &Path, sha: &str) -> Result<Vec<String>, String> {
+    Ok(git(dir, &["ls-tree", "-r", "--name-only", sha], None)?
+        .lines()
+        .map(str::to_string)
+        .collect())
+}
+
+/// Files in the working tree now, ignored ones excluded — the same set a
+/// snapshot captures, since `worktree_tree` builds its index with `add -A`.
+fn worktree_files(dir: &Path) -> Result<Vec<String>, String> {
+    Ok(git(
+        dir,
+        &["ls-files", "--cached", "--others", "--exclude-standard"],
+        None,
+    )?
+    .lines()
+    .map(str::to_string)
+    .collect())
+}
+
+/// What appeared after the snapshot: present now, absent then. These are the
+/// files an undo has to remove, and the reason it is computed as a set
+/// difference rather than with `git clean` is that `clean` would also take
+/// files that predate the checkpoint and were never part of the change.
+///
+/// Ignored files are already absent from both sides (neither the snapshot nor
+/// `worktree_files` sees them), so build output and untracked secrets are
+/// never candidates. `.crew/` is excluded explicitly: deleting crew's own live
+/// transcript mid-session would be the tool undoing itself.
+fn appeared_since(snapshot: &[String], now: &[String]) -> Vec<String> {
+    let mut extra: Vec<String> = now
+        .iter()
+        .filter(|p| !snapshot.contains(p) && !super::changed::is_crew_artifact(p))
+        .cloned()
+        .collect();
+    extra.sort();
+    extra
+}
+
+/// Put checkpoint `sha`'s files back and remove the ones that appeared after
+/// it. Returns what was removed, so the caller can name it — this deletes the
+/// user's files, and a deletion nobody is told about is not an undo, it is a
+/// surprise.
+///
+/// It used to restore only what the snapshot contained, leaving anything the
+/// agent had CREATED in place and saying so in a caveat. That left the user to
+/// find and delete those files by hand, which is both the manual step this
+/// feature exists to remove and the half of the change most likely to be
+/// unwanted — a half-written module the run was abandoned over.
+pub(crate) fn restore(dir: &Path, sha: &str) -> Result<Vec<String>, String> {
+    let snapshot = tree_files(dir, sha)?;
+    let extra = appeared_since(&snapshot, &worktree_files(dir)?);
     git(
         dir,
         &["restore", "--source", sha, "--worktree", "--", ":/"],
         None,
-    )
-    .map(|_| ())
+    )?;
+    let mut removed = Vec::new();
+    for path in extra {
+        let full = dir.join(&path);
+        if std::fs::remove_file(&full).is_ok() {
+            removed.push(path);
+            prune_empty_dirs(dir, full.parent());
+        }
+    }
+    Ok(removed)
+}
+
+/// Drop directories the removals emptied, stopping at the repo root. A
+/// restored tree with a trail of empty folders in it is not the tree that was
+/// snapshotted; `remove_dir` refuses a non-empty one, which is the whole guard.
+fn prune_empty_dirs(root: &Path, mut at: Option<&Path>) {
+    while let Some(d) = at {
+        if d == root || !d.starts_with(root) || std::fs::remove_dir(d).is_err() {
+            return;
+        }
+        at = d.parent();
+    }
 }
 
 /// `/checkpoints` — list the saved snapshots.
@@ -283,15 +353,40 @@ pub(crate) fn restore_cmd(
         ));
     };
     match restore(&dir, sha) {
-        Ok(()) => emit(msg(
+        Ok(removed) => emit(msg(
             "agent smith",
             format!(
-                "restored \u{201c}{label}\u{201d} ({sha}) \u{2014} snapshot files are back; \
-                 files created since the snapshot were left in place"
+                "restored \u{201c}{label}\u{201d} ({sha}){}",
+                removed_note(&removed)
             ),
         )),
         Err(e) => emit(msg("agent smith", format!("restore failed: {e}"))),
     }
+}
+
+/// What to say about deleted files. Every one is named up to a few, then
+/// counted — a restore that removed something must never read like one that
+/// only put files back.
+fn removed_note(removed: &[String]) -> String {
+    const NAMED: usize = 4;
+    if removed.is_empty() {
+        return String::new();
+    }
+    let mut note = format!(
+        " \u{2014} removed {} file{} created since: {}",
+        removed.len(),
+        if removed.len() == 1 { "" } else { "s" },
+        removed
+            .iter()
+            .take(NAMED)
+            .cloned()
+            .collect::<Vec<_>>()
+            .join(", "),
+    );
+    if let Some(rest) = removed.len().checked_sub(NAMED).filter(|n| *n > 0) {
+        note.push_str(&format!(", +{rest} more"));
+    }
+    note
 }
 
 #[cfg(test)]
