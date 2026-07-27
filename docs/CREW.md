@@ -711,8 +711,10 @@ inbuilt API agents — **planner** (capable tier), **coder**, and **reviewer**
 `qwen-plus` → `qwen-turbo`, override with `CREW_DASHSCOPE_MODEL=a,b,…`; the
 endpoint defaults to the international region, point `CREW_DASHSCOPE_BASE_URL`
 at the China host if your key lives there), then `OPENROUTER_API_KEY` (free
-models by default), and falls back to `ANTHROPIC_API_KEY`; set
-`CREW_PROVIDER=dashscope|openrouter|anthropic` to pin one explicitly. Keys
+models by default), then `ANTHROPIC_API_KEY`, and last a **direct vendor key**
+(see below); set `CREW_PROVIDER=dashscope|openrouter|anthropic|openai|gemini|deepseek`
+to pin one explicitly — a pin works even when that vendor's key is the only one
+you hold, and even when several are set. Keys
 don't have to be in Crew's own environment: at startup the broker imports any
 **missing** provider keys (and `CREW_*` vars) from your login shell
 (`$SHELL -ilc env`, bounded to 3s; `CREW_SHELL_ENV=0` disables), so a
@@ -729,6 +731,31 @@ export CREW_OPENROUTER_MODEL="deepseek/deepseek-chat-v3.1:free,qwen/qwen3-235b-a
 
 Free models still share a hard account-wide daily cap; for sustained heavy use,
 put a cheap **paid** slug (no daily cap) in the chain, or buy OpenRouter credits.
+
+**Direct vendor keys.** If you hold a key from the vendor itself, Crew talks to
+that vendor directly rather than routing you through OpenRouter. Each of these
+speaks the OpenAI chat-completions wire, so they share one client — only the
+endpoint, the key and the default model chain differ:
+
+| `CREW_PROVIDER` | Key | Default chain | Override the chain | Override the endpoint |
+|---|---|---|---|---|
+| `openai` | `OPENAI_API_KEY` | `gpt-5` → `gpt-4.1` | `CREW_OPENAI_MODEL` | `CREW_OPENAI_BASE_URL` |
+| `gemini` | `GEMINI_API_KEY` | `gemini-2.5-pro` → `gemini-2.5-flash` | `CREW_GEMINI_MODEL` | `CREW_GEMINI_BASE_URL` |
+| `deepseek` | `DEEPSEEK_API_KEY` | `deepseek-chat` → `deepseek-reasoner` | `CREW_DEEPSEEK_MODEL` | `CREW_DEEPSEEK_BASE_URL` |
+
+Chain overrides are comma-separated and tried in order, exactly like
+`CREW_OPENROUTER_MODEL`: `export CREW_GEMINI_MODEL="gemini-2.5-flash,gemini-2.5-pro"`.
+Gemini is reached over Google's own OpenAI-compatibility endpoint, so no Google
+SDK is involved.
+
+These probe **last** in auto-discovery, deliberately: adding a vendor can never
+change which provider an existing install already resolves to. So if you also
+have `DASHSCOPE_API_KEY` or `OPENROUTER_API_KEY` set, a direct key is only
+picked up when you name it — `CREW_PROVIDER=gemini`. The model picker routes a
+row to its native vendor when you hold that vendor's key, and to OpenRouter
+otherwise. Default model ids are never invented: every slug above is a real
+`crew_hive::catalog` row for that vendor, which is also why xAI, Mistral and
+Groq are absent despite speaking the same wire.
 
 **Isolation & threading.** Agents run in a broker **subprocess** (the
 `crew-broker-plugin` binary) over Crew's JSON-line plugin protocol, so all the

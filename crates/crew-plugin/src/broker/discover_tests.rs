@@ -469,3 +469,41 @@ fn slugs_that_name_no_direct_vendor_leave_the_pin_alone() {
     );
     assert_eq!(super::pin_provider_for_model("not-a-real-model"), None);
 }
+
+/// Every `DIRECT` row is a provider a user can actually reach — a key var, an
+/// endpoint and a model chain — and a provider nobody is told about is a
+/// provider nobody uses. `openai`, `gemini` and `deepseek` each shipped fully
+/// wired and entirely undocumented, so the table now has to answer to the
+/// manual: add a row without a paragraph and this fails, which is the only
+/// mechanism that has ever kept two lists together in this codebase (see
+/// `broker_constructs`).
+#[test]
+fn every_direct_provider_is_documented() {
+    const MANUAL: &str = include_str!("../../../../docs/CREW.md");
+    for d in DIRECT {
+        for needle in [d.name, d.var, d.chain_env, d.base_url_env] {
+            assert!(
+                MANUAL.contains(needle),
+                "docs/CREW.md never mentions `{needle}` \u{2014} provider `{}` is \
+                 wired but undocumented",
+                d.name
+            );
+        }
+    }
+}
+
+/// `CREW_PROVIDER` has accepted a `DIRECT` name since the table landed, but
+/// the docs (and `pick_provider`'s own comment) listed only the original
+/// three, so the pin looked impossible for exactly the providers that most
+/// needed pinning — they probe last by design.
+#[test]
+fn crew_provider_pins_a_direct_row_by_name() {
+    for d in DIRECT {
+        assert_eq!(
+            pick_provider(Some(d.name), keys(&[])),
+            Some(ProviderKind::Direct(d)),
+            "CREW_PROVIDER={} should pin the direct row even with no key set",
+            d.name
+        );
+    }
+}
