@@ -27,7 +27,7 @@ fn row_text(cells: &[CellView], row: u16) -> String {
 
 #[test]
 fn tall_pane_gets_a_bordered_card() {
-    let cells = composer_cells("hi", &agents(&["planner", "coder"]), 80, 10);
+    let cells = composer_cells("hi", None, &agents(&["planner", "coder"]), 80, 10);
     // Top border (row 7): rounded corners with the agent chips as the legend.
     let top = row_text(&cells, 7);
     assert!(top.starts_with('\u{256d}'), "top: {top}"); // ╭
@@ -49,7 +49,7 @@ fn tall_pane_gets_a_bordered_card() {
 
 #[test]
 fn short_pane_gets_prompt_only() {
-    let cells = composer_cells("hi", &agents(&["planner"]), 60, 5);
+    let cells = composer_cells("hi", None, &agents(&["planner"]), 60, 5);
     assert!(cells.iter().all(|c| c.row == 4));
     assert!(row_text(&cells, 4).starts_with("\u{276f} hi"));
 }
@@ -57,7 +57,7 @@ fn short_pane_gets_prompt_only() {
 #[test]
 fn valid_mention_is_highlighted_in_agent_colour() {
     let a = agents(&["coder"]);
-    let cells = composer_cells("@coder fix", &a, 60, 10);
+    let cells = composer_cells("@coder fix", None, &a, 60, 10);
     let ink = crew_theme::theme().ink;
     let at = |col: u16| cells.iter().find(|c| c.row == 8 && c.col == col).unwrap();
     // Card interior: `│ ❯ @coder fix` — the mention starts at col 4.
@@ -68,7 +68,7 @@ fn valid_mention_is_highlighted_in_agent_colour() {
 
 #[test]
 fn unknown_mention_stays_plain() {
-    let cells = composer_cells("@ghost hi", &agents(&["coder"]), 60, 10);
+    let cells = composer_cells("@ghost hi", None, &agents(&["coder"]), 60, 10);
     let ink = crew_theme::theme().ink;
     assert!(cells
         .iter()
@@ -78,14 +78,14 @@ fn unknown_mention_stays_plain() {
 
 #[test]
 fn caret_follows_the_input() {
-    let cells = composer_cells("ab", &[], 60, 10);
+    let cells = composer_cells("ab", None, &[], 60, 10);
     let caret = cells.iter().find(|c| c.c == '\u{258f}').unwrap();
     assert_eq!((caret.col, caret.row), (6, 8));
 }
 
 #[test]
 fn empty_input_shows_a_dim_placeholder_hint() {
-    let cells = composer_cells("", &agents(&["planner"]), 60, 10);
+    let cells = composer_cells("", None, &agents(&["planner"]), 60, 10);
     let muted = crew_theme::theme().text_muted;
     // Row 8 is the interior prompt row for a 10-row (tall) pane.
     let hint: String = cells
@@ -98,7 +98,7 @@ fn empty_input_shows_a_dim_placeholder_hint() {
 
 #[test]
 fn nonempty_input_has_no_placeholder() {
-    let cells = composer_cells("hi", &agents(&["planner"]), 60, 10);
+    let cells = composer_cells("hi", None, &agents(&["planner"]), 60, 10);
     let muted = crew_theme::theme().text_muted;
     assert!(
         cells.iter().all(|c| c.row != 8 || c.fg != muted),
@@ -109,7 +109,7 @@ fn nonempty_input_has_no_placeholder() {
 
 #[test]
 fn placeholder_truncates_to_a_narrow_pane() {
-    let cells = composer_cells("", &[], 10, 10);
+    let cells = composer_cells("", None, &[], 10, 10);
     assert!(cells.iter().all(|c| c.col < 10));
 }
 
@@ -124,7 +124,7 @@ fn long_input_shows_a_muted_char_count_badge_on_the_top_border() {
     // 121 chars wrap to 2 interior lines at 75 text columns, so the card's
     // top border sits at rows - 4.
     let long = "a".repeat(121);
-    let cells = composer_cells(&long, &agents(&["planner"]), 80, 10);
+    let cells = composer_cells(&long, None, &agents(&["planner"]), 80, 10);
     let muted = crew_theme::theme().text_muted;
     let border_row = 10 - composer_rows(&long, 80, 10);
     let top = row_text(&cells, border_row);
@@ -139,7 +139,7 @@ fn long_input_shows_a_muted_char_count_badge_on_the_top_border() {
 
 #[test]
 fn short_input_has_no_char_count_badge() {
-    let cells = composer_cells("hi", &agents(&["planner"]), 80, 10);
+    let cells = composer_cells("hi", None, &agents(&["planner"]), 80, 10);
     let muted = crew_theme::theme().text_muted;
     assert!(
         cells.iter().all(|c| c.row != 7 || c.fg != muted),
@@ -159,7 +159,7 @@ fn composer_grows_when_input_wraps() {
     // 40 chars wrap to 3 lines → 3 interior rows + 2 borders.
     let input = "a".repeat(40);
     assert_eq!(composer_rows(&input, 20, 12), 5);
-    let cells = composer_cells(&input, &[], 20, 12);
+    let cells = composer_cells(&input, None, &[], 20, 12);
     // Interior rows 8, 9, 10 all carry input text; borders at 7 and 11.
     assert!(row_text(&cells, 7).starts_with('\u{256d}'), "top border");
     for row in 8..=10 {
@@ -174,7 +174,7 @@ fn composer_grows_when_input_wraps() {
 #[test]
 fn composer_grows_on_embedded_newlines() {
     assert_eq!(composer_rows("a\nb", 80, 12), 4);
-    let cells = composer_cells("a\nb", &[], 80, 12);
+    let cells = composer_cells("a\nb", None, &[], 80, 12);
     assert!(row_text(&cells, 9).contains("\u{276f} a"), "first line");
     assert!(row_text(&cells, 10).contains('b'), "second line");
     // The caret lands after the LAST line, not the first.
@@ -190,7 +190,7 @@ fn composer_growth_is_capped_and_shows_the_tail() {
         .collect::<Vec<_>>()
         .join("\n");
     assert_eq!(composer_rows(&input, 80, 12), 6);
-    let cells = composer_cells(&input, &[], 80, 12);
+    let cells = composer_cells(&input, None, &[], 80, 12);
     // Over the cap the view follows the caret: last line ("19") visible,
     // first line ("0") scrolled out.
     assert!(row_text(&cells, 10).contains("19"), "tail line visible");
@@ -203,7 +203,7 @@ fn composer_growth_is_capped_and_shows_the_tail() {
 #[test]
 fn short_pane_stays_single_row_even_for_multiline_input() {
     assert_eq!(composer_rows("a\nb\nc", 60, 5), 1);
-    let cells = composer_cells("a\nb\nc", &[], 60, 5);
+    let cells = composer_cells("a\nb\nc", None, &[], 60, 5);
     assert!(cells.iter().all(|c| c.row == 4));
 }
 
@@ -221,9 +221,49 @@ fn input_reduce_accepts_newline_chars() {
 fn everything_clips_to_width() {
     let cells = composer_cells(
         "a very long input line that overflows",
+        None,
         &agents(&["planner", "coder", "reviewer"]),
         12,
         10,
     );
     assert!(cells.iter().all(|c| c.col < 12));
+}
+
+/// The suggestion is drawn dim, after the caret, and never past the row —
+/// wrapping it would grow the card under text the user never typed.
+#[test]
+fn the_ghost_renders_muted_after_the_caret_and_stays_on_the_row() {
+    let t = crew_theme::theme();
+    let plain = composer_cells("re", None, &[], 40, 3);
+    let ghosted = composer_cells("re", Some("factor the parser"), &[], 40, 3);
+    assert!(
+        ghosted.len() > plain.len(),
+        "the suggestion drew nothing at all"
+    );
+    let extra: Vec<&CellView> = ghosted
+        .iter()
+        .filter(|c| !plain.iter().any(|p| p.col == c.col && p.row == c.row))
+        .collect();
+    assert!(
+        extra.iter().all(|c| c.fg == t.text_muted),
+        "the suggestion must not read as typed text"
+    );
+    assert!(
+        extra.iter().all(|c| c.col < 40),
+        "the suggestion ran past the pane"
+    );
+    let rows: std::collections::BTreeSet<u16> = extra.iter().map(|c| c.row).collect();
+    assert_eq!(rows.len(), 1, "the suggestion wrapped onto another row");
+    // The card is the same height with and without it.
+    let h = |cells: &[CellView]| cells.iter().map(|c| c.row).min().unwrap();
+    assert_eq!(h(&plain), h(&ghosted), "the composer grew under the ghost");
+}
+
+/// A suggestion longer than the row is clipped, not wrapped — and clipping
+/// must not push cells outside the pane or panic on the arithmetic.
+#[test]
+fn a_ghost_wider_than_the_pane_is_clipped_in_bounds() {
+    let long = "x".repeat(500);
+    let cells = composer_cells("hi", Some(&long), &[], 24, 4);
+    assert!(cells.iter().all(|c| c.col < 24 && c.row < 4));
 }

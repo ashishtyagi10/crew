@@ -34,6 +34,12 @@ pub(crate) struct History {
 }
 
 impl History {
+    /// The prompts themselves, newest last — the ghost suggestion matches
+    /// against these (see `ChatPane::ghost`).
+    pub(crate) fn lines(&self) -> &[String] {
+        &self.lines
+    }
+
     /// Remember a submitted prompt. Blank lines and an immediate repeat are
     /// dropped — Up should reach the last DIFFERENT thing you said, not walk
     /// through five copies of a retried command.

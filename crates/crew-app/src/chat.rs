@@ -565,9 +565,18 @@ impl ChatPane {
                 return None;
             }
             ChatInput::Complete => {
-                if let Some(done) = crate::chatcomplete::complete(&self.input, &self.agents) {
-                    self.input = done;
+                // Tab completes the leading token when there is one to
+                // complete, and otherwise takes the suggestion — the input
+                // bar's exact fallback order, so one key does the obvious
+                // thing in both composers.
+                match crate::chatcomplete::complete(&self.input, &self.agents) {
+                    Some(done) => self.input = done,
+                    None => self.accept_ghost(),
                 }
+                return None;
+            }
+            ChatInput::Accept => {
+                self.accept_ghost();
                 return None;
             }
             ChatInput::Char(c) => (Some(c), false, false),
@@ -659,6 +668,30 @@ impl ChatPane {
             self.sync_palette(cwd);
         }
         None
+    }
+
+    /// The rest of a previous prompt that starts with what is typed, shown
+    /// dim after the caret and taken with Tab or Right.
+    ///
+    /// `suggest` is the input bar's rule, called with this pane's own history
+    /// — the third time a composer behaviour has turned out to exist already
+    /// (Up/Down recall, prefix search, now this). A leading `/` belongs to the
+    /// palette, which is showing the same list as a popup and would be
+    /// answering the same question twice.
+    pub(crate) fn ghost(&self) -> Option<String> {
+        if self.input.starts_with('/') || self.input.contains('\n') {
+            return None;
+        }
+        crate::suggest::suggest(&self.input, self.history.lines())
+    }
+
+    /// Take the whole suggestion. Nothing to take is not an error — Tab and
+    /// Right are pressed speculatively.
+    fn accept_ghost(&mut self) {
+        if let Some(g) = self.ghost() {
+            self.input.push_str(&g);
+            self.history.edited(); // the text is the user's now
+        }
     }
 
     /// Re-sync the leading-token palette to the current input. Called after a

@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.6.86
+
+- The agent composer suggests the rest of a prompt you have sent before, dim
+  after the caret, taken with Tab or Right. The docked input bar has done this
+  since long before; the composer — where the long prompts are actually typed
+  — did not. Tab keeps its existing meaning and gains this only where it used
+  to do nothing.
+- A leading `/` is left to the palette, which is already answering the same
+  question as a popup.
+
 ## 0.6.85
 
 - `/restore` removes the files the task created, instead of putting the edits
