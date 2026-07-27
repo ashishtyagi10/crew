@@ -57,6 +57,10 @@ const CHAT_BINDINGS: &[(&str, &str)] = &[
         "@ · # (in composer)",
         "Attach an agent, skill or file · remember a note",
     ),
+    (
+        "@a+b (in composer)",
+        "Fan one task out to both agents, in parallel",
+    ),
 ];
 
 /// Preferred overlay size in cells: both binding tables, a spacer and a

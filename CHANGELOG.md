@@ -8,6 +8,12 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.6.79
+
+- The `@` picker says that `@a+b` fans a task out to both agents in parallel,
+  and `/keys` lists it. The idiom worked and was documented in exactly one
+  place the app never shows.
+
 ## 0.6.78
 
 - Cmd+click a code block in an agent pane to copy it. Reading an answer and
