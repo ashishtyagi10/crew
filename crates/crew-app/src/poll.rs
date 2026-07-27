@@ -51,6 +51,8 @@ impl CrewApp {
             }
         }
 
+        let oauth_landed = self.drain_oauth();
+
         // Random theme mode: rotate on its 10-minute clock. Cheap + lock-free.
         // Seeds `any_changed` so a rotation repaints every pane in the new theme.
         // A rotation changes the active theme app-wide, so re-apply the themeable
@@ -76,7 +78,7 @@ impl CrewApp {
         // Drain EVERY pane each tick. A `for` loop (not `any()`/`fold`) so all
         // panes are polled for their side effects — `any()` would short-circuit
         // and starve later panes when an earlier one has output.
-        let mut any_changed = rotated || model_fetch_landed;
+        let mut any_changed = rotated || model_fetch_landed || oauth_landed;
         // Set when any pane still has buffered PTY output past this tick's read
         // budget. We then keep the loop hot (ControlFlow::Poll) so a flood drains
         // quickly across ticks instead of trickling one budget per 16 ms — while
@@ -392,6 +394,65 @@ impl CrewApp {
                 Instant::now() + Duration::from_millis(POLL_MS),
             ));
         }
+    }
+
+    /// Land any finished OpenRouter browser sign-in, in EVERY pane — not just
+    /// the focused one. Window focus is not pane focus, so alt-tabbing to the
+    /// browser was never the problem; deliberately switching to another pane
+    /// mid-flow was. Polling only `self.focused` left the started-it pane's
+    /// receiver undrained: the user approved and nothing happened, a "saved ·
+    /// pinned" note appeared out of nowhere on returning minutes later, and
+    /// closing that pane silently discarded a key OpenRouter had already
+    /// issued. Each outcome goes to the pane that started the flow, which is
+    /// also the pane holding the prompt the note belongs under.
+    ///
+    /// `try_recv` on a `None` handle or an empty channel is a cheap no-op, so
+    /// this costs nothing on every tick where no sign-in is in flight.
+    /// Returns whether anything landed (a repaint is due).
+    pub(crate) fn drain_oauth(&mut self) -> bool {
+        self.drain_oauth_into(crew_plugin::credentials::path().as_deref())
+    }
+
+    /// [`Self::drain_oauth`] against an explicit credentials path — the
+    /// testable half, resolved once here rather than per pane. A test can then
+    /// prove that a completed sign-in really is STORED (and that a dismissed
+    /// one stores nothing) against a temporary file, without writing to the
+    /// user's real credentials or touching a process-global (see
+    /// `chatkeystore`'s own `_at` seam, and its doc for why).
+    pub(crate) fn drain_oauth_into(&mut self, creds: Option<&std::path::Path>) -> bool {
+        let mut landed = false;
+        for p in &mut self.panes {
+            let PaneContent::Chat(pane) = &mut p.content else {
+                continue;
+            };
+            let Some(outcome) = pane.oauth.as_ref().and_then(|rx| rx.try_recv().ok()) else {
+                continue;
+            };
+            match outcome {
+                crate::oauth::OauthOutcome::Key(key) => {
+                    crate::chatkeystore::store_provider_key_in(
+                        pane,
+                        creds,
+                        crate::oauth::OPENROUTER_KEY_VAR,
+                        &key,
+                    );
+                    pane.keyentry = None;
+                }
+                crate::oauth::OauthOutcome::Failed(why) => {
+                    // `why` can carry text the callback supplied. It is
+                    // clamped where it is produced; clamped again here so a
+                    // future producer cannot widen a pane note by accident.
+                    let why = crate::oauth::short_reason(&why);
+                    pane.push_note(format!("openrouter sign-in failed: {why}"));
+                    if let Some(e) = pane.keyentry.as_mut() {
+                        e.set_waiting(false);
+                    }
+                }
+            }
+            pane.oauth = None;
+            landed = true;
+        }
+        landed
     }
 
     /// Whether a `/model` picker is open right now, on either of its two

@@ -1209,3 +1209,47 @@ fn the_prompt_swallows_keys_meant_for_the_composer() {
     assert_eq!(p.input, before, "a typed key must not reach the composer");
     assert!(p.keyentry.is_some(), "the prompt stays open");
 }
+
+// (An OpenRouter key stored through `store_provider_key_at` is covered by
+// `chatkeystore_tests`, which owns that path. The test that used to sit here
+// named OAuth but exercised none of it — it called the store directly, like
+// the typed path does, so it duplicated that coverage while claiming more.)
+
+#[test]
+fn escaping_the_prompt_cancels_an_in_flight_sign_in() {
+    // Dropping the receiver is what makes the worker thread's send fail and
+    // exit, so a cancelled flow must not leave it set.
+    let mut p = pane();
+    p.keyentry = Some(crate::keyentry::KeyEntry::new("OPENROUTER_API_KEY".into()));
+    let (_tx, rx) = std::sync::mpsc::channel();
+    p.oauth = Some(rx);
+    p.on_input(ChatInput::Close, std::path::Path::new("."));
+    assert!(p.keyentry.is_none(), "escape closes the prompt");
+    assert!(p.oauth.is_none(), "escape cancels the sign-in");
+    // And never silently: the exchange may already have minted a key on the
+    // user's OpenRouter account, so a cancel they cannot see is a key they
+    // have to go and revoke by hand.
+    let note = p
+        .messages
+        .last()
+        .map(|m| m.text.clone())
+        .unwrap_or_default();
+    assert!(note.contains("cancelled"), "{note:?}");
+}
+
+#[test]
+fn cancelling_says_so_only_when_a_sign_in_was_actually_in_flight() {
+    // The chokepoint both dismissal paths (Escape, Submit) go through. A
+    // prompt with no browser flow behind it — every provider but OpenRouter —
+    // must not announce cancelling one.
+    let mut p = pane();
+    p.cancel_oauth();
+    assert!(p.messages.is_empty(), "nothing to cancel, nothing to say");
+
+    let (_tx, rx) = std::sync::mpsc::channel();
+    p.oauth = Some(rx);
+    p.cancel_oauth();
+    assert!(p.oauth.is_none(), "the receiver is dropped: the flow ends");
+    assert_eq!(p.messages.len(), 1);
+    assert!(p.messages[0].text.contains("openrouter sign-in cancelled"));
+}

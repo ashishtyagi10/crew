@@ -76,8 +76,9 @@ fn the_card_masks_every_character_and_never_draws_the_secret() {
     let cells = e.card(60);
 
     // The legend (row 0) is drawn text, not a leak risk by construction — the
-    // buffer is only ever drawn on the interior row (`ROWS == 3`: border,
-    // input, border — see `card`'s `row: 1`). Scoping the assertion to that
+    // buffer is only ever drawn on the first interior row (`row: 1`, see
+    // `card`; with no sign-in in flight the card is border, input, border).
+    // Scoping the assertion to that
     // row is legend-agnostic: it would catch a leak regardless of what the
     // legend says, unlike a global "does this character appear anywhere"
     // check, which false-positives whenever the secret shares a letter with
@@ -111,6 +112,117 @@ fn a_long_key_never_overflows_the_card() {
         cells.iter().all(|c| c.col < cols),
         "a cell escaped the card"
     );
+}
+
+#[test]
+fn a_waiting_prompt_says_so_and_still_masks_what_is_typed() {
+    let mut e = KeyEntry::new("OPENROUTER_API_KEY".into());
+    e.set_waiting(true);
+    let drawn: String = e.card(60).iter().map(|c| c.c).collect();
+    assert!(drawn.contains("waiting for browser"), "{drawn}");
+    // Pasting must still work while the browser flow is in flight — it may
+    // never have opened. `paste` (not `key`) deliberately, because typing
+    // clears `waiting`, and the point of this test is the two coexisting.
+    let secret = "sk-typed";
+    e.paste(secret);
+    let cells = e.card(60);
+
+    // The hint must live on row 2 and NOWHERE else. That is what makes the
+    // row-1 leak assertion below mean anything: the hint contains almost
+    // every character of `secret`, so a hint drawn on row 1 would satisfy a
+    // "row 1 doesn't contain the secret" check by accident while hiding a
+    // real leak. Assert the invariant directly, both ways round.
+    let hint = "waiting for browser";
+    let row2: String = cells.iter().filter(|c| c.row == 2).map(|c| c.c).collect();
+    assert!(
+        row2.contains(hint),
+        "the waiting hint belongs on row 2, alone: {row2:?}"
+    );
+    // Inside the side borders only — `titled_card` draws a `│` at each end of
+    // every interior row and nothing else, so what remains is ours.
+    let row1: Vec<char> = cells
+        .iter()
+        .filter(|c| c.row == 1 && c.col > 0 && c.col + 1 < 60)
+        .map(|c| c.c)
+        .collect();
+    assert!(
+        row1.iter().all(|c| *c == '•'),
+        "row 1 holds mask glyphs and nothing else — no hint, no secret: {row1:?}"
+    );
+    assert_eq!(
+        row1.len(),
+        secret.chars().count(),
+        "one mask glyph per pasted character"
+    );
+    let interior: String = row1.iter().collect();
+    for ch in secret.chars() {
+        assert!(
+            !interior.contains(ch),
+            "character {ch:?} reached the screen"
+        );
+    }
+}
+
+#[test]
+fn the_card_is_only_as_tall_as_it_needs_the_hint_row_to_be() {
+    // `ANTHROPIC_API_KEY` has no browser flow, so reserving the hint row for
+    // it would draw a blank interior row and float the card a row too high.
+    let mut e = KeyEntry::new("ANTHROPIC_API_KEY".into());
+    assert_eq!(e.rows(), 3, "border, input, border");
+    assert_eq!(
+        e.card(60).iter().map(|c| c.row).max(),
+        Some(2),
+        "nothing may be drawn below the bottom border"
+    );
+    e.set_waiting(true);
+    assert_eq!(e.rows(), 4, "the hint needs an interior row of its own");
+    assert_eq!(e.card(60).iter().map(|c| c.row).max(), Some(3));
+}
+
+#[test]
+fn typing_clears_the_waiting_state_but_pasting_does_not() {
+    // Typing a character by hand means the user has stopped waiting on the
+    // browser, so the card stops claiming to. A PASTE is not that: Cmd+V is
+    // routed to `paste`, one gesture that may not be the user's final answer,
+    // and the flow behind the hint is still live until it lands or is
+    // dismissed. The two arms differ on purpose — the doc comments say so.
+    let mut typing = KeyEntry::new("OPENROUTER_API_KEY".into());
+    typing.set_waiting(true);
+    typed(&mut typing, "s");
+    let drawn: String = typing.card(60).iter().map(|c| c.c).collect();
+    assert!(!drawn.contains("waiting for browser"), "{drawn}");
+
+    let mut pasting = KeyEntry::new("OPENROUTER_API_KEY".into());
+    pasting.set_waiting(true);
+    pasting.paste("sk-pasted");
+    let drawn: String = pasting.card(60).iter().map(|c| c.c).collect();
+    assert!(
+        drawn.contains("waiting for browser"),
+        "a paste leaves the hint up: {drawn}"
+    );
+}
+
+#[test]
+fn forgetting_the_typing_empties_the_buffer_and_restores_the_hint() {
+    // What a prompt becomes while it is hidden with its sign-in still in
+    // flight: no secret survives off screen, and what comes back is the
+    // waiting prompt it started as.
+    let mut e = KeyEntry::new("OPENROUTER_API_KEY".into());
+    e.set_waiting(true);
+    typed(&mut e, "sk-half"); // typing also cleared `waiting`
+
+    e.forget_typing();
+
+    let cells = e.card(60);
+    assert_eq!(
+        cells.iter().filter(|c| c.c == '•').count(),
+        0,
+        "not one character of the buffer survives"
+    );
+    let drawn: String = cells.iter().map(|c| c.c).collect();
+    assert!(drawn.contains("waiting for browser"), "{drawn}");
+    // And nothing is left to submit.
+    assert!(matches!(e.key(&ChatInput::Enter), KeyOutcome::Consumed));
 }
 
 #[test]

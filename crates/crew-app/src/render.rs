@@ -210,7 +210,7 @@ impl CrewApp {
                             cols,
                             (r.h / ch).floor() as u16,
                         )) * ch;
-                        let mh = f32::from(crate::keyentry::ROWS) * ch;
+                        let mh = f32::from(entry.rows()) * ch;
                         let my = (r.y + r.h - comp - mh).max(0.0);
                         scenes.push(PaneScene {
                             cells: entry.card(cols),

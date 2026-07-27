@@ -57,6 +57,13 @@ pub struct ChatPane {
     /// Modal: it takes every key before the palette, the mention popup and the
     /// pane's own handling.
     pub(crate) keyentry: Option<crate::keyentry::KeyEntry>,
+    /// An in-flight OpenRouter browser sign-in (see `oauth`). Dropping the
+    /// receiver is what cancels the worker thread (its send then fails), so
+    /// it is cleared exactly where the user DISMISSES the prompt — Escape and
+    /// submit here, both through [`Self::cancel_oauth`], and closing the pane,
+    /// which takes it down with everything else. Not when the prompt is merely
+    /// hidden: see `close_hidden_keyentry`.
+    pub(crate) oauth: Option<std::sync::mpsc::Receiver<crate::oauth::OauthOutcome>>,
     /// When true, show raw message text instead of markdown rendering.
     /// Toggled with Ctrl+Shift+M; not persisted.
     pub(crate) show_source: bool,
@@ -117,6 +124,7 @@ impl ChatPane {
             mention: None,
             palette: None,
             keyentry: None,
+            oauth: None,
             show_source: false,
             compact_view: false,
             swarm: None,
@@ -136,6 +144,20 @@ impl ChatPane {
             ts: chrono::Local::now().timestamp_millis().to_string(),
             meta: String::new(),
         });
+    }
+
+    /// End an in-flight browser sign-in, and SAY SO. The single place a live
+    /// flow is dismissed while its pane is still around.
+    ///
+    /// Dropping the receiver is what cancels it: the worker's `send` then
+    /// fails and the outcome — possibly a key OpenRouter has already minted
+    /// against the user's account — is discarded. That must never be silent,
+    /// or the only trace left is a key the user has to find and revoke by
+    /// hand. A no-op (and no note) when no sign-in was in flight.
+    pub(crate) fn cancel_oauth(&mut self) {
+        if self.oauth.take().is_some() {
+            self.push_note("openrouter sign-in cancelled".into());
+        }
     }
 
     /// Whether the pane is awaiting a reply (busy), for the progress sweep —
@@ -367,11 +389,16 @@ impl ChatPane {
                 crate::keyentry::KeyOutcome::Consumed => return None,
                 crate::keyentry::KeyOutcome::Cancelled => {
                     self.keyentry = None;
+                    self.cancel_oauth();
                     return None;
                 }
                 crate::keyentry::KeyOutcome::Submit(value) => {
                     let var = entry.var.clone();
                     self.keyentry = None;
+                    // Answering by hand supersedes the browser: end that flow
+                    // FIRST, so the note explaining the now-pointless tab
+                    // reads before the one confirming the key.
+                    self.cancel_oauth();
                     crate::chatkeystore::store_provider_key(self, &var, &value);
                     return None;
                 }
@@ -398,7 +425,15 @@ impl ChatPane {
             crate::chatpalette::PaletteKey::Submit => return self.on_input(ChatInput::Enter, cwd),
             crate::chatpalette::PaletteKey::Forward => {}
             crate::chatpalette::PaletteKey::NeedsKey(var) => {
-                self.keyentry = Some(crate::keyentry::KeyEntry::new(var));
+                let mut entry = crate::keyentry::KeyEntry::new(var.clone());
+                if var == crate::oauth::OPENROUTER_KEY_VAR {
+                    // OpenRouter is the one provider with a real third-party
+                    // OAuth flow. The paste prompt still opens underneath, so
+                    // a failed browser launch is never a dead end.
+                    self.oauth = crate::oauth::spawn();
+                    entry.set_waiting(self.oauth.is_some());
+                }
+                self.keyentry = Some(entry);
                 return None;
             }
         }
