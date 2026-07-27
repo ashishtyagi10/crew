@@ -66,6 +66,10 @@ const CHAT_BINDINGS: &[(&str, &str)] = &[
         "Attach an agent, skill or file · remember a note",
     ),
     (
+        "@file:120-180 (in composer)",
+        "Attach just those lines, instead of the whole file",
+    ),
+    (
         "@a+b (in composer)",
         "Fan one task out to both agents, in parallel",
     ),
@@ -201,6 +205,7 @@ mod tests {
             "Shift+Enter",
             "Tab",
             "Recall a prompt",
+            "Attach just those lines",
         ] {
             assert!(shows(&cells, needle), "missing {needle}");
         }

@@ -261,28 +261,62 @@ pub(crate) fn expand(text: &str, cwd: &std::path::Path, agent_names: &[String]) 
             }
             continue;
         }
-        let path = cwd.join(rel);
+        // The WHOLE token first: a file may legitimately be named `x:10`,
+        // and its own name outranks an idiom about it.
+        let (base, range) = if cwd.join(rel).is_file() {
+            (rel, None)
+        } else {
+            crate::mentionrange::split(rel)
+        };
+        let path = cwd.join(base);
         if !path.is_file() {
             continue;
         }
         seen.push(rel);
-        out.push_str(&attachment(rel, &path));
+        out.push_str(&attachment(rel, base, &path, range));
     }
     out
 }
 
 /// One mention's appended block: contents, or a one-line skip note.
-fn attachment(rel: &str, path: &std::path::Path) -> String {
-    match std::fs::read(path) {
-        Ok(bytes) if bytes.len() > MAX_FILE_BYTES => {
-            format!("\n\n--- file: {rel} skipped: too large ---")
-        }
-        Ok(bytes) => match String::from_utf8(bytes) {
-            Ok(s) => format!("\n\n--- file: {rel} ---\n{s}\n--- end file ---"),
-            Err(_) => format!("\n\n--- file: {rel} skipped: binary ---"),
+///
+/// `range` selects lines (`@src/main.rs:120-180`). The size cap is applied to
+/// what is actually attached, not to the file on disk — attaching forty lines
+/// of a 200 KB module is the whole point of having ranges, so refusing it
+/// because of the file's total size would defeat them.
+fn attachment(
+    rel: &str,
+    base: &str,
+    path: &std::path::Path,
+    range: Option<crate::mentionrange::Range>,
+) -> String {
+    let bytes = match std::fs::read(path) {
+        Ok(b) => b,
+        Err(e) => return format!("\n\n--- file: {rel} skipped: {e} ---"),
+    };
+    let Ok(text) = String::from_utf8(bytes) else {
+        return format!("\n\n--- file: {rel} skipped: binary ---");
+    };
+    let (body, header) = match range {
+        None => (text, base.to_string()),
+        Some(r) => match crate::mentionrange::slice(&text, r) {
+            Some(sel) => (sel, format!("{base} {}", crate::mentionrange::label(r))),
+            None => {
+                return format!(
+                    "\n\n--- file: {base} skipped: {} is past the end ---",
+                    crate::mentionrange::label(r)
+                )
+            }
         },
-        Err(e) => format!("\n\n--- file: {rel} skipped: {e} ---"),
+    };
+    if body.len() > MAX_FILE_BYTES {
+        // Name the way out. A cap that only says no leaves the user with a
+        // file they cannot attach at all, which is what ranges are for.
+        return format!(
+            "\n\n--- file: {header} skipped: too large \u{2014} attach part of it with              @{base}:<start>-<end> ---"
+        );
     }
+    format!("\n\n--- file: {header} ---\n{body}\n--- end file ---")
 }
 
 /// One skill mention's appended block: the playbook body, or a skip note.
@@ -419,13 +453,80 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
+    /// `@path:120-180` attaches those lines only. The case it exists for is
+    /// the file too big to attach whole — the one you most want to point an
+    /// agent at one function of.
+    #[test]
+    fn expand_attaches_only_the_named_lines() {
+        let dir = tmp("ranges");
+        let body: String = (1..=10).map(|i| format!("line{i}\n")).collect();
+        std::fs::write(dir.join("f.txt"), &body).unwrap();
+
+        let out = expand("look at @f.txt:3-5", &dir, &[]);
+        assert!(out.contains("--- file: f.txt lines 3-5 ---"), "{out}");
+        assert!(
+            out.contains("line3\nline4\nline5\n--- end file ---"),
+            "{out}"
+        );
+        assert!(!out.contains("line2"), "attached more than asked: {out}");
+        assert!(!out.contains("line6"), "attached more than asked: {out}");
+
+        // A single line reads as one.
+        let out = expand("look at @f.txt:7", &dir, &[]);
+        assert!(out.contains("--- file: f.txt line 7 ---\nline7\n"), "{out}");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// The cap applies to what is ATTACHED, not to the file on disk —
+    /// refusing forty lines because the module is 200 KB would defeat the
+    /// whole feature.
+    #[test]
+    fn a_range_makes_an_oversize_file_attachable() {
+        let dir = tmp("range-big");
+        let mut body = String::from("the interesting line\n");
+        body.push_str(&"x".repeat(MAX_FILE_BYTES + 1));
+        std::fs::write(dir.join("big.txt"), &body).unwrap();
+
+        let out = expand("see @big.txt:1", &dir, &[]);
+        assert!(out.contains("--- file: big.txt line 1 ---"), "{out}");
+        assert!(out.contains("the interesting line"), "{out}");
+        assert!(!out.contains("too large"), "{out}");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// A range past the end says so rather than attaching an empty block that
+    /// reads, to an agent, as an empty file.
+    #[test]
+    fn a_range_past_the_end_says_so() {
+        let dir = tmp("range-past");
+        std::fs::write(dir.join("f.txt"), "one\ntwo\n").unwrap();
+        let out = expand("see @f.txt:50-60", &dir, &[]);
+        assert!(out.contains("lines 50-60 is past the end"), "{out}");
+        assert!(!out.contains("--- end file ---"), "{out}");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// A file whose NAME ends in something range-shaped is still that file.
+    #[test]
+    fn a_file_actually_named_with_a_colon_wins() {
+        let dir = tmp("range-name");
+        std::fs::write(dir.join("odd:10"), "the real file\n").unwrap();
+        let out = expand("see @odd:10", &dir, &[]);
+        assert!(out.contains("--- file: odd:10 ---"), "{out}");
+        assert!(out.contains("the real file"), "{out}");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
     #[test]
     fn expand_skips_oversize_binary_and_missing() {
         let dir = tmp("caps");
         std::fs::write(dir.join("big.txt"), vec![b'a'; MAX_FILE_BYTES + 1]).unwrap();
         std::fs::write(dir.join("bin.dat"), [0u8, 159, 146, 150]).unwrap();
         let out = expand("see @big.txt @bin.dat @gone.txt", &dir, &[]);
-        assert!(out.contains("--- file: big.txt skipped: too large ---"));
+        // The cap now names the way out: a file too big to attach whole is
+        // exactly the file you want to attach part of.
+        assert!(out.contains("big.txt skipped: too large"), "{out}");
+        assert!(out.contains("@big.txt:<start>-<end>"), "{out}");
         assert!(out.contains("--- file: bin.dat skipped: binary ---"));
         assert!(!out.contains("gone.txt ---")); // unresolvable token left alone
         let _ = std::fs::remove_dir_all(&dir);
