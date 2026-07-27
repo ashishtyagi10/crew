@@ -238,10 +238,19 @@ fn relay_runs_a_real_sys_command_and_logs_hops() {
         &mut |h| hops.push(h),
     );
     assert_eq!(reply, "the command printed tool-e2e");
-    assert!(
-        hops.iter().any(|h| h.text.contains("[tool] sys:run")),
-        "call hop logged"
-    );
+    // The call hop reads as the COMMAND, not as its wire form: this is the
+    // line a user scans to see what an agent is doing to their machine.
+    let call = hops
+        .iter()
+        .find(|h| h.text.starts_with("[tool] sys:run"))
+        .unwrap_or_else(|| {
+            panic!(
+                "no call hop: {:?}",
+                hops.iter().map(|h| &h.text).collect::<Vec<_>>()
+            )
+        });
+    assert_eq!(call.text, "[tool] sys:run  echo tool-e2e", "{}", call.text);
+    assert!(!call.text.contains('{'), "wire form leaked: {}", call.text);
     assert!(
         hops.iter().any(|h| h.text.contains("tool-e2e")),
         "result hop logged"
