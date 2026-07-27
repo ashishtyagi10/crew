@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.6.67
+
+- A lost broker no longer leaves phantom running tasks in the footer or a
+  pending plan that answers to enter. A task killed with its process never
+  sends its end event, so both outlived the broker that owned them — and a
+  fresh broker numbers its tasks from 1 again, so the leftovers would collide
+  with real ones.
+
 ## 0.6.66
 
 - The transcript fold marker counts everything it has ever folded. It reported

@@ -156,6 +156,15 @@ impl ChatPane {
         }
     }
 
+    /// Drop everything that belonged to one broker process: what it had
+    /// running, and any plan it was holding for an answer. Called on both
+    /// edges — a new broker (`Ready`) and a lost one (`Error`) — because both
+    /// invalidate the same state, and neither can be relied on to arrive.
+    pub(crate) fn reset_broker_state(&mut self) {
+        self.running_tasks.clear();
+        self.plan_pending = false;
+    }
+
     /// A background task started or ended in the broker. Kept as a list of
     /// ids, oldest first, because `/stop #n` names one — and an END for a task
     /// this pane never saw start (a broker that outlived a reconnect) is a
@@ -215,6 +224,11 @@ impl ChatPane {
                 match ev {
                     PluginEvent::Ready { channels, .. } => {
                         self.connected = true;
+                        // A fresh broker has nothing running and no plan
+                        // waiting — and it numbers its tasks from 1 again, so
+                        // anything left from the last one would both lie and
+                        // collide.
+                        self.reset_broker_state();
                         if self.channel.is_empty() {
                             if let Some(ch) = channels.into_iter().next() {
                                 self.channel = ch;
@@ -270,6 +284,12 @@ impl ChatPane {
                         self.fold_swarm();
                         self.connected = false;
                         self.flush_active_hops();
+                        // Nothing survives the broker that was running it. A
+                        // task that dies with its process never sends its end
+                        // event, so without this the footer would offer
+                        // `/stop #3` for a task that no longer exists —
+                        // forever.
+                        self.reset_broker_state();
                     }
                     _ => {}
                 }
