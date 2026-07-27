@@ -389,3 +389,45 @@ fn provider_names_read_as_names() {
         );
     }
 }
+
+/// No invented model ids. Every slug a provider row would send must already
+/// exist in the catalog as a NATIVE slug for that vendor — free rows are
+/// excluded because their ids are OpenRouter-shaped (`openai/gpt-oss-20b:free`)
+/// and api.openai.com has never heard of them.
+#[test]
+fn chains_are_native_catalog_slugs() {
+    for d in super::DIRECT {
+        assert!(!d.chain.is_empty(), "{} has no default model", d.name);
+        for slug in d.chain {
+            let known = crew_hive::catalog::catalog().iter().any(|m| {
+                m.vendor == d.vendor && m.slug == *slug && !m.free && !m.slug.contains('/')
+            });
+            assert!(
+                known,
+                "{}: {slug} is not a native catalog slug for {:?} — a default \
+                 model that 404s on first use is worse than no provider",
+                d.name, d.vendor
+            );
+        }
+    }
+}
+
+/// Each row must be reachable and distinct: a duplicated name or variable
+/// would make one of them permanently unselectable.
+#[test]
+fn provider_rows_are_distinct_and_addressable() {
+    let mut names: Vec<&str> = Vec::new();
+    let mut vars: Vec<&str> = Vec::new();
+    for d in super::DIRECT {
+        assert!(!names.contains(&d.name), "duplicate provider {}", d.name);
+        assert!(!vars.contains(&d.var), "duplicate variable {}", d.var);
+        assert!(
+            d.endpoint.starts_with("https://"),
+            "{} must be https",
+            d.name
+        );
+        names.push(d.name);
+        vars.push(d.var);
+        assert_eq!(super::direct_by_name(d.name), Some(d));
+    }
+}
