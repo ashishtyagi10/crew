@@ -375,11 +375,11 @@ fn a_prompt_queued_while_busy_still_echoes_immediately() {
 fn locally_handled_slash_commands_are_not_echoed_as_user_messages() {
     use crate::chatkeys::ChatInput;
 
-    // `/compact` is answered locally (folds messages) and must not leave a
-    // stray "user: /compact" line — only genuine prompts get echoed.
+    // `/theme` is answered locally and must not leave a stray "user: /theme"
+    // line — only genuine prompts get echoed.
     let mut p = pane();
     let cwd = std::env::temp_dir();
-    p.input = "/compact".to_string();
+    p.input = "/theme".to_string();
     assert!(p.on_input(ChatInput::Enter, &cwd).is_none());
     assert!(
         !p.messages.iter().any(|m| m.sender == "user"),
@@ -717,49 +717,30 @@ fn slash_theme_random_enters_rotation_and_a_named_switch_clears_it() {
     ); // reset (global atomic)
 }
 
+/// The transcript folds itself, and SAYS it did. The cap has always been
+/// automatic; before v0.6.55 it drained old messages in silence, so a long
+/// session quietly lost its beginning with nothing to mark the loss.
 #[test]
-fn slash_compact_folds_old_messages_without_reaching_the_broker() {
-    use crate::chatkeys::ChatInput;
-
+fn the_transcript_folds_itself_with_a_marker() {
     let mut p = pane();
-    let cwd = std::env::temp_dir();
-    for i in 0..30 {
-        p.messages.push(crate::chatlayout::Message {
+    let cap = crate::chat::ChatPane::TRANSCRIPT_CAP;
+    for i in 0..cap + 10 {
+        p.push_capped(crate::chatlayout::Message {
             sender: "user".into(),
             text: format!("m{i}"),
             ts: String::new(),
             meta: String::new(),
         });
     }
-    p.scroll = 5;
-    p.unread = 2;
-
-    p.input = "/compact".to_string();
-    assert!(p.on_input(ChatInput::Enter, &cwd).is_none());
-    assert_eq!(p.messages.len(), 21, "20 kept + 1 marker");
+    assert_eq!(p.messages.len(), cap + 1, "kept the cap plus one marker");
     assert!(
-        p.messages[0].text.contains("compacted 10"),
-        "got: {}",
+        p.messages[0].text.contains("compacted"),
+        "the fold must announce itself: {}",
         p.messages[0].text
     );
-    assert_eq!(p.messages.last().unwrap().text, "m29");
-    assert_eq!(p.scroll, 0, "compacting snaps back to the live bottom");
-    assert_eq!(p.unread, 0, "compacting clears the unread count");
-
-    // `/compact <n>` overrides the default keep count.
-    let mut p = pane();
-    for i in 0..10 {
-        p.messages.push(crate::chatlayout::Message {
-            sender: "user".into(),
-            text: format!("m{i}"),
-            ts: String::new(),
-            meta: String::new(),
-        });
-    }
-    p.input = "/compact 3".to_string();
-    assert!(p.on_input(ChatInput::Enter, &cwd).is_none());
-    assert_eq!(p.messages.len(), 4, "3 kept + 1 marker");
-    assert_eq!(p.messages.last().unwrap().text, "m9");
+    // The newest message always survives — folding must never eat the reply
+    // the user is waiting for.
+    assert_eq!(p.messages.last().unwrap().text, format!("m{}", cap + 9));
 }
 
 #[test]

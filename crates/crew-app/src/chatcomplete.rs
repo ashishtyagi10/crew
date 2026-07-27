@@ -5,12 +5,12 @@
 use crew_plugin::AgentInfo;
 
 /// Every composer slash action: broker constructs plus the pane-local
-/// `/export`, `/theme`, `/compact`, and `/exit` (see `chatexport` /
-/// `chattheme` / `chatcompact` / `chat`).
-pub(crate) const CONSTRUCTS: [&str; 22] = [
+/// `/export`, `/theme`, and `/exit` (see `chatexport` / `chattheme` /
+/// `chat`). Folding the transcript is automatic (`ChatPane::push_capped`).
+pub(crate) const CONSTRUCTS: [&str; 21] = [
     "/help", "/model", "/fan", "/loop", "/goal", "/plan", "/restore", "/diff", "/skill", "/memory",
     "/commit", "/review", "/resume", "/doctor", "/standup", "/mcp", "/reload", "/stop", "/export",
-    "/theme", "/compact", "/exit",
+    "/theme", "/exit",
 ];
 
 /// One-line description for each construct, shown as the dim hint in the
@@ -37,7 +37,6 @@ pub(crate) fn describe(construct: &str) -> &'static str {
         "/stop" => "stop all tasks (/stop #n for one)",
         "/export" => "export the transcript",
         "/theme" => "list or switch the color theme",
-        "/compact" => "fold away older messages",
         "/exit" => "close this pane",
         _ => "",
     }
@@ -247,7 +246,7 @@ mod drift {
 
     /// Constructs the APP answers by itself — the broker has never heard of
     /// them, so their absence from its router is correct, not drift.
-    const APP_LOCAL: &[&str] = &["/export", "/theme", "/compact", "/exit"];
+    const APP_LOCAL: &[&str] = &["/export", "/theme", "/exit"];
 
     /// Constructs the PANE sends on the user's behalf and deliberately does
     /// not offer: a drafted plan is answered with enter/esc, so `/approve` and

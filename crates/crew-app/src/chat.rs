@@ -303,11 +303,21 @@ impl ChatPane {
     /// between them.
     pub(crate) fn push_capped(&mut self, m: Message) {
         self.messages.push(m);
-        if self.messages.len() > 500 {
-            let drain = self.messages.len() - 500;
-            self.messages.drain(..drain);
+        if self.messages.len() > Self::TRANSCRIPT_CAP {
+            // Fold with a marker rather than draining in silence. The cap has
+            // always been automatic; what it lacked was honesty — messages
+            // simply stopped existing, with nothing to say they had. That is
+            // also why the manual `/compact` is gone: the automatic one now
+            // does the same job and says so.
+            self.messages = crate::chatcompact::compact_messages(
+                std::mem::take(&mut self.messages),
+                Self::TRANSCRIPT_CAP,
+            );
         }
     }
+
+    /// How many messages a pane keeps before folding the older ones away.
+    pub(crate) const TRANSCRIPT_CAP: usize = 500;
 
     /// Send `text` to the broker on the pane's channel now, latching
     /// `awaiting` so the busy sweep runs until the reply lands. Shared by a
@@ -532,9 +542,6 @@ impl ChatPane {
                 }
                 crate::chattheme::ThemeIntercept::Handled => return None,
                 crate::chattheme::ThemeIntercept::NotTheme => {}
-            }
-            if crate::chatcompact::intercept(self, &text) {
-                return None; // answered locally (/compact folds away older messages)
             }
             // `/font` needs the renderer, so the app runs it (and echoes the
             // status back here) — sending it to the broker did nothing.
