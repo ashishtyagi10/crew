@@ -42,6 +42,11 @@ fn default_font_weight() -> u16 {
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CrewConfig {
+    /// The version that last ran. Compared at startup so a build the user
+    /// did not choose to install — auto-update lands quietly — can say what
+    /// it changed rather than arriving as a silently different app.
+    #[serde(default)]
+    pub last_seen_version: Option<String>,
     #[serde(default = "default_font_size")]
     pub font_size: f32,
     #[serde(default = "default_nav_width")]
@@ -128,6 +133,7 @@ pub struct CrewConfig {
 impl Default for CrewConfig {
     fn default() -> Self {
         Self {
+            last_seen_version: None,
             font_size: default_font_size(),
             nav_width: default_nav_width(),
             show_nav: default_show_nav(),

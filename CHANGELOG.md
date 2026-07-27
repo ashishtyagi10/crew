@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.6.63
+
+- `/about` opens the changelog that shipped with this binary, in the markdown
+  viewer, rather than flashing a version number. The number is only useful as
+  a way to find out what changed.
+- A build that is not the one that ran last says so on startup and points at
+  `/about`. Auto-update lands quietly and applies on the next restart, so
+  without this a user can find themselves in a different app with no idea why.
+
 ## 0.6.62
 
 - Added this changelog, covering the run of releases below, plus a test

@@ -261,19 +261,17 @@ fn closeall_closes_every_pane_and_refocuses_input() {
 }
 
 #[test]
-fn about_flashes_the_version() {
+fn about_opens_what_this_build_changed() {
     let mut app = CrewApp::default();
+    let before = app.panes.len();
     assert!(!app.submit_input("/about".to_string()));
-    let msg = app
-        .status
-        .as_ref()
-        .map(|(m, _)| m.clone())
-        .unwrap_or_default();
-    assert!(
-        msg.contains("crew v"),
-        "about shows the version, got {msg:?}"
-    );
-    assert!(msg.contains(env!("CARGO_PKG_VERSION")));
+    // `/about` opens the changelog rather than flashing a version number:
+    // the number is only useful as a way to find out what changed.
+    assert_eq!(app.panes.len(), before + 1, "/about opened no pane");
+    assert!(matches!(
+        app.panes.last().map(|p| &p.content),
+        Some(crate::pane::PaneContent::Markdown(_))
+    ));
 }
 
 #[test]
