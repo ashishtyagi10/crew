@@ -149,6 +149,10 @@ fn border_buttons_absent_when_narrow() {
     // A card narrower than 13 cells (11 interior) has no room for the button pair.
     let cells = pane_card(9, 10, &b);
     assert!(
+        !cells.is_empty(),
+        "the card drew nothing, so absence proves nothing"
+    );
+    assert!(
         !cells
             .iter()
             .any(|c| (c.c == '-' || c.c == 'x') && c.row == 0),
