@@ -717,6 +717,72 @@ fn slash_theme_random_enters_rotation_and_a_named_switch_clears_it() {
     ); // reset (global atomic)
 }
 
+/// The marker reports the RUNNING total, not whatever the last pass dropped.
+/// Folding to exactly the cap made every subsequent message fold again, and
+/// each pass reported only its own one or two — a hundred messages past the
+/// cap the marker still read "compacted 2 earlier messages".
+#[test]
+fn the_fold_marker_counts_everything_it_ever_folded() {
+    let mut p = pane();
+    let cap = crate::chat::ChatPane::TRANSCRIPT_CAP;
+    let extra = 100;
+    for i in 0..cap + extra {
+        p.push_capped(crate::chatlayout::Message {
+            sender: "user".into(),
+            text: format!("m{i}"),
+            ts: String::new(),
+            meta: String::new(),
+        });
+    }
+    let marker = &p.messages[0].text;
+    let n: usize = marker
+        .chars()
+        .filter(|c| c.is_ascii_digit())
+        .collect::<String>()
+        .parse()
+        .expect("a count in the marker");
+    // Everything not still present has been counted.
+    let kept = p.messages.len() - 1;
+    assert_eq!(
+        n,
+        cap + extra - kept,
+        "marker says {n}, but {} were dropped",
+        cap + extra - kept
+    );
+    assert_eq!(
+        p.folded, n,
+        "the pane's running total agrees with the marker"
+    );
+}
+
+/// Folding happens in batches, so a long session does not re-copy the whole
+/// transcript on every single message once it passes the cap.
+#[test]
+fn folding_is_batched_not_per_message() {
+    let mut p = pane();
+    let cap = crate::chat::ChatPane::TRANSCRIPT_CAP;
+    let push = |p: &mut crate::chat::ChatPane, i: usize| {
+        p.push_capped(crate::chatlayout::Message {
+            sender: "user".into(),
+            text: format!("m{i}"),
+            ts: String::new(),
+            meta: String::new(),
+        });
+    };
+    for i in 0..cap {
+        push(&mut p, i);
+    }
+    assert_eq!(p.folded, 0, "nothing folds before the cap");
+    push(&mut p, cap);
+    let after_first = p.folded;
+    assert!(after_first > 1, "a fold takes a batch, not one message");
+    // The next few messages ride in the slack without another fold.
+    for i in 1..10 {
+        push(&mut p, cap + i);
+    }
+    assert_eq!(p.folded, after_first, "folded again inside the slack");
+}
+
 /// The transcript folds itself, and SAYS it did. The cap has always been
 /// automatic; before v0.6.55 it drained old messages in silence, so a long
 /// session quietly lost its beginning with nothing to mark the loss.
@@ -732,7 +798,15 @@ fn the_transcript_folds_itself_with_a_marker() {
             meta: String::new(),
         });
     }
-    assert_eq!(p.messages.len(), cap + 1, "kept the cap plus one marker");
+    // Folding takes a batch, so the length lands between the low-water mark
+    // and the cap rather than on the cap exactly.
+    let low = crate::chat::ChatPane::TRANSCRIPT_CAP - crate::chat::ChatPane::FOLD_SLACK;
+    assert!(
+        p.messages.len() > low && p.messages.len() <= cap + 1,
+        "length {} outside the fold band ({low}..={}]",
+        p.messages.len(),
+        cap + 1
+    );
     assert!(
         p.messages[0].text.contains("compacted"),
         "the fold must announce itself: {}",

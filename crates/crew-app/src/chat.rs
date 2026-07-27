@@ -89,6 +89,9 @@ pub struct ChatPane {
     /// submit, drained by the poll — the command itself still goes to the
     /// broker untouched, this is only the app-side note.
     pub(crate) pending_recent: Option<String>,
+    /// How many messages have been folded away in total, so the marker can
+    /// report the running count instead of whatever the last pass dropped.
+    pub(crate) folded: usize,
     /// A drafted plan is waiting for yes or no. Set by `PluginEvent::Plan`;
     /// while it is true the composer's Enter and Esc mean approve and discard,
     /// which is why `/approve` and `/reject` are no longer in the palette.
@@ -143,6 +146,7 @@ impl ChatPane {
             compact_view: false,
             swarm: None,
             queued: std::collections::VecDeque::new(),
+            folded: 0,
             plan_pending: false,
             git_branch: None,
             cwd: None,
@@ -303,21 +307,35 @@ impl ChatPane {
     /// between them.
     pub(crate) fn push_capped(&mut self, m: Message) {
         self.messages.push(m);
-        if self.messages.len() > Self::TRANSCRIPT_CAP {
-            // Fold with a marker rather than draining in silence. The cap has
-            // always been automatic; what it lacked was honesty — messages
-            // simply stopped existing, with nothing to say they had. That is
-            // also why the manual `/compact` is gone: the automatic one now
-            // does the same job and says so.
-            self.messages = crate::chatcompact::compact_messages(
-                std::mem::take(&mut self.messages),
-                Self::TRANSCRIPT_CAP,
-            );
+        if self.messages.len() <= Self::TRANSCRIPT_CAP {
+            return;
         }
+        // Fold with a marker rather than draining in silence — the cap has
+        // always been automatic; what it lacked was honesty.
+        //
+        // Down to CAP - SLACK in one batch, not to CAP: folding to exactly
+        // the cap means the next message folds again, and every message
+        // after that, each pass copying the whole transcript. One pass per
+        // SLACK messages instead.
+        let mut msgs = std::mem::take(&mut self.messages);
+        if self.folded > 0 {
+            // The leading marker is not one of the messages being counted.
+            msgs.remove(0);
+        }
+        let (kept, total) = crate::chatcompact::compact_messages(
+            msgs,
+            Self::TRANSCRIPT_CAP - Self::FOLD_SLACK,
+            self.folded,
+        );
+        self.messages = kept;
+        self.folded = total;
     }
 
     /// How many messages a pane keeps before folding the older ones away.
     pub(crate) const TRANSCRIPT_CAP: usize = 500;
+    /// How far below the cap a fold takes the transcript, so folding happens
+    /// once per this many messages rather than on every one.
+    pub(crate) const FOLD_SLACK: usize = 50;
 
     /// Send `text` to the broker on the pane's channel now, latching
     /// `awaiting` so the busy sweep runs until the reply lands. Shared by a

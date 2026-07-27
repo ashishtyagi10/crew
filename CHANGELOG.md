@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.6.66
+
+- The transcript fold marker counts everything it has ever folded. It reported
+  only the last pass, so a hundred messages past the cap it still read
+  "compacted 2 earlier messages".
+- Folding takes a batch instead of running on every message once the cap is
+  reached, where it copied the whole transcript each time.
+
 ## 0.6.65
 
 - `/keys` documents the agent pane: enter and esc answering a drafted plan,
