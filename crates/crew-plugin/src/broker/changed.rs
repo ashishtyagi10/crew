@@ -45,6 +45,12 @@ fn is_crew_artifact(path: &str) -> bool {
     path == ".crew" || path.starts_with(".crew/")
 }
 
+/// The same exclusion as a git pathspec, for the commands that hand the job to
+/// git instead of filtering rows themselves (`/diff`, `/commit`, `/review`).
+/// One constant, so a view of "your work" can never start including crew's
+/// own transcript in one place and not another.
+pub(super) const NOT_CREW: &str = ":!.crew";
+
 /// `diff-tree --name-status` rows: a status letter, a tab, a path. Rename and
 /// copy rows carry a similarity score (`R096`) and TWO paths; the destination
 /// is the one that exists now, which is what a reader wants.

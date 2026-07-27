@@ -1,6 +1,6 @@
 //! `/review` — AI code review of the working tree (à la Codex's `/review`):
 //! the reviewer agent reads the diff `/commit` would describe (staged wins,
-//! else unstaged tracked changes) and reports severity-ordered findings in
+//! else everything the tree has changed) and reports severity-ordered findings in
 //! the pane. Read-only: unlike `/commit` there is nothing to apply, so the
 //! construct carries no session state.
 use crate::PluginEvent;
@@ -61,7 +61,7 @@ pub(crate) fn review_cmd(
         "agent smith",
         format!(
             "reviewing the {} diff…",
-            if staged { "staged" } else { "unstaged" }
+            if staged { "staged" } else { "working" }
         ),
     ))?;
     emit(PluginEvent::Activity {

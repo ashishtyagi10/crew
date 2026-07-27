@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.6.84
+
+- `/review` reviews the files the agent created, and `/commit` describes them.
+  Both read one diff, and it came from `git diff` — which cannot see a path git
+  has never been told about. A review of a change whose main file is a new
+  module was a review of everything except the code, reported as a clean pass.
+- `/commit apply` commits what it described. It ran `git commit -am`, which
+  stages tracked modifications and nothing else, so the new file stayed behind
+  while the pane reported a successful commit. Staging a subset by hand still
+  commits exactly that subset — that is a statement about which change you
+  mean, and it is still respected.
+
 ## 0.6.83
 
 - `/diff` shows files the agent created. It ran `git diff --stat`, which
