@@ -51,8 +51,18 @@ impl AnthropicProvider {
     }
 
     pub fn from_env() -> Result<Self, ProviderError> {
-        match std::env::var("ANTHROPIC_API_KEY") {
-            Ok(k) if !k.is_empty() => Ok(Self::new(k)),
+        Self::from_key(std::env::var("ANTHROPIC_API_KEY").ok())
+    }
+
+    /// [`Self::from_env`]'s decision, with the value passed in.
+    ///
+    /// Split out so the rule can be TESTED. The test used to read the process
+    /// environment and assert only when the key happened to be absent, which
+    /// means it asserted nothing at all on any machine that had one — the
+    /// machines most likely to be running it.
+    pub fn from_key(key: Option<String>) -> Result<Self, ProviderError> {
+        match key {
+            Some(k) if !k.is_empty() => Ok(Self::new(k)),
             _ => Err(ProviderError::MissingKey("ANTHROPIC_API_KEY")),
         }
     }
