@@ -190,3 +190,50 @@ fn checkpoints_announce_themselves_exactly_once() {
         "the note must name /restore: {msgs:?}"
     );
 }
+
+/// A finished task says which of YOUR files it changed — and, just as
+/// importantly, says nothing at all when it changed none of them.
+///
+/// This is the quiet half, end to end, because it is the half that would have
+/// shipped broken. The broker rewrites `./.crew/session-live.md` as every
+/// reply streams, so a naive tree comparison reports "1 file changed: the
+/// transcript" after every question ever asked. It goes unnoticed in crew's
+/// own repo, where `.crew/` is gitignored; a user's repo does not ignore it,
+/// and this test's repo — like theirs — has no gitignore at all.
+#[test]
+fn a_task_that_touched_nothing_of_yours_says_nothing() {
+    let dir = unique_dir("changed-quiet");
+    seed_specialists(&dir, &["planner"]);
+    for args in [
+        &["init", "-q"][..],
+        &["config", "user.email", "t@t"],
+        &["config", "user.name", "t"],
+    ] {
+        assert!(std::process::Command::new("git")
+            .args(args)
+            .current_dir(&dir)
+            .status()
+            .unwrap()
+            .success());
+    }
+    std::fs::write(dir.join("f.txt"), "a").unwrap();
+
+    let mock = ("CREW_BROKER_MOCK_REPLY", "ok\n@done");
+    // `git` on PATH, or the comparison cannot run and this proves nothing.
+    let path = ("PATH", "/usr/bin:/bin");
+    let msgs = messages(&run_broker(&dir, &[mock, path], &[SEND_A, SEND_B, SEND_A]));
+    let noise: Vec<&(String, String)> = msgs
+        .iter()
+        .filter(|(_, t)| t.contains("changed:"))
+        .collect();
+    assert!(
+        noise.is_empty(),
+        "three questions changed none of the user's files: {noise:?}"
+    );
+    // The file the broker DID write is still there — the note is filtered,
+    // not the behaviour, so this test cannot pass by the log not existing.
+    assert!(
+        dir.join(".crew").join("session-live.md").exists(),
+        "no session log was written, so nothing was actually filtered"
+    );
+}

@@ -53,6 +53,11 @@ pub(crate) struct Session {
     /// knows about is an undo nobody uses, and a note on every task would be
     /// the noise the silence was protecting against.
     pub announced_ckpt: Arc<AtomicBool>,
+    /// Whether this session has already said where to go with a file-change
+    /// summary. The LIST is new information after every task and always
+    /// reported; "and /diff shows them" is a lesson, and a lesson repeated
+    /// after every task is noise — the same rule as `announced_ckpt`.
+    pub announced_changes: Arc<AtomicBool>,
 }
 
 impl Default for Session {
@@ -68,6 +73,7 @@ impl Default for Session {
             resume: Arc::new(Mutex::new(None)),
             last_tree: Arc::new(Mutex::new(None)),
             announced_ckpt: Arc::new(AtomicBool::new(false)),
+            announced_changes: Arc::new(AtomicBool::new(false)),
         }
     }
 }
@@ -92,6 +98,7 @@ impl Session {
             resume: Arc::clone(&self.resume),
             last_tree: Arc::clone(&self.last_tree),
             announced_ckpt: Arc::clone(&self.announced_ckpt),
+            announced_changes: Arc::clone(&self.announced_changes),
         }
     }
 

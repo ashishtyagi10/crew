@@ -295,6 +295,8 @@ fn send(
         if let Some(done) = done {
             let _ = emit(&out_thread, &msg("agent smith", done));
         }
+        // …and then what it DID to the files, which nothing on screen said.
+        report_changes(&snap, id, &out_thread);
         // The end of the task, emitted by the only thing that knows when that
         // is. `Tasks::reap` runs lazily on the NEXT command, so a task
         // finishing is otherwise not an observable moment — which is why the
@@ -401,6 +403,47 @@ fn auto_checkpoint(session: &Session, label: &str, out: &Out) {
                  /restore <n> puts one back",
             ),
         );
+    }
+}
+
+/// Say which files the task changed, once it has finished.
+///
+/// A clean run prints its reply and nothing else, so an agent that edited four
+/// files and answered "done" left no record anywhere of WHICH four — the user
+/// had to know to run `/diff` and remember to do it. The pane reports what it
+/// is doing everywhere else (the footer's tasks, its cwd, its roster); this is
+/// the same principle applied to the thing that actually matters.
+///
+/// The comparison is free of new bookkeeping: `auto_checkpoint` has just left
+/// the pre-task tree in `session.last_tree`, so this is one diff against it.
+/// `last_tree` is deliberately NOT updated — it must stay at the pre-task tree
+/// so the NEXT task's checkpoint captures what this one wrote.
+///
+/// Silent on every failure, for the reason the checkpoint is: running outside
+/// a git repository is normal, and a safety net that announces its own absence
+/// is noise.
+fn report_changes(session: &Session, id: u64, out: &Out) {
+    let Ok(dir) = std::env::current_dir() else {
+        return;
+    };
+    let base = {
+        let last = session.last_tree.lock().unwrap_or_else(|e| e.into_inner());
+        last.clone()
+    };
+    let Some(base) = base else { return };
+    let Ok(changes) = super::changed::since(&dir, &base) else {
+        return;
+    };
+    // Checked BEFORE the flag is taken: a run of questions that touch no
+    // files must not spend the one-time hint on notes nobody ever saw.
+    if changes.is_empty() {
+        return;
+    }
+    let hint = !session
+        .announced_changes
+        .swap(true, std::sync::atomic::Ordering::Relaxed);
+    if let Some(line) = super::changed::summary(&changes, hint) {
+        let _ = emit(out, &msg("agent smith", format!("task #{id}: {line}")));
     }
 }
 

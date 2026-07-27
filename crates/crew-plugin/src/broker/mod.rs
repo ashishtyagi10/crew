@@ -14,6 +14,7 @@ mod adapter;
 mod agents;
 mod apiadapter;
 mod ask;
+mod changed;
 mod checkpoint;
 mod commands;
 mod constructs;

@@ -21,7 +21,7 @@ const SUBJECT_PREFIX: &str = "crew checkpoint: ";
 
 /// Run `git <args>` in `dir` (with `index` as `GIT_INDEX_FILE` when given);
 /// trimmed stdout on success, trimmed stderr on failure.
-fn git(dir: &Path, args: &[&str], index: Option<&Path>) -> Result<String, String> {
+pub(super) fn git(dir: &Path, args: &[&str], index: Option<&Path>) -> Result<String, String> {
     let mut cmd = Command::new("git");
     cmd.args(args)
         .current_dir(dir)
@@ -46,7 +46,7 @@ fn git(dir: &Path, args: &[&str], index: Option<&Path>) -> Result<String, String
 /// that touch no files produce the same tree, and a session that snapshotted
 /// every task regardless would bury the real restore points under identical
 /// ones.
-fn worktree_tree(dir: &Path) -> Result<String, String> {
+pub(super) fn worktree_tree(dir: &Path) -> Result<String, String> {
     git(dir, &["rev-parse", "--git-dir"], None).map_err(|_| "not a git repository".to_string())?;
     // pid + a process-wide counter: unique even for simultaneous snapshots
     // (a wall-clock stamp collided under parallel tests).
