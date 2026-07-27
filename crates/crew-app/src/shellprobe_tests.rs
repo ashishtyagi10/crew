@@ -296,6 +296,18 @@ fn adopt_fallback_path_leaves_path_unset_when_fallback_also_failed() {
 }
 
 #[test]
+fn an_entered_key_joins_the_probed_set() {
+    let mut keys: std::collections::HashSet<String> =
+        ["OPENROUTER_API_KEY".to_string()].into_iter().collect();
+    merge_entered(
+        &mut keys,
+        &[("ANTHROPIC_API_KEY".to_string(), "sk".to_string())],
+    );
+    assert!(keys.contains("ANTHROPIC_API_KEY"));
+    assert!(keys.contains("OPENROUTER_API_KEY"), "probed keys survive");
+}
+
+#[test]
 fn adopt_fallback_path_rejects_blank_fallback_value() {
     // Same blank/whitespace-only guard as the primary probe's PATH= line in
     // `merge_shell_env` — a shell that "succeeds" but prints nothing useful

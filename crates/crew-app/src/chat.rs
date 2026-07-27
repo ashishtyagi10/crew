@@ -53,6 +53,10 @@ pub struct ChatPane {
     /// The leading `/command` or `@agent` palette while one is open (see
     /// `chatpalette`). Mutually exclusive with `mention` by construction.
     pub(crate) palette: Option<crate::chatpalette::PaletteState>,
+    /// The masked provider-key prompt while one is open (see `keyentry`).
+    /// Modal: it takes every key before the palette, the mention popup and the
+    /// pane's own handling.
+    pub(crate) keyentry: Option<crate::keyentry::KeyEntry>,
     /// When true, show raw message text instead of markdown rendering.
     /// Toggled with Ctrl+Shift+M; not persisted.
     pub(crate) show_source: bool,
@@ -112,6 +116,7 @@ impl ChatPane {
             pulse: crate::chatpulse::Pulse::new(),
             mention: None,
             palette: None,
+            keyentry: None,
             show_source: false,
             compact_view: false,
             swarm: None,
@@ -353,6 +358,25 @@ impl ChatPane {
     /// out so the popup-vs-pane key routing can be exercised without
     /// constructing a winit `KeyEvent`.
     pub(crate) fn on_input(&mut self, k: ChatInput, cwd: &std::path::Path) -> Option<ChatAction> {
+        // The masked key prompt takes every key before anything else: it may
+        // hold a half-typed secret, and letting a key leak past it to the
+        // palette or the composer would be the one bug this feature exists
+        // to avoid.
+        if let Some(entry) = self.keyentry.as_mut() {
+            match entry.key(&k) {
+                crate::keyentry::KeyOutcome::Consumed => return None,
+                crate::keyentry::KeyOutcome::Cancelled => {
+                    self.keyentry = None;
+                    return None;
+                }
+                crate::keyentry::KeyOutcome::Submit(value) => {
+                    let var = entry.var.clone();
+                    self.keyentry = None;
+                    crate::chatkeystore::store_provider_key(self, &var, &value);
+                    return None;
+                }
+            }
+        }
         // ORDER IS LOAD-BEARING: an open popup must get keys BEFORE the
         // `match k { Close/Up/Down/… }` block below, or Escape would close the
         // pane instead of the popup and arrows would never reach it. The
@@ -373,9 +397,8 @@ impl ChatPane {
             // `self.palette` is `None` now).
             crate::chatpalette::PaletteKey::Submit => return self.on_input(ChatInput::Enter, cwd),
             crate::chatpalette::PaletteKey::Forward => {}
-            // Task 5 opens the key popup here.
             crate::chatpalette::PaletteKey::NeedsKey(var) => {
-                let _ = var;
+                self.keyentry = Some(crate::keyentry::KeyEntry::new(var));
                 return None;
             }
         }

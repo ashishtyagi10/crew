@@ -1185,3 +1185,27 @@ fn accepting_the_model_row_from_the_slash_palette_opens_the_picker() {
         "accepting /model must open the model picker"
     );
 }
+
+// `pane()` is the existing helper at the top of this file — it spawns an idle
+// child as a stand-in broker and returns a `ChatPane`. Use it; do NOT call
+// `ChatPane::new` directly (it takes a `Plugin` and a channel).
+
+#[test]
+fn the_key_prompt_is_modal_and_escape_closes_it_not_the_pane() {
+    let mut p = pane();
+    p.keyentry = Some(crate::keyentry::KeyEntry::new("ANTHROPIC_API_KEY".into()));
+    assert!(p
+        .on_input(ChatInput::Close, std::path::Path::new("."))
+        .is_none());
+    assert!(p.keyentry.is_none(), "escape closes the prompt");
+}
+
+#[test]
+fn the_prompt_swallows_keys_meant_for_the_composer() {
+    let mut p = pane();
+    let before = p.input.clone();
+    p.keyentry = Some(crate::keyentry::KeyEntry::new("ANTHROPIC_API_KEY".into()));
+    p.on_input(ChatInput::Char('x'), std::path::Path::new("."));
+    assert_eq!(p.input, before, "a typed key must not reach the composer");
+    assert!(p.keyentry.is_some(), "the prompt stays open");
+}

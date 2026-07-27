@@ -190,18 +190,40 @@ impl CrewApp {
             }
         }
 
-        // Composer palette: a "commands"/"attach" fieldset card sitting above the
-        // focused crew pane's composer while a leading `/` or `@` token is being
-        // typed (see `chatpalette`). Mutually exclusive with the mention popup
-        // above by construction, so both blocks can push independently. Overlay
-        // scene, so the overlay pass backs it with an opaque page background.
+        // Provider-key prompt / composer palette: sitting above the focused
+        // crew pane's composer, and mutually exclusive with each other — the
+        // key prompt takes precedence when both would otherwise apply,
+        // matching `ChatPane::on_input`, where an open `keyentry` swallows
+        // every key before the palette ever sees one. Overlay scene, so the
+        // overlay pass backs it with an opaque page background.
         if !self.input.focused {
             if let Some(pane) = self.panes.get(self.focused) {
                 if let crate::pane::PaneContent::Chat(c) = &pane.content {
-                    // `after_edit` clears `palette` whenever it would be empty,
-                    // so this is an invariant — guarded to match the mention
-                    // block and stay safe if that ever changes.
-                    if let Some(p) = c.palette.as_ref().filter(|p| !p.items.is_empty()) {
+                    if let Some(entry) = &c.keyentry {
+                        let r = pane.rect;
+                        let cols = (r.w / cw).floor() as u16;
+                        let comp = f32::from(crate::chatinput::composer_rows(
+                            &c.input,
+                            cols,
+                            (r.h / ch).floor() as u16,
+                        )) * ch;
+                        let mh = f32::from(crate::keyentry::ROWS) * ch;
+                        let my = (r.y + r.h - comp - mh).max(0.0);
+                        scenes.push(PaneScene {
+                            cells: entry.card(cols),
+                            x: r.x,
+                            y: my,
+                            w: r.w,
+                            h: mh,
+                            focused: false,
+                            bordered: false,
+                            overlay: true,
+                        });
+                    } else if let Some(p) = c.palette.as_ref().filter(|p| !p.items.is_empty()) {
+                        // `after_edit` clears `palette` whenever it would be
+                        // empty, so this is an invariant — guarded to match
+                        // the mention block and stay safe if that ever
+                        // changes.
                         let r = pane.rect;
                         let cols = (r.w / cw).floor() as u16;
                         let mr = crate::cmdmenu::menu_rows(p.items.len());

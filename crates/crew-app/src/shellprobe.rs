@@ -64,6 +64,29 @@ struct Probed {
 /// Probe results, once the probe lands.
 static SHELL_PROBE: OnceLock<Probed> = OnceLock::new();
 
+/// Keys supplied from inside crew this session, plus whatever the credential
+/// store already held. The shell probe's cache is a `OnceLock` and can't be
+/// re-set, so rather than convert it, entered keys are unioned over it.
+static ENTERED: std::sync::RwLock<Vec<(String, String)>> = std::sync::RwLock::new(Vec::new());
+
+/// Record a key supplied in-app so [`provider_now`] resolves against it
+/// immediately. NEVER logs the value.
+pub(crate) fn note_key(var: &str, value: &str) {
+    if let Ok(mut e) = ENTERED.write() {
+        e.retain(|(k, _)| k != var);
+        e.push((var.to_string(), value.to_string()));
+    }
+}
+
+/// Union entered keys into a probed key set (the testable half).
+fn merge_entered(keys: &mut HashSet<String>, entered: &[(String, String)]) {
+    for (k, v) in entered {
+        if !v.is_empty() {
+            keys.insert(k.clone());
+        }
+    }
+}
+
 /// Merge shell environment into probed state. Provider vars: existing
 /// process vars always win, only adopting a shell value when absent (see
 /// `crew_plugin`'s `broker/shellenv.rs`). PATH is the opposite — see
@@ -97,7 +120,14 @@ fn merge_shell_env(probed: &mut Probed, shell_output: &str) {
 }
 
 /// Kick off the probe. Call exactly once at startup.
+///
+/// Also seeds [`ENTERED`] from the on-disk credential store, so a key typed
+/// into the popup in an earlier session makes its model row live immediately
+/// this session too, without waiting on the shell probe.
 pub(crate) fn init_probe() {
+    for (var, value) in crew_plugin::credentials::load().keys {
+        note_key(&var, &value);
+    }
     if std::env::var("CREW_SHELL_ENV").is_ok_and(|v| v == "0") {
         // No probe: fall back to this process's env immediately.
         let _ = SHELL_PROBE.set(process_probe());
@@ -168,7 +198,11 @@ pub(crate) fn provider_now() -> (Option<crew_plugin::Provider>, bool) {
     let Some(probed) = SHELL_PROBE.get() else {
         return (None, false);
     };
-    (resolve(&probed.keys, probed.provider_pin.as_deref()), true)
+    let mut keys = probed.keys.clone();
+    if let Ok(entered) = ENTERED.read() {
+        merge_entered(&mut keys, &entered);
+    }
+    (resolve(&keys, probed.provider_pin.as_deref()), true)
 }
 
 /// The OpenRouter key: this process's own env wins if set (same precedence
