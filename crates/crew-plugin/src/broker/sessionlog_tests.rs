@@ -77,3 +77,44 @@ fn with_resume_frames_context_before_the_task() {
         "labeled as restored context: {p}"
     );
 }
+
+/// The log has rotated into a resumable file since long before this and said
+/// so nowhere: a user opening a pane in yesterday's project had their
+/// conversation held for them with no way to find out.
+#[test]
+fn a_previous_session_offers_itself_and_names_the_construct() {
+    let base = scratch("offer");
+    append_at(&base, "user", "fix the flaky test");
+    append_at(&base, "coder → user", "done — it raced on the clock");
+    rotate_at(&base); // the run ends; the live log becomes resumable
+
+    let note = resume_offer_at(&base).expect("a session was there to offer");
+    assert!(note.contains("2 messages"), "{note}");
+    assert!(
+        note.contains("/resume"),
+        "an offer must name the verb: {note}"
+    );
+}
+
+#[test]
+fn one_message_is_singular() {
+    let base = scratch("offer-one");
+    append_at(&base, "user", "just the one");
+    rotate_at(&base);
+    let note = resume_offer_at(&base).unwrap();
+    assert!(note.contains("1 message from"), "{note}");
+}
+
+/// A first run in a fresh project must say nothing. An offer of nothing is
+/// noise on the one screen a first run is guaranteed to see.
+#[test]
+fn a_first_run_offers_nothing() {
+    let base = scratch("offer-none");
+    assert_eq!(resume_offer_at(&base), None, "no log at all");
+    rotate_at(&base);
+    assert_eq!(resume_offer_at(&base), None, "rotated an absent log");
+    // …and a session that logged nothing is the same as no session.
+    append_at(&base, "agent smith", "starting with coder…");
+    rotate_at(&base);
+    assert_eq!(resume_offer_at(&base), None, "only system voice was logged");
+}

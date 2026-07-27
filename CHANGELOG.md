@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.6.87
+
+- A pane opened in a project you have worked in before says so, and names
+  `/resume`. The previous conversation has been rotated into a resumable file
+  since long before this and announced nowhere, so the only way to find out it
+  was there was to guess the construct and try it. It offers rather than
+  resumes: folding yesterday's conversation into today's first task spends
+  context nobody asked for, and yesterday's task is as often unrelated as not.
+- A first run in a fresh project still says nothing.
+
 ## 0.6.86
 
 - The agent composer suggests the rest of a prompt you have sent before, dim
