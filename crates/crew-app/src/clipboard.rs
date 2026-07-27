@@ -34,6 +34,19 @@ fn multiline(s: &str) -> String {
     s.replace("\r\n", "\n").replace('\r', "\n")
 }
 
+/// Route a paste into a chat pane: while its masked key prompt
+/// ([`crate::keyentry::KeyEntry`]) is open, EVERY pasted character goes to
+/// the prompt's buffer, never the composer — the prompt is modal, and a key
+/// pasted while it's up must never land in the visible transcript-bound
+/// input. Only once no prompt is open does a paste fall through to the
+/// ordinary multiline composer.
+fn paste_into_chat(c: &mut crate::chat::ChatPane, text: &str) {
+    match c.keyentry.as_mut() {
+        Some(entry) => entry.paste(text),
+        None => c.input.push_str(&multiline(text)),
+    }
+}
+
 impl CrewApp {
     /// Paste the system clipboard into the focused surface: the command input
     /// bar, a chat pane's input (multiline), or the focused terminal (using
@@ -70,7 +83,7 @@ impl CrewApp {
                         eprintln!("paste write error: {e}");
                     }
                 }
-                PaneContent::Chat(c) => c.input.push_str(&multiline(text)),
+                PaneContent::Chat(c) => paste_into_chat(c, text),
                 PaneContent::Settings(_)
                 | PaneContent::Far(_)
                 | PaneContent::Swarm(_)
@@ -170,7 +183,7 @@ impl CrewApp {
 
 #[cfg(test)]
 mod tests {
-    use super::{one_line, screen_text};
+    use super::{one_line, paste_into_chat, screen_text};
 
     #[test]
     fn one_line_flattens_newlines() {
@@ -200,5 +213,48 @@ mod tests {
         // "hi" on row 0, "x" on row 1, row 2 blank → trailing blank dropped.
         let cells = [c(0, 0, 'h'), c(1, 0, 'i'), c(0, 1, 'x')];
         assert_eq!(screen_text(&cells, 5, 3), "hi\nx");
+    }
+
+    // Regression for the CRITICAL finding: with the masked key prompt open,
+    // Cmd+V / right-click paste must never land in the visible composer —
+    // `insert_paste` (the actual paste entry point) isn't reachable from a
+    // unit test without constructing a whole `CrewApp` + windowed pane, so
+    // this drives `paste_into_chat`, the routing helper both real paste
+    // sources (`chords.rs`'s Cmd+V and `events.rs`'s right-click) funnel
+    // through via `insert_paste`.
+    #[test]
+    fn paste_goes_to_an_open_key_prompt_not_the_composer() {
+        let mut p = crate::chat::tests::pane();
+        p.keyentry = Some(crate::keyentry::KeyEntry::new("ANTHROPIC_API_KEY".into()));
+        let secret = "sk-pasted-secret";
+        paste_into_chat(&mut p, &format!("{secret}\n"));
+
+        assert!(
+            p.input.is_empty(),
+            "the composer must stay untouched while the prompt is open"
+        );
+        let masked = p
+            .keyentry
+            .as_ref()
+            .unwrap()
+            .card(60)
+            .iter()
+            .filter(|cell| cell.c == '•')
+            .count();
+        assert_eq!(
+            masked,
+            secret.chars().count(),
+            "the pasted text (minus the trailing newline) reached the prompt's buffer"
+        );
+    }
+
+    #[test]
+    fn paste_reaches_the_composer_when_no_prompt_is_open() {
+        let mut p = crate::chat::tests::pane();
+        paste_into_chat(&mut p, "hello\nworld");
+        assert_eq!(
+            p.input, "hello\nworld",
+            "no prompt open: ordinary paste path"
+        );
     }
 }

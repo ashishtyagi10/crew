@@ -75,11 +75,13 @@ fn missing_names_the_key_the_user_would_have_to_set() {
 }
 
 #[test]
-fn no_provider_names_the_first_key_discovery_would_look_for() {
-    // Discovery order is DashScope, then OpenRouter, then Anthropic (see
-    // `crew_plugin::discover::pick_provider`) — with no provider found at
-    // all, the row should point at the first key a user would set, not
-    // the last-resort Anthropic one.
+fn no_provider_names_the_key_the_selected_rows_vendor_needs() {
+    // The keyless machine: nothing configured, so the row must name the key
+    // that would make THIS row work. Naming discovery's first probe
+    // (`DASHSCOPE_API_KEY`) for every row meant picking Claude Opus opened a
+    // prompt titled "paste DASHSCOPE_API_KEY" — a user with an Anthropic key
+    // had no way to enter it, and pasting it there stored it under Alibaba's
+    // variable and pinned `dashscope`.
     let claude = row(
         "claude-sonnet-5",
         Some("anthropic/claude-sonnet-5"),
@@ -87,7 +89,36 @@ fn no_provider_names_the_first_key_discovery_would_look_for() {
     );
     assert_eq!(
         route_for(&claude, None, true),
+        Route::Missing("ANTHROPIC_API_KEY")
+    );
+    assert_eq!(
+        route_for(&claude, None, true).needs_key(),
+        Some("ANTHROPIC_API_KEY"),
+        "and it must reach the prompt, not be filtered out as a human phrase"
+    );
+}
+
+#[test]
+fn no_provider_names_dashscope_for_an_alibaba_row() {
+    let qwen = row("qwen-max", Some("qwen/qwen-max"), Vendor::Alibaba);
+    assert_eq!(
+        route_for(&qwen, None, true),
         Route::Missing("DASHSCOPE_API_KEY")
+    );
+    assert_eq!(
+        route_for(&qwen, None, true).needs_key(),
+        Some("DASHSCOPE_API_KEY")
+    );
+}
+
+#[test]
+fn no_provider_names_openrouter_for_a_vendor_crew_reaches_only_through_it() {
+    // No direct provider exists for OpenAI/Google/… in `pick_provider`, so
+    // OpenRouter is the only key that would light this row up.
+    let gpt = row("gpt-4.1", Some("openai/gpt-4.1"), Vendor::OpenAI);
+    assert_eq!(
+        route_for(&gpt, None, true),
+        Route::Missing("OPENROUTER_API_KEY")
     );
 }
 
@@ -128,4 +159,22 @@ fn fill_slug_follows_the_route() {
         "claude-sonnet-5"
     );
     assert_eq!(Route::Unknown.fill_slug(&claude), "claude-sonnet-5");
+}
+
+#[test]
+fn needs_key_names_only_real_variables() {
+    assert_eq!(
+        Route::Missing("ANTHROPIC_API_KEY").needs_key(),
+        Some("ANTHROPIC_API_KEY")
+    );
+    // `route_for` also produces this human phrase for an OpenRouter-unservable
+    // model. It names no variable, and must never open a key prompt.
+    assert_eq!(
+        Route::Missing("a model OpenRouter serves").needs_key(),
+        None
+    );
+    assert_eq!(Route::Direct("anthropic").needs_key(), None);
+    assert_eq!(Route::ViaOpenRouter.needs_key(), None);
+    assert_eq!(Route::Unknown.needs_key(), None);
+    assert_eq!(Route::Mock.needs_key(), None);
 }

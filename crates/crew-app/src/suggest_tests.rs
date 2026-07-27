@@ -302,6 +302,7 @@ fn step_sel_skips_header_rows_in_both_directions() {
             submit: false,
             header,
             dim: false,
+            needs: None,
         }
     }
     // [hdr, a, b, hdr, c]

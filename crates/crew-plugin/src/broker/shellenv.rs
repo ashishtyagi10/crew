@@ -30,6 +30,31 @@ fn merge(output: &str, missing: impl Fn(&str) -> bool) -> Vec<(String, String)> 
         .collect()
 }
 
+/// Which stored credentials should be imported, given a reader of the current
+/// process environment. Split out from [`hydrate`] so the precedence rule is
+/// testable without mutating process-global state.
+///
+/// A variable already exported non-empty into this process WINS — that is the
+/// most deliberate signal a user can send. Everything else the store holds is
+/// imported, which puts it AHEAD of the login-shell pass below: a key typed
+/// into crew beats a stale value in a shell rc file, or the user would type a
+/// key, see nothing change, and have no way to find out why.
+fn credential_imports(
+    store: &crate::credentials::Store,
+    current: impl Fn(&str) -> Option<String>,
+) -> Vec<(String, String)> {
+    store
+        .keys
+        .iter()
+        .filter(|(k, v)| {
+            !v.is_empty()
+                && crate::credentials::VARS.contains(&k.as_str())
+                && current(k).is_none_or(|cur| cur.is_empty())
+        })
+        .map(|(k, v)| (k.clone(), v.clone()))
+        .collect()
+}
+
 /// Import missing provider vars from the login shell into this process. Must
 /// run before the broker spawns any thread (`set_var` is process-global). A
 /// hung or odd shell is harmless: the probe is killed after the timeout and
@@ -37,6 +62,13 @@ fn merge(output: &str, missing: impl Fn(&str) -> bool) -> Vec<(String, String)> 
 pub(crate) fn hydrate() {
     if std::env::var("CREW_SHELL_ENV").is_ok_and(|v| v == "0") {
         return;
+    }
+    // Deliberately after the CREW_SHELL_ENV=0 gate: that switch exists so the
+    // e2e harness never inherits a developer's real keys, and stored
+    // credentials are exactly as much "the developer's real keys" as their
+    // shell env is.
+    for (k, v) in credential_imports(&crate::credentials::load(), |k| std::env::var(k).ok()) {
+        std::env::set_var(k, v);
     }
     let shell = std::env::var("SHELL")
         .ok()

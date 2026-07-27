@@ -29,6 +29,10 @@ pub(crate) struct MenuItem {
     /// — renders muted like a header, but keeps its desc column and its
     /// selectability, unlike one. Always `false` outside the model picker.
     pub dim: bool,
+    /// The provider key this row is blocked on (`Route::needs_key`). Accepting
+    /// such a row prompts for the key instead of choosing a model that cannot
+    /// run. `None` everywhere outside the model picker.
+    pub needs: Option<String>,
 }
 
 /// The first row a selection may land on — headers are titles, not choices.
@@ -78,6 +82,7 @@ pub(crate) fn menu_items(text: &str) -> Vec<MenuItem> {
                 submit: true,
                 header: false,
                 dim: false,
+                needs: None,
             })
             .collect();
     }
@@ -96,6 +101,7 @@ pub(crate) fn menu_items(text: &str) -> Vec<MenuItem> {
                 submit: !exp,
                 header: false,
                 dim: false,
+                needs: None,
             }
         })
         .collect()

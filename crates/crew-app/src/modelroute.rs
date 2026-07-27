@@ -49,16 +49,30 @@ impl Route {
     pub(crate) fn unserveable(&self) -> bool {
         matches!(self, Self::Missing(_))
     }
+    /// The environment variable this row is blocked on, when that is a key
+    /// crew can actually store. `Missing` also carries human phrases — see
+    /// `route_for`'s `Missing("a model OpenRouter serves")` — which name no
+    /// variable and must not produce a key prompt for a nonsense name.
+    pub(crate) fn needs_key(&self) -> Option<&'static str> {
+        match self {
+            Self::Missing(k) => crew_plugin::credentials::VARS.contains(k).then_some(*k),
+            _ => None,
+        }
+    }
 }
 
 /// Resolve the route for one catalog row. `probed` is whether the login-shell
 /// key probe has completed; before it has, everything is `Unknown`.
 pub(crate) fn route_for(m: &ModelInfo, provider: Option<Provider>, probed: bool) -> Route {
     let Some(provider) = provider else {
-        // Discovery order is DashScope, then OpenRouter, then Anthropic — name
-        // the first key a user would set, not the last-resort one.
+        // Name the key THIS row needs, not the first one discovery happens to
+        // look for. On a keyless machine — the case this whole feature exists
+        // for — every row used to ask for `DASHSCOPE_API_KEY`, so a user
+        // holding an Anthropic key had no route to enter it and pasting it at
+        // the Claude row would have stored it under Alibaba's variable and
+        // pinned `dashscope`, authenticating against the wrong endpoint.
         return if probed {
-            Route::Missing("DASHSCOPE_API_KEY")
+            Route::Missing(vendor_key(m.vendor))
         } else {
             Route::Unknown
         };
@@ -75,6 +89,23 @@ pub(crate) fn route_for(m: &ModelInfo, provider: Option<Provider>, probed: bool)
         Provider::OpenRouter if m.or_slug.is_some() || m.slug.contains('/') => Route::ViaOpenRouter,
         Provider::OpenRouter => Route::Missing("a model OpenRouter serves"),
         _ => Route::Missing("OPENROUTER_API_KEY"),
+    }
+}
+
+/// The key that would make a row of this vendor serveable when NO provider is
+/// configured at all. Only two vendors have a direct provider in crew
+/// (`pick_provider`): Anthropic and Alibaba/DashScope. Every other vendor is
+/// reachable only through OpenRouter, so `OPENROUTER_API_KEY` is the honest
+/// answer for them — including `Vendor::OpenRouter` itself.
+///
+/// This is the ONLY producer of a key name in the no-provider case, and every
+/// name it returns is in `credentials::VARS`, so `needs_key` accepts all three
+/// and the prompt can actually ask for each.
+fn vendor_key(v: Vendor) -> &'static str {
+    match v {
+        Vendor::Anthropic => "ANTHROPIC_API_KEY",
+        Vendor::Alibaba => "DASHSCOPE_API_KEY",
+        _ => "OPENROUTER_API_KEY",
     }
 }
 

@@ -64,6 +64,71 @@ struct Probed {
 /// Probe results, once the probe lands.
 static SHELL_PROBE: OnceLock<Probed> = OnceLock::new();
 
+/// NAMES of keys supplied from inside crew this session, plus whatever the
+/// credential store already held. Holds only variable names, never values:
+/// the only reader ([`merge_entered`]) only ever asks "was a non-empty value
+/// supplied for this name", so retaining the value itself would just be the
+/// whole credential store sitting in process memory for the process
+/// lifetime with no reader that benefits. The shell probe's cache is a
+/// `OnceLock` and can't be re-set, so rather than convert it, entered names
+/// are unioned over it.
+static ENTERED: std::sync::LazyLock<std::sync::RwLock<HashSet<String>>> =
+    std::sync::LazyLock::new(|| std::sync::RwLock::new(HashSet::new()));
+
+/// The provider pin the credential store holds — seeded at startup and
+/// re-recorded whenever a key is saved this session ([`note_pin`]). The broker
+/// has always honoured this pin (`discover::forced_provider`); the app did
+/// not, so after saving an OpenRouter key the app kept resolving DashScope
+/// from its own fixed discovery order: the Claude row stayed dim asking for
+/// the same key, accepting it re-opened the same prompt — forever, across
+/// restarts — while the broker was meanwhile routing to OpenRouter. Not a
+/// secret (a provider name), but it lives beside [`ENTERED`] for the same
+/// reason: [`SHELL_PROBE`] is a `OnceLock` that cannot be re-set.
+static PINNED: std::sync::LazyLock<std::sync::RwLock<Option<String>>> =
+    std::sync::LazyLock::new(|| std::sync::RwLock::new(None));
+
+/// Record a key supplied in-app so [`provider_now`] resolves against it
+/// immediately. Only the NAME is retained — see [`ENTERED`] — and only when
+/// `value` is non-empty; an empty value clears any previously entered name,
+/// matching `credentials::save_key`'s "empty value removes the key" rule.
+/// NEVER logs the value.
+pub(crate) fn note_key(var: &str, value: &str) {
+    if let Ok(mut e) = ENTERED.write() {
+        if value.is_empty() {
+            e.remove(var);
+        } else {
+            e.insert(var.to_string());
+        }
+    }
+}
+
+/// Record the provider pin `credentials::save_key` just wrote, so
+/// [`provider_now`] resolves against it immediately — the same "without a
+/// restart" contract [`note_key`] gives the key itself. Blank is not a pin.
+pub(crate) fn note_pin(provider: &str) {
+    if provider.is_empty() {
+        return;
+    }
+    if let Ok(mut p) = PINNED.write() {
+        *p = Some(provider.to_string());
+    }
+}
+
+/// Union entered key names into a probed key set (the testable half).
+fn merge_entered(keys: &mut HashSet<String>, entered: &HashSet<String>) {
+    keys.extend(entered.iter().cloned());
+}
+
+/// Which pin wins: `CREW_PROVIDER` — from this process or the login-shell
+/// probe, both already merged into `Probed::provider_pin` — over the pin the
+/// credential store recorded. The pure seam, and deliberately the same rule as
+/// `crew_plugin`'s `discover::resolve_forced`: if these two ever disagreed the
+/// app would dim rows the broker can serve, or promise ones it cannot.
+fn resolve_pin<'a>(env: Option<&'a str>, stored: Option<&'a str>) -> Option<&'a str> {
+    env.filter(|v| !v.is_empty())
+        .or(stored.filter(|v| !v.is_empty()))
+}
+
 /// Merge shell environment into probed state. Provider vars: existing
 /// process vars always win, only adopting a shell value when absent (see
 /// `crew_plugin`'s `broker/shellenv.rs`). PATH is the opposite — see
@@ -97,7 +162,19 @@ fn merge_shell_env(probed: &mut Probed, shell_output: &str) {
 }
 
 /// Kick off the probe. Call exactly once at startup.
+///
+/// Also seeds [`ENTERED`] and [`PINNED`] from the on-disk credential store, so
+/// a key typed into the popup in an earlier session makes its model row live
+/// immediately this session too — and routes to the provider it pinned —
+/// without waiting on the shell probe.
 pub(crate) fn init_probe() {
+    let store = crew_plugin::credentials::load();
+    for (var, value) in store.keys {
+        note_key(&var, &value);
+    }
+    if let Some(p) = store.provider {
+        note_pin(&p);
+    }
     if std::env::var("CREW_SHELL_ENV").is_ok_and(|v| v == "0") {
         // No probe: fall back to this process's env immediately.
         let _ = SHELL_PROBE.set(process_probe());
@@ -168,7 +245,13 @@ pub(crate) fn provider_now() -> (Option<crew_plugin::Provider>, bool) {
     let Some(probed) = SHELL_PROBE.get() else {
         return (None, false);
     };
-    (resolve(&probed.keys, probed.provider_pin.as_deref()), true)
+    let mut keys = probed.keys.clone();
+    if let Ok(entered) = ENTERED.read() {
+        merge_entered(&mut keys, &entered);
+    }
+    let stored = PINNED.read().ok().and_then(|p| p.clone());
+    let pin = resolve_pin(probed.provider_pin.as_deref(), stored.as_deref());
+    (resolve(&keys, pin), true)
 }
 
 /// The OpenRouter key: this process's own env wins if set (same precedence

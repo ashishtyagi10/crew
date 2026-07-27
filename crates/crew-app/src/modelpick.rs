@@ -145,6 +145,7 @@ fn default_row() -> MenuItem {
         submit: true,
         header: false,
         dim: false,
+        needs: None,
     }
 }
 
@@ -156,6 +157,7 @@ fn header_row(label: &str) -> MenuItem {
         submit: false,
         header: true,
         dim: false,
+        needs: None,
     }
 }
 
@@ -174,6 +176,7 @@ fn model_row(m: &ModelInfo, route: Route, current: bool) -> MenuItem {
         submit: true,
         header: false,
         dim: route.unserveable(),
+        needs: route.needs_key().map(str::to_string),
     }
 }
 

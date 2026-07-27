@@ -606,3 +606,71 @@ fn bare_nonsense_with_no_shell_hints_instead_of_spawning() {
         .unwrap_or_default();
     assert!(status.contains("not a command"), "got: {status}");
 }
+
+/// Whether the chat pane at `i` still holds an open key prompt.
+fn has_keyentry(app: &CrewApp, i: usize) -> bool {
+    match &app.panes[i].content {
+        crate::pane::PaneContent::Chat(c) => c.keyentry.is_some(),
+        _ => unreachable!("expected a chat pane"),
+    }
+}
+
+fn open_keyentry(app: &mut CrewApp, i: usize) {
+    match &mut app.panes[i].content {
+        crate::pane::PaneContent::Chat(c) => {
+            c.keyentry = Some(crate::keyentry::KeyEntry::new("ANTHROPIC_API_KEY".into()));
+        }
+        _ => unreachable!("expected a chat pane"),
+    }
+}
+
+/// Focusing the input bar is a plain mouse click (`focus_at_cursor`), and
+/// `render.rs` draws the key card only while the bar is NOT focused. The
+/// prompt would otherwise survive open-but-invisible, still holding a
+/// half-typed secret — and, because keys no longer reach `ChatPane::on_input`
+/// at all, the rest of the key would be typed into the input bar in plaintext
+/// and persisted to the on-disk command history on Enter.
+#[test]
+fn focusing_the_input_bar_discards_an_open_key_prompt() {
+    let mut app = CrewApp::default();
+    app.panes.push(tests_chat_pane());
+    app.focused = 0;
+    open_keyentry(&mut app, 0);
+
+    app.close_hidden_keyentry();
+    assert!(
+        has_keyentry(&app, 0),
+        "the prompt stays while its own pane is the one being drawn"
+    );
+
+    app.input.focused = true; // a click on the input bar
+    app.close_hidden_keyentry();
+    assert!(
+        !has_keyentry(&app, 0),
+        "a prompt the frame will not draw must not survive holding a secret"
+    );
+}
+
+/// The same invariant for the other two ways the card stops being drawn:
+/// focus moving to a different pane (`render.rs` only draws the card for
+/// `self.focused`), and the help overlay, which returns before the card is
+/// ever pushed.
+#[test]
+fn switching_panes_or_opening_help_discards_an_open_key_prompt() {
+    let mut app = CrewApp::default();
+    app.panes.push(tests_chat_pane());
+    app.panes.push(tests_chat_pane());
+    app.focused = 0;
+    open_keyentry(&mut app, 0);
+    app.focused = 1; // clicked the other pane
+    app.close_hidden_keyentry();
+    assert!(!has_keyentry(&app, 0), "an unfocused pane's prompt is gone");
+
+    open_keyentry(&mut app, 1);
+    app.help_open = true;
+    app.close_hidden_keyentry();
+    assert!(
+        !has_keyentry(&app, 1),
+        "the help overlay covers the card, so the prompt must not linger under it"
+    );
+}

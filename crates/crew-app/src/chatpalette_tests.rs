@@ -218,3 +218,36 @@ fn shared_model_ignores_empty_entries_when_the_rest_agree() {
     ];
     assert_eq!(shared_model(&agents), Some("qwen-max".to_string()));
 }
+
+#[test]
+fn accepting_a_row_that_needs_a_key_asks_for_it_instead_of_running() {
+    let mut input = "/model claude".to_string();
+    let before = input.clone();
+    let mut palette = Some(PaletteState {
+        kind: Kind::Model,
+        items: vec![MenuItem {
+            label: "Claude Opus".into(),
+            desc: "needs ANTHROPIC_API_KEY".into(),
+            fill: "claude-opus-5".into(),
+            submit: true,
+            header: false,
+            dim: true,
+            needs: Some("ANTHROPIC_API_KEY".into()),
+        }],
+        sel: 0,
+        entries: Vec::new(),
+        touched: true,
+    });
+    match popup_key(&mut palette, &mut input, &ChatInput::Enter) {
+        PaletteKey::NeedsKey(var) => assert_eq!(var, "ANTHROPIC_API_KEY"),
+        _ => panic!("a keyless row must not run"),
+    }
+    assert_eq!(
+        input, before,
+        "the model must not be chosen until it can run"
+    );
+    assert!(
+        palette.is_none(),
+        "the palette closes to make room for the prompt"
+    );
+}

@@ -15,6 +15,7 @@ pub(super) fn slash_items(query: &str) -> Vec<MenuItem> {
             submit: false,
             header: false,
             dim: false,
+            needs: None,
         })
         .collect()
 }
@@ -38,6 +39,7 @@ pub(super) fn attach_items(
             submit: false,
             header: false,
             dim: false,
+            needs: None,
         })
         .collect()
 }
