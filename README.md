@@ -181,7 +181,9 @@ prefixes make the bar explicit: **`!<cmd>`** always runs the command in a new
 pane, **`*<text>`** broadcasts one line to every terminal pane, and
 **`?<plain english>`** asks the AI for a command (à la Warp AI / Copilot CLI)
 — the suggestion lands back in the input bar, ready to edit or Enter, powered
-by the same provider stack as `/crew` (DashScope / OpenRouter / Anthropic).
+by the same provider stack as `/crew` (DashScope / OpenRouter / Anthropic, or
+a direct OpenAI / Gemini / DeepSeek key — see
+[docs/CREW.md](docs/CREW.md#models--rate-limits)).
 **`??<question>`** goes the other way: the AI reads the focused terminal's
 recent output and opens its explanation in the zoomed markdown viewer —
 `??why did this fail` after a broken build gets you a formatted post-mortem.

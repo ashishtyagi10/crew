@@ -170,9 +170,12 @@ impl std::fmt::Debug for DirectProvider {
 }
 
 /// Resolve which provider backs the project's API-backed agents. The mock
-/// (tests) always wins; then an explicit `CREW_PROVIDER`
-/// (dashscope|openrouter|anthropic); then auto-discovery in preference order
-/// — DashScope (paid Qwen) before OpenRouter (free chains) before Anthropic.
+/// (tests) always wins; then an explicit `CREW_PROVIDER` — which names any of
+/// `dashscope|openrouter|anthropic` **or a [`DIRECT`] row** (`openai`,
+/// `gemini`, `deepseek`), the pin being the only way to reach one of those
+/// while another vendor's key is also set; then auto-discovery in preference
+/// order — DashScope (paid Qwen) before OpenRouter (free chains) before
+/// Anthropic before any direct vendor key.
 pub fn pick_provider(force: Option<&str>, has_key: impl Fn(&str) -> bool) -> Option<ProviderKind> {
     if has_key("CREW_BROKER_MOCK_REPLY") {
         return Some(ProviderKind::Mock);
