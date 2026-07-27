@@ -124,3 +124,42 @@ fn at_selector_starts_with_chosen_agent() {
     assert!(has_leg(&ev, "reviewer → user"), "{:?}", messages(&ev));
     assert!(!has_leg(&ev, "scribe → user"), "{:?}", messages(&ev));
 }
+
+/// A pane opened in a project that was worked in before says so, at startup,
+/// through a real broker. `/resume` has folded the previous conversation in
+/// since long before this and announced itself nowhere — the same shape as
+/// the checkpoint note in v0.6.77.
+#[test]
+fn a_previous_session_announces_itself_at_startup() {
+    let dir = unique_dir("resume-offer");
+    seed_specialists(&dir, &["planner"]);
+    // What the LAST run left behind. `run_broker` rotates this into the
+    // resumable file on start, exactly as a second launch would.
+    std::fs::create_dir_all(dir.join(".crew")).unwrap();
+    std::fs::write(
+        dir.join(".crew").join("session-live.md"),
+        "user: fix the flaky test\ncoder → user: done\n",
+    )
+    .unwrap();
+
+    let msgs = messages(&run_broker(&dir, &[], &[HELLO]));
+    let offer = msgs.iter().find(|(_, t)| t.contains("/resume"));
+    let (_, text) = offer.unwrap_or_else(|| panic!("no resume offer: {msgs:?}"));
+    assert!(text.contains("2 messages"), "{text}");
+}
+
+/// …and a first run in a fresh project says nothing at all. An offer of
+/// nothing is noise on the one screen a first run is guaranteed to see.
+#[test]
+fn a_fresh_project_makes_no_offer() {
+    let dir = unique_dir("resume-none");
+    seed_specialists(&dir, &["planner"]);
+    let msgs = messages(&run_broker(&dir, &[], &[HELLO]));
+    // The pane DID greet — without this the assertion below passes on an
+    // empty list, which is how the first draft of it passed vacuously.
+    assert!(!msgs.is_empty(), "the broker never greeted at all");
+    assert!(
+        !msgs.iter().any(|(_, t)| t.contains("/resume")),
+        "offered a session that never happened: {msgs:?}"
+    );
+}

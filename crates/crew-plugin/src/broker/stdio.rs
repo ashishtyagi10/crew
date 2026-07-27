@@ -79,7 +79,13 @@ fn hello(out: &Out, session: &Session) -> anyhow::Result<()> {
             agents: reg.infos(),
         },
     )?;
-    emit(out, &msg("agent smith", startup_banner(&reg)))
+    emit(out, &msg("agent smith", startup_banner(&reg)))?;
+    // …and, if yesterday's conversation is still here, that it is. Held back
+    // until after the banner so the pane's own identity reads first.
+    match super::sessionlog::resume_offer() {
+        Some(note) => emit(out, &msg("agent smith", note)),
+        None => Ok(()),
+    }
 }
 
 /// Smith's dialog pool: the tagline under the nameplate, one line per pane.

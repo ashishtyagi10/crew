@@ -104,6 +104,36 @@ pub(crate) fn tail_at(base: &Path) -> Option<String> {
     Some(text[cut..].trim().to_string())
 }
 
+/// How much of a previous session is sitting here, as a sentence — or `None`
+/// when there is nothing to resume.
+///
+/// The log has been rotating into a resumable file since long before this and
+/// said so nowhere: a user opening a pane in yesterday's project had their
+/// conversation held for them and no way to find out. Same shape as the
+/// checkpoint note in v0.6.77 — a capability nobody knows about is a
+/// capability nobody has.
+///
+/// It ANNOUNCES rather than resumes. Folding yesterday's conversation into
+/// today's first task spends context nobody asked for, and yesterday's task is
+/// as often unrelated as not; that call stays the user's.
+pub(crate) fn resume_offer() -> Option<String> {
+    resume_offer_at(&base_dir())
+}
+
+pub(crate) fn resume_offer_at(base: &Path) -> Option<String> {
+    let lines = tail_at(base)?
+        .lines()
+        .filter(|l| !l.trim().is_empty())
+        .count();
+    (lines > 0).then(|| {
+        format!(
+            "{lines} message{} from your last session here \u{2014} /resume folds \
+             them into the next task",
+            if lines == 1 { "" } else { "s" },
+        )
+    })
+}
+
 /// Wrap the next task with restored context (the `/resume` payload).
 pub(crate) fn with_resume(prev: &str, task: &str) -> String {
     format!(
