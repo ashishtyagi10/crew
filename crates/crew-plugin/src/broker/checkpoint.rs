@@ -229,7 +229,10 @@ pub(crate) fn list_cmd(
     match list(&dir) {
         Ok(items) if items.is_empty() => emit(msg(
             "agent smith",
-            "no checkpoints yet \u{2014} save one with /checkpoint [label]",
+            // Checkpoints are automatic since v0.6.44; there is no
+            // /checkpoint to point at any more.
+            "no checkpoints yet \u{2014} one is taken before every task that \
+             changes files, in a git repository",
         )),
         Ok(items) => {
             let lines: Vec<String> = items
@@ -240,7 +243,7 @@ pub(crate) fn list_cmd(
             emit(msg(
                 "agent smith",
                 format!(
-                    "checkpoints (restore with /restore <n>):\n{}",
+                    "checkpoints (put one back with /restore <n>):\n{}",
                     lines.join("\n")
                 ),
             ))
@@ -250,10 +253,17 @@ pub(crate) fn list_cmd(
 }
 
 /// `/restore <n>` — put checkpoint `n`'s files back into the working tree.
+/// `/restore` — bare, it LISTS the snapshots; with an ordinal it puts one
+/// back. Two constructs for one subject is one too many: `/checkpoints` did
+/// nothing `/restore` could not say for itself, exactly as `/agents` did
+/// nothing bare `/model` could not.
 pub(crate) fn restore_cmd(
     rest: &str,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
+    if rest.trim().is_empty() {
+        return list_cmd(emit);
+    }
     let dir = match std::env::current_dir() {
         Ok(d) => d,
         Err(e) => return emit(msg("agent smith", format!("restore failed: {e}"))),
@@ -267,7 +277,7 @@ pub(crate) fn restore_cmd(
         return emit(msg(
             "agent smith",
             format!(
-                "usage: /restore <1-{}> \u{2014} see /checkpoints",
+                "usage: /restore <1-{}> \u{2014} bare /restore lists them",
                 items.len().max(1)
             ),
         ));

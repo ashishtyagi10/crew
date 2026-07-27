@@ -7,31 +7,10 @@ use crew_plugin::AgentInfo;
 /// Every composer slash action: broker constructs plus the pane-local
 /// `/export`, `/theme`, `/compact`, and `/exit` (see `chatexport` /
 /// `chattheme` / `chatcompact` / `chat`).
-pub(crate) const CONSTRUCTS: [&str; 24] = [
-    "/help",
-    "/model",
-    "/fan",
-    "/loop",
-    "/goal",
-    "/plan",
-    "/checkpoints",
-    "/restore",
-    "/diff",
-    "/skills",
-    "/skill",
-    "/memory",
-    "/commit",
-    "/review",
-    "/resume",
-    "/doctor",
-    "/standup",
-    "/mcp",
-    "/reload",
-    "/stop",
-    "/export",
-    "/theme",
-    "/compact",
-    "/exit",
+pub(crate) const CONSTRUCTS: [&str; 22] = [
+    "/help", "/model", "/fan", "/loop", "/goal", "/plan", "/restore", "/diff", "/skill", "/memory",
+    "/commit", "/review", "/resume", "/doctor", "/standup", "/mcp", "/reload", "/stop", "/export",
+    "/theme", "/compact", "/exit",
 ];
 
 /// One-line description for each construct, shown as the dim hint in the
@@ -44,11 +23,9 @@ pub(crate) fn describe(construct: &str) -> &'static str {
         "/loop" => "run a task on a loop",
         "/goal" => "set the crew's shared goal",
         "/plan" => "draft a plan \u{2014} enter runs it, esc discards it",
-        "/checkpoints" => "list the automatic snapshots",
-        "/restore" => "restore a checkpoint",
+        "/restore" => "list snapshots, or put one back (/restore <n>)",
         "/diff" => "show working-tree changes",
-        "/skills" => "list available skills",
-        "/skill" => "run a skill",
+        "/skill" => "list playbooks, or run one (/skill <name> <task>)",
         "/memory" => "show the standing memory (add with #<note>)",
         "/commit" => "draft an AI commit message (apply to run)",
         "/review" => "AI code review of the working diff",

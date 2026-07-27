@@ -112,7 +112,7 @@ fn framed_puts_playbook_before_task() {
 }
 
 #[test]
-fn skill_cmd_without_args_prints_usage() {
+fn bare_skill_lists_the_playbooks() {
     let mut session = Session::new();
     let mut got = Vec::new();
     skill_cmd(
@@ -125,8 +125,13 @@ fn skill_cmd_without_args_prints_usage() {
         },
     )
     .unwrap();
+    // Bare `/skill` LISTS now — the listing construct was folded into it, so
+    // the empty form answers with the playbooks rather than a usage line.
     match &got[0] {
-        PluginEvent::Message { text, .. } => assert!(text.contains("usage: /skill")),
+        PluginEvent::Message { text, .. } => assert!(
+            text.to_lowercase().contains("skill") && !text.contains("usage:"),
+            "bare /skill should list, not scold: {text}"
+        ),
         other => panic!("unexpected event: {other:?}"),
     }
 }
