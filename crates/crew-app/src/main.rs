@@ -33,6 +33,7 @@ mod chatkeystore;
 mod chatlayout;
 mod chatmd;
 mod chatmention;
+
 mod chatmsgs;
 mod chatpalette;
 mod chatplace;
@@ -103,6 +104,7 @@ mod mdcache;
 mod mdkeys;
 mod mdpane;
 mod mdpane_view;
+mod mentionrange;
 mod minstrip;
 mod modelfetch;
 mod modelpick;

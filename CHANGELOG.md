@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.6.92
+
+- `@src/main.rs:120-180` attaches just those lines. `@file` attached the whole
+  file and anything past 64 KB was skipped outright — so the file you most
+  want to point an agent at one function of was the file you could not point
+  it at at all. `:120` is a single line; the size limit now applies to what is
+  attached rather than to the file on disk, and the "too large" note names the
+  idiom instead of only saying no.
+- A file genuinely named `odd:10` still wins over reading that as a range, and
+  a colon anywhere else in a name is left alone.
+
 ## 0.6.91
 
 - A tool call reads as what it is. Every call an agent makes is logged in the
