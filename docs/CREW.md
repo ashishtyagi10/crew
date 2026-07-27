@@ -248,7 +248,7 @@ The docked command bar supports:
   `/font`, `/restart`, `/theme`, `/notify`, `/update`, `/broadcast`, `/zoom`,
   `/sidebar`, `/keys`, `/far`, `/exit`. The palette is **fuzzy** — prefix
   matches rank first,
-  then subsequence matches (e.g. `/dmp` finds `/dump`) — and **scrolls** to the
+  then subsequence matches (typing `dmp` after the slash finds `/dump`) — and **scrolls** to the
   selection when the match list is long. When several commands share a prefix,
   the **shortest** is ghosted as the autosuggestion (e.g. `/clear` ghosts before
   `/clearlog`, which is one keystroke further). Commands with a **fixed set of
@@ -320,7 +320,8 @@ The docked command bar supports:
 - **`/diff`** — reviews the working tree's git changes in a new pane (à la
   Codex's `/diff`): a `git status --short` summary, the `diff --stat`, then
   the full colored diff, dropping to a fresh prompt afterwards. Pairs with the
-  crew pane's `/checkpoint`/`/restore` for reviewing what agents changed.
+  crew pane's automatic checkpoints (`/restore` lists them) for reviewing what
+  agents changed.
 - **`/copy`** — copies the focused terminal pane's **full scrollback** to the
   system clipboard (Cmd+C copies only the visible screen); the line count is
   flashed on the input bar.
@@ -544,12 +545,13 @@ pill that clears at the live bottom. A fresh pane greets with the detected
 crew (names, roles) and an example `@agent` prompt.
 
 **Constructs.** Inside the pane, lines starting with `/` drive the broker
-itself (Tab completes both `@agents` and `/constructs`; one-letter **aliases**
-`/h /a /s /t /d /m /r` expand to help/agents/status/tasks/diff/model/reload,
+itself (Tab completes both `@agents` and slash constructs; one-letter **aliases**
+`/h /d /m /r` expand to help/diff/model/reload,
 and a typo gets a **did-you-mean** suggestion):
 
-- **`/help`** — list the constructs; **`/agents`** — the roster with each
-  agent's role and model; **`/status`** — the live task count, session
+- **`/help`** — list the constructs; bare **`/model`** — the roster with each
+  agent's role and model (also in the pane footer, along with the live task
+  count and session
   turn/token totals, the model pins, the sys-tool sandbox mode, and the token
   budget.
 - **`/model <agent> <model|default>`** — pin an agent to a model for the
@@ -567,21 +569,22 @@ and a typo gets a **did-you-mean** suggestion):
   the next round. Caps at 5 rounds.
 - **`/plan <task>`** — plan mode (à la Claude Code): an agent (prefix
   `@agent` to pick who) drafts a numbered plan and **nothing executes** until
-  **`/approve`** hands the approved plan to the relay; **`/reject`** discards
+  enter hands the approved plan to the relay; esc discards
   it. The draft survives on the session until one or the other.
-- **`/checkpoint [label]`** — Cline-style workspace snapshot: the working
+- **automatic checkpoints** — Cline-style workspace snapshot before every task
+  that can change files: the working
   tree (tracked + untracked, `.gitignore` respected) is committed through a
   temporary index and pinned under `refs/crew/` — HEAD, your index, and
   branches are never touched, and snapshots survive broker restarts.
-  **`/checkpoints`** lists them oldest-first; **`/restore <n>`** puts that
+  bare **`/restore`** lists them oldest-first; **`/restore <n>`** puts that
   snapshot's files back (files created after the snapshot are left in place).
-- **`/skills`** — list the loaded prompt playbooks; **`/skill <name> <task>`**
+- bare **`/skill`** — list the loaded prompt playbooks; **`/skill <name> <task>`**
   — run the relay with that playbook prepended to the task (see *Extending*
   below).
 - **`#<note>`** / **`/memory`** — standing **project memory** (à la Claude
   Code's `#` shortcut): `#always run tests with --workspace` appends the note
   to `./.crew/memory.md`, and from then on **every task** — plain sends,
-  `/fan`, `/loop`, `/goal`, `/skill`, `/approve` — carries the merged memory
+  `/fan`, `/loop`, `/goal`, `/skill` — carries the merged memory
   (user `~/.config/crew/memory.md` first, project second, 2 KB cap) as a
   STANDING MEMORY block the agents are told to follow. `/memory` shows what's
   loaded. Unlike skills, memory is always on; edit or delete the file to
@@ -592,7 +595,7 @@ and a typo gets a **did-you-mean** suggestion):
   and plugin manifests, forces MCP to re-read `mcp.json` and reconnect on
   next use, and re-emits the roster so the pane's badges update.
 - **`/diff`** — the working tree's `git diff --stat` inline in the
-  transcript; **`/cwd`** — the broker's working directory and sys-tool
+  transcript; **`/doctor`** — the broker's working directory and sys-tool
   sandbox mode.
 - **`/commit`** — an **AI-written commit message** (à la Aider): the coder
   agent reads the diff (staged wins; otherwise unstaged tracked changes,
@@ -629,17 +632,17 @@ and a typo gets a **did-you-mean** suggestion):
   where the last pane left off, even after a crash.
 - **`/export`** — write the pane's transcript to
   `crew-transcript-<stamp>.md` in the working directory (à la OpenCode),
-  one `## sender · time · latency` section per message. **`/compact`** folds
+  one `## sender · time · latency` section per message. The transcript folds
   older messages away when a long session gets heavy. Both — like `/theme`
   and `/exit` — are answered by the pane itself, so they work even while the
   broker is busy.
-- **`/tasks`** / **`/stop [#n]`** — long constructs run as **concurrent
+- **the footer** / **`/stop [#n]`** — long constructs run as **concurrent
   background tasks** (default cap 4, `CREW_MAX_TASKS`): submitting a second
   task doesn't wait for the first, every streamed reply is tagged with a dim
-  `#N` chip naming its task, `/tasks` lists what's running (`#id · label ·
+  `#N` chip naming its task, the pane footer lists what's running (`#id ·
   age`), and `/stop #n` cancels one task — bare `/stop` cancels them all —
   at its next checkpoint (between hops/rounds). Quick constructs and
-  `/status` answer immediately while tasks are in flight.
+  `/doctor` answer immediately while tasks are in flight.
 
 **Built-in sys tools.** Agents can touch the workspace without any MCP server:
 four bounded tools ride the same `@tool` surface — **`sys:run`** (one
@@ -649,8 +652,8 @@ linger), **`sys:read_file`** (UTF-8, 64 KB per call; a truncation note carries
 the byte `offset` to continue with, so agents read big files in chunks),
 **`sys:write_file`** (create/overwrite), and **`sys:list_dir`** (≤500 entries,
 sizes shown). `CREW_SYS_MODE=readonly` blocks the mutating pair (`run`,
-`write_file`), `CREW_SYS_TOOLS=0` turns the surface off entirely, and `/cwd`
-or `/status` show the active mode. An approximate per-thread **token budget**
+`write_file`), `CREW_SYS_TOOLS=0` turns the surface off entirely, and `/doctor`
+shows the active mode. An approximate per-thread **token budget**
 (`CREW_BROKER_TOKEN_BUDGET`, default unlimited) terminates a thread that blows
 past it.
 
@@ -676,7 +679,7 @@ hot-reload: skills and manifests are re-read from disk on every use, and
   8 KB are inlined whole, while an oversized playbook is framed as its
   description + heading outline + path, and agents pull the sections they
   need with chunked `sys:read_file` calls instead of drowning the prompt.
-  `/skills` lists them (origin, directory marker, and `N KB → outline` for
+  bare `/skill` lists them (origin, directory marker, and `N KB → outline` for
   the framed ones); `/skill <name> <task>` runs the normal relay with the
   playbook prepended, so every agent in the thread follows it.
 - **Plugin agents** join the roster from JSON manifests in

@@ -305,3 +305,95 @@ mod drift {
         }
     }
 }
+
+#[cfg(test)]
+mod doc_drift {
+    /// Construct names the user-facing docs may mention. Anything in a
+    /// `` `/name` `` code span has to be a construct the broker answers, a
+    /// command the app answers, or something on this list — paths and URLs
+    /// are not commands, and a doc that documents a deleted one is worse than
+    /// a doc that says nothing.
+    ///
+    /// Ten constructs went in one night and both README.md and docs/CREW.md
+    /// still described all ten the next morning. Prose drifts exactly like
+    /// the code lists did; it just has nobody to fail.
+    const DOCS: &[&str] = &["../../README.md", "../../docs/CREW.md"];
+
+    /// Words that mark a line as HISTORY rather than instruction. Docs
+    /// legitimately say "`/edit` and `/open` were dropped"; a guard that
+    /// cannot tell that from "use `/edit`" would force the prose to stop
+    /// explaining itself, which is a worse outcome than the drift.
+    const HISTORICAL: &[&str] = &[
+        "dropped",
+        "removed",
+        "no longer",
+        "gone",
+        "replaced",
+        "used to",
+    ];
+
+    fn documented_constructs(src: &str) -> Vec<String> {
+        let mut out = Vec::new();
+        // Line by line, so a historical mention excuses only its own line.
+        let src: String = src
+            .lines()
+            .filter(|l| {
+                let low = l.to_lowercase();
+                !HISTORICAL.iter().any(|w| low.contains(w))
+            })
+            .collect::<Vec<_>>()
+            .join("\n");
+        let bytes: Vec<char> = src.chars().collect();
+        let mut i = 0;
+        while i < bytes.len() {
+            // Only inside a backtick code span, and only `/name` at its start.
+            if bytes[i] == '`' {
+                let rest: String = bytes[i + 1..].iter().take(40).collect();
+                if let Some(after) = rest.strip_prefix('/') {
+                    let name: String = after
+                        .chars()
+                        .take_while(|c| c.is_ascii_lowercase())
+                        .collect();
+                    // A path continues past the name (`/skills/`), a command
+                    // is followed by a backtick, a space or an argument.
+                    let next = after.chars().nth(name.len());
+                    if !name.is_empty() && !matches!(next, Some('/') | Some('.')) {
+                        out.push(name);
+                    }
+                }
+            }
+            i += 1;
+        }
+        out.sort();
+        out.dedup();
+        out
+    }
+
+    #[test]
+    fn the_docs_do_not_describe_constructs_that_no_longer_exist() {
+        let app_local = ["export", "theme", "exit", "shell", "run", "crew"];
+        for rel in DOCS {
+            let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(rel);
+            let Ok(src) = std::fs::read_to_string(&path) else {
+                continue; // not shipped in every build context
+            };
+            for name in documented_constructs(&src) {
+                let slashed = format!("/{name}");
+                // An alias counts as answered when the router expands it to
+                // something that is — resolved through the router's own table
+                // rather than a copy of it here.
+                let expanded = crew_plugin::expand_alias(&slashed);
+                let bare = expanded.trim_start_matches('/');
+                let known = crew_plugin::broker_constructs().contains(&bare)
+                    || super::CONSTRUCTS.contains(&expanded.as_str())
+                    || crate::cmddefs::COMMANDS.iter().any(|c| c.name == expanded)
+                    || app_local.contains(&bare);
+                assert!(
+                    known,
+                    "{} documents `{slashed}`, which nothing answers",
+                    path.display()
+                );
+            }
+        }
+    }
+}

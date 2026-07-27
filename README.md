@@ -243,10 +243,10 @@ every agent **in parallel** (replies stream back fastest-first), `@a+b <task>`
 fans out to a subset, `/loop <n> <task>` iterates on the crew's own answer,
 `/goal <text>` keeps working until a judge agent rules the goal met, `/model
 <agent> <model>` pins agents to **different models side by side**, and
-`/status` reports live totals — with Tab completion for `@agents` and
-`/constructs` in the composer, one-letter aliases (`/s` → `/status`), and
+the footer reports live totals — with Tab completion for `@agent` names and
+slash constructs in the composer, one-letter aliases (`/m` → `/model`), and
 did-you-mean on typos. Long constructs run as **concurrent background tasks**
-(default cap 4): each reply is tagged with a dim `#N` task chip, `/tasks`
+(default cap 4): each reply is tagged with a dim `#N` task chip, the footer
 lists what's running, and `/stop [#n]` cancels one task or all of them.
 `@file` mentions in the composer fuzzy-complete against the project tree and
 splice the file's contents into the outgoing message.
@@ -255,15 +255,17 @@ Agents can also touch the workspace through built-in **sys tools** — bounded
 `sys:run` (non-interactive shell, 30s/64KB caps), `sys:read_file` (chunked
 64KB reads), `sys:write_file`, and `sys:list_dir` — callable mid-relay the
 same way as MCP tools. `CREW_SYS_MODE=readonly` blocks the mutating ones,
-`CREW_SYS_TOOLS=0` turns the surface off, and `/cwd` shows the working
+`CREW_SYS_TOOLS=0` turns the surface off, and `/doctor` shows the working
 directory and sandbox mode. An optional token budget
 (`CREW_BROKER_TOKEN_BUDGET`) hard-stops a runaway thread.
 
 It also borrows the flagship moves of the big coding agents: **plan mode**
-(`/plan <task>` drafts a numbered plan and nothing runs until `/approve`;
-`/reject` discards — à la Claude Code), **workspace checkpoints**
-(`/checkpoint [label]` snapshots the working tree as a hidden commit under
-`refs/crew/` without touching HEAD or your index, `/checkpoints` lists,
+(`/plan <task>` drafts a numbered plan and nothing runs until you approve it
+with enter;
+esc discards — à la Claude Code), **workspace checkpoints**
+(a checkpoint is taken automatically before every task that can change files,
+as a hidden commit under
+`refs/crew/` without touching HEAD or your index, bare `/restore` lists,
 `/restore <n>` brings a snapshot's files back — à la Cline),
 **transcript export** (`/export` writes the conversation to
 `crew-transcript-<stamp>.md` — à la OpenCode), **AI commit messages**
@@ -275,7 +277,7 @@ in a fresh pane folds the last session into the next task — à la Claude
 Code's `--continue`), **`/doctor`** (a ✓/✗ health check of the whole AI
 stack: provider key, agent CLIs, MCP, skills, memory — each failure names
 its fix), **`/standup [days]`** (an AI standup update from recent commits:
-done by theme, in progress, risks), and **`/compact`**, which
+done by theme, in progress, risks). The transcript folds itself, which
 folds older messages away when a long session gets heavy; `/diff` (in the
 pane or the input bar) completes the loop with Codex-style change review.
 
@@ -292,13 +294,13 @@ needed) — see [docs/CREW.md](docs/CREW.md#multi-agent-relay-crew):
   overrides user). A skill can also be a **directory with a `SKILL.md`** plus
   supporting files, and oversized playbooks disclose **progressively**: past
   8 KB the relay gets the description + heading outline + path, and agents
-  read sections on demand with chunked `sys:read_file` calls. `/skills` lists
+  read sections on demand with chunked `sys:read_file` calls. Bare `/skill` lists
   them; `/skill <name> <task>` runs the relay with the playbook prepended so
   the whole crew follows it.
 - **Plugin agents** — a JSON manifest in `~/.config/crew/agents/` or
   `./.crew/agents/` (`{"name", "command", "args": […, "{}"], "role"}`) turns
   any headless CLI into a roster agent; installed manifests appear in
-  `/agents` and make `/crew` usable with **no API key at all**.
+  the roster and make `/crew` usable with **no API key at all**.
 - **MCP** — servers declared in `~/.config/crew/mcp.json` or `./.crew/mcp.json`
   (the standard `mcpServers` schema) connect lazily over stdio; `/mcp` lists
   their tools, relay prompts advertise them, and agents call one by ending a
