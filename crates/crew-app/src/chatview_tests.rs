@@ -232,6 +232,10 @@ fn link_after_wide_glyphs_resolves_at_its_display_column() {
     let pane = test_pane(vec![msg("user", "中文 [k](https://x.io/p)")]);
     let (cols, rows) = (40u16, 20u16);
     let cells_out = cells(&pane, cols, rows);
+    assert!(
+        !cells_out.is_empty(),
+        "the pane drew nothing, so absence proves nothing"
+    );
     let k = cells_out
         .iter()
         .find(|c| c.c == 'k')

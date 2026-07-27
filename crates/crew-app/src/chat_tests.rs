@@ -1553,3 +1553,79 @@ fn nothing_typed_and_nothing_matching_suggest_nothing() {
     p.on_input(ChatInput::Complete, &cwd);
     assert_eq!(p.input, "zzz");
 }
+
+/// Esc means stop. Left alone it stopped one run and immediately started
+/// every follow-up queued behind it — cancelling is exactly what makes the
+/// pane idle, which is exactly what flushes the queue.
+#[test]
+fn interrupting_drops_what_was_queued_behind_the_run() {
+    use crate::chatkeys::ChatInput;
+
+    let mut p = pane();
+    let cwd = std::env::temp_dir();
+    p.connected = true;
+    p.absorb_activity("planner".into(), "thinking", "user".into());
+    assert!(p.is_busy());
+
+    // Two follow-ups typed while it worked: queued, not sent.
+    for text in ["and then deploy it", "then tag a release"] {
+        for c in text.chars() {
+            p.on_input(ChatInput::Char(c), &cwd);
+        }
+        p.on_input(ChatInput::Enter, &cwd);
+    }
+    assert_eq!(p.queued.len(), 2, "the follow-ups should have queued");
+
+    p.on_input(ChatInput::Close, &cwd);
+    assert!(p.queued.is_empty(), "queued work survived the interrupt");
+    // …and says so, because two things the user typed just stopped existing.
+    let note = &p.messages.last().expect("a note").text;
+    assert!(note.contains("dropped 2 queued messages"), "{note}");
+}
+
+/// A second Esc has nothing left to drop, so it writes the plain note — which
+/// is deduped against the one already there, exactly as before.
+#[test]
+fn a_second_interrupt_with_an_empty_queue_says_the_plain_thing_once() {
+    use crate::chatkeys::ChatInput;
+
+    let mut p = pane();
+    let cwd = std::env::temp_dir();
+    p.connected = true;
+    p.absorb_activity("planner".into(), "thinking", "user".into());
+    for c in "one more thing".chars() {
+        p.on_input(ChatInput::Char(c), &cwd);
+    }
+    p.on_input(ChatInput::Enter, &cwd);
+
+    p.on_input(ChatInput::Close, &cwd);
+    let first = p.messages.len();
+    assert!(p
+        .messages
+        .last()
+        .unwrap()
+        .text
+        .contains("dropped 1 queued message"));
+
+    p.on_input(ChatInput::Close, &cwd);
+    assert_eq!(p.messages.len(), first + 1, "the plain note is a new note");
+    p.on_input(ChatInput::Close, &cwd);
+    assert_eq!(p.messages.len(), first + 1, "…and then deduped");
+}
+
+/// Nothing queued, nothing said about it — the note is unchanged for the
+/// ordinary interrupt.
+#[test]
+fn interrupting_with_an_empty_queue_reads_exactly_as_it_did() {
+    use crate::chatkeys::ChatInput;
+
+    let mut p = pane();
+    p.connected = true;
+    p.absorb_activity("planner".into(), "thinking", "user".into());
+    p.on_input(ChatInput::Close, &std::env::temp_dir());
+    let note = &p.messages.last().unwrap().text;
+    assert!(
+        note.contains("interrupting") && !note.contains("dropped"),
+        "{note}"
+    );
+}

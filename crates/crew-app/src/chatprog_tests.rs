@@ -149,7 +149,12 @@ fn the_bar_no_longer_draws_a_count_label() {
     // The `2/5` lives on the status line above; the bar is blocks only, so the
     // two surfaces never print the same number twice.
     let p = pane_with_swarm(4);
-    let t = text(&bar_cells(&p, COLS, 5, 0));
+    let bc = bar_cells(&p, COLS, 5, 0);
+    assert!(
+        !bc.is_empty(),
+        "the bar drew nothing, so absence proves nothing"
+    );
+    let t = text(&bc);
     assert!(!t.contains('/'), "{t}");
 }
 

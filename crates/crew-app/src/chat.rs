@@ -411,10 +411,28 @@ impl ChatPane {
         // Literal "/stop", not `chatmention::expand` — there's nothing to
         // expand in a fixed cancel token, so this stays allocation-free.
         self.send_now("/stop".to_string());
+        // Anything typed while the crew was busy is waiting to be sent the
+        // moment it goes idle — which cancelling is precisely what makes it
+        // do. Left alone, Esc would STOP one run and immediately START every
+        // follow-up queued behind it, each written on the premise that the
+        // interrupted work was going fine.
+        let dropped = self.queued.len();
+        self.queued.clear();
+        let note = match dropped {
+            0 => Self::INTERRUPT_NOTE.to_string(),
+            n => format!(
+                "{} \u{2014} dropped {n} queued message{}",
+                Self::INTERRUPT_NOTE,
+                if n == 1 { "" } else { "s" }
+            ),
+        };
+        // Deduped against the note ABOUT to be pushed, not a fixed string: a
+        // second Esc has nothing left to drop and so writes the plain note,
+        // which is the one already sitting there.
         let already_noted = self
             .messages
             .last()
-            .is_some_and(|m| m.sender == "agent smith" && m.text == Self::INTERRUPT_NOTE);
+            .is_some_and(|m| m.sender == "agent smith" && m.text == note);
         if already_noted {
             return;
         }
@@ -423,7 +441,7 @@ impl ChatPane {
         }
         self.push_capped(Message {
             sender: "agent smith".into(),
-            text: Self::INTERRUPT_NOTE.into(),
+            text: note,
             ts: String::new(),
             meta: String::new(),
         });

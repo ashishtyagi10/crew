@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.6.88
+
+- Interrupting also drops what you queued behind the run. Esc stopped the
+  agent, which made the pane idle, which is exactly what flushes the queue —
+  so a stop immediately started every follow-up waiting behind it, each one
+  written on the premise that the interrupted work was going fine. It says how
+  many it dropped.
+- Three tests that assert something is absent from a rendered pane now check
+  the pane rendered at all first. None of them were passing vacuously; the
+  guard is so that they cannot start to.
+
 ## 0.6.87
 
 - A pane opened in a project you have worked in before says so, and names
