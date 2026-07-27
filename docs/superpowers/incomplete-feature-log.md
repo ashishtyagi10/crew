@@ -9,6 +9,32 @@ is not an empty hunt; see the playbook's six lenses.
 
 ---
 
+## Iteration 5 — 2026-07-27 18:02 EDT — RELEASED v0.6.98
+- Gap: six `CREW_*` knobs the shipped source reads appear in no doc —
+  `CREW_HTTP_TIMEOUT_MS`, `CREW_STREAM_TEXT`, `CREW_BROKER_PLUGIN`,
+  `CREW_CHAT_PLUGIN`, `CREW_ORCHESTRATOR_PLUGIN`, `CREW_PANE`. Missing leg:
+  **docs**. Also **inverse-docs**: `CREW_SYS_TIMEOUT_MS` is documented in two
+  places with two different defaults, the stale one still claiming 30000 after
+  this session's own first commit made it 120000.
+- Evidence: every `CREW_*` token in `crates/*/src` diffed against README +
+  CREW.md; 15 unmatched, 9 of them genuinely internal.
+- Fix: documented the six (the plugin overrides as one paragraph about pointing
+  a pane at a debug build while the app stays on the release), corrected the
+  stale default. [docs/CREW.md]
+- Class closed: `every_env_knob_is_documented_or_declared_internal` walks the
+  crates' `src/` trees, extracts every `CREW_*` name, and requires each to be in
+  the docs or in a declared `NOT_USER_FACING` list. Verified it has teeth by
+  removing one declaration and watching it go red. The declared list is the
+  point — it makes "internal seam" a decision rather than an oversight, the same
+  idiom as `SENT_BY_THE_PANE`.
+- Docs: `docs/CREW.md` tuning paragraph + new plugin-override paragraph,
+  `CHANGELOG.md` 0.6.98.
+- Gate: fmt ok · clippy clean · tests 2033 pass, 0 failures
+- Release: v0.6.98
+- Candidates found, not fixed: doc anchor validation; `osc7.rs:170`'s test-only
+  helper marked `#[allow(dead_code)]` instead of `#[cfg(test)]`; commands that
+  report success on a no-op (the `/export` shape) are not systematically checked.
+
 ## Iteration 4 — 2026-07-27 17:41 EDT — RELEASED v0.6.97
 - Gap: `/export` wrote a transcript file even with zero messages, and reported
   success. Missing leg: **error-path stub** — the empty case was never

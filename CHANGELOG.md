@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.6.98
+
+- Six environment knobs the code has always read are now in the manual:
+  `CREW_HTTP_TIMEOUT_MS` and `CREW_STREAM_TEXT`, the three plugin-path
+  overrides (`CREW_BROKER_PLUGIN`, `CREW_CHAT_PLUGIN`,
+  `CREW_ORCHESTRATOR_PLUGIN`) that let one pane run a debug build while the
+  rest of the app stays on the installed release, and `CREW_PANE`.
+- `CREW_SYS_TIMEOUT_MS` was documented twice with two different defaults. The
+  stale copy said 30000; it is 120000.
+- Every `CREW_*` name in the shipped source is now either documented or
+  declared internal in one list, so a new knob cannot arrive unmentioned.
+
 ## 0.6.97
 
 - `/export` on a pane with no messages no longer writes a file. It reported

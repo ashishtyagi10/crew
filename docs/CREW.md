@@ -784,9 +784,25 @@ approximate token spend; `CREW_BROKER_TIMEOUT_MS` (default 180000) bounds each
 agent call; `CREW_MCP_TIMEOUT_MS` (default 30000) bounds each MCP request;
 `CREW_MAX_TASKS` (default 4) caps concurrent background tasks;
 `CREW_SYS_TOOLS=0` / `CREW_SYS_MODE=readonly` disable or sandbox the built-in
-sys tools; `CREW_SYS_TIMEOUT_MS` (default 30000) bounds each `sys:run`. The pane also prints a per-turn timeline + cost summary (`turn done
+sys tools; `CREW_SYS_TIMEOUT_MS` (default 120000) bounds each `sys:run`;
+`CREW_HTTP_TIMEOUT_MS` (default 120000) bounds each HTTP attempt to a provider,
+deliberately under `CREW_BROKER_TIMEOUT_MS` so a stalled endpoint names the
+transport and still leaves the model fallback chain a turn;
+`CREW_STREAM_TEXT=0` stops streamed text being forwarded at all, restoring the
+pre-streaming behaviour for a regressed run or a deterministic test. The pane also prints a per-turn timeline + cost summary (`turn done
 — planner 4.2s → … · N exchange(s) · ~X tok (approx)`) at the end of every
 task, and accumulates the spend into the header's `~N tok` meter.
+
+**Pointing a pane at a different binary.** Each plugin-backed pane runs a child
+process, and each resolves its command the same way: an environment override
+first, then a sibling of the running executable. `CREW_BROKER_PLUGIN` replaces
+the `/smith` broker — which by default is **this** binary re-invoked with
+`--broker-plugin`, so `/smith` works wherever Crew is installed with no second
+binary to ship. `CREW_CHAT_PLUGIN` and `CREW_ORCHESTRATOR_PLUGIN` do the same
+for the echo and orchestrator plugins. Point one at a debug build to run a
+pane against uncommitted work while the rest of the app stays on the installed
+release. `CREW_PANE` names the sending pane in an inter-pane `crew ask`
+message (default `an agent`); Crew sets it for panes it spawns.
 
 ## Swarm orchestration (`crew-hive`)
 
