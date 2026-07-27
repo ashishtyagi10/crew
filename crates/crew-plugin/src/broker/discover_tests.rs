@@ -325,3 +325,67 @@ fn nothing_anywhere_resolves_to_nothing() {
     assert_eq!(resolve_key_with(None, None, true), None);
     assert_eq!(resolve_key_with(Some(String::new()), None, false), None);
 }
+
+/// A table provider is discovered from its own key — but LAST, so adding a
+/// row can never change which provider an existing install resolves to.
+#[test]
+fn a_direct_provider_is_found_by_its_key_but_never_outranks_the_originals() {
+    let openai = super::direct_by_name("openai").expect("openai row");
+    let only_openai = |k: &str| k == "OPENAI_API_KEY";
+    assert_eq!(
+        pick_provider(None, only_openai),
+        Some(ProviderKind::Direct(openai))
+    );
+    // With an older key alongside it, the older key still wins.
+    let both = |k: &str| k == "OPENAI_API_KEY" || k == "DASHSCOPE_API_KEY";
+    assert_eq!(pick_provider(None, both), Some(ProviderKind::DashScope));
+}
+
+/// `CREW_PROVIDER=openai` pins it, exactly as the three original names do.
+#[test]
+fn a_direct_provider_can_be_forced_by_name() {
+    let openai = super::direct_by_name("openai").expect("openai row");
+    assert_eq!(
+        pick_provider(Some("openai"), |_| false),
+        Some(ProviderKind::Direct(openai))
+    );
+    assert_eq!(pick_provider(Some("nope"), |_| false), None);
+}
+
+/// Every table row must be storable, or its key popup could never save one.
+#[test]
+fn every_table_row_is_a_known_credential_variable() {
+    for d in super::DIRECT {
+        assert!(
+            crate::credentials::VARS.contains(&d.var),
+            "{} is not in credentials::VARS",
+            d.var
+        );
+        assert_eq!(
+            crate::credentials::provider_for(d.var),
+            Some(d.name),
+            "storing {} must pin {}",
+            d.var,
+            d.name
+        );
+    }
+}
+
+/// The user-facing name. `/doctor` printed `direct(direct(openai))` when this
+/// came from the `Debug` spelling — a nested variant is a fine debug string
+/// and a terrible report line.
+#[test]
+fn provider_names_read_as_names() {
+    assert_eq!(ProviderKind::OpenRouter.name(), "openrouter");
+    assert_eq!(ProviderKind::Anthropic.name(), "anthropic");
+    let openai = super::direct_by_name("openai").expect("openai row");
+    assert_eq!(ProviderKind::Direct(openai).name(), "openai");
+    // The name must round-trip through `CREW_PROVIDER`, or a report would
+    // print something the user cannot type back.
+    for d in super::DIRECT {
+        assert_eq!(
+            pick_provider(Some(d.name), |_| false),
+            Some(ProviderKind::Direct(d))
+        );
+    }
+}

@@ -173,7 +173,7 @@ pub(crate) fn gather(session: &super::session::Session) -> DoctorInputs {
     DoctorInputs {
         // The same resolution the roster is built from, so `/doctor` reports a
         // stored key's provider rather than only an exported one's.
-        provider: super::discover::resolved_provider().map(|p| format!("{p:?}").to_lowercase()),
+        provider: super::discover::resolved_provider().map(|p| p.name().to_string()),
         clis: ["claude", "codex", "opencode"]
             .iter()
             .map(|b| (b.to_string(), on_path(b, &path)))

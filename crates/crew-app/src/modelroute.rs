@@ -84,6 +84,10 @@ pub(crate) fn route_for(m: &ModelInfo, provider: Option<Provider>, probed: bool)
         Provider::Mock => Route::Mock,
         Provider::Anthropic if m.vendor == Vendor::Anthropic => Route::Direct("anthropic"),
         Provider::DashScope if m.vendor == Vendor::Alibaba => Route::Direct("dashscope"),
+        // A table provider serves its own vendor natively — that is the whole
+        // point of it existing, and why an OpenAI row no longer asks for an
+        // OpenRouter key when the user holds an OpenAI one.
+        Provider::Direct(d) if m.vendor == d.vendor => Route::Direct(d.name),
         // A native slug already in `vendor/model` form IS an OpenRouter id
         // (OpenRouter routes by that shape), even with no separate `or_slug`.
         Provider::OpenRouter if m.or_slug.is_some() || m.slug.contains('/') => Route::ViaOpenRouter,
@@ -93,10 +97,10 @@ pub(crate) fn route_for(m: &ModelInfo, provider: Option<Provider>, probed: bool)
 }
 
 /// The key that would make a row of this vendor serveable when NO provider is
-/// configured at all. Only two vendors have a direct provider in crew
-/// (`pick_provider`): Anthropic and Alibaba/DashScope. Every other vendor is
-/// reachable only through OpenRouter, so `OPENROUTER_API_KEY` is the honest
-/// answer for them — including `Vendor::OpenRouter` itself.
+/// configured at all: the vendor's own, when crew can reach that vendor
+/// directly (Anthropic, Alibaba/DashScope, and every row of the provider
+/// table), and `OPENROUTER_API_KEY` for the vendors OpenRouter really is the
+/// only route to — including `Vendor::OpenRouter` itself.
 ///
 /// This is the ONLY producer of a key name in the no-provider case, and every
 /// name it returns is in `credentials::VARS`, so `needs_key` accepts all three
@@ -105,7 +109,13 @@ fn vendor_key(v: Vendor) -> &'static str {
     match v {
         Vendor::Anthropic => "ANTHROPIC_API_KEY",
         Vendor::Alibaba => "DASHSCOPE_API_KEY",
-        _ => "OPENROUTER_API_KEY",
+        // Ask for the vendor's OWN key when crew can talk to that vendor
+        // directly; OpenRouter remains the honest answer only for vendors it
+        // is genuinely the only route to.
+        other => crew_plugin::DIRECT
+            .iter()
+            .find(|d| d.vendor == other)
+            .map_or("OPENROUTER_API_KEY", |d| d.var),
     }
 }
 
