@@ -15,6 +15,13 @@ use sha2::{Digest, Sha256};
 const AUTHORIZE_URL: &str = "https://openrouter.ai/auth";
 const EXCHANGE_URL: &str = "https://openrouter.ai/api/v1/auth/keys";
 
+/// Cap on the code-for-key exchange itself. The flow's own 3-minute wait in
+/// `crew-app` covers the HUMAN approving in the browser; this covers the
+/// SERVER — without it, a hung OpenRouter response would pin the worker
+/// thread that made this call forever, leaving "waiting for browser" on
+/// screen with no way out.
+const EXCHANGE_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+
 /// A PKCE pair. `verifier` NEVER leaves this process; only `challenge` is put
 /// in a URL — that asymmetry is the whole point of PKCE, since an attacker who
 /// intercepts the redirect still cannot redeem the code.
@@ -94,11 +101,10 @@ pub async fn exchange_openrouter_code(code: &str, verifier: &str) -> anyhow::Res
         "code_verifier": verifier,
         "code_challenge_method": "S256",
     });
-    let resp = reqwest::Client::new()
-        .post(EXCHANGE_URL)
-        .json(&body)
-        .send()
-        .await?;
+    let client = reqwest::Client::builder()
+        .timeout(EXCHANGE_TIMEOUT)
+        .build()?;
+    let resp = client.post(EXCHANGE_URL).json(&body).send().await?;
     let status = resp.status();
     if !status.is_success() {
         anyhow::bail!("openrouter returned {status}");

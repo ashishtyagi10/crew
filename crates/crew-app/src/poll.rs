@@ -51,6 +51,31 @@ impl CrewApp {
             }
         }
 
+        // OpenRouter browser sign-in: poll only the FOCUSED pane's receiver —
+        // the prompt is modal to its pane, and a background pane cannot have
+        // started a flow. `try_recv` on a `None` handle is a cheap no-op.
+        let mut oauth_landed = false;
+        if let Some(PaneContent::Chat(pane)) =
+            self.panes.get_mut(self.focused).map(|p| &mut p.content)
+        {
+            if let Some(outcome) = pane.oauth.as_ref().and_then(|rx| rx.try_recv().ok()) {
+                match outcome {
+                    crate::oauth::OauthOutcome::Key(key) => {
+                        crate::chatkeystore::store_provider_key(pane, "OPENROUTER_API_KEY", &key);
+                        pane.keyentry = None;
+                    }
+                    crate::oauth::OauthOutcome::Failed(why) => {
+                        pane.push_note(format!("openrouter sign-in failed: {why}"));
+                        if let Some(e) = pane.keyentry.as_mut() {
+                            e.set_waiting(false);
+                        }
+                    }
+                }
+                pane.oauth = None;
+                oauth_landed = true;
+            }
+        }
+
         // Random theme mode: rotate on its 10-minute clock. Cheap + lock-free.
         // Seeds `any_changed` so a rotation repaints every pane in the new theme.
         // A rotation changes the active theme app-wide, so re-apply the themeable
@@ -76,7 +101,7 @@ impl CrewApp {
         // Drain EVERY pane each tick. A `for` loop (not `any()`/`fold`) so all
         // panes are polled for their side effects — `any()` would short-circuit
         // and starve later panes when an earlier one has output.
-        let mut any_changed = rotated || model_fetch_landed;
+        let mut any_changed = rotated || model_fetch_landed || oauth_landed;
         // Set when any pane still has buffered PTY output past this tick's read
         // budget. We then keep the loop hot (ControlFlow::Poll) so a flood drains
         // quickly across ticks instead of trickling one budget per 16 ms — while

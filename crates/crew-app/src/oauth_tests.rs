@@ -50,3 +50,37 @@ fn extra_parameters_around_the_code_do_not_confuse_it() {
         other => panic!("expected a code, got {other:?}"),
     }
 }
+
+#[test]
+fn the_listener_returns_the_code_from_a_matching_request() {
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let h = std::thread::spawn(move || await_callback(listener, "n0nce", TEST_TIMEOUT));
+    // A wrong-nonce request must not end the wait...
+    let _ = ureq_like_get(port, "/wrong?code=nope");
+    let _ = ureq_like_get(port, "/n0nce?code=the-code");
+    assert_eq!(h.join().unwrap(), Callback::Code("the-code".into()));
+}
+
+#[test]
+fn the_listener_gives_up_rather_than_waiting_forever() {
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let started = std::time::Instant::now();
+    let got = await_callback(listener, "n0nce", std::time::Duration::from_millis(300));
+    assert!(matches!(got, Callback::Ignore), "{got:?}");
+    assert!(
+        started.elapsed() < std::time::Duration::from_secs(5),
+        "did not time out"
+    );
+}
+
+const TEST_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
+
+/// Minimal HTTP GET over a raw socket — the app has no HTTP client and this
+/// test needs no dependency to make one request.
+fn ureq_like_get(port: u16, target: &str) -> std::io::Result<()> {
+    use std::io::Write;
+    let mut s = std::net::TcpStream::connect(("127.0.0.1", port))?;
+    write!(s, "GET {target} HTTP/1.1\r\nHost: localhost\r\n\r\n")?;
+    Ok(())
+}

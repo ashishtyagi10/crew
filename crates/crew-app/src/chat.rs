@@ -57,6 +57,9 @@ pub struct ChatPane {
     /// Modal: it takes every key before the palette, the mention popup and the
     /// pane's own handling.
     pub(crate) keyentry: Option<crate::keyentry::KeyEntry>,
+    /// An in-flight OpenRouter browser sign-in (see `oauth`). Dropped when the
+    /// prompt closes, which is what cancels the worker thread.
+    pub(crate) oauth: Option<std::sync::mpsc::Receiver<crate::oauth::OauthOutcome>>,
     /// When true, show raw message text instead of markdown rendering.
     /// Toggled with Ctrl+Shift+M; not persisted.
     pub(crate) show_source: bool,
@@ -117,6 +120,7 @@ impl ChatPane {
             mention: None,
             palette: None,
             keyentry: None,
+            oauth: None,
             show_source: false,
             compact_view: false,
             swarm: None,
@@ -367,11 +371,13 @@ impl ChatPane {
                 crate::keyentry::KeyOutcome::Consumed => return None,
                 crate::keyentry::KeyOutcome::Cancelled => {
                     self.keyentry = None;
+                    self.oauth = None;
                     return None;
                 }
                 crate::keyentry::KeyOutcome::Submit(value) => {
                     let var = entry.var.clone();
                     self.keyentry = None;
+                    self.oauth = None;
                     crate::chatkeystore::store_provider_key(self, &var, &value);
                     return None;
                 }
@@ -398,7 +404,15 @@ impl ChatPane {
             crate::chatpalette::PaletteKey::Submit => return self.on_input(ChatInput::Enter, cwd),
             crate::chatpalette::PaletteKey::Forward => {}
             crate::chatpalette::PaletteKey::NeedsKey(var) => {
-                self.keyentry = Some(crate::keyentry::KeyEntry::new(var));
+                let mut entry = crate::keyentry::KeyEntry::new(var.clone());
+                if var == "OPENROUTER_API_KEY" {
+                    // OpenRouter is the one provider with a real third-party
+                    // OAuth flow. The paste prompt still opens underneath, so
+                    // a failed browser launch is never a dead end.
+                    self.oauth = crate::oauth::spawn();
+                    entry.set_waiting(self.oauth.is_some());
+                }
+                self.keyentry = Some(entry);
                 return None;
             }
         }

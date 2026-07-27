@@ -24,7 +24,7 @@ pub(crate) fn store_provider_key(pane: &mut ChatPane, var: &str, value: &str) {
 /// resolving the real path internally, precisely so a caller like this one
 /// can be exercised without writing to the user's real credentials file or
 /// mutating the process-global `CREW_CREDENTIALS_PATH`. Never logs `value`.
-fn store_provider_key_at(pane: &mut ChatPane, path: &Path, var: &str, value: &str) {
+pub(crate) fn store_provider_key_at(pane: &mut ChatPane, path: &Path, var: &str, value: &str) {
     let provider = crew_plugin::credentials::provider_for(var);
     let line = match crew_plugin::credentials::save_key_at(path, var, value, provider) {
         Ok(()) => {

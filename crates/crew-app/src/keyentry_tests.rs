@@ -114,6 +114,34 @@ fn a_long_key_never_overflows_the_card() {
 }
 
 #[test]
+fn a_waiting_prompt_says_so_and_still_masks_what_is_typed() {
+    let mut e = KeyEntry::new("OPENROUTER_API_KEY".into());
+    e.set_waiting(true);
+    let drawn: String = e.card(60).iter().map(|c| c.c).collect();
+    assert!(drawn.contains("waiting for browser"), "{drawn}");
+    // Typing must still work — the browser may never have opened.
+    typed(&mut e, "sk-typed");
+    let cells = e.card(60);
+    let interior: String = cells.iter().filter(|c| c.row == 1).map(|c| c.c).collect();
+    for ch in "sk-typed".chars() {
+        assert!(
+            !interior.contains(ch),
+            "character {ch:?} reached the screen"
+        );
+    }
+}
+
+#[test]
+fn typing_clears_the_waiting_state() {
+    // Once the user starts pasting, the card should stop claiming to wait.
+    let mut e = KeyEntry::new("OPENROUTER_API_KEY".into());
+    e.set_waiting(true);
+    typed(&mut e, "s");
+    let drawn: String = e.card(60).iter().map(|c| c.c).collect();
+    assert!(!drawn.contains("waiting for browser"), "{drawn}");
+}
+
+#[test]
 fn a_narrow_card_keeps_the_variable_name_over_the_word_paste() {
     // `titled_card` silently clips its legend at `cols - 2`, head-first — so
     // without `fit_legend`'s tail-preserving truncation, a narrow pane would

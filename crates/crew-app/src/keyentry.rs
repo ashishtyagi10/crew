@@ -13,8 +13,8 @@ use crew_render::CellView;
 
 use crate::chatkeys::ChatInput;
 
-/// Total height: top border, one input row, bottom border.
-pub(crate) const ROWS: u16 = 3;
+/// Total height: top border, input row, waiting-hint row, bottom border.
+pub(crate) const ROWS: u16 = 4;
 
 /// What one key did to the prompt.
 pub(crate) enum KeyOutcome {
@@ -32,6 +32,10 @@ pub(crate) struct KeyEntry {
     /// buffer is not.
     pub(crate) var: String,
     buf: String,
+    /// A browser sign-in is in flight for this prompt (OpenRouter only).
+    /// Cleared the moment the user types, since that means they are pasting
+    /// instead of waiting on the browser.
+    waiting: bool,
 }
 
 impl KeyEntry {
@@ -39,7 +43,14 @@ impl KeyEntry {
         Self {
             var,
             buf: String::new(),
+            waiting: false,
         }
+    }
+
+    /// Show that a browser sign-in is in flight. Cleared as soon as the user
+    /// types, since that means they are pasting instead.
+    pub(crate) fn set_waiting(&mut self, waiting: bool) {
+        self.waiting = waiting;
     }
 
     /// Route one key. Enter submits a non-blank buffer, Escape cancels,
@@ -54,6 +65,7 @@ impl KeyEntry {
         match k {
             ChatInput::Char(c) => {
                 self.buf.push(*c);
+                self.waiting = false;
                 KeyOutcome::Consumed
             }
             ChatInput::Backspace => {
@@ -125,6 +137,20 @@ impl KeyEntry {
                 bold: false,
                 italic: false,
             });
+        }
+        if self.waiting {
+            let hint = "waiting for browser · or paste the key";
+            for (i, ch) in hint.chars().take(inner).enumerate() {
+                cells.push(CellView {
+                    col: 1 + i as u16,
+                    row: 2,
+                    c: ch,
+                    fg: t.text_muted,
+                    bg: t.page_bg,
+                    bold: false,
+                    italic: false,
+                });
+            }
         }
         cells
     }

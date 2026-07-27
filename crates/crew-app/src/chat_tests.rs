@@ -1209,3 +1209,39 @@ fn the_prompt_swallows_keys_meant_for_the_composer() {
     assert_eq!(p.input, before, "a typed key must not reach the composer");
     assert!(p.keyentry.is_some(), "the prompt stays open");
 }
+
+#[test]
+fn an_oauth_key_is_stored_through_the_same_path_as_a_typed_one() {
+    // One save path for both entry methods, or pinning and re-resolution
+    // could diverge between them.
+    let mut p = pane();
+    let dir = std::env::temp_dir().join(format!("crew-oauth-store-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    let store = dir.join("credentials.json");
+    crate::chatkeystore::store_provider_key_at(
+        &mut p,
+        &store,
+        "OPENROUTER_API_KEY",
+        "sk-test-not-a-real-key",
+    );
+    let loaded = crew_plugin::credentials::load_from(&store);
+    assert_eq!(
+        loaded.keys.get("OPENROUTER_API_KEY").map(String::as_str),
+        Some("sk-test-not-a-real-key")
+    );
+    assert_eq!(loaded.provider.as_deref(), Some("openrouter"));
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn escaping_the_prompt_cancels_an_in_flight_sign_in() {
+    // Dropping the receiver is what makes the worker thread's send fail and
+    // exit, so a cancelled flow must not leave it set.
+    let mut p = pane();
+    p.keyentry = Some(crate::keyentry::KeyEntry::new("OPENROUTER_API_KEY".into()));
+    let (_tx, rx) = std::sync::mpsc::channel();
+    p.oauth = Some(rx);
+    p.on_input(ChatInput::Close, std::path::Path::new("."));
+    assert!(p.keyentry.is_none(), "escape closes the prompt");
+    assert!(p.oauth.is_none(), "escape cancels the sign-in");
+}
