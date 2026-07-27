@@ -179,3 +179,22 @@ fn startup_banner_is_the_art_alone_unless_no_provider_resolves() {
         "no roster dump under the art: {banner}"
     );
 }
+
+/// With nobody on the roster there is no one to relay to, so the keyless path
+/// must stay exactly as it was — the offline stub swarm, which is what
+/// `e2e_discovery::no_key_runs_offline_stub_swarm` proves end to end.
+#[test]
+fn an_empty_roster_has_no_starter() {
+    assert_eq!(first_starter(vec![]), None);
+}
+
+/// First registered leads. `roster_with` puts manifest agents ahead of the
+/// built-in CLIs, so this is the seam that lets a user's own declaration take
+/// the lead on a keyless machine.
+#[test]
+fn the_first_registered_agent_leads() {
+    let names = vec!["claude".to_string(), "codex".into(), "opencode".into()];
+    assert_eq!(first_starter(names), Some("claude".to_string()));
+    let mine = vec!["my-agent".to_string(), "claude".into()];
+    assert_eq!(first_starter(mine), Some("my-agent".to_string()));
+}
