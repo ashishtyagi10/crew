@@ -86,7 +86,10 @@ pub(crate) fn plan_cmd(
     emit(PluginEvent::Plan { pending: true })?;
     emit(msg(
         "agent smith",
-        "plan ready \u{2014} enter runs it, esc discards it",
+        // Both forms: the crew pane binds the keys, but the broker is driven
+        // over stdio by hosts that have no keyboard at all, and telling those
+        // to "press enter" is telling them nothing.
+        "plan ready \u{2014} enter runs it, esc discards it (or /approve, /reject)",
     ))
 }
 

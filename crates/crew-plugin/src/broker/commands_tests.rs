@@ -294,3 +294,44 @@ fn unknown_construct_suggests_the_closest_match() {
     let t = text_of(&evs[0]);
     assert!(t.contains("did you mean /doctor"), "{t}");
 }
+
+/// `/help` is the THIRD copy of the construct list — the router's `CONSTRUCTS`
+/// and the host's palette are the other two — and it is the only one a
+/// stdio host ever sees. A construct missing from it is invisible to anyone
+/// driving the broker without a palette, which is exactly how `/reload`
+/// stayed hidden for eleven releases on the host side.
+#[test]
+fn help_documents_every_construct_the_router_answers() {
+    let help = super::HELP;
+    for c in super::broker_constructs() {
+        assert!(
+            help.contains(&format!("/{c}")),
+            "/{c} routes but /help never mentions it"
+        );
+    }
+}
+
+/// …and does not advertise one that no longer routes. Every `/name` in the
+/// help text must be answerable, ignoring the aliases line.
+#[test]
+fn help_advertises_nothing_that_routes_nowhere() {
+    for line in super::HELP.lines() {
+        if line.trim_start().starts_with("aliases:") {
+            continue;
+        }
+        let Some(rest) = line.trim_start().strip_prefix('/') else {
+            continue;
+        };
+        let name: String = rest
+            .chars()
+            .take_while(|c| c.is_ascii_alphanumeric())
+            .collect();
+        if name.is_empty() {
+            continue;
+        }
+        assert!(
+            super::broker_constructs().contains(&name.as_str()),
+            "/help advertises /{name}, which routes nowhere"
+        );
+    }
+}
