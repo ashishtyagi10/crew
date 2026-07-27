@@ -1,12 +1,6 @@
 use super::*;
 use std::sync::{Arc, Mutex};
 
-/// Serialises the two `hop_texter` tests below against each other's
-/// `CREW_STREAM_TEXT` mutation — the var is process-global and Rust runs
-/// tests in parallel, so a bare `set_var`/`remove_var` would race any test
-/// that reads it concurrently. Mirrors `crew-app::envlock::with_home`.
-static STREAM_TEXT_LOCK: Mutex<()> = Mutex::new(());
-
 type TickEmit = Arc<dyn Fn(PluginEvent) + Send + Sync>;
 
 #[test]
@@ -70,18 +64,9 @@ fn recording_tick_emit() -> (TickEmit, Arc<Mutex<Vec<PluginEvent>>>) {
 
 #[test]
 fn hop_texter_emits_exactly_one_delta_carrying_the_fragment() {
-    let _g = STREAM_TEXT_LOCK.lock().unwrap_or_else(|e| e.into_inner());
-    let prev = std::env::var_os("CREW_STREAM_TEXT");
-    std::env::remove_var("CREW_STREAM_TEXT"); // default: streaming enabled
-
     let (emit, events) = recording_tick_emit();
-    let on_text = hop_texter(emit, "coder".to_string());
+    let on_text = hop_texter_with(emit, "coder".to_string(), true);
     on_text("hello");
-
-    match prev {
-        Some(p) => std::env::set_var("CREW_STREAM_TEXT", p),
-        None => std::env::remove_var("CREW_STREAM_TEXT"),
-    }
 
     let got = events.lock().unwrap_or_else(|e| e.into_inner());
     assert_eq!(got.len(), 1, "expected exactly one Delta, got {got:?}");
@@ -94,23 +79,13 @@ fn hop_texter_emits_exactly_one_delta_carrying_the_fragment() {
 }
 
 #[test]
-fn hop_texter_emits_nothing_when_stream_text_env_is_zero() {
-    let _g = STREAM_TEXT_LOCK.lock().unwrap_or_else(|e| e.into_inner());
-    let prev = std::env::var_os("CREW_STREAM_TEXT");
-    std::env::set_var("CREW_STREAM_TEXT", "0");
-
-    // hop_texter reads the env var once, at construction — set it first.
+fn hop_texter_emits_nothing_when_streaming_is_off() {
     let (emit, events) = recording_tick_emit();
-    let on_text = hop_texter(emit, "coder".to_string());
+    let on_text = hop_texter_with(emit, "coder".to_string(), false);
     on_text("hello");
-
-    match prev {
-        Some(p) => std::env::set_var("CREW_STREAM_TEXT", p),
-        None => std::env::remove_var("CREW_STREAM_TEXT"),
-    }
 
     assert!(
         events.lock().unwrap_or_else(|e| e.into_inner()).is_empty(),
-        "CREW_STREAM_TEXT=0 must suppress every Delta"
+        "streaming off must suppress every Delta"
     );
 }

@@ -399,6 +399,24 @@ impl ChatPane {
     /// pushes.
     const INTERRUPT_NOTE: &'static str = "\u{238b} interrupting \u{2014} sent /stop";
 
+    /// Throw away everything queued behind the run, returning what to say
+    /// about it — `None` when there was nothing waiting.
+    ///
+    /// Pushes its own note for the paths that have no note of their own (a
+    /// typed `/stop`); [`Self::interrupt`] folds the returned phrase into
+    /// its own line instead, so one cancel never reads as two events.
+    fn drop_queue(&mut self) -> Option<String> {
+        let n = self.queued.len();
+        if n == 0 {
+            return None;
+        }
+        self.queued.clear();
+        Some(format!(
+            "dropped {n} queued message{}",
+            if n == 1 { "" } else { "s" }
+        ))
+    }
+
     /// Esc while the crew is busy and connected: cancel the in-flight run by
     /// sending `/stop` straight to the broker — bypassing the queue exactly
     /// like the composer's own `/stop` does (`send_now`, not `queued.push`),
@@ -416,15 +434,9 @@ impl ChatPane {
         // do. Left alone, Esc would STOP one run and immediately START every
         // follow-up queued behind it, each written on the premise that the
         // interrupted work was going fine.
-        let dropped = self.queued.len();
-        self.queued.clear();
-        let note = match dropped {
-            0 => Self::INTERRUPT_NOTE.to_string(),
-            n => format!(
-                "{} \u{2014} dropped {n} queued message{}",
-                Self::INTERRUPT_NOTE,
-                if n == 1 { "" } else { "s" }
-            ),
+        let note = match self.drop_queue() {
+            None => Self::INTERRUPT_NOTE.to_string(),
+            Some(dropped) => format!("{} \u{2014} {dropped}", Self::INTERRUPT_NOTE),
         };
         // Deduped against the note ABOUT to be pushed, not a fixed string: a
         // second Esc has nothing left to drop and so writes the plain note,
@@ -665,6 +677,15 @@ impl ChatPane {
                 });
                 let agent_names: Vec<String> = self.agents.iter().map(|a| a.name.clone()).collect();
                 let expanded = crate::chatmention::expand(&text, cwd, &agent_names);
+                // A bare `/stop` means stop, and everything waiting behind
+                // the run is part of what has to stop — the same reasoning as
+                // Esc, which sends exactly this. Typed rather than pressed is
+                // not a different intention.
+                if crate::chatqueue::is_stop_all(&text) {
+                    if let Some(note) = self.drop_queue() {
+                        self.push_note(note);
+                    }
+                }
                 // Busy: queue instead of writing to a broker that's still
                 // mid-turn — except `/stop`, which must reach it immediately
                 // to cancel. Idle: send straight away, as before.

@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.6.89
+
+- A test no longer switches text streaming off for the whole process. Two
+  tests set `CREW_STREAM_TEXT` and were serialised against each other but not
+  against anything else, so any test building a text streamer at that instant
+  saw streaming disabled. The switch is handed in now; nothing mutates the
+  environment.
+- Typing `/stop` drops the queue too. Esc has since the last release; the
+  typed form is the same intention and sends the same string, and it was
+  still stopping one run and starting everything behind it. `/stop #2` is
+  left alone — calling off one of several parallel tasks says nothing about
+  the rest of the session.
+
 ## 0.6.88
 
 - Interrupting also drops what you queued behind the run. Esc stopped the

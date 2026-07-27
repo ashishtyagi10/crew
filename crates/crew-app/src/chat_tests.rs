@@ -1629,3 +1629,70 @@ fn interrupting_with_an_empty_queue_reads_exactly_as_it_did() {
         "{note}"
     );
 }
+
+/// Typed rather than pressed is not a different intention: a bare `/stop`
+/// takes the queue with it exactly as Esc does. Esc sends this very string.
+#[test]
+fn a_typed_stop_drops_the_queue_too() {
+    use crate::chatkeys::ChatInput;
+
+    let mut p = pane();
+    let cwd = std::env::temp_dir();
+    p.connected = true;
+    p.absorb_activity("planner".into(), "thinking", "user".into());
+    for text in ["and then deploy", "then tag it"] {
+        for c in text.chars() {
+            p.on_input(ChatInput::Char(c), &cwd);
+        }
+        p.on_input(ChatInput::Enter, &cwd);
+    }
+    assert_eq!(p.queued.len(), 2);
+
+    for c in "/stop".chars() {
+        p.on_input(ChatInput::Char(c), &cwd);
+    }
+    // Dismiss the palette a leading `/` opened — and ONLY if it is open. Esc
+    // with no popup reaches the pane, which while busy is the interrupt, and
+    // the interrupt drops the queue: the test would have passed without the
+    // typed path doing anything at all.
+    assert!(p.palette.is_some());
+    p.on_input(ChatInput::Close, &cwd);
+    p.on_input(ChatInput::Enter, &cwd);
+
+    assert!(p.queued.is_empty(), "queued work survived a typed /stop");
+    assert!(
+        p.messages
+            .iter()
+            .any(|m| m.text.contains("dropped 2 queued messages")),
+        "the drop was silent: {:?}",
+        p.messages.iter().map(|m| &m.text).collect::<Vec<_>>()
+    );
+}
+
+/// `/stop #2` calls off ONE of several parallel tasks. The rest of the
+/// session is still meant, and so is the rest of the queue — dropping it
+/// would cancel work the user never asked to cancel.
+#[test]
+fn stopping_one_task_by_id_leaves_the_queue_alone() {
+    use crate::chatkeys::ChatInput;
+
+    let mut p = pane();
+    let cwd = std::env::temp_dir();
+    p.connected = true;
+    p.absorb_activity("planner".into(), "thinking", "user".into());
+    for c in "keep this one".chars() {
+        p.on_input(ChatInput::Char(c), &cwd);
+    }
+    p.on_input(ChatInput::Enter, &cwd);
+    assert_eq!(p.queued.len(), 1);
+
+    for c in "/stop #2".chars() {
+        p.on_input(ChatInput::Char(c), &cwd);
+    }
+    // No palette here (the argument closed it), so no Esc — sending one
+    // would be the interrupt, not the command under test.
+    assert!(p.palette.is_none());
+    p.on_input(ChatInput::Enter, &cwd);
+
+    assert_eq!(p.queued.len(), 1, "a targeted stop cancelled everything");
+}
