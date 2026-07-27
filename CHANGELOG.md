@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.6.90
+
+- The built-in `sys` tool surface is decided once, when a session's broker is
+  built, instead of being re-read from the environment on every hint and every
+  tool call. It is meant to be stable for the life of a session, and one of
+  the variables it read is set and cleared by the test harness while other
+  tests are running — which made two tests fail about one run in six.
+
 ## 0.6.89
 
 - A test no longer switches text streaming off for the whole process. Two
