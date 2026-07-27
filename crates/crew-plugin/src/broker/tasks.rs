@@ -4,15 +4,18 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread::JoinHandle;
-use std::time::Instant;
 
 /// One running background task.
+///
+/// No `label` or `started` here any more: they existed to render `/tasks`,
+/// and that construct is gone. The label now rides the `PluginEvent::Task`
+/// start event straight to the pane, and the pane has known the start time
+/// since it saw that event — storing either here as well would be a second
+/// copy of the truth that nothing reads.
 struct Task {
     id: u64,
-    label: String,
     cancel: Arc<AtomicBool>,
     handle: JoinHandle<()>,
-    started: Instant,
 }
 
 /// All background tasks currently running.
@@ -47,15 +50,9 @@ impl Tasks {
     /// `stdio` uses `reserve` + `attach` because it needs the id before the
     /// `JoinHandle` exists, so `register` is dead code in the non-test build.)
     #[cfg(test)]
-    pub(crate) fn register(
-        &mut self,
-        label: String,
-        cancel: Arc<AtomicBool>,
-        handle: JoinHandle<()>,
-        now: Instant,
-    ) -> u64 {
+    pub(crate) fn register(&mut self, cancel: Arc<AtomicBool>, handle: JoinHandle<()>) -> u64 {
         let id = self.reserve();
-        self.attach(id, label, cancel, handle, now);
+        self.attach(id, cancel, handle);
         id
     }
 
@@ -66,21 +63,8 @@ impl Tasks {
     }
 
     /// Attach a spawned worker to a previously reserved id.
-    pub(crate) fn attach(
-        &mut self,
-        id: u64,
-        label: String,
-        cancel: Arc<AtomicBool>,
-        handle: JoinHandle<()>,
-        now: Instant,
-    ) {
-        self.running.push(Task {
-            id,
-            label,
-            cancel,
-            handle,
-            started: now,
-        });
+    pub(crate) fn attach(&mut self, id: u64, cancel: Arc<AtomicBool>, handle: JoinHandle<()>) {
+        self.running.push(Task { id, cancel, handle });
     }
 
     /// Drop tasks whose worker thread has exited.
@@ -109,22 +93,6 @@ impl Tasks {
 
     pub(crate) fn len(&self) -> usize {
         self.running.len()
-    }
-
-    /// One line per running task: `#<id> · <label> · <age>`.
-    pub(crate) fn describe(&self, now: Instant) -> Vec<String> {
-        self.running
-            .iter()
-            .map(|t| {
-                let secs = now.saturating_duration_since(t.started).as_secs();
-                let age = if secs >= 60 {
-                    format!("{}m", secs / 60)
-                } else {
-                    format!("{secs}s")
-                };
-                format!("#{} \u{00b7} {} \u{00b7} {age}", t.id, t.label)
-            })
-            .collect()
     }
 
     /// Join all worker threads (called on stdin EOF so output isn't truncated).

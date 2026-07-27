@@ -1253,3 +1253,21 @@ fn cancelling_says_so_only_when_a_sign_in_was_actually_in_flight() {
     assert_eq!(p.messages.len(), 1);
     assert!(p.messages[0].text.contains("openrouter sign-in cancelled"));
 }
+
+/// The pane tracks the broker's task lifecycle so the footer can show it.
+/// An end event for a task the pane never saw start (a broker that outlived a
+/// reconnect) must not leave a phantom.
+#[test]
+fn task_events_track_what_is_running() {
+    let mut p = pane();
+    p.absorb_task(1, true);
+    p.absorb_task(2, true);
+    assert_eq!(p.running_tasks, vec![1, 2]);
+    p.absorb_task(1, false);
+    assert_eq!(p.running_tasks, vec![2]);
+    p.absorb_task(99, false);
+    assert_eq!(p.running_tasks, vec![2], "unknown end disturbed the list");
+    // A duplicate start does not double-count.
+    p.absorb_task(2, true);
+    assert_eq!(p.running_tasks, vec![2]);
+}

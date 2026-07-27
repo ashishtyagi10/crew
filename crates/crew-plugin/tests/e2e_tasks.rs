@@ -1,7 +1,9 @@
 //! End-to-end coverage for concurrent background tasks through the real
 //! `crew-broker-plugin` binary: several `Send`s spawn several tasks (no
-//! "busy" rejection), `/tasks` and `/stop [#N]` address them by id, and each
-//! task's streamed relay `Message` events carry a `meta: "task:<id>"` tag.
+//! "busy" rejection), each announces its start and end via `PluginEvent::Task`
+//! (what the pane footer shows, and what replaced `/tasks`), `/stop [#N]`
+//! addresses them by id, and each task's streamed relay `Message` events carry
+//! a `meta: "task:<id>"` tag.
 mod common;
 use common::{messages, run_broker, seed_specialists, unique_dir, PluginEvent};
 
@@ -12,7 +14,6 @@ use common::{messages, run_broker, seed_specialists, unique_dir, PluginEvent};
 // roster).
 const SEND_A: &str = r#"{"type":"send","channel":"crew","text":"@planner do task a"}"#;
 const SEND_B: &str = r#"{"type":"send","channel":"crew","text":"@planner do task b"}"#;
-const TASKS: &str = r#"{"type":"send","channel":"crew","text":"/tasks"}"#;
 const STOP: &str = r#"{"type":"send","channel":"crew","text":"/stop"}"#;
 const STOP_999: &str = r#"{"type":"send","channel":"crew","text":"/stop #999"}"#;
 
@@ -46,34 +47,41 @@ fn two_sends_both_run_as_separate_tasks_not_busy() {
     );
 }
 
+/// `/tasks` is gone; `PluginEvent::Task` replaced it, and this is the contract
+/// the pane's footer depends on: every task announces its START from the stdin
+/// loop and its END from the worker itself. The end is the half that could not
+/// exist before — `Tasks::reap` runs lazily on the next command, so a task
+/// finishing was not an observable moment anywhere.
 #[test]
-fn tasks_lists_running_and_reports_idle_when_none_are() {
-    let dir = unique_dir("tasks-list-idle");
+fn every_task_announces_its_start_and_its_end() {
+    let dir = unique_dir("tasks-lifecycle");
+    seed_specialists(&dir, &["planner"]);
     let mock = ("CREW_BROKER_MOCK_REPLY", "did it\n@done");
-    // Idle broker: /tasks alone reports nothing running.
-    let ev = run_broker(&dir, &[mock], &[TASKS]);
-    let msgs = messages(&ev);
-    assert!(
-        msgs.iter()
-            .any(|(s, t)| s == "agent smith" && t.contains("no background tasks running")),
-        "{msgs:?}"
-    );
-
-    // Two tasks run to completion (the retired "started" status lines are no
-    // longer observable, so the two agent replies are the deterministic proof
-    // both were admitted and ran — the harness joins both workers on EOF).
-    let dir2 = unique_dir("tasks-list-started");
-    seed_specialists(&dir2, &["planner"]);
-    let ev2 = run_broker(&dir2, &[mock], &[SEND_A, SEND_B]);
-    let msgs2 = messages(&ev2);
-    let replies = msgs2
+    let ev = run_broker(&dir, &[mock], &[SEND_A, SEND_B]);
+    let lifecycle: Vec<(u64, bool)> = ev
         .iter()
-        .filter(|(s, t)| s.contains(" \u{2192} ") && t.contains("did it"))
-        .count();
-    assert!(
-        replies >= 2,
-        "expected a reply from each task, got {replies}: {msgs2:?}"
-    );
+        .filter_map(|e| match e {
+            PluginEvent::Task { id, running, .. } => Some((*id, *running)),
+            _ => None,
+        })
+        .collect();
+    // Two tasks, each seen starting and ending. Ids are per-broker monotonic.
+    for id in [1u64, 2] {
+        assert!(
+            lifecycle.contains(&(id, true)),
+            "task #{id} never announced a start: {lifecycle:?}"
+        );
+        assert!(
+            lifecycle.contains(&(id, false)),
+            "task #{id} never announced an end: {lifecycle:?}"
+        );
+    }
+    // The start carries the label the footer would show; the end does not
+    // repeat it (the host already has it).
+    let labelled = ev.iter().any(|e| {
+        matches!(e, PluginEvent::Task { label, running: true, .. } if label.contains("do task a"))
+    });
+    assert!(labelled, "no start event carried its label: {ev:?}");
 }
 
 // Coverage boundary: an e2e can't deterministically cancel a RUNNING mock task

@@ -62,7 +62,7 @@ fn help_includes_the_concurrency_tip() {
     let evs = run("/help");
     let t = text_of(&evs[0]);
     assert!(t.contains("tip: tasks run in the background"), "{t}");
-    assert!(t.contains("/tasks lists them"), "{t}");
+    assert!(t.contains("the footer lists them"), "{t}");
     assert!(t.contains("/stop #n cancels one"), "{t}");
 }
 
@@ -298,7 +298,8 @@ fn expand_alias_maps_known_short_forms() {
     assert_eq!(expand_alias("/h"), "/help");
     // `/a` is gone with the construct it pointed at.
     assert_eq!(expand_alias("/a"), "/a");
-    assert_eq!(expand_alias("/t"), "/tasks");
+    // `/t` is gone with the construct it pointed at.
+    assert_eq!(expand_alias("/t"), "/t");
     assert_eq!(expand_alias("/d"), "/diff");
 }
 
@@ -315,7 +316,7 @@ fn expand_alias_leaves_non_aliases_unchanged() {
 fn help_documents_the_aliases() {
     let evs = run("/help");
     let t = text_of(&evs[0]);
-    assert!(t.contains("aliases: /h /s /t /d /m /r"), "{t}");
+    assert!(t.contains("aliases: /h /s /d /m /r"), "{t}");
 }
 
 #[test]

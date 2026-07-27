@@ -27,6 +27,7 @@ fn fc<'a>(agents: &'a [AgentInfo], ctxm: &'a HashMap<String, u64>) -> FooterCtx<
         cost_microusd: 129_000, // $0.129
         branch: Some("main"),
         input: "",
+        running_tasks: &[],
         windows: crate::usageledger::Windows {
             five_h: Some(crate::usageledger::WindowStat {
                 left_ms: (3 * 60 + 52) * 60_000, // 3h52m
@@ -177,4 +178,37 @@ fn a_crowded_roster_falls_back_to_a_count() {
 fn an_empty_roster_contributes_nothing() {
     let line = text(&footer_lines(&fc(&[], &HashMap::new()), 120)[0]);
     assert!(!line.starts_with(" |") && !line.starts_with("|"), "{line}");
+}
+
+/// Work in flight outranks the hints: the hints teach someone deciding what to
+/// type, and this line is what `/tasks` used to have to be asked for.
+#[test]
+fn running_tasks_replace_the_hints_on_line3() {
+    let empty_ctx = HashMap::new();
+    let mut f = fc(&[], &empty_ctx);
+    f.running_tasks = &[3, 5];
+    let l3 = text(&footer_lines(&f, 120)[2]);
+    assert!(l3.contains("running #3 #5"), "{l3}");
+    // Ids are shown because `/stop #n` needs one to name.
+    assert!(l3.contains("/stop #3 to cancel"), "{l3}");
+    assert!(!l3.contains("for constructs"), "hints survived: {l3}");
+}
+
+#[test]
+fn an_idle_pane_keeps_its_hints() {
+    let empty_ctx = HashMap::new();
+    let f = fc(&[], &empty_ctx);
+    let l3 = text(&footer_lines(&f, 120)[2]);
+    assert!(l3.contains("for constructs"), "{l3}");
+    assert!(!l3.contains("running"), "{l3}");
+}
+
+/// Past a few, the ids stop fitting and the count is the information.
+#[test]
+fn a_crowd_of_tasks_collapses_to_a_count() {
+    let empty_ctx = HashMap::new();
+    let mut f = fc(&[], &empty_ctx);
+    f.running_tasks = &[1, 2, 3, 4];
+    let l3 = text(&footer_lines(&f, 120)[2]);
+    assert!(l3.ends_with("4 running"), "{l3}");
 }
