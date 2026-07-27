@@ -110,6 +110,7 @@ mod navcard;
 mod navlog;
 mod net;
 mod notify;
+mod oauth;
 mod openurl;
 mod palette;
 mod pane;
