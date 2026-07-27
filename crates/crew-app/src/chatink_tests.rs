@@ -100,3 +100,75 @@ fn active_theme_selects_its_own_row() {
         "two presets derived the same code colour — the table is not keyed by theme",
     );
 }
+
+/// Syntax colours are subject to the same floor as everything else: a
+/// highlighted keyword that matches body text is the v0.6.34 bug again, with
+/// four colours instead of one.
+#[test]
+fn every_syntax_colour_separates_from_body_text() {
+    for id in ALL_THEMES {
+        let t = id.theme();
+        let d = derive(t);
+        for (what, c) in [
+            ("comment", d.comment),
+            ("string", d.string),
+            ("keyword", d.keyword),
+        ] {
+            let got = contrast_ratio(c, t.ink);
+            assert!(
+                got >= SEPARATION_FLOOR,
+                "{}: {what} vs ink = {got:.3} (need >= {SEPARATION_FLOOR})",
+                id.as_str(),
+            );
+            // Comments alone answer to the lower floor — see
+            // `COMMENT_PAGE_FLOOR`. They are the class meant to recede.
+            let want = if what == "comment" { 3.5 } else { PAGE_FLOOR };
+            let page = contrast_ratio(c, t.page_bg);
+            assert!(
+                page >= want,
+                "{}: {what} vs page_bg = {page:.3} (need >= {want})",
+                id.as_str(),
+            );
+        }
+    }
+}
+
+/// What the ladder actually guarantees, stated in the terms the metric can
+/// express.
+///
+/// `contrast_ratio` is a LUMINANCE ratio: it cannot see hue at all. Green
+/// string text on teal code text measures ~1.04 on the light presets and looks
+/// nothing alike — so a high ratio is the wrong thing to demand where the
+/// theme can vary hue, and the right thing to demand where it cannot.
+///
+/// The single-phosphor CRT presets are exactly that case: one hue, so
+/// lightness is the only axis highlighting has, and the ladder must earn its
+/// keep there in the only currency available.
+#[test]
+fn the_syntax_ladder_holds_where_hue_cannot_help() {
+    for id in ALL_THEMES {
+        let t = id.theme();
+        let d = derive(t);
+        let comment = contrast_ratio(d.comment, d.code);
+        assert!(
+            comment >= 1.15,
+            "{}: comment vs code = {comment:.3}",
+            id.as_str(),
+        );
+        if !t.crt {
+            continue;
+        }
+        assert!(
+            comment >= 1.6,
+            "{} is single-phosphor, so lightness is all there is: comment vs \
+             code = {comment:.3}",
+            id.as_str(),
+        );
+        let string = contrast_ratio(d.string, d.code);
+        assert!(
+            string >= 1.2,
+            "{} is single-phosphor: string vs code = {string:.3}",
+            id.as_str(),
+        );
+    }
+}

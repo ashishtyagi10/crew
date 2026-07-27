@@ -32,6 +32,7 @@ impl InlineState {
             code: false,
             heading: 0,
             marker: false,
+            token: crate::md::syntax::Token::Plain,
         }
     }
 

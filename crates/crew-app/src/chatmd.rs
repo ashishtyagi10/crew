@@ -98,9 +98,16 @@ fn span_style(
         LineKind::CodeHeader | LineKind::CodeFooter | LineKind::Rule => {
             (muted, false, false, None, None)
         }
+        // Inside a fence the SPAN decides the colour, not the line: the
+        // tokenizer split it into comment / string / keyword / plain runs at
+        // layout time (see `md::layout::code_spans`).
         LineKind::Code => (
-            chatink::code_fg(),
-            false,
+            chatink::token_fg(span.style.token),
+            // Keywords are marked by weight, not by a colour of their own: a
+            // fourth colour would either crowd the ladder the other classes
+            // sit on or break the page floor on the darker tubes, and weight
+            // works on a single-phosphor screen where hue cannot.
+            span.style.token == crate::md::syntax::Token::Keyword,
             false,
             Some(chatink::code_bg()),
             None,

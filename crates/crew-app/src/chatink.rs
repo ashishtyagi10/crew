@@ -35,6 +35,22 @@ pub(crate) const SEPARATION_FLOOR: f32 = 1.8;
 /// and `ansi[6]` to.
 pub(crate) const PAGE_FLOOR: f32 = 4.5;
 
+/// Rungs above [`SEPARATION_FLOOR`] for the syntax classes, so they separate
+/// from plain code as well as from prose. Both are capped by [`PAGE_FLOOR`] —
+/// a comment that has faded into the card is not a subtler comment, it is an
+/// unreadable one — so on a theme with little headroom the ladder compresses
+/// rather than breaking readability.
+const STRING_FLOOR: f32 = 2.3;
+const COMMENT_FLOOR: f32 = 3.1;
+
+/// Comments get a lower readability floor than everything else, and only
+/// comments. They are the one class meant to recede — 4.5:1 is the threshold
+/// for text you are reading, and a comment you are reading is a comment you
+/// can still read at 3.5:1. Without this the light presets ran out of
+/// headroom and the ladder collapsed there (sepia-light measured 1.17 between
+/// comment and code), which is the failure this whole ladder exists to avoid.
+const COMMENT_PAGE_FLOOR: f32 = 3.5;
+
 /// How far the code card's background is nudged from the page toward `ink`.
 /// Was 0.08, which measured 1.10-1.12:1 against the page on the CRT presets —
 /// nothing survives scanlines and bloom at that distance. The card is the
@@ -52,6 +68,9 @@ struct Ink {
     marker: Color,
     quote: Color,
     code_bg: Color,
+    comment: Color,
+    string: Color,
+    keyword: Color,
 }
 
 /// Pull `c` away from body text until it is distinguishable from it.
@@ -66,7 +85,21 @@ struct Ink {
 /// Returns `c` untouched when the theme already separates, which is every
 /// paper preset: this is a floor, not a restyling.
 fn separated(c: Color, t: &Theme) -> Color {
-    if contrast_ratio(c, t.ink) >= SEPARATION_FLOOR {
+    separated_to(c, t, SEPARATION_FLOOR, PAGE_FLOOR)
+}
+
+/// [`separated`] with an explicit target, which is what makes syntax classes
+/// distinguishable from EACH OTHER rather than merely from prose.
+///
+/// Pulling every class to the same floor was the first attempt and it failed
+/// for a reason worth recording: the walk stops the moment it clears the
+/// floor, so every colour landed at the same lightness — measured 1.02:1
+/// between comment and code on paper-dark, 1.00 on graphite. A single floor
+/// guarantees "not body text" and accidentally guarantees "all alike". The
+/// classes therefore sit on a LADDER, and on a single-phosphor tube — where
+/// hue cannot vary at all — that ladder is the whole of the highlighting.
+fn separated_to(c: Color, t: &Theme, floor: f32, page_floor: f32) -> Color {
+    if contrast_ratio(c, t.ink) >= floor {
         return c;
     }
     let mut best = c;
@@ -76,11 +109,11 @@ fn separated(c: Color, t: &Theme) -> Color {
         let cand = crate::anim::lerp_rgb(c, t.page_bg, mix);
         // Stop before readability goes: a preset with no room to separate
         // keeps the last legible candidate rather than fading into the page.
-        if contrast_ratio(cand, t.page_bg) < PAGE_FLOOR {
+        if contrast_ratio(cand, t.page_bg) < page_floor {
             break;
         }
         best = cand;
-        if contrast_ratio(cand, t.ink) >= SEPARATION_FLOOR {
+        if contrast_ratio(cand, t.ink) >= floor {
             break;
         }
     }
@@ -95,6 +128,31 @@ fn derive(t: &Theme) -> Ink {
         marker: separated(t.ansi[3], t),
         quote: separated(t.text_muted, t),
         code_bg: crate::anim::lerp_rgb(t.page_bg, t.ink, CODE_BG_MIX),
+        // Syntax classes, from the theme's own slots for the same reason the
+        // rest are: 13 presets already tune them, and a single-phosphor tube
+        // keeps its hue for free. Each still goes through `separated`, so a
+        // token colour can never collapse into body text.
+        // The ladder. Comments sit furthest back, strings between, plain code
+        // nearest to prose. Keywords take no rung of their own — they draw in
+        // the code colour and are marked by WEIGHT (see `chatmd`), because a
+        // fourth rung would either crowd the other three or push a colour past
+        // the page floor on the darker tubes.
+        comment: separated_to(t.text_muted, t, COMMENT_FLOOR, COMMENT_PAGE_FLOOR),
+        string: separated_to(t.ansi[2], t, STRING_FLOOR, PAGE_FLOOR),
+        keyword: separated(t.ansi[6], t),
+    }
+}
+
+/// The colour for one run of code, given what the tokenizer made of it.
+/// `Plain` is the ordinary code colour, which is most of any line.
+pub(crate) fn token_fg(token: crate::md::syntax::Token) -> Color {
+    use crate::md::syntax::Token;
+    let i = ink();
+    match token {
+        Token::Plain => i.code,
+        Token::Comment => i.comment,
+        Token::Str => i.string,
+        Token::Keyword => i.keyword,
     }
 }
 

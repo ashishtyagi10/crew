@@ -148,3 +148,36 @@ fn a_link_inside_a_list_item_keeps_the_link_colour() {
         "not the marker colour"
     );
 }
+
+/// End to end through the real pipeline: a fenced block renders with the
+/// comment, the string and the keyword each in their own colour, and the
+/// keyword in bold. This is the assertion that would have failed before the
+/// tokenizer existed, when every cell in a code block shared one colour.
+#[test]
+fn a_fenced_block_is_syntax_coloured() {
+    let _guard = crate::app::theme_test_guard();
+    let out = lines("```rust\nlet s = \"hi\"; // note\n```", 60, (9, 9, 9));
+    let code: Vec<&crate::chatbody::CardCell> = out
+        .iter()
+        .flatten()
+        .filter(|c| c.bg == Some(crate::chatink::code_bg()))
+        .collect();
+    let colour_of = |ch: char| code.iter().find(|c| c.c == ch).map(|c| c.fg);
+    // 'l' of `let` (keyword), 'h' of "hi" (string), 'n' of `note` (comment).
+    let kw = colour_of('l').expect("keyword cell");
+    let st = colour_of('h').expect("string cell");
+    let cm = colour_of('n').expect("comment cell");
+    assert_eq!(
+        kw,
+        crate::chatink::token_fg(crate::md::syntax::Token::Keyword)
+    );
+    assert_eq!(st, crate::chatink::token_fg(crate::md::syntax::Token::Str));
+    assert_eq!(
+        cm,
+        crate::chatink::token_fg(crate::md::syntax::Token::Comment)
+    );
+    assert_ne!(st, cm, "string and comment share a colour");
+    // Keywords are marked by weight, so they survive a single-phosphor theme.
+    let kw_cell = code.iter().find(|c| c.c == 'l').unwrap();
+    assert!(kw_cell.bold, "keywords draw bold");
+}

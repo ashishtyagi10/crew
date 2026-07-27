@@ -161,17 +161,23 @@ fn startup_banner_is_the_art_alone_unless_no_provider_resolves() {
         !banner.contains("No specialists yet"),
         "roster hint must be gone from the splash: {banner}"
     );
-    if super::provider_resolves() {
-        assert!(
-            !banner.contains("No inbuilt agents"),
-            "no warning when a provider resolves: {banner}"
-        );
-    } else {
-        assert!(
-            banner.contains("No inbuilt agents"),
-            "the no-key warning must survive: {banner}"
-        );
-    }
+    // Both branches, every run — no dependence on ambient provider state.
+    let warning = super::roster_for(&reg(&[]), false);
+    let with_provider = super::banner_for(&reg(&[]), true);
+    assert!(
+        !with_provider.contains(warning.as_str()),
+        "no warning when a provider resolves: {with_provider}"
+    );
+    let without = super::banner_for(&reg(&[]), false);
+    assert!(
+        without.contains(warning.as_str()),
+        "the no-key warning must survive: {without}"
+    );
+    assert!(
+        warning.contains("claude") && warning.contains("OPENROUTER_API_KEY"),
+        "both routes out must be offered: {warning}"
+    );
+
     // With agents on the roster the art always stands alone.
     let banner = super::startup_banner(&reg(&["coder"]));
     assert!(
