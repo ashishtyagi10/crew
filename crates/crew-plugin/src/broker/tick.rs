@@ -108,9 +108,26 @@ pub(crate) fn hop_texter(
     tick_emit: std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,
     agent: String,
 ) -> std::sync::Arc<dyn Fn(&str) + Send + Sync> {
+    hop_texter_with(tick_emit, agent, text_streaming_enabled())
+}
+
+/// [`hop_texter`] with the switch handed in rather than read from the
+/// environment.
+///
+/// `CREW_STREAM_TEXT` is process-global, and the two tests that exercised the
+/// off state used to SET it — serialised against each other by a lock, and
+/// against nothing else. Every other test in the process that built a texter
+/// and expected a `Delta` was racing them, which is exactly the flake that
+/// turned up here: `run_tools_follow_up_dial_reports_usage_and_emits_ticks`
+/// failing in a full run and never in isolation. A test that needs to know
+/// something about the world should be told it, not made to look.
+pub(crate) fn hop_texter_with(
+    tick_emit: std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,
+    agent: String,
+    enabled: bool,
+) -> std::sync::Arc<dyn Fn(&str) + Send + Sync> {
     let gate = std::sync::Mutex::new(TextGate::new());
     let hop_start = std::time::Instant::now();
-    let enabled = text_streaming_enabled();
     std::sync::Arc::new(move |text: &str| {
         if !enabled {
             return;

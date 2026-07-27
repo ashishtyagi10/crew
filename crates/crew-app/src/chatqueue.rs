@@ -17,6 +17,17 @@ pub(crate) fn is_stop(text: &str) -> bool {
     trimmed == "/stop" || trimmed.starts_with("/stop ")
 }
 
+/// Whether `text` cancels EVERYTHING, i.e. a bare `/stop` with no task id.
+///
+/// The distinction matters because cancelling is what makes the pane idle,
+/// and idle is what flushes the queue: a cancel-everything must take the
+/// queue with it or it restarts the moment it lands. `/stop #2` is the other
+/// thing — one of several parallel tasks called off, with the rest of the
+/// session, and the rest of the queue, still meant.
+pub(crate) fn is_stop_all(text: &str) -> bool {
+    text.trim() == "/stop"
+}
+
 /// Rows the queued-indicator claims in the message area: 0 when empty, else
 /// exactly 1 (a single summary line, regardless of queue depth).
 pub(crate) fn queued_rows(pane: &ChatPane) -> u16 {
