@@ -177,3 +177,49 @@ pub use regwin::*;
 #[cfg(test)]
 #[path = "appregister_tests.rs"]
 mod tests;
+
+/// The changelog, compiled in so the guard below cannot be satisfied by a
+/// file that is not the one shipped. Test-only: this is a build-time
+/// contract between the version and its release note, not a runtime feature
+/// — showing "what's new" in the app after an update is a separate job.
+#[cfg(test)]
+const CHANGELOG: &str = include_str!("../../../CHANGELOG.md");
+
+/// The newest changelog heading, e.g. `0.6.62` — `None` if there is none.
+#[cfg(test)]
+fn newest_changelog_version() -> Option<&'static str> {
+    CHANGELOG
+        .lines()
+        .filter_map(|l| l.strip_prefix("## "))
+        .map(str::trim)
+        .find(|v| v.chars().next().is_some_and(|c| c.is_ascii_digit()))
+}
+
+#[cfg(test)]
+mod changelog_tests {
+    /// A release must say what it was. The top changelog entry names the
+    /// version being shipped, so bumping `Cargo.toml` without writing a line
+    /// fails here rather than reaching a user as an opaque version bump —
+    /// the same "bind the copies" rule the construct lists and provider
+    /// tables follow.
+    #[test]
+    fn changelog_covers_the_current_version() {
+        let newest = super::newest_changelog_version().expect("no versioned heading");
+        let current = super::VERSION;
+        assert!(
+            newest == current || newest.starts_with(&format!("{current} ")),
+            "CHANGELOG's newest entry is {newest}, but this build is {current}"
+        );
+    }
+
+    /// Ranges are allowed (`0.6.38 – 0.6.61`) but the newest heading must be
+    /// a single version, or "what did this release change" has no answer.
+    #[test]
+    fn the_newest_entry_is_one_version() {
+        let newest = super::newest_changelog_version().expect("no versioned heading");
+        assert!(
+            !newest.contains('\u{2013}') && !newest.contains('-'),
+            "newest entry {newest} is a range; give this release its own line"
+        );
+    }
+}
