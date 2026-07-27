@@ -26,21 +26,14 @@ fn text_of(ev: &PluginEvent) -> &str {
 #[test]
 fn detects_commands() {
     assert!(is_command("/help"));
-    assert!(is_command("  /agents"));
+    assert!(is_command("  /model"));
     assert!(!is_command("do the thing"));
     assert!(!is_command("@planner go"));
 }
 
 #[test]
 fn quick_commands_answer_inline_but_constructs_do_not() {
-    for quick in [
-        "/help",
-        "/agents",
-        "/model coder x",
-        "/status",
-        "/diff",
-        "/nonsense",
-    ] {
+    for quick in ["/help", "/model coder x", "/status", "/diff", "/nonsense"] {
         assert!(is_quick(quick), "{quick}");
     }
     for long in [
@@ -58,7 +51,10 @@ fn help_lists_constructs() {
     let evs = run("/help");
     assert_eq!(evs.len(), 1);
     let t = text_of(&evs[0]);
-    assert!(t.contains("/agents"), "{t}");
+    assert!(t.contains("/model"), "{t}");
+    // The roster construct was folded into `/model`; help must not advertise
+    // a construct the router no longer answers.
+    assert!(!t.contains("/agents"), "{t}");
 }
 
 #[test]
@@ -124,10 +120,13 @@ fn unknown_command_points_at_help() {
 }
 
 #[test]
-fn agents_reemits_the_roster_before_its_report() {
+/// Bare `/model` inherited the listing role from the deleted `/agents`,
+/// INCLUDING its fresh-Roster emit — that was the live-reload path for manifest
+/// edits, and folding one construct into another must not silently drop it.
+fn bare_model_reemits_the_roster_before_its_report() {
     // In tests no API key is guaranteed; the roster may be empty, but the
     // Roster event always precedes the report so the pane's badges refresh.
-    let evs = run("/agents");
+    let evs = run("/model");
     assert_eq!(evs.len(), 2);
     assert!(matches!(evs[0], PluginEvent::Roster { .. }), "{evs:?}");
     assert!(!text_of(&evs[1]).is_empty());
@@ -297,7 +296,8 @@ fn expand_alias_maps_known_short_forms() {
     assert_eq!(expand_alias("/s"), "/status");
     assert_eq!(expand_alias("/m coder qwen"), "/model coder qwen");
     assert_eq!(expand_alias("/h"), "/help");
-    assert_eq!(expand_alias("/a"), "/agents");
+    // `/a` is gone with the construct it pointed at.
+    assert_eq!(expand_alias("/a"), "/a");
     assert_eq!(expand_alias("/t"), "/tasks");
     assert_eq!(expand_alias("/d"), "/diff");
 }
@@ -315,7 +315,7 @@ fn expand_alias_leaves_non_aliases_unchanged() {
 fn help_documents_the_aliases() {
     let evs = run("/help");
     let t = text_of(&evs[0]);
-    assert!(t.contains("aliases: /h /a /s /t /d /m /r"), "{t}");
+    assert!(t.contains("aliases: /h /s /t /d /m /r"), "{t}");
 }
 
 #[test]

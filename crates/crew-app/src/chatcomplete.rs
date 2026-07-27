@@ -7,9 +7,8 @@ use crew_plugin::AgentInfo;
 /// Every composer slash action: broker constructs plus the pane-local
 /// `/export`, `/theme`, `/compact`, and `/exit` (see `chatexport` /
 /// `chattheme` / `chatcompact` / `chat`).
-pub(crate) const CONSTRUCTS: [&str; 30] = [
+pub(crate) const CONSTRUCTS: [&str; 29] = [
     "/help",
-    "/agents",
     "/model",
     "/fan",
     "/loop",
@@ -45,8 +44,7 @@ pub(crate) const CONSTRUCTS: [&str; 30] = [
 pub(crate) fn describe(construct: &str) -> &'static str {
     match construct {
         "/help" => "list the constructs",
-        "/agents" => "show the crew roster",
-        "/model" => "set an agent's model",
+        "/model" => "the roster and each agent's model (set one: /model <agent> <model>)",
         "/fan" => "fan a task out to every agent",
         "/loop" => "run a task on a loop",
         "/goal" => "set the crew's shared goal",

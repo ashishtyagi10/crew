@@ -28,6 +28,39 @@ fn short_model(model: &str) -> &str {
 type Fg = (u8, u8, u8);
 type Seg = (String, Fg);
 
+/// Who is on the roster, as line 1's leading segment. This is the whole of
+/// what `/agents` used to report, minus having to ask for it — which is why
+/// that construct no longer exists.
+///
+/// Models when they are known and distinct, names when they are not. An agent
+/// backed by an external CLI (`claude`, `codex`, `opencode`) has no model
+/// string at all — the CLI chooses — so the old model-only rendering drew a
+/// bare `|` separator with nothing before it for exactly the roster a keyless
+/// machine gets. Names are the honest answer there, and they are also the more
+/// useful one: `@codex` is what the user types, not `gpt-5`.
+fn roster_seg(agents: &[AgentInfo]) -> Option<String> {
+    if agents.is_empty() {
+        return None;
+    }
+    let mut models: Vec<&str> = Vec::new();
+    for a in agents {
+        let m = short_model(&a.model);
+        if !m.is_empty() && !models.contains(&m) {
+            models.push(m);
+        }
+    }
+    // Every agent reported a model and they agree: that model IS the identity.
+    if models.len() == 1 && agents.iter().all(|a| !a.model.is_empty()) {
+        return Some(models[0].to_string());
+    }
+    let names: Vec<&str> = agents.iter().map(|a| a.name.as_str()).collect();
+    // Beyond a few, names stop fitting and stop informing; the count does both.
+    if names.len() > 3 {
+        return Some(format!("{} agents", names.len()));
+    }
+    Some(names.join("\u{00b7}"))
+}
+
 pub(crate) struct FooterCtx<'a> {
     pub agents: &'a [AgentInfo],
     pub ctx: &'a HashMap<String, u64>,
@@ -116,19 +149,10 @@ pub(crate) fn footer_lines(fc: &FooterCtx, cols: usize) -> Vec<Vec<(char, Fg)>> 
     );
     let muted = th.text_muted;
 
-    // Line 1: model | branch | $cost | in/out.
+    // Line 1: roster | branch | $cost | in/out.
     let mut l1: Vec<Seg> = Vec::new();
-    let mut models: Vec<&str> = Vec::new();
-    for a in fc.agents {
-        let m = short_model(&a.model);
-        if !models.contains(&m) {
-            models.push(m);
-        }
-    }
-    match models.as_slice() {
-        [] => {}
-        [one] => l1.push(((*one).to_string(), cyan)),
-        many => l1.push((format!("{} agents", many.len()), cyan)),
+    if let Some(r) = roster_seg(fc.agents) {
+        l1.push((r, cyan));
     }
     if let Some(b) = fc.branch {
         l1.push((b.to_string(), yellow));
