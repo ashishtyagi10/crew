@@ -43,9 +43,7 @@ pub(crate) const HELP: &str = "constructs:\n\
     /fan <task> — every agent answers the same task in parallel\n\
     /loop <n> <task> — n relay rounds, each improving the last answer\n\
     /goal <text> — keep working until a judge agent rules the goal met\n\
-    /plan <task> — draft a numbered plan; nothing runs until /approve\n\
-    /approve — execute the pending plan\n\
-    /reject — discard the pending plan\n\
+    /plan <task> — draft a numbered plan; the pane's enter/esc runs or discards it\n\
     /checkpoints — list the automatic snapshots (one per task that changed files)\n\
     /restore <n> — put checkpoint n's files back\n\
     /diff — show the working tree's changes (git diff --stat)\n\

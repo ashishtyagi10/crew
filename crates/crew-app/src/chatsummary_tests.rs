@@ -28,6 +28,7 @@ fn fc<'a>(agents: &'a [AgentInfo], ctxm: &'a HashMap<String, u64>) -> FooterCtx<
         branch: Some("main"),
         input: "",
         running_tasks: &[],
+        plan_pending: false,
         cwd: None,
         windows: crate::usageledger::Windows {
             five_h: Some(crate::usageledger::WindowStat {
@@ -246,4 +247,23 @@ fn an_unknown_directory_contributes_nothing() {
     f.cwd = Some("");
     let l1 = text(&footer_lines(&f, 120)[0]);
     assert!(!l1.starts_with(" |") && !l1.starts_with("|"), "{l1}");
+}
+
+/// A pending plan is a question addressed to the user, so it outranks both
+/// the hints and the running-task list on line 3 — nothing else there is
+/// waiting on an answer.
+#[test]
+fn a_pending_plan_owns_line3() {
+    let empty_ctx = HashMap::new();
+    let mut f = fc(&[], &empty_ctx);
+    f.plan_pending = true;
+    f.running_tasks = &[7];
+    let l3 = text(&footer_lines(&f, 120)[2]);
+    assert!(l3.contains("plan ready"), "{l3}");
+    assert!(l3.contains("enter runs it"), "{l3}");
+    assert!(l3.contains("esc discards it"), "{l3}");
+    assert!(
+        !l3.contains("running #7"),
+        "tasks outranked the question: {l3}"
+    );
 }

@@ -39,9 +39,11 @@ fn plan_drafts_and_holds_without_executing() {
     let _g = testenv::mock_with_specialists("1. survey\n2. build\n@done", testenv::TRIO);
     let mut s = Session::new();
     let t = texts(&run(&mut s, "plan", "ship the feature"));
-    assert!(t[0].contains("nothing runs until /approve"), "{t:?}");
+    assert!(t[0].contains("nothing runs until you approve"), "{t:?}");
     assert!(t.iter().any(|x| x.contains("1. survey")), "{t:?}");
-    assert!(t.last().unwrap().contains("/approve"), "{t:?}");
+    // The decision is a keypress now, not a construct to learn.
+    assert!(t.last().unwrap().contains("enter runs it"), "{t:?}");
+
     let held = s.plan.lock().unwrap();
     let p = held.as_ref().expect("plan stored");
     assert_eq!(p.task, "ship the feature");
@@ -106,4 +108,28 @@ fn prompts_frame_drafting_and_execution() {
 fn strip_control_removes_routing_directives() {
     assert_eq!(strip_control("the plan\n@done"), "the plan");
     assert_eq!(strip_control("plain reply"), "plain reply");
+}
+
+/// The host must learn a plan is pending from an EVENT, not by matching prose
+/// — that is what lets the pane bind enter/esc to it instead of teaching two
+/// constructs. Approving and rejecting must both clear it, or the pane would
+/// keep offering a decision that has already been made.
+#[test]
+fn the_pending_plan_is_announced_and_cleared() {
+    let _g = testenv::mock_with_specialists("1. survey\n2. build\n@done", testenv::TRIO);
+    let pending = |evs: &[PluginEvent]| -> Vec<bool> {
+        evs.iter()
+            .filter_map(|e| match e {
+                PluginEvent::Plan { pending } => Some(*pending),
+                _ => None,
+            })
+            .collect()
+    };
+    let mut s = Session::new();
+    assert_eq!(pending(&run(&mut s, "plan", "ship it")), vec![true]);
+    assert_eq!(pending(&run(&mut s, "reject", "")), vec![false]);
+
+    let mut s = Session::new();
+    run(&mut s, "plan", "ship it");
+    assert_eq!(pending(&run(&mut s, "approve", "")), vec![false]);
 }

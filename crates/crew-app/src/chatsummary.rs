@@ -92,6 +92,8 @@ pub(crate) struct FooterCtx<'a> {
     pub input: &'a str,
     /// Broker task ids in flight right now (see `ChatPane::running_tasks`).
     pub running_tasks: &'a [u64],
+    /// A drafted plan is waiting for enter/esc.
+    pub plan_pending: bool,
     /// Where this pane's broker operates, already `~`-abbreviated.
     pub cwd: Option<&'a str>,
     pub windows: crate::usageledger::Windows,
@@ -228,6 +230,13 @@ pub(crate) fn footer_lines(fc: &FooterCtx, cols: usize) -> Vec<Vec<(char, Fg)>> 
         None => "\u{25b6}\u{25b6} swarm mode".to_string(),
     };
     let mut l3: Vec<(char, Fg)> = mode.chars().map(|c| (c, yellow)).collect();
+    // A pending plan outranks everything else on this line: it is a question
+    // addressed to the user, and nothing else here is.
+    if fc.plan_pending {
+        let ask = " \u{00b7} plan ready \u{00b7} enter runs it \u{00b7} esc discards it";
+        l3.extend(ask.chars().map(|c| (c, green)));
+        return vec![join(&l1), join(&l2), l3];
+    }
     match running_seg(fc.running_tasks) {
         Some(s) => l3.extend(s.chars().map(|c| (c, green))),
         None => {
@@ -253,6 +262,7 @@ fn footer_ctx(pane: &ChatPane, now_ms: u64) -> FooterCtx<'_> {
         branch: pane.git_branch.as_deref(),
         input: &pane.input,
         running_tasks: &pane.running_tasks,
+        plan_pending: pane.plan_pending,
         cwd: pane.cwd.as_deref(),
         windows: crate::usageledger::windows(now_ms),
     }

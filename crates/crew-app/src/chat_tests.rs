@@ -1271,3 +1271,38 @@ fn task_events_track_what_is_running() {
     p.absorb_task(2, true);
     assert_eq!(p.running_tasks, vec![2]);
 }
+
+/// Enter and Esc answer a pending plan — but only on an empty composer.
+/// Half-typed text means the user moved on, and neither key should throw a
+/// plan away behind it.
+#[test]
+fn a_pending_plan_binds_enter_and_esc() {
+    let cwd = std::path::PathBuf::from("/tmp");
+    let mut p = pane();
+    p.plan_pending = true;
+    assert!(p.on_input(ChatInput::Enter, &cwd).is_none());
+    assert!(!p.plan_pending, "enter answered the plan");
+
+    let mut p = pane();
+    p.plan_pending = true;
+    assert!(
+        p.on_input(ChatInput::Close, &cwd).is_none(),
+        "esc answered the plan instead of closing the pane"
+    );
+    assert!(!p.plan_pending);
+
+    // With text typed, both keys keep their ordinary meaning.
+    let mut p = pane();
+    p.plan_pending = true;
+    p.input = "wait, actually".into();
+    p.on_input(ChatInput::Enter, &cwd);
+    assert!(p.plan_pending, "sending text must not answer the plan");
+    let mut p = pane();
+    p.plan_pending = true;
+    p.input = "hm".into();
+    assert!(
+        p.on_input(ChatInput::Close, &cwd).is_some(),
+        "esc with text typed still closes the pane"
+    );
+    assert!(p.plan_pending, "closing must not answer the plan");
+}

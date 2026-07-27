@@ -47,7 +47,7 @@ pub(crate) fn plan_cmd(
     let (author, task) = split_target(task, &reg);
     emit(msg(
         "agent smith",
-        format!("plan mode \u{2014} {author} drafts; nothing runs until /approve"),
+        format!("plan mode \u{2014} {author} drafts; nothing runs until you approve"),
     ))?;
     emit(PluginEvent::Activity {
         agent: author.clone(),
@@ -80,9 +80,13 @@ pub(crate) fn plan_cmd(
     }
     emit(msg(&format!("{author} \u{2192} user"), plan.clone()))?;
     *lock(&session.plan) = Some(PendingPlan { task, plan, author });
+    // The host turns this into the decision affordance. The message stays for
+    // hosts that render text only (the broker is driven over stdio by more
+    // than the crew pane), but it no longer has to teach two constructs.
+    emit(PluginEvent::Plan { pending: true })?;
     emit(msg(
         "agent smith",
-        "plan ready \u{2014} /approve runs it, /reject discards it",
+        "plan ready \u{2014} enter runs it, esc discards it",
     ))
 }
 
@@ -108,6 +112,7 @@ pub(crate) fn approve_cmd(
     } else {
         reg.names().into_iter().next().unwrap_or_default()
     };
+    emit(PluginEvent::Plan { pending: false })?;
     emit(msg(
         "agent smith",
         format!("plan approved \u{2014} {start} leads execution"),
@@ -130,6 +135,7 @@ pub(crate) fn reject_cmd(
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
     let had = lock(&session.plan).take().is_some();
+    emit(PluginEvent::Plan { pending: false })?;
     emit(msg(
         "agent smith",
         if had {
