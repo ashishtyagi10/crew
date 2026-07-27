@@ -7,7 +7,7 @@ use crew_plugin::AgentInfo;
 /// Every composer slash action: broker constructs plus the pane-local
 /// `/export`, `/theme`, `/compact`, and `/exit` (see `chatexport` /
 /// `chattheme` / `chatcompact` / `chat`).
-pub(crate) const CONSTRUCTS: [&str; 28] = [
+pub(crate) const CONSTRUCTS: [&str; 27] = [
     "/help",
     "/model",
     "/fan",
@@ -31,7 +31,6 @@ pub(crate) const CONSTRUCTS: [&str; 28] = [
     "/standup",
     "/mcp",
     "/stop",
-    "/status",
     "/export",
     "/theme",
     "/compact",
@@ -61,11 +60,10 @@ pub(crate) fn describe(construct: &str) -> &'static str {
         "/commit" => "draft an AI commit message (apply to run)",
         "/review" => "AI code review of the working diff",
         "/resume" => "continue the previous session as context",
-        "/doctor" => "health-check the AI stack",
+        "/doctor" => "health-check the AI stack and this session",
         "/standup" => "AI standup update from recent commits",
         "/mcp" => "list MCP servers and tools",
         "/stop" => "stop all tasks (/stop #n for one)",
-        "/status" => "show session status",
         "/export" => "export the transcript",
         "/theme" => "list or switch the color theme",
         "/compact" => "fold away older messages",
@@ -198,13 +196,13 @@ mod tests {
     fn completes_constructs() {
         assert_eq!(complete("/go", &[]).unwrap(), "/goal ");
         assert_eq!(complete("/lo", &[]).unwrap(), "/loop ");
-        // '/st' IS the common prefix of /stop, /status, /standup → nothing
-        // to add, and '/sta' still splits status/standup…
+        // '/st' IS the common prefix of /stop and /standup → nothing to add.
         assert_eq!(complete("/st", &[]), None);
-        assert_eq!(complete("/sta", &[]), None);
-        // …but one more character disambiguates each.
-        assert_eq!(complete("/stat", &[]).unwrap(), "/status ");
-        assert_eq!(complete("/stan", &[]).unwrap(), "/standup ");
+        // '/sta' used to split three ways (status/standup/stop). Deleting a
+        // construct buys back its prefix: one fewer keystroke to /standup, and
+        // this is the measurable half of "fewer commands" — the surface is not
+        // just smaller, the survivors are easier to reach.
+        assert_eq!(complete("/sta", &[]).unwrap(), "/standup ");
     }
 
     #[test]

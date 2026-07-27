@@ -13,6 +13,9 @@ fn healthy() -> DoctorInputs {
         resumable: true,
         sys_tools: true,
         sys_mode: "full",
+        turns: 4,
+        tokens: 950,
+        budget: 0,
     }
 }
 
@@ -79,4 +82,48 @@ fn on_path_finds_only_executables() {
     assert!(on_path("mytool", &path));
     assert!(!on_path("notexec", &path));
     assert!(!on_path("missing", &path));
+}
+
+/// Inherited from the deleted `/status`, whose tests these were: the turn
+/// count, the token total, the per-turn average and the relay budget lived
+/// nowhere else in the product, so they had to land somewhere before that
+/// construct could go.
+#[test]
+fn the_session_line_carries_what_status_used_to() {
+    let r = render(&healthy());
+    assert!(r.contains("\u{2713} session: 4 turns"), "{r}");
+    assert!(r.contains("~950 tok"), "{r}");
+    assert!(r.contains("~237/turn"), "{r}");
+    assert!(r.contains("unlimited budget"), "{r}");
+}
+
+#[test]
+fn a_single_turn_is_singular_and_a_set_budget_is_shown() {
+    let mut i = healthy();
+    i.turns = 1;
+    i.budget = 50_000;
+    let r = render(&i);
+    assert!(r.contains("1 turn \u{00b7}"), "{r}");
+    assert!(!r.contains("1 turns"), "{r}");
+    assert!(r.contains("~50000 tok budget"), "{r}");
+}
+
+/// A `0/turn` reading would be meaningless, and the division would panic.
+#[test]
+fn no_turns_yet_means_no_rate() {
+    let mut i = healthy();
+    i.turns = 0;
+    let r = render(&i);
+    assert!(r.contains("session: 0 turns"), "{r}");
+    assert!(!r.contains("/turn)"), "no turns yet, no rate to show: {r}");
+}
+
+/// A keyless machine is not a broken one any more — the advice must say so.
+#[test]
+fn a_missing_provider_offers_the_keyless_route_first() {
+    let mut i = healthy();
+    i.provider = None;
+    let r = render(&i);
+    assert!(r.contains("sign in to claude"), "{r}");
+    assert!(r.contains("OPENROUTER_API_KEY"), "{r}");
 }

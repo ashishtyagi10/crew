@@ -24,6 +24,14 @@ pub(crate) struct DoctorInputs {
     pub resumable: bool,
     pub sys_tools: bool,
     pub sys_mode: &'static str,
+    /// Turns taken and approximate tokens spent this session, plus the relay
+    /// token budget. Inherited from the deleted `/status`: everything else it
+    /// reported is visible in the pane footer, but these three were nowhere
+    /// else, and a construct's deletion must not take the only copy of its
+    /// information with it.
+    pub turns: u64,
+    pub tokens: u64,
+    pub budget: usize,
 }
 
 /// One report line: `✓` when healthy, `✗` when broken, `–` for "absent but
@@ -44,15 +52,20 @@ pub(crate) fn render(i: &DoctorInputs) -> String {
         None => line(
             '✗',
             "provider",
-            "no key — set DASHSCOPE_API_KEY, OPENROUTER_API_KEY, or \
-             ANTHROPIC_API_KEY (inbuilt agents need one)",
+            "none — sign in to claude, codex or opencode (crew finds them), \
+             or set DASHSCOPE_API_KEY, OPENROUTER_API_KEY or ANTHROPIC_API_KEY \
+             for the inbuilt agents",
         ),
     });
     for (name, found) in &i.clis {
         out.push(if *found {
             line('✓', name, "on PATH")
         } else {
-            line('–', name, "not installed (optional CLI agent)")
+            line(
+                '–',
+                name,
+                "not installed (sign in to one for a keyless roster)",
+            )
         });
     }
     out.push(if i.bash {
@@ -109,6 +122,28 @@ pub(crate) fn render(i: &DoctorInputs) -> String {
     } else {
         line('–', "sys tools", "disabled (CREW_SYS_TOOLS=0)")
     });
+    // The session line `/status` used to carry. `~n/turn` only once there is a
+    // turn to average over — a `0/turn` reading would be meaningless, and
+    // turns == 0 would divide by zero.
+    let per_turn = match i.tokens.checked_div(i.turns) {
+        Some(avg) => format!(" (~{avg}/turn)"),
+        None => String::new(),
+    };
+    let budget = if i.budget == 0 {
+        "unlimited budget".to_string()
+    } else {
+        format!("~{} tok budget", i.budget)
+    };
+    out.push(line(
+        '✓',
+        "session",
+        &format!(
+            "{} turn{} · ~{} tok{per_turn} · {budget}",
+            i.turns,
+            if i.turns == 1 { "" } else { "s" },
+            i.tokens,
+        ),
+    ));
     out.join("\n")
 }
 
@@ -130,8 +165,10 @@ pub(crate) fn on_path(bin: &str, path: &str) -> bool {
     })
 }
 
-/// Probe the live environment for the report.
-pub(crate) fn gather() -> DoctorInputs {
+/// Probe the live environment for the report. `session` supplies the counters
+/// that only it knows (turns, tokens); everything else is probed here.
+pub(crate) fn gather(session: &super::session::Session) -> DoctorInputs {
+    use std::sync::atomic::Ordering;
     let path = std::env::var("PATH").unwrap_or_default();
     DoctorInputs {
         // The same resolution the roster is built from, so `/doctor` reports a
@@ -153,6 +190,9 @@ pub(crate) fn gather() -> DoctorInputs {
         resumable: super::sessionlog::tail().is_some(),
         sys_tools: super::systools::enabled(),
         sys_mode: super::systools::mode_label(),
+        turns: session.turns.load(Ordering::Relaxed),
+        tokens: session.tokens.load(Ordering::Relaxed),
+        budget: super::session::token_budget(),
     }
 }
 
