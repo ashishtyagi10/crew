@@ -251,3 +251,43 @@ fn accepting_a_row_that_needs_a_key_asks_for_it_instead_of_running() {
         "the palette closes to make room for the prompt"
     );
 }
+
+/// Browsing shows sections; every construct lands in exactly one, and the
+/// count of real rows still equals the construct list — a grouping that
+/// loses or duplicates a command is worse than no grouping.
+#[test]
+fn browsing_groups_every_construct_exactly_once() {
+    let items = super::chatpaletteitems::slash_items("");
+    let rows: Vec<&str> = items
+        .iter()
+        .filter(|i| !i.header)
+        .map(|i| i.label.as_str())
+        .collect();
+    assert_eq!(
+        rows.len(),
+        crate::chatcomplete::CONSTRUCTS.len(),
+        "grouping changed how many constructs are offered: {rows:?}"
+    );
+    for c in crate::chatcomplete::CONSTRUCTS {
+        assert_eq!(rows.iter().filter(|r| **r == c).count(), 1, "{c}");
+    }
+    assert!(items.iter().any(|i| i.header), "no sections while browsing");
+    // A header must never be selectable as a command.
+    for h in items.iter().filter(|i| i.header) {
+        assert!(h.fill.is_empty(), "header {} is fillable", h.label);
+    }
+}
+
+/// Filtering drops the sections: the user has already said what they want,
+/// and labels between one or two survivors are chrome in the way.
+#[test]
+fn filtering_is_a_flat_list() {
+    let items = super::chatpaletteitems::slash_items("mo");
+    assert!(!items.is_empty());
+    assert!(
+        items.iter().all(|i| !i.header),
+        "sections survived a filter: {:?}",
+        items.iter().map(|i| &i.label).collect::<Vec<_>>()
+    );
+    assert!(items.iter().all(|i| i.label.starts_with("/mo")));
+}

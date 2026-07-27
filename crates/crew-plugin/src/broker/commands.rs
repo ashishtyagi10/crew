@@ -90,8 +90,9 @@ pub(crate) fn expand_alias(trimmed: &str) -> String {
     trimmed.to_string()
 }
 
-/// Construct names this router (and the stdio layer's `/stop`/`/tasks`/
-/// `/status`) recognizes — the candidate list for [`closest_construct`].
+/// Construct names this router recognizes — the candidate list for
+/// [`closest_construct`], and the source a host should build its palette
+/// from rather than keeping a second copy (see [`constructs`]).
 const CONSTRUCTS: &[&str] = &[
     "help",
     "model",
@@ -116,6 +117,14 @@ const CONSTRUCTS: &[&str] = &[
     "diff",
     "stop",
 ];
+
+/// Every construct the broker answers, without the leading slash. Exposed so
+/// a host can ASSERT its palette against the router instead of maintaining a
+/// parallel list — `/reload` shipped for eleven releases as a working command
+/// no palette offered, because two lists existed and nothing compared them.
+pub fn broker_constructs() -> &'static [&'static str] {
+    CONSTRUCTS
+}
 
 /// The known construct whose name is closest to `typo`, if one is close
 /// enough — sharing a 2+ char prefix, or within edit distance 2 — else `None`.

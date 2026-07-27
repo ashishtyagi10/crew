@@ -4,20 +4,90 @@
 use crate::chatcomplete::{describe, CONSTRUCTS};
 use crate::suggest::MenuItem;
 
+/// The palette's sections, in the order a session tends to need them: do the
+/// work, look at what changed, manage the session, configure the stack.
+///
+/// Ungrouped, 24 constructs is a wall of equally-weighted rows. Grouped, the
+/// eye finds the verb it wants by what it is FOR — which is what opencode's
+/// palette does and why its longer list reads shorter. Anything not named
+/// here still appears, under "other": a construct must never be invisible
+/// because someone forgot to file it.
+const SECTIONS: &[(&str, &[&str])] = &[
+    ("work", &["/goal", "/plan", "/fan", "/loop", "/skill"]),
+    (
+        "changes",
+        &["/diff", "/commit", "/review", "/checkpoints", "/restore"],
+    ),
+    (
+        "session",
+        &["/resume", "/memory", "/compact", "/export", "/stop"],
+    ),
+    (
+        "setup",
+        &["/model", "/skills", "/mcp", "/reload", "/doctor", "/theme"],
+    ),
+    ("help", &["/help", "/exit"]),
+];
+
+fn row(c: &str) -> MenuItem {
+    MenuItem {
+        label: c.to_string(),
+        desc: describe(c).to_string(),
+        fill: c.to_string(),
+        submit: false,
+        header: false,
+        dim: false,
+        needs: None,
+    }
+}
+
+fn header(label: &str) -> MenuItem {
+    MenuItem {
+        label: label.to_string(),
+        desc: String::new(),
+        fill: String::new(),
+        submit: false,
+        header: true,
+        dim: false,
+        needs: None,
+    }
+}
+
 pub(super) fn slash_items(query: &str) -> Vec<MenuItem> {
-    CONSTRUCTS
+    let hits: Vec<&str> = CONSTRUCTS
         .iter()
+        .copied()
         .filter(|c| c[1..].starts_with(query))
-        .map(|c| MenuItem {
-            label: c.to_string(),
-            desc: describe(c).to_string(),
-            fill: c.to_string(),
-            submit: false,
-            header: false,
-            dim: false,
-            needs: None,
-        })
-        .collect()
+        .collect();
+    // Headers only while BROWSING. Once the user is filtering they have
+    // already said what they want, and section labels between one or two
+    // survivors are chrome in the way of the answer.
+    if !query.is_empty() {
+        return hits.into_iter().map(row).collect();
+    }
+    let mut out = Vec::new();
+    let mut placed: Vec<&str> = Vec::new();
+    for (label, members) in SECTIONS {
+        let present: Vec<&str> = members
+            .iter()
+            .copied()
+            .filter(|m| hits.contains(m))
+            .collect();
+        if present.is_empty() {
+            continue;
+        }
+        out.push(header(label));
+        for c in present {
+            placed.push(c);
+            out.push(row(c));
+        }
+    }
+    let rest: Vec<&str> = hits.into_iter().filter(|c| !placed.contains(c)).collect();
+    if !rest.is_empty() {
+        out.push(header("other"));
+        out.extend(rest.into_iter().map(row));
+    }
+    out
 }
 
 /// Rows for the leading `@`: the full attach picker (agents, skills, files
