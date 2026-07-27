@@ -71,7 +71,10 @@ fn help_lists_the_diff_construct() {
     let evs = run("/help");
     let t = text_of(&evs[0]);
     assert!(t.contains("/diff"), "{t}");
-    assert!(t.contains("git diff --stat"), "{t}");
+    // What the line must TELL a reader, not which git command it runs. It
+    // said "git diff --stat" — which stopped being true the moment the
+    // comparison had to include files git had never been told about.
+    assert!(t.contains("new files"), "{t}");
 }
 
 #[test]

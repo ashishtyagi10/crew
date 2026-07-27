@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.6.83
+
+- `/diff` shows files the agent created. It ran `git diff --stat`, which
+  compares the working tree to the index — so a new file was untracked and
+  invisible, and anything staged was excluded too. Those are the two states an
+  agent most often leaves a repository in, and both printed "working tree
+  clean — no changes". It now compares everything that exists against the last
+  commit, and works in a repository with no commits at all.
+- It excludes `.crew/` for the same reason the end-of-task note does, so the
+  note and the command it names cannot disagree.
+
 ## 0.6.82
 
 - A finished task says which of your files it changed. A clean run printed its

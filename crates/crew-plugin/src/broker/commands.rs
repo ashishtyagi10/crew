@@ -46,7 +46,7 @@ pub(crate) const HELP: &str = "constructs:\n\
     /plan <task> — draft a numbered plan; nothing runs until you approve\n\
     /approve · /reject — run or discard the drafted plan (the crew pane binds these to enter and esc)\n\
     /restore [n] — list the automatic snapshots, or put snapshot n's files back\n\
-    /diff — show the working tree's changes (git diff --stat)\n\
+    /diff — everything different from the last commit, new files included\n\
     /commit — draft an AI commit message · /commit apply — create the commit\n\
     /review — AI code review of the working diff, findings worst-first\n\
     /resume — fold the previous session's tail into the next task\n\
