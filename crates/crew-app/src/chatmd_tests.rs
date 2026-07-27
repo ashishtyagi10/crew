@@ -181,3 +181,71 @@ fn a_fenced_block_is_syntax_coloured() {
     let kw_cell = code.iter().find(|c| c.c == 'l').unwrap();
     assert!(kw_cell.bold, "keywords draw bold");
 }
+
+/// A whole reply rendered the way the pane renders it, dumped as a colour MAP
+/// so the highlighting is inspectable rather than merely asserted. Each cell
+/// becomes one letter: K keyword, S string, C comment, c plain code, · prose.
+///
+/// This exists because eighteen releases of colour work were verified by
+/// contrast arithmetic and never by looking at the output. The map is the
+/// closest thing to looking that does not need a GPU, a window, or a key
+/// press — everything below it (the CRT pass) has its own headless test.
+fn colour_map(text: &str, width: usize) -> String {
+    use crate::md::syntax::Token;
+    let out = lines(text, width, crew_theme::theme().ink);
+    let code_bg = Some(crate::chatink::code_bg());
+    let class = |c: &crate::chatbody::CardCell| {
+        if c.c == ' ' {
+            return ' ';
+        }
+        if c.bg != code_bg {
+            return '\u{00b7}';
+        }
+        match c.fg {
+            f if f == crate::chatink::token_fg(Token::Keyword) && c.bold => 'K',
+            f if f == crate::chatink::token_fg(Token::Str) => 'S',
+            f if f == crate::chatink::token_fg(Token::Comment) => 'C',
+            _ => 'c',
+        }
+    };
+    out.iter()
+        .map(|l| l.iter().map(class).collect::<String>())
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// The end-to-end shape of a highlighted reply, pinned. Comments, strings and
+/// keywords must each occupy their own cells — and prose outside the fence
+/// must claim none of them.
+#[test]
+fn a_reply_with_code_renders_a_distinct_colour_for_each_class() {
+    let _guard = crate::app::theme_test_guard();
+    let reply = "Here it is:\n\n```rust\nlet name = \"world\"; // greet\n```\n\nDone.";
+    let map = colour_map(reply, 34);
+    // Prose lines carry no code cells at all.
+    let prose: Vec<&str> = map.lines().filter(|l| l.contains('\u{00b7}')).collect();
+    assert!(
+        prose.iter().all(|l| !l.contains('K') && !l.contains('S')),
+        "prose picked up code colours:\n{map}"
+    );
+    // The code line carries all three classes plus plain code.
+    let code = map
+        .lines()
+        .find(|l| l.contains('K'))
+        .unwrap_or_else(|| panic!("no keyword cell anywhere:\n{map}"));
+    for (class, what) in [
+        ('K', "keyword"),
+        ('S', "string"),
+        ('C', "comment"),
+        ('c', "plain"),
+    ] {
+        assert!(
+            code.contains(class),
+            "no {what} cells on the code line:\n{map}"
+        );
+    }
+    // Order: keyword, then string, then comment — left to right, as written.
+    let pos = |ch: char| code.find(ch).unwrap();
+    assert!(pos('K') < pos('S'), "keyword after string:\n{map}");
+    assert!(pos('S') < pos('C'), "string after comment:\n{map}");
+}
