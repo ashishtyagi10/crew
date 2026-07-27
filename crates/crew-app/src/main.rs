@@ -25,6 +25,7 @@ mod chatexport;
 mod chatflow;
 mod chatfont;
 mod chathdr;
+mod chathistory;
 mod chatink;
 mod chatinput;
 mod chatkeys;

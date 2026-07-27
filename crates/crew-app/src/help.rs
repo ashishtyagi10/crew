@@ -54,6 +54,10 @@ const CHAT_BINDINGS: &[(&str, &str)] = &[
     ("Shift+Enter", "Newline instead of sending"),
     ("Tab", "Complete the leading @agent or /construct"),
     (
+        "Up / Down",
+        "Recall a prompt you already sent · navigate an open popup",
+    ),
+    (
         "@ · # (in composer)",
         "Attach an agent, skill or file · remember a note",
     ),
@@ -63,6 +67,9 @@ const CHAT_BINDINGS: &[(&str, &str)] = &[
     ),
 ];
 
+/// Width of the key column. Every description starts here.
+const KEY_COL: usize = 26;
+
 /// Preferred overlay size in cells: both binding tables, a spacer and a
 /// heading between them, plus borders/title/hint.
 ///
@@ -71,9 +78,23 @@ const CHAT_BINDINGS: &[(&str, &str)] = &[
 /// the bottom. They are not here any more: the composer's palette has listed
 /// them since v0.6.52, grouped and filterable, which is strictly better than
 /// an unscrollable overflowing column. `/keys` is for keys.
+///
+/// The WIDTH is measured the same way, and was not: it was the constant 58,
+/// which left 30 columns for a description, and eight rows had outgrown that.
+/// ratatui clips a `Line` without a word of complaint, so `Esc` read "Discard
+/// a pending plan · inter" — losing both the interrupt and the close — and
+/// `@a+b` lost "in parallel", which is the entire point of the binding. The
+/// same lesson as the footer in v0.6.57: a truncated instruction teaches the
+/// half that fits, and nobody can see that the rest existed.
 pub fn size() -> (u16, u16) {
     let rows = BINDINGS.len() + CHAT_BINDINGS.len() + 2 + 4;
-    (58, rows as u16)
+    let widest = BINDINGS
+        .iter()
+        .chain(CHAT_BINDINGS)
+        .map(|(k, d)| KEY_COL.max(k.chars().count() + 1) + d.chars().count())
+        .max()
+        .unwrap_or(KEY_COL);
+    ((widest + 2) as u16, rows as u16)
 }
 
 /// Render the help overlay into a `cols × rows` grid.
@@ -88,7 +109,10 @@ pub fn help_cells(cols: u16, rows: u16) -> Vec<CellView> {
     let mut buf = Buffer::empty(Rect::new(0, 0, cols, rows));
     let item = |left: &str, right: &str| {
         ListItem::new(Line::from(vec![
-            Span::styled(format!("{left:<26}"), Style::new().fg(accent_color())),
+            Span::styled(
+                format!("{left:<width$}", width = KEY_COL),
+                Style::new().fg(accent_color()),
+            ),
             Span::styled(right.to_string(), Style::new().fg(text_col)),
         ]))
     };
@@ -166,7 +190,14 @@ mod tests {
     fn the_chat_pane_keys_are_documented() {
         let (w, h) = size();
         let cells = help_cells(w, h);
-        for needle in ["Enter", "Esc", "pending plan", "Shift+Enter", "Tab"] {
+        for needle in [
+            "Enter",
+            "Esc",
+            "pending plan",
+            "Shift+Enter",
+            "Tab",
+            "Recall a prompt",
+        ] {
             assert!(shows(&cells, needle), "missing {needle}");
         }
     }
@@ -175,10 +206,24 @@ mod tests {
     /// included — it did not, and ratatui cut the bottom off in silence.
     #[test]
     fn the_overlay_fits_a_default_window() {
-        let (_, h) = size();
+        let (w, h) = size();
         // 800 logical px over a ~20px cell is about 40 rows; the default
-        // window is 1200x800 (`handler::resumed`).
+        // window is 1200x800 (`handler::resumed`), and a cell is ~9px wide.
         assert!(h <= 40, "overlay is {h} rows and will be truncated");
+        assert!(w <= 130, "overlay is {w} cols and will be truncated");
+    }
+
+    /// EVERY description in full, not just the ones that happened to fit.
+    /// `the_chat_pane_keys_are_documented` passed throughout the eight rows
+    /// that were being clipped, because each of its needles sat inside the
+    /// first 30 columns — an assertion on a prefix cannot see a missing tail.
+    #[test]
+    fn no_description_is_clipped() {
+        let (w, h) = size();
+        let cells = help_cells(w, h);
+        for (k, d) in BINDINGS.iter().chain(CHAT_BINDINGS) {
+            assert!(shows(&cells, d), "clipped description for {k}: {d}");
+        }
     }
 
     #[test]

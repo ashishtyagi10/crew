@@ -13,7 +13,8 @@ pub(crate) enum ChatInput {
     Backspace,
     /// Tab — complete the leading @agent / /construct token.
     Complete,
-    /// Arrow keys — navigate the @file mention popup when it is open.
+    /// Arrow keys — navigate a popup when one is open, otherwise walk the
+    /// composer's prompt history (see `chathistory`).
     Up,
     Down,
     Ignore,

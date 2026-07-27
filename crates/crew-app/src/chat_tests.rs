@@ -1389,3 +1389,83 @@ fn a_fresh_broker_starts_from_an_empty_task_list() {
     p.absorb_task(1, true);
     assert_eq!(p.running_tasks, vec![1], "an id was double-counted");
 }
+
+/// Up recalls what was sent, through the real key path — and the palette,
+/// which is open whenever the composer leads with `/`, must get the arrows
+/// FIRST. The history's own walk is unit-tested in `chathistory`; what is
+/// under test here is the wiring: what gets recorded, and who owns the key.
+#[test]
+fn up_recalls_the_last_prompt_once_no_popup_wants_the_key() {
+    use crate::chatkeys::ChatInput;
+
+    let mut p = pane();
+    let cwd = std::env::temp_dir();
+    for c in "hello there".chars() {
+        p.on_input(ChatInput::Char(c), &cwd);
+    }
+    p.on_input(ChatInput::Enter, &cwd);
+    assert!(p.input.is_empty(), "sending clears the composer");
+
+    p.on_input(ChatInput::Up, &cwd);
+    assert_eq!(p.input, "hello there", "Up did not recall the prompt");
+    p.on_input(ChatInput::Down, &cwd);
+    assert!(p.input.is_empty(), "Down returned the empty draft");
+}
+
+/// A locally answered command never reaches the broker, and is exactly as
+/// worth recalling as one that does — `record` runs before every intercept.
+#[test]
+fn a_locally_intercepted_command_is_still_recalled() {
+    use crate::chatkeys::ChatInput;
+
+    let mut p = pane();
+    let cwd = std::env::temp_dir();
+    for c in "/export".chars() {
+        p.on_input(ChatInput::Char(c), &cwd);
+    }
+    // Escape the palette the leading '/' opened, so Enter is the pane's.
+    p.on_input(ChatInput::Close, &cwd);
+    p.on_input(ChatInput::Enter, &cwd);
+    p.on_input(ChatInput::Up, &cwd);
+    assert_eq!(p.input, "/export");
+}
+
+/// The arrows belong to an open popup. Recall must not fight the palette for
+/// them — this is the same routing-order guard as `esc_closes_the_open_
+/// palette_then_the_pane`, for the keys added with history.
+#[test]
+fn an_open_palette_keeps_the_arrows() {
+    use crate::chatkeys::ChatInput;
+
+    let mut p = pane();
+    let cwd = std::env::temp_dir();
+    for c in "sent once".chars() {
+        p.on_input(ChatInput::Char(c), &cwd);
+    }
+    p.on_input(ChatInput::Enter, &cwd);
+    p.on_input(ChatInput::Char('/'), &cwd);
+    assert!(p.palette.is_some(), "leading '/' opens the palette");
+    p.on_input(ChatInput::Up, &cwd);
+    assert_eq!(
+        p.input, "/",
+        "the palette moved its selection, not the input"
+    );
+}
+
+/// Typing over a recalled line adopts it: Down must not put the stashed draft
+/// back on top of what the user has just written.
+#[test]
+fn editing_a_recalled_prompt_keeps_the_edit() {
+    use crate::chatkeys::ChatInput;
+
+    let mut p = pane();
+    let cwd = std::env::temp_dir();
+    for c in "run it".chars() {
+        p.on_input(ChatInput::Char(c), &cwd);
+    }
+    p.on_input(ChatInput::Enter, &cwd);
+    p.on_input(ChatInput::Up, &cwd);
+    p.on_input(ChatInput::Char('!'), &cwd);
+    p.on_input(ChatInput::Down, &cwd);
+    assert_eq!(p.input, "run it!");
+}

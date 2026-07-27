@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.6.81
+
+- Up and Down in an agent pane recall what you already sent, filtered by what
+  you have typed — the docked input bar's rule, which the composer did not
+  share. The arrows were classified for the popups and then dropped when no
+  popup was open, so changing one word of a long prompt meant retyping it.
+- `/keys` shows each description in full. The overlay was a fixed 58 columns
+  wide, which left 30 for a description, and eight rows had outgrown it: `Esc`
+  read "Discard a pending plan · inter", losing both the interrupt and the
+  close, and `@a+b` lost "in parallel".
+
 ## 0.6.80
 
 - The provider-key tests assert the same thing on every machine. They read the

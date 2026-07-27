@@ -115,6 +115,11 @@ pub struct ChatPane {
     /// so `/export`, `/restore`, the session log and the swarm fold are
     /// correct here by construction instead of each needing its own filter.
     pub(crate) streaming: Vec<Message>,
+    /// What this pane has already sent, for the composer's Up/Down recall
+    /// (see `chathistory`). Not derived from `messages`: those are display
+    /// records that fold, get restored from a session log and include replies,
+    /// none of which is what the arrows should walk.
+    pub(crate) history: crate::chathistory::History,
 }
 
 impl ChatPane {
@@ -153,6 +158,7 @@ impl ChatPane {
             pending_recent: None,
             running_tasks: Vec::new(),
             streaming: Vec::new(),
+            history: crate::chathistory::History::default(),
         }
     }
 
@@ -542,7 +548,22 @@ impl ChatPane {
                 }
                 return Some(ChatAction::Close);
             }
-            ChatInput::Ignore | ChatInput::Up | ChatInput::Down => return None,
+            ChatInput::Ignore => return None,
+            // No popup is open (both got these keys first, above), so the
+            // arrows mean what they mean in every shell: walk what you already
+            // sent. The palette is deliberately NOT re-synced from a recalled
+            // line — it would open on any `/command` and then swallow the next
+            // Up as popup navigation, which is the opposite of what the user
+            // is in the middle of doing. Typing a character re-syncs it as
+            // usual.
+            ChatInput::Up => {
+                self.history.prev(&mut self.input);
+                return None;
+            }
+            ChatInput::Down => {
+                self.history.next(&mut self.input);
+                return None;
+            }
             ChatInput::Complete => {
                 if let Some(done) = crate::chatcomplete::complete(&self.input, &self.agents) {
                     self.input = done;
@@ -566,6 +587,11 @@ impl ChatPane {
         };
         if let Some(text) = input_reduce(&mut self.input, ch, enter, backspace) {
             self.scroll = 0; // sending snaps back to the live bottom
+                             // Every submitted line, whatever happens to it next: the ones
+                             // answered locally (`/theme`, `/export`) and the ones that never
+                             // reach the broker are exactly as worth recalling as the rest, so
+                             // this records BEFORE any of the intercepts below return.
+            self.history.record(&text);
             if text.trim() == "/exit" {
                 return Some(ChatAction::Close); // close the pane, like Escape
             }
@@ -622,7 +648,10 @@ impl ChatPane {
                 }
             }
         } else {
-            // A Char/Backspace edit: sync the mention popup to the new input.
+            // A Char/Backspace edit: the composer's text is the user's own
+            // again, whether or not it started as a recalled line.
+            self.history.edited();
+            // Sync the mention popup to the new input.
             let agents = self.agents.clone();
             crate::chatmention::after_edit(&mut self.mention, &self.input, || {
                 crate::chatmention::scan_entries(cwd, &agents)
