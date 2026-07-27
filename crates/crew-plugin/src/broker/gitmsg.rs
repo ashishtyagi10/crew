@@ -1,5 +1,6 @@
 //! `/commit` — AI-written commit messages (à la Aider / Cursor): the coder
-//! agent reads the working tree's diff (staged wins; unstaged otherwise) and
+//! agent reads the working tree's diff (staged wins; the whole tree otherwise,
+//! new files included) and
 //! drafts a Conventional Commits message. Nothing is committed until the user
 //! runs `/commit apply` — the propose/apply split mirrors plan mode, and the
 //! pending proposal is shared session state for the same reason.
@@ -21,8 +22,8 @@ const DIFF_CAP: usize = 12_000;
 /// A drafted commit message awaiting `/commit apply`.
 pub(crate) struct PendingCommit {
     pub message: String,
-    /// True when the proposal covered the staged diff (`git commit -m`);
-    /// false for unstaged tracked changes (`git commit -am`).
+    /// True when the proposal covered only what is staged; false when it
+    /// covered the whole working tree, which `apply` must then stage.
     pub staged: bool,
 }
 
@@ -47,9 +48,44 @@ fn git(dir: &Path, args: &[&str]) -> Result<String, String> {
     Ok(String::from_utf8_lossy(&out.stdout).to_string())
 }
 
+/// Everything in the working tree that differs from the last commit,
+/// untracked files included, as a patch — the comparison `/diff` shows and the
+/// end-of-task note summarises, so all three describe the same work.
+///
+/// `git diff` cannot see a file git has never been told about, which is what
+/// an agent produces every time it writes a new module. Building the
+/// comparison through a throwaway index is the only way to include one without
+/// touching the user's real index.
+fn whole_tree_diff(dir: &Path) -> Result<String, String> {
+    let tree = super::checkpoint::worktree_tree(dir)?;
+    let base = super::checkpoint::git(dir, &["rev-parse", "--verify", "HEAD^{tree}"], None)
+        .or_else(|_| {
+            super::checkpoint::git(dir, &["hash-object", "-t", "tree", "/dev/null"], None)
+        })?;
+    super::checkpoint::git(
+        dir,
+        &[
+            "diff-tree",
+            "-p",
+            "-r",
+            &base,
+            &tree,
+            "--",
+            super::changed::NOT_CREW,
+        ],
+        None,
+    )
+}
+
 /// The diff a commit message should describe: the staged diff when anything
-/// is staged, else the unstaged tracked diff. `Ok(None)` for a clean tree;
-/// `Err` outside a repository. The diff is clipped to [`DIFF_CAP`].
+/// is staged, else everything that differs from the last commit. `Ok(None)`
+/// for a clean tree; `Err` outside a repository. Clipped to [`DIFF_CAP`].
+///
+/// STAGED STILL WINS AND STILL MEANS ONLY WHAT IS STAGED. Someone who has
+/// staged a subset has said which change they mean, and a message describing
+/// more than they are about to commit would be wrong. The unstaged branch is
+/// where the caller has expressed nothing, so it means "the work in this
+/// tree" — which includes files that did not exist before.
 pub(crate) fn pick_diff(dir: &Path) -> Result<Option<(String, bool)>, String> {
     let clipped = |mut d: String| {
         if d.len() > DIFF_CAP {
@@ -66,9 +102,9 @@ pub(crate) fn pick_diff(dir: &Path) -> Result<Option<(String, bool)>, String> {
     if !staged.trim().is_empty() {
         return Ok(Some((clipped(staged), true)));
     }
-    let unstaged = git(dir, &["diff"])?;
-    if !unstaged.trim().is_empty() {
-        return Ok(Some((clipped(unstaged), false)));
+    let whole = whole_tree_diff(dir)?;
+    if !whole.trim().is_empty() {
+        return Ok(Some((clipped(whole), false)));
     }
     Ok(None)
 }
@@ -106,15 +142,20 @@ pub(crate) fn clean_message(reply: &str) -> String {
     lines.join("\n").trim().to_string()
 }
 
-/// Create the commit: `git commit -m` for a staged proposal, `git commit -am`
-/// for an unstaged one. Returns git's one-line summary.
+/// Create the commit. A staged proposal commits exactly what is staged; an
+/// unstaged one commits everything the proposal described. Returns git's
+/// one-line summary.
+///
+/// It ran `git commit -am`, which stages tracked modifications and nothing
+/// else — so a new file the message had just described (once the message
+/// could see it at all) stayed uncommitted while the pane reported a
+/// successful commit. `-A` with the same `.crew` exclusion the diff used
+/// commits exactly what the user was shown, and nothing they were not.
 pub(crate) fn do_commit(dir: &Path, message: &str, staged: bool) -> Result<String, String> {
-    let args: &[&str] = if staged {
-        &["commit", "-m", message]
-    } else {
-        &["commit", "-am", message]
-    };
-    let out = git(dir, args)?;
+    if !staged {
+        git(dir, &["add", "-A", "--", super::changed::NOT_CREW])?;
+    }
+    let out = git(dir, &["commit", "-m", message])?;
     Ok(out.lines().next().unwrap_or("committed").to_string())
 }
 

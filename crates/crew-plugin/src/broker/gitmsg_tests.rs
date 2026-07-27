@@ -113,3 +113,91 @@ fn do_commit_creates_the_commit_for_both_modes() {
     let subj = git(&d, &["log", "-1", "--format=%s"]).unwrap();
     assert_eq!(subj.trim(), "fix: unstaged change");
 }
+
+/// The file an agent just wrote. `git diff` cannot see a path git has never
+/// been told about, so `/commit` drafted a message that never mentioned the
+/// new module and `/review` reviewed a change with its main file missing.
+#[test]
+fn a_new_file_is_part_of_the_change() {
+    let d = repo("untracked-diff");
+    seed_commit(&d);
+    std::fs::write(d.join("new.rs"), "fn added() {}\n").unwrap();
+    let (diff, staged) = pick_diff(&d).unwrap().unwrap();
+    assert!(!staged, "nothing was staged");
+    assert!(
+        diff.contains("new.rs"),
+        "new file missing from diff: {diff}"
+    );
+    assert!(diff.contains("fn added"), "its contents too: {diff}");
+}
+
+/// …and `apply` commits it. `git commit -am` stages tracked modifications and
+/// nothing else, so the new file stayed behind while the pane reported a
+/// successful commit — the message described work that was not in it.
+#[test]
+fn apply_commits_the_new_file_it_described() {
+    let d = repo("untracked-apply");
+    seed_commit(&d);
+    std::fs::write(d.join("new.rs"), "fn added() {}\n").unwrap();
+    std::fs::write(d.join("a.txt"), "edited\n").unwrap();
+    do_commit(&d, "feat: add the module", false).unwrap();
+    let files = git(&d, &["show", "--name-only", "--format=", "HEAD"]).unwrap();
+    assert!(files.contains("new.rs"), "new file not committed: {files}");
+    assert!(files.contains("a.txt"), "edit not committed: {files}");
+    assert!(
+        git(&d, &["status", "--porcelain"])
+            .unwrap()
+            .trim()
+            .is_empty(),
+        "something was left behind: {:?}",
+        git(&d, &["status", "--porcelain"])
+    );
+}
+
+/// Staging is a statement about which change you mean. A partial stage must
+/// still commit exactly that, or `/commit` would quietly widen the commit
+/// someone had deliberately narrowed.
+#[test]
+fn a_partial_stage_is_still_respected() {
+    let d = repo("partial");
+    seed_commit(&d);
+    std::fs::write(d.join("a.txt"), "meant\n").unwrap();
+    git(&d, &["add", "a.txt"]).unwrap();
+    std::fs::write(d.join("other.rs"), "not meant yet\n").unwrap();
+
+    let (diff, staged) = pick_diff(&d).unwrap().unwrap();
+    assert!(staged, "a staged change wins");
+    assert!(!diff.contains("other.rs"), "described too much: {diff}");
+    do_commit(&d, "feat: only what was staged", true).unwrap();
+    let files = git(&d, &["show", "--name-only", "--format=", "HEAD"]).unwrap();
+    assert!(!files.contains("other.rs"), "committed too much: {files}");
+}
+
+/// Crew's own transcript is not the user's work — excluded from the message
+/// AND from what `apply` stages, or the commit would contain a file the
+/// message never mentioned.
+#[test]
+fn crews_own_files_are_neither_described_nor_committed() {
+    let d = repo("crewdir");
+    seed_commit(&d);
+    std::fs::create_dir_all(d.join(".crew")).unwrap();
+    std::fs::write(d.join(".crew/session-live.md"), "## a reply\n").unwrap();
+    assert_eq!(
+        pick_diff(&d).unwrap(),
+        None,
+        "only crew's own files changed"
+    );
+
+    std::fs::write(d.join("real.rs"), "the user's work\n").unwrap();
+    let (diff, _) = pick_diff(&d).unwrap().unwrap();
+    assert!(
+        diff.contains("real.rs") && !diff.contains(".crew"),
+        "{diff}"
+    );
+    do_commit(&d, "feat: real work", false).unwrap();
+    let files = git(&d, &["show", "--name-only", "--format=", "HEAD"]).unwrap();
+    assert!(
+        files.contains("real.rs") && !files.contains(".crew"),
+        "{files}"
+    );
+}

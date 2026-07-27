@@ -47,7 +47,7 @@ fn worktree_stat(dir: &Path) -> Result<String, String> {
             // only gitignored in crew's own repo. Same exclusion as the
             // end-of-task note, so the two views cannot disagree.
             "--",
-            ":!.crew",
+            super::changed::NOT_CREW,
         ],
         None,
     )
