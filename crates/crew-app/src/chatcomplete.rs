@@ -7,7 +7,7 @@ use crew_plugin::AgentInfo;
 /// Every composer slash action: broker constructs plus the pane-local
 /// `/export`, `/theme`, `/compact`, and `/exit` (see `chatexport` /
 /// `chattheme` / `chatcompact` / `chat`).
-pub(crate) const CONSTRUCTS: [&str; 23] = [
+pub(crate) const CONSTRUCTS: [&str; 24] = [
     "/help",
     "/model",
     "/fan",
@@ -26,6 +26,7 @@ pub(crate) const CONSTRUCTS: [&str; 23] = [
     "/doctor",
     "/standup",
     "/mcp",
+    "/reload",
     "/stop",
     "/export",
     "/theme",
@@ -55,6 +56,7 @@ pub(crate) fn describe(construct: &str) -> &'static str {
         "/doctor" => "health-check the AI stack and this session",
         "/standup" => "AI standup update from recent commits",
         "/mcp" => "list MCP servers and tools",
+        "/reload" => "re-read skills, agents and mcp.json",
         "/stop" => "stop all tasks (/stop #n for one)",
         "/export" => "export the transcript",
         "/theme" => "list or switch the color theme",
@@ -259,5 +261,71 @@ mod tests {
         assert!(is_subsequence("", "anything"));
         assert!(!is_subsequence("xyz", "goal"));
         assert!(!is_subsequence("lg", "goal")); // wrong order
+    }
+}
+
+#[cfg(test)]
+mod drift {
+    use super::CONSTRUCTS;
+
+    /// Constructs the APP answers by itself — the broker has never heard of
+    /// them, so their absence from its router is correct, not drift.
+    const APP_LOCAL: &[&str] = &["/export", "/theme", "/compact", "/exit"];
+
+    /// Constructs the PANE sends on the user's behalf and deliberately does
+    /// not offer: a drafted plan is answered with enter/esc, so `/approve` and
+    /// `/reject` must still route but must not be typed. Listing them here is
+    /// what makes the omission a decision rather than an oversight — the same
+    /// distinction `/shell` and `/run` already carry in `cmddefs`.
+    const SENT_BY_THE_PANE: &[&str] = &["/approve", "/reject"];
+
+    /// Every command the broker answers is either offered or deliberately
+    /// withheld. `/reload` was neither, for eleven releases: two lists existed
+    /// and nothing compared them, so a working command was simply invisible.
+    #[test]
+    fn every_broker_construct_is_offered_or_deliberately_withheld() {
+        for c in crew_plugin::broker_constructs() {
+            let slashed = format!("/{c}");
+            assert!(
+                CONSTRUCTS.contains(&slashed.as_str())
+                    || SENT_BY_THE_PANE.contains(&slashed.as_str()),
+                "{slashed} is a broker command the palette never offers"
+            );
+        }
+    }
+
+    /// The withheld ones must still ROUTE, or the pane would be sending text
+    /// nobody answers.
+    #[test]
+    fn withheld_constructs_still_route() {
+        for c in SENT_BY_THE_PANE {
+            let bare = c.trim_start_matches('/');
+            assert!(
+                crew_plugin::broker_constructs().contains(&bare),
+                "{c} is withheld from the palette AND routes nowhere"
+            );
+        }
+    }
+
+    /// …and nothing is offered that nobody answers. A name that completes but
+    /// does not route is worse than one that never existed.
+    #[test]
+    fn nothing_offered_is_unanswerable() {
+        for c in CONSTRUCTS {
+            let bare = c.trim_start_matches('/');
+            assert!(
+                crew_plugin::broker_constructs().contains(&bare) || APP_LOCAL.contains(&c),
+                "{c} routes nowhere"
+            );
+        }
+    }
+
+    /// Every offered construct explains itself; a blank hint is a row the
+    /// user has to guess at.
+    #[test]
+    fn every_construct_describes_itself() {
+        for c in CONSTRUCTS {
+            assert!(!super::describe(c).is_empty(), "{c} has no description");
+        }
     }
 }
