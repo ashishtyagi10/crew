@@ -297,14 +297,28 @@ fn adopt_fallback_path_leaves_path_unset_when_fallback_also_failed() {
 
 #[test]
 fn an_entered_key_joins_the_probed_set() {
-    let mut keys: std::collections::HashSet<String> =
-        ["OPENROUTER_API_KEY".to_string()].into_iter().collect();
-    merge_entered(
-        &mut keys,
-        &[("ANTHROPIC_API_KEY".to_string(), "sk".to_string())],
-    );
+    let mut keys: HashSet<String> = ["OPENROUTER_API_KEY".to_string()].into_iter().collect();
+    let entered: HashSet<String> = ["ANTHROPIC_API_KEY".to_string()].into_iter().collect();
+    merge_entered(&mut keys, &entered);
     assert!(keys.contains("ANTHROPIC_API_KEY"));
     assert!(keys.contains("OPENROUTER_API_KEY"), "probed keys survive");
+}
+
+#[test]
+fn noting_a_key_makes_resolve_pick_its_provider() {
+    // This is what finding #4 asks for — "note_key followed by
+    // provider_now() resolves to the expected provider" — but exercised
+    // through the pure seam rather than the real functions: `note_key` and
+    // `provider_now` both read/write the process-global `ENTERED` (and
+    // `provider_now` also reads `SHELL_PROBE`, a `OnceLock` no test may set
+    // more than once), and ~1170 crew-app tests run in parallel in this
+    // binary. `merge_entered` + `resolve` is exactly the logic `provider_now`
+    // runs over those globals, with the globals themselves replaced by
+    // plain local values.
+    let mut keys: HashSet<String> = HashSet::new();
+    let entered: HashSet<String> = ["DASHSCOPE_API_KEY".to_string()].into_iter().collect();
+    merge_entered(&mut keys, &entered);
+    assert_eq!(resolve(&keys, None), Some(crew_plugin::Provider::DashScope));
 }
 
 #[test]

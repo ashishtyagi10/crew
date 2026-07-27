@@ -43,9 +43,13 @@ impl KeyEntry {
     }
 
     /// Route one key. Enter submits a non-blank buffer, Escape cancels,
-    /// Backspace deletes, printable characters append (a paste arrives as a
-    /// run of `Char`s). EVERYTHING else is swallowed rather than forwarded —
-    /// this prompt is modal.
+    /// Backspace deletes, printable characters append. A paste never reaches
+    /// this method at all: on this app, Cmd+V / right-click-paste is handled
+    /// entirely in `clipboard.rs`, well before any pane sees a `ChatInput`, so
+    /// it cannot arrive here as a run of `Char`s. `clipboard.rs` checks for an
+    /// open prompt and routes a paste straight to [`Self::paste`] instead.
+    /// EVERYTHING else is swallowed rather than forwarded — this prompt is
+    /// modal.
     pub(crate) fn key(&mut self, k: &ChatInput) -> KeyOutcome {
         match k {
             ChatInput::Char(c) => {
@@ -70,18 +74,35 @@ impl KeyEntry {
         }
     }
 
+    /// Append pasted `text` to the buffer, the entry point `clipboard.rs`
+    /// uses instead of routing a paste into the composer while this prompt is
+    /// open. Strips newlines — a copied key commonly carries a trailing one,
+    /// and the buffer is trimmed again on submit regardless.
+    pub(crate) fn paste(&mut self, text: &str) {
+        self.buf.push_str(&text.replace(['\n', '\r'], ""));
+    }
+
     /// The prompt as a fieldset card — a bordered box with the variable named
     /// in the legend, matching every other panel on the canvas rather than
     /// floating above it. The interior is one row of mask glyphs, one per
     /// typed character, clipped to the card's width.
     pub(crate) fn card(&self, cols: u16) -> Vec<CellView> {
         let t = crew_theme::theme();
-        // Uppercase, not "paste {var}": the var name is already all-caps, and
-        // a lowercase word here would put ordinary letters on screen that can
-        // coincidentally match a secret's own characters (e.g. "paste" itself
-        // contains p/a/s/t/e), defeating the point of masking. All-caps
-        // keeps the instruction readable without that collision.
-        let title = format!("PASTE {}", self.var);
+        // Lowercase, matching every other composer-overlay legend
+        // (`commands`, `attach`, `models`, `files`) — uppercase is the
+        // sidebar's idiom, not this canvas's. The legend text itself is
+        // never a leak risk: the secret is drawn on its own interior row
+        // (row 1) and the leak test scopes its assertion to that row alone,
+        // so a coincidental letter overlap with the legend can't hide a
+        // real leak.
+        //
+        // `fit_legend` keeps the tail (the variable name) over the head (the
+        // word "paste") when the card is too narrow for both, the same
+        // treatment `inputbar_render.rs` gives the cwd legend.
+        let title = crate::cwd::fit_legend(
+            &format!("paste {}", self.var),
+            cols.saturating_sub(6) as usize,
+        );
         let mut cells = crate::boxdraw::titled_card(
             cols,
             ROWS,

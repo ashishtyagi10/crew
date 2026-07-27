@@ -64,27 +64,35 @@ struct Probed {
 /// Probe results, once the probe lands.
 static SHELL_PROBE: OnceLock<Probed> = OnceLock::new();
 
-/// Keys supplied from inside crew this session, plus whatever the credential
-/// store already held. The shell probe's cache is a `OnceLock` and can't be
-/// re-set, so rather than convert it, entered keys are unioned over it.
-static ENTERED: std::sync::RwLock<Vec<(String, String)>> = std::sync::RwLock::new(Vec::new());
+/// NAMES of keys supplied from inside crew this session, plus whatever the
+/// credential store already held. Holds only variable names, never values:
+/// the only reader ([`merge_entered`]) only ever asks "was a non-empty value
+/// supplied for this name", so retaining the value itself would just be the
+/// whole credential store sitting in process memory for the process
+/// lifetime with no reader that benefits. The shell probe's cache is a
+/// `OnceLock` and can't be re-set, so rather than convert it, entered names
+/// are unioned over it.
+static ENTERED: std::sync::LazyLock<std::sync::RwLock<HashSet<String>>> =
+    std::sync::LazyLock::new(|| std::sync::RwLock::new(HashSet::new()));
 
 /// Record a key supplied in-app so [`provider_now`] resolves against it
-/// immediately. NEVER logs the value.
+/// immediately. Only the NAME is retained — see [`ENTERED`] — and only when
+/// `value` is non-empty; an empty value clears any previously entered name,
+/// matching `credentials::save_key`'s "empty value removes the key" rule.
+/// NEVER logs the value.
 pub(crate) fn note_key(var: &str, value: &str) {
     if let Ok(mut e) = ENTERED.write() {
-        e.retain(|(k, _)| k != var);
-        e.push((var.to_string(), value.to_string()));
+        if value.is_empty() {
+            e.remove(var);
+        } else {
+            e.insert(var.to_string());
+        }
     }
 }
 
-/// Union entered keys into a probed key set (the testable half).
-fn merge_entered(keys: &mut HashSet<String>, entered: &[(String, String)]) {
-    for (k, v) in entered {
-        if !v.is_empty() {
-            keys.insert(k.clone());
-        }
-    }
+/// Union entered key names into a probed key set (the testable half).
+fn merge_entered(keys: &mut HashSet<String>, entered: &HashSet<String>) {
+    keys.extend(entered.iter().cloned());
 }
 
 /// Merge shell environment into probed state. Provider vars: existing

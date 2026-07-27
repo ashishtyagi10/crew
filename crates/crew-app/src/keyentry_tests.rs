@@ -68,13 +68,24 @@ fn the_popup_is_modal_and_swallows_other_keys() {
 #[test]
 fn the_card_masks_every_character_and_never_draws_the_secret() {
     let mut e = KeyEntry::new("ANTHROPIC_API_KEY".into());
-    let secret = "sk-supersecret";
+    // A mixed-case secret: a legend-agnostic assertion must catch a leak here
+    // too, not just for an all-lowercase sample that happened to dodge an
+    // all-caps legend.
+    let secret = "sk-SUPERSECRET";
     typed(&mut e, secret);
     let cells = e.card(60);
-    let drawn: String = cells.iter().map(|c| c.c).collect();
-    for ch in secret.chars().filter(|c| !c.is_whitespace() && *c != '-') {
+
+    // The legend (row 0) is drawn text, not a leak risk by construction — the
+    // buffer is only ever drawn on the interior row (`ROWS == 3`: border,
+    // input, border — see `card`'s `row: 1`). Scoping the assertion to that
+    // row is legend-agnostic: it would catch a leak regardless of what the
+    // legend says, unlike a global "does this character appear anywhere"
+    // check, which false-positives whenever the secret shares a letter with
+    // the legend text.
+    let interior: String = cells.iter().filter(|c| c.row == 1).map(|c| c.c).collect();
+    for ch in secret.chars() {
         assert!(
-            !drawn.contains(ch) || "ANTHROPICKEY_".contains(ch),
+            !interior.contains(ch),
             "character {ch:?} of the secret reached the screen"
         );
     }
@@ -83,8 +94,9 @@ fn the_card_masks_every_character_and_never_draws_the_secret() {
         secret.chars().count(),
         "one mask glyph per typed character"
     );
+    let legend: String = cells.iter().filter(|c| c.row == 0).map(|c| c.c).collect();
     assert!(
-        drawn.contains("ANTHROPIC_API_KEY"),
+        legend.contains("ANTHROPIC_API_KEY"),
         "the legend names the variable"
     );
 }
@@ -98,5 +110,25 @@ fn a_long_key_never_overflows_the_card() {
     assert!(
         cells.iter().all(|c| c.col < cols),
         "a cell escaped the card"
+    );
+}
+
+#[test]
+fn a_narrow_card_keeps_the_variable_name_over_the_word_paste() {
+    // `titled_card` silently clips its legend at `cols - 2`, head-first — so
+    // without `fit_legend`'s tail-preserving truncation, a narrow pane would
+    // show "paste ANTHROPIC_A" and lose the very name the prompt exists to
+    // convey. The variable name must survive in preference to the word
+    // "paste".
+    let e = KeyEntry::new("ANTHROPIC_API_KEY".into());
+    let cells = e.card(20);
+    let legend: String = cells.iter().filter(|c| c.row == 0).map(|c| c.c).collect();
+    assert!(
+        legend.contains("API_KEY"),
+        "the variable name must survive a narrow legend: {legend:?}"
+    );
+    assert!(
+        !legend.contains("paste"),
+        "the word \"paste\" should be dropped before the variable name is: {legend:?}"
     );
 }
