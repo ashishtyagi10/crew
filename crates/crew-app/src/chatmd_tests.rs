@@ -72,7 +72,7 @@ fn list_bullet_is_the_marker_colour_and_its_text_is_not() {
     let fg = (9, 9, 9);
     let out = lines("- one", 40, fg);
     assert_eq!(row_text(&out[0]), " • one");
-    assert_eq!(out[0][1].fg, crew_theme::theme().ansi[3], "the bullet");
+    assert_eq!(out[0][1].fg, crate::chatink::marker_fg(), "the bullet");
     assert_eq!(out[0][3].fg, fg, "the item text");
 }
 
@@ -81,28 +81,26 @@ fn quote_bar_is_the_marker_colour_and_quoted_text_is_muted() {
     let _guard = crate::app::theme_test_guard();
     let out = lines("> hi there", 40, (9, 9, 9));
     assert_eq!(row_text(&out[0]), " ▎ hi there");
-    assert_eq!(out[0][1].fg, crew_theme::theme().ansi[3], "the bar");
-    assert_eq!(out[0][3].fg, crew_theme::theme().text_muted, "quoted text");
+    assert_eq!(out[0][1].fg, crate::chatink::marker_fg(), "the bar");
+    assert_eq!(out[0][3].fg, crate::chatink::quote_fg(), "quoted text");
 }
 
 #[test]
 fn inline_code_inside_a_quote_is_still_code_coloured() {
     let _guard = crate::app::theme_test_guard();
     let out = lines("> use `let` here", 40, (9, 9, 9));
-    let theme = crew_theme::theme();
     let coded: Vec<_> = out[0]
         .iter()
         .filter(|c| c.bg == Some(crate::chatink::code_bg()))
         .collect();
     assert_eq!(coded.len(), 3, "l-e-t: {}", row_text(&out[0]));
-    assert!(coded.iter().all(|c| c.fg == theme.ansi[6]));
+    assert!(coded.iter().all(|c| c.fg == crate::chatink::code_fg()));
 }
 
 #[test]
 fn fenced_code_inside_a_quote_still_renders_as_code() {
     let _guard = crate::app::theme_test_guard();
     let out = lines("> ```\n> x = 1\n> ```", 40, (9, 9, 9));
-    let theme = crew_theme::theme();
     let code_cells: Vec<_> = out
         .iter()
         .flatten()
@@ -112,7 +110,7 @@ fn fenced_code_inside_a_quote_still_renders_as_code() {
         !code_cells.is_empty(),
         "a quoted fence still gets a code card"
     );
-    assert!(code_cells.iter().all(|c| c.fg == theme.ansi[6]));
+    assert!(code_cells.iter().all(|c| c.fg == crate::chatink::code_fg()));
 }
 
 #[test]
