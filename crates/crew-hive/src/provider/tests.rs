@@ -125,9 +125,11 @@ fn parse_response_errors_on_api_error_payload() {
 fn from_env_missing_key_errors() {
     // Only assert the error shape when the key is absent; skip otherwise.
     if std::env::var("ANTHROPIC_API_KEY").is_err() {
+        // The variable is named by the error, so the message can never
+        // point at a different provider's key than the one it wanted.
         assert!(matches!(
             AnthropicProvider::from_env(),
-            Err(ProviderError::MissingKey)
+            Err(ProviderError::MissingKey("ANTHROPIC_API_KEY"))
         ));
     }
 }
@@ -207,7 +209,7 @@ fn openrouter_from_env_missing_key_errors() {
     if std::env::var("OPENROUTER_API_KEY").is_err() {
         assert!(matches!(
             OpenRouterProvider::from_env(),
-            Err(ProviderError::MissingKey)
+            Err(ProviderError::MissingKey("OPENROUTER_API_KEY"))
         ));
     }
 }
@@ -248,4 +250,19 @@ async fn arc_dyn_provider_is_a_provider() {
         .await
         .unwrap();
     assert_eq!(got.text, "ok");
+}
+
+/// The message names the variable that was actually missing. It used to say
+/// `ANTHROPIC_API_KEY` whatever had failed — and `OpenRouterProvider` backs
+/// six providers through six different variables, so it was usually wrong.
+#[test]
+fn a_missing_key_names_its_own_variable() {
+    assert_eq!(
+        ProviderError::MissingKey("OPENAI_API_KEY").to_string(),
+        "OPENAI_API_KEY not set"
+    );
+    assert_eq!(
+        ProviderError::MissingKey("ANTHROPIC_API_KEY").to_string(),
+        "ANTHROPIC_API_KEY not set"
+    );
 }

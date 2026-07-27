@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.6.69
+
+- A missing provider key names the variable that is actually missing. The
+  error said `ANTHROPIC_API_KEY` whatever had failed, and the OpenAI-wire
+  client backs six providers through six different variables — so it was
+  usually naming someone else's key.
+
 ## 0.6.68
 
 - A provider's API error arrives as a sentence rather than a JSON envelope

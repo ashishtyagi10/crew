@@ -72,7 +72,10 @@ pub enum ProviderError {
     Http(String),
     Decode(String),
     Api(String),
-    MissingKey,
+    /// No key for the named variable. It carries the name because
+    /// `OpenRouterProvider` backs six providers through different variables —
+    /// a fixed string here named `ANTHROPIC_API_KEY` for all of them.
+    MissingKey(&'static str),
 }
 
 impl std::fmt::Display for ProviderError {
@@ -81,7 +84,7 @@ impl std::fmt::Display for ProviderError {
             ProviderError::Http(s) => write!(f, "http error: {s}"),
             ProviderError::Decode(s) => write!(f, "decode error: {s}"),
             ProviderError::Api(s) => write!(f, "{}", api_message(s)),
-            ProviderError::MissingKey => write!(f, "ANTHROPIC_API_KEY not set"),
+            ProviderError::MissingKey(var) => write!(f, "{var} not set"),
         }
     }
 }
