@@ -147,6 +147,18 @@ non-empty, else the stored one. That is the same shape `forced_provider()`
 already had for the pin, and it is what makes a saved key take effect on the
 next message.
 
+**With one exception, for keys crew injected itself.** `hydrate` still exports
+stored keys into the environment, because child processes inherit it — a plugin
+agent that shells out to a CLI reads `ANTHROPIC_API_KEY` from there and would
+otherwise never see an in-app key. But that export is crew's own copy of the
+store, not user intent, and `hydrate` runs once per process while the store is
+re-read every request. Treating it as user intent broke **rotation**: paste a
+replacement key in a later session and the store updated while crew's stale
+startup injection kept winning every request — unfixable 401s until the user
+quit crew. So `hydrate` records which variables it injected, and for those the
+store is authoritative (falling back to the environment only if the store has
+since been emptied). A value the *user* exported still wins over everything.
+
 ## 5. Provider pinning
 
 `pick_provider`'s order is fixed: DashScope → OpenRouter → Anthropic. So a user
