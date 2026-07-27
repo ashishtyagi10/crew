@@ -26,11 +26,17 @@ fn roster_lists_agents_when_present() {
 }
 
 #[test]
-fn empty_roster_without_a_provider_says_set_a_key() {
+fn empty_roster_without_a_provider_says_how_to_get_one() {
     // no_provider() clears every key + CREW_PROVIDER for the guard's lifetime,
-    // deterministic even on this machine (which exports DASHSCOPE_API_KEY).
+    // deterministic even on this machine (which exports DASHSCOPE_API_KEY) —
+    // and, since v0.6.50, every key the provider TABLE knows, not just the
+    // three it was written against.
     let _env = testenv::no_provider();
-    assert!(roster(&reg(&[])).contains("ANTHROPIC_API_KEY"));
+    let r = roster(&reg(&[]));
+    assert!(
+        r.contains(super::super::discover::no_provider_advice()),
+        "{r}"
+    );
 }
 
 #[test]
@@ -174,8 +180,8 @@ fn startup_banner_is_the_art_alone_unless_no_provider_resolves() {
         "the no-key warning must survive: {without}"
     );
     assert!(
-        warning.contains("claude") && warning.contains("OPENROUTER_API_KEY"),
-        "both routes out must be offered: {warning}"
+        warning.contains(super::super::discover::no_provider_advice()),
+        "the shared advice must be what is offered: {warning}"
     );
 
     // With agents on the roster the art always stands alone.

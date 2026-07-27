@@ -80,29 +80,21 @@ pub(crate) fn empty_cells(
             true,
         );
         put(&mut cells, &mut row, max_row, cols, "", t.text_muted, false);
-        // The friendlier of the two routes goes first, and it is now a real
-        // route: an installed, signed-in claude/codex/opencode joins the
-        // roster by itself (`agents::append_installed`), no key and no
-        // configuration. Naming only the variables would be wrong as well as
-        // unwelcoming.
-        put(
-            &mut cells,
-            &mut row,
-            max_row,
-            cols,
-            "Sign in to claude, codex or opencode \u{2014} crew",
-            t.text_muted,
-            false,
-        );
-        put(
-            &mut cells,
-            &mut row,
-            max_row,
-            cols,
-            "finds them \u{2014} or /model to add a provider key.",
-            t.text_muted,
-            false,
-        );
+        // The same words the broker uses (`crew_plugin::no_provider_advice`),
+        // wrapped to the pane. Four wordings of this advice existed across the
+        // two processes and two of them went stale for two releases; there is
+        // one copy now, and this is a view of it.
+        for line in wrap_advice(crew_plugin::no_provider_advice(), cols) {
+            put(
+                &mut cells,
+                &mut row,
+                max_row,
+                cols,
+                &line,
+                t.text_muted,
+                false,
+            );
+        }
     } else {
         // Minimal, Claude-Code-style: a single muted hint. No roster dump and
         // no keybind table — the pane shouldn't spend rows on chrome before the
@@ -124,3 +116,30 @@ pub(crate) fn empty_cells(
 #[cfg(test)]
 #[path = "chatempty_tests.rs"]
 mod tests;
+
+/// Wrap the shared no-provider advice to the pane's width, on spaces, with a
+/// sentence capital. Pure so the wrapping is testable without a pane.
+fn wrap_advice(advice: &str, cols: u16) -> Vec<String> {
+    let width = (cols.saturating_sub(4)).max(12) as usize;
+    let mut out: Vec<String> = Vec::new();
+    let mut line = String::new();
+    for word in advice.split_whitespace() {
+        if !line.is_empty() && line.chars().count() + 1 + word.chars().count() > width {
+            out.push(std::mem::take(&mut line));
+        }
+        if !line.is_empty() {
+            line.push(' ');
+        }
+        line.push_str(word);
+    }
+    if !line.is_empty() {
+        out.push(line);
+    }
+    if let Some(first) = out.first_mut() {
+        let mut c = first.chars();
+        if let Some(f) = c.next() {
+            *first = f.to_uppercase().collect::<String>() + c.as_str();
+        }
+    }
+    out
+}

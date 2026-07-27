@@ -64,9 +64,7 @@ pub(crate) fn render(i: &DoctorInputs) -> String {
         None => line(
             '✗',
             "provider",
-            "none — sign in to claude, codex or opencode (crew finds them), \
-             or set DASHSCOPE_API_KEY, OPENROUTER_API_KEY or ANTHROPIC_API_KEY \
-             for the inbuilt agents",
+            &format!("none — {}", super::discover::no_provider_advice()),
         ),
     });
     for (name, found) in &i.clis {

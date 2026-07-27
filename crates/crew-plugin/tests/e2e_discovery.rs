@@ -54,7 +54,9 @@ fn a_runs_invented_cast_becomes_the_roster() {
 fn discovery_reports_no_key() {
     let dir = unique_dir("disc0"); // harness clears any inherited key
     let r = smith_text(&run_broker(&dir, &[], &[HELLO]));
-    assert!(r.contains("ANTHROPIC_API_KEY"), "{r}");
+    // Through the one copy of the advice, not a literal of it: this assertion
+    // named an env var, and env vars stopped being the only way in.
+    assert!(r.contains(crew_plugin::no_provider_advice()), "{r}");
 }
 
 #[test]
