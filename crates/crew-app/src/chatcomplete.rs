@@ -7,7 +7,7 @@ use crew_plugin::AgentInfo;
 /// Every composer slash action: broker constructs plus the pane-local
 /// `/export`, `/theme`, `/compact`, and `/exit` (see `chatexport` /
 /// `chattheme` / `chatcompact` / `chat`).
-pub(crate) const CONSTRUCTS: [&str; 29] = [
+pub(crate) const CONSTRUCTS: [&str; 28] = [
     "/help",
     "/model",
     "/fan",
@@ -30,7 +30,6 @@ pub(crate) const CONSTRUCTS: [&str; 29] = [
     "/doctor",
     "/standup",
     "/mcp",
-    "/tasks",
     "/stop",
     "/status",
     "/export",
@@ -65,7 +64,6 @@ pub(crate) fn describe(construct: &str) -> &'static str {
         "/doctor" => "health-check the AI stack",
         "/standup" => "AI standup update from recent commits",
         "/mcp" => "list MCP servers and tools",
-        "/tasks" => "list running background tasks",
         "/stop" => "stop all tasks (/stop #n for one)",
         "/status" => "show session status",
         "/export" => "export the transcript",

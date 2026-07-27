@@ -68,6 +68,24 @@ pub enum PluginEvent {
         #[serde(default)]
         cost_microusd: u64,
     },
+    /// A background task started (`running: true`) or ended (`false`).
+    ///
+    /// The broker runs several tasks at once, each on its own worker thread
+    /// with a monotonic id, and until now the only way to learn what was in
+    /// flight was to ASK — `/tasks`. Nothing could be shown, because nothing
+    /// was ever sent: the registry is reaped lazily on the next command, so a
+    /// task finishing was not an observable moment anywhere.
+    ///
+    /// It is now. The start is emitted by the stdin loop as it spawns; the end
+    /// by the worker itself as it exits, which is the only place that knows.
+    /// `label` rides the start only — the host already has it by the time the
+    /// task ends.
+    Task {
+        id: u64,
+        #[serde(default, skip_serializing_if = "String::is_empty")]
+        label: String,
+        running: bool,
+    },
     /// Mid-reply progress: `agent` has produced roughly `tokens` output
     /// tokens so far in its in-flight reply. Advisory — the end-of-hop
     /// `Stats` stays authoritative and reconciles any estimate drift.

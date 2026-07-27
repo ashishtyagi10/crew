@@ -89,6 +89,11 @@ pub struct ChatPane {
     /// submit, drained by the poll — the command itself still goes to the
     /// broker untouched, this is only the app-side note.
     pub(crate) pending_recent: Option<String>,
+    /// Background task ids running in the broker right now, oldest first, fed
+    /// by `PluginEvent::Task`. The footer shows these so the pane REPORTS what
+    /// is in flight instead of the user having to ask — which is why `/tasks`
+    /// no longer exists. Ids (not just a count) because `/stop #n` takes one.
+    pub(crate) running_tasks: Vec<u64>,
     /// Agents mid-reply: one provisional card each, accumulating `Delta` text
     /// (most recently updated LAST — `absorb_delta` moves the card it touches
     /// to the end, which is how the overflow tail finds the newest without a
@@ -131,7 +136,19 @@ impl ChatPane {
             queued: std::collections::VecDeque::new(),
             git_branch: None,
             pending_recent: None,
+            running_tasks: Vec::new(),
             streaming: Vec::new(),
+        }
+    }
+
+    /// A background task started or ended in the broker. Kept as a list of
+    /// ids, oldest first, because `/stop #n` names one — and an END for a task
+    /// this pane never saw start (a broker that outlived a reconnect) is a
+    /// no-op rather than a phantom or a panic.
+    pub(crate) fn absorb_task(&mut self, id: u64, running: bool) {
+        self.running_tasks.retain(|t| *t != id);
+        if running {
+            self.running_tasks.push(id);
         }
     }
 
@@ -192,6 +209,7 @@ impl ChatPane {
                     PluginEvent::Roster { agents } => {
                         self.agents = agents;
                     }
+                    PluginEvent::Task { id, running, .. } => self.absorb_task(id, running),
                     PluginEvent::Activity { agent, state, from } => {
                         self.absorb_activity(agent, &state, from);
                     }

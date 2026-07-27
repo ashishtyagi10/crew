@@ -63,13 +63,12 @@ pub(crate) const HELP: &str = "constructs:\n\
     #<note> — remember a preference in ./.crew/memory.md\n\
     /mcp — MCP servers and their tools (~/.config/crew/mcp.json, .crew/mcp.json)\n\
     /reload — re-read skills, plugin agents, and mcp.json without a restart\n\
-    /tasks — list the background tasks running now\n\
     /stop [#n] — cancel all background tasks, or just task #n\n\
     /status — session totals, models, and the live task count\n\
     @<agent> <task> — choose who starts the relay\n\
     @<a>+<b> <task> — those agents answer in parallel\n\
-    \u{2026} tip: tasks run in the background — /tasks lists them, /stop #n cancels one\n\
-    aliases: /h /s /t /d /m /r\n\
+    \u{2026} tip: tasks run in the background — the footer lists them, /stop #n cancels one\n\
+    aliases: /h /s /d /m /r\n\
     ";
 
 /// Expand a built-in single-letter slash alias in the FIRST token, preserving
@@ -79,7 +78,6 @@ pub(crate) fn expand_alias(trimmed: &str) -> String {
     const ALIASES: &[(&str, &str)] = &[
         ("/h", "/help"),
         ("/s", "/status"),
-        ("/t", "/tasks"),
         ("/d", "/diff"),
         ("/m", "/model"),
         ("/r", "/reload"),
@@ -126,7 +124,6 @@ const CONSTRUCTS: &[&str] = &[
     "diff",
     "cwd",
     "status",
-    "tasks",
     "stop",
 ];
 

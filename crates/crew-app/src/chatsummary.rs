@@ -28,6 +28,26 @@ fn short_model(model: &str) -> &str {
 type Fg = (u8, u8, u8);
 type Seg = (String, Fg);
 
+/// What is running, for line 3 — `None` when nothing is.
+///
+/// Ids, not just a count, because `/stop #n` cancels one and the id is the
+/// only way to name it. Past three, the ids stop fitting and the count is the
+/// information; anyone at that point wants `/stop` (all) anyway.
+fn running_seg(ids: &[u64]) -> Option<String> {
+    match ids {
+        [] => None,
+        many if many.len() > 3 => Some(format!(" \u{00b7} {} running", many.len())),
+        many => {
+            let list: Vec<String> = many.iter().map(|i| format!("#{i}")).collect();
+            Some(format!(
+                " \u{00b7} running {} \u{00b7} /stop {} to cancel",
+                list.join(" "),
+                list[0],
+            ))
+        }
+    }
+}
+
 /// Who is on the roster, as line 1's leading segment. This is the whole of
 /// what `/agents` used to report, minus having to ask for it — which is why
 /// that construct no longer exists.
@@ -70,6 +90,8 @@ pub(crate) struct FooterCtx<'a> {
     pub branch: Option<&'a str>,
     /// The composer's current text, for the live routing-mode line.
     pub input: &'a str,
+    /// Broker task ids in flight right now (see `ChatPane::running_tasks`).
+    pub running_tasks: &'a [u64],
     pub windows: crate::usageledger::Windows,
 }
 
@@ -187,14 +209,22 @@ pub(crate) fn footer_lines(fc: &FooterCtx, cols: usize) -> Vec<Vec<(char, Fg)>> 
         }
     }
 
-    // Line 3: live routing mode + the hints that used to crowd the composer.
+    // Line 3: live routing mode, then either what is RUNNING or — when
+    // nothing is — the hints. Work in flight outranks teaching: the hints are
+    // for someone deciding what to type, and this is the line that used to
+    // require typing `/tasks` to see.
     let mode = match crate::chatinput::relay_target(fc.input, fc.agents) {
         Some(name) => format!("\u{25b6}\u{25b6} @{name} relay"),
         None => "\u{25b6}\u{25b6} swarm mode".to_string(),
     };
-    let hints = " \u{00b7} / for constructs \u{00b7} @ to relay to an agent";
     let mut l3: Vec<(char, Fg)> = mode.chars().map(|c| (c, yellow)).collect();
-    l3.extend(hints.chars().map(|c| (c, muted)));
+    match running_seg(fc.running_tasks) {
+        Some(s) => l3.extend(s.chars().map(|c| (c, green))),
+        None => {
+            let hints = " \u{00b7} / for constructs \u{00b7} @ to relay to an agent";
+            l3.extend(hints.chars().map(|c| (c, muted)));
+        }
+    }
 
     vec![join(&l1), join(&l2), l3]
 }
@@ -212,6 +242,7 @@ fn footer_ctx(pane: &ChatPane, now_ms: u64) -> FooterCtx<'_> {
         cost_microusd: pane.cost_microusd,
         branch: pane.git_branch.as_deref(),
         input: &pane.input,
+        running_tasks: &pane.running_tasks,
         windows: crate::usageledger::windows(now_ms),
     }
 }

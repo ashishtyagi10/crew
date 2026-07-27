@@ -3,8 +3,9 @@
 //! — a relay turn, /fan, /loop, /goal — spawns a **background task** (its own
 //! worker thread, id, and cancel flag) so several run at once (up to
 //! `CREW_MAX_TASKS`) while the main loop keeps draining stdin. Quick constructs
-//! (/help, /model, …) answer inline; `/tasks` lists the running tasks and
-//! `/stop [#n]` cancels all of them or just task #n between hops/rounds. Each
+//! (/help, /model, …) answer inline; the pane's footer lists the running
+//! tasks (see `PluginEvent::Task`) and `/stop [#n]` cancels all of them or
+//! just task #n between hops/rounds. Each
 //! task's streamed `Message` events carry a `task:<id>` tag in their `meta`.
 //! Used both by the `crew-broker-plugin` binary and by the `crew` binary
 //! re-execing itself with `--broker-plugin`.
@@ -135,7 +136,7 @@ pub(crate) fn startup_banner(reg: &Registry) -> String {
     nameplate_art()
 }
 
-/// Route one Send. `/stop [#N]`, `/tasks`, `/status`, and quick constructs
+/// Route one Send. `/stop [#N]`, `/status`, and quick constructs
 /// answer inline; every other task spawns a NEW background worker (up to the
 /// cap), so several run at once.
 fn send(
@@ -145,14 +146,13 @@ fn send(
     tasks: &mut super::tasks::Tasks,
 ) -> anyhow::Result<()> {
     use std::sync::atomic::AtomicBool;
-    use std::time::Instant;
     tasks.reap();
     let trimmed = text.trim().to_string();
     // Resolve built-in single-letter aliases (`/s` → `/status`) before ANY
     // routing below, so they reach the same interceptors their long form does.
     let trimmed = super::commands::expand_alias(&trimmed);
-    // First whitespace token, so `/tasks` and `/status` tolerate trailing args
-    // (they take none) instead of misrouting to "unknown construct".
+    // First whitespace token, so `/status` tolerates trailing args (it takes
+    // none) instead of misrouting to "unknown construct".
     let cmd0 = trimmed.split_whitespace().next().unwrap_or("");
 
     // /stop [#N] — cancel one task or all.
@@ -174,17 +174,6 @@ fn send(
             None => "usage: /stop [#id]".to_string(),
         };
         return emit(out, &msg("agent smith", m));
-    }
-
-    // /tasks — list running tasks.
-    if cmd0 == "/tasks" {
-        let lines = tasks.describe(Instant::now());
-        let body = if lines.is_empty() {
-            "no background tasks running".to_string()
-        } else {
-            lines.join("\n")
-        };
-        return emit(out, &msg("agent smith", body));
     }
 
     // /status — session totals plus the LIVE task count (needs the registry,
@@ -299,8 +288,28 @@ fn send(
         if let Some(done) = done {
             let _ = emit(&out_thread, &msg("agent smith", done));
         }
+        // The end of the task, emitted by the only thing that knows when that
+        // is. `Tasks::reap` runs lazily on the NEXT command, so a task
+        // finishing is otherwise not an observable moment — which is why the
+        // pane could never show what was running and had to be asked.
+        let _ = emit(
+            &out_thread,
+            &PluginEvent::Task {
+                id,
+                label: String::new(),
+                running: false,
+            },
+        );
     });
-    tasks.attach(id, label, cancel, handle, Instant::now());
+    emit(
+        out,
+        &PluginEvent::Task {
+            id,
+            label: label.clone(),
+            running: true,
+        },
+    )?;
+    tasks.attach(id, cancel, handle);
     Ok(())
 }
 
