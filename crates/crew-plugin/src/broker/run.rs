@@ -41,7 +41,11 @@ pub fn run_cli(program: &str, args: &[String], timeout: Duration) -> Result<Stri
         .args(args)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
-        .stderr(Stdio::null())
+        // Captured, not discarded. An agent CLI that is installed but not
+        // signed in says so on stderr and writes nothing to stdout, and
+        // throwing that away left the single most likely failure reading
+        // "produced no output" — true, and useless.
+        .stderr(Stdio::piped())
         .spawn()
         .map_err(|e| format!("failed to launch {program}: {e}"))?;
 
@@ -55,17 +59,43 @@ pub fn run_cli(program: &str, args: &[String], timeout: Duration) -> Result<Stri
         let _ = r.read_to_string(&mut s);
         let _ = tx.send(s);
     });
+    // Same for stderr, and for the same reason — an unread pipe that fills
+    // would block the child forever. Only ever read when stdout came back
+    // empty, so a chatty banner (codex prints one) never reaches a reply.
+    let stderr = child.stderr.take().expect("stderr was piped");
+    let (etx, erx) = mpsc::channel();
+    std::thread::spawn(move || {
+        let mut s = String::new();
+        let mut r = stderr;
+        let _ = r.read_to_string(&mut s);
+        let _ = etx.send(s);
+    });
 
     let deadline = Instant::now() + timeout;
     loop {
         match rx.recv_timeout(Duration::from_millis(50)) {
-            Ok(out) => {
+            Ok(out) if !out.trim().is_empty() => {
                 let _ = child.wait();
                 return Ok(out);
             }
+            // Empty stdout is a FAILURE, not an empty success. It used to
+            // return `Ok("")` — so a CLI that had written its reason to
+            // stderr and exited looked exactly like an agent with nothing to
+            // say, and the reason was discarded unread. The relay caught the
+            // emptiness one layer up and reported its own generic message.
+            Ok(_) => {
+                let _ = child.wait();
+                let why = erx
+                    .recv_timeout(Duration::from_millis(250))
+                    .unwrap_or_default();
+                return Err(explain_failure(program, &why));
+            }
             Err(mpsc::RecvTimeoutError::Disconnected) => {
                 let _ = child.wait();
-                return Err(format!("{program}: produced no output"));
+                let why = erx
+                    .recv_timeout(Duration::from_millis(250))
+                    .unwrap_or_default();
+                return Err(explain_failure(program, &why));
             }
             Err(mpsc::RecvTimeoutError::Timeout) => {
                 if Instant::now() >= deadline {
@@ -78,9 +108,106 @@ pub fn run_cli(program: &str, args: &[String], timeout: Duration) -> Result<Stri
     }
 }
 
+/// Why a CLI agent produced nothing, in words the user can act on.
+///
+/// The overwhelmingly likely cause is that the CLI is installed but not
+/// signed in — crew adds `claude`, `codex` and `opencode` to the roster on
+/// PATH presence alone (there is no cheap way to ask whether a session is
+/// valid without spending a call), so "on the roster" and "usable" are not
+/// the same thing. When stderr says as much, say what to do about it.
+pub fn explain_failure(program: &str, stderr: &str) -> String {
+    let tail: String = stderr
+        .lines()
+        .map(str::trim)
+        .rfind(|l| !l.is_empty())
+        .unwrap_or("")
+        .chars()
+        .take(160)
+        .collect();
+    let looks_like_auth = {
+        let low = tail.to_lowercase();
+        [
+            "log in",
+            "login",
+            "sign in",
+            "signin",
+            "unauthorized",
+            "not authenticated",
+            "authentication",
+            "api key",
+            "credentials",
+            "401",
+        ]
+        .iter()
+        .any(|p| low.contains(p))
+    };
+    if looks_like_auth {
+        return format!(
+            "{program} is installed but not signed in \u{2014} run `{program}` once in a \
+             terminal to log in ({tail})"
+        );
+    }
+    if tail.is_empty() {
+        return format!("{program}: produced no output");
+    }
+    format!("{program}: produced no output ({tail})")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The most likely failure for a CLI agent, and the one that used to read
+    /// "produced no output". crew adds these agents on PATH presence alone —
+    /// there is no cheap way to ask whether a session is valid — so installed
+    /// and usable are different things and the message has to bridge them.
+    #[test]
+    fn a_signed_out_cli_says_so_and_says_what_to_do() {
+        for msg in [
+            "Error: Not authenticated. Please run `claude login`.",
+            "unauthorized (401)",
+            "You must sign in first",
+            "error: no API key found",
+        ] {
+            let e = explain_failure("claude", msg);
+            assert!(e.contains("not signed in"), "{msg} -> {e}");
+            assert!(e.contains("run `claude` once"), "{msg} -> {e}");
+        }
+    }
+
+    /// Anything else keeps the honest old wording, with whatever the CLI
+    /// actually said appended — silence was never the useful part.
+    #[test]
+    fn other_failures_carry_the_last_line_of_stderr() {
+        let e = explain_failure("codex", "boot\nsomething exploded");
+        assert!(e.starts_with("codex: produced no output"), "{e}");
+        assert!(e.contains("something exploded"), "{e}");
+        // Truly silent stays exactly as it was.
+        assert_eq!(
+            explain_failure("codex", "   \n  "),
+            "codex: produced no output"
+        );
+    }
+
+    /// A runaway stderr must not become the whole error message.
+    #[test]
+    fn a_huge_stderr_is_trimmed() {
+        let e = explain_failure("x", &"y".repeat(10_000));
+        assert!(e.chars().count() < 220, "len {}", e.chars().count());
+    }
+
+    /// End to end through the real child process: a program that writes an
+    /// auth error to stderr and nothing to stdout must come back explained,
+    /// not as silence. This is the path that made the whole change worth it.
+    #[test]
+    fn a_real_child_that_only_writes_stderr_is_explained() {
+        let args = vec![
+            "-c".into(),
+            "printf 'Please run claude login\\n' >&2; exit 1".into(),
+        ];
+        let e = run_cli("sh", &args, Duration::from_secs(5)).unwrap_err();
+        assert!(e.contains("not signed in"), "{e}");
+    }
 
     #[test]
     fn on_path_finds_sh() {
