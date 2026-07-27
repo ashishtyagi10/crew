@@ -287,6 +287,32 @@ pub(crate) fn resolved_provider() -> Option<ProviderKind> {
     picked(&crate::credentials::load())
 }
 
+/// Every provider that has a key right now, active or not, in discovery
+/// order. `/doctor` reports the ones it is NOT using: with six providers and a
+/// fixed order, a key that appears to do nothing needs an explanation more
+/// than it needs a picker.
+pub(crate) fn configured_providers() -> Vec<String> {
+    let store = crate::credentials::load();
+    let has = |var: &str| key_for(&store, var).is_some();
+    let mut out = Vec::new();
+    for (var, name) in [
+        ("DASHSCOPE_API_KEY", "dashscope"),
+        ("OPENROUTER_API_KEY", "openrouter"),
+        ("ANTHROPIC_API_KEY", "anthropic"),
+    ] {
+        if has(var) {
+            out.push(name.to_string());
+        }
+    }
+    out.extend(
+        DIRECT
+            .iter()
+            .filter(|d| has(d.var))
+            .map(|d| d.name.to_string()),
+    );
+    out
+}
+
 /// [`resolved_provider`] over an already-loaded store.
 fn picked(store: &crate::credentials::Store) -> Option<ProviderKind> {
     pick_provider(forced_provider(store).as_deref(), |k| {
