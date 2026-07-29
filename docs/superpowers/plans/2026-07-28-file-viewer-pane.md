@@ -1145,23 +1145,7 @@ fn ready_lines(format: Format, loaded: &Loaded, raw: bool, cols: usize) -> Vec<C
 mod tests;
 ```
 
-**Note for the implementer:** `super::mdrung::lines` and `super::csv::lines` arrive in Tasks 5 and 6. To keep this task independently green, add temporary shims in `viewpane/mod.rs`:
-
-```rust
-// Replaced by Task 5 / Task 6.
-pub(crate) mod mdrung {
-    pub(crate) fn lines(t: &str, cols: usize) -> Vec<crate::chatbody::CardLine> {
-        super::lines::for_plain(t, cols)
-    }
-}
-pub(crate) mod csv {
-    pub(crate) fn lines(t: &str, _d: char, cols: usize) -> Vec<crate::chatbody::CardLine> {
-        super::lines::for_plain(t, cols)
-    }
-}
-```
-
-and expose `pub(crate) fn for_plain(text: &str, cols: usize) -> Vec<CardLine>` in `lines.rs` calling `numbered` with theme colours. **Task 5 and Task 6 each delete their shim.** Do not leave a shim behind — a rung that silently falls back to plain text is exactly the failure this ladder exists to prevent.
+**Execution order:** `lines.rs` calls `mdrung::lines` and `csv::lines`, so **Tasks 5 and 6 are implemented before this one** — they depend only on `chatbody` and `md`, not on anything here. Building them first means no temporary shim exists at any point. A rung that silently falls back to plain text is exactly the failure this ladder exists to prevent, and a shim is that failure with a comment on it.
 
 - [ ] **Step 4: Run to verify pass**
 
@@ -1323,7 +1307,7 @@ The source half is deleted here. `mdcache::preview_lines` is the whole markdown 
 **Files:**
 - Create: `crates/crew-app/src/viewpane/mdrung.rs`
 - Create: `crates/crew-app/src/viewpane/mdrung_tests.rs`
-- Modify: `crates/crew-app/src/viewpane/mod.rs` (**delete the `mdrung` shim from Task 4**)
+- Modify: `crates/crew-app/src/viewpane/mod.rs` (add `pub(crate) mod mdrung;`)
 
 **Interfaces:**
 - Consumes: `md::render`, `chatmd::map_lines`, `crew_theme::theme()`.
@@ -1413,7 +1397,7 @@ pub(crate) fn lines(text: &str, cols: usize) -> Vec<CardLine> {
 mod tests;
 ```
 
-Replace the Task 4 shim in `viewpane/mod.rs` with `pub(crate) mod mdrung;`.
+Add `pub(crate) mod mdrung;` to `viewpane/mod.rs`.
 
 - [ ] **Step 4: Run to verify pass**
 
@@ -1437,7 +1421,7 @@ git commit -m "feat(view): markdown renders full width, source half deleted"
 - Create: `crates/crew-app/src/viewpane/csv.rs`
 - Create: `crates/crew-app/src/viewpane/csv_tests.rs`
 - Modify: `crates/crew-app/src/md/mod.rs` (re-export `table::lines` as `pub(crate)`)
-- Modify: `crates/crew-app/src/viewpane/mod.rs` (**delete the `csv` shim from Task 4**)
+- Modify: `crates/crew-app/src/viewpane/mod.rs` (add `pub(crate) mod csv;`)
 
 **Interfaces:**
 - Consumes: `md::table_lines(header, rows, cols) -> Vec<MdLine>`, `chatmd::map_lines`.
@@ -1604,7 +1588,7 @@ mod tests;
 
 **Implementer note:** check `MdSpan`'s actual field names and `MdStyle`'s constructor in `crates/crew-app/src/md/mod.rs` before writing `spans` — if `MdStyle` has no `Default`, build it with every flag false. Do not add a `Default` impl for this.
 
-Replace the Task 4 shim in `viewpane/mod.rs` with `pub(crate) mod csv;`.
+Add `pub(crate) mod csv;` to `viewpane/mod.rs`.
 
 - [ ] **Step 5: Run to verify pass**
 
