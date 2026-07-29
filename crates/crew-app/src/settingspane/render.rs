@@ -23,6 +23,7 @@ pub(crate) fn label_of(f: Field) -> &'static str {
         Field::PaperTexture => "Paper texture",
         Field::PaperGrain => "Grain (0-2)",
         Field::Glass => "Glass",
+        Field::Motion => "Motion",
         // Kept short: this sits in a half-width box beside Nav width, and a
         // legend wider than its border is a legend the user reads truncated.
         Field::WindowOpacity => "Opacity %",
@@ -54,6 +55,10 @@ pub(crate) fn value_of(p: &SettingsPane, f: Field) -> (String, bool) {
         Field::PaperGrain => (p.grain_buf.clone(), true),
         Field::Glass => (
             format!("\u{2039} {} \u{203a}", p.draft.glass_level().as_str()),
+            false,
+        ),
+        Field::Motion => (
+            format!("\u{2039} {} \u{203a}", p.draft.motion_level().as_str()),
             false,
         ),
         Field::WindowOpacity => (p.opacity_buf.clone(), true),

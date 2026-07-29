@@ -10,6 +10,7 @@ fn bar(focused: bool) -> Bar<'static> {
         bell: true,
         broadcast: false,
         min_btn: false,
+        focus_t: 1.0,
     }
 }
 
@@ -193,4 +194,115 @@ fn buttons_rect_none_when_too_narrow() {
     };
     assert!(min_btn_rect(narrow, 10.0, 20.0).is_none());
     assert!(close_btn_rect(narrow, 10.0, 20.0).is_none());
+}
+
+// --- focus brackets ---------------------------------------------------------
+
+use crate::palette::accent;
+
+/// Count border cells drawn in the accent — the focus brackets. Row 0 is
+/// excluded: a focused legend is bold too, and a title whose signature hue
+/// happened to equal the accent would otherwise be counted as a bracket.
+fn bracket_cells(cells: &[crew_render::CellView]) -> usize {
+    cells
+        .iter()
+        .filter(|c| c.row > 0 && c.fg == accent() && c.bold)
+        .count()
+}
+
+/// The brackets are the focus announcement: an unfocused card must not carry
+/// any, or every pane reads as active.
+#[test]
+fn only_the_focused_card_gets_brackets() {
+    let bar = |focused| Bar {
+        index: None,
+        title: "t",
+        focused,
+        scroll: 0,
+        activity: false,
+        bell: false,
+        broadcast: false,
+        min_btn: false,
+        focus_t: 1.0,
+    };
+    assert_eq!(
+        bracket_cells(&crate::panecard::pane_card(40, 20, &bar(false))),
+        0
+    );
+    assert!(bracket_cells(&crate::panecard::pane_card(40, 20, &bar(true))) > 0);
+}
+
+/// They grow: mid-animation there is strictly less bracket than at rest. This
+/// is what makes the mark read as arriving rather than blinking on.
+#[test]
+fn brackets_grow_with_progress() {
+    let at = |t: f32| {
+        bracket_cells(&crate::panecard::pane_card(
+            40,
+            20,
+            &Bar {
+                index: None,
+                title: "t",
+                focused: true,
+                scroll: 0,
+                activity: false,
+                bell: false,
+                broadcast: false,
+                min_btn: false,
+                focus_t: t,
+            },
+        ))
+    };
+    let (start, mid, end) = (at(0.0), at(0.5), at(1.0));
+    assert_eq!(start, 0, "nothing drawn before the animation begins");
+    assert!(mid > 0 && mid < end, "0 < {mid} < {end}");
+}
+
+/// A two-row strip thumbnail has no room for a bracket, and lighting its whole
+/// side would read as a focused-everywhere frame.
+#[test]
+fn tiny_cards_get_no_brackets() {
+    let cells = crate::panecard::pane_card(
+        10,
+        1,
+        &Bar {
+            index: None,
+            title: "t",
+            focused: true,
+            scroll: 0,
+            activity: false,
+            bell: false,
+            broadcast: false,
+            min_btn: false,
+            focus_t: 1.0,
+        },
+    );
+    assert_eq!(bracket_cells(&cells), 0);
+}
+
+/// Brackets never touch row 0: the legend and the `[-][x]` buttons live there,
+/// and decoration must not overwrite information.
+#[test]
+fn brackets_leave_the_legend_row_alone() {
+    let cells = crate::panecard::pane_card(
+        40,
+        20,
+        &Bar {
+            index: Some(2),
+            title: "shell",
+            focused: true,
+            scroll: 0,
+            activity: false,
+            bell: false,
+            broadcast: false,
+            min_btn: true,
+            focus_t: 1.0,
+        },
+    );
+    assert!(
+        !cells
+            .iter()
+            .any(|c| c.row == 0 && c.fg == accent() && c.bold),
+        "a bracket landed on the legend row"
+    );
 }

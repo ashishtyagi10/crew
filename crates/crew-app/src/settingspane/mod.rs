@@ -29,6 +29,7 @@ pub(crate) enum Field {
     PaperTexture,
     PaperGrain,
     Glass,
+    Motion,
     WindowOpacity,
     Maximized,
     Notify,
@@ -41,7 +42,7 @@ pub(crate) enum Field {
     Cancel,
 }
 
-pub(crate) const FIELDS: [Field; 19] = [
+pub(crate) const FIELDS: [Field; 20] = [
     Field::FontFamily,
     Field::FontSize,
     Field::NavWidth,
@@ -52,6 +53,7 @@ pub(crate) const FIELDS: [Field; 19] = [
     Field::PaperTexture,
     Field::PaperGrain,
     Field::Glass,
+    Field::Motion,
     Field::Maximized,
     Field::Notify,
     Field::NotifyAgentDone,

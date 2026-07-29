@@ -8,6 +8,27 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.8.0
+
+*Jarvis motion, iteration 1 of 6 — see `.superpowers/sdd/2026-07-28-jarvis-motion/`.*
+
+- **Motion is a setting now.** Settings → APPEARANCE → **Motion**:
+  `off · subtle · full`. `off` is a real off rather than a fast one — every
+  animation's duration collapses to zero, so it draws its final state once and
+  schedules no further frames, and an idle crew repaints exactly as rarely as
+  it did before any of this existed.
+- **The focused pane wears HUD brackets.** Short accent runs down the card's
+  edges from each of the four corners, growing out as focus arrives and
+  travelling with it as you move between panes. They stay off the top border,
+  where the legend and the `[-][x]` buttons live — decoration must not overwrite
+  information.
+- **A motion vocabulary to build the rest on.** `ease.rs` adds an ease-out curve
+  and `Timeline`, a *bounded* window that reports when it still has frames to
+  draw. `poll` schedules redraws from exactly that, which is what keeps "an idle
+  crew never repaints" true while crew animates. No timers, no threads, no
+  sleeps: every animation is a pure function of `anim::now_ms()`, so none of it
+  can stall the winit thread.
+
 ## 0.7.1
 
 - **Glass actually renders now.** 0.7.0 shipped "every pane sits on glass" and

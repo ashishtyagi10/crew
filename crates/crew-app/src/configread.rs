@@ -41,6 +41,12 @@ impl CrewConfig {
         crew_theme::GlassLevel::parse(&self.glass).unwrap_or(crew_theme::GlassLevel::Medium)
     }
 
+    /// The configured motion strength; an unknown name falls back to `full`,
+    /// matching the default — a typo must not silently disable animation.
+    pub(crate) fn motion_level(&self) -> crate::motion::MotionLevel {
+        crate::motion::MotionLevel::parse(&self.motion).unwrap_or(crate::motion::MotionLevel::Full)
+    }
+
     pub fn clamped(self) -> Self {
         Self {
             last_seen_version: None,
@@ -69,6 +75,7 @@ impl CrewConfig {
             paper_grain: self.paper_grain.clamp(0.0, 2.0),
             crt: self.crt,
             glass: self.glass,
+            motion: self.motion,
             // A window that can be dialled to invisible is a window you cannot
             // find again; the floor keeps crew recoverable from any setting.
             window_opacity: self.window_opacity.clamp(MIN_WINDOW_OPACITY, 1.0),
