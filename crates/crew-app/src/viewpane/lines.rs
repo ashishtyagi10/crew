@@ -7,6 +7,7 @@ use crate::viewpane::codepaint::{line_paint, CharPaint};
 use crate::viewpane::detect::Format;
 use crate::viewpane::load::{Loaded, MAX_VIEW_BYTES};
 use crate::viewpane::metacard::opaque_card;
+use crate::viewpane::rendercap::{cap_render_lines, MAX_RENDER_LINES};
 use crate::viewpane::LoadState;
 
 /// Width of the line-number gutter, digits plus one space.
@@ -140,6 +141,18 @@ fn ready_lines(format: Format, loaded: &Loaded, raw: bool, cols: usize) -> Vec<C
             cols,
         ));
     }
+    // Fix 5: cap SOURCE lines before any rung renders them, not the RESULT
+    // afterward — truncating the output would still pay the full render
+    // cost this cap exists to avoid.
+    let (text, capped_from) = cap_render_lines(&loaded.text);
+    if let Some(real_lines) = capped_from {
+        out.push(banner(
+            &format!(
+                "showing first {MAX_RENDER_LINES} of {real_lines} lines — press o to open externally"
+            ),
+            cols,
+        ));
+    }
     let body = match format {
         Format::Opaque { why } => opaque_card(why, loaded.meta.as_ref(), cols),
         Format::Extract { via } => {
@@ -152,17 +165,17 @@ fn ready_lines(format: Format, loaded: &Loaded, raw: bool, cols: usize) -> Vec<C
             ));
             // An extract has no `md::syntax` language of its own — it is
             // prose lifted out of a PDF or a Word doc, not source.
-            numbered(&loaded.text, cols, "", t.ink, t.text_muted)
+            numbered(text, cols, "", t.ink, t.text_muted)
         }
-        Format::Diff => diff_lines(&loaded.text, cols),
-        Format::Markdown if !raw => super::mdrung::lines(&loaded.text, cols),
-        Format::Csv { delim } if !raw => super::csv::lines(&loaded.text, delim, cols),
+        Format::Diff => diff_lines(text, cols),
+        Format::Markdown if !raw => super::mdrung::lines(text, cols),
+        Format::Csv { delim } if !raw => super::csv::lines(text, delim, cols),
         // Fix 1: `Code`/`Data` used to reach here with no `lang`, which is
         // why every character painted the same `ink` regardless of what the
         // lexer would have called it. `format_lang` is `""` for every other
         // rung that lands here (raw `Markdown`/`Csv`), so their behaviour is
         // unchanged.
-        _ => numbered(&loaded.text, cols, format_lang(format), t.ink, t.text_muted),
+        _ => numbered(text, cols, format_lang(format), t.ink, t.text_muted),
     };
     out.extend(body);
     out

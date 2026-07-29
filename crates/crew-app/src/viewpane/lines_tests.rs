@@ -188,3 +188,49 @@ fn a_data_rung_is_syntax_coloured_too() {
 fn zero_width_never_panics() {
     let _ = for_state(&ready(Format::Code { lang: "" }, "x\n"), false, 0);
 }
+
+#[test]
+fn a_huge_line_count_is_capped_and_announced_in_a_banner() {
+    // Fix 5: `for_state` used to run the full per-rung render (tokenizing,
+    // markdown layout, ...) over however much text `load` handed it — up to
+    // the full 8 MB byte cap — on the winit thread, on every distinct `cols`
+    // during a resize drag. Double the cap, well past any real "how many
+    // rows fit on screen" concern.
+    let total = MAX_RENDER_LINES * 2;
+    let body = vec!["x"; total].join("\n");
+    let ls = for_state(&ready(Format::Code { lang: "" }, &body), false, 60);
+    let banner = text(&ls[0]);
+    assert!(
+        banner.contains(&format!("first {MAX_RENDER_LINES} of {total} lines")),
+        "banner names the cap and the real count: {banner}"
+    );
+    assert!(banner.contains(" o "), "offers the escape: {banner}");
+    // The numbered rung emits exactly one row per source line at this width
+    // (no wrapping: each line is one 'x'), so the banner plus capped rows is
+    // the whole output, not merely "no more than the cap".
+    assert_eq!(
+        ls.len() - 1,
+        MAX_RENDER_LINES,
+        "rendered rows must stop at the cap, not merely approach it"
+    );
+}
+
+// The exactly-at-the-cap "must not be announced as truncated" boundary is
+// covered by `rendercap`'s own fast, pure-function tests
+// (`text_at_or_under_the_cap_is_returned_unchanged`) rather than repeated
+// here through the full render pipeline.
+
+#[test]
+fn the_line_cap_bounds_a_markdown_render_too() {
+    // The hazard the brief names explicitly: for markdown, `for_state` used
+    // to run the full `md::render` over the whole text regardless of how
+    // many lines that was. Confirm the cap applies before the markdown
+    // renderer runs, not just on the gutter rungs.
+    let body = vec!["line"; MAX_RENDER_LINES * 2].join("\n");
+    let ls = for_state(&ready(Format::Markdown, &body), false, 60);
+    let banner = text(&ls[0]);
+    assert!(
+        banner.contains(&format!("first {MAX_RENDER_LINES}")),
+        "markdown rung must also be capped: {banner}"
+    );
+}

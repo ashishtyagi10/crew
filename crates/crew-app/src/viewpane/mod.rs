@@ -11,6 +11,7 @@ pub(crate) mod mdrung;
 mod metacard;
 mod pane;
 mod render;
+mod rendercap;
 pub(crate) mod search;
 mod search_apply;
 pub(crate) use keys::ViewAction;
