@@ -8,6 +8,28 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.7.1
+
+- **Glass actually renders now.** 0.7.0 shipped "every pane sits on glass" and
+  drew no sheet at all. The card was emitted only for scenes with
+  `PaneScene.bordered`, a flag that went dead when panes started drawing their
+  frames as cells — every scene the app builds sets it `false`, so `GlassLayer`
+  received zero cards and the only visible effect of the feature was the window
+  translucency, which rides a different path. The sheet now has its own `glass`
+  flag, set on the scene that spans the whole pane rect, and panes, panels, the
+  minimized strip and the input bar all carry it. Overlay popups stay opaque.
+- **The pixel test can fail now.** The headless harness hand-built its panes
+  with `bordered: true` — an arrangement production never produces — which is
+  exactly why a feature that drew nothing kept a passing GPU test. It renders
+  scenes from `paneview::build_scenes` instead, and compares each theme against
+  the same frame with the sheet off rather than against the gap between panes
+  (a pane's own cell backgrounds satisfied the old assertion whether or not any
+  glass was drawn).
+- **Glass moved into Settings; `/glass` is gone.** Strength lives in APPEARANCE
+  as **Glass** (←/→/Space through `off · low · medium · high`) and window
+  translucency in WINDOW as **Opacity %**, typed as a percentage and floored at
+  35%. Saving pushes both to the renderer, so they apply live.
+
 ## 0.7.0
 
 - **Crew never disappears in silence again.** A panic on the winit thread used

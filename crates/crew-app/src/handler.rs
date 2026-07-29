@@ -21,7 +21,7 @@ impl ApplicationHandler for CrewApp {
         // Always transparency-CAPABLE, even when fully opaque. Transparency is
         // a window-creation attribute — asking for it later would mean tearing
         // the window down — so requesting it up front is what lets
-        // `/glass window` take effect live instead of after a restart. At
+        // the Opacity % setting take effect live instead of after a restart. At
         // opacity 1.0 (the default) the frame is byte-identical to an opaque
         // one, because nothing crew draws leaves alpha below 1.
         let attrs = Window::default_attributes()

@@ -145,6 +145,56 @@ fn commit_patterns_splits_lines_and_drops_blanks() {
     assert_eq!(p.patterns_buf, "error\nDONE"); // normalized display
 }
 
+/// Opacity is typed as a percentage but stored as a fraction — the form is the
+/// only place it can be set now, so a wrong unit here is unreachable elsewhere.
+#[test]
+fn commit_opacity_reads_a_percentage() {
+    let mut p = pane();
+    focus(&mut p, Field::WindowOpacity);
+    p.opacity_buf = "70".into();
+    commit_field(&mut p);
+    assert!((p.draft.window_opacity - 0.70).abs() < 1e-6);
+    assert_eq!(p.opacity_buf, "70");
+}
+
+/// The floor is the difference between a translucent window and a lost one.
+#[test]
+fn commit_opacity_floors_absurd_transparency() {
+    let mut p = pane();
+    focus(&mut p, Field::WindowOpacity);
+    p.opacity_buf = "0".into();
+    commit_field(&mut p);
+    assert_eq!(p.draft.window_opacity, crate::config::MIN_WINDOW_OPACITY);
+    // The buffer shows what was actually applied, not what was typed.
+    assert_eq!(p.opacity_buf, "35");
+}
+
+#[test]
+fn glass_cycles_through_every_level_both_ways() {
+    let mut p = pane();
+    focus(&mut p, Field::Glass);
+    // Default is medium; forward wraps high → off.
+    for want in ["high", "off", "low", "medium"] {
+        super::keys::cycle_value(&mut p, false);
+        assert_eq!(p.draft.glass, want);
+    }
+    super::keys::cycle_value(&mut p, true);
+    assert_eq!(p.draft.glass, "low", "Left must step backward");
+}
+
+/// Glass and window opacity are separate knobs; setting one must not disturb
+/// the other (they now share a form, which is exactly when this can regress).
+#[test]
+fn glass_level_and_window_opacity_are_independent() {
+    let mut p = pane();
+    focus(&mut p, Field::WindowOpacity);
+    p.opacity_buf = "80".into();
+    commit_field(&mut p);
+    focus(&mut p, Field::Glass);
+    super::keys::cycle_value(&mut p, false);
+    assert!((p.draft.window_opacity - 0.80).abs() < 1e-6);
+}
+
 #[test]
 fn save_commits_the_focused_edit_and_applies() {
     let mut p = pane();
@@ -169,6 +219,8 @@ fn every_config_property_is_editable_in_the_form() {
         Field::Accent,
         Field::PaperTexture,
         Field::PaperGrain,
+        Field::Glass,
+        Field::WindowOpacity,
         Field::Maximized,
         Field::Notify,
         Field::NotifyAgentDone,

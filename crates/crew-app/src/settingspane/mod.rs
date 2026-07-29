@@ -28,6 +28,8 @@ pub(crate) enum Field {
     Accent,
     PaperTexture,
     PaperGrain,
+    Glass,
+    WindowOpacity,
     Maximized,
     Notify,
     NotifyAgentDone,
@@ -39,15 +41,17 @@ pub(crate) enum Field {
     Cancel,
 }
 
-pub(crate) const FIELDS: [Field; 17] = [
+pub(crate) const FIELDS: [Field; 19] = [
     Field::FontFamily,
     Field::FontSize,
     Field::NavWidth,
+    Field::WindowOpacity,
     Field::ShowNav,
     Field::Theme,
     Field::Accent,
     Field::PaperTexture,
     Field::PaperGrain,
+    Field::Glass,
     Field::Maximized,
     Field::Notify,
     Field::NotifyAgentDone,
@@ -84,6 +88,9 @@ pub struct SettingsPane {
     pub(crate) accent_buf: String,
     /// Paper-grain amplitude (`0.0`–`2.0`, one decimal).
     pub(crate) grain_buf: String,
+    /// Window opacity as a whole percentage (`35`–`100`), so the number the
+    /// user types is the number they see rather than a 0-1 fraction.
+    pub(crate) opacity_buf: String,
     /// Minimum command runtime (seconds) before a "finished" notification.
     pub(crate) minsecs_buf: String,
     /// Watched output substrings, one per line (text area).
@@ -100,6 +107,7 @@ impl SettingsPane {
         let nav_buf = format!("{}", cfg.nav_width as i32);
         let accent_buf = cfg.accent.clone().unwrap_or_default();
         let grain_buf = format!("{:.1}", cfg.paper_grain);
+        let opacity_buf = format!("{}", (cfg.window_opacity * 100.0).round() as i32);
         let minsecs_buf = format!("{}", cfg.notify_min_secs);
         let patterns_buf = cfg.notify_patterns.join("\n");
         Self {
@@ -113,6 +121,7 @@ impl SettingsPane {
             nav_buf,
             accent_buf,
             grain_buf,
+            opacity_buf,
             minsecs_buf,
             patterns_buf,
         }

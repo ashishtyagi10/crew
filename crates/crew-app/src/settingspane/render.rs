@@ -22,6 +22,10 @@ pub(crate) fn label_of(f: Field) -> &'static str {
         Field::Accent => "Accent (#hex)",
         Field::PaperTexture => "Paper texture",
         Field::PaperGrain => "Grain (0-2)",
+        Field::Glass => "Glass",
+        // Kept short: this sits in a half-width box beside Nav width, and a
+        // legend wider than its border is a legend the user reads truncated.
+        Field::WindowOpacity => "Opacity %",
         Field::Maximized => "Launch maximized",
         Field::Notify => "Notifications",
         Field::NotifyAgentDone => "Notify: cmd done",
@@ -48,6 +52,11 @@ pub(crate) fn value_of(p: &SettingsPane, f: Field) -> (String, bool) {
         Field::Accent => (p.accent_buf.clone(), true),
         Field::PaperTexture => (onoff(p.draft.paper_texture), false),
         Field::PaperGrain => (p.grain_buf.clone(), true),
+        Field::Glass => (
+            format!("\u{2039} {} \u{203a}", p.draft.glass_level().as_str()),
+            false,
+        ),
+        Field::WindowOpacity => (p.opacity_buf.clone(), true),
         Field::Maximized => (onoff(p.draft.maximized), false),
         Field::Notify => (onoff(p.draft.notify), false),
         Field::NotifyAgentDone => (onoff(p.draft.notify_agent_done), false),

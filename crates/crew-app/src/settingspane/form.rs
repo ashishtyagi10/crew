@@ -101,6 +101,8 @@ fn appearance(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16) -> u16 {
     cy += 3;
     rects.push((Field::Accent, Rect::new(ix, cy, iw, 3)));
     cy += 3;
+    rects.push((Field::Glass, Rect::new(ix, cy, iw, 3)));
+    cy += 3;
     rects.push((Field::PaperTexture, Rect::new(ix, cy, iw, 1)));
     cy += 1;
     cy + 1 - y
@@ -110,7 +112,9 @@ fn appearance(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16) -> u16 {
 fn window(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16) -> u16 {
     let (ix, iw) = inner(x, w);
     let mut cy = y + 1;
-    rects.push((Field::NavWidth, Rect::new(ix, cy, iw, 3)));
+    let half = iw.saturating_sub(2) / 2;
+    rects.push((Field::NavWidth, Rect::new(ix, cy, half, 3)));
+    rects.push((Field::WindowOpacity, Rect::new(ix + half + 2, cy, half, 3)));
     cy += 3;
     for f in [Field::ShowNav, Field::Maximized] {
         rects.push((f, Rect::new(ix, cy, iw, 1)));

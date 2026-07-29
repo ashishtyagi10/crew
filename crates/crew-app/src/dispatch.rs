@@ -39,7 +39,6 @@ impl CrewApp {
             "restart" => return self.restart_crew(),
             "theme" => self.set_theme_cmd(""),
             "crt" => self.crt_command(""),
-            "glass" => self.glass_command(""),
             "weight" => self.weight_command(""),
             "notify" => self.notify_command(""),
             "broadcast" => self.toggle_broadcast(),
@@ -72,8 +71,6 @@ impl CrewApp {
                     self.set_theme_cmd(t.trim());
                 } else if let Some(a) = other.strip_prefix("crt ") {
                     self.crt_command(a.trim());
-                } else if let Some(a) = other.strip_prefix("glass ") {
-                    self.glass_command(a.trim());
                 } else if let Some(w) = other.strip_prefix("weight ") {
                     self.weight_command(w.trim());
                 } else if let Some(m) = other.strip_prefix("model ") {
@@ -141,77 +138,6 @@ impl CrewApp {
                 }
             }
         }
-    }
-
-    /// Handle `/glass [off|low|medium|high]` and `/glass window [<pct>|off]`.
-    ///
-    /// The first form sets how frosted the pane cards are; the per-theme look
-    /// is derived from the active theme (see `crew_theme::glass`), so light,
-    /// dark and CRT each get their own treatment from this one knob. The
-    /// second form makes the WINDOW itself translucent so the desktop shows
-    /// through the page — text and pane fills stay solid either way.
-    ///
-    /// Bare `/glass` reports both. Persisted; applied on the next frame.
-    pub(crate) fn glass_command(&mut self, arg: &str) {
-        let arg = arg.trim();
-        // `/glass window …` is the window-translucency form.
-        if let Some(rest) = arg.strip_prefix("window") {
-            return self.glass_window_command(rest.trim());
-        }
-        if arg.is_empty() {
-            let pct = (self.config.window_opacity * 100.0).round() as i32;
-            let level = self.config.glass_level().as_str();
-            self.set_status(format!("glass: {level}, window {pct}% opaque"));
-            return;
-        }
-        let Some(level) = crew_theme::GlassLevel::parse(arg) else {
-            self.set_status("usage: /glass [off|low|medium|high] | /glass window <pct>");
-            return;
-        };
-        self.config.glass = level.as_str().to_string();
-        self.config.save();
-        self.apply_glass();
-        self.set_status(format!("glass: {}", level.as_str()));
-        self.redraw();
-    }
-
-    /// `/glass window <pct>` — window translucency. `off`/`100` is opaque.
-    fn glass_window_command(&mut self, arg: &str) {
-        let opacity = match arg {
-            "" => {
-                let pct = (self.config.window_opacity * 100.0).round() as i32;
-                self.set_status(format!("window {pct}% opaque — /glass window <pct>"));
-                return;
-            }
-            "off" | "opaque" => 1.0,
-            // A bare `on` picks a translucency that reads as glass without
-            // making the text fight the wallpaper behind it.
-            "on" => 0.85,
-            s => {
-                let Some(pct) = s
-                    .trim_end_matches('%')
-                    .parse::<f32>()
-                    .ok()
-                    .filter(|p| (0.0..=100.0).contains(p))
-                else {
-                    self.set_status("usage: /glass window <0-100>|on|off");
-                    return;
-                };
-                pct / 100.0
-            }
-        };
-        self.config.window_opacity = opacity.clamp(crate::config::MIN_WINDOW_OPACITY, 1.0);
-        self.config.save();
-        self.apply_glass();
-        let pct = (self.config.window_opacity * 100.0).round() as i32;
-        // Say when the floor overrode the request, rather than silently
-        // ignoring a number the user typed.
-        let msg = match opacity < crate::config::MIN_WINDOW_OPACITY {
-            true => format!("window {pct}% opaque (floor — any sheerer and crew is unfindable)"),
-            false => format!("window {pct}% opaque"),
-        };
-        self.set_status(msg);
-        self.redraw();
     }
 
     /// Push both glass settings into the renderer.
@@ -421,93 +347,7 @@ mod tests {
         );
     }
 
-    // --- /glass -------------------------------------------------------------
-
-    /// The last status message, for asserting what the user was told.
-    fn status(app: &CrewApp) -> String {
-        app.status.clone().map(|(m, _)| m).unwrap_or_default()
-    }
-
-    #[test]
-    fn glass_sets_each_level() {
-        let mut app = CrewApp::default();
-        for name in ["off", "low", "medium", "high"] {
-            app.glass_command(name);
-            assert_eq!(app.config.glass, name);
-            assert_eq!(app.config.glass_level().as_str(), name);
-        }
-    }
-
-    #[test]
-    fn glass_bad_arg_leaves_the_level_untouched() {
-        let mut app = CrewApp::default();
-        app.glass_command("high");
-        app.glass_command("frosty");
-        assert_eq!(app.config.glass, "high", "bad arg must not change glass");
-        assert!(status(&app).starts_with("usage:"), "{}", status(&app));
-    }
-
-    #[test]
-    fn bare_glass_reports_both_settings() {
-        let mut app = CrewApp::default();
-        app.glass_command("");
-        let s = status(&app);
-        assert!(s.contains("medium"), "{s}");
-        assert!(s.contains("100%"), "{s}");
-    }
-
-    #[test]
-    fn glass_window_accepts_percentages_and_words() {
-        let mut app = CrewApp::default();
-        app.glass_command("window 70");
-        assert!((app.config.window_opacity - 0.70).abs() < 1e-6);
-        // A trailing % is the natural way to type it.
-        app.glass_command("window 60%");
-        assert!((app.config.window_opacity - 0.60).abs() < 1e-6);
-        app.glass_command("window off");
-        assert_eq!(app.config.window_opacity, 1.0);
-        app.glass_command("window on");
-        assert!(app.config.window_opacity < 1.0);
-    }
-
-    /// The floor is the difference between a translucent window and a lost one.
-    /// It must clamp AND say that it did, rather than quietly ignoring the ask.
-    #[test]
-    fn glass_window_floors_absurd_transparency() {
-        let mut app = CrewApp::default();
-        app.glass_command("window 0");
-        assert_eq!(app.config.window_opacity, crate::config::MIN_WINDOW_OPACITY);
-        assert!(status(&app).contains("floor"), "{}", status(&app));
-    }
-
-    #[test]
-    fn glass_window_rejects_out_of_range_and_nonsense() {
-        let mut app = CrewApp::default();
-        app.glass_command("window 55");
-        app.glass_command("window 900");
-        app.glass_command("window -5");
-        app.glass_command("window clear");
-        assert!(
-            (app.config.window_opacity - 0.55).abs() < 1e-6,
-            "a rejected value must not move the setting"
-        );
-    }
-
-    /// `/glass window` and `/glass <level>` are separate knobs; setting one must
-    /// not disturb the other.
-    #[test]
-    fn glass_level_and_window_are_independent() {
-        let mut app = CrewApp::default();
-        app.glass_command("low");
-        app.glass_command("window 80");
-        assert_eq!(app.config.glass, "low");
-        assert!((app.config.window_opacity - 0.80).abs() < 1e-6);
-        app.glass_command("high");
-        assert!(
-            (app.config.window_opacity - 0.80).abs() < 1e-6,
-            "changing the frost level moved the window opacity"
-        );
-    }
+    // --- glass ----------------------------------------------------------------
 
     /// An unreadable config value must not render the app flat with no
     /// explanation — it falls back to the default strength.

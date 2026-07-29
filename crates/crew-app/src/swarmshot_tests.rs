@@ -130,6 +130,7 @@ fn render(pane: &ChatPane) -> Option<(Vec<u8>, u16, u16, f32)> {
             h: H as f32,
             focused: true,
             bordered: false,
+            glass: false,
             overlay: false,
         }],
     );

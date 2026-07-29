@@ -36,7 +36,7 @@ fn default_paper_grain() -> f32 {
 
 fn default_glass() -> String {
     // Panes ship frosted. The look is derived per-theme (see `crew_theme::glass`),
-    // so this is only the strength; `/glass off` returns the flat cards.
+    // so this is only the strength; `off` returns the flat cards.
     "medium".to_string()
 }
 
@@ -45,7 +45,7 @@ fn default_glass() -> String {
 pub const MIN_WINDOW_OPACITY: f32 = 0.35;
 
 fn default_window_opacity() -> f32 {
-    // Opaque. Window translucency is opt-in via `/glass window <pct>` — a
+    // Opaque. Window translucency is opt-in via Settings → WINDOW → Opacity % — a
     // see-through terminal is a taste, not a default.
     1.0
 }
@@ -132,11 +132,11 @@ pub struct CrewConfig {
     pub crt: Option<bool>,
     /// Frosted-glass strength for pane cards: `off`, `low`, `medium`, `high`.
     /// The per-theme look is derived from the active theme, so this is the
-    /// intensity knob only. Set live with `/glass`.
+    /// intensity knob only. Set in Settings → APPEARANCE → Glass.
     #[serde(default = "default_glass")]
     pub glass: String,
     /// Window opacity, `1.0` = fully opaque. Below 1.0 the desktop shows
-    /// through the page (text and pane fills stay solid). `/glass window <pct>`.
+    /// through the page (text and pane fills stay solid). Settings → WINDOW.
     #[serde(default = "default_window_opacity")]
     pub window_opacity: f32,
     /// Base text weight on the CSS scale (400 normal … 900 black). Defaults to

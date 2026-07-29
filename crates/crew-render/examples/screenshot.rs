@@ -585,6 +585,7 @@ fn build_welcome_scene(cols: u16, rows: u16, tick: u64, pw: f32, ph: f32) -> Vec
         h: ph,
         focused: false,
         bordered: false,
+        glass: false,
         overlay: false,
     }]
 }
@@ -612,6 +613,7 @@ fn build_scene(cell_w: f32, cell_h: f32) -> Vec<PaneScene> {
         h: sb_h,
         focused: false,
         bordered: true,
+        glass: true,
         overlay: false,
     });
 
@@ -628,6 +630,7 @@ fn build_scene(cell_w: f32, cell_h: f32) -> Vec<PaneScene> {
         h: mt_h,
         focused: true,
         bordered: true,
+        glass: true,
         overlay: false,
     });
 
@@ -644,6 +647,7 @@ fn build_scene(cell_w: f32, cell_h: f32) -> Vec<PaneScene> {
         h: at_h,
         focused: false,
         bordered: true,
+        glass: true,
         overlay: false,
     });
 
@@ -656,6 +660,7 @@ fn build_scene(cell_w: f32, cell_h: f32) -> Vec<PaneScene> {
         h: 72.0,
         focused: false,
         bordered: true,
+        glass: true,
         overlay: false,
     });
 

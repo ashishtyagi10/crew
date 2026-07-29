@@ -307,6 +307,10 @@ impl CrewApp {
             r.set_paper_texture(self.config.paper_texture);
             r.set_paper_grain(self.config.paper_grain);
         }
+        // Glass rides the same path: the settings form is the only place these
+        // two are set, so a save that didn't push them would leave the sheet
+        // and the window opacity a restart behind.
+        self.apply_glass();
         // A manual family pick in Settings stops rotation; otherwise a live
         // rotation keeps its current pick on top of the re-applied config.
         if self.config.font_family != old_family {

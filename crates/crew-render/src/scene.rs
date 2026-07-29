@@ -24,6 +24,15 @@ pub struct PaneScene {
     /// Whether to draw the rounded GPU border. Surfaces that draw their own
     /// cell-based border (e.g. the input bar's titled card) set this `false`.
     pub bordered: bool,
+    /// Whether this scene is a pane's *card* — the scene covering the whole
+    /// pane rect — and so gets the frosted sheet drawn beneath it.
+    ///
+    /// Deliberately NOT `bordered`: since panes started drawing their frames as
+    /// cells (fieldset legends) every scene sets `bordered: false`, so gating
+    /// the sheet on it meant no card was ever emitted: the Glass setting painted
+    /// nothing in the app while the headless test — which builds its own
+    /// `bordered: true` panes — kept passing.
+    pub glass: bool,
     /// Overlay popups (command palette, help) drawn on top of everything. Their
     /// backgrounds and text are rendered in a second pass *after* base panes, so
     /// nothing behind them can bleed through — they are fully opaque.
@@ -146,11 +155,11 @@ pub(crate) fn build_scene(
             }
         }
 
-        // The frosted sheet this pane sits on. Only bordered, non-overlay panes
-        // get one: a pane that draws its own cell-based frame has no rounded
-        // rect to fill, and overlay popups are deliberately opaque so nothing
-        // behind them bleeds through (see `PaneScene::overlay`).
-        if pane.bordered && !pane.overlay && glass_style.visible() {
+        // The frosted sheet this pane sits on. Only card scenes get one — a
+        // pane contributes several scenes (content, frame) and one sheet per
+        // pane is the point — and overlay popups are deliberately opaque so
+        // nothing behind them bleeds through (see `PaneScene::overlay`).
+        if pane.glass && !pane.overlay && glass_style.visible() {
             cards.push(GlassCard {
                 x: pane.x,
                 y: pane.y,

@@ -25,7 +25,7 @@ pub(crate) fn pick_surface_format(formats: &[wgpu::TextureFormat]) -> wgpu::Text
 }
 
 /// Prefer an alpha mode the compositor actually honours, so the window can be
-/// made translucent at runtime (`/glass window …`). Our shaders write STRAIGHT
+/// made translucent at runtime (Settings → WINDOW → Opacity %). Our shaders write STRAIGHT
 /// (non-premultiplied) alpha, hence `PostMultiplied` first; `PreMultiplied` is
 /// accepted as a fallback because on the platforms that offer only it, an
 /// opaque frame (alpha 1.0 — the default) is identical either way. `Opaque`

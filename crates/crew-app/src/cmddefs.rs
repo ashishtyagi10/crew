@@ -92,10 +92,6 @@ pub(crate) const COMMANDS: &[Cmd] = &[
         desc: "CRT tube look on/off (/crt [on|off|auto])",
     },
     Cmd {
-        name: "/glass",
-        desc: "Frosted pane cards (/glass [off|low|medium|high] · /glass window <pct>)",
-    },
-    Cmd {
         name: "/weight",
         desc: "Text weight — thicker/lighter font (/weight [medium|semibold|bold|…])",
     },
