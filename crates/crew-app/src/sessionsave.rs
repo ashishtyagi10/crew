@@ -80,7 +80,7 @@ impl SavedPane {
         }
     }
 
-    /// Valid to restore: known kind, and dir-backed kinds still have their
+    /// Restorable: known kind, and dir-backed kinds still have their
     /// directory (a viewer, its file). `exists` is a real filesystem check
     /// in production; injected in tests so the rule can be pinned without
     /// touching disk. A remote Far pane's `dir` is an rclone address rather
@@ -88,7 +88,7 @@ impl SavedPane {
     /// there's no cheap local check (that would mean shelling out to
     /// `rclone`), and a stale/renamed remote simply fails on the listing
     /// `begin_list` kicks off, same as any other rclone error.
-    pub(crate) fn valid_with(&self, exists: impl Fn(&Path) -> bool) -> bool {
+    pub(crate) fn restorable_with(&self, exists: impl Fn(&Path) -> bool) -> bool {
         match self.kind.as_str() {
             "far" if self.remote => self.dir.as_deref().is_some_and(|d| !d.is_empty()),
             "shell" | "far" | "view" => self.dir.as_deref().is_some_and(|d| exists(Path::new(d))),
@@ -97,13 +97,13 @@ impl SavedPane {
         }
     }
 
-    /// `valid_with` wired to the real filesystem: directories for `shell`
-    /// and local `far`, a plain file for `view`.
-    fn valid(&self) -> bool {
+    /// `restorable_with` wired to the real filesystem: directories for
+    /// `shell` and local `far`, a plain file for `view`.
+    fn restorable(&self) -> bool {
         if self.kind == "view" {
-            self.valid_with(|p| p.is_file())
+            self.restorable_with(|p| p.is_file())
         } else {
-            self.valid_with(|p| p.is_dir())
+            self.restorable_with(|p| p.is_dir())
         }
     }
 }
@@ -164,7 +164,7 @@ pub(crate) fn load_at(p: Option<PathBuf>) -> Vec<SavedPane> {
     let mut seen = std::collections::HashSet::new();
     panes
         .into_iter()
-        .filter(SavedPane::valid)
+        .filter(SavedPane::restorable)
         .filter(|sp| seen.insert((sp.kind.clone(), sp.dir.clone(), sp.min, sp.remote)))
         .take(MAX_PANES)
         .collect()

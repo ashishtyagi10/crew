@@ -179,7 +179,7 @@ fn a_viewer_is_saved_with_its_path() {
         min: false,
         remote: false,
     };
-    assert!(sp.valid_with(|p| p == std::path::Path::new("/tmp/x.rs")));
+    assert!(sp.restorable_with(|p| p == std::path::Path::new("/tmp/x.rs")));
 }
 
 #[test]
@@ -190,14 +190,14 @@ fn a_viewer_on_a_deleted_file_is_dropped_not_restored_empty() {
         min: false,
         remote: false,
     };
-    assert!(!sp.valid_with(|_| false));
+    assert!(!sp.restorable_with(|_| false));
 }
 
 #[test]
 fn a_viewer_round_trips_through_toml_and_is_dropped_once_the_file_is_gone() {
     // End-to-end through the real filesystem (not the injected predicate):
-    // pins that production `valid()` actually calls `is_file`, and that a
-    // directory does not count as a valid viewer target.
+    // pins that production `restorable()` actually calls `is_file`, and
+    // that a directory does not count as a valid viewer target.
     let p = tmp("view");
     let target = tmp("view-target.rs");
     std::fs::write(&target, "fn main() {}").unwrap();
@@ -221,9 +221,9 @@ fn a_viewer_round_trips_through_toml_and_is_dropped_once_the_file_is_gone() {
 fn a_viewer_on_a_directory_is_not_valid() {
     // `dir` for a `view` pane is a FILE path; a stale entry pointing at a
     // directory (hand-edited file, or a future kind confusion) must not
-    // pass — `valid()` requires `is_file`, not mere existence.
+    // pass — `restorable()` requires `is_file`, not mere existence.
     let sp = SavedPane::view(tmp_dir_str());
-    assert!(!sp.valid());
+    assert!(!sp.restorable());
 }
 
 #[test]
