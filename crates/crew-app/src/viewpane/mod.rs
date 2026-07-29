@@ -3,3 +3,5 @@
 //! every rung renders down to the same `Vec<CardLine>` the chat cards use.
 pub(crate) mod detect;
 pub(crate) mod load;
+mod pane;
+pub(crate) use pane::{LoadState, ViewCache, ViewPane};
