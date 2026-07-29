@@ -810,20 +810,40 @@ impl ViewPane {
     }
 
     /// Drain the worker channel. Returns `true` on the tick the state changed,
-    /// which is what tells `poll_panes` to redraw.
+    /// which is what tells `poll_panes` to redraw — and `false` forever after,
+    /// which is what stops an idle pane repainting.
+    ///
+    /// Note what this does NOT do: reset `scroll`. `open` constructs the pane
+    /// at 0, so a first load needs no reset, and that is precisely what lets
+    /// `reload` keep the reader where they were. A stale offset after a file
+    /// shrinks is caught downstream by `cells`'s window clamp and
+    /// `clamp_scroll`.
     pub(crate) fn poll(&mut self) -> bool {
         let LoadState::Loading { rx, .. } = &self.state else {
             return false;
         };
-        let Ok(done) = rx.try_recv() else {
-            return false;
+        let done = match rx.try_recv() {
+            Ok(done) => done,
+            // The worker died without sending — a panic in the load thread.
+            // Nothing will ever arrive, so settle as Failed rather than
+            // staying Loading: a pane stuck in Loading keeps `animating()`
+            // true, and that keeps the WHOLE APP repainting every frame for
+            // the rest of the session.
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                self.state = LoadState::Failed(format!(
+                    "{}: loader stopped unexpectedly",
+                    self.path.display()
+                ));
+                self.cache.replace(None);
+                return true;
+            }
+            Err(std::sync::mpsc::TryRecvError::Empty) => return false,
         };
         self.state = match done.result {
             Ok(loaded) => LoadState::Ready { format: done.format, loaded },
             Err(msg) => LoadState::Failed(msg),
         };
         self.cache.replace(None);
-        self.scroll = 0;
         true
     }
 
