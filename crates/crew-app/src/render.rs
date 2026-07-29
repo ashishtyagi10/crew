@@ -7,6 +7,17 @@ use crate::panefit::{relayout, relayout_one};
 use crate::paneview::{build_scenes, full_scenes};
 use crate::welcome;
 
+/// Blend two rects — the zoom transition's only geometry.
+fn lerp_rect(a: Rect, b: Rect, t: f32) -> Rect {
+    let m = |x: f32, y: f32| x + (y - x) * t;
+    Rect {
+        x: m(a.x, b.x),
+        y: m(a.y, b.y),
+        w: m(a.w, b.w),
+        h: m(a.h, b.h),
+    }
+}
+
 impl CrewApp {
     /// Build all PaneScenes for one frame: grid panes in the content area, plus
     /// the docked full-height sidebar when shown, plus the docked bottom input bar.
@@ -36,6 +47,13 @@ impl CrewApp {
             // Zoom: render only the focused pane, expanded to the full content area.
             let i = self.focused.min(self.panes.len() - 1);
             if let Some(r) = zoom_tile(content) {
+                // Travel out of the tile the pane occupied: at t=0 the zoomed
+                // pane is exactly its old self, at t=1 it fills the area.
+                let t = self.zoom_anim.eased(now, crate::ease::out_cubic);
+                let r = match self.zoom_from {
+                    Some(from) if t < 1.0 => lerp_rect(from, r, t),
+                    _ => r,
+                };
                 relayout(&mut self.panes[i..=i], &[r], cw, ch);
             }
             let f = (!self.input.focused).then_some(0);
@@ -86,6 +104,15 @@ impl CrewApp {
                     welcome::welcome_cells_animated(cols, rows, tick, hint)
                 });
             }
+        }
+
+        // Cards on their way out, drawn over the settled grid so a collapsing
+        // frame sits above whatever reflowed into its place.
+        crate::ghost::prune(&mut self.ghosts, now);
+        for g in &self.ghosts {
+            let r = g.rect_at(now);
+            let t = g.collapse_t(now);
+            crate::panelcard::push_ghost(&mut scenes, r, cw, ch, &g.title, t);
         }
 
         self.push_sidebar(&mut scenes, sh, scale, cw, ch);

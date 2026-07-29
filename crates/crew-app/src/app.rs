@@ -30,6 +30,15 @@ pub struct CrewApp {
     /// clicks, close, restore); diffing it once per frame in `build_frame`
     /// catches every one of them without each having to remember to stamp a
     /// timeline.
+    /// Cards that have been dismissed but are still collapsing. Bounded by
+    /// their own timelines and pruned every frame (see [`crate::ghost`]).
+    pub(crate) ghosts: Vec<crate::ghost::Ghost>,
+    /// Zoom transition: the rect the focused pane occupied when zoom was
+    /// toggled, and the timeline it is travelling on. A zoom that cut straight
+    /// to full size lost the connection between the tile and the thing that
+    /// filled the screen.
+    pub(crate) zoom_from: Option<crate::layout::Rect>,
+    pub(crate) zoom_anim: crate::ease::Timeline,
     pub(crate) focus_drawn: usize,
     pub(crate) focus_anim: crate::ease::Timeline,
     /// LRU of pane indices: which panes are full tiles vs. minimized.
@@ -152,6 +161,16 @@ impl CrewApp {
     /// Close pane at `idx`.  Returns `true` if the app should exit.
     pub fn close_pane(&mut self, idx: usize) -> bool {
         if idx < self.panes.len() {
+            // Record where the card was before the pane is gone: everything
+            // downstream reads `panes`, so the pane cannot linger — only the
+            // frame it leaves behind can.
+            let p = &self.panes[idx];
+            self.ghosts.push(crate::ghost::Ghost::new(
+                p.rect,
+                p.title_text(),
+                crate::ghost::Exit::Closed,
+                crate::anim::now_ms(),
+            ));
             self.panes.remove(idx);
             self.grid.on_close(idx);
         }
@@ -196,6 +215,12 @@ impl CrewApp {
         // input bar holding focus means no pane is active, so nothing restores.
         if !self.input.focused {
             if let Some(p) = self.panes.get_mut(self.focused) {
+                // Restoring re-stamps the birth clock, so a pane coming back
+                // out of the nav assembles exactly as a new one does — it is,
+                // as far as the grid is concerned, arriving.
+                if p.hidden {
+                    p.born_ms = crate::anim::now_ms();
+                }
                 p.hidden = false;
             }
         }

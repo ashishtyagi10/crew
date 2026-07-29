@@ -958,6 +958,15 @@ from the four corners, so the card is *built* in front of you. Only the frame
 stroke animates: the legend is there from the first frame, because a pane you
 cannot yet name is worse than one that simply appeared.
 
+**Cards collapse.** A closed pane leaves its frame behind for a moment and it
+retracts back into its corners — the reverse of the way it was drawn. Minimizing
+does the same but travels left toward the nav, which is where the pane actually
+went, so the two dismissals never read as the same gesture. The pane itself is
+gone immediately either way; only the frame lingers.
+
+**Zoom travels.** Cmd+Z expands the pane out of its own tile rather than cutting
+to full size, and collapses back into it.
+
 **Focus brackets.** The focused pane carries HUD corner marks: short accent runs
 down the card's edges from each of the four corners, which grow out as focus
 arrives and travel with it when you move between panes. They stay clear of the

@@ -12,6 +12,13 @@ impl CrewApp {
         if idx >= self.panes.len() {
             return;
         }
+        let p = &self.panes[idx];
+        self.ghosts.push(crate::ghost::Ghost::new(
+            p.rect,
+            p.title_text(),
+            crate::ghost::Exit::Minimized,
+            crate::anim::now_ms(),
+        ));
         self.panes[idx].hidden = true;
         self.zoomed = false;
         if !self.config.show_nav {

@@ -29,6 +29,49 @@ pub fn push_card(
     );
 }
 
+/// A card that is collapsing out of existence: the frame at `assemble_t` with
+/// no interior at all. Ghosts carry no content — the pane is already gone, and
+/// drawing its last frame's text would be showing the user something that no
+/// longer exists.
+pub fn push_ghost(
+    scenes: &mut Vec<PaneScene>,
+    rect: Rect,
+    cw: f32,
+    ch: f32,
+    legend: &str,
+    assemble_t: f32,
+) {
+    let (icols, irows) = crate::layout::card_inner_cells(rect.w, rect.h, cw, ch);
+    scenes.push(PaneScene {
+        cells: crate::panecard::pane_card(
+            icols,
+            irows,
+            &crate::panecard::Bar {
+                index: None,
+                title: legend,
+                focused: false,
+                scroll: 0,
+                activity: false,
+                bell: false,
+                broadcast: false,
+                min_btn: false,
+                focus_t: 0.0,
+                assemble_t,
+            },
+        ),
+        x: rect.x,
+        y: rect.y,
+        w: rect.w,
+        h: rect.h,
+        focused: false,
+        bordered: false,
+        // A collapsing frame keeps its sheet, so the card fades as one object
+        // rather than shedding its glass first.
+        glass: true,
+        overlay: false,
+    });
+}
+
 /// Same as [`push_card`], but with the legend text drawn in `title_fg`
 /// instead of the default dim `legend_off` — for legends that need to call
 /// out for attention (e.g. the parked-update restart reminder).
