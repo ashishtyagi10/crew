@@ -1225,14 +1225,23 @@ fn clamp_scroll_pulls_a_wild_offset_back_to_the_last_page() {
     assert!(p.scroll <= 3, "offset clamped to content, got {}", p.scroll);
 }
 
-#[test]
-fn the_cache_is_reused_across_frames_at_one_width() {
-    let p = pane_with("a\nb\n");
-    let _ = p.cells(30, 5);
-    let before = p.cache.borrow().as_ref().map(|c| c.cols);
-    let _ = p.cells(30, 5);
-    assert_eq!(before, Some(30), "same width keeps the cache");
-}
+// CACHE REUSE — do not write this the obvious way. The first draft of this
+// plan specified:
+//
+//     let _ = p.cells(30, 5);
+//     let before = p.cache.borrow().as_ref().map(|c| c.cols);
+//     let _ = p.cells(30, 5);
+//     assert_eq!(before, Some(30), "same width keeps the cache");
+//
+// which is VACUOUS: it passes against an always-rebuild implementation,
+// because a rebuilt cache holds width 30 too. Confirmed by injecting that
+// bug and watching it still pass.
+//
+// The shipped replacement is `the_cache_survives_an_unrelated_state_mutation_
+// at_the_same_width` in `viewpane/render_tests.rs` — it mutates state the
+// cache key does not cover, re-renders at the same width, and asserts the
+// cache was not rebuilt, so the injected bug fails it. Read that test rather
+// than reconstructing one from this comment.
 ```
 
 - [ ] **Step 6: Implement `render.rs`**
