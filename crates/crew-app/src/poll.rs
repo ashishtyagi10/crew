@@ -53,7 +53,7 @@ impl CrewApp {
         if !self.had_restorable {
             use crate::pane::PaneContent;
             self.had_restorable = self.panes.iter().any(|p| match &p.content {
-                PaneContent::Terminal(_) | PaneContent::Far(_) => true,
+                PaneContent::Terminal(_) | PaneContent::Far(_) | PaneContent::View(_) => true,
                 PaneContent::Chat(_) => p.label.as_deref() == Some("crew"),
                 _ => false,
             });

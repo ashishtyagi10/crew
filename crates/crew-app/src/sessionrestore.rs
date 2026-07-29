@@ -15,7 +15,8 @@ impl CrewApp {
     /// (the user cd's around; spawn dir is the Windows/dead-shell fallback),
     /// Far panes their active panel's location (a local dir, or an rclone
     /// `remote:path` address when the active panel is browsing a remote),
-    /// the `/crew` chat pane (routing label "crew") its presence.
+    /// the `/crew` chat pane (routing label "crew") its presence, a file
+    /// viewer the full resolved path it has open.
     pub(crate) fn session_panes(&self) -> Vec<SavedPane> {
         let pids: Vec<Pid> = self
             .panes
@@ -56,6 +57,9 @@ impl CrewApp {
                     }
                     PaneContent::Chat(_) if p.label.as_deref() == Some("crew") => {
                         Some(SavedPane::crew())
+                    }
+                    PaneContent::View(v) => {
+                        Some(SavedPane::view(v.path.to_string_lossy().into_owned()))
                     }
                     _ => None,
                 };
@@ -126,6 +130,11 @@ impl CrewApp {
                 "shell" => self.spawn_new_pane(),
                 "far" => self.spawn_far_pane(),
                 "crew" => self.spawn_crew_pane(),
+                "view" => {
+                    if let Some(path) = sp.dir.as_deref() {
+                        self.open_view(path);
+                    }
+                }
                 _ => {} // load_at filters unknown kinds; belt for callers
             }
             // Re-minimize only the pane THIS iteration pushed (a failed

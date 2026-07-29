@@ -111,6 +111,45 @@ fn restore_from_reroots_a_remote_far_pane_and_starts_listing() {
 }
 
 #[test]
+fn restore_from_reopens_a_viewer_on_its_saved_path() {
+    let dir = std::env::temp_dir();
+    let f = dir.join("session-restore-view-test.txt");
+    std::fs::write(&f, "hi\n").unwrap();
+    let mut app = CrewApp {
+        cwd: PathBuf::from("/"),
+        ..Default::default()
+    };
+    app.restore_from(vec![SavedPane::view(f.to_string_lossy().into_owned())]);
+    assert_eq!(app.panes.len(), 1);
+    let PaneContent::View(v) = &app.panes[0].content else {
+        panic!("expected a View pane");
+    };
+    assert_eq!(v.path, f, "restored viewer must open the saved path");
+    assert!(
+        app.zoomed,
+        "a restored viewer opens zoomed, like a fresh /view"
+    );
+    let _ = std::fs::remove_file(&f);
+}
+
+#[test]
+fn session_panes_snapshots_a_view_pane_with_its_full_path() {
+    let dir = std::env::temp_dir();
+    let f = dir.join("session-panes-view-test.txt");
+    std::fs::write(&f, "hi\n").unwrap();
+    let mut app = CrewApp {
+        cwd: dir,
+        ..Default::default()
+    };
+    app.open_view(&f.to_string_lossy());
+    assert_eq!(
+        app.session_panes(),
+        vec![SavedPane::view(f.to_string_lossy().into_owned())]
+    );
+    let _ = std::fs::remove_file(&f);
+}
+
+#[test]
 fn minimized_panes_restore_minimized_and_focus_lands_visible() {
     let mut app = CrewApp {
         cwd: PathBuf::from("/"),
