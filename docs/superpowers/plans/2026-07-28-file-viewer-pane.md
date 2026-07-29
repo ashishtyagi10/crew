@@ -1571,6 +1571,11 @@ use crate::md::{MdSpan, MdStyle};
 pub(crate) fn parse(text: &str, delim: char) -> Vec<Vec<String>> {
     let mut rows = Vec::new();
     for line in text.split('\n') {
+        // Strip CRLF's carriage return at the LINE level, not globally — a \r
+        // genuinely inside a quoted field is data. Excel and most Windows/web
+        // exports are CRLF, so without this every row's last field carries a
+        // control character into the renderer as literal cell text.
+        let line = line.strip_suffix('\r').unwrap_or(line);
         if line.is_empty() {
             continue;
         }
