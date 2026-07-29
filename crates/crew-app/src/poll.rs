@@ -14,6 +14,29 @@ const BUSY_ANIM_DIV: u64 = 4;
 
 impl CrewApp {
     /// One poll cycle. Schedules the next wake-up before returning.
+    /// Whether anything on screen still has a frame left to draw.
+    ///
+    /// This predicate IS the "an idle crew never repaints" invariant, and it is
+    /// a method rather than an inline condition so it can be asserted directly:
+    /// every animation added since 0.8.0 has to appear here to be drawn a
+    /// second time, and every one of them has to be *bounded* or this never
+    /// returns false again. At `Motion = off` each timeline is born settled, so
+    /// the whole thing collapses to "is a pane busy".
+    pub(crate) fn wants_animation_frame(&self, now: u64) -> bool {
+        self.panes.iter().any(crate::paneview::pane_animating)
+            || crate::attention::any_pulsing(&self.panes, now)
+            || self.focus_anim.live(now)
+            || self.zoom_anim.live(now)
+            || self.ghosts.iter().any(|g| g.live(now))
+            || self.panes.iter().any(|p| {
+                crate::paneview::spawn_timeline(p).live(now)
+                    || match &p.content {
+                        PaneContent::Chat(c) => c.readouts.any_live(now),
+                        _ => false,
+                    }
+            })
+    }
+
     pub(crate) fn poll_panes(&mut self, event_loop: &ActiveEventLoop) {
         if !self.had_restorable {
             use crate::pane::PaneContent;
@@ -340,20 +363,7 @@ impl CrewApp {
             if crate::welcome::anim_should_redraw(self.tick) {
                 any_changed = true;
             }
-        } else if self.panes.iter().any(crate::paneview::pane_animating)
-            || crate::attention::any_pulsing(&self.panes, crate::anim::now_ms())
-            || self.focus_anim.live(crate::anim::now_ms())
-            || self.ghosts.iter().any(|g| g.live(crate::anim::now_ms()))
-            || self.zoom_anim.live(crate::anim::now_ms())
-            || self.panes.iter().any(|p| match &p.content {
-                PaneContent::Chat(c) => c.readouts.any_live(crate::anim::now_ms()),
-                _ => false,
-            })
-            || self
-                .panes
-                .iter()
-                .any(|p| crate::paneview::spawn_timeline(p).live(crate::anim::now_ms()))
-        {
+        } else if self.wants_animation_frame(crate::anim::now_ms()) {
             // Drive the indeterminate progress sweep while any pane is busy
             // (or a chat card is fading in, or an attention marker is still
             // blinking), throttled to ~15 fps so a working pane stays lively

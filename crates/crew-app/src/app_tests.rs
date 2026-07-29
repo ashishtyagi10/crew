@@ -1014,3 +1014,77 @@ fn restoring_a_minimized_pane_re_assembles_it() {
     assert!(!app.panes[0].hidden);
     assert!(app.panes[0].born_ms > 0, "birth clock should be re-stamped");
 }
+
+// --- the idle invariant -----------------------------------------------------
+
+/// `anim.rs` opens by promising that an idle crew never repaints. Every
+/// animation added since 0.8.0 is bounded specifically so this stays true —
+/// which is only worth anything if something checks it.
+#[test]
+fn a_settled_app_asks_for_no_frames() {
+    crate::motion::set_level(crate::motion::MotionLevel::Full);
+    let mut app = CrewApp::default();
+    app.panes.push(tests_far_pane("p"));
+    app.panes[0].born_ms = 0;
+    // Long after everything could conceivably have finished.
+    let late = crate::anim::now_ms() + 60_000;
+    assert!(
+        !app.wants_animation_frame(late),
+        "an idle crew asked for another frame"
+    );
+}
+
+/// Reduce-motion is not "the same animations, faster": at `off` nothing is
+/// scheduled at all, from the very first frame.
+#[test]
+fn motion_off_schedules_nothing_even_immediately_after_events() {
+    crate::motion::set_level(crate::motion::MotionLevel::Off);
+    let mut app = CrewApp::default();
+    app.panes.push(tests_far_pane("a"));
+    app.panes.push(tests_far_pane("b"));
+    let now = crate::anim::now_ms();
+    app.panes[0].born_ms = now;
+    app.focus_anim = crate::ease::Timeline::start(now, 300, crate::motion::level());
+    app.zoom_anim = crate::ease::Timeline::start(now, 300, crate::motion::level());
+    app.close_pane(1);
+    assert!(
+        !app.wants_animation_frame(now),
+        "off must schedule nothing, not merely finish quickly"
+    );
+    crate::motion::set_level(crate::motion::MotionLevel::Full);
+}
+
+/// The other half of the contract: at full motion a fresh event DOES ask for
+/// frames. Without this, the test above would pass on an app that never
+/// animated at all.
+#[test]
+fn a_fresh_event_asks_for_frames_at_full_motion() {
+    crate::motion::set_level(crate::motion::MotionLevel::Full);
+    let mut app = CrewApp::default();
+    app.panes.push(tests_far_pane("p"));
+    let now = crate::anim::now_ms();
+    app.panes[0].born_ms = 0;
+    app.focus_anim = crate::ease::Timeline::start(now, 300, crate::motion::level());
+    assert!(app.wants_animation_frame(now), "focus travel must animate");
+}
+
+/// Every animation is bounded — a ghost, a focus travel and a spawn all end.
+/// A timeline that never settled would keep the predicate true forever, which
+/// is the one failure mode that costs battery rather than pixels.
+#[test]
+fn every_animation_terminates() {
+    crate::motion::set_level(crate::motion::MotionLevel::Full);
+    let mut app = CrewApp::default();
+    app.panes.push(tests_far_pane("a"));
+    app.panes.push(tests_far_pane("b"));
+    let now = crate::anim::now_ms();
+    app.panes[0].born_ms = now;
+    app.focus_anim = crate::ease::Timeline::start(now, 300, crate::motion::level());
+    app.zoom_anim = crate::ease::Timeline::start(now, 300, crate::motion::level());
+    app.minimize_pane(1);
+    assert!(app.wants_animation_frame(now), "should be busy right now");
+    assert!(
+        !app.wants_animation_frame(now + 30_000),
+        "something is still animating half a minute later"
+    );
+}

@@ -8,6 +8,27 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.9.0
+
+*Jarvis motion, iteration 6 of 6 — the goal is complete.*
+
+- **The idle invariant is now a test, not an intention.** The condition
+  deciding whether crew schedules another frame is a named predicate,
+  `wants_animation_frame`, and four tests hold it to its contract: a settled app
+  asks for nothing, `Motion = off` schedules nothing even in the same frame as a
+  close and a focus change, full motion *does* animate a fresh event (without
+  which the first test would pass on an app that never animated), and everything
+  in flight is over within half a minute. A timeline that never settled would
+  keep crew awake forever — the one failure mode here that costs battery rather
+  than pixels.
+- **Every theme still reads correctly.** All five glass renders verified
+  through the pixel harness against their sheet-off baselines.
+
+Six iterations in: focus brackets, cards that assemble and collapse, zoom that
+travels, readouts that count, a live streaming caret, and a scan that sweeps a
+working pane's glass — with no new colour anywhere, and an idle crew that
+repaints exactly as rarely as it did before any of it.
+
 ## 0.8.5
 
 *Jarvis motion, iteration 5 of 6.*
