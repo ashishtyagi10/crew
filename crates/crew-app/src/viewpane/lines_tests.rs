@@ -52,9 +52,15 @@ fn truncation_is_announced_in_a_banner_row() {
     };
     let ls = for_state(&state, false, 60);
     let banner = text(&ls[0]);
-    assert!(banner.contains("8 MB"), "names what is shown: {banner}");
-    assert!(banner.contains("39"), "names the real size in MB: {banner}");
-    assert!(banner.contains("o "), "offers the escape: {banner}");
+    // Ordered, not two unordered substring checks: "8 MB" and "39" swapped
+    // still both appear ("showing first 39 MB of 8 MB"), which is backwards
+    // and actively misleading — it tells the reader a 39 MB slice was taken
+    // from an 8 MB file.
+    assert!(
+        banner.contains("first 8 MB of 39 MB"),
+        "banner names what is shown before what exists: {banner}"
+    );
+    assert!(banner.contains(" o "), "offers the escape: {banner}");
 }
 
 #[test]
@@ -97,7 +103,14 @@ fn a_loading_pane_draws_a_skeleton_not_an_empty_page() {
         false,
         40,
     );
-    assert!(!ls.is_empty(), "loading is visible");
+    // `!ls.is_empty()` alone is satisfied by `vec![CardLine::new()]` — one
+    // visually blank row — which shows the user nothing while still
+    // technically being a non-empty outer Vec. Assert actual visible text.
+    let visible: String = ls.iter().flatten().map(|c| c.c).collect();
+    assert!(
+        visible.trim().contains("loading"),
+        "a loading pane shows something, not a blank row: {visible:?}"
+    );
 }
 
 #[test]

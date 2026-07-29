@@ -43,22 +43,33 @@ impl ViewPane {
         let top = self.scroll.min(cache.lines.len().saturating_sub(1));
         let mut out = Vec::new();
         for (r, line) in cache.lines.iter().skip(top).take(rows as usize).enumerate() {
-            let mut col = 0u16;
-            for cell in line {
-                if col >= cols {
-                    break;
-                }
-                out.push(CellView {
-                    col,
-                    row: r as u16,
-                    c: cell.c,
-                    fg: cell.fg,
-                    bg: cell.bg.unwrap_or(page_bg),
-                    bold: cell.bold,
-                    italic: cell.italic,
-                });
-                col += crate::chatwidth::char_w(cell.c).max(1) as u16;
-            }
+            let row = r as u16;
+            // `place_row` guards on the glyph's full display width before
+            // placing it (`x + w > max_col`), not merely on where it starts —
+            // a char-count guard lets a 2-wide glyph land one column before
+            // the edge and overrun it. Reuse the same guard the rest of the
+            // chat views use rather than mirror it.
+            crate::chatwidth::place_row(
+                0,
+                cols,
+                line.iter().map(|cell| {
+                    (
+                        cell.c,
+                        (cell.fg, cell.bg.unwrap_or(page_bg), cell.bold, cell.italic),
+                    )
+                }),
+                |col, c, (fg, bg, bold, italic)| {
+                    out.push(CellView {
+                        col,
+                        row,
+                        c,
+                        fg,
+                        bg,
+                        bold,
+                        italic,
+                    });
+                },
+            );
         }
         out
     }

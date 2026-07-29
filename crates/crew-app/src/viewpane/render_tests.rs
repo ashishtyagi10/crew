@@ -33,6 +33,42 @@ fn a_zero_sized_grid_draws_nothing_and_does_not_panic() {
     assert!(pane_with("x\n").cells(0, 0).is_empty());
 }
 
+// `cells_fit_inside_the_grid` only checks `c.col < cols`, which is true even
+// for a wide glyph whose col + width overruns the edge — its fixture is
+// ASCII-only anyway, so char_w is always 1 there and the case never arises.
+// Inject a CardLine directly (bypassing `lines::for_state`, which already
+// wraps by display width and so never produces this shape on its own) so a
+// double-width glyph lands with one column of room left: four 1-wide chars
+// then a 2-wide CJK glyph in a 5-column grid. A naive char-count placement
+// emits it at col 4 (4 < 5, so `cells_fit_inside_the_grid`-style checks pass)
+// while its true extent reaches column 5, one past the last valid column.
+#[test]
+fn a_double_width_glyph_never_straddles_the_grid_edge() {
+    use crate::chatbody::plain;
+    use crate::viewpane::ViewCache;
+    let ink = crew_theme::theme().ink;
+    let line: Vec<_> = "aaaa\u{4e2d}"
+        .chars()
+        .map(|c| plain(c, ink, false))
+        .collect();
+    let p = pane_with("");
+    p.cache.replace(Some(ViewCache {
+        cols: 5,
+        raw: false,
+        lines: vec![line],
+    }));
+    for c in p.cells(5, 1) {
+        let w = crate::chatwidth::char_w(c.c) as u16;
+        assert!(
+            c.col + w <= 5,
+            "cell {:?} at col {} width {} overruns a 5-col grid",
+            c.c,
+            c.col,
+            w
+        );
+    }
+}
+
 #[test]
 fn clamp_scroll_pulls_a_wild_offset_back_to_the_last_page() {
     // window_top clamps the VIEW; the stored offset must be clamped too or
