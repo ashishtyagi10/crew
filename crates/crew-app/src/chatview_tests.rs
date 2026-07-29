@@ -200,10 +200,18 @@ fn row_text_at_reads_the_plain_body_row_and_misses_out_of_range() {
         Some(true),
         "the row's plain text carries the path"
     );
+    // Fix 6: `rows + 5` asks for a row entirely outside the pane's own grid
+    // (0..rows) — no implementation, buggy or not, can produce a cell
+    // there, so this half of the test passed no matter what `row_text_at`
+    // did. Ask for a row that EXISTS in the pane but has no content on it —
+    // the case an off-by-one or "always hit" bug could actually get wrong.
+    let blank_row = (0..rows)
+        .find(|r| !rendered.contains_key(r))
+        .expect("a one-line message leaves some row in the pane blank");
     assert_eq!(
-        row_text_at(&pane, cols, rows, rows + 5),
+        row_text_at(&pane, cols, rows, blank_row),
         None,
-        "a row past the rendered content is a miss, not a panic"
+        "a row inside the pane but past the rendered content is a miss, not a panic"
     );
 }
 

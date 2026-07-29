@@ -38,10 +38,28 @@ fn content_wraps_inside_the_pane_width() {
 
 #[test]
 fn a_link_keeps_its_url_on_the_cells() {
-    // clickopen recovers the URL from the cell rather than re-parsing.
-    let ls = lines("[crew](https://example.com)\n", 40);
-    let has = ls.iter().flatten().any(|c| c.link.is_some());
-    assert!(has, "link spans carry their target");
+    // clickopen recovers the URL from the cell rather than re-parsing. Fix
+    // 6: the old assertion was `.any(|c| c.link.is_some())`, which passes
+    // even if EVERY cell on the line — including "before"/"after" outside
+    // the link — were (wrongly) tagged with the link. Assert the label
+    // cells carry it and a neighbouring non-link cell does not.
+    let ls = lines("before [crew](https://example.com) after\n", 40);
+    let line = &ls[0];
+    let s = text(line);
+    let start = s.find("crew").expect("the link label is rendered as text");
+    let label = &line[start..start + "crew".len()];
+    let label_links: Vec<_> = label.iter().map(|c| (c.c, c.link.clone())).collect();
+    assert!(
+        label
+            .iter()
+            .all(|c| c.link.as_deref() == Some("https://example.com")),
+        "every label cell must carry the link target: {label_links:?}"
+    );
+    let before = &line[start - 1];
+    assert!(
+        before.link.is_none(),
+        "a neighbouring non-link cell must not carry the link"
+    );
 }
 
 #[test]

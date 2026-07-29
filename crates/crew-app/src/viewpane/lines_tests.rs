@@ -129,13 +129,19 @@ fn raw_mode_shows_markdown_source_verbatim() {
 
 #[test]
 fn diff_ink_differs_between_added_and_removed() {
+    // Fix 6: the old assertion was only `add != del`, so red additions with
+    // green deletions — the colours swapped — would still pass. Assert
+    // against the exact theme slot each side draws from, per `diff_lines`'s
+    // own mapping ('+' -> ansi[2], '-' -> ansi[1]) — this is the only test
+    // inspecting rendered ink for any non-markdown rung, which is why Fix 1
+    // (Code/Data never syntax-colouring anything) went unnoticed for eleven
+    // reviews.
+    let t = crew_theme::theme();
     let ls = for_state(&ready(Format::Diff, "+added\n-gone\n"), false, 40);
     let add = ls[0].iter().find(|c| c.c == 'a').unwrap().fg;
     let del = ls[1].iter().find(|c| c.c == 'g').unwrap().fg;
-    assert_ne!(
-        add, del,
-        "a diff that colours both sides alike is not a diff"
-    );
+    assert_eq!(add, t.ansi[2], "an addition draws from ansi[2]");
+    assert_eq!(del, t.ansi[1], "a deletion draws from ansi[1]");
 }
 
 #[test]

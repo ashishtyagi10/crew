@@ -93,15 +93,23 @@ mod tests {
 
     #[test]
     fn view_opens_the_viewer_rather_than_handing_the_file_to_the_os() {
+        // Fix 6: the old assertion only checked that SOME View pane exists,
+        // which passes even if `FarAction::View` opened a completely
+        // unrelated path — e.g. wired to `focused`'s own directory instead
+        // of the action's own `path`. Assert the opened pane's path is the
+        // one the action carried.
         let f = std::env::temp_dir().join("far-view-test.txt");
         std::fs::write(&f, "x\n").unwrap();
         let mut app = far_pane_app();
-        app.apply_far_action(FarAction::View(f), 0);
-        assert!(
-            app.panes
-                .iter()
-                .any(|p| matches!(p.content, PaneContent::View(_))),
-            "F3 stays inside crew"
+        app.apply_far_action(FarAction::View(f.clone()), 0);
+        let view_path = app.panes.iter().find_map(|p| match &p.content {
+            PaneContent::View(v) => Some(v.path.clone()),
+            _ => None,
+        });
+        assert_eq!(
+            view_path,
+            Some(f),
+            "F3 must open the viewer on the action's own path"
         );
     }
 

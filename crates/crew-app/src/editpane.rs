@@ -154,10 +154,14 @@ mod tests {
         app.apply_view_edit(focused, std::path::Path::new(""));
 
         match &app.panes[focused].content {
-            PaneContent::View(v) => assert_ne!(
-                v.editor_born,
-                Some(unrelated_born),
-                "a spawn that pushed no pane must not adopt an unrelated pane's born_ms"
+            // Fix 6: `assert_ne!(.., Some(unrelated_born))` passes for ANY
+            // other value, including some other wrong pane's born_ms that
+            // just isn't this specific one. The real postcondition is that
+            // `editor_born` stays untouched — `None` — not merely "not this
+            // one value".
+            PaneContent::View(v) => assert_eq!(
+                v.editor_born, None,
+                "a spawn that pushed no pane must leave editor_born untouched"
             ),
             _ => panic!("still a viewer"),
         }
