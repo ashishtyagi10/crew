@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 use winit::event_loop::{ActiveEventLoop, ControlFlow};
 
 use crate::app::{CrewApp, POLL_MS};
-use crate::pane::PaneContent;
+use crate::pane::{Pane, PaneContent};
 
 /// Poll ticks per rendered frame of the busy progress sweep: the loop runs at
 /// ~62 Hz, so redrawing every 4th tick animates the sweep at ~15 fps.
@@ -23,6 +23,26 @@ const BUSY_ANIM_DIV: u64 = 4;
 /// comfortably above `SCAN_EVERY` so the pane is guaranteed at least one scan
 /// before the grace period is used to judge it.
 const EDITOR_GRACE_MS: u64 = 2_000;
+
+/// Whether `p` is one of the kinds `session_panes` would snapshot — the
+/// predicate behind `had_restorable`, whose whole job is gating the quit
+/// snapshot so a pane-less-LOOKING run can't wipe a saved `/restore`
+/// session. Pulled out of `poll_panes` (which needs a real `ActiveEventLoop`
+/// and so can't run in a unit test) so this rule is testable on its own,
+/// the same reason `sessionrestore::restore_cwd_for` was pulled out of
+/// `restore_from`.
+fn is_restorable_pane(p: &Pane) -> bool {
+    match &p.content {
+        PaneContent::Terminal(_) | PaneContent::Far(_) => true,
+        // Fix 4: an ephemeral viewer (`/about`, `??`) is not what this flag
+        // exists to protect — it opens on a changelog/explanation, not
+        // something the user asked to view, which is exactly the
+        // pane-less-looking-but-isn't case `had_restorable` guards against.
+        PaneContent::View(v) => !v.ephemeral,
+        PaneContent::Chat(_) => p.label.as_deref() == Some("crew"),
+        _ => false,
+    }
+}
 
 impl CrewApp {
     /// One poll cycle. Schedules the next wake-up before returning.
@@ -51,12 +71,7 @@ impl CrewApp {
 
     pub(crate) fn poll_panes(&mut self, event_loop: &ActiveEventLoop) {
         if !self.had_restorable {
-            use crate::pane::PaneContent;
-            self.had_restorable = self.panes.iter().any(|p| match &p.content {
-                PaneContent::Terminal(_) | PaneContent::Far(_) | PaneContent::View(_) => true,
-                PaneContent::Chat(_) => p.label.as_deref() == Some("crew"),
-                _ => false,
-            });
+            self.had_restorable = self.panes.iter().any(is_restorable_pane);
         }
         if self.window.is_none() {
             return;
@@ -590,3 +605,7 @@ impl CrewApp {
 #[cfg(test)]
 #[path = "viewpane/reload_tests.rs"]
 mod reload_tests;
+
+#[cfg(test)]
+#[path = "poll_tests.rs"]
+mod tests;

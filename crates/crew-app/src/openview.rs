@@ -47,6 +47,31 @@ impl CrewApp {
         self.zoomed = true;
         self.redraw();
     }
+
+    /// Mark the viewer `open_view` just pushed as ephemeral (Fix 4): opened
+    /// on a SYNTHETIC temp file rather than something the user asked to
+    /// view, so `session_panes`/`had_restorable` should act as if it were
+    /// never there. Shared by `spawn_about_pane` and
+    /// `askbar::absorb_explain_result`, the only two callers that write a
+    /// temp file before handing it to `open_view`.
+    ///
+    /// `before` is `self.panes.len()` captured right before the `open_view`
+    /// call: `open_view` can fail without pushing a pane (a race between the
+    /// write and its own `is_file` check, astronomically unlikely but not
+    /// impossible), and without this guard that would mark whatever pane
+    /// happened to be LAST — a real, user-opened viewer — ephemeral instead.
+    pub(crate) fn mark_last_view_ephemeral(&mut self, before: usize) {
+        if self.panes.len() <= before {
+            return;
+        }
+        if let Some(Pane {
+            content: PaneContent::View(v),
+            ..
+        }) = self.panes.last_mut()
+        {
+            v.ephemeral = true;
+        }
+    }
 }
 
 impl CrewApp {
@@ -75,7 +100,9 @@ impl CrewApp {
             self.set_status(format!("about: cannot open changelog: {e}"));
             return;
         }
+        let before = self.panes.len();
         self.open_view(&path.to_string_lossy());
+        self.mark_last_view_ephemeral(before);
     }
 }
 

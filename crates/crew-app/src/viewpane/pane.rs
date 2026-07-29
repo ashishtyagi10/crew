@@ -43,6 +43,13 @@ pub(crate) struct ViewPane {
     /// `poll::reload_views_after_edit`. Identified by `born_ms` rather than
     /// pane index: indices shift the moment any pane closes.
     pub editor_born: Option<u64>,
+    /// Set by `/about` and `??` (`openview::spawn_about_pane`,
+    /// `askbar::absorb_explain_result`) for the viewer they open on a
+    /// SYNTHETIC temp file — a changelog or an explanation, not something
+    /// the user asked to view. Fix 4: `session_panes`/`had_restorable` skip
+    /// these, so quitting with only one of these open can't overwrite a
+    /// saved multi-pane session with a changelog viewer.
+    pub ephemeral: bool,
 }
 
 impl ViewPane {
@@ -58,6 +65,7 @@ impl ViewPane {
             search: None,
             cache: RefCell::new(None),
             editor_born: None,
+            ephemeral: false,
         }
     }
 

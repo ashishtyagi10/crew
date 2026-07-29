@@ -221,6 +221,25 @@ fn session_panes_snapshots_a_view_pane_with_its_full_path() {
 }
 
 #[test]
+fn session_panes_skips_an_ephemeral_viewer() {
+    // Fix 4: `/about` and `??` open their viewer on a SYNTHETIC temp file —
+    // saving it like `session_panes_snapshots_a_view_pane_with_its_full_path`
+    // (above) expects for a NORMAL viewer would let a run whose only pane is
+    // `/about` silently replace a saved multi-shell session with a changelog
+    // viewer. This is why the fix must key off the pane being synthetic, not
+    // off its path living under `$TMPDIR` — the normal-viewer test above
+    // opens a real file that also happens to live there, and must still be
+    // saved.
+    let mut app = CrewApp::default();
+    app.spawn_about_pane();
+    assert_eq!(
+        app.session_panes(),
+        Vec::<SavedPane>::new(),
+        "an ephemeral viewer must not be snapshotted"
+    );
+}
+
+#[test]
 fn minimized_panes_restore_minimized_and_focus_lands_visible() {
     let mut app = CrewApp {
         cwd: PathBuf::from("/"),

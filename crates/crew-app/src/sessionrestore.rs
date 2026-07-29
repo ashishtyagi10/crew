@@ -74,7 +74,14 @@ impl CrewApp {
                     PaneContent::Chat(_) if p.label.as_deref() == Some("crew") => {
                         Some(SavedPane::crew())
                     }
-                    PaneContent::View(v) => {
+                    // Fix 4: `/about` and `??` open their viewer on a
+                    // SYNTHETIC temp file (a changelog, an explanation) —
+                    // not something the user asked to view, and one whose
+                    // path won't mean anything on the next launch anyway.
+                    // Saving it would let a run whose only pane is `/about`
+                    // silently replace a saved multi-shell session with a
+                    // changelog viewer.
+                    PaneContent::View(v) if !v.ephemeral => {
                         Some(SavedPane::view(v.path.to_string_lossy().into_owned()))
                     }
                     _ => None,

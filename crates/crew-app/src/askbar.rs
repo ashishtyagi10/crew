@@ -170,7 +170,11 @@ impl CrewApp {
                     crate::chattime::unix_now_ms()
                 ));
                 match std::fs::write(&path, md) {
-                    Ok(()) => self.open_view(&path.to_string_lossy()),
+                    Ok(()) => {
+                        let before = self.panes.len();
+                        self.open_view(&path.to_string_lossy());
+                        self.mark_last_view_ephemeral(before);
+                    }
                     Err(e) => self.set_status(format!("explain: cannot write {e}")),
                 }
             }
@@ -206,6 +210,23 @@ mod tests {
             "the answer opens in the file viewer"
         );
         assert!(app.zoomed, "the viewer opens zoomed");
+    }
+
+    #[test]
+    fn explain_result_marks_its_viewer_ephemeral() {
+        // Fix 4: `??` opens its viewer on a SYNTHETIC temp file (the answer,
+        // written to `$TMPDIR`), not something the user asked to view —
+        // saving it like a normal viewer would let a run whose only pane is
+        // an explanation silently replace a saved session on quit.
+        let mut app = CrewApp::default();
+        app.absorb_explain_result(Ok("## It failed\nBecause of X.".into()));
+        let crate::pane::PaneContent::View(v) = &app.panes.last().unwrap().content else {
+            panic!("expected a View pane");
+        };
+        assert!(
+            v.ephemeral,
+            "a viewer opened on a synthetic temp file must be marked ephemeral"
+        );
     }
 
     #[test]
