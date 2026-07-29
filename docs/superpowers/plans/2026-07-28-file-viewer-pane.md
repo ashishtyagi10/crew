@@ -2015,17 +2015,21 @@ fn escape_cancels_a_live_search_before_it_closes_the_pane() {
 
 ```rust
 impl ViewPane {
-    /// Mouse-wheel scrolling. Positive `lines` scrolls down, matching
-    /// `MdPane::scroll_wheel`'s sign convention so `scroll.rs` is unchanged
-    /// apart from the variant name.
+    /// Mouse-wheel scrolling. `scroll.rs` hands down winit's delta, where
+    /// **positive means scrolling up** — so the offset moves the other way.
+    /// Matches `MdPane::scroll_wheel`, the call site this replaces.
     pub(crate) fn scroll_wheel(&mut self, cols: u16, rows: u16, lines: i32) {
-        self.scroll = self.scroll.saturating_add_signed(lines as isize);
+        self.scroll = self
+            .scroll
+            .saturating_add_signed(lines.saturating_neg() as isize);
         self.clamp_scroll(cols, rows);
     }
 }
 ```
 
-**Implementer note:** confirm the sign convention by reading `MdPane::scroll_wheel` before deleting it in Task 8. Getting it backwards is invisible to every unit test and instantly obvious in the app.
+**The negation is the whole point, and this plan got it wrong first.** The original draft added `lines` un-negated with a comment asserting "positive scrolls down" — backwards. It was caught only because the implementer read `mdpane.rs` and `scroll.rs` instead of trusting the sample. A flipped wheel sign passes every unit test that asserts on magnitude and is wrong the instant a human touches a trackpad, so **read the call site, do not trust this block**.
+
+Note also that `MdPane::scroll_wheel` takes a `cursor_col: Option<u16>` to pick which half of its split gets the scroll. `ViewPane` has no split, so that parameter disappears — Task 8's `scroll.rs` arm passes `(cols, rows, lines)` only.
 
 - [ ] **Step 9: Run, lint, commit**
 
