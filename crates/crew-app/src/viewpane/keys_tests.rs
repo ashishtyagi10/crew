@@ -150,11 +150,10 @@ fn down_page_and_bounds_scroll_by_the_right_amounts() {
 }
 
 #[test]
-fn scroll_wheel_matches_mdpane_sign_convention_positive_is_up() {
-    // `MdPane::scroll_wheel` routes into `MdPane::scroll`, which computes
-    // `target - delta` — so a positive `lines` (documented "up/older" by
-    // `scroll::scroll_pane`) DECREASES the stored offset. Confirmed by
-    // reading `mdpane.rs`/`scroll.rs` before writing this: getting the sign
+fn scroll_wheel_treats_a_positive_delta_as_scrolling_up() {
+    // A positive `lines` (documented "up/older" by `scroll::scroll_pane`,
+    // the caller) must DECREASE the stored offset, toward the top —
+    // `self.scroll` counts rows down from the top. Getting the sign
     // backwards here passes every other test in this file and is only
     // visible as scrolling the wrong direction in the running app.
     let mut p = pane_with(&lines(50));

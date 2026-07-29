@@ -18,8 +18,7 @@ fn row(s: &str, fg: (u8, u8, u8), bold: bool) -> CardLine {
 }
 
 /// Hard-wrap `text` at `w` display columns, tagging each row with its 1-based
-/// source line (continuations repeat it so the gutter can blank them). Lifted
-/// unchanged from `mdcache::wrap_source`, which the deleted source half used.
+/// source line (continuations repeat it so the gutter can blank them).
 fn wrap(text: &str, w: usize) -> Vec<(usize, Vec<char>)> {
     let mut out = Vec::new();
     for (i, line) in text.split('\n').enumerate() {
@@ -84,19 +83,37 @@ fn numbered(
 }
 
 /// `+`/`−` ink for diffs; everything else is body ink.
+///
+/// Fix 7: this used to reprint the line number on every WRAPPED continuation
+/// row (unlike `numbered`, which blanks it) and read `chars.first()` of the
+/// wrapped row as the `+`/`-` marker — the continuation row's first
+/// character is the line's BODY, not its marker, so a wrapped added line
+/// lost its colour after the first row. The marker colour is now derived
+/// once per SOURCE line, from that line's own first character, and carried
+/// across every row it wraps into; the gutter blanks continuations the same
+/// way `numbered` does.
 fn diff_lines(text: &str, cols: usize) -> Vec<CardLine> {
     let t = crew_theme::theme();
-    let mut out = Vec::new();
     let w = cols.saturating_sub(GUTTER_W).max(1);
-    for (n, chars) in wrap(text, w) {
-        let head = chars.first().copied().unwrap_or(' ');
-        let fg = match head {
-            '+' => t.ansi[2],
-            '-' => t.ansi[1],
-            '@' => t.ansi[6],
+    let fgs: Vec<(u8, u8, u8)> = text
+        .split('\n')
+        .map(|line| match line.chars().next() {
+            Some('+') => t.ansi[2],
+            Some('-') => t.ansi[1],
+            Some('@') => t.ansi[6],
             _ => t.ink,
+        })
+        .collect();
+    let mut out = Vec::new();
+    let mut last = 0usize;
+    for (n, chars) in wrap(text, w) {
+        let mut line: CardLine = if n == last {
+            row(&" ".repeat(GUTTER_W), t.text_muted, false)
+        } else {
+            row(&format!("{n:>5} "), t.text_muted, false)
         };
-        let mut line: CardLine = row(&format!("{n:>5} "), t.text_muted, false);
+        last = n;
+        let fg = fgs[n - 1];
         line.extend(chars.iter().map(|c| plain(*c, fg, false)));
         out.push(line);
     }
@@ -117,8 +134,10 @@ fn mb(bytes: u64) -> u64 {
 }
 
 /// Lines for the pane's current state at `cols` columns. `raw` shows text
-/// unrendered (the `s` toggle); it only changes the `Markdown` rung, since
-/// every other rung already shows the bytes as they are.
+/// unrendered (the `s` toggle); it changes the `Markdown` and `Csv` rungs —
+/// the two whose default rendering shows something OTHER than the bytes
+/// themselves — and leaves every other rung alone, since those already show
+/// the bytes as they are.
 pub(crate) fn for_state(state: &LoadState, raw: bool, cols: usize) -> Vec<CardLine> {
     let t = crew_theme::theme();
     match state {

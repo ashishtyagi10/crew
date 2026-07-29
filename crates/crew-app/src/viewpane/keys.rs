@@ -1,5 +1,5 @@
 //! Key reduction for the viewer, split into a pure seam the same way
-//! `mdkeys`/`farpane::keys` are: `view_key` classifies a winit event into
+//! `farpane::keys` is: `view_key` classifies a winit event into
 //! `ViewInput`, and everything below that point is plain data the tests
 //! drive directly.
 //!
@@ -18,7 +18,7 @@ use crate::viewpane::search::Search;
 use crate::viewpane::search_apply;
 use crate::viewpane::ViewPane;
 
-/// A Page Up/Down jump, matching `mdkeys::PAGE`.
+/// A Page Up/Down jump: 10 rows.
 const PAGE: i32 = 10;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -158,12 +158,12 @@ impl ViewPane {
         apply(self, input, cols, rows)
     }
 
-    /// Mouse-wheel scrolling. `MdPane::scroll_wheel` routes into
-    /// `MdPane::scroll`, which computes `target - delta` — so a positive
-    /// `lines` (documented "up/older" by `scroll::scroll_pane`) DECREASES
-    /// the stored offset, toward the top. Matched here rather than assumed:
-    /// getting this sign backwards is invisible to every unit test and only
-    /// shows up as scrolling the wrong way in the running app.
+    /// Mouse-wheel scrolling. A positive `lines` (documented "up/older" by
+    /// `scroll::scroll_pane`, the caller) DECREASES the stored offset,
+    /// toward the top — `self.scroll` counts rows down from the top, so
+    /// scrolling up subtracts. Matched here rather than assumed: getting
+    /// this sign backwards is invisible to every unit test and only shows
+    /// up as scrolling the wrong way in the running app.
     pub(crate) fn scroll_wheel(&mut self, cols: u16, rows: u16, lines: i32) {
         self.scroll = self
             .scroll

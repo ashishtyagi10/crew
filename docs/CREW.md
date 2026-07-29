@@ -326,7 +326,7 @@ The docked command bar supports:
   single, read-only pane over the file, rendered by format (markdown,
   numbered-gutter code, aligned CSV, colored diffs, or a metadata card for
   anything else). ↑/↓ and PageUp/PageDown/Home/End scroll, `r` reloads from
-  disk, `s` toggles raw text (markdown only), `/` searches (`n`/`N` for
+  disk, `s` toggles raw text (markdown and CSV), `/` searches (`n`/`N` for
   next/previous hit), `e` opens `$EDITOR`, `o` hands the file to the OS
   default app, **Cmd+click** opens a rendered markdown link, `Esc` closes.
   Chat panes render markdown too — see [Markdown](#markdown).
@@ -459,12 +459,12 @@ render verbatim instead of disappearing.
   (hit-testing maps display columns through character widths, so links after
   emoji still click correctly).
 - **`/view <file>`** (alias `/md`) opens a zoomed **file viewer** pane over
-  one file — a single, read-only pane rendered by format: markdown
-  (rendered, full width — **s** toggles raw source), a numbered-gutter code
-  view, aligned CSV columns, colored diffs, or a metadata card for anything
-  else (binary, unsupported extension, missing extractor tool — **o** hands
-  it to the OS default app). Wrapped/rendered lines are precomputed once per
-  width, so scrolling is free. **↑/↓** scroll by line and
+  one file — a single, read-only pane rendered by format: markdown, aligned
+  CSV columns (both rendered by default — **s** toggles raw source on
+  either), a numbered-gutter code view, colored diffs, or a metadata card
+  for anything else (binary, unsupported extension, missing extractor tool —
+  **o** hands it to the OS default app). Wrapped/rendered lines are
+  precomputed once per width, so scrolling is free. **↑/↓** scroll by line and
   **PageUp/PageDown** by ten, **Home/End** jump to the top/bottom, **r**
   reloads the file from disk, **e** opens `$EDITOR`, **/** searches with
   **n**/**N** for next/previous hit, **Cmd+click** opens a rendered markdown

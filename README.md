@@ -225,7 +225,7 @@ cards, links):
   (headings/lists/links/code fences), a numbered-gutter code view, aligned
   CSV columns, colored diffs, or a metadata card for anything else. Arrows/
   PageUp/PageDown/Home/End scroll, **r** reloads from disk, **s** toggles raw
-  text (markdown files only), **/** searches with `n`/`N` for next/previous
+  text (markdown and CSV files), **/** searches with `n`/`N` for next/previous
   hit, **e** opens `$EDITOR`, **o** hands the file to the OS default app,
   **Cmd+Click** opens a rendered markdown link, **Esc** closes.
 

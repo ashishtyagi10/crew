@@ -145,6 +145,47 @@ fn diff_ink_differs_between_added_and_removed() {
 }
 
 #[test]
+fn a_wrapped_added_diff_line_keeps_its_colour_on_the_continuation_row() {
+    // Fix 7: `diff_lines` used to read `chars.first()` of each WRAPPED row
+    // as if it were the `+`/`-` marker, so a wrapped added line lost its
+    // colour after the first row (the continuation's first char is body
+    // text, not a marker). 30 columns leaves a 24-char body width (30 minus
+    // the 6-column gutter), so this line wraps into at least two rows.
+    let long = format!("+{}", "a".repeat(50));
+    let ls = for_state(&ready(Format::Diff, &long), false, 30);
+    assert!(
+        ls.len() >= 2,
+        "expected the line to wrap: got {} rows",
+        ls.len()
+    );
+    let t = crew_theme::theme();
+    let row1_a = ls[1].iter().find(|c| c.c == 'a').unwrap().fg;
+    assert_eq!(
+        row1_a, t.ansi[2],
+        "a continuation row of an added line is still added"
+    );
+}
+
+#[test]
+fn a_wrapped_diff_row_blanks_its_gutter_like_numbered_does() {
+    // Fix 7: `diff_lines` used to reprint the line number on every wrapped
+    // row instead of blanking continuations the way `numbered` does.
+    let long = format!("+{}", "a".repeat(50));
+    let ls = for_state(&ready(Format::Diff, &long), false, 30);
+    assert!(
+        ls.len() >= 2,
+        "expected the line to wrap: got {} rows",
+        ls.len()
+    );
+    let gutter: String = ls[1].iter().take(GUTTER_W).map(|c| c.c).collect();
+    assert_eq!(
+        gutter,
+        " ".repeat(GUTTER_W),
+        "a wrapped continuation row's gutter should be blank, got {gutter:?}"
+    );
+}
+
+#[test]
 fn a_keyword_is_coloured_differently_from_a_plain_identifier() {
     // Fix 1: `Code`/`Data` used to reach `numbered`, which painted every
     // character `ink` regardless of what the lexer would have called it —

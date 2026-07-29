@@ -72,8 +72,10 @@ fn a_double_width_glyph_never_straddles_the_grid_edge() {
 
 #[test]
 fn clamp_scroll_pulls_a_wild_offset_back_to_the_last_page() {
-    // window_top clamps the VIEW; the stored offset must be clamped too or
-    // every later scroll-up tick is dead. (The Shift+End lesson.)
+    // `cells` clamps what it DRAWS to the last full page, but that alone
+    // isn't enough — the STORED `scroll` offset must be clamped too, or a
+    // later scroll-up tick starts from the wild value and stays dead until
+    // it walks all the way back down to content. (The Shift+End lesson.)
     let mut p = pane_with("a\nb\nc\nd\n");
     p.scroll = 9_000;
     p.clamp_scroll(20, 2);
