@@ -1,13 +1,29 @@
 //! The app side of session restore: `save_session` snapshots the restorable
 //! panes at quit (`handler::exiting`), `/restore` replays the snapshot.
 //! Persistence format + file I/O live in `sessionsave`.
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind};
 
 use crate::app::CrewApp;
 use crate::pane::PaneContent;
 use crate::sessionsave::{load_at, path, save_at, SavedPane};
+
+/// The tracked cwd to restore `sp` into for its spawn iteration: a
+/// dir-backed entry's own directory, or `kept` for anything whose `dir`
+/// isn't a directory at all — a remote Far pane (`dir` is an rclone
+/// address) or a view pane (`dir` is a *file*, not somewhere a shell/Far
+/// spawn could `cd` into). Pulled out of `restore_from` so the rule is
+/// unit-testable without going through a full restore.
+pub(crate) fn restore_cwd_for(sp: &SavedPane, kept: &Path) -> PathBuf {
+    let is_remote_far = sp.kind == "far" && sp.remote;
+    if is_remote_far || sp.kind == "view" {
+        return kept.to_path_buf();
+    }
+    sp.dir
+        .as_deref()
+        .map_or_else(|| kept.to_path_buf(), PathBuf::from)
+}
 
 impl CrewApp {
     /// Snapshot every restorable pane, hidden ones included (they're live):
@@ -118,13 +134,7 @@ impl CrewApp {
                 .flatten();
             // Reset each iteration: a dir-less entry must spawn in the
             // tracked cwd, not leak the previous entry's directory.
-            self.cwd = if remote_addr.is_some() {
-                kept.clone()
-            } else {
-                sp.dir
-                    .as_deref()
-                    .map_or_else(|| kept.clone(), PathBuf::from)
-            };
+            self.cwd = restore_cwd_for(&sp, &kept);
             let count = self.panes.len();
             match sp.kind.as_str() {
                 "shell" => self.spawn_new_pane(),

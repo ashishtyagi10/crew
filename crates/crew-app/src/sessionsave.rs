@@ -100,10 +100,9 @@ impl SavedPane {
     /// `restorable_with` wired to the real filesystem: directories for
     /// `shell` and local `far`, a plain file for `view`.
     fn restorable(&self) -> bool {
-        if self.kind == "view" {
-            self.restorable_with(|p| p.is_file())
-        } else {
-            self.restorable_with(|p| p.is_dir())
+        match self.kind.as_str() {
+            "view" => self.restorable_with(|p| p.is_file()),
+            _ => self.restorable_with(|p| p.is_dir()),
         }
     }
 }
