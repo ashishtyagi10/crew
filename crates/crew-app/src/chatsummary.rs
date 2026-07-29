@@ -94,6 +94,9 @@ pub(crate) struct FooterCtx<'a> {
     /// Where this pane's broker operates, already `~`-abbreviated.
     pub cwd: Option<&'a str>,
     pub windows: crate::usageledger::Windows,
+    /// The pane's animated numbers — borrowed, since the footer is rendered
+    /// from an immutable pane and the counters use interior mutability.
+    pub readouts: &'a crate::readout::Readouts,
 }
 
 /// `$0.129` under $10, `$12.35` above — micro-USD in, display string out.
@@ -233,15 +236,20 @@ pub(crate) fn footer_lines(fc: &FooterCtx, cols: usize) -> Vec<Vec<(char, Fg)>> 
     if let Some(b) = fc.branch {
         l1.push(((b.to_string(), yellow), P_BRANCH));
     }
+    // The numbers sweep to their new values rather than snapping — see
+    // `readout`. They are read through the same clock everything else animates
+    // on, and each settles the moment it arrives.
+    let now = crate::anim::now_ms();
     if fc.cost_microusd > 0 {
-        l1.push(((fmt_cost(fc.cost_microusd), green), P_COST));
+        let shown = fc.readouts.cost.tick(fc.cost_microusd as f64, now);
+        l1.push(((fmt_cost(shown.round() as u64), green), P_COST));
     }
     l1.push((
         (
             format!(
                 "{} in / {} out",
-                fmt_tokens(fc.tok_in),
-                fmt_tokens(fc.tok_out)
+                fmt_tokens(fc.readouts.tok_in.tick(fc.tok_in as f64, now).round() as u64),
+                fmt_tokens(fc.readouts.tok_out.tick(fc.tok_out as f64, now).round() as u64)
             ),
             magenta,
         ),
@@ -257,11 +265,15 @@ pub(crate) fn footer_lines(fc: &FooterCtx, cols: usize) -> Vec<Vec<(char, Fg)>> 
     l2.push(((format!("5h:{}", left(fc.windows.five_h)), blue), 0));
     l2.push(((format!("7d:{}", left(fc.windows.seven_d)), blue), 1));
     if cols >= 60 {
+        // The meters fill rather than snap: a bar that jumps two cells reads
+        // as a glitch, the same bar sliding reads as a gauge.
         if let Some(w) = fc.windows.five_h {
             let pct = ((w.spent.saturating_mul(100)) / w.budget.max(1)).min(100) as u8;
+            let pct = fc.readouts.bar_5h.tick(f64::from(pct), now).round() as u8;
             l2.push(((format!("{} {pct}% (5h)", bar(pct)), muted), 2));
         }
         if let Some(fill) = ctx_fill(fc.agents, fc.ctx) {
+            let fill = fc.readouts.ctx.tick(f64::from(fill), now).round() as u8;
             l2.push(((format!("{} {fill}% (ctx)", bar(fill)), muted), 3));
         }
     }
@@ -316,6 +328,7 @@ const MAX_BLOCK: u16 = 3;
 
 fn footer_ctx(pane: &ChatPane, now_ms: u64) -> FooterCtx<'_> {
     FooterCtx {
+        readouts: &pane.readouts,
         agents: &pane.agents,
         ctx: &pane.ctx,
         tok_in: pane.tok_in,
