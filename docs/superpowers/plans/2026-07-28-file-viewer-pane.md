@@ -24,7 +24,14 @@
 - **Tests compare against `crew_theme::theme()`'s own slots**, never hardcoded RGB triples. The active theme is global mutable state and tests run in parallel.
 - **Nothing blocking on the winit thread.** No `read_to_string`, no `Command`, no `metadata` on a path that could be a network mount, inside anything reachable from `keys.rs`, `render`, or `cells`. The one permitted exception is the single `is_file()` existence check in `open_view` (Task 8), which matches what `clickopen::open_path_token` already does.
 - **Keep source files under ~200 lines.** When a file approaches it, move tests to a sibling `<name>_tests.rs` included via `#[cfg(test)] #[path = "<name>_tests.rs"] mod tests;` — the established pattern in this repo.
-- **`cargo clippy --workspace --all-targets -- -D warnings` must be green**, with no `#[allow(...)]` added to make it so — **with one carve-out**: `dead_code` on an item whose consuming task has not landed yet is expected and is not a defect. Tasks 1–7 build modules bottom-up, so each ships items its caller acquires later; adding `#[allow(dead_code)]` to silence that is worse than the warning, because the allow outlives the gap and then hides real dead code. Every *other* warning class is a hard gate at every task, and clippy must be **fully** green from Task 8 onward, when the wiring lands. Verify with `cargo clippy -p crew-app --all-targets -- -D warnings 2>&1 | grep -v dead_code` while the gap is open.
+- **`cargo clippy --workspace --all-targets -- -D warnings` must be green**, with no `#[allow(...)]` added to make it so — **with one carve-out**: `dead_code` on an item whose consuming task has not landed yet is expected and is not a defect. Tasks 1–7 build modules bottom-up, so each ships items its caller acquires later; adding `#[allow(dead_code)]` to silence that is worse than the warning, because the allow outlives the gap and then hides real dead code. Every *other* warning class is a hard gate at every task, and clippy must be **fully** green from Task 8 onward, when the wiring lands. Verify with this while the gap is open — it prints every lint code that fired, so "only `dead_code`" is a fact rather than a hope:
+
+```bash
+cargo clippy -p crew-app --all-targets --message-format=json 2>/dev/null \
+  | grep -o '"code":"[a-z_]*"' | sort | uniq -c | sort -rn
+```
+
+Grepping clippy's human-readable output for `dead_code` does **not** work: the lint name only appears in the note line, hyphenated as `dead-code`.
 - **Never commit keys** — the crew repo is public.
 - **Read-only.** No task in this plan writes to a viewed file. Editing is Phase 2 (markdown) or `$EDITOR` (everything else).
 - `MAX_VIEW_BYTES = 8 * 1024 * 1024`, `SNIFF_BYTES = 8192`. Use these exact constants; tests reference them.
@@ -523,6 +530,10 @@ pub(crate) const MAX_VIEW_BYTES: u64 = 8 * 1024 * 1024;
 
 /// Loaded text plus, when the file was longer than the cap, its real size —
 /// which the banner names so the truncation is never silent.
+///
+/// `Debug` is required, not decorative: the tests use `expect_err`, which
+/// needs `T: Debug` on the `Ok` side.
+#[derive(Debug)]
 pub(crate) struct Loaded {
     pub text: String,
     pub truncated: Option<u64>,
