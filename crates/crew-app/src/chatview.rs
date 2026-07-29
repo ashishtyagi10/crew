@@ -123,6 +123,7 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
         let view = crate::chatmsgs::View {
             source: pane.show_source,
             compact: pane.compact_view,
+            streaming_from: pane.messages.len(),
         };
         let msg_rows = crate::chatplace::msg_rows_budget(pane, cols, rows);
         cells.extend(crate::chatmsgs::message_cells(

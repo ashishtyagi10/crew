@@ -953,6 +953,11 @@ Motion never introduces a colour. Everything moving is drawn in the palette the
 active theme already declares — the border, the ink, the accent — so a theme
 change carries the motion with it, and a new theme cannot ship without it.
 
+**A live caret.** A card that is still streaming ends in a block caret that
+pulses between the muted and accent colours. It pulses rather than blinking:
+a caret that vanishes half the time reads, at a glance, like the text stopped.
+At `Motion = off` the caret stays — it carries information — but holds still.
+
 **Readouts count.** The summary footer's cost and token totals sweep to their
 new values instead of snapping, and the 5h-budget and context meters fill rather
 than jumping a cell at a time. Each pane animates its own numbers. A value seen

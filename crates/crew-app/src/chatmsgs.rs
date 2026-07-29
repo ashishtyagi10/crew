@@ -45,10 +45,56 @@ pub(crate) fn fade_t(ts: &str, now_ms: u64) -> f32 {
 /// agree on the same rendering automatically. The two flags are orthogonal —
 /// both can be on at once (raw text, one line) — so this is a plain copy
 /// struct, not an enum.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct View {
     pub(crate) source: bool,
     pub(crate) compact: bool,
+    /// Index at which still-streaming cards begin, in the same slice
+    /// `visible_messages` returns. Those get a live caret on their last line.
+    /// `usize::MAX` (the default) means nothing is in flight.
+    pub(crate) streaming_from: usize,
+}
+
+impl Default for View {
+    fn default() -> Self {
+        Self {
+            source: false,
+            compact: false,
+            streaming_from: usize::MAX,
+        }
+    }
+}
+
+/// Period of the streaming caret's pulse. Slow enough to read as a live cursor
+/// rather than a warning light.
+const CARET_MS: u64 = 900;
+
+/// Put a pulsing block on the end of a streaming card's last line — the one
+/// unambiguous sign that text is still arriving, as distinct from a reply that
+/// simply ended mid-sentence.
+///
+/// It pulses between the muted and accent colours rather than blinking on and
+/// off: a caret that vanishes half the time reads, at a glance, like the text
+/// stopped.
+fn push_caret(lines: &mut [CardLine], now_ms: u64, cols: usize) {
+    let Some(last) = lines.last_mut() else { return };
+    if last.len() >= cols {
+        return;
+    }
+    let t = match crate::motion::level() {
+        crate::motion::MotionLevel::Off => 1.0,
+        _ => crate::anim::tri(now_ms, CARET_MS),
+    };
+    let th = crew_theme::theme();
+    let fg = crate::anim::lerp_rgb(th.text_muted, crate::palette::accent(), t);
+    last.push(crate::chatbody::CardCell {
+        c: '\u{258c}',
+        fg,
+        bold: false,
+        italic: false,
+        bg: None,
+        link: None,
+    });
 }
 
 /// The gutter glyph for a sender: a lighter bar for the system/broker voice,
@@ -197,6 +243,9 @@ pub(crate) fn card_lines(
         }
         if splash {
             splash_style(&mut body, cols);
+        }
+        if i >= view.streaming_from {
+            push_caret(&mut body, now_ms, cols);
         }
         out.extend(body);
         // A just-landed card fades in from the page colour (see `fade_t`).

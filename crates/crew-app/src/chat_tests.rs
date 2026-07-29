@@ -837,6 +837,7 @@ fn show_source_false_renders_bold_markdown() {
         crate::chatmsgs::View {
             source: p.show_source,
             compact: p.compact_view,
+            streaming_from: p.messages.len(),
         },
     );
     // First line is the header (▍ alice ...)
@@ -882,6 +883,7 @@ fn show_source_true_shows_literal_text() {
         crate::chatmsgs::View {
             source: p.show_source,
             compact: p.compact_view,
+            streaming_from: p.messages.len(),
         },
     );
     let body_lines: Vec<_> = lines.iter().skip(1).collect();
