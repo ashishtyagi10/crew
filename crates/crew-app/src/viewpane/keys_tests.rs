@@ -367,3 +367,36 @@ fn toggling_raw_recomputes_stale_hits_instead_of_landing_on_the_wrong_line() {
         p.scroll
     );
 }
+
+// Three occurrences of "needle", confirmed empirically (not assumed) to
+// land at different indexes between the two layouts at cols=20:
+// nonraw hits [2, 16, 27], raw hits [2, 18, 30]. A single-hit fixture can't
+// tell "cursor reset" apart from "cursor left alone" — `next()` computes
+// `(at + 1) % len`, and for `len == 1` that's the same value whether `at`
+// starts at `Some(0)` or gets reset to `None`. Three hits, with the cursor
+// walked to the SECOND one before the toggle, makes the two behaviors
+// diverge: a reset cursor lands on the new list's first hit (raw index 2);
+// a stale `Some(1)` instead computes `(1 + 1) % 3 = 2`, landing on the new
+// list's THIRD hit (raw index 30) — still a real hit, still bounds-safe,
+// still contains "needle", and still the wrong one.
+const WRAP_SHIFTING_MARKDOWN_MULTI_HIT: &str = "# Heading\n\nneedle one\n\nThis is a fairly long paragraph of body text that should wrap across several rows once it is laid out inside a narrow column width, forcing the renderer to break it into pieces.\n\nneedle two\n\nAnother paragraph of filler text goes here to push things further down the page before the third occurrence shows up.\n\nneedle three\n";
+
+#[test]
+fn toggling_raw_resets_the_hit_cursor_not_just_the_hit_list() {
+    let mut p = markdown_pane_with(WRAP_SHIFTING_MARKDOWN_MULTI_HIT);
+    let (cols, rows) = (20, 1);
+    apply(&mut p, ViewInput::Slash, cols, rows);
+    for c in "needle".chars() {
+        apply(&mut p, ViewInput::Char(c), cols, rows);
+    }
+    apply(&mut p, ViewInput::Enter, cols, rows); // at = Some(0): first hit
+    apply(&mut p, ViewInput::NextHit, cols, rows); // at = Some(1): second hit
+    apply(&mut p, ViewInput::ToggleRaw, cols, rows); // re-render; hits recomputed
+    apply(&mut p, ViewInput::NextHit, cols, rows);
+
+    assert_eq!(
+        p.scroll, 2,
+        "a reset cursor lands on the new list's FIRST hit (raw index 2); \
+         a stale one lands on its third (raw index 30) instead"
+    );
+}
