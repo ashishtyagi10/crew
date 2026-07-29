@@ -137,6 +137,52 @@ fn diff_ink_differs_between_added_and_removed() {
 }
 
 #[test]
+fn a_keyword_is_coloured_differently_from_a_plain_identifier() {
+    // Fix 1: `Code`/`Data` used to reach `numbered`, which painted every
+    // character `ink` regardless of what the lexer would have called it —
+    // `md::syntax::tokenize` was never called from `viewpane/` at all.
+    let t = crew_theme::theme();
+    let ls = for_state(
+        &ready(Format::Code { lang: "rust" }, "let x = 1;\n"),
+        false,
+        60,
+    );
+    let kw = ls[0].iter().find(|c| c.c == 'l').unwrap(); // "let"
+    let ident = ls[0].iter().find(|c| c.c == 'x').unwrap(); // the identifier
+    assert_eq!(
+        kw.fg,
+        crate::chatink::token_fg(crate::md::syntax::Token::Keyword),
+        "a keyword draws from chatink's derived keyword slot"
+    );
+    assert!(kw.bold, "chatmd's own convention marks a keyword by weight");
+    assert_eq!(
+        ident.fg, t.ink,
+        "a plain identifier stays on the pane's ink"
+    );
+    assert_ne!(
+        kw.fg, ident.fg,
+        "a keyword indistinguishable from plain code delivers no colouring"
+    );
+}
+
+#[test]
+fn a_data_rung_is_syntax_coloured_too() {
+    // The brief names both `Code` and `Data` as the rungs that silently did
+    // nothing — this covers `Data` specifically so a fix that only wires up
+    // `Code` still fails here.
+    let ls = for_state(
+        &ready(Format::Data { lang: "json" }, "{\"a\": null}\n"),
+        false,
+        60,
+    );
+    let kw = ls[0].iter().find(|c| c.c == 'n').unwrap(); // "null"
+    assert_eq!(
+        kw.fg,
+        crate::chatink::token_fg(crate::md::syntax::Token::Keyword)
+    );
+}
+
+#[test]
 fn zero_width_never_panics() {
     let _ = for_state(&ready(Format::Code { lang: "" }, "x\n"), false, 0);
 }

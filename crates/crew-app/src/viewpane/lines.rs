@@ -1,6 +1,9 @@
 //! Rung → `Vec<CardLine>`. Every format lands in the same representation the
 //! chat cards use, so `render` is one mapper and each rung is tested as data.
+//! Syntax colouring lives in `codepaint`, split out to keep this file under
+//! the length budget.
 use crate::chatbody::{plain, CardLine};
+use crate::viewpane::codepaint::{line_paint, CharPaint};
 use crate::viewpane::detect::{Format, Opaque};
 use crate::viewpane::load::{Loaded, MAX_VIEW_BYTES};
 use crate::viewpane::LoadState;
@@ -34,19 +37,45 @@ fn wrap(text: &str, w: usize) -> Vec<(usize, Vec<char>)> {
     out
 }
 
-/// Numbered rows for the gutter rungs.
-fn numbered(text: &str, cols: usize, ink: (u8, u8, u8), muted: (u8, u8, u8)) -> Vec<CardLine> {
+/// Numbered rows for the gutter rungs, syntax-coloured when `lang` names a
+/// `md::syntax` language (Fix 1: `Code`/`Data` used to reach this function and
+/// paint every character `ink`, so keywords, strings and comments were
+/// indistinguishable from plain identifiers). `pos` tracks the char offset
+/// into the CURRENT source line, resetting whenever `wrap` moves to the next
+/// one: `wrap`'s rows for one line are emitted in left-to-right order with no
+/// gaps, so a running counter is enough to slice that line's paint back out
+/// per row without `wrap` itself needing to carry the offset.
+fn numbered(
+    text: &str,
+    cols: usize,
+    lang: &str,
+    ink: (u8, u8, u8),
+    muted: (u8, u8, u8),
+) -> Vec<CardLine> {
     let w = cols.saturating_sub(GUTTER_W).max(1);
+    let paints: Vec<Vec<CharPaint>> = text
+        .split('\n')
+        .map(|line| line_paint(line, lang, ink))
+        .collect();
     let mut out = Vec::new();
     let mut last = 0usize;
+    let mut pos = 0usize;
     for (n, chars) in wrap(text, w) {
         let mut line: CardLine = if n == last {
             row(&" ".repeat(GUTTER_W), muted, false)
         } else {
+            pos = 0;
             row(&format!("{n:>5} "), muted, false)
         };
         last = n;
-        line.extend(chars.iter().map(|c| plain(*c, ink, false)));
+        let paint = &paints[n - 1][pos..pos + chars.len()];
+        pos += chars.len();
+        line.extend(
+            chars
+                .iter()
+                .zip(paint)
+                .map(|(c, (fg, bold))| plain(*c, *fg, *bold)),
+        );
         out.push(line);
     }
     out
@@ -141,15 +170,32 @@ fn ready_lines(format: Format, loaded: &Loaded, raw: bool, cols: usize) -> Vec<C
                 ),
                 cols,
             ));
-            numbered(&loaded.text, cols, t.ink, t.text_muted)
+            // An extract has no `md::syntax` language of its own — it is
+            // prose lifted out of a PDF or a Word doc, not source.
+            numbered(&loaded.text, cols, "", t.ink, t.text_muted)
         }
         Format::Diff => diff_lines(&loaded.text, cols),
         Format::Markdown if !raw => super::mdrung::lines(&loaded.text, cols),
         Format::Csv { delim } if !raw => super::csv::lines(&loaded.text, delim, cols),
-        _ => numbered(&loaded.text, cols, t.ink, t.text_muted),
+        // Fix 1: `Code`/`Data` used to reach here with no `lang`, which is
+        // why every character painted the same `ink` regardless of what the
+        // lexer would have called it. `format_lang` is `""` for every other
+        // rung that lands here (raw `Markdown`/`Csv`), so their behaviour is
+        // unchanged.
+        _ => numbered(&loaded.text, cols, format_lang(format), t.ink, t.text_muted),
     };
     out.extend(body);
     out
+}
+
+/// The `md::syntax` language tag for a rung, `""` when it has none. Only
+/// `Code`/`Data` carry one — everything else that reaches `numbered` (an
+/// `Extract`, or `Markdown`/`Csv` shown raw) is plain text.
+fn format_lang(format: Format) -> &'static str {
+    match format {
+        Format::Code { lang } | Format::Data { lang } => lang,
+        _ => "",
+    }
 }
 
 #[cfg(test)]
