@@ -101,7 +101,9 @@ fn appearance(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16) -> u16 {
     cy += 3;
     rects.push((Field::Accent, Rect::new(ix, cy, iw, 3)));
     cy += 3;
-    rects.push((Field::Glass, Rect::new(ix, cy, iw, 3)));
+    let gh = iw.saturating_sub(2) / 2;
+    rects.push((Field::Glass, Rect::new(ix, cy, gh, 3)));
+    rects.push((Field::Motion, Rect::new(ix + gh + 2, cy, gh, 3)));
     cy += 3;
     rects.push((Field::PaperTexture, Rect::new(ix, cy, iw, 1)));
     cy += 1;

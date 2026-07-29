@@ -34,6 +34,12 @@ fn default_paper_grain() -> f32 {
     1.3
 }
 
+fn default_motion() -> String {
+    // Crew moves by default. `off` is the reduce-motion setting and costs
+    // nothing extra to render (see `motion::MotionLevel`).
+    "full".to_string()
+}
+
 fn default_glass() -> String {
     // Panes ship frosted. The look is derived per-theme (see `crew_theme::glass`),
     // so this is only the strength; `off` returns the flat cards.
@@ -135,6 +141,11 @@ pub struct CrewConfig {
     /// intensity knob only. Set in Settings → APPEARANCE → Glass.
     #[serde(default = "default_glass")]
     pub glass: String,
+
+    /// How much crew animates: `off`, `subtle`, `full`. An unknown name falls
+    /// back to `full`. Set in Settings → APPEARANCE → Motion.
+    #[serde(default = "default_motion")]
+    pub motion: String,
     /// Window opacity, `1.0` = fully opaque. Below 1.0 the desktop shows
     /// through the page (text and pane fills stay solid). Settings → WINDOW.
     #[serde(default = "default_window_opacity")]
@@ -180,6 +191,7 @@ impl Default for CrewConfig {
             paper_grain: default_paper_grain(),
             crt: None,
             glass: default_glass(),
+            motion: default_motion(),
             window_opacity: default_window_opacity(),
             font_weight: default_font_weight(),
             usage_budget_5h: default_usage_budget_5h(),

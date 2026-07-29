@@ -27,6 +27,48 @@ pub(crate) struct Bar<'a> {
     /// [`min_btn_rect`] and [`close_btn_rect`], which both share [`BTNS_COLS`]
     /// so draw and hit agree.
     pub min_btn: bool,
+    /// Eased progress of the focus-bracket animation, `0.0..=1.0`. The HUD
+    /// brackets grow out of the four corners as focus arrives; `1.0` is the
+    /// resting focused state (and what Motion=off draws immediately).
+    pub focus_t: f32,
+}
+
+/// Longest a focus bracket grows, in cells down each edge from a corner. Short
+/// on purpose: this is a corner mark, not a second border.
+const BRACKET_MAX: u16 = 4;
+
+/// Bracket length for a card `rows` tall at eased progress `t`. Bounded to a
+/// third of the card so a two-row strip thumbnail can't have its whole side
+/// lit up and read as focused-everywhere.
+fn bracket_len(rows: u16, t: f32) -> u16 {
+    let room = rows.saturating_sub(2) / 3;
+    let max = room.min(BRACKET_MAX);
+    (max as f32 * t.clamp(0.0, 1.0)).round() as u16
+}
+
+/// Recolour the border cells forming the four corner brackets. Vertical only:
+/// the top edge carries the legend and the `[-][x]` buttons, and a bracket that
+/// overwrote either would be trading information for decoration.
+fn draw_brackets(v: &mut [CellView], cols: u16, rows: u16, t: f32) {
+    let n = bracket_len(rows, t);
+    if n == 0 || cols < 2 || rows < 4 {
+        return;
+    }
+    let accent = crate::palette::accent();
+    let (left, right) = (0, cols - 1);
+    for i in 0..n {
+        for (col, row) in [
+            (left, 1 + i),
+            (right, 1 + i),
+            (left, rows - 2 - i),
+            (right, rows - 2 - i),
+        ] {
+            if let Some(cell) = v.iter_mut().find(|c| c.col == col && c.row == row) {
+                cell.fg = accent;
+                cell.bold = true;
+            }
+        }
+    }
 }
 
 /// Narrowest card (in cells, border included) that carries the border
@@ -143,6 +185,11 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
             }
             rx = start.saturating_sub(2);
         }
+    }
+    // Focus brackets last, so they sit on the finished frame — and only on the
+    // focused card, which is the one piece of state they exist to announce.
+    if b.focused {
+        draw_brackets(&mut v, cols, rows, b.focus_t);
     }
     for (on, c, fg) in [
         (b.broadcast, '»', crew_theme::theme().broadcast),

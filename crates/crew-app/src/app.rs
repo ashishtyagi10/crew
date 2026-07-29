@@ -25,6 +25,13 @@ pub struct CrewApp {
     pub(crate) renderer: Option<Renderer>,
     pub(crate) panes: Vec<Pane>,
     pub(crate) focused: usize,
+    /// Which pane the focus brackets were last drawn around, and the timeline
+    /// they are travelling on. Focus is reassigned from a dozen places (chords,
+    /// clicks, close, restore); diffing it once per frame in `build_frame`
+    /// catches every one of them without each having to remember to stamp a
+    /// timeline.
+    pub(crate) focus_drawn: usize,
+    pub(crate) focus_anim: crate::ease::Timeline,
     /// LRU of pane indices: which panes are full tiles vs. minimized.
     pub(crate) grid: GridLayout,
     pub(crate) mods: Modifiers,

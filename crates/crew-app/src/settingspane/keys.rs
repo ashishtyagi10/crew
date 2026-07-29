@@ -123,6 +123,16 @@ pub(super) fn cycle_value(p: &mut SettingsPane, back: bool) {
         Field::NotifyAgentDone => d.notify_agent_done = !d.notify_agent_done,
         Field::NotifyBell => d.notify_bell = !d.notify_bell,
         Field::NotifyExit => d.notify_exit = !d.notify_exit,
+        Field::Motion => {
+            let all = crate::motion::MotionLevel::ALL;
+            let cur = all.iter().position(|&l| l == d.motion_level()).unwrap_or(0);
+            let next = if back {
+                (cur + all.len() - 1) % all.len()
+            } else {
+                (cur + 1) % all.len()
+            };
+            d.motion = all[next].as_str().to_string();
+        }
         Field::Glass => {
             const LEVELS: [crew_theme::GlassLevel; 4] = [
                 crew_theme::GlassLevel::Off,

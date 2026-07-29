@@ -927,13 +927,36 @@ move focus, Enter commits a field, **Cmd+S / Alt+S** saves and closes:
   families), **Font size**, **Paper grain** (0–2 amplitude), **Theme**
   (←/→/Space cycle through the nine presets), **Accent (#hex)** (override the
   theme accent; clear to use the default), **Glass** (←/→/Space cycle
-  `off · low · medium · high`), **Paper texture** (on/off).
+  `off · low · medium · high`), **Motion** (`off · subtle · full`),
+  **Paper texture** (on/off).
 - **WINDOW** — **Nav width**, **Opacity %**, **Show nav**, **Launch maximized**.
 - **NOTIFICATIONS** — the master switch plus per-event toggles (**cmd done**,
   **bell**, **pane exit**), the **min secs** threshold, and the watched
   output **patterns** as a one-per-line text area.
 
 Settings persist to `$XDG_CONFIG/crew/config.toml` and apply live on Save.
+
+### Motion
+
+Crew animates like an instrument panel: elements assemble, marks travel, and
+nothing teleports. **Motion** (APPEARANCE) sets how much of that you get.
+
+- **`full`** — the default; the full choreography at its nominal timing.
+- **`subtle`** — the same movements at 60% duration, quick enough to read as
+  responsiveness rather than as an effect.
+- **`off`** — genuinely off, not fast. Every animation's duration collapses to
+  zero, so each one draws its final state once and schedules no further frames;
+  an idle crew at `off` repaints exactly as rarely as one with no animation at
+  all. This is the reduce-motion setting.
+
+Motion never introduces a colour. Everything moving is drawn in the palette the
+active theme already declares — the border, the ink, the accent — so a theme
+change carries the motion with it, and a new theme cannot ship without it.
+
+**Focus brackets.** The focused pane carries HUD corner marks: short accent runs
+down the card's edges from each of the four corners, which grow out as focus
+arrives and travel with it when you move between panes. They stay clear of the
+top border, where the legend and the `[-][x]` buttons live.
 
 ### Glass
 

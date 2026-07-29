@@ -13,12 +13,14 @@ use crate::panecard::{pane_card, Bar};
 /// line with (and so never shift) the content. `broadcast` marks terminal panes
 /// receiving synchronized input; `find` is the active `/find` term, highlighted
 /// in the focused pane while scrolled back.
+#[allow(clippy::too_many_arguments)]
 pub fn build_scenes(
     panes: &[Pane],
     focused: Option<usize>,
     broadcast: bool,
     find: Option<&str>,
     sel: Option<&CellSel>,
+    focus_t: f32,
     cw: f32,
     ch: f32,
 ) -> Vec<PaneScene> {
@@ -40,6 +42,7 @@ pub fn build_scenes(
             find,
             foc.then_some(sel).flatten(),
             true,
+            focus_t,
             cw,
             ch,
         );
@@ -60,6 +63,7 @@ pub fn full_scenes(
     broadcast: bool,
     find: Option<&str>,
     sel: Option<&CellSel>,
+    focus_t: f32,
     cw: f32,
     ch: f32,
 ) -> Vec<PaneScene> {
@@ -76,6 +80,7 @@ pub fn full_scenes(
             find,
             sel.filter(|s| s.pane == idx),
             true,
+            focus_t,
             cw,
             ch,
         );
@@ -115,6 +120,7 @@ fn push_pane_scenes(
     find: Option<&str>,
     sel: Option<&CellSel>,
     min_btn: bool,
+    focus_t: f32,
     cw: f32,
     ch: f32,
 ) {
@@ -169,6 +175,7 @@ fn push_pane_scenes(
                 bell: p.bell && !foc,
                 broadcast: broadcast && is_term,
                 min_btn,
+                focus_t,
             },
         ),
         x: r.x,
@@ -204,6 +211,7 @@ mod tests {
             false,
             None,
             None,
+            1.0,
             10.0,
             16.0,
         );
@@ -255,7 +263,7 @@ mod tests {
             hidden: false,
             attention: None,
         };
-        let scenes = build_scenes(&[pane], Some(0), false, None, None, 10.0, 16.0);
+        let scenes = build_scenes(&[pane], Some(0), false, None, None, 1.0, 10.0, 16.0);
         // scenes[1] is the border card; the [-][x] buttons sit at card columns
         // cols-8..=cols-6 and cols-5..=cols-3 on row 0 (cols = grid cols + 2 border cells).
         let cols = 80 + 2;

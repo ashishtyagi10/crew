@@ -342,6 +342,7 @@ impl CrewApp {
             }
         } else if self.panes.iter().any(crate::paneview::pane_animating)
             || crate::attention::any_pulsing(&self.panes, crate::anim::now_ms())
+            || self.focus_anim.live(crate::anim::now_ms())
         {
             // Drive the indeterminate progress sweep while any pane is busy
             // (or a chat card is fading in, or an attention marker is still
