@@ -11,6 +11,7 @@ fn bar(focused: bool) -> Bar<'static> {
         broadcast: false,
         min_btn: false,
         focus_t: 1.0,
+        assemble_t: 1.0,
     }
 }
 
@@ -224,6 +225,7 @@ fn only_the_focused_card_gets_brackets() {
         broadcast: false,
         min_btn: false,
         focus_t: 1.0,
+        assemble_t: 1.0,
     };
     assert_eq!(
         bracket_cells(&crate::panecard::pane_card(40, 20, &bar(false))),
@@ -250,6 +252,7 @@ fn brackets_grow_with_progress() {
                 broadcast: false,
                 min_btn: false,
                 focus_t: t,
+                assemble_t: 1.0,
             },
         ))
     };
@@ -275,6 +278,7 @@ fn tiny_cards_get_no_brackets() {
             broadcast: false,
             min_btn: false,
             focus_t: 1.0,
+            assemble_t: 1.0,
         },
     );
     assert_eq!(bracket_cells(&cells), 0);
@@ -297,6 +301,7 @@ fn brackets_leave_the_legend_row_alone() {
             broadcast: false,
             min_btn: true,
             focus_t: 1.0,
+            assemble_t: 1.0,
         },
     );
     assert!(
@@ -304,5 +309,74 @@ fn brackets_leave_the_legend_row_alone() {
             .iter()
             .any(|c| c.row == 0 && c.fg == accent() && c.bold),
         "a bracket landed on the legend row"
+    );
+}
+
+// --- assemble ---------------------------------------------------------------
+
+fn card_at(assemble_t: f32) -> Vec<crew_render::CellView> {
+    crate::panecard::pane_card(
+        40,
+        20,
+        &Bar {
+            index: None,
+            title: "build",
+            focused: false,
+            scroll: 0,
+            activity: false,
+            bell: false,
+            broadcast: false,
+            min_btn: false,
+            focus_t: 0.0,
+            assemble_t,
+        },
+    )
+}
+
+/// The frame draws itself in: strictly more of it exists as the animation runs,
+/// and the finished card is the same one crew has always drawn.
+#[test]
+fn the_card_assembles_monotonically() {
+    let counts: Vec<usize> = [0.0, 0.25, 0.5, 0.75, 1.0]
+        .into_iter()
+        .map(|t| card_at(t).len())
+        .collect();
+    for w in counts.windows(2) {
+        assert!(w[0] <= w[1], "frame shrank mid-assemble: {counts:?}");
+    }
+    assert!(
+        counts[0] < counts[4],
+        "nothing was hidden at t=0: {counts:?}"
+    );
+}
+
+/// It grows *out of the corners*, which is what reads as drawn rather than
+/// faded: early on, the corner cell exists and the middle of the top edge
+/// does not.
+#[test]
+fn assembly_starts_at_the_corners() {
+    let early = card_at(0.15);
+    let has = |col: u16, row: u16| early.iter().any(|c| c.col == col && c.row == row);
+    assert!(has(0, 0), "the top-left corner should be drawn first");
+    assert!(
+        !has(21, 0),
+        "the middle of the top edge should not exist yet"
+    );
+}
+
+/// A pane you cannot name is worse than one that simply appeared, so the legend
+/// — which rides the top border beside the left corner — survives from the
+/// first frames.
+#[test]
+fn the_legend_survives_assembly() {
+    let early = card_at(0.2);
+    let top: String = {
+        let mut cells: Vec<_> = early.iter().filter(|c| c.row == 0).collect();
+        cells.sort_by_key(|c| c.col);
+        cells.iter().map(|c| c.c).collect()
+    };
+    assert!(
+        top.contains("build"),
+        "legend lost during assembly: {top:?}"
     );
 }

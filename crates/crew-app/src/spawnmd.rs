@@ -53,6 +53,7 @@ impl CrewApp {
             bell: false,
             hidden: false,
             attention: None,
+            born_ms: crate::anim::now_ms(),
         });
         self.focus_new_pane();
         self.zoomed = true;
@@ -93,6 +94,7 @@ impl CrewApp {
             bell: false,
             hidden: false,
             attention: None,
+            born_ms: crate::anim::now_ms(),
         });
         self.focus_new_pane();
         self.zoomed = true;

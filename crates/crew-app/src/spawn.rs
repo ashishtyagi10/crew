@@ -105,6 +105,7 @@ impl CrewApp {
                     bell: false,
                     hidden: false,
                     attention: None,
+                    born_ms: crate::anim::now_ms(),
                 };
                 self.panes.push(pane);
                 self.focus_new_pane();
@@ -158,6 +159,7 @@ impl CrewApp {
             bell: false,
             hidden: false,
             attention: None,
+            born_ms: crate::anim::now_ms(),
         });
         self.focus_new_pane();
     }
@@ -185,6 +187,7 @@ impl CrewApp {
             bell: false,
             hidden: false,
             attention: None,
+            born_ms: crate::anim::now_ms(),
         });
         self.focus_new_pane();
     }
@@ -249,6 +252,7 @@ impl CrewApp {
             bell: false,
             hidden: false,
             attention: None,
+            born_ms: crate::anim::now_ms(),
         });
         self.focus_new_pane();
         self.redraw();
@@ -311,6 +315,7 @@ impl CrewApp {
         // two are set, so a save that didn't push them would leave the sheet
         // and the window opacity a restart behind.
         self.apply_glass();
+        crate::motion::set_level(self.config.motion_level());
         // A manual family pick in Settings stops rotation; otherwise a live
         // rotation keeps its current pick on top of the re-applied config.
         if self.config.font_family != old_family {

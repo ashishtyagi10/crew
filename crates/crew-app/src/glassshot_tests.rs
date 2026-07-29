@@ -51,6 +51,7 @@ fn panes(cell_w: f32, cell_h: f32) -> Vec<PaneScene> {
         bell: false,
         hidden: false,
         attention: None,
+        born_ms: crate::anim::now_ms(),
     };
     crate::paneview::build_scenes(
         &[pane_at(30.0), pane_at(370.0)],

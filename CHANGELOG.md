@@ -8,6 +8,25 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.8.1
+
+*Jarvis motion, iteration 2 of 6.*
+
+- **Panes assemble instead of appearing.** A new card's frame draws itself
+  outward from its four corners over its first moments. Only the frame *stroke*
+  animates — an early version clipped the top border's legend too, spelling the
+  pane's name out one letter at a time, and a card you cannot identify is worse
+  than one that simply appeared. The name is there from the first frame and the
+  frame draws itself around it.
+- **Every pane carries its own birth stamp.** `Pane.born_ms` rather than a
+  timeline held by the app: panes are pushed, closed and reordered from a dozen
+  places, and anything keyed on position or count would animate the wrong card
+  the first time two of those happened in one frame.
+- **Motion is read process-wide.** `motion::level()` mirrors `palette::accent` and
+  `crew_theme::theme`, so a new animation respects the setting without any
+  plumbing — and `apply_config` publishes it, which means Save, session restore
+  and an external config edit all land on the same path.
+
 ## 0.8.0
 
 *Jarvis motion, iteration 1 of 6 — see `.superpowers/sdd/2026-07-28-jarvis-motion/`.*

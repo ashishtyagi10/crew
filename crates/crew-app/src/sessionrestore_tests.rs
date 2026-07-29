@@ -80,6 +80,7 @@ fn session_panes_snapshots_a_crew_chat_pane_by_its_routing_label() {
         bell: false,
         hidden: false,
         attention: None,
+        born_ms: crate::anim::now_ms(),
     });
     assert_eq!(app.session_panes(), vec![SavedPane::crew()]);
     // A label-less chat pane (Cmd+J) is NOT snapshot.

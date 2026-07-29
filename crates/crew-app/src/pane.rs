@@ -64,6 +64,14 @@ pub struct Pane {
     /// while the pane wasn't focused — blinks on its nav row, then holds steady
     /// until the pane is focused again. See the `attention` module.
     pub attention: Option<crate::attention::Attention>,
+    /// When this pane came into being, on the shared animation clock — the
+    /// start of its assemble animation (see [`crate::panecard`]).
+    ///
+    /// A field on the pane rather than a timeline in the app because panes are
+    /// pushed, closed and reordered from a dozen places; anything keyed on
+    /// position or count would animate the wrong card the first time two of
+    /// those happened in one frame.
+    pub born_ms: u64,
 }
 
 impl Pane {
@@ -179,6 +187,7 @@ pub fn spawn_pane(
         bell: false,
         hidden: false,
         attention: None,
+        born_ms: crate::anim::now_ms(),
     })
 }
 

@@ -116,6 +116,7 @@ impl CrewApp {
                     bell: false,
                     hidden: false,
                     attention: None,
+                    born_ms: crate::anim::now_ms(),
                 });
                 self.focus_new_pane();
             }
@@ -188,6 +189,7 @@ mod tests {
             bell: false,
             hidden: false,
             attention: None,
+            born_ms: crate::anim::now_ms(),
         }
     }
 

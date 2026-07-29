@@ -7,13 +7,38 @@
 //! `Off` is a genuine off, not a fast setting: durations collapse to zero, so
 //! every [`crate::ease::Timeline`] is born settled, draws its final state once,
 //! and schedules no further frames.
+use std::sync::atomic::{AtomicU8, Ordering};
+
+/// Process-wide motion strength, as an `AtomicU8` discriminant.
+///
+/// Read at the point of use rather than threaded through every scene call —
+/// the same shape `palette::accent` and `crew_theme::theme` already use, and
+/// the reason a new animation needs no plumbing to respect the setting.
+static LEVEL: AtomicU8 = AtomicU8::new(2); // Full — matches `default_motion`
+
+/// Adopt `level` app-wide. Called from `apply_config`, so every path that
+/// changes settings (Save, session restore, an external config edit) lands
+/// here without having to know about motion.
+pub(crate) fn set_level(level: MotionLevel) {
+    LEVEL.store(level as u8, Ordering::Relaxed);
+}
+
+/// The live motion strength.
+pub(crate) fn level() -> MotionLevel {
+    match LEVEL.load(Ordering::Relaxed) {
+        0 => MotionLevel::Off,
+        1 => MotionLevel::Subtle,
+        _ => MotionLevel::Full,
+    }
+}
 
 /// Motion strength.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(u8)]
 pub(crate) enum MotionLevel {
-    Off,
-    Subtle,
-    Full,
+    Off = 0,
+    Subtle = 1,
+    Full = 2,
 }
 
 impl MotionLevel {
@@ -70,6 +95,17 @@ mod tests {
     fn off_collapses_every_duration() {
         assert_eq!(MotionLevel::Off.scale_ms(1_000), 0);
         assert_eq!(MotionLevel::Off.scale_ms(1), 0);
+    }
+
+    /// The global round-trips every level — a mis-mapped discriminant would
+    /// silently pin the whole app to one motion strength.
+    #[test]
+    fn the_global_round_trips_every_level() {
+        for l in MotionLevel::ALL {
+            set_level(l);
+            assert_eq!(level(), l);
+        }
+        set_level(MotionLevel::Full);
     }
 
     #[test]

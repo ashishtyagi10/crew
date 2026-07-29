@@ -88,6 +88,16 @@ pub fn full_scenes(
     scenes
 }
 
+/// How long a card takes to draw itself in.
+const ASSEMBLE_MS: u64 = 380;
+
+/// This pane's assemble timeline. Scaled by the Motion setting, which is read
+/// here rather than threaded through every scene call — at `off` the timeline
+/// is born settled and the card is simply drawn.
+pub(crate) fn spawn_timeline(p: &Pane) -> crate::ease::Timeline {
+    crate::ease::Timeline::start(p.born_ms, ASSEMBLE_MS, crate::motion::level())
+}
+
 /// Whether a pane is doing background work, so its border shows the
 /// indeterminate progress sweep (swarm planning/running, agent chat awaiting).
 pub(crate) fn pane_busy(p: &Pane) -> bool {
@@ -146,6 +156,11 @@ fn push_pane_scenes(
     if let Some(s) = sel {
         crate::gridsel::highlight(&mut cells, s, crew_theme::theme().find_hl_bg);
     }
+    // The card draws itself in over its first moments. Read from the pane's own
+    // birth stamp, so panes that appear together (a restored session) assemble
+    // together, and one spawned later assembles on its own clock.
+    let now = crate::anim::now_ms();
+    let assemble_t = spawn_timeline(p).eased(now, crate::ease::out_cubic);
     let r = p.rect;
     // Content: its own buffer, inset one cell past the top-left border so it
     // starts exactly on the grid (no leading border glyph to push it).
@@ -176,6 +191,7 @@ fn push_pane_scenes(
                 broadcast: broadcast && is_term,
                 min_btn,
                 focus_t,
+                assemble_t,
             },
         ),
         x: r.x,
@@ -241,6 +257,7 @@ mod tests {
             bell: false,
             hidden: false,
             attention: None,
+            born_ms: crate::anim::now_ms(),
         }
     }
 
@@ -262,6 +279,7 @@ mod tests {
             bell: false,
             hidden: false,
             attention: None,
+            born_ms: crate::anim::now_ms(),
         };
         let scenes = build_scenes(&[pane], Some(0), false, None, None, 1.0, 10.0, 16.0);
         // scenes[1] is the border card; the [-][x] buttons sit at card columns
