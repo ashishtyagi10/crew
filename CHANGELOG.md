@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.8.5
+
+*Jarvis motion, iteration 5 of 6.*
+
+- **The glass sheet sweeps while a pane works.** A soft band of light travels
+  down a busy card and back, drawn in `glass.wgsl` as part of the existing card
+  pass — no second draw call, no new colour, and it rides the sheet's own fill
+  so every theme carries it.
+- **Gated on busy and nothing else.** A working pane already repaints at ~15fps,
+  so the sweep costs no extra frames; an idle crew draws no scan at all. That is
+  the whole trick to having an ambient layer without breaking "an idle crew
+  never repaints".
+- **The shader change is pixel-tested.** `glass_scan_headless` renders the same
+  flat card with and without a scan and asserts the band brightens where it
+  passes and nowhere else. A uniform that is plumbed but never read looks
+  exactly like a working feature from the Rust side — which is precisely how
+  0.7.0 shipped glass that drew nothing.
+
 ## 0.8.4
 
 *Jarvis motion, iteration 4 of 6.*

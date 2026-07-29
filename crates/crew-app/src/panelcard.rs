@@ -68,6 +68,7 @@ pub fn push_ghost(
         // A collapsing frame keeps its sheet, so the card fades as one object
         // rather than shedding its glass first.
         glass: true,
+        scan: -1.0,
         overlay: false,
     });
 }
@@ -94,6 +95,7 @@ pub fn push_card_titled(
         focused: false,
         bordered: false,
         glass: false,
+        scan: -1.0,
         overlay: false,
     });
     scenes.push(PaneScene {
@@ -115,6 +117,7 @@ pub fn push_card_titled(
         // sheet. The popups (command menu, attach, key prompt) are `overlay`
         // scenes and stay opaque by design — the glass pass skips them.
         glass: true,
+        scan: -1.0,
         overlay: false,
     });
 }

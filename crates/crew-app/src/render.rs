@@ -137,6 +137,7 @@ impl CrewApp {
             // still a card, so it sits on the same frosted sheet.
             bordered: false,
             glass: true,
+            scan: -1.0,
             overlay: false,
         });
 
@@ -156,6 +157,7 @@ impl CrewApp {
                 focused: false,
                 bordered: false,
                 glass: false,
+                scan: -1.0,
                 overlay: true,
             });
             return scenes;
@@ -189,6 +191,7 @@ impl CrewApp {
                 focused: false,
                 bordered: false,
                 glass: false,
+                scan: -1.0,
                 overlay: true,
             });
         }
@@ -233,6 +236,7 @@ impl CrewApp {
                                 focused: false,
                                 bordered: false,
                                 glass: false,
+                                scan: -1.0,
                                 overlay: true,
                             });
                         }
@@ -269,6 +273,7 @@ impl CrewApp {
                             focused: false,
                             bordered: false,
                             glass: false,
+                            scan: -1.0,
                             overlay: true,
                         });
                     } else if let Some(p) = c.palette.as_ref().filter(|p| !p.items.is_empty()) {
@@ -301,6 +306,7 @@ impl CrewApp {
                             focused: false,
                             bordered: false,
                             glass: false,
+                            scan: -1.0,
                             overlay: true,
                         });
                     }

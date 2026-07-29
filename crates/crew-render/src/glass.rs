@@ -25,10 +25,12 @@ pub struct GlassCard {
     pub highlight: [f32; 4],
     pub highlight_alpha: f32,
     pub shadow_alpha: f32,
+    /// Scan-highlight position in `0.0..=1.0`; negative draws no scan.
+    pub scan: f32,
 }
 
-/// 16 × f32 per instance: rect(4), params(4), tint(4), highlight(4).
-const INSTANCE_FLOATS: usize = 16;
+/// 20 × f32 per instance: rect(4), params(4), tint(4), highlight(4), extra(4).
+const INSTANCE_FLOATS: usize = 20;
 
 /// GPU layer drawing rounded translucent cards via a signed-distance field.
 pub struct GlassLayer {
@@ -64,6 +66,10 @@ fn pack(c: &GlassCard) -> [f32; INSTANCE_FLOATS] {
         c.highlight[1],
         c.highlight[2],
         c.shadow_alpha,
+        c.scan,
+        0.0,
+        0.0,
+        0.0,
     ]
 }
 
@@ -110,7 +116,7 @@ impl GlassLayer {
         });
 
         let inst_attrs = wgpu::vertex_attr_array![
-            0 => Float32x4, 1 => Float32x4, 2 => Float32x4, 3 => Float32x4];
+            0 => Float32x4, 1 => Float32x4, 2 => Float32x4, 3 => Float32x4, 4 => Float32x4];
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("glass_pipeline"),
             layout: Some(&layout),
@@ -205,6 +211,7 @@ mod tests {
             highlight: [1.0, 1.0, 1.0, 1.0],
             highlight_alpha: 0.22,
             shadow_alpha: 0.3,
+            scan: -1.0,
         }
     }
 
@@ -225,6 +232,7 @@ mod tests {
             &[1.0, 1.0, 1.0, 0.3],
             "highlight.rgb + shadow_alpha"
         );
+        assert_eq!(&p[16..20], &[-1.0, 0.0, 0.0, 0.0], "scan + padding");
     }
 
     /// The vertex buffer stride must match what `pack` produces, or every

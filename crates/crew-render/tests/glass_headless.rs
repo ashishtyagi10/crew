@@ -58,6 +58,8 @@ fn card(alpha_top: f32, alpha_bottom: f32, highlight_alpha: f32, shadow_alpha: f
         highlight: [1.0, 1.0, 1.0, 1.0],
         highlight_alpha,
         shadow_alpha,
+        // No scan: this test is about the resting sheet.
+        scan: -1.0,
     }
 }
 
@@ -151,6 +153,51 @@ fn render(device: &wgpu::Device, queue: &wgpu::Queue, cards: &[GlassCard]) -> Ve
     let data = buf.slice(..).get_mapped_range().to_vec();
     buf.unmap();
     data
+}
+
+/// The scan sweep must actually reach the pixels — a shader uniform that is
+/// plumbed but never read looks exactly like a working feature from Rust, which
+/// is precisely how v0.7.0 shipped glass that drew nothing.
+#[test]
+fn glass_scan_headless() {
+    let instance = wgpu::Instance::default();
+    let Ok(adapter) = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+        power_preference: wgpu::PowerPreference::None,
+        compatible_surface: None,
+        force_fallback_adapter: false,
+    })) else {
+        eprintln!("glass_scan_headless: no GPU adapter, skipping");
+        return;
+    };
+    let (device, queue) =
+        pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default()))
+            .expect("request_device failed");
+
+    // A flat sheet, so any difference is the scan and not the top-down ramp.
+    let flat = |scan: f32| GlassCard {
+        scan,
+        ..card(0.30, 0.30, 0.0, 0.0)
+    };
+    let none = render(&device, &queue, &[flat(-1.0)]);
+    // Sweep centred a quarter of the way down the card.
+    let swept = render(&device, &queue, &[flat(0.25)]);
+
+    let y_band = (CARD_Y + CARD_H * 0.25) as usize;
+    let y_far = (CARD_Y + CARD_H * 0.85) as usize;
+    let x = (CARD_X + CARD_W / 2.0) as usize;
+
+    let (band_off, band_on) = (block_r(&none, x, y_band, 2), block_r(&swept, x, y_band, 2));
+    let (far_off, far_on) = (block_r(&none, x, y_far, 2), block_r(&swept, x, y_far, 2));
+    println!("band {band_off:.1} -> {band_on:.1};  far {far_off:.1} -> {far_on:.1}");
+
+    assert!(
+        band_on > band_off + 2.0,
+        "the scan did not brighten the band it passes over ({band_off:.1} -> {band_on:.1})"
+    );
+    assert!(
+        (far_on - far_off).abs() < 2.0,
+        "the scan leaked across the whole card ({far_off:.1} -> {far_on:.1})"
+    );
 }
 
 #[test]

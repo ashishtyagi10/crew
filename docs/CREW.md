@@ -953,6 +953,13 @@ Motion never introduces a colour. Everything moving is drawn in the palette the
 active theme already declares — the border, the ink, the accent — so a theme
 change carries the motion with it, and a new theme cannot ship without it.
 
+**Working panes sweep.** While a pane is actually busy, a soft band of light
+travels down its glass sheet and back. It is gated on busy and nothing else: a
+working pane already repaints, so the sweep costs no extra frames, and an idle
+crew never draws one — which is how a surface that moves stays compatible with
+never repainting. The band rides the sheet's own fill, so it introduces no
+colour of its own.
+
 **A live caret.** A card that is still streaming ends in a block caret that
 pulses between the muted and accent colours. It pulses rather than blinking:
 a caret that vanishes half the time reads, at a glance, like the text stopped.
