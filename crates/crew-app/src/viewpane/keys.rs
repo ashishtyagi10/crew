@@ -52,7 +52,6 @@ pub(crate) enum ViewInput {
 /// What the viewer asks the host app to do after a key press.
 pub(crate) enum ViewAction {
     Close,
-    Status(String),
     /// `e` — open `$EDITOR` on this path in a terminal pane.
     Edit(PathBuf),
     /// `o` — hand this path to the OS default application.

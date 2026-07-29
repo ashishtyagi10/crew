@@ -4,7 +4,7 @@ use std::cell::Ref;
 use crew_render::CellView;
 
 use crate::viewpane::lines;
-use crate::viewpane::{LoadState, ViewCache, ViewPane};
+use crate::viewpane::{ViewCache, ViewPane};
 
 impl ViewPane {
     /// Lines for `cols`, rebuilding the cache only on a width or mode change.
@@ -72,12 +72,6 @@ impl ViewPane {
             );
         }
         out
-    }
-
-    /// True while the worker has not landed — read by `poll.rs`'s animation
-    /// gate so the skeleton animates and, crucially, stops.
-    pub(crate) fn animating(&self) -> bool {
-        matches!(self.state, LoadState::Loading { .. })
     }
 }
 

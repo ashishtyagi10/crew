@@ -12,14 +12,8 @@ use super::search::Search;
 /// `Loading` holds the channel so `poll` can drain it without the app owning
 /// a side table of in-flight loads.
 pub(crate) enum LoadState {
-    Loading {
-        since_ms: u64,
-        rx: Receiver<load::LoadDone>,
-    },
-    Ready {
-        format: Format,
-        loaded: Loaded,
-    },
+    Loading { rx: Receiver<load::LoadDone> },
+    Ready { format: Format, loaded: Loaded },
     Failed(String),
 }
 
@@ -52,10 +46,7 @@ impl ViewPane {
         let rx = load::start(path.clone());
         Self {
             path,
-            state: LoadState::Loading {
-                since_ms: crate::anim::now_ms(),
-                rx,
-            },
+            state: LoadState::Loading { rx },
             scroll: 0,
             raw: false,
             search: None,
@@ -63,6 +54,13 @@ impl ViewPane {
         }
     }
 
+    /// Test-only: `pane_tests.rs` reads this directly rather than matching
+    /// `state` itself, in every one of its load/reload/failure assertions.
+    /// Nothing in production code needs this predicate — `poll.rs`'s drain
+    /// and `render.rs`'s `for_state` both match on `state` directly instead
+    /// — so `#[cfg(test)]` makes that true rather than the dead-code lint
+    /// firing on genuinely-used test-support code.
+    #[cfg(test)]
     pub(crate) fn loading(&self) -> bool {
         matches!(self.state, LoadState::Loading { .. })
     }
@@ -77,9 +75,9 @@ impl ViewPane {
             Ok(done) => done,
             // The worker died without sending — a panic in the load thread.
             // Nothing will ever arrive, so settle as Failed rather than
-            // staying Loading: a pane stuck in Loading keeps `animating()`
-            // true, and that keeps the whole app repainting every frame for
-            // the rest of the session.
+            // staying Loading forever: a pane stuck showing "loading…" with
+            // no way to fail is indistinguishable from one still waiting on
+            // a slow disk — the user would never learn it isn't coming.
             Err(std::sync::mpsc::TryRecvError::Disconnected) => {
                 self.state = LoadState::Failed(format!(
                     "{}: loader stopped unexpectedly",
@@ -105,10 +103,7 @@ impl ViewPane {
     /// `$EDITOR` handoff when the editor exits.
     pub(crate) fn reload(&mut self) {
         let rx = load::start(self.path.clone());
-        self.state = LoadState::Loading {
-            since_ms: crate::anim::now_ms(),
-            rx,
-        };
+        self.state = LoadState::Loading { rx };
         self.cache.replace(None);
         // A search over text that's about to change is stale the instant the
         // reload lands — drop it rather than leave hits pointing at lines

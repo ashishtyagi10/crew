@@ -105,7 +105,7 @@ fn a_dead_worker_settles_as_failed_instead_of_loading_forever() {
     drop(tx);
 
     let mut p = ViewPane::open(std::env::temp_dir().join("whatever.txt"));
-    p.state = LoadState::Loading { since_ms: 0, rx };
+    p.state = LoadState::Loading { rx };
 
     assert!(p.poll(), "a dead worker is itself a state change");
     assert!(!p.loading(), "must not stay Loading forever");

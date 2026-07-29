@@ -97,7 +97,6 @@ fn a_missing_extractor_names_what_to_install() {
 fn a_loading_pane_draws_a_skeleton_not_an_empty_page() {
     let ls = for_state(
         &LoadState::Loading {
-            since_ms: 0,
             rx: std::sync::mpsc::channel().1,
         },
         false,

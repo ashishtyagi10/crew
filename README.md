@@ -185,11 +185,12 @@ by the same provider stack as `/crew` (DashScope / OpenRouter / Anthropic, or
 a direct OpenAI / Gemini / DeepSeek key — see
 [docs/CREW.md](docs/CREW.md#models--rate-limits)).
 **`??<question>`** goes the other way: the AI reads the focused terminal's
-recent output and opens its explanation in the zoomed markdown viewer —
-`??why did this fail` after a broken build gets you a formatted post-mortem.
+recent output and opens its explanation in the zoomed file viewer, rendered
+as markdown — `??why did this fail` after a broken build gets you a
+formatted post-mortem.
 
 Slash commands complete the bar (type `/` for a fuzzy palette): `/crew`,
-`/goal <text>`, `/batch <file>`, `/md <file>`, `/diff`, `/settings`,
+`/goal <text>`, `/batch <file>`, `/view <file>`, `/md <file>`, `/diff`, `/settings`,
 `/find <text>`, `/findall <text>`, `/name <text>`, `/clear`, `/clearall`, `/clearlog`, `/only`,
 `/copy`, `/dump`, `/closeall`, `/pwd`, `/about`, `/font`, `/theme`, `/notify`,
 `/restart`, `/update`, `/broadcast`, `/zoom`, `/sidebar`, `/keys`, `/far`,
@@ -198,8 +199,9 @@ arrow-selectable **value picker**. Fish-style autosuggest from history, `cd`
 completion with `$VAR` expansion, and `Up`/`Down` history recall persisted to
 `$XDG_CONFIG/crew/history` round it out. `/diff` opens the working tree's
 colored git diff (status, stat, full diff) in its own pane — Codex-style
-change review beside your shells; `/md <file>` opens a zoomed **markdown
-viewer** with side-by-side source and preview.
+change review beside your shells; `/view <file>` opens a zoomed **file
+viewer** pane — code, markdown (rendered), CSV, diffs and more, one pane, read
+only (`/md` is kept as an alias).
 
 ## Sidebar
 
@@ -218,10 +220,14 @@ cards, links):
 - **Chat panes** render agent replies as formatted markdown by default;
   **Ctrl+Shift+M** flips the focused chat pane to the raw source and back.
   **Cmd+Click** opens a rendered link.
-- **`/md <file>`** opens a zoomed **markdown viewer** pane showing the file as
-  side-by-side `source | preview` halves: **Tab** switches the active half,
-  arrows/PageUp/PageDown scroll it, **r** reloads from disk, **Cmd+Click**
-  opens links in the preview, **Esc** closes.
+- **`/view <file>`** (alias `/md`) opens a zoomed **file viewer** pane — a
+  single, read-only pane over the file, rendered by format: markdown
+  (headings/lists/links/code fences), a numbered-gutter code view, aligned
+  CSV columns, colored diffs, or a metadata card for anything else. Arrows/
+  PageUp/PageDown/Home/End scroll, **r** reloads from disk, **s** toggles raw
+  text (markdown files only), **/** searches with `n`/`N` for next/previous
+  hit, **e** opens `$EDITOR`, **o** hands the file to the OS default app,
+  **Cmd+Click** opens a rendered markdown link, **Esc** closes.
 
 ## Multi-agent panes (`/crew`)
 

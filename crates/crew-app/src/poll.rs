@@ -32,7 +32,6 @@ impl CrewApp {
                 crate::paneview::spawn_timeline(p).live(now)
                     || match &p.content {
                         PaneContent::Chat(c) => c.readouts.any_live(now),
-                        PaneContent::View(v) => v.animating(),
                         _ => false,
                     }
             })
@@ -191,8 +190,8 @@ impl CrewApp {
                 }
                 PaneContent::Settings(_) => false,
                 // Drains the loader worker: true exactly on the tick a
-                // Loading pane lands (or fails) — see `wants_animation_frame`
-                // above for the other half of this pane's animation gate.
+                // Loading pane lands (or fails), so the frame redraws with
+                // the loaded content.
                 PaneContent::View(v) => v.poll(),
             };
             // Follow `cd` inside the pane: a new OSC 7 cwd report retitles the
@@ -203,9 +202,15 @@ impl CrewApp {
             }
             // Output / bells in a pane you're not watching flag it. A bell or
             // watched pattern also raises the nav-row attention marker — the
-            // "needs you" flash for minimized/background panes.
+            // "needs you" flash for minimized/background panes. A viewer pane
+            // finishing its load is excluded: the dot means "an agent
+            // produced output you haven't seen," not "your file finished
+            // reading" — `changed` still reaches `any_changed` below so the
+            // pane's content is correct whenever it's next drawn, it just
+            // doesn't raise attention.
             if i != focused {
-                p.activity |= changed;
+                let is_activity = changed && !matches!(&p.content, PaneContent::View(_));
+                p.activity |= is_activity;
                 p.bell |= rang;
                 if rang {
                     crate::attention::raise(

@@ -206,7 +206,6 @@ impl CrewApp {
                 ViewAction::Close => {
                     self.close_pane(focused);
                 }
-                ViewAction::Status(msg) => self.set_status(msg),
                 ViewAction::Reload => {
                     if let Some(PaneContent::View(v)) =
                         self.panes.get_mut(focused).map(|p| &mut p.content)
