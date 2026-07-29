@@ -123,6 +123,18 @@ impl CrewApp {
             return;
         }
         let n = panes.len();
+        // `open_view` (called below, for a "view" entry) always sets
+        // `self.zoomed = true` — the right call for a fresh `/view`, and for
+        // restoring a session that is nothing BUT a viewer. It is wrong for
+        // any other restored set: `[view, shell, shell, shell]` used to leave
+        // `zoomed == true` with focus on the last shell, so the user saw one
+        // pane and had every reason to think the other three failed to open.
+        // Zooming only when the WHOLE restored set is a single viewer keeps
+        // the single-pane case (still exactly what a fresh `/view` would do)
+        // and clears it for every other shape, rather than unconditionally
+        // clearing `zoomed` at the end — which would also un-zoom the
+        // single-viewer restore a user very much wants zoomed.
+        let single_view = n == 1 && panes.first().is_some_and(|sp| sp.kind == "view");
         let before = self.panes.len();
         let kept = std::mem::take(&mut self.cwd);
         for sp in panes {
@@ -163,6 +175,11 @@ impl CrewApp {
             }
         }
         self.cwd = kept;
+        // Fix 3: only a single-viewer restore should stay zoomed — see the
+        // comment on `single_view` above.
+        if !single_view {
+            self.zoomed = false;
+        }
         // The loop leaves the last spawn focused; if that one restored
         // minimized, reconcile_grid's focus-restores rule would immediately
         // un-minimize it. Land focus on a visible pane instead (or the
