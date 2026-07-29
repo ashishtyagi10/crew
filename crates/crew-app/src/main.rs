@@ -136,6 +136,7 @@ mod pathexpand;
 mod poll;
 mod procname;
 mod quit;
+mod readout;
 mod relay;
 mod render;
 mod restart;

@@ -10,6 +10,9 @@ use crate::chatlayout::Message;
 pub use crate::chatevents::{classify, HostAction, PollResult};
 
 pub struct ChatPane {
+    /// This pane's animated footer numbers. Per-pane, not global: two chat
+    /// panes each sweep their own cost and token totals (see [`crate::readout`]).
+    pub(crate) readouts: crate::readout::Readouts,
     pub plugin: Plugin,
     pub channel: String,
     pub messages: Vec<Message>,
@@ -125,6 +128,7 @@ pub struct ChatPane {
 impl ChatPane {
     pub fn new(plugin: Plugin, channel: String) -> Self {
         ChatPane {
+            readouts: crate::readout::Readouts::default(),
             plugin,
             channel,
             messages: Vec::new(),

@@ -8,6 +8,25 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.8.3
+
+*Jarvis motion, iteration 3 of 6.*
+
+- **The footer counts.** Cost and token totals sweep to their new values rather
+  than snapping, and the 5h-budget and context meters fill rather than jumping a
+  cell. A number that jumps reads as a repaint; the same number sweeping reads
+  as an instrument.
+- **Counters live on the pane that draws them.** The first version kept them in
+  a process-wide registry keyed by name, which read fine until you noticed two
+  chat panes would share one `footer.cost` and overwrite each other — and which
+  the footer's own tests caught within minutes by leaking values between cases.
+  They are `Cell`-based fields on `ChatPane` now, since the footer renders from
+  an immutable pane.
+- **First sight is settled.** Sweeping every number up from zero the first time
+  it was drawn made the footer's output depend on how many times it had been
+  drawn before, which is not a property a footer should have. Only a value that
+  changes sweeps.
+
 ## 0.8.2
 
 *Jarvis motion, iteration 2b of 6.*

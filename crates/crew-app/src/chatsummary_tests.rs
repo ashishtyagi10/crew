@@ -18,8 +18,15 @@ fn text(line: &[(char, (u8, u8, u8))]) -> String {
     line.iter().map(|(c, _)| *c).collect()
 }
 
+/// A fresh set of counters per call, so each case sees its numbers settled on
+/// first sight rather than mid-sweep from the previous test's values.
+fn readouts() -> &'static crate::readout::Readouts {
+    Box::leak(Box::new(crate::readout::Readouts::default()))
+}
+
 fn fc<'a>(agents: &'a [AgentInfo], ctxm: &'a HashMap<String, u64>) -> FooterCtx<'a> {
     FooterCtx {
+        readouts: readouts(),
         agents,
         ctx: ctxm,
         tok_in: 41_600,

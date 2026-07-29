@@ -345,6 +345,10 @@ impl CrewApp {
             || self.focus_anim.live(crate::anim::now_ms())
             || self.ghosts.iter().any(|g| g.live(crate::anim::now_ms()))
             || self.zoom_anim.live(crate::anim::now_ms())
+            || self.panes.iter().any(|p| match &p.content {
+                PaneContent::Chat(c) => c.readouts.any_live(crate::anim::now_ms()),
+                _ => false,
+            })
             || self
                 .panes
                 .iter()
