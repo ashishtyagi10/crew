@@ -5,17 +5,17 @@
 //!
 //! In-pane search (`/`, `n`, `N`) muddies the split a little: `view_key`
 //! still has no notion of "a search is being typed" — it always classifies
-//! `e`/`o`/`r`/`s`/`n`/`N`/`/` to their normal-mode `ViewInput` actions — so
-//! `apply` is the one place that reinterprets those inputs as the literal
-//! characters they came from while `ViewPane::search` is mid-type. Each
-//! dedicated variant maps to exactly one character, so the reverse mapping
-//! in `apply_typing` is exact, not a guess.
+//! `e`/`o`/`r`/`s`/`n`/`N`/`/` to their normal-mode `ViewInput` actions, so
+//! `search_apply` is where those inputs get reinterpreted as the literal
+//! characters they came from while `ViewPane::search` is mid-type (kept out
+//! of this file to keep it to the scroll/action dispatch it's named for).
 use std::path::PathBuf;
 
 use winit::event::KeyEvent;
 use winit::keyboard::{Key, NamedKey};
 
 use crate::viewpane::search::Search;
+use crate::viewpane::search_apply;
 use crate::viewpane::ViewPane;
 
 /// A Page Up/Down jump, matching `mdkeys::PAGE`.
@@ -105,16 +105,9 @@ pub(crate) fn apply(
     // A live search intercepts input before the normal scroll/action match:
     // Esc cancels it (rather than closing the pane — that's the second
     // Esc's job), and while it's still being typed every other input is a
-    // needle edit, not its normal-mode meaning.
-    if p.search.is_some() {
-        if matches!(input, ViewInput::Close) {
-            p.search = None;
-            return None;
-        }
-        if p.search.as_ref().is_some_and(|s| s.typing) {
-            apply_typing(p, input, cols, rows);
-            return None;
-        }
+    // needle edit, not its normal-mode meaning. See `search_apply`.
+    if search_apply::intercept(p, input, cols, rows) {
+        return None;
     }
     let scroll = |p: &mut ViewPane, d: i32| {
         p.scroll = p.scroll.saturating_add_signed(d as isize);
@@ -140,81 +133,11 @@ pub(crate) fn apply(
             search.typing = true;
             p.search = Some(search);
         }
-        ViewInput::NextHit => jump(p, cols, rows, Search::next),
-        ViewInput::PrevHit => jump(p, cols, rows, Search::prev),
+        ViewInput::NextHit => search_apply::jump(p, cols, rows, Search::next),
+        ViewInput::PrevHit => search_apply::jump(p, cols, rows, Search::prev),
         ViewInput::Enter | ViewInput::Char(_) | ViewInput::Backspace | ViewInput::Ignore => {}
     }
     None
-}
-
-/// `n`/`N` outside a live search do nothing — there is nothing to jump to.
-fn jump(p: &mut ViewPane, cols: u16, rows: u16, step: impl FnOnce(&mut Search) -> Option<usize>) {
-    if let Some(line) = p.search.as_mut().and_then(step) {
-        p.scroll = line;
-        p.clamp_scroll(cols, rows);
-    }
-}
-
-/// While a search is being typed, every input is a needle edit — including
-/// `e`/`o`/`r`/`s`/`n`/`N`/`/`, which `view_key` has already folded into
-/// their normal-mode `ViewInput`s. Reverse-mapping them back to the one
-/// character each represents is what lets you type a needle containing any
-/// of those letters without firing Edit/Reload/ToggleRaw or jumping hits.
-fn apply_typing(p: &mut ViewPane, input: ViewInput, cols: u16, rows: u16) {
-    let Some(search) = p.search.as_mut() else {
-        return;
-    };
-    match input {
-        ViewInput::Char(c) => search.needle.push(c),
-        ViewInput::Backspace => {
-            search.needle.pop();
-        }
-        ViewInput::Edit => search.needle.push('e'),
-        ViewInput::OpenExternal => search.needle.push('o'),
-        ViewInput::Reload => search.needle.push('r'),
-        ViewInput::ToggleRaw => search.needle.push('s'),
-        ViewInput::NextHit => search.needle.push('n'),
-        ViewInput::PrevHit => search.needle.push('N'),
-        ViewInput::Slash => search.needle.push('/'),
-        ViewInput::Enter => {
-            search.typing = false;
-            // Every scroll action clamps the stored offset, this jump
-            // included — otherwise a hit past the last full page strands
-            // `scroll` beyond content length and deadens later Up ticks.
-            if let Some(line) = search.next() {
-                p.scroll = line;
-                p.clamp_scroll(cols, rows);
-            }
-            return;
-        }
-        // Close is handled by the caller before reaching here; scroll/no-op
-        // inputs have no meaning while typing a needle.
-        _ => return,
-    }
-    recompute_hits(p, cols);
-}
-
-/// Recompute `p.search`'s hits against the pane's current rendered text.
-/// Called on every needle edit so `n`/`N` always walk what's on screen, not
-/// a search that's gone stale since the last keystroke.
-fn recompute_hits(p: &mut ViewPane, cols: u16) {
-    let Some(needle) = p.search.as_ref().map(|s| s.needle.clone()) else {
-        return;
-    };
-    // Scoped so the immutable borrow of `p` behind this `Ref` ends before
-    // `p.search.as_mut()` below needs a mutable one.
-    let lines: Vec<String> = {
-        let cache = p.lines_for(cols);
-        cache.lines.iter().map(line_text).collect()
-    };
-    let hits = crate::viewpane::search::find_matches(&lines, &needle);
-    if let Some(search) = p.search.as_mut() {
-        search.hits = hits;
-    }
-}
-
-fn line_text(line: &crate::chatbody::CardLine) -> String {
-    line.iter().map(|c| c.c).collect()
 }
 
 impl ViewPane {

@@ -10,4 +10,5 @@ pub(crate) mod mdrung;
 mod pane;
 mod render;
 pub(crate) mod search;
+mod search_apply;
 pub(crate) use pane::{LoadState, ViewCache, ViewPane};
