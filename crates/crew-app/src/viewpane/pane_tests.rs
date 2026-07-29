@@ -54,6 +54,20 @@ fn reload_returns_the_pane_to_loading() {
 }
 
 #[test]
+fn reload_drops_a_live_search() {
+    // A search's hits point at line indexes in the OLD render; keeping it
+    // across a reload would leave `n`/`N` walking lines that may no longer
+    // contain what they used to, or may not exist at all.
+    let mut p = ViewPane::open(std::env::temp_dir().join("x.txt"));
+    p.search = Some(crate::viewpane::search::Search::new(
+        "needle".into(),
+        vec![1, 2],
+    ));
+    p.reload();
+    assert!(p.search.is_none(), "reload must drop a stale search");
+}
+
+#[test]
 fn reload_keeps_the_scroll_offset() {
     let dir = std::env::temp_dir().join(format!("crew-viewpane-reload-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();

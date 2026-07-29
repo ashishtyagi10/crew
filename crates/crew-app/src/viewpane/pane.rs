@@ -6,6 +6,7 @@ use std::sync::mpsc::Receiver;
 
 use super::detect::Format;
 use super::load::{self, Loaded};
+use super::search::Search;
 
 /// Where a pane is between "you pressed the key" and "the bytes are here".
 /// `Loading` holds the channel so `poll` can drain it without the app owning
@@ -38,6 +39,9 @@ pub(crate) struct ViewPane {
     /// `s`: show the text unrendered. The escape hatch for when the render is
     /// the thing being debugged.
     pub raw: bool,
+    /// A live `/` search: `None` when no search is in progress. Cleared on
+    /// `reload` — a search over text that is about to change is stale.
+    pub search: Option<Search>,
     pub(crate) cache: RefCell<Option<ViewCache>>,
 }
 
@@ -54,6 +58,7 @@ impl ViewPane {
             },
             scroll: 0,
             raw: false,
+            search: None,
             cache: RefCell::new(None),
         }
     }
@@ -105,6 +110,10 @@ impl ViewPane {
             rx,
         };
         self.cache.replace(None);
+        // A search over text that's about to change is stale the instant the
+        // reload lands — drop it rather than leave hits pointing at lines
+        // that no longer say what they used to.
+        self.search = None;
     }
 }
 
