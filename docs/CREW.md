@@ -949,6 +949,12 @@ nothing teleports. **Motion** (APPEARANCE) sets how much of that you get.
   an idle crew at `off` repaints exactly as rarely as one with no animation at
   all. This is the reduce-motion setting.
 
+Motion never costs an idle crew anything. Every animation is a *bounded*
+timeline, and one predicate — `wants_animation_frame` — decides whether the app
+schedules another frame at all. An animation has to appear there to be drawn a
+second time, and it has to end or the app would never sleep again; both are
+asserted by tests rather than merely intended.
+
 Motion never introduces a colour. Everything moving is drawn in the palette the
 active theme already declares — the border, the ink, the accent — so a theme
 change carries the motion with it, and a new theme cannot ship without it.
