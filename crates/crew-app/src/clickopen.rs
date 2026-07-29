@@ -1,8 +1,10 @@
-//! Cmd/Ctrl+click resolution: in terminal panes, open a URL, edit a file in
-//! `$EDITOR`, or `cd` into a directory — whichever the clicked text resolves
-//! to (builds on `openurl` and reuses `/edit` and `cd`); in chat panes, open a
-//! markdown link's URL (`chatview::link_at`); in the file-viewer pane, open a
-//! link on its rendered markdown rung, read off the cell under the click.
+//! Cmd/Ctrl+click resolution: in terminal panes, open a URL, show a file in
+//! the viewer, or `cd` into a directory — whichever the clicked text resolves
+//! to (builds on `openurl` and reuses `/view` and `cd`); in chat panes, open a
+//! markdown link's URL (`chatview::link_at`) or, when that misses, resolve
+//! the clicked token the same way a terminal pane does — so a path an agent
+//! cites in a reply is one click away; in the file-viewer pane, open a link
+//! on its rendered markdown rung, read off the cell under the click.
 use crate::app::CrewApp;
 use crate::openurl::url_at;
 use crate::pane::PaneContent;
@@ -56,10 +58,12 @@ fn view_link_at(
 
 impl CrewApp {
     /// Resolve a Cmd/Ctrl+click under the cursor: in a terminal pane, a URL
-    /// opens in the browser, an existing file opens in `$EDITOR`, a directory
-    /// becomes the new cwd; in a chat pane, a markdown link opens its URL.
-    /// Returns `true` when it acted on something (a miss falls through to the
-    /// caller's normal click handling — selection/focus).
+    /// opens in the browser, an existing file opens in the viewer (`e` inside
+    /// it reaches `$EDITOR` from there), a directory becomes the new cwd; in
+    /// a chat pane, a markdown link opens its URL, and a path the agent wrote
+    /// as plain text resolves the same way. Returns `true` when it acted on
+    /// something (a miss falls through to the caller's normal click handling
+    /// — selection/focus).
     pub(crate) fn cmd_click_at_cursor(&mut self) -> bool {
         if let Some((line, col)) = self.cursor_cell() {
             if let Some(url) = url_at(&line, col) {
@@ -75,9 +79,9 @@ impl CrewApp {
         self.chat_link_click_at_cursor()
     }
 
-    /// Chat-pane counterpart of the terminal miss above: if the cursor sits
-    /// over a Chat pane's rendered markdown link, open it. Falls through to
-    /// the file-viewer pane case if not Chat.
+    /// Chat/viewer-pane counterpart of the terminal miss above: dispatches on
+    /// pane content at the cursor. `None` (nothing under the cursor, or a
+    /// pane kind neither arm handles) is a miss, same as the terminal path.
     fn chat_link_click_at_cursor(&mut self) -> bool {
         let Some(i) = self.pane_at_cursor() else {
             return false;
@@ -85,56 +89,77 @@ impl CrewApp {
         let Some((row, col)) = self.cursor_rowcol(i) else {
             return false;
         };
-        let pane = &self.panes[i];
-        match &pane.content {
-            PaneContent::Chat(chat) => {
-                if let Some(url) = crate::chatview::link_at(
-                    chat,
-                    pane.grid.cols,
-                    pane.grid.rows,
-                    row as u16,
-                    col as u16,
-                ) {
-                    let _ = open::that(&url);
-                    self.set_status(format!("opening {url}"));
-                    return true;
-                }
-                // Not a link: a code block is the other thing worth acting on.
-                let Some(code) = crate::chatview::code_block_at(
-                    chat,
-                    pane.grid.cols,
-                    pane.grid.rows,
-                    row as u16,
-                ) else {
-                    return false;
-                };
-                let lines = code.lines().count();
-                if let Ok(mut cb) = arboard::Clipboard::new() {
-                    let _ = cb.set_text(code.clone());
-                }
-                self.set_status(format!(
-                    "copied {lines} line{}",
-                    if lines == 1 { "" } else { "s" }
-                ));
-                true
-            }
-            PaneContent::View(v) => {
-                let url = {
-                    let cache = v.lines_for(pane.grid.cols);
-                    view_link_at(&cache.lines, v.scroll, row as u16, col as u16)
-                };
-                let Some(url) = url else {
-                    return false;
-                };
-                let _ = open::that(&url);
-                self.set_status(format!("opening {url}"));
-                true
-            }
+        let (row, col) = (row as u16, col as u16);
+        match &self.panes[i].content {
+            PaneContent::Chat(_) => self.resolve_chat_click(i, row, col),
+            PaneContent::View(_) => self.resolve_view_click(i, row, col),
             _ => false,
         }
     }
 
-    /// If `tok` resolves (against the cwd) to a file, edit it; to a directory, cd.
+    /// Chat pane click resolution, in order: a markdown link's URL
+    /// (`chatview::link_at`); else the clicked row's plain text run through
+    /// `token_at`/`open_path_token` — the same resolution a terminal pane's
+    /// Cmd+click gets, so a path an agent wrote in a reply is one click away
+    /// without leaving the transcript; else, if neither resolved, the fenced
+    /// code block under the click (if any) copies to the clipboard. Row text
+    /// is reconstructed lazily, at click time, for this ONE row only — never
+    /// pre-scanned during layout.
+    fn resolve_chat_click(&mut self, i: usize, row: u16, col: u16) -> bool {
+        let grid = self.panes[i].grid;
+        let PaneContent::Chat(chat) = &self.panes[i].content else {
+            return false;
+        };
+        if let Some(url) = crate::chatview::link_at(chat, grid.cols, grid.rows, row, col) {
+            let _ = open::that(&url);
+            self.set_status(format!("opening {url}"));
+            return true;
+        }
+        let token = crate::chatview::row_text_at(chat, grid.cols, grid.rows, row)
+            .and_then(|line| token_at(&line, col as usize));
+        if let Some(tok) = token {
+            if self.open_path_token(&tok) {
+                return true;
+            }
+        }
+        let PaneContent::Chat(chat) = &self.panes[i].content else {
+            return false;
+        };
+        let Some(code) = crate::chatview::code_block_at(chat, grid.cols, grid.rows, row) else {
+            return false;
+        };
+        let lines = code.lines().count();
+        if let Ok(mut cb) = arboard::Clipboard::new() {
+            let _ = cb.set_text(code.clone());
+        }
+        self.set_status(format!(
+            "copied {lines} line{}",
+            if lines == 1 { "" } else { "s" }
+        ));
+        true
+    }
+
+    /// File-viewer pane click resolution: a link on its rendered markdown
+    /// rung, read off the cell under the click.
+    fn resolve_view_click(&mut self, i: usize, row: u16, col: u16) -> bool {
+        let pane = &self.panes[i];
+        let PaneContent::View(v) = &pane.content else {
+            return false;
+        };
+        let url = {
+            let cache = v.lines_for(pane.grid.cols);
+            view_link_at(&cache.lines, v.scroll, row, col)
+        };
+        let Some(url) = url else {
+            return false;
+        };
+        let _ = open::that(&url);
+        self.set_status(format!("opening {url}"));
+        true
+    }
+
+    /// If `tok` resolves (against the cwd) to a file, show it in the viewer;
+    /// to a directory, cd.
     fn open_path_token(&mut self, tok: &str) -> bool {
         let base = if self.cwd.as_os_str().is_empty() {
             std::path::PathBuf::from(".")
@@ -148,7 +173,7 @@ impl CrewApp {
             base.join(p)
         };
         if full.is_file() {
-            self.edit_in_pane(tok);
+            self.open_view(tok);
             true
         } else if full.is_dir() {
             self.try_change_dir(&format!("cd {tok}"))
@@ -161,7 +186,9 @@ impl CrewApp {
 #[cfg(test)]
 mod tests {
     use super::{token_at, view_link_at};
+    use crate::app::CrewApp;
     use crate::chatbody::{plain, CardCell, CardLine};
+    use crate::pane::PaneContent;
 
     /// A one-line fixture whose whole line is a link (mirrors how
     /// `mdrung::lines`/`chatmd` tag a link span's cells).
@@ -252,5 +279,70 @@ mod tests {
         assert_eq!(token_at("word", 99), None);
         // a token that is only punctuation trims to nothing.
         assert_eq!(token_at("(),", 0), None);
+    }
+
+    #[test]
+    fn a_path_an_agent_wrote_opens_the_viewer() {
+        // The file the agent just changed should be one click away, without
+        // leaving the transcript.
+        let dir = std::env::temp_dir();
+        let f = dir.join("agent-cited.rs");
+        std::fs::write(&f, "fn main() {}\n").unwrap();
+
+        let mut chat = crate::chat::tests::pane();
+        chat.push_capped(crate::chatlayout::Message {
+            sender: "agent smith".into(),
+            text: "see agent-cited.rs for the fix".into(),
+            ts: "1".into(),
+            meta: String::new(),
+        });
+        let (cols, rows) = (80u16, 20u16);
+        // Locate where the path actually rendered rather than hardcoding
+        // layout — mirrors `chatview_tests`' own click-target lookups.
+        let mut rendered: std::collections::BTreeMap<u16, String> = Default::default();
+        for c in crate::chatview::cells(&chat, cols, rows) {
+            rendered.entry(c.row).or_default().push(c.c);
+        }
+        let (&row, line) = rendered
+            .iter()
+            .find(|(_, text)| text.contains("agent-cited.rs"))
+            .expect("the path text rendered somewhere");
+        let col = line.find("agent-cited.rs").unwrap() as u16;
+
+        let mut app = CrewApp {
+            cwd: dir.clone(),
+            ..Default::default()
+        };
+        app.panes.push(crate::pane::Pane {
+            content: PaneContent::Chat(chat),
+            grid: crew_term::GridSize { cols, rows },
+            rect: crate::layout::Rect {
+                x: 0.0,
+                y: 0.0,
+                w: 0.0,
+                h: 0.0,
+            },
+            label: None,
+            name: None,
+            dir: None,
+            activity: false,
+            bell: false,
+            hidden: false,
+            attention: None,
+            born_ms: crate::anim::now_ms(),
+        });
+        let before = app.panes.len();
+
+        assert!(
+            app.resolve_chat_click(0, row, col),
+            "clicking the cited path must act"
+        );
+        assert_eq!(app.panes.len(), before + 1, "a new pane opened");
+        assert!(
+            app.panes
+                .iter()
+                .any(|p| matches!(&p.content, PaneContent::View(v) if v.path == f)),
+            "the viewer opened on the exact file the agent cited"
+        );
     }
 }

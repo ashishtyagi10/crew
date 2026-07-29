@@ -2,7 +2,9 @@
 //! listings) spawned by `/far`. Tab switches the active panel when the command
 //! line is empty; arrows move the cursor; Enter descends into a folder (or
 //! `..`) or opens a file with the OS default. The function-key bar works as
-//! labelled: F1 help, F3/F4 view/edit (open with the OS default), F5 copy and
+//! labelled: F1 help, F3 views the file in the file-viewer pane, F4 opens it
+//! in `$EDITOR` in a terminal pane — both stay inside crew, though a remote
+//! file downloads first and falls back to the OS default — F5 copy and
 //! F6 move into the other panel, F7 make-folder (a text prompt), F8 delete to
 //! trash, F10/Esc close. A Far-style command line sits at the bottom: type a
 //! command and press Enter to run it in the active panel's directory — `cd`

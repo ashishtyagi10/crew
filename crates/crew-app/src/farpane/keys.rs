@@ -22,8 +22,14 @@ pub enum FarAction {
     Close,
     /// Open the keyboard-shortcuts overlay (F1).
     Help,
-    /// Open a file with the OS default application (F3 / F4 / Enter on a file).
+    /// Open a file with the OS default application: Enter on a local file, or
+    /// a downloaded remote temp file (F3/F4 on a remote entry, once
+    /// `begin_download` lands it — see `remote::absorb_download`).
     Open(PathBuf),
+    /// F3 — show the file in the viewer pane, inside crew.
+    View(PathBuf),
+    /// F4 — open `$EDITOR` on the file in a terminal pane.
+    Edit(PathBuf),
     /// Show a transient status message (operation result or error).
     Status(String),
 }
@@ -123,8 +129,10 @@ pub(crate) fn reduce(p: &mut FarPane, key: &KeyEvent, alt: bool) -> Option<FarAc
                 return ascend(p);
             }
         }
-        // F3 View / F4 Edit both open the selected file with the OS default app.
-        Key::Named(NamedKey::F3) | Key::Named(NamedKey::F4) => return open_selected(p),
+        // F3 shows the selected file in the viewer pane; F4 opens it in
+        // `$EDITOR`. Both stay inside crew — see `view_selected`/`edit_selected`.
+        Key::Named(NamedKey::F3) => return view_selected(p),
+        Key::Named(NamedKey::F4) => return edit_selected(p),
         Key::Named(NamedKey::F5) => return Some(copy(p)),
         Key::Named(NamedKey::F6) => return Some(rename_move(p)),
         Key::Named(NamedKey::F7) => p.prompt = Some(Prompt::mkdir()),
@@ -380,20 +388,38 @@ pub(crate) fn activate(p: &mut FarPane) -> Option<FarAction> {
     }
 }
 
-/// F3/F4: open the selected file with the OS default app (directories
-/// ignored); a remote file downloads first (`begin_download`).
-fn open_selected(p: &mut FarPane) -> Option<FarAction> {
+/// F3: show the selected file in the viewer pane (directories ignored); a
+/// remote file downloads first (`begin_download`) — the same download path
+/// F4 uses, since the download always lands as `FarAction::Open` regardless
+/// of which key started it (see `remote::absorb_download`).
+fn view_selected(p: &mut FarPane) -> Option<FarAction> {
+    let (name, local) = selected_file(p)?;
+    match local {
+        Some(dir) => Some(FarAction::View(dir.join(&name))),
+        None => Some(p.begin_download(&name)),
+    }
+}
+
+/// F4: open the selected file with `$EDITOR` in a terminal pane (directories
+/// ignored); a remote file downloads first (`begin_download`), same as F3.
+fn edit_selected(p: &mut FarPane) -> Option<FarAction> {
+    let (name, local) = selected_file(p)?;
+    match local {
+        Some(dir) => Some(FarAction::Edit(dir.join(&name))),
+        None => Some(p.begin_download(&name)),
+    }
+}
+
+/// Shared F3/F4 lookup: the selected entry's name and, when the active panel
+/// is local, its parent directory — `None` for the parent (`..`) row or a
+/// directory entry, which F3/F4 both ignore.
+fn selected_file(p: &FarPane) -> Option<(String, Option<PathBuf>)> {
     let panel = p.panel(p.active);
     let entry = panel.entries.get(panel.sel)?;
     if entry.is_parent || entry.is_dir {
         return None;
     }
-    let name = entry.name.clone();
-    let local = panel.loc.local_path();
-    match local {
-        Some(dir) => Some(FarAction::Open(dir.join(&name))),
-        None => Some(p.begin_download(&name)),
-    }
+    Some((entry.name.clone(), panel.loc.local_path()))
 }
 
 /// Move the active panel up to its parent directory.
@@ -409,3 +435,7 @@ pub(crate) fn ascend(p: &mut FarPane) -> Option<FarAction> {
     }
     None
 }
+
+#[cfg(test)]
+#[path = "keys_tests.rs"]
+mod tests;
