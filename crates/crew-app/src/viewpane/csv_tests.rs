@@ -52,6 +52,20 @@ fn an_embedded_newline_inside_quotes_ends_the_row() {
 }
 
 #[test]
+fn crlf_line_endings_do_not_leave_a_stray_carriage_return() {
+    // Excel and most Windows/web CSV exports use CRLF. Without stripping it,
+    // the last field of every row keeps a \r that reaches the renderer as
+    // literal cell text.
+    assert_eq!(
+        parse("a,b\r\n1,2\r\n", ','),
+        vec![
+            vec!["a".to_string(), "b".into()],
+            vec!["1".into(), "2".into()],
+        ]
+    );
+}
+
+#[test]
 fn rendered_columns_align() {
     let ls = lines("name,n\nlong-value,1\nx,2\n", ',', 60);
     let texts: Vec<String> = ls.iter().map(|l| l.iter().map(|c| c.c).collect()).collect();

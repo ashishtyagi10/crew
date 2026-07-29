@@ -12,6 +12,11 @@ use crate::md::{MdSpan, MdStyle};
 pub(crate) fn parse(text: &str, delim: char) -> Vec<Vec<String>> {
     let mut rows = Vec::new();
     for line in text.split('\n') {
+        // Strip a trailing CR at the line level, not everywhere in the text
+        // — CRLF is one of the two normal line endings a CSV arrives in
+        // (Excel/Windows exports), but a `\r` genuinely inside a quoted
+        // field must survive untouched.
+        let line = line.strip_suffix('\r').unwrap_or(line);
         if line.is_empty() {
             continue;
         }
