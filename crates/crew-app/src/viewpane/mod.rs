@@ -8,6 +8,7 @@ pub(crate) mod keys;
 mod lines;
 pub(crate) mod load;
 pub(crate) mod mdrung;
+mod metacard;
 mod pane;
 mod render;
 pub(crate) mod search;

@@ -23,6 +23,20 @@ pub(crate) const MAX_VIEW_BYTES: u64 = 8 * 1024 * 1024;
 pub(crate) struct Loaded {
     pub text: String,
     pub truncated: Option<u64>,
+    /// Size and mtime, for the rungs that render no text of their own (Fix
+    /// 2: the metadata card). Populated on every successful read — the
+    /// `stat` in `read_capped` already has it, so this is free — but only
+    /// the opaque rung draws it today.
+    pub meta: Option<FileMeta>,
+}
+
+/// A file's size and modification time, captured once on the worker
+/// alongside the bytes. Copy: two small fields, cheap to pass around rather
+/// than borrow.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct FileMeta {
+    pub size: u64,
+    pub modified: Option<std::time::SystemTime>,
 }
 
 /// What the worker sends back: the rung it decided on, and the text or the
@@ -59,14 +73,18 @@ fn on_path(bin: &str) -> bool {
     std::env::split_paths(&paths).any(|d| d.join(bin).is_file())
 }
 
-/// Read at most `MAX_VIEW_BYTES`, reporting the real size when longer.
-fn read_capped(path: &Path) -> std::io::Result<(Vec<u8>, Option<u64>)> {
-    let size = std::fs::metadata(path)?.len();
+/// Read at most `MAX_VIEW_BYTES`, reporting the real size when longer, plus
+/// the `FileMeta` the same `stat` already produced (Fix 2) — one syscall
+/// serves both jobs rather than the render path stat-ing again later.
+fn read_capped(path: &Path) -> std::io::Result<(Vec<u8>, FileMeta, Option<u64>)> {
+    let md = std::fs::metadata(path)?;
+    let size = md.len();
+    let modified = md.modified().ok();
     let mut f = std::fs::File::open(path)?;
     let mut buf = Vec::new();
     f.by_ref().take(MAX_VIEW_BYTES).read_to_end(&mut buf)?;
     let truncated = (size > MAX_VIEW_BYTES).then_some(size);
-    Ok((buf, truncated))
+    Ok((buf, FileMeta { size, modified }, truncated))
 }
 
 /// Cap extracted text at [`MAX_VIEW_BYTES`], the same limit `read_capped`
@@ -110,36 +128,46 @@ pub(crate) fn load_now(path: &Path, probe: Probe) -> LoadDone {
         .map(|n| n.to_string_lossy().into_owned())
         .unwrap_or_else(|| path.to_string_lossy().into_owned());
 
-    let (head, truncated) = match read_capped(path) {
+    let (head, meta, truncated) = match read_capped(path) {
         Ok(v) => v,
         Err(e) => {
             return LoadDone {
+                // `Unreadable`, not `Binary` (Fix 2): this branch never read
+                // a byte, so it has no basis to claim the file IS anything —
+                // a permission error is not a binary file.
                 format: Format::Opaque {
-                    why: Opaque::Binary,
+                    why: Opaque::Unreadable,
                 },
                 result: Err(format!("{name}: {e}")),
-            }
+            };
         }
     };
     let sniff = &head[..head.len().min(SNIFF_BYTES)];
     let format = detect(path, sniff, probe);
 
     let result = match format {
-        // The card is drawn from the path and the format alone; there is no
-        // text to carry, and decoding these bytes would be a lie.
+        // The card is drawn from the path, the format, and `meta` alone;
+        // there is no text to carry, and decoding these bytes would be a
+        // lie.
         Format::Opaque { .. } => Ok(Loaded {
             text: String::new(),
             truncated: None,
+            meta: Some(meta),
         }),
         Format::Extract { via } => extract(via, path)
             .map(|text| {
                 let (text, truncated) = cap_text(text);
-                Loaded { text, truncated }
+                Loaded {
+                    text,
+                    truncated,
+                    meta: Some(meta),
+                }
             })
             .map_err(|e| format!("{name}: {e}")),
         _ => Ok(Loaded {
             text: String::from_utf8_lossy(&head).into_owned(),
             truncated,
+            meta: Some(meta),
         }),
     };
     LoadDone { format, result }

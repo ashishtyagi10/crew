@@ -1,11 +1,12 @@
 //! Rung → `Vec<CardLine>`. Every format lands in the same representation the
 //! chat cards use, so `render` is one mapper and each rung is tested as data.
-//! Syntax colouring lives in `codepaint`, split out to keep this file under
-//! the length budget.
+//! Syntax colouring lives in `codepaint` and the opaque/metadata card in
+//! `metacard` — both split out to keep this file under the length budget.
 use crate::chatbody::{plain, CardLine};
 use crate::viewpane::codepaint::{line_paint, CharPaint};
-use crate::viewpane::detect::{Format, Opaque};
+use crate::viewpane::detect::Format;
 use crate::viewpane::load::{Loaded, MAX_VIEW_BYTES};
+use crate::viewpane::metacard::opaque_card;
 use crate::viewpane::LoadState;
 
 /// Width of the line-number gutter, digits plus one space.
@@ -114,27 +115,6 @@ fn mb(bytes: u64) -> u64 {
     bytes / (1024 * 1024)
 }
 
-/// The metadata card for a rung that cannot be rendered.
-fn opaque_card(why: Opaque, cols: usize) -> Vec<CardLine> {
-    let t = crew_theme::theme();
-    let head = match why {
-        Opaque::Binary => "binary file — nothing to render".to_string(),
-        Opaque::NotUtf8 => "not valid UTF-8 — nothing to render".to_string(),
-        Opaque::NoExtractor(e) => format!("no extractor: install {}", e.install_hint()),
-    };
-    vec![
-        row(&head, t.ink, true),
-        Vec::new(),
-        row("press  o  to open in the default app", t.text_muted, false),
-    ]
-    .into_iter()
-    .map(|mut l| {
-        l.truncate(cols.max(1));
-        l
-    })
-    .collect()
-}
-
 /// Lines for the pane's current state at `cols` columns. `raw` shows text
 /// unrendered (the `s` toggle); it only changes the `Markdown` rung, since
 /// every other rung already shows the bytes as they are.
@@ -161,7 +141,7 @@ fn ready_lines(format: Format, loaded: &Loaded, raw: bool, cols: usize) -> Vec<C
         ));
     }
     let body = match format {
-        Format::Opaque { why } => opaque_card(why, cols),
+        Format::Opaque { why } => opaque_card(why, loaded.meta.as_ref(), cols),
         Format::Extract { via } => {
             out.push(banner(
                 &format!(

@@ -68,6 +68,13 @@ fn a_missing_file_reports_why_and_names_itself() {
             pdftotext: false,
         },
     );
+    assert_eq!(
+        done.format,
+        Format::Opaque {
+            why: Opaque::Unreadable
+        },
+        "a read failure is Unreadable, not a specific (and false) claim like Binary"
+    );
     let err = done.result.expect_err("a missing file fails");
     assert!(
         err.contains("nope.txt"),

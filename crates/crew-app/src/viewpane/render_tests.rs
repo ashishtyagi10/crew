@@ -10,6 +10,7 @@ fn pane_with(text: &str) -> ViewPane {
         loaded: Loaded {
             text: text.into(),
             truncated: None,
+            meta: None,
         },
     };
     p

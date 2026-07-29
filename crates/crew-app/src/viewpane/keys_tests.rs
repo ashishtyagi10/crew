@@ -20,6 +20,7 @@ fn pane_with(text: &str) -> crate::viewpane::ViewPane {
         loaded: Loaded {
             text: text.into(),
             truncated: None,
+            meta: None,
         },
     };
     p
@@ -334,6 +335,7 @@ fn markdown_pane_with(text: &str) -> crate::viewpane::ViewPane {
         loaded: Loaded {
             text: text.into(),
             truncated: None,
+            meta: None,
         },
     };
     p

@@ -43,6 +43,11 @@ pub(crate) enum Opaque {
     Binary,
     NotUtf8,
     NoExtractor(Extractor),
+    /// `read_capped` itself failed — not found, permission denied, or some
+    /// other I/O error, none of which is "binary" (Fix 2's fold-in item:
+    /// `load_now` used to tag every read failure `Binary`, a false, specific
+    /// claim about bytes it never actually read).
+    Unreadable,
 }
 
 /// Which tools are on `PATH`. Passed in rather than probed here so `detect`

@@ -12,6 +12,7 @@ fn ready(format: Format, body: &str) -> LoadState {
         loaded: Loaded {
             text: body.into(),
             truncated: None,
+            meta: None,
         },
     }
 }
@@ -48,6 +49,7 @@ fn truncation_is_announced_in_a_banner_row() {
         loaded: Loaded {
             text: "head\n".into(),
             truncated: Some(41_000_000),
+            meta: None,
         },
     };
     let ls = for_state(&state, false, 60);
