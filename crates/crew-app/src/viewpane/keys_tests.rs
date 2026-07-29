@@ -120,21 +120,9 @@ fn reload_action_is_returned_from_apply() {
     ));
 }
 
-#[test]
-fn scrolling_up_at_the_top_stays_at_the_top() {
-    let mut p = crate::viewpane::ViewPane::open(std::env::temp_dir().join("k.txt"));
-    apply(&mut p, ViewInput::Up, 40, 10);
-    assert_eq!(p.scroll, 0, "no underflow");
-}
-
-// `scrolling_up_at_the_top_stays_at_the_top` can't fail even against a
-// completely broken no-op `ViewInput::Up` arm: the fixture above opens with
-// `LoadState::Loading`, which renders exactly one line ("loading…"), and
-// `clamp_scroll` pins ANY offset back to 0 whenever content is shorter than
-// `rows` (10 here) — so the assertion holds whether or not Up ever
-// subtracted anything. Prove Up really decrements by starting from a real,
-// un-clamped offset over content long enough that clamping doesn't erase
-// the difference.
+// Scrolling up from a NONZERO offset, because the obvious version — scroll
+// up from 0, assert still 0 — passes against a no-op `apply` that does
+// nothing at all. Verified by injecting exactly that mutation.
 #[test]
 fn scroll_up_actually_decrements_from_a_nonzero_offset() {
     let mut p = pane_with(&lines(50));
