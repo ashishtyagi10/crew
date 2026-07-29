@@ -359,6 +359,7 @@ fn message_cells_is_a_thin_map_over_placed_lines_in_both_modes() {
         let view = View {
             source: show_source,
             compact,
+            streaming_from: pane.messages.len(),
         };
         let top = pane.status_rows(cols, rows);
         let bottom = crate::chatinput::composer_rows(&pane.input, cols, rows);
@@ -469,6 +470,7 @@ fn compact_view_clamps_multiline_body_and_appends_hidden_suffix() {
         View {
             source: false,
             compact: false,
+            streaming_from: usize::MAX,
         },
     );
     assert_eq!(full.len(), 4, "header + 3 body lines, no spacer (one msg)");
@@ -480,6 +482,7 @@ fn compact_view_clamps_multiline_body_and_appends_hidden_suffix() {
         View {
             source: false,
             compact: true,
+            streaming_from: usize::MAX,
         },
     );
     assert_eq!(
@@ -512,6 +515,7 @@ fn compact_view_leaves_single_line_message_unchanged() {
         View {
             source: false,
             compact: true,
+            streaming_from: usize::MAX,
         },
     );
     let text = |lines: &[CardLine]| -> Vec<String> {
@@ -541,6 +545,7 @@ fn compact_view_shrinks_card_line_count() {
         View {
             source: false,
             compact: true,
+            streaming_from: usize::MAX,
         },
     );
     assert!(
@@ -563,6 +568,7 @@ fn compact_view_and_source_view_are_orthogonal() {
         View {
             source: true,
             compact: true,
+            streaming_from: usize::MAX,
         },
     );
     assert_eq!(both.len(), 2, "header + clamped first line");
@@ -572,4 +578,104 @@ fn compact_view_and_source_view_are_orthogonal() {
         "source mode keeps literal markdown even while compact: {body_text}"
     );
     assert!(body_text.ends_with(" \u{2026} +2"), "got: {body_text}");
+}
+
+// --- streaming caret --------------------------------------------------------
+
+/// The caret is the one unambiguous sign that text is still arriving, as
+/// distinct from a reply that happened to end mid-sentence.
+#[test]
+fn a_streaming_card_ends_in_a_caret() {
+    crate::motion::set_level(crate::motion::MotionLevel::Full);
+    let m = msg("alice", "thinking about it");
+    let settled = card_lines(
+        &[&m],
+        40,
+        0,
+        View {
+            source: false,
+            compact: false,
+            streaming_from: usize::MAX,
+        },
+    );
+    let live = card_lines(
+        &[&m],
+        40,
+        0,
+        View {
+            source: false,
+            compact: false,
+            streaming_from: 0,
+        },
+    );
+    let tail = |ls: &[CardLine]| ls.last().and_then(|l| l.last().map(|c| c.c));
+    assert_eq!(tail(&settled), Some('t'), "a settled card ends in its text");
+    assert_eq!(tail(&live), Some('\u{258c}'), "a live one ends in a caret");
+}
+
+/// It pulses rather than blinking: a caret that vanishes half the time reads,
+/// at a glance, like the text stopped.
+#[test]
+fn the_caret_pulses_without_disappearing() {
+    crate::motion::set_level(crate::motion::MotionLevel::Full);
+    let m = msg("alice", "streaming");
+    let caret_fg = |now| {
+        card_lines(
+            &[&m],
+            40,
+            now,
+            View {
+                source: false,
+                compact: false,
+                streaming_from: 0,
+            },
+        )
+        .last()
+        .and_then(|l| l.last().map(|c| c.fg))
+        .unwrap()
+    };
+    // Two points a half-period apart differ — it is moving...
+    assert_ne!(caret_fg(1), caret_fg(450));
+    // ...and it is present at both, because the glyph never goes away.
+    for now in [1_u64, 225, 450, 675] {
+        let last = card_lines(
+            &[&m],
+            40,
+            now,
+            View {
+                source: false,
+                compact: false,
+                streaming_from: 0,
+            },
+        );
+        assert_eq!(
+            last.last().and_then(|l| l.last().map(|c| c.c)),
+            Some('\u{258c}'),
+            "the caret vanished at {now}ms"
+        );
+    }
+}
+
+/// Reduce-motion keeps the caret — it carries information — but holds it still.
+#[test]
+fn motion_off_leaves_a_steady_caret() {
+    crate::motion::set_level(crate::motion::MotionLevel::Off);
+    let m = msg("alice", "streaming");
+    let fg = |now| {
+        card_lines(
+            &[&m],
+            40,
+            now,
+            View {
+                source: false,
+                compact: false,
+                streaming_from: 0,
+            },
+        )
+        .last()
+        .and_then(|l| l.last().map(|c| c.fg))
+        .unwrap()
+    };
+    assert_eq!(fg(1), fg(450), "the caret must not pulse at off");
+    crate::motion::set_level(crate::motion::MotionLevel::Full);
 }

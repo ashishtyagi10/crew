@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.8.4
+
+*Jarvis motion, iteration 4 of 6.*
+
+- **Streaming cards carry a live caret.** A block on the end of the last line,
+  pulsing between the muted and accent colours, marking text that is still
+  arriving as distinct from a reply that happened to end mid-sentence. It
+  pulses rather than blinks — a caret that vanishes half the time reads like
+  the text stopped. `Motion = off` keeps it (it carries information) but holds
+  it still.
+- **Where the stream begins is now part of the view.** `View.streaming_from`
+  rides the same value already threaded through every card render path, so the
+  scroll clamp, the scrollbar, the link hit-test and the transcript cannot
+  disagree about which cards are live.
+
 ## 0.8.3
 
 *Jarvis motion, iteration 3 of 6.*

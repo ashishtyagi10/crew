@@ -165,6 +165,9 @@ pub(crate) fn placed_lines(pane: &ChatPane, cols: u16, rows: u16) -> Vec<(u16, C
     let view = crate::chatmsgs::View {
         source: pane.show_source,
         compact: pane.compact_view,
+        // `visible_messages` chains settled messages then streaming ones, so
+        // everything from that boundary on is still arriving.
+        streaming_from: pane.messages.len(),
     };
     let lines = crate::chatmsgs::card_lines(
         &visible,
