@@ -127,6 +127,13 @@ pub(crate) fn apply(
         ViewInput::ToggleRaw => {
             p.raw = !p.raw;
             p.cache.replace(None);
+            // The render just changed shape (different gutter, different
+            // wrap width) without the file changing — a live search's hits
+            // are line indexes into the OLD rendering. Recompute rather
+            // than clear: unlike `reload` (where the file itself changed
+            // and the old hits are meaningless), the needle the user typed
+            // is still exactly what they asked for.
+            search_apply::recompute_hits(p, cols);
         }
         ViewInput::Slash => {
             let mut search = Search::new(String::new(), Vec::new());

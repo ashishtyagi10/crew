@@ -37,6 +37,15 @@ impl Search {
         }
     }
 
+    /// Forget where `n`/`N` last landed. Called whenever `hits` is replaced
+    /// wholesale (a needle edit, or the rendering underneath an unchanged
+    /// needle changing shape) — the old index may point past the end of a
+    /// shorter list, or at a different hit entirely in a reordered one, so
+    /// the next `n` should start fresh rather than trust a stale position.
+    pub(crate) fn reset_cursor(&mut self) {
+        self.at = None;
+    }
+
     /// The next hit's line, wrapping at the end.
     pub(crate) fn next(&mut self) -> Option<usize> {
         if self.hits.is_empty() {

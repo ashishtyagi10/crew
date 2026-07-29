@@ -315,3 +315,55 @@ fn next_hit_without_an_active_search_does_nothing() {
     assert!(act.is_none());
     assert_eq!(p.scroll, 3, "no search means nothing to jump to");
 }
+
+/// A markdown `ViewPane` whose rendered (non-raw) and raw layouts genuinely
+/// differ in line-to-content shape: the raw rung adds a 6-column gutter and
+/// wraps at a different width, and the rendered rung drops the `#` marker,
+/// so a wrapped paragraph occupies a different number of rows in each mode.
+/// Confirmed empirically (not just assumed) for this exact text at 20
+/// columns: "needle" sits at rendered-line index 14 but raw-line index 16 —
+/// exactly the shape needed to prove stale hit indexes land on the wrong
+/// line after a raw toggle, not merely a bounds-safe one.
+fn markdown_pane_with(text: &str) -> crate::viewpane::ViewPane {
+    use crate::viewpane::detect::Format;
+    use crate::viewpane::load::Loaded;
+    use crate::viewpane::LoadState;
+    let mut p = crate::viewpane::ViewPane::open(std::env::temp_dir().join("k.md"));
+    p.state = LoadState::Ready {
+        format: Format::Markdown,
+        loaded: Loaded {
+            text: text.into(),
+            truncated: None,
+        },
+    };
+    p
+}
+
+const WRAP_SHIFTING_MARKDOWN: &str = "# Heading\n\nThis is a fairly long paragraph of body text that should wrap across several rows once it is laid out inside a narrow column width, forcing the renderer to break it into pieces.\n\nneedle here\n";
+
+// Reachable by an ordinary sequence: `/needle` -> Enter -> `s` -> `n`.
+// `hits` are line indexes into the OLD rendering; toggling `raw` re-renders
+// under a different layout (see `markdown_pane_with`), so those indexes can
+// point at completely different text. `jump` is bounds-safe (it clamps),
+// which is exactly why this bug was silent: `n` never panics or goes out of
+// range, it just quietly lands somewhere that isn't the needle.
+#[test]
+fn toggling_raw_recomputes_stale_hits_instead_of_landing_on_the_wrong_line() {
+    let mut p = markdown_pane_with(WRAP_SHIFTING_MARKDOWN);
+    let (cols, rows) = (20, 1);
+    apply(&mut p, ViewInput::Slash, cols, rows);
+    for c in "needle".chars() {
+        apply(&mut p, ViewInput::Char(c), cols, rows);
+    }
+    apply(&mut p, ViewInput::Enter, cols, rows);
+    apply(&mut p, ViewInput::ToggleRaw, cols, rows);
+    apply(&mut p, ViewInput::NextHit, cols, rows);
+
+    let cache = p.lines_for(cols);
+    let line: String = cache.lines[p.scroll].iter().map(|c| c.c).collect();
+    assert!(
+        line.to_lowercase().contains("needle"),
+        "landed on {line:?} at scroll {}, which does not contain the needle",
+        p.scroll
+    );
+}
