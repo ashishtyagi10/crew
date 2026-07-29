@@ -68,8 +68,22 @@ impl ViewPane {
         let LoadState::Loading { rx, .. } = &self.state else {
             return false;
         };
-        let Ok(done) = rx.try_recv() else {
-            return false;
+        let done = match rx.try_recv() {
+            Ok(done) => done,
+            // The worker died without sending — a panic in the load thread.
+            // Nothing will ever arrive, so settle as Failed rather than
+            // staying Loading: a pane stuck in Loading keeps `animating()`
+            // true, and that keeps the whole app repainting every frame for
+            // the rest of the session.
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                self.state = LoadState::Failed(format!(
+                    "{}: loader stopped unexpectedly",
+                    self.path.display()
+                ));
+                self.cache.replace(None);
+                return true;
+            }
+            Err(std::sync::mpsc::TryRecvError::Empty) => return false,
         };
         self.state = match done.result {
             Ok(loaded) => LoadState::Ready {
@@ -79,7 +93,6 @@ impl ViewPane {
             Err(msg) => LoadState::Failed(msg),
         };
         self.cache.replace(None);
-        self.scroll = 0;
         true
     }
 

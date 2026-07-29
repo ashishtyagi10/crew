@@ -52,3 +52,51 @@ fn reload_returns_the_pane_to_loading() {
     p.reload();
     assert!(p.loading(), "reload re-arms the worker");
 }
+
+#[test]
+fn reload_keeps_the_scroll_offset() {
+    let dir = std::env::temp_dir().join(format!("crew-viewpane-reload-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let f = dir.join("scrolled.txt");
+    std::fs::write(&f, "line1\nline2\nline3\n").unwrap();
+
+    let mut p = ViewPane::open(f);
+    for _ in 0..500 {
+        if p.poll() {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    assert!(!p.loading(), "the initial load must have settled");
+
+    p.scroll = 7;
+    p.reload();
+    assert!(p.loading(), "reload re-arms the worker");
+
+    for _ in 0..500 {
+        if p.poll() {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    assert!(!p.loading(), "the reload must have settled");
+    assert_eq!(p.scroll, 7, "reload keeps the pane in place");
+}
+
+#[test]
+fn a_dead_worker_settles_as_failed_instead_of_loading_forever() {
+    // No thread, no sleep: drop the sender immediately so try_recv sees
+    // Disconnected on the very first poll.
+    let (tx, rx) = std::sync::mpsc::channel::<load::LoadDone>();
+    drop(tx);
+
+    let mut p = ViewPane::open(std::env::temp_dir().join("whatever.txt"));
+    p.state = LoadState::Loading { since_ms: 0, rx };
+
+    assert!(p.poll(), "a dead worker is itself a state change");
+    assert!(!p.loading(), "must not stay Loading forever");
+    match &p.state {
+        LoadState::Failed(msg) => assert!(!msg.is_empty()),
+        _ => panic!("a disconnected channel must settle as Failed"),
+    }
+}
