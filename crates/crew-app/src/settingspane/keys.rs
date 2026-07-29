@@ -36,6 +36,7 @@ pub(crate) fn buf_of(p: &mut SettingsPane, f: Field) -> Option<&mut String> {
         Field::NavWidth => Some(&mut p.nav_buf),
         Field::Accent => Some(&mut p.accent_buf),
         Field::PaperGrain => Some(&mut p.grain_buf),
+        Field::WindowOpacity => Some(&mut p.opacity_buf),
         Field::NotifyMinSecs => Some(&mut p.minsecs_buf),
         Field::NotifyPatterns => Some(&mut p.patterns_buf),
         _ => None,
@@ -45,7 +46,9 @@ pub(crate) fn buf_of(p: &mut SettingsPane, f: Field) -> Option<&mut String> {
 /// Whether `c` may be typed into the field's buffer (currently `buf`).
 fn allowed(f: Field, buf: &str, c: char) -> bool {
     match f {
-        Field::FontSize | Field::NavWidth | Field::NotifyMinSecs => c.is_ascii_digit(),
+        Field::FontSize | Field::NavWidth | Field::NotifyMinSecs | Field::WindowOpacity => {
+            c.is_ascii_digit()
+        }
         Field::PaperGrain => c.is_ascii_digit() || (c == '.' && !buf.contains('.')),
         Field::Accent => (c == '#' || c.is_ascii_hexdigit()) && buf.len() < 7,
         Field::NotifyPatterns => !c.is_control(),
@@ -109,7 +112,7 @@ fn cycle_key(p: &mut SettingsPane, key: &KeyEvent) -> Option<SettingsAction> {
 
 /// Flip the focused toggle, or step the theme picker through the three
 /// consolidated themes (`dark`, `light`, `crt`).
-fn cycle_value(p: &mut SettingsPane, back: bool) {
+pub(super) fn cycle_value(p: &mut SettingsPane, back: bool) {
     let field = p.focused_field();
     let d = &mut p.draft;
     match field {
@@ -120,6 +123,24 @@ fn cycle_value(p: &mut SettingsPane, back: bool) {
         Field::NotifyAgentDone => d.notify_agent_done = !d.notify_agent_done,
         Field::NotifyBell => d.notify_bell = !d.notify_bell,
         Field::NotifyExit => d.notify_exit = !d.notify_exit,
+        Field::Glass => {
+            const LEVELS: [crew_theme::GlassLevel; 4] = [
+                crew_theme::GlassLevel::Off,
+                crew_theme::GlassLevel::Low,
+                crew_theme::GlassLevel::Medium,
+                crew_theme::GlassLevel::High,
+            ];
+            let cur = LEVELS
+                .iter()
+                .position(|&l| l == d.glass_level())
+                .unwrap_or(0);
+            let next = if back {
+                (cur + LEVELS.len() - 1) % LEVELS.len()
+            } else {
+                (cur + 1) % LEVELS.len()
+            };
+            d.glass = LEVELS[next].as_str().to_string();
+        }
         Field::Theme => {
             let modes = crew_theme::THEME_MODES;
             let cur = d

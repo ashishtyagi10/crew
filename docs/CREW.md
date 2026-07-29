@@ -298,23 +298,6 @@ The docked command bar supports:
   otherwise — and is the default; `on`/`off` pin it either way, so you can run a
   paper theme through the tube or a CRT palette flat. No argument reports the
   current setting.
-- **`/glass [off|low|medium|high]`** — how frosted the pane cards are. Each
-  pane sits on a translucent sheet: a tinted fill that fades from the top down,
-  a bright specular hairline along the upper edge, a soft drop shadow, and a
-  whisper of frost grain. The *look* is derived from whichever theme is active
-  rather than configured per palette, so **every theme** — light, dark and CRT —
-  gets its own treatment automatically: dark themes lift a lighter sheet off the
-  page, light themes lean on a whiter sheet plus a real shadow (a light page
-  can't get lighter), and CRT stays deliberately faint and grain-free because
-  the tube already supplies bloom and noise. `medium` is the default; `off`
-  restores flat cards and costs nothing to draw. No argument reports the current
-  setting.
-- **`/glass window [<pct>|on|off]`** — makes the **window itself** translucent,
-  so your desktop shows through the page. Text, pane fills and selections stay
-  solid — only the bare page goes sheer. `on` is a sensible 85%, `off` is
-  opaque, or give a percentage (`/glass window 70`). Opacity floors at 35%: a
-  window dialled any sheerer is one you can't find again. Works with the CRT
-  post-process too — the tube shapes light, not transparency.
 - **`/weight [medium|semibold|bold|…]`** — the weight the text is rendered at,
   live and persisted. Useful when a font renders thin at your size or on a
   low-contrast display. No argument reports the current weight; selecting
@@ -943,13 +926,36 @@ move focus, Enter commits a field, **Cmd+S / Alt+S** saves and closes:
 - **APPEARANCE** — **Font family** (type-to-search over installed monospace
   families), **Font size**, **Paper grain** (0–2 amplitude), **Theme**
   (←/→/Space cycle through the nine presets), **Accent (#hex)** (override the
-  theme accent; clear to use the default), **Paper texture** (on/off).
-- **WINDOW** — **Nav width**, **Show nav**, **Launch maximized**.
+  theme accent; clear to use the default), **Glass** (←/→/Space cycle
+  `off · low · medium · high`), **Paper texture** (on/off).
+- **WINDOW** — **Nav width**, **Opacity %**, **Show nav**, **Launch maximized**.
 - **NOTIFICATIONS** — the master switch plus per-event toggles (**cmd done**,
   **bell**, **pane exit**), the **min secs** threshold, and the watched
   output **patterns** as a one-per-line text area.
 
 Settings persist to `$XDG_CONFIG/crew/config.toml` and apply live on Save.
+
+### Glass
+
+Two of those fields shape the frosted look, and they are separate knobs:
+
+**Glass** (APPEARANCE) sets how frosted the **cards** are. Every pane, panel and
+the input bar sits on a translucent sheet: a tinted fill that fades from the top
+down, a bright specular hairline along the upper edge, a soft drop shadow, and a
+whisper of frost grain. The *look* is derived from whichever theme is active
+rather than configured per palette, so **every theme** — light, dark and CRT —
+gets its own treatment automatically: dark themes lift a lighter sheet off the
+page, light themes lean on a whiter sheet plus a real shadow (a light page can't
+get lighter), and CRT stays deliberately faint and grain-free because the tube
+already supplies bloom and noise. `medium` is the default; `off` restores flat
+cards and costs nothing to draw. Overlay popups (the command menu, the attach
+picker, the key prompt) stay opaque by design.
+
+**Opacity %** (WINDOW) makes the **window itself** translucent, so your desktop
+shows through the page. Text, pane fills and selections stay solid — only the
+bare page goes sheer. `100` is opaque; the value floors at **35%**, because a
+window dialled any sheerer is one you can't find again. Works with the CRT
+post-process too — the tube shapes light, not transparency.
 
 ## Themes
 

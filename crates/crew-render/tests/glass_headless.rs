@@ -242,7 +242,7 @@ fn glass_headless() {
     }
 
     // B2: a fully transparent card must also leave the page untouched — this is
-    // what `/glass off` renders, and it must cost nothing visually.
+    // what Glass=off renders, and it must cost nothing visually.
     let clear_card = render(&device, &queue, &[card(0.0, 0.0, 0.0, 0.0)]);
     let mid = px(&clear_card, 32, 32).0 as f64;
     assert_eq!(mid, base, "B2: zero-alpha card still tinted the page");

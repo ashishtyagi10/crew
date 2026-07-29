@@ -95,8 +95,10 @@ impl CrewApp {
             h: ib.h,
             focused: self.input.focused,
             // The input bar draws its own fieldset card border (with the cwd
-            // legend), so it opts out of the GPU rounded border.
+            // legend), so it opts out of the GPU rounded border — but it is
+            // still a card, so it sits on the same frosted sheet.
             bordered: false,
+            glass: true,
             overlay: false,
         });
 
@@ -115,6 +117,7 @@ impl CrewApp {
                 h: hhp,
                 focused: false,
                 bordered: false,
+                glass: false,
                 overlay: true,
             });
             return scenes;
@@ -147,6 +150,7 @@ impl CrewApp {
                 h: mh,
                 focused: false,
                 bordered: false,
+                glass: false,
                 overlay: true,
             });
         }
@@ -190,6 +194,7 @@ impl CrewApp {
                                 h: mh,
                                 focused: false,
                                 bordered: false,
+                                glass: false,
                                 overlay: true,
                             });
                         }
@@ -225,6 +230,7 @@ impl CrewApp {
                             h: mh,
                             focused: false,
                             bordered: false,
+                            glass: false,
                             overlay: true,
                         });
                     } else if let Some(p) = c.palette.as_ref().filter(|p| !p.items.is_empty()) {
@@ -256,6 +262,7 @@ impl CrewApp {
                             h: mh,
                             focused: false,
                             bordered: false,
+                            glass: false,
                             overlay: true,
                         });
                     }

@@ -50,6 +50,7 @@ pub fn push_card_titled(
         h: (rect.h - 2.0 * ch).max(0.0),
         focused: false,
         bordered: false,
+        glass: false,
         overlay: false,
     });
     scenes.push(PaneScene {
@@ -67,6 +68,10 @@ pub fn push_card_titled(
         h: rect.h,
         focused: false,
         bordered: false,
+        // Panels are cards on the same canvas as panes, so they get the same
+        // sheet. The popups (command menu, attach, key prompt) are `overlay`
+        // scenes and stay opaque by design — the glass pass skips them.
+        glass: true,
         overlay: false,
     });
 }

@@ -11,7 +11,7 @@
 //! actually ships in — over the paper grain, under a real border, behind real
 //! text. This renders that full stack through the same `CellGrid` and
 //! `PaperBgPass` the app draws with, once per theme family.
-use crew_render::{CellGrid, CellView, PaneScene, PaperBgPass};
+use crew_render::{CellGrid, PaneScene, PaperBgPass};
 
 const W: u32 = 720;
 const H: u32 = 300;
@@ -21,66 +21,46 @@ const ROW_UNPADDED: u32 = W * BPP;
 const ROW_PADDED: u32 =
     ROW_UNPADDED.div_ceil(wgpu::COPY_BYTES_PER_ROW_ALIGNMENT) * wgpu::COPY_BYTES_PER_ROW_ALIGNMENT;
 
-/// A row of text as cells at `(col, row)`, in the theme's ink.
-fn text_cells(s: &str, col0: u16, row: u16) -> Vec<CellView> {
-    let fg = crew_theme::theme().ink;
-    let bg = crew_theme::theme().page_bg;
-    s.chars()
-        .enumerate()
-        .map(|(i, c)| CellView {
-            col: col0 + i as u16,
-            row,
-            c,
-            fg,
-            bg,
-            bold: false,
-            italic: false,
-        })
-        .collect()
-}
-
-/// Two bordered panes side by side — one focused, one not — each with a little
-/// text, which is the arrangement the glass has to look right in.
+/// Two panes side by side — one focused, one not — built by the SAME code the
+/// app builds frames with.
+///
+/// This used to hand-roll its `PaneScene`s with `bordered: true`, and that is
+/// precisely why the "every pane sits on glass" release shipped drawing no
+/// sheet at all: the app's own scenes are all `bordered: false`, so the harness
+/// was rendering an arrangement production never produces. A pixel test whose
+/// input the app can't generate proves nothing — go through `build_scenes`.
 fn panes(cell_w: f32, cell_h: f32) -> Vec<PaneScene> {
     let pane_w = 320.0;
     let pane_h = 200.0;
-    let mut out = Vec::new();
-    for (i, (x, focused, label)) in [
-        (30.0, true, "focused pane"),
-        (370.0, false, "unfocused pane"),
-    ]
-    .into_iter()
-    .enumerate()
-    {
-        let cols = (pane_w / cell_w) as u16;
-        let mut cells = text_cells(label, 1, 1);
-        cells.extend(text_cells("frosted glass card", 1, 3));
-        cells.extend(text_cells(&format!("pane {}", i + 1), 1, 5));
-        // A highlighted run, to check an opaque cell bg still reads on glass.
-        let accent = crew_theme::theme().find_hl_bg;
-        cells.extend("selected".chars().enumerate().map(|(j, c)| CellView {
-            col: 1 + j as u16,
-            row: 7,
-            c,
-            fg: crew_theme::theme().ink,
-            bg: accent,
-            bold: false,
-            italic: false,
-        }));
-        let _ = cols;
-        let _ = cell_h;
-        out.push(PaneScene {
-            cells,
+    let pane_at = |x: f32| crate::pane::Pane {
+        content: crate::pane::PaneContent::Far(crate::farpane::FarPane::new(std::env::temp_dir())),
+        grid: crew_term::GridSize {
+            cols: ((pane_w - 2.0 * cell_w) / cell_w) as u16,
+            rows: ((pane_h - 2.0 * cell_h) / cell_h) as u16,
+        },
+        rect: crate::layout::Rect {
             x,
             y: 50.0,
             w: pane_w,
             h: pane_h,
-            focused,
-            bordered: true,
-            overlay: false,
-        });
-    }
-    out
+        },
+        label: None,
+        name: Some("far".into()),
+        dir: None,
+        activity: false,
+        bell: false,
+        hidden: false,
+        attention: None,
+    };
+    crate::paneview::build_scenes(
+        &[pane_at(30.0), pane_at(370.0)],
+        Some(0),
+        false,
+        None,
+        None,
+        cell_w,
+        cell_h,
+    )
 }
 
 /// Render one full frame: clear → paper grain → glass → cells → borders → text.
@@ -235,17 +215,21 @@ fn shot(name: &str, id: crew_theme::ThemeId, glass: crew_theme::GlassLevel, opac
     let path = format!("{out_dir}/glass-{name}.png");
     image::save_buffer(&path, &px, W, H, image::ColorType::Rgba8).unwrap();
 
-    // On-card (inside the left pane) vs off-card (the gap between panes) — the
-    // sheet has to be distinguishable from the bare page, or it is not there.
+    // Compare the SAME scene rendered with the sheet off, sampled inside the
+    // left pane. The old assertion was on-card vs the gap between panes, which
+    // a pane's own cell backgrounds satisfy whether or not any glass is drawn —
+    // it passed at full strength with the sheet disabled entirely. The only
+    // honest question is whether the glass level moves the pixels.
+    let flat = render(crew_theme::GlassLevel::Off, opacity).expect("adapter was available above");
     let on = mean_lum(&px, 60, 120, 200, 60);
-    let off = mean_lum(&px, 352, 120, 14, 60);
+    let bare = mean_lum(&flat, 60, 120, 200, 60);
     println!(
-        "wrote {path}  on_card={on:.1} off_card={off:.1} delta={:.1}",
-        on - off
+        "wrote {path}  on_card={on:.1} glass_off={bare:.1} delta={:.1}",
+        on - bare
     );
     assert!(
-        (on - off).abs() > 1.5,
-        "{name}: glass is indistinguishable from the page (on {on:.1} vs off {off:.1})"
+        (on - bare).abs() > 1.5,
+        "{name}: the sheet changes nothing — glass {on:.1} vs off {bare:.1}"
     );
 }
 

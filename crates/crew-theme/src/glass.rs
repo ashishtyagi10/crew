@@ -45,7 +45,7 @@ impl GlassLevel {
         }
     }
 
-    /// Parse a `/glass` argument. Accepts the level names plus `on` as a
+    /// Parse a glass level name. Accepts the level names plus `on` as a
     /// friendly alias for the default strength.
     pub fn parse(s: &str) -> Option<Self> {
         Some(match s.trim().to_ascii_lowercase().as_str() {

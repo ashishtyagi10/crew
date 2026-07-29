@@ -35,7 +35,18 @@ fn pane(cells: Vec<CellView>, bordered: bool, overlay: bool) -> PaneScene {
         h: 40.0,
         focused: false,
         bordered,
+        glass: false,
         overlay,
+    }
+}
+
+/// A pane's *card* scene — the one spanning the whole rect, which is what asks
+/// for the frosted sheet. Separate from `bordered`: real cards draw their frame
+/// as cells and set `bordered: false`.
+fn card(cells: Vec<CellView>, bordered: bool, overlay: bool) -> PaneScene {
+    PaneScene {
+        glass: true,
+        ..pane(cells, bordered, overlay)
     }
 }
 
@@ -152,7 +163,7 @@ fn focused_border_is_brighter_than_unfocused() {
 fn glass_card_matches_the_pane_rect_and_border_radius() {
     let mut fs = FontSystem::new();
     let (_q, _b, _s, borders, cards) = build(
-        &[pane(vec![], true, false)],
+        &[card(vec![], true, false)],
         &mut fs,
         false,
         GlassLevel::Medium,
@@ -169,7 +180,7 @@ fn glass_card_matches_the_pane_rect_and_border_radius() {
 fn glass_off_builds_no_cards() {
     let mut fs = FontSystem::new();
     let (_q, _b, _s, _bd, cards) = build(
-        &[pane(vec![], true, false)],
+        &[card(vec![], true, false)],
         &mut fs,
         false,
         GlassLevel::Off,
@@ -177,13 +188,14 @@ fn glass_off_builds_no_cards() {
     assert!(cards.is_empty(), "Off must cost nothing to draw");
 }
 
-/// A pane drawing its own cell-based frame has no rounded rect to fill, so a
-/// glass card would be a floating sheet with no border to sit inside.
+/// A pane contributes several scenes (cell-inset content, full-rect card) and
+/// only the card asks for a sheet — otherwise every pane would be frosted twice,
+/// the inner sheet darkening a band one cell inside the frame.
 #[test]
-fn unbordered_panes_get_no_glass() {
+fn non_card_scenes_get_no_glass() {
     let mut fs = FontSystem::new();
     let (_q, _b, _s, _bd, cards) = build(
-        &[pane(vec![], false, false)],
+        &[pane(vec![], true, false)],
         &mut fs,
         false,
         GlassLevel::High,
@@ -197,18 +209,18 @@ fn unbordered_panes_get_no_glass() {
 fn overlay_panes_get_no_glass() {
     let mut fs = FontSystem::new();
     let (_q, _b, _s, _bd, cards) =
-        build(&[pane(vec![], true, true)], &mut fs, true, GlassLevel::High);
+        build(&[card(vec![], true, true)], &mut fs, true, GlassLevel::High);
     assert!(cards.is_empty());
 }
 
 #[test]
 fn level_scales_the_cards_it_builds() {
     let mut fs = FontSystem::new();
-    let mut card = |lvl| {
-        let (_q, _b, _s, _bd, cards) = build(&[pane(vec![], true, false)], &mut fs, false, lvl);
+    let mut built = |lvl| {
+        let (_q, _b, _s, _bd, cards) = build(&[card(vec![], true, false)], &mut fs, false, lvl);
         cards.into_iter().next().expect("expected a glass card")
     };
-    let low = card(GlassLevel::Low).alpha_top;
-    let high = card(GlassLevel::High).alpha_top;
+    let low = built(GlassLevel::Low).alpha_top;
+    let high = built(GlassLevel::High).alpha_top;
     assert!(low < high, "Low {low} should be fainter than High {high}");
 }
