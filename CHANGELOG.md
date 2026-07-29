@@ -8,6 +8,26 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.8.2
+
+*Jarvis motion, iteration 2b of 6.*
+
+- **Dismissed panes collapse.** A closed card's frame retracts into its corners
+  — the assemble run backwards — and a minimized one retracts *while travelling
+  toward the nav*, which is where the pane has actually gone. The two gestures
+  now look different, because they are different.
+- **Ghosts, not lingering panes.** The pane leaves `panes` the instant it is
+  dismissed; it has to, since focus clamping, the grid LRU and the nav rows all
+  read that vector and would otherwise operate on something the user just
+  dismissed. What outlives it is an inert record — a rect, a title, a timestamp
+  and a direction. It holds no process and no channel, because a ghost that
+  could still *do* something would be a pane that refused to die. Each is
+  bounded by its own timeline and pruned every frame.
+- **Restoring is an arrival.** A pane coming back out of the nav re-stamps its
+  birth clock and assembles exactly as a new one does.
+- **Zoom travels out of its tile.** Cmd+Z expands from the rect the pane
+  occupied instead of cutting to full size, and collapses back into it.
+
 ## 0.8.1
 
 *Jarvis motion, iteration 2 of 6.*

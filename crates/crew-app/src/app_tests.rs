@@ -954,3 +954,63 @@ fn a_pending_note_waits_for_a_frame_and_flashes_once() {
     assert!(shown.contains("9.9.9"), "{shown}");
     assert!(app.pending_note.is_none(), "a note must flash exactly once");
 }
+
+// --- dismissal ghosts -------------------------------------------------------
+
+/// Closing a pane leaves its frame behind to collapse. The pane itself must be
+/// gone immediately — focus clamping, the grid LRU and the nav rows all read
+/// `panes`, and a pane lingering there would still be interactive.
+#[test]
+fn closing_a_pane_leaves_a_ghost_but_not_the_pane() {
+    crate::motion::set_level(crate::motion::MotionLevel::Full);
+    let mut app = CrewApp::default();
+    app.panes.push(tests_far_pane("p"));
+    app.panes.push(tests_far_pane("p"));
+    app.close_pane(0);
+    assert_eq!(app.panes.len(), 1, "the pane must not linger");
+    assert_eq!(app.ghosts.len(), 1, "its frame should still be collapsing");
+    assert_eq!(app.ghosts[0].exit, crate::ghost::Exit::Closed);
+}
+
+/// Minimize means "it went into the nav", so its ghost travels that way — the
+/// two dismissals have to be distinguishable or they read as the same gesture.
+#[test]
+fn minimizing_leaves_a_ghost_headed_for_the_nav() {
+    crate::motion::set_level(crate::motion::MotionLevel::Full);
+    let mut app = CrewApp::default();
+    app.panes.push(tests_far_pane("p"));
+    app.minimize_pane(0);
+    assert!(app.panes[0].hidden, "the pane keeps running, just hidden");
+    assert_eq!(app.ghosts.len(), 1);
+    assert_eq!(app.ghosts[0].exit, crate::ghost::Exit::Minimized);
+}
+
+/// Ghosts are bounded by their own timelines: nothing accumulates across a
+/// session of opening and closing panes.
+#[test]
+fn ghosts_do_not_accumulate() {
+    crate::motion::set_level(crate::motion::MotionLevel::Full);
+    let mut app = CrewApp::default();
+    for _ in 0..5 {
+        app.panes.push(tests_far_pane("p"));
+        app.close_pane(0);
+    }
+    assert_eq!(app.ghosts.len(), 5, "all still collapsing at t=now");
+    crate::ghost::prune(&mut app.ghosts, crate::anim::now_ms() + 10_000);
+    assert!(app.ghosts.is_empty(), "every ghost must expire");
+}
+
+/// Coming back out of the nav is an arrival: the pane assembles exactly as a
+/// new one does, rather than snapping back into the grid.
+#[test]
+fn restoring_a_minimized_pane_re_assembles_it() {
+    let mut app = CrewApp::default();
+    app.panes.push(tests_far_pane("p"));
+    app.panes[0].hidden = true;
+    app.panes[0].born_ms = 0;
+    app.focused = 0;
+    app.input.focused = false;
+    app.reconcile_grid();
+    assert!(!app.panes[0].hidden);
+    assert!(app.panes[0].born_ms > 0, "birth clock should be re-stamped");
+}

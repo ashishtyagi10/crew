@@ -81,6 +81,7 @@ mod fontrotate;
 mod fonttick;
 mod framegeo;
 mod gauges;
+mod ghost;
 mod git;
 #[cfg(test)]
 #[path = "glassshot_tests.rs"]
