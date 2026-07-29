@@ -37,6 +37,12 @@ pub(crate) struct ViewPane {
     /// `reload` — a search over text that is about to change is stale.
     pub search: Option<Search>,
     pub(crate) cache: RefCell<Option<ViewCache>>,
+    /// The `born_ms` of the terminal pane `e` spawned to edit this file, if
+    /// any is outstanding. `poll_panes` clears it and calls `reload` once
+    /// that pane's `cmd` goes back to `None` (the editor exited) — see
+    /// `poll::reload_views_after_edit`. Identified by `born_ms` rather than
+    /// pane index: indices shift the moment any pane closes.
+    pub editor_born: Option<u64>,
 }
 
 impl ViewPane {
@@ -51,6 +57,7 @@ impl ViewPane {
             raw: false,
             search: None,
             cache: RefCell::new(None),
+            editor_born: None,
         }
     }
 

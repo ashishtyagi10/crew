@@ -327,6 +327,10 @@ impl CrewApp {
                 }
             }
         }
+        // A viewer's `$EDITOR` pane exiting reloads the file it was editing.
+        // Cheap even when nothing's outstanding: `editor_born` is `None` on
+        // every ordinary viewer, so the loop below is a no-op scan.
+        any_changed |= self.reload_views_after_edit();
         // Surface the bell / pattern / command-finished events gathered above.
         // (Pane-exit events are raised at the reap site below.)
         for (kind, pane, detail) in notify_events.drain(..) {
@@ -519,4 +523,46 @@ impl CrewApp {
             }
         }
     }
+
+    /// A viewer whose `$EDITOR` pane has ended re-reads the file. Without this
+    /// the handoff leaves stale content on screen, which reads as a bug in the
+    /// viewer rather than as a missing step.
+    ///
+    /// The editor pane is found by `born_ms` rather than by index: closing any
+    /// pane shifts every index after it, and this runs a tick later by
+    /// definition. Returns whether anything was reloaded, so the caller can
+    /// fold it into the tick's `any_changed`.
+    pub(crate) fn reload_views_after_edit(&mut self) -> bool {
+        // Which editor panes are still alive and still running something.
+        let live: Vec<u64> = self
+            .panes
+            .iter()
+            .filter(|p| match &p.content {
+                PaneContent::Terminal(t) => t.cmd.is_some(),
+                _ => false,
+            })
+            .map(|p| p.born_ms)
+            .collect();
+
+        let mut reloaded = false;
+        for pane in &mut self.panes {
+            let PaneContent::View(v) = &mut pane.content else {
+                continue;
+            };
+            let Some(born) = v.editor_born else {
+                continue;
+            };
+            if live.contains(&born) {
+                continue;
+            }
+            v.editor_born = None;
+            v.reload();
+            reloaded = true;
+        }
+        reloaded
+    }
 }
+
+#[cfg(test)]
+#[path = "viewpane/reload_tests.rs"]
+mod reload_tests;
