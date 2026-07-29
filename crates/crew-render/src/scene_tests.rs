@@ -36,6 +36,7 @@ fn pane(cells: Vec<CellView>, bordered: bool, overlay: bool) -> PaneScene {
         focused: false,
         bordered,
         glass: false,
+        scan: -1.0,
         overlay,
     }
 }
@@ -46,6 +47,7 @@ fn pane(cells: Vec<CellView>, bordered: bool, overlay: bool) -> PaneScene {
 fn card(cells: Vec<CellView>, bordered: bool, overlay: bool) -> PaneScene {
     PaneScene {
         glass: true,
+        scan: -1.0,
         ..pane(cells, bordered, overlay)
     }
 }
@@ -223,4 +225,30 @@ fn level_scales_the_cards_it_builds() {
     let low = built(GlassLevel::Low).alpha_top;
     let high = built(GlassLevel::High).alpha_top;
     assert!(low < high, "Low {low} should be fainter than High {high}");
+}
+
+/// The scan rides the card instance, so a working pane's sheet can sweep
+/// without any second draw call.
+#[test]
+fn the_scan_position_reaches_the_card() {
+    let mut fs = FontSystem::new();
+    let mut p = card(vec![], true, false);
+    p.scan = 0.4;
+    let (_q, _b, _s, _bd, cards) = build(&[p], &mut fs, false, GlassLevel::Medium);
+    assert_eq!(cards.len(), 1);
+    assert!((cards[0].scan - 0.4).abs() < 1e-6);
+}
+
+/// A resting card carries no scan — the shader skips it on a negative value,
+/// which is what keeps an idle crew's sheet completely still.
+#[test]
+fn a_resting_card_has_no_scan() {
+    let mut fs = FontSystem::new();
+    let (_q, _b, _s, _bd, cards) = build(
+        &[card(vec![], true, false)],
+        &mut fs,
+        false,
+        GlassLevel::Medium,
+    );
+    assert!(cards[0].scan < 0.0);
 }

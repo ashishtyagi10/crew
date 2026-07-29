@@ -91,6 +91,9 @@ pub fn full_scenes(
 /// How long a card takes to draw itself in.
 const ASSEMBLE_MS: u64 = 380;
 
+/// Period of the busy scan's round trip down a working card and back.
+const SCAN_MS: u64 = 2_600;
+
 /// This pane's assemble timeline. Scaled by the Motion setting, which is read
 /// here rather than threaded through every scene call — at `off` the timeline
 /// is born settled and the card is simply drawn.
@@ -161,6 +164,14 @@ fn push_pane_scenes(
     // together, and one spawned later assembles on its own clock.
     let now = crate::anim::now_ms();
     let assemble_t = spawn_timeline(p).eased(now, crate::ease::out_cubic);
+    // A working pane's sheet carries a scan sweeping down it. Gated on `busy`
+    // and nothing else: a busy pane already repaints at ~15fps, so this costs
+    // no extra frames, and an idle crew never draws a scan at all — which is
+    // how an always-moving surface stays compatible with never repainting.
+    let scan = match pane_busy(p) && crate::motion::level() != crate::motion::MotionLevel::Off {
+        true => crate::anim::tri(now, SCAN_MS),
+        false => -1.0,
+    };
     let r = p.rect;
     // Content: its own buffer, inset one cell past the top-left border so it
     // starts exactly on the grid (no leading border glyph to push it).
@@ -173,6 +184,7 @@ fn push_pane_scenes(
         focused: foc,
         bordered: false,
         glass: false,
+        scan: -1.0,
         overlay: false,
     });
     // Border card: the rounded frame + legend + status, drawn over the rect.
@@ -203,6 +215,7 @@ fn push_pane_scenes(
         // The card scene spans the whole pane rect, so the frosted sheet goes
         // here rather than on the cell-inset content above.
         glass: true,
+        scan,
         overlay: false,
     });
 }

@@ -33,6 +33,11 @@ pub struct PaneScene {
     /// nothing in the app while the headless test — which builds its own
     /// `bordered: true` panes — kept passing.
     pub glass: bool,
+    /// Position of the scan highlight sweeping this card, `0.0..=1.0`, or a
+    /// negative value for none. Driven only while a pane is *working*: a busy
+    /// pane already repaints (see the app's `poll`), so the sweep costs no
+    /// extra frames, and an idle crew never draws it at all.
+    pub scan: f32,
     /// Overlay popups (command palette, help) drawn on top of everything. Their
     /// backgrounds and text are rendered in a second pass *after* base panes, so
     /// nothing behind them can bleed through — they are fully opaque.
@@ -173,6 +178,7 @@ pub(crate) fn build_scene(
                 highlight: crate::color::target_rgba(glass_style.highlight, 1.0, srgb),
                 highlight_alpha: glass_style.highlight_alpha,
                 shadow_alpha: glass_style.shadow_alpha,
+                scan: pane.scan,
             });
         }
 

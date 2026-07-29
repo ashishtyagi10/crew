@@ -380,3 +380,36 @@ fn the_legend_survives_assembly() {
         "legend lost during assembly: {top:?}"
     );
 }
+
+// --- busy scan --------------------------------------------------------------
+
+/// The scan is the "this pane is working" signal on the glass. An idle pane
+/// must not carry one: a surface that sweeps forever would repaint forever.
+#[test]
+fn only_a_working_pane_carries_a_scan() {
+    use crate::pane::{Pane, PaneContent};
+    crate::motion::set_level(crate::motion::MotionLevel::Full);
+    let idle = Pane {
+        content: PaneContent::Far(crate::farpane::FarPane::new(std::env::temp_dir())),
+        grid: crew_term::GridSize { cols: 40, rows: 12 },
+        rect: crate::layout::Rect {
+            x: 0.0,
+            y: 0.0,
+            w: 400.0,
+            h: 200.0,
+        },
+        label: None,
+        name: None,
+        dir: None,
+        activity: false,
+        bell: false,
+        hidden: false,
+        attention: None,
+        born_ms: 0,
+    };
+    assert!(!crate::paneview::pane_busy(&idle), "fixture must be idle");
+    let scenes =
+        crate::paneview::build_scenes(&[idle], Some(0), false, None, None, 1.0, 10.0, 16.0);
+    let card = scenes.iter().find(|s| s.glass).expect("a card");
+    assert!(card.scan < 0.0, "an idle card must not sweep");
+}

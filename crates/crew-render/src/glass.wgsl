@@ -24,14 +24,24 @@ struct VsOut {
   @location(2) params: vec4<f32>,  // radius, alpha_top, alpha_bottom, noise
   @location(3) tint: vec4<f32>,    // tint.rgb, highlight_alpha
   @location(4) hl: vec4<f32>,      // highlight.rgb, shadow_alpha
+  @location(5) extra: vec4<f32>,   // scan position, unused
 };
+
+// Half-height of the scan band, as a fraction of the card. Wide enough to read
+// as a sweep of light rather than a line.
+const SCAN_W: f32 = 0.18;
+// How much the scan lifts the sheet at its centre. Deliberately slight — this
+// runs while a pane is working, and a bright bar crossing the card every second
+// would be the most annoying thing crew does.
+const SCAN_GAIN: f32 = 0.5;
 
 @vertex
 fn vs(@builtin(vertex_index) vi: u32,
       @location(0) rect: vec4<f32>,
       @location(1) params: vec4<f32>,
       @location(2) tint: vec4<f32>,
-      @location(3) hl: vec4<f32>) -> VsOut {
+      @location(3) hl: vec4<f32>,
+      @location(4) extra: vec4<f32>) -> VsOut {
   var corners = array<vec2<f32>,6>(
     vec2<f32>(0.0,0.0), vec2<f32>(1.0,0.0), vec2<f32>(0.0,1.0),
     vec2<f32>(0.0,1.0), vec2<f32>(1.0,0.0), vec2<f32>(1.0,1.0));
@@ -50,6 +60,7 @@ fn vs(@builtin(vertex_index) vi: u32,
   out.params = params;
   out.tint = tint;
   out.hl = hl;
+  out.extra = extra;
   return out;
 }
 
@@ -101,6 +112,17 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     fill_a = fill_a + (hash21(floor(in.local)) - 0.5) * noise_amt * inside;
   }
   fill_a = clamp(fill_a, 0.0, 1.0);
+
+  // --- scan sweep -----------------------------------------------------------
+  // A soft band of extra fill travelling down the card while the pane works.
+  // It rides the fill alpha rather than adding a colour of its own, so it stays
+  // in whatever palette the theme declared.
+  let scan_pos = in.extra.x;
+  if (scan_pos >= 0.0) {
+    let d_scan = abs(t - scan_pos);
+    let band = 1.0 - smoothstep(0.0, SCAN_W, d_scan);
+    fill_a = clamp(fill_a + band * SCAN_GAIN * mix(a_top, a_bot, t) * inside, 0.0, 1.0);
+  }
 
   // --- specular hairline ----------------------------------------------------
   // A band hugging the inside of the border, weighted by how much the surface
