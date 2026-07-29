@@ -69,6 +69,24 @@ fn read_capped(path: &Path) -> std::io::Result<(Vec<u8>, Option<u64>)> {
     Ok((buf, truncated))
 }
 
+/// Cap extracted text at [`MAX_VIEW_BYTES`], the same limit `read_capped`
+/// applies to a plain file — the cap is on what the pane SHOWS, and an
+/// extractor's output is no exception. Unlike a raw byte slice, `String`
+/// truncation must land on a `char` boundary or it panics, so this walks
+/// back from the byte cap rather than indexing straight into it.
+fn cap_text(mut text: String) -> (String, Option<u64>) {
+    let len = text.len() as u64;
+    if len <= MAX_VIEW_BYTES {
+        return (text, None);
+    }
+    let mut boundary = MAX_VIEW_BYTES as usize;
+    while boundary > 0 && !text.is_char_boundary(boundary) {
+        boundary -= 1;
+    }
+    text.truncate(boundary);
+    (text, Some(len))
+}
+
 /// Run an extractor and capture its stdout. A non-zero exit is reported with
 /// the tool's own stderr — it knows why it failed and we do not.
 fn extract(e: Extractor, path: &Path) -> Result<String, String> {
@@ -114,9 +132,9 @@ pub(crate) fn load_now(path: &Path, probe: Probe) -> LoadDone {
             truncated: None,
         }),
         Format::Extract { via } => extract(via, path)
-            .map(|text| Loaded {
-                text,
-                truncated: None,
+            .map(|text| {
+                let (text, truncated) = cap_text(text);
+                Loaded { text, truncated }
             })
             .map_err(|e| format!("{name}: {e}")),
         _ => Ok(Loaded {
@@ -130,11 +148,16 @@ pub(crate) fn load_now(path: &Path, probe: Probe) -> LoadDone {
 /// Load `path` on a worker thread; the result arrives on the returned
 /// channel. Dropping the receiver discards the result, which is what closing
 /// the pane mid-load should do.
+///
+/// `probe()` is called *inside* the closure, not before it: on a first call
+/// in the process it walks every `PATH` directory doing real `stat`s, and
+/// this function is reachable from the winit thread on every file open. Any
+/// work here between `mpsc::channel()` and `thread::spawn` runs on whichever
+/// thread called `start` — so there must be none.
 pub(crate) fn start(path: PathBuf) -> Receiver<LoadDone> {
     let (tx, rx) = mpsc::channel();
-    let probe = probe();
     std::thread::spawn(move || {
-        let _ = tx.send(load_now(&path, probe));
+        let _ = tx.send(load_now(&path, probe()));
     });
     rx
 }

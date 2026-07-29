@@ -92,6 +92,42 @@ fn an_opaque_file_loads_no_text() {
 }
 
 #[test]
+fn cap_text_leaves_short_text_alone() {
+    let (text, truncated) = cap_text("hello\n".to_string());
+    assert_eq!(text, "hello\n");
+    assert_eq!(truncated, None);
+}
+
+#[test]
+fn cap_text_caps_long_text_and_reports_the_original_length() {
+    // An extractor's output has no fixed ratio to the file's byte size, so
+    // this is what stands between a 300-page PDF and an unbounded `String`
+    // in `Loaded.text` — the same guarantee `read_capped` gives a plain file.
+    let long = "x".repeat((MAX_VIEW_BYTES + 4096) as usize);
+    let (text, truncated) = cap_text(long);
+    assert_eq!(text.len(), MAX_VIEW_BYTES as usize);
+    assert_eq!(truncated, Some(MAX_VIEW_BYTES + 4096));
+}
+
+#[test]
+fn cap_text_backs_off_a_split_multibyte_char_instead_of_panicking() {
+    // A 3-byte UTF-8 char ('€') straddling the byte cap would make a raw
+    // `String::truncate(MAX_VIEW_BYTES)` panic; `cap_text` must walk back to
+    // the char boundary before it, not just avoid crashing on ASCII inputs.
+    let mut long = "x".repeat(MAX_VIEW_BYTES as usize - 1);
+    long.push('€'); // its middle byte lands exactly on the cap
+    long.push_str(&"x".repeat(4096));
+    let original_len = long.len() as u64;
+    let (text, truncated) = cap_text(long);
+    assert!(
+        text.len() < MAX_VIEW_BYTES as usize,
+        "backed off the split char"
+    );
+    assert!(text.is_char_boundary(text.len()));
+    assert_eq!(truncated, Some(original_len));
+}
+
+#[test]
 fn start_delivers_over_the_channel() {
     let dir = tempdir();
     let p = dir.join("chan.txt");
