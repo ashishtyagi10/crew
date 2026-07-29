@@ -173,6 +173,7 @@ mod update;
 mod updatecard;
 mod updatefetch;
 mod usageledger;
+mod viewpane;
 mod welcome;
 mod windowtitle;
 
