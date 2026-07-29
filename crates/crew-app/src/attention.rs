@@ -80,6 +80,7 @@ mod tests {
             bell: false,
             hidden: false,
             attention: None,
+            born_ms: crate::anim::now_ms(),
         }
     }
 

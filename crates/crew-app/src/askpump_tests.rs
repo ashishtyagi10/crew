@@ -83,6 +83,7 @@ fn live_terminal_pane_answers_through_the_full_pipeline() {
         bell: false,
         hidden: false,
         attention: None,
+        born_ms: crate::anim::now_ms(),
     });
 
     // Ask pane p0. Fixed id so the responder can hardcode its marker.

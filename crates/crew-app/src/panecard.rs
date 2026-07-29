@@ -27,10 +27,62 @@ pub(crate) struct Bar<'a> {
     /// [`min_btn_rect`] and [`close_btn_rect`], which both share [`BTNS_COLS`]
     /// so draw and hit agree.
     pub min_btn: bool,
+    /// Eased progress of this card's assemble animation, `0.0..=1.0`. The
+    /// frame draws itself outward from the four corners; `1.0` is a fully
+    /// drawn card (and what Motion=off draws immediately).
+    pub assemble_t: f32,
     /// Eased progress of the focus-bracket animation, `0.0..=1.0`. The HUD
     /// brackets grow out of the four corners as focus arrives; `1.0` is the
     /// resting focused state (and what Motion=off draws immediately).
     pub focus_t: f32,
+}
+
+/// Whether `c` is part of a card's frame stroke (as opposed to its legend or a
+/// status glyph sitting on the same border).
+fn is_frame_glyph(c: char) -> bool {
+    matches!(
+        c,
+        '\u{2500}' | '\u{2502}' | '\u{256d}' | '\u{256e}' | '\u{2570}' | '\u{256f}'
+    )
+}
+
+/// Hide the border cells a partly-assembled card has not reached yet.
+///
+/// The frame grows out of its four corners: a cell survives when its distance
+/// to the nearest corner, measured along its own edge, is within the reveal
+/// length. Corners are therefore drawn first and the middles of the edges last,
+/// which is what reads as a frame being *drawn* rather than faded in.
+///
+/// Only the frame *stroke* is animated. The legend rides the same top border,
+/// and clipping it spelled the pane's name out one letter at a time — a card
+/// you cannot identify is worse than one that simply appeared. So the reveal
+/// tests for box-drawing glyphs and leaves everything else alone: the name is
+/// there from the first frame and the frame draws itself around it. Status
+/// glyphs and focus brackets are written after this runs and so are untouched
+/// either way.
+fn assemble(v: &mut Vec<CellView>, cols: u16, rows: u16, t: f32) {
+    let t = t.clamp(0.0, 1.0);
+    if t >= 1.0 || cols < 2 || rows < 2 {
+        return;
+    }
+    let (hw, hh) = (cols as f32 / 2.0, rows as f32 / 2.0);
+    let reach_h = hw * t;
+    let reach_v = hh * t;
+    v.retain(|c| {
+        if !is_frame_glyph(c.c) {
+            return true;
+        }
+        let dx = (c.col as f32 + 0.5 - hw).abs();
+        let dy = (c.row as f32 + 0.5 - hh).abs();
+        let on_side = c.col == 0 || c.col == cols - 1;
+        // Horizontal runs are measured from the nearer left/right corner,
+        // vertical runs from the nearer top/bottom one.
+        if on_side {
+            hh - dy <= reach_v
+        } else {
+            hw - dx <= reach_h
+        }
+    });
 }
 
 /// Longest a focus bracket grows, in cells down each edge from a corner. Short
@@ -153,6 +205,9 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
     if v.is_empty() {
         return v;
     }
+    // Assemble before the status glyphs and brackets are stamped on, so those
+    // are never clipped by a half-drawn frame.
+    assemble(&mut v, cols, rows, b.assemble_t);
     // The focused card's legend goes bold: the active tile reads at a glance
     // without any extra chrome on the canvas.
     if b.focused {

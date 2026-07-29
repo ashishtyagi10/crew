@@ -84,6 +84,7 @@ mod tests {
             bell: false,
             hidden: false,
             attention: None,
+            born_ms: crate::anim::now_ms(),
         });
         app.apply_chat_action(ChatAction::Font("18".into()), 0);
         let crate::pane::PaneContent::Chat(c) = &app.panes[0].content else {

@@ -953,6 +953,11 @@ Motion never introduces a colour. Everything moving is drawn in the palette the
 active theme already declares — the border, the ink, the accent — so a theme
 change carries the motion with it, and a new theme cannot ship without it.
 
+**Cards assemble.** A new pane doesn't appear — its frame draws itself outward
+from the four corners, so the card is *built* in front of you. Only the frame
+stroke animates: the legend is there from the first frame, because a pane you
+cannot yet name is worse than one that simply appeared.
+
 **Focus brackets.** The focused pane carries HUD corner marks: short accent runs
 down the card's edges from each of the four corners, which grow out as focus
 arrives and travel with it when you move between panes. They stay clear of the

@@ -30,6 +30,7 @@ fn tests_far_pane(name: &str) -> crate::pane::Pane {
         bell: false,
         hidden: false,
         attention: None,
+        born_ms: crate::anim::now_ms(),
     }
 }
 
@@ -56,6 +57,7 @@ fn tests_chat_pane() -> crate::pane::Pane {
         bell: false,
         hidden: false,
         attention: None,
+        born_ms: crate::anim::now_ms(),
     }
 }
 
@@ -417,6 +419,7 @@ fn typing_clears_a_terminal_selection() {
         bell: false,
         hidden: false,
         attention: None,
+        born_ms: crate::anim::now_ms(),
     });
     app.focused = 0;
     if let Some(PaneContent::Terminal(t)) = app.panes.get_mut(0).map(|p| &mut p.content) {
