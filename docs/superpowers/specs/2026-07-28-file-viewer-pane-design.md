@@ -47,6 +47,11 @@ with a sibling `*_tests.rs` as the crate does throughout:
 | `viewpane/keys.rs` | `reduce() → ViewAction` |
 | `viewpane/md.rs` | the Markdown rung — `MdCache`'s preview side, full width |
 
+The plan splits this further (`pane.rs` for the model, `lines.rs` for rung →
+`CardLine`, `render.rs` for `CardLine` → `CellView`, `csv.rs`, `search.rs`) to
+stay under the ~200-line ceiling the crate keeps. Six files or nine, the
+boundaries above are the ones that matter.
+
 `PaneContent::Markdown(MdPane)` becomes `PaneContent::View(ViewPane)`.
 `MdPane`'s split geometry, `Side`, Tab and the numbered source half are
 **deleted**; its preview layout and `MdCache` move into `viewpane/md.rs`
@@ -104,10 +109,16 @@ pub(crate) enum LoadState {
 }
 ```
 
-`load::start(path, format) -> Receiver<LoadResult>` spawns a thread exactly as
+`load::start(path) -> Receiver<LoadDone>` spawns a thread exactly as
 `farpane/run.rs::start` does; `poll_panes` drains it each tick alongside the
 Far drains. The pane opens **immediately** in `Loading` with a skeleton, so a
 slow file never blocks the keystroke that asked for it.
+
+**Detection runs on that worker too**, which is why `start` takes only a path.
+Classifying a file needs the head of its bytes, and reading those bytes is I/O
+like any other; deciding the rung on the winit thread would reintroduce exactly
+the freeze this section exists to prevent. `LoadDone` therefore carries the
+`Format` back alongside the text.
 
 Extractor argv is pure and unit-tested with nothing installed, following
 `farpane/rclone.rs`'s split of argv-construction from execution:
