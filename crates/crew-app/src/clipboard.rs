@@ -87,7 +87,7 @@ impl CrewApp {
                 PaneContent::Settings(_)
                 | PaneContent::Far(_)
                 | PaneContent::Swarm(_)
-                | PaneContent::Markdown(_) => {}
+                | PaneContent::View(_) => {}
             }
         }
         self.redraw();

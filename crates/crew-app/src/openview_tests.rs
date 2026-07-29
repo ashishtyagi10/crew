@@ -1,22 +1,6 @@
-use super::*;
-
-#[test]
-fn resolve_md_path_keeps_absolute_paths() {
-    let cwd = Path::new("/some/cwd");
-    assert_eq!(
-        resolve_md_path(cwd, "/etc/hosts"),
-        PathBuf::from("/etc/hosts")
-    );
-}
-
-#[test]
-fn resolve_md_path_joins_relative_paths_onto_cwd() {
-    let cwd = Path::new("/some/cwd");
-    assert_eq!(
-        resolve_md_path(cwd, "README.md"),
-        PathBuf::from("/some/cwd/README.md")
-    );
-}
+// `resolve_md_path`'s absolute/relative resolution logic moved to the shared
+// `pathexpand::expand_path` `open_view` now calls — see that module's own
+// `keeps_absolute_and_joins_relative` test for the equivalent coverage.
 
 /// `/about` opens what this build changed, not a version number nobody can
 /// do anything with. The changelog is compiled in, so an installed binary
@@ -24,7 +8,7 @@ fn resolve_md_path_joins_relative_paths_onto_cwd() {
 /// to be this build's release, because `changelog_covers_the_current_version`
 /// fails the build otherwise.
 #[test]
-fn about_opens_a_markdown_pane_rather_than_flashing_a_version() {
+fn about_opens_a_file_viewer_pane_rather_than_flashing_a_version() {
     let mut app = crate::app::CrewApp::default();
     let before = app.panes.len();
     app.spawn_about_pane();
@@ -32,9 +16,9 @@ fn about_opens_a_markdown_pane_rather_than_flashing_a_version() {
     assert!(
         matches!(
             app.panes.last().map(|p| &p.content),
-            Some(crate::pane::PaneContent::Markdown(_))
+            Some(crate::pane::PaneContent::View(_))
         ),
-        "/about did not open a markdown pane"
+        "/about did not open a file-viewer pane"
     );
     assert!(app.zoomed, "a document pane opens zoomed, like /md");
 }

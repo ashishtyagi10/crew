@@ -32,6 +32,7 @@ impl CrewApp {
                 crate::paneview::spawn_timeline(p).live(now)
                     || match &p.content {
                         PaneContent::Chat(c) => c.readouts.any_live(now),
+                        PaneContent::View(v) => v.animating(),
                         _ => false,
                     }
             })
@@ -189,8 +190,10 @@ impl CrewApp {
                     changed
                 }
                 PaneContent::Settings(_) => false,
-                // A static file view; nothing to poll (Task 3 adds `r` reload).
-                PaneContent::Markdown(_) => false,
+                // Drains the loader worker: true exactly on the tick a
+                // Loading pane lands (or fails) — see `wants_animation_frame`
+                // above for the other half of this pane's animation gate.
+                PaneContent::View(v) => v.poll(),
             };
             // Follow `cd` inside the pane: a new OSC 7 cwd report retitles the
             // pane to that folder (a `/name` override still wins in title_text).

@@ -160,7 +160,7 @@ impl CrewApp {
     }
 
     /// Land a `??` explanation: write it to a temp markdown file and open the
-    /// zoomed viewer on it (the `/md` pane renders headings and code fences).
+    /// zoomed viewer on it (its markdown rung renders headings and code fences).
     pub(crate) fn absorb_explain_result(&mut self, res: Result<String, String>) {
         match res {
             Ok(md) if md.trim().is_empty() => self.set_status("no explanation came back"),
@@ -170,7 +170,7 @@ impl CrewApp {
                     crate::chattime::unix_now_ms()
                 ));
                 match std::fs::write(&path, md) {
-                    Ok(()) => self.spawn_md_pane(&path.to_string_lossy()),
+                    Ok(()) => self.open_view(&path.to_string_lossy()),
                     Err(e) => self.set_status(format!("explain: cannot write {e}")),
                 }
             }
@@ -202,8 +202,8 @@ mod tests {
         app.absorb_explain_result(Ok("## It failed\nBecause of X.".into()));
         let last = app.panes.last().expect("a viewer pane opened");
         assert!(
-            matches!(last.content, crate::pane::PaneContent::Markdown(_)),
-            "the answer opens in the md viewer"
+            matches!(last.content, crate::pane::PaneContent::View(_)),
+            "the answer opens in the file viewer"
         );
         assert!(app.zoomed, "the viewer opens zoomed");
     }
