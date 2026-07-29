@@ -43,25 +43,11 @@ fn clamp_scroll_pulls_a_wild_offset_back_to_the_last_page() {
     assert!(p.scroll <= 3, "offset clamped to content, got {}", p.scroll);
 }
 
-#[test]
-fn the_cache_is_reused_across_frames_at_one_width() {
-    let p = pane_with("a\nb\n");
-    let _ = p.cells(30, 5);
-    let before = p.cache.borrow().as_ref().map(|c| c.cols);
-    let _ = p.cells(30, 5);
-    assert_eq!(before, Some(30), "same width keeps the cache");
-}
-
-// The assertion above only proves a cache was BUILT once — `before` is read
-// after the first call, so it passes even if the second `cells()` rebuilds
-// the cache from scratch (a "stale" check that is always true would still
-// leave `cache.cols == 30` after the rebuild). To actually observe reuse
-// rather than mere presence, mutate the pane's loaded text directly —
-// bypassing `reload()`, which is the only path that is supposed to
-// invalidate the cache — and confirm a second `cells()` call at the SAME
-// width still renders the ORIGINAL text. A correct cache reuses the
-// stale-but-untouched lines; a cache that rebuilds on every call would pick
-// up the mutation immediately.
+// Proves REUSE, not merely that a cache exists: mutating unrelated state
+// and re-rendering at the same width must not rebuild. The obvious version
+// of this test — render twice, assert the cache holds width 30 — passes
+// even against an always-rebuild implementation, because a rebuilt cache
+// holds width 30 too.
 #[test]
 fn the_cache_survives_an_unrelated_state_mutation_at_the_same_width() {
     let mut p = pane_with("first\n");
