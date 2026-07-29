@@ -12,6 +12,18 @@ use crate::pane::PaneContent;
 /// ~62 Hz, so redrawing every 4th tick animates the sweep at ~15 fps.
 const BUSY_ANIM_DIV: u64 = 4;
 
+/// How long a freshly spawned `$EDITOR` pane is presumed live even before its
+/// `cmd` is populated. `TermPane.cmd` starts `None` at spawn (`spawn.rs`) and
+/// is only filled in by `procname`'s scan, which is throttled to ~1×/s
+/// (`procname::SCAN_EVERY`) — but `reload_views_after_edit` runs every tick,
+/// roughly every 16ms. Without this grace window, the very first tick after
+/// `e` spawns the editor would see `cmd: None`, conclude the editor had
+/// already exited, and reload immediately — before the edit even started,
+/// and clearing `editor_born` so the REAL exit later goes unnoticed. Set
+/// comfortably above `SCAN_EVERY` so the pane is guaranteed at least one scan
+/// before the grace period is used to judge it.
+const EDITOR_GRACE_MS: u64 = 2_000;
+
 impl CrewApp {
     /// One poll cycle. Schedules the next wake-up before returning.
     /// Whether anything on screen still has a frame left to draw.
@@ -533,12 +545,24 @@ impl CrewApp {
     /// definition. Returns whether anything was reloaded, so the caller can
     /// fold it into the tick's `any_changed`.
     pub(crate) fn reload_views_after_edit(&mut self) -> bool {
-        // Which editor panes are still alive and still running something.
+        // Which editor panes are still alive: either `procname` has already
+        // named a foreground command in them, or they're too young for
+        // `procname` to have scanned them even once yet (see
+        // `EDITOR_GRACE_MS`). A pane that has aged out of its grace window
+        // with `cmd` still `None` really has gone idle — that's the editor
+        // exiting, the actual trigger this exists to catch. Note: `born_ms`
+        // is a millisecond timestamp shared with every other pane-identity
+        // scheme in this codebase, so two panes born the same millisecond
+        // are unified here exactly as they are everywhere else that keys
+        // off it — a pre-existing, accepted property, not new to this check.
+        let now = crate::anim::now_ms();
         let live: Vec<u64> = self
             .panes
             .iter()
             .filter(|p| match &p.content {
-                PaneContent::Terminal(t) => t.cmd.is_some(),
+                PaneContent::Terminal(t) => {
+                    t.cmd.is_some() || now.saturating_sub(p.born_ms) < EDITOR_GRACE_MS
+                }
                 _ => false,
             })
             .map(|p| p.born_ms)

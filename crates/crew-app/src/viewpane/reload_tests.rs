@@ -85,7 +85,7 @@ fn a_viewer_is_left_alone_while_its_editor_pane_is_still_running() {
     if let PaneContent::View(v) = &mut app.panes[0].content {
         v.editor_born = Some(7);
     }
-    app.panes.push(editor_pane(7));
+    app.panes.push(editor_pane(7, Some("vim")));
     std::fs::write(&f, "after\n").unwrap();
 
     assert!(
@@ -105,10 +105,51 @@ fn a_viewer_is_left_alone_while_its_editor_pane_is_still_running() {
     }
 }
 
-/// A minimal terminal pane standing in for a live `$EDITOR`: `cmd: Some(_)`
-/// is what `reload_views_after_edit` treats as "still running", born at
-/// `born_ms` to match the viewer's `editor_born`.
-fn editor_pane(born_ms: u64) -> Pane {
+#[test]
+fn a_freshly_spawned_editor_survives_the_pre_scan_window() {
+    // Real `TermPane.cmd` is `None` from the moment a terminal pane is
+    // spawned (`spawn.rs`) until `procname`'s throttled scan (~1x/s, gated
+    // by `ProcNames::due`) fills it in. `reload_views_after_edit` runs on
+    // EVERY tick — roughly every 16ms — so the very first tick after `e`
+    // spawns the editor sees `cmd: None`. A liveness check keyed only on
+    // `cmd.is_some()` would read that as "the editor already exited" and
+    // reload immediately, before the edit even started, clearing
+    // `editor_born` so the real exit later goes unnoticed. This reproduces
+    // that exact sequence: a pane born "now" (i.e. inside the grace window)
+    // with `cmd` still `None`.
+    let dir = std::env::temp_dir();
+    let f = dir.join("reload-pre-scan.txt");
+    std::fs::write(&f, "before\n").unwrap();
+    let mut app = CrewApp {
+        cwd: dir,
+        ..Default::default()
+    };
+    app.open_view("reload-pre-scan.txt");
+    settle(&mut app);
+
+    let born = crate::anim::now_ms();
+    if let PaneContent::View(v) = &mut app.panes[0].content {
+        v.editor_born = Some(born);
+    }
+    app.panes.push(editor_pane(born, None));
+
+    assert!(
+        !app.reload_views_after_edit(),
+        "a just-spawned editor (cmd still None) must not look exited before procname's first scan"
+    );
+    match &app.panes[0].content {
+        PaneContent::View(v) => assert_eq!(
+            v.editor_born,
+            Some(born),
+            "the editor↔viewer association must survive the pre-scan window"
+        ),
+        _ => panic!("still a viewer"),
+    }
+}
+
+/// A minimal terminal pane standing in for an `$EDITOR` pane: `cmd` mirrors
+/// what `procname` would have filled in (or not yet) at `born_ms`.
+fn editor_pane(born_ms: u64, cmd: Option<&str>) -> Pane {
     use crate::app::FALLBACK_SIZE;
     use crate::pane::TermPane;
     use crate::spawn::PLACEHOLDER_RECT;
@@ -120,7 +161,7 @@ fn editor_pane(born_ms: u64) -> Pane {
         content: PaneContent::Terminal(Box::new(TermPane {
             pty,
             input,
-            cmd: Some("vim".to_string()),
+            cmd: cmd.map(str::to_string),
             cmd_since: None,
         })),
         grid: FALLBACK_SIZE,

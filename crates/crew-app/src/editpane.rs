@@ -45,6 +45,32 @@ impl CrewApp {
             .to_string();
         self.spawn_labeled_terminal(&shell, &["-c".to_string(), script], label);
     }
+
+    /// The viewer's `e` key: spawn `$EDITOR` on `path`, and — only if that
+    /// spawn actually produced a pane — remember its `born_ms` on the viewer
+    /// at `focused` so `poll::reload_views_after_edit` can find it once the
+    /// editor exits.
+    ///
+    /// `edit_in_pane` pushes no pane on a failed spawn (see
+    /// `spawn_labeled_terminal`'s `Err` arm, which only sets a status) or on
+    /// an empty path. Reading `self.panes.last()` unconditionally in either
+    /// case would silently adopt whatever pane happens to be last — e.g. an
+    /// unrelated already-running terminal's `born_ms` — and the viewer would
+    /// then wait on that pane going idle before ever reloading again, rather
+    /// than on the edit that never actually started.
+    pub(crate) fn apply_view_edit(&mut self, focused: usize, path: &std::path::Path) {
+        let before = self.panes.len();
+        self.edit_in_pane(&path.to_string_lossy());
+        if self.panes.len() == before {
+            return;
+        }
+        let born = self.panes.last().map(|p| p.born_ms);
+        if let Some(crate::pane::PaneContent::View(v)) =
+            self.panes.get_mut(focused).map(|p| &mut p.content)
+        {
+            v.editor_born = born;
+        }
+    }
 }
 
 #[cfg(test)]
@@ -73,5 +99,67 @@ mod tests {
     fn edit_script_quotes_path_and_keeps_pane_open() {
         let s = edit_script("code -w", "/tmp/a b.rs", "/bin/zsh");
         assert_eq!(s, "code -w '/tmp/a b.rs'; exec /bin/zsh");
+    }
+
+    #[test]
+    fn a_spawn_that_pushes_no_pane_does_not_adopt_an_unrelated_panes_born_ms() {
+        // `edit_in_pane` returns without pushing a pane when given an empty
+        // path — the same postcondition (`self.panes.len()` unchanged) that
+        // a genuinely failed `PtyTerm` spawn leaves (`spawn.rs`'s `Err` arm),
+        // reached deterministically rather than by relying on a shell that
+        // can be made to fail on demand. An unrelated, already-running
+        // terminal pane sits last in `self.panes` throughout: reading
+        // `.last().born_ms` unconditionally in that case would adopt ITS
+        // born_ms for the viewer, silently misdirecting
+        // `reload_views_after_edit` at the wrong (unrelated, still-running)
+        // pane instead of leaving `editor_born` untouched.
+        use crate::app::{CrewApp, FALLBACK_SIZE};
+        use crate::pane::{Pane, PaneContent, TermPane};
+        use crate::spawn::PLACEHOLDER_RECT;
+        use crew_term::PtyTerm;
+
+        let dir = std::env::temp_dir();
+        let f = dir.join("edit-guard.txt");
+        std::fs::write(&f, "content\n").unwrap();
+        let mut app = CrewApp {
+            cwd: dir,
+            ..Default::default()
+        };
+        app.open_view("edit-guard.txt");
+        assert_eq!(app.panes.len(), 1, "the viewer must have opened");
+
+        let pty = PtyTerm::spawn(FALLBACK_SIZE, "sh").expect("spawn an unrelated terminal");
+        let input = pty.writer();
+        let unrelated_born = 424_242;
+        app.panes.push(Pane {
+            content: PaneContent::Terminal(Box::new(TermPane {
+                pty,
+                input,
+                cmd: Some("vim".to_string()),
+                cmd_since: None,
+            })),
+            grid: FALLBACK_SIZE,
+            rect: PLACEHOLDER_RECT,
+            label: None,
+            name: None,
+            dir: None,
+            activity: false,
+            bell: false,
+            hidden: false,
+            attention: None,
+            born_ms: unrelated_born,
+        });
+
+        let focused = 0; // the viewer
+        app.apply_view_edit(focused, std::path::Path::new(""));
+
+        match &app.panes[focused].content {
+            PaneContent::View(v) => assert_ne!(
+                v.editor_born,
+                Some(unrelated_born),
+                "a spawn that pushed no pane must not adopt an unrelated pane's born_ms"
+            ),
+            _ => panic!("still a viewer"),
+        }
     }
 }

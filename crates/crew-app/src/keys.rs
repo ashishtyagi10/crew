@@ -217,15 +217,7 @@ impl CrewApp {
                     let _ = open::that(&p);
                     self.set_status(format!("opening {}", p.display()));
                 }
-                ViewAction::Edit(p) => {
-                    self.edit_in_pane(&p.to_string_lossy());
-                    let born = self.panes.last().map(|p| p.born_ms);
-                    if let Some(PaneContent::View(v)) =
-                        self.panes.get_mut(focused).map(|p| &mut p.content)
-                    {
-                        v.editor_born = born;
-                    }
-                }
+                ViewAction::Edit(p) => self.apply_view_edit(focused, &p),
             }
         }
         if is_terminal {
