@@ -38,6 +38,16 @@ fn wrap(text: &str, w: usize) -> Vec<(usize, Vec<char>)> {
     out
 }
 
+/// The paint for source line `n` (1-based), columns `[pos, pos + len)`.
+/// `tokenize`'s losslessness — one paint entry per character, covering the
+/// whole line — is enforced by tests, not the type system, so this is a
+/// `.get` chain rather than a direct index: a regression there makes this
+/// row fall back to uniform ink (see the `None` arm at the call site)
+/// instead of panicking the winit thread mid-frame.
+fn row_paint(paints: &[Vec<CharPaint>], n: usize, pos: usize, len: usize) -> Option<&[CharPaint]> {
+    paints.get(n.wrapping_sub(1))?.get(pos..pos + len)
+}
+
 /// Numbered rows for the gutter rungs, syntax-coloured when `lang` names a
 /// `md::syntax` language (Fix 1: `Code`/`Data` used to reach this function and
 /// paint every character `ink`, so keywords, strings and comments were
@@ -69,14 +79,17 @@ fn numbered(
             row(&format!("{n:>5} "), muted, false)
         };
         last = n;
-        let paint = &paints[n - 1][pos..pos + chars.len()];
+        let row_paint = row_paint(&paints, n, pos, chars.len());
         pos += chars.len();
-        line.extend(
-            chars
-                .iter()
-                .zip(paint)
-                .map(|(c, (fg, bold))| plain(*c, *fg, *bold)),
-        );
+        match row_paint {
+            Some(paint) => line.extend(
+                chars
+                    .iter()
+                    .zip(paint)
+                    .map(|(c, (fg, bold))| plain(*c, *fg, *bold)),
+            ),
+            None => line.extend(chars.iter().map(|c| plain(*c, ink, false))),
+        }
         out.push(line);
     }
     out
@@ -165,9 +178,19 @@ fn ready_lines(format: Format, loaded: &Loaded, raw: bool, cols: usize) -> Vec<C
     // cost this cap exists to avoid.
     let (text, capped_from) = cap_render_lines(&loaded.text);
     if let Some(real_lines) = capped_from {
+        // `real_lines` counts lines in `loaded.text`, which is itself the 8
+        // MB VIEW cap's slice whenever `loaded.truncated` is `Some` — an
+        // exact count would then be naming the slice's line count as if it
+        // were the file's, understating a file that runs on past the byte
+        // cap. "at least" keeps the claim true either way.
+        let of_lines = if loaded.truncated.is_some() {
+            format!("at least {real_lines}")
+        } else {
+            real_lines.to_string()
+        };
         out.push(banner(
             &format!(
-                "showing first {MAX_RENDER_LINES} of {real_lines} lines — press o to open externally"
+                "showing first {MAX_RENDER_LINES} of {of_lines} lines — press o to open externally"
             ),
             cols,
         ));

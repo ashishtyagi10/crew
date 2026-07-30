@@ -53,3 +53,38 @@ fn every_character_of_the_line_is_covered_exactly_once() {
     let paint = line_paint(line, "rust", (1, 2, 3));
     assert_eq!(paint.len(), line.chars().count());
 }
+
+/// Part 2's guard: even with a real lexer for `lang`, a line longer than
+/// `MAX_COLOURED_LINE_BYTES` bails to uniform `ink` rather than tokenizing —
+/// belt and braces against Part 1's fix, so a keyword that would normally
+/// take the theme's keyword slot must NOT stand out here.
+#[test]
+fn a_line_over_the_length_cap_paints_uniformly_even_with_a_keyword() {
+    let filler = "x".repeat(MAX_COLOURED_LINE_BYTES);
+    let line = format!("let {filler} = 1;");
+    assert!(line.len() > MAX_COLOURED_LINE_BYTES);
+    let ink = (9, 9, 9);
+    let paint = line_paint(&line, "rust", ink);
+    assert_eq!(paint.len(), line.chars().count());
+    assert!(
+        paint.iter().all(|&(fg, bold)| fg == ink && !bold),
+        "a line over the cap must bail to uniform ink rather than be tokenized"
+    );
+}
+
+/// The companion to the cap test above: a line UNDER the cap must still be
+/// tokenized normally. Without this, a mutation that always bails to uniform
+/// ink (cap of zero, in effect) would pass the over-the-cap test too.
+#[test]
+fn a_line_at_or_under_the_cap_is_still_tokenized() {
+    let base = "let x = 1; // ";
+    let fill = "a".repeat(MAX_COLOURED_LINE_BYTES - base.len() - 1);
+    let line = format!("{base}{fill}");
+    assert!(line.len() < MAX_COLOURED_LINE_BYTES);
+    let ink = (9, 9, 9);
+    let paint = line_paint(&line, "rust", ink);
+    assert_ne!(
+        paint[0].0, ink,
+        "\"let\" is a keyword and must still be coloured under the cap"
+    );
+}

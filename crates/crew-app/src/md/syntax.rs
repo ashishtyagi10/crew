@@ -131,6 +131,18 @@ fn keywords(lang: &str) -> &'static [&'static str] {
     }
 }
 
+/// Whether `pat` occurs at position `i` in `chars`, compared char by char
+/// without materializing the remainder of the line. `tokenize` used to build
+/// `chars[i..].iter().collect::<String>()` on every position just to call
+/// `starts_with` on it — an O(L) allocation per character, O(L²) overall for
+/// a line of length L. Comment markers are at most a couple of characters
+/// (see `comment_starts`), so this check is O(1) amortized per position.
+fn matches_at(chars: &[char], i: usize, pat: &str) -> bool {
+    pat.chars()
+        .enumerate()
+        .all(|(k, pc)| chars.get(i + k) == Some(&pc))
+}
+
 /// Split one line of code into `(text, token)` runs, left to right, covering
 /// every character exactly once.
 ///
@@ -155,9 +167,12 @@ pub(crate) fn tokenize(line: &str, lang: &str) -> Vec<(String, Token)> {
         out.push((std::mem::take(buf), Token::Plain));
     };
     while i < chars.len() {
-        let rest: String = chars[i..].iter().collect();
-        if comments.iter().any(|c| rest.starts_with(*c)) {
+        if comments.iter().any(|c| matches_at(&chars, i, c)) {
             flush(&mut out, &mut buf);
+            // The comment claims the rest of the line, so this is the one
+            // place `chars[i..]` is materialized — once, not once per
+            // position scanned to find it.
+            let rest: String = chars[i..].iter().collect();
             out.push((rest, Token::Comment));
             return merge_words(out, words);
         }

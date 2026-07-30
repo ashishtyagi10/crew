@@ -236,6 +236,30 @@ fn zero_width_never_panics() {
     let _ = for_state(&ready(Format::Code { lang: "" }, "x\n"), false, 0);
 }
 
+/// Low item 2: `row_paint` is the guard between `numbered`'s indexing and a
+/// panic if `tokenize` ever stopped covering a line exactly once. Exercised
+/// directly, because faking that regression through the real tokenizer would
+/// mean breaking `tokenize` itself, which is exactly what its own lossless
+/// tests exist to prevent.
+#[test]
+fn row_paint_is_none_rather_than_panicking_when_a_row_runs_short() {
+    let one_entry = vec![((1, 2, 3), false)];
+    let paints = vec![one_entry];
+    // The normal case: asking for exactly what line 1 has, at offset 0.
+    assert!(row_paint(&paints, 1, 0, 1).is_some());
+    // A row shorter than requested — the scenario a broken `tokenize` would
+    // cause: the wrapped chunk is longer than the paint this line actually
+    // has.
+    assert!(
+        row_paint(&paints, 1, 0, 2).is_none(),
+        "asking past the end of a short row must not panic"
+    );
+    // A line number with no paint vector at all.
+    assert!(row_paint(&paints, 5, 0, 1).is_none());
+    // `n` of 0 would underflow a direct `n - 1`; must stay `None`, not panic.
+    assert!(row_paint(&paints, 0, 0, 1).is_none());
+}
+
 #[test]
 fn a_huge_line_count_is_capped_and_announced_in_a_banner() {
     // Fix 5: `for_state` used to run the full per-rung render (tokenizing,
@@ -266,6 +290,56 @@ fn a_huge_line_count_is_capped_and_announced_in_a_banner() {
 // covered by `rendercap`'s own fast, pure-function tests
 // (`text_at_or_under_the_cap_is_returned_unchanged`) rather than repeated
 // here through the full render pipeline.
+
+#[test]
+fn banner_says_at_least_when_the_text_was_already_byte_capped() {
+    // Low item 3: `cap_render_lines` counts lines in `loaded.text`, which is
+    // already the 8 MB VIEW cap's slice whenever `loaded.truncated` is
+    // `Some` — so an exact "of N lines" would be naming the slice's count as
+    // if it were the file's. When both caps fire, the banner must hedge.
+    let total = MAX_RENDER_LINES * 2;
+    let body = vec!["x"; total].join("\n");
+    let state = LoadState::Ready {
+        format: Format::Code { lang: "" },
+        loaded: Loaded {
+            text: body,
+            truncated: Some(41_000_000),
+            meta: None,
+        },
+    };
+    let ls = for_state(&state, false, 60);
+    // ls[0] is the byte-cap banner (`loaded.truncated`), ls[1] the line-cap
+    // banner (`capped_from`) — see `truncation_is_announced_in_a_banner_row`
+    // and `a_huge_line_count_is_capped_and_announced_in_a_banner` for each in
+    // isolation.
+    let banner = text(&ls[1]);
+    assert!(
+        banner.contains(&format!(
+            "first {MAX_RENDER_LINES} of at least {total} lines"
+        )),
+        "must not claim an exact count for text already byte-capped: {banner}"
+    );
+}
+
+/// The companion to the hedge above: when only the line cap fires (the text
+/// was never byte-truncated), the count IS exact and must stay unhedged —
+/// otherwise a mutation that always says "at least" would pass the test
+/// above while making every ordinary huge-file banner needlessly vague.
+#[test]
+fn banner_states_an_exact_count_when_the_text_was_not_byte_capped() {
+    let total = MAX_RENDER_LINES * 2;
+    let body = vec!["x"; total].join("\n");
+    let ls = for_state(&ready(Format::Code { lang: "" }, &body), false, 60);
+    let banner = text(&ls[0]);
+    assert!(
+        banner.contains(&format!("first {MAX_RENDER_LINES} of {total} lines")),
+        "an exact count when there was no byte cap: {banner}"
+    );
+    assert!(
+        !banner.contains("at least"),
+        "must not hedge when the text was not byte-capped: {banner}"
+    );
+}
 
 #[test]
 fn the_line_cap_bounds_a_markdown_render_too() {
