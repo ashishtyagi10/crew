@@ -166,7 +166,7 @@ impl CrewApp {
         let mut settings_action: Option<SettingsAction> = None;
         let mut far_action: Option<crate::farpane::FarAction> = None;
         let mut chat_action: Option<crate::chatkeys::ChatAction> = None;
-        let mut md_action: Option<crate::mdkeys::MdAction> = None;
+        let mut view_action: Option<crate::viewpane::ViewAction> = None;
         let mut is_terminal = false;
         let mut swarm_close = false;
         if let Some(pane) = self.panes.get_mut(focused) {
@@ -185,9 +185,9 @@ impl CrewApp {
                     swarm_close =
                         crate::swarmpane::esc_closes(&event.logical_key, event.state.is_pressed());
                 }
-                PaneContent::Markdown(m) => {
-                    md_action =
-                        m.on_key(event, pane.grid.cols, pane.grid.rows, mstate.control_key())
+                PaneContent::View(v) => {
+                    view_action =
+                        v.on_key(event, pane.grid.cols, pane.grid.rows, mstate.control_key())
                 }
             }
         }
@@ -200,13 +200,24 @@ impl CrewApp {
         if let Some(action) = chat_action {
             self.apply_chat_action(action, focused);
         }
-        if let Some(action) = md_action {
-            use crate::mdkeys::MdAction;
+        if let Some(action) = view_action {
+            use crate::viewpane::ViewAction;
             match action {
-                MdAction::Close => {
+                ViewAction::Close => {
                     self.close_pane(focused);
                 }
-                MdAction::Status(msg) => self.set_status(msg),
+                ViewAction::Reload => {
+                    if let Some(PaneContent::View(v)) =
+                        self.panes.get_mut(focused).map(|p| &mut p.content)
+                    {
+                        v.reload();
+                    }
+                }
+                ViewAction::OpenExternal(p) => {
+                    let _ = open::that(&p);
+                    self.set_status(format!("opening {}", p.display()));
+                }
+                ViewAction::Edit(p) => self.apply_view_edit(focused, &p),
             }
         }
         if is_terminal {

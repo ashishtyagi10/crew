@@ -110,3 +110,47 @@ fn adjacent_runs_of_the_same_token_merge() {
     let runs = assert_lossless("a + b + c", "rust");
     assert_eq!(runs.len(), 1, "{runs:?}");
 }
+
+/// The re-review's defect: the scan loop used to rebuild the remainder of the
+/// line as a fresh `String` (`chars[i..].iter().collect()`) on every
+/// position, just to ask whether a comment marker started there — O(L) work
+/// and an O(L) allocation per character scanned, O(L²) overall. A line with
+/// no comment marker or quote anywhere is the worst case: the scan runs to
+/// the end with no early exit. 20 000 characters is far past where the old
+/// code stopped being practical (it hit ~1s around 50 000 in release), so
+/// this stands in for the one-giant-line minified files the viewer now
+/// actually feeds `tokenize`. No wall-clock assertion here — a slow test is
+/// not a failing one — but see the fix report for measured before/after
+/// timings from a standalone replica of both loops.
+#[test]
+fn a_long_line_with_no_comment_or_string_is_still_lossless() {
+    let line: String = "x".repeat(20_000);
+    let runs = assert_lossless(&line, "js");
+    // Not just lossless — a single 20 000-char plain run is exactly what a
+    // linear scan with no comment/string hits should produce. A tokenizer
+    // that silently fragmented the line (e.g. character-at-a-time runs from
+    // a broken merge step) would still pass `assert_lossless` while doing far
+    // more allocation than intended, so this pins the shape too.
+    assert_eq!(runs.len(), 1, "{}", runs.len());
+    assert_eq!(runs[0].1, Token::Plain);
+}
+
+/// The concrete scenario named in the review: a minified JSON/JS line is one
+/// giant line packed with many short strings and no line breaks. This checks
+/// the tokenizer stays both correct (lossless) and actually does its job
+/// (finds the strings) at a size representative of that shape, not just that
+/// it survives without panicking.
+#[test]
+fn a_long_minified_json_line_is_still_lossless_and_finds_every_string() {
+    let mut line = String::from("{");
+    for i in 0..5_000 {
+        line.push_str(&format!("\"k{i}\":\"v{i}\","));
+    }
+    line.push('}');
+    let runs = assert_lossless(&line, "json");
+    let strings = of(&runs, Token::Str);
+    // Two string tokens per iteration (the key and the value); a lexer that
+    // regressed to treating the whole thing as one opaque Plain run (still
+    // lossless!) would fail this while passing `assert_lossless`.
+    assert_eq!(strings.len(), 10_000, "{}", strings.len());
+}

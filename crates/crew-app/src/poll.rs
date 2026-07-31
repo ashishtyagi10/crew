@@ -6,11 +6,43 @@ use std::time::{Duration, Instant};
 use winit::event_loop::{ActiveEventLoop, ControlFlow};
 
 use crate::app::{CrewApp, POLL_MS};
-use crate::pane::PaneContent;
+use crate::pane::{Pane, PaneContent};
 
 /// Poll ticks per rendered frame of the busy progress sweep: the loop runs at
 /// ~62 Hz, so redrawing every 4th tick animates the sweep at ~15 fps.
 const BUSY_ANIM_DIV: u64 = 4;
+
+/// How long a freshly spawned `$EDITOR` pane is presumed live even before its
+/// `cmd` is populated. `TermPane.cmd` starts `None` at spawn (`spawn.rs`) and
+/// is only filled in by `procname`'s scan, which is throttled to ~1×/s
+/// (`procname::SCAN_EVERY`) — but `reload_views_after_edit` runs every tick,
+/// roughly every 16ms. Without this grace window, the very first tick after
+/// `e` spawns the editor would see `cmd: None`, conclude the editor had
+/// already exited, and reload immediately — before the edit even started,
+/// and clearing `editor_born` so the REAL exit later goes unnoticed. Set
+/// comfortably above `SCAN_EVERY` so the pane is guaranteed at least one scan
+/// before the grace period is used to judge it.
+const EDITOR_GRACE_MS: u64 = 2_000;
+
+/// Whether `p` is one of the kinds `session_panes` would snapshot — the
+/// predicate behind `had_restorable`, whose whole job is gating the quit
+/// snapshot so a pane-less-LOOKING run can't wipe a saved `/restore`
+/// session. Pulled out of `poll_panes` (which needs a real `ActiveEventLoop`
+/// and so can't run in a unit test) so this rule is testable on its own,
+/// the same reason `sessionrestore::restore_cwd_for` was pulled out of
+/// `restore_from`.
+fn is_restorable_pane(p: &Pane) -> bool {
+    match &p.content {
+        PaneContent::Terminal(_) | PaneContent::Far(_) => true,
+        // Fix 4: an ephemeral viewer (`/about`, `??`) is not what this flag
+        // exists to protect — it opens on a changelog/explanation, not
+        // something the user asked to view, which is exactly the
+        // pane-less-looking-but-isn't case `had_restorable` guards against.
+        PaneContent::View(v) => !v.ephemeral,
+        PaneContent::Chat(_) => p.label.as_deref() == Some("crew"),
+        _ => false,
+    }
+}
 
 impl CrewApp {
     /// One poll cycle. Schedules the next wake-up before returning.
@@ -39,12 +71,7 @@ impl CrewApp {
 
     pub(crate) fn poll_panes(&mut self, event_loop: &ActiveEventLoop) {
         if !self.had_restorable {
-            use crate::pane::PaneContent;
-            self.had_restorable = self.panes.iter().any(|p| match &p.content {
-                PaneContent::Terminal(_) | PaneContent::Far(_) => true,
-                PaneContent::Chat(_) => p.label.as_deref() == Some("crew"),
-                _ => false,
-            });
+            self.had_restorable = self.panes.iter().any(is_restorable_pane);
         }
         if self.window.is_none() {
             return;
@@ -189,8 +216,10 @@ impl CrewApp {
                     changed
                 }
                 PaneContent::Settings(_) => false,
-                // A static file view; nothing to poll (Task 3 adds `r` reload).
-                PaneContent::Markdown(_) => false,
+                // Drains the loader worker: true exactly on the tick a
+                // Loading pane lands (or fails), so the frame redraws with
+                // the loaded content.
+                PaneContent::View(v) => v.poll(),
             };
             // Follow `cd` inside the pane: a new OSC 7 cwd report retitles the
             // pane to that folder (a `/name` override still wins in title_text).
@@ -200,9 +229,15 @@ impl CrewApp {
             }
             // Output / bells in a pane you're not watching flag it. A bell or
             // watched pattern also raises the nav-row attention marker — the
-            // "needs you" flash for minimized/background panes.
+            // "needs you" flash for minimized/background panes. A viewer pane
+            // finishing its load is excluded: the dot means "an agent
+            // produced output you haven't seen," not "your file finished
+            // reading" — `changed` still reaches `any_changed` below so the
+            // pane's content is correct whenever it's next drawn, it just
+            // doesn't raise attention.
             if i != focused {
-                p.activity |= changed;
+                let is_activity = changed && !matches!(&p.content, PaneContent::View(_));
+                p.activity |= is_activity;
                 p.bell |= rang;
                 if rang {
                     crate::attention::raise(
@@ -319,6 +354,10 @@ impl CrewApp {
                 }
             }
         }
+        // A viewer's `$EDITOR` pane exiting reloads the file it was editing.
+        // Cheap even when nothing's outstanding: `editor_born` is `None` on
+        // every ordinary viewer, so the loop below is a no-op scan.
+        any_changed |= self.reload_views_after_edit();
         // Surface the bell / pattern / command-finished events gathered above.
         // (Pane-exit events are raised at the reap site below.)
         for (kind, pane, detail) in notify_events.drain(..) {
@@ -511,4 +550,62 @@ impl CrewApp {
             }
         }
     }
+
+    /// A viewer whose `$EDITOR` pane has ended re-reads the file. Without this
+    /// the handoff leaves stale content on screen, which reads as a bug in the
+    /// viewer rather than as a missing step.
+    ///
+    /// The editor pane is found by `born_ms` rather than by index: closing any
+    /// pane shifts every index after it, and this runs a tick later by
+    /// definition. Returns whether anything was reloaded, so the caller can
+    /// fold it into the tick's `any_changed`.
+    pub(crate) fn reload_views_after_edit(&mut self) -> bool {
+        // Which editor panes are still alive: either `procname` has already
+        // named a foreground command in them, or they're too young for
+        // `procname` to have scanned them even once yet (see
+        // `EDITOR_GRACE_MS`). A pane that has aged out of its grace window
+        // with `cmd` still `None` really has gone idle — that's the editor
+        // exiting, the actual trigger this exists to catch. Note: `born_ms`
+        // is a millisecond timestamp shared with every other pane-identity
+        // scheme in this codebase, so two panes born the same millisecond
+        // are unified here exactly as they are everywhere else that keys
+        // off it — a pre-existing, accepted property, not new to this check.
+        let now = crate::anim::now_ms();
+        let live: Vec<u64> = self
+            .panes
+            .iter()
+            .filter(|p| match &p.content {
+                PaneContent::Terminal(t) => {
+                    t.cmd.is_some() || now.saturating_sub(p.born_ms) < EDITOR_GRACE_MS
+                }
+                _ => false,
+            })
+            .map(|p| p.born_ms)
+            .collect();
+
+        let mut reloaded = false;
+        for pane in &mut self.panes {
+            let PaneContent::View(v) = &mut pane.content else {
+                continue;
+            };
+            let Some(born) = v.editor_born else {
+                continue;
+            };
+            if live.contains(&born) {
+                continue;
+            }
+            v.editor_born = None;
+            v.reload();
+            reloaded = true;
+        }
+        reloaded
+    }
 }
+
+#[cfg(test)]
+#[path = "viewpane/reload_tests.rs"]
+mod reload_tests;
+
+#[cfg(test)]
+#[path = "poll_tests.rs"]
+mod tests;

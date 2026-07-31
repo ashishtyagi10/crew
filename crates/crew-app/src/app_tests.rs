@@ -231,9 +231,27 @@ fn md_slash_command_opens_a_zoomed_markdown_pane() {
     std::fs::write(&path, "# Title\n").unwrap();
     assert!(!app.submit_input(format!("/md {}", path.display())));
     assert_eq!(app.panes.len(), 1);
-    assert!(matches!(app.panes[0].content, PaneContent::Markdown(_)));
+    assert!(matches!(app.panes[0].content, PaneContent::View(_)));
     assert!(app.zoomed, "/md spawns a zoomed pane");
-    assert!(app.panes[0].title_text().ends_with(" · md"));
+    assert_eq!(app.panes[0].title_text(), "crew_md_slash_test.md");
+    let _ = std::fs::remove_file(&path);
+}
+
+/// `/view` is the same viewer under its own name — `/md` is kept only as an
+/// alias (see `dispatch::run_slash_command`).
+#[test]
+fn view_slash_command_opens_the_same_viewer_as_md() {
+    use crate::pane::PaneContent;
+    let mut app = CrewApp::default();
+    assert!(!app.submit_input("/view".to_string()));
+    assert!(app.panes.is_empty(), "bare /view opens no pane");
+
+    let path = std::env::temp_dir().join("crew_view_slash_test.txt");
+    std::fs::write(&path, "hello\n").unwrap();
+    assert!(!app.submit_input(format!("/view {}", path.display())));
+    assert_eq!(app.panes.len(), 1);
+    assert!(matches!(app.panes[0].content, PaneContent::View(_)));
+    assert!(app.zoomed, "/view spawns a zoomed pane");
     let _ = std::fs::remove_file(&path);
 }
 
@@ -272,7 +290,7 @@ fn about_opens_what_this_build_changed() {
     assert_eq!(app.panes.len(), before + 1, "/about opened no pane");
     assert!(matches!(
         app.panes.last().map(|p| &p.content),
-        Some(crate::pane::PaneContent::Markdown(_))
+        Some(crate::pane::PaneContent::View(_))
     ));
 }
 

@@ -240,13 +240,13 @@ The docked command bar supports:
 - **`??<question>`** — ask the AI **about the focused pane**: the newest ~120
   lines (8 KB cap) of the focused terminal's scrollback go to the provider
   with your question (bare `??` asks it to explain what happened, focusing on
-  errors), and the markdown answer opens in the **zoomed `/md` viewer** —
-  headings, code fences and all. Warp's "ask AI about this error", as a
-  two-keystroke prefix. Non-terminal focus or an empty pane gets a status
-  hint; the same one-ask-at-a-time and worker-thread rules as `?` apply.
+  errors), and the markdown answer opens in the **zoomed `/view` file
+  viewer** — headings, code fences and all. Warp's "ask AI about this error",
+  as a two-keystroke prefix. Non-terminal focus or an empty pane gets a
+  status hint; the same one-ask-at-a-time and worker-thread rules as `?` apply.
 - **Slash commands** — type `/` for a command palette (↑/↓ to pick, Tab/→ to
-  fill, Enter to run): `/smith`, `/goal <text>`, `/batch <file>`, `/md <file>`,
-  `/diff`, `/settings`, `/find <text>`, `/findall <text>`, `/name <text>`, `/clear`, `/clearall`,
+  fill, Enter to run): `/smith`, `/goal <text>`, `/batch <file>`, `/view <file>`,
+  `/md <file>`, `/diff`, `/settings`, `/find <text>`, `/findall <text>`, `/name <text>`, `/clear`, `/clearall`,
   `/clearlog`, `/only`, `/closeall`, `/pwd`, `/about`, `/copy`, `/dump`,
   `/font`, `/restart`, `/theme`, `/notify`, `/update`, `/broadcast`, `/zoom`,
   `/sidebar`, `/keys`, `/far`, `/exit`. The palette is **fuzzy** — prefix
@@ -322,11 +322,14 @@ The docked command bar supports:
   back into your shell), so Crew can tell "a command is running" from "a
   prompt is waiting" — that signal is what makes bare input divert away from
   a busy pane instead of typing into a running program.
-- **`/md <file>`** — opens a zoomed **markdown viewer** pane: side-by-side
-  `source | preview` halves of the file. `Tab` switches the active half,
-  ↑/↓ and PageUp/PageDown scroll it, `r` reloads from disk, **Cmd+click**
-  opens a link in the preview, `Esc` closes. Chat panes render markdown too —
-  see [Markdown](#markdown).
+- **`/view <file>`** (alias `/md`) — opens a zoomed **file viewer** pane: a
+  single, read-only pane over the file, rendered by format (markdown,
+  numbered-gutter code, aligned CSV, colored diffs, or a metadata card for
+  anything else). ↑/↓ and PageUp/PageDown/Home/End scroll, `r` reloads from
+  disk, `s` toggles raw text (markdown and CSV), `/` searches (`n`/`N` for
+  next/previous hit), `e` opens `$EDITOR`, `o` hands the file to the OS
+  default app, **Cmd+click** opens a rendered markdown link, `Esc` closes.
+  Chat panes render markdown too — see [Markdown](#markdown).
 - **`/notify [on|off|add <text>|clear]`** — drive the notification block from
   the bar: toggle the master switch, add a watched output pattern, or clear
   the patterns (the full set of knobs lives in `/settings`).
@@ -455,14 +458,18 @@ render verbatim instead of disappearing.
   to the raw source and back. **Cmd/Ctrl+click** on a rendered link opens it
   (hit-testing maps display columns through character widths, so links after
   emoji still click correctly).
-- **`/md <file>`** opens a zoomed **markdown viewer** pane over one file,
-  split into side-by-side `source | preview` halves with independent scroll
-  (wrapped lines are precomputed once per width, so scrolling is free).
-  **Tab** switches the active half, **↑/↓** scroll by line and
-  **PageUp/PageDown** by ten, **r** reloads the file from disk, **Cmd+click**
-  opens a link from the preview half, the mouse wheel scrolls whichever half
-  the cursor is over, and **Esc** closes the pane. Relative paths resolve
-  against the input bar's working directory.
+- **`/view <file>`** (alias `/md`) opens a zoomed **file viewer** pane over
+  one file — a single, read-only pane rendered by format: markdown, aligned
+  CSV columns (both rendered by default — **s** toggles raw source on
+  either), a numbered-gutter code view, colored diffs, or a metadata card
+  for anything else (binary, unsupported extension, missing extractor tool —
+  **o** hands it to the OS default app). Wrapped/rendered lines are
+  precomputed once per width, so scrolling is free. **↑/↓** scroll by line and
+  **PageUp/PageDown** by ten, **Home/End** jump to the top/bottom, **r**
+  reloads the file from disk, **e** opens `$EDITOR`, **/** searches with
+  **n**/**N** for next/previous hit, **Cmd+click** opens a rendered markdown
+  link, the mouse wheel scrolls the pane, and **Esc** closes it. Relative
+  paths resolve against the input bar's working directory.
 
 ## Multi-agent relay (`/smith`, alias `/crew`)
 

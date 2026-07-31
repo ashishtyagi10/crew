@@ -3,7 +3,8 @@
 //! background remote op landing this tick (`FarPane::poll_ops`, routed via
 //! `poll.rs`) — e.g. a finished `rclone` download opening its temp file.
 //! Both paths share this one match so the behaviour (close the pane, open
-//! the help overlay, hand a file to the OS default app, flash a status) never
+//! the help overlay, show a file in the viewer or `$EDITOR`, hand a
+//! downloaded remote temp file to the OS default app, flash a status) never
 //! drifts between the two call sites.
 use crate::app::CrewApp;
 use crate::farpane::FarAction;
@@ -19,6 +20,8 @@ impl CrewApp {
             FarAction::Open(path) => {
                 let _ = open::that(path);
             }
+            FarAction::View(path) => self.open_view(&path.to_string_lossy()),
+            FarAction::Edit(path) => self.edit_in_pane(&path.to_string_lossy()),
             FarAction::Status(msg) => self.set_status(&msg),
         }
     }
@@ -85,6 +88,47 @@ mod tests {
         app.apply_far_action(
             FarAction::Open(std::env::temp_dir().join("does-not-exist")),
             0,
+        );
+    }
+
+    #[test]
+    fn view_opens_the_viewer_rather_than_handing_the_file_to_the_os() {
+        // Fix 6: the old assertion only checked that SOME View pane exists,
+        // which passes even if `FarAction::View` opened a completely
+        // unrelated path — e.g. wired to `focused`'s own directory instead
+        // of the action's own `path`. Assert the opened pane's path is the
+        // one the action carried.
+        let f = std::env::temp_dir().join("far-view-test.txt");
+        std::fs::write(&f, "x\n").unwrap();
+        let mut app = far_pane_app();
+        app.apply_far_action(FarAction::View(f.clone()), 0);
+        let view_path = app.panes.iter().find_map(|p| match &p.content {
+            PaneContent::View(v) => Some(v.path.clone()),
+            _ => None,
+        });
+        assert_eq!(
+            view_path,
+            Some(f),
+            "F3 must open the viewer on the action's own path"
+        );
+    }
+
+    #[test]
+    fn edit_spawns_a_terminal_pane_not_an_os_app() {
+        let f = std::env::temp_dir().join("far-edit-test.txt");
+        std::fs::write(&f, "x\n").unwrap();
+        let mut app = far_pane_app();
+        let before = app.panes.len();
+        app.apply_far_action(FarAction::Edit(f), 0);
+        assert_eq!(app.panes.len(), before + 1, "F4 opens $EDITOR in a pane");
+        // Not just "a pane appeared": if `Edit` were ever mis-wired to the
+        // viewer (`open_view`), pane count would still go up — a Terminal
+        // pane specifically is what proves `$EDITOR` (not the viewer) ran.
+        assert!(
+            app.panes
+                .iter()
+                .any(|p| matches!(p.content, PaneContent::Terminal(_))),
+            "F4 opens a terminal pane, not the viewer"
         );
     }
 }

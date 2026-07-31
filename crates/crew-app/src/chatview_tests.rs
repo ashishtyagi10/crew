@@ -179,6 +179,43 @@ fn link_at_resolves_the_clicked_link_and_misses_off_link() {
 }
 
 #[test]
+fn row_text_at_reads_the_plain_body_row_and_misses_out_of_range() {
+    // Not a markdown link — the plain-text path `clickopen` falls through to
+    // when `link_at` misses.
+    let pane = test_pane(vec![msg("user", "see agent-cited.rs please")]);
+    let (cols, rows) = (80u16, 20u16);
+    let cells = cells(&pane, cols, rows);
+    let mut rendered: std::collections::BTreeMap<u16, String> = Default::default();
+    for c in &cells {
+        rendered.entry(c.row).or_default().push(c.c);
+    }
+    let (&body_row, _) = rendered
+        .iter()
+        .find(|(_, text)| text.contains("agent-cited.rs"))
+        .expect("the path text rendered somewhere");
+    assert_eq!(
+        row_text_at(&pane, cols, rows, body_row)
+            .as_deref()
+            .map(|t| t.contains("agent-cited.rs")),
+        Some(true),
+        "the row's plain text carries the path"
+    );
+    // Fix 6: `rows + 5` asks for a row entirely outside the pane's own grid
+    // (0..rows) — no implementation, buggy or not, can produce a cell
+    // there, so this half of the test passed no matter what `row_text_at`
+    // did. Ask for a row that EXISTS in the pane but has no content on it —
+    // the case an off-by-one or "always hit" bug could actually get wrong.
+    let blank_row = (0..rows)
+        .find(|r| !rendered.contains_key(r))
+        .expect("a one-line message leaves some row in the pane blank");
+    assert_eq!(
+        row_text_at(&pane, cols, rows, blank_row),
+        None,
+        "a row inside the pane but past the rendered content is a miss, not a panic"
+    );
+}
+
+#[test]
 fn link_at_resolves_after_scrolling() {
     // Enough filler lines before the link message to overflow the row budget
     // (so scrolling actually moves the window), and exactly one filler

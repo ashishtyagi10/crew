@@ -13,6 +13,18 @@ mod table;
 #[path = "wrap.rs"]
 mod wrap;
 
+/// Reaches `table::lines` for `md::table_lines` (the viewer's CSV rung).
+/// `table` is a private submodule of `layout`, not of `md` — this is the
+/// narrowest crack that exposes it to `md/mod.rs` without loosening
+/// `table::lines`'s own `pub(super)` visibility any further than needed.
+pub(super) fn table_lines(
+    header: Vec<Vec<MdSpan>>,
+    rows: Vec<Vec<Vec<MdSpan>>>,
+    cols: usize,
+) -> Vec<MdLine> {
+    table::lines(header, rows, cols)
+}
+
 /// Turns parsed blocks into drawable lines, inserting exactly one
 /// `LineKind::Blank` between top-level blocks (none leading/trailing).
 pub(super) fn lines(blocks: Vec<Block>, cols: usize) -> Vec<MdLine> {

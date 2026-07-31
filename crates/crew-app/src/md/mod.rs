@@ -20,6 +20,16 @@ pub(crate) fn render_chat(text: &str, cols: usize) -> Vec<MdLine> {
     layout::lines(parse::parse_with(text, true), cols)
 }
 
+/// Table layout for non-markdown callers (the viewer's CSV rung): column
+/// widths, padded cells and the header rule, over spans the caller builds.
+pub(crate) fn table_lines(
+    header: Vec<Vec<MdSpan>>,
+    rows: Vec<Vec<Vec<MdSpan>>>,
+    cols: usize,
+) -> Vec<MdLine> {
+    layout::table_lines(header, rows, cols)
+}
+
 /// Per-span inline styling. Independent bits so they can combine freely
 /// (`**bold _italic_**` yields a span with both `bold` and `italic` set).
 #[derive(Clone, Copy, PartialEq, Eq, Default, Debug)]

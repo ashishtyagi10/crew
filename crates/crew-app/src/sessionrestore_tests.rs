@@ -1,7 +1,8 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::app::CrewApp;
 use crate::pane::PaneContent;
+use crate::sessionrestore::restore_cwd_for;
 use crate::sessionsave::SavedPane;
 
 fn tmp_dir_str() -> String {
@@ -108,6 +109,134 @@ fn restore_from_reroots_a_remote_far_pane_and_starts_listing() {
     assert_eq!(loc.rclone_addr(), "gdrive:Photos");
     // Re-rooting also kicks off `begin_list`, mirroring `choose_drive`.
     assert!(f.ops_busy(), "restore should start listing the remote");
+}
+
+#[test]
+fn restore_from_reopens_a_viewer_on_its_saved_path() {
+    let dir = std::env::temp_dir();
+    let f = dir.join("session-restore-view-test.txt");
+    std::fs::write(&f, "hi\n").unwrap();
+    let mut app = CrewApp {
+        cwd: PathBuf::from("/"),
+        ..Default::default()
+    };
+    app.restore_from(vec![SavedPane::view(f.to_string_lossy().into_owned())]);
+    assert_eq!(app.panes.len(), 1);
+    let PaneContent::View(v) = &app.panes[0].content else {
+        panic!("expected a View pane");
+    };
+    assert_eq!(v.path, f, "restored viewer must open the saved path");
+    assert!(
+        app.zoomed,
+        "a restored viewer opens zoomed, like a fresh /view"
+    );
+    let _ = std::fs::remove_file(&f);
+}
+
+#[test]
+fn restoring_a_viewer_among_other_panes_does_not_leave_the_app_zoomed() {
+    // Fix 3 regression: `open_view` (called for the "view" entry) always
+    // sets `zoomed = true`, and nothing used to clear it afterward. Restoring
+    // `[view, shell, shell, shell]` left `zoomed == true` with focus on the
+    // last shell — the user sees one pane and has every reason to think the
+    // other three failed to open. Unlike
+    // `restore_from_reopens_a_viewer_on_its_saved_path` above (a ONE-entry
+    // fixture, the single case where staying zoomed is correct), this fixture
+    // is mixed, which is exactly the shape that fixture cannot catch.
+    let dir = std::env::temp_dir();
+    let f = dir.join("session-restore-view-zoom-test.txt");
+    std::fs::write(&f, "hi\n").unwrap();
+    let mut app = CrewApp {
+        cwd: PathBuf::from("/"),
+        zoomed: false,
+        ..Default::default()
+    };
+    app.restore_from(vec![
+        SavedPane::view(f.to_string_lossy().into_owned()),
+        SavedPane::shell(tmp_dir_str()),
+        SavedPane::shell(tmp_dir_str()),
+    ]);
+    assert_eq!(app.panes.len(), 3, "all three panes should have opened");
+    assert!(
+        !app.zoomed,
+        "a restored MIXED session must not leave the app zoomed — the other panes are still there"
+    );
+    let _ = std::fs::remove_file(&f);
+}
+
+#[test]
+fn restore_cwd_for_a_view_pane_is_the_tracked_cwd_not_the_file_path() {
+    // A view pane's `dir` is a FILE path, not a directory a shell/Far spawn
+    // could use as a cwd. Restoring must not point the app's tracked cwd at
+    // it — even transiently — the way a dir-backed kind's `dir` would.
+    let kept = Path::new("/kept");
+    let sp = SavedPane::view("/kept/subdir/file.rs".into());
+    assert_eq!(
+        restore_cwd_for(&sp, kept),
+        kept,
+        "a view pane's cwd for the iteration must stay the tracked cwd"
+    );
+}
+
+#[test]
+fn restore_from_resolves_a_relative_view_path_against_the_tracked_cwd() {
+    // Real `session_panes` always writes an absolute path, but a
+    // hand-edited (or older, pre-invariant) session file could carry a
+    // relative one — same "the file is user-editable" concern `load_at`
+    // already documents. If restore ever pointed the tracked cwd at the
+    // view's own (file) path before resolving it, a relative path would
+    // resolve against itself instead of the tracked cwd and fail to open.
+    let dir = std::env::temp_dir().join(format!("crew-restore-relview-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let f = dir.join("relview.txt");
+    std::fs::write(&f, "hi\n").unwrap();
+    let mut app = CrewApp {
+        cwd: dir.clone(),
+        ..Default::default()
+    };
+    app.restore_from(vec![SavedPane::view("relview.txt".into())]);
+    assert_eq!(app.panes.len(), 1, "the relative path must still resolve");
+    let PaneContent::View(v) = &app.panes[0].content else {
+        panic!("expected a View pane");
+    };
+    assert_eq!(v.path, f);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn session_panes_snapshots_a_view_pane_with_its_full_path() {
+    let dir = std::env::temp_dir();
+    let f = dir.join("session-panes-view-test.txt");
+    std::fs::write(&f, "hi\n").unwrap();
+    let mut app = CrewApp {
+        cwd: dir,
+        ..Default::default()
+    };
+    app.open_view(&f.to_string_lossy());
+    assert_eq!(
+        app.session_panes(),
+        vec![SavedPane::view(f.to_string_lossy().into_owned())]
+    );
+    let _ = std::fs::remove_file(&f);
+}
+
+#[test]
+fn session_panes_skips_an_ephemeral_viewer() {
+    // Fix 4: `/about` and `??` open their viewer on a SYNTHETIC temp file —
+    // saving it like `session_panes_snapshots_a_view_pane_with_its_full_path`
+    // (above) expects for a NORMAL viewer would let a run whose only pane is
+    // `/about` silently replace a saved multi-shell session with a changelog
+    // viewer. This is why the fix must key off the pane being synthetic, not
+    // off its path living under `$TMPDIR` — the normal-viewer test above
+    // opens a real file that also happens to live there, and must still be
+    // saved.
+    let mut app = CrewApp::default();
+    app.spawn_about_pane();
+    assert_eq!(
+        app.session_panes(),
+        Vec::<SavedPane>::new(),
+        "an ephemeral viewer must not be snapshotted"
+    );
 }
 
 #[test]

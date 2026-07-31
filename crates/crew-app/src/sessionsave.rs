@@ -1,11 +1,12 @@
 //! Session snapshot persistence: quitting records each restorable pane
-//! (shell, Far, /crew chat) to `session.toml` beside the config; `/restore`
-//! (see `sessionrestore`) reopens them. Pull-based on purpose — startup
-//! keeps the welcome state, and the snapshot is only spent when asked.
+//! (shell, Far, /crew chat, file viewer) to `session.toml` beside the
+//! config; `/restore` (see `sessionrestore`) reopens them. Pull-based on
+//! purpose — startup keeps the welcome state, and the snapshot is only
+//! spent when asked.
 //!
 //! Format v2 is a `[[panes]]` list of `kind` (+ `dir` where it applies);
 //! v1 files (a bare `dirs` array of shell cwds, v0.5.73–74) still load.
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 
@@ -67,22 +68,41 @@ impl SavedPane {
             remote: false,
         }
     }
+    /// A file-viewer pane. `dir` carries the **full resolved path** of the
+    /// file it had open — not a cwd-relative one, since the cwd at restore
+    /// time may not be the cwd it was opened from.
+    pub(crate) fn view(path: String) -> Self {
+        SavedPane {
+            kind: "view".into(),
+            dir: Some(path),
+            min: false,
+            remote: false,
+        }
+    }
 
-    /// Valid to restore: known kind, and dir-backed kinds still have their
-    /// directory. A remote Far pane's `dir` is an rclone address rather than
-    /// a filesystem path, so it's restorable whenever non-empty — there's no
-    /// cheap local check (that would mean shelling out to `rclone`), and a
-    /// stale/renamed remote simply fails on the listing `begin_list` kicks
-    /// off, same as any other rclone error.
-    fn restorable(&self) -> bool {
+    /// Restorable: known kind, and dir-backed kinds still have their
+    /// directory (a viewer, its file). `exists` is a real filesystem check
+    /// in production; injected in tests so the rule can be pinned without
+    /// touching disk. A remote Far pane's `dir` is an rclone address rather
+    /// than a filesystem path, so it's restorable whenever non-empty —
+    /// there's no cheap local check (that would mean shelling out to
+    /// `rclone`), and a stale/renamed remote simply fails on the listing
+    /// `begin_list` kicks off, same as any other rclone error.
+    pub(crate) fn restorable_with(&self, exists: impl Fn(&Path) -> bool) -> bool {
         match self.kind.as_str() {
             "far" if self.remote => self.dir.as_deref().is_some_and(|d| !d.is_empty()),
-            "shell" | "far" => self
-                .dir
-                .as_deref()
-                .is_some_and(|d| std::path::Path::new(d).is_dir()),
+            "shell" | "far" | "view" => self.dir.as_deref().is_some_and(|d| exists(Path::new(d))),
             "crew" => true,
             _ => false,
+        }
+    }
+
+    /// `restorable_with` wired to the real filesystem: directories for
+    /// `shell` and local `far`, a plain file for `view`.
+    fn restorable(&self) -> bool {
+        match self.kind.as_str() {
+            "view" => self.restorable_with(|p| p.is_file()),
+            _ => self.restorable_with(|p| p.is_dir()),
         }
     }
 }

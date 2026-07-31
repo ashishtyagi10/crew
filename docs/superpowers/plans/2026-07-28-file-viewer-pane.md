@@ -24,7 +24,14 @@
 - **Tests compare against `crew_theme::theme()`'s own slots**, never hardcoded RGB triples. The active theme is global mutable state and tests run in parallel.
 - **Nothing blocking on the winit thread.** No `read_to_string`, no `Command`, no `metadata` on a path that could be a network mount, inside anything reachable from `keys.rs`, `render`, or `cells`. The one permitted exception is the single `is_file()` existence check in `open_view` (Task 8), which matches what `clickopen::open_path_token` already does.
 - **Keep source files under ~200 lines.** When a file approaches it, move tests to a sibling `<name>_tests.rs` included via `#[cfg(test)] #[path = "<name>_tests.rs"] mod tests;` — the established pattern in this repo.
-- **`cargo clippy --workspace --all-targets -- -D warnings` must be green**, with no `#[allow(...)]` added to make it so.
+- **`cargo clippy --workspace --all-targets -- -D warnings` must be green**, with no `#[allow(...)]` added to make it so — **with one carve-out, covering two lint classes**: `dead_code` and `unused_imports`, when they arise because the item's or re-export's consumer is a task that has not landed yet. Tasks 1–7 build modules bottom-up, so each ships items and re-exports its caller acquires later. Silencing either with `#[allow]` is worse than the warning, because the allow outlives the gap and then hides the real thing. Every *other* warning class is a hard gate at every task, and clippy must be **fully** green from Task 8 onward, when the wiring lands — `unused_imports` on the `viewpane` re-exports in fact clears at Task 4, which is their first consumer. Verify with this while the gap is open — it prints every lint code that fired, so "only `dead_code`" is a fact rather than a hope:
+
+```bash
+cargo clippy -p crew-app --all-targets --message-format=json 2>/dev/null \
+  | grep -o '"code":"[a-z_]*"' | sort | uniq -c | sort -rn
+```
+
+Grepping clippy's human-readable output for `dead_code` does **not** work: the lint name only appears in the note line, hyphenated as `dead-code`.
 - **Never commit keys** — the crew repo is public.
 - **Read-only.** No task in this plan writes to a viewed file. Editing is Phase 2 (markdown) or `$EDITOR` (everything else).
 - `MAX_VIEW_BYTES = 8 * 1024 * 1024`, `SNIFF_BYTES = 8192`. Use these exact constants; tests reference them.
@@ -523,6 +530,10 @@ pub(crate) const MAX_VIEW_BYTES: u64 = 8 * 1024 * 1024;
 
 /// Loaded text plus, when the file was longer than the cap, its real size —
 /// which the banner names so the truncation is never silent.
+///
+/// `Debug` is required, not decorative: the tests use `expect_err`, which
+/// needs `T: Debug` on the `Ok` side.
+#[derive(Debug)]
 pub(crate) struct Loaded {
     pub text: String,
     pub truncated: Option<u64>,
@@ -799,20 +810,40 @@ impl ViewPane {
     }
 
     /// Drain the worker channel. Returns `true` on the tick the state changed,
-    /// which is what tells `poll_panes` to redraw.
+    /// which is what tells `poll_panes` to redraw — and `false` forever after,
+    /// which is what stops an idle pane repainting.
+    ///
+    /// Note what this does NOT do: reset `scroll`. `open` constructs the pane
+    /// at 0, so a first load needs no reset, and that is precisely what lets
+    /// `reload` keep the reader where they were. A stale offset after a file
+    /// shrinks is caught downstream by `cells`'s window clamp and
+    /// `clamp_scroll`.
     pub(crate) fn poll(&mut self) -> bool {
         let LoadState::Loading { rx, .. } = &self.state else {
             return false;
         };
-        let Ok(done) = rx.try_recv() else {
-            return false;
+        let done = match rx.try_recv() {
+            Ok(done) => done,
+            // The worker died without sending — a panic in the load thread.
+            // Nothing will ever arrive, so settle as Failed rather than
+            // staying Loading: a pane stuck in Loading keeps `animating()`
+            // true, and that keeps the WHOLE APP repainting every frame for
+            // the rest of the session.
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                self.state = LoadState::Failed(format!(
+                    "{}: loader stopped unexpectedly",
+                    self.path.display()
+                ));
+                self.cache.replace(None);
+                return true;
+            }
+            Err(std::sync::mpsc::TryRecvError::Empty) => return false,
         };
         self.state = match done.result {
             Ok(loaded) => LoadState::Ready { format: done.format, loaded },
             Err(msg) => LoadState::Failed(msg),
         };
         self.cache.replace(None);
-        self.scroll = 0;
         true
     }
 
@@ -1145,23 +1176,7 @@ fn ready_lines(format: Format, loaded: &Loaded, raw: bool, cols: usize) -> Vec<C
 mod tests;
 ```
 
-**Note for the implementer:** `super::mdrung::lines` and `super::csv::lines` arrive in Tasks 5 and 6. To keep this task independently green, add temporary shims in `viewpane/mod.rs`:
-
-```rust
-// Replaced by Task 5 / Task 6.
-pub(crate) mod mdrung {
-    pub(crate) fn lines(t: &str, cols: usize) -> Vec<crate::chatbody::CardLine> {
-        super::lines::for_plain(t, cols)
-    }
-}
-pub(crate) mod csv {
-    pub(crate) fn lines(t: &str, _d: char, cols: usize) -> Vec<crate::chatbody::CardLine> {
-        super::lines::for_plain(t, cols)
-    }
-}
-```
-
-and expose `pub(crate) fn for_plain(text: &str, cols: usize) -> Vec<CardLine>` in `lines.rs` calling `numbered` with theme colours. **Task 5 and Task 6 each delete their shim.** Do not leave a shim behind — a rung that silently falls back to plain text is exactly the failure this ladder exists to prevent.
+**Execution order:** `lines.rs` calls `mdrung::lines` and `csv::lines`, so **Tasks 5 and 6 are implemented before this one** — they depend only on `chatbody` and `md`, not on anything here. Building them first means no temporary shim exists at any point. A rung that silently falls back to plain text is exactly the failure this ladder exists to prevent, and a shim is that failure with a comment on it.
 
 - [ ] **Step 4: Run to verify pass**
 
@@ -1210,14 +1225,23 @@ fn clamp_scroll_pulls_a_wild_offset_back_to_the_last_page() {
     assert!(p.scroll <= 3, "offset clamped to content, got {}", p.scroll);
 }
 
-#[test]
-fn the_cache_is_reused_across_frames_at_one_width() {
-    let p = pane_with("a\nb\n");
-    let _ = p.cells(30, 5);
-    let before = p.cache.borrow().as_ref().map(|c| c.cols);
-    let _ = p.cells(30, 5);
-    assert_eq!(before, Some(30), "same width keeps the cache");
-}
+// CACHE REUSE — do not write this the obvious way. The first draft of this
+// plan specified:
+//
+//     let _ = p.cells(30, 5);
+//     let before = p.cache.borrow().as_ref().map(|c| c.cols);
+//     let _ = p.cells(30, 5);
+//     assert_eq!(before, Some(30), "same width keeps the cache");
+//
+// which is VACUOUS: it passes against an always-rebuild implementation,
+// because a rebuilt cache holds width 30 too. Confirmed by injecting that
+// bug and watching it still pass.
+//
+// The shipped replacement is `the_cache_survives_an_unrelated_state_mutation_
+// at_the_same_width` in `viewpane/render_tests.rs` — it mutates state the
+// cache key does not cover, re-renders at the same width, and asserts the
+// cache was not rebuilt, so the injected bug fails it. Read that test rather
+// than reconstructing one from this comment.
 ```
 
 - [ ] **Step 6: Implement `render.rs`**
@@ -1323,7 +1347,7 @@ The source half is deleted here. `mdcache::preview_lines` is the whole markdown 
 **Files:**
 - Create: `crates/crew-app/src/viewpane/mdrung.rs`
 - Create: `crates/crew-app/src/viewpane/mdrung_tests.rs`
-- Modify: `crates/crew-app/src/viewpane/mod.rs` (**delete the `mdrung` shim from Task 4**)
+- Modify: `crates/crew-app/src/viewpane/mod.rs` (add `pub(crate) mod mdrung;`)
 
 **Interfaces:**
 - Consumes: `md::render`, `chatmd::map_lines`, `crew_theme::theme()`.
@@ -1361,7 +1385,14 @@ fn a_heading_is_bold_and_the_body_is_not() {
 
 #[test]
 fn content_wraps_inside_the_pane_width() {
-    let ls = lines(&format!("{}\n", "word ".repeat(60)), 30);
+    // A single unbroken run, so map_lines must hard-wrap at exactly the
+    // content width — the only case where the one-column indent
+    // compensation is observable. Word-wrapped prose (`"word ".repeat(60)`,
+    // this test's first draft) breaks at the last space and leaves slack, so
+    // it passed whether or not the compensation was there: verified by
+    // deleting the `-1` and watching it still pass. With this input, the
+    // same deletion fails at "width 31 exceeds 30".
+    let ls = lines(&format!("{}\n", "x".repeat(200)), 30);
     for l in &ls {
         let w: usize = l.iter().map(|c| crate::chatwidth::char_w(c.c)).sum();
         assert!(w <= 30, "line of width {w} exceeds 30: {:?}", text(l));
@@ -1413,7 +1444,7 @@ pub(crate) fn lines(text: &str, cols: usize) -> Vec<CardLine> {
 mod tests;
 ```
 
-Replace the Task 4 shim in `viewpane/mod.rs` with `pub(crate) mod mdrung;`.
+Add `pub(crate) mod mdrung;` to `viewpane/mod.rs`.
 
 - [ ] **Step 4: Run to verify pass**
 
@@ -1437,7 +1468,7 @@ git commit -m "feat(view): markdown renders full width, source half deleted"
 - Create: `crates/crew-app/src/viewpane/csv.rs`
 - Create: `crates/crew-app/src/viewpane/csv_tests.rs`
 - Modify: `crates/crew-app/src/md/mod.rs` (re-export `table::lines` as `pub(crate)`)
-- Modify: `crates/crew-app/src/viewpane/mod.rs` (**delete the `csv` shim from Task 4**)
+- Modify: `crates/crew-app/src/viewpane/mod.rs` (add `pub(crate) mod csv;`)
 
 **Interfaces:**
 - Consumes: `md::table_lines(header, rows, cols) -> Vec<MdLine>`, `chatmd::map_lines`.
@@ -1549,6 +1580,11 @@ use crate::md::{MdSpan, MdStyle};
 pub(crate) fn parse(text: &str, delim: char) -> Vec<Vec<String>> {
     let mut rows = Vec::new();
     for line in text.split('\n') {
+        // Strip CRLF's carriage return at the LINE level, not globally — a \r
+        // genuinely inside a quoted field is data. Excel and most Windows/web
+        // exports are CRLF, so without this every row's last field carries a
+        // control character into the renderer as literal cell text.
+        let line = line.strip_suffix('\r').unwrap_or(line);
         if line.is_empty() {
             continue;
         }
@@ -1604,7 +1640,7 @@ mod tests;
 
 **Implementer note:** check `MdSpan`'s actual field names and `MdStyle`'s constructor in `crates/crew-app/src/md/mod.rs` before writing `spans` — if `MdStyle` has no `Default`, build it with every flag false. Do not add a `Default` impl for this.
 
-Replace the Task 4 shim in `viewpane/mod.rs` with `pub(crate) mod csv;`.
+Add `pub(crate) mod csv;` to `viewpane/mod.rs`.
 
 - [ ] **Step 5: Run to verify pass**
 
@@ -1979,17 +2015,21 @@ fn escape_cancels_a_live_search_before_it_closes_the_pane() {
 
 ```rust
 impl ViewPane {
-    /// Mouse-wheel scrolling. Positive `lines` scrolls down, matching
-    /// `MdPane::scroll_wheel`'s sign convention so `scroll.rs` is unchanged
-    /// apart from the variant name.
+    /// Mouse-wheel scrolling. `scroll.rs` hands down winit's delta, where
+    /// **positive means scrolling up** — so the offset moves the other way.
+    /// Matches `MdPane::scroll_wheel`, the call site this replaces.
     pub(crate) fn scroll_wheel(&mut self, cols: u16, rows: u16, lines: i32) {
-        self.scroll = self.scroll.saturating_add_signed(lines as isize);
+        self.scroll = self
+            .scroll
+            .saturating_add_signed(lines.saturating_neg() as isize);
         self.clamp_scroll(cols, rows);
     }
 }
 ```
 
-**Implementer note:** confirm the sign convention by reading `MdPane::scroll_wheel` before deleting it in Task 8. Getting it backwards is invisible to every unit test and instantly obvious in the app.
+**The negation is the whole point, and this plan got it wrong first.** The original draft added `lines` un-negated with a comment asserting "positive scrolls down" — backwards. It was caught only because the implementer read `mdpane.rs` and `scroll.rs` instead of trusting the sample. A flipped wheel sign passes every unit test that asserts on magnitude and is wrong the instant a human touches a trackpad, so **read the call site, do not trust this block**.
+
+Note also that `MdPane::scroll_wheel` takes a `cursor_col: Option<u16>` to pick which half of its split gets the scroll. `ViewPane` has no split, so that parameter disappears — Task 8's `scroll.rs` arm passes `(cols, rows, lines)` only.
 
 - [ ] **Step 9: Run, lint, commit**
 

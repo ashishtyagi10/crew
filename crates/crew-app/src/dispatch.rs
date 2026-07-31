@@ -13,7 +13,7 @@ impl CrewApp {
             "goal" => self.spawn_goal_pane(""), // show usage hint
             "model" => self.set_model_cmd(""),  // show usage hint
             "batch" => self.spawn_batch_pane(""), // show usage hint
-            "md" => self.spawn_md_pane(""),     // show usage hint
+            "md" | "view" => self.open_view(""), // show usage hint
             "smith" | "crew" => self.spawn_crew_pane(), // /crew kept as an alias
             "settings" => self.spawn_settings_pane(),
             "shell" => self.spawn_new_pane(),
@@ -64,7 +64,9 @@ impl CrewApp {
                 } else if let Some(f) = other.strip_prefix("batch ") {
                     self.spawn_batch_pane(f.trim());
                 } else if let Some(f) = other.strip_prefix("md ") {
-                    self.spawn_md_pane(f.trim());
+                    self.open_view(f.trim());
+                } else if let Some(f) = other.strip_prefix("view ") {
+                    self.open_view(f.trim());
                 } else if let Some(n) = other.strip_prefix("notify ") {
                     self.notify_command(n.trim());
                 } else if let Some(t) = other.strip_prefix("theme ") {

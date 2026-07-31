@@ -104,9 +104,9 @@ pub struct CrewApp {
     pub(crate) notifier: crate::notify::Notifier,
     /// When quit was last pressed with panes open, for the confirm-to-quit window.
     pub(crate) quit_armed: Option<Instant>,
-    /// Whether a restorable pane (shell / Far / crew chat) ever existed this
-    /// session — gates the quit snapshot so a pane-less run can't wipe a
-    /// saved `/restore` session.
+    /// Whether a restorable pane (shell / Far / crew chat / file viewer)
+    /// ever existed this session — gates the quit snapshot so a pane-less
+    /// run can't wipe a saved `/restore` session.
     pub(crate) had_restorable: bool,
     /// Saved-session shell count for the welcome screen's `/restore` hint
     /// (seeded at startup, cleared once `/restore` spends the snapshot).

@@ -170,6 +170,63 @@ fn remote_far_pane_round_trips_and_false_is_omitted() {
 }
 
 #[test]
+fn a_viewer_is_saved_with_its_path() {
+    // `kind` is an open string precisely so an older build skips this rather
+    // than failing the whole load.
+    let sp = SavedPane {
+        kind: "view".into(),
+        dir: Some("/tmp/x.rs".into()),
+        min: false,
+        remote: false,
+    };
+    assert!(sp.restorable_with(|p| p == std::path::Path::new("/tmp/x.rs")));
+}
+
+#[test]
+fn a_viewer_on_a_deleted_file_is_dropped_not_restored_empty() {
+    let sp = SavedPane {
+        kind: "view".into(),
+        dir: Some("/tmp/gone.rs".into()),
+        min: false,
+        remote: false,
+    };
+    assert!(!sp.restorable_with(|_| false));
+}
+
+#[test]
+fn a_viewer_round_trips_through_toml_and_is_dropped_once_the_file_is_gone() {
+    // End-to-end through the real filesystem (not the injected predicate):
+    // pins that production `restorable()` actually calls `is_file`, and
+    // that a directory does not count as a valid viewer target.
+    let p = tmp("view");
+    let target = tmp("view-target.rs");
+    std::fs::write(&target, "fn main() {}").unwrap();
+    save_at(
+        Some(p.clone()),
+        vec![SavedPane::view(target.to_string_lossy().into_owned())],
+    );
+    assert_eq!(
+        load_at(Some(p.clone())),
+        vec![SavedPane::view(target.to_string_lossy().into_owned())]
+    );
+    std::fs::remove_file(&target).unwrap();
+    assert!(
+        load_at(Some(p.clone())).is_empty(),
+        "a viewer on a since-deleted file must not be restored"
+    );
+    let _ = std::fs::remove_file(p);
+}
+
+#[test]
+fn a_viewer_on_a_directory_is_not_valid() {
+    // `dir` for a `view` pane is a FILE path; a stale entry pointing at a
+    // directory (hand-edited file, or a future kind confusion) must not
+    // pass — `restorable()` requires `is_file`, not mere existence.
+    let sp = SavedPane::view(tmp_dir_str());
+    assert!(!sp.restorable());
+}
+
+#[test]
 fn same_dir_shells_with_different_min_both_survive_dedupe() {
     // Two real panes (one minimized) in the same cwd must not collapse into
     // one arbitrary survivor — min is part of the dedupe key.

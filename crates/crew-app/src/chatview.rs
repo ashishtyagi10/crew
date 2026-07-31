@@ -232,6 +232,21 @@ pub(crate) fn link_at(pane: &ChatPane, cols: u16, rows: u16, row: u16, col: u16)
         .map(|l| l.to_string())
 }
 
+/// The plain text (no styling) of the message-body row at `row` — the
+/// `clickopen` Chat arm's fallback when `link_at` misses: a path an agent
+/// wrote is plain text, not a markdown link, so resolving it needs the raw
+/// row content to run `token_at`/`open_path_token` against, the same as a
+/// terminal pane's Cmd+click. Same `placed_lines` re-derivation as
+/// `link_at`/`code_block_at`, so it can never resolve against stale layout,
+/// and it only ever reconstructs the ONE clicked row — nothing is scanned
+/// ahead of a click.
+pub(crate) fn row_text_at(pane: &ChatPane, cols: u16, rows: u16, row: u16) -> Option<String> {
+    crate::chatplace::placed_lines(pane, cols, rows)
+        .into_iter()
+        .find(|(r, _)| *r == row)
+        .map(|(_, line)| line.iter().map(|c| c.c).collect())
+}
+
 /// The whole fenced code block a click landed in, as text — `None` when the
 /// click was not inside one.
 ///
