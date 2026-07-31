@@ -8,6 +8,42 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.10.0
+
+*Read any file where you already are — and a title bar that stopped being
+see-through.*
+
+- **`/view <path>` opens any file in a pane, and `/md` is now an alias for it.**
+  One read-only viewer replaces the old source|preview split, over a ladder of
+  formats: code with syntax colour, markdown **rendered only** (the source half
+  is gone — showing markdown source beside its render was a dev tool wearing a
+  reading experience's clothes), json/yaml/toml, csv laid out as a table, and
+  diffs with `+`/`−` ink.
+- **PDF and Word open as honest text extracts, not fake page renders.** A
+  monospace grid has no business impersonating a page, so those rungs say what
+  they are in a banner and offer `o` to hand the file to the real application.
+  Extractors are *probed, never required* — macOS's own `textutil` covers
+  docx/rtf, and a missing `pdftotext` degrades that one rung instead of
+  erroring. Binaries get a metadata card naming size, kind and mtime.
+- **Nothing about it blocks the grid.** Detection, reading and extraction all
+  run on a worker thread, so the pane is on screen before a byte is read: a
+  stalled network mount or a 300-page `pdftotext` can no longer freeze every
+  other pane, agents included. Both caps — 8 MB of bytes, 50 000 rendered lines
+  — announce themselves rather than silently truncating.
+- **`/far`'s F3 and F4 stopped lying.** Both used to hand the file to the OS and
+  throw you out of crew; F3 now views it in place and F4 opens `$EDITOR` in a
+  crew pane. Cmd+click resolves a path anywhere — including one an agent wrote
+  in a reply — and `e` inside the viewer hands off to `$EDITOR` and **reloads
+  when it exits**, keeping your scroll position. Open viewers survive a restart.
+- **Search inside a file** with `/`, `n` and `N`; `s` shows raw source; Esc
+  closes and restores the focus and zoom you came from.
+- **Fixed: the title bar was see-through.** crew asks to be transparency-capable
+  at window creation so Opacity % can take effect without a restart — but on
+  macOS that leaves the window non-opaque for good, and the title bar is drawn
+  by the OS against whatever is behind it. Panes were solid while the chrome
+  showed the desktop. Being transparency-*capable* and being transparent are
+  separable, so the runtime flag now follows the setting.
+
 ## 0.9.0
 
 *Jarvis motion, iteration 6 of 6 — the goal is complete.*
