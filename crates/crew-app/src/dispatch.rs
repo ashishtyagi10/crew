@@ -142,13 +142,22 @@ impl CrewApp {
         }
     }
 
-    /// Push both glass settings into the renderer.
+    /// Push both glass settings into the renderer, and keep the window's own
+    /// opaque flag in step with them.
+    ///
+    /// The window half is not optional bookkeeping: the renderer only controls
+    /// the alpha of the frame *crew* draws, while the OS-drawn title bar
+    /// composites against `NSWindow.isOpaque`. Setting one without the other is
+    /// what left the title bar see-through at full opacity.
     pub(crate) fn apply_glass(&mut self) {
         let level = self.config.glass_level();
         let opacity = self.config.window_opacity;
         if let Some(r) = &mut self.renderer {
             r.set_glass(level);
             r.set_window_opacity(opacity);
+        }
+        if let Some(w) = &self.window {
+            w.set_transparent(crate::config::wants_window_transparency(opacity));
         }
     }
 

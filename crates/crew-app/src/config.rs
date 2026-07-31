@@ -56,6 +56,23 @@ fn default_window_opacity() -> f32 {
     1.0
 }
 
+/// Whether the window should composite as non-opaque *right now*.
+///
+/// Not the same question as "can this window ever be translucent". That one is
+/// answered once, at creation, by `.with_transparent(true)` in `handler` — it
+/// cannot be changed later without tearing the window down, which is why crew
+/// asks for it unconditionally.
+///
+/// This is the runtime flag, and on macOS it drives `NSWindow.isOpaque`. That
+/// matters because the **title bar is drawn by the OS, not by crew**: a
+/// non-opaque window composites its title bar against whatever is behind it.
+/// Leaving the flag on at full opacity is what made the title bar show the
+/// desktop through while every pane stayed solid — `handler`'s "nothing crew
+/// draws leaves alpha below 1" is true and was never about the chrome.
+pub fn wants_window_transparency(opacity: f32) -> bool {
+    opacity < 1.0
+}
+
 fn default_font_weight() -> u16 {
     // SemiBold. Heavier than the old Medium (500) base so body text reads
     // thicker and more substantial out of the box; /weight tunes it live.

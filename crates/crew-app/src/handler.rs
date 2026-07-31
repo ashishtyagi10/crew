@@ -41,6 +41,14 @@ impl ApplicationHandler for CrewApp {
             WindowAttributesExtX11::with_name(attrs, "crew", "crew")
         };
         let window = Arc::new(event_loop.create_window(attrs).expect("create window"));
+        // Being transparency-CAPABLE (above) and being transparent are two
+        // different things, and only the second is changeable after creation.
+        // Drop straight back to opaque unless the setting actually asks for
+        // translucency — otherwise macOS keeps `NSWindow.isOpaque` false and
+        // draws the title bar against the desktop, which is not ours to paint.
+        window.set_transparent(crate::config::wants_window_transparency(
+            self.config.window_opacity,
+        ));
 
         // Two things can want the launch note. A crash outranks a version
         // banner — the user watched the window vanish for no stated reason, and

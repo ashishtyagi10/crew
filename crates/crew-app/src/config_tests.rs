@@ -179,3 +179,27 @@ fn font_random_round_trips_and_defaults_off() {
     assert!(cfg.font_random);
     assert!(cfg.clamped().font_random, "clamped() must carry the flag");
 }
+
+#[test]
+fn a_fully_opaque_window_does_not_ask_to_be_transparent() {
+    // THE TITLE-BAR BUG. `handler.rs` requests `.with_transparent(true)` at
+    // creation so the Opacity % setting can take effect without a restart —
+    // but on macOS that sets `NSWindow.isOpaque = false` for good, and the
+    // OS-drawn title bar composites against whatever is behind the window.
+    // Crew's own frame is opaque at 1.0, so the panes looked right while the
+    // title bar showed the desktop through it: the title bar is not part of
+    // the frame crew draws, so "nothing crew draws leaves alpha below 1"
+    // never covered it.
+    assert!(!super::wants_window_transparency(
+        super::default_window_opacity()
+    ));
+    assert!(!super::wants_window_transparency(1.0));
+}
+
+#[test]
+fn any_opacity_below_one_asks_to_be_transparent() {
+    // The other direction matters just as much: gating this on the setting is
+    // only correct if translucency still works when it is actually wanted.
+    assert!(super::wants_window_transparency(0.99));
+    assert!(super::wants_window_transparency(super::MIN_WINDOW_OPACITY));
+}
