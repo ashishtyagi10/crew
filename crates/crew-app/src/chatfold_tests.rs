@@ -185,6 +185,53 @@ fn agent_cards_and_compact_view_never_fold_toggle() {
 }
 
 #[test]
+fn fold_clicks_are_inert_while_a_popup_overlays_the_transcript() {
+    // A click on a Ctrl+R/palette/mention popup row must not fall through
+    // and toggle the fold of the card invisibly beneath it.
+    let (cols, rows) = (40u16, 20u16);
+    let mut p = crate::chat::tests::pane();
+    p.push_capped(msg("crew", LONG));
+    let suffix_row = row_with(&p, cols, rows, "\u{2026} +4");
+    p.histsearch = Some(crate::chathistsearch::HistSearch {
+        query: String::new(),
+        saved: String::new(),
+        matches: vec!["x".into()],
+        sel: 0,
+    });
+    assert!(
+        !p.toggle_fold_at(cols, rows, suffix_row),
+        "search popup open: fold clicks are inert"
+    );
+    p.histsearch = None;
+    p.mention = Some(crate::chatmention::MentionState {
+        entries: Vec::new(),
+        matches: Vec::new(),
+        sel: 0,
+    });
+    assert!(
+        !p.toggle_fold_at(cols, rows, suffix_row),
+        "mention popup open: fold clicks are inert"
+    );
+    p.mention = None;
+    p.palette = Some(crate::chatpalette::PaletteState {
+        kind: crate::chatpalette::Kind::Slash,
+        items: Vec::new(),
+        sel: 0,
+        entries: Vec::new(),
+        touched: false,
+    });
+    assert!(
+        !p.toggle_fold_at(cols, rows, suffix_row),
+        "palette open: fold clicks are inert"
+    );
+    p.palette = None;
+    assert!(
+        p.toggle_fold_at(cols, rows, suffix_row),
+        "no popup: the same click toggles again"
+    );
+}
+
+#[test]
 fn a_streaming_system_card_toggles_behind_the_settled_transcript() {
     // Index math across the `messages` → `streaming` seam: the streaming
     // card is visible index 1 but lives in `streaming[0]`.

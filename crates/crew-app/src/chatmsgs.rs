@@ -215,11 +215,15 @@ pub(crate) fn full_body(m: &Message, cols: usize, view: View) -> Vec<CardLine> {
         crew_theme::theme().ink
     };
     let mut body = body_lines(&m.text, cols, fg, view.source);
-    // The reply's usage trailer joins the body BEFORE any clamp, so compact
-    // view and the auto-fold hide it — and count it in ` … +N` — like any
-    // body line.
-    if let Some(t) = m.usage.and_then(crate::chatusage::trailer_line) {
-        body.push(t);
+    // The reply's usage trailer joins the body BEFORE the clamp in normal
+    // view, so the auto-fold hides it — and counts it in ` … +N` — like any
+    // body line. Compact view (Ctrl+O) excludes it entirely: it is metadata,
+    // not content, and counting it would stamp a misleading ` … +1` on every
+    // single-line reply that carries usage.
+    if !view.compact {
+        if let Some(t) = m.usage.and_then(crate::chatusage::trailer_line) {
+            body.push(t);
+        }
     }
     body
 }

@@ -67,6 +67,12 @@ fn toggle_target(pane: &ChatPane, cols: u16, rows: u16, row: u16) -> Option<usiz
     if cols == 0 || rows == 0 || visible.is_empty() || top == 0 {
         return None; // tiny panes use the plain fallback layout — no cards
     }
+    // An open popup (Ctrl+R search, palette, mention) overlays the
+    // transcript: a click on one of its rows belongs to it, never to the
+    // card invisibly beneath.
+    if pane.histsearch.is_some() || pane.palette.is_some() || pane.mention.is_some() {
+        return None;
+    }
     let view = View {
         source: pane.show_source,
         compact: pane.compact_view,

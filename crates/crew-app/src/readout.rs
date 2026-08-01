@@ -112,6 +112,7 @@ mod tests {
     /// A number seen for the first time is simply shown.
     #[test]
     fn first_sight_is_settled() {
+        let _g = crate::app::motion_test_guard();
         let c = counter();
         assert_eq!(c.tick(100.0, 1_000), 100.0);
         assert!(!c.live(1_000));
@@ -119,6 +120,7 @@ mod tests {
 
     #[test]
     fn a_changed_value_sweeps_to_it() {
+        let _g = crate::app::motion_test_guard();
         let c = counter();
         let now = 1_000;
         assert_eq!(c.tick(100.0, now), 100.0);
@@ -131,6 +133,7 @@ mod tests {
     /// The point of the module: a counter that arrives stops asking for frames.
     #[test]
     fn a_reached_value_settles() {
+        let _g = crate::app::motion_test_guard();
         let c = counter();
         c.tick(42.0, 0);
         c.tick(99.0, 0);
@@ -143,6 +146,7 @@ mod tests {
     /// restarting from the old *target* would visibly jump backwards.
     #[test]
     fn a_change_mid_sweep_continues_from_the_shown_value() {
+        let _g = crate::app::motion_test_guard();
         let c = counter();
         c.tick(0.0, 0);
         c.tick(100.0, 0);
@@ -158,6 +162,7 @@ mod tests {
     /// frame would otherwise animate forever and the app would never idle.
     #[test]
     fn an_unchanged_target_does_not_restart() {
+        let _g = crate::app::motion_test_guard();
         let c = counter();
         c.tick(7.0, 0);
         for f in 1..40 {
@@ -168,6 +173,7 @@ mod tests {
 
     #[test]
     fn motion_off_shows_the_true_value_immediately() {
+        let _g = crate::app::motion_test_guard();
         let c = counter();
         crate::motion::set_level(MotionLevel::Off);
         c.tick(55.0, 900);
@@ -180,6 +186,7 @@ mod tests {
     /// would have had them share one counter and overwrite each other.
     #[test]
     fn counters_are_per_surface() {
+        let _g = crate::app::motion_test_guard();
         let (a, b) = (Readouts::default(), Readouts::default());
         a.cost.tick(10.0, 0);
         a.cost.tick(20.0, 0);
