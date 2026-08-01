@@ -19,6 +19,7 @@ fn cell(col: u16, row: u16, c: char, fg: (u8, u8, u8), bg: (u8, u8, u8)) -> Cell
 /// Draw a horizontal rule across `[1..=cols-2]` on row 0 with `title` embedded
 /// near the left (`─ TITLE ──────`). The rule uses `border`; the title uses
 /// `title_fg`. Callers shift the returned cells to the section's top row.
+/// When the title is empty, the entire rule is filled with `─` for a solid border.
 pub fn section_header(
     title: &str,
     cols: u16,
@@ -34,6 +35,14 @@ pub fn section_header(
     let mut col = 1u16;
     v.push(cell(col, 0, '─', border, bg));
     col += 1;
+    if title.is_empty() {
+        // No title: fill the entire row with solid border
+        while col <= right {
+            v.push(cell(col, 0, '─', border, bg));
+            col += 1;
+        }
+        return v;
+    }
     if col <= right {
         v.push(cell(col, 0, ' ', border, bg));
         col += 1;
