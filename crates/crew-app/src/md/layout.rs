@@ -116,6 +116,14 @@ fn code_spans(
 }
 
 fn code_block_lines(lang: String, src_lines: Vec<String>, cols: usize) -> Vec<MdLine> {
+    // An untagged fence whose body reads as a diff is treated as one — the
+    // same sniff family as `viewpane::detect::by_content` — so ```diff and a
+    // bare paste of `git diff` output colour alike.
+    let lang = if lang.is_empty() && super::syntaxdiff::looks_like_diff(&src_lines) {
+        "diff".to_string()
+    } else {
+        lang
+    };
     let cw = cols.max(1);
     let label = if lang.is_empty() { "code" } else { &lang };
     let header_text = format!("╭─ {label}").chars().take(cw).collect::<String>();

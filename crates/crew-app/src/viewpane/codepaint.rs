@@ -19,6 +19,11 @@ fn token_paint(tok: Token, ink: (u8, u8, u8)) -> CharPaint {
         Token::Plain => (ink, false),
         Token::Keyword => (crate::chatink::token_fg(tok), true),
         Token::Comment | Token::Str => (crate::chatink::token_fg(tok), false),
+        // Diff line classes never reach this path today — `detect` routes
+        // .diff/.patch files to their own rung (`lines::diff_lines`), not to
+        // a `Code { lang }` — but the mapping is the honest one if they ever
+        // do: the same colour the chat transcript gives them, regular weight.
+        Token::Added | Token::Removed | Token::Hunk => (crate::chatink::token_fg(tok), false),
     }
 }
 

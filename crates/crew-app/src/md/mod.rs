@@ -4,6 +4,7 @@
 mod layout;
 mod parse;
 pub(crate) mod syntax;
+mod syntaxdiff;
 
 /// Parses `text` and lays it out into wrapped, styled lines ready to draw at
 /// `cols` columns. Never panics, regardless of input. CommonMark semantics:

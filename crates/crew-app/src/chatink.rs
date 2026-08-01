@@ -153,6 +153,15 @@ pub(crate) fn token_fg(token: crate::md::syntax::Token) -> Color {
         Token::Comment => i.comment,
         Token::Str => i.string,
         Token::Keyword => i.keyword,
+        // Diff line classes take the theme's RAW slots, matching the viewer's
+        // diff rung (`viewpane::lines::diff_lines`) so a ```diff fence in
+        // chat and an opened .patch file colour identically. No `separated`
+        // walk here: the +/− marker at column zero already sets these lines
+        // apart from prose, hue is the signal, and the raw slots answer to
+        // `crew-theme`'s own `contrast_thresholds` for readability.
+        Token::Added => crew_theme::theme().ansi[2],
+        Token::Removed => crew_theme::theme().ansi[1],
+        Token::Hunk => crew_theme::theme().ansi[6],
     }
 }
 

@@ -23,6 +23,11 @@ pub(crate) enum Token {
     Comment,
     Str,
     Keyword,
+    /// Diff-only line classes (see `syntaxdiff`): an added line, a removed
+    /// line, a `@@` hunk header. File-header lines reuse `Comment`.
+    Added,
+    Removed,
+    Hunk,
 }
 
 /// Line-comment openers per language, longest first so `///` is not mistaken
@@ -151,6 +156,11 @@ fn matches_at(chars: &[char], i: usize, pat: &str) -> bool {
 /// claims the rest of its region.
 pub(crate) fn tokenize(line: &str, lang: &str) -> Vec<(String, Token)> {
     let lang = lang.to_ascii_lowercase();
+    // A diff is coloured by LINE, not by token — hand the whole line to the
+    // classifier instead of lexing it.
+    if super::syntaxdiff::is_diff_lang(&lang) {
+        return super::syntaxdiff::line_runs(line);
+    }
     let comments = comment_starts(&lang);
     let words = keywords(&lang);
     let chars: Vec<char> = line.chars().collect();
