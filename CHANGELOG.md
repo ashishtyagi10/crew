@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.10.6
+
+*Every reply owns up to what it cost.*
+
+- **Settled agent replies carry a muted usage trailer** — `900 in / 50 out ·
+  $0.012` — from the broker's per-reply stats, formatted like the footer.
+  Zero-usage replies (CLI agents, dangling segments) show nothing rather
+  than `0 in / 0 out`; unpriced models show tokens without a fabricated
+  `$0.000`; streaming cards stay trailer-free until the reply settles.
+
 ## 0.10.5
 
 *Find that message again: Ctrl+R searches your chat history.*
