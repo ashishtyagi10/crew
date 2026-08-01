@@ -27,6 +27,7 @@ impl Attention {
             NotifyKind::Pattern => '⚑',
             NotifyKind::AgentDone => '✓',
             NotifyKind::Exited => '⊗',
+            NotifyKind::Waiting => '?',
         }
     }
 

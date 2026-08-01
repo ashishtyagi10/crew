@@ -178,6 +178,7 @@ Press **`/keys`** in the input bar for this list in-app.
 | Next / previous pane | **Ctrl+Tab** / **Ctrl+Shift+Tab** (also Cmd+] / Cmd+[) |
 | Jump to pane N | **Cmd+1 … 9** |
 | Jump to next active pane | **Cmd+A** |
+| Jump to next pane waiting on you | **Cmd+.** |
 | Move pane left / right | **Cmd+{** / **Cmd+}** |
 | Focus the input bar | **Cmd+I** |
 | New shell pane | **Cmd+T** |

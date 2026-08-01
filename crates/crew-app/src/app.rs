@@ -150,6 +150,14 @@ pub struct CrewApp {
     /// Whether the enrichment fetch has been kicked off this process — a
     /// picker reopening must not spawn a second worker.
     pub(crate) model_fetch_started: bool,
+    /// When the user last typed, clicked, or scrolled (on the `anim` clock).
+    /// Gates blocked-pane auto-focus: focus is never stolen while the user is
+    /// actively driving some other pane (see [`crate::blocked`]).
+    pub(crate) last_input_ms: u64,
+    /// Blocked-on-a-human episode tracking + check throttle (see
+    /// [`crate::blocked`]): which panes are waiting, and which have already
+    /// had their one auto-focus for the current episode.
+    pub(crate) blocked: crate::blocked::BlockedState,
 }
 
 impl CrewApp {
