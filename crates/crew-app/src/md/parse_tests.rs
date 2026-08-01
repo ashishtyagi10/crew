@@ -111,6 +111,59 @@ fn successive_paragraphs_in_one_item_get_a_line_break_marker() {
     );
 }
 
+/// `(task, text)` per item of every list in `blocks`.
+fn task_items(blocks: &[Block]) -> Vec<(Option<bool>, String)> {
+    blocks
+        .iter()
+        .flat_map(|b| match b {
+            Block::List(items) => items
+                .iter()
+                .map(|i| {
+                    let text: String = i.spans.iter().map(|s| s.text.as_str()).collect();
+                    (i.task, text)
+                })
+                .collect::<Vec<_>>(),
+            _ => vec![],
+        })
+        .collect()
+}
+
+#[test]
+fn task_items_carry_checked_state_and_drop_the_brackets() {
+    let items = task_items(&parse("- [ ] todo\n- [x] done\n- [X] DONE"));
+    assert_eq!(
+        items,
+        vec![
+            (Some(false), "todo".into()),
+            (Some(true), "done".into()),
+            (Some(true), "DONE".into()),
+        ]
+    );
+}
+
+/// Loose items wrap their marker inside a `Paragraph` — the state must
+/// survive that extra nesting level too.
+#[test]
+fn loose_task_items_keep_their_state() {
+    let items = task_items(&parse("- [ ] a\n\n- [x] b"));
+    assert_eq!(
+        items,
+        vec![(Some(false), "a".into()), (Some(true), "b".into())]
+    );
+}
+
+#[test]
+fn bracket_text_without_task_syntax_is_not_a_task() {
+    let items = task_items(&parse("- [normal] text\n- [ ]notext"));
+    assert_eq!(items.len(), 2, "{items:?}");
+    assert!(
+        items.iter().all(|(task, _)| task.is_none()),
+        "plain bracket text misread as a task: {items:?}"
+    );
+    assert_eq!(items[0].1, "[normal] text");
+    assert_eq!(items[1].1, "[ ]notext");
+}
+
 #[test]
 fn html_blocks_render_verbatim() {
     let blocks = parse("<details>\nhidden</details>\nafter");

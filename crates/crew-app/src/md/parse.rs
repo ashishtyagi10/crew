@@ -22,11 +22,13 @@ const MAX_NEST_DEPTH: u8 = 32;
 
 /// One list entry: `ordered_idx` is `Some(n)` for the nth item of an ordered
 /// list, `None` for bullet items; `depth` is 0 at the list's own level and
-/// increments for each level of nesting.
+/// increments for each level of nesting; `task` is `Some(checked)` for a
+/// `- [ ]`/`- [x]` task item, `None` for ordinary items.
 #[derive(Debug, PartialEq)]
 pub(super) struct ListItem {
     pub ordered_idx: Option<u64>,
     pub depth: u8,
+    pub task: Option<bool>,
     pub spans: Vec<MdSpan>,
 }
 
@@ -58,7 +60,7 @@ pub(super) fn parse(text: &str) -> Vec<Block> {
 
 /// Same, but `keep_soft_breaks` keeps each line break as its own line — chat prose (`md::render_chat`).
 pub(super) fn parse_with(text: &str, keep_soft_breaks: bool) -> Vec<Block> {
-    let opts = Options::ENABLE_TABLES | Options::ENABLE_STRIKETHROUGH;
+    let opts = Options::ENABLE_TABLES | Options::ENABLE_STRIKETHROUGH | Options::ENABLE_TASKLISTS;
     let mut events = Parser::new_ext(text, opts);
     collect_blocks(&mut events, 0, keep_soft_breaks)
 }

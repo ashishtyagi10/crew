@@ -91,8 +91,14 @@ fn span_style(
     // Checked before `kind`: the quote bar is prefixed to EVERY line of a
     // quote, including the Code lines of a fenced block inside it, and a bar
     // drawn in code colour on a code tint would read as part of the code.
+    // A marker carrying a token overrides the marker colour — that is a
+    // checked task's ✓, which draws in the diff-added green (`Token::Added`).
     if span.style.marker {
-        return (chatink::marker_fg(), false, false, None, None);
+        let fg = match span.style.token {
+            crate::md::syntax::Token::Plain => chatink::marker_fg(),
+            token => chatink::token_fg(token),
+        };
+        return (fg, false, false, None, None);
     }
     match kind {
         LineKind::CodeHeader | LineKind::CodeFooter | LineKind::Rule => {
@@ -148,6 +154,12 @@ fn body_span_style(
     }
     if style.code {
         return (chatink::code_fg(), style.bold, style.italic, code_bg, None);
+    }
+    // Prose carrying a token: a checked task item's text, dimmed to the
+    // comment rung (`md::tasklist::body_spans`).
+    if style.token != crate::md::syntax::Token::Plain {
+        let fg = chatink::token_fg(style.token);
+        return (fg, style.bold, style.italic, None, None);
     }
     (base, style.bold, style.italic, None, None)
 }

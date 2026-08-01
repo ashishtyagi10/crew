@@ -77,6 +77,36 @@ fn list_bullet_is_the_marker_colour_and_its_text_is_not() {
 }
 
 #[test]
+fn a_checked_task_draws_a_green_check_and_dimmed_text() {
+    let _guard = crate::app::theme_test_guard();
+    let fg = (9, 9, 9);
+    let out = lines("- [x] done", 40, fg);
+    assert_eq!(row_text(&out[0]), " \u{2713} done");
+    assert_eq!(
+        out[0][1].fg,
+        crew_theme::theme().ansi[2],
+        "the check takes the added-line green"
+    );
+    let text = &out[0][3];
+    assert_eq!(
+        text.fg,
+        crate::chatink::token_fg(crate::md::syntax::Token::Comment),
+        "checked text recedes to the comment rung"
+    );
+    assert_eq!(text.bg, None, "dimmed text takes no code tint");
+}
+
+#[test]
+fn an_unchecked_task_draws_a_marker_box_and_normal_text() {
+    let _guard = crate::app::theme_test_guard();
+    let fg = (9, 9, 9);
+    let out = lines("- [ ] todo", 40, fg);
+    assert_eq!(row_text(&out[0]), " \u{2610} todo");
+    assert_eq!(out[0][1].fg, crate::chatink::marker_fg(), "the box");
+    assert_eq!(out[0][3].fg, fg, "the item text");
+}
+
+#[test]
 fn quote_bar_is_the_marker_colour_and_quoted_text_is_muted() {
     let _guard = crate::app::theme_test_guard();
     let out = lines("> hi there", 40, (9, 9, 9));

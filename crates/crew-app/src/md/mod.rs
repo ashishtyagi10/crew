@@ -5,6 +5,7 @@ mod layout;
 mod parse;
 pub(crate) mod syntax;
 mod syntaxdiff;
+mod tasklist;
 
 /// Parses `text` and lays it out into wrapped, styled lines ready to draw at
 /// `cols` columns. Never panics, regardless of input. CommonMark semantics:
@@ -45,7 +46,9 @@ pub(crate) struct MdStyle {
     pub marker: bool,
     /// What this run of a fenced code block is — comment, string, keyword —
     /// so the chat renderer can colour inside code rather than painting the
-    /// whole block one colour. `Plain` everywhere outside a fence.
+    /// whole block one colour. `Plain` everywhere outside a fence, except
+    /// task-list items: a checked ✓ carries `Added` (green), its text
+    /// `Comment` (dim) — see `tasklist`.
     pub token: syntax::Token,
 }
 

@@ -136,11 +136,7 @@ pub(super) fn collect_list_items<'a>(
         match events.next() {
             Some(Event::Start(Tag::Item)) => {
                 let (spans, nested, item_hoisted) = collect_item(events, depth, keep_soft_breaks);
-                items.push(ListItem {
-                    ordered_idx: idx,
-                    depth,
-                    spans,
-                });
+                items.push(crate::md::tasklist::item(idx, depth, spans));
                 idx = idx.map(|n| n + 1);
                 items.extend(nested);
                 hoisted.extend(item_hoisted);

@@ -86,6 +86,10 @@ pub(super) fn apply_inline_event(
             state.link.pop();
         }
         Event::Html(t) | Event::InlineHtml(t) => state.push_text(spans, t.into_string(), false),
+        // Never rendered: `tasklist::item` extracts it back off the item's
+        // spans. Emitted here because a loose item's marker arrives INSIDE
+        // its first paragraph, which only this fold ever sees.
+        Event::TaskListMarker(checked) => spans.push(crate::md::tasklist::sentinel(checked)),
         _ => {}
     }
 }
