@@ -59,6 +59,9 @@ pub struct ChatPane {
     /// The Ctrl+R reverse history-search popup while open (see
     /// `chathistsearch`). Takes keys before the palette and mention popups.
     pub(crate) histsearch: Option<crate::chathistsearch::HistSearch>,
+    /// The Cmd+F/Ctrl+F transcript find popup while open (see `chatfind`).
+    /// Mutually exclusive with `histsearch` — opening either closes the other.
+    pub(crate) find: Option<crate::chatfind::ChatFind>,
     /// The masked provider-key prompt while one is open (see `keyentry`).
     /// Modal: it takes every key before the palette, the mention popup and the
     /// pane's own handling.
@@ -160,6 +163,7 @@ impl ChatPane {
             mention: None,
             palette: None,
             histsearch: None,
+            find: None,
             keyentry: None,
             oauth: None,
             show_source: false,
@@ -547,6 +551,31 @@ impl ChatPane {
                 }
             }
         }
+        // Transcript find next (Cmd+F opens it app-side; Ctrl+F here): modal
+        // while open — typed chars edit its query, never the composer. It
+        // forwards Ctrl+R so histsearch can still open (which closes find:
+        // one modal at a time).
+        let fk = {
+            let visible: Vec<&Message> =
+                self.messages.iter().chain(self.streaming.iter()).collect();
+            crate::chatfind::popup_key(&mut self.find, &visible, &k)
+        };
+        match fk {
+            crate::chatfind::FindKey::Consumed => {
+                if self.find.is_some() {
+                    // Modal: nothing else may stay armed underneath, and the
+                    // histsearch close restores the composer draft it saved.
+                    crate::chathistsearch::close_restoring(&mut self.histsearch, &mut self.input);
+                    self.palette = None;
+                    self.mention = None;
+                }
+                return None;
+            }
+            // The match target moved — the app scrolls the transcript to it
+            // (the jump needs grid geometry this handler doesn't have).
+            crate::chatfind::FindKey::Jump => return Some(ChatAction::FindJump),
+            crate::chatfind::FindKey::Forward => {}
+        }
         // Ctrl+R search next: while open it is modal over the palette and
         // mention popups (typed chars edit its query, not the composer), and
         // Ctrl+R itself must open it before the plain-key handling below.
@@ -564,6 +593,7 @@ impl ChatPane {
                 if self.histsearch.is_some() {
                     self.palette = None;
                     self.mention = None;
+                    self.find = None; // one modal at a time
                 }
                 return None;
             }
@@ -641,9 +671,9 @@ impl ChatPane {
                 }
                 return Some(ChatAction::Close);
             }
-            // HistSearch never reaches here (the popup routing above always
-            // consumes it — opening when closed), but the match must be total.
-            ChatInput::Ignore | ChatInput::HistSearch => return None,
+            // HistSearch/FindNext never reach here (their popup routing above
+            // consumes them — opening when closed), but the match must be total.
+            ChatInput::Ignore | ChatInput::HistSearch | ChatInput::FindNext => return None,
             // No popup is open (both got these keys first, above), so the
             // arrows mean what they mean in every shell: walk what you already
             // sent. The palette is deliberately NOT re-synced from a recalled

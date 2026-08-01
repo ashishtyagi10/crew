@@ -211,7 +211,74 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
             summary_h,
         ));
     }
+    // Cmd+F find: wash the current match's substring cells (see `chatfind`).
+    find_wash(pane, cols, rows, &mut cells);
     cells
+}
+
+/// Wash the CURRENT `chatfind` match's on-screen substring cells with the
+/// theme's `find_hl_bg` — the same colour the terminal `/find` wash
+/// (`findhl`) and mouse selection use, calibrated for light and dark alike.
+/// Only the current match's rows are washed, so it reads as "you are here",
+/// not "everywhere". All indexing is `get`-guarded: the transcript may have
+/// shifted since the matches were recorded, and a stale index must skip,
+/// never panic.
+fn find_wash(pane: &ChatPane, cols: u16, rows: u16, cells: &mut [CellView]) {
+    let Some(f) = &pane.find else { return };
+    let Some(&mi) = f.matches.get(f.sel) else {
+        return;
+    };
+    let top = pane.status_rows(cols, rows);
+    if f.query.is_empty() || top == 0 || cols == 0 {
+        return;
+    }
+    let budget = crate::chatplace::msg_rows_budget(pane, cols, rows) as usize;
+    let visible = pane.visible_messages();
+    let view = crate::chatmsgs::View {
+        source: pane.show_source,
+        compact: pane.compact_view,
+        streaming_from: pane.messages.len(),
+    };
+    let (lines, spans) = crate::chatmsgs::card_lines_spanned(&visible, cols as usize, 0, view);
+    let Some(span) = spans.get(mi) else { return };
+    // The drawn window, exactly as `chatplace::window` slices it.
+    let start = lines
+        .len()
+        .saturating_sub(budget)
+        .saturating_sub(pane.scroll);
+    let end = (start + budget).min(lines.len());
+    for idx in span.start.max(start)..span.end.min(end) {
+        wash_row(cells, top + (idx - start) as u16, &f.query, cols);
+    }
+}
+
+/// Wash `query` occurrences on one absolute pane row — `findhl::highlight`'s
+/// column-grid walk, restricted to a single row.
+fn wash_row(cells: &mut [CellView], row: u16, query: &str, cols: u16) {
+    let needle: Vec<char> = query.chars().map(|c| c.to_ascii_lowercase()).collect();
+    let mut hay = vec![' '; cols as usize];
+    for c in cells.iter().filter(|c| c.row == row) {
+        if let Some(slot) = hay.get_mut(c.col as usize) {
+            *slot = c.c.to_ascii_lowercase();
+        }
+    }
+    if needle.is_empty() || needle.len() > hay.len() {
+        return;
+    }
+    let mut marked = vec![false; hay.len()];
+    for s in 0..=hay.len() - needle.len() {
+        if hay[s..s + needle.len()] == needle[..] {
+            marked[s..s + needle.len()]
+                .iter_mut()
+                .for_each(|m| *m = true);
+        }
+    }
+    let hl = crew_theme::theme().find_hl_bg;
+    for c in cells.iter_mut().filter(|c| c.row == row) {
+        if marked.get(c.col as usize).copied().unwrap_or(false) {
+            c.bg = hl;
+        }
+    }
 }
 
 /// The URL a markdown link occupies at `(row, col)` in the message body, if

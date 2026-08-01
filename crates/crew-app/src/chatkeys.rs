@@ -24,6 +24,9 @@ pub(crate) enum ChatInput {
     /// Ctrl+R — open the reverse history-search popup, or step to the next
     /// older match while it is open (see `chathistsearch`).
     HistSearch,
+    /// Ctrl+F — open the transcript find popup, or step to the next older
+    /// match while it is open (see `chatfind`; Cmd+F opens it app-side).
+    FindNext,
     Ignore,
 }
 
@@ -39,6 +42,10 @@ pub(crate) enum ChatAction {
     /// input-bar font path (size set / rotation toggle needs the renderer,
     /// which the pane can't reach).
     Font(String),
+    /// The find popup moved its match target: scroll the transcript to it.
+    /// App-side because the jump needs the pane's grid geometry, which the
+    /// key handler doesn't have (see `chatfind::jump`).
+    FindJump,
 }
 
 /// Classify a key press for a chat pane. Only presses act; Escape closes.
@@ -53,6 +60,7 @@ pub(crate) fn chat_key(logical: &Key, pressed: bool, shift: bool, ctrl: bool) ->
     }
     match logical {
         Key::Character(s) if ctrl && s.eq_ignore_ascii_case("r") => ChatInput::HistSearch,
+        Key::Character(s) if ctrl && s.eq_ignore_ascii_case("f") => ChatInput::FindNext,
         Key::Named(NamedKey::Escape) => ChatInput::Close,
         Key::Named(NamedKey::Tab) => ChatInput::Complete,
         Key::Named(NamedKey::ArrowRight) => ChatInput::Accept,

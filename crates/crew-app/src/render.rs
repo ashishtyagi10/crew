@@ -278,6 +278,34 @@ impl CrewApp {
                             scan: -1.0,
                             overlay: true,
                         });
+                    } else if let Some(f) = &c.find {
+                        // Cmd+F transcript find: same placement as the Ctrl+R
+                        // search; the two are mutually exclusive by
+                        // construction (`ChatPane::on_input` closes one when
+                        // the other opens), so their order here is free.
+                        let r = pane.rect;
+                        let cols = (r.w / cw).floor() as u16;
+                        let visible = c.visible_messages();
+                        let (cells, mr) = crate::chatfind::card(f, &visible, cols);
+                        let comp = f32::from(crate::chatinput::composer_rows(
+                            &c.input,
+                            cols,
+                            (r.h / ch).floor() as u16,
+                        )) * ch;
+                        let mh = f32::from(mr) * ch;
+                        let my = (r.y + r.h - comp - mh).max(0.0);
+                        scenes.push(PaneScene {
+                            cells,
+                            x: r.x,
+                            y: my,
+                            w: r.w,
+                            h: mh,
+                            focused: false,
+                            bordered: false,
+                            glass: false,
+                            scan: -1.0,
+                            overlay: true,
+                        });
                     } else if let Some(h) = &c.histsearch {
                         // Ctrl+R history search: same placement as the
                         // palette; before it in the chain, matching the

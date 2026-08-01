@@ -66,6 +66,10 @@ impl CrewApp {
                 // Close/Accept restore the composer from its `saved`
                 // snapshot. Close it first (restoring the draft), THEN append.
                 crate::chathistsearch::close_restoring(&mut c.histsearch, &mut c.input);
+                // Same one-modal rule for Cmd+F find: the drop lands in the
+                // composer, so the popup that was eating keys closes first
+                // (it never touched the composer, so nothing to restore).
+                c.find = None;
                 let token = mention_token(path, &cwd);
                 // A separating space when the composer ends mid-word: gluing
                 // the token onto "summarize" (or a half-typed "@sr") makes

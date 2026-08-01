@@ -22,6 +22,7 @@ mod chatcomplete;
 mod chatempty;
 mod chatevents;
 mod chatexport;
+mod chatfind;
 mod chatflow;
 mod chatfold;
 mod chatfont;

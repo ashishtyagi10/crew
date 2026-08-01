@@ -81,6 +81,21 @@ impl CrewApp {
                 self.spawn_chat_pane(&cmd);
             }
             "w" => return self.close_pane(self.focused),
+            // Cmd+F: find-in-conversation on a focused chat pane (no-op
+            // elsewhere, so the chord stays free for other pane kinds later).
+            // Opening closes the other composer modals — one at a time, the
+            // same rule `ChatPane::on_input` enforces; the histsearch close
+            // restores the composer draft it saved.
+            "f" => {
+                if let Some(crate::pane::PaneContent::Chat(c)) =
+                    self.panes.get_mut(self.focused).map(|p| &mut p.content)
+                {
+                    crate::chathistsearch::close_restoring(&mut c.histsearch, &mut c.input);
+                    c.palette = None;
+                    c.mention = None;
+                    c.find = Some(crate::chatfind::ChatFind::default());
+                }
+            }
             "k" => self.clear_focused_scrollback(),
             "m" => self.toggle_maximize(),
             "[" => self.focus_visible_step(-1),
