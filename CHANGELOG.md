@@ -8,6 +8,34 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.10.2
+
+*The model segment survives a Dock launch — and names the swarm actually
+serving you, live.*
+
+- **The smith pane's roster no longer vanishes when crew is launched from the
+  Dock or Finder.** Launched that way the app — and so its broker child — runs
+  at `/`. The broker treats its CWD as the project, so it found no
+  `.crew/specialists.json`, emitted an *empty* roster, and the footer's new
+  model segment had nothing to show (while its session log and `/resume`
+  quietly wrote to nowhere). Plugin panes now spawn their broker in the pane's
+  tracked directory; session restore steers that to the saved project before
+  the spawn, so a restored `/smith` gets its project — roster, log and all.
+- **A running swarm stamps the roster with its serving model, from memory.**
+  The post-planning roster re-emit used to re-read specialists from disk,
+  which came back empty exactly when the project dir wasn't writable. The
+  invented cast now goes out directly, each specialist carrying the model slug
+  serving the run — so line 1 reads `model · N agents` in real time, whatever
+  directory the broker woke up in. Discovery still appends CLI and manifest
+  agents the cast doesn't name.
+
+## 0.10.1
+
+- **Footer line 1 leads with the serving model.** `qwen-max · 7 agents`
+  instead of a name list: when every API specialist agrees on a model, that
+  model is the roster's identity, even with CLI agents (which report none)
+  riding along. (This entry was backfilled — 0.10.1 shipped without one.)
+
 ## 0.10.0
 
 *Read any file where you already are — and a title bar that stopped being

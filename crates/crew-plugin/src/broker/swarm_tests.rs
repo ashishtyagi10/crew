@@ -18,12 +18,19 @@ use std::sync::Arc;
 /// specialist store does.
 fn collect(task: &str, cancel: Arc<AtomicBool>) -> Vec<PluginEvent> {
     let _env = testenv::mock("unused");
+    collect_with_model(task, "", cancel)
+}
+
+/// [`collect`] minus the env guard — for tests that hold their own
+/// `testenv::mock` so they can override `CREW_PROJECT_DIR` under its lock.
+fn collect_with_model(task: &str, model: &str, cancel: Arc<AtomicBool>) -> Vec<PluginEvent> {
     let mut evs = Vec::new();
     run_with(
         task,
         Arc::new(StubPlanner { fanout: 2 }),
         Arc::new(StubFactory),
         None,
+        model,
         cancel,
         &mut |ev| {
             evs.push(ev);
@@ -32,6 +39,14 @@ fn collect(task: &str, cancel: Arc<AtomicBool>) -> Vec<PluginEvent> {
     )
     .unwrap();
     evs
+}
+
+/// The last `Roster` the run emitted (the post-planning re-emit).
+fn last_roster(evs: &[PluginEvent]) -> Option<&[crate::AgentInfo]> {
+    evs.iter().rev().find_map(|e| match e {
+        PluginEvent::Roster { agents } => Some(agents.as_slice()),
+        _ => None,
+    })
 }
 
 #[test]
@@ -80,6 +95,54 @@ fn a_clean_run_streams_sink_output_once_with_no_summary() {
     );
 }
 
+// The footer's model segment reads the roster; that roster must name the
+// run's invented cast with the model actually serving it — built from
+// memory, not re-read from disk, or it goes empty exactly when the broker
+// can't persist specialists (see the test after this one).
+#[test]
+fn swarm_roster_names_the_cast_with_the_serving_model() {
+    let _env = testenv::mock("unused");
+    let evs = collect_with_model(
+        "build the thing",
+        "qwen-test",
+        Arc::new(AtomicBool::new(false)),
+    );
+    let roster = last_roster(&evs).expect("a roster follows the plan");
+    let names: Vec<&str> = roster.iter().map(|a| a.name.as_str()).collect();
+    assert!(
+        names.contains(&"leaf-0") && names.contains(&"merge"),
+        "cast missing from roster: {names:?}"
+    );
+    assert!(
+        roster.iter().all(|a| a.model == "qwen-test"),
+        "cast must carry the serving model: {roster:?}"
+    );
+}
+
+// A broker launched from Finder/Dock runs at `/`: `.crew/` is not creatable
+// there, `specialists::record` fails silently, and a roster re-read from
+// disk comes back empty — which is how the footer lost its model segment in
+// the field (v0.10.1). The cast must survive in memory.
+#[test]
+fn swarm_roster_survives_an_unwritable_project_dir() {
+    let _env = testenv::mock("unused");
+    std::env::set_var("CREW_PROJECT_DIR", "/dev/null/nowhere");
+    let evs = collect_with_model(
+        "build the thing",
+        "qwen-test",
+        Arc::new(AtomicBool::new(false)),
+    );
+    let roster = last_roster(&evs).expect("a roster follows the plan");
+    assert!(
+        !roster.is_empty(),
+        "the cast must not depend on a writable project dir"
+    );
+    assert!(
+        roster.iter().all(|a| a.model == "qwen-test"),
+        "cast must carry the serving model: {roster:?}"
+    );
+}
+
 #[test]
 fn pre_cancelled_run_reports_cancellation() {
     let evs = collect("task", Arc::new(AtomicBool::new(true)));
@@ -104,6 +167,7 @@ fn task_failure_becomes_a_chat_message_not_a_connection_error() {
         Arc::new(StubPlanner { fanout: 2 }),
         Arc::new(FailingFactory { fail_tasks }),
         None,
+        "",
         Arc::new(AtomicBool::new(false)),
         &mut |ev| {
             evs.push(ev);
@@ -210,6 +274,7 @@ fn events_are_emitted_during_the_run_not_after() {
             merge_snapshot: Arc::clone(&merge_snapshot),
         }),
         None,
+        "",
         Arc::new(AtomicBool::new(false)),
         &mut |_ev| {
             counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
@@ -279,6 +344,7 @@ fn raw_output_delta_never_crosses_the_wire_as_a_hive_event() {
         Arc::new(StubPlanner { fanout: 2 }),
         Arc::new(ChattyFactory),
         None,
+        "",
         Arc::new(AtomicBool::new(false)),
         &mut |ev| {
             evs.push(ev);
