@@ -435,6 +435,25 @@ pub(crate) fn theme_test_guard() -> std::sync::MutexGuard<'static, ()> {
     LOCK.lock().unwrap_or_else(|e| e.into_inner())
 }
 
+/// Serialises tests that touch the process-global motion level
+/// (`motion::LEVEL`): the animation tests across this crate (app_tests,
+/// the chatmsgs caret, ghost.rs, readout.rs, paneview_tests, motion.rs)
+/// each pin a level and then read it back through timelines; unguarded they
+/// race under the parallel runner — an `Off` window opened by one test makes
+/// another's just-started timeline instant (`every_animation_terminates` was
+/// the observed flake).
+///
+/// SHARES [`theme_test_guard`]'s lock rather than adding a second one:
+/// `apply_config` mutates both globals in one call, so the apply_config
+/// tests (holding only the theme guard) flip the motion level too — a
+/// separate lock would let a guarded animation test race exactly that. One
+/// consequence: a test must take one guard or the other, NEVER both (the
+/// mutex is not reentrant).
+#[cfg(test)]
+pub(crate) fn motion_test_guard() -> std::sync::MutexGuard<'static, ()> {
+    theme_test_guard()
+}
+
 #[cfg(test)]
 mod unit_tests {
     use super::star_command;

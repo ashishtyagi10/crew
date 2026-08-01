@@ -387,6 +387,7 @@ fn the_legend_survives_assembly() {
 /// must not carry one: a surface that sweeps forever would repaint forever.
 #[test]
 fn only_a_working_pane_carries_a_scan() {
+    let _g = crate::app::motion_test_guard();
     use crate::pane::{Pane, PaneContent};
     crate::motion::set_level(crate::motion::MotionLevel::Full);
     let idle = Pane {

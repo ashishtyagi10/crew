@@ -112,14 +112,23 @@ pub(crate) fn popup_key(
                 return HistKey::Accepted;
             }
         }
-        ChatInput::Close => {
-            *input = std::mem::take(&mut s.saved);
-            *state = None;
-        }
+        ChatInput::Close => close_restoring(state, input),
         // Newline/Accept/Ignore: modal — consumed, no effect.
         _ => {}
     }
     HistKey::Consumed
+}
+
+/// Close the popup, restoring the composer draft saved when it opened. The
+/// ONE restore path: `popup_key`'s Esc arm and a file drop landing mid-search
+/// (`filedrop::drop_file`) both go through it — anything appended to the
+/// composer while the popup is open would otherwise be overwritten by the
+/// snapshot on close. A no-op while closed.
+pub(crate) fn close_restoring(state: &mut Option<HistSearch>, input: &mut String) {
+    if let Some(s) = state {
+        *input = std::mem::take(&mut s.saved);
+        *state = None;
+    }
 }
 
 /// The card legend, carrying the live query so the user sees what they typed.

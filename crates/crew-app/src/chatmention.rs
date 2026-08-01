@@ -203,7 +203,9 @@ pub(crate) fn after_edit(
 }
 
 /// Half-open char-index ranges of every non-leading `@token` in the input —
-/// the composer tints them so mentions read as chips while typing.
+/// the composer tints them so mentions read as chips while typing. A quoted
+/// `@"…"` token is one chip through its closing quote (same rule as
+/// [`tokens`]).
 pub(crate) fn spans(input: &str) -> Vec<(usize, usize)> {
     let chars: Vec<char> = input.chars().collect();
     let mut spans = Vec::new();
@@ -214,8 +216,17 @@ pub(crate) fn spans(input: &str) -> Vec<(usize, usize)> {
             continue;
         }
         let start = i;
-        while i < chars.len() && !chars[i].is_whitespace() {
-            i += 1;
+        let quoted_end = (chars[i] == '@' && chars.get(i + 1) == Some(&'"'))
+            .then(|| chars[i + 2..].iter().position(|c| *c == '"'))
+            .flatten()
+            .map(|q| i + 2 + q + 1);
+        match quoted_end {
+            Some(e) => i = e,
+            None => {
+                while i < chars.len() && !chars[i].is_whitespace() {
+                    i += 1;
+                }
+            }
         }
         if start > 0 && chars[start] == '@' && i - start > 1 {
             spans.push((start, i));
@@ -228,6 +239,33 @@ pub(crate) fn spans(input: &str) -> Vec<(usize, usize)> {
 /// instead of blowing up the agents' context.
 pub(crate) const MAX_FILE_BYTES: usize = 64 * 1024;
 
+/// Whitespace-separated tokens of `text`, except that a token opening with
+/// `@"` runs to its closing quote (spaces and all) — the form `filedrop`
+/// mints for paths containing whitespace. Quotes stay on the yielded token
+/// (`expand` strips them); an unterminated quote falls back to the plain
+/// whitespace-delimited token, so ordinary text tokenizes exactly as before.
+fn tokens(text: &str) -> Vec<&str> {
+    let mut out = Vec::new();
+    let mut start = 0;
+    while start < text.len() {
+        let Some(off) = text[start..].find(|c: char| !c.is_whitespace()) else {
+            break;
+        };
+        start += off;
+        let quoted_end = text[start..]
+            .strip_prefix("@\"")
+            .and_then(|rest| rest.find('"').map(|q| start + 2 + q + 1));
+        let end = quoted_end.unwrap_or_else(|| {
+            text[start..]
+                .find(char::is_whitespace)
+                .map_or(text.len(), |w| start + w)
+        });
+        out.push(&text[start..end]);
+        start = end;
+    }
+    out
+}
+
 /// Expand mentions in an outgoing message: every mention token gets its
 /// referent appended — file contents as a `--- file ---` block, `@skill:`
 /// playbooks as a `--- skill ---` block. Token 0 is the routing selector
@@ -238,10 +276,16 @@ pub(crate) fn expand(text: &str, cwd: &std::path::Path, agent_names: &[String]) 
     let mut out = text.to_string();
     let mut seen: Vec<&str> = Vec::new();
     let mut skills: Option<Vec<crew_plugin::Skill>> = None;
-    for (i, tok) in text.split_whitespace().enumerate() {
+    for (i, tok) in tokens(text).into_iter().enumerate() {
         let Some(rel) = tok.strip_prefix('@') else {
             continue;
         };
+        // The quoted form: the payload between the quotes is the path,
+        // verbatim — whitespace and all.
+        let rel = rel
+            .strip_prefix('"')
+            .and_then(|r| r.strip_suffix('"'))
+            .unwrap_or(rel);
         if i == 0
             && !rel.is_empty()
             && rel
@@ -290,6 +334,17 @@ fn attachment(
     path: &std::path::Path,
     range: Option<crate::mentionrange::Range>,
 ) -> String {
+    // Whole-file mentions gate on metadata BEFORE any read: a multi-GB drop
+    // must not be slurped onto the winit thread just to be told it's too
+    // big. Range mentions still read the file — the cap applies to what is
+    // attached, which is the whole point of ranges (see below).
+    if range.is_none() {
+        if let Ok(md) = std::fs::metadata(path) {
+            if md.len() > MAX_FILE_BYTES as u64 {
+                return too_large(base, base);
+            }
+        }
+    }
     let bytes = match std::fs::read(path) {
         Ok(b) => b,
         Err(e) => return format!("\n\n--- file: {rel} skipped: {e} ---"),
@@ -310,13 +365,18 @@ fn attachment(
         },
     };
     if body.len() > MAX_FILE_BYTES {
-        // Name the way out. A cap that only says no leaves the user with a
-        // file they cannot attach at all, which is what ranges are for.
-        return format!(
-            "\n\n--- file: {header} skipped: too large \u{2014} attach part of it with              @{base}:<start>-<end> ---"
-        );
+        return too_large(&header, base);
     }
     format!("\n\n--- file: {header} ---\n{body}\n--- end file ---")
+}
+
+/// The over-cap skip note, naming the way out. A cap that only says no
+/// leaves the user with a file they cannot attach at all, which is what
+/// ranges are for.
+fn too_large(header: &str, base: &str) -> String {
+    format!(
+        "\n\n--- file: {header} skipped: too large \u{2014} attach part of it with              @{base}:<start>-<end> ---"
+    )
 }
 
 /// One skill mention's appended block: the playbook body, or a skip note.
@@ -444,6 +504,31 @@ mod tests {
     }
 
     #[test]
+    fn spans_cover_a_quoted_mention_as_one_chip() {
+        // `see @"a b.txt" now` — the chip runs from '@' through the closing
+        // quote, whitespace inside and all.
+        assert_eq!(spans("see @\"a b.txt\" now"), vec![(4, 14)]);
+        // An unterminated quote falls back to the whitespace-delimited token.
+        assert_eq!(spans("see @\"a now"), vec![(4, 7)]);
+    }
+
+    #[test]
+    fn a_quoted_mention_round_trips_a_path_with_spaces() {
+        // The exact loop a Finder drop takes: `filedrop::mention_token` mints
+        // the quoted form, and `expand` must resolve it at send.
+        let dir = tmp("quoted");
+        std::fs::write(dir.join("my notes.txt"), "space content").unwrap();
+        let tok = crate::filedrop::mention_token(&dir.join("my notes.txt"), &dir);
+        assert_eq!(tok, "@\"my notes.txt\" ");
+        let out = expand(&format!("summarize {tok}please"), &dir, &[]);
+        assert!(
+            out.contains("--- file: my notes.txt ---\nspace content\n--- end file ---"),
+            "{out}"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
     fn expand_appends_mentioned_file_contents() {
         let dir = tmp("expand");
         std::fs::write(dir.join("note.txt"), "hello world").unwrap();
@@ -514,6 +599,28 @@ mod tests {
         let out = expand("see @odd:10", &dir, &[]);
         assert!(out.contains("--- file: odd:10 ---"), "{out}");
         assert!(out.contains("the real file"), "{out}");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// The size gate runs BEFORE any read: a multi-GB drop must not be
+    /// slurped onto the winit thread just to be told it's too big. Pinned via
+    /// permissions — the file is stat-able but unreadable, so any read
+    /// attempt would surface "Permission denied" instead of the size note.
+    #[cfg(unix)]
+    #[test]
+    fn an_oversize_file_is_skipped_by_metadata_before_any_read() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tmp("statfirst");
+        let path = dir.join("huge.txt");
+        let f = std::fs::File::create(&path).unwrap();
+        f.set_len(MAX_FILE_BYTES as u64 + 1).unwrap(); // sparse: over the cap
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o200)).unwrap();
+        let out = expand("see @huge.txt", &dir, &[]);
+        assert!(out.contains("huge.txt skipped: too large"), "{out}");
+        assert!(
+            !out.contains("skipped: Permission"),
+            "the file was read before the size gate: {out}"
+        );
         let _ = std::fs::remove_dir_all(&dir);
     }
 

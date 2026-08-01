@@ -21,14 +21,22 @@ use crate::pane::PaneContent;
 /// the file is inside it — matching the relative paths `fileindex::scan`
 /// feeds the mention popup, so `chatmention::expand` resolves it at send —
 /// and absolute otherwise. The trailing space ends the token, exactly as
-/// `chatmention::accept` finishes a picked one.
+/// `chatmention::accept` finishes a picked one. A path containing whitespace
+/// is minted as `@"path" ` — `chatmention`'s tokenizer is whitespace-
+/// delimited, so the bare form would silently drop at send.
 pub(crate) fn mention_token(path: &Path, cwd: &Path) -> String {
     let rel = path
         .strip_prefix(cwd)
         .ok()
         // Dropping the cwd itself would strip to "" — "@ " mentions nothing.
         .filter(|r| !r.as_os_str().is_empty());
-    format!("@{} ", rel.unwrap_or(path).display())
+    let shown = rel.unwrap_or(path).display();
+    let shown = shown.to_string();
+    if shown.chars().any(char::is_whitespace) {
+        format!("@\"{shown}\" ")
+    } else {
+        format!("@{shown} ")
+    }
 }
 
 /// The terminal form: the absolute path single-quoted the way terminals
@@ -41,19 +49,30 @@ impl CrewApp {
     /// Route one dropped file into the focused pane. Hidden (minimized)
     /// panes and panes with no input surface ignore the drop.
     pub(crate) fn drop_file(&mut self, path: &Path) {
+        // The app cwd, NOT `pane.dir`: `keys.rs` hands `chatmention::expand`
+        // exactly `self.cwd` at send time, and the token minted here must
+        // relativize against the SAME root — the two must stay in lockstep,
+        // or a drop-time token silently fails to resolve at send.
+        let cwd = self.cwd.clone();
         let Some(pane) = self.panes.get_mut(self.focused) else {
             return; // no panes at all
         };
         if pane.hidden {
             return;
         }
-        // The pane's own spawn dir when it has one, else the app cwd — the
-        // same rule `poll_panes` mirrors into the footer, and for chat panes
-        // the same `self.cwd` that `keys.rs` hands `expand` at send time.
-        let cwd = pane.dir.clone().unwrap_or_else(|| self.cwd.clone());
         let note = match &mut pane.content {
             PaneContent::Chat(c) => {
+                // A drop mid-Ctrl+R would be silently undone: the search's
+                // Close/Accept restore the composer from its `saved`
+                // snapshot. Close it first (restoring the draft), THEN append.
+                crate::chathistsearch::close_restoring(&mut c.histsearch, &mut c.input);
                 let token = mention_token(path, &cwd);
+                // A separating space when the composer ends mid-word: gluing
+                // the token onto "summarize" (or a half-typed "@sr") makes
+                // one broken token `expand` never resolves.
+                if !c.input.is_empty() && !c.input.ends_with(char::is_whitespace) {
+                    c.input.push(' ');
+                }
                 c.input.push_str(&token);
                 // Same contract as a typed edit (`ChatPane::on_input`): the
                 // completed token is no pending mention, so this closes any

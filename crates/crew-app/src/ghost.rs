@@ -105,6 +105,7 @@ mod tests {
 
     #[test]
     fn collapse_runs_from_whole_to_nothing() {
+        let _g = crate::app::motion_test_guard();
         let g = ghost(Exit::Closed, 1_000);
         assert!((g.collapse_t(1_000) - 1.0).abs() < 1e-6, "starts whole");
         assert_eq!(g.collapse_t(1_000 + COLLAPSE_MS), 0.0, "ends gone");
@@ -113,6 +114,7 @@ mod tests {
 
     #[test]
     fn a_closed_card_stays_where_it_was() {
+        let _g = crate::app::motion_test_guard();
         let g = ghost(Exit::Closed, 0);
         assert_eq!(g.rect_at(0).x, 400.0);
         assert_eq!(g.rect_at(150).x, 400.0);
@@ -122,6 +124,7 @@ mod tests {
     /// way — a card that retracted in place would say "closed" instead.
     #[test]
     fn a_minimized_card_travels_toward_the_nav() {
+        let _g = crate::app::motion_test_guard();
         let g = ghost(Exit::Minimized, 0);
         assert_eq!(g.rect_at(0).x, 400.0);
         let mid = g.rect_at(150).x;
@@ -134,6 +137,7 @@ mod tests {
 
     #[test]
     fn prune_drops_only_finished_ghosts() {
+        let _g = crate::app::motion_test_guard();
         let mut gs = vec![ghost(Exit::Closed, 0), ghost(Exit::Closed, 10_000)];
         prune(&mut gs, 1_000);
         assert_eq!(gs.len(), 1, "the settled ghost should be gone");
@@ -142,6 +146,7 @@ mod tests {
     /// Reduce-motion: no collapse, no scheduled frames, no ghost.
     #[test]
     fn motion_off_leaves_nothing_behind() {
+        let _g = crate::app::motion_test_guard();
         crate::motion::set_level(MotionLevel::Off);
         let g = Ghost::new(rect(), "build".into(), Exit::Closed, 5_000);
         assert!(!g.live(5_000));

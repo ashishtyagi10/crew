@@ -27,6 +27,16 @@ fn dropping_the_cwd_itself_stays_absolute() {
 }
 
 #[test]
+fn a_path_with_spaces_mentions_quoted() {
+    // `chatmention::expand` tokenizes on whitespace: a bare token containing
+    // a space would silently die at send. The quoted form survives it.
+    let tok = mention_token(Path::new("/proj/My Documents/x.pdf"), Path::new("/proj"));
+    assert_eq!(tok, "@\"My Documents/x.pdf\" ");
+    let tok = mention_token(Path::new("/etc/odd dir/f.txt"), Path::new("/proj"));
+    assert_eq!(tok, "@\"/etc/odd dir/f.txt\" ");
+}
+
+#[test]
 fn shell_quoting_wraps_and_escapes_like_a_terminal_paste() {
     assert_eq!(shell_quoted(Path::new("/a/plain.txt")), "'/a/plain.txt' ");
     assert_eq!(
@@ -100,10 +110,59 @@ fn a_drop_closes_a_mention_popup_left_open_mid_typing() {
 }
 
 #[test]
-fn the_panes_own_dir_wins_over_the_app_cwd() {
+fn a_drop_after_text_inserts_a_separating_space() {
+    // Without it the token glues onto the last word ("summarize@src/main.rs")
+    // and `chatmention::expand` never sees a mention at send.
+    let mut app = chat_app(None);
+    if let PaneContent::Chat(c) = &mut app.panes[0].content {
+        c.input = "summarize".into();
+    }
+    app.drop_file(Path::new("/proj/src/main.rs"));
+    assert_eq!(chat_input(&app), "summarize @src/main.rs ");
+}
+
+#[test]
+fn a_drop_mid_mention_starts_a_fresh_token() {
+    // Mid-typed "@sr" must not become "@sr@src/main.rs" — one broken token.
+    let mut app = chat_app(None);
+    if let PaneContent::Chat(c) = &mut app.panes[0].content {
+        c.input = "see @sr".into();
+    }
+    app.drop_file(Path::new("/proj/src/main.rs"));
+    assert_eq!(chat_input(&app), "see @sr @src/main.rs ");
+}
+
+#[test]
+fn mentions_relativize_against_the_send_time_cwd_not_the_panes_dir() {
+    // Send-time `chatmention::expand` resolves against `self.cwd` (keys.rs
+    // hands it exactly that) — the drop-time token must use the SAME root,
+    // or a token minted relative to `pane.dir` dies silently at send.
     let mut app = chat_app(Some("/other"));
     app.drop_file(Path::new("/other/notes.md"));
-    assert_eq!(chat_input(&app), "@notes.md ");
+    assert_eq!(chat_input(&app), "@/other/notes.md ");
+    app.drop_file(Path::new("/proj/x.rs"));
+    assert_eq!(chat_input(&app), "@/other/notes.md @x.rs ");
+}
+
+#[test]
+fn a_drop_while_the_search_popup_is_open_closes_it_and_keeps_the_draft() {
+    // Ctrl+R's Close/Accept restore the composer from its `saved` snapshot —
+    // a token appended while it is open would be silently thrown away.
+    let mut app = chat_app(None);
+    if let PaneContent::Chat(c) = &mut app.panes[0].content {
+        c.input = "my draft".into();
+        c.history.record("earlier");
+        c.on_input(crate::chatkeys::ChatInput::HistSearch, Path::new("/proj"));
+        assert!(c.histsearch.is_some(), "premise: the search popup is open");
+    }
+    app.drop_file(Path::new("/proj/src/main.rs"));
+    if let PaneContent::Chat(c) = &app.panes[0].content {
+        assert!(c.histsearch.is_none(), "the drop closed the search first");
+        assert_eq!(
+            c.input, "my draft @src/main.rs ",
+            "prior draft intact, token appended"
+        );
+    }
 }
 
 #[test]

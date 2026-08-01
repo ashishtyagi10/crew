@@ -95,6 +95,10 @@ fn crt_green_code_colour_moves() {
 #[test]
 fn diff_tokens_match_the_viewers_diff_rung() {
     use crate::md::syntax::Token;
+    // Two reads of the process-global theme (here and inside `token_fg`):
+    // serialised against the theme-mutating tests or a mid-test `/theme`
+    // switch makes the two disagree under the parallel runner.
+    let _g = crate::app::theme_test_guard();
     let t = crew_theme::theme();
     assert_eq!(token_fg(Token::Added), t.ansi[2], "added is green");
     assert_eq!(token_fg(Token::Removed), t.ansi[1], "removed is red");

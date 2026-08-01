@@ -596,6 +596,7 @@ fn compact_view_and_source_view_are_orthogonal() {
 /// distinct from a reply that happened to end mid-sentence.
 #[test]
 fn a_streaming_card_ends_in_a_caret() {
+    let _g = crate::app::motion_test_guard();
     crate::motion::set_level(crate::motion::MotionLevel::Full);
     let m = msg("alice", "thinking about it");
     let settled = card_lines(
@@ -627,6 +628,7 @@ fn a_streaming_card_ends_in_a_caret() {
 /// at a glance, like the text stopped.
 #[test]
 fn the_caret_pulses_without_disappearing() {
+    let _g = crate::app::motion_test_guard();
     crate::motion::set_level(crate::motion::MotionLevel::Full);
     let m = msg("alice", "streaming");
     let caret_fg = |now| {
@@ -669,6 +671,7 @@ fn the_caret_pulses_without_disappearing() {
 /// Reduce-motion keeps the caret — it carries information — but holds it still.
 #[test]
 fn motion_off_leaves_a_steady_caret() {
+    let _g = crate::app::motion_test_guard();
     crate::motion::set_level(crate::motion::MotionLevel::Off);
     let m = msg("alice", "streaming");
     let fg = |now| {
@@ -700,6 +703,9 @@ fn msg_with_usage(sender: &str, text: &str) -> Message {
 
 #[test]
 fn usage_trailer_renders_muted_under_the_body() {
+    // The render and the muted assertion each read the process-global theme —
+    // serialised so a theme-mutating test can't flip it in between.
+    let _g = crate::app::theme_test_guard();
     let m = msg_with_usage("coder", "hello");
     let cells = message_cells(&[&m], 40, 10, 0, 0, View::default());
     assert_eq!(row_text(&cells, 1), " hello");
@@ -734,7 +740,10 @@ fn zero_usage_renders_no_trailer() {
 }
 
 #[test]
-fn compact_view_clamps_the_trailer_like_any_body_line() {
+fn compact_view_excludes_the_usage_trailer_from_the_clamp() {
+    // The trailer is metadata, not content: a single-line reply with usage
+    // must render unclamped in compact view — a ` … +1` stamped on every
+    // such reply would claim content is hidden when none is.
     let m = msg_with_usage("coder", "hello");
     let view = View {
         compact: true,
@@ -743,11 +752,22 @@ fn compact_view_clamps_the_trailer_like_any_body_line() {
     let cells = message_cells(&[&m], 40, 10, 0, 0, view);
     assert_eq!(
         row_text(&cells, 1),
-        " hello \u{2026} +1",
-        "compact hides the trailer and counts it in the +N suffix"
+        " hello",
+        "a single-line reply renders unclamped, as pre-0.10.6"
     );
     assert!(
-        !(0..10).any(|r| row_text(&cells, r).contains("in /")),
-        "no trailer text may survive the compact clamp"
+        !(0..10).any(|r| {
+            let t = row_text(&cells, r);
+            t.contains("in /") || t.contains('\u{2026}')
+        }),
+        "no trailer text and no hidden-count stamp in compact view"
+    );
+    // A genuinely multi-line body still clamps — counting body lines only.
+    let m = msg_with_usage("coder", "one\ntwo");
+    let cells = message_cells(&[&m], 40, 10, 0, 0, view);
+    assert_eq!(
+        row_text(&cells, 1),
+        " one \u{2026} +1",
+        "the trailer is not part of the hidden-line count"
     );
 }

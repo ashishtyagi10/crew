@@ -556,12 +556,27 @@ impl ChatPane {
             self.history.lines(),
             &k,
         ) {
-            crate::chathistsearch::HistKey::Consumed => return None,
+            crate::chathistsearch::HistKey::Consumed => {
+                // The search is modal over the palette and mention popups —
+                // one left armed underneath (the render already hides them)
+                // would eat the first key after the search closes. Clearing
+                // here covers the popup OPENING and every key while open.
+                if self.histsearch.is_some() {
+                    self.palette = None;
+                    self.mention = None;
+                }
+                return None;
+            }
             // An accepted entry is a recalled line in the composer now — reset
             // any history walk, and (like Up/Down recall) do NOT re-sync the
-            // palette: a recalled `/command` should not pop it open.
+            // palette: a recalled `/command` should not pop it open. A popup
+            // armed before the search opened must not survive either — its
+            // popup_key would swallow the next Enter against the recalled
+            // line (same no-popup rule as Up/Down recall).
             crate::chathistsearch::HistKey::Accepted => {
                 self.history.edited();
+                self.palette = None;
+                self.mention = None;
                 return None;
             }
             crate::chathistsearch::HistKey::Forward => {}

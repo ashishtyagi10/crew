@@ -101,6 +101,7 @@ mod tests {
     /// silently pin the whole app to one motion strength.
     #[test]
     fn the_global_round_trips_every_level() {
+        let _g = crate::app::motion_test_guard();
         for l in MotionLevel::ALL {
             set_level(l);
             assert_eq!(level(), l);

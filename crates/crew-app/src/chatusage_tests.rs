@@ -27,6 +27,10 @@ fn big_counts_use_the_footer_k_format() {
 
 #[test]
 fn trailer_line_is_muted_and_indented_like_the_body() {
+    // `trailer_line` reads the process-global theme and so does the muted
+    // comparison below — serialised so a theme-mutating test can't switch
+    // it between the two reads under the parallel runner.
+    let _g = crate::app::theme_test_guard();
     let line = trailer_line((900, 50, 12_000)).expect("usage renders a line");
     let text: String = line.iter().map(|c| c.c).collect();
     assert_eq!(text, " 900 in / 50 out \u{00b7} $0.012");

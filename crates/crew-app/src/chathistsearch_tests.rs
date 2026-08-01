@@ -176,6 +176,61 @@ fn on_input_opens_search_and_enter_accepts_without_sending() {
 }
 
 #[test]
+fn opening_search_closes_the_palette_and_mention_popups() {
+    // Ctrl+R is modal over both popups; leaving one armed underneath is
+    // state the renderer hides but the key routing would resurrect.
+    let mut p = crate::chat::tests::pane();
+    let cwd = std::env::temp_dir();
+    p.history.record("earlier prompt");
+    p.on_input(ChatInput::Char('/'), &cwd);
+    assert!(p.palette.is_some(), "premise: '/' opened the palette");
+    p.mention = Some(crate::chatmention::MentionState {
+        entries: Vec::new(),
+        matches: Vec::new(),
+        sel: 0,
+    });
+    assert!(p.on_input(ChatInput::HistSearch, &cwd).is_none());
+    assert!(p.histsearch.is_some(), "Ctrl+R opened the search");
+    assert!(p.palette.is_none(), "opening search disarms the palette");
+    assert!(
+        p.mention.is_none(),
+        "opening search disarms the mention popup"
+    );
+}
+
+#[test]
+fn accepting_a_search_entry_disarms_stale_popups() {
+    // A palette/mention still armed when an entry is accepted would eat the
+    // next Enter — possibly submitting a stale palette row against the
+    // recalled line. Accept must clear both, like Up/Down recall does.
+    let mut p = crate::chat::tests::pane();
+    let cwd = std::env::temp_dir();
+    p.history.record("earlier prompt");
+    p.on_input(ChatInput::HistSearch, &cwd);
+    assert!(p.histsearch.is_some());
+    p.palette = Some(crate::chatpalette::PaletteState {
+        kind: crate::chatpalette::Kind::Slash,
+        items: Vec::new(),
+        sel: 0,
+        entries: Vec::new(),
+        touched: false,
+    });
+    p.mention = Some(crate::chatmention::MentionState {
+        entries: Vec::new(),
+        matches: Vec::new(),
+        sel: 0,
+    });
+    assert!(p.on_input(ChatInput::Enter, &cwd).is_none());
+    assert!(
+        p.histsearch.is_none(),
+        "Enter accepted and closed the search"
+    );
+    assert_eq!(p.input, "earlier prompt");
+    assert!(p.palette.is_none(), "accept disarms a stale palette");
+    assert!(p.mention.is_none(), "accept disarms a stale mention popup");
+}
+
+#[test]
 fn on_input_esc_closes_the_popup_not_the_pane() {
     let mut p = crate::chat::tests::pane();
     let cwd = std::env::temp_dir();

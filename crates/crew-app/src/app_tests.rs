@@ -980,6 +980,7 @@ fn a_pending_note_waits_for_a_frame_and_flashes_once() {
 /// `panes`, and a pane lingering there would still be interactive.
 #[test]
 fn closing_a_pane_leaves_a_ghost_but_not_the_pane() {
+    let _g = crate::app::motion_test_guard();
     crate::motion::set_level(crate::motion::MotionLevel::Full);
     let mut app = CrewApp::default();
     app.panes.push(tests_far_pane("p"));
@@ -994,6 +995,7 @@ fn closing_a_pane_leaves_a_ghost_but_not_the_pane() {
 /// two dismissals have to be distinguishable or they read as the same gesture.
 #[test]
 fn minimizing_leaves_a_ghost_headed_for_the_nav() {
+    let _g = crate::app::motion_test_guard();
     crate::motion::set_level(crate::motion::MotionLevel::Full);
     let mut app = CrewApp::default();
     app.panes.push(tests_far_pane("p"));
@@ -1007,6 +1009,7 @@ fn minimizing_leaves_a_ghost_headed_for_the_nav() {
 /// session of opening and closing panes.
 #[test]
 fn ghosts_do_not_accumulate() {
+    let _g = crate::app::motion_test_guard();
     crate::motion::set_level(crate::motion::MotionLevel::Full);
     let mut app = CrewApp::default();
     for _ in 0..5 {
@@ -1040,6 +1043,7 @@ fn restoring_a_minimized_pane_re_assembles_it() {
 /// which is only worth anything if something checks it.
 #[test]
 fn a_settled_app_asks_for_no_frames() {
+    let _g = crate::app::motion_test_guard();
     crate::motion::set_level(crate::motion::MotionLevel::Full);
     let mut app = CrewApp::default();
     app.panes.push(tests_far_pane("p"));
@@ -1056,6 +1060,7 @@ fn a_settled_app_asks_for_no_frames() {
 /// scheduled at all, from the very first frame.
 #[test]
 fn motion_off_schedules_nothing_even_immediately_after_events() {
+    let _g = crate::app::motion_test_guard();
     crate::motion::set_level(crate::motion::MotionLevel::Off);
     let mut app = CrewApp::default();
     app.panes.push(tests_far_pane("a"));
@@ -1077,6 +1082,7 @@ fn motion_off_schedules_nothing_even_immediately_after_events() {
 /// animated at all.
 #[test]
 fn a_fresh_event_asks_for_frames_at_full_motion() {
+    let _g = crate::app::motion_test_guard();
     crate::motion::set_level(crate::motion::MotionLevel::Full);
     let mut app = CrewApp::default();
     app.panes.push(tests_far_pane("p"));
@@ -1091,6 +1097,7 @@ fn a_fresh_event_asks_for_frames_at_full_motion() {
 /// is the one failure mode that costs battery rather than pixels.
 #[test]
 fn every_animation_terminates() {
+    let _g = crate::app::motion_test_guard();
     crate::motion::set_level(crate::motion::MotionLevel::Full);
     let mut app = CrewApp::default();
     app.panes.push(tests_far_pane("a"));
