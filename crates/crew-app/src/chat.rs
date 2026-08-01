@@ -121,6 +121,13 @@ pub struct ChatPane {
     /// so `/export`, `/restore`, the session log and the swarm fold are
     /// correct here by construction instead of each needing its own filter.
     pub(crate) streaming: Vec<Message>,
+    /// The last per-reply `Stats` usage — `(tok_in, tok_out, cost_microusd)`
+    /// — waiting for its `Message` to land. The broker emits each reply's
+    /// stat immediately before the reply itself (relay and fan alike), so one
+    /// slot is enough; the `Message` arm drains it into the settled row's
+    /// `usage`. Only set when the stat reported real usage (see
+    /// `chatflow::absorb_stats`), so an all-zero stat never leaks a trailer.
+    pub(crate) pending_reply_usage: Option<(u64, u64, u64)>,
     /// What this pane has already sent, for the composer's Up/Down recall
     /// (see `chathistory`). Not derived from `messages`: those are display
     /// records that fold, get restored from a session log and include replies,
@@ -166,6 +173,7 @@ impl ChatPane {
             pending_recent: None,
             running_tasks: Vec::new(),
             streaming: Vec::new(),
+            pending_reply_usage: None,
             history: crate::chathistory::History::default(),
         }
     }
@@ -177,6 +185,8 @@ impl ChatPane {
     pub(crate) fn reset_broker_state(&mut self) {
         self.running_tasks.clear();
         self.plan_pending = false;
+        // A stat whose reply died with the broker must not tag the next one.
+        self.pending_reply_usage = None;
     }
 
     /// A background task started or ended in the broker. Kept as a list of
@@ -198,6 +208,7 @@ impl ChatPane {
             text,
             ts: chrono::Local::now().timestamp_millis().to_string(),
             meta: String::new(),
+            usage: None,
         });
     }
 
@@ -285,11 +296,16 @@ impl ChatPane {
                         if self.scroll > 0 {
                             self.unread += 1; // arrived out of view
                         }
+                        // This reply's stat arrived just before it (see
+                        // `chatflow::absorb_stats`) — drained here so a
+                        // stale value can never tag a later message.
+                        let usage = self.pending_reply_usage.take();
                         self.push_capped(Message {
                             sender,
                             text,
                             ts,
                             meta,
+                            usage,
                         });
                     }
                     PluginEvent::HivePlan { tasks } => self.absorb_hive_plan(tasks),
@@ -464,6 +480,7 @@ impl ChatPane {
             text: note,
             ts: String::new(),
             meta: String::new(),
+            usage: None,
         });
     }
 
@@ -704,6 +721,7 @@ impl ChatPane {
                     text: text.clone(),
                     ts: chrono::Local::now().timestamp_millis().to_string(),
                     meta: String::new(),
+                    usage: None,
                 });
                 let agent_names: Vec<String> = self.agents.iter().map(|a| a.name.clone()).collect();
                 let expanded = crate::chatmention::expand(&text, cwd, &agent_names);

@@ -39,3 +39,37 @@ fn absorb_delta_normalizes_arrow_form_agent_name_like_settle_stream_does() {
     );
     assert_eq!(pane.streaming[0].text, "Hello, world");
 }
+
+#[test]
+fn reply_stat_stashes_usage_for_the_next_message() {
+    let mut pane = test_pane();
+    pane.absorb_stats(950, "coder".into(), 1_200, 900, 900, 50, 12_000);
+    assert_eq!(pane.pending_reply_usage, Some((900, 50, 12_000)));
+}
+
+#[test]
+fn zero_usage_reply_stat_stashes_nothing() {
+    // Relay's dangling segment and fan's error path both close a hop with an
+    // all-zero stat; CLI-backed agents report none at all. None of those may
+    // hang a trailer on the next settled message.
+    let mut pane = test_pane();
+    pane.absorb_stats(0, "coder".into(), 1_200, 0, 0, 0, 0);
+    assert_eq!(pane.pending_reply_usage, None);
+}
+
+#[test]
+fn turn_level_stat_never_touches_the_reply_stash() {
+    let mut pane = test_pane();
+    pane.absorb_stats(950, String::new(), 0, 0, 900, 50, 12_000);
+    assert_eq!(pane.pending_reply_usage, None);
+}
+
+#[test]
+fn streaming_cards_carry_no_usage() {
+    // Usage attaches only to settled messages — a provisional card opened
+    // while a reply stat is stashed must not pick it up.
+    let mut pane = test_pane();
+    pane.absorb_stats(950, "coder".into(), 1_200, 900, 900, 50, 12_000);
+    pane.absorb_delta("coder".into(), "Hel".into());
+    assert_eq!(pane.streaming[0].usage, None);
+}

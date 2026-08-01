@@ -44,6 +44,7 @@ pub(crate) fn marker(total: usize) -> Message {
         ),
         ts: String::new(),
         meta: String::new(),
+        usage: None,
     }
 }
 
@@ -57,6 +58,7 @@ mod tests {
             text: text.into(),
             ts: String::new(),
             meta: String::new(),
+            usage: None,
         }
     }
 

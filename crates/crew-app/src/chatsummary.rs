@@ -97,7 +97,9 @@ pub(crate) struct FooterCtx<'a> {
 }
 
 /// `$0.129` under $10, `$12.35` above — micro-USD in, display string out.
-fn fmt_cost(microusd: u64) -> String {
+/// Shared with the per-reply trailer (`chatusage`), so a reply's cost and the
+/// footer's running total always read in the same format.
+pub(crate) fn fmt_cost(microusd: u64) -> String {
     let d = microusd as f64 / 1_000_000.0;
     if d < 10.0 {
         format!("${d:.3}")

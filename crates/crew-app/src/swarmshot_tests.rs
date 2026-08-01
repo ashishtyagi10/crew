@@ -38,6 +38,7 @@ fn mid_run_pane() -> ChatPane {
         text: "Planned 5 tasks.".into(),
         ts: String::new(),
         meta: String::new(),
+        usage: None,
     });
     let tasks = [
         "Gather Project Documents",

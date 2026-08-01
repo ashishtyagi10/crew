@@ -50,6 +50,7 @@ mod chatswarmview;
 mod chattail;
 mod chattheme;
 mod chattime;
+mod chatusage;
 mod chatview;
 mod chatwidth;
 mod chords;

@@ -295,6 +295,7 @@ mod tests {
             text: "see agent-cited.rs for the fix".into(),
             ts: "1".into(),
             meta: String::new(),
+            usage: None,
         });
         let (cols, rows) = (80u16, 20u16);
         // Locate where the path actually rendered rather than hardcoding
