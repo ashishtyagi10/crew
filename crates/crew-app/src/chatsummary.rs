@@ -2,8 +2,7 @@
 //! BELOW the input composer (Claude-Code footer style). Line 1 is identity &
 //! spend (model/roster · branch · $cost · token split), line 2 is the rolling
 //! 5h/7d usage windows plus budget & context bars, and line 3 is the live
-//! routing mode (swarm vs. `@agent` relay) followed by the hints that used to
-//! crowd the composer placeholder. The builder (`footer_lines`) is pure so it
+//! routing mode (swarm vs. `@agent` relay), the agents working right now, and the running-task/hint tail. The builder (`footer_lines`) is pure so it
 //! unit-tests without a live pane; `summary_rows`/`summary_cells` gate the
 //! height and place the rows.
 use crew_plugin::AgentInfo;
@@ -88,6 +87,10 @@ pub(crate) struct FooterCtx<'a> {
     pub running_tasks: &'a [u64],
     /// A drafted plan is waiting for enter/esc.
     pub plan_pending: bool,
+    /// Names of agents thinking RIGHT NOW (`ChatPane::active_names`) —
+    /// `Activity` events name agents for both relay hops and swarm tasks,
+    /// so this one field covers both. Empty when idle.
+    pub active: Vec<&'a str>,
     /// Where this pane's broker operates, already `~`-abbreviated.
     pub cwd: Option<&'a str>,
     pub windows: crate::usageledger::Windows,
@@ -293,6 +296,22 @@ pub(crate) fn footer_lines(fc: &FooterCtx, cols: usize) -> Vec<Vec<(char, Fg)>> 
     // it" in half — teaching the user how to accept a plan and not how to
     // decline it. Half an instruction is worse than none.
     let mut l3s: Vec<(Seg, u8)> = vec![((mode, yellow), 1)];
+    // Who is working right now, each name in its roster colour so it matches
+    // the chip grid and message cards; past three names the count is the
+    // information. Priority 2: the trailing hints and the `/stop` how drop
+    // first (ties break toward the right), then the names — the mode (1) and
+    // the plan/running segments (0) always outlast them.
+    match fc.active.as_slice() {
+        [] => {}
+        names if names.len() > 3 => {
+            l3s.push(((format!("{} agents working", names.len()), green), 2));
+        }
+        names => {
+            for n in names {
+                l3s.push(((format!("@{n}"), crate::chatroster::agent_color(n)), 2));
+            }
+        }
+    }
     if fc.plan_pending {
         // A pending plan outranks everything else here: it is the only thing
         // on this line addressed TO the user. The keys go compact rather than
@@ -309,7 +328,8 @@ pub(crate) fn footer_lines(fc: &FooterCtx, cols: usize) -> Vec<Vec<(char, Fg)>> 
         if let Some(how) = how {
             l3s.push(((how, green), 2));
         }
-    } else {
+    } else if fc.active.is_empty() {
+        // Only show hints when there are no active agents and no running work.
         l3s.push((("/ for constructs".to_string(), muted), 2));
         l3s.push((("@ to relay to an agent".to_string(), muted), 3));
     }
@@ -337,6 +357,7 @@ fn footer_ctx(pane: &ChatPane, now_ms: u64) -> FooterCtx<'_> {
         input: &pane.input,
         running_tasks: &pane.running_tasks,
         plan_pending: pane.plan_pending,
+        active: pane.active_names(),
         cwd: pane.cwd.as_deref(),
         windows: crate::usageledger::windows(now_ms),
     }

@@ -19,6 +19,7 @@ fn cell(col: u16, row: u16, c: char, fg: (u8, u8, u8), bg: (u8, u8, u8)) -> Cell
 /// Draw a horizontal rule across `[1..=cols-2]` on row 0 with `title` embedded
 /// near the left (`─ TITLE ──────`). The rule uses `border`; the title uses
 /// `title_fg`. Callers shift the returned cells to the section's top row.
+/// When the title is empty, the entire rule is filled with `─` for a solid border.
 pub fn section_header(
     title: &str,
     cols: u16,
@@ -34,6 +35,14 @@ pub fn section_header(
     let mut col = 1u16;
     v.push(cell(col, 0, '─', border, bg));
     col += 1;
+    if title.is_empty() {
+        // No title: fill the entire row with solid border
+        while col <= right {
+            v.push(cell(col, 0, '─', border, bg));
+            col += 1;
+        }
+        return v;
+    }
     if col <= right {
         v.push(cell(col, 0, ' ', border, bg));
         col += 1;
@@ -127,5 +136,54 @@ mod tests {
     fn titled_card_too_small_is_empty() {
         assert!(titled_card(3, 3, "x", (0, 0, 0), (0, 0, 0), (0, 0, 0)).is_empty());
         assert!(titled_card(20, 1, "x", (0, 0, 0), (0, 0, 0), (0, 0, 0)).is_empty());
+    }
+
+    #[test]
+    fn section_header_with_empty_title_is_solid_border() {
+        let cells = section_header("", 16, (110, 110, 120), (0, 255, 160), (8, 8, 16));
+        // All cells except column 0 should be '─' (the left corner is added by titled_card)
+        let border_chars: Vec<char> = cells.iter().map(|c| c.c).collect();
+        assert!(
+            border_chars.iter().all(|c| *c == '─'),
+            "empty title should produce solid border, got: {border_chars:?}"
+        );
+        // Specifically: no spaces in the border line (which would create a gap)
+        assert!(
+            !border_chars.contains(&' '),
+            "empty title border must not contain spaces"
+        );
+    }
+
+    #[test]
+    fn titled_card_with_empty_title_has_solid_top_border() {
+        let cells = titled_card(20, 3, "", (110, 110, 120), (0, 255, 160), (0, 0, 0));
+        let has = |ch: char| cells.iter().any(|c| c.c == ch);
+        assert!(has('╭') && has('╮') && has('╰') && has('╯'));
+        // Top border (row 0) should have only corners and '─' chars, no spaces
+        let top_row: Vec<char> = cells.iter().filter(|c| c.row == 0).map(|c| c.c).collect();
+        assert!(
+            top_row.iter().all(|c| matches!(c, '─' | '╭' | '╮')),
+            "empty title top border should be solid, got: {top_row:?}"
+        );
+        assert!(
+            !top_row.contains(&' '),
+            "empty title top border must not contain spaces/gaps"
+        );
+    }
+
+    #[test]
+    fn titled_card_with_title_still_has_gapped_legend() {
+        let cells = titled_card(20, 3, "WORK", (110, 110, 120), (0, 255, 160), (0, 0, 0));
+        let top_row: Vec<char> = cells.iter().filter(|c| c.row == 0).map(|c| c.c).collect();
+        // With a title, the legend should have spaces around it (the old behavior)
+        assert!(
+            top_row.contains(&' '),
+            "titled card with non-empty title should have gapped legend"
+        );
+        // And the title chars should be present
+        assert!(
+            top_row.contains(&'W'),
+            "titled card should contain title characters"
+        );
     }
 }

@@ -28,13 +28,22 @@ fn row_text(cells: &[CellView], row: u16) -> String {
 #[test]
 fn tall_pane_gets_a_bordered_card() {
     let cells = composer_cells("hi", None, &agents(&["planner", "coder"]), 80, 10);
-    // Top border (row 7): rounded corners with the agent chips as the legend.
+    // Top border (row 7): a plain rounded border — the roster strip is gone
+    // (the footer's mode line now names who is WORKING; the full roster
+    // lives in the @ picker and footer line 1).
     let top = row_text(&cells, 7);
     assert!(top.starts_with('\u{256d}'), "top: {top}"); // ╭
     assert!(top.ends_with('\u{256e}'), "top: {top}"); // ╮
     assert!(
-        top.contains("@planner") && top.contains("@coder"),
-        "top: {top}"
+        !top.contains('@'),
+        "roster chips must not ride the border: {top}"
+    );
+    assert!(
+        top.chars()
+            .skip(1)
+            .take(top.chars().count() - 2)
+            .all(|c| c == '\u{2500}'),
+        "border must be solid without the chips: {top}"
     );
     // Interior (row 8): side borders around the prompt.
     let mid = row_text(&cells, 8);
