@@ -55,9 +55,11 @@ the running/hints portion:
   `roster_seg` and `running_seg`.
 - **Idle:** no active agents → line 3 renders exactly as today (hints when
   idle, `plan ready` when a plan is pending).
-- **Budget priority:** active-agent segments rank with the running segment
-  (priority 0 tier, after `plan ready`); hints stay the first to drop.
-  On narrow panes names drop before the mode segment.
+- **Budget priority:** active-agent segments take priority 2 (line 3's
+  ties break toward the right, so the trailing hints and the `/stop` how
+  drop before the names). The `plan ready`/`running #n` segments (0) and
+  the `▶▶` mode (1) both outlast the names: on a narrow pane the line
+  keeps its identity and the work ids, and the names go.
 
 ### Relationship to the pane header
 
