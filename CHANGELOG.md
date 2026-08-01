@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.11.2
+
+*A pane waiting on you no longer waits in silence.*
+
+- **Blocked panes surface themselves.** When a coding agent stops to ask
+  something — a `(y/n)`, a "Do you want…", a permission question — or the
+  smith pane has a plan pending, the pane raises a `?` attention badge and
+  a "waiting for you" note; if you've been idle a few seconds and aren't
+  already looking at a blocked pane, focus jumps there (once per episode,
+  never while you're typing). **Cmd+.** cycles through waiting panes.
+  The terminal-side detector is deliberately conservative: a foreground
+  command, three quiet seconds, an unscrolled view, and question-shaped
+  text in the last rows — an idle shell prompt never counts, and a
+  thinking agent that keeps painting is left alone.
+
 ## 0.11.1
 
 *The rough edges from a night of shipping, sanded.*
