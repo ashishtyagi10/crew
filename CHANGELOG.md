@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.10.7
+
+*Broker noise folds itself away.*
+
+- **Long system/telemetry cards auto-collapse.** A system-voice card (turn
+  summaries, `/doctor` dumps, roster lists) longer than three lines renders
+  as its header plus first line with the muted ` … +N` count. Click it to
+  expand; click the expanded header to fold it back. Agent replies and your
+  own messages never fold, the splash art is exempt, and the pane-global
+  Ctrl+O compact view still clamps everything as before.
+
 ## 0.10.6
 
 *Every reply owns up to what it cost.*
