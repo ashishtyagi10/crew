@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.10.5
+
+*Find that message again: Ctrl+R searches your chat history.*
+
+- **Ctrl+R in the chat composer opens reverse history search.** Type to
+  filter your previously sent messages (substring hits first, fuzzy after),
+  newest first; Ctrl+R or ↓ steps older, ↑ newer, Enter puts the match back
+  in the composer without sending, Esc restores whatever you had typed.
+  Chat-pane only — terminal panes still pass every key through.
+
 ## 0.10.4
 
 *Agent plans read like plans: task lists render as real checklists.*
