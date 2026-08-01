@@ -1748,6 +1748,29 @@ fn two_replies_each_get_their_own_usage() {
 }
 
 #[test]
+fn interleaved_message_neither_wears_nor_clears_another_agents_usage() {
+    // Adjacency is today's broker behavior, not a contract: if any message
+    // from a DIFFERENT sender lands between a reply's stat and the reply
+    // itself, it must not wear the trailer — and it must not clear the stash
+    // either, because the matching reply may be the very next event.
+    let mut p = pane_emitting(&[
+        r#"{"type":"stats","exchanges":0,"tokens":950,"agent":"coder","ms":1200,"ctx":900,"tok_in":900,"tok_out":50,"cost_microusd":12000}"#,
+        r#"{"type":"message","channel":"crew","sender":"crew","text":"turn note","ts":"1"}"#,
+        r#"{"type":"message","channel":"crew","sender":"coder → user","text":"done","ts":"2"}"#,
+    ]);
+    poll_until(&mut p, |p| p.messages.len() == 2);
+    assert_eq!(
+        p.messages[0].usage, None,
+        "an interleaved system note must not wear coder's trailer"
+    );
+    assert_eq!(
+        p.messages[1].usage,
+        Some((900, 50, 12_000)),
+        "the trailer waits for the sender the stat named"
+    );
+}
+
+#[test]
 fn zero_usage_reply_settles_with_no_usage() {
     // A CLI-backed agent (or an error hop) closes its dial with an all-zero
     // stat — the settled row must carry nothing for the trailer to render.

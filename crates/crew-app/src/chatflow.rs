@@ -53,15 +53,17 @@ impl crate::chat::ChatPane {
             if ctx > 0 {
                 self.ctx.insert(agent.clone(), ctx);
             }
+            // Stash real usage — tagged with the agent it belongs to — for
+            // the reply `Message` that follows this stat (the broker emits
+            // them adjacently — relay and fan alike); an all-zero stat (CLI
+            // backend, error hop) must never leave one. Drained by
+            // `chatsettle::absorb_message` only onto a matching sender.
+            if crate::usageledger::records_usage(tok_in, tok_out) || cost_microusd > 0 {
+                self.pending_reply_usage = Some((agent.clone(), tok_in, tok_out, cost_microusd));
+            }
             let e = self.agent_stats.entry(agent).or_default();
             e.0 = e.0.saturating_add(1);
             e.1 = e.1.saturating_add(ms);
-            // Stash real usage for the reply `Message` that follows this stat
-            // (the broker emits them adjacently — relay and fan alike); an
-            // all-zero stat (CLI backend, error hop) must never leave one.
-            if crate::usageledger::records_usage(tok_in, tok_out) || cost_microusd > 0 {
-                self.pending_reply_usage = Some((tok_in, tok_out, cost_microusd));
-            }
         }
     }
 
@@ -145,14 +147,6 @@ impl crate::chat::ChatPane {
             usage: None,
             expanded: false,
         });
-    }
-
-    /// A settled reply arrived from `sender`: drop that agent's provisional
-    /// card so the real `Message` takes its place. Any fragment the broker's
-    /// gate swallowed is healed by the replacement.
-    pub(crate) fn settle_stream(&mut self, sender: &str) {
-        let name = stream_key(sender);
-        self.streaming.retain(|m| stream_key(&m.sender) != name);
     }
 
     /// Whether the newest message is still fading in — keeps redraw frames

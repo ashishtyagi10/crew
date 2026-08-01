@@ -294,6 +294,37 @@ fn contrast_thresholds() {
             "{name}: ansi[3] (chat marker) vs page_bg = {:.3} (need >= 4.5)",
             cr(t.ansi[3], bg)
         );
+
+        // Diff line inks: chat's ```diff fences (`chatink::token_fg`
+        // Added/Removed) and the viewer's .patch rung (`viewpane` diff_lines)
+        // both draw the RAW ansi[2] (added) and ansi[1] (removed) slots, with
+        // no `separated` walk — in chat on the code card, in the viewer on
+        // the bare page. ansi[6] (hunk header) is already floored above.
+        // Tripwire, not a behavior change: without it these slots answer only
+        // to the 3.0 terminal floor above, so a future preset could slide
+        // diff lines unreadable silently. Two surfaces, two floors:
+        // - page_bg ≥ 4.5, matching the ansi[6]/ansi[3] chat-ink floors
+        //   (worst case when written: graphite ansi[1] at 5.57);
+        // - the chat code card ≥ 3.2. The card tint is `chatink::CODE_BG_MIX`
+        //   (0.18 — deeper than the 0.08 the assertions above predate), and
+        //   against THAT surface today's presets bottom out at 3.39 (graphite
+        //   ansi[1]), so 4.5 is not honestly available. 3.2 still trips a
+        //   slide to the terminal floor, and on the card hue plus the +/−
+        //   marker carry the signal, not brightness.
+        let diff_bg = lerp_rgb(bg, t.ink, 0.18);
+        for (slot, what) in [(1usize, "diff removed"), (2usize, "diff added")] {
+            assert!(
+                cr(t.ansi[slot], diff_bg) >= 3.2,
+                "{name}: ansi[{slot}] ({what}) vs code card {:?} = {:.3} (need >= 3.2)",
+                diff_bg,
+                cr(t.ansi[slot], diff_bg)
+            );
+            assert!(
+                cr(t.ansi[slot], bg) >= 4.5,
+                "{name}: ansi[{slot}] ({what}) vs page_bg = {:.3} (need >= 4.5)",
+                cr(t.ansi[slot], bg)
+            );
+        }
     }
 }
 

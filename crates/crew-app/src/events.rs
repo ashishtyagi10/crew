@@ -1,16 +1,13 @@
 //! Window-event dispatch: mouse focus/zoom/paste/scroll, keyboard forwarding,
 //! resize, scale changes, and redraw — split out of the `ApplicationHandler`
 //! impl so each surface stays small.
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 use winit::event::{ElementState, MouseButton, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
 use winit::keyboard::ModifiersState;
 
 use crate::app::CrewApp;
-
-/// Max gap between two left clicks on the same pane to count as a double-click.
-const DOUBLE_CLICK: Duration = Duration::from_millis(400);
 
 /// The click-to-open modifier for this platform: Cmd on macOS (unchanged),
 /// Ctrl elsewhere — so Windows/Linux users get the familiar Ctrl+click
@@ -74,27 +71,17 @@ impl CrewApp {
                     return;
                 }
                 // A plain click on a foldable system card in a chat pane
-                // toggles its collapse (see `chatfold`). Additive: the click
-                // still focuses the pane and arms selection below — but a
-                // toggle never counts toward a double-click zoom, so folding
-                // twice can't accidentally zoom the pane.
-                let toggled_fold = self.fold_click_at_cursor();
+                // toggles its collapse — armed here, fired on RELEASE and
+                // only if the gesture never became a drag (see `chatfold`):
+                // toggling on press shifted the layout under a starting
+                // drag-selection. Additive: the click still focuses the pane
+                // and arms selection below — but an armed toggle never counts
+                // toward a double-click zoom, so folding twice can't
+                // accidentally zoom the pane (see `select::click_zoom`).
+                let fold_armed = self.fold_press_at_cursor();
                 // Focus the surface and arm a drag selection on a terminal pane.
                 if let Some(i) = self.selection_press() {
-                    // A second click on the same pane within 400ms toggles zoom;
-                    // cancel the just-armed drag so the release doesn't copy.
-                    let now = Instant::now();
-                    let double = !toggled_fold
-                        && self
-                            .last_click
-                            .is_some_and(|(t, pi)| pi == i && now.duration_since(t) < DOUBLE_CLICK);
-                    if double {
-                        self.zoomed = !self.zoomed;
-                        self.last_click = None;
-                        self.drag = None;
-                    } else {
-                        self.last_click = (!toggled_fold).then_some((now, i));
-                    }
+                    self.click_zoom(i, fold_armed);
                 }
                 self.redraw();
             }
@@ -103,9 +90,10 @@ impl CrewApp {
                 button: MouseButton::Left,
                 ..
             } => {
-                // A drag that moved finalizes + copies the selection; a plain
-                // click (no movement) was already handled on press.
-                self.selection_release();
+                // A drag that moved finalizes + copies the selection; a
+                // stationary click fires any fold toggle the press armed.
+                let dragged = self.selection_release();
+                self.fold_release(dragged);
                 self.redraw();
             }
             WindowEvent::MouseInput {

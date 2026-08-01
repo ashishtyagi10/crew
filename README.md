@@ -164,6 +164,8 @@ Press **`/keys`** in the input bar for the full list in-app.
 | Open URL / file / dir under cursor | **Cmd+Click** |
 | Cycle themes (fixed presets, then random-dark/light, then auto) | **Ctrl+Shift+L** |
 | Toggle chat markdown preview ↔ raw source | **Ctrl+Shift+M** |
+| Reverse-search the chat composer's send history | **Ctrl+R** |
+| Find in the chat transcript | **Cmd+F** (or **Ctrl+F**) |
 | Insert a newline in a terminal | **Shift+Enter** (sends a line feed, not submit) |
 | Close pane / maximize window | **Cmd+W** / **Cmd+M** |
 | Clear focused pane scrollback | **Cmd+K** (or `/clear`) |
@@ -219,7 +221,11 @@ cards, links):
 
 - **Chat panes** render agent replies as formatted markdown by default;
   **Ctrl+Shift+M** flips the focused chat pane to the raw source and back.
-  **Cmd+Click** opens a rendered link.
+  **Cmd+Click** opens a rendered link. Task lists (`- [ ]` / `- [x]`) render
+  as **checklists** — ☐ open, green ✓ with dimmed text when done — and
+  ```` ```diff ````/```` ```patch ```` fences colour added/removed/hunk lines
+  (an untagged fence that reads as a diff is auto-detected and coloured the
+  same).
 - **`/view <file>`** (alias `/md`) opens a zoomed **file viewer** pane — a
   single, read-only pane over the file, rendered by format: markdown
   (headings/lists/links/code fences), a numbered-gutter code view, aligned
@@ -257,7 +263,11 @@ did-you-mean on typos. Long constructs run as **concurrent background tasks**
 (default cap 4): each reply is tagged with a dim `#N` task chip, the footer
 lists what's running, and `/stop [#n]` cancels one task or all of them.
 `@file` mentions in the composer fuzzy-complete against the project tree and
-splice the file's contents into the outgoing message.
+splice the file's contents into the outgoing message — a path with spaces
+rides a quoted `@"my notes.md"` mention, and a file **dragged onto the pane**
+becomes one too (terminals get the shell-quoted path instead). **Ctrl+R**
+reverse-searches what you've sent, shell-style; **Cmd+F** searches the
+transcript and jumps to each match.
 
 Agents can also touch the workspace through built-in **sys tools** — bounded
 `sys:run` (non-interactive shell, 30s/64KB caps), `sys:read_file` (chunked
@@ -327,7 +337,11 @@ chip per working agent naming who handed it the task, so parallel fans and
 hand-offs are visible as they happen), and **message cards** (`▍sender · 2m ago · 4.2s`)
 that colour each agent consistently and show hand-offs as `from → to`. Every
 turn ends with a timeline log line: `turn done — planner 4.2s → coder 8.1s ·
-2 exchange(s) · ~950 tok (approx)`. New cards fade in from the page colour;
+2 exchange(s) · ~950 tok (approx)`, and each settled reply that reported real
+usage closes with its own muted trailer — `900 in / 50 out · $0.012`. Long
+system/telemetry cards (turn summaries, `/doctor` output) **auto-fold** to a
+header + first line + ` … +N` — click to expand, click the header to fold
+back. New cards fade in from the page colour;
 fenced ```code``` in replies renders as a
 bordered card with a language tag on a dimmed background; a composer with
 `@agent` chips and key hints frames the input (a valid `@mention` lights up in

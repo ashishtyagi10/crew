@@ -231,6 +231,86 @@ fn fold_clicks_are_inert_while_a_popup_overlays_the_transcript() {
     );
 }
 
+// --- Press/release split: the toggle fires on mouse RELEASE, and only when
+// the gesture stayed a plain click (see `events.rs` / `fold_release`) ---
+
+/// An app whose pane 0 is a chat pane showing one folded system card, plus
+/// the absolute row of the card's fold suffix (located in the real render).
+fn app_with_folded_card() -> (crate::app::CrewApp, u16) {
+    let (cols, rows) = (40u16, 20u16);
+    let mut chat = crate::chat::tests::pane();
+    chat.push_capped(msg("crew", LONG));
+    let suffix_row = row_with(&chat, cols, rows, "\u{2026} +4");
+    let mut app = crate::app::CrewApp::default();
+    app.panes.push(crate::pane::Pane {
+        content: crate::pane::PaneContent::Chat(chat),
+        grid: crew_term::GridSize { cols, rows },
+        rect: crate::layout::Rect {
+            x: 0.0,
+            y: 0.0,
+            w: 0.0,
+            h: 0.0,
+        },
+        label: None,
+        name: None,
+        dir: None,
+        activity: false,
+        bell: false,
+        hidden: false,
+        attention: None,
+        born_ms: crate::anim::now_ms(),
+    });
+    (app, suffix_row)
+}
+
+fn card_expanded(app: &crate::app::CrewApp) -> bool {
+    match &app.panes[0].content {
+        crate::pane::PaneContent::Chat(c) => c.messages[0].expanded,
+        _ => unreachable!("pane 0 is a chat pane"),
+    }
+}
+
+#[test]
+fn a_stationary_click_release_fires_the_armed_fold_toggle() {
+    // The press arms a candidate (geometry needs a live renderer, so tests
+    // arm it directly, as `fold_press_at_cursor` would); a release that
+    // never became a drag fires it.
+    let (mut app, row) = app_with_folded_card();
+    app.fold_click = Some((0, row));
+    assert!(app.fold_release(false), "a plain click toggles on release");
+    assert!(card_expanded(&app), "the folded card is clicked open");
+    assert!(app.fold_click.is_none(), "the candidate is consumed");
+}
+
+#[test]
+fn a_drag_release_consumes_the_candidate_without_toggling() {
+    // Starting a drag-selection ON a folded card must not expand it — the
+    // layout would shift under the cursor mid-gesture. The drag still copies
+    // its selection (`selection_release`, untouched); the fold stays put.
+    let (mut app, row) = app_with_folded_card();
+    app.fold_click = Some((0, row));
+    assert!(!app.fold_release(true), "a moved drag never toggles");
+    assert!(!card_expanded(&app), "the card stays folded");
+    assert!(app.fold_click.is_none(), "consumed, not left armed");
+    assert!(
+        !app.fold_release(false),
+        "and the next plain release has nothing left to fire"
+    );
+}
+
+#[test]
+fn fold_armed_clicks_stay_out_of_the_double_click_zoom_count() {
+    let mut app = crate::app::CrewApp::default();
+    app.click_zoom(0, true); // the press that armed a fold toggle
+    app.click_zoom(0, false); // a plain press right after
+    assert!(
+        !app.zoomed,
+        "a fold click must not seed a double-click zoom"
+    );
+    app.click_zoom(0, false); // second plain press within the window
+    assert!(app.zoomed, "two plain clicks in a row still zoom");
+}
+
 #[test]
 fn a_streaming_system_card_toggles_behind_the_settled_transcript() {
     // Index math across the `messages` → `streaming` seam: the streaming

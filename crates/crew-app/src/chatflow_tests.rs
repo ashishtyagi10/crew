@@ -44,7 +44,11 @@ fn absorb_delta_normalizes_arrow_form_agent_name_like_settle_stream_does() {
 fn reply_stat_stashes_usage_for_the_next_message() {
     let mut pane = test_pane();
     pane.absorb_stats(950, "coder".into(), 1_200, 900, 900, 50, 12_000);
-    assert_eq!(pane.pending_reply_usage, Some((900, 50, 12_000)));
+    assert_eq!(
+        pane.pending_reply_usage,
+        Some(("coder".into(), 900, 50, 12_000)),
+        "the stash carries the agent the usage belongs to"
+    );
 }
 
 #[test]
