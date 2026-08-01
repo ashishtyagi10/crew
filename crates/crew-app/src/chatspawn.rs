@@ -99,7 +99,12 @@ impl CrewApp {
             .as_ref()
             .map(Self::current_grid)
             .unwrap_or(FALLBACK_SIZE);
-        match Plugin::spawn(cmd, args) {
+        // The tracked cwd, not the process's: a Dock-launched app runs at `/`,
+        // and a broker there can neither find `.crew/specialists.json` (the
+        // roster the footer's model segment reads) nor write a session log.
+        // Session restore steers `self.cwd` to the saved project before
+        // spawning, so a restored /smith pane gets its project back too.
+        match Plugin::spawn_in(cmd, args, Some(&self.cwd)) {
             Ok(mut plugin) => {
                 if let Err(e) = plugin.send(&PluginCommand::Hello { v: 1 }) {
                     eprintln!("spawn_plugin_pane: plugin hello error: {e}");

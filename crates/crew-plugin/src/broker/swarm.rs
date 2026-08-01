@@ -29,7 +29,12 @@ const STUB_FANOUT: usize = 2;
 /// a discovered provider; deterministic stubs when keyless. The mock provider
 /// (GUI harness) plans with stubs but executes through the mock, so replies
 /// stay deterministic while the full pipeline runs.
-fn backend() -> (Arc<dyn Planner>, Arc<dyn AgentFactory>, Option<Budget>) {
+fn backend() -> (
+    Arc<dyn Planner>,
+    Arc<dyn AgentFactory>,
+    Option<Budget>,
+    String,
+) {
     match super::discover::provider_and_model() {
         None => (
             Arc::new(StubPlanner {
@@ -37,6 +42,7 @@ fn backend() -> (Arc<dyn Planner>, Arc<dyn AgentFactory>, Option<Budget>) {
             }),
             Arc::new(StubFactory),
             None,
+            String::new(),
         ),
         Some((provider, model)) if model == "mock" => (
             Arc::new(StubPlanner {
@@ -44,6 +50,7 @@ fn backend() -> (Arc<dyn Planner>, Arc<dyn AgentFactory>, Option<Budget>) {
             }),
             Arc::new(crew_hive::ApiFactory::new(provider, WORK_MAX_TOKENS)),
             None,
+            model,
         ),
         Some((provider, model)) => (
             Arc::new(
@@ -54,10 +61,13 @@ fn backend() -> (Arc<dyn Planner>, Arc<dyn AgentFactory>, Option<Budget>) {
                 }
                 .with_model(model.clone()),
             ),
-            Arc::new(crew_hive::ApiFactory::new(provider, WORK_MAX_TOKENS).with_model(model)),
+            Arc::new(
+                crew_hive::ApiFactory::new(provider, WORK_MAX_TOKENS).with_model(model.clone()),
+            ),
             Some(Budget {
                 max_micros_usd: Budget::DEFAULT_MICROS_USD,
             }),
+            model,
         ),
     }
 }
@@ -73,12 +83,13 @@ pub(crate) fn run_task(
     // of `@agent` tasks so the default swarm path doesn't silently ignore it.
     let task_owned = fold_resume(session, task);
     super::sessionlog::append("user", task);
-    let (planner, factory, budget) = backend();
+    let (planner, factory, budget, model) = backend();
     run_with(
         &task_owned,
         planner,
         factory,
         budget,
+        &model,
         Arc::clone(&session.cancel),
         emit,
     )
@@ -100,11 +111,15 @@ fn fold_resume(session: &Session, task: &str) -> String {
 }
 
 /// Injectable core: plan `task`, execute the graph, translate events.
+/// `model` is the slug serving this run's API agents (empty when unknown —
+/// stub/keyless runs); it stamps the re-emitted roster so the host's footer
+/// can show what is serving right now.
 pub(crate) fn run_with(
     task: &str,
     planner: Arc<dyn Planner>,
     factory: Arc<dyn AgentFactory>,
     budget: Option<Budget>,
+    model: &str,
     cancel: Arc<AtomicBool>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
@@ -174,9 +189,26 @@ pub(crate) fn run_with(
         }
     }
     super::specialists::record(&seen);
-    emit(PluginEvent::Roster {
-        agents: super::Registry::discover().infos(),
-    })?;
+    // The roster leads with the run's own cast, stamped with the model
+    // serving it, built from memory: `record` above is best-effort (a broker
+    // launched from Finder/Dock runs at `/`, where `.crew/` is unwritable),
+    // and a disk re-read would come back empty exactly then — taking the
+    // footer's model segment with it. Discovery still appends everyone the
+    // cast doesn't name (CLI agents, manifest plugins, stored specialists).
+    let mut agents: Vec<crate::AgentInfo> = seen
+        .iter()
+        .map(|(name, role)| crate::AgentInfo {
+            name: name.clone(),
+            role: role.clone(),
+            model: model.to_string(),
+        })
+        .collect();
+    for info in super::Registry::discover().infos() {
+        if !agents.iter().any(|a| a.name == info.name) {
+            agents.push(info);
+        }
+    }
+    emit(PluginEvent::Roster { agents })?;
 
     // Execute: scheduler + optional budget governor + bus drain, all on this
     // thread's runtime (the pattern proven in crew-app/src/swarm/bridge.rs).

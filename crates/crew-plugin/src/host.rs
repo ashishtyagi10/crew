@@ -13,12 +13,26 @@ pub struct Plugin {
 
 impl Plugin {
     pub fn spawn(cmd: &str, args: &[String]) -> Result<Plugin> {
+        Self::spawn_in(cmd, args, None)
+    }
+
+    /// [`Plugin::spawn`] with an explicit working directory for the child.
+    /// The broker treats its CWD as the project (session logs,
+    /// `.crew/specialists.json`), so a host whose own CWD is meaningless —
+    /// a Dock-launched app runs at `/` — must place the child in the pane's
+    /// tracked directory instead of letting it inherit.
+    pub fn spawn_in(cmd: &str, args: &[String], cwd: Option<&std::path::Path>) -> Result<Plugin> {
         let mut command = Command::new(cmd);
         command
             .args(args)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit());
+        // Only an existing directory: `current_dir` on a vanished path fails
+        // the whole spawn, and a broker in the host's CWD beats no broker.
+        if let Some(dir) = cwd.filter(|d| d.is_dir()) {
+            command.current_dir(dir);
+        }
         // Its own process group, so [`Plugin::drop`] can take the whole tree
         // and not just the broker. Killing a parent does not kill its
         // children: measured, a broker killed while an agent CLI was running
