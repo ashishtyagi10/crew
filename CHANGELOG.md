@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.11.0
+
+*Find anything you ever said — or were told.*
+
+- **Cmd+F searches the conversation.** A find bar over the chat transcript:
+  type to match case-insensitively across every message (folded system
+  cards included), Enter/Ctrl+F/↓ steps to older matches, ↑ to newer, both
+  wrapping, with a `find: query (k/N)` count in the legend. Jumping scrolls
+  the transcript to the match — expanding a folded card when the hit lives
+  in its hidden tail — and washes the matched text with the same highlight
+  the terminal `/find` uses. Esc closes without touching your draft; one
+  modal at a time with Ctrl+R and the popups.
+
 ## 0.10.9
 
 *A bug-hunt pass over everything the night shipped.*
