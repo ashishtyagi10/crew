@@ -165,18 +165,15 @@ fn list_lines(items: Vec<ListItem>, cols: usize) -> Vec<MdLine> {
     let mut out = Vec::new();
     for item in items {
         let indent = "  ".repeat(item.depth as usize);
-        let bullet = match item.ordered_idx {
-            Some(n) => format!("{n}. "),
-            None => "• ".to_string(),
-        };
+        let bullet = super::tasklist::bullet(item.task, item.ordered_idx);
         let prefix = format!("{indent}{bullet}");
         let prefix_len = prefix.chars().count();
         let avail = cols.saturating_sub(prefix_len).max(1);
         let mut first = true;
-        for group in split_hardbreaks(item.spans) {
+        for group in split_hardbreaks(super::tasklist::body_spans(item.spans, item.task)) {
             for line_spans in wrap_group(&group, avail) {
                 let mut spans = vec![if first {
-                    marker_span(prefix.clone())
+                    super::tasklist::head_span(prefix.clone(), item.task)
                 } else {
                     plain_span(" ".repeat(prefix_len))
                 }];

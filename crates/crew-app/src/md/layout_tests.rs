@@ -210,6 +210,104 @@ fn an_untagged_plain_fence_stays_unsniffed() {
 }
 
 #[test]
+fn task_items_render_checkbox_markers() {
+    let out = render("- [ ] todo\n- [x] done\n- [X] DONE", 40);
+    let texts: Vec<String> = out
+        .iter()
+        .filter(|l| l.kind == LineKind::Body)
+        .map(flat)
+        .collect();
+    assert_eq!(
+        texts,
+        vec!["\u{2610} todo", "\u{2713} done", "\u{2713} DONE"],
+        "{out:?}"
+    );
+}
+
+#[test]
+fn a_checked_item_greens_its_check_and_dims_its_text() {
+    use crate::md::syntax::Token;
+    let out = render("- [x] done", 40);
+    assert_eq!(out[0].spans[0].text, "\u{2713} ");
+    assert!(out[0].spans[0].style.marker, "the check is a marker");
+    assert_eq!(
+        out[0].spans[0].style.token,
+        Token::Added,
+        "the check draws in added-green"
+    );
+    assert!(
+        out[0].spans[1..]
+            .iter()
+            .all(|s| s.style.token == Token::Comment),
+        "checked text recedes to the comment rung: {:?}",
+        out[0]
+    );
+}
+
+#[test]
+fn an_unchecked_item_keeps_normal_ink() {
+    use crate::md::syntax::Token;
+    let out = render("- [ ] todo", 40);
+    assert_eq!(out[0].spans[0].text, "\u{2610} ");
+    assert!(out[0].spans[0].style.marker, "the box is a marker");
+    assert!(
+        out[0].spans.iter().all(|s| s.style.token == Token::Plain),
+        "unchecked items carry no tint: {:?}",
+        out[0]
+    );
+}
+
+#[test]
+fn wrapped_task_items_hang_indent_and_keep_the_dim() {
+    use crate::md::syntax::Token;
+    // "✓ " is 2 cols, leaving 10: "aaaa bbbb" then "cccc dddd" — the same
+    // hanging indent a plain bullet gets.
+    let out = render("- [x] aaaa bbbb cccc dddd", 12);
+    assert!(out.len() > 1, "expected the item to wrap: {out:?}");
+    assert_eq!(out[1].spans[0].text, "  ", "continuation aligns under text");
+    assert!(!out[1].spans[0].style.marker, "padding is not a marker");
+    assert!(
+        out[1].spans[1..]
+            .iter()
+            .all(|s| s.style.token == Token::Comment),
+        "the dim survives the wrap: {:?}",
+        out[1]
+    );
+}
+
+#[test]
+fn nested_and_mixed_task_items_follow_list_nesting() {
+    let out = render("- [ ] outer\n  - [x] inner\n- plain", 40);
+    let texts: Vec<String> = out
+        .iter()
+        .filter(|l| l.kind == LineKind::Body)
+        .map(flat)
+        .collect();
+    assert!(texts.contains(&"\u{2610} outer".to_string()), "{texts:?}");
+    assert!(texts.contains(&"  \u{2713} inner".to_string()), "{texts:?}");
+    assert!(texts.contains(&"\u{2022} plain".to_string()), "{texts:?}");
+}
+
+#[test]
+fn bracket_text_is_not_a_task() {
+    let out = render("- [normal] text", 40);
+    assert_eq!(flat(&out[0]), "\u{2022} [normal] text");
+    let no_space = render("- [ ]notext", 40);
+    assert_eq!(flat(&no_space[0]), "\u{2022} [ ]notext");
+}
+
+#[test]
+fn a_task_list_inside_a_code_fence_stays_verbatim() {
+    let out = render("```\n- [ ] not a task\n```", 40);
+    let code: Vec<String> = out
+        .iter()
+        .filter(|l| l.kind == LineKind::Code)
+        .map(flat)
+        .collect();
+    assert_eq!(code, vec!["- [ ] not a task"]);
+}
+
+#[test]
 fn wrapped_list_continuation_carries_no_marker() {
     // Bullet "• " is 2 cols, leaving 10: "aaaa bbbb" then "cccc dddd".
     let out = render("- aaaa bbbb cccc dddd", 12);
