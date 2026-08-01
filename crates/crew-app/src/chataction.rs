@@ -17,6 +17,15 @@ impl CrewApp {
                 crate::palette::set_accent(self.config.accent_rgb());
                 self.config.save();
             }
+            ChatAction::FindJump => {
+                let Some(pane) = self.panes.get_mut(focused) else {
+                    return;
+                };
+                let (cols, rows) = (pane.grid.cols, pane.grid.rows);
+                if let crate::pane::PaneContent::Chat(c) = &mut pane.content {
+                    crate::chatfind::jump(c, cols, rows);
+                }
+            }
             ChatAction::Font(arg) => {
                 self.set_font_cmd(&arg);
                 // Echo the outcome into the pane's transcript too — the

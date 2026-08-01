@@ -11,6 +11,7 @@ use crate::suggestvalues::{expands, options_for};
 /// **value** for a command that offers a fixed set (e.g. `/theme` → the theme
 /// names). Picking a value from the list beats remembering and typing it — the
 /// "choose from a list" pattern, reusable by any closed-set command.
+#[derive(Default)]
 pub(crate) struct MenuItem {
     /// Text shown in the row (command name, or value).
     pub label: String,
