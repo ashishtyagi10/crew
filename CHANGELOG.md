@@ -8,6 +8,32 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.10.9
+
+*A bug-hunt pass over everything the night shipped.*
+
+- **File drops are robust now.** A drop mid-sentence no longer glues onto
+  the last word (which silently lost the attachment), paths with spaces
+  round-trip as `@"quoted mentions"` end to end, a drop while the Ctrl+R
+  popup is open lands in the draft instead of vanishing, and dropped-path
+  relativization uses the exact cwd the send path resolves against.
+- **Ctrl+R popup hygiene.** Accepting a recalled line disarms any palette
+  or mention popup that was open — previously the stale popup resurfaced
+  and ate the next Enter, able to run an old palette row against the
+  recalled text.
+- **Clicks no longer fall through popups** onto the fold toggles of system
+  cards hidden beneath them.
+- **Oversized mentions are refused before reading.** A dropped multi-GB
+  file used to be read whole on the UI thread at send before the 64 KB cap
+  was checked; the size gate now runs on metadata first.
+- **Compact view stops counting metadata.** The per-reply usage trailer no
+  longer produces a misleading ` … +1` on every single-line reply under
+  Ctrl+O.
+- **Two real test flakes fixed** — the phantom full-suite failure traced to
+  torn reads of the process-global theme, and a ~25% `every_animation_
+  terminates` flake from the unguarded motion level; both now serialize on
+  the shared test guard (verified over eight consecutive clean runs).
+
 ## 0.10.8
 
 *Drop a file on crew and it lands where you're working.*
