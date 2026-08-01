@@ -21,6 +21,9 @@ pub(crate) enum ChatInput {
     /// composer's prompt history (see `chathistory`).
     Up,
     Down,
+    /// Ctrl+R — open the reverse history-search popup, or step to the next
+    /// older match while it is open (see `chathistsearch`).
+    HistSearch,
     Ignore,
 }
 
@@ -39,14 +42,17 @@ pub(crate) enum ChatAction {
 }
 
 /// Classify a key press for a chat pane. Only presses act; Escape closes.
-/// `shift` turns Enter into a newline instead of a send. (Ctrl+O — the
+/// `shift` turns Enter into a newline instead of a send; `ctrl` decodes the
+/// Ctrl+R history-search chord (winit keeps the logical key as the plain
+/// character under Control, same as the `keys.rs` intercepts). (Ctrl+O — the
 /// compact-transcript toggle — is no longer decoded here: it's a global
 /// intercept in `keys.rs`, same reach as Ctrl+Shift+M.)
-pub(crate) fn chat_key(logical: &Key, pressed: bool, shift: bool) -> ChatInput {
+pub(crate) fn chat_key(logical: &Key, pressed: bool, shift: bool, ctrl: bool) -> ChatInput {
     if !pressed {
         return ChatInput::Ignore;
     }
     match logical {
+        Key::Character(s) if ctrl && s.eq_ignore_ascii_case("r") => ChatInput::HistSearch,
         Key::Named(NamedKey::Escape) => ChatInput::Close,
         Key::Named(NamedKey::Tab) => ChatInput::Complete,
         Key::Named(NamedKey::ArrowRight) => ChatInput::Accept,
@@ -68,7 +74,7 @@ mod tests {
     #[test]
     fn escape_key_requests_pane_close() {
         assert_eq!(
-            chat_key(&Key::Named(NamedKey::Escape), true, false),
+            chat_key(&Key::Named(NamedKey::Escape), true, false, false),
             ChatInput::Close
         );
     }
@@ -77,7 +83,7 @@ mod tests {
     fn a_released_key_is_ignored() {
         // Only key presses act; releases (including Escape) do nothing.
         assert_eq!(
-            chat_key(&Key::Named(NamedKey::Escape), false, false),
+            chat_key(&Key::Named(NamedKey::Escape), false, false, false),
             ChatInput::Ignore
         );
     }
@@ -85,7 +91,7 @@ mod tests {
     #[test]
     fn tab_requests_completion() {
         assert_eq!(
-            chat_key(&Key::Named(NamedKey::Tab), true, false),
+            chat_key(&Key::Named(NamedKey::Tab), true, false, false),
             ChatInput::Complete
         );
     }
@@ -93,11 +99,11 @@ mod tests {
     #[test]
     fn arrows_classify_for_popup_navigation() {
         assert_eq!(
-            chat_key(&Key::Named(NamedKey::ArrowUp), true, false),
+            chat_key(&Key::Named(NamedKey::ArrowUp), true, false, false),
             ChatInput::Up
         );
         assert_eq!(
-            chat_key(&Key::Named(NamedKey::ArrowDown), true, false),
+            chat_key(&Key::Named(NamedKey::ArrowDown), true, false, false),
             ChatInput::Down
         );
     }
@@ -105,12 +111,12 @@ mod tests {
     #[test]
     fn right_arrow_accepts_a_suggestion() {
         assert_eq!(
-            chat_key(&Key::Named(NamedKey::ArrowRight), true, false),
+            chat_key(&Key::Named(NamedKey::ArrowRight), true, false, false),
             ChatInput::Accept
         );
         // Left is still nothing — the composer has no cursor to move.
         assert_eq!(
-            chat_key(&Key::Named(NamedKey::ArrowLeft), true, false),
+            chat_key(&Key::Named(NamedKey::ArrowLeft), true, false, false),
             ChatInput::Ignore
         );
     }
@@ -118,31 +124,53 @@ mod tests {
     #[test]
     fn shift_enter_inserts_a_newline_instead_of_sending() {
         assert_eq!(
-            chat_key(&Key::Named(NamedKey::Enter), true, true),
+            chat_key(&Key::Named(NamedKey::Enter), true, true, false),
             ChatInput::Newline
         );
         assert_eq!(
-            chat_key(&Key::Named(NamedKey::Enter), true, false),
+            chat_key(&Key::Named(NamedKey::Enter), true, false, false),
             ChatInput::Enter
+        );
+    }
+
+    #[test]
+    fn ctrl_r_is_the_history_search_chord() {
+        assert_eq!(
+            chat_key(&Key::Character("r".into()), true, false, true),
+            ChatInput::HistSearch
+        );
+        // Case-insensitive, like the `keys.rs` chord intercepts.
+        assert_eq!(
+            chat_key(&Key::Character("R".into()), true, false, true),
+            ChatInput::HistSearch
+        );
+        // Plain 'r' still types; Ctrl with another letter changes nothing.
+        assert_eq!(
+            chat_key(&Key::Character("r".into()), true, false, false),
+            ChatInput::Char('r')
+        );
+        assert_eq!(
+            chat_key(&Key::Character("x".into()), true, false, true),
+            ChatInput::Char('x')
         );
     }
 
     #[test]
     fn typed_characters_and_edits_are_classified() {
         assert_eq!(
-            chat_key(&Key::Character("a".into()), true, false),
+            chat_key(&Key::Character("a".into()), true, false, false),
             ChatInput::Char('a')
         );
         assert_eq!(
-            chat_key(&Key::Named(NamedKey::Space), true, false),
+            chat_key(&Key::Named(NamedKey::Space), true, false, false),
             ChatInput::Char(' ')
         );
         assert_eq!(
-            chat_key(&Key::Named(NamedKey::Enter), true, false),
+            chat_key(&Key::Named(NamedKey::Enter), true, false, false),
             ChatInput::Enter
         );
         assert_eq!(
-            chat_key(&Key::Named(NamedKey::Backspace), true, false),
+            chat_key(&Key::Named(NamedKey::Backspace), true, false, false),
             ChatInput::Backspace
         );
     }

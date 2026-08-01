@@ -202,7 +202,9 @@ impl CrewApp {
         if !self.input.focused {
             if let Some(pane) = self.panes.get(self.focused) {
                 if let crate::pane::PaneContent::Chat(c) = &pane.content {
-                    if let Some(m) = &c.mention {
+                    // Hidden while Ctrl+R search is open — that popup has the
+                    // keys (`ChatPane::on_input`), so it must have the screen.
+                    if let Some(m) = c.mention.as_ref().filter(|_| c.histsearch.is_none()) {
                         if !m.matches.is_empty() {
                             let items: Vec<crate::suggest::MenuItem> = m
                                 .matches
@@ -266,6 +268,32 @@ impl CrewApp {
                         let my = (r.y + r.h - comp - mh).max(0.0);
                         scenes.push(PaneScene {
                             cells: entry.card(cols),
+                            x: r.x,
+                            y: my,
+                            w: r.w,
+                            h: mh,
+                            focused: false,
+                            bordered: false,
+                            glass: false,
+                            scan: -1.0,
+                            overlay: true,
+                        });
+                    } else if let Some(h) = &c.histsearch {
+                        // Ctrl+R history search: same placement as the
+                        // palette; before it in the chain, matching the
+                        // key-routing priority in `ChatPane::on_input`.
+                        let r = pane.rect;
+                        let cols = (r.w / cw).floor() as u16;
+                        let (cells, mr) = crate::chathistsearch::card(h, cols);
+                        let comp = f32::from(crate::chatinput::composer_rows(
+                            &c.input,
+                            cols,
+                            (r.h / ch).floor() as u16,
+                        )) * ch;
+                        let mh = f32::from(mr) * ch;
+                        let my = (r.y + r.h - comp - mh).max(0.0);
+                        scenes.push(PaneScene {
+                            cells,
                             x: r.x,
                             y: my,
                             w: r.w,

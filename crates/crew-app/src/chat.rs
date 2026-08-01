@@ -56,6 +56,9 @@ pub struct ChatPane {
     /// The leading `/command` or `@agent` palette while one is open (see
     /// `chatpalette`). Mutually exclusive with `mention` by construction.
     pub(crate) palette: Option<crate::chatpalette::PaletteState>,
+    /// The Ctrl+R reverse history-search popup while open (see
+    /// `chathistsearch`). Takes keys before the palette and mention popups.
+    pub(crate) histsearch: Option<crate::chathistsearch::HistSearch>,
     /// The masked provider-key prompt while one is open (see `keyentry`).
     /// Modal: it takes every key before the palette, the mention popup and the
     /// pane's own handling.
@@ -149,6 +152,7 @@ impl ChatPane {
             pulse: crate::chatpulse::Pulse::new(),
             mention: None,
             palette: None,
+            histsearch: None,
             keyentry: None,
             oauth: None,
             show_source: false,
@@ -488,9 +492,10 @@ impl ChatPane {
         &mut self,
         key: &KeyEvent,
         shift: bool,
+        ctrl: bool,
         cwd: &std::path::Path,
     ) -> Option<ChatAction> {
-        let k = chat_key(&key.logical_key, key.state.is_pressed(), shift);
+        let k = chat_key(&key.logical_key, key.state.is_pressed(), shift, ctrl);
         self.on_input(k, cwd)
     }
 
@@ -521,6 +526,25 @@ impl ChatPane {
                     return None;
                 }
             }
+        }
+        // Ctrl+R search next: while open it is modal over the palette and
+        // mention popups (typed chars edit its query, not the composer), and
+        // Ctrl+R itself must open it before the plain-key handling below.
+        match crate::chathistsearch::popup_key(
+            &mut self.histsearch,
+            &mut self.input,
+            self.history.lines(),
+            &k,
+        ) {
+            crate::chathistsearch::HistKey::Consumed => return None,
+            // An accepted entry is a recalled line in the composer now — reset
+            // any history walk, and (like Up/Down recall) do NOT re-sync the
+            // palette: a recalled `/command` should not pop it open.
+            crate::chathistsearch::HistKey::Accepted => {
+                self.history.edited();
+                return None;
+            }
+            crate::chathistsearch::HistKey::Forward => {}
         }
         // ORDER IS LOAD-BEARING: an open popup must get keys BEFORE the
         // `match k { Close/Up/Down/… }` block below, or Escape would close the
@@ -582,7 +606,9 @@ impl ChatPane {
                 }
                 return Some(ChatAction::Close);
             }
-            ChatInput::Ignore => return None,
+            // HistSearch never reaches here (the popup routing above always
+            // consumes it — opening when closed), but the match must be total.
+            ChatInput::Ignore | ChatInput::HistSearch => return None,
             // No popup is open (both got these keys first, above), so the
             // arrows mean what they mean in every shell: walk what you already
             // sent. The palette is deliberately NOT re-synced from a recalled
