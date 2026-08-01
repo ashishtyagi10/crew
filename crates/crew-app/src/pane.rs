@@ -24,6 +24,10 @@ pub struct TermPane {
     /// When the current foreground command (`cmd`) started, used to gate the
     /// "command finished" notification on a minimum runtime. `None` when idle.
     pub cmd_since: Option<std::time::Instant>,
+    /// When PTY output was last absorbed (on the `anim` clock), stamped in
+    /// `poll_panes` where `try_read` lands bytes. The quiescence half of the
+    /// blocked-on-a-human predicate (see `blocked.rs`).
+    pub last_output_ms: u64,
 }
 
 /// Discriminated union of pane kinds. A handful of instances exist at once
@@ -169,6 +173,7 @@ pub fn spawn_pane(
             input,
             cmd: None,
             cmd_since: None,
+            last_output_ms: crate::anim::now_ms(),
         })),
         grid,
         rect: Rect {

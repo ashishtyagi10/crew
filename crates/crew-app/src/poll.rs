@@ -154,6 +154,10 @@ impl CrewApp {
             let changed = match &mut p.content {
                 PaneContent::Terminal(t) => {
                     let n = t.pty.try_read() > 0;
+                    if n {
+                        // Quiescence stamp for the blocked-on-a-human check.
+                        t.last_output_ms = crate::anim::now_ms();
+                    }
                     more_pending |= t.pty.has_pending();
                     rang = t.pty.take_bell();
                     new_cwd = t.pty.take_cwd();
@@ -369,6 +373,11 @@ impl CrewApp {
         for (idx, action) in far_actions.drain(..) {
             self.apply_far_action(action, idx);
         }
+        // Blocked-on-a-human detection: badge panes waiting for the user and
+        // maybe auto-focus one. Throttled inside to ~1 Hz, and it only returns
+        // true when something actually changed — an idle app stays idle (the
+        // attention pulse it raises is bounded, like every other marker).
+        any_changed |= self.tick_blocked(crate::anim::now_ms());
         // Quiet auto-update: fire the same worker the manual /update uses,
         // silently, shortly after launch and then six-hourly. Restart stays
         // manual — an install only parks the nav-legend reminder. The silent
@@ -464,6 +473,51 @@ impl CrewApp {
                 Instant::now() + Duration::from_millis(POLL_MS),
             ));
         }
+    }
+
+    /// The per-poll blocked-on-a-human check (throttled inside to ~1 Hz, see
+    /// [`crate::blocked`]). Badges newly blocked panes and applies at most one
+    /// auto-focus. Returns whether anything changed (a repaint is due) — idle,
+    /// it costs one scan per second and never forces a redraw.
+    pub(crate) fn tick_blocked(&mut self, now: u64) -> bool {
+        use crate::blocked::{pane_blocked, USER_IDLE_MS};
+        if self.panes.is_empty() || !self.blocked.due(now) {
+            return false;
+        }
+        let snap: Vec<(u64, bool)> = self
+            .panes
+            .iter()
+            .map(|p| (p.born_ms, pane_blocked(p, now)))
+            .collect();
+        let focused_key = self.panes.get(self.focused).map(|p| p.born_ms);
+        let focused_blocked = snap.get(self.focused).is_some_and(|&(_, b)| b);
+        let user_idle = now.saturating_sub(self.last_input_ms) >= USER_IDLE_MS;
+        let up = self
+            .blocked
+            .update(&snap, focused_key, focused_blocked, user_idle);
+        let mut changed = false;
+        for key in &up.newly {
+            if let Some(i) = self.panes.iter().position(|p| p.born_ms == *key) {
+                crate::attention::raise(
+                    &mut self.panes[i],
+                    crate::notify::NotifyKind::Waiting,
+                    now,
+                );
+                let title = self.panes[i].title_text();
+                self.notify(crate::notify::NotifyKind::Waiting, title, String::new());
+                changed = true;
+            }
+        }
+        if let Some(key) = up.focus {
+            if let Some(i) = self.panes.iter().position(|p| p.born_ms == key) {
+                // The same focus path every other surface uses: focusing a
+                // hidden pane restores it via `reconcile_grid` next frame.
+                self.focused = i;
+                self.input.focused = false;
+                changed = true;
+            }
+        }
+        changed
     }
 
     /// Land any finished OpenRouter browser sign-in, in EVERY pane — not just

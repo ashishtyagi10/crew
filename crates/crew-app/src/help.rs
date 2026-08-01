@@ -13,7 +13,7 @@ use crate::palette::accent_color;
 const BINDINGS: &[(&str, &str)] = &[
     ("Ctrl+Tab / Ctrl+Shift+Tab", "Next / previous pane"),
     ("Cmd+1 … 9", "Jump to pane N"),
-    ("Cmd+A", "Jump to next active pane"),
+    ("Cmd+A / Cmd+.", "Jump to next active / waiting pane"),
     ("Cmd+{ / Cmd+}", "Move pane left / right"),
     ("Cmd+I", "Focus the input bar"),
     ("Cmd+T", "New shell pane"),

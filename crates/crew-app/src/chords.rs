@@ -57,6 +57,24 @@ impl CrewApp {
         }
     }
 
+    /// Cmd+.: focus the next pane blocked on the user, wrapping (see
+    /// [`crate::blocked`]); a status note when none is waiting.
+    pub(crate) fn focus_next_blocked(&mut self) {
+        let now = crate::anim::now_ms();
+        let blocked: Vec<bool> = self
+            .panes
+            .iter()
+            .map(|p| crate::blocked::pane_blocked(p, now))
+            .collect();
+        match next_active_index(&blocked, self.focused) {
+            Some(i) => {
+                self.focused = i;
+                self.input.focused = false;
+            }
+            None => self.set_status("no pane is waiting"),
+        }
+    }
+
     /// Move the focused pane one slot left/right in the grid order.
     pub(crate) fn move_pane(&mut self, dir: i32) {
         if let Some(j) = swap_target(self.focused, self.panes.len(), dir) {
@@ -104,6 +122,8 @@ impl CrewApp {
             "}" => self.move_pane(1),
             "z" => self.toggle_zoom(),
             "a" => self.focus_next_active(),
+            // Cmd+.: jump to the next pane waiting on the user (see `blocked`).
+            "." => self.focus_next_blocked(),
             "c" => self.copy_screen(),
             // Cmd+S saves a focused settings form; otherwise toggles broadcast.
             "s" => {

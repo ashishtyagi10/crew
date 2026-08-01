@@ -95,6 +95,7 @@ impl CrewApp {
                         input,
                         cmd: None,
                         cmd_since: None,
+                        last_output_ms: crate::anim::now_ms(),
                     })),
                     grid,
                     rect: PLACEHOLDER_RECT,

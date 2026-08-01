@@ -42,6 +42,9 @@ impl CrewApp {
             NotifyKind::Exited => self.config.notify_exit,
             // Patterns are opt-in: they only fire when the user lists them.
             NotifyKind::Pattern => true,
+            // Waiting rides the master `notify` switch alone: the detection
+            // is already conservative, and the badge is the primary surface.
+            NotifyKind::Waiting => true,
         };
         if !enabled {
             return;

@@ -17,6 +17,9 @@ pub enum NotifyKind {
     Pattern,
     /// The pane's process exited.
     Exited,
+    /// The pane is blocked on the user — an approval prompt, a y/n question,
+    /// or a pending plan (see `blocked.rs`).
+    Waiting,
 }
 
 /// A recorded notification, kept in a small ring for throttling and `/notify`.
@@ -140,6 +143,7 @@ fn format_message(kind: NotifyKind, pane: &str, detail: &str) -> String {
         NotifyKind::Bell => format!("● bell in {pane}"),
         NotifyKind::Pattern => format!("⚑ matched \"{detail}\" in {pane}"),
         NotifyKind::Exited => format!("⊗ {pane} exited"),
+        NotifyKind::Waiting => format!("⧗ {pane} is waiting for you"),
     }
 }
 

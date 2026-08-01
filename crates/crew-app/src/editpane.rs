@@ -137,6 +137,7 @@ mod tests {
                 input,
                 cmd: Some("vim".to_string()),
                 cmd_since: None,
+                last_output_ms: crate::anim::now_ms(),
             })),
             grid: FALLBACK_SIZE,
             rect: PLACEHOLDER_RECT,

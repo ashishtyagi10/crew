@@ -24,6 +24,22 @@ fn open_modifier(state: ModifiersState) -> bool {
 impl CrewApp {
     /// Handle one `WindowEvent` for the main window.
     pub(crate) fn handle_window_event(&mut self, event_loop: &ActiveEventLoop, event: WindowEvent) {
+        // Any deliberate input (key press, click, scroll) stamps the user as
+        // active: blocked-pane auto-focus never steals focus inside the
+        // [`crate::blocked::USER_IDLE_MS`] window that follows.
+        match &event {
+            WindowEvent::KeyboardInput { event: k, .. } if k.state.is_pressed() => {
+                self.last_input_ms = crate::anim::now_ms();
+            }
+            WindowEvent::MouseInput {
+                state: ElementState::Pressed,
+                ..
+            }
+            | WindowEvent::MouseWheel { .. } => {
+                self.last_input_ms = crate::anim::now_ms();
+            }
+            _ => {}
+        }
         match event {
             // The close button gets the SAME confirmation as Cmd+Q. It used to
             // exit outright, which meant the guard protecting running
