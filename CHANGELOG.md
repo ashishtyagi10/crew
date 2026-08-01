@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.11.1
+
+*The rough edges from a night of shipping, sanded.*
+
+- **Fold toggles fire on mouse release, not press** — starting a drag
+  selection over a folded card no longer expands it mid-gesture, and a
+  click that merely focuses the pane can't toggle a card by accident.
+- **A streaming card you clicked open stays open when it settles.**
+- **Per-reply usage trailers verify the sender** before attaching, so a
+  future interleaved broker message can never wear another reply's cost.
+- **A contrast tripwire now guards the diff/checkmark inks** in every
+  theme (measured floors: ≥4.5 vs the page, ≥3.2 vs the code card), so a
+  future palette can't quietly slide red/green under readability.
+- **Docs caught up with the night**: README, docs/CREW.md and the `/keys`
+  overlay now cover diff fences, checklists, Ctrl+R, usage trailers,
+  folding cards, drag-and-drop, quoted mentions and Cmd+F.
+
 ## 0.11.0
 
 *Find anything you ever said — or were told.*
