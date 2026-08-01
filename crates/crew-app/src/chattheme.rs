@@ -99,6 +99,7 @@ pub(crate) fn intercept(pane: &mut ChatPane, text: &str) -> ThemeIntercept {
         text: note,
         ts,
         meta: String::new(),
+        usage: None,
     });
     outcome
 }

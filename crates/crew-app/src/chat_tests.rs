@@ -76,6 +76,7 @@ fn settled_message_replaces_the_provisional_card() {
         text: "Hello, world".into(),
         ts: "1".into(),
         meta: String::new(),
+        usage: None,
     });
     assert!(
         p.streaming.is_empty(),
@@ -157,6 +158,7 @@ fn export_never_contains_a_provisional_card() {
         text: "SETTLED".into(),
         ts: "1".into(),
         meta: String::new(),
+        usage: None,
     });
     p.absorb_delta("coder".into(), "HALFWRITTEN".into());
     let md = crate::chatexport::transcript_markdown("c", &p.messages, &chrono::Local::now());
@@ -471,6 +473,7 @@ fn esc_after_a_broker_message_pushes_a_second_interrupt_note() {
         text: "swarm done \u{2014} 1 task(s), 0 failed".into(),
         ts: String::new(),
         meta: String::new(),
+        usage: None,
     });
     assert!(p.is_busy(), "pane must still be busy after the message");
     assert_eq!(p.messages.len(), 2);
@@ -732,6 +735,7 @@ fn the_fold_marker_counts_everything_it_ever_folded() {
             text: format!("m{i}"),
             ts: String::new(),
             meta: String::new(),
+            usage: None,
         });
     }
     let marker = &p.messages[0].text;
@@ -767,6 +771,7 @@ fn folding_is_batched_not_per_message() {
             text: format!("m{i}"),
             ts: String::new(),
             meta: String::new(),
+            usage: None,
         });
     };
     for i in 0..cap {
@@ -796,6 +801,7 @@ fn the_transcript_folds_itself_with_a_marker() {
             text: format!("m{i}"),
             ts: String::new(),
             meta: String::new(),
+            usage: None,
         });
     }
     // Folding takes a batch, so the length lands between the low-water mark
@@ -826,6 +832,7 @@ fn show_source_false_renders_bold_markdown() {
         text: "**bold**".into(),
         ts: String::new(),
         meta: String::new(),
+        usage: None,
     });
     assert!(!p.show_source, "show_source defaults to false");
 
@@ -873,6 +880,7 @@ fn show_source_true_shows_literal_text() {
         text: "**bold**".into(),
         ts: String::new(),
         meta: String::new(),
+        usage: None,
     });
 
     let refs: Vec<&crate::chatlayout::Message> = p.messages.iter().collect();
@@ -1699,4 +1707,46 @@ fn stopping_one_task_by_id_leaves_the_queue_alone() {
     p.on_input(ChatInput::Enter, &cwd);
 
     assert_eq!(p.queued.len(), 1, "a targeted stop cancelled everything");
+}
+
+// --- Per-reply usage trailer: the Stats{agent}→Message drain (see chatusage) ---
+
+#[test]
+fn reply_usage_attaches_to_the_settled_row() {
+    // The broker emits each reply's stat immediately before the reply itself
+    // (relay.rs and fan.rs both); the Message arm drains the stash.
+    let mut p = pane_emitting(&[
+        r#"{"type":"stats","exchanges":0,"tokens":950,"agent":"coder","ms":1200,"ctx":900,"tok_in":900,"tok_out":50,"cost_microusd":12000}"#,
+        r#"{"type":"message","channel":"crew","sender":"coder","text":"done","ts":"1"}"#,
+    ]);
+    poll_until(&mut p, |p| p.messages.len() == 1);
+    assert_eq!(p.messages[0].usage, Some((900, 50, 12_000)));
+    assert_eq!(p.pending_reply_usage, None, "the stash drains on arrival");
+}
+
+#[test]
+fn two_replies_each_get_their_own_usage() {
+    // No leakage: each row carries the numbers of ITS stat, and a stale stash
+    // never tags a later reply.
+    let mut p = pane_emitting(&[
+        r#"{"type":"stats","exchanges":0,"tokens":950,"agent":"planner","ms":1200,"ctx":900,"tok_in":900,"tok_out":50,"cost_microusd":12000}"#,
+        r#"{"type":"message","channel":"crew","sender":"planner","text":"plan","ts":"1"}"#,
+        r#"{"type":"stats","exchanges":0,"tokens":15,"agent":"coder","ms":800,"ctx":10,"tok_in":10,"tok_out":5,"cost_microusd":300}"#,
+        r#"{"type":"message","channel":"crew","sender":"coder","text":"code","ts":"2"}"#,
+    ]);
+    poll_until(&mut p, |p| p.messages.len() == 2);
+    assert_eq!(p.messages[0].usage, Some((900, 50, 12_000)));
+    assert_eq!(p.messages[1].usage, Some((10, 5, 300)));
+}
+
+#[test]
+fn zero_usage_reply_settles_with_no_usage() {
+    // A CLI-backed agent (or an error hop) closes its dial with an all-zero
+    // stat — the settled row must carry nothing for the trailer to render.
+    let mut p = pane_emitting(&[
+        r#"{"type":"stats","exchanges":0,"tokens":0,"agent":"claude","ms":1200}"#,
+        r#"{"type":"message","channel":"crew","sender":"claude","text":"done","ts":"1"}"#,
+    ]);
+    poll_until(&mut p, |p| p.messages.len() == 1);
+    assert_eq!(p.messages[0].usage, None);
 }

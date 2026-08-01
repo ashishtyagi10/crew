@@ -7,6 +7,7 @@ fn msg(sender: &str, text: &str) -> Message {
         text: text.into(),
         ts: String::new(),
         meta: String::new(),
+        usage: None,
     }
 }
 

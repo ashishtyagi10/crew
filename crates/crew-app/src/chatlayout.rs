@@ -13,6 +13,11 @@ pub struct Message {
     pub ts: String,
     /// Per-message metadata from the plugin (e.g. reply latency, `"4.2s"`).
     pub meta: String,
+    /// This reply's real `(tok_in, tok_out, cost_microusd)` from the per-reply
+    /// `Stats` event, when the backend reported usage — the muted trailer
+    /// under the card body. `None` (and no trailer) for user echoes, system
+    /// notes, streaming cards and CLI-backed agents that report no usage.
+    pub usage: Option<(u64, u64, u64)>,
 }
 
 /// Word-aware wrap of `full` to width `cols`: the `[start, end)` char ranges of

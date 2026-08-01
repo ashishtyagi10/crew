@@ -8,6 +8,7 @@ fn msg(sender: &str, text: &str) -> Message {
         text: text.into(),
         ts: String::new(),
         meta: String::new(),
+        usage: None,
     }
 }
 
@@ -77,6 +78,7 @@ fn header_tail_keeps_relative_time_but_drops_latency() {
         text: "done".into(),
         ts: "999700000".into(),
         meta: "4.2s".into(),
+        usage: None,
     };
     let chars: String = header_line(&m, 1_000_000_000, None)
         .iter()
@@ -183,6 +185,7 @@ fn header_line_shows_a_dim_chip_for_task_tagged_messages() {
         text: "done".into(),
         ts: String::new(),
         meta: "task:2 \u{00b7} 0.0s".into(),
+        usage: None,
     };
     let line = header_line(&m, 0, None);
     let muted = crew_theme::theme().text_muted;
@@ -255,6 +258,7 @@ fn splash_art_is_centered_verbatim_no_injected_glyphs() {
 #[test]
 fn same_task_cards_chain_with_a_tree_connector_and_no_spacer() {
     let mk = |sender: &str, meta: &str| Message {
+        usage: None,
         sender: sender.into(),
         text: "x".into(),
         ts: String::new(),
@@ -290,6 +294,7 @@ fn middle_chained_cards_get_tee_last_gets_corner() {
         text: text.into(),
         ts: String::new(),
         meta: "task:7".into(),
+        usage: None,
     };
     let msgs = [mk("root"), mk("mid"), mk("last")];
     let refs: Vec<&Message> = msgs.iter().collect();
@@ -678,4 +683,66 @@ fn motion_off_leaves_a_steady_caret() {
     };
     assert_eq!(fg(1), fg(450), "the caret must not pulse at off");
     crate::motion::set_level(crate::motion::MotionLevel::Full);
+}
+
+// --- Per-reply usage trailer (see chatusage) ---
+
+fn msg_with_usage(sender: &str, text: &str) -> Message {
+    let mut m = msg(sender, text);
+    m.usage = Some((900, 50, 12_000));
+    m
+}
+
+#[test]
+fn usage_trailer_renders_muted_under_the_body() {
+    let m = msg_with_usage("coder", "hello");
+    let cells = message_cells(&[&m], 40, 10, 0, 0, View::default());
+    assert_eq!(row_text(&cells, 1), " hello");
+    assert_eq!(row_text(&cells, 2), " 900 in / 50 out \u{00b7} $0.012");
+    let muted = crew_theme::theme().text_muted;
+    assert!(
+        cells.iter().filter(|c| c.row == 2).all(|c| c.fg == muted),
+        "the trailer renders in the muted system ink"
+    );
+}
+
+#[test]
+fn card_line_count_includes_the_trailer() {
+    let with = msg_with_usage("coder", "hello");
+    let without = msg("coder", "hello");
+    assert_eq!(
+        card_line_count(&[&with], 40, View::default()),
+        card_line_count(&[&without], 40, View::default()) + 1,
+        "the scroll clamp must count the trailer line"
+    );
+}
+
+#[test]
+fn zero_usage_renders_no_trailer() {
+    let mut m = msg("coder", "hello");
+    m.usage = Some((0, 0, 0));
+    assert_eq!(
+        card_line_count(&[&m], 40, View::default()),
+        card_line_count(&[&msg("coder", "hello")], 40, View::default()),
+        "an all-zero usage row renders exactly like one with none"
+    );
+}
+
+#[test]
+fn compact_view_clamps_the_trailer_like_any_body_line() {
+    let m = msg_with_usage("coder", "hello");
+    let view = View {
+        compact: true,
+        ..View::default()
+    };
+    let cells = message_cells(&[&m], 40, 10, 0, 0, view);
+    assert_eq!(
+        row_text(&cells, 1),
+        " hello \u{2026} +1",
+        "compact hides the trailer and counts it in the +N suffix"
+    );
+    assert!(
+        !(0..10).any(|r| row_text(&cells, r).contains("in /")),
+        "no trailer text may survive the compact clamp"
+    );
 }

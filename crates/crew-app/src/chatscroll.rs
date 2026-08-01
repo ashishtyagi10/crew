@@ -140,6 +140,7 @@ mod tests {
                 text: format!("message number {i}"),
                 ts: String::new(),
                 meta: String::new(),
+                usage: None,
             });
         }
         let tasks = (0..8)

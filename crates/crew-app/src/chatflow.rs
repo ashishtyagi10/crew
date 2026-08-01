@@ -56,6 +56,12 @@ impl crate::chat::ChatPane {
             let e = self.agent_stats.entry(agent).or_default();
             e.0 = e.0.saturating_add(1);
             e.1 = e.1.saturating_add(ms);
+            // Stash real usage for the reply `Message` that follows this stat
+            // (the broker emits them adjacently — relay and fan alike); an
+            // all-zero stat (CLI backend, error hop) must never leave one.
+            if crate::usageledger::records_usage(tok_in, tok_out) || cost_microusd > 0 {
+                self.pending_reply_usage = Some((tok_in, tok_out, cost_microusd));
+            }
         }
     }
 
@@ -136,6 +142,7 @@ impl crate::chat::ChatPane {
             text,
             ts: crate::chattime::unix_now_ms().to_string(),
             meta: String::new(),
+            usage: None,
         });
     }
 

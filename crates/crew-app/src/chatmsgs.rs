@@ -236,6 +236,11 @@ pub(crate) fn card_lines(
             _ => crew_theme::theme().ink,
         };
         let mut body = body_lines(&m.text, cols, fg, view.source);
+        // The reply's usage trailer joins the body BEFORE the compact clamp,
+        // so Ctrl+O hides it — and counts it in ` … +N` — like any body line.
+        if let Some(t) = m.usage.and_then(crate::chatusage::trailer_line) {
+            body.push(t);
+        }
         if view.compact && body.len() > 1 {
             let hidden = body.len() - 1;
             body.truncate(1);
