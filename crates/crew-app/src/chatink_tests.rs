@@ -89,6 +89,18 @@ fn crt_green_code_colour_moves() {
     );
 }
 
+/// Diff line classes take the theme's RAW slots, matching the viewer's diff
+/// rung (`viewpane::lines::diff_lines`) — a ```diff fence in chat and an
+/// opened .patch file must colour identically.
+#[test]
+fn diff_tokens_match_the_viewers_diff_rung() {
+    use crate::md::syntax::Token;
+    let t = crew_theme::theme();
+    assert_eq!(token_fg(Token::Added), t.ansi[2], "added is green");
+    assert_eq!(token_fg(Token::Removed), t.ansi[1], "removed is red");
+    assert_eq!(token_fg(Token::Hunk), t.ansi[6], "hunk header is cyan");
+}
+
 /// The derived table is per-preset, not per-call: the active theme must pick
 /// its own row rather than always answering with the first one.
 #[test]

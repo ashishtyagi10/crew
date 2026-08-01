@@ -111,6 +111,31 @@ fn adjacent_runs_of_the_same_token_merge() {
     assert_eq!(runs.len(), 1, "{runs:?}");
 }
 
+/// A ```diff fence colours by LINE: the marker at column zero claims the
+/// whole line, and the `+++`/`---` file headers dim rather than shout.
+#[test]
+fn diff_fences_colour_by_line() {
+    for lang in ["diff", "patch"] {
+        assert_eq!(
+            assert_lossless("+added line", lang),
+            vec![("+added line".to_string(), Token::Added)],
+        );
+        assert_eq!(assert_lossless("-removed line", lang)[0].1, Token::Removed);
+        assert_eq!(assert_lossless("@@ -1,2 +1,2 @@", lang)[0].1, Token::Hunk);
+        assert_eq!(assert_lossless("+++ b/file.rs", lang)[0].1, Token::Comment);
+        assert_eq!(assert_lossless("--- a/file.rs", lang)[0].1, Token::Comment);
+    }
+}
+
+/// A rust fence whose line happens to start with `-` is arithmetic, not a
+/// removal — only the diff/patch tags (or layout's untagged sniff) get the
+/// line colouring.
+#[test]
+fn a_rust_fence_with_a_leading_minus_is_not_a_diff() {
+    let runs = assert_lossless("-x - 1", "rust");
+    assert!(runs.iter().all(|(_, t)| *t != Token::Removed), "{runs:?}");
+}
+
 /// The re-review's defect: the scan loop used to rebuild the remainder of the
 /// line as a fresh `String` (`chars[i..].iter().collect()`) on every
 /// position, just to ask whether a comment marker started there — O(L) work

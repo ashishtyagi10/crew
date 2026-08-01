@@ -161,6 +161,54 @@ fn list_bullet_is_a_marker_but_its_text_is_not() {
     assert!(out[0].spans[1..].iter().all(|s| !s.style.marker));
 }
 
+/// The per-code-line token, for the diff-fence tests below. One entry per
+/// `LineKind::Code` line — diff colouring is line-granular, so each such
+/// line carries exactly one token.
+fn code_tokens(lines: &[MdLine]) -> Vec<crate::md::syntax::Token> {
+    lines
+        .iter()
+        .filter(|l| l.kind == LineKind::Code)
+        .map(|l| l.spans[0].style.token)
+        .collect()
+}
+
+#[test]
+fn a_tagged_diff_fence_carries_line_classes() {
+    use crate::md::syntax::Token;
+    let out = render("```diff\n@@ -1 +1 @@\n-old\n+new\n```", 40);
+    assert_eq!(
+        code_tokens(&out),
+        vec![Token::Hunk, Token::Removed, Token::Added]
+    );
+}
+
+/// An untagged fence full of `git diff` output is sniffed and coloured the
+/// same way — agents rarely bother tagging a paste.
+#[test]
+fn an_untagged_fence_that_reads_as_a_diff_is_coloured() {
+    use crate::md::syntax::Token;
+    let out = render("```\ndiff --git a/x b/x\n+new line\n```", 40);
+    assert_eq!(code_tokens(&out), vec![Token::Comment, Token::Added]);
+    let hunk = render("```\n@@ -1 +1 @@\n-old\n+new\n```", 40);
+    assert_eq!(
+        code_tokens(&hunk),
+        vec![Token::Hunk, Token::Removed, Token::Added]
+    );
+}
+
+/// The sniff must not claim ordinary untagged code.
+#[test]
+fn an_untagged_plain_fence_stays_unsniffed() {
+    use crate::md::syntax::Token;
+    let out = render("```\nlet a = b - 1;\n```", 40);
+    assert!(
+        code_tokens(&out)
+            .iter()
+            .all(|t| !matches!(t, Token::Added | Token::Removed | Token::Hunk)),
+        "{out:?}"
+    );
+}
+
 #[test]
 fn wrapped_list_continuation_carries_no_marker() {
     // Bullet "• " is 2 cols, leaving 10: "aaaa bbbb" then "cccc dddd".
