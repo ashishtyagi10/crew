@@ -77,6 +77,7 @@ mod envlock;
 mod events;
 mod faraction;
 mod farpane;
+mod filedrop;
 mod fileindex;
 mod findhl;
 mod fontcmd;
