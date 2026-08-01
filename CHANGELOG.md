@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.10.8
+
+*Drop a file on crew and it lands where you're working.*
+
+- **Files dragged onto the window drop into the focused pane.** Onto a chat
+  pane they become an `@mention` — relative when the file lives under the
+  pane's project, absolute otherwise — ready for the mention machinery to
+  inline at send. Onto a terminal they type the shell-quoted path, spaces
+  and quotes escaped, through the same bracketed-paste path as Cmd+V.
+  Multiple files append in order. (macOS never reports a cursor position
+  during an OS drag, so the focused pane — not the pane under the mouse —
+  is the deliberate target.)
+
 ## 0.10.7
 
 *Broker noise folds itself away.*
