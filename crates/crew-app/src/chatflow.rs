@@ -143,6 +143,7 @@ impl crate::chat::ChatPane {
             ts: crate::chattime::unix_now_ms().to_string(),
             meta: String::new(),
             usage: None,
+            expanded: false,
         });
     }
 

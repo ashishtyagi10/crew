@@ -9,6 +9,7 @@ fn msg(sender: &str, text: &str) -> Message {
         ts: String::new(),
         meta: String::new(),
         usage: None,
+        expanded: false,
     }
 }
 
@@ -79,6 +80,7 @@ fn header_tail_keeps_relative_time_but_drops_latency() {
         ts: "999700000".into(),
         meta: "4.2s".into(),
         usage: None,
+        expanded: false,
     };
     let chars: String = header_line(&m, 1_000_000_000, None)
         .iter()
@@ -186,6 +188,7 @@ fn header_line_shows_a_dim_chip_for_task_tagged_messages() {
         ts: String::new(),
         meta: "task:2 \u{00b7} 0.0s".into(),
         usage: None,
+        expanded: false,
     };
     let line = header_line(&m, 0, None);
     let muted = crew_theme::theme().text_muted;
@@ -259,6 +262,7 @@ fn splash_art_is_centered_verbatim_no_injected_glyphs() {
 fn same_task_cards_chain_with_a_tree_connector_and_no_spacer() {
     let mk = |sender: &str, meta: &str| Message {
         usage: None,
+        expanded: false,
         sender: sender.into(),
         text: "x".into(),
         ts: String::new(),
@@ -295,6 +299,7 @@ fn middle_chained_cards_get_tee_last_gets_corner() {
         ts: String::new(),
         meta: "task:7".into(),
         usage: None,
+        expanded: false,
     };
     let msgs = [mk("root"), mk("mid"), mk("last")];
     let refs: Vec<&Message> = msgs.iter().collect();

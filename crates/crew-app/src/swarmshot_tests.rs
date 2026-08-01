@@ -39,6 +39,7 @@ fn mid_run_pane() -> ChatPane {
         ts: String::new(),
         meta: String::new(),
         usage: None,
+        expanded: false,
     });
     let tasks = [
         "Gather Project Documents",

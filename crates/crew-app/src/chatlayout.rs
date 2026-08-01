@@ -18,6 +18,10 @@ pub struct Message {
     /// under the card body. `None` (and no trailer) for user echoes, system
     /// notes, streaming cards and CLI-backed agents that report no usage.
     pub usage: Option<(u64, u64, u64)>,
+    /// The user clicked this card open past its auto-fold (see `chatfold`):
+    /// long system-voice cards render collapsed until this is set. Never read
+    /// on agent/user cards, which are not auto-folded. Not persisted.
+    pub expanded: bool,
 }
 
 /// Word-aware wrap of `full` to width `cols`: the `[start, end)` char ranges of

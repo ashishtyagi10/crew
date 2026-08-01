@@ -137,6 +137,7 @@ fn folding_leaves_the_existing_transcript_untouched() {
             ts: String::new(),
             meta: String::new(),
             usage: None,
+            expanded: false,
         });
     }
     assert_eq!(p.messages.len(), 500);

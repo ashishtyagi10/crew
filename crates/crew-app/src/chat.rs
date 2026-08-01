@@ -209,6 +209,7 @@ impl ChatPane {
             ts: chrono::Local::now().timestamp_millis().to_string(),
             meta: String::new(),
             usage: None,
+            expanded: false,
         });
     }
 
@@ -306,6 +307,7 @@ impl ChatPane {
                             ts,
                             meta,
                             usage,
+                            expanded: false,
                         });
                     }
                     PluginEvent::HivePlan { tasks } => self.absorb_hive_plan(tasks),
@@ -481,6 +483,7 @@ impl ChatPane {
             ts: String::new(),
             meta: String::new(),
             usage: None,
+            expanded: false,
         });
     }
 
@@ -722,6 +725,7 @@ impl ChatPane {
                     ts: chrono::Local::now().timestamp_millis().to_string(),
                     meta: String::new(),
                     usage: None,
+                    expanded: false,
                 });
                 let agent_names: Vec<String> = self.agents.iter().map(|a| a.name.clone()).collect();
                 let expanded = crate::chatmention::expand(&text, cwd, &agent_names);

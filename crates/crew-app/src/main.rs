@@ -23,6 +23,7 @@ mod chatempty;
 mod chatevents;
 mod chatexport;
 mod chatflow;
+mod chatfold;
 mod chatfont;
 mod chathdr;
 mod chathistory;
