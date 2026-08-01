@@ -73,20 +73,27 @@ impl CrewApp {
                     self.redraw();
                     return;
                 }
+                // A plain click on a foldable system card in a chat pane
+                // toggles its collapse (see `chatfold`). Additive: the click
+                // still focuses the pane and arms selection below — but a
+                // toggle never counts toward a double-click zoom, so folding
+                // twice can't accidentally zoom the pane.
+                let toggled_fold = self.fold_click_at_cursor();
                 // Focus the surface and arm a drag selection on a terminal pane.
                 if let Some(i) = self.selection_press() {
                     // A second click on the same pane within 400ms toggles zoom;
                     // cancel the just-armed drag so the release doesn't copy.
                     let now = Instant::now();
-                    let double = self
-                        .last_click
-                        .is_some_and(|(t, pi)| pi == i && now.duration_since(t) < DOUBLE_CLICK);
+                    let double = !toggled_fold
+                        && self
+                            .last_click
+                            .is_some_and(|(t, pi)| pi == i && now.duration_since(t) < DOUBLE_CLICK);
                     if double {
                         self.zoomed = !self.zoomed;
                         self.last_click = None;
                         self.drag = None;
                     } else {
-                        self.last_click = Some((now, i));
+                        self.last_click = (!toggled_fold).then_some((now, i));
                     }
                 }
                 self.redraw();

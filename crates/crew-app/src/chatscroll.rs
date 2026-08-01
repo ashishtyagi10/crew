@@ -141,6 +141,7 @@ mod tests {
                 ts: String::new(),
                 meta: String::new(),
                 usage: None,
+                expanded: false,
             });
         }
         let tasks = (0..8)

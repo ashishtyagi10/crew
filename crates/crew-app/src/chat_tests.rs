@@ -77,6 +77,7 @@ fn settled_message_replaces_the_provisional_card() {
         ts: "1".into(),
         meta: String::new(),
         usage: None,
+        expanded: false,
     });
     assert!(
         p.streaming.is_empty(),
@@ -159,6 +160,7 @@ fn export_never_contains_a_provisional_card() {
         ts: "1".into(),
         meta: String::new(),
         usage: None,
+        expanded: false,
     });
     p.absorb_delta("coder".into(), "HALFWRITTEN".into());
     let md = crate::chatexport::transcript_markdown("c", &p.messages, &chrono::Local::now());
@@ -474,6 +476,7 @@ fn esc_after_a_broker_message_pushes_a_second_interrupt_note() {
         ts: String::new(),
         meta: String::new(),
         usage: None,
+        expanded: false,
     });
     assert!(p.is_busy(), "pane must still be busy after the message");
     assert_eq!(p.messages.len(), 2);
@@ -736,6 +739,7 @@ fn the_fold_marker_counts_everything_it_ever_folded() {
             ts: String::new(),
             meta: String::new(),
             usage: None,
+            expanded: false,
         });
     }
     let marker = &p.messages[0].text;
@@ -772,6 +776,7 @@ fn folding_is_batched_not_per_message() {
             ts: String::new(),
             meta: String::new(),
             usage: None,
+            expanded: false,
         });
     };
     for i in 0..cap {
@@ -802,6 +807,7 @@ fn the_transcript_folds_itself_with_a_marker() {
             ts: String::new(),
             meta: String::new(),
             usage: None,
+            expanded: false,
         });
     }
     // Folding takes a batch, so the length lands between the low-water mark
@@ -833,6 +839,7 @@ fn show_source_false_renders_bold_markdown() {
         ts: String::new(),
         meta: String::new(),
         usage: None,
+        expanded: false,
     });
     assert!(!p.show_source, "show_source defaults to false");
 
@@ -881,6 +888,7 @@ fn show_source_true_shows_literal_text() {
         ts: String::new(),
         meta: String::new(),
         usage: None,
+        expanded: false,
     });
 
     let refs: Vec<&crate::chatlayout::Message> = p.messages.iter().collect();

@@ -97,21 +97,30 @@ fn push_caret(lines: &mut [CardLine], now_ms: u64, cols: usize) {
     });
 }
 
+/// Whether `sender` is the broker/system voice — the telemetry senders that
+/// share the dotted gutter, the muted ink and (see `chatfold`) the auto-fold.
+/// ONE predicate so the four surfaces can never drift on the sender set.
+pub(crate) fn is_system_voice(sender: &str) -> bool {
+    matches!(sender, "agent smith" | "crew" | "system" | "broker")
+}
+
 /// The gutter glyph for a sender: a lighter bar for the system/broker voice,
 /// the solid bar for agents and the user.
 fn gutter_for(sender: &str) -> char {
-    match sender {
-        "agent smith" | "crew" | "system" | "broker" => '\u{2506}', // ┆ dotted — quieter
-        _ => GUTTER,                                                // ▍ solid
+    if is_system_voice(sender) {
+        '\u{2506}' // ┆ dotted — quieter
+    } else {
+        GUTTER // ▍ solid
     }
 }
 
 /// The colour a sender renders in: the broker/system voice is muted; every
 /// agent (and the user) gets its stable roster colour.
 fn sender_color(sender: &str) -> Color {
-    match sender {
-        "agent smith" | "crew" | "system" | "broker" => crew_theme::theme().text_muted,
-        _ => crate::chatroster::agent_color(sender),
+    if is_system_voice(sender) {
+        crew_theme::theme().text_muted
+    } else {
+        crate::chatroster::agent_color(sender)
     }
 }
 
@@ -153,10 +162,7 @@ fn header_line(m: &Message, now_ms: u64, connector: Option<char>) -> CardLine {
 /// by its `╔` top-left corner in the system voice. It renders header-less and
 /// centered (see `splash_style`).
 pub(crate) fn is_splash(m: &Message) -> bool {
-    matches!(
-        m.sender.as_str(),
-        "agent smith" | "crew" | "system" | "broker"
-    ) && m.text.starts_with('\u{2554}')
+    is_system_voice(&m.sender) && m.text.starts_with('\u{2554}')
 }
 
 /// Style the splash body in place: center every line in `cols`. Width-only,
@@ -196,18 +202,56 @@ fn append_hidden_suffix(line: &mut CardLine, hidden: usize, cols: usize) {
     line.extend(suffix.chars().map(|c| plain(c, muted, false)));
 }
 
+/// The full (unclamped) body of one message — markdown or raw per
+/// `view.source`, plus the usage trailer. The single input both the compact
+/// clamp and the auto-fold measure (`chatfold` reads its length to decide
+/// whether a card is long enough to fold), so the two can never disagree
+/// with what `card_lines` actually renders.
+pub(crate) fn full_body(m: &Message, cols: usize, view: View) -> Vec<CardLine> {
+    // Body text: agents speak in ink; the system voice stays muted.
+    let fg = if is_system_voice(&m.sender) {
+        crew_theme::theme().text_muted
+    } else {
+        crew_theme::theme().ink
+    };
+    let mut body = body_lines(&m.text, cols, fg, view.source);
+    // The reply's usage trailer joins the body BEFORE any clamp, so compact
+    // view and the auto-fold hide it — and count it in ` … +N` — like any
+    // body line.
+    if let Some(t) = m.usage.and_then(crate::chatusage::trailer_line) {
+        body.push(t);
+    }
+    body
+}
+
 /// All messages as card lines: header, body, spacer between cards. Visible
 /// to `chatplace` so `placed_lines` can build the same lines `message_cells`
 /// draws. `view.source` shows plain text instead of markdown; `view.compact`
 /// clamps each message's body to its first line, appending a muted ` … +N`
-/// suffix when lines were hidden (single-line bodies render unchanged).
+/// suffix when lines were hidden (single-line bodies render unchanged); in
+/// normal view long system-voice cards get the same clamp until clicked open
+/// (`chatfold::folded`).
 pub(crate) fn card_lines(
     messages: &[&Message],
     cols: usize,
     now_ms: u64,
     view: View,
 ) -> Vec<CardLine> {
+    card_lines_spanned(messages, cols, now_ms, view).0
+}
+
+/// [`card_lines`] plus each message's `[start, end)` line span in the result
+/// (spacers belong to no message). The spans are recorded while the lines are
+/// built — never re-derived — so `chatfold`'s click hit-test attributes rows
+/// to messages with the exact layout the frame drew.
+pub(crate) fn card_lines_spanned(
+    messages: &[&Message],
+    cols: usize,
+    now_ms: u64,
+    view: View,
+) -> (Vec<CardLine>, Vec<std::ops::Range<usize>>) {
     let mut out: Vec<CardLine> = Vec::new();
+    let mut spans: Vec<std::ops::Range<usize>> = Vec::with_capacity(messages.len());
     for (i, m) in messages.iter().enumerate() {
         // A card continuing the task of the card above chains onto it: no
         // spacer, and its header renders a tree connector instead of the
@@ -230,18 +274,16 @@ pub(crate) fn card_lines(
         if !splash {
             out.push(header_line(m, now_ms, connector));
         }
-        // Body text: agents speak in ink; the system voice stays muted.
-        let fg = match m.sender.as_str() {
-            "agent smith" | "crew" | "system" | "broker" => crew_theme::theme().text_muted,
-            _ => crew_theme::theme().ink,
+        let mut body = full_body(m, cols, view);
+        // One clamp, two triggers: pane-global compact view (Ctrl+O, which
+        // wins outright), or — in normal view — a long system-voice card the
+        // user hasn't clicked open (`chatfold::folded`).
+        let clamp = if view.compact {
+            body.len() > 1
+        } else {
+            crate::chatfold::folded(m, body.len())
         };
-        let mut body = body_lines(&m.text, cols, fg, view.source);
-        // The reply's usage trailer joins the body BEFORE the compact clamp,
-        // so Ctrl+O hides it — and counts it in ` … +N` — like any body line.
-        if let Some(t) = m.usage.and_then(crate::chatusage::trailer_line) {
-            body.push(t);
-        }
-        if view.compact && body.len() > 1 {
+        if clamp {
             let hidden = body.len() - 1;
             body.truncate(1);
             append_hidden_suffix(&mut body[0], hidden, cols);
@@ -263,8 +305,9 @@ pub(crate) fn card_lines(
                 }
             }
         }
+        spans.push(first..out.len());
     }
-    out
+    (out, spans)
 }
 
 /// Total card lines for the given width — the scroll clamp for the card view.

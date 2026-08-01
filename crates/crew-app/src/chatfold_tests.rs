@@ -1,0 +1,199 @@
+use super::*;
+use crate::chatmsgs::{card_line_count, card_lines};
+
+const LONG: &str = "one\ntwo\nthree\nfour\nfive"; // 5 body lines > FOLD_LINES
+const SHORT: &str = "one\ntwo\nthree"; // exactly FOLD_LINES — stays open
+
+fn msg(sender: &str, text: &str) -> Message {
+    Message {
+        sender: sender.into(),
+        text: text.into(),
+        ts: String::new(),
+        meta: String::new(),
+        usage: None,
+        expanded: false,
+    }
+}
+
+fn text(line: &crate::chatbody::CardLine) -> String {
+    line.iter().map(|c| c.c).collect()
+}
+
+#[test]
+fn long_system_card_auto_folds_to_header_first_line_and_suffix() {
+    let m = msg("crew", LONG);
+    let lines = card_lines(&[&m], 40, 0, View::default());
+    assert_eq!(
+        lines.len(),
+        2,
+        "header + clamped first body line only, got: {:?}",
+        lines.iter().map(text).collect::<Vec<_>>()
+    );
+    let body = text(&lines[1]);
+    assert!(body.starts_with(" one"), "first body line kept: {body}");
+    assert!(body.contains("\u{2026} +4"), "4 hidden lines noted: {body}");
+}
+
+#[test]
+fn system_card_at_the_fold_threshold_stays_open() {
+    let m = msg("crew", SHORT);
+    let lines = card_lines(&[&m], 40, 0, View::default());
+    assert_eq!(lines.len(), 4, "header + all 3 body lines");
+    assert!(!text(&lines[1]).contains('\u{2026}'), "no hidden suffix");
+}
+
+#[test]
+fn long_agent_reply_never_auto_folds() {
+    let m = msg("coder", LONG);
+    let lines = card_lines(&[&m], 40, 0, View::default());
+    assert_eq!(lines.len(), 6, "header + all 5 body lines");
+}
+
+#[test]
+fn splash_nameplate_never_folds() {
+    // Box art clamped to one `╔` line would be destroyed, not summarized.
+    let art = "\u{2554}aa\n\u{2551}bb\n\u{2551}cc\n\u{2551}dd\n\u{255a}ee";
+    let lines = card_lines(&[&msg("crew", art)], 40, 0, View::default());
+    assert_eq!(lines.len(), 5, "headerless splash keeps every line");
+}
+
+#[test]
+fn expanded_system_card_renders_its_full_body() {
+    let mut m = msg("crew", LONG);
+    m.expanded = true;
+    let lines = card_lines(&[&m], 40, 0, View::default());
+    assert_eq!(
+        lines.len(),
+        6,
+        "header + all 5 body lines once clicked open"
+    );
+}
+
+#[test]
+fn compact_view_wins_over_per_message_expansion() {
+    let mut m = msg("crew", LONG);
+    m.expanded = true;
+    let view = View {
+        compact: true,
+        ..View::default()
+    };
+    let lines = card_lines(&[&m], 40, 0, view);
+    assert_eq!(lines.len(), 2, "Ctrl+O clamps even a clicked-open card");
+    assert!(text(&lines[1]).contains("\u{2026} +4"));
+}
+
+#[test]
+fn card_line_count_agrees_with_card_lines_in_both_fold_states() {
+    for expanded in [false, true] {
+        let mut m = msg("crew", LONG);
+        m.expanded = expanded;
+        let v = View::default();
+        assert_eq!(
+            card_line_count(&[&m], 40, v),
+            card_lines(&[&m], 40, 0, v).len(),
+            "count/lines drift with expanded={expanded}"
+        );
+    }
+}
+
+#[test]
+fn folded_and_foldable_gate_on_voice_length_and_expansion() {
+    let v = View::default();
+    assert!(folded(&msg("crew", LONG), 5) && foldable(&msg("crew", LONG), 40, v));
+    assert!(!folded(&msg("coder", LONG), 5), "agents never fold");
+    assert!(!foldable(&msg("coder", LONG), 40, v));
+    assert!(!folded(&msg("crew", SHORT), 3), "3 lines is not long");
+    assert!(!foldable(&msg("crew", SHORT), 40, v));
+    let mut open = msg("crew", LONG);
+    open.expanded = true;
+    assert!(!folded(&open, 5), "clicked open renders full");
+    assert!(foldable(&open, 40, v), "but stays toggleable");
+}
+
+#[test]
+fn line_index_at_mirrors_the_bottom_anchored_window() {
+    // 10 lines in 4 rows starting at row 1: rows 1..5 show lines 6..10.
+    assert_eq!(line_index_at(10, 4, 1, 0, 1), Some(6));
+    assert_eq!(line_index_at(10, 4, 1, 0, 4), Some(9));
+    assert_eq!(line_index_at(10, 4, 1, 0, 0), None, "the header row");
+    assert_eq!(line_index_at(10, 4, 1, 0, 5), None, "below the window");
+    // Scrolled 2 up: the window slides back to lines 4..8.
+    assert_eq!(line_index_at(10, 4, 1, 2, 1), Some(4));
+    // Fewer lines than rows: top-anchored, rows past the content miss.
+    assert_eq!(line_index_at(3, 10, 2, 0, 2), Some(0));
+    assert_eq!(line_index_at(3, 10, 2, 0, 4), Some(2));
+    assert_eq!(line_index_at(3, 10, 2, 0, 5), None, "past the last line");
+    // An overshooting scroll clamps like `window` does.
+    assert_eq!(line_index_at(10, 4, 1, 100, 1), Some(0));
+}
+
+/// Pane-relative text rows as drawn — click targets are located in the real
+/// render, never hardcoded (mirrors `clickopen`'s own click-target lookups).
+fn rendered(p: &ChatPane, cols: u16, rows: u16) -> std::collections::BTreeMap<u16, String> {
+    let mut m: std::collections::BTreeMap<u16, Vec<(u16, char)>> = Default::default();
+    for c in crate::chatview::cells(p, cols, rows) {
+        m.entry(c.row).or_default().push((c.col, c.c));
+    }
+    m.into_iter()
+        .map(|(r, mut v)| {
+            v.sort_unstable();
+            (r, v.into_iter().map(|(_, c)| c).collect())
+        })
+        .collect()
+}
+
+fn row_with(p: &ChatPane, cols: u16, rows: u16, needle: &str) -> u16 {
+    *rendered(p, cols, rows)
+        .iter()
+        .find(|(_, t)| t.contains(needle))
+        .unwrap_or_else(|| panic!("no row contains {needle:?}"))
+        .0
+}
+
+#[test]
+fn clicking_the_folded_card_expands_and_its_header_refolds() {
+    let (cols, rows) = (40u16, 20u16);
+    let mut p = crate::chat::tests::pane();
+    p.push_capped(msg("crew", LONG));
+    let suffix_row = row_with(&p, cols, rows, "\u{2026} +4");
+    assert!(p.toggle_fold_at(cols, rows, suffix_row), "the fold toggles");
+    assert!(p.messages[0].expanded, "the card is clicked open");
+    // Body clicks on the open card do NOT refold — they stay free for
+    // text selection; only the header folds it back.
+    let body_row = row_with(&p, cols, rows, "four");
+    assert!(!p.toggle_fold_at(cols, rows, body_row), "body click inert");
+    assert!(p.messages[0].expanded);
+    let header_row = row_with(&p, cols, rows, "\u{2506}crew");
+    assert!(p.toggle_fold_at(cols, rows, header_row), "header refolds");
+    assert!(!p.messages[0].expanded);
+}
+
+#[test]
+fn agent_cards_and_compact_view_never_fold_toggle() {
+    let (cols, rows) = (40u16, 20u16);
+    let mut p = crate::chat::tests::pane();
+    p.push_capped(msg("coder", LONG));
+    let body_row = row_with(&p, cols, rows, "four");
+    assert!(!p.toggle_fold_at(cols, rows, body_row), "agent cards inert");
+    p.push_capped(msg("crew", LONG));
+    p.compact_view = true;
+    let suffix_row = row_with(&p, cols, rows, "\u{2026} +4");
+    assert!(
+        !p.toggle_fold_at(cols, rows, suffix_row),
+        "Ctrl+O compact view wins — nothing toggles under it"
+    );
+}
+
+#[test]
+fn a_streaming_system_card_toggles_behind_the_settled_transcript() {
+    // Index math across the `messages` → `streaming` seam: the streaming
+    // card is visible index 1 but lives in `streaming[0]`.
+    let (cols, rows) = (40u16, 20u16);
+    let mut p = crate::chat::tests::pane();
+    p.push_capped(msg("coder", "hi"));
+    p.absorb_delta("crew".into(), LONG.into());
+    let suffix_row = row_with(&p, cols, rows, "\u{2026} +4");
+    assert!(p.toggle_fold_at(cols, rows, suffix_row));
+    assert!(p.streaming[0].expanded, "the streaming card toggled");
+    assert!(p.messages.iter().all(|m| !m.expanded));
+}

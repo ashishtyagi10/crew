@@ -33,6 +33,7 @@ pub(crate) fn intercept(pane: &mut ChatPane, text: &str) -> bool {
         ts,
         meta: String::new(),
         usage: None,
+        expanded: false,
     });
     true
 }
@@ -116,6 +117,7 @@ mod tests {
             ts: ts.into(),
             meta: meta.into(),
             usage: None,
+            expanded: false,
         }
     }
 
