@@ -148,6 +148,40 @@ fn cells_show_cwd_legend_on_top_border() {
 }
 
 #[test]
+fn cells_with_empty_cwd_shows_solid_top_border() {
+    let bar = InputBar {
+        text: String::new(),
+        focused: true,
+        cwd: Default::default(), // empty cwd
+        ..Default::default()
+    };
+    let cells = bar.cells(40, 3, None, None);
+    // the card still has rounded corners
+    assert!(cells.iter().any(|c| c.c == '╭' && c.row == 0));
+    assert!(cells.iter().any(|c| c.c == '╮' && c.row == 0));
+    // the top border (row 0) should be a solid line between the corners, no gaps
+    let top_row = row_text(&cells, 0);
+    // Reconstruct: should be ╭─────...─╮ with no spaces/gaps in the middle
+    assert!(
+        top_row.starts_with('╭') && top_row.ends_with('╮'),
+        "border should have corners: {top_row}"
+    );
+    // No spaces in the entire top border (spaces would indicate a gap)
+    assert!(
+        !top_row.contains(' '),
+        "empty cwd should produce solid border with no gaps: {top_row}"
+    );
+    // The interior should be all '─' (collect chars, skip corners at start/end)
+    let chars: Vec<char> = top_row.chars().collect();
+    assert!(chars.len() > 2, "border should have corners and interior");
+    let interior = &chars[1..chars.len() - 1];
+    assert!(
+        interior.iter().all(|c| *c == '\u{2500}'),
+        "top border interior should be solid '─': {interior:?}"
+    );
+}
+
+#[test]
 fn cells_show_status_on_bottom_border() {
     let bar = InputBar {
         focused: true,
