@@ -23,8 +23,9 @@ pub struct ChatPane {
     /// Lines scrolled up from the live bottom (0 = following new messages).
     pub scroll: usize,
     /// A message was sent and no reply has arrived yet — drives the pane's
-    /// indeterminate "thinking" progress sweep.
-    awaiting: bool,
+    /// indeterminate "thinking" progress sweep. Cleared by
+    /// `chatsettle::absorb_message` when a reply lands.
+    pub(crate) awaiting: bool,
     /// The agents currently thinking (from `Activity` events): each with who
     /// handed it the work and when it started — several at once during a
     /// parallel /fan. Drives the live activity row (accessors in `chatflow`).
@@ -124,13 +125,15 @@ pub struct ChatPane {
     /// so `/export`, `/restore`, the session log and the swarm fold are
     /// correct here by construction instead of each needing its own filter.
     pub(crate) streaming: Vec<Message>,
-    /// The last per-reply `Stats` usage — `(tok_in, tok_out, cost_microusd)`
-    /// — waiting for its `Message` to land. The broker emits each reply's
-    /// stat immediately before the reply itself (relay and fan alike), so one
-    /// slot is enough; the `Message` arm drains it into the settled row's
-    /// `usage`. Only set when the stat reported real usage (see
-    /// `chatflow::absorb_stats`), so an all-zero stat never leaks a trailer.
-    pub(crate) pending_reply_usage: Option<(u64, u64, u64)>,
+    /// The last per-reply `Stats` usage — `(agent, tok_in, tok_out,
+    /// cost_microusd)` — waiting for its `Message` to land. The broker emits
+    /// each reply's stat immediately before the reply itself (relay and fan
+    /// alike), so one slot is enough; `chatsettle::absorb_message` drains it
+    /// into the settled row's `usage`, but only when that row's sender is the
+    /// stashed agent — adjacency is broker behavior, not a contract. Only set
+    /// when the stat reported real usage (see `chatflow::absorb_stats`), so
+    /// an all-zero stat never leaks a trailer.
+    pub(crate) pending_reply_usage: Option<(String, u64, u64, u64)>,
     /// What this pane has already sent, for the composer's Up/Down recall
     /// (see `chathistory`). Not derived from `messages`: those are display
     /// records that fold, get restored from a session log and include replies,
@@ -294,26 +297,7 @@ impl ChatPane {
                         ts,
                         meta,
                         ..
-                    } => {
-                        self.settle_stream(&sender);
-                        self.awaiting = false; // a reply landed
-                        self.note_reply(&sender);
-                        if self.scroll > 0 {
-                            self.unread += 1; // arrived out of view
-                        }
-                        // This reply's stat arrived just before it (see
-                        // `chatflow::absorb_stats`) — drained here so a
-                        // stale value can never tag a later message.
-                        let usage = self.pending_reply_usage.take();
-                        self.push_capped(Message {
-                            sender,
-                            text,
-                            ts,
-                            meta,
-                            usage,
-                            expanded: false,
-                        });
-                    }
+                    } => self.absorb_message(sender, text, ts, meta),
                     PluginEvent::HivePlan { tasks } => self.absorb_hive_plan(tasks),
                     PluginEvent::Hive { event } => self.absorb_hive(&event),
                     PluginEvent::Error { .. } => {

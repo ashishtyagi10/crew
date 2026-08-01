@@ -71,6 +71,11 @@ pub struct CrewApp {
     pub(crate) broadcast: bool,
     /// Time + pane index of the last left click, for double-click detection.
     pub(crate) last_click: Option<(Instant, usize)>,
+    /// A fold toggle the last mouse press landed on — `(pane index, absolute
+    /// row)` — waiting for its release. The toggle fires on RELEASE, and only
+    /// when the gesture stayed a plain click: a drag-selection started on a
+    /// folded card must not expand it mid-gesture (see `chatfold`).
+    pub(crate) fold_click: Option<(usize, u16)>,
     /// In-progress mouse drag selection over any pane, if any.
     pub(crate) drag: Option<crate::select::Drag>,
     /// Active text selection over a non-terminal pane (chat/settings/etc.),

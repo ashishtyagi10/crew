@@ -45,6 +45,7 @@ mod chatpulse;
 mod chatqueue;
 mod chatroster;
 mod chatscroll;
+mod chatsettle;
 mod chatspawn;
 mod chatsummary;
 mod chatswarm;

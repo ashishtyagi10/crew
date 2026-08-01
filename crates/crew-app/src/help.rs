@@ -59,6 +59,8 @@ const CHAT_BINDINGS: &[(&str, &str)] = &[
     ),
     ("Shift+Enter", "Newline instead of sending"),
     ("Tab", "Complete the leading @agent or /construct"),
+    ("Ctrl+R", "Reverse-search prompts you've sent"),
+    ("Cmd+F / Ctrl+F", "Find in the transcript, jump per match"),
     (
         "Up / Down",
         "Recall a prompt you already sent · navigate an open popup",

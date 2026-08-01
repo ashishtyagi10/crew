@@ -191,6 +191,8 @@ Press **`/keys`** in the input bar for this list in-app.
 | Cycle themes (dark → light → crt) | **Ctrl+Shift+L** |
 | Toggle chat markdown preview ↔ raw source | **Ctrl+Shift+M** |
 | Toggle the chat's compact transcript view | **Ctrl+O** (falls through to the terminal when the focused pane isn't a chat) |
+| Reverse-search the chat composer's send history | **Ctrl+R** (again steps to the next older match) |
+| Find in the chat transcript | **Cmd+F** (or **Ctrl+F**; Enter/Ctrl+F step older, Up newer) |
 | Complete the leading `@agent` name or slash construct | **Tab** |
 | Insert a newline in a terminal | **Shift+Enter** (line feed, not submit) |
 | Close pane / maximize window | **Cmd+W** / **Cmd+M** |
@@ -416,6 +418,11 @@ The docked command bar supports:
   clipboard holds an **image** (and no text), it's written to a temp PNG and the
   file path is pasted instead — so agent CLIs can read the image by path.
 - Programs can copy to the system clipboard via **OSC 52**.
+- **Drag & drop**: a file dragged from the OS file manager lands in the
+  **focused** pane — a chat composer gets an `@path ` mention (quoted as
+  `@"path" ` when the path has spaces, cwd-relative when it can be), a
+  terminal gets the shell-quoted absolute path. Multiple files land
+  space-separated in arrival order.
 
 ## Scrollback
 
@@ -448,7 +455,13 @@ focused pane's matches as usual.
 Crew renders markdown natively: a `pulldown-cmark`-based engine (`md/`) folds
 the event stream into styled blocks and lays them out straight onto GPU cells —
 headings, lists, block quotes, tables (columns aligned by display width, so
-CJK/emoji don't skew them), fenced code as bordered cards, and links. Nesting
+CJK/emoji don't skew them), fenced code as bordered cards, and links. Task
+lists render as **checklists**: `- [ ]` draws a ☐, `- [x]` a green ✓ with the
+item text dimmed — done reads as done. ```` ```diff ````/```` ```patch ````
+fences colour added/removed/hunk lines like the viewer's diff view, and an
+**untagged fence that reads as a diff** (a `diff --git` opener, or a `@@` hunk
+header alongside real `+`/`-` change lines) is auto-detected and coloured the
+same — agents rarely tag their patches. Nesting
 depth is capped so pathological input can't blow the stack, and HTML blocks
 render verbatim instead of disappearing.
 
@@ -555,11 +568,26 @@ events dropped (bus overflow)`.
 
 Message bodies are newline-aware, and fenced ```code``` blocks render as
 bordered cards — a muted `╭─ lang` header, verbatim hard-wrapped lines on a
-dimmed background, `╰─` footer. A just-landed card **fades in** from the page
-colour over ~400ms (the fade drives redraws without reading as "busy"). The composer on the bottom rows shows an
+dimmed background, `╰─` footer; ```` ```diff ````/```` ```patch ```` fences
+(and untagged fences that read as a diff) colour added/removed/hunk lines in
+place (see [Markdown](#markdown)). A just-landed card **fades in** from the page
+colour over ~400ms (the fade drives redraws without reading as "busy"). A
+settled reply whose `stats` event reported real usage closes with a muted
+**usage trailer** — `900 in / 50 out · $0.012` — so each reply carries its own
+bill, formatted exactly like the summary footer's totals. **Long
+system/telemetry cards auto-fold**: a system-voice card past three body lines
+(turn summaries, `/doctor` output, roster dumps) renders as its header + first
+line + ` … +N`; a plain click expands it, a click on its header folds it back
+(a drag-selection never toggles, and Ctrl+O's compact view wins outright). The composer on the bottom rows shows an
 affordance bar (`@agent` chips in roster colours, `Enter send · Esc close`
 hints) above a `❯` prompt that highlights a valid leading `@mention` in that
-agent's colour. While the transcript overflows, the last column shows a
+agent's colour. **Ctrl+R** opens a shell-style **reverse search** over what
+you've sent this session — typed text filters (substring first, then
+subsequence), Ctrl+R steps older, Enter recalls the match into the composer
+without sending, Esc restores what you had typed. **Cmd+F** (or Ctrl+F) opens
+**find-in-transcript**: the query filters matching messages as you type,
+Enter/Ctrl+F steps to the next older match and Up to the next newer, each
+jump scrolling the match into view under a highlight wash. While the transcript overflows, the last column shows a
 proportional scrollbar, and messages arriving out of view raise a `↓ N new`
 pill that clears at the live bottom. A fresh pane greets with the detected
 crew (names, roles) and an example `@agent` prompt.
@@ -691,7 +719,11 @@ navigate, Tab/Enter accept, Esc closes just the popup). On send, each
 mentioned file's contents are spliced into the outgoing message as a
 `--- file: … ---` block (64 KB cap; binary or missing files are skipped), so
 you can hand agents exact context without pasting. The leading `@agent`
-selector is left alone, and typed mentions render as tinted chips.
+selector is left alone, and typed mentions render as tinted chips. A path
+with spaces rides a **quoted mention** — `@"docs/my notes.md"` — one chip
+through its closing quote; the picker mints the quoted form itself when it
+accepts such a path, and so does a file **dragged onto the pane** (see
+[Clipboard](#clipboard)).
 
 **Extending (skills · plugin agents · MCP).** Three drop-in surfaces, no
 rebuild required — the same trio other coding tools ship. All three

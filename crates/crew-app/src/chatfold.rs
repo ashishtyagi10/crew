@@ -97,6 +97,12 @@ fn toggle_target(pane: &ChatPane, cols: u16, rows: u16, row: u16) -> Option<usiz
 }
 
 impl ChatPane {
+    /// Whether a click at absolute `row` would toggle a fold — the press-time
+    /// dry run of [`ChatPane::toggle_fold_at`], for arming a release toggle.
+    pub(crate) fn fold_target_at(&self, cols: u16, rows: u16, row: u16) -> bool {
+        toggle_target(self, cols, rows, row).is_some()
+    }
+
     /// Toggle the fold of the card a click at absolute `row` hit, on a
     /// `cols` × `rows` pane. `true` when a card actually toggled.
     pub(crate) fn toggle_fold_at(&mut self, cols: u16, rows: u16, row: u16) -> bool {
@@ -116,12 +122,16 @@ impl ChatPane {
 }
 
 impl crate::app::CrewApp {
-    /// Plain-left-click arm of the fold toggle: resolve the cursor to a chat
-    /// pane's cell and toggle the card there. `true` when a card toggled —
-    /// the caller (`events`) still focuses the pane and arms selection (the
-    /// toggle is additive), but keeps a toggle click out of the double-click
+    /// Mouse-press arm of the fold toggle: resolve the cursor to a chat
+    /// pane's card and REMEMBER the hit (`fold_click`) instead of toggling.
+    /// The toggle fires on release ([`Self::fold_release`]) so starting a
+    /// drag-selection on a folded card can't expand it mid-gesture and shift
+    /// the layout under the cursor. Returns whether a candidate armed — the
+    /// caller (`events`) still focuses the pane and arms selection (the
+    /// toggle is additive), but keeps an armed click out of the double-click
     /// zoom count.
-    pub(crate) fn fold_click_at_cursor(&mut self) -> bool {
+    pub(crate) fn fold_press_at_cursor(&mut self) -> bool {
+        self.fold_click = None;
         let Some(i) = self.pane_at_cursor() else {
             return false;
         };
@@ -132,10 +142,35 @@ impl crate::app::CrewApp {
             return false;
         }
         let grid = self.panes[i].grid;
-        let crate::pane::PaneContent::Chat(chat) = &mut self.panes[i].content else {
+        let crate::pane::PaneContent::Chat(chat) = &self.panes[i].content else {
             return false;
         };
-        chat.toggle_fold_at(grid.cols, grid.rows, row as u16)
+        if chat.fold_target_at(grid.cols, grid.rows, row as u16) {
+            self.fold_click = Some((i, row as u16));
+        }
+        self.fold_click.is_some()
+    }
+
+    /// Mouse-release arm: consume the press candidate, toggling only when the
+    /// press-release pair stayed a plain click — `dragged` is
+    /// [`Self::selection_release`]'s verdict, so a drag that moved (and
+    /// copied its selection) never also toggles the card it started on.
+    /// `true` when a card toggled.
+    pub(crate) fn fold_release(&mut self, dragged: bool) -> bool {
+        let Some((i, row)) = self.fold_click.take() else {
+            return false;
+        };
+        if dragged {
+            return false;
+        }
+        let Some(pane) = self.panes.get_mut(i) else {
+            return false;
+        };
+        let grid = pane.grid;
+        let crate::pane::PaneContent::Chat(chat) = &mut pane.content else {
+            return false;
+        };
+        chat.toggle_fold_at(grid.cols, grid.rows, row)
     }
 }
 
