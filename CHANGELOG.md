@@ -8,6 +8,29 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.10.4
+
+*Agent plans read like plans: task lists render as real checklists.*
+
+- **`- [ ]` / `- [x]` markdown task lists render as checklists in the chat
+  pane.** An unchecked item draws `☐` in place of the bullet; a checked item
+  draws a green `✓` with its text dimmed, so a Claude Code-style plan shows
+  its progress at a glance. Uppercase `[X]` counts as checked, wrapped items
+  keep their hanging indent (the dim survives the wrap), nested lists nest,
+  and `- [normal] text` or task syntax inside a code fence stays untouched.
+
+## 0.10.3
+
+*Diffs in the chat transcript colour like diffs.*
+
+- **```diff and ```patch fences colour by line.** Added lines green, removed
+  lines red, `@@` hunk headers cyan, file headers (`+++`/`---`/`diff --git`/
+  `index`) dimmed — the same colours the file viewer gives an opened `.patch`,
+  so chat and viewer agree. An *untagged* fence whose body reads as a diff
+  (a `diff --git` opener, or a hunk header alongside real `+`/`-` change
+  lines) gets the treatment too, since agents rarely tag a paste.
+  (This entry was backfilled — 0.10.3 shipped without one.)
+
 ## 0.10.2
 
 *The model segment survives a Dock launch — and names the swarm actually
