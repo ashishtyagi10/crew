@@ -49,29 +49,26 @@ fn running_seg(ids: &[u64], cols: usize) -> Option<(String, Option<String>)> {
 /// what `/agents` used to report, minus having to ask for it — which is why
 /// that construct no longer exists.
 ///
-/// Models when they are known and distinct, names when they are not. An agent
-/// backed by an external CLI (`claude`, `codex`, `opencode`) has no model
-/// string at all — the CLI chooses — so the old model-only rendering drew a
-/// bare `|` separator with nothing before it for exactly the roster a keyless
-/// machine gets. Names are the honest answer there, and they are also the more
-/// useful one: `@codex` is what the user types, not `gpt-5`.
+/// The model leads whenever one model is the answer: `shared_model` ignores
+/// CLI agents (`claude`, `codex`, `opencode` report no model — the CLI
+/// chooses), so specialists agreeing on `qwen3-coder-plus` show that model
+/// even with CLIs on the roster, plus the count that says how many hands are
+/// on deck. Only when models genuinely disagree — or nobody reports one — are
+/// names the honest answer, and past three even names stop fitting and stop
+/// informing; the count does both.
 fn roster_seg(agents: &[AgentInfo]) -> Option<String> {
     if agents.is_empty() {
         return None;
     }
-    let mut models: Vec<&str> = Vec::new();
-    for a in agents {
-        let m = short_model(&a.model);
-        if !m.is_empty() && !models.contains(&m) {
-            models.push(m);
-        }
-    }
-    // Every agent reported a model and they agree: that model IS the identity.
-    if models.len() == 1 && agents.iter().all(|a| !a.model.is_empty()) {
-        return Some(models[0].to_string());
+    if let Some(m) = crate::chatpalette::shared_model(agents) {
+        let m = short_model(&m);
+        return Some(if agents.len() == 1 {
+            m.to_string()
+        } else {
+            format!("{m} \u{00b7} {} agents", agents.len())
+        });
     }
     let names: Vec<&str> = agents.iter().map(|a| a.name.as_str()).collect();
-    // Beyond a few, names stop fitting and stop informing; the count does both.
     if names.len() > 3 {
         return Some(format!("{} agents", names.len()));
     }

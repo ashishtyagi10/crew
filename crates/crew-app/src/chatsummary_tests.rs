@@ -182,6 +182,36 @@ fn a_crowded_roster_falls_back_to_a_count() {
     assert!(line.starts_with("4 agents | "), "{line}");
 }
 
+/// API specialists share one model; CLI agents (empty model) ride along. The
+/// model is the identity the user asked the line for — the count still says
+/// how many hands are on deck.
+#[test]
+fn a_mixed_cli_and_api_roster_leads_with_the_shared_model() {
+    let agents = [
+        agent("planner", "qwen/qwen3-coder-plus"),
+        agent("coder", "qwen/qwen3-coder-plus"),
+        agent("claude", ""),
+    ];
+    let line = text(&footer_lines(&fc(&agents, &HashMap::new()), 120)[0]);
+    assert!(
+        line.starts_with("qwen3-coder-plus \u{00b7} 3 agents | "),
+        "{line}"
+    );
+}
+
+/// A large all-API roster also shows the model, not just a count.
+#[test]
+fn a_crowded_agreeing_roster_keeps_the_model_with_its_count() {
+    let agents = [
+        agent("a", "m1"),
+        agent("b", "m1"),
+        agent("c", "m1"),
+        agent("d", "m1"),
+    ];
+    let line = text(&footer_lines(&fc(&agents, &HashMap::new()), 120)[0]);
+    assert!(line.starts_with("m1 \u{00b7} 4 agents | "), "{line}");
+}
+
 /// An empty roster contributes no segment at all — not an empty one.
 #[test]
 fn an_empty_roster_contributes_nothing() {
