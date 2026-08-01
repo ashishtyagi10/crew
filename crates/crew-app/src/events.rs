@@ -168,6 +168,9 @@ impl CrewApp {
                     r.frame(&scenes);
                 }
             }
+            // One event per dropped file; routing (and why it targets the
+            // FOCUSED pane, not the cursor) lives in `filedrop`.
+            WindowEvent::DroppedFile(path) => self.drop_file(&path),
             WindowEvent::ThemeChanged(t) => {
                 crew_theme::set_os_dark(t == winit::window::Theme::Dark);
                 // An appearance flip lands immediately in auto mode.
