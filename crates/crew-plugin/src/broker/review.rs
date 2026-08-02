@@ -5,7 +5,6 @@
 //! construct carries no session state.
 use crate::PluginEvent;
 
-use super::constructs::{is_critic, pick_by_role};
 use super::relay::msg;
 use super::session::{call_timeout, Session};
 use super::stdio::roster;
@@ -28,14 +27,9 @@ pub(crate) fn review_cmd(
     session: &mut Session,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
-    let dir = match std::env::current_dir() {
+    let dir = match super::gitmsg::project_dir() {
         Ok(d) => d,
-        Err(e) => {
-            return emit(msg(
-                "agent smith",
-                format!("review: no working directory: {e}"),
-            ))
-        }
+        Err(e) => return emit(msg("agent smith", format!("review: {e}"))),
     };
     let (diff, staged) = match super::gitmsg::pick_diff(&dir) {
         Err(e) => return emit(msg("agent smith", format!("review: {e}"))),
@@ -51,12 +45,13 @@ pub(crate) fn review_cmd(
     if reg.is_empty() {
         return emit(msg("agent smith", roster(&reg)));
     }
-    // Elected by the agent's OWN role (`is_critic`), not the literal name
-    // "reviewer" — no invented specialist is ever literally called that, so
-    // this used to always fall through to the roster's first (arbitrary,
-    // LRU-ordered) agent. See `constructs::pick_judge`, which solves the
-    // identical problem for `/goal`.
-    let author = pick_by_role(&reg.infos(), is_critic);
+    // The MODEL elects the reviewer from the live roster (`elect`); keyless
+    // and mock runs get the deterministic roster-first fallback.
+    let author = super::elect::elect(
+        "review a code diff and report findings worst-first",
+        &reg.infos(),
+        None,
+    );
     emit(msg(
         "agent smith",
         format!(

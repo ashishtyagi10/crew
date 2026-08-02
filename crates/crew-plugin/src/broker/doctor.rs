@@ -123,7 +123,11 @@ pub(crate) fn render(i: &DoctorInputs) -> String {
         None => line('–', "memory", "none (#<note> starts one)"),
     });
     out.push(if i.resumable {
-        line('✓', "resumable session", "/resume restores the last one")
+        line(
+            '✓',
+            "resumable session",
+            "\u{201c}pick up where we left off\u{201d} restores it",
+        )
     } else {
         line('–', "resumable session", "none yet")
     });

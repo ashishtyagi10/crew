@@ -10,7 +10,6 @@ use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::PluginEvent;
 
-use super::constructs::{is_writer, pick_by_role};
 use super::relay::msg;
 use super::session::{call_timeout, Session};
 use super::stdio::roster;
@@ -19,7 +18,20 @@ use super::stdio::roster;
 /// a huge refactor still yields a message instead of blowing the context.
 const DIFF_CAP: usize = 12_000;
 
-/// A drafted commit message awaiting `/commit apply`.
+/// The repo the diff-reading capabilities (commit, review, standup) work in.
+/// Mirrors `sessionlog::base_dir` exactly, and for the same reason:
+/// `CREW_PROJECT_DIR` is the test seam — lib tests share one process CWD (the
+/// crate's own checkout!), so without it a commit test would stage and commit
+/// the developer's real working tree. Production never sets it: the broker's
+/// CWD *is* the project.
+pub(crate) fn project_dir() -> Result<std::path::PathBuf, String> {
+    if let Ok(d) = std::env::var("CREW_PROJECT_DIR") {
+        return Ok(std::path::PathBuf::from(d));
+    }
+    std::env::current_dir().map_err(|e| format!("no working directory: {e}"))
+}
+
+/// A drafted commit message awaiting the user's conversational "apply".
 pub(crate) struct PendingCommit {
     pub message: String,
     /// True when the proposal covered only what is staged; false when it
@@ -159,38 +171,32 @@ pub(crate) fn do_commit(dir: &Path, message: &str, staged: bool) -> Result<Strin
     Ok(out.lines().next().unwrap_or("committed").to_string())
 }
 
-/// `/commit` — propose a message for the current diff; `/commit apply` —
-/// create the commit from the stored proposal.
+/// The commit capability (retired `/commit`, now reached through the intent
+/// router): `rest` empty proposes a message for the current diff; `"apply"` —
+/// sent only by the router's deterministic confirm gate — creates the commit
+/// from the stored proposal.
 pub(crate) fn commit_cmd(
     session: &mut Session,
     rest: &str,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
-    let dir = match std::env::current_dir() {
+    let dir = match project_dir() {
         Ok(d) => d,
-        Err(e) => {
-            return emit(msg(
-                "agent smith",
-                format!("commit: no working directory: {e}"),
-            ))
-        }
+        Err(e) => return emit(msg("agent smith", format!("commit: {e}"))),
     };
     if rest.trim() == "apply" {
         let pending = lock(&session.commit).take();
         let Some(p) = pending else {
-            return emit(msg("agent smith", "no proposal — run /commit first"));
+            return emit(msg(
+                "agent smith",
+                "no proposal — ask me to draft a commit message first",
+            ));
         };
         let m = match do_commit(&dir, &p.message, p.staged) {
             Ok(s) => s,
             Err(e) => format!("commit failed: {e}"),
         };
         return emit(msg("agent smith", m));
-    }
-    if !rest.trim().is_empty() {
-        return emit(msg(
-            "agent smith",
-            "usage: /commit — propose · /commit apply — run it",
-        ));
     }
     let (diff, staged) = match pick_diff(&dir) {
         Err(e) => return emit(msg("agent smith", format!("commit: {e}"))),
@@ -206,9 +212,13 @@ pub(crate) fn commit_cmd(
     if reg.is_empty() {
         return emit(msg("agent smith", roster(&reg)));
     }
-    // Elected by the agent's OWN role (`is_writer`), not the literal name
-    // "coder" — see `review.rs`'s identical fix and `constructs::pick_judge`.
-    let author = pick_by_role(&reg.infos(), is_writer);
+    // The MODEL elects the author from the live roster (`elect`); keyless
+    // and mock runs get the deterministic roster-first fallback.
+    let author = super::elect::elect(
+        "write a commit message describing a code diff",
+        &reg.infos(),
+        None,
+    );
     emit(msg(
         "agent smith",
         format!(
@@ -246,7 +256,8 @@ pub(crate) fn commit_cmd(
     *lock(&session.commit) = Some(PendingCommit { message, staged });
     emit(msg(
         "agent smith",
-        "proposal ready — /commit apply creates the commit, /commit re-drafts",
+        "proposal ready — say \u{201c}apply\u{201d} to create the commit, or \
+         ask again to re-draft",
     ))
 }
 

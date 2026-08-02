@@ -21,6 +21,7 @@ mod constructs;
 mod diff;
 mod discover;
 mod doctor;
+mod elect;
 mod engine;
 mod fan;
 mod gitmsg;
@@ -33,6 +34,7 @@ mod plugins;
 mod registry;
 mod relay;
 mod review;
+mod roundloop;
 mod route;
 mod run;
 mod session;
@@ -90,10 +92,8 @@ pub(crate) mod testenv {
     static SEQ: AtomicU32 = AtomicU32::new(0);
 
     /// The roster the inbuilt trio used to hard-code, now an explicit test
-    /// fixture. The roles are load-bearing, not decoration:
-    /// `constructs::is_critic` elects the judge by capability words, so
-    /// `reviewer` must carry "critique" or the `/goal` tests fail for a
-    /// second, subtler reason.
+    /// fixture. Election is the model's call (`broker::elect`) with a
+    /// roster-first fallback under the mock, so the ORDER is load-bearing.
     pub(crate) const TRIO: &[(&str, &str)] = &[
         ("planner", "planning, analysis, architecture, research"),
         ("coder", "building, implementation, synthesis"),

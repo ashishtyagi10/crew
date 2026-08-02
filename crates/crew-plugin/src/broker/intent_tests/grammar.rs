@@ -9,6 +9,10 @@ fn parses_every_shape_token() {
         ("SHAPE: loop", Shape::Loop),
         ("SHAPE: plan", Shape::Plan),
         ("SHAPE: swarm", Shape::Swarm),
+        ("SHAPE: commit", Shape::Commit),
+        ("SHAPE: review", Shape::Review),
+        ("SHAPE: standup", Shape::Standup),
+        ("SHAPE: resume", Shape::Resume),
     ] {
         assert_eq!(parse_shape(line), Some(shape), "{line}");
     }
@@ -62,7 +66,10 @@ fn classify_sends_the_task_and_the_grammar_to_the_model() {
     );
     let p = seen.lock().unwrap();
     assert!(p.contains("refactor the config parser"), "{p}");
-    assert!(p.contains("SHAPE: <reply|fan|loop|plan|swarm>"), "{p}");
+    assert!(
+        p.contains("SHAPE: <reply|fan|loop|plan|swarm|commit|review|standup|resume>"),
+        "{p}"
+    );
 }
 
 #[test]

@@ -90,10 +90,12 @@ fn a_previous_session_offers_itself_and_names_the_construct() {
 
     let note = resume_offer_at(&base).expect("a session was there to offer");
     assert!(note.contains("2 messages"), "{note}");
+    // `/resume` retired: the offer teaches the plain-language ask instead.
     assert!(
-        note.contains("/resume"),
-        "an offer must name the verb: {note}"
+        note.contains("pick up where we left off"),
+        "an offer must teach the phrasing: {note}"
     );
+    assert!(!note.contains("/resume"), "{note}");
 }
 
 #[test]

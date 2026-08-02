@@ -29,7 +29,15 @@ fn text_of(ev: &PluginEvent) -> &str {
 
 #[test]
 fn retired_fan_and_loop_teach_the_plain_language_ask() {
-    for cmd in ["/fan build it", "/loop 3 improve it"] {
+    for cmd in [
+        "/fan build it",
+        "/loop 3 improve it",
+        "/commit",
+        "/commit apply",
+        "/review",
+        "/standup 3",
+        "/resume",
+    ] {
         let evs = run(cmd);
         let t = text_of(&evs[0]);
         assert!(t.contains("retired"), "{cmd}: {t}");
@@ -44,19 +52,52 @@ fn retired_fan_and_loop_teach_the_plain_language_ask() {
 fn retired_commands_answer_inline() {
     // The hint dials no agent, so a retired command must never occupy a
     // worker slot.
-    for cmd in ["/fan build it", "/loop 3 x"] {
+    for cmd in [
+        "/fan build it",
+        "/loop 3 x",
+        "/commit",
+        "/review",
+        "/standup",
+        "/resume",
+    ] {
         assert!(is_quick(cmd), "{cmd}");
     }
 }
 
 #[test]
-fn help_teaches_plain_language_instead_of_fan_and_loop() {
+fn help_teaches_plain_language_instead_of_retired_commands() {
     let evs = run("/help");
     let t = text_of(&evs[0]);
-    assert!(!t.contains("/fan"), "{t}");
-    assert!(!t.contains("/loop"), "{t}");
-    // The replacement: at least one example phrasing that the intent router
-    // turns into a fan-out or a loop.
+    for gone in ["/fan", "/loop", "/commit", "/review", "/standup", "/resume"] {
+        assert!(!t.contains(gone), "{gone} still advertised: {t}");
+    }
+    // The replacement: example phrasings the intent router recognizes.
     assert!(t.contains("have every agent take a crack at"), "{t}");
     assert!(t.contains("keep refining"), "{t}");
+    assert!(t.contains("commit this"), "{t}");
+    assert!(t.contains("apply"), "{t}");
+}
+
+/// The commit hint must carry the gate: a user taught "commit this" must in
+/// the same breath be taught that nothing is committed until they confirm.
+#[test]
+fn the_commit_hint_teaches_the_apply_gate() {
+    let evs = run("/commit");
+    let t = text_of(&evs[0]);
+    assert!(t.contains("commit this"), "{t}");
+    assert!(t.contains("apply"), "{t}");
+}
+
+/// Retired names must be OUT of the construct list — otherwise the palette
+/// drift tests would keep offering them and typo suggestions would resurrect
+/// them.
+#[test]
+fn retired_commands_left_the_construct_list() {
+    for gone in ["fan", "loop", "commit", "review", "standup", "resume"] {
+        assert!(
+            !broker_constructs().contains(&gone),
+            "{gone} still a construct"
+        );
+    }
+    assert_eq!(broker_constructs().len(), 14, "{:?}", broker_constructs());
 }

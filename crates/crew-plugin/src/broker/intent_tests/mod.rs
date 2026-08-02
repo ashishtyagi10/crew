@@ -3,7 +3,9 @@
 //! each shape reaches its own capability path, the fallbacks, and the
 //! plain-language parity for retired commands. Shared fixtures live here.
 use super::*;
+use crate::broker::testenv;
 
+mod capability;
 mod grammar;
 mod routing;
 

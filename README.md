@@ -290,15 +290,18 @@ as a hidden commit under
 `/restore <n>` brings a snapshot's files back — à la Cline),
 **transcript export** (`/export` writes the conversation to
 `crew-transcript-<stamp>.md` — à la OpenCode), **AI commit messages**
-(`/commit` has the coder draft a Conventional Commits message for your diff;
-`/commit apply` creates the commit — à la Aider), **AI code review**
-(`/review` reports findings on the working diff worst-first — à la Codex),
-**session resume** (the conversation auto-saves to `./.crew/`, and `/resume`
-in a fresh pane folds the last session into the next task — à la Claude
+(say "commit this" and the crew drafts a Conventional Commits message for
+your diff; nothing is committed until you say "apply" — à la Aider),
+**AI code review** (ask "look over my changes" for findings on the working
+diff worst-first — à la Codex), **session resume** (the conversation
+auto-saves to `./.crew/`, and asking to "pick up where we left off" in a
+fresh pane folds the last session into the next task — à la Claude
 Code's `--continue`), **`/doctor`** (a ✓/✗ health check of the whole AI
 stack: provider key, agent CLIs, MCP, skills, memory — each failure names
-its fix), **`/standup [days]`** (an AI standup update from recent commits:
-done by theme, in progress, risks). The transcript folds itself, which
+its fix), **AI standups** (ask "what did I ship this week?" for an update
+from recent commits: done by theme, in progress, risks). The old slash
+forms of these — commit, review, standup, resume — are retired; plain
+language replaced them. The transcript folds itself, which
 folds older messages away when a long session gets heavy; `/diff` (in the
 pane or the input bar) completes the loop with Codex-style change review.
 

@@ -1,4 +1,5 @@
 use super::*;
+use crate::broker::roundloop::loop_cmd;
 use crate::broker::testenv;
 use crate::PluginEvent;
 
@@ -56,7 +57,7 @@ fn loop_rejects_bad_counts_and_missing_tasks() {
     for bad in ["", "0 task", "99 task", "many task", "3", "3   "] {
         let ts = texts(&run_loop(bad));
         assert_eq!(ts.len(), 1, "{bad:?} → {ts:?}");
-        assert!(ts[0].starts_with("usage:"), "{bad:?} → {ts:?}");
+        assert!(ts[0].starts_with("loop: give"), "{bad:?} → {ts:?}");
     }
 }
 
@@ -128,39 +129,51 @@ fn parse_verdict_reads_met_and_not_met() {
     assert!(!parse_verdict("hard to say").0);
 }
 
-fn info(name: &str, role: &str) -> crate::AgentInfo {
-    crate::AgentInfo {
-        name: name.into(),
-        role: role.into(),
-        model: String::new(),
-    }
+fn run_goal_with(rest: &str, elector: crate::broker::intent::Classifier) -> Vec<PluginEvent> {
+    let mut session = Session::new();
+    let mut evs = Vec::new();
+    goal_cmd_with(
+        &mut session,
+        rest,
+        &crate::broker::tick::noop_tick_emit(),
+        &mut |ev| {
+            evs.push(ev);
+            Ok(())
+        },
+        Some(elector),
+    )
+    .unwrap();
+    evs
 }
 
+/// The judge is the MODEL's choice, not a keyword match on role strings: a
+/// stubbed elector names an agent and that agent judges, visibly, in the
+/// transcript. `reviewer` is deliberately NOT what the fallback would pick
+/// (`coder`, the first non-worker), so ignoring the elector fails this test.
 #[test]
-fn pick_judge_prefers_a_reviewer_who_is_not_the_worker() {
-    // No roles at all here — this exercises the literal-name floor, not
-    // capability matching.
-    let agents = vec![info("planner", ""), info("coder", ""), info("reviewer", "")];
-    assert_eq!(pick_judge(&agents, "planner"), "reviewer");
-    assert_eq!(pick_judge(&agents, "reviewer"), "planner");
-    assert_eq!(pick_judge(&[info("solo", "")], "solo"), "solo");
+fn a_stubbed_elector_names_the_judge_in_the_transcript() {
+    let _g = testenv::mock_with_specialists("MET: shipped\n@done", testenv::TRIO);
+    let call = |_: &str| Ok("AGENT: reviewer".to_string());
+    let ts = texts(&run_goal_with("ship the release", &call));
+    assert!(
+        ts.iter()
+            .any(|t| t.contains("planner works, reviewer judges")),
+        "{ts:?}"
+    );
 }
 
+/// An off-grammar election reply must not stop the goal: the deterministic
+/// fallback (first non-worker) judges instead — which is also exactly what
+/// the keyless/mock path gets with no elector at all.
 #[test]
-fn pick_judge_keys_off_capability_not_the_literal_reviewer_name() {
-    // "quality-auditor" is an INVENTED specialist name — it appears nowhere
-    // in agents::role_for's static map (that map only knows the external CLI
-    // agents claude/codex/opencode). Its own role carries the critic words.
-    // Even though "coder" comes first in the roster, the judge is elected by
-    // that agent's own advertised capability — so a roster of
-    // arbitrarily-named specialists (no agent literally called "reviewer")
-    // still elects a judge.
-    let agents = vec![
-        info("planner", "planning, analysis"),
-        info("coder", "building, implementation"),
-        info("quality-auditor", "review, critique"),
-    ];
-    assert_eq!(pick_judge(&agents, "planner"), "quality-auditor");
+fn an_off_grammar_elector_falls_back_to_the_first_non_worker() {
+    let _g = testenv::mock_with_specialists("MET: shipped\n@done", testenv::TRIO);
+    let call = |_: &str| Ok("probably the reviewer should look".to_string());
+    let ts = texts(&run_goal_with("ship the release", &call));
+    assert!(
+        ts.iter().any(|t| t.contains("planner works, coder judges")),
+        "{ts:?}"
+    );
 }
 
 #[test]
