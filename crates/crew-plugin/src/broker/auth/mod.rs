@@ -4,10 +4,14 @@
 //! installed CLIs. Consent-based only: the CLI-delegated rung drives a
 //! vendor CLI's own commands and never reads another app's token store.
 
+pub(crate) mod device;
+pub(crate) mod keychain;
 pub(crate) mod probe;
+pub(crate) mod refresh;
 pub(crate) mod registry;
 pub(crate) mod resolve;
 pub(crate) mod state;
+pub(crate) mod tokens;
 
 pub(crate) use resolve::{resolve, Resolved, Signals};
 

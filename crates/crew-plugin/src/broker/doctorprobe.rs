@@ -43,10 +43,22 @@ pub(crate) fn gather(session: &super::session::Session) -> DoctorInputs {
         // The same resolution the roster is built from, so `/doctor` reports a
         // stored key's provider rather than only an exported one's.
         provider,
-        auth: super::auth::state::snapshot()
-            .iter()
-            .map(auth_line)
-            .collect(),
+        auth: {
+            let mut v: Vec<_> = super::auth::state::snapshot()
+                .iter()
+                .map(auth_line)
+                .collect();
+            // Where OAuth grants live (condition 6): keychain when `security`
+            // answers, the 0600 file everywhere else — stated, not guessed.
+            let kc = super::auth::keychain::bin().is_some();
+            let mark = if kc { '✓' } else { '–' };
+            v.push((
+                mark,
+                "token store".into(),
+                super::auth::tokens::backend_note().into(),
+            ));
+            v
+        },
         others: super::discover::configured_providers()
             .into_iter()
             .filter(|n| Some(n.as_str()) != active.map(|p| p.name()))

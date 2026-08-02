@@ -10,7 +10,7 @@
 //! Used both by the `crew-broker-plugin` binary and by the `crew` binary
 //! re-execing itself with `--broker-plugin`.
 use std::io::{BufRead, Write};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
 use super::relay::{dialed_target, msg, multi_targets, relay_turn, split_target};
@@ -82,10 +82,7 @@ fn hello(out: &Out, session: &Session) -> anyhow::Result<()> {
     emit(out, &msg("agent smith", startup_banner(&reg)))?;
     // …and, if yesterday's conversation is still here, that it is. Held back
     // until after the banner so the pane's own identity reads first.
-    match super::sessionlog::resume_offer() {
-        Some(note) => emit(out, &msg("agent smith", note)),
-        None => Ok(()),
-    }
+    super::sessionlog::resume_offer().map_or(Ok(()), |note| emit(out, &msg("agent smith", note)))
 }
 
 /// Smith's dialog pool: the tagline under the nameplate, one line per pane.
@@ -164,12 +161,10 @@ fn send(
     session: &mut Session,
     tasks: &mut super::tasks::Tasks,
 ) -> anyhow::Result<()> {
-    use std::sync::atomic::AtomicBool;
     tasks.reap();
-    let trimmed = text.trim().to_string();
     // Resolve built-in single-letter aliases (`/d` → `/diff`) before ANY
     // routing below, so they reach the same interceptors their long form does.
-    let trimmed = super::commands::expand_alias(&trimmed);
+    let trimmed = super::commands::expand_alias(text.trim());
 
     // /stop [#N] — cancel one task or all.
     if trimmed == "/stop" || trimmed.starts_with("/stop ") {
@@ -293,6 +288,11 @@ fn send(
             // swarm, which was this branch's whole body before the router.
             super::intent::route(&trimmed, &mut snap, &tick_emit, &mut counting)
         };
+        // A hard token-refresh failure during this task arms EXACTLY one
+        // re-auth line (condition 5) — printed here, then silence.
+        if let Some(note) = super::auth::refresh::reauth_note() {
+            let _ = emit(&out_thread, &msg("agent smith", note));
+        }
         // Announce only the exceptional endings — a clean finish says nothing
         // (the streamed reply is the result). Errors and user stops must stay
         // visible.

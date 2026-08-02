@@ -19,6 +19,8 @@
 //! Each e2e file includes this module separately and uses a different subset of
 //! the helpers, so unused-in-one-file helpers are expected.
 #![allow(dead_code)]
+pub mod oauthstub;
+
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -77,6 +79,23 @@ pub fn write_fake(dir: &Path, name: &str, replies: &[&str], json: bool) {
 pub fn run_broker(path_dir: &Path, env: &[(&str, &str)], cmds: &[&str]) -> Vec<PluginEvent> {
     let bin = env!("CARGO_BIN_EXE_crew-broker-plugin");
     let mut command = Command::new(bin);
+    configure(&mut command, path_dir, env);
+    let mut child = command.spawn().unwrap();
+    {
+        let mut stdin = child.stdin.take().unwrap();
+        for line in cmds {
+            writeln!(stdin, "{line}").unwrap();
+        }
+    } // drop stdin → EOF → the broker's read loop ends and it exits
+    let out = child.wait_with_output().unwrap();
+    String::from_utf8_lossy(&out.stdout)
+        .lines()
+        .filter_map(|l| serde_json::from_str::<PluginEvent>(l).ok())
+        .collect()
+}
+
+/// The isolation every broker child gets (one copy for both runners).
+fn configure(command: &mut Command, path_dir: &Path, env: &[(&str, &str)]) {
     command
         .env("PATH", path_dir)
         // Isolate the project-local specialist store (see module doc): each
@@ -111,22 +130,45 @@ pub fn run_broker(path_dir: &Path, env: &[(&str, &str)], cmds: &[&str]) -> Vec<P
         // A test that WANTS a stored key writes that file and passes its own
         // pair in `env`.
         .env("CREW_CREDENTIALS_PATH", path_dir.join("credentials.json"))
+        // Keychain hermeticity: never let a broker child under test reach the
+        // developer's real macOS keychain. Empty = "no keychain here" (the
+        // file backend); a test that wants one passes a fake via `env`.
+        .env("CREW_SECURITY_BIN", "")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .stderr(Stdio::null());
+        // To a file, not /dev/null: stderr is one of the log sinks the
+        // secret-sweep test greps, and a nulled stream can hide a leak.
+        .stderr(std::fs::File::create(path_dir.join("broker-stderr.log")).unwrap());
     for var in crew_plugin::credentials::VARS {
         command.env_remove(var);
     }
     for (k, v) in env {
         command.env(k, v);
     }
+}
+
+/// [`run_broker`] with a pause after each command, for flows whose ORDER is
+/// the point — a device sign-in must complete (its poll loop sleeping real
+/// seconds against the stub server) before the next message relies on the
+/// grant it stored. `cmds` pairs each JSON line with the milliseconds to
+/// wait after sending it.
+pub fn run_broker_paced(
+    path_dir: &Path,
+    env: &[(&str, &str)],
+    cmds: &[(&str, u64)],
+) -> Vec<PluginEvent> {
+    let bin = env!("CARGO_BIN_EXE_crew-broker-plugin");
+    let mut command = Command::new(bin);
+    configure(&mut command, path_dir, env);
     let mut child = command.spawn().unwrap();
     {
         let mut stdin = child.stdin.take().unwrap();
-        for line in cmds {
+        for (line, wait_ms) in cmds {
             writeln!(stdin, "{line}").unwrap();
+            stdin.flush().unwrap();
+            std::thread::sleep(std::time::Duration::from_millis(*wait_ms));
         }
-    } // drop stdin → EOF → the broker's read loop ends and it exits
+    }
     let out = child.wait_with_output().unwrap();
     String::from_utf8_lossy(&out.stdout)
         .lines()

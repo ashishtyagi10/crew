@@ -33,6 +33,9 @@ pub(crate) struct ProviderInfo {
     pub login: Option<&'static str>,
     /// Whether live resolution picked this provider.
     pub active: bool,
+    /// Declares a native device flow — `SignedOut` here is the in-pane
+    /// sign-in affordance (`/model <n>` runs it), not a CLI to go run.
+    pub device: bool,
 }
 
 /// Every registry provider's live state, in registry order, plus any
@@ -61,11 +64,19 @@ pub(crate) fn snapshot() -> Vec<ProviderInfo> {
                 CliAuth::Unknown => AuthState::Absent,
             },
             None => {
+                // A stored grant is a signed-in subscription; a real key is
+                // "key present" (`key_raw`, so a grant standing in for the
+                // key cannot mislabel itself); declared device endpoints
+                // with neither is the sign-in affordance.
                 let keyed = e
                     .key_var
-                    .is_some_and(|v| super::super::discover::key_for(&store, v).is_some());
-                if keyed {
+                    .is_some_and(|v| super::super::discover::key_raw(&store, v).is_some());
+                if e.device.is_some() && super::tokens::load(e.name).is_some() {
+                    AuthState::SignedIn
+                } else if keyed {
                     AuthState::KeyPresent
+                } else if e.device.is_some() {
+                    AuthState::SignedOut
                 } else {
                     AuthState::NoKey
                 }
@@ -76,6 +87,7 @@ pub(crate) fn snapshot() -> Vec<ProviderInfo> {
             state,
             login: e.cli.map(|c| c.login),
             active: is_active(e.name),
+            device: e.device.is_some(),
         });
     }
     for a in super::super::agents::known_adapters() {
@@ -85,6 +97,7 @@ pub(crate) fn snapshot() -> Vec<ProviderInfo> {
                 state: AuthState::Installed,
                 login: None,
                 active: false,
+                device: false,
             });
         }
     }

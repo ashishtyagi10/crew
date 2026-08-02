@@ -90,11 +90,17 @@ pub(crate) fn probe_with(spec: &CliSpec, installed: bool, run: StatusRunner) -> 
 /// validate, tiny next to the model calls this thread exists to make.
 const PROBE_TIMEOUT: Duration = Duration::from_secs(5);
 
-/// Run `bin args…` to completion, returning (exit-ok, stdout+stderr) — or
+/// Run `bin args…` to completion, returning (exit-ok, stdout, stderr) — or
 /// `None` on spawn failure or timeout (the child is killed). Unlike
 /// `run::run_cli` this keeps the exit STATUS, which is the probe's primary
-/// signal; empty output is fine here, not a failure.
-pub(crate) fn run_status(bin: &str, args: &[&str], timeout: Duration) -> Option<(bool, String)> {
+/// signal; empty output is fine here, not a failure. The streams stay
+/// SEPARATE because `keychain` reads a secret from stdout, where a stderr
+/// warning merged in would corrupt it.
+pub(crate) fn run_split(
+    bin: &str,
+    args: &[&str],
+    timeout: Duration,
+) -> Option<(bool, String, String)> {
     let mut child = Command::new(bin)
         .args(args)
         .stdin(Stdio::null())
@@ -121,9 +127,9 @@ pub(crate) fn run_status(bin: &str, args: &[&str], timeout: Duration) -> Option<
     loop {
         match child.try_wait() {
             Ok(Some(status)) => {
-                let mut text = out_rx.recv_timeout(timeout).unwrap_or_default();
-                text.push_str(&err_rx.recv_timeout(timeout).unwrap_or_default());
-                return Some((status.success(), text));
+                let out = out_rx.recv_timeout(timeout).unwrap_or_default();
+                let err = err_rx.recv_timeout(timeout).unwrap_or_default();
+                return Some((status.success(), out, err));
             }
             Ok(None) if Instant::now() >= deadline => {
                 let _ = child.kill();
@@ -134,6 +140,15 @@ pub(crate) fn run_status(bin: &str, args: &[&str], timeout: Duration) -> Option<
             Err(_) => return None,
         }
     }
+}
+
+/// [`run_split`] with the streams merged — the probe's `classify` reads its
+/// markers from either.
+pub(crate) fn run_status(bin: &str, args: &[&str], timeout: Duration) -> Option<(bool, String)> {
+    run_split(bin, args, timeout).map(|(ok, mut out, err)| {
+        out.push_str(&err);
+        (ok, out)
+    })
 }
 
 /// [`probe_with`] over the real machine: PATH presence, then the CLI's own

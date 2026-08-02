@@ -7,7 +7,7 @@
 //! keep that file inside the line cap as the picker grew in.
 use crate::PluginEvent;
 
-use super::modelpick::{groups_text, select};
+use super::modelpick::{groups_text, select, Pick};
 use super::relay::msg;
 use super::session::Session;
 
@@ -38,8 +38,13 @@ pub(crate) fn model_cmd(
         return emit(msg("agent smith", listing));
     };
     // `/model <n>` — pick a provider by its number in the grouped listing.
+    // A signed-out device-flow row RUNS the sign-in (which is why a numeric
+    // pick is routed as a background task, never inline — see `is_quick`).
     if let Ok(n) = agent.parse::<usize>() {
-        let note = select(&super::auth::state::snapshot(), n);
+        let note = match select(&super::auth::state::snapshot(), n) {
+            Pick::SignIn(name) => return super::signin::signin_cmd(session, &name, emit),
+            Pick::Note(note) => note,
+        };
         emit(PluginEvent::Roster {
             agents: session.registry().infos(),
         })?;

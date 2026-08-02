@@ -5,9 +5,10 @@ fn the_seed_entries_declare_the_designed_modes() {
     let e = |n: &str| by_name(n).unwrap_or_else(|| panic!("{n} missing"));
     assert!(e("claude-code").delegated() && !e("claude-code").keyed());
     assert!(e("codex").delegated() && !e("codex").keyed());
-    // Qwen/DashScope: key today, device flow declared for later.
+    // Qwen/DashScope: key or its permitted third-party device flow.
     assert!(e("dashscope").keyed());
     assert!(e("dashscope").modes.contains(&AuthMode::OauthDevice));
+    assert!(e("dashscope").device.is_some());
     assert!(e("openrouter").keyed() && !e("openrouter").delegated());
     assert!(e("mock").modes == [AuthMode::Mock]);
 }
@@ -60,6 +61,24 @@ fn delegated_entries_carry_probe_and_login_commands() {
         assert!(!cli.status.is_empty(), "{} has no status probe", e.name);
         assert!(cli.login.starts_with(cli.bin), "{} login command", e.name);
     }
+}
+
+/// Device endpoints exist exactly where `OauthDevice` is declared — an
+/// endpoint on a provider whose terms forbid the flow would be rung zero.
+#[test]
+fn device_endpoints_pair_exactly_with_the_oauth_device_mode() {
+    for e in entries() {
+        assert_eq!(
+            e.device.is_some(),
+            e.modes.contains(&AuthMode::OauthDevice),
+            "{}: device endpoints and OauthDevice mode must pair",
+            e.name
+        );
+    }
+    let d = by_name("dashscope").unwrap().device.unwrap();
+    assert!(d.device_url.starts_with("https://"), "{}", d.device_url);
+    assert!(d.token_url.starts_with("https://"), "{}", d.token_url);
+    assert!(!d.client_id.is_empty() && !d.scope.is_empty());
 }
 
 #[test]

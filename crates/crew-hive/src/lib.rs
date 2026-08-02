@@ -45,6 +45,7 @@ pub mod batch;
 pub mod board;
 pub mod bus;
 pub mod catalog;
+pub mod deviceflow;
 pub mod govern;
 pub mod graph;
 pub mod oauth;

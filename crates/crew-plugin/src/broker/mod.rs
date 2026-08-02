@@ -21,6 +21,7 @@ mod commands;
 mod compact;
 mod constructs;
 mod diff;
+mod directs;
 mod discover;
 mod doctor;
 mod doctorprobe;
@@ -46,6 +47,7 @@ mod run;
 mod session;
 mod sessionlog;
 mod shellenv;
+mod signin;
 mod skillframe;
 mod skills;
 pub(crate) mod specialists;
@@ -69,12 +71,10 @@ pub use discover::{
     direct_by_name, no_provider_advice, pick_provider as active_provider, DirectProvider,
     ProviderKind as Provider, DIRECT,
 };
-
 pub use engine::Broker;
 pub use hop::{Hop, HopKind, RunStats};
-pub use registry::Registry;
-pub use route::{parse_routing, Routing};
 pub use skills::{list as skills_list, Skill};
+pub use {registry::Registry, route::parse_routing, route::Routing};
 pub use {stdio::run_broker_stdio, toolcall::ToolRunner};
 
 /// Serialises tests that set `CREW_BROKER_MOCK_REPLY` / `CREW_PROJECT_DIR`
