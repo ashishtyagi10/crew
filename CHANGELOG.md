@@ -36,6 +36,13 @@ line saying what it was.
   decision stays in every later prompt; the session log folds its oldest
   half the same way. Keyless, mock, or a failed call keep the old clipping —
   degraded context, never an error — and the retained block is byte-capped.
+- **The swarm graph unfreezes on failure.** The first failed task pauses
+  dispatch and asks the planner — given the goal, the completed outputs
+  (budget-clipped) and the error — for a replacement of the not-yet-run
+  remainder; completed work is never re-run, and one re-plan per run is the
+  hard cap. Keyless/mock runs and planner errors keep today's
+  cascade-cancel, and re-planned tasks pass the same Api/Standard forcing
+  as the original plan — a re-plan can never widen what a plan may execute.
 
 ## 0.11.6
 

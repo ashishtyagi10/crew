@@ -904,10 +904,16 @@ goal ─► Planner ─► TaskGraph (DAG) ─► Scheduler ─► Agent pool �
   `ModelTier`.
 - **Scheduler** (`sched`) — a `tokio` DAG executor: spawns ready tasks onto a
   `JoinSet` gated by a `Semaphore` (the concurrency cap), waits for fan-in,
-  records results, and emits state transitions. A failed task **cascade-cancels**
-  its dependents; a panicking agent becomes a failed task (the run survives);
-  `with_cancel` gives cooperative, graceful shutdown (stop new dispatch, cancel
-  unstarted, drain in-flight).
+  records results, and emits state transitions. With `with_replan`, the first
+  failed task triggers ONE **mid-run re-plan**: the planner gets the goal,
+  the completed outputs (budget-clipped) and the failure, and its replacement
+  sub-graph supersedes the not-yet-run remainder — completed work never
+  re-runs, replacement tasks are forced to `Api`/`Standard` (the `parse_plan`
+  invariant, re-applied), and a planner error (or a keyless/mock run, which
+  gets no replanner) keeps plain **cascade-cancel** of the dependents. A
+  panicking agent becomes a failed task (the run survives); `with_cancel`
+  gives cooperative, graceful shutdown (stop new dispatch, cancel unstarted,
+  drain in-flight).
 - **Agents** (`agent`, `apiagent`, `remoteagent`) — a uniform `Agent` trait
   (object-safe, no `async-trait`). `StubAgent` for tests; **`ApiAgent`** is a
   *native* LLM agent — just a future calling a provider, no PTY/subprocess, so a
