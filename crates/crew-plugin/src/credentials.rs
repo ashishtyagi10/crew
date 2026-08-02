@@ -29,14 +29,9 @@ pub const VARS: &[&str] = &[
 /// The provider a variable authenticates, spelled as `CREW_PROVIDER` and
 /// `pick_provider` spell it.
 pub fn provider_for(var: &str) -> Option<&'static str> {
-    match var {
-        "DASHSCOPE_API_KEY" => Some("dashscope"),
-        "OPENROUTER_API_KEY" => Some("openrouter"),
-        "ANTHROPIC_API_KEY" => Some("anthropic"),
-        // Everything else comes from the provider table, so adding a row
-        // teaches the credential store about it too.
-        other => crate::broker::direct_by_name_for_var(other).map(|d| d.name),
-    }
+    // From the auth registry, so adding a provider row teaches the
+    // credential store about it too — no second name table here.
+    crate::broker::auth::registry::name_for_var(var)
 }
 
 /// The on-disk shape. `provider` is the pin written when a key is saved: with

@@ -259,8 +259,12 @@ sends one task to every agent **in parallel** (replies stream back
 fastest-first), "keep refining it" iterates on the crew's own answer, "keep
 working until …" loops until a judge agent rules the goal met — the broker's
 intent router picks the execution shape (`CREW_INTENT=0` turns it off).
-`@a+b <task>` fans out to a subset, `/model
-<agent> <model>` pins agents to **different models side by side**, and
+`@a+b <task>` fans out to a subset, bare `/model` shows a **grouped provider
+picker** — your subscriptions (a signed-in `claude` or `codex` seat serves
+smith work with **no API key**; signed-out ones show the exact sign-in
+command), your keys, and installed CLIs, with `/model <n>` switching provider
+persistently — `/model <agent> <model>` pins agents to **different models
+side by side**, and
 the footer reports live totals — with Tab completion for `@agent` names and
 slash constructs in the composer, one-letter aliases (`/m` → `/model`), and
 did-you-mean on typos. Long constructs run as **concurrent background tasks**

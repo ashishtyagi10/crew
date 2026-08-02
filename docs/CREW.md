@@ -602,11 +602,16 @@ itself (Tab completes both `@agents` and slash constructs; one-letter **aliases*
 `/h /d /m /r` expand to help/diff/model/reload,
 and a typo gets a **did-you-mean** suggestion):
 
-- **`/help`** — list the constructs; bare **`/model`** — the roster with each
-  agent's role and model (also in the pane footer, along with the live task
-  count and session
-  turn/token totals, the model pins, the sys-tool sandbox mode, and the token
-  budget.
+- **`/help`** — list the constructs; bare **`/model`** — the whole model
+  story: a **grouped provider picker** — "your subscriptions" (signed-in
+  CLI-delegated providers like a Claude Pro/Max seat via the `claude` CLI or
+  a ChatGPT seat via `codex`), "your keys", and "installed CLIs", each entry
+  numbered — followed by the roster with each agent's role and model (also
+  in the pane footer, along with the live task count and session turn/token
+  totals, the model pins, the sys-tool sandbox mode, and the token budget).
+  Signed-out delegated providers list grayed (`○`) with the **exact sign-in
+  command** (`claude auth login`, `codex login`); **`/model <n>`** switches
+  to entry *n*, storing the provider pin so it survives restarts.
 - **`/model <agent> <model|default>`** — pin an agent to a model for the
   session. Pins apply per agent, so **planner, coder, and reviewer can run
   three different models side by side**; every change re-emits the roster so
@@ -683,7 +688,11 @@ and a typo gets a **did-you-mean** suggestion):
   a fresh repo reports "nothing to report" instead of erroring.
 - **`/doctor`** — a **health check for the AI stack** (à la Claude Code's
   `/doctor`): one ✓/✗/– checklist covering the provider that will answer
-  (and which key it found), the claude/codex/opencode CLIs on `$PATH`,
+  (and which key it found — a serving subscription reads e.g. "claude-code
+  subscription (via the claude CLI — swarm planning degrades to the
+  relay)"), a **per-provider auth line** (signed in / signed out with the
+  sign-in command / key present / no key / not installed — states only,
+  never a key value), the claude/codex/opencode CLIs on `$PATH`,
   `/bin/bash` (run panes' job control), git, and how many skills, plugin
   agents, and MCP servers loaded — each MCP server listed with its tools or
   its failure (the retired `/mcp` listing folded in) — plus standing memory,
@@ -779,7 +788,14 @@ hot-reload: skills and manifests are re-read from disk on every use, and
 
 **Models & rate-limits.** When no agent CLIs are installed, `/smith` runs its
 inbuilt API agents — **planner** (capable tier), **coder**, and **reviewer**
-(standard tier) — over an LLM. Provider discovery prefers `DASHSCOPE_API_KEY`
+(standard tier) — over an LLM. **Subscriptions come first**: before any key,
+discovery asks the CLI-delegated providers for their own signed-in state
+(`claude auth status`, `codex login status` — consent-based, never another
+app's token store), and a live login routes plain smith tasks through that
+CLI via the existing relay, exactly as `@claude <task>` would
+(`CREW_SUBSCRIPTIONS=0` disables the rung; `CREW_PROVIDER=claude-code|codex`
+pins it explicitly). With no subscription, key discovery is unchanged and
+prefers `DASHSCOPE_API_KEY`
 (Alibaba Cloud Model Studio — Qwen commercial models, `qwen-max` →
 `qwen-plus` → `qwen-turbo`, override with `CREW_DASHSCOPE_MODEL=a,b,…`; the
 endpoint defaults to the international region, point `CREW_DASHSCOPE_BASE_URL`
@@ -861,7 +877,9 @@ pre-streaming behaviour for a regressed run or a deterministic test;
 `CREW_INTENT=0` disables the intent router — every plain message then runs as
 a swarm instead of the model first choosing its execution shape (a direct
 reply, an all-agents fan-out, refinement rounds, a plan awaiting approval, or
-the swarm). The pane also prints a per-turn timeline + cost summary (`turn done
+the swarm); `CREW_SUBSCRIPTIONS=0` disables the signed-in-subscription rung —
+crew then never runs `claude auth status` / `codex login status` and plain
+tasks fall back to key discovery and the keyless relay exactly as before. The pane also prints a per-turn timeline + cost summary (`turn done
 — planner 4.2s → … · N exchange(s) · ~X tok (approx)`) at the end of every
 task, and accumulates the spend into the header's `~N tok` meter.
 

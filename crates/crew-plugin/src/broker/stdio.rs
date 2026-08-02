@@ -280,7 +280,7 @@ fn send(
             super::commands::handle(&mut snap, &trimmed, &tick_emit, &mut counting)
         } else if trimmed.starts_with('@') {
             relay_counting(&trimmed, &snap, &tick_emit, &mut counting)
-        } else if let Some(starter) = keyless_starter(&snap) {
+        } else if let Some(starter) = super::auth::starter(&snap) {
             relay_counting(
                 &format!("@{starter} {trimmed}"),
                 &snap,
@@ -477,7 +477,7 @@ fn announced(session: &Session) -> bool {
 /// `provider_resolves` is checked FIRST and short-circuits: it reads the
 /// credential store, while `registry()` re-runs discovery (manifest reads plus
 /// PATH probes). Anyone with a key pays nothing for this.
-fn keyless_starter(session: &Session) -> Option<String> {
+pub(crate) fn keyless_starter(session: &Session) -> Option<String> {
     if provider_resolves() {
         return None;
     }

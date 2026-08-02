@@ -23,6 +23,14 @@ fn append_logs_conversation_but_skips_system_noise() {
 
 #[test]
 fn append_caps_the_live_log_by_dropping_the_oldest_half() {
+    // Keyless, deliberately: `append_at`'s fold reaches for the LIVE
+    // summarizer, so on a machine with a real provider key this test made
+    // real network calls per fold and asserted against whatever the model
+    // wrote — "oldest dropped" failed whenever a summary happened to echo
+    // "reply number 0". The guard pins the clipping branch, which is the
+    // behavior these assertions describe; the summarized branch is covered
+    // by `compact_tests` with an injected call.
+    let _g = crate::broker::testenv::no_provider();
     let base = scratch("cap");
     for i in 0..2000 {
         append_at(

@@ -14,6 +14,7 @@ mod adapter;
 mod agents;
 mod apiadapter;
 mod ask;
+pub(crate) mod auth;
 mod changed;
 mod checkpoint;
 mod commands;
@@ -30,6 +31,8 @@ mod gitmsg;
 mod hop;
 mod intent;
 mod memory;
+mod modelcmd;
+mod modelpick;
 mod normalize;
 mod plan;
 mod plugins;
@@ -67,18 +70,12 @@ pub use discover::{
     ProviderKind as Provider, DIRECT,
 };
 
-/// The provider table row whose key variable is `var`, if any. Lives here so
-/// `credentials` can ask without depending on `broker::discover` directly.
-pub fn direct_by_name_for_var(var: &str) -> Option<&'static DirectProvider> {
-    DIRECT.iter().find(|d| d.var == var)
-}
 pub use engine::Broker;
 pub use hop::{Hop, HopKind, RunStats};
 pub use registry::Registry;
 pub use route::{parse_routing, Routing};
 pub use skills::{list as skills_list, Skill};
-pub use stdio::run_broker_stdio;
-pub use toolcall::ToolRunner;
+pub use {stdio::run_broker_stdio, toolcall::ToolRunner};
 
 /// Serialises tests that set `CREW_BROKER_MOCK_REPLY` / `CREW_PROJECT_DIR`
 /// (process-wide env): each guard holds the same global lock and removes the
