@@ -861,7 +861,9 @@ pre-streaming behaviour for a regressed run or a deterministic test;
 `CREW_INTENT=0` disables the intent router — every plain message then runs as
 a swarm instead of the model first choosing its execution shape (a direct
 reply, an all-agents fan-out, refinement rounds, a plan awaiting approval, or
-the swarm). The pane also prints a per-turn timeline + cost summary (`turn done
+the swarm); `CREW_SUBSCRIPTIONS=0` disables the signed-in-subscription rung —
+crew then never runs `claude auth status` / `codex login status` and plain
+tasks fall back to key discovery and the keyless relay exactly as before. The pane also prints a per-turn timeline + cost summary (`turn done
 — planner 4.2s → … · N exchange(s) · ~X tok (approx)`) at the end of every
 task, and accumulates the spend into the header's `~N tok` meter.
 

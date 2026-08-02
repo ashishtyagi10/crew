@@ -35,6 +35,7 @@ pub(crate) struct CliSpec {
     /// consent-based probe. Crew NEVER reads the CLI's token store.
     pub status: &'static [&'static str],
     /// The exact command a signed-out user runs to sign in.
+    #[allow(dead_code)] // read by /model's sign-in affordance, next commit
     pub login: &'static str,
 }
 

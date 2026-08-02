@@ -214,7 +214,7 @@ fn kind_for(name: &str) -> Option<ProviderKind> {
 /// Takes an already-loaded `store` so one request reads the file once — for
 /// the pin AND the key it goes with (see [`key_for`]) — rather than once per
 /// lookup.
-fn forced_provider(store: &crate::credentials::Store) -> Option<String> {
+pub(crate) fn forced_provider(store: &crate::credentials::Store) -> Option<String> {
     resolve_forced(std::env::var("CREW_PROVIDER").ok(), store.provider.clone())
 }
 
@@ -241,7 +241,7 @@ fn resolve_forced(env: Option<String>, stored: Option<String>) -> Option<String>
 /// silently dropping the user's specialists until the pane was reopened.
 ///
 /// Never logs the value.
-fn key_for(store: &crate::credentials::Store, var: &str) -> Option<String> {
+pub(crate) fn key_for(store: &crate::credentials::Store, var: &str) -> Option<String> {
     resolve_key_with(
         std::env::var(var).ok(),
         store.keys.get(var).cloned(),
