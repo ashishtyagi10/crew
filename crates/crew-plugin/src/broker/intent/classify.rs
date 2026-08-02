@@ -18,6 +18,13 @@ const CLASSIFY_TIMEOUT: Duration = Duration::from_secs(30);
 /// `pub(crate)` because `broker::elect` makes its agent-election call through
 /// the same plumbing — one bounded structured call, one escape hatch.
 pub(crate) fn live_classifier() -> Option<impl Fn(&str) -> Result<String, String>> {
+    live_call(INTENT_MAX_TOKENS)
+}
+
+/// The same bounded one-shot with a caller-chosen output ceiling — the shared
+/// plumbing behind classification, election, and `compact`'s summarizer. One
+/// set of gates (`CREW_INTENT=0`, keyless, mock), one escape hatch.
+pub(crate) fn live_call(max_tokens: u32) -> Option<impl Fn(&str) -> Result<String, String>> {
     if super::disabled() {
         return None;
     }
@@ -25,7 +32,7 @@ pub(crate) fn live_classifier() -> Option<impl Fn(&str) -> Result<String, String
     if model == "mock" {
         return None;
     }
-    Some(move |p: &str| complete_once(&provider, &model, p))
+    Some(move |p: &str| complete_once(&provider, &model, p, max_tokens))
 }
 
 /// One bounded completion on the discovered provider — same block-on pattern
@@ -35,12 +42,13 @@ fn complete_once(
     provider: &Arc<dyn crew_hive::Provider>,
     model: &str,
     prompt: &str,
+    max_tokens: u32,
 ) -> Result<String, String> {
     let req = crew_hive::CompletionRequest {
         model: model.to_string(),
         system: None,
         prompt: prompt.to_string(),
-        max_tokens: INTENT_MAX_TOKENS,
+        max_tokens,
     };
     let rt = tokio::runtime::Builder::new_current_thread()
         .enable_all()

@@ -691,8 +691,10 @@ and a typo gets a **did-you-mean** suggestion):
 - **"pick up where we left off"** — **continue the previous session** (à la
   Claude Code's `--continue`; the `/resume` slash form is retired): the
   broker auto-saves the conversation — your tasks and every agent reply —
-  to `./.crew/session-live.md` as it streams (32 KB cap, oldest half
-  dropped; the `crew` system voice is skipped), and on the next broker
+  to `./.crew/session-live.md` as it streams (32 KB cap; past it the oldest
+  half is folded into a `[compacted earlier session: …]` summary header by
+  one bounded model call, or dropped when keyless — never an error; the
+  `crew` system voice is skipped), and on the next broker
   start it rotates to `./.crew/last-session.md`. Asking to resume in a
   fresh pane folds that file's tail (2 KB) into your **next task** as a
   PREVIOUS SESSION context block — consumed once — so the crew picks up

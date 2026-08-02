@@ -7,7 +7,8 @@
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
-/// On-disk budget for the live log; the oldest half is dropped past this.
+/// On-disk budget for the live log; past this the oldest half is folded into
+/// a compact summary header (or dropped, keyless — `compact::fold_log`).
 const LOG_CAP: usize = 32 * 1024;
 /// How much of the previous session `/resume` folds into the next task.
 const RESUME_CAP: usize = 2048;
@@ -54,7 +55,7 @@ pub(crate) fn rotate_at(base: &Path) {
 
 /// Append one line of conversation to the live log (best-effort — logging
 /// must never break the relay). Empty text and the `agent smith` system voice
-/// are skipped; the file is capped at [`LOG_CAP`] by dropping the oldest half.
+/// are skipped; the file is capped at [`LOG_CAP`] by folding the oldest half.
 pub(crate) fn append(sender: &str, text: &str) {
     append_at(&base_dir(), sender, text);
 }
@@ -71,12 +72,10 @@ pub(crate) fn append_at(base: &Path, sender: &str, text: &str) {
     let mut log = std::fs::read_to_string(&path).unwrap_or_default();
     log.push_str(&format!("{sender}: {text}\n"));
     if log.len() > LOG_CAP {
-        // Drop the oldest half at a line boundary.
-        let mut cut = log.len() / 2;
-        while cut < log.len() && log.as_bytes()[cut] != b'\n' {
-            cut += 1;
-        }
-        log = log.split_off(cut.min(log.len().saturating_sub(1)) + 1);
+        // The oldest half is summarized into a retained header when a
+        // provider can serve the call; keyless/mock (or a failed call)
+        // drops it at a line boundary, as before (see `compact::fold_log`).
+        log = super::compact::fold_log(&log, LOG_CAP, super::compact::live_summarizer());
     }
     let _ = std::fs::write(&path, log);
 }

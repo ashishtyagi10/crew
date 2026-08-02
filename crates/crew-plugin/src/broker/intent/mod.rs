@@ -18,7 +18,7 @@ mod classify;
 mod fanout;
 mod gate;
 
-pub(crate) use classify::live_classifier;
+pub(crate) use classify::{live_call, live_classifier};
 
 /// Relay rounds when the router picks `loop` — the user never typed a count,
 /// so a modest default well inside `roundloop::MAX_ROUNDS`.

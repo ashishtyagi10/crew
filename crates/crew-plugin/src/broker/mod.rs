@@ -17,6 +17,7 @@ mod ask;
 mod changed;
 mod checkpoint;
 mod commands;
+mod compact;
 mod constructs;
 mod diff;
 mod discover;

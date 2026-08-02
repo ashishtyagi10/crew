@@ -30,6 +30,12 @@ line saying what it was.
   the standing block that already rides every task; `#<note>` still saves
   one. **`/doctor` absorbs the `/mcp` listing**: each server renders with
   its tools (or its failure) under the count line.
+- **Transcript history is summarized, never dropped.** When a relay outgrows
+  its 8-entry window, the overflow folds into a running `[compacted N
+  earlier messages: …]` block by one bounded model call, so an early
+  decision stays in every later prompt; the session log folds its oldest
+  half the same way. Keyless, mock, or a failed call keep the old clipping —
+  degraded context, never an error — and the retained block is byte-capped.
 
 ## 0.11.6
 

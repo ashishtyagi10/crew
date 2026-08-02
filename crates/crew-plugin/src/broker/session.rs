@@ -4,7 +4,6 @@
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
-
 use std::time::Duration;
 
 use super::{Broker, Registry};
@@ -116,13 +115,14 @@ impl Session {
     }
 
     /// A relay broker over `reg` with the env knobs, this session's cancel
-    /// flag, and — when the built-in `sys` tools are enabled or MCP servers
-    /// are configured — its tools applied; every construct builds its broker
-    /// here.
+    /// flag, the transcript summarizer (overflow is compacted, not dropped —
+    /// keyless/mock keep the clipping), and — when `sys` tools or MCP servers
+    /// are on — its tools; every construct builds its broker here.
     pub fn broker(&self, reg: Registry) -> Broker {
         let b = Broker::new(reg, max_hops(), call_timeout())
             .with_budget(token_budget())
-            .with_cancel_flag(Arc::clone(&self.cancel));
+            .with_cancel_flag(Arc::clone(&self.cancel))
+            .with_summarizer(super::compact::live_summarizer());
         let sys = super::systools::enabled();
         if !sys && self.lock_mcp().is_empty() {
             return b;
