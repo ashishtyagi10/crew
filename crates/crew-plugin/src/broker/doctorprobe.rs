@@ -29,10 +29,24 @@ pub(crate) fn gather(session: &super::session::Session) -> DoctorInputs {
     use std::sync::atomic::Ordering;
     let path = std::env::var("PATH").unwrap_or_default();
     let active = super::discover::resolved_provider();
+    // A delegated subscription outranks keys in live resolution, and it is
+    // the one provider `resolved_provider` (API-shaped) cannot see — so the
+    // provider line states it, degradation included, instead of reading
+    // "none" on a perfectly serviceable machine.
+    let provider = match super::auth::resolved_live() {
+        super::auth::Resolved::Delegated { name, agent } => Some(format!(
+            "{name} subscription (via the {agent} CLI \u{2014} swarm planning degrades to the relay)"
+        )),
+        _ => active.map(|p| p.name().to_string()),
+    };
     DoctorInputs {
         // The same resolution the roster is built from, so `/doctor` reports a
         // stored key's provider rather than only an exported one's.
-        provider: active.map(|p| p.name().to_string()),
+        provider,
+        auth: super::auth::state::snapshot()
+            .iter()
+            .map(auth_line)
+            .collect(),
         others: super::discover::configured_providers()
             .into_iter()
             .filter(|n| Some(n.as_str()) != active.map(|p| p.name()))
@@ -69,4 +83,26 @@ pub(crate) fn gather(session: &super::session::Session) -> DoctorInputs {
         tokens: session.tokens.load(Ordering::Relaxed),
         budget: super::session::token_budget(),
     }
+}
+
+/// One provider's report line: STATE words only — a key value cannot reach
+/// this function, let alone leave it.
+fn auth_line(p: &super::auth::state::ProviderInfo) -> (char, String, String) {
+    use super::auth::state::AuthState;
+    let detail = match p.state {
+        AuthState::SignedIn => "signed in (subscription)".to_string(),
+        AuthState::SignedOut => format!(
+            "signed out \u{2014} sign in: run `{}`",
+            p.login.unwrap_or_default()
+        ),
+        AuthState::KeyPresent => "key present".to_string(),
+        AuthState::NoKey => "no key".to_string(),
+        AuthState::Installed => "installed (carries its own sign-in)".to_string(),
+        AuthState::Absent => "not installed".to_string(),
+    };
+    let healthy = matches!(
+        p.state,
+        AuthState::SignedIn | AuthState::KeyPresent | AuthState::Installed
+    );
+    (if healthy { '✓' } else { '–' }, p.name.clone(), detail)
 }

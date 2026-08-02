@@ -13,6 +13,10 @@ pub(crate) struct DoctorInputs {
     /// providers and a fixed discovery order, a key that appears to do
     /// nothing is a mystery worth answering before it is reported as a bug.
     pub others: Vec<String>,
+    /// Per-provider auth state, one line each: (mark, name, detail) —
+    /// signed in / signed out (+ sign-in command) / key present / absent.
+    /// STATES ONLY, prebuilt by `gather`; a key value can never reach here.
+    pub auth: Vec<(char, String, String)>,
     /// Which of the known agent CLIs (claude, codex, opencode) are on PATH.
     pub clis: Vec<(String, bool)>,
     /// `/bin/bash` present (run panes' job-control wrapper needs it).
@@ -71,6 +75,9 @@ pub(crate) fn render(i: &DoctorInputs) -> String {
             &format!("none — {}", super::discover::no_provider_advice()),
         ),
     });
+    for (mark, name, detail) in &i.auth {
+        out.push(line(*mark, name, detail));
+    }
     for (name, found) in &i.clis {
         out.push(if *found {
             line('✓', name, "on PATH")

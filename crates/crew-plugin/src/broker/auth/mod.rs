@@ -7,6 +7,7 @@
 pub(crate) mod probe;
 pub(crate) mod registry;
 pub(crate) mod resolve;
+pub(crate) mod state;
 
 pub(crate) use resolve::{resolve, Resolved, Signals};
 

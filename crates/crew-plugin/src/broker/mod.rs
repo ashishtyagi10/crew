@@ -31,6 +31,8 @@ mod gitmsg;
 mod hop;
 mod intent;
 mod memory;
+mod modelcmd;
+mod modelpick;
 mod normalize;
 mod plan;
 mod plugins;

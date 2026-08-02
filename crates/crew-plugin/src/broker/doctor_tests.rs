@@ -4,6 +4,7 @@ fn healthy() -> DoctorInputs {
     DoctorInputs {
         provider: Some("dashscope".into()),
         others: Vec::new(),
+        auth: Vec::new(),
         clis: vec![("claude".into(), true), ("codex".into(), false)],
         bash: true,
         git: true,
@@ -167,6 +168,55 @@ fn the_sandbox_mode_is_reported_both_ways() {
     );
     i.sys_tools = false;
     assert!(render(&i).contains("CREW_SYS_TOOLS=0"), "{}", render(&i));
+}
+
+/// Every provider's auth state is its own report line — signed in, signed
+/// out (with the exact sign-in command), key present, or absent — healthy
+/// states as ✓, absences as dashes, never failures.
+#[test]
+fn render_lists_per_provider_auth_states() {
+    let mut i = healthy();
+    i.auth = vec![
+        ('✓', "claude-code".into(), "signed in (subscription)".into()),
+        (
+            '–',
+            "codex".into(),
+            "signed out \u{2014} sign in: run `codex login`".into(),
+        ),
+        ('✓', "dashscope".into(), "key present".into()),
+        ('–', "openai".into(), "no key".into()),
+    ];
+    let r = render(&i);
+    assert!(r.contains("✓ claude-code: signed in (subscription)"), "{r}");
+    assert!(
+        r.contains("– codex: signed out \u{2014} sign in: run `codex login`"),
+        "{r}"
+    );
+    assert!(r.contains("✓ dashscope: key present"), "{r}");
+    assert!(r.contains("– openai: no key"), "{r}");
+}
+
+/// The full gather→render round-trip with a fake key in the credential
+/// store: the report may name the provider, but the key VALUE — or any
+/// fragment of it — must never appear anywhere in the output.
+#[test]
+fn doctor_never_prints_a_secret() {
+    let secret = "sk-fake-abc123-DO-NOT-PRINT";
+    let dir = std::env::temp_dir().join(format!("crew-doctor-secret-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    let store = dir.join("credentials.json");
+    crate::credentials::save_key_at(&store, "OPENROUTER_API_KEY", secret, Some("openrouter"))
+        .unwrap();
+    let _g = crate::broker::testenv::no_provider_with_store(&store);
+    let session = crate::broker::session::Session::new();
+    let r = render(&gather(&session));
+    assert!(r.contains("openrouter"), "the provider may be named: {r}");
+    assert!(
+        !r.contains(secret) && !r.contains("abc123"),
+        "key material leaked into /doctor: {r}"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
 }
 
 /// A key that appears to do nothing is a mystery worth answering. With six

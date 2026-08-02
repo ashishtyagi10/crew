@@ -69,6 +69,26 @@ fn all_signed_out_keeps_the_keyless_lead() {
     );
 }
 
+/// `/doctor` states the subscription on its provider line — including that
+/// swarm planning degrades to the relay — and gives every provider an auth
+/// line of its own.
+#[test]
+fn doctor_states_the_subscription_and_the_swarm_degradation() {
+    let dir = unique_dir("auth-doctor");
+    write_cli(&dir, "codex", "login", true, "codex here");
+    let doctor = r#"{"type":"send","channel":"crew","text":"/doctor"}"#;
+    let msgs = messages(&run_broker(&dir, &[], &[doctor]));
+    let doc = msgs
+        .iter()
+        .find(|(s, t)| s == "agent smith" && t.contains("crew doctor"))
+        .map(|(_, t)| t.clone())
+        .unwrap_or_default();
+    assert!(doc.contains("codex subscription"), "{doc}");
+    assert!(doc.contains("degrades to the relay"), "{doc}");
+    assert!(doc.contains("codex: signed in (subscription)"), "{doc}");
+    assert!(doc.contains("claude-code: not installed"), "{doc}");
+}
+
 /// `CREW_SUBSCRIPTIONS=0` switches the rung off: signed-in state is never
 /// probed and the old keyless lead applies.
 #[test]

@@ -8,6 +8,35 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.11.9
+
+*Sign in, don't paste keys: subscriptions become first-class providers.*
+
+- **The provider auth registry** (`broker/auth/`): every provider is a data
+  row — name, auth modes (`cli-delegated` / `oauth-device` / `api-key`), key
+  variable, and for delegated providers the vendor CLI that owns the
+  sign-in. One resolution function orders discovery: explicit pin, then
+  **signed-in subscriptions**, then API keys (historic order, unchanged),
+  then installed CLIs. Routing and planning code no longer know provider
+  names.
+- **A signed-in Claude Code or Codex seat now serves smith work with no API
+  key.** Crew asks the CLI itself (`claude auth status` / `codex login
+  status` — consent-based, never another app's token store; 5s timeout,
+  probed once per pane, `CREW_SUBSCRIPTIONS=0` opts out) and routes plain
+  tasks through that CLI via the existing relay. The swarm on a
+  delegated-only machine degrades to the stub planner exactly as keyless
+  always has — `/doctor` says so instead of erroring.
+- **`/model` becomes the whole model story**: a grouped picker — "your
+  subscriptions", "your keys", "installed CLIs", each entry numbered —
+  with signed-out providers grayed showing the exact sign-in command, and
+  `/model <n>` switching provider through the stored pin (survives
+  restarts). `CREW_PROVIDER=claude-code|codex` pins the delegated rung
+  explicitly.
+- **`/doctor` gains a per-provider auth line** — signed in / signed out
+  (+ sign-in command) / key present / no key / not installed — states
+  only; a test greps the full gather→render round-trip with a fake stored
+  key to prove no key material can reach the report.
+
 ## 0.11.8
 
 *The command diet completes: seven constructs, everything else is conversation.*
