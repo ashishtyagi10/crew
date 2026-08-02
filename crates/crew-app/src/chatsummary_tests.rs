@@ -429,8 +429,8 @@ fn active_agents_show_on_line3_in_their_roster_colours() {
             .find(|&i| chars[i..].starts_with(&chip))
             .unwrap();
         let want = crate::chatroster::agent_color(name);
-        for j in at..at + chip.len() {
-            assert_eq!(l3[j].1, want, "@{name} char {j} off-colour in: {s}");
+        for (j, cell) in l3.iter().enumerate().skip(at).take(chip.len()) {
+            assert_eq!(cell.1, want, "@{name} char {j} off-colour in: {s}");
         }
     }
 }
