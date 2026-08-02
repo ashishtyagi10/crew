@@ -611,12 +611,14 @@ and a typo gets a **did-you-mean** suggestion):
   session. Pins apply per agent, so **planner, coder, and reviewer can run
   three different models side by side**; every change re-emits the roster so
   the pane's model badges update live.
-- **`/fan <task>`** — every agent answers the same task **in parallel** (one
-  thread per call); replies stream back fastest-first with per-agent latency,
-  and the turn closes with combined stats. **`@a+b <task>`** fans out to just
-  that subset.
-- **`/loop <n> <task>`** — n relay rounds (≤10), each round handed the
-  previous round's answer to improve on.
+- **fan-out and loops, in plain language** — the former fan and loop commands
+  are retired: the intent router classifies each plain message and picks its
+  execution shape. "Have every agent take a crack at this" sends the same task
+  to every agent **in parallel** (one thread per call; replies stream back
+  fastest-first with per-agent latency, and the turn closes with combined
+  stats); "keep refining it over a few rounds" runs relay rounds, each handed
+  the previous round's answer to improve on. `CREW_INTENT=0` restores
+  plain-swarm routing. **`@a+b <task>`** still fans out to just that subset.
 - **`/goal <text>`** — relay rounds until a judge agent (the reviewer when it
   isn't the worker) rules `MET:`/`NOT MET:` on the goal; NOT-MET reasons feed
   the next round. Caps at 5 rounds.
@@ -644,7 +646,7 @@ and a typo gets a **did-you-mean** suggestion):
 - **`#<note>`** / **`/memory`** — standing **project memory** (à la Claude
   Code's `#` shortcut): `#always run tests with --workspace` appends the note
   to `./.crew/memory.md`, and from then on **every task** — plain sends,
-  `/fan`, `/loop`, `/goal`, `/skill` — carries the merged memory
+  `/goal`, `/skill` — carries the merged memory
   (user `~/.config/crew/memory.md` first, project second, 2 KB cap) as a
   STANDING MEMORY block the agents are told to follow. `/memory` shows what's
   loaded. Unlike skills, memory is always on; edit or delete the file to
@@ -846,7 +848,11 @@ sys tools; `CREW_SYS_TIMEOUT_MS` (default 120000) bounds each `sys:run`;
 deliberately under `CREW_BROKER_TIMEOUT_MS` so a stalled endpoint names the
 transport and still leaves the model fallback chain a turn;
 `CREW_STREAM_TEXT=0` stops streamed text being forwarded at all, restoring the
-pre-streaming behaviour for a regressed run or a deterministic test. The pane also prints a per-turn timeline + cost summary (`turn done
+pre-streaming behaviour for a regressed run or a deterministic test;
+`CREW_INTENT=0` disables the intent router — every plain message then runs as
+a swarm instead of the model first choosing its execution shape (a direct
+reply, an all-agents fan-out, refinement rounds, a plan awaiting approval, or
+the swarm). The pane also prints a per-turn timeline + cost summary (`turn done
 — planner 4.2s → … · N exchange(s) · ~X tok (approx)`) at the end of every
 task, and accumulates the spend into the header's `~N tok` meter.
 

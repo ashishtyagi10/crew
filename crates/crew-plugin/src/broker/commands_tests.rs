@@ -33,15 +33,11 @@ fn detects_commands() {
 
 #[test]
 fn quick_commands_answer_inline_but_constructs_do_not() {
+    // The retired `/fan` and `/loop` are quick now — see `retire_tests`.
     for quick in ["/help", "/model coder x", "/status", "/diff", "/nonsense"] {
         assert!(is_quick(quick), "{quick}");
     }
-    for long in [
-        "/fan build it",
-        "/loop 3 x",
-        "/goal ship it",
-        "a plain task",
-    ] {
+    for long in ["/goal ship it", "a plain task"] {
         assert!(!is_quick(long), "{long}");
     }
 }

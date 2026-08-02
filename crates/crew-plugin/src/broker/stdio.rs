@@ -288,7 +288,10 @@ fn send(
                 &mut counting,
             )
         } else {
-            super::swarm::run_task(&trimmed, &snap, &mut counting)
+            // The intent router: the model picks the execution shape (reply/
+            // fan/loop/plan/swarm); anything that stops it falls back to the
+            // swarm, which was this branch's whole body before the router.
+            super::intent::route(&trimmed, &mut snap, &tick_emit, &mut counting)
         };
         // Announce only the exceptional endings — a clean finish says nothing
         // (the streamed reply is the result). Errors and user stops must stay
@@ -490,7 +493,9 @@ fn first_starter(names: Vec<String>) -> Option<String> {
     names.into_iter().next()
 }
 
-fn relay_counting(
+/// `pub(crate)` for the intent router: a `reply`-shaped plain message takes
+/// exactly the path an `@agent` dial takes, minus the dial.
+pub(crate) fn relay_counting(
     input: &str,
     session: &Session,
     tick_emit: &std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,

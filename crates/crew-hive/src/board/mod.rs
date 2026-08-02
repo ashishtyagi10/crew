@@ -46,6 +46,11 @@ impl Blackboard {
     }
 
     /// Present results for `deps`, in the order given (absent ones skipped).
+    ///
+    /// Outputs are returned WHOLE — the board is the archive, and snapshot/
+    /// artifact consumers need full text. Any prompt assembled from these
+    /// must clip them to an explicit budget: see `apiagent::context`
+    /// (`DEP_CAP` / `DEPS_TOTAL_CAP`), which `build_prompt` applies.
     pub async fn gather(&self, deps: &[TaskId]) -> Vec<TaskResult> {
         let g = self.inner.read().await;
         deps.iter()

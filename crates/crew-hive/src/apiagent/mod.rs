@@ -4,6 +4,10 @@
 #[cfg(test)]
 mod tests;
 
+mod context;
+
+pub(crate) use context::build_prompt;
+
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
@@ -27,24 +31,6 @@ fn cost_micros(tier: ModelTier, input: u32, output: u32) -> u64 {
         ModelTier::Capable => (15, 75),
     };
     in_rate * u64::from(input) + out_rate * u64::from(output)
-}
-
-// ---------------------------------------------------------------------------
-// build_prompt
-// ---------------------------------------------------------------------------
-
-/// Build a prompt from the task's own prompt plus dependency outputs.
-/// Pure and testable.
-pub(crate) fn build_prompt(task_prompt: &str, deps: &[TaskResult]) -> String {
-    if deps.is_empty() {
-        return task_prompt.to_owned();
-    }
-    let mut out = task_prompt.to_owned();
-    out.push_str("\n\nContext from dependencies:\n");
-    for dep in deps {
-        out.push_str(&format!("- {}\n", dep.output));
-    }
-    out
 }
 
 // ---------------------------------------------------------------------------

@@ -25,6 +25,7 @@ mod engine;
 mod fan;
 mod gitmsg;
 mod hop;
+mod intent;
 mod memory;
 mod normalize;
 mod plan;

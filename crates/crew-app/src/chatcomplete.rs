@@ -7,10 +7,10 @@ use crew_plugin::AgentInfo;
 /// Every composer slash action: broker constructs plus the pane-local
 /// `/export`, `/theme`, and `/exit` (see `chatexport` / `chattheme` /
 /// `chat`). Folding the transcript is automatic (`ChatPane::push_capped`).
-pub(crate) const CONSTRUCTS: [&str; 21] = [
-    "/help", "/model", "/fan", "/loop", "/goal", "/plan", "/restore", "/diff", "/skill", "/memory",
-    "/commit", "/review", "/resume", "/doctor", "/standup", "/mcp", "/reload", "/stop", "/export",
-    "/theme", "/exit",
+pub(crate) const CONSTRUCTS: [&str; 19] = [
+    "/help", "/model", "/goal", "/plan", "/restore", "/diff", "/skill", "/memory", "/commit",
+    "/review", "/resume", "/doctor", "/standup", "/mcp", "/reload", "/stop", "/export", "/theme",
+    "/exit",
 ];
 
 /// Hints that belong to the PANE rather than to the broker, and so are written
@@ -176,7 +176,10 @@ mod tests {
     #[test]
     fn completes_constructs() {
         assert_eq!(complete("/go", &[]).unwrap(), "/goal ");
-        assert_eq!(complete("/lo", &[]).unwrap(), "/loop ");
+        // `/loop` retired (the intent router answers the plain phrasing), so
+        // `/lo` falls through to the fuzzy match for /reload — another prefix
+        // bought back by shrinking the surface.
+        assert_eq!(complete("/lo", &[]).unwrap(), "/reload ");
         // '/st' IS the common prefix of /stop and /standup → nothing to add.
         assert_eq!(complete("/st", &[]), None);
         // '/sta' used to split three ways (status/standup/stop). Deleting a
