@@ -17,8 +17,8 @@ pub(crate) enum AuthMode {
     /// A vendor CLI owns the login; crew probes its signed-in state and
     /// routes work through it (the `/far`-lets-rclone-own-OAuth pattern).
     CliDelegated,
-    /// The provider permits third-party device-code OAuth (flow arrives in a
-    /// later iteration; the mode is declared now so the registry is honest).
+    /// The provider permits third-party device-code OAuth; the entry's
+    /// `device` endpoints drive the flow (`auth::device`).
     OauthDevice,
     /// A pasted API key in `key_var`.
     ApiKey,
@@ -39,6 +39,28 @@ pub(crate) struct CliSpec {
     pub login: &'static str,
 }
 
+/// The native device-flow half of an `OauthDevice` entry: RFC 8628 endpoint
+/// DATA, run by `auth::device` through `crew_hive::deviceflow`. Declared
+/// only where the provider openly permits third-party device flow.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct DeviceSpec {
+    pub device_url: &'static str,
+    pub token_url: &'static str,
+    pub client_id: &'static str,
+    pub scope: &'static str,
+}
+
+/// Qwen's device flow, as the open-source qwen-code CLI publishes it (its
+/// free tier signs in exactly this way). MARKED UNCERTAIN: verify against
+/// the live docs before the first real sign-in — tests only ever reach these
+/// through the stub server (`CREW_OAUTH_BASE`), never the live URLs.
+const QWEN_DEVICE: DeviceSpec = DeviceSpec {
+    device_url: "https://chat.qwen.ai/api/v1/oauth2/device/code",
+    token_url: "https://chat.qwen.ai/api/v1/oauth2/token",
+    client_id: "f0304373b74a44d2b584a3fb70ca9e56",
+    scope: "openid profile email model.completion",
+};
+
 /// One provider the registry knows.
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct ProviderAuth {
@@ -47,6 +69,8 @@ pub(crate) struct ProviderAuth {
     /// The env var an API key is discovered in (`ApiKey` mode).
     pub key_var: Option<&'static str>,
     pub cli: Option<CliSpec>,
+    /// The device-flow endpoints (`OauthDevice` mode).
+    pub device: Option<DeviceSpec>,
 }
 
 impl ProviderAuth {
@@ -74,6 +98,7 @@ static SEED: &[ProviderAuth] = &[
             status: &["auth", "status"],
             login: "claude auth login",
         }),
+        device: None,
     },
     ProviderAuth {
         name: "codex",
@@ -84,32 +109,37 @@ static SEED: &[ProviderAuth] = &[
             status: &["login", "status"],
             login: "codex login",
         }),
+        device: None,
     },
     ProviderAuth {
         name: "dashscope",
-        // Qwen permits third-party device-code OAuth; the flow itself is a
-        // later iteration, so today the key is the working mode.
+        // Qwen permits third-party device-code OAuth (QWEN_DEVICE above);
+        // a pasted key stays equally valid.
         modes: &[AuthMode::ApiKey, AuthMode::OauthDevice],
         key_var: Some("DASHSCOPE_API_KEY"),
         cli: None,
+        device: Some(QWEN_DEVICE),
     },
     ProviderAuth {
         name: "openrouter",
         modes: &[AuthMode::ApiKey],
         key_var: Some("OPENROUTER_API_KEY"),
         cli: None,
+        device: None,
     },
     ProviderAuth {
         name: "anthropic",
         modes: &[AuthMode::ApiKey],
         key_var: Some("ANTHROPIC_API_KEY"),
         cli: None,
+        device: None,
     },
     ProviderAuth {
         name: "mock",
         modes: &[AuthMode::Mock],
         key_var: None,
         cli: None,
+        device: None,
     },
 ];
 
@@ -126,6 +156,7 @@ pub(crate) fn entries() -> Vec<ProviderAuth> {
             modes: &[AuthMode::ApiKey],
             key_var: Some(d.var),
             cli: None,
+            device: None,
         });
     }
     v
