@@ -7,32 +7,25 @@ use crew_plugin::AgentInfo;
 /// Every composer slash action: broker constructs plus the pane-local
 /// `/export`, `/theme`, and `/exit` (see `chatexport` / `chattheme` /
 /// `chat`). Folding the transcript is automatic (`ChatPane::push_capped`).
-pub(crate) const CONSTRUCTS: [&str; 15] = [
-    "/help", "/model", "/goal", "/plan", "/restore", "/diff", "/skill", "/memory", "/doctor",
-    "/mcp", "/reload", "/stop", "/export", "/theme", "/exit",
+pub(crate) const CONSTRUCTS: [&str; 10] = [
+    "/help", "/model", "/restore", "/diff", "/doctor", "/reload", "/stop", "/export", "/theme",
+    "/exit",
 ];
 
 /// Hints that belong to the PANE rather than to the broker, and so are written
 /// here instead of derived: the three pane-local constructs the broker has
-/// never heard of, plus the four where standing in the pane changes what is
-/// worth saying — `/plan` is answered with enter/esc *here*, `#<note>` is how
-/// you add memory *here*, and "this list" reads as nothing in a palette that
-/// IS the list.
+/// never heard of, plus the two where standing in the pane changes what is
+/// worth saying — "this list" reads as nothing in a palette that IS the list.
 ///
 /// Being a short, declared list is the point. Everything absent from it shows
 /// the broker's own sentence, so a hint cannot quietly contradict the command
-/// it labels — which is exactly what `/goal` did.
+/// it labels — which is exactly what `/goal` once did.
 const PANE_WORDS: &[(&str, &str)] = &[
     ("/help", "list the constructs"),
     (
         "/model",
         "the roster and each agent's model (set one: /model <agent> <model>)",
     ),
-    (
-        "/plan",
-        "draft a plan \u{2014} enter runs it, esc discards it",
-    ),
-    ("/memory", "show the standing memory (add with #<note>)"),
     ("/export", "export the transcript"),
     ("/theme", "list or switch the color theme"),
     ("/exit", "close this pane"),
@@ -174,15 +167,17 @@ mod tests {
 
     #[test]
     fn completes_constructs() {
-        assert_eq!(complete("/go", &[]).unwrap(), "/goal ");
-        // `/loop` retired (the intent router answers the plain phrasing), so
-        // `/lo` falls through to the fuzzy match for /reload — another prefix
-        // bought back by shrinking the surface.
+        // `/goal` and `/loop` retired (the intent router answers the plain
+        // phrasing), so their prefixes fall to the survivors: nothing starts
+        // with "go" any more, and `/lo` fuzzy-matches /reload.
+        assert_eq!(complete("/go", &[]), None);
         assert_eq!(complete("/lo", &[]).unwrap(), "/reload ");
         // `/standup` retired too, so '/st' now uniquely names /stop — every
         // retirement buys back a prefix — and '/sta' matches nothing at all.
         assert_eq!(complete("/st", &[]).unwrap(), "/stop ");
         assert_eq!(complete("/sta", &[]), None);
+        // `/memory` and `/mcp` gone: '/m' is /model's alone now.
+        assert_eq!(complete("/m", &[]).unwrap(), "/model ");
     }
 
     #[test]
@@ -196,9 +191,10 @@ mod tests {
     }
 
     /// The hint for a derived construct IS the broker's `/help` line, so the
-    /// two cannot disagree. `/goal` is the regression: the palette called it
-    /// "set the crew's shared goal" — a feature that exists nowhere — while
-    /// the broker looped rounds until a judge ruled the goal met.
+    /// two cannot disagree. `/goal` (now retired) was the regression: the
+    /// palette called it "set the crew's shared goal" — a feature that
+    /// existed nowhere — while the broker looped rounds until a judge ruled
+    /// the goal met.
     #[test]
     fn derived_hints_are_the_brokers_own_words() {
         for c in CONSTRUCTS {
@@ -212,11 +208,6 @@ mod tests {
                 "{c}'s hint is not the broker's own line"
             );
         }
-        assert!(
-            describe("/goal").contains("judge"),
-            "/goal: {}",
-            describe("/goal")
-        );
     }
 
     /// Every pane-written hint must name a construct the palette actually
@@ -245,6 +236,11 @@ mod tests {
             "/review",
             "/standup",
             "/resume",
+            "/goal",
+            "/plan",
+            "/skill",
+            "/memory",
+            "/mcp",
         ] {
             assert!(!CONSTRUCTS.contains(&gone), "{gone} still listed");
             assert_eq!(describe(gone), "", "{gone} still described");
@@ -263,7 +259,7 @@ mod tests {
 
     #[test]
     fn fuzzy_fallback_completes_a_unique_subsequence_match() {
-        assert_eq!(complete("/gl", &[]).unwrap(), "/goal ");
+        assert_eq!(complete("/hp", &[]).unwrap(), "/help ");
         let a = agents(&["planner", "coder", "reviewer"]);
         assert_eq!(complete("@pnr", &a).unwrap(), "@planner ");
     }
@@ -277,14 +273,14 @@ mod tests {
 
     #[test]
     fn prefix_match_still_wins_over_fuzzy() {
-        // "/m" is a shared prefix (/model, /memory, /mcp) and a fuzzy
-        // subsequence of more — stays ambiguous.
-        assert_eq!(complete("/m", &[]), None);
+        // "/re" is a shared prefix (/restore, /reload) already at its common
+        // prefix, and a fuzzy subsequence of more — stays ambiguous.
+        assert_eq!(complete("/re", &[]), None);
     }
 
     #[test]
     fn is_subsequence_cases() {
-        assert!(is_subsequence("gl", "goal"));
+        assert!(is_subsequence("hp", "help"));
         assert!(is_subsequence("pnr", "planner"));
         assert!(is_subsequence("", "anything"));
         assert!(!is_subsequence("xyz", "goal"));
@@ -300,37 +296,19 @@ mod drift {
     /// them, so their absence from its router is correct, not drift.
     const APP_LOCAL: &[&str] = &["/export", "/theme", "/exit"];
 
-    /// Constructs the PANE sends on the user's behalf and deliberately does
-    /// not offer: a drafted plan is answered with enter/esc, so `/approve` and
-    /// `/reject` must still route but must not be typed. Listing them here is
-    /// what makes the omission a decision rather than an oversight — the same
-    /// distinction `/shell` and `/run` already carry in `cmddefs`.
-    const SENT_BY_THE_PANE: &[&str] = &["/approve", "/reject"];
-
-    /// Every command the broker answers is either offered or deliberately
-    /// withheld. `/reload` was neither, for eleven releases: two lists existed
-    /// and nothing compared them, so a working command was simply invisible.
+    /// Every command the broker answers is offered. (The old "withheld"
+    /// class — `/approve`/`/reject`, sent by the pane's enter/esc — retired
+    /// as commands: the pane now sends the bare words the broker's plan gate
+    /// matches deterministically.) `/reload` was once neither offered nor
+    /// withheld, for eleven releases: two lists existed and nothing compared
+    /// them, so a working command was simply invisible.
     #[test]
-    fn every_broker_construct_is_offered_or_deliberately_withheld() {
+    fn every_broker_construct_is_offered() {
         for c in crew_plugin::broker_constructs() {
             let slashed = format!("/{c}");
             assert!(
-                CONSTRUCTS.contains(&slashed.as_str())
-                    || SENT_BY_THE_PANE.contains(&slashed.as_str()),
+                CONSTRUCTS.contains(&slashed.as_str()),
                 "{slashed} is a broker command the palette never offers"
-            );
-        }
-    }
-
-    /// The withheld ones must still ROUTE, or the pane would be sending text
-    /// nobody answers.
-    #[test]
-    fn withheld_constructs_still_route() {
-        for c in SENT_BY_THE_PANE {
-            let bare = c.trim_start_matches('/');
-            assert!(
-                crew_plugin::broker_constructs().contains(&bare),
-                "{c} is withheld from the palette AND routes nowhere"
             );
         }
     }

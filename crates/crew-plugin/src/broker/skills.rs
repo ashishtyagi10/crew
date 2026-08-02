@@ -1,15 +1,10 @@
 //! Skills: reusable prompt playbooks, one markdown file each, with an optional
 //! `---` frontmatter header (`name:` / `description:`). Loaded from the user
 //! dir (`~/.config/crew/skills/`) and the project dir (`./.crew/skills/`);
-//! a project skill overrides a user skill with the same name. `/skill <name>
-//! <task>` runs the normal relay with the playbook prepended to the task.
+//! a project skill overrides a user skill with the same name. There is no
+//! command any more: a relay/swarm task that names a skill picks its playbook
+//! up automatically (see `skillframe::with_skills`).
 use std::path::{Path, PathBuf};
-
-use crate::PluginEvent;
-
-use super::relay::{msg, relay_turn, split_target};
-use super::session::Session;
-use super::stdio::roster;
 
 /// One loaded playbook.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -114,9 +109,19 @@ pub(crate) fn merge(user: Vec<Skill>, project: Vec<Skill>) -> Vec<Skill> {
     all
 }
 
-/// Load every skill visible from the broker's cwd.
+/// The project dir skills load from. Mirrors `sessionlog::base_dir` exactly,
+/// and for the same reason: `CREW_PROJECT_DIR` overrides the process CWD —
+/// the seam tests use, since lib tests share one CWD and cannot each chdir.
+/// Production never sets it: the broker's CWD *is* the project.
+fn base_dir() -> PathBuf {
+    std::env::var("CREW_PROJECT_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| PathBuf::from("."))
+}
+
+/// Load every skill visible to this broker.
 pub(crate) fn load() -> Vec<Skill> {
-    list(Path::new("."))
+    list(&base_dir())
 }
 
 /// User + project skills, the project dir rooted explicitly at
@@ -128,64 +133,6 @@ pub fn list(project_root: &Path) -> Vec<Skill> {
         .unwrap_or_default();
     let project = load_dir(&project_root.join(".crew/skills"), "project");
     merge(user, project)
-}
-
-/// `/skill <name> <task>` — run one relay turn with the playbook prepended.
-pub(crate) fn skill_cmd(
-    session: &mut Session,
-    rest: &str,
-    tick_emit: &std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,
-    emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
-) -> anyhow::Result<()> {
-    let (name, task) = rest
-        .trim()
-        .split_once(char::is_whitespace)
-        .unwrap_or((rest.trim(), ""));
-    let (name, task) = (normalize_name(name), task.trim());
-    // Bare `/skill` lists them: a construct that only lists is a construct
-    // whose subject can answer for itself (see `/model`, `/restore`).
-    if rest.trim().is_empty() {
-        return emit(msg("agent smith", super::skillframe::list_report(&load())));
-    }
-    if name.is_empty() || task.is_empty() {
-        return emit(msg(
-            "agent smith",
-            "usage: /skill <name> <task> \u{2014} bare /skill lists them",
-        ));
-    }
-    let skills = load();
-    let Some(skill) = skills.iter().find(|s| s.name == name) else {
-        let known: Vec<&str> = skills.iter().map(|s| s.name.as_str()).collect();
-        let hint = if known.is_empty() {
-            "none loaded \u{2014} see /skills".to_string()
-        } else {
-            known.join(", ")
-        };
-        return emit(msg(
-            "agent smith",
-            format!("unknown skill \u{201c}{name}\u{201d} \u{2014} skills: {hint}"),
-        ));
-    };
-    let reg = session.registry();
-    if reg.is_empty() {
-        return emit(msg("agent smith", roster(&reg)));
-    }
-    let (start, task) = split_target(task, &reg);
-    emit(msg(
-        "agent smith",
-        format!("skill \u{201c}{name}\u{201d} \u{2014} starting with {start}"),
-    ))?;
-    let broker = session.broker(reg);
-    let sys_on = super::systools::enabled();
-    relay_turn(
-        &broker,
-        &start,
-        &super::skillframe::framed(skill, &task, sys_on),
-        "skill-1",
-        tick_emit,
-        emit,
-    )
-    .map(|_| ())
 }
 
 #[cfg(test)]

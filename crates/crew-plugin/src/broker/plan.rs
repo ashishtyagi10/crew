@@ -1,8 +1,9 @@
-//! Plan mode (à la Claude Code): `/plan <task>` has an agent draft a numbered
-//! plan without executing anything; the draft then waits until the user runs
-//! `/approve` (the crew executes it) or `/reject` (it is discarded). The
+//! Plan mode (à la Claude Code): a plan-shaped ask has an agent draft a
+//! numbered plan without executing anything; the draft then waits until the
+//! user says "approve" (the crew executes it) or "reject" (it is discarded) —
+//! the conversational gate in `intent::gate`, or the pane's enter/esc. The
 //! pending plan is shared session state, so a draft made on the worker thread
-//! is visible to the inline `/reject` and the next `/approve`.
+//! is visible to a verdict arriving on another send.
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use crate::PluginEvent;
@@ -26,8 +27,8 @@ fn lock(plan: &SharedPlan) -> MutexGuard<'_, Option<PendingPlan>> {
     plan.lock().unwrap_or_else(|e| e.into_inner())
 }
 
-/// `/plan <task>`: an agent (`@agent` selects who) drafts a numbered plan —
-/// steps only, no execution — and the session holds it for `/approve`.
+/// The plan shape: an agent (`@agent` selects who) drafts a numbered plan —
+/// steps only, no execution — and the session holds it for the verdict.
 pub(crate) fn plan_cmd(
     session: &mut Session,
     rest: &str,
@@ -37,7 +38,7 @@ pub(crate) fn plan_cmd(
     if task.is_empty() {
         return emit(msg(
             "agent smith",
-            "usage: /plan <task> \u{2014} draft first, run on /approve",
+            "nothing to plan \u{2014} say what the plan is for",
         ));
     }
     let reg = session.registry();
@@ -89,11 +90,12 @@ pub(crate) fn plan_cmd(
         // Both forms: the crew pane binds the keys, but the broker is driven
         // over stdio by hosts that have no keyboard at all, and telling those
         // to "press enter" is telling them nothing.
-        "plan ready \u{2014} enter runs it, esc discards it (or /approve, /reject)",
+        "plan ready \u{2014} enter runs it, esc discards it (or say \
+         \u{201c}approve\u{201d} / \u{201c}reject\u{201d})",
     ))
 }
 
-/// `/approve`: execute the pending plan as a relay turn led by its author.
+/// "approve": execute the pending plan as a relay turn led by its author.
 pub(crate) fn approve_cmd(
     session: &mut Session,
     tick_emit: &std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,
@@ -102,7 +104,7 @@ pub(crate) fn approve_cmd(
     let Some(p) = lock(&session.plan).take() else {
         return emit(msg(
             "agent smith",
-            "no plan pending \u{2014} draft one with /plan <task>",
+            "no plan pending \u{2014} ask for one first (\u{201c}draft a plan for \u{2026}\u{201d})",
         ));
     };
     let reg = session.registry();
@@ -132,7 +134,7 @@ pub(crate) fn approve_cmd(
     Ok(())
 }
 
-/// `/reject`: drop the pending plan without running it.
+/// "reject": drop the pending plan without running it.
 pub(crate) fn reject_cmd(
     session: &mut Session,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
@@ -144,7 +146,7 @@ pub(crate) fn reject_cmd(
         if had {
             "plan discarded"
         } else {
-            "no plan pending \u{2014} draft one with /plan <task>"
+            "no plan pending \u{2014} ask for one first (\u{201c}draft a plan for \u{2026}\u{201d})"
         },
     ))
 }

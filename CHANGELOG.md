@@ -8,6 +8,42 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.11.7
+
+*The command diet completes: seven constructs, everything else is conversation.*
+
+- **`/goal`, `/plan`, `/approve`, `/reject`, `/skill`, `/memory` and `/mcp`
+  are retired** — constructs shrink from 14 to the infrastructure seven
+  (`/help` `/model` `/doctor` `/restore` `/reload` `/diff` `/stop`). "Keep
+  working until …" runs the judge loop, "draft a plan for …" enters plan
+  mode, and typing an old slash form teaches the phrasing instantly.
+- **The plan gate survives as conversation.** With a plan pending, "approve"
+  / "run it" executes it and "reject" / "drop it" discards it — matched
+  exactly, before any model call, so a misrouted message can never run or
+  drop a plan; anything else leaves the draft pending. The pane's enter/esc
+  now send those same bare words.
+- **Skills apply themselves.** A task that names a loaded playbook gets it
+  woven into the relay or swarm prompt automatically (at most two); loaded
+  but unmatched skills ride along as a one-line roster. The drop-in
+  `.crew/skills` surface is unchanged.
+- **Memory answers to plain language** — "what do you remember?" surfaces
+  the standing block that already rides every task; `#<note>` still saves
+  one. **`/doctor` absorbs the `/mcp` listing**: each server renders with
+  its tools (or its failure) under the count line.
+- **Transcript history is summarized, never dropped.** When a relay outgrows
+  its 8-entry window, the overflow folds into a running `[compacted N
+  earlier messages: …]` block by one bounded model call, so an early
+  decision stays in every later prompt; the session log folds its oldest
+  half the same way. Keyless, mock, or a failed call keep the old clipping —
+  degraded context, never an error — and the retained block is byte-capped.
+- **The swarm graph unfreezes on failure.** The first failed task pauses
+  dispatch and asks the planner — given the goal, the completed outputs
+  (budget-clipped) and the error — for a replacement of the not-yet-run
+  remainder; completed work is never re-run, and one re-plan per run is the
+  hard cap. Keyless/mock runs and planner errors keep today's
+  cascade-cancel, and re-planned tasks pass the same Api/Standard forcing
+  as the original plan — a re-plan can never widen what a plan may execute.
+
 ## 0.11.6
 
 *Smith trusts the model: say it, don't slash it.*

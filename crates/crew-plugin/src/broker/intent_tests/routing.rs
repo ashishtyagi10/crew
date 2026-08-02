@@ -115,3 +115,14 @@ fn a_natural_refine_phrasing_reaches_the_loop_capability_with_no_slash() {
     assert!(any_text(&evs, "loop round 1/3"), "{evs:?}");
     assert!(any_text(&evs, "3 round(s) complete"), "{evs:?}");
 }
+
+#[test]
+fn a_natural_goal_phrasing_reaches_the_judge_loop_with_no_slash() {
+    // The mock reply serves both the worker round ("MET: …" becomes the
+    // answer) and the judge's verdict, which rules the goal met in round 1.
+    let _g = testenv::mock_with_specialists("MET: shipshape\n@done", testenv::TRIO);
+    let call = |_: &str| Ok("SHAPE: goal".to_string());
+    let evs = route_stubbed("keep working until the parser round-trips", &call);
+    assert!(any_text(&evs, "goal round 1/5"), "{evs:?}");
+    assert!(any_text(&evs, "goal met"), "{evs:?}");
+}

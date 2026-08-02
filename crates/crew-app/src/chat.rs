@@ -104,7 +104,8 @@ pub struct ChatPane {
     pub(crate) folded: usize,
     /// A drafted plan is waiting for yes or no. Set by `PluginEvent::Plan`;
     /// while it is true the composer's Enter and Esc mean approve and discard,
-    /// which is why `/approve` and `/reject` are no longer in the palette.
+    /// sent as the bare words the broker's deterministic plan gate matches
+    /// (`/approve` and `/reject` retired as commands).
     pub(crate) plan_pending: bool,
     /// Where this pane's broker operates, mirrored in from the owning `Pane`
     /// each poll tick alongside `git_branch` — for the same reason: the footer
@@ -642,7 +643,9 @@ impl ChatPane {
                 // should not silently throw away a plan behind it.
                 if self.plan_pending && self.input.is_empty() {
                     self.plan_pending = false;
-                    self.submit_command("/reject".to_string());
+                    // The bare word, not a slash command: the broker's plan
+                    // gate matches it deterministically before any model call.
+                    self.submit_command("reject".to_string());
                     return None;
                 }
                 // Esc means "interrupt the running turn" while busy (mirrors
@@ -696,7 +699,8 @@ impl ChatPane {
                 // pending, since the user plainly had something else to say.
                 if self.plan_pending && self.input.is_empty() {
                     self.plan_pending = false;
-                    self.submit_command("/approve".to_string());
+                    // Same bare-word rule as Esc's "reject" above.
+                    self.submit_command("approve".to_string());
                     return None;
                 }
                 (None, true, false)

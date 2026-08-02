@@ -7,10 +7,9 @@ use std::collections::HashMap;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
-use crew_hive::agent::StubFactory;
 use crew_hive::{
-    budget_governor, AgentFactory, AgentId, Blackboard, Budget, EventBus, HiveEvent, LlmPlanner,
-    ModelTier, Planner, Scheduler, StubPlanner, TaskGraph, TaskId, TaskState,
+    budget_governor, AgentFactory, AgentId, Blackboard, Budget, EventBus, HiveEvent, ModelTier,
+    Planner, Scheduler, TaskGraph, TaskId, TaskState,
 };
 
 use crate::protocol::PluginEvent;
@@ -25,65 +24,18 @@ const WORK_MAX_TOKENS: u32 = 2048;
 /// Fan-out for the offline stub planner.
 const STUB_FANOUT: usize = 2;
 
-/// Pick planner/factory/budget from provider discovery: real LLM planning on
-/// a discovered provider; deterministic stubs when keyless. The mock provider
-/// (GUI harness) plans with stubs but executes through the mock, so replies
-/// stay deterministic while the full pipeline runs.
-fn backend() -> (
-    Arc<dyn Planner>,
-    Arc<dyn AgentFactory>,
-    Option<Budget>,
-    String,
-) {
-    match super::discover::provider_and_model() {
-        None => (
-            Arc::new(StubPlanner {
-                fanout: STUB_FANOUT,
-            }),
-            Arc::new(StubFactory),
-            None,
-            String::new(),
-        ),
-        Some((provider, model)) if model == "mock" => (
-            Arc::new(StubPlanner {
-                fanout: STUB_FANOUT,
-            }),
-            Arc::new(crew_hive::ApiFactory::new(provider, WORK_MAX_TOKENS)),
-            None,
-            model,
-        ),
-        Some((provider, model)) => (
-            Arc::new(
-                LlmPlanner {
-                    provider: Arc::clone(&provider),
-                    tier: ModelTier::Standard,
-                    model: None,
-                }
-                .with_model(model.clone()),
-            ),
-            Arc::new(
-                crew_hive::ApiFactory::new(provider, WORK_MAX_TOKENS).with_model(model.clone()),
-            ),
-            Some(Budget {
-                max_micros_usd: Budget::DEFAULT_MICROS_USD,
-            }),
-            model,
-        ),
-    }
-}
-
 /// Entry point for a plain (unaddressed) chat task.
 pub(crate) fn run_task(
     task: &str,
     session: &Session,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
-    // A `/resume` before this task folds the previous session's tail in as
-    // restored context (consumed once) — mirrors `relay_counting`'s handling
-    // of `@agent` tasks so the default swarm path doesn't silently ignore it.
-    let task_owned = fold_resume(session, task);
+    // A pending resume folds the previous session's tail in as restored
+    // context (consumed once) — mirroring `relay_counting` — and skills
+    // weave in first, matched on the raw task, exactly as on the relay path.
+    let task_owned = fold_resume(session, &super::skillframe::with_skills(task));
     super::sessionlog::append("user", task);
-    let (planner, factory, budget, model) = backend();
+    let (planner, factory, budget, model, replan) = backend();
     run_with(
         &task_owned,
         planner,
@@ -91,29 +43,18 @@ pub(crate) fn run_task(
         budget,
         &model,
         Arc::clone(&session.cancel),
+        replan,
         emit,
     )
-}
-
-/// Consume a pending `/resume` context (if any) and fold it into `task` as
-/// restored context for the planner/execution prompt. The session log still
-/// records the user's original, unfolded `task` text.
-fn fold_resume(session: &Session, task: &str) -> String {
-    let resumed = session
-        .resume
-        .lock()
-        .unwrap_or_else(|e| e.into_inner())
-        .take();
-    match resumed {
-        Some(prev) => super::sessionlog::with_resume(&prev, task),
-        None => task.to_string(),
-    }
 }
 
 /// Injectable core: plan `task`, execute the graph, translate events.
 /// `model` is the slug serving this run's API agents (empty when unknown —
 /// stub/keyless runs); it stamps the re-emitted roster so the host's footer
-/// can show what is serving right now.
+/// can show what is serving right now. `replan`, when set (real-provider
+/// runs — see `swarmconf::backend`), lets the scheduler re-plan the
+/// remainder once on the first task failure.
+#[allow(clippy::too_many_arguments)] // the run's full configuration, injected by tests piecewise
 pub(crate) fn run_with(
     task: &str,
     planner: Arc<dyn Planner>,
@@ -121,6 +62,7 @@ pub(crate) fn run_with(
     budget: Option<Budget>,
     model: &str,
     cancel: Arc<AtomicBool>,
+    replan: Option<Arc<dyn Planner>>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
     let rt = tokio::runtime::Builder::new_current_thread()
@@ -216,8 +158,11 @@ pub(crate) fn run_with(
     let bus = EventBus::new(EventBus::DEFAULT_CAPACITY);
     let mut sub = bus.subscribe();
     let governor = budget.map(|b| budget_governor(bus.clone(), b, Arc::clone(&cancel)));
-    let sched = Scheduler::new(graph.clone(), board.clone(), bus, factory, CONCURRENCY)
+    let mut sched = Scheduler::new(graph.clone(), board.clone(), bus, factory, CONCURRENCY)
         .with_cancel(Arc::clone(&cancel));
+    if let Some(rp) = replan {
+        sched = sched.with_replan(task, rp);
+    }
 
     // Drain the bus and emit LIVE while the scheduler runs — join! interleaves
     // the three futures on this current-thread runtime, so each event reaches
@@ -355,14 +300,9 @@ pub(crate) fn run_with(
     Ok(())
 }
 
-/// Transcript note for a telemetry overflow: the run finished, but `n`
-/// events never reached the pane, so its per-task stats under-count.
-fn lagged_note(n: u64) -> String {
-    format!(
-        "telemetry gap: {n} event{} dropped (bus overflow) \u{2014} task stats may under-count",
-        if n == 1 { "" } else { "s" }
-    )
-}
+#[path = "swarmconf.rs"]
+mod swarmconf;
+use swarmconf::{backend, fold_resume, lagged_note};
 
 #[path = "swarmmsg.rs"]
 mod swarmmsg;
@@ -371,3 +311,7 @@ use swarmmsg::translate;
 #[cfg(test)]
 #[path = "swarm_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "swarmreplan_tests.rs"]
+mod replan_tests;

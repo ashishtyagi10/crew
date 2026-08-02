@@ -8,6 +8,7 @@
 //! the flag is set, the scheduler stops spawning new tasks, marks all
 //! unstarted tasks `Cancelled`, and drains in-flight agents to completion.
 mod cancel;
+mod replan;
 #[cfg(test)]
 mod tests;
 
@@ -24,7 +25,9 @@ use crate::board::Blackboard;
 use crate::bus::{AgentId, EventBus, HiveEvent};
 use crate::graph::{TaskGraph, TaskId, TaskState};
 
-use cancel::{cascade_cancel, mark_all_unstarted_cancelled, sorted};
+use cancel::{
+    cascade_cancel, mark_all_unstarted_cancelled, record_cancelled, record_result, sorted,
+};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct RunOutcome {
@@ -40,6 +43,10 @@ pub struct Scheduler {
     factory: Arc<dyn AgentFactory>,
     concurrency: usize,
     cancel: Arc<AtomicBool>,
+    /// When set, the first task failure triggers ONE re-plan of the
+    /// not-yet-run remainder (see [`replan`]); `None` — keyless, mock, or a
+    /// host that never opted in — keeps pure cascade-cancel.
+    replan: Option<replan::Replan>,
 }
 
 impl Scheduler {
@@ -57,7 +64,23 @@ impl Scheduler {
             factory,
             concurrency: concurrency.max(1),
             cancel: Arc::new(AtomicBool::new(false)),
+            replan: None,
         }
+    }
+
+    /// Allow one mid-run re-plan (builder-style): on the first failure the
+    /// planner is asked for a replacement of the not-yet-run remainder,
+    /// capped at [`replan::REPLAN_CAP`] per run.
+    pub fn with_replan(
+        mut self,
+        goal: impl Into<String>,
+        planner: Arc<dyn crate::planner::Planner>,
+    ) -> Self {
+        self.replan = Some(replan::Replan {
+            goal: goal.into(),
+            planner,
+        });
+        self
     }
 
     /// Attach a shared cancel flag (builder-style). When the flag is set,
@@ -70,6 +93,10 @@ impl Scheduler {
 
     pub async fn run(self) -> RunOutcome {
         let sem = Arc::new(Semaphore::new(self.concurrency));
+        // The graph is LOCAL and mutable: a re-plan swaps the not-yet-run
+        // remainder for a replacement sub-graph mid-run.
+        let mut graph = self.graph.clone();
+        let mut replans_left = replan::REPLAN_CAP;
         let mut done: HashSet<TaskId> = HashSet::new();
         let mut failed: HashSet<TaskId> = HashSet::new();
         let mut cancelled: HashSet<TaskId> = HashSet::new();
@@ -84,7 +111,7 @@ impl Scheduler {
             // --- Cooperative cancellation check ---
             if self.cancel.load(Ordering::Relaxed) {
                 mark_all_unstarted_cancelled(
-                    &self.graph,
+                    &graph,
                     &self.bus,
                     &done,
                     &failed,
@@ -106,22 +133,15 @@ impl Scheduler {
                 break;
             }
 
-            cascade_cancel(
-                &self.graph,
-                &self.bus,
-                &done,
-                &failed,
-                &mut cancelled,
-                &started,
-            );
+            cascade_cancel(&graph, &self.bus, &done, &failed, &mut cancelled, &started);
 
             // Spawn every ready (deps all done), not-yet-started task.
-            for id in self.graph.ready(&done) {
+            for id in graph.ready(&done) {
                 if started.contains(&id) || cancelled.contains(&id) {
                     continue;
                 }
                 started.insert(id);
-                let spec = self.graph.get(id).unwrap().clone();
+                let spec = graph.get(id).unwrap().clone();
                 let agent_id = AgentId(next_agent);
                 next_agent += 1;
                 let agent = self.factory.make(&spec.agent);
@@ -181,7 +201,22 @@ impl Scheduler {
                 let (id, result) = joined.expect("agent task panicked");
                 match result {
                     Some(r) => {
-                        record_result(id, r, &mut done, &mut failed, &self.board, &self.bus).await
+                        let failure = (!r.success).then(|| r.output.clone());
+                        record_result(id, r, &mut done, &mut failed, &self.board, &self.bus).await;
+                        // A failure burns the run's one re-plan attempt (see
+                        // `replan::attempt`, awaited before the next spawn
+                        // pass — the pause).
+                        if let (Some(f), Some(rp)) = (failure, &self.replan) {
+                            if replans_left > 0 {
+                                replans_left -= 1;
+                                #[rustfmt::skip]
+                                replan::attempt(
+                                    rp, &mut graph, &self.board, &self.bus,
+                                    &done, &failed, &mut cancelled, &started,
+                                    id, &f,
+                                ).await;
+                            }
+                        }
                     }
                     None => record_cancelled(id, &mut cancelled, &self.bus),
                 }
@@ -193,41 +228,5 @@ impl Scheduler {
             failed: sorted(failed),
             cancelled: sorted(cancelled),
         }
-    }
-}
-
-/// A task that bailed at the permit gate: its agent never ran, so it is
-/// cancelled — not failed. `cascade_cancel` already treats cancelled and
-/// failed dependents alike, but the run's OUTCOME must not report work the
-/// user stopped as work that broke.
-fn record_cancelled(id: TaskId, cancelled: &mut HashSet<TaskId>, bus: &EventBus) {
-    cancelled.insert(id);
-    bus.publish(HiveEvent::TaskStateChanged {
-        task: id,
-        state: TaskState::Cancelled,
-    });
-}
-
-async fn record_result(
-    id: TaskId,
-    result: crate::board::TaskResult,
-    done: &mut HashSet<TaskId>,
-    failed: &mut HashSet<TaskId>,
-    board: &Blackboard,
-    bus: &EventBus,
-) {
-    if result.success {
-        board.put_result(result).await;
-        done.insert(id);
-        bus.publish(HiveEvent::TaskStateChanged {
-            task: id,
-            state: TaskState::Done,
-        });
-    } else {
-        failed.insert(id);
-        bus.publish(HiveEvent::TaskStateChanged {
-            task: id,
-            state: TaskState::Failed,
-        });
     }
 }

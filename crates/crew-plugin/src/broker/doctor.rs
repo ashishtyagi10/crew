@@ -2,8 +2,8 @@
 //! provider will answer, which agent CLIs are installed, whether MCP / skills
 //! / plugin agents / memory / a resumable session are loaded, and whether the
 //! git and bash prerequisites hold. Pure rendering over a [`DoctorInputs`]
-//! snapshot, so every line is unit-testable; `gather` does the real probing.
-use std::path::Path;
+//! snapshot, so every line is unit-testable; `gather` (in `doctorprobe`)
+//! does the real probing.
 
 /// Everything the report renders, gathered up front.
 pub(crate) struct DoctorInputs {
@@ -22,6 +22,10 @@ pub(crate) struct DoctorInputs {
     pub skills: usize,
     pub plugin_agents: usize,
     pub mcp_servers: usize,
+    /// Per-server detail (name, tools or failure), one line each — what the
+    /// retired `/mcp` construct used to list, folded in here so the
+    /// information kept a home.
+    pub mcp_detail: Vec<String>,
     /// Bytes of standing memory loaded, if any.
     pub memory: Option<usize>,
     /// A previous session is resumable.
@@ -118,6 +122,9 @@ pub(crate) fn render(i: &DoctorInputs) -> String {
         "mcp servers",
         "none (declare in .crew/mcp.json)",
     ));
+    for l in &i.mcp_detail {
+        out.push(format!("  {l}"));
+    }
     out.push(match i.memory {
         Some(n) => line('✓', "memory", &format!("{n} bytes standing (#<note> adds)")),
         None => line('–', "memory", "none (#<note> starts one)"),
@@ -161,59 +168,9 @@ pub(crate) fn render(i: &DoctorInputs) -> String {
     out.join("\n")
 }
 
-/// Is `bin` an executable on the `:`-separated `path`?
-pub(crate) fn on_path(bin: &str, path: &str) -> bool {
-    path.split(':').filter(|d| !d.is_empty()).any(|d| {
-        let p = Path::new(d).join(bin);
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            std::fs::metadata(&p)
-                .map(|m| m.is_file() && m.permissions().mode() & 0o111 != 0)
-                .unwrap_or(false)
-        }
-        #[cfg(not(unix))]
-        {
-            p.is_file()
-        }
-    })
-}
-
-/// Probe the live environment for the report. `session` supplies the counters
-/// that only it knows (turns, tokens); everything else is probed here.
-pub(crate) fn gather(session: &super::session::Session) -> DoctorInputs {
-    use std::sync::atomic::Ordering;
-    let path = std::env::var("PATH").unwrap_or_default();
-    let active = super::discover::resolved_provider();
-    DoctorInputs {
-        // The same resolution the roster is built from, so `/doctor` reports a
-        // stored key's provider rather than only an exported one's.
-        provider: active.map(|p| p.name().to_string()),
-        others: super::discover::configured_providers()
-            .into_iter()
-            .filter(|n| Some(n.as_str()) != active.map(|p| p.name()))
-            .collect(),
-        clis: ["claude", "codex", "opencode"]
-            .iter()
-            .map(|b| (b.to_string(), on_path(b, &path)))
-            .collect(),
-        bash: Path::new("/bin/bash").exists(),
-        git: std::process::Command::new("git")
-            .args(["rev-parse", "--is-inside-work-tree"])
-            .output()
-            .is_ok_and(|o| o.status.success()),
-        skills: super::skills::load().len(),
-        plugin_agents: super::plugins::load().len(),
-        mcp_servers: crate::mcp::config::load().len(),
-        memory: super::memory::load().map(|m| m.len()),
-        resumable: super::sessionlog::tail().is_some(),
-        sys_tools: super::systools::enabled(),
-        sys_mode: super::systools::mode_label(),
-        turns: session.turns.load(Ordering::Relaxed),
-        tokens: session.tokens.load(Ordering::Relaxed),
-        budget: super::session::token_budget(),
-    }
-}
+pub(crate) use super::doctorprobe::gather;
+#[cfg(test)]
+pub(crate) use super::doctorprobe::on_path;
 
 #[cfg(test)]
 #[path = "doctor_tests.rs"]

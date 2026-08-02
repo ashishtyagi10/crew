@@ -32,6 +32,7 @@ fn collect_with_model(task: &str, model: &str, cancel: Arc<AtomicBool>) -> Vec<P
         None,
         model,
         cancel,
+        None,
         &mut |ev| {
             evs.push(ev);
             Ok(())
@@ -169,6 +170,7 @@ fn task_failure_becomes_a_chat_message_not_a_connection_error() {
         None,
         "",
         Arc::new(AtomicBool::new(false)),
+        None,
         &mut |ev| {
             evs.push(ev);
             Ok(())
@@ -276,6 +278,7 @@ fn events_are_emitted_during_the_run_not_after() {
         None,
         "",
         Arc::new(AtomicBool::new(false)),
+        None,
         &mut |_ev| {
             counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             Ok(())
@@ -346,6 +349,7 @@ fn raw_output_delta_never_crosses_the_wire_as_a_hive_event() {
         None,
         "",
         Arc::new(AtomicBool::new(false)),
+        None,
         &mut |ev| {
             evs.push(ev);
             Ok(())

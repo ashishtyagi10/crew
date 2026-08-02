@@ -6,27 +6,12 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use super::adapter::HopStream;
-use super::hop::{back, note, transcript_tail, Hop, HopKind, RunStats};
+use super::compact::{is_dup, keep_in_transcript, Compactor};
+use super::hop::{back, note, Hop, HopKind, RunStats};
 use super::route::{clip, frame, has_directive, repair_prompt};
 use super::tick::{hop_texter, hop_ticker};
 use super::{parse_routing, Envelope, Registry, Routing};
 use crate::PluginEvent;
-
-/// Whether a relayed body is worth a transcript line. An agent that hands off
-/// with nothing but its control line (a blank body) contributes no
-/// information, but a stored `"X → Y: "` entry still costs every later hop's
-/// prompt tokens — so it's dropped rather than logged.
-fn keep_in_transcript(body: &str) -> bool {
-    !body.trim().is_empty()
-}
-
-/// Whether `entry` would duplicate the immediately-preceding transcript
-/// entry byte-for-byte — a consecutive repeat (e.g. a stalled retry, or the
-/// same body reappearing after an unlogged blank hop) that costs a later
-/// hop's prompt tokens for zero new information.
-fn is_dup(transcript: &[String], entry: &str) -> bool {
-    transcript.last().is_some_and(|last| last == entry)
-}
 
 /// Routes messages between agents in a [`Registry`], with a per-call timeout, a
 /// maximum hop count, and an approximate token budget (0 = unlimited).
@@ -40,6 +25,9 @@ pub struct Broker {
     cancel: Option<std::sync::Arc<std::sync::atomic::AtomicBool>>,
     /// When set, agents can call tools mid-relay (see [`super::toolcall`]).
     pub(crate) tools: Option<std::sync::Arc<dyn super::toolcall::ToolRunner>>,
+    /// When set, transcript overflow is summarized instead of dropped
+    /// (see [`super::compact`]); `None` keeps the fixed-tail clipping.
+    summarizer: Option<super::compact::Summarize>,
 }
 
 impl Broker {
@@ -51,7 +39,14 @@ impl Broker {
             token_budget: 0,
             cancel: None,
             tools: None,
+            summarizer: None,
         }
+    }
+
+    /// Attach a transcript summarizer (`None` = keep clipping).
+    pub(crate) fn with_summarizer(mut self, s: Option<super::compact::Summarize>) -> Self {
+        self.summarizer = s;
+        self
     }
 
     /// Cap a thread's approximate token spend (0 = unlimited).
@@ -87,6 +82,7 @@ impl Broker {
     ) -> RunStats {
         let task = super::toolcall::augment(body, self.tools.as_deref());
         let mut transcript: Vec<String> = Vec::new();
+        let mut compact = Compactor::new(self.summarizer.clone());
         let mut stats = RunStats::default();
         let mut last_body: Option<String> = None;
         let mut repaired = false; // at most one protocol-repair re-ask per thread
@@ -117,7 +113,7 @@ impl Broker {
                 return stats;
             };
             let peers = self.registry.roster_excluding(&env.to);
-            let prompt = frame(&env, &peers, &task, &transcript_tail(&transcript));
+            let prompt = frame(&env, &peers, &task, &compact.tail(&mut transcript));
             // The dial names its real sender (`user`, or the relaying peer) so
             // the host's activity row can show who the agent is working for.
             sink(Hop {

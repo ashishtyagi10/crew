@@ -16,8 +16,9 @@ use super::session::Session;
 
 mod classify;
 mod fanout;
+mod gate;
 
-pub(crate) use classify::live_classifier;
+pub(crate) use classify::{live_call, live_classifier};
 
 /// Relay rounds when the router picks `loop` — the user never typed a count,
 /// so a modest default well inside `roundloop::MAX_ROUNDS`.
@@ -39,6 +40,9 @@ pub(crate) enum Shape {
     Loop,
     /// Draft a plan and wait for approval (the plan body).
     Plan,
+    /// Relay rounds until a judge agent rules a stated goal met (the `/goal`
+    /// body — the round cap stays a backstop).
+    Goal,
     /// Decompose into a task graph (today's default).
     Swarm,
     /// Draft a commit message for the working diff (the `/commit` body).
@@ -77,50 +81,27 @@ pub(crate) fn route_with(
     tick_emit: &Arc<dyn Fn(PluginEvent) + Send + Sync>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
-    // The commit HUMAN GATE, checked before any model call: a pending
-    // proposal plus the user's own confirm word creates the commit. This is
-    // the only path that ever commits, and it is deterministic — a
-    // misclassification can draft a message but can never apply one.
-    if confirms_apply(task) && pending_commit(session) {
+    // The HUMAN GATES (see `gate`), checked before any model call. Commit
+    // first — on the overlapping confirm words ("yes", "do it") a pending
+    // commit outranks a pending plan. Then the plan verdict: with a plan
+    // pending, the user's own word runs or discards it; anything else falls
+    // through and the plan stays pending.
+    if gate::confirms_apply(task) && gate::pending_commit(session) {
         return super::gitmsg::commit_cmd(session, "apply", emit);
+    }
+    if gate::pending_plan(session) {
+        if gate::approves_plan(task) {
+            return super::plan::approve_cmd(session, tick_emit, emit);
+        }
+        if gate::rejects_plan(task) {
+            return super::plan::reject_cmd(session, emit);
+        }
     }
     let shape = match classifier {
         Some(call) => classify_with(task, call).unwrap_or(Shape::Swarm),
         None => Shape::Swarm,
     };
     dispatch(shape, task, session, tick_emit, emit)
-}
-
-/// Whether `task` is a conversational confirm for the pending commit — an
-/// exact match against a small fixed set, lowercased and stripped of trailing
-/// punctuation. Deliberately narrow: anything else is a new task, and the
-/// proposal simply stays pending.
-fn confirms_apply(task: &str) -> bool {
-    let word = task
-        .trim()
-        .trim_end_matches(['.', '!'])
-        .to_ascii_lowercase();
-    [
-        "apply",
-        "apply it",
-        "yes",
-        "yes apply",
-        "yes, apply",
-        "go ahead",
-        "do it",
-        "commit it",
-        "ship it",
-    ]
-    .contains(&word.as_str())
-}
-
-/// Whether the session holds a drafted commit message awaiting the confirm.
-fn pending_commit(session: &Session) -> bool {
-    session
-        .commit
-        .lock()
-        .unwrap_or_else(|e| e.into_inner())
-        .is_some()
 }
 
 /// Send `task` down `shape`'s existing capability path. Each arm is the same
@@ -140,6 +121,7 @@ pub(crate) fn dispatch(
             super::roundloop::loop_cmd(session, &format!("{LOOP_ROUNDS} {task}"), tick_emit, emit)
         }
         Shape::Plan => super::plan::plan_cmd(session, task, emit),
+        Shape::Goal => super::constructs::goal_cmd(session, task, tick_emit, emit),
         Shape::Swarm => super::swarm::run_task(task, session, emit),
         Shape::Commit => super::gitmsg::commit_cmd(session, "", emit),
         Shape::Review => super::review::review_cmd(session, emit),
@@ -181,6 +163,7 @@ pub(crate) fn parse_shape(reply: &str) -> Option<Shape> {
         "fan" => Some(Shape::Fan),
         "loop" => Some(Shape::Loop),
         "plan" => Some(Shape::Plan),
+        "goal" => Some(Shape::Goal),
         "swarm" => Some(Shape::Swarm),
         "commit" => Some(Shape::Commit),
         "review" => Some(Shape::Review),

@@ -2,18 +2,28 @@
 //! `/crew` pane appends a standing preference to `./.crew/memory.md`, and
 //! every relay/fan prompt carries the merged memory (user-level
 //! `~/.config/crew/memory.md` first, project second) — so the crew follows
-//! your conventions without being retold each task. `/memory` shows what's
-//! loaded. Unlike skills (per-task playbooks you invoke), memory is always on.
-use std::path::Path;
+//! your conventions without being retold each task. Asking ("what do you
+//! remember?") shows it — the memory rides the relay prompt, so any reply
+//! surfaces it. Unlike skills (per-task playbooks), memory is always on.
+use std::path::{Path, PathBuf};
 
 /// Merged-memory budget interpolated into prompts. Clipped with a marker so a
 /// sprawling memory file can't crowd out the task.
 const MEM_CAP: usize = 2048;
 
+/// The project dir the memory file lives under. Mirrors `sessionlog::base_dir`
+/// exactly, and for the same reason: `CREW_PROJECT_DIR` overrides the process
+/// CWD (the test seam); production never sets it.
+fn base_dir() -> PathBuf {
+    std::env::var("CREW_PROJECT_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| PathBuf::from("."))
+}
+
 /// `#note` handler: append to the project memory file. Returns the one-line
 /// confirmation (or error) to show in the pane.
 pub(crate) fn remember(note: &str) -> String {
-    remember_at(Path::new("."), note)
+    remember_at(&base_dir(), note)
 }
 
 /// Testable core of [`remember`]: append `- note` to `base/.crew/memory.md`,
@@ -44,7 +54,7 @@ pub(crate) fn remember_at(base: &Path, note: &str) -> String {
 /// [`MEM_CAP`]. `None` when neither exists or both are blank.
 pub(crate) fn load() -> Option<String> {
     let user = dirs::config_dir().map(|d| d.join("crew").join("memory.md"));
-    load_from(user.as_deref(), Path::new(".crew/memory.md"))
+    load_from(user.as_deref(), &base_dir().join(".crew").join("memory.md"))
 }
 
 /// Testable core of [`load`].
@@ -93,18 +103,6 @@ pub(crate) fn prepend(mem: Option<String>, task: &str) -> String {
             "STANDING MEMORY (the user's saved preferences — always follow \
              them):\n{m}\n\nTASK:\n{task}"
         ),
-    }
-}
-
-/// `/memory` construct body: the loaded memory + where it lives, or a hint.
-pub(crate) fn report() -> String {
-    match load() {
-        Some(m) => format!(
-            "standing memory (user ~/.config/crew/memory.md + project .crew/memory.md):\n{m}"
-        ),
-        None => "no memory yet — start a line with `#` to remember something \
-                 (saved to ./.crew/memory.md, prepended to every task)"
-            .to_string(),
     }
 }
 

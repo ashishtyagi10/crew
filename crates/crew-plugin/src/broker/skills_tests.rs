@@ -112,50 +112,30 @@ fn framed_puts_playbook_before_task() {
 }
 
 #[test]
-fn bare_skill_lists_the_playbooks() {
-    let mut session = Session::new();
-    let mut got = Vec::new();
-    skill_cmd(
-        &mut session,
-        "",
-        &crate::broker::tick::noop_tick_emit(),
-        &mut |ev| {
-            got.push(ev);
-            Ok(())
-        },
-    )
-    .unwrap();
-    // Bare `/skill` LISTS now — the listing construct was folded into it, so
-    // the empty form answers with the playbooks rather than a usage line.
-    match &got[0] {
-        PluginEvent::Message { text, .. } => assert!(
-            text.to_lowercase().contains("skill") && !text.contains("usage:"),
-            "bare /skill should list, not scold: {text}"
-        ),
-        other => panic!("unexpected event: {other:?}"),
-    }
+fn auto_frame_passes_a_task_through_untouched_without_skills() {
+    // No skills loaded → byte-identical task: the injection must never leave
+    // a marker (or a roster) behind on machines with no playbooks at all.
+    let t = crate::broker::skillframe::auto_frame("do the thing", &[], true);
+    assert_eq!(t, "do the thing");
 }
 
 #[test]
-fn skill_cmd_reports_an_unknown_skill() {
-    let mut session = Session::new();
-    let mut got = Vec::new();
-    skill_cmd(
-        &mut session,
-        "no-such-skill do it",
-        &crate::broker::tick::noop_tick_emit(),
-        &mut |ev| {
-            got.push(ev);
-            Ok(())
-        },
-    )
-    .unwrap();
-    match &got[0] {
-        PluginEvent::Message { text, .. } => {
-            assert!(text.contains("unknown skill"), "got: {text}")
-        }
-        other => panic!("unexpected event: {other:?}"),
-    }
+fn auto_frame_inlines_at_most_two_matched_playbooks() {
+    let skills: Vec<_> = ["alpha", "beta", "gamma"]
+        .iter()
+        .map(|n| parse(&format!("{n} playbook body."), n, "user"))
+        .collect();
+    let t = crate::broker::skillframe::auto_frame(
+        "run alpha then beta then gamma over the repo",
+        &skills,
+        true,
+    );
+    assert!(t.contains("alpha playbook body."), "{t}");
+    assert!(t.contains("beta playbook body."), "{t}");
+    assert!(
+        !t.contains("gamma playbook body."),
+        "the third match is over the AUTO_MAX bound: {t}"
+    );
 }
 
 #[test]

@@ -619,18 +619,20 @@ and a typo gets a **did-you-mean** suggestion):
   stats); "keep refining it over a few rounds" runs relay rounds, each handed
   the previous round's answer to improve on. `CREW_INTENT=0` restores
   plain-swarm routing. **`@a+b <task>`** still fans out to just that subset.
-- **`/goal <text>`** — relay rounds until a judge agent (the reviewer when it
-  isn't the worker) rules `MET:`/`NOT MET:` on the goal; NOT-MET reasons feed
-  the next round. Caps at 5 rounds.
-  **Note the name collides.** Typed in the **agent smith composer** you get this
-  — one worker, a judge, up to five rounds. Typed in the **command bar** you get
-  the [swarm pane](#swarm-orchestration-crew-hive) instead: the goal is planned
-  into a task graph and run in parallel under a cost ceiling. Same word, two
-  engines; the pane you are typing into decides which one answers.
-- **`/plan <task>`** — plan mode (à la Claude Code): an agent (prefix
-  `@agent` to pick who) drafts a numbered plan and **nothing executes** until
-  enter hands the approved plan to the relay; esc discards
-  it. The draft survives on the session until one or the other.
+- **"keep working until …"** — relay rounds until a judge agent (elected by
+  the model) rules `MET:`/`NOT MET:` on the goal; NOT-MET reasons feed
+  the next round. Caps at 5 rounds (a backstop — the model's own `@done` or
+  the judge's MET ends a healthy run first; the `/goal` slash form is
+  retired). The **command bar's** `/goal` is a different engine: there the
+  goal is planned into a task graph and run as a
+  [swarm](#swarm-orchestration-crew-hive) under a cost ceiling.
+- **"draft a plan for …"** — plan mode (à la Claude Code; `/plan` retired):
+  an agent (prefix `@agent` to pick who) drafts a numbered
+  plan and **nothing executes** until you approve. Enter — or saying
+  "approve" / "run it" — hands the plan to the relay; esc — or "reject" /
+  "drop it" — discards it. The verdict words are matched exactly, before
+  any model call, so a misrouted message can never run or drop a plan; any
+  other message leaves the draft pending on the session.
 - **automatic checkpoints** — Cline-style workspace snapshot before every task
   that can change files: the working
   tree (tracked + untracked, `.gitignore` respected) is committed through a
@@ -640,19 +642,17 @@ and a typo gets a **did-you-mean** suggestion):
   snapshot's files back and removes the files that appeared after it, naming
   each one it deleted. Ignored files (build output, secrets) are never
   candidates, and neither is anything that predates the snapshot.
-- bare **`/skill`** — list the loaded prompt playbooks; **`/skill <name> <task>`**
-  — run the relay with that playbook prepended to the task (see *Extending*
-  below).
-- **`#<note>`** / **`/memory`** — standing **project memory** (à la Claude
+- **skills, no command** — a task that names a loaded playbook picks it up
+  by itself, and when skills are loaded but unmatched the relay carries a
+  one-line roster of them; asking "what skills are loaded?" lists them (the
+  `/skill` slash form is retired — see *Extending* below).
+- **`#<note>`** — standing **project memory** (à la Claude
   Code's `#` shortcut): `#always run tests with --workspace` appends the note
-  to `./.crew/memory.md`, and from then on **every task** — plain sends,
-  `/goal`, `/skill` — carries the merged memory
-  (user `~/.config/crew/memory.md` first, project second, 2 KB cap) as a
-  STANDING MEMORY block the agents are told to follow. `/memory` shows what's
-  loaded. Unlike skills, memory is always on; edit or delete the file to
-  forget.
-- **`/mcp`** — list the configured MCP servers and their tools (see
-  *Extending* below).
+  to `./.crew/memory.md`, and from then on **every task** carries the merged
+  memory (user `~/.config/crew/memory.md` first, project second, 2 KB cap)
+  as a STANDING MEMORY block the agents are told to follow. Ask "what do you
+  remember?" to see it (the `/memory` slash form is retired). Unlike skills,
+  memory is always on; edit or delete the file to forget.
 - **`/reload`** — pick up extension edits without a restart: re-reads skills
   and plugin manifests, forces MCP to re-read `mcp.json` and reconnect on
   next use, and re-emits the roster so the pane's badges update.
@@ -685,13 +685,16 @@ and a typo gets a **did-you-mean** suggestion):
   `/doctor`): one ✓/✗/– checklist covering the provider that will answer
   (and which key it found), the claude/codex/opencode CLIs on `$PATH`,
   `/bin/bash` (run panes' job control), git, and how many skills, plugin
-  agents, and MCP servers loaded, plus standing memory, a resumable session,
-  and the sys-tool mode — each ✗ line names its fix.
+  agents, and MCP servers loaded — each MCP server listed with its tools or
+  its failure (the retired `/mcp` listing folded in) — plus standing memory,
+  a resumable session, and the sys-tool mode — each ✗ line names its fix.
 - **"pick up where we left off"** — **continue the previous session** (à la
   Claude Code's `--continue`; the `/resume` slash form is retired): the
   broker auto-saves the conversation — your tasks and every agent reply —
-  to `./.crew/session-live.md` as it streams (32 KB cap, oldest half
-  dropped; the `crew` system voice is skipped), and on the next broker
+  to `./.crew/session-live.md` as it streams (32 KB cap; past it the oldest
+  half is folded into a `[compacted earlier session: …]` summary header by
+  one bounded model call, or dropped when keyless — never an error; the
+  `crew` system voice is skipped), and on the next broker
   start it rotates to `./.crew/last-session.md`. Asking to resume in a
   fresh pane folds that file's tail (2 KB) into your **next task** as a
   PREVIOUS SESSION context block — consumed once — so the crew picks up
@@ -750,9 +753,11 @@ hot-reload: skills and manifests are re-read from disk on every use, and
   8 KB are inlined whole, while an oversized playbook is framed as its
   description + heading outline + path, and agents pull the sections they
   need with chunked `sys:read_file` calls instead of drowning the prompt.
-  bare `/skill` lists them (origin, directory marker, and `N KB → outline` for
-  the framed ones); `/skill <name> <task>` runs the normal relay with the
-  playbook prepended, so every agent in the thread follows it.
+  There is no command: a relay or swarm task that **names a skill** gets its
+  playbook woven in automatically (at most two per task), and when skills
+  are loaded but unmatched the prompt carries a one-line roster (origin,
+  directory marker, and `N KB → outline` for the framed ones), so every
+  agent in the thread knows what it could ask for.
 - **Plugin agents** join the roster from JSON manifests in
   `~/.config/crew/agents/*.json` or `./.crew/agents/*.json`:
   `{"name": "aider", "command": "aider", "args": ["--message", "{}"],
@@ -764,7 +769,7 @@ hot-reload: skills and manifests are re-read from disk on every use, and
   `./.crew/mcp.json` with the familiar schema —
   `{"mcpServers": {"fs": {"command": "mcp-server-fs", "args": ["--root", "."],
   "env": {}}}}` — and connect lazily over stdio (JSON-RPC 2.0, hard
-  per-request deadlines, killed with the pane). `/mcp` lists each server's
+  per-request deadlines, killed with the pane). `/doctor` lists each server's
   tools. When servers are configured, every relay prompt advertises the tools
   and an agent calls one by ending its reply with
   `` `@tool <server>:<tool> {"arg": …}` `` — the broker runs the tool, logs
@@ -899,10 +904,16 @@ goal ─► Planner ─► TaskGraph (DAG) ─► Scheduler ─► Agent pool �
   `ModelTier`.
 - **Scheduler** (`sched`) — a `tokio` DAG executor: spawns ready tasks onto a
   `JoinSet` gated by a `Semaphore` (the concurrency cap), waits for fan-in,
-  records results, and emits state transitions. A failed task **cascade-cancels**
-  its dependents; a panicking agent becomes a failed task (the run survives);
-  `with_cancel` gives cooperative, graceful shutdown (stop new dispatch, cancel
-  unstarted, drain in-flight).
+  records results, and emits state transitions. With `with_replan`, the first
+  failed task triggers ONE **mid-run re-plan**: the planner gets the goal,
+  the completed outputs (budget-clipped) and the failure, and its replacement
+  sub-graph supersedes the not-yet-run remainder — completed work never
+  re-runs, replacement tasks are forced to `Api`/`Standard` (the `parse_plan`
+  invariant, re-applied), and a planner error (or a keyless/mock run, which
+  gets no replanner) keeps plain **cascade-cancel** of the dependents. A
+  panicking agent becomes a failed task (the run survives); `with_cancel`
+  gives cooperative, graceful shutdown (stop new dispatch, cancel unstarted,
+  drain in-flight).
 - **Agents** (`agent`, `apiagent`, `remoteagent`) — a uniform `Agent` trait
   (object-safe, no `async-trait`). `StubAgent` for tests; **`ApiAgent`** is a
   *native* LLM agent — just a future calling a provider, no PTY/subprocess, so a

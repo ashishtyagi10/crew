@@ -7,6 +7,7 @@ use crate::broker::testenv;
 
 mod capability;
 mod grammar;
+mod plangate;
 mod routing;
 
 fn text_of(ev: &PluginEvent) -> &str {
