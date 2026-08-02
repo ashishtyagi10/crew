@@ -78,11 +78,12 @@ How you update depends on how you installed:
 - **cargo:** `cargo install --git https://github.com/ashishtyagi10/crew crew-app --force`
 - **Source checkout:** `git pull && cargo build --release -p crew-app`.
 - **In-app:** the **`/update`** command downloads the latest release binary for
-  your platform over the running one. Progress streams into a dedicated **UPDATE
-  card in the left nav** (checking → downloading → installed) — no separate shell
-  or checkout — then **`/restart`** relaunches Crew into the new build whenever
-  you're ready. A standalone `crew --self-update` CLI path remains as a headless
-  fallback.
+  your platform over the running one and **restarts Crew into it**. Progress
+  streams into a dedicated **UPDATE card in the left nav** (checking →
+  downloading → installed → restarting) — no separate shell or checkout. The
+  old `/restart` command was merged into `/update`; an update the background
+  check installed quietly is applied by the next `/update` too. A standalone
+  `crew --self-update` CLI path remains as a headless fallback.
 
 The prebuilt path only sees a version once its release assets are published.
 
@@ -195,7 +196,7 @@ Slash commands complete the bar (type `/` for a fuzzy palette): `/crew`,
 `/goal <text>`, `/batch <file>`, `/view <file>`, `/md <file>`, `/diff`, `/settings`,
 `/find <text>`, `/findall <text>`, `/name <text>`, `/clear`, `/clearall`, `/clearlog`, `/only`,
 `/copy`, `/dump`, `/closeall`, `/pwd`, `/about`, `/font`, `/theme`, `/notify`,
-`/restart`, `/update`, `/broadcast`, `/zoom`, `/sidebar`, `/keys`, `/far`,
+`/update`, `/broadcast`, `/zoom`, `/sidebar`, `/keys`, `/far`,
 `/exit`. Commands with a fixed value set (like `/theme`) expand into an
 arrow-selectable **value picker**. Fish-style autosuggest from history, `cd`
 completion with `$VAR` expansion, and `Up`/`Down` history recall persisted to
@@ -407,7 +408,7 @@ one-per-line text area). **Cmd+S / Alt+S** saves. Settings persist to
 `$XDG_CONFIG/crew/config.toml` and apply live on Save. The config file also
 accepts `accent = "#rrggbb"` to override Crew's accent; omit it (or give an
 invalid value) to use the active theme's default accent. It applies at launch —
-`/restart` picks up edits made outside the `/settings` pane.
+quit and reopen Crew to pick up edits made outside the `/settings` pane.
 
 **Themes.** Crew ships **thirteen themes**: nine paper/ink looks — `paper-dark`
 (default — a high-contrast "newspaper" look), `paper-light` (a warm paper

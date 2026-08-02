@@ -379,6 +379,7 @@ mod doc_drift {
         "gone",
         "replaced",
         "used to",
+        "merged into",
     ];
 
     fn documented_constructs(src: &str) -> Vec<String> {

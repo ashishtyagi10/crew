@@ -379,18 +379,26 @@ impl CrewApp {
         // attention pulse it raises is bounded, like every other marker).
         any_changed |= self.tick_blocked(crate::anim::now_ms());
         // Quiet auto-update: fire the same worker the manual /update uses,
-        // silently, shortly after launch and then six-hourly. Restart stays
-        // manual — an install only parks the nav-legend reminder. The silent
-        // state is poll-driven immediately below in the same frame (first drain
-        // is empty, no side effects beyond spawning the worker).
+        // silently, shortly after launch and then six-hourly. A silent install
+        // only parks the nav-legend reminder — the restart below is reserved
+        // for runs the user typed. The silent state is poll-driven immediately
+        // below in the same frame (first drain is empty, no side effects
+        // beyond spawning the worker).
         if self.autoupdate.take_due(Instant::now()) {
             self.start_auto_update();
         }
-        // Drive the background self-update: animate its card and dismiss it when
-        // done. The new binary applies on `/restart` — Crew does not restart itself.
+        // Drive the background self-update: animate its card and dismiss it
+        // when done. A loud (manual) run's install ends in a restart — spawn
+        // the fresh detached crew and wind this one down; on spawn failure
+        // `restart_crew` leaves a status and the parked nav reminder stands,
+        // so a later /update can retry the restart without re-downloading.
         if self.update.is_some() {
             let tick = self.poll_update(Instant::now());
             any_changed |= tick.redraw;
+            if tick.restart && self.restart_crew() {
+                event_loop.exit();
+                return;
+            }
         }
         // Keep the nav legend blinking while a parked install's reminder is
         // still inside its pulse window — settles to a steady accent (and

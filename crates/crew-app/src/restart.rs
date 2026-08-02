@@ -1,6 +1,7 @@
-//! `/restart`: relaunch crew as a fresh detached process and exit this one —
-//! the way to pick up a binary installed by `/update` (the fresh process also
-//! re-reads `config.toml`, so external config edits take effect too).
+//! Relaunch crew as a fresh detached process and exit this one — how `/update`
+//! rides into a binary it just installed (the fresh process also re-reads
+//! `config.toml`, so external config edits take effect too). Not a slash
+//! command of its own since `/restart` merged into `/update`.
 use crate::app::CrewApp;
 use crate::detach;
 

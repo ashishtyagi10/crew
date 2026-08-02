@@ -21,11 +21,7 @@ pub(crate) fn update_cells(u: &UpdateState, cols: u16, rows: u16) -> Vec<CellVie
             "downloading".to_string(),
             format!("v{current} → v{v}"),
         ),
-        Stage::Done(v) => (
-            '✓',
-            format!("updated v{v}"),
-            "/restart to apply".to_string(),
-        ),
+        Stage::Done(v) => ('✓', format!("updated v{v}"), "restarting…".to_string()),
         Stage::Note(msg) => ('·', msg.clone(), String::new()),
     };
     let max = cols.saturating_sub(1);
@@ -89,10 +85,10 @@ mod tests {
     }
 
     #[test]
-    fn done_shows_restart_note() {
+    fn done_says_a_restart_is_coming() {
         let cells = stage_cells(Stage::Done("9.9.9".into()));
         assert!(cells.iter().any(|c| c.c == '✓'), "success glyph present");
-        assert!(row_text(&cells, 1).contains("restart"));
+        assert!(row_text(&cells, 1).contains("restarting"));
     }
 
     #[test]

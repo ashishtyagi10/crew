@@ -251,7 +251,7 @@ The docked command bar supports:
   fill, Enter to run): `/smith`, `/goal <text>`, `/batch <file>`, `/view <file>`,
   `/md <file>`, `/diff`, `/settings`, `/find <text>`, `/findall <text>`, `/name <text>`, `/clear`, `/clearall`,
   `/clearlog`, `/only`, `/closeall`, `/pwd`, `/about`, `/copy`, `/dump`,
-  `/font`, `/restart`, `/theme`, `/notify`, `/update`, `/broadcast`, `/zoom`,
+  `/font`, `/theme`, `/notify`, `/update`, `/broadcast`, `/zoom`,
   `/sidebar`, `/keys`, `/far`, `/exit`. The palette is **fuzzy** — prefix
   matches rank first,
   then subsequence matches (typing `dmp` after the slash finds `/dump`) — and **scrolls** to the
@@ -281,10 +281,14 @@ The docked command bar supports:
   actually renders `i`, `m` and `0` at one shared advance — which is why
   proportional Unicode fallbacks and icon/symbol fonts that ship mis-flagged
   as monospace (Arial Unicode MS, Symbols Nerd Font Mono) don't appear.
-- **`/restart`** — relaunches Crew as a fresh detached process and exits this
-  one: the way to apply a binary installed by `/update`, and the fresh process
-  re-reads `config.toml`, so edits made outside the `/settings` pane take
-  effect too.
+- **`/update`** — downloads the latest release binary over the running one and
+  **restarts Crew into it** (a fresh detached process; the old process exits
+  after a brief "restarting…" beat). Progress streams into the left-nav UPDATE
+  card. The quiet background check installs updates without restarting — a
+  blinking nav legend (`crew vA → vB · /update`) says one is waiting, and the
+  next `/update` applies it instantly. The old `/restart` command merged into `/update`.
+  The fresh process re-reads `config.toml`, so external config edits ride
+  along too.
 - **`/theme [name]`** — switches the theme live and persists it. There are
   three themes — **`dark`**, **`light`**, and **`crt`** — and each one *rotates*
   through a pool of palettes every 10 minutes (dark paper palettes, light paper
@@ -1130,7 +1134,7 @@ program-painted text (à la iTerm2's Minimum Contrast): any foreground within a
 page) in linear light — hue preserved — just enough to read. White-on-white
 after switching a running claude/codex pane to `paper-light` stays legible.
 
-**Config keys** (`$XDG_CONFIG/crew/config.toml`, applied on launch — `/restart` picks up external edits):
+**Config keys** (`$XDG_CONFIG/crew/config.toml`, applied on launch — quit and reopen to pick up external edits):
 
 | Key | Default | Meaning |
 |-----|---------|---------|

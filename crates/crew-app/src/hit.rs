@@ -25,8 +25,17 @@ impl CrewApp {
         }
         let (_cw, ch, _sw, sh, scale) = self.frame_geometry()?;
         // Same rect the rows are drawn in — shifted below the UPDATE card
-        // while a `/update` runs, so clicks keep tracking the rows.
-        let sb = chrome::stats_card_rect(sh, self.nav_px(scale), GAP, ch, self.update.is_some());
+        // while a LOUD `/update` runs, so clicks keep tracking the rows.
+        // Must match navcard's filter exactly: a silent background run draws
+        // no card, so counting it here would offset every row hit by the
+        // height of a card that isn't on screen.
+        let sb = chrome::stats_card_rect(
+            sh,
+            self.nav_px(scale),
+            GAP,
+            ch,
+            self.update.as_ref().is_some_and(|u| !u.silent),
+        );
         if !chrome::point_in(sb, self.cursor.0, self.cursor.1) {
             return None;
         }

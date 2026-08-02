@@ -54,10 +54,17 @@ fn slash_completes_font() {
 }
 
 #[test]
-fn slash_completes_restart() {
-    assert_eq!(suggest("/res", &[]).as_deref(), Some("tart"));
+fn slash_completes_restore_and_restart_is_gone() {
+    // /restart merged into /update, so /res now belongs to /restore.
+    assert_eq!(suggest("/res", &[]).as_deref(), Some("tore"));
     let names: Vec<&str> = matches("/res").iter().map(|c| c.name).collect();
-    assert!(names.contains(&"/restart"));
+    assert!(names.contains(&"/restore"));
+    assert!(
+        !crate::suggest::COMMANDS
+            .iter()
+            .any(|c| c.name == "/restart"),
+        "/restart should be dropped from the palette"
+    );
 }
 
 #[test]
@@ -283,12 +290,10 @@ fn matches_filters_by_prefix() {
 }
 
 #[test]
-fn slash_completes_restore_past_the_restart_prefix() {
-    // `/res` stays /restart's (list order = priority); one more char
-    // disambiguates to /restore.
+fn slash_completes_restore_from_its_short_prefix() {
     assert_eq!(suggest("/resto", &[]).as_deref(), Some("re"));
     let names: Vec<&str> = matches("/res").iter().map(|c| c.name).collect();
-    assert!(names.contains(&"/restore") && names.contains(&"/restart"));
+    assert!(names.contains(&"/restore"));
 }
 
 #[test]

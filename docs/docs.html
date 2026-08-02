@@ -113,7 +113,7 @@ cargo build --release -p crew-app
       </div>
 
       <h3>Updating</h3>
-      <p>Type <code>/update</code> in the input bar to fetch and install the latest release — progress streams into an UPDATE card in the left nav — then <code>/restart</code> relaunches Crew into the new build whenever you're ready.</p>
+      <p>Type <code>/update</code> in the input bar to fetch and install the latest release and restart Crew into it — progress streams into an UPDATE card in the left nav, then the app relaunches itself. An update the quiet background check installed is applied instantly by the next <code>/update</code>.</p>
 
       <!-- BUILD & RUN -->
       <h2 id="build-run">Build &amp; Run</h2>
@@ -206,7 +206,7 @@ cargo build --release -p crew-app
           <tr><td><code>/notify [on|off|add &lt;text&gt;|clear]</code></td><td>Notification settings from the bar</td></tr>
           <tr><td><code>/broadcast</code> · <code>/zoom</code> · <code>/sidebar</code></td><td>Palette-discoverable toggles mirroring the chords</td></tr>
           <tr><td><code>/pwd</code></td><td>Copy the current working directory to the clipboard</td></tr>
-          <tr><td><code>/update</code> · <code>/restart</code></td><td>Install the latest release — then relaunch into it</td></tr>
+          <tr><td><code>/update</code></td><td>Install the latest release and relaunch into it</td></tr>
           <tr><td><code>/keys</code> · <code>/about</code></td><td>Show the keyboard shortcut list / version info in-app</td></tr>
           <tr><td><code>/exit</code></td><td>Quit Crew</td></tr>
         </tbody>
@@ -320,7 +320,7 @@ cargo build --release -p crew-app
         <li><strong>Window</strong> — nav width, show nav, launch maximized.</li>
         <li><strong>Notifications</strong> — the master switch, per-event toggles (cmd done, bell, pane exit), the min-secs threshold, and watched output patterns (one per line).</li>
       </ul>
-      <p>Settings persist to <code>$XDG_CONFIG/crew/config.toml</code> and apply live on Save; <code>/restart</code> picks up edits made outside the form.</p>
+      <p>Settings persist to <code>$XDG_CONFIG/crew/config.toml</code> and apply live on Save; quit and reopen Crew to pick up edits made outside the form.</p>
 
       <h2 id="theme">Themes</h2>
       <p>Crew ships <strong>nine themes</strong>: five paper/ink looks — <code>paper-dark</code> (default, a high-contrast "newspaper" page), <code>paper-light</code> (a warm paper page), <code>sepia-dark</code>, <code>midnight-ink</code>, and <code>graphite</code> — and four CRT phosphor tubes: <code>crt-green</code>, <code>crt-amber</code>, <code>crt-blue</code>, and <code>crt-violet</code>, each a neon monochrome glow on a near-black tube.</p>
