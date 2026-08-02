@@ -17,6 +17,8 @@ use super::session::Session;
 mod classify;
 mod fanout;
 
+pub(crate) use classify::live_classifier;
+
 /// Relay rounds when the router picks `loop` — the user never typed a count,
 /// so a modest default well inside `constructs::MAX_ROUNDS`.
 pub(crate) const LOOP_ROUNDS: u32 = 3;

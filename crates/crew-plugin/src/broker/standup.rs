@@ -7,7 +7,6 @@ use std::path::Path;
 
 use crate::PluginEvent;
 
-use super::constructs::{is_writer, pick_by_role};
 use super::relay::msg;
 use super::session::{call_timeout, Session};
 use super::stdio::roster;
@@ -107,9 +106,13 @@ pub(crate) fn standup_cmd(
     if reg.is_empty() {
         return emit(msg("agent smith", roster(&reg)));
     }
-    // Elected by the agent's OWN role (`is_writer`), not the literal name
-    // "coder" — see `review.rs`'s identical fix and `constructs::pick_judge`.
-    let author = pick_by_role(&reg.infos(), is_writer);
+    // The MODEL elects the author from the live roster (`elect`); keyless
+    // and mock runs get the deterministic roster-first fallback.
+    let author = super::elect::elect(
+        "write a standup update from a repo's commit log",
+        &reg.infos(),
+        None,
+    );
     emit(msg(
         "agent smith",
         format!("drafting a standup from the last {days} day(s) of commits…"),

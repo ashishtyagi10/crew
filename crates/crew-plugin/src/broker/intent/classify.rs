@@ -15,7 +15,9 @@ const CLASSIFY_TIMEOUT: Duration = Duration::from_secs(30);
 /// The live classifier, when one may run: `None` under `CREW_INTENT=0`, with
 /// no resolvable provider, or under the mock provider (the GUI harness needs
 /// deterministic swarm replies; a mock reply would fail the grammar anyway).
-pub(super) fn live_classifier() -> Option<impl Fn(&str) -> Result<String, String>> {
+/// `pub(crate)` because `broker::elect` makes its agent-election call through
+/// the same plumbing — one bounded structured call, one escape hatch.
+pub(crate) fn live_classifier() -> Option<impl Fn(&str) -> Result<String, String>> {
     if super::disabled() {
         return None;
     }

@@ -1,7 +1,7 @@
 //! Round-based constructs: `/loop <n> <task>` runs the relay `n` times, each
 //! round handed the previous round's answer to improve on; `/goal` (see
 //! `goal_cmd`) keeps looping until a judge agent says the goal is met.
-use crate::{AgentInfo, PluginEvent};
+use crate::PluginEvent;
 
 use super::relay::{msg, relay_turn, split_target};
 use super::route::clip;
@@ -64,13 +64,29 @@ pub(crate) fn loop_cmd(
 pub(crate) const GOAL_ROUNDS: u32 = 5;
 
 /// `/goal <text>`: relay rounds until a judge agent rules the goal met, or the
-/// round cap trips. The reviewer judges when present (someone other than the
-/// worker), so the crew doesn't grade its own homework.
+/// round cap trips. The MODEL elects the judge from the roster (someone other
+/// than the worker, so the crew doesn't grade its own homework); keyless and
+/// mock runs fall back to the first non-worker deterministically.
 pub(crate) fn goal_cmd(
     session: &mut Session,
     rest: &str,
     tick_emit: &std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
+) -> anyhow::Result<()> {
+    match crate::broker::intent::live_classifier() {
+        Some(c) => goal_cmd_with(session, rest, tick_emit, emit, Some(&c)),
+        None => goal_cmd_with(session, rest, tick_emit, emit, None),
+    }
+}
+
+/// [`goal_cmd`] with the judge-election call injected — the test seam,
+/// mirroring `intent::route_with`.
+pub(crate) fn goal_cmd_with(
+    session: &mut Session,
+    rest: &str,
+    tick_emit: &std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,
+    emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
+    elector: Option<crate::broker::intent::Classifier>,
 ) -> anyhow::Result<()> {
     let goal = rest.trim();
     if goal.is_empty() {
@@ -84,7 +100,12 @@ pub(crate) fn goal_cmd(
         return emit(msg("agent smith", roster(&reg)));
     }
     let (start, goal) = split_target(goal, &reg);
-    let judge = pick_judge(&reg.infos(), &start);
+    let judge = super::elect::elect_with(
+        &format!("judge whether this goal is met: {}", clip(&goal, 200)),
+        &reg.infos(),
+        Some(&start),
+        elector,
+    );
     let timeout = call_timeout();
     let broker = session.broker(reg);
     let mut answer: Option<String> = None;
@@ -158,64 +179,6 @@ pub(crate) fn goal_cmd(
         "agent smith",
         format!("goal not met after {GOAL_ROUNDS} rounds \u{2014} stopping (last answer above)"),
     ))
-}
-
-/// Whether an agent with this name/role advertises a review/critique
-/// capability — the judge is chosen by the agent's OWN role (each specialist
-/// is invented per task and carries its own hint; there is no static map to
-/// look up any more), NOT by the literal name "reviewer", so a roster of
-/// arbitrarily-named specialists still elects a critic. The literal name is
-/// kept as a floor in case a custom agent's role is empty.
-///
-/// `pub(crate)` rather than duplicated: `/review` (`review.rs`) wants the
-/// exact same critic election `/goal`'s judge does, and a second copy of this
-/// keyword list would drift the moment one of them changed capability words.
-pub(crate) fn is_critic(role: &str, name: &str) -> bool {
-    role.contains("review") || role.contains("critique") || name == "reviewer"
-}
-
-/// Whether an agent with this name/role advertises a writing/build
-/// capability — `/commit` and `/standup` (which draft prose *about* a diff or
-/// a commit log, not code itself) want an author elected the same way
-/// `is_critic` elects a judge: by the agent's OWN role, with the literal name
-/// "coder" kept only as a floor for a custom agent whose role is empty.
-pub(crate) fn is_writer(role: &str, name: &str) -> bool {
-    role.contains("build")
-        || role.contains("implement")
-        || role.contains("cod") // "code", "coding", "coder"
-        || role.contains("writ") // "write", "writing", "writer"
-        || name == "coder"
-}
-
-/// Elect an agent from `agents` by capability: the first whose `(role, name)`
-/// satisfies `is_match`, else the roster's first agent at all (mirroring
-/// `split_target`'s own fallback), else empty — only reachable with an empty
-/// roster, which every call site here has already ruled out via
-/// `reg.is_empty()`. Shared by `/review`, `/commit` and `/standup` so each
-/// elects by an agent's own advertised role rather than hoping a specialist
-/// happens to be literally named "reviewer"/"coder" — no invented specialist
-/// ever is (see `d49a6e1`, which deleted the inbuilt trio).
-pub(crate) fn pick_by_role(agents: &[AgentInfo], is_match: impl Fn(&str, &str) -> bool) -> String {
-    agents
-        .iter()
-        .find(|a| is_match(&a.role, &a.name))
-        .or_else(|| agents.first())
-        .map(|a| a.name.clone())
-        .unwrap_or_default()
-}
-
-/// The judge: a capability critic that isn't the worker, else any other agent,
-/// else the worker itself (single-agent roster). Reads each agent's own role
-/// (`AgentInfo::role`, sourced from `Adapter::role()`) rather than a static
-/// name-based lookup, so an invented specialist like `quality-auditor` is
-/// elected on the strength of its own advertised capability.
-pub(crate) fn pick_judge(agents: &[AgentInfo], worker: &str) -> String {
-    agents
-        .iter()
-        .find(|a| a.name != worker && is_critic(&a.role, &a.name))
-        .or_else(|| agents.iter().find(|a| a.name != worker))
-        .map(|a| a.name.clone())
-        .unwrap_or_else(|| worker.to_string())
 }
 
 fn judge_prompt(goal: &str, answer: &str) -> String {
