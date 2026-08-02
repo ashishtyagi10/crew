@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.11.5
+
+*The tube gets a typeface from this decade.*
+
+- **Modern monospace only.** Pre-Retina `Monaco` is out of the auto-select
+  allowlist and out of the CRT themes' font lists — `Lilex` leads the tube
+  now (the contemporary take on that IBM-terminal DNA), backed by JetBrains
+  Mono, Google Sans Code, and Cascadia Mono. The allowlist gains today's
+  faces — Lilex NF, Berkeley Mono, Commit Mono, Martian Mono, Cascadia Mono,
+  GeistMono NF — so the rotation and theme resolution can land on them when
+  installed. Menlo survives strictly as the never-fail OS tail of each list,
+  and a new test pins that no theme may *lead* with a stock fallback face.
+
 ## 0.11.4
 
 *Two commands walk in, one walks out.*

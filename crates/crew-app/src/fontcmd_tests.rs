@@ -78,13 +78,13 @@ fn a_theme_change_applies_that_themes_font() {
     let _g = crate::app::theme_test_guard();
     let mut app = rotating_app();
     // Pool holds a face the CRT themes prefer and one they don't.
-    app.font_rotate.pool = Some(vec!["Monaco".into(), "IBM Plex Mono".into()]);
+    app.font_rotate.pool = Some(vec!["Lilex".into(), "IBM Plex Mono".into()]);
     crew_theme::apply_selection(
         crew_theme::Selection::Fixed(crew_theme::ThemeId::CrtGreen),
         0,
     );
     assert!(app.tick_theme_font(), "a theme change must apply its font");
-    assert_eq!(app.font_rotate.current.as_deref(), Some("Monaco"));
+    assert_eq!(app.font_rotate.current.as_deref(), Some("Lilex"));
 
     // Switching theme switches font.
     crew_theme::apply_selection(
@@ -101,7 +101,7 @@ fn the_theme_font_is_applied_once_not_every_tick() {
     // glyph atlas for nothing.
     let _g = crate::app::theme_test_guard();
     let mut app = rotating_app();
-    app.font_rotate.pool = Some(vec!["Monaco".into()]);
+    app.font_rotate.pool = Some(vec!["Lilex".into()]);
     crew_theme::apply_selection(
         crew_theme::Selection::Fixed(crew_theme::ThemeId::CrtGreen),
         0,
@@ -122,13 +122,13 @@ fn a_rotation_pick_survives_later_ticks_of_an_unchanged_theme() {
     // guard (already-showing-it) masks a missing change check.
     let _g = crate::app::theme_test_guard();
     let mut app = rotating_app();
-    app.font_rotate.pool = Some(vec!["Monaco".into(), "IBM Plex Mono".into()]);
+    app.font_rotate.pool = Some(vec!["Lilex".into(), "IBM Plex Mono".into()]);
     crew_theme::apply_selection(
         crew_theme::Selection::Fixed(crew_theme::ThemeId::CrtGreen),
         0,
     );
     app.tick_theme_font();
-    assert_eq!(app.font_rotate.current.as_deref(), Some("Monaco"));
+    assert_eq!(app.font_rotate.current.as_deref(), Some("Lilex"));
 
     // 10 minutes on, the rotation picks the other face.
     app.font_rotate.last_ms = 0;
@@ -174,7 +174,7 @@ fn the_theme_font_beats_the_rotation_on_a_shared_tick() {
     // this: the theme wins the tie.
     let _g = crate::app::theme_test_guard();
     let mut app = rotating_app();
-    app.font_rotate.pool = Some(vec!["Monaco".into(), "IBM Plex Mono".into()]);
+    app.font_rotate.pool = Some(vec!["Lilex".into(), "IBM Plex Mono".into()]);
     app.font_rotate.current = Some("IBM Plex Mono".into());
     crew_theme::apply_selection(
         crew_theme::Selection::Fixed(crew_theme::ThemeId::CrtGreen),
@@ -185,7 +185,7 @@ fn the_theme_font_beats_the_rotation_on_a_shared_tick() {
     app.tick_theme_font(); // …the theme overrides it
     assert_eq!(
         app.font_rotate.current.as_deref(),
-        Some("Monaco"),
+        Some("Lilex"),
         "the theme's font must land on top of the rotation's pick"
     );
 }

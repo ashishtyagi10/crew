@@ -13,8 +13,10 @@
 //! face on any machine that has it installed). Lists end in faces that ship
 //! with the OS (`Menlo`/`SF Mono` on macOS, `Noto Sans Mono`/`DejaVu Sans
 //! Mono` on Linux, `Cascadia Mono` on Windows 11) so a bare machine still
-//! resolves something rather than silently opting out. The dated `Consolas`
-//! is deliberately not listed — `Cascadia Mono` is the modern Windows face.
+//! resolves something rather than silently opting out. The dated faces are
+//! deliberately not listed — `Cascadia Mono` replaced `Consolas` on Windows
+//! the way `SF Mono` replaced `Monaco` on macOS; crew prefers the modern one
+//! in both cases.
 use crate::ThemeId;
 
 /// The only monospace families crew will *auto*-select — both theme
@@ -25,32 +27,40 @@ use crate::ThemeId;
 /// NF`, …) so the intersection matches whichever spelling is present.
 ///
 /// Deliberately excludes typewriter/legacy faces (Courier, Courier New, PT
-/// Mono, Andale, Consolas) and Stelo (its lowercase `l` renders as a broken
+/// Mono, Andale, Consolas, and pre-Retina Monaco — SF Mono is the modern
+/// macOS face) and Stelo (its lowercase `l` renders as a broken
 /// bar — user bug report 2026-07-24): a rotation must never land on one. The *manual*
 /// `/font` picker is unaffected — it still offers every installed coding
-/// face; this only governs what crew picks on its own.
+/// face; this only governs what crew picks on its own. Menlo stays ONLY as
+/// the OS-stock safety net at the tail of every list — never a lead.
 pub const FONT_ALLOWLIST: &[&str] = &[
     "JetBrains Mono",
     "JetBrainsMono NF",
     "JetBrainsMono Nerd Font",
     "Menlo",
+    "Berkeley Mono",
+    "Cascadia Mono",
     "Comic Mono",
     "ComicMono Nerd Font Mono",
     "ComicMono Nerd Font",
+    "Commit Mono",
+    "CommitMono Nerd Font",
     "Fira Code",
     "FiraCode Nerd Font",
     "FiraCode Nerd Font Mono",
     "Geist Mono",
+    "GeistMono Nerd Font",
     "Google Sans Code",
     "IBM Plex Mono",
     "Lilex",
+    "Lilex Nerd Font",
+    "Martian Mono",
     "MonoLisa",
     "Noto Sans Mono",
     "Operator Mono",
     "Roboto Mono",
     "RobotoMono Nerd Font",
     "RobotoMono Nerd Font Mono",
-    "Monaco",
     "SF Mono",
 ];
 
@@ -132,13 +142,17 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "Menlo",
             "Noto Sans Mono",
         ],
-        // CRT: a terminal face with squared-off shoulders — straight faces
-        // only (no ligature/cursive `Cascadia Code`).
+        // CRT: a terminal face with squared-off shoulders — straight modern
+        // faces (the old `Monaco` lead was a pre-Retina relic; Lilex is the
+        // contemporary take on that IBM-terminal DNA).
         ThemeId::CrtGreen | ThemeId::CrtAmber | ThemeId::CrtBlue | ThemeId::CrtViolet => &[
-            "Monaco",
+            "Lilex",
+            "Lilex Nerd Font",
             "JetBrainsMono NF",
             "JetBrains Mono",
             "Google Sans Code",
+            "Cascadia Mono",
+            "SF Mono",
             "Menlo",
             "Noto Sans Mono",
         ],
@@ -211,17 +225,32 @@ mod tests {
     }
 
     #[test]
-    fn allowlist_has_no_typewriter_faces() {
+    fn allowlist_has_no_typewriter_or_legacy_system_faces() {
         for banned in [
             "Courier",
             "Courier New",
             "PT Mono",
             "Andale Mono",
             "Consolas",
+            "Monaco",
         ] {
             assert!(
                 !FONT_ALLOWLIST.contains(&banned),
                 "{banned} must not be auto-selectable"
+            );
+        }
+    }
+
+    /// Menlo ships with macOS and earns its keep as the never-fail tail of a
+    /// preference list, but it is a 2009 face — no theme should *lead* with
+    /// it (nor with any other OS-stock fallback; leads are designer picks).
+    #[test]
+    fn no_theme_leads_with_a_stock_fallback_face() {
+        for id in ALL_THEMES {
+            let lead = font_prefs(id)[0];
+            assert!(
+                !["Menlo", "Noto Sans Mono", "DejaVu Sans Mono"].contains(&lead),
+                "{id:?} leads with the fallback face {lead:?}"
             );
         }
     }
