@@ -20,7 +20,7 @@ mod fanout;
 pub(crate) use classify::live_classifier;
 
 /// Relay rounds when the router picks `loop` — the user never typed a count,
-/// so a modest default well inside `constructs::MAX_ROUNDS`.
+/// so a modest default well inside `roundloop::MAX_ROUNDS`.
 pub(crate) const LOOP_ROUNDS: u32 = 3;
 
 /// A classification call: full prompt in, raw model reply out. A borrowed
@@ -137,7 +137,7 @@ pub(crate) fn dispatch(
         Shape::Reply => super::stdio::relay_counting(task, session, tick_emit, emit),
         Shape::Fan => fanout::fan_cmd(session, task, tick_emit, emit),
         Shape::Loop => {
-            super::constructs::loop_cmd(session, &format!("{LOOP_ROUNDS} {task}"), tick_emit, emit)
+            super::roundloop::loop_cmd(session, &format!("{LOOP_ROUNDS} {task}"), tick_emit, emit)
         }
         Shape::Plan => super::plan::plan_cmd(session, task, emit),
         Shape::Swarm => super::swarm::run_task(task, session, emit),

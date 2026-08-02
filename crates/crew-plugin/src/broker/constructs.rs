@@ -1,64 +1,12 @@
-//! Round-based constructs: `/loop <n> <task>` runs the relay `n` times, each
-//! round handed the previous round's answer to improve on; `/goal` (see
-//! `goal_cmd`) keeps looping until a judge agent says the goal is met.
+//! `/goal` — relay rounds until a judge agent (elected by the model, see
+//! `elect`) rules the goal met, or the round cap trips. The improvement
+//! loop's machinery lives in `roundloop`; `round_body` is shared from here.
 use crate::PluginEvent;
 
 use super::relay::{msg, relay_turn, split_target};
 use super::route::clip;
 use super::session::{call_timeout, Session};
 use super::stdio::roster;
-
-/// Hard ceiling on rounds, so a typo can't run a 100-round loop.
-pub(crate) const MAX_ROUNDS: u32 = 10;
-
-/// `/loop <n> <task>`: run `n` relay rounds, feeding each round's answer into
-/// the next as context to improve on.
-pub(crate) fn loop_cmd(
-    session: &mut Session,
-    rest: &str,
-    tick_emit: &std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,
-    emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
-) -> anyhow::Result<()> {
-    let (n, task) = match rest.trim().split_once(char::is_whitespace) {
-        Some((n, task)) => (n.parse::<u32>().ok(), task.trim()),
-        None => (None, ""),
-    };
-    let Some(n) = n.filter(|n| (1..=MAX_ROUNDS).contains(n)) else {
-        return emit(msg(
-            "agent smith",
-            format!("usage: /loop <1-{MAX_ROUNDS}> <task>"),
-        ));
-    };
-    if task.is_empty() {
-        return emit(msg(
-            "agent smith",
-            format!("usage: /loop <1-{MAX_ROUNDS}> <task>"),
-        ));
-    }
-    let reg = session.registry();
-    if reg.is_empty() {
-        return emit(msg("agent smith", roster(&reg)));
-    }
-    let (start, task) = split_target(task, &reg);
-    let broker = session.broker(reg);
-    let mut answer: Option<String> = None;
-    for round in 1..=n {
-        if session.cancelled() {
-            return emit(msg("agent smith", "loop cancelled by /stop"));
-        }
-        emit(msg(
-            "agent smith",
-            format!("loop round {round}/{n} \u{2014} starting with {start}"),
-        ))?;
-        let body = round_body(&task, answer.as_deref());
-        let tid = format!("loop-{round}");
-        answer = relay_turn(&broker, &start, &body, &tid, tick_emit, emit)?.or(answer);
-    }
-    emit(msg(
-        "agent smith",
-        format!("loop done \u{2014} {n} round(s) complete"),
-    ))
-}
 
 /// Rounds `/goal` tries before giving up.
 pub(crate) const GOAL_ROUNDS: u32 = 5;

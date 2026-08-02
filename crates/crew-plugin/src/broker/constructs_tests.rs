@@ -1,4 +1,5 @@
 use super::*;
+use crate::broker::roundloop::loop_cmd;
 use crate::broker::testenv;
 use crate::PluginEvent;
 
@@ -56,7 +57,7 @@ fn loop_rejects_bad_counts_and_missing_tasks() {
     for bad in ["", "0 task", "99 task", "many task", "3", "3   "] {
         let ts = texts(&run_loop(bad));
         assert_eq!(ts.len(), 1, "{bad:?} → {ts:?}");
-        assert!(ts[0].starts_with("usage:"), "{bad:?} → {ts:?}");
+        assert!(ts[0].starts_with("loop: give"), "{bad:?} → {ts:?}");
     }
 }
 
@@ -148,8 +149,7 @@ fn run_goal_with(rest: &str, elector: crate::broker::intent::Classifier) -> Vec<
 /// The judge is the MODEL's choice, not a keyword match on role strings: a
 /// stubbed elector names an agent and that agent judges, visibly, in the
 /// transcript. `reviewer` is deliberately NOT what the fallback would pick
-/// (that would be `coder`, the first non-worker), so a fallback that ignored
-/// the elector fails this test.
+/// (`coder`, the first non-worker), so ignoring the elector fails this test.
 #[test]
 fn a_stubbed_elector_names_the_judge_in_the_transcript() {
     let _g = testenv::mock_with_specialists("MET: shipped\n@done", testenv::TRIO);

@@ -34,6 +34,7 @@ mod plugins;
 mod registry;
 mod relay;
 mod review;
+mod roundloop;
 mod route;
 mod run;
 mod session;
@@ -91,10 +92,8 @@ pub(crate) mod testenv {
     static SEQ: AtomicU32 = AtomicU32::new(0);
 
     /// The roster the inbuilt trio used to hard-code, now an explicit test
-    /// fixture. Election is the model's call now (`broker::elect`), with a
-    /// deterministic roster-first fallback under the mock — so the ORDER here
-    /// is load-bearing: `planner` leads, and the fallback judge for a
-    /// planner-led goal is `coder`, the first non-worker.
+    /// fixture. Election is the model's call (`broker::elect`) with a
+    /// roster-first fallback under the mock, so the ORDER is load-bearing.
     pub(crate) const TRIO: &[(&str, &str)] = &[
         ("planner", "planning, analysis, architecture, research"),
         ("coder", "building, implementation, synthesis"),
