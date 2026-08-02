@@ -1,8 +1,10 @@
 //! Background self-update with progress in the left-nav UPDATE card. `/update`
 //! starts a worker thread that checks GitHub, downloads the latest release over
 //! the running binary, and streams stage updates back to the UI — no separate
-//! shell pane. The new binary applies on `/restart` (or the next launch); Crew
-//! does NOT restart itself, so an in-flight session is never interrupted.
+//! shell pane. Once the install lands, a loud (manual) run restarts Crew into
+//! the new build after a short "restarting…" beat; only the SILENT background
+//! check (see `autoupdate`) parks its install for a later `/update`, so a
+//! session is never interrupted by anything the user didn't type.
 use std::sync::mpsc::Receiver;
 use std::time::{Duration, Instant};
 
@@ -15,6 +17,10 @@ const SPINNER_DIV: u64 = 6;
 /// How long a terminal card (installed / up-to-date / failed) lingers before
 /// auto-dismiss.
 const NOTE_TTL: Duration = Duration::from_secs(5);
+/// How long the "updated vX / restarting…" card shows before a loud run's
+/// install actually restarts Crew — long enough to read, short enough that
+/// `/update` feels like one motion.
+const RESTART_DELAY: Duration = Duration::from_secs(2);
 
 /// A stage message streamed from the worker thread to the UI.
 pub(crate) enum UpdateMsg {
@@ -49,9 +55,7 @@ pub(crate) struct UpdateState {
 }
 
 impl UpdateState {
-    /// Loud (default) construction — delegates to [`Self::new_with`]. Kept so
-    /// the existing `install_parks_then_clears_without_restarting` test (and
-    /// any other loud-mode call site) is untouched by the silent-mode split.
+    /// Loud (default) construction — delegates to [`Self::new_with`].
     fn new(rx: Receiver<UpdateMsg>) -> Self {
         Self::new_with(rx, false)
     }
@@ -89,9 +93,14 @@ impl UpdateState {
             UpdateMsg::Checking => Stage::Checking,
             UpdateMsg::Downloading(v) => Stage::Downloading(v),
             UpdateMsg::Installed(v) => {
-                // Installed over the running binary; it applies on `/restart` (or
-                // the next launch).
-                self.deadline = Some(clear_at);
+                // Installed over the running binary. A loud run restarts into
+                // it when this deadline elapses (`poll_update` raises the
+                // restart tick); a silent install clears now and waits parked.
+                self.deadline = Some(if self.silent {
+                    now
+                } else {
+                    now + RESTART_DELAY
+                });
                 Stage::Done(v)
             }
             UpdateMsg::UpToDate(v) => {
@@ -142,26 +151,34 @@ impl UpdateState {
 }
 
 impl CrewApp {
-    /// Start the background self-update (the `/update` command). A silent
-    /// background run already in flight is taken over — upgraded to loud —
-    /// rather than refused, since a manual `/update` means the user now wants
-    /// to watch it. A loud run already animating is refused as before, so a
-    /// double `/update` doesn't spawn two workers.
-    pub(crate) fn start_update(&mut self) {
-        if let Some(u) = self.update.as_mut() {
-            if u.silent {
-                u.silent = false;
+    /// Start the merged update-and-restart (the `/update` command). Returns
+    /// `true` when the app should exit because a restart was spawned.
+    ///
+    /// An install already parked (by the silent background check, or by a
+    /// loud run whose restart failed) is applied immediately — restart, no
+    /// network round-trip. Otherwise: a silent run already in flight is taken
+    /// over — upgraded to loud — rather than refused, since a manual `/update`
+    /// means the user now wants to watch it (and, now, ride it into the new
+    /// build); a loud run already animating is refused as before, so a double
+    /// `/update` doesn't spawn two workers.
+    pub(crate) fn start_update(&mut self) -> bool {
+        match update_cmd_action(
+            self.parked_update.is_some(),
+            self.update.as_ref().map(|u| (u.silent, u.animating())),
+        ) {
+            UpdateCmdAction::RestartParked => return self.restart_crew(),
+            UpdateCmdAction::TakeoverSilent => {
+                self.update.as_mut().expect("takeover implies a run").silent = false;
                 self.set_status("checking for updates…");
-                return;
             }
-            if u.animating() {
-                self.set_status("update already in progress");
-                return;
+            UpdateCmdAction::AlreadyRunning => self.set_status("update already in progress"),
+            UpdateCmdAction::Spawn => {
+                self.update = Some(UpdateState::new(crate::updatefetch::spawn_worker()));
+                self.set_status("checking for updates…");
+                self.redraw();
             }
         }
-        self.update = Some(UpdateState::new(crate::updatefetch::spawn_worker()));
-        self.set_status("checking for updates…");
-        self.redraw();
+        false
     }
 
     /// Start the quiet background update check (30 s after launch, then every
@@ -169,7 +186,7 @@ impl CrewApp {
     /// `/update` this must be invisible until something worth showing happens
     /// (a loud takeover via `start_update`, or a parked install). A no-op if a
     /// run is already active in either mode, or an install is already parked
-    /// awaiting `/restart` — nothing to gain checking again until then.
+    /// awaiting the next `/update` — nothing to gain checking again until then.
     pub(crate) fn start_auto_update(&mut self) {
         if self.update.is_some() || self.parked_update.is_some() {
             return;
@@ -181,12 +198,17 @@ impl CrewApp {
     }
 
     /// Drive the active update each poll tick. Streams stage changes into the
-    /// UPDATE card and dismisses it once a terminal card's linger elapses.
-    /// Any run — silent or loud — that reaches `Installed` parks its version
-    /// on `CrewApp::parked_update`, exactly once, for `/restart`'s reminder.
+    /// UPDATE card and dismisses it once a terminal card's linger elapses. Any
+    /// run — silent or loud — that reaches `Installed` parks its version on
+    /// `CrewApp::parked_update`; when a LOUD run's `Done` beat elapses, the
+    /// tick asks the caller to restart into the new build. The park is not
+    /// redundant with the restart: it is the persistent nav-legend reminder
+    /// (`restartnote`) if the restart spawn fails, and the whole story for a
+    /// silent install waiting on the next `/update`.
     pub(crate) fn poll_update(&mut self, now: Instant) -> UpdateTick {
         let mut tick = UpdateTick::default();
         let mut clear = false;
+        let mut restart = false;
         if let Some(u) = self.update.as_mut() {
             tick.redraw = u.drain(now);
             // A silent background run has no UPDATE card to animate — driving
@@ -210,12 +232,41 @@ impl CrewApp {
                 }
             }
             clear = u.clear_due(now);
+            restart = clear && !u.silent && matches!(u.stage, Stage::Done(_));
         }
         if clear {
             self.update = None;
             tick.redraw = true;
+            tick.restart = restart;
         }
         tick
+    }
+}
+
+/// What `/update` should do, given whether an install is already parked and
+/// the in-flight run's `(silent, animating)` state. Pure so the dispatch
+/// order — parked install wins, then takeover, then refusal — is testable
+/// without spawning a worker thread or a detached process.
+#[derive(Debug, PartialEq)]
+pub(crate) enum UpdateCmdAction {
+    /// A newer binary is already installed: restart into it now.
+    RestartParked,
+    /// A silent background run is in flight: watch it (and restart on install).
+    TakeoverSilent,
+    /// A loud run is already animating: refuse the duplicate.
+    AlreadyRunning,
+    /// Nothing in flight: spawn the worker.
+    Spawn,
+}
+
+pub(crate) fn update_cmd_action(parked: bool, run: Option<(bool, bool)>) -> UpdateCmdAction {
+    if parked {
+        return UpdateCmdAction::RestartParked;
+    }
+    match run {
+        Some((true, _)) => UpdateCmdAction::TakeoverSilent,
+        Some((false, true)) => UpdateCmdAction::AlreadyRunning,
+        _ => UpdateCmdAction::Spawn,
     }
 }
 
@@ -223,6 +274,9 @@ impl CrewApp {
 #[derive(Default)]
 pub(crate) struct UpdateTick {
     pub(crate) redraw: bool,
+    /// A loud run's install has finished its "restarting…" beat: relaunch
+    /// detached and exit this process.
+    pub(crate) restart: bool,
 }
 
 #[cfg(test)]
@@ -232,7 +286,7 @@ mod tests {
 
     #[test]
     #[allow(clippy::field_reassign_with_default)] // test fixture: inject update state
-    fn install_parks_then_clears_without_restarting() {
+    fn loud_install_shows_the_beat_then_asks_to_restart() {
         let (tx, rx) = std::sync::mpsc::channel();
         let mut app = CrewApp::default();
         app.update = Some(UpdateState::new(rx));
@@ -241,11 +295,63 @@ mod tests {
         // First tick drains the install message and parks the card at "done".
         let tick = app.poll_update(now);
         assert!(tick.redraw);
+        assert!(!tick.restart, "the restarting… beat shows first");
         assert!(matches!(app.update.as_ref().unwrap().stage, Stage::Done(_)));
-        // After the note lingers, the card auto-clears — the app is never asked to
-        // restart (UpdateTick no longer carries a restart signal at all).
-        app.poll_update(now + NOTE_TTL);
-        assert!(app.update.is_none(), "card cleared, app keeps running");
+        // Once the beat elapses the tick asks for the restart and clears.
+        let tick = app.poll_update(now + RESTART_DELAY);
+        assert!(tick.restart, "loud install rides into the new build");
+        assert!(app.update.is_none());
+    }
+
+    #[test]
+    #[allow(clippy::field_reassign_with_default)]
+    fn silent_install_parks_and_never_asks_to_restart() {
+        let (tx, rx) = std::sync::mpsc::channel();
+        let mut app = CrewApp::default();
+        app.update = Some(UpdateState::new_with(rx, true));
+        tx.send(UpdateMsg::Installed("9.9.9".into())).unwrap();
+        let now = Instant::now();
+        let tick = app.poll_update(now);
+        assert!(!tick.restart, "a background install must not interrupt");
+        let tick = app.poll_update(now);
+        assert!(!tick.restart);
+        assert!(app.update.is_none(), "cleared, waiting parked");
+        assert!(app.parked_update.is_some());
+    }
+
+    #[test]
+    #[allow(clippy::field_reassign_with_default)]
+    fn loud_up_to_date_clears_without_a_restart() {
+        let (tx, rx) = std::sync::mpsc::channel();
+        let mut app = CrewApp::default();
+        app.update = Some(UpdateState::new(rx));
+        let now = Instant::now();
+        tx.send(UpdateMsg::UpToDate("1.0.0".into())).unwrap();
+        app.poll_update(now);
+        let tick = app.poll_update(now + NOTE_TTL);
+        assert!(!tick.restart, "nothing installed, nothing to restart into");
+        assert!(app.update.is_none());
+    }
+
+    #[test]
+    fn update_cmd_action_prefers_parked_then_takeover_then_refusal() {
+        use super::UpdateCmdAction::*;
+        // A parked install wins over everything — even an in-flight run.
+        assert_eq!(update_cmd_action(true, None), RestartParked);
+        assert_eq!(update_cmd_action(true, Some((true, true))), RestartParked);
+        // Silent run: taken over loudly, whether animating or settled.
+        assert_eq!(update_cmd_action(false, Some((true, true))), TakeoverSilent);
+        assert_eq!(
+            update_cmd_action(false, Some((true, false))),
+            TakeoverSilent
+        );
+        // Loud + animating: refuse the duplicate. Loud + settled: respawn.
+        assert_eq!(
+            update_cmd_action(false, Some((false, true))),
+            AlreadyRunning
+        );
+        assert_eq!(update_cmd_action(false, Some((false, false))), Spawn);
+        assert_eq!(update_cmd_action(false, None), Spawn);
     }
 
     #[test]

@@ -1,7 +1,6 @@
 //! The command palette's table: every slash command with its palette
-//! description, in priority order (prefix ties break by list position —
-//! e.g. `/res` completes to /restart, not /restore). Logic lives in
-//! `suggest`.
+//! description, in priority order (prefix ties break by list position).
+//! Logic lives in `suggest`.
 
 /// A slash command shown in the command palette.
 pub(crate) struct Cmd {
@@ -76,10 +75,6 @@ pub(crate) const COMMANDS: &[Cmd] = &[
         desc: "Set the font size (/font <n>) or toggle rotation (/font random)",
     },
     Cmd {
-        name: "/restart",
-        desc: "Restart Crew — relaunch detached, applying an installed /update",
-    },
-    Cmd {
         name: "/restore",
         desc: "Reopen last session's shells in their directories",
     },
@@ -101,7 +96,7 @@ pub(crate) const COMMANDS: &[Cmd] = &[
     },
     Cmd {
         name: "/update",
-        desc: "Update Crew to the latest release (left-nav progress; /restart applies)",
+        desc: "Update Crew to the latest release and restart into it (left-nav progress)",
     },
     Cmd {
         name: "/broadcast",

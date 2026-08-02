@@ -124,8 +124,9 @@ pub struct CrewApp {
     pub(crate) autoupdate: crate::autoupdate::AutoUpdate,
     /// Version + parked-at (on the `anim` clock) of the most recently
     /// installed-but-not-yet-running update, set the moment any run (silent
-    /// or manual) reaches `Installed`. Consumed by `/restart`'s blinking
-    /// nav-legend reminder (see [`crate::restartnote`]).
+    /// or manual) reaches `Installed`. Drives the blinking nav-legend
+    /// reminder (see [`crate::restartnote`]); the next `/update` restarts
+    /// straight into it.
     pub(crate) parked_update: Option<(String, u64)>,
     /// In-flight `?` ask (AI command suggestion) on a worker thread. `None`
     /// when idle. See [`crate::askbar`].

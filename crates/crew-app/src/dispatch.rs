@@ -20,8 +20,13 @@ impl CrewApp {
             // Reopen last session's shells (their cwds snapshot on quit).
             "restore" => self.restore_session(),
             // Self-update in the background: progress shows in the left-nav UPDATE
-            // card; the new binary applies on /restart — Crew never restarts itself.
-            "update" => self.start_update(),
+            // card; once the install lands, Crew restarts itself into the new
+            // build (an already-parked install restarts immediately).
+            "update" => return self.start_update(),
+            // Absorbed into /update (which now restarts after installing). A
+            // bare status beats the fuzzy matcher here, which would otherwise
+            // suggest /restore — a different action entirely.
+            "restart" => self.set_status("/restart merged into /update — it installs and restarts"),
             "clear" => self.clear_focused_scrollback(),
             "clearall" => self.clear_all_scrollback(),
             "clearlog" => self.clear_log(),
@@ -34,9 +39,6 @@ impl CrewApp {
             "diff" => self.diff_in_pane(),
             "run" => self.run_in_pane(""), // show usage hint
             "font" => self.set_font_cmd(""),
-            // Relaunch as a fresh detached process (picks up an installed
-            // `/update` and external config edits) and exit this one.
-            "restart" => return self.restart_crew(),
             "theme" => self.set_theme_cmd(""),
             "crt" => self.crt_command(""),
             "weight" => self.weight_command(""),
@@ -316,6 +318,22 @@ mod tests {
         let s = app.status.clone().expect("a status was set").0;
         assert!(s.contains("unknown command /wobblefish"), "{s}");
         assert!(!s.contains("did you mean"), "no guess from nonsense: {s}");
+    }
+
+    /// `/restart` is gone (merged into `/update`), but typing it must teach,
+    /// not fall through to the fuzzy matcher — which would suggest /restore,
+    /// a different action entirely.
+    #[test]
+    fn restart_is_a_migration_stub_pointing_at_update() {
+        let mut app = CrewApp::default();
+        let exit = app.run_slash_command("restart");
+        assert!(!exit, "the stub must not exit or relaunch anything");
+        let s = app.status.clone().expect("a status was set").0;
+        assert!(s.contains("/update"), "{s}");
+        assert!(
+            !s.contains("unknown"),
+            "not an unknown command, a merged one: {s}"
+        );
     }
 
     #[test]
