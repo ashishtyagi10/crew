@@ -143,7 +143,10 @@ fn a_previous_session_announces_itself_at_startup() {
     .unwrap();
 
     let msgs = messages(&run_broker(&dir, &[], &[HELLO]));
-    let offer = msgs.iter().find(|(_, t)| t.contains("/resume"));
+    // `/resume` retired: the offer teaches the plain-language phrasing.
+    let offer = msgs
+        .iter()
+        .find(|(_, t)| t.contains("pick up where we left off"));
     let (_, text) = offer.unwrap_or_else(|| panic!("no resume offer: {msgs:?}"));
     assert!(text.contains("2 messages"), "{text}");
 }

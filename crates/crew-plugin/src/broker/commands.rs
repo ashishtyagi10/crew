@@ -17,20 +17,12 @@ pub(crate) fn is_command(text: &str) -> bool {
 pub(crate) fn is_quick(text: &str) -> bool {
     let line = text.trim().trim_start_matches('/');
     let cmd = line.split_whitespace().next().unwrap_or("");
-    // `fan` and `loop` are absent on purpose: retired commands answer with an
-    // instant hint, so they must not occupy a worker slot.
+    // Retired commands (`/fan`, `/loop`, `/commit`, …) are absent on purpose:
+    // they answer with an instant hint, so they must not occupy a worker slot.
     is_command(text)
         && !matches!(
             cmd,
-            "commit"
-                | "review"
-                | "standup"
-                | "goal"
-                | "skill"
-                | "mcp"
-                | "plan"
-                | "approve"
-                | "restore"
+            "goal" | "skill" | "mcp" | "plan" | "approve" | "restore"
         )
 }
 
@@ -41,17 +33,16 @@ pub(crate) const HELP: &str = "constructs:\n\
     /model <agent> <model|default> — pin an agent to a model (mix models freely)\n\
     /model all <model|default> — set every agent's model at once\n\
     plain language routes itself — \u{201c}have every agent take a crack at \u{2026}\u{201d} \
-    fans out in parallel; \u{201c}keep refining \u{2026}\u{201d} runs improvement rounds\n\
+    fans out in parallel; \u{201c}keep refining \u{2026}\u{201d} runs improvement rounds; \
+    \u{201c}commit this\u{201d} drafts a commit message (say \u{201c}apply\u{201d} to create it); \
+    \u{201c}look over my changes\u{201d}, \u{201c}what did I ship this week\u{201d} and \
+    \u{201c}pick up where we left off\u{201d} reach code review, a standup and the last session\n\
     /goal <text> — keep working until a judge agent rules the goal met\n\
     /plan <task> — draft a numbered plan; nothing runs until you approve\n\
     /approve · /reject — run or discard the drafted plan (the crew pane binds these to enter and esc)\n\
     /restore [n] — list the automatic snapshots, or put snapshot n's files back\n\
     /diff — everything different from the last commit, new files included\n\
-    /commit — draft an AI commit message · /commit apply — create the commit\n\
-    /review — AI code review of the working diff, findings worst-first\n\
-    /resume — fold the previous session's tail into the next task\n\
     /doctor — health-check the AI stack (provider, CLIs, MCP, memory, session)\n\
-    /standup [days] — an AI standup update from recent commits\n\
     /skill [<name> <task>] — list prompt playbooks, or run the relay with one prepended\n\
     /memory — show the standing memory prepended to every task\n\
     #<note> — remember a preference in ./.crew/memory.md\n\
@@ -114,8 +105,39 @@ pub fn expand_alias(trimmed: &str) -> String {
 /// [`closest_construct`], and the source a host should build its palette
 /// from rather than keeping a second copy (see [`constructs`]).
 const CONSTRUCTS: &[&str] = &[
-    "help", "model", "goal", "plan", "approve", "reject", "commit", "review", "resume", "doctor",
-    "standup", "restore", "skill", "memory", "mcp", "reload", "diff", "stop",
+    "help", "model", "goal", "plan", "approve", "reject", "doctor", "restore", "skill", "memory",
+    "mcp", "reload", "diff", "stop",
+];
+
+/// Commands retired in favor of the intent router: the capability lives on,
+/// reached by plain language, and typing the old slash form teaches the
+/// phrasing instantly (see `handle`).
+const RETIRED: &[(&str, &str)] = &[
+    (
+        "fan",
+        "/fan is retired — just ask: \u{201c}have every agent take a crack at \u{2026}\u{201d}",
+    ),
+    (
+        "loop",
+        "/loop is retired — just ask: \u{201c}keep refining \u{2026} over a few rounds\u{201d}",
+    ),
+    (
+        "commit",
+        "/commit is retired — just ask: \u{201c}commit this\u{201d}; the draft then waits for \
+         you to say \u{201c}apply\u{201d}",
+    ),
+    (
+        "review",
+        "/review is retired — just ask: \u{201c}look over my changes\u{201d}",
+    ),
+    (
+        "standup",
+        "/standup is retired — just ask: \u{201c}what did I ship this week?\u{201d}",
+    ),
+    (
+        "resume",
+        "/resume is retired — just ask: \u{201c}pick up where we left off\u{201d}",
+    ),
 ];
 
 /// Every construct the broker answers, without the leading slash. Exposed so
@@ -178,47 +200,25 @@ pub(crate) fn handle(
 ) -> anyhow::Result<()> {
     let line = text.trim().trim_start_matches('/');
     let (cmd, rest) = line.split_once(char::is_whitespace).unwrap_or((line, ""));
+    // Retired as commands: the intent router recognizes the plain-language
+    // ask and reaches the same capability. The hint teaches the phrasing
+    // rather than silently reinterpreting.
+    if let Some((_, hint)) = RETIRED.iter().find(|(c, _)| *c == cmd) {
+        return emit(msg("agent smith", *hint));
+    }
     match cmd {
         "help" => emit(msg("agent smith", HELP)),
         "model" => model_cmd(session, rest, emit),
-        // Retired as commands: the intent router recognizes the plain-language
-        // ask and reaches the same capability (`fan_cmd`, `loop_cmd`). The
-        // hint teaches the phrasing rather than silently reinterpreting.
-        "fan" => emit(msg(
-            "agent smith",
-            "/fan is retired — just ask: \u{201c}have every agent take a crack at \u{2026}\u{201d}",
-        )),
-        "loop" => emit(msg(
-            "agent smith",
-            "/loop is retired — just ask: \u{201c}keep refining \u{2026} over a few rounds\u{201d}",
-        )),
         "goal" => super::constructs::goal_cmd(session, rest, tick_emit, emit),
         "plan" => super::plan::plan_cmd(session, rest, emit),
         "approve" => super::plan::approve_cmd(session, tick_emit, emit),
         "reject" => super::plan::reject_cmd(session, emit),
         "restore" => super::checkpoint::restore_cmd(rest, emit),
         "diff" => super::diff::diff_cmd(emit),
-        "commit" => super::gitmsg::commit_cmd(session, rest, emit),
-        "review" => super::review::review_cmd(session, emit),
         "doctor" => emit(msg(
             "agent smith",
             super::doctor::render(&super::doctor::gather(session)),
         )),
-        "standup" => super::standup::standup_cmd(session, rest, emit),
-        "resume" => {
-            let m = match super::sessionlog::tail() {
-                Some(prev) => {
-                    let n = prev.len();
-                    *session.resume.lock().unwrap_or_else(|e| e.into_inner()) = Some(prev);
-                    format!(
-                        "restored {n} chars of the previous session — the next \
-                         task carries it as context"
-                    )
-                }
-                None => "nothing to resume — no previous session found".into(),
-            };
-            emit(msg("agent smith", m))
-        }
         "skill" => super::skills::skill_cmd(session, rest, tick_emit, emit),
         "memory" => emit(msg("agent smith", super::memory::report())),
         "mcp" => {

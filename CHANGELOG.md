@@ -8,6 +8,26 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.11.6
+
+*Smith trusts the model: say it, don't slash it.*
+
+- **The intent router decides the shape.** A plain message gets one cheap
+  classification call and routes itself — single reply, fan-out, refinement
+  loop, plan-with-approval, or swarm — falling back to the swarm whenever
+  the classifier can't run (no key, mock provider, `CREW_INTENT=0`).
+- **`/fan`, `/loop`, `/commit`, `/review`, `/standup` and `/resume` are
+  retired.** Every capability lives on behind plain language — "have every
+  agent take a crack at …", "keep refining …", "commit this", "look over my
+  changes", "what did I ship this week?", "pick up where we left off" — and
+  typing the old slash form teaches the phrasing instantly.
+- **The commit gate survives retirement.** "commit this" only ever drafts;
+  the commit is created when you say "apply", matched exactly and never by
+  the model, so a misrouted message can't commit.
+- **crew-hive prompts are budget-aware.** Dependency outputs are clipped
+  fairly (4k per dep, 12k total, visible markers) instead of concatenated
+  unbounded.
+
 ## 0.11.5
 
 *The tube gets a typeface from this decade.*

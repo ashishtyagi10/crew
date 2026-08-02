@@ -86,17 +86,12 @@ pub(crate) fn standup_cmd(
     let Some(days) = parse_days(rest) else {
         return emit(msg(
             "agent smith",
-            "usage: /standup [days] — summarize recent commits",
+            "standup: give a number of days (1-30), or none for yesterday",
         ));
     };
-    let dir = match std::env::current_dir() {
+    let dir = match super::gitmsg::project_dir() {
         Ok(d) => d,
-        Err(e) => {
-            return emit(msg(
-                "agent smith",
-                format!("standup: no working directory: {e}"),
-            ))
-        }
+        Err(e) => return emit(msg("agent smith", format!("standup: {e}"))),
     };
     let log = match recent_log(&dir, days) {
         Err(e) => return emit(msg("agent smith", format!("standup: {e}"))),

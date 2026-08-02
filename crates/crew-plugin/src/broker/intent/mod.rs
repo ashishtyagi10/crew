@@ -39,6 +39,16 @@ pub(crate) enum Shape {
     Plan,
     /// Decompose into a task graph (today's default).
     Swarm,
+    /// Draft a commit message for the working diff (the `/commit` body).
+    /// Drafts ONLY: creating the commit takes the user's own "apply", matched
+    /// deterministically in [`route_with`] — never by classification.
+    Commit,
+    /// Code-review the working diff (the `/review` body).
+    Review,
+    /// Summarize recent commits as a standup update (the `/standup` body).
+    Standup,
+    /// Fold the previous session into the next task (the `/resume` body).
+    Resume,
 }
 
 /// Route one plain message: classify, then dispatch. Every way the classifier
@@ -65,11 +75,50 @@ pub(crate) fn route_with(
     tick_emit: &Arc<dyn Fn(PluginEvent) + Send + Sync>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
+    // The commit HUMAN GATE, checked before any model call: a pending
+    // proposal plus the user's own confirm word creates the commit. This is
+    // the only path that ever commits, and it is deterministic — a
+    // misclassification can draft a message but can never apply one.
+    if confirms_apply(task) && pending_commit(session) {
+        return super::gitmsg::commit_cmd(session, "apply", emit);
+    }
     let shape = match classifier {
         Some(call) => classify_with(task, call).unwrap_or(Shape::Swarm),
         None => Shape::Swarm,
     };
     dispatch(shape, task, session, tick_emit, emit)
+}
+
+/// Whether `task` is a conversational confirm for the pending commit — an
+/// exact match against a small fixed set, lowercased and stripped of trailing
+/// punctuation. Deliberately narrow: anything else is a new task, and the
+/// proposal simply stays pending.
+fn confirms_apply(task: &str) -> bool {
+    let word = task
+        .trim()
+        .trim_end_matches(['.', '!'])
+        .to_ascii_lowercase();
+    [
+        "apply",
+        "apply it",
+        "yes",
+        "yes apply",
+        "yes, apply",
+        "go ahead",
+        "do it",
+        "commit it",
+        "ship it",
+    ]
+    .contains(&word.as_str())
+}
+
+/// Whether the session holds a drafted commit message awaiting the confirm.
+fn pending_commit(session: &Session) -> bool {
+    session
+        .commit
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .is_some()
 }
 
 /// Send `task` down `shape`'s existing capability path. Each arm is the same
@@ -90,6 +139,10 @@ pub(crate) fn dispatch(
         }
         Shape::Plan => super::plan::plan_cmd(session, task, emit),
         Shape::Swarm => super::swarm::run_task(task, session, emit),
+        Shape::Commit => super::gitmsg::commit_cmd(session, "", emit),
+        Shape::Review => super::review::review_cmd(session, emit),
+        Shape::Standup => super::standup::standup_cmd(session, "", emit),
+        Shape::Resume => super::sessionlog::resume_cmd(session, emit),
     }
 }
 
@@ -127,6 +180,10 @@ pub(crate) fn parse_shape(reply: &str) -> Option<Shape> {
         "loop" => Some(Shape::Loop),
         "plan" => Some(Shape::Plan),
         "swarm" => Some(Shape::Swarm),
+        "commit" => Some(Shape::Commit),
+        "review" => Some(Shape::Review),
+        "standup" => Some(Shape::Standup),
+        "resume" => Some(Shape::Resume),
         _ => None,
     }
 }

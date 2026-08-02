@@ -7,10 +7,9 @@ use crew_plugin::AgentInfo;
 /// Every composer slash action: broker constructs plus the pane-local
 /// `/export`, `/theme`, and `/exit` (see `chatexport` / `chattheme` /
 /// `chat`). Folding the transcript is automatic (`ChatPane::push_capped`).
-pub(crate) const CONSTRUCTS: [&str; 19] = [
-    "/help", "/model", "/goal", "/plan", "/restore", "/diff", "/skill", "/memory", "/commit",
-    "/review", "/resume", "/doctor", "/standup", "/mcp", "/reload", "/stop", "/export", "/theme",
-    "/exit",
+pub(crate) const CONSTRUCTS: [&str; 15] = [
+    "/help", "/model", "/goal", "/plan", "/restore", "/diff", "/skill", "/memory", "/doctor",
+    "/mcp", "/reload", "/stop", "/export", "/theme", "/exit",
 ];
 
 /// Hints that belong to the PANE rather than to the broker, and so are written
@@ -180,13 +179,10 @@ mod tests {
         // `/lo` falls through to the fuzzy match for /reload — another prefix
         // bought back by shrinking the surface.
         assert_eq!(complete("/lo", &[]).unwrap(), "/reload ");
-        // '/st' IS the common prefix of /stop and /standup → nothing to add.
-        assert_eq!(complete("/st", &[]), None);
-        // '/sta' used to split three ways (status/standup/stop). Deleting a
-        // construct buys back its prefix: one fewer keystroke to /standup, and
-        // this is the measurable half of "fewer commands" — the surface is not
-        // just smaller, the survivors are easier to reach.
-        assert_eq!(complete("/sta", &[]).unwrap(), "/standup ");
+        // `/standup` retired too, so '/st' now uniquely names /stop — every
+        // retirement buys back a prefix — and '/sta' matches nothing at all.
+        assert_eq!(complete("/st", &[]).unwrap(), "/stop ");
+        assert_eq!(complete("/sta", &[]), None);
     }
 
     #[test]
@@ -245,6 +241,10 @@ mod tests {
             "/checkpoint",
             "/approve",
             "/reject",
+            "/commit",
+            "/review",
+            "/standup",
+            "/resume",
         ] {
             assert!(!CONSTRUCTS.contains(&gone), "{gone} still listed");
             assert_eq!(describe(gone), "", "{gone} still described");
@@ -277,9 +277,9 @@ mod tests {
 
     #[test]
     fn prefix_match_still_wins_over_fuzzy() {
-        // "/st" is the shared prefix of /stop and /status (and a fuzzy
-        // subsequence of several other constructs too) — stays ambiguous.
-        assert_eq!(complete("/st", &[]), None);
+        // "/m" is a shared prefix (/model, /memory, /mcp) and a fuzzy
+        // subsequence of more — stays ambiguous.
+        assert_eq!(complete("/m", &[]), None);
     }
 
     #[test]
@@ -383,6 +383,7 @@ mod doc_drift {
         "replaced",
         "used to",
         "merged into",
+        "retired",
     ];
 
     fn documented_constructs(src: &str) -> Vec<String> {

@@ -245,7 +245,9 @@ fn help_documents_the_aliases() {
 
 #[test]
 fn closest_construct_suggests_near_typos() {
-    assert_eq!(closest_construct("stauts"), Some("standup"));
+    // "stauts" used to suggest /standup; that construct retired, so the
+    // nearest survivor is /stop.
+    assert_eq!(closest_construct("stauts"), Some("stop"));
     assert_eq!(closest_construct("hlep"), Some("help"));
     assert_eq!(closest_construct("relaod"), Some("reload"));
     assert_eq!(closest_construct("zzzzz"), None);

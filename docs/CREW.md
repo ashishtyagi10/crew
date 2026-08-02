@@ -659,37 +659,41 @@ and a typo gets a **did-you-mean** suggestion):
 - **`/diff`** — the working tree's `git diff --stat` inline in the
   transcript; **`/doctor`** — the broker's working directory and sys-tool
   sandbox mode.
-- **`/commit`** — an **AI-written commit message** (à la Aider): the coder
-  agent reads the diff (staged wins; otherwise unstaged tracked changes,
+- **"commit this"** — an **AI-written commit message** (à la Aider; the
+  `/commit` slash form is retired, plain language replaced it): an agent
+  reads the diff (staged wins; otherwise everything the tree changed,
   12 KB cap) and drafts a Conventional Commits message — subject ≤72 chars,
-  body only when the change warrants it. Nothing is committed until you run
-  **`/commit apply`**, which creates the commit (`-m` for a staged proposal,
-  `-am` for an unstaged one); re-running `/commit` re-drafts. A clean tree,
-  a missing repo, or an empty draft each get a status line instead.
-- **`/review`** — an **AI code review** of the same diff `/commit` sees (à la
-  Codex's `/review`): the reviewer agent reports findings worst-first —
-  `blocker — file:line — what and why`, then `warn`, then `nit` — closing
-  with a one-line verdict (or "no findings" for a clean diff). Read-only:
-  nothing to apply, pairs naturally with `/commit` before you ship.
-- **`/standup [days]`** — an **AI standup update** from the repo's recent
-  commits (default: the last day, up to 30): the coder groups what shipped
-  by theme, infers what's still in progress, and calls out risks — first
-  person, paste-ready for the morning thread. History summarization — the
-  complement of `/review` (the diff you haven't committed) and `/commit`
-  (the message for it). An empty window or a fresh repo reports "nothing to
-  report" instead of erroring.
+  body only when the change warrants it. **Nothing is committed until you
+  say "apply"** — the confirm is matched exactly, never by the model, so a
+  misrouted message can draft but can never commit. Asking again re-drafts.
+  A clean tree, a missing repo, or an empty draft each get a status line
+  instead.
+- **"look over my changes"** — an **AI code review** of the same diff the
+  commit draft sees (à la Codex; the `/review` slash form is retired): the
+  reviewer reports findings worst-first — `blocker — file:line — what and
+  why`, then `warn`, then `nit` — closing with a one-line verdict (or "no
+  findings" for a clean diff). Read-only: nothing to apply, pairs naturally
+  with "commit this" before you ship.
+- **"what did I ship this week?"** — an **AI standup update** from the
+  repo's recent commits (the `/standup` slash form is retired): an agent
+  groups what shipped by theme, infers what's still in progress, and calls
+  out risks — first person, paste-ready for the morning thread. History
+  summarization — the complement of the code review (the diff you haven't
+  committed) and the commit draft (the message for it). An empty window or
+  a fresh repo reports "nothing to report" instead of erroring.
 - **`/doctor`** — a **health check for the AI stack** (à la Claude Code's
   `/doctor`): one ✓/✗/– checklist covering the provider that will answer
   (and which key it found), the claude/codex/opencode CLIs on `$PATH`,
   `/bin/bash` (run panes' job control), git, and how many skills, plugin
   agents, and MCP servers loaded, plus standing memory, a resumable session,
   and the sys-tool mode — each ✗ line names its fix.
-- **`/resume`** — **continue the previous session** (à la Claude Code's
-  `--continue`): the broker auto-saves the conversation — your tasks and
-  every agent reply — to `./.crew/session-live.md` as it streams (32 KB cap,
-  oldest half dropped; the `crew` system voice is skipped), and on the next
-  broker start it rotates to `./.crew/last-session.md`. `/resume` in a fresh
-  pane folds that file's tail (2 KB) into your **next task** as a
+- **"pick up where we left off"** — **continue the previous session** (à la
+  Claude Code's `--continue`; the `/resume` slash form is retired): the
+  broker auto-saves the conversation — your tasks and every agent reply —
+  to `./.crew/session-live.md` as it streams (32 KB cap, oldest half
+  dropped; the `crew` system voice is skipped), and on the next broker
+  start it rotates to `./.crew/last-session.md`. Asking to resume in a
+  fresh pane folds that file's tail (2 KB) into your **next task** as a
   PREVIOUS SESSION context block — consumed once — so the crew picks up
   where the last pane left off, even after a crash.
 - **`/export`** — write the pane's transcript to

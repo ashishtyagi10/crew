@@ -127,14 +127,37 @@ pub(crate) fn resume_offer_at(base: &Path) -> Option<String> {
         .count();
     (lines > 0).then(|| {
         format!(
-            "{lines} message{} from your last session here \u{2014} /resume folds \
-             them into the next task",
+            "{lines} message{} from your last session here \u{2014} say \
+             \u{201c}pick up where we left off\u{201d} to fold them into the \
+             next task",
             if lines == 1 { "" } else { "s" },
         )
     })
 }
 
-/// Wrap the next task with restored context (the `/resume` payload).
+/// Restore the previous session: load its tail into the session's resume
+/// slot, to be folded into the next task. Was the `/resume` arm in
+/// `commands::handle`; the command retired, and the intent router (a plain
+/// "pick up where we left off") is now the only caller.
+pub(crate) fn resume_cmd(
+    session: &super::session::Session,
+    emit: &mut dyn FnMut(crate::PluginEvent) -> anyhow::Result<()>,
+) -> anyhow::Result<()> {
+    let m = match tail() {
+        Some(prev) => {
+            let n = prev.len();
+            *session.resume.lock().unwrap_or_else(|e| e.into_inner()) = Some(prev);
+            format!(
+                "restored {n} chars of the previous session — the next \
+                 task carries it as context"
+            )
+        }
+        None => "nothing to resume — no previous session found".into(),
+    };
+    emit(super::relay::msg("agent smith", m))
+}
+
+/// Wrap the next task with restored context (the resume payload).
 pub(crate) fn with_resume(prev: &str, task: &str) -> String {
     format!(
         "PREVIOUS SESSION (restored context — the conversation so far):\n\

@@ -54,7 +54,8 @@ fn complete_once(
     }
 }
 
-/// The classification prompt: the five shapes and the reply grammar.
+/// The classification prompt: one flat grammar over the execution shapes and
+/// the capability intents; first match wins.
 pub(super) fn prompt(task: &str) -> String {
     format!(
         "You route a user's message to ONE execution shape:\n\
@@ -63,7 +64,13 @@ pub(super) fn prompt(task: &str) -> String {
          loop — one result refined over several rounds (iterate/polish/keep improving)\n\
          plan — draft a plan for approval before anything runs\n\
          swarm — multi-part work worth decomposing into parallel tasks\n\
-         The FIRST line of your reply must be exactly `SHAPE: <reply|fan|loop|plan|swarm>`.\n\n\
+         commit — draft a git commit message for the working diff (creating the commit still \
+         waits for the user's confirm)\n\
+         review — code-review the working diff, findings worst-first\n\
+         standup — summarize recent commits as a standup update\n\
+         resume — restore the previous session's conversation as context\n\
+         The FIRST line of your reply must be exactly \
+         `SHAPE: <reply|fan|loop|plan|swarm|commit|review|standup|resume>`.\n\n\
          Message: {task}"
     )
 }

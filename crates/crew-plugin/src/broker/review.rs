@@ -28,14 +28,9 @@ pub(crate) fn review_cmd(
     session: &mut Session,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
-    let dir = match std::env::current_dir() {
+    let dir = match super::gitmsg::project_dir() {
         Ok(d) => d,
-        Err(e) => {
-            return emit(msg(
-                "agent smith",
-                format!("review: no working directory: {e}"),
-            ))
-        }
+        Err(e) => return emit(msg("agent smith", format!("review: {e}"))),
     };
     let (diff, staged) = match super::gitmsg::pick_diff(&dir) {
         Err(e) => return emit(msg("agent smith", format!("review: {e}"))),
