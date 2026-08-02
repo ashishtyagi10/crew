@@ -9,19 +9,13 @@
 //! key, the mock provider, a parse failure — falls back to today's behavior:
 //! the swarm.
 use std::sync::Arc;
-use std::time::Duration;
 
 use crate::PluginEvent;
 
 use super::session::Session;
 
-/// Output-token ceiling for the classification call: the grammar is one line.
-const INTENT_MAX_TOKENS: u32 = 64;
-
-/// Round-trip ceiling for classification — deliberately far below
-/// `call_timeout()` (3 min): the router is overhead before the real work, so
-/// a slow classifier must degrade to the swarm, not stall the task.
-const CLASSIFY_TIMEOUT: Duration = Duration::from_secs(30);
+mod classify;
+mod fanout;
 
 /// Relay rounds when the router picks `loop` — the user never typed a count,
 /// so a modest default well inside `constructs::MAX_ROUNDS`.
@@ -56,8 +50,23 @@ pub(crate) fn route(
     tick_emit: &Arc<dyn Fn(PluginEvent) + Send + Sync>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
-    let shape = match live_classifier() {
-        Some(call) => classify_with(task, &call).unwrap_or(Shape::Swarm),
+    match classify::live_classifier() {
+        Some(call) => route_with(task, Some(&call), session, tick_emit, emit),
+        None => route_with(task, None, session, tick_emit, emit),
+    }
+}
+
+/// [`route`] with the classifier passed in — the seam the parity tests use to
+/// prove a plain phrasing reaches a capability whose slash command retired.
+pub(crate) fn route_with(
+    task: &str,
+    classifier: Option<Classifier>,
+    session: &mut Session,
+    tick_emit: &Arc<dyn Fn(PluginEvent) + Send + Sync>,
+    emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
+) -> anyhow::Result<()> {
+    let shape = match classifier {
+        Some(call) => classify_with(task, call).unwrap_or(Shape::Swarm),
         None => Shape::Swarm,
     };
     dispatch(shape, task, session, tick_emit, emit)
@@ -75,7 +84,7 @@ pub(crate) fn dispatch(
 ) -> anyhow::Result<()> {
     match shape {
         Shape::Reply => super::stdio::relay_counting(task, session, tick_emit, emit),
-        Shape::Fan => super::commands::fan_cmd(session, task, tick_emit, emit),
+        Shape::Fan => fanout::fan_cmd(session, task, tick_emit, emit),
         Shape::Loop => {
             super::constructs::loop_cmd(session, &format!("{LOOP_ROUNDS} {task}"), tick_emit, emit)
         }
@@ -87,68 +96,14 @@ pub(crate) fn dispatch(
 /// Classify `task` through `call`: `None` on a call error or a reply outside
 /// the grammar — the caller decides the fallback.
 pub(crate) fn classify_with(task: &str, call: Classifier) -> Option<Shape> {
-    call(&prompt(task)).ok().and_then(|r| parse_shape(&r))
+    call(&classify::prompt(task))
+        .ok()
+        .and_then(|r| parse_shape(&r))
 }
 
 /// `CREW_INTENT=0` — the escape hatch back to the old always-swarm routing.
 pub(crate) fn disabled() -> bool {
     std::env::var("CREW_INTENT").is_ok_and(|v| v == "0")
-}
-
-/// The live classifier, when one may run: `None` under `CREW_INTENT=0`, with
-/// no resolvable provider, or under the mock provider (the GUI harness needs
-/// deterministic swarm replies; a mock reply would fail the grammar anyway).
-fn live_classifier() -> Option<impl Fn(&str) -> Result<String, String>> {
-    if disabled() {
-        return None;
-    }
-    let (provider, model) = super::discover::provider_and_model()?;
-    if model == "mock" {
-        return None;
-    }
-    Some(move |p: &str| complete_once(&provider, &model, p))
-}
-
-/// One bounded completion on the discovered provider — same block-on pattern
-/// as `ask::suggest_far_command` (a small one-shot needs its own max_tokens,
-/// which the `Adapter` layer doesn't expose).
-fn complete_once(
-    provider: &Arc<dyn crew_hive::Provider>,
-    model: &str,
-    prompt: &str,
-) -> Result<String, String> {
-    let req = crew_hive::CompletionRequest {
-        model: model.to_string(),
-        system: None,
-        prompt: prompt.to_string(),
-        max_tokens: INTENT_MAX_TOKENS,
-    };
-    let rt = tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .map_err(|e| e.to_string())?;
-    let fut = provider.complete(req);
-    match rt.block_on(async move { tokio::time::timeout(CLASSIFY_TIMEOUT, fut).await }) {
-        Ok(Ok(c)) => Ok(c.text),
-        Ok(Err(e)) => Err(e.to_string()),
-        Err(_) => Err(format!(
-            "intent classification timed out after {CLASSIFY_TIMEOUT:?}"
-        )),
-    }
-}
-
-/// The classification prompt: the five shapes and the reply grammar.
-fn prompt(task: &str) -> String {
-    format!(
-        "You route a user's message to ONE execution shape:\n\
-         reply — a single agent answers or does it directly in one turn\n\
-         fan — every agent tackles the same thing independently (the user wants many takes)\n\
-         loop — one result refined over several rounds (iterate/polish/keep improving)\n\
-         plan — draft a plan for approval before anything runs\n\
-         swarm — multi-part work worth decomposing into parallel tasks\n\
-         The FIRST line of your reply must be exactly `SHAPE: <reply|fan|loop|plan|swarm>`.\n\n\
-         Message: {task}"
-    )
 }
 
 /// Parse the reply's first line against the `SHAPE: <shape>` grammar
@@ -177,5 +132,5 @@ pub(crate) fn parse_shape(reply: &str) -> Option<Shape> {
 }
 
 #[cfg(test)]
-#[path = "intent_tests.rs"]
+#[path = "../intent_tests/mod.rs"]
 mod tests;

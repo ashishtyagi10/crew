@@ -17,14 +17,14 @@ pub(crate) fn is_command(text: &str) -> bool {
 pub(crate) fn is_quick(text: &str) -> bool {
     let line = text.trim().trim_start_matches('/');
     let cmd = line.split_whitespace().next().unwrap_or("");
+    // `fan` and `loop` are absent on purpose: retired commands answer with an
+    // instant hint, so they must not occupy a worker slot.
     is_command(text)
         && !matches!(
             cmd,
             "commit"
                 | "review"
                 | "standup"
-                | "fan"
-                | "loop"
                 | "goal"
                 | "skill"
                 | "mcp"
@@ -40,8 +40,8 @@ pub(crate) const HELP: &str = "constructs:\n\
     /model — the roster with each agent's model (also in the pane footer)\n\
     /model <agent> <model|default> — pin an agent to a model (mix models freely)\n\
     /model all <model|default> — set every agent's model at once\n\
-    /fan <task> — every agent answers the same task in parallel\n\
-    /loop <n> <task> — n relay rounds, each improving the last answer\n\
+    plain language routes itself — \u{201c}have every agent take a crack at \u{2026}\u{201d} \
+    fans out in parallel; \u{201c}keep refining \u{2026}\u{201d} runs improvement rounds\n\
     /goal <text> — keep working until a judge agent rules the goal met\n\
     /plan <task> — draft a numbered plan; nothing runs until you approve\n\
     /approve · /reject — run or discard the drafted plan (the crew pane binds these to enter and esc)\n\
@@ -114,8 +114,8 @@ pub fn expand_alias(trimmed: &str) -> String {
 /// [`closest_construct`], and the source a host should build its palette
 /// from rather than keeping a second copy (see [`constructs`]).
 const CONSTRUCTS: &[&str] = &[
-    "help", "model", "fan", "loop", "goal", "plan", "approve", "reject", "commit", "review",
-    "resume", "doctor", "standup", "restore", "skill", "memory", "mcp", "reload", "diff", "stop",
+    "help", "model", "goal", "plan", "approve", "reject", "commit", "review", "resume", "doctor",
+    "standup", "restore", "skill", "memory", "mcp", "reload", "diff", "stop",
 ];
 
 /// Every construct the broker answers, without the leading slash. Exposed so
@@ -181,8 +181,17 @@ pub(crate) fn handle(
     match cmd {
         "help" => emit(msg("agent smith", HELP)),
         "model" => model_cmd(session, rest, emit),
-        "fan" => fan_cmd(session, rest, tick_emit, emit),
-        "loop" => super::constructs::loop_cmd(session, rest, tick_emit, emit),
+        // Retired as commands: the intent router recognizes the plain-language
+        // ask and reaches the same capability (`fan_cmd`, `loop_cmd`). The
+        // hint teaches the phrasing rather than silently reinterpreting.
+        "fan" => emit(msg(
+            "agent smith",
+            "/fan is retired — just ask: \u{201c}have every agent take a crack at \u{2026}\u{201d}",
+        )),
+        "loop" => emit(msg(
+            "agent smith",
+            "/loop is retired — just ask: \u{201c}keep refining \u{2026} over a few rounds\u{201d}",
+        )),
         "goal" => super::constructs::goal_cmd(session, rest, tick_emit, emit),
         "plan" => super::plan::plan_cmd(session, rest, emit),
         "approve" => super::plan::approve_cmd(session, tick_emit, emit),
@@ -352,37 +361,6 @@ fn model_cmd(
     emit(msg("agent smith", note))
 }
 
-/// `/fan <task>` — every agent answers `task` concurrently. `pub(crate)` for
-/// the intent router, which dispatches a `fan`-shaped plain message here.
-pub(crate) fn fan_cmd(
-    session: &mut Session,
-    task: &str,
-    tick_emit: &std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,
-    emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
-) -> anyhow::Result<()> {
-    let task = task.trim();
-    if task.is_empty() {
-        return emit(msg("agent smith", "usage: /fan <task>"));
-    }
-    let reg = session.registry();
-    if reg.is_empty() {
-        return emit(msg("agent smith", super::stdio::roster(&reg)));
-    }
-    let names = reg.names();
-    emit(msg(
-        "agent smith",
-        format!("fanning out to {} agents in parallel\u{2026}", names.len()),
-    ))?;
-    super::fan::fan_out(
-        &reg,
-        &names,
-        task,
-        super::session::call_timeout(),
-        tick_emit,
-        emit,
-    )
-}
-
 /// The roster, one agent per line: name, role hint, and the model it runs.
 fn agents_report(session: &Session) -> String {
     let reg = session.registry();
@@ -407,3 +385,7 @@ fn agents_report(session: &Session) -> String {
 #[cfg(test)]
 #[path = "commands_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "commands_retire_tests.rs"]
+mod retire_tests;

@@ -253,9 +253,11 @@ caps each thread (default 6), an optional token budget caps spend, and every
 agent call has a timeout — a hung agent is killed and logged, never blocking the
 UI.
 
-The pane speaks a small **construct language**: `/fan <task>` sends one task to
-every agent **in parallel** (replies stream back fastest-first), `@a+b <task>`
-fans out to a subset, `/loop <n> <task>` iterates on the crew's own answer,
+The pane speaks a small **construct language**, and plain language does the
+rest: "have every agent take a crack at this" sends one task to every agent
+**in parallel** (replies stream back fastest-first), "keep refining it" iterates
+on the crew's own answer — the broker's intent router picks the execution shape
+(`CREW_INTENT=0` turns it off). `@a+b <task>` fans out to a subset,
 `/goal <text>` keeps working until a judge agent rules the goal met, `/model
 <agent> <model>` pins agents to **different models side by side**, and
 the footer reports live totals — with Tab completion for `@agent` names and
