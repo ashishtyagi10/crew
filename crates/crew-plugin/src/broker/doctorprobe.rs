@@ -37,9 +37,11 @@ pub(crate) fn gather(session: &super::session::Session) -> DoctorInputs {
             .into_iter()
             .filter(|n| Some(n.as_str()) != active.map(|p| p.name()))
             .collect(),
-        clis: ["claude", "codex", "opencode"]
+        // From the adapter table, not a name list — the CLIs `/doctor`
+        // reports are exactly the ones the roster can drive.
+        clis: super::agents::known_adapters()
             .iter()
-            .map(|b| (b.to_string(), on_path(b, &path)))
+            .map(|a| (a.name().to_string(), on_path(a.name(), &path)))
             .collect(),
         bash: Path::new("/bin/bash").exists(),
         git: std::process::Command::new("git")

@@ -180,30 +180,30 @@ pub fn pick_provider(force: Option<&str>, has_key: impl Fn(&str) -> bool) -> Opt
     if has_key("CREW_BROKER_MOCK_REPLY") {
         return Some(ProviderKind::Mock);
     }
-    match force.map(str::to_ascii_lowercase).as_deref() {
-        Some("dashscope") => return Some(ProviderKind::DashScope),
-        Some("openrouter") => return Some(ProviderKind::OpenRouter),
-        Some("anthropic") => return Some(ProviderKind::Anthropic),
-        Some(other) => {
-            if let Some(d) = direct_by_name(other) {
-                return Some(ProviderKind::Direct(d));
-            }
-        }
-        _ => {}
+    // An unknown forced name falls through to auto-discovery, as it always
+    // has (a delegated pin like `claude-code` is `auth::resolve`'s business,
+    // not this key-shaped path's).
+    if let Some(k) = force.and_then(kind_for) {
+        return Some(k);
     }
-    if has_key("DASHSCOPE_API_KEY") {
-        Some(ProviderKind::DashScope)
-    } else if has_key("OPENROUTER_API_KEY") {
-        Some(ProviderKind::OpenRouter)
-    } else if has_key("ANTHROPIC_API_KEY") {
-        Some(ProviderKind::Anthropic)
-    } else {
-        // New providers probe LAST, so adding a row can never change which
-        // provider an existing install resolves to.
-        DIRECT
-            .iter()
-            .find(|d| has_key(d.var))
-            .map(ProviderKind::Direct)
+    // The registry's keyed rows, in its (historic) discovery order — new
+    // providers probe LAST there, so adding a row can never change which
+    // provider an existing install resolves to.
+    super::auth::registry::keyed()
+        .into_iter()
+        .find(|e| e.key_var.is_some_and(&has_key))
+        .and_then(|e| kind_for(e.name))
+}
+
+/// The client-construction variant behind a registry name — the ONE place a
+/// keyed provider name maps to code; discovery order and membership live in
+/// `auth::registry`, and everything else iterates that table.
+fn kind_for(name: &str) -> Option<ProviderKind> {
+    match name.to_ascii_lowercase().as_str() {
+        "dashscope" => Some(ProviderKind::DashScope),
+        "openrouter" => Some(ProviderKind::OpenRouter),
+        "anthropic" => Some(ProviderKind::Anthropic),
+        other => direct_by_name(other).map(ProviderKind::Direct),
     }
 }
 
@@ -344,24 +344,11 @@ pub fn no_provider_advice() -> &'static str {
 /// than it needs a picker.
 pub(crate) fn configured_providers() -> Vec<String> {
     let store = crate::credentials::load();
-    let has = |var: &str| key_for(&store, var).is_some();
-    let mut out = Vec::new();
-    for (var, name) in [
-        ("DASHSCOPE_API_KEY", "dashscope"),
-        ("OPENROUTER_API_KEY", "openrouter"),
-        ("ANTHROPIC_API_KEY", "anthropic"),
-    ] {
-        if has(var) {
-            out.push(name.to_string());
-        }
-    }
-    out.extend(
-        DIRECT
-            .iter()
-            .filter(|d| has(d.var))
-            .map(|d| d.name.to_string()),
-    );
-    out
+    super::auth::registry::keyed()
+        .into_iter()
+        .filter(|e| e.key_var.is_some_and(|v| key_for(&store, v).is_some()))
+        .map(|e| e.name.to_string())
+        .collect()
 }
 
 /// [`resolved_provider`] over an already-loaded store.

@@ -8,9 +8,12 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
-## 0.11.7
+## 0.11.8
 
 *The command diet completes: seven constructs, everything else is conversation.*
+
+(Released as 0.11.8: the autonomy branch merged and bumped past 0.11.7 in one
+motion, so that number never shipped an entry of its own.)
 
 - **`/goal`, `/plan`, `/approve`, `/reject`, `/skill`, `/memory` and `/mcp`
   are retired** — constructs shrink from 14 to the infrastructure seven
