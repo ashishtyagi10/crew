@@ -8,6 +8,27 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.11.4
+
+*Two commands walk in, one walks out.*
+
+- **`/update` and `/restart` merged.** `/update` now downloads the latest
+  release, installs it, and — after a brief "restarting…" beat on the UPDATE
+  card — relaunches Crew into the new build by itself. An update the quiet
+  background check already installed is applied instantly: `/update` sees the
+  parked install and restarts without a network round-trip. The blinking nav
+  reminder now reads `· /update`. Typing `/restart` gets a pointer to
+  `/update` instead of a fuzzy-match guess at `/restore`. Only a run you
+  typed ever restarts the app — the background check still parks quietly.
+
+## 0.11.3
+
+*The footer knows who's on shift.*
+
+- **The footer mode line names the agents working right now** instead of a
+  static roster, and the composer border sheds the roster strip — one line
+  fewer, more signal.
+
 ## 0.11.2
 
 *A pane waiting on you no longer waits in silence.*
