@@ -19,6 +19,7 @@ const NOT_USER_FACING: &[&str] = &[
     "CREW_PROJECT_DIR",
     "CREW_CREDENTIALS_PATH",
     "CREW_OAUTH_BASE",
+    "CREW_SECURITY_BIN",
     "CREW_RESOLVE_DIR",
     "CREW_PE_DIR",
     "CREW_EE_A",

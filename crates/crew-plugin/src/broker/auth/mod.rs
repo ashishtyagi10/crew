@@ -5,6 +5,7 @@
 //! vendor CLI's own commands and never reads another app's token store.
 
 pub(crate) mod device;
+pub(crate) mod keychain;
 pub(crate) mod probe;
 pub(crate) mod registry;
 pub(crate) mod resolve;

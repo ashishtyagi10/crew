@@ -1,6 +1,7 @@
-//! Stored OAuth token sets, one per device-flow provider. This iteration's
-//! backend is an owner-only file (`credentials::write_atomic`, 0600 before
-//! any byte lands); the keychain backend layers in front in the next commit.
+//! Stored OAuth token sets, one per device-flow provider. Two backends, the
+//! better one first: the OS keychain (`keychain`, the macOS `security` CLI,
+//! probed never assumed) and an owner-only file (`credentials::write_atomic`,
+//! 0600 before any byte lands) everywhere the keychain isn't.
 //!
 //! States and timestamps are printable; TOKEN VALUES NEVER ARE — `Debug` is
 //! hand-written for the same reason `credentials::Store`'s is, and nothing
@@ -80,19 +81,74 @@ fn load_all(path: &Path) -> BTreeMap<String, StoredToken> {
         .unwrap_or_default()
 }
 
-/// The stored grant for `provider`, if any.
+/// The stored grant for `provider`: the keychain when one answers, else the
+/// file (also checked when the keychain has no item — a grant stored before
+/// a keychain existed, or under a store that fell back, stays readable).
 pub(crate) fn load(provider: &str) -> Option<StoredToken> {
-    load_at(&path()?, provider)
+    load_via(
+        super::keychain::bin().as_deref(),
+        path().as_deref(),
+        provider,
+    )
+}
+
+/// The injected-backend half of [`load`].
+pub(crate) fn load_via(
+    bin: Option<&Path>,
+    file: Option<&Path>,
+    provider: &str,
+) -> Option<StoredToken> {
+    if let Some(bin) = bin {
+        if let Some(secret) = super::keychain::load_with(bin, provider) {
+            if let Ok(t) = serde_json::from_str::<StoredToken>(&secret) {
+                return Some(t);
+            }
+        }
+    }
+    load_at(file?, provider)
 }
 
 pub(crate) fn load_at(path: &Path, provider: &str) -> Option<StoredToken> {
     load_all(path).remove(provider)
 }
 
-/// Store `provider`'s grant (0600, atomic — see `credentials::write_atomic`).
+/// Store `provider`'s grant: the keychain when one answers, else the 0600
+/// file (atomic — see `credentials::write_atomic`). A keychain that refuses
+/// costs nothing but the better backend.
 pub(crate) fn store(provider: &str, tok: StoredToken) -> anyhow::Result<()> {
-    let path = path().ok_or_else(|| anyhow::anyhow!("no config directory to store tokens in"))?;
-    store_at(&path, provider, tok)
+    store_via(
+        super::keychain::bin().as_deref(),
+        path().as_deref(),
+        provider,
+        tok,
+    )
+}
+
+/// The injected-backend half of [`store`].
+pub(crate) fn store_via(
+    bin: Option<&Path>,
+    file: Option<&Path>,
+    provider: &str,
+    tok: StoredToken,
+) -> anyhow::Result<()> {
+    if let Some(bin) = bin {
+        if let Ok(json) = serde_json::to_string(&tok) {
+            if super::keychain::store_with(bin, provider, &json) {
+                return Ok(());
+            }
+        }
+    }
+    let file = file.ok_or_else(|| anyhow::anyhow!("no config directory to store tokens in"))?;
+    store_at(file, provider, tok)
+}
+
+/// What `/doctor` says about where grants live.
+pub(crate) fn backend_note() -> &'static str {
+    if super::keychain::bin().is_some() {
+        "OS keychain (macOS `security`)"
+    } else {
+        "0600 file (no keychain on this system)"
+    }
 }
 
 pub(crate) fn store_at(path: &Path, provider: &str, tok: StoredToken) -> anyhow::Result<()> {
@@ -110,8 +166,13 @@ pub(crate) fn store_at(path: &Path, provider: &str, tok: StoredToken) -> anyhow:
     crate::credentials::write_atomic(path, &serde_json::to_vec_pretty(&all)?)
 }
 
-/// Drop `provider`'s grant (a hard refresh failure discards the dead set).
+/// Drop `provider`'s grant (a hard refresh failure discards the dead set) —
+/// from BOTH backends, so a dead grant cannot resurface from the one a
+/// store call happened not to use.
 pub(crate) fn clear(provider: &str) {
+    if let Some(bin) = super::keychain::bin() {
+        super::keychain::delete_with(&bin, provider);
+    }
     let Some(path) = path() else { return };
     clear_at(&path, provider);
 }
