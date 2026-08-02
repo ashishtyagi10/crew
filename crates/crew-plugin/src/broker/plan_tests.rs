@@ -31,7 +31,7 @@ fn run(session: &mut Session, cmd: &str, rest: &str) -> Vec<PluginEvent> {
 fn plan_without_task_shows_usage() {
     let mut s = Session::new();
     let t = texts(&run(&mut s, "plan", "  "));
-    assert!(t[0].contains("usage: /plan"), "{t:?}");
+    assert!(t[0].contains("nothing to plan"), "{t:?}");
 }
 
 #[test]

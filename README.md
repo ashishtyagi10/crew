@@ -253,12 +253,13 @@ caps each thread (default 6), an optional token budget caps spend, and every
 agent call has a timeout — a hung agent is killed and logged, never blocking the
 UI.
 
-The pane speaks a small **construct language**, and plain language does the
-rest: "have every agent take a crack at this" sends one task to every agent
-**in parallel** (replies stream back fastest-first), "keep refining it" iterates
-on the crew's own answer — the broker's intent router picks the execution shape
-(`CREW_INTENT=0` turns it off). `@a+b <task>` fans out to a subset,
-`/goal <text>` keeps working until a judge agent rules the goal met, `/model
+The pane speaks a tiny **construct language** (seven infrastructure commands),
+and plain language does the rest: "have every agent take a crack at this"
+sends one task to every agent **in parallel** (replies stream back
+fastest-first), "keep refining it" iterates on the crew's own answer, "keep
+working until …" loops until a judge agent rules the goal met — the broker's
+intent router picks the execution shape (`CREW_INTENT=0` turns it off).
+`@a+b <task>` fans out to a subset, `/model
 <agent> <model>` pins agents to **different models side by side**, and
 the footer reports live totals — with Tab completion for `@agent` names and
 slash constructs in the composer, one-letter aliases (`/m` → `/model`), and
@@ -281,9 +282,9 @@ directory and sandbox mode. An optional token budget
 (`CREW_BROKER_TOKEN_BUDGET`) hard-stops a runaway thread.
 
 It also borrows the flagship moves of the big coding agents: **plan mode**
-(`/plan <task>` drafts a numbered plan and nothing runs until you approve it
-with enter;
-esc discards — à la Claude Code), **workspace checkpoints**
+(ask for "a plan for …" and nothing runs until you approve it — enter or
+"approve" runs it, esc or "reject" discards — à la Claude Code),
+**workspace checkpoints**
 (a checkpoint is taken automatically before every task that can change files,
 as a hidden commit under
 `refs/crew/` without touching HEAD or your index, bare `/restore` lists,
@@ -297,10 +298,11 @@ diff worst-first — à la Codex), **session resume** (the conversation
 auto-saves to `./.crew/`, and asking to "pick up where we left off" in a
 fresh pane folds the last session into the next task — à la Claude
 Code's `--continue`), **`/doctor`** (a ✓/✗ health check of the whole AI
-stack: provider key, agent CLIs, MCP, skills, memory — each failure names
-its fix), **AI standups** (ask "what did I ship this week?" for an update
-from recent commits: done by theme, in progress, risks). The old slash
-forms of these — commit, review, standup, resume — are retired; plain
+stack: provider key, agent CLIs, MCP servers with their tools, skills,
+memory — each failure names its fix), **AI standups** (ask "what did I ship
+this week?" for an update from recent commits: done by theme, in progress,
+risks). The old slash forms of all of these — fan, loop, goal, plan,
+commit, review, standup, resume, skill, memory, mcp — are retired; plain
 language replaced them. The transcript folds itself, which
 folds older messages away when a long session gets heavy; `/diff` (in the
 pane or the input bar) completes the loop with Codex-style change review.
@@ -312,22 +314,24 @@ needed) — see [docs/CREW.md](docs/CREW.md#multi-agent-relay-crew):
 - **Memory** — Claude Code-style `#` shortcut: `#always use pnpm` in the pane
   appends to `./.crew/memory.md`, and every task from then on carries the
   merged memory (user + project files, 2 KB cap) as a standing block the
-  agents follow; `/memory` shows what's loaded.
+  agents follow; ask "what do you remember?" to see it.
 - **Skills** — markdown prompt playbooks in `~/.config/crew/skills/` or
   `./.crew/skills/` (optional `name:`/`description:` frontmatter; project
   overrides user). A skill can also be a **directory with a `SKILL.md`** plus
   supporting files, and oversized playbooks disclose **progressively**: past
   8 KB the relay gets the description + heading outline + path, and agents
-  read sections on demand with chunked `sys:read_file` calls. Bare `/skill` lists
-  them; `/skill <name> <task>` runs the relay with the playbook prepended so
-  the whole crew follows it.
+  read sections on demand with chunked `sys:read_file` calls. There is no
+  command: a task that names a skill picks its playbook up by itself, and
+  when skills are loaded but unmatched the crew sees a one-line roster of
+  them.
 - **Plugin agents** — a JSON manifest in `~/.config/crew/agents/` or
   `./.crew/agents/` (`{"name", "command", "args": […, "{}"], "role"}`) turns
   any headless CLI into a roster agent; installed manifests appear in
   the roster and make `/crew` usable with **no API key at all**.
 - **MCP** — servers declared in `~/.config/crew/mcp.json` or `./.crew/mcp.json`
-  (the standard `mcpServers` schema) connect lazily over stdio; `/mcp` lists
-  their tools, relay prompts advertise them, and agents call one by ending a
+  (the standard `mcpServers` schema) connect lazily over stdio; `/doctor`
+  lists each server with its tools, relay prompts advertise them, and agents
+  call one by ending a
   reply with `` `@tool server:tool {"arg": …}` `` — the result is fed back
   (bounded rounds, visible in the transcript) before routing resumes.
 

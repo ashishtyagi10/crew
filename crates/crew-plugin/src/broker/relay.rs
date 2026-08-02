@@ -26,9 +26,9 @@ pub(crate) fn relay_turn(
     tick_emit: &std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<Option<String>> {
-    // Standing memory rides every relay task (plain sends, /loop, /goal,
-    // /skill, /approve) — prepended here so no caller can forget it.
-    let body = super::memory::with_memory(body);
+    // Skills weave in first (matched on the RAW task, before any wrapper
+    // could false-match a name), then standing memory rides on top.
+    let body = super::memory::with_memory(&super::skillframe::with_skills(body));
     let mut timing: Option<(String, Instant)> = None;
     let mut segments: Vec<(String, Duration)> = Vec::new();
     let mut answer: Option<String> = None;

@@ -11,7 +11,7 @@ use common::{messages, run_broker, seed_specialists, unique_dir};
 /// Constructs that mutate the working tree or the user's session in ways a
 /// smoke test should not trigger blindly. They are exercised by their own
 /// tests; here they would restore files or rewrite state.
-const SKIP: &[&str] = &["restore", "approve", "reject"];
+const SKIP: &[&str] = &["restore"];
 
 #[test]
 fn every_advertised_construct_answers() {
@@ -24,7 +24,9 @@ fn every_advertised_construct_answers() {
         .copied()
         .filter(|c| !SKIP.contains(c))
         .collect();
-    assert!(names.len() > 10, "suspiciously few constructs: {names:?}");
+    // The command diet pinned the surface at seven (retire_tests owns the
+    // exact list); minus the skipped `/restore` that leaves six to smoke.
+    assert!(names.len() >= 6, "suspiciously few constructs: {names:?}");
 
     let sends: Vec<String> = names
         .iter()

@@ -67,7 +67,7 @@ fn classify_sends_the_task_and_the_grammar_to_the_model() {
     let p = seen.lock().unwrap();
     assert!(p.contains("refactor the config parser"), "{p}");
     assert!(
-        p.contains("SHAPE: <reply|fan|loop|plan|swarm|commit|review|standup|resume>"),
+        p.contains("SHAPE: <reply|fan|loop|plan|goal|swarm|commit|review|standup|resume>"),
         "{p}"
     );
 }

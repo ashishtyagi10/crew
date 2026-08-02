@@ -78,10 +78,10 @@ pub(crate) fn run_task(
     session: &Session,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
-    // A `/resume` before this task folds the previous session's tail in as
-    // restored context (consumed once) — mirrors `relay_counting`'s handling
-    // of `@agent` tasks so the default swarm path doesn't silently ignore it.
-    let task_owned = fold_resume(session, task);
+    // A pending resume folds the previous session's tail in as restored
+    // context (consumed once) — mirroring `relay_counting` — and skills
+    // weave in first, matched on the raw task, exactly as on the relay path.
+    let task_owned = fold_resume(session, &super::skillframe::with_skills(task));
     super::sessionlog::append("user", task);
     let (planner, factory, budget, model) = backend();
     run_with(

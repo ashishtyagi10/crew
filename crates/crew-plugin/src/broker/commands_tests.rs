@@ -33,11 +33,22 @@ fn detects_commands() {
 
 #[test]
 fn quick_commands_answer_inline_but_constructs_do_not() {
-    // The retired `/fan` and `/loop` are quick now — see `retire_tests`.
-    for quick in ["/help", "/model coder x", "/status", "/diff", "/nonsense"] {
+    // Every retired command is quick now (an instant hint) — see
+    // `retire_tests`. `/restore` is the one construct left that does real
+    // work on files, so it alone still takes a worker slot.
+    for quick in [
+        "/help",
+        "/model coder x",
+        "/status",
+        "/diff",
+        "/nonsense",
+        "/goal ship it",
+        "/skill review x",
+        "/mcp",
+    ] {
         assert!(is_quick(quick), "{quick}");
     }
-    for long in ["/goal ship it", "a plain task"] {
+    for long in ["/restore 2", "a plain task"] {
         assert!(!is_quick(long), "{long}");
     }
 }

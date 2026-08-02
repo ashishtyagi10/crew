@@ -13,16 +13,13 @@ use crate::suggest::MenuItem;
 /// here still appears, under "other": a construct must never be invisible
 /// because someone forgot to file it.
 const SECTIONS: &[(&str, &[&str])] = &[
-    // `/fan`, `/loop`, `/commit`, `/review`, `/standup` and `/resume` are
-    // retired: plain language reaches each capability through the broker's
-    // intent router, so the palette no longer teaches them.
-    ("work", &["/goal", "/plan"]),
+    // `/fan`, `/loop`, `/goal`, `/plan`, `/skill`, `/memory`, `/mcp`,
+    // `/commit`, `/review`, `/standup` and `/resume` are retired: plain
+    // language reaches each capability through the broker's intent router,
+    // so the palette no longer teaches them.
     ("changes", &["/diff", "/restore"]),
-    ("session", &["/memory", "/compact", "/export", "/stop"]),
-    (
-        "setup",
-        &["/model", "/skill", "/mcp", "/reload", "/doctor", "/theme"],
-    ),
+    ("session", &["/export", "/stop"]),
+    ("setup", &["/model", "/reload", "/doctor", "/theme"]),
     ("help", &["/help", "/exit"]),
 ];
 

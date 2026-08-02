@@ -59,6 +59,35 @@ fn load_is_none_when_nothing_exists() {
     assert_eq!(load_from(None, &blank), None);
 }
 
+/// A plain "what do you remember" surfaces the project memory because the
+/// relay prepends it — and the project file is rooted at `CREW_PROJECT_DIR`
+/// (the same seam sessionlog/specialists use), not only at the process CWD.
+#[test]
+fn with_memory_reads_the_project_dir_seam() {
+    let _g = crate::broker::testenv::mock("unused");
+    let dir = std::path::PathBuf::from(std::env::var("CREW_PROJECT_DIR").unwrap());
+    std::fs::write(
+        dir.join(".crew").join("memory.md"),
+        "- deploys go out on Fridays\n",
+    )
+    .unwrap();
+    let p = with_memory("what do you remember?");
+    assert!(p.contains("deploys go out on Fridays"), "{p}");
+    assert!(p.contains("what do you remember?"), "{p}");
+}
+
+/// `#<note>` capture honours the same seam — a test (or a host that sets the
+/// override) must never write into the process CWD's own `.crew/`.
+#[test]
+fn remember_writes_to_the_project_dir_seam() {
+    let _g = crate::broker::testenv::mock("unused");
+    let dir = std::path::PathBuf::from(std::env::var("CREW_PROJECT_DIR").unwrap());
+    let m = remember("use tabs in this repo");
+    assert!(m.contains("remembered"), "{m}");
+    let text = std::fs::read_to_string(dir.join(".crew").join("memory.md")).unwrap();
+    assert!(text.contains("use tabs in this repo"), "{text}");
+}
+
 #[test]
 fn prepend_wraps_the_task_only_when_memory_exists() {
     assert_eq!(prepend(None, "fix the bug"), "fix the bug");

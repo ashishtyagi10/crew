@@ -65,6 +65,7 @@ pub(super) fn prompt(task: &str) -> String {
          fan — every agent tackles the same thing independently (the user wants many takes)\n\
          loop — one result refined over several rounds (iterate/polish/keep improving)\n\
          plan — draft a plan for approval before anything runs\n\
+         goal — keep working in rounds until a stated success condition is judged met\n\
          swarm — multi-part work worth decomposing into parallel tasks\n\
          commit — draft a git commit message for the working diff (creating the commit still \
          waits for the user's confirm)\n\
@@ -72,7 +73,7 @@ pub(super) fn prompt(task: &str) -> String {
          standup — summarize recent commits as a standup update\n\
          resume — restore the previous session's conversation as context\n\
          The FIRST line of your reply must be exactly \
-         `SHAPE: <reply|fan|loop|plan|swarm|commit|review|standup|resume>`.\n\n\
+         `SHAPE: <reply|fan|loop|plan|goal|swarm|commit|review|standup|resume>`.\n\n\
          Message: {task}"
     )
 }

@@ -17,13 +17,10 @@ pub(crate) fn is_command(text: &str) -> bool {
 pub(crate) fn is_quick(text: &str) -> bool {
     let line = text.trim().trim_start_matches('/');
     let cmd = line.split_whitespace().next().unwrap_or("");
-    // Retired commands (`/fan`, `/loop`, `/commit`, …) are absent on purpose:
+    // Retired commands (`/fan`, `/goal`, `/skill`, …) are absent on purpose:
     // they answer with an instant hint, so they must not occupy a worker slot.
-    is_command(text)
-        && !matches!(
-            cmd,
-            "goal" | "skill" | "mcp" | "plan" | "approve" | "restore"
-        )
+    // `/restore` is the one construct left that touches files.
+    is_command(text) && cmd != "restore"
 }
 
 /// One-line summaries of every construct, shown by `/help`.
@@ -34,19 +31,17 @@ pub(crate) const HELP: &str = "constructs:\n\
     /model all <model|default> — set every agent's model at once\n\
     plain language routes itself — \u{201c}have every agent take a crack at \u{2026}\u{201d} \
     fans out in parallel; \u{201c}keep refining \u{2026}\u{201d} runs improvement rounds; \
+    \u{201c}keep working until \u{2026}\u{201d} loops with a judge until it rules the goal met; \
+    \u{201c}draft a plan for \u{2026}\u{201d} waits for your \u{201c}approve\u{201d} or \
+    \u{201c}reject\u{201d} before anything runs; \
     \u{201c}commit this\u{201d} drafts a commit message (say \u{201c}apply\u{201d} to create it); \
     \u{201c}look over my changes\u{201d}, \u{201c}what did I ship this week\u{201d} and \
     \u{201c}pick up where we left off\u{201d} reach code review, a standup and the last session\n\
-    /goal <text> — keep working until a judge agent rules the goal met\n\
-    /plan <task> — draft a numbered plan; nothing runs until you approve\n\
-    /approve · /reject — run or discard the drafted plan (the crew pane binds these to enter and esc)\n\
     /restore [n] — list the automatic snapshots, or put snapshot n's files back\n\
     /diff — everything different from the last commit, new files included\n\
-    /doctor — health-check the AI stack (provider, CLIs, MCP, memory, session)\n\
-    /skill [<name> <task>] — list prompt playbooks, or run the relay with one prepended\n\
-    /memory — show the standing memory prepended to every task\n\
-    #<note> — remember a preference in ./.crew/memory.md\n\
-    /mcp — MCP servers and their tools (~/.config/crew/mcp.json, .crew/mcp.json)\n\
+    /doctor — health-check the AI stack (provider, CLIs, MCP servers and tools, memory, session)\n\
+    #<note> — remember a preference (ask \u{201c}what do you remember?\u{201d} to see them)\n\
+    skills: drop .md playbooks into .crew/skills — a task that names one applies it by itself\n\
     /reload — re-read skills, plugin agents, and mcp.json without a restart\n\
     /stop [#n] — cancel all background tasks, or just task #n\n\
     @<agent> <task> — choose who starts the relay\n\
@@ -105,39 +100,7 @@ pub fn expand_alias(trimmed: &str) -> String {
 /// [`closest_construct`], and the source a host should build its palette
 /// from rather than keeping a second copy (see [`constructs`]).
 const CONSTRUCTS: &[&str] = &[
-    "help", "model", "goal", "plan", "approve", "reject", "doctor", "restore", "skill", "memory",
-    "mcp", "reload", "diff", "stop",
-];
-
-/// Commands retired in favor of the intent router: the capability lives on,
-/// reached by plain language, and typing the old slash form teaches the
-/// phrasing instantly (see `handle`).
-const RETIRED: &[(&str, &str)] = &[
-    (
-        "fan",
-        "/fan is retired — just ask: \u{201c}have every agent take a crack at \u{2026}\u{201d}",
-    ),
-    (
-        "loop",
-        "/loop is retired — just ask: \u{201c}keep refining \u{2026} over a few rounds\u{201d}",
-    ),
-    (
-        "commit",
-        "/commit is retired — just ask: \u{201c}commit this\u{201d}; the draft then waits for \
-         you to say \u{201c}apply\u{201d}",
-    ),
-    (
-        "review",
-        "/review is retired — just ask: \u{201c}look over my changes\u{201d}",
-    ),
-    (
-        "standup",
-        "/standup is retired — just ask: \u{201c}what did I ship this week?\u{201d}",
-    ),
-    (
-        "resume",
-        "/resume is retired — just ask: \u{201c}pick up where we left off\u{201d}",
-    ),
+    "help", "model", "doctor", "restore", "reload", "diff", "stop",
 ];
 
 /// Every construct the broker answers, without the leading slash. Exposed so
@@ -189,13 +152,14 @@ fn levenshtein(a: &str, b: &str) -> usize {
     dp[la][lb]
 }
 
-/// Handle a `/command` line; emits reply events through `emit`. `tick_emit`
-/// carries mid-hop `StatsTick` events for constructs that dial an agent
-/// (`/fan`, `/loop`, `/goal`, `/approve`, `/skill`); every other arm ignores it.
+/// Handle a `/command` line; emits reply events through `emit`. `_tick_emit`
+/// stays in the signature for symmetry with the intent router's dispatch —
+/// no surviving construct dials an agent mid-hop any more (the last that did,
+/// `/goal` and `/approve`, retired behind the router).
 pub(crate) fn handle(
     session: &mut Session,
     text: &str,
-    tick_emit: &std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,
+    _tick_emit: &std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,
     emit: &mut dyn FnMut(PluginEvent) -> anyhow::Result<()>,
 ) -> anyhow::Result<()> {
     let line = text.trim().trim_start_matches('/');
@@ -203,28 +167,18 @@ pub(crate) fn handle(
     // Retired as commands: the intent router recognizes the plain-language
     // ask and reaches the same capability. The hint teaches the phrasing
     // rather than silently reinterpreting.
-    if let Some((_, hint)) = RETIRED.iter().find(|(c, _)| *c == cmd) {
+    if let Some((_, hint)) = super::retired::RETIRED.iter().find(|(c, _)| *c == cmd) {
         return emit(msg("agent smith", *hint));
     }
     match cmd {
         "help" => emit(msg("agent smith", HELP)),
         "model" => model_cmd(session, rest, emit),
-        "goal" => super::constructs::goal_cmd(session, rest, tick_emit, emit),
-        "plan" => super::plan::plan_cmd(session, rest, emit),
-        "approve" => super::plan::approve_cmd(session, tick_emit, emit),
-        "reject" => super::plan::reject_cmd(session, emit),
         "restore" => super::checkpoint::restore_cmd(rest, emit),
         "diff" => super::diff::diff_cmd(emit),
         "doctor" => emit(msg(
             "agent smith",
             super::doctor::render(&super::doctor::gather(session)),
         )),
-        "skill" => super::skills::skill_cmd(session, rest, tick_emit, emit),
-        "memory" => emit(msg("agent smith", super::memory::report())),
-        "mcp" => {
-            let report = session.lock_mcp().report();
-            emit(msg("agent smith", report))
-        }
         "reload" => reload_cmd(session, emit),
         other => emit(msg(
             "agent smith",

@@ -10,6 +10,10 @@ fn healthy() -> DoctorInputs {
         skills: 2,
         plugin_agents: 1,
         mcp_servers: 3,
+        mcp_detail: vec![
+            "\u{25aa} files \u{2014} 2 tool(s): read, write".into(),
+            "\u{25aa} search \u{2014} error: connect failed".into(),
+        ],
         memory: Some(120),
         resumable: true,
         sys_tools: true,
@@ -32,6 +36,21 @@ fn render_reports_every_subsystem() {
     assert!(r.to_lowercase().contains("memory"), "{r}");
     assert!(r.to_lowercase().contains("resumable"), "{r}");
     assert!(r.contains("full"), "sys mode shown: {r}");
+}
+
+/// The retired `/mcp` listing lives here now: each server's tools (or its
+/// failure) render under the count line, indented as detail.
+#[test]
+fn render_folds_the_mcp_server_listing_in() {
+    let r = render(&healthy());
+    assert!(r.contains("files \u{2014} 2 tool(s): read, write"), "{r}");
+    assert!(r.contains("search \u{2014} error: connect failed"), "{r}");
+    let count = r.lines().position(|l| l.contains("mcp servers")).unwrap();
+    let detail = r
+        .lines()
+        .position(|l| l.contains("files \u{2014}"))
+        .unwrap();
+    assert!(detail > count, "detail lines follow the count line: {r}");
 }
 
 #[test]
