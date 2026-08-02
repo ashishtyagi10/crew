@@ -352,8 +352,9 @@ fn model_cmd(
     emit(msg("agent smith", note))
 }
 
-/// `/fan <task>` — every agent answers `task` concurrently.
-fn fan_cmd(
+/// `/fan <task>` — every agent answers `task` concurrently. `pub(crate)` for
+/// the intent router, which dispatches a `fan`-shaped plain message here.
+pub(crate) fn fan_cmd(
     session: &mut Session,
     task: &str,
     tick_emit: &std::sync::Arc<dyn Fn(PluginEvent) + Send + Sync>,

@@ -846,7 +846,11 @@ sys tools; `CREW_SYS_TIMEOUT_MS` (default 120000) bounds each `sys:run`;
 deliberately under `CREW_BROKER_TIMEOUT_MS` so a stalled endpoint names the
 transport and still leaves the model fallback chain a turn;
 `CREW_STREAM_TEXT=0` stops streamed text being forwarded at all, restoring the
-pre-streaming behaviour for a regressed run or a deterministic test. The pane also prints a per-turn timeline + cost summary (`turn done
+pre-streaming behaviour for a regressed run or a deterministic test;
+`CREW_INTENT=0` disables the intent router — every plain message then runs as
+a swarm instead of the model first choosing its execution shape (a direct
+reply, an all-agents fan-out, refinement rounds, a plan awaiting approval, or
+the swarm). The pane also prints a per-turn timeline + cost summary (`turn done
 — planner 4.2s → … · N exchange(s) · ~X tok (approx)`) at the end of every
 task, and accumulates the spend into the header's `~N tok` meter.
 
