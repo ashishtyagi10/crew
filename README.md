@@ -262,7 +262,10 @@ intent router picks the execution shape (`CREW_INTENT=0` turns it off).
 `@a+b <task>` fans out to a subset, bare `/model` shows a **grouped provider
 picker** — your subscriptions (a signed-in `claude` or `codex` seat serves
 smith work with **no API key**; signed-out ones show the exact sign-in
-command), your keys, and installed CLIs, with `/model <n>` switching provider
+command, and a device-flow provider like Qwen **signs in right in the pane**:
+pick its number, approve the code card in your browser, done — tokens live
+in the OS keychain and refresh themselves), your keys, and installed CLIs,
+with `/model <n>` switching provider
 persistently — `/model <agent> <model>` pins agents to **different models
 side by side**, and
 the footer reports live totals — with Tab completion for `@agent` names and

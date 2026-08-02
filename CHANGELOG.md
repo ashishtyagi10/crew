@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.12.0
+
+Sign in, don't paste keys — the OAuth goal's final slice. A signed-out
+device-flow provider (Qwen/DashScope) is now a numbered row in `/model`'s
+picker, and picking it runs the RFC 8628 sign-in right in the pane: a code
+card streams into the chat, crew polls while you approve in the browser
+(`/stop` cancels), and the grant is stored and selected — a clean machine
+with zero API keys reaches a working smith pane that answers, fans out, and
+drafts plans, proven end-to-end against a stubbed OAuth + chat server.
+Grants live in the macOS keychain (`security`, probed never assumed; a 0600
+file where no keychain exists — `/doctor`'s new "token store" line says
+which). Access tokens refresh transparently before model calls; a hard
+refresh failure discards the dead grant and prints exactly one "sign-in
+expired — open /model" line. Nothing token-shaped can reach any log sink: a
+sweep test greps the session logs, broker stdout/stderr, doctor output, and
+the whole redirected HOME after a full stubbed round-trip and asserts zero
+hits.
+
 ## 0.11.9
 
 *Sign in, don't paste keys: subscriptions become first-class providers.*

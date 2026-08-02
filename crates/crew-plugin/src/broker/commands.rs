@@ -16,7 +16,13 @@ pub(crate) fn is_command(text: &str) -> bool {
 /// the stdin loop even while a long construct occupies the worker thread.
 pub(crate) fn is_quick(text: &str) -> bool {
     let line = text.trim().trim_start_matches('/');
-    let cmd = line.split_whitespace().next().unwrap_or("");
+    let mut parts = line.split_whitespace();
+    let cmd = parts.next().unwrap_or("");
+    // `/model <n>` may start a device sign-in — a minutes-long poll that
+    // must run as a background task, never inline on the stdin loop.
+    if cmd == "model" && parts.next().is_some_and(|a| a.parse::<usize>().is_ok()) {
+        return false;
+    }
     // Retired commands (`/fan`, `/goal`, `/skill`, …) are absent on purpose:
     // they answer with an instant hint, so they must not occupy a worker slot.
     // `/restore` is the one construct left that touches files.

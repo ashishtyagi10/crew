@@ -6,18 +6,32 @@
 
 use super::auth::state::{AuthState, ProviderInfo};
 
+/// What picking a number does.
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum Pick {
+    /// A message for the pane (pinned, out of range, own-auth CLI…).
+    Note(String),
+    /// Start this provider's device sign-in flow — the caller runs it on a
+    /// worker (the poll can wait minutes; the stdio loop never does).
+    SignIn(String),
+}
+
 /// The numbered entries, in listing order: signed-in subscriptions, then
-/// keys, then installed CLIs. `groups_text` numbers exactly this list, so
-/// the two can never disagree about what `/model <n>` means.
+/// signed-out device-flow providers (picking one signs in), then keys, then
+/// installed CLIs. `groups_text` numbers exactly this list, so the two can
+/// never disagree about what `/model <n>` means.
 pub(crate) fn selectable(states: &[ProviderInfo]) -> Vec<&ProviderInfo> {
-    [
-        AuthState::SignedIn,
-        AuthState::KeyPresent,
-        AuthState::Installed,
-    ]
-    .iter()
-    .flat_map(|want| states.iter().filter(move |p| p.state == *want))
-    .collect()
+    states
+        .iter()
+        .filter(|p| p.state == AuthState::SignedIn)
+        .chain(
+            states
+                .iter()
+                .filter(|p| p.state == AuthState::SignedOut && p.device),
+        )
+        .chain(states.iter().filter(|p| p.state == AuthState::KeyPresent))
+        .chain(states.iter().filter(|p| p.state == AuthState::Installed))
+        .collect()
 }
 
 /// The grouped provider listing. Each group renders only when non-empty;
@@ -32,23 +46,31 @@ pub(crate) fn groups_text(states: &[ProviderInfo]) -> String {
         format!(" {n}. {} \u{2014} {detail}{}", p.name, mark(p))
     };
     let mut groups: Vec<String> = Vec::new();
-    let subs: Vec<String> = states
+    let mut subs: Vec<String> = Vec::new();
+    for p in states.iter().filter(|p| p.state == AuthState::SignedIn) {
+        subs.push(numbered(p, "signed in"));
+    }
+    // Device-flow sign-ins are NUMBERED: picking one runs the flow right
+    // here in the pane (code card, poll, done).
+    for p in states
         .iter()
-        .filter(|p| p.state == AuthState::SignedIn)
-        .map(|p| numbered(p, "signed in"))
-        .chain(
-            states
-                .iter()
-                .filter(|p| p.state == AuthState::SignedOut)
-                .map(|p| {
-                    let login = p.login.unwrap_or_default();
-                    format!(
-                        " \u{25cb} {} \u{2014} signed out \u{00b7} sign in: run `{login}`",
-                        p.name
-                    )
-                }),
-        )
-        .collect();
+        .filter(|p| p.state == AuthState::SignedOut && p.device)
+    {
+        subs.push(numbered(
+            p,
+            "signed out \u{00b7} pick this number to sign in",
+        ));
+    }
+    for p in states
+        .iter()
+        .filter(|p| p.state == AuthState::SignedOut && !p.device)
+    {
+        let login = p.login.unwrap_or_default();
+        subs.push(format!(
+            " \u{25cb} {} \u{2014} signed out \u{00b7} sign in: run `{login}`",
+            p.name
+        ));
+    }
     if !subs.is_empty() {
         groups.push(format!("your subscriptions\n{}", subs.join("\n")));
     }
@@ -81,30 +103,34 @@ pub(crate) fn groups_text(states: &[ProviderInfo]) -> String {
 }
 
 /// `/model <n>`: pin the n-th selectable provider through the credential
-/// store (the same pin every model choice writes), so it survives restarts.
-pub(crate) fn select(states: &[ProviderInfo], n: usize) -> String {
+/// store (the same pin every model choice writes), so it survives restarts —
+/// or, on a signed-out device-flow row, hand back the sign-in to run.
+pub(crate) fn select(states: &[ProviderInfo], n: usize) -> Pick {
     let picks = selectable(states);
     let Some(p) = n.checked_sub(1).and_then(|i| picks.get(i)) else {
-        return format!(
+        return Pick::Note(format!(
             "no provider #{n} \u{2014} the listing numbers 1..={}",
             picks.len()
-        );
+        ));
     };
+    if p.state == AuthState::SignedOut && p.device {
+        return Pick::SignIn(p.name.clone());
+    }
     // An own-auth CLI (opencode) is an agent, not a model provider: there is
     // nothing to pin, and saying so beats silently doing nothing.
     if super::auth::registry::by_name(&p.name).is_none() {
-        return format!(
+        return Pick::Note(format!(
             "{} carries its own sign-in \u{2014} address it with @{}",
             p.name, p.name
-        );
+        ));
     }
-    match crate::credentials::save_pin(&p.name) {
+    Pick::Note(match crate::credentials::save_pin(&p.name) {
         Ok(()) => format!(
             "provider pinned: {} \u{2014} smith work now routes there (persists across restarts)",
             p.name
         ),
         Err(e) => format!("could not store the {} pin: {e}", p.name),
-    }
+    })
 }
 
 #[cfg(test)]

@@ -4,7 +4,6 @@
 //! (recorded sleep durations), never a verdict.
 use super::*;
 use std::io::{Read, Write};
-use std::sync::Arc;
 
 /// Serve `script` responses in order; returns the base URL.
 fn serve(script: Vec<(u16, String)>) -> String {
@@ -70,6 +69,7 @@ fn drive(script: Vec<(u16, String)>) -> Driven {
         &mut |c| cards.push(format!("{} {}", c.user_code, c.verification_uri)),
         &mut |d| sleeps.push(d.as_secs()),
         &mut |p, t| stored.push((p.to_string(), t)),
+        &|| false,
     );
     (out, sleeps, stored, cards)
 }
@@ -139,95 +139,24 @@ fn the_budget_caps_the_servers_word_at_max_wait() {
     assert_eq!(poll_budget(120), 120);
 }
 
+/// `/stop` between polls: the second iteration sees the cancel flag and the
+/// flow ends `Stopped` after EXACTLY one poll — no further HTTP, no grant.
 #[test]
-fn refresh_success_stores_the_new_grant_and_keeps_omitted_fields() {
-    // The refresh reply omits refresh_token and resource_url — the stored
-    // grant must keep the old ones rather than losing the ability to refresh.
-    let base = serve(vec![(
-        200,
-        r#"{"access_token":"at-new","expires_in":7200}"#.into(),
-    )]);
-    let old = StoredToken {
-        access: "at-old".into(),
-        refresh: Some("rt-old".into()),
-        expires_at: 10, // long expired at now=1000
-        resource: Some("https://portal/v1".into()),
-    };
-    let mut calls = Vec::new();
-    let got = fresh_with("prov-refresh-ok", &ends(&base), old, 1000, &mut |p, t| {
-        calls.push((p.to_string(), t));
-    });
-    assert_eq!(
-        got,
-        Some(("at-new".to_string(), Some("https://portal/v1".to_string())))
+fn cancellation_stops_the_flow_between_polls() {
+    let base = serve(vec![start_json(1, 900), pending()]);
+    let sleeps = std::cell::RefCell::new(Vec::new());
+    let out = run_flow(
+        "prov-cancel",
+        &ends(&base),
+        &mut |_| {},
+        &mut |d| sleeps.borrow_mut().push(d.as_secs()),
+        &mut |_, _| panic!("a cancelled flow must store nothing"),
+        &|| !sleeps.borrow().is_empty(),
     );
-    assert_eq!(calls.len(), 1);
-    let t = calls[0]
-        .1
-        .as_ref()
-        .expect("a refresh success stores a grant");
-    assert_eq!(t.refresh.as_deref(), Some("rt-old"));
-    assert_eq!(t.expires_at, 1000 + 7200 - tokens::EXPIRY_SKEW_SECS);
-}
-
-#[test]
-fn a_fresh_token_is_returned_without_any_http() {
-    // Endpoints point at a dead port: any request would error the flow.
-    let dead = ends("http://127.0.0.1:1");
-    let tok = StoredToken {
-        access: "at-live".into(),
-        refresh: None,
-        expires_at: u64::MAX,
-        resource: None,
-    };
-    let got = fresh_with("prov-no-http", &dead, tok, 1000, &mut |_, _| {
-        panic!("an unexpired grant must not touch storage")
-    });
-    assert_eq!(got, Some(("at-live".to_string(), None)));
-}
-
-#[test]
-fn a_hard_refresh_failure_discards_the_grant_and_arms_one_prompt() {
-    let base = serve(vec![
-        (400, r#"{"error":"invalid_grant"}"#.into()),
-        (400, r#"{"error":"invalid_grant"}"#.into()),
-    ]);
-    let expired = || StoredToken {
-        access: "at-dead".into(),
-        refresh: Some("rt-dead".into()),
-        expires_at: 10,
-        resource: None,
-    };
-    let calls = Arc::new(std::sync::Mutex::new(Vec::new()));
-    let mut sink = {
-        let calls = Arc::clone(&calls);
-        move |p: &str, t: Option<StoredToken>| {
-            calls.lock().unwrap().push((p.to_string(), t.is_some()))
-        }
-    };
-    let e = ends(&base);
+    assert_eq!(out, Outcome::Stopped);
     assert_eq!(
-        fresh_with("prov-hard-fail", &e, expired(), 1000, &mut sink),
-        None
-    );
-    assert_eq!(
-        fresh_with("prov-hard-fail", &e, expired(), 1000, &mut sink),
-        None
-    );
-    // Both failures discarded the grant…
-    assert_eq!(
-        *calls.lock().unwrap(),
-        [
-            ("prov-hard-fail".to_string(), false),
-            ("prov-hard-fail".to_string(), false)
-        ]
-    );
-    // …but the prompt fires EXACTLY once until a new sign-in clears it.
-    let prompts = (0..3).filter(|_| take_reauth("prov-hard-fail")).count();
-    assert_eq!(prompts, 1, "one re-auth prompt, then silence");
-    clear_reauth("prov-hard-fail");
-    assert!(
-        !take_reauth("prov-hard-fail"),
-        "cleared state prompts nothing"
+        *sleeps.borrow(),
+        [1],
+        "exactly one poll before the cancel lands"
     );
 }

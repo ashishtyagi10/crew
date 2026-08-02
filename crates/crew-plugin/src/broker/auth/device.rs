@@ -8,12 +8,6 @@
 //! or the refresh path inside a model call) — never the stdio loop, never
 //! the pane. The sleeper and the storage handoff are injected so every
 //! timing rule is table-testable as recorded numbers, no real clock.
-// Engine-only commit: `/model`'s in-pane sign-in and the `key_for` refresh
-// fallback wire these up two commits from now (same pattern as
-// `CliSpec::login`'s staged allow in v0.11.9). Remove with that wiring.
-#![allow(dead_code)]
-use std::collections::HashMap;
-use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
 
 use crew_hive::deviceflow::{self, DeviceEndpoints, DevicePoll};
@@ -42,6 +36,8 @@ pub(crate) enum Outcome {
     Expired,
     Denied,
     TimedOut,
+    /// The user cancelled (`/stop`) between polls.
+    Stopped,
     Failed(String),
 }
 
@@ -71,7 +67,7 @@ pub(crate) fn poll_budget(expires_in: u64) -> u64 {
     expires_in.min(MAX_WAIT_SECS)
 }
 
-fn runtime() -> anyhow::Result<tokio::runtime::Runtime> {
+pub(crate) fn runtime() -> anyhow::Result<tokio::runtime::Runtime> {
     Ok(tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()?)
@@ -79,13 +75,15 @@ fn runtime() -> anyhow::Result<tokio::runtime::Runtime> {
 
 /// Run one full sign-in: start, show the card, poll to a verdict, hand the
 /// grant to `store`. `sleep` is the injected clock (tests record durations;
-/// live passes `std::thread::sleep`).
+/// live passes a sliced `std::thread::sleep`); `cancelled` is checked once
+/// per iteration so `/stop` ends the wait between polls, never mid-request.
 pub(crate) fn run_flow(
     provider: &str,
     e: &DeviceEndpoints,
     emit_card: &mut dyn FnMut(SignInCard),
     sleep: &mut dyn FnMut(Duration),
     store: &mut dyn FnMut(&str, StoredToken),
+    cancelled: &dyn Fn() -> bool,
 ) -> Outcome {
     let rt = match runtime() {
         Ok(rt) => rt,
@@ -105,6 +103,9 @@ pub(crate) fn run_flow(
     let mut interval = start.interval.max(1);
     let mut elapsed = 0u64;
     loop {
+        if cancelled() {
+            return Outcome::Stopped;
+        }
         if elapsed + interval > budget {
             return Outcome::TimedOut;
         }
@@ -117,7 +118,7 @@ pub(crate) fn run_flow(
         )) {
             Ok(DevicePoll::Ready(t)) => {
                 store(provider, tokens::stored_from(&t, tokens::now_secs()));
-                clear_reauth(provider);
+                super::refresh::clear_reauth(provider);
                 return Outcome::SignedIn;
             }
             Ok(DevicePoll::Pending) => {}
@@ -127,100 +128,6 @@ pub(crate) fn run_flow(
             Err(err) => return Outcome::Failed(err.to_string()),
         }
     }
-}
-
-/// A valid access token (+ the resource host the grant named) for a
-/// device-flow provider — refreshing through the token endpoint when the
-/// stored one has expired. `None` means no usable grant: never signed in, or
-/// a hard refresh failure (which discards the dead grant and marks the one
-/// re-auth prompt, so this is quiet — no repeat HTTP — until the user acts).
-pub(crate) fn fresh_access(provider: &str) -> Option<(String, Option<String>)> {
-    let tok = tokens::load(provider)?;
-    let e = endpoints_for(provider)?;
-    fresh_with(provider, &e, tok, tokens::now_secs(), &mut |p, t| match t {
-        Some(t) => {
-            let _ = tokens::store(p, t);
-        }
-        None => tokens::clear(p),
-    })
-}
-
-/// The testable half of [`fresh_access`]: verdict over an explicit grant and
-/// clock. `store` receives `Some(new grant)` on a successful refresh and
-/// `None` when the grant is dead and must be discarded.
-pub(crate) fn fresh_with(
-    provider: &str,
-    e: &DeviceEndpoints,
-    tok: StoredToken,
-    now: u64,
-    store: &mut dyn FnMut(&str, Option<StoredToken>),
-) -> Option<(String, Option<String>)> {
-    if tokens::is_fresh(&tok, now) {
-        return Some((tok.access, tok.resource));
-    }
-    let (refresh, rt) = match (tok.refresh, runtime()) {
-        (Some(r), Ok(rt)) => (r, rt),
-        _ => {
-            store(provider, None);
-            mark_reauth(provider);
-            return None;
-        }
-    };
-    match rt.block_on(deviceflow::device_refresh(e, &refresh)) {
-        Ok(t) => {
-            let mut st = tokens::stored_from(&t, now);
-            // Servers may omit these on refresh; the old values stay good.
-            st.refresh = st.refresh.or(Some(refresh));
-            st.resource = st.resource.or(tok.resource);
-            let out = (st.access.clone(), st.resource.clone());
-            store(provider, Some(st));
-            Some(out)
-        }
-        Err(_) => {
-            // Status deliberately unreported here: the ONE re-auth prompt is
-            // the surface, and an error string would invite logging it.
-            store(provider, None);
-            mark_reauth(provider);
-            None
-        }
-    }
-}
-
-/// Re-auth prompt state, per provider: a hard refresh failure arms it, the
-/// surface TAKES it exactly once (then silence), a fresh sign-in disarms it.
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum Reauth {
-    Needed,
-    Prompted,
-}
-
-fn reauth() -> &'static Mutex<HashMap<String, Reauth>> {
-    static S: OnceLock<Mutex<HashMap<String, Reauth>>> = OnceLock::new();
-    S.get_or_init(|| Mutex::new(HashMap::new()))
-}
-
-/// Arm the one re-auth prompt — unless it was already shown (no nag loop).
-pub(crate) fn mark_reauth(provider: &str) {
-    let mut m = reauth().lock().unwrap_or_else(|e| e.into_inner());
-    m.entry(provider.to_string()).or_insert(Reauth::Needed);
-}
-
-/// `true` exactly once per armed prompt: the caller prints its line and the
-/// state moves to `Prompted` until a new sign-in clears it.
-pub(crate) fn take_reauth(provider: &str) -> bool {
-    let mut m = reauth().lock().unwrap_or_else(|e| e.into_inner());
-    match m.get(provider) {
-        Some(Reauth::Needed) => {
-            m.insert(provider.to_string(), Reauth::Prompted);
-            true
-        }
-        _ => false,
-    }
-}
-
-pub(crate) fn clear_reauth(provider: &str) {
-    let mut m = reauth().lock().unwrap_or_else(|e| e.into_inner());
-    m.remove(provider);
 }
 
 #[cfg(test)]

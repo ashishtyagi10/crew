@@ -7,6 +7,15 @@ fn info(name: &str, state: AuthState, login: Option<&'static str>, active: bool)
         state,
         login,
         active,
+        device: false,
+    }
+}
+
+/// Unwrap the note a pick answers with (panics on a sign-in verdict).
+fn note_of(p: Pick) -> String {
+    match p {
+        Pick::Note(n) => n,
+        other => panic!("wanted a note, got {other:?}"),
     }
 }
 
@@ -82,7 +91,7 @@ fn empty_groups_do_not_render() {
 #[test]
 fn selecting_a_subscription_pins_the_provider() {
     let _g = testenv::no_provider();
-    let note = select(&full_house(), 1);
+    let note = note_of(select(&full_house(), 1));
     assert!(note.contains("claude-code"), "{note}");
     assert_eq!(
         crate::credentials::load().provider.as_deref(),
@@ -97,19 +106,42 @@ fn selecting_a_subscription_pins_the_provider() {
 fn selection_edges_pin_explain_or_refuse() {
     let _g = testenv::no_provider();
     let states = full_house();
-    let note = select(&states, 2);
+    let note = note_of(select(&states, 2));
     assert!(note.contains("dashscope"), "{note}");
     assert_eq!(
         crate::credentials::load().provider.as_deref(),
         Some("dashscope")
     );
-    let own = select(&states, 3);
+    let own = note_of(select(&states, 3));
     assert!(own.contains("@opencode"), "{own}");
     assert_eq!(
         crate::credentials::load().provider.as_deref(),
         Some("dashscope"),
         "an own-auth CLI must not move the pin"
     );
-    let oob = select(&states, 9);
+    let oob = note_of(select(&states, 9));
     assert!(oob.contains("9"), "{oob}");
+}
+
+/// A signed-out DEVICE-FLOW provider is a numbered row (its sign-in runs in
+/// the pane), it shifts the later numbers, and picking it answers `SignIn` —
+/// not a pin, and never a note.
+#[test]
+fn a_device_flow_sign_in_is_numbered_and_selected() {
+    let mut states = full_house();
+    let mut d = info("qwen-dev", AuthState::SignedOut, None, false);
+    d.device = true;
+    states.insert(1, d);
+    let text = groups_text(&states);
+    assert!(
+        text.contains("2. qwen-dev \u{2014} signed out \u{b7} pick this number to sign in"),
+        "{text}"
+    );
+    assert!(text.contains("3. dashscope"), "later numbers shift: {text}");
+    assert_eq!(select(&states, 2), Pick::SignIn("qwen-dev".into()));
+    let names: Vec<&str> = selectable(&states)
+        .iter()
+        .map(|p| p.name.as_str())
+        .collect();
+    assert_eq!(names, ["claude-code", "qwen-dev", "dashscope", "opencode"]);
 }

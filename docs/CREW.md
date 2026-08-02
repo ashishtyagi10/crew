@@ -610,7 +610,12 @@ and a typo gets a **did-you-mean** suggestion):
   in the pane footer, along with the live task count and session turn/token
   totals, the model pins, the sys-tool sandbox mode, and the token budget).
   Signed-out delegated providers list grayed (`○`) with the **exact sign-in
-  command** (`claude auth login`, `codex login`); **`/model <n>`** switches
+  command** (`claude auth login`, `codex login`); a signed-out **device-flow
+  provider** (Qwen/DashScope) lists *numbered* instead — picking its number
+  **runs the sign-in right in the pane**: a code card streams into the chat
+  (user code + verification URL), crew polls while you approve in the
+  browser (`/stop` cancels), and on success the provider is selected and the
+  grant stored — no key ever pasted. **`/model <n>`** otherwise switches
   to entry *n*, storing the provider pin so it survives restarts.
 - **`/model <agent> <model|default>`** — pin an agent to a model for the
   session. Pins apply per agent, so **planner, coder, and reviewer can run
@@ -692,7 +697,9 @@ and a typo gets a **did-you-mean** suggestion):
   subscription (via the claude CLI — swarm planning degrades to the
   relay)"), a **per-provider auth line** (signed in / signed out with the
   sign-in command / key present / no key / not installed — states only,
-  never a key value), the claude/codex/opencode CLIs on `$PATH`,
+  never a key value), a **token store** line saying where OAuth grants live
+  (the macOS keychain via `security`, or a 0600 file where no keychain
+  exists), the claude/codex/opencode CLIs on `$PATH`,
   `/bin/bash` (run panes' job control), git, and how many skills, plugin
   agents, and MCP servers loaded — each MCP server listed with its tools or
   its failure (the retired `/mcp` listing folded in) — plus standing memory,
@@ -794,7 +801,14 @@ discovery asks the CLI-delegated providers for their own signed-in state
 app's token store), and a live login routes plain smith tasks through that
 CLI via the existing relay, exactly as `@claude <task>` would
 (`CREW_SUBSCRIPTIONS=0` disables the rung; `CREW_PROVIDER=claude-code|codex`
-pins it explicitly). With no subscription, key discovery is unchanged and
+pins it explicitly). Where a provider openly permits third-party OAuth, crew
+runs the **device-code flow itself** (today: Qwen/DashScope via `/model`'s
+in-pane sign-in): the granted tokens live in the **OS keychain** (macOS
+`security`; a 0600 file elsewhere), access tokens **refresh automatically**
+before a model call, and only a hard refresh failure surfaces — as exactly
+one "sign-in expired — open /model" line, never a nag loop. A stored grant
+then serves *every* model call (classify, planner, workers, judges) exactly
+as a key would. With no subscription, key discovery is unchanged and
 prefers `DASHSCOPE_API_KEY`
 (Alibaba Cloud Model Studio — Qwen commercial models, `qwen-max` →
 `qwen-plus` → `qwen-turbo`, override with `CREW_DASHSCOPE_MODEL=a,b,…`; the

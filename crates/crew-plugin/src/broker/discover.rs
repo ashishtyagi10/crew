@@ -7,6 +7,8 @@ use std::sync::Arc;
 use super::adapter::Adapter;
 use super::apiadapter::specialist_agents;
 
+pub use super::directs::{direct_by_name, DirectProvider, DIRECT};
+
 /// Default OpenRouter fallback chain for the project's API-backed agents —
 /// every catalog row marked `free`, in catalog order (currently Nvidia,
 /// OpenAI, Google, Cohere: different upstream providers, so a
@@ -55,75 +57,6 @@ pub(crate) fn parse_model_chain(env_val: Option<String>, default: Vec<String>) -
     }
 }
 
-/// A provider crew reaches over the OpenAI chat-completions wire, which is
-/// most of them. Adding one is a row here: an endpoint, a key variable and a
-/// default model chain. `OpenRouterProvider` already speaks this wire — it
-/// has backed DashScope from the beginning with nothing but a different base
-/// URL — so no client code is involved.
-///
-/// This exists because OpenRouter was the only multi-vendor route crew had,
-/// which made `OPENROUTER_API_KEY` the answer for every OpenAI, Google or
-/// Mistral row in the picker whether or not the user held a key for the
-/// vendor itself.
-pub struct DirectProvider {
-    /// As `CREW_PROVIDER` and the credential store spell it.
-    pub name: &'static str,
-    pub var: &'static str,
-    pub endpoint: &'static str,
-    pub chain: &'static [&'static str],
-    /// Comma-separated override, e.g. `CREW_OPENAI_MODEL=gpt-5,gpt-4.1`.
-    pub chain_env: &'static str,
-    pub base_url_env: &'static str,
-    /// The catalog vendor this provider serves natively, so the model picker
-    /// can route a row to it instead of to OpenRouter.
-    pub vendor: crew_hive::catalog::Vendor,
-}
-
-/// Every OpenAI-wire provider crew knows, in discovery order.
-///
-/// Model ids are NOT invented here. Every slug in every chain is a native
-/// (non-OpenRouter) slug that already exists in `crew_hive::catalog` for that
-/// vendor, and `chains_are_native_catalog_slugs` enforces it — a default model
-/// that 404s on first use is a worse first run than no provider at all. That
-/// is also why xAI, Mistral and Groq are absent despite speaking this same
-/// wire: the catalog carries no rows for them, so their ids would be guesses.
-pub static DIRECT: &[DirectProvider] = &[
-    DirectProvider {
-        name: "openai",
-        var: "OPENAI_API_KEY",
-        endpoint: "https://api.openai.com/v1/chat/completions",
-        chain: &["gpt-5", "gpt-4.1"],
-        chain_env: "CREW_OPENAI_MODEL",
-        base_url_env: "CREW_OPENAI_BASE_URL",
-        vendor: crew_hive::catalog::Vendor::OpenAI,
-    },
-    DirectProvider {
-        name: "gemini",
-        var: "GEMINI_API_KEY",
-        // Google's own OpenAI-compatibility endpoint, so the same client
-        // works — no Google SDK, no second wire format.
-        endpoint: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-        chain: &["gemini-2.5-pro", "gemini-2.5-flash"],
-        chain_env: "CREW_GEMINI_MODEL",
-        base_url_env: "CREW_GEMINI_BASE_URL",
-        vendor: crew_hive::catalog::Vendor::Google,
-    },
-    DirectProvider {
-        name: "deepseek",
-        var: "DEEPSEEK_API_KEY",
-        endpoint: "https://api.deepseek.com/chat/completions",
-        chain: &["deepseek-chat", "deepseek-reasoner"],
-        chain_env: "CREW_DEEPSEEK_MODEL",
-        base_url_env: "CREW_DEEPSEEK_BASE_URL",
-        vendor: crew_hive::catalog::Vendor::DeepSeek,
-    },
-];
-
-/// The `DIRECT` row named by `name`, if any.
-pub fn direct_by_name(name: &str) -> Option<&'static DirectProvider> {
-    DIRECT.iter().find(|d| d.name.eq_ignore_ascii_case(name))
-}
-
 /// The provider backing the project's API-backed agents.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ProviderKind {
@@ -148,24 +81,6 @@ impl ProviderKind {
             ProviderKind::Anthropic => "anthropic",
             ProviderKind::Direct(d) => d.name,
         }
-    }
-}
-
-impl Clone for DirectProvider {
-    fn clone(&self) -> Self {
-        unreachable!("DirectProvider lives in a static table and is never cloned")
-    }
-}
-
-impl PartialEq for DirectProvider {
-    fn eq(&self, other: &Self) -> bool {
-        self.name == other.name
-    }
-}
-impl Eq for DirectProvider {}
-impl std::fmt::Debug for DirectProvider {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Direct({})", self.name)
     }
 }
 
@@ -241,7 +156,19 @@ fn resolve_forced(env: Option<String>, stored: Option<String>) -> Option<String>
 /// silently dropping the user's specialists until the pane was reopened.
 ///
 /// Never logs the value.
+///
+/// A stored OAuth grant is the LAST rung (`refresh::key_stand_in`): a fresh
+/// access token stands in for the key, auto-refreshed, so every consumer of
+/// this seam — classify, planner, workers, judges, the roster — serves from
+/// a subscription sign-in with no key anywhere. A real key still wins.
 pub(crate) fn key_for(store: &crate::credentials::Store, var: &str) -> Option<String> {
+    key_raw(store, var).or_else(|| super::auth::refresh::key_stand_in(var))
+}
+
+/// [`key_for`] WITHOUT the grant rung — for the two places that must tell a
+/// real key from a stand-in: the picker's "key present" label and the
+/// grant-endpoint decision above.
+pub(crate) fn key_raw(store: &crate::credentials::Store, var: &str) -> Option<String> {
     resolve_key_with(
         std::env::var(var).ok(),
         store.keys.get(var).cloned(),
@@ -428,8 +355,19 @@ fn provider_and_model_with(
                     .map(|s| s.to_string())
                     .collect(),
             );
+            // Env override first; then the host the OAuth grant named (Qwen
+            // tokens serve at portal.qwen.ai, not the key-shaped endpoint) —
+            // only consulted keyless, since a real key wins in `key_for` too.
             let url = std::env::var("CREW_DASHSCOPE_BASE_URL")
-                .unwrap_or_else(|_| DASHSCOPE_ENDPOINT.to_string());
+                .ok()
+                .filter(|v| !v.is_empty())
+                .or_else(|| {
+                    key_raw(store, "DASHSCOPE_API_KEY")
+                        .is_none()
+                        .then(|| super::auth::refresh::grant_chat_url("dashscope"))
+                        .flatten()
+                })
+                .unwrap_or_else(|| DASHSCOPE_ENDPOINT.to_string());
             let model = chain.first().cloned()?;
             let provider = crew_hive::OpenRouterProvider::new(key)
                 .with_endpoint(url)
