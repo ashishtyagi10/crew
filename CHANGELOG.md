@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.12.1
+
+`/login` and `/logout` — OAuth becomes reachable. The 0.12.0 sign-in
+existed but was invisible in practice: the pane's `/model 2` opened the
+catalog popup (Enter then accepted a filtered model row, or its API-key
+paste card) instead of submitting the broker's numbered provider pick, and
+a key already sitting in a shell rc re-labeled the provider "key present",
+hiding the sign-in row entirely — so the only path anyone ever saw was
+"paste a key". Now: a purely numeric `/model <n>` goes straight to the
+broker; `/login` lists every provider that offers a sign-in (device-flow
+rows numbered and offered even with a key present, vendor CLIs with their
+exact command) and `/login <name|n>` runs the flow in-pane; a stored grant
+now OUTRANKS a key — an explicit sign-in is the strongest signal a user can
+send, and the grant's endpoint travels with it — with `/logout [provider]`
+removing the grant so the key serves again. Proven end-to-end: a broker
+with a decoy `DASHSCOPE_API_KEY` still lists the numbered sign-in, completes
+the stubbed device flow, and answers chat through the grant's endpoint.
+
 ## 0.12.0
 
 Sign in, don't paste keys — the OAuth goal's final slice. A signed-out
