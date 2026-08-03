@@ -77,7 +77,19 @@ pub(crate) fn groups_text(states: &[ProviderInfo]) -> String {
     let keys: Vec<String> = states
         .iter()
         .filter(|p| p.state == AuthState::KeyPresent)
-        .map(|p| numbered(p, "key present"))
+        .map(|p| {
+            // A device-flow provider serving from a key still offers the
+            // sign-in — the key must never hide the OAuth path again.
+            let detail = if p.device {
+                format!(
+                    "key present \u{00b7} /login {} signs in with OAuth instead",
+                    p.name
+                )
+            } else {
+                "key present".to_string()
+            };
+            numbered(p, &detail)
+        })
         .collect();
     if !keys.is_empty() {
         groups.push(format!("your keys\n{}", keys.join("\n")));

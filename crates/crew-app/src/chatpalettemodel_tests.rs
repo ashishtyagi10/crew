@@ -55,3 +55,31 @@ fn typing_past_the_empty_query_also_makes_enter_pick_not_list() {
     assert!(matches!(key, PaletteKey::Submit));
     assert!(input.starts_with("/model all "), "{input}");
 }
+
+/// `/model 2` is the broker's numbered provider pick — it can start a device
+/// sign-in. The catalog popup must NOT open on a purely numeric argument:
+/// it used to, and Enter then accepted a filtered catalog row (or its API-key
+/// prompt) instead of submitting the pick, making the broker's advertised
+/// sign-in path unreachable from the pane.
+#[test]
+fn a_numeric_model_arg_never_opens_the_catalog_popup() {
+    for input in ["/model 2", "/m 2", "/model 12"] {
+        assert_eq!(
+            pending_palette(input),
+            None,
+            "{input} must submit to the broker, not open the picker"
+        );
+        let mut p = None;
+        after_edit(&mut p, input, None, Vec::new);
+        assert!(p.is_none(), "{input} opened a popup");
+    }
+    // …and an open popup CLOSES as the digit lands, so Enter reaches the
+    // broker: type "/model ", then "2".
+    let mut p = None;
+    after_edit(&mut p, "/model ", None, Vec::new);
+    assert!(p.is_some());
+    after_edit(&mut p, "/model 2", None, Vec::new);
+    assert!(p.is_none(), "the digit must close the catalog popup");
+    // A worded query still gets the picker.
+    assert!(pending_palette("/model qwen").is_some());
+}

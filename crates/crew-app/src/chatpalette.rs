@@ -61,6 +61,14 @@ pub(crate) fn pending_palette(input: &str) -> Option<(Kind, &str)> {
     for prefix in ["/model ", "/m "] {
         if let Some(rest) = input.strip_prefix(prefix) {
             let arg = rest.trim_start();
+            // `/model 2` is the broker's numbered provider pick — it can
+            // START A SIGN-IN, and the listing that taught the user the
+            // number came from the broker. Opening the catalog popup here
+            // hijacked Enter into accepting some catalog row (or its key
+            // prompt), which made the advertised OAuth path unreachable.
+            if !arg.is_empty() && arg.chars().all(|c| c.is_ascii_digit()) {
+                return None;
+            }
             return (!arg.contains(char::is_whitespace)).then_some((Kind::Model, arg));
         }
     }

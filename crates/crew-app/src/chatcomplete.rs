@@ -7,9 +7,9 @@ use crew_plugin::AgentInfo;
 /// Every composer slash action: broker constructs plus the pane-local
 /// `/export`, `/theme`, and `/exit` (see `chatexport` / `chattheme` /
 /// `chat`). Folding the transcript is automatic (`ChatPane::push_capped`).
-pub(crate) const CONSTRUCTS: [&str; 10] = [
-    "/help", "/model", "/restore", "/diff", "/doctor", "/reload", "/stop", "/export", "/theme",
-    "/exit",
+pub(crate) const CONSTRUCTS: [&str; 12] = [
+    "/help", "/model", "/login", "/logout", "/restore", "/diff", "/doctor", "/reload", "/stop",
+    "/export", "/theme", "/exit",
 ];
 
 /// Hints that belong to the PANE rather than to the broker, and so are written
@@ -168,10 +168,11 @@ mod tests {
     #[test]
     fn completes_constructs() {
         // `/goal` and `/loop` retired (the intent router answers the plain
-        // phrasing), so their prefixes fall to the survivors: nothing starts
-        // with "go" any more, and `/lo` fuzzy-matches /reload.
-        assert_eq!(complete("/go", &[]), None);
-        assert_eq!(complete("/lo", &[]).unwrap(), "/reload ");
+        // phrasing); `/login`/`/logout` arrived: `/go` fuzzy-matches /logout
+        // uniquely (g-o in order — /login has no 'o' after its 'g'), and
+        // `/lo` prefix-extends to their common "/log".
+        assert_eq!(complete("/go", &[]).unwrap(), "/logout ");
+        assert_eq!(complete("/lo", &[]).unwrap(), "/log");
         // `/standup` retired too, so '/st' now uniquely names /stop — every
         // retirement buys back a prefix — and '/sta' matches nothing at all.
         assert_eq!(complete("/st", &[]).unwrap(), "/stop ");

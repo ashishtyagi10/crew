@@ -31,6 +31,7 @@ mod fan;
 mod gitmsg;
 mod hop;
 mod intent;
+mod logincmd;
 mod memory;
 mod modelcmd;
 mod modelpick;

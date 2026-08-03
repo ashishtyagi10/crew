@@ -157,12 +157,14 @@ fn resolve_forced(env: Option<String>, stored: Option<String>) -> Option<String>
 ///
 /// Never logs the value.
 ///
-/// A stored OAuth grant is the LAST rung (`refresh::key_stand_in`): a fresh
-/// access token stands in for the key, auto-refreshed, so every consumer of
-/// this seam — classify, planner, workers, judges, the roster — serves from
-/// a subscription sign-in with no key anywhere. A real key still wins.
+/// A stored OAuth grant OUTRANKS a key (`refresh::key_stand_in` first): an
+/// explicit `/login` is the most deliberate signal a user can send — the
+/// same reasoning that puts an exported env var above the stored copy — and
+/// grant-last meant a key sitting in a shell rc silently discarded a sign-in
+/// the user just completed. `/logout` removes the grant and the key serves
+/// again; a grant whose refresh fails falls back to the key too.
 pub(crate) fn key_for(store: &crate::credentials::Store, var: &str) -> Option<String> {
-    key_raw(store, var).or_else(|| super::auth::refresh::key_stand_in(var))
+    super::auth::refresh::key_stand_in(var).or_else(|| key_raw(store, var))
 }
 
 /// [`key_for`] WITHOUT the grant rung — for the two places that must tell a
@@ -356,14 +358,19 @@ fn provider_and_model_with(
                     .collect(),
             );
             // Env override first; then the host the OAuth grant named (Qwen
-            // tokens serve at portal.qwen.ai, not the key-shaped endpoint) —
-            // only consulted keyless, since a real key wins in `key_for` too.
+            // tokens serve at portal.qwen.ai, not the key-shaped endpoint).
+            // The endpoint must travel with the credential `key_for` chose:
+            // gate on the stand-in actually serving — not on the grant merely
+            // existing — so a grant whose refresh failed leaves the key on
+            // ITS endpoint instead of pairing it with the grant's host. (The
+            // second `key_stand_in` call is cheap: the first refreshed and
+            // stored, so this one reads the fresh token.)
             let url = std::env::var("CREW_DASHSCOPE_BASE_URL")
                 .ok()
                 .filter(|v| !v.is_empty())
                 .or_else(|| {
-                    key_raw(store, "DASHSCOPE_API_KEY")
-                        .is_none()
+                    super::auth::refresh::key_stand_in("DASHSCOPE_API_KEY")
+                        .is_some()
                         .then(|| super::auth::refresh::grant_chat_url("dashscope"))
                         .flatten()
                 })

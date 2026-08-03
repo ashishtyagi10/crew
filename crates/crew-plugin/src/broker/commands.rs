@@ -23,6 +23,10 @@ pub(crate) fn is_quick(text: &str) -> bool {
     if cmd == "model" && parts.next().is_some_and(|a| a.parse::<usize>().is_ok()) {
         return false;
     }
+    // `/login <target>` runs the same poll; bare `/login` only lists.
+    if cmd == "login" && parts.next().is_some() {
+        return false;
+    }
     // Retired commands (`/fan`, `/goal`, `/skill`, …) are absent on purpose:
     // they answer with an instant hint, so they must not occupy a worker slot.
     // `/restore` is the one construct left that touches files.
@@ -35,6 +39,9 @@ pub(crate) const HELP: &str = "constructs:\n\
     /model — the roster with each agent's model (also in the pane footer)\n\
     /model <agent> <model|default> — pin an agent to a model (mix models freely)\n\
     /model all <model|default> — set every agent's model at once\n\
+    /login — sign in to a provider with OAuth (device flow), no API key needed; \
+    /login <name|n> runs it right here\n\
+    /logout [provider] — remove a stored OAuth sign-in (a key, if present, serves again)\n\
     plain language routes itself — \u{201c}have every agent take a crack at \u{2026}\u{201d} \
     fans out in parallel; \u{201c}keep refining \u{2026}\u{201d} runs improvement rounds; \
     \u{201c}keep working until \u{2026}\u{201d} loops with a judge until it rules the goal met; \
@@ -106,7 +113,7 @@ pub fn expand_alias(trimmed: &str) -> String {
 /// [`closest_construct`], and the source a host should build its palette
 /// from rather than keeping a second copy (see [`constructs`]).
 const CONSTRUCTS: &[&str] = &[
-    "help", "model", "doctor", "restore", "reload", "diff", "stop",
+    "help", "model", "login", "logout", "doctor", "restore", "reload", "diff", "stop",
 ];
 
 /// Every construct the broker answers, without the leading slash. Exposed so
@@ -179,6 +186,8 @@ pub(crate) fn handle(
     match cmd {
         "help" => emit(msg("agent smith", HELP)),
         "model" => super::modelcmd::model_cmd(session, rest, emit),
+        "login" => super::logincmd::login_cmd(session, rest, emit),
+        "logout" => super::logincmd::logout_cmd(session, rest, emit),
         "restore" => super::checkpoint::restore_cmd(rest, emit),
         "diff" => super::diff::diff_cmd(emit),
         "doctor" => emit(msg(

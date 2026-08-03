@@ -168,3 +168,58 @@ fn route(path: &str, body: &str, me: &str) -> (u16, String) {
         other => (404, format!(r#"{{"error":"no route {other}"}}"#)),
     }
 }
+
+/// The v0.12.0 field report: a key in the environment hid the OAuth path
+/// entirely. `/login` must list the numbered sign-in ANYWAY, run the flow,
+/// and — because an explicit sign-in outranks a lying-around key — the
+/// GRANT must serve the chat afterward: the stub is only reachable through
+/// the grant's self-named `resource_url`, so a reply proves the decoy key
+/// (which points nowhere near the stub) was not used. `/logout` then
+/// removes the grant.
+#[test]
+fn login_signs_in_over_a_present_key_and_the_grant_serves() {
+    let dir = unique_dir("oauth-login-keyed");
+    seed_specialists(&dir, &["scout"]);
+    let home = dir.join("home");
+    std::fs::create_dir_all(&home).unwrap();
+    let stub = provider_stub();
+    let events = run_broker_paced(
+        &dir,
+        &[
+            ("HOME", home.to_str().unwrap()),
+            ("CREW_OAUTH_BASE", &stub.base),
+            ("DASHSCOPE_API_KEY", "sk-decoy-not-a-real-key"),
+        ],
+        &[
+            (&send("/login"), 500),
+            (&send("/login 1"), 4500),
+            (&send("say hello please"), 3000),
+            (&send("/logout dashscope"), 500),
+        ],
+    );
+    let msgs = messages(&events);
+    let all: String = msgs.iter().map(|(s, t)| format!("{s}: {t}\n")).collect();
+    // The key did not hide the affordance: dashscope is numbered row 1.
+    assert!(
+        all.contains(
+            "1. dashscope \u{2014} key present \u{b7} /login 1 signs in with OAuth instead"
+        ),
+        "{all}"
+    );
+    // The flow ran in-pane and landed.
+    assert!(all.contains("WDJB-MJHT"), "code card must stream: {all}");
+    assert!(
+        all.contains("\u{2713} signed in \u{2014} dashscope now serves smith work"),
+        "{all}"
+    );
+    // The grant serves: the reply came through the stub's chat route, which
+    // only the grant's resource_url reaches.
+    assert!(all.contains("stub answer: all good"), "{all}");
+    let seen = stub.seen.lock().unwrap().clone();
+    assert!(
+        seen.iter().any(|(p, _)| p == "/v1/chat/completions"),
+        "chat must go through the grant endpoint: {seen:?}"
+    );
+    // /logout removes the grant and hands back to the key.
+    assert!(all.contains("dashscope's grant removed"), "{all}");
+}

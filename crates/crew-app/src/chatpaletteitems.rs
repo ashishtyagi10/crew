@@ -19,7 +19,12 @@ const SECTIONS: &[(&str, &[&str])] = &[
     // so the palette no longer teaches them.
     ("changes", &["/diff", "/restore"]),
     ("session", &["/export", "/stop"]),
-    ("setup", &["/model", "/reload", "/doctor", "/theme"]),
+    (
+        "setup",
+        &[
+            "/model", "/login", "/logout", "/reload", "/doctor", "/theme",
+        ],
+    ),
     ("help", &["/help", "/exit"]),
 ];
 

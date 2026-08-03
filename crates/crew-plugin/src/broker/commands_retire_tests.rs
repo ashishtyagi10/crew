@@ -132,15 +132,15 @@ fn retired_commands_left_the_construct_list() {
             "{gone} still a construct"
         );
     }
-    assert_eq!(broker_constructs().len(), 7, "{:?}", broker_constructs());
+    assert_eq!(broker_constructs().len(), 9, "{:?}", broker_constructs());
 }
 
-/// The seven that remain: session machinery the model cannot or must not
+/// The nine that remain: session machinery the model cannot or must not
 /// decide. Pinned as a list, not just a count, so a rename can't hide.
 #[test]
-fn the_surviving_constructs_are_the_infrastructure_seven() {
+fn the_surviving_constructs_are_the_infrastructure_nine() {
     assert_eq!(
         broker_constructs(),
-        &["help", "model", "doctor", "restore", "reload", "diff", "stop"]
+        &["help", "model", "login", "logout", "doctor", "restore", "reload", "diff", "stop"]
     );
 }
