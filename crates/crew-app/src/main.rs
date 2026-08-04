@@ -1,6 +1,7 @@
 mod altscroll;
 mod anim;
 mod app;
+mod applog;
 mod appregister;
 mod askaddr;
 mod askbar;

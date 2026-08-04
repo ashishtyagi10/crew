@@ -1046,6 +1046,64 @@ fn poll_until(pane: &mut ChatPane, done: impl Fn(&ChatPane) -> bool) {
 }
 
 #[test]
+fn ready_and_status_events_become_log_actions() {
+    // A broker handshake and a broker-side status note, as real wire events.
+    let ready = r#"{"type":"ready","v":1,"provider":"crew","channels":["crew"]}"#;
+    let status = r#"{"type":"status","error":true,"message":"mcp github: spawn failed"}"#;
+    let mut p = pane_emitting(&[ready, status]);
+    let mut actions = Vec::new();
+    let start = std::time::Instant::now();
+    while actions.len() < 2 {
+        actions.extend(p.poll().actions);
+        assert!(
+            start.elapsed() < std::time::Duration::from_secs(5),
+            "timed out; got {actions:?}"
+        );
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
+    assert_eq!(
+        actions[0],
+        HostAction::Status {
+            error: false,
+            message: "agent smith broker connected".into(),
+        },
+        "the crew broker's Ready closes the spawn's 'starting…' loop"
+    );
+    assert_eq!(
+        actions[1],
+        HostAction::Status {
+            error: true,
+            message: "mcp github: spawn failed".into(),
+        },
+        "broker Status events pass through to the app LOG"
+    );
+}
+
+#[test]
+fn broker_error_event_logs_connection_lost() {
+    let err = r#"{"type":"error","message":"boom"}"#;
+    let mut p = pane_emitting(&[err]);
+    let mut actions = Vec::new();
+    let start = std::time::Instant::now();
+    while actions.is_empty() {
+        actions.extend(p.poll().actions);
+        assert!(
+            start.elapsed() < std::time::Duration::from_secs(5),
+            "timed out waiting for the Error's log action"
+        );
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
+    assert!(!p.connected, "the Error event also drops `connected`");
+    assert_eq!(
+        actions[0],
+        HostAction::Status {
+            error: true,
+            message: "broker connection lost".into(),
+        }
+    );
+}
+
+#[test]
 fn busy_send_is_queued_not_sent() {
     use crate::chatkeys::ChatInput;
     let mut p = pane();

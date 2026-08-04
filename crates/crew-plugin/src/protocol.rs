@@ -133,6 +133,16 @@ pub enum PluginEvent {
     Hive {
         event: crew_hive::HiveEvent,
     },
+    /// A one-line status note for the host's activity LOG (not the chat
+    /// transcript): background lifecycle the pane user would otherwise never
+    /// see — an MCP server connecting, a connection dying. `error: true`
+    /// renders in the host's attention color. Older hosts skip the unknown
+    /// tag (see `unknown_event_type_fails_to_parse_so_the_host_can_skip_it`).
+    Status {
+        #[serde(default)]
+        error: bool,
+        message: String,
+    },
     Error {
         message: String,
     },
@@ -350,6 +360,29 @@ mod tests {
             PluginEvent::Delta { agent, text } => {
                 assert_eq!((agent.as_str(), text.as_str()), ("coder", "partial "));
             }
+            other => panic!("wrong variant: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn status_round_trips_and_error_flag_defaults_off() {
+        let ev = PluginEvent::Status {
+            error: true,
+            message: "mcp github: spawn failed".into(),
+        };
+        let s = serde_json::to_string(&ev).unwrap();
+        assert!(s.contains(r#""type":"status""#), "got: {s}");
+        match serde_json::from_str::<PluginEvent>(&s).unwrap() {
+            PluginEvent::Status { error, message } => {
+                assert!(error);
+                assert_eq!(message, "mcp github: spawn failed");
+            }
+            other => panic!("wrong variant: {other:?}"),
+        }
+        // No `error` on the wire → info.
+        let line = r#"{"type":"status","message":"mcp github connected"}"#;
+        match serde_json::from_str::<PluginEvent>(line).unwrap() {
+            PluginEvent::Status { error, .. } => assert!(!error),
             other => panic!("wrong variant: {other:?}"),
         }
     }

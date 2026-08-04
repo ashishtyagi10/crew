@@ -370,6 +370,11 @@ impl CrewApp {
         for msg in far_statuses.drain(..) {
             self.set_status(&msg);
         }
+        // Lines streamed by background threads (relay listener, workers) since
+        // the last tick — the generalized form of `far_statuses` above.
+        for (level, msg) in self.applog.drain() {
+            self.set_status_level(level, msg);
+        }
         for (idx, action) in far_actions.drain(..) {
             self.apply_far_action(action, idx);
         }
@@ -457,6 +462,14 @@ impl CrewApp {
                     label,
                 } => self.spawn_labeled_terminal(&command, &args, label),
                 HostAction::SendPane { label, text } => self.send_to_label(&label, &text),
+                HostAction::Status { error, message } => {
+                    let level = if error {
+                        crate::applog::LogLevel::Error
+                    } else {
+                        crate::applog::LogLevel::Info
+                    };
+                    self.set_status_level(level, message);
+                }
             }
         }
         if any_changed || actions_ran {

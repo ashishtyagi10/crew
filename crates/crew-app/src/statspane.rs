@@ -80,7 +80,13 @@ impl StatsPane {
         stats + git + navlog::log_block(log_len)
     }
 
-    pub fn cells(&self, cols: u16, rows: u16, panes: &[PaneRow], log: &[String]) -> Vec<CellView> {
+    pub fn cells(
+        &self,
+        cols: u16,
+        rows: u16,
+        panes: &[PaneRow],
+        log: &[crate::applog::LogEntry],
+    ) -> Vec<CellView> {
         let (time, date) = clock::now_strings();
         let mut out = clock::clock_cells(&time, &date, cols);
 

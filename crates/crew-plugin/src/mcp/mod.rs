@@ -5,10 +5,17 @@
 mod client;
 pub(crate) mod config;
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
 
 pub use client::McpClient;
 pub use config::ServerConfig;
+
+/// Where connection-lifecycle notes go (`error`, `message`) — the broker
+/// wires this to a `PluginEvent::Status` emit so the host's activity LOG
+/// shows servers connecting, ready, or failing. `None` (tests, standalone
+/// use) keeps the host silent.
+pub type StatusSink = Arc<dyn Fn(bool, &str) + Send + Sync>;
 
 /// One callable tool on a connected server.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -28,6 +35,14 @@ pub struct McpHost {
     /// Track `mcp.json` on every use (only hosts built by [`Self::from_config`]),
     /// so config edits land without a restart. Explicit maps (tests) stay pinned.
     auto: bool,
+    /// Lifecycle notes destination; `None` = silent.
+    sink: Option<StatusSink>,
+    /// Note keys already sent for the current connection generation. A dead
+    /// server is retried on every turn (`client()` caches only successes), so
+    /// without this the same connect failure would hit the LOG per turn.
+    /// Cleared per server when its config changes and wholesale on `/reload`,
+    /// so a reconnect announces itself again.
+    noted: BTreeSet<String>,
 }
 
 impl McpHost {
@@ -59,6 +74,22 @@ impl McpHost {
         self.servers.is_empty()
     }
 
+    /// Route lifecycle notes to `sink` (the broker's `Status` event emit).
+    pub fn set_sink(&mut self, sink: StatusSink) {
+        self.sink = Some(sink);
+    }
+
+    /// Send one note through the sink, at most once per `key` per connection
+    /// generation (see `noted`). An empty key always sends.
+    fn note_once(&mut self, key: String, error: bool, msg: &str) {
+        if !key.is_empty() && !self.noted.insert(key) {
+            return;
+        }
+        if let Some(sink) = &self.sink {
+            sink(error, msg);
+        }
+    }
+
     /// Re-read `mcp.json` when this host tracks it; a no-op for pinned maps.
     fn sync(&mut self) {
         if self.auto {
@@ -82,6 +113,9 @@ impl McpHost {
         for name in stale {
             self.clients.remove(&name);
             self.cache.remove(&name);
+            // New config = new connection generation: announce again.
+            self.noted
+                .retain(|k| k != &name && !k.starts_with(&format!("{name}:")));
         }
         self.servers = fresh;
     }
@@ -93,6 +127,7 @@ impl McpHost {
         self.sync();
         self.clients.clear();
         self.cache.clear();
+        self.noted.clear();
         self.servers.keys().cloned().collect()
     }
 
@@ -110,7 +145,23 @@ impl McpHost {
             ));
         };
         if !self.clients.contains_key(server) {
-            let c = McpClient::connect(cfg)?;
+            let cfg = cfg.clone();
+            self.note_once(
+                format!("{server}:connect"),
+                false,
+                &format!("mcp \u{21c4} {server} connecting\u{2026}"),
+            );
+            let c = match McpClient::connect(&cfg) {
+                Ok(c) => c,
+                Err(e) => {
+                    self.note_once(
+                        format!("{server}:fail"),
+                        true,
+                        &format!("mcp {server}: {e}"),
+                    );
+                    return Err(e);
+                }
+            };
             self.clients.insert(server.to_string(), c);
         }
         Ok(self.clients.get_mut(server).expect("just inserted"))
@@ -121,7 +172,24 @@ impl McpHost {
         if let Some(t) = self.cache.get(server) {
             return Ok(t.clone());
         }
-        let list = self.client(server)?.tools()?;
+        let list = match self.client(server)?.tools() {
+            Ok(list) => list,
+            Err(e) => {
+                // Connected but the tool listing failed — worth its own note
+                // (the connect keys are already spent by `client()`).
+                self.note_once(
+                    format!("{server}:fail"),
+                    true,
+                    &format!("mcp {server}: {e}"),
+                );
+                return Err(e);
+            }
+        };
+        self.note_once(
+            String::new(),
+            false,
+            &format!("mcp {server} connected \u{b7} {} tool(s)", list.len()),
+        );
         let tools: Vec<McpTool> = list
             .into_iter()
             .map(|(name, description)| McpTool {
@@ -160,6 +228,18 @@ impl McpHost {
         let res = self.client(server)?.call(tool, value);
         if res.is_err() {
             self.clients.remove(server);
+            // A drop starts a new connection generation: free the server's
+            // note keys so the reconnect announces itself (once) too.
+            self.noted
+                .retain(|k| k != server && !k.starts_with(&format!("{server}:")));
+            // The chat surface already carries the call's own error; this
+            // notes the connection consequence. Unkeyed: each drop is a real,
+            // separate lifecycle event.
+            self.note_once(
+                String::new(),
+                true,
+                &format!("mcp {server} connection dropped \u{2014} will reconnect"),
+            );
         }
         res
     }

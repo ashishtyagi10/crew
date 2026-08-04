@@ -99,6 +99,11 @@ impl CrewApp {
             .as_ref()
             .map(Self::current_grid)
             .unwrap_or(FALLBACK_SIZE);
+        // The spawn → handshake stretch used to be silent; with an LLM broker
+        // behind it that reads as a hang. The pane's `Ready` closes the loop
+        // with a "connected" line (see `ChatPane::poll`).
+        let display = name.as_deref().unwrap_or("chat pane").to_string();
+        self.set_status(format!("starting {display}\u{2026}"));
         // The tracked cwd, not the process's: a Dock-launched app runs at `/`,
         // and a broker there can neither find `.crew/specialists.json` (the
         // roster the footer's model segment reads) nor write a session log.
@@ -108,6 +113,7 @@ impl CrewApp {
             Ok(mut plugin) => {
                 if let Err(e) = plugin.send(&PluginCommand::Hello { v: 1 }) {
                     eprintln!("spawn_plugin_pane: plugin hello error: {e}");
+                    self.set_status_err(format!("{display} handshake failed: {e}"));
                 }
                 let chat = ChatPane::new(plugin, String::new());
                 self.panes.push(Pane {
@@ -127,7 +133,7 @@ impl CrewApp {
             }
             Err(e) => {
                 eprintln!("spawn_plugin_pane failed: {e:#}");
-                self.set_status(format!("could not start pane: {e}"));
+                self.set_status_err(format!("could not start {display}: {e}"));
             }
         }
     }

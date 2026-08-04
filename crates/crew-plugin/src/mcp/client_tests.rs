@@ -54,6 +54,69 @@ fn connect_fails_cleanly_when_the_command_is_missing() {
         .contains("failed to launch"));
 }
 
+/// The connect lifecycle streams through the sink — and exactly once per
+/// connection generation. A dead server is re-tried by every `tools()` (one
+/// per relay turn), so an undeduped sink would put the same failure in the
+/// host's LOG every turn.
+#[test]
+fn sink_notes_connect_lifecycle_once_per_generation() {
+    use std::sync::{Arc, Mutex};
+    let mut servers = BTreeMap::new();
+    servers.insert("fake".to_string(), canned("sink-ok", &[INIT, TOOLS]));
+    servers.insert(
+        "dead".to_string(),
+        ServerConfig {
+            command: "definitely-not-a-real-binary-xyz".into(),
+            args: vec![],
+            env: BTreeMap::new(),
+        },
+    );
+    let mut host = McpHost::new(servers);
+    let notes: Arc<Mutex<Vec<(bool, String)>>> = Arc::default();
+    let sink_notes = Arc::clone(&notes);
+    host.set_sink(Arc::new(move |error, msg: &str| {
+        sink_notes.lock().unwrap().push((error, msg.to_string()));
+    }));
+
+    host.tools();
+    let first: Vec<(bool, String)> = notes.lock().unwrap().clone();
+    let text = first
+        .iter()
+        .map(|(e, m)| format!("{e}|{m}"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(
+        text.contains("false|mcp \u{21c4} dead connecting\u{2026}"),
+        "{text}"
+    );
+    assert!(text.contains("true|mcp dead: failed to launch"), "{text}");
+    assert!(
+        text.contains("false|mcp \u{21c4} fake connecting\u{2026}"),
+        "{text}"
+    );
+    assert!(
+        text.contains("false|mcp fake connected \u{b7} 1 tool(s)"),
+        "{text}"
+    );
+
+    // A second turn: the live server answers from cache, the dead one is
+    // re-tried — and neither says anything new.
+    host.tools();
+    assert_eq!(
+        *notes.lock().unwrap(),
+        first,
+        "the second turn must add no notes"
+    );
+
+    // `/reload` starts a new generation: the lifecycle announces again.
+    host.reload();
+    host.tools();
+    assert!(
+        notes.lock().unwrap().len() > first.len(),
+        "reload re-arms the lifecycle notes"
+    );
+}
+
 #[test]
 fn host_lists_tools_calls_and_reports() {
     let mut servers = BTreeMap::new();

@@ -112,7 +112,10 @@ fn serve_conn(stream: TcpStream, configured: Option<&str>) {
 /// host is never reachable it didn't choose to be. Binds `CREW_FEDERATE_BIND`
 /// (default `0.0.0.0`, since federating is inherently cross-host) on
 /// `CREW_FEDERATE_PORT` (default [`crate::askaddr::DEFAULT_RELAY_PORT`]).
-pub(crate) fn maybe_spawn_listener() {
+pub(crate) fn maybe_spawn_listener(
+    log: std::sync::mpsc::Sender<(crate::applog::LogLevel, String)>,
+) {
+    use crate::applog::LogLevel;
     let Some(token) = std::env::var("CREW_FEDERATE_TOKEN")
         .ok()
         .filter(|t| !t.is_empty())
@@ -124,9 +127,15 @@ pub(crate) fn maybe_spawn_listener() {
         .ok()
         .and_then(|p| p.parse().ok())
         .unwrap_or(crate::askaddr::DEFAULT_RELAY_PORT);
+    // Both surfaces on purpose: stderr for terminal launches, the LOG sender
+    // for the sidebar (a detached GUI run has no visible stderr).
     match TcpListener::bind((bind.as_str(), port)) {
         Ok(listener) => {
             eprintln!("crew federation: relay listening on {bind}:{port} (token required)");
+            let _ = log.send((
+                LogLevel::Info,
+                format!("federation relay listening on {bind}:{port}"),
+            ));
             std::thread::spawn(move || {
                 for stream in listener.incoming().flatten() {
                     let token = token.clone();
@@ -134,7 +143,13 @@ pub(crate) fn maybe_spawn_listener() {
                 }
             });
         }
-        Err(e) => eprintln!("crew federation: relay bind failed on {bind}:{port}: {e}"),
+        Err(e) => {
+            eprintln!("crew federation: relay bind failed on {bind}:{port}: {e}");
+            let _ = log.send((
+                LogLevel::Error,
+                format!("federation relay bind failed on {bind}:{port}: {e}"),
+            ));
+        }
     }
 }
 
