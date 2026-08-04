@@ -256,8 +256,20 @@ impl ChatPane {
                 actions.push(action);
             } else {
                 match ev {
-                    PluginEvent::Ready { channels, .. } => {
+                    PluginEvent::Ready {
+                        provider, channels, ..
+                    } => {
                         self.connected = true;
+                        // The handshake landing is the "it's alive" moment the
+                        // spawn's "starting…" LOG line promised — close the loop.
+                        actions.push(HostAction::Status {
+                            error: false,
+                            message: if provider == "crew" {
+                                "agent smith broker connected".to_string()
+                            } else {
+                                format!("{provider} plugin connected")
+                            },
+                        });
                         // A fresh broker has nothing running and no plan
                         // waiting — and it numbers its tasks from 1 again, so
                         // anything left from the last one would both lie and
@@ -302,6 +314,13 @@ impl ChatPane {
                     PluginEvent::HivePlan { tasks } => self.absorb_hive_plan(tasks),
                     PluginEvent::Hive { event } => self.absorb_hive(&event),
                     PluginEvent::Error { .. } => {
+                        // The transcript shows the pane going dead; the LOG
+                        // keeps the record (with the attention color) even
+                        // when the user is looking at another pane.
+                        actions.push(HostAction::Status {
+                            error: true,
+                            message: "broker connection lost".to_string(),
+                        });
                         self.fold_swarm();
                         self.connected = false;
                         self.flush_active_hops();

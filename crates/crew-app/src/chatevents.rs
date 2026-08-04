@@ -13,6 +13,12 @@ pub enum HostAction {
         label: String,
         text: String,
     },
+    /// A line for the app's activity LOG (sidebar) — plugin/broker lifecycle
+    /// the pane transcript doesn't carry.
+    Status {
+        error: bool,
+        message: String,
+    },
 }
 
 pub struct PollResult {
@@ -34,6 +40,10 @@ pub fn classify(ev: &PluginEvent) -> Option<HostAction> {
         PluginEvent::SendPane { label, text } => Some(HostAction::SendPane {
             label: label.clone(),
             text: text.clone(),
+        }),
+        PluginEvent::Status { error, message } => Some(HostAction::Status {
+            error: *error,
+            message: message.clone(),
         }),
         _ => None,
     }

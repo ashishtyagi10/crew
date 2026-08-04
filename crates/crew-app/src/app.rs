@@ -103,7 +103,10 @@ pub struct CrewApp {
     pub(crate) status: Option<(String, Instant)>,
     /// Ring buffer of recent status messages, shown as the live LOG section in
     /// the left nav (newest last). Capped at [`crate::status::LOG_CAP`].
-    pub(crate) log: Vec<String>,
+    pub(crate) log: Vec<crate::applog::LogEntry>,
+    /// Channel background threads stream LOG lines through; drained once per
+    /// poll tick into [`Self::set_status_level`]. See [`crate::applog`].
+    pub(crate) applog: crate::applog::AppLog,
     /// Notification system: throttles + records pane events (command finished,
     /// bell, output pattern match, pane exit) surfaced via the LOG + input bar.
     pub(crate) notifier: crate::notify::Notifier,

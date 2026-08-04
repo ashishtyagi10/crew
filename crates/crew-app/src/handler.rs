@@ -185,12 +185,16 @@ pub fn run() -> anyhow::Result<()> {
         }
     };
     // Cross-host federation relay: binds ONLY if the operator opted in with a
-    // CREW_FEDERATE_TOKEN. No token → no port, no reachability.
-    crate::relay::maybe_spawn_listener();
+    // CREW_FEDERATE_TOKEN. No token → no port, no reachability. Built before
+    // the app so the listener thread gets a LOG sender (stderr is invisible
+    // in a detached GUI run).
+    let applog = crate::applog::AppLog::default();
+    crate::relay::maybe_spawn_listener(applog.sender());
     let mut app = CrewApp {
         config,
         font_rotate,
         ipc,
+        applog,
         // Default focus is the input bar (startup has no panes selected).
         input: InputBar {
             text: String::new(),

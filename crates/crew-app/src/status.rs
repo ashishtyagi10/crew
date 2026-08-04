@@ -4,6 +4,7 @@
 use std::time::{Duration, Instant};
 
 use crate::app::CrewApp;
+use crate::applog::{LogEntry, LogLevel};
 
 /// How long a status message stays visible.
 const STATUS_TTL: Duration = Duration::from_secs(3);
@@ -18,11 +19,26 @@ impl CrewApp {
     /// recent activity. The flash itself stays untimestamped, so the input bar
     /// reads cleanly.
     pub(crate) fn set_status(&mut self, msg: impl Into<String>) {
+        self.set_status_level(LogLevel::Info, msg);
+    }
+
+    /// [`Self::set_status`] at error level: same flash, but the LOG entry
+    /// renders in the attention color so failures stand out in the tail.
+    pub(crate) fn set_status_err(&mut self, msg: impl Into<String>) {
+        self.set_status_level(LogLevel::Error, msg);
+    }
+
+    /// The one writer behind both levels (and the poll-tick drain of
+    /// [`crate::applog::AppLog`]).
+    pub(crate) fn set_status_level(&mut self, level: LogLevel, msg: impl Into<String>) {
         let msg = msg.into();
         if self.log.len() >= LOG_CAP {
             self.log.remove(0);
         }
-        self.log.push(format!("{} {}", log_stamp(), msg));
+        self.log.push(LogEntry {
+            level,
+            text: format!("{} {}", log_stamp(), msg),
+        });
         self.status = Some((msg, Instant::now()));
         self.redraw();
     }
@@ -116,8 +132,22 @@ mod tests {
         assert_eq!(app.active_status(), Some("hello world"));
         // …while the LOG entry carries an `HH:MM` stamp before it.
         let last = app.log.last().expect("log has the entry");
-        assert!(last.ends_with("hello world"));
-        assert!(last.contains(':') && last != "hello world");
+        assert!(last.text.ends_with("hello world"));
+        assert!(last.text.contains(':') && last.text != "hello world");
+        assert_eq!(last.level, crate::applog::LogLevel::Info);
+    }
+
+    #[test]
+    fn error_status_flags_its_log_entry() {
+        let mut app = CrewApp::default();
+        app.set_status_err("broker fell over");
+        // Same flash as an info status…
+        assert_eq!(app.active_status(), Some("broker fell over"));
+        // …but the LOG entry carries the error level for the renderer.
+        assert_eq!(
+            app.log.last().unwrap().level,
+            crate::applog::LogLevel::Error
+        );
     }
 
     #[test]
@@ -129,7 +159,7 @@ mod tests {
         app.clear_log();
         // Cleared down to just the single "cleared" note (not blank).
         assert_eq!(app.log.len(), 1);
-        assert!(app.log[0].ends_with("activity log cleared"));
+        assert!(app.log[0].text.ends_with("activity log cleared"));
     }
 
     #[test]
@@ -138,7 +168,12 @@ mod tests {
         let mut app = CrewApp::default();
         app.notify(NotifyKind::AgentDone, "crew".into(), "claude".into());
         assert_eq!(app.active_status(), Some("✓ claude finished in crew"));
-        assert!(app.log.last().unwrap().contains("claude finished in crew"));
+        assert!(app
+            .log
+            .last()
+            .unwrap()
+            .text
+            .contains("claude finished in crew"));
     }
 
     #[test]

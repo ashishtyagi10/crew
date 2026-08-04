@@ -45,6 +45,23 @@ pub fn run_broker_stdio() -> anyhow::Result<()> {
     let stdin = std::io::stdin();
     let out: Out = Arc::new(Mutex::new(std::io::stdout()));
     let mut session = Session::new();
+    // MCP lifecycle notes (connecting / ready / failed / dropped) stream to
+    // the host's activity LOG as `Status` events — connects are lazy and used
+    // to be entirely silent, indistinguishable from a hang.
+    {
+        let out = Arc::clone(&out);
+        session
+            .lock_mcp()
+            .set_sink(Arc::new(move |error, message: &str| {
+                let _ = emit(
+                    &out,
+                    &PluginEvent::Status {
+                        error,
+                        message: message.to_string(),
+                    },
+                );
+            }));
+    }
     let mut tasks = super::tasks::Tasks::new();
     for line in stdin.lock().lines() {
         let line = line?;
