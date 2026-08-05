@@ -422,7 +422,7 @@ fn typing_clears_a_terminal_selection() {
             input,
             cmd: None,
             cmd_since: None,
-            last_output_ms: 0,
+            tail: Default::default(),
         })),
         grid: GridSize { cols: 40, rows: 10 },
         rect: Rect {

@@ -68,7 +68,7 @@ fn live_terminal_pane_answers_through_the_full_pipeline() {
             input,
             cmd: None,
             cmd_since: None,
-            last_output_ms: 0,
+            tail: Default::default(),
         })),
         grid: GridSize { cols: 80, rows: 24 },
         rect: Rect {

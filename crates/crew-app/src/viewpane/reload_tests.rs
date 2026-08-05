@@ -163,7 +163,7 @@ fn editor_pane(born_ms: u64, cmd: Option<&str>) -> Pane {
             input,
             cmd: cmd.map(str::to_string),
             cmd_since: None,
-            last_output_ms: 0,
+            tail: Default::default(),
         })),
         grid: FALLBACK_SIZE,
         rect: PLACEHOLDER_RECT,

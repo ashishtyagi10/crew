@@ -8,6 +8,37 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.12.7
+
+Auto-focus of blocked panes works on real agents now. Claude Code and Codex
+approval prompts were never detected (v0.11.2's heuristic was calibrated
+against idealized screens); tested against a live `claude` 2.1.222 run and
+Codex's own TUI snapshots, three separate bugs fell out:
+
+- **Waiting is now rendered-tail stability, not PTY-byte silence.** Claude
+  Code repaints a blinking `⏺` every ~600 ms while its approval dialog just
+  sits there, so the old "quiet for 3 s" byte gate never opened. A pane now
+  counts as quiescent when the *text* of its bottom rows stops changing for
+  3 s — blinks and OSC title churn don't move that text, while a thinking
+  spinner's ticking `(12s · esc to interrupt)` line does, so
+  waiting-vs-thinking still holds.
+
+- **The prompt matcher reaches wrapped dialogs.** In a narrow pane, Claude
+  Code's wrapped option lines + hint push "Do you want to proceed?" up to 8
+  non-empty rows above the bottom — past the old 5-row window. The window is
+  now 12 rows, and a `❯`/`›` option selector under a question row matches at
+  any depth (Codex uses `›`).
+
+- **Auto-focus no longer forfeits when you were typing.** Focus fired only
+  on the exact tick a pane *became* blocked; if that edge landed within 5 s
+  of your last keystroke — almost always, in a live session — the move was
+  silently skipped forever. Focus is now level-triggered: the pane is
+  surfaced as soon as you go hands-off, still once per episode.
+
+Verified end-to-end by a new live-PTY test: a real shell replays the captured
+Claude Code dialog with the blink running and must be auto-focused, only
+after the stability window, while bytes are still flowing.
+
 ## 0.12.6
 
 The CRT theme actually looks like a CRT again. Three fixes to one complaint
