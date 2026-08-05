@@ -67,6 +67,14 @@ fn panes(cell_w: f32, cell_h: f32) -> Vec<PaneScene> {
 
 /// Render one full frame: clear → paper grain → glass → cells → borders → text.
 fn render(glass: crew_theme::GlassLevel, opacity: f32) -> Option<Vec<u8>> {
+    render_full(glass, opacity, false)
+}
+
+/// [`render`], optionally through the REAL CRT post-process: the scene draws
+/// into the chain's off-screen target, then bloom + composite reproject onto
+/// the readback texture — the same `CrtChain` the app's frame path owns, so a
+/// pixel asserted here is a pixel the tube actually ships.
+fn render_full(glass: crew_theme::GlassLevel, opacity: f32, crt: bool) -> Option<Vec<u8>> {
     let instance = wgpu::Instance::default();
     let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
         power_preference: wgpu::PowerPreference::None,
@@ -105,6 +113,16 @@ fn render(glass: crew_theme::GlassLevel, opacity: f32) -> Option<Vec<u8>> {
     grid.set_scene(&device, &panes(cell_w, cell_h));
     grid.prepare(&device, &queue, W, H);
 
+    // A static tube (time 0, flicker 0 — the idle determinism contract),
+    // running the active theme's own style through the real bloom chain.
+    let chain = crt.then(|| {
+        let mut c = crew_render::CrtChain::new(&device, FORMAT, W, H);
+        c.set_style(crew_theme::theme().crt);
+        c.set_anim(0.0, 0.0);
+        c.update_uniforms(&queue, W as f32, H as f32);
+        c
+    });
+
     let paper = PaperBgPass::new(&device, FORMAT);
     let bg = crew_theme::theme().page_bg;
     let bg_f32 = crew_render::color::target_rgba(bg, opacity, FORMAT.is_srgb());
@@ -119,10 +137,13 @@ fn render(glass: crew_theme::GlassLevel, opacity: f32) -> Option<Vec<u8>> {
 
     let mut enc = device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
     {
+        // With the tube on, the scene pass lands off-screen and the chain's
+        // composite owns the readback texture — exactly `frame::render`'s split.
+        let scene_view = chain.as_ref().map_or(&view, |c| c.scene_view());
         let mut pass = enc.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("glass_shot_pass"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: &view,
+                view: scene_view,
                 depth_slice: None,
                 resolve_target: None,
                 ops: wgpu::Operations {
@@ -142,6 +163,9 @@ fn render(glass: crew_theme::GlassLevel, opacity: f32) -> Option<Vec<u8>> {
         });
         paper.draw(&mut pass);
         grid.draw(&mut pass);
+    }
+    if let Some(c) = &chain {
+        c.encode(&mut enc, &view);
     }
     enc.copy_texture_to_buffer(
         wgpu::TexelCopyTextureInfo {
@@ -370,4 +394,125 @@ fn glass_shot_translucent_window() {
         (140..=175).contains(&page_a),
         "page alpha {page_a} should track the 0.6 window opacity (~153)"
     );
+}
+
+/// Peak luminance of a block — for stroke-colour comparisons, where mean
+/// would reward glyph coverage (a straight `│` inks more of its cell than a
+/// rounded `╭`) instead of the colour the stroke is actually drawn in.
+fn max_lum(px: &[u8], x0: usize, y0: usize, w: usize, h: usize) -> f64 {
+    let mut m = 0.0f64;
+    for y in y0..(y0 + h) {
+        for x in x0..(x0 + w) {
+            let i = (y * W as usize + x) * 4;
+            let l = 0.2126 * px[i] as f64 + 0.7152 * px[i + 1] as f64 + 0.0722 * px[i + 2] as f64;
+            m = m.max(l);
+        }
+    }
+    m
+}
+
+/// Done-criterion #4 on real pixels: through the FULL chain (scene → bloom →
+/// composite), focus hierarchy must read in grayscale from the glow alone,
+/// and the corner nodes must exist.
+///
+/// Geometry (see `panes`): the focused pane spans x 30..350, the unfocused
+/// one 370..690, both y 50..250; each card's bottom border row sits around
+/// y ≈ 230..245 at this cell size.
+///
+/// A design note earned by mutation-checking: the first draft sampled 3px
+/// bands just OUTSIDE each frame's outer edge, and those bands measured
+/// IDENTICAL with focus removed — the light out there is the luminous glass
+/// sheet's spill plus deterministic grain, not the border (the thin `│`
+/// stroke peaks at ~63 lum against a ~47 lum sheet, so its bloom vanishes
+/// into it). The assertions below are the ones that actually flip when focus
+/// is taken away, all in plain luminance except the node-colour fingerprint.
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn crt_shot_grayscale_focus_hierarchy() {
+    let _g = crate::app::theme_test_guard();
+    crew_theme::set_theme(crew_theme::ThemeId::CrtGreen);
+    let Some(px) = render_full(crew_theme::GlassLevel::Medium, 1.0, true) else {
+        eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+        return;
+    };
+    let out_dir = std::env::var("CREW_SHOT_DIR").unwrap_or_else(|_| "target/screenshots".into());
+    std::fs::create_dir_all(&out_dir).unwrap();
+    image::save_buffer(
+        format!("{out_dir}/crt-lighttrace.png"),
+        &px,
+        W,
+        H,
+        image::ColorType::Rgba8,
+    )
+    .unwrap();
+
+    // (1) Grayscale hierarchy: the two panes differ ONLY in focus, so compare
+    // the same feature on each — the bottom-left corner cell. The focused
+    // pane's corner node must peak far above the unfocused pane's corner in
+    // plain luminance; a viewer squinting at a grayscale shot finds the live
+    // pane by its glowing joints.
+    let focused_corner = max_lum(&px, 30, 232, 8, 16);
+    let unfocused_corner = max_lum(&px, 370, 232, 8, 16);
+    println!("corners: focused {focused_corner:.1} vs unfocused {unfocused_corner:.1}");
+    assert!(
+        focused_corner > 1.8 * unfocused_corner,
+        "grayscale hierarchy lost: corners {focused_corner:.1} vs {unfocused_corner:.1}"
+    );
+
+    // (1b) The frame itself outshines: with the sheet off (same tube chain —
+    // the sheet's own luminance is what buried the stroke above), the
+    // brightest row across the focused pane's bottom-border cells (y 233..246
+    // at this cell size; the rows above belong to the pane's own bottom
+    // content line) must beat the unfocused pane's by a clear factor. The
+    // factor is 1.8 because the two panes' glyphs sit on different subpixel
+    // phases (their x origins differ by a non-integer cell count), which
+    // alone is worth ~1.4× — focus has to clear that, not hide under it.
+    let bare = render_full(crew_theme::GlassLevel::Off, 1.0, true).expect("adapter was above");
+    let peak_row = |x0: usize| {
+        (233..246)
+            .map(|y| mean_lum(&bare, x0, y, 260, 1))
+            .fold(0.0f64, f64::max)
+    };
+    let (focused_band, unfocused_band) = (peak_row(60), peak_row(400));
+    println!("bottom-border peaks: focused {focused_band:.1} vs unfocused {unfocused_band:.1}");
+    assert!(
+        focused_band > 1.8 * unfocused_band,
+        "the focused frame does not outshine: {focused_band:.1} vs {unfocused_band:.1}"
+    );
+
+    // (2) The corner nodes exist: the focused pane's BOTTOM-left corner cell
+    // samples hotter than its own left-edge midpoint. The bottom corner,
+    // deliberately: the top one also catches the glass sheet's specular
+    // hairline, which peaks bright whether or not any node exists.
+    let corner = max_lum(&px, 30, 232, 8, 16);
+    let edge_mid = max_lum(&px, 30, 145, 8, 16);
+    println!("focused stroke: corner {corner:.1} vs edge midpoint {edge_mid:.1}");
+    assert!(
+        corner > edge_mid + 8.0,
+        "no corner node: corner {corner:.1} vs edge midpoint {edge_mid:.1}"
+    );
+    // (2b) …and the heat is the NODE's, not the glyph's: a corner glyph inks
+    // more of its cell than a thin `│` either way, so peak luminance alone
+    // would survive the lift being deleted. The lift's own fingerprint is its
+    // whitening — on this pure-green phosphor (base stroke (0,255,120)) the
+    // only red light the frame can carry is the corner node — so the corner
+    // must peak clearly redder than the edge stroke.
+    let corner_red = max_ch(&px, 0, 30, 232, 8, 16);
+    let edge_red = max_ch(&px, 0, 30, 145, 8, 16);
+    println!("node fingerprint: corner red {corner_red:.1} vs edge red {edge_red:.1}");
+    assert!(
+        corner_red > edge_red + 25.0,
+        "no corner node: corner red {corner_red:.1} vs edge red {edge_red:.1}"
+    );
+}
+
+/// Peak of one RGBA channel over a block — [`max_lum`]'s single-channel twin.
+fn max_ch(px: &[u8], ch: usize, x0: usize, y0: usize, w: usize, h: usize) -> f64 {
+    let mut m = 0.0f64;
+    for y in y0..(y0 + h) {
+        for x in x0..(x0 + w) {
+            m = m.max(px[(y * W as usize + x) * 4 + ch] as f64);
+        }
+    }
+    m
 }

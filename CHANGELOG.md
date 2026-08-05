@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.12.4
+
+Light-trace frames — the holographic overhaul's finale (part 3). On the CRT
+themes a focused frame is now drawn in light, not RGB steps: its four
+corner cells run white-hot so the bloom turns them into glowing nodes,
+gaining focus fires a ~600ms ignition sweep (the whole frame ignites at the
+node colour and decays to rest), and a streaming pane's frame breathes on a
+slow ~2.4s cycle that rides the redraws it already schedules. Hierarchy
+lives in the glow — a grayscale render through the real bloom + composite
+chain separates focused from unfocused by halo alone, pixel-asserted — and
+idle still converges: sweeps settle, breathing stops at exactly
+`border_focused`, and paper themes' frame pixels are untouched.
+
 ## 0.12.3
 
 CRT glass turns luminous (holographic overhaul, part 2). The "faintest of

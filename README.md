@@ -434,7 +434,15 @@ page), `sepia-dark` (warm cream ink on dark sepia), `sepia-light`
 page), `salmon-broadsheet` (FT-style salmon-pink broadsheet), and
 `ivory-ledger` (ivory with ledger-green ink) — and four **CRT phosphor**
 tubes: `crt-green`, `crt-amber`, `crt-blue`, and `crt-violet`, each a neon
-monochrome glow on a near-black tube. Three rotation modes rotate through a
+monochrome glow on a near-black tube. The tubes render as a **holographic
+terminal**: each phosphor ships its own tube personality (scanline weight,
+bloom strength, flicker character), hot pixels throw a real half-res
+gaussian bloom, panes sit on luminous translucent glass tinted in the
+phosphor's own hue, and focused frames are drawn in light — glowing corner
+nodes, a brief ignition sweep when a pane gains focus, and a slow breathing
+while it streams (idle frames stay perfectly static). `/crt on|off|auto`
+still overrides the tube independently of the theme. Three rotation modes
+rotate through a
 pool every 10 minutes: **`/theme random-dark`** (dark themes only; alias
 `/theme random`), **`/theme random-light`** (light themes only), and
 **`/theme auto`** (follows OS appearance). Switch with `/theme <name>` (the

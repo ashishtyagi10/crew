@@ -58,6 +58,7 @@ impl CrewApp {
         self.panes.iter().any(crate::paneview::pane_animating)
             || crate::attention::any_pulsing(&self.panes, now)
             || self.focus_anim.live(now)
+            || self.ignite_anim.live(now)
             || self.zoom_anim.live(now)
             || self.ghosts.iter().any(|g| g.live(now))
             || self.panes.iter().any(|p| {

@@ -39,7 +39,7 @@ pub(crate) struct Bar<'a> {
 
 /// Whether `c` is part of a card's frame stroke (as opposed to its legend or a
 /// status glyph sitting on the same border).
-fn is_frame_glyph(c: char) -> bool {
+pub(crate) fn is_frame_glyph(c: char) -> bool {
     matches!(
         c,
         '\u{2500}' | '\u{2502}' | '\u{256d}' | '\u{256e}' | '\u{2570}' | '\u{256f}'

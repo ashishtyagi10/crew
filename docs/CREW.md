@@ -1103,8 +1103,10 @@ whisper of frost grain. The *look* is derived from whichever theme is active
 rather than configured per palette, so **every theme** — light, dark and CRT —
 gets its own treatment automatically: dark themes lift a lighter sheet off the
 page, light themes lean on a whiter sheet plus a real shadow (a light page can't
-get lighter), and CRT stays deliberately faint and grain-free because the tube
-already supplies bloom and noise. `medium` is the default; `off` restores flat
+get lighter), and CRT runs the most *luminous* sheet of the family — a
+translucent phosphor-tinted panel with an inner edge-glow bleeding in from the
+frame, so each pane body reads as lit by its own border (the old "CRT stays
+faintest" restraint is gone). `medium` is the default; `off` restores flat
 cards and costs nothing to draw. Overlay popups (the command menu, the attach
 picker, the key prompt) stay opaque by design.
 
@@ -1143,6 +1145,20 @@ own, but each name still resolves if you type it.
 - **`crt-amber`** — the warm amber variation of the green tube.
 - **`crt-blue`** — a cool blue phosphor variation (Tron).
 - **`crt-violet`** — a neon violet phosphor variation.
+
+**The CRT tubes are holographic.** Each phosphor carries its own tube tuning
+(scanline weight, bloom strength and radius, streaming-flicker character), so
+green runs a hot driven-hard raster while blue runs a cold TRON edge. Hot
+pixels feed a real half-res gaussian bloom — a focused border *radiates*
+tens of pixels instead of stopping at the stroke — and pane glass becomes a
+luminous translucent sheet in the phosphor's hue. The chrome is drawn in
+light, TRON/JARVIS-style: a focused frame's four corners run white-hot so
+the bloom turns them into glowing nodes, gaining focus fires a ~600ms
+ignition sweep (the whole frame ignites at the node colour and decays to
+rest), and a streaming pane's frame breathes on a slow ~2.4s cycle. All of
+it is focus-led — unfocused panes stay a thin quiet trace — and all of it is
+bounded: an idle tube renders a byte-identical frame every time. Paper
+themes are untouched by any of this.
 
 **Light themes read like print.** The five light themes (`paper-light`,
 `sepia-light`, `coldpress-gray`, `salmon-broadsheet`, `ivory-ledger`) render

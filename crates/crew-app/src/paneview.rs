@@ -5,7 +5,7 @@ use crew_render::PaneScene;
 
 use crate::gridsel::CellSel;
 use crate::pane::{Pane, PaneContent};
-use crate::panecard::{pane_card, Bar};
+use crate::panecard::Bar;
 
 /// Build the `PaneScene`s for one frame. Each pane yields **two** scenes — the
 /// content, inset by one cell on every side, and the border card around it —
@@ -190,9 +190,8 @@ fn push_pane_scenes(
     // Border card: the rounded frame + legend + status, drawn over the rect.
     let title = p.title_text();
     scenes.push(PaneScene {
-        cells: pane_card(
-            p.grid.cols,
-            p.grid.rows,
+        cells: crate::panecardglow::pane_card_glowing(
+            p,
             &Bar {
                 index,
                 title: &title,
