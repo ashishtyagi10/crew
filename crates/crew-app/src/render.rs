@@ -25,15 +25,10 @@ impl CrewApp {
         let Some((cw, ch, sw, sh, scale)) = self.frame_geometry() else {
             return Vec::new();
         };
-        // Focus moved since the last frame → start the bracket travel. Diffed
-        // here rather than at each `self.focused = …` site, of which there are
-        // many; one of them would inevitably forget.
+        // Focus bookkeeping (bracket travel + the CRT ignition sweep) lives
+        // in `panecardglow::focus_fx`, diffed there once per frame.
         let now = crate::anim::now_ms();
-        if self.focus_drawn != self.focused {
-            self.focus_drawn = self.focused;
-            self.focus_anim = crate::ease::Timeline::start(now, 260, self.config.motion_level());
-        }
-        let focus_t = self.focus_anim.eased(now, crate::ease::out_cubic);
+        let focus_t = self.focus_fx(now);
         self.reconcile_grid();
         // Before anything is drawn: a key prompt this frame won't show must
         // not survive holding a secret (see `close_hidden_keyentry`).

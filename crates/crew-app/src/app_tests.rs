@@ -1114,3 +1114,80 @@ fn every_animation_terminates() {
         "something is still animating half a minute later"
     );
 }
+
+// --- the CRT ignition sweep --------------------------------------------------
+
+/// Gaining focus on a CRT theme fires a one-shot ignition sweep that outlives
+/// the 260ms bracket travel — and then settles: once the sweep has run its
+/// ~600ms the app stops asking for frames again (done-criterion #5: idle
+/// converges to a static frame, ignition included).
+#[test]
+fn crt_ignition_asks_for_frames_then_settles() {
+    let _g = crate::app::motion_test_guard();
+    crate::motion::set_level(crate::motion::MotionLevel::Full);
+    crew_theme::set_theme(crew_theme::ThemeId::CrtGreen);
+    let mut app = CrewApp::default();
+    app.panes.push(tests_far_pane("p"));
+    app.panes[0].born_ms = 0;
+    let now = crate::anim::now_ms();
+    // Pretend the last frame drew focus elsewhere, as any focus change does.
+    app.focus_drawn = 1;
+    app.focus_fx(now);
+    assert!(
+        app.wants_animation_frame(now + 400),
+        "the ignition must still burn after the 260ms bracket travel ends"
+    );
+    assert!(
+        !app.wants_animation_frame(now + 30_000),
+        "a finished ignition must stop requesting frames"
+    );
+    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+}
+
+/// The reduce-motion contract holds for ignition too: at `off` the sweep is
+/// born settled — one final-state frame, zero scheduled redraws.
+#[test]
+fn motion_off_births_the_ignition_settled() {
+    let _g = crate::app::motion_test_guard();
+    crate::motion::set_level(crate::motion::MotionLevel::Off);
+    crew_theme::set_theme(crew_theme::ThemeId::CrtGreen);
+    let mut app = CrewApp::default();
+    app.panes.push(tests_far_pane("p"));
+    app.panes[0].born_ms = 0;
+    // `focus_fx` scales by the CONFIG's motion level (as `build_frame` always
+    // has for the bracket travel), so pin the config alongside the global.
+    app.config.motion = "off".into();
+    let now = crate::anim::now_ms();
+    app.focus_drawn = 1;
+    app.focus_fx(now);
+    assert!(
+        !app.ignite_anim.live(now),
+        "off must be born settled, not merely finish quickly"
+    );
+    assert!(!app.wants_animation_frame(now));
+    crate::motion::set_level(crate::motion::MotionLevel::Full);
+    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+}
+
+/// Paper themes never ignite: the sweep changes no paper pixel, so spawning
+/// it there would spend 600ms of redraws drawing the same frame.
+#[test]
+fn paper_focus_change_spawns_no_ignition() {
+    let _g = crate::app::motion_test_guard();
+    crate::motion::set_level(crate::motion::MotionLevel::Full);
+    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+    let mut app = CrewApp::default();
+    app.panes.push(tests_far_pane("p"));
+    app.panes[0].born_ms = 0;
+    let now = crate::anim::now_ms();
+    app.focus_drawn = 1;
+    app.focus_fx(now);
+    assert!(
+        !app.ignite_anim.live(now + 1),
+        "paper themes must not spawn the ignition sweep"
+    );
+    assert!(
+        app.focus_anim.live(now + 1),
+        "the bracket travel still runs on paper"
+    );
+}

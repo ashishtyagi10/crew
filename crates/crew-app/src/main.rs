@@ -130,6 +130,7 @@ mod openview;
 mod palette;
 mod pane;
 mod panecard;
+mod panecardglow;
 mod panefit;
 mod panelcard;
 mod panelist;

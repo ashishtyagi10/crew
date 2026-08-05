@@ -41,6 +41,11 @@ pub struct CrewApp {
     pub(crate) zoom_anim: crate::ease::Timeline,
     pub(crate) focus_drawn: usize,
     pub(crate) focus_anim: crate::ease::Timeline,
+    /// One-shot CRT ignition sweep: on the phosphor themes a freshly focused
+    /// frame starts corner-node hot and decays to `border_focused` (see
+    /// [`crate::panecardglow`]). Default is settled, so paper themes and cold
+    /// starts never animate it.
+    pub(crate) ignite_anim: crate::ease::Timeline,
     /// LRU of pane indices: which panes are full tiles vs. minimized.
     pub(crate) grid: GridLayout,
     pub(crate) mods: Modifiers,
