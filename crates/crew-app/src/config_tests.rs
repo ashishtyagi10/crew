@@ -243,3 +243,13 @@ fn reset_look_overrides_reports_when_nothing_changed() {
     );
     assert_eq!(cfg.crt, None);
 }
+
+#[test]
+fn load_keeps_the_last_seen_version() {
+    // `load()` runs `clamped()`, which used to rebuild the struct with
+    // `last_seen_version: None` — so every launch read as a first run: the
+    // "updated to crew X" note never fired and version-gated migrations
+    // (e.g. the 0.12.6 crt/glass-pin heal) never ran.
+    let cfg = CrewConfig::from_toml_str("last_seen_version = \"0.12.5\"\n");
+    assert_eq!(cfg.last_seen_version.as_deref(), Some("0.12.5"));
+}
