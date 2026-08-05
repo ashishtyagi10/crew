@@ -155,10 +155,6 @@ impl CrewApp {
             let changed = match &mut p.content {
                 PaneContent::Terminal(t) => {
                     let n = t.pty.try_read() > 0;
-                    if n {
-                        // Quiescence stamp for the blocked-on-a-human check.
-                        t.last_output_ms = crate::anim::now_ms();
-                    }
                     more_pending |= t.pty.has_pending();
                     rang = t.pty.take_bell();
                     new_cwd = t.pty.take_cwd();
@@ -505,6 +501,11 @@ impl CrewApp {
         use crate::blocked::{pane_blocked, USER_IDLE_MS};
         if self.panes.is_empty() || !self.blocked.due(now) {
             return false;
+        }
+        // Step each terminal's rendered-tail watch (stability clock + prompt
+        // match) before reading the verdicts below.
+        for p in self.panes.iter_mut() {
+            crate::blocked::observe(p, now);
         }
         let snap: Vec<(u64, bool)> = self
             .panes
