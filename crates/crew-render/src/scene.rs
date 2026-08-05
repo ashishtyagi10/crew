@@ -118,8 +118,7 @@ pub(crate) fn build_scene(
     let mut sigs: Vec<u64> = Vec::new();
     let mut borders: Vec<Border> = Vec::new();
     let mut cards: Vec<GlassCard> = Vec::new();
-    // Derived from the active theme, so light, dark and CRT each get their own
-    // treatment without any per-preset configuration (see `crew_theme::glass`).
+    // Derived from the active theme — per-family treatment in `crew_theme::glass`.
     let glass_style = crew_theme::glass_style().scaled(glass);
     let (prev_sigs, prev_bufs) = prev;
     let mut prev_bufs: Vec<Option<PaneBuffer>> = prev_bufs.into_iter().map(Some).collect();
@@ -179,6 +178,7 @@ pub(crate) fn build_scene(
                 highlight_alpha: glass_style.highlight_alpha,
                 shadow_alpha: glass_style.shadow_alpha,
                 scan: pane.scan,
+                edge_glow: glass_style.edge_glow,
             });
         }
 

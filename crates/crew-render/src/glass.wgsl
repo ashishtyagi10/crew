@@ -16,6 +16,8 @@ const SH_BLUR: f32 = 14.0;
 const SH_DROP: f32 = 4.0;
 // Edge antialiasing width.
 const AA: f32 = 1.0;
+// Inner edge-glow reach (px): how far the frame's light bleeds into the fill.
+const GLOW_W: f32 = 24.0;
 
 struct VsOut {
   @builtin(position) pos: vec4<f32>,
@@ -24,7 +26,7 @@ struct VsOut {
   @location(2) params: vec4<f32>,  // radius, alpha_top, alpha_bottom, noise
   @location(3) tint: vec4<f32>,    // tint.rgb, highlight_alpha
   @location(4) hl: vec4<f32>,      // highlight.rgb, shadow_alpha
-  @location(5) extra: vec4<f32>,   // scan position, unused
+  @location(5) extra: vec4<f32>,   // scan position, edge_glow, unused
 };
 
 // Half-height of the scan band, as a fraction of the card. Wide enough to read
@@ -112,6 +114,18 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     fill_a = fill_a + (hash21(floor(in.local)) - 0.5) * noise_amt * inside;
   }
   fill_a = clamp(fill_a, 0.0, 1.0);
+
+  // --- inner edge-glow --------------------------------------------------------
+  // CRT sheets read as lit by their own frame: the fill brightens at the card
+  // border and fades over GLOW_W px inward. Reuses the SDF distance the corner
+  // rounding already computes (-d = px inside the shape). The zero-strength
+  // guard keeps every paper theme's pixels bit-identical to a build without
+  // this term.
+  let edge_glow = in.extra.y;
+  if (edge_glow > 0.0) {
+    let bleed = 1.0 - smoothstep(0.0, GLOW_W, -d);
+    fill_a = clamp(fill_a + edge_glow * bleed * inside, 0.0, 1.0);
+  }
 
   // --- scan sweep -----------------------------------------------------------
   // A soft band of extra fill travelling down the card while the pane works.
