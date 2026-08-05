@@ -238,6 +238,20 @@ pub(crate) fn version_change_note(last_seen: Option<&str>) -> Option<String> {
     }
 }
 
+/// `true` when semver-ish `a` sorts before `b` (numeric per dot-component,
+/// missing components read as 0). Unparseable components compare as 0 —
+/// good enough for the one-shot config migrations this gates.
+pub(crate) fn version_lt(a: &str, b: &str) -> bool {
+    let parse = |v: &str| -> [u64; 3] {
+        let mut out = [0u64; 3];
+        for (i, part) in v.split('.').take(3).enumerate() {
+            out[i] = part.trim().parse().unwrap_or(0);
+        }
+        out
+    };
+    parse(a) < parse(b)
+}
+
 #[cfg(test)]
 mod version_note_tests {
     use super::*;
@@ -253,6 +267,18 @@ mod version_note_tests {
             version_change_note(None).is_none(),
             "a first run has nothing to compare and nothing to say"
         );
+    }
+
+    #[test]
+    fn version_lt_compares_numerically_not_lexically() {
+        assert!(version_lt("0.12.5", "0.12.6"));
+        assert!(!version_lt("0.12.6", "0.12.6"));
+        assert!(!version_lt("0.13.0", "0.12.6"));
+        // 9 < 12 numerically; a lexicographic compare would get this backwards.
+        assert!(version_lt("0.9.9", "0.12.6"));
+        // Missing/garbage components read as 0.
+        assert!(version_lt("0.12", "0.12.6"));
+        assert!(version_lt("junk", "0.12.6"));
     }
 
     #[test]

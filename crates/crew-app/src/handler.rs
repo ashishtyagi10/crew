@@ -68,6 +68,20 @@ impl ApplicationHandler for CrewApp {
             (Some(c), None) => Some(c),
             (None, v) => v,
         };
+        // One-shot heal when upgrading across 0.12.6: configs written before
+        // theme switches cleared overrides can carry a years-old `crt = false`
+        // / `glass = "off"` pin that silently guts the CRT theme. Clearing the
+        // pins once restores the theme-intended look; anyone who truly wants
+        // them off is one `/crt off` away. Runs before the renderer exists, so
+        // the first frame already draws the healed config.
+        if self
+            .config
+            .last_seen_version
+            .as_deref()
+            .is_some_and(|prev| crate::appregister::version_lt(prev, "0.12.6"))
+        {
+            self.config.reset_look_overrides();
+        }
         if self.config.last_seen_version.as_deref() != Some(crate::appregister::VERSION) {
             self.config.last_seen_version = Some(crate::appregister::VERSION.to_string());
             self.config.save();

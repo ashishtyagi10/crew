@@ -271,7 +271,8 @@ impl TextRenderer {
                         },
                         bounds,
                         |system, _rasterize_custom_glyph| -> Option<GetGlyphImageResult> {
-                            // CREW PATCH (the only change in this vendored copy):
+                            // CREW PATCH (one of two in this vendored copy; the
+                            // other is the same read in `text_atlas.rs` grow):
                             // read through the shared `SwashCache.image_cache`
                             // instead of always re-rasterizing, so images seeded
                             // into the cache by the embedder (crew's font
