@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.12.3
+
+CRT glass turns luminous (holographic overhaul, part 2). The "faintest of
+the family" doctrine is repealed and the sheet becomes a translucent
+phosphor panel — more opaque than paper-dark's glass, tinted in the tube's
+own hue, with an inner edge-glow that makes each pane body read as lit by
+its own frame. Paper light/dark pixels are untouched (proven
+byte-identical), and the translucent-window path still shows the desktop
+through the sheet.
+
 ## 0.12.2
 
 The CRT holographic overhaul begins (goal 2026-08-04). `Theme.crt` grows
@@ -15,12 +25,6 @@ from a bool into a per-theme `CrtStyle` — the four phosphors finally get
 personalities instead of sharing four compile-time constants — and the old
 two-ring neighbour sample is replaced by a real half-res gaussian bloom
 chain, so a focused border radiates tens of pixels instead of dying at ~8.
-CRT glass follows: the "faintest of the family" doctrine is repealed and
-the sheet becomes a luminous translucent phosphor panel — more opaque than
-paper-dark's glass, tinted in the tube's own hue, with an inner edge-glow
-that makes each pane body read as lit by its own frame. Paper light/dark
-pixels are untouched (proven byte-identical), and the translucent-window
-path still shows the desktop through the sheet.
 
 ## 0.12.1
 
