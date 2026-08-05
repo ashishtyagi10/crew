@@ -309,6 +309,12 @@ The docked command bar supports:
   live and persisted. Useful when a font renders thin at your size or on a
   low-contrast display. No argument reports the current weight; selecting
   `/weight` in the palette opens a value picker.
+- **`/smooth [off|light|medium|heavy|<0-255>]`** — CoreText-style font
+  smoothing: a fractional stem darkening applied to every glyph, emulating what
+  macOS terminals get natively so the same font reads as full here as in
+  Terminal.app or Ghostty (crew also renders unhinted, like CoreText, at every
+  strength — including `off`). Live and persisted; no argument reports the
+  current strength; selecting `/smooth` in the palette opens a value picker.
 - **`/only`** — closes every pane except the focused one (a quick "focus mode");
   a no-op when only one pane is open.
 - **File operations live in Far and Cmd+click**, not slash commands: the old

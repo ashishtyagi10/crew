@@ -547,7 +547,7 @@ dependencies = [
 
 [[package]]
 name = "crew-app"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "anyhow",
  "arboard",
@@ -585,7 +585,7 @@ dependencies = [
 
 [[package]]
 name = "crew-hive"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "anyhow",
  "base64",
@@ -600,7 +600,7 @@ dependencies = [
 
 [[package]]
 name = "crew-plugin"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "anyhow",
  "crew-hive",
@@ -613,7 +613,7 @@ dependencies = [
 
 [[package]]
 name = "crew-render"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "anyhow",
  "crew-theme",
@@ -627,7 +627,7 @@ dependencies = [
 
 [[package]]
 name = "crew-term"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "alacritty_terminal",
  "anyhow",
@@ -637,7 +637,7 @@ dependencies = [
 
 [[package]]
 name = "crew-theme"
-version = "0.12.4"
+version = "0.12.5"
 
 [[package]]
 name = "crossbeam-deque"
@@ -1298,8 +1298,6 @@ dependencies = [
 [[package]]
 name = "glyphon"
 version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "68dde9640ec6f986f59a265b4c0a5177f61e87e3ba71983b2195dab119cda0fa"
 dependencies = [
  "cosmic-text",
  "etagere",

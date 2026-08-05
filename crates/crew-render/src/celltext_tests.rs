@@ -7,6 +7,7 @@ fn params(family: Option<String>) -> FontParams {
         cell_w: 14.0 * 0.6,
         family,
         weight: 400,
+        smooth: 0,
     }
 }
 
@@ -75,6 +76,7 @@ fn bold_glyphs_snap_to_the_same_cell_advance() {
         cell_w,
         family: None,
         weight: 400,
+        smooth: 0,
     };
     let buf = build_pane_buffer(&mut fs, &cells, 4, 1, 4.0 * cell_w, cell_h, &p);
     let runs: Vec<_> = buf.layout_runs().collect();
@@ -110,6 +112,7 @@ fn medium_weight_glyphs_snap_to_the_same_cell_advance() {
         cell_w,
         family: None,
         weight: 500,
+        smooth: 0,
     };
     let buf = build_pane_buffer(&mut fs, &cells, 4, 1, 4.0 * cell_w, cell_h, &p);
     let runs: Vec<_> = buf.layout_runs().collect();
@@ -149,6 +152,7 @@ fn semibold_weight_glyphs_snap_to_the_same_cell_advance() {
         cell_w,
         family: None,
         weight: 600,
+        smooth: 0,
     };
     let buf = build_pane_buffer(&mut fs, &cells, 4, 1, 4.0 * cell_w, cell_h, &p);
     let runs: Vec<_> = buf.layout_runs().collect();
@@ -189,6 +193,7 @@ fn a_heavier_weight_rasterizes_more_ink() {
             cell_w,
             family: None,
             weight,
+            smooth: 0,
         };
         let buf = build_pane_buffer(&mut fs, &cells, 1, 1, cell_w, cell_h, &p);
         let run = buf.layout_runs().next().expect("one run");
@@ -386,6 +391,7 @@ fn roster_symbol_glyphs_stay_on_cell_grid() {
             cell_w,
             family: family.clone(),
             weight: 400,
+            smooth: 0,
         };
         let buf = build_pane_buffer(&mut fs, &cells, n, 1, n as f32 * cell_w, cell_h, &p);
         let glyphs: Vec<_> = buf.layout_runs().flat_map(|r| r.glyphs.to_vec()).collect();

@@ -4,6 +4,7 @@
 use glyphon::{Color, SwashCache, TextArea, TextAtlas, TextBounds, TextRenderer, Viewport};
 
 use crate::scene::PaneBuffer;
+use crate::smoothing::presmooth;
 
 /// Default text colour for glyphs that don't carry their own (Crew's accent).
 const DEFAULT_TEXT: Color = Color::rgb(0, 255, 160);
@@ -20,6 +21,10 @@ pub(crate) fn prepare_renderer(
     buffers: &[PaneBuffer],
     swash: &mut SwashCache,
 ) {
+    // Seed the swash cache with smoothed glyph bitmaps before glyphon's
+    // prepare walks the same glyphs — its cache hits take our images.
+    presmooth(swash, font_system, buffers);
+
     let areas: Vec<TextArea<'_>> = buffers
         .iter()
         .map(|(buf, ox, oy, pw, ph)| TextArea {

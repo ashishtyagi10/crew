@@ -96,6 +96,7 @@ impl ApplicationHandler for CrewApp {
                 // Apply the persisted font family up front, not just on Save.
                 renderer.set_font_family(self.config.font_family.clone());
                 renderer.set_font_weight(Some(self.config.font_weight));
+                renderer.set_text_smoothing(Some(self.config.font_smooth));
                 renderer.set_paper_texture(self.config.paper_texture);
                 renderer.set_paper_grain(self.config.paper_grain);
                 renderer.set_glass(self.config.glass_level());

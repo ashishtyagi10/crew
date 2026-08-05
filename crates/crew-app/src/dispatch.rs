@@ -42,6 +42,7 @@ impl CrewApp {
             "theme" => self.set_theme_cmd(""),
             "crt" => self.crt_command(""),
             "weight" => self.weight_command(""),
+            "smooth" => self.smooth_command(""),
             "notify" => self.notify_command(""),
             "broadcast" => self.toggle_broadcast(),
             "zoom" => self.toggle_zoom(),
@@ -77,6 +78,8 @@ impl CrewApp {
                     self.crt_command(a.trim());
                 } else if let Some(w) = other.strip_prefix("weight ") {
                     self.weight_command(w.trim());
+                } else if let Some(s) = other.strip_prefix("smooth ") {
+                    self.smooth_command(s.trim());
                 } else if let Some(m) = other.strip_prefix("model ") {
                     self.set_model_cmd(m.trim());
                 } else {
@@ -247,6 +250,44 @@ impl CrewApp {
         self.set_status(format!("font weight {weight}"));
         self.redraw();
     }
+
+    /// Handle `/smooth [off|light|medium|heavy|<0-255>]`: set the CoreText-style
+    /// font smoothing strength (stem darkening — how full the glyphs read).
+    /// Bare `/smooth` reports the current value. Persisted and applied live.
+    pub(crate) fn smooth_command(&mut self, arg: &str) {
+        let named = |a: &str| -> Option<u8> {
+            Some(match a {
+                "off" => 0,
+                "light" => 60,
+                "medium" => crew_render::DEFAULT_SMOOTH,
+                "heavy" => 170,
+                _ => return None,
+            })
+        };
+        let strength = match arg {
+            "" => {
+                self.set_status(format!(
+                    "font smoothing {} (/smooth [off|light|medium|heavy|<0-255>])",
+                    self.config.font_smooth
+                ));
+                return;
+            }
+            a => match named(a).or_else(|| a.parse::<u16>().ok().map(|s| s.min(255) as u8)) {
+                Some(s) => s,
+                None => {
+                    self.set_status("usage: /smooth [off|light|medium|heavy|<0-255>]");
+                    return;
+                }
+            },
+        };
+        self.config.font_smooth = strength;
+        self.config.save();
+        if let Some(r) = &mut self.renderer {
+            r.set_text_smoothing(Some(strength));
+        }
+        self.set_status(format!("font smoothing {strength}"));
+        self.redraw();
+    }
 }
 
 #[cfg(test)]
@@ -373,6 +414,44 @@ mod tests {
         assert_eq!(
             app.config.font_weight, 700,
             "bad arg must not change weight"
+        );
+    }
+
+    #[test]
+    fn smooth_defaults_on_and_named_steps_set_it() {
+        let mut app = CrewApp::default();
+        assert_eq!(
+            app.config.font_smooth,
+            crew_render::DEFAULT_SMOOTH,
+            "smoothing on out of the box"
+        );
+        app.smooth_command("off");
+        assert_eq!(app.config.font_smooth, 0);
+        app.smooth_command("heavy");
+        assert_eq!(app.config.font_smooth, 170);
+        app.smooth_command("light");
+        assert_eq!(app.config.font_smooth, 60);
+        app.smooth_command("medium");
+        assert_eq!(app.config.font_smooth, crew_render::DEFAULT_SMOOTH);
+    }
+
+    #[test]
+    fn smooth_accepts_a_raw_number_clamped_to_a_byte() {
+        let mut app = CrewApp::default();
+        app.smooth_command("42");
+        assert_eq!(app.config.font_smooth, 42);
+        app.smooth_command("9000"); // clamps
+        assert_eq!(app.config.font_smooth, 255);
+    }
+
+    #[test]
+    fn smooth_bad_arg_leaves_it_untouched() {
+        let mut app = CrewApp::default();
+        app.smooth_command("170");
+        app.smooth_command("glassy");
+        assert_eq!(
+            app.config.font_smooth, 170,
+            "bad arg must not change smoothing"
         );
     }
 

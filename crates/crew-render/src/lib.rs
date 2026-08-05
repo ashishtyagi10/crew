@@ -17,6 +17,7 @@ mod roundborder;
 mod scene;
 mod scenecache;
 mod scenetarget;
+mod smoothing;
 mod textprep;
 pub use cellgrid::CellGrid;
 pub use cellgrid::CellView;
@@ -25,6 +26,7 @@ pub use glass::{GlassCard, GlassLayer};
 pub use paperbg::PaperBgPass;
 pub use renderer::Renderer;
 pub use scene::PaneScene;
+pub use smoothing::DEFAULT_SMOOTH;
 
 /// Sorted, de-duplicated names of every installed monospace font family —
 /// flagged/name-matched candidates verified to render fixed-pitch Latin (see

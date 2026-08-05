@@ -63,6 +63,12 @@ impl Renderer {
         self.cell_grid.set_font_weight(weight);
     }
 
+    /// Override the CoreText-style smoothing strength (0–255, 0 = off;
+    /// `None` → built-in default).
+    pub fn set_text_smoothing(&mut self, strength: Option<u8>) {
+        self.cell_grid.set_text_smoothing(strength);
+    }
+
     /// Enable or disable the paper grain + vignette background pass.
     pub fn set_paper_texture(&mut self, enabled: bool) {
         self.paper_texture = enabled;

@@ -39,6 +39,24 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
                 "700 — thickest for body text".to_string(),
             ),
         ]),
+        "/smooth" => Some(vec![
+            (
+                "off".to_string(),
+                "0 — raw outlines, no darkening".to_string(),
+            ),
+            ("light".to_string(), "60 — a hint of fullness".to_string()),
+            (
+                "medium".to_string(),
+                format!(
+                    "{} — the default, Terminal.app-like",
+                    crew_render::DEFAULT_SMOOTH
+                ),
+            ),
+            (
+                "heavy".to_string(),
+                "170 — thick, high-contrast".to_string(),
+            ),
+        ]),
         // Model picker for the agent smith pane — the catalog grouped by
         // provider (see `modelpick`), applied to every agent (forwarded as
         // `/model all <slug>`). Any other slug still works: type it freeform
@@ -64,7 +82,7 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
 /// Must stay in lockstep with `options_for`'s arms; `suggestvalues_tests` walks
 /// `COMMANDS` and asserts the two never disagree.
 pub(crate) fn expands(cmd: &str) -> bool {
-    matches!(cmd, "/theme" | "/crt" | "/weight" | "/model")
+    matches!(cmd, "/theme" | "/crt" | "/weight" | "/smooth" | "/model")
 }
 
 #[cfg(test)]

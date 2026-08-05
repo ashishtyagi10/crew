@@ -10,7 +10,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.12.4"
+version = "0.12.5"
 edition = "2021"
 authors = ["crew contributors"]
 license = "MIT OR Apache-2.0"
@@ -96,3 +96,10 @@ semver = "1"
 # Auto-update
 self_update = { version = "0.42", default-features = false, features = ["archive-tar", "archive-zip", "compression-flate2", "rustls"] }
 
+
+# Vendored one-line patch: glyphon's rasterize closure reads through the shared
+# SwashCache.image_cache (get_image) instead of get_image_uncached, so crew's
+# font-smoothing presmooth pass can seed stem-darkened glyph bitmaps and have
+# them actually reach the atlas. See vendor/glyphon/src/text_render.rs.
+[patch.crates-io]
+glyphon = { path = "vendor/glyphon" }

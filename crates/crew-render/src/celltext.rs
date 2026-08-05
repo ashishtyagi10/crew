@@ -20,6 +20,10 @@ pub(crate) struct FontParams {
     /// Light themes use 500 so ink reads crisp on a bright page; bold cells
     /// always shape at `Weight::BOLD` regardless.
     pub weight: u16,
+    /// CoreText-style smoothing strength (0–255, 0 = off). Rides in every
+    /// glyph's cache-key flags so `presmooth` can see it per glyph and a
+    /// live change re-keys (and thus re-rasterizes) everything.
+    pub smooth: u8,
 }
 
 /// Base text weight for every theme: Medium (500), so ink reads crisp and
@@ -209,7 +213,8 @@ pub(crate) fn fill_rich_text(
         }
     }
 
-    let default_attrs = Attrs::new().family(fam).weight(base);
+    let flags = crate::smoothing::text_flags(params.smooth);
+    let default_attrs = Attrs::new().family(fam).weight(base).cache_key_flags(flags);
 
     // Build the entire buffer text once, recording `(start, end, key)` byte
     // ranges into it; consecutive same-key cells extend the current run.
@@ -255,7 +260,8 @@ pub(crate) fn fill_rich_text(
                     let mut a = Attrs::new()
                         .family(fam)
                         .color(Color::rgb(fg.0, fg.1, fg.2))
-                        .weight(if *bold { Weight::BOLD } else { base });
+                        .weight(if *bold { Weight::BOLD } else { base })
+                        .cache_key_flags(flags);
                     if *italic {
                         a = a.style(Style::Italic);
                     }

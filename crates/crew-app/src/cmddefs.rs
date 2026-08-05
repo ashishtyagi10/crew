@@ -91,6 +91,10 @@ pub(crate) const COMMANDS: &[Cmd] = &[
         desc: "Text weight — thicker/lighter font (/weight [medium|semibold|bold|…])",
     },
     Cmd {
+        name: "/smooth",
+        desc: "Font smoothing — CoreText-style stem darkening (/smooth [off|light|medium|heavy|<0-255>])",
+    },
+    Cmd {
         name: "/notify",
         desc: "Notification settings (/notify [on|off|add <text>|clear])",
     },
