@@ -174,6 +174,41 @@ fn set_theme_cmd_switches_active_theme() {
 }
 
 #[test]
+fn set_theme_cmd_clears_stale_look_overrides() {
+    let _g = crate::app::theme_test_guard();
+    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+    let mut app = CrewApp::default();
+    app.config.crt = Some(false);
+    app.config.glass = "off".to_string();
+    app.set_theme_cmd("crt");
+    assert_eq!(
+        app.config.crt, None,
+        "a stale /crt pin must not outlive a theme switch"
+    );
+    assert_eq!(
+        app.config.glass, "medium",
+        "glass `off` returns to the frosted default on theme switch"
+    );
+    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+}
+
+#[test]
+fn set_theme_cmd_keeps_a_deliberate_glass_strength() {
+    let _g = crate::app::theme_test_guard();
+    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+    let mut app = CrewApp::default();
+    app.config.crt = Some(true);
+    app.config.glass = "high".to_string();
+    app.set_theme_cmd("dark");
+    assert_eq!(app.config.crt, None, "any /crt pin resets to auto");
+    assert_eq!(
+        app.config.glass, "high",
+        "a chosen glass strength is taste, not a kill switch — it survives"
+    );
+    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+}
+
+#[test]
 fn set_theme_cmd_random_enters_rotation_mode() {
     let _g = crate::app::theme_test_guard();
     crew_theme::apply_selection(

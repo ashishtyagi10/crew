@@ -49,7 +49,10 @@ impl CrewConfig {
 
     pub fn clamped(self) -> Self {
         Self {
-            last_seen_version: None,
+            // MUST carry through: `load()` clamps, so dropping this here made
+            // every launch look like a first run — the "updated to crew X"
+            // note never fired and version-gated config migrations never ran.
+            last_seen_version: self.last_seen_version,
             font_size: self.font_size.clamp(12.0, 32.0),
             nav_width: self.nav_width.clamp(160.0, 320.0),
             show_nav: self.show_nav,

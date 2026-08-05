@@ -204,3 +204,52 @@ fn any_opacity_below_one_asks_to_be_transparent() {
     assert!(super::wants_window_transparency(0.99));
     assert!(super::wants_window_transparency(super::MIN_WINDOW_OPACITY));
 }
+
+#[test]
+fn reset_look_overrides_clears_the_pins_that_gut_a_theme() {
+    // THE "CRT THEME IS JUST A DARK THEME" BUG: a persisted `crt = false` +
+    // `glass = "off"` from months ago silently disabled the entire CRT
+    // post-process and glass sheet on every later theme switch.
+    let mut cfg = CrewConfig::default();
+    cfg.crt = Some(false);
+    cfg.glass = "off".to_string();
+    assert!(cfg.reset_look_overrides());
+    assert_eq!(cfg.crt, None, "the /crt pin returns to follow-the-theme");
+    assert_eq!(
+        cfg.glass, "medium",
+        "glass off returns to the frosted default"
+    );
+}
+
+#[test]
+fn reset_look_overrides_keeps_a_chosen_glass_strength() {
+    let mut cfg = CrewConfig::default();
+    cfg.glass = "high".to_string();
+    assert!(!cfg.reset_look_overrides(), "nothing look-killing to clear");
+    assert_eq!(cfg.glass, "high", "low/high are taste, not kill switches");
+}
+
+#[test]
+fn reset_look_overrides_reports_when_nothing_changed() {
+    let mut cfg = CrewConfig::default();
+    assert!(
+        !cfg.reset_look_overrides(),
+        "defaults have no pins; claiming a change would trigger useless saves"
+    );
+    cfg.crt = Some(true);
+    assert!(
+        cfg.reset_look_overrides(),
+        "a /crt on pin also resets to auto"
+    );
+    assert_eq!(cfg.crt, None);
+}
+
+#[test]
+fn load_keeps_the_last_seen_version() {
+    // `load()` runs `clamped()`, which used to rebuild the struct with
+    // `last_seen_version: None` — so every launch read as a first run: the
+    // "updated to crew X" note never fired and version-gated migrations
+    // (e.g. the 0.12.6 crt/glass-pin heal) never ran.
+    let cfg = CrewConfig::from_toml_str("last_seen_version = \"0.12.5\"\n");
+    assert_eq!(cfg.last_seen_version.as_deref(), Some("0.12.5"));
+}

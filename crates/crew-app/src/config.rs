@@ -229,7 +229,30 @@ impl Default for CrewConfig {
     }
 }
 
-impl CrewConfig {}
+impl CrewConfig {
+    /// Clear the look-killing overrides so the newly chosen theme shows as
+    /// designed: a `/crt on|off` pin returns to auto (follow the theme), and a
+    /// glass strength of `off` returns to the frosted default. A deliberate
+    /// `low`/`high` glass strength is taste, not a kill switch, and survives.
+    /// Returns true when anything changed. Without this, a pin from months ago
+    /// silently wins over every later theme switch — the "CRT theme is just a
+    /// dark theme" failure.
+    pub fn reset_look_overrides(&mut self) -> bool {
+        let mut changed = false;
+        if self.crt.is_some() {
+            self.crt = None;
+            changed = true;
+        }
+        if matches!(
+            crew_theme::GlassLevel::parse(&self.glass),
+            Some(crew_theme::GlassLevel::Off)
+        ) {
+            self.glass = default_glass();
+            changed = true;
+        }
+        changed
+    }
+}
 
 #[path = "configio.rs"]
 mod configio;

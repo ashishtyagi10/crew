@@ -15,6 +15,11 @@ impl CrewApp {
             ChatAction::PersistTheme => {
                 self.config.theme = Some(crew_theme::selection_label().to_string());
                 crate::palette::set_accent(self.config.accent_rgb());
+                // Same contract as `set_theme_cmd`: switching themes clears the
+                // stale `/crt` pin and a glass `off` so the theme's look shows.
+                if self.config.reset_look_overrides() {
+                    self.apply_glass();
+                }
                 self.config.save();
             }
             ChatAction::FindJump => {
@@ -106,6 +111,24 @@ mod tests {
             "note should carry the /font status: {}",
             last.text
         );
+    }
+
+    #[test]
+    fn persist_theme_clears_stale_look_overrides() {
+        let _g = crate::app::theme_test_guard();
+        crew_theme::apply_selection(
+            crew_theme::Selection::Mode(crew_theme::RandomMode::Crt),
+            1_000,
+        );
+        let mut app = CrewApp::default();
+        app.config.crt = Some(false);
+        app.config.glass = "off".to_string();
+        app.apply_chat_action(ChatAction::PersistTheme, 0);
+        assert_eq!(
+            app.config.crt, None,
+            "a composer theme switch clears the /crt pin like /theme does"
+        );
+        assert_eq!(app.config.glass, "medium");
     }
 
     #[test]

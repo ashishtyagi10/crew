@@ -154,7 +154,18 @@ impl InnerAtlas {
 
             let (image_data, width, height) = match cache_key {
                 GlyphonCacheKey::Text(cache_key) => {
-                    let image = cache.get_image_uncached(font_system, cache_key).unwrap();
+                    // CREW PATCH (mirrors the `get_image` read in
+                    // `text_render.rs`): the grow path must re-upload the SAME
+                    // bitmaps the embedder seeded into `SwashCache.image_cache`
+                    // (crew's font-smoothing presmooth pass). `get_image_uncached`
+                    // here re-rasterized every glyph unsmoothed — and 2px smaller
+                    // than its packed rect, since smoothing pads 1px per side —
+                    // so the first atlas grow silently reverted smoothing and
+                    // left every earlier glyph thin and misplaced.
+                    let image = cache
+                        .get_image(font_system, cache_key)
+                        .clone()
+                        .expect("glyph was rasterized when first cached");
                     let width = image.placement.width as usize;
                     let height = image.placement.height as usize;
 

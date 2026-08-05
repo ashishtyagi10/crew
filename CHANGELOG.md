@@ -8,6 +8,32 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.12.6
+
+The CRT theme actually looks like a CRT again. Three fixes to one complaint
+("it's just a dark theme with some colors"):
+
+- **Theme switches clear stale look-killing pins.** A bare `/crt` toggle
+  persisted `crt = false`, Settings could persist `glass = "off"`, and
+  neither was ever cleared — so a months-old pin silently gutted the whole
+  post-process (scanlines, bloom, flicker) and the glass sheet on every
+  later theme switch. `/theme <x>` (and a composer theme switch) now resets
+  the `/crt` pin to auto and glass `off` back to `medium`; a deliberate
+  `low`/`high` glass strength survives. A one-shot migration heals existing
+  configs on the first launch of 0.12.6.
+
+- **Font smoothing no longer silently reverts.** The v0.12.5 vendored
+  glyphon patch covered the render path but not the atlas `grow()` path,
+  which re-rasterized every cached glyph unsmoothed — 2px smaller than its
+  packed rect and 1px misplaced. The 256² atlas overflows on the first
+  Retina frame, so smoothing died seconds into every session. Both
+  materialization sites now read the seeded stem-darkened bitmaps.
+
+- **The "updated to crew X" note works for the first time.** `clamped()`
+  dropped `last_seen_version` on every config load since the feature
+  shipped, so every launch read as a first run — no update note, and no
+  version-gated migration could ever fire. The field now survives loading.
+
 ## 0.12.5
 
 Font rendering catches up with the native terminals. The same font used to

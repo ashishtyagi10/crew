@@ -389,6 +389,11 @@ impl CrewApp {
         // Re-apply the accent default (it follows the theme when the user hasn't
         // set an explicit accent).
         crate::palette::set_accent(self.config.accent_rgb());
+        // Choosing a theme is a statement of intent: stale `/crt` pins and a
+        // glass `off` from some earlier experiment stop overriding it.
+        if self.config.reset_look_overrides() {
+            self.apply_glass();
+        }
         self.config.save();
         self.redraw();
         self.set_status(format!("theme: {}", crew_theme::selection_label()));
