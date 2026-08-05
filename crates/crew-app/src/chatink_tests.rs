@@ -171,7 +171,7 @@ fn the_syntax_ladder_holds_where_hue_cannot_help() {
             "{}: comment vs code = {comment:.3}",
             id.as_str(),
         );
-        if !t.crt {
+        if t.crt.is_none() {
             continue;
         }
         assert!(

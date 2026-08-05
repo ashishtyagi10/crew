@@ -1,27 +1,11 @@
-//! The CRT post-process pass: samples an off-screen scene texture (see
-//! [`crate::scenetarget::SceneTarget`]) and draws it to the surface through
-//! `crt.wgsl`. The bind group references the scene texture, so it is (re)built
-//! via [`CrtPass::set_source`] whenever the target is created or resized.
-
-fn f32s_as_bytes(data: &[f32]) -> &[u8] {
-    // SAFETY: f32 is Pod (no padding, valid for any bit pattern).
-    unsafe { std::slice::from_raw_parts(data.as_ptr() as *const u8, data.len() * 4) }
-}
-
-/// Default look, tuned to read as a flat phosphor panel — a laptop LCD wearing
-/// the CRT's scanlines and glow, not a bulging tube. `curvature` and `corner`
-/// are 0 so the geometry stays flat and edge-to-edge (no barrel warp, no bezel,
-/// no tube-face vignette); the phosphor character lives entirely in the
-/// scanlines, glow, and streaming flicker. `flicker` has no default — the app
-/// supplies it per frame (0 idle, a small value while output streams).
-pub const CURVATURE: f32 = 0.0;
-pub const SCANLINE: f32 = 0.18;
-/// Inner-ring (1.5px) weight. The neon retune (2026-07-24) widened the halo
-/// with a second, wider ring at 3.5px carrying 0.45 of this weight — see
-/// `crt.wgsl`'s two-ring bloom block — and raised this base weight 0.35 → 0.55
-/// so the combined halo reaches ~8px out instead of dying at the block edge.
-pub const GLOW: f32 = 0.55;
-pub const CORNER: f32 = 0.0;
+//! The CRT composite pass: samples the off-screen scene texture (see
+//! [`crate::scenetarget::SceneTarget`]) plus the blurred bloom (see
+//! [`crate::bloom::Bloom`]) and draws them to the surface through `crt.wgsl`.
+//! The look knobs are no longer module constants — each theme ships its own
+//! [`crew_theme::CrtStyle`], written per frame by [`CrtPass::update_uniform`].
+//! The bind group references both textures, so it is (re)built via
+//! [`CrtPass::set_source`] whenever the targets are created or resized.
+use crate::postfx;
 
 pub struct CrtPass {
     pipeline: wgpu::RenderPipeline,
@@ -37,122 +21,45 @@ impl CrtPass {
             label: Some("crt"),
             source: wgpu::ShaderSource::Wgsl(include_str!("crt.wgsl").into()),
         });
-
         let uniform_buf = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("crt_uniform"),
             size: 32, // 8 × f32
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
-
-        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            label: Some("crt_sampler"),
-            address_mode_u: wgpu::AddressMode::ClampToEdge,
-            address_mode_v: wgpu::AddressMode::ClampToEdge,
-            address_mode_w: wgpu::AddressMode::ClampToEdge,
-            mag_filter: wgpu::FilterMode::Linear,
-            min_filter: wgpu::FilterMode::Linear,
-            ..Default::default()
-        });
-
-        let bgl = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("crt_bgl"),
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        multisampled: false,
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 2,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
-                    },
-                    count: None,
-                },
-            ],
-        });
-
-        let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("crt_layout"),
-            bind_group_layouts: &[Some(&bgl)],
-            immediate_size: 0,
-        });
-
-        let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("crt_pipeline"),
-            layout: Some(&layout),
-            vertex: wgpu::VertexState {
-                module: &shader,
-                entry_point: Some("vs"),
-                compilation_options: wgpu::PipelineCompilationOptions::default(),
-                buffers: &[],
-            },
-            fragment: Some(wgpu::FragmentState {
-                module: &shader,
-                entry_point: Some("fs"),
-                compilation_options: wgpu::PipelineCompilationOptions::default(),
-                targets: &[Some(wgpu::ColorTargetState {
-                    format,
-                    blend: None, // opaque — the CRT pass owns the whole surface
-                    write_mask: wgpu::ColorWrites::ALL,
-                })],
-            }),
-            primitive: wgpu::PrimitiveState::default(),
-            depth_stencil: None,
-            multisample: wgpu::MultisampleState::default(),
-            multiview_mask: None,
-            cache: None,
-        });
-
+        // `true`: the composite reads a second texture — the bloom — at @3.
+        let bgl = postfx::layout(device, "crt_bgl", true);
         Self {
-            pipeline,
+            pipeline: postfx::pipeline(device, &bgl, &shader, "fs", format),
             bgl,
-            sampler,
+            sampler: postfx::sampler(device, "crt_sampler"),
             uniform_buf,
             bind_group: None,
         }
     }
 
-    /// (Re)build the bind group against a scene-target view. Call once after the
-    /// target is created and again whenever it is recreated (resize).
-    pub fn set_source(&mut self, device: &wgpu::Device, source: &wgpu::TextureView) {
-        self.bind_group = Some(device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("crt_bg"),
-            layout: &self.bgl,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(source),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&self.sampler),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: self.uniform_buf.as_entire_binding(),
-                },
-            ],
-        }));
+    /// (Re)build the bind group against the scene-target and blurred-bloom
+    /// views. Call once after the targets are created and again whenever they
+    /// are recreated (resize).
+    pub fn set_source(
+        &mut self,
+        device: &wgpu::Device,
+        scene: &wgpu::TextureView,
+        bloom: &wgpu::TextureView,
+    ) {
+        self.bind_group = Some(postfx::bind_group(
+            device,
+            "crt_bg",
+            &self.bgl,
+            &[scene, bloom],
+            &self.sampler,
+            &self.uniform_buf,
+        ));
     }
 
     /// Write the per-frame uniform. `time` advances only while animating;
-    /// `flicker` is 0 when idle (making the pass fully static).
+    /// `flicker` is 0 when idle (making the pass fully static). Everything
+    /// else is the theme's own tube tuning.
     pub fn update_uniform(
         &self,
         queue: &wgpu::Queue,
@@ -160,20 +67,27 @@ impl CrtPass {
         height: f32,
         time: f32,
         flicker: f32,
+        style: crew_theme::CrtStyle,
     ) {
         let data: [f32; 8] = [
-            width, height, time, flicker, CURVATURE, SCANLINE, GLOW, CORNER,
+            width,
+            height,
+            time,
+            flicker,
+            style.curvature,
+            style.scanline,
+            style.glow,
+            style.corner,
         ];
-        queue.write_buffer(&self.uniform_buf, 0, f32s_as_bytes(&data));
+        queue.write_buffer(&self.uniform_buf, 0, postfx::f32s_as_bytes(&data));
     }
 
-    /// Draw the CRT pass. No-op until `set_source` has supplied a scene texture.
-    pub fn draw<'a>(&'a self, pass: &mut wgpu::RenderPass<'a>) {
+    /// Encode the composite onto `view`. No-op until `set_source` has
+    /// supplied the textures.
+    pub fn encode(&self, enc: &mut wgpu::CommandEncoder, view: &wgpu::TextureView) {
         let Some(bg) = &self.bind_group else {
             return;
         };
-        pass.set_pipeline(&self.pipeline);
-        pass.set_bind_group(0, bg, &[]);
-        pass.draw(0..3, 0..1);
+        postfx::run(enc, "crt", view, &self.pipeline, bg);
     }
 }

@@ -111,7 +111,7 @@ fn mix(c: (u8, u8, u8), target: (u8, u8, u8), t: f32) -> (u8, u8, u8) {
 
 /// The base (Medium-strength) glass for a theme.
 pub fn style_for(t: &Theme) -> GlassStyle {
-    if t.crt {
+    if t.crt.is_some() {
         // Phosphor tube: the sheet is a faint lift of the page toward the ink
         // colour, so the glass glows in the tube's own hue instead of graying
         // it. No noise — the CRT pass already grains the whole frame.

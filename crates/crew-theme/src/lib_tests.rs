@@ -15,17 +15,34 @@ fn default_is_paper_dark() {
 }
 
 #[test]
-fn only_the_crt_presets_carry_the_crt_flag() {
+fn only_the_crt_presets_carry_the_crt_style() {
     // The renderer keys the CRT tube post-process off `theme().crt`, and the
     // `crt-*` family is exactly the set that should turn it on automatically.
     for id in ALL_THEMES {
         let is_crt_family = id.as_str().starts_with("crt-");
         assert_eq!(
-            id.theme().crt,
+            id.theme().crt.is_some(),
             is_crt_family,
-            "{} crt flag should be {is_crt_family}",
+            "{} crt style presence should be {is_crt_family}",
             id.as_str()
         );
+    }
+}
+
+#[test]
+fn the_four_phosphors_have_distinct_personalities() {
+    // The whole point of `CrtStyle` over four global constants: no two
+    // phosphors may share identical tunings (a done-criterion of the
+    // holographic overhaul goal).
+    let styles: Vec<(&str, CrtStyle)> = ALL_THEMES
+        .iter()
+        .filter_map(|id| id.theme().crt.map(|s| (id.as_str(), s)))
+        .collect();
+    assert_eq!(styles.len(), 4);
+    for (i, (an, a)) in styles.iter().enumerate() {
+        for (bn, b) in &styles[i + 1..] {
+            assert_ne!(a, b, "{an} and {bn} share an identical CrtStyle");
+        }
     }
 }
 
@@ -164,16 +181,16 @@ fn cycle_next_walks_the_three_modes_and_wraps() {
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
     assert_eq!(cycle_next(1), "dark");
     assert!(is_random());
-    assert!(current_id().is_dark() && !current_id().theme().crt);
+    assert!(current_id().is_dark() && current_id().theme().crt.is_none());
     // ...then light...
     assert_eq!(cycle_next(2), "light");
     assert!(!current_id().is_dark());
     // ...then crt...
     assert_eq!(cycle_next(3), "crt");
-    assert!(current_id().theme().crt);
+    assert!(current_id().theme().crt.is_some());
     // ...and wraps back to dark.
     assert_eq!(cycle_next(4), "dark");
-    assert!(current_id().is_dark() && !current_id().theme().crt);
+    assert!(current_id().is_dark() && current_id().theme().crt.is_none());
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
 }
 
@@ -371,7 +388,7 @@ fn dark_paper_pages_lean_warm() {
     // Dark non-CRT pages read as warm charcoal/kraft: R strictly above B.
     for id in ALL_THEMES {
         let t = id.theme();
-        if t.dark && !t.crt {
+        if t.dark && t.crt.is_none() {
             assert!(
                 t.page_bg.0 > t.page_bg.2,
                 "{}: page_bg {:?} not warm (R must exceed B)",
@@ -388,7 +405,7 @@ fn crt_pages_are_deep_cool_black() {
     // phosphor halo pops — max page channel ≤ 8, and never warm (R ≤ B+2).
     for id in ALL_THEMES {
         let t = id.theme();
-        if t.crt {
+        if t.crt.is_some() {
             let (r, g, b) = t.page_bg;
             assert!(
                 r.max(g).max(b) <= 8,
@@ -454,11 +471,19 @@ fn random_pick_pools_are_pure() {
             // Dark pool: dark, non-CRT. Light pool: light, non-CRT. CRT pool:
             // the phosphor palettes. Each pick lands in the right pool.
             let d = random_pick(current, seed, RandomMode::Dark);
-            assert!(d.is_dark() && !d.theme().crt, "dark pool: {}", d.as_str());
+            assert!(
+                d.is_dark() && d.theme().crt.is_none(),
+                "dark pool: {}",
+                d.as_str()
+            );
             let l = random_pick(current, seed, RandomMode::Light);
-            assert!(!l.is_dark() && !l.theme().crt, "light pool: {}", l.as_str());
+            assert!(
+                !l.is_dark() && l.theme().crt.is_none(),
+                "light pool: {}",
+                l.as_str()
+            );
             let c = random_pick(current, seed, RandomMode::Crt);
-            assert!(c.theme().crt, "crt pool: {}", c.as_str());
+            assert!(c.theme().crt.is_some(), "crt pool: {}", c.as_str());
         }
     }
 }

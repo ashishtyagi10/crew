@@ -3,11 +3,10 @@ use std::sync::Arc;
 use winit::window::Window;
 
 use crate::cellgrid::CellGrid;
-use crate::crt::CrtPass;
+use crate::crtchain::CrtChain;
 use crate::gpu::Gpu;
 use crate::paperbg::PaperBgPass;
 use crate::scene::PaneScene;
-use crate::scenetarget::SceneTarget;
 
 /// Never let the window go so sheer that crew becomes unreadable (or, worse,
 /// unclickable-looking) — a translucency slider that can reach 0 is a way to
@@ -24,13 +23,10 @@ pub struct Renderer {
     /// Alpha the page background is cleared/drawn with. `1.0` is the opaque
     /// window; lower lets the desktop through (see [`Self::set_window_opacity`]).
     window_opacity: f32,
-    // CRT post-process: when `crt_on`, render into `scene_target` then
-    // reproject through `crt`; otherwise the frame draws straight to the surface.
-    crt: CrtPass,
-    scene_target: SceneTarget,
-    crt_on: bool,
-    crt_time: f32,
-    crt_flicker: f32,
+    // CRT post-process: when a style is set, the frame renders into the
+    // chain's scene target then reprojects (bloom + composite); otherwise it
+    // draws straight to the surface.
+    crt: CrtChain,
 }
 
 impl Renderer {
@@ -38,10 +34,7 @@ impl Renderer {
         let gpu = Gpu::new(window)?;
         let cell_grid = CellGrid::new(&gpu.device, &gpu.queue, gpu.format, font_size);
         let paper_bg = PaperBgPass::new(&gpu.device, gpu.format);
-        let mut crt = CrtPass::new(&gpu.device, gpu.format);
-        let scene_target =
-            SceneTarget::new(&gpu.device, gpu.format, gpu.config.width, gpu.config.height);
-        crt.set_source(&gpu.device, &scene_target.view);
+        let crt = CrtChain::new(&gpu.device, gpu.format, gpu.config.width, gpu.config.height);
         Ok(Self {
             gpu,
             cell_grid,
@@ -52,10 +45,6 @@ impl Renderer {
             paper_grain: 1.3,
             window_opacity: 1.0,
             crt,
-            scene_target,
-            crt_on: false,
-            crt_time: 0.0,
-            crt_flicker: 0.0,
         })
     }
 
@@ -99,22 +88,16 @@ impl Renderer {
         self.paper_grain = grain;
     }
 
-    /// Turn the CRT tube post-process on or off. When off, the frame draws
-    /// straight to the surface with no extra pass (the original path).
-    pub fn set_crt(&mut self, on: bool) {
-        self.crt_on = on;
-    }
-
-    /// Whether the CRT post-process is currently active.
-    pub fn crt_on(&self) -> bool {
-        self.crt_on
+    /// Set the CRT tube post-process style; `None` turns it off and the frame
+    /// draws straight to the surface with no extra pass (the original path).
+    pub fn set_crt(&mut self, style: Option<crew_theme::CrtStyle>) {
+        self.crt.set_style(style);
     }
 
     /// Per-frame CRT animation: `time` seeds the flicker hash, `flicker` is its
     /// amplitude (0 = a static tube). The app lifts these only while streaming.
     pub fn set_crt_anim(&mut self, time: f32, flicker: f32) {
-        self.crt_time = time;
-        self.crt_flicker = flicker;
+        self.crt.set_anim(time, flicker);
     }
 
     /// Sorted, de-duplicated names of all installed monospace font families.
@@ -125,20 +108,12 @@ impl Renderer {
     pub fn resize(&mut self, w: u32, h: u32) {
         self.gpu.resize(w, h);
         self.cell_grid.resize(w as f32, h as f32);
-        // The off-screen CRT target tracks the surface size.
-        if !self
-            .scene_target
-            .matches(self.gpu.config.width, self.gpu.config.height)
-        {
-            self.scene_target = SceneTarget::new(
-                &self.gpu.device,
-                self.gpu.format,
-                self.gpu.config.width,
-                self.gpu.config.height,
-            );
-            self.crt
-                .set_source(&self.gpu.device, &self.scene_target.view);
-        }
+        // The off-screen CRT + bloom targets track the surface size.
+        self.crt.resize(
+            &self.gpu.device,
+            self.gpu.config.width,
+            self.gpu.config.height,
+        );
     }
 
     /// Returns the monospace cell size `(width, height)` in pixels.
@@ -151,87 +126,24 @@ impl Renderer {
         (self.gpu.config.width, self.gpu.config.height)
     }
 
-    /// Upload a scene of panes, render, and present the frame.
-    /// Skips the frame on surface errors (Outdated/Lost).
+    /// Upload a scene of panes, render, and present the frame — the heavy
+    /// lifting lives in [`crate::frame::render`].
     pub fn frame(&mut self, panes: &[PaneScene]) {
-        self.cell_grid.set_scene(&self.gpu.device, panes);
-        self.cell_grid.prepare(
-            &self.gpu.device,
-            &self.gpu.queue,
-            self.gpu.config.width,
-            self.gpu.config.height,
-        );
-
-        let frame = match self.gpu.surface.get_current_texture() {
-            wgpu::CurrentSurfaceTexture::Success(t) => t,
-            wgpu::CurrentSurfaceTexture::Suboptimal(t) => t,
-            wgpu::CurrentSurfaceTexture::Timeout | wgpu::CurrentSurfaceTexture::Occluded => return,
-            wgpu::CurrentSurfaceTexture::Outdated
-            | wgpu::CurrentSurfaceTexture::Lost
-            | wgpu::CurrentSurfaceTexture::Validation => {
-                eprintln!("surface lost/outdated/validation — skipping frame");
-                return;
-            }
-        };
-
-        let view = frame.texture.create_view(&Default::default());
-        let mut enc = self
-            .gpu
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
-
-        // CRT on → scene renders off-screen then reprojects; off → straight to
-        // the surface (the original, zero-overhead path). See `frame::encode`.
-        let use_crt = self.crt_on;
-        let bg = crew_theme::theme().page_bg;
-        // The page alpha IS the window opacity: it seeds the clear and the
-        // paper pass, and everything drawn afterwards blends over it, so pane
-        // fills and text stay solid while the bare page shows the desktop.
-        let bg_f32 = crate::color::target_rgba(bg, self.window_opacity, self.gpu.format.is_srgb());
-
-        if self.paper_texture {
-            self.paper_bg.update_uniform(
-                &self.gpu.queue,
-                bg_f32,
-                self.gpu.config.width as f32,
-                self.gpu.config.height as f32,
-                1.0,
-                // Newsprint: light themes multiply the user's grain knob
-                // (theme().grain = 1.2 on light AND dark; the dark-grain calibration assumes the 1.3 × 1.2 = 1.56 product).
-                self.paper_grain * crew_theme::theme().grain,
-            );
-        }
-        if use_crt {
-            self.crt.update_uniform(
-                &self.gpu.queue,
-                self.gpu.config.width as f32,
-                self.gpu.config.height as f32,
-                self.crt_time,
-                self.crt_flicker,
-            );
-        }
-
-        let scene_view = if use_crt {
-            &self.scene_target.view
-        } else {
-            &view
-        };
-        crate::frame::encode(
-            &mut enc,
-            &view,
-            scene_view,
-            use_crt,
-            bg_f32,
+        crate::frame::render(
+            &self.gpu,
+            &mut self.cell_grid,
             if self.paper_texture {
                 Some(&self.paper_bg)
             } else {
                 None
             },
-            &self.cell_grid,
             &self.crt,
+            self.window_opacity,
+            // Newsprint: light themes multiply the user's grain knob
+            // (theme().grain = 1.2 on light AND dark; the dark-grain
+            // calibration assumes the 1.3 × 1.2 = 1.56 product).
+            self.paper_grain * crew_theme::theme().grain,
+            panes,
         );
-
-        self.gpu.queue.submit(Some(enc.finish()));
-        frame.present();
     }
 }

@@ -171,7 +171,7 @@ impl CrewApp {
         let msg = match arg {
             "" => {
                 // Toggle: pin the opposite of what's showing now.
-                let next = !self.effective_crt();
+                let next = self.effective_crt().is_none();
                 self.config.crt = Some(next);
                 if next {
                     "CRT on"
@@ -189,7 +189,7 @@ impl CrewApp {
             }
             "auto" => {
                 self.config.crt = None;
-                if self.effective_crt() {
+                if self.effective_crt().is_some() {
                     "CRT auto (on for this theme)"
                 } else {
                     "CRT auto (off for this theme)"
@@ -295,7 +295,7 @@ mod tests {
     fn bare_crt_toggles_the_effective_state() {
         let mut app = CrewApp::default();
         // A paper theme is CRT-off by default, so the first bare toggle pins on.
-        let before = app.effective_crt();
+        let before = app.effective_crt().is_some();
         app.crt_command("");
         assert_eq!(app.config.crt, Some(!before));
         app.crt_command("");

@@ -1,13 +1,16 @@
 //! crew-render: winit window + wgpu surface + glyphon text.
+mod bloom;
 mod cellgrid;
 mod celltext;
 pub mod color;
 mod crt;
+mod crtchain;
 mod fontlist;
 mod frame;
 mod glass;
 mod gpu;
 mod paperbg;
+mod postfx;
 mod quads;
 mod renderer;
 mod roundborder;
@@ -17,7 +20,7 @@ mod scenetarget;
 mod textprep;
 pub use cellgrid::CellGrid;
 pub use cellgrid::CellView;
-pub use crt::CrtPass;
+pub use crtchain::CrtChain;
 pub use glass::{GlassCard, GlassLayer};
 pub use paperbg::PaperBgPass;
 pub use renderer::Renderer;

@@ -403,11 +403,19 @@ impl CrewApp {
         }
     }
 
-    /// Whether the CRT tube post-process should be active right now: the user's
-    /// `/crt` override if set, otherwise the active theme's `crt` flag (on for
-    /// the phosphor themes). Read every frame so it tracks live theme changes.
-    pub(crate) fn effective_crt(&self) -> bool {
-        self.config.crt.unwrap_or(crew_theme::theme().crt)
+    /// The CRT style that should be active right now, if any: the user's
+    /// `/crt` override if set, otherwise the active theme's own style (the
+    /// phosphor themes each ship one). `/crt on` over a paper theme still
+    /// works — it falls back to `CrtStyle::DEFAULT` since paper themes carry
+    /// no style of their own. Read every frame so it tracks live theme changes.
+    pub(crate) fn effective_crt(&self) -> Option<crew_theme::CrtStyle> {
+        match self.config.crt {
+            Some(false) => None,
+            Some(true) => crew_theme::theme()
+                .crt
+                .or(Some(crew_theme::CrtStyle::DEFAULT)),
+            None => crew_theme::theme().crt,
+        }
     }
 }
 
