@@ -247,6 +247,107 @@ fn glass_shot_every_theme_family() {
     shot("dark-high", T::PaperDark, G::High, 1.0);
 }
 
+/// Mean of one RGBA channel over a block (3 = alpha).
+fn mean_ch(px: &[u8], ch: usize, x0: usize, y0: usize, w: usize, h: usize) -> f64 {
+    let mut s = 0.0;
+    for y in y0..(y0 + h) {
+        for x in x0..(x0 + w) {
+            s += px[(y * W as usize + x) * 4 + ch] as f64;
+        }
+    }
+    s / (w * h) as f64
+}
+
+/// The holographic contract on real pixels (goal 2026-08-04). Every reading is
+/// a delta against the SAME scene with glass off, so text glyphs, paper grain
+/// and the border stroke cancel out and only the sheet's own light remains.
+///
+/// Blocks share the y-range 120..180 inside the left pane (rect 30,50 320×200):
+/// the edge strip sits 4..12px inside the left border (within the 24px glow
+/// reach), the centre block starts 30px in, where the glow has died off.
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn glass_shot_crt_luminous_contract() {
+    let _g = crate::app::theme_test_guard();
+    crew_theme::set_theme(crew_theme::ThemeId::CrtGreen);
+    let Some(on) = render(crew_theme::GlassLevel::Medium, 1.0) else {
+        eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+        return;
+    };
+    let off = render(crew_theme::GlassLevel::Off, 1.0).expect("adapter was available above");
+
+    // (1) The phosphor tint lifts the pane interior measurably above the page.
+    let centre_on = mean_lum(&on, 60, 120, 200, 60);
+    let centre_off = mean_lum(&off, 60, 120, 200, 60);
+    let centre_delta = centre_on - centre_off;
+    // (2) The inner edge-glow: the strip hugging the border gains MORE light
+    // than the centre — the pane body is lit by its own frame.
+    let edge_on = mean_lum(&on, 34, 120, 8, 60);
+    let edge_off = mean_lum(&off, 34, 120, 8, 60);
+    let edge_delta = edge_on - edge_off;
+    println!(
+        "crt: centre {centre_off:.1} -> {centre_on:.1} (Δ{centre_delta:.1}); edge Δ{edge_delta:.1}"
+    );
+    assert!(
+        centre_delta > 4.0,
+        "no phosphor tint: interior gained only {centre_delta:.1} over the bare page"
+    );
+    assert!(
+        edge_delta > centre_delta + 3.0,
+        "no inner edge-glow: edge Δ{edge_delta:.1} vs centre Δ{centre_delta:.1}"
+    );
+
+    // The translucent-window path survives the luminous sheet: outside the
+    // cards the page still carries the window opacity, and the sheet itself
+    // never slams alpha to opaque over the desktop.
+    let win = render(crew_theme::GlassLevel::Medium, 0.6).expect("adapter was available above");
+    let page_a = win[(10 * W as usize + 10) * 4 + 3];
+    let card_a = mean_ch(&win, 3, 34, 120, 8, 60);
+    println!("crt window: page_alpha={page_a} card_edge_alpha={card_a:.1}");
+    assert!(
+        (140..=175).contains(&page_a),
+        "page alpha {page_a} should track the 0.6 window opacity (~153)"
+    );
+    assert!(
+        card_a < 250.0,
+        "the sheet went opaque over the desktop (edge alpha {card_a:.1})"
+    );
+
+    let out_dir = std::env::var("CREW_SHOT_DIR").unwrap_or_else(|_| "target/screenshots".into());
+    std::fs::create_dir_all(&out_dir).unwrap();
+    image::save_buffer(
+        format!("{out_dir}/glass-crt-luminous.png"),
+        &on,
+        W,
+        H,
+        image::ColorType::Rgba8,
+    )
+    .unwrap();
+}
+
+/// Paper themes must not inherit the CRT edge-glow: `edge_glow = 0` has to be
+/// a true no-op, so a paper-dark sheet stays FLAT along x — the same delta at
+/// the border strip as at the card centre (the vertical ramp cancels because
+/// both blocks share the y-range; the frost grain is deterministic per pixel).
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn glass_shot_paper_has_no_edge_glow() {
+    let _g = crate::app::theme_test_guard();
+    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+    let Some(on) = render(crew_theme::GlassLevel::Medium, 1.0) else {
+        eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+        return;
+    };
+    let off = render(crew_theme::GlassLevel::Off, 1.0).expect("adapter was available above");
+    let centre_delta = mean_lum(&on, 60, 120, 200, 60) - mean_lum(&off, 60, 120, 200, 60);
+    let edge_delta = mean_lum(&on, 34, 120, 8, 60) - mean_lum(&off, 34, 120, 8, 60);
+    println!("paper-dark: edge Δ{edge_delta:.1} vs centre Δ{centre_delta:.1}");
+    assert!(
+        (edge_delta - centre_delta).abs() < 1.5,
+        "paper glass is no longer flat: edge Δ{edge_delta:.1} vs centre Δ{centre_delta:.1}"
+    );
+}
+
 #[test]
 #[ignore = "needs a GPU adapter; writes PNGs"]
 fn glass_shot_translucent_window() {

@@ -11,9 +11,14 @@
 //!   and leans on a bright top hairline for its edge.
 //! * **light** — a lighter-than-white sheet is invisible, so light themes get
 //!   their depth from a whiter tint plus a real drop shadow.
-//! * **CRT** — the tube post-process already adds bloom and scanlines; a full
-//!   frost turns that to mud. CRT glass is deliberately the faintest of the
-//!   three and skips the noise entirely (the tube supplies its own).
+//! * **CRT** — a holographic sheet: the pane is a luminous translucent panel
+//!   of phosphor-tinted light (TRON light-trace, JARVIS HUD), *more* opaque
+//!   than paper-dark's glass and lit from its own frame by an inner edge-glow.
+//!   The old "faintest of the family" doctrine was repealed by the 2026-08-04
+//!   holographic-overhaul goal — restraint made CRT read as a dark theme
+//!   wearing scanlines, not a projection. What survives of that doctrine is
+//!   what it got right: no drop shadow (a light construct casts none) and no
+//!   frost grain (the tube post-process grains the whole frame itself).
 use crate::Theme;
 
 /// How much glass to apply. `Off` disables the pass outright.
@@ -75,6 +80,10 @@ pub struct GlassStyle {
     pub shadow_alpha: f32,
     /// Frost grain amplitude (0.0 = a clean sheet).
     pub noise: f32,
+    /// Inner edge-glow strength: how much the fill brightens toward the card
+    /// border, as if the pane body were lit by its own frame. Zero on paper
+    /// themes (sheets, not light constructs), so zero must reach the shader.
+    pub edge_glow: f32,
 }
 
 impl GlassStyle {
@@ -90,6 +99,7 @@ impl GlassStyle {
             // Noise rides the fill, so it scales too — but gently, or a High
             // sheet reads as sandpaper instead of frost.
             noise: self.noise * (0.5 + 0.5 * k),
+            edge_glow: (self.edge_glow * k).clamp(0.0, 1.0),
             ..self
         }
     }
@@ -112,17 +122,21 @@ fn mix(c: (u8, u8, u8), target: (u8, u8, u8), t: f32) -> (u8, u8, u8) {
 /// The base (Medium-strength) glass for a theme.
 pub fn style_for(t: &Theme) -> GlassStyle {
     if t.crt.is_some() {
-        // Phosphor tube: the sheet is a faint lift of the page toward the ink
-        // colour, so the glass glows in the tube's own hue instead of graying
-        // it. No noise — the CRT pass already grains the whole frame.
+        // Holographic phosphor sheet: a strong lift of the page toward the ink
+        // colour, MORE opaque than paper-dark's glass — the pane is a panel of
+        // tinted light, not a whisper over the tube (goal 2026-08-04), and the
+        // edge-glow makes the body read as lit by its own frame. Still no
+        // noise (the CRT pass grains the whole frame) and no shadow (a light
+        // construct casts none).
         return GlassStyle {
-            tint: mix(t.page_bg, t.ink, 0.30),
-            alpha_top: 0.10,
-            alpha_bottom: 0.04,
+            tint: mix(t.page_bg, t.ink, 0.45),
+            alpha_top: 0.26,
+            alpha_bottom: 0.12,
             highlight: mix(t.page_bg, t.ink, 0.75),
-            highlight_alpha: 0.14,
+            highlight_alpha: 0.30,
             shadow_alpha: 0.0,
             noise: 0.0,
+            edge_glow: 0.35,
         };
     }
     if t.dark {
@@ -136,6 +150,7 @@ pub fn style_for(t: &Theme) -> GlassStyle {
             highlight_alpha: 0.22,
             shadow_alpha: 0.30,
             noise: 0.012,
+            edge_glow: 0.0,
         }
     } else {
         // A light page cannot get lighter, so the depth comes from a whiter,
@@ -149,6 +164,7 @@ pub fn style_for(t: &Theme) -> GlassStyle {
             highlight_alpha: 0.60,
             shadow_alpha: 0.16,
             noise: 0.010,
+            edge_glow: 0.0,
         }
     }
 }
@@ -159,128 +175,5 @@ pub fn style() -> GlassStyle {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::{ALL_THEMES, CRT_GREEN, PAPER_DARK, PAPER_LIGHT};
-
-    #[test]
-    fn level_round_trips_and_accepts_aliases() {
-        for l in [
-            GlassLevel::Off,
-            GlassLevel::Low,
-            GlassLevel::Medium,
-            GlassLevel::High,
-        ] {
-            assert_eq!(GlassLevel::parse(l.as_str()), Some(l));
-        }
-        assert_eq!(GlassLevel::parse("on"), Some(GlassLevel::Medium));
-        assert_eq!(GlassLevel::parse("NONE"), Some(GlassLevel::Off));
-        assert_eq!(GlassLevel::parse(" High "), Some(GlassLevel::High));
-        assert_eq!(GlassLevel::parse("shiny"), None);
-    }
-
-    /// The whole point of deriving rather than declaring: no theme, present or
-    /// future, can ship without glass.
-    #[test]
-    fn every_theme_gets_visible_glass() {
-        for id in ALL_THEMES {
-            let s = style_for(id.theme());
-            assert!(
-                s.scaled(GlassLevel::Medium).visible(),
-                "{} has no visible glass",
-                id.as_str()
-            );
-        }
-    }
-
-    #[test]
-    fn off_draws_nothing() {
-        for id in ALL_THEMES {
-            assert!(!style_for(id.theme()).scaled(GlassLevel::Off).visible());
-        }
-    }
-
-    /// Dark glass is a *lift*: the sheet must be lighter than the page it sits
-    /// on, or the card reads as a hole rather than a pane of glass.
-    #[test]
-    fn dark_glass_lifts_off_the_page() {
-        let s = style_for(&PAPER_DARK);
-        let lum = |c: (u8, u8, u8)| c.0 as u32 + c.1 as u32 + c.2 as u32;
-        assert!(
-            lum(s.tint) > lum(PAPER_DARK.page_bg),
-            "dark tint {:?} is not lighter than page {:?}",
-            s.tint,
-            PAPER_DARK.page_bg
-        );
-    }
-
-    /// A light page can't get lighter, so light themes must earn their depth
-    /// with a shadow. Without this the light glass is invisible.
-    #[test]
-    fn light_glass_has_a_shadow() {
-        assert!(style_for(&PAPER_LIGHT).shadow_alpha > 0.0);
-    }
-
-    /// CRT stays faint and grain-free — the tube post-process supplies both
-    /// bloom and noise, and doubling up turns the phosphor to mud.
-    #[test]
-    fn crt_glass_is_restrained() {
-        let crt = style_for(&CRT_GREEN);
-        let dark = style_for(&PAPER_DARK);
-        assert!(
-            crt.alpha_top < dark.alpha_top,
-            "CRT glass should be fainter than plain dark glass"
-        );
-        assert_eq!(crt.noise, 0.0, "the tube already grains the frame");
-        assert_eq!(crt.shadow_alpha, 0.0, "a tube has no drop shadows");
-    }
-
-    /// The top edge is always at least as opaque as the bottom — that ramp is
-    /// what makes the sheet look lit from above.
-    #[test]
-    fn fill_is_brightest_at_the_top() {
-        for id in ALL_THEMES {
-            let s = style_for(id.theme());
-            assert!(
-                s.alpha_top >= s.alpha_bottom,
-                "{} inverts the glass gradient",
-                id.as_str()
-            );
-        }
-    }
-
-    #[test]
-    fn level_scales_alpha_monotonically() {
-        let base = style_for(&PAPER_DARK);
-        let low = base.scaled(GlassLevel::Low).alpha_top;
-        let med = base.scaled(GlassLevel::Medium).alpha_top;
-        let high = base.scaled(GlassLevel::High).alpha_top;
-        assert!(low < med && med < high, "{low} {med} {high}");
-    }
-
-    /// High strength must not push any alpha past opaque.
-    #[test]
-    fn high_never_exceeds_opaque() {
-        for id in ALL_THEMES {
-            let s = style_for(id.theme()).scaled(GlassLevel::High);
-            for a in [
-                s.alpha_top,
-                s.alpha_bottom,
-                s.highlight_alpha,
-                s.shadow_alpha,
-            ] {
-                assert!((0.0..=1.0).contains(&a), "{} alpha {a}", id.as_str());
-            }
-        }
-    }
-
-    #[test]
-    fn mix_interpolates_between_endpoints() {
-        assert_eq!(mix((0, 0, 0), (255, 255, 255), 0.0), (0, 0, 0));
-        assert_eq!(mix((0, 0, 0), (255, 255, 255), 1.0), (255, 255, 255));
-        assert_eq!(mix((0, 0, 0), (200, 100, 50), 0.5), (100, 50, 25));
-        // Out-of-range factors clamp rather than wrapping around.
-        assert_eq!(mix((10, 10, 10), (200, 200, 200), -1.0), (10, 10, 10));
-        assert_eq!(mix((10, 10, 10), (200, 200, 200), 2.0), (200, 200, 200));
-    }
-}
+#[path = "glass_tests.rs"]
+mod tests;

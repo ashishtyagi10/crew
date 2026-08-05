@@ -58,8 +58,10 @@ fn card(alpha_top: f32, alpha_bottom: f32, highlight_alpha: f32, shadow_alpha: f
         highlight: [1.0, 1.0, 1.0, 1.0],
         highlight_alpha,
         shadow_alpha,
-        // No scan: this test is about the resting sheet.
+        // No scan, no edge-glow: this test is about the resting paper sheet;
+        // the glow gets its own test below.
         scan: -1.0,
+        edge_glow: 0.0,
     }
 }
 
@@ -197,6 +199,57 @@ fn glass_scan_headless() {
     assert!(
         (far_on - far_off).abs() < 2.0,
         "the scan leaked across the whole card ({far_off:.1} -> {far_on:.1})"
+    );
+}
+
+/// The inner edge-glow must reach the pixels too — same lesson as the scan:
+/// a field packed but never read by the shader is invisible from Rust. A flat
+/// sheet (no ramp, no highlight) isolates the glow as the only gradient.
+#[test]
+fn glass_edge_glow_headless() {
+    let instance = wgpu::Instance::default();
+    let Ok(adapter) = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+        power_preference: wgpu::PowerPreference::None,
+        compatible_surface: None,
+        force_fallback_adapter: false,
+    })) else {
+        eprintln!("glass_edge_glow_headless: no GPU adapter, skipping");
+        return;
+    };
+    let (device, queue) =
+        pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default()))
+            .expect("request_device failed");
+
+    let flat = |glow: f32| GlassCard {
+        edge_glow: glow,
+        ..card(0.30, 0.30, 0.0, 0.0)
+    };
+    let none = render(&device, &queue, &[flat(0.0)]);
+    let lit = render(&device, &queue, &[flat(0.5)]);
+
+    // Centre row, 4px inside the left edge vs the card centre (16px in).
+    let y = (CARD_Y + CARD_H / 2.0) as usize;
+    let x_edge = (CARD_X + 4.0) as usize;
+    let x_mid = (CARD_X + CARD_W / 2.0) as usize;
+
+    let (edge_off, mid_off) = (block_r(&none, x_edge, y, 1), block_r(&none, x_mid, y, 1));
+    let (edge_on, mid_on) = (block_r(&lit, x_edge, y, 1), block_r(&lit, x_mid, y, 1));
+    println!("edge {edge_off:.1} -> {edge_on:.1};  mid {mid_off:.1} -> {mid_on:.1}");
+
+    // Zero strength is a true no-op: the flat sheet stays flat.
+    assert!(
+        (edge_off - mid_off).abs() < 1.5,
+        "glow=0 still shades the edge ({edge_off:.1} vs {mid_off:.1})"
+    );
+    // With glow on, the border-adjacent fill outshines the card centre.
+    assert!(
+        edge_on > mid_on + 10.0,
+        "no inward gradient from the edge ({edge_on:.1} vs mid {mid_on:.1})"
+    );
+    // And the glow brightens — it never darkens or erases the base fill.
+    assert!(
+        mid_on >= mid_off - 1.0,
+        "glow dimmed the card centre ({mid_off:.1} -> {mid_on:.1})"
     );
 }
 
