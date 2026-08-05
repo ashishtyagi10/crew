@@ -163,12 +163,20 @@ impl CrewApp {
                 // CRT state, refreshed per frame so it tracks live theme changes.
                 // Flicker rides the existing busy-anim redraws (poll_panes drives
                 // ~15 fps while a pane animates); idle → flicker 0 → static tube.
-                let crt_on = self.effective_crt();
-                let crt_active = crt_on && self.panes.iter().any(crate::paneview::pane_animating);
+                let crt = self.effective_crt();
+                let crt_active =
+                    crt.is_some() && self.panes.iter().any(crate::paneview::pane_animating);
                 let crt_time = (crate::anim::now_ms() % 100_000) as f32 / 1000.0;
                 if let Some(r) = &mut self.renderer {
-                    r.set_crt(crt_on);
-                    r.set_crt_anim(crt_time, if crt_active { 0.06 } else { 0.0 });
+                    // Flicker amplitude is the style's own — each phosphor
+                    // jitters with its own nerve, not one global 0.06.
+                    let amp = if crt_active {
+                        crt.map_or(0.0, |s| s.flicker)
+                    } else {
+                        0.0
+                    };
+                    r.set_crt(crt);
+                    r.set_crt_anim(crt_time, amp);
                     r.frame(&scenes);
                 }
             }

@@ -1,77 +1,110 @@
-//! Frame encoding for [`crate::renderer::Renderer`]: the scene pass (paper
-//! background + cells) and, when CRT is on, the reprojection pass. Split out of
-//! `renderer.rs` to keep both files focused and under the line cap. Every `draw`
-//! here takes `&self`, so the passes borrow disjoint renderer fields.
+//! The frame path for [`crate::renderer::Renderer`]: surface acquisition,
+//! uniform writes, the scene pass (paper background + cells), and — when a
+//! CRT style is active — the bloom + composite reprojection. Split out of
+//! `renderer.rs` to keep both files focused and under the line cap; the
+//! renderer keeps ownership and this module borrows the pieces per frame.
 use crate::cellgrid::CellGrid;
-use crate::crt::CrtPass;
+use crate::crtchain::CrtChain;
+use crate::gpu::Gpu;
 use crate::paperbg::PaperBgPass;
+use crate::scene::PaneScene;
 
-/// Encode the frame. The scene draws into `scene_view`; when `use_crt`, the CRT
-/// pass then reprojects that off-screen scene onto `surface_view`. With CRT off
-/// the caller passes `scene_view == surface_view` and no second pass runs — the
-/// original single-pass path. Uniforms are written by the caller beforehand.
+/// Upload the scene, render, and present. Skips the frame on surface errors
+/// (Outdated/Lost). `paper` is `None` with the paper texture disabled;
+/// `grain` is the user knob × the theme's multiplier, precomputed upstream.
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn encode(
+pub(crate) fn render(
+    gpu: &Gpu,
+    cell_grid: &mut CellGrid,
+    paper: Option<&PaperBgPass>,
+    crt: &CrtChain,
+    window_opacity: f32,
+    grain: f32,
+    panes: &[PaneScene],
+) {
+    cell_grid.set_scene(&gpu.device, panes);
+    cell_grid.prepare(&gpu.device, &gpu.queue, gpu.config.width, gpu.config.height);
+
+    let frame = match gpu.surface.get_current_texture() {
+        wgpu::CurrentSurfaceTexture::Success(t) => t,
+        wgpu::CurrentSurfaceTexture::Suboptimal(t) => t,
+        wgpu::CurrentSurfaceTexture::Timeout | wgpu::CurrentSurfaceTexture::Occluded => return,
+        wgpu::CurrentSurfaceTexture::Outdated
+        | wgpu::CurrentSurfaceTexture::Lost
+        | wgpu::CurrentSurfaceTexture::Validation => {
+            eprintln!("surface lost/outdated/validation — skipping frame");
+            return;
+        }
+    };
+
+    let view = frame.texture.create_view(&Default::default());
+    let mut enc = gpu
+        .device
+        .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
+
+    // CRT on → scene renders off-screen then reprojects; off → straight to
+    // the surface (the original, zero-overhead path).
+    let use_crt = crt.style().is_some();
+    let bg = crew_theme::theme().page_bg;
+    // The page alpha IS the window opacity: it seeds the clear and the
+    // paper pass, and everything drawn afterwards blends over it, so pane
+    // fills and text stay solid while the bare page shows the desktop.
+    let bg_f32 = crate::color::target_rgba(bg, window_opacity, gpu.format.is_srgb());
+    let (w, h) = (gpu.config.width as f32, gpu.config.height as f32);
+
+    if let Some(paper) = paper {
+        paper.update_uniform(&gpu.queue, bg_f32, w, h, 1.0, grain);
+    }
+    if use_crt {
+        crt.update_uniforms(&gpu.queue, w, h);
+    }
+
+    let scene_view = if use_crt { crt.scene_view() } else { &view };
+    encode_scene(&mut enc, scene_view, bg_f32, paper, cell_grid);
+    if use_crt {
+        crt.encode(&mut enc, &view);
+    }
+
+    gpu.queue.submit(Some(enc.finish()));
+    frame.present();
+}
+
+/// Encode the scene into `scene_view`. With CRT off this IS the whole frame
+/// — the original single-pass path drawing straight onto the surface.
+fn encode_scene(
     enc: &mut wgpu::CommandEncoder,
-    surface_view: &wgpu::TextureView,
     scene_view: &wgpu::TextureView,
-    use_crt: bool,
     bg_f32: [f32; 4],
     paper: Option<&PaperBgPass>,
     cell_grid: &CellGrid,
-    crt: &CrtPass,
 ) {
-    {
-        let mut pass = enc.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("crew frame"),
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: scene_view,
-                depth_slice: None,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(wgpu::Color {
-                        r: bg_f32[0] as f64,
-                        g: bg_f32[1] as f64,
-                        b: bg_f32[2] as f64,
-                        // Carries the window opacity (see `Renderer::frame`) —
-                        // a hard 1.0 here would make the window opaque no
-                        // matter what the paper pass writes, and with the paper
-                        // texture off there IS no paper pass.
-                        a: bg_f32[3] as f64,
-                    }),
-                    store: wgpu::StoreOp::Store,
-                },
-            })],
-            depth_stencil_attachment: None,
-            timestamp_writes: None,
-            occlusion_query_set: None,
-            multiview_mask: None,
-        });
-        if let Some(paper) = paper {
-            paper.draw(&mut pass);
-        }
-        cell_grid.draw(&mut pass);
+    let mut pass = enc.begin_render_pass(&wgpu::RenderPassDescriptor {
+        label: Some("crew frame"),
+        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+            view: scene_view,
+            depth_slice: None,
+            resolve_target: None,
+            ops: wgpu::Operations {
+                load: wgpu::LoadOp::Clear(wgpu::Color {
+                    r: bg_f32[0] as f64,
+                    g: bg_f32[1] as f64,
+                    b: bg_f32[2] as f64,
+                    // Carries the window opacity (see above) — a hard 1.0
+                    // here would make the window opaque no matter what the
+                    // paper pass writes, and with the paper texture off
+                    // there IS no paper pass.
+                    a: bg_f32[3] as f64,
+                }),
+                store: wgpu::StoreOp::Store,
+            },
+        })],
+        depth_stencil_attachment: None,
+        timestamp_writes: None,
+        occlusion_query_set: None,
+        multiview_mask: None,
+    });
+    if let Some(paper) = paper {
+        paper.draw(&mut pass);
     }
-
-    if use_crt {
-        let mut pass = enc.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("crt"),
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: surface_view,
-                depth_slice: None,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    // The flat panel fills the surface edge-to-edge, so this
-                    // clear is only a safety net.
-                    load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                    store: wgpu::StoreOp::Store,
-                },
-            })],
-            depth_stencil_attachment: None,
-            timestamp_writes: None,
-            occlusion_query_set: None,
-            multiview_mask: None,
-        });
-        crt.draw(&mut pass);
-    }
+    cell_grid.draw(&mut pass);
 }

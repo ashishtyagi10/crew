@@ -57,20 +57,25 @@ pub struct Theme {
     /// light themes for a visible newsprint texture (calibrated for the
     /// gamma-space blend — see presets_paper.rs).
     pub grain: f32,
-    /// Whether this theme reads as a CRT phosphor tube. When true — and unless
-    /// the user overrides it with `/crt off` — the renderer wraps the frame in
-    /// the CRT post-process (curvature, scanlines, phosphor glow, corner
-    /// darkening). Only the `CRT_*` presets set this; every paper theme is
-    /// `false` so the crisp flat look is the default.
-    pub crt: bool,
+    /// The theme's CRT tube tuning. When `Some` — and unless the user
+    /// overrides it with `/crt off` — the renderer wraps the frame in the CRT
+    /// post-process (curvature, scanlines, phosphor bloom, corner darkening)
+    /// using these knobs. Only the `CRT_*` presets carry a style, each with
+    /// its own personality; every paper theme is `None` so the crisp flat
+    /// look is the default.
+    pub crt: Option<CrtStyle>,
 }
 
+mod crtstyle;
 mod glass;
 mod presets_crt;
+mod presets_crt_cool;
 mod presets_paper;
 mod presets_paper_light;
+pub use crtstyle::CrtStyle;
 pub use glass::{style as glass_style, style_for as glass_style_for, GlassLevel, GlassStyle};
-pub use presets_crt::{CRT_AMBER, CRT_BLUE, CRT_GREEN, CRT_VIOLET};
+pub use presets_crt::{CRT_AMBER, CRT_GREEN};
+pub use presets_crt_cool::{CRT_BLUE, CRT_VIOLET};
 pub use presets_paper::{GRAPHITE, MIDNIGHT_INK, PAPER_DARK, PAPER_LIGHT, SEPIA_DARK};
 pub use presets_paper_light::{COLDPRESS_GRAY, IVORY_LEDGER, SALMON_BROADSHEET, SEPIA_LIGHT};
 
@@ -346,10 +351,10 @@ impl RandomMode {
     fn in_pool(self, id: ThemeId) -> bool {
         let t = id.theme();
         match self {
-            RandomMode::Dark => t.dark && !t.crt,
-            RandomMode::Light => !t.dark && !t.crt,
-            RandomMode::Crt => t.crt,
-            RandomMode::Auto => !t.crt && t.dark == os_dark(),
+            RandomMode::Dark => t.dark && t.crt.is_none(),
+            RandomMode::Light => !t.dark && t.crt.is_none(),
+            RandomMode::Crt => t.crt.is_some(),
+            RandomMode::Auto => t.crt.is_none() && t.dark == os_dark(),
         }
     }
 }

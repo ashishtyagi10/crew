@@ -1,12 +1,15 @@
-//! Headless GPU integration test for the CRT post-process pass. Renders a
-//! known source texture through `CrtPass` and reads pixels back to prove the
-//! tube physics actually happen: the flat panel fills edge-to-edge (no barrel
-//! warp, no black bezel), scanlines darken alternating rows, phosphor glow
-//! bleeds a bright block into its dark neighbours, and `flicker = 0` is
-//! byte-for-byte static.
+//! Headless GPU integration test for the CRT post-process. Drives the REAL
+//! chain — `CrtChain` is exactly what the renderer's frame path runs, bloom
+//! passes included — by uploading known patterns into the chain's own scene
+//! target and reading the composite back: the flat panel fills edge-to-edge
+//! (no barrel warp, no black bezel), scanlines darken alternating rows, the
+//! half-res gaussian bloom throws a halo that still reads 16px from a bright
+//! block (the old two-ring tap died ~8px out) and falls off with distance,
+//! and `flicker = 0` is byte-for-byte static.
 //!
 //! On macOS/Metal this runs the real GPU render; on GPU-less CI it skips.
-use crew_render::CrtPass;
+use crew_render::CrtChain;
+use crew_theme::CrtStyle;
 
 const N: usize = 64;
 const STRIDE: usize = 256; // N * 4, already a COPY_BYTES_PER_ROW_ALIGNMENT multiple
@@ -15,26 +18,8 @@ fn r_at(buf: &[u8], x: usize, y: usize) -> u8 {
     buf[y * STRIDE + x * 4]
 }
 
-/// A source texture filled from `fill(x, y) -> [r,g,b,a]`.
-fn source(
-    device: &wgpu::Device,
-    queue: &wgpu::Queue,
-    fill: impl Fn(usize, usize) -> [u8; 4],
-) -> wgpu::TextureView {
-    let tex = device.create_texture(&wgpu::TextureDescriptor {
-        label: Some("crt_src"),
-        size: wgpu::Extent3d {
-            width: N as u32,
-            height: N as u32,
-            depth_or_array_layers: 1,
-        },
-        mip_level_count: 1,
-        sample_count: 1,
-        dimension: wgpu::TextureDimension::D2,
-        format: wgpu::TextureFormat::Rgba8Unorm,
-        usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
-        view_formats: &[],
-    });
+/// Upload `fill(x, y) -> [r,g,b,a]` into the chain's real scene target.
+fn upload(queue: &wgpu::Queue, chain: &CrtChain, fill: impl Fn(usize, usize) -> [u8; 4]) {
     let mut data = vec![0u8; N * N * 4];
     for y in 0..N {
         for x in 0..N {
@@ -43,7 +28,7 @@ fn source(
     }
     queue.write_texture(
         wgpu::TexelCopyTextureInfo {
-            texture: &tex,
+            texture: chain.scene_texture(),
             mip_level: 0,
             origin: wgpu::Origin3d::ZERO,
             aspect: wgpu::TextureAspect::All,
@@ -60,10 +45,11 @@ fn source(
             depth_or_array_layers: 1,
         },
     );
-    tex.create_view(&Default::default())
 }
 
-fn render(device: &wgpu::Device, queue: &wgpu::Queue, crt: &CrtPass) -> Vec<u8> {
+/// Run the whole post-process (bloom chain + composite) and read back the
+/// surface — the same `CrtChain::encode` the app's frame path calls.
+fn render(device: &wgpu::Device, queue: &wgpu::Queue, chain: &CrtChain) -> Vec<u8> {
     let tex = device.create_texture(&wgpu::TextureDescriptor {
         label: Some("crt_out"),
         size: wgpu::Extent3d {
@@ -86,25 +72,7 @@ fn render(device: &wgpu::Device, queue: &wgpu::Queue, crt: &CrtPass) -> Vec<u8> 
     });
     let view = tex.create_view(&Default::default());
     let mut enc = device.create_command_encoder(&Default::default());
-    {
-        let mut rp = enc.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("crt_test"),
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: &view,
-                depth_slice: None,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                    store: wgpu::StoreOp::Store,
-                },
-            })],
-            depth_stencil_attachment: None,
-            timestamp_writes: None,
-            occlusion_query_set: None,
-            multiview_mask: None,
-        });
-        crt.draw(&mut rp);
-    }
+    chain.encode(&mut enc, &view);
     enc.copy_texture_to_buffer(
         wgpu::TexelCopyTextureInfo {
             texture: &tex,
@@ -161,16 +129,17 @@ fn crt_headless() {
         pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default()))
             .expect("request_device failed");
 
-    let mut crt = CrtPass::new(&device, wgpu::TextureFormat::Rgba8Unorm);
+    let mut chain = CrtChain::new(&device, wgpu::TextureFormat::Rgba8Unorm, N as u32, N as u32);
 
     // --- Case 1: a solid mid-gray field → flat geometry + scanlines ---
     // Mid-gray (not white) so the scanline darkening stays visible: on a
     // saturated white field the phosphor glow would push every row past 1.0 and
     // both light and dark lines would clamp to 255, hiding the effect.
-    let gray = source(&device, &queue, |_, _| [160, 160, 160, 255]);
-    crt.set_source(&device, &gray);
-    crt.update_uniform(&queue, N as f32, N as f32, 0.0, 0.0);
-    let px = render(&device, &queue, &crt);
+    upload(&queue, &chain, |_, _| [160, 160, 160, 255]);
+    chain.set_style(Some(CrtStyle::DEFAULT));
+    chain.set_anim(0.0, 0.0);
+    chain.update_uniforms(&queue, N as f32, N as f32);
+    let px = render(&device, &queue, &chain);
 
     // Flat geometry: with curvature 0 the image maps 1:1 and fills the panel
     // edge-to-edge, so every corner is lit — there is no bezel to black out.
@@ -187,9 +156,9 @@ fn crt_headless() {
         "center should be lit, got {}",
         r_at(&px, N / 2, N / 2)
     );
-    // Scanlines: the 2-pixel cosine darkens every other line, so ADJACENT rows
-    // differ sharply. Adjacent-row delta isolates the scanline from the slow
-    // corner-darkening falloff (which barely changes between neighbours).
+    // Scanlines: the 3-pixel cosine darkens a line every period, so ADJACENT
+    // rows differ sharply. Adjacent-row delta isolates the scanline from the
+    // slow corner-darkening falloff (which barely changes between neighbours).
     let col = N / 2;
     let max_adjacent = (24..40)
         .map(|y| (r_at(&px, col, y) as i32 - r_at(&px, col, y + 1) as i32).abs())
@@ -200,12 +169,14 @@ fn crt_headless() {
         "scanlines should make adjacent center rows differ, max delta was {max_adjacent}"
     );
 
-    // --- Case 2: a bright block on black → phosphor glow bleed ---
-    // Hot block spans x in 28..36, y in 28..36 (see the `hot` closure below);
-    // its right edge (first dark column) is x=36, its vertical middle is y=32.
+    // --- Case 2: a bright block on black → wide gaussian bloom halo ---
+    // Hot block spans x in 28..36, y in 28..36; its right edge (first dark
+    // column) is x=36, its vertical middle is y=32. A hot style (glow ≥ 0.9,
+    // glow_radius ≥ 10 — the TRON-blue end of the family) with scanlines off
+    // so the halo is measured pure, not modulated by the raster.
     let block_right_x = 36usize;
     let block_mid_y = 32usize;
-    let block = source(&device, &queue, |x, y| {
+    upload(&queue, &chain, |x, y| {
         let hot = (28..36).contains(&x) && (28..36).contains(&y);
         if hot {
             [255, 255, 255, 255]
@@ -213,32 +184,48 @@ fn crt_headless() {
             [0, 0, 0, 255]
         }
     });
-    crt.set_source(&device, &block);
-    crt.update_uniform(&queue, N as f32, N as f32, 0.0, 0.0);
-    let g = render(&device, &queue, &crt);
-    // A pixel just outside the block is black in the source but the glow taps
-    // reach into the block, so it must pick up some light.
+    chain.set_style(Some(CrtStyle {
+        curvature: 0.0,
+        scanline: 0.0,
+        glow: 1.0,
+        glow_radius: 12.0,
+        corner: 0.0,
+        flicker: 0.0,
+    }));
+    chain.set_anim(0.0, 0.0);
+    chain.update_uniforms(&queue, N as f32, N as f32);
+    let g = render(&device, &queue, &chain);
+    // A pixel just outside the block is black in the source but the blurred
+    // bright-pass reaches it, so it must pick up light.
     assert!(
-        r_at(&g, 37, 32) > 0,
+        r_at(&g, block_right_x + 1, block_mid_y) > 0,
         "glow should bleed past the block edge, got {}",
-        r_at(&g, 37, 32)
+        r_at(&g, block_right_x + 1, block_mid_y)
+    );
+    // Holographic reach: the goal's contract. 16px from the stroke must still
+    // visibly glow (the old two-ring halo was ≤ 4 at 8px), and the halo must
+    // FALL OFF with distance — a glow, not a uniform wash.
+    let at4 = r_at(&g, block_right_x + 4, block_mid_y);
+    let at8 = r_at(&g, block_right_x + 8, block_mid_y);
+    let at16 = r_at(&g, block_right_x + 16, block_mid_y);
+    eprintln!("crt_headless: halo red at 4px={at4} 8px={at8} 16px={at16}");
+    assert!(at16 >= 8, "halo too weak 16px out: {at16}");
+    assert!(
+        at16 < at4,
+        "halo must fall off with distance: 16px={at16} vs 4px={at4}"
     );
 
-    // Neon reach: 3px from the bright block's edge must still visibly glow
-    // (the old single 1.5px ring left it dark), while 8px out stays black —
-    // the halo is wider, not a wash.
-    let near = r_at(&g, block_right_x + 3, block_mid_y);
-    let far = r_at(&g, block_right_x + 8, block_mid_y);
-    assert!(near >= 8, "3px halo too weak: {near}");
-    assert!(far <= 4, "glow washed out at 8px: {far}");
-
     // --- Case 3: flicker = 0 is perfectly static (deterministic) ---
-    crt.set_source(&device, &gray);
-    crt.update_uniform(&queue, N as f32, N as f32, 123.0, 0.0);
-    let a = render(&device, &queue, &crt);
-    crt.update_uniform(&queue, N as f32, N as f32, 456.0, 0.0);
-    let b = render(&device, &queue, &crt);
+    // The bloom chain runs both times; nothing in it may depend on time.
+    upload(&queue, &chain, |_, _| [160, 160, 160, 255]);
+    chain.set_style(Some(CrtStyle::DEFAULT));
+    chain.set_anim(123.0, 0.0);
+    chain.update_uniforms(&queue, N as f32, N as f32);
+    let a = render(&device, &queue, &chain);
+    chain.set_anim(456.0, 0.0);
+    chain.update_uniforms(&queue, N as f32, N as f32);
+    let b = render(&device, &queue, &chain);
     assert_eq!(a, b, "flicker=0 must be static regardless of time");
 
-    eprintln!("crt_headless: flat geometry, scanlines, glow, static-flicker all verified");
+    eprintln!("crt_headless: flat geometry, scanlines, wide bloom halo, static-flicker verified");
 }

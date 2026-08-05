@@ -1,11 +1,17 @@
-//! CRT-family presets: neon phosphor tubes.
+//! CRT-family presets, the hot half: the green and amber phosphors. Each
+//! preset carries its own `CrtStyle` — the four tubes no longer share one
+//! set of global post-process knobs, so these two run coarse, jittery
+//! rasters while the cool pair (`presets_crt_cool.rs`: violet, blue) runs
+//! wide, smooth, HUD-calm bloom.
 
-use crate::Theme;
+use crate::{CrtStyle, Theme};
 
 /// **Neon green phosphor** (P1, Tron-grid): hot saturated green traced over
 /// a deep cool near-black tube, with a monochrome-green ANSI palette
 /// (brightness tiers, faint hue tilts) for that single-gun terminal look.
 /// The paper-grain pass reads as a subtle glow off the grid lines.
+/// Style: the hottest raster of the four — heavy scanlines, a strong but
+/// tight bloom, and the jumpiest streaming flicker: a P1 tube driven hard.
 pub static CRT_GREEN: Theme = Theme {
     page_bg: (2, 6, 5),
     ink: (0, 255, 102),
@@ -47,12 +53,22 @@ pub static CRT_GREEN: Theme = Theme {
     ],
     dark: true,
     grain: 1.2,
-    crt: true,
+    crt: Some(CrtStyle {
+        curvature: 0.0,
+        scanline: 0.22,
+        glow: 0.85,
+        glow_radius: 7.0,
+        corner: 0.0,
+        flicker: 0.07,
+    }),
 };
 
 /// **Neon amber phosphor** (P3, Tron-grid): saturated amber traced over a
 /// deep cool near-black tube — the phosphor still runs hot orange even
 /// though, like every CRT preset, the tube glass itself reads cool black.
+/// Style: the warmest raster — the deepest scanlines and the most nervous
+/// flicker of the family, with a modest halo: an aging P3 workhorse whose
+/// lines you can count.
 pub static CRT_AMBER: Theme = Theme {
     page_bg: (6, 5, 6),
     ink: (255, 184, 0),
@@ -93,96 +109,12 @@ pub static CRT_AMBER: Theme = Theme {
     ],
     dark: true,
     grain: 1.2,
-    crt: true,
-};
-
-/// **Neon violet phosphor** (Tron-grid): ultraviolet orchid traced over a
-/// deep cool near-black tube — the fourth phosphor, glowing purple.
-pub static CRT_VIOLET: Theme = Theme {
-    page_bg: (5, 2, 8),
-    ink: (232, 170, 255),
-    text_muted: (205, 140, 235),
-    term_fg: (232, 170, 255),
-    term_bg: (5, 2, 8),
-    // Unfocused borders sit back (focus-led hierarchy, as in paper-dark).
-    border_normal: (88, 50, 110),
-    border_focused: (235, 150, 255),
-    border_thickness: 2.5,
-    legend_off: (170, 115, 200),
-    accent_default: (245, 170, 255),
-    status_fg: (245, 185, 250),
-    broadcast: (255, 150, 200),
-    activity: (205, 130, 255),
-    bell: (255, 190, 240),
-    dim: (120, 78, 145),
-    placeholder: (135, 88, 162),
-    hint_fg: (150, 100, 180),
-    find_hl_bg: (60, 25, 85),
-    ansi: [
-        (55, 35, 75),    // 0  black
-        (255, 140, 200), // 1  red
-        (190, 150, 255), // 2  green
-        (235, 180, 255), // 3  yellow
-        (160, 140, 255), // 4  blue
-        (230, 140, 255), // 5  magenta
-        (200, 160, 255), // 6  cyan
-        (230, 200, 250), // 7  white
-        (140, 95, 175),  // 8  bright black
-        (255, 160, 220), // 9  bright red
-        (210, 170, 255), // 10 bright green
-        (245, 200, 255), // 11 bright yellow
-        (180, 160, 255), // 12 bright blue
-        (240, 160, 255), // 13 bright magenta
-        (215, 180, 255), // 14 bright cyan
-        (245, 225, 255), // 15 bright white
-    ],
-    dark: true,
-    grain: 1.2,
-    crt: true,
-};
-
-/// **Neon blue phosphor** (Tron light-cycle grid): electric edge-glow cyan
-/// traced over a deep near-black tube — the coolest of the four grids, page
-/// and phosphor alike.
-pub static CRT_BLUE: Theme = Theme {
-    page_bg: (1, 4, 8),
-    ink: (0, 229, 255),
-    text_muted: (0, 182, 214),
-    term_fg: (0, 229, 255),
-    term_bg: (1, 4, 8),
-    // Unfocused borders sit back (focus-led hierarchy, as in paper-dark).
-    border_normal: (0, 78, 110),
-    border_focused: (0, 225, 255),
-    border_thickness: 2.5,
-    legend_off: (0, 145, 180),
-    accent_default: (90, 255, 255),
-    status_fg: (150, 230, 255),
-    broadcast: (170, 180, 255),
-    activity: (0, 220, 255),
-    bell: (170, 220, 255),
-    dim: (0, 105, 140),
-    placeholder: (0, 122, 155),
-    hint_fg: (0, 138, 172),
-    find_hl_bg: (10, 45, 75),
-    ansi: [
-        (20, 50, 75),    // 0  black
-        (150, 170, 255), // 1  red
-        (0, 255, 220),   // 2  green
-        (140, 220, 255), // 3  yellow
-        (60, 160, 255),  // 4  blue
-        (150, 150, 255), // 5  magenta
-        (0, 240, 255),   // 6  cyan
-        (170, 225, 255), // 7  white
-        (0, 120, 170),   // 8  bright black
-        (180, 190, 255), // 9  bright red
-        (60, 255, 235),  // 10 bright green
-        (170, 235, 255), // 11 bright yellow
-        (90, 190, 255),  // 12 bright blue
-        (180, 170, 255), // 13 bright magenta
-        (110, 250, 255), // 14 bright cyan
-        (200, 240, 255), // 15 bright white
-    ],
-    dark: true,
-    grain: 1.2,
-    crt: true,
+    crt: Some(CrtStyle {
+        curvature: 0.0,
+        scanline: 0.26,
+        glow: 0.75,
+        glow_radius: 6.0,
+        corner: 0.0,
+        flicker: 0.08,
+    }),
 };

@@ -6,6 +6,9 @@
 //! group.
 pub struct SceneTarget {
     pub view: wgpu::TextureView,
+    /// Kept so the headless harness can upload source patterns into the real
+    /// target (see `CrtChain::scene_texture`).
+    pub texture: wgpu::Texture,
     width: u32,
     height: u32,
 }
@@ -30,15 +33,18 @@ impl SceneTarget {
             dimension: wgpu::TextureDimension::D2,
             format,
             // RENDER_ATTACHMENT: the frame draws into it. TEXTURE_BINDING: the
-            // CRT pass samples it. COPY_SRC lets the headless harness read back.
+            // CRT pass samples it. COPY_SRC/COPY_DST let the headless harness
+            // read back and inject source patterns.
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT
                 | wgpu::TextureUsages::TEXTURE_BINDING
-                | wgpu::TextureUsages::COPY_SRC,
+                | wgpu::TextureUsages::COPY_SRC
+                | wgpu::TextureUsages::COPY_DST,
             view_formats: &[],
         });
         let view = texture.create_view(&Default::default());
         Self {
             view,
+            texture,
             width,
             height,
         }
