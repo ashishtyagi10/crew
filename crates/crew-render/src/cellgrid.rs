@@ -72,6 +72,9 @@ pub struct CellGrid {
     /// ([`base_weight`]); `Some(w)` renders all non-bold text at `w` so the
     /// user can make the body heavier/lighter. Bold cells still shape BOLD.
     weight_override: Option<u16>,
+    /// CoreText-style smoothing strength override (0–255, 0 = off). `None`
+    /// follows [`crate::smoothing::DEFAULT_SMOOTH`].
+    smooth_override: Option<u8>,
     /// Whether the render target is sRGB (colours must be fed linear).
     srgb: bool,
 }
@@ -130,6 +133,7 @@ impl CellGrid {
             line_height,
             font_family,
             weight_override: None,
+            smooth_override: None,
             srgb: format.is_srgb(),
         }
     }
@@ -154,6 +158,14 @@ impl CellGrid {
 
     pub fn set_font_family(&mut self, family: Option<String>) {
         self.font_family = family.filter(|n| !n.is_empty());
+    }
+
+    /// Override the CoreText-style smoothing strength (0–255, 0 = off).
+    /// `None` follows the default. Applied next frame: the strength lives in
+    /// every glyph's cache key, so changed panes re-shape and re-rasterize
+    /// while stale atlas entries age out on their own.
+    pub fn set_text_smoothing(&mut self, strength: Option<u8>) {
+        self.smooth_override = strength;
     }
 
     /// Set the frosted-glass strength. Applied next frame.
@@ -188,6 +200,9 @@ impl CellGrid {
             weight: self
                 .weight_override
                 .unwrap_or_else(|| base_weight(crew_theme::theme().dark)),
+            smooth: self
+                .smooth_override
+                .unwrap_or(crate::smoothing::DEFAULT_SMOOTH),
         };
         let (cw, ch) = (self.cell_w, self.cell_h);
         let ((quads, buffers, sigs, borders, cards), (oquads, obuffers, osigs, _, _)) = build_both(

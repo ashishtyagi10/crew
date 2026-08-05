@@ -80,6 +80,8 @@ impl CrewConfig {
             // find again; the floor keeps crew recoverable from any setting.
             window_opacity: self.window_opacity.clamp(MIN_WINDOW_OPACITY, 1.0),
             font_weight: self.font_weight.clamp(300, 900),
+            // Any u8 is a valid smoothing strength; 0 simply turns it off.
+            font_smooth: self.font_smooth,
             usage_budget_5h: self.usage_budget_5h.max(10_000),
             usage_budget_7d: self.usage_budget_7d.max(10_000),
             model_recents: self.model_recents,

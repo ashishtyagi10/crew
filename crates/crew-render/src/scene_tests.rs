@@ -23,6 +23,7 @@ fn params() -> FontParams {
         cell_w: 14.0 * 0.6,
         family: None,
         weight: 400,
+        smooth: 0,
     }
 }
 

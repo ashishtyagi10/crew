@@ -9,6 +9,7 @@ fn params() -> FontParams {
         cell_w: 14.0 * 0.6,
         family: None,
         weight: 400,
+        smooth: 0,
     }
 }
 
@@ -114,5 +115,20 @@ fn pane_sig_changes_when_base_weight_changes() {
         pane_sig(&p, 10, 2, &normal),
         pane_sig(&p, 10, 2, &medium),
         "weight is part of the signature"
+    );
+}
+
+#[test]
+fn pane_sig_changes_when_smoothing_changes() {
+    // /smooth re-keys every glyph via cache-key flags; the signature must
+    // change so cached buffers shaped with the old flags are rebuilt.
+    let p = pane(vec![cell(0, 0, 'a', (1, 2, 3))], false, false);
+    let off = params();
+    let mut on = params();
+    on.smooth = 100;
+    assert_ne!(
+        pane_sig(&p, 10, 2, &off),
+        pane_sig(&p, 10, 2, &on),
+        "smoothing strength is part of the signature"
     );
 }

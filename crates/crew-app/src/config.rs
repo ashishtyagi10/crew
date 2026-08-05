@@ -79,6 +79,11 @@ fn default_font_weight() -> u16 {
     600
 }
 
+fn default_font_smooth() -> u8 {
+    // The renderer's calibrated CoreText-style stem darkening.
+    crew_render::DEFAULT_SMOOTH
+}
+
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CrewConfig {
     /// The version that last ran. Compared at startup so a build the user
@@ -171,6 +176,11 @@ pub struct CrewConfig {
     /// SemiBold (600) for a thicker body; set live with `/weight`.
     #[serde(default = "default_font_weight")]
     pub font_weight: u16,
+    /// CoreText-style font smoothing strength (0–255, 0 = off). Emulates the
+    /// stem darkening every native macOS terminal gets from CoreText, so the
+    /// same font reads as full here as in Terminal.app; `/smooth` tunes it.
+    #[serde(default = "default_font_smooth")]
+    pub font_smooth: u8,
     /// Token budgets for the footer's rolling usage windows (the `%` the
     /// bars are drawn against). Approximate by nature — tune to taste.
     #[serde(default = "default_usage_budget_5h")]
@@ -211,6 +221,7 @@ impl Default for CrewConfig {
             motion: default_motion(),
             window_opacity: default_window_opacity(),
             font_weight: default_font_weight(),
+            font_smooth: default_font_smooth(),
             usage_budget_5h: default_usage_budget_5h(),
             usage_budget_7d: default_usage_budget_7d(),
             model_recents: Vec::new(),
