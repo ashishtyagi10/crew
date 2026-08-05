@@ -145,6 +145,7 @@ impl CellGrid {
         self.line_height = cell_h;
         self.cell_w = cell_w;
         self.cell_h = cell_h;
+        self.swash.image_cache.clear();
     }
 
     /// Switch the font family at runtime (`None`/empty → system monospace).
@@ -154,10 +155,15 @@ impl CellGrid {
     /// 700 Bold). `None` follows the theme default. Applied next frame.
     pub fn set_font_weight(&mut self, weight: Option<u16>) {
         self.weight_override = weight;
+        self.swash.image_cache.clear();
     }
 
     pub fn set_font_family(&mut self, family: Option<String>) {
         self.font_family = family.filter(|n| !n.is_empty());
+        // The swash image cache retains every rasterized glyph (the presmooth
+        // pass reads and seeds it); font changes re-key everything, so drop
+        // the stale rasters rather than carrying them for the session.
+        self.swash.image_cache.clear();
     }
 
     /// Override the CoreText-style smoothing strength (0–255, 0 = off).
@@ -166,6 +172,7 @@ impl CellGrid {
     /// while stale atlas entries age out on their own.
     pub fn set_text_smoothing(&mut self, strength: Option<u8>) {
         self.smooth_override = strength;
+        self.swash.image_cache.clear();
     }
 
     /// Set the frosted-glass strength. Applied next frame.
