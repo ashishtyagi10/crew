@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.12.5
+
+Font rendering catches up with the native terminals. The same font used to
+read thin and rough next to ghostty or Warp because they rasterize through
+CoreText — which never hints and dilates stems ("font smoothing") — while
+crew's swash path hinted by default and drew exact outlines. Glyphs now
+rasterize unhinted at every DPI, and a CoreText-style stem darkening
+(fractional dilation, full strength horizontally, half vertically) is
+applied to every glyph mask before it reaches the atlas. `/smooth
+[off|light|medium|heavy|<0-255>]` tunes the strength live (default 100,
+persisted as `font_smooth`); `/smooth off` keeps the unhinted outlines but
+drops the darkening. Ships a vendored one-line glyphon patch so seeded
+glyph bitmaps actually reach the GPU atlas.
+
 ## 0.12.4
 
 Light-trace frames — the holographic overhaul's finale (part 3). On the CRT
