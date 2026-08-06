@@ -162,6 +162,7 @@ mod settingspane;
 mod shellprobe;
 mod spark;
 mod spawn;
+mod spotlight;
 pub mod stats;
 mod statspane;
 mod status;

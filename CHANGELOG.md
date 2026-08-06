@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.13.4
+
+Focus spotlight. The focused pane holds full ink while every other pane's
+content leans 15% toward the page — enough that the eye lands on the active
+surface instantly in a full grid, mild enough that unfocused terminals stay
+completely readable. The wash rides the same 260ms travel as the focus
+brackets: the old pane dims exactly as the new one brightens, one motion.
+Frames keep their own focus colors (this is about the ink, not the box),
+backgrounds and selection bands keep their shape, and the spotlight follows
+the selected pane even while the input bar owns the keyboard.
+
 ## 0.13.3
 
 Theme switches are cinematic now. `/theme`, the cycle hotkey, auto-rotation
