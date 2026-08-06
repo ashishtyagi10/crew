@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.13.2
+
+The sidebar's PANES section is alive now. A **crew pulse** line chart sits
+under the header — one sample per second of how many panes are doing
+background work, auto-scaled, so a working swarm reads as a mountain range
+and an idle crew as a flat baseline. Busy panes' rows carry a live spinner
+in the accent color where the activity dot sits (attention markers still
+win the slot). Costs nothing extra: the chart rides the sidebar's existing
+1 Hz refresh and the spinner rides the repaints a busy pane already makes.
+
 ## 0.13.1
 
 Grid reflow glides. Opening, closing, minimizing or restoring a pane used to

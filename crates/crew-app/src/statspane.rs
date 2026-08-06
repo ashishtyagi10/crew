@@ -28,6 +28,8 @@ pub struct StatsPane {
     /// Git status for the working directory, queried off the main thread.
     git: GitWatch,
     cpu_hist: crate::spark::History, // recent CPU %, drawn as a moving sparkline
+    /// Busy-pane count per second — the crew-pulse chart under PANES.
+    pulse_hist: crate::spark::History,
 }
 
 impl StatsPane {
@@ -37,6 +39,7 @@ impl StatsPane {
             last_sec: 0,
             git: GitWatch::default(),
             cpu_hist: crate::spark::History::new(64),
+            pulse_hist: crate::spark::History::new(64),
         }
     }
 
@@ -48,12 +51,13 @@ impl StatsPane {
         self.git.info().map(|g| g.branch.as_str())
     }
 
-    pub fn refresh(&mut self, cwd: &Path) -> bool {
+    pub fn refresh(&mut self, cwd: &Path, busy_now: u64) -> bool {
         let stats_changed = self.sampler.refresh();
         if stats_changed {
-            // One reading per sample → the sparkline scrolls ~1 Hz.
+            // One reading per sample → the sparklines scroll ~1 Hz.
             let cpu = (self.sampler.stats().cpu.clamp(0.0, 1.0) * 100.0).round() as u64;
             self.cpu_hist.push(cpu);
+            self.pulse_hist.push(busy_now);
         }
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -152,10 +156,13 @@ impl StatsPane {
         }
         let panes_off = next + log_h;
 
-        // PANES list fills the remaining height below the LOG section.
-        if !panes.is_empty() && rows > panes_off + 1 {
-            let limit = (rows - panes_off - 1) as usize;
-            for mut c in panelist::pane_cells(panes, cols, limit) {
+        // PANES list fills the remaining height below the LOG section (header
+        // + pulse chart + one row per pane).
+        if !panes.is_empty() && rows > panes_off + 2 {
+            let limit = (rows - panes_off - 2) as usize;
+            let spin = crate::update::SPINNER
+                [(crate::anim::now_ms() / 100) as usize % crate::update::SPINNER.len()];
+            for mut c in panelist::pane_cells(panes, cols, limit, &self.pulse_hist, spin) {
                 c.row += panes_off;
                 out.push(c);
             }
