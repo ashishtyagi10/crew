@@ -29,6 +29,7 @@ impl CrewApp {
         // in `panecardglow::focus_fx`, diffed there once per frame.
         let now = crate::anim::now_ms();
         let focus_t = self.focus_fx(now);
+        self.theme_fade_tick(now);
         // Grid glide clock: measured between frames, clamped after idle.
         let glide_dt = crate::glide::frame_dt(now, self.glide_prev_ms);
         self.glide_prev_ms = now;

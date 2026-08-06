@@ -58,6 +58,10 @@ pub struct CellGrid {
     overlay: SceneSlots,
     quad_layer: QuadLayer,
     overlay_quad_layer: QuadLayer,
+    /// Theme-switch veil: one full-window quad drawn over everything, fading
+    /// out as the new theme develops. `None` (the resting state) draws nothing.
+    veil_layer: QuadLayer,
+    veil: Option<[f32; 4]>,
     round_border_layer: RoundBorderLayer,
     /// Frosted sheets drawn beneath everything else in the base pass.
     glass_layer: GlassLayer,
@@ -110,6 +114,7 @@ impl CellGrid {
         let line_height = cell_h;
         let quad_layer = QuadLayer::new(device, format);
         let overlay_quad_layer = QuadLayer::new(device, format);
+        let veil_layer = QuadLayer::new(device, format);
         let round_border_layer = RoundBorderLayer::new(device, format);
         let glass_layer = GlassLayer::new(device, format);
 
@@ -124,6 +129,8 @@ impl CellGrid {
             overlay: SceneSlots::default(),
             quad_layer,
             overlay_quad_layer,
+            veil_layer,
+            veil: None,
             round_border_layer,
             glass_layer,
             glass_level: crew_theme::GlassLevel::Medium,
@@ -178,6 +185,11 @@ impl CellGrid {
     /// Set the frosted-glass strength. Applied next frame.
     pub fn set_glass(&mut self, level: crew_theme::GlassLevel) {
         self.glass_level = level;
+    }
+
+    /// Set (or clear) the theme-switch veil color, already target-converted.
+    pub fn set_veil(&mut self, veil: Option<[f32; 4]>) {
+        self.veil = veil;
     }
 
     /// Sorted, de-duplicated names of all installed monospace font families
@@ -238,6 +250,20 @@ impl CellGrid {
         let h = height as f32;
         self.quad_layer.set_viewport(queue, w, h);
         self.overlay_quad_layer.set_viewport(queue, w, h);
+        self.veil_layer.set_viewport(queue, w, h);
+        // The veil is geometry-per-frame anyway (it only exists mid-fade), so
+        // its one quad is rebuilt here where the surface size is in hand.
+        let quads = match self.veil {
+            Some(color) => vec![crate::quads::Quad {
+                x: 0.0,
+                y: 0.0,
+                w,
+                h,
+                color,
+            }],
+            None => Vec::new(),
+        };
+        self.veil_layer.set_quads(device, &quads);
         self.round_border_layer.set_viewport(queue, w, h);
         self.glass_layer.set_viewport(queue, w, h);
         self.viewport.update(queue, Resolution { width, height });
@@ -282,6 +308,9 @@ impl CellGrid {
         self.overlay_renderer
             .render(&self.atlas, &self.viewport, pass)
             .expect("glyphon overlay render failed");
+        // Last, over everything — with CRT active the scene (veil included)
+        // then reprojects through the tube, so the dip stays inside the glass.
+        self.veil_layer.draw(pass);
     }
 }
 

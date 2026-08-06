@@ -173,6 +173,7 @@ mod swarmpane;
 #[path = "swarmshot_tests.rs"]
 mod swarmshot_tests;
 mod termwrite;
+mod themefade;
 mod toast;
 mod toggles;
 mod tui;

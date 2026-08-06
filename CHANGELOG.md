@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.13.3
+
+Theme switches are cinematic now. `/theme`, the cycle hotkey, auto-rotation
+and an OS appearance flip used to hard-cut every pixel at once; now the new
+theme's page washes the window and fades away over ~450ms — the page
+*develops* its new look. One full-window quad drawn over everything (under
+the CRT tube's curvature when one is active, so the dip stays inside the
+glass); detection is a per-frame theme-id diff, so every switch path gets the
+fade without knowing about it. Motion off keeps the instant cut, and a grace
+frame past the fade guarantees the veil clears exactly to zero.
+
 ## 0.13.2
 
 The sidebar's PANES section is alive now. A **crew pulse** line chart sits
