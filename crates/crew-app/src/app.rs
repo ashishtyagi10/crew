@@ -33,6 +33,11 @@ pub struct CrewApp {
     /// Cards that have been dismissed but are still collapsing. Bounded by
     /// their own timelines and pruned every frame (see [`crate::ghost`]).
     pub(crate) ghosts: Vec<crate::ghost::Ghost>,
+    /// Grid reflow glide (see [`crate::glide`]): when `build_frame` last
+    /// stepped pane rects, and whether any pane is still travelling — the
+    /// redraw-scheduling flag `wants_animation_frame` reads.
+    pub(crate) glide_prev_ms: u64,
+    pub(crate) glide_active: bool,
     /// Zoom transition: the rect the focused pane occupied when zoom was
     /// toggled, and the timeline it is travelling on. A zoom that cut straight
     /// to full size lost the connection between the tile and the thing that

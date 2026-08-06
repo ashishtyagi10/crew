@@ -74,10 +74,6 @@ impl Toasts {
             age < TTL_MS && (t.slide.live(now) || age >= TTL_MS - EXIT_MS)
         })
     }
-
-    pub(crate) fn is_empty(&self) -> bool {
-        self.items.is_empty()
-    }
 }
 
 /// Push one overlay scene per live toast, stacked below the top-right corner

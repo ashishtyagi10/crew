@@ -29,6 +29,10 @@ impl CrewApp {
         // in `panecardglow::focus_fx`, diffed there once per frame.
         let now = crate::anim::now_ms();
         let focus_t = self.focus_fx(now);
+        // Grid glide clock: measured between frames, clamped after idle.
+        let glide_dt = crate::glide::frame_dt(now, self.glide_prev_ms);
+        self.glide_prev_ms = now;
+        self.glide_active = false;
         self.reconcile_grid();
         // Before anything is drawn: a key prompt this frame won't show must
         // not survive holding a secret (see `close_hidden_keyentry`).
@@ -64,8 +68,16 @@ impl CrewApp {
                 ch,
             )
         } else {
+            // Reflow glide: each pane draws a step closer to its placed tile
+            // (`pane.rect` is last frame's drawn rect), so grid changes read
+            // as the same cards rearranging. Hit-testing stays on the placed
+            // targets — clicks land where the panes are heading.
+            let snap = matches!(crate::motion::level(), crate::motion::MotionLevel::Off);
             for &(idx, rect) in &placed.full {
-                relayout_one(&mut self.panes[idx], rect, cw, ch);
+                let (drawn, settled) =
+                    crate::glide::step(self.panes[idx].rect, rect, glide_dt, snap);
+                self.glide_active |= !settled;
+                relayout_one(&mut self.panes[idx], drawn, cw, ch);
             }
             let f = (!self.input.focused).then_some(self.focused);
             full_scenes(

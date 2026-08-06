@@ -94,6 +94,7 @@ mod git;
 #[cfg(test)]
 #[path = "glassshot_tests.rs"]
 mod glassshot_tests;
+mod glide;
 pub(crate) mod grid;
 mod gridrows;
 mod gridsel;

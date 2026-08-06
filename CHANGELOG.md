@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.13.1
+
+Grid reflow glides. Opening, closing, minimizing or restoring a pane used to
+teleport every surviving pane to its new tile in one frame; now each card
+glides there (exponential smoothing toward the placed rect, ~250ms, exact
+snap on arrival). Restoring a minimized pane glides it out of wherever it
+last sat; leaving zoom glides the pane back into its tile. Clicks during a
+glide land on the target tiles — where the panes are heading. Motion off
+keeps the old instant snap, and settled panes schedule no frames.
+
 ## 0.13.0
 
 Toast notifications. Pane events — agent finished, bell, watched-pattern
