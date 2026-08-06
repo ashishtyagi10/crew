@@ -91,7 +91,7 @@ fn expired_toasts_render_nothing() {
     };
     push_toasts(&mut scenes, &mut t, content, 8.0, 16.0, 1_000 + TTL_MS + 1);
     assert!(scenes.is_empty());
-    assert!(t.is_empty(), "prune ran as part of the render pass");
+    assert!(t.items.is_empty(), "prune ran as part of the render pass");
 }
 
 #[test]
