@@ -115,6 +115,9 @@ pub struct CrewApp {
     /// Notification system: throttles + records pane events (command finished,
     /// bell, output pattern match, pane exit) surfaced via the LOG + input bar.
     pub(crate) notifier: crate::notify::Notifier,
+    /// Transient toast cards at the top-right of the canvas — the loud surface
+    /// for notify events and errors (the input-bar flash is the quiet one).
+    pub(crate) toasts: crate::toast::Toasts,
     /// When quit was last pressed with panes open, for the confirm-to-quit window.
     pub(crate) quit_armed: Option<Instant>,
     /// Whether a restorable pane (shell / Far / crew chat / file viewer)
