@@ -219,7 +219,8 @@ impl CellGrid {
             &mut self.font_system,
             &params,
             self.srgb,
-            self.glass_level,
+            // Theme-derived, per-frame: `/theme` and `/glass` both land here.
+            crew_theme::glass_style().scaled(self.glass_level),
             self.base.take_prev(),
             self.overlay.take_prev(),
         );

@@ -83,7 +83,7 @@ fn unchanged_pane_reuses_last_frames_buffer() {
         &params(),
         false,
         false,
-        crew_theme::GlassLevel::Off,
+        super::tests::no_glass(),
         (vec![], vec![]),
     );
     // Second frame, same content: the same signature comes back out and the
@@ -96,7 +96,7 @@ fn unchanged_pane_reuses_last_frames_buffer() {
         &params(),
         false,
         false,
-        crew_theme::GlassLevel::Off,
+        super::tests::no_glass(),
         (sigs.clone(), bufs),
     );
     assert_eq!(sigs, sigs2);

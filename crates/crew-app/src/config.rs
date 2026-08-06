@@ -41,8 +41,9 @@ fn default_motion() -> String {
 }
 
 fn default_glass() -> String {
-    // Panes ship frosted. The look is derived per-theme (see `crew_theme::glass`),
-    // so this is only the strength; `off` returns the flat cards.
+    // Strength only; the look is derived per-theme (see `crew_theme::glass`).
+    // Since 2026-08-06 paper themes derive a flat (invisible) sheet, so this
+    // dial only shows on CRT themes — `off` kills even the holographic sheet.
     "medium".to_string()
 }
 
