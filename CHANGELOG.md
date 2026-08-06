@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.13.5
+
+CRT goes flat. The holographic glass sheet under every tube pane — a ramped
+phosphor fill with a specular hairline and inner edge-glow — read as a drop
+shadow that set the panes adrift, floating farther apart than the same grid
+on paper-dark. It is retired: CRT panes now sit flush on the page exactly
+like the dark themes, and what says "tube" is what should have all along —
+a heavier 3.5px frame (the thickest in the app), a stronger bloom on all
+four phosphors, and the CRT typeface. Same grid, same gaps, more glow.
+
 ## 0.13.4
 
 Focus spotlight. The focused pane holds full ink while every other pane's

@@ -3,6 +3,10 @@
 //! set of global post-process knobs, so these two run coarse, jittery
 //! rasters while the cool pair (`presets_crt_cool.rs`: violet, blue) runs
 //! wide, smooth, HUD-calm bloom.
+//!
+//! All four tubes run a 3.5px frame — heavier than any paper preset — since
+//! the flat-tube decree (2026-08-06): the glass sheet is retired, so border
+//! weight, bloom and typeface are the whole of what says "tube" over paper.
 
 use crate::{CrtStyle, Theme};
 
@@ -22,7 +26,7 @@ pub static CRT_GREEN: Theme = Theme {
     // so the bright phosphor frame alone says which pane is live.
     border_normal: (0, 88, 42),
     border_focused: (0, 255, 120),
-    border_thickness: 2.5,
+    border_thickness: 3.5,
     legend_off: (0, 160, 70),
     accent_default: (30, 255, 140),
     status_fg: (190, 255, 80),
@@ -56,7 +60,7 @@ pub static CRT_GREEN: Theme = Theme {
     crt: Some(CrtStyle {
         curvature: 0.0,
         scanline: 0.22,
-        glow: 0.85,
+        glow: 0.95,
         glow_radius: 7.0,
         corner: 0.0,
         flicker: 0.07,
@@ -78,7 +82,7 @@ pub static CRT_AMBER: Theme = Theme {
     // Unfocused borders sit back (focus-led hierarchy, as in paper-dark).
     border_normal: (112, 70, 16),
     border_focused: (255, 165, 20),
-    border_thickness: 2.5,
+    border_thickness: 3.5,
     legend_off: (180, 115, 20),
     accent_default: (255, 200, 30),
     status_fg: (255, 200, 70),
@@ -112,7 +116,7 @@ pub static CRT_AMBER: Theme = Theme {
     crt: Some(CrtStyle {
         curvature: 0.0,
         scanline: 0.26,
-        glow: 0.75,
+        glow: 0.85,
         glow_radius: 6.0,
         corner: 0.0,
         flicker: 0.08,
