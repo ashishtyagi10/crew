@@ -89,6 +89,7 @@ impl CrewApp {
                 self.last_find.as_deref(),
                 self.cell_sel.as_ref(),
                 focus_t,
+                (self.focused, self.focus_prev),
                 cw,
                 ch,
             )

@@ -61,6 +61,9 @@ impl CrewApp {
     /// eased bracket `focus_t`.
     pub(crate) fn focus_fx(&mut self, now: u64) -> f32 {
         if self.focus_drawn != self.focused {
+            // The pane the spotlight is leaving — the dim-down side of the
+            // content crossfade (see `spotlight`).
+            self.focus_prev = self.focus_drawn;
             self.focus_drawn = self.focused;
             self.focus_anim = crate::ease::Timeline::start(now, 260, self.config.motion_level());
             // Ignition is CRT-only: a paper frame's pixels never change with

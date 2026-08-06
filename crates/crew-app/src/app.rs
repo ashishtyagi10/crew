@@ -49,6 +49,9 @@ pub struct CrewApp {
     pub(crate) zoom_from: Option<crate::layout::Rect>,
     pub(crate) zoom_anim: crate::ease::Timeline,
     pub(crate) focus_drawn: usize,
+    /// Where the spotlight travelled from — the pane whose content dims as
+    /// the focused one brightens (see [`crate::spotlight`]).
+    pub(crate) focus_prev: usize,
     pub(crate) focus_anim: crate::ease::Timeline,
     /// One-shot CRT ignition sweep: on the phosphor themes a freshly focused
     /// frame starts corner-node hot and decays to `border_focused` (see

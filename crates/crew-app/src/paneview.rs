@@ -28,6 +28,8 @@ pub fn build_scenes(
     let mut scenes = Vec::with_capacity(panes.len() * 2);
     for (i, p) in panes.iter().enumerate() {
         let foc = focused == Some(i);
+        // Slice-rebased (zoom, harnesses): pane 0 is the spotlit one.
+        let dim = crate::spotlight::dim_for(i, 0, 0, focus_t);
         // This slice is index-rebased (zoom renders a 1-pane slice), so the
         // selection — keyed by absolute index — is matched to the focused pane.
         // The minimize button rides the zoomed border too: hit-testing shares
@@ -43,6 +45,7 @@ pub fn build_scenes(
             foc.then_some(sel).flatten(),
             true,
             focus_t,
+            dim,
             cw,
             ch,
         );
@@ -64,6 +67,9 @@ pub fn full_scenes(
     find: Option<&str>,
     sel: Option<&CellSel>,
     focus_t: f32,
+    // Spotlight `(spot, prev)`: which pane holds the light and which it just
+    // left — follows `app.focused` even while the input bar owns the keys.
+    spot: (usize, usize),
     cw: f32,
     ch: f32,
 ) -> Vec<PaneScene> {
@@ -71,6 +77,7 @@ pub fn full_scenes(
     for &(idx, _rect) in placed {
         let p = &panes[idx];
         let foc = focused == Some(idx);
+        let dim = crate::spotlight::dim_for(idx, spot.0, spot.1, focus_t);
         push_pane_scenes(
             &mut scenes,
             p,
@@ -81,6 +88,7 @@ pub fn full_scenes(
             sel.filter(|s| s.pane == idx),
             true,
             focus_t,
+            dim,
             cw,
             ch,
         );
@@ -134,6 +142,7 @@ fn push_pane_scenes(
     sel: Option<&CellSel>,
     min_btn: bool,
     focus_t: f32,
+    dim: f32,
     cw: f32,
     ch: f32,
 ) {
@@ -159,6 +168,9 @@ fn push_pane_scenes(
     if let Some(s) = sel {
         crate::gridsel::highlight(&mut cells, s, crew_theme::theme().find_hl_bg);
     }
+    // Focus spotlight: unfocused content leans toward the page (frame cells
+    // keep their own focus colors — this is about the ink, not the box).
+    crate::spotlight::wash(&mut cells, dim);
     // The card draws itself in over its first moments. Read from the pane's own
     // birth stamp, so panes that appear together (a restored session) assemble
     // together, and one spawned later assembles on its own clock.
