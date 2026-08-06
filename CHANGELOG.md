@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.13.0
+
+Toast notifications. Pane events — agent finished, bell, watched-pattern
+match, pane exited, waiting-for-you — and error statuses now step onto the
+canvas as toast cards docked at the top-right: a small fieldset card that
+slides in, rests for ~5s, then dissolves and slides back out. Waiting, exited
+and error toasts border in the bell color; up to four stack, oldest dropped
+first. The input-bar flash and LOG entry still happen — the toast is the loud
+surface, the bar the quiet one. Motion-gated: at Motion off cards appear and
+vanish with no travel, and a resting toast never repaints an idle crew (frames
+run only during the slide-in and exit windows).
+
 ## 0.12.8
 
 Paper themes are flat again; glass is now the CRT family's look alone. Since

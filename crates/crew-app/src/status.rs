@@ -39,6 +39,12 @@ impl CrewApp {
             level,
             text: format!("{} {}", log_stamp(), msg),
         });
+        // Errors also step onto the canvas as an alert toast; routine statuses
+        // ("copied 12 lines") stay a quiet flash on the bar.
+        if level == LogLevel::Error {
+            self.toasts
+                .push(msg.clone(), "error", true, crate::anim::now_ms());
+        }
         self.status = Some((msg, Instant::now()));
         self.redraw();
     }
@@ -69,6 +75,18 @@ impl CrewApp {
             .notifier
             .record(kind, pane, detail, std::time::Instant::now())
         {
+            // The same line, twice as loud: a toast card on the canvas plus
+            // the usual flash + LOG entry. Waiting/exited border in the bell
+            // color — those are the two that want the user back.
+            let (legend, alert) = match kind {
+                NotifyKind::AgentDone => ("done", false),
+                NotifyKind::Bell => ("bell", false),
+                NotifyKind::Pattern => ("match", false),
+                NotifyKind::Exited => ("exited", true),
+                NotifyKind::Waiting => ("waiting", true),
+            };
+            self.toasts
+                .push(msg.clone(), legend, alert, crate::anim::now_ms());
             self.set_status(msg);
         }
     }
