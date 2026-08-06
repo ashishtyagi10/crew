@@ -252,8 +252,8 @@ fn shot(
     // a pane's own cell backgrounds satisfy whether or not any glass is drawn —
     // it passed at full strength with the sheet disabled entirely. The only
     // honest question is whether the glass level moves the pixels — and since
-    // the 2026-08-06 flat-paper decree, whether it moves them at all: on paper
-    // themes any delta is the phantom shadow-box bug coming back.
+    // the 2026-08-06 flat decree covered every family, whether it moves them
+    // at all: on any theme a delta is the phantom shadow-box bug coming back.
     let flat = render(crew_theme::GlassLevel::Off, opacity).expect("adapter was available above");
     let on = mean_lum(&px, 60, 120, 200, 60);
     let bare = mean_lum(&flat, 60, 120, 200, 60);
@@ -281,7 +281,7 @@ fn glass_shot_every_theme_family() {
     use crew_theme::{GlassLevel as G, ThemeId as T};
     shot("light", T::PaperLight, G::Medium, 1.0, false);
     shot("dark", T::PaperDark, G::Medium, 1.0, false);
-    shot("crt", T::CrtGreen, G::Medium, 1.0, true);
+    shot("crt", T::CrtGreen, G::Medium, 1.0, false);
     shot("light-high", T::PaperLight, G::High, 1.0, false);
     shot("dark-high", T::PaperDark, G::High, 1.0, false);
 }
@@ -297,16 +297,18 @@ fn mean_ch(px: &[u8], ch: usize, x0: usize, y0: usize, w: usize, h: usize) -> f6
     s / (w * h) as f64
 }
 
-/// The holographic contract on real pixels (goal 2026-08-04). Every reading is
-/// a delta against the SAME scene with glass off, so text glyphs, paper grain
-/// and the border stroke cancel out and only the sheet's own light remains.
+/// The flat-tube contract on real pixels (2026-08-06, superseding the
+/// 2026-08-04 luminous contract): with the glass sheet retired, the glass
+/// level must not move a single region — neither the pane interior (the old
+/// phosphor tint) nor the strip hugging the border (the old inner edge-glow).
+/// Any delta is the drop-shadow/adrift-panes look coming back.
 ///
-/// Blocks share the y-range 120..180 inside the left pane (rect 30,50 320×200):
-/// the edge strip sits 4..12px inside the left border (within the 24px glow
-/// reach), the centre block starts 30px in, where the glow has died off.
+/// Blocks share the y-range 120..180 inside the left pane (rect 30,50
+/// 320×200): the edge strip sits 4..12px inside the left border, the centre
+/// block starts 30px in.
 #[test]
 #[ignore = "needs a GPU adapter; writes PNGs"]
-fn glass_shot_crt_luminous_contract() {
+fn glass_shot_crt_is_flat() {
     let _g = crate::app::theme_test_guard();
     crew_theme::set_theme(crew_theme::ThemeId::CrtGreen);
     let Some(on) = render(crew_theme::GlassLevel::Medium, 1.0) else {
@@ -315,30 +317,20 @@ fn glass_shot_crt_luminous_contract() {
     };
     let off = render(crew_theme::GlassLevel::Off, 1.0).expect("adapter was available above");
 
-    // (1) The phosphor tint lifts the pane interior measurably above the page.
-    let centre_on = mean_lum(&on, 60, 120, 200, 60);
-    let centre_off = mean_lum(&off, 60, 120, 200, 60);
-    let centre_delta = centre_on - centre_off;
-    // (2) The inner edge-glow: the strip hugging the border gains MORE light
-    // than the centre — the pane body is lit by its own frame.
-    let edge_on = mean_lum(&on, 34, 120, 8, 60);
-    let edge_off = mean_lum(&off, 34, 120, 8, 60);
-    let edge_delta = edge_on - edge_off;
-    println!(
-        "crt: centre {centre_off:.1} -> {centre_on:.1} (Δ{centre_delta:.1}); edge Δ{edge_delta:.1}"
+    let centre_delta = mean_lum(&on, 60, 120, 200, 60) - mean_lum(&off, 60, 120, 200, 60);
+    let edge_delta = mean_lum(&on, 34, 120, 8, 60) - mean_lum(&off, 34, 120, 8, 60);
+    println!("crt flat: centre Δ{centre_delta:.1}; edge Δ{edge_delta:.1}");
+    assert!(
+        centre_delta.abs() < 0.5,
+        "CRT interior is no longer flat: glass moved the centre by Δ{centre_delta:.1}"
     );
     assert!(
-        centre_delta > 4.0,
-        "no phosphor tint: interior gained only {centre_delta:.1} over the bare page"
-    );
-    assert!(
-        edge_delta > centre_delta + 3.0,
-        "no inner edge-glow: edge Δ{edge_delta:.1} vs centre Δ{centre_delta:.1}"
+        edge_delta.abs() < 0.5,
+        "CRT edge strip is no longer flat: glass moved it by Δ{edge_delta:.1}"
     );
 
-    // The translucent-window path survives the luminous sheet: outside the
-    // cards the page still carries the window opacity, and the sheet itself
-    // never slams alpha to opaque over the desktop.
+    // The translucent-window path is unaffected by the (now invisible) glass
+    // pass: the page still carries the window opacity.
     let win = render(crew_theme::GlassLevel::Medium, 0.6).expect("adapter was available above");
     let page_a = win[(10 * W as usize + 10) * 4 + 3];
     let card_a = mean_ch(&win, 3, 34, 120, 8, 60);
@@ -349,13 +341,13 @@ fn glass_shot_crt_luminous_contract() {
     );
     assert!(
         card_a < 250.0,
-        "the sheet went opaque over the desktop (edge alpha {card_a:.1})"
+        "something went opaque over the desktop (edge alpha {card_a:.1})"
     );
 
     let out_dir = std::env::var("CREW_SHOT_DIR").unwrap_or_else(|_| "target/screenshots".into());
     std::fs::create_dir_all(&out_dir).unwrap();
     image::save_buffer(
-        format!("{out_dir}/glass-crt-luminous.png"),
+        format!("{out_dir}/glass-crt-flat.png"),
         &on,
         W,
         H,
@@ -434,13 +426,13 @@ fn max_lum(px: &[u8], x0: usize, y0: usize, w: usize, h: usize) -> f64 {
 /// one 370..690, both y 50..250; each card's bottom border row sits around
 /// y ≈ 230..245 at this cell size.
 ///
-/// A design note earned by mutation-checking: the first draft sampled 3px
-/// bands just OUTSIDE each frame's outer edge, and those bands measured
-/// IDENTICAL with focus removed — the light out there is the luminous glass
-/// sheet's spill plus deterministic grain, not the border (the thin `│`
-/// stroke peaks at ~63 lum against a ~47 lum sheet, so its bloom vanishes
-/// into it). The assertions below are the ones that actually flip when focus
-/// is taken away, all in plain luminance except the node-colour fingerprint.
+/// A design note earned by mutation-checking (from the luminous-sheet era,
+/// kept because the lesson generalizes): the first draft sampled 3px bands
+/// just OUTSIDE each frame's outer edge, and those bands measured IDENTICAL
+/// with focus removed — the light out there was ambient spill plus
+/// deterministic grain, not the border. The assertions below are the ones
+/// that actually flip when focus is taken away, all in plain luminance
+/// except the node-colour fingerprint.
 #[test]
 #[ignore = "needs a GPU adapter; writes PNGs"]
 fn crt_shot_grayscale_focus_hierarchy() {
@@ -497,8 +489,8 @@ fn crt_shot_grayscale_focus_hierarchy() {
 
     // (2) The corner nodes exist: the focused pane's BOTTOM-left corner cell
     // samples hotter than its own left-edge midpoint. The bottom corner,
-    // deliberately: the top one also catches the glass sheet's specular
-    // hairline, which peaks bright whether or not any node exists.
+    // deliberately: the top one also carries the legend text, which peaks
+    // bright whether or not any node exists.
     let corner = max_lum(&px, 30, 232, 8, 16);
     let edge_mid = max_lum(&px, 30, 145, 8, 16);
     println!("focused stroke: corner {corner:.1} vs edge midpoint {edge_mid:.1}");

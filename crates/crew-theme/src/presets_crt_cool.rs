@@ -2,7 +2,8 @@
 //! HUD end of the tube family, split from `presets_crt.rs` to keep both
 //! files under the line cap. Where the hot phosphors (green, amber) run
 //! coarse rasters and jumpy flicker, these two run wide, smooth bloom:
-//! projected light rather than a driven gun.
+//! projected light rather than a driven gun. Frame weight and glow follow
+//! the flat-tube decree (2026-08-06) — see `presets_crt.rs`.
 
 use crate::{CrtStyle, Theme};
 
@@ -19,7 +20,7 @@ pub static CRT_VIOLET: Theme = Theme {
     // Unfocused borders sit back (focus-led hierarchy, as in paper-dark).
     border_normal: (88, 50, 110),
     border_focused: (235, 150, 255),
-    border_thickness: 2.5,
+    border_thickness: 3.5,
     legend_off: (170, 115, 200),
     accent_default: (245, 170, 255),
     status_fg: (245, 185, 250),
@@ -53,7 +54,7 @@ pub static CRT_VIOLET: Theme = Theme {
     crt: Some(CrtStyle {
         curvature: 0.0,
         scanline: 0.12,
-        glow: 0.95,
+        glow: 1.05,
         glow_radius: 10.0,
         corner: 0.0,
         flicker: 0.05,
@@ -75,7 +76,7 @@ pub static CRT_BLUE: Theme = Theme {
     // Unfocused borders sit back (focus-led hierarchy, as in paper-dark).
     border_normal: (0, 78, 110),
     border_focused: (0, 225, 255),
-    border_thickness: 2.5,
+    border_thickness: 3.5,
     legend_off: (0, 145, 180),
     accent_default: (90, 255, 255),
     status_fg: (150, 230, 255),
@@ -109,7 +110,7 @@ pub static CRT_BLUE: Theme = Theme {
     crt: Some(CrtStyle {
         curvature: 0.0,
         scanline: 0.10,
-        glow: 1.0,
+        glow: 1.1,
         glow_radius: 12.0,
         corner: 0.0,
         flicker: 0.04,
