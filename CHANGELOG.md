@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.12.8
+
+Paper themes are flat again; glass is now the CRT family's look alone. Since
+0.12.6 reset stale glass pins, light and dark themes were drawing their
+derived frosted sheet — and its drop shadow, painted on the raw pane rect
+while the fieldset frame is cell-quantized, ringed every card (and most
+visibly the input bar) with a phantom offset box that read as "weird shadow /
+misaligned input".
+
+- **Flat dark & light.** The derived glass style for paper themes is now
+  fully transparent — no sheet, no drop shadow, no grain; the renderer builds
+  no cards at all. CRT themes keep the full holographic sheet and edge-glow.
+  Verified on real pixels: paper deltas vs glass-off are 0.0 even at High.
+- **The sheet hugs the drawn frame.** Glass cards now span the cell-quantized
+  frame (`floor(px/cell)` per axis) instead of the raw rect, so CRT's glow
+  can never overhang the border by a stray sub-cell strip either.
+- `/glass` strength now only has a visible effect on CRT themes.
+
 ## 0.12.7
 
 Auto-focus of blocked panes works on real agents now. Claude Code and Codex

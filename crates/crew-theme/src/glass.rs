@@ -5,20 +5,20 @@
 //! declares — `dark`, `crt`, `page_bg` and `ink`. Every theme therefore gets a
 //! coherent sheet for free, and a new preset can never ship with glass missing.
 //!
-//! The three families want genuinely different treatment:
+//! The families split into two looks (decided 2026-08-06 — the paper sheets'
+//! drop shadow read as a rendering bug on a light page, not depth):
 //!
-//! * **dark** — glass catches light, so the sheet is *lighter* than the page
-//!   and leans on a bright top hairline for its edge.
-//! * **light** — a lighter-than-white sheet is invisible, so light themes get
-//!   their depth from a whiter tint plus a real drop shadow.
+//! * **paper (dark & light)** — flat by decree. E-ink casts no shadows and
+//!   holds no glass; the card's depth is its border and nothing else. The
+//!   derived style is fully transparent, so the renderer builds no cards.
 //! * **CRT** — a holographic sheet: the pane is a luminous translucent panel
-//!   of phosphor-tinted light (TRON light-trace, JARVIS HUD), *more* opaque
-//!   than paper-dark's glass and lit from its own frame by an inner edge-glow.
-//!   The old "faintest of the family" doctrine was repealed by the 2026-08-04
-//!   holographic-overhaul goal — restraint made CRT read as a dark theme
-//!   wearing scanlines, not a projection. What survives of that doctrine is
-//!   what it got right: no drop shadow (a light construct casts none) and no
-//!   frost grain (the tube post-process grains the whole frame itself).
+//!   of phosphor-tinted light (TRON light-trace, JARVIS HUD), lit from its
+//!   own frame by an inner edge-glow. The old "faintest of the family"
+//!   doctrine was repealed by the 2026-08-04 holographic-overhaul goal —
+//!   restraint made CRT read as a dark theme wearing scanlines, not a
+//!   projection. What survives of that doctrine is what it got right: no
+//!   drop shadow (a light construct casts none) and no frost grain (the tube
+//!   post-process grains the whole frame itself).
 use crate::Theme;
 
 /// How much glass to apply. `Off` disables the pass outright.
@@ -73,10 +73,12 @@ pub struct GlassStyle {
     pub alpha_top: f32,
     pub alpha_bottom: f32,
     /// Specular hairline just inside the top edge — the single cue that most
-    /// says "glass", and the reason dark themes need no shadow to feel raised.
+    /// says "glass".
     pub highlight: (u8, u8, u8),
     pub highlight_alpha: f32,
-    /// Soft drop shadow beneath the card.
+    /// Soft drop shadow beneath the card. Zero everywhere since 2026-08-06:
+    /// paper themes are flat and a CRT light construct casts none. The
+    /// plumbing stays for the shader's sake.
     pub shadow_alpha: f32,
     /// Frost grain amplitude (0.0 = a clean sheet).
     pub noise: f32,
@@ -139,33 +141,20 @@ pub fn style_for(t: &Theme) -> GlassStyle {
             edge_glow: 0.35,
         };
     }
-    if t.dark {
-        // Glass over a dark page reads as a lifted sheet: lighter than the
-        // page, brightest at the top, with a near-white specular edge.
-        GlassStyle {
-            tint: mix(t.page_bg, (255, 255, 255), 0.42),
-            alpha_top: 0.20,
-            alpha_bottom: 0.09,
-            highlight: (255, 255, 255),
-            highlight_alpha: 0.22,
-            shadow_alpha: 0.30,
-            noise: 0.012,
-            edge_glow: 0.0,
-        }
-    } else {
-        // A light page cannot get lighter, so the depth comes from a whiter,
-        // more opaque sheet AND a real shadow — without the shadow a light
-        // theme's glass is simply invisible.
-        GlassStyle {
-            tint: (255, 255, 255),
-            alpha_top: 0.55,
-            alpha_bottom: 0.30,
-            highlight: (255, 255, 255),
-            highlight_alpha: 0.60,
-            shadow_alpha: 0.16,
-            noise: 0.010,
-            edge_glow: 0.0,
-        }
+    // Paper themes (dark and light alike) are flat: no sheet, no shadow.
+    // The old derived sheets put a drop shadow around every card, and on a
+    // light page that shadow — offset from the cell-drawn frame — read as a
+    // misaligned duplicate border, not depth. All-zero alphas make
+    // `visible()` false, so the renderer skips the cards entirely.
+    GlassStyle {
+        tint: t.page_bg,
+        alpha_top: 0.0,
+        alpha_bottom: 0.0,
+        highlight: t.page_bg,
+        highlight_alpha: 0.0,
+        shadow_alpha: 0.0,
+        noise: 0.0,
+        edge_glow: 0.0,
     }
 }
 

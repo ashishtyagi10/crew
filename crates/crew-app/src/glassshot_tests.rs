@@ -230,7 +230,13 @@ fn mean_lum(px: &[u8], x0: usize, y0: usize, w: usize, h: usize) -> f64 {
     s / n
 }
 
-fn shot(name: &str, id: crew_theme::ThemeId, glass: crew_theme::GlassLevel, opacity: f32) {
+fn shot(
+    name: &str,
+    id: crew_theme::ThemeId,
+    glass: crew_theme::GlassLevel,
+    opacity: f32,
+    expect_sheet: bool,
+) {
     crew_theme::set_theme(id);
     let Some(px) = render(glass, opacity) else {
         eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
@@ -245,7 +251,9 @@ fn shot(name: &str, id: crew_theme::ThemeId, glass: crew_theme::GlassLevel, opac
     // left pane. The old assertion was on-card vs the gap between panes, which
     // a pane's own cell backgrounds satisfy whether or not any glass is drawn —
     // it passed at full strength with the sheet disabled entirely. The only
-    // honest question is whether the glass level moves the pixels.
+    // honest question is whether the glass level moves the pixels — and since
+    // the 2026-08-06 flat-paper decree, whether it moves them at all: on paper
+    // themes any delta is the phantom shadow-box bug coming back.
     let flat = render(crew_theme::GlassLevel::Off, opacity).expect("adapter was available above");
     let on = mean_lum(&px, 60, 120, 200, 60);
     let bare = mean_lum(&flat, 60, 120, 200, 60);
@@ -253,10 +261,17 @@ fn shot(name: &str, id: crew_theme::ThemeId, glass: crew_theme::GlassLevel, opac
         "wrote {path}  on_card={on:.1} glass_off={bare:.1} delta={:.1}",
         on - bare
     );
-    assert!(
-        (on - bare).abs() > 1.5,
-        "{name}: the sheet changes nothing — glass {on:.1} vs off {bare:.1}"
-    );
+    if expect_sheet {
+        assert!(
+            (on - bare).abs() > 1.5,
+            "{name}: the sheet changes nothing — glass {on:.1} vs off {bare:.1}"
+        );
+    } else {
+        assert!(
+            (on - bare).abs() < 0.5,
+            "{name}: paper must render flat — glass {on:.1} vs off {bare:.1}"
+        );
+    }
 }
 
 #[test]
@@ -264,11 +279,11 @@ fn shot(name: &str, id: crew_theme::ThemeId, glass: crew_theme::GlassLevel, opac
 fn glass_shot_every_theme_family() {
     let _g = crate::app::theme_test_guard();
     use crew_theme::{GlassLevel as G, ThemeId as T};
-    shot("light", T::PaperLight, G::Medium, 1.0);
-    shot("dark", T::PaperDark, G::Medium, 1.0);
-    shot("crt", T::CrtGreen, G::Medium, 1.0);
-    shot("light-high", T::PaperLight, G::High, 1.0);
-    shot("dark-high", T::PaperDark, G::High, 1.0);
+    shot("light", T::PaperLight, G::Medium, 1.0, false);
+    shot("dark", T::PaperDark, G::Medium, 1.0, false);
+    shot("crt", T::CrtGreen, G::Medium, 1.0, true);
+    shot("light-high", T::PaperLight, G::High, 1.0, false);
+    shot("dark-high", T::PaperDark, G::High, 1.0, false);
 }
 
 /// Mean of one RGBA channel over a block (3 = alpha).

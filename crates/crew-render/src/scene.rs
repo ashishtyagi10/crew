@@ -65,7 +65,7 @@ pub(crate) fn build_both(
     font_system: &mut glyphon::FontSystem,
     params: &FontParams,
     srgb: bool,
-    glass: crew_theme::GlassLevel,
+    glass: crew_theme::GlassStyle,
     prev_base: PrevPass,
     prev_overlay: PrevPass,
 ) -> (ScenePass, ScenePass) {
@@ -110,7 +110,9 @@ pub(crate) fn build_scene(
     params: &FontParams,
     want_overlay: bool,
     srgb: bool,
-    glass: crew_theme::GlassLevel,
+    // Already scaled by the user's glass level; derived from the active theme
+    // at the frame layer (`CellGrid::set_scene`) so this stays theme-agnostic.
+    glass_style: crew_theme::GlassStyle,
     prev: PrevPass,
 ) -> ScenePass {
     let mut quads: Vec<Quad> = Vec::new();
@@ -118,8 +120,6 @@ pub(crate) fn build_scene(
     let mut sigs: Vec<u64> = Vec::new();
     let mut borders: Vec<Border> = Vec::new();
     let mut cards: Vec<GlassCard> = Vec::new();
-    // Derived from the active theme — per-family treatment in `crew_theme::glass`.
-    let glass_style = crew_theme::glass_style().scaled(glass);
     let (prev_sigs, prev_bufs) = prev;
     let mut prev_bufs: Vec<Option<PaneBuffer>> = prev_bufs.into_iter().map(Some).collect();
 
@@ -164,11 +164,15 @@ pub(crate) fn build_scene(
         // pane is the point — and overlay popups are deliberately opaque so
         // nothing behind them bleeds through (see `PaneScene::overlay`).
         if pane.glass && !pane.overlay && glass_style.visible() {
+            // The sheet spans the *drawn* card, not the raw rect: fieldset
+            // frames are cell-quantized (`floor(px/cell)` per axis), so a
+            // full-rect sheet overhangs the border by up to a cell — a bright
+            // edge outside the frame that reads as a second, misaligned box.
             cards.push(GlassCard {
                 x: pane.x,
                 y: pane.y,
-                w: pane.w,
-                h: pane.h,
+                w: cols as f32 * cell_w,
+                h: rows as f32 * cell_h,
                 radius: BORDER_RADIUS,
                 alpha_top: glass_style.alpha_top,
                 alpha_bottom: glass_style.alpha_bottom,

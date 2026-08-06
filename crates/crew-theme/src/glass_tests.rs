@@ -17,15 +17,19 @@ fn level_round_trips_and_accepts_aliases() {
     assert_eq!(GlassLevel::parse("shiny"), None);
 }
 
-/// The whole point of deriving rather than declaring: no theme, present or
-/// future, can ship without glass.
+/// The 2026-08-06 split: glass is the CRT family's holographic look only.
+/// Paper themes (dark and light alike) are flat — a derived sheet there put a
+/// drop shadow around every card that read as a misaligned duplicate border.
+/// Derivation still means no *CRT* theme, present or future, can ship
+/// without its sheet.
 #[test]
-fn every_theme_gets_visible_glass() {
+fn only_crt_themes_get_visible_glass() {
     for id in ALL_THEMES {
-        let s = style_for(id.theme());
-        assert!(
-            s.scaled(GlassLevel::Medium).visible(),
-            "{} has no visible glass",
+        let s = style_for(id.theme()).scaled(GlassLevel::Medium);
+        assert_eq!(
+            s.visible(),
+            id.theme().crt.is_some(),
+            "{}: glass visibility must match its CRT-ness",
             id.as_str()
         );
     }
@@ -38,25 +42,32 @@ fn off_draws_nothing() {
     }
 }
 
-/// Dark glass is a *lift*: the sheet must be lighter than the page it sits
-/// on, or the card reads as a hole rather than a pane of glass.
+/// Flat means FLAT: not a faint sheet, but zero everything — even at High.
+/// Any non-zero alpha here resurrects the phantom box around paper cards.
 #[test]
-fn dark_glass_lifts_off_the_page() {
-    let s = style_for(&PAPER_DARK);
-    let lum = |c: (u8, u8, u8)| c.0 as u32 + c.1 as u32 + c.2 as u32;
-    assert!(
-        lum(s.tint) > lum(PAPER_DARK.page_bg),
-        "dark tint {:?} is not lighter than page {:?}",
-        s.tint,
-        PAPER_DARK.page_bg
-    );
+fn paper_glass_is_completely_flat() {
+    for t in [&PAPER_DARK, &PAPER_LIGHT] {
+        let s = style_for(t).scaled(GlassLevel::High);
+        assert!(!s.visible(), "paper glass must be invisible");
+        assert_eq!(s.shadow_alpha, 0.0, "paper cards cast no shadow");
+        assert_eq!(s.edge_glow, 0.0);
+        assert_eq!(s.noise, 0.0);
+    }
 }
 
-/// A light page can't get lighter, so light themes must earn their depth
-/// with a shadow. Without this the light glass is invisible.
+/// Nothing casts a drop shadow anymore — paper is flat, a CRT light construct
+/// casts none. The shadow drawn on the raw pane rect while the frame is
+/// cell-quantized is exactly the "weird shadow / misaligned input bar" bug.
 #[test]
-fn light_glass_has_a_shadow() {
-    assert!(style_for(&PAPER_LIGHT).shadow_alpha > 0.0);
+fn no_theme_casts_a_drop_shadow() {
+    for id in ALL_THEMES {
+        assert_eq!(
+            style_for(id.theme()).shadow_alpha,
+            0.0,
+            "{} grew a drop shadow back",
+            id.as_str()
+        );
+    }
 }
 
 /// The holographic contract (goal 2026-08-04), inverted from the old
@@ -115,7 +126,8 @@ fn fill_is_brightest_at_the_top() {
 
 #[test]
 fn level_scales_alpha_monotonically() {
-    let base = style_for(&PAPER_DARK);
+    // CRT: the one family with a visible sheet left to scale.
+    let base = style_for(&CRT_GREEN);
     let low = base.scaled(GlassLevel::Low).alpha_top;
     let med = base.scaled(GlassLevel::Medium).alpha_top;
     let high = base.scaled(GlassLevel::High).alpha_top;
