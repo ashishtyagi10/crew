@@ -38,6 +38,10 @@ pub struct CrewApp {
     /// redraw-scheduling flag `wants_animation_frame` reads.
     pub(crate) glide_prev_ms: u64,
     pub(crate) glide_active: bool,
+    /// Theme-switch veil (see [`crate::themefade`]): the last theme id drawn,
+    /// and the develop-fade running when it changes. `None` until first frame.
+    pub(crate) theme_seen: Option<crew_theme::ThemeId>,
+    pub(crate) theme_veil: crate::ease::Timeline,
     /// Zoom transition: the rect the focused pane occupied when zoom was
     /// toggled, and the timeline it is travelling on. A zoom that cut straight
     /// to full size lost the connection between the tile and the thing that

@@ -59,6 +59,11 @@ impl CrewApp {
             || crate::attention::any_pulsing(&self.panes, now)
             || self.toasts.any_live(now)
             || self.glide_active
+            // 150ms grace past expiry: the veil is drawn at whatever alpha the
+            // LAST frame sampled, so one more frame must land after the
+            // timeline dies to draw (and clear) it at zero — without this a
+            // faint wash could stick until the next unrelated repaint.
+            || self.theme_veil.live(now.saturating_sub(150))
             || self.focus_anim.live(now)
             || self.ignite_anim.live(now)
             || self.zoom_anim.live(now)

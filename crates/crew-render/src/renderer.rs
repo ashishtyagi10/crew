@@ -76,6 +76,17 @@ impl Renderer {
 
     /// Set the frosted-glass strength for pane cards. The per-theme look is
     /// derived from the active theme, so this is only the intensity knob.
+    /// Theme-switch veil: a full-window wash of `color` at `alpha`, drawn over
+    /// the whole scene. Pass `None` (or alpha ≤ 0) to clear. The caller owns
+    /// the fade timeline; this is just the per-frame value.
+    pub fn set_veil(&mut self, veil: Option<((u8, u8, u8), f32)>) {
+        let srgb = self.gpu.format.is_srgb();
+        self.cell_grid.set_veil(
+            veil.filter(|(_, a)| *a > 0.001)
+                .map(|(c, a)| crate::color::target_rgba(c, a, srgb)),
+        );
+    }
+
     pub fn set_glass(&mut self, level: crew_theme::GlassLevel) {
         self.cell_grid.set_glass(level);
     }
