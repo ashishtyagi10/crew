@@ -278,7 +278,12 @@ impl CrewApp {
         // Broadcast asks aggregate silently (no injection here), so they don't
         // force a repaint — advance them off the same captured output.
         self.tick_castings(now_ms);
-        if self.sidebar.refresh(&self.cwd) {
+        let busy_now = self
+            .panes
+            .iter()
+            .filter(|p| crate::paneview::pane_busy(p))
+            .count() as u64;
+        if self.sidebar.refresh(&self.cwd, busy_now) {
             any_changed = true;
         }
         // Mirror the watched repo's branch into every smith pane: the summary

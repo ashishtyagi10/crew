@@ -85,6 +85,7 @@ impl CrewApp {
                 activity: p.activity,
                 minimized: p.hidden || (self.zoomed && i != zoomed_on),
                 attention: p.attention.map(|a| (a.glyph(), a.visible(now))),
+                busy: crate::paneview::pane_busy(p),
             })
             .collect()
     }
