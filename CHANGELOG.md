@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.13.6
+
+Pixel-snap pane rects. The scene runs in physical pixels end-to-end, but the
+grid math handed panes fractional origins — so every glyph could land in any
+of four subpixel bins, quadrupling atlas entries and grow churn, and border
+hairlines straddled the pixel grid. Pane rects (grid tiles, the zoom tile,
+minimized strip thumbnails, zoom-transition frames) now snap edges to whole
+device pixels at the single rect source: one atlas bin per glyph, crisper
+stems, sharper 1px strokes. Neighbors share the same snapped boundary, so no
+seam can open; the glide animation stays fractional in flight and lands on
+the snapped target when it settles.
+
 ## 0.13.5
 
 CRT goes flat. The holographic glass sheet under every tube pane — a ramped

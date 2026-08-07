@@ -210,9 +210,11 @@ fn reset_look_overrides_clears_the_pins_that_gut_a_theme() {
     // THE "CRT THEME IS JUST A DARK THEME" BUG: a persisted `crt = false` +
     // `glass = "off"` from months ago silently disabled the entire CRT
     // post-process and glass sheet on every later theme switch.
-    let mut cfg = CrewConfig::default();
-    cfg.crt = Some(false);
-    cfg.glass = "off".to_string();
+    let mut cfg = CrewConfig {
+        crt: Some(false),
+        glass: "off".to_string(),
+        ..Default::default()
+    };
     assert!(cfg.reset_look_overrides());
     assert_eq!(cfg.crt, None, "the /crt pin returns to follow-the-theme");
     assert_eq!(
@@ -223,8 +225,10 @@ fn reset_look_overrides_clears_the_pins_that_gut_a_theme() {
 
 #[test]
 fn reset_look_overrides_keeps_a_chosen_glass_strength() {
-    let mut cfg = CrewConfig::default();
-    cfg.glass = "high".to_string();
+    let mut cfg = CrewConfig {
+        glass: "high".to_string(),
+        ..Default::default()
+    };
     assert!(!cfg.reset_look_overrides(), "nothing look-killing to clear");
     assert_eq!(cfg.glass, "high", "low/high are taste, not kill switches");
 }

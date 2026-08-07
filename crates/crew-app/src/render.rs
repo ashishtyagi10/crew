@@ -51,7 +51,7 @@ impl CrewApp {
                 // pane is exactly its old self, at t=1 it fills the area.
                 let t = self.zoom_anim.eased(now, crate::ease::out_cubic);
                 let r = match self.zoom_from {
-                    Some(from) if t < 1.0 => lerp_rect(from, r, t),
+                    Some(from) if t < 1.0 => lerp_rect(from, r, t).snapped(),
                     _ => r,
                 };
                 relayout(&mut self.panes[i..=i], &[r], cw, ch);

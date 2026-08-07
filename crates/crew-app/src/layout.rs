@@ -6,6 +6,25 @@ pub struct Rect {
     pub h: f32,
 }
 
+impl Rect {
+    /// Snap edges to whole device pixels. Scene coordinates are physical
+    /// (surface) pixels end-to-end (glyphon areas prepare at `scale: 1.0`),
+    /// so `round()` lands text origins and border strokes on the pixel grid —
+    /// one atlas bin per glyph instead of four subpixel ones. Edges snap
+    /// independently and w/h re-derive, so a boundary shared pre-snap snaps
+    /// the same on both sides: no 1px gap or overlap between neighbors.
+    pub fn snapped(self) -> Rect {
+        let x = self.x.round();
+        let y = self.y.round();
+        Rect {
+            x,
+            y,
+            w: (self.x + self.w).round() - x,
+            h: (self.y + self.h).round() - y,
+        }
+    }
+}
+
 /// Interior cell grid of a fieldset card `w`×`h` px with one border cell per
 /// side: `floor(px/cell) − 2`, min 1 per axis. The single source of the
 /// rect→cells convention, shared by PTY sizing (`relayout_one`), card drawing
@@ -45,16 +64,23 @@ pub fn pane_rects_at(n: usize, ox: f32, oy: f32, w: f32, h: f32, gap: f32) -> Ve
         for r in 0..col_n {
             let top = if r == 0 { gap } else { half };
             let bottom = if r == col_n - 1 { gap } else { half };
-            out.push(Rect {
-                x: ox + c as f32 * tile_w + left,
-                y: oy + r as f32 * tile_h + top,
-                w: tile_w - left - right,
-                h: tile_h - top - bottom,
-            });
+            out.push(
+                Rect {
+                    x: ox + c as f32 * tile_w + left,
+                    y: oy + r as f32 * tile_h + top,
+                    w: tile_w - left - right,
+                    h: tile_h - top - bottom,
+                }
+                .snapped(),
+            );
         }
     }
     out
 }
+
+#[cfg(test)]
+#[path = "layout_snap_tests.rs"]
+mod snap_tests;
 
 #[cfg(test)]
 mod tests {
