@@ -189,7 +189,7 @@ Press **`/keys`** in the input bar for this list in-app.
 | Font bigger / smaller / reset | **Cmd+=** / **Cmd+-** / **Cmd+0** |
 | Copy visible screen / paste | **Cmd+C** / **Cmd+V** |
 | Open URL / file / dir under cursor | **Cmd+Click** |
-| Cycle themes (dark → light → crt) | **Ctrl+Shift+L** |
+| Cycle themes (dark → light → crt → auto) | **Ctrl+Shift+L** |
 | Toggle chat markdown preview ↔ raw source | **Ctrl+Shift+M** |
 | Toggle the chat's compact transcript view | **Ctrl+O** (falls through to the terminal when the focused pane isn't a chat) |
 | Reverse-search the chat composer's send history | **Ctrl+R** (again steps to the next older match) |
@@ -290,15 +290,20 @@ The docked command bar supports:
   The fresh process re-reads `config.toml`, so external config edits ride
   along too.
 - **`/theme [name]`** — switches the theme live and persists it. There are
-  three themes — **`dark`**, **`light`**, and **`crt`** — and each one *rotates*
-  through a pool of palettes every 10 minutes (dark paper palettes, light paper
-  palettes, and CRT phosphor palettes respectively). No argument reports the
-  current selection. Selecting `/theme` in the palette opens an arrow-selectable
-  **picker** of the three themes, so you don't have to type the name.
-  `Ctrl+Shift+L` cycles `dark → light → crt`. The old names — the individual
-  palettes (`paper-dark`, `crt-green`, …) and the pre-consolidation rotation
-  modes (`random-dark`/`random`, `random-light`, `auto`) — still resolve for
-  back-compat but aren't listed. See [Themes](#themes).
+  four themes — **`dark`**, **`light`**, **`crt`**, and **`auto`** — and each
+  one *rotates* through a pool of palettes every 10 minutes (dark paper
+  palettes, light paper palettes, CRT phosphor palettes; `auto` borrows the
+  dark or light paper pool to **follow the OS appearance**, flipping live when
+  the system switches modes). A fresh install with no saved theme follows the
+  OS out of the box; picking `dark`, `light`, or `crt` opts out of following,
+  and picking `auto` opts back in. (If the platform never reports an
+  appearance, `auto` assumes dark.) No argument reports the current selection.
+  Selecting `/theme` in the palette opens an arrow-selectable **picker** of
+  the four themes, so you don't have to type the name. `Ctrl+Shift+L` cycles
+  `dark → light → crt → auto`. The old names — the individual palettes
+  (`paper-dark`, `crt-green`, …) and the pre-consolidation rotation modes
+  (`random-dark`/`random`, `random-light`) — still resolve for back-compat
+  but aren't listed. See [Themes](#themes).
 - **`/crt [on|off|auto]`** — the CRT tube post-process (screen curvature,
   scanlines, phosphor glow, a slight flicker while a pane is busy), independent
   of which theme is active. `auto` follows the theme — on for `crt`, off
@@ -1129,10 +1134,15 @@ post-process too — the tube shapes light, not transparency.
 
 ## Themes
 
-Crew offers **three themes** — **`dark`**, **`light`**, and **`crt`** — and each
-one is a *rotation*: it cycles through a pool of hand-tuned palettes every 10
-minutes. `dark` rotates the dark paper/ink looks, `light` rotates the light
-ones, and `crt` rotates the old-school phosphor tubes. The sixteen palettes
+Crew offers **four themes** — **`dark`**, **`light`**, **`crt`**, and
+**`auto`** — and each one is a *rotation*: it cycles through a pool of
+hand-tuned palettes every 10 minutes. `dark` rotates the dark paper/ink looks,
+`light` rotates the light ones, `crt` rotates the old-school phosphor tubes,
+and `auto` follows the **OS appearance** — the dark paper pool while the
+system is in dark mode, the light one in light mode, flipping live (through
+the develop-fade) the moment the system switches. With no theme saved at all,
+crew defaults to `auto`, so a fresh install matches the system from the first
+frame. The sixteen palettes
 below are those pool members (eleven paper/ink looks designed to read like a
 page rather than a screen, plus five CRT tubes); they're no longer selected on
 their own, but each name still resolves if you type it.

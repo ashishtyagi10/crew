@@ -163,20 +163,13 @@ pub fn run() -> anyhow::Result<()> {
     // it after every subsequent pick).
     crate::modelpick::set_recents(config.model_recents.clone());
     // Apply the theme first; the accent default reads the active theme.
-    // A saved rotation mode (random/random-dark/random-light/auto) resumes
-    // that mode; `theme_id()` would otherwise silently default it to
-    // paper-dark (it only parses fixed theme names).
-    match config
-        .theme
-        .as_deref()
-        .and_then(crew_theme::parse_selection)
-    {
-        Some(sel) => crew_theme::apply_selection(sel, crate::chattime::unix_now_ms()),
-        None => crew_theme::apply_selection(
-            crew_theme::Selection::Fixed(config.theme_id()),
-            crate::chattime::unix_now_ms(),
-        ),
-    }
+    // `theme_selection` is the shared resolution: a saved rotation mode
+    // resumes, a saved palette pins, and NO saved theme follows the OS
+    // (`auto`). The OS appearance isn't known until the window exists, so
+    // a fresh install opens on auto's dark guess and `handler`'s
+    // `window.theme()` seed re-applies moments later — through the same
+    // develop-fade every theme switch gets.
+    crew_theme::apply_selection(config.theme_selection(), crate::chattime::unix_now_ms());
     // Seed the themeable accent from config before the first frame.
     crate::palette::set_accent(config.accent_rgb());
     // Seed font rotation state: resume the saved on/off flag, but stamp

@@ -283,12 +283,7 @@ impl CrewApp {
         // nothing to do with themes, and the rotation's own clock could never
         // run out. (It also made rotation look livelier than it is, masking
         // that the font rotation beside it has no such path.)
-        let want = self
-            .config
-            .theme
-            .as_deref()
-            .and_then(crew_theme::parse_selection)
-            .unwrap_or(crew_theme::Selection::Fixed(self.config.theme_id()));
+        let want = self.config.theme_selection();
         let live = match want {
             crew_theme::Selection::Mode(m) => crew_theme::mode() == Some(m),
             crew_theme::Selection::Fixed(id) => {
@@ -358,11 +353,11 @@ impl CrewApp {
         self.set_status(format!("font size {}", self.config.font_size as i32));
     }
 
-    /// `/theme [dark|light|crt]`: switch the active theme live, persist the
-    /// choice, and repaint. Each name enters a rotation over its palette pool.
-    /// Legacy names (`random-*`, `auto`, and the individual palette names)
-    /// still resolve for back-compat. With no/unknown arg, report the current
-    /// selection.
+    /// `/theme [dark|light|crt|auto]`: switch the active theme live, persist
+    /// the choice, and repaint. Each name enters a rotation over its palette
+    /// pool (`auto`'s pool follows the OS appearance). Legacy names
+    /// (`random-*` and the individual palette names) still resolve for
+    /// back-compat. With no/unknown arg, report the current selection.
     pub(crate) fn set_theme_cmd(&mut self, arg: &str) {
         let arg = arg.trim();
         if arg.is_empty() {

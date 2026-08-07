@@ -15,15 +15,31 @@ impl CrewConfig {
             .unwrap_or(crew_theme::ThemeId::PaperDark)
     }
 
+    /// The configured theme selection — the ONE resolution both startup
+    /// (`handler.rs`) and config adoption (`apply_config`) go through, so
+    /// they can never disagree. A saved value that parses keeps exactly its
+    /// meaning (an explicit pick is an intent — never hijacked). **No saved
+    /// value resolves to the OS-following `auto` mode**: a fresh install
+    /// comes up light on a light system, dark on a dark one. A saved value
+    /// that does NOT parse falls back to the fixed default palette, as it
+    /// always has — a broken string is not an intent to follow the OS.
+    pub fn theme_selection(&self) -> crew_theme::Selection {
+        match self.theme.as_deref() {
+            None => crew_theme::Selection::Mode(crew_theme::RandomMode::Auto),
+            Some(s) => crew_theme::parse_selection(s)
+                .unwrap_or(crew_theme::Selection::Fixed(self.theme_id())),
+        }
+    }
+
     /// A display label for the configured selection: the rotation mode name
     /// (`dark`/`light`/`crt`/`auto`) if it is one, the pinned palette name if
-    /// a specific palette is saved, or `dark` when unset. Used by the settings
-    /// picker, which now offers only the consolidated modes.
+    /// a specific palette is saved, or `auto` when unset (the fresh-install
+    /// default follows the OS). Used by the settings picker, which offers
+    /// only the consolidated modes.
     pub fn theme_label(&self) -> String {
-        match self.theme.as_deref().and_then(crew_theme::parse_selection) {
-            Some(crew_theme::Selection::Mode(m)) => m.as_str().to_string(),
-            Some(crew_theme::Selection::Fixed(id)) => id.as_str().to_string(),
-            None => crew_theme::RandomMode::Dark.as_str().to_string(),
+        match self.theme_selection() {
+            crew_theme::Selection::Mode(m) => m.as_str().to_string(),
+            crew_theme::Selection::Fixed(id) => id.as_str().to_string(),
         }
     }
 
