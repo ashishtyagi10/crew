@@ -160,6 +160,7 @@ mod sessionrestore;
 mod sessionsave;
 mod settingspane;
 mod shellprobe;
+mod smoothlvl;
 mod spark;
 mod spawn;
 mod spotlight;

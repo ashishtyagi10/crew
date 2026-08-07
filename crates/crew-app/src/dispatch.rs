@@ -254,16 +254,10 @@ impl CrewApp {
     /// Handle `/smooth [off|light|medium|heavy|<0-255>]`: set the CoreText-style
     /// font smoothing strength (stem darkening — how full the glyphs read).
     /// Bare `/smooth` reports the current value. Persisted and applied live.
+    /// The keyword ladder is `smoothlvl` — shared with the Settings form's
+    /// Smoothing picker, so the two surfaces can never disagree.
     pub(crate) fn smooth_command(&mut self, arg: &str) {
-        let named = |a: &str| -> Option<u8> {
-            Some(match a {
-                "off" => 0,
-                "light" => 60,
-                "medium" => crew_render::DEFAULT_SMOOTH,
-                "heavy" => 170,
-                _ => return None,
-            })
-        };
+        let named = crate::smoothlvl::strength_of;
         let strength = match arg {
             "" => {
                 self.set_status(format!(
@@ -442,6 +436,30 @@ mod tests {
         assert_eq!(app.config.font_smooth, 42);
         app.smooth_command("9000"); // clamps
         assert_eq!(app.config.font_smooth, 255);
+    }
+
+    /// A Settings-form save routes its config through `apply_settings`; the
+    /// smoothing it carries must land on `app.config` — the key `/smooth`
+    /// then reads — or the form's picker would look editable while changing
+    /// nothing. Fails if the apply path (or `clamped()`) drops `font_smooth`.
+    #[test]
+    fn settings_apply_adopts_the_forms_smoothing() {
+        let _g = crate::app::theme_test_guard();
+        let mut app = CrewApp::default();
+        let mut pane = crate::settingspane::SettingsPane::new(app.config.clone(), Vec::new());
+        pane.focus = crate::settingspane::FIELDS
+            .iter()
+            .position(|&f| f == crate::settingspane::Field::Smooth)
+            .unwrap();
+        crate::settingspane::cycle_value(&mut pane, false); // medium → heavy
+        let crate::settingspane::SettingsAction::Apply(cfg) = pane.save() else {
+            panic!("save must apply");
+        };
+        app.apply_settings(*cfg);
+        assert_eq!(app.config.font_smooth, 170);
+        app.smooth_command("");
+        let s = app.active_status().unwrap();
+        assert!(s.contains("170"), "/smooth reports the form's value: {s}");
     }
 
     #[test]

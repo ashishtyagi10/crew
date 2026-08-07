@@ -7,6 +7,7 @@ use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Widget};
 
+use super::cards::{appearance, notifications, window};
 use super::Field;
 use crate::palette::accent_color;
 
@@ -85,73 +86,6 @@ pub(crate) fn layout(cols: u16) -> FormLayout {
             height: y - 1,
         }
     }
-}
-
-/// Appearance card fields; returns the card height (content + border).
-fn appearance(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16) -> u16 {
-    let (ix, iw) = inner(x, w);
-    let mut cy = y + 1;
-    rects.push((Field::FontFamily, Rect::new(ix, cy, iw, 3)));
-    cy += 3;
-    let half = iw.saturating_sub(2) / 2;
-    rects.push((Field::FontSize, Rect::new(ix, cy, half, 3)));
-    rects.push((Field::PaperGrain, Rect::new(ix + half + 2, cy, half, 3)));
-    cy += 3;
-    rects.push((Field::Theme, Rect::new(ix, cy, iw, 3)));
-    cy += 3;
-    rects.push((Field::Accent, Rect::new(ix, cy, iw, 3)));
-    cy += 3;
-    let gh = iw.saturating_sub(2) / 2;
-    rects.push((Field::Glass, Rect::new(ix, cy, gh, 3)));
-    rects.push((Field::Motion, Rect::new(ix + gh + 2, cy, gh, 3)));
-    cy += 3;
-    rects.push((Field::PaperTexture, Rect::new(ix, cy, iw, 1)));
-    cy += 1;
-    cy + 1 - y
-}
-
-/// Window card fields; returns the card height.
-fn window(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16) -> u16 {
-    let (ix, iw) = inner(x, w);
-    let mut cy = y + 1;
-    let half = iw.saturating_sub(2) / 2;
-    rects.push((Field::NavWidth, Rect::new(ix, cy, half, 3)));
-    rects.push((Field::WindowOpacity, Rect::new(ix + half + 2, cy, half, 3)));
-    cy += 3;
-    for f in [Field::ShowNav, Field::Maximized] {
-        rects.push((f, Rect::new(ix, cy, iw, 1)));
-        cy += 1;
-    }
-    cy + 1 - y
-}
-
-/// Notifications card fields; returns the card height.
-fn notifications(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16) -> u16 {
-    let (ix, iw) = inner(x, w);
-    let mut cy = y + 1;
-    for f in [
-        Field::Notify,
-        Field::NotifyAgentDone,
-        Field::NotifyBell,
-        Field::NotifyExit,
-    ] {
-        rects.push((f, Rect::new(ix, cy, iw, 1)));
-        cy += 1;
-    }
-    let half = iw.saturating_sub(2) / 2;
-    rects.push((Field::NotifyMinSecs, Rect::new(ix, cy, half, 3)));
-    cy += 3;
-    rects.push((
-        Field::NotifyPatterns,
-        Rect::new(ix, cy, iw, 2 + TEXTAREA_ROWS),
-    ));
-    cy += 2 + TEXTAREA_ROWS;
-    cy + 1 - y
-}
-
-/// Content inset inside a card border: x + 2, width − 4.
-fn inner(x: u16, w: u16) -> (u16, u16) {
-    (x + 2, w.saturating_sub(4))
 }
 
 /// Scroll offset keeping `rect` fully inside a `viewport`-row window over
