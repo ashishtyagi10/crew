@@ -4,6 +4,7 @@
 //! render thread can read it every frame without blocking. No dependencies and
 //! no knowledge of the other crates — they import this one.
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
+use std::sync::Mutex;
 
 mod fonts;
 pub use fonts::{font_prefs, FONT_ALLOWLIST};
@@ -381,15 +382,20 @@ impl RandomMode {
 
     /// Whether `id` belongs to this mode's rotation pool. Every palette lands
     /// in exactly one of Dark/Light/Crt (CRT palettes are `dark` too, so the
-    /// `!crt` guard keeps them out of the plain dark pool); `Auto` borrows the
-    /// dark or light pool depending on the OS appearance.
+    /// `!crt` guard keeps them out of the plain dark pool); `Auto` serves its
+    /// per-appearance pairing ([`auto_side`]) — by default the dark or light
+    /// paper pool depending on the OS appearance, a pinned side being a
+    /// one-palette pool.
     fn in_pool(self, id: ThemeId) -> bool {
         let t = id.theme();
         match self {
             RandomMode::Dark => t.dark && t.crt.is_none(),
             RandomMode::Light => !t.dark && t.crt.is_none(),
             RandomMode::Crt => t.crt.is_some(),
-            RandomMode::Auto => t.crt.is_none() && t.dark == os_dark(),
+            RandomMode::Auto => match auto_side() {
+                Selection::Mode(m) => m.in_pool(id),
+                Selection::Fixed(f) => id == f,
+            },
         }
     }
 }
@@ -445,6 +451,32 @@ pub fn set_os_dark(dark: bool) {
 /// The last reported OS appearance (defaults to dark).
 pub fn os_dark() -> bool {
     OS_DARK.load(Ordering::Relaxed)
+}
+
+/// What `auto` serves per OS appearance: `.0` while dark, `.1` while light.
+/// `None` = the built-in pairing (the dark/light paper pool). Read on theme
+/// application and rotation ticks, not per frame, so a mutex is fine.
+static AUTO_POOLS: Mutex<(Option<Selection>, Option<Selection>)> = Mutex::new((None, None));
+
+/// Configure `auto`'s per-appearance pairing (config `theme_dark` /
+/// `theme_light`): each side is a rotation pool (`dark`|`light`|`crt`) or a
+/// pinned palette — e.g. phosphor tubes at night, light paper by day. A side
+/// of `auto` itself would recurse and is dropped to the default; `None`
+/// keeps the built-in paper pool for that appearance.
+pub fn set_auto_pools(dark: Option<Selection>, light: Option<Selection>) {
+    let clean = |s: Option<Selection>| s.filter(|s| *s != Selection::Mode(RandomMode::Auto));
+    *AUTO_POOLS.lock().unwrap() = (clean(dark), clean(light));
+}
+
+/// The selection `auto` resolves to under the current OS appearance. Never
+/// `Mode(Auto)` (see [`set_auto_pools`]), so pool membership can't recurse.
+pub fn auto_side() -> Selection {
+    let (dark, light) = *AUTO_POOLS.lock().unwrap();
+    if os_dark() {
+        dark.unwrap_or(Selection::Mode(RandomMode::Dark))
+    } else {
+        light.unwrap_or(Selection::Mode(RandomMode::Light))
+    }
 }
 
 /// Pick a theme from `mode`'s pool that is NOT `current`, deterministically

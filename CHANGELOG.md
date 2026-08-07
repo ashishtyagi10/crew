@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.14.3
+
+Pair `auto` your way. Two new `config.toml` keys — `theme_dark` and
+`theme_light` — re-wire what the OS-following `auto` theme serves per
+appearance: each side names a rotation pool (`dark` | `light` | `crt`) or
+a pinned palette, so night can be green phosphor while day stays light
+paper (`theme_dark = "crt"`), or dark mode can live on one exact palette
+(`theme_dark = "moss-blotter"`). Unset keys keep the built-in paper
+pairing; `auto` can't serve as its own side. A Settings apply that
+changes the pairing re-themes immediately — no waiting for the next OS
+flip or rotation tick.
+
 ## 0.14.2
 
 Crew follows the system now. `auto` — light by day, dark by night, riding

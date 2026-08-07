@@ -116,6 +116,8 @@ fn round_trip() {
         notify_min_secs: 30,
         notify_patterns: vec!["error".to_string(), "done".to_string()],
         theme: Some("paper-light".to_string()),
+        theme_dark: Some("crt".to_string()),
+        theme_light: Some("salmon-broadsheet".to_string()),
         paper_texture: false,
         paper_grain: 0.5,
         crt: Some(true),
@@ -195,6 +197,26 @@ fn theme_selection_defaults_fresh_installs_to_os_following_auto() {
     // not auto — a broken string is not an intent to follow the OS.
     let bad = CrewConfig::from_toml_str("theme = \"chartreuse\"\n");
     assert_eq!(bad.theme_selection(), Selection::Fixed(ThemeId::PaperDark));
+}
+
+#[test]
+fn auto_pool_pairing_round_trips_and_survives_clamped() {
+    use crew_theme::{RandomMode, Selection, ThemeId};
+    // clamped() must carry both fields (the last_seen_version lesson: a
+    // literal in the rebuild silently resets the field on every load).
+    let cfg = CrewConfig::from_toml_str("theme_dark = \"crt\"\ntheme_light = \"paper-light\"\n")
+        .clamped();
+    assert_eq!(cfg.theme_dark.as_deref(), Some("crt"));
+    assert_eq!(cfg.theme_light.as_deref(), Some("paper-light"));
+    let (d, l) = cfg.auto_pool_selections();
+    assert_eq!(d, Some(Selection::Mode(RandomMode::Crt)));
+    assert_eq!(l, Some(Selection::Fixed(ThemeId::PaperLight)));
+    // `auto` can't serve as its own side, and garbage falls back to the
+    // built-in pool for that appearance.
+    let bad = CrewConfig::from_toml_str("theme_dark = \"auto\"\ntheme_light = \"nope\"\n");
+    assert_eq!(bad.auto_pool_selections(), (None, None));
+    // Unset stays unset — the built-in dark/light paper pairing.
+    assert_eq!(CrewConfig::default().auto_pool_selections(), (None, None));
 }
 
 #[test]

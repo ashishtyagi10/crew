@@ -270,6 +270,7 @@ impl CrewApp {
     /// by `apply_settings`, which then persists.
     pub(crate) fn apply_config(&mut self, cfg: CrewConfig) {
         let old_family = self.config.font_family.clone();
+        let old_pools = self.config.auto_pool_selections();
         self.config = cfg;
         // Apply theme selection: if the saved theme is a rotation mode name,
         // resume rotation in its pool (dark, light, or OS-following); if it's a
@@ -283,9 +284,20 @@ impl CrewApp {
         // nothing to do with themes, and the rotation's own clock could never
         // run out. (It also made rotation look livelier than it is, masking
         // that the font rotation beside it has no such path.)
+        // Auto's per-appearance pairing rides config too: republish it, and
+        // if it changed while auto is the live mode, force a re-apply below —
+        // "live" would otherwise be true (still Mode(Auto)) and a config edit
+        // pairing night with the CRT pool wouldn't show until the next OS
+        // flip or rotation tick.
+        let (pool_dark, pool_light) = self.config.auto_pool_selections();
+        let pools_changed = (pool_dark, pool_light) != old_pools;
+        crew_theme::set_auto_pools(pool_dark, pool_light);
         let want = self.config.theme_selection();
         let live = match want {
-            crew_theme::Selection::Mode(m) => crew_theme::mode() == Some(m),
+            crew_theme::Selection::Mode(m) => {
+                crew_theme::mode() == Some(m)
+                    && !(m == crew_theme::RandomMode::Auto && pools_changed)
+            }
             crew_theme::Selection::Fixed(id) => {
                 crew_theme::mode().is_none() && crew_theme::current_id() == id
             }

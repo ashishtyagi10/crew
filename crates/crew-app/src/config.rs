@@ -146,6 +146,16 @@ pub struct CrewConfig {
     /// `paper-dark`. Applied app-wide via [`crew_theme`].
     #[serde(default)]
     pub theme: Option<String>,
+    /// While `theme = "auto"`: what serves when the OS is in dark mode — a
+    /// rotation pool (`dark` | `light` | `crt`) or a pinned palette name
+    /// (e.g. `crt-green`). Unset → the dark paper pool. `auto` itself is
+    /// rejected (it can't serve as its own side).
+    #[serde(default)]
+    pub theme_dark: Option<String>,
+    /// While `theme = "auto"`: what serves when the OS is in light mode.
+    /// Same values as `theme_dark`; unset → the light paper pool.
+    #[serde(default)]
+    pub theme_light: Option<String>,
     /// Whether to render the subtle paper grain + vignette background texture.
     /// When off, the window background is a plain flat colour.
     #[serde(default = "default_true")]
@@ -215,6 +225,8 @@ impl Default for CrewConfig {
             notify_min_secs: default_notify_min_secs(),
             notify_patterns: Vec::new(),
             theme: None,
+            theme_dark: None,
+            theme_light: None,
             paper_texture: true,
             paper_grain: default_paper_grain(),
             crt: None,

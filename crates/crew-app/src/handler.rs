@@ -168,7 +168,10 @@ pub fn run() -> anyhow::Result<()> {
     // (`auto`). The OS appearance isn't known until the window exists, so
     // a fresh install opens on auto's dark guess and `handler`'s
     // `window.theme()` seed re-applies moments later — through the same
-    // develop-fade every theme switch gets.
+    // develop-fade every theme switch gets. The per-appearance pairing must
+    // land BEFORE the apply, or auto's first pick comes from the wrong pool.
+    let (pool_dark, pool_light) = config.auto_pool_selections();
+    crew_theme::set_auto_pools(pool_dark, pool_light);
     crew_theme::apply_selection(config.theme_selection(), crate::chattime::unix_now_ms());
     // Seed the themeable accent from config before the first frame.
     crate::palette::set_accent(config.accent_rgb());

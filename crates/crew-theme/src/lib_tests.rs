@@ -218,6 +218,42 @@ fn auto_is_advertised_and_follows_the_os_appearance() {
 }
 
 #[test]
+fn auto_pools_pair_each_appearance_with_its_configured_side() {
+    let _g = guard();
+    // Dark side paired to the CRT pool: night is phosphor now.
+    set_auto_pools(Some(Selection::Mode(RandomMode::Crt)), None);
+    set_os_dark(true);
+    apply_selection(Selection::Mode(RandomMode::Auto), 7);
+    assert!(
+        current_id().theme().crt.is_some(),
+        "dark side must serve the CRT pool, got {:?}",
+        current_id()
+    );
+    // The unpaired light side keeps its built-in light paper pool.
+    set_os_dark(false);
+    apply_selection(Selection::Mode(RandomMode::Auto), 8);
+    assert!(!current_id().is_dark() && current_id().theme().crt.is_none());
+    // A pinned side is a one-palette pool: always exactly that palette.
+    set_auto_pools(Some(Selection::Fixed(ThemeId::MossBlotter)), None);
+    set_os_dark(true);
+    apply_selection(Selection::Mode(RandomMode::Auto), 9);
+    assert_eq!(current_id(), ThemeId::MossBlotter);
+    // ...and a rotation tick can't drift off a pinned side.
+    assert_eq!(
+        random_pick(current_id(), 12345, RandomMode::Auto),
+        ThemeId::MossBlotter
+    );
+    // `auto` as its own side is dropped: default pool, no recursion.
+    set_auto_pools(Some(Selection::Mode(RandomMode::Auto)), None);
+    apply_selection(Selection::Mode(RandomMode::Auto), 10);
+    assert!(current_id().is_dark() && current_id().theme().crt.is_none());
+    // Reset shared state for the other tests.
+    set_auto_pools(None, None);
+    set_os_dark(true);
+    apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
+}
+
+#[test]
 fn u8_mapping_round_trips_all_ids() {
     // Persistence mapping: every id survives as_u8 → from_u8 (via the
     // set_theme/current_id atomics); the new ids extend the mapping

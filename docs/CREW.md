@@ -297,7 +297,11 @@ The docked command bar supports:
   the system switches modes). A fresh install with no saved theme follows the
   OS out of the box; picking `dark`, `light`, or `crt` opts out of following,
   and picking `auto` opts back in. (If the platform never reports an
-  appearance, `auto` assumes dark.) No argument reports the current selection.
+  appearance, `auto` assumes dark.) Two `config.toml` keys re-pair what `auto`
+  serves per appearance: `theme_dark` and `theme_light` each name a pool
+  (`dark` | `light` | `crt`) or a pinned palette — `theme_dark = "crt"` makes
+  night phosphor while day stays light paper. No argument reports the current
+  selection.
   Selecting `/theme` in the palette opens an arrow-selectable **picker** of
   the four themes, so you don't have to type the name. `Ctrl+Shift+L` cycles
   `dark → light → crt → auto`. The old names — the individual palettes
@@ -1142,7 +1146,9 @@ and `auto` follows the **OS appearance** — the dark paper pool while the
 system is in dark mode, the light one in light mode, flipping live (through
 the develop-fade) the moment the system switches. With no theme saved at all,
 crew defaults to `auto`, so a fresh install matches the system from the first
-frame. The sixteen palettes
+frame. `auto`'s pairing is yours to re-wire: `theme_dark` / `theme_light` in
+`config.toml` swap in a different pool (`crt` at night is the classic) or pin
+a single palette per appearance. The sixteen palettes
 below are those pool members (eleven paper/ink looks designed to read like a
 page rather than a screen, plus five CRT tubes); they're no longer selected on
 their own, but each name still resolves if you type it.
