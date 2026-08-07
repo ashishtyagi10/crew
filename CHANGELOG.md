@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.14.4
+
+Theme flips reach the programs inside the panes now. Terminals that enable
+DECSET 2031 (neovim's TUI and other scheme-aware programs) get a
+`CSI ? 997 ; Ps n` report the moment crew's light/dark scheme changes —
+an OS appearance flip under `auto`, `/theme`, `Ctrl+Shift+L`, a Settings
+apply — so they re-query OSC 10/11 and repaint for the new palette
+mid-session instead of riding the contrast floor until restart. Crew also
+answers the `CSI ? 996 n` "what scheme is it?" query and DECRQM support
+probes for mode 2031, all from the same active-theme source of truth the
+OSC 10/11 answers use. Programs that never opt in see nothing new.
+
 ## 0.14.3
 
 Pair `auto` your way. Two new `config.toml` keys — `theme_dark` and

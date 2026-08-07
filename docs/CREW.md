@@ -1224,14 +1224,18 @@ is visible right away.
 
 **Back-compat.** The old names still resolve when typed or loaded from an
 existing config: any individual palette name (`/theme crt-green`) pins that one
-palette (no rotation), and the pre-consolidation modes `random-dark`/`random`,
-`random-light`, and `auto` (follows the OS appearance — light pool by day, dark
-pool by night) still work. None of these appear in the picker.
+palette (no rotation), and the pre-consolidation modes `random-dark`/`random`
+and `random-light` still work. None of these appear in the picker.
 
 **Programs keep reading after a switch.** Terminal panes answer color queries
 (OSC 10/11) and set `$COLORFGBG` from the active theme, so CLIs that probe the
-background pick the right palette at launch. But agent CLIs sample **once at
-startup** — after a live theme switch they keep painting colors tuned to the
+background pick the right palette at launch. Scheme-aware TUIs can do better:
+crew supports **DECSET 2031** (the contour convention) — a program that
+enables it gets a `CSI ? 997 ; Ps n` report the moment crew's light/dark
+scheme changes (OS flip under `auto`, `/theme`, the hotkey cycle), and
+`CSI ? 996 n` answers the current scheme on demand, so neovim-class programs
+re-query OSC 10/11 and repaint mid-session. Everything else samples **once at
+startup** — after a live theme switch it keeps painting colors tuned to the
 old background. Crew therefore enforces a **minimum-contrast floor** on
 program-painted text (à la iTerm2's Minimum Contrast): any foreground within a
 3.0 WCAG ratio of its background is darkened (light page) or lightened (dark
@@ -1242,7 +1246,9 @@ after switching a running claude/codex pane to `paper-light` stays legible.
 
 | Key | Default | Meaning |
 |-----|---------|---------|
-| `theme` | `"paper-dark"` | one of the sixteen theme names (see above), or a rotation mode (`random`/`random-dark`, `random-light`, `auto`); unknown ⇒ default |
+| `theme` | unset = `auto` | a theme (`dark`, `light`, `crt`, `auto`), one of the sixteen palette names (pins it), or a legacy `random-*` mode; unset follows the OS appearance |
+| `theme_dark` | unset | while `theme = "auto"`: what dark mode serves — a pool (`dark`\|`light`\|`crt`) or a palette name; unset = the dark paper pool |
+| `theme_light` | unset | while `theme = "auto"`: same for light mode; unset = the light paper pool |
 | `accent` | theme default | `"#rrggbb"` override for the accent (chrome only); omit to use the theme's accent |
 | `paper_texture` | `true` | turn the paper grain + vignette pass on/off |
 | `paper_grain` | `1.3` | grain strength (`0.0`–`2.0`; `0` = no grain) |

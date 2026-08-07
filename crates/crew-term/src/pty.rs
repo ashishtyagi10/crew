@@ -60,6 +60,12 @@ impl PtyTerm {
         Box::new(SharedWriter(std::sync::Arc::clone(&self.input)))
     }
 
+    /// Whether the program enabled DECSET 2031 — it wants a
+    /// [`crate::scheme_report`] pushed when the light/dark scheme changes.
+    pub fn scheme_notify_enabled(&self) -> bool {
+        self.core.scheme_notify_enabled()
+    }
+
     /// Drains pending bytes from the reader thread into the terminal model,
     /// returning the number of bytes consumed this tick. At most `READ_BUDGET`
     /// bytes are drained per call so one flooding pane can't stall the event

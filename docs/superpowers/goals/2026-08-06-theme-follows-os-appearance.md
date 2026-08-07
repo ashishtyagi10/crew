@@ -56,15 +56,13 @@ verification of the OS flip is still worth a pass with the GUI harness.
 
 ## Stretch (ranked, separate iterations)
 
-1. **Per-appearance pairing**: `theme = "auto"` today hard-codes paper↔paper. Let the user pair
-   pools — e.g. `theme_light = "light"`, `theme_dark = "crt"` — so night mode can be phosphor.
-   Config keys must survive `CrewConfig::clamped()` (the `last_seen_version` lesson: a literal in
-   the rebuild silently kills the field forever — regression-test the round trip).
-2. **Tell live CLIs about the flip**: emit the DECSET 2031 color-scheme-change notification to
-   panes that opted in (`CSI ? 997 ; 1 n` style reports per the contour spec), so neovim/helix
-   and friends re-query OSC 10/11 mid-session instead of riding the contrast floor. Verify
-   against real consumers before shipping; the contrast floor remains the fallback for everyone
-   else.
+1. **Per-appearance pairing** — SHIPPED in 0.14.3: `theme_dark` / `theme_light` config keys pair
+   each appearance with a pool (`dark`|`light`|`crt`) or a pinned palette
+   (`crew_theme::set_auto_pools` / `auto_side`; clamped() carry-through regression-tested).
+2. **Tell live CLIs about the flip** — SHIPPED in 0.14.4: crew-term sniffs DECSET 2031 per pane
+   (`schemenotify.rs`), answers `CSI ? 996 n` and DECRQM, and the app pushes `CSI ? 997 ; Ps n`
+   on every darkness flip (`schemepush.rs`). The contrast floor remains the fallback for programs
+   that never opt in. Still worth a live check against a real neovim ≥ 0.11 session.
 
 ## Verification
 

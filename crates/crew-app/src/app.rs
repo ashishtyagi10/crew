@@ -42,6 +42,9 @@ pub struct CrewApp {
     /// and the develop-fade running when it changes. `None` until first frame.
     pub(crate) theme_seen: Option<crew_theme::ThemeId>,
     pub(crate) theme_veil: crate::ease::Timeline,
+    /// The light/dark scheme last pushed to DECSET-2031 terminals (see
+    /// [`crate::schemepush`]). `None` until the first poll tick latches it.
+    pub(crate) scheme_pushed: Option<bool>,
     /// Zoom transition: the rect the focused pane occupied when zoom was
     /// toggled, and the timeline it is travelling on. A zoom that cut straight
     /// to full size lost the connection between the tile and the thing that

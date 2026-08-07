@@ -63,6 +63,9 @@ pub(crate) struct TermCore {
     /// Sniffs OSC 7 working-directory reports — which the ANSI parser ignores —
     /// so a `cd` inside the pane can retitle it.
     osc7: crate::osc7::Osc7Scanner,
+    /// Sniffs DECSET 2031 (color-scheme notifications) — also invisible to
+    /// the ANSI parser — so theme flips can be pushed to opted-in TUIs.
+    scheme: crate::schemenotify::SchemeNotify,
     /// Where the drag began, and its kind. Kept because a selection's sides
     /// depend on the drag's DIRECTION, which only the anchor can tell us, and
     /// `Selection` doesn't hand its anchor back. See `sel_update`.
@@ -82,6 +85,7 @@ impl TermCore {
             parser: Processor::new(),
             events,
             osc7: crate::osc7::Osc7Scanner::default(),
+            scheme: crate::schemenotify::SchemeNotify::default(),
             sel_anchor: None,
         }
     }
@@ -104,7 +108,18 @@ impl TermCore {
 
     pub(crate) fn feed(&mut self, bytes: &[u8]) {
         self.osc7.feed(bytes);
+        // Scheme queries answer from the ACTIVE theme, like every OSC 10/11
+        // reply — one source of truth for what we'd paint.
+        let replies = self.scheme.feed(bytes, crew_theme::theme().dark);
+        if !replies.is_empty() {
+            self.events.replies.lock().unwrap().push_str(&replies);
+        }
         self.parser.advance(&mut self.term, bytes);
+    }
+
+    /// Whether the program enabled DECSET 2031 (wants scheme-change reports).
+    pub(crate) fn scheme_notify_enabled(&self) -> bool {
+        self.scheme.enabled()
     }
 
     pub(crate) fn resize(&mut self, size: GridSize) {
