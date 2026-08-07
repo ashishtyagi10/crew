@@ -71,7 +71,8 @@ fn strip_row(ids: &[usize], x: f32, y: f32, w: f32, h: f32, gap: f32) -> Vec<(us
                     y: y + gap,
                     w: (tile_w - left - right).max(0.0),
                     h: h - 2.0 * gap,
-                },
+                }
+                .snapped(),
             )
         })
         .collect()
