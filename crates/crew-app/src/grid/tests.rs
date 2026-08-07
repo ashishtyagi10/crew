@@ -252,3 +252,25 @@ fn strip_row_clamps_negative_width() {
         assert!(r.w >= 0.0);
     }
 }
+
+#[test]
+fn strip_hidden_names_exactly_the_panes_behind_the_overflow_tile() {
+    // Same crowded setup as above: minimized LRU tail is 13..0, the strip
+    // shows 9..13, so 0..=8 stand behind the `+N` tile — and every one of
+    // them must be reported (the sidebar marks their rows restorable).
+    let mut g = GridLayout::new();
+    for idx in 0..20 {
+        g.add(idx);
+    }
+    let out = compose_grid(content(), &g, 8.0, 16.0, 8.0);
+    let mut hidden = out.strip_hidden(g.minimized());
+    hidden.sort_unstable();
+    assert_eq!(hidden, (0..=8).collect::<Vec<_>>());
+    // No overflow → nothing hidden, even with panes minimized.
+    let mut small = GridLayout::new();
+    for idx in 0..8 {
+        small.add(idx);
+    }
+    let out = compose_grid(content(), &small, 8.0, 16.0, 8.0);
+    assert_eq!(out.strip_hidden(small.minimized()), Vec::<usize>::new());
+}
