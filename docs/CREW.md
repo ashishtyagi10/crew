@@ -23,7 +23,7 @@ successor to this repo's original terminal file-manager project; the crates unde
   GPU cells (the settings form, command palette, and help overlay use this).
 - **Crates** — `crew-app` (window, panes, input), `crew-render` (GPU), `crew-term`
   (PTY + grid), `crew-plugin` (chat/agent plugins + the `/smith` relay broker),
-  `crew-theme` (the thirteen theme presets + palette contracts — see
+  `crew-theme` (the sixteen theme presets + palette contracts — see
   [Themes](#themes)), `crew-hive` (the swarm orchestration engine — see
   [Swarm orchestration](#swarm-orchestration-crew-hive) below).
 - **Diagram** — see [ARCHITECTURE.md](ARCHITECTURE.md) for the full app + engine
@@ -1127,10 +1127,10 @@ post-process too — the tube shapes light, not transparency.
 Crew offers **three themes** — **`dark`**, **`light`**, and **`crt`** — and each
 one is a *rotation*: it cycles through a pool of hand-tuned palettes every 10
 minutes. `dark` rotates the dark paper/ink looks, `light` rotates the light
-ones, and `crt` rotates the old-school phosphor tubes. The thirteen palettes
-below are those pool members (nine paper/ink looks designed to read like a page
-rather than a screen, plus four CRT tubes); they're no longer selected on their
-own, but each name still resolves if you type it.
+ones, and `crt` rotates the old-school phosphor tubes. The sixteen palettes
+below are those pool members (eleven paper/ink looks designed to read like a
+page rather than a screen, plus five CRT tubes); they're no longer selected on
+their own, but each name still resolves if you type it.
 
 - **`paper-dark`** (default dark-pool member) — a high-contrast "newspaper" look: a near-black
   page (`#0c0805`) with near-white ink (`#ececec`) and grey rules. Terminal
@@ -1142,15 +1142,21 @@ own, but each name still resolves if you type it.
 - **`sepia-light`** — an aged-newsprint cream page with dark sepia ink.
 - **`midnight-ink`** — a warm slate-charcoal page with cool off-white ink.
 - **`graphite`** — a soft charcoal page; the gentlest of the darks.
+- **`moss-blotter`** — a deep moss-green desk blotter with warm paper-white
+  ink and botanical accents (dark).
 - **`coldpress-gray`** — a cool pale-gray page with light graphite ink.
 - **`salmon-broadsheet`** — an FT-style salmon-pink broadsheet page (light).
 - **`ivory-ledger`** — an ivory page with ledger-green ink (light).
+- **`glacier-bond`** — a cold blue-gray bond page — overcast north light —
+  with crisp near-black ink and slate-blue accents (light).
 - **`crt-green`** — the classic green-phosphor terminal: neon green on a
   near-black tube, with a monochrome-green ANSI palette (brightness tiers) for
   that single-gun look.
 - **`crt-amber`** — the warm amber variation of the green tube.
 - **`crt-blue`** — a cool blue phosphor variation (Tron).
 - **`crt-violet`** — a neon violet phosphor variation.
+- **`crt-paperwhite`** — the P4 white tube (early Macintosh/VT420):
+  near-white ink with a faint blue-gray cast on a true black tube.
 
 **The CRT tubes are holographic.** Each phosphor carries its own tube tuning
 (scanline weight, bloom strength and radius, streaming-flicker character), so
@@ -1166,8 +1172,9 @@ it is focus-led — unfocused panes stay a thin quiet trace — and all of it is
 bounded: an idle tube renders a byte-identical frame every time. Paper
 themes are untouched by any of this.
 
-**Light themes read like print.** The five light themes (`paper-light`,
-`sepia-light`, `coldpress-gray`, `salmon-broadsheet`, `ivory-ledger`) render
+**Light themes read like print.** The six light themes (`paper-light`,
+`sepia-light`, `coldpress-gray`, `salmon-broadsheet`, `ivory-ledger`,
+`glacier-bond`) render
 base text at **Medium (500) weight** — dark themes use Normal (400) — and
 carry a **1.2× "newsprint" grain** multiplier, so the page reads as paper
 instead of a washed-out screen.
@@ -1184,11 +1191,12 @@ live with **`Ctrl+Shift+L`** (`dark → light → crt`). The choice persists to
 **Each theme rotates** to a different palette from its pool every **10 minutes**:
 
 - **`/theme dark`** — rotates the dark paper palettes (`paper-dark`,
-  `sepia-dark`, `midnight-ink`, `graphite`).
+  `sepia-dark`, `midnight-ink`, `graphite`, `moss-blotter`).
 - **`/theme light`** — rotates the light paper palettes (`paper-light`,
-  `sepia-light`, `coldpress-gray`, `salmon-broadsheet`, `ivory-ledger`).
+  `sepia-light`, `coldpress-gray`, `salmon-broadsheet`, `ivory-ledger`,
+  `glacier-bond`).
 - **`/theme crt`** — rotates the CRT phosphor palettes (`crt-green`,
-  `crt-amber`, `crt-blue`, `crt-violet`).
+  `crt-amber`, `crt-blue`, `crt-violet`, `crt-paperwhite`).
 
 Selecting a theme switches immediately to a pick from its pool, so the effect
 is visible right away.
@@ -1213,7 +1221,7 @@ after switching a running claude/codex pane to `paper-light` stays legible.
 
 | Key | Default | Meaning |
 |-----|---------|---------|
-| `theme` | `"paper-dark"` | one of the thirteen theme names (see above), or a rotation mode (`random`/`random-dark`, `random-light`, `auto`); unknown ⇒ default |
+| `theme` | `"paper-dark"` | one of the sixteen theme names (see above), or a rotation mode (`random`/`random-dark`, `random-light`, `auto`); unknown ⇒ default |
 | `accent` | theme default | `"#rrggbb"` override for the accent (chrome only); omit to use the theme's accent |
 | `paper_texture` | `true` | turn the paper grain + vignette pass on/off |
 | `paper_grain` | `1.3` | grain strength (`0.0`–`2.0`; `0` = no grain) |

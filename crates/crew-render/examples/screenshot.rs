@@ -82,6 +82,9 @@ fn main() {
         (ThemeId::MidnightInk, "midnight-ink.png"),
         (ThemeId::Graphite, "graphite.png"),
         (ThemeId::CrtViolet, "crt-violet.png"),
+        (ThemeId::MossBlotter, "moss-blotter.png"),
+        (ThemeId::GlacierBond, "glacier-bond.png"),
+        (ThemeId::CrtPaperwhite, "crt-paperwhite.png"),
     ] {
         crew_theme::set_theme(theme_id);
         let out_path = format!("{out_dir}/{out_name}");

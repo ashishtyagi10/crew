@@ -1,9 +1,10 @@
-//! CRT-family presets, the cool half: the violet and blue phosphors — the
-//! HUD end of the tube family, split from `presets_crt.rs` to keep both
-//! files under the line cap. Where the hot phosphors (green, amber) run
-//! coarse rasters and jumpy flicker, these two run wide, smooth bloom:
-//! projected light rather than a driven gun. Frame weight and glow follow
-//! the flat-tube decree (2026-08-06) — see `presets_crt.rs`.
+//! CRT-family presets, the cool half: the violet, blue and paperwhite
+//! phosphors — the cool end of the tube family, split from `presets_crt.rs`
+//! to keep both files under the line cap. Where the hot phosphors (green,
+//! amber) run coarse rasters and jumpy flicker, these run wide, smooth bloom
+//! (violet, blue) or a crisp steady raster (paperwhite): projected light
+//! rather than a driven gun. Frame weight and glow follow the flat-tube
+//! decree (2026-08-06) — see `presets_crt.rs`.
 
 use crate::{CrtStyle, Theme};
 
@@ -114,5 +115,63 @@ pub static CRT_BLUE: Theme = Theme {
         glow_radius: 12.0,
         corner: 0.0,
         flicker: 0.04,
+    }),
+};
+
+/// **Paperwhite phosphor** (P4, the early-Macintosh/VT420 white tube):
+/// near-white ink with the faintest blue-gray cast on a true black tube —
+/// the fifth phosphor, and the only one that reads as print rather than
+/// neon; its ANSI palette is brightness tiers with faint hue tilts, like
+/// crt-green's single-gun look in white.
+/// Style: the crispest tube of the family — fine scanlines, a modest cool
+/// halo, and the steadiest beam (P4 is a fast, low-persistence phosphor):
+/// a page of light, not a driven raster.
+pub static CRT_PAPERWHITE: Theme = Theme {
+    page_bg: (4, 5, 7),
+    ink: (235, 240, 248),
+    text_muted: (188, 196, 210),
+    term_fg: (235, 240, 248),
+    term_bg: (4, 5, 7),
+    // Unfocused borders sit back (focus-led hierarchy, as in paper-dark).
+    border_normal: (82, 90, 104),
+    border_focused: (230, 238, 248),
+    border_thickness: 3.5,
+    legend_off: (150, 160, 175),
+    accent_default: (200, 220, 255),
+    status_fg: (215, 225, 240),
+    broadcast: (205, 190, 230),
+    activity: (180, 210, 245),
+    bell: (225, 230, 245),
+    dim: (120, 130, 145),
+    placeholder: (130, 140, 155),
+    hint_fg: (140, 150, 165),
+    find_hl_bg: (45, 55, 75),
+    ansi: [
+        (55, 60, 70),    // 0  black
+        (255, 180, 175), // 1  red
+        (185, 235, 200), // 2  green
+        (240, 230, 190), // 3  yellow
+        (170, 200, 250), // 4  blue
+        (225, 190, 240), // 5  magenta
+        (185, 225, 245), // 6  cyan
+        (215, 222, 232), // 7  white
+        (130, 140, 155), // 8  bright black
+        (255, 200, 195), // 9  bright red
+        (205, 245, 215), // 10 bright green
+        (250, 240, 205), // 11 bright yellow
+        (190, 215, 252), // 12 bright blue
+        (238, 205, 250), // 13 bright magenta
+        (205, 238, 250), // 14 bright cyan
+        (245, 248, 252), // 15 bright white
+    ],
+    dark: true,
+    grain: 1.2,
+    crt: Some(CrtStyle {
+        curvature: 0.0,
+        scanline: 0.14,
+        glow: 0.7,
+        glow_radius: 8.0,
+        corner: 0.0,
+        flicker: 0.03,
     }),
 };

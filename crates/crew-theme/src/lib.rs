@@ -71,13 +71,17 @@ mod glass;
 mod presets_crt;
 mod presets_crt_cool;
 mod presets_paper;
+mod presets_paper_dark2;
 mod presets_paper_light;
+mod presets_paper_light2;
 pub use crtstyle::CrtStyle;
 pub use glass::{style as glass_style, style_for as glass_style_for, GlassLevel, GlassStyle};
 pub use presets_crt::{CRT_AMBER, CRT_GREEN};
-pub use presets_crt_cool::{CRT_BLUE, CRT_VIOLET};
+pub use presets_crt_cool::{CRT_BLUE, CRT_PAPERWHITE, CRT_VIOLET};
 pub use presets_paper::{GRAPHITE, MIDNIGHT_INK, PAPER_DARK, PAPER_LIGHT, SEPIA_DARK};
+pub use presets_paper_dark2::MOSS_BLOTTER;
 pub use presets_paper_light::{COLDPRESS_GRAY, IVORY_LEDGER, SALMON_BROADSHEET, SEPIA_LIGHT};
+pub use presets_paper_light2::GLACIER_BOND;
 
 /// WCAG 2.1 contrast ratio between two sRGB colours.
 pub fn contrast_ratio(a: (u8, u8, u8), b: (u8, u8, u8)) -> f32 {
@@ -105,31 +109,37 @@ pub enum ThemeId {
     SepiaLight,
     MidnightInk,
     Graphite,
+    MossBlotter,
     ColdpressGray,
     SalmonBroadsheet,
     IvoryLedger,
+    GlacierBond,
     CrtGreen,
     CrtAmber,
     CrtBlue,
     CrtViolet,
+    CrtPaperwhite,
 }
 
 /// Every theme, in cycle order (used by the `Ctrl+Shift+L` rotation and the
 /// `/theme` completion). Keep in sync with the enum.
-pub const ALL_THEMES: [ThemeId; 13] = [
+pub const ALL_THEMES: [ThemeId; 16] = [
     ThemeId::PaperDark,
     ThemeId::PaperLight,
     ThemeId::SepiaDark,
     ThemeId::SepiaLight,
     ThemeId::MidnightInk,
     ThemeId::Graphite,
+    ThemeId::MossBlotter,
     ThemeId::ColdpressGray,
     ThemeId::SalmonBroadsheet,
     ThemeId::IvoryLedger,
+    ThemeId::GlacierBond,
     ThemeId::CrtGreen,
     ThemeId::CrtAmber,
     ThemeId::CrtBlue,
     ThemeId::CrtViolet,
+    ThemeId::CrtPaperwhite,
 ];
 
 impl ThemeId {
@@ -141,13 +151,16 @@ impl ThemeId {
             ThemeId::SepiaLight => "sepia-light",
             ThemeId::MidnightInk => "midnight-ink",
             ThemeId::Graphite => "graphite",
+            ThemeId::MossBlotter => "moss-blotter",
             ThemeId::ColdpressGray => "coldpress-gray",
             ThemeId::SalmonBroadsheet => "salmon-broadsheet",
             ThemeId::IvoryLedger => "ivory-ledger",
+            ThemeId::GlacierBond => "glacier-bond",
             ThemeId::CrtGreen => "crt-green",
             ThemeId::CrtAmber => "crt-amber",
             ThemeId::CrtBlue => "crt-blue",
             ThemeId::CrtViolet => "crt-violet",
+            ThemeId::CrtPaperwhite => "crt-paperwhite",
         }
     }
 
@@ -160,13 +173,16 @@ impl ThemeId {
             ThemeId::SepiaLight => "aged-newsprint cream page (light sepia)",
             ThemeId::MidnightInk => "warm slate-charcoal page, cool off-white ink",
             ThemeId::Graphite => "soft charcoal paper (gentle dark)",
+            ThemeId::MossBlotter => "deep moss-green blotter, warm paper ink",
             ThemeId::ColdpressGray => "cool pale-gray page (light graphite)",
             ThemeId::SalmonBroadsheet => "FT salmon-pink broadsheet (light)",
             ThemeId::IvoryLedger => "ivory page, ledger-green ink (light)",
+            ThemeId::GlacierBond => "cold glacier-blue page (crisp light)",
             ThemeId::CrtGreen => "neon green phosphor CRT",
             ThemeId::CrtAmber => "neon amber phosphor CRT",
             ThemeId::CrtBlue => "neon blue phosphor CRT (Tron)",
             ThemeId::CrtViolet => "neon violet phosphor CRT",
+            ThemeId::CrtPaperwhite => "white P4 paperwhite phosphor CRT",
         }
     }
 
@@ -183,13 +199,16 @@ impl ThemeId {
             "sepia-light" => Some(ThemeId::SepiaLight),
             "midnight-ink" => Some(ThemeId::MidnightInk),
             "graphite" => Some(ThemeId::Graphite),
+            "moss-blotter" => Some(ThemeId::MossBlotter),
             "coldpress-gray" => Some(ThemeId::ColdpressGray),
             "salmon-broadsheet" => Some(ThemeId::SalmonBroadsheet),
             "ivory-ledger" => Some(ThemeId::IvoryLedger),
+            "glacier-bond" => Some(ThemeId::GlacierBond),
             "crt-green" => Some(ThemeId::CrtGreen),
             "crt-amber" => Some(ThemeId::CrtAmber),
             "crt-blue" => Some(ThemeId::CrtBlue),
             "crt-violet" => Some(ThemeId::CrtViolet),
+            "crt-paperwhite" => Some(ThemeId::CrtPaperwhite),
             _ => None,
         }
     }
@@ -202,13 +221,16 @@ impl ThemeId {
             ThemeId::SepiaLight => &SEPIA_LIGHT,
             ThemeId::MidnightInk => &MIDNIGHT_INK,
             ThemeId::Graphite => &GRAPHITE,
+            ThemeId::MossBlotter => &MOSS_BLOTTER,
             ThemeId::ColdpressGray => &COLDPRESS_GRAY,
             ThemeId::SalmonBroadsheet => &SALMON_BROADSHEET,
             ThemeId::IvoryLedger => &IVORY_LEDGER,
+            ThemeId::GlacierBond => &GLACIER_BOND,
             ThemeId::CrtGreen => &CRT_GREEN,
             ThemeId::CrtAmber => &CRT_AMBER,
             ThemeId::CrtBlue => &CRT_BLUE,
             ThemeId::CrtViolet => &CRT_VIOLET,
+            ThemeId::CrtPaperwhite => &CRT_PAPERWHITE,
         }
     }
 
@@ -227,6 +249,9 @@ impl ThemeId {
             ThemeId::SalmonBroadsheet => 10,
             ThemeId::ColdpressGray => 11,
             ThemeId::IvoryLedger => 12,
+            ThemeId::MossBlotter => 13,
+            ThemeId::GlacierBond => 14,
+            ThemeId::CrtPaperwhite => 15,
         }
     }
 
@@ -244,6 +269,9 @@ impl ThemeId {
             10 => ThemeId::SalmonBroadsheet,
             11 => ThemeId::ColdpressGray,
             12 => ThemeId::IvoryLedger,
+            13 => ThemeId::MossBlotter,
+            14 => ThemeId::GlacierBond,
+            15 => ThemeId::CrtPaperwhite,
             _ => ThemeId::PaperDark,
         }
     }

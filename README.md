@@ -426,15 +426,18 @@ accepts `accent = "#rrggbb"` to override Crew's accent; omit it (or give an
 invalid value) to use the active theme's default accent. It applies at launch —
 quit and reopen Crew to pick up edits made outside the `/settings` pane.
 
-**Themes.** Crew ships **thirteen themes**: nine paper/ink looks — `paper-dark`
+**Themes.** Crew ships **sixteen themes**: eleven paper/ink looks — `paper-dark`
 (default — a high-contrast "newspaper" look), `paper-light` (a warm paper
 page), `sepia-dark` (warm cream ink on dark sepia), `sepia-light`
 (aged-newsprint cream page), `midnight-ink` (cool off-white on deep navy),
-`graphite` (a gentle soft-charcoal page), `coldpress-gray` (cool pale-gray
-page), `salmon-broadsheet` (FT-style salmon-pink broadsheet), and
-`ivory-ledger` (ivory with ledger-green ink) — and four **CRT phosphor**
-tubes: `crt-green`, `crt-amber`, `crt-blue`, and `crt-violet`, each a neon
-monochrome glow on a near-black tube. The tubes render as a **holographic
+`graphite` (a gentle soft-charcoal page), `moss-blotter` (a deep moss-green
+desk blotter with warm paper ink), `coldpress-gray` (cool pale-gray
+page), `salmon-broadsheet` (FT-style salmon-pink broadsheet),
+`ivory-ledger` (ivory with ledger-green ink), and `glacier-bond` (a cold
+blue-gray north-light page with slate accents) — and five **CRT phosphor**
+tubes: `crt-green`, `crt-amber`, `crt-blue`, `crt-violet`, each a neon
+monochrome glow on a near-black tube, and `crt-paperwhite`, the classic P4
+white tube. The tubes render as a **holographic
 terminal**: each phosphor ships its own tube personality (scanline weight,
 bloom strength, flicker character), hot pixels throw a real half-res
 gaussian bloom, panes sit on luminous translucent glass tinted in the
