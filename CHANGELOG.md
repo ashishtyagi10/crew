@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.14.1
+
+The glyph atlas breathes again. The vendored glyphon atlas was never
+trimmed, so its in-use set only ever grew and LRU eviction was dead code —
+every font size, family, weight, or smoothing change permanently pinned a
+full ~570-glyph working set (the 0.13.7 prewarm made that a certainty),
+ratcheting GPU memory until a long session could hit an AtlasFull panic.
+`CellGrid::prepare` now opens each frame with `atlas.trim()`, so only
+glyphs the frame actually draws stay protected and stale generations age
+out under real LRU pressure. And the sidebar tells the whole truth again:
+panes standing behind the minimized strip's `+N` overflow tile — visible
+nowhere on the canvas — now carry the `[+]` restore marker on their PANES
+rows, like every other off-screen pane.
+
 ## 0.14.0
 
 One spacing rhythm across the canvas. Three layout-rhythm fixes close out

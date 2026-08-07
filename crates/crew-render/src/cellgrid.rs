@@ -204,7 +204,8 @@ impl CellGrid {
     /// Override the CoreText-style smoothing strength (0–255, 0 = off).
     /// `None` follows the default. Applied next frame: the strength lives in
     /// every glyph's cache key, so changed panes re-shape and re-rasterize
-    /// while stale atlas entries age out on their own.
+    /// while stale atlas entries become evictable at the next `prepare`'s
+    /// `trim` and age out under LRU pressure.
     pub fn set_text_smoothing(&mut self, strength: Option<u8>) {
         self.smooth_override = strength;
         self.swash.image_cache.clear();
@@ -261,6 +262,13 @@ impl CellGrid {
 
     /// Update viewports and prepare GPU uploads for all pane text areas.
     pub fn prepare(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, width: u32, height: u32) {
+        // Open the frame's in-use window: `trim` clears the atlas's
+        // `glyphs_in_use` so only glyphs this frame actually touches (the
+        // prewarm and prepare passes below re-insert them) are protected from
+        // LRU eviction. Without it the set is monotone, eviction is dead code,
+        // and every font/smoothing change pins another full working set until
+        // the atlas hits AtlasFull.
+        self.atlas.trim();
         // One-shot atlas prewarm: at startup — and after any font-affecting
         // change, coalescing the whole setter burst into one pass — the
         // working set rasterizes here, through the same presmooth-seeded
