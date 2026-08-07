@@ -173,6 +173,31 @@ fn theme_id_parses_or_defaults() {
 }
 
 #[test]
+fn theme_selection_defaults_fresh_installs_to_os_following_auto() {
+    use crew_theme::{RandomMode, Selection, ThemeId};
+    // No saved theme: follow the OS. This is the fresh-install default, and
+    // both startup (handler) and apply_config resolve through this one fn.
+    assert_eq!(
+        CrewConfig::default().theme_selection(),
+        Selection::Mode(RandomMode::Auto)
+    );
+    assert_eq!(CrewConfig::default().theme_label(), "auto");
+    // A saved selection — mode or palette — keeps exactly its meaning:
+    // an upgrade never hijacks an explicit pick into following the OS.
+    let dark = CrewConfig::from_toml_str("theme = \"dark\"\n");
+    assert_eq!(dark.theme_selection(), Selection::Mode(RandomMode::Dark));
+    let pinned = CrewConfig::from_toml_str("theme = \"paper-light\"\n");
+    assert_eq!(
+        pinned.theme_selection(),
+        Selection::Fixed(ThemeId::PaperLight)
+    );
+    // A garbage value keeps its historical fallback (fixed default palette),
+    // not auto — a broken string is not an intent to follow the OS.
+    let bad = CrewConfig::from_toml_str("theme = \"chartreuse\"\n");
+    assert_eq!(bad.theme_selection(), Selection::Fixed(ThemeId::PaperDark));
+}
+
+#[test]
 fn font_random_round_trips_and_defaults_off() {
     let cfg = CrewConfig::from_toml_str("");
     assert!(!cfg.font_random);

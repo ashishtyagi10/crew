@@ -13,9 +13,9 @@
 /// picker for free (its rows run on Enter; unknown text still submits freeform).
 pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
     match cmd {
-        // The three themes — each a rotation over its own palette pool. The
-        // individual palettes and the legacy `random-*`/`auto` names still
-        // parse but aren't offered here.
+        // The four themes — each a rotation over its own palette pool, auto's
+        // following the OS appearance. The individual palettes and the legacy
+        // `random-*` names still parse but aren't offered here.
         "/theme" => Some(
             crew_theme::THEME_MODES
                 .iter()

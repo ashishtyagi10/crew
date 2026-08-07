@@ -101,8 +101,16 @@ fn smooth_value_names_the_level_or_shows_the_raw_number() {
 
 #[test]
 fn theme_value_names_the_current_theme() {
-    // An unset config now labels as the default consolidated mode, `dark`.
+    // An unset config labels as `auto` — the fresh-install default follows
+    // the OS appearance.
     let (v, cursor) = value_of(&pane(), Field::Theme);
-    assert!(v.contains("dark"), "got: {v}");
+    assert!(v.contains("auto"), "got: {v}");
     assert!(!cursor, "theme is a picker, not a text field");
+    // A saved mode keeps its own label — never relabeled to auto.
+    let cfg = CrewConfig {
+        theme: Some("dark".into()),
+        ..Default::default()
+    };
+    let (v, _) = value_of(&SettingsPane::new(cfg, Vec::new()), Field::Theme);
+    assert!(v.contains("dark"), "got: {v}");
 }

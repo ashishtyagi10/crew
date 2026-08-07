@@ -25,7 +25,11 @@ word:
 The gap is not machinery. It is that **following the OS is a hidden cheat code instead of the
 obvious out-of-box behavior.**
 
-## The contract (definition of done)
+## The contract (definition of done) — SHIPPED in 0.14.2 (2026-08-07)
+
+All five core items landed; the stretch items below remain open. The shared
+resolution lives in `CrewConfig::theme_selection` (configread.rs); live
+verification of the OS flip is still worth a pass with the GUI harness.
 
 1. **Auto is a first-class theme.** It joins `THEME_MODES` (listed last: dark, light, crt,
    auto) and therefore every surface that derives from it: `/theme` value picker, Settings form

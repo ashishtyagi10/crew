@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.14.2
+
+Crew follows the system now. `auto` — light by day, dark by night, riding
+the OS appearance — graduates from unlisted back-compat alias to crew's
+fourth first-class theme: it sits in the `/theme` picker, the Settings
+form, the composer suggestions and the `Ctrl+Shift+L` cycle
+(dark → light → crt → auto), and a fresh install with no saved theme now
+defaults to it, so crew matches the system from the very first frame.
+An appearance flip mid-session re-themes every pane live through the
+develop-fade. Existing configs are untouched: a saved `dark`, `light`,
+`crt`, or pinned palette keeps exactly its meaning — picking one is still
+how you opt out of following, and `/theme auto` is how you opt back in.
+Both startup and settings-apply now resolve the saved value through one
+shared `theme_selection`, so the two paths can never disagree.
+
 ## 0.14.1
 
 The glyph atlas breathes again. The vendored glyphon atlas was never

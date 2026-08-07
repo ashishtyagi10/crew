@@ -175,7 +175,7 @@ fn tick_random_fires_at_rotate_ms_when_on() {
 }
 
 #[test]
-fn cycle_next_walks_the_three_modes_and_wraps() {
+fn cycle_next_walks_the_four_modes_and_wraps() {
     let _g = guard();
     // From a pinned palette, the first step enters the dark rotation...
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
@@ -188,9 +188,32 @@ fn cycle_next_walks_the_three_modes_and_wraps() {
     // ...then crt...
     assert_eq!(cycle_next(3), "crt");
     assert!(current_id().theme().crt.is_some());
-    // ...and wraps back to dark.
-    assert_eq!(cycle_next(4), "dark");
+    // ...then auto, whose pool follows the reported OS appearance...
+    set_os_dark(true);
+    assert_eq!(cycle_next(4), "auto");
     assert!(current_id().is_dark() && current_id().theme().crt.is_none());
+    // ...and wraps back to dark.
+    assert_eq!(cycle_next(5), "dark");
+    assert!(current_id().is_dark() && current_id().theme().crt.is_none());
+    apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
+}
+
+#[test]
+fn auto_is_advertised_and_follows_the_os_appearance() {
+    let _g = guard();
+    // Auto is a first-class listed theme (last, after the fixed pools).
+    assert_eq!(THEME_MODES[THEME_MODES.len() - 1], RandomMode::Auto);
+    // Its pool tracks set_os_dark: light OS → light paper palettes only.
+    set_os_dark(false);
+    assert!(ALL_THEMES
+        .into_iter()
+        .filter(|id| RandomMode::Auto.in_pool(*id))
+        .all(|id| !id.theme().dark && id.theme().crt.is_none()));
+    set_os_dark(true);
+    assert!(ALL_THEMES
+        .into_iter()
+        .filter(|id| RandomMode::Auto.in_pool(*id))
+        .all(|id| id.theme().dark && id.theme().crt.is_none()));
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
 }
 

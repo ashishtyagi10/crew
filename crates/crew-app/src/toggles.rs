@@ -44,7 +44,7 @@ mod tests {
     use crate::app::CrewApp;
 
     #[test]
-    fn toggle_theme_cycles_the_three_modes_and_wraps() {
+    fn toggle_theme_cycles_the_four_modes_and_wraps() {
         let _g = crate::app::theme_test_guard();
         // From a pinned palette the first press enters the dark rotation.
         crew_theme::apply_selection(
@@ -61,7 +61,11 @@ mod tests {
         app.toggle_theme();
         assert_eq!(crew_theme::mode(), Some(crew_theme::RandomMode::Crt));
         assert_eq!(app.config.theme.as_deref(), Some("crt"));
-        // Wraps back to dark.
+        // Then the OS-following auto...
+        app.toggle_theme();
+        assert_eq!(crew_theme::mode(), Some(crew_theme::RandomMode::Auto));
+        assert_eq!(app.config.theme.as_deref(), Some("auto"));
+        // ...and wraps back to dark.
         app.toggle_theme();
         assert_eq!(crew_theme::mode(), Some(crew_theme::RandomMode::Dark));
         assert_eq!(app.config.theme.as_deref(), Some("dark"));

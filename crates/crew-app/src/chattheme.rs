@@ -31,9 +31,10 @@ fn parse_theme_cmd(arg: &str) -> ThemeCmd {
     }
 }
 
-/// The `/theme` (no-arg) listing: the three themes (`dark`, `light`, `crt`),
-/// each a rotation over its own palette pool, the active one marked with
-/// `\u{25cf}`. The individual palettes are pool members, not list entries.
+/// The `/theme` (no-arg) listing: the four themes (`dark`, `light`, `crt`,
+/// `auto`), each a rotation over its own palette pool — auto's follows the OS
+/// appearance — the active one marked with `\u{25cf}`. The individual
+/// palettes are pool members, not list entries.
 fn theme_list_line(mode: Option<crew_theme::RandomMode>) -> String {
     let items: Vec<String> = crew_theme::THEME_MODES
         .iter()
@@ -49,8 +50,8 @@ fn theme_list_line(mode: Option<crew_theme::RandomMode>) -> String {
 }
 
 /// The comma-joined list of valid theme names, for the "unknown theme" echo:
-/// the three canonical modes. Legacy names (`random-*`, `auto`, the palette
-/// names) still parse but aren't advertised.
+/// the four canonical modes. Legacy names (`random-*`, the palette names)
+/// still parse but aren't advertised.
 fn theme_names() -> String {
     crew_theme::THEME_MODES
         .iter()
@@ -164,7 +165,7 @@ mod tests {
     }
 
     #[test]
-    fn list_line_names_the_three_modes_and_marks_the_active_one() {
+    fn list_line_names_the_four_modes_and_marks_the_active_one() {
         let line = theme_list_line(None);
         for m in crew_theme::THEME_MODES {
             assert!(line.contains(m.as_str()), "missing {}: {line}", m.as_str());
@@ -193,7 +194,7 @@ mod tests {
     }
 
     #[test]
-    fn theme_names_lists_the_three_modes() {
+    fn theme_names_lists_the_four_modes() {
         let names = theme_names();
         for m in crew_theme::THEME_MODES {
             assert!(

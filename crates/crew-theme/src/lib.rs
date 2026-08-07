@@ -317,8 +317,9 @@ pub const ROTATE_MS: u64 = 600_000;
 /// A rotating theme: each mode owns a pool of palettes and cycles through them
 /// every [`ROTATE_MS`]. These ARE crew's themes now — the individual palettes
 /// (`PAPER_DARK`, `CRT_GREEN`, …) are the pool members, no longer offered on
-/// their own. `Auto` is an unlisted back-compat mode (its pool follows the OS
-/// appearance); [`THEME_MODES`] is the three the picker advertises.
+/// their own. `Auto` borrows the dark or light paper pool depending on the OS
+/// appearance ([`set_os_dark`]); [`THEME_MODES`] is the list the picker
+/// advertises.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RandomMode {
     Dark,
@@ -327,11 +328,17 @@ pub enum RandomMode {
     Auto,
 }
 
-/// The three themes crew offers — each a rotation over its own pool. This is
-/// the whole user-facing theme list (`/theme`, the settings picker, the
-/// `Ctrl+Shift+L` cycle); everything else parses for back-compat but isn't
-/// advertised.
-pub const THEME_MODES: [RandomMode; 3] = [RandomMode::Dark, RandomMode::Light, RandomMode::Crt];
+/// The four themes crew offers — each a rotation over its own pool, `auto`
+/// following the OS appearance. This is the whole user-facing theme list
+/// (`/theme`, the settings picker, the `Ctrl+Shift+L` cycle); everything else
+/// (legacy `random-*` names, individual palettes) parses for back-compat but
+/// isn't advertised.
+pub const THEME_MODES: [RandomMode; 4] = [
+    RandomMode::Dark,
+    RandomMode::Light,
+    RandomMode::Crt,
+    RandomMode::Auto,
+];
 
 impl RandomMode {
     pub fn as_str(self) -> &'static str {
@@ -394,9 +401,9 @@ pub enum Selection {
     Mode(RandomMode),
 }
 
-/// Parse a `/theme` argument / config value. The three canonical names are
-/// `dark`, `light`, `crt`; the pre-consolidation names (`random`,
-/// `random-dark`, `random-light`, `auto`) and every individual palette name
+/// Parse a `/theme` argument / config value. The four canonical names are
+/// `dark`, `light`, `crt`, `auto`; the pre-consolidation names (`random`,
+/// `random-dark`, `random-light`) and every individual palette name
 /// still parse so old configs keep loading.
 pub fn parse_selection(s: &str) -> Option<Selection> {
     let s = s.trim();
@@ -505,13 +512,14 @@ pub fn tick_random(now_ms: u64) -> bool {
 }
 
 /// Advance the `Ctrl+Shift+L` cycle one step through [`THEME_MODES`]:
-/// dark → light → crt → dark, wrapping. Any other state (a pinned palette or
-/// the unlisted `auto`) enters at `dark`. Returns the status-line label.
+/// dark → light → crt → auto → dark, wrapping. Any other state (a pinned
+/// palette) enters at `dark`. Returns the status-line label.
 pub fn cycle_next(now_ms: u64) -> &'static str {
     let next = match mode() {
         Some(RandomMode::Dark) => RandomMode::Light,
         Some(RandomMode::Light) => RandomMode::Crt,
-        Some(RandomMode::Crt) => RandomMode::Dark,
+        Some(RandomMode::Crt) => RandomMode::Auto,
+        Some(RandomMode::Auto) => RandomMode::Dark,
         _ => RandomMode::Dark,
     };
     apply_selection(Selection::Mode(next), now_ms);
