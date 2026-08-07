@@ -10,7 +10,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.13.6"
+version = "0.13.7"
 edition = "2021"
 authors = ["crew contributors"]
 license = "MIT OR Apache-2.0"
@@ -97,12 +97,17 @@ semver = "1"
 self_update = { version = "0.42", default-features = false, features = ["archive-tar", "archive-zip", "compression-flate2", "rustls"] }
 
 
-# Vendored two-line patch: glyphon reads glyph bitmaps through the shared
-# SwashCache.image_cache (get_image) instead of get_image_uncached, so crew's
-# font-smoothing presmooth pass can seed stem-darkened glyph bitmaps and have
-# them actually reach the atlas. BOTH materialization sites are patched:
-# text_render.rs (first upload) and text_atlas.rs grow() (re-upload) — the
-# grow path unfixed silently reverted smoothing on the first atlas grow.
-# Upgrading the vendored copy must re-apply both.
+# Vendored glyphon patches — upgrading the vendored copy must re-apply ALL:
+# 1+2) glyphon reads glyph bitmaps through the shared SwashCache.image_cache
+#      (get_image) instead of get_image_uncached, so crew's font-smoothing
+#      presmooth pass can seed stem-darkened glyph bitmaps and have them
+#      actually reach the atlas. BOTH materialization sites are patched:
+#      text_render.rs (first upload) and text_atlas.rs grow() (re-upload) —
+#      the grow path unfixed silently reverted smoothing on the first grow.
+# 3)   text_atlas.rs InnerAtlas::initial_size(): per-kind initial atlas size
+#      (mask 1024², color 256²) replaces the flat 256² INITIAL_SIZE — Retina
+#      glyph sets blew through two grows in the first frames, re-uploading
+#      every glyph each time. Guarded (with 1+2) by
+#      vendored_glyphon_patches_are_applied in crew-render's prewarm tests.
 [patch.crates-io]
 glyphon = { path = "vendor/glyphon" }

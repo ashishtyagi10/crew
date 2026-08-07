@@ -11,6 +11,7 @@ mod glass;
 mod gpu;
 mod paperbg;
 mod postfx;
+mod prewarm;
 mod quads;
 mod renderer;
 mod roundborder;

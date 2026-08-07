@@ -28,11 +28,23 @@ pub(crate) struct InnerAtlas {
 }
 
 impl InnerAtlas {
-    const INITIAL_SIZE: u32 = 256;
+    // CREW PATCH (see the vendored-patch notes in the root Cargo.toml):
+    // upstream starts every atlas at a flat 256² — about 60 Retina-scale
+    // cell glyphs — so the mask atlas blew through two grows (256→512→1024)
+    // within the first frames, re-uploading every packed glyph each time.
+    // Start the mask atlas at its Retina steady state (1024² R8 = 1 MiB);
+    // the color atlas holds only emoji (RGBA, 4× the memory per texel) and
+    // stays small, growing on demand.
+    fn initial_size(kind: Kind) -> u32 {
+        match kind {
+            Kind::Mask => 1024,
+            Kind::Color { .. } => 256,
+        }
+    }
 
     fn new(state: &State, kind: Kind) -> Self {
         let max_texture_dimension_2d = state.device.limits().max_texture_dimension_2d;
-        let size = Self::INITIAL_SIZE.min(max_texture_dimension_2d);
+        let size = Self::initial_size(kind).min(max_texture_dimension_2d);
 
         let packer = BucketedAtlasAllocator::new(size2(size as i32, size as i32));
 
