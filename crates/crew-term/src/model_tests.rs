@@ -37,6 +37,25 @@ mod reply_tests {
         assert_eq!(t.take_replies().as_deref(), Some("\x1b[1;3R"));
     }
 
+    /// DECSET 2031 rides `feed` like every other sniffer, its query replies
+    /// land in the same `take_replies` channel, and the enabled flag is what
+    /// the app's scheme push keys off. The reply matches the ACTIVE theme's
+    /// darkness — the same source OSC 10/11 answers from.
+    #[test]
+    fn decset_2031_enables_and_scheme_query_answers_from_theme() {
+        let mut t = HeadlessTerm::new(GridSize { cols: 20, rows: 4 });
+        assert!(!t.scheme_notify_enabled());
+        t.feed(b"\x1b[?2031h\x1b[?996n");
+        assert!(t.scheme_notify_enabled());
+        let ps = if crew_theme::theme().dark { 1 } else { 2 };
+        assert_eq!(
+            t.take_replies().as_deref(),
+            Some(format!("\x1b[?997;{ps}n").as_str())
+        );
+        t.feed(b"\x1b[?2031l");
+        assert!(!t.scheme_notify_enabled());
+    }
+
     /// A program painting truecolor text at (or near) the terminal background —
     /// a dark-theme palette left running across a live switch to a light theme,
     /// say — must still render legibly: the contrast floor nudges the fg.

@@ -29,6 +29,11 @@ impl HeadlessTerm {
         self.core.take_cwd()
     }
 
+    /// Whether the fed program enabled DECSET 2031 (scheme-change reports).
+    pub fn scheme_notify_enabled(&self) -> bool {
+        self.core.scheme_notify_enabled()
+    }
+
     pub fn take_bell(&self) -> bool {
         self.core.take_bell()
     }

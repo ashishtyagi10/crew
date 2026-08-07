@@ -150,6 +150,7 @@ mod restart;
 mod restartnote;
 mod route;
 mod runpane;
+mod schemepush;
 mod scroll;
 mod search;
 mod searchall;

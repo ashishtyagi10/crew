@@ -125,6 +125,9 @@ impl CrewApp {
         // Font rotation: same 10-minute clock as the theme rotation. The pick
         // updates the renderer only — config.font_family stays pinned.
         self.tick_font_rotation(now_ms);
+        // Report a flipped light/dark scheme to DECSET-2031 terminals — after
+        // the rotation tick above so a flip lands the same tick it happens.
+        self.push_scheme_change();
         // Then the theme's own font, if the theme changed since last tick.
         // Deliberately LAST: both hang off the same 10-minute clock, so on a
         // rotation tick both fire and the theme's font must land on top. This

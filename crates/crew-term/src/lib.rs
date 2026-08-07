@@ -7,6 +7,8 @@ mod model;
 mod modes;
 mod osc7;
 mod pty;
+mod schemenotify;
 pub use model::{GridSize, HeadlessTerm, RenderCell, TermModel};
 pub use modes::InputModes;
 pub use pty::PtyTerm;
+pub use schemenotify::scheme_report;
