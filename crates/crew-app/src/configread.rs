@@ -31,6 +31,22 @@ impl CrewConfig {
         }
     }
 
+    /// The `auto` theme's per-appearance pairing (`theme_dark` /
+    /// `theme_light`), parsed: each side is a pool mode or pinned palette.
+    /// `auto` itself is rejected as a side (it can't serve itself — crew-theme
+    /// would drop it anyway; rejecting here keeps config's view honest), and
+    /// unknown names fall back to `None` = that side's built-in paper pool.
+    pub fn auto_pool_selections(
+        &self,
+    ) -> (Option<crew_theme::Selection>, Option<crew_theme::Selection>) {
+        let parse = |s: &Option<String>| {
+            s.as_deref()
+                .and_then(crew_theme::parse_selection)
+                .filter(|sel| *sel != crew_theme::Selection::Mode(crew_theme::RandomMode::Auto))
+        };
+        (parse(&self.theme_dark), parse(&self.theme_light))
+    }
+
     /// A display label for the configured selection: the rotation mode name
     /// (`dark`/`light`/`crt`/`auto`) if it is one, the pinned palette name if
     /// a specific palette is saved, or `auto` when unset (the fresh-install
@@ -90,6 +106,8 @@ impl CrewConfig {
                 .filter(|p| !p.is_empty())
                 .collect(),
             theme: self.theme.filter(|s| !s.is_empty()),
+            theme_dark: self.theme_dark.filter(|s| !s.is_empty()),
+            theme_light: self.theme_light.filter(|s| !s.is_empty()),
             paper_texture: self.paper_texture,
             paper_grain: self.paper_grain.clamp(0.0, 2.0),
             crt: self.crt,
