@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.13.7
+
+Prewarmed glyph atlas. The first frames used to pay for every glyph in
+sight — rasterize, smooth, pack, and (at Retina sizes) grow the 256² atlas
+twice, re-uploading everything already packed each time. The mask atlas now
+starts at its Retina steady state (1024², still just 1 MiB; the color/emoji
+atlas stays small), and at startup — and after any font, size, weight, or
+smoothing change — crew shapes one off-screen buffer of printable ASCII
+plus the box-drawing, block, braille, and marker glyphs its chrome draws,
+and runs it through the same smoothing-seeded path as real frames. Every
+border, spinner, and keystroke thereafter finds its glyph already in the
+atlas: no rasterization, no grow churn, mid-interaction.
+
 ## 0.13.6
 
 Pixel-snap pane rects. The scene runs in physical pixels end-to-end, but the

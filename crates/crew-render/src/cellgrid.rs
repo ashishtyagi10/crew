@@ -45,7 +45,7 @@ pub struct CellView {
 /// Renders a scene of panes: per-cell bg quads, rounded borders, per-pane text.
 pub struct CellGrid {
     pub(crate) font_system: FontSystem,
-    swash: SwashCache,
+    pub(crate) swash: SwashCache,
     viewport: Viewport,
     atlas: TextAtlas,
     renderer: TextRenderer,
@@ -81,6 +81,10 @@ pub struct CellGrid {
     smooth_override: Option<u8>,
     /// Whether the render target is sRGB (colours must be fed linear).
     srgb: bool,
+    /// Arms the glyph-atlas prewarm: set at construction and by every
+    /// font-affecting setter, consumed by the next [`Self::prepare`].
+    /// `pub(crate)` for the prewarm tests only.
+    pub(crate) needs_prewarm: bool,
 }
 
 impl CellGrid {
@@ -142,6 +146,27 @@ impl CellGrid {
             weight_override: None,
             smooth_override: None,
             srgb: format.is_srgb(),
+            needs_prewarm: true,
+        }
+    }
+
+    /// The `FontParams` this frame shapes with — one source for real scenes
+    /// AND the prewarm buffer, so their cache keys agree by construction.
+    pub(crate) fn font_params(&self) -> FontParams {
+        FontParams {
+            font_size: self.font_size,
+            line_height: self.line_height,
+            cell_w: self.cell_w,
+            family: self.font_family.clone(),
+            // A user weight override wins; otherwise the theme default (Medium
+            // for crisp ink on a bright page). Per-frame theme read, same
+            // pattern as page_bg in renderer.rs.
+            weight: self
+                .weight_override
+                .unwrap_or_else(|| base_weight(crew_theme::theme().dark)),
+            smooth: self
+                .smooth_override
+                .unwrap_or(crate::smoothing::DEFAULT_SMOOTH),
         }
     }
 
@@ -153,6 +178,7 @@ impl CellGrid {
         self.cell_w = cell_w;
         self.cell_h = cell_h;
         self.swash.image_cache.clear();
+        self.needs_prewarm = true;
     }
 
     /// Switch the font family at runtime (`None`/empty → system monospace).
@@ -163,6 +189,7 @@ impl CellGrid {
     pub fn set_font_weight(&mut self, weight: Option<u16>) {
         self.weight_override = weight;
         self.swash.image_cache.clear();
+        self.needs_prewarm = true;
     }
 
     pub fn set_font_family(&mut self, family: Option<String>) {
@@ -171,6 +198,7 @@ impl CellGrid {
         // pass reads and seeds it); font changes re-key everything, so drop
         // the stale rasters rather than carrying them for the session.
         self.swash.image_cache.clear();
+        self.needs_prewarm = true;
     }
 
     /// Override the CoreText-style smoothing strength (0–255, 0 = off).
@@ -180,6 +208,7 @@ impl CellGrid {
     pub fn set_text_smoothing(&mut self, strength: Option<u8>) {
         self.smooth_override = strength;
         self.swash.image_cache.clear();
+        self.needs_prewarm = true;
     }
 
     /// Set the frosted-glass strength. Applied next frame.
@@ -208,21 +237,7 @@ impl CellGrid {
 
     /// Upload a scene of panes: backgrounds as quads, rounded borders, one Buffer per pane.
     pub fn set_scene(&mut self, device: &wgpu::Device, panes: &[PaneScene]) {
-        let params = FontParams {
-            font_size: self.font_size,
-            line_height: self.line_height,
-            cell_w: self.cell_w,
-            family: self.font_family.clone(),
-            // A user weight override wins; otherwise the theme default (Medium
-            // for crisp ink on a bright page). Per-frame theme read, same
-            // pattern as page_bg in renderer.rs.
-            weight: self
-                .weight_override
-                .unwrap_or_else(|| base_weight(crew_theme::theme().dark)),
-            smooth: self
-                .smooth_override
-                .unwrap_or(crate::smoothing::DEFAULT_SMOOTH),
-        };
+        let params = self.font_params();
         let (cw, ch) = (self.cell_w, self.cell_h);
         let ((quads, buffers, sigs, borders, cards), (oquads, obuffers, osigs, _, _)) = build_both(
             panes,
@@ -246,6 +261,24 @@ impl CellGrid {
 
     /// Update viewports and prepare GPU uploads for all pane text areas.
     pub fn prepare(&mut self, device: &wgpu::Device, queue: &wgpu::Queue, width: u32, height: u32) {
+        // One-shot atlas prewarm: at startup — and after any font-affecting
+        // change, coalescing the whole setter burst into one pass — the
+        // working set rasterizes here, through the same presmooth-seeded
+        // path as the real panes below, so later frames find their glyphs
+        // already packed and no grow churn lands mid-interaction.
+        if self.needs_prewarm {
+            self.needs_prewarm = false;
+            let params = self.font_params();
+            crate::prewarm::prewarm(
+                device,
+                queue,
+                &mut self.font_system,
+                &mut self.atlas,
+                &self.viewport,
+                &mut self.swash,
+                &params,
+            );
+        }
         let w = width as f32;
         let h = height as f32;
         self.quad_layer.set_viewport(queue, w, h);
