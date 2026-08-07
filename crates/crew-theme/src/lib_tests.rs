@@ -30,7 +30,7 @@ fn only_the_crt_presets_carry_the_crt_style() {
 }
 
 #[test]
-fn the_four_phosphors_have_distinct_personalities() {
+fn the_five_phosphors_have_distinct_personalities() {
     // The whole point of `CrtStyle` over four global constants: no two
     // phosphors may share identical tunings (a done-criterion of the
     // holographic overhaul goal).
@@ -38,7 +38,7 @@ fn the_four_phosphors_have_distinct_personalities() {
         .iter()
         .filter_map(|id| id.theme().crt.map(|s| (id.as_str(), s)))
         .collect();
-    assert_eq!(styles.len(), 4);
+    assert_eq!(styles.len(), 5);
     for (i, (an, a)) in styles.iter().enumerate() {
         for (bn, b) in &styles[i + 1..] {
             assert_ne!(a, b, "{an} and {bn} share an identical CrtStyle");
@@ -67,7 +67,7 @@ fn next_cycles_through_all_and_wraps() {
         id = id.next();
     }
     assert_eq!(id, ThemeId::PaperDark);
-    assert_eq!(ThemeId::CrtViolet.next(), ThemeId::PaperDark); // last wraps to first
+    assert_eq!(ThemeId::CrtPaperwhite.next(), ThemeId::PaperDark); // last wraps to first
 }
 
 #[test]
@@ -212,6 +212,9 @@ fn u8_mapping_round_trips_all_ids() {
     assert_eq!(ThemeId::from_u8(10), ThemeId::SalmonBroadsheet);
     assert_eq!(ThemeId::from_u8(11), ThemeId::ColdpressGray);
     assert_eq!(ThemeId::from_u8(12), ThemeId::IvoryLedger);
+    assert_eq!(ThemeId::from_u8(13), ThemeId::MossBlotter);
+    assert_eq!(ThemeId::from_u8(14), ThemeId::GlacierBond);
+    assert_eq!(ThemeId::from_u8(15), ThemeId::CrtPaperwhite);
     set_theme(ThemeId::PaperDark);
 }
 

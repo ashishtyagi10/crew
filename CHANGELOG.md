@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.13.8
+
+Three new themes. `crt-paperwhite` is the fifth phosphor — the P4 white
+tube of the early Macintosh and the VT420: near-white ink with the faintest
+blue-gray cast on a true black tube, fine scanlines, a modest cool halo and
+the steadiest beam of the family. `moss-blotter` joins the dark papers: a
+deep desaturated moss-green desk blotter with warm paper-white ink and
+botanical accents — the study-lamp page. `glacier-bond` joins the light
+papers: a cold blue-gray bond page, like overcast north light on cold-press
+stock, with crisp near-black ink and slate-blue accents — where
+coldpress-gray is strictly neutral, this one deliberately runs cold. All
+three pass the palette arbiter's contrast floors and slot into the
+dark/light/crt rotation pools.
+
 ## 0.13.7
 
 Prewarmed glyph atlas. The first frames used to pay for every glyph in

@@ -3,8 +3,8 @@
 //! invalidate.
 //!
 //! Code and marker colours START from the theme's own 16-slot ANSI palette
-//! rather than from new `Theme` fields: all 13 presets already tune those
-//! slots, so a new field would be 13 values to hand-maintain.
+//! rather than from new `Theme` fields: all 16 presets already tune those
+//! slots, so a new field would be 16 values to hand-maintain.
 //!
 //! But a starting point is not an answer. The CRT presets are single-phosphor
 //! by design — CRT_GREEN's "cyan" is (0, 255, 200) against an `ink` of
@@ -121,7 +121,7 @@ fn separated_to(c: Color, t: &Theme, floor: f32, page_floor: f32) -> Color {
 }
 
 /// Derive one preset's semantic colours. Pure in `t` so the floor can be
-/// asserted for all 13 presets without touching the global theme atomic.
+/// asserted for all 16 presets without touching the global theme atomic.
 fn derive(t: &Theme) -> Ink {
     Ink {
         code: separated(t.ansi[6], t),
@@ -129,7 +129,7 @@ fn derive(t: &Theme) -> Ink {
         quote: separated(t.text_muted, t),
         code_bg: crate::anim::lerp_rgb(t.page_bg, t.ink, CODE_BG_MIX),
         // Syntax classes, from the theme's own slots for the same reason the
-        // rest are: 13 presets already tune them, and a single-phosphor tube
+        // rest are: 16 presets already tune them, and a single-phosphor tube
         // keeps its hue for free. Each still goes through `separated`, so a
         // token colour can never collapse into body text.
         // The ladder. Comments sit furthest back, strings between, plain code
@@ -165,7 +165,7 @@ pub(crate) fn token_fg(token: crate::md::syntax::Token) -> Color {
     }
 }
 
-/// Every preset's derived colours, computed once on first use. All 13 up
+/// Every preset's derived colours, computed once on first use. All 16 up
 /// front rather than lazily per theme: they are static data, the whole table
 /// costs one pass, and it keeps the live-`/theme` read down to an index.
 fn table() -> &'static [Ink; ALL_THEMES.len()] {

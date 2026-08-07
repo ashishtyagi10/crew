@@ -114,8 +114,9 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "Menlo",
             "Noto Sans Mono",
         ],
-        // Coldpress: flat, drafting-table — geometric and even.
-        ThemeId::ColdpressGray => &[
+        // Coldpress / glacier: flat, drafting-table — geometric and even
+        // (glacier-bond is the cold blue-cast cousin of coldpress-gray).
+        ThemeId::ColdpressGray | ThemeId::GlacierBond => &[
             "FiraCode Nerd Font Mono",
             "Fira Code",
             "Google Sans Code",
@@ -134,7 +135,8 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "Menlo",
             "Noto Sans Mono",
         ],
-        ThemeId::IvoryLedger => &[
+        // (moss-blotter shares the ledger's study-desk character.)
+        ThemeId::IvoryLedger | ThemeId::MossBlotter => &[
             "IBM Plex Mono",
             "SF Mono",
             "Comic Mono",
@@ -145,7 +147,11 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
         // CRT: a terminal face with squared-off shoulders — straight modern
         // faces (the old `Monaco` lead was a pre-Retina relic; Lilex is the
         // contemporary take on that IBM-terminal DNA).
-        ThemeId::CrtGreen | ThemeId::CrtAmber | ThemeId::CrtBlue | ThemeId::CrtViolet => &[
+        ThemeId::CrtGreen
+        | ThemeId::CrtAmber
+        | ThemeId::CrtBlue
+        | ThemeId::CrtViolet
+        | ThemeId::CrtPaperwhite => &[
             "Lilex",
             "Lilex Nerd Font",
             "JetBrainsMono NF",
