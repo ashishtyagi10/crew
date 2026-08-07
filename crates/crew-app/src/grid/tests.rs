@@ -1,3 +1,4 @@
+use super::compose::MIN_STRIP_TILE_COLS;
 use super::*;
 
 #[test]
@@ -103,7 +104,7 @@ fn content() -> Rect {
 #[test]
 fn compose_empty_is_empty() {
     let g = GridLayout::new();
-    let out = compose_grid(content(), &g, 16.0, 8.0);
+    let out = compose_grid(content(), &g, 8.0, 16.0, 8.0);
     assert!(out.full.is_empty());
     assert!(out.minimized.is_empty());
 }
@@ -112,7 +113,7 @@ fn compose_empty_is_empty() {
 fn compose_no_minimized_uses_full_height() {
     let mut g = GridLayout::new();
     g.add(0);
-    let out = compose_grid(content(), &g, 16.0, 8.0);
+    let out = compose_grid(content(), &g, 8.0, 16.0, 8.0);
     assert_eq!(out.full.len(), 1);
     assert!(out.minimized.is_empty());
     assert_eq!(out.full[0].0, 0); // index preserved
@@ -126,7 +127,7 @@ fn compose_reserves_strip_when_minimized_present() {
     for idx in 0..7 {
         g.add(idx);
     }
-    let out = compose_grid(content(), &g, 16.0, 8.0);
+    let out = compose_grid(content(), &g, 8.0, 16.0, 8.0);
     assert_eq!(out.full.len(), 6);
     assert_eq!(out.minimized.len(), 1);
     // The full grid sits entirely above the strip.
@@ -151,7 +152,7 @@ fn compose_full_indices_sorted_stable() {
     g.add(0);
     g.add(1);
     g.add(2);
-    let out = compose_grid(content(), &g, 16.0, 8.0);
+    let out = compose_grid(content(), &g, 8.0, 16.0, 8.0);
     let ids: Vec<usize> = out.full.iter().map(|(id, _)| *id).collect();
     assert_eq!(ids, vec![0, 1, 2]);
 }
@@ -164,27 +165,90 @@ fn compose_minimized_indices_sorted_stable() {
     for idx in 0..8 {
         g.add(idx); // LRU front->back: 7..0; full = 7,6,5,4,3,2 ; min = 1,0
     }
-    let out = compose_grid(content(), &g, 16.0, 8.0);
+    let out = compose_grid(content(), &g, 8.0, 16.0, 8.0);
     let ids: Vec<usize> = out.minimized.iter().map(|(id, _)| *id).collect();
     assert_eq!(ids, vec![0, 1]);
 }
 
 #[test]
+fn uncrowded_strip_shows_everyone_with_no_overflow() {
+    let mut g = GridLayout::new();
+    for idx in 0..8 {
+        g.add(idx); // 2 minimized — plenty of room at 800px
+    }
+    let out = compose_grid(content(), &g, 8.0, 16.0, 8.0);
+    assert_eq!(out.minimized.len(), 2);
+    assert!(out.overflow.is_none());
+}
+
+#[test]
+fn crowded_strip_caps_tiles_at_a_readable_width_and_reports_overflow() {
+    // 20 panes → 14 minimized. At cw=8 a readable tile needs
+    // MIN_STRIP_TILE_COLS*8 = 112px (+gap), so 800px holds 6 slots: 5
+    // thumbnails plus the `+N` overflow tile standing in for the other 9.
+    let mut g = GridLayout::new();
+    for idx in 0..20 {
+        g.add(idx);
+    }
+    let out = compose_grid(content(), &g, 8.0, 16.0, 8.0);
+    assert_eq!(out.minimized.len(), 5);
+    let (hidden, or) = out.overflow.expect("crowded strip must overflow");
+    assert_eq!(hidden, 9);
+    // Every drawn tile keeps a readable width — no slivers.
+    for (_, r) in &out.minimized {
+        assert!(
+            r.w + 0.5 >= MIN_STRIP_TILE_COLS * 8.0,
+            "thumbnail shrank below the readable floor: {}px",
+            r.w
+        );
+    }
+    // The overflow tile takes the rightmost slot.
+    let last_shown = out.minimized.iter().map(|(_, r)| r.x).fold(0.0, f32::max);
+    assert!(or.x > last_shown, "overflow tile must sit rightmost");
+}
+
+#[test]
+fn crowded_strip_membership_follows_the_lru_display_stays_sorted() {
+    // Panes 0..20 added in order: most-recently-active minimized panes are
+    // 13,12,11,10,9 — they stay visible; display order is still sorted by
+    // pane index so thumbnails never jump.
+    let mut g = GridLayout::new();
+    for idx in 0..20 {
+        g.add(idx);
+    }
+    let out = compose_grid(content(), &g, 8.0, 16.0, 8.0);
+    let ids: Vec<usize> = out.minimized.iter().map(|(id, _)| *id).collect();
+    assert_eq!(ids, vec![9, 10, 11, 12, 13]);
+    // Touching an overflowed pane brings it back into the visible strip.
+    g.touch(0);
+    let out = compose_grid(content(), &g, 8.0, 16.0, 8.0);
+    let ids: Vec<usize> = out.minimized.iter().map(|(id, _)| *id).collect();
+    assert!(ids.contains(&14), "demoted pane 14 joins the strip");
+}
+
+#[test]
 fn strip_row_clamps_negative_width() {
-    // With many minimized panes and a large gap, tile_w < 2*gap would produce
-    // negative widths without the clamp. Verify rects are always non-negative.
+    // Even in a degenerately narrow content rect (one slot, big gap), rects
+    // must stay non-negative.
     let mut g = GridLayout::new();
     for idx in 0..200 {
         g.add(idx);
     }
-    // 194 minimized panes in a 200px-wide content rect with gap=8 → tiles < 2px
-    let c = content();
-    let out = compose_grid(c, &g, 16.0, 8.0);
+    let c = Rect {
+        x: 0.0,
+        y: 0.0,
+        w: 20.0,
+        h: 600.0,
+    };
+    let out = compose_grid(c, &g, 8.0, 16.0, 8.0);
     for (_, r) in &out.minimized {
         assert!(
             r.w >= 0.0,
             "minimized rect width must be non-negative, got {}",
             r.w
         );
+    }
+    if let Some((_, r)) = out.overflow {
+        assert!(r.w >= 0.0);
     }
 }

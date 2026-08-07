@@ -77,7 +77,7 @@ impl CrewApp {
         let Some((_cw, ch, sw, sh, scale)) = self.frame_geometry() else {
             return false;
         };
-        let ih = chrome::input_h(ch);
+        let ih = chrome::bottom_chrome_h(sh, ch, GAP);
         let content =
             chrome::content_rect(sw, sh, self.config.show_nav, self.nav_px(scale), GAP, ih);
         let ib = chrome::inputbar_rect(content, sh, ch, GAP);
@@ -89,7 +89,7 @@ impl CrewApp {
     /// both full-size tiles and minimized strip thumbnails.
     pub(crate) fn pane_at_cursor(&self) -> Option<usize> {
         let (_cw, ch, sw, sh, scale) = self.frame_geometry()?;
-        let ih = chrome::input_h(ch);
+        let ih = chrome::bottom_chrome_h(sh, ch, GAP);
         let c = chrome::content_rect(sw, sh, self.config.show_nav, self.nav_px(scale), GAP, ih);
         if !chrome::point_in(c, self.cursor.0, self.cursor.1) {
             return None;

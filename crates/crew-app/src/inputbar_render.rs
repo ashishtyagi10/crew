@@ -5,7 +5,7 @@
 use crew_render::CellView;
 
 use crate::boxdraw::titled_card;
-use crate::chatwidth::{char_w, place_row, str_w};
+use crate::chatwidth::{char_w, clip_w, place_row, str_w};
 use crate::inputbar::InputBar;
 use crate::palette::accent;
 
@@ -38,7 +38,7 @@ impl InputBar {
             // Keep the tail (current dir) when the path is deeper than the card.
             crate::cwd::fit_legend(
                 &crate::cwd::display(&self.cwd),
-                cols.saturating_sub(6) as usize,
+                crate::boxdraw::title_budget(cols),
             )
         };
         let border = if self.focused {
@@ -146,26 +146,6 @@ impl InputBar {
         }
         out
     }
-}
-
-/// Truncate `s` to `max` display columns, keeping the head and marking the cut
-/// with `…` — wide glyphs count two, so a CJK pane title clips on a boundary
-/// rather than half a cell past it.
-fn clip_w(s: &str, max: usize) -> String {
-    if str_w(s) <= max || max == 0 {
-        return s.to_string();
-    }
-    let mut out = String::new();
-    let mut w = 0;
-    for c in s.chars() {
-        if w + char_w(c) > max.saturating_sub(1) {
-            break;
-        }
-        w += char_w(c);
-        out.push(c);
-    }
-    out.push('\u{2026}');
-    out
 }
 
 fn cell(col: u16, row: u16, c: char, fg: (u8, u8, u8)) -> CellView {

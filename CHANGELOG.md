@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.14.0
+
+One spacing rhythm across the canvas. Three layout-rhythm fixes close out
+the 0.13.x look-and-feel loop. Legends now ellipsize instead of colliding
+with the frame: a title too long for its card ends `… ─╮` — width-aware, so
+emoji/CJK clip on a cell boundary — with the trailing rule always resuming
+before the corner, and every card (panes, strip thumbnails, toasts, sidebar,
+input bar) goes through the same `title_budget`/`clip_w` pair, replacing
+three near-identical private clippers. The grid now sits exactly one gap
+above the input bar at every font size: the content area's bottom edge is
+derived from the bar's real cell-quantized top instead of a fixed reserve,
+so the seam no longer wanders with the cell-height remainder (it ranged
+2–22px, and could crush to nothing at large fonts). And a crowded minimized
+strip caps its thumbnails at a readable width — the most-recently-active
+minimized panes keep their cards, display order stays sorted, and a
+trailing `+N` tile stands in for the rest, which remain one click away in
+the sidebar's PANES list.
+
 ## 0.13.9
 
 Font smoothing joins the Settings form. The flagship v0.12.5 stem-darkening

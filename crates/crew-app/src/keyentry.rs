@@ -155,7 +155,7 @@ impl KeyEntry {
         // treatment `inputbar_render.rs` gives the cwd legend.
         let title = crate::cwd::fit_legend(
             &format!("paste {}", self.var),
-            cols.saturating_sub(6) as usize,
+            crate::boxdraw::title_budget(cols),
         );
         let mut cells = crate::boxdraw::titled_card(
             cols,
