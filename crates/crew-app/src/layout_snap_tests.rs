@@ -80,7 +80,7 @@ fn minimized_strip_rects_land_on_device_pixels() {
         h: 601.3,
     };
     // Fractional cell height: the strip offset (rows * 16.3) is fractional.
-    let out = compose_grid(content, &g, 16.3, 8.0);
+    let out = compose_grid(content, &g, 8.1, 16.3, 8.0);
     for (_, r) in out.full.iter().chain(out.minimized.iter()) {
         assert_on_grid(r);
     }

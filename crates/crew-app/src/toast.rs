@@ -12,7 +12,7 @@ use crew_render::{CellView, PaneScene};
 
 use crate::anim::lerp_rgb;
 use crate::boxdraw::titled_card;
-use crate::chatwidth::{char_w, place_row, str_w};
+use crate::chatwidth::{clip_w, place_row, str_w};
 use crate::ease::Timeline;
 use crate::layout::Rect;
 
@@ -92,7 +92,7 @@ pub(crate) fn push_toasts(
     let max_cols = (((content.w - 2.0 * gap) / cw).floor() as usize).min(MAX_TEXT_COLS + 4);
     let mut y = content.y + gap;
     for t in &toasts.items {
-        let text = clip_cols(&t.text, max_cols.saturating_sub(4));
+        let text = clip_w(&t.text, max_cols.saturating_sub(4));
         let cols = (str_w(&text) + 4).min(max_cols) as u16;
         if cols < 6 {
             continue;
@@ -154,25 +154,6 @@ fn card_cells(text: &str, legend: &str, alert: bool, cols: u16, fade: f32) -> Ve
         });
     });
     cells
-}
-
-/// Clip to `max` display columns, marking the cut with `…` (wide glyphs count
-/// two, so CJK clips on a cell boundary).
-fn clip_cols(s: &str, max: usize) -> String {
-    if str_w(s) <= max {
-        return s.to_string();
-    }
-    let mut out = String::new();
-    let mut w = 0;
-    for c in s.chars() {
-        if w + char_w(c) > max.saturating_sub(1) {
-            break;
-        }
-        w += char_w(c);
-        out.push(c);
-    }
-    out.push('\u{2026}');
-    out
 }
 
 #[cfg(test)]

@@ -35,6 +35,30 @@ pub(crate) fn str_w(s: &str) -> usize {
     s.chars().map(char_w).sum()
 }
 
+/// Truncate `s` to `max` display columns, keeping the head and marking the
+/// cut with `…` — wide glyphs count two, so CJK clips on a cell boundary
+/// rather than half a cell past it. The one clip used by every card legend
+/// and toast body, so truncation reads the same everywhere on the canvas.
+pub(crate) fn clip_w(s: &str, max: usize) -> String {
+    if str_w(s) <= max {
+        return s.to_string();
+    }
+    if max == 0 {
+        return String::new();
+    }
+    let mut out = String::new();
+    let mut w = 0;
+    for c in s.chars() {
+        if w + char_w(c) > max - 1 {
+            break;
+        }
+        w += char_w(c);
+        out.push(c);
+    }
+    out.push('\u{2026}');
+    out
+}
+
 /// Place styled chars on one row from `start`, advancing by display width and
 /// stopping before `max_col`; zero-width marks are skipped. Calls
 /// `put(col, ch, style)` per placed char and returns the next free column.
@@ -79,6 +103,18 @@ mod tests {
         // Three wide glyphs: only two fit in 5 columns.
         let wide: Vec<char> = "\u{4e2d}\u{4e2d}\u{4e2d}".chars().collect();
         assert_eq!(fit_end(&wide, 0, 5), 2);
+    }
+
+    #[test]
+    fn clip_w_marks_the_cut_on_a_cell_boundary() {
+        assert_eq!(clip_w("abcdefgh", 5), "abcd…");
+        assert_eq!(clip_w("fits", 5), "fits");
+        // Wide glyphs never split: clipping "日本語" at 5 keeps whole chars.
+        let wide = clip_w("日本語", 5);
+        assert!(str_w(&wide) <= 5);
+        assert!(wide.ends_with('…'));
+        // A zero budget yields nothing at all — not an overflowing '…'.
+        assert_eq!(clip_w("abc", 0), "");
     }
 
     #[test]

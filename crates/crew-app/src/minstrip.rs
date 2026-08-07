@@ -5,7 +5,6 @@
 use crew_render::{CellView, PaneScene};
 
 use crate::attention::Attention;
-use crate::layout::Rect;
 use crate::pane::Pane;
 use crate::panelcard::push_card;
 
@@ -37,16 +36,21 @@ pub fn strip_marker(
     activity.then_some(('●', t.activity))
 }
 
-/// Push one fieldset card per minimized pane into `scenes`.
+/// Push one fieldset card per minimized pane into `scenes` — plus, when the
+/// strip overflowed, a trailing `+N` card standing in for the panes it had no
+/// readable room for (they stay listed in the sidebar's PANES section).
 pub fn push_min_strip(
     scenes: &mut Vec<PaneScene>,
     panes: &[Pane],
-    placed: &[(usize, Rect)],
+    placed: &crate::grid::GridRects,
     cw: f32,
     ch: f32,
 ) {
+    if let Some((n, rect)) = placed.overflow {
+        push_card(scenes, rect, cw, ch, &format!("+{n}"), |_, _| Vec::new());
+    }
     let now = crate::anim::now_ms();
-    for &(idx, rect) in placed {
+    for &(idx, rect) in &placed.minimized {
         let Some(p) = panes.get(idx) else { continue };
         let title = p.title_text();
         let marker = strip_marker(p.activity, p.attention, crate::paneview::pane_busy(p), now);

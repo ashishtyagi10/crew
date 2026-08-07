@@ -91,16 +91,15 @@ impl CrewApp {
     }
 }
 
-/// Available title character budget for the parked-update legend, mirroring
-/// the column math `panelcard::push_card_titled` feeds into
-/// `boxdraw::titled_card` → `section_header`: the card's total column count
-/// is `card_inner_cells(rect, cw, ch).0 + 2` (the two border columns), and
-/// `section_header` spends 4 of those on non-title glyphs — the leading
-/// rule char, a space on each side of the title, and the right corner —
-/// leaving `total_cols - 4 == inner_cols - 2` for the title text itself.
+/// Available title column budget for the parked-update legend: the card's
+/// total column count is `card_inner_cells(rect, cw, ch).0 + 2` (the two
+/// border columns), and [`crate::boxdraw::title_budget`] is the single
+/// authority on how many of those a legend may use before it ellipsizes —
+/// pre-fitting keeps the restart note's version-preserving shortening
+/// ahead of the generic `…` clip.
 fn title_max_cols(rect: Rect, cw: f32, ch: f32) -> usize {
     let (icols, _) = crate::layout::card_inner_cells(rect.w, rect.h, cw, ch);
-    icols.saturating_sub(2) as usize
+    crate::boxdraw::title_budget(icols + 2)
 }
 
 #[cfg(test)]
@@ -135,7 +134,8 @@ mod tests {
         );
         assert_eq!(cells.iter().filter(|c| c.c == 'x').count(), max);
 
-        // One char more than `max` gets truncated back down to `max`.
+        // One char more than `max` gets ellipsized back down to `max` total
+        // columns: `max - 1` kept chars plus the `…` marker.
         let overflows: String = "x".repeat(max + 1);
         let cells2 = crate::boxdraw::titled_card(
             icols + 2,
@@ -145,7 +145,8 @@ mod tests {
             (0, 0, 0),
             (0, 0, 0),
         );
-        assert_eq!(cells2.iter().filter(|c| c.c == 'x').count(), max);
+        assert_eq!(cells2.iter().filter(|c| c.c == 'x').count(), max - 1);
+        assert_eq!(cells2.iter().filter(|c| c.c == '…').count(), 1);
     }
 
     fn far_pane(name: &str) -> Pane {

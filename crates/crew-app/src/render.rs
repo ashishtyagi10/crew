@@ -95,7 +95,7 @@ impl CrewApp {
             )
         };
         if !self.zoomed {
-            crate::minstrip::push_min_strip(&mut scenes, &self.panes, &placed.minimized, cw, ch);
+            crate::minstrip::push_min_strip(&mut scenes, &self.panes, &placed, cw, ch);
         }
 
         if self.panes.is_empty() {

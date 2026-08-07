@@ -38,11 +38,11 @@ impl CrewApp {
     /// can never disagree about where a tile sits. `None` until the renderer
     /// reports a real cell size.
     pub(crate) fn placed_grid(&self) -> Option<(Rect, crate::grid::GridRects)> {
-        let (_cw, ch, sw, sh, scale) = self.frame_geometry()?;
-        let ih = chrome::input_h(ch);
+        let (cw, ch, sw, sh, scale) = self.frame_geometry()?;
+        let ih = chrome::bottom_chrome_h(sh, ch, GAP);
         let content =
             chrome::content_rect(sw, sh, self.config.show_nav, self.nav_px(scale), GAP, ih);
-        Some((content, compose_grid(content, &self.grid, ch, GAP)))
+        Some((content, compose_grid(content, &self.grid, cw, ch, GAP)))
     }
 
     /// Returns the actual on-screen rect for every rendered pane, as

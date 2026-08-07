@@ -127,11 +127,22 @@ fn alert_toasts_border_in_the_bell_color() {
 
 #[test]
 fn long_text_clips_on_a_cell_boundary_with_ellipsis() {
-    let clipped = clip_cols("abcdefgh", 5);
-    assert_eq!(clipped, "abcd…");
-    assert!(str_w(&clipped) <= 5);
-    // Wide glyphs never split: clipping "日本語" at 5 keeps whole chars.
-    let wide = clip_cols("日本語", 5);
-    assert!(str_w(&wide) <= 5);
-    assert!(wide.ends_with('…'));
+    // The clip itself lives in `chatwidth::clip_w` (shared with every card
+    // legend); here we assert the toast body actually goes through it.
+    let mut t = Toasts::default();
+    t.push("x".repeat(MAX_TEXT_COLS + 20), "note", false, 1_000);
+    let mut scenes = Vec::new();
+    let content = Rect {
+        x: 0.0,
+        y: 0.0,
+        w: 800.0,
+        h: 600.0,
+    };
+    push_toasts(&mut scenes, &mut t, content, 8.0, 16.0, 2_000);
+    let s = &scenes[0];
+    assert_eq!(s.w, (MAX_TEXT_COLS + 4) as f32 * 8.0, "card caps its width");
+    assert!(
+        s.cells.iter().any(|c| c.row == 1 && c.c == '…'),
+        "over-wide toast text must end in an ellipsis"
+    );
 }
