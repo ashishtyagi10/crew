@@ -16,6 +16,7 @@ pub(crate) fn label_of(f: Field) -> &'static str {
     match f {
         Field::FontFamily => "Font family",
         Field::FontSize => "Font size",
+        Field::Smooth => "Smoothing",
         Field::NavWidth => "Nav width",
         Field::ShowNav => "Show nav",
         Field::Theme => "Theme",
@@ -44,6 +45,13 @@ pub(crate) fn value_of(p: &SettingsPane, f: Field) -> (String, bool) {
     match f {
         Field::FontFamily => (p.family_query.clone(), true),
         Field::FontSize => (p.size_buf.clone(), true),
+        Field::Smooth => (
+            format!(
+                "\u{2039} {} \u{203a}",
+                crate::smoothlvl::label_of(p.draft.font_smooth)
+            ),
+            false,
+        ),
         Field::NavWidth => (p.nav_buf.clone(), true),
         Field::ShowNav => (onoff(p.draft.show_nav), false),
         Field::Theme => (

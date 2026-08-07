@@ -417,7 +417,8 @@ trips. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
 ## Settings
 
 `/settings` opens a **two-column bento form** covering every configurable
-property: font family/size, nav width + visibility, theme, accent, paper
+property: font family/size, font smoothing (the `/smooth` ladder), nav width +
+visibility, theme, accent, paper
 texture + grain, launch-maximized, and the whole notification block (master +
 per-event toggles, min-secs threshold, watched output patterns as a
 one-per-line text area). **Cmd+S / Alt+S** saves. Settings persist to

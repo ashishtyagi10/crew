@@ -3,13 +3,17 @@
 //! with boxed inputs, checkboxes, a notify-patterns text area, Tab/wheel
 //! navigation, a type-to-search font-family dropdown, and Save (Cmd+S /
 //! Alt+S) / Cancel (Esc).
+mod cards;
 mod commit;
+mod cycle;
 mod dropdown;
 mod form;
 mod keys;
 mod render;
 
 use crew_render::CellView;
+#[cfg(test)]
+pub(crate) use cycle::cycle_value;
 use winit::event::KeyEvent;
 
 use crate::config::CrewConfig;
@@ -22,6 +26,7 @@ pub(crate) const DEFAULT_FAMILY_LABEL: &str = "System monospace";
 pub(crate) enum Field {
     FontFamily,
     FontSize,
+    Smooth,
     NavWidth,
     ShowNav,
     Theme,
@@ -42,9 +47,10 @@ pub(crate) enum Field {
     Cancel,
 }
 
-pub(crate) const FIELDS: [Field; 20] = [
+pub(crate) const FIELDS: [Field; 21] = [
     Field::FontFamily,
     Field::FontSize,
+    Field::Smooth,
     Field::NavWidth,
     Field::WindowOpacity,
     Field::ShowNav,

@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.13.9
+
+Font smoothing joins the Settings form. The flagship v0.12.5 stem-darkening
+was `/smooth`-only — invisible unless you knew the command. The APPEARANCE
+card now carries a **Smoothing** picker (`off · light · medium · heavy`,
+Space/←/→ to cycle) sitting under the font fields. It reads and writes the
+same `font_smooth` key as `/smooth` — the keyword ladder now lives in one
+shared table, so the two surfaces cannot drift — a custom `/smooth 42`
+strength shows as its number and is left alone until you actually cycle it,
+and Save applies live through the same renderer path the command uses.
+
 ## 0.13.8
 
 Three new themes. `crt-paperwhite` is the fifth phosphor — the P4 white

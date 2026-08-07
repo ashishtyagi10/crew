@@ -175,10 +175,10 @@ fn glass_cycles_through_every_level_both_ways() {
     focus(&mut p, Field::Glass);
     // Default is medium; forward wraps high → off.
     for want in ["high", "off", "low", "medium"] {
-        super::keys::cycle_value(&mut p, false);
+        super::cycle::cycle_value(&mut p, false);
         assert_eq!(p.draft.glass, want);
     }
-    super::keys::cycle_value(&mut p, true);
+    super::cycle::cycle_value(&mut p, true);
     assert_eq!(p.draft.glass, "low", "Left must step backward");
 }
 
@@ -191,8 +191,73 @@ fn glass_level_and_window_opacity_are_independent() {
     p.opacity_buf = "80".into();
     commit_field(&mut p);
     focus(&mut p, Field::Glass);
-    super::keys::cycle_value(&mut p, false);
+    super::cycle::cycle_value(&mut p, false);
     assert!((p.draft.window_opacity - 0.80).abs() < 1e-6);
+}
+
+#[test]
+fn smooth_cycles_the_named_ladder_both_ways() {
+    let mut p = pane();
+    focus(&mut p, Field::Smooth);
+    // Default is medium (100); forward wraps heavy → off.
+    for want in [170u8, 0, 60, crew_render::DEFAULT_SMOOTH] {
+        super::cycle::cycle_value(&mut p, false);
+        assert_eq!(p.draft.font_smooth, want);
+    }
+    super::cycle::cycle_value(&mut p, true);
+    assert_eq!(p.draft.font_smooth, 60, "Left must step backward");
+}
+
+/// A `/smooth 42` custom strength survives opening the form untouched — the
+/// picker only moves the value when the user actually cycles it.
+#[test]
+fn smooth_custom_strength_is_kept_until_cycled() {
+    let cfg = CrewConfig {
+        font_smooth: 42,
+        ..Default::default()
+    };
+    let mut p = SettingsPane::new(cfg, Vec::new());
+    focus(&mut p, Field::Smooth);
+    commit_field(&mut p); // focus-commit must not disturb it
+    assert_eq!(p.draft.font_smooth, 42);
+    super::cycle::cycle_value(&mut p, false);
+    assert_eq!(p.draft.font_smooth, 60, "cycling joins the named ladder");
+}
+
+/// The saved config must carry the smoothing pick through `clamped()` — a
+/// literal there (the `last_seen_version` bug) would silently reset it, and
+/// the field would look editable while changing nothing.
+#[test]
+fn save_applies_the_smooth_pick_through_clamped() {
+    let mut p = pane();
+    focus(&mut p, Field::Smooth);
+    super::cycle::cycle_value(&mut p, false); // medium → heavy
+    let SettingsAction::Apply(cfg) = p.save() else {
+        panic!("save must apply");
+    };
+    assert_eq!(cfg.font_smooth, 170);
+}
+
+/// Parity with `/smooth`: both surfaces read and write `font_smooth`, so a
+/// strength set by the command is what the form shows, and vice versa.
+#[test]
+fn smooth_field_and_command_share_the_config_key() {
+    let cfg = CrewConfig {
+        font_smooth: crate::smoothlvl::strength_of("heavy").unwrap(),
+        ..Default::default()
+    };
+    let mut p = SettingsPane::new(cfg, Vec::new());
+    assert_eq!(p.draft.font_smooth, 170, "command's value reaches the form");
+    focus(&mut p, Field::Smooth);
+    super::cycle::cycle_value(&mut p, false); // heavy wraps → off
+    let SettingsAction::Apply(out) = p.save() else {
+        panic!("save must apply");
+    };
+    assert_eq!(
+        crate::smoothlvl::label_of(out.font_smooth),
+        "off",
+        "form's value is what /smooth would then report"
+    );
 }
 
 #[test]
@@ -213,6 +278,7 @@ fn every_config_property_is_editable_in_the_form() {
     for f in [
         Field::FontFamily,
         Field::FontSize,
+        Field::Smooth,
         Field::NavWidth,
         Field::ShowNav,
         Field::Theme,

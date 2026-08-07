@@ -315,6 +315,8 @@ The docked command bar supports:
   Terminal.app or Ghostty (crew also renders unhinted, like CoreText, at every
   strength — including `off`). Live and persisted; no argument reports the
   current strength; selecting `/smooth` in the palette opens a value picker.
+  The named ladder is also the **Smoothing** field in `/settings` — both write
+  the same `font_smooth` key.
 - **`/only`** — closes every pane except the focused one (a quick "focus mode");
   a no-op when only one pane is open.
 - **File operations live in Far and Cmd+click**, not slash commands: the old
@@ -1027,7 +1029,10 @@ stacked on the right (collapsing to one column on a narrow pane); Tab/wheel
 move focus, Enter commits a field, **Cmd+S / Alt+S** saves and closes:
 
 - **APPEARANCE** — **Font family** (type-to-search over installed monospace
-  families), **Font size**, **Paper grain** (0–2 amplitude), **Theme**
+  families), **Font size**, **Paper grain** (0–2 amplitude), **Smoothing**
+  (←/→/Space cycle `off · light · medium · heavy` — the same ladder and
+  `font_smooth` key as `/smooth`; a custom numeric strength shows as its
+  number), **Theme**
   (←/→/Space cycle through the nine presets), **Accent (#hex)** (override the
   theme accent; clear to use the default), **Glass** (←/→/Space cycle
   `off · low · medium · high`), **Motion** (`off · subtle · full`),
