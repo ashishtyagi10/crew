@@ -167,6 +167,7 @@ impl CrewApp {
         let mut far_action: Option<crate::farpane::FarAction> = None;
         let mut chat_action: Option<crate::chatkeys::ChatAction> = None;
         let mut view_action: Option<crate::viewpane::ViewAction> = None;
+        let mut todo_action: Option<crate::todopane::TodoAction> = None;
         let mut is_terminal = false;
         let mut swarm_close = false;
         if let Some(pane) = self.panes.get_mut(focused) {
@@ -191,6 +192,7 @@ impl CrewApp {
                     view_action =
                         v.on_key(event, pane.grid.cols, pane.grid.rows, mstate.control_key())
                 }
+                PaneContent::Todo(t) => todo_action = t.on_key(event, pane.grid.rows),
             }
         }
         if swarm_close {
@@ -221,6 +223,9 @@ impl CrewApp {
                 }
                 ViewAction::Edit(p) => self.apply_view_edit(focused, &p),
             }
+        }
+        if let Some(crate::todopane::TodoAction::Close) = todo_action {
+            self.close_pane(focused);
         }
         if is_terminal {
             if let Some(bytes) = key_to_bytes(event, mstate.control_key(), shift) {

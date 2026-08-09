@@ -68,6 +68,16 @@ impl SavedPane {
             remote: false,
         }
     }
+    /// A todo pane — its list lives in the global store, so presence is all
+    /// the snapshot needs.
+    pub(crate) fn todo() -> Self {
+        SavedPane {
+            kind: "todo".into(),
+            dir: None,
+            min: false,
+            remote: false,
+        }
+    }
     /// A file-viewer pane. `dir` carries the **full resolved path** of the
     /// file it had open — not a cwd-relative one, since the cwd at restore
     /// time may not be the cwd it was opened from.
@@ -92,7 +102,7 @@ impl SavedPane {
         match self.kind.as_str() {
             "far" if self.remote => self.dir.as_deref().is_some_and(|d| !d.is_empty()),
             "shell" | "far" | "view" => self.dir.as_deref().is_some_and(|d| exists(Path::new(d))),
-            "crew" => true,
+            "crew" | "todo" => true,
             _ => false,
         }
     }

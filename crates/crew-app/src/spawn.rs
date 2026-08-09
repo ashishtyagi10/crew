@@ -165,6 +165,29 @@ impl CrewApp {
         self.focus_new_pane();
     }
 
+    /// Spawn the todo-list pane (the shared store loads on open) and focus it.
+    pub(crate) fn spawn_todo_pane(&mut self) {
+        let grid = self
+            .renderer
+            .as_ref()
+            .map(Self::current_grid)
+            .unwrap_or(FALLBACK_SIZE);
+        self.panes.push(Pane {
+            content: PaneContent::Todo(crate::todopane::TodoPane::new()),
+            grid,
+            rect: PLACEHOLDER_RECT,
+            label: None,
+            name: None,
+            dir: None,
+            activity: false,
+            bell: false,
+            hidden: false,
+            attention: None,
+            born_ms: crate::anim::now_ms(),
+        });
+        self.focus_new_pane();
+    }
+
     /// Spawn a Far dual-pane file-manager pane rooted at Crew's cwd, and focus it.
     pub(crate) fn spawn_far_pane(&mut self) {
         let grid = self

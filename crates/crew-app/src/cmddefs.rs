@@ -123,6 +123,10 @@ pub(crate) const COMMANDS: &[Cmd] = &[
         desc: "Open a dual-pane file manager",
     },
     Cmd {
+        name: "/todo",
+        desc: "Todo list — type to add; due dates (tomorrow 5pm) & @project while typing",
+    },
+    Cmd {
         name: "/model",
         desc: "Set the model for agent smith's agents — pick from the list",
     },

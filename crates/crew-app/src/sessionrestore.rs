@@ -84,6 +84,7 @@ impl CrewApp {
                     PaneContent::View(v) if !v.ephemeral => {
                         Some(SavedPane::view(v.path.to_string_lossy().into_owned()))
                     }
+                    PaneContent::Todo(_) => Some(SavedPane::todo()),
                     _ => None,
                 };
                 sp.map(|mut sp| {
@@ -159,6 +160,7 @@ impl CrewApp {
                 "shell" => self.spawn_new_pane(),
                 "far" => self.spawn_far_pane(),
                 "crew" => self.spawn_crew_pane(),
+                "todo" => self.spawn_todo_pane(),
                 "view" => {
                     if let Some(path) = sp.dir.as_deref() {
                         self.open_view(path);

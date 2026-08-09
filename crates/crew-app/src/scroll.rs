@@ -57,6 +57,7 @@ fn scroll_pane(pane: &mut Pane, lines: i32) {
         // The swarm view always renders the current fleet; nothing to scroll.
         PaneContent::Swarm(_) => {}
         PaneContent::View(v) => v.scroll_wheel(cols, rows, lines),
+        PaneContent::Todo(t) => t.scroll_wheel(lines, rows),
     }
 }
 

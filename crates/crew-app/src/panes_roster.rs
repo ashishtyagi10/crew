@@ -17,6 +17,7 @@ pub(crate) fn card_for(i: usize, p: &Pane, procnames: &ProcNames) -> PaneCard {
         PaneContent::Chat(c) => ("swarm", None, c.is_busy()),
         PaneContent::Swarm(_) => ("swarm", None, false),
         PaneContent::Far(_) => ("far", None, false),
+        PaneContent::Todo(_) => ("todo", None, false),
         _ => ("other", None, false),
     };
     PaneCard {

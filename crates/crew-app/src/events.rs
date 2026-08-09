@@ -86,6 +86,14 @@ impl CrewApp {
                     self.redraw();
                     return;
                 }
+                // A click inside a todo pane acts where it lands (checkbox
+                // toggles, ✗ deletes, a row selects, the composer refocuses)
+                // and focuses the pane; empty regions fall through to the
+                // normal focus/drag path below.
+                if self.todo_click_at_cursor() {
+                    self.redraw();
+                    return;
+                }
                 // A plain click on a foldable system card in a chat pane
                 // toggles its collapse — armed here, fired on RELEASE and
                 // only if the gesture never became a drag (see `chatfold`):
