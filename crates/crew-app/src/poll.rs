@@ -33,7 +33,7 @@ const EDITOR_GRACE_MS: u64 = 2_000;
 /// `restore_from`.
 fn is_restorable_pane(p: &Pane) -> bool {
     match &p.content {
-        PaneContent::Terminal(_) | PaneContent::Far(_) => true,
+        PaneContent::Terminal(_) | PaneContent::Far(_) | PaneContent::Todo(_) => true,
         // Fix 4: an ephemeral viewer (`/about`, `??`) is not what this flag
         // exists to protect — it opens on a changelog/explanation, not
         // something the user asked to view, which is exactly the
@@ -231,6 +231,9 @@ impl CrewApp {
                 // Loading pane lands (or fails), so the frame redraws with
                 // the loaded content.
                 PaneContent::View(v) => v.poll(),
+                // True when the shared todo store's revision moved (another
+                // pane or the due ticker wrote) and this pane resynced.
+                PaneContent::Todo(t) => t.poll(),
             };
             // Follow `cd` inside the pane: a new OSC 7 cwd report retitles the
             // pane to that folder (a `/name` override still wins in title_text).
@@ -247,7 +250,8 @@ impl CrewApp {
             // pane's content is correct whenever it's next drawn, it just
             // doesn't raise attention.
             if i != focused {
-                let is_activity = changed && !matches!(&p.content, PaneContent::View(_));
+                let is_activity =
+                    changed && !matches!(&p.content, PaneContent::View(_) | PaneContent::Todo(_));
                 p.activity |= is_activity;
                 p.bell |= rang;
                 if rang {
@@ -395,6 +399,17 @@ impl CrewApp {
         // true when something actually changed — an idle app stays idle (the
         // attention pulse it raises is bounded, like every other marker).
         any_changed |= self.tick_blocked(crate::anim::now_ms());
+        // Due todos: a coarse once-a-minute pass over the shared store. One
+        // toast per item, once ever (the `notified` flag persists), so a
+        // restart doesn't re-toast the backlog. Costs a lock peek per minute
+        // and nothing per tick.
+        if self.todo_due.due(now_ms) {
+            for title in crate::todopane::store::take_due(now_ms) {
+                self.toasts
+                    .push(title.clone(), "due", true, crate::anim::now_ms());
+                self.set_status(format!("todo due: {title}"));
+            }
+        }
         // Quiet auto-update: fire the same worker the manual /update uses,
         // silently, shortly after launch and then six-hourly. A silent install
         // only parks the nav-legend reminder — the restart below is reserved

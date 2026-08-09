@@ -99,7 +99,8 @@ impl CrewApp {
             PaneContent::Settings(_)
             | PaneContent::Far(_)
             | PaneContent::Swarm(_)
-            | PaneContent::View(_) => return,
+            | PaneContent::View(_)
+            | PaneContent::Todo(_) => return,
         };
         self.set_status(note);
         self.redraw();

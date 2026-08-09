@@ -196,7 +196,7 @@ Slash commands complete the bar (type `/` for a fuzzy palette): `/crew`,
 `/goal <text>`, `/batch <file>`, `/view <file>`, `/md <file>`, `/diff`, `/settings`,
 `/find <text>`, `/findall <text>`, `/name <text>`, `/clear`, `/clearall`, `/clearlog`, `/only`,
 `/copy`, `/dump`, `/closeall`, `/pwd`, `/about`, `/font`, `/theme`, `/notify`,
-`/update`, `/broadcast`, `/zoom`, `/sidebar`, `/keys`, `/far`,
+`/update`, `/broadcast`, `/zoom`, `/sidebar`, `/keys`, `/far`, `/todo`,
 `/exit`. Commands with a fixed value set (like `/theme`) expand into an
 arrow-selectable **value picker**. Fish-style autosuggest from history, `cd`
 completion with `$VAR` expansion, and `Up`/`Down` history recall persisted to
@@ -204,7 +204,10 @@ completion with `$VAR` expansion, and `Up`/`Down` history recall persisted to
 colored git diff (status, stat, full diff) in its own pane — Codex-style
 change review beside your shells; `/view <file>` opens a zoomed **file
 viewer** pane — code, markdown (rendered), CSV, diffs and more, one pane, read
-only (`/md` is kept as an alias).
+only (`/md` is kept as an alias); `/todo` opens a **todo list** pane — type
+`pay rent tomorrow 5pm @home` and the due date and `@project` tag are
+recognised as you type (tinted live, stripped from the title on Enter),
+overdue items surface to the top, and a toast fires when an item comes due.
 
 ## Sidebar
 

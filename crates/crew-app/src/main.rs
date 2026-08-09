@@ -178,6 +178,7 @@ mod swarmshot_tests;
 mod termwrite;
 mod themefade;
 mod toast;
+mod todopane;
 mod toggles;
 mod tui;
 mod update;

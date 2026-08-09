@@ -84,6 +84,7 @@ impl CrewApp {
                     }
                 }
                 PaneContent::Chat(c) => paste_into_chat(c, text),
+                PaneContent::Todo(t) => t.paste(text),
                 PaneContent::Settings(_)
                 | PaneContent::Far(_)
                 | PaneContent::Swarm(_)

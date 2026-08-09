@@ -252,7 +252,7 @@ The docked command bar supports:
   `/md <file>`, `/diff`, `/settings`, `/find <text>`, `/findall <text>`, `/name <text>`, `/clear`, `/clearall`,
   `/clearlog`, `/only`, `/closeall`, `/pwd`, `/about`, `/copy`, `/dump`,
   `/font`, `/theme`, `/notify`, `/update`, `/broadcast`, `/zoom`,
-  `/sidebar`, `/keys`, `/far`, `/exit`. The palette is **fuzzy** — prefix
+  `/sidebar`, `/keys`, `/far`, `/todo`, `/exit`. The palette is **fuzzy** — prefix
   matches rank first,
   then subsequence matches (typing `dmp` after the slash finds `/dump`) — and **scrolls** to the
   selection when the match list is long. When several commands share a prefix,
@@ -395,6 +395,23 @@ The docked command bar supports:
   typing to edit` hint: `Enter` runs it like any typed command, `Esc`
   restores the original `!` text, and typing further just edits the
   suggestion as plain text.
+- **`/todo`** — opens a **todo list** pane over one global list (stored in
+  `$XDG_CONFIG/crew/todos.toml`, shared by every window and pane). Type into
+  its composer and press `Enter` to add an item; a **natural-language due
+  date** anywhere in the text (`tomorrow`, `fri 5pm`, `aug 15`, `in 2 weeks`,
+  `17:30`) is tinted live as you type — the composer's legend previews the
+  parse (`due fri 17:00`) — and is stripped from the title on save, and an
+  **`@project`** token becomes a free-form tag (a popup completes tags
+  already in use; a new word after `@` creates one). The list sorts overdue
+  (bell-coloured) → upcoming by due → undated, with done items sunk and
+  dimmed. `↑`/`↓`/`Tab` move between composer and rows; on a row
+  `Space`/`Enter` toggle done, `d`/`Backspace` delete, `e` re-opens the item
+  in the composer for editing; the mouse works too — click the `[ ]`
+  checkbox to toggle, the `✗` at the row's end to delete. A lone `@tag` +
+  `Enter` filters the list to that project (`@` alone clears the filter).
+  When an item's due time passes while crew runs, a one-time **`due` toast**
+  fires (persisted, so restarts don't re-toast). `Esc` walks back one layer
+  at a time — popup, draft, then the pane. Restored by `/restore`.
 - **`/smith`** — opens **agent smith**, a **multi-agent pane** where the
   installed CLI coding agents (claude, codex, opencode) message each other to
   work a task. See [Multi-agent relay](#multi-agent-relay-smith-alias-crew) below.

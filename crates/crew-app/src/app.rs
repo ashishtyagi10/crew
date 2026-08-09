@@ -185,6 +185,9 @@ pub struct CrewApp {
     /// [`crate::blocked`]): which panes are waiting, and which have already
     /// had their one auto-focus for the current episode.
     pub(crate) blocked: crate::blocked::BlockedState,
+    /// Once-a-minute clock behind the todo due-toast check (see
+    /// [`crate::todopane::store::take_due`], driven from `poll_panes`).
+    pub(crate) todo_due: crate::todopane::DueTicker,
 }
 
 impl CrewApp {
