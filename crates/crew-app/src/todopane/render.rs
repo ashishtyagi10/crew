@@ -180,12 +180,12 @@ fn row_cells(
     let t = crew_theme::theme();
     let accent = crate::palette::accent();
     let it = &p.items[idx];
-    let ink = if it.done { t.text_muted } else { t.ink };
+    let ink = t.ink;
 
     if selected {
         out.push(cell(0, row, '\u{203a}', accent, true)); // ›
     }
-    for (i, c) in (if it.done { "[x]" } else { "[ ]" }).chars().enumerate() {
+    for (i, c) in "[ ]".chars().enumerate() {
         out.push(cell(BOX_COL + i as u16, row, c, ink, selected));
     }
 
@@ -201,23 +201,20 @@ fn row_cells(
     let mut right = del_col.saturating_sub(2);
     if let Some(due) = it.due_ms {
         let lbl = duedate::label(due, it.due_has_time, now_ms);
-        let overdue = !it.done && due <= now_ms;
+        let overdue = due <= now_ms;
         let today = duedate::days_from_now(due, now_ms) == Some(0);
-        let fg = if it.done {
-            t.text_muted
-        } else if overdue {
+        let fg = if overdue {
             t.bell
         } else if today {
             t.status_fg
         } else {
             t.text_muted
         };
-        right = place_right(out, &lbl, right, row, fg, overdue && !it.done);
+        right = place_right(out, &lbl, right, row, fg, overdue);
     }
     if let Some(tag) = &it.project {
         let chip = format!("@{tag}");
-        let fg = if it.done { t.text_muted } else { accent };
-        right = place_right(out, &chip, right, row, fg, false);
+        right = place_right(out, &chip, right, row, accent, false);
     }
     // `right` is the next free slot two left of the leftmost right-side
     // text; the title keeps a one-column gap before that text.

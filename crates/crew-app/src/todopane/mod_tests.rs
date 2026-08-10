@@ -68,15 +68,15 @@ fn toggle_delete_and_ids_go_through_the_display_order() {
     assert_eq!(p.items[order[0]].title, "aaa");
     assert_eq!(p.items[order[1]].title, "bbb");
 
-    p.toggle_done_at(0); // aaa done → sinks
+    p.toggle_done_at(0); // aaa done → hides, but stays in the store
     let order = p.order();
+    assert_eq!(order.len(), 1);
     assert_eq!(p.items[order[0]].title, "bbb");
-    assert!(p.items[order[1]].done);
+    assert!(store::snapshot()
+        .iter()
+        .any(|it| it.title == "aaa" && it.done));
 
-    p.toggle_done_at(1); // back open
-    assert!(store::snapshot().iter().all(|it| !it.done));
-
-    p.delete_at(1); // bbb sits last again after the un-toggle
+    p.delete_at(0); // display index 0 is bbb now that aaa is hidden
     let titles: Vec<String> = store::snapshot()
         .iter()
         .map(|it| it.title.clone())

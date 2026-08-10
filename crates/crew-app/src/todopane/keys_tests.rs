@@ -111,14 +111,14 @@ fn space_toggles_and_d_deletes_the_selected_row() {
         vec![("one".to_string(), true), ("two".to_string(), false)]
     );
 
-    // "one" sank; selection index 0 is now "two". `d` deletes it.
+    // "one" hid; selection index 0 is now "two". `d` deletes it.
     apply(&mut p, TodoInput::Char('d'), ROWS);
     let titles: Vec<String> = store::snapshot()
         .iter()
         .map(|it| it.title.clone())
         .collect();
-    assert_eq!(titles, vec!["one"]);
-    assert_eq!(p.sel, Some(0), "selection clamps to the remaining row");
+    assert_eq!(titles, vec!["one"], "the done item stays in the store");
+    assert_eq!(p.sel, None, "nothing visible left to select");
 }
 
 #[test]

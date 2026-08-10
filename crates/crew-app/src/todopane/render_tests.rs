@@ -106,18 +106,18 @@ fn rows_render_checkbox_title_tag_due_and_delete_affordance() {
 }
 
 #[test]
-fn a_done_item_shows_a_checked_box_in_muted_ink() {
+fn a_done_item_does_not_render() {
     let mut it = item(1, "done thing");
     it.done = true;
     let p = test_pane(vec![it]);
     let cells = cells(&p, COLS, ROWS);
     let row = row_text(&cells, 0);
-    assert!(row.contains("[x] done thing"), "{row:?}");
-    let muted = crew_theme::theme().text_muted;
-    assert!(cells
-        .iter()
-        .filter(|c| c.row == 0 && c.c == 'd')
-        .all(|c| c.fg == muted));
+    assert!(!row.contains("done thing"), "{row:?}");
+    let all: String = (0..ROWS).map(|r| row_text(&cells, r)).collect();
+    assert!(
+        all.contains("no todos"),
+        "an all-done list shows the empty hint"
+    );
 }
 
 #[test]

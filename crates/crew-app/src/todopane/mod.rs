@@ -4,7 +4,8 @@
 //! (`tomorrow`, `fri 5pm`, `aug 15` — see [`duedate`]) is tinted live and
 //! becomes the due on save, and an `@project` token becomes a free-form tag
 //! (autocompleted from tags already in use — see [`tagmenu`]). The list
-//! sorts overdue → due → undated with done sunk ([`item::display_order`]);
+//! sorts overdue → due → undated with done auto-hidden
+//! ([`item::display_order`] — the store keeps done items as history);
 //! Space/Enter toggles, `d`/Backspace deletes, `e` re-opens an item in the
 //! composer. `@tag` alone filters the list to one project; `@` clears.
 //!
