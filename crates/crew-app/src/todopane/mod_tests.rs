@@ -183,7 +183,7 @@ fn slash_todo_opens_a_pane_and_escape_closes_it() {
         panic!("a todo pane was spawned");
     };
     assert!(matches!(
-        crate::todopane::keys::apply(t, crate::todopane::keys::TodoInput::Close, 20),
+        crate::todopane::keys::apply(t, crate::todopane::keys::TodoInput::Close, 40, 20),
         Some(TodoAction::Close)
     ));
 }

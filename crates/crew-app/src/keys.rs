@@ -192,7 +192,9 @@ impl CrewApp {
                     view_action =
                         v.on_key(event, pane.grid.cols, pane.grid.rows, mstate.control_key())
                 }
-                PaneContent::Todo(t) => todo_action = t.on_key(event, pane.grid.rows),
+                PaneContent::Todo(t) => {
+                    todo_action = t.on_key(event, pane.grid.cols, pane.grid.rows)
+                }
             }
         }
         if swarm_close {

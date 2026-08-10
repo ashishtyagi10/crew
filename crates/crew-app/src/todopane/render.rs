@@ -4,6 +4,7 @@
 //! never disagree about what sits on a row.
 use crew_render::CellView;
 
+use super::item::TodoItem;
 use super::{duedate, TodoPane};
 
 /// Column where the `[ ]` checkbox starts; the title follows two past it.
@@ -54,6 +55,72 @@ pub(crate) fn list_height(p: &TodoPane, rows: u16) -> u16 {
     rows.saturating_sub(composer_h(rows) + popup_h(p, rows) + header_h(p))
 }
 
+/// Mirror of [`place_right`]'s arithmetic without the cells: the next free
+/// slot after a width-`w` chip ending at `end` (or `end` unchanged when the
+/// chip would reach the title zone and goes unplaced).
+fn place_w(end: u16, w: u16) -> u16 {
+    let start = end.saturating_sub(w);
+    if start <= TITLE_COL {
+        end
+    } else {
+        start.saturating_sub(2)
+    }
+}
+
+/// Column past the title's first line — where the right-side chips (due,
+/// `@tag`, `✗`) begin, one-column gap included.
+fn first_line_max(it: &TodoItem, cols: u16, now_ms: u64) -> u16 {
+    let mut right = cols.saturating_sub(4);
+    if let Some(due) = it.due_ms {
+        let lbl = duedate::label(due, it.due_has_time, now_ms);
+        right = place_w(right, crate::chatwidth::str_w(&lbl) as u16);
+    }
+    if let Some(tag) = &it.project {
+        right = place_w(right, crate::chatwidth::str_w(&format!("@{tag}")) as u16);
+    }
+    right + 1
+}
+
+/// The title's wrapped lines as char-index ranges: greedy word wrap, the
+/// first line stopping where the chips begin, continuation lines spanning
+/// the pane. Always at least one range, so every item owns a row.
+fn title_lines(it: &TodoItem, cols: u16, now_ms: u64) -> Vec<(usize, usize)> {
+    let chars: Vec<char> = it.title.chars().collect();
+    let w0 = (first_line_max(it, cols, now_ms).saturating_sub(TITLE_COL)).max(1) as usize;
+    let wc = (cols.saturating_sub(2 + TITLE_COL)).max(1) as usize;
+    let mut lines = Vec::new();
+    let mut start = 0;
+    loop {
+        let budget = if lines.is_empty() { w0 } else { wc };
+        let fit = crate::chatwidth::fit_end(&chars, start, budget);
+        if fit >= chars.len() {
+            lines.push((start, chars.len()));
+            return lines;
+        }
+        // Break on the last space inside the window when the cut would land
+        // mid-word; a single over-long word hard-breaks.
+        let cut = chars[start..fit]
+            .iter()
+            .rposition(|c| c.is_whitespace())
+            .map(|i| start + i)
+            .filter(|&i| i > start && !chars[fit].is_whitespace())
+            .unwrap_or(fit);
+        lines.push((start, cut));
+        start = cut;
+        while start < chars.len() && chars[start].is_whitespace() {
+            start += 1;
+        }
+        if start >= chars.len() {
+            return lines;
+        }
+    }
+}
+
+/// Rows item `it` occupies at this pane width.
+pub(crate) fn item_h(it: &TodoItem, cols: u16, now_ms: u64) -> u16 {
+    title_lines(it, cols, now_ms).len() as u16
+}
+
 /// What a click on pane-content cell (`row`, `col`) means.
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum TodoClick {
@@ -80,23 +147,33 @@ pub(crate) fn click_at(
         return Some(TodoClick::Composer);
     }
     let header = header_h(p);
-    if row < header {
+    let bottom = header + list_height(p, rows);
+    if row < header || row >= bottom {
         return None;
     }
-    let di = (row - header) as usize + p.scroll;
-    let shown = p
-        .visible_len()
-        .min(p.scroll + list_height(p, rows) as usize);
-    if di >= shown {
-        return None;
+    let now_ms = crate::chattime::unix_now_ms();
+    let order = p.order();
+    let mut top = header;
+    for (di, &idx) in order.iter().enumerate().skip(p.scroll) {
+        if top >= bottom {
+            break;
+        }
+        let h = item_h(&p.items[idx], cols, now_ms);
+        if row < top + h {
+            // Continuation rows carry no checkbox or ✗ — they just select.
+            return Some(if row > top {
+                TodoClick::Select(di)
+            } else if (BOX_COL..BOX_COL + 3).contains(&col) {
+                TodoClick::Toggle(di)
+            } else if col >= cols.saturating_sub(3) {
+                TodoClick::Delete(di)
+            } else {
+                TodoClick::Select(di)
+            });
+        }
+        top += h;
     }
-    Some(if (BOX_COL..BOX_COL + 3).contains(&col) {
-        TodoClick::Toggle(di)
-    } else if col >= cols.saturating_sub(3) {
-        TodoClick::Delete(di)
-    } else {
-        TodoClick::Select(di)
-    })
+    None
 }
 
 /// Render the pane's `cols × rows` content grid.
@@ -120,10 +197,15 @@ pub(crate) fn cells(p: &TodoPane, cols: u16, rows: u16) -> Vec<CellView> {
 
     let header = header_h(p);
     let lh = list_height(p, rows) as usize;
-    for (vi, &idx) in order.iter().skip(p.scroll).take(lh).enumerate() {
-        let row = header + vi as u16;
-        let selected = p.sel == Some(p.scroll + vi);
-        row_cells(&mut out, p, idx, row, cols, selected, now_ms);
+    let bottom = header + lh as u16;
+    let mut row = header;
+    for (di, &idx) in order.iter().enumerate().skip(p.scroll) {
+        if row >= bottom {
+            break;
+        }
+        let selected = p.sel == Some(di);
+        row_cells(&mut out, p, idx, row, cols, bottom, selected, now_ms);
+        row += item_h(&p.items[idx], cols, now_ms);
     }
     if order.is_empty() && lh >= 2 {
         for (i, hint) in [
@@ -167,13 +249,16 @@ pub(crate) fn cells(p: &TodoPane, cols: u16, rows: u16) -> Vec<CellView> {
     out
 }
 
-/// One item row: `› [ ] title … @tag due ✗`, width-aware and clipped.
+/// One item: `› [ ] title … @tag due ✗` on its first row, the title
+/// wrapping onto full-width continuation rows below ([`title_lines`]);
+/// rows at or past `bottom` are clipped.
 fn row_cells(
     out: &mut Vec<CellView>,
     p: &TodoPane,
     idx: usize,
     row: u16,
     cols: u16,
+    bottom: u16,
     selected: bool,
     now_ms: u64,
 ) {
@@ -217,12 +302,21 @@ fn row_cells(
         right = place_right(out, &chip, right, row, accent, false);
     }
     // `right` is the next free slot two left of the leftmost right-side
-    // text; the title keeps a one-column gap before that text.
-    let title_max = right + 1;
-    let styled = it.title.chars().map(|c| (c, ()));
-    crate::chatwidth::place_row(TITLE_COL, title_max, styled, |x, c, ()| {
-        out.push(cell(x, row, c, ink, selected))
-    });
+    // text; the title keeps a one-column gap before that text and wraps
+    // onto full-width rows below.
+    debug_assert_eq!(right + 1, first_line_max(it, cols, now_ms));
+    let chars: Vec<char> = it.title.chars().collect();
+    for (li, &(s, e)) in title_lines(it, cols, now_ms).iter().enumerate() {
+        let r = row + li as u16;
+        if r >= bottom {
+            break;
+        }
+        let max = if li == 0 { right + 1 } else { cols - 2 };
+        let styled = chars[s..e].iter().map(|&c| (c, ()));
+        crate::chatwidth::place_row(TITLE_COL, max, styled, |x, c, ()| {
+            out.push(cell(x, r, c, ink, selected))
+        });
+    }
 }
 
 /// Place `s` ending at `end` (exclusive of the following gap) on `row`;
