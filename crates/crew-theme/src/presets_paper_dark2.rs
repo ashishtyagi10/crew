@@ -48,4 +48,5 @@ pub static MOSS_BLOTTER: Theme = Theme {
     dark: true,
     grain: 1.2,
     crt: None,
+    modern: None,
 };

@@ -120,6 +120,7 @@ mod minstrip;
 mod modelfetch;
 mod modelpick;
 mod modelroute;
+mod modernring;
 mod motion;
 mod navcard;
 mod navlog;

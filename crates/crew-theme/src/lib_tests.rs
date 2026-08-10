@@ -15,15 +15,17 @@ fn default_is_paper_dark() {
 }
 
 #[test]
-fn only_the_crt_presets_carry_the_crt_style() {
-    // The renderer keys the CRT tube post-process off `theme().crt`, and the
-    // `crt-*` family is exactly the set that should turn it on automatically.
+fn only_the_crt_and_modern_presets_carry_the_crt_style() {
+    // The renderer keys the bloom post-process off `theme().crt`: the `crt-*`
+    // family turns the full tube on, and the modern family rides the same
+    // chain for its clean glow (retro knobs zeroed — see
+    // `modern_glow_is_clean_of_retro_knobs`). Paper stays flat.
     for id in ALL_THEMES {
-        let is_crt_family = id.as_str().starts_with("crt-");
+        let wants_bloom = id.as_str().starts_with("crt-") || id.theme().modern.is_some();
         assert_eq!(
             id.theme().crt.is_some(),
-            is_crt_family,
-            "{} crt style presence should be {is_crt_family}",
+            wants_bloom,
+            "{} crt style presence should be {wants_bloom}",
             id.as_str()
         );
     }
@@ -33,12 +35,13 @@ fn only_the_crt_presets_carry_the_crt_style() {
 fn the_five_phosphors_have_distinct_personalities() {
     // The whole point of `CrtStyle` over four global constants: no two
     // phosphors may share identical tunings (a done-criterion of the
-    // holographic overhaul goal).
+    // holographic overhaul goal). The modern palettes carry a CrtStyle too
+    // (bloom-only), so they join the uniqueness sweep: 5 tubes + 4 modern.
     let styles: Vec<(&str, CrtStyle)> = ALL_THEMES
         .iter()
         .filter_map(|id| id.theme().crt.map(|s| (id.as_str(), s)))
         .collect();
-    assert_eq!(styles.len(), 5);
+    assert_eq!(styles.len(), 9);
     for (i, (an, a)) in styles.iter().enumerate() {
         for (bn, b) in &styles[i + 1..] {
             assert_ne!(a, b, "{an} and {bn} share an identical CrtStyle");
@@ -67,7 +70,7 @@ fn next_cycles_through_all_and_wraps() {
         id = id.next();
     }
     assert_eq!(id, ThemeId::PaperDark);
-    assert_eq!(ThemeId::CrtPaperwhite.next(), ThemeId::PaperDark); // last wraps to first
+    assert_eq!(ThemeId::Cobalt.next(), ThemeId::PaperDark); // last wraps to first
 }
 
 #[test]
@@ -175,7 +178,7 @@ fn tick_random_fires_at_rotate_ms_when_on() {
 }
 
 #[test]
-fn cycle_next_walks_the_four_modes_and_wraps() {
+fn cycle_next_walks_the_five_modes_and_wraps() {
     let _g = guard();
     // From a pinned palette, the first step enters the dark rotation...
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
@@ -187,13 +190,16 @@ fn cycle_next_walks_the_four_modes_and_wraps() {
     assert!(!current_id().is_dark());
     // ...then crt...
     assert_eq!(cycle_next(3), "crt");
-    assert!(current_id().theme().crt.is_some());
+    assert!(current_id().theme().crt.is_some() && current_id().theme().modern.is_none());
+    // ...then modern...
+    assert_eq!(cycle_next(4), "modern");
+    assert!(current_id().theme().modern.is_some());
     // ...then auto, whose pool follows the reported OS appearance...
     set_os_dark(true);
-    assert_eq!(cycle_next(4), "auto");
+    assert_eq!(cycle_next(5), "auto");
     assert!(current_id().is_dark() && current_id().theme().crt.is_none());
     // ...and wraps back to dark.
-    assert_eq!(cycle_next(5), "dark");
+    assert_eq!(cycle_next(6), "dark");
     assert!(current_id().is_dark() && current_id().theme().crt.is_none());
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
 }
@@ -274,6 +280,10 @@ fn u8_mapping_round_trips_all_ids() {
     assert_eq!(ThemeId::from_u8(13), ThemeId::MossBlotter);
     assert_eq!(ThemeId::from_u8(14), ThemeId::GlacierBond);
     assert_eq!(ThemeId::from_u8(15), ThemeId::CrtPaperwhite);
+    assert_eq!(ThemeId::from_u8(16), ThemeId::Aurora);
+    assert_eq!(ThemeId::from_u8(17), ThemeId::Nebula);
+    assert_eq!(ThemeId::from_u8(18), ThemeId::Graphene);
+    assert_eq!(ThemeId::from_u8(19), ThemeId::Cobalt);
     set_theme(ThemeId::PaperDark);
 }
 
@@ -438,11 +448,43 @@ fn grain_is_newsprint_on_every_theme() {
     // (v0.5.58) modulates encoded values, which reads much stronger than the
     // old linear-space grain. Dark themes now match light (was 1.0) so the
     // newspaper texture reads on the dark pages too — the shader's dark
-    // absolute term carries it (see paperbg.wgsl).
+    // absolute term carries it (see paperbg.wgsl). The MODERN family is the
+    // deliberate exception: its pages are glass, not newsprint — zero grain.
     for id in ALL_THEMES {
         let t = id.theme();
-        assert_eq!(t.grain, 1.2, "{}: grain", id.as_str());
+        if t.modern.is_some() {
+            assert_eq!(t.grain, 0.0, "{}: modern pages carry no grain", id.as_str());
+        } else {
+            assert_eq!(t.grain, 1.2, "{}: grain", id.as_str());
+        }
     }
+}
+
+#[test]
+fn modern_glow_is_clean_of_retro_knobs() {
+    // The modern family rides the CRT bloom chain for its halo, but it must
+    // never look like a tube: curvature, scanlines and the bezel vignette
+    // stay exactly zero, and the gradient poles must be distinct (a ring
+    // with equal poles is just a flat stroke).
+    for id in ALL_THEMES {
+        let t = id.theme();
+        let Some(m) = t.modern else { continue };
+        let c = t.crt.expect("modern themes carry a bloom-only CrtStyle");
+        assert_eq!(c.curvature, 0.0, "{}: curvature", id.as_str());
+        assert_eq!(c.scanline, 0.0, "{}: scanline", id.as_str());
+        assert_eq!(c.corner, 0.0, "{}: corner", id.as_str());
+        assert!(c.glow > 0.0, "{}: a modern theme without glow", id.as_str());
+        assert_ne!(m.pole_a, m.pole_b, "{}: gradient poles equal", id.as_str());
+        assert!(m.drift_ms > 0, "{}: drift period", id.as_str());
+        assert!(t.dark, "{}: modern palettes are dark", id.as_str());
+    }
+    // And the family is big enough to rotate: random_pick's contract needs
+    // every pool to hold at least 4 palettes.
+    let n = ALL_THEMES
+        .iter()
+        .filter(|id| id.theme().modern.is_some())
+        .count();
+    assert!(n >= 4, "modern pool has only {n} palettes");
 }
 
 #[test]
@@ -465,9 +507,11 @@ fn dark_paper_pages_lean_warm() {
 fn crt_pages_are_deep_cool_black() {
     // Neon retune: CRT tubes sit on a darker, cooler near-black so the
     // phosphor halo pops — max page channel ≤ 8, and never warm (R ≤ B+2).
+    // Modern palettes carry a bloom-only CrtStyle but are NOT tubes — their
+    // pages sit brighter and take any cast — so they are exempt.
     for id in ALL_THEMES {
         let t = id.theme();
-        if t.crt.is_some() {
+        if t.crt.is_some() && t.modern.is_none() {
             let (r, g, b) = t.page_bg;
             assert!(
                 r.max(g).max(b) <= 8,
@@ -499,6 +543,10 @@ fn parse_selection_names_modes_and_alias() {
     assert_eq!(
         parse_selection("CRT"),
         Some(Selection::Mode(RandomMode::Crt))
+    );
+    assert_eq!(
+        parse_selection("Modern"),
+        Some(Selection::Mode(RandomMode::Modern))
     );
     // A pinned palette name still resolves (back-compat).
     assert_eq!(
@@ -545,7 +593,13 @@ fn random_pick_pools_are_pure() {
                 l.as_str()
             );
             let c = random_pick(current, seed, RandomMode::Crt);
-            assert!(c.theme().crt.is_some(), "crt pool: {}", c.as_str());
+            assert!(
+                c.theme().crt.is_some() && c.theme().modern.is_none(),
+                "crt pool: {}",
+                c.as_str()
+            );
+            let m = random_pick(current, seed, RandomMode::Modern);
+            assert!(m.theme().modern.is_some(), "modern pool: {}", m.as_str());
         }
     }
 }
