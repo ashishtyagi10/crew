@@ -51,9 +51,15 @@ pub(crate) fn todo_key(logical: &Key, pressed: bool) -> TodoInput {
     }
 }
 
-/// Apply a classified press. `rows` is the pane's grid height, needed to
-/// keep a moved selection scrolled into view.
-pub(crate) fn apply(p: &mut TodoPane, input: TodoInput, rows: u16) -> Option<TodoAction> {
+/// Apply a classified press. `cols`/`rows` are the pane's grid size, needed
+/// to keep a moved selection scrolled into view (item heights depend on the
+/// width — wrapped titles).
+pub(crate) fn apply(
+    p: &mut TodoPane,
+    input: TodoInput,
+    cols: u16,
+    rows: u16,
+) -> Option<TodoAction> {
     use TodoInput::*;
     // Popup first: navigation and acceptance; everything else falls through
     // so typing keeps editing the query.
@@ -96,7 +102,7 @@ pub(crate) fn apply(p: &mut TodoPane, input: TodoInput, rows: u16) -> Option<Tod
             }
             Ignore => {}
         }
-        p.ensure_visible(rows);
+        p.ensure_visible(cols, rows);
         return None;
     }
     // Composer.
@@ -126,14 +132,14 @@ pub(crate) fn apply(p: &mut TodoPane, input: TodoInput, rows: u16) -> Option<Tod
         }
         DeleteKey | Ignore => {}
     }
-    p.ensure_visible(rows);
+    p.ensure_visible(cols, rows);
     None
 }
 
 impl TodoPane {
-    pub(crate) fn on_key(&mut self, event: &KeyEvent, rows: u16) -> Option<TodoAction> {
+    pub(crate) fn on_key(&mut self, event: &KeyEvent, cols: u16, rows: u16) -> Option<TodoAction> {
         let input = todo_key(&event.logical_key, event.state.is_pressed());
-        apply(self, input, rows)
+        apply(self, input, cols, rows)
     }
 }
 

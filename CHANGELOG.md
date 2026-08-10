@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.15.0
+
+`/todo` opens a todo pane: one global list you type into. Enter captures
+an item; a natural-language date fragment (`tomorrow`, `fri 5pm`,
+`aug 15`) tints live as you type and becomes the due on save, and an
+`@project` token becomes a free-form tag, autocompleted from tags already
+in use. The list sorts overdue → due → undated, Space/Enter completes,
+`d` deletes, `e` re-opens an item in the composer, and a lone `@tag`
+filters the list to one project. Items live in `todos.toml`, every todo
+pane shows the same list, and a due item raises a toast the minute it
+lands.
+
 ## 0.14.4
 
 Theme flips reach the programs inside the panes now. Terminals that enable

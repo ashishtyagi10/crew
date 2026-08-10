@@ -34,17 +34,21 @@ pub(crate) struct TodoItem {
 
 /// Indices of `items` in display order, honouring an active `@project`
 /// filter: overdue first (due ascending puts every past due ahead of every
-/// future one), then upcoming by due, then undated in creation order; done
-/// items sink to the bottom. Pure — the whole ordering contract lives here
-/// and in [`sort_key`].
+/// future one), then upcoming by due, then undated in creation order. Done
+/// items are hidden — they stay in the store (`todos.toml` keeps the
+/// history) but never display. Pure — the whole ordering contract lives
+/// here and in [`sort_key`].
 pub(crate) fn display_order(items: &[TodoItem], filter: Option<&str>) -> Vec<usize> {
     let mut order: Vec<usize> = (0..items.len())
-        .filter(|&i| match filter {
-            None => true,
-            Some(f) => items[i]
-                .project
-                .as_deref()
-                .is_some_and(|p| p.eq_ignore_ascii_case(f)),
+        .filter(|&i| {
+            !items[i].done
+                && match filter {
+                    None => true,
+                    Some(f) => items[i]
+                        .project
+                        .as_deref()
+                        .is_some_and(|p| p.eq_ignore_ascii_case(f)),
+                }
         })
         .collect();
     order.sort_by_key(|&i| sort_key(&items[i]));
@@ -52,11 +56,8 @@ pub(crate) fn display_order(items: &[TodoItem], filter: Option<&str>) -> Vec<usi
 }
 
 /// Rank 1 = dated (due ascending — overdue lands first for free), 2 =
-/// undated (creation order), 3 = done; final tie on creation.
+/// undated (creation order); final tie on creation.
 fn sort_key(it: &TodoItem) -> (u8, u64, u64) {
-    if it.done {
-        return (3, it.due_ms.unwrap_or(u64::MAX), it.created_ms);
-    }
     match it.due_ms {
         Some(d) => (1, d, it.created_ms),
         None => (2, it.created_ms, 0),

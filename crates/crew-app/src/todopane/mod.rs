@@ -4,7 +4,8 @@
 //! (`tomorrow`, `fri 5pm`, `aug 15` — see [`duedate`]) is tinted live and
 //! becomes the due on save, and an `@project` token becomes a free-form tag
 //! (autocompleted from tags already in use — see [`tagmenu`]). The list
-//! sorts overdue → due → undated with done sunk ([`item::display_order`]);
+//! sorts overdue → due → undated with done auto-hidden
+//! ([`item::display_order`] — the store keeps done items as history);
 //! Space/Enter toggles, `d`/Backspace deletes, `e` re-opens an item in the
 //! composer. `@tag` alone filters the list to one project; `@` clears.
 //!
@@ -96,11 +97,12 @@ impl TodoPane {
     }
 
     /// Mouse wheel: positive `lines` means up/older (see `scroll::scroll_pane`).
-    pub(crate) fn scroll_wheel(&mut self, lines: i32, rows: u16) {
+    /// Item-granular — one wheel line steps one item.
+    pub(crate) fn scroll_wheel(&mut self, lines: i32, cols: u16, rows: u16) {
         self.scroll = self
             .scroll
             .saturating_add_signed(lines.saturating_neg() as isize);
-        self.clamp_scroll(rows);
+        self.clamp_scroll(cols, rows);
     }
 
     /// Paste appends to the composer (newlines become spaces — one line).
@@ -123,26 +125,53 @@ impl TodoPane {
         self.order().len()
     }
 
-    /// Keep the selection inside the list window after it moves.
-    pub(crate) fn ensure_visible(&mut self, rows: u16) {
+    /// Keep the selection inside the list window after it moves. Items are
+    /// variable-height (wrapped titles — [`render::item_h`]), so visibility
+    /// is a row sum, not an item count.
+    pub(crate) fn ensure_visible(&mut self, cols: u16, rows: u16) {
         let h = render::list_height(self, rows) as usize;
         if h == 0 {
             return;
         }
-        if let Some(s) = self.sel {
+        let order = self.order();
+        let now_ms = crate::chattime::unix_now_ms();
+        if let Some(s) = self.sel.filter(|&s| s < order.len()) {
             if s < self.scroll {
                 self.scroll = s;
-            } else if s >= self.scroll + h {
-                self.scroll = s + 1 - h;
+            } else {
+                // Push the window down until items scroll..=s fit it (a
+                // single over-tall item stops at its first row).
+                let span = |from: usize| -> usize {
+                    order[from..=s]
+                        .iter()
+                        .map(|&i| render::item_h(&self.items[i], cols, now_ms) as usize)
+                        .sum()
+                };
+                while self.scroll < s && span(self.scroll) > h {
+                    self.scroll += 1;
+                }
             }
         }
-        self.clamp_scroll(rows);
+        self.clamp_scroll(cols, rows);
     }
 
-    fn clamp_scroll(&mut self, rows: u16) {
+    /// Cap `scroll` at the smallest value that still fills the window with
+    /// the list's tail.
+    fn clamp_scroll(&mut self, cols: u16, rows: u16) {
         let h = render::list_height(self, rows) as usize;
-        let max = self.visible_len().saturating_sub(h);
-        self.scroll = self.scroll.min(max);
+        let order = self.order();
+        let now_ms = crate::chattime::unix_now_ms();
+        let mut used = 0;
+        let mut s = order.len();
+        while s > 0 {
+            let ih = render::item_h(&self.items[order[s - 1]], cols, now_ms) as usize;
+            if used + ih > h {
+                break;
+            }
+            used += ih;
+            s -= 1;
+        }
+        self.scroll = self.scroll.min(s.min(order.len().saturating_sub(1)));
     }
 
     // --- composer editing -------------------------------------------------

@@ -105,19 +105,47 @@ fn rows_render_checkbox_title_tag_due_and_delete_affordance() {
     );
 }
 
+const LONG: &str = "alpha bravo charlie delta echo foxtrot golf hotel india juliet";
+
 #[test]
-fn a_done_item_shows_a_checked_box_in_muted_ink() {
+fn a_long_title_wraps_and_shows_every_word() {
+    let p = test_pane(vec![item(1, LONG), item(2, "second")]);
+    let cells = cells(&p, COLS, ROWS);
+    let rows: Vec<String> = (0..5).map(|r| row_text(&cells, r)).collect();
+    for w in LONG.split_whitespace() {
+        assert!(rows.iter().any(|r| r.contains(w)), "{w} missing: {rows:?}");
+    }
+    assert!(rows[0].contains("[ ] alpha"), "{rows:?}");
+    // At 40 cols the title takes two rows; "second" starts right below.
+    assert!(rows[2].contains("[ ] second"), "{rows:?}");
+}
+
+#[test]
+fn clicks_on_wrapped_rows_map_to_the_owning_item() {
+    let p = test_pane(vec![item(1, LONG), item(2, "second")]);
+    // A continuation row has no checkbox — anywhere on it selects.
+    assert_eq!(click_at(&p, 1, 2, COLS, ROWS), Some(TodoClick::Select(0)));
+    // The second item's zones sit below the wrapped block.
+    assert_eq!(click_at(&p, 2, 2, COLS, ROWS), Some(TodoClick::Toggle(1)));
+    assert_eq!(
+        click_at(&p, 2, COLS - 2, COLS, ROWS),
+        Some(TodoClick::Delete(1))
+    );
+}
+
+#[test]
+fn a_done_item_does_not_render() {
     let mut it = item(1, "done thing");
     it.done = true;
     let p = test_pane(vec![it]);
     let cells = cells(&p, COLS, ROWS);
     let row = row_text(&cells, 0);
-    assert!(row.contains("[x] done thing"), "{row:?}");
-    let muted = crew_theme::theme().text_muted;
-    assert!(cells
-        .iter()
-        .filter(|c| c.row == 0 && c.c == 'd')
-        .all(|c| c.fg == muted));
+    assert!(!row.contains("done thing"), "{row:?}");
+    let all: String = (0..ROWS).map(|r| row_text(&cells, r)).collect();
+    assert!(
+        all.contains("no todos"),
+        "an all-done list shows the empty hint"
+    );
 }
 
 #[test]

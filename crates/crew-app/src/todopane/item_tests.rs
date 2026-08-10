@@ -16,7 +16,7 @@ fn item(id: u64, due: Option<u64>, done: bool, project: Option<&str>, created: u
 const NOW: u64 = 1_000_000;
 
 #[test]
-fn overdue_then_due_then_undated_then_done() {
+fn overdue_then_due_then_undated_and_done_hidden() {
     let items = vec![
         item(1, None, false, None, 10),            // undated
         item(2, Some(NOW + 500), false, None, 20), // upcoming
@@ -27,7 +27,7 @@ fn overdue_then_due_then_undated_then_done() {
     ];
     let order = display_order(&items, None);
     let ids: Vec<u64> = order.iter().map(|&i| items[i].id).collect();
-    assert_eq!(ids, vec![3, 5, 6, 2, 1, 4]);
+    assert_eq!(ids, vec![3, 5, 6, 2, 1]);
 }
 
 #[test]
@@ -43,14 +43,19 @@ fn undated_items_keep_creation_order() {
 }
 
 #[test]
-fn done_items_sink_regardless_of_due() {
+fn done_items_are_hidden_regardless_of_due_or_filter() {
     let items = vec![
-        item(1, Some(NOW - 999), true, None, 10),
-        item(2, None, false, None, 20),
+        item(1, Some(NOW - 999), true, Some("crew"), 10),
+        item(2, None, false, Some("crew"), 20),
     ];
-    let order = display_order(&items, None);
-    let ids: Vec<u64> = order.iter().map(|&i| items[i].id).collect();
-    assert_eq!(ids, vec![2, 1], "a done overdue item still sinks");
+    let ids = |filter| -> Vec<u64> {
+        display_order(&items, filter)
+            .iter()
+            .map(|&i| items[i].id)
+            .collect()
+    };
+    assert_eq!(ids(None), vec![2], "a done overdue item is hidden");
+    assert_eq!(ids(Some("crew")), vec![2], "hidden under a filter too");
 }
 
 #[test]
