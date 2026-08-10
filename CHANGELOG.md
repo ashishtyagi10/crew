@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.15.1
+
+The todo list stays a list of things left to do. Completing an item hides
+it on the spot — done items no longer pile up under the open ones (they
+remain in `todos.toml` as history), and the `@project` filter header
+counts only what's open. Long todos now wrap instead of clipping: a
+title flows onto as many full-width rows as it needs, the due/`@tag`
+chips keep the first row, and clicking anywhere on a wrapped item selects
+it — so the whole task is always readable at any pane width.
+
 ## 0.15.0
 
 `/todo` opens a todo pane: one global list you type into. Enter captures
