@@ -80,20 +80,34 @@ impl CrewApp {
 
 /// [`pane_card`] plus the light-trace treatment: on a CRT theme the FOCUSED
 /// card's frame stroke gets corner nodes, the ignition decay and — while the
-/// pane is streaming — the breathing. Unfocused cards and every paper theme
-/// pass through untouched (hierarchy in light: no nodes on a quiet trace).
+/// pane is streaming — the breathing; on a MODERN theme it gets the gradient
+/// light-ring instead ([`crate::modernring`]). Unfocused cards and every
+/// paper theme pass through untouched (hierarchy in light: no nodes on a
+/// quiet trace).
 pub(crate) fn pane_card_glowing(p: &Pane, b: &Bar) -> Vec<CellView> {
     let mut v = pane_card(p.grid.cols, p.grid.rows, b);
-    if b.focused && crew_theme::theme().crt.is_some() {
+    let theme = crew_theme::theme();
+    if b.focused && theme.crt.is_some() {
         let busy = crate::paneview::pane_animating(p);
-        trace(
-            &mut v,
-            p.grid.cols + 2,
-            p.grid.rows + 2,
-            busy,
-            ignite_t(),
-            crate::anim::now_ms(),
-        );
+        if theme.modern.is_some() {
+            crate::modernring::ring(
+                &mut v,
+                p.grid.cols + 2,
+                p.grid.rows + 2,
+                busy,
+                ignite_t(),
+                crate::anim::now_ms(),
+            );
+        } else {
+            trace(
+                &mut v,
+                p.grid.cols + 2,
+                p.grid.rows + 2,
+                busy,
+                ignite_t(),
+                crate::anim::now_ms(),
+            );
+        }
     }
     v
 }

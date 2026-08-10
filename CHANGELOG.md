@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.16.0
+
+Crew learns a modern look. A fifth theme mode, `modern`, joins dark /
+light / crt / auto: four new palettes — `aurora` (Gemini blue→violet),
+`nebula` (orchid→rose), `graphene` (Codex neutral with a mint accent)
+and `cobalt` (electric blue→cyan) — with deep neutral pages, zero paper
+grain, and a soft wide glow that runs the bloom chain with every retro
+knob (curvature, scanlines, bezel) at zero: clean light, not a tube.
+The focused pane's frame becomes a gradient light-ring, blending
+corner-to-corner between each palette's two accent poles; it ignites
+white when focus arrives, drifts slowly along the frame while the pane
+is streaming, and holds perfectly still when idle. Modern themes lead
+with modern typefaces (Google Sans Code, Commit Mono, Martian Mono,
+Geist Mono) and sit in `/theme`, the settings picker and the
+`Ctrl+Shift+L` cycle — `/theme modern` to move in.
+
 ## 0.15.1
 
 The todo list stays a list of things left to do. Completing an item hides

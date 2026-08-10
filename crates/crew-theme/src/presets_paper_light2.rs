@@ -49,4 +49,5 @@ pub static GLACIER_BOND: Theme = Theme {
     dark: false,
     grain: 1.2,
     crt: None,
+    modern: None,
 };

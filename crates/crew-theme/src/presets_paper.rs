@@ -49,6 +49,7 @@ pub static PAPER_DARK: Theme = Theme {
     dark: true,
     grain: 1.2,
     crt: None,
+    modern: None,
 };
 
 /// Warm paper "day" page — soft off-white with ink-toned output.
@@ -98,6 +99,7 @@ pub static PAPER_LIGHT: Theme = Theme {
     // page-luma stddev against the previous build's screenshots.
     grain: 1.2,
     crt: None,
+    modern: None,
 };
 
 /// **Sepia dark**: dark coffee-brown paper with warm cream ink — the paper
@@ -143,6 +145,7 @@ pub static SEPIA_DARK: Theme = Theme {
     dark: true,
     grain: 1.2,
     crt: None,
+    modern: None,
 };
 
 /// **Midnight ink**: warm slate-charcoal page with cool off-white ink — a
@@ -189,6 +192,7 @@ pub static MIDNIGHT_INK: Theme = Theme {
     dark: true,
     grain: 1.2,
     crt: None,
+    modern: None,
 };
 
 /// **Graphite**: warm charcoal page with soft white ink — a gentler,
@@ -234,4 +238,5 @@ pub static GRAPHITE: Theme = Theme {
     dark: true,
     grain: 1.2,
     crt: None,
+    modern: None,
 };

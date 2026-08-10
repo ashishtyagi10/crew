@@ -147,6 +147,36 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
         // CRT: a terminal face with squared-off shoulders — straight modern
         // faces (the old `Monaco` lead was a pre-Retina relic; Lilex is the
         // contemporary take on that IBM-terminal DNA).
+        // Modern (aurora/nebula): the Gemini look wants Google's own coding
+        // face; Geist is the contemporary geometric fallback.
+        ThemeId::Aurora | ThemeId::Nebula => &[
+            "Google Sans Code",
+            "Geist Mono",
+            "GeistMono Nerd Font",
+            "JetBrains Mono",
+            "SF Mono",
+            "Menlo",
+            "Noto Sans Mono",
+        ],
+        // Graphene: neutral and product-grade — Commit Mono's whole thesis.
+        ThemeId::Graphene => &[
+            "Commit Mono",
+            "CommitMono Nerd Font",
+            "Geist Mono",
+            "SF Mono",
+            "Menlo",
+            "Noto Sans Mono",
+        ],
+        // Cobalt: wide, techy, electric.
+        ThemeId::Cobalt => &[
+            "Martian Mono",
+            "Geist Mono",
+            "JetBrainsMono NF",
+            "JetBrains Mono",
+            "SF Mono",
+            "Menlo",
+            "Noto Sans Mono",
+        ],
         ThemeId::CrtGreen
         | ThemeId::CrtAmber
         | ThemeId::CrtBlue

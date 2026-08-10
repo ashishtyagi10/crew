@@ -60,6 +60,7 @@ pub static CRT_VIOLET: Theme = Theme {
         corner: 0.0,
         flicker: 0.05,
     }),
+    modern: None,
 };
 
 /// **Neon blue phosphor** (Tron light-cycle grid): electric edge-glow cyan
@@ -116,6 +117,7 @@ pub static CRT_BLUE: Theme = Theme {
         corner: 0.0,
         flicker: 0.04,
     }),
+    modern: None,
 };
 
 /// **Paperwhite phosphor** (P4, the early-Macintosh/VT420 white tube):
@@ -174,4 +176,5 @@ pub static CRT_PAPERWHITE: Theme = Theme {
         corner: 0.0,
         flicker: 0.03,
     }),
+    modern: None,
 };

@@ -61,24 +61,36 @@ pub struct Theme {
     /// The theme's CRT tube tuning. When `Some` — and unless the user
     /// overrides it with `/crt off` — the renderer wraps the frame in the CRT
     /// post-process (curvature, scanlines, phosphor bloom, corner darkening)
-    /// using these knobs. Only the `CRT_*` presets carry a style, each with
-    /// its own personality; every paper theme is `None` so the crisp flat
+    /// using these knobs. The `CRT_*` presets carry a full tube personality;
+    /// the MODERN presets carry one too, but with every retro knob at zero so
+    /// only the bloom runs; every paper theme is `None` so the crisp flat
     /// look is the default.
     pub crt: Option<CrtStyle>,
+    /// The theme's modern-family tuning (gradient light-ring poles, drift).
+    /// `Some` marks the palette as a member of the MODERN pool — the
+    /// Gemini/Codex-app look — and drives the focused frame's gradient ring
+    /// in crew-app. Paper and CRT presets are `None`.
+    pub modern: Option<ModernStyle>,
 }
 
 mod crtstyle;
 mod glass;
+mod modernstyle;
 mod presets_crt;
 mod presets_crt_cool;
+mod presets_modern;
+mod presets_modern2;
 mod presets_paper;
 mod presets_paper_dark2;
 mod presets_paper_light;
 mod presets_paper_light2;
 pub use crtstyle::CrtStyle;
 pub use glass::{style as glass_style, style_for as glass_style_for, GlassLevel, GlassStyle};
+pub use modernstyle::ModernStyle;
 pub use presets_crt::{CRT_AMBER, CRT_GREEN};
 pub use presets_crt_cool::{CRT_BLUE, CRT_PAPERWHITE, CRT_VIOLET};
+pub use presets_modern::{AURORA, NEBULA};
+pub use presets_modern2::{COBALT, GRAPHENE};
 pub use presets_paper::{GRAPHITE, MIDNIGHT_INK, PAPER_DARK, PAPER_LIGHT, SEPIA_DARK};
 pub use presets_paper_dark2::MOSS_BLOTTER;
 pub use presets_paper_light::{COLDPRESS_GRAY, IVORY_LEDGER, SALMON_BROADSHEET, SEPIA_LIGHT};
@@ -120,11 +132,15 @@ pub enum ThemeId {
     CrtBlue,
     CrtViolet,
     CrtPaperwhite,
+    Aurora,
+    Nebula,
+    Graphene,
+    Cobalt,
 }
 
 /// Every theme, in cycle order (used by the `Ctrl+Shift+L` rotation and the
 /// `/theme` completion). Keep in sync with the enum.
-pub const ALL_THEMES: [ThemeId; 16] = [
+pub const ALL_THEMES: [ThemeId; 20] = [
     ThemeId::PaperDark,
     ThemeId::PaperLight,
     ThemeId::SepiaDark,
@@ -141,6 +157,10 @@ pub const ALL_THEMES: [ThemeId; 16] = [
     ThemeId::CrtBlue,
     ThemeId::CrtViolet,
     ThemeId::CrtPaperwhite,
+    ThemeId::Aurora,
+    ThemeId::Nebula,
+    ThemeId::Graphene,
+    ThemeId::Cobalt,
 ];
 
 impl ThemeId {
@@ -162,6 +182,10 @@ impl ThemeId {
             ThemeId::CrtBlue => "crt-blue",
             ThemeId::CrtViolet => "crt-violet",
             ThemeId::CrtPaperwhite => "crt-paperwhite",
+            ThemeId::Aurora => "aurora",
+            ThemeId::Nebula => "nebula",
+            ThemeId::Graphene => "graphene",
+            ThemeId::Cobalt => "cobalt",
         }
     }
 
@@ -184,6 +208,10 @@ impl ThemeId {
             ThemeId::CrtBlue => "neon blue phosphor CRT (Tron)",
             ThemeId::CrtViolet => "neon violet phosphor CRT",
             ThemeId::CrtPaperwhite => "white P4 paperwhite phosphor CRT",
+            ThemeId::Aurora => "blue\u{2192}violet gradient glass (modern dark)",
+            ThemeId::Nebula => "orchid\u{2192}rose gradient dusk (modern dark)",
+            ThemeId::Graphene => "neutral near-black, mint accent (modern dark)",
+            ThemeId::Cobalt => "electric blue\u{2192}cyan current (modern dark)",
         }
     }
 
@@ -210,6 +238,10 @@ impl ThemeId {
             "crt-blue" => Some(ThemeId::CrtBlue),
             "crt-violet" => Some(ThemeId::CrtViolet),
             "crt-paperwhite" => Some(ThemeId::CrtPaperwhite),
+            "aurora" => Some(ThemeId::Aurora),
+            "nebula" => Some(ThemeId::Nebula),
+            "graphene" => Some(ThemeId::Graphene),
+            "cobalt" => Some(ThemeId::Cobalt),
             _ => None,
         }
     }
@@ -232,6 +264,10 @@ impl ThemeId {
             ThemeId::CrtBlue => &CRT_BLUE,
             ThemeId::CrtViolet => &CRT_VIOLET,
             ThemeId::CrtPaperwhite => &CRT_PAPERWHITE,
+            ThemeId::Aurora => &AURORA,
+            ThemeId::Nebula => &NEBULA,
+            ThemeId::Graphene => &GRAPHENE,
+            ThemeId::Cobalt => &COBALT,
         }
     }
 
@@ -253,6 +289,10 @@ impl ThemeId {
             ThemeId::MossBlotter => 13,
             ThemeId::GlacierBond => 14,
             ThemeId::CrtPaperwhite => 15,
+            ThemeId::Aurora => 16,
+            ThemeId::Nebula => 17,
+            ThemeId::Graphene => 18,
+            ThemeId::Cobalt => 19,
         }
     }
 
@@ -273,6 +313,10 @@ impl ThemeId {
             13 => ThemeId::MossBlotter,
             14 => ThemeId::GlacierBond,
             15 => ThemeId::CrtPaperwhite,
+            16 => ThemeId::Aurora,
+            17 => ThemeId::Nebula,
+            18 => ThemeId::Graphene,
+            19 => ThemeId::Cobalt,
             _ => ThemeId::PaperDark,
         }
     }
@@ -326,18 +370,20 @@ pub enum RandomMode {
     Dark,
     Light,
     Crt,
+    Modern,
     Auto,
 }
 
-/// The four themes crew offers — each a rotation over its own pool, `auto`
+/// The five themes crew offers — each a rotation over its own pool, `auto`
 /// following the OS appearance. This is the whole user-facing theme list
 /// (`/theme`, the settings picker, the `Ctrl+Shift+L` cycle); everything else
 /// (legacy `random-*` names, individual palettes) parses for back-compat but
 /// isn't advertised.
-pub const THEME_MODES: [RandomMode; 4] = [
+pub const THEME_MODES: [RandomMode; 5] = [
     RandomMode::Dark,
     RandomMode::Light,
     RandomMode::Crt,
+    RandomMode::Modern,
     RandomMode::Auto,
 ];
 
@@ -347,6 +393,7 @@ impl RandomMode {
             RandomMode::Dark => "dark",
             RandomMode::Light => "light",
             RandomMode::Crt => "crt",
+            RandomMode::Modern => "modern",
             RandomMode::Auto => "auto",
         }
     }
@@ -357,6 +404,7 @@ impl RandomMode {
             RandomMode::Dark => "rotating dark paper themes",
             RandomMode::Light => "rotating light paper themes",
             RandomMode::Crt => "rotating CRT phosphor themes",
+            RandomMode::Modern => "rotating modern glow themes (Gemini/Codex look)",
             RandomMode::Auto => "light by day, dark by night \u{2014} follows the OS",
         }
     }
@@ -367,6 +415,7 @@ impl RandomMode {
             RandomMode::Light => 2,
             RandomMode::Auto => 3,
             RandomMode::Crt => 4,
+            RandomMode::Modern => 5,
         }
     }
 
@@ -376,13 +425,16 @@ impl RandomMode {
             2 => Some(RandomMode::Light),
             3 => Some(RandomMode::Auto),
             4 => Some(RandomMode::Crt),
+            5 => Some(RandomMode::Modern),
             _ => None,
         }
     }
 
     /// Whether `id` belongs to this mode's rotation pool. Every palette lands
-    /// in exactly one of Dark/Light/Crt (CRT palettes are `dark` too, so the
-    /// `!crt` guard keeps them out of the plain dark pool); `Auto` serves its
+    /// in exactly one of Dark/Light/Crt/Modern (CRT and modern palettes are
+    /// `dark` too, so the `!crt` guard keeps them out of the plain dark pool,
+    /// and the `!modern` guard keeps the modern palettes — which carry a
+    /// bloom-only `CrtStyle` — out of the CRT pool); `Auto` serves its
     /// per-appearance pairing ([`auto_side`]) — by default the dark or light
     /// paper pool depending on the OS appearance, a pinned side being a
     /// one-palette pool.
@@ -391,7 +443,8 @@ impl RandomMode {
         match self {
             RandomMode::Dark => t.dark && t.crt.is_none(),
             RandomMode::Light => !t.dark && t.crt.is_none(),
-            RandomMode::Crt => t.crt.is_some(),
+            RandomMode::Crt => t.crt.is_some() && t.modern.is_none(),
+            RandomMode::Modern => t.modern.is_some(),
             RandomMode::Auto => match auto_side() {
                 Selection::Mode(m) => m.in_pool(id),
                 Selection::Fixed(f) => id == f,
@@ -424,6 +477,9 @@ pub fn parse_selection(s: &str) -> Option<Selection> {
     }
     if s.eq_ignore_ascii_case("crt") || s.eq_ignore_ascii_case("random-crt") {
         return Some(Selection::Mode(RandomMode::Crt));
+    }
+    if s.eq_ignore_ascii_case("modern") || s.eq_ignore_ascii_case("random-modern") {
+        return Some(Selection::Mode(RandomMode::Modern));
     }
     if s.eq_ignore_ascii_case("auto") {
         return Some(Selection::Mode(RandomMode::Auto));
@@ -544,13 +600,14 @@ pub fn tick_random(now_ms: u64) -> bool {
 }
 
 /// Advance the `Ctrl+Shift+L` cycle one step through [`THEME_MODES`]:
-/// dark → light → crt → auto → dark, wrapping. Any other state (a pinned
-/// palette) enters at `dark`. Returns the status-line label.
+/// dark → light → crt → modern → auto → dark, wrapping. Any other state (a
+/// pinned palette) enters at `dark`. Returns the status-line label.
 pub fn cycle_next(now_ms: u64) -> &'static str {
     let next = match mode() {
         Some(RandomMode::Dark) => RandomMode::Light,
         Some(RandomMode::Light) => RandomMode::Crt,
-        Some(RandomMode::Crt) => RandomMode::Auto,
+        Some(RandomMode::Crt) => RandomMode::Modern,
+        Some(RandomMode::Modern) => RandomMode::Auto,
         Some(RandomMode::Auto) => RandomMode::Dark,
         _ => RandomMode::Dark,
     };
