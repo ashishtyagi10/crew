@@ -8,6 +8,13 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.16.9
+
+The tag popup speaks in color. Completing an `@project` in the todo
+composer now shows every candidate row in that project's own color —
+the same one its chips wear in the list — so you can pick the tag by
+hue before reading it. The command palette keeps its usual accent.
+
 ## 0.16.8
 
 Done todos get a way back. Completing an item still hides it on the
