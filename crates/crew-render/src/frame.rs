@@ -5,6 +5,7 @@
 //! renderer keeps ownership and this module borrows the pieces per frame.
 use crate::cellgrid::CellGrid;
 use crate::crtchain::CrtChain;
+use crate::fadepass::FadePass;
 use crate::gpu::Gpu;
 use crate::paperbg::PaperBgPass;
 use crate::scene::PaneScene;
@@ -12,12 +13,16 @@ use crate::scene::PaneScene;
 /// Upload the scene, render, and present. Skips the frame on surface errors
 /// (Outdated/Lost). `paper` is `None` with the paper texture disabled;
 /// `grain` is the user knob × the theme's multiplier, precomputed upstream.
+/// `fade` is the theme-crossfade strength: while `None` the finished frame is
+/// snapshotted; while `Some` the held old-theme frame draws on top instead.
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn render(
     gpu: &Gpu,
     cell_grid: &mut CellGrid,
     paper: Option<&PaperBgPass>,
     crt: &CrtChain,
+    fade_pass: &mut FadePass,
+    fade: Option<f32>,
     window_opacity: f32,
     grain: f32,
     panes: &[PaneScene],
@@ -63,6 +68,15 @@ pub(crate) fn render(
     encode_scene(&mut enc, scene_view, bg_f32, paper, cell_grid);
     if use_crt {
         crt.encode(&mut enc, &view);
+    }
+
+    // Theme crossfade, over the finished frame (post-CRT, so the old tube
+    // look melts into the new one whole). Mid-fade the snapshot is frozen —
+    // it must keep holding the old theme's final frame; otherwise the frame
+    // that just rendered becomes the next fade's "old" frame.
+    match fade {
+        Some(a) => fade_pass.draw(&mut enc, &gpu.queue, &view, a),
+        None => fade_pass.capture(&mut enc, &frame.texture),
     }
 
     gpu.queue.submit(Some(enc.finish()));

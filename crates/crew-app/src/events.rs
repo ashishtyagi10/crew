@@ -175,7 +175,7 @@ impl CrewApp {
                 let crt_active =
                     crt.is_some() && self.panes.iter().any(crate::paneview::pane_animating);
                 let crt_time = (crate::anim::now_ms() % 100_000) as f32 / 1000.0;
-                let veil = self.theme_veil(crate::anim::now_ms());
+                let fade = self.theme_fade(crate::anim::now_ms());
                 if let Some(r) = &mut self.renderer {
                     // Flicker amplitude is the style's own — each phosphor
                     // jitters with its own nerve, not one global 0.06.
@@ -186,7 +186,7 @@ impl CrewApp {
                     };
                     r.set_crt(crt);
                     r.set_crt_anim(crt_time, amp);
-                    r.set_veil(veil);
+                    r.set_theme_fade(fade);
                     r.frame(&scenes);
                 }
             }

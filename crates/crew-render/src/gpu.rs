@@ -8,6 +8,9 @@ pub struct Gpu {
     pub surface: wgpu::Surface<'static>,
     pub config: wgpu::SurfaceConfiguration,
     pub format: wgpu::TextureFormat,
+    /// Whether the surface supports `COPY_SRC` — the theme-crossfade snapshot
+    /// copies the presented frame; without it the fade degrades to a hard cut.
+    pub surface_copy: bool,
 }
 
 /// Prefer a NON-sRGB surface so alpha blending happens on gamma-encoded
@@ -58,8 +61,13 @@ impl Gpu {
 
         let caps = surface.get_capabilities(&adapter);
         let format = pick_surface_format(&caps.formats);
+        let surface_copy = caps.usages.contains(wgpu::TextureUsages::COPY_SRC);
+        let mut usage = wgpu::TextureUsages::RENDER_ATTACHMENT;
+        if surface_copy {
+            usage |= wgpu::TextureUsages::COPY_SRC;
+        }
         let config = wgpu::SurfaceConfiguration {
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            usage,
             format,
             width: size.width.max(1),
             height: size.height.max(1),
@@ -76,6 +84,7 @@ impl Gpu {
             surface,
             config,
             format,
+            surface_copy,
         })
     }
 

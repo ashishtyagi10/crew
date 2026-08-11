@@ -4,6 +4,7 @@ use winit::window::Window;
 
 use crate::cellgrid::CellGrid;
 use crate::crtchain::CrtChain;
+use crate::fadepass::FadePass;
 use crate::gpu::Gpu;
 use crate::paperbg::PaperBgPass;
 use crate::scene::PaneScene;
@@ -27,6 +28,10 @@ pub struct Renderer {
     // chain's scene target then reprojects (bloom + composite); otherwise it
     // draws straight to the surface.
     crt: CrtChain,
+    // Theme crossfade: the last presented frame, drawn back over the new
+    // theme's frames at `theme_fade` strength while a switch settles.
+    fade: FadePass,
+    theme_fade: Option<f32>,
 }
 
 impl Renderer {
@@ -35,6 +40,13 @@ impl Renderer {
         let cell_grid = CellGrid::new(&gpu.device, &gpu.queue, gpu.format, font_size);
         let paper_bg = PaperBgPass::new(&gpu.device, gpu.format);
         let crt = CrtChain::new(&gpu.device, gpu.format, gpu.config.width, gpu.config.height);
+        let fade = FadePass::new(
+            &gpu.device,
+            gpu.format,
+            gpu.config.width,
+            gpu.config.height,
+            gpu.surface_copy,
+        );
         Ok(Self {
             gpu,
             cell_grid,
@@ -45,6 +57,8 @@ impl Renderer {
             paper_grain: 1.3,
             window_opacity: 1.0,
             crt,
+            fade,
+            theme_fade: None,
         })
     }
 
@@ -74,17 +88,11 @@ impl Renderer {
         self.paper_texture = enabled;
     }
 
-    /// Set the frosted-glass strength for pane cards. The per-theme look is
-    /// derived from the active theme, so this is only the intensity knob.
-    /// Theme-switch veil: a full-window wash of `color` at `alpha`, drawn over
-    /// the whole scene. Pass `None` (or alpha ≤ 0) to clear. The caller owns
-    /// the fade timeline; this is just the per-frame value.
-    pub fn set_veil(&mut self, veil: Option<((u8, u8, u8), f32)>) {
-        let srgb = self.gpu.format.is_srgb();
-        self.cell_grid.set_veil(
-            veil.filter(|(_, a)| *a > 0.001)
-                .map(|(c, a)| crate::color::target_rgba(c, a, srgb)),
-        );
+    /// Theme-switch crossfade: how strongly the LAST presented frame still
+    /// covers the new theme's frame (1 → all old). Pass `None` (or ≤ 0) once
+    /// settled. The caller owns the fade timeline; this is the per-frame value.
+    pub fn set_theme_fade(&mut self, fade: Option<f32>) {
+        self.theme_fade = fade.filter(|a| *a > 0.001);
     }
 
     pub fn set_glass(&mut self, level: crew_theme::GlassLevel) {
@@ -131,6 +139,11 @@ impl Renderer {
             self.gpu.config.width,
             self.gpu.config.height,
         );
+        self.fade.resize(
+            &self.gpu.device,
+            self.gpu.config.width,
+            self.gpu.config.height,
+        );
     }
 
     /// Returns the monospace cell size `(width, height)` in pixels.
@@ -155,6 +168,8 @@ impl Renderer {
                 None
             },
             &self.crt,
+            &mut self.fade,
+            self.theme_fade,
             self.window_opacity,
             // Newsprint: light themes multiply the user's grain knob
             // (theme().grain = 1.2 on light AND dark; the dark-grain
