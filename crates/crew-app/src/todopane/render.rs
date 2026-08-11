@@ -266,6 +266,7 @@ pub(crate) fn cells(p: &TodoPane, cols: u16, rows: u16) -> Vec<CellView> {
                 header: false,
                 dim: false,
                 needs: None,
+                color: Some(crew_theme::tag_color(tag, t)),
             })
             .collect();
         let top = rows - composer_h(p, cols, rows) - ph;

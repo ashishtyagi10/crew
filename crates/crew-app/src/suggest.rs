@@ -34,6 +34,10 @@ pub(crate) struct MenuItem {
     /// such a row prompts for the key instead of choosing a model that cannot
     /// run. `None` everywhere outside the model picker.
     pub needs: Option<String>,
+    /// Optional label tint. The command palette leaves it `None` (accent);
+    /// `/todo`'s tag popup colors each row in its project's own color
+    /// (`crew_theme::tag_color`), matching the chips it completes into.
+    pub color: Option<(u8, u8, u8)>,
 }
 
 /// The first row a selection may land on — headers are titles, not choices.
@@ -84,6 +88,7 @@ pub(crate) fn menu_items(text: &str) -> Vec<MenuItem> {
                 header: false,
                 dim: false,
                 needs: None,
+                color: None,
             })
             .collect();
     }
@@ -103,6 +108,7 @@ pub(crate) fn menu_items(text: &str) -> Vec<MenuItem> {
                 header: false,
                 dim: false,
                 needs: None,
+                color: None,
             }
         })
         .collect()

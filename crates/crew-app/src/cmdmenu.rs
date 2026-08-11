@@ -75,7 +75,13 @@ fn menu_cells(matches: &[MenuItem], sel: usize, cols: u16, rows: u16) -> Vec<Cel
             // never bold and it keeps its desc column — that's what tells it
             // apart from a section title, while the dim (not accent) label
             // tells it apart from a normal, serveable row.
-            let label_fg = if c.dim { DIM } else { accent_color() };
+            let label_fg = if c.dim {
+                DIM
+            } else {
+                c.color
+                    .map(|(r, g, b)| ratatui::style::Color::Rgb(r, g, b))
+                    .unwrap_or_else(accent_color)
+            };
             ListItem::new(Line::from(vec![
                 Span::styled(c.label.clone(), Style::new().fg(label_fg)),
                 Span::raw("  "),
