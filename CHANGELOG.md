@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.16.7
+
+Swarm runs leave a trail. When a `/smith` run spawns agents and its
+tasks start, finish or fail, those beats now land in the LOG — and in
+`/log`'s session file — as quiet lines that speak task titles
+(`smith: task #2 'scan logs' → done`), with failures at the error
+level. Quiet means quiet: unlike other LOG events they never flash the
+input bar or raise a toast, and the high-volume token/output ticks
+stay out entirely.
+
 ## 0.16.6
 
 `/log` opens the whole story. The sidebar LOG shows only the last five
