@@ -182,3 +182,28 @@ fn epoch_conversion_round_trips() {
     let d = at(2026, 8, 12, 15, 4);
     assert_eq!(from_epoch_ms(to_epoch_ms(d).unwrap()), Some(d));
 }
+
+/// Calendar-day shifts keep the wall clock — the 09:00 due is still 09:00
+/// after any number of bumps (asserted via local decomposition, so the
+/// test holds in every timezone).
+#[test]
+fn shift_days_moves_the_date_and_keeps_the_time() {
+    let base = to_epoch_ms(
+        NaiveDate::from_ymd_opt(2026, 6, 15)
+            .unwrap()
+            .and_hms_opt(9, 0, 0)
+            .unwrap(),
+    )
+    .unwrap();
+    let fwd = shift_days(base, 1);
+    let back = shift_days(fwd, -1);
+    let d = from_epoch_ms(fwd).unwrap();
+    assert_eq!(d.date(), NaiveDate::from_ymd_opt(2026, 6, 16).unwrap());
+    assert_eq!(d.time(), NaiveTime::from_hms_opt(9, 0, 0).unwrap());
+    assert_eq!(back, base, "a bump is exactly undone by its inverse");
+    assert_eq!(
+        from_epoch_ms(shift_days(base, 30)).unwrap().date(),
+        NaiveDate::from_ymd_opt(2026, 7, 15).unwrap(),
+        "month boundaries are calendar math, not 24h multiples"
+    );
+}

@@ -444,6 +444,37 @@ impl TodoPane {
         self.refresh();
     }
 
+    /// `+`/`-` on a selected row: postpone/advance its due one calendar
+    /// day (wall clock kept). An undated item gets tomorrow at the default
+    /// hour from `+`; `-` on undated stays undated — there is nothing to
+    /// advance.
+    pub(crate) fn bump_due_at(&mut self, display_idx: usize, forward: bool) {
+        let Some(id) = self.id_at(display_idx) else {
+            return;
+        };
+        let now = duedate::now_local();
+        store::mutate(|items| {
+            if let Some(it) = items.iter_mut().find(|it| it.id == id) {
+                match it.due_ms {
+                    Some(d) => {
+                        it.due_ms = Some(duedate::shift_days(d, if forward { 1 } else { -1 }))
+                    }
+                    None if forward => {
+                        let tomorrow = now.date() + chrono::Duration::days(1);
+                        it.due_ms = tomorrow
+                            .and_hms_opt(duedate::DEFAULT_HOUR, 0, 0)
+                            .and_then(duedate::to_epoch_ms);
+                        it.due_has_time = false;
+                    }
+                    None => {}
+                }
+                // A bumped due is a new deadline: let it toast again.
+                it.notified = false;
+            }
+        });
+        self.refresh();
+    }
+
     pub(crate) fn delete_at(&mut self, display_idx: usize) {
         let Some(id) = self.id_at(display_idx) else {
             return;
