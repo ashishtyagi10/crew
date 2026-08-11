@@ -6,41 +6,44 @@ use crate::todopane::{store, TodoPane};
 #[test]
 fn classification_covers_the_pane_keys() {
     assert_eq!(
-        todo_key(&Key::Named(NamedKey::Escape), true),
+        todo_key(&Key::Named(NamedKey::Escape), true, false, false),
         TodoInput::Close
     );
     assert_eq!(
-        todo_key(&Key::Named(NamedKey::Enter), true),
+        todo_key(&Key::Named(NamedKey::Enter), true, false, false),
         TodoInput::Enter
     );
     assert_eq!(
-        todo_key(&Key::Named(NamedKey::Backspace), true),
+        todo_key(&Key::Named(NamedKey::Backspace), true, false, false),
         TodoInput::Backspace
     );
     assert_eq!(
-        todo_key(&Key::Named(NamedKey::Delete), true),
+        todo_key(&Key::Named(NamedKey::Delete), true, false, false),
         TodoInput::DeleteKey
     );
-    assert_eq!(todo_key(&Key::Named(NamedKey::Tab), true), TodoInput::Tab);
     assert_eq!(
-        todo_key(&Key::Named(NamedKey::ArrowUp), true),
+        todo_key(&Key::Named(NamedKey::Tab), true, false, false),
+        TodoInput::Tab
+    );
+    assert_eq!(
+        todo_key(&Key::Named(NamedKey::ArrowUp), true, false, false),
         TodoInput::Up
     );
     assert_eq!(
-        todo_key(&Key::Named(NamedKey::ArrowDown), true),
+        todo_key(&Key::Named(NamedKey::ArrowDown), true, false, false),
         TodoInput::Down
     );
     assert_eq!(
-        todo_key(&Key::Named(NamedKey::Space), true),
+        todo_key(&Key::Named(NamedKey::Space), true, false, false),
         TodoInput::Char(' ')
     );
     assert_eq!(
-        todo_key(&Key::Character("d".into()), true),
+        todo_key(&Key::Character("d".into()), true, false, false),
         TodoInput::Char('d')
     );
     // Releases never act.
     assert_eq!(
-        todo_key(&Key::Named(NamedKey::Escape), false),
+        todo_key(&Key::Named(NamedKey::Escape), false, false, false),
         TodoInput::Ignore
     );
 }
@@ -178,15 +181,21 @@ fn enter_submits_from_the_composer() {
 #[test]
 fn classification_covers_the_paging_keys() {
     assert_eq!(
-        todo_key(&Key::Named(NamedKey::PageUp), true),
+        todo_key(&Key::Named(NamedKey::PageUp), true, false, false),
         TodoInput::PageUp
     );
     assert_eq!(
-        todo_key(&Key::Named(NamedKey::PageDown), true),
+        todo_key(&Key::Named(NamedKey::PageDown), true, false, false),
         TodoInput::PageDown
     );
-    assert_eq!(todo_key(&Key::Named(NamedKey::Home), true), TodoInput::Home);
-    assert_eq!(todo_key(&Key::Named(NamedKey::End), true), TodoInput::End);
+    assert_eq!(
+        todo_key(&Key::Named(NamedKey::Home), true, false, false),
+        TodoInput::Home
+    );
+    assert_eq!(
+        todo_key(&Key::Named(NamedKey::End), true, false, false),
+        TodoInput::End
+    );
 }
 
 /// Concrete page math: 30 one-row items in a 20-row pane (empty composer =
@@ -252,4 +261,126 @@ fn paging_edges_empty_list_composer_zone_and_filter() {
     assert_eq!(p.sel, Some(1), "End lands on the last FILTERED item");
     apply(&mut p, TodoInput::Home, COLS, ROWS);
     assert_eq!(p.sel, Some(0));
+}
+
+#[test]
+fn ctrl_and_alt_reshape_the_classification() {
+    use winit::keyboard::{Key, NamedKey};
+    let k = |n| Key::Named(n);
+    assert_eq!(
+        todo_key(&k(NamedKey::ArrowLeft), true, false, false),
+        TodoInput::Left
+    );
+    assert_eq!(
+        todo_key(&k(NamedKey::ArrowRight), true, false, false),
+        TodoInput::Right
+    );
+    assert_eq!(
+        todo_key(&k(NamedKey::ArrowLeft), true, false, true),
+        TodoInput::WordLeft
+    );
+    assert_eq!(
+        todo_key(&k(NamedKey::ArrowRight), true, false, true),
+        TodoInput::WordRight
+    );
+    assert_eq!(
+        todo_key(&Key::Character("a".into()), true, true, false),
+        TodoInput::Home
+    );
+    assert_eq!(
+        todo_key(&Key::Character("e".into()), true, true, false),
+        TodoInput::End
+    );
+    // Other Ctrl-letters are swallowed, never typed into the draft.
+    assert_eq!(
+        todo_key(&Key::Character("x".into()), true, true, false),
+        TodoInput::Ignore
+    );
+}
+
+/// The cursor-editing table, concrete strings end to end (multibyte é/☕
+/// included — indices are chars, not bytes).
+#[test]
+fn the_composer_cursor_edits_mid_string() {
+    let _g = store::test_guard(vec![]);
+    let mut p = pane_with(&[]);
+    for c in "caé ☕ bar".chars() {
+        apply(&mut p, TodoInput::Char(c), COLS, ROWS);
+    }
+    assert_eq!((p.input.as_str(), p.cursor), ("caé ☕ bar", 9));
+    // Left ×4 → between ☕ and the space before "bar".
+    for _ in 0..4 {
+        apply(&mut p, TodoInput::Left, COLS, ROWS);
+    }
+    assert_eq!(p.cursor, 5);
+    apply(&mut p, TodoInput::Char('X'), COLS, ROWS);
+    assert_eq!((p.input.as_str(), p.cursor), ("caé ☕X bar", 6));
+    apply(&mut p, TodoInput::Backspace, COLS, ROWS);
+    assert_eq!((p.input.as_str(), p.cursor), ("caé ☕ bar", 5));
+    apply(&mut p, TodoInput::DeleteKey, COLS, ROWS);
+    assert_eq!((p.input.as_str(), p.cursor), ("caé ☕bar", 5));
+    apply(&mut p, TodoInput::Home, COLS, ROWS);
+    assert_eq!(p.cursor, 0);
+    apply(&mut p, TodoInput::DeleteKey, COLS, ROWS);
+    assert_eq!((p.input.as_str(), p.cursor), ("aé ☕bar", 0));
+    apply(&mut p, TodoInput::Backspace, COLS, ROWS); // no-op at 0
+    assert_eq!((p.input.as_str(), p.cursor), ("aé ☕bar", 0));
+    apply(&mut p, TodoInput::End, COLS, ROWS);
+    assert_eq!(p.cursor, 7);
+    // Paste lands at the cursor, not the tail.
+    apply(&mut p, TodoInput::Home, COLS, ROWS);
+    p.paste("zz");
+    assert_eq!((p.input.as_str(), p.cursor), ("zzaé ☕bar", 2));
+}
+
+#[test]
+fn word_jumps_hop_word_boundaries() {
+    let _g = store::test_guard(vec![]);
+    let mut p = pane_with(&[]);
+    p.paste("one  two three");
+    assert_eq!(p.cursor, 14);
+    apply(&mut p, TodoInput::WordLeft, COLS, ROWS);
+    assert_eq!(p.cursor, 9, "back to the start of 'three'");
+    apply(&mut p, TodoInput::WordLeft, COLS, ROWS);
+    assert_eq!(p.cursor, 5, "start of 'two'");
+    apply(&mut p, TodoInput::WordLeft, COLS, ROWS);
+    apply(&mut p, TodoInput::WordLeft, COLS, ROWS);
+    assert_eq!(p.cursor, 0, "clamped at the front");
+    apply(&mut p, TodoInput::WordRight, COLS, ROWS);
+    assert_eq!(p.cursor, 3, "end of 'one'");
+    apply(&mut p, TodoInput::WordRight, COLS, ROWS);
+    assert_eq!(p.cursor, 8, "end of 'two'");
+}
+
+/// Up/Down travel the wrapped draft line by line (nearest column), and only
+/// the edges hand off to the list — bottom item on Up, top item on Down.
+#[test]
+fn up_and_down_travel_wrapped_lines_before_entering_the_list() {
+    let _g = store::test_guard(vec![]);
+    let mut p = pane_with(&["one", "two"]);
+    // 34-cell interior at 40 cols: wraps after "alpha bravo charlie delta "
+    p.paste("alpha bravo charlie delta echo foxtrot");
+    assert_eq!(p.cursor, 38, "on line 2");
+    apply(&mut p, TodoInput::Up, COLS, ROWS);
+    assert_eq!(p.sel, None, "Up from line 2 stays in the composer");
+    assert_eq!(p.cursor, 7, "same display column, one line up");
+    apply(&mut p, TodoInput::Up, COLS, ROWS);
+    assert_eq!(p.sel, Some(1), "Up from line 1 exits to the BOTTOM item");
+    apply(&mut p, TodoInput::Close, COLS, ROWS); // back to composer
+    apply(&mut p, TodoInput::Down, COLS, ROWS);
+    assert_eq!(p.sel, None, "Down from line 1 stays in the composer");
+    assert!(p.cursor > 26, "cursor moved down a line, got {}", p.cursor);
+    apply(&mut p, TodoInput::Down, COLS, ROWS);
+    assert_eq!(p.sel, Some(0), "Down from the last line enters at the TOP");
+}
+
+/// `e` starts the edit with the cursor at the draft's end.
+#[test]
+fn edit_at_parks_the_cursor_at_the_end() {
+    let _g = store::test_guard(vec![]);
+    let mut p = pane_with(&["fix the door"]);
+    apply(&mut p, TodoInput::Down, COLS, ROWS);
+    apply(&mut p, TodoInput::Char('e'), COLS, ROWS);
+    assert_eq!(p.input, "fix the door");
+    assert_eq!(p.cursor, 12);
 }

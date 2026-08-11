@@ -152,6 +152,7 @@ fn a_done_item_does_not_render() {
 fn the_composer_legend_previews_a_recognised_due() {
     let mut p = test_pane(vec![]);
     p.input = "pay rent tomorrow".into();
+    p.cursor = p.input.chars().count();
     let cells = cells(&p, COLS, ROWS);
     let border = row_text(&cells, ROWS - 3);
     assert!(border.contains("due tomorrow"), "{border:?}");
@@ -197,6 +198,7 @@ fn a_long_composer_input_wraps_onto_a_second_row() {
     let mut p = test_pane(vec![item(1, "x")]);
     // 49 cells > the 34-cell interior budget at 40 cols → two lines.
     p.input = "alpha bravo charlie delta echo foxtrot golf hotel".into();
+    p.cursor = p.input.chars().count();
     assert_eq!(composer_h(&p, COLS, ROWS), 4);
     assert_eq!(list_height(&p, COLS, ROWS), ROWS - 4);
     let cells = cells(&p, COLS, ROWS);
@@ -222,6 +224,7 @@ fn composer_growth_caps_and_keeps_the_tail_visible() {
     let mut p = test_pane(vec![]);
     // 40 words wrap to 6 lines at 40 cols — past the 4-line cap.
     p.input = "word ".repeat(39) + "last";
+    p.cursor = p.input.chars().count();
     assert_eq!(composer_h(&p, COLS, ROWS), 2 + 4);
     let cells = cells(&p, COLS, ROWS);
     let bottom = row_text(&cells, ROWS - 2);
@@ -237,6 +240,7 @@ fn a_date_fragment_stays_tinted_on_a_wrapped_row() {
     let mut p = test_pane(vec![]);
     // Pad so "tomorrow" lands on the second wrapped line.
     p.input = "alpha bravo charlie delta echo golf hotel tomorrow".into();
+    p.cursor = p.input.chars().count();
     assert_eq!(composer_h(&p, COLS, ROWS), 4);
     let cells = cells(&p, COLS, ROWS);
     let accent = crate::palette::accent();
@@ -266,6 +270,7 @@ fn project_chips_and_composer_tint_share_per_tag_colors() {
     c.project = Some("crew".into());
     let mut p = test_pane(vec![a, b, c]);
     p.input = "ship it @crew".into();
+    p.cursor = p.input.chars().count();
     let cells = cells(&p, COLS, ROWS);
     // Each single-line item sits on its own row, 0..3; the chip is the
     // right-aligned `@…` run, found by its `@` cell.
@@ -318,4 +323,26 @@ fn the_filter_header_colors_the_tag_but_not_the_tail() {
         .find(|cl| cl.row == 1 && cl.c == '@')
         .expect("no chip on row 1");
     assert_eq!(at.fg, chip.fg, "header and chip must agree on the color");
+}
+
+/// The `▏` beam renders at the CURSOR cell, not the text end.
+#[test]
+fn the_cursor_beam_tracks_a_mid_string_cursor() {
+    let mut p = test_pane(vec![]);
+    p.input = "hello".into();
+    p.cursor = 3;
+    let cells = cells(&p, COLS, ROWS);
+    let bar = cells
+        .iter()
+        .find(|c| c.c == '\u{258f}')
+        .expect("no cursor beam");
+    // Interior text starts at col 4; three chars in → col 7, over the
+    // second 'l' (the beam draws last, compositing over the glyph).
+    assert_eq!(bar.col, 7);
+    assert!(
+        cells
+            .iter()
+            .any(|c| c.c == 'l' && c.col == 7 && c.row == bar.row),
+        "the glyph under the beam still renders"
+    );
 }

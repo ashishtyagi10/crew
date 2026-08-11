@@ -45,7 +45,7 @@ fn composer_cap(rows: u16) -> usize {
 /// The composer input wrapped at the card's interior width: absolute char
 /// ranges into `p.input`, always at least one (possibly empty) line. The
 /// budget leaves the cursor column free, so a full line never clips `▏`.
-fn input_lines(p: &TodoPane, cols: u16) -> Vec<(usize, usize)> {
+pub(crate) fn input_lines(p: &TodoPane, cols: u16) -> Vec<(usize, usize)> {
     let chars: Vec<char> = p.input.chars().collect();
     let w = (cols.saturating_sub(6)).max(1) as usize;
     wrap_ranges(&chars, w, w)
@@ -412,12 +412,14 @@ fn composer_cells(out: &mut Vec<CellView>, p: &TodoPane, cols: u16, rows: u16) {
         }
     };
 
+    let cursor = p.cursor.min(chars.len());
     if ch == 1 {
-        // Bare row: no room to grow, tail-follow the last chars that fit.
+        // Bare row: no room to grow — follow the CURSOR, not the tail, so a
+        // mid-string edit stays under the eye.
         out.push(cell(0, top, '\u{276f}', accent, true)); // ❯
         let (text_x, max) = (2u16, cols);
         let avail = (max.saturating_sub(text_x)).saturating_sub(1) as usize;
-        let mut start = chars.len();
+        let mut start = cursor;
         let mut used = 0;
         while start > 0 {
             let w = crate::chatwidth::char_w(chars[start - 1]);
@@ -431,11 +433,12 @@ fn composer_cells(out: &mut Vec<CellView>, p: &TodoPane, cols: u16, rows: u16) {
             .iter()
             .enumerate()
             .map(|(j, &c)| (c, style(start + j)));
-        let end_x = crate::chatwidth::place_row(text_x, max, styled, |x, c, (fg, bold)| {
+        crate::chatwidth::place_row(text_x, max, styled, |x, c, (fg, bold)| {
             out.push(cell(x, top, c, fg, bold))
         });
-        if end_x < max {
-            out.push(cell(end_x, top, '\u{258f}', accent, false)); // ▏
+        let bar_x = text_x + used as u16;
+        if bar_x < max {
+            out.push(cell(bar_x, top, '\u{258f}', accent, false)); // ▏
         }
         return;
     }
@@ -478,23 +481,45 @@ fn composer_cells(out: &mut Vec<CellView>, p: &TodoPane, cols: u16, rows: u16) {
         return;
     }
 
-    // Show the last `ch - 2` wrapped lines (all of them until the cap bites).
+    // Show `ch - 2` wrapped lines, the window anchored so the CURSOR's line
+    // is always visible (with the cursor at the end this is the old
+    // tail-follow; mid-draft edits keep their line on screen instead).
     let lines = input_lines(p, cols);
-    let skip = lines.len().saturating_sub((ch - 2) as usize);
-    let (mut end_x, mut end_row) = (text_x, top + 1);
-    for (vi, &(s, e)) in lines[skip..].iter().enumerate() {
+    let visible = (ch - 2) as usize;
+    let cur_line = lines
+        .iter()
+        .position(|&(_, e)| cursor <= e)
+        .unwrap_or(lines.len() - 1);
+    let skip = cur_line
+        .saturating_sub(visible.saturating_sub(1))
+        .min(lines.len().saturating_sub(visible));
+    let (mut bar_x, mut bar_row) = (text_x, top + 1);
+    for (vi, &(s, e)) in lines[skip..].iter().take(visible).enumerate() {
         let r = top + 1 + vi as u16;
         let styled = chars[s..e]
             .iter()
             .enumerate()
             .map(|(j, &c)| (c, style(s + j)));
-        end_x = crate::chatwidth::place_row(text_x, max, styled, |x, c, (fg, bold)| {
+        let end_x = crate::chatwidth::place_row(text_x, max, styled, |x, c, (fg, bold)| {
             out.push(cell(x, r, c, fg, bold))
         });
-        end_row = r;
+        if skip + vi == cur_line {
+            let w: usize = chars[s..cursor.min(e).max(s)]
+                .iter()
+                .map(|&c| crate::chatwidth::char_w(c))
+                .sum();
+            bar_x = (text_x + w as u16).min(max.saturating_sub(1));
+            bar_row = r;
+        } else if cursor > e && skip + vi == lines.len().saturating_sub(1) {
+            // Cursor past the last visible glyph (trailing-space wrap gap):
+            // park the bar after the line's text.
+            bar_x = end_x;
+            bar_row = r;
+        }
     }
-    // The wrap budget leaves this column free ([`input_lines`]).
-    out.push(cell(end_x, end_row, '\u{258f}', accent, false)); // ▏
+    // Drawn last, over the glyph it sits on — a beam at the cursor. The
+    // wrap budget leaves the end column free ([`input_lines`]).
+    out.push(cell(bar_x, bar_row, '\u{258f}', accent, false)); // ▏
 }
 
 /// Char ranges of every `@tag` token (length ≥ 2) in the composer.

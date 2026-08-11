@@ -193,7 +193,13 @@ impl CrewApp {
                         v.on_key(event, pane.grid.cols, pane.grid.rows, mstate.control_key())
                 }
                 PaneContent::Todo(t) => {
-                    todo_action = t.on_key(event, pane.grid.cols, pane.grid.rows)
+                    todo_action = t.on_key(
+                        event,
+                        pane.grid.cols,
+                        pane.grid.rows,
+                        mstate.control_key(),
+                        alt,
+                    )
                 }
             }
         }

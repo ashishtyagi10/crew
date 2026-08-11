@@ -15,8 +15,7 @@ const BINDINGS: &[(&str, &str)] = &[
     ("Cmd+1 … 9", "Jump to pane N"),
     ("Cmd+A / Cmd+.", "Jump to next active / waiting pane"),
     ("Cmd+{ / Cmd+}", "Move pane left / right"),
-    ("Cmd+I", "Focus the input bar"),
-    ("Cmd+T", "New shell pane"),
+    ("Cmd+I / Cmd+T", "Focus the input bar / new shell pane"),
     ("Cmd+, / Cmd+J", "Settings / chat pane"),
     ("Cmd+G / Cmd+Z", "Toggle sidebar / zoom focused pane"),
     ("Cmd+S", "Broadcast to all panes"),
@@ -39,6 +38,10 @@ const BINDINGS: &[(&str, &str)] = &[
     (
         "PageUp/Down · Home/End",
         "Todo list: page the selection · first / last",
+    ),
+    (
+        "Ctrl+A / Ctrl+E / Alt+Left / Alt+Right",
+        "Todo composer: draft ends · word jump",
     ),
     ("/ (in input)", "Command palette"),
     (
