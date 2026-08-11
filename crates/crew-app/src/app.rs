@@ -38,10 +38,11 @@ pub struct CrewApp {
     /// redraw-scheduling flag `wants_animation_frame` reads.
     pub(crate) glide_prev_ms: u64,
     pub(crate) glide_active: bool,
-    /// Theme-switch veil (see [`crate::themefade`]): the last theme id drawn,
-    /// and the develop-fade running when it changes. `None` until first frame.
+    /// Theme-switch crossfade (see [`crate::themefade`]): the last theme id
+    /// drawn, and the old-frame melt running when it changes. `None` until
+    /// first frame.
     pub(crate) theme_seen: Option<crew_theme::ThemeId>,
-    pub(crate) theme_veil: crate::ease::Timeline,
+    pub(crate) theme_fade_anim: crate::ease::Timeline,
     /// The light/dark scheme last pushed to DECSET-2031 terminals (see
     /// [`crate::schemepush`]). `None` until the first poll tick latches it.
     pub(crate) scheme_pushed: Option<bool>,
