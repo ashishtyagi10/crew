@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.16.5
+
+The todo composer gains a real cursor. Until now the draft was
+append-only — a typo at the start of a long multiline draft meant
+backspacing everything after it. Now `←`/`→` move by character,
+`Alt+←`/`Alt+→` hop words, `Ctrl+A`/`Ctrl+E` (or `Home`/`End`) jump to
+the draft's ends, and typing, paste and forward-Delete all act at the
+cursor — with the `▏` beam drawn exactly where you are, the live due
+and `@tag` tints intact around a mid-string edit, and the capped card
+following the cursor's line instead of the tail. On a wrapped draft
+`↑`/`↓` travel the visual lines at the nearest column; only the edges
+hand focus to the list.
+
 ## 0.16.4
 
 The todo list pages from the keyboard. `PageUp`/`PageDown` hop the
