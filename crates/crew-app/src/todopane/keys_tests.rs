@@ -384,3 +384,35 @@ fn edit_at_parks_the_cursor_at_the_end() {
     assert_eq!(p.input, "fix the door");
     assert_eq!(p.cursor, 12);
 }
+
+/// `h` in the list toggles done visibility (and clamps a stranded
+/// selection); in the composer it just types.
+#[test]
+fn h_toggles_done_visibility_from_the_list_only() {
+    let _g = store::test_guard(vec![]);
+    let mut p = pane_with(&["one", "two", "three"]);
+    apply(&mut p, TodoInput::Down, COLS, ROWS);
+    apply(&mut p, TodoInput::Char(' '), COLS, ROWS); // done "one" — auto-hides
+    assert_eq!(p.visible_len(), 2);
+    apply(&mut p, TodoInput::End, COLS, ROWS);
+    apply(&mut p, TodoInput::Char('h'), COLS, ROWS);
+    assert_eq!(p.visible_len(), 3, "done row visible again");
+    // The done row sits last; Space there un-dones it.
+    apply(&mut p, TodoInput::End, COLS, ROWS);
+    apply(&mut p, TodoInput::Char(' '), COLS, ROWS);
+    assert!(p.items.iter().all(|i| !i.done), "reached back and un-did");
+    // Toggle off from the last row: the selection clamps, not panics.
+    apply(&mut p, TodoInput::Char(' '), COLS, ROWS); // re-done the last row
+    apply(&mut p, TodoInput::End, COLS, ROWS);
+    apply(&mut p, TodoInput::Char('h'), COLS, ROWS);
+    assert_eq!(p.visible_len(), 2);
+    assert_eq!(p.sel, Some(1), "selection clamped to the shorter list");
+    // Composer zone: 'h' is just a letter.
+    apply(&mut p, TodoInput::Close, COLS, ROWS);
+    apply(&mut p, TodoInput::Char('h'), COLS, ROWS);
+    assert_eq!(p.input, "h");
+    assert!(
+        !p.show_done || p.input == "h",
+        "no list toggle from the composer"
+    );
+}

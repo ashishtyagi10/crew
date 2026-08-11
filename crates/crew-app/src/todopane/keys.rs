@@ -130,6 +130,14 @@ pub(crate) fn apply(
             Enter | Char(' ') => p.toggle_done_at(sel),
             Backspace | DeleteKey | Char('d') => p.delete_at(sel),
             Char('e') => p.edit_at(sel),
+            // `h` (list only — in the composer it just types): show/hide
+            // done items. Hiding clamps a selection left stranded past the
+            // shorter list.
+            Char('h') => {
+                p.show_done = !p.show_done;
+                let n = p.visible_len();
+                p.sel = (n > 0).then(|| sel.min(n - 1));
+            }
             // Any other printable jumps back to the composer and types.
             Char(c) => {
                 p.sel = None;

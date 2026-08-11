@@ -36,12 +36,18 @@ pub(crate) struct TodoItem {
 /// filter: overdue first (due ascending puts every past due ahead of every
 /// future one), then upcoming by due, then undated in creation order. Done
 /// items are hidden — they stay in the store (`todos.toml` keeps the
-/// history) but never display. Pure — the whole ordering contract lives
-/// here and in [`sort_key`].
-pub(crate) fn display_order(items: &[TodoItem], filter: Option<&str>) -> Vec<usize> {
+/// history) — unless `show_done`, which sinks them below every open item,
+/// newest completion first (`h` in the list is the way back: select one
+/// and Space un-dones it). Pure — the whole ordering contract lives here
+/// and in [`sort_key`].
+pub(crate) fn display_order(
+    items: &[TodoItem],
+    filter: Option<&str>,
+    show_done: bool,
+) -> Vec<usize> {
     let mut order: Vec<usize> = (0..items.len())
         .filter(|&i| {
-            !items[i].done
+            (show_done || !items[i].done)
                 && match filter {
                     None => true,
                     Some(f) => items[i]
@@ -56,8 +62,13 @@ pub(crate) fn display_order(items: &[TodoItem], filter: Option<&str>) -> Vec<usi
 }
 
 /// Rank 1 = dated (due ascending — overdue lands first for free), 2 =
-/// undated (creation order); final tie on creation.
+/// undated (creation order), 3 = done (newest completion first — the one
+/// you just ticked is the one you're most likely reaching back for);
+/// final tie on creation.
 fn sort_key(it: &TodoItem) -> (u8, u64, u64) {
+    if it.done {
+        return (3, u64::MAX - it.created_ms, 0);
+    }
     match it.due_ms {
         Some(d) => (1, d, it.created_ms),
         None => (2, it.created_ms, 0),
