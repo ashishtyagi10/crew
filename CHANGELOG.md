@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.16.10
+
+Deadlines move without retyping them. `+` and `-` on a selected todo
+postpone or advance its due date one calendar day — real calendar
+math, so a 9:00 due stays 9:00 across DST and month ends. `+` on an
+undated item starts it at tomorrow morning. A moved deadline arms its
+due toast again.
+
 ## 0.16.9
 
 The tag popup speaks in color. Completing an `@project` in the todo
