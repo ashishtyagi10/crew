@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.16.12
+
+Markdown tables with CJK or emoji stay inside their lane. The table
+renderer padded columns by display width but clamped rows by character
+count, so a wide-glyph row could run up to twice the pane budget and
+wrap mid-table. The clamp now counts display columns (and still bounds
+characters, so zero-width runs can't slip through); a wide glyph
+straddling the edge is dropped whole, never split.
+
 ## 0.16.11
 
 Flip between projects without typing. `]` and `[` on the todo list
