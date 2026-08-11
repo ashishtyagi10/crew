@@ -125,6 +125,38 @@ impl TodoPane {
         self.order().len()
     }
 
+    /// The selection one visible page forward or back from `sel`: successive
+    /// item heights are summed against the list height, moving while they
+    /// still fit the window — minimum one item, so an over-tall wrapped item
+    /// never pins the selection. Filter-aware through [`Self::order`].
+    pub(crate) fn page_target(&self, sel: usize, forward: bool, cols: u16, rows: u16) -> usize {
+        let order = self.order();
+        let n = order.len();
+        if n == 0 {
+            return 0;
+        }
+        let h = (render::list_height(self, cols, rows) as usize).max(1);
+        let now_ms = crate::chattime::unix_now_ms();
+        let mut acc = 0usize;
+        let mut at = sel.min(n - 1);
+        loop {
+            let next = match (forward, at) {
+                (true, a) if a + 1 < n => a + 1,
+                (false, a) if a > 0 => a - 1,
+                _ => break,
+            };
+            acc += render::item_h(&self.items[order[next]], cols, now_ms) as usize;
+            if acc > h && at != sel.min(n - 1) {
+                break;
+            }
+            at = next;
+            if acc >= h {
+                break;
+            }
+        }
+        at
+    }
+
     /// Keep the selection inside the list window after it moves. Items are
     /// variable-height (wrapped titles — [`render::item_h`]), so visibility
     /// is a row sum, not an item count.

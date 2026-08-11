@@ -23,6 +23,12 @@ pub(crate) enum TodoInput {
     Tab,
     Up,
     Down,
+    /// Unmodified paging keys — list traversal (the Shift chords stay the
+    /// app-wide pane-scroll bindings and never reach the pane).
+    PageUp,
+    PageDown,
+    Home,
+    End,
     Ignore,
 }
 
@@ -45,6 +51,10 @@ pub(crate) fn todo_key(logical: &Key, pressed: bool) -> TodoInput {
         Key::Named(NamedKey::Tab) => TodoInput::Tab,
         Key::Named(NamedKey::ArrowUp) => TodoInput::Up,
         Key::Named(NamedKey::ArrowDown) => TodoInput::Down,
+        Key::Named(NamedKey::PageUp) => TodoInput::PageUp,
+        Key::Named(NamedKey::PageDown) => TodoInput::PageDown,
+        Key::Named(NamedKey::Home) => TodoInput::Home,
+        Key::Named(NamedKey::End) => TodoInput::End,
         Key::Named(NamedKey::Space) => TodoInput::Char(' '),
         Key::Character(s) => s.chars().next().map_or(TodoInput::Ignore, TodoInput::Char),
         _ => TodoInput::Ignore,
@@ -92,6 +102,10 @@ pub(crate) fn apply(
             Close | Tab => p.sel = None,
             Up => p.sel = (sel > 0).then(|| sel - 1),
             Down => p.sel = Some((sel + 1).min(p.visible_len().saturating_sub(1))),
+            PageUp => p.sel = Some(p.page_target(sel, false, cols, rows)),
+            PageDown => p.sel = Some(p.page_target(sel, true, cols, rows)),
+            Home => p.sel = (p.visible_len() > 0).then_some(0),
+            End => p.sel = (p.visible_len() > 0).then(|| p.visible_len() - 1),
             Enter | Char(' ') => p.toggle_done_at(sel),
             Backspace | DeleteKey | Char('d') => p.delete_at(sel),
             Char('e') => p.edit_at(sel),
@@ -130,7 +144,9 @@ pub(crate) fn apply(
                 p.sel = Some(n - 1);
             }
         }
-        DeleteKey | Ignore => {}
+        // Home/End are reserved for the composer cursor (next slice);
+        // the paging keys only mean something inside the list.
+        PageUp | PageDown | Home | End | DeleteKey | Ignore => {}
     }
     p.ensure_visible(cols, rows);
     None
