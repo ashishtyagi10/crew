@@ -68,6 +68,9 @@ pub struct TodoPane {
     pub(crate) tagmenu: Option<TagMenu>,
     /// Active `@project` list filter.
     pub(crate) filter: Option<String>,
+    /// Show done items (sunk, dimmed) — `h` in the list toggles. Off by
+    /// default: done auto-hides (0.15.1), this is the way back.
+    pub(crate) show_done: bool,
     /// First visible display-order index of the list.
     pub(crate) scroll: usize,
 }
@@ -83,6 +86,7 @@ impl TodoPane {
             editing: None,
             tagmenu: None,
             filter: None,
+            show_done: false,
             scroll: 0,
         }
     }
@@ -123,7 +127,7 @@ impl TodoPane {
 
     /// Item indices in display order under the active filter.
     pub(crate) fn order(&self) -> Vec<usize> {
-        item::display_order(&self.items, self.filter.as_deref())
+        item::display_order(&self.items, self.filter.as_deref(), self.show_done)
     }
 
     pub(crate) fn visible_len(&self) -> usize {
@@ -500,6 +504,7 @@ pub(crate) fn test_pane(items: Vec<TodoItem>) -> TodoPane {
         editing: None,
         tagmenu: None,
         filter: None,
+        show_done: false,
         scroll: 0,
     }
 }

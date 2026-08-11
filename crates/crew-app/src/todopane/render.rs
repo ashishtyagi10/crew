@@ -295,12 +295,14 @@ fn row_cells(
     let t = crew_theme::theme();
     let accent = crate::palette::accent();
     let it = &p.items[idx];
-    let ink = t.ink;
+    // Done rows (visible under the `h` toggle) sink into the muted tone.
+    let ink = if it.done { t.text_muted } else { t.ink };
 
     if selected {
         out.push(cell(0, row, '\u{203a}', accent, true)); // ›
     }
-    for (i, c) in "[ ]".chars().enumerate() {
+    let boxes = if it.done { "[x]" } else { "[ ]" };
+    for (i, c) in boxes.chars().enumerate() {
         out.push(cell(BOX_COL + i as u16, row, c, ink, selected));
     }
 
