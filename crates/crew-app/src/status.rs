@@ -35,10 +35,10 @@ impl CrewApp {
         if self.log.len() >= LOG_CAP {
             self.log.remove(0);
         }
-        self.log.push(LogEntry {
-            level,
-            text: format!("{} {}", log_stamp(), msg),
-        });
+        let text = format!("{} {}", log_stamp(), msg);
+        // Mirror every entry into the on-disk session log (`/log`).
+        crate::activitylog::append(level, &text);
+        self.log.push(LogEntry { level, text });
         // Errors also step onto the canvas as an alert toast; routine statuses
         // ("copied 12 lines") stay a quiet flash on the bar.
         if level == LogLevel::Error {

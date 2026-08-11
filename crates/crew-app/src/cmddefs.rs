@@ -63,6 +63,10 @@ pub(crate) const COMMANDS: &[Cmd] = &[
         desc: "Show the Crew version",
     },
     Cmd {
+        name: "/log",
+        desc: "Open this session's full activity log in the viewer",
+    },
+    Cmd {
         name: "/copy",
         desc: "Copy the focused pane's full scrollback to the clipboard",
     },
