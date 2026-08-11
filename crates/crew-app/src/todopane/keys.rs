@@ -27,8 +27,15 @@ pub(crate) enum TodoInput {
     /// app-wide pane-scroll bindings and never reach the pane).
     PageUp,
     PageDown,
+    /// `Home`/`Ctrl+A` and `End`/`Ctrl+E`: first/last item in the list,
+    /// the draft's ends in the composer.
     Home,
     End,
+    /// Composer cursor movement (list: inert).
+    Left,
+    Right,
+    WordLeft,
+    WordRight,
     Ignore,
 }
 
@@ -38,12 +45,24 @@ pub(crate) enum TodoAction {
 }
 
 /// Classify a key press. Only presses act; Escape walks back one layer
-/// (popup → edit/text → pane close, see [`apply`]).
-pub(crate) fn todo_key(logical: &Key, pressed: bool) -> TodoInput {
+/// (popup → edit/text → pane close, see [`apply`]). `alt` turns the arrows
+/// into word jumps (macOS Alt mangles `Key::Character`, so word-jump must
+/// key off the named arrow + flag); `ctrl` maps the terminal line idioms
+/// `Ctrl+A`/`Ctrl+E` onto Home/End and swallows other Ctrl-letters.
+pub(crate) fn todo_key(logical: &Key, pressed: bool, ctrl: bool, alt: bool) -> TodoInput {
     if !pressed {
         return TodoInput::Ignore;
     }
     match logical {
+        Key::Named(NamedKey::ArrowLeft) if alt => TodoInput::WordLeft,
+        Key::Named(NamedKey::ArrowRight) if alt => TodoInput::WordRight,
+        Key::Named(NamedKey::ArrowLeft) => TodoInput::Left,
+        Key::Named(NamedKey::ArrowRight) => TodoInput::Right,
+        Key::Character(s) if ctrl => match s.chars().next() {
+            Some('a') => TodoInput::Home,
+            Some('e') => TodoInput::End,
+            _ => TodoInput::Ignore,
+        },
         Key::Named(NamedKey::Escape) => TodoInput::Close,
         Key::Named(NamedKey::Enter) => TodoInput::Enter,
         Key::Named(NamedKey::Backspace) => TodoInput::Backspace,
@@ -86,6 +105,7 @@ pub(crate) fn apply(
             Tab | Enter => {
                 if let Some(tag) = m.matches.get(m.sel) {
                     p.input = tagmenu::accept(&p.input, tag);
+                    p.cursor = p.input.chars().count();
                 }
                 p.tagmenu = None;
                 return None;
@@ -106,6 +126,7 @@ pub(crate) fn apply(
             PageDown => p.sel = Some(p.page_target(sel, true, cols, rows)),
             Home => p.sel = (p.visible_len() > 0).then_some(0),
             End => p.sel = (p.visible_len() > 0).then(|| p.visible_len() - 1),
+            Left | Right | WordLeft | WordRight => {}
             Enter | Char(' ') => p.toggle_done_at(sel),
             Backspace | DeleteKey | Char('d') => p.delete_at(sel),
             Char('e') => p.edit_at(sel),
@@ -130,31 +151,50 @@ pub(crate) fn apply(
         }
         Enter => p.submit(),
         Backspace => p.backspace(),
+        DeleteKey => p.delete_forward(),
         Char(c) => p.type_char(c),
-        // Arrows/Tab move into the list: Down from the top, Up from the
-        // bottom (the row nearest the composer).
-        Down | Tab => {
+        Left => p.cursor_move(-1),
+        Right => p.cursor_move(1),
+        WordLeft => p.cursor_word(false),
+        WordRight => p.cursor_word(true),
+        Home => p.cursor_ends(false),
+        End => p.cursor_ends(true),
+        // Up/Down first travel the wrapped draft; at its edges they move
+        // into the list — Down from the last line enters at the top, Up
+        // from the first at the bottom (the row nearest the composer).
+        // Tab always hops to the list.
+        Tab => {
             if p.visible_len() > 0 {
+                p.sel = Some(0);
+            }
+        }
+        Down => {
+            if !p.cursor_vertical(false, cols) && p.visible_len() > 0 {
                 p.sel = Some(0);
             }
         }
         Up => {
             let n = p.visible_len();
-            if n > 0 {
+            if !p.cursor_vertical(true, cols) && n > 0 {
                 p.sel = Some(n - 1);
             }
         }
-        // Home/End are reserved for the composer cursor (next slice);
-        // the paging keys only mean something inside the list.
-        PageUp | PageDown | Home | End | DeleteKey | Ignore => {}
+        PageUp | PageDown | Ignore => {}
     }
     p.ensure_visible(cols, rows);
     None
 }
 
 impl TodoPane {
-    pub(crate) fn on_key(&mut self, event: &KeyEvent, cols: u16, rows: u16) -> Option<TodoAction> {
-        let input = todo_key(&event.logical_key, event.state.is_pressed());
+    pub(crate) fn on_key(
+        &mut self,
+        event: &KeyEvent,
+        cols: u16,
+        rows: u16,
+        ctrl: bool,
+        alt: bool,
+    ) -> Option<TodoAction> {
+        let input = todo_key(&event.logical_key, event.state.is_pressed(), ctrl, alt);
         apply(self, input, cols, rows)
     }
 }

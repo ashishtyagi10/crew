@@ -404,7 +404,12 @@ The docked command bar supports:
   **`@project`** token becomes a free-form tag (a popup completes tags
   already in use; a new word after `@` creates one). The list sorts overdue
   (bell-coloured) → upcoming by due → undated, with done items sunk and
-  dimmed. `↑`/`↓`/`Tab` move between composer and rows —
+  dimmed. The composer has a real cursor: `←`/`→` move by char,
+  `Alt+Left` / `Alt+Right` hop words, `Ctrl+A` / `Ctrl+E` (or bare
+  `Home`/`End`) jump to the draft's ends, typing/paste insert at the
+  cursor and forward-Delete deletes at it; on a wrapped multi-row draft
+  `↑`/`↓` travel the lines first and only the edges hand off to the
+  list. `↑`/`↓`/`Tab` move between composer and rows —
   `PageUp`/`PageDown` hop a whole visible page of items and `Home`/`End`
   jump to the first/last (all filter-aware); on a row
   `Space`/`Enter` toggle done, `d`/`Backspace` delete, `e` re-opens the item
