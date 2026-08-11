@@ -30,8 +30,10 @@ impl CrewApp {
 
     /// The one writer behind both levels (and the poll-tick drain of
     /// [`crate::applog::AppLog`]).
-    pub(crate) fn set_status_level(&mut self, level: LogLevel, msg: impl Into<String>) {
-        let msg = msg.into();
+    /// Record a line in the LOG (sidebar tail + `activity.log`) WITHOUT the
+    /// input-bar flash or error toast — the quiet tier `HostAction::Log`
+    /// rides (per-task swarm ticks would otherwise strobe the bar).
+    pub(crate) fn log_line(&mut self, level: LogLevel, msg: &str) {
         if self.log.len() >= LOG_CAP {
             self.log.remove(0);
         }
@@ -39,6 +41,11 @@ impl CrewApp {
         // Mirror every entry into the on-disk session log (`/log`).
         crate::activitylog::append(level, &text);
         self.log.push(LogEntry { level, text });
+    }
+
+    pub(crate) fn set_status_level(&mut self, level: LogLevel, msg: impl Into<String>) {
+        let msg = msg.into();
+        self.log_line(level, &msg);
         // Errors also step onto the canvas as an alert toast; routine statuses
         // ("copied 12 lines") stay a quiet flash on the bar.
         if level == LogLevel::Error {
