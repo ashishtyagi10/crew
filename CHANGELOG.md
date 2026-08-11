@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.16.3
+
+Every `@project` gets its own color. A mixed todo list now reads by
+project at a glance: the tag's name hashes to one of the theme's twelve
+chromatic terminal-palette slots — nothing stored, so every pane,
+restart and platform agrees, and the same project keeps the same slot
+on every theme (switching themes recolors consistently instead of
+reshuffling). Each color is lifted toward the theme's ink until it
+clears a 3.0 contrast floor against the page, so light themes stay
+readable. The row chip, the live tint while you type `@crew` in the
+composer, the composer legend under an active filter, and the filter
+header's `@tag` all agree on the color; due dates keep the accent.
+
 ## 0.16.2
 
 Theme switches stop blanking the window. The old switch drew a solid
