@@ -18,8 +18,7 @@ const BINDINGS: &[(&str, &str)] = &[
     ("Cmd+I", "Focus the input bar"),
     ("Cmd+T", "New shell pane"),
     ("Cmd+, / Cmd+J", "Settings / chat pane"),
-    ("Cmd+G", "Toggle sidebar"),
-    ("Cmd+Z", "Zoom focused pane"),
+    ("Cmd+G / Cmd+Z", "Toggle sidebar / zoom focused pane"),
     ("Cmd+S", "Broadcast to all panes"),
     ("Cmd+= / Cmd+- / Cmd+0", "Font size + / - / reset"),
     ("Cmd+C / Cmd+V", "Copy screen / paste"),
@@ -37,6 +36,10 @@ const BINDINGS: &[(&str, &str)] = &[
     ("Ctrl+O", "Chat: compact transcript view"),
     ("Shift+PageUp / Shift+PageDown", "Scroll focused pane"),
     ("Shift+Home / Shift+End", "Scroll to top / bottom"),
+    (
+        "PageUp/Down · Home/End",
+        "Todo list: page the selection · first / last",
+    ),
     ("/ (in input)", "Command palette"),
     (
         "! · * · ? · ?? (in input)",

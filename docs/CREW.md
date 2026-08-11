@@ -404,7 +404,9 @@ The docked command bar supports:
   **`@project`** token becomes a free-form tag (a popup completes tags
   already in use; a new word after `@` creates one). The list sorts overdue
   (bell-coloured) → upcoming by due → undated, with done items sunk and
-  dimmed. `↑`/`↓`/`Tab` move between composer and rows; on a row
+  dimmed. `↑`/`↓`/`Tab` move between composer and rows —
+  `PageUp`/`PageDown` hop a whole visible page of items and `Home`/`End`
+  jump to the first/last (all filter-aware); on a row
   `Space`/`Enter` toggle done, `d`/`Backspace` delete, `e` re-opens the item
   in the composer for editing; the mouse works too — click the `[ ]`
   checkbox to toggle, the `✗` at the row's end to delete. A lone `@tag` +
