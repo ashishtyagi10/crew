@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.16.2
+
+Theme switches stop blanking the window. The old switch drew a solid
+page-color wash at full opacity and faded it out — for its first frames
+the screen was empty, and `/theme` read as a mini restart. Now the
+renderer keeps a live snapshot of the last presented frame; when the
+theme flips, the new look renders in full from its very first frame and
+the old frame melts away over it (~450ms crossfade). Content is visible
+at every instant — dark→light, CRT→modern, an OS appearance flip in
+`auto`, all one continuous develop. With Motion off the switch is an
+instant cut, and it is never a blank screen.
+
+## 0.16.1
+
+The todo composer wraps. A long title flows onto new rows as it fills
+the card's width instead of scrolling out of sight in a single line —
+the card grows with it, up to four rows.
+
 ## 0.16.0
 
 Crew learns a modern look. A fifth theme mode, `modern`, joins dark /
