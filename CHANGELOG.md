@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.16.4
+
+The todo list pages from the keyboard. `PageUp`/`PageDown` hop the
+selection a whole visible page of items — a page is the rows the window
+actually shows, so wrapped multi-row titles count for their real height
+— and `Home`/`End` jump to the first/last item. All four respect an
+active `@project` filter and keep the selection scrolled into view; the
+`Shift+` chords keep their app-wide pane-scroll meaning. The new keys
+are listed in `/keys` and the manual.
+
 ## 0.16.3
 
 Every `@project` gets its own color. A mixed todo list now reads by
