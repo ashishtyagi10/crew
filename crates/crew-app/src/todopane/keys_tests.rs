@@ -446,3 +446,38 @@ fn plus_and_minus_bump_the_selected_due_a_day() {
     assert_eq!(day(&p, 1, now), 1, "undated + '+' → tomorrow");
     assert!(!p.items[1].due_has_time);
 }
+
+/// `]`/`[` ride a ring over the known tags with "no filter" as one stop:
+/// None → crew → home → None (usage order, ties alphabetical). The
+/// selection re-enters at the top; a stop whose items are all done (and
+/// hidden) parks the selection nowhere.
+#[test]
+fn brackets_cycle_the_project_filter_ring() {
+    let _g = store::test_guard(vec![]);
+    let mut p = pane_with(&["a @crew", "b @home", "c"]);
+    apply(&mut p, TodoInput::Down, COLS, ROWS);
+    for (key, want) in [
+        (']', Some("crew")),
+        (']', Some("home")),
+        (']', None),
+        ('[', Some("home")),
+        ('[', Some("crew")),
+        ('[', None),
+    ] {
+        apply(&mut p, TodoInput::Char(key), COLS, ROWS);
+        assert_eq!(p.filter.as_deref(), want, "after '{key}'");
+        assert_eq!(p.sel, Some(0), "selection re-enters at the top");
+    }
+    // A tag whose only item is done filters to an empty list: no selection.
+    apply(&mut p, TodoInput::Char(']'), COLS, ROWS); // → crew
+    apply(&mut p, TodoInput::Char(' '), COLS, ROWS); // done "a" — crew empties
+    apply(&mut p, TodoInput::Char('['), COLS, ROWS); // → None
+    apply(&mut p, TodoInput::Char(']'), COLS, ROWS); // → crew again (still known)
+    assert_eq!(p.filter.as_deref(), Some("crew"));
+    assert_eq!(p.sel, None, "an emptied stop leaves the list");
+    // In the composer the brackets are just characters.
+    let mut p2 = pane_with(&["x @crew"]);
+    apply(&mut p2, TodoInput::Char(']'), COLS, ROWS);
+    assert_eq!(p2.input, "]");
+    assert_eq!(p2.filter, None);
+}

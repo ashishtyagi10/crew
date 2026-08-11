@@ -133,6 +133,8 @@ pub(crate) fn apply(
             // `h` (list only — in the composer it just types): show/hide
             // done items. Hiding clamps a selection left stranded past the
             // shorter list.
+            Char(']') => p.cycle_filter(true),
+            Char('[') => p.cycle_filter(false),
             Char('+') => p.bump_due_at(sel, true),
             Char('-') => p.bump_due_at(sel, false),
             Char('h') => {

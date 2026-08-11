@@ -475,6 +475,35 @@ impl TodoPane {
         self.refresh();
     }
 
+    /// `[`/`]` on the list: cycle the `@project` filter through the known
+    /// tags (usage order, the tag popup's own) with "no filter" as one stop
+    /// on the ring. The selection re-enters at the top of the newly
+    /// filtered list (or leaves the list when it filtered to empty).
+    pub(crate) fn cycle_filter(&mut self, forward: bool) {
+        let tags = tagmenu::known_tags(&self.items);
+        if tags.is_empty() {
+            return;
+        }
+        // Ring: None, tags[0], tags[1], … — position of the current stop.
+        let here = match &self.filter {
+            None => 0,
+            Some(f) => tags
+                .iter()
+                .position(|t| t.eq_ignore_ascii_case(f))
+                .map(|i| i + 1)
+                .unwrap_or(0),
+        };
+        let n = tags.len() + 1;
+        let next = if forward {
+            (here + 1) % n
+        } else {
+            (here + n - 1) % n
+        };
+        self.filter = (next > 0).then(|| tags[next - 1].clone());
+        self.scroll = 0;
+        self.sel = (self.visible_len() > 0).then_some(0);
+    }
+
     pub(crate) fn delete_at(&mut self, display_idx: usize) {
         let Some(id) = self.id_at(display_idx) else {
             return;

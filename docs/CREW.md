@@ -418,7 +418,9 @@ The docked command bar supports:
   checkbox to toggle, the `✗` at the row's end to delete. Done items
   auto-hide; `h` on the list shows them again — sunk, dimmed, `[x]`,
   newest completion first — so `Space` can un-do one (`h` again hides). A lone `@tag` +
-  `Enter` filters the list to that project (`@` alone clears the filter).
+  `Enter` filters the list to that project (`@` alone clears the filter),
+  and `]`/`[` on the list cycle the filter through the known tags — no
+  typing, "no filter" is one stop on the ring.
   When an item's due time passes while crew runs, a one-time **`due` toast**
   fires (persisted, so restarts don't re-toast). `Esc` walks back one layer
   at a time — popup, draft, then the pane. Restored by `/restore`.
