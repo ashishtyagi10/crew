@@ -1,3 +1,4 @@
+mod activitylog;
 mod altscroll;
 mod anim;
 mod app;

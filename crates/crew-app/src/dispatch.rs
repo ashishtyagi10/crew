@@ -35,6 +35,7 @@ impl CrewApp {
             "closeall" => self.close_all_panes(),
             "pwd" => self.copy_cwd(),
             "about" => self.spawn_about_pane(),
+            "log" => self.open_log(),
             "copy" => self.copy_scrollback(),
             "dump" => self.dump_focused_pane(""),
             "diff" => self.diff_in_pane(),

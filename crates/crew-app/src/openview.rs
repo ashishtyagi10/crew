@@ -113,3 +113,15 @@ mod tests;
 #[cfg(test)]
 #[path = "viewpane/open_tests.rs"]
 mod open_tests;
+
+impl CrewApp {
+    /// `/log` — this session's full activity trail in the file viewer (the
+    /// sidebar LOG shows only a 5-line tail). `r` in the viewer re-reads,
+    /// so it doubles as a poor man's tail -f.
+    pub(crate) fn open_log(&mut self) {
+        match crate::activitylog::path().filter(|p| p.is_file()) {
+            Some(p) => self.open_view(&p.to_string_lossy()),
+            None => self.set_status("no activity logged yet this session"),
+        }
+    }
+}
