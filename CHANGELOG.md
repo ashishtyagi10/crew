@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.16.8
+
+Done todos get a way back. Completing an item still hides it on the
+spot, but `h` on the list now shows the done pile — sunk below the
+open items, dimmed, `[x]`-boxed, newest completion first — so a
+mistaken tick is one `Space` away from alive again. `h` again (or
+just moving on) tucks them back out of sight.
+
 ## 0.16.7
 
 Swarm runs leave a trail. When a `/smith` run spawns agents and its
