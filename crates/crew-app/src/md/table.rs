@@ -165,6 +165,33 @@ mod tests {
         );
     }
 
+    /// The clamp and the padding must speak the same unit. `row_line`
+    /// accumulates DISPLAY width against `cols`, so the final truncate has
+    /// to clamp display columns too — with char-count truncation a CJK
+    /// table keeps `cols` CHARS (up to 2x the display budget) and the
+    /// over-wide row wraps or spills in the pane.
+    #[test]
+    fn wide_glyph_rows_respect_the_display_column_budget() {
+        let lines = crate::md::render(
+            "| \u{6f22}\u{5b57}\u{6f22}\u{5b57} | \u{6f22}\u{5b57} |\n|---|---|\n| \u{6f22}\u{5b57}\u{6f22}\u{5b57} | \u{6f22}\u{5b57} |",
+            10,
+        );
+        for (i, l) in lines.iter().enumerate() {
+            let text: String = l.spans.iter().map(|s| s.text.as_str()).collect();
+            let w = crate::chatwidth::str_w(&text);
+            assert!(
+                w <= 10,
+                "line {i} is {w} display cols wide (budget 10): {text:?}"
+            );
+        }
+        // And a boundary-straddling wide glyph is dropped, never split or
+        // kept: "ab<CJK>" clamped to 3 display cols keeps exactly "ab".
+        let spans = vec![super::super::wrap::plain_span("ab\u{6f22}".to_string())];
+        let out = super::super::wrap::truncate_spans(spans, 3);
+        let text: String = out.iter().map(|s| s.text.as_str()).collect();
+        assert_eq!(text, "ab");
+    }
+
     #[test]
     fn table_layout_cost_is_bounded_by_the_column_budget_not_cell_size() {
         // Pre-fix, `row_line` pads every row out to the widest cell's FULL
