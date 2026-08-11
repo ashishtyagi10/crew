@@ -262,6 +262,19 @@ pub(crate) fn to_epoch_ms(due: NaiveDateTime) -> Option<u64> {
 }
 
 /// Epoch ms → local naive datetime.
+/// `due` shifted by `days` whole CALENDAR days, wall clock kept — a 9:00
+/// due stays 9:00 across a DST boundary (instant math would drift it an
+/// hour). Any unrepresentable local time falls back to the input unshifted.
+pub(crate) fn shift_days(due_ms: u64, days: i64) -> u64 {
+    let Some(naive) = from_epoch_ms(due_ms) else {
+        return due_ms;
+    };
+    let Some(date) = naive.date().checked_add_signed(Duration::days(days)) else {
+        return due_ms;
+    };
+    to_epoch_ms(NaiveDateTime::new(date, naive.time())).unwrap_or(due_ms)
+}
+
 pub(crate) fn from_epoch_ms(ms: u64) -> Option<NaiveDateTime> {
     Some(
         Local

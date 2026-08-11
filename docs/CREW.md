@@ -413,7 +413,8 @@ The docked command bar supports:
   `PageUp`/`PageDown` hop a whole visible page of items and `Home`/`End`
   jump to the first/last (all filter-aware); on a row
   `Space`/`Enter` toggle done, `d`/`Backspace` delete, `e` re-opens the item
-  in the composer for editing; the mouse works too — click the `[ ]`
+  in the composer for editing, `+`/`-` postpone/advance its due a calendar
+  day (`+` on an undated item starts it at tomorrow); the mouse works too — click the `[ ]`
   checkbox to toggle, the `✗` at the row's end to delete. Done items
   auto-hide; `h` on the list shows them again — sunk, dimmed, `[x]`,
   newest completion first — so `Space` can un-do one (`h` again hides). A lone `@tag` +

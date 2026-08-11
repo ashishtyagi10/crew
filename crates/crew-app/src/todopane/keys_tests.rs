@@ -416,3 +416,33 @@ fn h_toggles_done_visibility_from_the_list_only() {
         "no list toggle from the composer"
     );
 }
+
+/// `+`/`-` on a selected row move its due a day; `+` on an undated item
+/// starts it at tomorrow, `-` on undated stays undated. Bumping re-arms
+/// the due toast.
+#[test]
+fn plus_and_minus_bump_the_selected_due_a_day() {
+    let _g = store::test_guard(vec![]);
+    let mut p = pane_with(&["pay rent tomorrow", "someday"]);
+    let now = crate::chattime::unix_now_ms();
+    fn day(p: &TodoPane, idx: usize, now: u64) -> i64 {
+        crate::todopane::duedate::days_from_now(p.items[idx].due_ms.unwrap(), now).unwrap()
+    }
+    // Items sort dated-first: "pay rent" is row 0.
+    apply(&mut p, TodoInput::Down, COLS, ROWS);
+    assert_eq!(day(&p, 0, now), 1, "premise: due tomorrow");
+    apply(&mut p, TodoInput::Char('+'), COLS, ROWS);
+    assert_eq!(day(&p, 0, now), 2, "postponed a day");
+    apply(&mut p, TodoInput::Char('-'), COLS, ROWS);
+    apply(&mut p, TodoInput::Char('-'), COLS, ROWS);
+    assert_eq!(day(&p, 0, now), 0, "advanced back to today");
+    assert!(!p.items[0].notified, "a bumped due may toast again");
+    // The undated row: '-' is a no-op, '+' starts at tomorrow, dateless.
+    apply(&mut p, TodoInput::Down, COLS, ROWS);
+    assert_eq!(p.items[1].due_ms, None);
+    apply(&mut p, TodoInput::Char('-'), COLS, ROWS);
+    assert_eq!(p.items[1].due_ms, None, "nothing to advance");
+    apply(&mut p, TodoInput::Char('+'), COLS, ROWS);
+    assert_eq!(day(&p, 1, now), 1, "undated + '+' → tomorrow");
+    assert!(!p.items[1].due_has_time);
+}
