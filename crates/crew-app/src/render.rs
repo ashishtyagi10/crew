@@ -230,6 +230,7 @@ impl CrewApp {
                                     header: false,
                                     dim: false,
                                     needs: None,
+                                    color: None,
                                 })
                                 .collect();
                             let r = pane.rect;

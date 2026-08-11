@@ -245,6 +245,7 @@ fn accepting_a_row_that_needs_a_key_asks_for_it_instead_of_running() {
             header: false,
             dim: true,
             needs: Some("ANTHROPIC_API_KEY".into()),
+            color: None,
         }],
         sel: 0,
         entries: Vec::new(),

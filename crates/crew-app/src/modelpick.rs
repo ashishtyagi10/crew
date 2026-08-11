@@ -149,6 +149,7 @@ fn default_row() -> MenuItem {
         header: false,
         dim: false,
         needs: None,
+        color: None,
     }
 }
 
@@ -161,6 +162,7 @@ fn header_row(label: &str) -> MenuItem {
         header: true,
         dim: false,
         needs: None,
+        color: None,
     }
 }
 
@@ -180,6 +182,7 @@ fn model_row(m: &ModelInfo, route: Route, current: bool) -> MenuItem {
         header: false,
         dim: route.unserveable(),
         needs: route.needs_key().map(str::to_string),
+        color: None,
     }
 }
 

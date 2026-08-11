@@ -346,3 +346,34 @@ fn the_cursor_beam_tracks_a_mid_string_cursor() {
         "the glyph under the beam still renders"
     );
 }
+
+/// The tag popup's rows render in each project's own color — the same
+/// triple the row chips use, so the picker previews what you'll get.
+#[test]
+fn tag_popup_rows_carry_their_project_colors() {
+    let mut a = item(1, "one");
+    a.project = Some("crew".into());
+    let mut b = item(2, "two");
+    b.project = Some("home".into());
+    let mut p = test_pane(vec![a, b]);
+    p.type_char('@'); // opens the tag popup over the known tags
+    assert!(p.tagmenu.is_some(), "premise: popup open");
+    let cells = cells(&p, COLS, ROWS);
+    let t = crew_theme::theme();
+    let popup_fg = |tag: &str| {
+        let want: String = format!("@{tag}");
+        // Find the popup row whose text contains "@tag" and read the '@' fg.
+        let at_cells: Vec<_> = cells.iter().filter(|c| c.c == '@').collect();
+        at_cells
+            .iter()
+            .find(|c| {
+                let row_text = row_text(&cells, c.row);
+                row_text.contains(&want)
+            })
+            .unwrap_or_else(|| panic!("no popup row for @{tag}"))
+            .fg
+    };
+    assert_eq!(popup_fg("crew"), crew_theme::tag_color("crew", t));
+    assert_eq!(popup_fg("home"), crew_theme::tag_color("home", t));
+    assert_ne!(popup_fg("crew"), popup_fg("home"));
+}
