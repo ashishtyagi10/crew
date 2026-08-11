@@ -228,3 +228,104 @@ fn cost_deltas_are_accepted_but_no_longer_tracked() {
     assert_eq!(s.tasks.len(), 1);
     assert_eq!(s.tasks[0].state, TaskState::Running);
 }
+
+/// The lifecycle tee, as a concrete table: which events make LOG lines,
+/// their exact text (titles from the plan, ids as fallback), and which
+/// carry the error level. The delta tiers must stay silent.
+#[test]
+fn hive_events_tee_lifecycle_lines_and_only_lifecycle() {
+    use crate::chatswarm::{log_line, SwarmStatus};
+    let swarm = SwarmStatus::new(vec![TaskSpec {
+        id: TaskId(2),
+        title: "scan logs".into(),
+        agent: AgentKind::Api { system: None },
+        model: ModelTier::Cheap,
+        deps: vec![],
+        prompt: "p".into(),
+        specialty: String::new(),
+        expertise: String::new(),
+    }]);
+    let s = Some(&swarm);
+    assert_eq!(
+        log_line(
+            s,
+            &HiveEvent::AgentSpawned {
+                agent: AgentId(7),
+                task: TaskId(2)
+            }
+        ),
+        Some((
+            false,
+            "smith: agent 7 took task #2 \u{2018}scan logs\u{2019}".into()
+        ))
+    );
+    assert_eq!(
+        log_line(
+            s,
+            &HiveEvent::TaskStateChanged {
+                task: TaskId(2),
+                state: TaskState::Done
+            }
+        ),
+        Some((
+            false,
+            "smith: task #2 \u{2018}scan logs\u{2019} \u{2192} done".into()
+        ))
+    );
+    assert_eq!(
+        log_line(
+            s,
+            &HiveEvent::TaskStateChanged {
+                task: TaskId(2),
+                state: TaskState::Failed
+            }
+        ),
+        Some((
+            true,
+            "smith: task #2 \u{2018}scan logs\u{2019} \u{2192} FAILED".into()
+        ))
+    );
+    // Unknown task id: the line still lands, bare.
+    assert_eq!(
+        log_line(
+            s,
+            &HiveEvent::TaskStateChanged {
+                task: TaskId(9),
+                state: TaskState::Running
+            }
+        ),
+        Some((false, "smith: task #9 \u{2192} running".into()))
+    );
+    assert_eq!(
+        log_line(
+            s,
+            &HiveEvent::Failed {
+                agent: AgentId(7),
+                error: "boom".into()
+            }
+        ),
+        Some((true, "smith: agent 7 failed: boom".into()))
+    );
+    // Baseline/no-news tiers stay silent.
+    for ev in [
+        HiveEvent::TaskStateChanged {
+            task: TaskId(2),
+            state: TaskState::Pending,
+        },
+        HiveEvent::TaskStateChanged {
+            task: TaskId(2),
+            state: TaskState::Ready,
+        },
+        HiveEvent::TokenDelta {
+            agent: AgentId(7),
+            input: 1,
+            output: 2,
+        },
+        HiveEvent::OutputDelta {
+            agent: AgentId(7),
+            text: "hi".into(),
+        },
+    ] {
+        assert_eq!(log_line(s, &ev), None, "{ev:?} must stay quiet");
+    }
+}

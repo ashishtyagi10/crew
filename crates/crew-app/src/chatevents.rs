@@ -19,6 +19,13 @@ pub enum HostAction {
         error: bool,
         message: String,
     },
+    /// A QUIET log line: recorded in the LOG (and `activity.log`) without
+    /// the input-bar flash or error toast `Status` brings — the volume tier
+    /// for per-task swarm lifecycle ticks.
+    Log {
+        error: bool,
+        message: String,
+    },
 }
 
 pub struct PollResult {

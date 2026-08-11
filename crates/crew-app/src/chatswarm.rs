@@ -172,3 +172,47 @@ impl ChatPane {
 #[cfg(test)]
 #[path = "chatswarm_tests.rs"]
 mod tests;
+
+/// The LOG line a hive event deserves, or `None` for the high-volume tiers
+/// (token/cost/output deltas — liveness, not lifecycle). `(error, text)`;
+/// titles come from the live plan so the LOG speaks task names, not ids.
+pub(crate) fn log_line(swarm: Option<&SwarmStatus>, ev: &HiveEvent) -> Option<(bool, String)> {
+    let title = |id: TaskId| -> String {
+        swarm
+            .and_then(|s| s.tasks.iter().find(|t| t.id == id))
+            .map(|t| format!(" \u{2018}{}\u{2019}", t.title))
+            .unwrap_or_default()
+    };
+    match ev {
+        HiveEvent::AgentSpawned { agent, task } => Some((
+            false,
+            format!(
+                "smith: agent {} took task #{}{}",
+                agent.0,
+                task.0,
+                title(*task)
+            ),
+        )),
+        HiveEvent::TaskStateChanged { task, state } => {
+            let s = match state {
+                TaskState::Pending => return None, // plan baseline, not news
+                TaskState::Ready => return None,
+                TaskState::Running => "running",
+                TaskState::Done => "done",
+                TaskState::Failed => "FAILED",
+                TaskState::Cancelled => "cancelled",
+            };
+            Some((
+                *state == TaskState::Failed,
+                format!("smith: task #{}{} \u{2192} {s}", task.0, title(*task)),
+            ))
+        }
+        HiveEvent::Failed { agent, error } => {
+            Some((true, format!("smith: agent {} failed: {error}", agent.0)))
+        }
+        HiveEvent::TokenDelta { .. }
+        | HiveEvent::CostDelta { .. }
+        | HiveEvent::OutputDelta { .. }
+        | HiveEvent::OutputChunk { .. } => None,
+    }
+}

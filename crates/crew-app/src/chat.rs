@@ -312,7 +312,16 @@ impl ChatPane {
                         ..
                     } => self.absorb_message(sender, text, ts, meta),
                     PluginEvent::HivePlan { tasks } => self.absorb_hive_plan(tasks),
-                    PluginEvent::Hive { event } => self.absorb_hive(&event),
+                    PluginEvent::Hive { event } => {
+                        // Quiet lifecycle tee: the run's spawn/state beats
+                        // land in the LOG (and /log) without flashing the bar.
+                        if let Some((error, message)) =
+                            crate::chatswarm::log_line(self.swarm.as_ref(), &event)
+                        {
+                            actions.push(HostAction::Log { error, message });
+                        }
+                        self.absorb_hive(&event);
+                    }
                     PluginEvent::Error { .. } => {
                         // The transcript shows the pane going dead; the LOG
                         // keeps the record (with the attention color) even

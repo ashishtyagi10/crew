@@ -490,6 +490,14 @@ impl CrewApp {
                     label,
                 } => self.spawn_labeled_terminal(&command, &args, label),
                 HostAction::SendPane { label, text } => self.send_to_label(&label, &text),
+                HostAction::Log { error, message } => {
+                    let level = if error {
+                        crate::applog::LogLevel::Error
+                    } else {
+                        crate::applog::LogLevel::Info
+                    };
+                    self.log_line(level, &message);
+                }
                 HostAction::Status { error, message } => {
                     let level = if error {
                         crate::applog::LogLevel::Error
