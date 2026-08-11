@@ -84,6 +84,7 @@ mod presets_paper;
 mod presets_paper_dark2;
 mod presets_paper_light;
 mod presets_paper_light2;
+mod tagcolor;
 pub use crtstyle::CrtStyle;
 pub use glass::{style as glass_style, style_for as glass_style_for, GlassLevel, GlassStyle};
 pub use modernstyle::ModernStyle;
@@ -95,6 +96,7 @@ pub use presets_paper::{GRAPHITE, MIDNIGHT_INK, PAPER_DARK, PAPER_LIGHT, SEPIA_D
 pub use presets_paper_dark2::MOSS_BLOTTER;
 pub use presets_paper_light::{COLDPRESS_GRAY, IVORY_LEDGER, SALMON_BROADSHEET, SEPIA_LIGHT};
 pub use presets_paper_light2::GLACIER_BOND;
+pub use tagcolor::{tag_color, tag_slot};
 
 /// WCAG 2.1 contrast ratio between two sRGB colours.
 pub fn contrast_ratio(a: (u8, u8, u8), b: (u8, u8, u8)) -> f32 {
