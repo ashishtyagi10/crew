@@ -252,3 +252,70 @@ fn a_date_fragment_stays_tinted_on_a_wrapped_row() {
     };
     assert_eq!(tinted, "tomorrow");
 }
+
+/// The color contract, all read from ONE `cells()` snapshot: different
+/// tags → different chip colors, same tag → identical color, and the
+/// composer's live `@tag` tint agrees with the row chip for that tag.
+#[test]
+fn project_chips_and_composer_tint_share_per_tag_colors() {
+    let mut a = item(1, "one");
+    a.project = Some("crew".into());
+    let mut b = item(2, "two");
+    b.project = Some("home".into());
+    let mut c = item(3, "three");
+    c.project = Some("crew".into());
+    let mut p = test_pane(vec![a, b, c]);
+    p.input = "ship it @crew".into();
+    let cells = cells(&p, COLS, ROWS);
+    // Each single-line item sits on its own row, 0..3; the chip is the
+    // right-aligned `@…` run, found by its `@` cell.
+    let chip_fg = |row: u16| -> (u8, u8, u8) {
+        cells
+            .iter()
+            .find(|cl| cl.row == row && cl.c == '@')
+            .unwrap_or_else(|| panic!("no @ chip on row {row}"))
+            .fg
+    };
+    let (crew1, home, crew2) = (chip_fg(0), chip_fg(1), chip_fg(2));
+    assert_eq!(crew1, crew2, "same tag must keep one color");
+    assert_ne!(crew1, home, "different tags must differ");
+    // The composer's `@crew` (bottom rows) tints in the chip's color.
+    let composer_at = cells
+        .iter()
+        .find(|cl| cl.row >= ROWS - 3 && cl.c == '@')
+        .expect("no live @ in the composer");
+    assert_eq!(composer_at.fg, crew1, "composer tint must match the chip");
+    // And neither site is the flat accent anymore, nor the muted tone.
+    assert_ne!(crew1, crate::palette::accent());
+}
+
+/// With a filter on, the header's `@tag` leads in the tag's color while
+/// the ` · N items` tail stays muted.
+#[test]
+fn the_filter_header_colors_the_tag_but_not_the_tail() {
+    let mut a = item(1, "one");
+    a.project = Some("crew".into());
+    let mut b = item(2, "two");
+    b.project = Some("crew".into());
+    let mut p = test_pane(vec![a, b]);
+    p.filter = Some("crew".into());
+    let cells = cells(&p, COLS, ROWS);
+    assert!(row_text(&cells, 0).contains("@crew \u{b7} 2 items"));
+    let at = cells
+        .iter()
+        .find(|cl| cl.row == 0 && cl.c == '@')
+        .expect("no @ in header");
+    let dot = cells
+        .iter()
+        .find(|cl| cl.row == 0 && cl.c == '\u{b7}')
+        .expect("no · in header");
+    let muted = crew_theme::theme().text_muted;
+    assert_eq!(dot.fg, muted, "tail must stay muted");
+    assert_ne!(at.fg, muted, "tag must leave the muted tone");
+    // The chip on the first item row (row 1, under the header) agrees.
+    let chip = cells
+        .iter()
+        .find(|cl| cl.row == 1 && cl.c == '@')
+        .expect("no chip on row 1");
+    assert_eq!(at.fg, chip.fg, "header and chip must agree on the color");
+}

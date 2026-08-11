@@ -210,9 +210,17 @@ pub(crate) fn cells(p: &TodoPane, cols: u16, rows: u16) -> Vec<CellView> {
 
     if let Some(f) = &p.filter {
         let n = order.len();
-        let line = format!("@{f} · {n} item{}", if n == 1 { "" } else { "s" });
-        let styled = line.chars().map(|c| (c, ()));
-        crate::chatwidth::place_row(BOX_COL, cols, styled, |x, c, ()| {
+        // The `@tag` leads in its own color; the ` · 3 items` tail stays muted.
+        let head = format!("@{f}");
+        let tag_fg = crew_theme::tag_color(f, t);
+        let x = crate::chatwidth::place_row(
+            BOX_COL,
+            cols,
+            head.chars().map(|c| (c, ())),
+            |x, c, ()| out.push(cell(x, 0, c, tag_fg, false)),
+        );
+        let tail = format!(" · {n} item{}", if n == 1 { "" } else { "s" });
+        crate::chatwidth::place_row(x, cols, tail.chars().map(|c| (c, ())), |x, c, ()| {
             out.push(cell(x, 0, c, t.text_muted, false))
         });
     }
@@ -321,7 +329,7 @@ fn row_cells(
     }
     if let Some(tag) = &it.project {
         let chip = format!("@{tag}");
-        right = place_right(out, &chip, right, row, accent, false);
+        right = place_right(out, &chip, right, row, crew_theme::tag_color(tag, t), false);
     }
     // `right` is the next free slot two left of the leftmost right-side
     // text; the title keeps a one-column gap before that text and wraps
@@ -379,13 +387,26 @@ fn composer_cells(out: &mut Vec<CellView>, p: &TodoPane, cols: u16, rows: u16) {
 
     let chars: Vec<char> = p.input.chars().collect();
     let in_date = |i: usize| hit.as_ref().is_some_and(|h| i >= h.start && i < h.end);
-    let tag_spans = tag_spans(&chars);
-    let in_tag = |i: usize| tag_spans.iter().any(|&(s, e)| i >= s && i < e);
+    // Each span carries its tag's own color (one hash per tag per redraw),
+    // so typing `@crew` tints live in the same color its row chip will get.
+    let tag_tints: Vec<(usize, usize, (u8, u8, u8))> = tag_spans(&chars)
+        .into_iter()
+        .map(|(s, e)| {
+            let name: String = chars[s + 1..e].iter().collect();
+            (s, e, crew_theme::tag_color(&name, t))
+        })
+        .collect();
+    let in_tag = |i: usize| {
+        tag_tints
+            .iter()
+            .find(|&&(s, e, _)| i >= s && i < e)
+            .map(|&(_, _, fg)| fg)
+    };
     let style = |i: usize| {
         if in_date(i) {
             (accent, true)
-        } else if in_tag(i) {
-            (accent, false)
+        } else if let Some(fg) = in_tag(i) {
+            (fg, false)
         } else {
             (t.ink, false)
         }
@@ -428,7 +449,17 @@ fn composer_cells(out: &mut Vec<CellView>, p: &TodoPane, cols: u16, rows: u16) {
     } else {
         "new".to_string()
     };
-    let legend_fg = if hit.is_some() { accent } else { t.legend_off };
+    // Color follows what the legend actually says: due dates in accent, an
+    // active `@filter` in that tag's color, edit/new in the resting tone.
+    let legend_fg = if p.editing.is_some() {
+        t.legend_off
+    } else if hit.is_some() {
+        accent
+    } else if let Some(f) = &p.filter {
+        crew_theme::tag_color(f, t)
+    } else {
+        t.legend_off
+    };
     for mut c in
         crate::boxdraw::titled_card(cols, ch, &legend, t.border_normal, legend_fg, t.page_bg)
     {
