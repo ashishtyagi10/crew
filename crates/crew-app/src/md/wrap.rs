@@ -32,27 +32,45 @@ pub(super) fn marker_span(text: String) -> MdSpan {
 /// Hard-truncates `spans` to the first `cols` chars, splitting the boundary
 /// span if needed. Used both as the narrow-column degrade path and to clip
 /// table lines that don't fit.
+/// Hard-clamp `spans` to `cols` DISPLAY columns (CJK/emoji count 2 — the
+/// unit every consumer renders against, and the unit the table's own
+/// padding math accumulates), AND to `cols` chars (combining marks are
+/// width 0, so a zero-width run must hit a bound too). A wide glyph
+/// straddling the boundary is dropped, never split: a clamped line may
+/// come up one column short, never land one over.
 pub(super) fn truncate_spans(spans: Vec<MdSpan>, cols: usize) -> Vec<MdSpan> {
     let mut out = Vec::new();
-    let mut used = 0usize;
+    let (mut used, mut kept) = (0usize, 0usize);
     for s in spans {
-        if used >= cols {
+        if used >= cols || kept >= cols {
             break;
         }
-        let remaining = cols - used;
+        let w = crate::chatwidth::str_w(&s.text);
         let len = s.text.chars().count();
-        if len <= remaining {
-            used += len;
+        if used + w <= cols && kept + len <= cols {
+            used += w;
+            kept += len;
             out.push(s);
-        } else {
-            let text: String = s.text.chars().take(remaining).collect();
+            continue;
+        }
+        let mut text = String::new();
+        for c in s.text.chars() {
+            let cw = crate::chatwidth::char_w(c);
+            if used + cw > cols || kept + 1 > cols {
+                break;
+            }
+            used += cw;
+            kept += 1;
+            text.push(c);
+        }
+        if !text.is_empty() {
             out.push(MdSpan {
                 text,
                 style: s.style,
                 link: s.link,
             });
-            break;
         }
+        break;
     }
     out
 }
