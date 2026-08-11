@@ -25,14 +25,30 @@ fn cell(col: u16, row: u16, c: char, fg: (u8, u8, u8), bold: bool) -> CellView {
     }
 }
 
-/// Composer rows at this pane height: a 3-row bordered card, or a single
-/// bare prompt row on very short panes.
-pub(crate) fn composer_h(rows: u16) -> u16 {
+/// Composer rows at this pane size: a bordered card whose interior grows
+/// with the wrapped input ([`input_lines`], capped by [`composer_cap`]), or
+/// a single bare prompt row on very short panes.
+pub(crate) fn composer_h(p: &TodoPane, cols: u16, rows: u16) -> u16 {
     if rows >= 6 {
-        3
+        2 + input_lines(p, cols).len().min(composer_cap(rows)) as u16
     } else {
         1
     }
+}
+
+/// Most interior (text) rows the composer may take before it stops growing
+/// and tail-follows by line — keeps some list rows visible on short panes.
+fn composer_cap(rows: u16) -> usize {
+    (rows.saturating_sub(4) as usize).clamp(1, 4)
+}
+
+/// The composer input wrapped at the card's interior width: absolute char
+/// ranges into `p.input`, always at least one (possibly empty) line. The
+/// budget leaves the cursor column free, so a full line never clips `▏`.
+fn input_lines(p: &TodoPane, cols: u16) -> Vec<(usize, usize)> {
+    let chars: Vec<char> = p.input.chars().collect();
+    let w = (cols.saturating_sub(6)).max(1) as usize;
+    wrap_ranges(&chars, w, w)
 }
 
 /// The dim info row shown above the list while a `@project` filter is on.
@@ -51,8 +67,8 @@ pub(crate) fn popup_h(p: &TodoPane, rows: u16) -> u16 {
 }
 
 /// Rows left for the item list.
-pub(crate) fn list_height(p: &TodoPane, rows: u16) -> u16 {
-    rows.saturating_sub(composer_h(rows) + popup_h(p, rows) + header_h(p))
+pub(crate) fn list_height(p: &TodoPane, cols: u16, rows: u16) -> u16 {
+    rows.saturating_sub(composer_h(p, cols, rows) + popup_h(p, rows) + header_h(p))
 }
 
 /// Mirror of [`place_right`]'s arithmetic without the cells: the next free
@@ -88,11 +104,17 @@ fn title_lines(it: &TodoItem, cols: u16, now_ms: u64) -> Vec<(usize, usize)> {
     let chars: Vec<char> = it.title.chars().collect();
     let w0 = (first_line_max(it, cols, now_ms).saturating_sub(TITLE_COL)).max(1) as usize;
     let wc = (cols.saturating_sub(2 + TITLE_COL)).max(1) as usize;
+    wrap_ranges(&chars, w0, wc)
+}
+
+/// Greedy word wrap over `chars` into (start, end) char ranges: the first
+/// line `w0` cells wide, continuations `wc`. Always at least one range.
+fn wrap_ranges(chars: &[char], w0: usize, wc: usize) -> Vec<(usize, usize)> {
     let mut lines = Vec::new();
     let mut start = 0;
     loop {
         let budget = if lines.is_empty() { w0 } else { wc };
-        let fit = crate::chatwidth::fit_end(&chars, start, budget);
+        let fit = crate::chatwidth::fit_end(chars, start, budget);
         if fit >= chars.len() {
             lines.push((start, chars.len()));
             return lines;
@@ -143,11 +165,11 @@ pub(crate) fn click_at(
     cols: u16,
     rows: u16,
 ) -> Option<TodoClick> {
-    if row >= rows.saturating_sub(composer_h(rows)) {
+    if row >= rows.saturating_sub(composer_h(p, cols, rows)) {
         return Some(TodoClick::Composer);
     }
     let header = header_h(p);
-    let bottom = header + list_height(p, rows);
+    let bottom = header + list_height(p, cols, rows);
     if row < header || row >= bottom {
         return None;
     }
@@ -196,7 +218,7 @@ pub(crate) fn cells(p: &TodoPane, cols: u16, rows: u16) -> Vec<CellView> {
     }
 
     let header = header_h(p);
-    let lh = list_height(p, rows) as usize;
+    let lh = list_height(p, cols, rows) as usize;
     let bottom = header + lh as u16;
     let mut row = header;
     for (di, &idx) in order.iter().enumerate().skip(p.scroll) {
@@ -238,7 +260,7 @@ pub(crate) fn cells(p: &TodoPane, cols: u16, rows: u16) -> Vec<CellView> {
                 needs: None,
             })
             .collect();
-        let top = rows - composer_h(rows) - ph;
+        let top = rows - composer_h(p, cols, rows) - ph;
         for mut c in crate::cmdmenu::menu_card("projects", &items, m.sel, cols, ph) {
             c.row += top;
             out.push(c);
@@ -343,82 +365,105 @@ fn place_right(
 
 /// The bordered composer at the bottom: legend carries live feedback (a
 /// recognised due date, an edit in progress, the active filter), the
-/// interior row the `❯ input▏` prompt with the date fragment and `@tags`
-/// tinted as they're typed.
+/// interior the `❯ input▏` prompt — wrapping onto further rows as the text
+/// fills the width ([`input_lines`]), the last rows kept once the cap is
+/// hit (editing happens at the end) — with the date fragment and `@tags`
+/// tinted as they're typed. Very short panes get one bare tail-follow row.
 fn composer_cells(out: &mut Vec<CellView>, p: &TodoPane, cols: u16, rows: u16) {
     let t = crew_theme::theme();
     let accent = crate::palette::accent();
-    let ch = composer_h(rows);
+    let ch = composer_h(p, cols, rows);
     let top = rows - ch;
     let now = duedate::now_local();
     let hit = duedate::find(&p.input, now);
-
-    let (x0, max, prompt_row) = if ch == 3 {
-        let legend = if p.editing.is_some() {
-            "edit".to_string()
-        } else if let Some(h) = &hit {
-            format!("due {}", duedate::label_naive(h.due, h.has_time, now))
-        } else if let Some(f) = &p.filter {
-            format!("@{f}")
-        } else {
-            "new".to_string()
-        };
-        let legend_fg = if hit.is_some() { accent } else { t.legend_off };
-        for mut c in
-            crate::boxdraw::titled_card(cols, 3, &legend, t.border_normal, legend_fg, t.page_bg)
-        {
-            c.row += top;
-            out.push(c);
-        }
-        (2u16, cols - 1, top + 1)
-    } else {
-        (0u16, cols, top)
-    };
-
-    out.push(cell(x0, prompt_row, '\u{276f}', accent, true)); // ❯
-    let text_x = x0 + 2;
-    if p.input.is_empty() {
-        let hint = "type a todo";
-        let styled = hint.chars().map(|c| (c, ()));
-        crate::chatwidth::place_row(text_x, max, styled, |x, c, ()| {
-            out.push(cell(x, prompt_row, c, t.text_muted, false))
-        });
-        return;
-    }
 
     let chars: Vec<char> = p.input.chars().collect();
     let in_date = |i: usize| hit.as_ref().is_some_and(|h| i >= h.start && i < h.end);
     let tag_spans = tag_spans(&chars);
     let in_tag = |i: usize| tag_spans.iter().any(|&(s, e)| i >= s && i < e);
-    // Tail-follow: show the last chars that fit, editing happens at the end.
-    let avail = (max.saturating_sub(text_x)).saturating_sub(1) as usize;
-    let mut start = chars.len();
-    let mut used = 0;
-    while start > 0 {
-        let w = crate::chatwidth::char_w(chars[start - 1]);
-        if used + w > avail {
-            break;
-        }
-        used += w;
-        start -= 1;
-    }
-    let styled = chars[start..].iter().enumerate().map(|(j, &c)| {
-        let i = start + j;
-        let (fg, bold) = if in_date(i) {
+    let style = |i: usize| {
+        if in_date(i) {
             (accent, true)
         } else if in_tag(i) {
             (accent, false)
         } else {
             (t.ink, false)
-        };
-        (c, (fg, bold))
-    });
-    let end_x = crate::chatwidth::place_row(text_x, max, styled, |x, c, (fg, bold)| {
-        out.push(cell(x, prompt_row, c, fg, bold))
-    });
-    if end_x < max {
-        out.push(cell(end_x, prompt_row, '\u{258f}', accent, false)); // ▏
+        }
+    };
+
+    if ch == 1 {
+        // Bare row: no room to grow, tail-follow the last chars that fit.
+        out.push(cell(0, top, '\u{276f}', accent, true)); // ❯
+        let (text_x, max) = (2u16, cols);
+        let avail = (max.saturating_sub(text_x)).saturating_sub(1) as usize;
+        let mut start = chars.len();
+        let mut used = 0;
+        while start > 0 {
+            let w = crate::chatwidth::char_w(chars[start - 1]);
+            if used + w > avail {
+                break;
+            }
+            used += w;
+            start -= 1;
+        }
+        let styled = chars[start..]
+            .iter()
+            .enumerate()
+            .map(|(j, &c)| (c, style(start + j)));
+        let end_x = crate::chatwidth::place_row(text_x, max, styled, |x, c, (fg, bold)| {
+            out.push(cell(x, top, c, fg, bold))
+        });
+        if end_x < max {
+            out.push(cell(end_x, top, '\u{258f}', accent, false)); // ▏
+        }
+        return;
     }
+
+    let legend = if p.editing.is_some() {
+        "edit".to_string()
+    } else if let Some(h) = &hit {
+        format!("due {}", duedate::label_naive(h.due, h.has_time, now))
+    } else if let Some(f) = &p.filter {
+        format!("@{f}")
+    } else {
+        "new".to_string()
+    };
+    let legend_fg = if hit.is_some() { accent } else { t.legend_off };
+    for mut c in
+        crate::boxdraw::titled_card(cols, ch, &legend, t.border_normal, legend_fg, t.page_bg)
+    {
+        c.row += top;
+        out.push(c);
+    }
+
+    let (text_x, max) = (4u16, cols - 1);
+    out.push(cell(2, top + 1, '\u{276f}', accent, true)); // ❯
+    if p.input.is_empty() {
+        let hint = "type a todo";
+        let styled = hint.chars().map(|c| (c, ()));
+        crate::chatwidth::place_row(text_x, max, styled, |x, c, ()| {
+            out.push(cell(x, top + 1, c, t.text_muted, false))
+        });
+        return;
+    }
+
+    // Show the last `ch - 2` wrapped lines (all of them until the cap bites).
+    let lines = input_lines(p, cols);
+    let skip = lines.len().saturating_sub((ch - 2) as usize);
+    let (mut end_x, mut end_row) = (text_x, top + 1);
+    for (vi, &(s, e)) in lines[skip..].iter().enumerate() {
+        let r = top + 1 + vi as u16;
+        let styled = chars[s..e]
+            .iter()
+            .enumerate()
+            .map(|(j, &c)| (c, style(s + j)));
+        end_x = crate::chatwidth::place_row(text_x, max, styled, |x, c, (fg, bold)| {
+            out.push(cell(x, r, c, fg, bold))
+        });
+        end_row = r;
+    }
+    // The wrap budget leaves this column free ([`input_lines`]).
+    out.push(cell(end_x, end_row, '\u{258f}', accent, false)); // ▏
 }
 
 /// Char ranges of every `@tag` token (length ≥ 2) in the composer.

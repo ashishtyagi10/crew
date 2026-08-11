@@ -181,13 +181,74 @@ fn an_empty_pane_hints_at_the_syntax() {
 #[test]
 fn list_height_accounts_for_composer_popup_and_header() {
     let mut p = test_pane(vec![item(1, "a")]);
-    assert_eq!(list_height(&p, ROWS), ROWS - 3);
+    assert_eq!(list_height(&p, COLS, ROWS), ROWS - 3);
     p.filter = Some("crew".into());
-    assert_eq!(list_height(&p, ROWS), ROWS - 4);
+    assert_eq!(list_height(&p, COLS, ROWS), ROWS - 4);
     p.tagmenu = Some(crate::todopane::tagmenu::TagMenu {
         matches: vec!["crew".into()],
         sel: 0,
     });
     // One match → 1 row + 2 border rows of popup.
-    assert_eq!(list_height(&p, ROWS), ROWS - 4 - 3);
+    assert_eq!(list_height(&p, COLS, ROWS), ROWS - 4 - 3);
+}
+
+#[test]
+fn a_long_composer_input_wraps_onto_a_second_row() {
+    let mut p = test_pane(vec![item(1, "x")]);
+    // 49 cells > the 34-cell interior budget at 40 cols → two lines.
+    p.input = "alpha bravo charlie delta echo foxtrot golf hotel".into();
+    assert_eq!(composer_h(&p, COLS, ROWS), 4);
+    assert_eq!(list_height(&p, COLS, ROWS), ROWS - 4);
+    let cells = cells(&p, COLS, ROWS);
+    let first = row_text(&cells, ROWS - 3);
+    let second = row_text(&cells, ROWS - 2);
+    assert!(first.contains("alpha"), "{first:?}");
+    assert!(!first.contains("hotel"), "{first:?}");
+    assert!(second.contains("foxtrot golf hotel"), "{second:?}");
+    // The cursor sits at the end of the wrapped tail, not the first row.
+    assert!(second.contains('\u{258f}'), "{second:?}");
+    assert!(!first.contains('\u{258f}'), "{first:?}");
+    // The grown card is all composer to clicks.
+    assert_eq!(
+        click_at(&p, ROWS - 4, 5, COLS, ROWS),
+        Some(TodoClick::Composer)
+    );
+    // And the item list ends where the card now begins.
+    assert_eq!(click_at(&p, ROWS - 5, 10, COLS, ROWS), None);
+}
+
+#[test]
+fn composer_growth_caps_and_keeps_the_tail_visible() {
+    let mut p = test_pane(vec![]);
+    // 40 words wrap to 6 lines at 40 cols — past the 4-line cap.
+    p.input = "word ".repeat(39) + "last";
+    assert_eq!(composer_h(&p, COLS, ROWS), 2 + 4);
+    let cells = cells(&p, COLS, ROWS);
+    let bottom = row_text(&cells, ROWS - 2);
+    assert!(bottom.contains("last"), "{bottom:?}");
+    assert!(bottom.contains('\u{258f}'), "{bottom:?}");
+    // The first interior row is mid-text (the head scrolled away).
+    let top_row = row_text(&cells, ROWS - 5);
+    assert!(top_row.contains("word"), "{top_row:?}");
+}
+
+#[test]
+fn a_date_fragment_stays_tinted_on_a_wrapped_row() {
+    let mut p = test_pane(vec![]);
+    // Pad so "tomorrow" lands on the second wrapped line.
+    p.input = "alpha bravo charlie delta echo golf hotel tomorrow".into();
+    assert_eq!(composer_h(&p, COLS, ROWS), 4);
+    let cells = cells(&p, COLS, ROWS);
+    let accent = crate::palette::accent();
+    let tinted: String = {
+        let mut v: Vec<&crew_render::CellView> = cells
+            .iter()
+            .filter(|c| {
+                c.row == ROWS - 2 && c.fg == accent && c.c != '\u{276f}' && c.c != '\u{258f}'
+            })
+            .collect();
+        v.sort_by_key(|c| c.col);
+        v.iter().map(|c| c.c).collect()
+    };
+    assert_eq!(tinted, "tomorrow");
 }

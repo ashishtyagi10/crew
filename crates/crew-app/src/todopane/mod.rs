@@ -129,7 +129,7 @@ impl TodoPane {
     /// variable-height (wrapped titles — [`render::item_h`]), so visibility
     /// is a row sum, not an item count.
     pub(crate) fn ensure_visible(&mut self, cols: u16, rows: u16) {
-        let h = render::list_height(self, rows) as usize;
+        let h = render::list_height(self, cols, rows) as usize;
         if h == 0 {
             return;
         }
@@ -158,7 +158,7 @@ impl TodoPane {
     /// Cap `scroll` at the smallest value that still fills the window with
     /// the list's tail.
     fn clamp_scroll(&mut self, cols: u16, rows: u16) {
-        let h = render::list_height(self, rows) as usize;
+        let h = render::list_height(self, cols, rows) as usize;
         let order = self.order();
         let now_ms = crate::chattime::unix_now_ms();
         let mut used = 0;
