@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.16.11
+
+Flip between projects without typing. `]` and `[` on the todo list
+cycle the `@project` filter through your tags in usage order — "no
+filter" is one stop on the ring — with the selection re-entering at
+the top of each view. Combined with the per-project colors, flicking
+through contexts is now a two-key habit.
+
 ## 0.16.10
 
 Deadlines move without retyping them. `+` and `-` on a selected todo
