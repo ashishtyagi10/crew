@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.16.6
+
+`/log` opens the whole story. The sidebar LOG shows only the last five
+lines of activity; now every entry is also mirrored to `activity.log`
+beside the config (fresh each session, errors marked `ERR`), and `/log`
+opens the full trail in the file viewer — press `r` there to re-read.
+A wedged or crashed session leaves its trail on disk for the next one.
+
 ## 0.16.5
 
 The todo composer gains a real cursor. Until now the draft was
