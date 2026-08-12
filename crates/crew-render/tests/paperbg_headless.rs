@@ -2,7 +2,7 @@
 ///
 /// On macOS with Metal this will find an adapter and run the real GPU render.
 /// In GPU-less CI the test gracefully skips instead of failing.
-use crew_render::PaperBgPass;
+use crew_render::{DotLattice, PaperBgPass};
 
 /// Read the R channel of pixel (x, y) from a tightly-packed 256-byte-stride RGBA buffer.
 fn pixel_r(buf: &[u8], x: usize, y: usize) -> u8 {
@@ -161,7 +161,7 @@ fn paperbg_headless() {
     // -------------------------------------------------------
     // Case 1: grain+vignette enabled (intensity=1.0, grain_mul=1.0)
     // -------------------------------------------------------
-    paper_bg.update_uniform(&queue, bg_f32, 64.0, 64.0, 1.0, 1.0);
+    paper_bg.update_uniform(&queue, bg_f32, 64.0, 64.0, 1.0, 1.0, None);
     let pixels = render_64x64(&device, &queue, &paper_bg);
 
     // Helper to read pixel (x, y) → (R, G, B, A).
@@ -216,7 +216,7 @@ fn paperbg_headless() {
     // -------------------------------------------------------
     // Case 2: flat (intensity=0.0, grain_mul=1.0) — output = page_bg exactly
     // -------------------------------------------------------
-    paper_bg.update_uniform(&queue, bg_f32, 64.0, 64.0, 0.0, 1.0);
+    paper_bg.update_uniform(&queue, bg_f32, 64.0, 64.0, 0.0, 1.0, None);
     let flat_pixels = render_64x64(&device, &queue, &paper_bg);
 
     let (flat_r, flat_g, flat_b, _) = {
@@ -244,7 +244,7 @@ fn paperbg_headless() {
     // -------------------------------------------------------
     // Case 3: grain_mul=0.0 (intensity=1.0) — no grain, only vignette
     // -------------------------------------------------------
-    paper_bg.update_uniform(&queue, bg_f32, 64.0, 64.0, 1.0, 0.0);
+    paper_bg.update_uniform(&queue, bg_f32, 64.0, 64.0, 1.0, 0.0, None);
     let nograin_pixels = render_64x64(&device, &queue, &paper_bg);
 
     let nograin_centre_r = pixel_r(&nograin_pixels, 32, 32);
@@ -280,7 +280,7 @@ fn paperbg_headless() {
     // than at grain_mul=1.0 on the same page colour (Case 1, `max_r`/`min_r`
     // above).
     // -------------------------------------------------------
-    paper_bg.update_uniform(&queue, bg_f32, 64.0, 64.0, 1.0, 2.4);
+    paper_bg.update_uniform(&queue, bg_f32, 64.0, 64.0, 1.0, 2.4, None);
     let strong_pixels = render_64x64(&device, &queue, &paper_bg);
 
     let (strong_max_r, strong_min_r) = strong_pixels
@@ -306,7 +306,7 @@ fn paperbg_headless() {
     // per-pixel spread AND surviving coarse structure after 2x2 downsample.
     // -------------------------------------------------------
     let dark_bg = [8.0_f32 / 255.0, 8.0 / 255.0, 8.0 / 255.0, 1.0];
-    paper_bg.update_uniform(&queue, dark_bg, 64.0, 64.0, 1.0, 1.56);
+    paper_bg.update_uniform(&queue, dark_bg, 64.0, 64.0, 1.0, 1.56, None);
     let dark_pixels = render_64x64(&device, &queue, &paper_bg);
     let dark_std = centre_stddev(&dark_pixels);
     let dark_coarse = downsampled_stddev(&dark_pixels);
@@ -329,5 +329,69 @@ fn paperbg_headless() {
     assert!(
         light_coarse <= light_std * 0.7,
         "light page grew coarse structure: {light_coarse:.2} vs {light_std:.2}"
+    );
+
+    // -------------------------------------------------------
+    // Case 6: the modern dot lattice (aurora page, grain 0). Pitch 16px,
+    // radius 2px, strength 0.5 (test drive; themes ship ~0.2): fragment
+    // positions are pixel CENTRES, so fract(p/16)=0.5 puts dot centres at
+    // px (7.5, 7.5) + 16k — pixel (8,8) sits 0.7px away (full mask), pixel
+    // (0,0) sits ~10.6px away (zero mask).
+    // -------------------------------------------------------
+    let aurora = [15.0 / 255.0, 17.0 / 255.0, 23.0 / 255.0, 1.0];
+    let dots = DotLattice {
+        color_a: [138.0 / 255.0, 180.0 / 255.0, 248.0 / 255.0],
+        color_b: [197.0 / 255.0, 138.0 / 255.0, 249.0 / 255.0],
+        strength: 0.5,
+        spacing: [16.0, 16.0],
+        radius: 2.0,
+    };
+    paper_bg.update_uniform(&queue, aurora, 64.0, 64.0, 1.0, 0.0, Some(&dots));
+    let dot_pixels = render_64x64(&device, &queue, &paper_bg);
+    let dp = |x: usize, y: usize| -> (i32, i32, i32) {
+        let off = y * 256 + x * 4;
+        (
+            dot_pixels[off] as i32,
+            dot_pixels[off + 1] as i32,
+            dot_pixels[off + 2] as i32,
+        )
+    };
+    let (dr, dg, db) = dp(8, 8);
+    let (fr, fg, fb) = dp(0, 0);
+    let (pr, _, _) = dp(24, 8); // one pitch to the right — periodicity
+    eprintln!(
+        "paperbg_headless [dots]: dot=({dr},{dg},{db}) flat=({fr},{fg},{fb}) next_dot_R={pr}"
+    );
+    // F1: a dot centre lifts hard toward the pole tint (strength 0.5 on a
+    // near-black page ≈ half the tint's channel values).
+    assert!(
+        (60..=100).contains(&dr) && (60..=110).contains(&dg) && (100..=170).contains(&db),
+        "F1 failed: dot centre ({dr},{dg},{db}) not in the tinted band"
+    );
+    // F2: between dots the page is untouched (grain 0 → vignette only).
+    assert!(
+        (12..=17).contains(&fr) && (14..=19).contains(&fg) && (20..=25).contains(&fb),
+        "F2 failed: flat pixel ({fr},{fg},{fb}) should be the bare page"
+    );
+    // F3: the lattice repeats on the pitch.
+    assert!(
+        (dr - pr).abs() <= 6,
+        "F3 failed: dot R={dr} vs next-pitch dot R={pr}"
+    );
+    // F5: the tint slides pole_a→pole_b along the diagonal: a dot near the
+    // bottom-right corner (centre 55.5+0.5 ≈ 1.4px off, mask still ~1) is
+    // measurably redder than the top-left one (pole_b.r > pole_a.r).
+    let (br_r, _, _) = dp(56, 56);
+    assert!(
+        br_r - dr >= 10,
+        "F5 failed: diagonal tint should rise, top-left R={dr} bottom-right R={br_r}"
+    );
+    // F4: dots off (None) leaves the same pixel flat — the lattice is opt-in.
+    paper_bg.update_uniform(&queue, aurora, 64.0, 64.0, 1.0, 0.0, None);
+    let off_pixels = render_64x64(&device, &queue, &paper_bg);
+    let off_r = pixel_r(&off_pixels, 8, 8) as i32;
+    assert!(
+        (12..=17).contains(&off_r),
+        "F4 failed: with dots None pixel (8,8) R={off_r} should be bare page"
     );
 }

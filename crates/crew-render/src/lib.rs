@@ -26,7 +26,7 @@ pub use cellgrid::CellView;
 pub use crtchain::CrtChain;
 pub use fadepass::FadePass;
 pub use glass::{GlassCard, GlassLayer};
-pub use paperbg::PaperBgPass;
+pub use paperbg::{DotLattice, PaperBgPass};
 pub use renderer::Renderer;
 pub use scene::PaneScene;
 pub use smoothing::DEFAULT_SMOOTH;

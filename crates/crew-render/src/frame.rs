@@ -58,7 +58,24 @@ pub(crate) fn render(
     let (w, h) = (gpu.config.width as f32, gpu.config.height as f32);
 
     if let Some(paper) = paper {
-        paper.update_uniform(&gpu.queue, bg_f32, w, h, 1.0, grain);
+        // The modern family's dot lattice: pitch rides the CELL metrics
+        // (every 4th column / 2nd row), so the grid scales with font size
+        // and DPI and stays in step with the text it sits behind. Pole
+        // colours go through the same colour-space door as the page.
+        let dots = crew_theme::theme().modern.map(|m| {
+            let c = |rgb| {
+                let [r, g, b, _] = crate::color::target_rgba(rgb, 1.0, gpu.format.is_srgb());
+                [r, g, b]
+            };
+            crate::paperbg::DotLattice {
+                color_a: c(m.pole_a),
+                color_b: c(m.pole_b),
+                strength: m.dots,
+                spacing: [cell_grid.cell_w * 4.0, cell_grid.cell_h * 2.0],
+                radius: (cell_grid.cell_h * 0.08).clamp(1.0, 2.5),
+            }
+        });
+        paper.update_uniform(&gpu.queue, bg_f32, w, h, 1.0, grain, dots.as_ref());
     }
     if use_crt {
         crt.update_uniforms(&gpu.queue, w, h);

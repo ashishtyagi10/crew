@@ -85,6 +85,10 @@ fn main() {
         (ThemeId::MossBlotter, "moss-blotter.png"),
         (ThemeId::GlacierBond, "glacier-bond.png"),
         (ThemeId::CrtPaperwhite, "crt-paperwhite.png"),
+        (ThemeId::Aurora, "aurora.png"),
+        (ThemeId::Nebula, "nebula.png"),
+        (ThemeId::Graphene, "graphene.png"),
+        (ThemeId::Cobalt, "cobalt.png"),
     ] {
         crew_theme::set_theme(theme_id);
         let out_path = format!("{out_dir}/{out_name}");
@@ -101,7 +105,21 @@ fn main() {
         // Encode frame.
         let bg = crew_theme::theme().page_bg;
         let bg_f32 = crew_render::color::target_rgba(bg, 1.0, FORMAT.is_srgb());
-        // Mirrors `Renderer::frame`: effective grain = user knob × theme's grain.
+        // Mirrors `Renderer::frame`: effective grain = user knob × theme's
+        // grain, and the modern family's dot lattice on the cell pitch.
+        let dots = crew_theme::theme().modern.map(|m| {
+            let c = |rgb| {
+                let [r, g, b, _] = crew_render::color::target_rgba(rgb, 1.0, FORMAT.is_srgb());
+                [r, g, b]
+            };
+            crew_render::DotLattice {
+                color_a: c(m.pole_a),
+                color_b: c(m.pole_b),
+                strength: m.dots,
+                spacing: [cell_w * 4.0, cell_h * 2.0],
+                radius: (cell_h * 0.08).clamp(1.0, 2.5),
+            }
+        });
         paper_bg.update_uniform(
             &queue,
             bg_f32,
@@ -109,6 +127,7 @@ fn main() {
             H as f32,
             1.0,
             1.0 * crew_theme::theme().grain,
+            dots.as_ref(),
         );
 
         let mut enc = device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
@@ -213,7 +232,7 @@ fn main() {
     for grain_mul in [0.0_f32, 0.6, 1.0, 1.6] {
         let out_path = format!("{out_dir}/grain-{grain_mul:.1}.png");
 
-        paper_bg.update_uniform(&queue, bg_f32, W as f32, H as f32, 1.0, grain_mul);
+        paper_bg.update_uniform(&queue, bg_f32, W as f32, H as f32, 1.0, grain_mul, None);
 
         let mut enc = device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
 
@@ -317,7 +336,7 @@ fn main() {
 
         let bg = crew_theme::theme().page_bg;
         let bg_f32 = crew_render::color::target_rgba(bg, 1.0, FORMAT.is_srgb());
-        paper_bg.update_uniform(&queue, bg_f32, W as f32, H as f32, 1.0, 1.0);
+        paper_bg.update_uniform(&queue, bg_f32, W as f32, H as f32, 1.0, 1.0, None);
 
         let mut enc = device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
         {

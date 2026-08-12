@@ -460,6 +460,23 @@ fn grain_is_newsprint_on_every_theme() {
     }
 }
 
+/// The modern family's page carries the dot lattice INSTEAD of grain: a
+/// deliberate identity swap (glass + dots vs newsprint speckle). Strength
+/// stays a whisper — a mix weight past ~0.5 would read as wallpaper.
+#[test]
+fn modern_pages_carry_the_dot_lattice() {
+    for id in ALL_THEMES {
+        if let Some(m) = id.theme().modern {
+            assert!(
+                m.dots > 0.0 && m.dots <= 0.5,
+                "{}: dot lattice in the whisper band, got {}",
+                id.as_str(),
+                m.dots
+            );
+        }
+    }
+}
+
 #[test]
 fn modern_glow_is_clean_of_retro_knobs() {
     // The modern family rides the CRT bloom chain for its halo, but it must

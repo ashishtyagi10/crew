@@ -63,6 +63,7 @@ pub static AURORA: Theme = Theme {
         pole_a: (110, 168, 254),
         pole_b: (197, 138, 249),
         drift_ms: 6_000,
+        dots: 0.20,
     }),
 };
 
@@ -120,5 +121,6 @@ pub static NEBULA: Theme = Theme {
         pole_a: (197, 138, 249),
         pole_b: (244, 143, 177),
         drift_ms: 6_000,
+        dots: 0.20,
     }),
 };

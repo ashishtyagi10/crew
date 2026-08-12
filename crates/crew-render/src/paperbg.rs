@@ -5,6 +5,23 @@ fn f32s_as_bytes(data: &[f32]) -> &[u8] {
     unsafe { std::slice::from_raw_parts(data.as_ptr() as *const u8, data.len() * 4) }
 }
 
+/// The modern-family dot lattice the background pass can draw behind
+/// everything: a grid of soft dots aligned to the text cells, tinted
+/// `color_a`→`color_b` across the page diagonal. Colours are already in the
+/// target's colour space (the caller runs them through `target_rgba`, like
+/// the page colour). `strength` is a mix weight toward the tint; 0 disables.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct DotLattice {
+    pub color_a: [f32; 3],
+    pub color_b: [f32; 3],
+    pub strength: f32,
+    /// Lattice pitch in physical px (x, y) — the caller derives it from the
+    /// cell metrics so the grid rides font size and DPI.
+    pub spacing: [f32; 2],
+    /// Dot radius in physical px.
+    pub radius: f32,
+}
+
 /// Full-screen background pass: fills the surface with `page_bg` modulated by
 /// subtle procedural grain and a faint radial vignette.
 pub struct PaperBgPass {
@@ -22,7 +39,7 @@ impl PaperBgPass {
 
         let uniform_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("paperbg_uniform"),
-            contents: f32s_as_bytes(&[0.0f32; 8]),
+            contents: f32s_as_bytes(&[0.0f32; 20]),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
@@ -89,8 +106,9 @@ impl PaperBgPass {
     }
 
     /// Write the per-frame uniform: theme background colour, surface resolution,
-    /// effect intensity (1.0 = full grain+vignette, 0.0 = flat fill), and grain
-    /// amplitude multiplier (0.0 = no grain, 1.0 = default ~±3%, 2.0 = double).
+    /// effect intensity (1.0 = full grain+vignette, 0.0 = flat fill), grain
+    /// amplitude multiplier (0.0 = no grain, 1.0 = default ~±3%, 2.0 = double)
+    /// and the modern-family dot lattice (`None` = no dots).
     pub fn update_uniform(
         &self,
         queue: &wgpu::Queue,
@@ -99,9 +117,36 @@ impl PaperBgPass {
         height: f32,
         intensity: f32,
         grain_mul: f32,
+        dots: Option<&DotLattice>,
     ) {
-        let data: [f32; 8] = [
-            page_bg[0], page_bg[1], page_bg[2], page_bg[3], width, height, intensity, grain_mul,
+        let d = dots.copied().unwrap_or(DotLattice {
+            color_a: [0.0; 3],
+            color_b: [0.0; 3],
+            strength: 0.0,
+            spacing: [1.0; 2],
+            radius: 0.0,
+        });
+        let data: [f32; 20] = [
+            page_bg[0],
+            page_bg[1],
+            page_bg[2],
+            page_bg[3],
+            width,
+            height,
+            intensity,
+            grain_mul,
+            d.color_a[0],
+            d.color_a[1],
+            d.color_a[2],
+            d.strength,
+            d.color_b[0],
+            d.color_b[1],
+            d.color_b[2],
+            d.radius,
+            d.spacing[0],
+            d.spacing[1],
+            0.0,
+            0.0,
         ];
         queue.write_buffer(&self.uniform_buf, 0, f32s_as_bytes(&data));
     }

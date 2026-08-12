@@ -133,6 +133,7 @@ fn render_full(glass: crew_theme::GlassLevel, opacity: f32, crt: bool) -> Option
         H as f32,
         1.0,
         1.3 * crew_theme::theme().grain,
+        None,
     );
 
     let mut enc = device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
