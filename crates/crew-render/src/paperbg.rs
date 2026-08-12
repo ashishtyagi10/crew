@@ -22,6 +22,19 @@ pub struct DotLattice {
     pub radius: f32,
 }
 
+impl DotLattice {
+    /// Lattice geometry — `(spacing, radius)` in physical px — for a text row
+    /// of `cell_h` px. The grid is SQUARE and fine: roughly six dots to a text
+    /// row, so it reads as woven engineering paper rather than a sparse polka
+    /// grid, with pin-fine dots that never touch. Deriving it from the cell
+    /// keeps the texture riding font size and DPI; the clamps keep tiny and
+    /// huge fonts inside a pitch that still renders cleanly.
+    pub fn cell_geometry(cell_h: f32) -> ([f32; 2], f32) {
+        let pitch = (cell_h / 6.0).clamp(5.0, 9.0);
+        ([pitch, pitch], (pitch * 0.2).clamp(0.8, 1.4))
+    }
+}
+
 /// Full-screen background pass: fills the surface with `page_bg` modulated by
 /// subtle procedural grain and a faint radial vignette.
 pub struct PaperBgPass {
@@ -157,3 +170,7 @@ impl PaperBgPass {
         pass.draw(0..3, 0..1);
     }
 }
+
+#[cfg(test)]
+#[path = "paperbg_tests.rs"]
+mod tests;
