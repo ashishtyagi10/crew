@@ -172,10 +172,17 @@ impl CrewApp {
                 // Flicker rides the existing busy-anim redraws (poll_panes drives
                 // ~15 fps while a pane animates); idle → flicker 0 → static tube.
                 let crt = self.effective_crt();
-                let crt_active =
-                    crt.is_some() && self.panes.iter().any(crate::paneview::pane_animating);
+                let busy = self.panes.iter().any(crate::paneview::pane_animating);
+                let crt_active = crt.is_some() && busy;
                 let crt_time = (crate::anim::now_ms() % 100_000) as f32 / 1000.0;
                 let fade = self.theme_fade(crate::anim::now_ms());
+                // The modern wash rides the same busy redraws: its phase is
+                // advanced from those frames' deltas and holds while quiet
+                // (see `washphase`), so an idle window still never repaints.
+                let drift = crew_theme::theme().modern.map_or(0, |m| m.drift_ms);
+                let wash =
+                    self.wash
+                        .advance(crate::anim::now_ms(), busy, drift, crate::motion::level());
                 if let Some(r) = &mut self.renderer {
                     // Flicker amplitude is the style's own — each phosphor
                     // jitters with its own nerve, not one global 0.06.
@@ -186,6 +193,7 @@ impl CrewApp {
                     };
                     r.set_crt(crt);
                     r.set_crt_anim(crt_time, amp);
+                    r.set_wash_phase(wash);
                     r.set_theme_fade(fade);
                     r.frame(&scenes);
                 }

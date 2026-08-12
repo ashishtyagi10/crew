@@ -15,6 +15,8 @@ use crate::scene::PaneScene;
 /// `grain` is the user knob × the theme's multiplier, precomputed upstream.
 /// `fade` is the theme-crossfade strength: while `None` the finished frame is
 /// snapshotted; while `Some` the held old-theme frame draws on top instead.
+/// `wash_phase` is where the modern backdrop's gradient pools sit on their
+/// orbit, in turns.
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn render(
     gpu: &Gpu,
@@ -25,6 +27,7 @@ pub(crate) fn render(
     fade: Option<f32>,
     window_opacity: f32,
     grain: f32,
+    wash_phase: f32,
     panes: &[PaneScene],
 ) {
     cell_grid.set_scene(&gpu.device, panes);
@@ -58,25 +61,29 @@ pub(crate) fn render(
     let (w, h) = (gpu.config.width as f32, gpu.config.height as f32);
 
     if let Some(paper) = paper {
-        // The modern family's dot lattice: a fine square grid pitched off the
+        // The modern family's backdrop: the gradient wash (rotated to
+        // `wash_phase`, which the app only advances while a pane is busy) with
+        // the dot lattice woven on top — a fine square grid pitched off the
         // text ROW height (see `cell_geometry`), so the weave scales with font
         // size and DPI. Pole colours go through the same colour-space door as
         // the page.
-        let dots = crew_theme::theme().modern.map(|m| {
+        let modern = crew_theme::theme().modern.map(|m| {
             let c = |rgb| {
                 let [r, g, b, _] = crate::color::target_rgba(rgb, 1.0, gpu.format.is_srgb());
                 [r, g, b]
             };
-            let (spacing, radius) = crate::paperbg::DotLattice::cell_geometry(cell_grid.cell_h);
-            crate::paperbg::DotLattice {
+            let (spacing, radius) = crate::paperbg::ModernPaper::cell_geometry(cell_grid.cell_h);
+            crate::paperbg::ModernPaper {
                 color_a: c(m.pole_a),
                 color_b: c(m.pole_b),
-                strength: m.dots,
+                dots: m.dots,
                 spacing,
                 radius,
+                wash: m.wash,
+                phase: wash_phase,
             }
         });
-        paper.update_uniform(&gpu.queue, bg_f32, w, h, 1.0, grain, dots.as_ref());
+        paper.update_uniform(&gpu.queue, bg_f32, w, h, 1.0, grain, modern.as_ref());
     }
     if use_crt {
         crt.update_uniforms(&gpu.queue, w, h);

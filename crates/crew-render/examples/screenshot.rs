@@ -106,19 +106,23 @@ fn main() {
         let bg = crew_theme::theme().page_bg;
         let bg_f32 = crew_render::color::target_rgba(bg, 1.0, FORMAT.is_srgb());
         // Mirrors `Renderer::frame`: effective grain = user knob × theme's
-        // grain, and the modern family's dot lattice on the cell pitch.
+        // grain, and the modern family's backdrop — gradient wash plus the
+        // dot lattice on the cell pitch. The shot is a resting frame, so the
+        // wash sits at phase 0 (the app only turns it while a pane is busy).
         let dots = crew_theme::theme().modern.map(|m| {
             let c = |rgb| {
                 let [r, g, b, _] = crew_render::color::target_rgba(rgb, 1.0, FORMAT.is_srgb());
                 [r, g, b]
             };
-            let (spacing, radius) = crew_render::DotLattice::cell_geometry(cell_h);
-            crew_render::DotLattice {
+            let (spacing, radius) = crew_render::ModernPaper::cell_geometry(cell_h);
+            crew_render::ModernPaper {
                 color_a: c(m.pole_a),
                 color_b: c(m.pole_b),
-                strength: m.dots,
+                dots: m.dots,
                 spacing,
                 radius,
+                wash: m.wash,
+                phase: 0.0,
             }
         });
         paper_bg.update_uniform(

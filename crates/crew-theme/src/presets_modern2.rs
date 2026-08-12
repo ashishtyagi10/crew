@@ -60,6 +60,7 @@ pub static GRAPHENE: Theme = Theme {
         pole_b: (108, 210, 222),
         drift_ms: 7_000,
         dots: 0.20,
+        wash: 0.15,
     }),
 };
 
@@ -118,5 +119,6 @@ pub static COBALT: Theme = Theme {
         pole_b: (103, 232, 249),
         drift_ms: 6_000,
         dots: 0.20,
+        wash: 0.15,
     }),
 };

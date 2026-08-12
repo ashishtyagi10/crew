@@ -477,6 +477,24 @@ fn modern_pages_carry_the_dot_lattice() {
     }
 }
 
+/// The wash is the aurora UNDER the lattice: broad pools of pole light. It
+/// has to stay weaker than the dots — a wash past a whisper stops being light
+/// on a page and becomes a coloured page, which is exactly the flat fill the
+/// modern family is trying not to be.
+#[test]
+fn modern_pages_carry_the_gradient_wash() {
+    for id in ALL_THEMES {
+        if let Some(m) = id.theme().modern {
+            assert!(
+                m.wash > 0.0 && m.wash <= 0.35,
+                "{}: wash in the whisper band, got {}",
+                id.as_str(),
+                m.wash
+            );
+        }
+    }
+}
+
 #[test]
 fn modern_glow_is_clean_of_retro_knobs() {
     // The modern family rides the CRT bloom chain for its halo, but it must

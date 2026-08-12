@@ -189,6 +189,10 @@ pub struct CrewApp {
     /// Once-a-minute clock behind the todo due-toast check (see
     /// [`crate::todopane::store::take_due`], driven from `poll_panes`).
     pub(crate) todo_due: crate::todopane::DueTicker,
+    /// Where the modern backdrop's gradient wash sits on its orbit (see
+    /// [`crate::washphase`]) — advanced only by the frames activity is
+    /// already drawing.
+    pub(crate) wash: crate::washphase::WashPhase,
 }
 
 impl CrewApp {

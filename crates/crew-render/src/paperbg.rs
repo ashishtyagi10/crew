@@ -5,24 +5,36 @@ fn f32s_as_bytes(data: &[f32]) -> &[u8] {
     unsafe { std::slice::from_raw_parts(data.as_ptr() as *const u8, data.len() * 4) }
 }
 
-/// The modern-family dot lattice the background pass can draw behind
-/// everything: a grid of soft dots aligned to the text cells, tinted
-/// `color_a`→`color_b` across the page diagonal. Colours are already in the
-/// target's colour space (the caller runs them through `target_rgba`, like
-/// the page colour). `strength` is a mix weight toward the tint; 0 disables.
+/// The modern family's backdrop, drawn behind everything by the background
+/// pass: a broad two-pool gradient WASH of theme light, with the fine dot
+/// LATTICE woven on top of it. Both ride the same pair of pole colours —
+/// already in the target's colour space (the caller runs them through
+/// `target_rgba`, like the page colour) — so the page reads as one material.
+/// `dots` and `wash` are independent mix weights toward the poles; either at
+/// 0 switches its layer off.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct DotLattice {
+pub struct ModernPaper {
     pub color_a: [f32; 3],
     pub color_b: [f32; 3],
-    pub strength: f32,
+    /// Dot lattice strength (0 = no lattice).
+    pub dots: f32,
     /// Lattice pitch in physical px (x, y) — the caller derives it from the
     /// cell metrics so the grid rides font size and DPI.
     pub spacing: [f32; 2],
     /// Dot radius in physical px.
     pub radius: f32,
+    /// Gradient wash strength (0 = no wash): the mix weight at each pool's
+    /// centre, falling to nothing between them.
+    pub wash: f32,
+    /// Where the two pools sit on their orbit, in turns: 0 puts `color_a` at
+    /// the left edge and `color_b` at the right, 0.25 rotates them a quarter
+    /// turn clockwise. The app advances it only while a pane is busy, so an
+    /// idle frame is a pure function of pixel position (see crew-app's
+    /// `washphase`).
+    pub phase: f32,
 }
 
-impl DotLattice {
+impl ModernPaper {
     /// Lattice geometry — `(spacing, radius)` in physical px — for a text row
     /// of `cell_h` px. The grid is SQUARE and fine: roughly six dots to a text
     /// row, so it reads as woven engineering paper rather than a sparse polka
@@ -121,7 +133,7 @@ impl PaperBgPass {
     /// Write the per-frame uniform: theme background colour, surface resolution,
     /// effect intensity (1.0 = full grain+vignette, 0.0 = flat fill), grain
     /// amplitude multiplier (0.0 = no grain, 1.0 = default ~±3%, 2.0 = double)
-    /// and the modern-family dot lattice (`None` = no dots).
+    /// and the modern-family backdrop (`None` = neither wash nor dots).
     pub fn update_uniform(
         &self,
         queue: &wgpu::Queue,
@@ -130,14 +142,16 @@ impl PaperBgPass {
         height: f32,
         intensity: f32,
         grain_mul: f32,
-        dots: Option<&DotLattice>,
+        modern: Option<&ModernPaper>,
     ) {
-        let d = dots.copied().unwrap_or(DotLattice {
+        let d = modern.copied().unwrap_or(ModernPaper {
             color_a: [0.0; 3],
             color_b: [0.0; 3],
-            strength: 0.0,
+            dots: 0.0,
             spacing: [1.0; 2],
             radius: 0.0,
+            wash: 0.0,
+            phase: 0.0,
         });
         let data: [f32; 20] = [
             page_bg[0],
@@ -151,15 +165,15 @@ impl PaperBgPass {
             d.color_a[0],
             d.color_a[1],
             d.color_a[2],
-            d.strength,
+            d.dots,
             d.color_b[0],
             d.color_b[1],
             d.color_b[2],
             d.radius,
             d.spacing[0],
             d.spacing[1],
-            0.0,
-            0.0,
+            d.wash,
+            d.phase,
         ];
         queue.write_buffer(&self.uniform_buf, 0, f32s_as_bytes(&data));
     }

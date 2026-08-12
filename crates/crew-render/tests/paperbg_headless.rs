@@ -2,7 +2,7 @@
 ///
 /// On macOS with Metal this will find an adapter and run the real GPU render.
 /// In GPU-less CI the test gracefully skips instead of failing.
-use crew_render::{DotLattice, PaperBgPass};
+use crew_render::{ModernPaper, PaperBgPass};
 
 /// Read the R channel of pixel (x, y) from a tightly-packed 256-byte-stride RGBA buffer.
 fn pixel_r(buf: &[u8], x: usize, y: usize) -> u8 {
@@ -39,12 +39,25 @@ fn downsampled_stddev(buf: &[u8]) -> f64 {
 }
 
 fn render_64x64(device: &wgpu::Device, queue: &wgpu::Queue, pass: &PaperBgPass) -> Vec<u8> {
-    // Offscreen 64×64 texture.
+    render_offscreen(device, queue, pass, 64, 64)
+}
+
+/// Render into an off-screen `w`×`h` texture and return the readback rows.
+/// `w` must keep the row stride (`w * 4`) a multiple of 256, wgpu's copy
+/// alignment — 64 and 128 both do.
+fn render_offscreen(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    pass: &PaperBgPass,
+    w: u32,
+    h: u32,
+) -> Vec<u8> {
+    // Offscreen texture.
     let tex = device.create_texture(&wgpu::TextureDescriptor {
         label: Some("test_tex"),
         size: wgpu::Extent3d {
-            width: 64,
-            height: 64,
+            width: w,
+            height: h,
             depth_or_array_layers: 1,
         },
         mip_level_count: 1,
@@ -55,10 +68,11 @@ fn render_64x64(device: &wgpu::Device, queue: &wgpu::Queue, pass: &PaperBgPass) 
         view_formats: &[],
     });
 
-    // Readback buffer: 64×64×4 = 16384 bytes.  Row stride = 256 = COPY_BYTES_PER_ROW_ALIGNMENT.
+    // Readback buffer: w×h×4 bytes, one row per `w * 4` (a multiple of
+    // COPY_BYTES_PER_ROW_ALIGNMENT, so no padding).
     let buf = device.create_buffer(&wgpu::BufferDescriptor {
         label: Some("readback"),
-        size: 64 * 64 * 4,
+        size: u64::from(w * h * 4),
         usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
         mapped_at_creation: false,
     });
@@ -97,13 +111,13 @@ fn render_64x64(device: &wgpu::Device, queue: &wgpu::Queue, pass: &PaperBgPass) 
             buffer: &buf,
             layout: wgpu::TexelCopyBufferLayout {
                 offset: 0,
-                bytes_per_row: Some(256),
-                rows_per_image: Some(64),
+                bytes_per_row: Some(w * 4),
+                rows_per_image: Some(h),
             },
         },
         wgpu::Extent3d {
-            width: 64,
-            height: 64,
+            width: w,
+            height: h,
             depth_or_array_layers: 1,
         },
     );
@@ -339,12 +353,15 @@ fn paperbg_headless() {
     // (0,0) sits ~10.6px away (zero mask).
     // -------------------------------------------------------
     let aurora = [15.0 / 255.0, 17.0 / 255.0, 23.0 / 255.0, 1.0];
-    let dots = DotLattice {
+    let dots = ModernPaper {
         color_a: [138.0 / 255.0, 180.0 / 255.0, 248.0 / 255.0],
         color_b: [197.0 / 255.0, 138.0 / 255.0, 249.0 / 255.0],
-        strength: 0.5,
+        dots: 0.5,
         spacing: [16.0, 16.0],
         radius: 2.0,
+        // The lattice cases isolate the dots: no wash under them.
+        wash: 0.0,
+        phase: 0.0,
     };
     paper_bg.update_uniform(&queue, aurora, 64.0, 64.0, 1.0, 0.0, Some(&dots));
     let dot_pixels = render_64x64(&device, &queue, &paper_bg);
@@ -393,5 +410,129 @@ fn paperbg_headless() {
     assert!(
         (12..=17).contains(&off_r),
         "F4 failed: with dots None pixel (8,8) R={off_r} should be bare page"
+    );
+
+    // -------------------------------------------------------
+    // Case 6: the gradient wash — two broad pools of pole light under the
+    // page, rotating with the phase. Dots off so the pools are measured
+    // alone; grain off so the reads are exact. On a square 64x64 surface
+    // phase 0 puts pole A at the left edge (uv 0.05) and pole B at the
+    // right (uv 0.95), both on the vertical midline.
+    // -------------------------------------------------------
+    let mut wash = ModernPaper {
+        color_a: [138.0 / 255.0, 180.0 / 255.0, 248.0 / 255.0], // blue
+        color_b: [249.0 / 255.0, 138.0 / 255.0, 160.0 / 255.0], // rose
+        dots: 0.0,
+        spacing: [16.0, 16.0],
+        radius: 2.0,
+        wash: 0.6,
+        phase: 0.0,
+    };
+    paper_bg.update_uniform(&queue, aurora, 64.0, 64.0, 1.0, 0.0, Some(&wash));
+    let w0 = render_64x64(&device, &queue, &paper_bg);
+    let wp = |buf: &[u8], x: usize, y: usize| -> (i32, i32, i32) {
+        let off = y * 256 + x * 4;
+        (buf[off] as i32, buf[off + 1] as i32, buf[off + 2] as i32)
+    };
+    let (lr, lg, lb) = wp(&w0, 3, 32); // pool A centre
+    let (rr, rg, rb) = wp(&w0, 60, 32); // pool B centre
+    let (cr, cg, cb) = wp(&w0, 32, 32); // between the pools
+    let (tr, tg, tb) = wp(&w0, 32, 3); // off the pools' axis entirely
+    eprintln!(
+        "paperbg_headless [wash phase 0]: poleA=({lr},{lg},{lb}) poleB=({rr},{rg},{rb}) centre=({cr},{cg},{cb}) top=({tr},{tg},{tb})"
+    );
+    // W1: the pool centres carry their OWN pole, not a blend — pole A is the
+    // blue one (b > r), pole B the rose one (r > b), each lifted far off the
+    // near-black page.
+    assert!(
+        lb - lr >= 40 && lb >= 120,
+        "W1 failed: pole A pool ({lr},{lg},{lb}) should read blue"
+    );
+    assert!(
+        rr - rb >= 40 && rr >= 120,
+        "W1 failed: pole B pool ({rr},{rg},{rb}) should read rose"
+    );
+    // W2: the wash falls off between the pools — the midpoint keeps a lift
+    // (it is one page-wide gradient, not two spotlights) but a fraction of
+    // either centre's, and a point off the axis is fainter still.
+    let lift = |(r, g, b): (i32, i32, i32)| r + g + b - (15 + 17 + 23);
+    let (l_lift, r_lift, c_lift, t_lift) = (
+        lift((lr, lg, lb)),
+        lift((rr, rg, rb)),
+        lift((cr, cg, cb)),
+        lift((tr, tg, tb)),
+    );
+    assert!(
+        c_lift > 20 && c_lift * 2 < l_lift && c_lift * 2 < r_lift,
+        "W2 failed: centre lift {c_lift} vs pools {l_lift}/{r_lift}"
+    );
+    assert!(
+        t_lift < c_lift,
+        "W2 failed: off-axis lift {t_lift} should be under the midpoint's {c_lift}"
+    );
+    // W3: a quarter turn swings the pools clockwise onto the vertical axis —
+    // the left edge falls back toward the bare page and pole A's blue is now
+    // at the TOP, as strong as it was at the left.
+    wash.phase = 0.25;
+    paper_bg.update_uniform(&queue, aurora, 64.0, 64.0, 1.0, 0.0, Some(&wash));
+    let w25 = render_64x64(&device, &queue, &paper_bg);
+    let (qlr, qlg, qlb) = wp(&w25, 3, 32);
+    let (tmr, tmg, tmb) = wp(&w25, 32, 3);
+    eprintln!(
+        "paperbg_headless [wash phase 0.25]: left=({qlr},{qlg},{qlb}) top=({tmr},{tmg},{tmb})"
+    );
+    assert!(
+        lift((qlr, qlg, qlb)) * 2 < l_lift,
+        "W3 failed: left edge kept its pool after a quarter turn ({qlr},{qlg},{qlb})"
+    );
+    assert!(
+        (tmb - lb).abs() <= 12 && tmb - tmr >= 40,
+        "W3 failed: pole A should now sit at the top, got ({tmr},{tmg},{tmb}) vs left-at-0 ({lr},{lg},{lb})"
+    );
+    // W4: the strength is a real dial, not a switch — halving it halves the
+    // lift at the pool's centre (the mix is linear in `wash`).
+    wash.phase = 0.0;
+    wash.wash = 0.3;
+    paper_bg.update_uniform(&queue, aurora, 64.0, 64.0, 1.0, 0.0, Some(&wash));
+    let whalf = render_64x64(&device, &queue, &paper_bg);
+    let half_lift = lift(wp(&whalf, 3, 32));
+    eprintln!("paperbg_headless [wash 0.3]: pool lift {half_lift} vs {l_lift} at 0.6");
+    assert!(
+        (half_lift * 2 - l_lift).abs() <= 12,
+        "W4 failed: half the strength should be half the lift, got {half_lift} vs {l_lift}/2"
+    );
+
+    // W5: a pool is ROUND, not a smear across the page — on a 4:1 window the
+    // coordinates are aspect-corrected, so pole A's light is spent well
+    // before the middle of the row it sits on. (Without the correction the
+    // pool stretches with the window and this pixel is still lit.)
+    wash.wash = 0.6;
+    paper_bg.update_uniform(&queue, aurora, 128.0, 32.0, 1.0, 0.0, Some(&wash));
+    let wide = render_offscreen(&device, &queue, &paper_bg, 128, 32);
+    let wq = |x: usize, y: usize| -> (i32, i32, i32) {
+        let off = y * 128 * 4 + x * 4;
+        (wide[off] as i32, wide[off + 1] as i32, wide[off + 2] as i32)
+    };
+    let pool = wq(6, 16); // pole A's centre: uv.x 0.05 either way
+    let quarter = wq(48, 16); // a third of the way in, same row
+    eprintln!("paperbg_headless [wash 4:1]: pool={pool:?} quarter_in={quarter:?}");
+    assert!(
+        lift(pool) > 200,
+        "W5 failed: the pool itself should still be lit on a wide page, got {pool:?}"
+    );
+    assert!(
+        lift(quarter) < 20,
+        "W5 failed: a round pool must not smear across the row, got {quarter:?}"
+    );
+
+    // W6: strength 0 is a true off — the same pixels are the bare page, so
+    // non-modern themes (and a wash-less modern theme) pay nothing.
+    wash.wash = 0.0;
+    paper_bg.update_uniform(&queue, aurora, 64.0, 64.0, 1.0, 0.0, Some(&wash));
+    let woff = render_64x64(&device, &queue, &paper_bg);
+    let (zr, zg, zb) = wp(&woff, 3, 32);
+    assert!(
+        (12..=17).contains(&zr) && (14..=19).contains(&zg) && (20..=25).contains(&zb),
+        "W6 failed: wash 0 pixel ({zr},{zg},{zb}) should be the bare page"
     );
 }
