@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.17.2
+
+The modern themes' dot lattice pulls in tight. The grid was pitched
+every 4th column and 2nd row, which read as sparse polka dots; it is
+now a fine square weave — about six dots to a text row, with pin-fine
+dots that never touch — so Aurora, Nebula, Graphene and Cobalt sit on
+woven engineering paper instead of a widely spaced grid. It still
+rides the cell metrics, so it scales with font size and DPI, and it is
+still perfectly static.
+
 ## 0.17.1
 
 The modern themes get their engineering paper. A faint lattice of soft

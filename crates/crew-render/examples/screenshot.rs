@@ -112,12 +112,13 @@ fn main() {
                 let [r, g, b, _] = crew_render::color::target_rgba(rgb, 1.0, FORMAT.is_srgb());
                 [r, g, b]
             };
+            let (spacing, radius) = crew_render::DotLattice::cell_geometry(cell_h);
             crew_render::DotLattice {
                 color_a: c(m.pole_a),
                 color_b: c(m.pole_b),
                 strength: m.dots,
-                spacing: [cell_w * 4.0, cell_h * 2.0],
-                radius: (cell_h * 0.08).clamp(1.0, 2.5),
+                spacing,
+                radius,
             }
         });
         paper_bg.update_uniform(
