@@ -19,4 +19,10 @@ pub struct ModernStyle {
     /// in ms. Idle frames never drift (the static-frame determinism
     /// contract) — this only paces the motion during activity.
     pub drift_ms: u64,
+    /// Strength of the page's dot lattice (0 = none): a faint grid of soft
+    /// dots behind everything, tinted `pole_a`→`pole_b` across the page
+    /// diagonal — the modern family's engineering-paper backdrop. It is a
+    /// mix weight toward the pole colour, so ~0.2 reads as a whisper on a
+    /// dark page. Static: the lattice never animates or requests frames.
+    pub dots: f32,
 }

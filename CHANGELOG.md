@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.17.1
+
+The modern themes get their engineering paper. A faint lattice of soft
+dots now sits behind everything on Aurora, Nebula, Graphene and Cobalt
+— pitched to the text grid (every 4th column, every 2nd row, so it
+scales with font size and DPI) and tinted with each theme's own
+gradient poles, sliding from one to the other across the page. Purely
+static — it never animates or costs a frame — and the other families
+keep their newsprint grain untouched.
+
 ## 0.17.0
 
 See what you finished, not just what's left. `/todo done` (or `H` on

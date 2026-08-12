@@ -3,6 +3,9 @@ struct Uniform {
     resolution: vec2<f32>,
     intensity: f32,
     grain_mul: f32,   // scales additive grain amplitude (0 = no grain, 1 = default)
+    dot_a: vec4<f32>,    // lattice tint at the top-left pole; a = strength (0 = off)
+    dot_b: vec4<f32>,    // lattice tint at the bottom-right pole; a = dot radius px
+    dot_grid: vec4<f32>, // xy = lattice pitch px; zw unused
 }
 @group(0) @binding(0) var<uniform> u: Uniform;
 
@@ -106,10 +109,29 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     const A_DARK: f32 = 0.075;
     let page_luma = dot(u.page_bg.rgb, vec3<f32>(0.299, 0.587, 0.114));
     let dark_weight = 1.0 - page_luma;
-    let rgb = clamp(
+    var rgb = clamp(
         base * (1.0 + n * 0.05)
             + vec3<f32>((n * 0.5 + n2 * 0.7) * A_DARK * dark_weight),
         vec3<f32>(0.0), vec3<f32>(1.0));
+
+    // The modern family's dot lattice (dot_a.a = 0 everywhere else): soft
+    // round dots on a grid whose pitch rides the text-cell metrics (set by
+    // frame.rs), tinted pole_a→pole_b along the page diagonal so the
+    // backdrop carries the theme's gradient identity. A mix toward the tint
+    // (not an add) so the same strength reads on any page brightness, and
+    // pure function of pixel position — static, no time term, no frames.
+    let dot_amp = u.dot_a.a;
+    if (dot_amp > 0.0) {
+        let pitch = u.dot_grid.xy;
+        let off = (fract(in.pos.xy / pitch) - vec2<f32>(0.5)) * pitch; // px from dot centre
+        let d = length(off);
+        let r = u.dot_b.a;
+        // ±0.8px feathered edge — soft, never a hard aliased circle.
+        let mask = 1.0 - smoothstep(r - 0.8, r + 0.8, d);
+        let diag = clamp((uv.x + uv.y) * 0.5, 0.0, 1.0);
+        let tint = mix(u.dot_a.rgb, u.dot_b.rgb, diag);
+        rgb = mix(rgb, tint, mask * dot_amp);
+    }
     // Alpha comes from the page colour, not a hard 1.0: it carries the window
     // opacity, so a translucent window lets the desktop through the paper while
     // text and pane fills (which blend on top) stay solid.
