@@ -5,6 +5,7 @@ fn tagged(project: Option<&str>) -> TodoItem {
         id: 1,
         title: "t".into(),
         done: false,
+        done_ms: None,
         project: project.map(str::to_string),
         due_ms: None,
         due_has_time: false,

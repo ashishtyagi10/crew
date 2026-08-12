@@ -200,3 +200,61 @@ fn typing_at_opens_the_known_tag_popup() {
     let m = p.tagmenu.as_ref().expect("popup open while typing @c");
     assert_eq!(m.matches, vec!["crew"]);
 }
+
+// --- done history (v0.17: `/todo done`) -----------------------------------
+
+#[test]
+fn ticking_stamps_done_ms_and_unticking_clears_it() {
+    let _g = store::test_guard(vec![]);
+    let mut p = TodoPane::new();
+    for c in "ship it".chars() {
+        p.type_char(c);
+    }
+    p.submit();
+    let before = crate::chattime::unix_now_ms();
+    p.toggle_done_at(0);
+    let it = store::snapshot().remove(0);
+    assert!(it.done);
+    let stamp = it.done_ms.expect("a tick stamps done_ms");
+    assert!(stamp >= before, "the stamp is the tick instant");
+
+    // Un-tick (via the sunk show_done row) clears the stamp: the item is
+    // open again, not "done at some stale instant".
+    p.show_done = true;
+    p.toggle_done_at(0);
+    let it = store::snapshot().remove(0);
+    assert!(!it.done);
+    assert_eq!(it.done_ms, None, "un-tick clears the stamp");
+}
+
+#[test]
+fn the_done_view_composer_filters_but_never_creates() {
+    let _g = store::test_guard(vec![]);
+    let mut p = TodoPane::new();
+    for c in "real work @crew".chars() {
+        p.type_char(c);
+    }
+    p.submit();
+    p.toggle_done_at(0);
+    p.done_view = true;
+    assert_eq!(p.visible_len(), 1, "the history lists the done item");
+
+    for c in "sneaky new todo".chars() {
+        p.type_char(c);
+    }
+    p.submit();
+    assert_eq!(
+        store::snapshot().len(),
+        1,
+        "no item is born from inside the history"
+    );
+
+    p.cancel_edit();
+    for c in "@crew".chars() {
+        p.type_char(c);
+    }
+    p.tagmenu = None; // submit directly, popup path is keys::apply's
+    p.submit();
+    assert_eq!(p.filter.as_deref(), Some("crew"), "filtering still works");
+    assert_eq!(p.visible_len(), 1);
+}

@@ -71,6 +71,10 @@ pub struct TodoPane {
     /// Show done items (sunk, dimmed) — `h` in the list toggles. Off by
     /// default: done auto-hides (0.15.1), this is the way back.
     pub(crate) show_done: bool,
+    /// The done-history view (`/todo done`, `H` in the list): the list
+    /// becomes a done-only log — newest completion first under day headers —
+    /// and the composer only filters. Esc leaves it.
+    pub(crate) done_view: bool,
     /// First visible display-order index of the list.
     pub(crate) scroll: usize,
 }
@@ -87,6 +91,7 @@ impl TodoPane {
             tagmenu: None,
             filter: None,
             show_done: false,
+            done_view: false,
             scroll: 0,
         }
     }
@@ -125,9 +130,30 @@ impl TodoPane {
 
     // --- display order ---------------------------------------------------
 
-    /// Item indices in display order under the active filter.
+    /// Item indices in display order under the active filter — the done
+    /// history's own ordering when the view is on.
     pub(crate) fn order(&self) -> Vec<usize> {
-        item::display_order(&self.items, self.filter.as_deref(), self.show_done)
+        if self.done_view {
+            item::done_order(&self.items, self.filter.as_deref())
+        } else {
+            item::display_order(&self.items, self.filter.as_deref(), self.show_done)
+        }
+    }
+
+    /// Flip the done-history view (`H` on the list, Esc inside, `/todo
+    /// done`). Entering selects the newest completion; leaving returns to
+    /// the composer.
+    pub(crate) fn set_done_view(&mut self, on: bool) {
+        if self.done_view == on {
+            return;
+        }
+        self.done_view = on;
+        self.scroll = 0;
+        self.sel = if on {
+            (self.visible_len() > 0).then_some(0)
+        } else {
+            None
+        };
     }
 
     pub(crate) fn visible_len(&self) -> usize {
@@ -154,7 +180,7 @@ impl TodoPane {
                 (false, a) if a > 0 => a - 1,
                 _ => break,
             };
-            acc += render::item_h(&self.items[order[next]], cols, now_ms) as usize;
+            acc += render::row_h(&self.items, self.done_view, &order, next, cols, now_ms) as usize;
             if acc > h && at != sel.min(n - 1) {
                 break;
             }
@@ -176,16 +202,17 @@ impl TodoPane {
         }
         let order = self.order();
         let now_ms = crate::chattime::unix_now_ms();
+        let dv = self.done_view;
         if let Some(s) = self.sel.filter(|&s| s < order.len()) {
             if s < self.scroll {
                 self.scroll = s;
             } else {
                 // Push the window down until items scroll..=s fit it (a
-                // single over-tall item stops at its first row).
+                // single over-tall item stops at its first row). Heights
+                // are per display row — a day header rides on its item.
                 let span = |from: usize| -> usize {
-                    order[from..=s]
-                        .iter()
-                        .map(|&i| render::item_h(&self.items[i], cols, now_ms) as usize)
+                    (from..=s)
+                        .map(|di| render::row_h(&self.items, dv, &order, di, cols, now_ms) as usize)
                         .sum()
                 };
                 while self.scroll < s && span(self.scroll) > h {
@@ -205,7 +232,8 @@ impl TodoPane {
         let mut used = 0;
         let mut s = order.len();
         while s > 0 {
-            let ih = render::item_h(&self.items[order[s - 1]], cols, now_ms) as usize;
+            let ih =
+                render::row_h(&self.items, self.done_view, &order, s - 1, cols, now_ms) as usize;
             if used + ih > h {
                 break;
             }
@@ -379,6 +407,11 @@ impl TodoPane {
                 return;
             }
         }
+        if self.done_view {
+            // The history's composer is a filter box: `@tag`/`@` above
+            // acted, anything else must not mint an item out of the log.
+            return;
+        }
         // Parse the RAW input so what was highlighted is exactly what is
         // stripped (find/strip share char indices with the composer tint).
         let hit = duedate::find(&self.input, duedate::now_local());
@@ -412,6 +445,7 @@ impl TodoPane {
                     id,
                     title,
                     done: false,
+                    done_ms: None,
                     project,
                     due_ms,
                     due_has_time: has_time,
@@ -436,9 +470,13 @@ impl TodoPane {
         let Some(id) = self.id_at(display_idx) else {
             return;
         };
+        let now_ms = crate::chattime::unix_now_ms();
         store::mutate(|items| {
             if let Some(it) = items.iter_mut().find(|it| it.id == id) {
                 it.done = !it.done;
+                // The completion stamp lives and dies with the tick: an
+                // un-ticked item is open again, not "done at a stale time".
+                it.done_ms = it.done.then_some(now_ms);
             }
         });
         self.refresh();
@@ -565,6 +603,7 @@ pub(crate) fn test_pane(items: Vec<TodoItem>) -> TodoPane {
         tagmenu: None,
         filter: None,
         show_done: false,
+        done_view: false,
         scroll: 0,
     }
 }

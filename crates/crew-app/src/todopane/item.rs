@@ -14,6 +14,11 @@ pub(crate) struct TodoItem {
     pub title: String,
     #[serde(default)]
     pub done: bool,
+    /// When the item was ticked done, epoch ms — set on tick, cleared on
+    /// un-tick. `None` on items ticked before v0.17 (the done view groups
+    /// them under "earlier") — the serde default IS the migration.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub done_ms: Option<u64>,
     /// Free-form `@project` tag, created on first use.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub project: Option<String>,
@@ -46,33 +51,51 @@ pub(crate) fn display_order(
     show_done: bool,
 ) -> Vec<usize> {
     let mut order: Vec<usize> = (0..items.len())
-        .filter(|&i| {
-            (show_done || !items[i].done)
-                && match filter {
-                    None => true,
-                    Some(f) => items[i]
-                        .project
-                        .as_deref()
-                        .is_some_and(|p| p.eq_ignore_ascii_case(f)),
-                }
-        })
+        .filter(|&i| (show_done || !items[i].done) && matches_filter(&items[i], filter))
         .collect();
     order.sort_by_key(|&i| sort_key(&items[i]));
     order
 }
 
+fn matches_filter(it: &TodoItem, filter: Option<&str>) -> bool {
+    match filter {
+        None => true,
+        Some(f) => it
+            .project
+            .as_deref()
+            .is_some_and(|p| p.eq_ignore_ascii_case(f)),
+    }
+}
+
 /// Rank 1 = dated (due ascending — overdue lands first for free), 2 =
 /// undated (creation order), 3 = done (newest completion first — the one
-/// you just ticked is the one you're most likely reaching back for);
-/// final tie on creation.
+/// you just ticked is the one you're most likely reaching back for; ticks
+/// from before the stamp existed fall back to creation); final tie on
+/// creation.
 fn sort_key(it: &TodoItem) -> (u8, u64, u64) {
     if it.done {
-        return (3, u64::MAX - it.created_ms, 0);
+        return (3, u64::MAX - it.done_ms.unwrap_or(it.created_ms), 0);
     }
     match it.due_ms {
         Some(d) => (1, d, it.created_ms),
         None => (2, it.created_ms, 0),
     }
+}
+
+/// Indices of the DONE items in history order for the `/todo done` view,
+/// honouring an active `@project` filter: stamped ticks newest-first, then
+/// every legacy (pre-stamp) tick by creation, newest-first. Legacy ticks
+/// must stay contiguous at the tail — they share the one "earlier" day
+/// bucket, and the headers assume each bucket is one run.
+pub(crate) fn done_order(items: &[TodoItem], filter: Option<&str>) -> Vec<usize> {
+    let mut order: Vec<usize> = (0..items.len())
+        .filter(|&i| items[i].done && matches_filter(&items[i], filter))
+        .collect();
+    order.sort_by_key(|&i| match items[i].done_ms {
+        Some(d) => (0u8, u64::MAX - d, u64::MAX - items[i].created_ms),
+        None => (1, u64::MAX - items[i].created_ms, 0),
+    });
+    order
 }
 
 #[cfg(test)]

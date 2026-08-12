@@ -84,10 +84,15 @@ fn place_w(end: u16, w: u16) -> u16 {
 }
 
 /// Column past the title's first line — where the right-side chips (due,
-/// `@tag`, `✗`) begin, one-column gap included.
-fn first_line_max(it: &TodoItem, cols: u16, now_ms: u64) -> u16 {
+/// `@tag`, `✗`; in the done view the tick time instead of the due) begin,
+/// one-column gap included.
+fn first_line_max(it: &TodoItem, cols: u16, now_ms: u64, done_view: bool) -> u16 {
     let mut right = cols.saturating_sub(4);
-    if let Some(due) = it.due_ms {
+    if done_view {
+        if it.done_ms.is_some() {
+            right = place_w(right, 5); // "HH:MM"
+        }
+    } else if let Some(due) = it.due_ms {
         let lbl = duedate::label(due, it.due_has_time, now_ms);
         right = place_w(right, crate::chatwidth::str_w(&lbl) as u16);
     }
@@ -100,9 +105,10 @@ fn first_line_max(it: &TodoItem, cols: u16, now_ms: u64) -> u16 {
 /// The title's wrapped lines as char-index ranges: greedy word wrap, the
 /// first line stopping where the chips begin, continuation lines spanning
 /// the pane. Always at least one range, so every item owns a row.
-fn title_lines(it: &TodoItem, cols: u16, now_ms: u64) -> Vec<(usize, usize)> {
+fn title_lines(it: &TodoItem, cols: u16, now_ms: u64, done_view: bool) -> Vec<(usize, usize)> {
     let chars: Vec<char> = it.title.chars().collect();
-    let w0 = (first_line_max(it, cols, now_ms).saturating_sub(TITLE_COL)).max(1) as usize;
+    let w0 =
+        (first_line_max(it, cols, now_ms, done_view).saturating_sub(TITLE_COL)).max(1) as usize;
     let wc = (cols.saturating_sub(2 + TITLE_COL)).max(1) as usize;
     wrap_ranges(&chars, w0, wc)
 }
@@ -139,8 +145,43 @@ fn wrap_ranges(chars: &[char], w0: usize, wc: usize) -> Vec<(usize, usize)> {
 }
 
 /// Rows item `it` occupies at this pane width.
-pub(crate) fn item_h(it: &TodoItem, cols: u16, now_ms: u64) -> u16 {
-    title_lines(it, cols, now_ms).len() as u16
+pub(crate) fn item_h(it: &TodoItem, cols: u16, now_ms: u64, done_view: bool) -> u16 {
+    title_lines(it, cols, now_ms, done_view).len() as u16
+}
+
+/// Local calendar day of a done item's tick; `None` groups every legacy
+/// (pre-stamp) tick into the one shared "earlier" bucket.
+fn done_day(it: &TodoItem) -> Option<chrono::NaiveDate> {
+    it.done_ms
+        .and_then(duedate::from_epoch_ms)
+        .map(|d| d.date())
+}
+
+/// Whether display row `di` opens a new day bucket in the done history —
+/// its day-header row rides on this item, so every height sum stays a
+/// per-item sum. Never true outside the view.
+pub(crate) fn starts_day_group(
+    items: &[TodoItem],
+    done_view: bool,
+    order: &[usize],
+    di: usize,
+) -> bool {
+    done_view && (di == 0 || done_day(&items[order[di]]) != done_day(&items[order[di - 1]]))
+}
+
+/// Rows display entry `di` occupies: the item's wrapped title plus, in the
+/// done view, the day header it opens. THE height truth for scroll, page
+/// and click math — they must all sum this, or they disagree.
+pub(crate) fn row_h(
+    items: &[TodoItem],
+    done_view: bool,
+    order: &[usize],
+    di: usize,
+    cols: u16,
+    now_ms: u64,
+) -> u16 {
+    item_h(&items[order[di]], cols, now_ms, done_view)
+        + u16::from(starts_day_group(items, done_view, order, di))
 }
 
 /// What a click on pane-content cell (`row`, `col`) means.
@@ -180,10 +221,16 @@ pub(crate) fn click_at(
         if top >= bottom {
             break;
         }
-        let h = item_h(&p.items[idx], cols, now_ms);
+        let head = u16::from(starts_day_group(&p.items, p.done_view, &order, di));
+        let h = item_h(&p.items[idx], cols, now_ms, p.done_view) + head;
         if row < top + h {
+            // A day header is not a row of the item it rides on.
+            if head == 1 && row == top {
+                return None;
+            }
+            let first = top + head;
             // Continuation rows carry no checkbox or ✗ — they just select.
-            return Some(if row > top {
+            return Some(if row > first {
                 TodoClick::Select(di)
             } else if (BOX_COL..BOX_COL + 3).contains(&col) {
                 TodoClick::Toggle(di)
@@ -228,23 +275,43 @@ pub(crate) fn cells(p: &TodoPane, cols: u16, rows: u16) -> Vec<CellView> {
     let header = header_h(p);
     let lh = list_height(p, cols, rows) as usize;
     let bottom = header + lh as u16;
+    let today = duedate::now_local().date();
     let mut row = header;
     for (di, &idx) in order.iter().enumerate().skip(p.scroll) {
         if row >= bottom {
             break;
         }
+        if starts_day_group(&p.items, p.done_view, &order, di) {
+            let label = match done_day(&p.items[idx]) {
+                Some(d) => duedate::day_label_naive(d, today),
+                None => "earlier".to_string(),
+            };
+            let styled = label.chars().map(|c| (c, ()));
+            crate::chatwidth::place_row(BOX_COL, cols, styled, |x, c, ()| {
+                out.push(cell(x, row, c, t.text_muted, true))
+            });
+            row += 1;
+            if row >= bottom {
+                break;
+            }
+        }
         let selected = p.sel == Some(di);
         row_cells(&mut out, p, idx, row, cols, bottom, selected, now_ms);
-        row += item_h(&p.items[idx], cols, now_ms);
+        row += item_h(&p.items[idx], cols, now_ms, p.done_view);
     }
     if order.is_empty() && lh >= 2 {
-        for (i, hint) in [
-            "no todos",
-            "type one below — try: pay rent tomorrow 5pm @home",
-        ]
-        .iter()
-        .enumerate()
-        {
+        let hints: [&str; 2] = if p.done_view {
+            [
+                "nothing done yet",
+                "tick an item on the list — it lands here",
+            ]
+        } else {
+            [
+                "no todos",
+                "type one below — try: pay rent tomorrow 5pm @home",
+            ]
+        };
+        for (i, hint) in hints.iter().enumerate() {
             let row = header + (lh as u16 / 2).saturating_sub(1) + i as u16;
             let styled = hint.chars().map(|c| (c, ()));
             crate::chatwidth::place_row(BOX_COL, cols, styled, |x, c, ()| {
@@ -317,7 +384,14 @@ fn row_cells(
         false,
     ));
     let mut right = del_col.saturating_sub(2);
-    if let Some(due) = it.due_ms {
+    if p.done_view {
+        // The history shows WHEN it was ticked; the day is the header's.
+        if let Some(d) = it.done_ms.and_then(duedate::from_epoch_ms) {
+            use chrono::Timelike;
+            let lbl = format!("{:02}:{:02}", d.time().hour(), d.time().minute());
+            right = place_right(out, &lbl, right, row, t.text_muted, false);
+        }
+    } else if let Some(due) = it.due_ms {
         let lbl = duedate::label(due, it.due_has_time, now_ms);
         let overdue = due <= now_ms;
         let today = duedate::days_from_now(due, now_ms) == Some(0);
@@ -337,9 +411,12 @@ fn row_cells(
     // `right` is the next free slot two left of the leftmost right-side
     // text; the title keeps a one-column gap before that text and wraps
     // onto full-width rows below.
-    debug_assert_eq!(right + 1, first_line_max(it, cols, now_ms));
+    debug_assert_eq!(right + 1, first_line_max(it, cols, now_ms, p.done_view));
     let chars: Vec<char> = it.title.chars().collect();
-    for (li, &(s, e)) in title_lines(it, cols, now_ms).iter().enumerate() {
+    for (li, &(s, e)) in title_lines(it, cols, now_ms, p.done_view)
+        .iter()
+        .enumerate()
+    {
         let r = row + li as u16;
         if r >= bottom {
             break;
@@ -446,7 +523,12 @@ fn composer_cells(out: &mut Vec<CellView>, p: &TodoPane, cols: u16, rows: u16) {
         return;
     }
 
-    let legend = if p.editing.is_some() {
+    let legend = if p.done_view {
+        match &p.filter {
+            Some(f) => format!("done @{f}"),
+            None => "done".to_string(),
+        }
+    } else if p.editing.is_some() {
         "edit".to_string()
     } else if let Some(h) = &hit {
         format!("due {}", duedate::label_naive(h.due, h.has_time, now))
@@ -457,7 +539,12 @@ fn composer_cells(out: &mut Vec<CellView>, p: &TodoPane, cols: u16, rows: u16) {
     };
     // Color follows what the legend actually says: due dates in accent, an
     // active `@filter` in that tag's color, edit/new in the resting tone.
-    let legend_fg = if p.editing.is_some() {
+    let legend_fg = if p.done_view {
+        match &p.filter {
+            Some(f) => crew_theme::tag_color(f, t),
+            None => t.legend_off,
+        }
+    } else if p.editing.is_some() {
         t.legend_off
     } else if hit.is_some() {
         accent
@@ -476,7 +563,11 @@ fn composer_cells(out: &mut Vec<CellView>, p: &TodoPane, cols: u16, rows: u16) {
     let (text_x, max) = (4u16, cols - 1);
     out.push(cell(2, top + 1, '\u{276f}', accent, true)); // ❯
     if p.input.is_empty() {
-        let hint = "type a todo";
+        let hint = if p.done_view {
+            "filter with @project \u{b7} esc leaves"
+        } else {
+            "type a todo"
+        };
         let styled = hint.chars().map(|c| (c, ()));
         crate::chatwidth::place_row(text_x, max, styled, |x, c, ()| {
             out.push(cell(x, top + 1, c, t.text_muted, false))

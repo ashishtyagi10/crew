@@ -5,6 +5,7 @@ fn item(id: u64, due: Option<u64>, done: bool, project: Option<&str>, created: u
         id,
         title: format!("t{id}"),
         done,
+        done_ms: None,
         project: project.map(str::to_string),
         due_ms: due,
         due_has_time: false,
@@ -97,4 +98,61 @@ fn show_done_sinks_done_items_newest_completion_first() {
         vec![3],
         "the filter still governs done rows"
     );
+}
+
+// --- done history (v0.17: `/todo done`) -----------------------------------
+
+fn done_at(id: u64, stamp: Option<u64>, created: u64) -> TodoItem {
+    let mut it = item(id, None, true, None, created);
+    it.done_ms = stamp;
+    it
+}
+
+#[test]
+fn done_order_is_newest_stamp_first_then_legacy_by_creation() {
+    let items = vec![
+        item(1, None, false, None, 10), // open — not history
+        done_at(2, Some(500), 40),      // stamped, older tick
+        done_at(3, Some(900), 20),      // stamped, newest tick
+        done_at(4, None, 999),          // legacy tick (pre-stamp), newer created
+        done_at(5, None, 100),          // legacy tick, older created
+    ];
+    let ids: Vec<u64> = done_order(&items, None)
+        .iter()
+        .map(|&i| items[i].id)
+        .collect();
+    assert_eq!(
+        ids,
+        vec![3, 2, 4, 5],
+        "stamped ticks newest-first, every legacy tick after them"
+    );
+}
+
+#[test]
+fn done_order_honours_the_project_filter() {
+    let mut a = done_at(1, Some(100), 1);
+    a.project = Some("crew".into());
+    let b = done_at(2, Some(200), 2);
+    let items = vec![a, b];
+    let ids: Vec<u64> = done_order(&items, Some("CREW"))
+        .iter()
+        .map(|&i| items[i].id)
+        .collect();
+    assert_eq!(ids, vec![1], "case-insensitive; untagged rows drop out");
+}
+
+/// `show_done`'s sunk rows must sort by the honest completion stamp when
+/// one exists — not the `created_ms` proxy the pre-stamp build used.
+#[test]
+fn show_done_rank_prefers_the_completion_stamp_over_creation() {
+    let items = vec![
+        done_at(1, Some(900), 10), // created first, ticked LAST
+        done_at(2, Some(500), 999),
+        item(3, None, false, None, 5), // open stays above the sunk rows
+    ];
+    let ids: Vec<u64> = display_order(&items, None, true)
+        .iter()
+        .map(|&i| items[i].id)
+        .collect();
+    assert_eq!(ids, vec![3, 1, 2]);
 }

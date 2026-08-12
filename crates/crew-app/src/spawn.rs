@@ -188,6 +188,16 @@ impl CrewApp {
         self.focus_new_pane();
     }
 
+    /// Spawn a todo pane already open on the done-history view (`/todo
+    /// done`), optionally pre-filtered to one `@project`.
+    pub(crate) fn spawn_todo_pane_done(&mut self, filter: Option<String>) {
+        self.spawn_todo_pane();
+        if let Some(PaneContent::Todo(t)) = self.panes.last_mut().map(|p| &mut p.content) {
+            t.filter = filter;
+            t.set_done_view(true);
+        }
+    }
+
     /// Spawn a Far dual-pane file-manager pane rooted at Crew's cwd, and focus it.
     pub(crate) fn spawn_far_pane(&mut self) {
         let grid = self

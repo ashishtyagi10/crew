@@ -128,7 +128,7 @@ pub(crate) const COMMANDS: &[Cmd] = &[
     },
     Cmd {
         name: "/todo",
-        desc: "Todo list — type to add; due dates (tomorrow 5pm) & @project while typing",
+        desc: "Todo list — due dates (tomorrow 5pm) & @project while typing; /todo done = what you finished",
     },
     Cmd {
         name: "/model",

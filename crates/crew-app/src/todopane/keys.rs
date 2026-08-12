@@ -119,6 +119,9 @@ pub(crate) fn apply(
     }
     if let Some(sel) = p.sel {
         match input {
+            // In the done history Esc leaves the VIEW (the pane stays);
+            // everywhere else it hands focus back to the composer.
+            Close if p.done_view => p.set_done_view(false),
             Close | Tab => p.sel = None,
             Up => p.sel = (sel > 0).then(|| sel - 1),
             Down => p.sel = Some((sel + 1).min(p.visible_len().saturating_sub(1))),
@@ -129,7 +132,13 @@ pub(crate) fn apply(
             Left | Right | WordLeft | WordRight => {}
             Enter | Char(' ') => p.toggle_done_at(sel),
             Backspace | DeleteKey | Char('d') => p.delete_at(sel),
+            // `e` would open an edit the history's composer can't submit,
+            // and `h` interleaves done rows a done-only view already shows:
+            // both inert in there (and NOT composer-jump printables).
+            Char('e') | Char('h') if p.done_view => {}
             Char('e') => p.edit_at(sel),
+            // `H`: flip into (or out of) the done-history log.
+            Char('H') => p.set_done_view(!p.done_view),
             // `h` (list only — in the composer it just types): show/hide
             // done items. Hiding clamps a selection left stranded past the
             // shorter list.
@@ -157,6 +166,9 @@ pub(crate) fn apply(
         Close => {
             if p.editing.is_some() || !p.input.is_empty() {
                 p.cancel_edit();
+            } else if p.done_view {
+                // One more layer to walk back: the history view itself.
+                p.set_done_view(false);
             } else {
                 return Some(TodoAction::Close);
             }
