@@ -233,7 +233,7 @@ fn a_page_is_a_row_sum_not_an_item_count() {
     let mut p = pane_with(&refs);
     let rows = 10; // composer 3 → 7 list rows
     assert_eq!(
-        crate::todopane::render::item_h(&p.items[0], COLS, 0),
+        crate::todopane::render::item_h(&p.items[0], COLS, 0, false),
         2,
         "premise: titles wrap to two rows"
     );
@@ -480,4 +480,135 @@ fn brackets_cycle_the_project_filter_ring() {
     apply(&mut p2, TodoInput::Char(']'), COLS, ROWS);
     assert_eq!(p2.input, "]");
     assert_eq!(p2.filter, None);
+}
+
+// --- done history (v0.17: `/todo done`) -----------------------------------
+
+/// Tick an item, then `H`: the pane flips into the done-only history with
+/// the fresh tick selected; `H` again (or Esc) walks back to the list.
+#[test]
+fn capital_h_toggles_the_done_history_from_the_list() {
+    let _g = store::test_guard(vec![]);
+    let mut p = pane_with(&["one", "two"]);
+    apply(&mut p, TodoInput::Down, COLS, ROWS); // select "one"
+    apply(&mut p, TodoInput::Char(' '), COLS, ROWS); // tick it
+    apply(&mut p, TodoInput::Char('H'), COLS, ROWS);
+    assert!(p.done_view, "H on the list opens the history");
+    assert_eq!(p.visible_len(), 1, "only the done item shows");
+    assert_eq!(p.sel, Some(0), "the newest completion is selected");
+    apply(&mut p, TodoInput::Char('H'), COLS, ROWS);
+    assert!(!p.done_view, "H again returns to the active list");
+}
+
+#[test]
+fn esc_leaves_the_history_before_it_ever_closes_the_pane() {
+    let _g = store::test_guard(vec![]);
+    let mut p = pane_with(&["one"]);
+    apply(&mut p, TodoInput::Down, COLS, ROWS);
+    apply(&mut p, TodoInput::Char(' '), COLS, ROWS);
+    apply(&mut p, TodoInput::Up, COLS, ROWS); // done item hid: back on composer
+    assert_eq!(p.sel, None);
+    p.done_view = true; // as `/todo done` opens it
+                        // Composer zone: Esc exits the view, NOT the pane.
+    assert!(apply(&mut p, TodoInput::Close, COLS, ROWS).is_none());
+    assert!(!p.done_view);
+    // Now an empty composer in the normal view: Esc closes the pane.
+    assert!(matches!(
+        apply(&mut p, TodoInput::Close, COLS, ROWS),
+        Some(TodoAction::Close)
+    ));
+
+    // And from the list zone of the history: same exit, selection intact
+    // rules — the view drops, the pane stays.
+    p.done_view = true;
+    p.sel = Some(0);
+    assert!(apply(&mut p, TodoInput::Close, COLS, ROWS).is_none());
+    assert!(!p.done_view, "Esc on a history row leaves the view");
+}
+
+#[test]
+fn space_in_the_history_un_dones_back_to_the_list() {
+    let _g = store::test_guard(vec![]);
+    // Two items: ticking one keeps the list non-empty, so the selection
+    // (and with it the list-zone `H`) survives the tick.
+    let mut p = pane_with(&["one", "two"]);
+    apply(&mut p, TodoInput::Down, COLS, ROWS);
+    apply(&mut p, TodoInput::Char(' '), COLS, ROWS); // tick "one"
+    apply(&mut p, TodoInput::Char('H'), COLS, ROWS); // history, sel 0
+    apply(&mut p, TodoInput::Char(' '), COLS, ROWS); // un-tick from history
+    let it = store::snapshot().remove(0);
+    assert!(!it.done, "the item is live again");
+    assert_eq!(it.done_ms, None);
+    assert_eq!(p.visible_len(), 0, "the history emptied");
+    assert!(p.done_view, "the view stays put — Esc leaves it");
+}
+
+#[test]
+fn d_in_the_history_deletes_the_record_permanently() {
+    let _g = store::test_guard(vec![]);
+    let mut p = pane_with(&["one", "two"]);
+    apply(&mut p, TodoInput::Down, COLS, ROWS);
+    apply(&mut p, TodoInput::Char(' '), COLS, ROWS); // tick "one"
+    apply(&mut p, TodoInput::Char('H'), COLS, ROWS);
+    apply(&mut p, TodoInput::Char('d'), COLS, ROWS);
+    let titles: Vec<String> = store::snapshot()
+        .iter()
+        .map(|it| it.title.clone())
+        .collect();
+    assert_eq!(titles, vec!["two"], "gone from the store, not hidden");
+}
+
+/// `e` (edit) would load a composer that cannot submit — a trap — and `h`
+/// (interleave done) is meaningless inside a done-only view. Both inert.
+#[test]
+fn e_and_h_are_inert_in_the_history() {
+    let _g = store::test_guard(vec![]);
+    let mut p = pane_with(&["one @crew", "two"]);
+    apply(&mut p, TodoInput::Down, COLS, ROWS);
+    apply(&mut p, TodoInput::Char(' '), COLS, ROWS); // tick "one"
+    apply(&mut p, TodoInput::Char('H'), COLS, ROWS);
+    assert_eq!(p.sel, Some(0));
+    apply(&mut p, TodoInput::Char('e'), COLS, ROWS);
+    assert!(p.editing.is_none(), "no edit session from the history");
+    assert_eq!(p.input, "", "e neither edits nor types");
+    assert_eq!(p.sel, Some(0), "the selection stayed on the row");
+    apply(&mut p, TodoInput::Char('h'), COLS, ROWS);
+    assert!(
+        !p.show_done,
+        "h does not flip the interleave toggle in here"
+    );
+    assert_eq!(p.sel, Some(0));
+}
+
+/// Page math counts the day-header rows: 6 one-line items on 6 different
+/// days are 2 rows each, so a 7-row window pages 3 items, not 7.
+#[test]
+fn history_pages_count_day_headers_as_rows() {
+    let days: Vec<crate::todopane::item::TodoItem> = (0..6)
+        .map(|i| {
+            let d = crate::todopane::duedate::now_local().date() - chrono::Duration::days(i);
+            crate::todopane::item::TodoItem {
+                id: i as u64 + 1,
+                title: format!("t{i}"),
+                done: true,
+                done_ms: crate::todopane::duedate::to_epoch_ms(d.and_hms_opt(10, 0, 0).unwrap()),
+                project: None,
+                due_ms: None,
+                due_has_time: false,
+                created_ms: i as u64,
+                notified: false,
+            }
+        })
+        .collect();
+    let _g = store::test_guard(days);
+    let mut p = TodoPane::new();
+    p.set_done_view(true);
+    assert_eq!(p.sel, Some(0));
+    let rows = 10; // composer 3 → 7 list rows
+    apply(&mut p, TodoInput::PageDown, COLS, rows);
+    assert_eq!(
+        p.sel,
+        Some(3),
+        "a page is 7 rows = 3 header+title pairs, not 7 items"
+    );
 }

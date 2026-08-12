@@ -1,7 +1,11 @@
 # Goal — todo pane: done history view (`/todo done`)
 
-**Status: SET 2026-08-12** by the user: a special command should display the *done*
-tasks, so finished work is auditable at a glance and doesn't get re-done. Not started.
+**Status: SHIPPED 2026-08-12 as v0.17.0** (same day it was set): the contract below
+landed in full — `/todo done [@project]`, `H`/Esc, `done_ms` with the "earlier"
+legacy bucket, day-header log, un-done/delete from the view, palette + help
+discoverability. 17 new unit tests (RED-first), 4 hand mutants on the bucketing and
+ordering math all killed. Live verify still rides the standing macOS-perms debt.
+Stretch items (duplicate-work ghost hint, sidebar count chip, pruning) remain open.
 
 **What exists today** (0.15.0–0.16.11, `crew-app/src/todopane/`): the store keeps done
 items forever as history (`todos.toml` never prunes), and `h` in the list toggles

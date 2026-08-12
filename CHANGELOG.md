@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.17.0
+
+See what you finished, not just what's left. `/todo done` (or `H` on
+the todo list, Esc to come back) opens the done history: a done-only
+log grouped under day headers — today, yesterday, aug 10 — newest
+tick first, each row wearing its tick time and `@project` chip.
+Ticking an item now records *when* (items ticked before this release
+group under "earlier"), `@project` filters the log — `/todo done
+@crew` opens it pre-filtered — Space un-dones an entry back onto the
+list, and `d` deletes it from history for good. Ticked something last
+week and can't remember? Check the log before doing it twice.
+
+## 0.16.13
+
+Intel One Mono joins the font rotation — the allowlist gained it and
+Cascadia Code, so `/font` roulette can land on both.
+
 ## 0.16.12
 
 Markdown tables with CJK or emoji stay inside their lane. The table

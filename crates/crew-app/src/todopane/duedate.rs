@@ -320,6 +320,17 @@ pub(crate) fn label_naive(due: NaiveDateTime, has_time: bool, now: NaiveDateTime
     }
 }
 
+/// Day-header label for the done-history view: `today` / `yesterday`, else
+/// `aug 10` — with the year appended when it isn't this year.
+pub(crate) fn day_label_naive(d: NaiveDate, today: NaiveDate) -> String {
+    match (today - d).num_days() {
+        0 => "today".to_string(),
+        1 => "yesterday".to_string(),
+        _ if d.year() == today.year() => format!("{} {}", MONTHS[d.month0() as usize], d.day()),
+        _ => format!("{} {} {}", MONTHS[d.month0() as usize], d.day(), d.year()),
+    }
+}
+
 /// Signed days between a due instant and now (negative = overdue by days),
 /// on calendar dates. `None` when either stamp doesn't convert.
 pub(crate) fn days_from_now(due_ms: u64, now_ms: u64) -> Option<i64> {

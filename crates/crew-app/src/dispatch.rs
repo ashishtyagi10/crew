@@ -52,7 +52,9 @@ impl CrewApp {
             "name" => self.name_focused_pane(""), // clear the pane's name
             "findall" => self.find_all(""),       // show usage hint
             other => {
-                if let Some(term) = other.strip_prefix("findall ") {
+                if let Some(a) = other.strip_prefix("todo ") {
+                    self.todo_command(a.trim());
+                } else if let Some(term) = other.strip_prefix("findall ") {
                     self.find_all(term);
                 } else if let Some(term) = other.strip_prefix("find ") {
                     self.find_in_terminal(term.trim());
@@ -100,6 +102,30 @@ impl CrewApp {
             }
         }
         false
+    }
+
+    /// Handle `/todo done [@project]`: open the done-history view, optionally
+    /// pre-filtered. Bare `/todo` (the active list) dispatches directly and
+    /// never reaches here.
+    pub(crate) fn todo_command(&mut self, arg: &str) {
+        let mut words = arg.split_whitespace();
+        let usage = "usage: /todo [done [@project]]";
+        match (words.next(), words.next(), words.next()) {
+            (Some("done"), tag, None) => {
+                let filter = match tag {
+                    None => None,
+                    Some(t) => match t.strip_prefix('@').filter(|t| !t.is_empty()) {
+                        Some(t) => Some(t.to_string()),
+                        None => {
+                            self.set_status(usage);
+                            return;
+                        }
+                    },
+                };
+                self.spawn_todo_pane_done(filter);
+            }
+            _ => self.set_status(usage),
+        }
     }
 
     /// Handle `/notify [on|off|add <text>|clear]`: with no argument it reports the
@@ -484,5 +510,43 @@ mod tests {
         let mut app = CrewApp::default();
         app.config.glass = "chunky".to_string();
         assert_eq!(app.config.glass_level(), crew_theme::GlassLevel::Medium);
+    }
+
+    // --- /todo done -----------------------------------------------------------
+
+    fn last_todo(app: &CrewApp) -> &crate::todopane::TodoPane {
+        match &app.panes.last().expect("a pane spawned").content {
+            crate::pane::PaneContent::Todo(t) => t,
+            _ => panic!("expected a todo pane"),
+        }
+    }
+
+    #[test]
+    fn todo_done_opens_the_history_view_with_an_optional_filter() {
+        let _g = crate::todopane::store::test_guard(vec![]);
+        let mut app = CrewApp::default();
+        app.run_slash_command("todo");
+        assert!(!last_todo(&app).done_view, "bare /todo is the active list");
+
+        app.run_slash_command("todo done");
+        let t = last_todo(&app);
+        assert!(t.done_view, "/todo done opens the history");
+        assert_eq!(t.filter, None);
+
+        app.run_slash_command("todo done @crew");
+        let t = last_todo(&app);
+        assert!(t.done_view);
+        assert_eq!(t.filter.as_deref(), Some("crew"), "the arg pre-filters");
+    }
+
+    #[test]
+    fn a_bad_todo_arg_teaches_the_usage_instead_of_spawning() {
+        let _g = crate::todopane::store::test_guard(vec![]);
+        let mut app = CrewApp::default();
+        let before = app.panes.len();
+        app.run_slash_command("todo wobble");
+        assert_eq!(app.panes.len(), before, "no pane from a bad arg");
+        let s = app.status.clone().expect("a status was set").0;
+        assert!(s.contains("usage: /todo"), "{s}");
     }
 }

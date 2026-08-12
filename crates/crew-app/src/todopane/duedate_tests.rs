@@ -207,3 +207,19 @@ fn shift_days_moves_the_date_and_keeps_the_time() {
         "month boundaries are calendar math, not 24h multiples"
     );
 }
+
+// --- done-history headers -------------------------------------------------
+
+#[test]
+fn day_labels_for_the_done_history_headers() {
+    let d = |y, m, dd| NaiveDate::from_ymd_opt(y, m, dd).unwrap();
+    let today = d(2026, 8, 12);
+    assert_eq!(day_label_naive(d(2026, 8, 12), today), "today");
+    assert_eq!(day_label_naive(d(2026, 8, 11), today), "yesterday");
+    assert_eq!(day_label_naive(d(2026, 8, 10), today), "aug 10");
+    assert_eq!(
+        day_label_naive(d(2025, 12, 31), today),
+        "dec 31 2025",
+        "another year names it"
+    );
+}

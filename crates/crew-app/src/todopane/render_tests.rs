@@ -10,6 +10,7 @@ fn item(id: u64, title: &str) -> TodoItem {
         id,
         title: title.to_string(),
         done: false,
+        done_ms: None,
         project: None,
         due_ms: None,
         due_has_time: false,
@@ -376,4 +377,89 @@ fn tag_popup_rows_carry_their_project_colors() {
     assert_eq!(popup_fg("crew"), crew_theme::tag_color("crew", t));
     assert_eq!(popup_fg("home"), crew_theme::tag_color("home", t));
     assert_ne!(popup_fg("crew"), popup_fg("home"));
+}
+
+// --- done history (v0.17: `/todo done`) -----------------------------------
+
+fn done_item(id: u64, title: &str, stamp: Option<u64>) -> TodoItem {
+    let mut it = item(id, title);
+    it.done = true;
+    it.done_ms = stamp;
+    it
+}
+
+/// Epoch ms for today's (or a nearby day's) local wall clock — the render
+/// buckets by LOCAL date, so fixtures must be built the same way.
+fn local_ms(days_ago: i64, h: u32, m: u32) -> u64 {
+    let d = duedate::now_local().date() - chrono::Duration::days(days_ago);
+    duedate::to_epoch_ms(d.and_hms_opt(h, m, 0).unwrap()).unwrap()
+}
+
+#[test]
+fn the_history_groups_under_day_headers_with_tick_times() {
+    let mut p = test_pane(vec![
+        done_item(1, "new", Some(local_ms(0, 14, 30))),
+        done_item(2, "old", Some(local_ms(1, 9, 15))),
+        done_item(3, "ancient", None), // pre-stamp legacy tick
+    ]);
+    p.done_view = true;
+    let cells = cells(&p, COLS, ROWS);
+    assert!(
+        row_text(&cells, 0).contains("today"),
+        "{}",
+        row_text(&cells, 0)
+    );
+    let r1 = row_text(&cells, 1);
+    assert!(r1.contains("[x] new") && r1.contains("14:30"), "{r1}");
+    assert!(
+        row_text(&cells, 2).contains("yesterday"),
+        "{}",
+        row_text(&cells, 2)
+    );
+    let r3 = row_text(&cells, 3);
+    assert!(r3.contains("[x] old") && r3.contains("09:15"), "{r3}");
+    assert!(
+        row_text(&cells, 4).contains("earlier"),
+        "legacy ticks group under a stampless header: {}",
+        row_text(&cells, 4)
+    );
+    let r5 = row_text(&cells, 5);
+    assert!(r5.contains("[x] ancient"), "{r5}");
+    assert!(!r5.contains(':'), "no fake time on a stampless row: {r5}");
+}
+
+#[test]
+fn history_headers_are_not_clickable_rows() {
+    let mut p = test_pane(vec![
+        done_item(1, "new", Some(local_ms(0, 14, 30))),
+        done_item(2, "old", Some(local_ms(1, 9, 15))),
+    ]);
+    p.done_view = true;
+    assert_eq!(
+        click_at(&p, 0, 10, COLS, ROWS),
+        None,
+        "a day header is inert"
+    );
+    assert_eq!(click_at(&p, 1, 10, COLS, ROWS), Some(TodoClick::Select(0)));
+    assert_eq!(click_at(&p, 1, 2, COLS, ROWS), Some(TodoClick::Toggle(0)));
+    assert_eq!(click_at(&p, 2, 10, COLS, ROWS), None, "second header inert");
+    assert_eq!(click_at(&p, 3, 10, COLS, ROWS), Some(TodoClick::Select(1)));
+    assert_eq!(
+        click_at(&p, 4, 10, COLS, ROWS),
+        None,
+        "past the log: nothing"
+    );
+}
+
+#[test]
+fn an_empty_history_says_so_quietly() {
+    let mut p = test_pane(vec![item(1, "still open")]);
+    p.done_view = true;
+    let cells = cells(&p, COLS, ROWS);
+    let all: String = (0..ROWS).map(|r| row_text(&cells, r) + "\n").collect();
+    assert!(all.contains("nothing done yet"), "{all}");
+    assert!(
+        !all.contains("still open"),
+        "open items never leak into the history: {all}"
+    );
 }
