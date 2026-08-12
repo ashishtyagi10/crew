@@ -188,6 +188,7 @@ mod updatecard;
 mod updatefetch;
 mod usageledger;
 mod viewpane;
+mod washphase;
 mod welcome;
 mod windowtitle;
 

@@ -3,9 +3,9 @@ struct Uniform {
     resolution: vec2<f32>,
     intensity: f32,
     grain_mul: f32,   // scales additive grain amplitude (0 = no grain, 1 = default)
-    dot_a: vec4<f32>,    // lattice tint at the top-left pole; a = strength (0 = off)
-    dot_b: vec4<f32>,    // lattice tint at the bottom-right pole; a = dot radius px
-    dot_grid: vec4<f32>, // xy = lattice pitch px; zw unused
+    dot_a: vec4<f32>,    // pole A tint; a = lattice strength (0 = no dots)
+    dot_b: vec4<f32>,    // pole B tint; a = dot radius px
+    dot_grid: vec4<f32>, // xy = lattice pitch px; z = wash strength (0 = no wash); w = wash phase (turns)
 }
 @group(0) @binding(0) var<uniform> u: Uniform;
 
@@ -113,6 +113,37 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
         base * (1.0 + n * 0.05)
             + vec3<f32>((n * 0.5 + n2 * 0.7) * A_DARK * dark_weight),
         vec3<f32>(0.0), vec3<f32>(1.0));
+
+    // The modern family's gradient wash (dot_grid.z = 0 everywhere else):
+    // two broad pools of pole light lying under the whole page — the aurora
+    // the dot lattice is then woven on top of. Coordinates are aspect-
+    // corrected (half-height units) so a pool is round on any window, and the
+    // pair sits on an elliptical orbit that hugs the page: at phase 0 pole A
+    // is at the left edge and pole B at the right, and a quarter turn later
+    // they have swung clockwise to the top and the bottom. The phase comes
+    // from the app and only moves while a pane is busy, so an idle frame is
+    // still a pure function of pixel position.
+    let wash_amp = u.dot_grid.z;
+    if (wash_amp > 0.0) {
+        // Pool radius, in half-height units: wide enough that a pool covers
+        // its own side of the page with no visible edge, short enough to fall
+        // to nothing before the far side.
+        const WASH_R: f32 = 0.95;
+        // How far out the pools orbit, as a fraction of each half-axis.
+        const WASH_ORBIT: f32 = 0.45;
+        let asp = u.resolution.x / max(u.resolution.y, 1.0);
+        let p = vec2<f32>((uv.x - 0.5) * asp, uv.y - 0.5);
+        let ang = 6.2831853 * u.dot_grid.w;
+        let orbit = vec2<f32>(cos(ang) * WASH_ORBIT * asp, sin(ang) * WASH_ORBIT);
+        // Cubic falloff — a soft shoulder rather than smoothstep's linear
+        // middle, so each pool reads as light with a core rather than a
+        // painted disc, and the page between them dips to roughly a third of
+        // a pool's lift instead of washing out flat.
+        let ga = pow(1.0 - smoothstep(0.0, WASH_R, length(p + orbit)), 3.0);
+        let gb = pow(1.0 - smoothstep(0.0, WASH_R, length(p - orbit)), 3.0);
+        rgb = mix(rgb, u.dot_a.rgb, ga * wash_amp);
+        rgb = mix(rgb, u.dot_b.rgb, gb * wash_amp);
+    }
 
     // The modern family's dot lattice (dot_a.a = 0 everywhere else): soft
     // round dots on a grid whose pitch rides the text-cell metrics (set by

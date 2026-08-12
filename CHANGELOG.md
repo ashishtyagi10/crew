@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.17.3
+
+The modern themes get their aurora. Under the dot lattice, two broad
+pools of each theme's own gradient poles now light the page from
+opposite sides — Aurora's blue and violet, Nebula's violet and rose,
+Graphene's greens, Cobalt's blues — so the backdrop reads as coloured
+light instead of a flat fill. The pools turn slowly about the centre
+while a pane is working and hold wherever they stopped when things go
+quiet, so an idle crew still never repaints a frame, and Motion off
+freezes them outright.
+
 ## 0.17.2
 
 The modern themes' dot lattice pulls in tight. The grid was pitched

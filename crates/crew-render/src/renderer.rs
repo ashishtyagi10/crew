@@ -32,6 +32,9 @@ pub struct Renderer {
     // theme's frames at `theme_fade` strength while a switch settles.
     fade: FadePass,
     theme_fade: Option<f32>,
+    /// The modern backdrop's wash phase, in turns — set by the app each frame
+    /// (see [`Self::set_wash_phase`]).
+    wash_phase: f32,
 }
 
 impl Renderer {
@@ -59,6 +62,7 @@ impl Renderer {
             crt,
             fade,
             theme_fade: None,
+            wash_phase: 0.0,
         })
     }
 
@@ -125,6 +129,14 @@ impl Renderer {
         self.crt.set_anim(time, flicker);
     }
 
+    /// Where the modern backdrop's gradient wash sits on its orbit, in turns.
+    /// The app owns the clock (it advances the phase only while a pane is
+    /// busy, and holds it otherwise), so the renderer just carries the value
+    /// through to the background pass.
+    pub fn set_wash_phase(&mut self, phase: f32) {
+        self.wash_phase = phase;
+    }
+
     /// Sorted, de-duplicated names of all installed monospace font families.
     pub fn monospace_families(&mut self) -> Vec<String> {
         self.cell_grid.monospace_families()
@@ -175,6 +187,7 @@ impl Renderer {
             // (theme().grain = 1.2 on light AND dark; the dark-grain
             // calibration assumes the 1.3 × 1.2 = 1.56 product).
             self.paper_grain * crew_theme::theme().grain,
+            self.wash_phase,
             panes,
         );
     }

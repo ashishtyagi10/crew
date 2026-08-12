@@ -25,4 +25,16 @@ pub struct ModernStyle {
     /// mix weight toward the pole colour, so ~0.2 reads as a whisper on a
     /// dark page. Static: the lattice never animates or requests frames.
     pub dots: f32,
+    /// Strength of the page's gradient wash (0 = none): two broad soft pools
+    /// of `pole_a` and `pole_b` light lying under the whole page, the aurora
+    /// behind the engineering paper. A mix weight toward the pole colour at
+    /// each pool's centre, falling to zero between them — ~0.15 lifts a deep
+    /// page just enough to read as coloured light rather than a flat fill.
+    ///
+    /// The two pools sit on opposite sides of the page and rotate about its
+    /// centre, one revolution per `drift_ms`, but ONLY while a pane is busy:
+    /// the phase is advanced by the app (see crew-app's `washphase`) from the
+    /// frames activity is already drawing, and holds wherever it stopped once
+    /// things go quiet. An idle crew still never repaints.
+    pub wash: f32,
 }
