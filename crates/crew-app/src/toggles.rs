@@ -44,7 +44,7 @@ mod tests {
     use crate::app::CrewApp;
 
     #[test]
-    fn toggle_theme_cycles_the_five_modes_and_wraps() {
+    fn toggle_theme_cycles_every_mode_and_wraps() {
         let _g = crate::app::theme_test_guard();
         // From a pinned palette the first press enters the dark rotation.
         crew_theme::apply_selection(
@@ -65,6 +65,18 @@ mod tests {
         app.toggle_theme();
         assert_eq!(crew_theme::mode(), Some(crew_theme::RandomMode::Modern));
         assert_eq!(app.config.theme.as_deref(), Some("modern"));
+        // ...its light half...
+        app.toggle_theme();
+        assert_eq!(
+            crew_theme::mode(),
+            Some(crew_theme::RandomMode::ModernLight)
+        );
+        assert_eq!(app.config.theme.as_deref(), Some("modern-light"));
+        assert!(
+            !crew_theme::current_id().is_dark(),
+            "modern-light must land on a light page, got {}",
+            crew_theme::current_id().as_str()
+        );
         // Then the OS-following auto...
         app.toggle_theme();
         assert_eq!(crew_theme::mode(), Some(crew_theme::RandomMode::Auto));

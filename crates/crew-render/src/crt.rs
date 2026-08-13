@@ -59,7 +59,10 @@ impl CrtPass {
 
     /// Write the per-frame uniform. `time` advances only while animating;
     /// `flicker` is 0 when idle (making the pass fully static). Everything
-    /// else is the theme's own tube tuning.
+    /// else is the theme's own tube tuning — including the sign of
+    /// `style.glow`, which is NEGATIVE for the light-page halo (the caller
+    /// flips it; see [`crate::crtchain::CrtChain::update_uniforms`]) so the
+    /// composite subtracts the blur instead of adding it.
     pub fn update_uniform(
         &self,
         queue: &wgpu::Queue,

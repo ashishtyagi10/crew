@@ -153,7 +153,9 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
         // contemporary take on that IBM-terminal DNA).
         // Modern (aurora/nebula): the Gemini look wants Google's own coding
         // face; Geist is the contemporary geometric fallback.
-        ThemeId::Aurora | ThemeId::Nebula => &[
+        // The light twins share their dark parents' faces — a palette flip
+        // must not also change the typeface under the user.
+        ThemeId::Aurora | ThemeId::Nebula | ThemeId::Daybreak | ThemeId::Blossom => &[
             "Google Sans Code",
             "Geist Mono",
             "GeistMono Nerd Font",
@@ -163,7 +165,7 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "Noto Sans Mono",
         ],
         // Graphene: neutral and product-grade — Commit Mono's whole thesis.
-        ThemeId::Graphene => &[
+        ThemeId::Graphene | ThemeId::Meadow => &[
             "Commit Mono",
             "CommitMono Nerd Font",
             "Geist Mono",
@@ -172,7 +174,7 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "Noto Sans Mono",
         ],
         // Cobalt: wide, techy, electric.
-        ThemeId::Cobalt => &[
+        ThemeId::Cobalt | ThemeId::Cirrus => &[
             "Martian Mono",
             "Geist Mono",
             "JetBrainsMono NF",

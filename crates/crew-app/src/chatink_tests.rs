@@ -171,7 +171,12 @@ fn the_syntax_ladder_holds_where_hue_cannot_help() {
             "{}: comment vs code = {comment:.3}",
             id.as_str(),
         );
-        if t.crt.is_none() {
+        // "Single-phosphor" means the CRT palettes, not everything carrying a
+        // `CrtStyle`: the modern family carries a bloom-only one purely as a
+        // halo vehicle (`RandomMode::Crt` draws the same line with the same
+        // guard) and has a full 16-slot palette, so hue does the separating
+        // there and the stiffer rung would only distort its cyan.
+        if t.crt.is_none() || t.modern.is_some() {
             continue;
         }
         assert!(

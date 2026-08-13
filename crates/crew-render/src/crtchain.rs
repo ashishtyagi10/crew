@@ -79,11 +79,24 @@ impl CrtChain {
     }
 
     /// Write the frame's uniforms (composite + bloom) from the active style.
-    pub fn update_uniforms(&self, queue: &wgpu::Queue, w: f32, h: f32) {
-        let style = self.style.unwrap_or(CrtStyle::DEFAULT);
+    /// `ink` picks the halo's direction for this frame: `false` is the tube's
+    /// added light (dark pages), `true` the coloured shadow a light page needs
+    /// (see `bloom.wgsl`). The caller owns the page, so it owns the choice.
+    pub fn update_uniforms(&self, queue: &wgpu::Queue, w: f32, h: f32, ink: bool) {
+        let mut style = self.style.unwrap_or(CrtStyle::DEFAULT);
+        // On a light page the halo is a coloured SHADOW, not added light:
+        // bloom's ink pass hands the composite the blurred complement of
+        // whatever is colourful, and SUBTRACTING that tints the page toward
+        // the colour instead of blowing it to white. Same knob, opposite
+        // direction — the theme still states one positive glow strength, and
+        // flipping the sign here keeps the composite one `col += bloom *
+        // glow` for both appearances.
+        if ink {
+            style.glow = -style.glow;
+        }
         self.pass
             .update_uniform(queue, w, h, self.time, self.flicker, style);
-        self.bloom.update_uniform(queue, style.glow_radius);
+        self.bloom.update_uniform(queue, style.glow_radius, ink);
     }
 
     /// Encode the full post-process: three bloom passes over the scene, then
