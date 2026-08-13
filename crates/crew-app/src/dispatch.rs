@@ -104,13 +104,15 @@ impl CrewApp {
         false
     }
 
-    /// Handle `/todo done [@project]`: open the done-history view, optionally
-    /// pre-filtered. Bare `/todo` (the active list) dispatches directly and
-    /// never reaches here.
+    /// Handle `/todo done [@project]` (the done-history view, optionally
+    /// pre-filtered) and `/todo show` / `/todo hide` (done items inline on
+    /// the active list). Bare `/todo` (the active list) dispatches directly
+    /// and never reaches here.
     pub(crate) fn todo_command(&mut self, arg: &str) {
         let mut words = arg.split_whitespace();
-        let usage = "usage: /todo [done [@project]]";
+        let usage = "usage: /todo [done [@project] | show | hide]";
         match (words.next(), words.next(), words.next()) {
+            (Some(verb @ ("show" | "hide")), None, None) => self.todo_show_done(verb == "show"),
             (Some("done"), tag, None) => {
                 let filter = match tag {
                     None => None,
@@ -125,6 +127,40 @@ impl CrewApp {
                 self.spawn_todo_pane_done(filter);
             }
             _ => self.set_status(usage),
+        }
+    }
+
+    /// `/todo show` / `/todo hide`: flip done items on or off in a todo
+    /// pane's list — the typed way to the header's `[show N done]` button.
+    /// It acts on the focused todo pane, else the most recent one, and
+    /// spawns a list if none is open (so the command works from a cold
+    /// start, like `/todo done` does).
+    fn todo_show_done(&mut self, show: bool) {
+        let is_todo =
+            |p: &crate::pane::Pane| matches!(p.content, crate::pane::PaneContent::Todo(_));
+        let target = Some(self.focused)
+            .filter(|&i| self.panes.get(i).is_some_and(is_todo))
+            .or_else(|| self.panes.iter().rposition(is_todo));
+        let i = match target {
+            Some(i) => i,
+            None => {
+                self.spawn_todo_pane();
+                self.panes.len() - 1
+            }
+        };
+        if let crate::pane::PaneContent::Todo(t) = &mut self.panes[i].content {
+            // The history view is done-only already; `/todo show` there means
+            // "back to the list, with the done items in it".
+            t.set_done_view(false);
+            t.set_show_done(show);
+            let n = t.items.iter().filter(|it| it.done).count();
+            self.focused = i;
+            self.input.focused = false;
+            self.set_status(match (show, n) {
+                (true, 0) => "nothing done yet".to_string(),
+                (true, n) => format!("showing {n} done item{}", if n == 1 { "" } else { "s" }),
+                (false, _) => "done items hidden".to_string(),
+            });
         }
     }
 
@@ -537,6 +573,51 @@ mod tests {
         let t = last_todo(&app);
         assert!(t.done_view);
         assert_eq!(t.filter.as_deref(), Some("crew"), "the arg pre-filters");
+    }
+
+    /// `/todo show` / `/todo hide` are the typed half of the header button —
+    /// they act on the todo pane you are looking at and say what happened.
+    #[test]
+    fn todo_show_and_hide_flip_the_done_items_on_the_open_pane() {
+        let _g = crate::todopane::store::test_guard(vec![]);
+        let mut app = CrewApp::default();
+        app.run_slash_command("todo");
+        let opened = app.panes.len();
+
+        app.run_slash_command("todo show");
+        assert_eq!(app.panes.len(), opened, "reuses the open list, no new pane");
+        assert!(last_todo(&app).show_done, "/todo show reveals them");
+
+        app.run_slash_command("todo hide");
+        assert!(!last_todo(&app).show_done, "/todo hide puts them back");
+        let s = app.status.clone().expect("a status was set").0;
+        assert!(s.contains("done items hidden"), "{s}");
+    }
+
+    /// From a cold start it opens the list first — the command works before
+    /// any todo pane exists, the way `/todo done` does.
+    #[test]
+    fn todo_show_spawns_a_list_when_none_is_open() {
+        let _g = crate::todopane::store::test_guard(vec![]);
+        let mut app = CrewApp::default();
+        app.run_slash_command("todo show");
+        let t = last_todo(&app);
+        assert!(t.show_done);
+        assert!(!t.done_view, "the list, not the history");
+    }
+
+    /// The history is done-only; asking to show done items there means "put
+    /// me back on the list with them in it", not "nothing to do".
+    #[test]
+    fn todo_show_walks_back_out_of_the_history_view() {
+        let _g = crate::todopane::store::test_guard(vec![]);
+        let mut app = CrewApp::default();
+        app.run_slash_command("todo done");
+        assert!(last_todo(&app).done_view);
+        app.run_slash_command("todo show");
+        let t = last_todo(&app);
+        assert!(!t.done_view, "left the log");
+        assert!(t.show_done, "with the done items on the list");
     }
 
     #[test]

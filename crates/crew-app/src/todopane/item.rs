@@ -57,6 +57,17 @@ pub(crate) fn display_order(
     order
 }
 
+/// How many items are done and match `filter` — what an EMPTY list needs to
+/// know before it calls itself empty. A pane whose every item is ticked has
+/// no rows left to draw, and saying "no todos" there hides the finished work
+/// (and the history holding it) behind a screen that reads like a fresh pane.
+pub(crate) fn done_count(items: &[TodoItem], filter: Option<&str>) -> usize {
+    items
+        .iter()
+        .filter(|it| it.done && matches_filter(it, filter))
+        .count()
+}
+
 fn matches_filter(it: &TodoItem, filter: Option<&str>) -> bool {
     match filter {
         None => true,

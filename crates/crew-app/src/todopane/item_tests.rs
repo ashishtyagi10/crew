@@ -156,3 +156,26 @@ fn show_done_rank_prefers_the_completion_stamp_over_creation() {
         .collect();
     assert_eq!(ids, vec![3, 1, 2]);
 }
+
+/// What the empty list asks before calling itself empty — and it counts what
+/// the user can actually see, so a filtered pane never advertises another
+/// project's finished work.
+#[test]
+fn done_count_is_filter_aware() {
+    let items = vec![
+        item(1, None, false, None, 10),
+        item(2, None, true, None, 20),
+        item(3, None, true, Some("home"), 30),
+        item(4, None, true, Some("HOME"), 40),
+    ];
+    assert_eq!(done_count(&items, None), 3, "every ticked item");
+    assert_eq!(done_count(&items, Some("home")), 2, "case-insensitive tag");
+    assert_eq!(done_count(&items, Some("crew")), 0, "no ticks over there");
+    assert_eq!(done_count(&[], None), 0);
+    // Open items never count, however they are tagged.
+    assert_eq!(
+        done_count(&items[..1], None),
+        0,
+        "an open item is not history"
+    );
+}

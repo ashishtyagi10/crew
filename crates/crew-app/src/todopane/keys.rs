@@ -146,11 +146,7 @@ pub(crate) fn apply(
             Char('[') => p.cycle_filter(false),
             Char('+') => p.bump_due_at(sel, true),
             Char('-') => p.bump_due_at(sel, false),
-            Char('h') => {
-                p.show_done = !p.show_done;
-                let n = p.visible_len();
-                p.sel = (n > 0).then(|| sel.min(n - 1));
-            }
+            Char('h') => p.set_show_done(!p.show_done),
             // Any other printable jumps back to the composer and types.
             Char(c) => {
                 p.sel = None;

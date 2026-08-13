@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.17.4
+
+Done todos stop hiding. A todo pane whose items are all ticked used to
+render the same "no todos" screen as an empty one — with nothing to
+select, `H` couldn't even be reached — so finished work looked like no
+work. That pane now says "all done · 7 in the history" and names the
+way in, and any list holding ticked items grows a clickable
+`[show 7 done]` button on its header (it flips to `[hide done]`). For
+the keyboard: `/todo show` and `/todo hide` do the same from the
+command bar, `h` still toggles on a focused list, and an empty
+filtered history now says "nothing done in @home" instead of claiming
+nothing was ever finished.
+
 ## 0.17.3
 
 The modern themes get their aurora. Under the dot lattice, two broad

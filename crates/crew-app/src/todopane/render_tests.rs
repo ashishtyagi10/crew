@@ -140,12 +140,84 @@ fn a_done_item_does_not_render() {
     it.done = true;
     let p = test_pane(vec![it]);
     let cells = cells(&p, COLS, ROWS);
-    let row = row_text(&cells, 0);
-    assert!(!row.contains("done thing"), "{row:?}");
-    let all: String = (0..ROWS).map(|r| row_text(&cells, r)).collect();
     assert!(
-        all.contains("no todos"),
-        "an all-done list shows the empty hint"
+        !(0..ROWS).any(|r| row_text(&cells, r).contains("done thing")),
+        "a ticked item stays off the list until it is asked for"
+    );
+}
+
+/// The bug this replaced: an all-done pane rendered the SAME "no todos"
+/// screen as a brand-new one, so finished work — and the history holding it
+/// — was invisible. With nothing selectable there is no way to press `H`
+/// either, so the hint names the command that always works.
+#[test]
+fn an_all_done_list_says_so_instead_of_no_todos() {
+    let mut a = item(1, "shipped it");
+    a.done = true;
+    let mut b = item(2, "and this");
+    b.done = true;
+    let p = test_pane(vec![a, b]);
+    let cells = cells(&p, COLS, ROWS);
+    let all: String = (0..ROWS).map(|r| row_text(&cells, r) + "\n").collect();
+    assert!(all.contains("all done · 2 in the history"), "{all}");
+    assert!(all.contains("/todo done opens the log"), "{all}");
+    assert!(
+        !all.contains("no todos"),
+        "an all-done pane must not read as a fresh one: {all}"
+    );
+}
+
+/// The empty history under a filter must not claim the whole store is empty.
+#[test]
+fn an_empty_filtered_history_names_the_filter() {
+    let mut p = test_pane(vec![item(1, "open")]);
+    p.done_view = true;
+    p.filter = Some("home".into());
+    let cells = cells(&p, COLS, ROWS);
+    let all: String = (0..ROWS).map(|r| row_text(&cells, r) + "\n").collect();
+    assert!(all.contains("nothing done in @home"), "{all}");
+}
+
+/// The header's done button: the visible half of `h`. It appears only when
+/// something is ticked, names the count, and flips to the way back out.
+#[test]
+fn the_header_carries_a_done_button() {
+    let mut done = item(1, "ticked");
+    done.done = true;
+    let open = item(2, "open");
+    let mut p = test_pane(vec![done, open]);
+    let header = |p: &_| row_text(&cells(p, COLS, ROWS), 0);
+    assert!(header(&p).contains("[show 1 done]"), "{}", header(&p));
+    p.set_show_done(true);
+    assert!(header(&p).contains("[hide done]"), "{}", header(&p));
+    // No button when there is nothing ticked, and none in the history view
+    // (which is done-only already).
+    let plain = test_pane(vec![item(3, "open")]);
+    assert!(!header(&plain).contains("done]"), "{}", header(&plain));
+    p.set_done_view(true);
+    assert!(!header(&p).contains("done]"), "{}", header(&p));
+}
+
+/// And it is a button, not a label: the click lands on the chip's columns
+/// only, and the rest of the header row stays inert.
+#[test]
+fn clicking_the_done_button_toggles_the_done_items() {
+    let mut done = item(1, "ticked");
+    done.done = true;
+    let mut p = test_pane(vec![done, item(2, "open")]);
+    let chip_col = COLS - 4; // inside "[show 1 done]", short of the last column
+    assert_eq!(
+        click_at(&p, 0, chip_col, COLS, ROWS),
+        Some(TodoClick::ShowDone)
+    );
+    assert_eq!(click_at(&p, 0, 1, COLS, ROWS), None, "header text is inert");
+    // The item rows still start below the header.
+    assert_eq!(click_at(&p, 1, 10, COLS, ROWS), Some(TodoClick::Select(0)));
+    p.set_show_done(true);
+    assert_eq!(
+        click_at(&p, 0, chip_col, COLS, ROWS),
+        Some(TodoClick::ShowDone),
+        "and it is the way back"
     );
 }
 
@@ -461,5 +533,26 @@ fn an_empty_history_says_so_quietly() {
     assert!(
         !all.contains("still open"),
         "open items never leak into the history: {all}"
+    );
+}
+
+/// A pane too narrow for the button keeps the row for the list — the button
+/// is not drawn there, so it must not reserve space either.
+#[test]
+fn a_narrow_pane_spends_no_row_on_a_button_it_cannot_draw() {
+    let mut done = item(1, "ticked");
+    done.done = true;
+    let p = test_pane(vec![done, item(2, "open")]);
+    let narrow = 14; // "[show 1 done]" needs more than this
+    let cells = cells(&p, narrow, ROWS);
+    assert!(!row_text(&cells, 0).contains("done]"), "no room for it");
+    assert!(
+        row_text(&cells, 0).contains("open"),
+        "so row 0 is the list: {:?}",
+        row_text(&cells, 0)
+    );
+    assert_eq!(
+        click_at(&p, 0, 10, narrow, ROWS),
+        Some(TodoClick::Select(0))
     );
 }
