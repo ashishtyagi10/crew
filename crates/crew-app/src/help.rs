@@ -36,8 +36,8 @@ const BINDINGS: &[(&str, &str)] = &[
     ("Shift+PageUp / Shift+PageDown", "Scroll focused pane"),
     ("Shift+Home / Shift+End", "Scroll to top / bottom"),
     (
-        "PageUp/Down · Home/End · H",
-        "Todo list: page the selection · first / last · done history (Esc leaves)",
+        "PageUp/Down · Home/End · h · H",
+        "Todo list: page · first / last · show done (or the [show N done] button) · history",
     ),
     (
         "Ctrl+A / Ctrl+E / Alt+Left / Alt+Right",

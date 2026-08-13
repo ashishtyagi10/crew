@@ -51,9 +51,42 @@ pub(crate) fn input_lines(p: &TodoPane, cols: u16) -> Vec<(usize, usize)> {
     wrap_ranges(&chars, w, w)
 }
 
-/// The dim info row shown above the list while a `@project` filter is on.
-fn header_h(p: &TodoPane) -> u16 {
-    u16::from(p.filter.is_some())
+/// The header row's done button: the visible, clickable way to reach ticked
+/// items. `h` on the list has always done this, but a key that only works
+/// once the list has focus is not an affordance — and on an all-done pane
+/// there is nothing to focus at all. `None` when there is nothing ticked to
+/// show (no button for an empty promise) or inside the history view, which
+/// is already done-only.
+fn done_chip(p: &TodoPane) -> Option<String> {
+    if p.done_view {
+        return None;
+    }
+    let n = super::item::done_count(&p.items, p.filter.as_deref());
+    (n > 0).then(|| {
+        if p.show_done {
+            "[hide done]".to_string()
+        } else {
+            format!("[show {n} done]")
+        }
+    })
+}
+
+/// Where the done button sits on the header row: `(start, end)` columns, or
+/// `None` when there is no button. Render and hit-test both read this, so
+/// the button can't drift out from under the click.
+fn done_chip_zone(p: &TodoPane, cols: u16) -> Option<(u16, u16)> {
+    let chip = done_chip(p)?;
+    let end = cols.saturating_sub(1);
+    let start = end.saturating_sub(crate::chatwidth::str_w(&chip) as u16);
+    (start > TITLE_COL).then_some((start, end))
+}
+
+/// The dim info row above the list: the `@project` filter's summary, the
+/// done button, or both.
+fn header_h(p: &TodoPane, cols: u16) -> u16 {
+    // A button too wide for the pane isn't drawn, so it must not reserve the
+    // row either — a narrow pane keeps every line for the list.
+    u16::from(p.filter.is_some() || done_chip_zone(p, cols).is_some())
 }
 
 /// Rows the open tag popup occupies (0 when closed or the pane is short).
@@ -68,7 +101,7 @@ pub(crate) fn popup_h(p: &TodoPane, rows: u16) -> u16 {
 
 /// Rows left for the item list.
 pub(crate) fn list_height(p: &TodoPane, cols: u16, rows: u16) -> u16 {
-    rows.saturating_sub(composer_h(p, cols, rows) + popup_h(p, rows) + header_h(p))
+    rows.saturating_sub(composer_h(p, cols, rows) + popup_h(p, rows) + header_h(p, cols))
 }
 
 /// Mirror of [`place_right`]'s arithmetic without the cells: the next free
@@ -195,6 +228,8 @@ pub(crate) enum TodoClick {
     Select(usize),
     /// The composer area — refocus it.
     Composer,
+    /// The header row's `[show N done]` / `[hide done]` button.
+    ShowDone,
 }
 
 /// Map a content-cell click to its action; `None` falls through to the
@@ -209,7 +244,13 @@ pub(crate) fn click_at(
     if row >= rows.saturating_sub(composer_h(p, cols, rows)) {
         return Some(TodoClick::Composer);
     }
-    let header = header_h(p);
+    let header = header_h(p, cols);
+    if row == 0 && header > 0 {
+        // The only live target on the header row; the rest of it is text.
+        return done_chip_zone(p, cols)
+            .filter(|&(start, end)| (start..end).contains(&col))
+            .map(|_| TodoClick::ShowDone);
+    }
     let bottom = header + list_height(p, cols, rows);
     if row < header || row >= bottom {
         return None;
@@ -271,8 +312,17 @@ pub(crate) fn cells(p: &TodoPane, cols: u16, rows: u16) -> Vec<CellView> {
             out.push(cell(x, 0, c, t.text_muted, false))
         });
     }
+    // The done button rides the same header row, right-aligned like the pane
+    // card's own [-] and [x]. Accent, because it is the one thing on that row
+    // you can click.
+    if let (Some(chip), Some((start, _))) = (done_chip(p), done_chip_zone(p, cols)) {
+        let styled = chip.chars().map(|c| (c, ()));
+        crate::chatwidth::place_row(start, cols, styled, |x, c, ()| {
+            out.push(cell(x, 0, c, crate::palette::accent(), false))
+        });
+    }
 
-    let header = header_h(p);
+    let header = header_h(p, cols);
     let lh = list_height(p, cols, rows) as usize;
     let bottom = header + lh as u16;
     let today = duedate::now_local().date();
@@ -300,11 +350,20 @@ pub(crate) fn cells(p: &TodoPane, cols: u16, rows: u16) -> Vec<CellView> {
         row += item_h(&p.items[idx], cols, now_ms, p.done_view);
     }
     if order.is_empty() && lh >= 2 {
+        // An all-done list must not read as a fresh one. With every item
+        // ticked there are no rows left, so `H` (a list key) can't even be
+        // reached from here — Tab has nothing to select. The way in from an
+        // empty pane is the command, so that is what the hint names.
+        let done = super::item::done_count(&p.items, p.filter.as_deref());
+        let all_done = format!("all done · {done} in the history");
+        let none_here = p.filter.as_deref().map(|f| format!("nothing done in @{f}"));
         let hints: [&str; 2] = if p.done_view {
             [
-                "nothing done yet",
+                none_here.as_deref().unwrap_or("nothing done yet"),
                 "tick an item on the list — it lands here",
             ]
+        } else if done > 0 {
+            [&all_done, "/todo done opens the log"]
         } else {
             [
                 "no todos",

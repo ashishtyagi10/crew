@@ -156,6 +156,18 @@ impl TodoPane {
         };
     }
 
+    /// Show or hide the done items inline (`h` on the list, the header's
+    /// `[show N done]` button, `/todo show` and `/todo hide`). Hiding clamps
+    /// a selection left stranded past the shorter list.
+    pub(crate) fn set_show_done(&mut self, on: bool) {
+        if self.show_done == on {
+            return;
+        }
+        self.show_done = on;
+        let n = self.visible_len();
+        self.sel = self.sel.and_then(|s| (n > 0).then(|| s.min(n - 1)));
+    }
+
     pub(crate) fn visible_len(&self) -> usize {
         self.order().len()
     }
@@ -649,6 +661,7 @@ impl crate::app::CrewApp {
             TodoClick::Delete(d) => t.delete_at(d),
             TodoClick::Select(d) => t.sel = Some(d),
             TodoClick::Composer => t.sel = None,
+            TodoClick::ShowDone => t.set_show_done(!t.show_done),
         }
         self.focused = i;
         self.input.focused = false;
