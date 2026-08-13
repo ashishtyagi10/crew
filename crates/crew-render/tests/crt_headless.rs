@@ -138,7 +138,7 @@ fn crt_headless() {
     upload(&queue, &chain, |_, _| [160, 160, 160, 255]);
     chain.set_style(Some(CrtStyle::DEFAULT));
     chain.set_anim(0.0, 0.0);
-    chain.update_uniforms(&queue, N as f32, N as f32);
+    chain.update_uniforms(&queue, N as f32, N as f32, false);
     let px = render(&device, &queue, &chain);
 
     // Flat geometry: with curvature 0 the image maps 1:1 and fills the panel
@@ -193,7 +193,7 @@ fn crt_headless() {
         flicker: 0.0,
     }));
     chain.set_anim(0.0, 0.0);
-    chain.update_uniforms(&queue, N as f32, N as f32);
+    chain.update_uniforms(&queue, N as f32, N as f32, false);
     let g = render(&device, &queue, &chain);
     // A pixel just outside the block is black in the source but the blurred
     // bright-pass reaches it, so it must pick up light.
@@ -220,12 +220,95 @@ fn crt_headless() {
     upload(&queue, &chain, |_, _| [160, 160, 160, 255]);
     chain.set_style(Some(CrtStyle::DEFAULT));
     chain.set_anim(123.0, 0.0);
-    chain.update_uniforms(&queue, N as f32, N as f32);
+    chain.update_uniforms(&queue, N as f32, N as f32, false);
     let a = render(&device, &queue, &chain);
     chain.set_anim(456.0, 0.0);
-    chain.update_uniforms(&queue, N as f32, N as f32);
+    chain.update_uniforms(&queue, N as f32, N as f32, false);
     let b = render(&device, &queue, &chain);
     assert_eq!(a, b, "flicker=0 must be static regardless of time");
 
-    eprintln!("crt_headless: flat geometry, scanlines, wide bloom halo, static-flicker verified");
+    // --- Case 4: the LIGHT-page halo — a coloured shadow, not added light ---
+    // The same block, but now a saturated blue ring stroke on a near-white
+    // page (the light modern family: page (250,251,254), pole (37,99,235)).
+    // With the tube's additive pass this frame clips to white; the ink pass
+    // must instead lay the stroke's own hue softly around it and leave the
+    // page and the neutral ink alone.
+    let page = [250u8, 251, 254, 255];
+    let ring = [37u8, 99, 235, 255];
+    let text = [17u8, 24, 39, 255]; // slate body ink — neutral, must not halo
+    upload(&queue, &chain, |x, y| {
+        if (28..36).contains(&x) && (28..36).contains(&y) {
+            ring
+        } else if (4..12).contains(&x) && (4..12).contains(&y) {
+            // Far from the ring, so this probe measures ITS bleed, not the
+            // ring's halo reaching over.
+            text
+        } else {
+            page
+        }
+    });
+    let light_style = CrtStyle {
+        curvature: 0.0,
+        scanline: 0.0,
+        glow: 0.9,
+        glow_radius: 12.0,
+        corner: 0.0,
+        flicker: 0.0,
+    };
+    chain.set_style(Some(light_style));
+    chain.set_anim(0.0, 0.0);
+    chain.update_uniforms(&queue, N as f32, N as f32, true);
+    let l = render(&device, &queue, &chain);
+    let rgb = |buf: &[u8], x: usize, y: usize| -> (i32, i32, i32) {
+        let o = (y * N + x) * 4;
+        (buf[o] as i32, buf[o + 1] as i32, buf[o + 2] as i32)
+    };
+    let near = rgb(&l, block_right_x + 2, block_mid_y);
+    let far = rgb(&l, N - 1, block_mid_y);
+    let beside_text = rgb(&l, 14, 8);
+    eprintln!("crt_headless [ink halo]: near={near:?} far={far:?} beside_text={beside_text:?}");
+    // L1: the page keeps its own colour far from anything — no white-out, no
+    // global haze (the additive pass would have clipped this to (255,255,255)).
+    assert!(
+        (far.0 - 250).abs() <= 3 && (far.1 - 251).abs() <= 3 && (far.2 - 254).abs() <= 3,
+        "L1 failed: the far page should be untouched, got {far:?}"
+    );
+    // L2: beside the ring the page darkens, and it darkens TOWARD THE RING'S
+    // HUE — red and green fall away while blue is nearly held, which is what
+    // makes it read as blue light on paper rather than a gray smudge.
+    assert!(
+        near.0 <= 250 - 12 && near.1 <= 251 - 8,
+        "L2 failed: no shadow beside the ring: {near:?}"
+    );
+    assert!(
+        (far.2 - near.2) * 3 < far.0 - near.0,
+        "L2 failed: the halo is not tinted toward the ring, got {near:?}"
+    );
+    // L3: neutral body ink casts no halo — the chroma gate is what keeps
+    // paper text crisp instead of smudged.
+    assert!(
+        (beside_text.0 - 250).abs() <= 4 && (beside_text.2 - 254).abs() <= 4,
+        "L3 failed: slate ink should not bleed, got {beside_text:?}"
+    );
+    // L4: and it falls off with distance, like the light halo it mirrors.
+    let prof: Vec<i32> = (0..14)
+        .map(|i| 250 - rgb(&l, block_right_x + 1 + i * 2, block_mid_y).0)
+        .collect();
+    eprintln!("crt_headless [ink halo]: darkening profile (every 2px) {prof:?}");
+    // Compare points a whole ripple period apart. The 9-tap kernel steps
+    // radius/4 half-res texels per tap — 6 full-res px at radius 12 — so the
+    // profile carries a 6px comb (~2/255 peak-to-trough) on top of its
+    // envelope; that is the existing kernel's behaviour on every theme, not
+    // something the ink pass introduced, and sampling ripple-peak to
+    // ripple-peak measures the envelope instead of the comb.
+    let d5 = 250 - rgb(&l, block_right_x + 5, block_mid_y).0;
+    let d17 = 250 - rgb(&l, block_right_x + 17, block_mid_y).0;
+    let d27 = 250 - rgb(&l, block_right_x + 27, block_mid_y).0;
+    assert!(
+        d17 > 0 && d17 < d5,
+        "L4 failed: shadow must reach out and fall off: 5px={d5} 17px={d17}"
+    );
+    assert!(d27 == 0, "L4 failed: the halo must end, got {d27} at 27px");
+
+    eprintln!("crt_headless: flat geometry, scanlines, wide bloom halo, ink halo, static-flicker verified");
 }

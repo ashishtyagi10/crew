@@ -42,7 +42,7 @@ impl Bloom {
         });
         let uniform = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("bloom_uniform"),
-            size: 16, // 4 × f32
+            size: 32, // 8 × f32 (5 used, padded to a 16-byte multiple)
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
@@ -111,13 +111,20 @@ impl Bloom {
     /// Write the per-frame uniform; `radius` is the theme's `glow_radius`
     /// (half-res pixels). Nothing here depends on time — an idle tube reruns
     /// the chain bit-identically.
-    pub fn update_uniform(&self, queue: &wgpu::Queue, radius: f32) {
+    /// `ink` switches the bright pass from "what is brighter than the floor"
+    /// to "what is more colourful than the page" — the light-page halo (see
+    /// `bloom.wgsl`).
+    pub fn update_uniform(&self, queue: &wgpu::Queue, radius: f32, ink: bool) {
         let Some(t) = &self.targets else { return };
-        let data: [f32; 4] = [
+        let data: [f32; 8] = [
             1.0 / t.half.0 as f32,
             1.0 / t.half.1 as f32,
             radius,
             THRESHOLD,
+            f32::from(u8::from(ink)),
+            0.0,
+            0.0,
+            0.0,
         ];
         queue.write_buffer(&self.uniform, 0, postfx::f32s_as_bytes(&data));
     }

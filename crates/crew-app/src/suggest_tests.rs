@@ -106,13 +106,13 @@ fn theme_command_expands_into_a_value_picker() {
 }
 
 #[test]
-fn theme_space_lists_the_five_modes_as_runnable_values() {
+fn theme_space_lists_the_modes_as_runnable_values() {
     let items = menu_items("/theme ");
     let labels: Vec<&str> = items.iter().map(|m| m.label.as_str()).collect();
-    // Exactly the five consolidated themes — no individual palettes.
+    // Exactly the consolidated themes — no individual palettes.
     assert_eq!(
         labels,
-        vec!["dark", "light", "crt", "modern", "auto"],
+        vec!["dark", "light", "crt", "modern", "modern-light", "auto"],
         "picker: {labels:?}"
     );
     for name in ["paper-dark", "crt-green", "sepia-dark"] {

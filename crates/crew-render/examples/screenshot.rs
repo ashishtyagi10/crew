@@ -89,6 +89,10 @@ fn main() {
         (ThemeId::Nebula, "nebula.png"),
         (ThemeId::Graphene, "graphene.png"),
         (ThemeId::Cobalt, "cobalt.png"),
+        (ThemeId::Daybreak, "daybreak.png"),
+        (ThemeId::Blossom, "blossom.png"),
+        (ThemeId::Meadow, "meadow.png"),
+        (ThemeId::Cirrus, "cirrus.png"),
     ] {
         crew_theme::set_theme(theme_id);
         let out_path = format!("{out_dir}/{out_name}");

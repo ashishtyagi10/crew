@@ -16,6 +16,15 @@ struct U {
     // Bright-pass floor: only light above this blooms, so the near-black
     // tube page never hazes over.
     threshold: f32,
+    // 0 = LIGHT bloom (dark pages): what is brighter than the floor glows.
+    // 1 = INK bloom (light pages): brightness is useless there — the page is
+    //     already brighter than everything on it, so a brightness pass blooms
+    //     the PAGE and the whole frame clips to white. Colour is what still
+    //     stands out on paper, so the pass keeps each pixel's colourfulness
+    //     instead and the composite SUBTRACTS the blur (see crt.wgsl's
+    //     signed glow), laying a soft coloured shadow around the ring the way
+    //     the dark pages lay a soft light halo around a stroke.
+    ink: f32,
 }
 @group(0) @binding(0) var tex: texture_2d<f32>;
 @group(0) @binding(1) var samp: sampler;
@@ -38,12 +47,28 @@ fn vs(@builtin(vertex_index) vi: u32) -> VsOut {
     return out;
 }
 
+// Colourfulness gate for the ink pass: below CHROMA_DEAD nothing blooms, at
+// CHROMA_FULL it blooms fully. Tuned against the light modern palettes so the
+// gradient ring (chroma ≈ 0.78) and coloured terminal text carry a halo while
+// the slate ink (≈ 0.09), the page (≈ 0.02) and the page's own wash and dot
+// lattice (≈ 0.11 at the wash's strongest) carry none — body text on paper
+// must stay crisp, and a halo around the backdrop would just be a smudge.
+const CHROMA_DEAD: f32 = 0.25;
+const CHROMA_FULL: f32 = 0.50;
+
 @fragment
 fn fs_bright(in: VsOut) -> @location(0) vec4<f32> {
     // Half-res fragment sampling the full-res scene with a bilinear sampler:
     // the fetch averages a 2×2 block, so this is the downsample too.
     let uv = in.pos.xy * u.texel;
     let c = textureSample(tex, samp, uv).rgb;
+    if (u.ink > 0.5) {
+        let chroma = max(c.r, max(c.g, c.b)) - min(c.r, min(c.g, c.b));
+        let mask = smoothstep(CHROMA_DEAD, CHROMA_FULL, chroma);
+        // The pixel's COMPLEMENT: subtracting it from a white page leaves the
+        // pixel's own hue behind, so a blue ring bleeds blue rather than gray.
+        return vec4<f32>((vec3<f32>(1.0) - c) * mask, 1.0);
+    }
     return vec4<f32>(max(c - vec3<f32>(u.threshold), vec3<f32>(0.0)), 1.0);
 }
 

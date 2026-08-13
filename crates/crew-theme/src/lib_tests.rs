@@ -36,12 +36,13 @@ fn the_five_phosphors_have_distinct_personalities() {
     // The whole point of `CrtStyle` over four global constants: no two
     // phosphors may share identical tunings (a done-criterion of the
     // holographic overhaul goal). The modern palettes carry a CrtStyle too
-    // (bloom-only), so they join the uniqueness sweep: 5 tubes + 4 modern.
+    // (bloom-only), so they join the uniqueness sweep: 5 tubes + 4 modern
+    // dark + 4 modern light.
     let styles: Vec<(&str, CrtStyle)> = ALL_THEMES
         .iter()
         .filter_map(|id| id.theme().crt.map(|s| (id.as_str(), s)))
         .collect();
-    assert_eq!(styles.len(), 9);
+    assert_eq!(styles.len(), 13);
     for (i, (an, a)) in styles.iter().enumerate() {
         for (bn, b) in &styles[i + 1..] {
             assert_ne!(a, b, "{an} and {bn} share an identical CrtStyle");
@@ -70,7 +71,7 @@ fn next_cycles_through_all_and_wraps() {
         id = id.next();
     }
     assert_eq!(id, ThemeId::PaperDark);
-    assert_eq!(ThemeId::Cobalt.next(), ThemeId::PaperDark); // last wraps to first
+    assert_eq!(ThemeId::Cirrus.next(), ThemeId::PaperDark); // last wraps to first
 }
 
 #[test]
@@ -178,7 +179,7 @@ fn tick_random_fires_at_rotate_ms_when_on() {
 }
 
 #[test]
-fn cycle_next_walks_the_five_modes_and_wraps() {
+fn cycle_next_walks_every_mode_and_wraps() {
     let _g = guard();
     // From a pinned palette, the first step enters the dark rotation...
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
@@ -193,13 +194,16 @@ fn cycle_next_walks_the_five_modes_and_wraps() {
     assert!(current_id().theme().crt.is_some() && current_id().theme().modern.is_none());
     // ...then modern...
     assert_eq!(cycle_next(4), "modern");
-    assert!(current_id().theme().modern.is_some());
+    assert!(current_id().theme().modern.is_some() && current_id().is_dark());
+    // ...then the same family with the lights on...
+    assert_eq!(cycle_next(5), "modern-light");
+    assert!(current_id().theme().modern.is_some() && !current_id().is_dark());
     // ...then auto, whose pool follows the reported OS appearance...
     set_os_dark(true);
-    assert_eq!(cycle_next(5), "auto");
+    assert_eq!(cycle_next(6), "auto");
     assert!(current_id().is_dark() && current_id().theme().crt.is_none());
     // ...and wraps back to dark.
-    assert_eq!(cycle_next(6), "dark");
+    assert_eq!(cycle_next(7), "dark");
     assert!(current_id().is_dark() && current_id().theme().crt.is_none());
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
 }
@@ -511,15 +515,54 @@ fn modern_glow_is_clean_of_retro_knobs() {
         assert!(c.glow > 0.0, "{}: a modern theme without glow", id.as_str());
         assert_ne!(m.pole_a, m.pole_b, "{}: gradient poles equal", id.as_str());
         assert!(m.drift_ms > 0, "{}: drift period", id.as_str());
-        assert!(t.dark, "{}: modern palettes are dark", id.as_str());
     }
-    // And the family is big enough to rotate: random_pick's contract needs
-    // every pool to hold at least 4 palettes.
-    let n = ALL_THEMES
-        .iter()
-        .filter(|id| id.theme().modern.is_some())
-        .count();
-    assert!(n >= 4, "modern pool has only {n} palettes");
+    // Both halves are big enough to rotate on their own: random_pick's
+    // contract needs every pool to hold at least 4 palettes, and the family
+    // splits by appearance so a rotation never flips the page black↔white.
+    for (side, want_dark) in [("modern", true), ("modern-light", false)] {
+        let n = ALL_THEMES
+            .iter()
+            .filter(|id| {
+                let t = id.theme();
+                t.modern.is_some() && t.dark == want_dark
+            })
+            .count();
+        assert!(n >= 4, "{side} pool has only {n} palettes");
+    }
+}
+
+/// The light half is the same family with the lights on, and its poles have
+/// to be COLOUR on a white page, not the dark half's pastels: the ring, the
+/// wash and the lattice all draw in them, and a pale pole on near-white paper
+/// is an invisible one. 2.2 is the `border_focused` floor the ring already
+/// answers to.
+#[test]
+fn light_modern_poles_read_on_a_white_page() {
+    let mut seen = 0;
+    for id in ALL_THEMES {
+        let t = id.theme();
+        let Some(m) = t.modern.filter(|_| !t.dark) else {
+            continue;
+        };
+        seen += 1;
+        for (which, pole) in [("pole_a", m.pole_a), ("pole_b", m.pole_b)] {
+            let c = contrast_ratio(pole, t.page_bg);
+            assert!(
+                c >= 2.2,
+                "{}: {which} {pole:?} vs the page = {c:.2} (need >= 2.2)",
+                id.as_str()
+            );
+        }
+        // The page really is paper-bright, not a muted mid-tone that happens
+        // to clear the dark flag.
+        assert!(
+            t.page_bg.0 >= 240 && t.page_bg.1 >= 240 && t.page_bg.2 >= 240,
+            "{}: light modern page {:?} is not near-white",
+            id.as_str(),
+            t.page_bg
+        );
+    }
+    assert_eq!(seen, 4, "expected the four light modern palettes");
 }
 
 #[test]
@@ -583,10 +626,30 @@ fn parse_selection_names_modes_and_alias() {
         parse_selection("Modern"),
         Some(Selection::Mode(RandomMode::Modern))
     );
-    // A pinned palette name still resolves (back-compat).
+    // The light half is its OWN mode, however it is spelled — "modern-light"
+    // must never fall through to "modern", which would silently hand the user
+    // a near-black page when they asked for the white one.
+    for spelling in [
+        "modern-light",
+        "Modern Light",
+        "MODERNLIGHT",
+        "random-modern-light",
+    ] {
+        assert_eq!(
+            parse_selection(spelling),
+            Some(Selection::Mode(RandomMode::ModernLight)),
+            "{spelling}"
+        );
+    }
+    // A pinned palette name still resolves (back-compat), including the new
+    // light palettes.
     assert_eq!(
         parse_selection("paper-light"),
         Some(Selection::Fixed(ThemeId::PaperLight))
+    );
+    assert_eq!(
+        parse_selection(" daybreak "),
+        Some(Selection::Fixed(ThemeId::Daybreak))
     );
     // Pre-consolidation mode names still parse.
     assert_eq!(
@@ -633,8 +696,21 @@ fn random_pick_pools_are_pure() {
                 "crt pool: {}",
                 c.as_str()
             );
+            // The modern family splits by appearance: a rotation inside one
+            // half must never hand back a page from the other, which is the
+            // whole reason the light palettes did not simply join the pool.
             let m = random_pick(current, seed, RandomMode::Modern);
-            assert!(m.theme().modern.is_some(), "modern pool: {}", m.as_str());
+            assert!(
+                m.theme().modern.is_some() && m.is_dark(),
+                "modern pool: {}",
+                m.as_str()
+            );
+            let ml = random_pick(current, seed, RandomMode::ModernLight);
+            assert!(
+                ml.theme().modern.is_some() && !ml.is_dark(),
+                "modern-light pool: {}",
+                ml.as_str()
+            );
         }
     }
 }

@@ -8,6 +8,29 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.17.5
+
+The modern family gets its light half. Daybreak, Blossom, Meadow and
+Cirrus are the same Gemini/Codex look with the lights on — near-white
+pages, deep slate ink, and each palette's two poles driving all three
+of the family's signatures: the gradient ring on the focused frame,
+the drifting wash under the page, and the dot lattice woven over it.
+The poles are deepened rather than reused: a pastel that glows on
+near-black is invisible on paper. They rotate as their own theme,
+`modern-light`, which joins dark/light/crt/modern/auto in `/theme`,
+the settings picker and the Ctrl+Shift+L cycle — so a rotation never
+flips the page from near-black to near-white mid-session, and `auto`
+can pair the light half by day with the dark half by night.
+
+The halo had to be rebuilt to get there. The bloom chain only knew how
+to add light, which on a near-white page blooms the PAGE and clips the
+whole frame to flat white. On a light page the pass now keeps each
+pixel's colourfulness instead of its brightness, and the composite
+subtracts the blur: the ring lays a soft halo of its own hue on the
+paper, coloured text glows the same way, and neutral body ink stays
+crisp. Every palette was validated against the contrast suite before
+it was written.
+
 ## 0.17.4
 
 Done todos stop hiding. A todo pane whose items are all ticked used to

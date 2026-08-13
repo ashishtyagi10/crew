@@ -86,7 +86,8 @@ pub(crate) fn render(
         paper.update_uniform(&gpu.queue, bg_f32, w, h, 1.0, grain, modern.as_ref());
     }
     if use_crt {
-        crt.update_uniforms(&gpu.queue, w, h);
+        // A light page inverts the halo: see `CrtChain::update_uniforms`.
+        crt.update_uniforms(&gpu.queue, w, h, !crew_theme::theme().dark);
     }
 
     let scene_view = if use_crt { crt.scene_view() } else { &view };

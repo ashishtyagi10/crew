@@ -119,13 +119,32 @@ fn render_full(glass: crew_theme::GlassLevel, opacity: f32, crt: bool) -> Option
         let mut c = crew_render::CrtChain::new(&device, FORMAT, W, H);
         c.set_style(crew_theme::theme().crt);
         c.set_anim(0.0, 0.0);
-        c.update_uniforms(&queue, W as f32, H as f32);
+        c.update_uniforms(&queue, W as f32, H as f32, !crew_theme::theme().dark);
         c
     });
 
     let paper = PaperBgPass::new(&device, FORMAT);
     let bg = crew_theme::theme().page_bg;
     let bg_f32 = crew_render::color::target_rgba(bg, opacity, FORMAT.is_srgb());
+    // Mirrors `frame.rs`: the modern family's backdrop (gradient wash at
+    // rest + dot lattice) rides the same pass, so a modern shot shows the
+    // page the app actually draws rather than a bare fill.
+    let modern = crew_theme::theme().modern.map(|m| {
+        let c = |rgb| {
+            let [r, g, b, _] = crew_render::color::target_rgba(rgb, 1.0, FORMAT.is_srgb());
+            [r, g, b]
+        };
+        let (spacing, radius) = crew_render::ModernPaper::cell_geometry(cell_h);
+        crew_render::ModernPaper {
+            color_a: c(m.pole_a),
+            color_b: c(m.pole_b),
+            dots: m.dots,
+            spacing,
+            radius,
+            wash: m.wash,
+            phase: 0.0,
+        }
+    });
     paper.update_uniform(
         &queue,
         bg_f32,
@@ -133,7 +152,7 @@ fn render_full(glass: crew_theme::GlassLevel, opacity: f32, crt: bool) -> Option
         H as f32,
         1.0,
         1.3 * crew_theme::theme().grain,
-        None,
+        modern.as_ref(),
     );
 
     let mut enc = device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
@@ -285,6 +304,54 @@ fn glass_shot_every_theme_family() {
     shot("crt", T::CrtGreen, G::Medium, 1.0, false);
     shot("light-high", T::PaperLight, G::High, 1.0, false);
     shot("dark-high", T::PaperDark, G::High, 1.0, false);
+}
+
+/// The MODERN family through the whole stack — wash + lattice under the
+/// cells, the theme's own bloom-only tube over them — once per palette, so
+/// the light half can be looked at in the composition it ships in. The light
+/// pages are the reason this exists: their halo runs the bloom chain in the
+/// opposite direction (`bloom.wgsl`'s ink pass), and the failure mode it
+/// replaced — an additive pass blowing a near-white page to flat white — is
+/// invisible in any unit test and obvious in one PNG.
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn modern_shot_every_palette() {
+    let _g = crate::app::theme_test_guard();
+    use crew_theme::ThemeId as T;
+    let out_dir = std::env::var("CREW_SHOT_DIR").unwrap_or_else(|_| "target/screenshots".into());
+    std::fs::create_dir_all(&out_dir).unwrap();
+    for id in [
+        T::Aurora,
+        T::Nebula,
+        T::Graphene,
+        T::Cobalt,
+        T::Daybreak,
+        T::Blossom,
+        T::Meadow,
+        T::Cirrus,
+    ] {
+        crew_theme::set_theme(id);
+        let Some(px) = render_full(crew_theme::GlassLevel::Medium, 1.0, true) else {
+            eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+            return;
+        };
+        let path = format!("{out_dir}/modern-{}.png", id.as_str());
+        image::save_buffer(&path, &px, W, H, image::ColorType::Rgba8).unwrap();
+        // The page must still be the page after the tube: a light palette
+        // whose bloom ran additively lands at ~255 everywhere (that was the
+        // bug), and a dark one must not be lifted into gray either. Sampled
+        // in the gap between the two panes, away from every stroke.
+        let gap = mean_lum(&px, 355, 60, 8, 180);
+        let want = crew_theme::theme().page_bg;
+        let page =
+            0.2126 * f64::from(want.0) + 0.7152 * f64::from(want.1) + 0.0722 * f64::from(want.2);
+        println!("wrote {path}  gap_lum={gap:.1} page_lum={page:.1}");
+        assert!(
+            (gap - page).abs() < 12.0,
+            "{}: the tube moved the bare page {page:.1} → {gap:.1}",
+            id.as_str()
+        );
+    }
 }
 
 /// Mean of one RGBA channel over a block (3 = alpha).

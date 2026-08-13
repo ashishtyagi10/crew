@@ -80,6 +80,8 @@ mod presets_crt;
 mod presets_crt_cool;
 mod presets_modern;
 mod presets_modern2;
+mod presets_modern_light;
+mod presets_modern_light2;
 mod presets_paper;
 mod presets_paper_dark2;
 mod presets_paper_light;
@@ -92,6 +94,8 @@ pub use presets_crt::{CRT_AMBER, CRT_GREEN};
 pub use presets_crt_cool::{CRT_BLUE, CRT_PAPERWHITE, CRT_VIOLET};
 pub use presets_modern::{AURORA, NEBULA};
 pub use presets_modern2::{COBALT, GRAPHENE};
+pub use presets_modern_light::{BLOSSOM, DAYBREAK};
+pub use presets_modern_light2::{CIRRUS, MEADOW};
 pub use presets_paper::{GRAPHITE, MIDNIGHT_INK, PAPER_DARK, PAPER_LIGHT, SEPIA_DARK};
 pub use presets_paper_dark2::MOSS_BLOTTER;
 pub use presets_paper_light::{COLDPRESS_GRAY, IVORY_LEDGER, SALMON_BROADSHEET, SEPIA_LIGHT};
@@ -138,11 +142,15 @@ pub enum ThemeId {
     Nebula,
     Graphene,
     Cobalt,
+    Daybreak,
+    Blossom,
+    Meadow,
+    Cirrus,
 }
 
 /// Every theme, in cycle order (used by the `Ctrl+Shift+L` rotation and the
 /// `/theme` completion). Keep in sync with the enum.
-pub const ALL_THEMES: [ThemeId; 20] = [
+pub const ALL_THEMES: [ThemeId; 24] = [
     ThemeId::PaperDark,
     ThemeId::PaperLight,
     ThemeId::SepiaDark,
@@ -163,6 +171,10 @@ pub const ALL_THEMES: [ThemeId; 20] = [
     ThemeId::Nebula,
     ThemeId::Graphene,
     ThemeId::Cobalt,
+    ThemeId::Daybreak,
+    ThemeId::Blossom,
+    ThemeId::Meadow,
+    ThemeId::Cirrus,
 ];
 
 impl ThemeId {
@@ -188,6 +200,10 @@ impl ThemeId {
             ThemeId::Nebula => "nebula",
             ThemeId::Graphene => "graphene",
             ThemeId::Cobalt => "cobalt",
+            ThemeId::Daybreak => "daybreak",
+            ThemeId::Blossom => "blossom",
+            ThemeId::Meadow => "meadow",
+            ThemeId::Cirrus => "cirrus",
         }
     }
 
@@ -214,6 +230,10 @@ impl ThemeId {
             ThemeId::Nebula => "orchid\u{2192}rose gradient dusk (modern dark)",
             ThemeId::Graphene => "neutral near-black, mint accent (modern dark)",
             ThemeId::Cobalt => "electric blue\u{2192}cyan current (modern dark)",
+            ThemeId::Daybreak => "blue\u{2192}violet on cool white (modern light)",
+            ThemeId::Blossom => "violet\u{2192}rose on warm white (modern light)",
+            ThemeId::Meadow => "emerald\u{2192}teal on neutral white (modern light)",
+            ThemeId::Cirrus => "blue\u{2192}cyan on the coolest white (modern light)",
         }
     }
 
@@ -244,6 +264,10 @@ impl ThemeId {
             "nebula" => Some(ThemeId::Nebula),
             "graphene" => Some(ThemeId::Graphene),
             "cobalt" => Some(ThemeId::Cobalt),
+            "daybreak" => Some(ThemeId::Daybreak),
+            "blossom" => Some(ThemeId::Blossom),
+            "meadow" => Some(ThemeId::Meadow),
+            "cirrus" => Some(ThemeId::Cirrus),
             _ => None,
         }
     }
@@ -270,6 +294,10 @@ impl ThemeId {
             ThemeId::Nebula => &NEBULA,
             ThemeId::Graphene => &GRAPHENE,
             ThemeId::Cobalt => &COBALT,
+            ThemeId::Daybreak => &DAYBREAK,
+            ThemeId::Blossom => &BLOSSOM,
+            ThemeId::Meadow => &MEADOW,
+            ThemeId::Cirrus => &CIRRUS,
         }
     }
 
@@ -295,6 +323,10 @@ impl ThemeId {
             ThemeId::Nebula => 17,
             ThemeId::Graphene => 18,
             ThemeId::Cobalt => 19,
+            ThemeId::Daybreak => 20,
+            ThemeId::Blossom => 21,
+            ThemeId::Meadow => 22,
+            ThemeId::Cirrus => 23,
         }
     }
 
@@ -319,6 +351,10 @@ impl ThemeId {
             17 => ThemeId::Nebula,
             18 => ThemeId::Graphene,
             19 => ThemeId::Cobalt,
+            20 => ThemeId::Daybreak,
+            21 => ThemeId::Blossom,
+            22 => ThemeId::Meadow,
+            23 => ThemeId::Cirrus,
             _ => ThemeId::PaperDark,
         }
     }
@@ -373,6 +409,7 @@ pub enum RandomMode {
     Light,
     Crt,
     Modern,
+    ModernLight,
     Auto,
 }
 
@@ -381,11 +418,12 @@ pub enum RandomMode {
 /// (`/theme`, the settings picker, the `Ctrl+Shift+L` cycle); everything else
 /// (legacy `random-*` names, individual palettes) parses for back-compat but
 /// isn't advertised.
-pub const THEME_MODES: [RandomMode; 5] = [
+pub const THEME_MODES: [RandomMode; 6] = [
     RandomMode::Dark,
     RandomMode::Light,
     RandomMode::Crt,
     RandomMode::Modern,
+    RandomMode::ModernLight,
     RandomMode::Auto,
 ];
 
@@ -396,6 +434,7 @@ impl RandomMode {
             RandomMode::Light => "light",
             RandomMode::Crt => "crt",
             RandomMode::Modern => "modern",
+            RandomMode::ModernLight => "modern-light",
             RandomMode::Auto => "auto",
         }
     }
@@ -407,6 +446,7 @@ impl RandomMode {
             RandomMode::Light => "rotating light paper themes",
             RandomMode::Crt => "rotating CRT phosphor themes",
             RandomMode::Modern => "rotating modern glow themes (Gemini/Codex look)",
+            RandomMode::ModernLight => "the same modern glow, on light pages",
             RandomMode::Auto => "light by day, dark by night \u{2014} follows the OS",
         }
     }
@@ -418,6 +458,7 @@ impl RandomMode {
             RandomMode::Auto => 3,
             RandomMode::Crt => 4,
             RandomMode::Modern => 5,
+            RandomMode::ModernLight => 6,
         }
     }
 
@@ -428,15 +469,18 @@ impl RandomMode {
             3 => Some(RandomMode::Auto),
             4 => Some(RandomMode::Crt),
             5 => Some(RandomMode::Modern),
+            6 => Some(RandomMode::ModernLight),
             _ => None,
         }
     }
 
     /// Whether `id` belongs to this mode's rotation pool. Every palette lands
-    /// in exactly one of Dark/Light/Crt/Modern (CRT and modern palettes are
-    /// `dark` too, so the `!crt` guard keeps them out of the plain dark pool,
-    /// and the `!modern` guard keeps the modern palettes — which carry a
-    /// bloom-only `CrtStyle` — out of the CRT pool); `Auto` serves its
+    /// in exactly one of Dark/Light/Crt/Modern/ModernLight (CRT palettes and
+    /// the dark modern ones are `dark` too, so the `!crt` guard keeps them
+    /// out of the plain dark pool, the `!modern` guard keeps the modern
+    /// palettes — which carry a bloom-only `CrtStyle` — out of the CRT pool,
+    /// and the modern family splits by appearance so a rotation never flips
+    /// the page from near-black to near-white); `Auto` serves its
     /// per-appearance pairing ([`auto_side`]) — by default the dark or light
     /// paper pool depending on the OS appearance, a pinned side being a
     /// one-palette pool.
@@ -446,7 +490,8 @@ impl RandomMode {
             RandomMode::Dark => t.dark && t.crt.is_none(),
             RandomMode::Light => !t.dark && t.crt.is_none(),
             RandomMode::Crt => t.crt.is_some() && t.modern.is_none(),
-            RandomMode::Modern => t.modern.is_some(),
+            RandomMode::Modern => t.modern.is_some() && t.dark,
+            RandomMode::ModernLight => t.modern.is_some() && !t.dark,
             RandomMode::Auto => match auto_side() {
                 Selection::Mode(m) => m.in_pool(id),
                 Selection::Fixed(f) => id == f,
@@ -482,6 +527,13 @@ pub fn parse_selection(s: &str) -> Option<Selection> {
     }
     if s.eq_ignore_ascii_case("modern") || s.eq_ignore_ascii_case("random-modern") {
         return Some(Selection::Mode(RandomMode::Modern));
+    }
+    if s.eq_ignore_ascii_case("modern-light")
+        || s.eq_ignore_ascii_case("modern light")
+        || s.eq_ignore_ascii_case("modernlight")
+        || s.eq_ignore_ascii_case("random-modern-light")
+    {
+        return Some(Selection::Mode(RandomMode::ModernLight));
     }
     if s.eq_ignore_ascii_case("auto") {
         return Some(Selection::Mode(RandomMode::Auto));
@@ -602,16 +654,19 @@ pub fn tick_random(now_ms: u64) -> bool {
 }
 
 /// Advance the `Ctrl+Shift+L` cycle one step through [`THEME_MODES`]:
-/// dark → light → crt → modern → auto → dark, wrapping. Any other state (a
-/// pinned palette) enters at `dark`. Returns the status-line label.
+/// dark → light → crt → modern → modern-light → auto → dark, wrapping. Any
+/// other state (a pinned palette) enters at `dark`. The order IS
+/// `THEME_MODES` — walking the list rather than hand-writing the successors
+/// is what keeps a newly added mode from being silently unreachable by the
+/// hotkey (which is exactly what happened when `modern-light` was added).
+/// Returns the status-line label.
 pub fn cycle_next(now_ms: u64) -> &'static str {
     let next = match mode() {
-        Some(RandomMode::Dark) => RandomMode::Light,
-        Some(RandomMode::Light) => RandomMode::Crt,
-        Some(RandomMode::Crt) => RandomMode::Modern,
-        Some(RandomMode::Modern) => RandomMode::Auto,
-        Some(RandomMode::Auto) => RandomMode::Dark,
-        _ => RandomMode::Dark,
+        Some(m) => {
+            let i = THEME_MODES.iter().position(|&x| x == m).unwrap_or(0);
+            THEME_MODES[(i + 1) % THEME_MODES.len()]
+        }
+        None => RandomMode::Dark,
     };
     apply_selection(Selection::Mode(next), now_ms);
     next.as_str()
