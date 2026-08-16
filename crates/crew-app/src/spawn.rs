@@ -406,7 +406,7 @@ impl CrewApp {
     pub(crate) fn set_theme_cmd(&mut self, arg: &str) {
         let arg = arg.trim();
         if arg.is_empty() {
-            self.set_status(format!("theme: {}", crew_theme::selection_label()));
+            self.set_status(crate::themereport::live_report());
             return;
         }
         let Some(sel) = crew_theme::parse_selection(arg) else {
@@ -415,17 +415,16 @@ impl CrewApp {
                 .map(|m| m.as_str())
                 .collect::<Vec<_>>()
                 .join(" | ");
-            self.set_status(format!("unknown theme '{arg}' ({names})"));
+            // ERROR level, so it also steps onto the canvas as a toast: a
+            // name this build doesn't know changes nothing on screen, and as
+            // a three-second flash on the input bar's border the reason was
+            // routinely missed — "/theme modern-light" on a build predating
+            // that theme looked precisely like a theme that does nothing.
+            self.set_status_err(format!("unknown theme '{arg}' ({names})"));
             return;
         };
         crew_theme::apply_selection(sel, crate::chattime::unix_now_ms());
-        self.config.theme = Some(
-            match sel {
-                crew_theme::Selection::Fixed(id) => id.as_str(),
-                crew_theme::Selection::Mode(m) => m.as_str(),
-            }
-            .to_string(),
-        );
+        self.config.theme = Some(sel.label().to_string());
         // Re-apply the accent default (it follows the theme when the user hasn't
         // set an explicit accent).
         crate::palette::set_accent(self.config.accent_rgb());
@@ -436,7 +435,9 @@ impl CrewApp {
         }
         self.config.save();
         self.redraw();
-        self.set_status(format!("theme: {}", crew_theme::selection_label()));
+        // Switching TO auto reports which half it just handed you, not the
+        // bare word "auto" — same reason as the no-arg branch above.
+        self.set_status(crate::themereport::live_report());
     }
 }
 

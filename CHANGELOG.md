@@ -8,6 +8,27 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.17.6
+
+`/theme` stops whispering. Two silences made a theme that works look like
+a theme that does nothing, and both are gone.
+
+A name this build doesn't know — `/theme modern-light` on any build from
+before 0.17.5, say — changed nothing on screen and explained itself in a
+three-second flash on the input bar's bottom border, which is exactly the
+kind of message you miss while watching the page for a colour that never
+arrives. That report is now an error: it raises a toast on the canvas and
+stays in the LOG after the flash expires, and it still lists the modes
+that DO exist.
+
+`auto` now names the half it is serving. It used to report the bare word
+"auto", so a pairing configured for the appearance you are not currently
+in had no symptom at all: `theme_light = "modern-light"` under a dark
+macOS renders identically to a config line that was ignored. `/theme`
+with no argument now answers "theme: auto — OS is dark, serving dark; the
+light half is modern-light (it shows when the OS turns light)", in the
+input bar and in a chat pane's listing alike.
+
 ## 0.17.5
 
 The modern family gets its light half. Daybreak, Blossom, Meadow and

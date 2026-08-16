@@ -179,6 +179,7 @@ mod swarmpane;
 mod swarmshot_tests;
 mod termwrite;
 mod themefade;
+mod themereport;
 mod toast;
 mod todopane;
 mod toggles;
