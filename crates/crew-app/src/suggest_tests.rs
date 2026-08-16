@@ -109,13 +109,21 @@ fn theme_command_expands_into_a_value_picker() {
 fn theme_space_lists_the_modes_as_runnable_values() {
     let items = menu_items("/theme ");
     let labels: Vec<&str> = items.iter().map(|m| m.label.as_str()).collect();
-    // Exactly the consolidated themes — no individual palettes.
+    // Exactly the consolidated themes — three looks plus the OS-follower, no
+    // individual palettes and no per-family modes (the modern glow palettes
+    // rotate inside dark/light).
     assert_eq!(
         labels,
-        vec!["dark", "light", "crt", "modern", "modern-light", "auto"],
+        vec!["dark", "light", "crt", "auto"],
         "picker: {labels:?}"
     );
-    for name in ["paper-dark", "crt-green", "sepia-dark"] {
+    for name in [
+        "paper-dark",
+        "crt-green",
+        "sepia-dark",
+        "modern",
+        "modern-light",
+    ] {
         assert!(!labels.contains(&name), "{name} must not be a picker entry");
     }
     // Each value fills the full command and submits on Enter.
@@ -169,8 +177,11 @@ fn model_picker_filters_by_partial_value() {
 fn theme_picker_describes_each_mode() {
     let items = menu_items("/theme ");
     for (mode, desc) in [
-        ("dark", "rotating dark paper themes"),
-        ("light", "rotating light paper themes"),
+        ("dark", "rotating dark pages \u{2014} paper and modern glow"),
+        (
+            "light",
+            "rotating light pages \u{2014} paper and modern glow",
+        ),
         ("crt", "rotating CRT phosphor themes"),
     ] {
         let item = items

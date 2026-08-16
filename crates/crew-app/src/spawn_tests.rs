@@ -233,22 +233,63 @@ fn set_theme_cmd_random_enters_rotation_mode() {
 }
 
 #[test]
-fn set_theme_cmd_reaches_the_modern_light_half() {
-    // The input bar is where `/theme modern-light` is typed, and the whole
-    // family is unreachable from it if this mode ever stops parsing: a build
-    // that doesn't know the name answers "unknown theme", changes nothing and
-    // persists nothing, which is indistinguishable from a theme that has no
-    // effect. Pin the round trip — name in, LIGHT modern page out, name saved.
+fn the_retired_modern_names_still_land_on_their_own_appearance() {
+    // `modern` / `modern-light` were typed at this bar for two releases and
+    // live in saved configs. They are no longer modes — the palettes rotate
+    // inside `dark` / `light` — but a name that stops parsing answers "unknown
+    // theme" and changes nothing, which is indistinguishable from a theme with
+    // no effect. So they still resolve, to the pool that swallowed them, and
+    // crucially never across the appearance line.
     let _g = crate::app::theme_test_guard();
     let mut app = CrewApp::default();
     app.set_theme_cmd("modern-light");
-    assert_eq!(app.config.theme.as_deref(), Some("modern-light"));
-    let id = crew_theme::current_id();
+    assert_eq!(app.config.theme.as_deref(), Some("light"));
     assert!(
-        !id.is_dark() && id.theme().modern.is_some(),
-        "modern-light must land on a light modern palette, got {}",
-        id.as_str()
+        !crew_theme::current_id().is_dark(),
+        "modern-light must still open a LIGHT page, got {}",
+        crew_theme::current_id().as_str()
     );
+    app.set_theme_cmd("modern");
+    assert_eq!(app.config.theme.as_deref(), Some("dark"));
+    assert!(
+        crew_theme::current_id().is_dark(),
+        "modern must still open a DARK page, got {}",
+        crew_theme::current_id().as_str()
+    );
+    crew_theme::apply_selection(
+        crew_theme::Selection::Fixed(crew_theme::ThemeId::PaperDark),
+        0,
+    );
+}
+
+#[test]
+fn the_dark_and_light_pools_rotate_the_modern_palettes_too() {
+    // The consolidation as the user meets it: pick `dark`, sit through
+    // rotations, and the Gemini/Codex palettes come up alongside the paper
+    // ones — they are no longer a separate theme you have to go and choose.
+    let _g = crate::app::theme_test_guard();
+    let mut app = CrewApp::default();
+    // `set_theme_cmd` stamps the rotation clock with the WALL clock, so the
+    // ticks have to start from there — counting up from zero is in the past
+    // and `tick_random` (rightly) never fires.
+    let base = crate::chattime::unix_now_ms();
+    for (name, want_dark) in [("dark", true), ("light", false)] {
+        app.set_theme_cmd(name);
+        let mut seen_modern = crew_theme::current_id().theme().modern.is_some();
+        for tick in 1..=40u64 {
+            // A second past each 10-minute mark: the clock was stamped a hair
+            // after `base`, so landing exactly on it falls just short.
+            assert!(
+                crew_theme::tick_random(base + tick * (crew_theme::ROTATE_MS + 1_000)),
+                "the rotation clock never advanced"
+            );
+            let id = crew_theme::current_id();
+            assert_eq!(id.is_dark(), want_dark, "{name} rotated off its own side");
+            assert!(!id.is_crt(), "{name} rotated onto a tube: {}", id.as_str());
+            seen_modern |= id.theme().modern.is_some();
+        }
+        assert!(seen_modern, "no modern palette ever came up in `{name}`");
+    }
     crew_theme::apply_selection(
         crew_theme::Selection::Fixed(crew_theme::ThemeId::PaperDark),
         0,
@@ -272,8 +313,10 @@ fn an_unknown_theme_name_is_an_error_not_a_whisper() {
         last.text.contains("unknown theme 'modern-lite'"),
         "{last:?}"
     );
-    // …and it names the modes that DO exist, modern-light among them.
-    assert!(last.text.contains("modern-light"), "{last:?}");
+    // …and it names the modes that DO exist, all four of them.
+    for mode in ["dark", "light", "crt", "auto"] {
+        assert!(last.text.contains(mode), "{mode} missing from {last:?}");
+    }
     assert!(
         app.toasts.any_live(crate::anim::now_ms()),
         "an error status also steps onto the canvas as a toast"

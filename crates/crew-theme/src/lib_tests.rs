@@ -185,26 +185,20 @@ fn cycle_next_walks_every_mode_and_wraps() {
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
     assert_eq!(cycle_next(1), "dark");
     assert!(is_random());
-    assert!(current_id().is_dark() && current_id().theme().crt.is_none());
+    assert!(current_id().is_dark() && !current_id().is_crt());
     // ...then light...
     assert_eq!(cycle_next(2), "light");
     assert!(!current_id().is_dark());
     // ...then crt...
     assert_eq!(cycle_next(3), "crt");
-    assert!(current_id().theme().crt.is_some() && current_id().theme().modern.is_none());
-    // ...then modern...
-    assert_eq!(cycle_next(4), "modern");
-    assert!(current_id().theme().modern.is_some() && current_id().is_dark());
-    // ...then the same family with the lights on...
-    assert_eq!(cycle_next(5), "modern-light");
-    assert!(current_id().theme().modern.is_some() && !current_id().is_dark());
+    assert!(current_id().is_crt());
     // ...then auto, whose pool follows the reported OS appearance...
     set_os_dark(true);
-    assert_eq!(cycle_next(6), "auto");
-    assert!(current_id().is_dark() && current_id().theme().crt.is_none());
-    // ...and wraps back to dark.
-    assert_eq!(cycle_next(7), "dark");
-    assert!(current_id().is_dark() && current_id().theme().crt.is_none());
+    assert_eq!(cycle_next(4), "auto");
+    assert!(current_id().is_dark() && !current_id().is_crt());
+    // ...and wraps back to dark — four stops, no more.
+    assert_eq!(cycle_next(5), "dark");
+    assert!(current_id().is_dark() && !current_id().is_crt());
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
 }
 
@@ -213,17 +207,18 @@ fn auto_is_advertised_and_follows_the_os_appearance() {
     let _g = guard();
     // Auto is a first-class listed theme (last, after the fixed pools).
     assert_eq!(THEME_MODES[THEME_MODES.len() - 1], RandomMode::Auto);
-    // Its pool tracks set_os_dark: light OS → light paper palettes only.
+    // Its pool tracks set_os_dark: light OS → light pages only (paper and
+    // modern glow alike — never a tube).
     set_os_dark(false);
     assert!(ALL_THEMES
         .into_iter()
         .filter(|id| RandomMode::Auto.in_pool(*id))
-        .all(|id| !id.theme().dark && id.theme().crt.is_none()));
+        .all(|id| !id.is_dark() && !id.is_crt()));
     set_os_dark(true);
     assert!(ALL_THEMES
         .into_iter()
         .filter(|id| RandomMode::Auto.in_pool(*id))
-        .all(|id| id.theme().dark && id.theme().crt.is_none()));
+        .all(|id| id.is_dark() && !id.is_crt()));
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
 }
 
@@ -239,10 +234,10 @@ fn auto_pools_pair_each_appearance_with_its_configured_side() {
         "dark side must serve the CRT pool, got {:?}",
         current_id()
     );
-    // The unpaired light side keeps its built-in light paper pool.
+    // The unpaired light side keeps its built-in light pool.
     set_os_dark(false);
     apply_selection(Selection::Mode(RandomMode::Auto), 8);
-    assert!(!current_id().is_dark() && current_id().theme().crt.is_none());
+    assert!(!current_id().is_dark() && !current_id().is_crt());
     // A pinned side is a one-palette pool: always exactly that palette.
     set_auto_pools(Some(Selection::Fixed(ThemeId::MossBlotter)), None);
     set_os_dark(true);
@@ -256,7 +251,7 @@ fn auto_pools_pair_each_appearance_with_its_configured_side() {
     // `auto` as its own side is dropped: default pool, no recursion.
     set_auto_pools(Some(Selection::Mode(RandomMode::Auto)), None);
     apply_selection(Selection::Mode(RandomMode::Auto), 10);
-    assert!(current_id().is_dark() && current_id().theme().crt.is_none());
+    assert!(current_id().is_dark() && !current_id().is_crt());
     // Reset shared state for the other tests.
     set_auto_pools(None, None);
     set_os_dark(true);
@@ -516,10 +511,9 @@ fn modern_glow_is_clean_of_retro_knobs() {
         assert_ne!(m.pole_a, m.pole_b, "{}: gradient poles equal", id.as_str());
         assert!(m.drift_ms > 0, "{}: drift period", id.as_str());
     }
-    // Both halves are big enough to rotate on their own: random_pick's
-    // contract needs every pool to hold at least 4 palettes, and the family
-    // splits by appearance so a rotation never flips the page black↔white.
-    for (side, want_dark) in [("modern", true), ("modern-light", false)] {
+    // The family covers both appearances, so consolidating it into the
+    // dark/light pools leaves neither of them without glow.
+    for (side, want_dark) in [("dark", true), ("light", false)] {
         let n = ALL_THEMES
             .iter()
             .filter(|id| {
@@ -527,7 +521,7 @@ fn modern_glow_is_clean_of_retro_knobs() {
                 t.modern.is_some() && t.dark == want_dark
             })
             .count();
-        assert!(n >= 4, "{side} pool has only {n} palettes");
+        assert!(n >= 4, "the {side} pool inherited only {n} modern palettes");
     }
 }
 
@@ -622,13 +616,18 @@ fn parse_selection_names_modes_and_alias() {
         parse_selection("CRT"),
         Some(Selection::Mode(RandomMode::Crt))
     );
-    assert_eq!(
-        parse_selection("Modern"),
-        Some(Selection::Mode(RandomMode::Modern))
-    );
-    // The light half is its OWN mode, however it is spelled — "modern-light"
-    // must never fall through to "modern", which would silently hand the user
-    // a near-black page when they asked for the white one.
+    // The retired modern modes resolve to the pool that swallowed them — a
+    // saved `theme = "modern"` must keep opening on a dark page and
+    // `theme_light = "modern-light"` on a light one, never fall through to
+    // "unknown" (which would silently drop the setting) and never cross to
+    // the other appearance.
+    for spelling in ["Modern", "random-modern"] {
+        assert_eq!(
+            parse_selection(spelling),
+            Some(Selection::Mode(RandomMode::Dark)),
+            "{spelling}"
+        );
+    }
     for spelling in [
         "modern-light",
         "Modern Light",
@@ -637,7 +636,7 @@ fn parse_selection_names_modes_and_alias() {
     ] {
         assert_eq!(
             parse_selection(spelling),
-            Some(Selection::Mode(RandomMode::ModernLight)),
+            Some(Selection::Mode(RandomMode::Light)),
             "{spelling}"
         );
     }
@@ -676,42 +675,60 @@ fn parse_selection_names_modes_and_alias() {
 fn random_pick_pools_are_pure() {
     for current in ALL_THEMES {
         for seed in [0u64, 1, 42, 600_000, u64::MAX] {
-            // Dark pool: dark, non-CRT. Light pool: light, non-CRT. CRT pool:
-            // the phosphor palettes. Each pick lands in the right pool.
+            // Dark pool: dark pages, no tube. Light pool: light pages, no
+            // tube. CRT pool: the phosphor palettes. Each pick lands in the
+            // right pool — and the appearance split is what keeps a rotation
+            // from flipping the page near-black↔near-white under you.
             let d = random_pick(current, seed, RandomMode::Dark);
-            assert!(
-                d.is_dark() && d.theme().crt.is_none(),
-                "dark pool: {}",
-                d.as_str()
-            );
+            assert!(d.is_dark() && !d.is_crt(), "dark pool: {}", d.as_str());
             let l = random_pick(current, seed, RandomMode::Light);
-            assert!(
-                !l.is_dark() && l.theme().crt.is_none(),
-                "light pool: {}",
-                l.as_str()
-            );
+            assert!(!l.is_dark() && !l.is_crt(), "light pool: {}", l.as_str());
             let c = random_pick(current, seed, RandomMode::Crt);
-            assert!(
-                c.theme().crt.is_some() && c.theme().modern.is_none(),
-                "crt pool: {}",
-                c.as_str()
-            );
-            // The modern family splits by appearance: a rotation inside one
-            // half must never hand back a page from the other, which is the
-            // whole reason the light palettes did not simply join the pool.
-            let m = random_pick(current, seed, RandomMode::Modern);
-            assert!(
-                m.theme().modern.is_some() && m.is_dark(),
-                "modern pool: {}",
-                m.as_str()
-            );
-            let ml = random_pick(current, seed, RandomMode::ModernLight);
-            assert!(
-                ml.theme().modern.is_some() && !ml.is_dark(),
-                "modern-light pool: {}",
-                ml.as_str()
-            );
+            assert!(c.is_crt(), "crt pool: {}", c.as_str());
         }
+    }
+}
+
+/// The consolidation itself: three pools, and every palette in exactly one of
+/// them. The modern family used to stand apart as two more modes — its
+/// palettes are dark and light PAGES like any other (the bloom-only
+/// `CrtStyle` they carry for their halo is not a tube), so they rotate inside
+/// `dark` / `light` and the picker offers three looks plus `auto`.
+#[test]
+fn every_palette_lands_in_exactly_one_of_the_three_pools() {
+    let _g = guard();
+    let pools = [RandomMode::Dark, RandomMode::Light, RandomMode::Crt];
+    for id in ALL_THEMES {
+        let n = pools.iter().filter(|m| m.in_pool(id)).count();
+        assert_eq!(n, 1, "{} is in {n} pools, want exactly 1", id.as_str());
+    }
+    // Every modern palette rotates with the paper ones of its own appearance…
+    for id in ALL_THEMES
+        .into_iter()
+        .filter(|id| id.theme().modern.is_some())
+    {
+        let want = if id.is_dark() {
+            RandomMode::Dark
+        } else {
+            RandomMode::Light
+        };
+        assert!(
+            want.in_pool(id),
+            "{} must rotate inside {}",
+            id.as_str(),
+            want.as_str()
+        );
+        assert!(
+            !RandomMode::Crt.in_pool(id),
+            "{} is not a tube",
+            id.as_str()
+        );
+    }
+    // …and each pool is still wide enough for `random_pick`'s never-empty
+    // contract (it filters out the current theme before picking).
+    for m in pools {
+        let n = ALL_THEMES.into_iter().filter(|id| m.in_pool(*id)).count();
+        assert!(n >= 4, "{} pool has only {n} palettes", m.as_str());
     }
 }
 

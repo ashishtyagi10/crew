@@ -61,23 +61,9 @@ mod tests {
         app.toggle_theme();
         assert_eq!(crew_theme::mode(), Some(crew_theme::RandomMode::Crt));
         assert_eq!(app.config.theme.as_deref(), Some("crt"));
-        // Then the modern glow family...
-        app.toggle_theme();
-        assert_eq!(crew_theme::mode(), Some(crew_theme::RandomMode::Modern));
-        assert_eq!(app.config.theme.as_deref(), Some("modern"));
-        // ...its light half...
-        app.toggle_theme();
-        assert_eq!(
-            crew_theme::mode(),
-            Some(crew_theme::RandomMode::ModernLight)
-        );
-        assert_eq!(app.config.theme.as_deref(), Some("modern-light"));
-        assert!(
-            !crew_theme::current_id().is_dark(),
-            "modern-light must land on a light page, got {}",
-            crew_theme::current_id().as_str()
-        );
-        // Then the OS-following auto...
+        // Then the OS-following auto — four stops, no more: the modern glow
+        // palettes are members of the dark and light pools, not two extra
+        // presses on the way round.
         app.toggle_theme();
         assert_eq!(crew_theme::mode(), Some(crew_theme::RandomMode::Auto));
         assert_eq!(app.config.theme.as_deref(), Some("auto"));

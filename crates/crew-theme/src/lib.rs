@@ -242,6 +242,18 @@ impl ThemeId {
         self.theme().dark
     }
 
+    /// Whether this palette is a PHOSPHOR TUBE — the `crt` rotation's members.
+    /// Carrying a [`CrtStyle`] is not enough: the modern family carries a
+    /// bloom-only one (curvature, scanlines and bezel all zero) purely to ride
+    /// the bloom chain for its halo, and a modern palette is a paper theme
+    /// that glows, not a tube. Every pool boundary keys off this, so the
+    /// distinction lives here once instead of being re-derived at each of
+    /// them.
+    pub fn is_crt(self) -> bool {
+        let t = self.theme();
+        t.crt.is_some() && t.modern.is_none()
+    }
+
     pub fn from_name(s: &str) -> Option<ThemeId> {
         match s.trim() {
             "paper-dark" => Some(ThemeId::PaperDark),
@@ -400,30 +412,29 @@ pub const ROTATE_MS: u64 = 600_000;
 /// A rotating theme: each mode owns a pool of palettes and cycles through them
 /// every [`ROTATE_MS`]. These ARE crew's themes now — the individual palettes
 /// (`PAPER_DARK`, `CRT_GREEN`, …) are the pool members, no longer offered on
-/// their own. `Auto` borrows the dark or light paper pool depending on the OS
-/// appearance ([`set_os_dark`]); [`THEME_MODES`] is the list the picker
-/// advertises.
+/// their own. There are exactly THREE pools — `dark`, `light` and `crt` — and
+/// a palette's own appearance decides which it is in: the modern (Gemini /
+/// Codex look) palettes are dark and light pages like any other and rotate
+/// inside `dark` / `light` rather than standing apart as their own themes.
+/// `Auto` borrows the dark or light pool depending on the OS appearance
+/// ([`set_os_dark`]); [`THEME_MODES`] is the list the picker advertises.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RandomMode {
     Dark,
     Light,
     Crt,
-    Modern,
-    ModernLight,
     Auto,
 }
 
-/// The five themes crew offers — each a rotation over its own pool, `auto`
-/// following the OS appearance. This is the whole user-facing theme list
-/// (`/theme`, the settings picker, the `Ctrl+Shift+L` cycle); everything else
-/// (legacy `random-*` names, individual palettes) parses for back-compat but
-/// isn't advertised.
-pub const THEME_MODES: [RandomMode; 6] = [
+/// The themes crew offers: three pools plus `auto`, which serves one of them
+/// per OS appearance. This is the whole user-facing theme list (`/theme`, the
+/// settings picker, the `Ctrl+Shift+L` cycle); everything else (legacy
+/// `random-*` / `modern*` names, individual palettes) parses for back-compat
+/// but isn't advertised.
+pub const THEME_MODES: [RandomMode; 4] = [
     RandomMode::Dark,
     RandomMode::Light,
     RandomMode::Crt,
-    RandomMode::Modern,
-    RandomMode::ModernLight,
     RandomMode::Auto,
 ];
 
@@ -433,8 +444,6 @@ impl RandomMode {
             RandomMode::Dark => "dark",
             RandomMode::Light => "light",
             RandomMode::Crt => "crt",
-            RandomMode::Modern => "modern",
-            RandomMode::ModernLight => "modern-light",
             RandomMode::Auto => "auto",
         }
     }
@@ -442,11 +451,9 @@ impl RandomMode {
     /// A short human description, for the `/theme` value picker and listings.
     pub fn describe(self) -> &'static str {
         match self {
-            RandomMode::Dark => "rotating dark paper themes",
-            RandomMode::Light => "rotating light paper themes",
+            RandomMode::Dark => "rotating dark pages \u{2014} paper and modern glow",
+            RandomMode::Light => "rotating light pages \u{2014} paper and modern glow",
             RandomMode::Crt => "rotating CRT phosphor themes",
-            RandomMode::Modern => "rotating modern glow themes (Gemini/Codex look)",
-            RandomMode::ModernLight => "the same modern glow, on light pages",
             RandomMode::Auto => "light by day, dark by night \u{2014} follows the OS",
         }
     }
@@ -457,8 +464,6 @@ impl RandomMode {
             RandomMode::Light => 2,
             RandomMode::Auto => 3,
             RandomMode::Crt => 4,
-            RandomMode::Modern => 5,
-            RandomMode::ModernLight => 6,
         }
     }
 
@@ -468,30 +473,25 @@ impl RandomMode {
             2 => Some(RandomMode::Light),
             3 => Some(RandomMode::Auto),
             4 => Some(RandomMode::Crt),
-            5 => Some(RandomMode::Modern),
-            6 => Some(RandomMode::ModernLight),
             _ => None,
         }
     }
 
     /// Whether `id` belongs to this mode's rotation pool. Every palette lands
-    /// in exactly one of Dark/Light/Crt/Modern/ModernLight (CRT palettes and
-    /// the dark modern ones are `dark` too, so the `!crt` guard keeps them
-    /// out of the plain dark pool, the `!modern` guard keeps the modern
-    /// palettes — which carry a bloom-only `CrtStyle` — out of the CRT pool,
-    /// and the modern family splits by appearance so a rotation never flips
-    /// the page from near-black to near-white); `Auto` serves its
+    /// in exactly ONE of Dark/Light/Crt, decided by two questions in order:
+    /// is it a phosphor tube ([`ThemeId::is_crt`] — which the modern family's
+    /// bloom-only `CrtStyle` deliberately does not make it), and if not, is
+    /// its page dark or light. So each pool is "every palette that looks like
+    /// this", modern glow and plain paper alike, and a rotation can never flip
+    /// the page from near-black to near-white. `Auto` serves its
     /// per-appearance pairing ([`auto_side`]) — by default the dark or light
-    /// paper pool depending on the OS appearance, a pinned side being a
-    /// one-palette pool.
+    /// pool depending on the OS appearance, a pinned side being a one-palette
+    /// pool.
     fn in_pool(self, id: ThemeId) -> bool {
-        let t = id.theme();
         match self {
-            RandomMode::Dark => t.dark && t.crt.is_none(),
-            RandomMode::Light => !t.dark && t.crt.is_none(),
-            RandomMode::Crt => t.crt.is_some() && t.modern.is_none(),
-            RandomMode::Modern => t.modern.is_some() && t.dark,
-            RandomMode::ModernLight => t.modern.is_some() && !t.dark,
+            RandomMode::Dark => id.is_dark() && !id.is_crt(),
+            RandomMode::Light => !id.is_dark() && !id.is_crt(),
+            RandomMode::Crt => id.is_crt(),
             RandomMode::Auto => match auto_side() {
                 Selection::Mode(m) => m.in_pool(id),
                 Selection::Fixed(f) => id == f,
@@ -520,31 +520,36 @@ impl Selection {
 
 /// Parse a `/theme` argument / config value. The four canonical names are
 /// `dark`, `light`, `crt`, `auto`; the pre-consolidation names (`random`,
-/// `random-dark`, `random-light`) and every individual palette name
-/// still parse so old configs keep loading.
+/// `random-dark`, `random-light`, and the `modern` / `modern-light` modes
+/// that are now simply part of `dark` / `light`) and every individual palette
+/// name still parse so old configs keep loading — a name that stops parsing is
+/// a config line that silently does nothing, which is exactly the failure this
+/// list exists to prevent.
 pub fn parse_selection(s: &str) -> Option<Selection> {
     let s = s.trim();
+    // `modern` was a dark-page rotation and `modern-light` a light-page one;
+    // both pools were folded into `dark` / `light`, so the old names resolve
+    // to the pool that swallowed them (a superset — the same palettes still
+    // come up, alongside the paper ones).
     if s.eq_ignore_ascii_case("dark")
         || s.eq_ignore_ascii_case("random")
         || s.eq_ignore_ascii_case("random-dark")
+        || s.eq_ignore_ascii_case("modern")
+        || s.eq_ignore_ascii_case("random-modern")
     {
         return Some(Selection::Mode(RandomMode::Dark));
     }
-    if s.eq_ignore_ascii_case("light") || s.eq_ignore_ascii_case("random-light") {
-        return Some(Selection::Mode(RandomMode::Light));
-    }
-    if s.eq_ignore_ascii_case("crt") || s.eq_ignore_ascii_case("random-crt") {
-        return Some(Selection::Mode(RandomMode::Crt));
-    }
-    if s.eq_ignore_ascii_case("modern") || s.eq_ignore_ascii_case("random-modern") {
-        return Some(Selection::Mode(RandomMode::Modern));
-    }
-    if s.eq_ignore_ascii_case("modern-light")
+    if s.eq_ignore_ascii_case("light")
+        || s.eq_ignore_ascii_case("random-light")
+        || s.eq_ignore_ascii_case("modern-light")
         || s.eq_ignore_ascii_case("modern light")
         || s.eq_ignore_ascii_case("modernlight")
         || s.eq_ignore_ascii_case("random-modern-light")
     {
-        return Some(Selection::Mode(RandomMode::ModernLight));
+        return Some(Selection::Mode(RandomMode::Light));
+    }
+    if s.eq_ignore_ascii_case("crt") || s.eq_ignore_ascii_case("random-crt") {
+        return Some(Selection::Mode(RandomMode::Crt));
     }
     if s.eq_ignore_ascii_case("auto") {
         return Some(Selection::Mode(RandomMode::Auto));
@@ -675,12 +680,11 @@ pub fn tick_random(now_ms: u64) -> bool {
 }
 
 /// Advance the `Ctrl+Shift+L` cycle one step through [`THEME_MODES`]:
-/// dark → light → crt → modern → modern-light → auto → dark, wrapping. Any
-/// other state (a pinned palette) enters at `dark`. The order IS
-/// `THEME_MODES` — walking the list rather than hand-writing the successors
-/// is what keeps a newly added mode from being silently unreachable by the
-/// hotkey (which is exactly what happened when `modern-light` was added).
-/// Returns the status-line label.
+/// dark → light → crt → auto → dark, wrapping. Any other state (a pinned
+/// palette) enters at `dark`. The order IS `THEME_MODES` — walking the list
+/// rather than hand-writing the successors is what keeps a newly added mode
+/// from being silently unreachable by the hotkey (which is exactly what
+/// happened when a fourth pool was added). Returns the status-line label.
 pub fn cycle_next(now_ms: u64) -> &'static str {
     let next = match mode() {
         Some(m) => {
