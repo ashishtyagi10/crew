@@ -43,8 +43,13 @@ fn theme_list_line(mode: Option<crew_theme::RandomMode>) -> String {
             format!("{mark}{} ({})", m.as_str(), m.describe())
         })
         .collect();
+    let auto = if mode == Some(crew_theme::RandomMode::Auto) {
+        format!("\n{}", crate::themereport::live_report())
+    } else {
+        String::new()
+    };
     format!(
-        "themes: {} \u{2014} /theme <name> to switch",
+        "themes: {} \u{2014} /theme <name> to switch{auto}",
         items.join(", ")
     )
 }
@@ -88,7 +93,12 @@ pub(crate) fn intercept(pane: &mut ChatPane, text: &str) -> ThemeIntercept {
         ThemeCmd::Select(sel) => {
             crew_theme::apply_selection(sel, now_ms);
             outcome = ThemeIntercept::Switched;
-            format!("theme \u{2192} {}", crew_theme::selection_label())
+            match crew_theme::mode() {
+                // `auto` names the half it just served (and the dormant one);
+                // every other selection is its own whole story.
+                Some(crew_theme::RandomMode::Auto) => crate::themereport::live_report(),
+                _ => format!("theme \u{2192} {}", crew_theme::selection_label()),
+            }
         }
         ThemeCmd::Unknown(name) => {
             format!("unknown theme '{name}' \u{2014} try: {}", theme_names())

@@ -507,6 +507,17 @@ pub enum Selection {
     Mode(RandomMode),
 }
 
+impl Selection {
+    /// The name this selection round-trips through [`parse_selection`] — the
+    /// mode's name while rotating, else the pinned palette's.
+    pub fn label(self) -> &'static str {
+        match self {
+            Selection::Fixed(id) => id.as_str(),
+            Selection::Mode(m) => m.as_str(),
+        }
+    }
+}
+
 /// Parse a `/theme` argument / config value. The four canonical names are
 /// `dark`, `light`, `crt`, `auto`; the pre-consolidation names (`random`,
 /// `random-dark`, `random-light`) and every individual palette name
@@ -576,6 +587,16 @@ static AUTO_POOLS: Mutex<(Option<Selection>, Option<Selection>)> = Mutex::new((N
 pub fn set_auto_pools(dark: Option<Selection>, light: Option<Selection>) {
     let clean = |s: Option<Selection>| s.filter(|s| *s != Selection::Mode(RandomMode::Auto));
     *AUTO_POOLS.lock().unwrap() = (clean(dark), clean(light));
+}
+
+/// The configured pairing itself: `.0` for the dark appearance, `.1` for the
+/// light one, `None` on a side meaning "the built-in paper pool". Read it to
+/// TELL the user what `auto` is holding — a side paired for the appearance
+/// they are not currently in has no other symptom (`theme_light =
+/// "modern-light"` under a dark OS looks exactly like a setting that does
+/// nothing at all).
+pub fn auto_pools() -> (Option<Selection>, Option<Selection>) {
+    *AUTO_POOLS.lock().unwrap()
 }
 
 /// The selection `auto` resolves to under the current OS appearance. Never

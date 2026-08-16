@@ -231,3 +231,51 @@ fn set_theme_cmd_random_enters_rotation_mode() {
         0,
     );
 }
+
+#[test]
+fn set_theme_cmd_reaches_the_modern_light_half() {
+    // The input bar is where `/theme modern-light` is typed, and the whole
+    // family is unreachable from it if this mode ever stops parsing: a build
+    // that doesn't know the name answers "unknown theme", changes nothing and
+    // persists nothing, which is indistinguishable from a theme that has no
+    // effect. Pin the round trip — name in, LIGHT modern page out, name saved.
+    let _g = crate::app::theme_test_guard();
+    let mut app = CrewApp::default();
+    app.set_theme_cmd("modern-light");
+    assert_eq!(app.config.theme.as_deref(), Some("modern-light"));
+    let id = crew_theme::current_id();
+    assert!(
+        !id.is_dark() && id.theme().modern.is_some(),
+        "modern-light must land on a light modern palette, got {}",
+        id.as_str()
+    );
+    crew_theme::apply_selection(
+        crew_theme::Selection::Fixed(crew_theme::ThemeId::PaperDark),
+        0,
+    );
+}
+
+#[test]
+fn an_unknown_theme_name_is_an_error_not_a_whisper() {
+    // A name this build doesn't know changes nothing on screen, so the report
+    // IS the whole feedback — at info level it was a three-second flash on the
+    // input bar's border and was routinely missed. Error level also raises a
+    // toast, and the log entry keeps it after the flash expires.
+    let _g = crate::app::theme_test_guard();
+    let mut app = CrewApp::default();
+    let before = app.config.theme.clone();
+    app.set_theme_cmd("modern-lite");
+    assert_eq!(app.config.theme, before, "nothing is persisted");
+    let last = app.log.last().expect("the miss is logged");
+    assert_eq!(last.level, crate::applog::LogLevel::Error);
+    assert!(
+        last.text.contains("unknown theme 'modern-lite'"),
+        "{last:?}"
+    );
+    // …and it names the modes that DO exist, modern-light among them.
+    assert!(last.text.contains("modern-light"), "{last:?}");
+    assert!(
+        app.toasts.any_live(crate::anim::now_ms()),
+        "an error status also steps onto the canvas as a toast"
+    );
+}
