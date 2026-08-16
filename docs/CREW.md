@@ -23,7 +23,7 @@ successor to this repo's original terminal file-manager project; the crates unde
   GPU cells (the settings form, command palette, and help overlay use this).
 - **Crates** — `crew-app` (window, panes, input), `crew-render` (GPU), `crew-term`
   (PTY + grid), `crew-plugin` (chat/agent plugins + the `/smith` relay broker),
-  `crew-theme` (the sixteen theme presets + palette contracts — see
+  `crew-theme` (the twenty-four theme presets + palette contracts — see
   [Themes](#themes)), `crew-hive` (the swarm orchestration engine — see
   [Swarm orchestration](#swarm-orchestration-crew-hive) below).
 - **Diagram** — see [ARCHITECTURE.md](ARCHITECTURE.md) for the full app + engine
@@ -1171,16 +1171,20 @@ Crew offers **four themes** — **`dark`**, **`light`**, **`crt`**, and
 **`auto`** — and each one is a *rotation*: it cycles through a pool of
 hand-tuned palettes every 10 minutes. `dark` rotates the dark paper/ink looks,
 `light` rotates the light ones, `crt` rotates the old-school phosphor tubes,
-and `auto` follows the **OS appearance** — the dark paper pool while the
+and `auto` follows the **OS appearance** — the dark pool while the
 system is in dark mode, the light one in light mode, flipping live (through
 the develop-fade) the moment the system switches. With no theme saved at all,
 crew defaults to `auto`, so a fresh install matches the system from the first
 frame. `auto`'s pairing is yours to re-wire: `theme_dark` / `theme_light` in
 `config.toml` swap in a different pool (`crt` at night is the classic) or pin
-a single palette per appearance. The sixteen palettes
+a single palette per appearance. The twenty-four palettes
 below are those pool members (eleven paper/ink looks designed to read like a
-page rather than a screen, plus five CRT tubes); they're no longer selected on
-their own, but each name still resolves if you type it.
+page rather than a screen, eight "modern glow" looks in the Gemini/Codex
+idiom, and five CRT tubes); they're no longer selected on their own, but each
+name still resolves if you type it. A palette's own appearance decides its
+pool — the modern glow palettes are dark and light *pages* like any other, so
+they rotate inside `dark` and `light` rather than standing apart as themes of
+their own.
 
 - **`paper-dark`** (default dark-pool member) — a high-contrast "newspaper" look: a near-black
   page (`#0c0805`) with near-white ink (`#ececec`) and grey rules. Terminal
@@ -1199,6 +1203,14 @@ their own, but each name still resolves if you type it.
 - **`ivory-ledger`** — an ivory page with ledger-green ink (light).
 - **`glacier-bond`** — a cold blue-gray bond page — overcast north light —
   with crisp near-black ink and slate-blue accents (light).
+- **`aurora`** — blue→violet gradient glass on near-black (modern, dark).
+- **`nebula`** — an orchid→rose gradient dusk (modern, dark).
+- **`graphene`** — neutral near-black with a mint accent (modern, dark).
+- **`cobalt`** — an electric blue→cyan current (modern, dark).
+- **`daybreak`** — blue→violet on a cool white page (modern, light).
+- **`blossom`** — violet→rose on a warm white page (modern, light).
+- **`meadow`** — emerald→teal on a neutral white page (modern, light).
+- **`cirrus`** — blue→cyan on the coolest white page (modern, light).
 - **`crt-green`** — the classic green-phosphor terminal: neon green on a
   near-black tube, with a monochrome-green ANSI palette (brightness tiers) for
   that single-gun look.
@@ -1222,7 +1234,15 @@ it is focus-led — unfocused panes stay a thin quiet trace — and all of it is
 bounded: an idle tube renders a byte-identical frame every time. Paper
 themes are untouched by any of this.
 
-**Light themes read like print.** The six light themes (`paper-light`,
+**The modern glow palettes are pages that carry light.** Each one owns two
+saturated poles that drive all three of its signatures: a gradient light-ring
+around the focused frame, a slow wash of pole light under the page (it only
+drifts while a pane is busy), and a fine dot lattice woven over it on the text
+cell's pitch. They ride the bloom chain for their halo but never the tube —
+curvature, scanlines and the bezel vignette are all zero — so they sit in the
+`dark` and `light` rotations, not in `crt`.
+
+**Light themes read like print.** The six light *paper* themes (`paper-light`,
 `sepia-light`, `coldpress-gray`, `salmon-broadsheet`, `ivory-ledger`,
 `glacier-bond`) render
 base text at **Medium (500) weight** — dark themes use Normal (400) — and
@@ -1234,17 +1254,19 @@ it reads as paper texture on the paper themes and as a subtle **tube glow** on
 the CRT ones. Every palette's colours are picked for measured WCAG contrast.
 
 **Switching:** `/theme dark` | `/theme light` | `/theme crt` — selecting
-`/theme` in the palette opens an arrow-selectable picker — or cycle the three
-live with **`Ctrl+Shift+L`** (`dark → light → crt`). The choice persists to
-`config.toml`.
+`/theme` in the palette opens an arrow-selectable picker — or cycle all four
+live with **`Ctrl+Shift+L`** (`dark → light → crt → auto`). The choice persists
+to `config.toml`.
 
 **Each theme rotates** to a different palette from its pool every **10 minutes**:
 
-- **`/theme dark`** — rotates the dark paper palettes (`paper-dark`,
-  `sepia-dark`, `midnight-ink`, `graphite`, `moss-blotter`).
-- **`/theme light`** — rotates the light paper palettes (`paper-light`,
-  `sepia-light`, `coldpress-gray`, `salmon-broadsheet`, `ivory-ledger`,
-  `glacier-bond`).
+- **`/theme dark`** — rotates every dark page: the paper looks (`paper-dark`,
+  `sepia-dark`, `midnight-ink`, `graphite`, `moss-blotter`) and the modern
+  glow ones (`aurora`, `nebula`, `graphene`, `cobalt`).
+- **`/theme light`** — rotates every light page: the paper looks
+  (`paper-light`, `sepia-light`, `coldpress-gray`, `salmon-broadsheet`,
+  `ivory-ledger`, `glacier-bond`) and the modern glow ones (`daybreak`,
+  `blossom`, `meadow`, `cirrus`).
 - **`/theme crt`** — rotates the CRT phosphor palettes (`crt-green`,
   `crt-amber`, `crt-blue`, `crt-violet`, `crt-paperwhite`).
 
@@ -1253,8 +1275,11 @@ is visible right away.
 
 **Back-compat.** The old names still resolve when typed or loaded from an
 existing config: any individual palette name (`/theme crt-green`) pins that one
-palette (no rotation), and the pre-consolidation modes `random-dark`/`random`
-and `random-light` still work. None of these appear in the picker.
+palette (no rotation), the pre-consolidation modes `random-dark`/`random`
+and `random-light` still work, and `modern` / `modern-light` — briefly themes
+of their own — now resolve to the pool that swallowed them (`dark` and `light`
+respectively), so a saved config keeps opening on the appearance it asked for.
+None of these appear in the picker.
 
 **Programs keep reading after a switch.** Terminal panes answer color queries
 (OSC 10/11) and set `$COLORFGBG` from the active theme, so CLIs that probe the
@@ -1275,9 +1300,9 @@ after switching a running claude/codex pane to `paper-light` stays legible.
 
 | Key | Default | Meaning |
 |-----|---------|---------|
-| `theme` | unset = `auto` | a theme (`dark`, `light`, `crt`, `auto`), one of the sixteen palette names (pins it), or a legacy `random-*` mode; unset follows the OS appearance |
-| `theme_dark` | unset | while `theme = "auto"`: what dark mode serves — a pool (`dark`\|`light`\|`crt`) or a palette name; unset = the dark paper pool |
-| `theme_light` | unset | while `theme = "auto"`: same for light mode; unset = the light paper pool |
+| `theme` | unset = `auto` | a theme (`dark`, `light`, `crt`, `auto`), one of the twenty-four palette names (pins it), or a legacy `random-*` / `modern*` mode; unset follows the OS appearance |
+| `theme_dark` | unset | while `theme = "auto"`: what dark mode serves — a pool (`dark`\|`light`\|`crt`) or a palette name; unset = the dark pool |
+| `theme_light` | unset | while `theme = "auto"`: same for light mode; unset = the light pool |
 | `accent` | theme default | `"#rrggbb"` override for the accent (chrome only); omit to use the theme's accent |
 | `paper_texture` | `true` | turn the paper grain + vignette pass on/off |
 | `paper_grain` | `1.3` | grain strength (`0.0`–`2.0`; `0` = no grain) |

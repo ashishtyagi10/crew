@@ -8,6 +8,31 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.17.7
+
+Three themes again. The modern family arrived as two themes of its own —
+`modern` and `modern-light` — which meant the picker offered five looks
+where the difference between two of them was only *which palettes*
+rotate, and the Gemini/Codex pages you had to go and choose deliberately
+never turned up in the rotation you actually run. They are pages like any
+other, so they now rotate inside `dark` and `light`: the dark pool draws
+from nine palettes (five paper, four glow), the light pool from ten (six
+paper, four glow), and `crt` keeps its five phosphor tubes. `/theme`, the
+settings picker and `Ctrl+Shift+L` are back to `dark → light → crt →
+auto`.
+
+A palette's own appearance decides its pool now, so nothing has to be
+filed by hand: is it a phosphor tube (`ThemeId::is_crt` — which the
+bloom-only `CrtStyle` the modern palettes carry for their halo
+deliberately does not make it), and if not, is its page dark or light.
+Every palette lands in exactly one pool, and a rotation still never
+flips the page near-black↔near-white under you.
+
+`modern` and `modern-light` keep parsing — from `/theme`, from `theme`,
+and from `auto`'s `theme_dark` / `theme_light` pairing — resolving to the
+pool that swallowed them, so a saved config opens on the appearance it
+asked for instead of silently doing nothing.
+
 ## 0.17.6
 
 `/theme` stops whispering. Two silences made a theme that works look like

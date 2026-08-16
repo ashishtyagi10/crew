@@ -1,13 +1,13 @@
 //! What `/theme` says about the CURRENT selection.
 //!
-//! A rotation mode names itself ("theme: modern-light") and that is the whole
-//! story — but `auto` has three moving parts (the OS appearance, the side it
-//! is serving, the side it is not) and used to report only its own name. A
+//! A rotation mode names itself ("theme: light") and that is the whole story
+//! — but `auto` has three moving parts (the OS appearance, the side it is
+//! serving, the side it is not) and used to report only its own name. A
 //! pairing configured for the appearance you are not in then has no symptom
-//! whatsoever: `theme_light = "modern-light"` under a dark OS renders exactly
-//! like a config line that was ignored, so the honest reading of "I set
-//! modern-light and nothing happened" is that crew never said which half of
-//! `auto` was live. This module says it.
+//! whatsoever: a `theme_light` line under a dark OS renders exactly like a
+//! config line that was ignored, so the honest reading of "I set that theme
+//! and nothing happened" is that crew never said which half of `auto` was
+//! live. This module says it.
 use crew_theme::{RandomMode, Selection};
 
 /// Build the report from explicit state — pure, so every branch is testable
@@ -56,13 +56,8 @@ mod tests {
     #[test]
     fn a_plain_mode_reports_only_itself() {
         assert_eq!(
-            report(
-                "modern-light",
-                Some(RandomMode::ModernLight),
-                true,
-                (None, None)
-            ),
-            "theme: modern-light"
+            report("light", Some(RandomMode::Light), true, (None, None)),
+            "theme: light"
         );
         assert_eq!(
             report("daybreak", None, false, (None, None)),
@@ -72,17 +67,17 @@ mod tests {
 
     #[test]
     fn auto_names_the_live_half_and_the_dormant_one() {
-        // The exact configuration this module exists for: `theme_light =
-        // "modern-light"` while macOS is dark. The old report was the bare
-        // word "auto", which is why the pairing read as a no-op.
+        // The shape this module exists for: a light half pinned to something
+        // while macOS is dark. The old report was the bare word "auto", which
+        // is why such a pairing read as a no-op.
         let msg = report(
             "auto",
             Some(RandomMode::Auto),
             true,
-            (None, Some(Selection::Mode(RandomMode::ModernLight))),
+            (None, Some(Selection::Fixed(ThemeId::Daybreak))),
         );
         assert!(msg.contains("OS is dark, serving dark"), "{msg}");
-        assert!(msg.contains("the light half is modern-light"), "{msg}");
+        assert!(msg.contains("the light half is daybreak"), "{msg}");
         assert!(msg.contains("turns light"), "{msg}");
 
         // Flip the appearance and the same pairing is the one on screen.
@@ -90,9 +85,9 @@ mod tests {
             "auto",
             Some(RandomMode::Auto),
             false,
-            (None, Some(Selection::Mode(RandomMode::ModernLight))),
+            (None, Some(Selection::Fixed(ThemeId::Daybreak))),
         );
-        assert!(msg.contains("OS is light, serving modern-light"), "{msg}");
+        assert!(msg.contains("OS is light, serving daybreak"), "{msg}");
         assert!(msg.contains("the dark half is dark"), "{msg}");
     }
 
