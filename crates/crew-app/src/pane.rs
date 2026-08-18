@@ -164,7 +164,14 @@ pub fn spawn_pane(
     grid: GridSize,
     cwd: Option<&Path>,
 ) -> anyhow::Result<Pane> {
-    let login = ["-l".to_string()];
+    // A login shell sources the user's profile, which is where PATH and the
+    // provider keys live. No Windows shell has an equivalent flag and both
+    // PowerShell and cmd.exe *reject* `-l`, so passing it there would fail
+    // every spawn; they read their profile unconditionally anyway.
+    #[cfg(unix)]
+    let login: Vec<String> = vec!["-l".to_string()];
+    #[cfg(windows)]
+    let login: Vec<String> = Vec::new();
     let pty = PtyTerm::spawn_in(grid, shell_primary, &login, cwd)
         .or_else(|_| PtyTerm::spawn_in(grid, shell_fallback, &login, cwd))
         .with_context(|| {

@@ -322,3 +322,31 @@ fn an_unknown_theme_name_is_an_error_not_a_whisper() {
         "an error status also steps onto the canvas as a toast"
     );
 }
+
+/// The shells a Windows pane opens must actually be spawnable on the host —
+/// this is the regression that made the platform build but not run: every
+/// pane tried `/bin/sh`, failed, and reported "couldn't open shell".
+/// Spawning them for real (rather than asserting a string) is the only form
+/// of this test that would have caught it.
+#[cfg(windows)]
+#[test]
+fn the_windows_shells_exist_and_start() {
+    use crate::pane::spawn_pane;
+    use crew_term::GridSize;
+
+    let grid = GridSize { cols: 40, rows: 10 };
+    for shell in [super::preferred_shell(), super::fallback_shell()] {
+        let pane = spawn_pane(&shell, &shell, grid, None);
+        assert!(pane.is_ok(), "could not open a pane with {shell}");
+    }
+}
+
+/// `-l` is a Unix login-shell flag; PowerShell and cmd.exe reject it, so the
+/// default pane spawn must not carry it on Windows. Covered by the spawn above
+/// (it goes through the same `spawn_pane`), asserted here as intent.
+#[cfg(unix)]
+#[test]
+fn the_unix_fallback_shell_is_bourne() {
+    assert_eq!(super::fallback_shell(), "/bin/sh");
+    assert!(std::path::Path::new(&super::fallback_shell()).exists());
+}

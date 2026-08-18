@@ -17,12 +17,51 @@ pub(crate) const PLACEHOLDER_RECT: Rect = Rect {
     h: 0.0,
 };
 
-/// The user's preferred shell from `$SHELL`, falling back to `/bin/sh`.
+/// The user's preferred shell from `$SHELL`, falling back to
+/// [`fallback_shell`]. `$SHELL` is a Unix convention and is normally unset on
+/// Windows, so there it is an opt-in override (a Git-Bash user can point it at
+/// their own shell) rather than the usual answer.
 pub(crate) fn default_shell() -> String {
     std::env::var("SHELL")
         .ok()
         .filter(|s| !s.is_empty())
-        .unwrap_or_else(|| "/bin/sh".to_string())
+        .unwrap_or_else(fallback_shell)
+}
+
+/// The shell to use when the user has expressed no preference, and the
+/// last-resort second try in [`crate::pane::spawn_pane`].
+#[cfg(unix)]
+pub(crate) fn fallback_shell() -> String {
+    "/bin/sh".to_string()
+}
+
+/// Windows has no `/bin/sh`: without this every pane failed to open with
+/// "couldn't open shell", which is what made the platform build-but-not-run.
+/// `%COMSPEC%` is set on every Windows install and names `cmd.exe`; the
+/// literal is only for a stripped environment where even that is missing.
+#[cfg(windows)]
+pub(crate) fn fallback_shell() -> String {
+    std::env::var("COMSPEC")
+        .ok()
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "cmd.exe".to_string())
+}
+
+/// The shell a new terminal pane opens first. On Windows this is PowerShell —
+/// what Windows Terminal opens and what the platform's users expect — with
+/// [`fallback_shell`]'s `cmd.exe` catching the (essentially impossible) host
+/// with no PowerShell. On Unix the user's `$SHELL` is already the right answer.
+#[cfg(windows)]
+pub(crate) fn preferred_shell() -> String {
+    std::env::var("SHELL")
+        .ok()
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "powershell.exe".to_string())
+}
+
+#[cfg(unix)]
+pub(crate) fn preferred_shell() -> String {
+    default_shell()
 }
 
 /// Env vars handed to labeled (run/diff/edit) pane spawns: the login-shell
@@ -49,8 +88,8 @@ impl CrewApp {
             .as_ref()
             .map(Self::current_grid)
             .unwrap_or(FALLBACK_SIZE);
-        let shell = default_shell();
-        match spawn_pane(&shell, "/bin/sh", grid, self.spawn_cwd()) {
+        let shell = preferred_shell();
+        match spawn_pane(&shell, &fallback_shell(), grid, self.spawn_cwd()) {
             Ok(pane) => {
                 self.panes.push(pane);
                 self.focus_new_pane();
