@@ -84,6 +84,14 @@
       </div>
       <p>Installs the prebuilt <code>crew</code> binary to <code>~/.local/bin</code>. Set <code>INSTALL_DIR</code> to choose another location.</p>
 
+      <h3>One-liner (Windows) &mdash; no administrator rights</h3>
+      <div class="code-block">
+        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+        <code>irm https://raw.githubusercontent.com/ashishtyagi10/crew/main/install.ps1 | iex</code>
+      </div>
+      <p>Installs <code>crew.exe</code> to <code>%LOCALAPPDATA%\Programs\crew</code> and adds it to your <strong>user</strong> <code>PATH</code>. Nothing is written outside your profile &mdash; no Program Files, no <code>HKLM</code>, no MSI, no UAC prompt &mdash; so it works on a locked-down or managed machine, and <code>/update</code> stays admin-free too. Open a new terminal afterwards so the <code>PATH</code> change reaches it.</p>
+      <p>Pass <code>-InstallDir &lt;path&gt;</code>, <code>-Version v0.17.8</code> or <code>-NoPath</code> by downloading the script first with <code>irm &hellip;/install.ps1 -OutFile install.ps1</code>.</p>
+
       <h3>With cargo (any platform with Rust)</h3>
       <div class="code-block">
         <button class="copy-btn" onclick="copyCode(this)">Copy</button>
@@ -100,6 +108,7 @@
           <tr><td>Linux x86_64</td><td><code>crew-v*-x86_64-unknown-linux-gnu.tar.gz</code></td></tr>
           <tr><td>Linux ARM64</td><td><code>crew-v*-aarch64-unknown-linux-gnu.tar.gz</code></td></tr>
           <tr><td>Windows x64</td><td><code>crew-v*-x86_64-pc-windows-msvc.zip</code></td></tr>
+          <tr><td>Windows ARM64</td><td><code>crew-v*-aarch64-pc-windows-msvc.zip</code></td></tr>
         </tbody>
       </table>
 

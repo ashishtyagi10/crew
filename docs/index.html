@@ -162,6 +162,15 @@
       </div>
 
       <div class="install-card">
+        <h3>Windows</h3>
+        <div class="code-block">
+          <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+          <code>irm https://raw.githubusercontent.com/ashishtyagi10/crew/main/install.ps1 | iex</code>
+        </div>
+        <p class="install-desc">No administrator rights &mdash; installs into your own profile and <code>PATH</code>.</p>
+      </div>
+
+      <div class="install-card">
         <h3>With Cargo</h3>
         <div class="code-block">
           <button class="copy-btn" onclick="copyCode(this)">Copy</button>
@@ -187,6 +196,7 @@ cd crew &amp;&amp; cargo run --release -p crew-app</code>
           <span class="tag">Linux x86_64</span>
           <span class="tag">Linux ARM64</span>
           <span class="tag">Windows x64</span>
+          <span class="tag">Windows ARM64</span>
         </div>
         <a href="https://github.com/ashishtyagi10/crew/releases" target="_blank" class="btn btn-small">Download</a>
       </div>
