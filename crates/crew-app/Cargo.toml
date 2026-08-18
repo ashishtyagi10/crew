@@ -40,6 +40,16 @@ libc = "0.2"
 # Start-menu shortcut writer (pure Rust, no COM) for `install-app`.
 [target.'cfg(windows)'.dependencies]
 mslnk = "0.1"
+# Named-pipe server for the inter-pane `ask` IPC (`ipc_win.rs`) — the Windows
+# stand-in for the Unix-domain socket. Client-side needs no bindings: a named
+# pipe opens through `std::fs`.
+windows-sys = { version = "0.59", features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_Storage_FileSystem",
+    "Win32_System_IO",
+    "Win32_System_Pipes",
+] }
 
 [target.'cfg(windows)'.build-dependencies]
 winresource = "0.1"

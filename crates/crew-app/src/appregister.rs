@@ -164,6 +164,7 @@ pub fn auto_register() {
 // re-export needs the same allowance.
 #[path = "regmac.rs"]
 mod regmac;
+#[cfg_attr(not(target_os = "macos"), allow(unused_imports))]
 pub use regmac::*;
 #[path = "reglinux.rs"]
 mod reglinux;

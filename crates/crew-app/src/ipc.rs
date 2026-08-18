@@ -1,13 +1,21 @@
-//! The inter-pane `ask` IPC endpoint: a Unix-domain socket owned by a
-//! dedicated thread (all blocking socket I/O lives here, NEVER on the winit
-//! thread — see the winit-main-thread invariant). Each client connection is
-//! read on its own short-lived handler thread, handed to the app as an
-//! `Incoming` with a reply channel, and its verdict written back when the app
-//! resolves it.
+//! The inter-pane `ask` IPC endpoint: a local socket owned by a dedicated
+//! thread (all blocking socket I/O lives here, NEVER on the winit thread —
+//! see the winit-main-thread invariant). Each client connection is read on its
+//! own short-lived handler thread, handed to the app as an `Incoming` with a
+//! reply channel, and its verdict written back when the app resolves it.
+//!
+//! The transport is per-platform — a Unix-domain socket, or a Windows named
+//! pipe (see [`crate::ipc_win`]) — but both are addressed by a path, so
+//! everything below (endpoint naming, instance ids, discovery, the framing and
+//! the handler) is shared verbatim.
 use std::io::{BufRead, BufReader, Write};
-use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::{channel, Receiver, Sender};
+
+#[cfg(windows)]
+use crate::ipc_win::{PipeListener as IpcListener, PipeStream as IpcStream};
+#[cfg(unix)]
+use std::os::unix::net::{UnixListener as IpcListener, UnixStream as IpcStream};
 
 use crate::ipc_types::{Reply, Request};
 
@@ -31,11 +39,21 @@ impl Drop for IpcHandle {
 
 /// The directory the IPC socket lives in: `$XDG_RUNTIME_DIR`, else the user
 /// config dir (`~/.config/crew` / `~/Library/Application Support/crew`).
+#[cfg(unix)]
 fn socket_dir() -> PathBuf {
     std::env::var_os("XDG_RUNTIME_DIR")
         .map(PathBuf::from)
         .or_else(|| dirs::config_dir().map(|d| d.join("crew")))
         .unwrap_or_else(std::env::temp_dir)
+}
+
+/// Windows has a single kernel-wide namespace for named pipes rather than a
+/// directory of socket files. It reads like a directory — `read_dir` over it
+/// lists the live pipes — so [`list_instances`] discovers crew instances with
+/// exactly the same code as Unix.
+#[cfg(windows)]
+fn socket_dir() -> PathBuf {
+    PathBuf::from(r"\\.\pipe\")
 }
 
 /// Keep only safe filename characters from an instance id, capped in length, so
@@ -102,7 +120,7 @@ pub(crate) fn list_instances() -> Vec<String> {
 /// JSON-line reply. Shared by the `crew` client and the relay bridge. `None`
 /// if nothing is listening or the exchange fails.
 pub(crate) fn exchange_at(path: &Path, req: &Request) -> Option<Reply> {
-    let mut stream = UnixStream::connect(path).ok()?;
+    let mut stream = IpcStream::connect(path).ok()?;
     let json = serde_json::to_string(req).ok()?;
     stream.write_all(json.as_bytes()).ok()?;
     stream.write_all(b"\n").ok()?;
@@ -124,7 +142,7 @@ pub(crate) fn spawn_at(path: PathBuf) -> std::io::Result<IpcHandle> {
     if let Some(parent) = path.parent() {
         let _ = std::fs::create_dir_all(parent);
     }
-    let listener = UnixListener::bind(&path)?;
+    let listener = IpcListener::bind(&path)?;
     let (tx, rx) = channel::<Incoming>();
     std::thread::spawn(move || {
         for stream in listener.incoming().flatten() {
@@ -142,7 +160,7 @@ pub(crate) fn spawn() -> std::io::Result<IpcHandle> {
 
 /// Read one JSON request line, hand it to the app, block for the verdict, and
 /// write it back. Bounded so a dead app can't wedge the handler forever.
-fn handle_conn(stream: UnixStream, tx: Sender<Incoming>) {
+fn handle_conn(stream: IpcStream, tx: Sender<Incoming>) {
     let _ = stream.set_read_timeout(Some(std::time::Duration::from_secs(300)));
     let mut reader = BufReader::new(match stream.try_clone() {
         Ok(s) => s,

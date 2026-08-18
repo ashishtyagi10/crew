@@ -114,6 +114,10 @@ mod tests {
 
     #[test]
     fn error_entries_render_in_the_bell_color() {
+        // Two reads of the process-global theme (inside `log_cells` and again
+        // below): serialised, or a theme-mutating test flips it in between and
+        // the two disagree under the parallel runner.
+        let _g = crate::app::theme_test_guard();
         let entries = [
             info("fine"),
             LogEntry {

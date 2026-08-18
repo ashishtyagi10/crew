@@ -110,6 +110,8 @@ mod inputbar_render;
 mod inputkeys;
 mod ipc;
 mod ipc_types;
+#[cfg(windows)]
+mod ipc_win;
 mod keyentry;
 mod keys;
 mod layout;

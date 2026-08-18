@@ -1,7 +1,14 @@
 //! macOS app-menu registration: the `~/Applications/Crew.app` shim bundle.
 //! Split from `appregister.rs` (child module).
+// `MacTarget` (the only consumer of this import) is gated to macOS; `plist`
+// names its types fully qualified. Mirrors `regwin.rs`.
+#[cfg(target_os = "macos")]
 use super::*;
 
+/// The `Info.plist` of the shim bundle.
+// Callers are cfg-gated per-OS; the fn stays un-gated so it compiles+tests
+// everywhere (mirrors `regwin::win_marker_content`).
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub fn plist(version: &str) -> String {
     format!(
         r#"<?xml version="1.0" encoding="UTF-8"?>
