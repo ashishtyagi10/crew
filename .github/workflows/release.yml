@@ -15,6 +15,9 @@ jobs:
   build:
     name: Build ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
+    # A job that opts in to `optional` reports success to `needs`, so one
+    # unbuildable target cannot hold back the release.
+    continue-on-error: ${{ matrix.optional == true }}
     strategy:
       fail-fast: false
       matrix:
@@ -32,10 +35,17 @@ jobs:
             os: ubuntu-latest
             archive: tar.gz
             cross: true
-          # Windows is not built: the inter-pane `ask` IPC uses Unix-domain
-          # sockets (std::os::unix::net), which don't compile on Windows. It has
-          # produced no working release since v0.5.83. Restore this target once
-          # the IPC is ported behind #[cfg] (e.g. named pipes on Windows).
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            archive: zip
+          # Windows on ARM is built best-effort: `optional` keeps a failure
+          # here from withholding every other platform's assets, because the
+          # `release` job needs the whole matrix. Windows on ARM runs the x64
+          # build under emulation, so a miss degrades rather than blocks.
+          - target: aarch64-pc-windows-msvc
+            os: windows-latest
+            archive: zip
+            optional: true
 
     steps:
       - uses: actions/checkout@v4
@@ -64,11 +74,22 @@ jobs:
           tar czf ../../../crew-${{ github.ref_name }}-${{ matrix.target }}.tar.gz crew
           cd ../../..
 
+      # A plain zip of the bare .exe: crew installs per-user, so there is no
+      # MSI and nothing for an administrator to approve. `install.ps1` unpacks
+      # this into %LOCALAPPDATA%, and the in-app updater reads the same asset.
+      - name: Package (windows)
+        if: matrix.archive == 'zip'
+        shell: pwsh
+        run: |
+          Compress-Archive -Path target/${{ matrix.target }}/release/crew.exe `
+            -DestinationPath crew-${{ github.ref_name }}-${{ matrix.target }}.zip
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: crew-${{ matrix.target }}
           path: crew-${{ github.ref_name }}-${{ matrix.target }}.*
+          if-no-files-found: error
 
   release:
     name: Create Release
@@ -96,3 +117,4 @@ jobs:
           files: |
             artifacts/crew-*
             artifacts/checksums-sha256.txt
+            install.ps1

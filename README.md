@@ -38,6 +38,27 @@ curl -sSfL https://raw.githubusercontent.com/ashishtyagi10/crew/main/install.sh 
 Installs the prebuilt `crew` binary to `~/.local/bin`. Set `INSTALL_DIR` to
 choose another location.
 
+### Quick install (Windows) — no administrator rights
+
+```powershell
+irm https://raw.githubusercontent.com/ashishtyagi10/crew/main/install.ps1 | iex
+```
+
+Installs `crew.exe` to `%LOCALAPPDATA%\Programs\crew` and adds it to your
+**user** `PATH`. Nothing is written outside your profile — no Program Files,
+no `HKLM`, no MSI, no UAC prompt — so it works on a locked-down or managed
+machine, and `/update` stays admin-free too. Open a new terminal afterwards so
+the `PATH` change reaches it.
+
+Options: `-InstallDir <path>` (or `$env:CREW_INSTALL_DIR`) to install
+elsewhere, `-Version v0.17.8` to pin a release, `-NoPath` to leave `PATH`
+alone. To pass them, download the script first:
+
+```powershell
+irm https://raw.githubusercontent.com/ashishtyagi10/crew/main/install.ps1 -OutFile install.ps1
+.\install.ps1 -InstallDir D:\tools\crew
+```
+
 ### With cargo (any platform with Rust)
 
 ```sh
@@ -55,6 +76,10 @@ Download the latest archive for your platform from the [Releases page](https://g
 | Linux (x86_64) | `crew-v*-x86_64-unknown-linux-gnu.tar.gz` |
 | Linux (ARM64) | `crew-v*-aarch64-unknown-linux-gnu.tar.gz` |
 | Windows (x86_64) | `crew-v*-x86_64-pc-windows-msvc.zip` |
+| Windows (ARM64) | `crew-v*-aarch64-pc-windows-msvc.zip` |
+
+The Windows archives hold a single `crew.exe` with no installer and no
+registry footprint — unzip it anywhere you can write and run it.
 
 ### Build from source
 
@@ -75,6 +100,8 @@ How you update depends on how you installed:
   ```sh
   curl -sSfL https://raw.githubusercontent.com/ashishtyagi10/crew/main/install.sh | sh
   ```
+  On Windows the equivalent is re-running `install.ps1`; it moves a running
+  `crew.exe` aside rather than failing on the lock.
 - **cargo:** `cargo install --git https://github.com/ashishtyagi10/crew crew-app --force`
 - **Source checkout:** `git pull && cargo build --release -p crew-app`.
 - **In-app:** the **`/update`** command downloads the latest release binary for

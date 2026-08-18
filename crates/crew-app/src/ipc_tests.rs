@@ -11,7 +11,7 @@ fn socket_round_trips_a_panes_request() {
     let handle = spawn_at(path.clone()).expect("bind");
 
     // Client: connect, send a Panes request.
-    let mut client = UnixStream::connect(&path).expect("connect");
+    let mut client = IpcStream::connect(&path).expect("connect");
     client.write_all(b"{\"op\":\"Panes\",\"v\":1}\n").unwrap();
     client.flush().unwrap();
 

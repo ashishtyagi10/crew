@@ -1,0 +1,55 @@
+name: Windows
+
+# The Windows build once rotted unnoticed for a dozen releases: nothing on CI
+# compiled it, so a Unix-only `use` in the `ask` IPC silently dropped the
+# platform. This job exists to make that failure loud on the commit that
+# causes it rather than at the next release.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build + test (x86_64-pc-windows-msvc)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      # Warnings are denied here specifically: the platform regressed through a
+      # compile error, and unguarded per-OS code shows up as warnings first.
+      - name: Check
+        run: cargo check -p crew-app --bin crew
+        env:
+          RUSTFLAGS: -D warnings
+
+      # The real point of the job. `ipc::tests::socket_round_trips_a_panes_request`
+      # drives a live named pipe end to end (bind, connect, request, verdict),
+      # which is the half of the port a cross-compile check cannot prove.
+      - name: Test
+        run: cargo test -p crew-app --bin crew
+
+      - name: Release build
+        run: cargo build --release -p crew-app --bin crew
+
+      # A smoke check that the shipped artifact is actually runnable — `crew`
+      # with no console-mode subcommand would open the GUI, so use one that
+      # returns before that path.
+      - name: Smoke — install-app registers per-user and exits
+        run: |
+          ./target/release/crew.exe install-app
+          if (-not (Test-Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Crew.lnk")) {
+            throw "install-app did not create the Start-menu shortcut"
+          }
+          ./target/release/crew.exe install-app --remove
