@@ -8,6 +8,35 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.17.8
+
+Opening something stops freezing everything. Cmd+clicking a URL, `/far`'s
+Open and the browser hand-off at sign-in all went through the blocking
+form of the opener, which waits for the program it launched to exit — and
+they run on the thread that draws, so until that program came back, every
+pane sat still. They now hand the file off and return.
+
+Windows got the sharper end of it. Asked to open a path with no
+association, Windows raises the "How do you want to open this file?"
+dialog, and nothing dismisses that on a machine with no one in front of
+it: CI sat on that modal for five and a half hours before anyone noticed
+the build had not failed, only stopped.
+
+The input bar can recognise a command on Windows again. Deciding whether
+what you typed is worth a pane means resolving the first word against
+PATH, and that search read a Unix PATH: split on `:`, which tears `C:\bin`
+into `C` and `\bin`, and treating only `/` as a sign of a path, so
+`C:\tools\rg.exe` looked like a bare word to go hunting for. Nothing ever
+resolved, so every line you typed came back "not a command" and the bar
+hinted instead of running it. Entries are split the way the platform
+writes them now, a path is anything with a parent, and runnability follows
+`PATHEXT` — which also means a bare `git` finds `git.exe`.
+
+Windows CI passes for the first time, end to end: the release binary
+builds and the installed app starts. A hung job now fails in 45 minutes
+naming the step that hung, rather than running until the six-hour ceiling,
+and a superseded run is cancelled instead of left to finish.
+
 ## 0.17.7
 
 Three themes again. The modern family arrived as two themes of its own —
