@@ -192,24 +192,42 @@ mod tests {
         assert_eq!(text, "ab");
     }
 
+    /// Pre-fix, `row_line` padded every row out to the widest cell's FULL
+    /// width before truncating to `cols`, so one huge cell forced the same
+    /// huge padding allocation on every other (short) row, and `rule_line`
+    /// repeated `"─"` to that same huge total width. At this size (12,000
+    /// rows, one 3M-char cell) `lines` takes ~10ms with the fix and 452s
+    /// without it — measured by reverting the two `.min(cols)` clamps below
+    /// and re-running this test — since its cost is now bounded by `cols`
+    /// rather than by cell size.
+    ///
+    /// This times `lines` itself rather than a full `md::render`. The old
+    /// version measured the whole render against a 2s wall clock, but most
+    /// of that is `md::parse` tokenizing one 3M-char cell — a cost this fix
+    /// never touched, present before and after. On a slower machine that
+    /// unrelated parse alone pushed the total past the bound and failed the
+    /// test (2.65s on a Windows CI runner) without anything having
+    /// regressed. Timing only the function under test leaves a ~50x margin
+    /// over its real cost, and still fails by four orders of magnitude if
+    /// the clamps ever come back out.
     #[test]
     fn table_layout_cost_is_bounded_by_the_column_budget_not_cell_size() {
-        // Pre-fix, `row_line` pads every row out to the widest cell's FULL
-        // width before truncating to `cols`, so one huge cell forces the
-        // same huge padding allocation on every other (short) row, and
-        // `rule_line` repeats `"─"` to the same huge total width. At this
-        // input size (12,000 rows, one 3M-char cell) that measurably blows
-        // past this 2s bound pre-fix (observed ~2.1s total, ~1.6s of it in
-        // `table::lines` alone); post-fix `table::lines` drops to ~10ms,
-        // since its cost is then bounded by `cols`, not cell size (the
-        // remaining ~0.5s is unrelated md::parse cost of tokenizing one
-        // huge cell, present before and after this fix).
-        let s = huge_cell_table(12_000, 3_000_000);
+        let cell = |t: &str| vec![super::super::wrap::plain_span(t.to_string())];
+        let header = vec![cell("a"), cell("b")];
+        let mut rows = vec![vec![cell(&"z".repeat(3_000_000)), cell("x")]];
+        rows.extend((1..12_000).map(|_| vec![cell("1"), cell("x")]));
+
         let start = std::time::Instant::now();
-        let _ = crate::md::render(&s, 80);
+        let out = lines(header, rows, 80);
         let elapsed = start.elapsed();
+
+        // The invariant itself, not just its timing: nothing wider than the
+        // budget was ever handed back, however wide the widest cell was.
+        for total in line_totals(&out) {
+            assert!(total <= 80, "line exceeds the 80-col budget: {total}");
+        }
         assert!(
-            elapsed.as_secs_f64() < 2.0,
+            elapsed.as_secs_f64() < 0.5,
             "table layout took {elapsed:?} — cost scales with cell size, not the column budget"
         );
     }

@@ -13,6 +13,8 @@ fn script(d: &std::path::Path, name: &str, body: &str) -> std::path::PathBuf {
     p
 }
 
+// Writes and executes a `#!/bin/sh` script: Unix-only by construction.
+#[cfg(unix)]
 #[test]
 fn bounded_shell_env_captures_a_quick_probe() {
     let dir = tempfile::tempdir().unwrap();
@@ -252,6 +254,8 @@ fn merge_leaves_path_unset_when_env_output_has_no_path_line() {
     assert_eq!(probed.path, None, "fallback stays intact with no PATH line");
 }
 
+// Writes and executes a `#!/bin/sh` script: Unix-only by construction.
+#[cfg(unix)]
 #[test]
 fn bounded_shell_path_captures_a_quick_probe() {
     let dir = tempfile::tempdir().unwrap();

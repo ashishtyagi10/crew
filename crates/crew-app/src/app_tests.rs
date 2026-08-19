@@ -365,6 +365,9 @@ fn submit_without_a_shell_hints() {
 
 /// Verdict::Executable + Target::Other (no idle shell focused) spawns a new
 /// terminal pane running the command, end to end through `submit_input`.
+// Depends on `ls` existing on PATH, which is a POSIX assumption — on
+// Windows this asserts the platform's command set, not crew's routing.
+#[cfg(unix)]
 #[test]
 fn bare_resolvable_command_spawns_with_no_idle_shell() {
     use crate::pane::PaneContent;

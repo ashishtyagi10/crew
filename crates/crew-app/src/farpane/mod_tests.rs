@@ -52,6 +52,8 @@ fn enter_descends_into_dir_and_back() {
     assert_eq!(p.left.loc.local_path().unwrap(), base);
 }
 
+// Runs `touch` through the shell: POSIX coreutils, Unix-only.
+#[cfg(unix)]
 #[test]
 fn command_line_runs_in_active_panel_dir_without_new_pane() {
     let (base, mut p) = fixture("cmdline");
