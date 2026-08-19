@@ -12,6 +12,13 @@ on:
 permissions:
   contents: read
 
+# Three superseded runs sat at 4h+ simultaneously once because nothing retired
+# them: a push that lands while the previous one is still building makes the
+# older run's verdict worthless, so cancel it rather than pay for it.
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   CARGO_TERM_COLOR: always
 
@@ -19,6 +26,10 @@ jobs:
   build:
     name: Build + test (x86_64-pc-windows-msvc)
     runs-on: windows-latest
+    # Without this the job inherits GitHub's 6h default, so a hang reads as
+    # "still building" for most of a day instead of failing. A cold cache
+    # builds this in well under 45 minutes.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
@@ -39,6 +50,10 @@ jobs:
       # which is the half of the port a cross-compile check cannot prove.
       - name: Test
         run: cargo test -p crew-app --bin crew
+        # The named-pipe round-trip blocks on a connect/accept that has no
+        # deadline of its own, so a regression there hangs rather than fails.
+        # Cap the step to name the culprit in the log instead of the whole job.
+        timeout-minutes: 15
 
       - name: Release build
         run: cargo build --release -p crew-app --bin crew
