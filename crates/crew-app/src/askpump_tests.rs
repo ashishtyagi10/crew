@@ -38,6 +38,10 @@ fn panes_request_serves_a_roster() {
 /// running a cooperating responder, pump the poll loop, and confirm the
 /// answer comes back — exercising inject → capture tap → liveness → verdict
 /// (and proving the echo of the injected instruction is not mis-read).
+// Drives a real PTY running a POSIX shell: Unix-only by construction.
+// Windows has no `sh`, so the spawn fails on a detail that says nothing
+// about the behaviour under test.
+#[cfg(unix)]
 #[test]
 fn live_terminal_pane_answers_through_the_full_pipeline() {
     use crate::layout::Rect;

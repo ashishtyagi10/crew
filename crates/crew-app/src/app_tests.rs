@@ -402,6 +402,10 @@ fn cd_dash_toggles_previous_directory() {
     assert_eq!(app.cwd, b);
 }
 
+// Drives a real PTY running a POSIX shell: Unix-only by construction.
+// Windows has no `sh`, so the spawn fails on a detail that says nothing
+// about the behaviour under test.
+#[cfg(unix)]
 #[test]
 fn typing_clears_a_terminal_selection() {
     use crate::layout::Rect;

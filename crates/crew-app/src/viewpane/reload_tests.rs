@@ -5,7 +5,10 @@
 //! `ViewPane`/`PaneContent::View` state directly and belongs next to the
 //! rest of the viewer's test suite.
 use crate::app::CrewApp;
-use crate::pane::{Pane, PaneContent};
+use crate::pane::PaneContent;
+// `Pane` is only named by `editor_pane`, which is Unix-only (it spawns `sh`).
+#[cfg(unix)]
+use crate::pane::Pane;
 
 /// Spin `poll()` on every `View` pane until a tick reports no change, so a
 /// test can assert on settled state (`Ready`, not `Loading`) without a fixed
@@ -67,6 +70,9 @@ fn a_viewer_reloads_when_its_editor_pane_goes_away() {
     }
 }
 
+// Uses `editor_pane`, which spawns a real `sh` PTY: Unix-only by
+// construction — Windows has no `sh` for that spawn to succeed on.
+#[cfg(unix)]
 #[test]
 fn a_viewer_is_left_alone_while_its_editor_pane_is_still_running() {
     // The mirror case: an editor pane with the SAME born_ms is still alive
@@ -105,6 +111,9 @@ fn a_viewer_is_left_alone_while_its_editor_pane_is_still_running() {
     }
 }
 
+// Uses `editor_pane`, which spawns a real `sh` PTY: Unix-only by
+// construction — Windows has no `sh` for that spawn to succeed on.
+#[cfg(unix)]
 #[test]
 fn a_freshly_spawned_editor_survives_the_pre_scan_window() {
     // Real `TermPane.cmd` is `None` from the moment a terminal pane is
@@ -147,6 +156,7 @@ fn a_freshly_spawned_editor_survives_the_pre_scan_window() {
     }
 }
 
+#[cfg(unix)]
 /// A minimal terminal pane standing in for an `$EDITOR` pane: `cmd` mirrors
 /// what `procname` would have filled in (or not yet) at `born_ms`.
 fn editor_pane(born_ms: u64, cmd: Option<&str>) -> Pane {
