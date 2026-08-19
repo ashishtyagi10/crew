@@ -43,7 +43,7 @@ pub(crate) const OPENROUTER_KEY_VAR: &str = "OPENROUTER_API_KEY";
 ///
 /// Do not read more into it than that. It is not a secret from other local
 /// processes: the nonce, the port and the challenge all travel in the URL
-/// handed to `open::that`, which execs a helper with that URL as an argv
+/// handed to `open::that_detached`, which execs a helper with that URL as an argv
 /// element any local `ps` can read. PKCE stops a stolen code being REDEEMED by
 /// someone else; it does not stop a local user authorizing against this same
 /// challenge from their own account and posting that code here, which would
@@ -133,7 +133,7 @@ pub(crate) fn spawn() -> Option<Receiver<OauthOutcome>> {
     std::thread::spawn(move || {
         // If the browser can't be opened the user can still paste, so this is
         // not fatal on its own — the wait below simply times out.
-        let _ = open::that(&url);
+        let _ = open::that_detached(&url);
         let outcome = match await_callback(listener, &nonce, FLOW_TIMEOUT) {
             Waited::Code(code) => exchange(&code, &pkce.verifier),
             Waited::Denied(e) => OauthOutcome::Failed(e),

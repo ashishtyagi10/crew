@@ -288,6 +288,10 @@ fn tick_blocked_does_not_ping_pong() {
 /// (brief quiet work, then the captured 44-col approval dialog, then a ⏺
 /// blink every 300 ms — the exact traffic that defeated the old byte-quiet
 /// gate) must auto-focus its pane, and only after the stability window.
+// Drives a real PTY running a POSIX shell: Unix-only by construction.
+// Windows has no `sh`, so the spawn fails on a detail that says nothing
+// about the behaviour under test.
+#[cfg(unix)]
 #[test]
 fn live_pty_claude_style_dialog_autofocuses() {
     use crate::layout::Rect;

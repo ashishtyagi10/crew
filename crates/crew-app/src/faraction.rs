@@ -18,7 +18,13 @@ impl CrewApp {
             }
             FarAction::Help => self.help_open = true,
             FarAction::Open(path) => {
-                let _ = open::that(path);
+                // `that_detached`, never `that`: the blocking form waits for
+                // the opener to exit, and this runs on the winit thread, so
+                // every pane would freeze until the user closed whatever
+                // opened. On Windows an unassociated path raises the "How do
+                // you want to open this file?" modal, which never returns on
+                // a headless runner — that is what hung CI for 5.5 hours.
+                let _ = open::that_detached(path);
             }
             FarAction::View(path) => self.open_view(&path.to_string_lossy()),
             FarAction::Edit(path) => self.edit_in_pane(&path.to_string_lossy()),
@@ -82,9 +88,11 @@ mod tests {
     #[test]
     fn open_does_not_panic_on_a_missing_path() {
         let mut app = far_pane_app();
-        // `open::that` on a bogus path fails silently (the return is
-        // discarded) — this just proves the variant is wired and doesn't
-        // crash the app.
+        // `open::that_detached` on a bogus path fails silently (the return
+        // is discarded) — this just proves the variant is wired and doesn't
+        // crash the app. It must stay the detached form: the blocking one
+        // hung here forever on Windows, parked behind a modal file-type
+        // dialog that no one can dismiss on a CI runner.
         app.apply_far_action(
             FarAction::Open(std::env::temp_dir().join("does-not-exist")),
             0,

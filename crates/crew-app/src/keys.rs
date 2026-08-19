@@ -226,7 +226,7 @@ impl CrewApp {
                     }
                 }
                 ViewAction::OpenExternal(p) => {
-                    let _ = open::that(&p);
+                    let _ = open::that_detached(&p);
                     self.set_status(format!("opening {}", p.display()));
                 }
                 ViewAction::Edit(p) => self.apply_view_edit(focused, &p),

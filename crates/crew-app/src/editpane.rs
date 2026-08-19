@@ -101,6 +101,10 @@ mod tests {
         assert_eq!(s, "code -w '/tmp/a b.rs'; exec /bin/zsh");
     }
 
+    // Drives a real PTY running a POSIX shell: Unix-only by construction.
+    // Windows has no `sh`, so the spawn fails on a detail that says nothing
+    // about the behaviour under test.
+    #[cfg(unix)]
     #[test]
     fn a_spawn_that_pushes_no_pane_does_not_adopt_an_unrelated_panes_born_ms() {
         // `edit_in_pane` returns without pushing a pane when given an empty

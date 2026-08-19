@@ -67,7 +67,7 @@ impl CrewApp {
     pub(crate) fn cmd_click_at_cursor(&mut self) -> bool {
         if let Some((line, col)) = self.cursor_cell() {
             if let Some(url) = url_at(&line, col) {
-                let _ = open::that(&url);
+                let _ = open::that_detached(&url);
                 self.set_status(format!("opening {url}"));
                 return true;
             }
@@ -111,7 +111,7 @@ impl CrewApp {
             return false;
         };
         if let Some(url) = crate::chatview::link_at(chat, grid.cols, grid.rows, row, col) {
-            let _ = open::that(&url);
+            let _ = open::that_detached(&url);
             self.set_status(format!("opening {url}"));
             return true;
         }
@@ -153,7 +153,7 @@ impl CrewApp {
         let Some(url) = url else {
             return false;
         };
-        let _ = open::that(&url);
+        let _ = open::that_detached(&url);
         self.set_status(format!("opening {url}"));
         true
     }
