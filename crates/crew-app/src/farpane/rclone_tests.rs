@@ -97,6 +97,10 @@ fn parse_lsjson_rejects_garbage() {
 
 use std::time::Duration;
 
+// Hard-codes a POSIX shell and Unix paths (`/bin/sh`, `/tmp`, `/`):
+// Unix-only by construction, and nothing about it is portable to a
+// Windows runner.
+#[cfg(unix)]
 #[test]
 fn runner_captures_stdout_and_exit_code() {
     let rx = run_with("/bin/echo", vec!["hello".into()]);
@@ -105,6 +109,10 @@ fn runner_captures_stdout_and_exit_code() {
     assert_eq!(done.stdout.trim(), "hello");
 }
 
+// Hard-codes a POSIX shell and Unix paths (`/bin/sh`, `/tmp`, `/`):
+// Unix-only by construction, and nothing about it is portable to a
+// Windows runner.
+#[cfg(unix)]
 #[test]
 fn runner_reports_stderr_tail_and_nonzero() {
     let rx = run_with("/bin/sh", vec!["-c".into(), "echo boom >&2; exit 2".into()]);

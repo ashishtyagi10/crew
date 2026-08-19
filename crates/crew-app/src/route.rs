@@ -172,6 +172,7 @@ mod tests {
     /// (mirrors the identically-named private helpers in panemanage.rs,
     /// navcard.rs, and app_tests.rs — no shared helper exists yet, so each
     /// test module keeps its own).
+    #[cfg(unix)]
     fn far_pane(name: &str) -> crate::pane::Pane {
         use crate::farpane::FarPane;
         use crate::pane::{Pane, PaneContent};
@@ -196,6 +197,9 @@ mod tests {
         }
     }
 
+    // Depends on `ls` existing on PATH, which is a POSIX assumption — on
+    // Windows this asserts the platform's command set, not crew's routing.
+    #[cfg(unix)]
     #[test]
     fn preview_labels_spawn_and_hint_rows() {
         let mut app = crate::app::CrewApp::default();

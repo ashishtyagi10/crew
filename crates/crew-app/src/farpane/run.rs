@@ -147,13 +147,21 @@ pub(crate) fn cd_target(cmd: &str) -> Option<&str> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    // Only `wait` needs it, and `wait` is Unix-only.
+    #[cfg(unix)]
     use std::time::Duration;
 
+    // Only the Unix-only `/bin/sh` tests below wait on a command result.
+    #[cfg(unix)]
     fn wait(rx: Receiver<CmdDone>) -> CmdDone {
         rx.recv_timeout(Duration::from_secs(10))
             .expect("command result")
     }
 
+    // Hard-codes a POSIX shell and Unix paths (`/bin/sh`, `/tmp`, `/`):
+    // Unix-only by construction, and nothing about it is portable to a
+    // Windows runner.
+    #[cfg(unix)]
     #[test]
     fn reports_exit_code_and_output_tail() {
         let done = wait(start("/bin/sh", "echo one; echo two", Path::new("/tmp")));
@@ -161,6 +169,10 @@ mod tests {
         assert_eq!(done.tail, "two");
     }
 
+    // Hard-codes a POSIX shell and Unix paths (`/bin/sh`, `/tmp`, `/`):
+    // Unix-only by construction, and nothing about it is portable to a
+    // Windows runner.
+    #[cfg(unix)]
     #[test]
     fn stderr_wins_the_tail_and_failures_report_nonzero() {
         let done = wait(start(
@@ -172,6 +184,10 @@ mod tests {
         assert_eq!(done.tail, "err");
     }
 
+    // Hard-codes a POSIX shell and Unix paths (`/bin/sh`, `/tmp`, `/`):
+    // Unix-only by construction, and nothing about it is portable to a
+    // Windows runner.
+    #[cfg(unix)]
     #[test]
     fn runs_in_the_given_directory() {
         let done = wait(start("/bin/sh", "pwd", Path::new("/")));

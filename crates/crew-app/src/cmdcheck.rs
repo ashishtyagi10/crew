@@ -50,7 +50,7 @@ pub(crate) fn resolve(line: &str, path: &str) -> Verdict {
     if BUILTINS.contains(&word.as_str()) {
         return Verdict::Builtin(word);
     }
-    if word.contains('/') {
+    if is_path_like(&word) {
         let p = expand_home(&word);
         return if is_executable(&p) {
             let name = p
@@ -62,12 +62,56 @@ pub(crate) fn resolve(line: &str, path: &str) -> Verdict {
             Verdict::No
         };
     }
-    for dir in path.split(':').filter(|d| !d.is_empty()) {
-        if is_executable(&Path::new(dir).join(&word)) {
+    // `split_paths`, never `split(':')`: the separator is `;` on Windows, and
+    // splitting a Windows PATH on `:` tears every entry in half at its drive
+    // letter (`C:\bin` -> `C`, `\bin`), so nothing on PATH ever resolved.
+    for dir in std::env::split_paths(path).filter(|d| !d.as_os_str().is_empty()) {
+        if candidates(&word)
+            .iter()
+            .any(|c| is_executable(&dir.join(c)))
+        {
             return Verdict::Executable(word);
         }
     }
     Verdict::No
+}
+
+/// Does `word` name a path, rather than a bare command to look up on PATH?
+/// A parent component is the platform-neutral test: it catches `/usr/bin/rg`
+/// and `./rg` everywhere, and `C:\tools\rg.exe` on Windows, where a check
+/// for `/` alone saw a bare command word and searched PATH for it.
+fn is_path_like(word: &str) -> bool {
+    Path::new(word)
+        .parent()
+        .is_some_and(|p| !p.as_os_str().is_empty())
+}
+
+/// The file names a bare `word` could resolve to inside one PATH directory:
+/// just `word` on Unix, plus each `PATHEXT` suffix on Windows, where `git`
+/// on disk is `git.exe` and the extension is what makes it runnable at all.
+fn candidates(word: &str) -> Vec<String> {
+    #[cfg(unix)]
+    {
+        vec![word.to_string()]
+    }
+    #[cfg(not(unix))]
+    {
+        let mut v = vec![word.to_string()];
+        v.extend(pathext().into_iter().map(|e| format!("{word}{e}")));
+        v
+    }
+}
+
+/// The extensions Windows considers directly runnable, lowercased. The
+/// default matches what `cmd.exe` ships with when `PATHEXT` is unset.
+#[cfg(not(unix))]
+fn pathext() -> Vec<String> {
+    std::env::var("PATHEXT")
+        .unwrap_or_else(|_| ".COM;.EXE;.BAT;.CMD".to_string())
+        .split(';')
+        .filter(|e| !e.is_empty())
+        .map(|e| e.to_ascii_lowercase())
+        .collect()
 }
 
 fn expand_home(word: &str) -> PathBuf {
@@ -79,8 +123,9 @@ fn expand_home(word: &str) -> PathBuf {
     PathBuf::from(word)
 }
 
-/// Executable regular file. On non-Unix there is no mode bit; existence of a
-/// file is the best cheap signal.
+/// Executable regular file: the mode bit on Unix, and on Windows — which has
+/// no such bit — an extension listed in `PATHEXT`. Existence alone is NOT
+/// the signal there: it makes every `README.txt` on PATH look runnable.
 fn is_executable(p: &Path) -> bool {
     let Ok(md) = std::fs::metadata(p) else {
         return false;
@@ -95,7 +140,11 @@ fn is_executable(p: &Path) -> bool {
     }
     #[cfg(not(unix))]
     {
-        true
+        let Some(ext) = p.extension() else {
+            return false;
+        };
+        let ext = format!(".{}", ext.to_string_lossy().to_ascii_lowercase());
+        pathext().contains(&ext)
     }
 }
 
@@ -112,10 +161,17 @@ pub(crate) fn effective_path() -> String {
 mod tests {
     use super::*;
 
-    /// A temp dir holding one executable `hit` and one plain file `miss`.
+    /// The on-disk name of the runnable fixture file. Windows has no mode
+    /// bit — an extension in `PATHEXT` is what makes a file runnable — so the
+    /// executable is `hit.cmd` there and plain `hit` on Unix. Either way a
+    /// bare `hit` must resolve, which is what the tests below assert.
+    const EXE: &str = if cfg!(unix) { "hit" } else { "hit.cmd" };
+
+    /// A temp dir holding one executable ([`EXE`]) and one plain, extension-
+    /// less file `miss` that must NOT resolve on either platform.
     fn fixture() -> tempfile::TempDir {
         let d = tempfile::tempdir().unwrap();
-        let hit = d.path().join("hit");
+        let hit = d.path().join(EXE);
         std::fs::write(&hit, "#!/bin/sh\n").unwrap();
         #[cfg(unix)]
         {
@@ -154,13 +210,33 @@ mod tests {
     #[test]
     fn resolve_accepts_explicit_paths_and_rejects_bad_ones() {
         let d = fixture();
-        let hit = d.path().join("hit");
+        let hit = d.path().join(EXE);
         assert_eq!(
             resolve(hit.to_str().unwrap(), ""),
-            Verdict::Executable("hit".into()),
+            Verdict::Executable(EXE.into()),
             "absolute path bypasses PATH"
         );
         assert_eq!(resolve("./nosuch/prog", ""), Verdict::No);
+    }
+
+    /// A Windows PATH entry carries a drive letter, so the old `split(':')`
+    /// tore `C:\bin` into `C` and `\bin` and resolved nothing at all. Both
+    /// platforms are checked here through `join_paths`, which writes the
+    /// separator the platform actually uses.
+    #[test]
+    fn resolve_searches_every_entry_of_a_multi_dir_path() {
+        let d = fixture();
+        let other = tempfile::tempdir().unwrap();
+        let path = std::env::join_paths([other.path(), d.path()])
+            .unwrap()
+            .to_string_lossy()
+            .into_owned();
+        assert_eq!(
+            resolve("hit --flag", &path),
+            Verdict::Executable("hit".into()),
+            "a later PATH entry still resolves"
+        );
+        assert_eq!(resolve("nosuch", &path), Verdict::No);
     }
 
     #[test]
