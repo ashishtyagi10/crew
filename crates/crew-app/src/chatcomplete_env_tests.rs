@@ -18,6 +18,7 @@ const NOT_USER_FACING: &[&str] = &[
     // (or, for the OAuth device flow, a live endpoint onto a stub server).
     "CREW_PROJECT_DIR",
     "CREW_CREDENTIALS_PATH",
+    "CREW_FAR_HISTORY_PATH",
     "CREW_OAUTH_BASE",
     "CREW_SECURITY_BIN",
     "CREW_RESOLVE_DIR",

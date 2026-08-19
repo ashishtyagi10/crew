@@ -9,7 +9,24 @@ use std::path::PathBuf;
 /// Keep at most this many recent commands on disk.
 const MAX: usize = 500;
 
+/// `<config_dir>/crew/far-history` — unless `CREW_FAR_HISTORY_PATH` is set
+/// (non-empty), in which case that path wins.
+///
+/// The override exists for test isolation, mirroring
+/// `crew_plugin::credentials::path`. Pointing `$HOME` at a tempdir is enough
+/// on Unix, where `dirs::config_dir()` derives from it, but on Windows that
+/// function reads the Known Folder API and ignores the environment outright:
+/// the "isolated" history tests were reading and writing the real user
+/// profile, so they came back holding 500 entries that
+/// `push_caps_at_max_dropping_oldest` had pushed. Do not remove this to
+/// "simplify" the function; it is the only seam that isolates this store on
+/// Windows.
 fn path() -> Option<PathBuf> {
+    if let Ok(p) = std::env::var("CREW_FAR_HISTORY_PATH") {
+        if !p.is_empty() {
+            return Some(PathBuf::from(p));
+        }
+    }
     dirs::config_dir().map(|d| d.join("crew").join("far-history"))
 }
 
@@ -133,11 +150,22 @@ impl CmdHistory {
 mod tests {
     use super::*;
 
-    /// Point `$HOME` at a fresh tempdir for the duration of `f`, then
-    /// restore it — locked crate-wide via `envlock::with_home`.
+    /// Point the home variables AND this store's path override at a fresh
+    /// tempdir for the duration of `f`, then restore them — locked
+    /// crate-wide via `envlock::with_vars`. The explicit path override is
+    /// what makes this isolation hold on Windows, where `dirs::config_dir()`
+    /// does not follow `$HOME`; see [`path`].
     fn with_tmp_home<T>(f: impl FnOnce() -> T) -> T {
         let dir = tempfile::tempdir().unwrap();
-        crate::envlock::with_home(dir.path(), f)
+        let mut vars: Vec<(&str, std::ffi::OsString)> = crate::envlock::HOME_VARS
+            .iter()
+            .map(|k| (*k, dir.path().into()))
+            .collect();
+        vars.push((
+            "CREW_FAR_HISTORY_PATH",
+            dir.path().join("far-history").into(),
+        ));
+        crate::envlock::with_vars(&vars, f)
     }
 
     #[test]
