@@ -8,6 +8,38 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.17.9
+
+crew now ships its own typeface, and a fresh Windows install finally looks
+like crew.
+
+Until this release, first launch on Windows drew the whole app in **Segoe
+UI — a proportional face**. The banner and the left nav looked worst,
+because a box-drawn frame shows column drift the instant it drifts.
+
+Nothing about it was Windows-specific in the code. crew asks the text
+engine for "the monospace family" and never says which one; cosmic-text
+hardcodes that to `Noto Sans Mono`, which Windows does not have, so the
+lookup missed and shaping fell through to the platform's general fallback
+list — headed by Segoe UI. Then the grid did what it always does and
+rounded every glyph advance to the nearest cell, which sends a
+proportional face's narrow glyphs (`i`, `l`, `.`, `|`) to *zero* width.
+Glyphs land on top of each other and every column after them slides.
+
+Themes could not save it. Each one names the faces it would like, ending
+in something that ships with an OS so a bare machine still resolves
+*something* — except the tails were `Menlo`, `SF Mono`, `Noto Sans Mono`.
+All three are macOS or Linux stock, and 23 of the 24 themes named nothing
+a stock Windows box has. macOS was never actually immune either: its own
+fallback list is headed by the system UI sans, just as proportional. It
+escaped only because `Menlo` is in every list and every Mac has it.
+
+So crew stops asking the machine. It embeds Lilex — the face the CRT
+themes already led with — and registers it as the monospace family, four
+weights and their italics, about 840 KB. A font you have installed still
+wins: pick one with `/font`, or let the theme choose. There just is no
+longer a machine where the answer is "none".
+
 ## 0.17.8
 
 Opening something stops freezing everything. Cmd+clicking a URL, `/far`'s
