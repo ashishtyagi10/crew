@@ -201,34 +201,61 @@ mod tests {
     /// and re-running this test — since its cost is now bounded by `cols`
     /// rather than by cell size.
     ///
-    /// This times `lines` itself rather than a full `md::render`. The old
-    /// version measured the whole render against a 2s wall clock, but most
-    /// of that is `md::parse` tokenizing one 3M-char cell — a cost this fix
-    /// never touched, present before and after. On a slower machine that
-    /// unrelated parse alone pushed the total past the bound and failed the
-    /// test (2.65s on a Windows CI runner) without anything having
-    /// regressed. Timing only the function under test leaves a ~50x margin
-    /// over its real cost, and still fails by four orders of magnitude if
-    /// the clamps ever come back out.
+    /// The measurement is a **ratio, not a stopwatch**. Two earlier versions
+    /// of this test asserted an absolute bound and both failed on Windows CI
+    /// without anything having regressed — first the whole render against 2s
+    /// (2.65s observed), then `lines` alone against 0.5s (512ms observed).
+    /// A shared runner is simply slower than the machine the bound was picked
+    /// on, and picking a bigger number only moves the next false failure.
+    ///
+    /// So: lay out the same table twice, identical in every way except the
+    /// width of one cell. If cost scaled with cell size the wide run would be
+    /// thousands of times the narrow one; with the clamps it is ~1x. Anything
+    /// under a 50x factor proves the invariant with room to spare, and a slow
+    /// machine slows *both* runs, so the ratio holds.
+    ///
+    /// The sizes are chosen so the *unclamped* version fails in seconds rather
+    /// than hanging. At 3,000,000 chars x 12,000 rows a regression ran past
+    /// three minutes without finishing, which in CI reads as a stuck job
+    /// instead of a failed assertion.
     #[test]
     fn table_layout_cost_is_bounded_by_the_column_budget_not_cell_size() {
         let cell = |t: &str| vec![super::super::wrap::plain_span(t.to_string())];
-        let header = vec![cell("a"), cell("b")];
-        let mut rows = vec![vec![cell(&"z".repeat(3_000_000)), cell("x")]];
-        rows.extend((1..12_000).map(|_| vec![cell("1"), cell("x")]));
+        // Same shape both times; only the first cell's width differs.
+        let table = |width: usize| {
+            let header = vec![cell("a"), cell("b")];
+            let mut rows = vec![vec![cell(&"z".repeat(width)), cell("x")]];
+            rows.extend((1..1_200).map(|_| vec![cell("1"), cell("x")]));
+            (header, rows)
+        };
+        let time_it = |width: usize| {
+            let (header, rows) = table(width);
+            let start = std::time::Instant::now();
+            let out = lines(header, rows, 80);
+            (start.elapsed(), out)
+        };
 
-        let start = std::time::Instant::now();
-        let out = lines(header, rows, 80);
-        let elapsed = start.elapsed();
+        // Narrow first, so any one-off warm-up is charged to the baseline
+        // rather than to the run under scrutiny.
+        let (narrow, _) = time_it(80);
+        let (wide, out) = time_it(300_000);
 
         // The invariant itself, not just its timing: nothing wider than the
         // budget was ever handed back, however wide the widest cell was.
         for total in line_totals(&out) {
             assert!(total <= 80, "line exceeds the 80-col budget: {total}");
         }
+
+        // A floor on the baseline keeps the ratio meaningful when the narrow
+        // run is too fast to time; without it a sub-microsecond baseline makes
+        // any wide time look like a huge multiple.
+        let baseline = narrow.as_secs_f64().max(0.005);
+        let ratio = wide.as_secs_f64() / baseline;
         assert!(
-            elapsed.as_secs_f64() < 0.5,
-            "table layout took {elapsed:?} — cost scales with cell size, not the column budget"
+            ratio < 50.0,
+            "laying out a 300,000-char cell took {ratio:.0}x as long as an \
+             80-char one ({wide:?} vs {narrow:?}) — cost is scaling with cell \
+             size again, not the column budget"
         );
     }
 }
