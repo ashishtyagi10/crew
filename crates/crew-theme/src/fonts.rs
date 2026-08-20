@@ -10,14 +10,29 @@
 //! Every list LEADS with a face that suits that theme's character — the
 //! leads deliberately differ across themes, so changing themes usually
 //! changes the font too (a shared lead would pin every theme to the same
-//! face on any machine that has it installed). Lists end in faces that ship
-//! with the OS (`Menlo`/`SF Mono` on macOS, `Noto Sans Mono`/`DejaVu Sans
-//! Mono` on Linux, `Cascadia Mono` on Windows 11) so a bare machine still
-//! resolves something rather than silently opting out. The dated faces are
-//! deliberately not listed — `Cascadia Mono` replaced `Consolas` on Windows
-//! the way `SF Mono` replaced `Monaco` on macOS; crew prefers the modern one
-//! in both cases.
+//! face on any machine that has it installed). Every list then ENDS in
+//! [`EMBEDDED_FAMILY`], which crew ships inside its own binary, so resolution
+//! cannot come up empty on any machine. Lists used to end in OS-stock faces
+//! instead (`Menlo`/`SF Mono`, `Noto Sans Mono`/`DejaVu Sans Mono`,
+//! `Cascadia Mono`) — none of which exist on a stock Windows 10, which is how
+//! a fresh Windows install ended up rendering in proportional Segoe UI. The
+//! OS-stock names stay in the lists as mid-list options; they are just no
+//! longer the safety net. The dated faces are deliberately not listed —
+//! `Cascadia Mono` replaced `Consolas` on Windows the way `SF Mono` replaced
+//! `Monaco` on macOS; crew prefers the modern one in both cases.
 use crate::ThemeId;
+
+/// The family crew **embeds in its own binary** (`crew-render`'s `embedfont`),
+/// registered there as the monospace default. It is therefore present on every
+/// machine, which is what lets every preference list below end in a face that
+/// really does resolve — the previous tails (`Menlo`, `SF Mono`, `Noto Sans
+/// Mono`) are stock on macOS and Linux and absent on Windows, so a fresh
+/// Windows install resolved nothing and rendered in proportional Segoe UI.
+///
+/// Named here rather than in `crew-render` because `crew-theme` is the lower
+/// crate: the preference lists and their tests need it, and a renderer
+/// dependency would invert the layering.
+pub const EMBEDDED_FAMILY: &str = "Lilex";
 
 /// The only monospace families crew will *auto*-select — both theme
 /// resolution (`font_prefs` below) and the `/font` rotation draw from this
@@ -31,8 +46,9 @@ use crate::ThemeId;
 /// macOS face) and Stelo (its lowercase `l` renders as a broken
 /// bar — user bug report 2026-07-24): a rotation must never land on one. The *manual*
 /// `/font` picker is unaffected — it still offers every installed coding
-/// face; this only governs what crew picks on its own. Menlo stays ONLY as
-/// the OS-stock safety net at the tail of every list — never a lead.
+/// face; this only governs what crew picks on its own. Menlo and the other
+/// OS-stock faces stay ONLY as mid-list options — never a lead, and no longer
+/// the safety net either ([`EMBEDDED_FAMILY`] is).
 pub const FONT_ALLOWLIST: &[&str] = &[
     "JetBrains Mono",
     "JetBrainsMono NF",
@@ -74,8 +90,8 @@ pub const FONT_ALLOWLIST: &[&str] = &[
 /// (the old `Comic Mono` prefix) meant every theme resolved to the same face
 /// wherever it was installed, so a theme rotation changed the palette but
 /// never the font. Warm/paper themes keep `Comic Mono` as a mid-list option;
-/// every list ends in an OS-stock face (`Menlo`/`SF Mono`/`Noto Sans Mono`)
-/// so a bare machine still resolves something. Every entry is in
+/// every list ends in [`EMBEDDED_FAMILY`], the face crew ships with itself, so
+/// a bare machine still resolves something. Every entry is in
 /// [`FONT_ALLOWLIST`].
 pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
     match id {
@@ -88,6 +104,7 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "SF Mono",
             "Menlo",
             "Noto Sans Mono",
+            "Lilex",
         ],
         // Sepia: warm and typewritten — friendly rounded shapes suit it, so
         // this is where the Comic Mono lead lives on.
@@ -99,6 +116,7 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "SF Mono",
             "Menlo",
             "Noto Sans Mono",
+            "Lilex",
         ],
         // Midnight ink: high-contrast, tight.
         ThemeId::MidnightInk => &[
@@ -108,6 +126,7 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "SF Mono",
             "Menlo",
             "Noto Sans Mono",
+            "Lilex",
         ],
         // Graphite: the system's own neutral.
         ThemeId::Graphite => &[
@@ -117,6 +136,7 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "JetBrains Mono",
             "Menlo",
             "Noto Sans Mono",
+            "Lilex",
         ],
         // Coldpress / glacier: flat, drafting-table — geometric and even
         // (glacier-bond is the cold blue-cast cousin of coldpress-gray).
@@ -128,6 +148,7 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "SF Mono",
             "Menlo",
             "Noto Sans Mono",
+            "Lilex",
         ],
         // Broadsheet / ledger: newsprint and accounting — a clean modern
         // humanist face, no old typewriter Courier.
@@ -138,6 +159,7 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "ComicMono Nerd Font Mono",
             "Menlo",
             "Noto Sans Mono",
+            "Lilex",
         ],
         // (moss-blotter shares the ledger's study-desk character.)
         ThemeId::IvoryLedger | ThemeId::MossBlotter => &[
@@ -147,6 +169,7 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "ComicMono Nerd Font Mono",
             "Menlo",
             "Noto Sans Mono",
+            "Lilex",
         ],
         // CRT: a terminal face with squared-off shoulders — straight modern
         // faces (the old `Monaco` lead was a pre-Retina relic; Lilex is the
@@ -163,6 +186,7 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "SF Mono",
             "Menlo",
             "Noto Sans Mono",
+            "Lilex",
         ],
         // Graphene: neutral and product-grade — Commit Mono's whole thesis.
         ThemeId::Graphene | ThemeId::Meadow => &[
@@ -172,6 +196,7 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "SF Mono",
             "Menlo",
             "Noto Sans Mono",
+            "Lilex",
         ],
         // Cobalt: wide, techy, electric.
         ThemeId::Cobalt | ThemeId::Cirrus => &[
@@ -182,21 +207,18 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "SF Mono",
             "Menlo",
             "Noto Sans Mono",
+            "Lilex",
         ],
         ThemeId::CrtGreen
         | ThemeId::CrtAmber
         | ThemeId::CrtBlue
         | ThemeId::CrtViolet
         | ThemeId::CrtPaperwhite => &[
-            "Lilex",
+            // The Nerd Font variant first: crew now *embeds* plain Lilex, so
+            // leading with it would mean the built-in copy always beat an
+            // installed icon-bearing one.
             "Lilex Nerd Font",
-            "JetBrainsMono NF",
-            "JetBrains Mono",
-            "Google Sans Code",
-            "Cascadia Mono",
-            "SF Mono",
-            "Menlo",
-            "Noto Sans Mono",
+            "Lilex",
         ],
     }
 }
@@ -216,23 +238,41 @@ mod tests {
         }
     }
 
+    /// The test this replaces accepted an OS-stock face anywhere in the list
+    /// — and counted `Menlo` as proof. Menlo is macOS-only, so the assertion
+    /// held on the dev machine while 23 of 24 themes named nothing a stock
+    /// Windows box has. Resolution came up empty there, shaping fell through
+    /// to proportional Segoe UI, and `set_monospace_width` rounded its narrow
+    /// advances to zero: the mangled banner and nav of a fresh 0.17.8 install.
+    ///
+    /// [`EMBEDDED_FAMILY`] ships inside the binary, so this assertion means
+    /// the same thing on every platform — it cannot be satisfied by a face
+    /// that merely happens to be on the machine running the test.
     #[test]
-    fn every_list_ends_in_faces_that_ship_with_an_os() {
-        // Without an OS face last, a machine with none of the designer picks
-        // resolves nothing and the theme silently has no font at all.
-        const STOCK: [&str; 5] = [
-            "Menlo",
-            "SF Mono",
-            "Noto Sans Mono",
-            "DejaVu Sans Mono",
-            "Cascadia Mono",
-        ];
+    fn every_list_names_the_embedded_family_so_resolution_cannot_come_up_empty() {
         for id in ALL_THEMES {
             let prefs = font_prefs(id);
             assert!(
-                prefs.iter().any(|f| STOCK.contains(f)),
-                "{id:?} lists only third-party faces {prefs:?} — a bare \
-                 machine would resolve none of them"
+                prefs.contains(&EMBEDDED_FAMILY),
+                "{id:?} lists {prefs:?}, none of which crew ships — on a \
+                 machine with none of them installed the theme resolves no \
+                 font at all and shaping falls back to a proportional face"
+            );
+        }
+    }
+
+    /// Nothing may sit *after* the embedded family: it always resolves, so a
+    /// later entry is unreachable and reads as an intent the app never honours.
+    #[test]
+    fn nothing_is_listed_after_the_embedded_family() {
+        for id in ALL_THEMES {
+            let prefs = font_prefs(id);
+            let at = prefs.iter().position(|f| *f == EMBEDDED_FAMILY).unwrap();
+            let dead = &prefs[at + 1..];
+            assert!(
+                dead.is_empty(),
+                "{id:?} lists {dead:?} after {EMBEDDED_FAMILY:?}, which always \
+                 resolves — those entries can never be reached"
             );
         }
     }
@@ -291,7 +331,13 @@ mod tests {
         for id in ALL_THEMES {
             let lead = font_prefs(id)[0];
             assert!(
-                !["Menlo", "Noto Sans Mono", "DejaVu Sans Mono"].contains(&lead),
+                ![
+                    "Menlo",
+                    "Noto Sans Mono",
+                    "DejaVu Sans Mono",
+                    EMBEDDED_FAMILY
+                ]
+                .contains(&lead),
                 "{id:?} leads with the fallback face {lead:?}"
             );
         }

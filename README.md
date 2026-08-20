@@ -511,3 +511,9 @@ Hard rules: every `.rs` file stays ≤200 lines; `cargo clippy --workspace
 ## License
 
 MIT or Apache-2.0, at your option.
+
+crew embeds **[Lilex](https://github.com/mishamyrt/Lilex)** 2.700 (SIL Open
+Font License 1.1 — see `assets/fonts/OFL.txt`) as its built-in typeface, so the
+grid never depends on what happens to be installed on the machine. Any
+installed coding face you prefer still wins: pick one with `/font`, or let the
+theme choose (`crew --list-fonts` shows what it can see).

@@ -278,8 +278,13 @@ pub(crate) fn fill_rich_text(
     buffer.set_rich_text(font_system, spans, &default_attrs, Shaping::Advanced, None);
 }
 
+/// Cell width as a fraction of the font size. Family-independent on purpose
+/// (see `cell_metrics`), and the ratio the embedded face is drawn to — see
+/// `the_embedded_face_is_drawn_to_crew_s_own_cell_ratio`.
+pub(crate) const CELL_W_RATIO: f32 = 0.6;
+
 /// The fixed cell box for a font size: `(cell_w, cell_h)` =
-/// `(0.6, 1.25) × font_size`, rounded to WHOLE pixels. Deliberately
+/// `(CELL_W_RATIO, 1.25) × font_size`, rounded to WHOLE pixels. Deliberately
 /// independent of the font family — glyphs are snapped to this advance at
 /// layout time (see [`build_pane_buffer`]) — so switching fonts never moves a
 /// pane, a border, or the grid. `font_size` arrives in physical pixels, so
@@ -287,7 +292,7 @@ pub(crate) fn fill_rich_text(
 /// no half-pixel smear on the text or the box-drawing borders.
 pub(crate) fn cell_metrics(font_size: f32) -> (f32, f32) {
     (
-        (font_size * 0.6).round().max(1.0),
+        (font_size * CELL_W_RATIO).round().max(1.0),
         (font_size * 1.25).round().max(1.0),
     )
 }
