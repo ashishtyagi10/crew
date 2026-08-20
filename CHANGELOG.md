@@ -8,6 +8,35 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.17.12
+
+**A failed update no longer removes crew.** This was worse than an update
+that did not work. The library crew used to swap in the new binary does
+three things in order on Windows: rename the running `crew.exe` aside, copy
+itself into `%TEMP%` and *run* that copy to clean up, then move the new
+build into place. The middle step executes a program out of `%TEMP%`, which
+managed machines and most corporate antivirus refuse — `Access denied` — and
+it happens *after* the rename, so the whole thing gives up having already
+moved your `crew.exe` away and never puts anything back. If your install
+looks broken after a failed update, re-running `install.ps1` restores it.
+
+crew now does the swap itself, the same way `install.ps1` already does it:
+rename aside, move the new one in, and **put the old one back if that
+fails** — so a failed update leaves a working crew rather than none. No
+second process, no running anything from `%TEMP%`, no administrator rights.
+The download is staged next to the binary it replaces rather than in the
+temp directory, which is both more likely to be permitted and the only way
+the move can work at all when temp is on another drive. The superseded
+binary is cleaned up on the next launch, since Windows will not delete a
+program while it is running.
+
+`crew --self-update` had the same flaw and shares the fixed path now.
+
+**And a failed update says why.** It used to show a card in the sidebar that
+cleared after a few seconds and record nothing anywhere, so the only
+possible report was "it failed". Update outcomes now go to the LOG and to
+`activity.log`, naming the step that failed.
+
 ## 0.17.11
 
 **No more console flash on Windows.** Launching crew from the Start menu or
