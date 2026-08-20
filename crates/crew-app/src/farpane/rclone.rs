@@ -9,6 +9,7 @@ use serde::Deserialize;
 use super::list;
 use super::location::Location;
 use super::Entry;
+use crew_hive::childproc::no_console_window;
 
 pub(crate) fn argv_lsjson(loc: &Location) -> Vec<String> {
     vec!["lsjson".into(), loc.rclone_addr()]
@@ -101,7 +102,10 @@ pub(crate) fn run_with(program: &str, argv: Vec<String>) -> Receiver<RcloneDone>
     let (tx, rx) = mpsc::channel();
     let program = program.to_string();
     std::thread::spawn(move || {
-        let done = match std::process::Command::new(&program).args(&argv).output() {
+        let done = match no_console_window(&mut std::process::Command::new(&program))
+            .args(&argv)
+            .output()
+        {
             Ok(out) => RcloneDone {
                 code: out.status.code(),
                 stdout: String::from_utf8_lossy(&out.stdout).into_owned(),
@@ -129,7 +133,7 @@ fn tail_line(bytes: &[u8]) -> Option<String> {
 
 /// Whether the `rclone` binary resolves on `$PATH`.
 pub(crate) fn available() -> bool {
-    std::process::Command::new("rclone")
+    no_console_window(&mut std::process::Command::new("rclone"))
         .arg("version")
         .output()
         .map(|o| o.status.success())

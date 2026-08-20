@@ -8,6 +8,7 @@ mod crtchain;
 mod embedfont;
 mod fadepass;
 mod fontlist;
+mod fontverify;
 mod frame;
 mod glass;
 mod gpu;
@@ -38,5 +39,13 @@ pub use smoothing::DEFAULT_SMOOTH;
 /// [`fontlist`]). GPU-free (builds its own font database), so diagnostics
 /// like `crew --list-fonts` can call it without a window.
 pub fn list_monospace_families() -> Vec<String> {
-    fontlist::monospace_families(&mut embedfont::font_system())
+    // No grid here, so screen at a nominal 16px cell — `snaps_to_cells` is
+    // scale-invariant for a fixed-pitch face (its advance is a constant
+    // fraction of the size), so this reports what the app will accept.
+    const SIZE: f32 = 16.0;
+    let cell_w = (SIZE * celltext::CELL_W_RATIO).round();
+    let mut fs = embedfont::font_system();
+    let mut fams = fontlist::monospace_families(&mut fs);
+    fams.retain(|f| fontverify::snaps_to_cells(&mut fs, f, SIZE, cell_w, 600));
+    fams
 }

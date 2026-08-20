@@ -15,6 +15,7 @@ use std::process::Command;
 use crate::PluginEvent;
 
 use super::relay::msg;
+use crew_hive::childproc::no_console_window;
 
 const REF_SPACE: &str = "refs/crew/";
 const SUBJECT_PREFIX: &str = "crew checkpoint: ";
@@ -23,6 +24,7 @@ const SUBJECT_PREFIX: &str = "crew checkpoint: ";
 /// trimmed stdout on success, trimmed stderr on failure.
 pub(super) fn git(dir: &Path, args: &[&str], index: Option<&Path>) -> Result<String, String> {
     let mut cmd = Command::new("git");
+    no_console_window(&mut cmd);
     cmd.args(args)
         .current_dir(dir)
         .env("GIT_OPTIONAL_LOCKS", "0");

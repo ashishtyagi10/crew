@@ -10,6 +10,7 @@ use std::time::{Duration, Instant};
 use serde_json::{json, Value};
 
 use super::config::ServerConfig;
+use crew_hive::childproc::no_console_window;
 
 /// Per-request deadline. `CREW_MCP_TIMEOUT_MS` overrides (default 30 s).
 fn timeout() -> Duration {
@@ -31,7 +32,7 @@ pub struct McpClient {
 impl McpClient {
     /// Launch the server and run the `initialize` handshake.
     pub fn connect(cfg: &ServerConfig) -> Result<Self, String> {
-        let mut child = Command::new(&cfg.command)
+        let mut child = no_console_window(&mut Command::new(&cfg.command))
             .args(&cfg.args)
             .envs(&cfg.env)
             .stdin(Stdio::piped())

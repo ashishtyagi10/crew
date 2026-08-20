@@ -214,8 +214,21 @@ impl CellGrid {
 
     /// Sorted, de-duplicated names of all installed monospace font families
     /// (verified fixed-pitch — `&mut` because verification loads the faces).
+    ///
+    /// Screened twice, and the second screen is the one that counts: a family
+    /// must also survive [`crate::fontverify::snaps_to_cells`], which shapes a
+    /// probe through *this grid's* real size and weight. `fontlist` measures
+    /// the face it found by name; this measures the face that shaping actually
+    /// selects. A Windows box shipped a proportional render with the first
+    /// check passing, because those were not the same font.
     pub fn monospace_families(&mut self) -> Vec<String> {
-        monospace_families(&mut self.font_system)
+        let params = self.font_params();
+        let (font_size, cell_w, weight) = (params.font_size, params.cell_w, params.weight);
+        let mut fams = monospace_families(&mut self.font_system);
+        fams.retain(|f| {
+            crate::fontverify::snaps_to_cells(&mut self.font_system, f, font_size, cell_w, weight)
+        });
+        fams
     }
 
     /// Returns the monospace cell size `(width, height)` in pixels.

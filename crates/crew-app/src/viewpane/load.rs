@@ -11,6 +11,7 @@ use std::path::{Path, PathBuf};
 use std::sync::mpsc::{self, Receiver};
 
 use super::detect::{detect, Extractor, Format, Opaque, Probe, SNIFF_BYTES};
+use crew_hive::childproc::no_console_window;
 
 /// How much of a file the pane will show. Deliberately a cap on what is
 /// DISPLAYED, not on what may be opened: the 40 MB log is precisely the file
@@ -108,7 +109,7 @@ fn cap_text(mut text: String) -> (String, Option<u64>) {
 /// Run an extractor and capture its stdout. A non-zero exit is reported with
 /// the tool's own stderr — it knows why it failed and we do not.
 fn extract(e: Extractor, path: &Path) -> Result<String, String> {
-    let out = std::process::Command::new(e.bin())
+    let out = no_console_window(&mut std::process::Command::new(e.bin()))
         .args(argv(e, path))
         .output()
         .map_err(|err| format!("{}: {err}", e.bin()))?;

@@ -10,6 +10,7 @@ use crate::PluginEvent;
 use super::relay::msg;
 use super::session::{call_timeout, Session};
 use super::stdio::roster;
+use crew_hive::childproc::no_console_window;
 
 /// Log budget interpolated into the prompt.
 const LOG_CAP: usize = 10_000;
@@ -30,7 +31,7 @@ pub(crate) fn parse_days(rest: &str) -> Option<u32> {
 /// when there are none in the window, `Err` outside a repository. Clipped to
 /// [`LOG_CAP`].
 pub(crate) fn recent_log(dir: &Path, days: u32) -> Result<Option<String>, String> {
-    let out = std::process::Command::new("git")
+    let out = no_console_window(&mut std::process::Command::new("git"))
         .current_dir(dir)
         .args([
             "log",

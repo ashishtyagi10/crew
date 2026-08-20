@@ -10,16 +10,26 @@
 //! Every list LEADS with a face that suits that theme's character — the
 //! leads deliberately differ across themes, so changing themes usually
 //! changes the font too (a shared lead would pin every theme to the same
-//! face on any machine that has it installed). Every list then ENDS in
+//! face on any machine that has it installed). Every list ENDS in
 //! [`EMBEDDED_FAMILY`], which crew ships inside its own binary, so resolution
-//! cannot come up empty on any machine. Lists used to end in OS-stock faces
-//! instead (`Menlo`/`SF Mono`, `Noto Sans Mono`/`DejaVu Sans Mono`,
-//! `Cascadia Mono`) — none of which exist on a stock Windows 10, which is how
-//! a fresh Windows install ended up rendering in proportional Segoe UI. The
-//! OS-stock names stay in the lists as mid-list options; they are just no
-//! longer the safety net. The dated faces are deliberately not listed —
-//! `Cascadia Mono` replaced `Consolas` on Windows the way `SF Mono` replaced
-//! `Monaco` on macOS; crew prefers the modern one in both cases.
+//! cannot come up empty on any machine.
+//!
+//! What sits between those two is only ever a *designer* pick. The generic
+//! last-resorts used to live at the tail — `Noto Sans Mono` above all, plus
+//! `DejaVu Sans Mono` and `Cascadia Mono` — and they caused two separate
+//! Windows bugs. First they were the only tail, and none of them exist on a
+//! stock Windows box, so nothing resolved and the app drew in proportional
+//! Segoe UI. Then, once the embedded face was added *behind* them, a machine
+//! that happened to have one of them still preferred it — and crew was back to
+//! rendering in whatever that machine's copy turned out to be. A generic
+//! fallback whose whole job is "resolve something" has no job left once crew
+//! ships a face of its own, so they are gone from the lists. They remain in
+//! [`FONT_ALLOWLIST`], so `/font` and the rotation can still reach them; they
+//! are simply never crew's automatic answer any more.
+//!
+//! The dated faces are deliberately not listed at all — `Cascadia Mono`
+//! replaced `Consolas` on Windows the way `SF Mono` replaced `Monaco` on
+//! macOS; crew prefers the modern one in both cases.
 use crate::ThemeId;
 
 /// The family crew **embeds in its own binary** (`crew-render`'s `embedfont`),
@@ -91,8 +101,8 @@ pub const FONT_ALLOWLIST: &[&str] = &[
 /// wherever it was installed, so a theme rotation changed the palette but
 /// never the font. Warm/paper themes keep `Comic Mono` as a mid-list option;
 /// every list ends in [`EMBEDDED_FAMILY`], the face crew ships with itself, so
-/// a bare machine still resolves something. Every entry is in
-/// [`FONT_ALLOWLIST`].
+/// a bare machine still resolves something — and nothing generic sits in front
+/// of it (see the module docs). Every entry is in [`FONT_ALLOWLIST`].
 pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
     match id {
         // Paper: a book face — humanist, generous counters.
@@ -103,7 +113,6 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "ComicMono Nerd Font Mono",
             "SF Mono",
             "Menlo",
-            "Noto Sans Mono",
             "Lilex",
         ],
         // Sepia: warm and typewritten — friendly rounded shapes suit it, so
@@ -115,7 +124,6 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "MonoLisa",
             "SF Mono",
             "Menlo",
-            "Noto Sans Mono",
             "Lilex",
         ],
         // Midnight ink: high-contrast, tight.
@@ -125,7 +133,6 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "Geist Mono",
             "SF Mono",
             "Menlo",
-            "Noto Sans Mono",
             "Lilex",
         ],
         // Graphite: the system's own neutral.
@@ -135,7 +142,6 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "JetBrainsMono NF",
             "JetBrains Mono",
             "Menlo",
-            "Noto Sans Mono",
             "Lilex",
         ],
         // Coldpress / glacier: flat, drafting-table — geometric and even
@@ -147,7 +153,6 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "Geist Mono",
             "SF Mono",
             "Menlo",
-            "Noto Sans Mono",
             "Lilex",
         ],
         // Broadsheet / ledger: newsprint and accounting — a clean modern
@@ -158,7 +163,6 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "Comic Mono",
             "ComicMono Nerd Font Mono",
             "Menlo",
-            "Noto Sans Mono",
             "Lilex",
         ],
         // (moss-blotter shares the ledger's study-desk character.)
@@ -168,7 +172,6 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "Comic Mono",
             "ComicMono Nerd Font Mono",
             "Menlo",
-            "Noto Sans Mono",
             "Lilex",
         ],
         // CRT: a terminal face with squared-off shoulders — straight modern
@@ -185,7 +188,6 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "JetBrains Mono",
             "SF Mono",
             "Menlo",
-            "Noto Sans Mono",
             "Lilex",
         ],
         // Graphene: neutral and product-grade — Commit Mono's whole thesis.
@@ -195,7 +197,6 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "Geist Mono",
             "SF Mono",
             "Menlo",
-            "Noto Sans Mono",
             "Lilex",
         ],
         // Cobalt: wide, techy, electric.
@@ -206,7 +207,6 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "JetBrains Mono",
             "SF Mono",
             "Menlo",
-            "Noto Sans Mono",
             "Lilex",
         ],
         ThemeId::CrtGreen
@@ -258,6 +258,32 @@ mod tests {
                  machine with none of them installed the theme resolves no \
                  font at all and shaping falls back to a proportional face"
             );
+        }
+    }
+
+    /// The second Windows bug, pinned: a *generic* fallback must never sit in
+    /// front of the embedded face.
+    ///
+    /// Shipping Lilex fixed the machine that resolved nothing. It did not fix
+    /// the machine that had `Noto Sans Mono`, because that name came first in
+    /// every list — so crew still picked whatever the machine's copy was and
+    /// still drew a broken grid. These names earn a place only by being
+    /// somebody's deliberate choice of coding face; "it resolves" is no longer
+    /// a qualification.
+    #[test]
+    fn no_generic_fallback_outranks_the_embedded_family() {
+        const GENERIC: [&str; 3] = ["Noto Sans Mono", "DejaVu Sans Mono", "Liberation Mono"];
+        for id in ALL_THEMES {
+            let prefs = font_prefs(id);
+            let at = prefs.iter().position(|f| *f == EMBEDDED_FAMILY).unwrap();
+            for g in GENERIC {
+                assert!(
+                    !prefs[..at].contains(&g),
+                    "{id:?} prefers the generic {g:?} over the face crew ships \
+                     — on a machine that has it, crew renders in it whatever \
+                     it turns out to be"
+                );
+            }
         }
     }
 

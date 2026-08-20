@@ -1,6 +1,7 @@
 //! Bounded shell-subprocess spawning for [`super`]'s probes. Split out of
 //! `shellprobe.rs` to keep that file's higher-level merge/fallback logic
 //! short; these are pure process-plumbing details.
+use crew_hive::childproc::no_console_window;
 use std::io::Read;
 use std::process::{Command, Stdio};
 use std::sync::mpsc;
@@ -23,7 +24,7 @@ pub(super) fn bounded_shell_path(shell: &str, timeout: Duration) -> Option<Strin
 /// within `timeout` (`Command::output()` alone has no deadline); stdout is
 /// drained on a side thread while this one polls for a result or deadline.
 fn bounded_shell_output(shell: &str, args: &[&str], timeout: Duration) -> Option<String> {
-    let mut child = Command::new(shell)
+    let mut child = no_console_window(&mut Command::new(shell))
         .args(args)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())

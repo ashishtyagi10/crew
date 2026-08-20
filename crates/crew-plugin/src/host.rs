@@ -1,5 +1,6 @@
 use crate::{PluginCommand, PluginEvent};
 use anyhow::Result;
+use crew_hive::childproc::no_console_window;
 use std::io::{BufRead, BufReader, Write};
 use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::mpsc::{self, Receiver};
@@ -23,6 +24,7 @@ impl Plugin {
     /// tracked directory instead of letting it inherit.
     pub fn spawn_in(cmd: &str, args: &[String], cwd: Option<&std::path::Path>) -> Result<Plugin> {
         let mut command = Command::new(cmd);
+        no_console_window(&mut command);
         command
             .args(args)
             .stdin(Stdio::piped())

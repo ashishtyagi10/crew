@@ -10,6 +10,7 @@ use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
 use super::registry::CliSpec;
+use crew_hive::childproc::no_console_window;
 
 /// One CLI's reported auth state.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -101,7 +102,7 @@ pub(crate) fn run_split(
     args: &[&str],
     timeout: Duration,
 ) -> Option<(bool, String, String)> {
-    let mut child = Command::new(bin)
+    let mut child = no_console_window(&mut Command::new(bin))
         .args(args)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
