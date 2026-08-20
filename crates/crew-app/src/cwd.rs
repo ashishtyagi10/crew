@@ -84,12 +84,25 @@ fn strip_verbatim(path: &str) -> &str {
 }
 
 /// [`strip_verbatim`] applied to an owned path.
-fn simplified(path: PathBuf) -> PathBuf {
+pub(crate) fn simplified(path: PathBuf) -> PathBuf {
     let s = path.to_string_lossy();
     match strip_verbatim(&s) {
         stripped if stripped.len() == s.len() => path.clone(),
         stripped => PathBuf::from(stripped),
     }
+}
+
+/// `canonicalize` + [`simplified`] — the exact pair the product applies, for
+/// tests that need to state an expected path.
+///
+/// Windows CI caught six tests computing their expectation with a bare
+/// `canonicalize()`, which there yields the verbatim `\\?\C:\…` form the
+/// product now strips. The assertions were wrong, not the code — but a test
+/// that hand-rolls half of what it is checking will drift again, so they all
+/// go through this.
+#[cfg(test)]
+pub(crate) fn canonical(path: &Path) -> PathBuf {
+    simplified(path.canonicalize().expect("canonicalize"))
 }
 
 /// The directory to launch in: the `saved` config path when it still exists as a
@@ -243,7 +256,7 @@ mod tests {
 
     #[test]
     fn resolve_relative_and_absolute() {
-        let base = std::env::temp_dir().canonicalize().unwrap();
+        let base = canonical(&std::env::temp_dir());
         // "." resolves back to base.
         assert_eq!(resolve(&base, "."), Some(base.clone()));
         // an absolute existing dir is kept.
@@ -254,7 +267,7 @@ mod tests {
 
     #[test]
     fn resolve_expands_env_var() {
-        let base = std::env::temp_dir().canonicalize().unwrap();
+        let base = canonical(&std::env::temp_dir());
         std::env::set_var("CREW_RESOLVE_DIR", base.to_str().unwrap());
         // `$VAR` expands to an absolute existing dir.
         assert_eq!(resolve(Path::new("/"), "$CREW_RESOLVE_DIR"), Some(base));
@@ -262,7 +275,7 @@ mod tests {
 
     #[test]
     fn resolved_start_prefers_valid_saved_dir() {
-        let base = std::env::temp_dir().canonicalize().unwrap();
+        let base = canonical(&std::env::temp_dir());
         // a saved dir that exists is used
         assert_eq!(resolved_start(Some(base.to_str().unwrap())), base);
         // a missing saved dir, or none, falls back to the process cwd
@@ -425,7 +438,7 @@ mod tests {
     #[test]
     fn cd_home_resolves_without_a_posix_home_variable() {
         let home = dirs::home_dir().expect("home dir");
-        let canon = home.canonicalize().ok();
+        let canon = Some(canonical(&home));
         // `cd`, `cd ~` both mean home — via dirs, not $HOME.
         assert_eq!(resolve(Path::new(std::path::MAIN_SEPARATOR_STR), ""), canon);
         assert_eq!(

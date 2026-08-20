@@ -334,7 +334,7 @@ fn zoom_chord_toggles() {
 
 #[test]
 fn cd_in_input_changes_cwd_and_legend() {
-    let base = std::env::temp_dir().canonicalize().unwrap();
+    let base = crate::cwd::canonical(&std::env::temp_dir());
     let mut app = CrewApp {
         cwd: base.clone(),
         ..Default::default()
@@ -390,7 +390,7 @@ fn cd_dash_toggles_previous_directory() {
     let b = base.join("crew_cd_dash_b");
     std::fs::create_dir_all(&a).unwrap();
     std::fs::create_dir_all(&b).unwrap();
-    let (a, b) = (a.canonicalize().unwrap(), b.canonicalize().unwrap());
+    let (a, b) = (crate::cwd::canonical(&a), crate::cwd::canonical(&b));
 
     let mut app = CrewApp {
         cwd: a.clone(),
