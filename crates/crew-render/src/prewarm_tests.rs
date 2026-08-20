@@ -3,7 +3,6 @@
 //! glyphon patches the whole scheme depends on are still applied, and — on
 //! a machine with a GPU — `CellGrid::prepare` warms before any scene exists.
 use glyphon::cosmic_text::{CacheKey, SwashCache, SwashContent};
-use glyphon::FontSystem;
 
 use super::{build_buffer, working_set};
 use crate::cellgrid::CellGrid;
@@ -56,7 +55,7 @@ fn working_set_covers_ascii_and_the_chrome_glyphs() {
 
 #[test]
 fn prewarm_buffer_seeds_smoothed_masks_for_every_glyph() {
-    let mut fs = FontSystem::new();
+    let mut fs = crate::embedfont::font_system();
     let mut swash = SwashCache::new();
     let p = params(28.0, 200);
     let buffers = [build_buffer(&mut fs, &p)];

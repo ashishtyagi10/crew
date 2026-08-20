@@ -1,5 +1,4 @@
 use glyphon::cosmic_text::{CacheKeyFlags, SwashCache, SwashContent, SwashImage};
-use glyphon::FontSystem;
 
 use super::{presmooth, smooth_mask, strength_of, text_flags};
 use crate::cellgrid::CellView;
@@ -29,7 +28,7 @@ fn text_flags_disable_hinting_and_carry_the_strength_byte() {
 
 #[test]
 fn shaped_glyphs_carry_the_flags_through_to_their_cache_keys() {
-    let mut fs = FontSystem::new();
+    let mut fs = crate::embedfont::font_system();
     let (cell_w, cell_h) = cell_metrics(14.0);
     let cells = [CellView {
         col: 0,
@@ -118,7 +117,7 @@ fn smoothing_never_dims_an_original_pixel() {
 
 #[test]
 fn presmooth_seeds_the_cache_with_padded_heavier_masks() {
-    let mut fs = FontSystem::new();
+    let mut fs = crate::embedfont::font_system();
     let mut swash = SwashCache::new();
     let (cell_w, cell_h) = cell_metrics(14.0);
     let cells = [CellView {
@@ -174,7 +173,7 @@ fn presmooth_seeds_the_cache_with_padded_heavier_masks() {
 
 #[test]
 fn presmooth_at_zero_strength_seeds_untouched_masks() {
-    let mut fs = FontSystem::new();
+    let mut fs = crate::embedfont::font_system();
     let mut swash = SwashCache::new();
     let (cell_w, cell_h) = cell_metrics(14.0);
     let cells = [CellView {

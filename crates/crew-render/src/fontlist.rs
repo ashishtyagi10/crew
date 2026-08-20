@@ -99,7 +99,7 @@ mod tests {
         assert!(!is_blocked("JetBrains Mono"));
         assert!(!is_blocked("MonoLisa"));
         // Even installed, a blocked face must not survive the family scan.
-        let mut fs = FontSystem::new();
+        let mut fs = crate::embedfont::font_system();
         let names = monospace_families(&mut fs);
         assert!(
             !names.iter().any(|n| is_blocked(n)),
@@ -109,7 +109,7 @@ mod tests {
 
     #[test]
     fn monospace_families_sorted_and_deduped() {
-        let mut fs = FontSystem::new();
+        let mut fs = crate::embedfont::font_system();
         let names = monospace_families(&mut fs);
         let mut sorted = names.clone();
         sorted.sort();
@@ -124,7 +124,7 @@ mod tests {
         // These ship flagged monospaced on macOS but are not coding faces:
         // Arial Unicode MS is proportional; Symbols Nerd Font Mono has no
         // Latin letters. If installed, the measured policy must drop them.
-        let mut fs = FontSystem::new();
+        let mut fs = crate::embedfont::font_system();
         let names = monospace_families(&mut fs);
         for noise in ["Arial Unicode MS", "Symbols Nerd Font Mono"] {
             assert!(

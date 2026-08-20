@@ -5,6 +5,7 @@ mod celltext;
 pub mod color;
 mod crt;
 mod crtchain;
+mod embedfont;
 mod fadepass;
 mod fontlist;
 mod frame;
@@ -24,6 +25,7 @@ mod textprep;
 pub use cellgrid::CellGrid;
 pub use cellgrid::CellView;
 pub use crtchain::CrtChain;
+pub use embedfont::font_system;
 pub use fadepass::FadePass;
 pub use glass::{GlassCard, GlassLayer};
 pub use paperbg::{ModernPaper, PaperBgPass};
@@ -36,5 +38,5 @@ pub use smoothing::DEFAULT_SMOOTH;
 /// [`fontlist`]). GPU-free (builds its own font database), so diagnostics
 /// like `crew --list-fonts` can call it without a window.
 pub fn list_monospace_families() -> Vec<String> {
-    fontlist::monospace_families(&mut glyphon::FontSystem::new())
+    fontlist::monospace_families(&mut embedfont::font_system())
 }

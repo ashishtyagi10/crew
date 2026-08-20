@@ -1,6 +1,5 @@
 use super::*;
 use crate::scenecache::pane_sig;
-use glyphon::FontSystem;
 
 fn params() -> FontParams {
     FontParams {
@@ -73,7 +72,7 @@ fn pane_sig_ignores_position_but_not_size() {
 
 #[test]
 fn unchanged_pane_reuses_last_frames_buffer() {
-    let mut fs = FontSystem::new();
+    let mut fs = crate::embedfont::font_system();
     let panes = vec![pane(vec![cell(0, 0, 'a', (1, 2, 3))], false, false)];
     let (_q, bufs, sigs, _bd, _c) = build_scene(
         &panes,

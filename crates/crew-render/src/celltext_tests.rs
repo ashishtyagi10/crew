@@ -62,7 +62,7 @@ fn bold_glyphs_snap_to_the_same_cell_advance() {
         bold,
         italic: false,
     };
-    let mut fs = FontSystem::new();
+    let mut fs = crate::embedfont::font_system();
     let cells = vec![
         style(0, 'W', true),
         style(1, 'i', true),
@@ -103,7 +103,7 @@ fn medium_weight_glyphs_snap_to_the_same_cell_advance() {
         bold: false,
         italic: false,
     };
-    let mut fs = FontSystem::new();
+    let mut fs = crate::embedfont::font_system();
     let cells = vec![style(0, 'W'), style(1, 'i'), style(2, 'm'), style(3, '0')];
     let (cell_w, cell_h) = cell_metrics(14.0);
     let p = FontParams {
@@ -143,7 +143,7 @@ fn semibold_weight_glyphs_snap_to_the_same_cell_advance() {
         bold: false,
         italic: false,
     };
-    let mut fs = FontSystem::new();
+    let mut fs = crate::embedfont::font_system();
     let cells = vec![style(0, 'W'), style(1, 'i'), style(2, 'm'), style(3, '0')];
     let (cell_w, cell_h) = cell_metrics(14.0);
     let p = FontParams {
@@ -175,7 +175,7 @@ fn a_heavier_weight_rasterizes_more_ink() {
     // through the swash cache and compare total coverage — heavier = more ink.
     use glyphon::SwashCache;
     let ink = |weight: u16| -> u64 {
-        let mut fs = FontSystem::new();
+        let mut fs = crate::embedfont::font_system();
         let mut swash = SwashCache::new();
         let (cell_w, cell_h) = cell_metrics(14.0);
         let cells = vec![CellView {
@@ -217,7 +217,7 @@ fn a_heavier_weight_rasterizes_more_ink() {
 
 #[test]
 fn build_pane_buffer_lays_out_grid_with_styles() {
-    let mut fs = FontSystem::new();
+    let mut fs = crate::embedfont::font_system();
     let cells = vec![
         CellView {
             col: 0,
@@ -257,7 +257,7 @@ fn build_pane_buffer_lays_out_grid_with_styles() {
 
 #[test]
 fn build_pane_buffer_handles_empty_cells() {
-    let mut fs = FontSystem::new();
+    let mut fs = crate::embedfont::font_system();
     // Empty family string also exercises the system-monospace fallback.
     let buf = build_pane_buffer(&mut fs, &[], 2, 2, 16.0, 32.0, &params(Some(String::new())));
     assert!(buf.layout_runs().count() <= 2);
@@ -275,7 +275,7 @@ fn adjacent_same_style_cells_coalesce_into_one_span() {
         bold: false,
         italic: false,
     };
-    let mut fs = FontSystem::new();
+    let mut fs = crate::embedfont::font_system();
     let cells = vec![style(0, 'a'), style(1, 'b'), style(2, 'c')];
     let buf = build_pane_buffer(&mut fs, &cells, 3, 1, 16.0, 20.0, &params(None));
     // One physical line, and the glyphs spell "abc" in order.
@@ -293,7 +293,7 @@ fn base_weight_is_medium_on_both_appearances() {
 
 #[test]
 fn build_pane_buffer_ignores_out_of_range_cells() {
-    let mut fs = FontSystem::new();
+    let mut fs = crate::embedfont::font_system();
     // A cell beyond cols/rows must be dropped without panicking.
     let cells = vec![CellView {
         col: 9,
@@ -369,7 +369,7 @@ fn roster_symbol_glyphs_stay_on_cell_grid() {
             .chars()
             .collect();
     for family in [None, Some("ComicMono Nerd Font Mono".to_string())] {
-        let mut fs = FontSystem::new();
+        let mut fs = crate::embedfont::font_system();
         if let Some(fam) = &family {
             let installed = fs
                 .db()

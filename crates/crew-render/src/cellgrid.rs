@@ -92,7 +92,7 @@ impl CellGrid {
         format: wgpu::TextureFormat,
         font_size: f32,
     ) -> Self {
-        let font_system = FontSystem::new();
+        let font_system = crate::embedfont::font_system();
         let swash = SwashCache::new();
         let cache = Cache::new(device);
         let viewport = Viewport::new(device, &cache);

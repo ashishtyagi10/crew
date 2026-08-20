@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
 use std::sync::Mutex;
 
 mod fonts;
-pub use fonts::{font_prefs, FONT_ALLOWLIST};
+pub use fonts::{font_prefs, EMBEDDED_FAMILY, FONT_ALLOWLIST};
 
 /// Every colour the UI draws with. RGB triples; `ansi` is the 16-slot terminal
 /// palette (indices 0–15) used for shell output.

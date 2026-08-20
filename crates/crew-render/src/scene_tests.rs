@@ -105,7 +105,7 @@ fn build(
 
 #[test]
 fn bg_quads_only_for_non_default_cells() {
-    let mut fs = FontSystem::new();
+    let mut fs = crate::embedfont::font_system();
     let panes = vec![pane(
         vec![cell(0, 0, 'a', default_bg()), cell(1, 0, 'b', (10, 20, 30))],
         false,
@@ -121,14 +121,14 @@ fn bg_quads_only_for_non_default_cells() {
 
 #[test]
 fn bordered_pane_emits_a_border() {
-    let mut fs = FontSystem::new();
+    let mut fs = crate::embedfont::font_system();
     let (_q, _b, _s, borders, _c) = build(&[pane(vec![], true, false)], &mut fs, false, no_glass());
     assert_eq!(borders.len(), 1);
 }
 
 #[test]
 fn want_overlay_partitions_panes() {
-    let mut fs = FontSystem::new();
+    let mut fs = crate::embedfont::font_system();
     let panes = vec![
         pane(vec![cell(0, 0, 'x', (1, 2, 3))], true, false),
         pane(vec![cell(0, 0, 'y', (4, 5, 6))], false, true),
@@ -144,7 +144,7 @@ fn want_overlay_partitions_panes() {
 
 #[test]
 fn overlay_pane_gets_an_opaque_page_bg_backdrop() {
-    let mut fs = FontSystem::new();
+    let mut fs = crate::embedfont::font_system();
     // An overlay pane with only default-bg cells still gets a backdrop.
     let panes = vec![pane(vec![cell(0, 0, 'y', default_bg())], false, true)];
     let (quads, _b, _s, _bd, _c) = build(&panes, &mut fs, true, no_glass());
@@ -161,7 +161,7 @@ fn overlay_pane_gets_an_opaque_page_bg_backdrop() {
 
 #[test]
 fn focused_border_is_brighter_than_unfocused() {
-    let mut fs = FontSystem::new();
+    let mut fs = crate::embedfont::font_system();
     let mut p = pane(vec![], true, false);
     p.focused = true;
     let (_q, _b, _s, focused, _c) = build(&[p], &mut fs, false, no_glass());
@@ -188,7 +188,7 @@ fn focused_border_is_brighter_than_unfocused() {
 /// "misaligned input bar" phantom edge.
 #[test]
 fn glass_card_matches_the_drawn_frame_and_border_radius() {
-    let mut fs = FontSystem::new();
+    let mut fs = crate::embedfont::font_system();
     let (_q, _b, _s, borders, cards) =
         build(&[card(vec![], true, false)], &mut fs, false, test_glass());
     assert_eq!(cards.len(), 1);
@@ -201,7 +201,7 @@ fn glass_card_matches_the_drawn_frame_and_border_radius() {
 
 #[test]
 fn glass_off_builds_no_cards() {
-    let mut fs = FontSystem::new();
+    let mut fs = crate::embedfont::font_system();
     let (_q, _b, _s, _bd, cards) = build(&[card(vec![], true, false)], &mut fs, false, no_glass());
     assert!(cards.is_empty(), "Off must cost nothing to draw");
 }
@@ -211,7 +211,7 @@ fn glass_off_builds_no_cards() {
 /// the inner sheet darkening a band one cell inside the frame.
 #[test]
 fn non_card_scenes_get_no_glass() {
-    let mut fs = FontSystem::new();
+    let mut fs = crate::embedfont::font_system();
     let (_q, _b, _s, _bd, cards) =
         build(&[pane(vec![], true, false)], &mut fs, false, test_glass());
     assert!(cards.is_empty());
@@ -221,7 +221,7 @@ fn non_card_scenes_get_no_glass() {
 /// through — glass under one would undo that.
 #[test]
 fn overlay_panes_get_no_glass() {
-    let mut fs = FontSystem::new();
+    let mut fs = crate::embedfont::font_system();
     let (_q, _b, _s, _bd, cards) = build(&[card(vec![], true, true)], &mut fs, true, test_glass());
     assert!(cards.is_empty());
 }
@@ -230,7 +230,7 @@ fn overlay_panes_get_no_glass() {
 /// the card must carry whatever alphas it was handed.
 #[test]
 fn level_scales_the_cards_it_builds() {
-    let mut fs = FontSystem::new();
+    let mut fs = crate::embedfont::font_system();
     let mut built = |style| {
         let (_q, _b, _s, _bd, cards) = build(&[card(vec![], true, false)], &mut fs, false, style);
         cards.into_iter().next().expect("expected a glass card")
@@ -244,7 +244,7 @@ fn level_scales_the_cards_it_builds() {
 /// without any second draw call.
 #[test]
 fn the_scan_position_reaches_the_card() {
-    let mut fs = FontSystem::new();
+    let mut fs = crate::embedfont::font_system();
     let mut p = card(vec![], true, false);
     p.scan = 0.4;
     let (_q, _b, _s, _bd, cards) = build(&[p], &mut fs, false, test_glass());
@@ -256,7 +256,7 @@ fn the_scan_position_reaches_the_card() {
 /// which is what keeps an idle crew's sheet completely still.
 #[test]
 fn a_resting_card_has_no_scan() {
-    let mut fs = FontSystem::new();
+    let mut fs = crate::embedfont::font_system();
     let (_q, _b, _s, _bd, cards) =
         build(&[card(vec![], true, false)], &mut fs, false, test_glass());
     assert!(cards[0].scan < 0.0);
