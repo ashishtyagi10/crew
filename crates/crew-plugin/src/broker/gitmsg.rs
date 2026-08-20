@@ -13,6 +13,7 @@ use crate::PluginEvent;
 use super::relay::msg;
 use super::session::{call_timeout, Session};
 use super::stdio::roster;
+use crew_hive::childproc::no_console_window;
 
 /// Diff budget interpolated into the prompt (chars); clipped with a marker so
 /// a huge refactor still yields a message instead of blowing the context.
@@ -49,7 +50,7 @@ fn lock(c: &SharedCommit) -> MutexGuard<'_, Option<PendingCommit>> {
 /// Run `git args` in `dir`, capturing stdout; non-zero exit becomes Err with
 /// stderr folded in.
 fn git(dir: &Path, args: &[&str]) -> Result<String, String> {
-    let out = Command::new("git")
+    let out = no_console_window(&mut Command::new("git"))
         .current_dir(dir)
         .args(args)
         .output()

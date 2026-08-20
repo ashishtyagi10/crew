@@ -9,6 +9,7 @@ use super::ask;
 use super::keys::FarAction;
 use super::location::Location;
 use super::FarPane;
+use crew_hive::childproc::no_console_window;
 
 /// What a finished command reports back: its exit code (None = killed by a
 /// signal) and the last non-empty output line for the status bar.
@@ -25,7 +26,7 @@ pub(crate) fn start(shell: &str, sh_cmd: &str, cwd: &Path) -> Receiver<CmdDone> 
     let sh_cmd = sh_cmd.to_string();
     let cwd = cwd.to_path_buf();
     std::thread::spawn(move || {
-        let done = match std::process::Command::new(&shell)
+        let done = match no_console_window(&mut std::process::Command::new(&shell))
             .arg("-c")
             .arg(&sh_cmd)
             .current_dir(&cwd)

@@ -4,6 +4,7 @@
 use std::path::Path;
 
 use super::doctor::DoctorInputs;
+use crew_hive::childproc::no_console_window;
 
 /// Is `bin` an executable on the `:`-separated `path`?
 pub(crate) fn on_path(bin: &str, path: &str) -> bool {
@@ -70,7 +71,7 @@ pub(crate) fn gather(session: &super::session::Session) -> DoctorInputs {
             .map(|a| (a.name().to_string(), on_path(a.name(), &path)))
             .collect(),
         bash: Path::new("/bin/bash").exists(),
-        git: std::process::Command::new("git")
+        git: no_console_window(&mut std::process::Command::new("git"))
             .args(["rev-parse", "--is-inside-work-tree"])
             .output()
             .is_ok_and(|o| o.status.success()),

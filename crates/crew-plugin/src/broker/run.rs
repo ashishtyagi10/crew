@@ -1,6 +1,7 @@
 //! Spawning an agent CLI with a hard timeout, and probing whether a CLI is
 //! installed. A hung agent must never block the broker: [`run_cli`] kills the
 //! child once the deadline passes and returns an error the broker can log.
+use crew_hive::childproc::no_console_window;
 use std::io::Read;
 use std::path::Path;
 use std::process::{Command, Stdio};
@@ -37,7 +38,7 @@ fn is_exec(p: &Path) -> bool {
 /// CLI banners never leak into a reply). Returns `Err` if the process can't be
 /// spawned or doesn't finish within `timeout` (in which case it is killed).
 pub fn run_cli(program: &str, args: &[String], timeout: Duration) -> Result<String, String> {
-    let mut child = Command::new(program)
+    let mut child = no_console_window(&mut Command::new(program))
         .args(args)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())

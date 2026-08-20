@@ -10,6 +10,7 @@ use crew_render::CellView;
 use crate::boxdraw::section_header;
 
 use crate::palette::accent;
+use crew_hive::childproc::no_console_window;
 
 /// Minimum seconds between git queries while the working directory is unchanged.
 const GIT_POLL_SECS: u64 = 3;
@@ -153,7 +154,7 @@ fn grab(s: &str, key: &str) -> usize {
 
 /// Run `git -C dir <args>`, returning trimmed stdout on success.
 fn run(dir: &Path, args: &[&str]) -> Option<String> {
-    let out = Command::new("git")
+    let out = no_console_window(&mut Command::new("git"))
         .arg("-C")
         .arg(dir)
         .args(args)
