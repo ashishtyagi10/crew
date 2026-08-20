@@ -568,6 +568,7 @@ dependencies = [
  "pollster",
  "pulldown-cmark",
  "ratatui",
+ "reqwest",
  "self_update",
  "serde",
  "serde_json",
