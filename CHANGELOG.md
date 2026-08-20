@@ -8,6 +8,38 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.17.11
+
+**No more console flash on Windows.** Launching crew from the Start menu or
+Explorer flashed a black console window every time, and nothing in the
+program could stop it: Windows hands a console-subsystem program a window
+before its first instruction runs, so even closing it immediately leaves it
+up for the whole of startup. crew is a GUI-subsystem program now and no
+console is ever created.
+
+The console modes still work — `crew --version`, `crew ask`, `crew panes`,
+`--list-fonts` all reattach to the terminal that launched them, and piped
+output still goes to the pipe. One thing genuinely changes: shells do not
+wait for a GUI program, so a command typed at a prompt may print *after*
+the prompt comes back. There is no way to have both.
+
+**Panes open somewhere useful again.** Double-clicking `crew.exe` in the
+unzipped download made every pane open *inside that download*, so the
+prompt read `PS C:\Users\me\Downloads\crew-v0.17.10-x86_64-pc-windows-msvc>`
+— the exe's own folder, reported as the place you were working. Windows
+sets the working directory to the exe's folder when Explorer launches it,
+and crew took that at face value. It now starts at your home directory
+when the directory was picked by a launcher rather than by you. The same
+fix covers a macOS Dock launch, which lands at the filesystem root.
+
+**And the path reads as a path.** Three smaller Windows bugs stacked on top
+of each other: `$HOME` does not exist there, so the `~` shortening never
+happened and `cd ~` did nothing; the path separator was hardcoded to `/`,
+so `C:\Users\me\code` would not have shortened anyway; and Windows'
+`canonicalize` returns `\\?\C:\Users\me\code`, which crew was showing
+verbatim. Between them, a path that should read `~\code` was displayed in
+full with four characters of prefix noise.
+
 ## 0.17.10
 
 Two Windows bugs, both found from a photo of a running v0.17.9 screen.
