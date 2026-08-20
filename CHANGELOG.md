@@ -8,6 +8,43 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.17.10
+
+Two Windows bugs, both found from a photo of a running v0.17.9 screen.
+
+**A new terminal window opened every three seconds.** `crew.exe` is a
+console program — it has to be, because `crew --version`, `crew ask` and
+the broker all need real stdio — but the window itself is launched
+detached, which on Windows means it has no console of its own. Windows
+hands a brand-new console *window* to any console program started by a
+process without one, and crew checks `git status` every three seconds for
+the sidebar. So: a terminal, every three seconds, forever, taking focus
+each time, while the main window sat there looking perfectly fine. The
+broker, the shell probe, every MCP server and the `/far` and file-viewer
+helpers did the same thing on startup. Every one of them is now started
+with an invisible console instead — the pipes work exactly as before.
+
+**Text was still mangled, because the font crew ships was the last
+resort.** Embedding Lilex in 0.17.9 only helped a machine that resolved
+*nothing*; it went in behind `Noto Sans Mono`, so any machine carrying
+that name still preferred it — and still drew a broken grid. The grid
+rounds every glyph to the nearest whole cell, which is invisible for a
+real terminal face and brutal for anything else: wide letters take two
+cells and narrow ones (`i`, `l`, `.`, and the space) take **none**, so
+`terminals.` came out as `term inals` and `commands` as `com m ands`.
+
+The generic fallbacks are gone from the theme preference lists. Their
+whole job was "resolve to something", and crew now carries a face of its
+own that does that better. They are still in the picker, so `/font` can
+still reach them — they are just never crew's automatic answer.
+
+And crew now checks its own work: before a font can be used, it shapes a
+probe through the real grid, at the real size and weight, and confirms
+every glyph lands on exactly one cell. The old check measured the font it
+found by name; this one measures the font that actually gets drawn. On
+that Windows machine they were not the same font, which is how a
+proportional render passed a fixed-pitch test.
+
 ## 0.17.9
 
 crew now ships its own typeface, and a fresh Windows install finally looks
