@@ -58,13 +58,44 @@ jobs:
       - name: Release build
         run: cargo build --release -p crew-app --bin crew
 
+      # crew must be a GUI-subsystem binary: a console-subsystem one is handed
+      # a console window by the OS before `main` runs, so every Start-menu
+      # launch flashed a black window and nothing in the program could stop it.
+      # Assert on the shipped PE header — the attribute is easy to drop and the
+      # symptom only shows on a desktop nobody watches during CI.
+      - name: Subsystem — the shipped exe is GUI, not console
+        run: |
+          $bytes = [System.IO.File]::ReadAllBytes("target/release/crew.exe")
+          $pe = [System.BitConverter]::ToInt32($bytes, 0x3c)
+          $subsystem = [System.BitConverter]::ToUInt16($bytes, $pe + 24 + 68)
+          Write-Host "PE Subsystem = $subsystem (2 = GUI, 3 = console)"
+          if ($subsystem -ne 2) {
+            throw "crew.exe is subsystem $subsystem, not 2 (GUI) — Windows will flash a console window on every launch"
+          }
+
       # A smoke check that the shipped artifact is actually runnable — `crew`
       # with no console-mode subcommand would open the GUI, so use one that
       # returns before that path.
+      #
+      # `Start-Process -Wait` rather than a bare call: shells do NOT wait for a
+      # GUI-subsystem process, so a plain invocation returns immediately and the
+      # Test-Path below would race the shortcut being written.
       - name: Smoke — install-app registers per-user and exits
         run: |
-          ./target/release/crew.exe install-app
+          Start-Process -FilePath "./target/release/crew.exe" -ArgumentList "install-app" -Wait -NoNewWindow
           if (-not (Test-Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Crew.lnk")) {
             throw "install-app did not create the Start-menu shortcut"
           }
-          ./target/release/crew.exe install-app --remove
+          Start-Process -FilePath "./target/release/crew.exe" -ArgumentList "install-app --remove" -Wait -NoNewWindow
+
+      # The GUI subsystem takes stdio away from a terminal launch; `wincon`
+      # gives it back. Piped output must survive that — the broker speaks a
+      # JSON-line protocol over pipes, and `wincon` must never redirect a
+      # handle the caller already set up.
+      - name: Smoke — CLI output still reaches a pipe
+        run: |
+          $out = & "./target/release/crew.exe" --version 2>&1 | Out-String
+          Write-Host "captured: '$($out.Trim())'"
+          if ($out -notmatch "crew") {
+            throw "crew --version produced no captured output — wincon is not wiring stdio, or it clobbered the pipe"
+          }

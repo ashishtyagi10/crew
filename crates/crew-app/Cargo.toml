@@ -49,6 +49,9 @@ windows-sys = { version = "0.59", features = [
     "Win32_Storage_FileSystem",
     "Win32_System_IO",
     "Win32_System_Pipes",
+    # `wincon`: reattach the CLI modes to the launching shell's console, which
+    # the GUI subsystem otherwise denies them.
+    "Win32_System_Console",
 ] }
 
 [target.'cfg(windows)'.build-dependencies]
