@@ -1,3 +1,12 @@
+//! `crew` — the GUI, and every console mode that must answer before it.
+//!
+//! **GUI subsystem** (Windows): a console-subsystem binary is handed a console
+//! window by the OS before `main` runs, so every Start-menu launch flashed a
+//! black window. Declaring the GUI subsystem means one is never created. The
+//! console modes below get their stdio back through [`wincon::attach_to_parent`]
+//! — see that module for what the choice costs.
+#![cfg_attr(windows, windows_subsystem = "windows")]
+
 mod activitylog;
 mod altscroll;
 mod anim;
@@ -193,6 +202,7 @@ mod usageledger;
 mod viewpane;
 mod washphase;
 mod welcome;
+mod wincon;
 mod windowtitle;
 
 /// What a bare `crew <args>` invocation wants before any GUI exists.
@@ -242,6 +252,16 @@ fn main() -> anyhow::Result<()> {
     // normal path (so the OS files no crash report) — without this hook the
     // window just disappears and leaves nothing to diagnose.
     crashlog::install();
+    // Windows: crew is a GUI-subsystem binary so a Start-menu launch never
+    // flashes a console, which also means a terminal launch starts with no
+    // stdio at all. Reattach to the launching shell's console before anything
+    // below prints. Skipped for the detached GUI child — it is detached from
+    // that terminal on purpose, and it never prints. Handles the shell already
+    // set up (pipes, redirects, the broker's JSON-line stdio) are left alone;
+    // see `wincon`.
+    if !detach::is_detached_child() {
+        wincon::attach_to_parent();
+    }
     // Answered before anything else: these must never reach the GUI launch.
     let args: Vec<String> = std::env::args().skip(1).collect();
     match cli_intent(&args) {
