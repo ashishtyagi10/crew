@@ -31,6 +31,12 @@ crew-hive = { path = "../crew-hive" }
 crew-theme = { path = "../crew-theme" }
 tokio = { workspace = true }
 self_update = { workspace = true }
+# Header types for the update download. `self_update` hands back GitHub's *API*
+# asset URL, which serves JSON metadata unless asked for octet-stream.
+reqwest = { workspace = true }
+# Staging directory for an update download. Runtime, not just dev: the archive
+# is unpacked beside the binary it replaces (same volume, and out of %TEMP%).
+tempfile = "3"
 image = { version = "0.25", default-features = false, features = ["png"] }
 
 # setsid(2) for `--detach` (new session, so a closed terminal can't SIGHUP us).
@@ -64,7 +70,6 @@ objc2-foundation = { version = "0.3", default-features = false, features = ["std
 objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSApplication", "NSImage", "NSResponder"] }
 
 [dev-dependencies]
-tempfile = "3"
 # Offscreen render check (`swarm_shot`, #[ignore]d): draws a real mid-run chat
 # pane through the same CellGrid the app uses and writes a PNG, so the layout
 # can be verified with real fonts and no window — the GUI harness needs macOS

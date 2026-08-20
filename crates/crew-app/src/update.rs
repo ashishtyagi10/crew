@@ -173,7 +173,8 @@ impl CrewApp {
             }
             UpdateCmdAction::AlreadyRunning => self.set_status("update already in progress"),
             UpdateCmdAction::Spawn => {
-                self.update = Some(UpdateState::new(crate::updatefetch::spawn_worker()));
+                let log = self.applog.sender();
+                self.update = Some(UpdateState::new(crate::updatefetch::spawn_worker(log)));
                 self.set_status("checking for updates…");
                 self.redraw();
             }
@@ -192,7 +193,7 @@ impl CrewApp {
             return;
         }
         self.update = Some(UpdateState::new_with(
-            crate::updatefetch::spawn_worker(),
+            crate::updatefetch::spawn_worker(self.applog.sender()),
             true,
         ));
     }

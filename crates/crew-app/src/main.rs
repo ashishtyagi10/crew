@@ -89,6 +89,7 @@ mod editpane;
 mod envexpand;
 mod envlock;
 mod events;
+mod exereplace;
 mod faraction;
 mod farpane;
 mod filedrop;
@@ -326,6 +327,13 @@ fn main() -> anyhow::Result<()> {
     // don't use. One probe covers both PATH (`cmdcheck::effective_path`) and
     // provider-key discovery (`shellprobe::provider_now`/`openrouter_key`).
     shellprobe::init_probe();
+    // An in-place update leaves the superseded binary beside the new one:
+    // Windows cannot delete an image while it is running, so the update that
+    // installed *this* build could not clean up after itself. Best effort, and
+    // silent — a failure just means it is still in use.
+    if let Ok(exe) = std::env::current_exe() {
+        exereplace::sweep_leftovers(&exe);
+    }
     handler::run()
 }
 
