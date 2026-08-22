@@ -55,18 +55,24 @@ hot path and must not start doing colour maths per frame; the ramp runs at const
 struct is unchanged. This is a change to how the numbers are *authored*, not to what the renderer
 consumes — which also means it can land theme-by-theme with the suite green throughout.
 
-### Phase 2 — the 16 ANSI slots, which nobody has ever checked
+### Phase 2 — the ANSI palette, which is checked for legibility but not as a system
 
-`contrast_thresholds` covers exactly four ANSI slots — 1, 2, 3 and 6 — and only where crew's own
-chrome draws them (the chat code card, the diff added/removed rows). **The other twelve are
-unverified against anything.** They are the palette every shell command's output lands in, so they
-are the colours a user actually stares at all day, and they are the least examined thing in the
-crate. The same ramp gives the eight base hues one shared chroma and lightness per theme, with the
-bright half a fixed lightness step above — the way every respected scheme (Catppuccin, Tokyo
-Night, Monokai Pro) is built — and the suite grows to cover all sixteen against `term_bg`.
+*(Corrected 2026-08-22: an earlier draft of this goal said twelve ANSI slots were unverified. That
+was wrong — `lib_tests.rs:353` loops slots 1–6 and 9–14 against `term_bg` at ≥ 3.0. What follows
+is what is actually missing.)*
 
-Expect this phase to find real bugs. A slot that has never been measured in a palette that was
-never derived is not likely to be fine.
+Three real gaps. **Slots 0, 7, 8 and 15 are skipped outright** — the blacks and whites, deliberately
+excluded because they sit near the background, which is exactly why "near" needs a number rather
+than a comment. **The floor is 3.0**, a legibility minimum, and nothing above it: a palette can
+pass with every hue crowded into the same corner. And **nothing checks the slots against each
+other** — red and yellow may be a hair apart in perceived lightness and the suite will not notice,
+though a user reading `git diff` will.
+
+The same ramp fixes all three by construction: the eight base hues get one shared chroma and
+lightness per theme, spaced by hue rather than by eye, with the bright half a fixed lightness step
+above — the way every respected scheme (Catppuccin, Tokyo Night, Monokai Pro) is built. The suite
+then grows a *pairwise* assertion — minimum perceptual distance between slots — which is the check
+that does not exist today in any form.
 
 ### Phase 3 — restraint, measured
 
