@@ -8,6 +8,28 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.7
+
+**`auto`'s light hours are in Settings now.** The window that decides day from
+night when your OS appearance is pinned was config-file-only. Two boxes,
+**Auto day from** and **Auto day to**, sit paired under the Theme picker in the
+APPEARANCE card — they are one window, and they are only read while the theme
+is `auto`, so that is where they belong.
+
+They take `HH:MM` and nothing else. A valid time is tidied up on save (`5:5`
+becomes `05:05`) and an invalid one keeps what was there before rather than
+guessing — coercing `25:00` to midnight would pin the theme to dark all day
+from a typo. If the config file already held something unparseable, the boxes
+show the window actually in effect rather than echoing the typo back.
+
+The check that was supposed to prevent a setting reaching the config file
+without reaching Settings could not: it hand-listed the fields it expected, so
+anything nobody added to the list was invisible to it. It reads the config
+struct itself now, and every key must either be editable or listed as
+deliberately absent with a reason. That turned up four more config-only
+settings — `auto`'s per-appearance theme pairing and the two footer usage
+budgets — which are now known gaps rather than unknown ones.
+
 ## 0.18.6
 
 **Three claims in the theme docs that were no longer true.** Not user-facing,
