@@ -76,6 +76,7 @@ pub struct Theme {
 mod crtstyle;
 mod glass;
 mod modernstyle;
+pub mod oklch;
 mod presets_crt;
 mod presets_crt_cool;
 mod presets_modern;
@@ -86,6 +87,7 @@ mod presets_paper;
 mod presets_paper_dark2;
 mod presets_paper_light;
 mod presets_paper_light2;
+pub mod ramp;
 mod tagcolor;
 pub use crtstyle::CrtStyle;
 pub use glass::{style as glass_style, style_for as glass_style_for, GlassLevel, GlassStyle};

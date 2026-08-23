@@ -14,23 +14,23 @@ use crate::{CrtStyle, Theme};
 /// and a gentle flicker: projected light, not a raster gun.
 pub static CRT_VIOLET: Theme = Theme {
     page_bg: (5, 2, 8),
-    ink: (232, 170, 255),
-    text_muted: (205, 140, 235),
+    ink: (237, 193, 254),
+    text_muted: (194, 152, 210),
     term_fg: (232, 170, 255),
     term_bg: (5, 2, 8),
     // Unfocused borders sit back (focus-led hierarchy, as in paper-dark).
-    border_normal: (88, 50, 110),
+    border_normal: (100, 61, 114),
     border_focused: (235, 150, 255),
     border_thickness: 3.5,
-    legend_off: (170, 115, 200),
+    legend_off: (164, 122, 179),
     accent_default: (245, 170, 255),
     status_fg: (245, 185, 250),
     broadcast: (255, 150, 200),
     activity: (205, 130, 255),
     bell: (255, 190, 240),
-    dim: (120, 78, 145),
-    placeholder: (135, 88, 162),
-    hint_fg: (150, 100, 180),
+    dim: (119, 80, 133),
+    placeholder: (138, 98, 153),
+    hint_fg: (152, 112, 168),
     find_hl_bg: (60, 25, 85),
     ansi: [
         (55, 35, 75),    // 0  black
@@ -71,23 +71,23 @@ pub static CRT_VIOLET: Theme = Theme {
 /// light-cycle trail.
 pub static CRT_BLUE: Theme = Theme {
     page_bg: (1, 4, 8),
-    ink: (0, 229, 255),
-    text_muted: (0, 182, 214),
+    ink: (27, 229, 255),
+    text_muted: (0, 184, 205),
     term_fg: (0, 229, 255),
     term_bg: (1, 4, 8),
     // Unfocused borders sit back (focus-led hierarchy, as in paper-dark).
-    border_normal: (0, 78, 110),
+    border_normal: (0, 85, 95),
     border_focused: (0, 225, 255),
     border_thickness: 3.5,
-    legend_off: (0, 145, 180),
+    legend_off: (0, 152, 170),
     accent_default: (90, 255, 255),
     status_fg: (150, 230, 255),
     broadcast: (170, 180, 255),
     activity: (0, 220, 255),
     bell: (170, 220, 255),
-    dim: (0, 105, 140),
-    placeholder: (0, 122, 155),
-    hint_fg: (0, 138, 172),
+    dim: (0, 105, 117),
+    placeholder: (0, 125, 140),
+    hint_fg: (0, 140, 156),
     find_hl_bg: (10, 45, 75),
     ansi: [
         (20, 50, 75),    // 0  black
@@ -130,23 +130,23 @@ pub static CRT_BLUE: Theme = Theme {
 /// a page of light, not a driven raster.
 pub static CRT_PAPERWHITE: Theme = Theme {
     page_bg: (4, 5, 7),
-    ink: (235, 240, 248),
-    text_muted: (188, 196, 210),
+    ink: (225, 230, 237),
+    text_muted: (188, 193, 199),
     term_fg: (235, 240, 248),
     term_bg: (4, 5, 7),
     // Unfocused borders sit back (focus-led hierarchy, as in paper-dark).
-    border_normal: (82, 90, 104),
+    border_normal: (73, 78, 83),
     border_focused: (230, 238, 248),
     border_thickness: 3.5,
-    legend_off: (150, 160, 175),
+    legend_off: (134, 139, 145),
     accent_default: (200, 220, 255),
     status_fg: (215, 225, 240),
     broadcast: (205, 190, 230),
     activity: (180, 210, 245),
     bell: (225, 230, 245),
-    dim: (120, 130, 145),
-    placeholder: (130, 140, 155),
-    hint_fg: (140, 150, 165),
+    dim: (116, 121, 127),
+    placeholder: (108, 113, 119),
+    hint_fg: (117, 122, 128),
     find_hl_bg: (45, 55, 75),
     ansi: [
         (55, 60, 70),    // 0  black

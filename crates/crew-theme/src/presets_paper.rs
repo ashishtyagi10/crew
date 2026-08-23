@@ -8,25 +8,25 @@ use crate::Theme;
 /// muted-but-readable colours so error/diff colour cues survive. The default.
 pub static PAPER_DARK: Theme = Theme {
     page_bg: (12, 8, 5),
-    ink: (247, 247, 247),
-    text_muted: (196, 196, 196),
+    ink: (232, 232, 232),
+    text_muted: (197, 194, 193),
     term_fg: (247, 247, 247),
     term_bg: (12, 8, 5),
     // Unfocused borders sit back (~3.4:1 on the page — visual parity with the
     // light theme's ~1.9:1 weight) so the FOCUSED near-white frame carries the
     // "where am I" signal instead of every card shouting equally.
-    border_normal: (72, 72, 72),
+    border_normal: (71, 66, 61),
     border_focused: (235, 235, 235),
     border_thickness: 2.5,
-    legend_off: (140, 140, 140),
+    legend_off: (144, 139, 136),
     accent_default: (240, 240, 240),
     status_fg: (235, 195, 120),
     broadcast: (200, 150, 190),
     activity: (140, 175, 210),
     bell: (235, 195, 120),
-    dim: (125, 125, 125),
-    placeholder: (112, 112, 112),
-    hint_fg: (135, 135, 135),
+    dim: (126, 121, 118),
+    placeholder: (118, 113, 109),
+    hint_fg: (127, 122, 119),
     find_hl_bg: (70, 62, 20),
     ansi: [
         (95, 95, 95),    // 0  black -> neutral grey (visible on near-black)
@@ -57,22 +57,22 @@ pub static PAPER_LIGHT: Theme = Theme {
     page_bg: (246, 243, 236),
     // Ink and every text shade run deep enough that type reads crisp on the
     // bright page (ink ≥ 16:1, muted ≥ 11:1) rather than washed-out.
-    ink: (22, 20, 18),
-    text_muted: (55, 51, 45),
+    ink: (26, 22, 20),
+    text_muted: (56, 51, 48),
     term_fg: (22, 20, 18),
     term_bg: (246, 243, 236),
-    border_normal: (175, 166, 148),
+    border_normal: (177, 173, 167),
     border_focused: (105, 97, 83),
     border_thickness: 3.0,
-    legend_off: (100, 94, 83),
+    legend_off: (96, 93, 88),
     accent_default: (110, 72, 38),
     status_fg: (107, 78, 26),
     broadcast: (110, 45, 88),
     activity: (40, 72, 108),
     bell: (115, 84, 20),
-    dim: (105, 99, 88),
-    placeholder: (118, 112, 101),
-    hint_fg: (112, 106, 95),
+    dim: (113, 109, 104),
+    placeholder: (121, 117, 112),
+    hint_fg: (112, 108, 103),
     find_hl_bg: (235, 220, 150),
     ansi: [
         (28, 26, 23),   // 0  black
@@ -106,23 +106,23 @@ pub static PAPER_LIGHT: Theme = Theme {
 /// family's "aged newsprint at night" page.
 pub static SEPIA_DARK: Theme = Theme {
     page_bg: (24, 17, 11),
-    ink: (241, 229, 205),
-    text_muted: (208, 192, 164),
+    ink: (249, 238, 213),
+    text_muted: (211, 199, 180),
     term_fg: (241, 229, 205),
     term_bg: (24, 17, 11),
     // Focus-led border hierarchy, as in paper-dark.
-    border_normal: (92, 74, 55),
+    border_normal: (78, 70, 62),
     border_focused: (216, 192, 150),
     border_thickness: 2.5,
-    legend_off: (170, 152, 124),
+    legend_off: (154, 143, 131),
     accent_default: (235, 190, 120),
     status_fg: (235, 195, 120),
     broadcast: (210, 150, 180),
     activity: (150, 175, 205),
     bell: (235, 195, 120),
-    dim: (140, 124, 100),
-    placeholder: (128, 113, 92),
-    hint_fg: (150, 134, 108),
+    dim: (135, 125, 114),
+    placeholder: (127, 116, 106),
+    hint_fg: (137, 126, 115),
     find_hl_bg: (80, 62, 24),
     ansi: [
         (100, 88, 72),   // 0  black -> warm grey
@@ -153,23 +153,23 @@ pub static SEPIA_DARK: Theme = Theme {
 /// keeping the ink itself cool.
 pub static MIDNIGHT_INK: Theme = Theme {
     page_bg: (16, 14, 12),
-    ink: (232, 238, 248),
-    text_muted: (185, 196, 215),
+    ink: (230, 236, 244),
+    text_muted: (200, 196, 203),
     term_fg: (232, 238, 248),
     term_bg: (16, 14, 12),
     // Focus-led border hierarchy, as in paper-dark.
-    border_normal: (66, 76, 100),
+    border_normal: (72, 68, 66),
     border_focused: (200, 214, 235),
     border_thickness: 2.5,
-    legend_off: (140, 152, 175),
+    legend_off: (147, 141, 141),
     accent_default: (150, 190, 245),
     status_fg: (235, 200, 120),
     broadcast: (200, 155, 215),
     activity: (130, 180, 225),
     bell: (235, 200, 120),
-    dim: (110, 120, 140),
-    placeholder: (100, 110, 130),
-    hint_fg: (120, 131, 152),
+    dim: (128, 123, 122),
+    placeholder: (120, 115, 113),
+    hint_fg: (130, 125, 124),
     find_hl_bg: (50, 62, 100),
     ansi: [
         (90, 96, 110),   // 0  black -> cool grey
@@ -199,23 +199,23 @@ pub static MIDNIGHT_INK: Theme = Theme {
 /// lower-glare paper-dark.
 pub static GRAPHITE: Theme = Theme {
     page_bg: (32, 28, 27),
-    ink: (226, 226, 228),
-    text_muted: (183, 183, 186),
+    ink: (241, 241, 243),
+    text_muted: (212, 210, 212),
     term_fg: (226, 226, 228),
     term_bg: (32, 28, 27),
     // Focus-led border hierarchy, as in paper-dark.
-    border_normal: (85, 85, 88),
+    border_normal: (81, 76, 76),
     border_focused: (215, 215, 218),
     border_thickness: 2.5,
-    legend_off: (150, 150, 154),
+    legend_off: (156, 152, 153),
     accent_default: (222, 222, 225),
     status_fg: (230, 195, 125),
     broadcast: (198, 152, 188),
     activity: (142, 175, 208),
     bell: (230, 195, 125),
-    dim: (130, 130, 134),
-    placeholder: (120, 120, 124),
-    hint_fg: (140, 140, 144),
+    dim: (137, 133, 133),
+    placeholder: (129, 124, 124),
+    hint_fg: (139, 134, 134),
     find_hl_bg: (75, 68, 28),
     ansi: [
         (110, 110, 113), // 0  black -> mid grey
