@@ -38,6 +38,8 @@ pub(crate) fn buf_of(p: &mut SettingsPane, f: Field) -> Option<&mut String> {
         Field::Accent => Some(&mut p.accent_buf),
         Field::PaperGrain => Some(&mut p.grain_buf),
         Field::WindowOpacity => Some(&mut p.opacity_buf),
+        Field::LightFrom => Some(&mut p.light_from_buf),
+        Field::LightTo => Some(&mut p.light_to_buf),
         Field::NotifyMinSecs => Some(&mut p.minsecs_buf),
         Field::NotifyPatterns => Some(&mut p.patterns_buf),
         _ => None,
@@ -45,12 +47,19 @@ pub(crate) fn buf_of(p: &mut SettingsPane, f: Field) -> Option<&mut String> {
 }
 
 /// Whether `c` may be typed into the field's buffer (currently `buf`).
-fn allowed(f: Field, buf: &str, c: char) -> bool {
+pub(super) fn allowed(f: Field, buf: &str, c: char) -> bool {
     match f {
         Field::FontSize | Field::NavWidth | Field::NotifyMinSecs | Field::WindowOpacity => {
             c.is_ascii_digit()
         }
         Field::PaperGrain => c.is_ascii_digit() || (c == '.' && !buf.contains('.')),
+        // `HH:MM` and nothing else: digits, one colon, five characters. The
+        // length cap is what stops a buffer growing past what the commit can
+        // parse, which would silently revert on every keystroke after it.
+        Field::LightFrom | Field::LightTo => {
+            buf.chars().count() < 5
+                && (c.is_ascii_digit() || (c == ':' && !buf.contains(':') && !buf.is_empty()))
+        }
         Field::Accent => (c == '#' || c.is_ascii_hexdigit()) && buf.len() < 7,
         Field::NotifyPatterns => !c.is_control(),
         _ => false,

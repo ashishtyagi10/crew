@@ -30,6 +30,10 @@ pub(crate) enum Field {
     NavWidth,
     ShowNav,
     Theme,
+    /// `auto`'s light-hours window, `HH:MM` each. Placed under Theme because
+    /// they are only read while it is `auto` AND the OS appearance is pinned.
+    LightFrom,
+    LightTo,
     Accent,
     PaperTexture,
     PaperGrain,
@@ -47,7 +51,7 @@ pub(crate) enum Field {
     Cancel,
 }
 
-pub(crate) const FIELDS: [Field; 21] = [
+pub(crate) const FIELDS: [Field; 23] = [
     Field::FontFamily,
     Field::FontSize,
     Field::Smooth,
@@ -55,6 +59,8 @@ pub(crate) const FIELDS: [Field; 21] = [
     Field::WindowOpacity,
     Field::ShowNav,
     Field::Theme,
+    Field::LightFrom,
+    Field::LightTo,
     Field::Accent,
     Field::PaperTexture,
     Field::PaperGrain,
@@ -99,6 +105,10 @@ pub struct SettingsPane {
     /// Window opacity as a whole percentage (`35`–`100`), so the number the
     /// user types is the number they see rather than a 0-1 fraction.
     pub(crate) opacity_buf: String,
+    /// `auto`'s light-hours window as typed, `HH:MM`. Normalised to
+    /// zero-padded form on every refresh, so `7:5` reads back as `07:05`.
+    pub(crate) light_from_buf: String,
+    pub(crate) light_to_buf: String,
     /// Minimum command runtime (seconds) before a "finished" notification.
     pub(crate) minsecs_buf: String,
     /// Watched output substrings, one per line (text area).
@@ -116,6 +126,7 @@ impl SettingsPane {
         let accent_buf = cfg.accent.clone().unwrap_or_default();
         let grain_buf = format!("{:.1}", cfg.paper_grain);
         let opacity_buf = format!("{}", (cfg.window_opacity * 100.0).round() as i32);
+        let (light_from_buf, light_to_buf) = commit::light_bufs(&cfg);
         let minsecs_buf = format!("{}", cfg.notify_min_secs);
         let patterns_buf = cfg.notify_patterns.join("\n");
         Self {
@@ -130,6 +141,8 @@ impl SettingsPane {
             accent_buf,
             grain_buf,
             opacity_buf,
+            light_from_buf,
+            light_to_buf,
             minsecs_buf,
             patterns_buf,
         }

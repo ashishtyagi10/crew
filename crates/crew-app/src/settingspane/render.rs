@@ -20,6 +20,10 @@ pub(crate) fn label_of(f: Field) -> &'static str {
         Field::NavWidth => "Nav width",
         Field::ShowNav => "Show nav",
         Field::Theme => "Theme",
+        // Short by necessity: these sit side by side in half-width boxes, and
+        // a legend wider than its border reads truncated (see Opacity %).
+        Field::LightFrom => "Auto day from",
+        Field::LightTo => "Auto day to",
         Field::Accent => "Accent (#hex)",
         Field::PaperTexture => "Paper texture",
         Field::PaperGrain => "Grain (0-2)",
@@ -58,6 +62,8 @@ pub(crate) fn value_of(p: &SettingsPane, f: Field) -> (String, bool) {
             format!("\u{2039} {} \u{203a}", p.draft.theme_label()),
             false,
         ),
+        Field::LightFrom => (p.light_from_buf.clone(), true),
+        Field::LightTo => (p.light_to_buf.clone(), true),
         Field::Accent => (p.accent_buf.clone(), true),
         Field::PaperTexture => (onoff(p.draft.paper_texture), false),
         Field::PaperGrain => (p.grain_buf.clone(), true),
