@@ -46,6 +46,38 @@
 //! So on a tube the separation is the one a real terminal used: the attention
 //! glyph **blinks** (`Attention::visible`), and the colour does not have to
 //! carry the signal alone.
+//! ## The band the signal roles hold, and the one that is identity
+//!
+//! Measured across the pools, the five signal roles look wild — `accent_default`
+//! spans **3.74x** page contrast from `sepia-light` (4.68) to `paper-dark`
+//! (17.51). That number is a trap. Almost all of it is the light/dark split,
+//! which is legitimate: a light page reaches contrast by going dark, and a
+//! saturated dark loses contrast fast, so every role sits lower on paper than
+//! on a night page. The ramp handles the same thing by giving each ladder its
+//! own house target rather than forcing one number across all of them.
+//!
+//! Measured WITHIN an appearance, the signal roles already agree:
+//!
+//! | role | dark | light | tube |
+//! |---|---|---|---|
+//! | status_fg | 1.09x | 1.41x | 1.30x |
+//! | bell | 1.10x | 1.44x | 1.42x |
+//! | broadcast | 1.21x | 1.49x | 1.58x |
+//! | activity | 1.05x | 1.39x | 1.51x |
+//! | accent_default | **2.13x** | 1.55x | 1.28x |
+//!
+//! One outlier, and it is design rather than drift: `paper-dark` is the
+//! high-contrast newspaper, and its accent is a near-white (240, 240, 240) at
+//! 17.51 against a page where `nebula`'s orchid sits at 8.22. Monochrome IS
+//! that palette; an accent forced into the band would take the theme with it.
+//! So it is named as an exception with a looser bound rather than quietly
+//! averaged away — the same shape as the ramp's lightness-cap exemption.
+//!
+//! The tests below pin these bands. Nothing derives from them: they are the
+//! tripwire for the drift that produced this module and the highlight wash,
+//! where a role outside anyone's contract slid for months with no test
+//! looking at it.
+
 use crate::oklch;
 
 /// Minimum perceptual distance between `status_fg` and `bell` on a coloured

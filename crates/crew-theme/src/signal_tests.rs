@@ -133,3 +133,90 @@ fn a_palette_that_already_separates_is_untouched() {
     let far = (255, 0, 0);
     assert_eq!(alarm((0, 0, 0), (0, 255, 0), (200, 30, 30), far), far);
 }
+
+/// Every signal role, and how far its page contrast may spread inside one
+/// appearance. See the module docs for why the bound is per-appearance and
+/// why `accent_default` gets its own.
+const BANDS: [(&str, fn(&crate::Theme) -> (u8, u8, u8), f32); 5] = [
+    ("status_fg", |t| t.status_fg, 1.8),
+    ("bell", |t| t.bell, 1.8),
+    ("broadcast", |t| t.broadcast, 1.8),
+    ("activity", |t| t.activity, 1.8),
+    // Monochrome is `paper-dark`'s identity: its near-white accent measures
+    // 17.51 where `nebula`'s orchid is 8.22. Named, not averaged away.
+    ("accent_default", |t| t.accent_default, 2.45),
+];
+
+/// The three appearances a palette can have, as the pools the bands apply
+/// within. A tube is its own case: everything on it is bright by nature.
+fn pools() -> [(&'static str, Vec<ThemeId>); 3] {
+    let pick = |f: fn(ThemeId) -> bool| ALL_THEMES.into_iter().filter(|id| f(*id)).collect();
+    [
+        ("dark", pick(|id| !id.is_crt() && id.theme().dark)),
+        ("light", pick(|id| !id.is_crt() && !id.theme().dark)),
+        ("tube", pick(ThemeId::is_crt)),
+    ]
+}
+
+/// A signal role means the same thing across the palettes of one appearance.
+///
+/// This is a tripwire, not a derivation — no colour is chosen from it. It
+/// exists because the two defects this module and `highlight` were written to
+/// fix had the same shape: a role outside the ramp's contract with nothing
+/// measuring it, drifting until someone noticed by eye.
+#[test]
+fn a_signal_role_holds_its_band_inside_an_appearance() {
+    for (pool, ids) in pools() {
+        for (role, get, bound) in BANDS {
+            let mut v: Vec<(f32, &str)> = ids
+                .iter()
+                .map(|id| {
+                    (
+                        contrast_ratio(get(id.theme()), id.theme().page_bg),
+                        id.as_str(),
+                    )
+                })
+                .collect();
+            v.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+            let spread = v[v.len() - 1].0 / v[0].0;
+            assert!(
+                spread <= bound,
+                "{pool}: {role} spans {spread:.2}x (bound {bound}) — {}",
+                v.iter()
+                    .map(|(c, n)| format!("{n} {c:.2}"))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            );
+        }
+    }
+}
+
+/// A bound nothing comes near is a bound that catches nothing — checked PER
+/// ROLE, because a single worst-case check lets any one bound be inflated to
+/// nonsense while another role holds the test up. (It did: loosening
+/// `status_fg` to 9.9 passed the first version of this.)
+///
+/// Closest today: `broadcast` on the tubes at 1.58x of a 1.8 bound.
+#[test]
+fn every_band_is_close_enough_to_the_palettes_to_bite() {
+    for (role, get, bound) in BANDS {
+        let reach = pools()
+            .iter()
+            .map(|(_, ids)| {
+                let mut v: Vec<f32> = ids
+                    .iter()
+                    .map(|id| contrast_ratio(get(id.theme()), id.theme().page_bg))
+                    .collect();
+                v.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                v[v.len() - 1] / v[0]
+            })
+            .fold(0.0f32, f32::max);
+        assert!(
+            reach / bound > 0.75,
+            "{role}: the widest any appearance spreads is {reach:.2}x against \
+             a bound of {bound} ({:.0}% of it) — that bound has stopped \
+             constraining the palettes",
+            reach / bound * 100.0
+        );
+    }
+}
