@@ -9,23 +9,23 @@ use crate::Theme;
 /// botanical (fern, spruce, lichen).
 pub static MOSS_BLOTTER: Theme = Theme {
     page_bg: (17, 21, 14),
-    ink: (240, 238, 225),
-    text_muted: (198, 198, 178),
+    ink: (243, 241, 227),
+    text_muted: (201, 203, 190),
     term_fg: (240, 238, 225),
     term_bg: (17, 21, 14),
     // Focus-led border hierarchy, as in paper-dark.
-    border_normal: (78, 88, 64),
+    border_normal: (69, 73, 64),
     border_focused: (214, 218, 190),
     border_thickness: 2.5,
-    legend_off: (150, 156, 130),
+    legend_off: (144, 147, 136),
     accent_default: (165, 205, 140),
     status_fg: (230, 198, 120),
     broadcast: (205, 155, 190),
     activity: (145, 180, 205),
     bell: (230, 198, 120),
-    dim: (128, 134, 110),
-    placeholder: (116, 122, 100),
-    hint_fg: (138, 144, 118),
+    dim: (124, 129, 118),
+    placeholder: (116, 121, 111),
+    hint_fg: (126, 130, 119),
     find_hl_bg: (66, 72, 26),
     ansi: [
         (98, 104, 86),   // 0  black -> warm-green grey

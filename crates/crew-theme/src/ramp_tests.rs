@@ -14,43 +14,12 @@ type RoleCase = (
     fn(&crate::Theme) -> (u8, u8, u8),
 );
 
-/// A derived role with no shipped counterpart to compare against.
-type Derived = (&'static str, fn(&Ramp) -> (u8, u8, u8));
-
-/// Half a rung of crew's own text hierarchy (AURORA `ink` → `text_muted`
-/// measures Δ 0.10 — see the scale test in `oklch`). Below this, a role has
-/// moved without changing what it is.
-const HALF_RUNG: f32 = 0.05;
-
-/// A full rung. Past this a role has moved far enough to be worth naming.
-const FULL_RUNG: f32 = 0.10;
-
-/// Roles the ramp deliberately moves more than a full rung, because the
-/// palette they came from was out of family.
-///
-/// This list is the honest form of "crew must not look different". A blanket
-/// cap would have been a lie — the whole point is to pull outliers back to the
-/// house ladder, and refusing to move anything would mean deriving nothing.
-/// Instead every correction is named and reviewed here, and an *unnamed* one
-/// fails the test.
-///
-/// All five are the same story. `dim` across the non-CRT pool spans 2.67..5.37
-/// with a median of 4.51; these four modern-light palettes sit at the bottom
-/// of that range with an input-bar hint noticeably fainter than every other
-/// theme's, and `crt-paperwhite` does the same within its own pool. Light and
-/// dark medians were checked separately before accepting this — they agree
-/// (dim 4.51 light, 4.63 dark), so this is not a light-page property being
-/// flattened, it is four palettes disagreeing with the other twenty.
-const EXPECTED_CORRECTIONS: [(&str, &str); 5] = [
-    ("daybreak", "dim"),
-    ("cirrus", "dim"),
-    ("meadow", "dim"),
-    ("blossom", "dim"),
-    ("crt-paperwhite", "dim"),
-];
+/// A derived role with no shipped counterpart to compare against: its name,
+/// how the ramp produces it, and where its target sits in the ladder.
+type Derived = (&'static str, fn(&Ramp) -> (u8, u8, u8), fn(&House) -> f32);
 
 #[test]
-fn the_derived_ladder_stays_close_to_every_shipped_palette() {
+fn every_shipped_ladder_is_what_the_ramp_produces() {
     let roles: [RoleCase; 7] = [
         ("ink", |r| r.ink(), |t| t.ink),
         ("text_muted", |r| r.text_muted(), |t| t.text_muted),
@@ -60,116 +29,112 @@ fn the_derived_ladder_stays_close_to_every_shipped_palette() {
         ("placeholder", |r| r.placeholder(), |t| t.placeholder),
         ("border_normal", |r| r.border_normal(), |t| t.border_normal),
     ];
-    let mut all: Vec<(f32, &str, &str, String)> = Vec::new();
+    let mut off: Vec<String> = Vec::new();
     for id in ALL_THEMES {
         let t = id.theme();
         let ramp = Ramp::fitted(t);
         for (name, derive, current) in roles {
             let (got, have) = (derive(&ramp), current(t));
-            let d = distance(got, have);
-            all.push((
-                d,
-                id.as_str(),
-                name,
-                format!("{have:?} → {got:?} (Δ {d:.4})"),
-            ));
+            // One 8-bit code of slack per channel. The ramp reads its own hue
+            // and chroma back off the shipped `ink`, so re-deriving squeezes
+            // through sRGB quantisation once more; anything larger means the
+            // presets have been edited away from the ramp by hand.
+            let d = |a: u8, b: u8| (a as i16 - b as i16).abs();
+            if d(got.0, have.0) > 1 || d(got.1, have.1) > 1 || d(got.2, have.2) > 1 {
+                off.push(format!(
+                    "{} {name}: shipped {have:?}, ramp says {got:?}",
+                    id.as_str()
+                ));
+            }
         }
     }
-
-    // 1. Overall, the look is preserved: the typical role barely moves.
-    let mut sorted: Vec<f32> = all.iter().map(|(d, ..)| *d).collect();
-    sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
-    let median = sorted[sorted.len() / 2];
     assert!(
-        median < 0.03,
-        "median drift {median:.4} across {} roles — the ramp is redrawing the \
-         palettes rather than regularising them",
-        sorted.len()
-    );
-
-    // 2. Nothing moves beyond recognition, corrections included.
-    let worst = all
-        .iter()
-        .max_by(|a, b| a.0.partial_cmp(&b.0).unwrap())
-        .unwrap();
-    assert!(
-        worst.0 < 0.15,
-        "{} {} moved {:.4}, past anything reviewable: {}",
-        worst.1,
-        worst.2,
-        worst.0,
-        worst.3
-    );
-
-    // 3. Every role that moves more than a rung is one we named.
-    let mut moved: Vec<(&str, &str)> = all
-        .iter()
-        .filter(|(d, ..)| *d > FULL_RUNG)
-        .map(|(_, theme, role, _)| (*theme, *role))
-        .collect();
-    moved.sort_unstable();
-    let mut expected = EXPECTED_CORRECTIONS.to_vec();
-    expected.sort_unstable();
-    assert_eq!(
-        moved,
-        expected,
-        "the set of corrections changed. Unnamed movement past a rung is a \
-         regression, not a correction — details:\n  {}",
-        all.iter()
-            .filter(|(d, ..)| *d > FULL_RUNG)
-            .map(|(_, t, r, s)| format!("{t} {r}: {s}"))
-            .collect::<Vec<_>>()
-            .join("\n  ")
-    );
-
-    // 4. And most roles do not move perceptibly at all.
-    let steady = all.iter().filter(|(d, ..)| *d <= HALF_RUNG).count();
-    assert!(
-        steady * 100 / all.len() >= 70,
-        "only {steady}/{} roles held within half a rung — too much of the \
-         palette is moving",
-        all.len()
+        off.is_empty(),
+        "{} of {} shipped roles are not what the ramp derives — the palettes \
+         and the system have diverged, which is the state this work exists to \
+         end:\n  {}",
+        off.len(),
+        ALL_THEMES.len() * roles.len(),
+        off.join("\n  ")
     );
 }
 
 /// The point of the exercise: after derivation the same role means the same
-/// thing everywhere. Today these span up to 2.05x (see the module docs).
+/// thing everywhere in a ladder. Today these span up to 2.05x (module docs).
+///
+/// One documented exception, and it is the trade the lightness cap buys: a
+/// theme whose page is lighter than its ladder's others cannot reach the house
+/// ratio without going near-white, so it stops at [`House::max_l`] and sits a
+/// little under. Those themes are held to a different assertion — that they
+/// are at the cap — rather than waved through.
 #[test]
-fn a_role_means_the_same_thing_in_every_theme_of_a_pool() {
+fn a_role_means_the_same_thing_in_every_theme_of_a_ladder() {
     let roles: [Derived; 7] = [
-        ("ink", |r| r.ink()),
-        ("text_muted", |r| r.text_muted()),
-        ("legend_off", |r| r.legend_off()),
-        ("dim", |r| r.dim()),
-        ("hint_fg", |r| r.hint_fg()),
-        ("placeholder", |r| r.placeholder()),
-        ("border_normal", |r| r.border_normal()),
+        ("ink", |r| r.ink(), |h| h.ink),
+        ("text_muted", |r| r.text_muted(), |h| h.text_muted),
+        ("legend_off", |r| r.legend_off(), |h| h.legend_off),
+        ("dim", |r| r.dim(), |h| h.dim),
+        ("hint_fg", |r| r.hint_fg(), |h| h.hint_fg),
+        ("placeholder", |r| r.placeholder(), |h| h.placeholder),
+        ("border_normal", |r| r.border_normal(), |h| h.border_normal),
     ];
-    for (name, derive) in roles {
-        // Per pool: the CRT ladder genuinely sits lower than the paper one
-        // (a phosphor is a coloured ink, and colour costs contrast), so a
-        // single band across all 24 would be the wrong invariant.
-        for crt in [false, true] {
-            let ratios: Vec<f32> = ALL_THEMES
+    let mut ladders: Vec<&str> = ALL_THEMES
+        .iter()
+        .map(|id| Ramp::fitted(id.theme()).house().name)
+        .collect();
+    ladders.sort_unstable();
+    ladders.dedup();
+    assert_eq!(
+        ladders.len(),
+        3,
+        "expected three ladders, found {ladders:?}"
+    );
+
+    let mut capped_seen = 0;
+    for (name, derive, target) in roles {
+        for ladder in &ladders {
+            let mut free: Vec<f32> = Vec::new();
+            for id in ALL_THEMES
                 .iter()
-                .filter(|id| id.is_crt() == crt)
-                .map(|id| {
-                    let t = id.theme();
-                    contrast_ratio(derive(&Ramp::fitted(t)), t.page_bg)
-                })
-                .collect();
-            let (lo, hi) = ratios
+                .filter(|id| Ramp::fitted(id.theme()).house().name == *ladder)
+            {
+                let t = id.theme();
+                let r = Ramp::fitted(t);
+                let c = derive(&r);
+                if r.ceiling_bound(target(&r.house())) {
+                    // The cap bound here. Assert that, and exclude it from the
+                    // consistency band it cannot meet by construction.
+                    capped_seen += 1;
+                    assert!(
+                        contrast_ratio(c, t.page_bg) >= 10.0,
+                        "{}: capped {name} fell below the ink floor",
+                        id.as_str()
+                    );
+                } else {
+                    free.push(contrast_ratio(c, t.page_bg));
+                }
+            }
+            if free.len() < 2 {
+                continue;
+            }
+            let (lo, hi) = free
                 .iter()
                 .fold((f32::MAX, 0.0f32), |(a, b), &v| (a.min(v), b.max(v)));
-            let pool = if crt { "crt" } else { "paper/modern" };
             assert!(
                 hi / lo < 1.06,
-                "{name} still spans {lo:.2}..{hi:.2} ({:.2}x) across the {pool} \
-                 pool — the ramp has not made it consistent",
-                hi / lo
+                "{name} spans {lo:.2}..{hi:.2} ({:.2}x) within the {ladder} \
+                 ladder ({} uncapped themes) — the ramp has not made it \
+                 consistent",
+                hi / lo,
+                free.len()
             );
         }
     }
+    assert!(
+        capped_seen > 0,
+        "no role hit the lightness cap anywhere — either the cap is doing \
+         nothing, in which case it should go, or this test stopped finding it"
+    );
 }
 
 /// The ladder must stay ordered, or the visual hierarchy inverts somewhere.

@@ -44,6 +44,28 @@
 //! guessed independently. [`Ink::neutral_for`] covers the ordinary case, where
 //! the ladder is the page's own hue at a fraction of its chroma so SEPIA's
 //! greys stay warm and AURORA's stay cool.
+//! ## What derivation actually changed (2026-08-22)
+//!
+//! Applying the ramp to all 24 presets moved 20 of them by less than half a
+//! rung — imperceptible; the rendered frames differ by under 1% RMSE. Two
+//! groups moved further, and both were the palette disagreeing with the
+//! system rather than the reverse:
+//!
+//! * **`daybreak`, `cirrus`, `meadow`, `blossom`** — `dim` across the
+//!   non-CRT pool spans 2.67..5.37 with a median of 4.51, and these four sat
+//!   at the bottom with an input-bar hint markedly fainter than every other
+//!   theme's. Light and dark medians were checked separately before accepting
+//!   this: they agree (4.51 light, 4.63 dark), so it is not a light-page
+//!   property being flattened. Their frames moved ~1.3% RMSE, the largest
+//!   change anywhere.
+//! * **`graphite`** — its page sits at L 0.231 against the pool's 0.10..0.19,
+//!   so matching the pool's contrast wanted a near-white ink. [`House::max_l`]
+//!   holds it to `(241, 241, 243)` at a contrast of 15.0 rather than the
+//!   house 16.2. Deliberate: glare is worse than a percent of inconsistency.
+//!
+//! `crt-paperwhite` was a third case until it got [`HOUSE_CRT_WHITE`]; being
+//! bright is that theme's entire point, and holding a white phosphor to the
+//! coloured tubes' levels was the bug, not the palette.
 use crate::oklch::{self, Toward};
 
 /// Target contrast against the page for each derived role — the median of
@@ -51,6 +73,10 @@ use crate::oklch::{self, Toward};
 /// these are medians rather than the `contrast_thresholds` floors.
 #[derive(Clone, Copy, Debug)]
 pub struct House {
+    /// Which ladder this is, for diagnostics and for grouping in tests. Two
+    /// ladders can share a level for one role and differ on another, so the
+    /// name is the only reliable identity.
+    pub name: &'static str,
     pub ink: f32,
     pub text_muted: f32,
     pub legend_off: f32,
@@ -69,10 +95,25 @@ pub struct House {
     /// pulling its `legend_off` toward the near-black page turned
     /// `(180, 115, 20)` into a washed pink `(179, 124, 130)`.
     pub page_pull: f32,
+    /// Ceiling on how light a role may get, in OKLCH lightness.
+    ///
+    /// Contrast alone would push a theme whose page is lighter than its pool's
+    /// toward white text: GRAPHITE's page sits at L 0.231 against the pool's
+    /// 0.10–0.19, so matching the pool's 16.2 needed an ink of L 0.986 —
+    /// `(250, 250, 252)`, effectively white. Near-white text on a dark page is
+    /// the glare that every dark-mode guide tells you to avoid, and crew's own
+    /// palettes never did it: the brightest shipped ink is `paper-dark`'s L
+    /// 0.976 and everything else sits at 0.95 or below.
+    ///
+    /// 0.96 is `(242, 242, 242)` at neutral. A theme that cannot reach its
+    /// target contrast below the cap gets the cap, and lands slightly under
+    /// the house ratio — the right trade, since the alternative is glare.
+    pub max_l: f32,
 }
 
 /// The ladder for crew's paper and modern pools, measured 2026-08-22.
 pub const HOUSE: House = House {
+    name: "paper/modern",
     ink: 16.2,
     text_muted: 11.2,
     legend_off: 5.9,
@@ -81,6 +122,7 @@ pub const HOUSE: House = House {
     placeholder: 4.1,
     border_normal: 2.0,
     page_pull: 1.0,
+    max_l: 0.96,
 };
 
 /// The ladder for the CRT pool, which genuinely sits lower — a phosphor is a
@@ -88,6 +130,7 @@ pub const HOUSE: House = House {
 /// `(255, 184, 0)` up to the paper pool's 16.2 drains the chroma out of it and
 /// leaves a pale cream. Measured the same way, over the five CRT presets.
 pub const HOUSE_CRT: House = House {
+    name: "crt (coloured phosphor)",
     ink: 13.4,
     text_muted: 8.5,
     legend_off: 5.9,
@@ -96,6 +139,29 @@ pub const HOUSE_CRT: House = House {
     placeholder: 4.2,
     border_normal: 2.4,
     page_pull: 0.0,
+    max_l: 0.96,
+};
+
+/// The ladder for `crt-paperwhite`, which is a **white** phosphor.
+///
+/// The other four tubes are coloured — green, amber, blue, violet — and a
+/// coloured ink costs contrast, which is why `HOUSE_CRT` sits low. Paperwhite
+/// pays no such cost and is bright by design; holding it to the coloured
+/// tubes' ink level dimmed it from 17.8 to 13.4 and took the "white" out of a
+/// theme named for it. So it takes the paper pool's levels, and keeps the CRT
+/// pool's `page_pull` of zero because a phosphor holds its hue down the whole
+/// ladder.
+pub const HOUSE_CRT_WHITE: House = House {
+    name: "crt (white phosphor)",
+    ink: HOUSE.ink,
+    text_muted: HOUSE.text_muted,
+    legend_off: HOUSE.legend_off,
+    dim: HOUSE.dim,
+    hint_fg: HOUSE.hint_fg,
+    placeholder: HOUSE.placeholder,
+    border_normal: HOUSE_CRT.border_normal,
+    page_pull: 0.0,
+    max_l: 0.96,
 };
 
 /// The hue and saturation a palette's text ladder is built on.
@@ -181,11 +247,24 @@ impl Ramp {
     /// spacing.
     pub fn fitted(t: &crate::Theme) -> Self {
         let house = if t.crt.is_some() && t.modern.is_none() {
-            HOUSE_CRT
+            // A white phosphor is not a coloured one; see HOUSE_CRT_WHITE.
+            if crate::oklch::from_srgb(t.ink).c < 0.04 {
+                HOUSE_CRT_WHITE
+            } else {
+                HOUSE_CRT
+            }
         } else {
             HOUSE
         };
         Self::new(t.page_bg, Ink::of(t.ink), house)
+    }
+
+    /// The ladder this ramp derives against — paper/modern, coloured CRT, or
+    /// white CRT. Exposed so tests can assert consistency *within* a ladder,
+    /// which is the actual invariant; the three deliberately sit at different
+    /// levels.
+    pub fn house(&self) -> House {
+        self.house
     }
 
     /// The colour hitting `target` contrast against the page.
@@ -207,7 +286,34 @@ impl Ramp {
         let t = 1.0 - (1.0 - depth) * self.house.page_pull;
         let hue = blend_hue(page.h, self.ink.hue, t);
         let chroma = page.c + (self.ink.chroma - page.c) * t;
-        oklch::solve_for_contrast(self.page, hue, chroma, target, self.toward)
+        let solved = oklch::solve_for_contrast(self.page, hue, chroma, target, self.toward);
+        self.cap(solved, hue, chroma)
+    }
+
+    /// Whether the lightness ceiling *bound* for a role at `target` contrast —
+    /// that is, the ladder's ratio was unreachable without exceeding
+    /// [`House::max_l`], so the role sits below its house level by design.
+    ///
+    /// Exact rather than "is the result near the cap": several themes land
+    /// naturally within a thousandth of the ceiling without being limited by
+    /// it, and an epsilon test cannot tell those apart.
+    pub fn ceiling_bound(&self, target: f32) -> bool {
+        let page = oklch::from_srgb(self.page);
+        let depth = ((target - 1.0) / (self.house.ink - 1.0)).clamp(0.0, 1.0);
+        let t = 1.0 - (1.0 - depth) * self.house.page_pull;
+        let hue = blend_hue(page.h, self.ink.hue, t);
+        let chroma = page.c + (self.ink.chroma - page.c) * t;
+        let solved = oklch::solve_for_contrast(self.page, hue, chroma, target, self.toward);
+        oklch::from_srgb(solved).l > self.house.max_l
+    }
+
+    /// Hold a role under the ladder's lightness ceiling. See [`House::max_l`].
+    fn cap(&self, c: (u8, u8, u8), hue: f32, chroma: f32) -> (u8, u8, u8) {
+        let l = oklch::from_srgb(c).l;
+        if l <= self.house.max_l {
+            return c;
+        }
+        oklch::Oklch::new(self.house.max_l, chroma, hue).to_srgb()
     }
 
     /// Primary chrome text.

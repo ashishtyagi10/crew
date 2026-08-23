@@ -18,24 +18,24 @@ use crate::{CrtStyle, Theme};
 /// tight bloom, and the jumpiest streaming flicker: a P1 tube driven hard.
 pub static CRT_GREEN: Theme = Theme {
     page_bg: (2, 6, 5),
-    ink: (0, 255, 102),
-    text_muted: (0, 204, 82),
+    ink: (0, 242, 96),
+    text_muted: (0, 194, 75),
     term_fg: (0, 255, 102),
     term_bg: (2, 6, 5),
     // Unfocused borders sit back (matching paper-dark's focus-led hierarchy)
     // so the bright phosphor frame alone says which pane is live.
-    border_normal: (0, 88, 42),
+    border_normal: (0, 90, 30),
     border_focused: (0, 255, 120),
     border_thickness: 3.5,
-    legend_off: (0, 160, 70),
+    legend_off: (0, 160, 60),
     accent_default: (30, 255, 140),
     status_fg: (190, 255, 80),
     broadcast: (150, 255, 150),
     activity: (0, 255, 110),
     bell: (200, 255, 90),
-    dim: (0, 110, 55),
-    placeholder: (0, 135, 60),
-    hint_fg: (0, 150, 66),
+    dim: (0, 111, 39),
+    placeholder: (0, 132, 48),
+    hint_fg: (0, 148, 55),
     find_hl_bg: (10, 70, 30),
     ansi: [
         (10, 45, 20),    // 0  black
@@ -76,23 +76,23 @@ pub static CRT_GREEN: Theme = Theme {
 /// lines you can count.
 pub static CRT_AMBER: Theme = Theme {
     page_bg: (6, 5, 6),
-    ink: (255, 184, 0),
-    text_muted: (226, 148, 0),
+    ink: (254, 202, 103),
+    text_muted: (210, 160, 56),
     term_fg: (255, 184, 0),
     term_bg: (6, 5, 6),
     // Unfocused borders sit back (focus-led hierarchy, as in paper-dark).
-    border_normal: (112, 70, 16),
+    border_normal: (101, 72, 0),
     border_focused: (255, 165, 20),
     border_thickness: 3.5,
-    legend_off: (180, 115, 20),
+    legend_off: (179, 130, 4),
     accent_default: (255, 200, 30),
     status_fg: (255, 200, 70),
     broadcast: (255, 170, 110),
     activity: (255, 160, 20),
     bell: (255, 190, 40),
-    dim: (130, 85, 25),
-    placeholder: (155, 100, 25),
-    hint_fg: (172, 110, 25),
+    dim: (125, 90, 0),
+    placeholder: (148, 107, 0),
+    hint_fg: (165, 120, 0),
     find_hl_bg: (75, 48, 10),
     ansi: [
         (60, 35, 10),    // 0  black
