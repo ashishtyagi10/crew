@@ -97,7 +97,7 @@ pub use presets_modern::NEBULA;
 pub use presets_modern_light::BLOSSOM;
 pub use presets_paper::{PAPER_DARK, PAPER_LIGHT, SEPIA_DARK};
 pub use presets_paper_light::SEPIA_LIGHT;
-pub use tagcolor::{tag_color, tag_slot};
+pub use tagcolor::{slot_color, tag_color, tag_slot};
 
 /// WCAG 2.1 contrast ratio between two sRGB colours.
 pub fn contrast_ratio(a: (u8, u8, u8), b: (u8, u8, u8)) -> f32 {
