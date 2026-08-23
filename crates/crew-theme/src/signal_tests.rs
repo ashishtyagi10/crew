@@ -134,10 +134,13 @@ fn a_palette_that_already_separates_is_untouched() {
     assert_eq!(alarm((0, 0, 0), (0, 255, 0), (200, 30, 30), far), far);
 }
 
-/// Every signal role, and how far its page contrast may spread inside one
-/// appearance. See the module docs for why the bound is per-appearance and
-/// why `accent_default` gets its own.
-const BANDS: [(&str, fn(&crate::Theme) -> (u8, u8, u8), f32); 5] = [
+/// One signal role: its name, how to read it off a palette, and how far its
+/// page contrast may spread inside one appearance.
+type Band = (&'static str, fn(&crate::Theme) -> (u8, u8, u8), f32);
+
+/// Every signal role and its band. See the module docs for why the bound is
+/// per-appearance and why `accent_default` gets its own.
+const BANDS: [Band; 5] = [
     ("status_fg", |t| t.status_fg, 1.8),
     ("bell", |t| t.bell, 1.8),
     ("broadcast", |t| t.broadcast, 1.8),

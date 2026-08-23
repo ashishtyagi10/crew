@@ -8,6 +8,27 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.4
+
+**A tripwire under the colours nothing was watching.** No theme changes here.
+The last two fixes had the same shape — a role outside the colour system's
+contract, nothing measuring it, drifting until it was noticed by eye — and this
+closes that class for the five signal colours (status, bell, broadcast,
+activity, accent).
+
+Worth recording what the measurement actually said, because the obvious reading
+is wrong. The accent colour spans 3.7x in page contrast across the nine
+palettes, which looks like chaos; almost all of it is the light/dark split, and
+that split is correct. A light page reaches contrast by going dark and a
+saturated dark loses it quickly, so every role sits lower on paper than on a
+night page. Compared *within* an appearance the signal colours already agree to
+within about 1.5x, and are now held there.
+
+One exception, named rather than averaged away: `paper-dark` is the
+high-contrast newspaper and its accent is a near-white, at more than double the
+contrast of `nebula`'s orchid. Monochrome is that palette; forcing its accent
+into the band would take the theme with it.
+
 ## 0.18.3
 
 **The bell and the status line were the same colour.** They mean different
