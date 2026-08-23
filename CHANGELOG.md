@@ -8,6 +8,28 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.3
+
+**The bell and the status line were the same colour.** They mean different
+things. The status colour is progress — the git dirty dot, the input-bar
+status, gauge fills. The bell colour is *needs you*: the attention glyphs a
+pane wears (`!` rang, `⚑` matched, `✓` agent done, `⊗` exited, `?` waiting) and
+every ERROR line in the log. On `paper-dark` and `sepia-dark` they shipped as
+literally one value, and on `paper-light` and `sepia-light` within one visible
+step of it. A pane that had finished looked like a pane that was still working.
+
+`nebula` and `blossom` had already solved this by hand, and they say what the
+rule is: the alarm breaks away from the hue progress is already using. So it is
+derived now, taking its hue from the palette's own red — nothing invented — and
+sitting at exactly the status's loudness, so the two markers are equally
+readable and not the same marker. Four palettes move; the two that did it
+properly are left exactly as they were.
+
+**The three CRT tubes keep theirs, deliberately.** A phosphor has one hue, and
+that hue is the entire theme; rotating `crt-green`'s bell to orange would
+separate the markers and destroy the palette. On a tube the separation is the
+one a real terminal used — the attention glyph blinks.
+
 ## 0.18.2
 
 **The search highlight was invisible on light pages.** `find_hl_bg` is the one
