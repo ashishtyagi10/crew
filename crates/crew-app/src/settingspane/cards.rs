@@ -20,6 +20,13 @@ pub(super) fn appearance(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16)
     cy += 3;
     rects.push((Field::Theme, Rect::new(ix, cy, iw, 3)));
     cy += 3;
+    // Directly under Theme, and paired: they are one window, and they are read
+    // only while Theme is `auto`. Anywhere else in the card and they read as
+    // two unrelated clocks.
+    let lh = iw.saturating_sub(2) / 2;
+    rects.push((Field::LightFrom, Rect::new(ix, cy, lh, 3)));
+    rects.push((Field::LightTo, Rect::new(ix + lh + 2, cy, lh, 3)));
+    cy += 3;
     rects.push((Field::Accent, Rect::new(ix, cy, iw, 3)));
     cy += 3;
     let gh = iw.saturating_sub(2) / 2;
