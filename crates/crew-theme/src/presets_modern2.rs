@@ -28,22 +28,22 @@ pub static GRAPHENE: Theme = Theme {
     hint_fg: (125, 126, 128),
     find_hl_bg: (38, 66, 60),
     ansi: [
-        (50, 50, 56),    // 0  black
-        (244, 135, 135), // 1  red
-        (110, 212, 170), // 2  green
-        (235, 203, 139), // 3  yellow
-        (124, 172, 248), // 4  blue
-        (206, 148, 246), // 5  magenta
-        (108, 210, 222), // 6  cyan
-        (214, 214, 222), // 7  white
-        (124, 124, 134), // 8  bright black
-        (250, 160, 160), // 9  bright red
-        (140, 224, 188), // 10 bright green
-        (245, 218, 160), // 11 bright yellow
-        (158, 192, 250), // 12 bright blue
-        (220, 170, 250), // 13 bright magenta
-        (140, 222, 232), // 14 bright cyan
-        (240, 240, 246), // 15 bright white
+        (98, 99, 100),   // 0  black
+        (255, 157, 145), // 1  red
+        (119, 201, 135), // 2  green
+        (221, 177, 82),  // 3  yellow
+        (129, 187, 255), // 4  blue
+        (226, 161, 234), // 5  magenta
+        (41, 202, 209),  // 6  cyan
+        (216, 217, 218), // 7  white
+        (135, 136, 137), // 8  bright black
+        (255, 189, 180), // 9  bright red
+        (139, 222, 154), // 10 bright green
+        (242, 197, 103), // 11 bright yellow
+        (166, 207, 255), // 12 bright blue
+        (247, 181, 255), // 13 bright magenta
+        (73, 223, 230),  // 14 bright cyan
+        (239, 240, 241), // 15 bright white
     ],
     dark: true,
     grain: 0.0,
@@ -87,22 +87,22 @@ pub static COBALT: Theme = Theme {
     hint_fg: (120, 126, 139),
     find_hl_bg: (38, 58, 100),
     ansi: [
-        (46, 54, 76),    // 0  black
-        (248, 138, 148), // 1  red
-        (120, 210, 158), // 2  green
-        (248, 210, 116), // 3  yellow
-        (110, 168, 254), // 4  blue
-        (192, 150, 252), // 5  magenta
-        (103, 216, 240), // 6  cyan
-        (212, 220, 234), // 7  white
-        (120, 132, 158), // 8  bright black
-        (252, 162, 170), // 9  bright red
-        (146, 222, 176), // 10 bright green
-        (252, 224, 146), // 11 bright yellow
-        (146, 190, 254), // 12 bright blue
-        (210, 176, 253), // 13 bright magenta
-        (135, 226, 245), // 14 bright cyan
-        (236, 242, 250), // 15 bright white
+        (97, 100, 105),  // 0  black
+        (255, 158, 146), // 1  red
+        (120, 202, 136), // 2  green
+        (221, 178, 83),  // 3  yellow
+        (130, 188, 255), // 4  blue
+        (227, 161, 234), // 5  magenta
+        (43, 203, 209),  // 6  cyan
+        (215, 218, 224), // 7  white
+        (134, 136, 142), // 8  bright black
+        (255, 190, 181), // 9  bright red
+        (140, 223, 155), // 10 bright green
+        (242, 198, 104), // 11 bright yellow
+        (168, 208, 255), // 12 bright blue
+        (248, 181, 255), // 13 bright magenta
+        (74, 224, 230),  // 14 bright cyan
+        (238, 240, 246), // 15 bright white
     ],
     dark: true,
     grain: 0.0,

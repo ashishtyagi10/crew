@@ -29,22 +29,22 @@ pub static GLACIER_BOND: Theme = Theme {
     hint_fg: (100, 105, 111),
     find_hl_bg: (224, 216, 158),
     ansi: [
-        (24, 27, 32),   // 0  black
-        (146, 40, 44),  // 1  red (rowan)
-        (44, 92, 62),   // 2  green (spruce)
-        (124, 96, 22),  // 3  yellow (ochre)
-        (32, 74, 124),  // 4  blue (fjord)
-        (98, 48, 104),  // 5  magenta (heather)
-        (14, 94, 104),  // 6  cyan (ice teal)
-        (62, 66, 74),   // 7  white (slate gray)
-        (88, 94, 102),  // 8  bright black
-        (170, 54, 54),  // 9  bright red
-        (58, 110, 74),  // 10 bright green
-        (130, 100, 24), // 11 bright yellow
-        (44, 90, 144),  // 12 bright blue
-        (118, 60, 122), // 13 bright magenta
-        (20, 112, 122), // 14 bright cyan
-        (26, 29, 34),   // 15 bright white (boldest ink)
+        (26, 27, 29),   // 0  black
+        (138, 60, 53),  // 1  red
+        (25, 96, 46),   // 2  green
+        (108, 80, 0),   // 3  yellow
+        (35, 85, 142),  // 4  blue
+        (116, 65, 122), // 5  magenta
+        (0, 94, 98),    // 6  cyan
+        (65, 66, 68),   // 7  white
+        (90, 92, 94),   // 8  bright black
+        (120, 43, 38),  // 9  bright red
+        (0, 79, 31),    // 10 bright green
+        (89, 65, 0),    // 11 bright yellow
+        (17, 69, 124),  // 12 bright blue
+        (99, 49, 105),  // 13 bright magenta
+        (0, 76, 80),    // 14 bright cyan
+        (28, 29, 31),   // 15 bright white
     ],
     dark: false,
     grain: 1.2,

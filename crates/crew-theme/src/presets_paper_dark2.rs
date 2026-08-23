@@ -28,22 +28,22 @@ pub static MOSS_BLOTTER: Theme = Theme {
     hint_fg: (126, 130, 119),
     find_hl_bg: (66, 72, 26),
     ansi: [
-        (98, 104, 86),   // 0  black -> warm-green grey
-        (235, 115, 95),  // 1  red
-        (150, 220, 120), // 2  green (fern)
-        (225, 200, 100), // 3  yellow
-        (125, 180, 225), // 4  blue
-        (210, 145, 205), // 5  magenta
-        (120, 215, 195), // 6  cyan (lichen)
-        (222, 222, 205), // 7  white -> warm-green light grey
-        (148, 152, 126), // 8  bright black
-        (255, 140, 110), // 9  bright red
-        (175, 240, 140), // 10 bright green
-        (245, 220, 115), // 11 bright yellow
-        (150, 200, 250), // 12 bright blue
-        (230, 168, 228), // 13 bright magenta
-        (145, 240, 215), // 14 bright cyan
-        (246, 244, 232), // 15 bright white
+        (100, 103, 99),  // 0  black
+        (255, 163, 151), // 1  red
+        (123, 205, 139), // 2  green
+        (225, 181, 87),  // 3  yellow
+        (136, 191, 255), // 4  blue
+        (230, 165, 238), // 5  magenta
+        (49, 206, 213),  // 6  cyan
+        (219, 222, 218), // 7  white
+        (137, 140, 136), // 8  bright black
+        (255, 194, 186), // 9  bright red
+        (143, 226, 159), // 10 bright green
+        (246, 201, 108), // 11 bright yellow
+        (173, 211, 255), // 12 bright blue
+        (248, 188, 255), // 13 bright magenta
+        (79, 227, 234),  // 14 bright cyan
+        (243, 245, 241), // 15 bright white
     ],
     dark: true,
     grain: 1.2,

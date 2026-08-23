@@ -73,6 +73,7 @@ pub struct Theme {
     pub modern: Option<ModernStyle>,
 }
 
+pub mod ansi;
 mod crtstyle;
 mod glass;
 mod modernstyle;

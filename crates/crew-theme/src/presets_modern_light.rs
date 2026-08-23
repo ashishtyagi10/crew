@@ -37,22 +37,22 @@ pub static DAYBREAK: Theme = Theme {
     hint_fg: (111, 113, 121),
     find_hl_bg: (191, 219, 254),
     ansi: [
-        (55, 65, 81),    // 0  black
-        (185, 28, 28),   // 1  red
-        (21, 128, 61),   // 2  green
-        (161, 98, 7),    // 3  yellow
-        (29, 78, 216),   // 4  blue
-        (147, 51, 234),  // 5  magenta
-        (12, 98, 120),   // 6  cyan
-        (75, 85, 99),    // 7  white (mid gray — the light page's "white")
-        (107, 114, 128), // 8  bright black
-        (220, 38, 38),   // 9  bright red
-        (22, 163, 74),   // 10 bright green
-        (180, 111, 8),   // 11 bright yellow
-        (37, 99, 235),   // 12 bright blue
-        (168, 85, 247),  // 13 bright magenta
-        (11, 128, 156),  // 14 bright cyan
-        (31, 41, 55),    // 15 bright white (boldest ink)
+        (38, 38, 39),    // 0  black
+        (147, 69, 62),   // 1  red
+        (36, 105, 54),   // 2  green
+        (119, 87, 0),    // 3  yellow
+        (44, 94, 151),   // 4  blue
+        (125, 73, 131),  // 5  magenta
+        (0, 103, 107),   // 6  cyan
+        (74, 74, 75),    // 7  white
+        (100, 100, 102), // 8  bright black
+        (128, 52, 46),   // 9  bright red
+        (14, 88, 38),    // 10 bright green
+        (99, 72, 0),     // 11 bright yellow
+        (27, 77, 133),   // 12 bright blue
+        (108, 57, 114),  // 13 bright magenta
+        (0, 85, 89),     // 14 bright cyan
+        (39, 39, 40),    // 15 bright white
     ],
     dark: false,
     grain: 0.0,
@@ -95,22 +95,22 @@ pub static BLOSSOM: Theme = Theme {
     hint_fg: (117, 111, 118),
     find_hl_bg: (243, 208, 240),
     ansi: [
-        (55, 65, 81),    // 0  black
-        (185, 28, 28),   // 1  red
-        (21, 128, 61),   // 2  green
-        (161, 98, 7),    // 3  yellow
-        (29, 78, 216),   // 4  blue
-        (147, 51, 234),  // 5  magenta
-        (12, 98, 120),   // 6  cyan
-        (75, 85, 99),    // 7  white
-        (107, 114, 128), // 8  bright black
-        (220, 38, 38),   // 9  bright red
-        (22, 163, 74),   // 10 bright green
-        (180, 111, 8),   // 11 bright yellow
-        (37, 99, 235),   // 12 bright blue
-        (168, 85, 247),  // 13 bright magenta
-        (11, 128, 156),  // 14 bright cyan
-        (31, 41, 55),    // 15 bright white
+        (38, 37, 38),   // 0  black
+        (147, 69, 62),  // 1  red
+        (36, 105, 54),  // 2  green
+        (119, 87, 0),   // 3  yellow
+        (44, 94, 151),  // 4  blue
+        (125, 73, 131), // 5  magenta
+        (0, 103, 107),  // 6  cyan
+        (75, 74, 75),   // 7  white
+        (101, 99, 100), // 8  bright black
+        (128, 52, 46),  // 9  bright red
+        (14, 88, 38),   // 10 bright green
+        (99, 72, 0),    // 11 bright yellow
+        (27, 77, 133),  // 12 bright blue
+        (108, 57, 114), // 13 bright magenta
+        (0, 85, 89),    // 14 bright cyan
+        (40, 39, 40),   // 15 bright white
     ],
     dark: false,
     grain: 0.0,
