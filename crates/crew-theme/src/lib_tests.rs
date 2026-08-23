@@ -1074,3 +1074,80 @@ fn selection_label_names_mode_or_theme() {
     assert_eq!(selection_label(), "auto");
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
 }
+
+/// A doc comment that names a number is a claim, and claims rot. `Theme::grain`
+/// said "1.0 on dark themes; 1.2 on light themes" for long enough that no
+/// theme had used 1.0 in months and the modern family's 0.0 went unmentioned
+/// entirely — a number that was simply false to anyone adding a preset from
+/// the struct docs, which is the one place they would look.
+///
+/// So the numeric fields' docs are checked against the palettes: every float
+/// literal a field's doc names must be a value some preset actually ships.
+/// Deliberately one-directional — a doc need not enumerate every value, it
+/// just may not invent one.
+#[test]
+fn a_numeric_field_s_doc_may_not_name_a_value_no_palette_uses() {
+    let src = include_str!("lib.rs");
+    let mut total = 0usize;
+    let fields: [(&str, fn(&Theme) -> f32); 2] = [
+        ("pub grain: f32,", |t| t.grain),
+        ("pub border_thickness: f32,", |t| t.border_thickness),
+    ];
+    for (decl, get) in fields {
+        let at = src.find(decl).unwrap_or_else(|| panic!("{decl} not found"));
+        // Back up to the start of the declaration's own line: `src[..at]`
+        // otherwise ends mid-line on the indentation, and the first thing
+        // `lines().rev()` yields is that fragment, which is not a `///` line
+        // and stops the walk before it starts. (The vacuity check below is
+        // what caught this.)
+        let at = src[..at].rfind('\n').map_or(0, |i| i + 1);
+        // The doc block is the run of `///` lines immediately above it.
+        let doc: String = src[..at]
+            .lines()
+            .rev()
+            .take_while(|l| l.trim_start().starts_with("///"))
+            .collect::<Vec<_>>()
+            .join(" ");
+        let shipped: Vec<f32> = ALL_THEMES.iter().map(|id| get(id.theme())).collect();
+        // Every `<digits>.<digits>` in the prose. A run preceded by a letter
+        // or by a dot is part of something else — `v0.5.58` must not read as
+        // a claim that some palette ships 5.58.
+        let mut named: Vec<String> = Vec::new();
+        let b = doc.as_bytes();
+        let mut i = 0;
+        while i < b.len() {
+            let joined = i > 0 && (b[i - 1].is_ascii_alphanumeric() || b[i - 1] == b'.');
+            if b[i].is_ascii_digit() && !joined {
+                let start = i;
+                while i < b.len() && b[i].is_ascii_digit() {
+                    i += 1;
+                }
+                if i < b.len() && b[i] == b'.' && i + 1 < b.len() && b[i + 1].is_ascii_digit() {
+                    i += 1;
+                    while i < b.len() && b[i].is_ascii_digit() {
+                        i += 1;
+                    }
+                    named.push(doc[start..i].to_string());
+                }
+            } else {
+                i += 1;
+            }
+        }
+        // A doc that names no numbers makes no claim and is fine; the
+        // whole-test vacuity guard is after the loop.
+        total += named.len();
+        for n in named {
+            let v: f32 = n.parse().unwrap();
+            assert!(
+                shipped.iter().any(|s| (s - v).abs() < 1e-6),
+                "{decl}: the doc says {n}, but no palette ships it — shipped \
+                 values are {shipped:?}"
+            );
+        }
+    }
+    assert!(
+        total >= 4,
+        "only {total} numbers are claimed across the checked fields — the \
+         parse has stopped finding them and this test is asserting nothing"
+    );
+}
