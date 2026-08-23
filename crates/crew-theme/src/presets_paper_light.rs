@@ -19,7 +19,7 @@ pub static SEPIA_LIGHT: Theme = Theme {
     status_fg: (140, 90, 10),
     broadcast: (140, 50, 90),
     activity: (50, 80, 120),
-    bell: (146, 93, 15),
+    bell: (156, 77, 69),
     dim: (115, 104, 83),
     placeholder: (122, 112, 90),
     hint_fg: (113, 102, 81),
