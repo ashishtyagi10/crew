@@ -34,7 +34,7 @@ pub static BLOSSOM: Theme = Theme {
     dim: (118, 113, 119),
     placeholder: (126, 121, 127),
     hint_fg: (117, 111, 118),
-    find_hl_bg: (243, 208, 240),
+    find_hl_bg: (233, 174, 230),
     ansi: [
         (38, 37, 38),   // 0  black
         (147, 69, 62),  // 1  red

@@ -30,7 +30,7 @@ pub static NEBULA: Theme = Theme {
     dim: (128, 123, 137),
     placeholder: (120, 115, 129),
     hint_fg: (130, 125, 139),
-    find_hl_bg: (62, 44, 94),
+    find_hl_bg: (67, 47, 101),
     ansi: [
         (101, 100, 105), // 0  black
         (255, 160, 148), // 1  red
