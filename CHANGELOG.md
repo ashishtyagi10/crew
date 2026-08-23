@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.6
+
+**Three claims in the theme docs that were no longer true.** Not user-facing,
+but the kind of rot that produces the bugs above. The grain field said "1.0 on
+dark themes" when no palette had shipped 1.0 in months, and said nothing about
+the modern family's deliberate zero — a number that did not exist, in the one
+place someone adding a theme would look. The dark flag claimed to drive grain,
+which it had stopped doing at the same time. And the rotation picker rested on
+"every pool has at least four entries" when pools have had three since the
+roster was cut to nine; the conclusion still held, but the premise had been
+false for a release.
+
+Every float a numeric field's doc names is now checked against what the
+palettes actually ship. It caught two bugs in its own construction before it
+caught anything else.
+
 ## 0.18.5
 
 **Two `@projects` rendered in the same colour on a CRT theme.** A project tag

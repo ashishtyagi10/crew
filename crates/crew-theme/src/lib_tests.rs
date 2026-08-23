@@ -1088,8 +1088,10 @@ fn selection_label_names_mode_or_theme() {
 #[test]
 fn a_numeric_field_s_doc_may_not_name_a_value_no_palette_uses() {
     let src = include_str!("lib.rs");
+    /// A numeric `Theme` field: its declaration line, and how to read it.
+    type NumField = (&'static str, fn(&Theme) -> f32);
     let mut total = 0usize;
-    let fields: [(&str, fn(&Theme) -> f32); 2] = [
+    let fields: [NumField; 2] = [
         ("pub grain: f32,", |t| t.grain),
         ("pub border_thickness: f32,", |t| t.border_thickness),
     ];
