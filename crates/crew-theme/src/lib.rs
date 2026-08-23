@@ -86,6 +86,7 @@ mod presets_modern_light;
 mod presets_paper;
 mod presets_paper_light;
 pub mod ramp;
+pub mod signal;
 mod tagcolor;
 pub use crtstyle::CrtStyle;
 pub use glass::{style as glass_style, style_for as glass_style_for, GlassLevel, GlassStyle};
