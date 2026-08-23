@@ -119,6 +119,27 @@ impl CrewApp {
         // like every other theme-change path — otherwise the accent stays frozen
         // on the previous theme after the first rotation.
         let now_ms = crate::chattime::unix_now_ms();
+        // `auto`'s clock half (only live while the OS appearance is pinned):
+        // crossing into or out of the light-hours window is an appearance
+        // change with no OS event behind it, so it has to be polled for. Only
+        // the FLIP re-applies — a re-apply re-picks a palette and restarts the
+        // rotation clock, so doing it every tick would strobe.
+        let mut daylight_flipped = false;
+        if !crew_theme::os_auto() {
+            let was = crew_theme::daylight();
+            // Republished on EVERY tick, not just while auto is live: `/theme
+            // auto` typed at 22:00 has to resolve against 22:00, not against
+            // whatever the clock read the last time auto happened to be on.
+            let flipped = self.config.publish_daylight() != was;
+            if flipped && crew_theme::mode() == Some(crew_theme::RandomMode::Auto) {
+                crew_theme::apply_selection(
+                    crew_theme::Selection::Mode(crew_theme::RandomMode::Auto),
+                    now_ms,
+                );
+                crate::palette::set_accent(self.config.accent_rgb());
+                daylight_flipped = true;
+            }
+        }
         let rotated = crew_theme::tick_random(now_ms);
         if rotated {
             crate::palette::set_accent(self.config.accent_rgb());
@@ -140,7 +161,7 @@ impl CrewApp {
         // Drain EVERY pane each tick. A `for` loop (not `any()`/`fold`) so all
         // panes are polled for their side effects — `any()` would short-circuit
         // and starve later panes when an earlier one has output.
-        let mut any_changed = rotated || model_fetch_landed || oauth_landed;
+        let mut any_changed = rotated || daylight_flipped || model_fetch_landed || oauth_landed;
         // Set when any pane still has buffered PTY output past this tick's read
         // budget. We then keep the loop hot (ControlFlow::Poll) so a flood drains
         // quickly across ticks instead of trickling one budget per 16 ms — while
