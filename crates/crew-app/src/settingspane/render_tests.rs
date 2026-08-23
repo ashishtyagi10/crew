@@ -30,8 +30,14 @@ fn dump(cells: &[CellView], rows: u16) -> String {
 
 #[test]
 fn every_field_renders_on_a_tall_pane() {
-    let cells = pane().cells(80, 30);
-    let all = dump(&cells, 30);
+    // Tall enough for the whole form plus the gap and pinned button row,
+    // computed rather than pinned at a number: this used to be a literal 30,
+    // which the form outgrew the moment `auto` gained its pairing pickers —
+    // and a test that fails because the form got bigger says nothing about
+    // whether the new fields render.
+    let rows = form::layout(80).height + 2;
+    let cells = pane().cells(80, rows);
+    let all = dump(&cells, rows);
     for f in FIELDS.iter().take(FIELDS.len() - 2) {
         assert!(
             all.contains(label_of(*f)),
@@ -113,4 +119,33 @@ fn theme_value_names_the_current_theme() {
     };
     let (v, _) = value_of(&SettingsPane::new(cfg, Vec::new()), Field::Theme);
     assert!(v.contains("dark"), "got: {v}");
+}
+
+#[test]
+fn each_pairing_picker_shows_its_own_side() {
+    // Distinct values, so a picker reading the wrong field is visible rather
+    // than hidden behind two sides that happen to match.
+    let cfg = CrewConfig {
+        theme_dark: Some("crt".into()),
+        theme_light: Some("blossom".into()),
+        ..Default::default()
+    };
+    let p = SettingsPane::new(cfg, Vec::new());
+    let (dark, cursor) = value_of(&p, Field::ThemeDark);
+    assert!(dark.contains("crt"), "dark side shows: {dark}");
+    assert!(
+        !dark.contains("blossom"),
+        "dark side shows the light one: {dark}"
+    );
+    assert!(!cursor, "the pairing is a picker, not a text field");
+    let (light, _) = value_of(&p, Field::ThemeLight);
+    assert!(light.contains("blossom"), "light side shows: {light}");
+    assert!(
+        !light.contains("crt"),
+        "light side shows the dark one: {light}"
+    );
+
+    // An unset side reads as the built-in pairing, not as an empty box.
+    let (v, _) = value_of(&pane(), Field::ThemeDark);
+    assert!(v.contains("default"), "unset shows: {v}");
 }

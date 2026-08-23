@@ -45,6 +45,17 @@ pub(crate) fn cycle_value(p: &mut SettingsPane, back: bool) {
             };
             d.glass = LEVELS[next].as_str().to_string();
         }
+        Field::ThemeDark | Field::ThemeLight => {
+            // Cycle the PARSED value, so a config string this build no longer
+            // recognises enters the list at `default` instead of wedging the
+            // picker on an index it can never match.
+            let (dark, light) = d.auto_pool_selections();
+            if field == Field::ThemeDark {
+                d.theme_dark = super::pairing::cycle(dark, back);
+            } else {
+                d.theme_light = super::pairing::cycle(light, back);
+            }
+        }
         Field::Theme => {
             let modes = crew_theme::THEME_MODES;
             let cur = d

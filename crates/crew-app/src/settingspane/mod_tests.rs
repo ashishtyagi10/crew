@@ -280,6 +280,8 @@ fn edits(f: Field) -> &'static str {
         Field::NavWidth => "nav_width",
         Field::ShowNav => "show_nav",
         Field::Theme => "theme",
+        Field::ThemeDark => "theme_dark",
+        Field::ThemeLight => "theme_light",
         Field::LightFrom => "auto_light_from",
         Field::LightTo => "auto_light_to",
         Field::Accent => "accent",
@@ -302,7 +304,7 @@ fn edits(f: Field) -> &'static str {
 /// Config keys the form deliberately does not carry, each with the reason.
 /// A key must be here or editable — "we forgot" is not a third option, which
 /// is how `auto_light_from` / `auto_light_to` shipped config-only.
-const NOT_IN_FORM: [(&str, &str); 12] = [
+const NOT_IN_FORM: [(&str, &str); 10] = [
     ("last_seen_version", "bookkeeping: drives the version note"),
     ("last_dir", "bookkeeping: restored window state"),
     ("win_w", "bookkeeping: restored window state"),
@@ -319,14 +321,6 @@ const NOT_IN_FORM: [(&str, &str); 12] = [
     (
         "crt",
         "set live by /crt; an override over the theme's own flag",
-    ),
-    (
-        "theme_dark",
-        "auto's per-appearance pairing - config-only, NO UI YET",
-    ),
-    (
-        "theme_light",
-        "auto's per-appearance pairing - config-only, NO UI YET",
     ),
     ("usage_budget_5h", "footer budget - config-only, NO UI YET"),
     ("usage_budget_7d", "footer budget - config-only, NO UI YET"),
@@ -443,4 +437,55 @@ fn an_unparseable_saved_window_displays_the_fallback() {
     let p = SettingsPane::new(cfg, Vec::new());
     assert_eq!(p.light_from_buf, "07:00");
     assert_eq!(p.light_to_buf, "21:05");
+}
+
+/// Each pairing picker edits its OWN side. A two-branch cycle is exactly
+/// where a copy-paste writes the wrong field, and both sides holding the same
+/// value looks plausible enough to ship.
+#[test]
+fn each_pairing_picker_edits_only_its_own_side() {
+    for (field, other) in [
+        (Field::ThemeDark, Field::ThemeLight),
+        (Field::ThemeLight, Field::ThemeDark),
+    ] {
+        let mut p = pane();
+        focus(&mut p, field);
+        let before = (p.draft.theme_dark.clone(), p.draft.theme_light.clone());
+        super::cycle_value(&mut p, false);
+        let after = (p.draft.theme_dark.clone(), p.draft.theme_light.clone());
+        let (mine, theirs) = if field == Field::ThemeDark {
+            ((before.0, after.0), (before.1, after.1))
+        } else {
+            ((before.1, after.1), (before.0, after.0))
+        };
+        assert_ne!(mine.0, mine.1, "{field:?} did not change its own side");
+        assert_eq!(theirs.0, theirs.1, "{field:?} also moved {other:?}");
+    }
+}
+
+/// The pickers walk the whole list and land back where they started, driven
+/// through `cycle_value` rather than the pure helper — so the wiring from the
+/// focused field to the config key is what is under test.
+#[test]
+fn cycling_a_pairing_picker_returns_to_default() {
+    let mut p = pane();
+    focus(&mut p, Field::ThemeDark);
+    let n = super::pairing::values().len();
+    let mut seen = Vec::new();
+    for _ in 0..n {
+        super::cycle_value(&mut p, false);
+        seen.push(p.draft.theme_dark.clone());
+    }
+    assert_eq!(p.draft.theme_dark, None, "did not wrap back to unset");
+    assert_eq!(
+        seen.iter().filter(|v| v.is_some()).count(),
+        n - 1,
+        "some entries were visited twice or skipped: {seen:?}"
+    );
+    // Every visited value survives a round trip through the config file.
+    for v in seen.into_iter().flatten() {
+        let cfg = CrewConfig::from_toml_str(&format!("theme_dark = \"{v}\"\n"));
+        assert_eq!(cfg.theme_dark.as_deref(), Some(v.as_str()));
+        assert!(cfg.auto_pool_selections().0.is_some(), "`{v}` was dropped");
+    }
 }

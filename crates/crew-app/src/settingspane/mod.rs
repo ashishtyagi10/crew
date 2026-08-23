@@ -7,8 +7,11 @@ mod cards;
 mod commit;
 mod cycle;
 mod dropdown;
+mod fields;
 mod form;
 mod keys;
+mod labels;
+mod pairing;
 mod render;
 
 use crew_render::CellView;
@@ -17,65 +20,10 @@ pub(crate) use cycle::cycle_value;
 use winit::event::KeyEvent;
 
 use crate::config::CrewConfig;
+pub(crate) use fields::{Field, FIELDS};
 
 /// Label shown for "no explicit family — use the system monospace".
 pub(crate) const DEFAULT_FAMILY_LABEL: &str = "System monospace";
-
-/// Focusable elements of the form, in Tab order.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub(crate) enum Field {
-    FontFamily,
-    FontSize,
-    Smooth,
-    NavWidth,
-    ShowNav,
-    Theme,
-    /// `auto`'s light-hours window, `HH:MM` each. Placed under Theme because
-    /// they are only read while it is `auto` AND the OS appearance is pinned.
-    LightFrom,
-    LightTo,
-    Accent,
-    PaperTexture,
-    PaperGrain,
-    Glass,
-    Motion,
-    WindowOpacity,
-    Maximized,
-    Notify,
-    NotifyAgentDone,
-    NotifyBell,
-    NotifyExit,
-    NotifyMinSecs,
-    NotifyPatterns,
-    Save,
-    Cancel,
-}
-
-pub(crate) const FIELDS: [Field; 23] = [
-    Field::FontFamily,
-    Field::FontSize,
-    Field::Smooth,
-    Field::NavWidth,
-    Field::WindowOpacity,
-    Field::ShowNav,
-    Field::Theme,
-    Field::LightFrom,
-    Field::LightTo,
-    Field::Accent,
-    Field::PaperTexture,
-    Field::PaperGrain,
-    Field::Glass,
-    Field::Motion,
-    Field::Maximized,
-    Field::Notify,
-    Field::NotifyAgentDone,
-    Field::NotifyBell,
-    Field::NotifyExit,
-    Field::NotifyMinSecs,
-    Field::NotifyPatterns,
-    Field::Save,
-    Field::Cancel,
-];
 
 /// Outcome of a key press in the settings form.
 pub enum SettingsAction {
