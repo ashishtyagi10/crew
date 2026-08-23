@@ -25,22 +25,22 @@ pub static SEPIA_LIGHT: Theme = Theme {
     hint_fg: (113, 102, 81),
     find_hl_bg: (225, 195, 110),
     ansi: [
-        (40, 28, 18),   // 0  black
-        (162, 40, 26),  // 1  red (brick)
-        (70, 95, 28),   // 2  green (sage)
-        (142, 95, 14),  // 3  yellow (ochre)
-        (45, 80, 120),  // 4  blue (faded indigo)
-        (120, 48, 100), // 5  magenta (mauve)
-        (20, 100, 95),  // 6  cyan (teal)
-        (80, 68, 50),   // 7  white (warm gray)
-        (100, 85, 62),  // 8  bright black
-        (185, 55, 35),  // 9  bright red
-        (85, 115, 35),  // 10 bright green
-        (140, 95, 17),  // 11 bright yellow
-        (55, 95, 140),  // 12 bright blue
-        (138, 60, 115), // 13 bright magenta
-        (28, 118, 112), // 14 bright cyan
-        (42, 30, 20),   // 15 bright white (boldest ink)
+        (29, 26, 17),   // 0  black
+        (136, 60, 52),  // 1  red
+        (25, 96, 46),   // 2  green
+        (108, 79, 0),   // 3  yellow
+        (35, 85, 141),  // 4  blue
+        (115, 64, 121), // 5  magenta
+        (0, 93, 97),    // 6  cyan
+        (69, 65, 56),   // 7  white
+        (94, 91, 81),   // 8  bright black
+        (118, 43, 37),  // 9  bright red
+        (0, 79, 31),    // 10 bright green
+        (89, 64, 0),    // 11 bright yellow
+        (17, 69, 123),  // 12 bright blue
+        (98, 48, 104),  // 13 bright magenta
+        (0, 75, 79),    // 14 bright cyan
+        (31, 28, 19),   // 15 bright white
     ],
     dark: false,
     grain: 1.2,
@@ -70,22 +70,22 @@ pub static SALMON_BROADSHEET: Theme = Theme {
     hint_fg: (119, 98, 95),
     find_hl_bg: (232, 205, 140),
     ansi: [
-        (24, 22, 26),   // 0  black
-        (150, 38, 40),  // 1  red
-        (45, 90, 55),   // 2  green (forest)
-        (130, 95, 20),  // 3  yellow (ochre)
-        (30, 70, 115),  // 4  blue (navy)
-        (100, 45, 95),  // 5  magenta (plum)
-        (15, 95, 98),   // 6  cyan (teal)
-        (60, 58, 64),   // 7  white (cool gray)
-        (86, 80, 86),   // 8  bright black
-        (172, 50, 48),  // 9  bright red
-        (58, 108, 66),  // 10 bright green
-        (133, 98, 22),  // 11 bright yellow
-        (40, 88, 140),  // 12 bright blue
-        (118, 55, 112), // 13 bright magenta
-        (20, 115, 118), // 14 bright cyan
-        (26, 24, 28),   // 15 bright white (boldest ink)
+        (30, 24, 20),   // 0  black
+        (136, 59, 52),  // 1  red
+        (24, 95, 45),   // 2  green
+        (107, 78, 0),   // 3  yellow
+        (34, 84, 141),  // 4  blue
+        (114, 64, 120), // 5  magenta
+        (0, 92, 96),    // 6  cyan
+        (70, 64, 58),   // 7  white
+        (96, 89, 84),   // 8  bright black
+        (118, 42, 37),  // 9  bright red
+        (0, 78, 30),    // 10 bright green
+        (88, 63, 0),    // 11 bright yellow
+        (15, 68, 123),  // 12 bright blue
+        (97, 48, 103),  // 13 bright magenta
+        (0, 75, 78),    // 14 bright cyan
+        (32, 26, 22),   // 15 bright white
     ],
     dark: false,
     grain: 1.2,
@@ -115,22 +115,22 @@ pub static COLDPRESS_GRAY: Theme = Theme {
     hint_fg: (105, 105, 108),
     find_hl_bg: (230, 222, 160),
     ansi: [
-        (26, 26, 28),   // 0  black
-        (148, 42, 40),  // 1  red
-        (52, 92, 52),   // 2  green
-        (128, 98, 20),  // 3  yellow (ochre)
-        (34, 78, 120),  // 4  blue
-        (104, 46, 98),  // 5  magenta
-        (16, 98, 98),   // 6  cyan (teal)
-        (66, 66, 70),   // 7  white (cool gray)
-        (92, 92, 96),   // 8  bright black
-        (172, 55, 50),  // 9  bright red
-        (66, 112, 64),  // 10 bright green
-        (134, 101, 23), // 11 bright yellow
-        (46, 94, 142),  // 12 bright blue
-        (124, 58, 116), // 13 bright magenta
-        (22, 116, 116), // 14 bright cyan
-        (28, 28, 30),   // 15 bright white (boldest ink)
+        (28, 28, 29),   // 0  black
+        (139, 61, 54),  // 1  red
+        (26, 97, 47),   // 2  green
+        (110, 80, 0),   // 3  yellow
+        (36, 86, 143),  // 4  blue
+        (117, 66, 123), // 5  magenta
+        (0, 95, 99),    // 6  cyan
+        (67, 67, 68),   // 7  white
+        (92, 92, 93),   // 8  bright black
+        (121, 44, 39),  // 9  bright red
+        (0, 81, 31),    // 10 bright green
+        (90, 65, 0),    // 11 bright yellow
+        (18, 69, 125),  // 12 bright blue
+        (100, 50, 106), // 13 bright magenta
+        (0, 77, 81),    // 14 bright cyan
+        (30, 30, 31),   // 15 bright white
     ],
     dark: false,
     grain: 1.2,
@@ -160,22 +160,22 @@ pub static IVORY_LEDGER: Theme = Theme {
     hint_fg: (107, 106, 87),
     find_hl_bg: (228, 214, 130),
     ansi: [
-        (24, 28, 18),   // 0  black
-        (150, 40, 30),  // 1  red
-        (35, 95, 42),   // 2  green (ledger green)
-        (138, 100, 18), // 3  yellow (ochre)
-        (36, 74, 112),  // 4  blue
-        (108, 46, 92),  // 5  magenta
-        (16, 98, 88),   // 6  cyan (teal)
-        (68, 68, 54),   // 7  white (warm-green gray)
-        (92, 90, 70),   // 8  bright black
-        (174, 52, 38),  // 9  bright red
-        (44, 116, 52),  // 10 bright green
-        (139, 99, 18),  // 11 bright yellow
-        (46, 92, 138),  // 12 bright blue
-        (126, 58, 110), // 13 bright magenta
-        (20, 114, 104), // 14 bright cyan
-        (18, 22, 14),   // 15 bright white (boldest ink)
+        (30, 29, 22),   // 0  black
+        (139, 61, 54),  // 1  red
+        (27, 98, 48),   // 2  green
+        (110, 80, 0),   // 3  yellow
+        (36, 87, 143),  // 4  blue
+        (117, 66, 123), // 5  magenta
+        (0, 95, 99),    // 6  cyan
+        (69, 67, 60),   // 7  white
+        (95, 93, 85),   // 8  bright black
+        (121, 44, 39),  // 9  bright red
+        (1, 81, 32),    // 10 bright green
+        (90, 65, 0),    // 11 bright yellow
+        (18, 70, 125),  // 12 bright blue
+        (100, 50, 106), // 13 bright magenta
+        (0, 77, 81),    // 14 bright cyan
+        (32, 31, 23),   // 15 bright white
     ],
     dark: false,
     grain: 1.2,

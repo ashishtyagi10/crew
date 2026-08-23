@@ -27,22 +27,22 @@ pub static MEADOW: Theme = Theme {
     hint_fg: (107, 114, 112),
     find_hl_bg: (183, 231, 214),
     ansi: [
-        (55, 65, 81),    // 0  black
-        (185, 28, 28),   // 1  red
-        (21, 128, 61),   // 2  green
-        (161, 98, 7),    // 3  yellow
-        (29, 78, 216),   // 4  blue
-        (147, 51, 234),  // 5  magenta
-        (12, 98, 120),   // 6  cyan
-        (75, 85, 99),    // 7  white
-        (107, 114, 128), // 8  bright black
-        (220, 38, 38),   // 9  bright red
-        (22, 163, 74),   // 10 bright green
-        (180, 111, 8),   // 11 bright yellow
-        (37, 99, 235),   // 12 bright blue
-        (168, 85, 247),  // 13 bright magenta
-        (11, 128, 156),  // 14 bright cyan
-        (31, 41, 55),    // 15 bright white
+        (37, 38, 37),   // 0  black
+        (146, 68, 61),  // 1  red
+        (36, 105, 54),  // 2  green
+        (119, 87, 0),   // 3  yellow
+        (44, 94, 151),  // 4  blue
+        (125, 73, 131), // 5  magenta
+        (0, 103, 107),  // 6  cyan
+        (74, 74, 74),   // 7  white
+        (99, 100, 99),  // 8  bright black
+        (127, 51, 45),  // 9  bright red
+        (14, 88, 38),   // 10 bright green
+        (99, 72, 0),    // 11 bright yellow
+        (27, 77, 133),  // 12 bright blue
+        (108, 57, 114), // 13 bright magenta
+        (0, 85, 89),    // 14 bright cyan
+        (39, 39, 39),   // 15 bright white
     ],
     dark: false,
     grain: 0.0,
@@ -85,22 +85,22 @@ pub static CIRRUS: Theme = Theme {
     hint_fg: (107, 113, 120),
     find_hl_bg: (186, 224, 240),
     ansi: [
-        (55, 65, 81),    // 0  black
-        (185, 28, 28),   // 1  red
-        (21, 128, 61),   // 2  green
-        (161, 98, 7),    // 3  yellow
-        (29, 78, 216),   // 4  blue
-        (147, 51, 234),  // 5  magenta
-        (12, 98, 120),   // 6  cyan
-        (75, 85, 99),    // 7  white
-        (107, 114, 128), // 8  bright black
-        (220, 38, 38),   // 9  bright red
-        (22, 163, 74),   // 10 bright green
-        (180, 111, 8),   // 11 bright yellow
-        (37, 99, 235),   // 12 bright blue
-        (168, 85, 247),  // 13 bright magenta
-        (11, 128, 156),  // 14 bright cyan
-        (31, 41, 55),    // 15 bright white
+        (37, 37, 38),   // 0  black
+        (146, 68, 61),  // 1  red
+        (35, 104, 53),  // 2  green
+        (117, 87, 0),   // 3  yellow
+        (43, 93, 150),  // 4  blue
+        (124, 73, 130), // 5  magenta
+        (0, 102, 106),  // 6  cyan
+        (73, 73, 74),   // 7  white
+        (98, 99, 101),  // 8  bright black
+        (127, 51, 45),  // 9  bright red
+        (13, 87, 37),   // 10 bright green
+        (97, 72, 0),    // 11 bright yellow
+        (26, 76, 132),  // 12 bright blue
+        (107, 57, 113), // 13 bright magenta
+        (0, 84, 88),    // 14 bright cyan
+        (38, 39, 39),   // 15 bright white
     ],
     dark: false,
     grain: 0.0,

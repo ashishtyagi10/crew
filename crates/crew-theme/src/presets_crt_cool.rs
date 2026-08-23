@@ -33,22 +33,22 @@ pub static CRT_VIOLET: Theme = Theme {
     hint_fg: (152, 112, 168),
     find_hl_bg: (60, 25, 85),
     ansi: [
-        (55, 35, 75),    // 0  black
-        (255, 140, 200), // 1  red
-        (190, 150, 255), // 2  green
-        (235, 180, 255), // 3  yellow
-        (160, 140, 255), // 4  blue
-        (230, 140, 255), // 5  magenta
-        (200, 160, 255), // 6  cyan
-        (230, 200, 250), // 7  white
-        (140, 95, 175),  // 8  bright black
-        (255, 160, 220), // 9  bright red
-        (210, 170, 255), // 10 bright green
-        (245, 200, 255), // 11 bright yellow
-        (180, 160, 255), // 12 bright blue
-        (240, 160, 255), // 13 bright magenta
-        (215, 180, 255), // 14 bright cyan
-        (245, 225, 255), // 15 bright white
+        (97, 94, 99),    // 0  black
+        (159, 105, 179), // 1  red
+        (173, 118, 193), // 2  green
+        (187, 132, 207), // 3  yellow
+        (201, 145, 222), // 4  blue
+        (215, 159, 237), // 5  magenta
+        (230, 173, 251), // 6  cyan
+        (212, 209, 215), // 7  white
+        (133, 130, 135), // 8  bright black
+        (179, 124, 199), // 9  bright red
+        (193, 137, 214), // 10 bright green
+        (207, 151, 228), // 11 bright yellow
+        (222, 165, 243), // 12 bright blue
+        (234, 181, 255), // 13 bright magenta
+        (241, 202, 255), // 14 bright cyan
+        (234, 231, 237), // 15 bright white
     ],
     dark: true,
     grain: 1.2,
@@ -90,22 +90,22 @@ pub static CRT_BLUE: Theme = Theme {
     hint_fg: (0, 140, 156),
     find_hl_bg: (10, 45, 75),
     ansi: [
-        (20, 50, 75),    // 0  black
-        (150, 170, 255), // 1  red
-        (0, 255, 220),   // 2  green
-        (140, 220, 255), // 3  yellow
-        (60, 160, 255),  // 4  blue
-        (150, 150, 255), // 5  magenta
-        (0, 240, 255),   // 6  cyan
-        (170, 225, 255), // 7  white
-        (0, 120, 170),   // 8  bright black
-        (180, 190, 255), // 9  bright red
-        (60, 255, 235),  // 10 bright green
-        (170, 235, 255), // 11 bright yellow
-        (90, 190, 255),  // 12 bright blue
-        (180, 170, 255), // 13 bright magenta
-        (110, 250, 255), // 14 bright cyan
-        (200, 240, 255), // 15 bright white
+        (92, 95, 99),    // 0  black
+        (0, 154, 172),   // 1  red
+        (0, 169, 189),   // 2  green
+        (6, 184, 205),   // 3  yellow
+        (45, 198, 220),  // 4  blue
+        (67, 212, 234),  // 5  magenta
+        (85, 227, 249),  // 6  cyan
+        (206, 211, 214), // 7  white
+        (128, 132, 135), // 8  bright black
+        (47, 174, 192),  // 9  bright red
+        (50, 189, 209),  // 10 bright green
+        (55, 204, 226),  // 11 bright yellow
+        (75, 219, 241),  // 12 bright blue
+        (94, 233, 255),  // 13 bright magenta
+        (161, 241, 255), // 14 bright cyan
+        (228, 233, 237), // 15 bright white
     ],
     dark: true,
     grain: 1.2,
@@ -149,22 +149,22 @@ pub static CRT_PAPERWHITE: Theme = Theme {
     hint_fg: (117, 122, 128),
     find_hl_bg: (45, 55, 75),
     ansi: [
-        (55, 60, 70),    // 0  black
-        (255, 180, 175), // 1  red
-        (185, 235, 200), // 2  green
-        (240, 230, 190), // 3  yellow
-        (170, 200, 250), // 4  blue
-        (225, 190, 240), // 5  magenta
-        (185, 225, 245), // 6  cyan
-        (215, 222, 232), // 7  white
-        (130, 140, 155), // 8  bright black
-        (255, 200, 195), // 9  bright red
-        (205, 245, 215), // 10 bright green
-        (250, 240, 205), // 11 bright yellow
-        (190, 215, 252), // 12 bright blue
-        (238, 205, 250), // 13 bright magenta
-        (205, 238, 250), // 14 bright cyan
-        (245, 248, 252), // 15 bright white
+        (95, 95, 97),    // 0  black
+        (251, 151, 139), // 1  red
+        (114, 196, 130), // 2  green
+        (215, 172, 76),  // 3  yellow
+        (120, 182, 254), // 4  blue
+        (221, 156, 228), // 5  magenta
+        (30, 197, 203),  // 6  cyan
+        (210, 211, 212), // 7  white
+        (131, 132, 133), // 8  bright black
+        (255, 181, 171), // 9  bright red
+        (134, 217, 149), // 10 bright green
+        (236, 192, 97),  // 11 bright yellow
+        (157, 202, 255), // 12 bright blue
+        (242, 176, 249), // 13 bright magenta
+        (66, 218, 224),  // 14 bright cyan
+        (232, 234, 235), // 15 bright white
     ],
     dark: true,
     grain: 1.2,
