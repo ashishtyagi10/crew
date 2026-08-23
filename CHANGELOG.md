@@ -8,6 +8,51 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.1
+
+**`auto` was stuck on dark all day on any Mac pinned to Dark.** The theme
+promised "light by day, dark by night" and followed the OS appearance to
+deliver it. macOS has three appearance settings, though, and the window
+system only reports two: Appearance: Auto arrives as whichever side it is
+currently showing, indistinguishable from someone having chosen that side
+outright. So crew could see *which* appearance was active but never whether
+it would ever change — and on a Mac set to Dark it never does, which made
+`auto` a permanent synonym for `dark`, at noon, while the picker went on
+promising otherwise.
+
+crew asks the missing question now. While macOS switches its own appearance,
+the OS still wins outright: it already encodes the day/night intent, sunset
+schedule and all, and second-guessing it would be worse. Only once the
+appearance is **pinned** does crew fall back to its own clock — a light-hours
+window, `07:00`–`19:00` by default:
+
+```toml
+auto_light_from = "07:00"
+auto_light_to   = "19:00"
+```
+
+Set them to your own hours; a window whose end is at or before its start
+(`20:00`–`06:00`) wraps past midnight, for anyone whose day does. Crossing a
+boundary switches the theme where you can see it happen rather than at the
+next ten-minute rotation. Nothing changes on Linux or Windows, where there is
+no way to tell a pinned appearance from a scheduled one: whatever the OS
+reports is taken as the whole truth, exactly as before.
+
+The window is wall-clock rather than real sunrise and sunset because crew has
+no idea where it is, and a location permission prompt or a network call is a
+poor trade for deciding a colour.
+
+**And `/theme` says which clock is deciding.** "auto is dark at noon" and
+"auto is dark because you pinned the OS to dark" used to be the same
+sentence — a single word, `auto` — which is precisely how this shipped
+broken and stayed that way. It now reads:
+
+```
+theme: auto — the OS appearance is pinned, so the clock decides: it is day,
+serving light; the dark half is dark (light hours are 07:00–19:00, set with
+auto_light_from / auto_light_to)
+```
+
 ## 0.18.0
 
 **Nine themes instead of twenty-four, and one colour system underneath them
