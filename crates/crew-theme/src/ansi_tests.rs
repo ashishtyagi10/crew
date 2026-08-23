@@ -171,8 +171,8 @@ fn a_coloured_phosphor_tube_keeps_one_hue() {
         };
         checked += 1;
         let slots = ramp.slots();
-        for i in 1..7 {
-            let h = crate::oklch::from_srgb(slots[i]).h;
+        for (i, slot) in slots.iter().enumerate().take(7).skip(1) {
+            let h = crate::oklch::from_srgb(*slot).h;
             let off = ((h - hue + 540.0) % 360.0 - 180.0).abs();
             assert!(
                 off < 12.0,
@@ -197,8 +197,7 @@ fn every_shipped_ansi_palette_is_what_the_ramp_produces() {
     for id in ALL_THEMES {
         let t = id.theme();
         let slots = AnsiRamp::fitted(t).slots();
-        for i in 0..16 {
-            let (got, have) = (slots[i], t.ansi[i]);
+        for (i, (&got, &have)) in slots.iter().zip(t.ansi.iter()).enumerate() {
             let d = |a: u8, b: u8| (a as i16 - b as i16).abs();
             if d(got.0, have.0) > 1 || d(got.1, have.1) > 1 || d(got.2, have.2) > 1 {
                 off.push(format!(
