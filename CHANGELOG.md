@@ -8,6 +8,81 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.0
+
+**Nine themes instead of twenty-four, and one colour system underneath them
+all.** A minor bump rather than a patch, because fifteen palettes are gone
+and every remaining colour was re-derived.
+
+### The palettes are a system now, not 2,376 opinions
+
+Every colour in every theme used to be picked by eye, one theme at a time —
+seventeen roles plus a sixteen-slot terminal palette, times twenty-four. They
+all passed the contrast checks, because the checks were run afterwards and
+the failures nudged by hand. Nothing related any two of them: measured across
+the themes, the *same role* landed anywhere in a **2x band**, and the accent
+in a **4.9x band**. So switching themes did not move the palette to the same
+place. It moved it to whatever was decided on a different afternoon.
+
+Roles are derived now. A palette states what it is — the page, the hue and
+saturation of its ink — and the ladder below that (body text, legends, hints,
+placeholders, borders) follows from one shared set of levels, computed in a
+perceptual colour space so that "one step dimmer" means the same thing at
+every hue. Twenty of the twenty-four moved by less than half a step in the
+process; rendered side by side, the largest frame changed by 1.4%.
+
+Two deliberate exceptions, both because a rule that fits paper does not fit a
+phosphor. **No theme's text goes near-white** any more: matching contrast on a
+page lighter than its neighbours wanted `(250, 250, 252)` on one theme, which
+is the glare every dark-mode guide warns about, so there is a ceiling. And a
+**white** CRT tube keeps its brightness rather than being held to the coloured
+tubes' levels — being bright is that theme's whole point.
+
+### Shell output got the same treatment, and it needed it
+
+The terminal palette was checked for legibility and nothing else. Three things
+were wrong. ANSI black bottomed out at **1.36:1** on dark themes — very nearly
+the background, so anything printed in it was invisible. Slots ranged from
+4.6 to 17.3 against their own background depending on theme and colour. And
+nothing ever compared the colours to *each other*: on the amber tube, ANSI
+green and yellow sat closer together than eight shades of grey, which is to
+say `ls --color` and `git diff` were drawing two different things in the same
+colour.
+
+All sixteen slots are derived and checked now, including the blacks and whites
+nobody had ever looked at. Colour themes separate by hue, using crew's own
+hues rather than an imported convention. Phosphor tubes separate by
+brightness, the way a real amber monitor did — spreading them by hue would
+have made them legible and destroyed them.
+
+### Twenty-four palettes, several of which were the same palette
+
+The two closest were **Δ 0.0209** apart, under the point where two greys stop
+being distinguishable. Nine more pairs were nearly as close. The nine that
+remain were picked by measuring which are genuinely most different from one
+another, then making sure each family kept both its light and dark side:
+
+- **paper** dark and light — newsprint, both ways up
+- **sepia** dark and light — the warm pair
+- **nebula** and **blossom** — the modern look, dark and light
+- **crt-green**, **crt-amber**, **crt-blue** — the three tubes
+
+The closest pair among them is now nearly three times further apart than the
+closest pair before.
+
+**If your config names a retired theme, it still works.** All fifteen resolve
+to their nearest surviving relative, always of the same appearance — a dark
+desk does not suddenly go white. `graphite` becomes `paper-dark`, `aurora`
+becomes `nebula`, and so on.
+
+### And some tube maths that had been running for nothing
+
+The CRT pass carried barrel curvature and a corner vignette that every theme
+had set to zero since the flat-tube decree. The shader was warping by an
+identity and multiplying by one, per pixel, per frame. Both are gone — and
+because "this changes nothing" is a checkable claim, it was checked: every
+frame is pixel-identical.
+
 ## 0.17.12
 
 **A failed update no longer removes crew.** This was worse than an update
