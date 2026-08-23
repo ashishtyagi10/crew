@@ -76,6 +76,7 @@ pub struct Theme {
 pub mod ansi;
 mod crtstyle;
 mod glass;
+pub mod highlight;
 mod modernstyle;
 pub mod oklch;
 mod presets_crt;

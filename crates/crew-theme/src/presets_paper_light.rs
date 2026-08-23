@@ -23,7 +23,7 @@ pub static SEPIA_LIGHT: Theme = Theme {
     dim: (115, 104, 83),
     placeholder: (122, 112, 90),
     hint_fg: (113, 102, 81),
-    find_hl_bg: (225, 195, 110),
+    find_hl_bg: (217, 178, 59),
     ansi: [
         (29, 26, 17),   // 0  black
         (136, 60, 52),  // 1  red
