@@ -71,31 +71,12 @@ fn main() {
         std::env::var("CREW_SHOT_DIR").unwrap_or_else(|_| "target/screenshots".to_string());
     std::fs::create_dir_all(&out_dir).expect("create screenshot dir");
 
-    // render every theme
-    for (theme_id, out_name) in [
-        (ThemeId::PaperLight, "crew-paper-light.png"),
-        (ThemeId::PaperDark, "crew-paper-dark.png"),
-        (ThemeId::CrtGreen, "crt-green.png"),
-        (ThemeId::CrtAmber, "crt-amber.png"),
-        (ThemeId::CrtBlue, "crt-blue.png"),
-        (ThemeId::SepiaDark, "sepia-dark.png"),
-        (ThemeId::MidnightInk, "midnight-ink.png"),
-        (ThemeId::Graphite, "graphite.png"),
-        (ThemeId::CrtViolet, "crt-violet.png"),
-        (ThemeId::MossBlotter, "moss-blotter.png"),
-        (ThemeId::GlacierBond, "glacier-bond.png"),
-        (ThemeId::CrtPaperwhite, "crt-paperwhite.png"),
-        (ThemeId::Aurora, "aurora.png"),
-        (ThemeId::Nebula, "nebula.png"),
-        (ThemeId::Graphene, "graphene.png"),
-        (ThemeId::Cobalt, "cobalt.png"),
-        (ThemeId::Daybreak, "daybreak.png"),
-        (ThemeId::Blossom, "blossom.png"),
-        (ThemeId::Meadow, "meadow.png"),
-        (ThemeId::Cirrus, "cirrus.png"),
-    ] {
+    // Every theme, driven off `ALL_THEMES` rather than a hand-kept list — the
+    // list fell out of sync the moment the roster changed, and a screenshot
+    // harness that silently skips a theme is worse than no harness.
+    for theme_id in crew_theme::ALL_THEMES {
         crew_theme::set_theme(theme_id);
-        let out_path = format!("{out_dir}/{out_name}");
+        let out_path = format!("{out_dir}/{}.png", theme_id.as_str());
 
         // Build the scene AFTER set_theme: `place_str` bakes `CellView.bg` from the
         // active theme's page_bg, so cells must be constructed per-theme for the

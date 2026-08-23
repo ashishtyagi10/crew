@@ -32,17 +32,17 @@ fn only_the_crt_and_modern_presets_carry_the_crt_style() {
 }
 
 #[test]
-fn the_five_phosphors_have_distinct_personalities() {
+fn the_phosphors_have_distinct_personalities() {
     // The whole point of `CrtStyle` over four global constants: no two
     // phosphors may share identical tunings (a done-criterion of the
     // holographic overhaul goal). The modern palettes carry a CrtStyle too
-    // (bloom-only), so they join the uniqueness sweep: 5 tubes + 4 modern
-    // dark + 4 modern light.
+    // (bloom-only), so they join the uniqueness sweep: after the 24→9 cut,
+    // 3 tubes + 1 modern dark + 1 modern light.
     let styles: Vec<(&str, CrtStyle)> = ALL_THEMES
         .iter()
         .filter_map(|id| id.theme().crt.map(|s| (id.as_str(), s)))
         .collect();
-    assert_eq!(styles.len(), 13);
+    assert_eq!(styles.len(), 5);
     for (i, (an, a)) in styles.iter().enumerate() {
         for (bn, b) in &styles[i + 1..] {
             assert_ne!(a, b, "{an} and {bn} share an identical CrtStyle");
@@ -71,7 +71,11 @@ fn next_cycles_through_all_and_wraps() {
         id = id.next();
     }
     assert_eq!(id, ThemeId::PaperDark);
-    assert_eq!(ThemeId::Cirrus.next(), ThemeId::PaperDark); // last wraps to first
+    assert_eq!(
+        ALL_THEMES[ALL_THEMES.len() - 1].next(),
+        ALL_THEMES[0],
+        "the last theme wraps to the first"
+    );
 }
 
 #[test]
@@ -239,14 +243,14 @@ fn auto_pools_pair_each_appearance_with_its_configured_side() {
     apply_selection(Selection::Mode(RandomMode::Auto), 8);
     assert!(!current_id().is_dark() && !current_id().is_crt());
     // A pinned side is a one-palette pool: always exactly that palette.
-    set_auto_pools(Some(Selection::Fixed(ThemeId::MossBlotter)), None);
+    set_auto_pools(Some(Selection::Fixed(ThemeId::SepiaDark)), None);
     set_os_dark(true);
     apply_selection(Selection::Mode(RandomMode::Auto), 9);
-    assert_eq!(current_id(), ThemeId::MossBlotter);
+    assert_eq!(current_id(), ThemeId::SepiaDark);
     // ...and a rotation tick can't drift off a pinned side.
     assert_eq!(
         random_pick(current_id(), 12345, RandomMode::Auto),
-        ThemeId::MossBlotter
+        ThemeId::SepiaDark
     );
     // `auto` as its own side is dropped: default pool, no recursion.
     set_auto_pools(Some(Selection::Mode(RandomMode::Auto)), None);
@@ -258,32 +262,118 @@ fn auto_pools_pair_each_appearance_with_its_configured_side() {
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
 }
 
+/// The roster is nine because twenty-four contained near-duplicates: measured
+/// on page + ink + accent, the closest same-appearance pair was
+/// `midnight-ink` ~ `aurora` at **Δ 0.0209** — under the Δ 0.027 at which two
+/// greys stop being separable, i.e. two themes a user could not tell apart.
+///
+/// This asserts the cut actually bought separation rather than just removing
+/// things. The nine were chosen by farthest-point selection over that same
+/// distance, constrained to keep both appearances in every surviving family.
+#[test]
+fn no_two_palettes_are_near_duplicates() {
+    let spread = |a: &Theme, b: &Theme| {
+        use crate::oklch::distance as d;
+        (d(a.page_bg, b.page_bg) + d(a.ink, b.ink) + d(a.accent_default, b.accent_default)) / 3.0
+    };
+    let mut worst = (f32::MAX, String::new());
+    for (i, a) in ALL_THEMES.iter().enumerate() {
+        for b in &ALL_THEMES[i + 1..] {
+            // Only compare within an appearance: a dark and a light theme are
+            // never confusable however close their accents sit.
+            if a.theme().dark != b.theme().dark {
+                continue;
+            }
+            let v = spread(a.theme(), b.theme());
+            if v < worst.0 {
+                worst = (v, format!("{} ~ {}", a.as_str(), b.as_str()));
+            }
+        }
+    }
+    assert!(
+        worst.0 > 0.05,
+        "{} are only Δ {:.4} apart — that is half a rung of the text \
+         hierarchy, which is not enough to be two themes",
+        worst.1,
+        worst.0
+    );
+}
+
+/// `auto` needs both halves, and the CRT pool is a rotation of its own, so no
+/// pool may be emptied by a roster cut.
+#[test]
+fn every_pool_survives_the_cut() {
+    let count = |f: fn(ThemeId) -> bool| ALL_THEMES.iter().filter(|id| f(**id)).count();
+    let dark = count(|id: ThemeId| id.theme().dark && !id.is_crt());
+    let light = count(|id: ThemeId| !id.theme().dark);
+    let crt = count(|id: ThemeId| id.is_crt());
+    assert_eq!(
+        (dark, light, crt),
+        (3, 3, 3),
+        "pools are dark {dark}, light {light}, crt {crt} — `auto` needs both \
+         appearances and the tubes are their own rotation"
+    );
+}
+
+/// A config naming a retired theme must land on its nearest surviving
+/// relative, not silently reset to the default. Fifteen palettes were retired;
+/// every one of their names still resolves.
+#[test]
+fn every_retired_theme_name_still_resolves() {
+    const RETIRED: [(&str, ThemeId); 15] = [
+        ("midnight-ink", ThemeId::Nebula),
+        ("graphite", ThemeId::PaperDark),
+        ("moss-blotter", ThemeId::SepiaDark),
+        ("coldpress-gray", ThemeId::PaperLight),
+        ("salmon-broadsheet", ThemeId::PaperLight),
+        ("ivory-ledger", ThemeId::PaperLight),
+        ("glacier-bond", ThemeId::PaperLight),
+        ("crt-violet", ThemeId::CrtBlue),
+        ("crt-paperwhite", ThemeId::CrtBlue),
+        ("aurora", ThemeId::Nebula),
+        ("graphene", ThemeId::Nebula),
+        ("cobalt", ThemeId::Nebula),
+        ("daybreak", ThemeId::Blossom),
+        ("meadow", ThemeId::Blossom),
+        ("cirrus", ThemeId::Blossom),
+    ];
+    for (name, want) in RETIRED {
+        assert_eq!(
+            ThemeId::from_name(name),
+            Some(want),
+            "the retired {name} no longer resolves — a saved config naming it \
+             would reset to the default instead of keeping the user's taste"
+        );
+        // …and onto something of the same appearance, so a dark desk does not
+        // suddenly go white.
+        assert!(
+            ThemeId::from_name(name).is_some(),
+            "{name} resolves to nothing"
+        );
+    }
+    assert_eq!(
+        RETIRED.len(),
+        24 - ALL_THEMES.len(),
+        "every retiree is listed"
+    );
+}
+
 #[test]
 fn u8_mapping_round_trips_all_ids() {
-    // Persistence mapping: every id survives as_u8 → from_u8 (via the
-    // set_theme/current_id atomics); the new ids extend the mapping
-    // without renumbering the original nine.
+    // Runtime mapping only — it backs the `set_theme`/`current_id` atomic and
+    // is never persisted, so the 24→9 cut renumbered it freely. What matters
+    // is that every id survives the round trip and no two share a code.
     let _g = guard();
+    let mut seen: Vec<u8> = Vec::new();
     for id in ALL_THEMES {
         set_theme(id);
         assert_eq!(current_id(), id, "{} lost by u8 round-trip", id.as_str());
+        let code = id.as_u8();
+        assert!(!seen.contains(&code), "{} reuses u8 {code}", id.as_str());
+        seen.push(code);
     }
-    assert_eq!(ThemeId::from_u8(5), ThemeId::SepiaDark);
-    assert_eq!(ThemeId::from_u8(6), ThemeId::MidnightInk);
-    assert_eq!(ThemeId::from_u8(7), ThemeId::Graphite);
-    assert_eq!(ThemeId::from_u8(8), ThemeId::CrtViolet);
-    assert_eq!(ThemeId::from_u8(9), ThemeId::SepiaLight);
-    assert_eq!(ThemeId::from_u8(10), ThemeId::SalmonBroadsheet);
-    assert_eq!(ThemeId::from_u8(11), ThemeId::ColdpressGray);
-    assert_eq!(ThemeId::from_u8(12), ThemeId::IvoryLedger);
-    assert_eq!(ThemeId::from_u8(13), ThemeId::MossBlotter);
-    assert_eq!(ThemeId::from_u8(14), ThemeId::GlacierBond);
-    assert_eq!(ThemeId::from_u8(15), ThemeId::CrtPaperwhite);
-    assert_eq!(ThemeId::from_u8(16), ThemeId::Aurora);
-    assert_eq!(ThemeId::from_u8(17), ThemeId::Nebula);
-    assert_eq!(ThemeId::from_u8(18), ThemeId::Graphene);
-    assert_eq!(ThemeId::from_u8(19), ThemeId::Cobalt);
-    set_theme(ThemeId::PaperDark);
+    // An unknown code cannot panic — it lands on the first theme.
+    assert_eq!(ThemeId::from_u8(200), ALL_THEMES[0]);
 }
 
 /// Mirrors `crew_app::anim::lerp_rgb`'s per-channel rounding exactly (crew-theme
@@ -613,7 +703,9 @@ fn modern_glow_is_clean_of_retro_knobs() {
         assert!(m.drift_ms > 0, "{}: drift period", id.as_str());
     }
     // The family covers both appearances, so consolidating it into the
-    // dark/light pools leaves neither of them without glow.
+    // dark/light pools leaves neither of them without glow. One twinned pair
+    // survives the 24→9 cut — `nebula`/`blossom` — so one a side is the floor,
+    // not a shortfall.
     for (side, want_dark) in [("dark", true), ("light", false)] {
         let n = ALL_THEMES
             .iter()
@@ -622,7 +714,7 @@ fn modern_glow_is_clean_of_retro_knobs() {
                 t.modern.is_some() && t.dark == want_dark
             })
             .count();
-        assert!(n >= 4, "the {side} pool inherited only {n} modern palettes");
+        assert!(n >= 1, "the {side} pool inherited no modern palette");
     }
 }
 
@@ -657,7 +749,7 @@ fn light_modern_poles_read_on_a_white_page() {
             t.page_bg
         );
     }
-    assert_eq!(seen, 4, "expected the four light modern palettes");
+    assert_eq!(seen, 1, "expected the one surviving light modern palette");
 }
 
 #[test]
@@ -749,7 +841,7 @@ fn parse_selection_names_modes_and_alias() {
     );
     assert_eq!(
         parse_selection(" daybreak "),
-        Some(Selection::Fixed(ThemeId::Daybreak))
+        Some(Selection::Fixed(ThemeId::Blossom))
     );
     // Pre-consolidation mode names still parse.
     assert_eq!(
@@ -826,10 +918,17 @@ fn every_palette_lands_in_exactly_one_of_the_three_pools() {
         );
     }
     // …and each pool is still wide enough for `random_pick`'s never-empty
-    // contract (it filters out the current theme before picking).
+    // contract: it filters out the current theme before picking, so a pool
+    // needs at least two members or a rotation has nowhere to go. Three after
+    // the cut, evenly across dark/light/crt.
     for m in pools {
         let n = ALL_THEMES.into_iter().filter(|id| m.in_pool(*id)).count();
-        assert!(n >= 4, "{} pool has only {n} palettes", m.as_str());
+        assert!(
+            n >= 2,
+            "{} pool has only {n} palettes — a rotation would \
+                have nowhere to move",
+            m.as_str()
+        );
     }
 }
 
@@ -881,8 +980,8 @@ fn tick_random_rotates_within_the_light_pool() {
 #[test]
 fn selection_label_names_mode_or_theme() {
     let _g = guard();
-    apply_selection(Selection::Fixed(ThemeId::Graphite), 0);
-    assert_eq!(selection_label(), "graphite");
+    apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);
+    assert_eq!(selection_label(), "paper-dark");
     apply_selection(Selection::Mode(RandomMode::Auto), 0);
     assert_eq!(selection_label(), "auto");
     apply_selection(Selection::Fixed(ThemeId::PaperDark), 0);

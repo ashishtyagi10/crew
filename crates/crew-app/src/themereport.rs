@@ -60,8 +60,8 @@ mod tests {
             "theme: light"
         );
         assert_eq!(
-            report("daybreak", None, false, (None, None)),
-            "theme: daybreak"
+            report("blossom", None, false, (None, None)),
+            "theme: blossom"
         );
     }
 
@@ -74,10 +74,10 @@ mod tests {
             "auto",
             Some(RandomMode::Auto),
             true,
-            (None, Some(Selection::Fixed(ThemeId::Daybreak))),
+            (None, Some(Selection::Fixed(ThemeId::Blossom))),
         );
         assert!(msg.contains("OS is dark, serving dark"), "{msg}");
-        assert!(msg.contains("the light half is daybreak"), "{msg}");
+        assert!(msg.contains("the light half is blossom"), "{msg}");
         assert!(msg.contains("turns light"), "{msg}");
 
         // Flip the appearance and the same pairing is the one on screen.
@@ -85,9 +85,9 @@ mod tests {
             "auto",
             Some(RandomMode::Auto),
             false,
-            (None, Some(Selection::Fixed(ThemeId::Daybreak))),
+            (None, Some(Selection::Fixed(ThemeId::Blossom))),
         );
-        assert!(msg.contains("OS is light, serving daybreak"), "{msg}");
+        assert!(msg.contains("OS is light, serving blossom"), "{msg}");
         assert!(msg.contains("the dark half is dark"), "{msg}");
     }
 

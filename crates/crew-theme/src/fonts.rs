@@ -126,54 +126,6 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "Menlo",
             "Lilex",
         ],
-        // Midnight ink: high-contrast, tight.
-        ThemeId::MidnightInk => &[
-            "JetBrainsMono NF",
-            "JetBrains Mono",
-            "Geist Mono",
-            "SF Mono",
-            "Menlo",
-            "Lilex",
-        ],
-        // Graphite: the system's own neutral.
-        ThemeId::Graphite => &[
-            "SF Mono",
-            "Geist Mono",
-            "JetBrainsMono NF",
-            "JetBrains Mono",
-            "Menlo",
-            "Lilex",
-        ],
-        // Coldpress / glacier: flat, drafting-table — geometric and even
-        // (glacier-bond is the cold blue-cast cousin of coldpress-gray).
-        ThemeId::ColdpressGray | ThemeId::GlacierBond => &[
-            "FiraCode Nerd Font Mono",
-            "Fira Code",
-            "Google Sans Code",
-            "Geist Mono",
-            "SF Mono",
-            "Menlo",
-            "Lilex",
-        ],
-        // Broadsheet / ledger: newsprint and accounting — a clean modern
-        // humanist face, no old typewriter Courier.
-        ThemeId::SalmonBroadsheet => &[
-            "MonoLisa",
-            "IBM Plex Mono",
-            "Comic Mono",
-            "ComicMono Nerd Font Mono",
-            "Menlo",
-            "Lilex",
-        ],
-        // (moss-blotter shares the ledger's study-desk character.)
-        ThemeId::IvoryLedger | ThemeId::MossBlotter => &[
-            "IBM Plex Mono",
-            "SF Mono",
-            "Comic Mono",
-            "ComicMono Nerd Font Mono",
-            "Menlo",
-            "Lilex",
-        ],
         // CRT: a terminal face with squared-off shoulders — straight modern
         // faces (the old `Monaco` lead was a pre-Retina relic; Lilex is the
         // contemporary take on that IBM-terminal DNA).
@@ -181,7 +133,7 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
         // face; Geist is the contemporary geometric fallback.
         // The light twins share their dark parents' faces — a palette flip
         // must not also change the typeface under the user.
-        ThemeId::Aurora | ThemeId::Nebula | ThemeId::Daybreak | ThemeId::Blossom => &[
+        ThemeId::Nebula | ThemeId::Blossom => &[
             "Google Sans Code",
             "Geist Mono",
             "GeistMono Nerd Font",
@@ -190,30 +142,7 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "Menlo",
             "Lilex",
         ],
-        // Graphene: neutral and product-grade — Commit Mono's whole thesis.
-        ThemeId::Graphene | ThemeId::Meadow => &[
-            "Commit Mono",
-            "CommitMono Nerd Font",
-            "Geist Mono",
-            "SF Mono",
-            "Menlo",
-            "Lilex",
-        ],
-        // Cobalt: wide, techy, electric.
-        ThemeId::Cobalt | ThemeId::Cirrus => &[
-            "Martian Mono",
-            "Geist Mono",
-            "JetBrainsMono NF",
-            "JetBrains Mono",
-            "SF Mono",
-            "Menlo",
-            "Lilex",
-        ],
-        ThemeId::CrtGreen
-        | ThemeId::CrtAmber
-        | ThemeId::CrtBlue
-        | ThemeId::CrtViolet
-        | ThemeId::CrtPaperwhite => &[
+        ThemeId::CrtGreen | ThemeId::CrtAmber | ThemeId::CrtBlue => &[
             // The Nerd Font variant first: crew now *embeds* plain Lilex, so
             // leading with it would mean the built-in copy always beat an
             // installed icon-bearing one.
@@ -322,11 +251,16 @@ mod tests {
         // The regression behind "the theme rotates but the font never
         // changes": every list led with the same Comic Mono pair, so any
         // machine with it installed resolved every theme to the same face.
+        //
+        // Four after the 24→9 cut, which is one per surviving family — paper,
+        // sepia, modern and CRT. That is the real invariant the old ">= 5"
+        // was reaching for: a family gets its own face, and the count follows
+        // the roster rather than leading it.
         let mut leads: Vec<&str> = ALL_THEMES.map(|id| font_prefs(id)[0]).to_vec();
         leads.sort_unstable();
         leads.dedup();
         assert!(
-            leads.len() >= 5,
+            leads.len() >= 4,
             "only {} distinct lead families across all themes: {leads:?}",
             leads.len()
         );

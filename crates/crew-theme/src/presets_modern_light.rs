@@ -14,63 +14,6 @@
 
 use crate::{CrtStyle, ModernStyle, Theme};
 
-/// **Daybreak** (Aurora with the lights on): a cool near-white page under
-/// deep slate ink, with Aurora's blue→violet polar sky driven to full
-/// saturation — the polar sky at midday rather than midnight.
-pub static DAYBREAK: Theme = Theme {
-    page_bg: (250, 251, 254),
-    ink: (22, 29, 48),
-    text_muted: (51, 56, 71),
-    term_fg: (17, 24, 39),
-    term_bg: (250, 251, 254),
-    border_normal: (179, 180, 185),
-    border_focused: (37, 99, 235),
-    border_thickness: 3.5,
-    legend_off: (94, 98, 107),
-    accent_default: (37, 99, 235),
-    status_fg: (30, 64, 175),
-    broadcast: (190, 24, 93),
-    activity: (29, 78, 216),
-    bell: (180, 83, 9),
-    dim: (112, 114, 122),
-    placeholder: (120, 122, 130),
-    hint_fg: (111, 113, 121),
-    find_hl_bg: (191, 219, 254),
-    ansi: [
-        (38, 38, 39),    // 0  black
-        (147, 69, 62),   // 1  red
-        (36, 105, 54),   // 2  green
-        (119, 87, 0),    // 3  yellow
-        (44, 94, 151),   // 4  blue
-        (125, 73, 131),  // 5  magenta
-        (0, 103, 107),   // 6  cyan
-        (74, 74, 75),    // 7  white
-        (100, 100, 102), // 8  bright black
-        (128, 52, 46),   // 9  bright red
-        (14, 88, 38),    // 10 bright green
-        (99, 72, 0),     // 11 bright yellow
-        (27, 77, 133),   // 12 bright blue
-        (108, 57, 114),  // 13 bright magenta
-        (0, 85, 89),     // 14 bright cyan
-        (39, 39, 40),    // 15 bright white
-    ],
-    dark: false,
-    grain: 0.0,
-    crt: Some(CrtStyle {
-        scanline: 0.0,
-        glow: 0.35,
-        glow_radius: 12.0,
-        flicker: 0.03,
-    }),
-    modern: Some(ModernStyle {
-        pole_a: (37, 99, 235),
-        pole_b: (124, 58, 237),
-        drift_ms: 6_000,
-        dots: 0.16,
-        wash: 0.12,
-    }),
-};
-
 /// **Blossom** (Nebula with the lights on): a warm white page with the
 /// violet→rose sweep of Nebula's dusk, deepened until it reads on paper.
 pub static BLOSSOM: Theme = Theme {
