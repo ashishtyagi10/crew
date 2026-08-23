@@ -364,11 +364,19 @@ impl CrewApp {
         let (pool_dark, pool_light) = self.config.auto_pool_selections();
         let pools_changed = (pool_dark, pool_light) != old_pools;
         crew_theme::set_auto_pools(pool_dark, pool_light);
+        // The light-hours window (`auto_light_from`/`auto_light_to`) rides
+        // config the same way, so republish the clock sources here too and
+        // treat a flipped verdict exactly like a changed pairing — otherwise
+        // widening the window to cover right now wouldn't show until the next
+        // tick crossed a boundary that no longer exists.
+        let was_auto_dark = crew_theme::auto_dark();
+        self.config.publish_appearance_sources();
+        let auto_side_changed = pools_changed || crew_theme::auto_dark() != was_auto_dark;
         let want = self.config.theme_selection();
         let live = match want {
             crew_theme::Selection::Mode(m) => {
                 crew_theme::mode() == Some(m)
-                    && !(m == crew_theme::RandomMode::Auto && pools_changed)
+                    && !(m == crew_theme::RandomMode::Auto && auto_side_changed)
             }
             crew_theme::Selection::Fixed(id) => {
                 crew_theme::mode().is_none() && crew_theme::current_id() == id

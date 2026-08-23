@@ -296,14 +296,26 @@ pub fn theme() -> &'static Theme {
 
 /// Rotation mode: when set, the active theme changes every [`ROTATE_MS`]
 /// within the mode's pool. Stored as a lock-free u8 for per-frame reads:
-/// 0 = off, 1 = dark pool, 2 = light pool, 3 = auto (pool follows the OS
-/// appearance via [`set_os_dark`]).
+/// 0 = off, 1 = dark pool, 2 = light pool, 3 = auto (pool follows
+/// [`auto_dark`]).
 static MODE: AtomicU8 = AtomicU8::new(0);
 /// Wall-clock ms of the last rotation (or of enabling a mode).
 static ROTATED_MS: AtomicU64 = AtomicU64::new(0);
 /// The OS appearance, fed by winit's ThemeChanged. Defaults to dark so a
 /// platform that never reports stays on the dark pool.
 static OS_DARK: AtomicBool = AtomicBool::new(true);
+/// Whether the OS switches its own appearance between light and dark (macOS
+/// System Settings → Appearance → Auto). Defaults to `true` — on a platform
+/// crew cannot ask, the OS appearance is taken as authoritative and nothing
+/// about `auto` changes. It matters only for the `false` case: an appearance
+/// PINNED to dark never turns light, so following it would make `auto` a
+/// synonym for `dark` forever, which is exactly the "auto is stuck on dark in
+/// broad daylight" report this flag exists to answer.
+static OS_AUTO: AtomicBool = AtomicBool::new(true);
+/// Whether the local clock currently reads as daytime (the app's light-hours
+/// window — see `daylight` in crew-app). Consulted ONLY while `OS_AUTO` is
+/// false. Defaults to false so an unfed clock keeps the historical dark bias.
+static DAYLIGHT: AtomicBool = AtomicBool::new(false);
 /// How long each rotated theme is shown: 10 minutes (fonts share this).
 pub const ROTATE_MS: u64 = 600_000;
 
@@ -314,8 +326,9 @@ pub const ROTATE_MS: u64 = 600_000;
 /// a palette's own appearance decides which it is in: the modern (Gemini /
 /// Codex look) palettes are dark and light pages like any other and rotate
 /// inside `dark` / `light` rather than standing apart as their own themes.
-/// `Auto` borrows the dark or light pool depending on the OS appearance
-/// ([`set_os_dark`]); [`THEME_MODES`] is the list the picker advertises.
+/// `Auto` borrows the dark or light pool depending on the appearance
+/// [`auto_dark`] resolves — the OS's while it self-switches, the local clock's
+/// once it is pinned; [`THEME_MODES`] is the list the picker advertises.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RandomMode {
     Dark,
@@ -352,7 +365,9 @@ impl RandomMode {
             RandomMode::Dark => "rotating dark pages \u{2014} paper and modern glow",
             RandomMode::Light => "rotating light pages \u{2014} paper and modern glow",
             RandomMode::Crt => "rotating CRT phosphor themes",
-            RandomMode::Auto => "light by day, dark by night \u{2014} follows the OS",
+            RandomMode::Auto => {
+                "light by day, dark by night \u{2014} OS appearance, or the clock when it is pinned"
+            }
         }
     }
 
@@ -383,7 +398,7 @@ impl RandomMode {
     /// this", modern glow and plain paper alike, and a rotation can never flip
     /// the page from near-black to near-white. `Auto` serves its
     /// per-appearance pairing ([`auto_side`]) — by default the dark or light
-    /// pool depending on the OS appearance, a pinned side being a one-palette
+    /// pool depending on [`auto_dark`], a pinned side being a one-palette
     /// pool.
     fn in_pool(self, id: ThemeId) -> bool {
         match self {
@@ -477,6 +492,45 @@ pub fn os_dark() -> bool {
     OS_DARK.load(Ordering::Relaxed)
 }
 
+/// Report whether the OS switches its OWN appearance on a schedule (macOS
+/// Appearance: Auto). Fed at startup and on every ThemeChanged.
+pub fn set_os_auto(auto: bool) {
+    OS_AUTO.store(auto, Ordering::Relaxed);
+}
+
+/// Whether the OS appearance is self-switching (defaults to `true`: assume
+/// the OS is authoritative unless crew has been told otherwise).
+pub fn os_auto() -> bool {
+    OS_AUTO.load(Ordering::Relaxed)
+}
+
+/// Report whether the local clock currently reads as daytime.
+pub fn set_daylight(day: bool) {
+    DAYLIGHT.store(day, Ordering::Relaxed);
+}
+
+/// The last reported daylight state (defaults to false = night).
+pub fn daylight() -> bool {
+    DAYLIGHT.load(Ordering::Relaxed)
+}
+
+/// Which half `auto` should serve, as a single yes/no — the ONE place the
+/// two clocks are weighed against each other, so every caller (pool
+/// membership, the `/theme` report, the settings blurb) agrees.
+///
+/// While the OS switches itself, the OS wins: it already encodes the user's
+/// day/night preference, schedule and all. Once the appearance is PINNED,
+/// following it makes `auto` indistinguishable from `dark` (or `light`)
+/// forever, so crew falls back to its own light-hours window — which is what
+/// "light by day, dark by night" says on the tin.
+pub fn auto_dark() -> bool {
+    if os_auto() {
+        os_dark()
+    } else {
+        !daylight()
+    }
+}
+
 /// What `auto` serves per OS appearance: `.0` while dark, `.1` while light.
 /// `None` = the built-in pairing (the dark/light paper pool). Read on theme
 /// application and rotation ticks, not per frame, so a mutex is fine.
@@ -502,11 +556,29 @@ pub fn auto_pools() -> (Option<Selection>, Option<Selection>) {
     *AUTO_POOLS.lock().unwrap()
 }
 
-/// The selection `auto` resolves to under the current OS appearance. Never
+/// `auto`'s light-hours window as minutes past midnight (`.0` start, `.1`
+/// end), for REPORTING only — the app owns the window, parses it from config
+/// and decides [`set_daylight`] from it. It lives here beside [`AUTO_POOLS`]
+/// for the same reason that does: `/theme` has to be able to read back every
+/// part of what `auto` is holding, and a window it cannot name is a setting
+/// with no visible effect.
+static LIGHT_HOURS: Mutex<(u16, u16)> = Mutex::new((7 * 60, 19 * 60));
+
+/// Publish `auto`'s configured light-hours window.
+pub fn set_light_hours(from: u16, to: u16) {
+    *LIGHT_HOURS.lock().unwrap() = (from, to);
+}
+
+/// The configured light-hours window (minutes past midnight).
+pub fn light_hours() -> (u16, u16) {
+    *LIGHT_HOURS.lock().unwrap()
+}
+
+/// The selection `auto` resolves to under the current appearance. Never
 /// `Mode(Auto)` (see [`set_auto_pools`]), so pool membership can't recurse.
 pub fn auto_side() -> Selection {
     let (dark, light) = *AUTO_POOLS.lock().unwrap();
-    if os_dark() {
+    if auto_dark() {
         dark.unwrap_or(Selection::Mode(RandomMode::Dark))
     } else {
         light.unwrap_or(Selection::Mode(RandomMode::Light))

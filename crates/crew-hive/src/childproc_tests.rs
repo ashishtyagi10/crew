@@ -25,6 +25,10 @@ const ALLOWED: &[(&str, &str)] = &[
     ("sysrun.rs", "Command::new(\"/bin/sh\")"),
     ("sysrun.rs", "Command::new(\"/bin/kill\")"),
     ("host.rs", "Command::new(\"kill\")"),
+    // macOS-only TEST probe (`#[cfg(all(test, target_os = "macos"))]`) that
+    // cross-checks the appearance preference against the `defaults` CLI.
+    // Never compiled on Windows, and never in a shipped binary.
+    ("osappearance.rs", "Command::new(\"defaults\")"),
 ];
 
 /// Walk `dir` for `.rs` files, skipping vendored code and build output.

@@ -40,6 +40,14 @@ fn default_motion() -> String {
     "full".to_string()
 }
 
+fn default_auto_light_from() -> String {
+    "07:00".to_string()
+}
+
+fn default_auto_light_to() -> String {
+    "19:00".to_string()
+}
+
 fn default_glass() -> String {
     // Strength only; the look is derived per-theme (see `crew_theme::glass`).
     // Since 2026-08-06 paper themes derive a flat (invisible) sheet, so this
@@ -156,6 +164,17 @@ pub struct CrewConfig {
     /// Same values as `theme_dark`; unset → the light paper pool.
     #[serde(default)]
     pub theme_light: Option<String>,
+    /// While `theme = "auto"` and the OS appearance is PINNED (not on macOS
+    /// Appearance: Auto): the local `HH:MM` daylight starts and ends. crew
+    /// has no location, so this is a wall-clock window rather than real
+    /// sunrise/sunset — dial it to your own. An unparseable value falls back
+    /// to the 07:00–19:00 default; a window whose end is at or before its
+    /// start wraps past midnight (see `daylight`).
+    #[serde(default = "default_auto_light_from")]
+    pub auto_light_from: String,
+    /// End of the light-hours window; see `auto_light_from`.
+    #[serde(default = "default_auto_light_to")]
+    pub auto_light_to: String,
     /// Whether to render the subtle paper grain + vignette background texture.
     /// When off, the window background is a plain flat colour.
     #[serde(default = "default_true")]
@@ -227,6 +246,8 @@ impl Default for CrewConfig {
             theme: None,
             theme_dark: None,
             theme_light: None,
+            auto_light_from: default_auto_light_from(),
+            auto_light_to: default_auto_light_to(),
             paper_texture: true,
             paper_grain: default_paper_grain(),
             crt: None,
