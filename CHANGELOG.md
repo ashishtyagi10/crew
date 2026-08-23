@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.8
+
+**`auto`'s per-appearance pairing is in Settings.** These decide what `auto`
+actually serves on each side — phosphor tubes at night and light paper by day
+is the example the theme docs give — and until now they were reachable only by
+editing the config file. **Auto dark** and **Auto light** now sit under the
+Theme picker they qualify and above the day-hours, in the order the settings
+answer: what each appearance serves, then when the clock calls it day.
+
+Each offers everything the setting accepts: the built-in default, the three
+rotating pools (dark, light, CRT), and all nine palettes individually. The full
+list matters — a picker that could not reach `crt-green` would still have to
+*show* it for anyone who had set it in the file, and a value the form can show
+but not produce is one the next Save quietly drops.
+
+With this, the only settings still living in the config file alone are the two
+footer usage budgets.
+
 ## 0.18.7
 
 **`auto`'s light hours are in Settings now.** The window that decides day from
