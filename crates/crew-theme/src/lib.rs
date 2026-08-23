@@ -1,8 +1,16 @@
-//! Crew's color themes. A single `Theme` struct holds every UI colour; two
-//! `&'static` presets (`PAPER_DARK`, `PAPER_LIGHT`) give crew an e-ink-reader
-//! look. The active theme lives behind a lock-free `AtomicU8` so the winit
-//! render thread can read it every frame without blocking. No dependencies and
-//! no knowledge of the other crates — they import this one.
+//! Crew's color themes. A single `Theme` struct holds every UI colour, and
+//! nine `&'static` presets fill it across four families: paper (the e-ink
+//! reader look crew started as), sepia, the modern Gemini/Codex glow, and
+//! three phosphor tubes. The active theme lives behind a lock-free `AtomicU8`
+//! so the winit render thread can read it every frame without blocking. No
+//! dependencies and no knowledge of the other crates — they import this one.
+//!
+//! Most of a palette is DERIVED rather than picked: the text ladder by
+//! [`ramp`], the terminal slots by [`ansi`], the search wash by [`highlight`],
+//! the attention colour by [`signal`]. Each of those modules holds the
+//! shipped presets to what it produces, so the palettes and the system cannot
+//! drift apart — which is exactly what they had done every time one of those
+//! modules had to be written.
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
 use std::sync::Mutex;
 
@@ -26,7 +34,10 @@ pub struct Theme {
     /// Unfocused / focused rounded pane border.
     pub border_normal: (u8, u8, u8),
     pub border_focused: (u8, u8, u8),
-    /// Rounded pane border stroke width, in physical pixels.
+    /// Rounded pane border stroke width, in physical pixels. 2.5 on the dark
+    /// newsprint pages, 3.0 on the light ones (a thin stroke disappears into
+    /// paper), and 3.5 on the tubes and the modern family, where the frame is
+    /// part of the look rather than just an edge.
     pub border_thickness: f32,
     /// Legend text on an unfocused pane card.
     pub legend_off: (u8, u8, u8),
@@ -51,12 +62,18 @@ pub struct Theme {
     /// 16-colour ANSI palette for shell output (muted "ink" tones).
     pub ansi: [(u8, u8, u8); 16],
     /// Whether this is a dark theme (dark page, light ink). Drives the
-    /// random-rotation pool, the light-theme text weight, and grain.
+    /// rotation pool this palette belongs to, the body text weight (light
+    /// pages get a heavier stem), the CRT pass's inversion, and the
+    /// light/dark scheme crew reports to DECSET-2031 terminals.
     pub dark: bool,
-    /// Grain amplitude multiplier for the paper-texture pass, relative to
-    /// the user's configured `paper_grain`. 1.0 on dark themes; 1.2 on
-    /// light themes for a visible newsprint texture (calibrated for the
-    /// gamma-space blend — see presets_paper.rs).
+    /// Grain amplitude multiplier for the paper-texture pass, relative to the
+    /// user's configured `paper_grain`. 1.2 on every newsprint page, dark and
+    /// light alike — gamma-space blending (v0.5.58) modulates encoded values
+    /// and reads far stronger than the old linear-space grain, and the
+    /// shader's dark absolute term carries the texture on a dark page without
+    /// a separate multiplier. The modern family is the deliberate exception at
+    /// 0.0: its pages are glass with a dot lattice, not newsprint.
+    /// `grain_is_newsprint_on_every_theme` is the arbiter.
     pub grain: f32,
     /// The theme's CRT tube tuning. When `Some` — and unless the user
     /// overrides it with `/crt off` — the renderer wraps the frame in the CRT
@@ -588,9 +605,11 @@ pub fn auto_side() -> Selection {
 }
 
 /// Pick a theme from `mode`'s pool that is NOT `current`, deterministically
-/// from `seed`. Every pool has ≥ 4 entries, so minus `current` it is never
-/// empty; the `current` filter is skipped only in the impossible case where it
-/// would empty the pool (keeps the modulo safe).
+/// from `seed`. Every pool has exactly 3 entries since the nine-theme cut
+/// (`every_pool_survives_the_cut` is where that is pinned), so minus `current`
+/// it is never empty; the `current` filter is skipped only if a future cut
+/// WOULD empty the pool, which keeps the modulo safe rather than relying on a
+/// roster size to stay where it is.
 pub fn random_pick(current: ThemeId, seed: u64, mode: RandomMode) -> ThemeId {
     let mut others: Vec<ThemeId> = ALL_THEMES
         .iter()
