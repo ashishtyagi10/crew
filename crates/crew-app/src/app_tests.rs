@@ -606,10 +606,12 @@ fn apply_config_resumes_saved_mode_and_pins_fixed_themes() {
     assert_eq!(crew_theme::mode(), Some(crew_theme::RandomMode::Light));
     assert!(!crew_theme::current_id().is_dark());
     let mut cfg = app.config.clone();
+    // A retired theme name: it must resolve to its nearest survivor rather
+    // than silently resetting to the default (see `from_name`).
     cfg.theme = Some("graphite".to_string());
     app.apply_config(cfg);
     assert_eq!(crew_theme::mode(), None);
-    assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::Graphite);
+    assert_eq!(crew_theme::current_id(), crew_theme::ThemeId::PaperDark);
     crew_theme::apply_selection(
         crew_theme::Selection::Fixed(crew_theme::ThemeId::PaperDark),
         0,

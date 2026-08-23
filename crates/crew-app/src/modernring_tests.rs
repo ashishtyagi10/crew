@@ -39,7 +39,7 @@ fn fg_at(v: &[CellView], col: u16, row: u16) -> (u8, u8, u8) {
 #[test]
 fn resting_ring_is_the_exact_gradient_and_clock_free() {
     let _g = crate::app::theme_test_guard();
-    crew_theme::set_theme(crew_theme::ThemeId::Aurora);
+    crew_theme::set_theme(crew_theme::ThemeId::Nebula);
     let style = crew_theme::theme().modern.expect("aurora is modern");
     let mut a = pane_card(38, 10, &bar(true));
     ring(&mut a, 40, 12, false, 1.0, 0);
@@ -69,7 +69,7 @@ fn resting_ring_is_the_exact_gradient_and_clock_free() {
 #[test]
 fn busy_ring_drifts_and_motion_off_freezes_it() {
     let _g = crate::app::theme_test_guard();
-    crew_theme::set_theme(crew_theme::ThemeId::Aurora);
+    crew_theme::set_theme(crew_theme::ThemeId::Nebula);
     let drift = crew_theme::theme().modern.unwrap().drift_ms;
     crate::motion::set_level(crate::motion::MotionLevel::Full);
     let mut a = pane_card(38, 10, &bar(true));
@@ -99,7 +99,7 @@ fn busy_ring_drifts_and_motion_off_freezes_it() {
 #[test]
 fn ignition_lifts_then_settles_and_spares_the_legend() {
     let _g = crate::app::theme_test_guard();
-    crew_theme::set_theme(crew_theme::ThemeId::Aurora);
+    crew_theme::set_theme(crew_theme::ThemeId::Nebula);
     let style = crew_theme::theme().modern.unwrap();
     let mut lit = pane_card(38, 10, &bar(true));
     ring(&mut lit, 40, 12, false, 0.0, 0);

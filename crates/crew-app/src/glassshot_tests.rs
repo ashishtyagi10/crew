@@ -321,14 +321,14 @@ fn modern_shot_every_palette() {
     let out_dir = std::env::var("CREW_SHOT_DIR").unwrap_or_else(|_| "target/screenshots".into());
     std::fs::create_dir_all(&out_dir).unwrap();
     for id in [
-        T::Aurora,
         T::Nebula,
-        T::Graphene,
-        T::Cobalt,
-        T::Daybreak,
+        T::Nebula,
+        T::Nebula,
+        T::Nebula,
         T::Blossom,
-        T::Meadow,
-        T::Cirrus,
+        T::Blossom,
+        T::Blossom,
+        T::Blossom,
     ] {
         crew_theme::set_theme(id);
         let Some(px) = render_full(crew_theme::GlassLevel::Medium, 1.0, true) else {

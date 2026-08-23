@@ -84,13 +84,16 @@ fn a_role_means_the_same_thing_in_every_theme_of_a_ladder() {
         .collect();
     ladders.sort_unstable();
     ladders.dedup();
+    // Two in use since `crt-paperwhite` retired. `HOUSE_CRT_WHITE` is kept
+    // rather than deleted: the rule that a white phosphor pays none of a
+    // coloured one's contrast cost is correct and cheap, and a future white
+    // tube would otherwise silently derive as monochrome.
     assert_eq!(
-        ladders.len(),
-        3,
-        "expected three ladders, found {ladders:?}"
+        ladders,
+        vec!["crt (coloured phosphor)", "paper/modern"],
+        "the ladders in use changed"
     );
 
-    let mut capped_seen = 0;
     for (name, derive, target) in roles {
         for ladder in &ladders {
             let mut free: Vec<f32> = Vec::new();
@@ -104,7 +107,6 @@ fn a_role_means_the_same_thing_in_every_theme_of_a_ladder() {
                 if r.ceiling_bound(target(&r.house())) {
                     // The cap bound here. Assert that, and exclude it from the
                     // consistency band it cannot meet by construction.
-                    capped_seen += 1;
                     assert!(
                         contrast_ratio(c, t.page_bg) >= 10.0,
                         "{}: capped {name} fell below the ink floor",
@@ -130,11 +132,6 @@ fn a_role_means_the_same_thing_in_every_theme_of_a_ladder() {
             );
         }
     }
-    assert!(
-        capped_seen > 0,
-        "no role hit the lightness cap anywhere — either the cap is doing \
-         nothing, in which case it should go, or this test stopped finding it"
-    );
 }
 
 /// The ladder must stay ordered, or the visual hierarchy inverts somewhere.
@@ -198,7 +195,7 @@ fn every_derived_role_clears_the_contrast_floor() {
 #[test]
 fn neutrals_keep_the_page_s_temperature() {
     let warm = Ramp::for_page(crate::SEPIA_DARK.page_bg).text_muted();
-    let cool = Ramp::for_page(crate::AURORA.page_bg).text_muted();
+    let cool = Ramp::for_page(crate::NEBULA.page_bg).text_muted();
     let d = distance(warm, cool);
     assert!(
         d > 0.01,
@@ -214,4 +211,41 @@ fn neutrals_keep_the_page_s_temperature() {
              text, not ink"
         );
     }
+}
+
+/// The lightness cap, tested directly rather than through whichever theme
+/// happens to trip it.
+///
+/// `graphite` was the only palette that hit it, and `graphite` was retired in
+/// the 24→9 cut — at which point the roster-driven assertion that "something
+/// is capped" started failing and asked the right question: is the cap doing
+/// nothing? No. It is a **ceiling, not a feature**: one that is never reached
+/// is working. But a guard nothing exercises is a guard nothing tests, so this
+/// drives it with the page that motivated it.
+#[test]
+fn the_lightness_ceiling_holds_a_page_that_would_go_near_white() {
+    // `graphite`'s page. It sat at L 0.231 against its pool's 0.10..0.19, so
+    // reaching the house contrast wanted an ink of L 0.986 — `(250, 250, 252)`,
+    // effectively white.
+    const GRAPHITE_PAGE: (u8, u8, u8) = (32, 28, 27);
+    let ramp = Ramp::new(GRAPHITE_PAGE, Ink::of((226, 226, 228)), HOUSE);
+
+    assert!(
+        ramp.ceiling_bound(HOUSE.ink),
+        "this page no longer pushes past the ceiling — the fixture has drifted \
+         and the cap is untested again"
+    );
+    let ink = ramp.ink();
+    let l = crate::oklch::from_srgb(ink).l;
+    assert!(
+        l <= HOUSE.max_l + 1e-3,
+        "derived ink {ink:?} sits at L {l:.4}, above the {} ceiling — that is \
+         the glare the cap exists to prevent",
+        HOUSE.max_l
+    );
+    // …and it is still comfortably legible after being held back.
+    assert!(
+        contrast_ratio(ink, GRAPHITE_PAGE) >= 10.0,
+        "capping dropped the ink below the contrast floor"
+    );
 }

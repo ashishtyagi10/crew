@@ -117,7 +117,7 @@ fn round_trip() {
         notify_patterns: vec!["error".to_string(), "done".to_string()],
         theme: Some("paper-light".to_string()),
         theme_dark: Some("crt".to_string()),
-        theme_light: Some("salmon-broadsheet".to_string()),
+        theme_light: Some("sepia-light".to_string()),
         paper_texture: false,
         paper_grain: 0.5,
         crt: Some(true),

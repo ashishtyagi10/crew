@@ -9,63 +9,6 @@
 
 use crate::{CrtStyle, ModernStyle, Theme};
 
-/// **Aurora** (the Gemini look): a deep cool charcoal page under crisp
-/// off-white ink, with the blue→violet gradient of a polar sky as the accent
-/// pair. Glow is a soft halo — light behind glass, not phosphor.
-pub static AURORA: Theme = Theme {
-    page_bg: (15, 17, 23),
-    ink: (234, 238, 244),
-    text_muted: (196, 200, 206),
-    term_fg: (232, 235, 243),
-    term_bg: (15, 17, 23),
-    border_normal: (68, 70, 77),
-    border_focused: (138, 180, 248),
-    border_thickness: 3.5,
-    legend_off: (141, 144, 151),
-    accent_default: (138, 180, 248),
-    status_fg: (178, 198, 245),
-    broadcast: (240, 148, 200),
-    activity: (140, 182, 250),
-    bell: (255, 200, 130),
-    dim: (122, 126, 133),
-    placeholder: (114, 118, 125),
-    hint_fg: (124, 127, 134),
-    find_hl_bg: (46, 62, 96),
-    ansi: [
-        (99, 101, 104),  // 0  black
-        (255, 160, 148), // 1  red
-        (121, 203, 137), // 2  green
-        (223, 179, 85),  // 3  yellow
-        (132, 189, 255), // 4  blue
-        (228, 163, 236), // 5  magenta
-        (45, 204, 211),  // 6  cyan
-        (217, 219, 222), // 7  white
-        (136, 137, 141), // 8  bright black
-        (255, 192, 183), // 9  bright red
-        (141, 224, 157), // 10 bright green
-        (244, 199, 106), // 11 bright yellow
-        (169, 209, 255), // 12 bright blue
-        (247, 185, 255), // 13 bright magenta
-        (76, 225, 232),  // 14 bright cyan
-        (240, 242, 245), // 15 bright white
-    ],
-    dark: true,
-    grain: 0.0,
-    crt: Some(CrtStyle {
-        scanline: 0.0,
-        glow: 0.8,
-        glow_radius: 12.0,
-        flicker: 0.03,
-    }),
-    modern: Some(ModernStyle {
-        pole_a: (110, 168, 254),
-        pole_b: (197, 138, 249),
-        drift_ms: 6_000,
-        dots: 0.20,
-        wash: 0.15,
-    }),
-};
-
 /// **Nebula**: aurora's dusk sibling — a violet-cast near-black page with the
 /// gradient sliding from orchid to rose. The most saturated of the family,
 /// with the widest halo.
