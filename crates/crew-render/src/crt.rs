@@ -72,16 +72,8 @@ impl CrtPass {
         flicker: f32,
         style: crew_theme::CrtStyle,
     ) {
-        let data: [f32; 8] = [
-            width,
-            height,
-            time,
-            flicker,
-            style.curvature,
-            style.scanline,
-            style.glow,
-            style.corner,
-        ];
+        // Six values, padded to the uniform's 16-byte alignment by wgpu.
+        let data: [f32; 6] = [width, height, time, flicker, style.scanline, style.glow];
         queue.write_buffer(&self.uniform_buf, 0, postfx::f32s_as_bytes(&data));
     }
 

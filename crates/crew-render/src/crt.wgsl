@@ -1,21 +1,20 @@
 // CRT composite: samples the off-screen scene texture and draws it onto a
 // flat phosphor panel — the tube's phosphor glow (a real half-res gaussian
 // bloom, blurred in bloom.wgsl and added back here), scanlines, and an
-// activity-driven flicker. The barrel-curvature and corner-vignette math is
-// kept but driven by uniforms that default to 0, so the geometry is flat and
-// edge-to-edge (identity warp, no bezel). All amounts are uniforms so each
-// theme can dial the look; flicker is 0 while idle, which makes the whole
-// pass static (the app only advances `time` and lifts `flicker` while output
-// is streaming).
+// activity-driven flicker. The panel is flat and edge-to-edge: the barrel
+// curvature and corner vignette this pass once carried were set to 0 by every
+// theme after the flat-tube decree, so the arithmetic ran per pixel per frame
+// and produced an identity warp and a multiply by one. Both are gone. All
+// remaining amounts are uniforms so each theme can dial the look; flicker is 0
+// while idle, which makes the whole pass static (the app only advances `time`
+// and lifts `flicker` while output is streaming).
 
 struct U {
     resolution: vec2<f32>,
     time: f32,
     flicker: f32,
-    curvature: f32,
     scanline: f32,
     glow: f32,
-    corner: f32,
 }
 @group(0) @binding(0) var tex: texture_2d<f32>;
 @group(0) @binding(1) var samp: sampler;
@@ -51,17 +50,9 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     // Screen UV in [0, 1], origin top-left.
     let uv = in.pos.xy / u.resolution;
 
-    // Barrel curvature: work in centered [-1, 1] coords and push the edges
-    // outward by r^2, so the image bulges like a tube face.
-    var c = uv * 2.0 - 1.0;
-    let r2 = dot(c, c);
-    c = c * (1.0 + u.curvature * r2);
-    let warped = c * 0.5 + 0.5;
-
-    // Anything past the glass edge after warping is the bezel — solid black.
-    if (warped.x < 0.0 || warped.x > 1.0 || warped.y < 0.0 || warped.y > 1.0) {
-        return vec4<f32>(0.0, 0.0, 0.0, 1.0);
-    }
+    // Flat panel: the sample coordinate is the screen coordinate. There is no
+    // warp to push pixels past the glass edge, so there is no bezel test.
+    let warped = uv;
 
     let scene = textureSample(tex, samp, warped);
     var col = scene.rgb;
@@ -91,10 +82,6 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
     let scanline_period = 3.0;
     let line = 0.5 + 0.5 * cos(warped.y * u.resolution.y * (6.2831853 / scanline_period));
     col *= 1.0 - u.scanline * line;
-
-    // Corner darkening on the curved coords — deeper than the background
-    // vignette so the tube face falls off into its edges.
-    col *= 1.0 - u.corner * r2;
 
     // Activity flicker: a small brightness wobble, exactly 0 when idle.
     col *= 1.0 + u.flicker * (hash1(u.time) - 0.5);

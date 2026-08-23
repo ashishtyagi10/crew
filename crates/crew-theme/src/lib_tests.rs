@@ -494,19 +494,120 @@ fn modern_pages_carry_the_gradient_wash() {
     }
 }
 
+/// Glow had no upper bound anywhere, which is the one effect that can ruin a
+/// page. 2026's revival of neon is explicitly *micro*-glow — focus states,
+/// outlines, small badges — never a flood, and a bloom is the easiest thing in
+/// this renderer to overdo. Measured, the pools sit at 0.70..1.10 (CRT),
+/// 0.60..0.90 (modern dark) and 0.30..0.40 (modern light); the bands below
+/// leave headroom for a new theme without leaving room for a flood.
+#[test]
+fn glow_stays_inside_its_pool_s_band() {
+    for id in ALL_THEMES {
+        let t = id.theme();
+        let Some(c) = t.crt else { continue };
+        let (lo, hi, pool) = if t.modern.is_none() {
+            (0.5, 1.3, "crt")
+        } else if t.dark {
+            (0.4, 1.1, "modern dark")
+        } else {
+            (0.2, 0.6, "modern light")
+        };
+        assert!(
+            (lo..=hi).contains(&c.glow),
+            "{}: glow {} is outside the {pool} band {lo}..{hi}",
+            id.as_str(),
+            c.glow
+        );
+        // A halo, not a wash. The blur runs at half resolution, so the
+        // full-res reach is roughly twice this.
+        assert!(
+            (4.0..=16.0).contains(&c.glow_radius),
+            "{}: bloom radius {} is outside the halo band",
+            id.as_str(),
+            c.glow_radius
+        );
+    }
+}
+
+/// The micro-glow rule, made structural rather than advisory: a bright page
+/// needs far less bloom than a dark one before light stops reading as light
+/// and starts reading as haze. Every light page must glow less than every
+/// dark one — not merely less than its own twin.
+#[test]
+fn every_light_page_glows_less_than_every_dark_one() {
+    let glow = |dark: bool| -> Vec<f32> {
+        ALL_THEMES
+            .iter()
+            .filter(|id| id.theme().dark == dark && id.theme().modern.is_some())
+            .map(|id| id.theme().crt.unwrap().glow)
+            .collect()
+    };
+    let brightest_light = glow(false).into_iter().fold(0.0f32, f32::max);
+    let dimmest_dark = glow(true).into_iter().fold(f32::MAX, f32::min);
+    assert!(
+        brightest_light < dimmest_dark,
+        "the brightest light page glows {brightest_light} and the dimmest dark \
+         one {dimmest_dark} — the pools overlap, so some light page is \
+         carrying a dark page's bloom"
+    );
+}
+
+/// The backdrop is a family trait, not a per-theme flourish: every modern
+/// page of one appearance carries exactly the same lattice and wash. Pinned
+/// so a new member joins the family rather than inventing its own weights —
+/// the bands above would let it drift a long way first.
+#[test]
+fn the_modern_backdrop_is_a_per_appearance_constant() {
+    for (dark, dots, wash) in [(true, 0.20, 0.15), (false, 0.16, 0.12)] {
+        for id in ALL_THEMES {
+            let t = id.theme();
+            let Some(m) = t.modern else { continue };
+            if t.dark != dark {
+                continue;
+            }
+            assert_eq!(m.dots, dots, "{}: dot lattice", id.as_str());
+            assert_eq!(m.wash, wash, "{}: gradient wash", id.as_str());
+        }
+    }
+}
+
+/// The dark and light halves of the modern family are twinned — a palette
+/// flip must not also change how the page moves. Asserting the two sides carry
+/// the same multiset of drift periods proves every pair is in step without
+/// needing to name the pairs.
+#[test]
+fn the_modern_twins_drift_in_step() {
+    let periods = |dark: bool| -> Vec<u64> {
+        let mut v: Vec<u64> = ALL_THEMES
+            .iter()
+            .filter(|id| id.theme().dark == dark && id.theme().modern.is_some())
+            .map(|id| id.theme().modern.unwrap().drift_ms)
+            .collect();
+        v.sort_unstable();
+        v
+    };
+    assert_eq!(
+        periods(true),
+        periods(false),
+        "the dark and light modern pools drift differently — a theme and its \
+         twin should move at the same rate"
+    );
+}
+
 #[test]
 fn modern_glow_is_clean_of_retro_knobs() {
     // The modern family rides the CRT bloom chain for its halo, but it must
-    // never look like a tube: curvature, scanlines and the bezel vignette
-    // stay exactly zero, and the gradient poles must be distinct (a ring
-    // with equal poles is just a flat stroke).
+    // never look like a tube: scanlines stay exactly zero, and the gradient
+    // poles must be distinct (a ring with equal poles is just a flat stroke).
+    // Curvature and the bezel vignette used to be asserted here too — they
+    // are gone from `CrtStyle` entirely now, which is a stronger guarantee
+    // than a test: every theme set them to zero, so the shader was warping by
+    // an identity and multiplying by one on every pixel of every frame.
     for id in ALL_THEMES {
         let t = id.theme();
         let Some(m) = t.modern else { continue };
         let c = t.crt.expect("modern themes carry a bloom-only CrtStyle");
-        assert_eq!(c.curvature, 0.0, "{}: curvature", id.as_str());
         assert_eq!(c.scanline, 0.0, "{}: scanline", id.as_str());
-        assert_eq!(c.corner, 0.0, "{}: corner", id.as_str());
         assert!(c.glow > 0.0, "{}: a modern theme without glow", id.as_str());
         assert_ne!(m.pole_a, m.pole_b, "{}: gradient poles equal", id.as_str());
         assert!(m.drift_ms > 0, "{}: drift period", id.as_str());

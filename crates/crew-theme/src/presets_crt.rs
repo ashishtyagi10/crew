@@ -58,11 +58,9 @@ pub static CRT_GREEN: Theme = Theme {
     dark: true,
     grain: 1.2,
     crt: Some(CrtStyle {
-        curvature: 0.0,
         scanline: 0.22,
         glow: 0.95,
         glow_radius: 7.0,
-        corner: 0.0,
         flicker: 0.07,
     }),
     modern: None,
@@ -115,11 +113,9 @@ pub static CRT_AMBER: Theme = Theme {
     dark: true,
     grain: 1.2,
     crt: Some(CrtStyle {
-        curvature: 0.0,
         scanline: 0.26,
         glow: 0.85,
         glow_radius: 6.0,
-        corner: 0.0,
         flicker: 0.08,
     }),
     modern: None,

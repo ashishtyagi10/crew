@@ -185,11 +185,9 @@ fn crt_headless() {
         }
     });
     chain.set_style(Some(CrtStyle {
-        curvature: 0.0,
         scanline: 0.0,
         glow: 1.0,
         glow_radius: 12.0,
-        corner: 0.0,
         flicker: 0.0,
     }));
     chain.set_anim(0.0, 0.0);
@@ -248,11 +246,9 @@ fn crt_headless() {
         }
     });
     let light_style = CrtStyle {
-        curvature: 0.0,
         scanline: 0.0,
         glow: 0.9,
         glow_radius: 12.0,
-        corner: 0.0,
         flicker: 0.0,
     };
     chain.set_style(Some(light_style));
