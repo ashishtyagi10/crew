@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.5
+
+**Two `@projects` rendered in the same colour on a CRT theme.** A project tag
+hashes its name to one of twelve palette colours, which is the whole point of
+the feature — a mixed todo list reads by project at a glance. On a coloured
+page those twelve are twelve hues and the closest pair is comfortably
+tellable. On a phosphor tube every one of them is the *same* hue, because that
+is what a tube is, so they can only separate by brightness — and they were
+borrowed from the shell-output palette, where everything is bright. All twelve
+sat in the top third of the range and the closest pair fell below the point
+where two colours are visibly different at all.
+
+The room was there and unused: the page is near-black, so the legible range is
+about twice what those twelve were using. The tube pool is now spread evenly
+across it, in the tube's own hue. The closest pair more than doubles its
+separation and every project is tellable from every other. Coloured themes are
+untouched.
+
 ## 0.18.4
 
 **A tripwire under the colours nothing was watching.** No theme changes here.
