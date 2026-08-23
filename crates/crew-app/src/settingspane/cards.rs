@@ -20,9 +20,18 @@ pub(super) fn appearance(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16)
     cy += 3;
     rects.push((Field::Theme, Rect::new(ix, cy, iw, 3)));
     cy += 3;
-    // Directly under Theme, and paired: they are one window, and they are read
-    // only while Theme is `auto`. Anywhere else in the card and they read as
-    // two unrelated clocks.
+    // `auto`'s settings, under the Theme they belong to and in the order they
+    // answer: WHAT it serves per appearance, then WHEN the clock calls it day.
+    //
+    // The two pairing pickers take the full width, like the Theme picker they
+    // qualify, because their values are palette names — `‹ sepia-light ›` is
+    // 15 columns and a half-width box holds 14 at an 80-column pane, which
+    // clipped the leading chevron and read as a rendering fault. The hours
+    // below stay paired: `HH:MM` is five.
+    rects.push((Field::ThemeDark, Rect::new(ix, cy, iw, 3)));
+    cy += 3;
+    rects.push((Field::ThemeLight, Rect::new(ix, cy, iw, 3)));
+    cy += 3;
     let lh = iw.saturating_sub(2) / 2;
     rects.push((Field::LightFrom, Rect::new(ix, cy, lh, 3)));
     rects.push((Field::LightTo, Rect::new(ix + lh + 2, cy, lh, 3)));
