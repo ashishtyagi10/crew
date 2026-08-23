@@ -8,6 +8,28 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.2
+
+**The search highlight was invisible on light pages.** `find_hl_bg` is the one
+background colour a palette ships, and the colour-system work never reached it
+— that derived the *text* ladder, and this is a wash sitting behind text. So it
+stayed hand-picked, and it split by appearance: the wash sat 0.106–0.134 off
+the page on the three light themes and 0.173–0.246 off it on the six dark ones,
+on a scale where 0.10 is one rung of the text hierarchy. `paper-light` bottomed
+out at **1.25:1** — a search highlight you have to hunt for.
+
+That is structural rather than four bad guesses. On a dark page a highlight can
+gain lightness *and* colour; on a bright one the presets reached for a pale
+yellow that barely moves off the paper.
+
+The wash is derived now, with the palette still declaring what colour its
+highlight is — sepia's amber, nebula's violet, the phosphor's own green — and
+the system supplying only how far off the page it sits. The bar is the median
+of what the nine palettes already do, applied as a floor: five are past it and
+are untouched, and four move (`paper-light`, `sepia-light`, `blossom`, and
+`nebula` by less than one visible step). Text on the highlight stays at 9.3:1
+or better everywhere it changed.
+
 ## 0.18.1
 
 **`auto` was stuck on dark all day on any Mac pinned to Dark.** The theme
