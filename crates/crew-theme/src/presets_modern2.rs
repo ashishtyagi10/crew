@@ -48,11 +48,9 @@ pub static GRAPHENE: Theme = Theme {
     dark: true,
     grain: 0.0,
     crt: Some(CrtStyle {
-        curvature: 0.0,
         scanline: 0.0,
         glow: 0.6,
         glow_radius: 9.0,
-        corner: 0.0,
         flicker: 0.02,
     }),
     modern: Some(ModernStyle {
@@ -107,11 +105,9 @@ pub static COBALT: Theme = Theme {
     dark: true,
     grain: 0.0,
     crt: Some(CrtStyle {
-        curvature: 0.0,
         scanline: 0.0,
         glow: 0.85,
         glow_radius: 12.0,
-        corner: 0.0,
         flicker: 0.03,
     }),
     modern: Some(ModernStyle {

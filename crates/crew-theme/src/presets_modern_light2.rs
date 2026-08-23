@@ -47,11 +47,9 @@ pub static MEADOW: Theme = Theme {
     dark: false,
     grain: 0.0,
     crt: Some(CrtStyle {
-        curvature: 0.0,
         scanline: 0.0,
         glow: 0.3,
         glow_radius: 12.0,
-        corner: 0.0,
         flicker: 0.03,
     }),
     modern: Some(ModernStyle {
@@ -105,11 +103,9 @@ pub static CIRRUS: Theme = Theme {
     dark: false,
     grain: 0.0,
     crt: Some(CrtStyle {
-        curvature: 0.0,
         scanline: 0.0,
         glow: 0.32,
         glow_radius: 13.0,
-        corner: 0.0,
         flicker: 0.03,
     }),
     modern: Some(ModernStyle {
