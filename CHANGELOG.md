@@ -8,6 +8,31 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.18
+
+**One shape for every way in.** A pane, a phone and a microphone are the same
+kind of thing — somewhere a request arrives from and a reply leaves to. Writing
+that once as a trait is what stops voice from being a special subsystem later:
+it becomes the third implementation of an interface Telegram already forces into
+existence.
+
+An address is `kind:rest`, reusing the shape the sentinel work settled on, and
+opaque to everything except the channel that owns the kind.
+
+Three refusals carry the design. An unroutable address is an error rather than a
+silent drop — a reply nobody receives looks exactly like a reply that was never
+written. Two channels cannot own the same kind, or every reply becomes a coin
+flip about which one delivers it. And a bare word with no kind is not an
+address at all: guessing a default would send someone's reply to a stranger.
+
+A channel that exists but has no credential is registered and *not ready*, and
+sending through it fails loudly instead of appearing to work. That is the state
+every real channel starts in before its token is configured — which is exactly
+how the first one will arrive.
+
+`crew daemon channels` lists the ways in. Right now it says "no channels — crew
+is reachable from a pane only", which is the honest answer.
+
 ## 0.18.17
 
 **Every tool call now passes the gate — and nothing about crew changes.** That
