@@ -117,14 +117,25 @@ pub(crate) fn chat_id_of(addr: &str) -> Option<i64> {
 /// same way it drives everything else, so there is one place that decides how often crew reaches
 /// out and one place that can stop it.
 pub(crate) struct Telegram {
-    api: Option<Box<dyn TelegramApi>>,
+    api: Option<std::sync::Arc<dyn TelegramApi + Sync>>,
     allow: Allowlist,
-    offset: i64,
-    inbox: Vec<Inbound>,
-    /// Chat ids refused since the last report, so the daemon can log them once. Read by 2.4,
-    /// which is what turns "a stranger knocked" into a line the owner sees.
-    #[allow(dead_code)]
-    pub(crate) refused: Vec<i64>,
+    /// Filled by the poll thread (when there is one), drained by `poll`.
+    shared: std::sync::Arc<std::sync::Mutex<Shared>>,
+    /// Whether the long-poll thread is running. Started once, on the first tick.
+    started: bool,
+}
+
+/// What the poll thread and the channel share.
+#[derive(Default)]
+pub(crate) struct Shared {
+    pub inbox: Vec<Inbound>,
+    /// Chat ids refused since the last drain — how the owner learns their own id, and how they
+    /// notice a stranger knocking.
+    pub refused: Vec<i64>,
+    pub offset: i64,
+    /// Last transport error, so a channel that stopped receiving can say so instead of just
+    /// going quiet.
+    pub error: Option<String>,
 }
 
 impl Telegram {
@@ -135,42 +146,84 @@ impl Telegram {
             .filter(|t| !t.trim().is_empty());
         let allow = Allowlist::parse(&std::env::var("CREW_TELEGRAM_CHATS").unwrap_or_default());
         Self {
-            api: token.map(|t| Box::new(api::HttpApi::new(t)) as Box<dyn TelegramApi>),
+            api: token.map(|t| {
+                std::sync::Arc::new(api::HttpApi::new(t)) as std::sync::Arc<dyn TelegramApi + Sync>
+            }),
             allow,
-            offset: 0,
-            inbox: Vec::new(),
-            refused: Vec::new(),
+            shared: Default::default(),
+            started: false,
         }
     }
 
     /// With an explicit API — the test seam, and how a future config file will inject one.
     #[cfg(test)]
-    pub(crate) fn with_api(api: Box<dyn TelegramApi>, allow: Allowlist) -> Self {
+    pub(crate) fn with_api(api: std::sync::Arc<dyn TelegramApi + Sync>, allow: Allowlist) -> Self {
         Self {
             api: Some(api),
             allow,
-            offset: 0,
-            inbox: Vec::new(),
-            refused: Vec::new(),
+            shared: Default::default(),
+            started: false,
         }
     }
 
-    /// Fetch whatever has arrived. Driven by 2.4, which gives the daemon a worker thread to
-    /// long-poll on — the Bot API holds a request open for 25s, so this must never sit on the
-    /// serve loop.
-    #[allow(dead_code)]
-    ///
-    /// Fetch whatever has arrived. A transport error is returned, never swallowed: a channel
-    /// that quietly stops receiving is worse than one that says it is broken.
+    /// Notices waiting, taken in one go.
+    pub(crate) fn drain_notices(&mut self) -> (Vec<Inbound>, Vec<i64>, Option<String>) {
+        let mut g = self.shared.lock().unwrap_or_else(|e| e.into_inner());
+        (
+            std::mem::take(&mut g.inbox),
+            std::mem::take(&mut g.refused),
+            g.error.take(),
+        )
+    }
+
+    /// One poll cycle, on the calling thread. The poll thread runs [`pump`] directly; this is
+    /// how a test drives a cycle without one.
+    #[cfg(test)]
     pub(crate) fn tick(&mut self) -> Result<(), String> {
-        let Some(api) = self.api.as_deref() else {
+        let Some(api) = self.api.clone() else {
             return Ok(());
         };
-        let p = pump(api, self.offset, &self.allow)?;
-        self.offset = p.offset;
-        self.inbox.extend(p.inbound);
-        self.refused.extend(p.refused);
+        let offset = self.shared.lock().unwrap_or_else(|e| e.into_inner()).offset;
+        let p = pump(api.as_ref(), offset, &self.allow)?;
+        let mut g = self.shared.lock().unwrap_or_else(|e| e.into_inner());
+        g.offset = p.offset;
+        g.inbox.extend(p.inbound);
+        g.refused.extend(p.refused);
         Ok(())
+    }
+
+    /// Start the long-poll thread, once. The Bot API holds a request open for 25 seconds, so
+    /// this must never happen on the daemon's serve loop — a resident that stops answering for
+    /// half a minute at a time is not a resident.
+    ///
+    /// A transport error is recorded rather than logged and forgotten, and the loop backs off
+    /// instead of hammering a server that is refusing it.
+    pub(crate) fn start(&mut self) {
+        if self.started {
+            return;
+        }
+        let Some(api) = self.api.clone() else {
+            return;
+        };
+        self.started = true;
+        let shared = std::sync::Arc::clone(&self.shared);
+        let allow = self.allow.clone();
+        std::thread::spawn(move || loop {
+            let offset = shared.lock().unwrap_or_else(|e| e.into_inner()).offset;
+            match pump(api.as_ref(), offset, &allow) {
+                Ok(p) => {
+                    let mut g = shared.lock().unwrap_or_else(|e| e.into_inner());
+                    g.offset = p.offset;
+                    g.inbox.extend(p.inbound);
+                    g.refused.extend(p.refused);
+                    g.error = None;
+                }
+                Err(e) => {
+                    shared.lock().unwrap_or_else(|err| err.into_inner()).error = Some(e);
+                    std::thread::sleep(std::time::Duration::from_secs(5));
+                }
+            }
+        });
     }
 }
 
@@ -180,11 +233,34 @@ impl Channel for Telegram {
     }
 
     fn poll(&mut self) -> Vec<Inbound> {
-        std::mem::take(&mut self.inbox)
+        // Starting here means the socket opens the first time the daemon actually looks for
+        // messages, not when the channel is constructed — a crew with a token but no running
+        // daemon still talks to nobody.
+        self.start();
+        std::mem::take(&mut self.shared.lock().unwrap_or_else(|e| e.into_inner()).inbox)
+    }
+
+    /// A refused chat id is the owner's own id, the first time they message their bot — so it
+    /// is reported, not dropped. It is also how they notice a stranger knocking.
+    fn notices(&mut self) -> Vec<String> {
+        let (_, refused, error) = self.drain_notices();
+        let mut out: Vec<String> = refused
+            .into_iter()
+            .map(|id| {
+                format!(
+                    "telegram: ignored a message from chat {id} \u{2014} add it to \
+                     CREW_TELEGRAM_CHATS to let it through"
+                )
+            })
+            .collect();
+        if let Some(e) = error {
+            out.push(format!("telegram: {e}"));
+        }
+        out
     }
 
     fn send(&mut self, to: &str, text: &str) -> Result<(), String> {
-        let Some(api) = self.api.as_deref() else {
+        let Some(api) = self.api.clone() else {
             return Err("no Telegram token configured (CREW_TELEGRAM_TOKEN)".into());
         };
         let Some(chat) = chat_id_of(to) else {

@@ -207,3 +207,85 @@ mod live {
         assert!(probe_at(&tmp_sock("absent")).is_none());
     }
 }
+
+/// The round trip, end to end through the daemon: a message arrives on a channel, the resident
+/// answers it, and the answer goes back to the address it came from. This is the shape every
+/// real channel plugs into — Telegram is the same path with a socket at the far end.
+mod round_trip {
+    use super::*;
+    use crate::channel::loopback::Loopback;
+
+    fn daemon_with_channel() -> (
+        Daemon,
+        std::sync::Arc<std::sync::Mutex<crate::channel::loopback::Wire>>,
+    ) {
+        let mut d = daemon();
+        let (c, wire) = Loopback::pair("test");
+        d.add_channel(Box::new(c));
+        (d, wire)
+    }
+
+    #[test]
+    fn a_message_is_answered_back_where_it_came_from() {
+        let (mut d, wire) = daemon_with_channel();
+        wire.lock().unwrap().inbox.push(crate::channel::Inbound {
+            from: "test:someone".into(),
+            text: "status".into(),
+        });
+        d.service_channels();
+        let out = wire.lock().unwrap();
+        assert_eq!(out.outbox.len(), 1, "exactly one answer");
+        assert_eq!(
+            out.outbox[0].0, "test:someone",
+            "to the sender, not anyone else"
+        );
+        assert!(
+            out.outbox[0].1.contains(crate::appregister::VERSION),
+            "and it is a real status: {}",
+            out.outbox[0].1
+        );
+    }
+
+    /// Nothing waiting must not produce a reply — a resident that says something on every tick
+    /// is a resident nobody leaves switched on.
+    #[test]
+    fn an_idle_tick_says_nothing() {
+        let (mut d, wire) = daemon_with_channel();
+        d.service_channels();
+        d.service_channels();
+        assert!(wire.lock().unwrap().outbox.is_empty());
+    }
+
+    /// Every message gets exactly one answer, and messages are not replayed on the next tick.
+    #[test]
+    fn each_message_is_answered_once() {
+        let (mut d, wire) = daemon_with_channel();
+        for t in ["help", "sessions"] {
+            wire.lock().unwrap().inbox.push(crate::channel::Inbound {
+                from: "test:someone".into(),
+                text: t.into(),
+            });
+        }
+        d.service_channels();
+        assert_eq!(wire.lock().unwrap().outbox.len(), 2);
+        d.service_channels();
+        assert_eq!(
+            wire.lock().unwrap().outbox.len(),
+            2,
+            "the second tick does not answer them again"
+        );
+    }
+
+    /// A message crew does not understand still gets an answer. Silence from a remote channel is
+    /// indistinguishable from a crew that is down.
+    #[test]
+    fn an_unknown_message_is_never_left_unanswered() {
+        let (mut d, wire) = daemon_with_channel();
+        wire.lock().unwrap().inbox.push(crate::channel::Inbound {
+            from: "test:someone".into(),
+            text: "book me a flight".into(),
+        });
+        d.service_channels();
+        assert_eq!(wire.lock().unwrap().outbox.len(), 1);
+    }
+}

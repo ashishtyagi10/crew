@@ -16,6 +16,7 @@ use crate::ipc;
 use crate::ipc_types::{Reply, Request};
 
 pub(crate) mod cli;
+pub(crate) mod reply;
 pub(crate) mod service;
 pub(crate) mod session;
 
@@ -57,6 +58,39 @@ impl Daemon {
                 let _ = r.add(Box::new(crate::channel::telegram::Telegram::from_env()));
                 r
             },
+        }
+    }
+
+    /// Register a channel on a running daemon. Tests use it to drive a whole round trip; a
+    /// config file will use it to add whatever the user turned on.
+    #[cfg(test)]
+    pub(crate) fn add_channel(&mut self, c: Box<dyn crate::channel::Channel>) {
+        let _ = self.channels.add(c);
+    }
+
+    /// Answer whoever messaged in, and surface anything the operator should see.
+    ///
+    /// The reply goes back to the address the message came from, and a send failure is printed
+    /// rather than swallowed: an answer that never arrived looks exactly like a crew that is
+    /// down, which is the one thing a remote channel must never look like.
+    pub(crate) fn service_channels(&mut self) {
+        for n in self.channels.notices() {
+            println!("{n}");
+        }
+        let inbound = self.channels.poll();
+        if inbound.is_empty() {
+            return;
+        }
+        let snap = reply::Snapshot {
+            version: crate::appregister::VERSION.to_string(),
+            uptime_s: self.started.elapsed().as_secs(),
+            sessions: self.sessions.cards(),
+        };
+        for msg in inbound {
+            let answer = reply::respond(&msg.text, &snap);
+            if let Err(e) = self.channels.send(&msg.from, &answer) {
+                println!("could not answer {}: {e}", msg.from);
+            }
         }
     }
 
@@ -214,10 +248,23 @@ pub(crate) fn run_at(path: std::path::PathBuf) -> i32 {
         path.display(),
         std::process::id()
     );
-    while let Ok(incoming) = handle.rx.recv() {
-        if let Some(reply) = answer(&incoming.req, &mut daemon) {
-            let _ = incoming.reply.send(reply);
+    // A timeout rather than a plain recv: between requests the resident has its own work —
+    // draining channels, answering whoever messaged it. A daemon that only wakes when asked is
+    // not resident, it is a server.
+    loop {
+        match handle
+            .rx
+            .recv_timeout(std::time::Duration::from_millis(250))
+        {
+            Ok(incoming) => {
+                if let Some(reply) = answer(&incoming.req, &mut daemon) {
+                    let _ = incoming.reply.send(reply);
+                }
+            }
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
+            Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
         }
+        daemon.service_channels();
     }
     0
 }
