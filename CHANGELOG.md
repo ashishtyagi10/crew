@@ -8,6 +8,32 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.15
+
+**The gate: who may fire something that cannot be undone.** The last release
+classified tools by reversibility. This one decides whether a call proceeds —
+and the two questions come apart on one axis, which is *who asked*.
+
+The rule is deliberately not "irreversible means ask". A person typing into a
+pane on their own machine is already the approval: they can see the output and
+stop it, and confirming their own keystroke is theatre. Today's behaviour is
+unchanged, and that trust is a setting rather than a law, so it can be turned
+off for a stricter setup.
+
+The real rule is: irreversible **and no present human** means ask, and if
+nobody answers, **deny**. A request arriving from a channel opens an approval
+addressed back to the channel it came from. A trigger firing at 3am has nobody
+to ask at all, so it is refused outright rather than queued — the alternative
+is opening a question into an empty room and reading the silence as a yes.
+
+Approvals are single-use, so a replayed grant finds nothing to re-fire, and ids
+never repeat. An unanswered one lapses at its deadline and is recorded as
+*timed out* rather than *denied*, because "they said no" and "nobody was there"
+are different facts when you read them back later.
+
+Nothing calls this yet: the gate decides, and recording then enforcement follow
+in that order. No tool behaves differently in this release.
+
 ## 0.18.14
 
 **Every tool now says whether it can be undone.** Before crew can act on
