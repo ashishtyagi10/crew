@@ -58,6 +58,11 @@ impl CrewApp {
                 id,
                 ..
             } => (from, to, question, id),
+            // Daemon ops belong to the resident's endpoint, not the GUI's ask
+            // socket. Answering here would mean the GUI claiming to BE the
+            // daemon; dropping the reply closes the connection unanswered,
+            // which is what a client that dialed the wrong path should see.
+            Request::DaemonStatus { .. } => return false,
         };
         let Some(idx) = crate::askroute::resolve(&self.panes, &to) else {
             let _ = reply.send(Reply::NoAnswer {

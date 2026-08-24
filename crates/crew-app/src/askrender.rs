@@ -29,6 +29,12 @@ pub(crate) fn render(r: &Reply) -> (String, i32) {
         }
         Reply::Roster { panes } => (render_roster(panes), 0),
         Reply::Cast { answers } => render_cast(answers),
+        // Only reachable if an ask was pointed at the daemon endpoint. Say so
+        // rather than rendering a status line the caller never asked for.
+        Reply::Daemon { .. } => (
+            "NO_ANSWER: unreachable (that endpoint is the crew daemon, not a pane)".to_string(),
+            3,
+        ),
     }
 }
 

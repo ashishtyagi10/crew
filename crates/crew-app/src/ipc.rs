@@ -89,6 +89,22 @@ pub(crate) fn socket_path() -> PathBuf {
     socket_path_for(std::env::var("CREW_INSTANCE").ok().as_deref())
 }
 
+/// The daemon endpoint's file name. Deliberately NOT the `crew-ipc*.sock` shape:
+/// [`instance_of`] must never report a daemon as an askable crew instance, or
+/// `crew panes` would list the resident and `crew ask --any` would try to put a
+/// question to it.
+fn daemon_socket_name(instance: Option<&str>) -> String {
+    match instance.map(sanitize_instance).filter(|s| !s.is_empty()) {
+        Some(id) => format!("crew-daemon-{id}.sock"),
+        None => "crew-daemon.sock".to_string(),
+    }
+}
+
+/// The resident daemon's endpoint path for a named `instance` (`None` = default).
+pub(crate) fn daemon_socket_path_for(instance: Option<&str>) -> PathBuf {
+    socket_dir().join(daemon_socket_name(instance))
+}
+
 /// Instance id parsed from a socket file name: `crew-ipc.sock` → "default",
 /// `crew-ipc-<id>.sock` → "<id>". `None` for names that aren't crew sockets.
 fn instance_of(file: &str) -> Option<String> {
