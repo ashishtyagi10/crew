@@ -14,6 +14,8 @@ usage:
   crew daemon close <id>      stop one session
   crew daemon send <id> <ln>  write one line to a session's agent
   crew daemon poll <id>       read a session's output (--after N to resume)
+  crew daemon channels        list the ways in, and which are usable
+  crew daemon say <to> <txt>  send a message out through a channel (kind:rest)
   crew daemon install         start the resident at login (opt-in; --remove undoes it)
 ";
 
@@ -272,6 +274,48 @@ pub(crate) fn run_sub(args: &[String]) -> i32 {
                     );
                     0
                 }
+                Some(Reply::Failed { message }) => {
+                    println!("{message}");
+                    1
+                }
+                Some(other) => unexpected(&other),
+                None => no_daemon(),
+            }
+        }
+        Some("channels") => {
+            match super::request(inst.as_deref(), &Request::Channels { v: PROTOCOL_V }) {
+                Some(Reply::Channels { registered, ready }) => {
+                    if registered.is_empty() {
+                        println!("no channels — crew is reachable from a pane only");
+                    }
+                    for k in registered {
+                        let state = if ready.contains(&k) {
+                            "ready"
+                        } else {
+                            "not configured"
+                        };
+                        println!("{k}  {state}");
+                    }
+                    0
+                }
+                Some(other) => unexpected(&other),
+                None => no_daemon(),
+            }
+        }
+        Some("say") => {
+            let (Some(to), Some(text)) = (positional(args, 1), positional(args, 2)) else {
+                print!("{USAGE}");
+                return 2;
+            };
+            let req = Request::Say {
+                v: PROTOCOL_V,
+                to: to.to_string(),
+                text: text.to_string(),
+            };
+            match super::request(inst.as_deref(), &req) {
+                Some(Reply::Sent {
+                    delivered: true, ..
+                }) => 0,
                 Some(Reply::Failed { message }) => {
                     println!("{message}");
                     1

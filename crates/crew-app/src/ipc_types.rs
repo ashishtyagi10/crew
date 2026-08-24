@@ -57,6 +57,10 @@ pub enum Request {
     /// Read a session's output from an absolute cursor. A client that died and
     /// came back polls from the cursor it last saw and is handed what it missed.
     SessionPoll { v: u32, id: String, after: usize },
+    /// List the daemon's channels: every way in, and which are usable.
+    Channels { v: u32 },
+    /// Send one message out through a channel, addressed `kind:rest`.
+    Say { v: u32, to: String, text: String },
     /// Ask the resident daemon what it is: pid, uptime, live session count.
     /// Served on the daemon endpoint only — the GUI's ask socket does not
     /// answer it, and the daemon does not answer the ask ops.
@@ -114,6 +118,11 @@ pub enum Reply {
     Closed {
         id: String,
         was_alive: bool,
+    },
+    /// Every registered channel kind, and the subset that is usable.
+    Channels {
+        registered: Vec<String>,
+        ready: Vec<String>,
     },
     /// A line was (or was not) delivered to the session's process.
     Sent {
