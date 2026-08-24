@@ -42,6 +42,17 @@ pub enum Request {
     },
     /// List the addressable panes.
     Panes { v: u32 },
+    /// Ask the resident daemon what it is: pid, uptime, live session count.
+    /// Served on the daemon endpoint only — the GUI's ask socket does not
+    /// answer it, and the daemon does not answer the ask ops.
+    DaemonStatus { v: u32 },
+}
+
+impl Request {
+    /// A `DaemonStatus` stamped with the current protocol version.
+    pub fn daemon_status() -> Self {
+        Request::DaemonStatus { v: PROTOCOL_V }
+    }
 }
 
 /// Why an ask returned without an answer.
@@ -74,6 +85,13 @@ pub enum Reply {
     /// The collected outcome of a broadcast ask, one entry per pane reached.
     Cast {
         answers: Vec<CastAnswer>,
+    },
+    /// The resident daemon's status.
+    Daemon {
+        pid: u32,
+        uptime_s: u64,
+        sessions: usize,
+        version: String,
     },
 }
 

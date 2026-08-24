@@ -81,3 +81,25 @@ fn list_instances_in_finds_only_crew_sockets() {
     assert_eq!(got, vec!["alpha".to_string(), "default".to_string()]);
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// The daemon endpoint must not look like an ask endpoint. If it did, `list_instances` would
+/// report the resident as an askable crew, `crew panes` would list it, and `crew ask --any`
+/// would broadcast questions at a process that answers none of them.
+#[test]
+fn a_daemon_socket_is_not_discovered_as_a_crew_instance() {
+    assert_eq!(instance_of("crew-daemon.sock"), None);
+    assert_eq!(instance_of("crew-daemon-work.sock"), None);
+    assert_ne!(daemon_socket_name(None), socket_name(None));
+    assert_ne!(daemon_socket_name(Some("work")), socket_name(Some("work")));
+}
+
+/// The instance id is sanitized on the daemon path too — `CREW_INSTANCE` must not be able to
+/// escape the socket directory.
+#[test]
+fn the_daemon_socket_name_sanitizes_its_instance() {
+    assert_eq!(
+        daemon_socket_name(Some("../../etc/x")),
+        "crew-daemon-etcx.sock"
+    );
+    assert_eq!(daemon_socket_name(Some("")), "crew-daemon.sock");
+}

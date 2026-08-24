@@ -80,6 +80,7 @@ pub mod config;
 mod crashlog;
 mod ctxlimit;
 mod cwd;
+mod daemon;
 mod daylight;
 mod detach;
 mod dispatch;
@@ -243,6 +244,7 @@ usage:
   crew --no-detach         open it attached to this shell
   crew ask <agent> <task>  ask a RUNNING crew, print the reply
   crew panes               list a running crew's panes
+  crew daemon run          run the resident daemon (crew daemon status to check)
   crew install-app         add the OS app-menu entry (--remove deletes it)
   crew --list-fonts        print every monospace family the picker offers
   crew --self-update       replace this binary with the latest release
@@ -304,6 +306,13 @@ fn main() -> anyhow::Result<()> {
     // detach re-launch — a client must never spawn a GUI, it talks to the one
     // already up. All routing lives in askclient so main stays a thin launcher.
     if let Some(code) = askclient::dispatch_cli() {
+        std::process::exit(code);
+    }
+    // `crew daemon …` — the resident. Placed with the other client subcommands,
+    // before the detach re-launch and any GUI init: `daemon run` is a headless
+    // foreground process that must never open a window, and `daemon status`
+    // must answer on a box with no display at all.
+    if let Some(code) = daemon::cli::dispatch_cli() {
         std::process::exit(code);
     }
     // `crew install-app` — create/refresh the OS app-menu entry (Spotlight /
