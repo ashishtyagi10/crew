@@ -25,16 +25,25 @@ fn sgr_red_bold_is_resolved_to_rgb_and_flags() {
 fn cursor_block_rendered_at_live_position() {
     let mut term = HeadlessTerm::new(GridSize { cols: 20, rows: 3 });
     term.feed(b"hi");
-    // the cursor sits after "hi" at column 2 — a bright block when focused,
-    // a dim block when not.
-    assert!(term
-        .cells(true)
-        .iter()
-        .any(|c| c.col == 2 && c.row == 0 && c.bg == (200, 200, 200)));
-    assert!(term
-        .cells(false)
-        .iter()
-        .any(|c| c.col == 2 && c.row == 0 && c.bg == (90, 90, 100)));
+    // The cursor sits after "hi" at column 2. This used to assert the two
+    // literal RGB constants the block was drawn in — which is how they went
+    // eight releases without anyone noticing that on a light theme the
+    // FOCUSED cursor read at 1.5 against the page and the unfocused one at
+    // 6.2. It asserts the contract instead: a block is drawn, and the focused
+    // one out-reads the unfocused one against the page it sits on.
+    let block = |focused: bool| {
+        term.cells(focused)
+            .into_iter()
+            .find(|c| c.col == 2 && c.row == 0)
+            .map(|c| c.bg)
+    };
+    let (on, off) = (block(true).expect("focused"), block(false).expect("un"));
+    assert_ne!(on, off, "focus must change the cursor");
+    let page = crew_theme::theme().term_bg;
+    assert!(
+        crew_theme::contrast_ratio(on, page) > crew_theme::contrast_ratio(off, page),
+        "the focused cursor must be the one that reads"
+    );
 }
 
 #[test]

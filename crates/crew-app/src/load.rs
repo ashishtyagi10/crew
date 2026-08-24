@@ -6,8 +6,17 @@ use crew_render::CellView;
 use crate::boxdraw::section_header;
 
 use crate::palette::accent;
-const AMBER: (u8, u8, u8) = (230, 180, 90);
-const RED: (u8, u8, u8) = (230, 90, 90);
+/// The two warning colours, darkened until the page can carry them. They
+/// shipped as the flat constants `(230, 180, 90)` and `(230, 90, 90)`, which
+/// on a light theme read at 1.7 and 3.2 — a warning colour at 1.7 is a warning
+/// nobody receives.
+fn amber() -> (u8, u8, u8) {
+    crew_theme::readable::warn(crew_theme::theme())
+}
+
+fn red() -> (u8, u8, u8) {
+    crew_theme::readable::danger(crew_theme::theme())
+}
 
 /// Current `(one, five, fifteen)`-minute load averages (0.0 where unsupported).
 pub fn load_avg() -> (f64, f64, f64) {
@@ -30,9 +39,9 @@ fn load_color(one: f64, cores: f64) -> (u8, u8, u8) {
     if per_core < 0.7 {
         accent()
     } else if per_core < 1.0 {
-        AMBER
+        amber()
     } else {
-        RED
+        red()
     }
 }
 
@@ -80,10 +89,13 @@ mod tests {
 
     #[test]
     fn load_color_thresholds() {
+        // The colours are derived from the live theme now, so two reads of
+        // the process global must not straddle another test switching it.
+        let _g = crate::app::theme_test_guard();
         // 4 cores: 1.0 load → 0.25/core (green); 3.0 → 0.75 (amber); 5.0 → 1.25 (red)
         assert_eq!(load_color(1.0, 4.0), accent());
-        assert_eq!(load_color(3.0, 4.0), AMBER);
-        assert_eq!(load_color(5.0, 4.0), RED);
+        assert_eq!(load_color(3.0, 4.0), amber());
+        assert_eq!(load_color(5.0, 4.0), red());
     }
 
     #[test]

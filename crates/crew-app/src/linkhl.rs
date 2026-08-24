@@ -6,8 +6,13 @@ use crew_render::CellView;
 use crate::gridrows::grid_lines;
 use crate::openurl::url_spans;
 
-/// Foreground colour painted over URL cells.
-pub(crate) const LINK_FG: (u8, u8, u8) = (90, 170, 255);
+/// Foreground colour painted over URL cells: the link blue, darkened until it
+/// reads on the page it lands on. It shipped as the flat constant
+/// `(90, 170, 255)`, which put a URL at 2.1 contrast on every light theme —
+/// a link you could not read on a third of the themes.
+pub(crate) fn link_fg() -> (u8, u8, u8) {
+    crew_theme::readable::link(crew_theme::theme())
+}
 
 /// Recolour every cell that falls inside an http(s) URL on its row. Returns the
 /// number of cells tinted. Builds the rows in one pass, then tints in one pass.
@@ -26,12 +31,13 @@ pub(crate) fn colorize(cells: &mut [CellView], cols: u16, rows: u16) -> usize {
         return 0;
     }
     let mut tinted = 0;
+    let fg = link_fg();
     for c in cells.iter_mut() {
         if ranges
             .iter()
             .any(|&(r, a, b)| c.row == r && (a..b).contains(&(c.col as usize)))
         {
-            c.fg = LINK_FG;
+            c.fg = fg;
             tinted += 1;
         }
     }
@@ -40,7 +46,7 @@ pub(crate) fn colorize(cells: &mut [CellView], cols: u16, rows: u16) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use super::{colorize, LINK_FG};
+    use super::{colorize, link_fg};
     use crew_render::CellView;
 
     fn row(text: &str) -> Vec<CellView> {
@@ -60,6 +66,8 @@ mod tests {
 
     #[test]
     fn tints_only_url_cells() {
+        // The link colour is derived from the live theme; guard the global.
+        let _g = crate::app::theme_test_guard();
         let line = "go https://ex.io/x done";
         let mut cells = row(line);
         let n = colorize(&mut cells, line.len() as u16, 1);
@@ -69,14 +77,16 @@ mod tests {
         let start = line.find(url).unwrap();
         for c in &cells {
             let in_url = (start..start + url.len()).contains(&(c.col as usize));
-            assert_eq!(c.fg == LINK_FG, in_url, "col {} mismatch", c.col);
+            assert_eq!(c.fg == link_fg(), in_url, "col {} mismatch", c.col);
         }
     }
 
     #[test]
     fn no_url_leaves_colors_untouched() {
+        // The link colour is derived from the live theme; guard the global.
+        let _g = crate::app::theme_test_guard();
         let mut cells = row("just plain text");
         assert_eq!(colorize(&mut cells, 15, 1), 0);
-        assert!(cells.iter().all(|c| c.fg != LINK_FG));
+        assert!(cells.iter().all(|c| c.fg != link_fg()));
     }
 }
