@@ -8,6 +8,35 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.14
+
+**Every tool now says whether it can be undone.** Before crew can act on
+everyday life — mail, calendars, money, someone's front door — something has to
+answer "can this be taken back?" before the call fires. That answer cannot live
+inside each tool, because the tools that will matter most are MCP servers
+written by other people. So it lives in one classification the gate reads.
+
+The tiers are about reversibility, not danger. **Read** observes and changes
+nothing. **Reversible** changes something we can put back without asking anyone.
+**Irreversible** left the machine, told a person, spent money, or destroyed
+something — and only that tier will ever need approval.
+
+Two defaults are deliberate. A tool from an MCP server nobody has classified is
+treated as irreversible: unknown has to mean *ask*, because the cost of that
+default is one prompt and the cost of the opposite is an assistant that mailed
+something on your behalf before anyone got around to writing a rule. And a test
+walks the built-in `sys` surface and fails on any tool with no tier, so a fifth
+built-in cannot ship unclassified.
+
+`sys:run` is irreversible, because a shell command is a blank cheque —
+`rm -rf`, `git push`, `curl`. `sys:write_file` is only reversible: a file on
+your own disk is recoverable in a way that telling another human something is
+not.
+
+`CREW_SYS_MODE=readonly` now derives its block list from that same table rather
+than keeping its own — they were two lists of mutating tools, and one of them
+was going to be updated without the other.
+
 ## 0.18.13
 
 **The resident can come back at login — if you ask it to.** `crew daemon
