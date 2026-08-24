@@ -124,12 +124,22 @@ fn ignition_lifts_then_settles_and_spares_the_legend() {
 
 /// On a theme without a `ModernStyle` the ring is a strict no-op.
 #[test]
-fn ring_is_a_noop_off_the_modern_family() {
+fn every_theme_draws_the_ring_now() {
     let _g = crate::app::theme_test_guard();
-    crew_theme::set_theme(crew_theme::ThemeId::CrtGreen);
-    let plain = pane_card(38, 10, &bar(true));
-    let mut v = pane_card(38, 10, &bar(true));
-    ring(&mut v, 40, 12, true, 0.0, 12_345);
-    assert_eq!(hash_cells(&plain), hash_cells(&v));
-    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+    // This test used to assert the opposite — that the ring was a no-op anywhere outside the
+    // two-theme modern family. Every palette carries a gradient now, so the guard worth having
+    // is that none of them LOST one: a preset whose `modern` went back to `None` would silently
+    // stop glowing, and nothing else would notice.
+    for id in crew_theme::ALL_THEMES {
+        crew_theme::set_theme(id);
+        let plain = pane_card(38, 10, &bar(true));
+        let mut v = pane_card(38, 10, &bar(true));
+        ring(&mut v, 40, 12, true, 0.0, 12_345);
+        assert_ne!(
+            hash_cells(&plain),
+            hash_cells(&v),
+            "{} has no gradient ring",
+            id.as_str()
+        );
+    }
 }

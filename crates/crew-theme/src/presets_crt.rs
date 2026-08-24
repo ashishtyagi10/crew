@@ -8,7 +8,7 @@
 //! the flat-tube decree (2026-08-06): the glass sheet is retired, so border
 //! weight, bloom and typeface are the whole of what says "tube" over paper.
 
-use crate::{CrtStyle, Theme};
+use crate::{CrtStyle, ModernStyle, Theme};
 
 /// **Neon green phosphor** (P1, Tron-grid): hot saturated green traced over
 /// a deep cool near-black tube, with a monochrome-green ANSI palette
@@ -63,7 +63,13 @@ pub static CRT_GREEN: Theme = Theme {
         glow_radius: 7.0,
         flicker: 0.07,
     }),
-    modern: None,
+    modern: Some(ModernStyle {
+        pole_a: (106, 184, 118),
+        pole_b: (162, 242, 172),
+        drift_ms: 6_000,
+        dots: 0.10,
+        wash: 0.10,
+    }),
 };
 
 /// **Neon amber phosphor** (P3, Tron-grid): saturated amber traced over a
@@ -118,5 +124,11 @@ pub static CRT_AMBER: Theme = Theme {
         glow_radius: 6.0,
         flicker: 0.08,
     }),
-    modern: None,
+    modern: Some(ModernStyle {
+        pole_a: (184, 138, 39),
+        pole_b: (242, 193, 102),
+        drift_ms: 6_000,
+        dots: 0.10,
+        wash: 0.10,
+    }),
 };

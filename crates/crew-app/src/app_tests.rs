@@ -1181,22 +1181,30 @@ fn motion_off_births_the_ignition_settled() {
 /// Paper themes never ignite: the sweep changes no paper pixel, so spawning
 /// it there would spend 600ms of redraws drawing the same frame.
 #[test]
-fn paper_focus_change_spawns_no_ignition() {
+fn focusing_ignites_the_ring_on_every_theme() {
     let _g = crate::app::motion_test_guard();
     crate::motion::set_level(crate::motion::MotionLevel::Full);
-    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
-    let mut app = CrewApp::default();
-    app.panes.push(tests_far_pane("p"));
-    app.panes[0].born_ms = 0;
-    let now = crate::anim::now_ms();
-    app.focus_drawn = 1;
-    app.focus_fx(now);
-    assert!(
-        !app.ignite_anim.live(now + 1),
-        "paper themes must not spawn the ignition sweep"
-    );
-    assert!(
-        app.focus_anim.live(now + 1),
-        "the bracket travel still runs on paper"
-    );
+    // The inverse of what this asserted before. Ignition is the gradient ring lighting up as
+    // focus lands, and it used to be reserved for the two modern themes; now every palette has
+    // a ring, so every palette lights it. The bracket travel still runs alongside it, which is
+    // the part that was never about the ring.
+    for id in crew_theme::ALL_THEMES {
+        crew_theme::set_theme(id);
+        let mut app = CrewApp::default();
+        app.panes.push(tests_far_pane("p"));
+        app.panes[0].born_ms = 0;
+        let now = crate::anim::now_ms();
+        app.focus_drawn = 1;
+        app.focus_fx(now);
+        assert!(
+            app.ignite_anim.live(now + 1),
+            "{} does not ignite its ring on focus",
+            id.as_str()
+        );
+        assert!(
+            app.focus_anim.live(now + 1),
+            "{} lost the bracket travel",
+            id.as_str()
+        );
+    }
 }

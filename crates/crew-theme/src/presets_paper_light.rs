@@ -1,6 +1,6 @@
 //! Light paper-family presets: four newspaper pages (see presets_paper.rs for the family conventions).
 
-use crate::Theme;
+use crate::{CrtStyle, ModernStyle, Theme};
 
 /// **Sepia light**: warm aged-newsprint cream page with deep brown-black
 /// ink — the light twin of SEPIA_DARK, echoing its warm gold accent
@@ -44,6 +44,20 @@ pub static SEPIA_LIGHT: Theme = Theme {
     ],
     dark: false,
     grain: 1.2,
-    crt: None,
-    modern: None,
+    crt: Some(CrtStyle {
+        // A glowing paper theme, not a tube: scanlines off, so `is_crt` still
+        // reads this as paper. The style is here only to ride the bloom chain
+        // that draws the gradient ring's halo.
+        scanline: 0.0,
+        glow: 0.30,
+        glow_radius: 12.0,
+        flicker: 0.018,
+    }),
+    modern: Some(ModernStyle {
+        pole_a: (108, 79, 0),
+        pole_b: (136, 60, 52),
+        drift_ms: 6_000,
+        dots: 0.16,
+        wash: 0.12,
+    }),
 };

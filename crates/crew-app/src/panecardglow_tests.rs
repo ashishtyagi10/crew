@@ -109,19 +109,20 @@ fn breathing_lifts_the_edge_but_never_past_the_nodes() {
 /// The guard rails: paper themes get ZERO frame changes, and an unfocused CRT
 /// frame stays a quiet trace (no nodes — the hierarchy is the whole point).
 #[test]
-fn paper_and_unfocused_frames_are_untouched() {
+fn an_unfocused_frame_stays_a_plain_quiet_trace_on_every_theme() {
     let _g = crate::app::theme_test_guard();
     let p = far_pane();
-    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
-    assert_eq!(
-        hash_cells(&pane_card_glowing(&p, &bar(true))),
-        hash_cells(&pane_card(38, 10, &bar(true))),
-        "paper frames must be pixel-identical to the plain card"
-    );
-    crew_theme::set_theme(crew_theme::ThemeId::CrtGreen);
-    assert_eq!(
-        hash_cells(&pane_card_glowing(&p, &bar(false))),
-        hash_cells(&pane_card(38, 10, &bar(false))),
-        "an unfocused CRT frame must stay a plain quiet trace"
-    );
+    // Every theme carries a gradient now, so "paper frames are pixel-identical to the plain
+    // card" stopped being true — that was the old two-theme modern family. What must still hold
+    // is the hierarchy: an UNFOCUSED frame is quiet, whatever the palette. A ring on every pane
+    // at once is not a focus cue, it is wallpaper.
+    for id in crew_theme::ALL_THEMES {
+        crew_theme::set_theme(id);
+        assert_eq!(
+            hash_cells(&pane_card_glowing(&p, &bar(false))),
+            hash_cells(&pane_card(38, 10, &bar(false))),
+            "{} draws something on an unfocused frame",
+            id.as_str()
+        );
+    }
 }

@@ -56,7 +56,7 @@ pub fn slot_color(slot: usize, t: &Theme) -> (u8, u8, u8) {
     // A phosphor tube is not a set of hues; borrowing the ansi slots there
     // collapses the pool. See `tube_rung`. (`crt.is_some()` alone would catch
     // the modern family too, whose bloom-only style is not a tube.)
-    if t.crt.is_some() && t.modern.is_none() {
+    if t.is_tube() {
         return tube_rung(slot, t);
     }
     lift(t.ansi[CHROMATIC[slot]], t)

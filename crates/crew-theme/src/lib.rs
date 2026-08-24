@@ -108,6 +108,20 @@ mod tagcolor;
 pub use crtstyle::CrtStyle;
 pub use glass::{style as glass_style, style_for as glass_style_for, GlassLevel, GlassStyle};
 pub use modernstyle::ModernStyle;
+
+impl Theme {
+    /// Whether this palette is a phosphor tube. Scanlines are the tell: every theme carries a
+    /// [`CrtStyle`] now (the bloom chain draws the gradient ring's halo), so "has one" says
+    /// nothing, and a glowing paper theme sets them to zero.
+    ///
+    /// Lives here rather than only on [`ThemeId`] because callers that hold a `Theme` used to
+    /// re-derive it — `ansi.rs` carried its own copy of the old rule and silently disagreed the
+    /// moment the rule changed.
+    pub fn is_tube(&self) -> bool {
+        self.crt.is_some_and(|c| c.scanline > 0.0)
+    }
+}
+
 pub use presets_crt::{CRT_AMBER, CRT_GREEN};
 pub use presets_crt_cool::CRT_BLUE;
 pub use presets_modern::NEBULA;
@@ -197,15 +211,17 @@ impl ThemeId {
     }
 
     /// Whether this palette is a PHOSPHOR TUBE — the `crt` rotation's members.
-    /// Carrying a [`CrtStyle`] is not enough: the modern family carries a
-    /// bloom-only one (curvature, scanlines and bezel all zero) purely to ride
-    /// the bloom chain for its halo, and a modern palette is a paper theme
-    /// that glows, not a tube. Every pool boundary keys off this, so the
-    /// distinction lives here once instead of being re-derived at each of
-    /// them.
+    ///
+    /// Carrying a [`CrtStyle`] is not enough: every theme now carries one, because the bloom
+    /// chain is how the gradient ring's halo is drawn. What makes a tube a tube is the retro
+    /// knobs actually being turned up, and SCANLINES are the one no non-tube ever wants — a
+    /// glowing paper theme sets them to zero.
+    ///
+    /// This used to read `crt.is_some() && modern.is_none()`, which was true while exactly two
+    /// themes had a gradient. Once every theme has one that test says "nothing is a tube", so
+    /// the question is now asked of the thing that actually differs.
     pub fn is_crt(self) -> bool {
-        let t = self.theme();
-        t.crt.is_some() && t.modern.is_none()
+        self.theme().is_tube()
     }
 
     pub fn from_name(s: &str) -> Option<ThemeId> {
