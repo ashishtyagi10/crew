@@ -125,7 +125,9 @@ mod ipc;
 mod ipc_types;
 #[cfg(windows)]
 mod ipc_win;
+mod keychord;
 mod keyentry;
+mod keyroute;
 mod keys;
 mod layout;
 mod ledgercli;
@@ -151,6 +153,7 @@ mod palette;
 mod pane;
 mod panecard;
 mod panecardglow;
+mod panedir;
 mod panefit;
 mod panelcard;
 mod panelist;

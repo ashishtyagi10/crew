@@ -3,9 +3,8 @@ use winit::event_loop::ActiveEventLoop;
 use winit::keyboard::{Key, KeyCode, NamedKey, PhysicalKey};
 
 use crate::app::CrewApp;
+use crate::keychord::{arrow_dir, is_compact_chord};
 use crate::pane::PaneContent;
-use crate::session::key_to_bytes;
-use crate::settingspane::SettingsAction;
 
 impl CrewApp {
     /// Dispatch a single `KeyEvent` from `window_event`.
@@ -115,6 +114,23 @@ impl CrewApp {
             return;
         }
 
+        // Cmd+Arrow walks focus across the tiled grid the way the eye does,
+        // and Cmd+Shift+Arrow carries the pane with it (see `panedir`). Both
+        // sit above the Character super-chords because an arrow arrives as a
+        // NamedKey, and above the input-bar early-return so the grid stays
+        // navigable while the composer holds the keys.
+        if event.state.is_pressed() && mstate.super_key() {
+            if let Some(dir) = arrow_dir(&event.logical_key) {
+                if mstate.shift_key() {
+                    self.move_direction(dir);
+                } else {
+                    self.focus_direction(dir);
+                }
+                self.redraw();
+                return;
+            }
+        }
+
         // Super-chords (e.g. Cmd+I, Cmd+T, …) are handled first.
         if mstate.super_key() && event.state.is_pressed() {
             if let Key::Character(s) = &event.logical_key {
@@ -159,178 +175,7 @@ impl CrewApp {
             return;
         }
 
-        // Route non-super keys to the focused pane.
-        let focused = self.focused;
-        let shift = mstate.shift_key();
-        let alt = mstate.alt_key();
-        let mut settings_action: Option<SettingsAction> = None;
-        let mut far_action: Option<crate::farpane::FarAction> = None;
-        let mut chat_action: Option<crate::chatkeys::ChatAction> = None;
-        let mut view_action: Option<crate::viewpane::ViewAction> = None;
-        let mut todo_action: Option<crate::todopane::TodoAction> = None;
-        let mut is_terminal = false;
-        let mut swarm_close = false;
-        if let Some(pane) = self.panes.get_mut(focused) {
-            match &mut pane.content {
-                // Terminal input is written below (so broadcast can reach all panes).
-                PaneContent::Terminal(_) => is_terminal = true,
-                PaneContent::Chat(c) => {
-                    chat_action = c.on_key(event, shift, mstate.control_key(), &self.cwd)
-                }
-                PaneContent::Settings(s) => {
-                    settings_action = s.on_key(event, shift);
-                }
-                PaneContent::Far(f) => {
-                    far_action = f.on_key(event, alt);
-                }
-                // The swarm view is display-only; Escape closes it.
-                PaneContent::Swarm(_) => {
-                    swarm_close =
-                        crate::swarmpane::esc_closes(&event.logical_key, event.state.is_pressed());
-                }
-                PaneContent::View(v) => {
-                    view_action =
-                        v.on_key(event, pane.grid.cols, pane.grid.rows, mstate.control_key())
-                }
-                PaneContent::Todo(t) => {
-                    todo_action = t.on_key(
-                        event,
-                        pane.grid.cols,
-                        pane.grid.rows,
-                        mstate.control_key(),
-                        alt,
-                    )
-                }
-            }
-        }
-        if swarm_close {
-            self.close_pane(focused);
-        }
-        if let Some(action) = far_action {
-            self.apply_far_action(action, focused);
-        }
-        if let Some(action) = chat_action {
-            self.apply_chat_action(action, focused);
-        }
-        if let Some(action) = view_action {
-            use crate::viewpane::ViewAction;
-            match action {
-                ViewAction::Close => {
-                    self.close_pane(focused);
-                }
-                ViewAction::Reload => {
-                    if let Some(PaneContent::View(v)) =
-                        self.panes.get_mut(focused).map(|p| &mut p.content)
-                    {
-                        v.reload();
-                    }
-                }
-                ViewAction::OpenExternal(p) => {
-                    let _ = open::that_detached(&p);
-                    self.set_status(format!("opening {}", p.display()));
-                }
-                ViewAction::Edit(p) => self.apply_view_edit(focused, &p),
-            }
-        }
-        if let Some(crate::todopane::TodoAction::Close) = todo_action {
-            self.close_pane(focused);
-        }
-        if is_terminal {
-            if let Some(bytes) = key_to_bytes(event, mstate.control_key(), shift) {
-                self.write_to_terminals(&bytes);
-            }
-        }
-        if let Some(action) = settings_action {
-            if let SettingsAction::Apply(cfg) = action {
-                self.apply_settings(*cfg);
-            }
-            // Save and Cancel both close the settings pane.
-            self.close_pane(focused);
-        }
+        self.route_key_to_focused(event, mstate);
         self.redraw();
-    }
-
-    /// Cmd+S / Alt+S: save-and-close when the focused pane is a settings
-    /// form. Returns `false` when it isn't (the chord keeps its old meaning).
-    pub(crate) fn save_focused_settings(&mut self) -> bool {
-        let focused = self.focused;
-        let Some(pane) = self.panes.get_mut(focused) else {
-            return false;
-        };
-        let PaneContent::Settings(s) = &mut pane.content else {
-            return false;
-        };
-        if let SettingsAction::Apply(cfg) = s.save() {
-            self.apply_settings(*cfg);
-        }
-        self.close_pane(focused);
-        true
-    }
-
-    /// Ctrl+O toggles `compact_view` on the focused pane if — and only if —
-    /// it's a chat pane. Returns `true` when it found one and toggled it
-    /// (the caller should stop there); `false` otherwise, so the key keeps
-    /// flowing to its old destination (e.g. a terminal's raw byte).
-    pub(crate) fn toggle_compact_focused(&mut self) -> bool {
-        let Some(pane) = self.panes.get_mut(self.focused) else {
-            return false;
-        };
-        let PaneContent::Chat(c) = &mut pane.content else {
-            return false;
-        };
-        c.compact_view = !c.compact_view;
-        true
-    }
-}
-
-/// Ctrl+O — the chord that toggles a chat pane's compact transcript view.
-/// Extracted as a pure predicate (mirrors `swarmpane::esc_closes`) so the
-/// match is testable without constructing a winit `KeyEvent`. Modeled on the
-/// Ctrl+Shift+M intercept above: same reach (fires before the input-bar
-/// early-return), but with no Shift requirement.
-pub(crate) fn is_compact_chord(key: &Key, mods: winit::keyboard::ModifiersState) -> bool {
-    mods.control_key() && matches!(key, Key::Character(s) if s.eq_ignore_ascii_case("o"))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use winit::keyboard::ModifiersState;
-
-    #[test]
-    fn is_compact_chord_matches_ctrl_o_only() {
-        assert!(is_compact_chord(
-            &Key::Character("o".into()),
-            ModifiersState::CONTROL
-        ));
-        // Case-insensitive, matching how Ctrl+Shift+M's own match is written.
-        assert!(is_compact_chord(
-            &Key::Character("O".into()),
-            ModifiersState::CONTROL
-        ));
-    }
-
-    #[test]
-    fn is_compact_chord_requires_control() {
-        assert!(!is_compact_chord(
-            &Key::Character("o".into()),
-            ModifiersState::empty()
-        ));
-    }
-
-    #[test]
-    fn is_compact_chord_rejects_other_letters() {
-        assert!(!is_compact_chord(
-            &Key::Character("k".into()),
-            ModifiersState::CONTROL
-        ));
-    }
-
-    #[test]
-    fn is_compact_chord_rejects_named_keys() {
-        assert!(!is_compact_chord(
-            &Key::Named(NamedKey::Escape),
-            ModifiersState::CONTROL
-        ));
     }
 }

@@ -15,6 +15,10 @@ const BINDINGS: &[(&str, &str)] = &[
     ("Cmd+1 … 9", "Jump to pane N"),
     ("Cmd+A / Cmd+.", "Jump to next active / waiting pane"),
     ("Cmd+{ / Cmd+}", "Move pane left / right"),
+    (
+        "Cmd+\u{2190}\u{2191}\u{2192}\u{2193} / Cmd+Shift+\u{2190}\u{2191}\u{2192}\u{2193}",
+        "Focus the pane that way on the grid / swap with it",
+    ),
     ("Cmd+I / Cmd+T", "Focus the input bar / new shell pane"),
     ("Cmd+, / Cmd+J", "Settings / chat pane"),
     ("Cmd+G / Cmd+Z", "Toggle sidebar / zoom focused pane"),
@@ -25,8 +29,10 @@ const BINDINGS: &[(&str, &str)] = &[
         "Cmd+Click",
         "open URL/file/dir · copy a code block in an agent pane",
     ),
-    ("Cmd+W / Cmd+M", "Close pane / maximize"),
-    ("Cmd+K", "Clear focused pane scrollback"),
+    (
+        "Cmd+W / Cmd+M / Cmd+K",
+        "Close pane / maximize / clear scrollback",
+    ),
     (
         "Ctrl+Shift+L",
         "Cycle themes (dark \u{2192} light \u{2192} crt)",
