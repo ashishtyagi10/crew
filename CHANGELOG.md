@@ -8,6 +8,33 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.25
+
+**Every theme has the gradient now, in its own colours.** The ring, the dot
+lattice and the wash belonged to two themes. All nine carry them — and the poles
+come from each palette's own slots rather than nebula's orchid and rose copied
+around. Paper-dark runs its blue into its cyan, sepia its amber into its coral,
+sepia-light ochre into terracotta.
+
+The tubes stay tubes. Their poles are two points on their *own* phosphor ramp,
+so the gradient is luminance rather than hue — a single-phosphor screen that
+suddenly ran purple would not be a CRT any more. Their lattice and wash run at
+half strength, because the bloom and scanlines are already doing that work.
+
+Paper and sepia keep their newsprint grain alongside the new lattice. That rule
+used to say "a theme with a gradient carries no grain", which was really a
+description of the two glass themes; now the exception is named rather than
+inferred, and paper that lost its tooth would just be a flat page.
+
+Under it, one rule turned out to have been copied into four places. The test
+for "is this a phosphor tube" read *has a CRT style and no gradient* — true only
+while gradients were a two-theme family — and three modules kept private copies
+of it, even though its own comment said the distinction lived in one place. All
+four now ask the question that actually separates them: whether the scanlines
+are turned up. Left alone, crt-green would have quietly stopped counting as a
+tube, losing its phosphor colour ladder and collapsing two project tag colours
+into one.
+
 ## 0.18.24
 
 **You can approve from your phone.** The gate could already decide and refuse;
