@@ -8,6 +8,32 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.19
+
+**Telegram — the first way into crew that is not this machine's keyboard.**
+Chosen over iMessage and WhatsApp for one reason: the Bot API is a documented,
+stable surface with a token you create yourself. No scraping a private database,
+no unofficial bridge that gets an account banned.
+
+It ships switched off. With no `CREW_TELEGRAM_TOKEN` the channel is registered,
+reports itself as not configured, and never opens a socket — so nothing changes
+until you decide otherwise. `crew daemon channels` shows it either way.
+
+**To turn it on:** message `@BotFather`, send `/newbot`, copy the token into
+`CREW_TELEGRAM_TOKEN`. Then message your bot once and put your chat id in
+`CREW_TELEGRAM_CHATS` — crew prints the id of any chat it turns away, so the
+first rejected message tells you exactly what to paste.
+
+Two rules carry the safety. The allowlist is empty by default and **empty means
+nobody**, not everybody: an assistant with a public address is an assistant
+anyone can drive, and "open until configured" is a window that stands open for
+exactly as long as it takes you to notice. Crew also will not message a chat it
+would refuse to hear from — a reply is itself an outbound message to a stranger.
+
+And the read offset advances past every message seen, including refused ones.
+Advancing only past accepted messages would let one stranger's message pin the
+offset, so crew re-reads it — and everything behind it — on every poll forever.
+
 ## 0.18.18
 
 **One shape for every way in.** A pane, a phone and a microphone are the same
