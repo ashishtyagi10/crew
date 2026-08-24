@@ -8,6 +8,46 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.26
+
+**The gradient reaches every card, not just the focused pane.** The sidebar, the
+welcome and update cards, the command menu, the paste prompt, the composer, the
+input bar, the toasts, the minimised thumbnails and every unfocused pane now
+carry the theme's gradient on their border. Until now the canvas was one
+coloured frame surrounded by eight flat grey ones.
+
+The colour is free because it is paid for in hue rather than in light. A quiet
+frame's gradient is re-lit to the brightness of the border colour it replaces
+before it is mixed in, so it sits within a hair of where it always sat: the hue
+travels around the card, the level does not move. Focus still reads first —
+measured as contrast against the page rather than as brightness, because on a
+light theme prominence is darker ink, not more light.
+
+Where scaling a pole cannot reach that brightness the shortfall goes toward
+white instead of clipping a channel, since a clipped channel shifts the hue and
+whitening only spends saturation. Light themes live entirely in that case, which
+is why the gradient reads as a pastel there and at full strength on a dark page.
+
+Two things keep their flat colour, for the same reason: a stroke carrying a
+signal is not chrome. An alert toast keeps its bell border — a warning must not
+wear the command menu's skin — and the status glyphs, focus brackets and pane
+legends riding the border rows keep their own colours.
+
+The footer meters become gauges lit by the same ramp. Each eight-cell bar runs
+from one pole to the other, with the unfilled tail at the same hue pulled back
+toward the page, so how full a gauge is still reads as brightness and not only
+as glyph density.
+
+And the page itself could not go up. The contrast suite has always measured
+every text role against the page *as declared*, which is not the page anyone
+reads on — the wash lies underneath the whole canvas and mixes it toward a pole.
+Measured properly for the first time, the shipped weights clear their tightest
+floor by four to sixteen percent, and half again as much wash puts six of the
+nine themes under it. The aurora was already calibrated to the edge of
+legibility, so the new colour had to come from the chrome. A guard now pins
+that, so the next attempt to turn the page up fails loudly instead of quietly
+eating the ink.
+
 ## 0.18.25
 
 **Every theme has the gradient now, in its own colours.** The ring, the dot
