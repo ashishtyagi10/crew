@@ -8,6 +8,28 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.17
+
+**Every tool call now passes the gate — and nothing about crew changes.** That
+second half is the point. There is exactly one place every tool call in the
+running broker flows through, `sys` and MCP alike, so the gate goes there rather
+than into each tool. With today's only requester — a person typing into a pane
+on their own machine — the gate always allows, so your crew behaves exactly as
+it did yesterday.
+
+The gate belongs in the path *before* something can put a non-human behind it,
+not after. The other side of it already works and is tested: a request arriving
+from a channel cannot run a shell command without approval, a trigger cannot run
+one at all, and a tool from an MCP server nobody has classified is refused the
+same way.
+
+An approval that cannot be asked is refused rather than silently awaited —
+nothing can carry the question yet, and saying no out loud beats hanging.
+
+Actions that changed something are written to the ledger; reads are not. Burying
+the handful of calls that touched the world under thousands of file listings
+makes the ledger unreadable, which is the same as not having one.
+
 ## 0.18.16
 
 **An append-only record of what crew did, and a `crew ledger` to read it.** An
