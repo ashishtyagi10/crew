@@ -8,6 +8,30 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.24
+
+**You can approve from your phone.** The gate could already decide and refuse;
+what it could not do was *ask*, because the question had no way out of the
+broker process. Now it travels in both directions — the question goes out as an
+event, the answer comes back as a command, and the tool call blocks in between.
+
+Blocking is the honest shape. The agent asked to do something that cannot be
+undone; until a person says yes, nothing should happen. The wait is bounded, and
+a lapse is a refusal — an unanswered question is never a quiet yes.
+
+A conversation waiting on an approval reads the next thing you say as the
+**answer**, not as new work. The agent is stopped mid-tool-call, and starting a
+second task on top of it would leave the first hanging forever.
+
+Three refusals worth knowing about. "maybe" or "later" is neither yes nor no, so
+crew asks again and keeps waiting rather than guessing — the whole point of
+asking is that you meant one of the two. An approval belongs to the conversation
+it came from, so a "yes" from another chat cannot approve someone else's
+command. And once you have answered, the conversation goes back to taking tasks.
+
+So: text your bot a task, and if it needs to do something irreversible you get
+asked first, wherever you are.
+
 ## 0.18.23
 
 **The test guard stopped leaking a theme.** Tests that touch the process-global
