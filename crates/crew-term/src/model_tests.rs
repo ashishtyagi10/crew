@@ -165,6 +165,69 @@ mod selection_tests {
         assert_eq!(d.bg, (0, 60, 0), "saturated dark background should be kept");
     }
 
+    /// Double-click. A word is whatever alacritty's own separators say it is,
+    /// so this pins the behaviour rather than a hand-rolled definition.
+    #[test]
+    fn a_word_click_selects_the_word_under_the_cell() {
+        for col in 6..=10 {
+            let mut t = term("hello world");
+            t.sel_word(col, 0);
+            assert_eq!(
+                t.sel_text().as_deref(),
+                Some("world"),
+                "clicking column {col} of 'world'"
+            );
+        }
+        let mut t = term("hello world");
+        t.sel_word(0, 0);
+        assert_eq!(t.sel_text().as_deref(), Some("hello"), "the first word");
+    }
+
+    /// A path is one word: `/usr/local/bin` must not come back as `usr`, which
+    /// is the whole point of double-clicking one.
+    #[test]
+    fn a_path_counts_as_one_word() {
+        let mut t = term("cd /usr/local/bin");
+        t.sel_word(8, 0);
+        assert_eq!(t.sel_text().as_deref(), Some("/usr/local/bin"));
+    }
+
+    /// Triple-click takes the line, and never stops at a word boundary. The
+    /// trailing newline is deliberate and is what every terminal copies for a
+    /// line selection: pasting a triple-clicked command should *run* it.
+    #[test]
+    fn a_line_click_takes_the_whole_line() {
+        let mut t = term("hello world");
+        t.sel_line(3, 0);
+        assert_eq!(t.sel_text().as_deref(), Some("hello world\n"));
+    }
+
+    /// The three gestures widen in order: a word is more than a cell, and a
+    /// line is at least a word. A regression that made `sel_line` behave like
+    /// `sel_word` would pass every assertion above about "world".
+    #[test]
+    fn the_gestures_widen_and_do_not_collapse_into_each_other() {
+        let text = |f: fn(&mut super::super::HeadlessTerm)| {
+            let mut t = term("hello world");
+            f(&mut t);
+            t.sel_text().unwrap_or_default()
+        };
+        let cell = text(|t| {
+            t.sel_start(6, 0, false);
+            t.sel_update(6, 0);
+        });
+        let word = text(|t| t.sel_word(6, 0));
+        let line = text(|t| t.sel_line(6, 0));
+        assert!(
+            word.len() > cell.len(),
+            "{word:?} should widen past {cell:?}"
+        );
+        assert!(
+            line.len() > word.len(),
+            "{line:?} should widen past {word:?}"
+        );
+    }
+
     #[test]
     fn drag_selects_an_inclusive_character_span() {
         let mut t = term("hello world");

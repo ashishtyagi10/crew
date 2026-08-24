@@ -180,6 +180,7 @@ mod search;
 mod searchall;
 mod select;
 mod selfupdate;
+mod selrun;
 mod session;
 mod sessionrestore;
 mod sessionsave;

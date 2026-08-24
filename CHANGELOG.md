@@ -8,6 +8,34 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.27
+
+**Cmd+Arrow walks focus the way the eye does.** Pane cycling steps through panes
+in *index* order, which a tiled grid does not follow: with four panes open, pane
+2 sits below pane 1, not beside it. So the one gesture a tiled canvas invites —
+"focus the card over there" — had no key at all.
+
+Cmd+←↑→↓ now focuses the neighbour in that direction, chosen from the same rects
+the mouse hit-tests against, so keyboard focus and the pointer can never
+disagree about where a tile is. Hold Shift and the focused pane travels with the
+gesture, swapping places with whichever card is that way. Neither wraps at the
+edge of the grid: a wrap in a spatial gesture reads as the whole canvas jumping.
+Zoomed, where there is no geometry to navigate, it falls back to stepping.
+
+**The chrome answers the pointer.** Every click target on the canvas chrome was
+silent. The `[-]` and `[x]` on a card's border were three glyphs the colour of
+the legend beside them, with nothing to say the pointer had found one or which
+of the two it was on; a sidebar PANES row focuses and restores its pane on a
+click, and read exactly like the dead text above it.
+
+Now the button under the cursor lights — `[-]` in the accent, `[x]` in the bell
+colour, because the one control that ends a running program should say so before
+it is clicked and not after. A hovered nav row lifts its ink to full contrast
+rather than washing a background behind it: 0.18.26 measured the page's
+remaining contrast headroom at 4–16%, so hover buys its emphasis with ink and
+not with the page. Both repaint only when the target actually changes, so
+sweeping the pointer across the canvas costs one frame per thing it crosses.
+
 ## 0.18.26
 
 **The gradient reaches every card, not just the focused pane.** The sidebar, the

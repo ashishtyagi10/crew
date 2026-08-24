@@ -39,6 +39,17 @@ impl PtyTerm {
         self.core.sel_update(col, row);
     }
 
+    /// Select the word under viewport cell (col, row) — a double-click.
+    pub fn sel_word(&mut self, col: u16, row: u16) {
+        self.core.sel_word(col, row);
+    }
+
+    /// Select the whole logical line under viewport cell (col, row) — a
+    /// triple-click; a soft-wrapped line comes back whole.
+    pub fn sel_line(&mut self, col: u16, row: u16) {
+        self.core.sel_line(col, row);
+    }
+
     /// Clear any active selection.
     pub fn sel_clear(&mut self) {
         self.core.sel_clear();

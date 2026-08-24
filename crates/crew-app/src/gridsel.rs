@@ -79,6 +79,53 @@ pub(crate) fn selection_text(cells: &[CellView], sel: &CellSel) -> String {
     out.join("\n")
 }
 
+/// Characters that end a word for the double-click gesture. Mirrors
+/// alacritty's default separator set, which is what the terminal panes beside
+/// these use — so a double-click means the same thing on a chat transcript as
+/// it does on a shell, and a path or a flag still comes back whole.
+const SEPARATORS: &str = " \t,│`|:\"'()[]{}<>";
+
+fn is_separator(c: char) -> bool {
+    SEPARATORS.contains(c)
+}
+
+/// The glyphs on `row`, keyed by column. Non-terminal panes render to a flat
+/// cell list with no notion of a line, so a row has to be gathered.
+fn row_glyphs(cells: &[CellView], row: u16) -> BTreeMap<u16, char> {
+    cells
+        .iter()
+        .filter(|c| c.row == row)
+        .map(|c| (c.col, c.c))
+        .collect()
+}
+
+/// The `(first_col, last_col)` of the word under `(col, row)`, or `None` when
+/// that cell is blank or a separator — a double-click on empty space selects
+/// nothing rather than the nearest word, which is what a terminal does too.
+pub(crate) fn word_span(cells: &[CellView], col: u16, row: u16) -> Option<(u16, u16)> {
+    let g = row_glyphs(cells, row);
+    let word = |c: u16| g.get(&c).copied().filter(|&ch| !is_separator(ch)).is_some();
+    if !word(col) {
+        return None;
+    }
+    let mut lo = col;
+    while lo > 0 && word(lo - 1) {
+        lo -= 1;
+    }
+    let mut hi = col;
+    while word(hi + 1) {
+        hi += 1;
+    }
+    Some((lo, hi))
+}
+
+/// The `(first_col, last_col)` spanned by every glyph on `row` — the
+/// triple-click gesture. `None` for a row with nothing drawn on it.
+pub(crate) fn line_span(cells: &[CellView], row: u16) -> Option<(u16, u16)> {
+    let g = row_glyphs(cells, row);
+    Some((*g.keys().next()?, *g.keys().next_back()?))
+}
+
 #[cfg(test)]
 #[path = "gridsel_tests.rs"]
 mod tests;

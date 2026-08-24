@@ -90,8 +90,9 @@ pub struct CrewApp {
     pub(crate) win_title: String,
     /// Mirror input to every terminal pane (tmux-style synchronized input).
     pub(crate) broadcast: bool,
-    /// Time + pane index of the last left click, for double-click detection.
-    pub(crate) last_click: Option<(Instant, usize)>,
+    /// Time, pane index and run length of the last left click — the state
+    /// behind the click *run* (single → word → line, see [`crate::select`]).
+    pub(crate) last_click: Option<(Instant, usize, u8)>,
     /// A fold toggle the last mouse press landed on — `(pane index, absolute
     /// row)` — waiting for its release. The toggle fires on RELEASE, and only
     /// when the gesture stayed a plain click: a drag-selection started on a

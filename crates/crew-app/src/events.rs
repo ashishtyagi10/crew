@@ -104,11 +104,11 @@ impl CrewApp {
                 // drag-selection. Additive: the click still focuses the pane
                 // and arms selection below — but an armed toggle never counts
                 // toward a double-click zoom, so folding twice can't
-                // accidentally zoom the pane (see `select::click_zoom`).
+                // accidentally zoom the pane (see `select::click_gesture`).
                 let fold_armed = self.fold_press_at_cursor();
                 // Focus the surface and arm a drag selection on a terminal pane.
                 if let Some(i) = self.selection_press() {
-                    self.click_zoom(i, fold_armed);
+                    self.click_gesture(i, fold_armed);
                 }
                 self.redraw();
             }
