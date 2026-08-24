@@ -16,12 +16,7 @@ pub(crate) struct Snapshot {
 /// The reply to one inbound message, or `None` when it is not one of the resident's own
 /// questions — those go to an agent session instead of being answered here.
 pub(crate) fn respond(text: &str, snap: &Snapshot) -> Option<String> {
-    let word = text
-        .trim()
-        .split_whitespace()
-        .next()
-        .unwrap_or("")
-        .to_lowercase();
+    let word = text.split_whitespace().next().unwrap_or("").to_lowercase();
     Some(match word.as_str() {
         "help" | "?" | "/help" | "/start" => HELP.to_string(),
         "status" | "/status" => format!(
