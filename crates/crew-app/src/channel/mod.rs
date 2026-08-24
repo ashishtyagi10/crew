@@ -10,6 +10,7 @@
 use std::collections::BTreeMap;
 
 pub(crate) mod loopback;
+pub(crate) mod telegram;
 
 /// One message that arrived from the outside world.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -60,12 +61,8 @@ impl Router {
         Self::default()
     }
 
-    /// Register a channel. Nothing registers one until the first real channel exists (2.3);
-    /// the daemon deliberately starts with no ways in rather than a fake one.
-    ///
-    /// Refuses a second channel claiming the same kind: two owners of
+    /// Register a channel. Refuses a second channel claiming the same kind: two owners of
     /// `telegram:` would make every reply a coin flip about which one delivers it.
-    #[allow(dead_code)]
     pub(crate) fn add(&mut self, c: Box<dyn Channel>) -> Result<(), String> {
         let kind = c.kind().to_string();
         if kind.is_empty() || kind.contains(':') {

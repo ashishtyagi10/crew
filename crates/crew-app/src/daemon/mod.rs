@@ -49,7 +49,14 @@ impl Daemon {
         Self {
             started: Instant::now(),
             sessions: session::Registry::new(spawner),
-            channels: crate::channel::Router::new(),
+            channels: {
+                let mut r = crate::channel::Router::new();
+                // Registered always, ready only with a token AND an allowlist. A channel that
+                // appears the moment it is configured — rather than one the user must discover
+                // exists — is the difference between a setting and a secret.
+                let _ = r.add(Box::new(crate::channel::telegram::Telegram::from_env()));
+                r
+            },
         }
     }
 
