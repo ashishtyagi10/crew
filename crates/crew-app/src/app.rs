@@ -82,8 +82,10 @@ pub struct CrewApp {
     pub(crate) input: InputBar,
     /// Animation frame counter, advanced while the welcome screen is showing.
     pub(crate) tick: u64,
-    /// Whether the keybindings help overlay is showing.
+    /// Whether the keybindings help overlay is showing, and how far down its
+    /// list it has been scrolled (see [`crate::help`]).
     pub(crate) help_open: bool,
+    pub(crate) help_scroll: usize,
     /// Whether the focused pane is zoomed to fill the content area.
     pub(crate) zoomed: bool,
     /// Last OS window title set, to avoid redundant `set_title` calls.

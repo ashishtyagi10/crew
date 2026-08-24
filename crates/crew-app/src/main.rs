@@ -114,6 +114,7 @@ mod gridrows;
 mod gridsel;
 mod handler;
 mod help;
+mod helptable;
 mod history;
 mod histsearch;
 mod hit;

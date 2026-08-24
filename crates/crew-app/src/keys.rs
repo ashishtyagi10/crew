@@ -15,9 +15,17 @@ impl CrewApp {
     ) {
         let mstate = self.mods.state();
 
-        // The help overlay swallows the next key press to dismiss itself.
+        // The help overlay: arrows and page keys walk its list, anything else
+        // dismisses it. It is longer than a window and always has been — it
+        // used to answer that by silently cutting the bottom off.
         if self.help_open && event.state.is_pressed() {
-            self.help_open = false;
+            match self.help_scroll_step(&event.logical_key) {
+                Some(step) => self.scroll_help(step),
+                None => {
+                    self.help_open = false;
+                    self.help_scroll = 0;
+                }
+            }
             self.redraw();
             return;
         }
