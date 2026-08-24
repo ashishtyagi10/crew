@@ -13,15 +13,16 @@ pub(crate) struct Snapshot {
     pub sessions: Vec<Card>,
 }
 
-/// The reply to one inbound message.
-pub(crate) fn respond(text: &str, snap: &Snapshot) -> String {
+/// The reply to one inbound message, or `None` when it is not one of the resident's own
+/// questions — those go to an agent session instead of being answered here.
+pub(crate) fn respond(text: &str, snap: &Snapshot) -> Option<String> {
     let word = text
         .trim()
         .split_whitespace()
         .next()
         .unwrap_or("")
         .to_lowercase();
-    match word.as_str() {
+    Some(match word.as_str() {
         "help" | "?" | "/help" | "/start" => HELP.to_string(),
         "status" | "/status" => format!(
             "crew {} \u{2014} up {}, {} session(s)",
@@ -31,7 +32,7 @@ pub(crate) fn respond(text: &str, snap: &Snapshot) -> String {
         ),
         "sessions" | "/sessions" => {
             if snap.sessions.is_empty() {
-                return "no sessions".to_string();
+                return Some("no sessions".to_string());
             }
             snap.sessions
                 .iter()
@@ -46,25 +47,20 @@ pub(crate) fn respond(text: &str, snap: &Snapshot) -> String {
                 .collect::<Vec<_>>()
                 .join("\n")
         }
-        // Never silently ignored: a message that goes unanswered is indistinguishable from a
-        // crew that is down, which is the one thing a remote channel must never look like.
-        _ => format!(
-            "I can't run agent tasks over a channel yet \u{2014} that is the next step. \
-             For now I answer: {}",
-            KNOWN.join(", ")
-        ),
-    }
+        // Anything else is work for an agent, not a question about the resident.
+        _ => return None,
+    })
 }
 
-/// The vocabulary, named once so the help text and the fallback cannot drift apart.
+/// The vocabulary, named once so a command cannot quietly stop being mentioned in the help text.
+#[cfg(test)]
 const KNOWN: &[&str] = &["help", "status", "sessions"];
 
-const HELP: &str = "crew, at your service. I answer:\n\
+const HELP: &str = "crew, at your service.\n\
+     Anything you say that is not one of these becomes a task for an agent:\n\
      help \u{2014} this\n\
      status \u{2014} version, uptime, session count\n\
-     sessions \u{2014} the agent sessions I am holding\n\
-     \n\
-     Running a task from here is not wired up yet.";
+     sessions \u{2014} the agent sessions I am holding";
 
 /// Uptime a person can read at a glance.
 pub(crate) fn human_uptime(secs: u64) -> String {

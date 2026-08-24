@@ -19,6 +19,7 @@ pub(crate) mod cli;
 pub(crate) mod reply;
 pub(crate) mod service;
 pub(crate) mod session;
+pub(crate) mod task;
 
 /// The daemon's live state, flattened to the values a status reply needs. Kept separate from the
 /// serving loop so the reply logic is pure and testable without binding a socket.
@@ -35,6 +36,8 @@ pub(crate) struct Status {
 pub(crate) struct Daemon {
     started: Instant,
     sessions: session::Registry,
+    /// Channel addresses to agent sessions.
+    bridge: task::Bridge,
     /// Every way in and out. Empty until a real channel is built — the resident is reachable
     /// only from a pane today, and `crew daemon channels` says so rather than implying more.
     channels: crate::channel::Router,
@@ -50,6 +53,7 @@ impl Daemon {
         Self {
             started: Instant::now(),
             sessions: session::Registry::new(spawner),
+            bridge: task::Bridge::default(),
             channels: {
                 let mut r = crate::channel::Router::new();
                 // Registered always, ready only with a token AND an allowlist. A channel that
@@ -86,10 +90,35 @@ impl Daemon {
             uptime_s: self.started.elapsed().as_secs(),
             sessions: self.sessions.cards(),
         };
+        // Collected before sending: routing a task borrows the session registry, and the
+        // channels are borrowed to answer on.
+        let mut outgoing: Vec<(String, String)> = Vec::new();
         for msg in inbound {
-            let answer = reply::respond(&msg.text, &snap);
-            if let Err(e) = self.channels.send(&msg.from, &answer) {
-                println!("could not answer {}: {e}", msg.from);
+            let answer = match reply::respond(&msg.text, &snap) {
+                Some(a) => a,
+                // Not a question about the resident — hand it to an agent.
+                None => match self
+                    .bridge
+                    .dispatch(&mut self.sessions, &msg.from, &msg.text)
+                {
+                    Ok(ack) => ack.to_string(),
+                    Err(e) => e,
+                },
+            };
+            outgoing.push((msg.from, answer));
+        }
+        for (addr, text) in outgoing {
+            if let Err(e) = self.channels.send(&addr, &text) {
+                println!("could not answer {addr}: {e}");
+            }
+        }
+    }
+
+    /// Forward anything the agent sessions have said back to whoever asked.
+    pub(crate) fn deliver_replies(&mut self) {
+        for (addr, text) in self.bridge.collect(&self.sessions) {
+            if let Err(e) = self.channels.send(&addr, &text) {
+                println!("could not deliver to {addr}: {e}");
             }
         }
     }
@@ -265,6 +294,7 @@ pub(crate) fn run_at(path: std::path::PathBuf) -> i32 {
             Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
         }
         daemon.service_channels();
+        daemon.deliver_replies();
     }
     0
 }

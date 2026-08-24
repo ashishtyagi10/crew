@@ -19,7 +19,7 @@ fn card(id: &str, alive: bool) -> Card {
 
 #[test]
 fn status_reports_the_version_uptime_and_session_count() {
-    let out = respond("status", &snap(vec![card("s1", true)]));
+    let out = respond("status", &snap(vec![card("s1", true)])).expect("a command");
     assert!(out.contains("9.9.9"), "{out}");
     assert!(out.contains("1h2m"), "uptime is readable: {out}");
     assert!(out.contains("1 session"), "{out}");
@@ -27,21 +27,22 @@ fn status_reports_the_version_uptime_and_session_count() {
 
 #[test]
 fn sessions_lists_each_one_with_its_state() {
-    let out = respond("sessions", &snap(vec![card("s1", true), card("s2", false)]));
+    let out =
+        respond("sessions", &snap(vec![card("s1", true), card("s2", false)])).expect("a command");
     assert!(out.contains("s1  running"), "{out}");
     assert!(out.contains("s2  dead"), "{out}");
-    assert_eq!(respond("sessions", &snap(vec![])), "no sessions");
+    assert_eq!(
+        respond("sessions", &snap(vec![])).as_deref(),
+        Some("no sessions")
+    );
 }
 
-/// A message that goes unanswered is indistinguishable from a crew that is down — the one thing
-/// a remote channel must never look like.
+/// Anything that is not one of the resident's own questions is work, and must be routed to an
+/// agent rather than answered here with an apology.
 #[test]
-fn an_unknown_message_still_gets_an_answer_that_says_what_is_possible() {
-    let out = respond("book me a flight to Berlin", &snap(vec![]));
-    assert!(!out.is_empty());
-    for w in KNOWN {
-        assert!(out.contains(w), "the fallback lists {w}: {out}");
-    }
+fn anything_that_is_not_a_command_becomes_a_task() {
+    assert_eq!(respond("book me a flight to Berlin", &snap(vec![])), None);
+    assert_eq!(respond("what did I change yesterday", &snap(vec![])), None);
 }
 
 /// Telegram users type `/status`; people type `status`. Both are the same question.
@@ -74,7 +75,7 @@ fn the_first_word_decides() {
 /// The help text and the fallback must not drift apart.
 #[test]
 fn help_names_every_command_the_fallback_advertises() {
-    let out = respond("help", &snap(vec![]));
+    let out = respond("help", &snap(vec![])).expect("a command");
     for w in KNOWN {
         assert!(out.contains(w), "help omits {w}: {out}");
     }
