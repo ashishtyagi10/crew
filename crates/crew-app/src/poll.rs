@@ -12,6 +12,17 @@ use crate::pane::{Pane, PaneContent};
 /// ~62 Hz, so redrawing every 4th tick animates the sweep at ~15 fps.
 const BUSY_ANIM_DIV: u64 = 4;
 
+/// Poll ticks per rendered frame of the ambient wash drift: ~6 fps.
+///
+/// Deliberately far coarser than [`BUSY_ANIM_DIV`], because this is the one
+/// animation that asks for frames nothing else needed, and it can afford to.
+/// The wash is a pair of soft pools the width of the page turning once every
+/// ninety seconds; at six frames a second each frame moves them about
+/// two-thirds of a degree, which is well under what an edge that soft can
+/// show. Spending 15 fps on it would buy no visible smoothness and two and a
+/// half times the wake-ups.
+const AMBIENT_ANIM_DIV: u64 = 10;
+
 /// How long a freshly spawned `$EDITOR` pane is presumed live even before its
 /// `cmd` is populated. `TermPane.cmd` starts `None` at spawn (`spawn.rs`) and
 /// is only filled in by `procname`'s scan, which is throttled to ~1×/s
@@ -481,6 +492,17 @@ impl CrewApp {
             // marker draws once and then costs nothing.
             self.tick = self.tick.wrapping_add(1);
             if self.tick.is_multiple_of(BUSY_ANIM_DIV) {
+                any_changed = true;
+            }
+        } else if self.ambient_drift() {
+            // Nothing transient wants a frame, but the page's wash is still
+            // turning (see `washphase`). Its own branch rather than a term in
+            // `wants_animation_frame`, so that predicate keeps meaning "some
+            // animation is in flight" — and so this, the only motion that
+            // repaints an otherwise idle window, is throttled on its own and
+            // can be found by looking for the one thing that costs battery.
+            self.tick = self.tick.wrapping_add(1);
+            if self.tick.is_multiple_of(AMBIENT_ANIM_DIV) {
                 any_changed = true;
             }
         }

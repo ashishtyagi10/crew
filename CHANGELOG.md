@@ -8,6 +8,34 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.32
+
+**The background gradient drifts on its own now.** The page's wash — two broad
+pools of the theme's pole light on an elliptical orbit under everything — has
+always moved, but only while a pane was busy, so a quiet window sat perfectly
+still and most people never saw it turn at all.
+
+With **Settings → APPEARANCE → Drifting background** on (the default) it keeps
+going when nothing is happening: one revolution every ninety seconds, fifteen
+times slower than the busy drift, because idle motion is a texture and busy
+motion is a signal — the two should not look alike.
+
+It is the only animation in crew that repaints a window nothing else needed
+repainted, which is a real cost on a laptop, so it is fenced on four things and
+any one of them stops it: the setting, **Motion** not being `off`, a theme that
+has a wash at all, and **crew holding the OS focus** — a window you are not
+looking at repaints for nobody. It draws at about six frames a second rather
+than the fifteen the busy path uses: at ninety seconds a revolution each frame
+moves the pools about two-thirds of a degree, well under what an edge that soft
+can show, so the extra frames would buy no smoothness and two and a half times
+the wake-ups.
+
+Turn it off and an idle crew goes back to drawing exactly nothing, holding its
+last frame wherever the pools had reached — the static-frame determinism the CRT
+trace and the gradient ring keep. The phase is still accumulated from frame
+deltas rather than read off the wall clock, so the motion stays continuous
+across every pause instead of teleporting after a quiet minute.
+
 ## 0.18.31
 
 **Six colours that were picked on a dark page and never met a light one.** The

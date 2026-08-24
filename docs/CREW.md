@@ -1332,11 +1332,26 @@ themes are untouched by any of this.
 
 **The modern glow palettes are pages that carry light.** Each one owns two
 saturated poles that drive all three of its signatures: a gradient light-ring
-around the focused frame, a slow wash of pole light under the page (it only
-drifts while a pane is busy), and a fine dot lattice woven over it on the text
-cell's pitch. They ride the bloom chain for their halo but never the tube —
+around the focused frame, a slow wash of pole light under the page, and a fine
+dot lattice woven over it on the text cell's pitch. They ride the bloom chain for their halo but never the tube —
 curvature, scanlines and the bezel vignette are all zero — so they sit in the
 `dark` and `light` rotations, not in `crt`.
+
+**The page drifts.** The wash is two broad pools of pole light on an elliptical
+orbit under the page, and they turn: one revolution every six seconds while a
+pane is working, and — with **Settings → APPEARANCE → Drifting background** on,
+the default — one every ninety seconds when nothing is happening at all. Idle
+motion is a texture, not a signal, so it is fifteen times slower than the busy
+kind and drawn at about six frames a second.
+
+This is the only animation in crew that repaints a window nothing else needed
+repainted, so it is fenced on four things, any one of which stops it: the
+setting, **Motion** not being `off`, a theme that has a wash at all, and crew
+holding the OS focus — a window you are not looking at repaints for nobody.
+Turn the setting off and an idle crew goes back to drawing exactly nothing, its
+last frame held wherever the pools had reached. The phase is accumulated from
+frame deltas rather than read off the clock, so the motion is continuous across
+every pause instead of teleporting after a quiet minute.
 
 **Light themes read like print.** The six light *paper* themes (`paper-light`,
 `sepia-light`, `coldpress-gray`, `salmon-broadsheet`, `ivory-ledger`,

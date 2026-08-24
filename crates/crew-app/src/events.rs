@@ -55,6 +55,14 @@ impl CrewApp {
                 }
             }
             WindowEvent::ModifiersChanged(mods) => self.mods = mods,
+            // Losing the OS focus stops the ambient drift (and regaining it
+            // starts it again) — the redraw it asks for is the one thing in
+            // crew that would otherwise run for a window nobody is looking at.
+            // The repaint is what restarts the loop, so both edges need one.
+            WindowEvent::Focused(on) => {
+                self.win_focus = Some(on);
+                self.redraw();
+            }
             WindowEvent::CursorMoved { position, .. } => {
                 self.cursor = (position.x as f32, position.y as f32);
                 // Extend an in-progress selection as the cursor drags.
@@ -222,13 +230,14 @@ impl CrewApp {
                 let crt_active = crt.is_some() && busy;
                 let crt_time = (crate::anim::now_ms() % 100_000) as f32 / 1000.0;
                 let fade = self.theme_fade(crate::anim::now_ms());
-                // The modern wash rides the same busy redraws: its phase is
-                // advanced from those frames' deltas and holds while quiet
-                // (see `washphase`), so an idle window still never repaints.
+                // The modern wash's phase is advanced from this frame's delta
+                // at whichever pace applies — the busy one, the far slower
+                // ambient one, or held (see `washphase`).
                 let drift = crew_theme::theme().modern.map_or(0, |m| m.drift_ms);
-                let wash =
-                    self.wash
-                        .advance(crate::anim::now_ms(), busy, drift, crate::motion::level());
+                let pace = crate::washphase::pace(drift, busy, self.ambient_drift());
+                let wash = self
+                    .wash
+                    .advance(crate::anim::now_ms(), pace, crate::motion::level());
                 if let Some(r) = &mut self.renderer {
                     // Flicker amplitude is the style's own — each phosphor
                     // jitters with its own nerve, not one global 0.06.
