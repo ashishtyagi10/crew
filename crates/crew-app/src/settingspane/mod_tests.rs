@@ -297,6 +297,8 @@ fn edits(f: Field) -> &'static str {
         Field::NotifyExit => "notify_exit",
         Field::NotifyMinSecs => "notify_min_secs",
         Field::NotifyPatterns => "notify_patterns",
+        Field::Budget5h => "usage_budget_5h",
+        Field::Budget7d => "usage_budget_7d",
         Field::Save | Field::Cancel => "",
     }
 }
@@ -304,7 +306,7 @@ fn edits(f: Field) -> &'static str {
 /// Config keys the form deliberately does not carry, each with the reason.
 /// A key must be here or editable — "we forgot" is not a third option, which
 /// is how `auto_light_from` / `auto_light_to` shipped config-only.
-const NOT_IN_FORM: [(&str, &str); 10] = [
+const NOT_IN_FORM: [(&str, &str); 8] = [
     ("last_seen_version", "bookkeeping: drives the version note"),
     ("last_dir", "bookkeeping: restored window state"),
     ("win_w", "bookkeeping: restored window state"),
@@ -322,8 +324,6 @@ const NOT_IN_FORM: [(&str, &str); 10] = [
         "crt",
         "set live by /crt; an override over the theme's own flag",
     ),
-    ("usage_budget_5h", "footer budget - config-only, NO UI YET"),
-    ("usage_budget_7d", "footer budget - config-only, NO UI YET"),
 ];
 
 /// Every config key is either editable in the form or listed as deliberately
@@ -487,5 +487,72 @@ fn cycling_a_pairing_picker_returns_to_default() {
         let cfg = CrewConfig::from_toml_str(&format!("theme_dark = \"{v}\"\n"));
         assert_eq!(cfg.theme_dark.as_deref(), Some(v.as_str()));
         assert!(cfg.auto_pool_selections().0.is_some(), "`{v}` was dropped");
+    }
+}
+
+/// The budget boxes are typed in millions and stored in tokens — the same
+/// trade the opacity box makes with percentages.
+#[test]
+fn the_budget_boxes_type_millions_and_store_tokens() {
+    let mut p = pane();
+    focus(&mut p, Field::Budget5h);
+    assert_eq!(p.budget5h_buf, "5", "5000000 tokens reads as 5");
+    assert_eq!(p.budget7d_buf, "25");
+
+    p.budget5h_buf = "7.5".to_string();
+    commit_field(&mut p);
+    assert_eq!(p.draft.usage_budget_5h, 7_500_000);
+    assert_eq!(p.budget5h_buf, "7.5", "mirrored back into the box");
+    assert_eq!(p.draft.usage_budget_7d, 25_000_000, "the other side moved");
+
+    focus(&mut p, Field::Budget7d);
+    p.budget7d_buf = "40".to_string();
+    commit_field(&mut p);
+    assert_eq!(p.draft.usage_budget_7d, 40_000_000);
+    assert_eq!(p.draft.usage_budget_5h, 7_500_000, "the other side moved");
+
+    // A typo keeps what was there rather than zeroing a budget the footer
+    // divides by.
+    focus(&mut p, Field::Budget5h);
+    for typo in ["nope", ""] {
+        p.budget5h_buf = typo.to_string();
+        commit_field(&mut p);
+        assert_eq!(p.draft.usage_budget_5h, 7_500_000, "`{typo}` was accepted");
+    }
+}
+
+/// Opening Settings and tabbing past a hand-set budget must not round it.
+/// Every focus move runs `commit_field`, so without the no-op guard simply
+/// LOOKING at the form would quantise a config the user set by hand.
+#[test]
+fn tabbing_past_a_budget_never_rewrites_it() {
+    let odd = 5_123_456;
+    let cfg = CrewConfig {
+        usage_budget_5h: odd,
+        ..Default::default()
+    };
+    let mut p = SettingsPane::new(cfg, Vec::new());
+    assert_eq!(p.budget5h_buf, "5.12", "the display is lossy, as designed");
+    focus(&mut p, Field::Budget5h);
+    for _ in 0..3 {
+        commit_field(&mut p);
+        move_focus(&mut p, false);
+    }
+    assert_eq!(p.draft.usage_budget_5h, odd, "the form rounded it");
+    // ...and a Save of the untouched form carries the original through.
+    assert_eq!(build_config(&p).usage_budget_5h, odd);
+}
+
+/// Only a number can be typed: digits and at most one decimal point.
+#[test]
+fn the_budget_boxes_reject_anything_that_is_not_a_number() {
+    for f in [Field::Budget5h, Field::Budget7d] {
+        let mut buf = String::new();
+        for c in "1a2.b3.4-".chars() {
+            if super::keys::allowed(f, &buf, c) {
+                buf.push(c);
+            }
+        }
+        assert_eq!(buf, "12.34", "{f:?} accepted `{buf}`");
     }
 }

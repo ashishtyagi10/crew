@@ -1,13 +1,16 @@
 //! Form controls for the settings pane: bento cards, boxed inputs with the
 //! label as a fieldset legend, checkboxes, and a multi-line text area — plus
 //! the pure two-column layout geometry shared by the renderer and tests.
+//!
+//! The left column is APPEARANCE alone because it is the tall one; the right
+//! stacks WINDOW, NOTIFICATIONS and USAGE, which together roughly match it.
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Widget};
 
-use super::cards::{appearance, notifications, window};
+use super::cards::{appearance, notifications, usage, window};
 use super::Field;
 use crate::palette::accent_color;
 
@@ -15,6 +18,9 @@ use crate::palette::accent_color;
 pub(crate) const STACK_BELOW: u16 = 64;
 /// Content rows inside the notify-patterns text area.
 pub(crate) const TEXTAREA_ROWS: u16 = 4;
+
+/// A card's field builder: places its rects and returns the card height.
+type Build = fn(&mut Vec<(Field, Rect)>, u16, u16, u16) -> u16;
 
 /// One bento card: a legend plus the frame the fields are drawn inside.
 pub(crate) struct Card {
@@ -36,49 +42,43 @@ impl FormLayout {
 }
 
 /// Bento layout: two columns when the pane is wide enough (Appearance left;
-/// Window + Notifications right), otherwise one stacked column.
+/// Window + Notifications + Usage right), otherwise one stacked column.
 pub(crate) fn layout(cols: u16) -> FormLayout {
     let mut rects = Vec::new();
     let mut cards = Vec::new();
+    // Place one card and report the row after it, so adding a card is one
+    // line rather than the five-line push-and-measure dance this repeated.
+    let mut place = |rects: &mut Vec<(Field, Rect)>, title, build: Build, x, y, w| {
+        let h = build(rects, x, y, w);
+        cards.push(Card {
+            title,
+            rect: Rect::new(x, y, w, h),
+        });
+        y + h
+    };
     if cols >= STACK_BELOW {
         let col_w = (cols - 4) / 2; // 1-col margins + 2-col gutter
         let (lx, rx) = (1, 1 + col_w + 2);
-        let ah = appearance(&mut rects, lx, 0, col_w);
-        cards.push(Card {
-            title: "APPEARANCE",
-            rect: Rect::new(lx, 0, col_w, ah),
-        });
-        let wh = window(&mut rects, rx, 0, col_w);
-        cards.push(Card {
-            title: "WINDOW",
-            rect: Rect::new(rx, 0, col_w, wh),
-        });
-        let ny = wh + 1;
-        let nh = notifications(&mut rects, rx, ny, col_w);
-        cards.push(Card {
-            title: "NOTIFICATIONS",
-            rect: Rect::new(rx, ny, col_w, nh),
-        });
+        let left = place(&mut rects, "APPEARANCE", appearance, lx, 0, col_w);
+        let mut right = place(&mut rects, "WINDOW", window, rx, 0, col_w);
+        for (title, build) in [("NOTIFICATIONS", notifications as Build), ("USAGE", usage)] {
+            right = place(&mut rects, title, build, rx, right + 1, col_w);
+        }
         FormLayout {
             cards,
             rects,
-            height: ah.max(ny + nh),
+            height: left.max(right),
         }
     } else {
         let w = cols.saturating_sub(2);
         let mut y = 0;
-        type Build = fn(&mut Vec<(Field, Rect)>, u16, u16, u16) -> u16;
         for (title, build) in [
             ("APPEARANCE", appearance as Build),
             ("WINDOW", window),
             ("NOTIFICATIONS", notifications),
+            ("USAGE", usage),
         ] {
-            let h = build(&mut rects, 1, y, w);
-            cards.push(Card {
-                title,
-                rect: Rect::new(1, y, w, h),
-            });
-            y += h + 1;
+            y = place(&mut rects, title, build, 1, y, w) + 1;
         }
         FormLayout {
             cards,

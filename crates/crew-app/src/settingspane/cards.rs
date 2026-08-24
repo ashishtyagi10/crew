@@ -86,6 +86,18 @@ pub(super) fn notifications(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u
     cy + 1 - y
 }
 
+/// Usage card fields; returns the card height. Its own card rather than a
+/// tail on NOTIFICATIONS: these are the footer's budget bars, which have
+/// nothing to do with being told a command finished.
+pub(super) fn usage(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16) -> u16 {
+    let (ix, iw) = inner(x, w);
+    let cy = y + 1;
+    let half = iw.saturating_sub(2) / 2;
+    rects.push((Field::Budget5h, Rect::new(ix, cy, half, 3)));
+    rects.push((Field::Budget7d, Rect::new(ix + half + 2, cy, half, 3)));
+    cy + 3 + 1 - y
+}
+
 /// Content inset inside a card border: x + 2, width − 4.
 fn inner(x: u16, w: u16) -> (u16, u16) {
     (x + 2, w.saturating_sub(4))

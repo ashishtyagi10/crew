@@ -40,6 +40,10 @@ pub(crate) fn label_of(f: Field) -> &'static str {
         Field::NotifyExit => "Notify: pane exit",
         Field::NotifyMinSecs => "Min secs",
         Field::NotifyPatterns => "Patterns (one per line)",
+        // Millions of tokens; the unit is in the legend because the number
+        // typed (5) is nothing like the number stored (5000000).
+        Field::Budget5h => "5h budget (M)",
+        Field::Budget7d => "7d budget (M)",
         Field::Save | Field::Cancel => "",
     }
 }
@@ -92,6 +96,8 @@ pub(crate) fn value_of(p: &SettingsPane, f: Field) -> (String, bool) {
         Field::NotifyExit => (onoff(p.draft.notify_exit), false),
         Field::NotifyMinSecs => (p.minsecs_buf.clone(), true),
         Field::NotifyPatterns => (p.patterns_buf.clone(), true),
+        Field::Budget5h => (p.budget5h_buf.clone(), true),
+        Field::Budget7d => (p.budget7d_buf.clone(), true),
         Field::Save | Field::Cancel => (String::new(), false),
     }
 }

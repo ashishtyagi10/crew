@@ -39,11 +39,15 @@ pub(crate) enum Field {
     NotifyExit,
     NotifyMinSecs,
     NotifyPatterns,
+    /// Token budgets the footer's 5h / 7d bars are drawn against. Typed in
+    /// millions — see `tokens`.
+    Budget5h,
+    Budget7d,
     Save,
     Cancel,
 }
 
-pub(crate) const FIELDS: [Field; 25] = [
+pub(crate) const FIELDS: [Field; 27] = [
     Field::FontFamily,
     Field::FontSize,
     Field::Smooth,
@@ -67,6 +71,8 @@ pub(crate) const FIELDS: [Field; 25] = [
     Field::NotifyExit,
     Field::NotifyMinSecs,
     Field::NotifyPatterns,
+    Field::Budget5h,
+    Field::Budget7d,
     Field::Save,
     Field::Cancel,
 ];
