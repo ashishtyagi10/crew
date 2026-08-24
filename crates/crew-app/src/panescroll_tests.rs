@@ -106,3 +106,29 @@ fn a_count_with_no_room_writes_nothing() {
     assert_eq!(count(&mut v, 1, 4_000), 1);
     assert!(v.is_empty());
 }
+
+/// Where the gutter sends you: the top of the interior is the top of the
+/// buffer, the bottom is the live edge, and the middle is the middle.
+#[test]
+fn a_seek_to_the_top_of_the_gutter_reaches_the_top_of_the_buffer() {
+    use super::offset_at;
+    let (total, visible) = (5_000usize, 20usize);
+    assert_eq!(offset_at(total, visible, 0.0), total - visible, "the top");
+    assert_eq!(offset_at(total, visible, 1.0), 0, "the live edge");
+    let mid = offset_at(total, visible, 0.5);
+    assert!(
+        mid.abs_diff((total - visible) / 2) <= 1,
+        "halfway landed on {mid}"
+    );
+}
+
+/// A drag past either end of the card, and a buffer that fits on screen,
+/// must not produce an offset the grid would clamp away or panic on.
+#[test]
+fn a_seek_outside_the_gutter_or_with_no_history_is_bounded() {
+    use super::offset_at;
+    assert_eq!(offset_at(5_000, 20, -3.0), 4_980, "above the card");
+    assert_eq!(offset_at(5_000, 20, 9.0), 0, "below it");
+    assert_eq!(offset_at(20, 20, 0.0), 0, "the buffer fits on screen");
+    assert_eq!(offset_at(5, 20, 0.0), 0, "and so does a shorter one");
+}

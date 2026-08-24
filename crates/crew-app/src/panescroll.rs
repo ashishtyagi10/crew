@@ -63,6 +63,16 @@ pub(crate) fn thumb(v: &mut Vec<CellView>, cols: u16, rows: u16, b: &Bar) {
     }
 }
 
+/// The scroll offset that puts the top of the window on the line a pointer
+/// `frac` of the way down the gutter is pointing at: 0.0 is the top of the
+/// buffer, 1.0 the live bottom. Returns lines back from the bottom, which is
+/// what `display_offset` counts in.
+pub(crate) fn offset_at(total: usize, visible: usize, frac: f32) -> usize {
+    let range = total.saturating_sub(visible);
+    let first = (frac.clamp(0.0, 1.0) * range as f32).round() as usize;
+    range - first.min(range)
+}
+
 #[cfg(test)]
 #[path = "panescroll_tests.rs"]
 mod tests;

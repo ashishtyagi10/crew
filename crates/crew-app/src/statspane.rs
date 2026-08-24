@@ -70,18 +70,25 @@ impl StatsPane {
         stats_changed || clock_changed || git_changed
     }
 
+    /// Content row where the LOG section's rule sits — everything above it is
+    /// the fixed stat cards. The hit path for scrolling the log reads it, so
+    /// draw and wheel agree about which rows are the log's.
+    pub fn log_top(&self) -> u16 {
+        let stats = clock::CLOCK_H + SYS_BLOCK + LOAD_BLOCK + CARD_BLOCK + CARD_BLOCK;
+        stats
+            + if self.git.info().is_some() {
+                CARD_BLOCK
+            } else {
+                0
+            }
+    }
+
     /// The cell-row where the PANES section header sits — used to hit-test
     /// clicks on the pane list. Must track the section offsets in `cells`,
     /// including the conditional GIT and LOG blocks (`log_len` = buffered
     /// entries, so the caller passes `app.log.len()`).
     pub fn panes_top(&self, log_len: usize) -> u16 {
-        let stats = clock::CLOCK_H + SYS_BLOCK + LOAD_BLOCK + CARD_BLOCK + CARD_BLOCK;
-        let git = if self.git.info().is_some() {
-            CARD_BLOCK
-        } else {
-            0
-        };
-        stats + git + navlog::log_block(log_len)
+        self.log_top() + navlog::log_block(log_len)
     }
 
     pub fn cells(
@@ -90,6 +97,8 @@ impl StatsPane {
         rows: u16,
         panes: &[PaneRow],
         log: &[crate::applog::LogEntry],
+        // How far back the LOG is scrolled — 0 follows the newest line.
+        log_back: usize,
     ) -> Vec<CellView> {
         let (time, date) = clock::now_strings();
         let mut out = clock::clock_cells(&time, &date, cols);
@@ -149,7 +158,7 @@ impl StatsPane {
         let log_h = navlog::log_block(log.len());
         if log_h > 0 && rows > next + 1 {
             let fit = ((rows - next - 1) as usize).min(navlog::LOG_LINES);
-            for mut c in navlog::log_cells(log, cols, fit) {
+            for mut c in navlog::log_cells(log, cols, fit, log_back) {
                 c.row += next;
                 out.push(c);
             }

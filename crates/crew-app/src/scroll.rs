@@ -76,6 +76,19 @@ impl CrewApp {
         lines
     }
 
+    /// Cmd/Ctrl + wheel resizes the font, the gesture every browser and
+    /// terminal answers this way. `Cmd+=` / `Cmd+-` already did it a step at
+    /// a time; the wheel is how people actually reach for it. Returns `true`
+    /// when the wheel was claimed.
+    pub(crate) fn zoom_font_wheel(&mut self, lines: i32) -> bool {
+        let m = self.mods.state();
+        if !(m.super_key() || m.control_key()) || lines == 0 {
+            return false;
+        }
+        self.set_font(self.config.font_size + lines as f32);
+        true
+    }
+
     /// Route a mouse-wheel scroll to the pane under the cursor. A full-screen
     /// program (alt-screen/mouse app) receives the wheel as input bytes; any
     /// other pane scrolls its own scrollback.
@@ -83,8 +96,17 @@ impl CrewApp {
         if lines == 0 {
             return;
         }
+        if self.zoom_font_wheel(lines) {
+            return;
+        }
         // A generic selection's cell coords go stale once content scrolls.
         self.cell_sel = None;
+        // The sidebar's LOG is a window onto a much longer buffer; a wheel
+        // over it moves that window rather than a pane's scrollback.
+        if self.scroll_log_at_cursor(lines) {
+            self.redraw();
+            return;
+        }
         let Some(i) = self.pane_at_cursor() else {
             return;
         };

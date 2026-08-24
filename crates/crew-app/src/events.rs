@@ -59,6 +59,10 @@ impl CrewApp {
                 self.cursor = (position.x as f32, position.y as f32);
                 // Extend an in-progress selection as the cursor drags.
                 self.selection_drag();
+                // …scroll to where a carried gutter points…
+                if self.gutter_drag_move() {
+                    self.redraw();
+                }
                 // …resize the sidebar if its edge is in hand…
                 if self.nav_edge_drag() {
                     self.redraw();
@@ -88,6 +92,13 @@ impl CrewApp {
                 // over everything below, or the press lands in whatever pane
                 // sits a few pixels to its right.
                 if self.nav_edge_press() {
+                    return;
+                }
+                // A scrolled-back pane's right border is a scroll gutter; it
+                // must win over the focus/drag path, or the press lands on
+                // the last content column instead.
+                if self.gutter_press() {
+                    self.redraw();
                     return;
                 }
                 // The strip's `+N` tile reveals the first pane it stands for.
@@ -148,7 +159,7 @@ impl CrewApp {
                 // A card dropped on another swaps the two; either kind of
                 // drag means the gesture was never a click, so no fold fires.
                 let swapped = self.card_drop();
-                let resized = self.nav_edge_release();
+                let resized = self.nav_edge_release() || self.gutter_release();
                 self.fold_release(dragged || swapped || resized);
                 // Letting go changes what the pointer can do next, and a
                 // release moves nothing — so the shape is resolved here too.

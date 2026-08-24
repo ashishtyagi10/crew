@@ -157,6 +157,10 @@ minimized thumbnail strip along the bottom of the content area, ordered
 least-recently-active first. Click a thumbnail, use the sidebar, or press
 **Cmd+1 … 9** to focus a pane and restore it to the full grid.
 
+While a pane is scrolled back, its right border is a live scroll gutter — press
+or drag it to move through the buffer. **Cmd+wheel** resizes the font, and a
+wheel over the sidebar's LOG scrolls back through its buffered lines.
+
 The pointer changes shape to say what it can do: an I-beam over text, a hand
 over a button or a nav row, an open hand over a card's legend row, a resize
 arrow on the sidebar's edge — **drag that edge** to widen or narrow the nav.

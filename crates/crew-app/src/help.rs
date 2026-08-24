@@ -23,7 +23,10 @@ const BINDINGS: &[(&str, &str)] = &[
     ("Cmd+, / Cmd+J", "Settings / chat pane"),
     ("Cmd+G / Cmd+Z", "Toggle sidebar / zoom focused pane"),
     ("Cmd+S", "Broadcast to all panes"),
-    ("Cmd+= / Cmd+- / Cmd+0", "Font size + / - / reset"),
+    (
+        "Cmd+= / Cmd+- / Cmd+0 / Cmd+wheel",
+        "Font size + / - / reset",
+    ),
     ("Cmd+C / Cmd+V", "Copy screen / paste"),
     (
         "Cmd+Click",

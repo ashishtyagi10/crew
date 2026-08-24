@@ -238,6 +238,14 @@ the convention puts it: a window's title bar, not its contents). **Drag** picks
 the card up: the card under the pointer lights in the accent, and releasing
 swaps the two, the mouse equivalent of the **Cmd+Shift+←↑→↓** chord above.
 
+**The scroll gutter.** While a pane is scrolled back, its right border is a
+live gutter: press it to jump to that point in the buffer, drag it to cross the
+whole scrollback in one gesture. At the live bottom there is no gutter — there
+is nothing behind it to reach.
+
+**Cmd+wheel** (Ctrl+wheel off macOS) resizes the font, the same step
+**Cmd+=** / **Cmd+-** takes.
+
 **The pointer's shape.** The cursor says what the thing under it does before
 anything is clicked: an I-beam over text a click would select, a hand over the
 border buttons, the nav rows and the `+N` tile, an open hand over a card's
@@ -1119,7 +1127,12 @@ load-per-core), a **HOST** section (hostname, OS, uptime), a **NET** section
 working directory is a repository — a **GIT** section showing the current branch
 (with `↑`/`↓` commits ahead/behind the upstream) and a clean / `● N changed` marker. Below those, a **LOG** section keeps a live tail of
 recent status messages (the same lines flashed on the input bar, newest last) so
-activity history persists instead of vanishing after a few seconds, and a
+activity history persists instead of vanishing after a few seconds. Those five
+rows are a window onto a hundred buffered entries: **scroll the LOG with the
+wheel** to reach the older ones, and its rule shows `⇡N` while you are back
+from the live tail. A line arriving mid-scroll steps the window with the buffer
+rather than sliding out from under you; scroll back down to follow again.
+Below it, a
 **PANES** list of the open panes (index, name, a `▸` focus marker, and an
 activity dot) fills the remaining height. Click a PANES row to focus that pane; the row
 under the pointer brightens to say so. The panel's **card legend shows the running version**
