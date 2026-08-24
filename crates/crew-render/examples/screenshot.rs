@@ -314,6 +314,25 @@ fn main() {
     for (theme_id, out_path) in [
         (ThemeId::PaperLight, format!("{out_dir}/welcome-light.png")),
         (ThemeId::PaperDark, format!("{out_dir}/welcome-dark.png")),
+        (
+            ThemeId::SepiaDark,
+            format!("{out_dir}/welcome-sepia-dark.png"),
+        ),
+        (
+            ThemeId::SepiaLight,
+            format!("{out_dir}/welcome-sepia-light.png"),
+        ),
+        (
+            ThemeId::CrtGreen,
+            format!("{out_dir}/welcome-crt-green.png"),
+        ),
+        (
+            ThemeId::CrtAmber,
+            format!("{out_dir}/welcome-crt-amber.png"),
+        ),
+        (ThemeId::CrtBlue, format!("{out_dir}/welcome-crt-blue.png")),
+        (ThemeId::Nebula, format!("{out_dir}/welcome-nebula.png")),
+        (ThemeId::Blossom, format!("{out_dir}/welcome-blossom.png")),
     ] {
         crew_theme::set_theme(theme_id);
 

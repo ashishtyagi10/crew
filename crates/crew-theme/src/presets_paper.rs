@@ -1,6 +1,6 @@
 //! Paper-family presets: ink on paper, dark and light.
 
-use crate::Theme;
+use crate::{CrtStyle, ModernStyle, Theme};
 
 /// High-contrast monochrome ("newspaper") dark theme — warm near-black/near-white
 /// chrome for maximum legibility with minimal glare. The page leans warm
@@ -48,8 +48,22 @@ pub static PAPER_DARK: Theme = Theme {
     ],
     dark: true,
     grain: 1.2,
-    crt: None,
-    modern: None,
+    crt: Some(CrtStyle {
+        // A glowing paper theme, not a tube: scanlines off, so `is_crt` still
+        // reads this as paper. The style is here only to ride the bloom chain
+        // that draws the gradient ring's halo.
+        scanline: 0.0,
+        glow: 0.70,
+        glow_radius: 13.0,
+        flicker: 0.020,
+    }),
+    modern: Some(ModernStyle {
+        pole_a: (123, 184, 255),
+        pole_b: (35, 199, 205),
+        drift_ms: 6_000,
+        dots: 0.20,
+        wash: 0.15,
+    }),
 };
 
 /// Warm paper "day" page — soft off-white with ink-toned output.
@@ -98,8 +112,22 @@ pub static PAPER_LIGHT: Theme = Theme {
     // stronger than the old linear-space pass — calibrated by measuring
     // page-luma stddev against the previous build's screenshots.
     grain: 1.2,
-    crt: None,
-    modern: None,
+    crt: Some(CrtStyle {
+        // A glowing paper theme, not a tube: scanlines off, so `is_crt` still
+        // reads this as paper. The style is here only to ride the bloom chain
+        // that draws the gradient ring's halo.
+        scanline: 0.0,
+        glow: 0.35,
+        glow_radius: 12.0,
+        flicker: 0.015,
+    }),
+    modern: Some(ModernStyle {
+        pole_a: (39, 89, 146),
+        pole_b: (120, 69, 127),
+        drift_ms: 6_000,
+        dots: 0.16,
+        wash: 0.12,
+    }),
 };
 
 /// **Sepia dark**: dark coffee-brown paper with warm cream ink — the paper
@@ -144,6 +172,20 @@ pub static SEPIA_DARK: Theme = Theme {
     ],
     dark: true,
     grain: 1.2,
-    crt: None,
-    modern: None,
+    crt: Some(CrtStyle {
+        // A glowing paper theme, not a tube: scanlines off, so `is_crt` still
+        // reads this as paper. The style is here only to ride the bloom chain
+        // that draws the gradient ring's halo.
+        scanline: 0.0,
+        glow: 0.62,
+        glow_radius: 14.0,
+        flicker: 0.025,
+    }),
+    modern: Some(ModernStyle {
+        pole_a: (223, 180, 85),
+        pole_b: (255, 161, 150),
+        drift_ms: 6_000,
+        dots: 0.20,
+        wash: 0.15,
+    }),
 };

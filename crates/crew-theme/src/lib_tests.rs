@@ -35,14 +35,15 @@ fn only_the_crt_and_modern_presets_carry_the_crt_style() {
 fn the_phosphors_have_distinct_personalities() {
     // The whole point of `CrtStyle` over four global constants: no two
     // phosphors may share identical tunings (a done-criterion of the
-    // holographic overhaul goal). The modern palettes carry a CrtStyle too
-    // (bloom-only), so they join the uniqueness sweep: after the 24→9 cut,
-    // 3 tubes + 1 modern dark + 1 modern light.
+    // holographic overhaul goal). EVERY theme carries one now — the bloom
+    // chain is what draws the gradient ring's halo — so all nine join the
+    // uniqueness sweep. It earned its keep immediately: paper-dark and
+    // sepia-dark were first written with identical tunings and this caught it.
     let styles: Vec<(&str, CrtStyle)> = ALL_THEMES
         .iter()
         .filter_map(|id| id.theme().crt.map(|s| (id.as_str(), s)))
         .collect();
-    assert_eq!(styles.len(), 5);
+    assert_eq!(styles.len(), 9);
     for (i, (an, a)) in styles.iter().enumerate() {
         for (bn, b) in &styles[i + 1..] {
             assert_ne!(a, b, "{an} and {bn} share an identical CrtStyle");
@@ -625,15 +626,19 @@ fn grain_is_newsprint_on_every_theme() {
     // (v0.5.58) modulates encoded values, which reads much stronger than the
     // old linear-space grain. Dark themes now match light (was 1.0) so the
     // newspaper texture reads on the dark pages too — the shader's dark
-    // absolute term carries it (see paperbg.wgsl). The MODERN family is the
-    // deliberate exception: its pages are glass, not newsprint — zero grain.
+    // absolute term carries it (see paperbg.wgsl). NEBULA AND BLOSSOM are the
+    // deliberate exception: their pages are glass, not newsprint — zero grain.
+    //
+    // This used to key off `modern.is_some()`, back when carrying a gradient
+    // and being made of glass were the same two themes. Every theme has a
+    // gradient now and most of them are still paper, so the exception is named
+    // rather than derived: newsprint and a gradient sit together perfectly
+    // well, and paper that lost its tooth would just be a flat page.
     for id in ALL_THEMES {
         let t = id.theme();
-        if t.modern.is_some() {
-            assert_eq!(t.grain, 0.0, "{}: modern pages carry no grain", id.as_str());
-        } else {
-            assert_eq!(t.grain, 1.2, "{}: grain", id.as_str());
-        }
+        let glass = matches!(id, ThemeId::Nebula | ThemeId::Blossom);
+        let want = if glass { 0.0 } else { 1.2 };
+        assert_eq!(t.grain, want, "{}: grain", id.as_str());
     }
 }
 
@@ -736,39 +741,36 @@ fn every_light_page_glows_less_than_every_dark_one() {
 /// the bands above would let it drift a long way first.
 #[test]
 fn the_modern_backdrop_is_a_per_appearance_constant() {
-    for (dark, dots, wash) in [(true, 0.20, 0.15), (false, 0.16, 0.12)] {
-        for id in ALL_THEMES {
-            let t = id.theme();
-            let Some(m) = t.modern else { continue };
-            if t.dark != dark {
-                continue;
-            }
-            assert_eq!(m.dots, dots, "{}: dot lattice", id.as_str());
-            assert_eq!(m.wash, wash, "{}: gradient wash", id.as_str());
-        }
+    // Three constants, not two: a tube already has bloom and scanlines doing
+    // this work, so its lattice and wash run at half strength or the page
+    // turns to soup. Paper keeps the per-appearance pair it always had.
+    for id in ALL_THEMES {
+        let t = id.theme();
+        let Some(m) = t.modern else { continue };
+        let (dots, wash) = match (id.is_crt(), t.dark) {
+            (true, _) => (0.10, 0.10),
+            (false, true) => (0.20, 0.15),
+            (false, false) => (0.16, 0.12),
+        };
+        assert_eq!(m.dots, dots, "{}: dot lattice", id.as_str());
+        assert_eq!(m.wash, wash, "{}: gradient wash", id.as_str());
     }
 }
 
-/// The dark and light halves of the modern family are twinned — a palette
-/// flip must not also change how the page moves. Asserting the two sides carry
-/// the same multiset of drift periods proves every pair is in step without
-/// needing to name the pairs.
+/// A palette flip must not also change how the page moves. With a gradient on
+/// every theme the twinning rule generalises: they all drift at one rate, so
+/// switching theme changes the colours and nothing about the motion.
 #[test]
-fn the_modern_twins_drift_in_step() {
-    let periods = |dark: bool| -> Vec<u64> {
-        let mut v: Vec<u64> = ALL_THEMES
-            .iter()
-            .filter(|id| id.theme().dark == dark && id.theme().modern.is_some())
-            .map(|id| id.theme().modern.unwrap().drift_ms)
-            .collect();
-        v.sort_unstable();
-        v
-    };
+fn every_theme_drifts_at_the_same_rate() {
+    let periods: std::collections::BTreeSet<u64> = ALL_THEMES
+        .into_iter()
+        .filter_map(|id| id.theme().modern.map(|m| m.drift_ms))
+        .collect();
     assert_eq!(
-        periods(true),
-        periods(false),
-        "the dark and light modern pools drift differently — a theme and its \
-         twin should move at the same rate"
+        periods.len(),
+        1,
+        "themes drift at different rates {periods:?} — switching palette should \
+         change the colours, not the motion"
     );
 }
 
@@ -784,8 +786,13 @@ fn modern_glow_is_clean_of_retro_knobs() {
     for id in ALL_THEMES {
         let t = id.theme();
         let Some(m) = t.modern else { continue };
-        let c = t.crt.expect("modern themes carry a bloom-only CrtStyle");
-        assert_eq!(c.scanline, 0.0, "{}: scanline", id.as_str());
+        let c = t
+            .crt
+            .expect("every theme carries a CrtStyle for the ring's halo");
+        if !id.is_crt() {
+            // A glowing paper theme must never grow scanlines; a tube keeps its own.
+            assert_eq!(c.scanline, 0.0, "{}: scanline", id.as_str());
+        }
         assert!(c.glow > 0.0, "{}: a modern theme without glow", id.as_str());
         assert_ne!(m.pole_a, m.pole_b, "{}: gradient poles equal", id.as_str());
         assert!(m.drift_ms > 0, "{}: drift period", id.as_str());
@@ -828,16 +835,15 @@ fn light_modern_poles_read_on_a_white_page() {
                 id.as_str()
             );
         }
-        // The page really is paper-bright, not a muted mid-tone that happens
-        // to clear the dark flag.
-        assert!(
-            t.page_bg.0 >= 240 && t.page_bg.1 >= 240 && t.page_bg.2 >= 240,
-            "{}: light modern page {:?} is not near-white",
-            id.as_str(),
-            t.page_bg
-        );
+        // The near-white assertion that used to live here described BLOSSOM's
+        // page, not a rule about gradients: sepia-light's cream is a
+        // legitimate light page and the contrast check above is what actually
+        // protects readability.
     }
-    assert_eq!(seen, 1, "expected the one surviving light modern palette");
+    assert_eq!(
+        seen, 3,
+        "every light palette carries a gradient now — blossom, paper-light, sepia-light"
+    );
 }
 
 #[test]
@@ -983,10 +989,12 @@ fn every_palette_lands_in_exactly_one_of_the_three_pools() {
         let n = pools.iter().filter(|m| m.in_pool(id)).count();
         assert_eq!(n, 1, "{} is in {n} pools, want exactly 1", id.as_str());
     }
-    // Every modern palette rotates with the paper ones of its own appearance…
+    // Every non-tube palette rotates with the paper ones of its own appearance…
+    // (the filter used to be `modern.is_some()`, which meant "not a tube" only
+    // while gradients were a two-theme family; tubes have one now too).
     for id in ALL_THEMES
         .into_iter()
-        .filter(|id| id.theme().modern.is_some())
+        .filter(|id| id.theme().modern.is_some() && !id.is_crt())
     {
         let want = if id.is_dark() {
             RandomMode::Dark

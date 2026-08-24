@@ -151,8 +151,7 @@ impl AnsiRamp {
         // monochrome painted its red `(255, 180, 175)` blue, which is the
         // Phase 1 mistake — inferring a tube's character from its pool rather
         // than from the tube — repeated one layer down.
-        let coloured_phosphor =
-            t.crt.is_some() && t.modern.is_none() && oklch::from_srgb(t.ink).c >= 0.04;
+        let coloured_phosphor = t.is_tube() && oklch::from_srgb(t.ink).c >= 0.04;
         let mode = if coloured_phosphor {
             // The peak the tube already reaches, across base and bright.
             let hi = (1..7)

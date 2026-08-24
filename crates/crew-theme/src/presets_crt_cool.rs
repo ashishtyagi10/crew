@@ -6,7 +6,7 @@
 //! rather than a driven gun. Frame weight and glow follow the flat-tube
 //! decree (2026-08-06) — see `presets_crt.rs`.
 
-use crate::{CrtStyle, Theme};
+use crate::{CrtStyle, ModernStyle, Theme};
 
 /// **Neon blue phosphor** (Tron light-cycle grid): electric edge-glow cyan
 /// traced over a deep near-black tube — the coolest of the four grids, page
@@ -60,5 +60,11 @@ pub static CRT_BLUE: Theme = Theme {
         glow_radius: 12.0,
         flicker: 0.04,
     }),
-    modern: None,
+    modern: Some(ModernStyle {
+        pole_a: (0, 169, 189),
+        pole_b: (85, 227, 249),
+        drift_ms: 6_000,
+        dots: 0.10,
+        wash: 0.10,
+    }),
 };

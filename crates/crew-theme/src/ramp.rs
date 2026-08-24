@@ -246,7 +246,7 @@ impl Ramp {
     /// palette is fitted — it keeps its own colour and gains only the shared
     /// spacing.
     pub fn fitted(t: &crate::Theme) -> Self {
-        let house = if t.crt.is_some() && t.modern.is_none() {
+        let house = if t.is_tube() {
             // A white phosphor is not a coloured one; see HOUSE_CRT_WHITE.
             if crate::oklch::from_srgb(t.ink).c < 0.04 {
                 HOUSE_CRT_WHITE
