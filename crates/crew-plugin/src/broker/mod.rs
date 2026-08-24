@@ -32,6 +32,7 @@ mod fan;
 mod gitmsg;
 mod hop;
 mod intent;
+pub mod ledger;
 mod logincmd;
 mod memory;
 mod modelcmd;
