@@ -59,6 +59,10 @@ impl CrewApp {
                 self.cursor = (position.x as f32, position.y as f32);
                 // Extend an in-progress selection as the cursor drags.
                 self.selection_drag();
+                // …resize the sidebar if its edge is in hand…
+                if self.nav_edge_drag() {
+                    self.redraw();
+                }
                 // …light the card a carried one would land on…
                 if self.card_drag_move() {
                     self.redraw();
@@ -66,6 +70,8 @@ impl CrewApp {
                 // …and repaint when the pointer crossed onto (or off) a
                 // border button, so `[-]`/`[x]` light under the cursor.
                 self.hover_moved();
+                // Whatever it ended up over, the pointer says what it can do.
+                self.pointer_sync();
             }
             WindowEvent::MouseInput {
                 state: ElementState::Pressed,
@@ -75,6 +81,17 @@ impl CrewApp {
                 // Cmd+click (Ctrl+click off mac) opens a URL / file / dir in a
                 // terminal pane, or a markdown link in a chat pane.
                 if open_modifier(self.mods.state()) && self.cmd_click_at_cursor() {
+                    self.redraw();
+                    return;
+                }
+                // The sidebar's edge is a handle: taking hold of it must win
+                // over everything below, or the press lands in whatever pane
+                // sits a few pixels to its right.
+                if self.nav_edge_press() {
+                    return;
+                }
+                // The strip's `+N` tile reveals the first pane it stands for.
+                if self.overflow_click() {
                     self.redraw();
                     return;
                 }
@@ -117,6 +134,7 @@ impl CrewApp {
                     // card's legend row — pick the card up (see `panedrag`).
                     self.card_press(i);
                 }
+                self.pointer_sync();
                 self.redraw();
             }
             WindowEvent::MouseInput {
@@ -130,7 +148,11 @@ impl CrewApp {
                 // A card dropped on another swaps the two; either kind of
                 // drag means the gesture was never a click, so no fold fires.
                 let swapped = self.card_drop();
-                self.fold_release(dragged || swapped);
+                let resized = self.nav_edge_release();
+                self.fold_release(dragged || swapped || resized);
+                // Letting go changes what the pointer can do next, and a
+                // release moves nothing — so the shape is resolved here too.
+                self.pointer_sync();
                 self.redraw();
             }
             WindowEvent::MouseInput {

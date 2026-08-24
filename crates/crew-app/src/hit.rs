@@ -72,6 +72,39 @@ impl CrewApp {
         self.border_btn_at_cursor(crate::panecard::close_btn_rect)
     }
 
+    /// Whether the cursor is over the strip's `+N` overflow tile — the one
+    /// drawn tile that had no hit rect at all, so it stood on the canvas
+    /// announcing three hidden panes and ignored every click on it.
+    pub(crate) fn cursor_on_overflow(&self) -> bool {
+        self.placed_grid().is_some_and(|(_, placed)| {
+            placed
+                .overflow
+                .is_some_and(|(_, r)| chrome::point_in(r, self.cursor.0, self.cursor.1))
+        })
+    }
+
+    /// Reveal what the `+N` tile stands for: focus the first pane it hides,
+    /// which restores it to the grid (focus is always a restore path). Clicking
+    /// again walks to the next, since the one just revealed is no longer
+    /// hidden. Returns `true` when the click was on the tile.
+    pub(crate) fn overflow_click(&mut self) -> bool {
+        if !self.cursor_on_overflow() {
+            return false;
+        }
+        let hidden = self
+            .placed_grid()
+            .map(|(_, placed)| placed.strip_hidden(self.grid.minimized()))
+            .unwrap_or_default();
+        match hidden.first() {
+            Some(&i) => {
+                self.focused = i;
+                self.input.focused = false;
+            }
+            None => self.set_status("no panes behind the tile"),
+        }
+        true
+    }
+
     /// Whether the cursor is over the docked input bar.
     pub(crate) fn cursor_in_input(&self) -> bool {
         let Some((_cw, ch, sw, sh, scale)) = self.frame_geometry() else {
