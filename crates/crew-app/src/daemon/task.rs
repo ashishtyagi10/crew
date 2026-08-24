@@ -46,8 +46,11 @@ impl Bridge {
         text: &str,
     ) -> Result<&'static str, String> {
         if !self.routes.contains_key(addr) {
+            // The session is for whoever is at that address, and the broker child is told so:
+            // its gate must not treat a phone as a person at the keyboard.
+            let requester = crew_plugin::approval::Requester::Channel(addr.to_string()).to_env();
             let id = reg
-                .open(addr, None)
+                .open_for(addr, None, Some(&requester))
                 .map_err(|e| format!("could not start a session: {e}"))?;
             // The broker expects a handshake before anything else; a session that skips it
             // answers nothing and looks like a hang.

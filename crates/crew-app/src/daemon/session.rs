@@ -62,7 +62,14 @@ impl Buffer {
 
 /// How a session's process is started. The seam that keeps tests off real subprocesses.
 pub(crate) trait Spawner: Send {
-    fn spawn(&mut self, cwd: Option<&Path>) -> std::io::Result<Box<dyn SessionProc>>;
+    /// `requester` is the wire form of who the session's work is for
+    /// (`crew_plugin::approval::Requester::to_env`), handed to the child so the gate INSIDE it
+    /// knows whether a human is watching. `None` = a local pane, the historical behaviour.
+    fn spawn(
+        &mut self,
+        cwd: Option<&Path>,
+        requester: Option<&str>,
+    ) -> std::io::Result<Box<dyn SessionProc>>;
 }
 
 /// One registered session.
@@ -102,7 +109,18 @@ impl Registry {
 
     /// Start a session. The label is cosmetic; the id is the handle.
     pub(crate) fn open(&mut self, label: &str, cwd: Option<&Path>) -> std::io::Result<String> {
-        let proc = self.spawner.spawn(cwd)?;
+        self.open_for(label, cwd, None)
+    }
+
+    /// [`Registry::open`] for a named requester — a channel address, say — so the broker child's
+    /// gate knows nobody is watching it.
+    pub(crate) fn open_for(
+        &mut self,
+        label: &str,
+        cwd: Option<&Path>,
+        requester: Option<&str>,
+    ) -> std::io::Result<String> {
+        let proc = self.spawner.spawn(cwd, requester)?;
         let id = format!("s{}", self.next);
         self.next += 1;
         self.sessions.push(Session {
@@ -183,7 +201,11 @@ impl ProcSpawner {
 }
 
 impl Spawner for ProcSpawner {
-    fn spawn(&mut self, cwd: Option<&Path>) -> std::io::Result<Box<dyn SessionProc>> {
+    fn spawn(
+        &mut self,
+        cwd: Option<&Path>,
+        requester: Option<&str>,
+    ) -> std::io::Result<Box<dyn SessionProc>> {
         // Windows: without the helper on the very next line, the daemon's broker child flashes
         // a console window — and crew-hive's source-tree guard
         // (`no_console_window_is_applied_at_every_spawn_site`) fails any spawn site that skips
@@ -196,6 +218,11 @@ impl Spawner for ProcSpawner {
             .stderr(std::process::Stdio::null());
         if let Some(dir) = cwd.filter(|d| d.is_dir()) {
             cmd.current_dir(dir);
+        }
+        // Who the work is for. Without this the broker's gate sees no value, reads it as a local
+        // pane, and trusts a remote sender exactly as much as a person at the keyboard.
+        if let Some(r) = requester {
+            cmd.env(crew_plugin::approval::REQUESTER_ENV, r);
         }
         #[cfg(unix)]
         {

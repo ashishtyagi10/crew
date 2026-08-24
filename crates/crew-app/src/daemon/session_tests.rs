@@ -44,7 +44,11 @@ struct FakeSpawner {
 }
 
 impl Spawner for FakeSpawner {
-    fn spawn(&mut self, _cwd: Option<&Path>) -> std::io::Result<Box<dyn SessionProc>> {
+    fn spawn(
+        &mut self,
+        _cwd: Option<&Path>,
+        _requester: Option<&str>,
+    ) -> std::io::Result<Box<dyn SessionProc>> {
         if self.fail {
             return Err(std::io::Error::other("no such program"));
         }

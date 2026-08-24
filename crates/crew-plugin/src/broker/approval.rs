@@ -26,7 +26,45 @@ pub enum Requester {
     Trigger(String),
 }
 
+/// The environment variable a host sets on a broker child to say who its work is for.
+///
+/// The gate lives in the broker process, but WHO ASKED is known only to whoever spawned it. With
+/// no way to carry that across the process boundary every broker looked like a person at the
+/// keyboard — including the ones a daemon starts for a phone conversation — so the gate trusted
+/// a remote sender completely. This is how the answer travels.
+pub const REQUESTER_ENV: &str = "CREW_REQUESTER";
+
 impl Requester {
+    /// Parse the wire form: `pane`, `channel:<address>`, `trigger:<name>`.
+    ///
+    /// Anything unrecognised — including an empty or malformed value — is a TRIGGER, the most
+    /// restricted kind, not a pane. A typo in this variable must not be a way to be trusted.
+    pub fn parse(raw: &str) -> Self {
+        let raw = raw.trim();
+        match raw.split_once(':') {
+            Some(("channel", rest)) if !rest.is_empty() => Requester::Channel(rest.to_string()),
+            Some(("trigger", rest)) if !rest.is_empty() => Requester::Trigger(rest.to_string()),
+            _ if raw == "pane" => Requester::LocalPane,
+            _ if raw.is_empty() => Requester::LocalPane,
+            _ => Requester::Trigger(format!("unrecognised:{raw}")),
+        }
+    }
+
+    /// The wire form, for a host to hand a broker child.
+    pub fn to_env(&self) -> String {
+        match self {
+            Requester::LocalPane => "pane".to_string(),
+            Requester::Channel(c) => format!("channel:{c}"),
+            Requester::Trigger(t) => format!("trigger:{t}"),
+        }
+    }
+
+    /// Read it from this process's environment. Absent = a pane, which is how every broker a
+    /// GUI pane spawns keeps behaving exactly as it always has.
+    pub fn from_env() -> Self {
+        Self::parse(&std::env::var(REQUESTER_ENV).unwrap_or_default())
+    }
+
     /// Is a human present and watching this happen as it happens?
     pub fn is_present_human(&self) -> bool {
         matches!(self, Requester::LocalPane)

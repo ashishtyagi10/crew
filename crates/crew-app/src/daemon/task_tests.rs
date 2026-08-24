@@ -10,6 +10,9 @@ struct Recorder {
     written: Vec<String>,
     out: Vec<String>,
     alive: bool,
+    /// The requester each spawn was told about — the value that decides whether the broker's
+    /// gate trusts its caller.
+    requesters: Vec<Option<String>>,
 }
 
 struct Fake(Arc<Mutex<Recorder>>);
@@ -37,8 +40,15 @@ impl SessionProc for Fake {
 struct FakeSpawner(Arc<Mutex<Recorder>>);
 
 impl Spawner for FakeSpawner {
-    fn spawn(&mut self, _cwd: Option<&Path>) -> std::io::Result<Box<dyn SessionProc>> {
-        self.0.lock().unwrap().alive = true;
+    fn spawn(
+        &mut self,
+        _cwd: Option<&Path>,
+        requester: Option<&str>,
+    ) -> std::io::Result<Box<dyn SessionProc>> {
+        let mut g = self.0.lock().unwrap();
+        g.alive = true;
+        g.requesters.push(requester.map(str::to_string));
+        drop(g);
         Ok(Box::new(Fake(Arc::clone(&self.0))))
     }
 }
@@ -182,4 +192,26 @@ fn a_dead_session_is_reported_and_forgotten() {
     // And the next message opens a new one.
     assert_eq!(b.dispatch(&mut reg, "telegram:42", "third"), Ok(ACK));
     assert_eq!(b.len(), 1);
+}
+
+/// The hole this closes: a broker started for a phone conversation used to report itself as a
+/// person at the keyboard, so the gate inside it allowed irreversible calls that should have
+/// needed approval. The session must be told who it is working for.
+#[test]
+fn a_session_opened_for_a_channel_tells_the_broker_it_is_not_a_pane() {
+    let (mut b, mut reg, rec) = rig();
+    b.dispatch(&mut reg, "telegram:42", "delete everything")
+        .unwrap();
+    let g = rec.lock().unwrap();
+    assert_eq!(g.requesters.len(), 1);
+    let raw = g.requesters[0].as_deref().expect("a requester was passed");
+    let parsed = crew_plugin::approval::Requester::parse(raw);
+    assert_eq!(
+        parsed,
+        crew_plugin::approval::Requester::Channel("telegram:42".into())
+    );
+    assert!(
+        !parsed.is_present_human(),
+        "a phone is not a person at the keyboard"
+    );
 }
