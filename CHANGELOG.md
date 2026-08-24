@@ -8,6 +8,30 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.16
+
+**An append-only record of what crew did, and a `crew ledger` to read it.** An
+assistant trusted with mail, money and someone's front door has to be auditable
+after the fact — and the record that matters is always the one written just
+before something went wrong. So the ledger is deliberately dull: one JSON object
+per line, opened for append, flushed on every write, never rewritten, never
+truncated.
+
+It is not `activity.log`. That file is truncated on every process start and
+skipped under test, which is right for a session log and disqualifying for an
+audit trail.
+
+It is built around two failure modes. A crash mid-append leaves half a line —
+that costs one record, not the whole history, because unreadable lines are
+counted and stepped over rather than aborting the read (the naive version
+returns an error and the entire audit trail reads as empty). And the file is
+reopened for each append rather than held open, so two writers — the daemon and
+a broker child — interleave whole lines instead of overwriting each other at a
+stale offset.
+
+`crew ledger` prints it back, newest last, with `--limit`. A trail nobody can
+read is not an audit trail.
+
 ## 0.18.15
 
 **The gate: who may fire something that cannot be undone.** The last release
