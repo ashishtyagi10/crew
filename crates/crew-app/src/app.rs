@@ -100,6 +100,9 @@ pub struct CrewApp {
     pub(crate) fold_click: Option<(usize, u16)>,
     /// In-progress mouse drag selection over any pane, if any.
     pub(crate) drag: Option<crate::select::Drag>,
+    /// The pane whose right-border scroll gutter is in hand (see
+    /// [`crate::panegutter`]).
+    pub(crate) gutter_drag: Option<usize>,
     /// The sidebar's resize edge is in hand (see [`crate::navresize`]).
     pub(crate) nav_drag: bool,
     /// The cursor shape currently set on the window, so a pointer move that
@@ -135,6 +138,10 @@ pub struct CrewApp {
     /// Ring buffer of recent status messages, shown as the live LOG section in
     /// the left nav (newest last). Capped at [`crate::status::LOG_CAP`].
     pub(crate) log: Vec<crate::applog::LogEntry>,
+    /// How far back the sidebar LOG is scrolled — 0 follows the newest line.
+    /// The log is a five-row window onto a hundred buffered entries, and
+    /// until now the other ninety-five were only reachable through `/log`.
+    pub(crate) log_back: usize,
     /// Channel background threads stream LOG lines through; drained once per
     /// poll tick into [`Self::set_status_level`]. See [`crate::applog`].
     pub(crate) applog: crate::applog::AppLog,

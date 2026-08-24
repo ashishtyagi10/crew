@@ -45,3 +45,28 @@ fn line_delta_notches_still_scroll_whole_lines() {
     assert_eq!(app.wheel_lines(MouseScrollDelta::LineDelta(0.0, 1.0)), 1);
     assert_eq!(app.wheel_lines(MouseScrollDelta::LineDelta(0.0, -1.0)), -1);
 }
+
+/// Cmd/Ctrl + wheel is the font-size gesture; a bare wheel must stay a scroll,
+/// or every scroll in the app would resize the type.
+#[test]
+fn only_a_modified_wheel_resizes_the_font() {
+    use winit::event::Modifiers;
+    use winit::keyboard::ModifiersState;
+    let mut app = crate::app::CrewApp::default();
+    let start = app.config.font_size;
+
+    assert!(!app.zoom_font_wheel(3), "a bare wheel is not a zoom");
+    assert_eq!(app.config.font_size, start);
+
+    app.mods = Modifiers::from(ModifiersState::SUPER);
+    assert!(app.zoom_font_wheel(2), "Cmd + wheel is");
+    assert!(app.config.font_size > start, "and it grew the font");
+    let grown = app.config.font_size;
+    assert!(app.zoom_font_wheel(-2), "the other way too");
+    assert!(app.config.font_size < grown, "and it shrank again");
+
+    // A wheel that rounded to no whole lines must not nudge the size.
+    let held = app.config.font_size;
+    assert!(!app.zoom_font_wheel(0));
+    assert_eq!(app.config.font_size, held);
+}

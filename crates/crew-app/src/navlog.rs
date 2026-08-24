@@ -23,20 +23,47 @@ pub fn log_block(n: usize) -> u16 {
     }
 }
 
-/// Render the LOG section: a `LOG` rule on row 0, then the most recent
-/// `max_lines` entries beneath it (oldest first, newest on the bottom row).
-/// Error-level entries render in the bell (attention) color so failures stand
-/// out of the muted activity tail. Empty when there are no entries, no room,
-/// or the card is too narrow.
-pub fn log_cells(entries: &[LogEntry], cols: u16, max_lines: usize) -> Vec<CellView> {
+/// The window of `entries` a LOG scrolled `back` lines shows in `max_lines`
+/// rows: `(start, shown)`. `back` is clamped to what there is, so a wheel
+/// spun past the oldest entry stops on it instead of scrolling into nothing.
+pub fn window(n: usize, max_lines: usize, back: usize) -> (usize, usize) {
+    let shown = n.min(max_lines);
+    let back = back.min(n - shown);
+    (n - shown - back, shown)
+}
+
+/// The furthest a LOG of `n` entries can be scrolled back in `max_lines` rows.
+pub fn max_back(n: usize, max_lines: usize) -> usize {
+    n.saturating_sub(max_lines)
+}
+
+/// Render the LOG section: a `LOG` rule on row 0, then `max_lines` entries
+/// beneath it (oldest first, newest on the bottom row), ending `back` entries
+/// before the newest. Error-level entries render in the bell (attention) color
+/// so failures stand out of the muted activity tail. Empty when there are no
+/// entries, no room, or the card is too narrow.
+pub fn log_cells(entries: &[LogEntry], cols: u16, max_lines: usize, back: usize) -> Vec<CellView> {
     if entries.is_empty() || max_lines == 0 || cols < 4 {
         return Vec::new();
     }
     let t = crew_theme::theme();
     let mut out = section_header("LOG", cols, t.border_normal, accent(), t.page_bg);
-    let shown = entries.len().min(max_lines);
-    let start = entries.len() - shown;
-    for (k, e) in entries[start..].iter().enumerate() {
+    let (start, shown) = window(entries.len(), max_lines, back);
+    // Scrolled back, the rule says so — the tail is no longer live, and a log
+    // that silently stops following looks like a log that stopped.
+    if back > 0 {
+        let mark = format!("\u{21e1}{back}");
+        write(
+            &mut out,
+            &mark,
+            cols.saturating_sub(mark.chars().count() as u16 + 1),
+            0,
+            t.status_fg,
+            cols,
+            t.page_bg,
+        );
+    }
+    for (k, e) in entries[start..start + shown].iter().enumerate() {
         let fg = match e.level {
             LogLevel::Info => t.text_muted,
             LogLevel::Error => t.bell,
@@ -80,63 +107,5 @@ fn write(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn info(s: &str) -> LogEntry {
-        LogEntry {
-            level: LogLevel::Info,
-            text: s.to_string(),
-        }
-    }
-
-    #[test]
-    fn log_section_has_rule_and_newest_last() {
-        let entries = [info("first"), info("second")];
-        let cells = log_cells(&entries, 24, 5);
-        // LOG rule + legend on row 0
-        assert!(cells.iter().any(|c| c.c == '─' && c.row == 0));
-        assert!(cells.iter().any(|c| c.c == 'L' && c.row == 0));
-        // oldest entry on row 1, newest on row 2 (bottom)
-        assert!(cells.iter().any(|c| c.c == 'f' && c.row == 1));
-        assert!(cells.iter().any(|c| c.c == 's' && c.row == 2));
-    }
-
-    #[test]
-    fn log_keeps_only_the_most_recent_lines() {
-        let entries: Vec<LogEntry> = (0..10).map(|i| info(&format!("line{i}"))).collect();
-        let cells = log_cells(&entries, 24, 3);
-        // only the last 3 entries are drawn (rows 1..=3); nothing on row 4
-        assert!(!cells.iter().any(|c| c.row == 4));
-        // the oldest shown is line7 (10 entries, last 3) — its '7' is on row 1
-        assert!(cells.iter().any(|c| c.c == '7' && c.row == 1));
-    }
-
-    #[test]
-    fn error_entries_render_in_the_bell_color() {
-        // Two reads of the process-global theme (inside `log_cells` and again
-        // below): serialised, or a theme-mutating test flips it in between and
-        // the two disagree under the parallel runner.
-        let _g = crate::app::theme_test_guard();
-        let entries = [
-            info("fine"),
-            LogEntry {
-                level: LogLevel::Error,
-                text: "broke".to_string(),
-            },
-        ];
-        let cells = log_cells(&entries, 24, 5);
-        let t = crew_theme::theme();
-        // The info line (row 1) is muted; the error line (row 2) is bell.
-        let fg_at = |row, ch| cells.iter().find(|c| c.row == row && c.c == ch).unwrap().fg;
-        assert_eq!(fg_at(1, 'f'), t.text_muted);
-        assert_eq!(fg_at(2, 'b'), t.bell);
-    }
-
-    #[test]
-    fn empty_or_narrow_renders_nothing() {
-        assert!(log_cells(&[], 24, 5).is_empty());
-        assert!(log_cells(&[info("x")], 24, 0).is_empty());
-        assert!(log_cells(&[info("x")], 3, 5).is_empty());
-    }
-}
+#[path = "navlog_tests.rs"]
+mod tests;

@@ -18,8 +18,11 @@ pub(crate) enum Over {
     /// Carrying a card (see [`crate::panedrag`]) — outranks everything, since
     /// the gesture continues wherever the pointer travels.
     Carrying,
-    /// The sidebar's resize edge.
+    /// The sidebar's resize edge, or a pane's scroll gutter — both are
+    /// one-dimensional handles, and both say so with a resize arrow.
     NavEdge,
+    /// A pane's scroll gutter — a vertical handle, so a vertical arrow.
+    Gutter,
     /// A control: a border button, a nav row, a strip thumbnail, the `+N`
     /// overflow tile.
     Control,
@@ -37,6 +40,7 @@ pub(crate) fn icon(over: Over) -> CursorIcon {
         // `Grabbing`, not `Grab`: this is a gesture already in progress.
         Over::Carrying => CursorIcon::Grabbing,
         Over::NavEdge => CursorIcon::ColResize,
+        Over::Gutter => CursorIcon::RowResize,
         Over::Control => CursorIcon::Pointer,
         Over::Handle => CursorIcon::Grab,
         Over::Text => CursorIcon::Text,
@@ -50,8 +54,14 @@ impl CrewApp {
         if self.card_drag.is_some() {
             return Over::Carrying;
         }
+        if self.gutter_drag.is_some() {
+            return Over::Gutter;
+        }
         if self.cursor_on_nav_edge() {
             return Over::NavEdge;
+        }
+        if self.cursor_on_gutter() {
+            return Over::Gutter;
         }
         if self.hover_btn().is_some()
             || self.pane_at_sidebar().is_some()
@@ -94,6 +104,7 @@ mod tests {
         let all = [
             Over::Carrying,
             Over::NavEdge,
+            Over::Gutter,
             Over::Control,
             Over::Handle,
             Over::Text,

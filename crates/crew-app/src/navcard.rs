@@ -41,6 +41,7 @@ impl CrewApp {
         let pane_rows = self.pane_rows();
         let sidebar = &self.sidebar;
         let log = &self.log;
+        let log_back = self.log_back;
         let (legend, legend_fg) = match &self.parked_update {
             Some((v, at)) => (
                 crate::restartnote::legend(v, title_max_cols(sb, cw, ch)),
@@ -52,7 +53,7 @@ impl CrewApp {
             ),
         };
         crate::panelcard::push_card_titled(scenes, sb, cw, ch, &legend, legend_fg, |cols, rows| {
-            sidebar.cells(cols, rows, &pane_rows, log)
+            sidebar.cells(cols, rows, &pane_rows, log, log_back)
         });
     }
 

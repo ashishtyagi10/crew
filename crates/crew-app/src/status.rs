@@ -41,6 +41,9 @@ impl CrewApp {
         // Mirror every entry into the on-disk session log (`/log`).
         crate::activitylog::append(level, &text);
         self.log.push(LogEntry { level, text });
+        // A log the user has scrolled back through must not slide under them
+        // as new lines arrive (see `navlog::log_pin_on_append`).
+        self.log_pin_on_append();
     }
 
     pub(crate) fn set_status_level(&mut self, level: LogLevel, msg: impl Into<String>) {
