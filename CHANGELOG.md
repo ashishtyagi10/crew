@@ -8,6 +8,28 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.13
+
+**The resident can come back at login — if you ask it to.** `crew daemon
+install` writes a launchd user agent on macOS or a systemd user unit on Linux;
+`crew daemon install --remove` takes it away. Both are per-user: no sudo, no
+system-wide daemon, nothing written outside your home directory.
+
+Nothing else in crew installs it. Not a release, not an update, not first run.
+A background service you did not ask for is what turns a bad build into a login
+loop instead of an `/update`, so the command is the whole consent — and a
+source-tree test now fails if any other code path reaches the installer.
+
+The agent runs an absolute path to the binary, which matters more than it
+sounds: a launchd agent starts with a minimal environment and no login PATH, so
+a bare `crew` works perfectly when you test it from a terminal and silently
+never starts at boot.
+
+`crew daemon status` now also says whether the login service is installed.
+"Running right now" and "comes back at login" are different questions, and the
+second one is what decides whether this is a resident or just a process you
+started once.
+
 ## 0.18.12
 
 **A daemon session you can actually talk to — and whose history survives you.**
