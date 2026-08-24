@@ -8,6 +8,26 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.22
+
+**A security fix for something 0.18.21 introduced an hour earlier.** The action
+gate runs inside the broker process, but *who asked* is known only to whoever
+started it — and nothing carried that across the process boundary. Every broker
+reported itself as a person at the keyboard, including the ones the daemon
+starts for a channel conversation. So when tasks from a channel first became
+routable in 0.18.21, the gate saw a local pane and allowed irreversible calls
+that should have needed approval. The refusal existed only in tests.
+
+`CREW_REQUESTER` now carries it — `pane`, `channel:<address>` or
+`trigger:<name>` — set by the daemon when it opens a session for an address and
+read by the broker at startup. Absent means a pane, so every broker a GUI pane
+spawns behaves exactly as it always has.
+
+Anything unrecognised is treated as a *trigger*, the most restricted kind, not
+as a pane. A typo in that variable must not become a way to be trusted, so a
+malformed value fails closed and is refused outright rather than quietly
+granting keyboard-level trust.
+
 ## 0.18.21
 
 **A message from a channel becomes an agent task.** Until now crew answered
