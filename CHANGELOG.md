@@ -8,6 +8,28 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.11
+
+**The daemon owns the agent processes now.** A `/crew` pane spawns its own
+broker child and kills it when the pane goes away — which is precisely why
+closing the window ends the work. The resident keeps a session registry
+instead: `crew daemon open` starts a session the daemon owns, `crew daemon
+sessions` lists them, `crew daemon close <id>` stops one.
+
+Each session is a real broker child, started the way a pane starts one and
+put in its own process group, so closing a session takes the agent CLIs it
+spawned along with it rather than leaving them running and spending.
+
+Three invariants the registry is built around: a session id is never reused
+after a close (a stale client still holding `s1` would otherwise close
+somebody else's session); a session whose process died on its own stays
+listed as dead, because hiding it would read as "never opened"; and a spawn
+that fails registers nothing rather than leaving a phantom.
+
+The GUI does not use any of this yet — panes still spawn their own broker,
+unchanged. Bridging a pane onto a daemon-owned session, so a running swarm
+survives the window closing, is next.
+
 ## 0.18.10
 
 **The first piece of a crew that outlives its window.** Today the agent brain
