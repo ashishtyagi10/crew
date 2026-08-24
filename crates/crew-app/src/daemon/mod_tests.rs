@@ -22,7 +22,11 @@ impl SessionProc for Idle {
 }
 struct IdleSpawner;
 impl Spawner for IdleSpawner {
-    fn spawn(&mut self, _cwd: Option<&Path>) -> std::io::Result<Box<dyn SessionProc>> {
+    fn spawn(
+        &mut self,
+        _cwd: Option<&Path>,
+        _requester: Option<&str>,
+    ) -> std::io::Result<Box<dyn SessionProc>> {
         Ok(Box::new(Idle))
     }
 }

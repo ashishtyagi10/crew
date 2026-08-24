@@ -27,6 +27,11 @@ const NOT_USER_FACING: &[&str] = &[
     "CREW_EE_UNSET",
     // The `crew-render` screenshot example's output directory.
     "CREW_SHOT_DIR",
+    // Set by crew on a broker child to say who its work is for (a pane, a
+    // channel address, a trigger). Never set by a user: the value decides how
+    // much the action gate trusts the caller, so it is crew's to state, not
+    // the environment's to claim.
+    "CREW_REQUESTER",
 ];
 
 /// Every `CREW_*` knob the shipped source reads is either in the manual or

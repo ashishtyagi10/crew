@@ -166,7 +166,7 @@ impl SessionTools {
         Self {
             mcp,
             sys,
-            requester: super::approval::Requester::LocalPane,
+            requester: super::approval::Requester::from_env(),
             gate: Arc::new(Mutex::new(super::approval::Gate::new())),
             policy: super::approval::Policy::default(),
             // Never under test. The suite ran once with this unguarded and put twelve

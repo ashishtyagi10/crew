@@ -221,3 +221,60 @@ fn approval_ids_are_unique_across_answers() {
     };
     assert_ne!(first, second);
 }
+
+// ---- carrying the requester across a process boundary -------------------------------------
+
+/// The gate runs in the broker; who asked is known only to whoever spawned it. Every form has to
+/// survive the trip out and back.
+#[test]
+fn every_requester_round_trips_through_the_environment() {
+    for r in [
+        Requester::LocalPane,
+        Requester::Channel("telegram:42".into()),
+        Requester::Trigger("nightly".into()),
+    ] {
+        assert_eq!(Requester::parse(&r.to_env()), r, "{r:?} did not survive");
+    }
+}
+
+/// An unset variable is a pane — which is exactly how every broker a GUI pane spawns keeps
+/// behaving as it always has.
+#[test]
+fn an_absent_value_is_a_local_pane() {
+    assert_eq!(Requester::parse(""), Requester::LocalPane);
+    assert_eq!(Requester::parse("   "), Requester::LocalPane);
+    assert_eq!(Requester::parse("pane"), Requester::LocalPane);
+}
+
+/// A typo must not be a way to be trusted. Anything unrecognised is the MOST restricted kind, so
+/// a malformed value fails closed rather than granting keyboard-level trust.
+#[test]
+fn an_unrecognised_value_fails_closed_rather_than_becoming_a_pane() {
+    let r = Requester::parse("panne");
+    assert_ne!(r, Requester::LocalPane, "a typo is not a pane");
+    assert!(!r.is_present_human());
+    // And it is refused outright, like any other trigger with nobody to ask.
+    let mut g = Gate::new();
+    assert!(matches!(
+        g.decide("sys:run", Tier::Irreversible, &r, Policy::default(), 0),
+        Decision::Deny(_)
+    ));
+    assert_eq!(
+        Requester::parse("channel:"),
+        Requester::Trigger("unrecognised:channel:".into())
+    );
+}
+
+/// The whole point: a broker started for a phone conversation must not be trusted like a person
+/// at the keyboard.
+#[test]
+fn a_channel_requester_from_the_environment_is_not_a_present_human() {
+    let r = Requester::parse("channel:telegram:42");
+    assert_eq!(r, Requester::Channel("telegram:42".into()));
+    assert!(!r.is_present_human());
+    assert_eq!(
+        r.reply_to(),
+        "telegram:42",
+        "and the question knows where to go"
+    );
+}
