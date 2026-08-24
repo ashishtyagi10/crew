@@ -14,7 +14,8 @@ pub fn respond(cmd: &PluginCommand) -> Vec<PluginEvent> {
             ts: String::new(),
             meta: String::new(),
         }],
-        PluginCommand::Subscribe { .. } => vec![],
+        // The echo plugin has no gate, so it never asks and never has to answer.
+        PluginCommand::Subscribe { .. } | PluginCommand::Approve { .. } => vec![],
     }
 }
 

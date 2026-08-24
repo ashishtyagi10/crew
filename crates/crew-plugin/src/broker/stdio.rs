@@ -62,6 +62,13 @@ pub fn run_broker_stdio() -> anyhow::Result<()> {
                 );
             }));
     }
+    // Approval questions the gate raises go out as events, like everything else the host sees.
+    {
+        let out = Arc::clone(&out);
+        super::approval::set_emitter(Arc::new(move |ev| {
+            let _ = emit(&out, &ev);
+        }));
+    }
     let mut tasks = super::tasks::Tasks::new();
     for line in stdin.lock().lines() {
         let line = line?;
@@ -72,6 +79,9 @@ pub fn run_broker_stdio() -> anyhow::Result<()> {
             PluginCommand::Hello { .. } => hello(&out, &session)?,
             PluginCommand::Send { text, .. } => send(text, &out, &mut session, &mut tasks)?,
             PluginCommand::Subscribe { .. } => {}
+            // An answer to a question the gate asked. The tool call that raised it is blocked
+            // on a worker thread waiting for exactly this, so it only has to reach the mailbox.
+            PluginCommand::Approve { id, granted } => super::approval::deliver_answer(&id, granted),
         }
     }
     // stdin closed (pane gone / EOF): let running tasks finish streaming

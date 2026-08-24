@@ -3,9 +3,22 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum PluginCommand {
-    Hello { v: u32 },
-    Subscribe { channel: String },
-    Send { channel: String, text: String },
+    Hello {
+        v: u32,
+    },
+    Subscribe {
+        channel: String,
+    },
+    Send {
+        channel: String,
+        text: String,
+    },
+    /// Answer an approval the broker is blocked on. `id` comes from the
+    /// [`PluginEvent::Approval`] that opened it.
+    Approve {
+        id: String,
+        granted: bool,
+    },
 }
 
 /// One agent in a plugin's roster: its address name, a short capability role,
@@ -111,6 +124,21 @@ pub enum PluginEvent {
     Delta {
         agent: String,
         text: String,
+    },
+    /// An irreversible tool call is waiting for a human. The broker is BLOCKED on
+    /// this — the agent's tool call does not return until the answer arrives or
+    /// the approval lapses — so a host that receives one must either carry it to
+    /// whoever can answer or leave it to time out.
+    Approval {
+        id: String,
+        /// `server:name` of the tool.
+        tool: String,
+        /// Reversibility class, as a word.
+        tier: String,
+        /// The address the question should be put to.
+        reply_to: String,
+        /// A human-readable line describing what is about to happen.
+        question: String,
     },
     Message {
         channel: String,
