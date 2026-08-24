@@ -17,7 +17,11 @@ fn fenced_code_takes_the_code_colour() {
     // 0 = "╭─ rust" chrome, 1 = code content, 2 = "╰─" chrome.
     assert_eq!(row_text(&out[1]), " fn x() {}");
     let cell = &out[1][1];
-    assert_eq!(cell.fg, crew_theme::theme().ansi[6]);
+    // The DERIVED code colour, not raw `ansi[6]`. `chatink` pushes every ink through
+    // `separated()` so it clears the card background's contrast floor, and on a theme where
+    // that floor bites, the two differ — which made this assertion depend on which theme
+    // happened to be live when the ink table was first computed.
+    assert_eq!(cell.fg, crate::chatink::code_fg());
     assert_eq!(cell.bg, Some(crate::chatink::code_bg()));
 }
 
@@ -37,7 +41,7 @@ fn inline_code_is_coloured_but_surrounding_prose_is_not() {
     let out = lines("use `let` now", 40, fg);
     // " use let now" — index 0 is the indent cell, 5..8 is "let".
     assert_eq!(row_text(&out[0]), " use let now");
-    assert_eq!(out[0][5].fg, crew_theme::theme().ansi[6]);
+    assert_eq!(out[0][5].fg, crate::chatink::code_fg());
     assert_eq!(out[0][5].bg, Some(crate::chatink::code_bg()));
     assert_eq!(out[0][1].fg, fg);
     assert_eq!(out[0][1].bg, None);
@@ -157,7 +161,7 @@ fn the_bar_of_a_quoted_fence_is_a_marker_not_code() {
         .expect("the code line");
     assert_eq!(
         bar[1].fg,
-        crew_theme::theme().ansi[3],
+        crate::chatink::marker_fg(),
         "the bar stays a marker"
     );
     assert_eq!(bar[1].bg, None, "the bar takes no code tint");
@@ -174,7 +178,7 @@ fn a_link_inside_a_list_item_keeps_the_link_colour() {
     assert_eq!(cell.fg, crate::chatink::link_color());
     assert_ne!(
         cell.fg,
-        crew_theme::theme().ansi[3],
+        crate::chatink::marker_fg(),
         "not the marker colour"
     );
 }
