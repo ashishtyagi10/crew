@@ -127,6 +127,7 @@ mod ipc_win;
 mod keyentry;
 mod keys;
 mod layout;
+mod ledgercli;
 mod linkhl;
 mod load;
 mod md;
@@ -245,6 +246,7 @@ usage:
   crew ask <agent> <task>  ask a RUNNING crew, print the reply
   crew panes               list a running crew's panes
   crew daemon run          run the resident daemon (crew daemon status to check)
+  crew ledger              print what crew did (--limit N)
   crew install-app         add the OS app-menu entry (--remove deletes it)
   crew --list-fonts        print every monospace family the picker offers
   crew --self-update       replace this binary with the latest release
@@ -313,6 +315,11 @@ fn main() -> anyhow::Result<()> {
     // foreground process that must never open a window, and `daemon status`
     // must answer on a box with no display at all.
     if let Some(code) = daemon::cli::dispatch_cli() {
+        std::process::exit(code);
+    }
+    // `crew ledger` — read back the action ledger. A trail nobody can read is not an audit
+    // trail, so the reader is a first-class subcommand rather than "cat this JSONL".
+    if let Some(code) = ledgercli::dispatch_cli() {
         std::process::exit(code);
     }
     // `crew install-app` — create/refresh the OS app-menu entry (Spotlight /
