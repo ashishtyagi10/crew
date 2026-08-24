@@ -27,6 +27,7 @@ pub(crate) fn label_of(f: Field) -> &'static str {
         Field::LightTo => "Auto day to",
         Field::Accent => "Accent (#hex)",
         Field::PaperTexture => "Paper texture",
+        Field::AmbientDrift => "Drifting background",
         Field::PaperGrain => "Grain (0-2)",
         Field::Glass => "Glass",
         Field::Motion => "Motion",
@@ -79,6 +80,7 @@ pub(crate) fn value_of(p: &SettingsPane, f: Field) -> (String, bool) {
         Field::LightTo => (p.light_to_buf.clone(), true),
         Field::Accent => (p.accent_buf.clone(), true),
         Field::PaperTexture => (onoff(p.draft.paper_texture), false),
+        Field::AmbientDrift => (onoff(p.draft.ambient_drift), false),
         Field::PaperGrain => (p.grain_buf.clone(), true),
         Field::Glass => (
             format!("\u{2039} {} \u{203a}", p.draft.glass_level().as_str()),

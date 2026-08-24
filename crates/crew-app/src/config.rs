@@ -179,6 +179,16 @@ pub struct CrewConfig {
     /// When off, the window background is a plain flat colour.
     #[serde(default = "default_true")]
     pub paper_texture: bool,
+    /// Whether the page's gradient wash drifts while nothing is happening.
+    ///
+    /// The wash has always moved — two broad pools of pole light orbiting
+    /// under the page — but only while a pane was busy, so a quiet window sat
+    /// perfectly still. With this on it keeps drifting when idle, far slower,
+    /// and only while crew holds the OS focus: a window you are not looking at
+    /// repaints for nobody. Off restores the old behaviour exactly, and
+    /// Motion=off overrides it either way.
+    #[serde(default = "default_true")]
+    pub ambient_drift: bool,
     /// Grain amplitude multiplier for the paper texture (0.0 = no grain, 1.0 = default ~3%, 2.0 = double).
     #[serde(default = "default_paper_grain")]
     pub paper_grain: f32,
@@ -249,6 +259,7 @@ impl Default for CrewConfig {
             auto_light_from: default_auto_light_from(),
             auto_light_to: default_auto_light_to(),
             paper_texture: true,
+            ambient_drift: true,
             paper_grain: default_paper_grain(),
             crt: None,
             glass: default_glass(),

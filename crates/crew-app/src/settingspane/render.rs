@@ -63,6 +63,7 @@ fn control(buf: &mut Buffer, p: &SettingsPane, f: Field, r: Rect, focused: bool)
     match f {
         Field::ShowNav => check(buf, d.show_nav),
         Field::PaperTexture => check(buf, d.paper_texture),
+        Field::AmbientDrift => check(buf, d.ambient_drift),
         Field::Maximized => check(buf, d.maximized),
         Field::Notify => check(buf, d.notify),
         Field::NotifyAgentDone => check(buf, d.notify_agent_done),

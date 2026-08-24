@@ -146,6 +146,7 @@ impl CrewConfig {
             auto_light_from: self.auto_light_from,
             auto_light_to: self.auto_light_to,
             paper_texture: self.paper_texture,
+            ambient_drift: self.ambient_drift,
             paper_grain: self.paper_grain.clamp(0.0, 2.0),
             crt: self.crt,
             glass: self.glass,

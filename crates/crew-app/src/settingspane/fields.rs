@@ -28,6 +28,10 @@ pub(crate) enum Field {
     LightTo,
     Accent,
     PaperTexture,
+    /// Whether the page's gradient wash keeps drifting while nothing is
+    /// happening (see `washphase`). Sits beside Paper texture: both decide
+    /// what the page itself does behind the cards.
+    AmbientDrift,
     PaperGrain,
     Glass,
     Motion,
@@ -47,7 +51,7 @@ pub(crate) enum Field {
     Cancel,
 }
 
-pub(crate) const FIELDS: [Field; 27] = [
+pub(crate) const FIELDS: [Field; 28] = [
     Field::FontFamily,
     Field::FontSize,
     Field::Smooth,
@@ -61,6 +65,7 @@ pub(crate) const FIELDS: [Field; 27] = [
     Field::LightTo,
     Field::Accent,
     Field::PaperTexture,
+    Field::AmbientDrift,
     Field::PaperGrain,
     Field::Glass,
     Field::Motion,

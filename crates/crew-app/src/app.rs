@@ -86,6 +86,13 @@ pub struct CrewApp {
     /// list it has been scrolled (see [`crate::help`]).
     pub(crate) help_open: bool,
     pub(crate) help_scroll: usize,
+    /// Whether crew holds the OS window focus, or `None` before the platform
+    /// has said either way. Ambient motion — the only motion that asks for
+    /// frames nothing else needed — stops when the answer is `Some(false)`: a
+    /// window you are not looking at repaints for nobody. `None` counts as
+    /// focused, because a window that has just opened is, and not every
+    /// platform sends `Focused(true)` to say so.
+    pub(crate) win_focus: Option<bool>,
     /// Whether the focused pane is zoomed to fill the content area.
     pub(crate) zoomed: bool,
     /// Last OS window title set, to avoid redundant `set_title` calls.
