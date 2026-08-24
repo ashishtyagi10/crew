@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.23
+
+**The test guard stopped leaking a theme.** Tests that touch the process-global
+theme took a shared lock so they would not race, but the lock left whichever
+theme the last one published in place for everybody after it. Any test
+comparing against a *derived* colour — `chatink` floors every ink for contrast
+against the card background — then passed or failed depending on what ran
+before it. That is what turned three markdown colour tests red overnight with
+no code change at all, and why they reproduced even single-threaded.
+
+The guard now records the active theme, pins a known one, and puts the recorded
+one back on drop. Nothing user-facing changes; the point is that "the suite is
+green" starts meaning something again.
+
 ## 0.18.22
 
 **A security fix for something 0.18.21 introduced an hour earlier.** The action
