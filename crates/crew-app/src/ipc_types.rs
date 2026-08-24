@@ -42,6 +42,16 @@ pub enum Request {
     },
     /// List the addressable panes.
     Panes { v: u32 },
+    /// Open an agent session owned by the daemon (not by the pane that asked).
+    OpenSession {
+        v: u32,
+        label: String,
+        cwd: Option<String>,
+    },
+    /// List the daemon's sessions, dead ones included.
+    Sessions { v: u32 },
+    /// Close one session by id.
+    CloseSession { v: u32, id: String },
     /// Ask the resident daemon what it is: pid, uptime, live session count.
     /// Served on the daemon endpoint only — the GUI's ask socket does not
     /// answer it, and the daemon does not answer the ask ops.
@@ -85,6 +95,24 @@ pub enum Reply {
     /// The collected outcome of a broadcast ask, one entry per pane reached.
     Cast {
         answers: Vec<CastAnswer>,
+    },
+    /// A session was opened; `id` is its handle.
+    Session {
+        id: String,
+    },
+    /// Every session the daemon owns.
+    Sessions {
+        sessions: Vec<SessionCard>,
+    },
+    /// A session was closed. `was_alive` distinguishes "stopped it" from "it
+    /// had already died" — the caller cannot tell those apart otherwise.
+    Closed {
+        id: String,
+        was_alive: bool,
+    },
+    /// The request was understood but could not be carried out.
+    Failed {
+        message: String,
     },
     /// The resident daemon's status.
     Daemon {
@@ -172,4 +200,13 @@ mod tests {
         let json = serde_json::to_string(&cast).unwrap();
         assert_eq!(serde_json::from_str::<Reply>(&json).unwrap(), cast);
     }
+}
+
+/// One session in a [`Reply::Sessions`] listing.
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+pub struct SessionCard {
+    pub id: String,
+    pub label: String,
+    pub cwd: Option<String>,
+    pub alive: bool,
 }

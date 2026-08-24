@@ -31,7 +31,12 @@ pub(crate) fn render(r: &Reply) -> (String, i32) {
         Reply::Cast { answers } => render_cast(answers),
         // Only reachable if an ask was pointed at the daemon endpoint. Say so
         // rather than rendering a status line the caller never asked for.
-        Reply::Daemon { .. } => (
+        // A failure the far side chose to explain — surface its words, not ours.
+        Reply::Failed { message } => (format!("FAILED: {message}"), 2),
+        Reply::Daemon { .. }
+        | Reply::Session { .. }
+        | Reply::Sessions { .. }
+        | Reply::Closed { .. } => (
             "NO_ANSWER: unreachable (that endpoint is the crew daemon, not a pane)".to_string(),
             3,
         ),

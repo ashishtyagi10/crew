@@ -16,6 +16,7 @@ use crate::ipc;
 use crate::ipc_types::{Reply, Request};
 
 pub(crate) mod cli;
+pub(crate) mod session;
 
 /// The daemon's live state, flattened to the values a status reply needs. Kept separate from the
 /// serving loop so the reply logic is pure and testable without binding a socket.
@@ -31,18 +32,23 @@ pub(crate) struct Status {
 /// registry is empty until 1.2 moves session ownership off the pane.
 pub(crate) struct Daemon {
     started: Instant,
-    sessions: Vec<String>,
+    sessions: session::Registry,
 }
 
 impl Daemon {
     pub(crate) fn new() -> Self {
+        Self::with_spawner(Box::new(session::ProcSpawner::broker()))
+    }
+
+    /// [`Daemon::new`] with an explicit spawner — the seam tests use to own fake processes.
+    pub(crate) fn with_spawner(spawner: Box<dyn session::Spawner>) -> Self {
         Self {
             started: Instant::now(),
-            sessions: Vec::new(),
+            sessions: session::Registry::new(spawner),
         }
     }
 
-    pub(crate) fn status(&self) -> Status {
+    pub(crate) fn status(&mut self) -> Status {
         Status {
             pid: std::process::id(),
             uptime_s: self.started.elapsed().as_secs(),
@@ -55,13 +61,47 @@ impl Daemon {
 /// Answer one request. `None` for anything the daemon does not serve — the ask ops belong to the
 /// GUI's endpoint, and a client that dials the wrong socket must get silence rather than a
 /// confidently wrong reply.
-pub(crate) fn answer(req: &Request, st: &Status) -> Option<Reply> {
+pub(crate) fn answer(req: &Request, d: &mut Daemon) -> Option<Reply> {
     match req {
-        Request::DaemonStatus { .. } => Some(Reply::Daemon {
-            pid: st.pid,
-            uptime_s: st.uptime_s,
-            sessions: st.sessions,
-            version: st.version.clone(),
+        Request::DaemonStatus { .. } => {
+            let st = d.status();
+            Some(Reply::Daemon {
+                pid: st.pid,
+                uptime_s: st.uptime_s,
+                sessions: st.sessions,
+                version: st.version,
+            })
+        }
+        Request::OpenSession { label, cwd, .. } => {
+            let dir = cwd.as_deref().map(std::path::Path::new);
+            Some(match d.sessions.open(label, dir) {
+                Ok(id) => Reply::Session { id },
+                Err(e) => Reply::Failed {
+                    message: format!("could not start a session: {e}"),
+                },
+            })
+        }
+        Request::Sessions { .. } => Some(Reply::Sessions {
+            sessions: d
+                .sessions
+                .cards()
+                .into_iter()
+                .map(|c| crate::ipc_types::SessionCard {
+                    id: c.id,
+                    label: c.label,
+                    cwd: c.cwd,
+                    alive: c.alive,
+                })
+                .collect(),
+        }),
+        Request::CloseSession { id, .. } => Some(match d.sessions.close(id) {
+            Some(was_alive) => Reply::Closed {
+                id: id.clone(),
+                was_alive,
+            },
+            None => Reply::Failed {
+                message: format!("no such session: {id}"),
+            },
         }),
         _ => None,
     }
@@ -91,6 +131,11 @@ pub(crate) fn probe_at(path: &std::path::Path) -> Option<Status> {
     }
 }
 
+/// Send one request to the resident's endpoint. `None` = nothing listening.
+pub(crate) fn request(instance: Option<&str>, req: &Request) -> Option<Reply> {
+    ipc::exchange_at(&ipc::daemon_socket_path_for(instance), req)
+}
+
 /// Serve until killed. Refuses to start when a daemon already answers on this endpoint —
 /// `ipc::spawn_at` reclaims a stale socket unconditionally, which would silently HIJACK a live
 /// daemon's path and leave two residents fighting over one address.
@@ -115,7 +160,7 @@ pub(crate) fn run_at(path: std::path::PathBuf) -> i32 {
             return 1;
         }
     };
-    let daemon = Daemon::new();
+    let mut daemon = Daemon::new();
     println!(
         "crew daemon {} listening on {} (pid {})",
         crate::appregister::VERSION,
@@ -123,7 +168,7 @@ pub(crate) fn run_at(path: std::path::PathBuf) -> i32 {
         std::process::id()
     );
     while let Ok(incoming) = handle.rx.recv() {
-        if let Some(reply) = answer(&incoming.req, &daemon.status()) {
+        if let Some(reply) = answer(&incoming.req, &mut daemon) {
             let _ = incoming.reply.send(reply);
         }
     }

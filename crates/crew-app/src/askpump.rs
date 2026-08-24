@@ -62,7 +62,10 @@ impl CrewApp {
             // socket. Answering here would mean the GUI claiming to BE the
             // daemon; dropping the reply closes the connection unanswered,
             // which is what a client that dialed the wrong path should see.
-            Request::DaemonStatus { .. } => return false,
+            Request::DaemonStatus { .. }
+            | Request::OpenSession { .. }
+            | Request::Sessions { .. }
+            | Request::CloseSession { .. } => return false,
         };
         let Some(idx) = crate::askroute::resolve(&self.panes, &to) else {
             let _ = reply.send(Reply::NoAnswer {
