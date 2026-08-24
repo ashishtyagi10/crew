@@ -94,6 +94,25 @@ pub(crate) fn answer(req: &Request, d: &mut Daemon) -> Option<Reply> {
                 })
                 .collect(),
         }),
+        Request::SessionSend { id, line, .. } => Some(match d.sessions.send(id, line) {
+            Some(delivered) => Reply::Sent {
+                id: id.clone(),
+                delivered,
+            },
+            None => Reply::Failed {
+                message: format!("no such session: {id}"),
+            },
+        }),
+        Request::SessionPoll { id, after, .. } => Some(match d.sessions.output(id, *after) {
+            Some((lines, next, dropped)) => Reply::Events {
+                lines,
+                next,
+                dropped,
+            },
+            None => Reply::Failed {
+                message: format!("no such session: {id}"),
+            },
+        }),
         Request::CloseSession { id, .. } => Some(match d.sessions.close(id) {
             Some(was_alive) => Reply::Closed {
                 id: id.clone(),

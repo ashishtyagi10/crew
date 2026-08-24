@@ -13,6 +13,12 @@ impl SessionProc for Idle {
         true
     }
     fn kill(&mut self) {}
+    fn send(&mut self, _line: &str) -> bool {
+        true
+    }
+    fn output(&self) -> (Vec<String>, usize) {
+        (Vec::new(), 0)
+    }
 }
 struct IdleSpawner;
 impl Spawner for IdleSpawner {

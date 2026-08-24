@@ -36,7 +36,9 @@ pub(crate) fn render(r: &Reply) -> (String, i32) {
         Reply::Daemon { .. }
         | Reply::Session { .. }
         | Reply::Sessions { .. }
-        | Reply::Closed { .. } => (
+        | Reply::Closed { .. }
+        | Reply::Sent { .. }
+        | Reply::Events { .. } => (
             "NO_ANSWER: unreachable (that endpoint is the crew daemon, not a pane)".to_string(),
             3,
         ),

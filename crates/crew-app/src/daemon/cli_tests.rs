@@ -41,3 +41,33 @@ fn the_positional_label_skips_flags_and_their_values() {
         Some("smith")
     );
 }
+
+/// `send` needs both an id and a line — a one-argument `send` must not deliver an empty line to
+/// a session, and must not be read as "send the id itself".
+#[test]
+fn send_needs_both_an_id_and_a_line() {
+    assert_eq!(run_sub(&args(&["send"])), 2);
+    assert_eq!(run_sub(&args(&["send", "s1"])), 2);
+}
+
+#[test]
+fn poll_needs_an_id() {
+    assert_eq!(run_sub(&args(&["poll"])), 2);
+}
+
+/// The resume cursor is positional-independent: `--after` may sit before or after the id.
+#[test]
+fn the_after_cursor_is_read_from_either_position() {
+    assert_eq!(
+        flag(&args(&["poll", "s1", "--after", "12"]), "--after"),
+        Some("12")
+    );
+    assert_eq!(
+        flag(&args(&["poll", "--after", "12", "s1"]), "--after"),
+        Some("12")
+    );
+    assert_eq!(
+        positional(&args(&["poll", "--after", "12", "s1"]), 1),
+        Some("s1")
+    );
+}
