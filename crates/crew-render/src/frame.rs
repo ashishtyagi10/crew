@@ -83,7 +83,7 @@ pub(crate) fn render(
                 phase: wash_phase,
             }
         });
-        paper.update_uniform(&gpu.queue, bg_f32, w, h, 1.0, grain, modern.as_ref());
+        paper.update_uniform(&gpu.queue, bg_f32, (w, h), 1.0, grain, modern.as_ref());
     }
     if use_crt {
         // A light page inverts the halo: see `CrtChain::update_uniforms`.

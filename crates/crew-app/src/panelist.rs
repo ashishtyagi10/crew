@@ -28,6 +28,11 @@ pub struct PaneRow {
     /// Doing background work (swarm running, agent chat awaiting, Far op):
     /// the row's dot slot spins while this holds. Attention still wins.
     pub busy: bool,
+    /// The pointer is on this row. The whole row is a click target that
+    /// focuses (and restores) the pane, and nothing said so: it lifts its ink
+    /// out of the muted grey rather than washing a background behind it,
+    /// because the page's contrast headroom is already spent.
+    pub hovered: bool,
 }
 
 /// Render the PANES section: a `PANES` rule on row 0, the crew-pulse chart on
@@ -57,10 +62,14 @@ pub fn pane_cells(
     for (k, p) in panes.iter().take(limit).enumerate() {
         let row = 2 + k as u16;
         let head = format!("{} {}", if p.focused { '▸' } else { ' ' }, p.index);
-        let head_fg = if p.focused { accent() } else { t.text_muted };
+        let head_fg = if p.focused || p.hovered {
+            accent()
+        } else {
+            t.text_muted
+        };
         write(&mut out, &head, 2, row, head_fg, cols - 1, t.page_bg);
         let tstart = 2 + head.chars().count() as u16 + 1;
-        let title_fg = if p.focused {
+        let title_fg = if p.focused || p.hovered {
             t.ink
         } else if p.attention.is_some() {
             t.bell
@@ -165,12 +174,39 @@ mod tests {
             minimized: false,
             attention: None,
             busy: false,
+            hovered: false,
         }
     }
 
     /// `pane_cells` with an empty pulse history and a fixed spinner glyph.
     fn cells_of(panes: &[PaneRow], cols: u16, limit: usize) -> Vec<crew_render::CellView> {
         pane_cells(panes, cols, limit, &crate::spark::History::new(8), '⠋')
+    }
+
+    /// The row under the pointer must look different from the quiet rows
+    /// around it — the whole row focuses (and restores) its pane on a click,
+    /// and until now nothing on screen said so.
+    #[test]
+    fn a_hovered_row_lifts_its_ink_out_of_the_muted_grey() {
+        let quiet = [row(1, "build", false, false)];
+        let hot = [PaneRow {
+            hovered: true,
+            ..row(1, "build", false, false)
+        }];
+        let ink_of = |rows: &[PaneRow]| -> Vec<(u8, u8, u8)> {
+            cells_of(rows, 24, 10)
+                .iter()
+                .filter(|c| c.row == 2)
+                .map(|c| c.fg)
+                .collect()
+        };
+        let (a, b) = (ink_of(&quiet), ink_of(&hot));
+        assert_eq!(a.len(), b.len(), "hover must not change what is drawn");
+        assert_ne!(a, b, "hover must change how it is drawn");
+        // Specifically: up to the theme's full-contrast ink, never a wash.
+        let t = crew_theme::theme();
+        assert!(b.contains(&t.ink), "hovered title reaches the ink");
+        assert!(!a.contains(&t.ink), "a quiet title does not");
     }
 
     #[test]

@@ -156,9 +156,16 @@ pub(crate) fn min_btn_rect(rect: Rect, cw: f32, ch: f32) -> Option<Rect> {
 
 /// Overwrite (or append) the cell at `(col, row)` in `v` — used to drop status
 /// glyphs onto the already-drawn top border.
-fn put(v: &mut Vec<CellView>, col: u16, row: u16, c: char, fg: (u8, u8, u8)) {
+pub(crate) fn put(
+    v: &mut Vec<CellView>,
+    col: u16,
+    row: u16,
+    c: char,
+    fg: (u8, u8, u8),
+    bold: bool,
+) {
     if let Some(cell) = v.iter_mut().find(|x| x.col == col && x.row == row) {
-        (cell.c, cell.fg, cell.bg) = (c, fg, crew_theme::theme().page_bg);
+        (cell.c, cell.fg, cell.bg, cell.bold) = (c, fg, crew_theme::theme().page_bg, bold);
     } else {
         v.push(CellView {
             col,
@@ -166,7 +173,7 @@ fn put(v: &mut Vec<CellView>, col: u16, row: u16, c: char, fg: (u8, u8, u8)) {
             c,
             fg,
             bg: crew_theme::theme().page_bg,
-            bold: false,
+            bold,
             italic: false,
         });
     }
@@ -227,9 +234,10 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
     let mut rx = cols.saturating_sub(3);
     // The [-][x] buttons claim the corner slots; status glyphs step past them.
     if b.min_btn && cols >= BTNS_COLS {
-        for (i, ch) in "[-][x]".chars().enumerate() {
-            put(&mut v, cols - 8 + i as u16, 0, ch, legend);
-        }
+        // The pointer lights the button it is on — the one card on the canvas
+        // whose legend number matches what `panehover` published this frame.
+        let hover = crate::panehover::btn_for(b.index.unwrap_or(0) as u16);
+        crate::panebtn::draw(&mut v, cols, legend, hover);
         rx = cols.saturating_sub(10);
     }
     if b.scroll > 0 {
@@ -244,6 +252,7 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
                     0,
                     ch,
                     crew_theme::theme().status_fg,
+                    false,
                 );
             }
             rx = start.saturating_sub(2);
@@ -260,7 +269,7 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
         (b.bell, '!', crew_theme::theme().bell),
     ] {
         if on && rx > 1 {
-            put(&mut v, rx, 0, c, fg);
+            put(&mut v, rx, 0, c, fg, false);
             rx = rx.saturating_sub(2);
         }
     }

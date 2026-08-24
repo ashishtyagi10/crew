@@ -346,7 +346,7 @@ pub(crate) fn cells(p: &TodoPane, cols: u16, rows: u16) -> Vec<CellView> {
             }
         }
         let selected = p.sel == Some(di);
-        row_cells(&mut out, p, idx, row, cols, bottom, selected, now_ms);
+        row_cells(&mut out, p, idx, (row, cols, bottom), selected, now_ms);
         row += item_h(&p.items[idx], cols, now_ms, p.done_view);
     }
     if order.is_empty() && lh >= 2 {
@@ -409,13 +409,15 @@ pub(crate) fn cells(p: &TodoPane, cols: u16, rows: u16) -> Vec<CellView> {
 /// One item: `› [ ] title … @tag due ✗` on its first row, the title
 /// wrapping onto full-width continuation rows below ([`title_lines`]);
 /// rows at or past `bottom` are clipped.
+/// `(row, cols, bottom)`: where this item's first row sits, how wide it may
+/// draw, and the row it must stop before.
+type RowBox = (u16, u16, u16);
+
 fn row_cells(
     out: &mut Vec<CellView>,
     p: &TodoPane,
     idx: usize,
-    row: u16,
-    cols: u16,
-    bottom: u16,
+    (row, cols, bottom): RowBox,
     selected: bool,
     now_ms: u64,
 ) {

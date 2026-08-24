@@ -138,8 +138,9 @@ impl PaperBgPass {
         &self,
         queue: &wgpu::Queue,
         page_bg: [f32; 4],
-        width: f32,
-        height: f32,
+        // Surface `(width, height)` in px — one parameter, because they are
+        // never meaningful apart.
+        (width, height): (f32, f32),
         intensity: f32,
         grain_mul: f32,
         modern: Option<&ModernPaper>,

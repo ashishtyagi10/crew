@@ -175,7 +175,7 @@ fn paperbg_headless() {
     // -------------------------------------------------------
     // Case 1: grain+vignette enabled (intensity=1.0, grain_mul=1.0)
     // -------------------------------------------------------
-    paper_bg.update_uniform(&queue, bg_f32, 64.0, 64.0, 1.0, 1.0, None);
+    paper_bg.update_uniform(&queue, bg_f32, (64.0, 64.0), 1.0, 1.0, None);
     let pixels = render_64x64(&device, &queue, &paper_bg);
 
     // Helper to read pixel (x, y) → (R, G, B, A).
@@ -230,7 +230,7 @@ fn paperbg_headless() {
     // -------------------------------------------------------
     // Case 2: flat (intensity=0.0, grain_mul=1.0) — output = page_bg exactly
     // -------------------------------------------------------
-    paper_bg.update_uniform(&queue, bg_f32, 64.0, 64.0, 0.0, 1.0, None);
+    paper_bg.update_uniform(&queue, bg_f32, (64.0, 64.0), 0.0, 1.0, None);
     let flat_pixels = render_64x64(&device, &queue, &paper_bg);
 
     let (flat_r, flat_g, flat_b, _) = {
@@ -258,7 +258,7 @@ fn paperbg_headless() {
     // -------------------------------------------------------
     // Case 3: grain_mul=0.0 (intensity=1.0) — no grain, only vignette
     // -------------------------------------------------------
-    paper_bg.update_uniform(&queue, bg_f32, 64.0, 64.0, 1.0, 0.0, None);
+    paper_bg.update_uniform(&queue, bg_f32, (64.0, 64.0), 1.0, 0.0, None);
     let nograin_pixels = render_64x64(&device, &queue, &paper_bg);
 
     let nograin_centre_r = pixel_r(&nograin_pixels, 32, 32);
@@ -294,7 +294,7 @@ fn paperbg_headless() {
     // than at grain_mul=1.0 on the same page colour (Case 1, `max_r`/`min_r`
     // above).
     // -------------------------------------------------------
-    paper_bg.update_uniform(&queue, bg_f32, 64.0, 64.0, 1.0, 2.4, None);
+    paper_bg.update_uniform(&queue, bg_f32, (64.0, 64.0), 1.0, 2.4, None);
     let strong_pixels = render_64x64(&device, &queue, &paper_bg);
 
     let (strong_max_r, strong_min_r) = strong_pixels
@@ -320,7 +320,7 @@ fn paperbg_headless() {
     // per-pixel spread AND surviving coarse structure after 2x2 downsample.
     // -------------------------------------------------------
     let dark_bg = [8.0_f32 / 255.0, 8.0 / 255.0, 8.0 / 255.0, 1.0];
-    paper_bg.update_uniform(&queue, dark_bg, 64.0, 64.0, 1.0, 1.56, None);
+    paper_bg.update_uniform(&queue, dark_bg, (64.0, 64.0), 1.0, 1.56, None);
     let dark_pixels = render_64x64(&device, &queue, &paper_bg);
     let dark_std = centre_stddev(&dark_pixels);
     let dark_coarse = downsampled_stddev(&dark_pixels);
@@ -363,7 +363,7 @@ fn paperbg_headless() {
         wash: 0.0,
         phase: 0.0,
     };
-    paper_bg.update_uniform(&queue, aurora, 64.0, 64.0, 1.0, 0.0, Some(&dots));
+    paper_bg.update_uniform(&queue, aurora, (64.0, 64.0), 1.0, 0.0, Some(&dots));
     let dot_pixels = render_64x64(&device, &queue, &paper_bg);
     let dp = |x: usize, y: usize| -> (i32, i32, i32) {
         let off = y * 256 + x * 4;
@@ -404,7 +404,7 @@ fn paperbg_headless() {
         "F5 failed: diagonal tint should rise, top-left R={dr} bottom-right R={br_r}"
     );
     // F4: dots off (None) leaves the same pixel flat — the lattice is opt-in.
-    paper_bg.update_uniform(&queue, aurora, 64.0, 64.0, 1.0, 0.0, None);
+    paper_bg.update_uniform(&queue, aurora, (64.0, 64.0), 1.0, 0.0, None);
     let off_pixels = render_64x64(&device, &queue, &paper_bg);
     let off_r = pixel_r(&off_pixels, 8, 8) as i32;
     assert!(
@@ -428,7 +428,7 @@ fn paperbg_headless() {
         wash: 0.6,
         phase: 0.0,
     };
-    paper_bg.update_uniform(&queue, aurora, 64.0, 64.0, 1.0, 0.0, Some(&wash));
+    paper_bg.update_uniform(&queue, aurora, (64.0, 64.0), 1.0, 0.0, Some(&wash));
     let w0 = render_64x64(&device, &queue, &paper_bg);
     let wp = |buf: &[u8], x: usize, y: usize| -> (i32, i32, i32) {
         let off = y * 256 + x * 4;
@@ -474,7 +474,7 @@ fn paperbg_headless() {
     // the left edge falls back toward the bare page and pole A's blue is now
     // at the TOP, as strong as it was at the left.
     wash.phase = 0.25;
-    paper_bg.update_uniform(&queue, aurora, 64.0, 64.0, 1.0, 0.0, Some(&wash));
+    paper_bg.update_uniform(&queue, aurora, (64.0, 64.0), 1.0, 0.0, Some(&wash));
     let w25 = render_64x64(&device, &queue, &paper_bg);
     let (qlr, qlg, qlb) = wp(&w25, 3, 32);
     let (tmr, tmg, tmb) = wp(&w25, 32, 3);
@@ -493,7 +493,7 @@ fn paperbg_headless() {
     // lift at the pool's centre (the mix is linear in `wash`).
     wash.phase = 0.0;
     wash.wash = 0.3;
-    paper_bg.update_uniform(&queue, aurora, 64.0, 64.0, 1.0, 0.0, Some(&wash));
+    paper_bg.update_uniform(&queue, aurora, (64.0, 64.0), 1.0, 0.0, Some(&wash));
     let whalf = render_64x64(&device, &queue, &paper_bg);
     let half_lift = lift(wp(&whalf, 3, 32));
     eprintln!("paperbg_headless [wash 0.3]: pool lift {half_lift} vs {l_lift} at 0.6");
@@ -507,7 +507,7 @@ fn paperbg_headless() {
     // before the middle of the row it sits on. (Without the correction the
     // pool stretches with the window and this pixel is still lit.)
     wash.wash = 0.6;
-    paper_bg.update_uniform(&queue, aurora, 128.0, 32.0, 1.0, 0.0, Some(&wash));
+    paper_bg.update_uniform(&queue, aurora, (128.0, 32.0), 1.0, 0.0, Some(&wash));
     let wide = render_offscreen(&device, &queue, &paper_bg, 128, 32);
     let wq = |x: usize, y: usize| -> (i32, i32, i32) {
         let off = y * 128 * 4 + x * 4;
@@ -528,7 +528,7 @@ fn paperbg_headless() {
     // W6: strength 0 is a true off — the same pixels are the bare page, so
     // non-modern themes (and a wash-less modern theme) pay nothing.
     wash.wash = 0.0;
-    paper_bg.update_uniform(&queue, aurora, 64.0, 64.0, 1.0, 0.0, Some(&wash));
+    paper_bg.update_uniform(&queue, aurora, (64.0, 64.0), 1.0, 0.0, Some(&wash));
     let woff = render_64x64(&device, &queue, &paper_bg);
     let (zr, zg, zb) = wp(&woff, 3, 32);
     assert!(

@@ -59,6 +59,9 @@ impl CrewApp {
                 self.cursor = (position.x as f32, position.y as f32);
                 // Extend an in-progress selection as the cursor drags.
                 self.selection_drag();
+                // …and repaint when the pointer crossed onto (or off) a
+                // border button, so `[-]`/`[x]` light under the cursor.
+                self.hover_moved();
             }
             WindowEvent::MouseInput {
                 state: ElementState::Pressed,
