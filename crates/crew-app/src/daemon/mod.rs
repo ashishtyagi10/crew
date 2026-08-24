@@ -16,6 +16,7 @@ use crate::ipc;
 use crate::ipc_types::{Reply, Request};
 
 pub(crate) mod cli;
+pub(crate) mod service;
 pub(crate) mod session;
 
 /// The daemon's live state, flattened to the values a status reply needs. Kept separate from the
