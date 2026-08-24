@@ -148,6 +148,21 @@ activity dot, ordered least-recently-active first. The focused pane is protected
 from demotion. To restore a minimized pane to the full grid, click its thumbnail,
 click its entry in the sidebar's PANES list, or use **Cmd+1 … 9** to jump to it.
 
+**Colours that read on the page they land on.** Six roles were constants
+chosen by eye on a dark theme and never measured against a light one: the
+terminal cursor, a URL in terminal output, the selection wash, the two
+load-average warning colours and the network sparkline. On the light themes
+they read at 1.4–2.4 contrast — the *focused* cursor was four times fainter
+than the unfocused ones, so the pane you were typing in had the faintest cursor
+on the canvas, and the warning amber was effectively invisible.
+
+Each keeps its **hue** — a link is blue, a warning amber, an alarm red, and
+those meanings are not the palette's to take — and gives up its **lightness**,
+walking away from the page until it clears WCAG's floor (4.5 for anything read,
+3.0 for a mark only seen). A colour that already clears comes back untouched,
+so the dark themes are pixel-identical. A contract test measures all nine
+palettes at once.
+
 **Spatial navigation.** **Cmd+←↑→↓** focuses the card that lies that way on
 the grid, chosen from the same rects the mouse hit-tests against — so keyboard
 focus and the pointer can never disagree about where a tile is. Pane cycling
@@ -189,7 +204,9 @@ show the same marker.
 
 ## Keyboard shortcuts
 
-Press **`/keys`** in the input bar for this list in-app.
+Press **`/keys`** in the input bar for this list in-app. It scrolls —
+arrows and page keys walk it, Home/End jump its ends, and any other key closes
+it — so the list is never cut off by the window it is drawn in.
 
 | Action | Keys |
 |--------|------|

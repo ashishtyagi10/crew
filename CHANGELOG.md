@@ -8,6 +8,45 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.31
+
+**Six colours that were picked on a dark page and never met a light one.** The
+ramp and the signal roles are derived and measured; these six were not. They
+were constants sitting in whichever crate happened to draw them, every one
+chosen by eye on a dark theme. Measured against the page each actually lands on:
+
+| role | dark pages | light pages |
+|---|---|---|
+| terminal cursor, focused | 11.2–12.3 | **1.41–1.61** |
+| terminal cursor, unfocused | 2.7–3.0 | 5.7–6.6 |
+| URL in a terminal | 7.7–8.4 | **2.05–2.35** |
+| selection, against the text on it | 5.6–7.1 | **2.32–2.52** |
+| load-average warning amber | 9.8–10.8 | **1.60–1.83** |
+| load-average danger red | 5.3–5.9 | **2.95–3.39** |
+| network sparkline | 10.2–11.3 | **1.53–1.76** |
+
+Three of those are worse than faint. The cursor was **inverted**: on a light
+page the pane you were typing in had the faintest cursor on the canvas, four
+times fainter than every pane you were not typing in. A warning colour at 1.6 is
+a warning nobody receives. A URL at 2.2 is a link you cannot read on the third
+of the themes that ship light.
+
+Each role now keeps its **hue** — a link is blue, a warning amber, an alarm red,
+and those meanings do not belong to the palette — and gives up its
+**lightness**, walking away from the page in Oklch until it clears WCAG's floor:
+4.5 for anything read, 3.0 for a mark only seen. A colour that already clears
+comes back untouched, so the dark pages are pixel-identical. The light pages go
+from 1.4–2.4 to 4.5–4.9, and the focused cursor from 1.5 to 16.2. One contract
+test measures all nine palettes, so this class of drift cannot return quietly.
+
+**The `/keys` list stops having a height budget.** It did not scroll, so its
+height was a hard budget: a list one row too tall was cut off in silence, and a
+test failed the build whenever a binding was added. Three times in this release
+alone, making room meant merging two unrelated rows and losing detail from both.
+Arrows and page keys walk it now, Home/End jump its ends, and any other key
+still dismisses it. The merged rows are un-merged, and this release's mouse
+gestures got the rows they should have had.
+
 ## 0.18.30
 
 Three surfaces showed you part of something and gave you no way to reach the

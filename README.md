@@ -197,7 +197,8 @@ no matter where its pane went.
 
 ## Keyboard shortcuts
 
-Press **`/keys`** in the input bar for the full list in-app.
+Press **`/keys`** in the input bar for the full list in-app — it scrolls with
+the arrow and page keys, and any other key closes it.
 
 | Action | Keys |
 |--------|------|
