@@ -8,6 +8,27 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.12
+
+**A daemon session you can actually talk to — and whose history survives you.**
+`crew daemon send` writes a line to a session's agent; `crew daemon poll` reads
+its output back from a cursor. A reader thread drains the agent's stdout into a
+buffer the daemon holds, so a chatty broker never blocks the resident.
+
+The cursor is the point. Because the daemon keeps the history rather than the
+client, a reader that goes away and comes back polls from the cursor it last saw
+and is handed exactly what it missed. Losing the window no longer loses the work
+that happened while it was gone.
+
+That buffer is capped at 2000 lines — the daemon outlives every client, so a
+history unbounded in time has to be bounded in size. Lines that fall off the
+front are counted and reported, so a client returning after a long absence is
+told it missed some instead of being handed a gap with no marker and quietly
+drawing a false history.
+
+The GUI still spawns its own broker, unchanged. Pointing a pane at a
+daemon-owned session is the next step.
+
 ## 0.18.11
 
 **The daemon owns the agent processes now.** A `/crew` pane spawns its own
