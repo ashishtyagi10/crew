@@ -5,7 +5,6 @@
 //! [`crate::panecard`]; this is the plain box on the one canvas.
 use crew_render::{CellView, PaneScene};
 
-use crate::boxdraw::titled_card;
 use crate::layout::Rect;
 
 /// Push a fieldset card into `scenes`: `content` builds the interior cells at
@@ -99,7 +98,7 @@ pub fn push_card_titled(
         overlay: false,
     });
     scenes.push(PaneScene {
-        cells: titled_card(
+        cells: crate::modernring::gradient_card(
             icols + 2,
             irows + 2,
             legend,

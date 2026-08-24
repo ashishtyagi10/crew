@@ -143,3 +143,146 @@ fn every_theme_draws_the_ring_now() {
         );
     }
 }
+
+/// Luma in the same gamma space `at_luma_of` measures.
+fn luma(c: (u8, u8, u8)) -> f32 {
+    0.2126 * f32::from(c.0) + 0.7152 * f32::from(c.1) + 0.0722 * f32::from(c.2)
+}
+
+/// The stroke cells of a card, in the order they were drawn.
+fn stroke(v: &[CellView]) -> Vec<(u8, u8, u8)> {
+    v.iter()
+        .filter(|c| is_frame_glyph(c.c))
+        .map(|c| c.fg)
+        .collect()
+}
+
+/// An UNFOCUSED card is no longer a flat stroke on any theme: its border runs
+/// a real gradient — many distinct colours, different at the two corners —
+/// which is the whole point of pushing the gradient past the focused pane.
+#[test]
+fn every_theme_tints_an_unfocused_card() {
+    let _g = crate::app::theme_test_guard();
+    for id in crew_theme::ALL_THEMES {
+        crew_theme::set_theme(id);
+        let flat = crew_theme::theme().border_normal;
+        let v = pane_card(38, 10, &bar(false));
+        let cols = stroke(&v);
+        assert!(!cols.is_empty(), "{} drew no stroke", id.as_str());
+        let flats = cols.iter().filter(|&&c| c == flat).count();
+        assert!(
+            flats * 4 < cols.len(),
+            "{}: {flats}/{} stroke cells are still the flat border",
+            id.as_str(),
+            cols.len()
+        );
+        let distinct: std::collections::HashSet<_> = cols.iter().collect();
+        assert!(
+            distinct.len() >= 6,
+            "{}: only {} distinct stroke colours — that is a tint, not a gradient",
+            id.as_str(),
+            distinct.len()
+        );
+        assert_ne!(
+            fg_at(&v, 0, 0),
+            fg_at(&v, 39, 11),
+            "{}: the two corners must not match",
+            id.as_str()
+        );
+    }
+}
+
+/// …and it pays for that colour with no brightness. Every quiet cell sits
+/// within a hair of `border_normal`'s luminance on every theme, which is what
+/// stops nine coloured frames from flattening the canvas: hue travels, level
+/// does not.
+#[test]
+fn a_quiet_stroke_holds_the_flat_luminance() {
+    let _g = crate::app::theme_test_guard();
+    for id in crew_theme::ALL_THEMES {
+        crew_theme::set_theme(id);
+        let want = luma(crew_theme::theme().border_normal);
+        for c in stroke(&pane_card(38, 10, &bar(false))) {
+            let got = luma(c);
+            assert!(
+                (got - want).abs() <= 2.0,
+                "{}: stroke {c:?} at luma {got:.1}, flat border is {want:.1}",
+                id.as_str()
+            );
+        }
+    }
+}
+
+/// Hierarchy survives. The focused pane's ring stands further off the page
+/// than any quiet card's stroke on every theme — measured as CONTRAST against
+/// `page_bg`, not brightness: on a light theme prominence is darker ink, not
+/// more light, and a "the focused frame is the brightest" rule would be a
+/// dark-theme assumption wearing a general name.
+///
+/// Focus brackets are switched off (`focus_t = 0`) because they are painted
+/// in the palette accent over the same frame glyphs — measuring them would
+/// tell us about `palette::accent`, not about the gradient.
+#[test]
+fn the_focused_ring_stands_further_off_the_page_than_any_quiet_stroke() {
+    let _g = crate::app::theme_test_guard();
+    for id in crew_theme::ALL_THEMES {
+        crew_theme::set_theme(id);
+        let page = crew_theme::theme().page_bg;
+        let peak = |v: &[CellView]| {
+            stroke(v)
+                .into_iter()
+                .map(|c| crew_theme::contrast_ratio(c, page))
+                .fold(0.0, f32::max)
+        };
+        let mut b = bar(true);
+        b.focus_t = 0.0;
+        let mut lit = pane_card(38, 10, &b);
+        ring(&mut lit, 40, 12, false, 1.0, 0);
+        let hot = peak(&lit);
+        let mut q = bar(false);
+        q.focus_t = 0.0;
+        let cool = peak(&pane_card(38, 10, &q));
+        assert!(
+            hot > cool * 1.5,
+            "{}: focused ring reaches {hot:.2}:1 against the page, a quiet card {cool:.2}:1",
+            id.as_str()
+        );
+    }
+}
+
+/// The quiet pass keeps the ring's contract: only frame glyphs are touched.
+/// The legend and the status glyphs riding the same border rows are left
+/// exactly as drawn — the gradient is chrome, and it does not get to repaint
+/// a signal.
+#[test]
+fn a_quiet_stroke_spares_the_legend_and_the_status_glyphs() {
+    let _g = crate::app::theme_test_guard();
+    crew_theme::set_theme(crew_theme::ThemeId::Nebula);
+    let mut b = bar(false);
+    b.activity = true;
+    b.bell = true;
+    let t = crew_theme::theme();
+    let v = pane_card(38, 10, &b);
+    // The legend keeps the pane's signature hue, receded toward `legend_off`
+    // exactly as `pane_card` derived it.
+    let want_legend =
+        crate::anim::lerp_rgb(crate::chatroster::agent_color("shell"), t.legend_off, 0.55);
+    let legend: Vec<_> = v
+        .iter()
+        .filter(|c| c.row == 0 && c.c == 'h')
+        .map(|c| c.fg)
+        .collect();
+    assert_eq!(legend, vec![want_legend], "the legend lost its hue");
+    // The status glyphs are still their own signal colours.
+    for (glyph, want) in [('\u{25cf}', t.activity), ('!', t.bell)] {
+        let got = v
+            .iter()
+            .find(|c| c.c == glyph)
+            .unwrap_or_else(|| panic!("{glyph} drawn"))
+            .fg;
+        assert_eq!(got, want, "{glyph} lost its colour to the gradient");
+    }
+    // And the frame really did move off the flat colour.
+    assert_ne!(fg_at(&v, 0, 1), t.border_normal);
+    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+}

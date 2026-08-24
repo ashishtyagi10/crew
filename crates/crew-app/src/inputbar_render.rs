@@ -4,7 +4,6 @@
 //! right-aligned status stay put.
 use crew_render::CellView;
 
-use crate::boxdraw::titled_card;
 use crate::chatwidth::{char_w, clip_w, place_row, str_w};
 use crate::inputbar::InputBar;
 use crate::palette::accent;
@@ -46,7 +45,7 @@ impl InputBar {
         } else {
             crew_theme::theme().border_normal
         };
-        let mut out = titled_card(
+        let mut out = crate::modernring::gradient_card(
             cols,
             rows,
             &legend,

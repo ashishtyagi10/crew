@@ -11,7 +11,6 @@
 use crew_render::{CellView, PaneScene};
 
 use crate::anim::lerp_rgb;
-use crate::boxdraw::titled_card;
 use crate::chatwidth::{clip_w, place_row, str_w};
 use crate::ease::Timeline;
 use crate::layout::Rect;
@@ -133,14 +132,16 @@ fn card_cells(text: &str, legend: &str, alert: bool, cols: u16, fade: f32) -> Ve
     let t = crew_theme::theme();
     let border = if alert { t.bell } else { t.border_normal };
     let legend_fg = if alert { t.bell } else { t.legend_off };
-    let mut cells = titled_card(
-        cols,
-        3,
-        legend,
-        lerp_rgb(border, t.page_bg, fade),
-        lerp_rgb(legend_fg, t.page_bg, fade),
-        t.page_bg,
-    );
+    let border = lerp_rgb(border, t.page_bg, fade);
+    let legend_fg = lerp_rgb(legend_fg, t.page_bg, fade);
+    let mut cells = crate::boxdraw::titled_card(cols, 3, legend, border, legend_fg, t.page_bg);
+    // An ALERT toast keeps its flat bell stroke. Everywhere else a frame's
+    // colour is chrome and the gradient is free to take it; here the colour
+    // IS the message, and a bell border tinted toward the theme's poles is a
+    // warning wearing the same skin as the command menu.
+    if !alert {
+        crate::modernring::quiet(&mut cells, cols, 3, border);
+    }
     let fg = lerp_rgb(t.ink, t.page_bg, fade);
     place_row(2, cols - 1, text.chars().map(|c| (c, fg)), |col, c, fg| {
         cells.push(CellView {

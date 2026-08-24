@@ -122,6 +122,12 @@ fn fmt_left(ms: u64) -> String {
     }
 }
 
+/// The meter glyphs. Named because [`gradient_meters`] finds the gauges by
+/// glyph after the line is joined, and a bar drawn with one character and
+/// re-lit by another would silently stop being a gradient.
+const FILLED: char = '\u{2593}';
+const EMPTY: char = '\u{2591}';
+
 /// An 8-cell dithered meter: `▓` filled, `░` empty. 1-99% always shows at
 /// least one of each so "almost empty" and "almost full" stay legible.
 fn bar(pct: u8) -> String {
@@ -132,7 +138,7 @@ fn bar(pct: u8) -> String {
         1..=99 => filled.clamp(1, W - 1),
         _ => W,
     };
-    "\u{2593}".repeat(filled) + &"\u{2591}".repeat(W - filled)
+    String::from(FILLED).repeat(filled) + &String::from(EMPTY).repeat(W - filled)
 }
 
 /// Drop the least important segments until the joined line fits `cols`.
@@ -338,8 +344,54 @@ pub(crate) fn footer_lines(fc: &FooterCtx, cols: usize) -> Vec<Vec<(char, Fg)>> 
     // Line 1 priorities: who is answering, then the spend, then the cost,
     // then the branch; the directory is the first thing to go (it is also
     // gated on width above, so on a wide pane nothing is lost at all).
-    vec![join(&l1), join(&l2), l3]
+    let mut l2 = join(&l2);
+    gradient_meters(&mut l2);
+    vec![join(&l1), l2, l3]
 }
+
+/// Light the line-2 meters with the theme gradient instead of one flat muted
+/// colour: each 8-cell gauge runs `pole_a` at its left edge to `pole_b` at its
+/// right, so a filling bar walks across the theme's own colour ramp.
+///
+/// Runs are found by glyph (`▓`/`░`), not by colour, and every meter is lit
+/// independently — the 5h gauge and the context gauge each get the full ramp,
+/// which is what makes them comparable at a glance. The empty tail keeps the
+/// same hue pulled most of the way back to the page, so "how full" still reads
+/// as brightness and not only as glyph density.
+///
+/// No-op on a theme without a `ModernStyle`; the meters keep their muted grey.
+fn gradient_meters(line: &mut [(char, Fg)]) {
+    let is_meter = |c: char| c == FILLED || c == EMPTY;
+    let bg = crew_theme::theme().page_bg;
+    let mut i = 0;
+    while i < line.len() {
+        if !is_meter(line[i].0) {
+            i += 1;
+            continue;
+        }
+        let start = i;
+        while i < line.len() && is_meter(line[i].0) {
+            i += 1;
+        }
+        let last = (i - start - 1) as f32;
+        for (k, cell) in line[start..i].iter_mut().enumerate() {
+            let t = if last > 0.0 { k as f32 / last } else { 0.0 };
+            let Some(g) = crate::modernring::pole_mix(t) else {
+                return;
+            };
+            cell.1 = if cell.0 == FILLED {
+                g
+            } else {
+                crate::anim::lerp_rgb(g, bg, TROUGH_FADE)
+            };
+        }
+    }
+}
+
+/// How far an unfilled meter cell is pulled back toward the page. Far enough
+/// that the fill level reads without counting glyphs, not so far that the
+/// trough disappears and the gauge loses its length.
+const TROUGH_FADE: f32 = 0.6;
 
 /// The most rows the footer ever claims (identity/spend, windows/bars,
 /// routing mode).

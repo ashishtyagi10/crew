@@ -497,3 +497,81 @@ fn active_names_coexist_with_a_pending_plan() {
     assert!(l3.contains("plan ready"), "{l3}");
     assert!(l3.contains("@coder"), "{l3}");
 }
+
+/// One cell of a rendered footer line.
+type Cell = (char, (u8, u8, u8));
+
+/// The contiguous runs of meter glyphs in a rendered line — one per gauge.
+fn meter_runs(line: &[Cell]) -> Vec<Vec<Cell>> {
+    let mut runs: Vec<Vec<Cell>> = Vec::new();
+    let mut cur: Vec<Cell> = Vec::new();
+    for &cell in line {
+        if cell.0 == '\u{2593}' || cell.0 == '\u{2591}' {
+            cur.push(cell);
+        } else if !cur.is_empty() {
+            runs.push(std::mem::take(&mut cur));
+        }
+    }
+    if !cur.is_empty() {
+        runs.push(cur);
+    }
+    runs
+}
+
+/// The line-2 meters are lit by the theme gradient, not one flat muted
+/// colour: each gauge starts at `pole_a`, ends at `pole_b`, and is a run of
+/// distinct colours in between — so a filling bar walks the theme's own ramp.
+/// Both gauges get the full ramp independently, which is what makes them
+/// comparable at a glance.
+#[test]
+fn meters_run_the_theme_gradient_end_to_end() {
+    // Take the guard but do NOT pin a theme of our own. The guard's default
+    // (paper-dark) is also what an unguarded test in this module sees, so this
+    // test never swaps the global palette out from under one — `agent_color`
+    // reads the theme's tag pool, and the line-3 roster-colour test next door
+    // fails when it does.
+    let _g = crate::app::theme_test_guard();
+    let style = crew_theme::theme()
+        .modern
+        .expect("every theme is modern now");
+    let agents = [agent("smith", "anthropic/claude-opus-4-8")];
+    let lines = footer_lines(&fc(&agents, &ctx(&[("smith", 100_000)])), 120);
+    let runs = meter_runs(&lines[1]);
+    assert_eq!(runs.len(), 2, "line 2 should carry the 5h and ctx gauges");
+    for run in &runs {
+        assert_eq!(run.len(), 8, "a gauge is 8 cells");
+        // Ends are the exact poles (the filled/empty dim is applied on top of
+        // the ramp, so an empty end cell is the pole pulled toward the page —
+        // compare against whichever the glyph says it is).
+        let want = |cell: Cell, pole: (u8, u8, u8)| {
+            if cell.0 == '\u{2593}' {
+                pole
+            } else {
+                crate::anim::lerp_rgb(pole, crew_theme::theme().page_bg, super::TROUGH_FADE)
+            }
+        };
+        assert_eq!(run[0].1, want(run[0], style.pole_a), "left end is pole_a");
+        assert_eq!(run[7].1, want(run[7], style.pole_b), "right end is pole_b");
+        let distinct: std::collections::HashSet<_> = run.iter().map(|c| c.1).collect();
+        assert!(
+            distinct.len() >= 6,
+            "a gauge with {} distinct colours is not a gradient",
+            distinct.len()
+        );
+    }
+    // The 5h gauge is at 3%: one filled cell, seven empty. The filled cell
+    // must read brighter than the trough beside it, or the gauge has stopped
+    // showing a level.
+    let five_h = &runs[0];
+    assert_eq!(five_h[0].0, '\u{2593}');
+    assert_eq!(five_h[1].0, '\u{2591}');
+    let luma = |c: (u8, u8, u8)| {
+        0.2126 * f32::from(c.0) + 0.7152 * f32::from(c.1) + 0.0722 * f32::from(c.2)
+    };
+    assert!(
+        luma(five_h[0].1) > luma(five_h[1].1) + 20.0,
+        "filled {:?} vs trough {:?} — the fill level stopped reading",
+        five_h[0].1,
+        five_h[1].1
+    );
+}

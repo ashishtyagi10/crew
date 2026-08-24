@@ -1161,3 +1161,60 @@ fn a_numeric_field_s_doc_may_not_name_a_value_no_palette_uses() {
          parse has stopped finding them and this test is asserting nothing"
     );
 }
+
+/// The contrast suite above measures every role against `page_bg` — the page
+/// as declared. It is not the page anyone reads on. The gradient wash lies
+/// UNDER the whole canvas and mixes the page toward a pole by `wash` at each
+/// pool's centre, so the real background under a line of text is
+/// `lerp(page_bg, pole, wash)`, and every floor in `contrast_thresholds` is
+/// quietly measured against a colour that is not there.
+///
+/// This closes that. Same roles, same floors, measured on the WASHED page at
+/// both poles — which is also the answer to "make the gradient stronger":
+/// there is no room. Run at the shipped weights the tightest role clears its
+/// floor by 4–16% (border_normal on the paper and modern pages, text_muted on
+/// the tubes); at 1.5× the wash, six of the nine themes are already under.
+/// The aurora is calibrated to the edge of legibility, and more colour has to
+/// come from the chrome — which is where the gradient stroke went — not from
+/// turning the page up.
+///
+/// The mix is done here on the sRGB bytes because that is where the shader
+/// does it too: the surface is deliberately NON-sRGB (see the renderer's
+/// colour-space note), so `mix()` in `paperbg.wgsl` blends in gamma space,
+/// exactly like this.
+#[test]
+fn the_wash_never_pushes_a_role_under_its_floor() {
+    for id in ALL_THEMES {
+        let t = id.theme();
+        let Some(m) = t.modern else {
+            continue;
+        };
+        for pole in [m.pole_a, m.pole_b] {
+            let mix = |a: u8, b: u8| {
+                (f32::from(a) + (f32::from(b) - f32::from(a)) * m.wash).round() as u8
+            };
+            let page = (
+                mix(t.page_bg.0, pole.0),
+                mix(t.page_bg.1, pole.1),
+                mix(t.page_bg.2, pole.2),
+            );
+            for (role, c, floor) in [
+                ("ink", t.ink, 10.0f32),
+                ("text_muted", t.text_muted, 7.0),
+                ("legend_off", t.legend_off, 3.0),
+                ("hint_fg", t.hint_fg, 2.5),
+                ("placeholder", t.placeholder, 2.3),
+                ("accent_default", t.accent_default, 3.0),
+                ("border_focused", t.border_focused, 2.2),
+                ("border_normal", t.border_normal, 1.45),
+            ] {
+                let got = contrast_ratio(c, page);
+                assert!(
+                    got >= floor,
+                    "{}: {role} vs the page washed toward {pole:?} = {got:.3} (need >= {floor})",
+                    id.as_str()
+                );
+            }
+        }
+    }
+}
