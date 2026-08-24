@@ -8,6 +8,26 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.9
+
+**The usage budgets are in Settings, and nothing lives in the config file
+alone any more.** These are what the footer's 5h and 7d bars are drawn
+against, and they were only ever reachable as raw token counts in
+`config.toml` — 5000000 and 25000000. They get a **USAGE** card of their own,
+which also balances the layout: the appearance column had grown much taller
+than the rest.
+
+They are typed in **millions**, the way you would say them — `5`, `25`, `7.5`
+— rather than as eight digits. That is the same trade the opacity box already
+makes by taking a percentage and storing a fraction, and the footer never
+shows the raw figure anyway; it draws a percentage against it.
+
+The catch, and the reason this is more than a text box: a budget hand-set to
+something the display cannot show exactly, like 5,123,456, reads as `5.12`,
+and every focus move commits the field — so simply *opening* Settings and
+tabbing past would have rounded it. A box still reading what is stored now
+counts as no edit at all, so looking at the form never changes it.
+
 ## 0.18.8
 
 **`auto`'s per-appearance pairing is in Settings.** These decide what `auto`
