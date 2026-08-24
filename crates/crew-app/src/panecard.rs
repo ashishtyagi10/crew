@@ -205,6 +205,14 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
     if v.is_empty() {
         return v;
     }
+    // An UNFOCUSED card gets the quiet gradient here, so every frame on the
+    // canvas carries the theme's colour and not just the one with focus. The
+    // focused card is left flat on purpose: `pane_card_glowing` paints the
+    // full drifting ring over it, and that pass only touches cells still
+    // wearing `border_focused`.
+    if !b.focused {
+        crate::modernring::quiet(&mut v, cols, rows, border);
+    }
     // Assemble before the status glyphs and brackets are stamped on, so those
     // are never clipped by a half-drawn frame.
     assemble(&mut v, cols, rows, b.assemble_t);

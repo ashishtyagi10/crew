@@ -9,7 +9,6 @@ use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{List, ListItem, ListState, StatefulWidget};
 
-use crate::boxdraw::titled_card;
 use crate::suggest::MenuItem;
 
 use crate::palette::accent_color;
@@ -42,7 +41,14 @@ pub fn menu_card(
         return Vec::new();
     }
     let t = crew_theme::theme();
-    let mut cells = titled_card(cols, rows, title, t.border_normal, t.legend_off, t.page_bg);
+    let mut cells = crate::modernring::gradient_card(
+        cols,
+        rows,
+        title,
+        t.border_normal,
+        t.legend_off,
+        t.page_bg,
+    );
     // The list fills the 1-cell-inset interior; shift it inside the border.
     for mut cell in menu_cells(matches, sel, cols - 2, rows - 2) {
         cell.col += 1;

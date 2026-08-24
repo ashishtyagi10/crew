@@ -224,7 +224,7 @@ pub(crate) fn composer_cells(
     }
     let t = crew_theme::theme();
     let top = rows - total;
-    let mut cells: Vec<CellView> = crate::boxdraw::titled_card(
+    let mut cells: Vec<CellView> = crate::modernring::gradient_card(
         cols,
         total,
         "",

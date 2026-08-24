@@ -157,7 +157,7 @@ impl KeyEntry {
             &format!("paste {}", self.var),
             crate::boxdraw::title_budget(cols),
         );
-        let mut cells = crate::boxdraw::titled_card(
+        let mut cells = crate::modernring::gradient_card(
             cols,
             self.rows(),
             &title,

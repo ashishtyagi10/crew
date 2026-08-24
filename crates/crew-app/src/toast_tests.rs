@@ -121,8 +121,23 @@ fn alert_toasts_border_in_the_bell_color() {
             .expect("border cell")
             .fg
     };
+    // The alert stroke is EXACTLY the bell — the gradient does not get to
+    // repaint a warning (see `card_cells`).
     assert_eq!(border_of(true), t.bell);
-    assert_eq!(border_of(false), t.border_normal);
+    // The ordinary toast carries the quiet gradient, so it is no longer the
+    // flat border colour — but it is still lit at that colour's brightness,
+    // which is what keeps a toast from out-shouting the focused pane.
+    let quiet = border_of(false);
+    assert_ne!(quiet, t.border_normal, "an ordinary toast should be tinted");
+    let luma = |c: (u8, u8, u8)| {
+        0.2126 * f32::from(c.0) + 0.7152 * f32::from(c.1) + 0.0722 * f32::from(c.2)
+    };
+    let (want, got) = (luma(t.border_normal), luma(quiet));
+    assert!(
+        (got - want).abs() <= 2.0,
+        "tinted toast border {quiet:?} (luma {got:.1}) drifted from {:?} (luma {want:.1})",
+        t.border_normal
+    );
 }
 
 #[test]
