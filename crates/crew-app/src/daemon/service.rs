@@ -10,6 +10,11 @@ use std::path::{Path, PathBuf};
 
 /// The service's identity. The unit file is named from it, so install and uninstall cannot
 /// disagree about what to look for.
+///
+/// Gated exactly like the two unit builders that read it: Windows has no service integration
+/// yet, so on that target this constant has no reader and `-D warnings` in CI failed the build
+/// on it — every release since 0.18.18.
+#[cfg(any(target_os = "macos", target_os = "linux", test))]
 pub(crate) const LABEL: &str = "com.crew.daemon";
 
 /// What a platform's service manager needs written and run.

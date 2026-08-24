@@ -2,14 +2,10 @@
 //! Terminal panes select through alacritty's own `Selection` (Alt+drag for a
 //! rectangular block); every other pane kind selects through the pane-agnostic
 //! [`crate::gridsel`] path, which works off the rendered cell grid.
-use std::time::{Duration, Instant};
 
 use crate::app::CrewApp;
 use crate::gridsel::CellSel;
 use crate::pane::PaneContent;
-
-/// Max gap between two left clicks on the same pane to count as a double-click.
-const DOUBLE_CLICK: Duration = Duration::from_millis(400);
 
 /// An in-progress drag selection. `anchor` is the cell where the press landed;
 /// `moved` flips true once the cursor reaches a different cell, which is what
@@ -17,7 +13,10 @@ const DOUBLE_CLICK: Duration = Duration::from_millis(400);
 #[derive(Clone, Copy)]
 pub(crate) struct Drag {
     pane: usize,
-    anchor: (u16, u16),
+    /// The cell the press landed on. [`crate::selrun`] reads it: the presence
+    /// of a drag is also the answer to "did that press find content, or the
+    /// card's border?".
+    pub(crate) anchor: (u16, u16),
     moved: bool,
     block: bool,
 }
@@ -121,26 +120,6 @@ impl CrewApp {
             self.copy_text(text);
         }
         true
-    }
-
-    /// Double-click bookkeeping for a press that focused pane `i`: a second
-    /// plain click on the same pane within 400 ms toggles zoom, cancelling
-    /// the just-armed drag so the release doesn't copy. A press that armed a
-    /// fold toggle (`fold_armed`, see `chatfold`) never counts in either
-    /// direction — folding a card twice must not accidentally zoom the pane.
-    pub(crate) fn click_zoom(&mut self, i: usize, fold_armed: bool) {
-        let now = Instant::now();
-        let double = !fold_armed
-            && self
-                .last_click
-                .is_some_and(|(t, pi)| pi == i && now.duration_since(t) < DOUBLE_CLICK);
-        if double {
-            self.zoomed = !self.zoomed;
-            self.last_click = None;
-            self.drag = None;
-        } else {
-            self.last_click = (!fold_armed).then_some((now, i));
-        }
     }
 
     /// The selected text of pane `i`: from the terminal model for terminals, or

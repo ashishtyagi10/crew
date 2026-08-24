@@ -18,6 +18,11 @@ impl PtyTerm {
         self.core.display_offset()
     }
 
+    /// Every line the viewport can reach — scrollback plus the live screen.
+    pub fn scrollable_lines(&self) -> usize {
+        self.core.scrollable_lines()
+    }
+
     /// Whether the program enabled bracketed-paste mode.
     pub fn bracketed_paste(&self) -> bool {
         self.core.bracketed_paste()
@@ -37,6 +42,17 @@ impl PtyTerm {
     /// Extend the active selection to viewport cell (col, row).
     pub fn sel_update(&mut self, col: u16, row: u16) {
         self.core.sel_update(col, row);
+    }
+
+    /// Select the word under viewport cell (col, row) — a double-click.
+    pub fn sel_word(&mut self, col: u16, row: u16) {
+        self.core.sel_word(col, row);
+    }
+
+    /// Select the whole logical line under viewport cell (col, row) — a
+    /// triple-click; a soft-wrapped line comes back whole.
+    pub fn sel_line(&mut self, col: u16, row: u16) {
+        self.core.sel_line(col, row);
     }
 
     /// Clear any active selection.

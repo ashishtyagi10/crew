@@ -148,9 +148,9 @@ fn push_pane_scenes(
 ) {
     let mut cells = p.cells(foc);
     let is_term = matches!(&p.content, PaneContent::Terminal(_));
-    let scroll = match &p.content {
-        PaneContent::Terminal(t) => t.pty.display_offset(),
-        _ => 0,
+    let (scroll, total) = match &p.content {
+        PaneContent::Terminal(t) => (t.pty.display_offset(), t.pty.scrollable_lines()),
+        _ => (0, 0),
     };
     // Tint http(s) URLs blue so they read as clickable (Cmd+click opens).
     if is_term {
@@ -209,6 +209,7 @@ fn push_pane_scenes(
                 title: &title,
                 focused: foc,
                 scroll,
+                total,
                 activity: p.activity && !foc,
                 bell: p.bell && !foc,
                 broadcast: broadcast && is_term,

@@ -90,8 +90,9 @@ pub struct CrewApp {
     pub(crate) win_title: String,
     /// Mirror input to every terminal pane (tmux-style synchronized input).
     pub(crate) broadcast: bool,
-    /// Time + pane index of the last left click, for double-click detection.
-    pub(crate) last_click: Option<(Instant, usize)>,
+    /// Time, pane index and run length of the last left click — the state
+    /// behind the click *run* (single → word → line, see [`crate::select`]).
+    pub(crate) last_click: Option<(Instant, usize, u8)>,
     /// A fold toggle the last mouse press landed on — `(pane index, absolute
     /// row)` — waiting for its release. The toggle fires on RELEASE, and only
     /// when the gesture stayed a plain click: a drag-selection started on a
@@ -99,6 +100,10 @@ pub struct CrewApp {
     pub(crate) fold_click: Option<(usize, u16)>,
     /// In-progress mouse drag selection over any pane, if any.
     pub(crate) drag: Option<crate::select::Drag>,
+    /// A card picked up by its legend row and not yet dropped (see
+    /// [`crate::panedrag`]). Mutually exclusive with `drag`: the legend row is
+    /// the one row of a card that holds nothing to select.
+    pub(crate) card_drag: Option<crate::panedrag::CardDrag>,
     /// Active text selection over a non-terminal pane (chat/settings/etc.),
     /// which lack alacritty's grid model. Persists after the drag so `Cmd+C`
     /// can copy it; cleared by the next press or a scroll. See [`crate::gridsel`].

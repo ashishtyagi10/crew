@@ -18,6 +18,11 @@ pub(crate) struct Bar<'a> {
     pub focused: bool,
     /// Lines scrolled back from the live bottom (0 = at the bottom).
     pub scroll: usize,
+    /// Every line the pane's viewport can reach — scrollback plus the live
+    /// screen. The denominator of the border thumb (see
+    /// [`crate::panescroll`]); `scroll` alone can only say how far from the
+    /// bottom you are, never how far back there is.
+    pub total: usize,
     pub activity: bool,
     pub bell: bool,
     /// This pane is receiving broadcast (synchronized) input.
@@ -189,7 +194,12 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
     // roster row read as one colour. Focus stays legible via bold + the
     // focused border; the unfocused legend recedes toward `legend_off`.
     let hue = crate::chatroster::agent_color(b.title);
-    let (border, legend) = if b.focused {
+    // A card carried over this one lights its whole frame: the drop lands
+    // here, and a swap is worth saying before it happens (see `panedrag`).
+    let drop_target = crate::panedrag::is_drop_target(b.index.unwrap_or(0) as u16);
+    let (border, legend) = if drop_target {
+        (crate::palette::accent(), crate::palette::accent())
+    } else if b.focused {
         (crew_theme::theme().border_focused, hue)
     } else {
         (
@@ -240,24 +250,10 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
         crate::panebtn::draw(&mut v, cols, legend, hover);
         rx = cols.saturating_sub(10);
     }
-    if b.scroll > 0 {
-        let s = format!("⇡{}", b.scroll);
-        let w = s.chars().count() as u16;
-        if rx + 1 > w {
-            let start = rx + 1 - w;
-            for (i, ch) in s.chars().enumerate() {
-                put(
-                    &mut v,
-                    start + i as u16,
-                    0,
-                    ch,
-                    crew_theme::theme().status_fg,
-                    false,
-                );
-            }
-            rx = start.saturating_sub(2);
-        }
-    }
+    rx = crate::panescroll::count(&mut v, rx, b.scroll);
+    // …and the same fact as a shape, down the right border: where you are in
+    // the scrollback, not just how far from its bottom.
+    crate::panescroll::thumb(&mut v, cols, rows, b);
     // Focus brackets last, so they sit on the finished frame — and only on the
     // focused card, which is the one piece of state they exist to announce.
     if b.focused {

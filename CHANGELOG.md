@@ -8,6 +8,72 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.28
+
+**Double-click selects a word.** Crew had no word selection at all. Double-click
+toggled zoom instead — a gesture no terminal spends there, and the one people
+reach for constantly: grab a filename, a hash, a flag, a path.
+
+The click run now goes single (arms a drag) → word → line, capped so a fourth
+click starts over rather than latching the widest gesture, and each selection
+copies, the same rule releasing a drag already followed. Terminals answer
+through alacritty's own semantic and line selections, so a path stays one word
+and a soft-wrapped command comes back whole; every other pane kind answers the
+same way over its rendered cells, so the gesture means the same thing on an
+agent transcript as on a shell.
+
+Zoom keeps the double click, on the card's **border** — where the convention
+puts it anyway: a window's title bar, not its contents. Cmd+Z is unchanged.
+
+**Drag a card onto another to swap them.** The canvas is a set of cards on a
+surface and behaves like one everywhere else, so the obvious thing to try was to
+drag one, and the obvious thing did nothing. Pick a card up by its top border
+and the card under the pointer lights in the accent; release and the two swap
+places. The legend row is the grab region because it is the one row of a card
+that holds nothing to select, so a card drag and a text drag can never both be
+armed.
+
+**The scrollback gets a shape, not just a number.** `⇡200` says how far from the
+bottom you are. It never said how far back there *is* — 200 lines up reads
+identically in a screenful of history and in a week of it — and nothing said
+where between the two you were. A proportional thumb now runs down the right
+border while a pane is scrolled back: high in the buffer, low near the live
+edge, short when there is a lot behind you. It rides the border rather than a
+content column, because a terminal's columns belong to the program running in
+it and an 80-column layout must stay 80 columns whether or not anyone scrolled.
+
+**Fixed: the Windows build.** It has failed on every release since 0.18.18 —
+`daemon::service::LABEL` has no reader on a target with no service integration,
+and CI builds with `-D warnings`.
+
+## 0.18.27
+
+**Cmd+Arrow walks focus the way the eye does.** Pane cycling steps through panes
+in *index* order, which a tiled grid does not follow: with four panes open, pane
+2 sits below pane 1, not beside it. So the one gesture a tiled canvas invites —
+"focus the card over there" — had no key at all.
+
+Cmd+←↑→↓ now focuses the neighbour in that direction, chosen from the same rects
+the mouse hit-tests against, so keyboard focus and the pointer can never
+disagree about where a tile is. Hold Shift and the focused pane travels with the
+gesture, swapping places with whichever card is that way. Neither wraps at the
+edge of the grid: a wrap in a spatial gesture reads as the whole canvas jumping.
+Zoomed, where there is no geometry to navigate, it falls back to stepping.
+
+**The chrome answers the pointer.** Every click target on the canvas chrome was
+silent. The `[-]` and `[x]` on a card's border were three glyphs the colour of
+the legend beside them, with nothing to say the pointer had found one or which
+of the two it was on; a sidebar PANES row focuses and restores its pane on a
+click, and read exactly like the dead text above it.
+
+Now the button under the cursor lights — `[-]` in the accent, `[x]` in the bell
+colour, because the one control that ends a running program should say so before
+it is clicked and not after. A hovered nav row lifts its ink to full contrast
+rather than washing a background behind it: 0.18.26 measured the page's
+remaining contrast headroom at 4–16%, so hover buys its emphasis with ink and
+not with the page. Both repaint only when the target actually changes, so
+sweeping the pointer across the canvas costs one frame per thing it crosses.
+
 ## 0.18.26
 
 **The gradient reaches every card, not just the focused pane.** The sidebar, the

@@ -58,6 +58,31 @@ impl TermCore {
         self.term.selection = Some(sel);
     }
 
+    /// Select the *word* under viewport cell (col, row) — a double-click, the
+    /// gesture every terminal answers this way. Alacritty already knows where
+    /// a word ends (its `Semantic` selection walks its own word separators),
+    /// so this is its answer, not a re-implementation of one.
+    pub(crate) fn sel_word(&mut self, col: u16, row: u16) {
+        self.sel_at(col, row, SelectionType::Semantic);
+    }
+
+    /// Select the whole logical *line* under viewport cell (col, row) — a
+    /// triple-click. `Lines` follows a wrapped line to its real end, so a long
+    /// command that soft-wrapped comes back as one line and not three.
+    pub(crate) fn sel_line(&mut self, col: u16, row: u16) {
+        self.sel_at(col, row, SelectionType::Lines);
+    }
+
+    /// A selection that is decided by where it starts, not by a drag: anchor
+    /// and end are the same point, and the *type* does the widening.
+    fn sel_at(&mut self, col: u16, row: u16, ty: SelectionType) {
+        let point = self.viewport_point(col, row);
+        self.sel_anchor = Some((point, ty));
+        let mut sel = Selection::new(ty, point, Side::Left);
+        sel.update(point, Side::Right);
+        self.term.selection = Some(sel);
+    }
+
     pub(crate) fn sel_clear(&mut self) {
         self.term.selection = None;
         self.sel_anchor = None;

@@ -8,6 +8,7 @@ fn bar(focused: bool) -> Bar<'static> {
         title: "shell",
         focused,
         scroll: 0,
+        total: 0,
         activity: false,
         bell: false,
         broadcast: false,

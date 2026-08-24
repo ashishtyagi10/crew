@@ -204,7 +204,7 @@ Press **`/keys`** in the input bar for this list in-app.
 | New shell pane | **Cmd+T** |
 | Settings / chat pane | **Cmd+,** / **Cmd+J** |
 | Toggle sidebar | **Cmd+G** |
-| Zoom focused pane | **Cmd+Z** (or double-click) |
+| Zoom focused pane | **Cmd+Z** (or double-click its top border) |
 | Broadcast input to all panes | **Cmd+S** |
 | Font bigger / smaller / reset | **Cmd+=** / **Cmd+-** / **Cmd+0** |
 | Copy visible screen / paste | **Cmd+C** / **Cmd+V** |
@@ -222,8 +222,28 @@ Press **`/keys`** in the input bar for this list in-app.
 | Scroll to top / bottom | **Shift+Home** / **Shift+End** |
 | Quit | **Cmd+Q** — twice to confirm when panes are open, same as the window close button |
 
-Click a pane to focus it (click the input bar to focus that); double-click a
-pane to toggle zoom.
+Click a pane to focus it (click the input bar to focus that).
+
+**The mouse on a card.** Inside a pane, the click run is the one every terminal
+has: once arms a drag-selection, **double-click selects the word** under the
+cursor, **triple-click the whole line** — and each selection copies, the same
+rule releasing a drag follows. A path stays one word, and a soft-wrapped
+command comes back whole. A fourth click starts the run over rather than
+latching the widest gesture. It works on any pane kind: the transcript in an
+agent pane selects by word exactly as a shell does.
+
+On a card's **top border** — the legend row, which holds nothing to select —
+the mouse does structural things instead. **Double-click** toggles zoom (where
+the convention puts it: a window's title bar, not its contents). **Drag** picks
+the card up: the card under the pointer lights in the accent, and releasing
+swaps the two, the mouse equivalent of the **Cmd+Shift+←↑→↓** chord above.
+
+**Scrollback position.** A scrolled-back pane shows `⇡N` on its top border —
+how many lines up you are — and a proportional thumb down its right border:
+where in the buffer that is, and how much of the buffer there is. Both clear
+when you return to the live edge. The thumb rides the border rather than a
+content column, so a program's column count never changes because someone
+scrolled.
 
 Inside a terminal pane, all other keys (arrows, Home/End, PageUp/Down, Ctrl+C,
 Shift+Tab, …) pass through to the program. **Shift+Enter** sends a line feed
@@ -1084,8 +1104,8 @@ working directory is a repository — a **GIT** section showing the current bran
 recent status messages (the same lines flashed on the input bar, newest last) so
 activity history persists instead of vanishing after a few seconds, and a
 **PANES** list of the open panes (index, name, a `▸` focus marker, and an
-activity dot) fills the remaining height. Click a PANES row to focus that pane
-(double-click to zoom it). The panel's **card legend shows the running version**
+activity dot) fills the remaining height. Click a PANES row to focus that pane; the row
+under the pointer brightens to say so. The panel's **card legend shows the running version**
 (`crew vX.Y.Z`), so the build is always visible at a glance.
 
 ## Settings

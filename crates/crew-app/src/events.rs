@@ -59,6 +59,10 @@ impl CrewApp {
                 self.cursor = (position.x as f32, position.y as f32);
                 // Extend an in-progress selection as the cursor drags.
                 self.selection_drag();
+                // …light the card a carried one would land on…
+                if self.card_drag_move() {
+                    self.redraw();
+                }
                 // …and repaint when the pointer crossed onto (or off) a
                 // border button, so `[-]`/`[x]` light under the cursor.
                 self.hover_moved();
@@ -104,11 +108,14 @@ impl CrewApp {
                 // drag-selection. Additive: the click still focuses the pane
                 // and arms selection below — but an armed toggle never counts
                 // toward a double-click zoom, so folding twice can't
-                // accidentally zoom the pane (see `select::click_zoom`).
+                // accidentally zoom the pane (see `select::click_gesture`).
                 let fold_armed = self.fold_press_at_cursor();
                 // Focus the surface and arm a drag selection on a terminal pane.
                 if let Some(i) = self.selection_press() {
-                    self.click_zoom(i, fold_armed);
+                    self.click_gesture(i, fold_armed);
+                    // A press that armed no text selection landed on the
+                    // card's legend row — pick the card up (see `panedrag`).
+                    self.card_press(i);
                 }
                 self.redraw();
             }
@@ -120,7 +127,10 @@ impl CrewApp {
                 // A drag that moved finalizes + copies the selection; a
                 // stationary click fires any fold toggle the press armed.
                 let dragged = self.selection_release();
-                self.fold_release(dragged);
+                // A card dropped on another swaps the two; either kind of
+                // drag means the gesture was never a click, so no fold fires.
+                let swapped = self.card_drop();
+                self.fold_release(dragged || swapped);
                 self.redraw();
             }
             WindowEvent::MouseInput {

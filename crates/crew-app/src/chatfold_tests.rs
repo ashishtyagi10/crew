@@ -300,14 +300,16 @@ fn a_drag_release_consumes_the_candidate_without_toggling() {
 
 #[test]
 fn fold_armed_clicks_stay_out_of_the_double_click_zoom_count() {
+    // No armed drag, so these presses read as landing on the card's border —
+    // where the double click still toggles zoom.
     let mut app = crate::app::CrewApp::default();
-    app.click_zoom(0, true); // the press that armed a fold toggle
-    app.click_zoom(0, false); // a plain press right after
+    app.click_gesture(0, true); // the press that armed a fold toggle
+    app.click_gesture(0, false); // a plain press right after
     assert!(
         !app.zoomed,
         "a fold click must not seed a double-click zoom"
     );
-    app.click_zoom(0, false); // second plain press within the window
+    app.click_gesture(0, false); // second plain press within the window
     assert!(app.zoomed, "two plain clicks in a row still zoom");
 }
 

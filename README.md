@@ -157,6 +157,12 @@ minimized thumbnail strip along the bottom of the content area, ordered
 least-recently-active first. Click a thumbnail, use the sidebar, or press
 **Cmd+1 … 9** to focus a pane and restore it to the full grid.
 
+Inside a pane, **double-click selects a word** and **triple-click the line** —
+the gesture every terminal has, and each selection copies. On a card's top
+border the mouse does structural things instead: **double-click** zooms, and
+**dragging** the card onto another swaps the two. A scrolled-back pane shows a
+proportional thumb down its right border beside the `⇡N` count.
+
 **Cmd+Arrow** moves focus the way the eye does: the card to the left, the one
 below, the one across. Pane cycling (Cmd+[ / Cmd+]) walks the panes in index
 order, which in a tiled grid is not the order they appear in — in a 2×2 grid,
@@ -198,7 +204,7 @@ Press **`/keys`** in the input bar for the full list in-app.
 | Reopen last session's panes (shells, Far, /crew) | `/restore` |
 | Settings / chat pane | **Cmd+,** / **Cmd+J** |
 | Toggle sidebar | **Cmd+G** |
-| Zoom focused pane | **Cmd+Z** (or double-click) |
+| Zoom focused pane | **Cmd+Z** (or double-click its top border) |
 | Broadcast input to all panes | **Cmd+S** |
 | Font bigger / smaller / reset | **Cmd+=** / **Cmd+-** / **Cmd+0** |
 | Copy visible screen / paste | **Cmd+C** / **Cmd+V** (Cmd+V pastes a clipboard image as a temp PNG path) |

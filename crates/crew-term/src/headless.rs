@@ -57,6 +57,14 @@ impl HeadlessTerm {
         self.core.sel_update(col, row);
     }
 
+    pub fn sel_word(&mut self, col: u16, row: u16) {
+        self.core.sel_word(col, row);
+    }
+
+    pub fn sel_line(&mut self, col: u16, row: u16) {
+        self.core.sel_line(col, row);
+    }
+
     pub fn sel_clear(&mut self) {
         self.core.sel_clear();
     }

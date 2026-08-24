@@ -50,6 +50,7 @@ pub fn push_ghost(
                 title: legend,
                 focused: false,
                 scroll: 0,
+                total: 0,
                 activity: false,
                 bell: false,
                 broadcast: false,

@@ -39,8 +39,14 @@ const BINDINGS: &[(&str, &str)] = &[
     ),
     ("Ctrl+Shift+M", "Chat: markdown preview \u{2194} raw source"),
     ("Ctrl+O", "Chat: compact transcript view"),
-    ("Shift+PageUp / Shift+PageDown", "Scroll focused pane"),
-    ("Shift+Home / Shift+End", "Scroll to top / bottom"),
+    (
+        "Shift+PageUp / Shift+PageDown / Shift+Home / Shift+End",
+        "Scroll the focused pane \u{b7} to top / bottom",
+    ),
+    (
+        "Double-click / Triple-click",
+        "Select the word / line \u{b7} on a card's border: zoom, or drag it onto another to swap",
+    ),
     (
         "PageUp/Down · Home/End · h · H",
         "Todo list: page · first / last · show done (or the [show N done] button) · history",
