@@ -8,6 +8,33 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.29
+
+**The cursor says what the thing under it does.** Crew never set a cursor icon,
+so the arrow looked identical over a shell's output, over the `[x]` that kills
+it, and over a card that can be picked up and carried. Every one of those is a
+different verb, and the pointer is where an interface says so before anything is
+clicked.
+
+An I-beam over a pane's content and the input bar; a hand over the border
+buttons, the nav rows and the `+N` tile; an open hand over a card's legend row —
+the handle it is carried by — closing while one is in hand; a column-resize
+arrow on the sidebar's edge.
+
+**Drag the sidebar's edge to resize it.** The nav's width was a figure in the
+Settings form and nowhere else: the one dimension of the layout people actually
+want to nudge, reachable only by opening a pane, typing a number and saving it.
+Its edge is a visible boundary sitting right there; now it is a handle too,
+clamped to the same 160–320 px the form clamps to, from one shared constant so
+the two paths cannot disagree about what a legal width is. The nav is chrome and
+not a pane, so the grid never changes shape — it is handed a narrower content
+rect exactly as it is on a window resize.
+
+**The `+N` overflow tile answers a click.** It was the one drawn tile with no
+hit rect at all: it stood on the canvas announcing three hidden panes and
+ignored every click on it. Clicking now reveals the first pane it stands for,
+and clicking again walks to the next.
+
 ## 0.18.28
 
 **Double-click selects a word.** Crew had no word selection at all. Double-click

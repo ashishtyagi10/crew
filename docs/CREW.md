@@ -238,6 +238,23 @@ the convention puts it: a window's title bar, not its contents). **Drag** picks
 the card up: the card under the pointer lights in the accent, and releasing
 swaps the two, the mouse equivalent of the **Cmd+Shift+←↑→↓** chord above.
 
+**The pointer's shape.** The cursor says what the thing under it does before
+anything is clicked: an I-beam over text a click would select, a hand over the
+border buttons, the nav rows and the `+N` tile, an open hand over a card's
+legend row (the handle it is carried by) that closes while one is in hand, and
+a column-resize arrow on the sidebar's edge.
+
+**Resizing the sidebar.** Drag its inner edge. The width was a figure in the
+Settings form and nowhere else; it is now also a handle, clamped to the same
+160–320 px the form clamps to. The nav is chrome, not a pane, so the grid never
+changes shape — it is handed a narrower content rect exactly as it is when the
+window is resized. The width persists when you let go.
+
+**The `+N` tile.** When the minimized strip cannot show every thumbnail at a
+readable width, the last slot becomes a `+N` tile standing for the rest.
+Clicking it reveals the first pane behind it (focus is always a restore path);
+clicking again walks to the next.
+
 **Scrollback position.** A scrolled-back pane shows `⇡N` on its top border —
 how many lines up you are — and a proportional thumb down its right border:
 where in the buffer that is, and how much of the buffer there is. Both clear

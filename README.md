@@ -157,6 +157,10 @@ minimized thumbnail strip along the bottom of the content area, ordered
 least-recently-active first. Click a thumbnail, use the sidebar, or press
 **Cmd+1 … 9** to focus a pane and restore it to the full grid.
 
+The pointer changes shape to say what it can do: an I-beam over text, a hand
+over a button or a nav row, an open hand over a card's legend row, a resize
+arrow on the sidebar's edge — **drag that edge** to widen or narrow the nav.
+
 Inside a pane, **double-click selects a word** and **triple-click the line** —
 the gesture every terminal has, and each selection copies. On a card's top
 border the mouse does structural things instead: **double-click** zooms, and
