@@ -943,6 +943,15 @@ tasks fall back to key discovery and the keyless relay exactly as before. The pa
 — planner 4.2s → … · N exchange(s) · ~X tok (approx)`) at the end of every
 task, and accumulates the spend into the header's `~N tok` meter.
 
+**Reaching crew from a phone (Telegram).** `CREW_TELEGRAM_TOKEN` is a bot token
+from `@BotFather` — with none set the channel is registered but inert and never
+opens a socket. `CREW_TELEGRAM_CHATS` is a comma-separated allowlist of chat ids
+crew will listen to and reply to; it is empty by default, and empty means
+**nobody**, not everybody — an assistant with a public address is an assistant
+anyone can drive. Crew prints the id of any chat it turns away, so the first
+rejected message tells you what to put there. `crew daemon channels` shows every
+way in and whether it is usable.
+
 **Pointing a pane at a different binary.** Each plugin-backed pane runs a child
 process, and each resolves its command the same way: an environment override
 first, then a sibling of the running executable. `CREW_BROKER_PLUGIN` replaces
