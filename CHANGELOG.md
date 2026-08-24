@@ -8,6 +8,31 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.20
+
+**Messages arrive now, and the resident answers them.** Telegram shipped last
+release with no way to receive: the Bot API holds a request open for 25 seconds,
+so polling could never sit on the daemon's serve loop. The blocking half now
+lives inside the channel — a poll thread it starts the first time the daemon
+actually looks for messages, so a crew with a token but no running daemon still
+talks to nobody.
+
+The serve loop waits with a timeout instead of blocking outright, so between
+requests the resident does its own work: drain the channels, answer whoever
+wrote in. A daemon that only wakes when it is asked something is not a resident,
+it is a server.
+
+The vocabulary is three words on purpose — `help`, `status`, `sessions`. A
+channel that answers three honest questions is worth more than one pretending to
+be an agent it cannot reach yet. But anything it does not recognise still gets a
+reply saying what *is* possible: silence from a remote channel is
+indistinguishable from a crew that is down, which is the one thing it must never
+look like.
+
+The first time you message your bot, crew turns you away and prints your chat id
+so you know what to put in `CREW_TELEGRAM_CHATS`. That notice is also how you
+notice a stranger knocking.
+
 ## 0.18.19
 
 **Telegram — the first way into crew that is not this machine's keyboard.**
