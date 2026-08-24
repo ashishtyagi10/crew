@@ -1,4 +1,8 @@
 mod broker;
+/// Tool tiering: what a tool can do to the world, and whether it can be undone.
+pub mod tier {
+    pub use crate::broker::tier::*;
+}
 pub mod credentials;
 mod echo;
 mod host;

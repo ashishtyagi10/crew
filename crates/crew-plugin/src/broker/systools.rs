@@ -34,7 +34,7 @@ pub(crate) fn read_only_from(v: Option<&str>) -> bool {
 
 /// The block message when a MUTATING tool is used in read-only mode, else None.
 fn read_only_block(tool: &str, read_only: bool) -> Option<String> {
-    if read_only && matches!(tool, "run" | "write_file") {
+    if read_only && super::tier::blocked_by_read_only(tool) {
         Some(format!(
             "sys:{tool} blocked \u{2014} CREW_SYS_MODE=readonly (set CREW_SYS_MODE=full to enable)"
         ))

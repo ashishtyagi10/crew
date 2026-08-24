@@ -60,6 +60,7 @@ mod sysrun;
 mod systools;
 mod tasks;
 mod tick;
+pub mod tier;
 mod toolcall;
 mod toolclip;
 mod toolline;
