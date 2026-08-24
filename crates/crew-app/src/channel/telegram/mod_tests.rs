@@ -123,7 +123,7 @@ fn an_empty_message_is_not_an_inbound() {
 fn a_transport_failure_is_reported_not_swallowed() {
     let api = FakeApi::broken();
     assert!(pump(&api, 0, &allow(&[42])).is_err());
-    let mut t = Telegram::with_api(Box::new(FakeApi::broken()), allow(&[42]));
+    let mut t = Telegram::with_api(std::sync::Arc::new(FakeApi::broken()), allow(&[42]));
     assert!(t.tick().is_err());
 }
 
@@ -154,7 +154,7 @@ impl TelegramApi for Probe {
 #[test]
 fn sending_reaches_the_chat_the_address_names() {
     let log = std::sync::Arc::new(Mutex::new(Vec::new()));
-    let mut t = Telegram::with_api(Box::new(Probe(log.clone())), allow(&[42]));
+    let mut t = Telegram::with_api(std::sync::Arc::new(Probe(log.clone())), allow(&[42]));
     t.send("telegram:42", "on it").unwrap();
     assert_eq!(log.lock().unwrap().as_slice(), &[(42, "on it".to_string())]);
 }
@@ -163,7 +163,7 @@ fn sending_reaches_the_chat_the_address_names() {
 /// message to a stranger.
 #[test]
 fn crew_will_not_message_a_chat_outside_the_allowlist() {
-    let mut t = Telegram::with_api(Box::new(FakeApi::with(vec![])), allow(&[42]));
+    let mut t = Telegram::with_api(std::sync::Arc::new(FakeApi::with(vec![])), allow(&[42]));
     let err = t.send("telegram:999", "hello").unwrap_err();
     assert!(err.contains("999"), "{err}");
 }
@@ -191,8 +191,11 @@ fn without_a_token_the_channel_is_inert() {
 /// A token with nobody to talk to is not a working channel, and saying "ready" would be a lie.
 #[test]
 fn a_token_without_an_allowlist_is_not_ready() {
-    let t = Telegram::with_api(Box::new(FakeApi::with(vec![])), Allowlist::default());
+    let t = Telegram::with_api(
+        std::sync::Arc::new(FakeApi::with(vec![])),
+        Allowlist::default(),
+    );
     assert!(!t.ready());
-    let t = Telegram::with_api(Box::new(FakeApi::with(vec![])), allow(&[42]));
+    let t = Telegram::with_api(std::sync::Arc::new(FakeApi::with(vec![])), allow(&[42]));
     assert!(t.ready());
 }

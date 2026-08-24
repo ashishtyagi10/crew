@@ -32,6 +32,12 @@ pub(crate) trait Channel: Send {
     fn poll(&mut self) -> Vec<Inbound>;
     /// Send `text` to a full `kind:rest` address on this channel.
     fn send(&mut self, to: &str, text: &str) -> Result<(), String>;
+    /// Anything the operator should see: a refused sender, a transport error. Drained, so each
+    /// notice is reported once.
+    fn notices(&mut self) -> Vec<String> {
+        Vec::new()
+    }
+
     /// Is this channel usable right now? A channel with no credential configured is present but
     /// inert — it reports false rather than pretending, so `crew daemon status` can say which
     /// ways in are actually open.
@@ -92,9 +98,6 @@ impl Router {
     /// Drain every channel. Each message keeps its full `from` address, so a reply always has
     /// somewhere to go — a message whose origin is lost is one nobody can answer.
     ///
-    /// Consumed by 2.2, when a polled message starts reaching a session; until then the daemon
-    /// has channels but nothing to route them into.
-    #[allow(dead_code)]
     pub(crate) fn poll(&mut self) -> Vec<Inbound> {
         let mut out = Vec::new();
         for c in self.channels.values_mut() {
@@ -105,6 +108,14 @@ impl Router {
 
     /// Send `text` to `addr`. An unroutable address is an error, never a silent drop: a reply
     /// nobody receives looks exactly like a reply that was never written.
+    /// Every channel's notices, drained.
+    pub(crate) fn notices(&mut self) -> Vec<String> {
+        self.channels
+            .values_mut()
+            .flat_map(|c| c.notices())
+            .collect()
+    }
+
     pub(crate) fn send(&mut self, addr: &str, text: &str) -> Result<(), String> {
         let Some((kind, _)) = split_address(addr) else {
             return Err(format!(
