@@ -8,6 +8,30 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.10
+
+**The first piece of a crew that outlives its window.** Today the agent brain
+is a child process of the GUI — the `/crew` pane re-execs this binary with
+`--broker-plugin` — so closing the window ends the assistant along with it.
+`crew daemon` is the resident that replaces it.
+
+`crew daemon run` binds its own local endpoint and serves a status op;
+`crew daemon status` reports pid, uptime and live session count, exiting 3
+when nothing is running. Neither touches the GUI: the daemon has no window
+anywhere in its startup path and answers on a box with no display.
+
+The transport is not new — `ipc.rs` already speaks JSON-line request/reply
+over a Unix socket or a Windows named pipe. The daemon binds
+`crew-daemon*.sock`, deliberately outside the `crew-ipc*.sock` shape instance
+discovery parses, so the resident is never listed as an askable pane by
+`crew panes` or reached by `crew ask --any`. Starting a second daemon now
+probes for a live one first and refuses rather than reclaiming the socket out
+from under it.
+
+Sessions still belong to the pane, so the registry is honestly empty and
+reports 0. Moving them into the daemon — so a swarm survives the window
+closing — is the next step.
+
 ## 0.18.9
 
 **The usage budgets are in Settings, and nothing lives in the config file
