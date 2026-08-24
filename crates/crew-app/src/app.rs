@@ -100,6 +100,11 @@ pub struct CrewApp {
     pub(crate) fold_click: Option<(usize, u16)>,
     /// In-progress mouse drag selection over any pane, if any.
     pub(crate) drag: Option<crate::select::Drag>,
+    /// The sidebar's resize edge is in hand (see [`crate::navresize`]).
+    pub(crate) nav_drag: bool,
+    /// The cursor shape currently set on the window, so a pointer move that
+    /// changes nothing costs no platform call (see [`crate::pointer`]).
+    pub(crate) cursor_icon: winit::window::CursorIcon,
     /// A card picked up by its legend row and not yet dropped (see
     /// [`crate::panedrag`]). Mutually exclusive with `drag`: the legend row is
     /// the one row of a card that holds nothing to select.

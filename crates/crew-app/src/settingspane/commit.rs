@@ -29,7 +29,7 @@ pub(crate) fn commit_field(p: &mut SettingsPane) {
         }
         Field::NavWidth => {
             let v = p.nav_buf.parse::<f32>().unwrap_or(p.draft.nav_width);
-            p.draft.nav_width = v.clamp(160.0, 320.0);
+            p.draft.nav_width = crate::navresize::width_at(v);
         }
         Field::Accent => commit_accent(p),
         Field::PaperGrain => {

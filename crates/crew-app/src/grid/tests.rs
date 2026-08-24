@@ -253,6 +253,25 @@ fn strip_row_clamps_negative_width() {
     }
 }
 
+/// The `+N` tile must be a real, clickable slot: a tile drawn on the canvas
+/// that announces hidden panes and cannot be clicked is a dead control, which
+/// is what it was until it got a hit path of its own.
+#[test]
+fn the_overflow_tile_gets_a_slot_of_its_own_beside_the_thumbnails() {
+    let mut g = GridLayout::new();
+    for idx in 0..20 {
+        g.add(idx);
+    }
+    let out = compose_grid(content(), &g, 8.0, 16.0, 8.0);
+    let (n, r) = out.overflow.expect("a crowded strip overflows");
+    assert!(n > 0, "it stands for at least one pane");
+    assert!(r.w > 0.0 && r.h > 0.0, "and has an area to be clicked in");
+    // It owns the LAST slot, so it never sits under a thumbnail's rect.
+    for (_, t) in &out.minimized {
+        assert!(t.x + t.w <= r.x + 1.0, "thumbnail {t:?} overlaps {r:?}");
+    }
+}
+
 #[test]
 fn strip_hidden_names_exactly_the_panes_behind_the_overflow_tile() {
     // Same crowded setup as above: minimized LRU tail is 13..0, the strip
