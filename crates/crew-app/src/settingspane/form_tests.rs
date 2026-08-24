@@ -6,15 +6,29 @@ use super::{Field, FIELDS};
 #[test]
 fn wide_pane_lays_out_two_columns() {
     let lay = layout(80);
-    assert_eq!(lay.cards.len(), 3);
-    let appearance = &lay.cards[0];
-    let window = &lay.cards[1];
-    let notifications = &lay.cards[2];
+    // Structural rather than a card count: APPEARANCE owns the left column
+    // alone and everything else stacks down the right. Pinning the number
+    // meant adding a card broke this test without saying anything about the
+    // layout, which is what happened when USAGE arrived.
+    let (appearance, right) = lay.cards.split_first().expect("at least one card");
     assert_eq!(appearance.title, "APPEARANCE");
-    // Window sits in the right column, Notifications stacked below it.
-    assert!(window.rect.x > appearance.rect.x);
-    assert_eq!(notifications.rect.x, window.rect.x);
-    assert!(notifications.rect.y >= window.rect.y + window.rect.height);
+    assert!(right.len() >= 2, "the right column is empty");
+    for c in right {
+        assert!(
+            c.rect.x > appearance.rect.x,
+            "{} is not in the right column",
+            c.title
+        );
+        assert_eq!(c.rect.x, right[0].rect.x, "{} broke the column", c.title);
+    }
+    for w in right.windows(2) {
+        assert!(
+            w[1].rect.y >= w[0].rect.y + w[0].rect.height,
+            "{} overlaps {}",
+            w[1].title,
+            w[0].title
+        );
+    }
     assert_eq!(
         lay.height,
         lay.cards

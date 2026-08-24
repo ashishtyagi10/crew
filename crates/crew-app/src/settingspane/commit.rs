@@ -59,6 +59,14 @@ pub(crate) fn commit_field(p: &mut SettingsPane) {
                 .unwrap_or(p.draft.notify_min_secs);
             p.draft.notify_min_secs = v.clamp(1, 3600);
         }
+        Field::Budget5h => {
+            p.draft.usage_budget_5h =
+                super::tokens::commit(&p.budget5h_buf, p.draft.usage_budget_5h);
+        }
+        Field::Budget7d => {
+            p.draft.usage_budget_7d =
+                super::tokens::commit(&p.budget7d_buf, p.draft.usage_budget_7d);
+        }
         Field::NotifyPatterns => {
             p.draft.notify_patterns = p
                 .patterns_buf
@@ -119,6 +127,8 @@ pub(crate) fn refresh_bufs(p: &mut SettingsPane) {
     (p.light_from_buf, p.light_to_buf) = light_bufs(&p.draft);
     p.minsecs_buf = format!("{}", p.draft.notify_min_secs);
     p.patterns_buf = p.draft.notify_patterns.join("\n");
+    p.budget5h_buf = super::tokens::label(p.draft.usage_budget_5h);
+    p.budget7d_buf = super::tokens::label(p.draft.usage_budget_7d);
     p.family_query = p
         .draft
         .font_family

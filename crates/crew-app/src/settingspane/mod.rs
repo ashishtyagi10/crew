@@ -13,6 +13,7 @@ mod keys;
 mod labels;
 mod pairing;
 mod render;
+mod tokens;
 
 use crew_render::CellView;
 #[cfg(test)]
@@ -61,6 +62,10 @@ pub struct SettingsPane {
     pub(crate) minsecs_buf: String,
     /// Watched output substrings, one per line (text area).
     pub(crate) patterns_buf: String,
+    /// The two usage budgets in MILLIONS of tokens (see `tokens`), so the
+    /// number typed is the number said rather than eight digits.
+    pub(crate) budget5h_buf: String,
+    pub(crate) budget7d_buf: String,
 }
 
 impl SettingsPane {
@@ -77,6 +82,8 @@ impl SettingsPane {
         let (light_from_buf, light_to_buf) = commit::light_bufs(&cfg);
         let minsecs_buf = format!("{}", cfg.notify_min_secs);
         let patterns_buf = cfg.notify_patterns.join("\n");
+        let budget5h_buf = tokens::label(cfg.usage_budget_5h);
+        let budget7d_buf = tokens::label(cfg.usage_budget_7d);
         Self {
             draft: cfg,
             families,
@@ -93,6 +100,8 @@ impl SettingsPane {
             light_to_buf,
             minsecs_buf,
             patterns_buf,
+            budget5h_buf,
+            budget7d_buf,
         }
     }
 
