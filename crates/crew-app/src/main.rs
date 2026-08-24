@@ -25,6 +25,7 @@ mod attention;
 mod autoupdate;
 mod blocked;
 mod boxdraw;
+mod channel;
 mod charrain;
 mod chat;
 mod chataction;

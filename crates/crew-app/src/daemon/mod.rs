@@ -34,6 +34,9 @@ pub(crate) struct Status {
 pub(crate) struct Daemon {
     started: Instant,
     sessions: session::Registry,
+    /// Every way in and out. Empty until a real channel is built — the resident is reachable
+    /// only from a pane today, and `crew daemon channels` says so rather than implying more.
+    channels: crate::channel::Router,
 }
 
 impl Daemon {
@@ -46,6 +49,7 @@ impl Daemon {
         Self {
             started: Instant::now(),
             sessions: session::Registry::new(spawner),
+            channels: crate::channel::Router::new(),
         }
     }
 
@@ -94,6 +98,22 @@ pub(crate) fn answer(req: &Request, d: &mut Daemon) -> Option<Reply> {
                     alive: c.alive,
                 })
                 .collect(),
+        }),
+        Request::Channels { .. } => Some(Reply::Channels {
+            registered: d.channels.kinds().into_iter().map(str::to_string).collect(),
+            ready: d
+                .channels
+                .ready_kinds()
+                .into_iter()
+                .map(str::to_string)
+                .collect(),
+        }),
+        Request::Say { to, text, .. } => Some(match d.channels.send(to, text) {
+            Ok(()) => Reply::Sent {
+                id: to.clone(),
+                delivered: true,
+            },
+            Err(e) => Reply::Failed { message: e },
         }),
         Request::SessionSend { id, line, .. } => Some(match d.sessions.send(id, line) {
             Some(delivered) => Reply::Sent {
