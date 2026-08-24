@@ -157,6 +157,17 @@ minimized thumbnail strip along the bottom of the content area, ordered
 least-recently-active first. Click a thumbnail, use the sidebar, or press
 **Cmd+1 … 9** to focus a pane and restore it to the full grid.
 
+**Cmd+Arrow** moves focus the way the eye does: the card to the left, the one
+below, the one across. Pane cycling (Cmd+[ / Cmd+]) walks the panes in index
+order, which in a tiled grid is not the order they appear in — in a 2×2 grid,
+pane 2 sits *below* pane 1, not beside it. Hold **Shift** and the focused pane
+comes with you, swapping places with whichever card is that way. Neither wraps
+at the edge of the grid.
+
+The chrome answers the pointer: the `[-]` / `[x]` button under the cursor
+lights up (`[x]` in the bell colour — it ends a running program), and the
+sidebar PANES row under it brightens, because the whole row is a click target.
+
 Any full tile can also be **minimized into the left nav**: click the `[-]`
 button on its top border and the pane keeps running but leaves the grid; its
 sidebar PANES row gains a `[+]` — click the row (or jump to it with
@@ -180,6 +191,8 @@ Press **`/keys`** in the input bar for the full list in-app.
 | Jump to pane N | **Cmd+1 … 9** |
 | Jump to next active pane | **Cmd+A** |
 | Move pane left / right | **Cmd+{** / **Cmd+}** |
+| Focus the pane that way on the grid | **Cmd+←↑→↓** |
+| Swap the focused pane with that neighbour | **Cmd+Shift+←↑→↓** |
 | Focus the input bar | **Cmd+I** |
 | New shell pane | **Cmd+T** |
 | Reopen last session's panes (shells, Far, /crew) | `/restore` |

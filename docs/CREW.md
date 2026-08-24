@@ -148,6 +148,24 @@ activity dot, ordered least-recently-active first. The focused pane is protected
 from demotion. To restore a minimized pane to the full grid, click its thumbnail,
 click its entry in the sidebar's PANES list, or use **Cmd+1 … 9** to jump to it.
 
+**Spatial navigation.** **Cmd+←↑→↓** focuses the card that lies that way on
+the grid, chosen from the same rects the mouse hit-tests against — so keyboard
+focus and the pointer can never disagree about where a tile is. Pane cycling
+(**Cmd+[** / **Cmd+]**) steps in *index* order, which a tiled grid does not
+follow: with four panes, pane 2 sits below pane 1, not beside it. Add
+**Shift** and the focused pane travels with the gesture, swapping with the
+neighbour in that direction. Neither wraps at the grid's edge — a wrap in a
+spatial gesture reads as the whole canvas jumping. Zoomed, where there is no
+geometry to navigate, Cmd+Arrow falls back to stepping through the panes.
+
+**Pointer feedback.** The `[-]` and `[x]` on a card's border light under the
+cursor — `[-]` in the accent, `[x]` in the bell colour, so the control that
+ends a running program says so before it is clicked. A hovered sidebar PANES
+row lifts its ink to full contrast rather than washing a background behind it:
+the page's contrast budget is spent on the theme's own wash, so hover buys its
+emphasis with ink. Both repaint only when the target changes, so sweeping the
+pointer across the canvas costs one frame per thing it crosses.
+
 **Minimize to nav.** Every full tile carries a **`[-]` button** on its top
 border. Clicking it hides the pane into the left nav: the pane keeps running
 (its process is untouched) but leaves the grid, focus moves to the nearest
