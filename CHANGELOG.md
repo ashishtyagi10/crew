@@ -8,6 +8,30 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.30
+
+Three surfaces showed you part of something and gave you no way to reach the
+rest.
+
+**The sidebar LOG scrolls.** It is five rows onto a hundred buffered entries;
+the other ninety-five were reachable only through `/log`, which opens a whole
+pane for something the sidebar was already showing part of. A wheel over the LOG
+now moves that window, and its rule carries `⇡N` while you are back from the
+live tail — a log that silently stops following looks like a log that stopped. A
+line arriving mid-scroll steps the window with the buffer rather than sliding
+out from under you; scroll back down to follow again.
+
+**The scroll thumb is a gutter you can drag.** 0.18.28 gave a scrolled-back pane
+a proportional thumb, and the next thing anyone tries after something says where
+they are is moving it. Pressing the right border jumps there at once — a
+scrollbar that only moves on the second event feels broken — and dragging
+crosses ten thousand lines in one gesture, which neither the wheel nor a page key
+can. It is live only while the thumb is drawn: at the live bottom there is
+nothing behind it to reach. The pointer takes a row-resize arrow over it.
+
+**Cmd+wheel resizes the font** (Ctrl+wheel off macOS). `Cmd+=` and `Cmd+-`
+already did it a step at a time; the wheel is how people actually reach for it.
+
 ## 0.18.29
 
 **The cursor says what the thing under it does.** Crew never set a cursor icon,
