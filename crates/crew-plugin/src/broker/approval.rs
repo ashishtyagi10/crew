@@ -215,3 +215,90 @@ impl Gate {
 #[cfg(test)]
 #[path = "approval_tests.rs"]
 mod tests;
+
+// ---- carrying the question out of this process ------------------------------------------
+
+/// Answers that have arrived for approvals this process is blocked on.
+///
+/// A process global, deliberately: a broker is one session with one stdout, the gate sits deep
+/// inside the tool-call path, and the answer arrives on the stdin loop far away from it. Passing
+/// a handle between those two would mean threading it through every constructor in between for
+/// no gain — there is exactly one mailbox per process, and its lifetime is the process.
+static MAILBOX: std::sync::Mutex<Option<std::collections::BTreeMap<String, bool>>> =
+    std::sync::Mutex::new(None);
+
+/// Where an [`crate::PluginEvent::Approval`] goes when the gate opens one. Set once by the stdio
+/// loop; `None` in tests and in any host that never asks.
+static EMITTER: std::sync::OnceLock<std::sync::Arc<dyn Fn(crate::PluginEvent) + Send + Sync>> =
+    std::sync::OnceLock::new();
+
+/// Point approval questions at the host. Idempotent; the first caller wins.
+pub fn set_emitter(f: std::sync::Arc<dyn Fn(crate::PluginEvent) + Send + Sync>) {
+    let _ = EMITTER.set(f);
+}
+
+/// The event that carries one pending approval to the host.
+pub fn approval_event(p: &Pending) -> crate::PluginEvent {
+    crate::PluginEvent::Approval {
+        id: p.id.clone(),
+        tool: p.tool.clone(),
+        tier: p.tier.label().to_string(),
+        reply_to: p.requester.reply_to().to_string(),
+        question: question_for(&p.tool, p.tier),
+    }
+}
+
+/// Ask the host to put this question to a human. `false` when nothing can carry it.
+///
+/// NOTE FOR TESTS: no unit test may install an emitter. It is a process-wide `OnceLock`, so one
+/// test doing it would silently change how every later test's gate behaves — exactly the ambient
+/// coupling that made three colour tests flip green to red overnight. The payload is tested
+/// through [`approval_event`], and the wiring through the daemon's round trip.
+pub fn ask_host(p: &Pending) -> bool {
+    let Some(emit) = EMITTER.get() else {
+        return false;
+    };
+    emit(approval_event(p));
+    true
+}
+
+/// The sentence a person is asked. Names the tool and why it needs asking, because "approve?"
+/// with no subject is a question nobody can answer responsibly.
+pub fn question_for(tool: &str, tier: Tier) -> String {
+    format!(
+        "{tool} is about to run and {}. Reply yes to allow, no to refuse.",
+        match tier {
+            Tier::Irreversible => "cannot be undone",
+            Tier::Reversible => "changes something",
+            Tier::Read => "reads something",
+        }
+    )
+}
+
+/// Record an answer. Called by whatever reads the host's commands.
+pub fn deliver_answer(id: &str, granted: bool) {
+    let mut g = MAILBOX.lock().unwrap_or_else(|e| e.into_inner());
+    g.get_or_insert_with(Default::default)
+        .insert(id.to_string(), granted);
+}
+
+/// Take the answer for `id`, if one has arrived.
+pub fn take_answer(id: &str) -> Option<bool> {
+    let mut g = MAILBOX.lock().unwrap_or_else(|e| e.into_inner());
+    g.as_mut()?.remove(id)
+}
+
+/// Block until `id` is answered or `timeout_ms` passes. `None` = nobody answered, which the
+/// caller must treat as a refusal: an approval that lapses is not a quiet yes.
+pub fn wait_for_answer(id: &str, timeout_ms: u64) -> Option<bool> {
+    let start = std::time::Instant::now();
+    loop {
+        if let Some(a) = take_answer(id) {
+            return Some(a);
+        }
+        if start.elapsed().as_millis() as u64 >= timeout_ms {
+            return None;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
+}

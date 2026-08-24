@@ -27,6 +27,10 @@ struct Route {
     session: String,
     /// How far through this session's output we have already read.
     cursor: usize,
+    /// The approval this conversation is blocked on, if any. While it is set, the next thing
+    /// the sender says is read as an ANSWER rather than a new task — the agent is stopped
+    /// mid-tool-call waiting for it, and starting new work on top would leave it hanging.
+    awaiting: Option<String>,
 }
 
 /// Channel addresses to sessions.
@@ -62,10 +66,24 @@ impl Bridge {
                 Route {
                     session: id,
                     cursor: 0,
+                    awaiting: None,
                 },
             );
         }
         let route = self.routes.get(addr).expect("just inserted");
+        // A conversation blocked on an approval hears the next message as the answer.
+        if let Some(id) = route.awaiting.clone() {
+            let Some(granted) = parse_answer(text) else {
+                return Ok(UNCLEAR);
+            };
+            let cmd = serde_json::to_string(&PluginCommand::Approve { id, granted })
+                .map_err(|e| e.to_string())?;
+            reg.send(&route.session, &cmd);
+            if let Some(r) = self.routes.get_mut(addr) {
+                r.awaiting = None;
+            }
+            return Ok(if granted { ALLOWED } else { REFUSED });
+        }
         let cmd = serde_json::to_string(&PluginCommand::Send {
             channel: CHANNEL.to_string(),
             text: text.to_string(),
@@ -107,8 +125,15 @@ impl Bridge {
             }
             route.cursor = next;
             for line in lines {
-                if let Some(text) = reply_text(&line) {
-                    out.push((addr.clone(), text));
+                match emitted(&line) {
+                    Some(Emitted::Reply(text)) => out.push((addr.clone(), text)),
+                    // The agent is now blocked on this. Ask, and remember which approval the
+                    // next thing this address says is answering.
+                    Some(Emitted::Ask { id, question }) => {
+                        route.awaiting = Some(id);
+                        out.push((addr.clone(), question));
+                    }
+                    None => {}
                 }
             }
         }
@@ -122,10 +147,45 @@ impl Bridge {
     }
 }
 
-/// The reply text in one broker output line, if it is one.
-pub(crate) fn reply_text(line: &str) -> Option<String> {
+/// What crew says when it has taken an answer.
+pub(crate) const ALLOWED: &str = "approved \u{2014} carrying on";
+pub(crate) const REFUSED: &str = "refused \u{2014} I will not do it";
+/// What it says when the answer was neither. Deliberately does NOT guess: the whole point of
+/// asking is that somebody meant to say yes or no, and reading "maybe later" as either is worse
+/// than asking twice.
+pub(crate) const UNCLEAR: &str = "I need a yes or a no on that one.";
+
+/// Something from a session worth sending on.
+#[derive(Debug, PartialEq)]
+pub(crate) enum Emitted {
+    /// A finished reply.
+    Reply(String),
+    /// A question a human has to answer before the agent can continue.
+    Ask { id: String, question: String },
+}
+
+/// What one broker output line means to the channel, if anything.
+pub(crate) fn emitted(line: &str) -> Option<Emitted> {
     match serde_json::from_str::<PluginEvent>(line).ok()? {
-        PluginEvent::Message { text, .. } if !text.trim().is_empty() => Some(text),
+        PluginEvent::Message { text, .. } if !text.trim().is_empty() => Some(Emitted::Reply(text)),
+        PluginEvent::Approval { id, question, .. } => Some(Emitted::Ask { id, question }),
+        _ => None,
+    }
+}
+
+/// Read a yes or a no out of what somebody typed. `None` for anything else — including an empty
+/// message, and including words like "maybe": an approval is exactly the place not to guess.
+pub(crate) fn parse_answer(text: &str) -> Option<bool> {
+    match text
+        .trim()
+        .to_lowercase()
+        .trim_end_matches(['.', '!'])
+        .trim()
+    {
+        "y" | "yes" | "ok" | "okay" | "sure" | "approve" | "approved" | "go" | "go ahead"
+        | "do it" | "allow" => Some(true),
+        "n" | "no" | "nope" | "deny" | "denied" | "refuse" | "stop" | "cancel" | "don't"
+        | "dont" => Some(false),
         _ => None,
     }
 }

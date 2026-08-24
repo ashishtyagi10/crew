@@ -278,3 +278,86 @@ fn a_channel_requester_from_the_environment_is_not_a_present_human() {
         "and the question knows where to go"
     );
 }
+
+// ---- carrying the question to a human, and the answer back --------------------------------
+
+fn pending(id: &str) -> Pending {
+    Pending {
+        id: id.into(),
+        tool: "gmail:send".into(),
+        tier: Tier::Irreversible,
+        requester: chan(),
+        asked_ms: 0,
+    }
+}
+
+/// The question a person is asked has to name the thing that is about to happen. "Approve?" with
+/// no subject is a question nobody can answer responsibly.
+#[test]
+fn the_question_names_the_tool_and_why_it_is_being_asked() {
+    let q = question_for("gmail:send", Tier::Irreversible);
+    assert!(q.contains("gmail:send"), "{q}");
+    assert!(q.contains("cannot be undone"), "{q}");
+    assert!(
+        q.to_lowercase().contains("yes") && q.to_lowercase().contains("no"),
+        "{q}"
+    );
+}
+
+/// The event must carry everything the host needs to ask and to route the answer: which approval,
+/// what tool, and where the question goes.
+#[test]
+fn the_approval_event_carries_the_id_the_tool_and_the_address() {
+    match approval_event(&pending("a7")) {
+        crate::PluginEvent::Approval {
+            id,
+            tool,
+            tier,
+            reply_to,
+            question,
+        } => {
+            assert_eq!(id, "a7");
+            assert_eq!(tool, "gmail:send");
+            assert_eq!(tier, "irreversible");
+            assert_eq!(
+                reply_to, "telegram:me",
+                "the answer has somewhere to come from"
+            );
+            assert!(question.contains("gmail:send"));
+        }
+        other => panic!("expected an approval event, got {other:?}"),
+    }
+}
+
+#[test]
+fn an_answer_that_has_arrived_is_taken_exactly_once() {
+    deliver_answer("m1", true);
+    assert_eq!(take_answer("m1"), Some(true));
+    assert_eq!(take_answer("m1"), None, "an answer is not reusable");
+}
+
+#[test]
+fn answers_do_not_get_confused_with_each_other() {
+    deliver_answer("m2", true);
+    deliver_answer("m3", false);
+    assert_eq!(take_answer("m3"), Some(false));
+    assert_eq!(take_answer("m2"), Some(true));
+}
+
+#[test]
+fn waiting_returns_an_answer_that_arrives_while_we_wait() {
+    let id = "m4".to_string();
+    let t = std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(150));
+        deliver_answer(&id, true);
+    });
+    assert_eq!(wait_for_answer("m4", 5_000), Some(true));
+    t.join().unwrap();
+}
+
+/// Silence is not consent. A wait that ends unanswered must say so, and the caller turns that
+/// into a refusal.
+#[test]
+fn waiting_gives_up_and_reports_nobody_answered() {
+    assert_eq!(wait_for_answer("m5-never", 150), None);
+}
