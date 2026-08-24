@@ -486,9 +486,42 @@ pub(crate) fn submit_bytes(line: &str) -> Vec<u8> {
 /// would otherwise race under the default parallel test runner. Mirrors the
 /// `guard()` used by crew-theme's own tests.
 #[cfg(test)]
-pub(crate) fn theme_test_guard() -> std::sync::MutexGuard<'static, ()> {
-    static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
-    LOCK.lock().unwrap_or_else(|e| e.into_inner())
+static THEME_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+/// Holds the lock, pins a known theme, and RESTORES whatever was active on drop.
+///
+/// The restore is the load-bearing half; the pin only decides what the first taker in a process
+/// sees. No test here distinguishes them — a test that tried was found to pass with the pin
+/// removed, so it was deleted rather than kept as decoration.
+///
+/// The lock alone was not enough. Serialising theme-touching tests stops them racing, but it
+/// leaves whichever theme the last one published in place for everybody after — and a test that
+/// compares against a derived colour (`chatink` floors every ink for contrast against the card)
+/// then passes or fails depending on what ran before it. Three markdown colour tests went from
+/// green to red overnight with no code change that way, and reproduced under
+/// `--test-threads=1`, which is what ruled a race out and pointed here.
+#[cfg(test)]
+pub(crate) struct ThemeGuard {
+    _lock: std::sync::MutexGuard<'static, ()>,
+    prev: crew_theme::ThemeId,
+}
+
+#[cfg(test)]
+impl Drop for ThemeGuard {
+    fn drop(&mut self) {
+        crew_theme::set_theme(self.prev);
+    }
+}
+
+#[cfg(test)]
+pub(crate) fn theme_test_guard() -> ThemeGuard {
+    let lock = THEME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let prev = crew_theme::current_id();
+    // The default. A test wanting another theme still sets one after taking the guard; this
+    // only decides what a test that never mentions a theme gets, which used to be "whatever the
+    // previous test left behind".
+    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+    ThemeGuard { _lock: lock, prev }
 }
 
 /// Serialises tests that touch the process-global motion level
@@ -506,7 +539,7 @@ pub(crate) fn theme_test_guard() -> std::sync::MutexGuard<'static, ()> {
 /// consequence: a test must take one guard or the other, NEVER both (the
 /// mutex is not reentrant).
 #[cfg(test)]
-pub(crate) fn motion_test_guard() -> std::sync::MutexGuard<'static, ()> {
+pub(crate) fn motion_test_guard() -> ThemeGuard {
     theme_test_guard()
 }
 
