@@ -18,6 +18,11 @@ impl PtyTerm {
         self.core.display_offset()
     }
 
+    /// Every line the viewport can reach — scrollback plus the live screen.
+    pub fn scrollable_lines(&self) -> usize {
+        self.core.scrollable_lines()
+    }
+
     /// Whether the program enabled bracketed-paste mode.
     pub fn bracketed_paste(&self) -> bool {
         self.core.bracketed_paste()

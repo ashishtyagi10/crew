@@ -142,6 +142,14 @@ impl TermCore {
         self.term.grid().display_offset()
     }
 
+    /// Every line the viewport can reach: the scrollback history plus the live
+    /// screen. The denominator of a scroll indicator — `display_offset` alone
+    /// says how far back you are, never how far back there is.
+    pub(crate) fn scrollable_lines(&self) -> usize {
+        let g = self.term.grid();
+        g.history_size() + g.screen_lines()
+    }
+
     pub(crate) fn bracketed_paste(&self) -> bool {
         self.term.mode().contains(TermMode::BRACKETED_PASTE)
     }
