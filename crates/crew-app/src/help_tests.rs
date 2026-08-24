@@ -1,0 +1,203 @@
+use super::*;
+
+/// The overlay rebuilt row by row, which is how it is actually read.
+/// `to_cells_opaque` fills every cell — blanks included — so scanning a
+/// flat character stream matches text that never appears on one line.
+fn rows_of(cells: &[CellView]) -> Vec<String> {
+    let mut rows: std::collections::BTreeMap<u16, String> = Default::default();
+    for c in cells {
+        rows.entry(c.row).or_default().push(c.c);
+    }
+    rows.into_values().collect()
+}
+
+/// Letters and digits only, on both sides. The buffer fills blank cells
+/// with a glyph that is neither a space nor whitespace, so neither a raw
+/// nor a whitespace-squeezed comparison finds text that spans words.
+fn letters(s: &str) -> String {
+    s.chars().filter(char::is_ascii_alphanumeric).collect()
+}
+
+fn shows(cells: &[CellView], needle: &str) -> bool {
+    let want = letters(needle);
+    rows_of(cells).iter().any(|r| letters(r).contains(&want))
+}
+
+#[test]
+fn renders_bindings_with_border() {
+    let (w, h) = size();
+    let cells = help_cells(w, h, 0);
+    assert!(cells.iter().any(|c| c.c == '╭'));
+    assert!(shows(&cells, "Ctrl+Tab"), "app bindings listed");
+    assert!(shows(&cells, "in an agent pane"), "chat section listed");
+}
+
+/// The keys added with the plan card must be findable. A binding nobody
+/// can discover is a binding nobody has.
+#[test]
+fn the_chat_pane_keys_are_documented() {
+    let (w, h) = size();
+    let cells = help_cells(w, h, 0);
+    for needle in [
+        "Enter",
+        "Esc",
+        "pending plan",
+        "Shift+Enter",
+        "Tab",
+        "Recall a prompt",
+        "Attach just those lines",
+    ] {
+        assert!(shows(&cells, needle), "missing {needle}");
+    }
+}
+
+/// The overlay used to have to FIT a normal window: it did not scroll, so
+/// a list one row too tall was cut off in silence and this test failed the
+/// build until someone made room. Three times in one release "making room"
+/// meant merging two unrelated rows and losing detail from both.
+///
+/// It scrolls now, so the contract is the one that actually matters: every
+/// row is REACHABLE. The width still has to fit — nothing scrolls
+/// sideways.
+#[test]
+fn every_binding_is_reachable_even_when_the_list_outgrows_the_window() {
+    let (w, _) = size();
+    assert!(w <= 130, "overlay is {w} cols and will be truncated");
+    // A window shorter than the list, which is now the normal case.
+    let h = 24u16;
+    assert!(
+        max_scroll(h) > 0,
+        "premise: {} rows do not fit in {h}",
+        lines().len()
+    );
+    let last = *lines().last().expect("a non-empty list");
+    let cells = help_cells(w, h, max_scroll(h));
+    assert!(
+        shows(&cells, last.1),
+        "the last row ({:?}) is unreachable at max scroll",
+        last.1
+    );
+    // …and the first row is still there before you scroll.
+    let first = BINDINGS[0];
+    assert!(shows(&help_cells(w, h, 0), first.1), "the first row");
+}
+
+/// Scrolling stops where the list does. Running past the end into blank
+/// space is what makes an unfamiliar scroll feel broken.
+#[test]
+fn scrolling_stops_at_the_end_of_the_list() {
+    let (w, h) = (size().0, 24u16);
+    let at_end = rows_of(&help_cells(w, h, max_scroll(h)));
+    assert_eq!(
+        rows_of(&help_cells(w, h, max_scroll(h) + 50)),
+        at_end,
+        "scrolling past the end must draw the same thing"
+    );
+    let last = *lines().last().expect("a non-empty list");
+    assert!(shows(&help_cells(w, h, max_scroll(h)), last.1));
+}
+
+/// A scrollable thing that never says so is one nobody scrolls.
+#[test]
+fn the_overlay_says_when_there_is_more_below() {
+    let (w, h) = (size().0, 24u16);
+    assert!(rows_of(&help_cells(w, h, 0)).join("").contains('\u{2193}'));
+    let end = rows_of(&help_cells(w, h, max_scroll(h))).join("");
+    assert!(!end.contains('\u{2193}'), "nothing more below at the end");
+    assert!(end.contains('\u{2191}'), "but there is more above");
+}
+
+/// EVERY description in full, not just the ones that happened to fit.
+/// `the_chat_pane_keys_are_documented` passed throughout the eight rows
+/// that were being clipped, because each of its needles sat inside the
+/// first 30 columns — an assertion on a prefix cannot see a missing tail.
+#[test]
+fn no_description_is_clipped() {
+    let (w, h) = size();
+    let cells = help_cells(w, h, 0);
+    for (k, d) in BINDINGS.iter().chain(CHAT_BINDINGS) {
+        assert!(shows(&cells, d), "clipped description for {k}: {d}");
+    }
+}
+
+#[test]
+fn tiny_renders_nothing() {
+    assert!(help_cells(8, 3, 0).is_empty());
+}
+
+/// Chords the manual carries that the overlay deliberately does not: pane
+/// cycling has a documented second spelling, and the overlay lists the
+/// primary one. Declared, so a real omission stays visible.
+const OVERLAY_OMITS: &[&str] = &["Cmd+]", "Cmd+["];
+
+/// The manual says `/keys` shows "this list in-app". It did not:
+/// **Ctrl+Shift+L** and **Ctrl+Shift+M** were documented and missing from
+/// the overlay, and **Ctrl+O** was implemented, tested, and in neither list
+/// — a working binding no user could discover from anywhere. Two lists,
+/// nothing comparing them, exactly as before.
+#[test]
+fn the_overlay_and_the_manual_list_the_same_chords() {
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs/CREW.md");
+    let Ok(docs) = std::fs::read_to_string(&path) else {
+        return; // docs not shipped in this build context
+    };
+    for (keys, _) in BINDINGS.iter().chain(CHAT_BINDINGS) {
+        for chord in keys.split(" / ") {
+            let chord = chord.trim();
+            // Only modifier chords. Bare keys (`Enter`, `Right`, `Tab`) are
+            // the composer's own editing verbs, and composer syntax
+            // (`@a+b`) merely contains a `+` — a chord is where drift
+            // hides, and a chord starts with a modifier.
+            if !is_chord(chord) {
+                continue;
+            }
+            assert!(
+                docs.contains(chord),
+                "the overlay shows `{chord}`, which docs/CREW.md never mentions"
+            );
+        }
+    }
+    for chord in documented_chords(&docs) {
+        let listed = BINDINGS
+            .iter()
+            .chain(CHAT_BINDINGS)
+            .any(|(k, _)| k.contains(&chord));
+        assert!(
+            listed || OVERLAY_OMITS.contains(&chord.as_str()),
+            "docs/CREW.md documents `{chord}`, which /keys never shows"
+        );
+    }
+}
+
+/// A modifier chord, as opposed to a bare key or composer syntax.
+fn is_chord(s: &str) -> bool {
+    ["Cmd+", "Ctrl+", "Alt+", "Shift+"]
+        .iter()
+        .any(|m| s.starts_with(m))
+}
+
+/// The bolded chords in the manual's shortcuts table.
+fn documented_chords(docs: &str) -> Vec<String> {
+    let Some(start) = docs.find("## Keyboard shortcuts") else {
+        return Vec::new();
+    };
+    let table = &docs[start..];
+    let end = table[3..]
+        .find("\n## ")
+        .map(|i| i + 3)
+        .unwrap_or(table.len());
+    let mut out = Vec::new();
+    let mut rest = &table[..end];
+    while let Some(i) = rest.find("**") {
+        rest = &rest[i + 2..];
+        let Some(j) = rest.find("**") else { break };
+        let span = rest[..j].trim().to_string();
+        rest = &rest[j + 2..];
+        if is_chord(&span) {
+            out.push(span);
+        }
+    }
+    out.sort();
+    out.dedup();
+    out
+}

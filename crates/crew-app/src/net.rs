@@ -5,7 +5,12 @@ use crate::boxdraw::section_header;
 
 use crate::palette::accent;
 /// Blue-cyan for the throughput sparkline (distinct from the green CPU chart).
-const SPARK: (u8, u8, u8) = (120, 200, 255);
+/// The throughput trace's blue, lightened or darkened until the page it sits
+/// on can show it. As the flat constant `(120, 200, 255)` it read at 1.6 on
+/// every light theme — a sparkline nobody could see.
+fn spark() -> (u8, u8, u8) {
+    crew_theme::readable::spark(crew_theme::theme())
+}
 
 /// Format a per-second byte rate compactly, e.g. `0 B/s`, `12 KB/s`, `3.4 MB/s`.
 pub fn rate(bytes: u64) -> String {
@@ -41,7 +46,7 @@ pub fn net_cells(rx: u64, tx: u64, hist: &crate::spark::History, cols: u16) -> V
         3,
         2,
         0,
-        SPARK,
+        spark(),
     ));
     out
 }
@@ -75,6 +80,9 @@ mod tests {
 
     #[test]
     fn net_section_has_rule_arrows_and_chart() {
+        // The colours are derived from the live theme now, so two reads of
+        // the process global must not straddle another test switching it.
+        let _g = crate::app::theme_test_guard();
         let mut hist = crate::spark::History::new(16);
         for v in [1000, 5000, 20000, 2000] {
             hist.push(v);
@@ -88,6 +96,6 @@ mod tests {
         // the throughput line chart draws vertical block glyphs on row 2
         assert!(cells
             .iter()
-            .any(|c| c.row == 2 && c.fg == SPARK && ('\u{2581}'..='\u{2588}').contains(&c.c)));
+            .any(|c| c.row == 2 && c.fg == spark() && ('\u{2581}'..='\u{2588}').contains(&c.c)));
     }
 }

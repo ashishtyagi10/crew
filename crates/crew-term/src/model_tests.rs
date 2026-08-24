@@ -306,10 +306,10 @@ mod selection_tests {
         t.sel_update(1, 0);
         let cells = t.cells(false);
         let bg = |ch| cells.iter().find(|c| c.c == ch).map(|c| c.bg);
-        assert_eq!(bg('h'), Some(super::super::modelcells::SELECTION_BG));
-        assert_eq!(bg('e'), Some(super::super::modelcells::SELECTION_BG));
+        assert_eq!(bg('h'), Some(super::super::modelcells::selection_bg()));
+        assert_eq!(bg('e'), Some(super::super::modelcells::selection_bg()));
         // 'o' is outside the selection — it keeps the normal background.
-        assert_ne!(bg('o'), Some(super::super::modelcells::SELECTION_BG));
+        assert_ne!(bg('o'), Some(super::super::modelcells::selection_bg()));
     }
 
     #[test]

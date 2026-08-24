@@ -212,7 +212,7 @@ pub(crate) fn heading_fg() -> Color {
 /// Link tint: reuse the terminal pane's own URL-highlight colour (`linkhl`)
 /// so a link reads the same whether it's in a pane or a chat card.
 pub(crate) fn link_color() -> Color {
-    crate::linkhl::LINK_FG
+    crate::linkhl::link_fg()
 }
 
 #[cfg(test)]

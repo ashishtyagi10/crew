@@ -164,7 +164,11 @@ impl CrewApp {
             let hx = (sw - hwp) / 2.0;
             let hy = (sh - hhp) / 2.0;
             scenes.push(PaneScene {
-                cells: crate::help::help_cells(hw.min((sw / cw) as u16), hh.min((sh / ch) as u16)),
+                cells: crate::help::help_cells(
+                    hw.min((sw / cw) as u16),
+                    hh.min((sh / ch) as u16),
+                    self.help_scroll,
+                ),
                 x: hx,
                 y: hy,
                 w: hwp,

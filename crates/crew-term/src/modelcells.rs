@@ -3,8 +3,13 @@
 //! from `model.rs` (child module — parent-private access preserved).
 use super::*;
 
-/// Background painted over selected cells.
-pub(super) const SELECTION_BG: (u8, u8, u8) = (54, 84, 130);
+/// Background painted over selected cells: the selection blue, darkened or
+/// lightened until the terminal's own text reads on it. It shipped as the flat
+/// constant `(54, 84, 130)`, which put selected text at 2.4 contrast on every
+/// light theme — a selection you could see and not read.
+pub(super) fn selection_bg() -> (u8, u8, u8) {
+    crew_theme::readable::selection_bg(crew_theme::theme())
+}
 
 /// A desaturated (grey) background at either extreme — the kind agent CLIs
 /// paint behind the line you just sent, tuned to whichever theme they detected
@@ -83,7 +88,7 @@ impl TermCore {
                 // Selected cells take the selection background, drawn over any
                 // program colours (the copied text comes from the engine).
                 if selection.is_some_and(|r| r.contains(ind.point)) {
-                    bg = SELECTION_BG;
+                    bg = selection_bg();
                 }
                 // Legibility floor: a program that sampled the background once
                 // (or guessed wrong) keeps painting for the other theme after a
