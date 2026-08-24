@@ -8,6 +8,34 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.21
+
+**A message from a channel becomes an agent task.** Until now crew answered
+three questions from a phone and apologised for everything else. Now anything
+that is not `help`, `status` or `sessions` is handed to an agent session, and
+the reply comes back to whoever asked.
+
+One session per channel address, kept for the life of the daemon — a
+conversation from a phone should remember the last thing you said, and opening
+a fresh broker per message would throw that context away. Two different senders
+never share one.
+
+Only finished replies are forwarded. The broker also streams activity, token
+stats, mid-reply deltas and task lifecycle; sending those to a phone would turn
+a conversation into a debug log. A reply is delivered exactly once — a phone
+buzzing twice for one answer is the most visible bug this could have — and if
+the session has died, you are told so and the next message starts a fresh one
+rather than writing into a pipe that will never answer.
+
+Every tool that session calls still passes the action gate, so a task sent from
+a channel cannot run an irreversible command without approval.
+
+**Also fixed:** three markdown colour tests compared rendered cells against raw
+theme slots rather than the ink the renderer actually uses — `chatink` pushes
+every colour through a contrast floor first. The derived table is computed once
+on first use, so which theme was live at that moment decided whether the suite
+passed, which is how they went from green to red overnight with no code change.
+
 ## 0.18.20
 
 **Messages arrive now, and the resident answers them.** Telegram shipped last
