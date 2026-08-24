@@ -84,6 +84,8 @@ impl CrewApp {
             .unwrap_or_default();
         // One clock read per frame keeps every row's blink phase in step.
         let now = crate::anim::now_ms();
+        // One hit-test per frame, not one per row.
+        let hovered = self.pane_at_sidebar();
         self.panes
             .iter()
             .enumerate()
@@ -95,6 +97,7 @@ impl CrewApp {
                 minimized: p.hidden || (self.zoomed && i != zoomed_on) || strip_hidden.contains(&i),
                 attention: p.attention.map(|a| (a.glyph(), a.visible(now))),
                 busy: crate::paneview::pane_busy(p),
+                hovered: hovered == Some(i),
             })
             .collect()
     }

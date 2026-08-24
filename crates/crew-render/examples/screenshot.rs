@@ -113,8 +113,7 @@ fn main() {
         paper_bg.update_uniform(
             &queue,
             bg_f32,
-            W as f32,
-            H as f32,
+            (W as f32, H as f32),
             1.0,
             1.0 * crew_theme::theme().grain,
             dots.as_ref(),
@@ -222,7 +221,7 @@ fn main() {
     for grain_mul in [0.0_f32, 0.6, 1.0, 1.6] {
         let out_path = format!("{out_dir}/grain-{grain_mul:.1}.png");
 
-        paper_bg.update_uniform(&queue, bg_f32, W as f32, H as f32, 1.0, grain_mul, None);
+        paper_bg.update_uniform(&queue, bg_f32, (W as f32, H as f32), 1.0, grain_mul, None);
 
         let mut enc = device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
 
@@ -345,7 +344,7 @@ fn main() {
 
         let bg = crew_theme::theme().page_bg;
         let bg_f32 = crew_render::color::target_rgba(bg, 1.0, FORMAT.is_srgb());
-        paper_bg.update_uniform(&queue, bg_f32, W as f32, H as f32, 1.0, 1.0, None);
+        paper_bg.update_uniform(&queue, bg_f32, (W as f32, H as f32), 1.0, 1.0, None);
 
         let mut enc = device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
         {
