@@ -152,11 +152,53 @@ struct SessionTools {
     /// is exactly the flake that turned up. It also makes the surface stable
     /// for the life of a session, which is what it was always meant to be.
     sys: bool,
+    /// Who this session's tool calls are made on behalf of.
+    requester: super::approval::Requester,
+    /// The approval gate. Shared, so approvals opened by one call are answerable later.
+    gate: Arc<Mutex<super::approval::Gate>>,
+    policy: super::approval::Policy,
+    /// Where decisions are recorded. `None` in tests that must not touch the user's ledger.
+    ledger: Option<super::ledger::Ledger>,
 }
 
 impl SessionTools {
     fn new(mcp: Arc<Mutex<crate::mcp::McpHost>>, sys: bool) -> Self {
-        Self { mcp, sys }
+        Self {
+            mcp,
+            sys,
+            requester: super::approval::Requester::LocalPane,
+            gate: Arc::new(Mutex::new(super::approval::Gate::new())),
+            policy: super::approval::Policy::default(),
+            // Never under test. The suite ran once with this unguarded and put twelve
+            // records into the real ledger at ~/…/crew/ledger.jsonl — an audit trail that
+            // contains a test run's shell calls is worse than no audit trail, because
+            // someone reading it later cannot tell which lines were a person.
+            ledger: (!cfg!(test)).then(|| super::ledger::Ledger::at(super::ledger::default_path())),
+        }
+    }
+
+    /// The same runner answering to somebody who is NOT at the keyboard. Unused until a channel
+    /// exists to carry the question; it is the reason the gate is wired now rather than later.
+    #[cfg(test)]
+    fn for_requester(
+        mcp: Arc<Mutex<crate::mcp::McpHost>>,
+        sys: bool,
+        requester: super::approval::Requester,
+    ) -> Self {
+        Self {
+            requester,
+            ledger: None,
+            ..Self::new(mcp, sys)
+        }
+    }
+
+    /// Record one line in the action ledger, if there is one. A ledger failure must never fail
+    /// the tool call: losing the note is bad, refusing the user's work because a disk is full is
+    /// worse, and the failure is visible in the daemon's log either way.
+    fn note(&self, r: super::ledger::Record) {
+        if let Some(l) = &self.ledger {
+            let _ = l.append(&r);
+        }
     }
 }
 
@@ -171,20 +213,129 @@ impl super::toolcall::ToolRunner for SessionTools {
         super::toolcall::hint_for(&tools)
     }
 
+    /// Every tool call in the running broker passes through here — `sys` and MCP alike — which
+    /// is why the gate is installed at this one point rather than in each tool.
+    ///
+    /// With today's only requester (a person typing into a pane) the gate always allows, so
+    /// nothing about crew's behaviour changes. That is deliberate: the gate belongs in the path
+    /// BEFORE a channel can put a non-human behind it, not after.
     fn call(&self, server: &str, tool: &str, args: &str) -> Result<String, String> {
-        if server == "sys" && self.sys {
-            return super::systools::call(tool, args);
+        use super::approval::Decision;
+        let name = format!("{server}:{tool}");
+        let tier = super::tier::tier_of(server, tool);
+        let now = super::ledger::now_ms();
+        let decision = self.gate.lock().unwrap_or_else(|e| e.into_inner()).decide(
+            &name,
+            tier,
+            &self.requester,
+            self.policy,
+            now,
+        );
+
+        let rec = |decision: &str, note: &str| {
+            super::ledger::Record::decided(&name, tier, &self.requester, decision, note)
+        };
+        match decision {
+            Decision::Deny(why) => {
+                self.note(rec("deny", &why).with_outcome("denied"));
+                return Err(why);
+            }
+            // Nothing can carry the question yet, so an approval that cannot be asked is a
+            // refusal rather than a silent wait. When a channel exists this becomes a real
+            // round trip; until then, saying no out loud beats hanging.
+            Decision::Ask { id, reply_to } => {
+                let why = format!(
+                    "{name} needs approval from {reply_to} and no channel can ask yet                      (approval {id})"
+                );
+                self.note(rec("ask", &why).with_outcome("denied"));
+                return Err(why);
+            }
+            Decision::Allow => {}
         }
-        self.mcp
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .call(server, tool, args)
+
+        let out = if server == "sys" && self.sys {
+            super::systools::call(tool, args)
+        } else {
+            self.mcp
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .call(server, tool, args)
+        };
+        // Reads are not recorded: they change nothing, and burying the handful of actions that
+        // did change something under thousands of file listings makes the ledger unreadable,
+        // which is the same as not having one.
+        if tier != super::tier::Tier::Read {
+            let outcome = if out.is_ok() { "ran" } else { "failed" };
+            let note = out.as_ref().err().map(String::as_str).unwrap_or("");
+            self.note(rec("allow", note).with_outcome(outcome));
+        }
+        out
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use super::super::approval::Requester;
+    use super::super::toolcall::ToolRunner;
+
+    fn host() -> Arc<Mutex<crate::mcp::McpHost>> {
+        Arc::new(Mutex::new(crate::mcp::McpHost::default()))
+    }
+
+    /// The gate is in the path, and with a person at the keyboard it changes nothing: a read
+    /// still reads. (Ledger is None here so the suite never writes the user's audit file.)
+    #[test]
+    fn a_read_still_runs_for_everyone() {
+        for who in [
+            Requester::LocalPane,
+            Requester::Channel("telegram:me".into()),
+            Requester::Trigger("nightly".into()),
+        ] {
+            let t = SessionTools::for_requester(host(), true, who.clone());
+            assert!(
+                t.call("sys", "list_dir", "{}").is_ok(),
+                "a directory listing changes nothing, so {who:?} may do it"
+            );
+        }
+    }
+
+    /// The behaviour that will matter the moment Telegram lands: a request with no human
+    /// watching cannot fire a shell command just because it asked nicely.
+    #[test]
+    fn a_channel_cannot_run_a_shell_command_without_approval() {
+        let t = SessionTools::for_requester(host(), true, Requester::Channel("telegram:me".into()));
+        let err = t
+            .call("sys", "run", r#"{"cmd": "echo should-not-run"}"#)
+            .expect_err("an irreversible call from a channel must not just run");
+        assert!(err.contains("needs approval"), "{err}");
+        assert!(
+            err.contains("telegram:me"),
+            "the refusal says who would be asked: {err}"
+        );
+    }
+
+    /// The 3am case, end to end through the real tool path.
+    #[test]
+    fn a_trigger_cannot_run_a_shell_command_at_all() {
+        let t = SessionTools::for_requester(host(), true, Requester::Trigger("nightly".into()));
+        let err = t
+            .call("sys", "run", r#"{"cmd": "echo should-not-run"}"#)
+            .expect_err("a trigger has nobody to ask");
+        assert!(err.contains("cannot be undone"), "{err}");
+    }
+
+    /// An MCP server nobody has classified is irreversible by default, so the same refusal
+    /// applies to tools crew has never seen.
+    #[test]
+    fn an_unknown_mcp_tool_from_a_channel_is_gated_too() {
+        let t = SessionTools::for_requester(host(), true, Requester::Channel("telegram:me".into()));
+        let err = t
+            .call("some-server", "send_money", "{}")
+            .expect_err("unknown means ask");
+        assert!(err.contains("needs approval"), "{err}");
+    }
 
     #[test]
     fn defaults_to_no_overrides_and_not_cancelled() {
