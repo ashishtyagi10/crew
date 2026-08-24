@@ -12,6 +12,8 @@ usage:
   crew daemon open [label]    open an agent session the daemon owns (--cwd DIR)
   crew daemon sessions        list the daemon's sessions
   crew daemon close <id>      stop one session
+  crew daemon send <id> <ln>  write one line to a session's agent
+  crew daemon poll <id>       read a session's output (--after N to resume)
 ";
 
 /// The instance this process addresses, matching the ask client's rule so a user who sets
@@ -103,6 +105,74 @@ pub(crate) fn run_sub(args: &[String]) -> i32 {
                         println!("{}  {}  {}  {}", s.id, state, s.label, cwd);
                     }
                     0
+                }
+                Some(other) => unexpected(&other),
+                None => no_daemon(),
+            }
+        }
+        Some("send") => {
+            let (Some(id), Some(line)) = (positional(args, 1), positional(args, 2)) else {
+                print!("{USAGE}");
+                return 2;
+            };
+            let req = Request::SessionSend {
+                v: PROTOCOL_V,
+                id: id.to_string(),
+                line: line.to_string(),
+            };
+            match super::request(inst.as_deref(), &req) {
+                Some(Reply::Sent {
+                    delivered: true, ..
+                }) => 0,
+                Some(Reply::Sent {
+                    id,
+                    delivered: false,
+                }) => {
+                    println!("{id}: not delivered (the process is gone)");
+                    1
+                }
+                Some(Reply::Failed { message }) => {
+                    println!("{message}");
+                    1
+                }
+                Some(other) => unexpected(&other),
+                None => no_daemon(),
+            }
+        }
+        Some("poll") => {
+            let Some(id) = positional(args, 1) else {
+                print!("{USAGE}");
+                return 2;
+            };
+            let after = flag(args, "--after")
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(0);
+            let req = Request::SessionPoll {
+                v: PROTOCOL_V,
+                id: id.to_string(),
+                after,
+            };
+            match super::request(inst.as_deref(), &req) {
+                Some(Reply::Events {
+                    lines,
+                    next,
+                    dropped,
+                }) => {
+                    if dropped > after {
+                        println!(
+                            "[{} earlier line(s) dropped from the buffer]",
+                            dropped - after
+                        );
+                    }
+                    for l in lines {
+                        println!("{l}");
+                    }
+                    eprintln!("next cursor: {next}");
+                    0
+                }
+                Some(Reply::Failed { message }) => {
+                    println!("{message}");
+                    1
                 }
                 Some(other) => unexpected(&other),
                 None => no_daemon(),

@@ -52,6 +52,11 @@ pub enum Request {
     Sessions { v: u32 },
     /// Close one session by id.
     CloseSession { v: u32, id: String },
+    /// Write one line to a session's agent process.
+    SessionSend { v: u32, id: String, line: String },
+    /// Read a session's output from an absolute cursor. A client that died and
+    /// came back polls from the cursor it last saw and is handed what it missed.
+    SessionPoll { v: u32, id: String, after: usize },
     /// Ask the resident daemon what it is: pid, uptime, live session count.
     /// Served on the daemon endpoint only — the GUI's ask socket does not
     /// answer it, and the daemon does not answer the ask ops.
@@ -109,6 +114,20 @@ pub enum Reply {
     Closed {
         id: String,
         was_alive: bool,
+    },
+    /// A line was (or was not) delivered to the session's process.
+    Sent {
+        id: String,
+        delivered: bool,
+    },
+    /// A slice of a session's output. `next` is the cursor to poll from; `dropped`
+    /// is how many lines fell off the front of the buffer over the session's life,
+    /// so a long-absent client learns it missed some instead of quietly drawing a
+    /// false history.
+    Events {
+        lines: Vec<String>,
+        next: usize,
+        dropped: usize,
     },
     /// The request was understood but could not be carried out.
     Failed {
