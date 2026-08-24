@@ -155,6 +155,7 @@ mod panebtn;
 mod panecard;
 mod panecardglow;
 mod panedir;
+mod panedrag;
 mod panefit;
 mod panehover;
 mod panelcard;

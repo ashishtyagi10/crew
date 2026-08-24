@@ -23,7 +23,7 @@ pub(crate) fn count(v: &mut Vec<CellView>, rx: u16, scroll: usize) -> u16 {
     }
     let s = format!("\u{21e1}{scroll}");
     let w = s.chars().count() as u16;
-    if rx + 1 <= w {
+    if rx < w {
         return rx;
     }
     let start = rx + 1 - w;
