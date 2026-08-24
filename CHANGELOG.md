@@ -8,6 +8,44 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.28
+
+**Double-click selects a word.** Crew had no word selection at all. Double-click
+toggled zoom instead — a gesture no terminal spends there, and the one people
+reach for constantly: grab a filename, a hash, a flag, a path.
+
+The click run now goes single (arms a drag) → word → line, capped so a fourth
+click starts over rather than latching the widest gesture, and each selection
+copies, the same rule releasing a drag already followed. Terminals answer
+through alacritty's own semantic and line selections, so a path stays one word
+and a soft-wrapped command comes back whole; every other pane kind answers the
+same way over its rendered cells, so the gesture means the same thing on an
+agent transcript as on a shell.
+
+Zoom keeps the double click, on the card's **border** — where the convention
+puts it anyway: a window's title bar, not its contents. Cmd+Z is unchanged.
+
+**Drag a card onto another to swap them.** The canvas is a set of cards on a
+surface and behaves like one everywhere else, so the obvious thing to try was to
+drag one, and the obvious thing did nothing. Pick a card up by its top border
+and the card under the pointer lights in the accent; release and the two swap
+places. The legend row is the grab region because it is the one row of a card
+that holds nothing to select, so a card drag and a text drag can never both be
+armed.
+
+**The scrollback gets a shape, not just a number.** `⇡200` says how far from the
+bottom you are. It never said how far back there *is* — 200 lines up reads
+identically in a screenful of history and in a week of it — and nothing said
+where between the two you were. A proportional thumb now runs down the right
+border while a pane is scrolled back: high in the buffer, low near the live
+edge, short when there is a lot behind you. It rides the border rather than a
+content column, because a terminal's columns belong to the program running in
+it and an 80-column layout must stay 80 columns whether or not anyone scrolled.
+
+**Fixed: the Windows build.** It has failed on every release since 0.18.18 —
+`daemon::service::LABEL` has no reader on a target with no service integration,
+and CI builds with `-D warnings`.
+
 ## 0.18.27
 
 **Cmd+Arrow walks focus the way the eye does.** Pane cycling steps through panes
