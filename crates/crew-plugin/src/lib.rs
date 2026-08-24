@@ -1,4 +1,8 @@
 mod broker;
+/// The action gate: who may fire an irreversible tool, and what silence means.
+pub mod approval {
+    pub use crate::broker::approval::*;
+}
 /// Tool tiering: what a tool can do to the world, and whether it can be undone.
 pub mod tier {
     pub use crate::broker::tier::*;

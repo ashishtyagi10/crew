@@ -13,6 +13,7 @@
 mod adapter;
 mod agents;
 mod apiadapter;
+pub mod approval;
 mod ask;
 pub(crate) mod auth;
 mod changed;
