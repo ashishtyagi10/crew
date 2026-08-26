@@ -16,7 +16,8 @@ use crate::scene::PaneScene;
 /// `fade` is the theme-crossfade strength: while `None` the finished frame is
 /// snapshotted; while `Some` the held old-theme frame draws on top instead.
 /// `wash_phase` is where the modern backdrop's gradient pools sit on their
-/// orbit, in turns.
+/// orbit, in turns; `wash_focus` is `(centre_uv, pull)` — where that orbit is
+/// centred and how far it has travelled there from the page centre.
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn render(
     gpu: &Gpu,
@@ -28,6 +29,7 @@ pub(crate) fn render(
     window_opacity: f32,
     grain: f32,
     wash_phase: f32,
+    wash_focus: ((f32, f32), f32),
     panes: &[PaneScene],
 ) {
     cell_grid.set_scene(&gpu.device, panes);
@@ -86,6 +88,8 @@ pub(crate) fn render(
                 radius,
                 wash: m.wash,
                 phase: wash_phase,
+                focus: [wash_focus.0 .0, wash_focus.0 .1],
+                focus_pull: wash_focus.1,
             }
         });
         paper.update_uniform(&gpu.queue, bg_f32, (w, h), 1.0, grain, modern.as_ref());

@@ -257,6 +257,8 @@ impl CrewApp {
                     r.set_crt(crt);
                     r.set_crt_anim(crt_time, amp);
                     r.set_wash_phase(wash);
+                    let (focus, pull) = self.wash_focus.uniform();
+                    r.set_wash_focus(focus, pull);
                     r.set_theme_fade(fade);
                     r.frame(&scenes);
                 }

@@ -32,6 +32,15 @@ pub struct ModernPaper {
     /// idle frame is a pure function of pixel position (see crew-app's
     /// `washphase`).
     pub phase: f32,
+    /// Where the pools' orbit is CENTRED, in uv (`0.5, 0.5` = the page
+    /// centre). The app hands over the focused card's centre, so the page's
+    /// light gathers where the work is (see crew-app's `washfocus`).
+    pub focus: [f32; 2],
+    /// How far the orbit actually moves toward `focus`: `0.0` = not at all
+    /// (the pre-v0.18.34 behaviour, and what a frame with nothing focused
+    /// gets). The app glides this to zero rather than snapping the centre
+    /// home when focus leaves, so the light never teleports.
+    pub focus_pull: f32,
 }
 
 impl ModernPaper {
@@ -64,7 +73,7 @@ impl PaperBgPass {
 
         let uniform_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("paperbg_uniform"),
-            contents: f32s_as_bytes(&[0.0f32; 20]),
+            contents: f32s_as_bytes(&[0.0f32; 24]),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
@@ -153,8 +162,10 @@ impl PaperBgPass {
             radius: 0.0,
             wash: 0.0,
             phase: 0.0,
+            focus: [0.5, 0.5],
+            focus_pull: 0.0,
         });
-        let data: [f32; 20] = [
+        let data: [f32; 24] = [
             page_bg[0],
             page_bg[1],
             page_bg[2],
@@ -175,6 +186,10 @@ impl PaperBgPass {
             d.spacing[1],
             d.wash,
             d.phase,
+            d.focus[0],
+            d.focus[1],
+            d.focus_pull,
+            0.0, // pad to a whole vec4
         ];
         queue.write_buffer(&self.uniform_buf, 0, f32s_as_bytes(&data));
     }

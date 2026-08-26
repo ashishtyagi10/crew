@@ -1354,6 +1354,21 @@ last frame held wherever the pools had reached. The phase is accumulated from
 frame deltas rather than read off the clock, so the motion is continuous across
 every pause instead of teleporting after a quiet minute.
 
+**The light gathers where you are working.** The wash's orbit is not centred
+on the page any more — it slides toward the focused card, so the page is
+brightest under the pane you are typing into and falls away from the ones you
+are not. On a four-pane grid the focused frame is one stroke among four; the
+wash under it is half the window, which is why this reads from the corner of
+the eye when a border colour does not. Focus the input bar and the light comes
+down to meet it.
+
+It travels rather than cutting — the same exponential smoothing the panes use
+to glide to their tiles, a little slower, so a card arrives and the light
+fills in behind it. Bounded like everything else: it settles, and an idle crew
+still repaints nothing. At **Motion = off** it snaps. With nothing focused the
+gather fades out where it stands instead of dragging a bright field back
+across the page.
+
 **And the gradient's colour breathes.** The two poles every gradient surface
 is drawn between — the wash, the dot lattice, every card's stroke, the footer
 meters — lean around the hue wheel over time, so the canvas warms and cools

@@ -8,6 +8,36 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.34
+
+**The page's light follows the pane you are working in.** The background wash
+is two broad pools of the theme's pole light on an orbit under everything, and
+that orbit was centred on the page — the same light no matter which pane had
+focus. Now its centre slides toward the focused card: the page is brightest
+under the thing you are typing into, and falls away from the ones you are not.
+Focus the input bar and the light comes down to meet it.
+
+It is wayfinding, not decoration. On a four-pane grid the focused frame is one
+stroke among four; the wash under it is half the window, which is why this
+reads from the corner of the eye when a border colour does not.
+
+The move is partial by design (55% of the way to the card's centre). The pools
+are wider than a pane, so parking them dead on it would put the falloff
+*inside* the card and the light would stop reading as a page-wide field
+altogether.
+
+It travels rather than cutting: the same exponential smoothing the grid uses
+to glide panes to their tiles, a little slower, so a card arrives and the
+light fills in behind it. Bounded, like everything else that moves — it
+settles, stops asking for frames, and an idle crew repaints nothing. At
+**Motion = off** it snaps to the final state in one frame. And with nothing
+focused at all the gather fades out where it stands rather than dragging a
+bright field back across every pane on its way to standing still.
+
+A settled focus is a constant, so a still frame is still a pure function of
+pixel position — and a crew that has never focused anything renders the
+centred wash byte for byte, which is what every headless shot test sees.
+
 ## 0.18.33
 
 **The gradient's colour breathes now.** Every gradient surface in crew — the
