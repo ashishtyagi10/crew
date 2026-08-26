@@ -157,6 +157,7 @@ fn jump_scrolls_the_match_line_into_the_drawn_window() {
     // geometry.
     let visible = p.visible_messages();
     let view = crate::chatmsgs::View {
+        gap_rows: crate::density::Density::Cozy.card_gap_rows(),
         source: false,
         compact: false,
         streaming_from: p.messages.len(),

@@ -4,7 +4,7 @@
 //! the left nav (replacing the old `/about` status flash).
 use crew_render::PaneScene;
 
-use crate::app::{CrewApp, GAP};
+use crate::app::{gap, CrewApp};
 use crate::chrome;
 use crate::layout::Rect;
 
@@ -21,7 +21,7 @@ impl CrewApp {
         if !self.config.show_nav {
             return;
         }
-        let full = chrome::sidebar_rect(sh, self.nav_px(scale), GAP);
+        let full = chrome::sidebar_rect(sh, self.nav_px(scale), gap());
         // While a LOUD `/update` runs, dock a distinct UPDATE card on top of the
         // stats card, shrinking the stats card below it (chrome::stats_card_rect —
         // the same rect the PANES hit-test uses). A silent background run (see
@@ -37,7 +37,7 @@ impl CrewApp {
                 crate::updatecard::update_cells(u, cols, rows)
             });
         }
-        let sb = chrome::stats_card_rect(sh, self.nav_px(scale), GAP, ch, loud.is_some());
+        let sb = chrome::stats_card_rect(sh, self.nav_px(scale), gap(), ch, loud.is_some());
         let pane_rows = self.pane_rows();
         let sidebar = &self.sidebar;
         let log = &self.log;

@@ -46,6 +46,7 @@ impl CrewApp {
             "weight" => self.weight_command(""),
             "smooth" => self.smooth_command(""),
             "motion" => self.motion_command(""),
+            "density" => self.density_command(""),
             "gradient" => self.gradient_command(""),
             "notify" => self.notify_command(""),
             "broadcast" => self.toggle_broadcast(),
@@ -88,6 +89,8 @@ impl CrewApp {
                     self.smooth_command(s.trim());
                 } else if let Some(m) = other.strip_prefix("motion ") {
                     self.motion_command(m.trim());
+                } else if let Some(d) = other.strip_prefix("density ") {
+                    self.density_command(d.trim());
                 } else if let Some(g) = other.strip_prefix("gradient ") {
                     self.gradient_command(g.trim());
                 } else if let Some(m) = other.strip_prefix("model ") {
@@ -382,6 +385,30 @@ impl CrewApp {
         self.config.save();
         crate::motion::set_level(self.config.motion_level());
         self.set_status(format!("motion {}", pref.label(crate::motion::os_reduce())));
+        self.redraw();
+    }
+
+    /// `/density [compact|cozy|roomy]` — how tightly crew packs the canvas.
+    ///
+    /// Applies live: the gutter and the chat spacers are both read out of the
+    /// atomic at layout time, so there is nothing to rebuild.
+    pub(crate) fn density_command(&mut self, arg: &str) {
+        use crate::density::Density;
+        if arg.is_empty() {
+            self.set_status(format!(
+                "density {} (/density [compact|cozy|roomy])",
+                self.config.density().as_str()
+            ));
+            return;
+        }
+        let Some(d) = Density::parse(arg) else {
+            self.set_status("usage: /density [compact|cozy|roomy]");
+            return;
+        };
+        self.config.density = d.as_str().to_string();
+        self.config.save();
+        crate::density::set_level(d);
+        self.set_status(format!("density {}", d.as_str()));
         self.redraw();
     }
 }

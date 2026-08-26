@@ -1,6 +1,6 @@
 use crew_render::PaneScene;
 
-use crate::app::{CrewApp, GAP};
+use crate::app::{gap, CrewApp};
 use crate::chrome;
 use crate::layout::{pane_rects_at, Rect};
 use crate::panefit::{relayout, relayout_one};
@@ -103,7 +103,7 @@ impl CrewApp {
         if self.panes.is_empty() {
             // Use the SAME rect a single grid pane would occupy (gap-inset) so the
             // welcome area matches a Cmd+T terminal exactly.
-            if let Some(r) = pane_rects_at(1, content.x, content.y, content.w, content.h, GAP)
+            if let Some(r) = pane_rects_at(1, content.x, content.y, content.w, content.h, gap())
                 .first()
                 .copied()
             {
@@ -128,7 +128,7 @@ impl CrewApp {
 
         self.push_sidebar(&mut scenes, sh, scale, cw, ch);
 
-        let ib = chrome::inputbar_rect(content, sh, ch, GAP);
+        let ib = chrome::inputbar_rect(content, sh, ch, gap());
         let ic = (ib.w / cw).floor() as u16;
         let ir = (ib.h / ch).round() as u16;
         scenes.push(PaneScene {
@@ -216,7 +216,7 @@ impl CrewApp {
         if self.input.focused && !matches.is_empty() {
             let mr = crate::cmdmenu::menu_rows(matches.len());
             let mh = mr as f32 * ch;
-            let my = (ib.y - mh - GAP).max(0.0);
+            let my = (ib.y - mh - gap()).max(0.0);
             scenes.push(PaneScene {
                 cells: crate::cmdmenu::menu_card(title, &matches, self.input.menu_sel, ic, mr),
                 x: ib.x,
@@ -414,7 +414,7 @@ impl CrewApp {
 /// a single grid pane would get. Shared by drawing (`build_frame`) and
 /// hit-testing (`frame_hit_rects`) so they can never disagree.
 fn zoom_tile(content: Rect) -> Option<Rect> {
-    pane_rects_at(1, content.x, content.y, content.w, content.h, GAP)
+    pane_rects_at(1, content.x, content.y, content.w, content.h, gap())
         .into_iter()
         .next()
 }

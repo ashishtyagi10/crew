@@ -405,6 +405,7 @@ impl CrewApp {
         // and the window opacity a restart behind.
         self.apply_glass();
         crate::motion::set_level(self.config.motion_level());
+        crate::density::set_level(self.config.density());
         // The gradient level rides the same path. Turning it OFF must also
         // put the poles back where they were — the shift is a live global,
         // and left where the last breath stopped it the canvas would keep a

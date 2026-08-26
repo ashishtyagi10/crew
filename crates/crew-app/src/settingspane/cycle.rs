@@ -28,6 +28,16 @@ pub(crate) fn cycle_value(p: &mut SettingsPane, back: bool) {
             };
             d.motion = all[next].as_str().to_string();
         }
+        Field::Density => {
+            let all = crate::density::Density::ALL;
+            let cur = all.iter().position(|&l| l == d.density()).unwrap_or(0);
+            let next = if back {
+                (cur + all.len() - 1) % all.len()
+            } else {
+                (cur + 1) % all.len()
+            };
+            d.density = all[next].as_str().to_string();
+        }
         Field::Gradient => {
             let all = crate::gradientlvl::GradientLevel::ALL;
             let cur = all

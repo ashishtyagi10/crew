@@ -1,7 +1,7 @@
 //! Frame geometry + hit-testing helpers for the renderer (split from
 //! `render.rs` for the 200-line cap): content-area math, nav width, placed
 //! grid rects, pane hit rects, focused-seen marking.
-use crate::app::{CrewApp, GAP};
+use crate::app::{gap, CrewApp};
 use crate::chrome;
 use crate::grid::compose_grid;
 use crate::layout::Rect;
@@ -39,10 +39,10 @@ impl CrewApp {
     /// reports a real cell size.
     pub(crate) fn placed_grid(&self) -> Option<(Rect, crate::grid::GridRects)> {
         let (cw, ch, sw, sh, scale) = self.frame_geometry()?;
-        let ih = chrome::bottom_chrome_h(sh, ch, GAP);
+        let ih = chrome::bottom_chrome_h(sh, ch, gap());
         let content =
-            chrome::content_rect(sw, sh, self.config.show_nav, self.nav_px(scale), GAP, ih);
-        Some((content, compose_grid(content, &self.grid, cw, ch, GAP)))
+            chrome::content_rect(sw, sh, self.config.show_nav, self.nav_px(scale), gap(), ih);
+        Some((content, compose_grid(content, &self.grid, cw, ch, gap())))
     }
 
     /// Returns the actual on-screen rect for every rendered pane, as

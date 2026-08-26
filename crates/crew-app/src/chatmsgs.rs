@@ -53,6 +53,16 @@ pub(crate) struct View {
     /// `visible_messages` returns. Those get a live caret on their last line.
     /// `usize::MAX` (the default) means nothing is in flight.
     pub(crate) streaming_from: usize,
+    /// Blank rows to put between two unrelated cards — the Density setting's
+    /// call (see [`crate::density::Density::card_gap_rows`]).
+    ///
+    /// Carried on the view rather than read from the density global at the
+    /// point of use, unlike the pane gutter. The gutter has to be a global
+    /// because render and hit-testing reach it down two different call
+    /// stacks; this one has a struct already threaded through every layout
+    /// path, and a per-call value is a value a test can set without reaching
+    /// for a process-wide mutex.
+    pub(crate) gap_rows: usize,
 }
 
 impl Default for View {
@@ -61,6 +71,7 @@ impl Default for View {
             source: false,
             compact: false,
             streaming_from: usize::MAX,
+            gap_rows: crate::density::Density::Cozy.card_gap_rows(),
         }
     }
 }
@@ -271,7 +282,14 @@ pub(crate) fn card_lines_spanned(
         // Claude-Code tree look, so a task's replies read as one thread.
         let connector = chained.then_some(if continues { '\u{251c}' } else { '\u{2514}' });
         if i > 0 && !chained {
-            out.push(Vec::new()); // spacer between unrelated cards
+            // Spacer between unrelated cards — how many rows is the Density
+            // setting's call (`compact` takes none: the header's coloured
+            // gutter glyph already draws the boundary in ink). Chained
+            // replies never take one at any density; the tree connector is
+            // what says they belong together.
+            for _ in 0..view.gap_rows {
+                out.push(Vec::new());
+            }
         }
         let first = out.len();
         let splash = is_splash(m);

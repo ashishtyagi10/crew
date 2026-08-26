@@ -83,6 +83,7 @@ mod ctxlimit;
 mod cwd;
 mod daemon;
 mod daylight;
+mod density;
 mod detach;
 mod dispatch;
 mod dockicon;

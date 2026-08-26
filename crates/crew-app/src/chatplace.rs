@@ -163,6 +163,7 @@ pub(crate) fn placed_lines(pane: &ChatPane, cols: u16, rows: u16) -> Vec<(u16, C
         return Vec::new();
     }
     let view = crate::chatmsgs::View {
+        gap_rows: crate::density::level().card_gap_rows(),
         source: pane.show_source,
         compact: pane.compact_view,
         // `visible_messages` chains settled messages then streaming ones, so

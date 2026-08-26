@@ -35,6 +35,10 @@ pub(crate) enum Field {
     PaperGrain,
     Glass,
     Motion,
+    /// How tightly the canvas packs — the pane gutter and the rows between
+    /// chat cards (see `density`). Sits under Glass/Motion: those say how much
+    /// the canvas *does*, this says how much room it takes.
+    Density,
     /// How far the gradient's colour leans from the theme's own over time
     /// (see `gradientlvl`). Sits with Glass and Motion: all three say how
     /// much the canvas is allowed to do on its own.
@@ -55,7 +59,7 @@ pub(crate) enum Field {
     Cancel,
 }
 
-pub(crate) const FIELDS: [Field; 29] = [
+pub(crate) const FIELDS: [Field; 30] = [
     Field::FontFamily,
     Field::FontSize,
     Field::Smooth,
@@ -73,6 +77,7 @@ pub(crate) const FIELDS: [Field; 29] = [
     Field::PaperGrain,
     Field::Glass,
     Field::Motion,
+    Field::Density,
     Field::Gradient,
     Field::Maximized,
     Field::Notify,

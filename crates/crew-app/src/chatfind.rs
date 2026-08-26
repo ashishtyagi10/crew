@@ -109,6 +109,7 @@ pub(crate) fn jump(pane: &mut ChatPane, cols: u16, rows: u16) {
     f.rescan(&pane.visible_messages());
     if let Some(&mi) = f.matches.get(f.sel) {
         let view = View {
+            gap_rows: crate::density::level().card_gap_rows(),
             source: pane.show_source,
             compact: pane.compact_view,
             streaming_from: pane.messages.len(),

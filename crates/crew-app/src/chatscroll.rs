@@ -28,6 +28,7 @@ impl crate::chat::ChatPane {
             let view = crate::chatmsgs::View {
                 source: self.show_source,
                 compact: self.compact_view,
+                gap_rows: crate::density::level().card_gap_rows(),
                 streaming_from: self.messages.len(),
             };
             let visible = self.visible_messages();

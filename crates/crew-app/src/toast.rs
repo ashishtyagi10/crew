@@ -87,7 +87,7 @@ pub(crate) fn push_toasts(
     now: u64,
 ) {
     toasts.prune(now);
-    let gap = crate::app::GAP;
+    let gap = crate::app::gap();
     let max_cols = (((content.w - 2.0 * gap) / cw).floor() as usize).min(MAX_TEXT_COLS + 4);
     let mut y = content.y + gap;
     for t in &toasts.items {

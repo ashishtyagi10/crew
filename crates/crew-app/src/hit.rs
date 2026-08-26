@@ -1,5 +1,5 @@
 //! Cursor hit-testing: which docked surface or pane sits under the pointer.
-use crate::app::{CrewApp, GAP};
+use crate::app::{gap, CrewApp};
 use crate::chrome;
 
 impl CrewApp {
@@ -32,7 +32,7 @@ impl CrewApp {
         let sb = chrome::stats_card_rect(
             sh,
             self.nav_px(scale),
-            GAP,
+            gap(),
             ch,
             self.update.as_ref().is_some_and(|u| !u.silent),
         );
@@ -110,10 +110,10 @@ impl CrewApp {
         let Some((_cw, ch, sw, sh, scale)) = self.frame_geometry() else {
             return false;
         };
-        let ih = chrome::bottom_chrome_h(sh, ch, GAP);
+        let ih = chrome::bottom_chrome_h(sh, ch, gap());
         let content =
-            chrome::content_rect(sw, sh, self.config.show_nav, self.nav_px(scale), GAP, ih);
-        let ib = chrome::inputbar_rect(content, sh, ch, GAP);
+            chrome::content_rect(sw, sh, self.config.show_nav, self.nav_px(scale), gap(), ih);
+        let ib = chrome::inputbar_rect(content, sh, ch, gap());
         chrome::point_in(ib, self.cursor.0, self.cursor.1)
     }
 
@@ -122,8 +122,8 @@ impl CrewApp {
     /// both full-size tiles and minimized strip thumbnails.
     pub(crate) fn pane_at_cursor(&self) -> Option<usize> {
         let (_cw, ch, sw, sh, scale) = self.frame_geometry()?;
-        let ih = chrome::bottom_chrome_h(sh, ch, GAP);
-        let c = chrome::content_rect(sw, sh, self.config.show_nav, self.nav_px(scale), GAP, ih);
+        let ih = chrome::bottom_chrome_h(sh, ch, gap());
+        let c = chrome::content_rect(sw, sh, self.config.show_nav, self.nav_px(scale), gap(), ih);
         if !chrome::point_in(c, self.cursor.0, self.cursor.1) {
             return None;
         }

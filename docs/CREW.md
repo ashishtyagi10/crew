@@ -408,6 +408,18 @@ The docked command bar supports:
   current strength; selecting `/smooth` in the palette opens a value picker.
   The named ladder is also the **Smoothing** field in `/settings` — both write
   the same `font_smooth` key.
+- **`/density [compact|cozy|roomy]`** — how tightly crew packs the canvas: the
+  gutter between pane cards and the blank rows between chat cards, moved
+  together. In a cell grid those are the two spaces that are genuinely empty —
+  the line height *is* the cell, and shrinking it is the font size, which
+  `/font` and `Cmd+±` already own. `cozy` is exactly the layout crew has always
+  drawn, so the setting changes nothing until you turn it; `compact` halves the
+  gutter and drops the chat spacer (each card still opens with its sender's
+  coloured gutter glyph, so the boundary is drawn in ink rather than in space);
+  `roomy` opens both up, which is the one to reach for on a large display.
+  Live and persisted — the same `density` key as **Settings → APPEARANCE →
+  Density**.
+
 - **`/motion [auto|off|subtle|full]`** — how much crew moves. **`auto` is the
   default and follows the operating system**: macOS's *Settings → Accessibility
   → Display → Reduce motion* is where a user has almost certainly already said
