@@ -565,3 +565,68 @@ fn the_budget_boxes_reject_anything_that_is_not_a_number() {
         assert_eq!(buf, "12.34", "{f:?} accepted `{buf}`");
     }
 }
+
+/// The contract the `sepia-light` bug broke, now enforced at every width the
+/// form can be laid out at: **no field is ever narrower than what it has to
+/// draw**. A clipped leading chevron reads as a rendering fault rather than as
+/// a layout that ran out of room, which is why the original went unnoticed.
+///
+/// Sweeping widths is the point. The bug was invisible at the width it was
+/// written at and only appeared at 80 columns, so a single-width test is
+/// exactly the test that would have passed.
+#[test]
+fn no_field_is_ever_laid_out_narrower_than_it_needs() {
+    let mut bad: Vec<String> = Vec::new();
+    for cols in 40u16..=240 {
+        let l = crate::settingspane::form::layout(cols);
+        for (f, r) in &l.rects {
+            // Toggles are one row of text with no box, and the two buttons
+            // carry no legend or value at all.
+            if r.height < 3 || matches!(f, Field::Save | Field::Cancel) {
+                continue;
+            }
+            let need = crate::settingspane::fit::min_cols(*f);
+            if r.width < need {
+                bad.push(format!("{cols} cols: {f:?} got {}, needs {need}", r.width));
+            }
+        }
+    }
+    // One line per offending field rather than per width, or a single
+    // regression prints two hundred near-identical lines.
+    bad.dedup_by(|a, b| a.split(": ").nth(1) == b.split(": ").nth(1));
+    assert!(bad.is_empty(), "{}", bad.join("\n  "));
+}
+
+/// Pairing has to actually happen when there is room, or "responsive" is just
+/// a stacked form with extra steps.
+#[test]
+fn fields_pair_up_on_a_wide_form_and_stack_on_a_narrow_one() {
+    let row_of = |cols: u16, want: Field| -> Option<(u16, u16)> {
+        crate::settingspane::form::layout(cols)
+            .rects
+            .iter()
+            .find(|(f, _)| *f == want)
+            .map(|(_, r)| (r.y, r.width))
+    };
+    // A wide form pairs everything it can; a narrow one stacks rather than
+    // clipping. `Auto day from` is a thirteen-column legend, so its box needs
+    // nineteen — comfortable on a wide pane, impossible on a narrow one.
+    let (fy, _) = row_of(200, Field::LightFrom).expect("LightFrom");
+    let (ty, _) = row_of(200, Field::LightTo).expect("LightTo");
+    assert_eq!(fy, ty, "two short boxes must pair on a wide form");
+    let (fy, _) = row_of(64, Field::LightFrom).expect("LightFrom");
+    let (ty, _) = row_of(64, Field::LightTo).expect("LightTo");
+    assert_ne!(fy, ty, "…and stack rather than clip on a narrow one");
+
+    // The palette pickers carry theme names. Narrow, they stack; wide, they
+    // pair — which is the whole point of taking the decision from the width.
+    let (dy, _) = row_of(80, Field::ThemeDark).expect("ThemeDark");
+    let (ly, _) = row_of(80, Field::ThemeLight).expect("ThemeLight");
+    assert_ne!(dy, ly, "palette pickers must stack when they do not fit");
+    let (dy, _) = row_of(240, Field::ThemeDark).expect("ThemeDark");
+    let (ly, _) = row_of(240, Field::ThemeLight).expect("ThemeLight");
+    assert_eq!(
+        dy, ly,
+        "…and pair once there is room — the decision belongs to the width"
+    );
+}

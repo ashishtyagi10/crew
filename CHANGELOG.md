@@ -8,6 +8,36 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.46
+
+**The settings form fits the pane it is in.** Its fields were paired into
+half-width boxes or given the whole row by a per-field decision taken once, by
+eye, at whatever width the pane happened to be when it was written. That had
+already gone wrong: `‹ sepia-light ›` is 15 columns, a half-width box holds 14
+at an 80-column pane, and the Auto-dark picker shipped with its leading
+chevron clipped — which reads as a rendering fault, not as a layout that ran
+out of room. The fix at the time was to pin those two fields to full width
+forever: correct at 80 columns and wasteful at 200.
+
+The decision now belongs to the **width**. Each field says what it costs — the
+wider of its legend and the longest value it can display, taken from the same
+option lists the cycler steps through, so a new option cannot outgrow its box
+without saying so — and two fields share a row only when both halves can carry
+them. On a wide pane the palette pickers pair; on a narrow one they stack. At
+no width is anything clipped.
+
+Two real defects fell out of writing the contract down. `Min secs` sat at a
+hard half-width and clipped its own legend below about 70 columns. And
+`Patterns (one per line)` needs 29 columns with its border — wider than the
+card ever gets on a narrow pane, the one legend no layout could save; it is
+now **`Watch patterns`**, with the "one per line" carried by the shape of the
+field, which is a text area several rows tall.
+
+The new test sweeps every width from 40 to 240 and asserts no field is ever
+narrower than what it draws. Sweeping is the point: the original bug was
+invisible at the width it was written at, so a single-width test is exactly
+the one that would have passed.
+
 ## 0.18.45
 
 **Never colour alone.** WCAG 1.4.1 is one line long and easy to fail without

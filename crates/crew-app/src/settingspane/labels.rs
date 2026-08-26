@@ -44,7 +44,11 @@ pub(crate) fn label_of(f: Field) -> &'static str {
         Field::NotifyBell => "Notify: bell",
         Field::NotifyExit => "Notify: pane exit",
         Field::NotifyMinSecs => "Min secs",
-        Field::NotifyPatterns => "Patterns (one per line)",
+        // "Patterns (one per line)" is 23 columns and needs 29 with its
+        // border — wider than the card gets below about 70 columns, so it was
+        // the one legend the responsive form could not save. The hint is
+        // carried by the shape of the field: a text AREA, several rows tall.
+        Field::NotifyPatterns => "Watch patterns",
         // Millions of tokens; the unit is in the legend because the number
         // typed (5) is nothing like the number stored (5000000).
         Field::Budget5h => "5h budget (M)",

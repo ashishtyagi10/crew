@@ -8,6 +8,7 @@ mod commit;
 mod cycle;
 mod dropdown;
 mod fields;
+mod fit;
 mod form;
 mod keys;
 mod labels;

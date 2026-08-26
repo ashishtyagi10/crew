@@ -3,8 +3,37 @@
 //! 200-line cap when the Smoothing picker grew the Appearance card.
 use ratatui::layout::Rect;
 
+use super::fit::min_cols;
 use super::form::TEXTAREA_ROWS;
 use super::Field;
+
+/// Place `a` and `b` on one row when both fit half of `iw`, otherwise stack
+/// them. Returns the rows consumed (3 paired, 6 stacked).
+///
+/// The pairing decision belongs to the WIDTH, not to the field (see
+/// [`super::fit`]): a field pinned to full width by hand is correct at the
+/// pane width someone happened to test and wasteful at every other. Both
+/// halves are checked, since a row is only as pairable as its wider half.
+fn lone(rects: &mut Vec<(Field, Rect)>, ix: u16, iw: u16, cy: u16, f: Field) {
+    // A field with nothing beside it still wants to look like the paired ones
+    // — but only while a half actually carries it. `Min secs` sat at a hard
+    // half and clipped its own legend below about 70 columns.
+    let half = iw.saturating_sub(2) / 2;
+    let w = if half >= min_cols(f) { half } else { iw };
+    rects.push((f, Rect::new(ix, cy, w, 3)));
+}
+
+fn pair(rects: &mut Vec<(Field, Rect)>, ix: u16, iw: u16, cy: u16, a: Field, b: Field) -> u16 {
+    let half = iw.saturating_sub(2) / 2;
+    if half >= min_cols(a) && half >= min_cols(b) {
+        rects.push((a, Rect::new(ix, cy, half, 3)));
+        rects.push((b, Rect::new(ix + half + 2, cy, half, 3)));
+        return 3;
+    }
+    rects.push((a, Rect::new(ix, cy, iw, 3)));
+    rects.push((b, Rect::new(ix, cy + 3, iw, 3)));
+    6
+}
 
 /// Appearance card fields; returns the card height (content + border).
 pub(super) fn appearance(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16) -> u16 {
@@ -12,10 +41,7 @@ pub(super) fn appearance(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16)
     let mut cy = y + 1;
     rects.push((Field::FontFamily, Rect::new(ix, cy, iw, 3)));
     cy += 3;
-    let half = iw.saturating_sub(2) / 2;
-    rects.push((Field::FontSize, Rect::new(ix, cy, half, 3)));
-    rects.push((Field::PaperGrain, Rect::new(ix + half + 2, cy, half, 3)));
-    cy += 3;
+    cy += pair(rects, ix, iw, cy, Field::FontSize, Field::PaperGrain);
     rects.push((Field::Smooth, Rect::new(ix, cy, iw, 3)));
     cy += 3;
     rects.push((Field::Theme, Rect::new(ix, cy, iw, 3)));
@@ -23,29 +49,17 @@ pub(super) fn appearance(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16)
     // `auto`'s settings, under the Theme they belong to and in the order they
     // answer: WHAT it serves per appearance, then WHEN the clock calls it day.
     //
-    // The two pairing pickers take the full width, like the Theme picker they
-    // qualify, because their values are palette names — `‹ sepia-light ›` is
-    // 15 columns and a half-width box holds 14 at an 80-column pane, which
-    // clipped the leading chevron and read as a rendering fault. The hours
-    // below stay paired: `HH:MM` is five.
-    rects.push((Field::ThemeDark, Rect::new(ix, cy, iw, 3)));
-    cy += 3;
-    rects.push((Field::ThemeLight, Rect::new(ix, cy, iw, 3)));
-    cy += 3;
-    let lh = iw.saturating_sub(2) / 2;
-    rects.push((Field::LightFrom, Rect::new(ix, cy, lh, 3)));
-    rects.push((Field::LightTo, Rect::new(ix + lh + 2, cy, lh, 3)));
-    cy += 3;
+    // These two used to be pinned full-width by hand, because their values are
+    // palette names — `‹ sepia-light ›` is 15 columns, a half-width box held
+    // 14 at an 80-column pane, and the clipped leading chevron read as a
+    // rendering fault. `pair` now takes that decision from the width itself,
+    // so they stack where they must and sit side by side on a pane with room.
+    cy += pair(rects, ix, iw, cy, Field::ThemeDark, Field::ThemeLight);
+    cy += pair(rects, ix, iw, cy, Field::LightFrom, Field::LightTo);
     rects.push((Field::Accent, Rect::new(ix, cy, iw, 3)));
     cy += 3;
-    let gh = iw.saturating_sub(2) / 2;
-    rects.push((Field::Glass, Rect::new(ix, cy, gh, 3)));
-    rects.push((Field::Motion, Rect::new(ix + gh + 2, cy, gh, 3)));
-    cy += 3;
-    let dh = iw.saturating_sub(2) / 2;
-    rects.push((Field::Density, Rect::new(ix, cy, dh, 3)));
-    rects.push((Field::Contrast, Rect::new(ix + dh + 2, cy, dh, 3)));
-    cy += 3;
+    cy += pair(rects, ix, iw, cy, Field::Glass, Field::Motion);
+    cy += pair(rects, ix, iw, cy, Field::Density, Field::Contrast);
     rects.push((Field::ShapeCues, Rect::new(ix, cy, iw, 3)));
     cy += 3;
     // Full width: its legend is longer than a half-width border can carry,
@@ -63,10 +77,7 @@ pub(super) fn appearance(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16)
 pub(super) fn window(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16) -> u16 {
     let (ix, iw) = inner(x, w);
     let mut cy = y + 1;
-    let half = iw.saturating_sub(2) / 2;
-    rects.push((Field::NavWidth, Rect::new(ix, cy, half, 3)));
-    rects.push((Field::WindowOpacity, Rect::new(ix + half + 2, cy, half, 3)));
-    cy += 3;
+    cy += pair(rects, ix, iw, cy, Field::NavWidth, Field::WindowOpacity);
     for f in [Field::ShowNav, Field::Maximized] {
         rects.push((f, Rect::new(ix, cy, iw, 1)));
         cy += 1;
@@ -87,8 +98,7 @@ pub(super) fn notifications(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u
         rects.push((f, Rect::new(ix, cy, iw, 1)));
         cy += 1;
     }
-    let half = iw.saturating_sub(2) / 2;
-    rects.push((Field::NotifyMinSecs, Rect::new(ix, cy, half, 3)));
+    lone(rects, ix, iw, cy, Field::NotifyMinSecs);
     cy += 3;
     rects.push((
         Field::NotifyPatterns,
@@ -104,10 +114,8 @@ pub(super) fn notifications(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u
 pub(super) fn usage(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16) -> u16 {
     let (ix, iw) = inner(x, w);
     let cy = y + 1;
-    let half = iw.saturating_sub(2) / 2;
-    rects.push((Field::Budget5h, Rect::new(ix, cy, half, 3)));
-    rects.push((Field::Budget7d, Rect::new(ix + half + 2, cy, half, 3)));
-    cy + 3 + 1 - y
+    let rows = pair(rects, ix, iw, cy, Field::Budget5h, Field::Budget7d);
+    cy + rows + 1 - y
 }
 
 /// Content inset inside a card border: x + 2, width − 4.
