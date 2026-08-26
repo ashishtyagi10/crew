@@ -202,6 +202,28 @@ nothing — then holds steady until the pane is focused, which clears it (the
 same rule the activity dot follows). Thumbnail cards in the minimized strip
 show the same marker.
 
+**Toast cards.** The same events also step onto the canvas as cards at the
+top-right of the content area, each holding one line (`done`, `bell`,
+`waiting`, `exited`, `match`, `due`, `error` — the last two and `waiting` /
+`exited` border in the bell colour). They are not decoration you have to catch
+in time:
+
+- **Rest the pointer on the stack and it holds** — every card in it, until the
+  pointer leaves. Auto-hiding content that cannot be paused is unreadable to
+  anyone who reads slowly or looks up a moment late (WCAG *Pause, Stop,
+  Hide*). The whole stack holds rather than just the card under the cursor:
+  expiring its neighbours would slide the stack up and move the card out from
+  under the pointer.
+- **Click a card to go where it points.** A toast raised by a pane focuses
+  that pane — restoring it out of the nav if it was minimized. A card that
+  names no pane is simply dismissed. Either way the card leaves.
+
+Hovering says so: the stroke lights in the accent and the legend reads
+`waiting → open`, or `note ✕` for a card with nowhere to go. The pane is
+remembered by name and resolved when clicked, so a card outliving its pane
+says so rather than opening whatever now sits at that index; an `exited` card
+deliberately offers nothing, since that pane is already gone.
+
 ## Keyboard shortcuts
 
 Press **`/keys`** in the input bar for this list in-app. It scrolls —

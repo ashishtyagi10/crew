@@ -81,6 +81,11 @@ impl CrewApp {
         if !enabled {
             return;
         }
+        // Kept for the toast: this is the pane the card is about, and
+        // clicking it should go there. Exited is the exception — that pane is
+        // reaped in the same tick, so a card offering to open it would be
+        // offering something that no longer exists.
+        let target = (kind != NotifyKind::Exited).then(|| pane.clone());
         if let Some(msg) = self
             .notifier
             .record(kind, pane, detail, std::time::Instant::now())
@@ -96,7 +101,7 @@ impl CrewApp {
                 NotifyKind::Waiting => ("waiting", true),
             };
             self.toasts
-                .push(msg.clone(), legend, alert, crate::anim::now_ms());
+                .push_for(msg.clone(), legend, alert, crate::anim::now_ms(), target);
             self.set_status(msg);
         }
     }

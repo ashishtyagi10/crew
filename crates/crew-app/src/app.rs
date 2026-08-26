@@ -73,6 +73,13 @@ pub struct CrewApp {
     pub(crate) grid: GridLayout,
     pub(crate) mods: Modifiers,
     pub(crate) cursor: (f32, f32),
+    /// Whether the pointer is inside the window at all.
+    ///
+    /// `cursor` keeps the last position it saw, which is the right answer for
+    /// hit-testing a click but the wrong one for hover: with the pointer
+    /// parked over another app, a toast stack whose hold was decided from a
+    /// stale coordinate would hold forever. Cleared on `CursorLeft`.
+    pub(crate) cursor_in: bool,
     /// Sub-line scroll remainder, in lines. Trackpads emit many small pixel
     /// deltas; we accumulate the fractional part here so slow scrolling adds up
     /// instead of each tick rounding to zero and being lost.

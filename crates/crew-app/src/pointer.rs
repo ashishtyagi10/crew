@@ -63,6 +63,12 @@ impl CrewApp {
         if self.cursor_on_gutter() {
             return Over::Gutter;
         }
+        // A toast is an overlay above everything, so it answers first — and
+        // it is always clickable (open, or dismiss), so it is always a
+        // control.
+        if self.cursor_in && self.toasts.index_at(self.cursor.0, self.cursor.1).is_some() {
+            return Over::Control;
+        }
         if self.hover_btn().is_some()
             || self.pane_at_sidebar().is_some()
             || self.cursor_on_overflow()
