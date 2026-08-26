@@ -6,6 +6,7 @@ struct Uniform {
     dot_a: vec4<f32>,    // pole A tint; a = lattice strength (0 = no dots)
     dot_b: vec4<f32>,    // pole B tint; a = dot radius px
     dot_grid: vec4<f32>, // xy = lattice pitch px; z = wash strength (0 = no wash); w = wash phase (turns)
+    wash_focus: vec4<f32>, // xy = orbit centre in uv; z = how far it moves there (0 = page centre); w unused
 }
 @group(0) @binding(0) var<uniform> u: Uniform;
 
@@ -132,7 +133,16 @@ fn fs(in: VsOut) -> @location(0) vec4<f32> {
         // How far out the pools orbit, as a fraction of each half-axis.
         const WASH_ORBIT: f32 = 0.45;
         let asp = u.resolution.x / max(u.resolution.y, 1.0);
-        let p = vec2<f32>((uv.x - 0.5) * asp, uv.y - 0.5);
+        // The orbit's centre. At pull 0 it is the page centre and the pools
+        // sit either side of the middle, as they always have; as the app
+        // raises it the whole pair slides toward the focused card, so the
+        // page's light gathers where the work is. Same half-height units as
+        // `p`, so a pull reads the same on any window shape.
+        let fc = vec2<f32>(
+            (u.wash_focus.x - 0.5) * asp,
+            u.wash_focus.y - 0.5,
+        ) * u.wash_focus.z;
+        let p = vec2<f32>((uv.x - 0.5) * asp, uv.y - 0.5) - fc;
         let ang = 6.2831853 * u.dot_grid.w;
         let orbit = vec2<f32>(cos(ang) * WASH_ORBIT * asp, sin(ang) * WASH_ORBIT);
         // Cubic falloff — a soft shoulder rather than smoothstep's linear

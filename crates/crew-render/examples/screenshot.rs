@@ -108,6 +108,10 @@ fn main() {
                 radius,
                 wash: m.wash,
                 phase: 0.0,
+                // A resting shot has no focused card either, so the orbit
+                // stays centred on the page.
+                focus: [0.5, 0.5],
+                focus_pull: 0.0,
             }
         });
         paper_bg.update_uniform(

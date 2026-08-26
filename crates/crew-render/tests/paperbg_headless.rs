@@ -362,6 +362,8 @@ fn paperbg_headless() {
         // The lattice cases isolate the dots: no wash under them.
         wash: 0.0,
         phase: 0.0,
+        focus: [0.5, 0.5],
+        focus_pull: 0.0,
     };
     paper_bg.update_uniform(&queue, aurora, (64.0, 64.0), 1.0, 0.0, Some(&dots));
     let dot_pixels = render_64x64(&device, &queue, &paper_bg);
@@ -426,7 +428,11 @@ fn paperbg_headless() {
         spacing: [16.0, 16.0],
         radius: 2.0,
         wash: 0.6,
+        // Centred orbit: the pool geometry below is measured against the page
+        // centre, so the focus cases at the end move it deliberately.
         phase: 0.0,
+        focus: [0.5, 0.5],
+        focus_pull: 0.0,
     };
     paper_bg.update_uniform(&queue, aurora, (64.0, 64.0), 1.0, 0.0, Some(&wash));
     let w0 = render_64x64(&device, &queue, &paper_bg);
@@ -523,6 +529,43 @@ fn paperbg_headless() {
     assert!(
         lift(quarter) < 20,
         "W5 failed: a round pool must not smear across the row, got {quarter:?}"
+    );
+
+    // -------------------------------------------------------
+    // Case 7: the focus pull — the whole orbit slides toward the focused
+    // card, so the page's light gathers where the work is. Square surface,
+    // phase 0 (pole A left, pole B right), pull toward the TOP of the page.
+    // -------------------------------------------------------
+    wash.wash = 0.6;
+    wash.focus = [0.5, 0.0]; // a card at the top edge
+    wash.focus_pull = 0.55; // washfocus::PULL
+    paper_bg.update_uniform(&queue, aurora, (64.0, 64.0), 1.0, 0.0, Some(&wash));
+    let wf = render_64x64(&device, &queue, &paper_bg);
+    let top_row = lift(wp(&wf, 3, 6));
+    let bot_row = lift(wp(&wf, 3, 58));
+    let base_top = lift(wp(&w0, 3, 6));
+    let base_bot = lift(wp(&w0, 3, 58));
+    eprintln!(
+        "paperbg_headless [focus top]: top {base_top}->{top_row} bottom {base_bot}->{bot_row}"
+    );
+    // F6: with the orbit centred the page is symmetric top-to-bottom; pulled
+    // to the top it is not, and the asymmetry points the right way.
+    assert!(
+        (base_top - base_bot).abs() <= 8,
+        "F6 premise: a centred wash should be symmetric, {base_top} vs {base_bot}"
+    );
+    assert!(
+        top_row - bot_row > 60,
+        "F6 failed: the light should gather at the top, {top_row} vs {bot_row}"
+    );
+    // F7: pull 0 is the centred page exactly — the pre-focus behaviour, and
+    // what a frame with nothing focused draws.
+    wash.focus_pull = 0.0;
+    paper_bg.update_uniform(&queue, aurora, (64.0, 64.0), 1.0, 0.0, Some(&wash));
+    let wf0 = render_64x64(&device, &queue, &paper_bg);
+    assert_eq!(
+        wf0, w0,
+        "F7 failed: pull 0 must render the centred wash byte for byte"
     );
 
     // W6: strength 0 is a true off — the same pixels are the bare page, so

@@ -35,6 +35,9 @@ pub struct Renderer {
     /// The modern backdrop's wash phase, in turns — set by the app each frame
     /// (see [`Self::set_wash_phase`]).
     wash_phase: f32,
+    /// The wash orbit's centre in uv and how far it has travelled there (see
+    /// [`Self::set_wash_focus`]). Starts at the page centre, unmoved.
+    wash_focus: ((f32, f32), f32),
 }
 
 impl Renderer {
@@ -63,6 +66,7 @@ impl Renderer {
             fade,
             theme_fade: None,
             wash_phase: 0.0,
+            wash_focus: ((0.5, 0.5), 0.0),
         })
     }
 
@@ -137,6 +141,13 @@ impl Renderer {
         self.wash_phase = phase;
     }
 
+    /// Where the wash's orbit is centred — `(centre_uv, pull)`. Pull `0.0` is
+    /// the page centre, which is what a crew with nothing focused draws (see
+    /// crew-app's `washfocus`).
+    pub fn set_wash_focus(&mut self, focus: (f32, f32), pull: f32) {
+        self.wash_focus = (focus, pull);
+    }
+
     /// Sorted, de-duplicated names of all installed monospace font families.
     pub fn monospace_families(&mut self) -> Vec<String> {
         self.cell_grid.monospace_families()
@@ -188,6 +199,7 @@ impl Renderer {
             // calibration assumes the 1.3 × 1.2 = 1.56 product).
             self.paper_grain * crew_theme::theme().grain,
             self.wash_phase,
+            self.wash_focus,
             panes,
         );
     }

@@ -219,6 +219,9 @@ pub struct CrewApp {
     /// [`crate::washphase`]) — advanced only by the frames activity is
     /// already drawing.
     pub(crate) wash: crate::washphase::WashPhase,
+    /// Where that orbit is CENTRED: glided toward the focused card, so the
+    /// page's light gathers where the work is (see [`crate::washfocus`]).
+    pub(crate) wash_focus: crate::washfocus::WashFocus,
 }
 
 impl CrewApp {

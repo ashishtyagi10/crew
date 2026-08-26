@@ -220,6 +220,7 @@ mod updatecard;
 mod updatefetch;
 mod usageledger;
 mod viewpane;
+mod washfocus;
 mod washphase;
 mod welcome;
 mod wincon;
