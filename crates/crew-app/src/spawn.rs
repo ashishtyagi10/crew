@@ -409,10 +409,7 @@ impl CrewApp {
         // put the poles back where they were — the shift is a live global,
         // and left where the last breath stopped it the canvas would keep a
         // colour the setting says it no longer wears.
-        crate::gradientlvl::set_level(self.config.gradient_level());
-        if self.config.gradient_level() == crate::gradientlvl::GradientLevel::Off {
-            crew_theme::poleshift::set_shift(0.0);
-        }
+        self.apply_gradient();
         // A manual family pick in Settings stops rotation; otherwise a live
         // rotation keeps its current pick on top of the re-applied config.
         if self.config.font_family != old_family {

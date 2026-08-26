@@ -131,7 +131,8 @@ fn a_subtle_rotation_is_a_visible_move() {
 #[test]
 fn both_poles_turn_together() {
     let _g = guard();
-    let prev = shift();
+    let (prev, prev_c) = (shift(), custom());
+    set_custom(None); // the theme's own pair is the premise
     crate::apply_selection(crate::Selection::Fixed(ThemeId::Nebula), 0);
     let m = crate::theme().modern.expect("modern theme has poles");
     let spread = |a: (u8, u8, u8), b: (u8, u8, u8)| {
@@ -148,6 +149,7 @@ fn both_poles_turn_together() {
         spread(a, b)
     );
     set_shift(prev);
+    set_custom(prev_c);
 }
 
 /// The clamp, and the round trip through the global.
@@ -173,12 +175,149 @@ fn the_global_clamps_and_round_trips() {
 #[test]
 fn at_rest_poles_are_the_themes_own() {
     let _g = guard();
-    let prev = shift();
+    let (prev, prev_c) = (shift(), custom());
     set_shift(0.0);
+    set_custom(None);
     for id in ALL_THEMES.iter() {
         crate::apply_selection(crate::Selection::Fixed(*id), 0);
         let m = crate::theme().modern.expect("every theme ships poles");
         assert_eq!(poles(), Some((m.pole_a, m.pole_b)), "{id:?}");
     }
     set_shift(prev);
+    set_custom(prev_c);
+}
+
+/// A gradient of the user's own takes their hue — that is the point of the
+/// feature.
+#[test]
+fn a_custom_gradient_wears_the_users_hue() {
+    let _g = guard();
+    let (prev_c, prev_s) = (custom(), shift());
+    set_shift(0.0);
+    crate::apply_selection(crate::Selection::Fixed(ThemeId::Nebula), 0);
+    let m = crate::theme().modern.expect("every theme ships poles");
+    let (want_a, want_b) = ((220, 40, 40), (40, 90, 220)); // red / blue
+    set_custom(Some((want_a, want_b)));
+    let (a, b) = poles().expect("custom poles are still poles");
+    let h = |c: (u8, u8, u8)| oklch::from_srgb(c).h;
+    assert!(
+        (h(a) - h(want_a)).abs() < 3.0,
+        "asked for hue {:.0}°, got {:.0}°",
+        h(want_a),
+        h(a)
+    );
+    assert!((h(b) - h(want_b)).abs() < 3.0);
+    assert_ne!(a, m.pole_a, "the theme's pole must have been replaced");
+    set_custom(prev_c);
+    set_shift(prev_s);
+}
+
+/// …and the theme's lightness, at every theme. This is the safety argument
+/// for letting a user pick the colour under their own text: the wash has
+/// almost no contrast headroom, so brightness is not theirs to set.
+#[test]
+fn a_custom_gradient_cannot_change_how_bright_the_wash_is() {
+    let _g = guard();
+    let (prev_c, prev_s) = (custom(), shift());
+    set_shift(0.0);
+    // Black, white and a vivid mid-tone: nothing a user can type should move
+    // the lightness the palette was measured at.
+    for pair in [
+        ((0, 0, 0), (0, 0, 0)),
+        ((255, 255, 255), (255, 255, 255)),
+        ((255, 0, 255), (0, 255, 0)),
+    ] {
+        set_custom(Some(pair));
+        for id in ALL_THEMES.iter() {
+            crate::apply_selection(crate::Selection::Fixed(*id), 0);
+            let m = crate::theme().modern.expect("every theme ships poles");
+            let (a, b) = poles().expect("custom poles are still poles");
+            for (got, want) in [(a, m.pole_a), (b, m.pole_b)] {
+                let (lg, lw) = (oklch::from_srgb(got).l, oklch::from_srgb(want).l);
+                assert!(
+                    (lg - lw).abs() < 0.02,
+                    "{id:?} {pair:?}: L {lw:.3} -> {lg:.3}"
+                );
+            }
+        }
+    }
+    set_custom(prev_c);
+    set_shift(prev_s);
+}
+
+/// The same guarantee the theme's own poles get, measured the same way: a
+/// user-chosen gradient still clears the WCAG non-text floor on every page.
+#[test]
+fn no_custom_gradient_can_take_a_pole_below_the_stroke_floor() {
+    let _g = guard();
+    let (prev_c, prev_s) = (custom(), shift());
+    set_shift(0.0);
+    for hue in (0..360).step_by(15) {
+        let c = oklch::Oklch::new(0.5, 0.3, hue as f32).to_srgb();
+        set_custom(Some((c, c)));
+        for id in ALL_THEMES.iter() {
+            crate::apply_selection(crate::Selection::Fixed(*id), 0);
+            let page = crate::theme().page_bg;
+            let (a, b) = poles().expect("custom poles are still poles");
+            for p in [a, b] {
+                let r = crate::contrast_ratio(p, page);
+                assert!(r >= 3.0, "{id:?} hue {hue}°: {r:.2}");
+            }
+        }
+    }
+    set_custom(prev_c);
+    set_shift(prev_s);
+}
+
+/// Clearing it puts the theme's own gradient back, exactly.
+#[test]
+fn clearing_the_custom_gradient_restores_the_themes_own() {
+    let _g = guard();
+    let (prev_c, prev_s) = (custom(), shift());
+    set_shift(0.0);
+    crate::apply_selection(crate::Selection::Fixed(ThemeId::Blossom), 0);
+    let m = crate::theme().modern.expect("every theme ships poles");
+    set_custom(Some(((220, 40, 40), (40, 90, 220))));
+    assert_ne!(poles(), Some((m.pole_a, m.pole_b)));
+    set_custom(None);
+    assert_eq!(poles(), Some((m.pole_a, m.pole_b)));
+    assert_eq!(custom(), None);
+    set_custom(prev_c);
+    set_shift(prev_s);
+}
+
+/// The pair survives the packing it is stored in — a bit-shift slip here
+/// would show up as a gradient in colours nobody chose.
+#[test]
+fn the_custom_pair_round_trips_through_storage() {
+    let _g = guard();
+    let prev = custom();
+    for pair in [
+        ((0, 0, 0), (255, 255, 255)),
+        ((1, 2, 3), (253, 254, 255)),
+        ((197, 138, 249), (244, 143, 177)),
+    ] {
+        set_custom(Some(pair));
+        assert_eq!(custom(), Some(pair), "{pair:?}");
+    }
+    set_custom(None);
+    assert_eq!(custom(), None);
+    set_custom(prev);
+}
+
+/// A user's gradient breathes like the theme's own — one gradient, one
+/// behaviour, whoever chose the colour.
+#[test]
+fn a_custom_gradient_still_breathes() {
+    let _g = guard();
+    let (prev_c, prev_s) = (custom(), shift());
+    crate::apply_selection(crate::Selection::Fixed(ThemeId::Nebula), 0);
+    set_custom(Some(((220, 40, 40), (40, 90, 220))));
+    set_shift(0.0);
+    let rest = poles().expect("custom poles are still poles");
+    set_shift(30.0);
+    let leaned = poles().expect("custom poles are still poles");
+    assert_ne!(rest, leaned, "the shift must reach a custom gradient too");
+    set_custom(prev_c);
+    set_shift(prev_s);
 }

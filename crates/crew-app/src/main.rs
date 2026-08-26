@@ -109,6 +109,7 @@ mod git;
 #[path = "glassshot_tests.rs"]
 mod glassshot_tests;
 mod glide;
+mod gradientcmd;
 mod gradientlvl;
 pub(crate) mod grid;
 mod gridrows;

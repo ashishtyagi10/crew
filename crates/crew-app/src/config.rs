@@ -220,6 +220,13 @@ pub struct CrewConfig {
     /// the breath rides the frames the wash was already drawing.
     #[serde(default = "default_gradient")]
     pub gradient: String,
+    /// A gradient of the user's own: `"#rrggbb #rrggbb"`, set live by
+    /// `/gradient <a> <b>`. `None` (the default) uses the active theme's own
+    /// poles. Only the hue and chroma are taken — the lightness stays the
+    /// theme's, because the wash lies under the text (see crew-theme's
+    /// `poleshift::relight`).
+    #[serde(default)]
+    pub gradient_poles: Option<String>,
     /// Window opacity, `1.0` = fully opaque. Below 1.0 the desktop shows
     /// through the page (text and pane fills stay solid). Settings → WINDOW.
     #[serde(default = "default_window_opacity")]
@@ -277,6 +284,7 @@ impl Default for CrewConfig {
             glass: default_glass(),
             motion: default_motion(),
             gradient: default_gradient(),
+            gradient_poles: None,
             window_opacity: default_window_opacity(),
             font_weight: default_font_weight(),
             font_smooth: default_font_smooth(),

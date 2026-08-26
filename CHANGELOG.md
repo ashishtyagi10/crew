@@ -8,6 +8,34 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.35
+
+**`/gradient` — the canvas's colour is yours now.** Every gradient surface in
+crew (the page's wash, the dot lattice, every card's stroke, the footer's
+meters) runs between two poles, and until now those were the theme's and only
+the theme's.
+
+    /gradient                     what it is now
+    /gradient off|subtle|lively   how far the colour breathes
+    /gradient #7aa2f7 #bb9af7     a gradient of your own
+    /gradient reset               back to the theme's poles
+
+The ladder arm writes the same `gradient` key as **Settings → APPEARANCE →
+Gradient colour**, so the command and the form can never disagree. Selecting
+`/gradient` in the palette opens a value picker.
+
+**Only the hue is yours.** A custom pair is re-lit to the active theme's own
+pole lightness — and re-lit at *draw* time, not when you set it, so it keeps
+tracking the ten-minute palette rotation and looks right on every page it
+lands on. The wash lies under your text with 4-16% contrast headroom over the
+page it lifts (v0.18.26): that is not headroom a colour picker gets to spend,
+and `#ffffff` would erase the page. You choose the colour, crew chooses how
+bright it is. Held by a test that sweeps every hue on every palette and keeps
+each one above the WCAG 3.0 non-text floor.
+
+A pair that cannot be read is no pair — the theme's own gradient stays, rather
+than half of someone's.
+
 ## 0.18.34
 
 **The page's light follows the pane you are working in.** The background wash

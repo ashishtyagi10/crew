@@ -45,6 +45,7 @@ impl CrewApp {
             "crt" => self.crt_command(""),
             "weight" => self.weight_command(""),
             "smooth" => self.smooth_command(""),
+            "gradient" => self.gradient_command(""),
             "notify" => self.notify_command(""),
             "broadcast" => self.toggle_broadcast(),
             "zoom" => self.toggle_zoom(),
@@ -84,6 +85,8 @@ impl CrewApp {
                     self.weight_command(w.trim());
                 } else if let Some(s) = other.strip_prefix("smooth ") {
                     self.smooth_command(s.trim());
+                } else if let Some(g) = other.strip_prefix("gradient ") {
+                    self.gradient_command(g.trim());
                 } else if let Some(m) = other.strip_prefix("model ") {
                     self.set_model_cmd(m.trim());
                 } else {

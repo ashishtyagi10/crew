@@ -160,6 +160,7 @@ impl CrewConfig {
             glass: self.glass,
             motion: self.motion,
             gradient: self.gradient,
+            gradient_poles: self.gradient_poles.filter(|s| !s.is_empty()),
             // A window that can be dialled to invisible is a window you cannot
             // find again; the floor keeps crew recoverable from any setting.
             window_opacity: self.window_opacity.clamp(MIN_WINDOW_OPACITY, 1.0),

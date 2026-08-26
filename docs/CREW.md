@@ -408,6 +408,21 @@ The docked command bar supports:
   current strength; selecting `/smooth` in the palette opens a value picker.
   The named ladder is also the **Smoothing** field in `/settings` — both write
   the same `font_smooth` key.
+- **`/gradient [off|subtle|lively|<#a> <#b>|reset]`** — the canvas's colour.
+  With a level it sets how far the gradient breathes (the same `gradient` key
+  as **Settings → APPEARANCE → Gradient colour**). With two hex colours it
+  replaces the theme's poles with a pair of your own — the wash, the dot
+  lattice, every card's stroke and the footer meters all run between them:
+  `/gradient #7aa2f7 #bb9af7`. `reset` gives the theme its own gradient back;
+  no argument reports what is in force. Selecting `/gradient` in the palette
+  opens a value picker for the ladder.
+
+  **Only the hue is yours.** A custom pair is re-lit to the active theme's
+  own pole lightness, at draw time, so it keeps tracking the ten-minute
+  palette rotation and so `#ffffff` cannot bleach the page. The wash lies
+  under your text with 4-16% contrast headroom over the page it lifts — that
+  is not headroom a colour picker gets to spend. You choose the colour; crew
+  chooses how bright it is.
 - **`/only`** — closes every pane except the focused one (a quick "focus mode");
   a no-op when only one pane is open.
 - **File operations live in Far and Cmd+click**, not slash commands: the old

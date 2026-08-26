@@ -308,7 +308,7 @@ fn edits(f: Field) -> &'static str {
 /// Config keys the form deliberately does not carry, each with the reason.
 /// A key must be here or editable — "we forgot" is not a third option, which
 /// is how `auto_light_from` / `auto_light_to` shipped config-only.
-const NOT_IN_FORM: [(&str, &str); 8] = [
+const NOT_IN_FORM: [(&str, &str); 9] = [
     ("last_seen_version", "bookkeeping: drives the version note"),
     ("last_dir", "bookkeeping: restored window state"),
     ("win_w", "bookkeeping: restored window state"),
@@ -325,6 +325,10 @@ const NOT_IN_FORM: [(&str, &str); 8] = [
     (
         "crt",
         "set live by /crt; an override over the theme's own flag",
+    ),
+    (
+        "gradient_poles",
+        "set live by /gradient <a> <b>; an override over the theme's own poles",
     ),
 ];
 
