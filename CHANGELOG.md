@@ -8,6 +8,32 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.36
+
+**Eight gradients you can pick by name.** `/gradient` took two hex codes,
+which is a fine thing to have and a poor thing to start from. It now takes a
+name: **`aurora`** (teal into violet), **`tide`** (cyan into deep blue),
+**`orchid`** (violet into rose — crew's own aurora look), **`moss`** (green
+into teal), **`ember`** (amber into red), **`sand`** (sand into clay),
+**`dusk`** (indigo into magenta), and **`mono`** — no colour at all, the wash
+in the page's own grey.
+
+Selecting `/gradient` in the command palette lists all eight with the ladder,
+so choosing the canvas's colour is arrowing through a list rather than
+inventing a hex code. Anything off the shelf still works.
+
+They are chosen for their **interval**, not their brightness — every pair is
+re-lit to the active theme's own pole lightness at draw time, so a preset is
+really a pair of hues, and the same eight land correctly on a near-black page
+and a paper-white one without either being tuned for. A test puts every preset
+on every palette and holds each pole above the WCAG 3.0 non-text floor, and a
+second one checks the hue actually survives the re-lighting: `ember` must not
+quietly become the theme's violet.
+
+A pair chosen by name is stored **by name** (`gradient_poles = "ember"`), so a
+preset re-tuned in a later release reaches everyone who picked it — and a
+config file says what you chose rather than what it resolved to.
+
 ## 0.18.35
 
 **`/gradient` — the canvas's colour is yours now.** Every gradient surface in

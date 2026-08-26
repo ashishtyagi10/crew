@@ -42,21 +42,32 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
         // The ladder only. A custom pair (`/gradient #a #b`) is freeform by
         // nature — there is no closed set of colours — and typing one still
         // submits, the way any unlisted value does.
-        "/gradient" => Some(vec![
-            ("off".to_string(), "the theme's colour, fixed".to_string()),
-            (
-                "subtle".to_string(),
-                "the default — the colour leans \u{b1}16\u{b0}".to_string(),
-            ),
-            (
-                "lively".to_string(),
-                "a wide breath — \u{b1}38\u{b0}".to_string(),
-            ),
-            (
-                "reset".to_string(),
-                "drop a custom pair, back to the theme's poles".to_string(),
-            ),
-        ]),
+        "/gradient" => Some(
+            vec![
+                ("off".to_string(), "the theme's colour, fixed".to_string()),
+                (
+                    "subtle".to_string(),
+                    "the default — the colour leans \u{b1}16\u{b0}".to_string(),
+                ),
+                (
+                    "lively".to_string(),
+                    "a wide breath — \u{b1}38\u{b0}".to_string(),
+                ),
+                (
+                    "reset".to_string(),
+                    "drop a custom pair, back to the theme's poles".to_string(),
+                ),
+            ]
+            .into_iter()
+            // …then the shelf of named pairs, so choosing a gradient is a list
+            // to arrow through rather than a hex code to invent.
+            .chain(
+                crew_theme::gradients::GRADIENTS
+                    .iter()
+                    .map(|g| (g.name.to_string(), g.about.to_string())),
+            )
+            .collect(),
+        ),
         "/smooth" => Some(vec![
             (
                 "off".to_string(),

@@ -408,14 +408,24 @@ The docked command bar supports:
   current strength; selecting `/smooth` in the palette opens a value picker.
   The named ladder is also the **Smoothing** field in `/settings` — both write
   the same `font_smooth` key.
-- **`/gradient [off|subtle|lively|<#a> <#b>|reset]`** — the canvas's colour.
-  With a level it sets how far the gradient breathes (the same `gradient` key
-  as **Settings → APPEARANCE → Gradient colour**). With two hex colours it
-  replaces the theme's poles with a pair of your own — the wash, the dot
-  lattice, every card's stroke and the footer meters all run between them:
-  `/gradient #7aa2f7 #bb9af7`. `reset` gives the theme its own gradient back;
-  no argument reports what is in force. Selecting `/gradient` in the palette
-  opens a value picker for the ladder.
+- **`/gradient [off|subtle|lively|<name>|<#a> <#b>|reset]`** — the canvas's
+  colour. With a level it sets how far the gradient breathes (the same
+  `gradient` key as **Settings → APPEARANCE → Gradient colour**). With a
+  **name** or two hex colours it replaces the theme's poles with a pair of
+  your own — the wash, the dot lattice, every card's stroke and the footer
+  meters all run between them.
+
+  Eight named pairs come with crew: **`aurora`** (teal→violet), **`tide`**
+  (cyan→blue), **`orchid`** (violet→rose), **`moss`** (green→teal),
+  **`ember`** (amber→red), **`sand`** (sand→clay), **`dusk`**
+  (indigo→magenta) and **`mono`** (no colour at all). Selecting `/gradient`
+  in the palette lists them with the ladder, so picking one is arrowing
+  through a list rather than inventing a hex code — and anything off the
+  shelf still works: `/gradient #7aa2f7 #bb9af7`. `reset` gives the theme its
+  own gradient back; no argument reports what is in force.
+
+  A pair chosen by name is stored **by name**, so a preset re-tuned in a
+  later release reaches everyone who picked it.
 
   **Only the hue is yours.** A custom pair is re-lit to the active theme's
   own pole lightness, at draw time, so it keeps tracking the ten-minute
