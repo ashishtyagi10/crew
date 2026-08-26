@@ -622,7 +622,12 @@ impl CrewApp {
                 changed = true;
             }
         }
-        if let Some(key) = up.focus {
+        // Focus mode never lets a pane pull focus: being yanked into another
+        // pane mid-sentence is the most expensive interruption crew can
+        // produce, and the marker the loop above raised still says the pane
+        // is waiting. The verdict is still consumed, so leaving the mode does
+        // not replay a stale jump.
+        if let Some(key) = up.focus.filter(|_| !crate::focusmode::on()) {
             if let Some(i) = self.panes.iter().position(|p| p.born_ms == key) {
                 // The same focus path every other surface uses: focusing a
                 // hidden pane restores it via `reconcile_grid` next frame.

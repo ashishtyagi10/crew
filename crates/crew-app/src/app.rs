@@ -116,6 +116,10 @@ pub struct CrewApp {
     pub(crate) win_focus: Option<bool>,
     /// Whether the focused pane is zoomed to fill the content area.
     pub(crate) zoomed: bool,
+    /// What focus mode has held back since it was entered (see
+    /// [`crate::focusmode`]). Reset every time the mode is entered, reported
+    /// and cleared on the way out.
+    pub(crate) held: crate::focusmode::Held,
     /// Last OS window title set, to avoid redundant `set_title` calls.
     pub(crate) win_title: String,
     /// Mirror input to every terminal pane (tmux-style synchronized input).

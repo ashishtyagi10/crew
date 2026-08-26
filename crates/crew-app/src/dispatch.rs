@@ -51,6 +51,7 @@ impl CrewApp {
             "notify" => self.notify_command(""),
             "broadcast" => self.toggle_broadcast(),
             "zoom" => self.toggle_zoom(),
+            "focus" => self.toggle_focus_mode(),
             "sidebar" => self.toggle_sidebar(),
             "name" => self.name_focused_pane(""), // clear the pane's name
             "findall" => self.find_all(""),       // show usage hint

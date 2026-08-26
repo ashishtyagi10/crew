@@ -13,19 +13,23 @@ use crew_render::CellView;
 
 /// How far unfocused content leans toward the page. Mild by design: readable
 /// always, unmistakable in a full grid.
-const DIM: f32 = 0.15;
+pub(crate) const DIM: f32 = 0.15;
 
 /// The wash strength for pane `i` this frame. `spot` is the spotlit pane,
 /// `prev` the one the spotlight just left, `t` the eased focus travel
 /// (1.0 at rest). The spotlit pane brightens as `t` rises, the previous one
 /// dims by the same clock, everyone else rests at [`DIM`].
 pub(crate) fn dim_for(i: usize, spot: usize, prev: usize, t: f32) -> f32 {
+    // Focus mode deepens the resting wash (see `focusmode`); the choreography
+    // is unchanged, so entering the mode leans the whole grid further back
+    // without any pane's dim jumping out of step with the focus travel.
+    let rest = crate::focusmode::dim();
     if i == spot {
-        DIM * (1.0 - t)
+        rest * (1.0 - t)
     } else if i == prev {
-        DIM * t
+        rest * t
     } else {
-        DIM
+        rest
     }
 }
 

@@ -108,6 +108,14 @@ impl Toasts {
         });
     }
 
+    /// How many cards are on the stack. The one thing outside this module
+    /// that needs to know is whether a notification popped at all — which is
+    /// a question only the tests ask, since the renderer walks the stack.
+    #[cfg(test)]
+    pub(crate) fn len(&self) -> usize {
+        self.items.len()
+    }
+
     /// Drop expired toasts.
     pub(crate) fn prune(&mut self, now: u64) {
         self.items.retain(|t| t.age(now) < TTL_MS);

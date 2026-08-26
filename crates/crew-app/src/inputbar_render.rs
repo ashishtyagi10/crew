@@ -40,6 +40,22 @@ impl InputBar {
                 crate::boxdraw::title_budget(cols),
             )
         };
+        // Focus mode is a MODE: the one thing a mode owes the user is a
+        // standing sign that it is on, or they will spend the afternoon
+        // wondering why nothing pops. The bar's legend is the only chrome
+        // always on screen, and the word rides in front of the path.
+        let legend = if crate::focusmode::on() {
+            let budget = crate::boxdraw::title_budget(cols);
+            let tag = "\u{25c9} focus";
+            if legend.is_empty() {
+                tag.to_string()
+            } else {
+                let room = budget.saturating_sub(tag.chars().count() + 3);
+                format!("{tag} \u{b7} {}", crate::cwd::fit_legend(&legend, room))
+            }
+        } else {
+            legend
+        };
         let border = if self.focused {
             crew_theme::theme().border_focused
         } else {

@@ -99,6 +99,7 @@ mod farpane;
 mod filedrop;
 mod fileindex;
 mod findhl;
+mod focusmode;
 mod fontcmd;
 mod fontrotate;
 mod fonttick;
