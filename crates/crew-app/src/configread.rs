@@ -114,6 +114,14 @@ impl CrewConfig {
         crate::motion::MotionLevel::parse(&self.motion).unwrap_or(crate::motion::MotionLevel::Full)
     }
 
+    /// The configured gradient level; an unknown name falls back to `subtle`,
+    /// the default, so a typo softens the effect rather than pinning the
+    /// poles or over-driving them.
+    pub(crate) fn gradient_level(&self) -> crate::gradientlvl::GradientLevel {
+        crate::gradientlvl::GradientLevel::parse(&self.gradient)
+            .unwrap_or(crate::gradientlvl::GradientLevel::Subtle)
+    }
+
     pub fn clamped(self) -> Self {
         Self {
             // MUST carry through: `load()` clamps, so dropping this here made
@@ -151,6 +159,7 @@ impl CrewConfig {
             crt: self.crt,
             glass: self.glass,
             motion: self.motion,
+            gradient: self.gradient,
             // A window that can be dialled to invisible is a window you cannot
             // find again; the floor keeps crew recoverable from any setting.
             window_opacity: self.window_opacity.clamp(MIN_WINDOW_OPACITY, 1.0),

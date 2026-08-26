@@ -238,6 +238,14 @@ impl CrewApp {
                 let wash = self
                     .wash
                     .advance(crate::anim::now_ms(), pace, crate::motion::level());
+                // ... and the gradient's own colour rides the same clock: one
+                // hue offset, published to the theme layer, worn this frame by
+                // the wash, the dot lattice and every card's stroke at once.
+                // At `gradient off` the span is zero and this is a no-op store
+                // of the number that was already there.
+                crew_theme::poleshift::set_shift(
+                    self.wash.hue_deg(crate::gradientlvl::level().span_deg()),
+                );
                 if let Some(r) = &mut self.renderer {
                     // Flicker amplitude is the style's own — each phosphor
                     // jitters with its own nerve, not one global 0.06.

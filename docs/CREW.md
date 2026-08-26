@@ -1170,7 +1170,8 @@ move focus, Enter commits a field, **Cmd+S / Alt+S** saves and closes:
   (←/→/Space cycle through the nine presets), **Accent (#hex)** (override the
   theme accent; clear to use the default), **Glass** (←/→/Space cycle
   `off · low · medium · high`), **Motion** (`off · subtle · full`),
-  **Paper texture** (on/off).
+  **Gradient colour** (`off · subtle · lively`), **Paper texture** (on/off),
+  **Drifting background** (on/off).
 - **WINDOW** — **Nav width**, **Opacity %**, **Show nav**, **Launch maximized**.
 - **NOTIFICATIONS** — the master switch plus per-event toggles (**cmd done**,
   **bell**, **pane exit**), the **min secs** threshold, and the watched
@@ -1352,6 +1353,31 @@ Turn the setting off and an idle crew goes back to drawing exactly nothing, its
 last frame held wherever the pools had reached. The phase is accumulated from
 frame deltas rather than read off the clock, so the motion is continuous across
 every pause instead of teleporting after a quiet minute.
+
+**And the gradient's colour breathes.** The two poles every gradient surface
+is drawn between — the wash, the dot lattice, every card's stroke, the footer
+meters — lean around the hue wheel over time, so the canvas warms and cools
+instead of holding one fixed pair of swatches. **Settings → APPEARANCE →
+Gradient colour** sets how far: `subtle` (the default) leans ±16°, one
+colour's neighbourhood, so a violet theme visits indigo and magenta and is
+never anything else; `lively` leans ±38°, far enough that the two ends read as
+different lights on the same room; `off` pins the poles to the theme's own
+colours forever.
+
+It is a *breath*, not a rotation — the offset is a sine, so the colour leans
+one way, comes back through the palette's exact colour, and leans the other. A
+monotonic turn would eventually walk every theme through every hue and stop
+being that theme.
+
+The rotation happens in OKLCH and moves **hue only**: lightness and chroma
+come back out and go straight back in, and out-of-gamut hues lose chroma
+rather than clipping a channel. That is the safety argument, and it is
+measured — across all eight palettes a pole's contrast against its own page
+moves by under 8% at the widest rung, and no offset a hand-edited config can
+reach takes one below the WCAG 3.0 non-text floor. The breath also rides the
+frames the wash was already drawing (four times slower than the pools orbit),
+so it costs nothing extra, holds when the wash holds, and stops dead at
+**Motion = off**.
 
 **Light themes read like print.** The six light *paper* themes (`paper-light`,
 `sepia-light`, `coldpress-gray`, `salmon-broadsheet`, `ivory-ledger`,

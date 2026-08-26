@@ -35,6 +35,10 @@ pub(crate) enum Field {
     PaperGrain,
     Glass,
     Motion,
+    /// How far the gradient's colour leans from the theme's own over time
+    /// (see `gradientlvl`). Sits with Glass and Motion: all three say how
+    /// much the canvas is allowed to do on its own.
+    Gradient,
     WindowOpacity,
     Maximized,
     Notify,
@@ -51,7 +55,7 @@ pub(crate) enum Field {
     Cancel,
 }
 
-pub(crate) const FIELDS: [Field; 28] = [
+pub(crate) const FIELDS: [Field; 29] = [
     Field::FontFamily,
     Field::FontSize,
     Field::Smooth,
@@ -69,6 +73,7 @@ pub(crate) const FIELDS: [Field; 28] = [
     Field::PaperGrain,
     Field::Glass,
     Field::Motion,
+    Field::Gradient,
     Field::Maximized,
     Field::Notify,
     Field::NotifyAgentDone,

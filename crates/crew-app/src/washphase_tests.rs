@@ -229,3 +229,109 @@ fn an_idle_app_wants_no_animation_frame_but_does_want_the_drift() {
     app.config.ambient_drift = false;
     assert!(!app.wants_animation_frame(now) && !app.ambient_drift());
 }
+
+/// Run the clock forward `ms` in frames small enough to clear `MAX_STEP_MS`,
+/// which is what a real drifting window does — one 1000 ms `advance` is a
+/// STALL and is clamped to 250, so a test that stepped in whole periods would
+/// be measuring the stall clamp instead of the clock.
+fn run(w: &mut WashPhase, ms: u64, pace: u64) -> f32 {
+    const FRAME: u64 = 100;
+    let start = w.last_ms.unwrap_or(0);
+    let mut t = start;
+    let mut out = 0.0;
+    while t < start + ms {
+        t = (t + FRAME).min(start + ms);
+        out = w.advance(t, Some(pace), MotionLevel::Full);
+    }
+    out
+}
+
+/// The hue breath rides the SAME frames and the same fences as the orbit,
+/// [`HUE_MULT`] times slower — so a colour and the position it is drawn at
+/// never repeat together, and the colour costs no frame the orbit was not
+/// already asking for.
+#[test]
+fn the_hue_breathes_slower_than_the_pools_orbit() {
+    let mut w = WashPhase::default();
+    w.advance(0, Some(1_000), MotionLevel::Full); // first frame only stamps
+                                                  // A quarter of the HUE period is a full sine quarter: peak lean.
+    let orbit = run(&mut w, 1_000 * HUE_MULT / 4, 1_000);
+    assert!(
+        (w.hue_deg(16.0) - 16.0).abs() < 0.05,
+        "a quarter of the hue period must be full lean, got {}",
+        w.hue_deg(16.0)
+    );
+    // The orbit has gone round HUE_MULT/4 whole turns in that time, so it is
+    // back at the start while the colour is at its furthest.
+    assert!(orbit < 1e-3, "orbit should have wrapped home, at {orbit}");
+}
+
+/// A sine, not a rotation: the poles lean one way, come back through the
+/// theme's exact colour, and lean the other. Half a period later the offset
+/// must have changed SIGN, which a monotonic rotation could never do.
+#[test]
+fn the_breath_returns_through_the_themes_own_colour() {
+    let mut w = WashPhase::default();
+    w.advance(0, Some(1_000), MotionLevel::Full);
+    let quarter = 1_000 * HUE_MULT / 4;
+    run(&mut w, quarter, 1_000);
+    let peak = w.hue_deg(38.0);
+    run(&mut w, quarter, 1_000);
+    assert!(
+        w.hue_deg(38.0).abs() < 0.1,
+        "half way is the theme's own hue, got {}",
+        w.hue_deg(38.0)
+    );
+    run(&mut w, quarter, 1_000);
+    let trough = w.hue_deg(38.0);
+    assert!(
+        peak > 37.0 && trough < -37.0,
+        "peak {peak}, trough {trough}"
+    );
+}
+
+/// At rest — a fresh process, and every headless shot test — the offset is
+/// exactly zero, which is what makes `poleshift::shifted` the identity and
+/// keeps the static-frame contract.
+#[test]
+fn a_clock_that_never_ran_wears_no_offset() {
+    let w = WashPhase::default();
+    assert_eq!(w.hue_deg(38.0), 0.0);
+    assert_eq!(w.hue_deg(0.0), 0.0);
+}
+
+/// `gradient off` is a genuine off: a zero span is no lean at any point of
+/// the cycle, not a small one.
+#[test]
+fn a_zero_span_never_leans() {
+    let mut w = WashPhase::default();
+    w.advance(0, Some(1_000), MotionLevel::Full);
+    for step in 1..40 {
+        w.advance(step * 500, Some(1_000), MotionLevel::Full);
+        assert_eq!(w.hue_deg(0.0), 0.0, "step {step}");
+    }
+}
+
+/// The hue holds with the orbit — an idle window that repaints for a resize
+/// must not find its colour somewhere else.
+#[test]
+fn quiet_time_holds_the_hue_too() {
+    let mut w = WashPhase::default();
+    w.advance(0, Some(1_000), MotionLevel::Full);
+    run(&mut w, 1_000 * HUE_MULT / 4, 1_000);
+    let held = w.hue_deg(16.0);
+    for t in [10_000, 60_000, 600_000] {
+        w.advance(t, None, MotionLevel::Full);
+        assert_eq!(w.hue_deg(16.0), held, "an idle frame at {t} moved the hue");
+    }
+}
+
+/// Motion off stops the colour as it stops the orbit — the reduce-motion
+/// setting is one answer, not two.
+#[test]
+fn motion_off_stops_the_hue() {
+    let mut w = WashPhase::default();
+    w.advance(0, Some(1_000), MotionLevel::Off);
+    w.advance(1_000 * HUE_MULT / 4, Some(1_000), MotionLevel::Off);
+    assert_eq!(w.hue_deg(38.0), 0.0);
+}

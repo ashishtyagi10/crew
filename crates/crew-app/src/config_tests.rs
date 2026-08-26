@@ -104,6 +104,7 @@ fn round_trip() {
         nav_width: 200.0,
         show_nav: true,
         ambient_drift: true,
+        gradient: "lively".to_string(),
         font_family: Some("Menlo".to_string()),
         font_random: false,
         accent: Some("#112233".to_string()),

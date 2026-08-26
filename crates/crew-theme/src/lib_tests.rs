@@ -1,10 +1,7 @@
 use super::*;
 
 /// Serialises tests that mutate the process-wide CURRENT.
-fn guard() -> std::sync::MutexGuard<'static, ()> {
-    static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
-    LOCK.lock().unwrap_or_else(|e| e.into_inner())
-}
+use crate::test_guard as guard;
 
 #[test]
 fn default_is_paper_dark() {

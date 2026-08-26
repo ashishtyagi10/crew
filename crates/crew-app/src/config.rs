@@ -34,6 +34,12 @@ fn default_paper_grain() -> f32 {
     1.3
 }
 
+fn default_gradient() -> String {
+    // The gradient breathes by default, gently. `off` pins the poles to the
+    // theme's own colours (see `gradientlvl::GradientLevel`).
+    "subtle".to_string()
+}
+
 fn default_motion() -> String {
     // Crew moves by default. `off` is the reduce-motion setting and costs
     // nothing extra to render (see `motion::MotionLevel`).
@@ -208,6 +214,12 @@ pub struct CrewConfig {
     /// back to `full`. Set in Settings → APPEARANCE → Motion.
     #[serde(default = "default_motion")]
     pub motion: String,
+    /// How far the gradient's colour leans from the theme's own over time:
+    /// `off`, `subtle` or `lively` (see `gradientlvl::GradientLevel`). The
+    /// poles rotate in hue only, so no contrast guarantee moves with it, and
+    /// the breath rides the frames the wash was already drawing.
+    #[serde(default = "default_gradient")]
+    pub gradient: String,
     /// Window opacity, `1.0` = fully opaque. Below 1.0 the desktop shows
     /// through the page (text and pane fills stay solid). Settings → WINDOW.
     #[serde(default = "default_window_opacity")]
@@ -264,6 +276,7 @@ impl Default for CrewConfig {
             crt: None,
             glass: default_glass(),
             motion: default_motion(),
+            gradient: default_gradient(),
             window_opacity: default_window_opacity(),
             font_weight: default_font_weight(),
             font_smooth: default_font_smooth(),

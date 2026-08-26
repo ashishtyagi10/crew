@@ -68,14 +68,19 @@ pub(crate) fn render(
         // size and DPI. Pole colours go through the same colour-space door as
         // the page.
         let modern = crew_theme::theme().modern.map(|m| {
+            // The poles are the LIVE ones — the theme's own, rotated by
+            // whatever hue offset the app published this frame (see
+            // crew-theme's `poleshift`). At rest that is the theme's own
+            // bytes, so a still page is still a pure function of position.
+            let (pole_a, pole_b) = crew_theme::poleshift::poles().unwrap_or((m.pole_a, m.pole_b));
             let c = |rgb| {
                 let [r, g, b, _] = crate::color::target_rgba(rgb, 1.0, gpu.format.is_srgb());
                 [r, g, b]
             };
             let (spacing, radius) = crate::paperbg::ModernPaper::cell_geometry(cell_grid.cell_h);
             crate::paperbg::ModernPaper {
-                color_a: c(m.pole_a),
-                color_b: c(m.pole_b),
+                color_a: c(pole_a),
+                color_b: c(pole_b),
                 dots: m.dots,
                 spacing,
                 radius,
