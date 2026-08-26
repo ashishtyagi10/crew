@@ -1,4 +1,4 @@
-use super::{count, thumb, MIN_ROWS};
+use super::{count, position, thumb, MIN_ROWS};
 use crate::panecard::Bar;
 use crew_render::CellView;
 
@@ -91,9 +91,9 @@ fn the_thumb_is_proportional_to_how_much_there_is() {
 #[test]
 fn the_count_reports_the_next_free_column_and_writes_nothing_at_the_bottom() {
     let mut v: Vec<CellView> = Vec::new();
-    assert_eq!(count(&mut v, 37, 0), 37, "no scroll, no change");
+    assert_eq!(count(&mut v, 37, 0, 0.5), 37, "no scroll, no change");
     assert!(v.is_empty());
-    let next = count(&mut v, 37, 12);
+    let next = count(&mut v, 37, 12, 0.5);
     assert_eq!(v.len(), 3, "⇡12 is three glyphs");
     assert!(next < 35, "and the next glyph goes to its left");
 }
@@ -103,7 +103,7 @@ fn the_count_reports_the_next_free_column_and_writes_nothing_at_the_bottom() {
 #[test]
 fn a_count_with_no_room_writes_nothing() {
     let mut v: Vec<CellView> = Vec::new();
-    assert_eq!(count(&mut v, 1, 4_000), 1);
+    assert_eq!(count(&mut v, 1, 4_000, 0.5), 1);
     assert!(v.is_empty());
 }
 
@@ -131,4 +131,63 @@ fn a_seek_outside_the_gutter_or_with_no_history_is_bounded() {
     assert_eq!(offset_at(5_000, 20, 9.0), 0, "below it");
     assert_eq!(offset_at(20, 20, 0.0), 0, "the buffer fits on screen");
     assert_eq!(offset_at(5, 20, 0.0), 0, "and so does a shorter one");
+}
+
+/// The third reading of the scroll position: where you are in the buffer,
+/// as a colour. Top of the scrollback is one end of the gradient, the live
+/// bottom the other, and the walk between them is monotonic — a colour that
+/// doubled back would say you had moved somewhere you had not.
+#[test]
+fn the_position_runs_end_to_end_and_never_doubles_back() {
+    let (total, visible) = (1_000, 40);
+    let range = total - visible;
+    assert_eq!(position(total, visible, range), 0.0, "top of the buffer");
+    assert_eq!(position(total, visible, 0), 1.0, "the live bottom");
+    let mut prev = -1.0;
+    for back in (0..=range).step_by(37) {
+        let t = position(total, visible, range - back);
+        assert!(t > prev, "position must climb: {t} !> {prev}");
+        assert!((0.0..=1.0).contains(&t), "{t} is off the gradient");
+        prev = t;
+    }
+}
+
+/// Scrolled further back than there is buffer is still the top of the buffer,
+/// not a colour off the end of the gradient.
+#[test]
+fn a_position_past_the_top_pins_to_the_top() {
+    assert_eq!(position(100, 40, 9_999), 0.0);
+}
+
+/// A buffer with no history has no position to report. The midpoint keeps the
+/// marker off both ends of the gradient rather than claiming you are at one.
+#[test]
+fn a_buffer_with_no_history_has_no_position() {
+    assert_eq!(position(40, 40, 0), 0.5);
+    assert_eq!(position(10, 40, 0), 0.5);
+    assert_eq!(position(0, 0, 0), 0.5);
+}
+
+/// Both readings of the position — the `⇡N` count and the thumb — must wear
+/// the SAME colour, or the border would be telling two stories about one
+/// number. They are drawn by different functions, so this is the only thing
+/// holding them together.
+#[test]
+fn both_readings_of_the_position_share_one_colour() {
+    let _g = crate::app::theme_test_guard();
+    let (total, visible) = (1_000usize, 8usize);
+    let rows = (visible + 2) as u16;
+    let b = bar(400, total);
+    let mut thumb_cells = Vec::new();
+    thumb(&mut thumb_cells, 40, rows, &b);
+    let thumb_fg = thumb_cells.first().expect("a thumb should be drawn").fg;
+    let mut count_cells = Vec::new();
+    count(
+        &mut count_cells,
+        30,
+        b.scroll,
+        position(total, visible, b.scroll),
+    );
+    let count_fg = count_cells.first().expect("a count should be drawn").fg;
+    assert_eq!(thumb_fg, count_fg);
 }

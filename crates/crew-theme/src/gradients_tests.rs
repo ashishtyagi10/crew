@@ -132,3 +132,31 @@ fn a_pair_is_recognised_as_its_name() {
     }
     assert_eq!(name_of(((1, 2, 3), (4, 5, 6))), None);
 }
+
+/// The step key's walk: out of the theme's own gradient, along all eight, and
+/// back out to the theme's own. A cycle that could not come home would be a
+/// one-way door.
+#[test]
+fn the_walk_visits_every_preset_and_returns_home() {
+    let mut at = None;
+    let mut seen = Vec::new();
+    for _ in 0..GRADIENTS.len() {
+        at = next(at);
+        seen.push(at.expect("the walk must not end early"));
+    }
+    assert_eq!(
+        seen,
+        GRADIENTS.iter().map(|g| g.poles).collect::<Vec<_>>(),
+        "the walk must be the shelf, in order"
+    );
+    assert_eq!(next(at), None, "the lap must end at the theme's own");
+    assert_eq!(next(None), GRADIENTS.first().map(|g| g.poles));
+}
+
+/// A gradient of someone's own is not on the shelf, so the step key has to
+/// decide where it lands rather than stranding them — it enters at the start.
+#[test]
+fn a_pair_off_the_shelf_joins_the_walk_at_the_start() {
+    let mine = Some(((1, 2, 3), (4, 5, 6)));
+    assert_eq!(next(mine), GRADIENTS.first().map(|g| g.poles));
+}

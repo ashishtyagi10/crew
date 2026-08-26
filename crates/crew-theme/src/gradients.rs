@@ -88,6 +88,24 @@ pub fn name_of(poles: Poles) -> Option<&'static str> {
     GRADIENTS.iter().find(|g| g.poles == poles).map(|g| g.name)
 }
 
+/// The next gradient after `current`, for a key that steps through the shelf.
+///
+/// `None` is the theme's own pair, and it is BOTH ends of the walk: from
+/// nothing into `aurora`, along the eight, and out of `mono` back to nothing.
+/// A cycle that could not return to the theme's own gradient would be a
+/// one-way door — the whole point of a step key is that holding it gets you
+/// home. A pair that is not on the shelf (someone's own hex) enters the walk
+/// at the start rather than being stranded.
+pub fn next(current: Option<Poles>) -> Option<Poles> {
+    let Some(p) = current else {
+        return GRADIENTS.first().map(|g| g.poles);
+    };
+    match GRADIENTS.iter().position(|g| g.poles == p) {
+        Some(i) => GRADIENTS.get(i + 1).map(|g| g.poles),
+        None => GRADIENTS.first().map(|g| g.poles),
+    }
+}
+
 #[cfg(test)]
 #[path = "gradients_tests.rs"]
 mod tests;

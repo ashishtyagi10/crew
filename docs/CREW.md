@@ -425,7 +425,10 @@ The docked command bar supports:
   own gradient back; no argument reports what is in force.
 
   A pair chosen by name is stored **by name**, so a preset re-tuned in a
-  later release reaches everyone who picked it.
+  later release reaches everyone who picked it. **`Ctrl+Shift+G`** steps
+  through the shelf without opening anything — the colour's answer to
+  `Ctrl+Shift+L`, and the walk passes back through the theme's own gradient
+  once a lap, so the key that got you somewhere can get you home.
 
   **Only the hue is yours.** A custom pair is re-lit to the active theme's
   own pole lightness, at draw time, so it keeps tracking the ten-minute
@@ -1378,6 +1381,13 @@ Turn the setting off and an idle crew goes back to drawing exactly nothing, its
 last frame held wherever the pools had reached. The phase is accumulated from
 frame deltas rather than read off the clock, so the motion is continuous across
 every pause instead of teleporting after a quiet minute.
+
+**Where you are in a buffer is a colour too.** Scroll a pane back and the
+`⇡N` on its top border and the thumb down its right border both take the
+theme gradient, sampled at your position: deep in the history they wear one
+pole, at the live edge the other, and dragging the gutter walks them between.
+It is the same gradient the card's own stroke runs, so the thumb reads as part
+of the frame it rides rather than as a widget parked on it.
 
 **The light gathers where you are working.** The wash's orbit is not centred
 on the page any more — it slides toward the focused card, so the page is

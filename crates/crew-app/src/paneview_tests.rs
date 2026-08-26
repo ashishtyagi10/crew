@@ -53,7 +53,10 @@ fn status_glyphs_ride_the_top_border() {
     let cells = pane_card(38, 10, &bar(true));
     let on_top =
         |ch: char, fg: (u8, u8, u8)| cells.iter().any(|c| c.c == ch && c.row == 0 && c.fg == fg);
-    assert!(on_top('⇡', crew_theme::theme().status_fg)); // scrollback `⇡37`
+    // `⇡37` — the scrollback count. Its COLOUR is the buffer position (see
+    // `panescroll::position_fg`, and the test there holding it identical to the
+    // thumb's), not a fixed role, so this only asks that it is drawn at all.
+    assert!(cells.iter().any(|c| c.c == '⇡' && c.row == 0));
     assert!(on_top('●', crew_theme::theme().activity));
     assert!(on_top('!', crew_theme::theme().bell));
 }

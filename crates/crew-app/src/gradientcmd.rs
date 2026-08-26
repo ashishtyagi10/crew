@@ -93,7 +93,22 @@ impl CrewApp {
         );
     }
 
-    /// `/gradient [off|subtle|lively | <#a> <#b> | reset]`.
+    /// Step to the next gradient on the shelf — `Ctrl+Shift+G`, the colour's
+    /// answer to `Ctrl+Shift+L`.
+    ///
+    /// The walk passes back through the theme's OWN gradient once a lap, so
+    /// the key that got you somewhere can always get you home.
+    pub(crate) fn cycle_gradient(&mut self) {
+        let next = crew_theme::gradients::next(crew_theme::poleshift::custom());
+        self.config.gradient_poles = next.map(format_poles);
+        let note = match next {
+            Some(p) => format!("gradient {}", describe(p)),
+            None => "gradient — the theme's own".to_string(),
+        };
+        self.commit_gradient(&note);
+    }
+
+    /// `/gradient [off|subtle|lively | <name> | <#a> <#b> | reset]`.
     pub(crate) fn gradient_command(&mut self, arg: &str) {
         let arg = arg.trim();
         if arg.is_empty() {

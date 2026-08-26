@@ -37,6 +37,10 @@ pub(crate) const BINDINGS: &[(&str, &str)] = &[
         "Ctrl+Shift+L",
         "Cycle themes (dark \u{2192} light \u{2192} crt)",
     ),
+    (
+        "Ctrl+Shift+G",
+        "Step the canvas gradient (aurora \u{2192} tide \u{2192} \u{2026} \u{2192} the theme's own)",
+    ),
     ("Ctrl+Shift+M", "Chat: markdown preview \u{2194} raw source"),
     ("Ctrl+O", "Chat: compact transcript view"),
     ("Shift+PageUp / Shift+PageDown", "Scroll the focused pane"),

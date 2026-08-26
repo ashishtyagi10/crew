@@ -14,10 +14,38 @@ use crew_render::CellView;
 
 use crate::panecard::{put, Bar};
 
+/// The colour both readings wear: the theme gradient sampled at `t`, where 0
+/// is the top of the buffer and 1 the live bottom.
+///
+/// The position is already drawn twice — as a number and as a thumb — and
+/// this is the third reading, the one you get without reading anything: deep
+/// in the history the marker wears `pole_a`, at the live edge `pole_b`, and
+/// dragging the gutter walks it between them. It is the same gradient the
+/// card's own stroke runs, so the thumb reads as part of the frame it rides
+/// rather than as a widget parked on it.
+///
+/// Falls back to `status_fg` — what both wore before — on a theme with no
+/// gradient to sample.
+fn position_fg(t: f32) -> (u8, u8, u8) {
+    crate::modernring::pole_mix(t).unwrap_or(crew_theme::theme().status_fg)
+}
+
+/// How far through the buffer the viewport's top edge sits, `0.0` at the top
+/// of the scrollback and `1.0` at the live bottom. `0.5` when there is
+/// nothing to be far through — a buffer with no history has no position to
+/// report, and the midpoint keeps the colour off both extremes.
+pub(crate) fn position(total: usize, visible: usize, scroll: usize) -> f32 {
+    let range = total.saturating_sub(visible);
+    if range == 0 {
+        return 0.5;
+    }
+    1.0 - (scroll.min(range) as f32 / range as f32)
+}
+
 /// Stamp `⇡N` on the top border, ending at column `rx`, and return the next
 /// free column to its left. `rx` unchanged when there is nothing to say or no
 /// room to say it.
-pub(crate) fn count(v: &mut Vec<CellView>, rx: u16, scroll: usize) -> u16 {
+pub(crate) fn count(v: &mut Vec<CellView>, rx: u16, scroll: usize, t: f32) -> u16 {
     if scroll == 0 {
         return rx;
     }
@@ -27,15 +55,9 @@ pub(crate) fn count(v: &mut Vec<CellView>, rx: u16, scroll: usize) -> u16 {
         return rx;
     }
     let start = rx + 1 - w;
+    let fg = position_fg(t);
     for (i, ch) in s.chars().enumerate() {
-        put(
-            v,
-            start + i as u16,
-            0,
-            ch,
-            crew_theme::theme().status_fg,
-            false,
-        );
+        put(v, start + i as u16, 0, ch, fg, false);
     }
     start.saturating_sub(2)
 }
@@ -57,9 +79,9 @@ pub(crate) fn thumb(v: &mut Vec<CellView>, cols: u16, rows: u16, b: &Bar) {
     let Some((top, len)) = crate::chatscroll::thumb(b.total, visible, first) else {
         return;
     };
-    let t = crew_theme::theme();
+    let fg = position_fg(position(b.total, visible, b.scroll));
     for i in top..(top + len).min(visible) {
-        put(v, cols - 1, 1 + i as u16, '\u{2503}', t.status_fg, true);
+        put(v, cols - 1, 1 + i as u16, '\u{2503}', fg, true);
     }
 }
 

@@ -199,3 +199,22 @@ fn no_name_could_be_mistaken_for_a_colour() {
         );
     }
 }
+
+/// Ctrl+Shift+G walks the shelf and comes home: the key that got you
+/// somewhere has to be able to get you back.
+#[test]
+fn the_step_key_walks_the_shelf_and_comes_home() {
+    let _g = crate::app::theme_test_guard();
+    let (l0, c0) = (crate::gradientlvl::level(), poleshift::custom());
+    let mut app = crate::app::CrewApp::default();
+    app.gradient_command("reset");
+    for g in crew_theme::gradients::GRADIENTS {
+        app.cycle_gradient();
+        assert_eq!(app.config.gradient_poles.as_deref(), Some(g.name));
+        assert_eq!(poleshift::custom(), Some(g.poles));
+    }
+    app.cycle_gradient();
+    assert_eq!(app.config.gradient_poles, None, "a lap must end at home");
+    assert_eq!(poleshift::custom(), None);
+    restore(l0, c0);
+}
