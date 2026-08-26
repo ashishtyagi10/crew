@@ -19,8 +19,8 @@ pub(crate) fn cycle_value(p: &mut SettingsPane, back: bool) {
         Field::NotifyExit => d.notify_exit = !d.notify_exit,
         Field::Smooth => d.font_smooth = crate::smoothlvl::cycle(d.font_smooth, back),
         Field::Motion => {
-            let all = crate::motion::MotionLevel::ALL;
-            let cur = all.iter().position(|&l| l == d.motion_level()).unwrap_or(0);
+            let all = crate::motion::MotionPref::ALL;
+            let cur = all.iter().position(|&l| l == d.motion_pref()).unwrap_or(0);
             let next = if back {
                 (cur + all.len() - 1) % all.len()
             } else {

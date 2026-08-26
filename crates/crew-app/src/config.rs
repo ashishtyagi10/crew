@@ -41,9 +41,12 @@ fn default_gradient() -> String {
 }
 
 fn default_motion() -> String {
-    // Crew moves by default. `off` is the reduce-motion setting and costs
-    // nothing extra to render (see `motion::MotionLevel`).
-    "full".to_string()
+    // Crew follows the OS by default: macOS's Accessibility → "Reduce motion"
+    // is the system-wide way to ask for this, and an app that ignores it makes
+    // the user hunt for a private setting they already set once. With the
+    // switch off, `auto` is full motion — the historical default (see
+    // `motion::MotionPref`). An explicit level still overrules the OS.
+    "auto".to_string()
 }
 
 fn default_auto_light_from() -> String {

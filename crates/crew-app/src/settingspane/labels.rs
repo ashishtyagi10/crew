@@ -88,7 +88,10 @@ pub(crate) fn value_of(p: &SettingsPane, f: Field) -> (String, bool) {
             false,
         ),
         Field::Motion => (
-            format!("\u{2039} {} \u{203a}", p.draft.motion_level().as_str()),
+            format!(
+                "\u{2039} {} \u{203a}",
+                p.draft.motion_pref().label(crate::motion::os_reduce())
+            ),
             false,
         ),
         Field::Gradient => (

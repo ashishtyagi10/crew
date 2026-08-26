@@ -7,7 +7,7 @@
 //! `Off` is a genuine off, not a fast setting: durations collapse to zero, so
 //! every [`crate::ease::Timeline`] is born settled, draws its final state once,
 //! and schedules no further frames.
-use std::sync::atomic::{AtomicU8, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 
 /// Process-wide motion strength, as an `AtomicU8` discriminant.
 ///
@@ -15,6 +15,27 @@ use std::sync::atomic::{AtomicU8, Ordering};
 /// the same shape `palette::accent` and `crew_theme::theme` already use, and
 /// the reason a new animation needs no plumbing to respect the setting.
 static LEVEL: AtomicU8 = AtomicU8::new(2); // Full — matches `default_motion`
+
+/// Whether the OS is asking for reduced motion, as last probed.
+///
+/// Cached rather than asked at the point of use because the probe is an
+/// Objective-C round trip and [`MotionPref::resolve`] is read while laying out
+/// frames; the answer only changes when the user visits System Settings, so
+/// [`set_os_reduce`] republishes it exactly where the appearance sources are
+/// republished (startup, config adoption, the appearance notification).
+static OS_REDUCE: AtomicBool = AtomicBool::new(false);
+
+/// Publish the OS "reduce motion" answer. Called from
+/// `CrewConfig::publish_appearance_sources`, so every path that re-reads OS
+/// preferences also refreshes this one.
+pub(crate) fn set_os_reduce(reduce: bool) {
+    OS_REDUCE.store(reduce, Ordering::Relaxed);
+}
+
+/// The last-published OS "reduce motion" answer.
+pub(crate) fn os_reduce() -> bool {
+    OS_REDUCE.load(Ordering::Relaxed)
+}
 
 /// Adopt `level` app-wide. Called from `apply_config`, so every path that
 /// changes settings (Save, session restore, an external config edit) lands
@@ -77,6 +98,70 @@ impl MotionLevel {
     }
 }
 
+/// What the user *chose* — as opposed to [`MotionLevel`], which is the
+/// strength that actually renders.
+///
+/// The same split the theme makes between a `Selection` and a live palette,
+/// and for the same reason: `auto` is not a strength, it is a deferral. It
+/// says "ask the OS", and the OS answer can change under a running crew
+/// without the config being touched.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum MotionPref {
+    /// Follow the OS accessibility switch: reduced → `Off`, otherwise `Full`.
+    Auto,
+    Fixed(MotionLevel),
+}
+
+impl MotionPref {
+    /// Offer order for the settings picker and `/motion`, `auto` first because
+    /// it is the default and the one most users should stay on. Built out of
+    /// [`MotionLevel::ALL`] so the two lists cannot drift: a level added there
+    /// and forgotten here would be parseable but never offered.
+    pub(crate) const ALL: [MotionPref; 4] = [
+        MotionPref::Auto,
+        MotionPref::Fixed(MotionLevel::ALL[0]),
+        MotionPref::Fixed(MotionLevel::ALL[1]),
+        MotionPref::Fixed(MotionLevel::ALL[2]),
+    ];
+
+    pub(crate) fn as_str(self) -> &'static str {
+        match self {
+            MotionPref::Auto => "auto",
+            MotionPref::Fixed(l) => l.as_str(),
+        }
+    }
+
+    pub(crate) fn parse(s: &str) -> Option<Self> {
+        let s = s.trim();
+        if s.eq_ignore_ascii_case("auto") || s.eq_ignore_ascii_case("system") {
+            return Some(MotionPref::Auto);
+        }
+        MotionLevel::parse(s).map(MotionPref::Fixed)
+    }
+
+    /// The strength this preference renders at, given the OS answer.
+    ///
+    /// Only `Auto` consults `reduce` — a user who explicitly picked `full`
+    /// has overruled the OS, and silently ignoring that would make the
+    /// setting a lie.
+    pub(crate) fn resolve(self, reduce: bool) -> MotionLevel {
+        match self {
+            MotionPref::Auto if reduce => MotionLevel::Off,
+            MotionPref::Auto => MotionLevel::Full,
+            MotionPref::Fixed(l) => l,
+        }
+    }
+
+    /// Label for the settings picker: `auto` alone is opaque about what it
+    /// currently *does*, so it names the strength it resolved to.
+    pub(crate) fn label(self, reduce: bool) -> String {
+        match self {
+            MotionPref::Auto => format!("auto ({})", self.resolve(reduce).as_str()),
+            MotionPref::Fixed(l) => l.as_str().to_string(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -118,5 +203,66 @@ mod tests {
         );
         assert!(o < s && s < f, "{o} {s} {f}");
         assert_eq!(f, 500, "Full must not stretch the nominal duration");
+    }
+
+    /// `auto` is a deferral, and the whole point is that it changes answer
+    /// when the OS switch flips — the failure mode is a `resolve` that reads
+    /// the flag once, or not at all, and pins auto to full motion forever.
+    #[test]
+    fn auto_follows_the_os_and_the_fixed_levels_do_not() {
+        use MotionLevel::{Full, Off, Subtle};
+        assert_eq!(MotionPref::Auto.resolve(false), Full);
+        assert_eq!(MotionPref::Auto.resolve(true), Off);
+        // An explicit choice overrules the OS in BOTH directions: a user who
+        // picked `full` keeps it under Reduce Motion, and a user who picked
+        // `off` does not get motion back when the switch is off.
+        for l in [Off, Subtle, Full] {
+            assert_eq!(MotionPref::Fixed(l).resolve(true), l);
+            assert_eq!(MotionPref::Fixed(l).resolve(false), l);
+        }
+    }
+
+    #[test]
+    fn every_pref_round_trips_and_auto_has_synonyms() {
+        for p in MotionPref::ALL {
+            assert_eq!(MotionPref::parse(p.as_str()), Some(p), "{}", p.as_str());
+        }
+        assert_eq!(MotionPref::parse(" AUTO "), Some(MotionPref::Auto));
+        assert_eq!(MotionPref::parse("system"), Some(MotionPref::Auto));
+        assert_eq!(MotionPref::parse("swooshy"), None);
+    }
+
+    /// The picker offers exactly what parses, and `auto` leads.
+    #[test]
+    fn the_offer_list_covers_every_level_exactly_once() {
+        assert_eq!(MotionPref::ALL[0], MotionPref::Auto);
+        for l in MotionLevel::ALL {
+            let n = MotionPref::ALL
+                .iter()
+                .filter(|p| **p == MotionPref::Fixed(l))
+                .count();
+            assert_eq!(n, 1, "{} offered {n} times", l.as_str());
+        }
+    }
+
+    /// `auto` alone does not tell the user whether crew is currently moving,
+    /// which is the only thing they came to the setting to find out.
+    #[test]
+    fn the_auto_label_names_what_it_resolved_to() {
+        assert_eq!(MotionPref::Auto.label(true), "auto (off)");
+        assert_eq!(MotionPref::Auto.label(false), "auto (full)");
+        assert_eq!(MotionPref::Fixed(MotionLevel::Subtle).label(true), "subtle");
+    }
+
+    /// The OS flag is a global read by the render path; a mis-stored bit would
+    /// pin every `auto` user to one strength.
+    #[test]
+    fn the_os_reduce_flag_round_trips() {
+        let before = os_reduce();
+        set_os_reduce(true);
+        assert!(os_reduce());
+        set_os_reduce(false);
+        assert!(!os_reduce());
+        set_os_reduce(before);
     }
 }

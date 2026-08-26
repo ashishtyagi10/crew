@@ -79,6 +79,11 @@ impl CrewConfig {
     /// (startup, ThemeChanged, config adoption), never per frame.
     pub fn publish_appearance_sources(&self) -> bool {
         crew_theme::set_os_auto(crate::osappearance::switches_automatically());
+        // Reduce-motion rides the same probe points: it is an OS preference
+        // read through the same "only where it can change" rule, and `auto`
+        // motion is stale the moment this is not refreshed alongside.
+        crate::motion::set_os_reduce(crate::reducemotion::reduce_motion());
+        crate::motion::set_level(self.motion_level());
         self.publish_daylight()
     }
 
@@ -108,10 +113,17 @@ impl CrewConfig {
         crew_theme::GlassLevel::parse(&self.glass).unwrap_or(crew_theme::GlassLevel::Medium)
     }
 
-    /// The configured motion strength; an unknown name falls back to `full`,
-    /// matching the default — a typo must not silently disable animation.
+    /// The configured motion preference; an unknown name falls back to `auto`,
+    /// matching the default — a typo must not silently disable animation, nor
+    /// silently overrule the OS.
+    pub(crate) fn motion_pref(&self) -> crate::motion::MotionPref {
+        crate::motion::MotionPref::parse(&self.motion).unwrap_or(crate::motion::MotionPref::Auto)
+    }
+
+    /// The motion strength that actually renders: the preference resolved
+    /// against the last-published OS "reduce motion" answer.
     pub(crate) fn motion_level(&self) -> crate::motion::MotionLevel {
-        crate::motion::MotionLevel::parse(&self.motion).unwrap_or(crate::motion::MotionLevel::Full)
+        self.motion_pref().resolve(crate::motion::os_reduce())
     }
 
     /// The configured gradient level; an unknown name falls back to `subtle`,

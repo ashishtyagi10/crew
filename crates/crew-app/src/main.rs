@@ -177,6 +177,7 @@ mod poll;
 mod procname;
 mod quit;
 mod readout;
+mod reducemotion;
 mod relay;
 mod render;
 mod restart;

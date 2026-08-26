@@ -408,6 +408,20 @@ The docked command bar supports:
   current strength; selecting `/smooth` in the palette opens a value picker.
   The named ladder is also the **Smoothing** field in `/settings` — both write
   the same `font_smooth` key.
+- **`/motion [auto|off|subtle|full]`** — how much crew moves. **`auto` is the
+  default and follows the operating system**: macOS's *Settings → Accessibility
+  → Display → Reduce motion* is where a user has almost certainly already said
+  they want less of this, and an app that ignores that switch makes them hunt
+  for a private setting they set once. With the switch off, `auto` is full
+  motion; with it on, crew's `off` is a genuine off — every animation window
+  collapses to zero, the final state draws once, and nothing reschedules a
+  frame. An explicit level overrules the OS in **both** directions: `/motion
+  full` keeps crew moving under Reduce Motion, and `/motion off` stays off
+  without it. Live and persisted (the same `motion` key as **Settings →
+  APPEARANCE → Motion**, whose picker shows `auto (off)` / `auto (full)` so
+  the deferral still tells you what it decided). No argument reports the
+  preference, what it resolved to, and whether the OS is asking.
+
 - **`/gradient [off|subtle|lively|<name>|<#a> <#b>|reset]`** — the canvas's
   colour. With a level it sets how far the gradient breathes (the same
   `gradient` key as **Settings → APPEARANCE → Gradient colour**). With a
