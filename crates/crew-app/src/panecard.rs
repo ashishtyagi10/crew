@@ -250,7 +250,11 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
         crate::panebtn::draw(&mut v, cols, legend, hover);
         rx = cols.saturating_sub(10);
     }
-    rx = crate::panescroll::count(&mut v, rx, b.scroll);
+    // Both readings of the scroll position share one colour, sampled at the
+    // same point of the buffer — see `panescroll::position_fg`.
+    let scroll_t =
+        crate::panescroll::position(b.total, usize::from(rows.saturating_sub(2)), b.scroll);
+    rx = crate::panescroll::count(&mut v, rx, b.scroll, scroll_t);
     // …and the same fact as a shape, down the right border: where you are in
     // the scrollback, not just how far from its bottom.
     crate::panescroll::thumb(&mut v, cols, rows, b);

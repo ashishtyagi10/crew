@@ -94,6 +94,18 @@ impl CrewApp {
             return;
         }
 
+        // Ctrl+Shift+G steps the canvas gradient — the colour's answer to
+        // Ctrl+Shift+L above, and the walk passes through the theme's own
+        // gradient once a lap so the key can always get you back.
+        if event.state.is_pressed()
+            && mstate.control_key()
+            && mstate.shift_key()
+            && matches!(&event.logical_key, Key::Character(s) if s.eq_ignore_ascii_case("g"))
+        {
+            self.cycle_gradient();
+            return;
+        }
+
         // Ctrl+Shift+M toggles markdown source view on the focused chat pane.
         if event.state.is_pressed()
             && mstate.control_key()

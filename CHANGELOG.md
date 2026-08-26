@@ -8,6 +8,27 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.37
+
+**Where you are in a buffer is a colour now.** Scroll a pane back and the
+`⇡N` on its top border and the thumb down its right border both take the theme
+gradient, sampled at your position: deep in the history they wear one pole, at
+the live edge the other, and dragging the gutter walks them between. That is a
+third reading of the same fact — the number says how far, the thumb says how
+far *of how much*, and the colour says it without being read at all.
+
+Both wear it from one function, so the border can never tell two stories about
+one number. And it is the same gradient the card's own stroke runs, so the
+thumb reads as part of the frame it rides rather than a widget parked on it. A
+theme with no gradient keeps the flat `status_fg` both had before.
+
+**`Ctrl+Shift+G` steps the canvas gradient** — the colour's answer to
+`Ctrl+Shift+L`. It walks the eight named pairs and passes back through the
+theme's own gradient once a lap, so the key that got you somewhere can always
+get you home. A gradient of your own (a hex pair) joins the walk at the start
+rather than being stranded off the shelf. It is in `/keys` with everything
+else.
+
 ## 0.18.36
 
 **Eight gradients you can pick by name.** `/gradient` took two hex codes,
