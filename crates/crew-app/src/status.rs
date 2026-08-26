@@ -52,8 +52,14 @@ impl CrewApp {
         // Errors also step onto the canvas as an alert toast; routine statuses
         // ("copied 12 lines") stay a quiet flash on the bar.
         if level == LogLevel::Error {
-            self.toasts
-                .push(msg.clone(), "error", true, crate::anim::now_ms());
+            if crate::focusmode::on() {
+                // Held, not dropped: the LOG line above is already written,
+                // and the count is reported on the way out of the mode.
+                self.held.toasts += 1;
+            } else {
+                self.toasts
+                    .push(msg.clone(), "error", true, crate::anim::now_ms());
+            }
         }
         self.status = Some((msg, Instant::now()));
         self.redraw();
@@ -100,8 +106,16 @@ impl CrewApp {
                 NotifyKind::Exited => ("exited", true),
                 NotifyKind::Waiting => ("waiting", true),
             };
-            self.toasts
-                .push_for(msg.clone(), legend, alert, crate::anim::now_ms(), target);
+            // Focus mode holds the card. Everything else about the
+            // notification still happens — the LOG entry, the input-bar
+            // flash, the pane's own attention marker — so nothing is lost,
+            // only the interruption.
+            if crate::focusmode::on() {
+                self.held.toasts += 1;
+            } else {
+                self.toasts
+                    .push_for(msg.clone(), legend, alert, crate::anim::now_ms(), target);
+            }
             self.set_status(msg);
         }
     }

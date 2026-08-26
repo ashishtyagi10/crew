@@ -445,6 +445,21 @@ The docked command bar supports:
   current strength; selecting `/smooth` in the palette opens a value picker.
   The named ladder is also the **Smoothing** field in `/settings` — both write
   the same `font_smooth` key.
+- **`/focus`** (`Ctrl+Shift+F`) — **focus mode**: crew stops interrupting.
+  While it is on, notifications are **held rather than dropped** (they still
+  write the LOG, still flash the input bar, still raise the pane's own
+  attention marker — they just do not step onto the canvas as cards); a pane
+  blocked on a human is still badged but **never pulls focus**, since being
+  yanked into another pane mid-sentence is the most expensive interruption
+  crew can produce; and the spotlight over unfocused panes deepens from 15% to
+  42%, so the pane you chose is unmistakable while its neighbours stay
+  readable. The input bar's legend reads `◉ focus` for as long as it lasts.
+
+  Leaving reports what happened in one card — `3 notifications held while
+  focused` — so the mode costs you awareness only until you come out of it.
+  That is the difference from `/notify off`, which drops the events: afterwards
+  you cannot tell what you missed.
+
 - **`/density [compact|cozy|roomy]`** — how tightly crew packs the canvas: the
   gutter between pane cards and the blank rows between chat cards, moved
   together. In a cell grid those are the two spaces that are genuinely empty —

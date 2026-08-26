@@ -27,6 +27,29 @@ impl CrewApp {
     }
 
     /// Toggle zoom — the focused pane fills the content area.
+    /// Focus mode on/off (`/focus`). Entering resets the held count; leaving
+    /// reports it as one card, so the mode's cost is bounded by a single
+    /// line rather than by whatever you failed to notice.
+    pub(crate) fn toggle_focus_mode(&mut self) {
+        let on = !crate::focusmode::on();
+        crate::focusmode::set(on);
+        if on {
+            self.held = crate::focusmode::Held::default();
+            self.set_status("focus mode on \u{2014} nothing will interrupt (/focus to leave)");
+        } else {
+            let summary = std::mem::take(&mut self.held).summary();
+            match summary {
+                Some(line) => {
+                    self.toasts
+                        .push(line.clone(), "held", false, crate::anim::now_ms());
+                    self.set_status(line);
+                }
+                None => self.set_status("focus mode off"),
+            }
+        }
+        self.redraw();
+    }
+
     pub(crate) fn toggle_zoom(&mut self) {
         // Remember where the pane was so the zoom can travel out of (and back
         // into) its own tile rather than cutting.
@@ -94,5 +117,38 @@ mod tests {
         assert!(app.zoomed);
         app.toggle_zoom();
         assert!(!app.zoomed);
+    }
+
+    /// Focus mode is a MODE, and every mode owes two things: it has to be
+    /// visibly on, and leaving it has to account for what it did while it was.
+    #[test]
+    fn focus_mode_holds_notifications_and_reports_them_on_the_way_out() {
+        let _g = crate::app::motion_test_guard();
+        let mut app = CrewApp::default();
+        assert!(!crate::focusmode::on());
+
+        app.toggle_focus_mode();
+        assert!(crate::focusmode::on());
+        // Two errors while focused: both write the LOG, neither pops.
+        app.set_status_level(crate::applog::LogLevel::Error, "boom");
+        app.set_status_level(crate::applog::LogLevel::Error, "bang");
+        assert_eq!(app.toasts.len(), 0, "focus mode must not pop cards");
+        assert_eq!(app.held.toasts, 2, "…but it must count them");
+        assert!(
+            app.log.iter().filter(|e| e.text.contains("boom")).count() == 1,
+            "held is not dropped: the LOG still has the line"
+        );
+
+        app.toggle_focus_mode();
+        assert!(!crate::focusmode::on());
+        assert_eq!(app.held.toasts, 0, "the count resets on the way out");
+        assert_eq!(app.toasts.len(), 1, "one summary card");
+
+        // Entering again starts from zero rather than resuming an old tally.
+        app.toggle_focus_mode();
+        assert_eq!(app.held.toasts, 0);
+        app.toggle_focus_mode();
+        assert_eq!(app.toasts.len(), 1, "nothing held, so no summary card");
+        crate::focusmode::set(false);
     }
 }

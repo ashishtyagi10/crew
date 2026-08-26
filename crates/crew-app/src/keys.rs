@@ -113,6 +113,18 @@ impl CrewApp {
             return;
         }
 
+        // Ctrl+Shift+F enters/leaves focus mode — the third of the Ctrl+Shift
+        // walks, and the one that changes what crew is allowed to do rather
+        // than what it looks like.
+        if event.state.is_pressed()
+            && mstate.control_key()
+            && mstate.shift_key()
+            && matches!(&event.logical_key, Key::Character(s) if s.eq_ignore_ascii_case("f"))
+        {
+            self.toggle_focus_mode();
+            return;
+        }
+
         // Ctrl+Shift+M toggles markdown source view on the focused chat pane.
         if event.state.is_pressed()
             && mstate.control_key()

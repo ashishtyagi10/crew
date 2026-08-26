@@ -8,6 +8,29 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.42
+
+**Focus mode: crew stops interrupting.** `/focus`, or `Ctrl+Shift+F`.
+
+Crew is built to get your attention — a quiet pane toasts, a pane blocked on a
+prompt raises a marker and can pull focus to itself, a bell rings. That is
+right almost all the time and exactly wrong for the twenty minutes you are
+trying to finish a thought in one pane.
+
+While focus mode is on: **nothing pops** (notifications still write the LOG,
+still flash the bar, still raise the pane's own marker — they just do not step
+onto the canvas), **nothing steals** (a waiting pane is still badged, but
+focus never moves on its own), and **the rest of the canvas recedes** — the
+spotlight over unfocused panes deepens from 15% to 42%, far enough to be
+unmistakable and short of hiding the peripheral awareness a grid is for.
+
+The difference from `/notify off` is that nothing is thrown away. Leaving says
+what happened in one line — `3 notifications held while focused` — so the mode
+costs you awareness only until you come out of it.
+
+The input bar's legend reads `◉ focus` throughout. A mode owes you a standing
+sign that it is on, or you spend the afternoon wondering why nothing pops.
+
 ## 0.18.41
 
 **Hold a modifier and crew tells you what it does.** Rest on `Cmd` (or `Ctrl`)
