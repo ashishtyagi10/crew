@@ -226,6 +226,21 @@ deliberately offers nothing, since that pane is already gone.
 
 ## Keyboard shortcuts
 
+**Hold a modifier to see what it does.** Rest on `Cmd` (`Ctrl` off macOS) for
+450ms and a row of chips appears above the input bar naming what that modifier
+reaches from where you are — pane jumps and focus arrows always, plus `↵ send`
+on the input bar or `K clear · Z zoom · W close` in a pane. `Ctrl` (`Alt` off
+macOS) answers with the walks that live there: next pane, theme, gradient,
+palette. Press anything or let go and it disappears.
+
+It opens only on a modifier held **alone** — a chord in progress belongs to
+someone who already knows the binding — and only after the dwell, so an
+ordinary `Cmd+C` never flashes a panel on its way past. `Shift` never opens
+it: it reaches nothing by itself and is held through every capital you type.
+The full table is still `/keys`, which the hints are deliberately much shorter
+than.
+
+
 Press **`/keys`** in the input bar for this list in-app. It scrolls —
 arrows and page keys walk it, Home/End jump its ends, and any other key closes
 it — so the list is never cut off by the window it is drawn in.

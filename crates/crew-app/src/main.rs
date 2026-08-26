@@ -131,6 +131,7 @@ mod ipc_types;
 mod ipc_win;
 mod keychord;
 mod keyentry;
+mod keypeek;
 mod keyroute;
 mod keys;
 mod layout;

@@ -14,6 +14,13 @@ impl CrewApp {
         event: &winit::event::KeyEvent,
     ) {
         let mstate = self.mods.state();
+        // A key press means the chord is being struck, not hesitated over —
+        // the hints have served their purpose (or were never wanted) and must
+        // not sit over the result of the very key they suggested.
+        if event.state.is_pressed() && self.peek_since.take().is_some() {
+            self.peek_drawn = false;
+            self.redraw();
+        }
 
         // The help overlay: arrows and page keys walk its list, anything else
         // dismisses it. It is longer than a window and always has been — it
