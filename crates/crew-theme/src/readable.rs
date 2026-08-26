@@ -43,6 +43,11 @@ use crate::oklch;
 use crate::{contrast_ratio, Theme};
 
 /// Text and text-like marks: the cursor block, a URL, a gauge readout.
+///
+/// The AA band, and the number every measurement in this module's contract is
+/// written against. The floor actually applied is [`crate::contrast`]'s, which
+/// is this one until the OS asks for more (see that module) — so a role is
+/// derived against what the *user* asked for, not against a constant.
 pub const TEXT_FLOOR: f32 = 4.5;
 /// Marks you only have to see, not read: sparklines, dots, thumbs.
 pub const MARK_FLOOR: f32 = 3.0;
@@ -93,7 +98,7 @@ pub fn against(want: (u8, u8, u8), page: (u8, u8, u8), floor: f32) -> (u8, u8, u
 /// shipped with.
 pub fn cursor(t: &Theme, focused: bool) -> (u8, u8, u8) {
     if focused {
-        return against(t.ink, t.term_bg, TEXT_FLOOR);
+        return against(t.ink, t.term_bg, crate::contrast::text_floor());
     }
     let ink = oklch::from_srgb(t.ink);
     let page = oklch::from_srgb(t.term_bg);
@@ -104,32 +109,32 @@ pub fn cursor(t: &Theme, focused: bool) -> (u8, u8, u8) {
 /// pushed until it reads against the block. A glyph under the cursor is still
 /// a glyph.
 pub fn on_block(t: &Theme, block: (u8, u8, u8)) -> (u8, u8, u8) {
-    against(t.term_bg, block, TEXT_FLOOR)
+    against(t.term_bg, block, crate::contrast::text_floor())
 }
 
 /// A clickable URL in terminal output. Blue is the convention and stays blue.
 pub fn link(t: &Theme) -> (u8, u8, u8) {
-    against(LINK_HUE, t.term_bg, TEXT_FLOOR)
+    against(LINK_HUE, t.term_bg, crate::contrast::text_floor())
 }
 
 /// The mouse-selection wash behind terminal text.
 pub fn selection_bg(t: &Theme) -> (u8, u8, u8) {
-    against(SELECTION_HUE, t.term_fg, TEXT_FLOOR)
+    against(SELECTION_HUE, t.term_fg, crate::contrast::text_floor())
 }
 
 /// A gauge crossing into "watch this" (load average, disk).
 pub fn warn(t: &Theme) -> (u8, u8, u8) {
-    against(WARN_HUE, t.page_bg, TEXT_FLOOR)
+    against(WARN_HUE, t.page_bg, crate::contrast::text_floor())
 }
 
 /// A gauge past its limit.
 pub fn danger(t: &Theme) -> (u8, u8, u8) {
-    against(DANGER_HUE, t.page_bg, TEXT_FLOOR)
+    against(DANGER_HUE, t.page_bg, crate::contrast::text_floor())
 }
 
 /// A sparkline trace — seen, not read.
 pub fn spark(t: &Theme) -> (u8, u8, u8) {
-    against(SPARK_HUE, t.page_bg, MARK_FLOOR)
+    against(SPARK_HUE, t.page_bg, crate::contrast::mark_floor())
 }
 
 /// The intended colours, which are now only intentions: each names a hue, and

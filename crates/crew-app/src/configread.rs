@@ -83,6 +83,11 @@ impl CrewConfig {
         // read through the same "only where it can change" rule, and `auto`
         // motion is stale the moment this is not refreshed alongside.
         crate::motion::set_os_reduce(crate::reducemotion::reduce_motion());
+        // Same three probe points, same rule: read where it can change, cache
+        // it, never ask per frame.
+        crew_theme::contrast::set_high_contrast(
+            self.high_contrast(crate::oscontrast::increase_contrast()),
+        );
         crate::motion::set_level(self.motion_level());
         self.publish_daylight()
     }
@@ -111,6 +116,17 @@ impl CrewConfig {
     /// default rather than silently rendering flat.
     pub fn glass_level(&self) -> crew_theme::GlassLevel {
         crew_theme::GlassLevel::parse(&self.glass).unwrap_or(crew_theme::GlassLevel::Medium)
+    }
+
+    /// Whether crew should draw for high contrast right now: the user's
+    /// setting, or the OS's answer when it is `auto`. An unknown name follows
+    /// the OS — a typo must not quietly overrule an accessibility request.
+    pub(crate) fn high_contrast(&self, os: bool) -> bool {
+        match self.contrast.trim().to_ascii_lowercase().as_str() {
+            "high" | "on" | "more" => true,
+            "normal" | "off" | "aa" => false,
+            _ => os,
+        }
     }
 
     /// The configured density; an unknown name falls back to `cozy`, the
@@ -178,6 +194,7 @@ impl CrewConfig {
             glass: self.glass,
             motion: self.motion,
             density: self.density,
+            contrast: self.contrast,
             gradient: self.gradient,
             gradient_poles: self.gradient_poles.filter(|s| !s.is_empty()),
             // A window that can be dialled to invisible is a window you cannot

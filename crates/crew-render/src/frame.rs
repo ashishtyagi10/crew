@@ -86,7 +86,12 @@ pub(crate) fn render(
                 dots: m.dots,
                 spacing,
                 radius,
-                wash: m.wash,
+                // The wash lifts the very background the ink sits on, and it
+                // was calibrated with only 4-16% contrast headroom over it.
+                // When the OS asks for more contrast that headroom is exactly
+                // what has to be given back, so the wash is scaled by the same
+                // factor the spotlight is.
+                wash: m.wash * crew_theme::contrast::effect_scale(),
                 phase: wash_phase,
                 focus: [wash_focus.0 .0, wash_focus.0 .1],
                 focus_pull: wash_focus.1,

@@ -32,6 +32,8 @@ const ALLOWED: &[(&str, &str)] = &[
     // Same shape, one preference over: the macOS-only TEST probe that
     // cross-checks Reduce Motion against `defaults`. Test-only, macOS-only.
     ("reducemotion.rs", "Command::new(\"defaults\")"),
+    // …and the Increase Contrast one. Same shape, same reason.
+    ("oscontrast.rs", "Command::new(\"defaults\")"),
 ];
 
 /// Walk `dir` for `.rs` files, skipping vendored code and build output.

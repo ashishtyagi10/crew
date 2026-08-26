@@ -42,7 +42,9 @@ pub(super) fn appearance(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16)
     rects.push((Field::Glass, Rect::new(ix, cy, gh, 3)));
     rects.push((Field::Motion, Rect::new(ix + gh + 2, cy, gh, 3)));
     cy += 3;
-    rects.push((Field::Density, Rect::new(ix, cy, iw, 3)));
+    let dh = iw.saturating_sub(2) / 2;
+    rects.push((Field::Density, Rect::new(ix, cy, dh, 3)));
+    rects.push((Field::Contrast, Rect::new(ix + dh + 2, cy, dh, 3)));
     cy += 3;
     // Full width: its legend is longer than a half-width border can carry,
     // and its values are words rather than numbers.

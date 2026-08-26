@@ -38,6 +38,16 @@ pub(crate) fn cycle_value(p: &mut SettingsPane, back: bool) {
             };
             d.density = all[next].as_str().to_string();
         }
+        Field::Contrast => {
+            const ALL: [&str; 3] = ["auto", "normal", "high"];
+            let cur = ALL.iter().position(|v| *v == d.contrast).unwrap_or(0);
+            let next = if back {
+                (cur + ALL.len() - 1) % ALL.len()
+            } else {
+                (cur + 1) % ALL.len()
+            };
+            d.contrast = ALL[next].to_string();
+        }
         Field::Gradient => {
             let all = crate::gradientlvl::GradientLevel::ALL;
             let cur = all

@@ -8,6 +8,33 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.44
+
+**Contrast follows the operating system too.** macOS has an Accessibility →
+Display → *Increase contrast* switch, and crew ignoring it was awkward
+precisely because crew is otherwise careful about contrast: it already derives
+its readable roles — the terminal cursor, links, selection, the warning amber,
+the sparkline — by walking each colour in Oklch until it clears a measured
+WCAG floor against the page it lands on. It then held those floors fixed no
+matter what the user had asked the system for.
+
+Now the switch moves the floors, and everything derived through them follows:
+WCAG **AA** (4.5 text / 3.0 marks) normally, **AAA** (7.0 / 4.5) when the OS
+asks. AAA rather than some number in between because it is the standard's own
+next band, and because every role here is small text or a cursor, which is
+what AAA was written for.
+
+Two things that are not derived move too, for the same reason — they *spend*
+contrast. The **spotlight** over unfocused panes dims text, which is the
+opposite of the request; and the **gradient wash** lifts the very background
+the ink sits on, with only 4–16% headroom over it. Both drop to a third of
+their strength — quieted, not killed, since the spotlight is the cue that says
+which pane has focus and losing it is its own accessibility loss.
+
+New: **`/contrast [auto|normal|high]`** with a value picker, and **Settings →
+APPEARANCE → Contrast**. An explicit `normal` or `high` overrules the OS, the
+same way an explicit motion level does.
+
 ## 0.18.43
 
 **The grid moves on springs.** Panes have glided to their tiles since the

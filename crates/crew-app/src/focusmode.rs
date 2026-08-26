@@ -50,11 +50,12 @@ pub(crate) fn set(on: bool) {
 
 /// The unfocused-content wash to use right now.
 pub(crate) fn dim() -> f32 {
-    if on() {
-        DIM
-    } else {
-        crate::spotlight::DIM
-    }
+    // Dimming text is the opposite of what "increase contrast" asks for, so
+    // the wash backs off when the OS asks — quieted, never killed: the
+    // spotlight is the cue that says which pane has focus, and losing that is
+    // itself an accessibility loss.
+    let base = if on() { DIM } else { crate::spotlight::DIM };
+    base * crew_theme::contrast::effect_scale()
 }
 
 /// What was held while focus mode was on.
