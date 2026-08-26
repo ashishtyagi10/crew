@@ -99,6 +99,10 @@ pub(crate) const COMMANDS: &[Cmd] = &[
         desc: "Font smoothing — CoreText-style stem darkening (/smooth [off|light|medium|heavy|<0-255>])",
     },
     Cmd {
+        name: "/gradient",
+        desc: "Canvas gradient — how far its colour breathes, or poles of your own (/gradient [off|subtle|lively|<#a> <#b>|reset])",
+    },
+    Cmd {
         name: "/notify",
         desc: "Notification settings (/notify [on|off|add <text>|clear])",
     },
