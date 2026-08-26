@@ -42,6 +42,9 @@ pub(crate) enum Field {
     /// WCAG floor every derived colour is measured against: `auto` follows
     /// the OS accessibility switch (see `crew_theme::contrast`).
     Contrast,
+    /// Whether meaning is said with a shape as well as a colour (WCAG 1.4.1);
+    /// `auto` follows the OS switch. See `shapecues`.
+    ShapeCues,
     /// How far the gradient's colour leans from the theme's own over time
     /// (see `gradientlvl`). Sits with Glass and Motion: all three say how
     /// much the canvas is allowed to do on its own.
@@ -62,7 +65,7 @@ pub(crate) enum Field {
     Cancel,
 }
 
-pub(crate) const FIELDS: [Field; 31] = [
+pub(crate) const FIELDS: [Field; 32] = [
     Field::FontFamily,
     Field::FontSize,
     Field::Smooth,
@@ -82,6 +85,7 @@ pub(crate) const FIELDS: [Field; 31] = [
     Field::Motion,
     Field::Density,
     Field::Contrast,
+    Field::ShapeCues,
     Field::Gradient,
     Field::Maximized,
     Field::Notify,

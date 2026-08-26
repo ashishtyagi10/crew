@@ -40,6 +40,12 @@ fn default_gradient() -> String {
     "subtle".to_string()
 }
 
+fn default_shape_cues() -> String {
+    // Follow the OS: macOS's Accessibility -> Display -> "Differentiate
+    // without color" is the switch this answers (see `shapecues`).
+    "auto".to_string()
+}
+
 fn default_contrast() -> String {
     // Follow the OS: macOS's Accessibility -> Display -> "Increase contrast"
     // is where a user has already said this once (see `crew_theme::contrast`).
@@ -237,6 +243,10 @@ pub struct CrewConfig {
     /// or `high` (AAA floors, quieted effects). See `crew_theme::contrast`.
     #[serde(default = "default_contrast")]
     pub contrast: String,
+    /// `auto` (follow the OS "Differentiate without color" switch), `off` or
+    /// `on`. See `shapecues`.
+    #[serde(default = "default_shape_cues")]
+    pub shape_cues: String,
     /// How far the gradient's colour leans from the theme's own over time:
     /// `off`, `subtle` or `lively` (see `gradientlvl::GradientLevel`). The
     /// poles rotate in hue only, so no contrast guarantee moves with it, and
@@ -308,6 +318,7 @@ impl Default for CrewConfig {
             motion: default_motion(),
             density: default_density(),
             contrast: default_contrast(),
+            shape_cues: default_shape_cues(),
             gradient: default_gradient(),
             gradient_poles: None,
             window_opacity: default_window_opacity(),

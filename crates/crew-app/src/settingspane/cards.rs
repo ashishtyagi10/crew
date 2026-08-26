@@ -46,6 +46,8 @@ pub(super) fn appearance(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16)
     rects.push((Field::Density, Rect::new(ix, cy, dh, 3)));
     rects.push((Field::Contrast, Rect::new(ix + dh + 2, cy, dh, 3)));
     cy += 3;
+    rects.push((Field::ShapeCues, Rect::new(ix, cy, iw, 3)));
+    cy += 3;
     // Full width: its legend is longer than a half-width border can carry,
     // and its values are words rather than numbers.
     rects.push((Field::Gradient, Rect::new(ix, cy, iw, 3)));

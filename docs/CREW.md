@@ -445,6 +445,30 @@ The docked command bar supports:
   current strength; selecting `/smooth` in the palette opens a value picker.
   The named ladder is also the **Smoothing** field in `/settings` — both write
   the same `font_smooth` key.
+- **`/shapes [auto|off|on]`** — say it with a shape as well as a colour. WCAG
+  1.4.1 is one line long and easy to fail without noticing: colour must never
+  be the **only** thing carrying a piece of information. About one man in
+  twelve cannot separate red from green, every colour cue vanishes on a
+  monochrome CRT theme, and none of them survive a screenshot pasted into a
+  ticket in greyscale.
+
+  Crew mostly passed already, by accident of taste rather than by rule —
+  attention markers are distinct glyphs (`!`, `⚑`, `✓`, `⊗`, `?`) that happen
+  to share the bell colour, broadcast is `»` and not just magenta, every toast
+  names itself in its legend, and a busy sidebar row spins. Two places did
+  not, and this turns them on: the **load gauges** mark their band (`!` past
+  70%, `‼` past 90%, riding the label's trailing space so no column is spent),
+  and a **working pane in the minimized strip** draws a half-filled `◐` rather
+  than the same solid `●` as a pane that merely spoke recently, which was told
+  apart by a brightness pulse — colour and motion, the two channels this is
+  about.
+
+  `auto` follows macOS's *Accessibility → Display → Differentiate without
+  color*. It is off unless asked, because a glyph in every gauge row is noise
+  for a reader who can see the colour: the rule is *never colour alone* for
+  anyone who needs it, not *always both* for everyone. Live and persisted (the
+  `shape_cues` key; **Settings → APPEARANCE → Shape cues**).
+
 - **`/contrast [auto|normal|high]`** — the WCAG floor every derived colour is
   held to. Crew derives its readable roles rather than hard-coding them: the
   terminal cursor, links, selection, the warning amber, the sparkline are each

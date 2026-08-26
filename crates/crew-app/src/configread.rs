@@ -88,6 +88,7 @@ impl CrewConfig {
         crew_theme::contrast::set_high_contrast(
             self.high_contrast(crate::oscontrast::increase_contrast()),
         );
+        crate::shapecues::set(self.shape_cues(crate::shapecues::os_asks()));
         crate::motion::set_level(self.motion_level());
         self.publish_daylight()
     }
@@ -125,6 +126,17 @@ impl CrewConfig {
         match self.contrast.trim().to_ascii_lowercase().as_str() {
             "high" | "on" | "more" => true,
             "normal" | "off" | "aa" => false,
+            _ => os,
+        }
+    }
+
+    /// Whether crew should add shape cues right now: the user's setting, or
+    /// the OS's answer when it is `auto`. An unknown name follows the OS — a
+    /// typo must not quietly overrule an accessibility request.
+    pub(crate) fn shape_cues(&self, os: bool) -> bool {
+        match self.shape_cues.trim().to_ascii_lowercase().as_str() {
+            "on" | "shapes" | "always" => true,
+            "off" | "never" => false,
             _ => os,
         }
     }
@@ -195,6 +207,7 @@ impl CrewConfig {
             motion: self.motion,
             density: self.density,
             contrast: self.contrast,
+            shape_cues: self.shape_cues,
             gradient: self.gradient,
             gradient_poles: self.gradient_poles.filter(|s| !s.is_empty()),
             // A window that can be dialled to invisible is a window you cannot

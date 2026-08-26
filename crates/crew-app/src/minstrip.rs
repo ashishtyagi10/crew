@@ -31,9 +31,9 @@ pub fn strip_marker(
         // fully off, so a busy pane reads as alive rather than blinking out.
         let floor = crate::anim::lerp_rgb(t.activity, t.page_bg, 0.6);
         let fg = crate::anim::lerp_rgb(floor, t.activity, crate::anim::tri(now, PULSE_MS));
-        return Some(('●', fg));
+        return Some((crate::shapecues::dot(true), fg));
     }
-    activity.then_some(('●', t.activity))
+    activity.then_some((crate::shapecues::dot(false), t.activity))
 }
 
 /// Push one fieldset card per minimized pane into `scenes` — plus, when the

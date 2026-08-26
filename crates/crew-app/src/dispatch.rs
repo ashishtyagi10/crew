@@ -48,6 +48,7 @@ impl CrewApp {
             "motion" => self.motion_command(""),
             "density" => self.density_command(""),
             "contrast" => self.contrast_command(""),
+            "shapes" => self.shapes_command(""),
             "gradient" => self.gradient_command(""),
             "notify" => self.notify_command(""),
             "broadcast" => self.toggle_broadcast(),
@@ -95,6 +96,8 @@ impl CrewApp {
                     self.density_command(d.trim());
                 } else if let Some(c) = other.strip_prefix("contrast ") {
                     self.contrast_command(c.trim());
+                } else if let Some(v) = other.strip_prefix("shapes ") {
+                    self.shapes_command(v.trim());
                 } else if let Some(g) = other.strip_prefix("gradient ") {
                     self.gradient_command(g.trim());
                 } else if let Some(m) = other.strip_prefix("model ") {
@@ -450,6 +453,39 @@ impl CrewApp {
             "contrast {} \u{2014} WCAG {} floors",
             self.config.contrast,
             if high { "AAA" } else { "AA" }
+        ));
+        self.redraw();
+    }
+
+    /// `/shapes [auto|off|on]` — say it with a shape as well as a colour.
+    pub(crate) fn shapes_command(&mut self, arg: &str) {
+        const ALL: [&str; 3] = ["auto", "off", "on"];
+        let os = crate::shapecues::os_asks();
+        if arg.is_empty() {
+            let now = if self.config.shape_cues(os) {
+                "on"
+            } else {
+                "off"
+            };
+            self.set_status(format!(
+                "shape cues {} ({now}) (/shapes [auto|off|on])",
+                self.config.shape_cues
+            ));
+            return;
+        }
+        let arg = arg.trim().to_ascii_lowercase();
+        if !ALL.contains(&arg.as_str()) {
+            self.set_status("usage: /shapes [auto|off|on]");
+            return;
+        }
+        self.config.shape_cues = arg;
+        self.config.save();
+        let on = self.config.shape_cues(os);
+        crate::shapecues::set(on);
+        self.set_status(format!(
+            "shape cues {} ({})",
+            self.config.shape_cues,
+            if on { "on" } else { "off" }
         ));
         self.redraw();
     }
