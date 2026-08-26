@@ -311,8 +311,12 @@ fn edits(f: Field) -> &'static str {
 /// Config keys the form deliberately does not carry, each with the reason.
 /// A key must be here or editable — "we forgot" is not a third option, which
 /// is how `auto_light_from` / `auto_light_to` shipped config-only.
-const NOT_IN_FORM: [(&str, &str); 9] = [
+const NOT_IN_FORM: [(&str, &str); 10] = [
     ("last_seen_version", "bookkeeping: drives the version note"),
+    (
+        "command_recents",
+        "bookkeeping: the palette's own most-recently-run list",
+    ),
     ("last_dir", "bookkeeping: restored window state"),
     ("win_w", "bookkeeping: restored window state"),
     ("win_h", "bookkeeping: restored window state"),

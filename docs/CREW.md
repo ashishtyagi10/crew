@@ -445,6 +445,19 @@ The docked command bar supports:
   current strength; selecting `/smooth` in the palette opens a value picker.
   The named ladder is also the **Smoothing** field in `/settings` — both write
   the same `font_smooth` key.
+The palette **remembers what you run.** Among commands that match what you have
+typed equally well, the ones you actually use come first; the rest fall back to
+the order they are declared in, which means something to whoever last edited
+the table and nothing to the person typing. Type `/` on an empty bar and your
+ten most recent commands lead the list. It is persisted, since a shortcut that
+resets every launch is not one.
+
+Recency reorders **within** a match-quality band and never across one: a prefix
+match still beats a fuzzy match, always: typing **de** after the slash can
+never float a command that does not begin with those letters above one that
+does. A learned list that can reorder the *kind* of match is a list you can no
+longer aim at.
+
 - **`/shapes [auto|off|on]`** — say it with a shape as well as a colour. WCAG
   1.4.1 is one line long and easy to fail without noticing: colour must never
   be the **only** thing carrying a piece of information. About one man in

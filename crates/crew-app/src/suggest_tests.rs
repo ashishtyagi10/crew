@@ -345,3 +345,64 @@ fn step_sel_skips_header_rows_in_both_directions() {
     assert_eq!(step_sel(&only, 0, true), 0);
     assert_eq!(first_selectable(&only), 0);
 }
+
+/// The palette's whole point after this change: among commands that match a
+/// query equally well, the ones the user actually runs come first. Without it
+/// the order is `cmddefs`'s declaration order, which means something to
+/// whoever last edited that file and nothing to the person typing.
+#[test]
+fn recently_run_commands_lead_among_equal_matches() {
+    // A bare `/` matches everything as a prefix, so nothing but the tie-break
+    // is deciding the order here.
+    let cold: Vec<&str> = matches_with("/", &[]).iter().map(|c| c.name).collect();
+    let warm_list = vec!["/gradient".to_string(), "/density".to_string()];
+    let warm: Vec<&str> = matches_with("/", &warm_list)
+        .iter()
+        .map(|c| c.name)
+        .collect();
+
+    assert_eq!(&warm[..2], &["/gradient", "/density"], "recents lead");
+    assert_ne!(cold[0], warm[0], "the list must actually reorder");
+    // Nothing is lost or duplicated — this is a sort, not a filter.
+    let mut a = cold.clone();
+    let mut b = warm.clone();
+    a.sort_unstable();
+    b.sort_unstable();
+    assert_eq!(a, b);
+}
+
+/// The rule that keeps a learned list predictable: recency reorders WITHIN a
+/// match-quality band and never across one. If a much-used command could jump
+/// the prefix matches on a fuzzy score, the palette would stop being something
+/// you can aim at — you would have to read it every time.
+#[test]
+fn recency_never_promotes_a_fuzzy_match_over_a_prefix_match() {
+    // `/de` is a prefix of /density and a subsequence of several others.
+    let prefixed: Vec<&str> = matches_with("/de", &[])
+        .iter()
+        .map(|c| c.name)
+        .filter(|n| n[1..].starts_with("de"))
+        .collect();
+    assert!(!prefixed.is_empty(), "the fixture needs a prefix match");
+
+    // Make every NON-prefix match maximally recent.
+    let hot: Vec<String> = matches_with("/de", &[])
+        .iter()
+        .map(|c| c.name.to_string())
+        .filter(|n| !n[1..].starts_with("de"))
+        .collect();
+    assert!(!hot.is_empty(), "the fixture needs a fuzzy match too");
+
+    let got: Vec<&str> = matches_with("/de", &hot).iter().map(|c| c.name).collect();
+    for (i, name) in got.iter().enumerate() {
+        if !name[1..].starts_with("de") {
+            // Everything before the first fuzzy match must be a prefix match.
+            assert_eq!(
+                i,
+                prefixed.len(),
+                "a fuzzy match reached position {i} ahead of a prefix match: {got:?}"
+            );
+            break;
+        }
+    }
+}

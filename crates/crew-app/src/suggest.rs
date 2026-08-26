@@ -116,19 +116,36 @@ pub(crate) fn menu_items(text: &str) -> Vec<MenuItem> {
 
 /// Commands matching `text` for the palette: a prefix match ranks first, then a
 /// fuzzy subsequence match (so `/dmp` still finds `/dump`). Empty unless `text`
-/// begins with `/`; original list order breaks ties.
+/// begins with `/`.
+///
+/// Ties are broken by what the user has actually run (see
+/// [`crate::cmdrecents`]) and only then by the order they are declared in —
+/// which means something to whoever last edited `cmddefs` and nothing at all
+/// to the person typing. Recency reorders **within** a match-quality band and
+/// never across one: a prefix match still beats a fuzzy match, always, so
+/// `/de` can never float something that does not begin with `de` above
+/// something that does. A learned list that can reorder the *kind* of match is
+/// a list you can no longer aim at.
 pub(crate) fn matches(text: &str) -> Vec<&'static Cmd> {
+    matches_with(text, &crate::cmdrecents::now())
+}
+
+/// [`matches`] against an explicit recents list — the seam the tests use, so
+/// they never have to reach for the process-wide one.
+pub(crate) fn matches_with(text: &str, recents: &[String]) -> Vec<&'static Cmd> {
     if !text.starts_with('/') {
         return Vec::new();
     }
     let q = text[1..].to_lowercase();
-    let mut scored: Vec<(u8, usize, &'static Cmd)> = COMMANDS
+    let mut scored: Vec<(u8, usize, usize, &'static Cmd)> = COMMANDS
         .iter()
         .enumerate()
-        .filter_map(|(i, c)| rank(&c.name[1..], &q).map(|r| (r, i, c)))
+        .filter_map(|(i, c)| {
+            rank(&c.name[1..], &q).map(|r| (r, crate::cmdrecents::rank_of(recents, c.name), i, c))
+        })
         .collect();
-    scored.sort_by_key(|(r, i, _)| (*r, *i));
-    scored.into_iter().map(|(_, _, c)| c).collect()
+    scored.sort_by_key(|(r, recent, i, _)| (*r, *recent, *i));
+    scored.into_iter().map(|(_, _, _, c)| c).collect()
 }
 
 /// Match quality of `name` (sans slash) against lowercased query `q`: `0` for a

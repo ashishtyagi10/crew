@@ -166,6 +166,10 @@ pub fn run() -> anyhow::Result<()> {
     // recent section is populated before the first pick (`poll.rs` republishes
     // it after every subsequent pick).
     crate::modelpick::set_recents(config.model_recents.clone());
+    // Same shape one list over: the palette's own most-recently-run commands,
+    // published once at load so `suggest::matches` can read them without a
+    // config handle (see `cmdrecents`).
+    crate::cmdrecents::set(config.command_recents.clone());
     // Apply the theme first; the accent default reads the active theme.
     // `theme_selection` is the shared resolution: a saved rotation mode
     // resumes, a saved palette pins, and NO saved theme follows the OS
