@@ -78,6 +78,7 @@ fn toggle_target(pane: &ChatPane, cols: u16, rows: u16, row: u16) -> Option<usiz
         return None;
     }
     let view = View {
+        gap_rows: crate::density::level().card_gap_rows(),
         source: pane.show_source,
         compact: pane.compact_view,
         streaming_from: pane.messages.len(),

@@ -54,6 +54,20 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
             ),
             ("full".to_string(), "crew moves".to_string()),
         ]),
+        "/density" => Some(vec![
+            (
+                "compact".to_string(),
+                "a 4px gutter, no blank row between chat cards".to_string(),
+            ),
+            (
+                "cozy".to_string(),
+                "the default \u{2014} 8px, one blank row".to_string(),
+            ),
+            (
+                "roomy".to_string(),
+                "14px, two blank rows; easier on a big display".to_string(),
+            ),
+        ]),
         // The ladder only. A custom pair (`/gradient #a #b`) is freeform by
         // nature — there is no closed set of colours — and typing one still
         // submits, the way any unlisted value does.
@@ -128,7 +142,7 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
 pub(crate) fn expands(cmd: &str) -> bool {
     matches!(
         cmd,
-        "/theme" | "/crt" | "/weight" | "/smooth" | "/gradient" | "/motion" | "/model"
+        "/theme" | "/crt" | "/weight" | "/smooth" | "/gradient" | "/motion" | "/density" | "/model"
     )
 }
 

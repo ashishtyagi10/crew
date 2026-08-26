@@ -123,6 +123,7 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
         let view = crate::chatmsgs::View {
             source: pane.show_source,
             compact: pane.compact_view,
+            gap_rows: crate::density::level().card_gap_rows(),
             streaming_from: pane.messages.len(),
         };
         let msg_rows = crate::chatplace::msg_rows_budget(pane, cols, rows);
@@ -237,6 +238,7 @@ fn find_wash(pane: &ChatPane, cols: u16, rows: u16, cells: &mut [CellView]) {
     let view = crate::chatmsgs::View {
         source: pane.show_source,
         compact: pane.compact_view,
+        gap_rows: crate::density::level().card_gap_rows(),
         streaming_from: pane.messages.len(),
     };
     let (lines, spans) = crate::chatmsgs::card_lines_spanned(&visible, cols as usize, 0, view);

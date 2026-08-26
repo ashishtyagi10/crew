@@ -30,7 +30,7 @@ impl CrewApp {
         let sb = crate::chrome::stats_card_rect(
             sh,
             self.nav_px(scale),
-            crate::app::GAP,
+            crate::app::gap(),
             ch,
             self.update.as_ref().is_some_and(|u| !u.silent),
         );

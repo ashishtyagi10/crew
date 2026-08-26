@@ -40,6 +40,12 @@ fn default_gradient() -> String {
     "subtle".to_string()
 }
 
+fn default_density() -> String {
+    // The layout crew has always drawn (see `density::Density::gap_px`), so
+    // the knob arriving changes nothing until someone turns it.
+    "cozy".to_string()
+}
+
 fn default_motion() -> String {
     // Crew follows the OS by default: macOS's Accessibility → "Reduce motion"
     // is the system-wide way to ask for this, and an app that ignores it makes
@@ -217,6 +223,10 @@ pub struct CrewConfig {
     /// back to `full`. Set in Settings → APPEARANCE → Motion.
     #[serde(default = "default_motion")]
     pub motion: String,
+    /// How tightly the canvas packs: the pane gutter and the blank rows
+    /// between chat cards (see `density`).
+    #[serde(default = "default_density")]
+    pub density: String,
     /// How far the gradient's colour leans from the theme's own over time:
     /// `off`, `subtle` or `lively` (see `gradientlvl::GradientLevel`). The
     /// poles rotate in hue only, so no contrast guarantee moves with it, and
@@ -286,6 +296,7 @@ impl Default for CrewConfig {
             crt: None,
             glass: default_glass(),
             motion: default_motion(),
+            density: default_density(),
             gradient: default_gradient(),
             gradient_poles: None,
             window_opacity: default_window_opacity(),

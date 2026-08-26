@@ -367,6 +367,7 @@ fn message_cells_is_a_thin_map_over_placed_lines_in_both_modes() {
         pane.show_source = show_source;
         pane.compact_view = compact;
         let view = View {
+            gap_rows: crate::density::Density::Cozy.card_gap_rows(),
             source: show_source,
             compact,
             streaming_from: pane.messages.len(),
@@ -478,6 +479,7 @@ fn compact_view_clamps_multiline_body_and_appends_hidden_suffix() {
         40,
         0,
         View {
+            gap_rows: crate::density::Density::Cozy.card_gap_rows(),
             source: false,
             compact: false,
             streaming_from: usize::MAX,
@@ -490,6 +492,7 @@ fn compact_view_clamps_multiline_body_and_appends_hidden_suffix() {
         40,
         0,
         View {
+            gap_rows: crate::density::Density::Cozy.card_gap_rows(),
             source: false,
             compact: true,
             streaming_from: usize::MAX,
@@ -523,6 +526,7 @@ fn compact_view_leaves_single_line_message_unchanged() {
         40,
         0,
         View {
+            gap_rows: crate::density::Density::Cozy.card_gap_rows(),
             source: false,
             compact: true,
             streaming_from: usize::MAX,
@@ -553,6 +557,7 @@ fn compact_view_shrinks_card_line_count() {
         &refs,
         40,
         View {
+            gap_rows: crate::density::Density::Cozy.card_gap_rows(),
             source: false,
             compact: true,
             streaming_from: usize::MAX,
@@ -576,6 +581,7 @@ fn compact_view_and_source_view_are_orthogonal() {
         40,
         0,
         View {
+            gap_rows: crate::density::Density::Cozy.card_gap_rows(),
             source: true,
             compact: true,
             streaming_from: usize::MAX,
@@ -604,6 +610,7 @@ fn a_streaming_card_ends_in_a_caret() {
         40,
         0,
         View {
+            gap_rows: crate::density::Density::Cozy.card_gap_rows(),
             source: false,
             compact: false,
             streaming_from: usize::MAX,
@@ -614,6 +621,7 @@ fn a_streaming_card_ends_in_a_caret() {
         40,
         0,
         View {
+            gap_rows: crate::density::Density::Cozy.card_gap_rows(),
             source: false,
             compact: false,
             streaming_from: 0,
@@ -637,6 +645,7 @@ fn the_caret_pulses_without_disappearing() {
             40,
             now,
             View {
+                gap_rows: crate::density::Density::Cozy.card_gap_rows(),
                 source: false,
                 compact: false,
                 streaming_from: 0,
@@ -655,6 +664,7 @@ fn the_caret_pulses_without_disappearing() {
             40,
             now,
             View {
+                gap_rows: crate::density::Density::Cozy.card_gap_rows(),
                 source: false,
                 compact: false,
                 streaming_from: 0,
@@ -680,6 +690,7 @@ fn motion_off_leaves_a_steady_caret() {
             40,
             now,
             View {
+                gap_rows: crate::density::Density::Cozy.card_gap_rows(),
                 source: false,
                 compact: false,
                 streaming_from: 0,
@@ -769,5 +780,63 @@ fn compact_view_excludes_the_usage_trailer_from_the_clamp() {
         row_text(&cells, 1),
         " one \u{2026} +1",
         "the trailer is not part of the hidden-line count"
+    );
+}
+
+/// Density is only a real setting if the transcript actually re-spaces. Three
+/// unrelated cards, one density apart: the blank rows between them are the
+/// whole feature, and a `card_gap_rows` that was read but ignored would leave
+/// all three lengths equal.
+#[test]
+fn density_sets_the_blank_rows_between_unrelated_cards() {
+    use crate::density::Density;
+    let a = msg("planner", "one");
+    let b = msg("coder", "two");
+    let c = msg("planner", "three");
+    let refs = [&a, &b, &c];
+
+    let mut blanks = Vec::new();
+    for d in Density::ALL {
+        let view = View {
+            gap_rows: d.card_gap_rows(),
+            ..View::default()
+        };
+        let lines = card_lines(&refs, 40, 0, view);
+        blanks.push(lines.iter().filter(|l| l.is_empty()).count());
+        // Two gaps, each `card_gap_rows` tall, on top of three one-line cards.
+        assert_eq!(
+            lines.len(),
+            6 + 2 * d.card_gap_rows(),
+            "{} laid out {} lines",
+            d.as_str(),
+            lines.len()
+        );
+    }
+    assert_eq!(blanks, vec![0, 2, 4], "the ladder must actually step");
+}
+
+/// Chained replies of one task are held together by the tree connector, and
+/// spacing them at any density would contradict it — `roomy` must open the
+/// space *between* threads, not inside one.
+#[test]
+fn chained_replies_take_no_spacer_even_at_the_roomiest() {
+    use crate::density::Density;
+    let mut a = msg("planner", "one");
+    let mut b = msg("planner", "two");
+    a.meta = "task:7".into();
+    b.meta = "task:7".into();
+    // Two `None`s compare equal, so an unparseable tag would make this test
+    // pass by proving nothing about chaining. Require a real id.
+    assert_eq!(crate::chattime::task_tag(&a.meta), Some(7));
+    assert_eq!(crate::chattime::task_tag(&b.meta), Some(7));
+    let view = View {
+        gap_rows: Density::Roomy.card_gap_rows(),
+        ..View::default()
+    };
+    let lines = card_lines(&[&a, &b], 40, 0, view);
+    assert_eq!(
+        lines.iter().filter(|l| l.is_empty()).count(),
+        0,
+        "a chained pair took a spacer"
     );
 }

@@ -103,6 +103,10 @@ pub(crate) const COMMANDS: &[Cmd] = &[
         desc: "How much crew moves — auto follows the OS Reduce Motion switch (/motion [auto|off|subtle|full])",
     },
     Cmd {
+        name: "/density",
+        desc: "How tightly the canvas packs \u{2014} pane gutter and chat-card spacing (/density [compact|cozy|roomy])",
+    },
+    Cmd {
         name: "/gradient",
         desc: "Canvas gradient — how far its colour breathes, or poles of your own (/gradient [off|subtle|lively|<#a> <#b>|reset])",
     },

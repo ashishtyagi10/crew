@@ -17,7 +17,14 @@ use crew_term::GridSize;
 /// Fallback grid size when the GPU cell size is not yet known (zero).
 pub(crate) const FALLBACK_SIZE: GridSize = GridSize { cols: 80, rows: 24 };
 pub(crate) const POLL_MS: u64 = 16;
-pub(crate) const GAP: f32 = 8.0;
+/// The gutter between every pane card and its neighbours, in logical px.
+///
+/// A function rather than a constant since the Density setting owns it (see
+/// [`crate::density`]): render and hit-testing both call this, so they cannot
+/// disagree about where a card's edge is.
+pub(crate) fn gap() -> f32 {
+    crate::density::gap()
+}
 
 #[derive(Default)]
 pub struct CrewApp {

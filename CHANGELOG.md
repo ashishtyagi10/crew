@@ -8,6 +8,45 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.39
+
+**The canvas has a density.** `/density [compact|cozy|roomy]`, and
+**Settings → APPEARANCE → Density**, decide how tightly crew packs: the gutter
+between pane cards and the blank rows between chat cards move together. In a
+cell grid those are the two spaces that are genuinely empty — the line height
+*is* the cell, and shrinking that is the font size, which has its own knob.
+
+`cozy` is exactly the layout crew already drew, so the setting arriving
+changes nothing until you turn it. `compact` halves the gutter and drops the
+chat spacer entirely (the header's coloured gutter glyph still draws the card
+boundary, in ink rather than in space); `roomy` opens both up for a large
+display. Compact never closes the gutter to zero — two rounded strokes that
+touch read as one wide card with a line down it.
+
+The gutter is now read from one function that render **and** hit-testing both
+call, so a density can never put a click target beside the thing it draws.
+
+## 0.18.38
+
+**Motion follows the operating system.** macOS has a single system-wide
+Accessibility → Display → *Reduce motion* switch, and crew now honors it:
+`motion` gains a fourth value, `auto`, which is the new default. With the
+switch off `auto` is full motion — exactly what crew did before — and with it
+on, crew's `off` is a genuine off: every animation window collapses to zero,
+the final state draws once, and nothing reschedules a frame.
+
+That switch exists because vestibular disorders make sliding and zoom actively
+unpleasant rather than decorative. A user who has already told their Mac they
+want less of it should not have to find crew's own setting to say it again.
+
+An explicit level still overrules the OS in **both** directions: `/motion full`
+keeps crew moving under Reduce Motion, and `/motion off` stays off without it.
+The Settings picker reads `auto (off)` / `auto (full)` rather than a bare
+`auto`, because a deferral still owes you an answer about what it decided.
+
+New: **`/motion [auto|off|subtle|full]`** with a value picker, so the knob is
+reachable without opening Settings.
+
 ## 0.18.37
 
 **Where you are in a buffer is a colour now.** Scroll a pane back and the

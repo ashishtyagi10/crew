@@ -113,6 +113,12 @@ impl CrewConfig {
         crew_theme::GlassLevel::parse(&self.glass).unwrap_or(crew_theme::GlassLevel::Medium)
     }
 
+    /// The configured density; an unknown name falls back to `cozy`, the
+    /// default — a typo must not silently re-space the whole canvas.
+    pub(crate) fn density(&self) -> crate::density::Density {
+        crate::density::Density::parse(&self.density).unwrap_or(crate::density::Density::Cozy)
+    }
+
     /// The configured motion preference; an unknown name falls back to `auto`,
     /// matching the default — a typo must not silently disable animation, nor
     /// silently overrule the OS.
@@ -171,6 +177,7 @@ impl CrewConfig {
             crt: self.crt,
             glass: self.glass,
             motion: self.motion,
+            density: self.density,
             gradient: self.gradient,
             gradient_poles: self.gradient_poles.filter(|s| !s.is_empty()),
             // A window that can be dialled to invisible is a window you cannot
