@@ -91,6 +91,7 @@ pub struct Theme {
 }
 
 pub mod ansi;
+pub mod contrast;
 mod crtstyle;
 mod glass;
 pub mod gradients;

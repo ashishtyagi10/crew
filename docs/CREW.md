@@ -445,6 +445,28 @@ The docked command bar supports:
   current strength; selecting `/smooth` in the palette opens a value picker.
   The named ladder is also the **Smoothing** field in `/settings` — both write
   the same `font_smooth` key.
+- **`/contrast [auto|normal|high]`** — the WCAG floor every derived colour is
+  held to. Crew derives its readable roles rather than hard-coding them: the
+  terminal cursor, links, selection, the warning amber, the sparkline are each
+  walked in Oklch until they clear a measured contrast floor against the page
+  they land on. This says which floor.
+
+  `auto` is the default and **follows the OS**: macOS's *Settings →
+  Accessibility → Display → Increase contrast* is where a user has already
+  said this once. `normal` is the WCAG **AA** band (4.5 for text and
+  text-like marks, 3.0 for marks you only have to see); `high` is **AAA**
+  (7.0 and 4.5) — the standard's own next step, which is what "increase
+  contrast" means in the only vocabulary that has one.
+
+  High contrast also quiets the two effects that *spend* contrast: the
+  spotlight over unfocused panes, and the page's gradient wash, which lifts
+  the background the ink sits on and has only 4–16% headroom over it. Both
+  drop to a third of their strength rather than to zero — the spotlight is the
+  cue that says which pane has focus, and losing that is itself an
+  accessibility loss. Live and persisted (the same `contrast` key as
+  **Settings → APPEARANCE → Contrast**); no argument reports the setting and
+  the band it resolved to.
+
 - **`/focus`** (`Ctrl+Shift+F`) — **focus mode**: crew stops interrupting.
   While it is on, notifications are **held rather than dropped** (they still
   write the LOG, still flash the input bar, still raise the pane's own

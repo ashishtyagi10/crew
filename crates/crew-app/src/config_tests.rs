@@ -106,6 +106,7 @@ fn round_trip() {
         ambient_drift: true,
         gradient: "lively".to_string(),
         density: "roomy".to_string(),
+        contrast: "high".to_string(),
         gradient_poles: Some("#112233 #445566".to_string()),
         font_family: Some("Menlo".to_string()),
         font_random: false,

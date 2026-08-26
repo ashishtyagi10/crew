@@ -47,6 +47,7 @@ impl CrewApp {
             "smooth" => self.smooth_command(""),
             "motion" => self.motion_command(""),
             "density" => self.density_command(""),
+            "contrast" => self.contrast_command(""),
             "gradient" => self.gradient_command(""),
             "notify" => self.notify_command(""),
             "broadcast" => self.toggle_broadcast(),
@@ -92,6 +93,8 @@ impl CrewApp {
                     self.motion_command(m.trim());
                 } else if let Some(d) = other.strip_prefix("density ") {
                     self.density_command(d.trim());
+                } else if let Some(c) = other.strip_prefix("contrast ") {
+                    self.contrast_command(c.trim());
                 } else if let Some(g) = other.strip_prefix("gradient ") {
                     self.gradient_command(g.trim());
                 } else if let Some(m) = other.strip_prefix("model ") {
@@ -410,6 +413,44 @@ impl CrewApp {
         self.config.save();
         crate::density::set_level(d);
         self.set_status(format!("density {}", d.as_str()));
+        self.redraw();
+    }
+
+    /// `/contrast [auto|normal|high]` — the WCAG floor every derived colour
+    /// is measured against.
+    ///
+    /// `auto` defers to the OS accessibility switch, which is where a user who
+    /// wants more contrast has almost certainly already said so. A bare
+    /// `/contrast` reports the setting AND what it currently resolves to.
+    pub(crate) fn contrast_command(&mut self, arg: &str) {
+        const ALL: [&str; 3] = ["auto", "normal", "high"];
+        let os = crate::oscontrast::increase_contrast();
+        if arg.is_empty() {
+            let band = if self.config.high_contrast(os) {
+                "AAA"
+            } else {
+                "AA"
+            };
+            self.set_status(format!(
+                "contrast {} \u{2014} WCAG {band} floors (/contrast [auto|normal|high])",
+                self.config.contrast
+            ));
+            return;
+        }
+        let arg = arg.trim().to_ascii_lowercase();
+        if !ALL.contains(&arg.as_str()) {
+            self.set_status("usage: /contrast [auto|normal|high]");
+            return;
+        }
+        self.config.contrast = arg;
+        self.config.save();
+        let high = self.config.high_contrast(os);
+        crew_theme::contrast::set_high_contrast(high);
+        self.set_status(format!(
+            "contrast {} \u{2014} WCAG {} floors",
+            self.config.contrast,
+            if high { "AAA" } else { "AA" }
+        ));
         self.redraw();
     }
 }

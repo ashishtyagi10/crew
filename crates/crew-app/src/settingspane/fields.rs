@@ -39,6 +39,9 @@ pub(crate) enum Field {
     /// chat cards (see `density`). Sits under Glass/Motion: those say how much
     /// the canvas *does*, this says how much room it takes.
     Density,
+    /// WCAG floor every derived colour is measured against: `auto` follows
+    /// the OS accessibility switch (see `crew_theme::contrast`).
+    Contrast,
     /// How far the gradient's colour leans from the theme's own over time
     /// (see `gradientlvl`). Sits with Glass and Motion: all three say how
     /// much the canvas is allowed to do on its own.
@@ -59,7 +62,7 @@ pub(crate) enum Field {
     Cancel,
 }
 
-pub(crate) const FIELDS: [Field; 30] = [
+pub(crate) const FIELDS: [Field; 31] = [
     Field::FontFamily,
     Field::FontSize,
     Field::Smooth,
@@ -78,6 +81,7 @@ pub(crate) const FIELDS: [Field; 30] = [
     Field::Glass,
     Field::Motion,
     Field::Density,
+    Field::Contrast,
     Field::Gradient,
     Field::Maximized,
     Field::Notify,

@@ -54,6 +54,20 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
             ),
             ("full".to_string(), "crew moves".to_string()),
         ]),
+        "/contrast" => Some(vec![
+            (
+                "auto".to_string(),
+                "the default \u{2014} follow the OS Increase Contrast switch".to_string(),
+            ),
+            (
+                "normal".to_string(),
+                "WCAG AA: 4.5 for text, 3.0 for marks".to_string(),
+            ),
+            (
+                "high".to_string(),
+                "WCAG AAA: 7.0 for text, 4.5 for marks; the wash backs off".to_string(),
+            ),
+        ]),
         "/density" => Some(vec![
             (
                 "compact".to_string(),
@@ -142,7 +156,15 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
 pub(crate) fn expands(cmd: &str) -> bool {
     matches!(
         cmd,
-        "/theme" | "/crt" | "/weight" | "/smooth" | "/gradient" | "/motion" | "/density" | "/model"
+        "/theme"
+            | "/crt"
+            | "/weight"
+            | "/smooth"
+            | "/gradient"
+            | "/motion"
+            | "/density"
+            | "/contrast"
+            | "/model"
     )
 }
 

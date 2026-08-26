@@ -103,6 +103,10 @@ pub(crate) const COMMANDS: &[Cmd] = &[
         desc: "How much crew moves — auto follows the OS Reduce Motion switch (/motion [auto|off|subtle|full])",
     },
     Cmd {
+        name: "/contrast",
+        desc: "WCAG floor every derived colour is held to \u{2014} auto follows the OS Increase Contrast switch (/contrast [auto|normal|high])",
+    },
+    Cmd {
         name: "/focus",
         desc: "Focus mode \u{2014} hold every notification, never steal focus, deepen the spotlight (/focus)",
     },

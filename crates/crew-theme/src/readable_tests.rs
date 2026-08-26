@@ -6,6 +6,8 @@ use crate::ALL_THEMES;
 /// light pages — three of them badly enough to be invisible.
 #[test]
 fn every_role_clears_its_floor_on_every_theme() {
+    let _g = crate::contrast::test_lock();
+    crate::contrast::set_high_contrast(false);
     let mut bad: Vec<String> = Vec::new();
     for id in ALL_THEMES {
         let t = id.theme();
@@ -34,6 +36,8 @@ fn every_role_clears_its_floor_on_every_theme() {
 /// must out-read the unfocused one on every theme, by a margin you can see.
 #[test]
 fn the_focused_cursor_always_out_reads_the_unfocused_one() {
+    let _g = crate::contrast::test_lock();
+    crate::contrast::set_high_contrast(false);
     for id in ALL_THEMES {
         let t = id.theme();
         let bg = t.term_bg;
@@ -53,6 +57,8 @@ fn the_focused_cursor_always_out_reads_the_unfocused_one() {
 /// the unfocused one vanish would trade one defect for another.
 #[test]
 fn the_unfocused_cursor_is_still_visible() {
+    let _g = crate::contrast::test_lock();
+    crate::contrast::set_high_contrast(false);
     for id in ALL_THEMES {
         let t = id.theme();
         let r = contrast_ratio(cursor(t, false), t.term_bg);
@@ -64,6 +70,8 @@ fn the_unfocused_cursor_is_still_visible() {
 /// red. Only lightness is the palette's to take.
 #[test]
 fn a_role_keeps_its_hue_when_the_page_takes_its_lightness() {
+    let _g = crate::contrast::test_lock();
+    crate::contrast::set_high_contrast(false);
     for id in ALL_THEMES {
         let t = id.theme();
         for (name, got, want) in [
@@ -121,5 +129,88 @@ fn an_impossible_floor_returns_the_best_reachable_colour() {
     assert!(
         contrast_ratio(got, page) > contrast_ratio((130, 130, 130), page),
         "it should still have improved on {got:?}"
+    );
+}
+
+/// The whole contract again, one band up: with the OS asking for contrast,
+/// every role has to clear the RAISED floor on every theme. If a role could
+/// not reach AAA on some page the feature would be a promise crew cannot keep
+/// — and the failure would be silent, since `against` returns its best effort
+/// rather than erroring.
+#[test]
+fn every_role_clears_the_raised_floor_too() {
+    let _g = crate::contrast::test_lock();
+    crate::contrast::set_high_contrast(true);
+    let mut bad: Vec<String> = Vec::new();
+    for id in ALL_THEMES {
+        let t = id.theme();
+        let block = cursor(t, true);
+        for (name, fg, bg, floor) in [
+            ("cursor (focused)", block, t.term_bg, 7.0),
+            ("glyph on the cursor", on_block(t, block), block, 7.0),
+            ("link", link(t), t.term_bg, 7.0),
+            ("selection", selection_bg(t), t.term_fg, 7.0),
+            ("warn", warn(t), t.page_bg, 7.0),
+            ("danger", danger(t), t.page_bg, 7.0),
+            ("spark", spark(t), t.page_bg, 4.5),
+        ] {
+            let r = contrast_ratio(fg, bg);
+            if r < floor {
+                bad.push(format!("{}: {name} is {r:.2}, floor {floor}", id.as_str()));
+            }
+        }
+    }
+    crate::contrast::set_high_contrast(false);
+    assert!(bad.is_empty(), "{}", bad.join("\n  "));
+}
+
+/// The switch has to actually reach the colours. A floor that rose while every
+/// derived role came back byte-identical would be the feature shipped as a
+/// no-op — and on a dark page, where most of these already clear AA
+/// comfortably, that is exactly how it would look.
+#[test]
+fn asking_for_contrast_actually_moves_the_derived_colours() {
+    let _g = crate::contrast::test_lock();
+    let mut moved = 0;
+    let mut checked = 0;
+    for id in ALL_THEMES {
+        let t = id.theme();
+        // Each role against the background it is actually measured on —
+        // `link` lands on the terminal page, `selection_bg` under the
+        // terminal's own ink, the rest on the app page.
+        crate::contrast::set_high_contrast(false);
+        let aa = [
+            (link(t), t.term_bg),
+            (selection_bg(t), t.term_fg),
+            (warn(t), t.page_bg),
+            (danger(t), t.page_bg),
+            (spark(t), t.page_bg),
+        ];
+        crate::contrast::set_high_contrast(true);
+        let aaa = [
+            (link(t), t.term_bg),
+            (selection_bg(t), t.term_fg),
+            (warn(t), t.page_bg),
+            (danger(t), t.page_bg),
+            (spark(t), t.page_bg),
+        ];
+        for (&(a, bg), &(b, _)) in aa.iter().zip(aaa.iter()) {
+            checked += 1;
+            if a != b {
+                moved += 1;
+            }
+            // Never the wrong way: the raised floor may leave a colour alone
+            // (it already cleared AAA) but must never make it read worse.
+            assert!(
+                contrast_ratio(b, bg) >= contrast_ratio(a, bg) - 0.01,
+                "{}: a raised floor lowered a ratio",
+                id.as_str()
+            );
+        }
+    }
+    crate::contrast::set_high_contrast(false);
+    assert!(
+        moved * 2 > checked,
+        "only {moved} of {checked} roles moved — the floor is not reaching them"
     );
 }

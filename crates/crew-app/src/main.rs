@@ -157,6 +157,7 @@ mod oauth;
 mod openurl;
 mod openview;
 mod osappearance;
+mod oscontrast;
 mod palette;
 mod pane;
 mod panebtn;

@@ -32,6 +32,7 @@ pub(crate) fn label_of(f: Field) -> &'static str {
         Field::Glass => "Glass",
         Field::Motion => "Motion",
         Field::Density => "Density",
+        Field::Contrast => "Contrast",
         Field::Gradient => "Gradient colour",
         // Kept short: this sits in a half-width box beside Nav width, and a
         // legend wider than its border is a legend the user reads truncated.
@@ -99,6 +100,7 @@ pub(crate) fn value_of(p: &SettingsPane, f: Field) -> (String, bool) {
             format!("\u{2039} {} \u{203a}", p.draft.density().as_str()),
             false,
         ),
+        Field::Contrast => (format!("\u{2039} {} \u{203a}", p.draft.contrast), false),
         Field::Gradient => (
             format!("\u{2039} {} \u{203a}", p.draft.gradient_level().as_str()),
             false,
