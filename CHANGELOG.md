@@ -8,6 +8,37 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.40
+
+**Toasts answer back.** For most of their life crew's notification cards were
+something you could only watch: a 4.8-second card saying "agent-7 is waiting",
+naming a pane you then had to go and find yourself.
+
+**Rest the pointer on the stack and it holds** — every card in it, until the
+pointer leaves. WCAG's *Pause, Stop, Hide* asks that auto-hiding content be
+pausable, and a message on a four-second timer is unreadable to anyone who
+reads slowly, is interrupted, or looks up a moment late. The whole stack holds
+rather than just the card under the cursor: expiring its neighbours would
+slide the stack up and move the card out from under the pointer, which is the
+one thing a pause must not do. A held stack is frozen, so it asks for no
+frames — an idle crew still never repaints.
+
+**Click a card to go where it points.** A toast raised by a pane now knows
+which pane, and clicking it focuses that pane — restoring it from the nav if
+it had been minimized, through the same path every other focus goes. A card
+that names no pane is simply dismissed. Either way the card leaves: it has
+been answered, and staying on screen would say otherwise.
+
+The card admits all this on hover — the stroke lights in the accent and the
+legend reads `waiting → open`, or `note ✕` for one with nowhere to go. A click
+target with no affordance is a secret.
+
+The pane is remembered by NAME and resolved at click time, not captured as an
+index: panes open and close while a card is on screen, and a four-second-old
+index can easily point at a different pane, or past the end of the list. An
+`exited` toast deliberately offers nothing — that pane is reaped in the same
+tick.
+
 ## 0.18.39
 
 **The canvas has a density.** `/density [compact|cozy|roomy]`, and

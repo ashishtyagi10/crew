@@ -84,6 +84,14 @@ impl CrewApp {
                 self.hover_moved();
                 // Whatever it ended up over, the pointer says what it can do.
                 self.pointer_sync();
+                self.cursor_in = true;
+            }
+            WindowEvent::CursorLeft { .. } => {
+                // The pointer is over another window now. Anything keyed off
+                // hover has to let go — a toast stack held by a coordinate the
+                // pointer left behind would never expire (see `toast::hold`).
+                self.cursor_in = false;
+                self.redraw();
             }
             WindowEvent::MouseInput {
                 state: ElementState::Pressed,
@@ -93,6 +101,13 @@ impl CrewApp {
                 // Cmd+click (Ctrl+click off mac) opens a URL / file / dir in a
                 // terminal pane, or a markdown link in a chat pane.
                 if open_modifier(self.mods.state()) && self.cmd_click_at_cursor() {
+                    self.redraw();
+                    return;
+                }
+                // A toast is an overlay: it is drawn on top of whatever pane
+                // it rests on, so a click on it must be answered before the
+                // pane underneath ever sees the press.
+                if self.toast_click() {
                     self.redraw();
                     return;
                 }

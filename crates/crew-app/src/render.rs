@@ -170,7 +170,8 @@ impl CrewApp {
 
         // Toast cards at the top-right of the content area — pushed before the
         // help early-return so an open help screen doesn't swallow them.
-        crate::toast::push_toasts(&mut scenes, &mut self.toasts, content, cw, ch, now);
+        let cursor = self.cursor_in.then_some(self.cursor);
+        crate::toast::push_toasts(&mut scenes, &mut self.toasts, content, cw, ch, now, cursor);
 
         // Keybindings help overlay, centered over everything.
         if self.help_open {
