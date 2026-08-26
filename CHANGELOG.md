@@ -8,6 +8,30 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.47
+
+**The palette remembers what you run.** Among commands matching your query
+equally well, the order was `cmddefs`'s declaration order — an order that means
+something to whoever last edited that file and nothing at all to the person
+typing. Type `/` on an empty bar and the list opened on whatever happened to be
+at the top of the table, every time, no matter that you had run `/gradient`
+forty times and `/clearlog` never.
+
+Now the ten most recently run commands break the tie, persisted across
+restarts (a shortcut that resets every launch is not one). A repeat moves its
+entry rather than adding one, so the list stays a summary of your habits
+instead of filling with one of them.
+
+The rule that keeps it predictable: **recency reorders within a match-quality
+band and never across one**. A prefix match still beats a fuzzy match, always,
+so `/de` can never float something that does not begin with `de` above
+something that does. A learned list that can reorder the *kind* of match is a
+list you can no longer aim at — you would have to read it every time instead
+of typing through it.
+
+Only commands that exist are recorded: a typo is not a habit, and remembering
+one would put a command that does nothing at the top of your list.
+
 ## 0.18.46
 
 **The settings form fits the pane it is in.** Its fields were paired into

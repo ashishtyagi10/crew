@@ -247,6 +247,10 @@ pub struct CrewConfig {
     /// `on`. See `shapecues`.
     #[serde(default = "default_shape_cues")]
     pub shape_cues: String,
+    /// Slash commands most recently run, newest first — the palette's
+    /// tie-break (see `cmdrecents`). Bookkeeping, not a setting.
+    #[serde(default)]
+    pub command_recents: Vec<String>,
     /// How far the gradient's colour leans from the theme's own over time:
     /// `off`, `subtle` or `lively` (see `gradientlvl::GradientLevel`). The
     /// poles rotate in hue only, so no contrast guarantee moves with it, and
@@ -319,6 +323,7 @@ impl Default for CrewConfig {
             density: default_density(),
             contrast: default_contrast(),
             shape_cues: default_shape_cues(),
+            command_recents: Vec::new(),
             gradient: default_gradient(),
             gradient_poles: None,
             window_opacity: default_window_opacity(),

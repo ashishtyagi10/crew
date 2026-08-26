@@ -6,6 +6,7 @@ use crate::app::CrewApp;
 impl CrewApp {
     /// Run a `/command` typed in the input bar. Returns `true` if the app should exit.
     pub(crate) fn run_slash_command(&mut self, cmd: &str) -> bool {
+        self.note_command_run(cmd);
         match cmd {
             "exit" => return true,
             "keys" => self.help_open = true,
@@ -118,6 +119,26 @@ impl CrewApp {
             }
         }
         false
+    }
+
+    /// Remember that this command was run, so the palette can rank what the
+    /// user actually uses above the order `cmddefs` happens to declare.
+    ///
+    /// Only commands that EXIST are recorded — the argument here is the whole
+    /// typed line (`"theme dark"`), so it is matched back to a table entry by
+    /// its first word. A typo is not a habit, and recording one would put a
+    /// command that does not exist at the top of the list.
+    fn note_command_run(&mut self, cmd: &str) {
+        let head = cmd.split_whitespace().next().unwrap_or(cmd);
+        let name = format!("/{head}");
+        if !crate::cmddefs::COMMANDS.iter().any(|c| c.name == name) {
+            return;
+        }
+        let list = crate::cmdrecents::record(&name);
+        if self.config.command_recents != list {
+            self.config.command_recents = list;
+            self.config.save();
+        }
     }
 
     /// Handle `/todo done [@project]` (the done-history view, optionally

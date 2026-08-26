@@ -108,6 +108,7 @@ fn round_trip() {
         density: "roomy".to_string(),
         contrast: "high".to_string(),
         shape_cues: "on".to_string(),
+        command_recents: vec!["/theme".to_string()],
         gradient_poles: Some("#112233 #445566".to_string()),
         font_family: Some("Menlo".to_string()),
         font_random: false,

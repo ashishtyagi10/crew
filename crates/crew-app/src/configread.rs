@@ -208,6 +208,13 @@ impl CrewConfig {
             density: self.density,
             contrast: self.contrast,
             shape_cues: self.shape_cues,
+            // Capped on the way in as well as on the way out: a hand-edited
+            // or older config must not smuggle a longer history past the cap.
+            command_recents: {
+                let mut v = self.command_recents;
+                v.truncate(crate::cmdrecents::MAX);
+                v
+            },
             gradient: self.gradient,
             gradient_poles: self.gradient_poles.filter(|s| !s.is_empty()),
             // A window that can be dialled to invisible is a window you cannot

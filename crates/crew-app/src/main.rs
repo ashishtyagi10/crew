@@ -77,6 +77,7 @@ mod clock;
 mod cmdcheck;
 mod cmddefs;
 mod cmdmenu;
+mod cmdrecents;
 pub mod config;
 mod crashlog;
 mod ctxlimit;
