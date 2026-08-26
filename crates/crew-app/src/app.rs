@@ -72,6 +72,13 @@ pub struct CrewApp {
     /// LRU of pane indices: which panes are full tiles vs. minimized.
     pub(crate) grid: GridLayout,
     pub(crate) mods: Modifiers,
+    /// When a bare modifier started being held, for the shortcut hints (see
+    /// [`crate::keypeek`]). `None` whenever nothing — or a chord — is held.
+    /// Cleared by any key press, so the panel never sits over a chord.
+    pub(crate) peek_since: Option<u64>,
+    /// Whether the hint row has actually been drawn for the current hold, so
+    /// the dwell asks for exactly one repaint rather than one per tick.
+    pub(crate) peek_drawn: bool,
     pub(crate) cursor: (f32, f32),
     /// Whether the pointer is inside the window at all.
     ///

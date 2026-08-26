@@ -8,6 +8,31 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.41
+
+**Hold a modifier and crew tells you what it does.** Rest on `Cmd` (or `Ctrl`)
+for a moment and a single row of chips appears above the input bar naming what
+that key reaches *from where you are* — `1…9 pane · ←↑→↓ focus · I input · T
+shell · J chat`, and then `K clear · Z zoom · W close` in a pane, or `↵ send`
+on the input bar. Press anything, or let go, and it is gone.
+
+`/keys` is a manual: fifty bindings in one scrolling column, correct and
+unreadable in the two seconds anyone actually has. It answers "what can crew
+do", which is a question people ask once. The question they ask constantly is
+narrower — *my thumb is on Cmd, what are my options right now?* — and the
+answer depends on what is focused, which a static table cannot know.
+
+Two rules keep it out of the way. It only opens on a modifier held **alone**:
+someone mid-chord already knows what they are doing, and a panel that opens
+during `Cmd+Shift+G` is in the way of the very thing it claims to teach. And
+it waits out 450ms first, so an ordinary `Cmd+C` never flashes a panel on its
+way past. `Shift` never opens it — it reaches nothing on its own and is held
+through every capital letter you type.
+
+Idle crew still repaints nothing: the opening edge asks for exactly one frame,
+the closing edge for one more, and a thumb resting on a modifier that is never
+held long enough asks for none at all.
+
 ## 0.18.40
 
 **Toasts answer back.** For most of their life crew's notification cards were
