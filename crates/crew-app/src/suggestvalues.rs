@@ -54,6 +54,17 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
             ),
             ("full".to_string(), "crew moves".to_string()),
         ]),
+        "/shapes" => Some(vec![
+            (
+                "auto".to_string(),
+                "the default \u{2014} follow the OS Differentiate Without Color switch".to_string(),
+            ),
+            ("off".to_string(), "colour carries it alone".to_string()),
+            (
+                "on".to_string(),
+                "gauge tiers marked, a working pane gets its own glyph".to_string(),
+            ),
+        ]),
         "/contrast" => Some(vec![
             (
                 "auto".to_string(),
@@ -164,6 +175,7 @@ pub(crate) fn expands(cmd: &str) -> bool {
             | "/motion"
             | "/density"
             | "/contrast"
+            | "/shapes"
             | "/model"
     )
 }

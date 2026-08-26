@@ -8,6 +8,38 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.45
+
+**Never colour alone.** WCAG 1.4.1 is one line long and easy to fail without
+noticing: colour must never be the *only* thing carrying a piece of
+information. About one man in twelve cannot separate red from green, every
+colour cue vanishes on a monochrome CRT theme, and none of them survive a
+screenshot pasted into a ticket in greyscale.
+
+Crew mostly passed already — by accident of taste rather than by rule.
+Attention markers are distinct glyphs (`!`, `⚑`, `✓`, `⊗`, `?`) that happen to
+share the bell colour; broadcast is `»` and not just magenta; every toast names
+itself in its legend; a busy sidebar row spins. Two places did not:
+
+- the **load gauges**, where nominal / warning / critical was the fill colour
+  and nothing else — the percentage says the number, but not which band it is
+  in, which is the tier's whole job. They now mark it: `!` past 70%, `‼` past
+  90%, riding the label's trailing space so the bar and the reading land on
+  exactly the same columns either way.
+- a **working pane in the minimized strip**, which drew the same solid `●` as
+  a pane that had merely spoken recently, told apart by a brightness pulse —
+  colour and motion, the two channels this is about. It now draws a
+  half-filled `◐`: visibly *partial*, which is what in-progress looks like.
+
+`/shapes [auto|off|on]`, and **Settings → APPEARANCE → Shape cues**. `auto`
+follows macOS's *Accessibility → Display → Differentiate without color*, and
+is off unless asked — a glyph in every gauge row is noise for a reader who can
+see the colour. The rule is *never colour alone* for anyone who needs it, not
+*always both* for everyone.
+
+The gauge's colour thresholds and its marks now come from one definition, so
+the two can never disagree about which band a reading is in.
+
 ## 0.18.44
 
 **Contrast follows the operating system too.** macOS has an Accessibility →

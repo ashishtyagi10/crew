@@ -19,12 +19,12 @@ fn track_color() -> (u8, u8, u8) {
 /// palette so a phosphor theme's gauges glow in that phosphor's hues.
 pub(crate) fn fill_color(frac: f32) -> (u8, u8, u8) {
     let t = crew_theme::theme();
-    if frac < 0.7 {
-        accent()
-    } else if frac < 0.9 {
-        t.status_fg
-    } else {
-        t.ansi[9]
+    // The bands come from `shapecues::Tier` so the colour and the shape cue
+    // beside it can never disagree about which band a reading is in.
+    match crate::shapecues::Tier::of(frac) {
+        crate::shapecues::Tier::Nominal => accent(),
+        crate::shapecues::Tier::Warn => t.status_fg,
+        crate::shapecues::Tier::Critical => t.ansi[9],
     }
 }
 
@@ -49,8 +49,16 @@ fn gauge_cells(label: &str, frac: f32, row: u16, cols: u16) -> Vec<CellView> {
         }
         cells.push(cell(i as u16, row, c, t.ink, t.page_bg));
     }
+    // The tier mark rides in the label's trailing space, in the fill's own
+    // colour: the band is said twice for anyone who needs it and costs no
+    // column, since that space was always there (see `shapecues`).
+    let mark = crate::shapecues::Tier::of(frac).mark();
     if cells.len() < cols {
-        cells.push(cell(label_len as u16, row, ' ', t.ink, t.page_bg));
+        let (c, fg) = match mark {
+            Some(m) => (m, fill_color(frac)),
+            None => (' ', t.ink),
+        };
+        cells.push(cell(label_len as u16, row, c, fg, t.page_bg));
     }
 
     let used = cells.len();
@@ -188,5 +196,57 @@ mod tests {
         assert!(cells.iter().any(|c| c.c == '█' || c.c == '░'));
         let rows: std::collections::HashSet<u16> = cells.iter().map(|c| c.row).collect();
         assert!(rows.contains(&1) && rows.contains(&2) && rows.contains(&3));
+    }
+
+    /// The tier mark has to reach the drawn row, and cost nothing when it is
+    /// not wanted: it rides the label's trailing space, so the bar and the
+    /// percentage must land on exactly the same columns either way. A cue
+    /// that shifted the layout would be a cue nobody could leave on.
+    #[test]
+    fn the_tier_mark_rides_the_label_space_without_moving_anything() {
+        let _g = crate::app::motion_test_guard();
+        let cols = 40;
+        crate::shapecues::set(false);
+        let off = gauge_cells("CPU ", 0.95, 0, cols);
+        crate::shapecues::set(true);
+        let on = gauge_cells("CPU ", 0.95, 0, cols);
+        crate::shapecues::set(false);
+
+        assert_eq!(off.len(), on.len(), "the cue must not change the width");
+        let bar_and_pct = |v: &[CellView]| -> Vec<(u16, char)> {
+            v.iter()
+                .filter(|c| c.col > 4)
+                .map(|c| (c.col, c.c))
+                .collect()
+        };
+        assert_eq!(
+            bar_and_pct(&off),
+            bar_and_pct(&on),
+            "the bar and the reading must not move"
+        );
+
+        let at = |v: &[CellView], col: u16| v.iter().find(|c| c.col == col).map(|c| c.c);
+        assert_eq!(at(&off, 4), Some(' '), "off, the slot is the label space");
+        assert_eq!(at(&on, 4), Some('\u{203c}'), "on, critical is marked");
+    }
+
+    /// Three bands, three appearances — a warning and a critical reading that
+    /// mark the same are no better than two that only differ in colour.
+    #[test]
+    fn each_band_marks_differently_on_a_drawn_row() {
+        let _g = crate::app::motion_test_guard();
+        crate::shapecues::set(true);
+        let mark = |frac: f32| {
+            gauge_cells("CPU ", frac, 0, 40)
+                .iter()
+                .find(|c| c.col == 4)
+                .map(|c| c.c)
+        };
+        let (n, w, c) = (mark(0.3), mark(0.8), mark(0.95));
+        crate::shapecues::set(false);
+        assert_eq!(n, Some(' '), "nominal stays quiet");
+        assert_ne!(w, n);
+        assert_ne!(c, n);
+        assert_ne!(w, c);
     }
 }

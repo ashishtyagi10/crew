@@ -48,6 +48,16 @@ pub(crate) fn cycle_value(p: &mut SettingsPane, back: bool) {
             };
             d.contrast = ALL[next].to_string();
         }
+        Field::ShapeCues => {
+            const ALL: [&str; 3] = ["auto", "off", "on"];
+            let cur = ALL.iter().position(|v| *v == d.shape_cues).unwrap_or(0);
+            let next = if back {
+                (cur + ALL.len() - 1) % ALL.len()
+            } else {
+                (cur + 1) % ALL.len()
+            };
+            d.shape_cues = ALL[next].to_string();
+        }
         Field::Gradient => {
             let all = crate::gradientlvl::GradientLevel::ALL;
             let cur = all

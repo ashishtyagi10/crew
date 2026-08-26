@@ -199,6 +199,7 @@ mod session;
 mod sessionrestore;
 mod sessionsave;
 mod settingspane;
+mod shapecues;
 mod shellprobe;
 mod smoothlvl;
 mod spark;
