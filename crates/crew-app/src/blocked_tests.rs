@@ -10,6 +10,7 @@ fn pane_with(content: PaneContent, born_ms: u64) -> Pane {
     let (x, y, w, h) = (0.0, 0.0, 0.0, 0.0);
     let rect = crate::layout::Rect { x, y, w, h };
     Pane {
+        glide: crate::glide::Glide::default(),
         content,
         grid: crew_term::GridSize { cols: 80, rows: 24 },
         rect,
@@ -328,6 +329,7 @@ fn live_pty_claude_style_dialog_autofocuses() {
     let mut app = CrewApp::default();
     app.panes.push(far(1));
     app.panes.push(Pane {
+        glide: crate::glide::Glide::default(),
         content: PaneContent::Terminal(Box::new(TermPane {
             pty,
             input,

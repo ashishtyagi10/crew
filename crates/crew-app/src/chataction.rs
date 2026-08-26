@@ -80,6 +80,7 @@ mod tests {
             crew_plugin::Plugin::spawn("sh", &["-c".to_string(), "cat >/dev/null".to_string()])
                 .unwrap();
         app.panes.push(crate::pane::Pane {
+            glide: crate::glide::Glide::default(),
             content: crate::pane::PaneContent::Chat(crate::chat::ChatPane::new(
                 plugin,
                 "crew".into(),

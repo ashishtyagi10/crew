@@ -67,6 +67,7 @@ fn live_terminal_pane_answers_through_the_full_pipeline() {
     let input = pty.writer();
     let mut app = CrewApp::default();
     app.panes.push(Pane {
+        glide: crate::glide::Glide::default(),
         content: PaneContent::Terminal(Box::new(TermPane {
             pty,
             input,

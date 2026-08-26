@@ -136,6 +136,7 @@ mod tests {
         let input = pty.writer();
         let unrelated_born = 424_242;
         app.panes.push(Pane {
+            glide: crate::glide::Glide::default(),
             content: PaneContent::Terminal(Box::new(TermPane {
                 pty,
                 input,

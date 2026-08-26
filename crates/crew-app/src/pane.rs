@@ -50,6 +50,13 @@ pub struct Pane {
     pub content: PaneContent,
     pub grid: GridSize,
     pub rect: Rect,
+    /// The springs behind `rect` during a grid reflow (see [`crate::glide`]).
+    ///
+    /// `rect` stays the rect the pane was DRAWN at, because that is what
+    /// hit-testing, relayout and every other reader wants; this is the
+    /// velocity that got it there, which is what lets a second grid change
+    /// mid-reflow continue the motion instead of restarting it.
+    pub glide: crate::glide::Glide,
     /// Optional label for routing host actions to this pane.
     pub label: Option<String>,
     /// User-set pane name (via `/name`), shown in the title bar when present.
@@ -179,6 +186,7 @@ pub fn spawn_pane(
         })?;
     let input = pty.writer();
     Ok(Pane {
+        glide: crate::glide::Glide::default(),
         content: PaneContent::Terminal(Box::new(TermPane {
             pty,
             input,

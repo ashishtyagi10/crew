@@ -46,6 +46,7 @@ fn terminal_title_appends_the_foreground_command() {
 #[test]
 fn title_text_prefers_user_name() {
     let mut p = Pane {
+        glide: crate::glide::Glide::default(),
         content: PaneContent::Settings(SettingsPane::new(CrewConfig::default(), vec![])),
         grid: GridSize { cols: 80, rows: 24 },
         rect: Rect {

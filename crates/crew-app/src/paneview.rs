@@ -267,6 +267,7 @@ mod tests {
 
     fn test_pane() -> Pane {
         Pane {
+            glide: crate::glide::Glide::default(),
             content: PaneContent::Far(FarPane::new(std::env::temp_dir())),
             grid: GridSize { cols: 80, rows: 24 },
             rect: Rect {
@@ -289,6 +290,7 @@ mod tests {
     #[test]
     fn zoomed_scenes_carry_the_minimize_button() {
         let pane = Pane {
+            glide: crate::glide::Glide::default(),
             content: PaneContent::Far(FarPane::new(std::env::temp_dir())),
             grid: GridSize { cols: 80, rows: 24 },
             rect: Rect {

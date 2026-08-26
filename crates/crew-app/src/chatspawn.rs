@@ -117,6 +117,7 @@ impl CrewApp {
                 }
                 let chat = ChatPane::new(plugin, String::new());
                 self.panes.push(Pane {
+                    glide: crate::glide::Glide::default(),
                     content: PaneContent::Chat(chat),
                     grid,
                     rect: PLACEHOLDER_RECT,
@@ -185,6 +186,7 @@ mod tests {
     /// single-instance guardrail without a real broker subprocess.
     fn labeled_pane(label: Option<&str>) -> Pane {
         Pane {
+            glide: crate::glide::Glide::default(),
             content: PaneContent::Far(FarPane::new(std::env::temp_dir())),
             grid: GridSize { cols: 80, rows: 24 },
             rect: Rect {

@@ -401,6 +401,7 @@ fn only_a_working_pane_carries_a_scan() {
     use crate::pane::{Pane, PaneContent};
     crate::motion::set_level(crate::motion::MotionLevel::Full);
     let idle = Pane {
+        glide: crate::glide::Glide::default(),
         content: PaneContent::Far(crate::farpane::FarPane::new(std::env::temp_dir())),
         grid: crew_term::GridSize { cols: 40, rows: 12 },
         rect: crate::layout::Rect {

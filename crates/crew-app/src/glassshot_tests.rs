@@ -33,6 +33,7 @@ fn panes(cell_w: f32, cell_h: f32) -> Vec<PaneScene> {
     let pane_w = 320.0;
     let pane_h = 200.0;
     let pane_at = |x: f32| crate::pane::Pane {
+        glide: crate::glide::Glide::default(),
         content: crate::pane::PaneContent::Far(crate::farpane::FarPane::new(std::env::temp_dir())),
         grid: crew_term::GridSize {
             cols: ((pane_w - 2.0 * cell_w) / cell_w) as u16,

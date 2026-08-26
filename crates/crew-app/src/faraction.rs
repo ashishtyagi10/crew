@@ -42,6 +42,7 @@ mod tests {
     fn far_pane_app() -> CrewApp {
         let mut app = CrewApp::default();
         app.panes.push(Pane {
+            glide: crate::glide::Glide::default(),
             content: PaneContent::Far(FarPane::new(std::env::temp_dir())),
             grid: crew_term::GridSize { cols: 80, rows: 24 },
             rect: crate::layout::Rect {

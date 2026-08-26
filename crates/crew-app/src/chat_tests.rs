@@ -933,6 +933,7 @@ fn show_source_false_chat_title_has_no_suffix() {
 
     // Create a Pane wrapper to use title_text
     let pane = crate::pane::Pane {
+        glide: crate::glide::Glide::default(),
         content: crate::pane::PaneContent::Chat(p),
         grid: crew_term::GridSize { cols: 80, rows: 24 },
         rect: crate::layout::Rect {
@@ -988,6 +989,7 @@ fn show_source_true_chat_title_has_source_suffix() {
 
     // Create a Pane wrapper to use title_text
     let pane = crate::pane::Pane {
+        glide: crate::glide::Glide::default(),
         content: crate::pane::PaneContent::Chat(p),
         grid: crew_term::GridSize { cols: 80, rows: 24 },
         rect: crate::layout::Rect {

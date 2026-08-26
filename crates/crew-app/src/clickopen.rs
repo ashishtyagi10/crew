@@ -316,6 +316,7 @@ mod tests {
             ..Default::default()
         };
         app.panes.push(crate::pane::Pane {
+            glide: crate::glide::Glide::default(),
             content: PaneContent::Chat(chat),
             grid: crew_term::GridSize { cols, rows },
             rect: crate::layout::Rect {

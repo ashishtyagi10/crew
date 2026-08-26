@@ -31,6 +31,7 @@ impl CrewApp {
             .map(Self::current_grid)
             .unwrap_or(FALLBACK_SIZE);
         self.panes.push(Pane {
+            glide: crate::glide::Glide::default(),
             content: PaneContent::View(ViewPane::open(resolved)),
             grid,
             rect: PLACEHOLDER_RECT,

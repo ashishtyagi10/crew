@@ -20,6 +20,7 @@ fn bar(focused: bool) -> Bar<'static> {
 
 fn far_pane() -> Pane {
     Pane {
+        glide: crate::glide::Glide::default(),
         content: crate::pane::PaneContent::Far(crate::farpane::FarPane::new(std::env::temp_dir())),
         grid: crew_term::GridSize { cols: 38, rows: 10 },
         rect: crate::layout::Rect {
