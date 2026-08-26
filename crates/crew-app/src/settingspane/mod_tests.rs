@@ -290,6 +290,7 @@ fn edits(f: Field) -> &'static str {
         Field::PaperGrain => "paper_grain",
         Field::Glass => "glass",
         Field::Motion => "motion",
+        Field::Gradient => "gradient",
         Field::WindowOpacity => "window_opacity",
         Field::Maximized => "maximized",
         Field::Notify => "notify",

@@ -8,6 +8,42 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.33
+
+**The gradient's colour breathes now.** Every gradient surface in crew — the
+page's wash, the dot lattice woven over it, every card's stroke, the footer's
+meters — is drawn between the active theme's two poles, and those poles were
+constants: the whole canvas could only change colour by changing theme. Now
+they lean around the hue wheel over time, so the page warms and cools on its
+own.
+
+**Settings → APPEARANCE → Gradient colour** sets how far. `subtle` (the
+default) leans ±16° — one colour's neighbourhood, so a violet theme visits
+indigo and magenta and is never anything else. `lively` leans ±38°, far enough
+that the two ends of the breath read as different lights on the same room.
+`off` pins the poles to the theme's own colours, which is exactly the look
+crew had before this.
+
+It is a *breath*, not a rotation: the offset is a sine of the clock, so the
+colour leans one way, comes back through the palette's exact colour, and leans
+the other. A monotonic turn would eventually walk every theme through every
+hue and stop being that theme.
+
+Nothing about it can move a contrast guarantee. The turn happens in OKLCH and
+moves **hue only** — lightness and chroma come back out of the conversion and
+go straight back in, and a hue sRGB cannot show at that chroma loses chroma
+rather than clipping a channel. Measured across all eight palettes: a pole's
+contrast against its own page moves by under 8% at the widest rung, and no
+offset a hand-edited config can reach takes one below the WCAG 3.0 non-text
+floor (the measured minimum is 3.94).
+
+It also costs nothing. The breath rides the same accumulator the wash's orbit
+already runs on — four times slower, so a colour and the position it is drawn
+at never repeat together — which means it asks for no frame of its own, holds
+when the wash holds, stops dead at **Motion = off**, and is exactly zero on a
+process that has never drifted. Every headless shot test still sees the
+theme's own bytes.
+
 ## 0.18.32
 
 **The background gradient drifts on its own now.** The page's wash — two broad

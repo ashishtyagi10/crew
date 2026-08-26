@@ -56,8 +56,9 @@ pub(crate) fn ring(v: &mut [CellView], cols: u16, rows: u16, busy: bool, ignite_
         0.0
     };
     let lift = (1.0 - ignite_t) * IGNITE_LIFT;
+    let (pole_a, pole_b) = live_poles(&style);
     paint(v, cols, rows, base, |d| {
-        ring_color(style.pole_a, style.pole_b, d, phase, lift)
+        ring_color(pole_a, pole_b, d, phase, lift)
     });
 }
 
@@ -80,8 +81,9 @@ pub(crate) fn quiet(v: &mut [CellView], cols: u16, rows: u16, base: (u8, u8, u8)
     let Some(style) = crew_theme::theme().modern else {
         return;
     };
+    let (pole_a, pole_b) = live_poles(&style);
     paint(v, cols, rows, base, |d| {
-        let g = ring_color(style.pole_a, style.pole_b, d, 0.0, 0.0);
+        let g = ring_color(pole_a, pole_b, d, 0.0, 0.0);
         crate::anim::lerp_rgb(base, at_luma_of(g, base), QUIET_MIX)
     });
 }
@@ -96,11 +98,21 @@ pub(crate) fn quiet(v: &mut [CellView], cols: u16, rows: u16, base: (u8, u8, u8)
 /// which is exactly wrong for something read left to right.
 pub(crate) fn pole_mix(t: f32) -> Option<(u8, u8, u8)> {
     let style = crew_theme::theme().modern?;
-    Some(crate::anim::lerp_rgb(
-        style.pole_a,
-        style.pole_b,
-        t.clamp(0.0, 1.0),
-    ))
+    let (pole_a, pole_b) = live_poles(&style);
+    Some(crate::anim::lerp_rgb(pole_a, pole_b, t.clamp(0.0, 1.0)))
+}
+
+/// The two poles every gradient surface in crew is drawn between: the
+/// theme's own, wearing whatever hue offset the app published this frame
+/// (crew-theme's `poleshift`). One accessor, so the page's wash and the
+/// cards' strokes can never be a frame apart on the same colour — a canvas
+/// where the background and the frames disagreed about the gradient would
+/// read as a bug, not as depth.
+///
+/// At rest the offset is zero and this returns `style`'s own bytes, which is
+/// what keeps the quiet stroke's static-frame contract.
+fn live_poles(style: &crew_theme::ModernStyle) -> crew_theme::poleshift::Poles {
+    crew_theme::poleshift::poles().unwrap_or((style.pole_a, style.pole_b))
 }
 
 /// [`crate::boxdraw::titled_card`] with the quiet gradient already on its

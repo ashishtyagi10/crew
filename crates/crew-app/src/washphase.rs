@@ -41,6 +41,17 @@ const MAX_STEP_MS: u64 = 250;
 /// noticed; ambient motion is a texture and should not be.
 pub(crate) const AMBIENT_MULT: u64 = 15;
 
+/// How much slower the gradient's HUE breathes than the pools orbit.
+///
+/// The two clocks share one accumulator ([`WashPhase`]) because they share
+/// one set of fences and one supply of frames — the hue costs nothing that
+/// the orbit was not already paying for. They run at different rates because
+/// a colour that changed in lockstep with the position it is drawn at reads
+/// as one effect with a stutter; four to one, the pair never repeats inside a
+/// sitting. At the themes' 6 s `drift_ms` that is a 24-second breath while a
+/// pane works and a six-minute one while the room is quiet.
+pub(crate) const HUE_MULT: u64 = 4;
+
 /// Ms per revolution this frame, or `None` to hold where it is.
 ///
 /// `busy` wins over `ambient`: a working pane's wash keeps its own faster
@@ -57,10 +68,13 @@ pub(crate) fn pace(drift_ms: u64, busy: bool, ambient: bool) -> Option<u64> {
     }
 }
 
-/// The wash's orbital position, in turns.
+/// The wash's orbital position and the gradient's hue breath, both in turns.
 #[derive(Default)]
 pub(crate) struct WashPhase {
     phase: f32,
+    /// Where the hue breath is in its cycle, in turns — [`HUE_MULT`] times
+    /// slower than `phase` and read through [`Self::hue_deg`].
+    hue: f32,
     /// When the last DRIFTING frame was stamped. Cleared whenever the wash
     /// holds, so the first frame after a hold contributes nothing and the
     /// still time in between is never paid back.
@@ -83,7 +97,21 @@ impl WashPhase {
             .map_or(0, |last| now_ms.saturating_sub(last).min(MAX_STEP_MS));
         self.last_ms = Some(now_ms);
         self.phase = (self.phase + dt as f32 / pace as f32).fract();
+        let hue_pace = pace.saturating_mul(HUE_MULT);
+        self.hue = (self.hue + dt as f32 / hue_pace as f32).fract();
         self.phase
+    }
+
+    /// This frame's hue offset in degrees: `span` either side of the theme's
+    /// own colour, as a SINE of the hue clock rather than a rotation.
+    ///
+    /// A sine is what makes it a breath — the poles lean, pass back through
+    /// the palette's exact colour, and lean the other way — where a monotonic
+    /// rotation would eventually walk every theme through every hue and stop
+    /// being that theme. Exactly `0.0` at rest (`sin 0`), so a process that
+    /// has never drifted wears the theme's own bytes.
+    pub(crate) fn hue_deg(&self, span: f32) -> f32 {
+        span * (std::f32::consts::TAU * self.hue).sin()
     }
 }
 

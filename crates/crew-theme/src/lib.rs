@@ -96,6 +96,7 @@ mod glass;
 pub mod highlight;
 mod modernstyle;
 pub mod oklch;
+pub mod poleshift;
 mod presets_crt;
 mod presets_crt_cool;
 mod presets_modern;
@@ -703,6 +704,17 @@ pub fn cycle_next(now_ms: u64) -> &'static str {
     };
     apply_selection(Selection::Mode(next), now_ms);
     next.as_str()
+}
+
+/// The lock every test that writes a process-wide theme global takes —
+/// the selection, the OS appearance, the pole shift. One lock for the whole
+/// crate rather than one per test file, because the globals are shared: two
+/// files with two locks would serialise against themselves and race each
+/// other, which is worse than no lock at all for being harder to see.
+#[cfg(test)]
+pub(crate) fn test_guard() -> std::sync::MutexGuard<'static, ()> {
+    static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    LOCK.lock().unwrap_or_else(|e| e.into_inner())
 }
 
 #[cfg(test)]
