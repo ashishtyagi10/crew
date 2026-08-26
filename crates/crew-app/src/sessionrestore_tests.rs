@@ -66,6 +66,7 @@ fn session_panes_snapshots_a_crew_chat_pane_by_its_routing_label() {
     let plugin = Plugin::spawn("sh", &["-c".to_string(), "cat >/dev/null".to_string()]).unwrap();
     let mut app = CrewApp::default();
     app.panes.push(Pane {
+        glide: crate::glide::Glide::default(),
         content: PaneContent::Chat(ChatPane::new(plugin, "crew".into())),
         grid: crew_term::GridSize { cols: 80, rows: 24 },
         rect: crate::layout::Rect {

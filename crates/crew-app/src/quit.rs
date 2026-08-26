@@ -82,6 +82,7 @@ mod tests {
         use crew_term::GridSize;
         let mut app = CrewApp::default();
         app.panes.push(Pane {
+            glide: crate::glide::Glide::default(),
             content: PaneContent::Far(crate::farpane::FarPane::new(std::env::temp_dir())),
             grid: GridSize { cols: 80, rows: 24 },
             rect: crate::layout::Rect {

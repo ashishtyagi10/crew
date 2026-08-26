@@ -168,6 +168,7 @@ fn editor_pane(born_ms: u64, cmd: Option<&str>) -> Pane {
     let pty = PtyTerm::spawn(FALLBACK_SIZE, "sh").expect("spawn a shell for the fake editor pane");
     let input = pty.writer();
     Pane {
+        glide: crate::glide::Glide::default(),
         content: PaneContent::Terminal(Box::new(TermPane {
             pty,
             input,

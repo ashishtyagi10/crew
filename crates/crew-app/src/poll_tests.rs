@@ -5,6 +5,7 @@ use crate::viewpane::ViewPane;
 
 fn pane_with(content: PaneContent) -> Pane {
     Pane {
+        glide: crate::glide::Glide::default(),
         content,
         grid: crew_term::GridSize { cols: 40, rows: 12 },
         rect: Rect {

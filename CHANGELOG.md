@@ -8,6 +8,35 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.43
+
+**The grid moves on springs.** Panes have glided to their tiles since the
+reflow animation landed, but the mechanism was exponential smoothing: given
+where a pane is and where it should be, cover some fraction of the difference,
+every frame. That is fine for anything that starts at rest and arrives once,
+and wrong for anything that can be redirected while it is still moving — which
+is the whole life of a pane grid. Close a pane while the last close is still
+reflowing and a smoothed rect *kinks*: it forgets it was travelling and starts
+a fresh decay from wherever it happened to be.
+
+Each pane's four edges are now critically damped springs, integrating from
+position **and velocity**. Retarget one mid-flight and the motion curves
+through, because it remembers it was moving — closing two panes in quick
+succession now reads as one continuous rearrangement instead of two unrelated
+animations. It is not a nicer curve; it is the only curve that survives
+interruption, which is why every modern motion system settled on the same
+primitive.
+
+Critically damped, deliberately: no bounce. A pane rebounding off its own tile
+would be reading as playful about a layout change you asked for. What the
+spring buys here is the interruption behaviour and the weight of the arrival.
+
+Tuned to land in about the quarter-second the smoothing took, so the reflow
+keeps its pace and only its character changes. Motion off is still a genuine
+off, an idle crew still repaints nothing, and long frames after an idle
+stretch are integrated in substeps rather than trusted whole — a big `dt`
+through a naive integrator sends a pane to infinity.
+
 ## 0.18.42
 
 **Focus mode: crew stops interrupting.** `/focus`, or `Ctrl+Shift+F`.

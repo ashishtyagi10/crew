@@ -75,6 +75,7 @@ mod tests {
     /// A cheap label-only pane (Settings content) — `resolve` only reads label.
     fn labeled(label: Option<&str>) -> Pane {
         Pane {
+            glide: crate::glide::Glide::default(),
             content: PaneContent::Settings(SettingsPane::new(CrewConfig::default(), vec![])),
             grid: GridSize { cols: 80, rows: 24 },
             rect: Rect {

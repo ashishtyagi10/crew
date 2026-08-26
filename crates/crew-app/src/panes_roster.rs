@@ -54,6 +54,7 @@ mod tests {
 
     fn pane(content: PaneContent, label: Option<&str>) -> Pane {
         Pane {
+            glide: crate::glide::Glide::default(),
             content,
             grid: GridSize { cols: 80, rows: 24 },
             rect: Rect {

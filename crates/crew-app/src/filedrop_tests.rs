@@ -54,6 +54,7 @@ fn chat_app(dir: Option<&str>) -> CrewApp {
         ..Default::default()
     };
     app.panes.push(Pane {
+        glide: crate::glide::Glide::default(),
         content: PaneContent::Chat(crate::chat::tests::pane()),
         grid: GridSize { cols: 80, rows: 24 },
         rect: Rect {

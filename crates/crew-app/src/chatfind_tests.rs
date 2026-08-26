@@ -338,6 +338,7 @@ fn cmd_f_opens_find_on_the_focused_chat_pane_and_enter_jumps() {
         crew_plugin::Plugin::spawn("sh", &["-c".to_string(), "cat >/dev/null".to_string()])
             .unwrap();
     app.panes.push(crate::pane::Pane {
+        glide: crate::glide::Glide::default(),
         content: crate::pane::PaneContent::Chat(crate::chat::ChatPane::new(plugin, "crew".into())),
         grid: crew_term::GridSize { cols: 80, rows: 24 },
         rect: crate::layout::Rect {

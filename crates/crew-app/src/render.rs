@@ -77,8 +77,16 @@ impl CrewApp {
             // targets — clicks land where the panes are heading.
             let snap = matches!(crate::motion::level(), crate::motion::MotionLevel::Off);
             for &(idx, rect) in &placed.full {
-                let (drawn, settled) =
-                    crate::glide::step(self.panes[idx].rect, rect, glide_dt, snap);
+                let p = &mut self.panes[idx];
+                // Anything that moved the pane without the spring's knowledge
+                // (zoom's own lerp, a drag, a resize) left `rect` and the
+                // spring disagreeing; adopt the drawn rect before stepping, or
+                // the spring yanks the pane back toward where it last thought
+                // it was.
+                if p.glide.rect() != p.rect {
+                    p.glide.reseed(p.rect);
+                }
+                let (drawn, settled) = p.glide.step(rect, glide_dt, snap);
                 self.glide_active |= !settled;
                 relayout_one(&mut self.panes[idx], drawn, cw, ch);
             }

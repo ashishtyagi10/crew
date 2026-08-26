@@ -15,6 +15,7 @@ fn tests_far_pane(name: &str) -> crate::pane::Pane {
     use crate::pane::{Pane, PaneContent};
     use crew_term::GridSize;
     Pane {
+        glide: crate::glide::Glide::default(),
         content: PaneContent::Far(crate::farpane::FarPane::new(std::env::temp_dir())),
         grid: GridSize { cols: 80, rows: 24 },
         rect: crate::layout::Rect {
@@ -42,6 +43,7 @@ fn tests_chat_pane() -> crate::pane::Pane {
     // An idle child stands in for the broker; only pane state is under test.
     let plugin = Plugin::spawn("sh", &["-c".to_string(), "cat >/dev/null".to_string()]).unwrap();
     Pane {
+        glide: crate::glide::Glide::default(),
         content: PaneContent::Chat(ChatPane::new(plugin, "crew".into())),
         grid: GridSize { cols: 80, rows: 24 },
         rect: crate::layout::Rect {
@@ -424,6 +426,7 @@ fn typing_clears_a_terminal_selection() {
         PtyTerm::spawn_in(GridSize { cols: 40, rows: 10 }, "/bin/sh", &[], Some(&tmp)).unwrap();
     let input = pty.writer();
     app.panes.push(Pane {
+        glide: crate::glide::Glide::default(),
         content: PaneContent::Terminal(Box::new(TermPane {
             pty,
             input,

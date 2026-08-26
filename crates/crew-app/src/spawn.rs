@@ -129,6 +129,7 @@ impl CrewApp {
                 // rect/grid are placeholders; build_frame's relayout sizes the pane
                 // to the content area (right of the sidebar) on the next frame.
                 let pane = Pane {
+                    glide: crate::glide::Glide::default(),
                     content: PaneContent::Terminal(Box::new(TermPane {
                         pty,
                         input,
@@ -189,6 +190,7 @@ impl CrewApp {
             .map(|r| r.monospace_families())
             .unwrap_or_default();
         self.panes.push(Pane {
+            glide: crate::glide::Glide::default(),
             content: PaneContent::Settings(SettingsPane::new(self.config.clone(), families)),
             grid,
             rect: PLACEHOLDER_RECT,
@@ -212,6 +214,7 @@ impl CrewApp {
             .map(Self::current_grid)
             .unwrap_or(FALLBACK_SIZE);
         self.panes.push(Pane {
+            glide: crate::glide::Glide::default(),
             content: PaneContent::Todo(crate::todopane::TodoPane::new()),
             grid,
             rect: PLACEHOLDER_RECT,
@@ -250,6 +253,7 @@ impl CrewApp {
             .or_else(|| std::env::current_dir().ok())
             .unwrap_or_default();
         self.panes.push(Pane {
+            glide: crate::glide::Glide::default(),
             content: PaneContent::Far(FarPane::new(cwd)),
             grid,
             rect: PLACEHOLDER_RECT,
@@ -315,6 +319,7 @@ impl CrewApp {
             .map(Self::current_grid)
             .unwrap_or(FALLBACK_SIZE);
         self.panes.push(Pane {
+            glide: crate::glide::Glide::default(),
             content: PaneContent::Swarm(swarm),
             grid,
             rect: PLACEHOLDER_RECT,

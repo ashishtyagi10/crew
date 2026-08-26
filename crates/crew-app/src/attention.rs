@@ -66,6 +66,7 @@ mod tests {
 
     fn pane() -> Pane {
         Pane {
+            glide: crate::glide::Glide::default(),
             content: PaneContent::Far(FarPane::new(std::env::temp_dir())),
             grid: GridSize { cols: 80, rows: 24 },
             rect: Rect {

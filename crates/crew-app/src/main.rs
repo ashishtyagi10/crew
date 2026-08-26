@@ -203,6 +203,7 @@ mod smoothlvl;
 mod spark;
 mod spawn;
 mod spotlight;
+mod spring;
 pub mod stats;
 mod statspane;
 mod status;

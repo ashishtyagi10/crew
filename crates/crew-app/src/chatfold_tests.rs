@@ -243,6 +243,7 @@ fn app_with_folded_card() -> (crate::app::CrewApp, u16) {
     let suffix_row = row_with(&chat, cols, rows, "\u{2026} +4");
     let mut app = crate::app::CrewApp::default();
     app.panes.push(crate::pane::Pane {
+        glide: crate::glide::Glide::default(),
         content: crate::pane::PaneContent::Chat(chat),
         grid: crew_term::GridSize { cols, rows },
         rect: crate::layout::Rect {
