@@ -45,6 +45,7 @@ impl CrewApp {
             "crt" => self.crt_command(""),
             "weight" => self.weight_command(""),
             "smooth" => self.smooth_command(""),
+            "motion" => self.motion_command(""),
             "gradient" => self.gradient_command(""),
             "notify" => self.notify_command(""),
             "broadcast" => self.toggle_broadcast(),
@@ -85,6 +86,8 @@ impl CrewApp {
                     self.weight_command(w.trim());
                 } else if let Some(s) = other.strip_prefix("smooth ") {
                     self.smooth_command(s.trim());
+                } else if let Some(m) = other.strip_prefix("motion ") {
+                    self.motion_command(m.trim());
                 } else if let Some(g) = other.strip_prefix("gradient ") {
                     self.gradient_command(g.trim());
                 } else if let Some(m) = other.strip_prefix("model ") {
@@ -347,6 +350,38 @@ impl CrewApp {
             r.set_text_smoothing(Some(strength));
         }
         self.set_status(format!("font smoothing {strength}"));
+        self.redraw();
+    }
+
+    /// `/motion [auto|off|subtle|full]` — how much crew moves.
+    ///
+    /// `auto` defers to the OS accessibility switch, which is where a user who
+    /// wants less motion has almost certainly already said so. A bare
+    /// `/motion` reports the preference AND what it currently resolves to,
+    /// because "auto" alone does not answer the question the user asked.
+    pub(crate) fn motion_command(&mut self, arg: &str) {
+        use crate::motion::MotionPref;
+        if arg.is_empty() {
+            let reduce = crate::motion::os_reduce();
+            let os = if reduce {
+                "; the OS asks for reduced motion"
+            } else {
+                ""
+            };
+            self.set_status(format!(
+                "motion {}{os} (/motion [auto|off|subtle|full])",
+                self.config.motion_pref().label(reduce)
+            ));
+            return;
+        }
+        let Some(pref) = MotionPref::parse(arg) else {
+            self.set_status("usage: /motion [auto|off|subtle|full]");
+            return;
+        };
+        self.config.motion = pref.as_str().to_string();
+        self.config.save();
+        crate::motion::set_level(self.config.motion_level());
+        self.set_status(format!("motion {}", pref.label(crate::motion::os_reduce())));
         self.redraw();
     }
 }
@@ -632,5 +667,36 @@ mod tests {
         assert_eq!(app.panes.len(), before, "no pane from a bad arg");
         let s = app.status.clone().expect("a status was set").0;
         assert!(s.contains("usage: /todo"), "{s}");
+    }
+
+    /// `/motion` persists a preference, not a resolved strength — storing
+    /// `off` for an auto user would freeze them at whatever the OS happened to
+    /// say the day they ran the command.
+    #[test]
+    fn motion_command_stores_the_preference_and_publishes_the_level() {
+        use crate::motion::{MotionLevel, MotionPref};
+        let _g = crate::app::motion_test_guard();
+        let mut app = CrewApp::default();
+        assert_eq!(app.config.motion_pref(), MotionPref::Auto, "fresh default");
+
+        app.motion_command("subtle");
+        assert_eq!(app.config.motion, "subtle");
+        assert_eq!(crate::motion::level(), MotionLevel::Subtle);
+
+        app.motion_command("auto");
+        assert_eq!(app.config.motion, "auto", "auto is stored as auto");
+        crate::motion::set_os_reduce(true);
+        assert_eq!(
+            app.config.motion_level(),
+            MotionLevel::Off,
+            "auto must re-resolve when the OS switch flips"
+        );
+        crate::motion::set_os_reduce(false);
+        assert_eq!(app.config.motion_level(), MotionLevel::Full);
+
+        // A typo must change nothing.
+        app.motion_command("swooshy");
+        assert_eq!(app.config.motion, "auto");
+        crate::motion::set_level(MotionLevel::Full);
     }
 }

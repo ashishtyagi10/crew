@@ -29,6 +29,9 @@ const ALLOWED: &[(&str, &str)] = &[
     // cross-checks the appearance preference against the `defaults` CLI.
     // Never compiled on Windows, and never in a shipped binary.
     ("osappearance.rs", "Command::new(\"defaults\")"),
+    // Same shape, one preference over: the macOS-only TEST probe that
+    // cross-checks Reduce Motion against `defaults`. Test-only, macOS-only.
+    ("reducemotion.rs", "Command::new(\"defaults\")"),
 ];
 
 /// Walk `dir` for `.rs` files, skipping vendored code and build output.

@@ -39,6 +39,21 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
                 "700 — thickest for body text".to_string(),
             ),
         ]),
+        "/motion" => Some(vec![
+            (
+                "auto".to_string(),
+                "the default \u{2014} follow the OS Reduce Motion switch".to_string(),
+            ),
+            (
+                "off".to_string(),
+                "no travel at all; every state draws settled".to_string(),
+            ),
+            (
+                "subtle".to_string(),
+                "the same choreography at 60% duration".to_string(),
+            ),
+            ("full".to_string(), "crew moves".to_string()),
+        ]),
         // The ladder only. A custom pair (`/gradient #a #b`) is freeform by
         // nature — there is no closed set of colours — and typing one still
         // submits, the way any unlisted value does.
@@ -113,7 +128,7 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
 pub(crate) fn expands(cmd: &str) -> bool {
     matches!(
         cmd,
-        "/theme" | "/crt" | "/weight" | "/smooth" | "/gradient" | "/model"
+        "/theme" | "/crt" | "/weight" | "/smooth" | "/gradient" | "/motion" | "/model"
     )
 }
 
