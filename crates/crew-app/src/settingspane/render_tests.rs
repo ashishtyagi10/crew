@@ -73,7 +73,10 @@ fn short_pane_scrolls_to_keep_focus_visible() {
         .unwrap();
     let cells = p.cells(80, 12);
     let all = dump(&cells, 12);
-    assert!(all.contains("Patterns"), "focused field visible:\n{all}");
+    assert!(
+        all.contains("Watch patterns"),
+        "focused field visible:\n{all}"
+    );
     assert!(all.contains('\u{2191}'), "up hint expected:\n{all}");
 }
 
