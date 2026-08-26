@@ -151,3 +151,51 @@ fn applying_the_config_pushes_both_halves() {
     assert_eq!(poleshift::custom(), None);
     restore(l0, c0);
 }
+
+/// A name off the shelf is a gradient: `/gradient ember` reaches the canvas,
+/// and is stored under the NAME so the preset can be re-tuned later without
+/// everyone who chose it keeping the old colours.
+#[test]
+fn a_named_gradient_is_stored_by_name() {
+    let _g = crate::app::theme_test_guard();
+    let (l0, c0) = (crate::gradientlvl::level(), poleshift::custom());
+    let mut app = crate::app::CrewApp::default();
+    app.gradient_command("ember");
+    assert_eq!(app.config.gradient_poles.as_deref(), Some("ember"));
+    assert_eq!(
+        poleshift::custom(),
+        crew_theme::gradients::by_name("ember"),
+        "the named pair must reach the canvas"
+    );
+    // …and it reads back the same way a config from disk would.
+    app.apply_gradient();
+    assert_eq!(poleshift::custom(), crew_theme::gradients::by_name("ember"));
+    restore(l0, c0);
+}
+
+/// Every name the value picker offers actually runs — a row that did nothing
+/// would look exactly like a row whose arm was deleted.
+#[test]
+fn every_offered_name_runs() {
+    let _g = crate::app::theme_test_guard();
+    let (l0, c0) = (crate::gradientlvl::level(), poleshift::custom());
+    let mut app = crate::app::CrewApp::default();
+    for g in crew_theme::gradients::GRADIENTS {
+        app.gradient_command(g.name);
+        assert_eq!(poleshift::custom(), Some(g.poles), "/gradient {}", g.name);
+    }
+    restore(l0, c0);
+}
+
+/// A name and a hex pair cannot collide — no name is six hex digits — so the
+/// parser can take names first without shadowing a colour anyone could type.
+#[test]
+fn no_name_could_be_mistaken_for_a_colour() {
+    for g in crew_theme::gradients::GRADIENTS {
+        assert!(
+            crate::palette::parse_hex(g.name).is_none(),
+            "{} parses as a colour",
+            g.name
+        );
+    }
+}

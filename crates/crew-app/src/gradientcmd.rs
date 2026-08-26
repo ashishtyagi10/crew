@@ -9,6 +9,7 @@
 //! ```text
 //! /gradient                     what it is now, and how to change it
 //! /gradient off|subtle|lively   how far the colour breathes
+//! /gradient ember               one of the named pairs (crew-theme's `gradients`)
 //! /gradient #7aa2f7 #bb9af7     a gradient of your own
 //! /gradient reset               back to the theme's own poles
 //! ```
@@ -27,10 +28,17 @@ use crate::app::CrewApp;
 use crate::gradientlvl::GradientLevel;
 use crate::palette::parse_hex;
 
-/// Two `#rrggbb` colours separated by whitespace or a comma. `None` unless
-/// there are exactly two and both parse — a half-understood gradient would
-/// leave the canvas in a state nobody asked for.
+/// A named gradient off crew-theme's shelf, or two `#rrggbb` colours
+/// separated by whitespace or a comma.
+///
+/// Names first: they are the discoverable form (the value picker lists them)
+/// and no name is six hex digits, so the two forms cannot collide. `None`
+/// unless the whole argument is understood — a half-read gradient would leave
+/// the canvas in a state nobody asked for.
 pub(crate) fn parse_poles(arg: &str) -> Option<Poles> {
+    if let Some(p) = crew_theme::gradients::by_name(arg) {
+        return Some(p);
+    }
     let mut parts = arg
         .split(|c: char| c.is_whitespace() || c == ',')
         .filter(|s| !s.is_empty());
@@ -41,8 +49,28 @@ pub(crate) fn parse_poles(arg: &str) -> Option<Poles> {
 
 /// The stored form of a pair: what `/gradient` writes to the config and what
 /// [`parse_poles`] reads back.
-pub(crate) fn format_poles(((ar, ag, ab), (br, bg, bb)): Poles) -> String {
+///
+/// A pair off the shelf is stored under its NAME, not its hex — so a config
+/// says `gradient_poles = "ember"`, which is both readable and re-tunable:
+/// improving a preset's colours then reaches everyone who chose it by name.
+pub(crate) fn format_poles(poles: Poles) -> String {
+    if let Some(name) = crew_theme::gradients::name_of(poles) {
+        return name.to_string();
+    }
+    let ((ar, ag, ab), (br, bg, bb)) = poles;
     format!("#{ar:02x}{ag:02x}{ab:02x} #{br:02x}{bg:02x}{bb:02x}")
+}
+
+/// What to call a pair on screen: its name if it has one, otherwise the two
+/// colours it will actually be drawn in.
+fn describe(poles: Poles) -> String {
+    crew_theme::gradients::name_of(poles).map_or_else(
+        || {
+            let ((ar, ag, ab), (br, bg, bb)) = poles;
+            format!("#{ar:02x}{ag:02x}{ab:02x} #{br:02x}{bg:02x}{bb:02x}")
+        },
+        str::to_string,
+    )
 }
 
 impl CrewApp {
@@ -70,9 +98,12 @@ impl CrewApp {
         let arg = arg.trim();
         if arg.is_empty() {
             let level = self.config.gradient_level();
-            let poles = match crew_theme::poleshift::poles() {
-                Some(p) => format_poles(p),
-                None => "none".to_string(),
+            let poles = match crew_theme::poleshift::custom() {
+                // Name what was CHOSEN, not what is drawn: the drawn pair has
+                // been re-lit (and may be mid-breath), so its hex would never
+                // match what the user typed.
+                Some(p) => describe(p),
+                None => crew_theme::poleshift::poles().map_or_else(|| "none".to_string(), describe),
             };
             let own = if self.config.gradient_poles.is_some() {
                 "yours"
@@ -101,7 +132,14 @@ impl CrewApp {
             return;
         }
         let Some(poles) = parse_poles(arg) else {
-            self.set_status("usage: /gradient [off|subtle|lively|<#rrggbb> <#rrggbb>|reset]");
+            self.set_status(format!(
+                "usage: /gradient [off|subtle|lively|{}|<#rrggbb> <#rrggbb>|reset]",
+                crew_theme::gradients::GRADIENTS
+                    .iter()
+                    .map(|g| g.name)
+                    .collect::<Vec<_>>()
+                    .join("|")
+            ));
             return;
         };
         self.config.gradient_poles = Some(format_poles(poles));
