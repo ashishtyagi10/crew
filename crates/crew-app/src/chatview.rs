@@ -25,6 +25,50 @@ impl ChatPane {
 
     /// Back-compat name used by callers that only have `rows`; estimates at a
     /// wide pane. `cells` recomputes with real `cols`.
+    /// `(lines back from the bottom, total lines)` for the card's border
+    /// thumb — the same shape a terminal reports, so one gutter serves every
+    /// pane kind. See [`crate::viewpane`], which converts the same way.
+    pub(crate) fn position(&self, cols: u16, rows: u16) -> (usize, usize) {
+        let (total, msg_rows) = self.transcript_extent(cols, rows);
+        (self.scroll.min(total), total.max(msg_rows))
+    }
+
+    /// The rendered row each of your OWN messages starts on — where the turns
+    /// are. A long transcript is walked by turn, and the border is where crew
+    /// says so for every other pane kind.
+    pub(crate) fn turn_rows(&self, cols: u16) -> Vec<usize> {
+        let view = crate::chatmsgs::View {
+            source: self.show_source,
+            compact: self.compact_view,
+            gap_rows: crate::density::level().card_gap_rows(),
+            streaming_from: self.messages.len(),
+        };
+        let visible = self.visible_messages();
+        let (_, spans) = crate::chatmsgs::card_lines_spanned(&visible, cols as usize, 0, view);
+        visible
+            .iter()
+            .zip(spans)
+            // Your own messages are the turns; an agent's reply belongs to
+            // the turn above it.
+            .filter(|(m, _)| m.sender == "user")
+            .map(|(_, span)| span.start)
+            .collect()
+    }
+
+    /// `(total rendered lines, rows the message area shows)`.
+    fn transcript_extent(&self, cols: u16, rows: u16) -> (usize, usize) {
+        let view = crate::chatmsgs::View {
+            source: self.show_source,
+            compact: self.compact_view,
+            gap_rows: crate::density::level().card_gap_rows(),
+            streaming_from: self.messages.len(),
+        };
+        let visible = self.visible_messages();
+        let total = crate::chatmsgs::card_line_count(&visible, cols, view);
+        let msg_rows = usize::from(crate::chatplace::msg_rows_budget(self, cols, rows));
+        (total, msg_rows)
+    }
+
     pub(crate) fn top_rows(&self, rows: u16) -> u16 {
         self.status_rows(u16::MAX, rows)
     }
@@ -135,15 +179,9 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
             pane.scroll,
             view,
         ));
-        // Scroll affordances sit over the message area's last column/row.
-        let total = crate::chatmsgs::card_line_count(&visible, cols, view);
-        cells.extend(crate::chatscroll::scrollbar_cells(
-            total,
-            msg_rows as usize,
-            pane.scroll,
-            cols.saturating_sub(1),
-            top,
-        ));
+        // The position rides the CARD's border now, like every other pane
+        // kind (`panescroll::thumb` from `Bar`), so the transcript keeps the
+        // column its own scrollbar used to take.
         if pane.scroll > 0 {
             let last = top + msg_rows.saturating_sub(1);
             cells.extend(crate::chatscroll::new_pill_cells(pane.unread, cols, last));

@@ -163,10 +163,14 @@ fn push_pane_scenes(
         // A document is longer than its pane far more often than a shell is,
         // and it had no position indicator at all.
         PaneContent::View(v) => v.position(p.grid.cols, p.grid.rows),
+        // A transcript is a document too, and it is the pane most likely to
+        // be longer than its window.
+        PaneContent::Chat(c) => c.position(p.grid.cols, p.grid.rows),
         _ => (0, 0),
     };
     let ticks = match &p.content {
         PaneContent::View(v) => v.mark_rows(p.grid.cols),
+        PaneContent::Chat(c) => c.turn_rows(p.grid.cols),
         _ => Vec::new(),
     };
     let hits = match &p.content {
@@ -315,7 +319,7 @@ fn push_pane_scenes(
                 cmd_rows: &cmd_rows,
                 err_rows: &err_rows,
                 unread,
-                doc: matches!(p.content, PaneContent::View(_)),
+                doc: matches!(p.content, PaneContent::View(_) | PaneContent::Chat(_)),
             },
         ),
         x: r.x,
