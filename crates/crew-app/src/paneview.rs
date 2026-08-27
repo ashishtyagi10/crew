@@ -155,7 +155,14 @@ fn push_pane_scenes(
     let is_term = matches!(&p.content, PaneContent::Terminal(_));
     let (scroll, total) = match &p.content {
         PaneContent::Terminal(t) => (t.pty.display_offset(), t.pty.scrollable_lines()),
+        // A document is longer than its pane far more often than a shell is,
+        // and it had no position indicator at all.
+        PaneContent::View(v) => v.position(p.grid.cols, p.grid.rows),
         _ => (0, 0),
+    };
+    let ticks = match &p.content {
+        PaneContent::View(v) => v.mark_rows(p.grid.cols),
+        _ => Vec::new(),
     };
     // Tint http(s) URLs blue so they read as clickable (Cmd+click opens).
     if is_term {
@@ -222,6 +229,8 @@ fn push_pane_scenes(
                 focus_t,
                 assemble_t,
                 git: git.info(p.dir.as_deref()),
+                ticks: &ticks,
+                doc: matches!(p.content, PaneContent::View(_)),
             },
         ),
         x: r.x,

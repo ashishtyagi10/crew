@@ -44,6 +44,14 @@ pub(crate) struct Bar<'a> {
     /// answer has arrived ([`crate::gitfleet`]). Drawn on the top border
     /// after the status glyphs, in whatever room is left before the legend.
     pub git: Option<&'a crate::git::GitInfo>,
+    /// Rendered rows worth marking on the gutter — a document's headings, a
+    /// review's files and hunks. Drawn under the thumb, so a landmark you are
+    /// currently sitting on is not hidden by it.
+    pub ticks: &'a [usize],
+    /// This pane is a document: its gutter is drawn whenever the content is
+    /// longer than the pane, not only once it has been scrolled. A shell's
+    /// gutter is a scrollback affordance; a document's is where you ARE.
+    pub doc: bool,
 }
 
 /// Whether `c` is part of a card's frame stroke (as opposed to its legend or a
@@ -261,7 +269,9 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
         crate::panescroll::position(b.total, usize::from(rows.saturating_sub(2)), b.scroll);
     rx = crate::panescroll::count(&mut v, rx, b.scroll, scroll_t);
     // …and the same fact as a shape, down the right border: where you are in
-    // the scrollback, not just how far from its bottom.
+    // the scrollback, not just how far from its bottom. Landmarks first, so
+    // the thumb draws over the one you are on.
+    crate::panescroll::ticks(&mut v, cols, rows, b);
     crate::panescroll::thumb(&mut v, cols, rows, b);
     // Focus brackets last, so they sit on the finished frame — and only on the
     // focused card, which is the one piece of state they exist to announce.

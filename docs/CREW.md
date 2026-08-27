@@ -611,11 +611,15 @@ longer aim at.
   anything else). ↑/↓ and PageUp/PageDown/Home/End scroll, `r` reloads from
   disk, `s` toggles raw text (markdown and CSV), `/` searches (`n`/`N` for
   next/previous hit), **`]`/`[` step the document's structure** — in a diff,
-  file to file and hunk to hunk, which is how a review is actually read — `e`
+  file to file and hunk to hunk; in markdown, heading to heading — `e`
   opens `$EDITOR`, `o` hands the file to the OS default app, **Cmd+click**
   opens a rendered markdown link, `Esc` closes. At either end `]`/`[` do
-  nothing rather than wrapping: a review has an end, and jumping back to the
-  top from it is how you lose your place.
+  nothing rather than wrapping: a document has an end, and jumping back to the
+  top from it is how you lose your place. The card's **right border carries the
+  position**: a proportional thumb (drawn from the top of the file, not only
+  once you have scrolled — a document's gutter answers *where am I*, where a
+  shell's only says how much is behind you) with the landmarks marked as dim
+  ticks beside it, so a long file shows its shape before you move.
   Chat panes render markdown too — see [Markdown](#markdown).
 - **`/notify [on|off|add <text>|clear]`** — drive the notification block from
   the bar: toggle the master switch, add a watched output pattern, or clear

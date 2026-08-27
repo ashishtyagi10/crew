@@ -159,6 +159,17 @@ pub(crate) fn for_state(state: &LoadState, raw: bool, cols: usize) -> (Vec<CardL
     }
 }
 
+/// Landmarks moved down past the banners drawn above the body.
+fn shifted(marks: Vec<Mark>, above: usize) -> Vec<Mark> {
+    marks
+        .into_iter()
+        .map(|m| Mark {
+            row: m.row + above,
+            ..m
+        })
+        .collect()
+}
+
 fn ready_lines(
     format: Format,
     loaded: &Loaded,
@@ -216,18 +227,14 @@ fn ready_lines(
         }
         Format::Diff => {
             let (lines, found) = diff_lines(text, cols);
-            // The banners above the body push every row down with them.
-            let above = out.len();
-            marks = found
-                .into_iter()
-                .map(|m| Mark {
-                    row: m.row + above,
-                    ..m
-                })
-                .collect();
+            marks = shifted(found, out.len());
             lines
         }
-        Format::Markdown if !raw => super::mdrung::lines(text, cols),
+        Format::Markdown if !raw => {
+            let (lines, found) = super::mdrung::lines(text, cols);
+            marks = shifted(found, out.len());
+            lines
+        }
         Format::Csv { delim } if !raw => super::csv::lines(text, delim, cols),
         // Fix 1: `Code`/`Data` used to reach here with no `lang`, which is
         // why every character painted the same `ink` regardless of what the

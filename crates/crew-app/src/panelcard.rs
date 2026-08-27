@@ -58,6 +58,8 @@ pub fn push_ghost(
                 focus_t: 0.0,
                 assemble_t,
                 git: None,
+                ticks: &[],
+                doc: false,
             },
         ),
         x: rect.x,
