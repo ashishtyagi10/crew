@@ -88,22 +88,40 @@ pub(crate) fn menu_items(text: &str) -> Vec<MenuItem> {
         let Some(opts) = options_for(cmd) else {
             return Vec::new(); // freeform arg (e.g. /run cargo …) → no picker
         };
-        return opts
+        let items = opts
             .into_iter()
-            .filter(|(v, _)| v.to_lowercase().starts_with(&arg))
-            .map(|(v, desc)| MenuItem {
-                fill: format!("{cmd} {v}"),
-                swatch: crate::swatch::for_value(cmd, &v),
-                label: v,
-                desc,
-                submit: true,
-                header: false,
-                dim: false,
-                needs: None,
-                color: None,
-                ..Default::default()
+            .filter(|(v, _)| v.is_empty() || v.to_lowercase().starts_with(&arg))
+            .map(|(v, desc)| match v.is_empty() {
+                // An empty value is a HEADING rather than a choice: never
+                // selected, no swatch, nothing to fill in.
+                true => MenuItem {
+                    label: desc,
+                    header: true,
+                    ..Default::default()
+                },
+                false => MenuItem {
+                    fill: format!("{cmd} {v}"),
+                    swatch: crate::swatch::for_value(cmd, &v),
+                    label: v,
+                    desc,
+                    submit: true,
+                    ..Default::default()
+                },
             })
-            .collect();
+            .collect::<Vec<_>>();
+        // A heading with nothing under it is a lie about where you are in the
+        // list — the same rule the `/keys` overlay's filter follows.
+        let mut out: Vec<MenuItem> = Vec::with_capacity(items.len());
+        for item in items {
+            if out.last().is_some_and(|prev: &MenuItem| prev.header) && item.header {
+                out.pop();
+            }
+            out.push(item);
+        }
+        if out.last().is_some_and(|i| i.header) {
+            out.pop();
+        }
+        return out;
     }
     matches(text)
         .into_iter()
