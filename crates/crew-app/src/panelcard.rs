@@ -61,6 +61,7 @@ pub fn push_ghost(
                 ticks: &[],
                 hits: &[],
                 progress: None,
+                elapsed: None,
                 unread: 0,
                 doc: false,
             },

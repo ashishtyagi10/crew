@@ -168,6 +168,16 @@ fn push_pane_scenes(
         PaneContent::View(v) => v.hit_rows(),
         _ => Vec::new(),
     };
+    // A pane's foreground command and how long it has been at it. `cmd_since`
+    // is stamped when the command starts and cleared when it ends, so an idle
+    // shell has nothing to report.
+    let elapsed = match &p.content {
+        PaneContent::Terminal(t) => t
+            .cmd_since
+            .map(|since| since.elapsed())
+            .and_then(crate::runclock::label),
+        _ => None,
+    };
     let progress = match &p.content {
         PaneContent::Terminal(t) => t.pty.progress(),
         _ => None,
@@ -261,6 +271,7 @@ fn push_pane_scenes(
                 ticks: &ticks,
                 hits: &hits,
                 progress,
+                elapsed,
                 unread,
                 doc: matches!(p.content, PaneContent::View(_)),
             },

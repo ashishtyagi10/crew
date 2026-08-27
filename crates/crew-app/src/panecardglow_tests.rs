@@ -19,6 +19,7 @@ fn bar(focused: bool) -> Bar<'static> {
         ticks: &[],
         hits: &[],
         progress: None,
+        elapsed: None,
         unread: 0,
         doc: false,
     }

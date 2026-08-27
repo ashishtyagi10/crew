@@ -19,6 +19,7 @@ fn bar(scroll: usize, total: usize) -> Bar<'static> {
         ticks: &[],
         hits: &[],
         progress: None,
+        elapsed: None,
         unread: 0,
         doc: false,
     }
@@ -210,7 +211,10 @@ fn a_document_draws_its_thumb_before_it_is_scrolled() {
         doc: true,
         ..bar(0, 400)
     };
-    let shell = Bar { doc: false, ..doc };
+    let shell = Bar {
+        doc: false,
+        ..bar(0, 400)
+    };
     let drawn = |b: &Bar| {
         let mut v = Vec::new();
         thumb(&mut v, 40, 20, b);
@@ -234,6 +238,7 @@ fn landmark_ticks_are_placed_down_the_gutter_and_deduplicated() {
         ticks: &ticks_at,
         hits: &[],
         progress: None,
+        elapsed: None,
         unread: 0,
         ..bar(0, 400)
     };
@@ -270,6 +275,7 @@ fn the_thumb_covers_the_landmark_it_sits_on() {
         ticks: &ticks_at,
         hits: &[],
         progress: None,
+        elapsed: None,
         unread: 0,
         ..bar(0, 400)
     };
@@ -304,6 +310,7 @@ fn no_landmarks_and_no_room_both_draw_nothing() {
         ticks: &ticks_at,
         hits: &[],
         progress: None,
+        elapsed: None,
         unread: 0,
         ..none
     };
@@ -323,6 +330,7 @@ fn search_hits_are_marked_in_the_gutter_in_their_own_colour() {
         doc: true,
         hits: &hits_at,
         progress: None,
+        elapsed: None,
         ..bar(0, 400)
     };
     let mut v = Vec::new();
@@ -352,6 +360,7 @@ fn a_hit_is_drawn_over_the_landmark_it_shares_a_cell_with() {
         ticks: &same,
         hits: &same,
         progress: None,
+        elapsed: None,
         ..bar(0, 400)
     };
     let mut v = Vec::new();

@@ -48,6 +48,9 @@ pub(crate) struct Bar<'a> {
     /// review's files and hunks. Drawn under the thumb, so a landmark you are
     /// currently sitting on is not hidden by it.
     pub ticks: &'a [usize],
+    /// How long the pane's foreground command has been running, once that is
+    /// worth saying ([`crate::runclock`]). `None` for an idle pane.
+    pub elapsed: Option<String>,
     /// What the program in this pane says about its own progress (OSC 9;4),
     /// drawn along the bottom border.
     pub progress: Option<crew_term::Progress>,
@@ -315,6 +318,26 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
                     ch,
                     crew_theme::theme().activity,
                     true,
+                );
+            }
+            rx = start.saturating_sub(2);
+        }
+    }
+    // How long this has been going. Placed before the git badge, since it is
+    // the more perishable of the two: a branch does not change while you look
+    // away, and a nine-minute build is the thing you came back for.
+    if let Some(t) = &b.elapsed {
+        let w = t.chars().count() as u16;
+        if rx > w + 2 {
+            let start = rx + 1 - w;
+            for (i, ch) in t.chars().enumerate() {
+                put(
+                    &mut v,
+                    start + i as u16,
+                    0,
+                    ch,
+                    crew_theme::theme().status_fg,
+                    false,
                 );
             }
             rx = start.saturating_sub(2);
