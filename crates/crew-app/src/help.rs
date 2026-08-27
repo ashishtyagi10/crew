@@ -52,6 +52,40 @@ fn lines() -> Vec<(&'static str, &'static str)> {
     v
 }
 
+/// The rows a search shows: every binding whose keys or description contain
+/// `needle`, case-insensitively.
+///
+/// A heading survives only when something under it did — a section title over
+/// no rows is a lie about where you are in the list — and the blank spacers go
+/// with them, since a filtered list has nothing to separate.
+fn filtered(needle: &str) -> Vec<(&'static str, &'static str)> {
+    let all = lines();
+    if needle.is_empty() {
+        return all;
+    }
+    let n = needle.to_lowercase();
+    let hit = |(k, d): &(&str, &str)| {
+        !k.is_empty() && (k.to_lowercase().contains(&n) || d.to_lowercase().contains(&n))
+    };
+    let mut out: Vec<(&'static str, &'static str)> = Vec::new();
+    for (i, row) in all.iter().enumerate() {
+        if hit(row) {
+            // Carry the heading this row sits under, once.
+            if let Some(head) = all[..i]
+                .iter()
+                .rev()
+                .find(|(k, d)| k.is_empty() && !d.is_empty())
+            {
+                if !out.contains(head) {
+                    out.push(*head);
+                }
+            }
+            out.push(*row);
+        }
+    }
+    out
+}
+
 /// Rows of the list the overlay can show at `rows` cells tall (borders take
 /// two). Zero when there is no room for a single row.
 fn visible_rows(rows: u16) -> usize {
@@ -61,8 +95,8 @@ fn visible_rows(rows: u16) -> usize {
 /// The furthest the overlay can be scrolled: enough to bring the last row
 /// into view, and not one row more — scrolling into blank space below a list
 /// is the thing that makes an unfamiliar scroll feel broken.
-pub fn max_scroll(rows: u16) -> usize {
-    lines().len().saturating_sub(visible_rows(rows))
+pub fn max_scroll(rows: u16, needle: &str) -> usize {
+    filtered(needle).len().saturating_sub(visible_rows(rows))
 }
 
 /// Render the help overlay into a `cols × rows` grid, starting `scroll` rows
@@ -74,11 +108,11 @@ pub fn max_scroll(rows: u16) -> usize {
 /// binding was added. Three times in one release the fix was to *merge two
 /// rows* to make room — losing detail from bindings that had nothing to do
 /// with the new one. A list that scrolls has no budget to spend.
-pub fn help_cells(cols: u16, rows: u16, scroll: usize) -> Vec<CellView> {
+pub fn help_cells(cols: u16, rows: u16, scroll: usize, needle: &str) -> Vec<CellView> {
     if cols < 12 || rows < 4 {
         return Vec::new();
     }
-    let scroll = scroll.min(max_scroll(rows));
+    let scroll = scroll.min(max_scroll(rows, needle));
     let t = crew_theme::theme();
     let text_col = Color::Rgb(t.ink.0, t.ink.1, t.ink.2);
     let dim_col = Color::Rgb(t.text_muted.0, t.text_muted.1, t.text_muted.2);
@@ -93,8 +127,8 @@ pub fn help_cells(cols: u16, rows: u16, scroll: usize) -> Vec<CellView> {
             Span::styled(right.to_string(), Style::new().fg(text_col)),
         ]))
     };
-    let all = lines();
-    let items: Vec<ListItem> = all[scroll.min(all.len())..]
+    let all = filtered(needle);
+    let mut items: Vec<ListItem> = all[scroll.min(all.len())..]
         .iter()
         .map(|&(k, d)| match (k, d) {
             ("", "") => ListItem::new(Line::from("")), // spacer
@@ -105,12 +139,25 @@ pub fn help_cells(cols: u16, rows: u16, scroll: usize) -> Vec<CellView> {
             (k, d) => item(k, d),
         })
         .collect();
+    // A search that matches nothing must say so; an empty panel reads as a
+    // rendering fault.
+    if items.is_empty() {
+        items.push(ListItem::new(Line::from(Span::styled(
+            format!("no binding matches \"{needle}\""),
+            Style::new().fg(dim_col),
+        ))));
+    }
     let block = Block::bordered()
         .border_type(BorderType::Rounded)
         .border_style(Style::new().fg(accent_color()))
         .style(Style::new().bg(panel_col))
         .title(Span::styled(
-            format!(" keys · crew v{} ", env!("CARGO_PKG_VERSION")),
+            match needle.is_empty() {
+                true => format!(" keys \u{b7} crew v{} ", env!("CARGO_PKG_VERSION")),
+                // What you typed, shown where the version was: a filter you
+                // cannot see is a list that looks broken.
+                false => format!(" keys \u{b7} {needle}\u{2588} "),
+            },
             Style::new().fg(accent_color()),
         ));
     let inner = block.inner(buf.area);
@@ -119,11 +166,11 @@ pub fn help_cells(cols: u16, rows: u16, scroll: usize) -> Vec<CellView> {
     // Dismissal hint on the bottom border — and, while there is more list
     // than window, how to reach the rest of it. A scrollable thing that never
     // says so is one nobody scrolls.
-    let more = scroll < max_scroll(rows);
+    let more = scroll < max_scroll(rows, needle);
     let hint = match (scroll > 0, more) {
-        (_, true) => " \u{2191}\u{2193} for more \u{b7} any key to close ",
-        (true, false) => " \u{2191} for the rest \u{b7} any key to close ",
-        _ => " any key to close ",
+        (_, true) => " \u{2191}\u{2193} for more \u{b7} type to filter \u{b7} esc ",
+        (true, false) => " \u{2191} for the rest \u{b7} type to filter \u{b7} esc ",
+        _ => " type to filter \u{b7} esc to close ",
     };
     let hint_col = cols.saturating_sub(hint.chars().count() as u16 + 2);
     for (i, ch) in hint.chars().enumerate() {
@@ -156,13 +203,51 @@ impl crate::app::CrewApp {
         }
     }
 
+    /// One key press while the overlay is open.
+    ///
+    /// Typing filters rather than dismissing: with forty-odd bindings the list
+    /// is a document, and the fastest way through a document is to say what
+    /// you are looking for. That leaves Esc (and Enter) to close it, which is
+    /// what a person who typed something expects anyway; every other key still
+    /// closes, so nothing traps you in here.
+    pub(crate) fn help_key(&mut self, key: &winit::keyboard::Key) {
+        use winit::keyboard::{Key, NamedKey};
+        if let Some(step) = self.help_scroll_step(key) {
+            self.scroll_help(step);
+            return;
+        }
+        match key {
+            Key::Character(c) if !c.is_empty() && !c.chars().any(char::is_control) => {
+                self.help_filter.push_str(c);
+                // A narrower list read from wherever the old one was scrolled
+                // to would open on nothing.
+                self.help_scroll = 0;
+                return;
+            }
+            Key::Named(NamedKey::Space) => {
+                self.help_filter.push(' ');
+                self.help_scroll = 0;
+                return;
+            }
+            Key::Named(NamedKey::Backspace) => {
+                self.help_filter.pop();
+                self.help_scroll = 0;
+                return;
+            }
+            _ => {}
+        }
+        self.help_open = false;
+        self.help_scroll = 0;
+        self.help_filter.clear();
+    }
+
     /// Move the open help by `step` rows, clamped to its list.
     pub(crate) fn scroll_help(&mut self, step: i32) {
         let rows = self
             .frame_geometry()
             .map_or(size().1, |(_, ch, _, sh, _)| (sh / ch) as u16)
             .min(size().1);
-        let max = max_scroll(rows) as i64;
+        let max = max_scroll(rows, &self.help_filter) as i64;
         let want = self.help_scroll as i64 + i64::from(step);
         self.help_scroll = want.clamp(0, max) as usize;
     }

@@ -213,6 +213,7 @@ impl CrewApp {
                     hw.min((sw / cw) as u16),
                     hh.min((sh / ch) as u16),
                     self.help_scroll,
+                    &self.help_filter,
                 ),
                 x: hx,
                 y: hy,

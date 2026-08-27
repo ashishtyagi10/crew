@@ -246,9 +246,15 @@ The full table is still `/keys`, which the hints are deliberately much shorter
 than.
 
 
-Press **`/keys`** in the input bar for this list in-app. It scrolls —
-arrows and page keys walk it, Home/End jump its ends, and any other key closes
-it — so the list is never cut off by the window it is drawn in.
+Press **`/keys`** in the input bar for this list in-app. It scrolls — arrows
+and page keys walk it, Home/End jump its ends — so the list is never cut off by
+the window it is drawn in, and **typing filters it**: forty-odd bindings is a
+document, and the fastest way through a document is to say what you are looking
+for. Both halves of a row are searched (the chord as well as the words), a
+section heading survives only while something under it does, and a search that
+matches nothing says so rather than emptying the panel. What you typed is shown
+where the version normally sits. **Esc** closes it (so does any key that is not
+a letter, a space or Backspace), and the filter is forgotten on the way out.
 
 | Action | Keys |
 |--------|------|
