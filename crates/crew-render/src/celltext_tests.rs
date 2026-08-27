@@ -13,8 +13,8 @@ fn params(family: Option<String>) -> FontParams {
 
 #[test]
 fn cell_metrics_larger_font_gives_larger_dimensions() {
-    let small = cell_metrics(12.0);
-    let large = cell_metrics(24.0);
+    let small = cell_metrics(12.0, CELL_H_RATIO);
+    let large = cell_metrics(24.0, CELL_H_RATIO);
     assert!(large.0 > small.0, "cell_w should grow with font size");
     assert!(large.1 > small.1, "cell_h should grow with font size");
     assert_eq!(large.1, 24.0 * 1.25, "cell_h is 1.25× font size");
@@ -22,7 +22,7 @@ fn cell_metrics_larger_font_gives_larger_dimensions() {
 
 #[test]
 fn cell_metrics_height_is_125_percent() {
-    assert_eq!(cell_metrics(16.0).1, 20.0);
+    assert_eq!(cell_metrics(16.0, CELL_H_RATIO).1, 20.0);
 }
 
 #[test]
@@ -30,8 +30,8 @@ fn cell_metrics_are_family_independent_and_whole_pixel() {
     // The whole point of the fixed box: the same size gives the same cell no
     // matter which family the user picks — snapped to whole physical pixels
     // (14 × 0.6 = 8.4 → 8, 14 × 1.25 = 17.5 → 18) so glyphs never smear.
-    assert_eq!(cell_metrics(14.0), (8.0, 18.0));
-    let (w, h) = cell_metrics(28.0); // 2x display
+    assert_eq!(cell_metrics(14.0, CELL_H_RATIO), (8.0, 18.0));
+    let (w, h) = cell_metrics(28.0, CELL_H_RATIO); // 2x display
     assert_eq!((w.fract(), h.fract()), (0.0, 0.0));
 }
 
@@ -70,7 +70,7 @@ fn bold_glyphs_snap_to_the_same_cell_advance() {
         style(2, 'm', false),
         style(3, '0', true),
     ];
-    let (cell_w, cell_h) = cell_metrics(14.0);
+    let (cell_w, cell_h) = cell_metrics(14.0, CELL_H_RATIO);
     let p = FontParams {
         font_size: 14.0,
         line_height: cell_h,
@@ -107,7 +107,7 @@ fn medium_weight_glyphs_snap_to_the_same_cell_advance() {
     };
     let mut fs = crate::embedfont::font_system();
     let cells = vec![style(0, 'W'), style(1, 'i'), style(2, 'm'), style(3, '0')];
-    let (cell_w, cell_h) = cell_metrics(14.0);
+    let (cell_w, cell_h) = cell_metrics(14.0, CELL_H_RATIO);
     let p = FontParams {
         font_size: 14.0,
         line_height: cell_h,
@@ -148,7 +148,7 @@ fn semibold_weight_glyphs_snap_to_the_same_cell_advance() {
     };
     let mut fs = crate::embedfont::font_system();
     let cells = vec![style(0, 'W'), style(1, 'i'), style(2, 'm'), style(3, '0')];
-    let (cell_w, cell_h) = cell_metrics(14.0);
+    let (cell_w, cell_h) = cell_metrics(14.0, CELL_H_RATIO);
     let p = FontParams {
         font_size: 14.0,
         line_height: cell_h,
@@ -180,7 +180,7 @@ fn a_heavier_weight_rasterizes_more_ink() {
     let ink = |weight: u16| -> u64 {
         let mut fs = crate::embedfont::font_system();
         let mut swash = SwashCache::new();
-        let (cell_w, cell_h) = cell_metrics(14.0);
+        let (cell_w, cell_h) = cell_metrics(14.0, CELL_H_RATIO);
         let cells = vec![CellView {
             col: 0,
             row: 0,
@@ -373,7 +373,7 @@ fn roster_symbol_glyphs_stay_on_cell_grid() {
         italic: false,
         ..Default::default()
     };
-    let (cell_w, cell_h) = cell_metrics(14.0);
+    let (cell_w, cell_h) = cell_metrics(14.0, CELL_H_RATIO);
     let chars: Vec<char> =
         "\u{25aa}p \u{2502} \u{00b7} 1\u{00d7} \u{2502} \u{2013} \u{2588}\u{2591} 21% idle \u{2800}\u{2819}"
             .chars()

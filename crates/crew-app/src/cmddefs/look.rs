@@ -50,6 +50,10 @@ pub(crate) const LOOK: &[Cmd] = &[
         desc: "Focus mode \u{2014} hold every notification, never steal focus, deepen the spotlight (/focus)",
     },
     Cmd {
+        name: "/leading",
+        desc: "Line spacing: air between rows of text (tight|normal|relaxed|loose)",
+    },
+    Cmd {
         name: "/density",
         desc: "How tightly the canvas packs \u{2014} pane gutter and chat-card spacing (/density [compact|cozy|roomy])",
     },

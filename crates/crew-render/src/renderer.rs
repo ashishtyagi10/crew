@@ -75,6 +75,13 @@ impl Renderer {
         self.cell_grid.set_font_size(font_size);
     }
 
+    /// Set the cell height as a fraction of the font size — the user's
+    /// `/leading`. Idempotent, so callers can set it beside the font size on
+    /// every config adoption without re-warming the atlas.
+    pub fn set_leading(&mut self, leading: f32) {
+        self.cell_grid.set_leading(leading);
+    }
+
     /// Switch the font family at runtime (`None`/empty → system monospace).
     pub fn set_font_family(&mut self, family: Option<String>) {
         self.cell_grid.set_font_family(family);

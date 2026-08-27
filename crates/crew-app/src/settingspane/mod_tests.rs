@@ -292,6 +292,7 @@ fn edits(f: Field) -> &'static str {
         Field::Glass => "glass",
         Field::Motion => "motion",
         Field::Density => "density",
+        Field::Leading => "leading",
         Field::Contrast => "contrast",
         Field::ShapeCues => "shape_cues",
         Field::Gradient => "gradient",

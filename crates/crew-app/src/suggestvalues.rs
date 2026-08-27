@@ -108,6 +108,25 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
                 "WCAG AAA: 7.0 for text, 4.5 for marks; the wash backs off".to_string(),
             ),
         ]),
+        "/leading" => Some(vec![
+            (
+                "tight".to_string(),
+                "1.10 \u{d7} the font size \u{2014} as close as rows go without colliding"
+                    .to_string(),
+            ),
+            (
+                "normal".to_string(),
+                "the default \u{2014} 1.25, the line height crew has always drawn".to_string(),
+            ),
+            (
+                "relaxed".to_string(),
+                "1.45; easier to track across a wide pane".to_string(),
+            ),
+            (
+                "loose".to_string(),
+                "1.65 \u{2014} the most air before a row reads as a stripe".to_string(),
+            ),
+        ]),
         "/density" => Some(vec![
             (
                 "compact".to_string(),
@@ -206,6 +225,7 @@ pub(crate) fn expands(cmd: &str) -> bool {
             | "/gradient"
             | "/motion"
             | "/density"
+            | "/leading"
             | "/contrast"
             | "/shapes"
             | "/model"
@@ -229,6 +249,7 @@ pub(crate) fn current_value(cmd: &str, cfg: &crate::config::CrewConfig) -> Optio
             .unwrap_or_else(|| cfg.gradient.clone()),
         "/motion" => cfg.motion.clone(),
         "/density" => cfg.density.clone(),
+        "/leading" => cfg.leading.clone(),
         "/contrast" => cfg.contrast.clone(),
         "/shapes" => cfg.shape_cues.clone(),
         "/marks" => match cfg.border_marks {

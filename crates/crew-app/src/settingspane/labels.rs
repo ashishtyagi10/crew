@@ -33,6 +33,7 @@ pub(crate) fn label_of(f: Field) -> &'static str {
         Field::Glass => "Glass",
         Field::Motion => "Motion",
         Field::Density => "Density",
+        Field::Leading => "Line spacing",
         Field::Contrast => "Contrast",
         Field::ShapeCues => "Shape cues",
         Field::Gradient => "Gradient colour",
@@ -105,6 +106,10 @@ pub(crate) fn value_of(p: &SettingsPane, f: Field) -> (String, bool) {
         ),
         Field::Density => (
             format!("\u{2039} {} \u{203a}", p.draft.density().as_str()),
+            false,
+        ),
+        Field::Leading => (
+            format!("\u{2039} {} \u{203a}", p.draft.leading().as_str()),
             false,
         ),
         Field::Contrast => (format!("\u{2039} {} \u{203a}", p.draft.contrast), false),

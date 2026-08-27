@@ -6,11 +6,12 @@ use glyphon::cosmic_text::{CacheKey, SwashCache, SwashContent};
 
 use super::{build_buffer, working_set};
 use crate::cellgrid::CellGrid;
+use crate::celltext::CELL_H_RATIO;
 use crate::celltext::{cell_metrics, FontParams};
 use crate::smoothing::presmooth;
 
 fn params(font_size: f32, smooth: u8) -> FontParams {
-    let (cell_w, cell_h) = cell_metrics(font_size);
+    let (cell_w, cell_h) = cell_metrics(font_size, CELL_H_RATIO);
     FontParams {
         font_size,
         line_height: cell_h,
@@ -179,4 +180,54 @@ fn cellgrid_prepare_prewarms_before_any_scene() {
     assert!(!grid.needs_prewarm, "prepare must consume the arm flag");
     grid.set_font_size(30.0);
     assert!(grid.needs_prewarm, "font changes must re-arm the prewarm");
+}
+
+/// The leading is the cell's HEIGHT and nothing else: `set_leading` moves
+/// `cell_h` by exactly the ratio, leaves `cell_w` where it is (widening the
+/// cell would space the letters of every word apart and break the monospace
+/// contract every program in a pane draws against), and re-arms the prewarm —
+/// the glyph cache is keyed to a cell box that just changed.
+///
+/// Skips on GPU-less CI, like every other headless test here.
+#[test]
+fn set_leading_moves_the_cell_height_and_only_the_height() {
+    let instance = wgpu::Instance::default();
+    let adapter = match pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+        power_preference: wgpu::PowerPreference::None,
+        compatible_surface: None,
+        force_fallback_adapter: false,
+    })) {
+        Ok(a) => a,
+        Err(_) => {
+            eprintln!("set_leading_moves_the_cell_height: no GPU adapter, skipping");
+            return;
+        }
+    };
+    let (device, queue) =
+        pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default()))
+            .expect("request_device failed");
+
+    let size = 28.0;
+    let mut grid = CellGrid::new(&device, &queue, wgpu::TextureFormat::Rgba8Unorm, size);
+    let (w0, h0) = grid.cell_size();
+    assert_eq!((w0, h0), cell_metrics(size, CELL_H_RATIO), "the default");
+
+    grid.needs_prewarm = false;
+    grid.set_leading(1.65);
+    let (w1, h1) = grid.cell_size();
+    assert_eq!(w1, w0, "the cell must not widen");
+    assert_eq!(h1, (size * 1.65).round(), "the cell height IS the leading");
+    assert!(h1 > h0);
+    assert!(grid.needs_prewarm, "a new cell box re-arms the prewarm");
+
+    // …and the buffer line height follows the cell, never derived separately:
+    // text rows have to land exactly on the grid the borders are drawn on.
+    assert_eq!(grid.font_params().line_height, h1);
+
+    // Idempotent: every config adoption sets this beside the font size, and
+    // re-measuring for an unchanged ratio would throw away the glyph cache
+    // and re-warm the atlas for nothing.
+    grid.needs_prewarm = false;
+    grid.set_leading(1.65);
+    assert!(!grid.needs_prewarm, "an unchanged ratio is a no-op");
 }

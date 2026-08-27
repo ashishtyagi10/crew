@@ -595,6 +595,28 @@ longer aim at.
   Live and persisted — the same `density` key as **Settings → APPEARANCE →
   Density**.
 
+- **`/leading [tight|normal|relaxed|loose]`** — how much air sits between rows
+  of text. This is the knob `/density` deliberately does *not* have: density
+  moves the spaces that are genuinely empty (gutters, blank rows), on the
+  grounds that in a cell grid the line height *is* the cell. That reasoning
+  holds for gutters and not for the reader who wants the same glyphs with more
+  room between them, and whose only lever until now was the font size — which
+  fixes the tracking by making everything bigger. Density is how much crew
+  fits on the canvas; leading is how the text reads.
+
+  Only the cell's **height** takes the ratio. Widening it would space the
+  letters of every word apart, which is a different typographic decision
+  wearing the same name, and would break the monospace contract every program
+  in a pane draws against. `normal` is `1.25 × font_size`, exactly what crew
+  has always drawn, so the setting changes nothing until you turn it; `tight`
+  is `1.10` (stopping short of solid, where a monospace face's descenders meet
+  the ascenders below); `relaxed` `1.45`; `loose` `1.65` (stopping there
+  because the cell is also the cursor and the selection band, and past it a
+  highlighted row reads as a stripe with the text loose inside it). The cell
+  changes, so the grid is remeasured and every pane's program is told its new
+  size. Live and persisted — the same `leading` key as **Settings →
+  APPEARANCE → Line spacing**.
+
 - **`/motion [auto|off|subtle|full]`** — how much crew moves. **`auto` is the
   default and follows the operating system**: macOS's *Settings → Accessibility
   → Display → Reduce motion* is where a user has almost certainly already said

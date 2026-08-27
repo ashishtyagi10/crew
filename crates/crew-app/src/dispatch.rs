@@ -62,6 +62,7 @@ impl CrewApp {
             "smooth" => self.smooth_command(""),
             "motion" => self.motion_command(""),
             "density" => self.density_command(""),
+            "leading" => self.leading_command(""),
             "contrast" => self.contrast_command(""),
             "shapes" => self.shapes_command(""),
             "gradient" => self.gradient_command(""),
@@ -113,6 +114,8 @@ impl CrewApp {
                     self.motion_command(m.trim());
                 } else if let Some(d) = other.strip_prefix("density ") {
                     self.density_command(d.trim());
+                } else if let Some(l) = other.strip_prefix("leading ") {
+                    self.leading_command(l.trim());
                 } else if let Some(c) = other.strip_prefix("contrast ") {
                     self.contrast_command(c.trim());
                 } else if let Some(v) = other.strip_prefix("shapes ") {
@@ -477,6 +480,35 @@ impl CrewApp {
         self.config.save();
         crate::density::set_level(d);
         self.set_status(format!("density {}", d.as_str()));
+        self.redraw();
+    }
+
+    /// `/leading [tight|normal|relaxed|loose]` — how much air sits between
+    /// rows of text (see [`crate::leading`]).
+    ///
+    /// Changing it changes the CELL, so the pane grid is remeasured and every
+    /// PTY is resized: a shell that thought it had 24 rows has to be told it
+    /// now has 21, or it will keep drawing off the bottom of its card. That
+    /// is what `apply_config` already does for a font-size change, and this
+    /// rides the same path rather than a second one.
+    pub(crate) fn leading_command(&mut self, arg: &str) {
+        use crate::leading::Leading;
+        if arg.is_empty() {
+            self.set_status(format!(
+                "leading {} (/leading [tight|normal|relaxed|loose])",
+                self.config.leading().as_str()
+            ));
+            return;
+        }
+        let Some(l) = Leading::parse(arg) else {
+            self.set_status("usage: /leading [tight|normal|relaxed|loose]");
+            return;
+        };
+        self.config.leading = l.as_str().to_string();
+        self.config.save();
+        let cfg = self.config.clone();
+        self.apply_config(cfg);
+        self.set_status(format!("leading {}", l.as_str()));
         self.redraw();
     }
 

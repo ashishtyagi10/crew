@@ -283,17 +283,26 @@ pub(crate) fn fill_rich_text(
 /// `the_embedded_face_is_drawn_to_crew_s_own_cell_ratio`.
 pub(crate) const CELL_W_RATIO: f32 = 0.6;
 
+/// Cell height as a fraction of the font size, before the user's leading.
+/// The ratio crew has always drawn at, and the one a `leading` of `normal`
+/// keeps.
+pub const CELL_H_RATIO: f32 = 1.25;
+
 /// The fixed cell box for a font size: `(cell_w, cell_h)` =
-/// `(CELL_W_RATIO, 1.25) × font_size`, rounded to WHOLE pixels. Deliberately
-/// independent of the font family — glyphs are snapped to this advance at
-/// layout time (see [`build_pane_buffer`]) — so switching fonts never moves a
-/// pane, a border, or the grid. `font_size` arrives in physical pixels, so
-/// rounding puts every column, row, and glyph advance on a pixel boundary —
-/// no half-pixel smear on the text or the box-drawing borders.
-pub(crate) fn cell_metrics(font_size: f32) -> (f32, f32) {
+/// `(CELL_W_RATIO, leading) × font_size`, rounded to WHOLE pixels.
+/// Deliberately independent of the font family — glyphs are snapped to this
+/// advance at layout time (see [`build_pane_buffer`]) — so switching fonts
+/// never moves a pane, a border, or the grid. `font_size` arrives in physical
+/// pixels, so rounding puts every column, row, and glyph advance on a pixel
+/// boundary — no half-pixel smear on the text or the box-drawing borders.
+///
+/// Only the HEIGHT takes the leading. Widening the cell with it would space
+/// the letters of every word apart, which is a different typographic decision
+/// wearing the same name; what the reader is asking for is air between lines.
+pub(crate) fn cell_metrics(font_size: f32, leading: f32) -> (f32, f32) {
     (
         (font_size * CELL_W_RATIO).round().max(1.0),
-        (font_size * 1.25).round().max(1.0),
+        (font_size * leading).round().max(1.0),
     )
 }
 

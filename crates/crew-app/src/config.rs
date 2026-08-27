@@ -52,6 +52,13 @@ fn default_contrast() -> String {
     "auto".to_string()
 }
 
+fn default_leading() -> String {
+    // `1.25 × font_size` — the line height crew has always drawn (see
+    // `leading::Leading::ratio`), so the knob arriving changes nothing until
+    // someone turns it.
+    "normal".to_string()
+}
+
 fn default_density() -> String {
     // The layout crew has always drawn (see `density::Density::gap_px`), so
     // the knob arriving changes nothing until someone turns it.
@@ -248,6 +255,10 @@ pub struct CrewConfig {
     /// between chat cards (see `density`).
     #[serde(default = "default_density")]
     pub density: String,
+    /// How much air sits between rows of text: the cell height as a fraction
+    /// of the font size (see `leading`).
+    #[serde(default = "default_leading")]
+    pub leading: String,
     /// `auto` (follow the OS accessibility switch), `normal` (WCAG AA floors)
     /// or `high` (AAA floors, quieted effects). See `crew_theme::contrast`.
     #[serde(default = "default_contrast")]
@@ -331,6 +342,7 @@ impl Default for CrewConfig {
             glass: default_glass(),
             motion: default_motion(),
             density: default_density(),
+            leading: default_leading(),
             contrast: default_contrast(),
             shape_cues: default_shape_cues(),
             command_recents: Vec::new(),
