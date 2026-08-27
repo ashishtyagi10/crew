@@ -683,6 +683,12 @@ longer aim at.
   The granularity is one second, and honestly so: a command that starts and
   finishes between two polls leaves no span, and one still flushing output when
   the prompt returns can carry a line or two of the next thing.
+
+  The same spans **tick the card's left border** where each command began, so a
+  screenful of scrollback shows where one thing you ran ends and the next
+  starts — the block structure other terminals need shell integration for,
+  drawn as chrome rather than in the program's own columns. An error bar on the
+  same row wins it: "this failed" outranks "this began".
 - **`/errors`** — scrolls the focused terminal back to the most recent line
   that reads as an **error**, and reports how many are in view. A long build
   scrolls its own failure off the screen, and finding it again otherwise means

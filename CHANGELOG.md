@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.74
+
+**The border shows where each command began.** The spans `/out` slices with are
+good for more than slicing: every command start visible in a pane now ticks its
+left border, so a screenful of scrollback shows where one thing you ran ends
+and the next begins.
+
+That is the block structure other terminals ask you to install shell
+integration for — drawn as chrome, in a column that belongs to crew rather than
+to the program running in the pane, and derived from what crew already watches
+rather than from anything anyone has to configure.
+
+The ticks are quieter than the error bars and drawn first, so a row that is
+both the start of a command and an error reads as the error: "this failed"
+outranks "this began".
+
 ## 0.18.73
 
 **`/out` — the last command's output, on its own.** The moment a prompt comes

@@ -83,3 +83,30 @@ fn only_the_last_few_are_remembered() {
 fn a_pane_that_has_run_nothing_has_nothing_to_show() {
     assert!(Spans::default().latest(100).is_none());
 }
+
+/// The ticks are placed against the WINDOW, not the buffer: the same span is
+/// a different row depending on where the pane is scrolled.
+#[test]
+fn a_command_start_maps_to_the_row_it_is_drawn_on() {
+    let mut s = Spans::default();
+    s.started("a".into(), 100);
+    s.close(110);
+    s.started("b".into(), 118);
+    s.close(120);
+    // 120 lines, a 20-row window at the bottom → showing lines 100..120.
+    assert_eq!(s.start_rows(120, 20, 0), vec![0, 18]);
+    // Scrolled back ten → showing 90..110: only the first start is in view.
+    assert_eq!(s.start_rows(120, 20, 10), vec![10]);
+    // Scrolled past both.
+    assert_eq!(s.start_rows(120, 20, 60), Vec::<u16>::new());
+}
+
+/// A span older than the window shows nothing rather than pinning to row 0 —
+/// a tick on the top row would claim a command started where it did not.
+#[test]
+fn a_start_above_the_window_is_not_pinned_to_its_top() {
+    let mut s = Spans::default();
+    s.started("old".into(), 5);
+    s.close(6);
+    assert!(s.start_rows(500, 20, 0).is_empty());
+}

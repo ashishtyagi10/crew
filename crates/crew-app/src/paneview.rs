@@ -168,6 +168,15 @@ fn push_pane_scenes(
         PaneContent::View(v) => v.hit_rows(),
         _ => Vec::new(),
     };
+    // Where the commands you ran began, in this window.
+    let cmd_rows = match &p.content {
+        PaneContent::Terminal(t) => t.spans.start_rows(
+            t.pty.scrollable_lines(),
+            usize::from(p.grid.rows),
+            t.pty.display_offset(),
+        ),
+        _ => Vec::new(),
+    };
     // Rows of this pane's visible output that read as errors. Computed from
     // the cells already built for the frame rather than by re-reading the
     // grid — one pass over what is on screen.
@@ -283,6 +292,7 @@ fn push_pane_scenes(
                 hits: &hits,
                 progress,
                 elapsed,
+                cmd_rows: &cmd_rows,
                 err_rows: &err_rows,
                 unread,
                 doc: matches!(p.content, PaneContent::View(_)),

@@ -77,34 +77,37 @@ fn only_the_rows_that_hold_an_error_are_marked() {
     assert!(super::error_rows(&rows(&["all good", ""])).is_empty());
 }
 
+fn bar(err_rows: &[u16]) -> crate::panecard::Bar<'_> {
+    crate::panecard::Bar {
+        index: Some(1),
+        title: "build",
+        focused: false,
+        scroll: 0,
+        total: 0,
+        activity: false,
+        bell: false,
+        broadcast: false,
+        min_btn: false,
+        assemble_t: 1.0,
+        focus_t: 1.0,
+        git: None,
+        ticks: &[],
+        hits: &[],
+        progress: None,
+        elapsed: None,
+        cmd_rows: &[],
+        err_rows,
+        unread: 0,
+        doc: false,
+    }
+}
+
 /// On the card: the marks ride the LEFT border, one per error row, and never
 /// on a corner.
 #[test]
 fn the_card_marks_error_rows_down_its_left_border() {
     let _g = crate::app::theme_test_guard();
-    fn bar(err_rows: &[u16]) -> crate::panecard::Bar<'_> {
-        crate::panecard::Bar {
-            index: Some(1),
-            title: "build",
-            focused: false,
-            scroll: 0,
-            total: 0,
-            activity: false,
-            bell: false,
-            broadcast: false,
-            min_btn: false,
-            assemble_t: 1.0,
-            focus_t: 1.0,
-            git: None,
-            ticks: &[],
-            hits: &[],
-            progress: None,
-            elapsed: None,
-            err_rows,
-            unread: 0,
-            doc: false,
-        }
-    }
+
     let marks = |rows: &[u16]| -> Vec<u16> {
         crate::panecard::pane_card(40, 8, &bar(rows))
             .into_iter()
@@ -121,4 +124,30 @@ fn the_card_marks_error_rows_down_its_left_border() {
     assert!(crate::panecard::pane_card(40, 8, &bar(&[1]))
         .iter()
         .any(|c| c.col == 0 && c.c == '\u{258c}' && c.fg == bell));
+}
+
+/// Both marks live on the same border, and a row that is both the start of a
+/// command and an error reads as the error: "this failed" outranks "this
+/// began".
+#[test]
+fn an_error_outranks_a_command_start_on_the_same_row() {
+    let _g = crate::app::theme_test_guard();
+    let both = crate::panecard::Bar {
+        cmd_rows: &[2],
+        err_rows: &[2],
+        ..bar(&[])
+    };
+    let at2: Vec<char> = crate::panecard::pane_card(40, 8, &both)
+        .into_iter()
+        .filter(|c| c.col == 0 && c.row == 3)
+        .map(|c| c.c)
+        .collect();
+    assert_eq!(at2, vec!['\u{258c}'], "{at2:?}");
+    let only_start = crate::panecard::Bar {
+        cmd_rows: &[2],
+        ..bar(&[])
+    };
+    assert!(crate::panecard::pane_card(40, 8, &only_start)
+        .iter()
+        .any(|c| c.col == 0 && c.row == 3 && c.c == '\u{2576}'));
 }

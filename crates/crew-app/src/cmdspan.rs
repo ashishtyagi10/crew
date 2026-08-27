@@ -69,6 +69,21 @@ impl Spans {
         (span.from.min(to), to)
     }
 
+    /// Which visible rows a command *started* on, given a window showing
+    /// `visible` rows ending `scroll` lines back from a buffer of `now`
+    /// lines. The pane's card ticks these on its left border: where one thing
+    /// you ran ends and the next begins, without a shell integration and
+    /// without spending a column of the program's own grid.
+    pub(crate) fn start_rows(&self, now: usize, visible: usize, scroll: usize) -> Vec<u16> {
+        let first = now.saturating_sub(visible).saturating_sub(scroll);
+        self.0
+            .iter()
+            .filter_map(|s| s.from.checked_sub(first))
+            .filter(|row| *row < visible)
+            .map(|row| row as u16)
+            .collect()
+    }
+
     #[cfg(test)]
     pub(crate) fn len(&self) -> usize {
         self.0.len()
