@@ -402,6 +402,13 @@ impl CrewApp {
                             min,
                             now,
                         );
+                        // The two edges of a command's output, as buffer
+                        // lines: what `/out` slices later.
+                        let at = t.pty.scrollable_lines();
+                        match &cmd {
+                            Some(name) => t.spans.started(name.clone(), at),
+                            None => t.spans.close(at),
+                        }
                         t.cmd = cmd;
                         t.cmd_since = outcome.since;
                         any_changed = true;

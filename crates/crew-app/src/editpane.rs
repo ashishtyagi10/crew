@@ -144,6 +144,7 @@ mod tests {
                 cmd_since: None,
                 tail: Default::default(),
                 read_at: 0,
+                spans: Default::default(),
             })),
             grid: FALLBACK_SIZE,
             rect: PLACEHOLDER_RECT,

@@ -434,6 +434,7 @@ fn typing_clears_a_terminal_selection() {
             cmd_since: None,
             tail: Default::default(),
             read_at: 0,
+            spans: Default::default(),
         })),
         grid: GridSize { cols: 40, rows: 10 },
         rect: Rect {

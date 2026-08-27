@@ -34,6 +34,9 @@ pub struct TermPane {
     /// from. Updated while the pane is focused and caught up, and whenever
     /// you type into it (answering is reading).
     pub read_at: usize,
+    /// Where each command's output started and ended in this pane's buffer
+    /// ([`crate::cmdspan`]) — what `/out` slices.
+    pub spans: crate::cmdspan::Spans,
 }
 
 /// Discriminated union of pane kinds. A handful of instances exist at once
@@ -199,6 +202,7 @@ pub fn spawn_pane(
             cmd_since: None,
             tail: Default::default(),
             read_at: 0,
+            spans: Default::default(),
         })),
         grid,
         rect: Rect {

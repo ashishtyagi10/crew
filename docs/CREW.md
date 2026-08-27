@@ -670,6 +670,19 @@ longer aim at.
   clean tree says so instead of opening an empty pane. Pairs with the crew
   pane's automatic checkpoints (`/restore` lists them) for reviewing what
   agents changed.
+- **`/out`** — opens the focused pane's **last command's output on its own**,
+  in the file viewer. A long build's output is buried the moment the prompt
+  comes back: mixed in with what you ran before it and whatever the shell
+  printed after. Crew knows where that output started and ended without any
+  shell integration — it already watches each pane's foreground process, and
+  the two transitions it sees (idle to running, running back to idle) are the
+  two edges of the output — so `/out` slices exactly those lines into a pane
+  you can scroll, search, and walk with `]`/`[` while the terminal carries on
+  underneath. A command still running reports what it has printed so far.
+
+  The granularity is one second, and honestly so: a command that starts and
+  finishes between two polls leaves no span, and one still flushing output when
+  the prompt returns can carry a line or two of the next thing.
 - **`/errors`** — scrolls the focused terminal back to the most recent line
   that reads as an **error**, and reports how many are in view. A long build
   scrolls its own failure off the screen, and finding it again otherwise means

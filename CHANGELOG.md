@@ -8,6 +8,28 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.73
+
+**`/out` — the last command's output, on its own.** The moment a prompt comes
+back, what a build just printed is buried: run together with what you ran
+before it, whatever the shell printed after, and every earlier attempt. The
+usual answer to this is shell integration — teaching your shell to emit OSC 133
+marks — which means editing someone's `.zshrc` and hoping.
+
+Crew does not need it. It already watches every pane's foreground process once
+a second, and the two transitions it sees — idle to running, running back to
+idle — *are* the two edges of a command's output. Recording the buffer's line
+count at each edge gives the span, and `/out` slices exactly those lines into
+the file viewer: scrollable, searchable, walkable with `]`/`[`, and left open
+while the terminal carries on underneath. A command still running reports what
+it has printed so far, which is the case you most want this for.
+
+Second granularity, and the docs say so: a command that starts and finishes
+between two polls leaves no span, and one still flushing when the prompt
+returns can carry a line or two of the next thing. A span whose end was missed
+is closed when the next command starts rather than swallowing everything after
+it, and a range is clamped to what the scrollback still holds.
+
 ## 0.18.72
 
 **Errors show up on the card.** `/errors` will walk you back to the last
