@@ -101,10 +101,25 @@ fn swatch(buf: &mut Buffer, r: Rect, f: Field, value: &str) {
         _ => return,
     };
     let n = chips.len() as u16;
-    if n == 0 || r.width < value.chars().count() as u16 + n + 5 || r.height < 2 {
+    if n == 0 || r.height < 2 {
         return;
     }
-    let (y, mut x) = (r.y + 1, r.x + r.width - 2 - n);
+    // How the accent actually READS on the page it will sit on. Crew derives
+    // every other colour against a measured floor; the one colour a person
+    // picks by hand was the only one nobody measured.
+    let meter = match f {
+        Field::Accent => crate::swatch::hex_chip(value).map(|c| {
+            let page = crew_theme::theme().page_bg;
+            (crew_theme::contrast_ratio(c.fg, page), page)
+        }),
+        _ => None,
+    };
+    let label = meter.map(|(cr, _)| format!("{cr:.1}:1"));
+    let lw = label.as_ref().map_or(0, |l| l.chars().count() as u16 + 1);
+    if r.width < value.chars().count() as u16 + n + lw + 5 {
+        return;
+    }
+    let (y, mut x) = (r.y + 1, r.x + r.width - 2 - n - lw);
     for chip in chips {
         let mut style = Style::new().fg(Color::Rgb(chip.fg.0, chip.fg.1, chip.fg.2));
         if let Some((cr, cg, cb)) = chip.bg {
@@ -113,7 +128,25 @@ fn swatch(buf: &mut Buffer, r: Rect, f: Field, value: &str) {
         buf.set_line(x, y, &Line::styled(chip.c.to_string(), style), 1);
         x += 1;
     }
+    // …and the number beside it, in the alarm colour when it falls under the
+    // floor every derived role is held to. A hex that cannot be read is the
+    // one mistake this field makes easy.
+    if let (Some(label), Some((cr, _))) = (label, meter) {
+        let fg = match cr >= ACCENT_FLOOR {
+            true => form::dim(),
+            false => {
+                let b = crew_theme::theme().bell;
+                Color::Rgb(b.0, b.1, b.2)
+            }
+        };
+        buf.set_line(x + 1, y, &Line::styled(label, Style::new().fg(fg)), lw);
+    }
 }
+
+/// The contrast the palette suite holds `accent_default` to against the page
+/// (`contrast_thresholds` in `crew-theme`). A hand-picked accent is measured
+/// against the same line the shipped ones are.
+const ACCENT_FLOOR: f32 = 3.0;
 
 /// Copy `viewport` rows of `src` starting at virtual row `off` into `dst`.
 fn blit(dst: &mut Buffer, src: &Buffer, off: u16, viewport: u16) {

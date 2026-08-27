@@ -212,3 +212,53 @@ fn a_field_that_is_not_a_colour_draws_no_chips() {
     let real = chip_count(&super::render(&p, 120, 40));
     assert!(real > chip_count(&with_theme), "a bogus theme drew chips");
 }
+
+/// The one colour a person picks by hand is the one nobody was measuring.
+#[test]
+fn a_hand_picked_accent_shows_how_it_reads_on_the_page() {
+    let _g = crate::app::theme_test_guard();
+    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+    let text = |hex: &str| -> String {
+        let mut p = pane();
+        p.accent_buf = hex.into();
+        let cells = super::render(&p, 120, 40);
+        let mut v: Vec<&crew_render::CellView> = cells.iter().collect();
+        v.sort_by_key(|c| (c.row, c.col));
+        v.iter().map(|c| c.c).collect()
+    };
+    // A bright accent on the near-black page reads well…
+    let bright = text("#ffd166");
+    assert!(bright.contains(":1"), "no contrast readout: {bright}");
+    // …and the number is the real one.
+    let cr = crew_theme::contrast_ratio((255, 209, 102), crew_theme::theme().page_bg);
+    assert!(bright.contains(&format!("{cr:.1}:1")), "{bright}");
+}
+
+/// Below the floor every derived role is held to, the number is drawn in the
+/// alarm colour: an accent that cannot be read is the mistake this field
+/// makes easy.
+#[test]
+fn an_unreadable_accent_is_flagged_rather_than_merely_reported() {
+    let _g = crate::app::theme_test_guard();
+    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+    let flagged = |hex: &str| -> bool {
+        let mut p = pane();
+        p.accent_buf = hex.into();
+        let bell = crew_theme::theme().bell;
+        super::render(&p, 120, 40)
+            .iter()
+            .any(|c| c.c == ':' && c.fg == bell)
+    };
+    assert!(flagged("#101014"), "a near-black accent went unflagged");
+    assert!(!flagged("#ffd166"), "a readable accent was flagged");
+}
+
+/// No hex, no number — the field is empty when the accent follows the theme.
+#[test]
+fn an_empty_accent_field_shows_no_measurement() {
+    let _g = crate::app::theme_test_guard();
+    let p = pane();
+    let cells = super::render(&p, 120, 40);
+    let text: String = cells.iter().map(|c| c.c).collect();
+    assert!(!text.contains(":1"), "{text}");
+}
