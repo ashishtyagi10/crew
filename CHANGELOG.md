@@ -8,6 +8,28 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.97
+
+**The transcript's position moves to the card's border, and the turns are
+marked on it.** The agent pane drew its own scrollbar down the last column of
+its content — the one pane kind that did — while every other pane says where it
+is on its frame. It says it on the frame now, which gives the transcript that
+column back.
+
+Beside the thumb, each of **your own** messages ticks the gutter: a long
+conversation shows how many turns it holds and where you are among them before
+you scroll. An agent's reply belongs to the turn above it, so only your
+messages count. The rows come from the spans the renderer already records for
+the fold hit-test, not from a second pass over the transcript.
+
+Also fixed: the welcome screen's "what's new" line **dropped itself** whenever
+a release headline was longer than the window — which looked like an
+intermittent test failure and was really a deterministic one, tripping only on
+the releases whose own headline was long. A window too narrow to hold the
+version and a few words still shows nothing; a headline longer than a usable
+window is now clipped, since its length is the changelog's doing rather than
+the window's.
+
 ## 0.18.96
 
 **One read of a pane's rows per frame, not three.** Marking file references,

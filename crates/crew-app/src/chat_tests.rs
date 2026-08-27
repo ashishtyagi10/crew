@@ -1843,3 +1843,37 @@ fn zero_usage_reply_settles_with_no_usage() {
     poll_until(&mut p, |p| p.messages.len() == 1);
     assert_eq!(p.messages[0].usage, None);
 }
+
+/// A transcript is a document too, and it is the pane most likely to be
+/// longer than its window: the card's border carries its position and marks
+/// where the turns are.
+#[test]
+fn the_transcript_reports_its_position_and_its_turns() {
+    let _g = crate::app::theme_test_guard();
+    let mut p = pane();
+    for i in 0..6 {
+        p.messages.push(Message {
+            sender: if i % 2 == 0 { "user" } else { "agent" }.into(),
+            text: format!("message {i} with enough words to wrap a narrow pane"),
+            ts: String::new(),
+            meta: String::new(),
+            usage: None,
+            expanded: false,
+        });
+    }
+    let (cols, rows) = (40u16, 12u16);
+    let (back, total) = p.position(cols, rows);
+    assert!(total > 0, "an empty extent for a full transcript");
+    assert_eq!(back, 0, "at the live bottom, nothing is behind you");
+    // Three of the six messages are yours, so there are three turns.
+    let turns = p.turn_rows(cols);
+    assert_eq!(turns.len(), 3, "{turns:?}");
+    assert!(turns.windows(2).all(|w| w[0] < w[1]), "{turns:?}");
+    assert!(
+        turns.iter().all(|&r| r < total),
+        "a turn past the end: {turns:?}"
+    );
+    // Scrolling back is reported as lines behind you, the way a terminal does.
+    p.scroll = 3;
+    assert_eq!(p.position(cols, rows).0, 3);
+}

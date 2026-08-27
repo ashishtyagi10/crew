@@ -68,34 +68,6 @@ pub(crate) fn thumb(total: usize, visible: usize, first: usize) -> Option<(usize
     Some((first * visible / total, len))
 }
 
-/// A proportional scrollbar for a `visible`-row window into `total` lines,
-/// `scroll` lines up from the bottom, drawn in column `col` over the message
-/// rows `top..top+visible`. Empty when nothing overflows.
-pub(crate) fn scrollbar_cells(
-    total: usize,
-    visible: usize,
-    scroll: usize,
-    col: u16,
-    top: u16,
-) -> Vec<CellView> {
-    // First content line in the window, 0-based from the transcript top.
-    let first = total.saturating_sub(visible) - scroll.min(total.saturating_sub(visible));
-    let Some((thumb_top, thumb_len)) = thumb(total, visible, first) else {
-        return Vec::new();
-    };
-    let t = crew_theme::theme();
-    (0..visible)
-        .map(|i| {
-            let in_thumb = i >= thumb_top && i < thumb_top + thumb_len;
-            if in_thumb {
-                cell(col, top + i as u16, '\u{2503}', t.text_muted, true) // ┃
-            } else {
-                cell(col, top + i as u16, '\u{2502}', t.dim, false) // │
-            }
-        })
-        .collect()
-}
-
 /// The `↓ N new` pill, right-aligned at `row`. Empty when nothing is unread.
 pub(crate) fn new_pill_cells(unread: usize, cols: u16, row: u16) -> Vec<CellView> {
     if unread == 0 {
@@ -119,12 +91,6 @@ mod tests {
     use crate::chat::ChatPane;
     use crew_hive::{AgentKind, ModelTier, TaskId, TaskSpec};
     use crew_plugin::Plugin;
-
-    #[test]
-    fn no_scrollbar_when_content_fits() {
-        assert!(scrollbar_cells(5, 10, 0, 79, 2).is_empty());
-        assert!(scrollbar_cells(10, 10, 0, 79, 2).is_empty());
-    }
 
     #[test]
     fn scroll_clamp_accounts_for_the_live_swarm_block() {
@@ -183,26 +149,6 @@ mod tests {
         assert_eq!(top + len, 10, "bottom-anchored at max scroll");
         let (top, len) = thumb(100, 10, 45).expect("overflowing");
         assert!(top > 0 && top + len < 10, "mid-scroll sits mid-track");
-    }
-
-    #[test]
-    fn thumb_sits_at_bottom_when_following_live() {
-        let cells = scrollbar_cells(100, 10, 0, 79, 2);
-        assert_eq!(cells.len(), 10);
-        let thumb: Vec<u16> = cells
-            .iter()
-            .filter(|c| c.c == '\u{2503}')
-            .map(|c| c.row)
-            .collect();
-        assert!(!thumb.is_empty());
-        assert_eq!(*thumb.last().unwrap(), 11, "thumb hugs the window bottom");
-    }
-
-    #[test]
-    fn thumb_moves_to_top_when_fully_scrolled() {
-        let cells = scrollbar_cells(100, 10, 90, 79, 2);
-        let first_thumb = cells.iter().find(|c| c.c == '\u{2503}').unwrap();
-        assert_eq!(first_thumb.row, 2, "thumb at the window top");
     }
 
     #[test]

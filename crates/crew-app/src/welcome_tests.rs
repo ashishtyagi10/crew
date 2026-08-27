@@ -217,13 +217,13 @@ fn a_wide_window_gets_the_roomiest_form() {
 #[test]
 fn the_welcome_names_what_this_build_brought() {
     let _g = crate::app::theme_test_guard();
-    let line = super::whats_new(100).expect("a headline for this build");
+    let line = super::whats_new(120).expect("a headline for this build");
     assert!(line.starts_with("new in "), "{line}");
     let version = env!("CARGO_PKG_VERSION");
     assert!(line.contains(version), "{line} does not name {version}");
     // It is one line of prose, not a paragraph of one.
     assert!(!line.contains('\n'));
-    assert!(line.chars().count() < 100);
+    assert!(line.chars().count() <= 120);
     // …and it is on the screen.
     let cells = welcome_cells_animated(120, 30, 0, None);
     let text = text(&cells);
@@ -233,12 +233,22 @@ fn the_welcome_names_what_this_build_brought() {
     );
 }
 
-/// A narrow window has no room for it, and a clipped headline is worse than
-/// none: the line is dropped rather than cut.
+/// A window too narrow to say anything useful gets nothing; a headline
+/// longer than a usable window is clipped, since its length is the
+/// changelog's doing rather than the window's.
 #[test]
-fn a_narrow_window_drops_the_headline_rather_than_clipping_it() {
-    assert_eq!(super::whats_new(10), None);
-    let line = super::whats_new(200).unwrap();
-    assert_eq!(super::whats_new(line.chars().count() + 3), None);
-    assert!(super::whats_new(line.chars().count() + 4).is_some());
+fn a_narrow_window_drops_the_headline_and_a_long_one_is_clipped() {
+    assert_eq!(
+        super::whats_new(10),
+        None,
+        "no room for a version and a word"
+    );
+    assert_eq!(super::whats_new(24), None);
+    let wide = super::whats_new(400).expect("a headline at any sane width");
+    let narrow = super::whats_new(60).expect("60 columns is not narrow");
+    assert!(narrow.chars().count() <= 60);
+    assert!(narrow.starts_with("new in "));
+    if wide.chars().count() > 60 {
+        assert!(narrow.ends_with('\u{2026}'), "{narrow}");
+    }
 }

@@ -172,8 +172,22 @@ pub(crate) fn whats_new(cols: usize) -> Option<String> {
         .collect::<Vec<_>>()
         .join(" ");
     let version = rest[..rest.find('\n')?].trim();
-    let line = format!("new in {version} \u{b7} {}", head.trim_end_matches('.'));
-    (line.chars().count() + 4 <= cols).then_some(line)
+    let lead = format!("new in {version} \u{b7} ");
+    let head = head.trim_end_matches('.');
+    // The window has to hold the version and something worth reading of the
+    // headline; below that there is nothing useful to say. A headline longer
+    // than the window is the changelog's doing, not the window's, so it is
+    // clipped rather than dropped — the first clause is the part that names
+    // the release.
+    let room = cols.checked_sub(lead.chars().count() + 4)?;
+    if room < 12 {
+        return None;
+    }
+    let head = match head.chars().count() > room {
+        true => format!("{}\u{2026}", head.chars().take(room - 1).collect::<String>()),
+        false => head.to_string(),
+    };
+    Some(format!("{lead}{head}"))
 }
 
 pub fn welcome_cells_animated(
