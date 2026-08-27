@@ -176,6 +176,7 @@ fn editor_pane(born_ms: u64, cmd: Option<&str>) -> Pane {
             cmd_since: None,
             tail: Default::default(),
             read_at: 0,
+            spans: Default::default(),
         })),
         grid: FALLBACK_SIZE,
         rect: PLACEHOLDER_RECT,

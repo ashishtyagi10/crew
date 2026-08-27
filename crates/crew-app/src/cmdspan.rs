@@ -1,0 +1,80 @@
+//! Where each command's output starts and ends in a pane's buffer.
+//!
+//! Terminals that speak OSC 133 learn this from the shell. Crew does not need
+//! the shell to tell it: it already watches the foreground process of every
+//! pane once a second, so the two transitions it sees — idle to running, and
+//! running back to idle — are exactly the two edges of a command's output.
+//! The buffer's line count at each edge is the span.
+//!
+//! Second-granularity, and honest about it: a command that starts and ends
+//! between two polls leaves no span, and one whose output is still arriving
+//! when the prompt returns can carry a line or two of the next thing. What it
+//! buys is `/out` — the last command's output on its own, in a pane you can
+//! read — without asking anyone to change their shell configuration.
+
+/// One command's output, as buffer line indices.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub(crate) struct Span {
+    /// What was running.
+    pub name: String,
+    /// Buffer lines when it started, and when it stopped. `to` is `None`
+    /// while it is still running.
+    pub from: usize,
+    pub to: Option<usize>,
+}
+
+/// How many spans a pane remembers. Enough to reach back through a working
+/// session; small enough to stay a rounding error next to the scrollback.
+const CAP: usize = 32;
+
+/// The spans a pane has seen, oldest first.
+#[derive(Default)]
+pub(crate) struct Spans(Vec<Span>);
+
+impl Spans {
+    /// A command started at buffer line `at`.
+    pub(crate) fn started(&mut self, name: String, at: usize) {
+        // An unclosed span means the previous command's end was missed; close
+        // it here rather than leaving a span that runs to the end of time.
+        self.close(at);
+        self.0.push(Span {
+            name,
+            from: at,
+            to: None,
+        });
+        while self.0.len() > CAP {
+            self.0.remove(0);
+        }
+    }
+
+    /// The running command stopped at buffer line `at`.
+    pub(crate) fn close(&mut self, at: usize) {
+        if let Some(open) = self.0.last_mut().filter(|s| s.to.is_none()) {
+            open.to = Some(at.max(open.from));
+        }
+    }
+
+    /// The most recent span with output to show: the finished one, or the
+    /// running one when it has produced anything yet.
+    pub(crate) fn latest(&self, now: usize) -> Option<&Span> {
+        let s = self.0.last()?;
+        (s.to.unwrap_or(now) > s.from).then_some(s)
+    }
+
+    /// The `[from, to)` line range of `span` in a buffer that currently holds
+    /// `now` lines, clamped to it — the buffer wraps its scrollback away
+    /// under us, and a range past the end would slice nothing.
+    pub(crate) fn range(span: &Span, now: usize) -> (usize, usize) {
+        let to = span.to.unwrap_or(now).min(now);
+        (span.from.min(to), to)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn len(&self) -> usize {
+        self.0.len()
+    }
+}
+
+#[cfg(test)]
+#[path = "cmdspan_tests.rs"]
+mod tests;

@@ -27,6 +27,10 @@ pub(crate) const COMMANDS: &[Cmd] = &[
         desc: "Search scrollback, highlighting matches (/find <text>)",
     },
     Cmd {
+        name: "/out",
+        desc: "Open the last command's output on its own, in the file viewer",
+    },
+    Cmd {
         name: "/errors",
         desc: "Scroll back to the most recent error in this pane (repeat for the one before)",
     },
