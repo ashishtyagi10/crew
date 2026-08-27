@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.96
+
+**One read of a pane's rows per frame, not three.** Marking file references,
+marking URLs and scanning for errors all needed the same thing — the pane's
+cells read back as rows of text — and each built its own copy from the same
+cells, one after another, on every frame of every terminal pane.
+
+The frame reads them once now and hands the same rows to all three. The
+per-frame work drops by two thirds for the markers, and the three can no longer
+disagree about what is on the row they are marking.
+
 ## 0.18.95
 
 **A picker says which value you are already on.** `/theme`, `/gradient`,

@@ -173,6 +173,14 @@ fn push_pane_scenes(
         PaneContent::View(v) => v.hit_rows(),
         _ => Vec::new(),
     };
+    // One read of this pane's cells, shared by everything that wants its
+    // rows as text: the file-reference marks, the URL marks and the error
+    // scan. Each used to build the same `Vec<Vec<char>>` from the same cells,
+    // one after another, on every frame of every terminal pane.
+    let text_rows = match is_term || matches!(&p.content, PaneContent::Chat(_)) {
+        true => crate::gridrows::grid_lines(&cells, p.grid.cols, p.grid.rows),
+        false => Vec::new(),
+    };
     // Both border markings answer to one switch: they are crew drawing on
     // its own chrome about someone else's output, and a plain frame is a
     // reasonable thing to want.
@@ -190,11 +198,7 @@ fn push_pane_scenes(
     // the cells already built for the frame rather than by re-reading the
     // grid — one pass over what is on screen.
     let err_rows = match is_term && marks {
-        true => crate::errscan::error_rows(&crate::gridrows::grid_lines(
-            &cells,
-            p.grid.cols,
-            p.grid.rows,
-        )),
+        true => crate::errscan::error_rows(&text_rows),
         false => Vec::new(),
     };
     // A pane's foreground command and how long it has been at it. `cmd_since`
@@ -233,14 +237,14 @@ fn push_pane_scenes(
     // pane resolves the same Cmd+click a terminal one does — so the same
     // marks belong here.
     if matches!(&p.content, PaneContent::Chat(_)) {
-        crate::pathhl::mark(&mut cells, p.grid.cols, p.grid.rows);
+        crate::pathhl::mark_in(&mut cells, &text_rows);
     }
     // Mark what is clickable: file references first (dotted rule), then URLs
     // (solid) — a URL that also looks like a path is re-marked as the URL it
     // is, rather than wearing both rules.
     if is_term {
-        crate::pathhl::mark(&mut cells, p.grid.cols, p.grid.rows);
-        crate::linkhl::colorize(&mut cells, p.grid.cols, p.grid.rows);
+        crate::pathhl::mark_in(&mut cells, &text_rows);
+        crate::linkhl::colorize_in(&mut cells, &text_rows);
     }
     // Wash search matches in the focused terminal while viewing a /find
     // result (scrolled back); it self-clears on return to the bottom.
