@@ -221,6 +221,7 @@ mod swarmpane;
 #[cfg(test)]
 #[path = "swarmshot_tests.rs"]
 mod swarmshot_tests;
+mod swatch;
 mod termwrite;
 mod themefade;
 mod themereport;

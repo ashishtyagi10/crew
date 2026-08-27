@@ -38,6 +38,10 @@ pub(crate) struct MenuItem {
     /// so a fuzzy hit explains itself. Empty when nothing matched (an empty
     /// query, or a row that is not a search result).
     pub hit: Vec<usize>,
+    /// Colours this row stands for, drawn between the label and the
+    /// description ([`crate::swatch`]). Empty for a value that is not a
+    /// colour, which is most of them.
+    pub swatch: Vec<crate::swatch::Chip>,
     /// The chord that runs this command, shown right-aligned
     /// ([`crate::cmdkeys`]). `None` for rows that are not commands.
     pub key: Option<&'static str>,
@@ -89,6 +93,7 @@ pub(crate) fn menu_items(text: &str) -> Vec<MenuItem> {
             .filter(|(v, _)| v.to_lowercase().starts_with(&arg))
             .map(|(v, desc)| MenuItem {
                 fill: format!("{cmd} {v}"),
+                swatch: crate::swatch::for_value(cmd, &v),
                 label: v,
                 desc,
                 submit: true,
