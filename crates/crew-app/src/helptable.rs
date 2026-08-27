@@ -33,6 +33,7 @@ pub(crate) const BINDINGS: &[(&str, &str)] = &[
         "open URL/file/dir · copy a code block in an agent pane",
     ),
     ("Cmd+W / Cmd+M", "Close pane / maximize"),
+    ("Cmd+Shift+T", "Reopen the pane you just closed"),
     ("Cmd+K", "Clear focused pane scrollback"),
     (
         "Ctrl+Shift+L",

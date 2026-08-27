@@ -90,6 +90,9 @@ impl CrewApp {
             "," => self.spawn_settings_pane(),
             "g" => self.toggle_sidebar(),
             "t" => self.spawn_new_pane(),
+            // Cmd+Shift+T, the browser's undo-close — the shifted character
+            // arrives as its own logical key, exactly like `{` and `}` above.
+            "T" => self.reopen_pane(),
             "j" => {
                 let cmd = Self::echo_plugin_cmd();
                 self.spawn_chat_pane(&cmd);

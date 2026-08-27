@@ -283,6 +283,7 @@ a letter, a space or Backspace), and the filter is forgotten on the way out.
 | Complete the leading `@agent` name or slash construct | **Tab** |
 | Insert a newline in a terminal | **Shift+Enter** (line feed, not submit) |
 | Close pane / maximize window | **Cmd+W** / **Cmd+M** |
+| Reopen the pane you just closed | **Cmd+Shift+T** (or `/reopen`) |
 | Clear focused pane scrollback | **Cmd+K** (or `/clear`) |
 | Scroll any pane | **Shift+PageUp** / **Shift+PageDown**, or mouse wheel |
 | Scroll to top / bottom | **Shift+Home** / **Shift+End** |
@@ -847,6 +848,17 @@ longer aim at.
 - **Working directory** — the bar's legend shows Crew's current directory
   (`~`-abbreviated). Type **`cd <path>`** (or bare `cd` for home) to move it; new
   shells (**Cmd+T** / `/shell`) open in that directory.
+- **`/reopen`** (**Cmd+Shift+T**) undoes the last close. `Cmd+W` and the `[x]`
+  button take a pane in one keystroke and never ask first — that is the point of
+  them — so the pane they take is written down instead. A reopened pane is a
+  *new* pane in the same place: a shell in the directory that one was standing
+  in (its live `cd`-tracked directory, not the one it was spawned in), the
+  viewer back on its file, `/smith` or the todo list back on the grid. What
+  cannot come back is what died with the PTY — the scrollback, the environment,
+  whatever was running. Crew remembers the last 8 closes, so undoing a `/only`
+  or a `/closeall` walks the whole grid back one pane at a time; the status line
+  says how many are left. Pane kinds with no honest restore (settings, a swarm
+  view) are skipped rather than half-reopened.
 - **`/restore`** reopens the last session's panes: every quit path (Cmd+Q,
   window close, `/exit`) snapshots each restorable pane to `session.toml`
   beside the config — terminal panes save the shell's **live** working

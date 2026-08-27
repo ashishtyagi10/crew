@@ -210,6 +210,9 @@ pub struct CrewApp {
     /// ever existed this session — gates the quit snapshot so a pane-less
     /// run can't wipe a saved `/restore` session.
     pub(crate) had_restorable: bool,
+    /// Panes closed this session that crew could bring back — `/reopen`
+    /// (Cmd+Shift+T) pops the most recent. See [`crate::reopen`].
+    pub(crate) closed: crate::reopen::ClosedStack,
     /// Saved-session shell count for the welcome screen's `/restore` hint
     /// (seeded at startup, cleared once `/restore` spends the snapshot).
     pub(crate) restore_hint: Option<usize>,
@@ -292,6 +295,10 @@ impl CrewApp {
                 crate::ghost::Exit::Closed,
                 crate::anim::now_ms(),
             ));
+            // Everything a reopen needs is read off the live pane, so it has
+            // to be read HERE — one line later the PTY is being reaped and
+            // the directory it was standing in is gone with it.
+            self.closed.remember(p);
             self.panes.remove(idx);
             self.grid.on_close(idx);
         }
