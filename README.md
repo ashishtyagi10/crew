@@ -14,6 +14,12 @@ timeline. See
 [Swarm orchestration](#swarm-orchestration-crew-hive) and
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
+It reads the terminal it is: the whole underline family, dim and conceal, OSC 8
+hyperlinks, DECSCUSR cursor shapes, program-requested notifications and progress
+(OSC 9 / 9;4) — and it derives **command blocks without shell integration**, so
+`/out` can open the last command's output on its own and every card can mark
+where its commands began and where its errors are.
+
 Built on **macOS**, **Linux**, and **Windows**.
 
 Rendering is built for legibility: a **whole-pixel cell grid** whose box never
@@ -221,7 +227,7 @@ the arrow and page keys, and any other key closes it.
 | Cycle themes (fixed presets, then random-dark/light, then auto) | **Ctrl+Shift+L** |
 | Toggle chat markdown preview ↔ raw source | **Ctrl+Shift+M** |
 | Reverse-search the chat composer's send history | **Ctrl+R** |
-| Find in the chat transcript | **Cmd+F** (or **Ctrl+F**) |
+| Find: the chat transcript, or `/find` in the bar | **Cmd+F** (or **Ctrl+F**) |
 | Insert a newline in a terminal | **Shift+Enter** (sends a line feed, not submit) |
 | Close pane / maximize window | **Cmd+W** / **Cmd+M** |
 | Clear focused pane scrollback | **Cmd+K** (or `/clear`) |
@@ -272,11 +278,44 @@ rates with a **throughput sparkline**, a git section for the working directory,
 and a list of open panes (click a row to focus it). The sparklines scroll on the
 sidebar's once-a-second refresh, so the charts animate at no extra redraw cost.
 
-## Git on the card
+## What a pane tells you
 
-Each pane's border shows the git state of the directory that pane is in —
-`main ●3 ↑2 ↓1` — sized to whatever room the card has, and queried off-thread
-so a slow repo never stalls the UI.
+Crew's cards carry what it knows about a pane on their **borders**, never in
+the program's own columns — a terminal's grid belongs to whatever is running in
+it.
+
+- **Git state** of the directory the pane is in: `main ●3 ↑2 ↓1`, shed detail
+  first as the card narrows, queried off-thread so a slow repo never stalls the
+  UI.
+- **How long** the foreground command has been running (`9s`, `2m14`, `1h05`),
+  past five seconds.
+- **What arrived while you were away**: a rule under the last line you had
+  read, and a count on the border, in the sidebar and on the minimized
+  thumbnail. It clears when you type into the pane or scroll back to the live
+  bottom.
+- **Where each command began** (a tick) and **where the errors are** (a red
+  bar) — block structure and failure marks without any shell integration,
+  since crew already watches each pane's foreground process. `/marks off` for a
+  plain frame.
+- **Progress a program reports** (OSC 9;4), filling the bottom border — or
+  sweeping when it is working without a number.
+- **Where you are** in a scrollback, a document or a transcript: a proportional
+  thumb, with landmark ticks beside it (a diff's hunks, a document's headings,
+  a conversation's turns) and search hits in the search's own colour.
+
+## Reading what happened
+
+- **`/out [n]`** opens a command's output on its own in the file viewer — the
+  last one, or the one *n* commands back. **`/copy out`** puts the same slice on
+  the clipboard.
+- **`/errors`** walks back to the most recent failure in a pane; **`/errorsall`**
+  says which panes have failures and how many, then lands on the first.
+- **`/diff`** reviews the working tree in the viewer, pairing each removed line
+  with the added line that replaced it and drawing only the run that actually
+  differs at full strength — word edges respected, trailing whitespace on added
+  lines marked. `]` and `[` walk files and hunks; the same treatment applies to
+  a fenced diff in an agent's reply.
+- **`/pin`** keeps a pane on the grid when the LRU would demote it.
 
 ## The cursor
 
@@ -288,12 +327,20 @@ outline instead, so exactly one cursor on the canvas is filled in.
 
 The full underline family — single, double, curly (the spell-check squiggle),
 dotted, dashed — plus strikethrough and SGR 58's separate underline colour,
-drawn as GPU rules that stay continuous across cells. URLs are underlined as
-well as tinted, so a link doesn't depend on hue to read as one.
+drawn as GPU rules that stay continuous across cells. **Dim** (SGR 2) and
+**conceal** (SGR 8) are honoured too: half of what an agent CLI prints is dim,
+and a password prompt that hides its field means it.
 
-**OSC 8 hyperlinks** are honoured: text a program attached a target to is drawn
-as a link and Cmd+click opens that target (only `http`/`https`/`mailto`/`file`
-— the status line names the URL actually opening).
+Links are marked as links. URLs are tinted and underlined; **OSC 8 hyperlinks**
+are drawn as links whatever their text says, and Cmd+click opens the program's
+target (only `http`/`https`/`mailto`/`file`, named on the status line). **File
+references** — `src/main.rs:42`, `./deploy.sh`, `Cargo.toml` — wear a dotted
+rule instead, because they open here rather than in a browser, and a clicked
+`path:line` lands on that line.
+
+What a program paints with **coloured spaces** — a TUI's status line, a
+progress bar, `fzf`'s selected row — renders as it should, and so does a
+selection dragged across empty space.
 
 ## Markdown
 

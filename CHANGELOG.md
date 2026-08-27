@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.98
+
+**The README says what crew has become.** Three sections written one release at
+a time — git on the card, the cursor, text decorations — had grown into a list
+of unrelated facts while the features underneath them turned into two coherent
+ideas. They are now two sections that say those ideas: **what a pane tells you**
+(everything crew knows rides the card's border, never the program's own
+columns) and **reading what happened** (`/out`, `/errors`, `/errorsall`,
+`/diff`, `/pin`).
+
+No behaviour changed. A front door that describes a version from a fortnight
+ago is its own kind of bug.
+
 ## 0.18.97
 
 **The transcript's position moves to the card's border, and the turns are
