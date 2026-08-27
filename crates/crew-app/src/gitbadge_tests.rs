@@ -129,6 +129,7 @@ fn the_card_carries_the_badge_without_disturbing_its_legend() {
         ticks: &[],
         hits: &[],
         progress: None,
+        elapsed: None,
         unread: 0,
         doc: false,
     };

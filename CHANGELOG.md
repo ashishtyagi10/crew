@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.71
+
+**The card says how long it has been running.** Crew has known which command
+is in the foreground of each pane for a long time, and stamped when it started
+— that stamp was used for one thing, deciding whether a "finished" notification
+had earned itself. The border shows it now: `9s`, `2m14`, `1h05`.
+
+With agents in half the panes, "how long has this been going" is the question
+you actually have when you look up. A build at nine seconds and a build at nine
+minutes look identical without a clock, and only one of them is news.
+
+It appears past five seconds — every command is briefly a running command, and
+a clock on every `ls` is chrome — sits before the git badge, since a branch does
+not change while you look away, and pads its minutes and hours so the number
+does not jitter in width as it counts.
+
 ## 0.18.70
 
 **`/errors` walks back to the last thing that went wrong.** A long build

@@ -197,6 +197,7 @@ mod render;
 mod restart;
 mod restartnote;
 mod route;
+mod runclock;
 mod runpane;
 mod schemepush;
 mod scroll;

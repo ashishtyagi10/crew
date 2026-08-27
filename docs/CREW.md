@@ -882,6 +882,18 @@ Selecting empty space is visible for the same reason.
 Plain blank cells are still dropped before any colour work happens: a terminal
 is mostly empty, and every kept blank is a cell shaped and a quad drawn.
 
+## How long it has been going
+
+A pane's legend names the foreground command; the border now says **how long it
+has been running** — `9s`, `2m14`, `1h05` — once it has been going more than
+five seconds. Every command is briefly a running command, and a clock that
+appears on every `ls` is chrome; a build at nine seconds and a build at nine
+minutes look identical without one, and the second is news.
+
+It sits before the git badge, being the more perishable of the two: a branch
+does not change while you look away. The minutes and hours forms are
+zero-padded so the number does not jitter in width as it counts.
+
 ## Git on the card
 
 Every pane's top border carries the git state of **the directory that pane is
