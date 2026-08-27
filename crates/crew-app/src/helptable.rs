@@ -1,4 +1,4 @@
-//! The three binding tables the `/keys` overlay lists. Data only: the rendering,
+//! The four binding tables the `/keys` overlay lists. Data only: the rendering,
 //! the scrolling and the docs-parity contract live in [`crate::help`].
 //!
 //! They stopped having a height budget when the overlay learned to scroll, so
@@ -136,4 +136,40 @@ pub(crate) const VIEW_BINDINGS: &[(&str, &str)] = &[
     ("e / o", "Open in $EDITOR · hand to the OS default app"),
     ("Cmd+Click", "Follow a rendered markdown link"),
     ("Esc", "Close the viewer (a live search first)"),
+];
+
+/// Keys that mean something specific inside a **`/far` file panel** — the
+/// two-panel commander, whose whole interface is its function-key row.
+///
+/// Those keys were drawn along the bottom of the pane and written down in the
+/// manual, and were in no in-app list at all: `/keys` is where a user looks
+/// for "what can I press here", and every one of these was somewhere else.
+pub(crate) const FAR_BINDINGS: &[(&str, &str)] = &[
+    ("Tab", "Switch panels (or complete a typed command)"),
+    (
+        "Enter · Backspace",
+        "Descend into the selection or run the typed command \u{b7} go up",
+    ),
+    (
+        "F1 · Alt+F1 / Alt+F2",
+        "This help \u{b7} re-root the left / right panel on a drive",
+    ),
+    (
+        "F3 / F4",
+        "View the selection in the file viewer / open it in $EDITOR",
+    ),
+    ("F5 / F6", "Copy / move to the other panel"),
+    ("F7 / F8", "Make a folder \u{b7} move to the trash"),
+    (
+        "F10 · Esc",
+        "Close the panel \u{b7} clear the typed command, then close",
+    ),
+    (
+        "Up / Down · PageUp/Down · Home/End",
+        "Move the selection \u{b7} by a page \u{b7} to either end",
+    ),
+    (
+        "! (in the command line)",
+        "Ask the AI for the command, then Enter to run what it suggests",
+    ),
 ];

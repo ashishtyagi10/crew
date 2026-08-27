@@ -311,18 +311,10 @@ fn the_scroll_limit_follows_the_filter() {
     assert_eq!(max_scroll(h, "zzzznope"), 0);
 }
 
-/// Every key the file viewer answers to is in the overlay.
-///
-/// Read out of `viewpane/keys.rs` itself rather than listed a second time
-/// here: two lists with nothing comparing them is exactly how `Ctrl+O` came
-/// to be implemented, tested, and in neither list — and how every one of the
-/// viewer's own keys came to be documented in the manual and nowhere a user
-/// could find them without reading it.
-#[test]
-fn every_viewer_key_is_in_the_overlay() {
-    let src = include_str!("viewpane/keys.rs");
-    // The single-character arms of `view_key`: `"x" => ViewInput::…` and the
-    // exact-case `s.as_str() == "x"` guards above them.
+/// The keys a source file's key map answers to, as the overlay would have to
+/// spell them: single characters from `"x" =>` arms, and the function keys
+/// from `NamedKey::F<n>`.
+fn keys_in(src: &str) -> Vec<String> {
     let mut keys: Vec<String> = Vec::new();
     for (pat, take) in [("s.as_str() == \"", 1), ("\" => ViewInput::", 0)] {
         for (i, _) in src.match_indices(pat) {
@@ -335,32 +327,79 @@ fn every_viewer_key_is_in_the_overlay() {
             }
         }
     }
-    assert!(keys.len() >= 8, "the parse found only {keys:?}");
-    // The overlay's KEY column only, split into the individual keys a row
-    // names. Matching against the descriptions too would let `v` be "found"
-    // inside the word "viewer" — which is exactly what happened, and is the
-    // difference between a parity test and a test that always passes.
-    //
-    // Split on the separators only, THEN on `/` — never `/` alone, or the
-    // search key (a row spelled `/ · n / N`) is split out of existence by the
-    // very character it is named after.
-    let mut listed: std::collections::HashSet<String> = std::collections::HashSet::new();
-    for (k, _) in VIEW_BINDINGS {
+    for (i, _) in src.match_indices("NamedKey::F") {
+        let digits: String = src[i + "NamedKey::F".len()..]
+            .chars()
+            .take_while(char::is_ascii_digit)
+            .collect();
+        if !digits.is_empty() {
+            keys.push(format!("F{digits}"));
+        }
+    }
+    keys.sort();
+    keys.dedup();
+    keys
+}
+
+/// The individual keys a binding table names, out of its KEY column only.
+///
+/// Matching against the descriptions too let `v` be "found" inside the word
+/// *viewer*, so deleting its row changed nothing — the difference between a
+/// parity test and a test that always passes. And the split runs on the
+/// separators BEFORE `/`, or the search key (a row spelled `/ · n / N`) is
+/// split out of existence by the very character it is named after.
+fn listed_in(table: &[(&str, &str)]) -> std::collections::HashSet<String> {
+    let mut out = std::collections::HashSet::new();
+    for (k, _) in table {
         for tok in k
             .split(['\u{b7}', ' '])
             .map(str::trim)
             .filter(|t| !t.is_empty())
         {
-            listed.insert(tok.to_string());
+            out.insert(tok.to_string());
             for part in tok.split('/').filter(|p| !p.is_empty()) {
-                listed.insert(part.to_string());
+                out.insert(part.to_string());
+                // …and the key a modifier chord ends in: `F2` is reachable
+                // only as `Alt+F2`, and the key map only knows it as `F2`.
+                if let Some(bare) = part.rsplit('+').next() {
+                    out.insert(bare.to_string());
+                }
             }
         }
     }
-    for k in keys {
-        assert!(
-            listed.contains(&k),
-            "the viewer answers to `{k}` and /keys never says so \u{2014} {listed:?}"
-        );
+    out
+}
+
+/// Every key a pane kind answers to is in the overlay.
+///
+/// Read out of the key map itself rather than listed a second time here: two
+/// lists with nothing comparing them is exactly how `Ctrl+O` came to be
+/// implemented, tested, and in neither list — and how the file viewer's keys
+/// and the `/far` panel's function-key row came to be written down in the
+/// manual and nowhere a user could find them without reading it.
+#[test]
+fn every_pane_key_is_in_the_overlay() {
+    let panes = [
+        (
+            "the file viewer",
+            include_str!("viewpane/keys.rs"),
+            VIEW_BINDINGS,
+        ),
+        (
+            "a /far panel",
+            include_str!("farpane/keys.rs"),
+            FAR_BINDINGS,
+        ),
+    ];
+    for (what, src, table) in panes {
+        let keys = keys_in(src);
+        assert!(keys.len() >= 8, "{what}: the parse found only {keys:?}");
+        let listed = listed_in(table);
+        for k in keys {
+            assert!(
+                listed.contains(&k),
+                "{what} answers to `{k}` and /keys never says so \u{2014} {listed:?}"
+            );
+        }
     }
 }
