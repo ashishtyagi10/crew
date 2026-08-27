@@ -294,3 +294,50 @@ fn ghost_caches_path_completion_between_identical_calls() {
     std::fs::remove_dir_all(&base).unwrap();
     assert_eq!(bar.ghost().as_deref(), Some("pha/"));
 }
+
+/// End to end on the drawn card: the command word and its argument are not
+/// the same colour, so the bar says what it makes of what you typed.
+#[test]
+fn the_drawn_bar_colours_the_command_apart_from_its_argument() {
+    let _g = crate::app::theme_test_guard();
+    let bar = InputBar {
+        text: "/theme dark".into(),
+        focused: true,
+        ..InputBar::default()
+    };
+    let cells = bar.cells(60, 3, None, None);
+    let at = |ch: char| {
+        cells
+            .iter()
+            .find(|c| c.c == ch && c.row == 1)
+            .unwrap_or_else(|| panic!("no {ch} on the input row"))
+            .fg
+    };
+    assert_eq!(at('/'), crate::palette::accent());
+    assert_ne!(at('d'), at('/'), "the argument took the command's colour");
+}
+
+/// A command that cannot resolve is marked before Enter, not after.
+#[test]
+fn a_command_that_does_not_exist_is_marked_as_it_is_typed() {
+    let _g = crate::app::theme_test_guard();
+    let typo = InputBar {
+        text: "/zzz".into(),
+        focused: true,
+        ..InputBar::default()
+    };
+    let real = InputBar {
+        text: "/theme".into(),
+        focused: true,
+        ..InputBar::default()
+    };
+    let first = |b: &InputBar| {
+        b.cells(60, 3, None, None)
+            .into_iter()
+            .find(|c| c.c == '/' && c.row == 1)
+            .unwrap()
+            .fg
+    };
+    assert_eq!(first(&typo), crew_theme::theme().bell);
+    assert_ne!(first(&typo), first(&real));
+}

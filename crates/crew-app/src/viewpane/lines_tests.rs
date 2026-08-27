@@ -129,6 +129,9 @@ fn raw_mode_shows_markdown_source_verbatim() {
 
 #[test]
 fn diff_ink_differs_between_added_and_removed() {
+    // The assertions are colours; another test switching palettes
+    // mid-run would make them disagree with the cells just built.
+    let _g = crate::app::theme_test_guard();
     // Fix 6: the old assertion was only `add != del`, so red additions with
     // green deletions — the colours swapped — would still pass. Assert
     // against the exact theme slot each side draws from, per `diff_lines`'s
@@ -146,6 +149,9 @@ fn diff_ink_differs_between_added_and_removed() {
 
 #[test]
 fn a_wrapped_added_diff_line_keeps_its_colour_on_the_continuation_row() {
+    // The assertions are colours; another test switching palettes
+    // mid-run would make them disagree with the cells just built.
+    let _g = crate::app::theme_test_guard();
     // Fix 7: `diff_lines` used to read `chars.first()` of each WRAPPED row
     // as if it were the `+`/`-` marker, so a wrapped added line lost its
     // colour after the first row (the continuation's first char is body
@@ -187,6 +193,9 @@ fn a_wrapped_diff_row_blanks_its_gutter_like_numbered_does() {
 
 #[test]
 fn a_keyword_is_coloured_differently_from_a_plain_identifier() {
+    // The assertions are colours; another test switching palettes
+    // mid-run would make them disagree with the cells just built.
+    let _g = crate::app::theme_test_guard();
     // Fix 1: `Code`/`Data` used to reach `numbered`, which painted every
     // character `ink` regardless of what the lexer would have called it —
     // `md::syntax::tokenize` was never called from `viewpane/` at all.

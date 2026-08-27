@@ -88,10 +88,13 @@ impl InputBar {
         let text_area = (cols.saturating_sub(tstart + 1)) as usize;
         // Typed text (bright), then either the ghost suggestion (dim) or the
         // block cursor when there's nothing to suggest.
+        // What you have typed, coloured by what it MEANS: a command that
+        // resolves, one still being typed, one that never will, plus flags
+        // and quoted runs (see `inputink`).
         let mut body: Vec<(char, (u8, u8, u8))> = self
             .text
             .chars()
-            .map(|c| (c, crew_theme::theme().ink))
+            .zip(crate::inputink::paint(&self.text))
             .collect();
         match &self.ghost() {
             Some(g) => body.extend(g.chars().map(|c| (c, crew_theme::theme().dim))),

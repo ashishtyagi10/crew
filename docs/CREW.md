@@ -366,6 +366,15 @@ The docked command bar supports:
   viewer** — headings, code fences and all. Warp's "ask AI about this error",
   as a two-keystroke prefix. Non-terminal focus or an empty pane gets a
   status hint; the same one-ask-at-a-time and worker-thread rules as `?` apply.
+- **Coloured input** — the bar paints what you type, so it says what it makes
+  of it before you press Enter: a leading `/command` reads **accent** when it
+  resolves, muted while it is still being typed, and in the **alarm colour when
+  nothing begins with it** (`/them` is on its way to `/theme`; `/zzz` is on its
+  way to nothing). Flags recede, and a quoted run is marked from its opening
+  quote to its closing one — an unterminated quote marks to the end of the
+  line, which is how you see that it is unterminated. Three marks and no more:
+  the bar is one row, and a syntax highlighter's worth of colour on twelve
+  characters is decoration rather than information.
 - **Slash commands** — type `/` for a command palette (↑/↓ to pick, Tab/→ to
   fill, Enter to run): `/smith`, `/goal <text>`, `/batch <file>`, `/view <file>`,
   `/md <file>`, `/diff`, `/settings`, `/find <text>`, `/findall <text>`, `/name <text>`, `/clear`, `/clearall`,
