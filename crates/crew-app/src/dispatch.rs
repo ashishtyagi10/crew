@@ -13,6 +13,7 @@ impl CrewApp {
             // A long build scrolls its own failure off the screen; this walks
             // back to it. Repeating steps to the one before.
             "errors" => self.find_error_in_terminal(),
+            "errorsall" => self.find_errors_everywhere(),
             // The last command's output, on its own, in a pane you can read.
             "out" => self.open_last_output(""),
             "pin" => self.toggle_pin(),

@@ -723,6 +723,12 @@ longer aim at.
   starts — the block structure other terminals need shell integration for,
   drawn as chrome rather than in the program's own columns. An error bar on the
   same row wins it: "this failed" outranks "this began".
+- **`/errorsall`** — the fleet-wide version: counts the errors in **every**
+  terminal pane's scrollback (bounded and paged, like `/findall`), reports
+  which panes have them and how many — `4 errors in 2 panes: →#3 (3) #5 (1)` —
+  and lands on the first, walked to its most recent one. With six agents
+  running, "which of these went wrong" is the question you have before you go
+  looking in any of them.
 - **`/errors`** — scrolls the focused terminal back to the most recent line
   that reads as an **error**, and reports how many are in view. A long build
   scrolls its own failure off the screen, and finding it again otherwise means

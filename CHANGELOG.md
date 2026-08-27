@@ -8,6 +8,15 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.89
+
+**`/errorsall` — which pane went wrong.** `/errors` answers that one pane at a
+time; with six agents running, the question you have first is *which of these*.
+It counts the errors in every terminal pane's full scrollback — paged and
+bounded, the same walk `/findall` uses — reports the tally per pane using the
+same numbers `Cmd+1..9` do, and lands you on the first one, already scrolled to
+its most recent failure. It ends somewhere useful rather than on a number.
+
 ## 0.18.88
 
 **A clippy warning that shipped.** The command-bar sweep landed in 0.18.87 with

@@ -61,7 +61,88 @@ fn count_scrollback(pty: &mut PtyTerm, cols: u16, rows: u16, term: &str) -> usiz
     count
 }
 
+/// Errors across a pane's whole scrollback, counted the way `/findall` counts
+/// matches: page by whole screens, restore the viewport, cap the walk.
+fn count_errors(pty: &mut PtyTerm, cols: u16, rows: u16) -> usize {
+    let start = pty.display_offset();
+    loop {
+        let before = pty.display_offset();
+        pty.scroll(rows as i32);
+        if pty.display_offset() == before {
+            break;
+        }
+    }
+    let errs = |lines: &[String]| -> usize {
+        lines
+            .iter()
+            .filter(|l| crate::errscan::looks_like_error(l))
+            .count()
+    };
+    let mut count = errs(&rows_text(&pty.cells(false), cols, rows, false));
+    let mut seen = rows as usize;
+    while pty.display_offset() > 0 && seen < MAX_LINES {
+        let before = pty.display_offset();
+        pty.scroll(-(rows as i32));
+        let delta = before - pty.display_offset();
+        if delta == 0 {
+            break;
+        }
+        let lines = rows_text(&pty.cells(false), cols, rows, false);
+        count += errs(&lines[rows as usize - delta..]);
+        seen += delta;
+    }
+    pty.scroll_to_bottom();
+    if start > 0 {
+        pty.scroll(start as i32);
+    }
+    count
+}
+
 impl CrewApp {
+    /// `/errorsall` — which panes have failures in them, and how many.
+    ///
+    /// The fleet-wide question `/errors` answers one pane at a time. With six
+    /// agents running, "which of these went wrong" is the thing you want
+    /// before you go looking in any of them.
+    pub(crate) fn find_errors_everywhere(&mut self) {
+        let mut hits: Vec<(usize, usize)> = Vec::new();
+        for i in 0..self.panes.len() {
+            let (cols, rows) = (self.panes[i].grid.cols, self.panes[i].grid.rows);
+            if let PaneContent::Terminal(t) = &mut self.panes[i].content {
+                let n = count_errors(&mut t.pty, cols, rows);
+                if n > 0 {
+                    hits.push((i, n));
+                }
+            }
+        }
+        let Some(&(first, _)) = hits.first() else {
+            self.set_status("no errors in any pane");
+            return;
+        };
+        // Land on the first pane with errors and walk it to its most recent
+        // one, so the command ends somewhere useful rather than on a tally.
+        self.focused = first;
+        self.input.focused = false;
+        self.reconcile_grid();
+        self.last_find = None;
+        self.find_error_in_terminal();
+        let total: usize = hits.iter().map(|&(_, n)| n).sum();
+        let where_list: Vec<String> = hits
+            .iter()
+            .map(|&(i, n)| {
+                let mark = if i == self.focused { "\u{2192}" } else { "" };
+                format!("{mark}#{} ({n})", i + 1)
+            })
+            .collect();
+        let panes = hits.len();
+        let plural = if total == 1 { "" } else { "s" };
+        self.set_status(format!(
+            "{total} error{plural} in {panes} pane{}: {}",
+            if panes == 1 { "" } else { "s" },
+            where_list.join(" ")
+        ));
+    }
+
     /// `/findall <term>` — see the module doc.
     pub(crate) fn find_all(&mut self, term: &str) {
         let term = term.trim();
