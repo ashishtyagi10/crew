@@ -872,6 +872,18 @@ longer aim at.
   terminal gets the shell-quoted absolute path. Multiple files land
   space-separated in arrival order.
 
+**Pasting something that would run.** A terminal sends a paste as if you had
+typed it, newlines included, so a multi-line block runs line by line — the
+oldest footgun there is. Crew asks first, but only when the answer matters: a
+program that enabled **bracketed paste** (every modern shell, editor and agent
+CLI) receives the block wrapped and decides for itself, so nothing runs and
+nothing is asked. Without it, a multi-line paste is held with a count —
+`12 lines would run here — ⌘V again to paste` — and the second **Cmd+V** sends
+it. One trailing newline is not multi-line: copying a line out of a file takes
+its terminator with it, and holding that would train you to confirm
+everything. A hold older than fifteen seconds is dropped rather than sent,
+because a confirmation you have forgotten giving is not a confirmation.
+
 ## When a program says something itself
 
 Two escapes let a program speak for itself instead of being guessed at, and

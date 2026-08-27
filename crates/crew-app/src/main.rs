@@ -189,6 +189,7 @@ mod panemanage;
 mod panes_roster;
 mod panescroll;
 mod paneview;
+mod pastesafe;
 mod pathcomplete;
 mod pathexpand;
 mod pathhl;

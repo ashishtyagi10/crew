@@ -10,6 +10,10 @@ impl CrewApp {
     /// terminal pane. Each write snaps to the bottom. Returns how many terminals
     /// received it (0 means nothing did, e.g. no shell is open/focused).
     pub(crate) fn write_terminal_targets(&mut self, bytes: &[u8], all: bool) -> usize {
+        // Typing is moving on: a paste held for a confirmation you did not
+        // give must not fire later because you pressed Cmd+V for something
+        // else entirely.
+        self.held_paste.clear();
         let focused = self.focused;
         let mut count = 0;
         for (i, pane) in self.panes.iter_mut().enumerate() {

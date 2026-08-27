@@ -76,6 +76,29 @@ impl CrewApp {
                 None => return,
             },
         };
+        // A held paste is answered by the next Cmd+V — the same key, which is
+        // the one people press when they mean "yes, that one".
+        if let Some(held) = self.held_paste.take(std::time::Instant::now()) {
+            self.insert_paste(&held);
+            return;
+        }
+        let bracketed = match self.panes.get(self.focused).map(|p| &p.content) {
+            Some(PaneContent::Terminal(t)) if !self.input.focused => Some(t.pty.bracketed_paste()),
+            _ => None,
+        };
+        // Only a terminal runs what it is handed; the bar, a chat composer and
+        // a todo list all just hold the text.
+        if let Some(false) = bracketed {
+            if crate::pastesafe::needs_confirm(&text, false) {
+                let n = crate::pastesafe::line_count(&text);
+                self.held_paste.hold(&text, std::time::Instant::now());
+                self.set_status(format!(
+                    "{n} lines would run here \u{2014} \u{2318}V again to paste"
+                ));
+                self.redraw();
+                return;
+            }
+        }
         self.insert_paste(&text);
     }
 

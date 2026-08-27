@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.94
+
+**A paste that would run asks first.** A terminal sends what you paste as if
+you had typed it — newlines included — so a multi-line block runs line by line.
+Every serious terminal asks about that, and crew did not.
+
+It asks only when the answer matters. A program that enabled **bracketed
+paste** — every modern shell, editor and agent CLI — receives the block wrapped
+and decides for itself, so nothing runs and nothing is asked. Without it, the
+paste is held with a count (`12 lines would run here — ⌘V again to paste`) and
+the second Cmd+V sends it: the same key, which is the one you press when you
+mean "yes, that one".
+
+One trailing newline is not multi-line — copying a line out of a file takes its
+terminator with it, and holding that would train you to confirm everything —
+and a hold older than fifteen seconds is dropped rather than sent, because a
+confirmation you have forgotten giving is not a confirmation.
+
 ## 0.18.93
 
 **Cmd+C copies any pane, not just a terminal.** In the file viewer, a rendered
