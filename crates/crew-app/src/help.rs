@@ -9,7 +9,7 @@ use ratatui::widgets::{Block, BorderType, List, ListItem, Widget};
 
 use crate::palette::accent_color;
 
-use crate::helptable::{BINDINGS, CHAT_BINDINGS};
+use crate::helptable::{BINDINGS, CHAT_BINDINGS, VIEW_BINDINGS};
 
 /// Width of the key column. Every description starts here.
 const KEY_COL: usize = 26;
@@ -31,10 +31,11 @@ const KEY_COL: usize = 26;
 /// same lesson as the footer in v0.6.57: a truncated instruction teaches the
 /// half that fits, and nobody can see that the rest existed.
 pub fn size() -> (u16, u16) {
-    let rows = BINDINGS.len() + CHAT_BINDINGS.len() + 2 + 4;
+    let rows = BINDINGS.len() + CHAT_BINDINGS.len() + VIEW_BINDINGS.len() + 4 + 4;
     let widest = BINDINGS
         .iter()
         .chain(CHAT_BINDINGS)
+        .chain(VIEW_BINDINGS)
         .map(|(k, d)| KEY_COL.max(k.chars().count() + 1) + d.chars().count())
         .max()
         .unwrap_or(KEY_COL);
@@ -49,6 +50,9 @@ fn lines() -> Vec<(&'static str, &'static str)> {
     v.push(("", ""));
     v.push(("", "in an agent pane"));
     v.extend_from_slice(CHAT_BINDINGS);
+    v.push(("", ""));
+    v.push(("", "in the file viewer"));
+    v.extend_from_slice(VIEW_BINDINGS);
     v
 }
 
