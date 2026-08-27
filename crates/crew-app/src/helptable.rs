@@ -19,6 +19,7 @@ pub(crate) const BINDINGS: &[(&str, &str)] = &[
         "Swap the focused pane with that neighbour",
     ),
     ("Cmd+I / Cmd+T", "Focus the input bar / new shell pane"),
+    ("Cmd+F", "Find: in a chat transcript, or /find in the bar"),
     ("Cmd+, / Cmd+J", "Settings / chat pane"),
     ("Cmd+G / Cmd+Z", "Toggle sidebar / zoom focused pane"),
     ("Cmd+S", "Broadcast to all panes"),

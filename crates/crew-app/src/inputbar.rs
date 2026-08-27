@@ -38,6 +38,17 @@ pub(crate) struct GhostCache {
 }
 
 impl InputBar {
+    /// Put `text` in the bar with the caret after it, ready to be finished.
+    /// Used by chords that stand for a command with an argument.
+    pub fn prefill(&mut self, text: &str) {
+        self.text = text.to_string();
+        self.focused = true;
+        // A prefill is a fresh line, not a history browse.
+        self.hist_pos = None;
+        self.hist_prefix.clear();
+        self.menu_sel = 0;
+    }
+
     /// The ghost-suffix to show after the typed text (and insert on Tab/→): the
     /// highlighted palette command, else `cd` directory completion, else a
     /// history/slash autosuggestion. `None` when unfocused or nothing completes.

@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.92
+
+**Cmd+F does something in a terminal pane.** It has opened the find bar in a
+chat transcript for a long time and done *nothing at all* anywhere else —
+including in the pane kind crew has most of, where the chord is the first thing
+anyone reaches for. It now opens the command bar with `/find ` typed and the
+caret waiting, which is the search a terminal pane has.
+
+A key that silently misses is worse than one that is not bound: you press it,
+nothing happens, and you learn that crew does not do that.
+
 ## 0.18.91
 
 **`/theme` offers the palettes, not just the rotations.** Twelve palettes ship;
