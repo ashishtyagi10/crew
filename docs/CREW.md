@@ -832,6 +832,23 @@ Only the block repaints the cell it lands on (inverting it, so the glyph stays
 readable); the bar and the underline are rules drawn beside the glyph, which
 keeps its own colours.
 
+## Loud and quiet
+
+**SGR 2 (dim)** is honoured. Agent CLIs put half of what they print in it —
+the reasoning, the file lists, the "thinking" line — to say *this is context,
+not the answer*; crew rendered every one of those at full strength, so
+everything a CLI said was equally loud. A dim cell is now mixed toward the
+page in linear light (so its hue survives — a dim red is still red) and then
+**floored at a lower contrast than body text**: quieter, because the program
+asked for quieter, but never below readable, because half a session's output
+arrives that way and a program that guessed the page colour wrong would
+otherwise land it on top of the background.
+
+**SGR 8 (conceal)** is honoured too: a program hiding what you type — a
+password prompt — has it hidden. The cell keeps its background, so a concealed
+field still occupies the space it claimed, and the characters are still in the
+grid for a selection to copy.
+
 ## Text decorations
 
 Crew draws the whole underline family, not just the one: **SGR 4** (single),

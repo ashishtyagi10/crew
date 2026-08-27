@@ -635,3 +635,87 @@ mod painted_background_tests {
         assert_eq!(spaces, 0, "{} plain spaces were kept", spaces);
     }
 }
+
+/// SGR 2 and SGR 8: the two attributes that change whether a cell is read at
+/// all. Half of what an agent CLI prints is dim, and a password prompt that
+/// conceals its field means it.
+#[cfg(test)]
+mod quiet_tests {
+    use super::super::{GridSize, HeadlessTerm, TermModel};
+    use crate::contrast::{ratio, DIM_CONTRAST};
+
+    fn cell(seq: &[u8], col: u16) -> crate::model::RenderCell {
+        let mut t = HeadlessTerm::new(GridSize { cols: 30, rows: 3 });
+        t.feed(seq);
+        t.cells(false)
+            .into_iter()
+            .find(|c| c.col == col && c.row == 0)
+            .expect("a cell at that column")
+    }
+
+    #[test]
+    fn dim_text_is_quieter_than_the_same_text_undimmed() {
+        let plain = cell(b"x", 0);
+        let dim = cell(b"\x1b[2mx", 0);
+        assert_eq!(dim.c, 'x');
+        assert!(
+            ratio(dim.fg, dim.bg) < ratio(plain.fg, plain.bg),
+            "dim {:?} reads as loud as plain {:?}",
+            dim.fg,
+            plain.fg
+        );
+    }
+
+    /// …but never so quiet it is gone. A dim that cannot be read is a line
+    /// dropped, not a line whispered.
+    #[test]
+    fn dim_text_is_still_readable_even_when_the_program_picked_badly() {
+        // A foreground the program tuned for the other kind of page.
+        let dim = cell(b"\x1b[2m\x1b[38;2;20;20;24mx", 0);
+        assert!(
+            ratio(dim.fg, dim.bg) >= DIM_CONTRAST - 0.01,
+            "{:?} on {:?} reads at {}",
+            dim.fg,
+            dim.bg,
+            ratio(dim.fg, dim.bg)
+        );
+    }
+
+    /// Dim keeps the colour it dims: a dim red is still red, or a CLI's
+    /// colour-coded secondary lines all turn the same grey.
+    #[test]
+    fn dim_preserves_the_hue_it_was_given() {
+        let dim = cell(b"\x1b[2m\x1b[38;2;220;40;40mx", 0);
+        assert!(
+            dim.fg.0 > dim.fg.1 && dim.fg.0 > dim.fg.2,
+            "dim red came out {:?}",
+            dim.fg
+        );
+    }
+
+    /// SGR 22 puts the voice back — a dim run that never ends is the rest of
+    /// the session in half-ink.
+    #[test]
+    fn sgr_22_ends_the_dim_run() {
+        let mut t = HeadlessTerm::new(GridSize { cols: 30, rows: 3 });
+        t.feed(b"\x1b[2ma\x1b[22mb");
+        let cells = t.cells(false);
+        let at = |col: u16| cells.iter().find(|c| c.col == col).unwrap().fg;
+        assert_ne!(at(0), at(1), "SGR 22 left the text dim");
+        assert_eq!(at(1), cell(b"b", 0).fg);
+    }
+
+    /// SGR 8 conceals. The characters are still in the grid — a selection
+    /// copies what is there — but nothing is drawn.
+    #[test]
+    fn concealed_text_draws_nothing_and_sgr_28_reveals_again() {
+        let mut t = HeadlessTerm::new(GridSize { cols: 30, rows: 3 });
+        t.feed(b"\x1b[8mhide\x1b[28mshow");
+        let cells = t.cells(false);
+        let drawn: String = (0..4)
+            .filter_map(|c| cells.iter().find(|x| x.col == c).map(|x| x.c))
+            .collect();
+        assert!(drawn.trim().is_empty(), "the concealed run drew {drawn:?}");
+        assert!(cells.iter().any(|c| c.col == 4 && c.c == 's'));
+    }
+}
