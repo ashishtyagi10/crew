@@ -67,7 +67,7 @@ fn gamma_of(key: &CacheKey) -> u8 {
 }
 
 /// Whether the glyph was shaped for a dark page.
-fn dark_of(key: &CacheKey) -> bool {
+pub(crate) fn dark_of(key: &CacheKey) -> bool {
     key.flags.bits() & DARK_BIT != 0
 }
 

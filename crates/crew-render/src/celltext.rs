@@ -28,8 +28,10 @@ pub(crate) struct FontParams {
     /// blend's gamma error [`crate::textgamma`] takes back. Rides in the
     /// cache-key flags beside `smooth`, for the same reason.
     pub gamma: u8,
-    /// Whether the page is dark, i.e. the ink is light. Decides which way
-    /// the gamma curve bends, so it re-keys glyphs on a theme switch.
+    /// Whether the PAGE is dark, i.e. its own ink is light. Styled runs
+    /// derive their polarity from their own fg/bg instead (a bright badge
+    /// in a dark theme wants the bright answer); this is what blank cells
+    /// and the prewarm are painted in, and it re-keys on a theme switch.
     pub dark: bool,
 }
 
@@ -189,8 +191,12 @@ fn detect_corrections(buffer: &Buffer, font_system: &mut FontSystem, params: &Fo
 enum RunKey {
     Default,
     /// fg, bold, italic, letter-spacing correction (f32 bits — `None` for
-    /// glyphs whose natural advance already snaps to their cell).
-    Styled((u8, u8, u8), bool, bool, Option<u32>),
+    /// glyphs whose natural advance already snaps to their cell), and whether
+    /// the cell paints light ink on a darker ground. The last one is not a
+    /// style: it is which way [`crate::textgamma`] bends this run's coverage
+    /// curve, and runs split on it so a bright badge in a dark theme gets the
+    /// correction its own colours ask for.
+    Styled((u8, u8, u8), bool, bool, Option<u32>, bool),
 }
 
 /// Fill an existing `Buffer` with rich-text spans for `cells` laid out in cols×rows.
@@ -220,8 +226,12 @@ pub(crate) fn fill_rich_text(
         }
     }
 
-    let flags = crate::smoothing::text_flags(params.smooth, params.gamma, params.dark);
-    let default_attrs = Attrs::new().family(fam).weight(base).cache_key_flags(flags);
+    // Blank cells sit on the page, so the page's own polarity is theirs.
+    let default_flags = crate::smoothing::text_flags(params.smooth, params.gamma, params.dark);
+    let default_attrs = Attrs::new()
+        .family(fam)
+        .weight(base)
+        .cache_key_flags(default_flags);
 
     // Build the entire buffer text once, recording `(start, end, key)` byte
     // ranges into it; consecutive same-key cells extend the current run.
@@ -239,7 +249,13 @@ pub(crate) fn fill_rich_text(
                     let ls = correction_for(params, cell.c, w);
                     (
                         cell.c,
-                        RunKey::Styled(cell.fg, cell.bold, cell.italic, ls.map(f32::to_bits)),
+                        RunKey::Styled(
+                            cell.fg,
+                            cell.bold,
+                            cell.italic,
+                            ls.map(f32::to_bits),
+                            crate::textgamma::light_ink(cell.fg, cell.bg),
+                        ),
                     )
                 }
                 None => (' ', RunKey::Default),
@@ -263,12 +279,16 @@ pub(crate) fn fill_rich_text(
         .map(|(s, e, key)| {
             let attrs = match key {
                 RunKey::Default => default_attrs.clone(),
-                RunKey::Styled(fg, bold, italic, ls) => {
+                RunKey::Styled(fg, bold, italic, ls, light) => {
                     let mut a = Attrs::new()
                         .family(fam)
                         .color(Color::rgb(fg.0, fg.1, fg.2))
                         .weight(if *bold { Weight::BOLD } else { base })
-                        .cache_key_flags(flags);
+                        .cache_key_flags(crate::smoothing::text_flags(
+                            params.smooth,
+                            params.gamma,
+                            *light,
+                        ));
                     if *italic {
                         a = a.style(Style::Italic);
                     }

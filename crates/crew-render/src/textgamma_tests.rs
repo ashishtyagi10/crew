@@ -103,3 +103,38 @@ fn the_curve_follows_a_polarity_switch() {
         on_light[0]
     );
 }
+
+/// Polarity is a property of a cell's own two colours, not of the theme.
+/// Crew draws bright badges inside dark themes, dark chips inside light
+/// ones, and inverts both under the cursor — and a curve bent the wrong way
+/// does not merely fail to help, it doubles the error it was there to
+/// cancel.
+#[test]
+fn polarity_reads_the_cells_own_colours() {
+    use super::light_ink;
+    let dark_page = (18, 18, 20);
+    let bright_badge = (240, 238, 230);
+    let pale_ink = (230, 230, 235);
+    let ink = (20, 20, 24);
+    assert!(light_ink(pale_ink, dark_page), "light ink on the dark page");
+    assert!(
+        !light_ink(ink, bright_badge),
+        "dark ink on a bright badge, inside the same dark theme"
+    );
+    // Inverting a cell — what the cursor does — inverts the answer.
+    assert!(light_ink(dark_page, pale_ink) != light_ink(pale_ink, dark_page));
+}
+
+/// Luminance, not byte value: a saturated green reads brighter than a
+/// saturated blue of the same numeric level, and the curve has to agree
+/// with the eye rather than with the tuple.
+#[test]
+fn polarity_weighs_the_channels_the_way_the_eye_does() {
+    let green = (0, 200, 0);
+    let blue = (0, 0, 200);
+    assert!(
+        super::light_ink(green, blue),
+        "green ink on blue ground is light ink"
+    );
+    assert!(!super::light_ink(blue, green));
+}

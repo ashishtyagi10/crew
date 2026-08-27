@@ -8,6 +8,29 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.26
+
+**The text-gamma correction now reads each run's own colours, not the theme's.**
+Polarity — which way the coverage curve bends — shipped last release as a
+property of the page. It is not. Crew draws dark text on bright badges inside
+dark themes, bright text on dark chips inside light ones, and the cursor
+inverts a cell's colours outright. A theme-wide answer gets every one of those
+backwards, and backwards is worse than off: the curve then doubles the error it
+was put there to cancel.
+
+Runs already split on colour, so they now split on polarity too, taken from
+each run's own fg against its own bg by WCAG relative luminance — the eye's
+weighting, not the tuple's, so green ink on blue ground is correctly light ink.
+A character that appears in both polarities is two atlas entries instead of one
+bitmap bent whichever way it happened to be shaped first.
+
+The prewarm was painted white-on-black no matter the theme, which under
+per-run polarity would have seeded keys no bright-page frame ever looks up —
+every glyph on screen paying full freight for rasterization, packing, and at
+Retina sizes the atlas grow that re-uploads everything already in it. It is
+painted in the page's own polarity now, with a test that fails if it drifts
+back.
+
 ## 0.19.25
 
 **Crew was throwing away 40% of its text's light, and now takes it back.**

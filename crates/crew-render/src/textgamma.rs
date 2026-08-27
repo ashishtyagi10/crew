@@ -22,6 +22,17 @@
 //! 0 and 1: a glyph's empty pixels and its solid interior never move, and
 //! only the antialiased rim — which is most of a small glyph — is touched.
 
+/// Whether a cell paints light ink on a darker ground — which way its
+/// coverage curve has to bend. Read per RUN rather than per theme: crew
+/// draws dark text on bright badges inside dark themes and vice versa, and
+/// the cell under an inverted cursor flips both at once. A theme-wide
+/// polarity gets every one of those backwards, which is the direction that
+/// makes text look worst, since the correction then doubles the error it
+/// was there to cancel.
+pub(crate) fn light_ink(fg: (u8, u8, u8), bg: (u8, u8, u8)) -> bool {
+    crew_theme::relative_luminance(fg) > crew_theme::relative_luminance(bg)
+}
+
 /// Display gamma the encoded blend is losing to.
 const GAMMA: f32 = 2.2;
 

@@ -574,6 +574,14 @@ The docked command bar supports:
   antialiased rim — most of a small glyph — is touched. Live and persisted; no
   argument reports the current amount. The named ladder is also the **Text
   gamma** field in `/settings`, beside Smoothing, and both write `font_gamma`.
+  The polarity is read **per run, from each run's own two colours** — not from
+  the theme. Crew draws dark text on bright badges inside dark themes, bright
+  text on dark chips inside light ones, and the cursor inverts both at once; a
+  theme-wide answer gets every one of those backwards, which is worse than not
+  correcting at all, because the curve then doubles the error it was there to
+  cancel. Runs split on polarity, so a character that appears in both is two
+  atlas entries rather than one bitmap bent whichever way it happened to be
+  shaped first.
 The palette **remembers what you run.** Among commands that match what you have
 typed equally well, the ones you actually use come first; the rest fall back to
 the order they are declared in, which means something to whoever last edited
