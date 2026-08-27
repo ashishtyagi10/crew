@@ -23,6 +23,7 @@ mod scene;
 mod scenecache;
 mod scenetarget;
 mod smoothing;
+mod smoothmask;
 mod textprep;
 pub use cellgrid::CellGrid;
 pub use cellgrid::CellView;

@@ -1,20 +1,9 @@
-use glyphon::cosmic_text::{CacheKeyFlags, SwashCache, SwashContent, SwashImage};
+use glyphon::cosmic_text::{CacheKeyFlags, SwashCache, SwashContent};
 
-use super::{presmooth, smooth_mask, strength_of, text_flags};
+use super::{presmooth, strength_of, text_flags};
 use crate::cellgrid::CellView;
 use crate::celltext::CELL_H_RATIO;
 use crate::celltext::{build_pane_buffer, cell_metrics, FontParams};
-
-fn mask_1x1(alpha: u8) -> SwashImage {
-    let mut image = SwashImage::new();
-    image.content = SwashContent::Mask;
-    image.placement.left = 3;
-    image.placement.top = 5;
-    image.placement.width = 1;
-    image.placement.height = 1;
-    image.data = vec![alpha];
-    image
-}
 
 #[test]
 fn text_flags_disable_hinting_and_carry_the_strength_byte() {
@@ -58,63 +47,6 @@ fn shaped_glyphs_carry_the_flags_through_to_their_cache_keys() {
     let key = glyph.physical((0.0, 0.0), 1.0).cache_key;
     assert!(key.flags.contains(CacheKeyFlags::DISABLE_HINTING));
     assert_eq!(strength_of(&key), 137);
-}
-
-#[test]
-fn full_strength_dilation_of_a_lone_pixel() {
-    let out = smooth_mask(&mask_1x1(255), 255);
-    // 1×1 grows to 3×3 with the placement shifted to compensate: one column
-    // left (left 3→2) and one row up (top 5→6, top counts upward).
-    assert_eq!(
-        (
-            out.placement.left,
-            out.placement.top,
-            out.placement.width,
-            out.placement.height
-        ),
-        (2, 6, 3, 3)
-    );
-    // Horizontal neighbours get full strength (255), vertical half (127),
-    // diagonals nothing — the dilation is a 4-neighbourhood.
-    #[rustfmt::skip]
-    let expected = vec![
-          0, 127,   0,
-        255, 255, 255,
-          0, 127,   0,
-    ];
-    assert_eq!(out.data, expected);
-}
-
-#[test]
-fn dilation_scales_linearly_with_strength() {
-    let out = smooth_mask(&mask_1x1(255), 100);
-    #[rustfmt::skip]
-    let expected = vec![
-          0,  50,   0,
-        100, 255, 100,
-          0,  50,   0,
-    ];
-    assert_eq!(out.data, expected);
-}
-
-#[test]
-fn smoothing_never_dims_an_original_pixel() {
-    let mut image = mask_1x1(0);
-    image.placement.width = 3;
-    image.placement.height = 2;
-    image.data = vec![10, 200, 30, 0, 255, 90];
-    let out = smooth_mask(&image, 180);
-    assert_eq!((out.placement.width, out.placement.height), (5, 4));
-    for y in 0..2usize {
-        for x in 0..3usize {
-            let original = image.data[y * 3 + x];
-            let smoothed = out.data[(y + 1) * 5 + (x + 1)];
-            assert!(
-                smoothed >= original,
-                "pixel ({x},{y}) dimmed: {original} -> {smoothed}"
-            );
-        }
-    }
 }
 
 #[test]

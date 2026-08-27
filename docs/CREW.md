@@ -550,7 +550,15 @@ The docked command bar supports:
   strength — including `off`). Live and persisted; no argument reports the
   current strength; selecting `/smooth` in the palette opens a value picker.
   The named ladder is also the **Smoothing** field in `/settings` — both write
-  the same `font_smooth` key.
+  the same `font_smooth` key. The darkening *accumulates* coverage rather than
+  taking the brighter of a pixel and its neighbour's spill, so the letters
+  built from curves take the same widening as the ones built from stems — a
+  saturating dilation cannot darken a pixel whose own coverage already beats
+  what its neighbour lends it, which is every pixel on the flank of an `o`, an
+  `s` or a `/`, and those letters used to read a shade lighter than an `l` in
+  the same word. A strength still means what it always meant: the spill is
+  calibrated so the ink a given number lays down is unchanged, and only where
+  it lands moved.
 The palette **remembers what you run.** Among commands that match what you have
 typed equally well, the ones you actually use come first; the rest fall back to
 the order they are declared in, which means something to whoever last edited
