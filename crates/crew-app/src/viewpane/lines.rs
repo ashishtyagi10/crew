@@ -91,7 +91,15 @@ fn painted(
     for (n, chars) in wrap(text, w) {
         src.push(n - 1);
         let mut line: CardLine = if n == last {
-            row(&" ".repeat(GUTTER_W), muted, false)
+            // A continuation says so. A blank gutter beside a wrapped line
+            // and a blank gutter beside a genuinely empty numbered line look
+            // identical, and in a wrapped file most rows are one or the
+            // other.
+            let mut cont = row(&" ".repeat(GUTTER_W), muted, false);
+            if let Some(cell) = cont.get_mut(GUTTER_W - 2) {
+                cell.c = '\u{21aa}';
+            }
+            cont
         } else {
             pos = 0;
             row(&format!("{n:>5} "), muted, false)
@@ -113,13 +121,50 @@ fn painted(
     (out, src)
 }
 
+/// Trailing whitespace on an ADDED line, shown as middle dots.
+///
+/// It is the review nit every diff tool marks, because it is invisible by
+/// construction: the reviewer cannot see it and the author did not mean it.
+/// Only added lines — what a removed line trailed with is not news — and only
+/// past the marker column, so a line of pure indentation still reads as one.
+fn mark_trailing_space(line: &mut CardLine, added: bool) {
+    if !added {
+        return;
+    }
+    let fg = crew_theme::theme().bell;
+    let start = line
+        .iter()
+        .rposition(|c| !c.c.is_whitespace())
+        .map(|i| i + 1)
+        .unwrap_or(0);
+    // `GUTTER_W + 1`: the gutter and the `+` marker are not the line's text.
+    for cell in line.iter_mut().skip(start.max(GUTTER_W + 1)) {
+        if cell.c == ' ' {
+            cell.c = '\u{b7}';
+            cell.fg = fg;
+        }
+    }
+}
+
 /// The diff rung: a review rather than a colour per line. Pairing, word-level
 /// marks and the header treatment live in [`super::diffpaint`]; this only lays
 /// that paint down through the same numbered gutter every other rung uses.
 fn diff_lines(text: &str, cols: usize) -> (Vec<CardLine>, Vec<Mark>) {
     let t = crew_theme::theme();
     let paints = super::diffpaint::paint(text);
-    let (lines, src) = painted(text, cols, &paints, t.ink, t.text_muted);
+    let (mut lines, src) = painted(text, cols, &paints, t.ink, t.text_muted);
+    // Only the row a source line STARTS on carries its marker, so only that
+    // row can be an added line whose tail is worth marking.
+    let kinds: Vec<super::diffpaint::Kind> =
+        text.split('\n').map(super::diffpaint::kind_of).collect();
+    let mut last = usize::MAX;
+    for (row, line) in lines.iter_mut().enumerate() {
+        let n = src.get(row).copied().unwrap_or(0);
+        let first = n != last;
+        last = n;
+        let added = first && kinds.get(n) == Some(&super::diffpaint::Kind::Added);
+        mark_trailing_space(line, added);
+    }
     // Landmarks are found in the source and reported as ROWS: a wrapped line
     // occupies several, and `]` has to land on the first of them.
     let marks = super::outline::diff_marks(text)
