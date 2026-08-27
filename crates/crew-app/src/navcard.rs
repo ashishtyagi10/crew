@@ -81,7 +81,7 @@ impl CrewApp {
         // draws from; before the renderer reports geometry the set is empty.
         let strip_hidden = self
             .placed_grid()
-            .map(|(_, placed)| placed.strip_hidden(self.grid.minimized()))
+            .map(|(_, placed)| placed.strip_hidden(&self.grid.minimized()))
             .unwrap_or_default();
         // One clock read per frame keeps every row's blink phase in step.
         let now = crate::anim::now_ms();

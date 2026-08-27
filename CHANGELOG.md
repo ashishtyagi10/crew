@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.77
+
+**`/pin` keeps a pane on the grid.** Crew shows six full tiles and demotes the
+least-recently-active pane to the strip. That rule is right about which pane
+you have not touched and wrong about whether it matters: the pane you are least
+likely to touch is often the agent you most want to keep watching, and it was
+the first one to disappear.
+
+A pinned pane is exempt. Its card marks itself on the top border — a pane that
+behaves differently from its neighbours has to say so somewhere — and `/pin`
+again hands it back to the LRU. Pins follow their panes through a close (the
+index shifts with everything else, or a pin ends up holding a tile for whichever
+pane inherited its number), and more pins than tiles is not an error: the oldest
+pins keep their tiles, because a pin cannot make room that does not exist.
+
 ## 0.18.76
 
 **The accent field says how it reads.** Crew measures every colour it derives —

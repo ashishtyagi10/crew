@@ -38,6 +38,29 @@ impl CrewApp {
 
     /// Close all panes except the focused one. A no-op (with a hint) when there
     /// is one pane or none.
+    /// `/pin` — keep the focused pane on the grid, or let it go again.
+    ///
+    /// The LRU is right about which pane you have not touched and wrong about
+    /// whether that matters: the pane you are least likely to touch is often
+    /// the agent you most want to keep watching.
+    pub(crate) fn toggle_pin(&mut self) {
+        let idx = self.focused;
+        let on = !self.grid.is_pinned(idx);
+        self.grid.set_pinned(idx, on);
+        // The set of full tiles just changed; the same reconcile every other
+        // promotion path goes through re-lays the grid.
+        self.reconcile_grid();
+        let title = self
+            .panes
+            .get(idx)
+            .map(|p| p.title_text())
+            .unwrap_or_default();
+        self.set_status(match on {
+            true => format!("{title} pinned to the grid"),
+            false => format!("{title} unpinned"),
+        });
+    }
+
     pub(crate) fn close_other_panes(&mut self) {
         if self.panes.len() <= 1 {
             self.set_status("only one pane");

@@ -1,5 +1,6 @@
 use super::compose::MIN_STRIP_TILE_COLS;
 use super::*;
+use crate::grid::state::MAX_FULL_TILES;
 
 #[test]
 fn add_orders_most_recent_first() {
@@ -282,7 +283,7 @@ fn strip_hidden_names_exactly_the_panes_behind_the_overflow_tile() {
         g.add(idx);
     }
     let out = compose_grid(content(), &g, 8.0, 16.0, 8.0);
-    let mut hidden = out.strip_hidden(g.minimized());
+    let mut hidden = out.strip_hidden(&g.minimized());
     hidden.sort_unstable();
     assert_eq!(hidden, (0..=8).collect::<Vec<_>>());
     // No overflow → nothing hidden, even with panes minimized.
@@ -291,5 +292,66 @@ fn strip_hidden_names_exactly_the_panes_behind_the_overflow_tile() {
         small.add(idx);
     }
     let out = compose_grid(content(), &small, 8.0, 16.0, 8.0);
-    assert_eq!(out.strip_hidden(small.minimized()), Vec::<usize>::new());
+    assert_eq!(out.strip_hidden(&small.minimized()), Vec::<usize>::new());
+}
+
+/// The LRU is right about which pane you have not touched and wrong about
+/// whether that matters: a pinned pane keeps its tile however long it sits.
+#[test]
+fn a_pinned_pane_is_never_demoted_by_the_lru() {
+    let mut g = GridLayout::new();
+    for i in 0..MAX_FULL_TILES + 1 {
+        g.add(i);
+    }
+    // Pane 0 is the least recently active, so it is the one on the strip.
+    assert!(g.minimized().contains(&0), "{:?}", g.minimized());
+    g.set_pinned(0, true);
+    assert!(g.full().contains(&0), "a pin did not save it");
+    assert!(!g.minimized().contains(&0));
+    // …and unpinning gives it back to the LRU.
+    g.set_pinned(0, false);
+    assert!(g.minimized().contains(&0));
+}
+
+/// A pin changes nothing else: the rest of the grid still orders by recency,
+/// and the pane that gets demoted instead is the next-least-recent one.
+#[test]
+fn pinning_demotes_the_next_least_recent_pane_instead() {
+    let mut g = GridLayout::new();
+    for i in 0..MAX_FULL_TILES + 1 {
+        g.add(i);
+    }
+    g.set_pinned(0, true);
+    assert_eq!(g.minimized(), vec![1], "{:?}", g.minimized());
+}
+
+/// More pins than tiles is not an error and cannot make room that does not
+/// exist: the oldest pins win and the rest demote like anything else.
+#[test]
+fn more_pins_than_tiles_keeps_the_oldest_pins() {
+    let mut g = GridLayout::new();
+    for i in 0..MAX_FULL_TILES + 2 {
+        g.add(i);
+        g.set_pinned(i, true);
+    }
+    let full = g.full();
+    assert_eq!(full.len(), MAX_FULL_TILES);
+    assert!(full.contains(&0) && full.contains(&1), "{full:?}");
+    assert!(!full.contains(&(MAX_FULL_TILES + 1)));
+}
+
+/// Closing a pane reindexes the pins with everything else, or a pin ends up
+/// holding a tile for whichever pane inherited its index.
+#[test]
+fn closing_a_pane_reindexes_the_pins() {
+    let mut g = GridLayout::new();
+    for i in 0..4 {
+        g.add(i);
+    }
+    g.set_pinned(3, true);
+    g.on_close(1);
+    assert!(g.is_pinned(2), "pin 3 did not follow its pane down to 2");
+    assert!(!g.is_pinned(3));
+    g.on_close(2);
+    assert!(!g.is_pinned(2), "the closed pane's pin outlived it");
 }

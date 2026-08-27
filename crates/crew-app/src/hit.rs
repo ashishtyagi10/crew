@@ -93,7 +93,7 @@ impl CrewApp {
         }
         let hidden = self
             .placed_grid()
-            .map(|(_, placed)| placed.strip_hidden(self.grid.minimized()))
+            .map(|(_, placed)| placed.strip_hidden(&self.grid.minimized()))
             .unwrap_or_default();
         match hidden.first() {
             Some(&i) => {

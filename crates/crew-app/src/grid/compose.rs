@@ -55,7 +55,7 @@ pub fn compose_grid(
     cell_h: f32,
     gap: f32,
 ) -> GridRects {
-    let mut full_ids = layout.full().to_vec();
+    let mut full_ids = layout.full();
     let min_lru = layout.minimized();
     if full_ids.is_empty() && min_lru.is_empty() {
         return GridRects::default();
@@ -84,7 +84,7 @@ pub fn compose_grid(
         // stays sorted by pane index like everything else on the canvas.
         let cap = strip_cap(content.w, cell_w, gap);
         let (shown, hidden) = if min_lru.len() <= cap {
-            (min_lru, 0)
+            (&min_lru[..], 0)
         } else {
             // Reserve the last slot for the `+N` overflow tile.
             let keep = cap.saturating_sub(1);

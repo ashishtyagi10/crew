@@ -15,6 +15,7 @@ impl CrewApp {
             "errors" => self.find_error_in_terminal(),
             // The last command's output, on its own, in a pane you can read.
             "out" => self.open_last_output(),
+            "pin" => self.toggle_pin(),
             "far" => self.spawn_far_pane(),
             "goal" => self.spawn_goal_pane(""), // show usage hint
             "model" => self.set_model_cmd(""),  // show usage hint

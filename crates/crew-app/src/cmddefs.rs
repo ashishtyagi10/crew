@@ -27,6 +27,10 @@ pub(crate) const COMMANDS: &[Cmd] = &[
         desc: "Search scrollback, highlighting matches (/find <text>)",
     },
     Cmd {
+        name: "/pin",
+        desc: "Keep the focused pane on the grid (never demoted to the strip)",
+    },
+    Cmd {
         name: "/out",
         desc: "Open the last command's output on its own, in the file viewer",
     },
