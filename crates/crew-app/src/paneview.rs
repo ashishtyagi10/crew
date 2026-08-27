@@ -168,6 +168,10 @@ fn push_pane_scenes(
         PaneContent::View(v) => v.hit_rows(),
         _ => Vec::new(),
     };
+    let progress = match &p.content {
+        PaneContent::Terminal(t) => t.pty.progress(),
+        _ => None,
+    };
     let unread = match &p.content {
         PaneContent::Terminal(t) => crate::unread::count(t.pty.scrollable_lines(), t.read_at),
         _ => 0,
@@ -256,6 +260,7 @@ fn push_pane_scenes(
                 git: git.info(p.dir.as_deref()),
                 ticks: &ticks,
                 hits: &hits,
+                progress,
                 unread,
                 doc: matches!(p.content, PaneContent::View(_)),
             },

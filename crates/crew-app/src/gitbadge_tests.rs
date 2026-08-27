@@ -128,6 +128,7 @@ fn the_card_carries_the_badge_without_disturbing_its_legend() {
         git,
         ticks: &[],
         hits: &[],
+        progress: None,
         unread: 0,
         doc: false,
     };

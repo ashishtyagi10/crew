@@ -60,6 +60,7 @@ pub fn push_ghost(
                 git: None,
                 ticks: &[],
                 hits: &[],
+                progress: None,
                 unread: 0,
                 doc: false,
             },

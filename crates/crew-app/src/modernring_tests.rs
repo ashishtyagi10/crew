@@ -26,6 +26,7 @@ fn bar(focused: bool) -> Bar<'static> {
         git: None,
         ticks: &[],
         hits: &[],
+        progress: None,
         unread: 0,
         doc: false,
     }

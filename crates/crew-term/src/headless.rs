@@ -34,6 +34,17 @@ impl HeadlessTerm {
         self.core.scheme_notify_enabled()
     }
 
+    /// A notification the program in this pane asked for (OSC 9 / OSC 777),
+    /// once.
+    pub fn take_notify(&mut self) -> Option<(String, String)> {
+        self.core.take_notify()
+    }
+
+    /// What the program says about its own progress (OSC 9;4).
+    pub fn progress(&self) -> Option<crate::osc::Progress> {
+        self.core.progress()
+    }
+
     /// The OSC 8 hyperlink target under viewport cell `(col, row)`.
     pub fn link_at(&self, col: u16, row: u16) -> Option<String> {
         self.core.link_at(col, row)

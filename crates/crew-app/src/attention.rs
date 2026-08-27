@@ -28,6 +28,7 @@ impl Attention {
             NotifyKind::AgentDone => '✓',
             NotifyKind::Exited => '⊗',
             NotifyKind::Waiting => '?',
+            NotifyKind::Requested => '\u{25b8}',
         }
     }
 

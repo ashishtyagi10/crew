@@ -8,6 +8,28 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.67
+
+**Programs can say things for themselves now.** Crew's notifications have all
+been *inferences* — a command finished, a bell rang, a pattern matched, a pane
+looks blocked. Two escape sequences let a program simply say what it wants
+said, and both were being dropped on the floor: `ESC ] 9 ; text ST` (iTerm2 /
+ConEmu) and `ESC ] 777 ; notify ; title ; body ST` (what most Linux tooling
+emits). They now raise a real notification with the program's own words and the
+pane's name beside them. Since it was *requested* rather than guessed, it rides
+the master `notify` switch alone.
+
+**And progress reports draw a bar.** `ESC ] 9 ; 4 ; state ; percent ST` fills
+the card's bottom border in proportion — in the alarm colour for the error and
+warning states, and as a short block sweeping back and forth for the
+"working, no number" state, which is more honest than parking a bar at an
+arbitrary percentage. The border, not a row: a terminal's columns belong to the
+program running in it.
+
+The OSC sniffer that has been quietly reading working-directory reports since
+the beginning now reads all three, from one state machine, so a sequence split
+across two reads is still one sequence.
+
 ## 0.18.66
 
 **A diff pasted into chat reads like `/diff` does.** The viewer's diff rung
