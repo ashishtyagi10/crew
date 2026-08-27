@@ -8,6 +8,28 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.52
+
+**Everything a TUI paints with was invisible.** A terminal program draws its
+status line, its progress bars, its selected row and its diff blocks with
+*coloured spaces* — and crew threw every blank cell away before it had even
+resolved what colour the program asked for. The heuristic that decides which
+program-painted backgrounds belong on a flat canvas sat directly below that
+filter, judging backgrounds it never saw.
+
+So: `fzf`'s highlighted line, a `vim` status bar, a progress bar drawn as a
+run of blocks, the panel behind a TUI menu — none of them rendered. Neither did
+**a selection dragged across empty space**, for exactly the same reason.
+
+They render now. The flat-canvas rule is untouched — the near-grey the agent
+CLIs paint behind your last line is still flattened, as is any low-saturation
+or bright highlight background on a dark theme — but a background that carries
+meaning survives, and the blank cell carrying it is drawn.
+
+Plain blanks are still dropped, and now dropped *earlier*: the test moved above
+the colour and contrast work, because a terminal is mostly empty and a
+screenful of nothing must not pay a contrast floor sixty times a second.
+
 ## 0.18.51
 
 **Every card says which branch it is on.** Crew has known how to read git

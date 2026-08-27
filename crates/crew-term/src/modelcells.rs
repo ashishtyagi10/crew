@@ -62,18 +62,8 @@ impl TermCore {
         let dark = crate::contrast::luminance(default_bg()) < 0.5;
         let mut out: Vec<RenderCell> = content
             .display_iter
-            // Blank cells are dropped — except a blank the program decorated:
-            // the underline under the space between two underlined words is
-            // part of the same rule, and dropping it breaks the rule in two.
-            .filter(|ind| {
-                (ind.c != ' ' || crate::celldeco::decorated(ind.flags) || ind.hyperlink().is_some())
-                    && ind.c != '\0'
-                    && ind.point.line.0 + off >= 0
-            })
-            .map(|ind| {
-                let bold = ind.flags.contains(Flags::BOLD);
-                let italic = ind.flags.contains(Flags::ITALIC);
-                let fg = resolve_color(ind.fg, palette, default_fg());
+            .filter(|ind| ind.c != '\0' && ind.point.line.0 + off >= 0)
+            .filter_map(|ind| {
                 let mut bg = resolve_color(ind.bg, palette, default_bg());
                 // Reverse-video (SGR 7) is intentionally NOT honoured: programs
                 // (e.g. agent CLIs) use it to "highlight" the line you just sent,
@@ -97,6 +87,30 @@ impl TermCore {
                 if selection.is_some_and(|r| r.contains(ind.point)) {
                     bg = selection_bg();
                 }
+                // A blank cell is dropped — unless the program painted
+                // something on it. A space with a background IS the drawing in
+                // a TUI: a status line, a progress bar, a selected row, a diff
+                // block. Dropping every blank cell (which is what happened
+                // until now, before the background was even resolved) made all
+                // of those invisible while the echo-grey heuristic above sat
+                // there deciding the fate of backgrounds it never saw. The
+                // heuristic still runs — the grey the agent CLIs paint behind
+                // your last line is still flattened — this only keeps what
+                // survives it.
+                //
+                // The test happens HERE, before the colour and decoration work
+                // below: a terminal is mostly blank, and a screenful of empty
+                // cells must not pay for a contrast floor each frame.
+                if ind.c == ' '
+                    && bg == default_bg()
+                    && !crate::celldeco::decorated(ind.flags)
+                    && ind.hyperlink().is_none()
+                {
+                    return None;
+                }
+                let bold = ind.flags.contains(Flags::BOLD);
+                let italic = ind.flags.contains(Flags::ITALIC);
+                let fg = resolve_color(ind.fg, palette, default_fg());
                 // Legibility floor: a program that sampled the background once
                 // (or guessed wrong) keeps painting for the other theme after a
                 // live switch — nudge any too-close fg until it reads.
@@ -121,7 +135,7 @@ impl TermCore {
                     }
                     false => fg,
                 };
-                RenderCell {
+                Some(RenderCell {
                     col: ind.point.column.0 as u16,
                     row: (ind.point.line.0 + off) as u16,
                     c: ind.c,
@@ -131,7 +145,7 @@ impl TermCore {
                     italic,
                     deco,
                     ..Default::default()
-                }
+                })
             })
             .collect();
         crate::cursor::apply(&mut out, &cursor, off, focused);
