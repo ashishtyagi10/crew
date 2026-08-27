@@ -9,7 +9,7 @@ use std::sync::atomic::{AtomicU32, Ordering};
 /// The built-in accent: Crew green.
 pub const DEFAULT_ACCENT: (u8, u8, u8) = (0, 255, 160);
 
-fn pack((r, g, b): (u8, u8, u8)) -> u32 {
+const fn pack((r, g, b): (u8, u8, u8)) -> u32 {
     (r as u32) << 16 | (g as u32) << 8 | b as u32
 }
 
@@ -18,7 +18,19 @@ fn unpack(v: u32) -> (u8, u8, u8) {
 }
 
 /// Packed accent RGB, initialised to [`DEFAULT_ACCENT`].
-static ACCENT: AtomicU32 = AtomicU32::new((DEFAULT_ACCENT.1 as u32) << 8 | DEFAULT_ACCENT.2 as u32);
+///
+/// The initialiser used to be a hand-written `(g << 8) | b` — the red channel
+/// simply missing, which was correct only because the default's red happens
+/// to be zero, and would have silently shipped the wrong startup accent for
+/// any other default. `pack` is a `const fn` so the initialiser is the same
+/// expression every other packing goes through and the class of bug is gone
+/// rather than guarded.
+static ACCENT: AtomicU32 = AtomicU32::new(pack(DEFAULT_ACCENT));
+
+/// …and the default itself is what it says it is. A const assertion, because
+/// the test that used to check this read the LIVE global: any test that had
+/// called `set_accent` first made it fail, which is a race, not a finding.
+const _: () = assert!(pack(DEFAULT_ACCENT) == 0x00_FF_A0);
 
 /// Set the active accent colour (called from config at startup / on settings save).
 pub fn set_accent(rgb: (u8, u8, u8)) {
@@ -69,15 +81,6 @@ mod tests {
         for rgb in [(0, 255, 160), (255, 255, 255), (0, 0, 0), (18, 200, 7)] {
             assert_eq!(unpack(pack(rgb)), rgb);
         }
-    }
-
-    #[test]
-    fn static_initialiser_matches_default() {
-        // Serialise with the tests that mutate the accent global, so we read it
-        // at rest rather than mid-`set_accent`.
-        let _g = crate::palette::test_guard();
-        // The const-expr initialiser must equal pack(DEFAULT_ACCENT).
-        assert_eq!(ACCENT.load(Ordering::Relaxed), pack(DEFAULT_ACCENT));
     }
 
     #[test]

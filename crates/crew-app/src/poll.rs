@@ -272,7 +272,24 @@ impl CrewApp {
                 // Drains the loader worker: true exactly on the tick a
                 // Loading pane lands (or fails), so the frame redraws with
                 // the loaded content.
-                PaneContent::View(v) => v.poll(),
+                PaneContent::View(v) => {
+                    // Two workers can be outstanding on a viewer: the file
+                    // load and, once `/blame` has been asked, the blame read.
+                    // A blame that fails has to SAY so — a gutter that simply
+                    // never appears looks exactly like one still loading.
+                    let blamed = match v.blame.poll() {
+                        None => false,
+                        Some(Ok(())) => {
+                            v.cache.replace(None);
+                            true
+                        }
+                        Some(Err(why)) => {
+                            far_statuses.push(format!("blame: {why}"));
+                            true
+                        }
+                    };
+                    v.poll() || blamed
+                }
                 // True when the shared todo store's revision moved (another
                 // pane or the due ticker wrote) and this pane resynced.
                 PaneContent::Todo(t) => t.poll(),

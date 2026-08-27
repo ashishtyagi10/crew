@@ -1,5 +1,5 @@
 use super::*;
-use crate::cmddefs::COMMANDS;
+use crate::cmddefs::commands;
 
 #[test]
 fn expands_agrees_with_options_for_across_every_command() {
@@ -7,7 +7,7 @@ fn expands_agrees_with_options_for_across_every_command() {
     // duplicated so the palette never has to build rows just to answer a
     // bool. The two lists must never drift apart: a command in one but not
     // the other would silently gain or lose its value picker.
-    for c in COMMANDS {
+    for c in commands() {
         assert_eq!(
             expands(c.name),
             options_for(c.name).is_some(),

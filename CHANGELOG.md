@@ -8,6 +8,40 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.5
+
+**`/blame` — who last touched each line, in the viewer's gutter.** Reading a
+file in a repository, the question that follows "what does this do" is "when
+did it become this, and who was there", and answering it meant leaving the
+pane, running `git blame` in a shell, and reading the file a second time
+without any of the viewer's colouring. It is per-line data about text already
+on screen, which is what a gutter is for.
+
+Runs are collapsed — a line is labelled only when its commit differs from the
+line above it — so the column reads as *boundaries* rather than as the same
+sha repeated forty times. It degrades instead of truncating: `sha author`
+where the pane can afford it, the sha alone where it cannot, and nothing at
+all below that, never taking more than a third of the pane. `git blame` walks
+a file's whole history, so the read is on a worker thread, and a failure says
+why on the status line — a gutter that never appears looks exactly like one
+still loading. It is a toggle, and a reload drops it: a per-line answer about
+text that just changed is a wrong answer.
+
+The column is prepended to lines that are already rendered, reading each
+row's source line back out of the numbered gutter it was drawn with, so no
+rung had to learn about blame. The text is wrapped at what is left after the
+column, which is why turning blame on rebuilds the cache rather than
+decorating it.
+
+**Also:** the command palette's table is now three files (`Cmd`, then two
+ordered groups) — it grows by a row every release, and where a row *lives* is
+a question about file length while where it *ranks* is a question about the
+palette. And the accent global's static initialiser dropped the red channel —
+correct only because the default accent's red is zero. `pack` is a `const fn`
+now, so the initialiser is the same expression every other packing goes
+through, and the test that guarded it (by reading the LIVE global, which any
+test that had called `set_accent` first could break) is a const assertion.
+
 ## 0.19.4
 
 **Scroll a terminal back three pages and nothing on screen says what printed

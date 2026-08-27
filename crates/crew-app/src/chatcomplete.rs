@@ -423,7 +423,7 @@ mod doc_drift {
                 let bare = expanded.trim_start_matches('/');
                 let known = crew_plugin::broker_constructs().contains(&bare)
                     || super::CONSTRUCTS.contains(&expanded.as_str())
-                    || crate::cmddefs::COMMANDS.iter().any(|c| c.name == expanded)
+                    || crate::cmddefs::commands().any(|c| c.name == expanded)
                     || app_local.contains(&bare);
                 assert!(
                     known,
@@ -455,7 +455,7 @@ mod doc_drift {
         if docs.is_empty() {
             return; // docs not shipped in this build context
         }
-        for c in crate::cmddefs::COMMANDS {
+        for c in crate::cmddefs::commands() {
             assert!(
                 docs.contains(c.name) || UNDOCUMENTED_BY_CHOICE.contains(&c.name),
                 "{} is in the command palette and in no doc",
