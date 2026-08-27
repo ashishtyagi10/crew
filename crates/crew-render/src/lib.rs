@@ -24,6 +24,7 @@ mod scenecache;
 mod scenetarget;
 mod smoothing;
 mod smoothmask;
+mod textgamma;
 mod textprep;
 pub use cellgrid::CellGrid;
 pub use cellgrid::CellView;
@@ -36,6 +37,7 @@ pub use paperbg::{ModernPaper, PaperBgPass};
 pub use renderer::Renderer;
 pub use scene::PaneScene;
 pub use smoothing::DEFAULT_SMOOTH;
+pub use textgamma::DEFAULT_TEXT_GAMMA;
 
 /// Sorted, de-duplicated names of every installed monospace font family —
 /// flagged/name-matched candidates verified to render fixed-pitch Latin (see

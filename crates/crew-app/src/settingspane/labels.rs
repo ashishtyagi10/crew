@@ -12,6 +12,7 @@ pub(crate) fn label_of(f: Field) -> &'static str {
         Field::FontFamily => "Font family",
         Field::FontSize => "Font size",
         Field::Smooth => "Smoothing",
+        Field::FontGamma => "Text gamma",
         Field::NavWidth => "Nav width",
         Field::ShowNav => "Show nav",
         Field::Theme => "Theme",
@@ -70,6 +71,13 @@ pub(crate) fn value_of(p: &SettingsPane, f: Field) -> (String, bool) {
             format!(
                 "\u{2039} {} \u{203a}",
                 crate::smoothlvl::label_of(p.draft.font_smooth)
+            ),
+            false,
+        ),
+        Field::FontGamma => (
+            format!(
+                "\u{2039} {} \u{203a}",
+                crate::gammalvl::label_of(p.draft.font_gamma)
             ),
             false,
         ),

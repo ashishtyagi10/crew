@@ -199,6 +199,27 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
                 "170 — thick, high-contrast".to_string(),
             ),
         ]),
+        "/gamma" => Some(vec![
+            (
+                "off".to_string(),
+                "0 — the blend as the GPU makes it".to_string(),
+            ),
+            (
+                "light".to_string(),
+                "65 — a quarter of the correction".to_string(),
+            ),
+            (
+                "medium".to_string(),
+                format!(
+                    "{} — the default, Apple’s text gamma",
+                    crew_render::DEFAULT_TEXT_GAMMA
+                ),
+            ),
+            (
+                "full".to_string(),
+                "255 — the whole sRGB correction".to_string(),
+            ),
+        ]),
         // Model picker for the agent smith pane — the catalog grouped by
         // provider (see `modelpick`), applied to every agent (forwarded as
         // `/model all <slug>`). Any other slug still works: type it freeform
@@ -230,6 +251,7 @@ pub(crate) fn expands(cmd: &str) -> bool {
             | "/crt"
             | "/weight"
             | "/smooth"
+            | "/gamma"
             | "/marks"
             | "/invisibles"
             | "/copy"

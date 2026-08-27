@@ -559,6 +559,21 @@ The docked command bar supports:
   the same word. A strength still means what it always meant: the spill is
   calibrated so the ink a given number lays down is unchanged, and only where
   it lands moved.
+- **`/gamma [off|light|medium|full|<0-255>]`** — the other half of the CoreText
+  look: the coverage curve. Crew picks a non-sRGB surface on purpose, so text
+  blends on gamma-encoded values — the web and CoreText look — and that costs a
+  half-covered edge pixel most of the light it should emit. Measured over the
+  embedded font at body size, white text on a dark page delivers about **60% of
+  its correct linear luminance**, and reads thin for it; dark text on a bright
+  page has the same error with the sign flipped and reads blotted. `/gamma`
+  bends the mask back, by polarity: up on a dark page, down on a bright one.
+  `full` is the whole sRGB correction — the coverage a glyph asks for is
+  exactly the light it gets. `medium` (the default) is about half of it, which
+  puts the midtone at Apple's historical text gamma. Both curves fix 0 and 1,
+  so a glyph's empty pixels and its solid interior never move and only the
+  antialiased rim — most of a small glyph — is touched. Live and persisted; no
+  argument reports the current amount. The named ladder is also the **Text
+  gamma** field in `/settings`, beside Smoothing, and both write `font_gamma`.
 The palette **remembers what you run.** Among commands that match what you have
 typed equally well, the ones you actually use come first; the rest fall back to
 the order they are declared in, which means something to whoever last edited

@@ -20,6 +20,7 @@ pub(crate) fn cycle_value(p: &mut SettingsPane, back: bool) {
         Field::NotifyBell => d.notify_bell = !d.notify_bell,
         Field::NotifyExit => d.notify_exit = !d.notify_exit,
         Field::Smooth => d.font_smooth = crate::smoothlvl::cycle(d.font_smooth, back),
+        Field::FontGamma => d.font_gamma = crate::gammalvl::cycle(d.font_gamma, back),
         Field::Motion => {
             let all = crate::motion::MotionPref::ALL;
             let cur = all.iter().position(|&l| l == d.motion_pref()).unwrap_or(0);

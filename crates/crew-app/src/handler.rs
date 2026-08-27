@@ -115,6 +115,7 @@ impl ApplicationHandler for CrewApp {
                 renderer.set_font_family(self.config.font_family.clone());
                 renderer.set_font_weight(Some(self.config.font_weight));
                 renderer.set_text_smoothing(Some(self.config.font_smooth));
+                renderer.set_text_gamma(Some(self.config.font_gamma));
                 renderer.set_paper_texture(self.config.paper_texture);
                 renderer.set_paper_grain(self.config.paper_grain);
                 renderer.set_glass(self.config.glass_level());

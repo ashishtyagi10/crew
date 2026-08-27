@@ -19,6 +19,8 @@ fn params(font_size: f32, smooth: u8) -> FontParams {
         family: None,
         weight: 500,
         smooth,
+        gamma: 0,
+        dark: true,
     }
 }
 

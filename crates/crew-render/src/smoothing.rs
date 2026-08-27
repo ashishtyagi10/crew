@@ -15,12 +15,17 @@
 //!   (a public field) — glyphon's own `get_image` then hits our entry, so
 //!   no fork of glyphon or cosmic-text is needed.
 //!
-//! The kernel that does the darkening lives in [`crate::smoothmask`].
+//! The kernel that does the darkening lives in [`crate::smoothmask`], and
+//! the coverage curve that follows it in [`crate::textgamma`] — the flags
+//! carry that curve's amount and the page's polarity too, for the same
+//! reason they carry the strength: a theme switch or a `/gamma` change
+//! has to re-key every glyph or the atlas would keep serving the old ink.
 use glyphon::cosmic_text::{CacheKey, CacheKeyFlags, SwashCache, SwashContent};
 use glyphon::FontSystem;
 
 use crate::scene::PaneBuffer;
 use crate::smoothmask::smooth_mask;
+use crate::textgamma::Curve;
 
 /// Default smoothing strength (0–255). Calibrated against Terminal.app's
 /// default look: ~0.4 px of horizontal stem widening at full coverage.
@@ -31,17 +36,39 @@ pub const DEFAULT_SMOOTH: u8 = 100;
 /// through shaping untouched (`from_bits_retain` keeps unknown bits).
 const STRENGTH_SHIFT: u32 = 8;
 
+/// The text-gamma amount's position in the same spare region.
+const GAMMA_SHIFT: u32 = 16;
+
+/// Set when the page is dark, i.e. the ink is light — which way the coverage
+/// curve bends.
+const DARK_BIT: u32 = 1 << 24;
+
 /// Cache-key flags for one text run: hinting always off (the CoreText look
-/// is unhinted at every DPI) plus the strength byte for [`presmooth`].
-pub(crate) fn text_flags(strength: u8) -> CacheKeyFlags {
+/// is unhinted at every DPI) plus everything [`presmooth`] needs to finish
+/// the glyph — the darkening strength, the gamma amount, and the page
+/// polarity that decides which way the gamma curve bends.
+pub(crate) fn text_flags(strength: u8, gamma: u8, dark: bool) -> CacheKeyFlags {
     CacheKeyFlags::from_bits_retain(
-        CacheKeyFlags::DISABLE_HINTING.bits() | (u32::from(strength) << STRENGTH_SHIFT),
+        CacheKeyFlags::DISABLE_HINTING.bits()
+            | (u32::from(strength) << STRENGTH_SHIFT)
+            | (u32::from(gamma) << GAMMA_SHIFT)
+            | if dark { DARK_BIT } else { 0 },
     )
 }
 
 /// The strength byte a shaped glyph carries in its cache key.
 fn strength_of(key: &CacheKey) -> u8 {
     (key.flags.bits() >> STRENGTH_SHIFT) as u8
+}
+
+/// The text-gamma amount a shaped glyph carries in its cache key.
+fn gamma_of(key: &CacheKey) -> u8 {
+    (key.flags.bits() >> GAMMA_SHIFT) as u8
+}
+
+/// Whether the glyph was shaped for a dark page.
+fn dark_of(key: &CacheKey) -> bool {
+    key.flags.bits() & DARK_BIT != 0
 }
 
 /// Rasterize and smooth every glyph `buffers` will need, seeding the shared
@@ -53,6 +80,7 @@ pub(crate) fn presmooth(
     font_system: &mut FontSystem,
     buffers: &[PaneBuffer],
 ) {
+    let mut curve = Curve::new();
     for (buf, ox, oy, _, _) in buffers {
         for run in buf.layout_runs() {
             for glyph in run.glyphs.iter() {
@@ -61,12 +89,20 @@ pub(crate) fn presmooth(
                     continue;
                 }
                 let image = swash.get_image_uncached(font_system, key).map(|image| {
-                    match (image.content, strength_of(&key)) {
-                        // Alpha masks (regular text) get the stem darkening;
-                        // color emoji and zero strength pass through as-is.
-                        (SwashContent::Mask, s) if s > 0 => smooth_mask(&image, s),
-                        _ => image,
+                    if image.content != SwashContent::Mask {
+                        // Colour glyphs (emoji) carry their own pixels; the
+                        // stem darkening and the coverage curve are both
+                        // statements about alpha, so they pass through.
+                        return image;
                     }
+                    let strength = strength_of(&key);
+                    let mut image = if strength > 0 {
+                        smooth_mask(&image, strength)
+                    } else {
+                        image
+                    };
+                    curve.apply(&mut image.data, dark_of(&key), gamma_of(&key));
+                    image
                 });
                 swash.image_cache.insert(key, image);
             }

@@ -143,6 +143,7 @@ fn round_trip() {
         window_opacity: 0.85,
         font_weight: 700,
         font_smooth: 120,
+        font_gamma: 90,
         usage_budget_5h: 1_000_000,
         usage_budget_7d: 12_000_000,
         model_recents: vec!["qwen-max".to_string()],

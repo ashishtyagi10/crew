@@ -63,6 +63,7 @@ impl CrewApp {
             "crt" => self.crt_command(""),
             "weight" => self.weight_command(""),
             "smooth" => self.smooth_command(""),
+            "gamma" => self.gamma_command(""),
             "motion" => self.motion_command(""),
             "density" => self.density_command(""),
             "leading" => self.leading_command(""),
@@ -109,6 +110,8 @@ impl CrewApp {
                     self.weight_command(w.trim());
                 } else if let Some(s) = other.strip_prefix("smooth ") {
                     self.smooth_command(s.trim());
+                } else if let Some(s) = other.strip_prefix("gamma ") {
+                    self.gamma_command(s.trim());
                 } else if let Some(n) = other.strip_prefix("out ") {
                     self.open_last_output(n.trim());
                 } else if let Some(m) = other.strip_prefix("marks ") {
@@ -407,6 +410,41 @@ impl CrewApp {
             r.set_text_smoothing(Some(strength));
         }
         self.set_status(format!("font smoothing {strength}"));
+        self.redraw();
+    }
+
+    /// Handle `/gamma [off|light|medium|full|<0-255>]`: how much of the
+    /// encoded blend's gamma error the coverage curve takes back. Crew blends
+    /// text on gamma-encoded values, so a half-covered edge pixel emits about
+    /// a fifth of the light it should — light ink on a dark page reads thin
+    /// and dark ink on a bright one reads blotted. Bare `/gamma` reports the
+    /// current amount. Persisted and applied live. The keyword ladder is
+    /// `gammalvl` — shared with the Settings form's Text gamma picker, so the
+    /// two surfaces can never disagree.
+    pub(crate) fn gamma_command(&mut self, arg: &str) {
+        let named = crate::gammalvl::amount_of;
+        let amount = match arg {
+            "" => {
+                self.set_status(format!(
+                    "text gamma {} (/gamma [off|light|medium|full|<0-255>])",
+                    self.config.font_gamma
+                ));
+                return;
+            }
+            a => match named(a).or_else(|| a.parse::<u16>().ok().map(|s| s.min(255) as u8)) {
+                Some(a) => a,
+                None => {
+                    self.set_status("usage: /gamma [off|light|medium|full|<0-255>]");
+                    return;
+                }
+            },
+        };
+        self.config.font_gamma = amount;
+        self.config.save();
+        if let Some(r) = &mut self.renderer {
+            r.set_text_gamma(Some(amount));
+        }
+        self.set_status(format!("text gamma {amount}"));
         self.redraw();
     }
 
@@ -801,6 +839,54 @@ mod tests {
             app.config.font_smooth, 170,
             "bad arg must not change smoothing"
         );
+    }
+
+    // --- /gamma ---------------------------------------------------------------
+
+    #[test]
+    fn gamma_keywords_and_numbers_both_land() {
+        let mut app = CrewApp::default();
+        app.gamma_command("off");
+        assert_eq!(app.config.font_gamma, 0);
+        app.gamma_command("full");
+        assert_eq!(app.config.font_gamma, 255);
+        app.gamma_command("medium");
+        assert_eq!(app.config.font_gamma, crew_render::DEFAULT_TEXT_GAMMA);
+        app.gamma_command("42");
+        assert_eq!(app.config.font_gamma, 42);
+        app.gamma_command("9000"); // clamps
+        assert_eq!(app.config.font_gamma, 255);
+    }
+
+    #[test]
+    fn gamma_bad_arg_leaves_it_untouched() {
+        let mut app = CrewApp::default();
+        app.gamma_command("light");
+        app.gamma_command("chunky");
+        assert_eq!(app.config.font_gamma, 65, "bad arg must not change gamma");
+    }
+
+    /// Same parity the smoothing picker keeps: a Settings save must land on
+    /// the key `/gamma` reads, or the form would look editable while
+    /// changing nothing.
+    #[test]
+    fn settings_apply_adopts_the_forms_text_gamma() {
+        let _g = crate::app::theme_test_guard();
+        let mut app = CrewApp::default();
+        let mut pane = crate::settingspane::SettingsPane::new(app.config.clone(), Vec::new());
+        pane.focus = crate::settingspane::FIELDS
+            .iter()
+            .position(|&f| f == crate::settingspane::Field::FontGamma)
+            .unwrap();
+        crate::settingspane::cycle_value(&mut pane, false); // medium → full
+        let crate::settingspane::SettingsAction::Apply(cfg) = pane.save() else {
+            panic!("save must apply");
+        };
+        app.apply_settings(*cfg);
+        assert_eq!(app.config.font_gamma, 255);
+        app.gamma_command("");
+        let s = app.active_status().unwrap();
+        assert!(s.contains("255"), "/gamma reports the form's value: {s}");
     }
 
     // --- glass ----------------------------------------------------------------

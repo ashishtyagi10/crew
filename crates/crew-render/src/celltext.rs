@@ -24,6 +24,13 @@ pub(crate) struct FontParams {
     /// glyph's cache-key flags so `presmooth` can see it per glyph and a
     /// live change re-keys (and thus re-rasterizes) everything.
     pub smooth: u8,
+    /// Text-gamma amount (0–255, 0 = off) — how much of the encoded
+    /// blend's gamma error [`crate::textgamma`] takes back. Rides in the
+    /// cache-key flags beside `smooth`, for the same reason.
+    pub gamma: u8,
+    /// Whether the page is dark, i.e. the ink is light. Decides which way
+    /// the gamma curve bends, so it re-keys glyphs on a theme switch.
+    pub dark: bool,
 }
 
 /// Base text weight for every theme: Medium (500), so ink reads crisp and
@@ -213,7 +220,7 @@ pub(crate) fn fill_rich_text(
         }
     }
 
-    let flags = crate::smoothing::text_flags(params.smooth);
+    let flags = crate::smoothing::text_flags(params.smooth, params.gamma, params.dark);
     let default_attrs = Attrs::new().family(fam).weight(base).cache_key_flags(flags);
 
     // Build the entire buffer text once, recording `(start, end, key)` byte

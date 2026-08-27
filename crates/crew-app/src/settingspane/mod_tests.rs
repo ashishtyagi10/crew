@@ -277,6 +277,7 @@ fn edits(f: Field) -> &'static str {
         Field::FontFamily => "font_family",
         Field::FontSize => "font_size",
         Field::Smooth => "font_smooth",
+        Field::FontGamma => "font_gamma",
         Field::NavWidth => "nav_width",
         Field::ShowNav => "show_nav",
         Field::Theme => "theme",

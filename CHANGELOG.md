@@ -8,6 +8,51 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.25
+
+**Crew was throwing away 40% of its text's light, and now takes it back.**
+Crew picks a non-sRGB surface on purpose, so text blends on gamma-encoded
+values — the web and CoreText look. Nothing was paying that choice's bill: a
+pixel at half coverage lands at half in *encoded* space, which is a fifth of
+the light it should emit. Measured over the embedded font at body size, white
+text on a dark page delivers about 60% of its correct linear luminance, and
+reads thin for exactly that reason. Dark text on a bright page has the same
+error with the sign flipped, and reads blotted.
+
+`/gamma [off|light|medium|full|<0-255>]` bends the coverage curve back, by
+polarity — up on a dark page, down on a bright one. `full` is the whole sRGB
+correction: the coverage a glyph asks for is the light it gets. `medium`, the
+new default, is about half of it, which puts the midtone at Apple's historical
+text gamma. Both curves fix 0 and 1, so a glyph's empty pixels and its solid
+interior never move; only the antialiased rim is touched, which on a small
+glyph is most of it.
+
+It rides beside `/smooth` the whole way down: the same 0–255 knob idiom, the
+same named ladder shared with a Settings picker (**Text gamma**, paired with
+Smoothing in the Appearance card), and the same spare cache-key bits — the
+amount AND the page's polarity, so a theme switch re-keys every glyph instead
+of leaving the atlas serving ink bent the wrong way.
+
+## 0.19.24
+
+**The stem darkening now reaches the curves too.** Crew's CoreText-style font
+smoothing widened a glyph by taking, for each pixel, the brighter of its own
+coverage and what its neighbours spilled into it. That operator cannot darken a
+pixel whose own coverage already beats the spill — which is every pixel on the
+flank of a curve or a diagonal. Measured on the embedded font at body size, `s`
+took 82% of the widening `l` got and `e` took 78% of `H`'s, so the round letters
+in a word read a shade lighter than the upright ones beside them.
+
+The spill now accumulates into the room a pixel has left rather than replacing
+its coverage. It never dims a pixel, never exceeds full coverage, and is
+identical to the old kernel wherever a pixel starts empty — but a flank at 78%
+coverage now goes up, and the gap between `s` and `l` closes to 95%. A test
+measures that ratio on real rasterized glyphs and fails below 0.90.
+
+Accumulating lays down about 1.4× the ink at the same strength, so the knob is
+recalibrated to keep its promise: `/smooth 100` renders the weight 100 always
+rendered. What changed is where the ink lands, not how much of it there is.
+
 ## 0.19.23
 
 **Every test that reads the theme is now serialised against every test that
