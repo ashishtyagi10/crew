@@ -54,6 +54,10 @@ pub(crate) struct Toast {
     pub legend: &'static str,
     /// Alert toasts (waiting / exited / errors) border in the bell color.
     pub alert: bool,
+    /// How many times this exact card has arrived, `1` for the first. A
+    /// repeat does not push a second card ([`Toasts::push_for`]); it counts
+    /// here and the card says `\u{d7}N` on its legend.
+    pub repeats: usize,
     born_ms: u64,
     slide: Timeline,
 }
@@ -95,6 +99,26 @@ impl Toasts {
         pane: Option<String>,
     ) {
         self.prune(now);
+        // The same thing said twice is one thing that happened twice. A
+        // watched pattern that matches every line, or an agent that finishes
+        // three jobs in a second, used to push three identical cards and —
+        // at MAX_SHOWN — evict everything else on the stack to do it, so a
+        // repeating event could hide every other notification crew had.
+        //
+        // Matched against ANY live card, not merely the newest: alternating
+        // events (`a b a`) repeat just as readily as consecutive ones. The
+        // card counts up and starts its life over WHERE IT IS — promoting it
+        // to the bottom of the stack would slide every other card, and the
+        // pointer may be resting on one of them.
+        if let Some(t) = self
+            .items
+            .iter_mut()
+            .find(|t| t.text == text && t.legend == legend && t.pane == pane)
+        {
+            t.repeats += 1;
+            t.born_ms = now;
+            return;
+        }
         if self.items.len() >= MAX_SHOWN {
             self.items.remove(0);
         }
@@ -103,6 +127,7 @@ impl Toasts {
             pane,
             legend,
             alert,
+            repeats: 1,
             born_ms: now,
             slide: Timeline::start(now, SLIDE_MS, crate::motion::level()),
         });
@@ -241,13 +266,16 @@ pub(crate) fn push_toasts(
         toasts.rects.push(Rect { x, y, w, h });
         scenes.push(PaneScene {
             cells: card_cells(
-                &text,
-                t.legend,
-                t.alert,
+                &CardText {
+                    text: &text,
+                    legend: t.legend,
+                    repeats: t.repeats,
+                    alert: t.alert,
+                    actionable: t.pane.is_some(),
+                },
                 cols,
                 fade,
                 hovered == Some(i),
-                t.pane.is_some(),
             ),
             x,
             y,
@@ -263,24 +291,45 @@ pub(crate) fn push_toasts(
     }
 }
 
+/// What one card says: the clipped text, the legend, how many times this
+/// exact card has arrived, whether it is an alert, and whether clicking it
+/// goes anywhere. Grouped because they travel together and separately would
+/// make `card_cells` a wall of positional booleans.
+struct CardText<'a> {
+    text: &'a str,
+    legend: &'a str,
+    repeats: usize,
+    alert: bool,
+    actionable: bool,
+}
+
 /// The 3-row fieldset card: legend on the top border, one text row inside.
 ///
 /// `hovered` is the pointer resting on this card — it lights the stroke and,
 /// when the card knows a pane (`actionable`), says so in the legend. A click
 /// target with no affordance is a secret; the hover is where the card admits
 /// it can be clicked.
-fn card_cells(
-    text: &str,
-    legend: &str,
-    alert: bool,
-    cols: u16,
-    fade: f32,
-    hovered: bool,
-    actionable: bool,
-) -> Vec<CellView> {
+fn card_cells(c: &CardText, cols: u16, fade: f32, hovered: bool) -> Vec<CellView> {
+    let CardText {
+        text,
+        legend,
+        repeats,
+        alert,
+        actionable,
+    } = *c;
     let t = crew_theme::theme();
     let mut border = if alert { t.bell } else { t.border_normal };
     let mut legend_fg = if alert { t.bell } else { t.legend_off };
+    // A repeat count is part of what the card says, so it survives the hover
+    // rewrite rather than being replaced by it: the reason you are hovering
+    // may well be that the card said it happened four times.
+    let counted;
+    let legend = if repeats > 1 {
+        counted = format!("{legend} \u{d7}{repeats}");
+        counted.as_str()
+    } else {
+        legend
+    };
     let held;
     let legend = if hovered {
         border = crate::palette::accent();

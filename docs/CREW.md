@@ -223,6 +223,14 @@ in time:
 - **Click a card to go where it points.** A toast raised by a pane focuses
   that pane — restoring it out of the nav if it was minimized. A card that
   names no pane is simply dismissed. Either way the card leaves.
+- **The same thing said twice is one card that says `×2`.** A repeat counts up
+  on the card's legend and restarts its life *where it is* — promoting it to
+  the bottom of the stack would slide every other card, and the pointer may be
+  resting on one. It matters most for the case it was written for: a watched
+  pattern that matches every line of output used to push a card per match and,
+  at four cards, evict every other notification crew had to do it. The count
+  survives the hover rewrite (`waiting ×4 → open`), since the reason you are
+  hovering may well be that it happened four times.
 
 Hovering says so: the stroke lights in the accent and the legend reads
 `waiting → open`, or `note ✕` for a card with nowhere to go. The pane is
