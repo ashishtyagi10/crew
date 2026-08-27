@@ -8,6 +8,30 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.18
+
+**`/blocks` — what you ran in this pane, and how it went.** A pane's
+scrollback is one long column in which everything that ever ran is mixed
+together, and the question people actually ask of it — *what did I run in here,
+and which of them went wrong* — has to be answered by reading it. Crew already
+knows: it records every command's output span from the foreground-process
+transitions it polls, and since the last release the exit status a shell
+reports. So this is a listing, not a search: newest first, how long each took,
+which failed.
+
+Each row is numbered the way `/out`'s argument is numbered, which is the point
+of pairing them — `/blocks` says what you ran and `/out 2` opens the output of
+the third one back. A block still running says so and counts up. A block whose
+shell reported no exit status shows `·` rather than a tick: crew only knows how
+a command ended when the shell says so, and drawing "no answer" as success
+would be inventing one.
+
+It opens in the file viewer like `/out` and `/diff` rather than printing into
+the pane — writing a summary of a pane's history *into* that history is how a
+listing becomes one more thing to scroll past. Command spans now carry the
+monotonic clock as well as their buffer lines: the lines say where the output
+*is*, the clock says how long it took.
+
 ## 0.19.17
 
 **Every pane kind that answers to keys of its own now has a section in

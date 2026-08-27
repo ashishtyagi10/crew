@@ -16,6 +16,8 @@ impl CrewApp {
             "errorsall" => self.find_errors_everywhere(),
             // The last command's output, on its own, in a pane you can read.
             "out" => self.open_last_output(""),
+            // …and the list the number in `/out <n>` counts through.
+            "blocks" => self.open_blocks(),
             "pin" => self.toggle_pin(),
             "marks" => self.marks_command(""),
             "invisibles" => self.invisibles_command(""),

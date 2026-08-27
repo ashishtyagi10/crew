@@ -24,6 +24,7 @@ mod askwait;
 mod attention;
 mod autoupdate;
 mod blocked;
+mod blocks;
 mod bordermarks;
 mod boxdraw;
 mod channel;

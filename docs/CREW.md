@@ -874,6 +874,22 @@ longer aim at.
   its top border; running `/pin` again gives the pane back to the LRU. More
   pins than tiles is not an error and cannot make room that does not exist: the
   oldest pins keep their tiles and the rest demote like anything else.
+- **`/blocks`** — what you ran in this pane, newest first: how long each took,
+  which of them failed, and the number that reaches its output. A pane's
+  scrollback is one long column in which everything that ever ran is mixed
+  together, and the question people actually ask of it — *what did I run in
+  here, and which of them went wrong* — has to be answered by reading it. Crew
+  already knows, so this is a listing rather than a search.
+
+  Each row is numbered the way `/out`'s argument is, which is the point of
+  pairing them: `/blocks` says what you ran and `/out 2` opens the output of
+  the third one back. A block still running says so and counts up; one whose
+  shell reported no exit status shows `·` rather than a tick, because crew only
+  knows how a command ended when the shell says so and drawing "no answer" as
+  success would be inventing one. It opens in the file viewer like `/out` and
+  `/diff` — writing a summary of a pane's history *into* that history is how a
+  listing becomes one more thing to scroll past.
+
 - **`/out [n]`** — opens the focused pane's **last command's output on its own**,
   in the file viewer. A long build's output is buried the moment the prompt
   comes back: mixed in with what you ran before it and whatever the shell
