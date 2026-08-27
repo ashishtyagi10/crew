@@ -225,6 +225,12 @@ fn push_pane_scenes(
             crate::unread::mark(&mut cells, row, p.grid.cols);
         }
     }
+    // An agent cites files in prose as often as a compiler does, and a chat
+    // pane resolves the same Cmd+click a terminal one does — so the same
+    // marks belong here.
+    if matches!(&p.content, PaneContent::Chat(_)) {
+        crate::pathhl::mark(&mut cells, p.grid.cols, p.grid.rows);
+    }
     // Mark what is clickable: file references first (dotted rule), then URLs
     // (solid) — a URL that also looks like a path is re-marked as the URL it
     // is, rather than wearing both rules.

@@ -323,6 +323,10 @@ Settings form and nowhere else; it is now also a handle, clamped to the same
 changes shape — it is handed a narrower content rect exactly as it is when the
 window is resized. The width persists when you let go.
 
+**The `+N` tile** now **names the panes behind it** — numbered the way `Cmd+N`
+numbers them — instead of only counting them. Which panes are hidden is the one
+thing you would look at that tile to find out.
+
 **The `+N` tile.** When the minimized strip cannot show every thumbnail at a
 readable width, the last slot becomes a `+N` tile standing for the rest.
 Clicking it reveals the first pane behind it (focus is always a restore path);
@@ -987,7 +991,8 @@ grid for a selection to copy.
 ## File references
 
 Agents cite files constantly — `src/main.rs:42`, `./deploy.sh`, `Cargo.toml` —
-and Cmd+click has always resolved them. Nothing said so: the reference and the
+in terminal output and in chat replies alike, and Cmd+click has always resolved
+them in both. Nothing said so: the reference and the
 prose around it were the same ink. Those references are now marked in the link
 colour with a **dotted** rule, where a URL wears a solid one: same colour,
 different rule, because a URL leaves for the browser and a path opens here.

@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.78
+
+**Two places that were counting instead of saying.**
+
+The `+N` overflow tile — the one that stands in for panes the strip has no room
+for — said `+3` and nothing else. Which three is the one thing anyone would
+look at it to find out, so it lists them now, numbered the way `Cmd+N` numbers
+them, as many as fit.
+
+And **file references in agent replies are marked** like the ones in terminal
+output. Cmd+click has resolved a path in a chat reply for as long as it has
+resolved one in a shell; only the terminal said so.
+
 ## 0.18.77
 
 **`/pin` keeps a pane on the grid.** Crew shows six full tiles and demotes the
