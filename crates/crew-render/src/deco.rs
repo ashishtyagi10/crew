@@ -8,7 +8,7 @@
 //! Every phase here is taken from the *absolute* x, never from the cell's
 //! left edge, so a wave or a dot pattern continues across cells instead of
 //! restarting inside each one.
-use crew_theme::deco::{Deco, DecoLine};
+use crew_theme::deco::{CursorMark, CursorShape, Deco, DecoLine};
 
 /// `(x, y, w, h)` in pixels.
 pub(crate) type Rect = (f32, f32, f32, f32);
@@ -84,6 +84,38 @@ pub(crate) fn rects(deco: &Deco, x: f32, y: f32, cell_w: f32, cell_h: f32) -> Ve
         out.push((x, (y + (cell_h - t) * 0.5).round(), cell_w, t));
     }
     out
+}
+
+/// The rectangles the cursor on this cell draws.
+///
+/// The filled block is not here: it is drawn by swapping the cell's own
+/// colours, so the glyph under it stays readable rather than being painted
+/// over. Everything else is a rule against an edge.
+pub(crate) fn cursor_rects(
+    mark: &CursorMark,
+    x: f32,
+    y: f32,
+    cell_w: f32,
+    cell_h: f32,
+) -> Vec<Rect> {
+    let t = (cell_h * 0.09).round().max(2.0);
+    match mark.shape {
+        CursorShape::None | CursorShape::Block => Vec::new(),
+        CursorShape::Beam => vec![(x, y, (cell_w * 0.14).round().max(2.0), cell_h)],
+        CursorShape::Underline => vec![(x, y + cell_h - t, cell_w, t)],
+        // Four rules, not a box with a hole: the quad pass paints solid
+        // rectangles, so an outline has to be drawn as its own four edges or
+        // the "hollow" cursor is a filled one.
+        CursorShape::Hollow => {
+            let e = (cell_h * 0.06).round().max(1.0);
+            vec![
+                (x, y, cell_w, e),
+                (x, y + cell_h - e, cell_w, e),
+                (x, y, e, cell_h),
+                (x + cell_w - e, y, e, cell_h),
+            ]
+        }
+    }
 }
 
 #[cfg(test)]

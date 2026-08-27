@@ -27,6 +27,8 @@ pub struct RenderCell {
     pub italic: bool,
     /// What the grid says this cell wears beyond its glyph (SGR 4/9/58).
     pub deco: crew_theme::deco::Deco,
+    /// The cursor, when this is the cell it sits on.
+    pub cursor: crew_theme::deco::CursorMark,
 }
 
 pub trait TermModel {

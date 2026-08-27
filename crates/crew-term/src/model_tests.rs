@@ -508,3 +508,64 @@ mod link_tests {
         );
     }
 }
+
+/// DECSCUSR through the parser and out the other side: what the program asked
+/// for has to survive into the cell, or an editor's insert-mode bar renders as
+/// the same block its normal mode does.
+#[cfg(test)]
+mod cursor_shape_tests {
+    use super::super::{GridSize, HeadlessTerm, TermModel};
+    use crew_theme::deco::CursorShape;
+
+    fn shape_after(seq: &str, focused: bool) -> CursorShape {
+        let mut t = HeadlessTerm::new(GridSize { cols: 10, rows: 3 });
+        t.feed(format!("{seq}ab").as_bytes());
+        t.cells(focused)
+            .into_iter()
+            .find(|c| c.col == 2 && c.row == 0)
+            .expect("a cell where the cursor is")
+            .cursor
+            .shape
+    }
+
+    #[test]
+    fn decscusr_picks_the_shape_the_cell_carries() {
+        assert_eq!(shape_after("\x1b[2 q", true), CursorShape::Block);
+        assert_eq!(shape_after("\x1b[4 q", true), CursorShape::Underline);
+        assert_eq!(shape_after("\x1b[6 q", true), CursorShape::Beam);
+        assert_eq!(
+            shape_after("", true),
+            CursorShape::Block,
+            "block by default"
+        );
+    }
+
+    #[test]
+    fn the_same_program_in_an_unfocused_pane_shows_an_outline() {
+        assert_eq!(shape_after("\x1b[6 q", false), CursorShape::Hollow);
+        assert_eq!(shape_after("\x1b[2 q", false), CursorShape::Hollow);
+    }
+
+    /// The block still inverts the cell it lands on; a bar must not, or the
+    /// character the bar sits beside changes colour when the cursor arrives.
+    #[test]
+    fn only_the_block_repaints_the_cell_under_it() {
+        let mut t = HeadlessTerm::new(GridSize { cols: 10, rows: 3 });
+        t.feed(b"ab\x1b[1;1H");
+        let block = t.cells(true).into_iter().find(|c| c.col == 0).unwrap();
+        assert_eq!(
+            block.bg,
+            crew_theme::readable::cursor(crew_theme::theme(), true)
+        );
+        let mut t = HeadlessTerm::new(GridSize { cols: 10, rows: 3 });
+        t.feed(b"\x1b[6 qab\x1b[1;1H");
+        let beam = t.cells(true).into_iter().find(|c| c.col == 0).unwrap();
+        assert_eq!(beam.c, 'a');
+        assert_eq!(beam.cursor.shape, CursorShape::Beam);
+        assert_ne!(
+            beam.bg,
+            crew_theme::readable::cursor(crew_theme::theme(), true),
+            "the bar painted the cell as well as itself"
+        );
+    }
+}

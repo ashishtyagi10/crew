@@ -272,6 +272,12 @@ rates with a **throughput sparkline**, a git section for the working directory,
 and a list of open panes (click a row to focus it). The sparklines scroll on the
 sidebar's once-a-second refresh, so the charts animate at no extra redraw cost.
 
+## The cursor
+
+The cursor takes the shape the program asks for — block, bar or underline
+(DECSCUSR), so an editor's insert mode reads as one. Unfocused panes draw an
+outline instead, so exactly one cursor on the canvas is filled in.
+
 ## Text decorations
 
 The full underline family — single, double, curly (the spell-check squiggle),

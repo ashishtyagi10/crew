@@ -748,6 +748,23 @@ arrow-marked: `(#2 →#4 #7)`). **Repeating `/findall`** with the same term
 granularity — while a follow-up `/find <text>` steps upward through the
 focused pane's matches as usual.
 
+## The cursor
+
+Crew draws the cursor **shape a program asks for** (DECSCUSR): a filled block
+(`ESC[2 q`), a **bar** (`ESC[6 q`) and an **underline** (`ESC[4 q`). Editors use
+the bar to mean insert mode and the block to mean normal mode, so a terminal
+that draws every cursor as a block loses the mode indicator entirely.
+
+A pane that is **not focused** draws an **outline** instead, whatever shape it
+is otherwise in — with a canvas full of panes the useful question is which one
+takes the keys, and a shape answers that at a glance where a dimmer version of
+the same block did not. The outline's colour is floored against the page, since
+it is a fraction of the ink a filled block is.
+
+Only the block repaints the cell it lands on (inverting it, so the glyph stays
+readable); the bar and the underline are rules drawn beside the glyph, which
+keeps its own colours.
+
 ## Text decorations
 
 Crew draws the whole underline family, not just the one: **SGR 4** (single),
