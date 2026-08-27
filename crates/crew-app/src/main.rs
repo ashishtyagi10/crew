@@ -139,6 +139,7 @@ pub(crate) mod inputbar;
 mod inputbar_render;
 mod inputink;
 mod inputkeys;
+mod invisibles;
 mod ipc;
 mod ipc_types;
 #[cfg(windows)]

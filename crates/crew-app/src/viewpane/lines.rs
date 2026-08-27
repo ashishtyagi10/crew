@@ -63,11 +63,15 @@ fn numbered(
     lang: &str,
     ink: (u8, u8, u8),
     muted: (u8, u8, u8),
+    ws: &[Vec<bool>],
 ) -> Vec<CardLine> {
-    let paints: Vec<Vec<CharPaint>> = text
+    let mut paints: Vec<Vec<CharPaint>> = text
         .split('\n')
         .map(|line| line_paint(line, lang, ink))
         .collect();
+    // The tokenizer sees the expanded text and has no idea a run of spaces
+    // used to be a tab — this is the only place that knows.
+    super::whitespace::dim(&mut paints, ws, muted);
     painted(text, cols, &paints, ink, muted).0
 }
 
@@ -149,9 +153,10 @@ fn mark_trailing_space(line: &mut CardLine, added: bool) {
 /// The diff rung: a review rather than a colour per line. Pairing, word-level
 /// marks and the header treatment live in [`super::diffpaint`]; this only lays
 /// that paint down through the same numbered gutter every other rung uses.
-fn diff_lines(text: &str, cols: usize) -> (Vec<CardLine>, Vec<Mark>) {
+fn diff_lines(text: &str, cols: usize, ws: &[Vec<bool>]) -> (Vec<CardLine>, Vec<Mark>) {
     let t = crew_theme::theme();
-    let paints = super::diffpaint::paint(text);
+    let mut paints = super::diffpaint::paint(text);
+    super::whitespace::dim(&mut paints, ws, t.text_muted);
     let (mut lines, src) = painted(text, cols, &paints, t.ink, t.text_muted);
     // Only the row a source line STARTS on carries its marker, so only that
     // row can be an added line whose tail is worth marking.
@@ -195,12 +200,17 @@ fn mb(bytes: u64) -> u64 {
 /// the two whose default rendering shows something OTHER than the bytes
 /// themselves — and leaves every other rung alone, since those already show
 /// the bytes as they are.
-pub(crate) fn for_state(state: &LoadState, raw: bool, cols: usize) -> (Vec<CardLine>, Vec<Mark>) {
+pub(crate) fn for_state(
+    state: &LoadState,
+    raw: bool,
+    cols: usize,
+    invisibles: bool,
+) -> (Vec<CardLine>, Vec<Mark>) {
     let t = crew_theme::theme();
     match state {
         LoadState::Loading { .. } => (vec![banner("loading…", cols)], Vec::new()),
         LoadState::Failed(msg) => (vec![row(msg, t.ink, false)], Vec::new()),
-        LoadState::Ready { format, loaded } => ready_lines(*format, loaded, raw, cols),
+        LoadState::Ready { format, loaded } => ready_lines(*format, loaded, raw, cols, invisibles),
     }
 }
 
@@ -220,6 +230,7 @@ fn ready_lines(
     loaded: &Loaded,
     raw: bool,
     cols: usize,
+    invisibles: bool,
 ) -> (Vec<CardLine>, Vec<Mark>) {
     let t = crew_theme::theme();
     let mut out = Vec::new();
@@ -255,6 +266,13 @@ fn ready_lines(
             cols,
         ));
     }
+    // Tabs are expanded HERE, before any rung sees the text, so the syntax
+    // paint, the wrap, the search and the diff pairing all agree about which
+    // column a character is in. See `super::whitespace` — a tab has zero
+    // display width, so an unexpanded one was not merely misaligned, it was
+    // dropped, and a tab-indented file drew with no indentation at all.
+    let prepared = super::whitespace::prepare(text, invisibles);
+    let (text, ws) = (prepared.text.as_str(), prepared.marks.as_slice());
     let mut marks = Vec::new();
     let body = match format {
         Format::Opaque { why } => opaque_card(why, loaded.meta.as_ref(), cols),
@@ -268,10 +286,10 @@ fn ready_lines(
             ));
             // An extract has no `md::syntax` language of its own — it is
             // prose lifted out of a PDF or a Word doc, not source.
-            numbered(text, cols, "", t.ink, t.text_muted)
+            numbered(text, cols, "", t.ink, t.text_muted, ws)
         }
         Format::Diff => {
-            let (lines, found) = diff_lines(text, cols);
+            let (lines, found) = diff_lines(text, cols, ws);
             marks = shifted(found, out.len());
             lines
         }
@@ -286,7 +304,7 @@ fn ready_lines(
         // lexer would have called it. `format_lang` is `""` for every other
         // rung that lands here (raw `Markdown`/`Csv`), so their behaviour is
         // unchanged.
-        _ => numbered(text, cols, format_lang(format), t.ink, t.text_muted),
+        _ => numbered(text, cols, format_lang(format), t.ink, t.text_muted, ws),
     };
     // A file with nothing in it renders as an empty pane, which is
     // indistinguishable from one that failed to render — and from one still

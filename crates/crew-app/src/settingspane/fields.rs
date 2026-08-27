@@ -47,6 +47,10 @@ pub(crate) enum Field {
     /// two are the pair people confuse: density is how much crew fits on the
     /// canvas, leading is how the text reads.
     Leading,
+    /// Whether the file viewer reveals tabs, trailing spaces and carriage
+    /// returns (see `invisibles`). Beside the border marks: both are crew
+    /// drawing something about content rather than the content itself.
+    Invisibles,
     /// WCAG floor every derived colour is measured against: `auto` follows
     /// the OS accessibility switch (see `crew_theme::contrast`).
     Contrast,
@@ -73,7 +77,7 @@ pub(crate) enum Field {
     Cancel,
 }
 
-pub(crate) const FIELDS: [Field; 34] = [
+pub(crate) const FIELDS: [Field; 35] = [
     Field::FontFamily,
     Field::FontSize,
     Field::Smooth,
@@ -94,6 +98,7 @@ pub(crate) const FIELDS: [Field; 34] = [
     Field::Motion,
     Field::Density,
     Field::Leading,
+    Field::Invisibles,
     Field::Contrast,
     Field::ShapeCues,
     Field::Gradient,

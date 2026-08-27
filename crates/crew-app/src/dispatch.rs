@@ -18,6 +18,7 @@ impl CrewApp {
             "out" => self.open_last_output(""),
             "pin" => self.toggle_pin(),
             "marks" => self.marks_command(""),
+            "invisibles" => self.invisibles_command(""),
             "far" => self.spawn_far_pane(),
             "goal" => self.spawn_goal_pane(""), // show usage hint
             "model" => self.set_model_cmd(""),  // show usage hint
@@ -114,6 +115,8 @@ impl CrewApp {
                     self.motion_command(m.trim());
                 } else if let Some(d) = other.strip_prefix("density ") {
                     self.density_command(d.trim());
+                } else if let Some(v) = other.strip_prefix("invisibles ") {
+                    self.invisibles_command(v.trim());
                 } else if let Some(l) = other.strip_prefix("leading ") {
                     self.leading_command(l.trim());
                 } else if let Some(c) = other.strip_prefix("contrast ") {
@@ -431,6 +434,31 @@ impl CrewApp {
         self.config.save();
         crate::bordermarks::set(on);
         self.set_status(format!("card border marks {}", state(on)));
+    }
+
+    /// `/invisibles [on|off]` — reveal the characters that say something
+    /// without printing anything, in the file viewer. Tabs are always
+    /// EXPANDED; this only decides whether they are also marked.
+    pub(crate) fn invisibles_command(&mut self, arg: &str) {
+        let state = |on: bool| if on { "on" } else { "off" };
+        if arg.trim().is_empty() {
+            self.set_status(format!(
+                "invisibles {} (/invisibles [on|off])",
+                state(self.config.invisibles)
+            ));
+            return;
+        }
+        // The same two-word vocabulary `/marks` takes: two switches that
+        // answered "on"/"off" differently would be two switches to remember.
+        let Some(on) = crate::bordermarks::parse(arg) else {
+            self.set_status("usage: /invisibles [on|off]");
+            return;
+        };
+        self.config.invisibles = on;
+        self.config.save();
+        crate::invisibles::set(on);
+        self.set_status(format!("invisibles {}", state(on)));
+        self.redraw();
     }
 
     pub(crate) fn motion_command(&mut self, arg: &str) {

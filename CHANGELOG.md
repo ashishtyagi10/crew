@@ -8,6 +8,33 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.9
+
+**A tab-indented file opened in the viewer drew with no indentation at all.**
+Not misaligned — missing. A tab has zero display width, and `place_row`, the
+guard every cell surface in crew places glyphs through, skips zero-width
+characters because a zero-width glyph placed at a column is overprinted by the
+next one. Every Go file, Makefile and kernel-style C source anyone pointed
+`/view` at came out flush left.
+
+**Tabs now expand to the next multiple of 8 columns** — the terminal's own tab
+stop, so `cat file` in a pane and `/view file` beside it agree about how far in
+a line starts, which is the number `git diff` and every other tool that prints
+a tab-indented file has settled on. To the next *stop*, not by a fixed width,
+and measured in COLUMNS: two CJK glyphs put the cursor at column 4, and a tab
+after them covers four, not eight. The expansion happens to the text before any
+rung sees it, so the syntax paint, the wrap, the search and the diff pairing
+all agree about which column a character is in — one of them working from
+unexpanded text would put the colour where the glyph is not.
+
+**And `/invisibles` shows the rest.** A tab wears an arrow in its first column,
+trailing spaces become middle dots, and the carriage return a CRLF file leaves
+at the end of every line shows its own mark: the three that cause real trouble.
+They are *marked* rather than merely substituted, so a `·` genuinely in the
+file is not dimmed along with them. Off by default — a diagnostic view whose
+marks are noise in a file with nothing wrong with it — with a value picker and
+**Settings → APPEARANCE → Reveal invisibles**.
+
 ## 0.19.8
 
 **`/view`, `/md` and `/batch` had no path completion at all.** The bar's

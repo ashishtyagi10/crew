@@ -53,14 +53,16 @@ impl ViewPane {
             .lines()
             .and_then(|_| crate::viewpane::blame::width_for(cols as usize))
             .unwrap_or(0);
-        let stale = self
-            .cache
-            .borrow()
-            .as_ref()
-            .is_none_or(|c| c.cols != cols || c.raw != self.raw || c.blame_w != blame_w);
+        let stale = self.cache.borrow().as_ref().is_none_or(|c| {
+            c.cols != cols
+                || c.raw != self.raw
+                || c.blame_w != blame_w
+                || c.invisibles != crate::invisibles::on()
+        });
         if stale {
             let text_cols = (cols as usize).saturating_sub(blame_w);
-            let (mut lines, marks) = lines::for_state(&self.state, self.raw, text_cols);
+            let invisibles = crate::invisibles::on();
+            let (mut lines, marks) = lines::for_state(&self.state, self.raw, text_cols, invisibles);
             if let Some(b) = self.blame.lines().filter(|_| blame_w > 0) {
                 let labels = crate::viewpane::blame::labels(b, blame_w);
                 crate::viewpane::blamegutter::apply(&mut lines, &labels, blame_w);
@@ -71,6 +73,7 @@ impl ViewPane {
                 lines,
                 marks,
                 blame_w,
+                invisibles,
             }));
         }
         Ref::map(self.cache.borrow(), |c| c.as_ref().expect("just filled"))

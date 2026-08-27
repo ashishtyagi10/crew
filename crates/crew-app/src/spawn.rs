@@ -370,6 +370,7 @@ impl CrewApp {
         // flip or rotation tick.
         // The border markings ride config like the other look switches.
         crate::bordermarks::set(self.config.border_marks);
+        crate::invisibles::set(self.config.invisibles);
         let (pool_dark, pool_light) = self.config.auto_pool_selections();
         let pools_changed = (pool_dark, pool_light) != old_pools;
         crew_theme::set_auto_pools(pool_dark, pool_light);

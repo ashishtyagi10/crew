@@ -188,6 +188,7 @@ impl CrewConfig {
             nav_width: self.nav_width.clamp(160.0, 320.0),
             show_nav: self.show_nav,
             border_marks: self.border_marks,
+            invisibles: self.invisibles,
             font_family: self.font_family.filter(|n| !n.is_empty()),
             font_random: self.font_random,
             accent: self.accent.filter(|s| !s.is_empty()),
