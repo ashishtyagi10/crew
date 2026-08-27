@@ -77,6 +77,7 @@ mod clipboard;
 mod clock;
 mod cmdcheck;
 mod cmddefs;
+mod cmdhead;
 mod cmdkeys;
 mod cmdmenu;
 mod cmdrecents;

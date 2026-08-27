@@ -93,6 +93,23 @@ impl Spans {
         (span.from.min(to), to)
     }
 
+    /// The command whose output covers buffer line `line` in a buffer of
+    /// `now` lines — what [`crate::cmdhead`] names on the top border while a
+    /// pane is scrolled back.
+    ///
+    /// Searched newest-first so an overlapping pair (the poll's one-second
+    /// granularity can close a span a line or two into the next command's
+    /// output) answers with the later one: the top of your window is inside
+    /// the thing that printed most recently, not the thing it interrupted.
+    /// A line in no span at all — before the first command crew saw, or in
+    /// the gap between two — has no honest answer and gets `None`.
+    pub(crate) fn at_line(&self, line: usize, now: usize) -> Option<&Span> {
+        self.0.iter().rev().find(|s| {
+            let (from, to) = Self::range(s, now);
+            line >= from && line < to
+        })
+    }
+
     /// Which visible rows a command *started* on, given a window showing
     /// `visible` rows ending `scroll` lines back from a buffer of `now`
     /// lines. The pane's card ticks these on its left border: where one thing

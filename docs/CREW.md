@@ -128,6 +128,7 @@ status glyphs:
 | Glyph | Meaning |
 |-------|---------|
 | `⇡N`  | viewing scrollback, N lines back from the live bottom |
+| `╶ name` | which command's output the top of the window is inside (while scrolled back) |
 | `●`   | new output in an unfocused pane |
 | `!`   | the program rang the bell |
 | `»`   | receiving broadcast (synchronized) input |
@@ -340,6 +341,20 @@ where in the buffer that is, and how much of the buffer there is. Both clear
 when you return to the live edge. The thumb rides the border rather than a
 content column, so a program's column count never changes because someone
 scrolled.
+
+**Which command you are reading.** Scroll far enough back and the prompt that
+started the output on screen is off the top of the window. Beside the `⇡N`,
+the border names it: `╶ cargo build`, in the same colour and with the same
+tick the left border marks a command's first row with. Other terminals answer
+this by pinning a sticky prompt line to the top of the viewport — a row of the
+program's grid, which is not crew's to spend — and by asking the shell to
+emit OSC 133. Crew already knows where every command's output begins and ends
+(see `/out`), so it is a lookup, not a feature the shell has to opt into.
+Long names lose their tail, never their head (`cargo test --workspa…`), and
+the badge never reaches into the pane's legend: at a width where it would, it
+simply is not drawn. It clears at the live bottom, where the prompt is on
+screen saying this itself, and it follows `/marks` like the other border
+markings.
 
 Inside a terminal pane, all other keys (arrows, Home/End, PageUp/Down, Ctrl+C,
 Shift+Tab, …) pass through to the program. **Shift+Enter** sends a line feed
@@ -689,8 +704,8 @@ longer aim at.
   **named after what they are** (`out · cargo build`, `diff · crew`, `what's
   new · 0.18.75`) rather than after the temp file the text happens to live in.
 - **`/marks [on|off]`** — the two things a pane's card draws on its border
-  about the pane's own output: the ticks where each command began and the bars
-  beside error lines. On by default — a grid of panes saying where the failures
+  about the pane's own output: the ticks where each command began, the name of
+  the command you are scrolled back into, and the bars beside error lines. On by default — a grid of panes saying where the failures
   are without being read is most of their value — but they are crew drawing on
   its own chrome about someone else's output, and a plain frame is a reasonable
   thing to want. `/errors` and `/out` still work with the marks off; they read

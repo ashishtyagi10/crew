@@ -123,6 +123,7 @@ fn the_card_shows_the_count_and_only_when_there_is_one() {
         progress: None,
         elapsed: None,
         pinned: false,
+        at_cmd: None,
         cmd_rows: &[],
         err_rows: &[],
         unread,
