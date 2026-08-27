@@ -8,6 +8,30 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.10
+
+**The pointer knew nothing about links.** URLs and file references have been
+drawn as links for several releases — tinted, and ruled underneath so they do
+not depend on hue — and the pointer over one wore the same I-beam it wears over
+every other character in the pane, on text that is one modifier away from
+opening a browser or a viewer. A click target with no affordance is a secret,
+which is the argument the toast stack's hover already makes and the border
+buttons' before it.
+
+Over a marked run the pointer is now a **hand** and the run goes **bold**. Bold
+rather than a colour change: the run is already carrying the link colour to say
+what it is, and a hover that changed that hue would be saying the second thing
+in the same channel as the first. The hand is the one a border button gets —
+both are "this does something when you press it".
+
+What counts as a link is exactly what is drawn as one, which is deliberately
+less than Cmd+click will open. Answering "any token that names a file on disk"
+means a filesystem check, and this runs on every pointer move; the hover
+promises what the drawing promised, and the click is free to find more. Row
+text is reconstructed for the one row under the pointer, at pointer-move time,
+never pre-scanned during layout — and a hover that changed nothing does not
+cost a repaint.
+
 ## 0.19.9
 
 **A tab-indented file opened in the viewer drew with no indentation at all.**
