@@ -8,6 +8,25 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.21
+
+**A command that failed now says so as it happens.** The border has marked
+which block went wrong since OSC 133 landed, and `/blocks` lists it afterwards
+— but the notification that fires the moment a long command returns to the
+prompt said `✓ … finished` whether it had succeeded or exited 101.
+
+It raises a `failed` card in the bell colour now, naming the status (`✗ cargo
+test (2m14) — exit 101 failed in crew`), and a pane you were not looking at
+wears `✗` as its attention marker rather than `✓`. Same event, same switch —
+a failure *is* a command finishing, and splitting the preference in two would
+ask you to say twice that you want to hear about commands finishing. What
+differs is how loudly it is drawn: a failure drawn as quietly as a success is a
+failure you scroll past.
+
+And "the shell said nothing" is still not a success. Only a *reported* non-zero
+status raises the alert; a shell with no integration keeps the notification it
+always had.
+
 ## 0.19.20
 
 **`/gradient` previews too.** Arrowing onto a named pair puts its poles on the

@@ -11,6 +11,11 @@ use std::time::{Duration, Instant};
 pub enum NotifyKind {
     /// A foreground command returned to the shell prompt after `notify_min_secs`.
     AgentDone,
+    /// …and the shell reported it exited non-zero (OSC 133 `D`). The same
+    /// event as [`Self::AgentDone`] and the same switch — a failure is a
+    /// finish — told apart because "it is done" and "it went wrong" are not
+    /// the same news, and only one of them is worth getting up for.
+    Failed,
     /// A program rang the terminal bell.
     Bell,
     /// A watched substring appeared in the pane's output.
@@ -149,6 +154,7 @@ pub fn agent_done(
 fn format_message(kind: NotifyKind, pane: &str, detail: &str) -> String {
     match kind {
         NotifyKind::AgentDone => format!("✓ {detail} finished in {pane}"),
+        NotifyKind::Failed => format!("✗ {detail} failed in {pane}"),
         NotifyKind::Bell => format!("● bell in {pane}"),
         NotifyKind::Pattern => format!("⚑ matched \"{detail}\" in {pane}"),
         NotifyKind::Exited => format!("⊗ {pane} exited"),

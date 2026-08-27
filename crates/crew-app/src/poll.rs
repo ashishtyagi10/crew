@@ -426,7 +426,7 @@ impl CrewApp {
             let min = Duration::from_secs(self.config.notify_min_secs);
             let now = Instant::now();
             for (i, (p, fg)) in self.panes.iter_mut().zip(fg).enumerate() {
-                let mut just_finished = None;
+                let mut just_finished: Option<(String, Option<i32>)> = None;
                 if let PaneContent::Terminal(t) = &mut p.content {
                     let cmd = fg.and_then(|pid| self.procnames.name(pid));
                     if t.cmd != cmd {
@@ -450,24 +450,29 @@ impl CrewApp {
                         t.cmd = cmd;
                         t.cmd_since = outcome.since;
                         any_changed = true;
-                        just_finished = outcome.finished;
+                        // How it went, when the shell said so (OSC 133 `D`,
+                        // which lands on the read tick and so is already here
+                        // by the time this poll sees the prompt come back).
+                        // `None` is "the shell says nothing", NOT a success.
+                        just_finished = outcome.finished.map(|f| (f, t.spans.last_exit()));
                     }
                 }
-                if let Some(finished) = just_finished {
+                if let Some((finished, exit)) = just_finished {
+                    let failed = exit.is_some_and(|c| c != 0);
+                    let kind = match failed {
+                        true => crate::notify::NotifyKind::Failed,
+                        false => crate::notify::NotifyKind::AgentDone,
+                    };
+                    let detail = match exit.filter(|_| failed) {
+                        Some(code) => format!("{finished} \u{2014} exit {code}"),
+                        None => finished,
+                    };
                     // A command finishing while you're elsewhere raises the
                     // pane's attention marker alongside the notification.
                     if i != focused {
-                        crate::attention::raise(
-                            p,
-                            crate::notify::NotifyKind::AgentDone,
-                            crate::anim::now_ms(),
-                        );
+                        crate::attention::raise(p, kind, crate::anim::now_ms());
                     }
-                    notify_events.push((
-                        crate::notify::NotifyKind::AgentDone,
-                        p.title_text(),
-                        finished,
-                    ));
+                    notify_events.push((kind, p.title_text(), detail));
                 }
             }
         }

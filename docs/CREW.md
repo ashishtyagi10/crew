@@ -208,10 +208,21 @@ nothing — then holds steady until the pane is focused, which clears it (the
 same rule the activity dot follows). Thumbnail cards in the minimized strip
 show the same marker.
 
+**A command that failed says so.** When the shell reports an exit status (see
+OSC 133 above), a command that finished non-zero raises a `failed` card in the
+bell colour naming the status — `✗ cargo test (2m14) — exit 101 failed in
+crew` — where a successful one raises a quiet `done`. It is the same event and
+the same switch (**Settings → NOTIFICATIONS → Agent done**): a failure *is* a
+command finishing, and splitting the preference in two would ask you to say
+twice that you want to hear about commands finishing. What differs is how
+loudly it is drawn, because "it is done" and "it went wrong" are not the same
+news and only one of them is worth getting up for. A pane you were not looking
+at raises `✗` as its attention marker rather than `✓`.
+
 **Toast cards.** The same events also step onto the canvas as cards at the
-top-right of the content area, each holding one line (`done`, `bell`,
-`waiting`, `exited`, `match`, `due`, `error` — the last two and `waiting` /
-`exited` border in the bell colour). They are not decoration you have to catch
+top-right of the content area, each holding one line (`done`, `failed`, `bell`,
+`waiting`, `exited`, `match`, `due`, `error` — the last two and `failed` /
+`waiting` / `exited` border in the bell colour). They are not decoration you have to catch
 in time:
 
 - **Rest the pointer on the stack and it holds** — every card in it, until the

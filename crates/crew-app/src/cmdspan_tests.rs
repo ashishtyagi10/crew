@@ -311,3 +311,22 @@ fn a_failure_tick_lands_on_the_same_row_its_start_tick_would() {
         );
     }
 }
+
+/// What the "command finished" notification asks for: how the last one went,
+/// when the shell said so. `None` is "the shell says nothing", NOT a success
+/// — the caller must not be able to mistake the two.
+#[test]
+fn the_last_exit_is_the_last_commands_and_nothing_elses() {
+    let mut s = Spans::default();
+    assert_eq!(s.last_exit(), None, "nothing has run");
+    s.started("cargo build".into(), 0, 0);
+    s.finished(Some(101), 10, 0);
+    assert_eq!(s.last_exit(), Some(101));
+    // A newer command with no reported status does not inherit the old one's.
+    s.started("ls".into(), 10, 0);
+    s.close_at(12, 0);
+    assert_eq!(s.last_exit(), None);
+    s.started("false".into(), 12, 0);
+    s.finished(Some(1), 13, 0);
+    assert_eq!(s.last_exit(), Some(1));
+}
