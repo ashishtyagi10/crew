@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.75
+
+**Two things that were saying the wrong name.**
+
+Panes crew opens on a generated file — `/out`, `/diff`, `/about` — were
+legended with the temp path the text lives in: `crew-out-3-cargo.log`,
+`crew-diff-Users-me-code-crew.diff`. They are named for what they are now:
+`out · cargo build`, `diff · crew`, `what's new · 0.18.75`. The file still has
+to be a file; nobody should have to read its name to know what the pane is.
+
+And the "command finished" notification now says **how long it took**: `✓ cargo
+build (2m14) finished in pane 3`. A build that took six seconds and one that
+took nine minutes are different events, and the notification said the same
+thing for both — while the pane's own card has been showing the running clock
+since the last release.
+
 ## 0.18.74
 
 **The border shows where each command began.** The spans `/out` slices with are

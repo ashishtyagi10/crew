@@ -670,6 +670,9 @@ longer aim at.
   clean tree says so instead of opening an empty pane. Pairs with the crew
   pane's automatic checkpoints (`/restore` lists them) for reviewing what
   agents changed.
+- Panes crew opens on generated files — `/out`, `/diff`, `/about` — are
+  **named after what they are** (`out · cargo build`, `diff · crew`, `what's
+  new · 0.18.75`) rather than after the temp file the text happens to live in.
 - **`/out`** — opens the focused pane's **last command's output on its own**,
   in the file viewer. A long build's output is buried the moment the prompt
   comes back: mixed in with what you ran before it and whatever the shell
