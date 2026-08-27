@@ -8,6 +8,25 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.15
+
+**Every key the file viewer answers to was documented in the manual and
+nowhere a user could find it.** `/keys` claimed to list "the bindings" and had
+none of the viewer's: not `s`, not `r`, not `e`/`o`, not `/` and `n`/`N`, not
+`]`/`[`, and not `v` — which had shipped one release earlier. It is the same
+shape as `Ctrl+O` before v0.6.46: implemented, tested, and in neither list.
+
+The overlay now has a third section, **in the file viewer**, and a test reads
+`viewpane/keys.rs` itself and holds the overlay to it — because two lists with
+nothing comparing them is how this happens every time.
+
+That test earned its own lesson on the way in. Matching each key against the
+overlay's whole text let `v` be "found" inside the word *viewer*, so removing
+its row changed nothing; it matches the key COLUMN now, split into the
+individual keys a row names — and split on the separators before `/`, or the
+search key (a row spelled `/ · n / N`) is split out of existence by the very
+character it is named after.
+
 ## 0.19.14
 
 **The border sweep grew teeth, and found three things.** Nine separate

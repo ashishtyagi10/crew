@@ -310,3 +310,57 @@ fn the_scroll_limit_follows_the_filter() {
     assert!(max_scroll(h, "") > max_scroll(h, "zoom"));
     assert_eq!(max_scroll(h, "zzzznope"), 0);
 }
+
+/// Every key the file viewer answers to is in the overlay.
+///
+/// Read out of `viewpane/keys.rs` itself rather than listed a second time
+/// here: two lists with nothing comparing them is exactly how `Ctrl+O` came
+/// to be implemented, tested, and in neither list — and how every one of the
+/// viewer's own keys came to be documented in the manual and nowhere a user
+/// could find them without reading it.
+#[test]
+fn every_viewer_key_is_in_the_overlay() {
+    let src = include_str!("viewpane/keys.rs");
+    // The single-character arms of `view_key`: `"x" => ViewInput::…` and the
+    // exact-case `s.as_str() == "x"` guards above them.
+    let mut keys: Vec<String> = Vec::new();
+    for (pat, take) in [("s.as_str() == \"", 1), ("\" => ViewInput::", 0)] {
+        for (i, _) in src.match_indices(pat) {
+            let key = match take {
+                1 => src[i + pat.len()..].chars().next(),
+                _ => src[..i].chars().last(),
+            };
+            if let Some(k) = key.filter(|c| !c.is_whitespace()) {
+                keys.push(k.to_string());
+            }
+        }
+    }
+    assert!(keys.len() >= 8, "the parse found only {keys:?}");
+    // The overlay's KEY column only, split into the individual keys a row
+    // names. Matching against the descriptions too would let `v` be "found"
+    // inside the word "viewer" — which is exactly what happened, and is the
+    // difference between a parity test and a test that always passes.
+    //
+    // Split on the separators only, THEN on `/` — never `/` alone, or the
+    // search key (a row spelled `/ · n / N`) is split out of existence by the
+    // very character it is named after.
+    let mut listed: std::collections::HashSet<String> = std::collections::HashSet::new();
+    for (k, _) in VIEW_BINDINGS {
+        for tok in k
+            .split(['\u{b7}', ' '])
+            .map(str::trim)
+            .filter(|t| !t.is_empty())
+        {
+            listed.insert(tok.to_string());
+            for part in tok.split('/').filter(|p| !p.is_empty()) {
+                listed.insert(part.to_string());
+            }
+        }
+    }
+    for k in keys {
+        assert!(
+            listed.contains(&k),
+            "the viewer answers to `{k}` and /keys never says so \u{2014} {listed:?}"
+        );
+    }
+}

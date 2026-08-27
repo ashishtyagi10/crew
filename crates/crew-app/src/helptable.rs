@@ -1,4 +1,4 @@
-//! The two binding tables the `/keys` overlay lists. Data only: the rendering,
+//! The three binding tables the `/keys` overlay lists. Data only: the rendering,
 //! the scrolling and the docs-parity contract live in [`crate::help`].
 //!
 //! They stopped having a height budget when the overlay learned to scroll, so
@@ -108,4 +108,32 @@ pub(crate) const CHAT_BINDINGS: &[(&str, &str)] = &[
         "@a+b (in composer)",
         "Fan one task out to both agents, in parallel",
     ),
+];
+
+/// Keys that mean something specific inside the **file viewer** — `/view`,
+/// `/md`, `/diff`, `/out`, `/about`, and every path crew opens a file on.
+///
+/// The overlay claimed to list "the bindings" and had none of these. Every
+/// one of them was documented in the manual and reachable only by reading it,
+/// which is the same shape as the chat pane's keys before v0.6.46 and the
+/// same shape as `Ctrl+O`: implemented, tested, and in neither list.
+pub(crate) const VIEW_BINDINGS: &[(&str, &str)] = &[
+    // Spelled out rather than drawn as arrows, like the chat table's own
+    // "Up / Down": the overlay's "more below" hint IS a `\u{2193}`, and a
+    // binding row carrying one makes the test for that hint pass forever.
+    (
+        "Up / Down · PageUp/Down · Home/End",
+        "Scroll a line · a page · to either end",
+    ),
+    ("/ · n / N", "Search the file · next / previous hit"),
+    (
+        "] / [",
+        "Step the document's structure: file to file and hunk to hunk, heading to heading",
+    ),
+    ("v", "Diff: side by side, or unified again"),
+    ("s", "Markdown and CSV: show the raw text instead"),
+    ("r", "Re-read the file from disk"),
+    ("e / o", "Open in $EDITOR · hand to the OS default app"),
+    ("Cmd+Click", "Follow a rendered markdown link"),
+    ("Esc", "Close the viewer (a live search first)"),
 ];
