@@ -97,6 +97,7 @@ mod ease;
 mod editpane;
 mod envexpand;
 mod envlock;
+mod errscan;
 mod events;
 mod exereplace;
 mod faraction;

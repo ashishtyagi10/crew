@@ -10,6 +10,9 @@ impl CrewApp {
         match cmd {
             "exit" => return true,
             "keys" => self.help_open = true,
+            // A long build scrolls its own failure off the screen; this walks
+            // back to it. Repeating steps to the one before.
+            "errors" => self.find_error_in_terminal(),
             "far" => self.spawn_far_pane(),
             "goal" => self.spawn_goal_pane(""), // show usage hint
             "model" => self.set_model_cmd(""),  // show usage hint

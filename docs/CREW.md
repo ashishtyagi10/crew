@@ -670,6 +670,20 @@ longer aim at.
   clean tree says so instead of opening an empty pane. Pairs with the crew
   pane's automatic checkpoints (`/restore` lists them) for reviewing what
   agents changed.
+- **`/errors`** — scrolls the focused terminal back to the most recent line
+  that reads as an **error**, and reports how many are in view. A long build
+  scrolls its own failure off the screen, and finding it again otherwise means
+  remembering a word from it or paging up through the noise. Repeating `/errors`
+  steps to the one before, the way a repeated `/find` does — a failing build has
+  more than one, and the one you want is rarely the last.
+
+  What counts as an error is deliberately narrow: it has to *announce itself* at
+  the start of a line (after any indent, quote bar or box edge a TUI drew) or
+  right after a `file:line:col` prefix — `error[E0433]`, `error:`, `fatal:`,
+  `panicked at`, `npm ERR!`, `Traceback (most recent call last):`, `FAILED`,
+  `not ok`, `✗`, and `: error TS…`. Prose that merely mentions errors is not
+  one: a jump that lands on "errors are handled below" teaches you not to trust
+  the jump.
 - **`/copy`** — copies the focused terminal pane's **full scrollback** to the
   system clipboard (Cmd+C copies only the visible screen); the line count is
   flashed on the input bar.
