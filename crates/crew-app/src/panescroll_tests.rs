@@ -15,6 +15,7 @@ fn bar(scroll: usize, total: usize) -> Bar<'static> {
         min_btn: false,
         assemble_t: 1.0,
         focus_t: 1.0,
+        git: None,
     }
 }
 

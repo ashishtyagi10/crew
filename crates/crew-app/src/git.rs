@@ -16,7 +16,7 @@ use crew_hive::childproc::no_console_window;
 const GIT_POLL_SECS: u64 = 3;
 
 /// Branch name, number of changed files, and commits ahead/behind the upstream.
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct GitInfo {
     pub branch: String,
     pub changed: usize,

@@ -57,6 +57,7 @@ pub fn push_ghost(
                 min_btn: false,
                 focus_t: 0.0,
                 assemble_t,
+                git: None,
             },
         ),
         x: rect.x,

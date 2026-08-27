@@ -28,6 +28,12 @@ impl CrewApp {
         // Focus bookkeeping (bracket travel + the CRT ignition sweep) lives
         // in `panecardglow::focus_fx`, diffed there once per frame.
         let now = crate::anim::now_ms();
+        // Each card's git badge. `poll` starts at most one `git status` at a
+        // time and re-asks a directory every few seconds, so this costs a map
+        // lookup on almost every frame it is called on.
+        let dirs: Vec<std::path::PathBuf> =
+            self.panes.iter().filter_map(|p| p.dir.clone()).collect();
+        self.git_fleet.poll(&dirs, now / 1000);
         let focus_t = self.focus_fx(now);
         self.theme_fade_tick(now);
         // Grid glide clock: measured between frames, clamped after idle.
@@ -69,6 +75,7 @@ impl CrewApp {
                 focus_t,
                 cw,
                 ch,
+                &self.git_fleet,
             )
         } else {
             // Reflow glide: each pane draws a step closer to its placed tile
@@ -102,6 +109,7 @@ impl CrewApp {
                 (self.focused, self.focus_prev),
                 cw,
                 ch,
+                &self.git_fleet,
             )
         };
         if !self.zoomed {

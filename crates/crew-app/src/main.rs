@@ -108,6 +108,8 @@ mod framegeo;
 mod gauges;
 mod ghost;
 mod git;
+mod gitbadge;
+mod gitfleet;
 #[cfg(test)]
 #[path = "glassshot_tests.rs"]
 mod glassshot_tests;

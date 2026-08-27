@@ -23,6 +23,7 @@ pub fn build_scenes(
     focus_t: f32,
     cw: f32,
     ch: f32,
+    git: &crate::gitfleet::GitFleet,
 ) -> Vec<PaneScene> {
     let multi = panes.len() > 1;
     let mut scenes = Vec::with_capacity(panes.len() * 2);
@@ -48,6 +49,7 @@ pub fn build_scenes(
             dim,
             cw,
             ch,
+            git,
         );
     }
     scenes
@@ -72,6 +74,7 @@ pub fn full_scenes(
     spot: (usize, usize),
     cw: f32,
     ch: f32,
+    git: &crate::gitfleet::GitFleet,
 ) -> Vec<PaneScene> {
     let mut scenes = Vec::with_capacity(placed.len() * 2);
     for &(idx, _rect) in placed {
@@ -91,6 +94,7 @@ pub fn full_scenes(
             dim,
             cw,
             ch,
+            git,
         );
     }
     scenes
@@ -145,6 +149,7 @@ fn push_pane_scenes(
     dim: f32,
     cw: f32,
     ch: f32,
+    git: &crate::gitfleet::GitFleet,
 ) {
     let mut cells = p.cells(foc);
     let is_term = matches!(&p.content, PaneContent::Terminal(_));
@@ -216,6 +221,7 @@ fn push_pane_scenes(
                 min_btn,
                 focus_t,
                 assemble_t,
+                git: git.info(p.dir.as_deref()),
             },
         ),
         x: r.x,
@@ -255,6 +261,7 @@ mod tests {
             1.0,
             10.0,
             16.0,
+            &Default::default(),
         );
         let cards: Vec<_> = scenes.iter().filter(|s| s.glass).collect();
         assert_eq!(cards.len(), 2, "one frosted sheet per pane");
@@ -308,7 +315,17 @@ mod tests {
             attention: None,
             born_ms: crate::anim::now_ms(),
         };
-        let scenes = build_scenes(&[pane], Some(0), false, None, None, 1.0, 10.0, 16.0);
+        let scenes = build_scenes(
+            &[pane],
+            Some(0),
+            false,
+            None,
+            None,
+            1.0,
+            10.0,
+            16.0,
+            &Default::default(),
+        );
         // scenes[1] is the border card; the [-][x] buttons sit at card columns
         // cols-8..=cols-6 and cols-5..=cols-3 on row 0 (cols = grid cols + 2 border cells).
         let cols = 80 + 2;

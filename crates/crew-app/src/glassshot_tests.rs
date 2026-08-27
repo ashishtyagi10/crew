@@ -63,6 +63,7 @@ fn panes(cell_w: f32, cell_h: f32) -> Vec<PaneScene> {
         1.0,
         cell_w,
         cell_h,
+        &Default::default(),
     )
 }
 

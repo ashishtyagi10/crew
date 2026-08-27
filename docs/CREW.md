@@ -748,6 +748,25 @@ arrow-marked: `(#2 →#4 #7)`). **Repeating `/findall`** with the same term
 granularity — while a follow-up `/find <text>` steps upward through the
 focused pane's matches as usual.
 
+## Git on the card
+
+Every pane's top border carries the git state of **the directory that pane is
+in**: `main ●3 ↑2 ↓1` — branch, changed files, commits ahead and behind the
+upstream. The sidebar has always shown this for crew's own working directory;
+the badge shows it per pane, which is what you want when one pane runs an agent
+in one worktree and another runs tests in a second. A clean repo is just its
+branch — no tick, no zeroes.
+
+The border is a scarce row, so the badge sheds detail in a fixed order as the
+card narrows: behind, then ahead, then the dirty count, then the branch itself
+truncates with an ellipsis, and below four columns it draws nothing rather than
+a letter and a dot. It never reaches the legend.
+
+Queries run **off the winit thread**, one `git status` at a time across the
+whole fleet, and no directory is asked more than once every three seconds —
+`git status` takes seconds on a large or network-mounted repo, and running one
+inline freezes every pane.
+
 ## The cursor
 
 Crew draws the cursor **shape a program asks for** (DECSCUSR): a filled block
