@@ -114,3 +114,39 @@ fn a_dead_worker_settles_as_failed_instead_of_loading_forever() {
         _ => panic!("a disconnected channel must settle as Failed"),
     }
 }
+
+/// A `path:line` click asks the viewer to land somewhere, and the load is on
+/// a worker thread — so the ask has to survive until the text arrives.
+#[test]
+fn a_pending_line_is_applied_when_the_text_lands_and_then_forgotten() {
+    let dir = std::env::temp_dir().join(format!("crew-goto-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("many.txt");
+    std::fs::write(
+        &path,
+        (1..=200).map(|n| format!("line {n}\n")).collect::<String>(),
+    )
+    .unwrap();
+    let mut p = ViewPane::open(path.clone());
+    p.goto = Some(42);
+    for _ in 0..200 {
+        if p.poll() {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    assert!(matches!(p.state, LoadState::Ready { .. }), "never loaded");
+    assert_eq!(p.scroll, 41, "the line it was sent to is the top row");
+    assert_eq!(p.goto, None, "the ask outlived the load");
+    // A reload afterwards must not jump anywhere: nothing asked it to.
+    p.scroll = 3;
+    p.reload();
+    for _ in 0..200 {
+        if p.poll() {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    assert_eq!(p.scroll, 3, "a reload jumped on its own");
+    let _ = std::fs::remove_dir_all(&dir);
+}

@@ -884,6 +884,25 @@ password prompt — has it hidden. The cell keeps its background, so a concealed
 field still occupies the space it claimed, and the characters are still in the
 grid for a selection to copy.
 
+## File references
+
+Agents cite files constantly — `src/main.rs:42`, `./deploy.sh`, `Cargo.toml` —
+and Cmd+click has always resolved them. Nothing said so: the reference and the
+prose around it were the same ink. Those references are now marked in the link
+colour with a **dotted** rule, where a URL wears a solid one: same colour,
+different rule, because a URL leaves for the browser and a path opens here.
+
+The matcher is deliberately narrow, since a mark on ordinary prose teaches
+people to ignore the marks. Two shapes qualify — something with a directory
+separator, or a bare filename with a real extension — so `and/or`, `TCP/IP`,
+`e.g.`, `10:30`, `v1.0` and `Fig.2` are left alone.
+
+**A clicked `path:line` now opens at that line.** It never did: the position
+was part of the token, so the file was looked up under a name it does not have
+and the click quietly did nothing. The line is landed at the top of the
+window, since the lines after the one you were sent to are the ones you came
+to read.
+
 ## Text decorations
 
 Crew draws the whole underline family, not just the one: **SGR 4** (single),
