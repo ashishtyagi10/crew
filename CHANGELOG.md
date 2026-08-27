@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.65
+
+**The minimized strip says how much you missed.** A demoted thumbnail showed a
+title and a dot, and the dot could only ever say "something happened". The
+strip is where a pane goes when you have not touched it for a while — precisely
+where the question is *how much* — so each thumbnail now carries the same
+unread count the full cards do, right-aligned, with the marker keeping the left.
+A thumbnail with no room for both keeps the marker, since that is the one that
+says the pane is alive at all.
+
+Thumbnails are **numbered** now too, like the full tiles: `Cmd+N` reaches a
+minimized pane, and the number is how you know which N.
+
 ## 0.18.64
 
 **The settings form shows the colours it is offering.** The theme pickers list
