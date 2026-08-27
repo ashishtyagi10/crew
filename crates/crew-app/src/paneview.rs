@@ -24,6 +24,7 @@ pub fn build_scenes(
     cw: f32,
     ch: f32,
     git: &crate::gitfleet::GitFleet,
+    pinned: &[usize],
 ) -> Vec<PaneScene> {
     let multi = panes.len() > 1;
     let mut scenes = Vec::with_capacity(panes.len() * 2);
@@ -50,6 +51,7 @@ pub fn build_scenes(
             cw,
             ch,
             git,
+            pinned.contains(&i),
         );
     }
     scenes
@@ -75,6 +77,7 @@ pub fn full_scenes(
     cw: f32,
     ch: f32,
     git: &crate::gitfleet::GitFleet,
+    pinned: &[usize],
 ) -> Vec<PaneScene> {
     let mut scenes = Vec::with_capacity(placed.len() * 2);
     for &(idx, _rect) in placed {
@@ -95,6 +98,7 @@ pub fn full_scenes(
             cw,
             ch,
             git,
+            pinned.contains(&idx),
         );
     }
     scenes
@@ -150,6 +154,7 @@ fn push_pane_scenes(
     cw: f32,
     ch: f32,
     git: &crate::gitfleet::GitFleet,
+    pinned: bool,
 ) {
     let mut cells = p.cells(foc);
     let is_term = matches!(&p.content, PaneContent::Terminal(_));
@@ -292,6 +297,7 @@ fn push_pane_scenes(
                 hits: &hits,
                 progress,
                 elapsed,
+                pinned,
                 cmd_rows: &cmd_rows,
                 err_rows: &err_rows,
                 unread,
@@ -336,6 +342,7 @@ mod tests {
             10.0,
             16.0,
             &Default::default(),
+            &[],
         );
         let cards: Vec<_> = scenes.iter().filter(|s| s.glass).collect();
         assert_eq!(cards.len(), 2, "one frosted sheet per pane");
@@ -399,6 +406,7 @@ mod tests {
             10.0,
             16.0,
             &Default::default(),
+            &[],
         );
         // scenes[1] is the border card; the [-][x] buttons sit at card columns
         // cols-8..=cols-6 and cols-5..=cols-3 on row 0 (cols = grid cols + 2 border cells).

@@ -48,6 +48,10 @@ pub(crate) struct Bar<'a> {
     /// review's files and hunks. Drawn under the thumb, so a landmark you are
     /// currently sitting on is not hidden by it.
     pub ticks: &'a [usize],
+    /// This pane is pinned to the grid ([`crate::grid`]): marked on the top
+    /// border, since a pane that behaves differently from its neighbours has
+    /// to say so somewhere.
+    pub pinned: bool,
     /// Visible rows where a command started ([`crate::cmdspan`]), ticked on
     /// the left border. Drawn under the error bars: a row can be both, and
     /// "this failed" outranks "this began".
@@ -352,6 +356,10 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
             }
             rx = start.saturating_sub(2);
         }
+    }
+    if b.pinned && rx > 1 {
+        put(&mut v, rx, 0, '\u{25aa}', crate::palette::accent(), true);
+        rx = rx.saturating_sub(2);
     }
     // How long this has been going. Placed before the git badge, since it is
     // the more perishable of the two: a branch does not change while you look

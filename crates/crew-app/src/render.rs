@@ -88,6 +88,7 @@ impl CrewApp {
                 cw,
                 ch,
                 &self.git_fleet,
+                &self.grid.pinned_indices(),
             )
         } else {
             // Reflow glide: each pane draws a step closer to its placed tile
@@ -122,6 +123,7 @@ impl CrewApp {
                 cw,
                 ch,
                 &self.git_fleet,
+                &self.grid.pinned_indices(),
             )
         };
         if !self.zoomed {

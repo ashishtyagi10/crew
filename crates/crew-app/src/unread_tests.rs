@@ -122,6 +122,7 @@ fn the_card_shows_the_count_and_only_when_there_is_one() {
         hits: &[],
         progress: None,
         elapsed: None,
+        pinned: false,
         cmd_rows: &[],
         err_rows: &[],
         unread,

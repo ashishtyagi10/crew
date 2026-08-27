@@ -95,6 +95,7 @@ fn bar(err_rows: &[u16]) -> crate::panecard::Bar<'_> {
         hits: &[],
         progress: None,
         elapsed: None,
+        pinned: false,
         cmd_rows: &[],
         err_rows,
         unread: 0,

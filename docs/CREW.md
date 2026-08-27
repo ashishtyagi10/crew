@@ -673,6 +673,14 @@ longer aim at.
 - Panes crew opens on generated files — `/out`, `/diff`, `/about` — are
   **named after what they are** (`out · cargo build`, `diff · crew`, `what's
   new · 0.18.75`) rather than after the temp file the text happens to live in.
+- **`/pin`** — keeps the focused pane **on the grid**: pinned panes are exempt
+  from the LRU demotion that sends the least-recently-active pane to the
+  minimized strip. The LRU is right about which pane you have not touched and
+  wrong about whether that matters — the pane you are least likely to touch is
+  often the agent you most want to keep watching. A pinned card marks itself on
+  its top border; running `/pin` again gives the pane back to the LRU. More
+  pins than tiles is not an error and cannot make room that does not exist: the
+  oldest pins keep their tiles and the rest demote like anything else.
 - **`/out`** — opens the focused pane's **last command's output on its own**,
   in the file viewer. A long build's output is buried the moment the prompt
   comes back: mixed in with what you ran before it and whatever the shell

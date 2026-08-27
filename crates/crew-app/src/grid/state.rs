@@ -7,6 +7,13 @@ pub const MAX_FULL_TILES: usize = 6;
 pub struct GridLayout {
     /// Pane indices, most-recently-active first.
     order: Vec<usize>,
+    /// Panes exempt from demotion, in the order they were pinned.
+    ///
+    /// The LRU is right about which pane you have not touched and wrong about
+    /// whether that matters: the pane you are least likely to touch is often
+    /// the agent you most want to keep watching. A pin says "this one stays
+    /// on the grid", and nothing else about it changes.
+    pinned: Vec<usize>,
 }
 
 impl GridLayout {
@@ -35,15 +42,18 @@ impl GridLayout {
     /// still exist at their index). Contrast [`Self::on_close`], which shifts.
     pub fn retain(&mut self, keep: impl Fn(usize) -> bool) {
         self.order.retain(|&x| keep(x));
+        self.pinned.retain(|&x| keep(x));
     }
 
     /// Remove `idx`, then shift every stored index above it down by one to
     /// match `Vec::remove` reindexing the panes after a close.
     pub fn on_close(&mut self, idx: usize) {
-        self.order.retain(|x| *x != idx);
-        for x in &mut self.order {
-            if *x > idx {
-                *x -= 1;
+        for list in [&mut self.order, &mut self.pinned] {
+            list.retain(|x| *x != idx);
+            for x in list.iter_mut() {
+                if *x > idx {
+                    *x -= 1;
+                }
             }
         }
     }
@@ -52,14 +62,55 @@ impl GridLayout {
         self.order.len().min(MAX_FULL_TILES)
     }
 
-    /// Indices shown full (most-recently-active, up to the cap).
-    pub fn full(&self) -> &[usize] {
-        &self.order[..self.split()]
+    /// Pin or unpin `idx`. Pinning a pane already pinned is a no-op, so a
+    /// toggle is the caller's decision rather than this one's.
+    pub fn set_pinned(&mut self, idx: usize, on: bool) {
+        self.pinned.retain(|x| *x != idx);
+        if on {
+            self.pinned.push(idx);
+        }
     }
 
-    /// Indices minimized (least-recently-active beyond the cap).
-    pub fn minimized(&self) -> &[usize] {
-        &self.order[self.split()..]
+    /// Every pinned index, for the frame that draws their markers.
+    pub fn pinned_indices(&self) -> Vec<usize> {
+        self.pinned.clone()
+    }
+
+    pub fn is_pinned(&self, idx: usize) -> bool {
+        self.pinned.contains(&idx)
+    }
+
+    /// The order tiles are handed out in: pinned panes first, in the order
+    /// they were pinned, then everything else by recency.
+    ///
+    /// More pins than tiles is possible and is not an error — the oldest pins
+    /// win, and the rest demote like anything else. A pin cannot make room
+    /// that does not exist.
+    fn ranked(&self) -> Vec<usize> {
+        let mut out: Vec<usize> = self
+            .pinned
+            .iter()
+            .copied()
+            .filter(|p| self.order.contains(p))
+            .collect();
+        let rest: Vec<usize> = self
+            .order
+            .iter()
+            .copied()
+            .filter(|x| !out.contains(x))
+            .collect();
+        out.extend(rest);
+        out
+    }
+
+    /// Indices shown full (pinned first, then most-recently-active).
+    pub fn full(&self) -> Vec<usize> {
+        self.ranked()[..self.split()].to_vec()
+    }
+
+    /// Indices minimized (whatever the cap left over).
+    pub fn minimized(&self) -> Vec<usize> {
+        self.ranked()[self.split()..].to_vec()
     }
 
     #[cfg(test)]
