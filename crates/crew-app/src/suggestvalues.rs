@@ -186,7 +186,7 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
                 "off".to_string(),
                 "0 — raw outlines, no darkening".to_string(),
             ),
-            ("light".to_string(), "60 — a hint of fullness".to_string()),
+            ("light".to_string(), "40 — a hint of fullness".to_string()),
             (
                 "medium".to_string(),
                 format!(
@@ -196,7 +196,7 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
             ),
             (
                 "heavy".to_string(),
-                "170 — thick, high-contrast".to_string(),
+                "120 — thick, high-contrast".to_string(),
             ),
         ]),
         "/gamma" => Some(vec![

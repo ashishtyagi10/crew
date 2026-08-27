@@ -8,6 +8,35 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.28
+
+**The two font corrections were double-counting, and the defaults now say so.**
+Crew's stem darkening was calibrated by eye, against Terminal.app, back when it
+was the only correction crew had — and back when the gamma-encoded blend was
+quietly eating a quarter of every glyph's light. So the strength that looked
+right was doing two jobs: its own optical darkening, and covering for a blend
+nobody had measured yet.
+
+`/gamma` corrects the blend honestly as of 0.19.25, and reaches 85% of the
+outline's light on its own with no darkening at all — very nearly what the old
+default reached doing both jobs. Stacked, the pair delivered **106%** of the
+light the outline asks for, which is past fullness and into bloat.
+
+`font_smooth` defaults to 70 now, where the pair lands on 99% — the outline's
+own light, plus what is genuinely left of the optical darkening. The named
+ladder is respaced around it (light 40, heavy 120) so the steps stay spread
+either side of the default instead of bunching against the top. A config still
+carrying the old default is moved once on upgrade, the same one-shot heal the
+0.12.6 theme pins got; a strength you actually chose is left alone.
+
+A test holds the pair to that contract from now on: together they must deliver
+between 95% and 103% of the outline's light, and neither default can drift
+without the other answering for it.
+
+Rendered end to end against 0.19.23, the five releases of this arc put 20.7%
+more linear light into a line of body text — fuller, more evenly weighted
+between the round letters and the upright ones, with the counters still open.
+
 ## 0.19.27
 
 **Small text no longer takes more darkening than it was calibrated for.** The

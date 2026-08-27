@@ -339,3 +339,27 @@ fn light_hours_falls_back_per_bound_not_per_window() {
         CrewConfig::from_toml_str("auto_light_from = \"05:30\"\nauto_light_to = \"25:00\"\n");
     assert_eq!(other.light_hours(), (5 * 60 + 30, 19 * 60));
 }
+
+/// The pre-gamma default was doing two jobs; `/gamma` took one of them back,
+/// so a config still carrying that default overshoots. The heal moves it —
+/// and moves nothing a user actually chose.
+#[test]
+fn the_smoothing_heal_moves_the_old_default_and_nothing_else() {
+    let mut cfg = CrewConfig {
+        font_smooth: crate::config::SMOOTH_BEFORE_GAMMA,
+        ..CrewConfig::default()
+    };
+    assert!(cfg.adopt_rebalanced_smoothing());
+    assert_eq!(cfg.font_smooth, crew_render::DEFAULT_SMOOTH);
+
+    // A chosen strength survives, including the new default itself (the heal
+    // is one-shot but must be idempotent if it ever runs twice).
+    for chosen in [0u8, 42, 170, 255, crew_render::DEFAULT_SMOOTH] {
+        let mut cfg = CrewConfig {
+            font_smooth: chosen,
+            ..CrewConfig::default()
+        };
+        assert!(!cfg.adopt_rebalanced_smoothing(), "moved a chosen {chosen}");
+        assert_eq!(cfg.font_smooth, chosen);
+    }
+}

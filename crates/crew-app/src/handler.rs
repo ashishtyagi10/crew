@@ -82,6 +82,20 @@ impl ApplicationHandler for CrewApp {
         {
             self.config.reset_look_overrides();
         }
+        // One-shot rebalance when upgrading across 0.19.28. `font_smooth`'s
+        // old default was making up part of the gamma-encoded blend's deficit
+        // as well as doing its own darkening; `/gamma` corrects that honestly
+        // now, and the two at their old values deliver more light than the
+        // outline asks for. Only the untouched default moves.
+        if self
+            .config
+            .last_seen_version
+            .as_deref()
+            .is_some_and(|prev| crate::appregister::version_lt(prev, "0.19.28"))
+            && self.config.adopt_rebalanced_smoothing()
+        {
+            self.config.save();
+        }
         if self.config.last_seen_version.as_deref() != Some(crate::appregister::VERSION) {
             self.config.last_seen_version = Some(crate::appregister::VERSION.to_string());
             self.config.save();

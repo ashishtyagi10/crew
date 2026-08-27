@@ -28,9 +28,21 @@ use crate::sizeramp::strength_at;
 use crate::smoothmask::smooth_mask;
 use crate::textgamma::Curve;
 
-/// Default smoothing strength (0–255). Calibrated against Terminal.app's
-/// default look: ~0.4 px of horizontal stem widening at full coverage.
-pub const DEFAULT_SMOOTH: u8 = 100;
+/// Default smoothing strength (0–255).
+///
+/// This was 100 for as long as the darkening was the only correction crew
+/// had, and 100 was doing two jobs. Crew blends on gamma-encoded values, so
+/// a glyph delivers only about 74% of its outline's linear light; the stem
+/// darkening, calibrated by eye against Terminal.app, was quietly making up
+/// part of that deficit as well as doing its own work — it reached 88%.
+///
+/// [`crate::textgamma`] now corrects the blend honestly, and reaches 85% on
+/// its own with no darkening at all. Leaving the strength at 100 stacked the
+/// two: 106% of the outline's own light, which is past what the glyph asks
+/// for and reads as bloat rather than fullness. At 70 the pair lands on 99%
+/// — the outline's light, plus what is genuinely left of the optical
+/// darkening. `the_default_pair_delivers_the_outlines_light` holds it there.
+pub const DEFAULT_SMOOTH: u8 = 70;
 
 /// Strength byte's position inside the cache-key flag bits. Bits 0–2 are
 /// cosmic-text's own flags; 8..16 are unused by it and survive the trip
