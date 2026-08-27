@@ -143,8 +143,13 @@ nothing once the work finishes.
 
 **Capacity & visibility.** Crew displays up to **6 panes as full tiles** in the
 auto-tiling grid. Additional panes are demoted to a **minimized thumbnail strip**
-along the bottom of the content area, each showing the pane's title and an
-activity dot, ordered least-recently-active first. The focused pane is protected
+along the bottom of the content area, each showing the pane's **number** and
+title, an activity marker on the left, and — on the right — **how many lines
+arrived while it was down there**, ordered least-recently-active first. The
+strip is where a pane goes when you have not touched it for a while, which is
+exactly where "what did I miss?" is loudest; the marker alone could only ever
+answer "something". A thumbnail with no room for both keeps the marker, which
+is the one that says the pane is alive. The focused pane is protected
 from demotion. To restore a minimized pane to the full grid, click its thumbnail,
 click its entry in the sidebar's PANES list, or use **Cmd+1 … 9** to jump to it.
 

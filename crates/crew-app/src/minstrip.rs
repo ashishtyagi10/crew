@@ -36,6 +36,48 @@ pub fn strip_marker(
     activity.then_some((crate::shapecues::dot(false), t.activity))
 }
 
+/// The thumbnail's one content row: the marker on the left, and on the right
+/// how many lines arrived while the pane was out of the grid.
+///
+/// The strip is where a pane goes when it has not been touched for a while,
+/// which is exactly where the question "what did I miss?" is loudest — and
+/// the marker alone could only ever answer "something".
+pub fn strip_row(cols: u16, marker: Option<(char, (u8, u8, u8))>, unread: usize) -> Vec<CellView> {
+    let mut v = Vec::new();
+    let bg = crew_theme::theme().page_bg;
+    if let Some((c, fg)) = marker {
+        if cols > 0 {
+            v.push(CellView {
+                col: 0,
+                row: 0,
+                c,
+                fg,
+                bg,
+                ..Default::default()
+            });
+        }
+    }
+    // The count needs a column of air after the marker, or a one-cell card
+    // would draw the two on top of each other.
+    if let Some(n) = crate::unread::badge(unread) {
+        let w = n.chars().count() as u16;
+        if cols > w + 1 {
+            for (i, ch) in n.chars().enumerate() {
+                v.push(CellView {
+                    col: cols - w + i as u16,
+                    row: 0,
+                    c: ch,
+                    fg: crew_theme::theme().activity,
+                    bg,
+                    bold: true,
+                    ..Default::default()
+                });
+            }
+        }
+    }
+    v
+}
+
 /// Push one fieldset card per minimized pane into `scenes` — plus, when the
 /// strip overflowed, a trailing `+N` card standing in for the panes it had no
 /// readable room for (they stay listed in the sidebar's PANES section).
@@ -52,25 +94,18 @@ pub fn push_min_strip(
     let now = crate::anim::now_ms();
     for &(idx, rect) in &placed.minimized {
         let Some(p) = panes.get(idx) else { continue };
-        let title = p.title_text();
+        // Numbered like the full tiles are, because `Cmd+N` reaches a
+        // minimized pane too and the number is how you know which N.
+        let title = format!("{} {}", idx + 1, p.title_text());
         let marker = strip_marker(p.activity, p.attention, crate::paneview::pane_busy(p), now);
-        push_card(scenes, rect, cw, ch, &title, move |cols, _rows| {
-            let mut v = Vec::new();
-            if let Some((c, fg)) = marker {
-                if cols > 0 {
-                    v.push(CellView {
-                        col: 0,
-                        row: 0,
-                        c,
-                        fg,
-                        bg: crew_theme::theme().page_bg,
-                        bold: false,
-                        italic: false,
-                        ..Default::default()
-                    });
-                }
+        let unread = match &p.content {
+            crate::pane::PaneContent::Terminal(t) => {
+                crate::unread::count(t.pty.scrollable_lines(), t.read_at)
             }
-            v
+            _ => 0,
+        };
+        push_card(scenes, rect, cw, ch, &title, move |cols, _rows| {
+            strip_row(cols, marker, unread)
         });
     }
 }
@@ -101,6 +136,41 @@ mod tests {
         };
         assert_eq!(strip_marker(false, Some(a), false, BLINK_MS), None);
         assert!(strip_marker(false, Some(a), false, 2 * BLINK_MS).is_some());
+    }
+
+    /// The strip is where a pane goes when you have not looked at it, so it
+    /// is where "how much did I miss" matters most. The count is right-
+    /// aligned; the marker keeps the left.
+    #[test]
+    fn a_thumbnail_shows_the_count_of_what_arrived_while_it_was_away() {
+        let _g = crate::app::theme_test_guard();
+        let marker = Some(('\u{25cf}', crew_theme::theme().activity));
+        let row = strip_row(12, marker, 7);
+        let at = |col: u16| row.iter().find(|c| c.col == col).map(|c| c.c);
+        assert_eq!(at(0), Some('\u{25cf}'), "the marker lost its column");
+        assert_eq!(at(11), Some('7'), "the count is not at the right edge");
+        let many = strip_row(12, marker, 4000);
+        let text: String = {
+            let mut v: Vec<&CellView> = many.iter().filter(|c| c.col > 0).collect();
+            v.sort_by_key(|c| c.col);
+            v.iter().map(|c| c.c).collect()
+        };
+        assert_eq!(text, "99+", "{text:?}");
+    }
+
+    /// Nothing new, nothing drawn — and a card with no room for both keeps
+    /// the marker, which is the one that says a pane is alive.
+    #[test]
+    fn a_quiet_or_tiny_thumbnail_draws_no_count() {
+        let _g = crate::app::theme_test_guard();
+        let marker = Some(('\u{25cf}', crew_theme::theme().activity));
+        assert_eq!(strip_row(12, marker, 0).len(), 1);
+        assert_eq!(
+            strip_row(2, marker, 7).len(),
+            1,
+            "the count crowded out the marker"
+        );
+        assert!(strip_row(0, marker, 7).is_empty());
     }
 
     #[test]
