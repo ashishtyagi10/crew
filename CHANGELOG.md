@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.6
+
+**A watched pattern that matched every line of output could hide every other
+notification crew had.** Toasts stack four deep and drop the oldest to make
+room, so an event repeating in a burst — an agent finishing three jobs in a
+second, a `/notify` pattern matching a build's every line — pushed a card per
+occurrence and evicted the rest of the stack to do it.
+
+**The same thing said twice is now one card that says `×2`.** A repeat is
+matched on everything the card says — its text, its legend, and the pane it
+would open — so two different events never merge into one wrong count, and it
+counts up *where it is* rather than being promoted to the bottom of the
+stack: sliding every other card is precisely what the pointer-hold rule
+exists to prevent, and the pointer may be resting on one of them. The count
+survives the hover rewrite (`waiting ×4 → open`), because the reason you are
+hovering may well be that it happened four times.
+
 ## 0.19.5
 
 **`/blame` — who last touched each line, in the viewer's gutter.** Reading a

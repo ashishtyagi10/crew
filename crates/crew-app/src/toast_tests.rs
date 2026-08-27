@@ -105,8 +105,30 @@ fn expired_toasts_render_nothing() {
 #[test]
 fn exit_window_fades_text_toward_the_page() {
     // fade = 1 exactly at expiry: the text cell fg equals page_bg.
-    let cells_mid = card_cells("hi", "note", false, 6, 0.0, false, false);
-    let cells_end = card_cells("hi", "note", false, 6, 1.0, false, false);
+    let cells_mid = card_cells(
+        &CardText {
+            text: "hi",
+            legend: "note",
+            repeats: 1,
+            alert: false,
+            actionable: false,
+        },
+        6,
+        0.0,
+        false,
+    );
+    let cells_end = card_cells(
+        &CardText {
+            text: "hi",
+            legend: "note",
+            repeats: 1,
+            alert: false,
+            actionable: false,
+        },
+        6,
+        1.0,
+        false,
+    );
     let t = crew_theme::theme();
     let text_cell = |cells: &Vec<crew_render::CellView>| {
         cells
@@ -123,11 +145,22 @@ fn exit_window_fades_text_toward_the_page() {
 fn alert_toasts_border_in_the_bell_color() {
     let t = crew_theme::theme();
     let border_of = |alert: bool| {
-        card_cells("x", "waiting", alert, 8, 0.0, false, false)
-            .iter()
-            .find(|c| c.row == 0 && c.c == '─')
-            .expect("border cell")
-            .fg
+        card_cells(
+            &CardText {
+                text: "x",
+                legend: "waiting",
+                repeats: 1,
+                alert,
+                actionable: false,
+            },
+            8,
+            0.0,
+            false,
+        )
+        .iter()
+        .find(|c| c.row == 0 && c.c == '─')
+        .expect("border cell")
+        .fg
     };
     // The alert stroke is EXACTLY the bell — the gradient does not get to
     // repaint a warning (see `card_cells`).
@@ -272,4 +305,125 @@ fn a_click_takes_the_card_and_reports_its_pane() {
         !t.dismiss_at(x, y),
         "the card is gone; the click falls through"
     );
+}
+
+/// The same thing said twice is one thing that happened twice: the card
+/// counts up in place instead of the stack filling with copies.
+#[test]
+fn a_repeated_notification_counts_up_instead_of_stacking() {
+    let mut t = Toasts::default();
+    for _ in 0..3 {
+        t.push_for(
+            "agent-7 is waiting".into(),
+            "waiting",
+            true,
+            1_000,
+            Some("agent-7".into()),
+        );
+    }
+    assert_eq!(t.items.len(), 1, "one event, one card");
+    assert_eq!(t.items[0].repeats, 3);
+}
+
+/// The match is on everything the card says — text, legend and the pane it
+/// would open — so two different events never merge into one wrong count.
+#[test]
+fn cards_that_say_different_things_never_merge() {
+    let mut t = Toasts::default();
+    t.push_for("done".into(), "done", false, 1_000, Some("a".into()));
+    t.push_for("done".into(), "done", false, 1_000, Some("b".into()));
+    t.push_for("done".into(), "bell", false, 1_000, Some("a".into()));
+    t.push_for("finished".into(), "done", false, 1_000, Some("a".into()));
+    assert_eq!(t.items.len(), 4);
+    assert!(t.items.iter().all(|x| x.repeats == 1));
+}
+
+/// A repeat restarts the card's life WHERE IT IS. Promoting it to the bottom
+/// of the stack would slide every other card, and the pointer may be resting
+/// on one of them.
+#[test]
+fn a_repeat_restarts_the_card_in_place() {
+    let mut t = Toasts::default();
+    t.push("first".into(), "note", false, 0);
+    t.push("second".into(), "note", false, 0);
+    // Nearly expired…
+    t.push("first".into(), "note", false, TTL_MS - 1);
+    assert_eq!(t.items.len(), 2);
+    assert_eq!(t.items[0].text, "first", "it did not move");
+    t.prune(TTL_MS);
+    assert_eq!(t.items.len(), 1, "the untouched card expired");
+    assert_eq!(t.items[0].text, "first", "and the repeated one lives on");
+}
+
+/// A card that repeats does not evict its neighbours to say so — which is
+/// what made this worth fixing: a pattern matching every line of output could
+/// wipe the stack of every other notification crew had.
+#[test]
+fn a_flood_of_one_event_no_longer_clears_the_stack() {
+    let mut t = toasts_with(MAX_SHOWN - 1, 1_000);
+    for _ in 0..20 {
+        t.push("noisy".into(), "note", false, 1_000);
+    }
+    assert_eq!(t.items.len(), MAX_SHOWN);
+    assert_eq!(t.items[0].text, "toast 0", "the oldest card survived");
+    assert_eq!(t.items.last().unwrap().repeats, 20);
+}
+
+/// The count is on the legend, and it survives the hover rewrite — the
+/// reason you are hovering may well be that the card said it happened four
+/// times.
+#[test]
+fn the_count_is_drawn_on_the_legend_and_survives_hover() {
+    let _g = crate::app::theme_test_guard();
+    let text_of = |cells: Vec<CellView>| -> String {
+        let mut v: Vec<&CellView> = cells.iter().filter(|c| c.row == 0).collect();
+        v.sort_by_key(|c| c.col);
+        v.iter().map(|c| c.c).collect()
+    };
+    let once = text_of(card_cells(
+        &CardText {
+            text: "x",
+            legend: "done",
+            repeats: 1,
+            alert: false,
+            actionable: true,
+        },
+        30,
+        0.0,
+        false,
+    ));
+    assert!(
+        !once.contains('\u{d7}'),
+        "a first arrival counts nothing: {once:?}"
+    );
+    let four = text_of(card_cells(
+        &CardText {
+            text: "x",
+            legend: "done",
+            repeats: 4,
+            alert: false,
+            actionable: true,
+        },
+        30,
+        0.0,
+        false,
+    ));
+    assert!(four.contains("done \u{d7}4"), "legend was {four:?}");
+    let hovered = text_of(card_cells(
+        &CardText {
+            text: "x",
+            legend: "done",
+            repeats: 4,
+            alert: false,
+            actionable: true,
+        },
+        30,
+        0.0,
+        true,
+    ));
+    assert!(
+        hovered.contains("done \u{d7}4"),
+        "hover kept the count: {hovered:?}"
+    );
+    assert!(hovered.contains("open"), "and still offers the click");
 }
