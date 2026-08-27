@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.22
+
+**A test guard that restored half a theme.** `theme_test_guard` put the
+palette back when it dropped and left the *gradient poles* wherever a test had
+moved them — so a test that only reads `theme()` could still be looking at the
+light somebody else turned on. Nothing had moved the poles from under it
+before; the `/theme` picker's preview does, and `alert_toasts_border_in_the_
+bell_color` (which reads both, and took no guard at all) started failing under
+the parallel runner.
+
+The guard restores both now, and that test takes it. Shipped one release late:
+0.19.21 went out with it red, because the release check grepped for failures
+and a grep that *finds* something exits 0.
+
 ## 0.19.21
 
 **A command that failed now says so as it happens.** The border has marked
