@@ -28,6 +28,10 @@ pub struct PaneRow {
     /// Doing background work (swarm running, agent chat awaiting, Far op):
     /// the row's dot slot spins while this holds. Attention still wins.
     pub busy: bool,
+    /// Lines that arrived since this pane was last read
+    /// ([`crate::unread`]) — the same count the pane's own card and its
+    /// minimized thumbnail carry. `0` draws nothing.
+    pub unread: usize,
     /// The pointer is on this row. The whole row is a click target that
     /// focuses (and restores) the pane, and nothing said so: it lifts its ink
     /// out of the muted grey rather than washing a background behind it,
@@ -76,12 +80,17 @@ pub fn pane_cells(
         } else {
             t.text_muted
         };
+        // The count sits between the title and the dot slot: the third place
+        // this number appears (card, thumbnail, here), because the sidebar is
+        // the one view that lists panes you cannot see.
+        let count = crate::unread::badge(p.unread).filter(|_| !p.focused);
+        let cw = count.as_ref().map_or(0, |n| n.chars().count() as u16 + 1);
         // A minimized row carries a right-aligned [+] restore button (ending a
         // cell left of the activity-dot slot); its title stops short of it.
         let tmax = if p.minimized {
-            cols.saturating_sub(8)
+            cols.saturating_sub(8 + cw)
         } else {
-            cols.saturating_sub(3)
+            cols.saturating_sub(3 + cw)
         };
         write(&mut out, &p.title, tstart, row, title_fg, tmax, t.page_bg);
         if p.minimized {
@@ -91,6 +100,18 @@ pub fn pane_cells(
                 cols.saturating_sub(6),
                 row,
                 accent(),
+                cols.saturating_sub(2),
+                t.page_bg,
+            );
+        }
+        if let Some(n) = count {
+            let w = n.chars().count() as u16;
+            write(
+                &mut out,
+                &n,
+                cols.saturating_sub(3 + w),
+                row,
+                t.activity,
                 cols.saturating_sub(2),
                 t.page_bg,
             );
@@ -176,7 +197,54 @@ mod tests {
             attention: None,
             busy: false,
             hovered: false,
+            unread: 0,
         }
+    }
+
+    /// The count appears in the sidebar too — the one view that lists panes
+    /// you cannot see — and never on the row you are looking at.
+    #[test]
+    fn an_unread_count_rides_the_row_of_a_pane_you_are_not_in() {
+        let _g = crate::app::theme_test_guard();
+        let quiet = row(1, "sh", false, false);
+        let loud = PaneRow {
+            unread: 12,
+            ..row(2, "sh", false, false)
+        };
+        let focused = PaneRow {
+            unread: 12,
+            ..row(3, "sh", true, false)
+        };
+        let text = |p: &PaneRow| -> String {
+            let cells = cells_of(std::slice::from_ref(p), 30, 4);
+            let mut v: Vec<&crew_render::CellView> = cells.iter().filter(|c| c.row == 2).collect();
+            v.sort_by_key(|c| c.col);
+            v.iter().map(|c| c.c).collect()
+        };
+        assert!(text(&loud).contains("12"), "{:?}", text(&loud));
+        assert!(!text(&quiet).contains("12"));
+        assert!(
+            !text(&focused).contains("12"),
+            "the pane you are in cannot have unread lines"
+        );
+    }
+
+    /// A long title gives way to the count rather than overprinting it.
+    #[test]
+    fn the_title_stops_short_of_the_count() {
+        let _g = crate::app::theme_test_guard();
+        let long = PaneRow {
+            unread: 7,
+            ..row(1, "a-very-long-pane-title-indeed", false, false)
+        };
+        let cells = cells_of(std::slice::from_ref(&long), 30, 4);
+        let at = |col: u16| cells.iter().filter(|c| c.row == 2 && c.col == col).count();
+        assert!(at(26) <= 1, "two glyphs share a cell on the count's row");
+        let digit = cells
+            .iter()
+            .find(|c| c.row == 2 && c.c == '7')
+            .expect("the count was pushed off the row");
+        assert!(digit.col >= 26, "the count moved out of its slot");
     }
 
     /// `pane_cells` with an empty pulse history and a fixed spinner glyph.

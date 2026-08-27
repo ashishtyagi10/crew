@@ -811,10 +811,15 @@ The card's border carries the **count** beside its activity dot: the dot has
 always said "something happened here", and the number is the difference between
 glancing over and going back. It caps at `99+`.
 
+The count appears in all three places a pane is listed: its own card, its
+**minimized thumbnail**, and the sidebar's **PANES** row — the one view that
+lists panes you cannot see — and never on the pane you are looking at.
+
 The mark follows the tail while you are watching a pane and nothing new is
 below what you have seen — so looking away now marks everything up to here as
-read — and it resets the moment you **type into** the pane, because answering
-is reading.
+read. It resets when you **type into** the pane, because answering is reading,
+and when you **scroll back to the live bottom**, because arriving there means
+you have been past everything above it.
 
 ## Scrollback
 

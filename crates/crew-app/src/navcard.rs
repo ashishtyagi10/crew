@@ -98,6 +98,12 @@ impl CrewApp {
                 minimized: p.hidden || (self.zoomed && i != zoomed_on) || strip_hidden.contains(&i),
                 attention: p.attention.map(|a| (a.glyph(), a.visible(now))),
                 busy: crate::paneview::pane_busy(p),
+                unread: match &p.content {
+                    crate::pane::PaneContent::Terminal(t) => {
+                        crate::unread::count(t.pty.scrollable_lines(), t.read_at)
+                    }
+                    _ => 0,
+                },
                 hovered: hovered == Some(i),
             })
             .collect()
