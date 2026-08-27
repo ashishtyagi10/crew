@@ -1,4 +1,4 @@
-//! Wearing a palette before you choose it.
+//! Wearing a colour before you choose it.
 //!
 //! The `/theme` picker names twelve palettes and draws a strip of each one's
 //! colours beside its name — which tells you what a palette *is* and not what
@@ -12,12 +12,18 @@
 //! including when you dismiss the palette without choosing anything, which is
 //! the case a preview has to get right or it is a way to lose your theme.
 //!
-//! ## Only a named palette
+//! `/gradient` rides the same rule for the same reason: a four-cell ramp
+//! beside a name is not the light that pair puts on the canvas, and the two
+//! poles are drawn under everything you are looking at.
+//!
+//! ## Only a named value
 //!
 //! A rotation mode (`dark`, `auto`) names a *pool*, not a palette, and the
 //! one it would land on is a choice crew makes later — previewing "one of
 //! these four" by picking one would be showing something the choice does not
-//! promise. Those rows leave the current theme alone.
+//! promise. Those rows leave the current theme alone, and so do `/gradient`'s
+//! level rows (`off`, `subtle`, `lively`), which say how far the poles
+//! *breathe* rather than which colours they are.
 //!
 //! ## What a preview deliberately does NOT do
 //!
@@ -29,23 +35,53 @@
 //! arrow key would lag a whole step behind the selection.
 use std::sync::Mutex;
 
+use crew_theme::poleshift::Poles;
 use crew_theme::{Selection, ThemeId};
 
 use crate::suggest::MenuItem;
 
-/// The theme in force before the preview started, or `None` when nothing is
+/// A colour choice a picker row would put on.
+#[derive(Clone, Copy, PartialEq, Debug)]
+enum Peek {
+    Palette(ThemeId),
+    Gradient(Poles),
+}
+
+/// What was in force before the preview started, or `None` when nothing is
 /// being previewed. A `Mutex` rather than an atomic because it is written
 /// only on the first and last frame of a preview.
-static RESTORE: Mutex<Option<ThemeId>> = Mutex::new(None);
+static RESTORE: Mutex<Option<(Option<ThemeId>, Option<Poles>)>> = Mutex::new(None);
 
-/// The palette a menu row would put on, or `None` for every row that is not a
-/// named palette in the `/theme` picker.
-fn palette_of(item: &MenuItem) -> Option<ThemeId> {
-    let value = item.fill.strip_prefix("/theme ")?.trim();
-    match crew_theme::parse_selection(value)? {
-        Selection::Fixed(id) => Some(id),
-        // A pool is not a palette — see the module doc.
-        Selection::Mode(_) => None,
+/// What a menu row would put on, or `None` for every row that is not a named
+/// colour in a picker.
+fn peek_of(item: &MenuItem) -> Option<Peek> {
+    if let Some(value) = item.fill.strip_prefix("/theme ") {
+        return match crew_theme::parse_selection(value.trim())? {
+            Selection::Fixed(id) => Some(Peek::Palette(id)),
+            // A pool is not a palette — see the module doc.
+            Selection::Mode(_) => None,
+        };
+    }
+    let value = item.fill.strip_prefix("/gradient ")?.trim();
+    // A level says how far the poles breathe, not which colours they are.
+    crew_theme::gradients::by_name(value).map(Peek::Gradient)
+}
+
+/// Put `p` on, and answer what was there.
+fn wear(p: Peek) -> (Option<ThemeId>, Option<Poles>) {
+    let was = (crew_theme::current_id(), crew_theme::poleshift::custom());
+    match p {
+        Peek::Palette(id) => crew_theme::set_theme(id),
+        Peek::Gradient(poles) => crew_theme::poleshift::set_custom(Some(poles)),
+    }
+    (Some(was.0), was.1)
+}
+
+/// Whether `p` is already what the screen is wearing.
+fn already(p: Peek) -> bool {
+    match p {
+        Peek::Palette(id) => crew_theme::current_id() == id,
+        Peek::Gradient(poles) => crew_theme::poleshift::custom() == Some(poles),
     }
 }
 
@@ -59,22 +95,27 @@ fn palette_of(item: &MenuItem) -> Option<ThemeId> {
 pub(crate) fn sync(menu: &[MenuItem], sel: usize) -> bool {
     let want = menu
         .get(sel.min(menu.len().saturating_sub(1)))
-        .and_then(palette_of);
+        .and_then(peek_of);
     let mut restore = RESTORE.lock().unwrap_or_else(|e| e.into_inner());
     match want {
-        Some(id) => {
-            if crew_theme::current_id() == id {
+        Some(p) => {
+            if already(p) {
                 return false;
             }
-            // Remember the REAL theme, once: the second arrow key must not
-            // record the first preview as the thing to go back to.
-            restore.get_or_insert_with(crew_theme::current_id);
-            crew_theme::set_theme(id);
+            // Remember the REAL colours, once: the second arrow key must not
+            // record the first preview as the thing to go back to. BOTH are
+            // remembered whichever picker is open, so walking from a palette
+            // row into a gradient row still restores the pair you had.
+            let was = wear(p);
+            restore.get_or_insert(was);
             true
         }
         None => match restore.take() {
-            Some(id) => {
-                crew_theme::set_theme(id);
+            Some((theme, poles)) => {
+                if let Some(id) = theme {
+                    crew_theme::set_theme(id);
+                }
+                crew_theme::poleshift::set_custom(poles);
                 true
             }
             None => false,

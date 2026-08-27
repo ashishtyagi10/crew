@@ -444,7 +444,7 @@ The docked command bar supports:
   (or type its trailing space) and the palette lists the choices to arrow through
   and `Enter` — no need to remember or type the exact value. Values that *are*
   colours show them: **`/gradient` draws each named pair as a four-cell ramp**
-  between its poles, and **`/theme` puts the palette on while you look at it** — arrow onto a
+  between its poles, and **the colour pickers put their choice on while you look at it** — arrow onto a
   named palette and the whole window wears it, arrow off and the one you had
   comes straight back, including when you dismiss the picker without choosing.
   A strip of swatches tells you what a palette *is*; only wearing it tells you
@@ -453,7 +453,13 @@ The docked command bar supports:
   those rows leave the theme alone: previewing "one of these four" by picking
   one would show something the choice does not promise. The preview is only a
   preview — no config write, no accent re-resolution, no scheme push to the
-  programs in the panes; those are what *choosing* does.
+  programs in the panes; those are what *choosing* does. **`/gradient` rides
+  the same rule**: arrowing onto a named pair puts its poles on the canvas,
+  because a four-cell ramp beside a name is not the light that pair casts under
+  everything you are looking at. Its *level* rows (`off`, `subtle`, `lively`)
+  are not previewed — they say how far the poles breathe, not which colours
+  they are. Walking from a palette row into a gradient row and dismissing the
+  picker restores the pair you had, not whichever one you looked at last.
 
   Beside the name, **`/theme` also draws the colours themselves**: a rotation
   mode shows one chip per palette in its pool, and a **named palette shows its
