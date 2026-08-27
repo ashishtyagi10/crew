@@ -357,3 +357,90 @@ mod should_drop_bg_tests {
         assert!(!should_drop_bg((140, 140, 140), false));
     }
 }
+
+/// The decorations a program asks for with SGR have to survive the whole trip:
+/// parser → grid → `RenderCell`. Before this landed the grid knew about them
+/// and the render cell had nowhere to put them, so every one was dropped
+/// silently — a diagnostic squiggle rendered as plain text.
+#[cfg(test)]
+mod deco_tests {
+    use super::super::{GridSize, HeadlessTerm, TermModel};
+    use crew_theme::deco::DecoLine;
+
+    fn line_under(seq: &str) -> DecoLine {
+        let mut t = HeadlessTerm::new(GridSize { cols: 20, rows: 4 });
+        t.feed(format!("{seq}x").as_bytes());
+        let cells = t.cells(true);
+        let c = cells
+            .iter()
+            .find(|c| c.c == 'x')
+            .expect("the decorated glyph is rendered");
+        c.deco.line
+    }
+
+    #[test]
+    fn each_sgr_underline_reaches_the_render_cell() {
+        assert_eq!(line_under("\x1b[4m"), DecoLine::Single);
+        assert_eq!(line_under("\x1b[4:2m"), DecoLine::Double);
+        assert_eq!(line_under("\x1b[4:3m"), DecoLine::Curly);
+        assert_eq!(line_under("\x1b[4:4m"), DecoLine::Dotted);
+        assert_eq!(line_under("\x1b[4:5m"), DecoLine::Dashed);
+        assert_eq!(line_under(""), DecoLine::None);
+    }
+
+    #[test]
+    fn sgr_9_strikes_the_cell_through_without_underlining_it() {
+        let mut t = HeadlessTerm::new(GridSize { cols: 20, rows: 4 });
+        t.feed(b"\x1b[9mx");
+        let c = t.cells(true).into_iter().find(|c| c.c == 'x').unwrap();
+        assert!(c.deco.strike);
+        assert_eq!(c.deco.line, DecoLine::None);
+    }
+
+    /// `foo bar` underlined is one rule, not two: the space carries it.
+    #[test]
+    fn a_space_inside_an_underlined_run_is_kept_and_an_undecorated_one_is_not() {
+        let mut t = HeadlessTerm::new(GridSize { cols: 20, rows: 4 });
+        t.feed(b"\x1b[4mfoo bar\x1b[0m qux");
+        let cells = t.cells(true);
+        // The block cursor is painted after the filter, so it is a space cell
+        // too — read the run itself, not every space on the row.
+        let space = |col: u16| cells.iter().any(|c| c.col == col && c.c == ' ');
+        assert!(
+            space(3),
+            "the underlined space is dropped, breaking the rule"
+        );
+        assert!(!space(7), "an undecorated space still costs nothing");
+        assert_eq!(
+            cells.iter().find(|c| c.col == 3).unwrap().deco.line,
+            DecoLine::Single
+        );
+    }
+
+    /// SGR 58 colours the rule independently of the text. Underline red under
+    /// white text is how a language server marks an error inline.
+    #[test]
+    fn sgr_58_colours_the_rule_and_leaves_the_text_alone() {
+        let mut t = HeadlessTerm::new(GridSize { cols: 20, rows: 4 });
+        t.feed(b"\x1b[4:3m\x1b[58:2::255:0:0mx");
+        let c = t.cells(true).into_iter().find(|c| c.c == 'x').unwrap();
+        assert_eq!(c.deco.color, Some((255, 0, 0)));
+        assert_ne!(c.fg, (255, 0, 0), "the glyph keeps its own colour");
+    }
+
+    /// SGR 24 / 29 put a cell back to plain — a run that never ends is a rule
+    /// under the rest of the screen.
+    #[test]
+    fn the_reset_sequences_clear_the_rules_again() {
+        let mut t = HeadlessTerm::new(GridSize { cols: 20, rows: 4 });
+        t.feed(b"\x1b[4:3m\x1b[9ma\x1b[24mb\x1b[29mc");
+        let cells = t.cells(true);
+        let at = |ch: char| cells.iter().find(|c| c.c == ch).unwrap().deco;
+        assert_eq!(at('a').line, DecoLine::Curly);
+        assert!(at('a').strike);
+        assert_eq!(at('b').line, DecoLine::None, "SGR 24 lifts the underline");
+        assert!(at('b').strike, "and leaves the strike alone");
+        assert!(!at('c').strike, "SGR 29 lifts the strike");
+        assert!(at('c').is_blank());
+    }
+}

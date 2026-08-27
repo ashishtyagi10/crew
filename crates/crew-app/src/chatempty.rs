@@ -26,6 +26,7 @@ fn line(
             bg,
             bold,
             italic: false,
+            ..Default::default()
         });
     });
 }

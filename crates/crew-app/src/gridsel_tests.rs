@@ -9,6 +9,7 @@ fn cell(col: u16, row: u16, c: char) -> CellView {
         bg: (1, 1, 1),
         bold: false,
         italic: false,
+        ..Default::default()
     }
 }
 

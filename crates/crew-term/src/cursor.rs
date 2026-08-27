@@ -40,6 +40,7 @@ pub(crate) fn apply(out: &mut Vec<RenderCell>, cursor: &RenderableCursor, off: i
             bg,
             bold: false,
             italic: false,
+            ..Default::default()
         });
     }
 }

@@ -105,6 +105,7 @@ pub fn layout_cells(
                 bg: crew_theme::theme().page_bg,
                 bold: false,
                 italic: false,
+                ..Default::default()
             });
         },
     );
@@ -131,6 +132,7 @@ pub fn layout_cells(
                 bg: crew_theme::theme().page_bg,
                 bold: false,
                 italic: false,
+                ..Default::default()
             });
         }
         return cells;
@@ -181,6 +183,7 @@ pub fn layout_cells(
                 bg: crew_theme::theme().page_bg,
                 bold: false,
                 italic: false,
+                ..Default::default()
             });
             col += w;
         }

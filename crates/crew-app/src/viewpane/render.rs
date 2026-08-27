@@ -67,6 +67,7 @@ impl ViewPane {
                         bg,
                         bold,
                         italic,
+                        ..Default::default()
                     });
                 },
             );

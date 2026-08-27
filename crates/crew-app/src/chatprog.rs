@@ -68,6 +68,7 @@ pub(crate) fn bar_cells(pane: &ChatPane, cols: u16, row: u16, now_ms: u64) -> Ve
             bg: theme.page_bg,
             bold,
             italic: false,
+            ..Default::default()
         })
     };
     for i in 0..bar_w {

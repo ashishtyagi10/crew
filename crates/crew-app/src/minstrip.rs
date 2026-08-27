@@ -66,6 +66,7 @@ pub fn push_min_strip(
                         bg: crew_theme::theme().page_bg,
                         bold: false,
                         italic: false,
+                        ..Default::default()
                     });
                 }
             }

@@ -200,6 +200,7 @@ fn put(out: &mut Vec<CellView>, s: &str, row: u16, cols: u16, fg: (u8, u8, u8), 
             bg,
             bold: false,
             italic: false,
+            ..Default::default()
         });
     }
 }

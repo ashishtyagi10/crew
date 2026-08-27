@@ -178,6 +178,7 @@ impl KeyEntry {
                 bg: t.page_bg,
                 bold: false,
                 italic: false,
+                ..Default::default()
             });
         }
         if self.waiting {
@@ -195,6 +196,7 @@ impl KeyEntry {
                     bg: t.page_bg,
                     bold: false,
                     italic: false,
+                    ..Default::default()
                 });
             }
         }

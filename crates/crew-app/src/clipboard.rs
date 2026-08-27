@@ -210,6 +210,7 @@ mod tests {
             bg: (0, 0, 0),
             bold: false,
             italic: false,
+            ..Default::default()
         };
         // "hi" on row 0, "x" on row 1, row 2 blank → trailing blank dropped.
         let cells = [c(0, 0, 'h'), c(1, 0, 'i'), c(0, 1, 'x')];

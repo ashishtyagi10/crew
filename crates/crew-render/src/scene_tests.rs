@@ -42,6 +42,7 @@ fn cell(col: u16, row: u16, c: char, bg: (u8, u8, u8)) -> CellView {
         bg,
         bold: false,
         italic: false,
+        ..Default::default()
     }
 }
 
@@ -260,4 +261,57 @@ fn a_resting_card_has_no_scan() {
     let (_q, _b, _s, _bd, cards) =
         build(&[card(vec![], true, false)], &mut fs, false, test_glass());
     assert!(cards[0].scan < 0.0);
+}
+
+/// A decorated cell puts its rule on the canvas as quads. Cell backgrounds are
+/// the only other quads in this pane, so the count difference is the rule.
+#[test]
+fn a_decorated_cell_adds_quads_and_a_plain_one_does_not() {
+    use crew_theme::deco::{Deco, DecoLine};
+    let mut fs = crate::embedfont::font_system();
+    let plain = cell(0, 0, 'x', default_bg());
+    let underlined = CellView {
+        deco: Deco::underline(DecoLine::Single),
+        ..cell(0, 0, 'x', default_bg())
+    };
+    let curly = CellView {
+        deco: Deco::underline(DecoLine::Curly),
+        ..cell(0, 0, 'x', default_bg())
+    };
+    let mut count = |c: CellView| {
+        let panes = vec![pane(vec![c], false, false)];
+        build(&panes, &mut fs, false, no_glass()).0.len()
+    };
+    assert_eq!(count(plain), 0, "an undecorated cell draws no quad at all");
+    assert_eq!(count(underlined), 1, "one rule is one quad");
+    assert!(
+        count(curly) > 4,
+        "the squiggle is sampled across the cell, not drawn as one bar"
+    );
+}
+
+/// SGR 58's colour reaches the GPU: the rule's quad is red where the glyph is
+/// grey. `target_rgba` is the same conversion the cell backgrounds take.
+#[test]
+fn the_rule_is_drawn_in_the_underline_colour_not_the_text_colour() {
+    use crew_theme::deco::{Deco, DecoLine};
+    let mut fs = crate::embedfont::font_system();
+    let c = CellView {
+        deco: Deco {
+            color: Some((255, 0, 0)),
+            ..Deco::underline(DecoLine::Single)
+        },
+        ..cell(0, 0, 'x', default_bg())
+    };
+    let panes = vec![pane(vec![c], false, false)];
+    let quads = build(&panes, &mut fs, false, no_glass()).0;
+    assert_eq!(quads.len(), 1);
+    assert_eq!(
+        quads[0].color,
+        crate::color::target_rgba((255, 0, 0), 1.0, false)
+    );
+    assert_ne!(
+        quads[0].color,
+        crate::color::target_rgba((200, 200, 200), 1.0, false)
+    );
 }

@@ -180,6 +180,7 @@ pub(crate) fn put(
             bg: crew_theme::theme().page_bg,
             bold,
             italic: false,
+            ..Default::default()
         });
     }
 }

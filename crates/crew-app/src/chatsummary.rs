@@ -461,6 +461,7 @@ pub(crate) fn summary_cells(pane: &ChatPane, cols: u16, top: u16, height: u16) -
                 bg,
                 bold: false,
                 italic: false,
+                ..Default::default()
             });
         });
     }

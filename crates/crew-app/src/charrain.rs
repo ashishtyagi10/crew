@@ -59,6 +59,7 @@ pub fn rain(cells: &mut Vec<CellView>, top: u16, left: u16, w: u16, h: u16,
             cells.push(CellView {
                 col: left + col, row: top + r as u16, c: GLYPHS[gi] as char,
                 fg: lerp_rgb(trail, head, bright), bg, bold: d == 0, italic: false,
+                ..Default::default()
             });
         }
     }

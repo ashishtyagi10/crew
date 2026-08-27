@@ -16,7 +16,7 @@ pub struct GridSize {
     pub rows: u16,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Default)]
 pub struct RenderCell {
     pub col: u16,
     pub row: u16,
@@ -25,6 +25,8 @@ pub struct RenderCell {
     pub bg: (u8, u8, u8),
     pub bold: bool,
     pub italic: bool,
+    /// What the grid says this cell wears beyond its glyph (SGR 4/9/58).
+    pub deco: crew_theme::deco::Deco,
 }
 
 pub trait TermModel {

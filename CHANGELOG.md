@@ -8,6 +8,37 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.48
+
+**Underlines, at last — the whole family.** A cell could be bold or italic and
+that was the end of what it could wear. Every underline a program asked for was
+read off the wire, parsed into the grid, and then dropped on the floor at the
+last step, because the struct that carries a cell to the GPU had nowhere to put
+it. So `rustc`'s inline diagnostics, a language server's squiggle, `git diff
+--word-diff`, a spell-checker in a TUI — all of them rendered as plain text,
+indistinguishable from the words around them.
+
+Now the cell carries a decoration: **SGR 4** single, **4:2** double, **4:3**
+curly, **4:4** dotted, **4:5** dashed, **SGR 9** strikethrough, and **SGR 58**'s
+separate underline colour — red rule under white text, which is how an error is
+marked inline.
+
+They are drawn as quads on the pane's pixel grid, not as glyph decorations, and
+**every phase is taken from the absolute x**. That is the whole design: a
+squiggle spanning six columns of a diagnostic is one continuous wave rather than
+six little waves that restart at each cell edge, and a dash pattern crosses a
+cell boundary mid-dash. Two tests hold that line by construction — both use a
+period that does not divide the cell width, because a period that does hides the
+bug whether or not the phase is absolute.
+
+A decorated *blank* now survives the empty-cell filter too. It has to: the space
+between two underlined words is part of the same rule, and dropping it draws the
+underline in pieces.
+
+**URLs are underlined as well as tinted.** A link marked only by hue is not
+marked at all for a reader who cannot separate that hue from the body text —
+the same argument the gauges' shape cues make.
+
 ## 0.18.47
 
 **The palette remembers what you run.** Among commands matching your query

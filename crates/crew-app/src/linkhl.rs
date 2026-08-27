@@ -1,7 +1,8 @@
-//! URL link colouring: tint http(s) URLs in terminal panes a distinct blue so
-//! they read as clickable (Cmd+click opens them — see `openurl`). Applied to the
-//! pane's visible cells each frame, like search highlighting.
+//! URL link colouring: tint http(s) URLs in terminal panes a distinct blue and
+//! rule them so they read as clickable (Cmd+click opens them — see `openurl`).
+//! Applied to the pane's visible cells each frame, like search highlighting.
 use crew_render::CellView;
+use crew_theme::deco::DecoLine;
 
 use crate::gridrows::grid_lines;
 use crate::openurl::url_spans;
@@ -14,8 +15,13 @@ pub(crate) fn link_fg() -> (u8, u8, u8) {
     crew_theme::readable::link(crew_theme::theme())
 }
 
-/// Recolour every cell that falls inside an http(s) URL on its row. Returns the
-/// number of cells tinted. Builds the rows in one pass, then tints in one pass.
+/// Recolour and underline every cell that falls inside an http(s) URL on its
+/// row. Returns the number of cells tinted. Builds the rows in one pass, then
+/// tints in one pass.
+///
+/// The underline is not decoration for its own sake: a link marked only by hue
+/// is not marked at all for a reader who cannot separate that hue from the
+/// body text, which is the same argument the gauges' shape cues make.
 pub(crate) fn colorize(cells: &mut [CellView], cols: u16, rows: u16) -> usize {
     // (row, [start,end)) URL spans across the whole grid.
     let ranges: Vec<(u16, usize, usize)> = grid_lines(cells, cols, rows)
@@ -38,6 +44,7 @@ pub(crate) fn colorize(cells: &mut [CellView], cols: u16, rows: u16) -> usize {
             .any(|&(r, a, b)| c.row == r && (a..b).contains(&(c.col as usize)))
         {
             c.fg = fg;
+            c.deco.line = DecoLine::Single;
             tinted += 1;
         }
     }
@@ -46,7 +53,7 @@ pub(crate) fn colorize(cells: &mut [CellView], cols: u16, rows: u16) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use super::{colorize, link_fg};
+    use super::{colorize, link_fg, DecoLine};
     use crew_render::CellView;
 
     fn row(text: &str) -> Vec<CellView> {
@@ -60,6 +67,7 @@ mod tests {
                 bg: (0, 0, 0),
                 bold: false,
                 italic: false,
+                ..Default::default()
             })
             .collect()
     }
@@ -73,6 +81,9 @@ mod tests {
         let n = colorize(&mut cells, line.len() as u16, 1);
         let url = "https://ex.io/x";
         assert_eq!(n, url.len());
+        // ...and ruled, so the link is legible without reading the hue.
+        let ruled = cells.iter().filter(|c| c.deco.line == DecoLine::Single);
+        assert_eq!(ruled.count(), url.len());
         // every URL cell is tinted...
         let start = line.find(url).unwrap();
         for c in &cells {

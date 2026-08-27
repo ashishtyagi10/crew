@@ -146,16 +146,29 @@ pub(crate) fn build_scene(
             });
         }
 
-        // Background quads for cells with non-default bg colour.
+        // Background quads for cells with non-default bg colour, then the
+        // rules the cell wears (underline family, strikethrough). The rules go
+        // after the cell's own background so they are never buried by it, and
+        // before the text pass so a descender crosses them the way it does in
+        // print.
         for cell in &pane.cells {
+            let x = pane.x + f32::from(cell.col) * cell_w;
+            let y = pane.y + f32::from(cell.row) * cell_h;
             if cell.bg != default_bg() {
                 quads.push(Quad {
-                    x: pane.x + f32::from(cell.col) * cell_w,
-                    y: pane.y + f32::from(cell.row) * cell_h,
+                    x,
+                    y,
                     w: cell_w,
                     h: cell_h,
                     color: crate::color::target_rgba(cell.bg, 1.0, srgb),
                 });
+            }
+            if !cell.deco.is_blank() {
+                let rgb = crate::deco::color(&cell.deco, cell.fg);
+                let color = crate::color::target_rgba(rgb, 1.0, srgb);
+                for (x, y, w, h) in crate::deco::rects(&cell.deco, x, y, cell_w, cell_h) {
+                    quads.push(Quad { x, y, w, h, color });
+                }
             }
         }
 

@@ -176,6 +176,7 @@ pub(crate) fn peek_card(text: &str, cols: u16) -> Vec<crew_render::CellView> {
                 bg: t.page_bg,
                 bold: false,
                 italic: false,
+                ..Default::default()
             });
         },
     );
