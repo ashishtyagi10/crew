@@ -4,7 +4,6 @@
 use crew_render::CellView;
 use crew_theme::deco::DecoLine;
 
-use crate::gridrows::grid_lines;
 use crate::openurl::url_spans;
 
 /// Foreground colour painted over URL cells: the link blue, darkened until it
@@ -16,15 +15,16 @@ pub(crate) fn link_fg() -> (u8, u8, u8) {
 }
 
 /// Recolour and underline every cell that falls inside an http(s) URL on its
-/// row. Returns the number of cells tinted. Builds the rows in one pass, then
-/// tints in one pass.
+/// row, given the pane's rows already read off the grid — the frame scans a
+/// pane's cells ONCE and hands the same rows to every marker that wants them
+/// (see `paneview`). Returns the number of cells tinted.
 ///
 /// The underline is not decoration for its own sake: a link marked only by hue
 /// is not marked at all for a reader who cannot separate that hue from the
 /// body text, which is the same argument the gauges' shape cues make.
-pub(crate) fn colorize(cells: &mut [CellView], cols: u16, rows: u16) -> usize {
+pub(crate) fn colorize_in(cells: &mut [CellView], lines: &[Vec<char>]) -> usize {
     // (row, [start,end)) URL spans across the whole grid.
-    let ranges: Vec<(u16, usize, usize)> = grid_lines(cells, cols, rows)
+    let ranges: Vec<(u16, usize, usize)> = lines
         .iter()
         .enumerate()
         .flat_map(|(r, line)| {
@@ -49,6 +49,13 @@ pub(crate) fn colorize(cells: &mut [CellView], cols: u16, rows: u16) -> usize {
         }
     }
     tinted
+}
+
+/// [`colorize_in`] against a pane's cells, scanning them here. The app scans
+/// once per frame and calls the `_in` form; this is the seam the tests use.
+#[cfg(test)]
+pub(crate) fn colorize(cells: &mut [CellView], cols: u16, rows: u16) -> usize {
+    colorize_in(cells, &crate::gridrows::grid_lines(cells, cols, rows))
 }
 
 #[cfg(test)]

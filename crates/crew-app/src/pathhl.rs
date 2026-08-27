@@ -11,8 +11,6 @@
 use crew_render::CellView;
 use crew_theme::deco::DecoLine;
 
-use crate::gridrows::grid_lines;
-
 /// Opening punctuation trimmed from a reference's left edge. Deliberately
 /// without `.` and `~`: `./deploy.sh` and `~/notes.md` START with theirs.
 const LEAD: &str = "\"'`([{<";
@@ -99,11 +97,15 @@ pub(crate) fn strip_position(tok: &str) -> (&str, Option<usize>) {
     (path, line)
 }
 
-/// Mark every file reference in the visible grid. Returns how many cells were
-/// marked. Runs before [`crate::linkhl`], so a URL that happens to look like a
-/// path is re-marked as the URL it is.
-pub(crate) fn mark(cells: &mut [CellView], cols: u16, rows: u16) -> usize {
-    let ranges: Vec<(u16, usize, usize)> = grid_lines(cells, cols, rows)
+/// Mark every file reference in `lines`, the pane's rows already read off the
+/// grid. Returns how many cells were marked. Runs before [`crate::linkhl`],
+/// so a URL that happens to look like a path is re-marked as the URL it is.
+///
+/// The frame scans a pane's cells ONCE and hands the same rows to everything
+/// that wants them (see `paneview`): three readers used to build the same
+/// `Vec<Vec<char>>` from the same cells, one after another, every frame.
+pub(crate) fn mark_in(cells: &mut [CellView], lines: &[Vec<char>]) -> usize {
+    let ranges: Vec<(u16, usize, usize)> = lines
         .iter()
         .enumerate()
         .flat_map(|(r, line)| {
@@ -128,6 +130,13 @@ pub(crate) fn mark(cells: &mut [CellView], cols: u16, rows: u16) -> usize {
         }
     }
     marked
+}
+
+/// [`mark_in`] against a pane's cells, scanning them here. The app scans once
+/// per frame and calls the `_in` form; this is the seam the tests use.
+#[cfg(test)]
+pub(crate) fn mark(cells: &mut [CellView], cols: u16, rows: u16) -> usize {
+    mark_in(cells, &crate::gridrows::grid_lines(cells, cols, rows))
 }
 
 #[cfg(test)]
