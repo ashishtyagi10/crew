@@ -44,6 +44,9 @@ pub(crate) enum ViewInput {
     Enter,
     /// A printable character typed into a live needle.
     Char(char),
+    /// `]` / `[`: the next / previous landmark ([`super::outline`]).
+    NextMark,
+    PrevMark,
     /// Deletes the last character of a live needle.
     Backspace,
     Ignore,
@@ -79,6 +82,10 @@ pub(crate) fn view_key(logical: &Key, pressed: bool, ctrl: bool) -> ViewInput {
         Key::Character(s) if !ctrl && s.as_str() == "n" => ViewInput::NextHit,
         Key::Character(s) if !ctrl && s.as_str() == "N" => ViewInput::PrevHit,
         Key::Character(s) if !ctrl && s.as_str() == "/" => ViewInput::Slash,
+        // `]` / `[` step the document's structure: file to file and hunk to
+        // hunk in a review. Not `n`/`N`, which belong to the search.
+        Key::Character(s) if !ctrl && s.as_str() == "]" => ViewInput::NextMark,
+        Key::Character(s) if !ctrl && s.as_str() == "[" => ViewInput::PrevMark,
         Key::Character(s) if !ctrl => match s.to_ascii_lowercase().as_str() {
             "e" => ViewInput::Edit,
             "o" => ViewInput::OpenExternal,
@@ -91,6 +98,20 @@ pub(crate) fn view_key(logical: &Key, pressed: bool, ctrl: bool) -> ViewInput {
                 .unwrap_or(ViewInput::Ignore),
         },
         _ => ViewInput::Ignore,
+    }
+}
+
+/// Scroll to the next (`down`) or previous landmark, putting it on the top
+/// row. Nothing happens at either end, or in a document with no structure —
+/// which is most of them, and is why this is silent rather than an error.
+fn jump_mark(p: &mut ViewPane, cols: u16, rows: u16, down: bool) {
+    let to = {
+        let cache = p.lines_for(cols);
+        super::outline::step(&cache.marks, p.scroll, down).map(|m| m.row)
+    };
+    if let Some(row) = to {
+        p.scroll = row;
+        p.clamp_scroll(cols, rows);
     }
 }
 
@@ -139,6 +160,8 @@ pub(crate) fn apply(
             search.typing = true;
             p.search = Some(search);
         }
+        ViewInput::NextMark => jump_mark(p, cols, rows, true),
+        ViewInput::PrevMark => jump_mark(p, cols, rows, false),
         ViewInput::NextHit => search_apply::jump(p, cols, rows, Search::next),
         ViewInput::PrevHit => search_apply::jump(p, cols, rows, Search::prev),
         ViewInput::Enter | ViewInput::Char(_) | ViewInput::Backspace | ViewInput::Ignore => {}

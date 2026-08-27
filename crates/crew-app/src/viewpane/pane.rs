@@ -23,6 +23,9 @@ pub(crate) struct ViewCache {
     pub cols: u16,
     pub raw: bool,
     pub lines: Vec<crate::chatbody::CardLine>,
+    /// Rows `]` / `[` step between, in this rendering (see
+    /// [`super::outline`]). Empty for a rung with no structure to step.
+    pub marks: Vec<super::outline::Mark>,
 }
 
 pub(crate) struct ViewPane {

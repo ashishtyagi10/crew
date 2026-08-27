@@ -15,10 +15,12 @@ impl ViewPane {
             .as_ref()
             .is_none_or(|c| c.cols != cols || c.raw != self.raw);
         if stale {
+            let (lines, marks) = lines::for_state(&self.state, self.raw, cols as usize);
             self.cache.replace(Some(ViewCache {
                 cols,
                 raw: self.raw,
-                lines: lines::for_state(&self.state, self.raw, cols as usize),
+                lines,
+                marks,
             }));
         }
         Ref::map(self.cache.borrow(), |c| c.as_ref().expect("just filled"))
