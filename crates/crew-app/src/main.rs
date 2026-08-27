@@ -209,6 +209,7 @@ mod runclock;
 mod runpane;
 mod schemepush;
 mod scroll;
+mod scrollboost;
 mod search;
 mod searchall;
 mod select;

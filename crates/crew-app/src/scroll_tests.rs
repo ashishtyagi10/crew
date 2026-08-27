@@ -70,3 +70,15 @@ fn only_a_modified_wheel_resizes_the_font() {
     assert!(!app.zoom_font_wheel(0));
     assert_eq!(app.config.font_size, held);
 }
+
+/// The wheel the app actually uses is the accumulator plus the gesture
+/// boost — a flick crosses a log, a nudge reads it, and the two are the same
+/// wheel.
+#[test]
+fn the_boosted_wheel_scales_with_the_gesture_and_settles_after_a_pause() {
+    let mut app = CrewApp::default();
+    let first = app.wheel_lines_boosted(px(72.0));
+    let second = app.wheel_lines_boosted(px(72.0));
+    assert_eq!(first, 3, "the first tick of a gesture is unscaled");
+    assert!(second > first, "{second} !> {first}");
+}

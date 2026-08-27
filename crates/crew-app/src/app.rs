@@ -37,6 +37,9 @@ pub struct CrewApp {
     /// clicks, close, restore); diffing it once per frame in `build_frame`
     /// catches every one of them without each having to remember to stamp a
     /// timeline.
+    /// Wheel-gesture speed, so a flick crosses a log and a nudge reads it
+    /// ([`crate::scrollboost`]).
+    pub(crate) scroll_boost: crate::scrollboost::Boost,
     /// A command that ends panes, waiting to be run a second time
     /// ([`crate::confirm`]).
     pub(crate) pending: crate::confirm::Pending,

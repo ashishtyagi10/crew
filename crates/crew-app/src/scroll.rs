@@ -86,6 +86,18 @@ impl CrewApp {
         lines
     }
 
+    /// [`Self::wheel_lines`] scaled by how fast the gesture is going.
+    ///
+    /// A wheel tick is a fixed number of lines, so crossing a long log means
+    /// the same gesture a hundred times. Scaling with the SPEED of the
+    /// gesture — the way every editor and browser does — makes a flick a page
+    /// and leaves a nudge a line, and a pause puts it back to one for reading.
+    /// Kept apart from the accumulator above so each does one thing.
+    pub(crate) fn wheel_lines_boosted(&mut self, delta: MouseScrollDelta) -> i32 {
+        let lines = self.wheel_lines(delta);
+        self.scroll_boost.apply(lines, crate::anim::now_ms())
+    }
+
     /// Cmd/Ctrl + wheel resizes the font, the gesture every browser and
     /// terminal answers this way. `Cmd+=` / `Cmd+-` already did it a step at
     /// a time; the wheel is how people actually reach for it. Returns `true`

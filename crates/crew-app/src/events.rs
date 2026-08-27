@@ -214,7 +214,7 @@ impl CrewApp {
                 self.paste();
             }
             WindowEvent::MouseWheel { delta, .. } => {
-                let lines = self.wheel_lines(delta);
+                let lines = self.wheel_lines_boosted(delta);
                 self.scroll_at_cursor(lines);
             }
             WindowEvent::KeyboardInput { event, .. } => {
