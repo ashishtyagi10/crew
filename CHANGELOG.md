@@ -8,6 +8,28 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.85
+
+**The git badge has not been drawing on any pane that has buttons** — which is
+every full tile. It found its floor by scanning the top border for cells in the
+legend's colour, and the `[-][x]` buttons are drawn in exactly that colour, at
+the far right: so the legend's "end" came back three columns from the corner
+and the badge was left a budget of nothing. It has been invisible since it
+landed four releases ago, on every card that could show it.
+
+Found by a sweep, not by eye. The top border now carries the legend, the git
+badge, the elapsed clock, the pin mark, the unread count, the scroll count, the
+`[-][x]` buttons and three status glyphs — each added in a different release,
+all stepping leftward through one running cursor. The sweep runs every width
+from 20 to 160 columns with all of them on at once and asserts that **each is
+drawn whole or not at all**.
+
+That framing is the point. `put` overwrites the cell it lands on rather than
+stacking, so a collision never appears as two cells in one column — it appears
+as a *fragment*: `2m1`, or a badge with its last digit gone. A test that
+counted cells per column would have passed on this bug forever; the one that
+looks for fragments fails the moment the fix is reverted.
+
 ## 0.18.84
 
 **`/out 1` reaches the run before the last one.** Each pane already remembers a
