@@ -386,9 +386,15 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
     // the legend is width-clipped by `titled_card`, so asking the drawing is
     // the only way to know where it actually ended.
     if let Some(g) = b.git {
+        // Only cells LEFT of the free column count as the legend. The
+        // `[-][x]` buttons are drawn in the legend's own colour, at the far
+        // right — so scanning the whole row for that colour put the legend's
+        // "end" three columns from the corner and left the badge a budget of
+        // nothing. It has not drawn on a card with buttons since it landed,
+        // which is every full tile.
         let legend_end = v
             .iter()
-            .filter(|c| c.row == 0 && c.fg == legend)
+            .filter(|c| c.row == 0 && c.fg == legend && c.col <= rx)
             .map(|c| c.col)
             .max()
             .unwrap_or(2);

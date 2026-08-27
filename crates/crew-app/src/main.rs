@@ -174,6 +174,9 @@ mod palette;
 mod pane;
 mod panebtn;
 mod panecard;
+#[cfg(test)]
+#[path = "panecard_budget_tests.rs"]
+mod panecard_budget_tests;
 mod panecardglow;
 mod panedir;
 mod panedrag;
