@@ -33,11 +33,14 @@ fn a_wrapped_row_does_not_reprint_its_line_number() {
     let long = "x".repeat(60);
     let (ls, _marks) = for_state(&ready(Format::Code { lang: "" }, &long), false, 20);
     assert!(text(&ls[0]).starts_with("    1 "));
+    // No number on a continuation — the gutter carries the continuation
+    // marker there instead, which says the same thing more directly.
+    let gutter: String = text(&ls[1]).chars().take(6).collect();
     assert!(
-        text(&ls[1]).starts_with("      "),
-        "continuation gutter is blank, got {:?}",
-        text(&ls[1])
+        !gutter.chars().any(|c| c.is_ascii_digit()),
+        "continuation reprinted its line number, got {gutter:?}"
     );
+    assert!(gutter.contains('\u{21aa}'), "{gutter:?}");
 }
 
 #[test]
@@ -184,10 +187,12 @@ fn a_wrapped_diff_row_blanks_its_gutter_like_numbered_does() {
         ls.len()
     );
     let gutter: String = ls[1].iter().take(GUTTER_W).map(|c| c.c).collect();
-    assert_eq!(
-        gutter,
-        " ".repeat(GUTTER_W),
-        "a wrapped continuation row's gutter should be blank, got {gutter:?}"
+    // The gutter carries no NUMBER on a continuation — it carries the
+    // continuation marker instead, which is the same claim about not
+    // reprinting the line number.
+    assert!(
+        !gutter.chars().any(|c| c.is_ascii_digit()),
+        "a wrapped continuation row reprinted its line number, got {gutter:?}"
     );
 }
 
@@ -365,4 +370,60 @@ fn the_line_cap_bounds_a_markdown_render_too() {
         banner.contains(&format!("first {MAX_RENDER_LINES}")),
         "markdown rung must also be capped: {banner}"
     );
+}
+
+/// A wrapped row and a genuinely blank numbered row look identical when both
+/// have an empty gutter — and in a wrapped file most rows are one or the
+/// other.
+#[test]
+fn a_wrapped_row_says_it_is_a_continuation() {
+    let _g = crate::app::theme_test_guard();
+    let long = "x".repeat(80);
+    let (ls, _marks) = for_state(&ready(Format::Code { lang: "" }, &long), false, 30);
+    assert!(ls.len() >= 2, "the line did not wrap");
+    let gutter = |row: usize| -> String { ls[row][..6].iter().map(|c| c.c).collect() };
+    assert!(gutter(0).contains('1'), "{:?}", gutter(0));
+    assert!(gutter(1).contains('\u{21aa}'), "{:?}", gutter(1));
+}
+
+/// Trailing whitespace is the review nit every diff tool marks, because it is
+/// invisible by construction.
+#[test]
+fn trailing_space_on_an_added_line_is_shown() {
+    let _g = crate::app::theme_test_guard();
+    let text = "@@ -1 +1 @@\n-let a = 1;\n+let a = 2;   \n context   \n";
+    let (ls, _marks) = for_state(&ready(Format::Diff, text), false, 60);
+    let row = |n: usize| -> String { ls[n].iter().map(|c| c.c).collect() };
+    assert!(
+        row(2).contains('\u{b7}'),
+        "added tail unmarked: {:?}",
+        row(2)
+    );
+    assert_eq!(
+        row(2).matches('\u{b7}').count(),
+        3,
+        "wrong number of marks: {:?}",
+        row(2)
+    );
+    assert!(
+        !row(1).contains('\u{b7}'),
+        "a removed line's tail was marked: {:?}",
+        row(1)
+    );
+    assert!(
+        !row(3).contains('\u{b7}'),
+        "a context line's tail was marked: {:?}",
+        row(3)
+    );
+}
+
+/// An added line of pure indentation is still a line; the marker column and
+/// the gutter are not its text.
+#[test]
+fn an_added_line_that_is_only_whitespace_keeps_its_marker() {
+    let _g = crate::app::theme_test_guard();
+    let (ls, _marks) = for_state(&ready(Format::Diff, "@@ -1 +1 @@\n+   \n"), false, 60);
+    let row: String = ls[1].iter().map(|c| c.c).collect();
+    assert!(row.contains('+'), "{row:?}");
+    assert_eq!(row.matches('\u{b7}').count(), 3, "{row:?}");
 }
