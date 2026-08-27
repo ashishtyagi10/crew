@@ -8,6 +8,22 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.0
+
+**Scrolling scales with the gesture.** A wheel tick has always been a fixed
+number of lines, so crossing ten thousand lines of a build log meant the same
+gesture two hundred times. Ticks that keep arriving now build a multiplier —
+capped at six, so a flick crosses a long log without crossing the whole
+scrollback — and a pause puts it straight back to one line a tick.
+
+The pause is the whole design. The multiplier follows how *quickly* ticks are
+arriving rather than how many have arrived, so a scroll you resume after
+stopping starts slow again; without that, "start slow" means nothing and the
+same wheel cannot be used for reading and for travelling.
+
+The accumulator that lets slow trackpad ticks add up instead of rounding to
+zero is untouched and still separately tested: one function per job.
+
 ## 0.18.99
 
 **`/closeall` and `/only` ask once.** A closed pane takes its scrollback, its
