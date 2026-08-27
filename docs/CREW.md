@@ -702,6 +702,22 @@ longer aim at.
   shell's only says how much is behind you) with the landmarks marked as dim
   ticks beside it, so a long file shows its shape before you move.
   Chat panes render markdown too — see [Markdown](#markdown).
+- **Commands that take a path list one.** Type `/view `, `/md `, `/dump ` or
+  `/batch ` and the bar opens a **file picker** over the directory the partial
+  names — folders first, then files by name — filtered as you type and
+  case-insensitively. Picking a folder fills `<cmd> dir/` and leaves the bar
+  open, so the next listing is what is inside it: the same key walks into a
+  tree and picks out of it. Hidden entries appear only once the partial says
+  so (a leading `.`), the rule every shell's completion follows. Tab still
+  ghosts the first match inline.
+
+  This is one `read_dir` of one directory per keystroke, never a walk: it runs
+  on the thread every pane is drawn from, and a stall there freezes the whole
+  grid. `/view`, `/md` and `/batch` had shipped as commands you type a path
+  into with **no completion at all** — the ghost knew only about `/dump` — so
+  the palette's descriptions and the completion list are now held against each
+  other by a test.
+
 - **`/blame`** — asks who last touched each line of the file the viewer has
   open, and draws it in a column beside the line numbers. Runs are collapsed:
   a line is labelled only when its commit differs from the line above, so the

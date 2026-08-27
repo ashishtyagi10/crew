@@ -27,7 +27,7 @@ impl InputBar {
             }
         }
 
-        let menu = crate::suggest::menu_items(&self.text);
+        let menu = crate::suggest::menu_items_in(&self.text, &self.cwd);
         let menu_open = self.focused && !menu.is_empty();
 
         // Command-palette navigation (Up/Down) when it's open.

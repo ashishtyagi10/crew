@@ -115,7 +115,7 @@ pub(crate) const LOOK: &[Cmd] = &[
     },
     Cmd {
         name: "/md",
-        desc: "view a file (alias for /view)",
+        desc: "view a file \u{2014} alias for /view (/md <path>)",
     },
     Cmd {
         name: "/exit",
