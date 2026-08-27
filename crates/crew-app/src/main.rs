@@ -89,6 +89,7 @@ mod daylight;
 mod density;
 mod detach;
 mod diffjob;
+mod diffrefine;
 mod dispatch;
 mod dockicon;
 mod dump;

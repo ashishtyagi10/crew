@@ -41,6 +41,9 @@ pub(crate) fn map_lines(md_lines: Vec<MdLine>, width: usize, fg: Color) -> Vec<C
         push_chunked(&mut out, &cells, width, line_fg);
         prev_kind = Some(line.kind);
     }
+    // A ```diff fence gets the same word-level marks the viewer's diff
+    // rung draws, read back off the ink each line was given.
+    crate::diffrefine::refine_lines(&mut out);
     out
 }
 

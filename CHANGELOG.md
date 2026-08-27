@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.66
+
+**A diff pasted into chat reads like `/diff` does.** The viewer's diff rung
+pairs each removed line with the line that replaced it and draws only the run
+that actually differs at full strength; a fenced diff in a chat reply or a
+markdown file went through the markdown renderer instead, which colours one
+line at a time and knows nothing about the line after it — so the same diff was
+a wall of red and green depending on which pane it landed in.
+
+Rather than teach the renderer about pairs, the refinement now reads the
+*rendered* lines back: a line whose ink is the added or removed slot is an
+added or removed line, whatever produced it. One refinement, two surfaces, and
+the same two conservative rules as before — unequal runs are not paired at all,
+and a pair that differs almost everywhere is left plain.
+
 ## 0.18.65
 
 **The minimized strip says how much you missed.** A demoted thumbnail showed a
