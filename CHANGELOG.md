@@ -8,6 +8,35 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.14
+
+**The border sweep grew teeth, and found three things.** Nine separate
+features now ride a pane card's top border — the legend, the `[-][x]` buttons,
+the scroll count, the command you are scrolled into, the status glyphs, the
+unread badge, the pin, the elapsed clock and the git badge — each added in a
+different release, all stepping leftward through one running cursor. The sweep
+that says they still fit together now also asserts what its own doc comment
+had only claimed: that a token which fits at one width **never disappears at a
+wider one**, and that they keep their left-to-right **order**. It also runs
+with the newest of them turned on, which the previous release had left `None`.
+
+Three fixes came out of it:
+
+- **Nothing may sit flush against the pane's name.** The two tokens that take
+  "whatever is left" were floored at the legend's last column plus *one*, while
+  every other pair of neighbours on the border is separated by a cell of frame.
+  A card just wide enough for the command name read `claude╶ cargo build…`.
+- **The elapsed clock, the unread badge, the pin and the status glyphs had no
+  floor at all** and would march straight over the legend on a narrow card
+  (`claude2m14`). They all share one now — computed *before* any token is
+  stamped on, which also retires the `[-][x]` workaround: the buttons are drawn
+  in the legend's own colour at the far right, so the old post-hoc scan had to
+  special-case them, and a token that had already eaten part of the legend made
+  the scan report the shortened legend as the real one.
+- **The legend gives way to the buttons**, rather than running into them. At 24
+  columns the border read `claude[-][x]`. A name is already truncated on a
+  narrow card; losing the close button is losing a control.
+
 ## 0.19.13
 
 **Crew now reads OSC 133, the semantic prompt marks.** It has never needed a

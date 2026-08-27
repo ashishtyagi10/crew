@@ -265,6 +265,19 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
         Some(n) => format!("{n} {}", b.title),
         None => b.title.to_string(),
     };
+    // The `[-][x]` buttons are fixed chrome in the corner slots, so the
+    // legend is what gives way when the two want the same columns — a name
+    // is already truncated on a narrow card, and losing the close button is
+    // losing a control. Clipped HERE rather than by `titled_card`, which
+    // knows nothing about what else rides this border: without it a 24-column
+    // card read `claude[-][x]`, the pane's name and its buttons run together.
+    let label = match b.min_btn && cols >= BTNS_COLS {
+        true => label
+            .chars()
+            .take(usize::from(cols.saturating_sub(BTNS_COLS + 1)))
+            .collect(),
+        false => label,
+    };
     let mut v = titled_card(
         cols,
         rows,
@@ -294,6 +307,27 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
             cell.bold = true;
         }
     }
+    // Everything that rides this border shares one floor: the legend's own
+    // last column plus two. Computed HERE, before a single token is stamped
+    // on, for two reasons. The `[-][x]` buttons are drawn in the legend's own
+    // colour at the far right, so scanning after them put the legend's "end"
+    // three columns from the corner — the workaround this replaces. And a
+    // token that had already overwritten part of the legend would make the
+    // scan report the shortened legend as the real one, so the NEXT token
+    // would happily eat the rest.
+    //
+    // Plus two, not one: every other pair of neighbours here is separated by
+    // a cell of frame, because the leftward cursor steps by two. Floored at
+    // plus one, a card just wide enough for the command name read
+    // `claude╶ cargo build…` — the pane's name and the command run together
+    // into one word.
+    let floor = v
+        .iter()
+        .filter(|c| c.row == 0 && c.fg == legend)
+        .map(|c| c.col)
+        .max()
+        .unwrap_or(1)
+        + 2;
     // Status glyphs ride the top-right border, stepping left from the corner.
     let mut rx = cols.saturating_sub(3);
     // The [-][x] buttons claim the corner slots; status glyphs step past them.
@@ -308,7 +342,7 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
     // same point of the buffer — see `panescroll::position_fg`.
     let scroll_t =
         crate::panescroll::position(b.total, usize::from(rows.saturating_sub(2)), b.scroll);
-    rx = crate::panescroll::count(&mut v, rx, b.scroll, scroll_t);
+    rx = crate::panescroll::count(&mut v, rx, floor, b.scroll, scroll_t);
     // …and the same fact as a shape, down the right border: where you are in
     // the scrollback, not just how far from its bottom. Landmarks first, so
     // the thumb draws over the one you are on.
@@ -352,7 +386,7 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
         (b.activity, '●', crew_theme::theme().activity),
         (b.bell, '!', crew_theme::theme().bell),
     ] {
-        if on && rx > 1 {
+        if on && rx >= floor {
             put(&mut v, rx, 0, c, fg, false);
             rx = rx.saturating_sub(2);
         }
@@ -362,7 +396,7 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
     // is the difference between glancing over and going back.
     if let Some(n) = crate::unread::badge(b.unread) {
         let w = n.chars().count() as u16;
-        if rx > w {
+        if rx >= w && rx + 1 - w >= floor {
             let start = rx + 1 - w;
             for (i, ch) in n.chars().enumerate() {
                 put(
@@ -377,7 +411,7 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
             rx = start.saturating_sub(2);
         }
     }
-    if b.pinned && rx > 1 {
+    if b.pinned && rx >= floor {
         put(&mut v, rx, 0, '\u{25aa}', crate::palette::accent(), true);
         rx = rx.saturating_sub(2);
     }
@@ -386,7 +420,7 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
     // away, and a nine-minute build is the thing you came back for.
     if let Some(t) = &b.elapsed {
         let w = t.chars().count() as u16;
-        if rx > w + 2 {
+        if rx >= w && rx + 1 - w >= floor {
             let start = rx + 1 - w;
             for (i, ch) in t.chars().enumerate() {
                 put(
@@ -401,32 +435,15 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
             rx = start.saturating_sub(2);
         }
     }
-    // Everything still to be drawn on the top border shares one floor: the
-    // legend's own last column, read off the cells that were just drawn —
-    // the legend is width-clipped by `titled_card`, so asking the drawing is
-    // the only way to know where it actually ended.
-    //
-    // Only cells LEFT of the free column count as the legend. The `[-][x]`
-    // buttons are drawn in the legend's own colour, at the far right — so
-    // scanning the whole row for that colour put the legend's "end" three
-    // columns from the corner and left the badge a budget of nothing. It had
-    // not drawn on a card with buttons since it landed, which is every full
-    // tile.
-    let legend_end = v
-        .iter()
-        .filter(|c| c.row == 0 && c.fg == legend && c.col <= rx)
-        .map(|c| c.col)
-        .max()
-        .unwrap_or(2);
     // What you are reading outranks where the repository is: the branch does
     // not change while you scroll, and the command that printed these three
     // pages is the thing the window stopped saying.
     if let Some(name) = b.at_cmd {
-        rx = crate::cmdhead::draw(&mut v, rx, legend_end + 1, name);
+        rx = crate::cmdhead::draw(&mut v, rx, floor, name);
     }
     // The git badge takes what is left of the top border.
     if let Some(g) = b.git {
-        crate::gitbadge::draw(&mut v, rx, legend_end + 1, g);
+        crate::gitbadge::draw(&mut v, rx, floor, g);
     }
     v
 }

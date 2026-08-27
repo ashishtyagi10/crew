@@ -42,16 +42,17 @@ pub(crate) fn position(total: usize, visible: usize, scroll: usize) -> f32 {
     1.0 - (scroll.min(range) as f32 / range as f32)
 }
 
-/// Stamp `⇡N` on the top border, ending at column `rx`, and return the next
-/// free column to its left. `rx` unchanged when there is nothing to say or no
-/// room to say it.
-pub(crate) fn count(v: &mut Vec<CellView>, rx: u16, scroll: usize, t: f32) -> u16 {
+/// Stamp `⇡N` on the top border, ending at column `rx` and never reaching
+/// left of `min_col` (the legend's floor — see [`crate::panecard`]), and
+/// return the next free column to its left. `rx` unchanged when there is
+/// nothing to say or no room to say it.
+pub(crate) fn count(v: &mut Vec<CellView>, rx: u16, min_col: u16, scroll: usize, t: f32) -> u16 {
     if scroll == 0 {
         return rx;
     }
     let s = format!("\u{21e1}{scroll}");
     let w = s.chars().count() as u16;
-    if rx < w {
+    if rx < w || rx + 1 - w < min_col {
         return rx;
     }
     let start = rx + 1 - w;
