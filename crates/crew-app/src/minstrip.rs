@@ -208,6 +208,7 @@ mod tests {
 
     #[test]
     fn attention_supersedes_the_activity_dot() {
+        let _g = crate::app::theme_test_guard();
         let a = Attention {
             kind: NotifyKind::AgentDone,
             at_ms: 0,

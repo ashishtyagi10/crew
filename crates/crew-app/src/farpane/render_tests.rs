@@ -231,6 +231,7 @@ fn file_rows_show_a_type_glyph() {
 
 #[test]
 fn ghost_text_renders_dim_after_the_cursor() {
+    let _g = crate::app::theme_test_guard();
     use crate::farpane::cmdhist::CmdHistory;
     let mut pane = fixture_pane("ghost");
     pane.cmdline = "ba".into();
@@ -329,6 +330,7 @@ fn thinking_status_shows_elapsed_seconds() {
 
 #[test]
 fn suggested_command_highlights_the_bar_and_shows_the_accept_hint() {
+    let _g = crate::app::theme_test_guard();
     use crate::farpane::ask::AskState;
     let _g = crate::palette::test_guard();
     let mut pane = fixture_pane("suggested");
@@ -379,6 +381,7 @@ fn no_ask_status_when_ask_is_absent() {
 
 #[test]
 fn only_the_active_panel_draws_a_filled_cursor_bar() {
+    let _g = crate::app::theme_test_guard();
     // A filled bar on BOTH sides made it ambiguous which panel keys act on
     // (the inactive bar usually sits on `../` and reads as "selected"). The
     // fill is now exclusive to the active panel; the inactive side remembers
@@ -492,6 +495,7 @@ fn status_line_blank_for_an_empty_listing() {
 
 #[test]
 fn active_panel_legend_is_a_filled_accent_tab() {
+    let _g = crate::app::theme_test_guard();
     // Post-v0.6.23 feedback: the accent border alone was still too subtle.
     // The active panel's legend now carries an accent bg fill (a "selected
     // tab"); the inactive legend stays plain — bg fill on row 0 must appear

@@ -71,6 +71,7 @@ mod tests {
 
     #[test]
     fn wash_moves_ink_toward_the_page_but_leaves_backgrounds() {
+        let _g = crate::app::theme_test_guard();
         let t = crew_theme::theme();
         let mut cells = vec![CellView {
             col: 0,

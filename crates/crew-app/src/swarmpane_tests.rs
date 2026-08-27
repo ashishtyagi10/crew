@@ -109,6 +109,7 @@ fn goal_pane_plans_then_runs() {
 
 #[test]
 fn cells_have_hud_row_when_running() {
+    let _g = crate::app::theme_test_guard();
     let pane = SwarmPane::for_batch(jobs_from_lines("one job")).expect("batch graph builds");
     let cells = pane.cells(60, 12);
     assert!(

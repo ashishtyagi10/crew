@@ -65,6 +65,7 @@ fn short_pane_gets_prompt_only() {
 
 #[test]
 fn valid_mention_is_highlighted_in_agent_colour() {
+    let _g = crate::app::theme_test_guard();
     let a = agents(&["coder"]);
     let cells = composer_cells("@coder fix", None, &a, 60, 10);
     let ink = crew_theme::theme().ink;
@@ -77,6 +78,7 @@ fn valid_mention_is_highlighted_in_agent_colour() {
 
 #[test]
 fn unknown_mention_stays_plain() {
+    let _g = crate::app::theme_test_guard();
     let cells = composer_cells("@ghost hi", None, &agents(&["coder"]), 60, 10);
     let ink = crew_theme::theme().ink;
     assert!(cells
@@ -94,6 +96,7 @@ fn caret_follows_the_input() {
 
 #[test]
 fn empty_input_shows_a_dim_placeholder_hint() {
+    let _g = crate::app::theme_test_guard();
     let cells = composer_cells("", None, &agents(&["planner"]), 60, 10);
     let muted = crew_theme::theme().text_muted;
     // Row 8 is the interior prompt row for a 10-row (tall) pane.
@@ -107,6 +110,7 @@ fn empty_input_shows_a_dim_placeholder_hint() {
 
 #[test]
 fn nonempty_input_has_no_placeholder() {
+    let _g = crate::app::theme_test_guard();
     let cells = composer_cells("hi", None, &agents(&["planner"]), 60, 10);
     let muted = crew_theme::theme().text_muted;
     assert!(
@@ -130,6 +134,7 @@ fn char_count_badge_thresholds() {
 
 #[test]
 fn long_input_shows_a_muted_char_count_badge_on_the_top_border() {
+    let _g = crate::app::theme_test_guard();
     // 121 chars wrap to 2 interior lines at 75 text columns, so the card's
     // top border sits at rows - 4.
     let long = "a".repeat(121);
@@ -148,6 +153,7 @@ fn long_input_shows_a_muted_char_count_badge_on_the_top_border() {
 
 #[test]
 fn short_input_has_no_char_count_badge() {
+    let _g = crate::app::theme_test_guard();
     let cells = composer_cells("hi", None, &agents(&["planner"]), 80, 10);
     let muted = crew_theme::theme().text_muted;
     assert!(
@@ -242,6 +248,7 @@ fn everything_clips_to_width() {
 /// wrapping it would grow the card under text the user never typed.
 #[test]
 fn the_ghost_renders_muted_after_the_caret_and_stays_on_the_row() {
+    let _g = crate::app::theme_test_guard();
     let t = crew_theme::theme();
     let plain = composer_cells("re", None, &[], 40, 3);
     let ghosted = composer_cells("re", Some("factor the parser"), &[], 40, 3);

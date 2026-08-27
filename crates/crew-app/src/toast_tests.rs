@@ -104,6 +104,7 @@ fn expired_toasts_render_nothing() {
 
 #[test]
 fn exit_window_fades_text_toward_the_page() {
+    let _g = crate::app::theme_test_guard();
     // fade = 1 exactly at expiry: the text cell fg equals page_bg.
     let cells_mid = card_cells(
         &CardText {

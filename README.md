@@ -16,9 +16,11 @@ timeline. See
 
 It reads the terminal it is: the whole underline family, dim and conceal, OSC 8
 hyperlinks, DECSCUSR cursor shapes, program-requested notifications and progress
-(OSC 9 / 9;4) — and it derives **command blocks without shell integration**, so
-`/out` can open the last command's output on its own and every card can mark
-where its commands began and where its errors are.
+(OSC 9 / 9;4), and OSC 133 semantic prompt marks where a shell offers them —
+and it derives **command blocks without shell integration**, so `/out` can open
+the last command's output on its own, `/blocks` can list what you ran and how
+long each took, and every card can mark where its commands began, where its
+errors are, and which command you are currently scrolled back into.
 
 Built on **macOS**, **Linux**, and **Windows**.
 
@@ -298,6 +300,16 @@ it.
   bar) — block structure and failure marks without any shell integration,
   since crew already watches each pane's foreground process. `/marks off` for a
   plain frame.
+- **Which command you are reading**, once you scroll back into it: `╶ cargo
+  build` beside the `⇡N`, since the prompt that started the output is off the
+  top of the window by then. Other terminals pin a sticky prompt line inside
+  the viewport; that costs a row of the program's grid.
+- **Which block went wrong**, when the shell says so. Crew reads **OSC 133**
+  where it is offered — the one thing polling cannot see is how a command
+  *ended* — and marks that block's first row in the alarm colour, names the
+  status beside the command (`╶ cargo build ✗101`), and raises a `failed` card
+  rather than a quiet `done` when it happens. A shell that says nothing keeps
+  exactly the blocks it had; "no answer" is never drawn as success.
 - **Progress a program reports** (OSC 9;4), filling the bottom border — or
   sweeping when it is working without a number.
 - **Where you are** in a scrollback, a document or a transcript: a proportional
@@ -314,8 +326,18 @@ it.
 - **`/diff`** reviews the working tree in the viewer, pairing each removed line
   with the added line that replaced it and drawing only the run that actually
   differs at full strength — word edges respected, trailing whitespace on added
-  lines marked. `]` and `[` walk files and hunks; the same treatment applies to
-  a fenced diff in an agent's reply.
+  lines marked. `]` and `[` walk files and hunks, **`v` lays it out side by
+  side** (each half carrying its own file's line numbers), and the same
+  treatment applies to a fenced diff in an agent's reply.
+- **`/blocks`** lists what you ran in the pane, newest first: how long each
+  took, which of them failed, and the number `/out` counts back with — so
+  `/blocks` says what you ran and `/out 2` opens the output of the third one
+  back.
+- **`/blame`** answers who last touched each line of the file in the viewer,
+  collapsed to the boundaries where one commit's work ends and the next begins.
+- **`/reopen`** (**Cmd+Shift+T**) undoes the last pane close: a shell in the
+  directory that one was standing in, the viewer back on its file. The last
+  eight, so a `/only` walks back a pane at a time.
 - **`/pin`** keeps a pane on the grid when the LRU would demote it.
 
 ## The cursor
@@ -546,11 +568,14 @@ trips. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
 ## Settings
 
 `/settings` opens a **two-column bento form** covering every configurable
-property: font family/size, font smoothing (the `/smooth` ladder), nav width +
-visibility, theme, accent, paper
-texture + grain, launch-maximized, and the whole notification block (master +
-per-event toggles, min-secs threshold, watched output patterns as a
-one-per-line text area). **Cmd+S / Alt+S** saves. Settings persist to
+property: font family/size, font smoothing (the `/smooth` ladder), line spacing
+(`/leading`), density, nav width + visibility, theme, accent, paper texture +
+grain, card border marks, revealed invisibles, launch-maximized, and the whole
+notification block (master + per-event toggles, min-secs threshold, watched
+output patterns as a one-per-line text area). Every key in the config file has
+a field here, and a test that parses `config.rs` says so. **Cmd+S / Alt+S**
+saves, and **`/keys`** lists how to reach and change each field without the
+mouse — as it now does for every pane kind that answers to keys of its own. Settings persist to
 `$XDG_CONFIG/crew/config.toml` and apply live on Save. The config file also
 accepts `accent = "#rrggbb"` to override Crew's accent; omit it (or give an
 invalid value) to use the active theme's default accent. It applies at launch —
@@ -574,10 +599,15 @@ each with a contract test that fails when a shipped value drifts from what the
 system would produce. What a palette actually picks is its page, its ink, its
 accent and its gradient poles.
 
-`/theme` offers the four rotations and then every palette by name, each with a
-swatch: a rotation shows one chip per palette it would serve (that palette's
-page with its accent across the top half), so you can see what you are choosing
-before you choose it. `Ctrl+Shift+L` cycles the rotations; the palettes retired
+`/theme` offers the four rotations and then every palette by name, and shows
+you the colours rather than the names: a rotation draws one chip per palette it
+would serve, and a named palette draws its whole hand — the ink it writes in,
+its accent, and the four ANSI slots every program in a pane paints with, each
+over that palette's own page. Better still, **arrowing onto a palette puts it
+on**, and arrowing off (or dismissing the picker) puts back the one you had —
+because a swatch tells you what a palette *is* and only wearing it tells you
+what the screen you are looking at will *look like*. `/gradient` previews its
+named pairs the same way. `Ctrl+Shift+L` cycles the rotations; the palettes retired
 in an earlier roster cut still parse, so an old config keeps working. `/crt
 on|off|auto` overrides the tube post-process independently of the theme.
 

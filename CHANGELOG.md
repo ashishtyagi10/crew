@@ -8,6 +8,42 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.23
+
+**Every test that reads the theme is now serialised against every test that
+changes it.** The palette, its accent and its gradient poles are process
+globals, so a test that paints cells from one of them and compares the result
+against `theme()` is comparing against whatever is in force *now* — which under
+a parallel runner is not necessarily what it painted with. Sixty-five tests read
+the theme without the guard. Two of them had already failed this way this week:
+one on the toast border, one on the welcome screen's version stamp, the latter
+only on Windows CI where the runner schedules differently.
+
+Eighty-one take it now — sixty-five that read `theme()` outright, and sixteen
+more that read something the palette *derives*: a tag's colour, an agent's
+colour, a measurement against the page, the accent. That second list cost one
+more red run to find, because the first pass had only named the obvious four
+needles. A test reads this crate's own sources and holds the rule — because a new test that compares a colour is the easiest thing in the
+world to write without a guard, and it passes locally every time until it does
+not. Four tests already held it through a helper, which would have deadlocked
+had they taken it twice; the check knows about that.
+
+**And the docs describe what these twenty iterations shipped**: the border
+naming the command you are scrolled into and the block that failed, OSC 133,
+`/blocks`, `/blame`, `/reopen`, `/leading`, `/invisibles`, the side-by-side
+diff, the palette's full hand in the picker, and the picker putting a palette
+on while you look at it.
+
+This closes a run of twenty UI iterations, `0.19.3` through here. The
+through-line: **crew tells you what it already knows.** Nothing in this run
+needed new information — the command you are reading, the block that failed,
+who touched a line, what you ran and how long it took, whether a path is
+clickable, what a palette looks like: crew had all of it and was keeping most
+of it to itself. The rest of the run was spent on the lists that had drifted
+apart — the palette and the docs, the key maps and `/keys`, the border tokens
+and each other — because two lists with nothing comparing them is how a
+feature ships invisible.
+
 ## 0.19.22
 
 **A test guard that restored half a theme.** `theme_test_guard` put the

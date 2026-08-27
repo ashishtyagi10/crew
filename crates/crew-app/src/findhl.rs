@@ -71,6 +71,7 @@ mod tests {
 
     #[test]
     fn highlights_each_match_and_counts() {
+        let _g = crate::app::theme_test_guard();
         // "foo bar foo" → two "foo" matches on row 0.
         let mut cells = row("foo bar foo", 0);
         let n = highlight(&mut cells, "foo", 11, 1);
@@ -99,6 +100,7 @@ mod tests {
 
     #[test]
     fn empty_term_does_nothing() {
+        let _g = crate::app::theme_test_guard();
         let mut cells = row("hello", 0);
         assert_eq!(highlight(&mut cells, "", 5, 1), 0);
         assert!(cells.iter().all(|c| c.bg != crew_theme::theme().find_hl_bg));

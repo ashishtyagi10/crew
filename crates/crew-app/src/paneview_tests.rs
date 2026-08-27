@@ -41,6 +41,7 @@ fn card_has_rounded_border_and_legend() {
 
 #[test]
 fn legend_wears_the_pane_signature_hue() {
+    let _g = crate::app::theme_test_guard();
     // Focused: the title glyph on the top border takes the title-derived hue
     // (same hash the roster uses), so a pane and its roster row match.
     let hue = crate::chatroster::agent_color("shell");
@@ -62,6 +63,7 @@ fn legend_wears_the_pane_signature_hue() {
 
 #[test]
 fn status_glyphs_ride_the_top_border() {
+    let _g = crate::app::theme_test_guard();
     let cells = pane_card(38, 10, &bar(true));
     let on_top =
         |ch: char, fg: (u8, u8, u8)| cells.iter().any(|c| c.c == ch && c.row == 0 && c.fg == fg);
@@ -75,6 +77,7 @@ fn status_glyphs_ride_the_top_border() {
 
 #[test]
 fn broadcast_marker_shown_only_when_set() {
+    let _g = crate::app::theme_test_guard();
     let b = Bar {
         broadcast: true,
         ..bar(true)

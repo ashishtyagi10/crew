@@ -151,6 +151,7 @@ fn a_hex_value_is_a_chip_and_anything_else_is_not() {
 /// such colour.
 #[test]
 fn every_face_reads_against_its_own_page() {
+    let _g = crate::app::theme_test_guard();
     for id in ALL_THEMES {
         let page = id.theme().page_bg;
         for (i, chip) in for_value("/theme", id.as_str()).iter().enumerate() {

@@ -24,6 +24,7 @@ fn layout_cells_prompt_on_last_row() {
 
 #[test]
 fn empty_pane_shows_dim_hint_no_messages_does_not() {
+    let _g = crate::app::theme_test_guard();
     // No messages → dim getting-started hint on row 0.
     let empty = layout_cells(&[], "", 60, 6, 0, true);
     assert!(empty
@@ -36,6 +37,7 @@ fn empty_pane_shows_dim_hint_no_messages_does_not() {
 
 #[test]
 fn empty_pane_hint_reflects_connection_state() {
+    let _g = crate::app::theme_test_guard();
     // Connected → the "Type a message…" hint (starts with 'T').
     let ready = layout_cells(&[], "", 60, 6, 0, true);
     assert!(ready
@@ -66,6 +68,7 @@ fn layout_cells_message_above_prompt() {
 
 #[test]
 fn layout_cells_sender_in_accent_fg() {
+    let _g = crate::app::theme_test_guard();
     let cells = layout_cells(&[msg("bob", "hello")], "", 20, 3, 0, true);
     assert!(cells.iter().any(|c| c.fg == crate::palette::accent()));
 }

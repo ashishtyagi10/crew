@@ -299,6 +299,7 @@ mod tests {
     /// and until now nothing on screen said so.
     #[test]
     fn a_hovered_row_lifts_its_ink_out_of_the_muted_grey() {
+        let _g = crate::app::theme_test_guard();
         let quiet = [row(1, "build", false, false)];
         let hot = [PaneRow {
             hovered: true,
@@ -348,6 +349,7 @@ mod tests {
 
     #[test]
     fn pane_cells_lists_focus_and_activity() {
+        let _g = crate::app::theme_test_guard();
         let panes = [row(1, "build", true, false), row(2, "server", false, true)];
         let cells = cells_of(&panes, 24, 10);
         // PANES rule on row 0
@@ -405,6 +407,7 @@ mod tests {
 
     #[test]
     fn attention_row_draws_the_marker_and_tints_the_title() {
+        let _g = crate::app::theme_test_guard();
         let panes = [
             row(1, "build", true, false),
             PaneRow {
@@ -428,6 +431,7 @@ mod tests {
 
     #[test]
     fn attention_blink_off_phase_hides_the_marker_but_keeps_the_tint() {
+        let _g = crate::app::theme_test_guard();
         let panes = [PaneRow {
             attention: Some(('!', false)),
             ..row(1, "server", false, false)

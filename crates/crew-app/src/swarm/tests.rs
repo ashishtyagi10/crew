@@ -134,6 +134,7 @@ fn budget_governor_trips_shared_cancel_flag() {
 
 #[test]
 fn swarm_cells_hud_row_present() {
+    let _g = crate::app::theme_test_guard();
     use super::view::swarm_cells;
 
     let graph = two_task_graph();
@@ -161,6 +162,7 @@ fn swarm_cells_hud_row_present() {
 
 #[test]
 fn swarm_cells_content_offset_by_hud() {
+    let _g = crate::app::theme_test_guard();
     use super::view::swarm_cells;
 
     let graph = two_task_graph();
