@@ -218,11 +218,12 @@ impl CrewApp {
                     // back where polling already had it.
                     for mark in t.pty.take_shell() {
                         let at = t.pty.scrollable_lines();
+                        let ms = crate::anim::now_ms();
                         match mark {
-                            crew_term::ShellMark::Done(code) => t.spans.finished(code, at),
+                            crew_term::ShellMark::Done(code) => t.spans.finished(code, at, ms),
                             // A prompt being drawn means whatever was running
                             // is over, whether or not the shell said `D`.
-                            crew_term::ShellMark::Prompt => t.spans.close(at),
+                            crew_term::ShellMark::Prompt => t.spans.close_at(at, ms),
                             // `C` is where output begins. The span is opened
                             // by the foreground-process watch, which is also
                             // the only thing that knows the command's NAME —
@@ -441,9 +442,10 @@ impl CrewApp {
                         // The two edges of a command's output, as buffer
                         // lines: what `/out` slices later.
                         let at = t.pty.scrollable_lines();
+                        let ms = crate::anim::now_ms();
                         match &cmd {
-                            Some(name) => t.spans.started(name.clone(), at),
-                            None => t.spans.close(at),
+                            Some(name) => t.spans.started(name.clone(), at, ms),
+                            None => t.spans.close_at(at, ms),
                         }
                         t.cmd = cmd;
                         t.cmd_since = outcome.since;

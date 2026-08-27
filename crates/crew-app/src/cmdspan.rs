@@ -34,6 +34,11 @@ pub(crate) struct Span {
     /// every shell with no integration configured — which is not the same as
     /// "it succeeded", and is why nothing is drawn for it.
     pub exit: Option<i32>,
+    /// The monotonic clock when it started and when it stopped. Buffer lines
+    /// say where the output IS; these say how long it took, which is the
+    /// other half of "what did I run in here" (see [`crate::blocks`]).
+    pub at_ms: u64,
+    pub done_ms: Option<u64>,
 }
 
 /// How many spans a pane remembers. Enough to reach back through a working
@@ -45,27 +50,42 @@ const CAP: usize = 32;
 pub(crate) struct Spans(Vec<Span>);
 
 impl Spans {
-    /// A command started at buffer line `at`.
-    pub(crate) fn started(&mut self, name: String, at: usize) {
+    /// A command started at buffer line `at`, on the monotonic clock `now`.
+    pub(crate) fn started(&mut self, name: String, at: usize, now: u64) {
         // An unclosed span means the previous command's end was missed; close
         // it here rather than leaving a span that runs to the end of time.
-        self.close(at);
+        self.close_at(at, now);
         self.0.push(Span {
             name,
             from: at,
             to: None,
             exit: None,
+            at_ms: now,
+            done_ms: None,
         });
         while self.0.len() > CAP {
             self.0.remove(0);
         }
     }
 
-    /// The running command stopped at buffer line `at`.
-    pub(crate) fn close(&mut self, at: usize) {
+    /// The running command stopped at buffer line `at`, on the monotonic
+    /// clock `now`.
+    pub(crate) fn close_at(&mut self, at: usize, now: u64) {
         if let Some(open) = self.0.last_mut().filter(|s| s.to.is_none()) {
             open.to = Some(at.max(open.from));
+            open.done_ms = Some(now);
         }
+    }
+
+    /// How long a span ran, or how long it has been running. `None` for one
+    /// that started before the clock was being kept.
+    pub(crate) fn elapsed_ms(s: &Span, now: u64) -> u64 {
+        s.done_ms.unwrap_or(now).saturating_sub(s.at_ms)
+    }
+
+    /// Every span, newest first — what [`crate::blocks`] lists.
+    pub(crate) fn recent(&self) -> impl Iterator<Item = &Span> {
+        self.0.iter().rev()
     }
 
     /// The shell reported that the last command finished with `code`, at
@@ -77,12 +97,13 @@ impl Spans {
     /// the LAST span whether or not it is still open — a `D` arriving just
     /// after the poll closed the span is the same command, and the alternative
     /// is dropping the one fact polling cannot supply.
-    pub(crate) fn finished(&mut self, code: Option<i32>, at: usize) {
+    pub(crate) fn finished(&mut self, code: Option<i32>, at: usize, now: u64) {
         let Some(last) = self.0.last_mut() else {
             return;
         };
         if last.to.is_none() {
             last.to = Some(at.max(last.from));
+            last.done_ms = Some(now);
         }
         last.exit = code;
     }

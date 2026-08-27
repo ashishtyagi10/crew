@@ -257,7 +257,7 @@ formatted post-mortem.
 Slash commands complete the bar (type `/` for a fuzzy palette): `/crew`,
 `/goal <text>`, `/batch <file>`, `/view <file>`, `/md <file>`, `/diff`, `/settings`,
 `/find <text>`, `/findall <text>`, `/name <text>`, `/clear`, `/clearall`, `/clearlog`, `/only`,
-`/copy`, `/dump`, `/closeall`, `/reopen`, `/blame`, `/leading`, `/invisibles`, `/pwd`, `/about`, `/font`, `/theme`, `/notify`,
+`/copy`, `/dump`, `/closeall`, `/reopen`, `/blocks`, `/blame`, `/leading`, `/invisibles`, `/pwd`, `/about`, `/font`, `/theme`, `/notify`,
 `/update`, `/broadcast`, `/zoom`, `/sidebar`, `/keys`, `/far`, `/todo`,
 `/exit`. Commands with a fixed value set (like `/theme`) expand into an
 arrow-selectable **value picker**. Fish-style autosuggest from history, `cd`

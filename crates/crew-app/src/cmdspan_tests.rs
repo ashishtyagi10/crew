@@ -3,8 +3,8 @@ use super::*;
 #[test]
 fn a_command_that_ran_leaves_a_span_from_its_start_to_its_end() {
     let mut s = Spans::default();
-    s.started("cargo".into(), 100);
-    s.close(180);
+    s.started("cargo".into(), 100, 0);
+    s.close_at(180, 0);
     let span = s.nth_back(0, 180).expect("a finished command has output");
     assert_eq!(
         (span.name.as_str(), span.from, span.to),
@@ -18,11 +18,11 @@ fn a_command_that_ran_leaves_a_span_from_its_start_to_its_end() {
 #[test]
 fn a_running_command_reports_what_it_has_printed_so_far() {
     let mut s = Spans::default();
-    s.started("cargo".into(), 10);
+    s.started("cargo".into(), 10, 0);
     assert_eq!(Spans::range(s.nth_back(0, 45).unwrap(), 45), (10, 45));
     // …but not before it has printed anything at all.
     let mut fresh = Spans::default();
-    fresh.started("ls".into(), 10);
+    fresh.started("ls".into(), 10, 0);
     assert!(fresh.nth_back(0, 10).is_none());
 }
 
@@ -31,8 +31,8 @@ fn a_running_command_reports_what_it_has_printed_so_far() {
 #[test]
 fn an_unclosed_span_is_closed_when_the_next_command_starts() {
     let mut s = Spans::default();
-    s.started("first".into(), 10);
-    s.started("second".into(), 50);
+    s.started("first".into(), 10, 0);
+    s.started("second".into(), 50, 0);
     let span = s.nth_back(0, 80).unwrap();
     assert_eq!(span.name, "second");
     assert_eq!(Spans::range(span, 80), (50, 80));
@@ -43,8 +43,8 @@ fn an_unclosed_span_is_closed_when_the_next_command_starts() {
 #[test]
 fn a_range_is_clamped_to_what_the_buffer_still_holds() {
     let mut s = Spans::default();
-    s.started("cargo".into(), 100);
-    s.close(500);
+    s.started("cargo".into(), 100, 0);
+    s.close_at(500, 0);
     let span = s.nth_back(0, 500).unwrap();
     assert_eq!(Spans::range(span, 300), (100, 300));
     assert_eq!(
@@ -59,8 +59,8 @@ fn a_range_is_clamped_to_what_the_buffer_still_holds() {
 #[test]
 fn a_close_never_ends_before_its_own_start() {
     let mut s = Spans::default();
-    s.started("weird".into(), 100);
-    s.close(20);
+    s.started("weird".into(), 100, 0);
+    s.close_at(20, 0);
     assert_eq!(
         s.nth_back(0, 100).map(|x| x.to),
         None,
@@ -72,8 +72,8 @@ fn a_close_never_ends_before_its_own_start() {
 fn only_the_last_few_are_remembered() {
     let mut s = Spans::default();
     for i in 0..(CAP + 10) {
-        s.started(format!("c{i}"), i * 10);
-        s.close(i * 10 + 5);
+        s.started(format!("c{i}"), i * 10, 0);
+        s.close_at(i * 10 + 5, 0);
     }
     assert_eq!(s.len(), CAP);
     assert_eq!(
@@ -92,10 +92,10 @@ fn a_pane_that_has_run_nothing_has_nothing_to_show() {
 #[test]
 fn a_command_start_maps_to_the_row_it_is_drawn_on() {
     let mut s = Spans::default();
-    s.started("a".into(), 100);
-    s.close(110);
-    s.started("b".into(), 118);
-    s.close(120);
+    s.started("a".into(), 100, 0);
+    s.close_at(110, 0);
+    s.started("b".into(), 118, 0);
+    s.close_at(120, 0);
     // 120 lines, a 20-row window at the bottom → showing lines 100..120.
     assert_eq!(s.start_rows(120, 20, 0), vec![0, 18]);
     // Scrolled back ten → showing 90..110: only the first start is in view.
@@ -109,8 +109,8 @@ fn a_command_start_maps_to_the_row_it_is_drawn_on() {
 #[test]
 fn a_start_above_the_window_is_not_pinned_to_its_top() {
     let mut s = Spans::default();
-    s.started("old".into(), 5);
-    s.close(6);
+    s.started("old".into(), 5, 0);
+    s.close_at(6, 0);
     assert!(s.start_rows(500, 20, 0).is_empty());
 }
 
@@ -120,8 +120,8 @@ fn a_start_above_the_window_is_not_pinned_to_its_top() {
 fn counting_back_walks_the_history_newest_first() {
     let mut s = Spans::default();
     for (i, name) in ["first", "second", "third"].iter().enumerate() {
-        s.started((*name).to_string(), i * 10);
-        s.close(i * 10 + 5);
+        s.started((*name).to_string(), i * 10, 0);
+        s.close_at(i * 10 + 5, 0);
     }
     let name = |n: usize| s.nth_back(n, 100).map(|x| x.name.clone());
     assert_eq!(name(0).as_deref(), Some("third"));
@@ -135,9 +135,9 @@ fn counting_back_walks_the_history_newest_first() {
 #[test]
 fn a_silent_running_command_is_skipped_by_both_readings() {
     let mut s = Spans::default();
-    s.started("old".into(), 10);
-    s.close(30);
-    s.started("running".into(), 30);
+    s.started("old".into(), 10, 0);
+    s.close_at(30, 0);
+    s.started("running".into(), 30, 0);
     assert_eq!(
         s.nth_back(0, 30).map(|x| x.name.clone()).as_deref(),
         Some("old")
@@ -168,8 +168,8 @@ fn a_silent_running_command_is_skipped_by_both_readings() {
 fn the_summary_numbers_what_the_argument_would_reach() {
     let mut s = Spans::default();
     for name in ["a", "b", "c"] {
-        s.started(name.to_string(), 0);
-        s.close(1);
+        s.started(name.to_string(), 0, 0);
+        s.close_at(1, 0);
     }
     assert_eq!(s.summary(4), vec!["0:c", "1:b", "2:a"]);
     assert_eq!(s.summary(2), vec!["0:c", "1:b"]);
@@ -181,10 +181,10 @@ fn the_summary_numbers_what_the_argument_would_reach() {
 #[test]
 fn a_line_is_answered_by_the_command_that_printed_it() {
     let mut s = Spans::default();
-    s.started("cargo build".into(), 10);
-    s.close(40);
-    s.started("cargo test".into(), 40);
-    s.close(90);
+    s.started("cargo build".into(), 10, 0);
+    s.close_at(40, 0);
+    s.started("cargo test".into(), 40, 0);
+    s.close_at(90, 0);
     let name = |line| s.at_line(line, 100).map(|x| x.name.clone());
     assert_eq!(name(10).as_deref(), Some("cargo build"), "its first line");
     assert_eq!(name(39).as_deref(), Some("cargo build"), "its last line");
@@ -211,12 +211,16 @@ fn overlapping_spans_answer_with_the_later_command() {
         from: 0,
         to: Some(50),
         exit: None,
+        at_ms: 0,
+        done_ms: None,
     });
     s.0.push(crate::cmdspan::Span {
         name: "second".into(),
         from: 40,
         to: Some(80),
         exit: None,
+        at_ms: 0,
+        done_ms: None,
     });
     assert_eq!(
         s.at_line(45, 100).map(|x| x.name.clone()).as_deref(),
@@ -234,7 +238,7 @@ fn overlapping_spans_answer_with_the_later_command() {
 #[test]
 fn a_running_command_owns_the_lines_it_is_still_printing() {
     let mut s = Spans::default();
-    s.started("cargo build".into(), 10);
+    s.started("cargo build".into(), 10, 0);
     assert_eq!(
         s.at_line(30, 40).map(|x| x.name.clone()).as_deref(),
         Some("cargo build")
@@ -247,8 +251,8 @@ fn a_running_command_owns_the_lines_it_is_still_printing() {
 #[test]
 fn a_shell_that_reports_an_exit_status_marks_that_block() {
     let mut s = Spans::default();
-    s.started("cargo build".into(), 10);
-    s.finished(Some(1), 40);
+    s.started("cargo build".into(), 10, 0);
+    s.finished(Some(1), 40, 0);
     let span = s.nth_back(0, 60).expect("the block");
     assert_eq!(span.exit, Some(1));
     assert_eq!(span.to, Some(40), "the shell's boundary closed it");
@@ -260,13 +264,13 @@ fn a_shell_that_reports_an_exit_status_marks_that_block() {
 #[test]
 fn only_a_reported_failure_is_marked() {
     let mut ok = Spans::default();
-    ok.started("ls".into(), 0);
-    ok.finished(Some(0), 4);
+    ok.started("ls".into(), 0, 0);
+    ok.finished(Some(0), 4, 0);
     assert!(ok.failed_rows(10, 10, 0).is_empty());
 
     let mut silent = Spans::default();
-    silent.started("ls".into(), 0);
-    silent.close(4);
+    silent.started("ls".into(), 0, 0);
+    silent.close_at(4, 0);
     assert!(silent.failed_rows(10, 10, 0).is_empty());
     assert_eq!(silent.nth_back(0, 10).unwrap().exit, None);
 }
@@ -277,9 +281,9 @@ fn only_a_reported_failure_is_marked() {
 #[test]
 fn a_status_arriving_after_the_poll_closed_the_span_still_lands() {
     let mut s = Spans::default();
-    s.started("cargo test".into(), 0);
-    s.close(20); // the poll noticed first
-    s.finished(Some(101), 21);
+    s.started("cargo test".into(), 0, 0);
+    s.close_at(20, 0); // the poll noticed first
+    s.finished(Some(101), 21, 0);
     let span = s.nth_back(0, 30).unwrap();
     assert_eq!(span.exit, Some(101));
     assert_eq!(span.to, Some(20), "the earlier boundary is kept");
@@ -288,7 +292,7 @@ fn a_status_arriving_after_the_poll_closed_the_span_still_lands() {
 #[test]
 fn a_status_with_no_span_to_attach_it_to_is_dropped() {
     let mut s = Spans::default();
-    s.finished(Some(1), 5);
+    s.finished(Some(1), 5, 0);
     assert_eq!(s.len(), 0);
 }
 
@@ -297,8 +301,8 @@ fn a_status_with_no_span_to_attach_it_to_is_dropped() {
 #[test]
 fn a_failure_tick_lands_on_the_same_row_its_start_tick_would() {
     let mut s = Spans::default();
-    s.started("boom".into(), 100);
-    s.finished(Some(2), 120);
+    s.started("boom".into(), 100, 0);
+    s.finished(Some(2), 120, 0);
     for scroll in 0..40 {
         assert_eq!(
             s.failed_rows(200, 50, scroll),

@@ -30,6 +30,10 @@ pub(crate) const WORK: &[Cmd] = &[
         desc: "Keep the focused pane on the grid (never demoted to the strip)",
     },
     Cmd {
+        name: "/blocks",
+        desc: "What you ran in this pane, how long each took and which failed",
+    },
+    Cmd {
         name: "/out",
         desc: "Open the last command's output on its own, in the file viewer",
     },
