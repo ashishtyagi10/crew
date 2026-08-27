@@ -168,6 +168,17 @@ fn push_pane_scenes(
         PaneContent::View(v) => v.hit_rows(),
         _ => Vec::new(),
     };
+    // Rows of this pane's visible output that read as errors. Computed from
+    // the cells already built for the frame rather than by re-reading the
+    // grid — one pass over what is on screen.
+    let err_rows = match is_term {
+        true => crate::errscan::error_rows(&crate::gridrows::grid_lines(
+            &cells,
+            p.grid.cols,
+            p.grid.rows,
+        )),
+        false => Vec::new(),
+    };
     // A pane's foreground command and how long it has been at it. `cmd_since`
     // is stamped when the command starts and cleared when it ends, so an idle
     // shell has nothing to report.
@@ -272,6 +283,7 @@ fn push_pane_scenes(
                 hits: &hits,
                 progress,
                 elapsed,
+                err_rows: &err_rows,
                 unread,
                 doc: matches!(p.content, PaneContent::View(_)),
             },

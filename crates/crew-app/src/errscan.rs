@@ -58,6 +58,21 @@ pub(crate) fn looks_like_error(line: &str) -> bool {
     ANYWHERE.iter().any(|m| head.contains(m))
 }
 
+/// Which visible rows of a pane hold an error, for the marks its card draws
+/// down the left border.
+///
+/// The border rather than the content: a terminal's columns belong to the
+/// program running in it, and a marker in column zero would overwrite the
+/// first character of whatever the error line says.
+pub(crate) fn error_rows(lines: &[Vec<char>]) -> Vec<u16> {
+    lines
+        .iter()
+        .enumerate()
+        .filter(|(_, l)| looks_like_error(&l.iter().collect::<String>()))
+        .map(|(i, _)| i as u16)
+        .collect()
+}
+
 #[cfg(test)]
 #[path = "errscan_tests.rs"]
 mod tests;

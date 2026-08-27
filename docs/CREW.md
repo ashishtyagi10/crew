@@ -684,6 +684,13 @@ longer aim at.
   `not ok`, `✗`, and `: error TS…`. Prose that merely mentions errors is not
   one: a jump that lands on "errors are handled below" teaches you not to trust
   the jump.
+
+  The same reading marks the card: every visible line that is an error puts a
+  **red bar on the pane's left border**, at its row. The border rather than the
+  content — a terminal's columns belong to the program running in it, and a
+  marker in column zero would overwrite the first character of the message it
+  is pointing at — so a failing build shows *where* its failures are from
+  across the grid, with nothing typed.
 - **`/copy`** — copies the focused terminal pane's **full scrollback** to the
   system clipboard (Cmd+C copies only the visible screen); the line count is
   flashed on the input bar.
