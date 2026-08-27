@@ -37,6 +37,13 @@ impl CrewApp {
     /// there is none. Shared by `/out`, which opens it, and `/copy out`,
     /// which hands it to the clipboard — the same slice either way.
     pub(crate) fn last_output(&mut self) -> Result<(String, String), String> {
+        self.nth_output(0)
+    }
+
+    /// As [`Self::last_output`], for the `n`th command back (`0` is the
+    /// latest). A pane keeps a few dozen, so `/out 3` reaches the run before
+    /// the three you have tried since.
+    pub(crate) fn nth_output(&mut self, n: usize) -> Result<(String, String), String> {
         let focused = self.focused;
         let Some(pane) = self.panes.get_mut(focused) else {
             return Err("no pane focused".into());
@@ -46,7 +53,7 @@ impl CrewApp {
             return Err("not a terminal pane".into());
         };
         let now = t.pty.scrollable_lines();
-        let Some((name, from, to)) = t.spans.latest(now).map(|s| {
+        let Some((name, from, to)) = t.spans.nth_back(n, now).map(|s| {
             let (from, to) = Spans::range(s, now);
             (s.name.clone(), from, to)
         }) else {
@@ -66,15 +73,34 @@ impl CrewApp {
         }
     }
 
-    /// `/out` — open the focused pane's last command output in the viewer.
-    pub(crate) fn open_last_output(&mut self) {
+    /// `/out [n]` — open a command's output in the viewer. No argument is the
+    /// latest; `1` is the one before it, and so on back through what the pane
+    /// remembers.
+    pub(crate) fn open_last_output(&mut self, arg: &str) {
         let focused = self.focused;
-        let (name, body) = match self.last_output() {
+        let arg = arg.trim();
+        let n = match arg.is_empty() {
+            true => 0,
+            false => match arg.parse::<usize>() {
+                Ok(n) => n,
+                Err(_) => {
+                    self.set_status(format!("usage: /out [n] \u{b7} {}", self.span_summary()));
+                    return;
+                }
+            },
+        };
+        let (name, body) = match self.nth_output(n) {
             Ok(v) => v,
             Err(why) => {
                 self.set_status(format!("out: {why}"));
                 return;
             }
+        };
+        // The pane's own name for this capture: two `/out`s in one pane
+        // should not fight over one file when they are different commands.
+        let name = match n {
+            0 => name,
+            n => format!("{name} ({n} back)"),
         };
         let lines = body.lines().count();
         let path = temp_path(focused, &name);
@@ -87,6 +113,21 @@ impl CrewApp {
         self.name_last_view(&format!("out \u{b7} {name}"));
         self.mark_last_view_ephemeral(before);
         self.set_status(format!("{name}: {lines} lines"));
+    }
+
+    /// `0:cargo · 1:ls · 2:git` — what this pane has run lately, newest
+    /// first, for when `/out` is asked for something that is not there.
+    fn span_summary(&self) -> String {
+        let Some(crate::pane::PaneContent::Terminal(t)) =
+            self.panes.get(self.focused).map(|p| &p.content)
+        else {
+            return String::new();
+        };
+        let seen = t.spans.summary(4);
+        match seen.is_empty() {
+            true => "nothing run yet".to_string(),
+            false => seen.join(" \u{b7} "),
+        }
     }
 }
 

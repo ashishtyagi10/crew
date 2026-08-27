@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.84
+
+**`/out 1` reaches the run before the last one.** Each pane already remembers a
+few dozen command spans; `/out` only ever opened the newest. An argument counts
+back through them, which is the shape of the actual problem: you ran the build,
+then `ls`, then `git status`, and the output you want is three commands ago.
+
+Commands that printed nothing are **skipped rather than counted**, so the
+numbers mean what they look like — and `/out` and `/out 0` are now the same
+reading, which they were not: a command that had just started and printed
+nothing made plain `/out` say "nothing to show" while the output you wanted sat
+one span back. Asked for a command that is not there, `/out` lists the ones
+that are.
+
 ## 0.18.83
 
 **`/copy out` copies the last command's output.** `/copy` takes the whole
