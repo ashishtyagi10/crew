@@ -65,6 +65,7 @@ impl crate::app::CrewApp {
                 dim: false,
                 needs: None,
                 color: None,
+                ..Default::default()
             }]
         };
         if let Some(cmd) = crate::app::star_command(&text) {

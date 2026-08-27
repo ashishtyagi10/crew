@@ -324,6 +324,7 @@ fn step_sel_skips_header_rows_in_both_directions() {
             dim: false,
             needs: None,
             color: None,
+            ..Default::default()
         }
     }
     // [hdr, a, b, hdr, c]
@@ -405,4 +406,54 @@ fn recency_never_promotes_a_fuzzy_match_over_a_prefix_match() {
             break;
         }
     }
+}
+
+/// A prefix query marks the run it matched; the slash is never part of it.
+#[test]
+fn a_prefix_query_marks_the_characters_it_matched() {
+    assert_eq!(super::hit_positions("/dump", "du"), vec![1, 2]);
+    assert_eq!(super::hit_positions("/dump", ""), Vec::<usize>::new());
+}
+
+/// A fuzzy hit marks the letters that actually matched, which is the only
+/// thing that explains why `/dmp` found `/dump`.
+#[test]
+fn a_fuzzy_query_marks_the_scattered_letters() {
+    assert_eq!(super::hit_positions("/dump", "dmp"), vec![1, 3, 4]);
+    assert_eq!(super::hit_positions("/findall", "fall"), vec![1, 5, 6, 7]);
+}
+
+/// Leftmost-greedy, and case-insensitive the way the matcher is: `/Dump`
+/// typed in capitals still marks the same characters.
+#[test]
+fn matching_is_case_insensitive_and_takes_the_leftmost_letters() {
+    assert_eq!(super::hit_positions("/dump", "DU"), vec![1, 2]);
+    // "mm" in "/comm": both m's, not the same one twice.
+    assert_eq!(super::hit_positions("/comm", "mm"), vec![3, 4]);
+}
+
+/// A query that runs out of label marks what it got and stops — never a
+/// position past the end, which the row would then try to draw.
+#[test]
+fn a_query_longer_than_the_label_marks_only_what_matched() {
+    let hit = super::hit_positions("/x", "xyz");
+    assert_eq!(hit, vec![1]);
+    assert!(hit.iter().all(|&i| i < "/x".chars().count()));
+}
+
+/// End to end: the palette's rows carry both the marks and the chord.
+#[test]
+fn palette_rows_carry_their_marks_and_their_chord() {
+    let items = super::menu_items("/clear");
+    let row = items
+        .iter()
+        .find(|i| i.label == "/clear")
+        .expect("/clear is in the palette");
+    assert_eq!(row.hit, vec![1, 2, 3, 4, 5]);
+    assert_eq!(row.key, Some("Cmd+K"));
+    let plain = items
+        .iter()
+        .find(|i| i.label != "/clear" && i.key.is_none())
+        .map(|i| i.key);
+    assert_eq!(plain.flatten(), None, "a chordless command shows no chord");
 }

@@ -152,6 +152,7 @@ pub(crate) fn items(h: &HistSearch) -> Vec<MenuItem> {
         dim: false,
         needs: None,
         color: None,
+        ..Default::default()
     };
     if h.matches.is_empty() {
         return vec![row("no matches".to_string(), true)];

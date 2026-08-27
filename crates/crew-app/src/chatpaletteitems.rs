@@ -38,6 +38,7 @@ fn row(c: &str) -> MenuItem {
         dim: false,
         needs: None,
         color: None,
+        ..Default::default()
     }
 }
 
@@ -51,6 +52,7 @@ fn header(label: &str) -> MenuItem {
         dim: false,
         needs: None,
         color: None,
+        ..Default::default()
     }
 }
 
@@ -117,6 +119,7 @@ pub(super) fn attach_items(
             dim: false,
             needs: None,
             color: None,
+            ..Default::default()
         })
         .collect();
     // `@a+b` fans one task out to several agents at once. It was implemented,

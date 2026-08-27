@@ -85,6 +85,7 @@ fn header_rows_are_dim_and_unmarked() {
             dim: false,
             needs: None,
             color: None,
+            ..Default::default()
         },
         crate::suggest::MenuItem {
             label: "Claude Sonnet 5".into(),
@@ -95,6 +96,7 @@ fn header_rows_are_dim_and_unmarked() {
             dim: false,
             needs: None,
             color: None,
+            ..Default::default()
         },
     ];
     // Selection sits on the model row (interior row 1 → card row 2).
@@ -126,6 +128,7 @@ fn unserveable_rows_render_dim_distinct_from_both_normal_and_header() {
             dim: false,
             needs: None,
             color: None,
+            ..Default::default()
         },
         crate::suggest::MenuItem {
             label: "Claude Sonnet 5".into(),
@@ -136,6 +139,7 @@ fn unserveable_rows_render_dim_distinct_from_both_normal_and_header() {
             dim: false,
             needs: None,
             color: None,
+            ..Default::default()
         },
         crate::suggest::MenuItem {
             label: "GPT-4.1".into(),
@@ -146,6 +150,7 @@ fn unserveable_rows_render_dim_distinct_from_both_normal_and_header() {
             dim: true,
             needs: None,
             color: None,
+            ..Default::default()
         },
     ];
     let cells = menu_cells(&items, 1, 40, items.len() as u16);
