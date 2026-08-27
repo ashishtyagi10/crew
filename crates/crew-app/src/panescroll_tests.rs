@@ -20,6 +20,7 @@ fn bar(scroll: usize, total: usize) -> Bar<'static> {
         hits: &[],
         progress: None,
         elapsed: None,
+        cmd_rows: &[],
         err_rows: &[],
         unread: 0,
         doc: false,
@@ -240,6 +241,7 @@ fn landmark_ticks_are_placed_down_the_gutter_and_deduplicated() {
         hits: &[],
         progress: None,
         elapsed: None,
+        cmd_rows: &[],
         err_rows: &[],
         unread: 0,
         ..bar(0, 400)
@@ -278,6 +280,7 @@ fn the_thumb_covers_the_landmark_it_sits_on() {
         hits: &[],
         progress: None,
         elapsed: None,
+        cmd_rows: &[],
         err_rows: &[],
         unread: 0,
         ..bar(0, 400)
@@ -314,6 +317,7 @@ fn no_landmarks_and_no_room_both_draw_nothing() {
         hits: &[],
         progress: None,
         elapsed: None,
+        cmd_rows: &[],
         err_rows: &[],
         unread: 0,
         ..none
@@ -335,6 +339,7 @@ fn search_hits_are_marked_in_the_gutter_in_their_own_colour() {
         hits: &hits_at,
         progress: None,
         elapsed: None,
+        cmd_rows: &[],
         err_rows: &[],
         ..bar(0, 400)
     };
@@ -366,6 +371,7 @@ fn a_hit_is_drawn_over_the_landmark_it_shares_a_cell_with() {
         hits: &same,
         progress: None,
         elapsed: None,
+        cmd_rows: &[],
         err_rows: &[],
         ..bar(0, 400)
     };
