@@ -74,6 +74,7 @@ impl CrewApp {
         }
         let before = self.panes.len();
         self.open_view(&path.to_string_lossy());
+        self.name_last_view(&format!("out \u{b7} {name}"));
         self.mark_last_view_ephemeral(before);
         self.set_status(format!("{name}: {} lines", to.saturating_sub(from)));
     }

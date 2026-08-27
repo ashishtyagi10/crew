@@ -46,3 +46,18 @@ fn a_nameless_command_still_gets_a_file() {
     let p = temp_path(0, "///");
     assert!(p.file_name().unwrap().to_string_lossy().contains("out"));
 }
+
+/// The viewer's legend should read as what the pane IS. Without a name it
+/// reads as the temp file the capture happens to live in.
+#[test]
+fn a_captured_output_pane_is_named_after_its_command() {
+    let name = "cargo build";
+    let legend = format!("out \u{b7} {name}");
+    assert!(legend.starts_with("out"), "{legend}");
+    assert!(legend.contains(name));
+    // …and the file it lives in is not what anyone should have to read.
+    let path = temp_path(1, name);
+    let file = path.file_name().unwrap().to_string_lossy().into_owned();
+    assert_ne!(file, legend);
+    assert!(file.starts_with("crew-out-"), "{file}");
+}

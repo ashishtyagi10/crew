@@ -70,6 +70,18 @@ impl CrewApp {
         }
     }
 
+    /// Name the viewer that was just opened, so its card's legend reads as
+    /// what it IS rather than as the temp file it happens to live in.
+    /// `/out`, `/diff` and `/about` all hand the viewer a generated path;
+    /// without this the legend is `crew-out-3-cargo.log`.
+    pub(crate) fn name_last_view(&mut self, name: &str) {
+        if let Some(p) = self.panes.last_mut() {
+            if matches!(p.content, PaneContent::View(_)) {
+                p.name = Some(name.to_string());
+            }
+        }
+    }
+
     pub(crate) fn mark_last_view_ephemeral(&mut self, before: usize) {
         if self.panes.len() <= before {
             return;
@@ -112,6 +124,7 @@ impl CrewApp {
         }
         let before = self.panes.len();
         self.open_view(&path.to_string_lossy());
+        self.name_last_view(&format!("what's new \u{b7} {heading}"));
         self.mark_last_view_ephemeral(before);
     }
 }

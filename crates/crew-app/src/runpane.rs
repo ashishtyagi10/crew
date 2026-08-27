@@ -98,6 +98,12 @@ impl CrewApp {
             Some(Ok(path)) => {
                 let before = self.panes.len();
                 self.open_view(&path.to_string_lossy());
+                let repo = path
+                    .file_stem()
+                    .map(|s| s.to_string_lossy().into_owned())
+                    .unwrap_or_default();
+                let repo = repo.rsplit('-').next().unwrap_or("diff").to_string();
+                self.name_last_view(&format!("diff \u{b7} {repo}"));
                 self.mark_last_view_ephemeral(before);
                 true
             }

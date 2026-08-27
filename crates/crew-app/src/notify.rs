@@ -117,9 +117,16 @@ pub fn agent_done(
         },
         // Returned to the prompt: fire iff it ran long enough and we saw it start.
         (Some(cmd), None) => {
-            let long_enough = since.is_some_and(|s| now.saturating_duration_since(s) >= min);
+            let ran = since.map(|s| now.saturating_duration_since(s));
+            let long_enough = ran.is_some_and(|d| d >= min);
             AgentDone {
-                finished: long_enough.then(|| cmd.to_string()),
+                // How long it took is half the news — a build that finished in
+                // six seconds and one that took nine minutes are different
+                // events, and the notification said the same thing for both.
+                finished: long_enough.then(|| match ran.and_then(crate::runclock::label) {
+                    Some(t) => format!("{cmd} ({t})"),
+                    None => cmd.to_string(),
+                }),
                 since: None,
             }
         }
@@ -239,7 +246,9 @@ mod tests {
             Duration::from_secs(10),
             t0 + Duration::from_secs(11),
         );
-        assert_eq!(out.finished.as_deref(), Some("claude"));
+        // The command AND how long it took: a six-second build and a
+        // nine-minute one are different events.
+        assert_eq!(out.finished.as_deref(), Some("claude (11s)"));
         assert_eq!(out.since, None);
     }
 
