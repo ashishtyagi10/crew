@@ -23,7 +23,7 @@ successor to this repo's original terminal file-manager project; the crates unde
   GPU cells (the settings form, command palette, and help overlay use this).
 - **Crates** — `crew-app` (window, panes, input), `crew-render` (GPU), `crew-term`
   (PTY + grid), `crew-plugin` (chat/agent plugins + the `/smith` relay broker),
-  `crew-theme` (the twenty-four theme presets + palette contracts — see
+  `crew-theme` (the palette presets + their contracts — see
   [Themes](#themes)), `crew-hive` (the swarm orchestration engine — see
   [Swarm orchestration](#swarm-orchestration-crew-hive) below).
 - **Diagram** — see [ARCHITECTURE.md](ARCHITECTURE.md) for the full app + engine
@@ -1703,7 +1703,8 @@ value.
   (←/→/Space cycle `off · light · medium · heavy` — the same ladder and
   `font_smooth` key as `/smooth`; a custom numeric strength shows as its
   number), **Theme**
-  (←/→/Space cycle through the nine presets), **Accent (#hex)** (override the
+  (←/→/Space cycle through the four rotations and every palette), **Accent
+  (#hex)** (override the
   theme accent; clear to use the default), **Glass** (←/→/Space cycle
   `off · low · medium · high`), **Motion** (`off · subtle · full`),
   **Gradient colour** (`off · subtle · lively`), **Paper texture** (on/off),
@@ -2010,7 +2011,7 @@ after switching a running claude/codex pane to `paper-light` stays legible.
 
 | Key | Default | Meaning |
 |-----|---------|---------|
-| `theme` | unset = `auto` | a theme (`dark`, `light`, `crt`, `auto`), one of the twenty-four palette names (pins it), or a legacy `random-*` / `modern*` mode; unset follows the OS appearance |
+| `theme` | unset = `auto` | a theme (`dark`, `light`, `crt`, `auto`), one of the palette names (pins it), or a legacy `random-*` / `modern*` mode; unset follows the OS appearance |
 | `theme_dark` | unset | while `theme = "auto"`: what dark mode serves — a pool (`dark`\|`light`\|`crt`) or a palette name; unset = the dark pool |
 | `theme_light` | unset | while `theme = "auto"`: same for light mode; unset = the light pool |
 | `accent` | theme default | `"#rrggbb"` override for the accent (chrome only); omit to use the theme's accent |
