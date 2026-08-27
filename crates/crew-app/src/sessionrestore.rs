@@ -120,6 +120,65 @@ impl CrewApp {
         self.restore_from(panes);
     }
 
+    /// Reopen ONE saved pane through its normal spawn path (grid sizing,
+    /// notify patterns, focus, error status all included) — shells and Far
+    /// panes by steering the tracked cwd, `/crew` by its own spawner. A
+    /// remote Far pane also gets its active panel re-rooted onto the saved
+    /// `remote:path` address, and its listing kicked off, right after spawn.
+    ///
+    /// `kept` is the cwd to fall back on for an entry that names no directory
+    /// of its own; `self.cwd` is steered to the spawn directory and left
+    /// there, so a caller replaying several entries restores it once at the
+    /// end rather than after each. Returns whether a pane was actually
+    /// pushed — a spawn can fail, and the caller counts what opened rather
+    /// than what it asked for.
+    ///
+    /// Split out of `restore_from` so `/reopen` ([`crate::reopen`]) replays a
+    /// single closed pane through exactly the same path a `/restore` uses.
+    /// Undo-close and session restore differ only in where the entry came
+    /// from; two copies of this would drift the moment a new pane kind
+    /// learned to be restorable.
+    pub(crate) fn open_saved(&mut self, sp: &SavedPane, kept: &Path) -> bool {
+        // A remote Far pane's `dir` is an rclone address, not a local
+        // path — spawn it at the tracked cwd like a dir-less entry, and
+        // reconstruct the remote location below once it exists.
+        let remote_addr = (sp.kind == "far" && sp.remote)
+            .then(|| sp.dir.clone())
+            .flatten();
+        // Reset each call: a dir-less entry must spawn in the tracked cwd,
+        // not leak the previous entry's directory.
+        self.cwd = restore_cwd_for(sp, kept);
+        let count = self.panes.len();
+        match sp.kind.as_str() {
+            "shell" => self.spawn_new_pane(),
+            "far" => self.spawn_far_pane(),
+            "crew" => self.spawn_crew_pane(),
+            "todo" => self.spawn_todo_pane(),
+            "view" => {
+                if let Some(path) = sp.dir.as_deref() {
+                    self.open_view(path);
+                }
+            }
+            _ => {} // load_at filters unknown kinds; belt for callers
+        }
+        // Re-minimize only the pane THIS call pushed (a failed spawn pushes
+        // none — last_mut would hit the previous pane).
+        let opened = self.panes.len() > count;
+        if sp.min && opened {
+            if let Some(p) = self.panes.last_mut() {
+                p.hidden = true;
+            }
+        }
+        if let Some(addr) = remote_addr {
+            if let Some(pane) = self.panes.last_mut() {
+                if let PaneContent::Far(f) = &mut pane.content {
+                    let _ = f.restore_remote(&addr);
+                }
+            }
+        }
+        opened
+    }
+
     /// Reopen each saved pane through its normal spawn path (grid sizing,
     /// notify patterns, focus, error status all included) — shells and Far
     /// panes by steering the tracked cwd, `/crew` by its own spawner. A
@@ -146,42 +205,7 @@ impl CrewApp {
         let before = self.panes.len();
         let kept = std::mem::take(&mut self.cwd);
         for sp in panes {
-            // A remote Far pane's `dir` is an rclone address, not a local
-            // path — spawn it at the tracked cwd like a dir-less entry, and
-            // reconstruct the remote location below once it exists.
-            let remote_addr = (sp.kind == "far" && sp.remote)
-                .then(|| sp.dir.clone())
-                .flatten();
-            // Reset each iteration: a dir-less entry must spawn in the
-            // tracked cwd, not leak the previous entry's directory.
-            self.cwd = restore_cwd_for(&sp, &kept);
-            let count = self.panes.len();
-            match sp.kind.as_str() {
-                "shell" => self.spawn_new_pane(),
-                "far" => self.spawn_far_pane(),
-                "crew" => self.spawn_crew_pane(),
-                "todo" => self.spawn_todo_pane(),
-                "view" => {
-                    if let Some(path) = sp.dir.as_deref() {
-                        self.open_view(path);
-                    }
-                }
-                _ => {} // load_at filters unknown kinds; belt for callers
-            }
-            // Re-minimize only the pane THIS iteration pushed (a failed
-            // spawn pushes none — last_mut would hit the previous pane).
-            if sp.min && self.panes.len() > count {
-                if let Some(p) = self.panes.last_mut() {
-                    p.hidden = true;
-                }
-            }
-            if let Some(addr) = remote_addr {
-                if let Some(pane) = self.panes.last_mut() {
-                    if let PaneContent::Far(f) = &mut pane.content {
-                        let _ = f.restore_remote(&addr);
-                    }
-                }
-            }
+            self.open_saved(&sp, &kept);
         }
         self.cwd = kept;
         // Fix 3: only a single-viewer restore should stay zoomed — see the

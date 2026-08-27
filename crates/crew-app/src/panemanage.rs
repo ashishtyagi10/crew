@@ -74,6 +74,12 @@ impl CrewApp {
         }
         let keep = self.focused.min(self.panes.len() - 1);
         self.panes.swap(0, keep);
+        // `/only` closes many panes in one keystroke and does not go through
+        // `close_pane`, so it records its own casualties — oldest first, so
+        // repeated `/reopen` walks back up the grid in the order it fell.
+        for p in &self.panes[1..] {
+            self.closed.remember(p);
+        }
         self.panes.truncate(1); // drops the rest (closing their PTYs)
         self.focused = 0;
         self.zoomed = false;

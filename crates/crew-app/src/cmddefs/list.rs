@@ -1,12 +1,5 @@
-//! The command palette's table: every slash command with its palette
-//! description, in priority order (prefix ties break by list position).
-//! Logic lives in `suggest`.
-
-/// A slash command shown in the command palette.
-pub(crate) struct Cmd {
-    pub name: &'static str,
-    pub desc: &'static str,
-}
+//! The palette table itself — see the parent module.
+use super::Cmd;
 
 /// Known slash commands (kept in sync with run_slash_command; /shell and /run stay dispatchable but bare text replaced their palette rows).
 pub(crate) const COMMANDS: &[Cmd] = &[
@@ -97,6 +90,10 @@ pub(crate) const COMMANDS: &[Cmd] = &[
     Cmd {
         name: "/font",
         desc: "Set the font size (/font <n>) or toggle rotation (/font random)",
+    },
+    Cmd {
+        name: "/reopen",
+        desc: "Reopen the pane you just closed (Cmd+Shift+T)",
     },
     Cmd {
         name: "/restore",

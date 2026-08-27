@@ -230,6 +230,7 @@ the arrow and page keys, and any other key closes it.
 | Find: the chat transcript, or `/find` in the bar | **Cmd+F** (or **Ctrl+F**) |
 | Insert a newline in a terminal | **Shift+Enter** (sends a line feed, not submit) |
 | Close pane / maximize window | **Cmd+W** / **Cmd+M** |
+| Reopen the pane you just closed | **Cmd+Shift+T** (or `/reopen`) |
 | Clear focused pane scrollback | **Cmd+K** (or `/clear`) |
 | Scroll any pane | **Shift+PageUp** / **Shift+PageDown** (Shift+Home/End for top/bottom), or mouse wheel — in a full-screen app (vim/less/agent TUI) the wheel is forwarded to the program |
 | Quit | **Cmd+Q** (press twice to confirm when panes are open) |
@@ -256,7 +257,7 @@ formatted post-mortem.
 Slash commands complete the bar (type `/` for a fuzzy palette): `/crew`,
 `/goal <text>`, `/batch <file>`, `/view <file>`, `/md <file>`, `/diff`, `/settings`,
 `/find <text>`, `/findall <text>`, `/name <text>`, `/clear`, `/clearall`, `/clearlog`, `/only`,
-`/copy`, `/dump`, `/closeall`, `/pwd`, `/about`, `/font`, `/theme`, `/notify`,
+`/copy`, `/dump`, `/closeall`, `/reopen`, `/pwd`, `/about`, `/font`, `/theme`, `/notify`,
 `/update`, `/broadcast`, `/zoom`, `/sidebar`, `/keys`, `/far`, `/todo`,
 `/exit`. Commands with a fixed value set (like `/theme`) expand into an
 arrow-selectable **value picker**. Fish-style autosuggest from history, `cd`

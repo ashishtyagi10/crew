@@ -8,6 +8,30 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.3
+
+**`Cmd+W` never asked, and it never had to be asked — but the pane it took
+was gone.** `/closeall` and `/only` learned to confirm; a single close is
+supposed to be cheap, and confirming it would only make the common case
+worse. The browser settled this argument years ago: let it be cheap, and let
+it be undone.
+
+**`/reopen` (Cmd+Shift+T) brings back the pane you just closed** — a shell in
+the directory that one was standing in (its live `cd`-tracked directory, not
+the one it was spawned in), the viewer back on its file, `/smith` or the todo
+list back on the grid. It is a *new* pane in the same place: what died with
+the PTY — the scrollback, the environment, whatever was running — is gone,
+and pretending otherwise would be a worse promise than the honest one.
+
+The entry it writes down is a `SavedPane`, the same type `/restore` reads out
+of `session.toml`, replayed through the same spawn path. Undo-close and
+session restore are one question asked over two timescales, so a pane kind
+that learns to survive a quit gets undo-close for free — and one that cannot
+be described honestly (settings, a swarm view) is skipped rather than
+half-reopened. Crew remembers the last 8 closes, so undoing a `/only` or a
+`/closeall` walks the grid back a pane at a time and the status line says how
+many are left.
+
 ## 0.19.2
 
 **The README's theme section described a version that no longer exists.** It

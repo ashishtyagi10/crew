@@ -29,6 +29,9 @@ impl CrewApp {
             "shell" => self.spawn_new_pane(),
             // Reopen last session's shells (their cwds snapshot on quit).
             "restore" => self.restore_session(),
+            // Undo the last close, this session — `/restore` is the same idea
+            // across a quit. See `reopen`.
+            "reopen" => self.reopen_pane(),
             // Self-update in the background: progress shows in the left-nav UPDATE
             // card; once the install lands, Crew restarts itself into the new
             // build (an already-parked install restarts immediately).
