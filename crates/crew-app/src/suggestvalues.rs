@@ -51,6 +51,16 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
                 "a plain frame; the marks are still there to jump to".to_string(),
             ),
         ]),
+        "/invisibles" => Some(vec![
+            (
+                "on".to_string(),
+                "mark tabs, trailing spaces and a CRLF file's carriage returns".to_string(),
+            ),
+            (
+                "off".to_string(),
+                "the default \u{2014} tabs are still expanded, just not marked".to_string(),
+            ),
+        ]),
         "/crt" => Some(vec![
             ("on".to_string(), "force the CRT tube look on".to_string()),
             ("off".to_string(), "force the CRT tube look off".to_string()),
@@ -221,6 +231,7 @@ pub(crate) fn expands(cmd: &str) -> bool {
             | "/weight"
             | "/smooth"
             | "/marks"
+            | "/invisibles"
             | "/copy"
             | "/gradient"
             | "/motion"
@@ -253,6 +264,10 @@ pub(crate) fn current_value(cmd: &str, cfg: &crate::config::CrewConfig) -> Optio
         "/contrast" => cfg.contrast.clone(),
         "/shapes" => cfg.shape_cues.clone(),
         "/marks" => match cfg.border_marks {
+            true => "on".to_string(),
+            false => "off".to_string(),
+        },
+        "/invisibles" => match cfg.invisibles {
             true => "on".to_string(),
             false => "off".to_string(),
         },

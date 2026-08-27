@@ -31,6 +31,11 @@ pub(crate) struct ViewCache {
     /// key in spirit: turning blame on or off changes the width the text was
     /// wrapped at, so the cache must be rebuilt, not merely re-decorated.
     pub blame_w: usize,
+    /// Whether the invisibles were revealed in this rendering. Part of the
+    /// cache key: the toggle changes the TEXT (a revealed tab wears an arrow
+    /// in its first column), so the rendering has to be rebuilt, not
+    /// recoloured.
+    pub invisibles: bool,
 }
 
 pub(crate) struct ViewPane {

@@ -106,6 +106,10 @@ pub(crate) const LOOK: &[Cmd] = &[
         desc: "Run a file of jobs (one per line) as a parallel swarm (/batch <file>)",
     },
     Cmd {
+        name: "/invisibles",
+        desc: "Reveal tabs, trailing spaces and CRs in the file viewer (on|off)",
+    },
+    Cmd {
         name: "/blame",
         desc: "Who last touched each line of the file in the viewer (again turns it off)",
     },

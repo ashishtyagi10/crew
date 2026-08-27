@@ -702,6 +702,30 @@ longer aim at.
   shell's only says how much is behind you) with the landmarks marked as dim
   ticks beside it, so a long file shows its shape before you move.
   Chat panes render markdown too — see [Markdown](#markdown).
+- **Tabs are expanded, always.** A tab has zero display width, and the guard
+  every cell surface in crew places glyphs through skips zero-width characters
+  — so a tab-indented file opened in the viewer drew with its indentation not
+  merely misaligned but *missing*, on every line of every Go file, Makefile and
+  kernel-style C source. Tabs now advance to the next multiple of **8**
+  columns: the terminal's own tab stop, so `cat file` in a pane and `/view
+  file` beside it agree about how far in a line starts. The expansion happens
+  to the text before any rung sees it, so the syntax colouring, the wrapping,
+  the search and the diff pairing all agree about which column a character is
+  in.
+- **`/invisibles [on|off]`** reveals the characters that say something without
+  printing anything: a tab wears an arrow in its first column, trailing spaces
+  show as middle dots, and the carriage return a CRLF file leaves at the end of
+  every line shows its own mark — the three that cause real trouble (a tab
+  where spaces were meant, whitespace nobody can see, and a line ending that
+  makes a shell script fail with a message about a command that does not
+  exist). They are drawn in the muted ink, and they are *marked* rather than
+  merely substituted, so a `·` that is genuinely in the file is not dimmed
+  along with them. Off by default — this is a diagnostic view, and its marks
+  are noise in a file that has nothing wrong with it. Also a checkbox in
+  `/settings` (**Reveal invisibles**). Note that the expansion above is not
+  part of this switch: that is the difference between drawing a file's
+  indentation and dropping it.
+
 - **Commands that take a path list one.** Type `/view `, `/md `, `/dump ` or
   `/batch ` and the bar opens a **file picker** over the directory the partial
   names — folders first, then files by name — filtered as you type and

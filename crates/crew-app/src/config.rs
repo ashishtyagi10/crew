@@ -218,6 +218,10 @@ pub struct CrewConfig {
     /// frame is entitled to one.
     #[serde(default = "default_true")]
     pub border_marks: bool,
+    /// Whether the file viewer reveals tabs, trailing spaces and carriage
+    /// returns (see `invisibles`). Off by default — a diagnostic view.
+    #[serde(default)]
+    pub invisibles: bool,
     /// Whether to render the subtle paper grain + vignette background texture.
     /// When off, the window background is a plain flat colour.
     #[serde(default = "default_true")]
@@ -335,6 +339,7 @@ impl Default for CrewConfig {
             auto_light_from: default_auto_light_from(),
             auto_light_to: default_auto_light_to(),
             border_marks: true,
+            invisibles: false,
             paper_texture: true,
             ambient_drift: true,
             paper_grain: default_paper_grain(),
