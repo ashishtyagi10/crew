@@ -369,8 +369,7 @@ fn nothing_in_the_input_bar_escapes_it_or_eats_a_corner() {
         for (col, want) in [(0u16, '\u{2570}'), (cols - 1, '\u{256f}')] {
             let last = cells
                 .iter()
-                .filter(|c| c.row == 2 && c.col == col)
-                .next_back()
+                .rfind(|c| c.row == 2 && c.col == col)
                 .map(|c| c.c);
             assert_eq!(
                 last,
