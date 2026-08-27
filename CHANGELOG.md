@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.76
+
+**The accent field says how it reads.** Crew measures every colour it derives —
+the text ladder, the ANSI slots, the search wash, the alarm — against a floor,
+and the palette suite holds every shipped accent to `3.0:1` against its page.
+The one colour a person picks by hand was the only one nobody was measuring.
+
+The Accent field now shows its contrast beside its swatch (`4.6:1`), in the
+alarm colour when it falls under that floor. An accent that cannot be read is
+the mistake this field makes easy, and it used to take a save and a squint to
+find out.
+
 ## 0.18.75
 
 **Two things that were saying the wrong name.**

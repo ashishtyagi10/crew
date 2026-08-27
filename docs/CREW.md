@@ -1608,6 +1608,13 @@ property** — an APPEARANCE card in the left column, WINDOW and NOTIFICATIONS
 stacked on the right (collapsing to one column on a narrow pane); Tab/wheel
 move focus, Enter commits a field, **Cmd+S / Alt+S** saves and closes.
 
+The **accent** field also says how its colour *reads*: `4.6:1` beside the
+swatch, drawn in the alarm colour when it falls below `3.0` — the same floor
+the palette suite holds every shipped `accent_default` to. Crew derives every
+other colour against a measured floor; the one colour a person picks by hand
+was the only one nobody was measuring, and an accent that cannot be read is the
+mistake this field makes easy.
+
 Fields whose value names a colour **draw it** inside the right end of their
 box — the theme pickers show one chip per palette in the rotation (that
 palette's page with its accent across the top half) and the accent field shows
