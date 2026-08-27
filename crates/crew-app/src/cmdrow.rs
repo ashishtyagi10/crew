@@ -60,10 +60,28 @@ pub(crate) fn spans(item: &MenuItem, label_w: usize, avail: usize, dim: Color) -
         };
         out.push(Span::styled(c.to_string(), style));
     }
-    let used = label.chars().count();
+    // Columns drawn so far, so every later gap is padding to a column rather
+    // than arithmetic on what was supposed to have been drawn.
+    let mut col = label.chars().count();
     // A label wider than the column pushes its own description rather than
     // being cut in half by a column it overflowed.
-    let desc_col = label_w.max(used) + GAP;
+    let mut desc_col = label_w.max(col) + GAP;
+    // The swatch comes first after the label: on a row whose whole subject IS
+    // a colour, the colour outranks the sentence describing it.
+    let sw = item.swatch.len();
+    if sw > 0 && avail >= desc_col + sw {
+        out.push(Span::raw(" ".repeat(desc_col - col)));
+        col = desc_col;
+        for chip in &item.swatch {
+            let mut style = Style::new().fg(Color::Rgb(chip.fg.0, chip.fg.1, chip.fg.2));
+            if let Some((r, g, b)) = chip.bg {
+                style = style.bg(Color::Rgb(r, g, b));
+            }
+            out.push(Span::styled(chip.c.to_string(), style));
+            col += 1;
+        }
+        desc_col = col + GAP;
+    }
     let room = avail.saturating_sub(desc_col);
     // The chord is the first thing dropped. It is a hint about a row you can
     // already read; the description is what the row is FOR, so a chord never
@@ -75,16 +93,13 @@ pub(crate) fn spans(item: &MenuItem, label_w: usize, avail: usize, dim: Color) -
     let key = item.key.filter(|k| room >= need(k));
     let desc_w = room.saturating_sub(key.map_or(0, |k| k.len() + GAP));
     if desc_w > 0 && !item.desc.is_empty() {
-        out.push(Span::raw(" ".repeat(desc_col - used)));
+        out.push(Span::raw(" ".repeat(desc_col - col)));
         let desc: String = item.desc.chars().take(desc_w).collect();
-        let shown = desc.chars().count();
+        col = desc_col + desc.chars().count();
         out.push(Span::styled(desc, Style::new().fg(dim)));
-        if let Some(k) = key {
-            out.push(Span::raw(" ".repeat(avail - desc_col - shown - k.len())));
-            out.push(Span::styled(k.to_string(), Style::new().fg(dim)));
-        }
-    } else if let Some(k) = key {
-        out.push(Span::raw(" ".repeat(avail - used - k.len())));
+    }
+    if let Some(k) = key {
+        out.push(Span::raw(" ".repeat(avail - col - k.len())));
         out.push(Span::styled(k.to_string(), Style::new().fg(dim)));
     }
     Line::from(out)

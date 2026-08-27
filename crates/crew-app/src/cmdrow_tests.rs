@@ -124,3 +124,74 @@ fn a_header_row_is_left_alone() {
     h.header = true;
     assert_eq!(text(&spans(&h, 8, 40, DIM)), "your subscriptions");
 }
+
+fn chip(fg: (u8, u8, u8)) -> crate::swatch::Chip {
+    crate::swatch::Chip {
+        c: '\u{2588}',
+        fg,
+        bg: None,
+    }
+}
+
+/// A colour row draws its colours, between the label column and the prose.
+#[test]
+fn a_swatch_is_drawn_after_the_label_and_before_the_description() {
+    let mut row = item("aurora", "teal into violet", vec![], None);
+    row.swatch = vec![chip((1, 2, 3)), chip((4, 5, 6))];
+    let line = spans(&row, 8, 40, DIM);
+    let text = text(&line);
+    let block = text.find('\u{2588}').expect("no swatch drawn");
+    assert!(block > text.find("aurora").unwrap());
+    assert!(block < text.find("teal").unwrap());
+    assert_eq!(text.matches('\u{2588}').count(), 2);
+    assert!(text.chars().count() <= 40);
+}
+
+/// The cells carry the colours themselves, not a colour the row happened to
+/// already be using.
+#[test]
+fn each_swatch_cell_keeps_its_own_colour() {
+    let mut row = item("aurora", "d", vec![], None);
+    row.swatch = vec![chip((10, 20, 30)), chip((40, 50, 60))];
+    let line = spans(&row, 8, 40, DIM);
+    let blocks: Vec<&ratatui::text::Span> = line
+        .spans
+        .iter()
+        .filter(|s| s.content.contains('\u{2588}'))
+        .collect();
+    assert_eq!(blocks.len(), 2);
+    assert_eq!(blocks[0].style.fg, Some(Color::Rgb(10, 20, 30)));
+    assert_eq!(blocks[1].style.fg, Some(Color::Rgb(40, 50, 60)));
+}
+
+/// A two-colour chip keeps its background too — that is what makes the dark
+/// pool's chips distinguishable at all.
+#[test]
+fn a_chip_with_a_page_colour_draws_it_as_the_cell_background() {
+    let mut row = item("dark", "rotating dark pages", vec![], None);
+    row.swatch = vec![crate::swatch::Chip {
+        c: '\u{2580}',
+        fg: (200, 100, 50),
+        bg: Some((9, 9, 12)),
+    }];
+    let line = spans(&row, 6, 40, DIM);
+    let s = line
+        .spans
+        .iter()
+        .find(|s| s.content.contains('\u{2580}'))
+        .expect("no chip drawn");
+    assert_eq!(s.style.fg, Some(Color::Rgb(200, 100, 50)));
+    assert_eq!(s.style.bg, Some(Color::Rgb(9, 9, 12)));
+}
+
+/// Narrow cards: the swatch is dropped rather than drawn past the edge, and
+/// nothing else overruns either.
+#[test]
+fn a_row_with_a_swatch_still_never_exceeds_its_columns() {
+    let mut row = item("aurora", "teal into violet", vec![0], Some("Cmd+K"));
+    row.swatch = vec![chip((1, 2, 3)); 4];
+    for avail in 1..=80usize {
+        let n = text(&spans(&row, 6, avail, DIM)).chars().count();
+        assert!(n <= avail, "took {n} of {avail}");
+    }
+}

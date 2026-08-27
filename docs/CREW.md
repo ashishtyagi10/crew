@@ -385,7 +385,13 @@ The docked command bar supports:
   `/clearlog`, which is one keystroke further). Commands with a **fixed set of
   values** (like `/theme`) expand into a **value picker**: select the command
   (or type its trailing space) and the palette lists the choices to arrow through
-  and `Enter` — no need to remember or type the exact value. (`/shell` and
+  and `Enter` — no need to remember or type the exact value. Values that *are*
+  colours show them: **`/gradient` draws each named pair as a four-cell ramp**
+  between its poles, and **`/theme` draws one chip per palette** the mode
+  rotates through — that palette's page with its accent across the top half,
+  since a dark pool's pages are all nearly black and would otherwise be one
+  smudge. Reading a colour's name and pressing Enter to find out what it looks
+  like is the one thing a picker exists to prevent. (`/shell` and
   `/run <cmd>` still dispatch if typed, but bare text and `!` replaced their
   palette rows.)
 - **`/broadcast`, `/zoom`, `/sidebar`** — palette-discoverable toggles that mirror

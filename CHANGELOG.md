@@ -8,6 +8,26 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.54
+
+**The colour pickers show the colours.** `/gradient` offers eight named pairs
+and `/theme` four rotations, and both listed them as *words*: `aurora`, `moss`,
+`dusk`, `dark`, `crt`. The only way to find out what one looked like was to
+pick it and see — which is the single thing a picker exists to prevent.
+
+Each `/gradient` row now draws its pair as a **four-cell ramp** from one pole to
+the other, so `mono` reads as flat and `ember` reads as warm before you press
+anything. Each `/theme` row draws **one chip per palette in its rotation**: the
+palette's page as the cell's background with its accent across the top half.
+Two colours per chip, because every page in the dark pool is nearly black and a
+row of page colours would have been one smudge — the accents are what tell
+`nebula` from `paper-dark`.
+
+On a row whose whole subject is a colour, the colour outranks the sentence
+describing it, so the swatch is placed before the description and the
+description gives way first when the card is narrow. Every row still fits its
+card: swept 1 to 80 columns, swatch and chord and all.
+
 ## 0.18.53
 
 **The palette shows its work.** Three changes to the surface you open most.

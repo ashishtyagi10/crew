@@ -440,7 +440,7 @@ impl RandomMode {
     /// per-appearance pairing ([`auto_side`]) — by default the dark or light
     /// pool depending on [`auto_dark`], a pinned side being a one-palette
     /// pool.
-    fn in_pool(self, id: ThemeId) -> bool {
+    pub fn in_pool(self, id: ThemeId) -> bool {
         match self {
             RandomMode::Dark => id.is_dark() && !id.is_crt(),
             RandomMode::Light => !id.is_dark() && !id.is_crt(),
