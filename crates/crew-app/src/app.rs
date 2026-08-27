@@ -113,6 +113,10 @@ pub struct CrewApp {
     /// list it has been scrolled (see [`crate::help`]).
     pub(crate) help_open: bool,
     pub(crate) help_scroll: usize,
+    /// What has been typed into the `/keys` overlay to filter it. Cleared
+    /// when the overlay closes — a filter that survives a close is one you
+    /// meet again with no memory of having set it.
+    pub(crate) help_filter: String,
     /// Whether crew holds the OS window focus, or `None` before the platform
     /// has said either way. Ambient motion — the only motion that asks for
     /// frames nothing else needed — stops when the answer is `Some(false)`: a

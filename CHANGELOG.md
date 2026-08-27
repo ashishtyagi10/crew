@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.69
+
+**`/keys` filters as you type.** The overlay lists forty-odd bindings and every
+key press dismissed it, so finding one meant scrolling past all the others. It
+is a document, and the fastest way through a document is to say what you are
+looking for — so letters now narrow the list instead of closing it, matching
+the chord as well as the description (`ctrl+tab` finds it, and so does `pane`).
+
+A section heading survives only while something under it does — a title over no
+rows is a lie about where you are in the list — and a search that matches
+nothing says so rather than emptying the panel, which reads as a rendering
+fault. What you typed is shown where the version normally sits, because a
+filter you cannot see is a list that looks broken.
+
+**Esc** closes it, as does any key that is not a letter, a space or Backspace,
+so nothing traps you in there. The filter is forgotten on the way out: one you
+meet again with no memory of having set it is worse than no filter at all.
+
 ## 0.18.68
 
 **The unread count reaches the sidebar, and scrolling counts as reading.**

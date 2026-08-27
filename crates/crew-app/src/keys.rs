@@ -26,13 +26,7 @@ impl CrewApp {
         // dismisses it. It is longer than a window and always has been — it
         // used to answer that by silently cutting the bottom off.
         if self.help_open && event.state.is_pressed() {
-            match self.help_scroll_step(&event.logical_key) {
-                Some(step) => self.scroll_help(step),
-                None => {
-                    self.help_open = false;
-                    self.help_scroll = 0;
-                }
-            }
+            self.help_key(&event.logical_key);
             self.redraw();
             return;
         }
