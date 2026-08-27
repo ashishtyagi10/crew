@@ -777,6 +777,27 @@ longer aim at.
   terminal gets the shell-quoted absolute path. Multiple files land
   space-separated in arrival order.
 
+## When a program says something itself
+
+Two escapes let a program speak for itself instead of being guessed at, and
+crew honours both.
+
+**A notification it asks for.** `ESC ] 9 ; text ST` (the iTerm2/ConEmu
+spelling) and `ESC ] 777 ; notify ; title ; body ST` (the one most Linux
+tooling emits) raise a real crew notification — toast, activity log, pane
+marker — carrying the program's own words with the pane's name beside them.
+Every other notification crew raises is inferred from behaviour; this one was
+requested, so it rides the master `notify` switch alone rather than a
+per-kind toggle.
+
+**Progress it reports.** `ESC ] 9 ; 4 ; state ; percent ST` draws a bar along
+the card's **bottom border** — the border rather than a content row for the
+same reason the scroll thumb rides one: a terminal's columns belong to the
+program running in it, and a bar that stole a row would resize the grid under
+it. State `1` fills proportionally, `2` and `4` (error and warning) fill in the
+alarm colour, `3` (working, with no number) sweeps a short block back and forth
+rather than parking at an arbitrary percentage, and `0` clears it.
+
 ## What arrived while you were away
 
 A grid means most panes are producing output while you read one of the others,

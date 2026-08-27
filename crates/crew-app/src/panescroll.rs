@@ -130,6 +130,43 @@ pub(crate) fn hit_ticks(v: &mut Vec<CellView>, cols: u16, rows: u16, b: &Bar) {
     }
 }
 
+/// A program's own progress (OSC 9;4) along the card's BOTTOM border.
+///
+/// The border rather than a content row for the same reason the scroll thumb
+/// rides one: a terminal's columns belong to the program running in it, and a
+/// bar that stole a row would resize the grid under it. An indeterminate
+/// report (state 3 — "working, no number") sweeps a short block back and
+/// forth on the shared clock instead of filling.
+pub(crate) fn progress(v: &mut Vec<CellView>, cols: u16, rows: u16, b: &Bar, now: u64) {
+    let Some(p) = b.progress else { return };
+    if cols < 4 || rows < 3 {
+        return;
+    }
+    let (y, inner) = (rows - 1, cols - 2);
+    let t = crew_theme::theme();
+    let fg = match p.alarm {
+        true => t.bell,
+        false => t.activity,
+    };
+    let (from, to) = match p.percent {
+        Some(pct) => (0, u32::from(inner) * u32::from(pct) / 100),
+        // A sweep a fifth of the border wide, bouncing on the same triangle
+        // wave the busy scan uses.
+        None => {
+            let w = (u32::from(inner) / 5).max(1);
+            let span = u32::from(inner).saturating_sub(w);
+            let at = (crate::anim::tri(now, SWEEP_MS) * span as f32).round() as u32;
+            (at, at + w)
+        }
+    };
+    for i in from..to.min(u32::from(inner)) {
+        put(v, 1 + i as u16, y, '\u{2501}', fg, true);
+    }
+}
+
+/// One full bounce of an indeterminate progress sweep, in ms.
+const SWEEP_MS: u64 = 1400;
+
 /// The scroll offset that puts the top of the window on the line a pointer
 /// `frac` of the way down the gutter is pointing at: 0.0 is the top of the
 /// buffer, 1.0 the live bottom. Returns lines back from the bottom, which is

@@ -1,4 +1,4 @@
-use super::{count, hit_ticks, position, thumb, ticks, MIN_ROWS};
+use super::{count, hit_ticks, position, progress, thumb, ticks, MIN_ROWS};
 use crate::panecard::Bar;
 use crew_render::CellView;
 
@@ -18,6 +18,7 @@ fn bar(scroll: usize, total: usize) -> Bar<'static> {
         git: None,
         ticks: &[],
         hits: &[],
+        progress: None,
         unread: 0,
         doc: false,
     }
@@ -232,6 +233,7 @@ fn landmark_ticks_are_placed_down_the_gutter_and_deduplicated() {
         doc: true,
         ticks: &ticks_at,
         hits: &[],
+        progress: None,
         unread: 0,
         ..bar(0, 400)
     };
@@ -267,6 +269,7 @@ fn the_thumb_covers_the_landmark_it_sits_on() {
         doc: true,
         ticks: &ticks_at,
         hits: &[],
+        progress: None,
         unread: 0,
         ..bar(0, 400)
     };
@@ -300,6 +303,7 @@ fn no_landmarks_and_no_room_both_draw_nothing() {
         doc: true,
         ticks: &ticks_at,
         hits: &[],
+        progress: None,
         unread: 0,
         ..none
     };
@@ -318,6 +322,7 @@ fn search_hits_are_marked_in_the_gutter_in_their_own_colour() {
         total: 400,
         doc: true,
         hits: &hits_at,
+        progress: None,
         ..bar(0, 400)
     };
     let mut v = Vec::new();
@@ -346,6 +351,7 @@ fn a_hit_is_drawn_over_the_landmark_it_shares_a_cell_with() {
         doc: true,
         ticks: &same,
         hits: &same,
+        progress: None,
         ..bar(0, 400)
     };
     let mut v = Vec::new();
@@ -365,5 +371,94 @@ fn a_pane_with_no_search_marks_nothing() {
     let _g = crate::app::theme_test_guard();
     let mut v = Vec::new();
     hit_ticks(&mut v, 40, 20, &bar(0, 400));
+    assert!(v.is_empty());
+}
+
+fn pct(n: u8) -> Option<crew_term::Progress> {
+    Some(crew_term::Progress {
+        percent: Some(n),
+        alarm: false,
+    })
+}
+
+/// A program reporting progress gets a bar along the bottom border, filling
+/// from the left in proportion to what it said.
+#[test]
+fn a_progress_report_fills_the_bottom_border() {
+    let _g = crate::app::theme_test_guard();
+    let bar_at = |p| Bar {
+        progress: p,
+        ..bar(0, 0)
+    };
+    let drawn = |p| {
+        let mut v = Vec::new();
+        progress(&mut v, 42, 10, &bar_at(p), 0);
+        v
+    };
+    assert!(drawn(None).is_empty(), "a quiet pane drew a bar");
+    let half = drawn(pct(50));
+    assert!(!half.is_empty());
+    assert!(half.iter().all(|c| c.row == 9), "the bar left the border");
+    assert!(
+        half.iter().all(|c| (1..41).contains(&c.col)),
+        "the bar overran the corners"
+    );
+    let full = drawn(pct(100));
+    assert!(full.len() > half.len(), "100% is no wider than 50%");
+    assert_eq!(full.len(), 40, "100% does not span the border");
+    assert!(drawn(pct(0)).is_empty(), "0% drew something");
+}
+
+/// An error or warning state is the same bar in the alarm colour: the number
+/// still matters, and so does the fact that it went wrong.
+#[test]
+fn an_alarming_report_is_drawn_in_the_alarm_colour() {
+    let _g = crate::app::theme_test_guard();
+    let alarm = Bar {
+        progress: Some(crew_term::Progress {
+            percent: Some(60),
+            alarm: true,
+        }),
+        ..bar(0, 0)
+    };
+    let mut v = Vec::new();
+    progress(&mut v, 42, 10, &alarm, 0);
+    assert!(v.iter().all(|c| c.fg == crew_theme::theme().bell));
+}
+
+/// "Working, with no number" sweeps rather than filling — and it moves, or it
+/// would read as a stuck bar at a random percentage.
+#[test]
+fn an_indeterminate_report_sweeps_instead_of_filling() {
+    let _g = crate::app::theme_test_guard();
+    let b = Bar {
+        progress: Some(crew_term::Progress {
+            percent: None,
+            alarm: false,
+        }),
+        ..bar(0, 0)
+    };
+    let at = |now| {
+        let mut v = Vec::new();
+        progress(&mut v, 42, 10, &b, now);
+        v.iter().map(|c| c.col).min().unwrap_or(0)
+    };
+    assert!(at(0) < at(700), "the sweep does not move");
+    let mut v = Vec::new();
+    progress(&mut v, 42, 10, &b, 700);
+    assert!(v.len() < 20, "the sweep is a block, not a fill");
+}
+
+/// A card too small to hold a border bar draws none rather than a corner.
+#[test]
+fn a_tiny_card_draws_no_bar() {
+    let _g = crate::app::theme_test_guard();
+    let b = Bar {
+        progress: pct(50),
+        ..bar(0, 0)
+    };
+    let mut v = Vec::new();
+    progress(&mut v, 3, 10, &b, 0);
+    progress(&mut v, 42, 2, &b, 0);
     assert!(v.is_empty());
 }

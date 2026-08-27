@@ -83,6 +83,9 @@ impl CrewApp {
             // Waiting rides the master `notify` switch alone: the detection
             // is already conservative, and the badge is the primary surface.
             NotifyKind::Waiting => true,
+            // A program asking for a notification is as explicit as a request
+            // gets — the master switch is the only reasonable gate on it.
+            NotifyKind::Requested => true,
         };
         if !enabled {
             return;
@@ -105,6 +108,8 @@ impl CrewApp {
                 NotifyKind::Pattern => ("match", false),
                 NotifyKind::Exited => ("exited", true),
                 NotifyKind::Waiting => ("waiting", true),
+                // The program chose to interrupt; the card says who did.
+                NotifyKind::Requested => ("said", false),
             };
             // Focus mode holds the card. Everything else about the
             // notification still happens — the LOG entry, the input-bar

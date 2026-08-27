@@ -198,6 +198,7 @@ impl CrewApp {
         let focused = self.focused;
         for (i, p) in self.panes.iter_mut().enumerate() {
             let mut rang = false;
+            let mut asked: Option<(String, String)> = None;
             let mut new_cwd = None;
             let mut matches: Vec<String> = Vec::new();
             let changed = match &mut p.content {
@@ -205,6 +206,9 @@ impl CrewApp {
                     let n = t.pty.try_read() > 0;
                     more_pending |= t.pty.has_pending();
                     rang = t.pty.take_bell();
+                    // A program can ask for a notification outright (OSC 9 /
+                    // OSC 777). No heuristic involved: it said so.
+                    asked = t.pty.take_notify();
                     new_cwd = t.pty.take_cwd();
                     matches = t.pty.take_matches();
                     n
@@ -309,9 +313,19 @@ impl CrewApp {
             any_changed |= changed || rang;
             // Bell + output-pattern notifications (the pane title is borrowable
             // now that the `&mut p.content` match above has ended).
-            if rang || !matches.is_empty() {
+            if rang || !matches.is_empty() || asked.is_some() {
                 use crate::notify::NotifyKind;
                 let title = p.title_text();
+                if let Some((head, body)) = asked {
+                    // Either spelling can leave one half empty; what reaches
+                    // the message is whichever half the program filled in.
+                    let text = match (head.trim().is_empty(), body.trim().is_empty()) {
+                        (false, false) => format!("{}: {}", head.trim(), body.trim()),
+                        (true, _) => body.trim().to_string(),
+                        (_, true) => head.trim().to_string(),
+                    };
+                    notify_events.push((NotifyKind::Requested, title.clone(), text));
+                }
                 if rang {
                     notify_events.push((NotifyKind::Bell, title.clone(), String::new()));
                 }

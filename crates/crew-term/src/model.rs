@@ -66,7 +66,7 @@ pub(crate) struct TermCore {
     events: TermEvents,
     /// Sniffs OSC 7 working-directory reports — which the ANSI parser ignores —
     /// so a `cd` inside the pane can retitle it.
-    osc7: crate::osc7::Osc7Scanner,
+    osc7: crate::osc::OscScanner,
     /// Sniffs DECSET 2031 (color-scheme notifications) — also invisible to
     /// the ANSI parser — so theme flips can be pushed to opted-in TUIs.
     scheme: crate::schemenotify::SchemeNotify,
@@ -88,7 +88,7 @@ impl TermCore {
             term,
             parser: Processor::new(),
             events,
-            osc7: crate::osc7::Osc7Scanner::default(),
+            osc7: crate::osc::OscScanner::default(),
             scheme: crate::schemenotify::SchemeNotify::default(),
             sel_anchor: None,
         }
@@ -101,6 +101,14 @@ impl TermCore {
 
     /// The directory reported by the program (OSC 7) if it changed since the last
     /// call, else `None`.
+    pub(crate) fn take_notify(&mut self) -> Option<(String, String)> {
+        self.osc7.take_notify()
+    }
+
+    pub(crate) fn progress(&self) -> Option<crate::osc::Progress> {
+        self.osc7.progress()
+    }
+
     pub(crate) fn take_cwd(&mut self) -> Option<std::path::PathBuf> {
         self.osc7.take_cwd()
     }

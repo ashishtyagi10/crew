@@ -17,6 +17,8 @@ pub enum NotifyKind {
     Pattern,
     /// The pane's process exited.
     Exited,
+    /// The program in the pane asked for one itself (OSC 9 / OSC 777).
+    Requested,
     /// The pane is blocked on the user — an approval prompt, a y/n question,
     /// or a pending plan (see `blocked.rs`).
     Waiting,
@@ -144,6 +146,8 @@ fn format_message(kind: NotifyKind, pane: &str, detail: &str) -> String {
         NotifyKind::Pattern => format!("⚑ matched \"{detail}\" in {pane}"),
         NotifyKind::Exited => format!("⊗ {pane} exited"),
         NotifyKind::Waiting => format!("⧗ {pane} is waiting for you"),
+        // The program wrote the words; the pane says where they came from.
+        NotifyKind::Requested => format!("\u{25b8} {detail} \u{2014} {pane}"),
     }
 }
 

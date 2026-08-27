@@ -48,6 +48,9 @@ pub(crate) struct Bar<'a> {
     /// review's files and hunks. Drawn under the thumb, so a landmark you are
     /// currently sitting on is not hidden by it.
     pub ticks: &'a [usize],
+    /// What the program in this pane says about its own progress (OSC 9;4),
+    /// drawn along the bottom border.
+    pub progress: Option<crew_term::Progress>,
     /// Rendered rows holding a search hit, drawn over the landmark ticks in
     /// the search's own colour: while you are looking for something, where
     /// the matches are outranks where the sections are.
@@ -281,6 +284,7 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
     crate::panescroll::ticks(&mut v, cols, rows, b);
     crate::panescroll::hit_ticks(&mut v, cols, rows, b);
     crate::panescroll::thumb(&mut v, cols, rows, b);
+    crate::panescroll::progress(&mut v, cols, rows, b, crate::anim::now_ms());
     // Focus brackets last, so they sit on the finished frame — and only on the
     // focused card, which is the one piece of state they exist to announce.
     if b.focused {
