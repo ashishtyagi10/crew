@@ -45,7 +45,39 @@ pub(crate) fn url_at(line: &str, col: usize) -> Option<String> {
         .map(|(a, b)| chars[a..b].iter().collect())
 }
 
+/// Schemes a clicked OSC 8 hyperlink may open.
+///
+/// The target of an OSC 8 link is chosen by whatever program is writing to the
+/// pane, not by the person clicking, and the visible text says nothing about
+/// it — so a click on the word "docs" would otherwise hand an arbitrary URL
+/// scheme to the system opener. These four are the ones a document can
+/// reasonably mean; anything else is shown and refused.
+const SAFE_SCHEMES: [&str; 4] = ["http://", "https://", "mailto:", "file://"];
+
+/// The hyperlink target if crew is willing to open it. Scheme matching is
+/// case-insensitive — `HTTPS://` is a URL, and is also how a scheme filter
+/// gets slipped past.
+pub(crate) fn safe_link(uri: &str) -> Option<&str> {
+    let lower = uri.to_ascii_lowercase();
+    SAFE_SCHEMES
+        .iter()
+        .any(|s| lower.starts_with(s))
+        .then_some(uri)
+}
+
 impl CrewApp {
+    /// The OSC 8 hyperlink target under the cursor, if the terminal pane there
+    /// has one. Separate from `cursor_cell`: this is what the *program* said
+    /// the text points at, which the text itself need not resemble.
+    pub(crate) fn cursor_link(&self) -> Option<String> {
+        let i = self.pane_at_cursor()?;
+        let (row, col) = self.cursor_rowcol(i)?;
+        let PaneContent::Terminal(t) = &self.panes[i].content else {
+            return None;
+        };
+        t.pty.link_at(col.try_into().ok()?, row.try_into().ok()?)
+    }
+
     /// The `(row, col)` content-grid cell under the cursor in pane `i`'s rect
     /// (content rows only; the title bar is excluded). Shared pixel→cell math
     /// for both the terminal Cmd+click path (`cursor_cell`, below) and the

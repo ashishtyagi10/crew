@@ -6,7 +6,7 @@
 //! cites in a reply is one click away; in the file-viewer pane, open a link
 //! on its rendered markdown rung, read off the cell under the click.
 use crate::app::CrewApp;
-use crate::openurl::url_at;
+use crate::openurl::{safe_link, url_at};
 use crate::pane::PaneContent;
 
 /// The whitespace-delimited token spanning character column `col` in `line`,
@@ -65,6 +65,23 @@ impl CrewApp {
     /// something (a miss falls through to the caller's normal click handling
     /// — selection/focus).
     pub(crate) fn cmd_click_at_cursor(&mut self) -> bool {
+        // An OSC 8 hyperlink first: its target is what the program said the
+        // text points at, and the text is usually prose that no URL scan
+        // would find. The status line always names the URL that is actually
+        // opening — link text can say one thing and point at another.
+        if let Some(uri) = self.cursor_link() {
+            return match safe_link(&uri) {
+                Some(uri) => {
+                    let _ = open::that_detached(uri);
+                    self.set_status(format!("opening {uri}"));
+                    true
+                }
+                None => {
+                    self.set_status(format!("refused link scheme: {uri}"));
+                    true
+                }
+            };
+        }
         if let Some((line, col)) = self.cursor_cell() {
             if let Some(url) = url_at(&line, col) {
                 let _ = open::that_detached(&url);

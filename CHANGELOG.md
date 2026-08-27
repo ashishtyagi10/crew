@@ -8,6 +8,31 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.49
+
+**Hyperlinks that are links.** OSC 8 is how a program attaches a URL to
+arbitrary text — `ls --hyperlink` on a filename, `gh` on an issue number, a
+test runner on the file that failed. Crew parsed the escape into the grid and
+then had no way to show it or follow it, so those cells rendered as ordinary
+words: nothing said they were clickable, and clicking scanned the visible text
+for a URL and found none.
+
+Now a hyperlinked cell is **tinted and ruled like a URL even when its text is
+prose**, which is the only cue available — "see notes" looks like nothing. And
+Cmd+click opens **the program's target**, resolved from the grid rather than
+guessed from the text.
+
+That target comes from whatever is writing to the pane, so it is not trusted
+the way a URL you can read is. Crew opens `http://`, `https://`, `mailto:` and
+`file://` links, matched case-insensitively (`HTTPS://` is a URL, and lowercase
+-only matching is how `JavaScript:` gets past a filter), and refuses anything
+else **by name** on the status line rather than silently. The status line names
+the URL that is actually opening in every case: link text can say one thing and
+point somewhere else, and the person clicking should see which.
+
+A hyperlink spanning two words keeps the space between them, for the same
+reason an underlined run does.
+
 ## 0.18.48
 
 **Underlines, at last — the whole family.** A cell could be bold or italic and

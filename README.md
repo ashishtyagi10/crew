@@ -279,6 +279,10 @@ dotted, dashed — plus strikethrough and SGR 58's separate underline colour,
 drawn as GPU rules that stay continuous across cells. URLs are underlined as
 well as tinted, so a link doesn't depend on hue to read as one.
 
+**OSC 8 hyperlinks** are honoured: text a program attached a target to is drawn
+as a link and Cmd+click opens that target (only `http`/`https`/`mailto`/`file`
+— the status line names the URL actually opening).
+
 ## Markdown
 
 Crew renders markdown natively (a `pulldown-cmark`-based engine drawn straight
