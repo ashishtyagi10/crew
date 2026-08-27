@@ -78,6 +78,26 @@ pub fn strip_row(cols: u16, marker: Option<(char, (u8, u8, u8))>, unread: usize)
     v
 }
 
+/// The `+N` tile's contents: as many of the panes standing behind it as fit,
+/// numbered the way every other pane is.
+pub fn overflow_cells(names: &[String], cols: u16, rows: u16) -> Vec<CellView> {
+    let t = crew_theme::theme();
+    let mut v = Vec::new();
+    for (row, name) in names.iter().take(usize::from(rows)).enumerate() {
+        for (i, c) in name.chars().take(usize::from(cols)).enumerate() {
+            v.push(CellView {
+                col: i as u16,
+                row: row as u16,
+                c,
+                fg: t.text_muted,
+                bg: t.page_bg,
+                ..Default::default()
+            });
+        }
+    }
+    v
+}
+
 /// Push one fieldset card per minimized pane into `scenes` — plus, when the
 /// strip overflowed, a trailing `+N` card standing in for the panes it had no
 /// readable room for (they stay listed in the sidebar's PANES section).
@@ -87,9 +107,20 @@ pub fn push_min_strip(
     placed: &crate::grid::GridRects,
     cw: f32,
     ch: f32,
+    hidden: &[usize],
 ) {
     if let Some((n, rect)) = placed.overflow {
-        push_card(scenes, rect, cw, ch, &format!("+{n}"), |_, _| Vec::new());
+        // `+3` says how many are behind the tile and nothing about which,
+        // which is the one thing you would look at it to find out. The
+        // numbers are the same ones `Cmd+N` uses.
+        let names: Vec<String> = hidden
+            .iter()
+            .filter(|i| **i < panes.len())
+            .map(|&i| format!("{} {}", i + 1, panes[i].title_text()))
+            .collect();
+        push_card(scenes, rect, cw, ch, &format!("+{n}"), move |cols, rows| {
+            overflow_cells(&names, cols, rows)
+        });
     }
     let now = crate::anim::now_ms();
     for &(idx, rect) in &placed.minimized {
@@ -115,6 +146,38 @@ mod tests {
     use super::*;
     use crate::attention::{Attention, BLINK_MS};
     use crate::notify::NotifyKind;
+
+    /// `+3` says how many panes are behind the tile and nothing about which,
+    /// which is the one thing you would look at it to find out.
+    #[test]
+    fn the_overflow_tile_names_the_panes_behind_it() {
+        let _g = crate::app::theme_test_guard();
+        let names = vec!["7 build".to_string(), "8 crew \u{b7} claude".to_string()];
+        let cells = overflow_cells(&names, 20, 4);
+        let row = |r: u16| -> String {
+            let mut v: Vec<&CellView> = cells.iter().filter(|c| c.row == r).collect();
+            v.sort_by_key(|c| c.col);
+            v.iter().map(|c| c.c).collect()
+        };
+        assert_eq!(row(0), "7 build");
+        assert!(row(1).starts_with("8 crew"), "{:?}", row(1));
+    }
+
+    /// A tile with room for two names shows two, and clips a long one rather
+    /// than drawing past its own card.
+    #[test]
+    fn the_overflow_tile_shows_what_fits_and_no_more() {
+        let _g = crate::app::theme_test_guard();
+        let names: Vec<String> = (0..9)
+            .map(|i| format!("{i} a-very-long-pane-name"))
+            .collect();
+        let cells = overflow_cells(&names, 8, 2);
+        assert!(
+            cells.iter().all(|c| c.col < 8 && c.row < 2),
+            "drew past the card"
+        );
+        assert_eq!(cells.iter().filter(|c| c.row == 0).count(), 8);
+    }
 
     #[test]
     fn attention_supersedes_the_activity_dot() {
