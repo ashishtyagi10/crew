@@ -9,7 +9,9 @@ use ratatui::widgets::{Block, BorderType, List, ListItem, Widget};
 
 use crate::palette::accent_color;
 
-use crate::helptable::{BINDINGS, CHAT_BINDINGS, FAR_BINDINGS, VIEW_BINDINGS};
+use crate::helptable::{
+    BINDINGS, CHAT_BINDINGS, FAR_BINDINGS, SETTINGS_BINDINGS, TODO_BINDINGS, VIEW_BINDINGS,
+};
 
 /// Width of the key column. Every description starts here.
 const KEY_COL: usize = 26;
@@ -31,13 +33,19 @@ const KEY_COL: usize = 26;
 /// same lesson as the footer in v0.6.57: a truncated instruction teaches the
 /// half that fits, and nobody can see that the rest existed.
 pub fn size() -> (u16, u16) {
-    let rows =
-        BINDINGS.len() + CHAT_BINDINGS.len() + VIEW_BINDINGS.len() + FAR_BINDINGS.len() + 6 + 4;
+    let rows = sections()
+        .iter()
+        .map(|(_, table)| table.len() + 2)
+        .sum::<usize>()
+        + BINDINGS.len()
+        + 4;
     let widest = BINDINGS
         .iter()
         .chain(CHAT_BINDINGS)
         .chain(VIEW_BINDINGS)
         .chain(FAR_BINDINGS)
+        .chain(TODO_BINDINGS)
+        .chain(SETTINGS_BINDINGS)
         .map(|(k, d)| KEY_COL.max(k.chars().count() + 1) + d.chars().count())
         .max()
         .unwrap_or(KEY_COL);
@@ -47,17 +55,26 @@ pub fn size() -> (u16, u16) {
 /// Every row of the overlay, in order, as `(keys, description)` — with the
 /// spacer and the "in an agent pane" heading in their places. One list, so
 /// scrolling has something to index and the tests have something to count.
+/// The per-pane sections, in the order they are listed. One place, so
+/// adding a pane kind is one row here and nothing else — the height, the
+/// width, the scrolling and the filter all read this.
+pub(crate) fn sections() -> [(&'static str, &'static [(&'static str, &'static str)]); 5] {
+    [
+        ("in an agent pane", CHAT_BINDINGS),
+        ("in the file viewer", VIEW_BINDINGS),
+        ("in a /far file panel", FAR_BINDINGS),
+        ("in the /todo pane", TODO_BINDINGS),
+        ("in /settings", SETTINGS_BINDINGS),
+    ]
+}
+
 fn lines() -> Vec<(&'static str, &'static str)> {
     let mut v: Vec<(&str, &str)> = BINDINGS.to_vec();
-    v.push(("", ""));
-    v.push(("", "in an agent pane"));
-    v.extend_from_slice(CHAT_BINDINGS);
-    v.push(("", ""));
-    v.push(("", "in the file viewer"));
-    v.extend_from_slice(VIEW_BINDINGS);
-    v.push(("", ""));
-    v.push(("", "in a /far file panel"));
-    v.extend_from_slice(FAR_BINDINGS);
+    for (title, table) in sections() {
+        v.push(("", ""));
+        v.push(("", title));
+        v.extend_from_slice(table);
+    }
     v
 }
 

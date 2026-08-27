@@ -327,6 +327,19 @@ fn keys_in(src: &str) -> Vec<String> {
             }
         }
     }
+    // The other spelling: `Char('d')` and `Some('a')` arms, which is how the
+    // todo pane and the settings form name their letters.
+    for pat in ["Char('", "Some('"] {
+        for (i, _) in src.match_indices(pat) {
+            let rest = &src[i + pat.len()..];
+            let mut cs = rest.chars();
+            if let (Some(k), Some('\'')) = (cs.next(), cs.next()) {
+                if !k.is_whitespace() {
+                    keys.push(k.to_string());
+                }
+            }
+        }
+    }
     for (i, _) in src.match_indices("NamedKey::F") {
         let digits: String = src[i + "NamedKey::F".len()..]
             .chars()
@@ -361,8 +374,13 @@ fn listed_in(table: &[(&str, &str)]) -> std::collections::HashSet<String> {
                 out.insert(part.to_string());
                 // …and the key a modifier chord ends in: `F2` is reachable
                 // only as `Alt+F2`, and the key map only knows it as `F2`.
-                if let Some(bare) = part.rsplit('+').next() {
+                // Lowercased too, because the table writes a chord's letter
+                // as `Ctrl+A` and the key map matches the character `'a'` —
+                // the same key, spelled the way each side spells keys. The
+                // viewer's `n`/`N` are a genuine pair and are listed as one.
+                for bare in [part, part.rsplit('+').next().unwrap_or(part)] {
                     out.insert(bare.to_string());
+                    out.insert(bare.to_lowercase());
                 }
             }
         }
@@ -384,16 +402,32 @@ fn every_pane_key_is_in_the_overlay() {
             "the file viewer",
             include_str!("viewpane/keys.rs"),
             VIEW_BINDINGS,
+            8,
         ),
         (
             "a /far panel",
             include_str!("farpane/keys.rs"),
             FAR_BINDINGS,
+            8,
+        ),
+        (
+            "the /todo pane",
+            include_str!("todopane/keys.rs"),
+            TODO_BINDINGS,
+            8,
+        ),
+        // The settings form names no letters of its own — every field is
+        // reached with named keys — so it has no floor to meet.
+        (
+            "/settings",
+            include_str!("settingspane/keys.rs"),
+            SETTINGS_BINDINGS,
+            0,
         ),
     ];
-    for (what, src, table) in panes {
+    for (what, src, table, least) in panes {
         let keys = keys_in(src);
-        assert!(keys.len() >= 8, "{what}: the parse found only {keys:?}");
+        assert!(keys.len() >= least, "{what}: the parse found only {keys:?}");
         let listed = listed_in(table);
         for k in keys {
             assert!(

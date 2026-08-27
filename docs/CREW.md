@@ -255,15 +255,15 @@ The full table is still `/keys`, which the hints are deliberately much shorter
 than.
 
 
-Press **`/keys`** in the input bar for this list in-app, in four sections —
-the bindings above, then the ones that mean something specific **in an agent
-pane**, **in the file viewer**, and **in a `/far` file panel**. Every key those
-last two answer to — the viewer's `v`, `s`, `r`, `e`, `o`, `/`, `n`/`N`,
-`]`/`[`, and the panel's whole function-key row — was written down here in the
-manual and nowhere a user could find it without reading the manual. A test now
-reads each pane's own key map (`viewpane/keys.rs`, `farpane/keys.rs`) and holds
-the overlay to it, the same way the overlay and this page are held to each
-other. It scrolls — arrows
+Press **`/keys`** in the input bar for this list in-app: the bindings above,
+then a section for **every pane kind that answers to keys of its own** — an
+agent pane, the file viewer, a `/far` file panel, the `/todo` list and
+`/settings`. Most of those keys used to be written down here in the manual and
+nowhere a user could find them without reading the manual: the viewer's whole
+set, the panel's function-key row, and six of the todo list's eight actions.
+A test reads each pane's own key map and holds the overlay to it, the same way
+the overlay and this page are held to each other — so a new pane kind is one
+row in a table rather than a rediscovery two releases later. It scrolls — arrows
 and page keys walk it, Home/End jump its ends — so the list is never cut off by
 the window it is drawn in, and **typing filters it**: forty-odd bindings is a
 document, and the fastest way through a document is to say what you are looking
