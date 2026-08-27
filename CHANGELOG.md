@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.87
+
+**Two more surfaces swept, and both hold.** The width sweep that found the
+invisible git badge and the overprinting sidebar rows now covers the **command
+bar** and the **minimized thumbnails** as well.
+
+Neither had a bug, which is worth saying: the bar clips its legends and its
+status flash to what the frame owns, and the thumbnail drops its count before
+it would land on the marker. Both are now checked at every width rather than
+believed, and both checks were shown to fail when the guard they rely on is
+removed — a sweep that cannot fail is a sweep that proves nothing.
+
+The bar's check is deliberately not "one glyph per cell": a fieldset legend
+draws over its own frame by design, so what it asserts is that nothing escapes
+the card and that the corners are still corners once everything has been
+drawn.
+
 ## 0.18.86
 
 **The sidebar's rows overprinted themselves on a narrow nav.** Same sweep as

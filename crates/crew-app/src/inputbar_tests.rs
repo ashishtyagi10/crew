@@ -341,3 +341,63 @@ fn a_command_that_does_not_exist_is_marked_as_it_is_typed() {
     assert_eq!(first(&typo), crew_theme::theme().bell);
     assert_ne!(first(&typo), first(&real));
 }
+
+/// The same width sweep the pane card and the sidebar rows get.
+///
+/// The bar deliberately draws its legends OVER its own frame — that is what a
+/// fieldset legend is — so the check is not "one glyph per cell" here. It is
+/// that nothing lands outside the card and that the corners, which nothing
+/// may borrow, are still corners when the dust settles.
+#[test]
+fn nothing_in_the_input_bar_escapes_it_or_eats_a_corner() {
+    let _g = crate::app::theme_test_guard();
+    let bar = InputBar {
+        text: "/theme dark".into(),
+        focused: true,
+        cwd: std::path::PathBuf::from("/Users/someone/code/crew"),
+        broadcast: true,
+        ..InputBar::default()
+    };
+    for cols in 12..=140u16 {
+        let cells = bar.cells(cols, 3, Some("saved settings"), Some("crew \u{b7} claude"));
+        assert!(
+            cells.iter().all(|c| c.col < cols && c.row < 3),
+            "{cols}: a cell escaped the bar"
+        );
+        // The LAST write to a cell is what the renderer draws, so the corner
+        // is whatever wrote there last.
+        for (col, want) in [(0u16, '\u{2570}'), (cols - 1, '\u{256f}')] {
+            let last = cells
+                .iter()
+                .filter(|c| c.row == 2 && c.col == col)
+                .next_back()
+                .map(|c| c.c);
+            assert_eq!(
+                last,
+                Some(want),
+                "{cols}: the bottom corner at {col} was taken"
+            );
+        }
+    }
+}
+
+/// …and the typed text is never partly overwritten by what shares its row.
+#[test]
+fn the_typed_text_survives_every_width_that_can_hold_it() {
+    let _g = crate::app::theme_test_guard();
+    let bar = InputBar {
+        text: "/theme dark".into(),
+        focused: true,
+        ..InputBar::default()
+    };
+    for cols in 20..=140u16 {
+        let cells = bar.cells(cols, 3, None, None);
+        let mut row: Vec<&crew_render::CellView> = cells.iter().filter(|c| c.row == 1).collect();
+        row.sort_by_key(|c| c.col);
+        let text: String = row.iter().map(|c| c.c).collect();
+        assert!(
+            text.contains("/theme dark"),
+            "{cols}: the typed text is broken up — {text:?}"
+        );
+    }
+}
