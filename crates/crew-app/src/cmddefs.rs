@@ -20,7 +20,7 @@ pub(crate) const COMMANDS: &[Cmd] = &[
     },
     Cmd {
         name: "/diff",
-        desc: "Review the working tree's git diff in a new pane",
+        desc: "Review the working tree's changes in the file viewer",
     },
     Cmd {
         name: "/find",

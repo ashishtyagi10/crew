@@ -63,11 +63,24 @@ fn numbered(
     ink: (u8, u8, u8),
     muted: (u8, u8, u8),
 ) -> Vec<CardLine> {
-    let w = cols.saturating_sub(GUTTER_W).max(1);
     let paints: Vec<Vec<CharPaint>> = text
         .split('\n')
         .map(|line| line_paint(line, lang, ink))
         .collect();
+    painted(text, cols, &paints, ink, muted)
+}
+
+/// The numbered-gutter body, given a paint per character. Shared by the
+/// syntax rungs and the diff rung — they differ only in how the paint is
+/// worked out, never in how it is laid down.
+fn painted(
+    text: &str,
+    cols: usize,
+    paints: &[Vec<CharPaint>],
+    ink: (u8, u8, u8),
+    muted: (u8, u8, u8),
+) -> Vec<CardLine> {
+    let w = cols.saturating_sub(GUTTER_W).max(1);
     let mut out = Vec::new();
     let mut last = 0usize;
     let mut pos = 0usize;
@@ -79,7 +92,7 @@ fn numbered(
             row(&format!("{n:>5} "), muted, false)
         };
         last = n;
-        let row_paint = row_paint(&paints, n, pos, chars.len());
+        let row_paint = row_paint(paints, n, pos, chars.len());
         pos += chars.len();
         match row_paint {
             Some(paint) => line.extend(
@@ -95,42 +108,13 @@ fn numbered(
     out
 }
 
-/// `+`/`−` ink for diffs; everything else is body ink.
-///
-/// Fix 7: this used to reprint the line number on every WRAPPED continuation
-/// row (unlike `numbered`, which blanks it) and read `chars.first()` of the
-/// wrapped row as the `+`/`-` marker — the continuation row's first
-/// character is the line's BODY, not its marker, so a wrapped added line
-/// lost its colour after the first row. The marker colour is now derived
-/// once per SOURCE line, from that line's own first character, and carried
-/// across every row it wraps into; the gutter blanks continuations the same
-/// way `numbered` does.
+/// The diff rung: a review rather than a colour per line. Pairing, word-level
+/// marks and the header treatment live in [`super::diffpaint`]; this only lays
+/// that paint down through the same numbered gutter every other rung uses.
 fn diff_lines(text: &str, cols: usize) -> Vec<CardLine> {
     let t = crew_theme::theme();
-    let w = cols.saturating_sub(GUTTER_W).max(1);
-    let fgs: Vec<(u8, u8, u8)> = text
-        .split('\n')
-        .map(|line| match line.chars().next() {
-            Some('+') => t.ansi[2],
-            Some('-') => t.ansi[1],
-            Some('@') => t.ansi[6],
-            _ => t.ink,
-        })
-        .collect();
-    let mut out = Vec::new();
-    let mut last = 0usize;
-    for (n, chars) in wrap(text, w) {
-        let mut line: CardLine = if n == last {
-            row(&" ".repeat(GUTTER_W), t.text_muted, false)
-        } else {
-            row(&format!("{n:>5} "), t.text_muted, false)
-        };
-        last = n;
-        let fg = fgs[n - 1];
-        line.extend(chars.iter().map(|c| plain(*c, fg, false)));
-        out.push(line);
-    }
-    out
+    let paints = super::diffpaint::paint(text);
+    painted(text, cols, &paints, t.ink, t.text_muted)
 }
 
 fn banner(msg: &str, cols: usize) -> CardLine {

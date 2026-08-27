@@ -8,6 +8,34 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.55
+
+**`/diff` is a review now, not a scrollback.** It used to run `git diff` in a
+terminal pane and let git's own colours land in the scrollback: every removed
+line red, every added line green, and the job of finding *what* changed inside
+two nearly identical lines left to your eyes.
+
+The diff opens in the **file viewer** instead, rendered by crew's own diff
+rung. Each removed line is **paired with the added line that replaced it**, and
+only the run that actually differs is drawn at full strength — what the two
+lines share recedes toward the page. A change inside an identifier marks the
+identifier (`foo_bar` → `foo_baz` is a different name, not a `r`), hunk
+headings are set apart from the function context after them, and `+++`/`---`
+file headers are headers rather than a one-line addition and removal.
+
+Refinement is deliberately conservative, because a mark that might be wrong is
+worse than no mark: runs of unequal length are **not paired at all** (there is
+no honest correspondence to draw), and a pair differing almost everywhere is
+left plain (marking all of both is not a mark).
+
+The three `git` reads run **off the winit thread** — a large or
+network-mounted repo takes seconds, and anything blocking that thread freezes
+every pane in the grid, agents included — and the pane opens the tick they
+land. The repo reviewed is the **focused pane's** directory, so `/diff` in a
+pane working in another checkout reviews that checkout. A clean tree says so
+rather than opening an empty pane. The viewer's scrolling, search and reload
+come along for free.
+
 ## 0.18.54
 
 **The colour pickers show the colours.** `/gradient` offers eight named pairs

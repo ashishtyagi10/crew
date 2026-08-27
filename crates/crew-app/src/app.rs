@@ -37,6 +37,9 @@ pub struct CrewApp {
     /// clicks, close, restore); diffing it once per frame in `build_frame`
     /// catches every one of them without each having to remember to stamp a
     /// timeline.
+    /// `/diff`'s background read of the working tree ([`crate::diffjob`]),
+    /// drained once a tick.
+    pub(crate) diff_job: crate::diffjob::DiffJob,
     /// Git status for each pane's directory, refreshed off-thread and read
     /// by the cards' badges ([`crate::gitfleet`]).
     pub(crate) git_fleet: crate::gitfleet::GitFleet,
