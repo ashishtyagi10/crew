@@ -8,6 +8,27 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.27
+
+**Small text no longer takes more darkening than it was calibrated for.** The
+CoreText-style stem darkening spills a fixed fraction of a pixel. A stroke is
+not fixed: it thins with the size. So the same `/smooth` number takes a larger
+and larger share of the stroke as the text shrinks — measured on the embedded
+font, a run of body letters gains 39% ink at 9 px against 31% at the 14 px the
+ladder was tuned at.
+
+That surplus comes out of the counters — the enclosed white in `e`, `a`, `o`,
+`8` — which at 9 px are a pixel or two across to begin with. They were losing
+about a third of their open area to the darkening at 11 px, against a seventh
+at 32 px, which is what "small text goes muddy" looks like when you measure it.
+
+A one-sided ramp now sheds strength below the reference size and leaves
+everything above it untouched: large text is rasterized accurately and never
+needed the help, and its share already falls on its own (10% ink at 48 px). The
+ramp reads the size straight off the glyph's cache key, so nothing new is
+plumbed, and it works in physical pixels — a Retina page at 14 pt rasterizes at
+28 px and is already past the reference, which is why it read fine without it.
+
 ## 0.19.26
 
 **The text-gamma correction now reads each run's own colours, not the theme's.**
