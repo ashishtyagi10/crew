@@ -113,6 +113,23 @@ pub(crate) fn ticks(v: &mut Vec<CellView>, cols: u16, rows: u16, b: &Bar) {
     }
 }
 
+/// Search hits down the gutter, in the colour the matches themselves wear.
+/// Drawn over the landmark ticks and under the thumb: while you are looking
+/// for something, where the matches are outranks where the sections are, and
+/// where you ARE outranks both.
+pub(crate) fn hit_ticks(v: &mut Vec<CellView>, cols: u16, rows: u16, b: &Bar) {
+    if b.hits.is_empty() || rows < MIN_ROWS || cols < 2 || b.total == 0 {
+        return;
+    }
+    let inner = usize::from(rows - 2);
+    let fg = crate::findhl::hit_mark();
+    for &row in b.hits {
+        let at = (row.min(b.total.saturating_sub(1)) * inner) / b.total.max(1);
+        let y = 1 + at.min(inner.saturating_sub(1)) as u16;
+        put(v, cols - 1, y, '\u{2501}', fg, false);
+    }
+}
+
 /// The scroll offset that puts the top of the window on the line a pointer
 /// `frac` of the way down the gutter is pointing at: 0.0 is the top of the
 /// buffer, 1.0 the live bottom. Returns lines back from the bottom, which is

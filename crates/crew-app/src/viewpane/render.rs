@@ -6,6 +6,42 @@ use crew_render::CellView;
 use crate::viewpane::lines;
 use crate::viewpane::{ViewCache, ViewPane};
 
+/// The live search, drawn on the pane's last row: what you are typing and how
+/// many lines hold it.
+///
+/// Without it the viewer's `/` was typed blind — the needle existed only in
+/// the pane's state, so a mistyped search looked exactly like a search with no
+/// matches, and neither said which it was.
+fn search_line(out: &mut Vec<CellView>, p: &ViewPane, cols: u16, rows: u16) {
+    let Some(s) = &p.search else { return };
+    let t = crew_theme::theme();
+    let row = rows - 1;
+    let count = match (s.typing, s.hits.len()) {
+        (true, _) => String::new(),
+        (false, 0) => "  no matches".to_string(),
+        (false, n) => format!("  {n} line{}", if n == 1 { "" } else { "s" }),
+    };
+    let caret = if s.typing { "\u{2588}" } else { "" };
+    let text = format!("/{}{caret}{count}", s.needle);
+    // The row belongs to the search while it is open: clear whatever content
+    // was drawn there rather than letting the two overprint.
+    out.retain(|c| c.row != row);
+    let fg = match (s.typing, s.hits.is_empty()) {
+        (false, true) => t.bell,
+        _ => crate::findhl::hit_mark(),
+    };
+    crate::chatwidth::place_row(0, cols, text.chars().map(|c| (c, fg)), |col, c, fg| {
+        out.push(CellView {
+            col,
+            row,
+            c,
+            fg,
+            bg: t.page_bg,
+            ..Default::default()
+        });
+    });
+}
+
 impl ViewPane {
     /// Lines for `cols`, rebuilding the cache only on a width or mode change.
     pub(crate) fn lines_for(&self, cols: u16) -> Ref<'_, ViewCache> {
@@ -57,6 +93,15 @@ impl ViewPane {
         self.lines_for(cols).marks.iter().map(|m| m.row).collect()
     }
 
+    /// Rendered rows holding a live search hit, for the card's gutter. Empty
+    /// when nothing is being searched for.
+    pub(crate) fn hit_rows(&self) -> Vec<usize> {
+        self.search
+            .as_ref()
+            .map(|s| s.hits.clone())
+            .unwrap_or_default()
+    }
+
     pub(crate) fn cells(&self, cols: u16, rows: u16) -> Vec<CellView> {
         if cols == 0 || rows == 0 {
             return Vec::new();
@@ -95,6 +140,7 @@ impl ViewPane {
                 },
             );
         }
+        search_line(&mut out, self, cols, rows);
         out
     }
 }

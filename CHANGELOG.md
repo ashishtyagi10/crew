@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.62
+
+**The viewer's search shows itself.** Typing `/` in the file viewer was
+*blind*: the needle lived in the pane's state and was drawn nowhere, so a
+mistyped search and a search with no matches looked exactly alike — both of
+them "nothing happened". The needle is now drawn on the pane's last row with a
+caret while you type, the tally once you confirm it (`/alpha  2 lines`), and
+**"no matches" in the alarm colour** when there are none, which is the one case
+where that line has something to correct rather than something to report.
+
+**And the gutter shows where the matches are.** The card's right border already
+carried the landmark ticks; a live search now marks its hits over them in the
+search's own colour — while you are looking for something, where the matches
+are outranks where the sections are, and where you *are* (the thumb) outranks
+both. A single cell painted in the highlight *background* would disappear
+against the page, so the tick takes that colour's hue at ink strength.
+
 ## 0.18.61
 
 **Where the new part starts.** A grid of panes means most of them are producing

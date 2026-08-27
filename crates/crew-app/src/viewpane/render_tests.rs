@@ -102,3 +102,85 @@ fn the_cache_survives_an_unrelated_state_mutation_at_the_same_width() {
         "a reused cache still shows the original text, got {row:?}"
     );
 }
+
+fn searching(text: &str, needle: &str, typing: bool) -> ViewPane {
+    use crate::viewpane::detect::Format;
+    use crate::viewpane::load::Loaded;
+    use crate::viewpane::search::Search;
+    use crate::viewpane::LoadState;
+    let mut p = ViewPane::open(std::env::temp_dir().join("s.txt"));
+    p.state = LoadState::Ready {
+        format: Format::Code { lang: "" },
+        loaded: Loaded {
+            text: text.into(),
+            truncated: None,
+            meta: None,
+        },
+    };
+    p.cache.replace(None);
+    let hits = crate::viewpane::search::find_matches(
+        &p.lines_for(40)
+            .lines
+            .iter()
+            .map(|l| l.iter().map(|c| c.c).collect::<String>())
+            .collect::<Vec<_>>(),
+        needle,
+    );
+    let mut s = Search::new(needle.to_string(), hits);
+    s.typing = typing;
+    p.search = Some(s);
+    p
+}
+
+fn row_text(cells: &[crew_render::CellView], row: u16) -> String {
+    let mut v: Vec<&crew_render::CellView> = cells.iter().filter(|c| c.row == row).collect();
+    v.sort_by_key(|c| c.col);
+    v.iter().map(|c| c.c).collect()
+}
+
+/// Typing `/` used to be blind: the needle lived only in the pane's state, so
+/// a mistyped search and a search with no matches looked identical.
+#[test]
+fn the_needle_is_drawn_while_it_is_being_typed() {
+    let _g = crate::app::theme_test_guard();
+    let p = searching("alpha\nbeta\ngamma\n", "al", true);
+    let cells = p.cells(40, 6);
+    let line = row_text(&cells, 5);
+    assert!(line.starts_with("/al"), "{line:?}");
+    assert!(line.contains('\u{2588}'), "no caret while typing: {line:?}");
+}
+
+/// Confirmed, it reports how much it found — and says so in words rather than
+/// leaving you to count the highlights.
+#[test]
+fn a_confirmed_search_reports_its_tally() {
+    let _g = crate::app::theme_test_guard();
+    let p = searching("alpha\nbeta\nalpaca\n", "al", false);
+    let line = row_text(&p.cells(40, 6), 5);
+    assert!(line.starts_with("/al"), "{line:?}");
+    assert!(line.contains("2 lines"), "{line:?}");
+    let one = searching("alpha\nbeta\n", "beta", false);
+    assert!(row_text(&one.cells(40, 6), 5).contains("1 line"));
+}
+
+/// A miss says so, in the alarm colour — the one case where the search line
+/// has something to correct rather than to report.
+#[test]
+fn a_search_with_no_matches_says_so() {
+    let _g = crate::app::theme_test_guard();
+    let p = searching("alpha\nbeta\n", "zzz", false);
+    let cells = p.cells(40, 6);
+    assert!(row_text(&cells, 5).contains("no matches"));
+    let fg = cells.iter().find(|c| c.row == 5).unwrap().fg;
+    assert_eq!(fg, crew_theme::theme().bell);
+}
+
+/// No search, no line — the row goes back to the document.
+#[test]
+fn without_a_search_the_last_row_is_content() {
+    let _g = crate::app::theme_test_guard();
+    let mut p = searching("alpha\nbeta\ngamma\ndelta\nepsilon\nzeta\n", "al", false);
+    p.search = None;
+    let line = row_text(&p.cells(40, 6), 5);
+    assert!(!line.starts_with('/'), "{line:?}");
+}

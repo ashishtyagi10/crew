@@ -119,6 +119,7 @@ fn the_card_shows_the_count_and_only_when_there_is_one() {
         focus_t: 1.0,
         git: None,
         ticks: &[],
+        hits: &[],
         unread,
         doc: false,
     };
