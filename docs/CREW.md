@@ -834,14 +834,30 @@ longer aim at.
 - Panes crew opens on generated files — `/out`, `/diff`, `/about` — are
   **named after what they are** (`out · cargo build`, `diff · crew`, `what's
   new · 0.18.75`) rather than after the temp file the text happens to live in.
-- **`/marks [on|off]`** — the two things a pane's card draws on its border
-  about the pane's own output: the ticks where each command began, the name of
-  the command you are scrolled back into, and the bars beside error lines. On by default — a grid of panes saying where the failures
+- **`/marks [on|off]`** — the things a pane's card draws on its border about
+  the pane's own output: the ticks where each command began, the name of the
+  command you are scrolled back into, the bars beside error lines, and — for a
+  shell that says so — the block that **exited non-zero**. On by default — a grid of panes saying where the failures
   are without being read is most of their value — but they are crew drawing on
   its own chrome about someone else's output, and a plain frame is a reasonable
   thing to want. `/errors` and `/out` still work with the marks off; they read
   the same thing, they just do not draw it. Also a checkbox in `/settings`
   (**Card border marks**).
+- **Exit status, when the shell says so (OSC 133).** Crew works out where each
+  command's output begins and ends by watching the pane's foreground process —
+  no shell configuration, no integration to install — but that is the one thing
+  polling cannot see all of: a process crew never saw start tells it nothing
+  about how the command *ended*, and no amount of watching recovers an exit
+  code. A shell with an OSC 133 integration reports it directly (`ESC ] 133 ; D
+  ; 1 ST`), and when it does, crew marks that block's first row on the left
+  border in the alarm colour and names the status beside the command while you
+  are scrolled inside it (`╶ cargo build ✗101`). A prompt mark (`A`) also
+  closes the block exactly, a full poll before the process watch would notice.
+
+  It is an upgrade, not a requirement: a shell that says nothing keeps exactly
+  the blocks it had before, and "said nothing" is deliberately not drawn as
+  success — it is not the same claim.
+
 - **`/pin`** — keeps the focused pane **on the grid**: pinned panes are exempt
   from the LRU demotion that sends the least-recently-active pane to the
   minimized strip. The LRU is right about which pane you have not touched and

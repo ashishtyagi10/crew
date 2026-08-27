@@ -210,11 +210,13 @@ fn overlapping_spans_answer_with_the_later_command() {
         name: "first".into(),
         from: 0,
         to: Some(50),
+        exit: None,
     });
     s.0.push(crate::cmdspan::Span {
         name: "second".into(),
         from: 40,
         to: Some(80),
+        exit: None,
     });
     assert_eq!(
         s.at_line(45, 100).map(|x| x.name.clone()).as_deref(),
@@ -238,4 +240,70 @@ fn a_running_command_owns_the_lines_it_is_still_printing() {
         Some("cargo build")
     );
     assert_eq!(s.at_line(40, 40), None, "past the end of the buffer");
+}
+
+/// OSC 133 is the one thing crew cannot derive: a process it never saw start
+/// tells it nothing about how the command ENDED.
+#[test]
+fn a_shell_that_reports_an_exit_status_marks_that_block() {
+    let mut s = Spans::default();
+    s.started("cargo build".into(), 10);
+    s.finished(Some(1), 40);
+    let span = s.nth_back(0, 60).expect("the block");
+    assert_eq!(span.exit, Some(1));
+    assert_eq!(span.to, Some(40), "the shell's boundary closed it");
+    assert_eq!(s.failed_rows(60, 60, 0), vec![10]);
+}
+
+/// A success is not a failure, and neither is a shell that said nothing —
+/// which is not the same as "it succeeded", and is why nothing is drawn.
+#[test]
+fn only_a_reported_failure_is_marked() {
+    let mut ok = Spans::default();
+    ok.started("ls".into(), 0);
+    ok.finished(Some(0), 4);
+    assert!(ok.failed_rows(10, 10, 0).is_empty());
+
+    let mut silent = Spans::default();
+    silent.started("ls".into(), 0);
+    silent.close(4);
+    assert!(silent.failed_rows(10, 10, 0).is_empty());
+    assert_eq!(silent.nth_back(0, 10).unwrap().exit, None);
+}
+
+/// A `D` arriving just after the foreground-process watch already closed the
+/// span is the SAME command — dropping it would throw away the one fact
+/// polling cannot supply.
+#[test]
+fn a_status_arriving_after_the_poll_closed_the_span_still_lands() {
+    let mut s = Spans::default();
+    s.started("cargo test".into(), 0);
+    s.close(20); // the poll noticed first
+    s.finished(Some(101), 21);
+    let span = s.nth_back(0, 30).unwrap();
+    assert_eq!(span.exit, Some(101));
+    assert_eq!(span.to, Some(20), "the earlier boundary is kept");
+}
+
+#[test]
+fn a_status_with_no_span_to_attach_it_to_is_dropped() {
+    let mut s = Spans::default();
+    s.finished(Some(1), 5);
+    assert_eq!(s.len(), 0);
+}
+
+/// Failed rows use the same window arithmetic the start ticks do, so the two
+/// ladders can never disagree about where a block begins.
+#[test]
+fn a_failure_tick_lands_on_the_same_row_its_start_tick_would() {
+    let mut s = Spans::default();
+    s.started("boom".into(), 100);
+    s.finished(Some(2), 120);
+    for scroll in 0..40 {
+        assert_eq!(
+            s.failed_rows(200, 50, scroll),
+            s.start_rows(200, 50, scroll),
+            "at scroll {scroll}"
+        );
+    }
 }

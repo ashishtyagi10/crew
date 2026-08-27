@@ -11,6 +11,15 @@
 //! when the prompt returns can carry a line or two of the next thing. What it
 //! buys is `/out` — the last command's output on its own, in a pane you can
 //! read — without asking anyone to change their shell configuration.
+//!
+//! ## The one thing polling cannot see
+//!
+//! How the command *ended*. A process crew never saw start tells it nothing
+//! about its exit status, and no amount of polling recovers one. A shell with
+//! an OSC 133 integration says so directly (`ESC ] 133 ; D ; 1 ST`), and when
+//! it does, [`Spans::finished`] records it and the pane's border marks that
+//! block's first row in the alarm colour. A shell that says nothing keeps
+//! exactly the blocks it had before — this is an upgrade, not a requirement.
 
 /// One command's output, as buffer line indices.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -21,6 +30,10 @@ pub(crate) struct Span {
     /// while it is still running.
     pub from: usize,
     pub to: Option<usize>,
+    /// The exit status the shell reported for it (OSC 133 `D`). `None` for
+    /// every shell with no integration configured — which is not the same as
+    /// "it succeeded", and is why nothing is drawn for it.
+    pub exit: Option<i32>,
 }
 
 /// How many spans a pane remembers. Enough to reach back through a working
@@ -41,6 +54,7 @@ impl Spans {
             name,
             from: at,
             to: None,
+            exit: None,
         });
         while self.0.len() > CAP {
             self.0.remove(0);
@@ -52,6 +66,39 @@ impl Spans {
         if let Some(open) = self.0.last_mut().filter(|s| s.to.is_none()) {
             open.to = Some(at.max(open.from));
         }
+    }
+
+    /// The shell reported that the last command finished with `code`, at
+    /// buffer line `at` (OSC 133 `D`).
+    ///
+    /// It closes the span as well as marking it: the shell knows the command
+    /// is over a full poll before the foreground-process watch will notice,
+    /// and a boundary the shell states beats one crew inferred. Applied to
+    /// the LAST span whether or not it is still open — a `D` arriving just
+    /// after the poll closed the span is the same command, and the alternative
+    /// is dropping the one fact polling cannot supply.
+    pub(crate) fn finished(&mut self, code: Option<i32>, at: usize) {
+        let Some(last) = self.0.last_mut() else {
+            return;
+        };
+        if last.to.is_none() {
+            last.to = Some(at.max(last.from));
+        }
+        last.exit = code;
+    }
+
+    /// Which visible rows hold the first line of a command that FAILED. Same
+    /// window arithmetic as [`Self::start_rows`], over the spans a shell
+    /// reported a non-zero status for.
+    pub(crate) fn failed_rows(&self, now: usize, visible: usize, scroll: usize) -> Vec<u16> {
+        let first = now.saturating_sub(visible).saturating_sub(scroll);
+        self.0
+            .iter()
+            .filter(|s| s.exit.is_some_and(|c| c != 0))
+            .filter_map(|s| s.from.checked_sub(first))
+            .filter(|row| *row < visible)
+            .map(|row| row as u16)
+            .collect()
     }
 
     /// Whether this span has any output in a buffer of `now` lines. A

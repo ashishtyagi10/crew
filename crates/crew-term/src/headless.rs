@@ -25,6 +25,10 @@ impl HeadlessTerm {
         self.core.title()
     }
 
+    pub fn take_shell(&mut self) -> Vec<crate::osc::ShellMark> {
+        self.core.take_shell()
+    }
+
     pub fn take_cwd(&mut self) -> Option<std::path::PathBuf> {
         self.core.take_cwd()
     }

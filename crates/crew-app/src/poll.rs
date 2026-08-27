@@ -211,6 +211,25 @@ impl CrewApp {
                     asked = t.pty.take_notify();
                     new_cwd = t.pty.take_cwd();
                     matches = t.pty.take_matches();
+                    // Semantic prompt marks (OSC 133), drained on the READ
+                    // tick rather than the once-a-second process poll: the
+                    // whole reason to listen for these is that they are
+                    // exact, and a second of slack would put the boundary
+                    // back where polling already had it.
+                    for mark in t.pty.take_shell() {
+                        let at = t.pty.scrollable_lines();
+                        match mark {
+                            crew_term::ShellMark::Done(code) => t.spans.finished(code, at),
+                            // A prompt being drawn means whatever was running
+                            // is over, whether or not the shell said `D`.
+                            crew_term::ShellMark::Prompt => t.spans.close(at),
+                            // `C` is where output begins. The span is opened
+                            // by the foreground-process watch, which is also
+                            // the only thing that knows the command's NAME —
+                            // this only tightens a boundary polling guessed.
+                            crew_term::ShellMark::OutputStart => {}
+                        }
+                    }
                     n
                 }
                 PaneContent::Chat(c) => {

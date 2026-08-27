@@ -113,6 +113,10 @@ impl TermCore {
         self.osc7.take_cwd()
     }
 
+    pub(crate) fn take_shell(&mut self) -> Vec<crate::osc::ShellMark> {
+        self.osc7.take_shell()
+    }
+
     /// Take any pending OSC 52 clipboard-store text (clearing it).
     pub(crate) fn take_clipboard(&self) -> Option<String> {
         self.events.clipboard.lock().unwrap().take()

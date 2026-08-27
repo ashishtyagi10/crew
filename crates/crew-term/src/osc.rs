@@ -10,6 +10,19 @@
 //! * **OSC 777** — the other notification spelling
 //!   (`ESC ] 777 ; notify ; <title> ; <body> ST`), which is what most Linux
 //!   tooling emits.
+//! * **OSC 133** — the semantic prompt marks (FinalTerm's, which every shell
+//!   integration since has spoken): `A` a prompt begins, `B` the command line
+//!   begins, `C` its output begins, `D ; <code>` it finished with that exit
+//!   status.
+//!
+//! OSC 133 is the one thing crew genuinely cannot derive. It already knows
+//! where a command's output begins and ends by watching the foreground
+//! process (see `cmdspan`), to one-second granularity and with no shell
+//! configuration at all — but a process it never saw start tells it nothing
+//! about how the command ENDED, and no amount of polling recovers an exit
+//! status. So this is used as an upgrade rather than a requirement: a shell
+//! that says `D;1` gets its failure marked, and one that says nothing keeps
+//! exactly the blocks it had before.
 //!
 //! It is one small state machine, so a sequence split across `feed()` chunks
 //! is still recognised, and it stays allocation-free until a real payload
@@ -44,6 +57,39 @@ enum State {
     /// Saw `ESC` inside the payload (maybe `ST` = `ESC \`).
     PayloadEsc,
 }
+
+/// A semantic mark a shell integration emitted (OSC 133).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ShellMark {
+    /// `A` — a new prompt is being drawn. Whatever was running is over, even
+    /// if the shell never said so.
+    Prompt,
+    /// `C` — the command's output starts here.
+    OutputStart,
+    /// `D ; <code>` — the command finished. `None` when the shell reported no
+    /// status, which some do on an interrupted line.
+    Done(Option<i32>),
+}
+
+impl ShellMark {
+    /// Parse an OSC 133 payload (`A`, `B`, `C`, `D;1`, sometimes with extra
+    /// `;key=value` parameters after it). `None` for `B` and for anything
+    /// unrecognised: `B` says the command LINE starts, which is where the
+    /// user is typing, and crew has nothing to do with that.
+    fn parse(rest: &str) -> Option<ShellMark> {
+        let mut parts = rest.split(';');
+        Some(match parts.next()?.trim() {
+            "A" => ShellMark::Prompt,
+            "C" => ShellMark::OutputStart,
+            "D" => ShellMark::Done(parts.next().and_then(|c| c.trim().parse().ok())),
+            _ => return None,
+        })
+    }
+}
+
+/// Most marks queued between drains. A shell emits a handful per command;
+/// this only has to survive a burst of replayed scrollback.
+const MAX_MARKS: usize = 64;
 
 /// What a program said about its own progress (OSC 9;4).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -91,6 +137,8 @@ pub(crate) struct OscScanner {
     notify: Option<(String, String)>,
     /// The latest progress report, `None` once cleared by the program.
     progress: Option<Progress>,
+    /// Semantic marks seen since the last drain, oldest first.
+    marks: Vec<ShellMark>,
     /// The latest reported directory.
     cwd: Option<PathBuf>,
     /// Set when `cwd` changed since the last `take`.
@@ -106,6 +154,11 @@ impl OscScanner {
         } else {
             None
         }
+    }
+
+    /// The semantic marks seen since the last call, oldest first.
+    pub(crate) fn take_shell(&mut self) -> Vec<ShellMark> {
+        std::mem::take(&mut self.marks)
     }
 
     /// Scan a chunk of raw PTY output, updating the cwd when a complete OSC 7
@@ -136,7 +189,7 @@ impl OscScanner {
                     .ok()
                     .and_then(|n| n.parse().ok())
                 {
-                    Some(n @ (7 | 9 | 777)) => {
+                    Some(n @ (7 | 9 | 133 | 777)) => {
                         self.which = n;
                         self.buf.clear();
                         self.state = State::Payload;
@@ -180,6 +233,7 @@ impl OscScanner {
         match self.which {
             7 => self.finish_cwd(),
             9 => self.finish_osc9(),
+            133 => self.finish_osc133(),
             _ => self.finish_osc777(),
         }
         self.buf.clear();
@@ -191,6 +245,22 @@ impl OscScanner {
             if self.cwd.as_deref() != Some(path.as_path()) {
                 self.cwd = Some(path);
                 self.dirty = true;
+            }
+        }
+    }
+
+    /// A semantic prompt mark. Queued rather than applied: the buffer's line
+    /// count is what a mark MEANS, and only the caller knows that.
+    fn finish_osc133(&mut self) {
+        let Ok(rest) = std::str::from_utf8(&self.buf) else {
+            return;
+        };
+        if let Some(mark) = ShellMark::parse(rest) {
+            self.marks.push(mark);
+            // A shell replaying a long scrollback can emit hundreds of these
+            // before anyone drains them; keep the newest.
+            while self.marks.len() > MAX_MARKS {
+                self.marks.remove(0);
             }
         }
     }
@@ -289,6 +359,92 @@ mod tests {
             s.feed(c);
         }
         s.take_cwd()
+    }
+
+    fn marks(bytes: &[u8]) -> Vec<ShellMark> {
+        let mut s = OscScanner::default();
+        s.feed(bytes);
+        s.take_shell()
+    }
+
+    /// The four semantic marks, in both terminations a shell may use.
+    #[test]
+    fn the_semantic_prompt_marks_are_read() {
+        assert_eq!(marks(b"\x1b]133;A\x07"), vec![ShellMark::Prompt]);
+        assert_eq!(marks(b"\x1b]133;C\x1b\\"), vec![ShellMark::OutputStart]);
+        assert_eq!(marks(b"\x1b]133;D;1\x07"), vec![ShellMark::Done(Some(1))]);
+        assert_eq!(marks(b"\x1b]133;D\x07"), vec![ShellMark::Done(None)]);
+    }
+
+    /// `B` says the command LINE begins, which is where the user is typing —
+    /// crew has nothing to do with that, so it is not queued.
+    #[test]
+    fn the_command_line_mark_is_ignored() {
+        assert!(marks(b"\x1b]133;B\x07").is_empty());
+        assert!(marks(b"\x1b]133;Z\x07").is_empty());
+        assert!(marks(b"\x1b]133;\x07").is_empty());
+    }
+
+    /// Shell integrations append their own parameters after the status; the
+    /// status is the first field and the rest is theirs.
+    #[test]
+    fn extra_parameters_after_the_status_are_ignored() {
+        assert_eq!(
+            marks(b"\x1b]133;D;130;aid=7\x07"),
+            vec![ShellMark::Done(Some(130))]
+        );
+        assert_eq!(marks(b"\x1b]133;A;cl=m\x07"), vec![ShellMark::Prompt]);
+    }
+
+    /// A whole command's worth of marks, in order, and drained once.
+    #[test]
+    fn marks_queue_in_order_and_drain_once() {
+        let mut s = OscScanner::default();
+        s.feed(b"\x1b]133;A\x07prompt$ \x1b]133;C\x07output\r\n\x1b]133;D;0\x07");
+        assert_eq!(
+            s.take_shell(),
+            vec![
+                ShellMark::Prompt,
+                ShellMark::OutputStart,
+                ShellMark::Done(Some(0))
+            ]
+        );
+        assert!(s.take_shell().is_empty(), "draining takes them");
+    }
+
+    /// Split across `feed` chunks, like every other sequence here.
+    #[test]
+    fn a_mark_split_across_reads_is_still_read() {
+        let mut s = OscScanner::default();
+        for c in [&b"\x1b]13"[..], b"3;D;", b"7\x07"] {
+            s.feed(c);
+        }
+        assert_eq!(s.take_shell(), vec![ShellMark::Done(Some(7))]);
+    }
+
+    /// A shell replaying a long scrollback can emit hundreds before anyone
+    /// drains them. The queue keeps the newest rather than growing.
+    #[test]
+    fn the_queue_is_bounded_and_keeps_the_newest() {
+        let mut s = OscScanner::default();
+        for i in 0..(MAX_MARKS + 10) {
+            s.feed(format!("\x1b]133;D;{i}\x07").as_bytes());
+        }
+        let got = s.take_shell();
+        assert_eq!(got.len(), MAX_MARKS);
+        assert_eq!(
+            got.last(),
+            Some(&ShellMark::Done(Some(MAX_MARKS as i32 + 9)))
+        );
+    }
+
+    /// OSC 133 must not disturb the sequences that were already read.
+    #[test]
+    fn the_other_sequences_still_work_around_it() {
+        let mut s = OscScanner::default();
+        s.feed(b"\x1b]133;A\x07\x1b]7;file://host/tmp\x07\x1b]133;D;0\x07");
+        assert_eq!(s.take_cwd(), Some(PathBuf::from("/tmp")));
+        assert_eq!(s.take_shell().len(), 2);
     }
 
     #[test]

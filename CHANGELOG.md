@@ -8,6 +8,30 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.13
+
+**Crew now reads OSC 133, the semantic prompt marks.** It has never needed a
+shell integration to know where a command's output begins and ends — it
+watches the pane's foreground process, and the two transitions it sees are the
+two edges of a block. But that is the one thing polling cannot see all of: a
+process crew never saw start tells it nothing about how the command *ended*,
+and no amount of watching recovers an exit code.
+
+So when a shell reports one (`ESC ] 133 ; D ; 1 ST`), crew uses it: **the
+block's first row is marked on the left border in the alarm colour** — the same
+tick that says "here is where this began", said about a command that went
+wrong — and the name on the top border carries the status while you are
+scrolled inside that block (`╶ cargo build ✗101`). A prompt mark (`A`) also
+closes the block exactly, a full poll before the process watch would notice,
+which is the whole reason to listen: these are precise where polling is
+one-second granular.
+
+It is an upgrade, not a requirement. A shell that says nothing keeps exactly
+the blocks it had before, and a block with no reported status is deliberately
+not drawn as a success — that is not the same claim. `B` (the command *line*
+begins) is ignored: that is where the user is typing, and crew has nothing to
+do with it.
+
 ## 0.19.12
 
 **`v` in the viewer lays a review out side by side.** A unified diff is a

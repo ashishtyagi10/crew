@@ -26,6 +26,7 @@ fn loaded(git: &GitInfo, cols: u16) -> Vec<crew_render::CellView> {
         elapsed: Some("2m14".into()),
         pinned: true,
         at_cmd: None,
+        fail_rows: &[],
         cmd_rows: &[],
         err_rows: &[],
         unread: 128,

@@ -214,9 +214,24 @@ fn push_pane_scenes(
             let first = now
                 .saturating_sub(usize::from(p.grid.rows))
                 .saturating_sub(t.pty.display_offset());
-            t.spans.at_line(first, now).map(|s| s.name.clone())
+            // A block the shell reported a failure for says so here too: the
+            // left border marks WHERE it began, and while you are scrolled
+            // inside it the name on the top border is what you are reading.
+            t.spans.at_line(first, now).map(|s| match s.exit {
+                Some(code) if code != 0 => format!("{} \u{2717}{code}", s.name),
+                _ => s.name.clone(),
+            })
         }
         _ => None,
+    };
+    // …and which of them the shell said went wrong (OSC 133).
+    let fail_rows = match &p.content {
+        PaneContent::Terminal(t) if marks => t.spans.failed_rows(
+            t.pty.scrollable_lines(),
+            usize::from(p.grid.rows),
+            t.pty.display_offset(),
+        ),
+        _ => Vec::new(),
     };
     // Rows of this pane's visible output that read as errors. Computed from
     // the cells already built for the frame rather than by re-reading the
@@ -341,6 +356,7 @@ fn push_pane_scenes(
                 pinned,
                 at_cmd: at_cmd.as_deref(),
                 cmd_rows: &cmd_rows,
+                fail_rows: &fail_rows,
                 err_rows: &err_rows,
                 unread,
                 doc: matches!(p.content, PaneContent::View(_) | PaneContent::Chat(_)),
