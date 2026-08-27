@@ -5,6 +5,14 @@ use crew_render::CellView;
 
 use crate::gridrows::grid_lines;
 
+/// The ink a match's gutter tick wears: the highlight colour is a background
+/// wash, and a single cell painted in it disappears against the page — so the
+/// tick takes the wash's own hue at ink strength.
+pub(crate) fn hit_mark() -> (u8, u8, u8) {
+    let t = crew_theme::theme();
+    crew_theme::readable::against(t.find_hl_bg, t.page_bg, 3.0)
+}
+
 /// Highlight every occurrence of `term` in the `cols × rows` grid `cells`,
 /// smart-case (case-insensitive unless `term` has an uppercase letter). Returns
 /// the number of matches highlighted. Builds the rows once, then washes once.

@@ -1,4 +1,4 @@
-use super::{count, position, thumb, ticks, MIN_ROWS};
+use super::{count, hit_ticks, position, thumb, ticks, MIN_ROWS};
 use crate::panecard::Bar;
 use crew_render::CellView;
 
@@ -17,6 +17,7 @@ fn bar(scroll: usize, total: usize) -> Bar<'static> {
         focus_t: 1.0,
         git: None,
         ticks: &[],
+        hits: &[],
         unread: 0,
         doc: false,
     }
@@ -230,6 +231,7 @@ fn landmark_ticks_are_placed_down_the_gutter_and_deduplicated() {
         total: 400,
         doc: true,
         ticks: &ticks_at,
+        hits: &[],
         unread: 0,
         ..bar(0, 400)
     };
@@ -264,6 +266,7 @@ fn the_thumb_covers_the_landmark_it_sits_on() {
         total: 400,
         doc: true,
         ticks: &ticks_at,
+        hits: &[],
         unread: 0,
         ..bar(0, 400)
     };
@@ -296,9 +299,71 @@ fn no_landmarks_and_no_room_both_draw_nothing() {
         total: 400,
         doc: true,
         ticks: &ticks_at,
+        hits: &[],
         unread: 0,
         ..none
     };
     ticks(&mut v, 40, 4, &tiny);
     assert!(v.is_empty(), "a four-row card drew a gutter");
+}
+
+/// While you are searching, the gutter shows where the matches are — the
+/// question the gutter is answering has changed.
+#[test]
+fn search_hits_are_marked_in_the_gutter_in_their_own_colour() {
+    let _g = crate::app::theme_test_guard();
+    let hits_at: Vec<usize> = vec![10, 200, 390];
+    let b = Bar {
+        scroll: 0,
+        total: 400,
+        doc: true,
+        hits: &hits_at,
+        ..bar(0, 400)
+    };
+    let mut v = Vec::new();
+    hit_ticks(&mut v, 40, 20, &b);
+    assert_eq!(v.len(), 3, "a hit went unmarked");
+    assert!(v.iter().all(|c| c.col == 39), "a hit tick left the gutter");
+    assert!(
+        v.iter().all(|c| c.fg == crate::findhl::hit_mark()),
+        "hit ticks are not in the search's colour"
+    );
+    let mut ys: Vec<u16> = v.iter().map(|c| c.row).collect();
+    ys.sort_unstable();
+    assert!(ys[0] < ys[1] && ys[1] < ys[2], "{ys:?}");
+    assert!(ys.iter().all(|&y| (1..19).contains(&y)), "{ys:?}");
+}
+
+/// A hit and a landmark in the same cell: the hit wins, because that is what
+/// you are looking for right now.
+#[test]
+fn a_hit_is_drawn_over_the_landmark_it_shares_a_cell_with() {
+    let _g = crate::app::theme_test_guard();
+    let same: Vec<usize> = vec![0];
+    let b = Bar {
+        scroll: 0,
+        total: 400,
+        doc: true,
+        ticks: &same,
+        hits: &same,
+        ..bar(0, 400)
+    };
+    let mut v = Vec::new();
+    ticks(&mut v, 40, 20, &b);
+    hit_ticks(&mut v, 40, 20, &b);
+    let at: Vec<(u8, u8, u8)> = v
+        .iter()
+        .filter(|c| c.col == 39 && c.row == 1)
+        .map(|c| c.fg)
+        .collect();
+    assert_eq!(at, vec![crate::findhl::hit_mark()], "{at:?}");
+}
+
+/// No search, no marks.
+#[test]
+fn a_pane_with_no_search_marks_nothing() {
+    let _g = crate::app::theme_test_guard();
+    let mut v = Vec::new();
+    hit_ticks(&mut v, 40, 20, &bar(0, 400));
+    assert!(v.is_empty());
 }

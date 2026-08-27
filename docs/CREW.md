@@ -619,7 +619,11 @@ longer aim at.
   numbered-gutter code, aligned CSV, colored diffs, or a metadata card for
   anything else). ↑/↓ and PageUp/PageDown/Home/End scroll, `r` reloads from
   disk, `s` toggles raw text (markdown and CSV), `/` searches (`n`/`N` for
-  next/previous hit), **`]`/`[` step the document's structure** — in a diff,
+  next/previous hit — the needle is drawn on the pane's **last row** as you
+  type it, with a caret while typing and the tally once confirmed, or "no
+  matches" in the alarm colour; the hits are marked down the card's **gutter**
+  in the search's own colour, over the landmark ticks and under the thumb),
+  **`]`/`[` step the document's structure** — in a diff,
   file to file and hunk to hunk; in markdown, heading to heading — `e`
   opens `$EDITOR`, `o` hands the file to the OS default app, **Cmd+click**
   opens a rendered markdown link, `Esc` closes. At either end `]`/`[` do

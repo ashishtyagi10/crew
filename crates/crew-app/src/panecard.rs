@@ -48,6 +48,10 @@ pub(crate) struct Bar<'a> {
     /// review's files and hunks. Drawn under the thumb, so a landmark you are
     /// currently sitting on is not hidden by it.
     pub ticks: &'a [usize],
+    /// Rendered rows holding a search hit, drawn over the landmark ticks in
+    /// the search's own colour: while you are looking for something, where
+    /// the matches are outranks where the sections are.
+    pub hits: &'a [usize],
     /// Lines that arrived since this pane was last read, drawn beside the
     /// activity dot ([`crate::unread`]). `0` draws nothing.
     pub unread: usize,
@@ -275,6 +279,7 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
     // the scrollback, not just how far from its bottom. Landmarks first, so
     // the thumb draws over the one you are on.
     crate::panescroll::ticks(&mut v, cols, rows, b);
+    crate::panescroll::hit_ticks(&mut v, cols, rows, b);
     crate::panescroll::thumb(&mut v, cols, rows, b);
     // Focus brackets last, so they sit on the finished frame — and only on the
     // focused card, which is the one piece of state they exist to announce.
