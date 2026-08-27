@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.79
+
+**The first frame says what this build brought.** Crew ships a release most
+days, and every one of them writes its headline into the changelog — which is
+compiled into the binary already, for `/about`. The welcome screen now shows
+that headline as one dim line under the hint: `new in 0.18.79 · The first frame
+says what this build brought`.
+
+Discovery is the whole reason. A terminal that grew a `/pin`, an unread
+divider, error bars and word-level diffs in a fortnight has no way to mention
+any of it, and nobody reads a changelog they have to go and find. A narrow
+window drops the line rather than clipping it: half a sentence is worse than
+none.
+
 ## 0.18.78
 
 **Two places that were counting instead of saying.**
