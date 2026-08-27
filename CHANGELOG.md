@@ -8,6 +8,26 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.57
+
+**Dim text is dim.** SGR 2 is how a CLI says "this is context, not the answer",
+and agent CLIs put half of what they print in it. Crew read the flag, kept it
+in the grid, and drew the cell at full strength anyway — so a `claude` or
+`codex` pane was a wall of equally loud lines, with no second voice at all.
+
+A dim cell is now mixed toward the page **in linear light**, so the colour
+survives the quieting (a dim red is still red — otherwise every colour-coded
+secondary line turns the same grey), and then held to a **lower contrast floor
+than body text**: quieter than normal, because that is what was asked for, but
+never below readable. That floor matters more here than anywhere: a program
+that sampled the page once and guessed wrong is already painting near the
+background, and dimming *that* lands on top of it.
+
+**SGR 8 (conceal) is honoured** as well. A program hiding what you type — a
+password prompt — now has it hidden. The cell keeps its background, so a
+concealed field still occupies the space it claimed, and the characters stay in
+the grid for a selection to copy.
+
 ## 0.18.56
 
 **`]` and `[` walk the review.** A diff is not read top to bottom; it is walked

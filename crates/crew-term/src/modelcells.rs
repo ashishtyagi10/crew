@@ -114,7 +114,13 @@ impl TermCore {
                 // Legibility floor: a program that sampled the background once
                 // (or guessed wrong) keeps painting for the other theme after a
                 // live switch — nudge any too-close fg until it reads.
-                let fg = crate::contrast::ensure_min_contrast(fg, bg);
+                // SGR 2 is how a CLI says "this line is context, not the
+                // answer" — half of what an agent prints is in it. Dropping
+                // it made every line equally loud.
+                let fg = match ind.flags.contains(Flags::DIM) {
+                    true => crate::contrast::dimmed(fg, bg),
+                    false => crate::contrast::ensure_min_contrast(fg, bg),
+                };
                 // SGR 58's colour resolves against the same palette the text
                 // does; without one the renderer falls back to the cell's fg.
                 let uc = ind.underline_color().map(|c| resolve_color(c, palette, fg));
@@ -138,7 +144,14 @@ impl TermCore {
                 Some(RenderCell {
                     col: ind.point.column.0 as u16,
                     row: (ind.point.line.0 + off) as u16,
-                    c: ind.c,
+                    // SGR 8 conceals: a program that hides what you are
+                    // typing (a password prompt) must not have it drawn
+                    // anyway. The cell keeps its background, so a concealed
+                    // field still occupies the space it claimed.
+                    c: match ind.flags.contains(Flags::HIDDEN) {
+                        true => ' ',
+                        false => ind.c,
+                    },
                     fg,
                     bg,
                     bold,

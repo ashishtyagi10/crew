@@ -56,7 +56,36 @@ pub(crate) fn ratio(a: (u8, u8, u8), b: (u8, u8, u8)) -> f32 {
 /// background) just enough to read. Channels scale together in linear light,
 /// so hue survives; already-readable colours pass through untouched.
 pub(crate) fn ensure_min_contrast(fg: (u8, u8, u8), bg: (u8, u8, u8)) -> (u8, u8, u8) {
-    if ratio(fg, bg) >= MIN_CONTRAST {
+    ensure_contrast(fg, bg, MIN_CONTRAST)
+}
+
+/// How far SGR 2 moves a foreground toward its background, in linear light.
+/// Enough to read as a second voice; not so far that the line stops being a
+/// line.
+const DIM_MIX: f32 = 0.45;
+
+/// The floor a *dim* cell is held to. Lower than [`MIN_CONTRAST`] on purpose —
+/// the program asked for quieter, and answering with the same contrast as
+/// body text would be ignoring it — but a dim that cannot be read is a line
+/// dropped rather than a line whispered.
+pub(crate) const DIM_CONTRAST: f32 = 2.0;
+
+/// SGR 2: the same colour, spoken quietly. Mixed toward the background in
+/// linear light so hue survives, then floored — agent CLIs put half their
+/// output in dim, and on a page whose colours they guessed wrong that mix can
+/// land on top of the background.
+pub(crate) fn dimmed(fg: (u8, u8, u8), bg: (u8, u8, u8)) -> (u8, u8, u8) {
+    let mix = |f: u8, b: u8| {
+        let (f, b) = (to_linear(f), to_linear(b));
+        to_srgb(f + (b - f) * DIM_MIX)
+    };
+    let out = (mix(fg.0, bg.0), mix(fg.1, bg.1), mix(fg.2, bg.2));
+    ensure_contrast(out, bg, DIM_CONTRAST)
+}
+
+/// [`ensure_min_contrast`] against an explicit floor.
+fn ensure_contrast(fg: (u8, u8, u8), bg: (u8, u8, u8), min: f32) -> (u8, u8, u8) {
+    if ratio(fg, bg) >= min {
         return fg;
     }
     let lf = luminance(fg);
@@ -64,12 +93,12 @@ pub(crate) fn ensure_min_contrast(fg: (u8, u8, u8), bg: (u8, u8, u8)) -> (u8, u8
     let lin = (to_linear(fg.0), to_linear(fg.1), to_linear(fg.2));
     if lb >= 0.18 {
         // Light-ish background → darken the foreground to the target luminance.
-        let target = ((lb + 0.05) / MIN_CONTRAST - 0.05).max(0.0);
+        let target = ((lb + 0.05) / min - 0.05).max(0.0);
         let k = if lf > 0.0 { target / lf } else { 0.0 };
         (to_srgb(lin.0 * k), to_srgb(lin.1 * k), to_srgb(lin.2 * k))
     } else {
         // Dark background → lighten the foreground toward white.
-        let target = (MIN_CONTRAST * (lb + 0.05) - 0.05).min(1.0);
+        let target = (min * (lb + 0.05) - 0.05).min(1.0);
         let t = if lf < 1.0 {
             (target - lf) / (1.0 - lf)
         } else {
