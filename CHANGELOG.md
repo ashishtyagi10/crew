@@ -8,6 +8,27 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.82
+
+**Two invisible things made visible** (and a release that forgot to say so).
+
+A **wrapped line now says it is wrapped**: the gutter carries a `↪` where its
+line number would be. A blank gutter beside a wrapped row and a blank gutter
+beside a genuinely empty numbered row are the same blank, and in a wrapped file
+most rows are one or the other.
+
+And a review shows **trailing whitespace on added lines**, as middle dots in
+the alarm colour. It is the nit every diff tool marks for the same reason: it
+is invisible by construction, so the author did not mean it and the reviewer
+cannot see it. Only added lines — what a removed line trailed with is not news
+— and only past the `+` marker, so a line of pure indentation still reads as a
+line.
+
+Both shipped in the tree tagged `v0.18.81`, whose version bump and changelog
+entry were lost to a failed edit: that build reports itself as `0.18.80`. This
+release carries the bump the last one should have, so `/update` lands on a
+binary whose version matches its tag.
+
 ## 0.18.80
 
 **`/marks` turns the border markings off.** The last few releases taught pane

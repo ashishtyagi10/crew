@@ -633,7 +633,10 @@ longer aim at.
   single, read-only pane over the file, rendered by format (markdown,
   numbered-gutter code, aligned CSV, colored diffs, or a metadata card for
   anything else). ↑/↓ and PageUp/PageDown/Home/End scroll, `r` reloads from
-  disk, `s` toggles raw text (markdown and CSV), `/` searches (`n`/`N` for
+  disk — a **wrapped row says it is one**, with a `↪` in the gutter where its
+  line number would be, since a blank gutter beside a wrapped line and a blank
+  gutter beside an empty line are the same blank — `s` toggles raw text
+  (markdown and CSV), `/` searches (`n`/`N` for
   next/previous hit — the needle is drawn on the pane's **last row** as you
   type it, with a caret while typing and the tally once confirmed, or "no
   matches" in the alarm colour; the hits are marked down the card's **gutter**
@@ -660,7 +663,10 @@ longer aim at.
   full strength — the text the two share recedes toward the page — so you read
   *what* changed instead of hunting for it inside two lines of near-identical
   code. Word edges are respected (`foo_bar` → `foo_baz` marks the whole
-  identifier, not the letter); runs that do not correspond line-for-line are
+  identifier, not the letter); **trailing whitespace on an added line** is
+  shown as middle dots in the alarm colour — the review nit every diff tool
+  marks, because it is invisible by construction and nobody meant to add it;
+  runs that do not correspond line-for-line are
   left unmarked, because a guess drawn as a mark is a lie about what changed;
   and a pair that differs almost everywhere is left plain, since marking all
   of both is not a mark. Hunk headings are set apart from the function
