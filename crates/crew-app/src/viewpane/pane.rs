@@ -4,6 +4,7 @@ use std::cell::RefCell;
 use std::path::PathBuf;
 use std::sync::mpsc::Receiver;
 
+use super::blamejob::Blame;
 use super::detect::Format;
 use super::load::{self, Loaded};
 use super::search::Search;
@@ -26,6 +27,10 @@ pub(crate) struct ViewCache {
     /// Rows `]` / `[` step between, in this rendering (see
     /// [`super::outline`]). Empty for a rung with no structure to step.
     pub marks: Vec<super::outline::Mark>,
+    /// Columns the blame gutter claimed in this rendering. Part of the cache
+    /// key in spirit: turning blame on or off changes the width the text was
+    /// wrapped at, so the cache must be rebuilt, not merely re-decorated.
+    pub blame_w: usize,
 }
 
 pub(crate) struct ViewPane {
@@ -53,6 +58,10 @@ pub(crate) struct ViewPane {
     /// these, so quitting with only one of these open can't overwrite a
     /// saved multi-pane session with a changelog viewer.
     pub ephemeral: bool,
+    /// Who last touched each line ([`super::blame`]), when `/blame` has been
+    /// asked and the answer has arrived. `Off` — the default — is a viewer
+    /// with no blame column at all.
+    pub blame: Blame,
     /// A 1-based line to land on once the load arrives — from a clicked
     /// `path:line` reference. The read is on a worker thread, so the pane
     /// exists before there is anything to scroll; this is applied when the
@@ -74,6 +83,7 @@ impl ViewPane {
             cache: RefCell::new(None),
             editor_born: None,
             ephemeral: false,
+            blame: Blame::default(),
             goto: None,
         }
     }
@@ -140,6 +150,9 @@ impl ViewPane {
         // reload lands — drop it rather than leave hits pointing at lines
         // that no longer say what they used to.
         self.search = None;
+        // …and so is a blame: the file is being re-read because it changed,
+        // and a per-line answer about the old text would label the new one.
+        self.blame = Blame::Off;
     }
 }
 

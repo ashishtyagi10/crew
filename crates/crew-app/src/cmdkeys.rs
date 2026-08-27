@@ -22,7 +22,7 @@ pub(crate) fn key_for(cmd: &str) -> Option<&'static str> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::cmddefs::COMMANDS;
+    use crate::cmddefs::commands;
 
     /// A shortcut column that names a command the palette does not have is a
     /// column that can never be shown — and one that has drifted out of date
@@ -31,7 +31,7 @@ mod tests {
     fn every_shortcut_names_a_command_that_exists() {
         for (name, chord) in KEYS {
             assert!(
-                COMMANDS.iter().any(|c| c.name == *name),
+                commands().any(|c| c.name == *name),
                 "{name} ({chord}) is not a command"
             );
         }

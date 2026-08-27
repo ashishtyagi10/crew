@@ -3,9 +3,7 @@ use super::*;
 #[test]
 fn palette_hides_shell_and_run_but_dispatch_keeps_them() {
     assert!(
-        !COMMANDS
-            .iter()
-            .any(|c| c.name == "/shell" || c.name == "/run"),
+        !crate::cmddefs::commands().any(|c| c.name == "/shell" || c.name == "/run"),
         "bare text replaced these palette rows"
     );
 }
@@ -60,9 +58,7 @@ fn slash_completes_restore_and_restart_is_gone() {
     let names: Vec<&str> = matches("/res").iter().map(|c| c.name).collect();
     assert!(names.contains(&"/restore"));
     assert!(
-        !crate::suggest::COMMANDS
-            .iter()
-            .any(|c| c.name == "/restart"),
+        !crate::cmddefs::commands().any(|c| c.name == "/restart"),
         "/restart should be dropped from the palette"
     );
 }
@@ -80,7 +76,7 @@ fn edit_and_open_were_dropped_for_far() {
     // /edit and /open input-bar commands are gone from the palette.
     for name in ["/edit", "/open"] {
         assert!(
-            !crate::suggest::COMMANDS.iter().any(|c| c.name == name),
+            !crate::suggest::commands().any(|c| c.name == name),
             "{name} should be dropped"
         );
     }

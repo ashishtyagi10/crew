@@ -141,6 +141,38 @@ impl CrewApp {
     /// `/log` — this session's full activity trail in the file viewer (the
     /// sidebar LOG shows only a 5-line tail). `r` in the viewer re-reads,
     /// so it doubles as a poor man's tail -f.
+    /// `/blame` — ask who last touched each line of the file in the focused
+    /// viewer, or put the column away again.
+    ///
+    /// A toggle rather than a mode: the gutter is the answer to a question
+    /// that was asked, and a permanent blame column is a permanent third of
+    /// the pane spent on history nobody is currently reading. Asking again
+    /// while it is showing turns it off; asking while it is *loading* is
+    /// ignored, since the read is already on its way.
+    pub(crate) fn blame_command(&mut self) {
+        use crate::viewpane::blamejob::Blame;
+        let Some(crate::pane::PaneContent::View(v)) =
+            self.panes.get_mut(self.focused).map(|p| &mut p.content)
+        else {
+            self.set_status("blame: open a file with /view first");
+            return;
+        };
+        match &v.blame {
+            Blame::Loading(_) => self.set_status("still reading the blame\u{2026}"),
+            Blame::On(_) => {
+                v.blame = Blame::Off;
+                v.cache.replace(None);
+                self.set_status("blame off");
+            }
+            Blame::Off => {
+                let path = v.path.clone();
+                v.blame = Blame::start(path);
+                self.set_status("reading the blame\u{2026}");
+            }
+        }
+        self.redraw();
+    }
+
     pub(crate) fn open_log(&mut self) {
         match crate::activitylog::path().filter(|p| p.is_file()) {
             Some(p) => self.open_view(&p.to_string_lossy()),

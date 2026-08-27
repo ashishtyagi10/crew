@@ -23,6 +23,8 @@ impl CrewApp {
             "model" => self.set_model_cmd(""),  // show usage hint
             "batch" => self.spawn_batch_pane(""), // show usage hint
             "md" | "view" => self.open_view(""), // show usage hint
+            // Who last touched each line of the file in the viewer.
+            "blame" => self.blame_command(),
             "smith" | "crew" => self.spawn_crew_pane(), // /crew kept as an alias
             "settings" => self.spawn_settings_pane(),
             "todo" => self.spawn_todo_pane(),
@@ -147,7 +149,7 @@ impl CrewApp {
     fn note_command_run(&mut self, cmd: &str) {
         let head = cmd.split_whitespace().next().unwrap_or(cmd);
         let name = format!("/{head}");
-        if !crate::cmddefs::COMMANDS.iter().any(|c| c.name == name) {
+        if !crate::cmddefs::commands().any(|c| c.name == name) {
             return;
         }
         let list = crate::cmdrecents::record(&name);

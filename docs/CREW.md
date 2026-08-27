@@ -672,6 +672,22 @@ longer aim at.
   shell's only says how much is behind you) with the landmarks marked as dim
   ticks beside it, so a long file shows its shape before you move.
   Chat panes render markdown too — see [Markdown](#markdown).
+- **`/blame`** — asks who last touched each line of the file the viewer has
+  open, and draws it in a column beside the line numbers. Runs are collapsed:
+  a line is labelled only when its commit differs from the line above, so the
+  column reads as *boundaries* — this block arrived here, that block arrived
+  there — rather than as the same sha repeated forty times. `git blame` walks
+  a file's whole history, so the read runs on a worker thread (a blocked winit
+  thread freezes every pane in the grid, agents included); a failure says why
+  on the status line, because a gutter that never appears looks exactly like
+  one still loading.
+
+  It is a toggle, not a mode — `/blame` again puts the column away. The column
+  is `sha author` where the pane can afford it, the sha alone where it cannot,
+  and nothing at all below that; it is never more than a third of the pane,
+  since a blame column that crowds out the code it annotates has answered the
+  wrong question. Reloading the file (`r`, or the `$EDITOR` handoff) drops the
+  blame: it is a per-line answer about text that just changed.
 - **`/notify [on|off|add <text>|clear]`** — drive the notification block from
   the bar: toggle the master switch, add a watched output pattern, or clear
   the patterns (the full set of knobs lives in `/settings`).

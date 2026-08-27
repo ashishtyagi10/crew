@@ -58,6 +58,7 @@ fn a_double_width_glyph_never_straddles_the_grid_edge() {
         raw: false,
         lines: vec![line],
         marks: Vec::new(),
+        blame_w: 0,
     }));
     for c in p.cells(5, 1) {
         let w = crate::chatwidth::char_w(c.c) as u16;

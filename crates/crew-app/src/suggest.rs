@@ -4,7 +4,7 @@
 //! The palette's command table lives in `cmddefs`.
 use std::path::Path;
 
-pub(crate) use crate::cmddefs::{Cmd, COMMANDS};
+pub(crate) use crate::cmddefs::{commands, Cmd};
 use crate::suggestvalues::{expands, options_for};
 
 /// One row in the input-bar palette: either a slash command, or a predefined
@@ -182,8 +182,7 @@ pub(crate) fn matches_with(text: &str, recents: &[String]) -> Vec<&'static Cmd> 
         return Vec::new();
     }
     let q = text[1..].to_lowercase();
-    let mut scored: Vec<(u8, usize, usize, &'static Cmd)> = COMMANDS
-        .iter()
+    let mut scored: Vec<(u8, usize, usize, &'static Cmd)> = commands()
         .enumerate()
         .filter_map(|(i, c)| {
             rank(&c.name[1..], &q).map(|r| (r, crate::cmdrecents::rank_of(recents, c.name), i, c))
@@ -258,8 +257,7 @@ pub(crate) fn suggest(text: &str, history: &[String]) -> Option<String> {
                 .find(|v| v.starts_with(arg) && v != arg)
                 .map(|v| v[arg.len()..].to_string());
         }
-        return COMMANDS
-            .iter()
+        return crate::cmddefs::commands()
             .map(|c| c.name)
             .filter(|name| name.starts_with(text) && *name != text)
             .min_by_key(|name| name.len())
@@ -291,8 +289,7 @@ mod tests;
 pub(crate) fn closest_command(typo: &str) -> Option<&'static str> {
     let typo = typo.split_whitespace().next().unwrap_or("").to_lowercase();
     let shared = |a: &str, b: &str| a.chars().zip(b.chars()).take_while(|(x, y)| x == y).count();
-    crate::cmddefs::COMMANDS
-        .iter()
+    crate::cmddefs::commands()
         .map(|c| (c.name, shared(&typo, c.name.trim_start_matches('/'))))
         .filter(|(_, n)| *n >= 3)
         .max_by_key(|(_, n)| *n)
