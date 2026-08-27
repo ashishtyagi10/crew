@@ -1,6 +1,7 @@
 //! Scrollback search: `/find <term>` scrolls the focused terminal back to the
 //! most recent line containing `term`.
 use crate::app::CrewApp;
+use crate::errscan;
 use crate::pane::PaneContent;
 use crew_term::{RenderCell, TermModel};
 
@@ -141,6 +142,66 @@ impl CrewApp {
         }
     }
 }
+
+/// `/errors`: scroll the focused terminal back to the most recent line that
+/// reads as an error ([`crate::errscan`]), and say how many are in view.
+///
+/// Repeating it steps further back, the way a repeated `/find` does — a long
+/// build has more than one failure, and the one you want is rarely the last.
+impl CrewApp {
+    pub(crate) fn find_error_in_terminal(&mut self) {
+        let repeat = self.last_find.as_deref() == Some(ERRORS);
+        self.last_find = Some(ERRORS.to_string());
+        let focused = self.focused;
+        let mut searched = false;
+        let mut found = 0usize;
+        if let Some(pane) = self.panes.get_mut(focused) {
+            let (cols, rows) = (pane.grid.cols, pane.grid.rows);
+            if let PaneContent::Terminal(t) = &mut pane.content {
+                searched = true;
+                if repeat {
+                    t.pty.scroll(1);
+                }
+                for _ in 0..MAX_STEPS {
+                    let lines = rows_text(&t.pty.cells(false), cols, rows, false);
+                    let n = lines
+                        .iter()
+                        .filter(|l| errscan::looks_like_error(l))
+                        .count();
+                    if n > 0 {
+                        found = n;
+                        break;
+                    }
+                    let before = t.pty.display_offset();
+                    t.pty.scroll(1);
+                    if t.pty.display_offset() == before {
+                        break;
+                    }
+                }
+            }
+        }
+        if !searched {
+            self.set_status("no terminal pane focused");
+            return;
+        }
+        match found {
+            0 => self.set_status("no errors in this pane"),
+            1 => {
+                self.set_status("1 error in view");
+                self.redraw();
+            }
+            n => {
+                self.set_status(format!("{n} errors in view"));
+                self.redraw();
+            }
+        }
+    }
+}
+
+/// The `last_find` sentinel for an error walk, so repeating `/errors` steps
+/// back rather than starting over. It cannot collide with a real search term:
+/// `/find` refuses an empty one, and this is not text anyone can type.
+const ERRORS: &str = "\u{0}errors";
 
 #[cfg(test)]
 mod tests {

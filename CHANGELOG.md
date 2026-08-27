@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.70
+
+**`/errors` walks back to the last thing that went wrong.** A long build
+scrolls its own failure off the screen, and getting back to it meant either
+remembering a word from the message or paging up through everything that came
+after. `/errors` scrolls the focused pane to the most recent line that reads as
+an error and says how many are in view; repeating it steps to the one before,
+the way a repeated `/find` does, because a failing build has more than one and
+the one you want is rarely the last.
+
+The definition is deliberately narrow, since a jump that lands on "errors are
+handled below" teaches you not to trust the jump: an error has to announce
+itself at the **start of a line** — after whatever indent, quote bar or box
+edge a TUI drew around it — or right after a `file:line:col` prefix. That
+covers `rustc`, `tsc`, `gcc`, `git`, Rust panics, `npm ERR!`, Python tracebacks,
+`pytest`, TAP's `not ok`, and the `✗` most test runners mark a failure with,
+while leaving prose, `warning:` lines and `0 errors, 2 warnings` alone.
+
 ## 0.18.69
 
 **`/keys` filters as you type.** The overlay lists forty-odd bindings and every
