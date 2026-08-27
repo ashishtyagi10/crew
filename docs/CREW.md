@@ -702,6 +702,24 @@ longer aim at.
   shell's only says how much is behind you) with the landmarks marked as dim
   ticks beside it, so a long file shows its shape before you move.
   Chat panes render markdown too — see [Markdown](#markdown).
+- **The pointer knows a link when it is over one.** URLs and file references
+  are drawn as links — tinted, and ruled underneath, so they read as clickable
+  without depending on hue — but the pointer over one wore the same I-beam as
+  the prose beside it, on text that is one modifier away from opening a browser
+  or a viewer. Over a marked run the pointer is now a **hand** and the run goes
+  **bold**: bold rather than a colour change, because the run is already
+  carrying the link colour to say *what* it is, and a hover changing that hue
+  would be saying the second thing in the same channel as the first. It is the
+  same hand a border button gets — both are "this does something when you press
+  it", and a third shape for the distinction is one nobody has learned.
+
+  What counts as a link is exactly what is *drawn* as one, which is
+  deliberately less than Cmd+click will open: answering "any token that names a
+  file on disk" means a filesystem check, and this runs on every pointer move.
+  The hover promises what the drawing promised; the click is free to find more.
+  Row text is reconstructed for the one row under the pointer, at pointer-move
+  time — never pre-scanned during layout.
+
 - **Tabs are expanded, always.** A tab has zero display width, and the guard
   every cell surface in crew places glyphs through skips zero-width characters
   — so a tab-indented file opened in the viewer drew with its indentation not

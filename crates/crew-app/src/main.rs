@@ -154,6 +154,7 @@ mod layout;
 mod leading;
 mod ledgercli;
 mod linkhl;
+mod linkhover;
 mod load;
 mod md;
 mod mentionrange;

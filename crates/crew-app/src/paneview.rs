@@ -40,6 +40,7 @@ pub fn build_scenes(
         push_pane_scenes(
             &mut scenes,
             p,
+            i,
             multi.then_some(i + 1),
             foc,
             broadcast,
@@ -87,6 +88,7 @@ pub fn full_scenes(
         push_pane_scenes(
             &mut scenes,
             p,
+            idx,
             (panes.len() > 1).then_some(idx + 1),
             foc,
             broadcast,
@@ -143,6 +145,10 @@ pub(crate) fn pane_animating(p: &Pane) -> bool {
 fn push_pane_scenes(
     scenes: &mut Vec<PaneScene>,
     p: &Pane,
+    // This pane's absolute index in `app.panes` — what the pointer's hover is
+    // keyed by. Not `index`, which is the card's LEGEND number and is `None`
+    // on a canvas holding one pane.
+    pane: usize,
     index: Option<usize>,
     foc: bool,
     broadcast: bool,
@@ -264,6 +270,9 @@ fn push_pane_scenes(
         crate::pathhl::mark_in(&mut cells, &text_rows);
         crate::linkhl::colorize_in(&mut cells, &text_rows);
     }
+    // …and which one the pointer has found. After both markers, so the
+    // weight lands on whatever they drew, and never instead of it.
+    crate::linkhover::mark(&mut cells, pane);
     // Wash search matches in the focused terminal while viewing a /find
     // result (scrolled back); it self-clears on return to the bottom.
     if foc && is_term && scroll > 0 {
