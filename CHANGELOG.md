@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.95
+
+**A picker says which value you are already on.** `/theme`, `/gradient`,
+`/motion`, `/density`, `/contrast`, `/shapes` and `/marks` all offer a closed
+set and none of them marked the one in force, so choosing meant remembering
+what you had chosen — which is the thing a picker exists to save you from.
+The row you are on now says it is the current one.
+
+For `/gradient` that answer is the **named pair** when one is pinned (`ember`),
+not the level underneath it, because the name is what the picker offers. Its
+eight pairs also sit under a heading of their own now, so the levels and the
+colours stop reading as one list.
+
 ## 0.18.94
 
 **A paste that would run asks first.** A terminal sends what you paste as if
