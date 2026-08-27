@@ -48,6 +48,8 @@ fn only_the_tubes_are_exempt_from_the_separation() {
         .collect();
     assert_eq!(
         exempt,
+        // `crt-violet` is a tube that CAN separate: its phosphor leaves room
+        // for a warm pink alarm the other three have nowhere to put.
         vec!["crt-green", "crt-amber", "crt-blue"],
         "the set of palettes that cannot separate their alarm has changed"
     );

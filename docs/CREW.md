@@ -1783,7 +1783,7 @@ a single palette per appearance. The twenty-six palettes
 below are those pool members (eleven paper/ink looks designed to read like a
 page rather than a screen, eight "modern glow" looks in the Gemini/Codex
 idiom, five CRT tubes, and the two — `harbor` and `fern` — drawn after the
-cut); they're no longer selected on their own, but each
+cut; `crt-violet` was retired in that cut and has since come back); they're no longer selected on their own, but each
 name still resolves if you type it. A palette's own appearance decides its
 pool — the modern glow palettes are dark and light *pages* like any other, so
 they rotate inside `dark` and `light` rather than standing apart as themes of
@@ -1801,6 +1801,11 @@ their own.
 - **`fern`** — a faint mint page under a deep green-teal light; the only light
   palette whose accent is green, so it cannot be mistaken for the two warm ones
   at a glance.
+- **`crt-violet`** — the fourth phosphor: a violet tube, the glow of a vector
+  display rather than a terminal. Its ladder is one hue at six brightnesses,
+  like the other tubes, and it is the only one of the four whose phosphor
+  leaves room for a warm pink alarm — the other three cannot tell their bell
+  apart from their status by hue at all.
 - **`sepia-dark`** — dark sepia paper with warm cream ink.
 - **`sepia-light`** — an aged-newsprint cream page with dark sepia ink.
 - **`midnight-ink`** — a warm slate-charcoal page with cool off-white ink.

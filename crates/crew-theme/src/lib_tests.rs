@@ -40,7 +40,7 @@ fn the_phosphors_have_distinct_personalities() {
         .iter()
         .filter_map(|id| id.theme().crt.map(|s| (id.as_str(), s)))
         .collect();
-    assert_eq!(styles.len(), 11);
+    assert_eq!(styles.len(), 12);
     for (i, (an, a)) in styles.iter().enumerate() {
         for (bn, b) in &styles[i + 1..] {
             assert_ne!(a, b, "{an} and {bn} share an identical CrtStyle");
@@ -395,7 +395,7 @@ fn every_pool_survives_the_cut() {
     let crt = count(|id: ThemeId| id.is_crt());
     assert_eq!(
         (dark, light, crt),
-        (4, 4, 3),
+        (4, 4, 4),
         "pools are dark {dark}, light {light}, crt {crt} — `auto` needs both \
          appearances and the tubes are their own rotation"
     );
@@ -406,7 +406,7 @@ fn every_pool_survives_the_cut() {
 /// every one of their names still resolves.
 #[test]
 fn every_retired_theme_name_still_resolves() {
-    const RETIRED: [(&str, ThemeId); 15] = [
+    const RETIRED: [(&str, ThemeId); 14] = [
         ("midnight-ink", ThemeId::Nebula),
         ("graphite", ThemeId::PaperDark),
         ("moss-blotter", ThemeId::SepiaDark),
@@ -414,7 +414,6 @@ fn every_retired_theme_name_still_resolves() {
         ("salmon-broadsheet", ThemeId::PaperLight),
         ("ivory-ledger", ThemeId::PaperLight),
         ("glacier-bond", ThemeId::PaperLight),
-        ("crt-violet", ThemeId::CrtBlue),
         ("crt-paperwhite", ThemeId::CrtBlue),
         ("aurora", ThemeId::Nebula),
         ("graphene", ThemeId::Nebula),
@@ -438,9 +437,10 @@ fn every_retired_theme_name_still_resolves() {
         );
     }
     // 24 palettes went into the cut and 15 came out of it retired; `harbor`
-    // and `fern` were drawn afterwards, so the roster is the survivors plus
-    // them. Written as a sum rather than a difference so adding a palette
-    // does not read as retiring one.
+    // and `fern` were drawn afterwards, and `crt-violet` came BACK — it is a
+    // member again rather than a retiree, which is why the retired list is 14.
+    // Written as a sum rather than a difference so adding a palette does not
+    // read as retiring one.
     assert_eq!(
         RETIRED.len() + ALL_THEMES.len(),
         26,

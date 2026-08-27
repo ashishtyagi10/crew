@@ -183,8 +183,8 @@ fn a_coloured_phosphor_tube_keeps_one_hue() {
         }
     }
     assert_eq!(
-        checked, 3,
-        "expected three coloured phosphor tubes, found {checked} — if a tube \
+        checked, 4,
+        "expected four coloured phosphor tubes, found {checked} — if a tube \
          changed mode, say so here"
     );
 }
