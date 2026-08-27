@@ -175,3 +175,67 @@ fn the_summary_numbers_what_the_argument_would_reach() {
     assert_eq!(s.summary(2), vec!["0:c", "1:b"]);
     assert!(Spans::default().summary(4).is_empty());
 }
+
+/// Which command owns a given buffer line — the lookup behind the name the
+/// card's top border carries while a pane is scrolled back.
+#[test]
+fn a_line_is_answered_by_the_command_that_printed_it() {
+    let mut s = Spans::default();
+    s.started("cargo build".into(), 10);
+    s.close(40);
+    s.started("cargo test".into(), 40);
+    s.close(90);
+    let name = |line| s.at_line(line, 100).map(|x| x.name.clone());
+    assert_eq!(name(10).as_deref(), Some("cargo build"), "its first line");
+    assert_eq!(name(39).as_deref(), Some("cargo build"), "its last line");
+    assert_eq!(
+        name(40).as_deref(),
+        Some("cargo test"),
+        "the next one's first"
+    );
+    assert_eq!(name(89).as_deref(), Some("cargo test"));
+    // Before the first command crew saw, and after the last one ended:
+    // there is no honest answer, so there is no answer.
+    assert_eq!(name(0), None, "before anything crew watched");
+    assert_eq!(name(90), None, "at the live prompt");
+}
+
+/// The poll's one-second granularity can close a span a line or two into the
+/// next command's output. Where two spans overlap, the LATER one wins: the
+/// top of the window is inside the thing that printed most recently.
+#[test]
+fn overlapping_spans_answer_with_the_later_command() {
+    let mut s = Spans::default();
+    s.0.push(crate::cmdspan::Span {
+        name: "first".into(),
+        from: 0,
+        to: Some(50),
+    });
+    s.0.push(crate::cmdspan::Span {
+        name: "second".into(),
+        from: 40,
+        to: Some(80),
+    });
+    assert_eq!(
+        s.at_line(45, 100).map(|x| x.name.clone()).as_deref(),
+        Some("second")
+    );
+    assert_eq!(
+        s.at_line(20, 100).map(|x| x.name.clone()).as_deref(),
+        Some("first")
+    );
+}
+
+/// A still-running command owns everything down to the live bottom, and the
+/// range is clamped to the buffer that is actually there — the scrollback
+/// wraps away under us.
+#[test]
+fn a_running_command_owns_the_lines_it_is_still_printing() {
+    let mut s = Spans::default();
+    s.started("cargo build".into(), 10);
+    assert_eq!(
+        s.at_line(30, 40).map(|x| x.name.clone()).as_deref(),
+        Some("cargo build")
+    );
+    assert_eq!(s.at_line(40, 40), None, "past the end of the buffer");
+}

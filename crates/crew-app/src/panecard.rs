@@ -12,6 +12,13 @@ use crate::boxdraw::titled_card;
 use crate::layout::Rect;
 
 /// Inputs for one pane's fieldset border.
+///
+/// `Default` is the empty card — no title, nothing focused, nothing to say —
+/// so every literal can end `..Default::default()` and the next thing crew
+/// learns to draw on a border is one field and one call site, not a sweep
+/// through every construction of this struct. Clippy's `needless_update`
+/// guards the other direction.
+#[derive(Default)]
 pub(crate) struct Bar<'a> {
     pub index: Option<usize>,
     pub title: &'a str,
@@ -73,6 +80,10 @@ pub(crate) struct Bar<'a> {
     /// Lines that arrived since this pane was last read, drawn beside the
     /// activity dot ([`crate::unread`]). `0` draws nothing.
     pub unread: usize,
+    /// While scrolled back, the command whose output the TOP of the window
+    /// is inside ([`crate::cmdhead`]). `None` at the live bottom, where the
+    /// prompt is on screen and says this itself.
+    pub at_cmd: Option<&'a str>,
     /// This pane is a document: its gutter is drawn whenever the content is
     /// longer than the pane, not only once it has been scrolled. A shell's
     /// gutter is a scrollback affordance; a document's is where you ARE.
@@ -381,23 +392,31 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
             rx = start.saturating_sub(2);
         }
     }
-    // The git badge takes what is left of the top border. Its floor is the
+    // Everything still to be drawn on the top border shares one floor: the
     // legend's own last column, read off the cells that were just drawn —
     // the legend is width-clipped by `titled_card`, so asking the drawing is
     // the only way to know where it actually ended.
+    //
+    // Only cells LEFT of the free column count as the legend. The `[-][x]`
+    // buttons are drawn in the legend's own colour, at the far right — so
+    // scanning the whole row for that colour put the legend's "end" three
+    // columns from the corner and left the badge a budget of nothing. It had
+    // not drawn on a card with buttons since it landed, which is every full
+    // tile.
+    let legend_end = v
+        .iter()
+        .filter(|c| c.row == 0 && c.fg == legend && c.col <= rx)
+        .map(|c| c.col)
+        .max()
+        .unwrap_or(2);
+    // What you are reading outranks where the repository is: the branch does
+    // not change while you scroll, and the command that printed these three
+    // pages is the thing the window stopped saying.
+    if let Some(name) = b.at_cmd {
+        rx = crate::cmdhead::draw(&mut v, rx, legend_end + 1, name);
+    }
+    // The git badge takes what is left of the top border.
     if let Some(g) = b.git {
-        // Only cells LEFT of the free column count as the legend. The
-        // `[-][x]` buttons are drawn in the legend's own colour, at the far
-        // right — so scanning the whole row for that colour put the legend's
-        // "end" three columns from the corner and left the badge a budget of
-        // nothing. It has not drawn on a card with buttons since it landed,
-        // which is every full tile.
-        let legend_end = v
-            .iter()
-            .filter(|c| c.row == 0 && c.fg == legend && c.col <= rx)
-            .map(|c| c.col)
-            .max()
-            .unwrap_or(2);
         crate::gitbadge::draw(&mut v, rx, legend_end + 1, g);
     }
     v

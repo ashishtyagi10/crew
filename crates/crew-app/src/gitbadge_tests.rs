@@ -131,6 +131,7 @@ fn the_card_carries_the_badge_without_disturbing_its_legend() {
         progress: None,
         elapsed: None,
         pinned: false,
+        at_cmd: None,
         cmd_rows: &[],
         err_rows: &[],
         unread: 0,

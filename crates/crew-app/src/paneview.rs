@@ -198,6 +198,20 @@ fn push_pane_scenes(
         ),
         _ => Vec::new(),
     };
+    // While scrolled back, the command whose output the TOP of the window is
+    // inside. Named on the top border beside the `⇡N` that appears under the
+    // same condition — see `cmdhead`. Answered from the same spans the left
+    // border ticks, so the tick ladder and the name can never disagree.
+    let at_cmd = match &p.content {
+        PaneContent::Terminal(t) if marks && t.pty.display_offset() > 0 => {
+            let now = t.pty.scrollable_lines();
+            let first = now
+                .saturating_sub(usize::from(p.grid.rows))
+                .saturating_sub(t.pty.display_offset());
+            t.spans.at_line(first, now).map(|s| s.name.clone())
+        }
+        _ => None,
+    };
     // Rows of this pane's visible output that read as errors. Computed from
     // the cells already built for the frame rather than by re-reading the
     // grid — one pass over what is on screen.
@@ -316,6 +330,7 @@ fn push_pane_scenes(
                 progress,
                 elapsed,
                 pinned,
+                at_cmd: at_cmd.as_deref(),
                 cmd_rows: &cmd_rows,
                 err_rows: &err_rows,
                 unread,

@@ -8,6 +8,29 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.4
+
+**Scroll a terminal back three pages and nothing on screen says what printed
+them.** The prompt that started the output is off the top of the window; the
+output is all there is. Other terminals answer this by pinning a sticky prompt
+line inside the viewport, which costs a row of the program's grid — not crew's
+to spend — and by asking the shell to emit OSC 133.
+
+**The card's top border now names the command you are scrolled back into**,
+beside the `⇡N` that appears under the same condition: `╶ cargo build`, in the
+command ticks' own colour and wearing the same tick the left border marks a
+command's first row with, so the two read as one marking rather than two
+features that happen to be about commands. Crew already knew where every
+command's output begins and ends — it learns that from the foreground-process
+transitions it polls, no shell integration involved — so this is a lookup.
+
+It clears at the live bottom, where the prompt is on screen answering the
+question itself. Long names lose their tail and never their head, and the
+badge is drawn whole or not at all: it never reaches into the legend that says
+which pane you are looking at, and the width sweep that holds it to that runs
+every card width from 1 to 80. What it costs the border it takes from the git
+badge — the branch does not change while you scroll.
+
 ## 0.19.3
 
 **`Cmd+W` never asked, and it never had to be asked — but the pane it took
