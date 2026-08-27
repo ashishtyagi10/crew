@@ -183,6 +183,10 @@ impl CrewApp {
         } else {
             self.cwd.clone()
         };
+        // `src/main.rs:42` is the shape every compiler, linter and agent
+        // prints, and it never opened anything: the position was part of the
+        // token, so the file was looked up under a name it does not have.
+        let (tok, line) = crate::pathhl::strip_position(tok);
         let p = std::path::Path::new(tok);
         let full = if p.is_absolute() {
             p.to_path_buf()
@@ -191,6 +195,9 @@ impl CrewApp {
         };
         if full.is_file() {
             self.open_view(tok);
+            if let Some(n) = line {
+                self.goto_last_view(n);
+            }
             true
         } else if full.is_dir() {
             self.try_change_dir(&format!("cd {tok}"))

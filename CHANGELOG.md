@@ -8,6 +8,30 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.63
+
+**File references look like the links they already were.** `src/main.rs:42`,
+`./deploy.sh`, `Cargo.toml` — Cmd+click has resolved these for a long time, and
+nothing on screen said so. They are marked now, in the link colour with a
+**dotted** rule where a URL wears a solid one: same colour because both are
+links, a different rule because a URL leaves for the browser and a path opens
+here.
+
+The matcher is narrow on purpose. A mark on `and/or` or on `e.g.` teaches
+people to ignore every mark, so a reference has to be either something with a
+directory separator in it or a bare filename with a real extension (2–6
+characters, not all digits) — which leaves `TCP/IP`, `10:30`, `v1.0`, `Fig.2`
+and `a.b` as the prose they are.
+
+**And `path:line` clicks work.** They never have: the position was part of the
+clicked token, so the file was looked up under a name it does not have and the
+click did nothing at all. The position is split off, the file opens, and the
+viewer lands on that line — at the *top* of the window, because the lines after
+the one you were sent to are the ones you came to read. The read is on a worker
+thread, so the pane exists before there is anything to scroll; the ask waits
+for the text and is forgotten once spent, which is what stops the next reload
+from jumping on its own.
+
 ## 0.18.62
 
 **The viewer's search shows itself.** Typing `/` in the file viewer was

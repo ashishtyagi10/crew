@@ -53,6 +53,11 @@ pub(crate) struct ViewPane {
     /// these, so quitting with only one of these open can't overwrite a
     /// saved multi-pane session with a changelog viewer.
     pub ephemeral: bool,
+    /// A 1-based line to land on once the load arrives — from a clicked
+    /// `path:line` reference. The read is on a worker thread, so the pane
+    /// exists before there is anything to scroll; this is applied when the
+    /// text lands and then cleared.
+    pub goto: Option<usize>,
 }
 
 impl ViewPane {
@@ -69,6 +74,7 @@ impl ViewPane {
             cache: RefCell::new(None),
             editor_born: None,
             ephemeral: false,
+            goto: None,
         }
     }
 
@@ -114,6 +120,13 @@ impl ViewPane {
             Err(msg) => LoadState::Failed(msg),
         };
         self.cache.replace(None);
+        // A `path:line` click asked for a line, and this is the first moment
+        // there is one to scroll to. Landing it at the TOP of the window
+        // rather than centring it: the lines after the one you were sent to
+        // are the ones you came to read.
+        if let Some(n) = self.goto.take() {
+            self.scroll = n.saturating_sub(1);
+        }
         true
     }
 

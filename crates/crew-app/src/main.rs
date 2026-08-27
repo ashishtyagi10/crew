@@ -183,6 +183,7 @@ mod panescroll;
 mod paneview;
 mod pathcomplete;
 mod pathexpand;
+mod pathhl;
 mod pointer;
 mod poll;
 mod procname;

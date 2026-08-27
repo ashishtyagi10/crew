@@ -186,8 +186,11 @@ fn push_pane_scenes(
             crate::unread::mark(&mut cells, row, p.grid.cols);
         }
     }
-    // Tint http(s) URLs blue so they read as clickable (Cmd+click opens).
+    // Mark what is clickable: file references first (dotted rule), then URLs
+    // (solid) — a URL that also looks like a path is re-marked as the URL it
+    // is, rather than wearing both rules.
     if is_term {
+        crate::pathhl::mark(&mut cells, p.grid.cols, p.grid.rows);
         crate::linkhl::colorize(&mut cells, p.grid.cols, p.grid.rows);
     }
     // Wash search matches in the focused terminal while viewing a /find

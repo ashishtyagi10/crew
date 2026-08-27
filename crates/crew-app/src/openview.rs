@@ -61,6 +61,15 @@ impl CrewApp {
     /// write and its own `is_file` check, astronomically unlikely but not
     /// impossible), and without this guard that would mark whatever pane
     /// happened to be LAST — a real, user-opened viewer — ephemeral instead.
+    /// Ask the viewer that was just opened to land on line `n` once its text
+    /// arrives. No-op when the last pane is not a viewer — `open_view`
+    /// refuses non-files, and a refused open must not scroll something else.
+    pub(crate) fn goto_last_view(&mut self, n: usize) {
+        if let Some(PaneContent::View(v)) = self.panes.last_mut().map(|p| &mut p.content) {
+            v.goto = Some(n);
+        }
+    }
+
     pub(crate) fn mark_last_view_ephemeral(&mut self, before: usize) {
         if self.panes.len() <= before {
             return;
