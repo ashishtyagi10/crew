@@ -58,3 +58,67 @@ fn chrome_in_front_of_a_line_is_not_part_of_it() {
     assert!(looks_like_error("\u{2503} error: in a box"));
     assert!(looks_like_error("\u{276f} error: after a prompt glyph"));
 }
+
+fn rows(lines: &[&str]) -> Vec<Vec<char>> {
+    lines.iter().map(|l| l.chars().collect()).collect()
+}
+
+#[test]
+fn only_the_rows_that_hold_an_error_are_marked() {
+    let grid = rows(&[
+        "$ cargo build",
+        "   Compiling crew-app v0.1.0",
+        "error[E0433]: failed to resolve",
+        " --> src/main.rs:4:5",
+        "warning: unused import",
+        "error: could not compile",
+    ]);
+    assert_eq!(super::error_rows(&grid), vec![2, 5]);
+    assert!(super::error_rows(&rows(&["all good", ""])).is_empty());
+}
+
+/// On the card: the marks ride the LEFT border, one per error row, and never
+/// on a corner.
+#[test]
+fn the_card_marks_error_rows_down_its_left_border() {
+    let _g = crate::app::theme_test_guard();
+    fn bar(err_rows: &[u16]) -> crate::panecard::Bar<'_> {
+        crate::panecard::Bar {
+            index: Some(1),
+            title: "build",
+            focused: false,
+            scroll: 0,
+            total: 0,
+            activity: false,
+            bell: false,
+            broadcast: false,
+            min_btn: false,
+            assemble_t: 1.0,
+            focus_t: 1.0,
+            git: None,
+            ticks: &[],
+            hits: &[],
+            progress: None,
+            elapsed: None,
+            err_rows,
+            unread: 0,
+            doc: false,
+        }
+    }
+    let marks = |rows: &[u16]| -> Vec<u16> {
+        crate::panecard::pane_card(40, 8, &bar(rows))
+            .into_iter()
+            .filter(|c| c.col == 0 && c.c == '\u{258c}')
+            .map(|c| c.row)
+            .collect()
+    };
+    // Content row 0 is border row 1.
+    assert_eq!(marks(&[0, 3]), vec![1, 4]);
+    assert!(marks(&[]).is_empty());
+    // A row past the card's own bottom is not drawn onto its corner.
+    assert!(marks(&[99]).is_empty());
+    let bell = crew_theme::theme().bell;
+    assert!(crate::panecard::pane_card(40, 8, &bar(&[1]))
+        .iter()
+        .any(|c| c.col == 0 && c.c == '\u{258c}' && c.fg == bell));
+}

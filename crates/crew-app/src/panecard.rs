@@ -48,6 +48,10 @@ pub(crate) struct Bar<'a> {
     /// review's files and hunks. Drawn under the thumb, so a landmark you are
     /// currently sitting on is not hidden by it.
     pub ticks: &'a [usize],
+    /// Visible rows holding an error, marked down the LEFT border
+    /// ([`crate::errscan`]) — where the failures are, without spending a
+    /// column of the program's own grid to say it.
+    pub err_rows: &'a [u16],
     /// How long the pane's foreground command has been running, once that is
     /// worth saying ([`crate::runclock`]). `None` for an idle pane.
     pub elapsed: Option<String>,
@@ -288,6 +292,17 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
     crate::panescroll::hit_ticks(&mut v, cols, rows, b);
     crate::panescroll::thumb(&mut v, cols, rows, b);
     crate::panescroll::progress(&mut v, cols, rows, b, crate::anim::now_ms());
+    // Where the failures are. Content starts one row below the top border,
+    // so a content row `n` is border row `n + 1`.
+    if !b.err_rows.is_empty() {
+        let fg = crew_theme::theme().bell;
+        for &r in b.err_rows {
+            let row = r + 1;
+            if row + 1 < rows {
+                put(&mut v, 0, row, '\u{258c}', fg, false);
+            }
+        }
+    }
     // Focus brackets last, so they sit on the finished frame — and only on the
     // focused card, which is the one piece of state they exist to announce.
     if b.focused {

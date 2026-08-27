@@ -28,6 +28,7 @@ fn bar(focused: bool) -> Bar<'static> {
         hits: &[],
         progress: None,
         elapsed: None,
+        err_rows: &[],
         unread: 0,
         doc: false,
     }

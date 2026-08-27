@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.72
+
+**Errors show up on the card.** `/errors` will walk you back to the last
+failure; this is the other half — every visible line that reads as an error now
+puts a red bar on its pane's **left border**, at that line's row. A failing
+build shows where its failures are from across the grid, with nothing typed and
+no pane focused.
+
+On the border, not in the content: a terminal's columns belong to the program
+running in it, and a marker in column zero would overwrite the first character
+of the very message it points at. It is the same reading `/errors` uses, so the
+marks and the jump can never disagree about what an error is.
+
 ## 0.18.71
 
 **The card says how long it has been running.** Crew has known which command

@@ -71,6 +71,7 @@ fn the_card_carries_the_clock_only_while_something_is_running() {
         hits: &[],
         progress: None,
         elapsed,
+        err_rows: &[],
         unread: 0,
         doc: false,
     };
