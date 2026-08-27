@@ -131,6 +131,7 @@ mod hit;
 mod host;
 pub(crate) mod inputbar;
 mod inputbar_render;
+mod inputink;
 mod inputkeys;
 mod ipc;
 mod ipc_types;

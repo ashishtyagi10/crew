@@ -8,6 +8,27 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.60
+
+**The command bar colours what you type.** Every character in it was `ink`, so
+the bar had nothing to say about your text until you pressed Enter and found
+out. Now a leading slash command is **accent** when it resolves, muted while it
+is still being typed, and drawn in the **alarm colour when nothing begins with
+it** — `/them` is on its way to `/theme`, `/zzz` is on its way to nothing, and
+the difference is worth knowing a keystroke earlier rather than a command
+later. Flags recede; a quoted run is marked from its opening quote to its
+closing one, and an unterminated quote marks to the end of the line, which is
+exactly how you notice it is unterminated.
+
+Three marks and no more. The bar is one row and the text in it is short: a
+syntax highlighter's worth of colour on twelve characters is decoration, not
+information.
+
+Two viewer tests that compare rendered colours were holding no theme lock, so
+they could disagree with the cells they had just built when another test
+switched palettes mid-run. They hold one now — the same fix the welcome-screen
+test needed last release, and the same cause.
+
 ## 0.18.59
 
 **The viewer knows where it is, and shows it.** Two gaps closed at once.
