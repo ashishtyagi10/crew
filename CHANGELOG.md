@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.93
+
+**Cmd+C copies any pane, not just a terminal.** In the file viewer, a rendered
+diff, an agent transcript or a todo list it did nothing at all and said nothing
+about it — and those are the panes whose contents you are most likely to want
+somewhere else.
+
+Every pane draws itself as cells, so every pane can be read back: rows in
+order, gaps as spaces, trailing padding trimmed. A mouse selection still wins
+over the whole screen, and a pane with nothing on it now says "nothing on
+screen to copy" instead of failing quietly.
+
 ## 0.18.92
 
 **Cmd+F does something in a terminal pane.** It has opened the find bar in a
