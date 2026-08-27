@@ -288,6 +288,15 @@ fn ready_lines(
         // unchanged.
         _ => numbered(text, cols, format_lang(format), t.ink, t.text_muted),
     };
+    // A file with nothing in it renders as an empty pane, which is
+    // indistinguishable from one that failed to render — and from one still
+    // loading, since the "loading…" banner is gone by then. The opaque rung
+    // is exempt: it draws a card ABOUT a file rather than the file, and has
+    // plenty to say with no text at all.
+    if text.trim().is_empty() && !matches!(format, Format::Opaque { .. }) {
+        out.push(banner("this file is empty", cols));
+        return (out, marks);
+    }
     out.extend(body);
     (out, marks)
 }

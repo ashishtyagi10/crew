@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.1
+
+**An empty file says it is empty.** Opening one drew an empty pane — which is
+what a pane that failed to render looks like, and what one still loading looks
+like once the "loading…" banner has gone. Three different states, one blank
+rectangle.
+
+The rung that draws a card *about* a file rather than the file itself — a PDF
+with no extractor — is exempt: it has plenty to say with no text at all, and
+calling it empty would be the same mistake in the other direction.
+
 ## 0.19.0
 
 **Scrolling scales with the gesture.** A wheel tick has always been a fixed

@@ -427,3 +427,45 @@ fn an_added_line_that_is_only_whitespace_keeps_its_marker() {
     assert!(row.contains('+'), "{row:?}");
     assert_eq!(row.matches('\u{b7}').count(), 3, "{row:?}");
 }
+
+/// An empty pane is indistinguishable from one that failed to render, and
+/// from one still loading once the "loading…" banner is gone.
+#[test]
+fn an_empty_file_says_it_is_empty() {
+    let _g = crate::app::theme_test_guard();
+    for (fmt, body) in [
+        (Format::Code { lang: "" }, ""),
+        (Format::Markdown, "   \n\n"),
+        (Format::Diff, ""),
+    ] {
+        let (ls, _marks) = for_state(&ready(fmt, body), false, 40);
+        let all: String = ls.iter().map(text).collect::<Vec<_>>().join("\n");
+        assert!(all.contains("this file is empty"), "{fmt:?}: {all:?}");
+    }
+}
+
+/// …and a rung that draws a CARD rather than text is not empty just because
+/// it has no text — a PDF with no extractor has plenty to say.
+#[test]
+fn a_metadata_card_is_not_called_an_empty_file() {
+    let _g = crate::app::theme_test_guard();
+    let state = ready(
+        Format::Opaque {
+            why: Opaque::NoExtractor(Extractor::PdfToText),
+        },
+        "",
+    );
+    let (ls, _marks) = for_state(&state, false, 60);
+    let all: String = ls.iter().map(text).collect::<Vec<_>>().join("\n");
+    assert!(!all.contains("this file is empty"), "{all}");
+}
+
+/// A file with one real line is not empty, however much blank surrounds it.
+#[test]
+fn a_file_with_anything_in_it_is_not_empty() {
+    let _g = crate::app::theme_test_guard();
+    let (ls, _marks) = for_state(&ready(Format::Code { lang: "" }, "\n\n  x\n\n"), false, 40);
+    let all: String = ls.iter().map(text).collect::<Vec<_>>().join("\n");
+    assert!(!all.contains("this file is empty"), "{all}");
+    assert!(all.contains('x'));
+}
