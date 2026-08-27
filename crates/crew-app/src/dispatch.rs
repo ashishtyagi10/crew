@@ -45,6 +45,7 @@ impl CrewApp {
             "about" => self.spawn_about_pane(),
             "log" => self.open_log(),
             "copy" => self.copy_scrollback(),
+            "copy out" => self.copy_last_output(),
             "dump" => self.dump_focused_pane(""),
             "diff" => self.diff_in_pane(),
             "run" => self.run_in_pane(""), // show usage hint

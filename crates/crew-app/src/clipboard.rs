@@ -161,6 +161,27 @@ impl CrewApp {
         }
     }
 
+    /// `/copy out` — the last command's output alone, rather than the whole
+    /// scrollback. What you actually want when you are about to paste a
+    /// failure into an issue: the run that failed, without the four before it.
+    pub(crate) fn copy_last_output(&mut self) {
+        let (name, text) = match self.last_output() {
+            Ok(v) => v,
+            Err(why) => {
+                self.set_status(format!("copy: {why}"));
+                return;
+            }
+        };
+        let lines = text.lines().count();
+        match arboard::Clipboard::new() {
+            Ok(mut cb) => {
+                let _ = cb.set_text(text);
+                self.set_status(format!("copied {lines} lines ({name})"));
+            }
+            Err(_) => self.set_status("clipboard unavailable"),
+        }
+    }
+
     /// Copy Crew's working directory to the system clipboard (`/pwd`).
     pub(crate) fn copy_cwd(&mut self) {
         let dir = self.cwd.display().to_string();

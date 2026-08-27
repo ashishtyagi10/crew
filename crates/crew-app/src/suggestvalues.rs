@@ -22,6 +22,12 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
                 .map(|m| (m.as_str().to_string(), m.describe().to_string()))
                 .collect(),
         ),
+        // `/copy` alone takes the whole scrollback; the one value it offers
+        // is the narrower answer.
+        "/copy" => Some(vec![(
+            "out".to_string(),
+            "just the last command's output, not the whole scrollback".to_string(),
+        )]),
         "/marks" => Some(vec![
             (
                 "on".to_string(),
@@ -182,6 +188,7 @@ pub(crate) fn expands(cmd: &str) -> bool {
             | "/weight"
             | "/smooth"
             | "/marks"
+            | "/copy"
             | "/gradient"
             | "/motion"
             | "/density"

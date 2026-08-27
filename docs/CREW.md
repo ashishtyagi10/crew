@@ -739,6 +739,9 @@ longer aim at.
   marker in column zero would overwrite the first character of the message it
   is pointing at — so a failing build shows *where* its failures are from
   across the grid, with nothing typed.
+- **`/copy out`** — copies just the **last command's output**, the same slice
+  `/out` opens. What you actually want when you are about to paste a failure
+  into an issue: the run that failed, without the four before it.
 - **`/copy`** — copies the focused terminal pane's **full scrollback** to the
   system clipboard (Cmd+C copies only the visible screen); the line count is
   flashed on the input bar.
