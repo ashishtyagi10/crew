@@ -62,6 +62,12 @@ impl CrewApp {
     }
 
     pub(crate) fn close_other_panes(&mut self) {
+        let others = self.panes.len().saturating_sub(1);
+        if others > 0 && !self.pending.answered("only", std::time::Instant::now()) {
+            let s = if others == 1 { "" } else { "s" };
+            self.set_status(format!("close the other {others} pane{s}? /only again"));
+            return;
+        }
         if self.panes.len() <= 1 {
             self.set_status("only one pane");
             return;
@@ -84,6 +90,12 @@ impl CrewApp {
             return;
         }
         let n = self.panes.len();
+        // A closed pane takes its scrollback, its running command and its
+        // agent with it, and `/closeall` is one fuzzy keystroke from `/clear`.
+        if !self.pending.answered("closeall", std::time::Instant::now()) {
+            self.set_status(format!("close all {n} panes? /closeall again"));
+            return;
+        }
         // Reuse close_pane so the grid LRU and empty-state modes stay consistent.
         while !self.panes.is_empty() {
             self.close_pane(self.panes.len() - 1);
@@ -188,6 +200,9 @@ mod tests {
         }
         app.focused = 1; // the "b" pane
         app.zoomed = true;
+        // Asks first; the same command again is the answer.
+        app.close_other_panes();
+        assert_eq!(app.panes.len(), 3, "the first /only closed something");
         app.close_other_panes();
         assert_eq!(app.panes.len(), 1);
         assert_eq!(app.focused, 0);

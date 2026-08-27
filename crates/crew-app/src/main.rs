@@ -83,6 +83,7 @@ mod cmdrecents;
 mod cmdrow;
 mod cmdspan;
 pub mod config;
+mod confirm;
 mod crashlog;
 mod ctxlimit;
 mod cwd;

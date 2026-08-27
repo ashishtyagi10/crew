@@ -277,6 +277,10 @@ fn closeall_closes_every_pane_and_refocuses_input() {
     assert!(!app.submit_input("/far".to_string()));
     assert!(!app.submit_input("/far".to_string()));
     assert_eq!(app.panes.len(), 2);
+    // It asks first — a closed pane takes its scrollback and its agent with
+    // it — and the same command again is the answer.
+    assert!(!app.submit_input("/closeall".to_string()));
+    assert_eq!(app.panes.len(), 2, "the first /closeall closed something");
     assert!(!app.submit_input("/closeall".to_string()));
     assert!(app.panes.is_empty(), "all panes closed");
     assert!(app.input.focused, "focus returns to the input bar");
