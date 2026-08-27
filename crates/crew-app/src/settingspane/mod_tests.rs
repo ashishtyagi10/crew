@@ -285,6 +285,7 @@ fn edits(f: Field) -> &'static str {
         Field::LightFrom => "auto_light_from",
         Field::LightTo => "auto_light_to",
         Field::Accent => "accent",
+        Field::BorderMarks => "border_marks",
         Field::PaperTexture => "paper_texture",
         Field::AmbientDrift => "ambient_drift",
         Field::PaperGrain => "paper_grain",

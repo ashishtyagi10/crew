@@ -27,6 +27,9 @@ pub(crate) enum Field {
     LightFrom,
     LightTo,
     Accent,
+    /// Whether pane cards mark what they know on their borders — the ticks
+    /// where a command began and the bars beside error lines.
+    BorderMarks,
     PaperTexture,
     /// Whether the page's gradient wash keeps drifting while nothing is
     /// happening (see `washphase`). Sits beside Paper texture: both decide
@@ -65,7 +68,7 @@ pub(crate) enum Field {
     Cancel,
 }
 
-pub(crate) const FIELDS: [Field; 32] = [
+pub(crate) const FIELDS: [Field; 33] = [
     Field::FontFamily,
     Field::FontSize,
     Field::Smooth,
@@ -78,6 +81,7 @@ pub(crate) const FIELDS: [Field; 32] = [
     Field::LightFrom,
     Field::LightTo,
     Field::Accent,
+    Field::BorderMarks,
     Field::PaperTexture,
     Field::AmbientDrift,
     Field::PaperGrain,

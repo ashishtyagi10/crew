@@ -22,6 +22,16 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
                 .map(|m| (m.as_str().to_string(), m.describe().to_string()))
                 .collect(),
         ),
+        "/marks" => Some(vec![
+            (
+                "on".to_string(),
+                "the default \u{2014} ticks where a command began, bars beside errors".to_string(),
+            ),
+            (
+                "off".to_string(),
+                "a plain frame; the marks are still there to jump to".to_string(),
+            ),
+        ]),
         "/crt" => Some(vec![
             ("on".to_string(), "force the CRT tube look on".to_string()),
             ("off".to_string(), "force the CRT tube look off".to_string()),
@@ -171,6 +181,7 @@ pub(crate) fn expands(cmd: &str) -> bool {
             | "/crt"
             | "/weight"
             | "/smooth"
+            | "/marks"
             | "/gradient"
             | "/motion"
             | "/density"

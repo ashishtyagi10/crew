@@ -173,9 +173,13 @@ fn push_pane_scenes(
         PaneContent::View(v) => v.hit_rows(),
         _ => Vec::new(),
     };
+    // Both border markings answer to one switch: they are crew drawing on
+    // its own chrome about someone else's output, and a plain frame is a
+    // reasonable thing to want.
+    let marks = crate::bordermarks::on();
     // Where the commands you ran began, in this window.
     let cmd_rows = match &p.content {
-        PaneContent::Terminal(t) => t.spans.start_rows(
+        PaneContent::Terminal(t) if marks => t.spans.start_rows(
             t.pty.scrollable_lines(),
             usize::from(p.grid.rows),
             t.pty.display_offset(),
@@ -185,7 +189,7 @@ fn push_pane_scenes(
     // Rows of this pane's visible output that read as errors. Computed from
     // the cells already built for the frame rather than by re-reading the
     // grid — one pass over what is on screen.
-    let err_rows = match is_term {
+    let err_rows = match is_term && marks {
         true => crate::errscan::error_rows(&crate::gridrows::grid_lines(
             &cells,
             p.grid.cols,

@@ -202,6 +202,15 @@ pub struct CrewConfig {
     /// End of the light-hours window; see `auto_light_from`.
     #[serde(default = "default_auto_light_to")]
     pub auto_light_to: String,
+    /// Whether a pane's card marks what it knows on its border: the ticks
+    /// where each command began and the bars beside error lines.
+    ///
+    /// On by default — the marks are how a grid of panes says where the
+    /// failures are without being read — but they are crew drawing on its own
+    /// chrome about someone else's output, and a person who wants a plain
+    /// frame is entitled to one.
+    #[serde(default = "default_true")]
+    pub border_marks: bool,
     /// Whether to render the subtle paper grain + vignette background texture.
     /// When off, the window background is a plain flat colour.
     #[serde(default = "default_true")]
@@ -314,6 +323,7 @@ impl Default for CrewConfig {
             theme_light: None,
             auto_light_from: default_auto_light_from(),
             auto_light_to: default_auto_light_to(),
+            border_marks: true,
             paper_texture: true,
             ambient_drift: true,
             paper_grain: default_paper_grain(),
