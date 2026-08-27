@@ -141,8 +141,11 @@ pub use presets_paper::{PAPER_DARK, PAPER_LIGHT, SEPIA_DARK};
 pub use presets_paper_light::SEPIA_LIGHT;
 pub use tagcolor::{slot_color, tag_color, tag_slot};
 
-/// WCAG 2.1 contrast ratio between two sRGB colours.
-pub fn contrast_ratio(a: (u8, u8, u8), b: (u8, u8, u8)) -> f32 {
+/// WCAG 2.1 relative luminance of an sRGB colour — how much light it
+/// actually emits, which is not what its bytes look like. The basis of
+/// [`contrast_ratio`], and of which way the renderer's text-gamma curve
+/// bends for a given pair of colours.
+pub fn relative_luminance(c: (u8, u8, u8)) -> f32 {
     let lin = |c: u8| -> f32 {
         let x = c as f32 / 255.0;
         if x <= 0.03928 {
@@ -151,10 +154,13 @@ pub fn contrast_ratio(a: (u8, u8, u8), b: (u8, u8, u8)) -> f32 {
             ((x + 0.055) / 1.055).powf(2.4)
         }
     };
-    let lum =
-        |c: (u8, u8, u8)| -> f32 { 0.2126 * lin(c.0) + 0.7152 * lin(c.1) + 0.0722 * lin(c.2) };
-    let l1 = lum(a);
-    let l2 = lum(b);
+    0.2126 * lin(c.0) + 0.7152 * lin(c.1) + 0.0722 * lin(c.2)
+}
+
+/// WCAG 2.1 contrast ratio between two sRGB colours.
+pub fn contrast_ratio(a: (u8, u8, u8), b: (u8, u8, u8)) -> f32 {
+    let l1 = relative_luminance(a);
+    let l2 = relative_luminance(b);
     let (hi, lo) = if l1 > l2 { (l1, l2) } else { (l2, l1) };
     (hi + 0.05) / (lo + 0.05)
 }

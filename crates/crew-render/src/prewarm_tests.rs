@@ -233,3 +233,30 @@ fn set_leading_moves_the_cell_height_and_only_the_height() {
     grid.set_leading(1.65);
     assert!(!grid.needs_prewarm, "an unchanged ratio is a no-op");
 }
+
+/// The prewarm has to seed the keys a real frame will ask for, and a run's
+/// polarity is part of a key. Painted in a fixed polarity, every glyph on a
+/// page of the other one would miss the warm cache and pay full freight —
+/// rasterization, packing, and at Retina sizes the atlas grow that
+/// re-uploads everything already in it.
+#[test]
+fn the_prewarm_is_painted_in_the_pages_own_polarity() {
+    let mut fs = crate::embedfont::font_system();
+    for dark in [true, false] {
+        let mut p = params(14.0, 100);
+        p.gamma = 130;
+        p.dark = dark;
+        let (buf, ..) = crate::prewarm::build_buffer(&mut fs, &p);
+        let keys: Vec<_> = buf
+            .layout_runs()
+            .flat_map(|r| r.glyphs.to_vec())
+            .map(|g| g.physical((0.0, 0.0), 1.0).cache_key)
+            .collect();
+        assert!(!keys.is_empty(), "the working set shapes to glyphs");
+        assert!(
+            keys.iter().all(|k| crate::smoothing::dark_of(k) == dark),
+            "a {} page prewarmed in the other polarity",
+            if dark { "dark" } else { "bright" }
+        );
+    }
+}

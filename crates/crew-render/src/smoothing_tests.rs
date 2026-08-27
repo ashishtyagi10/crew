@@ -195,3 +195,62 @@ fn presmooth_at_zero_strength_seeds_untouched_masks() {
     );
     assert_eq!(seeded.data, raw.data);
 }
+
+/// The polarity bit must be shaped per RUN, from each cell's own colours.
+/// Before this, every glyph in the frame took the theme's polarity, so the
+/// dark text on a bright badge inside a dark theme had its coverage curve
+/// bent the wrong way — away from the correction it needed.
+#[test]
+fn each_run_carries_the_polarity_of_its_own_colours() {
+    let mut fs = crate::embedfont::font_system();
+    let (cell_w, cell_h) = cell_metrics(14.0, CELL_H_RATIO);
+    let dark_page = (18, 18, 20);
+    let bright_badge = (240, 238, 230);
+    let cells = [
+        // Pale ink on the dark page…
+        CellView {
+            col: 0,
+            row: 0,
+            c: 'M',
+            fg: (230, 230, 235),
+            bg: dark_page,
+            ..Default::default()
+        },
+        // …and dark ink on a bright badge, in the same frame.
+        CellView {
+            col: 1,
+            row: 0,
+            c: 'M',
+            fg: (20, 20, 24),
+            bg: bright_badge,
+            ..Default::default()
+        },
+    ];
+    let p = FontParams {
+        font_size: 14.0,
+        line_height: cell_h,
+        cell_w,
+        family: None,
+        weight: 400,
+        smooth: 100,
+        gamma: 130,
+        // The theme says dark; the badge says otherwise, and the badge wins
+        // for its own cells.
+        dark: true,
+    };
+    let buf = build_pane_buffer(&mut fs, &cells, 2, 1, cell_w, cell_h, &p);
+    let keys: Vec<_> = buf
+        .layout_runs()
+        .flat_map(|r| r.glyphs.to_vec())
+        .map(|g| g.physical((0.0, 0.0), 1.0).cache_key)
+        .collect();
+    assert_eq!(keys.len(), 2, "one glyph per cell");
+    assert!(dark_of(&keys[0]), "pale ink on the dark page is light ink");
+    assert!(
+        !dark_of(&keys[1]),
+        "dark ink on a bright badge must not take the dark page's curve"
+    );
+    // …and the same character in both polarities is two atlas entries, not
+    // one shared bitmap bent whichever way happened to be shaped first.
+    assert_ne!(keys[0], keys[1]);
+}

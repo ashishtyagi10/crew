@@ -51,8 +51,20 @@ pub(crate) fn working_set() -> Vec<(char, bool)> {
 /// every seeded key is the key a real frame will look up. The origin is
 /// (0, 0): pane rects snap to device pixels (v0.13.6) and cell metrics are
 /// whole pixels, so all glyphs land in the same zero subpixel bin.
+///
+/// The cells are painted in the page's own polarity — white on black for a
+/// dark page, black on white for a bright one. That is not decoration: a
+/// run's colours decide which way [`crate::textgamma`] bends its coverage
+/// curve, and the answer rides in the cache key. Prewarming in the wrong
+/// polarity would seed keys no real frame ever looks up, and every glyph on
+/// screen would pay full freight anyway.
 pub(crate) fn build_buffer(font_system: &mut FontSystem, params: &FontParams) -> PaneBuffer {
     let set = working_set();
+    let (fg, bg) = if params.dark {
+        ((255, 255, 255), (0, 0, 0))
+    } else {
+        ((0, 0, 0), (255, 255, 255))
+    };
     let cells: Vec<CellView> = set
         .iter()
         .enumerate()
@@ -60,8 +72,8 @@ pub(crate) fn build_buffer(font_system: &mut FontSystem, params: &FontParams) ->
             col: (i % COLS) as u16,
             row: (i / COLS) as u16,
             c,
-            fg: (255, 255, 255),
-            bg: (0, 0, 0),
+            fg,
+            bg,
             bold,
             italic: false,
             ..Default::default()
