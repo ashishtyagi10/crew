@@ -144,7 +144,7 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
             "Menlo",
             "Lilex",
         ],
-        ThemeId::CrtGreen | ThemeId::CrtAmber | ThemeId::CrtBlue => &[
+        ThemeId::CrtGreen | ThemeId::CrtAmber | ThemeId::CrtBlue | ThemeId::CrtViolet => &[
             // The Nerd Font variant first: crew now *embeds* plain Lilex, so
             // leading with it would mean the built-in copy always beat an
             // installed icon-bearing one.

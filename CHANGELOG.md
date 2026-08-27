@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.90
+
+**A fourth phosphor: `crt-violet`.** Green, amber and blue are the tubes
+everyone remembers; violet is the one on the vector displays, and it is the
+only one of the four whose phosphor leaves room for a **warm pink alarm** — the
+other three cannot separate their bell from their status by hue at all, which
+is why they are the standing exemption in that contract.
+
+It was one of the fifteen palettes retired in the roster cut, so this is a
+return rather than an arrival: its name resolves to itself again instead of
+being redirected to `crt-blue`, and the retired list is one shorter.
+
+Almost none of it was chosen. A tube's ANSI ladder is one hue at six
+brightnesses derived from the *peak* the palette already reaches, so the way to
+raise a violet red until it clears the diff floor on a code card is to raise
+the tube's brightest slot and let the derivation rebuild the rest — which is
+what the parity tests print when you get it wrong.
+
 ## 0.18.89
 
 **`/errorsall` — which pane went wrong.** `/errors` answers that one pane at a
