@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.86
+
+**The sidebar's rows overprinted themselves on a narrow nav.** Same sweep as
+last release, next surface. A PANES row carries an index, a focus marker, a
+title, a `[+]` restore button, an unread count and a status dot — six things,
+added across several releases, each placed by hand at a fixed offset from the
+row's width. On a narrow nav they landed on top of one another and on the
+title, which is invisible in a screenshot because the last writer wins.
+
+The right-hand side is now claimed from the edge inward: each item takes its
+columns only if what remains still leaves the title something to say, in
+priority order (the dot's slot, then the `[+]` — the row's only control — then
+the count). An item that cannot fit is not drawn rather than drawn over its
+neighbour, and every item keeps a column of air beside it.
+
 ## 0.18.85
 
 **The git badge has not been drawing on any pane that has buttons** — which is

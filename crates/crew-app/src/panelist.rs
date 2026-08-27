@@ -80,41 +80,38 @@ pub fn pane_cells(
         } else {
             t.text_muted
         };
-        // The count sits between the title and the dot slot: the third place
-        // this number appears (card, thumbnail, here), because the sidebar is
-        // the one view that lists panes you cannot see.
-        let count = crate::unread::badge(p.unread).filter(|_| !p.focused);
-        let cw = count.as_ref().map_or(0, |n| n.chars().count() as u16 + 1);
-        // A minimized row carries a right-aligned [+] restore button (ending a
-        // cell left of the activity-dot slot); its title stops short of it.
-        let tmax = if p.minimized {
-            cols.saturating_sub(8 + cw)
-        } else {
-            cols.saturating_sub(3 + cw)
+        // Everything to the right of the title is placed from the edge
+        // inward, each item claiming its columns only if what is left still
+        // leaves the title something to say. A narrow nav used to place them
+        // all unconditionally and let them overprint each other and the
+        // title — invisible in a screenshot, since the last writer wins.
+        //
+        // The order is the priority: the dot slot is reserved by the row
+        // itself, then the `[+]` (it is the row's only control), then the
+        // count.
+        const MIN_TITLE: u16 = 3;
+        // `claim(w)` takes `w` columns immediately left of the free edge,
+        // with one column of air between it and whatever it sits beside, and
+        // returns where to start drawing. `None` when what remains would not
+        // leave the title anything to say.
+        let mut rx = cols.saturating_sub(2);
+        let mut claim = |w: u16| -> Option<u16> {
+            let start = rx.checked_sub(w + 1)?;
+            (start > tstart + MIN_TITLE).then(|| {
+                rx = start;
+                start
+            })
         };
-        write(&mut out, &p.title, tstart, row, title_fg, tmax, t.page_bg);
-        if p.minimized {
-            write(
-                &mut out,
-                "[+]",
-                cols.saturating_sub(6),
-                row,
-                accent(),
-                cols.saturating_sub(2),
-                t.page_bg,
-            );
+        let plus = p.minimized.then(|| claim(3)).flatten();
+        let count = crate::unread::badge(p.unread)
+            .filter(|_| !p.focused)
+            .and_then(|n| claim(n.chars().count() as u16).map(|x| (x, n)));
+        write(&mut out, &p.title, tstart, row, title_fg, rx, t.page_bg);
+        if let Some(x) = plus {
+            write(&mut out, "[+]", x, row, accent(), cols, t.page_bg);
         }
-        if let Some(n) = count {
-            let w = n.chars().count() as u16;
-            write(
-                &mut out,
-                &n,
-                cols.saturating_sub(3 + w),
-                row,
-                t.activity,
-                cols.saturating_sub(2),
-                t.page_bg,
-            );
+        if let Some((x, n)) = count {
+            write(&mut out, &n, x, row, t.activity, cols, t.page_bg);
         }
         // The attention marker owns the dot slot while raised; the quiet
         // activity dot returns once the pane has been looked at.
@@ -245,6 +242,51 @@ mod tests {
             .find(|c| c.row == 2 && c.c == '7')
             .expect("the count was pushed off the row");
         assert!(digit.col >= 26, "the count moved out of its slot");
+    }
+
+    /// The same sweep the pane card's top border gets: a sidebar row carries
+    /// an index, a focus marker, a title, a `[+]` restore button, an unread
+    /// count and a status dot, added over several releases and all placed by
+    /// hand against `cols`. Each has to be drawn whole or not at all — `write`
+    /// overwrites, so a collision is a fragment rather than a doubled cell.
+    #[test]
+    fn nothing_in_a_sidebar_row_is_drawn_half_over() {
+        let _g = crate::app::theme_test_guard();
+        let row = PaneRow {
+            index: 12,
+            title: "crew \u{b7} claude".into(),
+            focused: false,
+            activity: true,
+            minimized: true,
+            attention: None,
+            busy: false,
+            hovered: false,
+            unread: 128,
+        };
+        for cols in 12..=60u16 {
+            let cells = cells_of(std::slice::from_ref(&row), cols, 4);
+            assert!(
+                cells.iter().all(|c| c.col < cols),
+                "{cols}: a cell escaped the row"
+            );
+            let mut line: Vec<&crew_render::CellView> =
+                cells.iter().filter(|c| c.row == 2).collect();
+            line.sort_by_key(|c| c.col);
+            let text: String = line.iter().map(|c| c.c).collect();
+            for tok in ["99+", "[+]"] {
+                let head: String = tok.chars().take(tok.chars().count() - 1).collect();
+                assert!(
+                    text.contains(tok) || !text.contains(&head),
+                    "{cols}: `{tok}` drawn as `{head}` \u{2014} {text:?}"
+                );
+            }
+            // Two glyphs may not share a column either — `write` is not the
+            // only painter here, and the title is placed by width.
+            let mut cols_used: Vec<u16> = line.iter().map(|c| c.col).collect();
+            let before = cols_used.len();
+            cols_used.dedup();
+            assert_eq!(cols_used.len(), before, "{cols}: two glyphs in one cell");
+        }
     }
 
     /// `pane_cells` with an empty pulse history and a fixed spinner glyph.
