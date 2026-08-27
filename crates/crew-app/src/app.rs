@@ -37,6 +37,9 @@ pub struct CrewApp {
     /// clicks, close, restore); diffing it once per frame in `build_frame`
     /// catches every one of them without each having to remember to stamp a
     /// timeline.
+    /// A command that ends panes, waiting to be run a second time
+    /// ([`crate::confirm`]).
+    pub(crate) pending: crate::confirm::Pending,
     /// A multi-line paste held for a second Cmd+V, because the program in
     /// the pane would run it line by line ([`crate::pastesafe`]).
     pub(crate) held_paste: crate::pastesafe::Held,

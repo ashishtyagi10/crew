@@ -8,6 +8,25 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.99
+
+**`/closeall` and `/only` ask once.** A closed pane takes its scrollback, its
+running command and its agent with it, and both commands sit one fuzzy
+keystroke away from `/clear` in the palette. The first run now says what it
+would close; the same command again does it.
+
+Not a dialog — crew has no modal to put one in, and a command that answers its
+own question with the keystroke that asked it is one you learn without reading
+anything. A different command in between replaces the question rather than
+answering it (that is the case worth catching), and a question older than ten
+seconds is asked again rather than answered late.
+
+Also fixed: `config` had quietly become a private module in this branch, which
+turned a `pub` method on `CrewConfig` into dead code and the workspace's
+warning-free rule into a warning. The module's visibility is back, and the
+lesson is that a blanket string replace on `mod config;` finds `pub mod
+config;` too.
+
 ## 0.18.98
 
 **The README says what crew has become.** Three sections written one release at
