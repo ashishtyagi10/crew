@@ -8,6 +8,14 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.88
+
+**A clippy warning that shipped.** The command-bar sweep landed in 0.18.87 with
+a `filter(..).next_back()` clippy flags as `rfind`, and the release went out
+with the workspace not warning-free — which is one of this project's two hard
+rules. Fixed, and worth recording: the gate was run, the count was read, and
+the commit went ahead anyway.
+
 ## 0.18.87
 
 **Two more surfaces swept, and both hold.** The width sweep that found the
