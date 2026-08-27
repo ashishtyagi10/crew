@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.16
+
+**The `/far` panel's whole interface is its function-key row, and `/keys` had
+none of it.** F1 through F10, `Alt+F1`/`Alt+F2`, Tab, and the `!` that asks the
+AI for a command were drawn along the bottom of the pane and written down in
+the manual — and `/keys` is where a user looks for "what can I press here".
+
+The overlay has a fourth section now, and the parity test from the last release
+is general: it reads each pane's own key map and holds the overlay to it. Both
+pane kinds are in it, so the next one is two lines rather than a rediscovery.
+
+One more thing the generalisation needed: `F2` is reachable only as `Alt+F2`,
+and a key map only knows it as `F2` — so a modifier chord in the table now
+counts for the key it ends in as well as for itself.
+
 ## 0.19.15
 
 **Every key the file viewer answers to was documented in the manual and
