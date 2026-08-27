@@ -193,24 +193,48 @@ fn a_hex_accent_draws_its_colour() {
     );
 }
 
-/// The chips answer to the VALUE, not to the field: a theme picker showing
-/// something that names no palette draws nothing rather than the last thing
-/// that did.
+/// A theme picker's chips are read off the palette its value NAMES, and a
+/// named palette shows its whole hand where a rotation mode shows one chip
+/// per pool member.
+///
+/// This test used to claim it proved that a value naming no palette draws
+/// nothing. It could not: `theme_label` resolves an unknown name to the
+/// default before the field is ever drawn, so the renderer never sees a bogus
+/// value — and the assertion (a difference between two whole-form chip
+/// counts) was being satisfied by other fields' chips moving. The value rule
+/// is a `swatch::for_value` question and is tested there; what is observable
+/// HERE is which palette the drawn chips came from.
 #[test]
-fn a_field_that_is_not_a_colour_draws_no_chips() {
+fn a_theme_pickers_chips_come_from_the_palette_it_names() {
     let _g = crate::app::theme_test_guard();
-    let mut p = pane();
-    p.draft.theme = Some("not-a-palette".to_string());
-    let with_theme = super::render(&p, 120, 40);
-    let chip_count = |cells: &[crew_render::CellView]| {
+    let chips_on_theme_row = |value: &str| {
+        let mut p = pane();
+        p.draft.theme = Some(value.to_string());
+        let cells = super::render(&p, 120, 40);
+        // The value sits on the middle row of the field's three-row box, and
+        // so do its chips. Find the row by the value crew just drew on it.
+        let row = (0..40u16)
+            .find(|r| row_text(&cells, *r).contains(value))
+            .unwrap_or_else(|| panic!("{value} is not drawn anywhere"));
         // `▀` is the palette chip; `█` is the text caret, which is not one.
-        cells.iter().filter(|c| c.c == '\u{2580}').count()
+        let chips: Vec<(u8, u8, u8)> = cells
+            .iter()
+            .filter(|c| c.row == row && c.c == '\u{2580}')
+            .map(|c| c.fg)
+            .collect();
+        chips
     };
-    // The two auto-pairing pickers still name real pools, so what must drop
-    // is the Theme field's own chips — count them by difference.
-    p.draft.theme = Some("dark".to_string());
-    let real = chip_count(&super::render(&p, 120, 40));
-    assert!(real > chip_count(&with_theme), "a bogus theme drew chips");
+    let pool = chips_on_theme_row("dark");
+    let named = chips_on_theme_row("crt-green");
+    assert!(!pool.is_empty(), "a rotation mode draws its pool");
+    assert!(
+        named.len() > pool.len(),
+        "a named palette shows its whole hand: {} vs {}",
+        named.len(),
+        pool.len()
+    );
+    let t = crew_theme::ThemeId::CrtGreen.theme();
+    assert_eq!(named.first(), Some(&t.ink), "and they are ITS colours");
 }
 
 /// The one colour a person picks by hand is the one nobody was measuring.

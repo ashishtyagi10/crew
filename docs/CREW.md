@@ -436,10 +436,16 @@ The docked command bar supports:
   (or type its trailing space) and the palette lists the choices to arrow through
   and `Enter` — no need to remember or type the exact value. Values that *are*
   colours show them: **`/gradient` draws each named pair as a four-cell ramp**
-  between its poles, and **`/theme` draws one chip per palette** the mode
-  rotates through — that palette's page with its accent across the top half,
-  since a dark pool's pages are all nearly black and would otherwise be one
-  smudge. Reading a colour's name and pressing Enter to find out what it looks
+  between its poles, and **`/theme` draws the colours themselves**: a rotation
+  mode shows one chip per palette in its pool, and a **named palette shows its
+  whole hand** — the ink it writes in, its accent, and the four ANSI slots
+  every program in a pane is about to paint with (red and green carry meaning;
+  yellow and blue are where two palettes with the same page most visibly
+  disagree). Every chip is that palette's page with one of its colours across
+  the top half, since a dark pool's pages are all nearly black and a column of
+  them would be one smudge. One chip is enough to pick a *pool* out of four
+  and far too little to pick a *palette* out of twelve — and no two of the
+  twelve draw the same strip, which a test holds them to. Reading a colour's name and pressing Enter to find out what it looks
   like is the one thing a picker exists to prevent. Pickers also **mark the
   value you are already on** (· current), and `/gradient` groups its named
   pairs under a heading of their own so the levels and the colours do not
@@ -1819,9 +1825,9 @@ was the only one nobody was measuring, and an accent that cannot be read is the
 mistake this field makes easy.
 
 Fields whose value names a colour **draw it** inside the right end of their
-box — the theme pickers show one chip per palette in the rotation (that
-palette's page with its accent across the top half) and the accent field shows
-its own hex. The same chips the command palette's pickers use, for the same
+box — the theme pickers show a rotation's pool as one chip per palette and a
+named palette as its whole hand (ink, accent, and four ANSI slots, each over
+that palette's own page), and the accent field shows its own hex. The same chips the command palette's pickers use, for the same
 reason: reading a name and pressing Save to find out what it looks like is the
 form failing at its job. The chips answer to the value, so a field showing
 something that names no palette draws nothing rather than the last thing that

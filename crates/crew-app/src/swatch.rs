@@ -43,7 +43,7 @@ pub(crate) fn for_value(cmd: &str, value: &str) -> Vec<Chip> {
         // whole pool, a pinned palette name shows itself.
         "/theme" => match crew_theme::parse_selection(value) {
             Some(crew_theme::Selection::Mode(m)) => pool_chips(m),
-            Some(crew_theme::Selection::Fixed(id)) => vec![chip_of(id)],
+            Some(crew_theme::Selection::Fixed(id)) => palette_chips(id),
             None => Vec::new(),
         },
         _ => Vec::new(),
@@ -71,20 +71,54 @@ fn pool_chips(m: RandomMode) -> Vec<Chip> {
     ALL_THEMES
         .iter()
         .filter(|&&id| m.in_pool(id))
-        .map(|&id| chip_of(id))
+        .map(|&id| chip_of(id, |t| t.accent_default))
         .collect()
 }
 
-/// A palette as one cell: its page underneath, its accent across the top half.
+/// A palette as one cell: its page underneath, `over` across the top half.
 /// Two colours in one column is what makes a dark pool's chips tell each other
 /// apart — every one of their pages is nearly black.
-fn chip_of(id: ThemeId) -> Chip {
+fn chip_of(id: ThemeId, over: Face) -> Chip {
     let t = id.theme();
     Chip {
         c: '\u{2580}',
-        fg: t.accent_default,
+        fg: over(t),
         bg: Some(t.page_bg),
     }
+}
+
+/// One colour read off a palette — a face of it, for the strip below.
+type Face = fn(&crew_theme::Theme) -> (u8, u8, u8);
+
+/// The half of a palette that tells it apart from its neighbours, in the
+/// order they matter.
+///
+/// A pinned palette used to show ONE chip — its page with its accent on top —
+/// which is the same amount of information the rotation modes get for each
+/// member of their pool. That is enough to pick a *pool* out of four and far
+/// too little to pick a *palette* out of twelve: the dark pool's pages are all
+/// nearly black, and their accents are the one colour a user is most likely to
+/// have overridden anyway.
+///
+/// So a named palette shows its hand: the ink it writes in, its accent, and
+/// the four ANSI slots every program in a pane is about to paint with. Red and
+/// green are the ones that carry meaning (a failure, a passing test), and
+/// yellow and blue are where two palettes with the same page most visibly
+/// disagree. All eight colours ride that palette's own page, so the strip is a
+/// small picture of what the screen will look like rather than a list of
+/// values.
+const FACES: [Face; 6] = [
+    |t| t.ink,
+    |t| t.accent_default,
+    |t| t.ansi[1], // red
+    |t| t.ansi[2], // green
+    |t| t.ansi[3], // yellow
+    |t| t.ansi[4], // blue
+];
+
+/// The strip a named palette shows: [`FACES`], each over that palette's page.
+fn palette_chips(id: ThemeId) -> Vec<Chip> {
+    FACES.iter().map(|f| chip_of(id, *f)).collect()
 }
 
 #[cfg(test)]
