@@ -3,8 +3,12 @@
 use super::*;
 
 impl CrewConfig {
+    /// The height of one text row in logical pixels — the font size times the
+    /// user's `leading`. The same product `crew_render::cell_metrics` takes,
+    /// so the window-sizing math and the cell box can never disagree about
+    /// how tall a row is.
     pub fn line_height(&self) -> f32 {
-        self.font_size * 1.25
+        self.font_size * self.leading().ratio()
     }
 
     /// The configured theme, or `paper-dark` when unset/unknown.
@@ -147,6 +151,12 @@ impl CrewConfig {
         crate::density::Density::parse(&self.density).unwrap_or(crate::density::Density::Cozy)
     }
 
+    /// The configured leading; an unknown name falls back to `normal`, the
+    /// default — a typo must not silently re-space every line of every pane.
+    pub(crate) fn leading(&self) -> crate::leading::Leading {
+        crate::leading::Leading::parse(&self.leading).unwrap_or(crate::leading::Leading::Normal)
+    }
+
     /// The configured motion preference; an unknown name falls back to `auto`,
     /// matching the default — a typo must not silently disable animation, nor
     /// silently overrule the OS.
@@ -207,6 +217,7 @@ impl CrewConfig {
             glass: self.glass,
             motion: self.motion,
             density: self.density,
+            leading: self.leading,
             contrast: self.contrast,
             shape_cues: self.shape_cues,
             // Capped on the way in as well as on the way out: a hand-edited

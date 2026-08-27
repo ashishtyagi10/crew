@@ -39,6 +39,16 @@ pub(crate) fn cycle_value(p: &mut SettingsPane, back: bool) {
             };
             d.density = all[next].as_str().to_string();
         }
+        Field::Leading => {
+            let all = crate::leading::Leading::ALL;
+            let cur = all.iter().position(|&l| l == d.leading()).unwrap_or(0);
+            let next = if back {
+                (cur + all.len() - 1) % all.len()
+            } else {
+                (cur + 1) % all.len()
+            };
+            d.leading = all[next].as_str().to_string();
+        }
         Field::Contrast => {
             const ALL: [&str; 3] = ["auto", "normal", "high"];
             let cur = ALL.iter().position(|v| *v == d.contrast).unwrap_or(0);

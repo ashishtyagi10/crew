@@ -59,7 +59,9 @@ pub(super) fn appearance(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16)
     rects.push((Field::Accent, Rect::new(ix, cy, iw, 3)));
     cy += 3;
     cy += pair(rects, ix, iw, cy, Field::Glass, Field::Motion);
-    cy += pair(rects, ix, iw, cy, Field::Density, Field::Contrast);
+    cy += pair(rects, ix, iw, cy, Field::Density, Field::Leading);
+    rects.push((Field::Contrast, Rect::new(ix, cy, iw, 3)));
+    cy += 3;
     rects.push((Field::ShapeCues, Rect::new(ix, cy, iw, 3)));
     cy += 3;
     // Full width: its legend is longer than a half-width border can carry,

@@ -26,6 +26,7 @@ mod smoothing;
 mod textprep;
 pub use cellgrid::CellGrid;
 pub use cellgrid::CellView;
+pub use celltext::CELL_H_RATIO;
 pub use crtchain::CrtChain;
 pub use embedfont::font_system;
 pub use fadepass::FadePass;

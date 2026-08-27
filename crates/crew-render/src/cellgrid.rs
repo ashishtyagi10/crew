@@ -2,7 +2,7 @@ use glyphon::{
     Cache, ColorMode, FontSystem, Resolution, SwashCache, TextAtlas, TextRenderer, Viewport,
 };
 
-use crate::celltext::{base_weight, cell_metrics, FontParams};
+use crate::celltext::{base_weight, cell_metrics, FontParams, CELL_H_RATIO};
 use crate::fontlist::monospace_families;
 use crate::glass::GlassLayer;
 use crate::quads::QuadLayer;
@@ -79,6 +79,10 @@ pub struct CellGrid {
     pub(crate) cell_h: f32,
     font_size: f32,
     line_height: f32,
+    /// Cell height as a fraction of the font size — the user's `/leading`.
+    /// Held here rather than read from a global so `crew-render` stays a
+    /// library with no opinion about where settings live.
+    leading: f32,
     font_family: Option<String>,
     /// User base-weight override (CSS scale). `None` follows the theme default
     /// ([`base_weight`]); `Some(w)` renders all non-bold text at `w` so the
@@ -120,7 +124,8 @@ impl CellGrid {
         let overlay_renderer = mk_renderer(&mut atlas);
 
         let font_family: Option<String> = None;
-        let (cell_w, cell_h) = cell_metrics(font_size);
+        let leading = CELL_H_RATIO;
+        let (cell_w, cell_h) = cell_metrics(font_size, leading);
         // Text rows must land exactly on the (rounded) cell grid, so the
         // buffer line height IS the cell height — never derived separately.
         let line_height = cell_h;
@@ -146,6 +151,7 @@ impl CellGrid {
             cell_w,
             cell_h,
             font_size,
+            leading,
             line_height,
             font_family,
             weight_override: None,
@@ -177,8 +183,25 @@ impl CellGrid {
 
     /// Update cell metrics when the font size changes at runtime.
     pub fn set_font_size(&mut self, font_size: f32) {
-        let (cell_w, cell_h) = cell_metrics(font_size);
         self.font_size = font_size;
+        self.remeasure();
+    }
+
+    /// Update cell metrics when the leading changes at runtime. A no-op when
+    /// the ratio has not moved: every caller sets this beside the font size
+    /// on every config adoption, and re-measuring would throw away the glyph
+    /// cache and re-warm the atlas for nothing.
+    pub fn set_leading(&mut self, leading: f32) {
+        if (leading - self.leading).abs() < f32::EPSILON {
+            return;
+        }
+        self.leading = leading;
+        self.remeasure();
+    }
+
+    /// Recompute the cell box and drop everything keyed to the old one.
+    fn remeasure(&mut self) {
+        let (cell_w, cell_h) = cell_metrics(self.font_size, self.leading);
         self.line_height = cell_h;
         self.cell_w = cell_w;
         self.cell_h = cell_h;

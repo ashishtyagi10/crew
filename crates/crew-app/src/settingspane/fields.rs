@@ -42,6 +42,11 @@ pub(crate) enum Field {
     /// chat cards (see `density`). Sits under Glass/Motion: those say how much
     /// the canvas *does*, this says how much room it takes.
     Density,
+    /// How much air sits between rows of text — the cell height as a
+    /// fraction of the font size (see `leading`). Beside Density because the
+    /// two are the pair people confuse: density is how much crew fits on the
+    /// canvas, leading is how the text reads.
+    Leading,
     /// WCAG floor every derived colour is measured against: `auto` follows
     /// the OS accessibility switch (see `crew_theme::contrast`).
     Contrast,
@@ -68,7 +73,7 @@ pub(crate) enum Field {
     Cancel,
 }
 
-pub(crate) const FIELDS: [Field; 33] = [
+pub(crate) const FIELDS: [Field; 34] = [
     Field::FontFamily,
     Field::FontSize,
     Field::Smooth,
@@ -88,6 +93,7 @@ pub(crate) const FIELDS: [Field; 33] = [
     Field::Glass,
     Field::Motion,
     Field::Density,
+    Field::Leading,
     Field::Contrast,
     Field::ShapeCues,
     Field::Gradient,

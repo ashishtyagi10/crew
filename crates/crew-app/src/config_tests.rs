@@ -108,6 +108,7 @@ fn round_trip() {
         ambient_drift: true,
         gradient: "lively".to_string(),
         density: "roomy".to_string(),
+        leading: "loose".to_string(),
         contrast: "high".to_string(),
         shape_cues: "on".to_string(),
         command_recents: vec!["/theme".to_string()],

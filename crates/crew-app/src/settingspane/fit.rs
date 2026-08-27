@@ -54,6 +54,12 @@ fn widest_value(f: Field) -> Option<usize> {
                 .map(|d| d.as_str())
                 .collect::<Vec<_>>(),
         ),
+        Field::Leading => longest(
+            &crate::leading::Leading::ALL
+                .iter()
+                .map(|l| l.as_str())
+                .collect::<Vec<_>>(),
+        ),
         Field::Gradient => longest(
             &crate::gradientlvl::GradientLevel::ALL
                 .iter()
@@ -130,6 +136,7 @@ mod tests {
     fn a_pickers_cost_covers_its_own_widest_option() {
         for (f, longest) in [
             (Field::Density, "compact".len()),
+            (Field::Leading, "relaxed".len()),
             (Field::Contrast, "normal".len()),
             (Field::Glass, "medium".len()),
         ] {

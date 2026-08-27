@@ -8,6 +8,36 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.7
+
+**`/leading` — how much air sits between rows of text.** Crew's cell height
+has always been `1.25 × font_size`: a good default and a bad universal. Dense
+code and long prose want different amounts of air, and the reader who finds
+tight lines hard to track has had exactly one lever — the font size — which
+fixes the tracking by making everything bigger.
+
+This is the knob `/density` deliberately does *not* have. Density moves the
+spaces that are genuinely empty (gutters, blank rows) on the grounds that in a
+cell grid the line height *is* the cell; that reasoning holds for gutters and
+not for someone who wants the same glyphs further apart. Density is how much
+crew fits on the canvas; leading is how the text reads.
+
+Only the cell's **height** takes the ratio — widening it would space the
+letters of every word apart, a different typographic decision wearing the same
+name, and would break the monospace contract every program in a pane draws
+against. `normal` is exactly what crew has always drawn, so the setting
+changes nothing until you turn it; `tight` (1.10) stops short of solid, where
+a monospace face's descenders meet the ascenders below; `loose` (1.65) stops
+there because the cell is also the cursor and the selection band, and past it
+a highlighted row reads as a stripe with the text loose inside it.
+
+Live and persisted, with a `/leading` value picker and **Settings → APPEARANCE
+→ Line spacing**. No process-global, unlike density: the cell box is asked for
+in exactly two places — the renderer, handed the ratio when the config is
+adopted, and `CrewConfig::line_height`, which has the config in hand — and a
+global would be a third answer to a question that already has two agreeing
+ones.
+
 ## 0.19.6
 
 **A watched pattern that matched every line of output could hide every other

@@ -150,6 +150,7 @@ mod keyroute;
 mod keys;
 mod lastout;
 mod layout;
+mod leading;
 mod ledgercli;
 mod linkhl;
 mod load;

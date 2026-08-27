@@ -239,6 +239,7 @@ impl CrewApp {
             WindowEvent::ScaleFactorChanged { scale_factor, .. } => {
                 if let Some(renderer) = &mut self.renderer {
                     renderer.set_font_size(self.config.font_size * scale_factor as f32);
+                    renderer.set_leading(self.config.leading().ratio());
                 }
                 self.redraw();
             }
