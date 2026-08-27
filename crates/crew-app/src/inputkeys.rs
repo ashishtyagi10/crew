@@ -6,7 +6,21 @@ use crate::inputbar::InputBar;
 impl InputBar {
     /// Handle a winit key event. `ctrl` enables readline-style line editing.
     /// Returns `Some(submitted_line)` when Enter is pressed, else `None`.
+    ///
+    /// Wraps [`Self::reduce_key`] only to catch the one moment the frame's
+    /// own sync cannot: a CHOSEN row is about to set the theme for real, and
+    /// restoring the previewed palette on the way there would flash the old
+    /// one back. Everything else — arrowing, typing, the picker going away —
+    /// settles in `build_frame`. See [`crate::themepeek`].
     pub fn on_key(&mut self, key: &winit::event::KeyEvent, ctrl: bool) -> Option<String> {
+        let submitted = self.reduce_key(key, ctrl);
+        if submitted.is_some() {
+            crate::themepeek::accept();
+        }
+        submitted
+    }
+
+    fn reduce_key(&mut self, key: &winit::event::KeyEvent, ctrl: bool) -> Option<String> {
         if !key.state.is_pressed() {
             return None;
         }
