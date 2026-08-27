@@ -143,6 +143,11 @@ fn exit_window_fades_text_toward_the_page() {
 
 #[test]
 fn alert_toasts_border_in_the_bell_color() {
+    // Reads the theme AND the gradient poles the quiet stroke is tinted from,
+    // so it has to be serialised against every test that moves either — which
+    // it was not, and which only stopped being theoretical when the `/theme`
+    // picker's preview started moving the poles too.
+    let _g = crate::app::theme_test_guard();
     let t = crew_theme::theme();
     let border_of = |alert: bool| {
         card_cells(

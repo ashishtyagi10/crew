@@ -584,12 +584,20 @@ static THEME_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 pub(crate) struct ThemeGuard {
     _lock: std::sync::MutexGuard<'static, ()>,
     prev: crew_theme::ThemeId,
+    /// The gradient poles in force when the guard was taken.
+    ///
+    /// A guard that put the theme back and left the POLES where a test had
+    /// moved them restored half a theme: the canvas keeps its colour from the
+    /// pole pair, so a test that only reads `theme()` still sees the light
+    /// somebody else turned on. `themepeek`'s previews move both.
+    poles: Option<crew_theme::poleshift::Poles>,
 }
 
 #[cfg(test)]
 impl Drop for ThemeGuard {
     fn drop(&mut self) {
         crew_theme::set_theme(self.prev);
+        crew_theme::poleshift::set_custom(self.poles);
     }
 }
 
@@ -597,11 +605,17 @@ impl Drop for ThemeGuard {
 pub(crate) fn theme_test_guard() -> ThemeGuard {
     let lock = THEME_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let prev = crew_theme::current_id();
+    let poles = crew_theme::poleshift::custom();
     // The default. A test wanting another theme still sets one after taking the guard; this
     // only decides what a test that never mentions a theme gets, which used to be "whatever the
-    // previous test left behind".
+    // previous test left behind". The poles get the same treatment: the theme's own.
     crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
-    ThemeGuard { _lock: lock, prev }
+    crew_theme::poleshift::set_custom(None);
+    ThemeGuard {
+        _lock: lock,
+        prev,
+        poles,
+    }
 }
 
 /// Serialises tests that touch the process-global motion level
