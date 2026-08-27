@@ -34,6 +34,13 @@ pub(crate) struct MenuItem {
     /// such a row prompts for the key instead of choosing a model that cannot
     /// run. `None` everywhere outside the model picker.
     pub needs: Option<String>,
+    /// Character indices of `label` that the query matched, marked in the row
+    /// so a fuzzy hit explains itself. Empty when nothing matched (an empty
+    /// query, or a row that is not a search result).
+    pub hit: Vec<usize>,
+    /// The chord that runs this command, shown right-aligned
+    /// ([`crate::cmdkeys`]). `None` for rows that are not commands.
+    pub key: Option<&'static str>,
     /// Optional label tint. The command palette leaves it `None` (accent);
     /// `/todo`'s tag popup colors each row in its project's own color
     /// (`crew_theme::tag_color`), matching the chips it completes into.
@@ -89,6 +96,7 @@ pub(crate) fn menu_items(text: &str) -> Vec<MenuItem> {
                 dim: false,
                 needs: None,
                 color: None,
+                ..Default::default()
             })
             .collect();
     }
@@ -105,10 +113,9 @@ pub(crate) fn menu_items(text: &str) -> Vec<MenuItem> {
                     c.name.to_string()
                 },
                 submit: !exp,
-                header: false,
-                dim: false,
-                needs: None,
-                color: None,
+                hit: hit_positions(c.name, &text[1..].to_lowercase()),
+                key: crate::cmdkeys::key_for(c.name),
+                ..Default::default()
             }
         })
         .collect()
@@ -159,6 +166,31 @@ fn rank(name: &str, q: &str) -> Option<u8> {
     } else {
         None
     }
+}
+
+/// Which characters of `label` the query `q` matched, as character indices
+/// into `label` — a prefix run for a prefix match, the greedy leftmost
+/// subsequence otherwise. The palette marks these, which is what makes a fuzzy
+/// hit (`/dmp` finding `/dump`) explain itself instead of looking like a bug.
+///
+/// The slash is index 0 of the label and is never part of `q`, so the search
+/// starts past it.
+pub(crate) fn hit_positions(label: &str, q: &str) -> Vec<usize> {
+    let mut out = Vec::new();
+    let mut chars = label.chars().enumerate().skip(1);
+    for want in q.chars() {
+        loop {
+            match chars.next() {
+                Some((i, c)) if c.eq_ignore_ascii_case(&want) => {
+                    out.push(i);
+                    break;
+                }
+                Some(_) => continue,
+                None => return out,
+            }
+        }
+    }
+    out
 }
 
 /// Whether every char of `needle` appears in `hay`, in order (not necessarily

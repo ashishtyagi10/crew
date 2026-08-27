@@ -6,12 +6,10 @@ use crew_render::CellView;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
-use ratatui::text::{Line, Span};
 use ratatui::widgets::{List, ListItem, ListState, StatefulWidget};
 
 use crate::suggest::MenuItem;
 
-use crate::palette::accent_color;
 const DIM: Color = Color::Rgb(120, 130, 140);
 
 /// Most command rows shown at once; beyond this the palette scrolls to keep the
@@ -67,33 +65,14 @@ fn menu_cells(matches: &[MenuItem], sel: usize, cols: u16, rows: u16) -> Vec<Cel
         return Vec::new();
     }
     let mut buf = Buffer::empty(Rect::new(0, 0, cols, rows));
+    // Two columns of the row go to the selection marker; every row is laid out
+    // in what is left, so the description column and the chord agree with the
+    // width the list actually draws in.
+    let avail = usize::from(cols).saturating_sub(2);
+    let label_w = crate::cmdrow::label_col(matches, avail);
     let items: Vec<ListItem> = matches
         .iter()
-        .map(|c| {
-            if c.header {
-                // A section title, not a choice: dim + bold, no desc column.
-                return ListItem::new(Line::from(Span::styled(
-                    c.label.clone(),
-                    Style::new().fg(DIM).add_modifier(Modifier::BOLD),
-                )));
-            }
-            // A choice the active stack can't serve: dim like a header, but
-            // never bold and it keeps its desc column — that's what tells it
-            // apart from a section title, while the dim (not accent) label
-            // tells it apart from a normal, serveable row.
-            let label_fg = if c.dim {
-                DIM
-            } else {
-                c.color
-                    .map(|(r, g, b)| ratatui::style::Color::Rgb(r, g, b))
-                    .unwrap_or_else(accent_color)
-            };
-            ListItem::new(Line::from(vec![
-                Span::styled(c.label.clone(), Style::new().fg(label_fg)),
-                Span::raw("  "),
-                Span::styled(c.desc.clone(), Style::new().fg(DIM)),
-            ]))
-        })
+        .map(|c| ListItem::new(crate::cmdrow::spans(c, label_w, avail, DIM)))
         .collect();
     let list = List::new(items)
         // No background bar — bold the selected row so its text stays fully legible.

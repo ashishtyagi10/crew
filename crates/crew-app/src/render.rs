@@ -291,6 +291,7 @@ impl CrewApp {
                                     dim: false,
                                     needs: None,
                                     color: None,
+                                    ..Default::default()
                                 })
                                 .collect();
                             let r = pane.rect;

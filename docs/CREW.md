@@ -374,7 +374,13 @@ The docked command bar supports:
   `/sidebar`, `/keys`, `/far`, `/todo`, `/exit`. The palette is **fuzzy** — prefix
   matches rank first,
   then subsequence matches (typing `dmp` after the slash finds `/dump`) — and **scrolls** to the
-  selection when the match list is long. When several commands share a prefix,
+  selection when the match list is long. The **characters that matched are
+  marked** in each row, so a fuzzy hit explains itself rather than looking like
+  a mis-match; the **descriptions line up in a column** so the list reads down
+  instead of being scanned; and a command that also has a **chord** shows it
+  right-aligned (`/clear … Cmd+K`) — the way to stop needing the palette for it.
+  As the card narrows the chord goes first, then the description truncates,
+  then the label: the description is what a row is for. When several commands share a prefix,
   the **shortest** is ghosted as the autosuggestion (e.g. `/clear` ghosts before
   `/clearlog`, which is one keystroke further). Commands with a **fixed set of
   values** (like `/theme`) expand into a **value picker**: select the command

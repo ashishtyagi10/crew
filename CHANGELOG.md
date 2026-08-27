@@ -8,6 +8,31 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.53
+
+**The palette shows its work.** Three changes to the surface you open most.
+
+**The matched characters are marked.** The palette has been fuzzy for a while —
+`/dmp` finds `/dump` — but the row gave no sign of *why* it was a match, which
+makes a fuzzy hit look like the list ignoring you. Now the letters that matched
+are drawn bold, prefix run or scattered subsequence.
+
+**The descriptions line up.** They were placed two spaces after each label, so
+every row started its description somewhere else and the list could only be
+scanned, never read down. There is a column now, capped at half the row so one
+long command cannot push every description off the card, and a label wider than
+the column pushes its own description rather than being cut in half by it.
+
+**Commands with a chord say so.** `/clear … Cmd+K`, right-aligned. A palette
+that names the shortcut is how you stop needing the palette. The five listed
+are exactly the ones where the chord does *that command* — and a test reads
+`chords.rs` itself to confirm each one is still handled, because a shortcut
+column that teaches a key which does nothing is worse than no column.
+
+The row lays out in a fixed order as the card narrows: the chord goes first,
+then the description truncates, then the label itself — the description being
+what a row is for. Swept across every width from 1 to 80 columns.
+
 ## 0.18.52
 
 **Everything a TUI paints with was invisible.** A terminal program draws its
