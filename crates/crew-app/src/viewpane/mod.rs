@@ -10,6 +10,7 @@ mod lines;
 pub(crate) mod load;
 pub(crate) mod mdrung;
 mod metacard;
+mod outline;
 mod pane;
 mod render;
 mod rendercap;

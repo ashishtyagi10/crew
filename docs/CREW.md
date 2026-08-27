@@ -610,8 +610,12 @@ longer aim at.
   numbered-gutter code, aligned CSV, colored diffs, or a metadata card for
   anything else). ↑/↓ and PageUp/PageDown/Home/End scroll, `r` reloads from
   disk, `s` toggles raw text (markdown and CSV), `/` searches (`n`/`N` for
-  next/previous hit), `e` opens `$EDITOR`, `o` hands the file to the OS
-  default app, **Cmd+click** opens a rendered markdown link, `Esc` closes.
+  next/previous hit), **`]`/`[` step the document's structure** — in a diff,
+  file to file and hunk to hunk, which is how a review is actually read — `e`
+  opens `$EDITOR`, `o` hands the file to the OS default app, **Cmd+click**
+  opens a rendered markdown link, `Esc` closes. At either end `]`/`[` do
+  nothing rather than wrapping: a review has an end, and jumping back to the
+  top from it is how you lose your place.
   Chat panes render markdown too — see [Markdown](#markdown).
 - **`/notify [on|off|add <text>|clear]`** — drive the notification block from
   the bar: toggle the master switch, add a watched output pattern, or clear

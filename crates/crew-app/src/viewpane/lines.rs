@@ -7,6 +7,7 @@ use crate::viewpane::codepaint::{line_paint, CharPaint};
 use crate::viewpane::detect::Format;
 use crate::viewpane::load::{Loaded, MAX_VIEW_BYTES};
 use crate::viewpane::metacard::opaque_card;
+use crate::viewpane::outline::Mark;
 use crate::viewpane::rendercap::{cap_render_lines, MAX_RENDER_LINES};
 use crate::viewpane::LoadState;
 
@@ -67,7 +68,7 @@ fn numbered(
         .split('\n')
         .map(|line| line_paint(line, lang, ink))
         .collect();
-    painted(text, cols, &paints, ink, muted)
+    painted(text, cols, &paints, ink, muted).0
 }
 
 /// The numbered-gutter body, given a paint per character. Shared by the
@@ -79,12 +80,16 @@ fn painted(
     paints: &[Vec<CharPaint>],
     ink: (u8, u8, u8),
     muted: (u8, u8, u8),
-) -> Vec<CardLine> {
+) -> (Vec<CardLine>, Vec<usize>) {
     let w = cols.saturating_sub(GUTTER_W).max(1);
     let mut out = Vec::new();
+    // Which source line each rendered row came from — how a landmark in the
+    // text ([`super::outline`]) becomes a row to scroll to.
+    let mut src = Vec::new();
     let mut last = 0usize;
     let mut pos = 0usize;
     for (n, chars) in wrap(text, w) {
+        src.push(n - 1);
         let mut line: CardLine = if n == last {
             row(&" ".repeat(GUTTER_W), muted, false)
         } else {
@@ -105,16 +110,26 @@ fn painted(
         }
         out.push(line);
     }
-    out
+    (out, src)
 }
 
 /// The diff rung: a review rather than a colour per line. Pairing, word-level
 /// marks and the header treatment live in [`super::diffpaint`]; this only lays
 /// that paint down through the same numbered gutter every other rung uses.
-fn diff_lines(text: &str, cols: usize) -> Vec<CardLine> {
+fn diff_lines(text: &str, cols: usize) -> (Vec<CardLine>, Vec<Mark>) {
     let t = crew_theme::theme();
     let paints = super::diffpaint::paint(text);
-    painted(text, cols, &paints, t.ink, t.text_muted)
+    let (lines, src) = painted(text, cols, &paints, t.ink, t.text_muted);
+    // Landmarks are found in the source and reported as ROWS: a wrapped line
+    // occupies several, and `]` has to land on the first of them.
+    let marks = super::outline::diff_marks(text)
+        .into_iter()
+        .filter_map(|(line, label)| {
+            let row = src.iter().position(|&s| s == line)?;
+            Some(Mark { row, label })
+        })
+        .collect();
+    (lines, marks)
 }
 
 fn banner(msg: &str, cols: usize) -> CardLine {
@@ -135,16 +150,21 @@ fn mb(bytes: u64) -> u64 {
 /// the two whose default rendering shows something OTHER than the bytes
 /// themselves — and leaves every other rung alone, since those already show
 /// the bytes as they are.
-pub(crate) fn for_state(state: &LoadState, raw: bool, cols: usize) -> Vec<CardLine> {
+pub(crate) fn for_state(state: &LoadState, raw: bool, cols: usize) -> (Vec<CardLine>, Vec<Mark>) {
     let t = crew_theme::theme();
     match state {
-        LoadState::Loading { .. } => vec![banner("loading…", cols)],
-        LoadState::Failed(msg) => vec![row(msg, t.ink, false)],
+        LoadState::Loading { .. } => (vec![banner("loading…", cols)], Vec::new()),
+        LoadState::Failed(msg) => (vec![row(msg, t.ink, false)], Vec::new()),
         LoadState::Ready { format, loaded } => ready_lines(*format, loaded, raw, cols),
     }
 }
 
-fn ready_lines(format: Format, loaded: &Loaded, raw: bool, cols: usize) -> Vec<CardLine> {
+fn ready_lines(
+    format: Format,
+    loaded: &Loaded,
+    raw: bool,
+    cols: usize,
+) -> (Vec<CardLine>, Vec<Mark>) {
     let t = crew_theme::theme();
     let mut out = Vec::new();
     if let Some(real) = loaded.truncated {
@@ -179,6 +199,7 @@ fn ready_lines(format: Format, loaded: &Loaded, raw: bool, cols: usize) -> Vec<C
             cols,
         ));
     }
+    let mut marks = Vec::new();
     let body = match format {
         Format::Opaque { why } => opaque_card(why, loaded.meta.as_ref(), cols),
         Format::Extract { via } => {
@@ -193,7 +214,19 @@ fn ready_lines(format: Format, loaded: &Loaded, raw: bool, cols: usize) -> Vec<C
             // prose lifted out of a PDF or a Word doc, not source.
             numbered(text, cols, "", t.ink, t.text_muted)
         }
-        Format::Diff => diff_lines(text, cols),
+        Format::Diff => {
+            let (lines, found) = diff_lines(text, cols);
+            // The banners above the body push every row down with them.
+            let above = out.len();
+            marks = found
+                .into_iter()
+                .map(|m| Mark {
+                    row: m.row + above,
+                    ..m
+                })
+                .collect();
+            lines
+        }
         Format::Markdown if !raw => super::mdrung::lines(text, cols),
         Format::Csv { delim } if !raw => super::csv::lines(text, delim, cols),
         // Fix 1: `Code`/`Data` used to reach here with no `lang`, which is
@@ -204,7 +237,7 @@ fn ready_lines(format: Format, loaded: &Loaded, raw: bool, cols: usize) -> Vec<C
         _ => numbered(text, cols, format_lang(format), t.ink, t.text_muted),
     };
     out.extend(body);
-    out
+    (out, marks)
 }
 
 /// The `md::syntax` language tag for a rung, `""` when it has none. Only

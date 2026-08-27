@@ -8,6 +8,26 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.56
+
+**`]` and `[` walk the review.** A diff is not read top to bottom; it is walked
+file by file and hunk by hunk, and the only way to do that in the viewer was
+PageDown and a careful eye. The two bracket keys now step the document's
+structure: every `diff --git` header and every `@@` hunk is a landmark, named
+by the function context git already puts after the range (or by the range
+itself when there is none), and a renamed file is listed under the name it has
+now.
+
+Landmarks are found in the source and reported as **rendered rows** — a wrapped
+line occupies several of them, and the banners above the body push every row
+down — so `]` lands on the row the landmark was actually drawn at rather than
+somewhere near it. That mapping is the whole reason the rung now hands back
+which source line each rendered row came from, which is a thing every gutter
+rung can answer and no one had asked for yet.
+
+At either end nothing happens. A review has an end, and wrapping to the top
+from it is how you lose your place.
+
 ## 0.18.55
 
 **`/diff` is a review now, not a scrollback.** It used to run `git diff` in a

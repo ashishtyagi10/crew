@@ -401,3 +401,90 @@ fn toggling_raw_resets_the_hit_cursor_not_just_the_hit_list() {
          a stale one lands on its third (raw index 30) instead"
     );
 }
+
+/// As [`pane_with`], for a rung the test names itself.
+fn ready_pane(format: crate::viewpane::detect::Format, text: &str) -> crate::viewpane::ViewPane {
+    use crate::viewpane::load::Loaded;
+    use crate::viewpane::LoadState;
+    let mut p = crate::viewpane::ViewPane::open(std::env::temp_dir().join("k.diff"));
+    p.state = LoadState::Ready {
+        format,
+        loaded: Loaded {
+            text: text.into(),
+            truncated: None,
+            meta: None,
+        },
+    };
+    p.cache.replace(None);
+    p
+}
+
+/// `]` and `[` walk a review: file header, hunk, hunk, next file. The rows
+/// come from the RENDERED document, so this is also the check that a landmark
+/// found in the source lands on the row it was rendered at.
+#[test]
+fn brackets_step_a_diff_file_by_file_and_hunk_by_hunk() {
+    let _g = crate::app::theme_test_guard();
+    // Trailing context so the last landmark is reachable: `clamp_scroll`
+    // stops at the last page, and a mark inside it could never be landed on
+    // exactly — which would be the clamp under test, not the jump.
+    let tail = " ok\n".repeat(12);
+    let text = format!("diff --git a/a.rs b/a.rs\n@@ -1 +1 @@ fn one\n-a\n+b\n@@ -9 +9 @@ fn two\n-c\n+d\ndiff --git a/b.rs b/b.rs\n@@ -1 +1 @@ fn three\n-e\n+f\n{tail}");
+    let mut p = ready_pane(crate::viewpane::detect::Format::Diff, &text);
+    let (cols, rows) = (60, 6);
+    let rows_of = |p: &crate::viewpane::ViewPane| {
+        p.lines_for(cols)
+            .marks
+            .iter()
+            .map(|m| m.row)
+            .collect::<Vec<_>>()
+    };
+    let marks = rows_of(&p);
+    assert_eq!(marks.len(), 5, "five landmarks in this review");
+    assert_eq!(p.scroll, 0);
+    for want in &marks[1..] {
+        apply(&mut p, ViewInput::NextMark, cols, rows);
+        assert_eq!(p.scroll, *want, "] did not land on {want}");
+    }
+    // …and back up the same way.
+    for want in marks[..marks.len() - 1].iter().rev() {
+        apply(&mut p, ViewInput::PrevMark, cols, rows);
+        assert_eq!(p.scroll, *want, "[ did not land on {want}");
+    }
+}
+
+/// At the last landmark `]` does nothing rather than wrapping to the top —
+/// losing your place in a long review is worse than a key that no-ops.
+#[test]
+fn stepping_past_the_last_landmark_stays_put() {
+    let _g = crate::app::theme_test_guard();
+    let mut p = ready_pane(
+        crate::viewpane::detect::Format::Diff,
+        "@@ -1 +1 @@ only\n-a\n+b\n",
+    );
+    let (cols, rows) = (60, 6);
+    apply(&mut p, ViewInput::NextMark, cols, rows);
+    let at = p.scroll;
+    apply(&mut p, ViewInput::NextMark, cols, rows);
+    assert_eq!(p.scroll, at);
+    apply(&mut p, ViewInput::PrevMark, cols, rows);
+    apply(&mut p, ViewInput::PrevMark, cols, rows);
+    assert_eq!(p.scroll, 0);
+}
+
+/// A file with no structure has nothing to step through, and the keys leave
+/// the view exactly where it was.
+#[test]
+fn brackets_do_nothing_in_a_document_with_no_landmarks() {
+    let _g = crate::app::theme_test_guard();
+    let mut p = ready_pane(
+        crate::viewpane::detect::Format::Code { lang: "" },
+        "one\ntwo\nthree\n",
+    );
+    let (cols, rows) = (60, 6);
+    apply(&mut p, ViewInput::Down, cols, rows);
+    let at = p.scroll;
+    apply(&mut p, ViewInput::NextMark, cols, rows);
+    apply(&mut p, ViewInput::PrevMark, cols, rows);
+    assert_eq!(p.scroll, at);
+}
