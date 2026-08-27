@@ -224,7 +224,7 @@ the arrow and page keys, and any other key closes it.
 | Font bigger / smaller / reset | **Cmd+=** / **Cmd+-** / **Cmd+0** |
 | Copy visible screen / paste | **Cmd+C** / **Cmd+V** (Cmd+V pastes a clipboard image as a temp PNG path) |
 | Open URL / file / dir under cursor | **Cmd+Click** |
-| Cycle themes (fixed presets, then random-dark/light, then auto) | **Ctrl+Shift+L** |
+| Cycle the theme rotations (dark → light → crt → auto) | **Ctrl+Shift+L** |
 | Toggle chat markdown preview ↔ raw source | **Ctrl+Shift+M** |
 | Reverse-search the chat composer's send history | **Ctrl+R** |
 | Find: the chat transcript, or `/find` in the bar | **Cmd+F** (or **Ctrl+F**) |
@@ -555,31 +555,31 @@ accepts `accent = "#rrggbb"` to override Crew's accent; omit it (or give an
 invalid value) to use the active theme's default accent. It applies at launch —
 quit and reopen Crew to pick up edits made outside the `/settings` pane.
 
-**Themes.** Crew ships **sixteen themes**: eleven paper/ink looks — `paper-dark`
-(default — a high-contrast "newspaper" look), `paper-light` (a warm paper
-page), `sepia-dark` (warm cream ink on dark sepia), `sepia-light`
-(aged-newsprint cream page), `midnight-ink` (cool off-white on deep navy),
-`graphite` (a gentle soft-charcoal page), `moss-blotter` (a deep moss-green
-desk blotter with warm paper ink), `coldpress-gray` (cool pale-gray
-page), `salmon-broadsheet` (FT-style salmon-pink broadsheet),
-`ivory-ledger` (ivory with ledger-green ink), and `glacier-bond` (a cold
-blue-gray north-light page with slate accents) — and five **CRT phosphor**
-tubes: `crt-green`, `crt-amber`, `crt-blue`, `crt-violet`, each a neon
-monochrome glow on a near-black tube, and `crt-paperwhite`, the classic P4
-white tube. The tubes render as a **holographic
-terminal**: each phosphor ships its own tube personality (scanline weight,
-bloom strength, flicker character), hot pixels throw a real half-res
-gaussian bloom, panes sit on luminous translucent glass tinted in the
-phosphor's own hue, and focused frames are drawn in light — glowing corner
-nodes, a brief ignition sweep when a pane gains focus, and a slow breathing
-while it streams (idle frames stay perfectly static). `/crt on|off|auto`
-still overrides the tube independently of the theme. Three rotation modes
-rotate through a
-pool every 10 minutes: **`/theme random-dark`** (dark themes only; alias
-`/theme random`), **`/theme random-light`** (light themes only), and
-**`/theme auto`** (follows OS appearance). Switch with `/theme <name>` (the
-palette offers an arrow-selectable picker) or cycle everything live with
-`Ctrl+Shift+L` (fixed presets, then rotation modes); the choice persists.
+**Themes.** Crew ships **twelve palettes** in four rotations. `dark` rotates
+`paper-dark` (a high-contrast newspaper look), `sepia-dark` (warm cream ink on
+dark sepia), `nebula` (an orchid→rose gradient dusk) and `harbor` (a blue-slate
+page under an azure light); `light` rotates `paper-light`, `sepia-light`,
+`blossom` and `fern` (a faint mint page under a green-teal light); `crt`
+rotates the four phosphor tubes — `crt-green`, `crt-amber`, `crt-blue` and
+`crt-violet`, each one hue at six brightnesses on a near-black tube; and `auto`
+follows the OS appearance, serving the dark pool in dark mode and the light one
+in light mode (re-wire the pairing with `theme_dark` / `theme_light`). A
+rotation changes palette every 10 minutes.
+
+Almost every colour in a palette is **derived, not chosen**: the ramp produces
+the whole text ladder and all sixteen ANSI slots from the page and the ink, a
+wash produces the search highlight, and an alarm derivation produces the bell —
+each with a contract test that fails when a shipped value drifts from what the
+system would produce. What a palette actually picks is its page, its ink, its
+accent and its gradient poles.
+
+`/theme` offers the four rotations and then every palette by name, each with a
+swatch: a rotation shows one chip per palette it would serve (that palette's
+page with its accent across the top half), so you can see what you are choosing
+before you choose it. `Ctrl+Shift+L` cycles the rotations; the palettes retired
+in an earlier roster cut still parse, so an old config keeps working. `/crt
+on|off|auto` overrides the tube post-process independently of the theme.
+
 Light themes render ink at Medium weight over 1.2× "newsprint" grain so they
 read like paper, not a washed-out screen. A subtle GPU grain + vignette sits
 behind everything (it reads as a CRT glow on the phosphor themes). Config

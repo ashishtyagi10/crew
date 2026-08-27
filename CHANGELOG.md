@@ -8,6 +8,27 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.2
+
+**The README's theme section described a version that no longer exists.** It
+listed sixteen themes — eight of which were retired in the roster cut — the old
+`random-dark` / `random-light` rotation names, and the luminous glass sheet the
+flat-tube decree removed. Someone reading the front door was being told about
+palettes they could not see and chrome that is not drawn.
+
+It now says what ships: twelve palettes in four rotations, named by pool, with
+the point that matters — **almost every colour in a palette is derived rather
+than chosen**, each derivation guarded by a contract test — and how the picker
+shows them. Two stale counts elsewhere in the docs went with it.
+
+This closes a run of fifty-three UI iterations, `0.18.48` through here. The
+through-line: **everything crew learns about a pane is drawn on the pane's own
+chrome** — git state, elapsed time, unread counts, command starts, errors,
+progress, position, landmarks — because a terminal's columns belong to the
+program running in them; and **crew derives what other terminals ask you to
+configure**, from command blocks without shell integration to a palette's
+entire ANSI ladder.
+
 ## 0.19.1
 
 **An empty file says it is empty.** Opening one drew an empty pane — which is
