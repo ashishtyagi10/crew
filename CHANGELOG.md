@@ -8,6 +8,26 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.17
+
+**Every pane kind that answers to keys of its own now has a section in
+`/keys`** — the agent pane, the file viewer, the `/far` panel, the `/todo`
+list, and `/settings`. The todo list had two rows in the overlay and six more
+actions that were in the manual only (delete, edit, the filter cycle, the
+due-date bump); the settings form had none at all, though every field in it is
+reached and changed without the mouse. `Cmd+S` also stopped claiming to be only
+the broadcast toggle: it saves a focused settings form, and had since long
+before this list existed.
+
+The sections live in one list now, which the height, the width, the scrolling
+and the filter all read — so adding a pane kind is one row rather than five
+edits — and the parity test covers all of them.
+
+Two more things that test needed, and both are the kind of detail that makes
+the difference between a contract and a decoration: a modifier chord counts for
+the key it *ends in* (`Alt+F2` for `F2`), and it counts case-insensitively,
+because a table writes `Ctrl+A` while a key map matches the character `'a'`.
+
 ## 0.19.16
 
 **The `/far` panel's whole interface is its function-key row, and `/keys` had

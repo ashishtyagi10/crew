@@ -1,4 +1,5 @@
-//! The four binding tables the `/keys` overlay lists. Data only: the rendering,
+//! The binding tables the `/keys` overlay lists: the app-wide ones, then one
+//! per pane kind that answers to keys of its own. Data only: the rendering,
 //! the scrolling and the docs-parity contract live in [`crate::help`].
 //!
 //! They stopped having a height budget when the overlay learned to scroll, so
@@ -22,7 +23,7 @@ pub(crate) const BINDINGS: &[(&str, &str)] = &[
     ("Cmd+F", "Find: in a chat transcript, or /find in the bar"),
     ("Cmd+, / Cmd+J", "Settings / chat pane"),
     ("Cmd+G / Cmd+Z", "Toggle sidebar / zoom focused pane"),
-    ("Cmd+S", "Broadcast to all panes"),
+    ("Cmd+S", "Broadcast to all panes \u{b7} save a focused settings form"),
     (
         "Cmd+= / Cmd+- / Cmd+0 / Cmd+wheel",
         "Font size + / - / reset",
@@ -55,14 +56,6 @@ pub(crate) const BINDINGS: &[(&str, &str)] = &[
     (
         "On a card's top border",
         "Double-click zooms \u{b7} drag it onto another card to swap them",
-    ),
-    (
-        "PageUp/Down · Home/End · h · H",
-        "Todo list: page · first / last · show done (or the [show N done] button) · history",
-    ),
-    (
-        "Ctrl+A / Ctrl+E / Alt+Left / Alt+Right",
-        "Todo composer: draft ends · word jump",
     ),
     ("/ (in input)", "Command palette"),
     (
@@ -172,4 +165,41 @@ pub(crate) const FAR_BINDINGS: &[(&str, &str)] = &[
         "! (in the command line)",
         "Ask the AI for the command, then Enter to run what it suggests",
     ),
+];
+
+/// Keys the **`/todo`** pane answers to. The overlay carried two rows of
+/// these and the list's other six actions — delete, edit, the filter cycle
+/// and the due-date bump — were in the manual only.
+pub(crate) const TODO_BINDINGS: &[(&str, &str)] = &[
+    ("Up / Down · PageUp/Down · Home/End", "Move the selection"),
+    ("Enter · Space", "Tick the selected item off, or back on"),
+    ("e · d · Backspace/Delete", "Edit it \u{b7} delete it"),
+    ("] / [", "Cycle the filter forward / back"),
+    ("+ / -", "Push the due date later / earlier"),
+    (
+        "h · H",
+        "Show done items (or the [show N done] button) \u{b7} the history log",
+    ),
+    ("Tab", "Complete an @project tag in the composer"),
+    (
+        "Ctrl+A / Ctrl+E · Alt+Left / Alt+Right",
+        "Composer: jump to either end \u{b7} by a word",
+    ),
+    (
+        "Esc",
+        "Back one layer: popup, then the draft, then the pane",
+    ),
+];
+
+/// Keys the **`/settings`** form answers to. Every field is reached and
+/// changed without the mouse; the overlay never said how.
+pub(crate) const SETTINGS_BINDINGS: &[(&str, &str)] = &[
+    ("Tab / Shift+Tab", "Next / previous field"),
+    (
+        "Left / Right · Space",
+        "Step a picker's value \u{b7} toggle a checkbox",
+    ),
+    ("Enter", "Take the value and move on"),
+    ("Cmd+S / Alt+S", "Save and apply"),
+    ("Esc", "Close without saving"),
 ];
