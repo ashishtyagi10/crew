@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.20
+
+**`/gradient` previews too.** Arrowing onto a named pair puts its poles on the
+canvas, for the reason the theme picker wears its palette: a four-cell ramp
+beside a name is not the light that pair casts under everything you are looking
+at. The *level* rows — `off`, `subtle`, `lively` — are deliberately not
+previewed, since they say how far the poles breathe rather than which colours
+they are, which is the same distinction that keeps a rotation mode from
+standing in for a palette.
+
+Both colours are remembered whichever picker is open, so walking from a palette
+row into a gradient row and then dismissing the picker restores **the pair you
+had** rather than whichever one you happened to look at last.
+
 ## 0.19.19
 
 **The `/theme` picker puts the palette on while you look at it.** Arrow onto a

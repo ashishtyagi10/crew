@@ -66,22 +66,55 @@ fn a_rotation_mode_is_not_previewed() {
     }
 }
 
-/// Every other row in the palette leaves the theme alone — including the rows
-/// of the other pickers, which also fill a `/command value` string.
+/// Every row that names no colour leaves everything alone.
 #[test]
-fn nothing_but_the_theme_picker_previews_anything() {
+fn a_row_that_names_no_colour_previews_nothing() {
     let _g = guard();
     crew_theme::set_theme(ThemeId::PaperDark);
+    crew_theme::poleshift::set_custom(None);
     for fill in [
         "/theme",
         "/theme not-a-palette",
-        "/gradient aurora",
+        "/gradient not-a-pair",
+        // A LEVEL says how far the poles breathe, not which colours they are.
+        "/gradient subtle",
         "/density roomy",
         "/out",
     ] {
         assert!(!sync(&[row(fill)], 0), "{fill}");
         assert_eq!(crew_theme::current_id(), ThemeId::PaperDark, "{fill}");
+        assert_eq!(crew_theme::poleshift::custom(), None, "{fill}");
     }
+}
+
+/// A named gradient rides the same rule: a four-cell ramp beside a name is
+/// not the light that pair puts on the canvas.
+#[test]
+fn arrowing_onto_a_gradient_puts_its_poles_on() {
+    let _g = guard();
+    crew_theme::poleshift::set_custom(None);
+    let name = crew_theme::gradients::GRADIENTS[0].name;
+    let want = crew_theme::gradients::by_name(name).expect("a named pair");
+    assert!(sync(&[row(&format!("/gradient {name}"))], 0));
+    assert_eq!(crew_theme::poleshift::custom(), Some(want));
+    assert!(sync(&[], 0), "and leaving takes them off");
+    assert_eq!(crew_theme::poleshift::custom(), None);
+}
+
+/// Walking from a palette row into a gradient row and out again restores the
+/// PAIR you had, not just whichever one was previewed last.
+#[test]
+fn walking_between_two_pickers_restores_both() {
+    let _g = guard();
+    crew_theme::set_theme(ThemeId::PaperLight);
+    crew_theme::poleshift::set_custom(None);
+    sync(&[row("/theme crt-green")], 0);
+    let name = crew_theme::gradients::GRADIENTS[0].name;
+    sync(&[row(&format!("/gradient {name}"))], 0);
+    assert_ne!(crew_theme::poleshift::custom(), None);
+    sync(&[], 0);
+    assert_eq!(crew_theme::current_id(), ThemeId::PaperLight);
+    assert_eq!(crew_theme::poleshift::custom(), None);
 }
 
 /// A chosen row forgets the preview WITHOUT undoing it: the command that runs
