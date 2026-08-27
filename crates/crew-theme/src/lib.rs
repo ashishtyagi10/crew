@@ -102,6 +102,8 @@ pub mod oklch;
 pub mod poleshift;
 mod presets_crt;
 mod presets_crt_cool;
+mod presets_fern;
+mod presets_harbor;
 mod presets_modern;
 mod presets_modern_light;
 mod presets_paper;
@@ -129,6 +131,8 @@ impl Theme {
 
 pub use presets_crt::{CRT_AMBER, CRT_GREEN};
 pub use presets_crt_cool::CRT_BLUE;
+pub use presets_fern::FERN;
+pub use presets_harbor::HARBOR;
 pub use presets_modern::NEBULA;
 pub use presets_modern_light::BLOSSOM;
 pub use presets_paper::{PAPER_DARK, PAPER_LIGHT, SEPIA_DARK};
@@ -164,17 +168,21 @@ pub enum ThemeId {
     CrtBlue,
     Nebula,
     Blossom,
+    Harbor,
+    Fern,
 }
 
 /// Every theme, in cycle order (used by the `Ctrl+Shift+L` rotation and the
 /// `/theme` completion). Keep in sync with the enum.
-pub const ALL_THEMES: [ThemeId; 9] = [
+pub const ALL_THEMES: [ThemeId; 11] = [
     ThemeId::PaperDark,
     ThemeId::PaperLight,
     ThemeId::SepiaDark,
     ThemeId::SepiaLight,
     ThemeId::Nebula,
     ThemeId::Blossom,
+    ThemeId::Harbor,
+    ThemeId::Fern,
     ThemeId::CrtGreen,
     ThemeId::CrtAmber,
     ThemeId::CrtBlue,
@@ -192,6 +200,8 @@ impl ThemeId {
             ThemeId::CrtBlue => "crt-blue",
             ThemeId::Nebula => "nebula",
             ThemeId::Blossom => "blossom",
+            ThemeId::Harbor => "harbor",
+            ThemeId::Fern => "fern",
         }
     }
 
@@ -207,6 +217,8 @@ impl ThemeId {
             ThemeId::CrtBlue => "neon blue phosphor CRT (Tron)",
             ThemeId::Nebula => "orchid\u{2192}rose gradient dusk (modern dark)",
             ThemeId::Blossom => "violet\u{2192}rose on warm white (modern light)",
+            ThemeId::Harbor => "blue-slate page under an azure light (dark)",
+            ThemeId::Fern => "faint mint page under a green-teal light (light)",
         }
     }
 
@@ -262,6 +274,9 @@ impl ThemeId {
             "meadow" => Some(ThemeId::Blossom),
             "cirrus" => Some(ThemeId::Blossom),
             "nebula" => Some(ThemeId::Nebula),
+            "harbor" => Some(ThemeId::Harbor),
+            "harbour" => Some(ThemeId::Harbor),
+            "fern" => Some(ThemeId::Fern),
             "blossom" => Some(ThemeId::Blossom),
             _ => None,
         }
@@ -277,6 +292,8 @@ impl ThemeId {
             ThemeId::CrtAmber => &CRT_AMBER,
             ThemeId::CrtBlue => &CRT_BLUE,
             ThemeId::Nebula => &NEBULA,
+            ThemeId::Harbor => &HARBOR,
+            ThemeId::Fern => &FERN,
             ThemeId::Blossom => &BLOSSOM,
         }
     }
@@ -292,6 +309,8 @@ impl ThemeId {
             ThemeId::CrtGreen => 6,
             ThemeId::CrtAmber => 7,
             ThemeId::CrtBlue => 8,
+            ThemeId::Harbor => 9,
+            ThemeId::Fern => 10,
         }
     }
 
@@ -305,6 +324,8 @@ impl ThemeId {
             6 => ThemeId::CrtGreen,
             7 => ThemeId::CrtAmber,
             8 => ThemeId::CrtBlue,
+            9 => ThemeId::Harbor,
+            10 => ThemeId::Fern,
             _ => ThemeId::PaperDark,
         }
     }

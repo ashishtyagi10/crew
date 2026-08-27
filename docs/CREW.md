@@ -1568,10 +1568,11 @@ the develop-fade) the moment the system switches. With no theme saved at all,
 crew defaults to `auto`, so a fresh install matches the system from the first
 frame. `auto`'s pairing is yours to re-wire: `theme_dark` / `theme_light` in
 `config.toml` swap in a different pool (`crt` at night is the classic) or pin
-a single palette per appearance. The twenty-four palettes
+a single palette per appearance. The twenty-six palettes
 below are those pool members (eleven paper/ink looks designed to read like a
 page rather than a screen, eight "modern glow" looks in the Gemini/Codex
-idiom, and five CRT tubes); they're no longer selected on their own, but each
+idiom, five CRT tubes, and the two — `harbor` and `fern` — drawn after the
+cut); they're no longer selected on their own, but each
 name still resolves if you type it. A palette's own appearance decides its
 pool — the modern glow palettes are dark and light *pages* like any other, so
 they rotate inside `dark` and `light` rather than standing apart as themes of
@@ -1583,6 +1584,12 @@ their own.
 - **`paper-light`** — a warm off-white page (`#f4f1ea`) with soft dark ink and
   ink-toned ANSI colours (sage, brick, faded indigo). No pure black or white
   anywhere; every surface reads as the same sheet of paper.
+- **`harbor`** — a deep blue-slate page under an azure light, its gradient
+  running azure into teal. The cool end of the dark pool, where `paper-dark` is
+  neutral and `sepia-dark` is warm.
+- **`fern`** — a faint mint page under a deep green-teal light; the only light
+  palette whose accent is green, so it cannot be mistaken for the two warm ones
+  at a glance.
 - **`sepia-dark`** — dark sepia paper with warm cream ink.
 - **`sepia-light`** — an aged-newsprint cream page with dark sepia ink.
 - **`midnight-ink`** — a warm slate-charcoal page with cool off-white ink.

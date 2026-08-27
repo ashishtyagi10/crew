@@ -8,6 +8,35 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.58
+
+**Two new palettes: `harbor` and `fern`.** The dark pool was neutral
+(`paper-dark`), warm (`sepia-dark`) and violet (`nebula`); the light pool was
+warm, cream and violet. Both were missing the cool, green-blue end of the room
+entirely — so `harbor` is a deep blue-slate page under an azure light with its
+gradient running azure into teal, and `fern` is a faint mint page under a
+green-teal light, the only light palette whose accent is green and therefore
+the only one that can never be mistaken for the two warm ones at a glance.
+
+They rotate inside `dark` and `light` like every other pool member; a fresh
+install on `auto` will now meet one of them.
+
+**Almost none of their colours were chosen.** The palette system derives them:
+the ramp produces the whole text ladder and all sixteen ANSI slots from the
+page and the ink, the wash produces the search highlight, and the alarm
+derivation produces the bell. What a new palette actually picks is its page,
+its ink, its accent and its gradient poles — everything else came out of the
+parity tests, which print what the derivation says when a hand-written value
+disagrees with it.
+
+Three contracts pushed back while these were being drawn, and each one was
+right: `harbor`'s first azure was too quiet for the dark pool's accent band
+(the pool's accents must read within 2.45× of one another, and it sat at
+2.68×), `fern`'s amber status could not be told apart from a derived red alarm
+on a mint page (its status is now the palette's own deep blue, which the red
+separates from by hue), and the roster count is now written as a sum so adding
+a palette does not read as retiring one.
+
 ## 0.18.57
 
 **Dim text is dim.** SGR 2 is how a CLI says "this is context, not the answer",

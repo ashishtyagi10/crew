@@ -133,7 +133,9 @@ pub fn font_prefs(id: ThemeId) -> &'static [&'static str] {
         // face; Geist is the contemporary geometric fallback.
         // The light twins share their dark parents' faces — a palette flip
         // must not also change the typeface under the user.
-        ThemeId::Nebula | ThemeId::Blossom => &[
+        // Harbor and Fern share the modern family's list: they are the same
+        // kind of page, cooled.
+        ThemeId::Nebula | ThemeId::Blossom | ThemeId::Harbor | ThemeId::Fern => &[
             "Google Sans Code",
             "Geist Mono",
             "GeistMono Nerd Font",
