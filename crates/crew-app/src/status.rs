@@ -75,7 +75,10 @@ impl CrewApp {
             return;
         }
         let enabled = match kind {
-            NotifyKind::AgentDone => self.config.notify_agent_done,
+            // One switch for both: a failure IS a command finishing, and
+            // splitting the preference in two would ask the user to say
+            // twice that they want to hear about commands finishing.
+            NotifyKind::AgentDone | NotifyKind::Failed => self.config.notify_agent_done,
             NotifyKind::Bell => self.config.notify_bell,
             NotifyKind::Exited => self.config.notify_exit,
             // Patterns are opt-in: they only fire when the user lists them.
@@ -104,6 +107,7 @@ impl CrewApp {
             // color — those are the two that want the user back.
             let (legend, alert) = match kind {
                 NotifyKind::AgentDone => ("done", false),
+                NotifyKind::Failed => ("failed", true),
                 NotifyKind::Bell => ("bell", false),
                 NotifyKind::Pattern => ("match", false),
                 NotifyKind::Exited => ("exited", true),
@@ -226,6 +230,45 @@ mod tests {
             .unwrap()
             .text
             .contains("claude finished in crew"));
+    }
+
+    /// "It is done" and "it went wrong" are not the same news, and only one
+    /// of them is worth getting up for: a failure is an ALERT toast in the
+    /// bell colour, legended `failed`.
+    #[test]
+    fn a_failed_command_is_told_apart_from_a_finished_one() {
+        use crate::notify::NotifyKind;
+        let mut app = CrewApp::default();
+        app.notify(
+            NotifyKind::Failed,
+            "crew".into(),
+            "cargo test (2m14) \u{2014} exit 101".into(),
+        );
+        let said = app.active_status().unwrap_or_default().to_string();
+        assert!(said.starts_with('\u{2717}'), "{said:?}");
+        assert!(said.contains("exit 101"), "the status is in it: {said:?}");
+        assert!(said.contains("failed in crew"), "{said:?}");
+        // …and the card is an ALERT: the bell stroke, legended `failed`. A
+        // failure drawn as quietly as a success is a failure you scroll past.
+        assert_eq!(app.toasts.newest(), Some(("failed", true)));
+
+        let mut ok = CrewApp::default();
+        ok.notify(NotifyKind::AgentDone, "crew".into(), "cargo test".into());
+        assert_eq!(ok.toasts.newest(), Some(("done", false)));
+    }
+
+    /// One switch for both. Turning "a command finished" off must silence the
+    /// failure too — splitting the preference in two would ask the user to
+    /// say twice that they want to hear about commands finishing.
+    #[test]
+    fn one_switch_governs_both_outcomes() {
+        use crate::notify::NotifyKind;
+        let mut app = CrewApp::default();
+        app.config.notify_agent_done = false;
+        for kind in [NotifyKind::AgentDone, NotifyKind::Failed] {
+            app.notify(kind, "crew".into(), "cargo test".into());
+            assert_eq!(app.active_status(), None, "{kind:?} spoke anyway");
+        }
     }
 
     #[test]

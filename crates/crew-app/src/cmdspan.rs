@@ -83,6 +83,13 @@ impl Spans {
         s.done_ms.unwrap_or(now).saturating_sub(s.at_ms)
     }
 
+    /// The exit status of the most recent command, when the shell reported
+    /// one. `None` for a pane whose shell says nothing — which is not the
+    /// same as a success, and is why the caller must not treat it as one.
+    pub(crate) fn last_exit(&self) -> Option<i32> {
+        self.0.last()?.exit
+    }
+
     /// Every span, newest first — what [`crate::blocks`] lists.
     pub(crate) fn recent(&self) -> impl Iterator<Item = &Span> {
         self.0.iter().rev()

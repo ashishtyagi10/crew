@@ -141,6 +141,13 @@ impl Toasts {
         self.items.len()
     }
 
+    /// The newest card's `(legend, alert)` — how loudly it is drawn, which is
+    /// the part of a notification a caller in another module decides.
+    #[cfg(test)]
+    pub(crate) fn newest(&self) -> Option<(&'static str, bool)> {
+        self.items.last().map(|t| (t.legend, t.alert))
+    }
+
     /// Drop expired toasts.
     pub(crate) fn prune(&mut self, now: u64) {
         self.items.retain(|t| t.age(now) < TTL_MS);
