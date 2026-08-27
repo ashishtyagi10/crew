@@ -616,10 +616,27 @@ longer aim at.
 - **`/notify [on|off|add <text>|clear]`** — drive the notification block from
   the bar: toggle the master switch, add a watched output pattern, or clear
   the patterns (the full set of knobs lives in `/settings`).
-- **`/diff`** — reviews the working tree's git changes in a new pane (à la
-  Codex's `/diff`): a `git status --short` summary, the `diff --stat`, then
-  the full colored diff, dropping to a fresh prompt afterwards. Pairs with the
-  crew pane's automatic checkpoints (`/restore` lists them) for reviewing what
+- **`/diff`** — reviews the working tree's git changes **in the file viewer**:
+  a `git status --short` summary, the `diff --stat`, then the full unified
+  diff, rendered by crew's own diff rung rather than dumped as `git`'s colours
+  into a scrollback. That means each removed line is **paired with the added
+  line that replaced it** and only the run that actually differs is drawn at
+  full strength — the text the two share recedes toward the page — so you read
+  *what* changed instead of hunting for it inside two lines of near-identical
+  code. Word edges are respected (`foo_bar` → `foo_baz` marks the whole
+  identifier, not the letter); runs that do not correspond line-for-line are
+  left unmarked, because a guess drawn as a mark is a lie about what changed;
+  and a pair that differs almost everywhere is left plain, since marking all
+  of both is not a mark. Hunk headings are set apart from the function
+  context after them.
+
+  The repo reviewed is the **focused pane's** directory, so `/diff` in a pane
+  working in another checkout reviews that checkout. The three `git` reads run
+  **off the winit thread** (a big repo takes seconds, and anything blocking
+  that thread freezes every pane, agents included); the pane opens the moment
+  they land, and the viewer's scrolling, search and `r`-reload all apply. A
+  clean tree says so instead of opening an empty pane. Pairs with the crew
+  pane's automatic checkpoints (`/restore` lists them) for reviewing what
   agents changed.
 - **`/copy`** — copies the focused terminal pane's **full scrollback** to the
   system clipboard (Cmd+C copies only the visible screen); the line count is

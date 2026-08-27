@@ -123,6 +123,9 @@ impl CrewApp {
         }
 
         let oauth_landed = self.drain_oauth();
+        // `/diff`'s worker: opens the review pane the tick it lands. Costs a
+        // `try_recv` on a `None` handle when nothing is in flight.
+        let diff_landed = self.drain_diff_job();
 
         // Random theme mode: rotate on its 10-minute clock. Cheap + lock-free.
         // Seeds `any_changed` so a rotation repaints every pane in the new theme.
@@ -173,7 +176,8 @@ impl CrewApp {
         // Drain EVERY pane each tick. A `for` loop (not `any()`/`fold`) so all
         // panes are polled for their side effects — `any()` would short-circuit
         // and starve later panes when an earlier one has output.
-        let mut any_changed = rotated || daylight_flipped || model_fetch_landed || oauth_landed;
+        let mut any_changed =
+            rotated || daylight_flipped || model_fetch_landed || oauth_landed || diff_landed;
         // Set when any pane still has buffered PTY output past this tick's read
         // budget. We then keep the loop hot (ControlFlow::Poll) so a flood drains
         // quickly across ticks instead of trickling one budget per 16 ms — while

@@ -64,22 +64,49 @@ pub(crate) fn run_parts(
     (label, program, script)
 }
 
-/// The `/diff` review script: a short status summary, the diff stat, then the
-/// full colored working-tree diff — colors forced since git sees a pipe.
-/// Returns `(program, script)` from [`persistent_wrapper`].
-pub(crate) fn diff_script(user_shell: &str, bash: Option<&str>) -> (String, String) {
-    let git = "git -c color.ui=always";
-    let body = format!("{git} status --short; {git} --no-pager diff --stat; {git} --no-pager diff");
-    persistent_wrapper(&body, user_shell, bash)
-}
-
 impl CrewApp {
-    /// `/diff`: review the working tree's changes (à la Codex's `/diff`) in a
-    /// tiled pane that drops to a fresh prompt after the diff prints.
+    /// `/diff`: review the working tree's changes in the **file viewer**,
+    /// where the diff rung pairs each removal with its replacement and marks
+    /// the words that actually changed — a review rather than a scrollback of
+    /// `git`'s own colours. The read runs on a worker thread
+    /// ([`crate::diffjob`]) and the pane opens when it lands.
+    ///
+    /// The repo reviewed is the **focused pane's** directory, so `/diff` in a
+    /// pane working in another checkout reviews that checkout.
     pub(crate) fn diff_in_pane(&mut self) {
-        let shell = default_shell();
-        let (program, script) = diff_script(&shell, bash_path());
-        self.spawn_labeled_terminal(&program, &["-c".to_string(), script], "diff".to_string());
+        if self.diff_job.busy() {
+            self.set_status("already reading the working tree\u{2026}");
+            return;
+        }
+        let dir = self
+            .panes
+            .get(self.focused)
+            .and_then(|p| p.dir.clone())
+            .or_else(|| std::env::current_dir().ok());
+        let Some(dir) = dir else {
+            self.set_status("diff: no working directory");
+            return;
+        };
+        self.set_status(format!("reading {}\u{2026}", dir.display()));
+        self.diff_job.start(dir);
+    }
+
+    /// Open the finished review, or say why there is none. Drained once a
+    /// tick from `poll_panes`; a no-op on every tick with nothing in flight.
+    pub(crate) fn drain_diff_job(&mut self) -> bool {
+        match self.diff_job.take() {
+            Some(Ok(path)) => {
+                let before = self.panes.len();
+                self.open_view(&path.to_string_lossy());
+                self.mark_last_view_ephemeral(before);
+                true
+            }
+            Some(Err(e)) => {
+                self.set_status(e);
+                true
+            }
+            None => false,
+        }
     }
 
     /// Spawn a pane running `cmd` in the user's shell and focus it.
@@ -97,27 +124,7 @@ impl CrewApp {
 
 #[cfg(test)]
 mod tests {
-    use super::{diff_script, run_parts};
-
-    #[test]
-    fn diff_script_forces_color_and_persists_shell_bash_wrapped() {
-        let (program, script) = diff_script("/bin/zsh", Some("/bin/bash"));
-        assert_eq!(program, "/bin/bash");
-        assert!(script.contains("color.ui=always"), "got: {script}");
-        assert!(script.contains("status --short"), "got: {script}");
-        assert!(script.contains("diff --stat"), "got: {script}");
-        assert!(script.starts_with("set -m; "), "got: {script}");
-        assert!(script.ends_with("exec /bin/zsh"), "got: {script}");
-    }
-
-    #[test]
-    fn diff_script_falls_back_unwrapped_without_bash() {
-        let (program, script) = diff_script("/bin/zsh", None);
-        assert_eq!(program, "/bin/zsh");
-        assert!(!script.starts_with("set -m"), "got: {script}");
-        assert!(script.contains("color.ui=always"), "got: {script}");
-        assert!(script.ends_with("exec /bin/zsh"), "got: {script}");
-    }
+    use super::run_parts;
 
     #[test]
     fn labels_first_word_and_persists_shell_bash_wrapped() {
@@ -171,7 +178,7 @@ mod tests {
             "/bin/ksh",
             "/usr/local/bin/fish",
         ] {
-            let (program, script) = diff_script(shell, Some("/bin/bash"));
+            let (_label, program, script) = run_parts("git status", shell, Some("/bin/bash"));
             assert_eq!(program, "/bin/bash", "shell {shell}");
             assert!(
                 script.starts_with("set -m; "),

@@ -88,6 +88,7 @@ mod daemon;
 mod daylight;
 mod density;
 mod detach;
+mod diffjob;
 mod dispatch;
 mod dockicon;
 mod dump;
