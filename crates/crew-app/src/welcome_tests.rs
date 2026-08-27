@@ -95,7 +95,7 @@ fn rain_sits_above_tagline_and_hint() {
         .expect("expected tagline/hint cells");
     assert!(
         rain_max_row < hint_min_row,
-        "globe rows must sit above the tagline/hint"
+        "globe rows must sit above the tagline/hint (rain {rain_max_row}, hint {hint_min_row})"
     );
 }
 
@@ -210,4 +210,35 @@ fn a_wide_window_gets_the_roomiest_form() {
         wide.chars().count() > narrow.chars().count(),
         "wide {wide:?} is not roomier than narrow {narrow:?}"
     );
+}
+
+/// Crew ships often and every release's headline is compiled in already; a
+/// first frame that says what is new is how any of it gets found.
+#[test]
+fn the_welcome_names_what_this_build_brought() {
+    let _g = crate::app::theme_test_guard();
+    let line = super::whats_new(100).expect("a headline for this build");
+    assert!(line.starts_with("new in "), "{line}");
+    let version = env!("CARGO_PKG_VERSION");
+    assert!(line.contains(version), "{line} does not name {version}");
+    // It is one line of prose, not a paragraph of one.
+    assert!(!line.contains('\n'));
+    assert!(line.chars().count() < 100);
+    // …and it is on the screen.
+    let cells = welcome_cells_animated(120, 30, 0, None);
+    let text = text(&cells);
+    assert!(
+        text.contains("new in "),
+        "the headline never reached the frame"
+    );
+}
+
+/// A narrow window has no room for it, and a clipped headline is worse than
+/// none: the line is dropped rather than cut.
+#[test]
+fn a_narrow_window_drops_the_headline_rather_than_clipping_it() {
+    assert_eq!(super::whats_new(10), None);
+    let line = super::whats_new(200).unwrap();
+    assert_eq!(super::whats_new(line.chars().count() + 3), None);
+    assert!(super::whats_new(line.chars().count() + 4).is_some());
 }

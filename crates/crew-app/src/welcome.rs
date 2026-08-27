@@ -155,8 +155,36 @@ fn restore_hint(n: usize) -> String {
 /// rain-sized fits. All cells stay within `cols × rows`.
 // rustfmt::skip preserves compact inline struct literals.
 #[rustfmt::skip]
-pub fn welcome_cells_animated(cols: u16, rows: u16, tick: u64, restore: Option<usize>) -> Vec<CellView> {
-    if cols == 0 || rows == 0 { return Vec::new(); }
+/// The current release's headline, as one centred line — the first bold
+/// sentence of the newest changelog entry, which is written to be exactly
+/// that. `None` when there is no room for it or nothing to say.
+///
+/// Trimmed to a sentence: the entries themselves run to paragraphs, and a
+/// welcome screen is not where anyone reads one.
+pub(crate) fn whats_new(cols: usize) -> Option<String> {
+    let body = crate::appregister::CHANGELOG;
+    let heading = body.find("\n## ")? + 4;
+    let rest = &body[heading..];
+    let bold = rest.find("**")? + 2;
+    let end = rest[bold..].find("**")?;
+    let head: String = rest[bold..bold + end]
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ");
+    let version = rest[..rest.find('\n')?].trim();
+    let line = format!("new in {version} \u{b7} {}", head.trim_end_matches('.'));
+    (line.chars().count() + 4 <= cols).then_some(line)
+}
+
+pub fn welcome_cells_animated(
+    cols: u16,
+    rows: u16,
+    tick: u64,
+    restore: Option<usize>,
+) -> Vec<CellView> {
+    if cols == 0 || rows == 0 {
+        return Vec::new();
+    }
     let mut cells = Vec::new();
     let t = crew_theme::theme();
     let bg = t.page_bg;
@@ -167,25 +195,62 @@ pub fn welcome_cells_animated(cols: u16, rows: u16, tick: u64, restore: Option<u
         let left = (cols - w) / 2;
         // The rain falls INSIDE the frame (the box's outer ring), and the
         // CREW nameplate sits over its centre — glyphs stream around it.
-        rain(&mut cells, top + 1, left + 1, w - 2, h - 2, tick, t.ink, t.text_muted, bg);
+        rain(
+            &mut cells,
+            top + 1,
+            left + 1,
+            w - 2,
+            h - 2,
+            tick,
+            t.ink,
+            t.text_muted,
+            bg,
+        );
         frame(&mut cells, top, left, w, h, t.text_muted, bg);
         nameplate(&mut cells, top, left, w, h, t.ink, bg);
 
         let tl_row = top + h + 1;
         let tl_w = TAGLINE.chars().count() as u16;
         if tl_row < rows && tl_w < cols {
-            push_str(&mut cells, tl_row, (cols - tl_w) / 2, TAGLINE, t.hint_fg, bg);
+            push_str(
+                &mut cells,
+                tl_row,
+                (cols - tl_w) / 2,
+                TAGLINE,
+                t.hint_fg,
+                bg,
+            );
         }
         let hint_row = tl_row + 1;
         if hint_row < rows {
             if let Some(hint) = hint_for(cols) {
                 let hint_w = hint.chars().count() as u16;
-                push_str(&mut cells, hint_row, (cols - hint_w) / 2, hint, t.hint_fg, bg);
+                push_str(
+                    &mut cells,
+                    hint_row,
+                    (cols - hint_w) / 2,
+                    hint,
+                    t.hint_fg,
+                    bg,
+                );
+            }
+        }
+        // What this build brought. Crew ships often and every release's
+        // headline is compiled in already; a first frame that says what is
+        // new is how any of it gets found.
+        let news_row = hint_row + 1;
+        if news_row + 1 < rows {
+            if let Some(line) = whats_new(usize::from(cols)) {
+                let w = line.chars().count() as u16;
+                // `dim`, like the version stamp: this is meta about the
+                // build rather than part of the welcome itself — and the
+                // rain is told apart from the text below it by colour.
+                push_str(&mut cells, news_row, (cols - w) / 2, &line, t.dim, bg);
             }
         }
         if let Some(n) = restore {
             let line = restore_hint(n);
-            let (row, w) = (hint_row + 2, line.chars().count() as u16);
+            let (row, w) = (hint_row + 3, line.chars().count() as u16);
             // `row + 1 < rows`: the bottom row belongs to the version stamp
             // (drawn after, last-write-wins) — skip rather than collide.
             if row + 1 < rows && w < cols {
@@ -198,16 +263,32 @@ pub fn welcome_cells_animated(cols: u16, rows: u16, tick: u64, restore: Option<u
         let letters: Vec<char> = "CREW".chars().collect();
         let span = (letters.len() as u16 - 1) * 2 + 1;
         if span < cols {
-            let row   = rows / 2;
+            let row = rows / 2;
             let start = (cols - span) / 2;
             for (i, &ch) in letters.iter().enumerate() {
-                cells.push(CellView { col: start + i as u16 * 2, row, c: ch, fg: t.ink, bg, bold: true, italic: false, ..Default::default() });
+                cells.push(CellView {
+                    col: start + i as u16 * 2,
+                    row,
+                    c: ch,
+                    fg: t.ink,
+                    bg,
+                    bold: true,
+                    italic: false,
+                    ..Default::default()
+                });
             }
             let hint_row = row + 2;
             if hint_row < rows {
                 if let Some(hint) = hint_for(cols) {
                     let hint_w = hint.chars().count() as u16;
-                    push_str(&mut cells, hint_row, (cols - hint_w) / 2, hint, t.hint_fg, bg);
+                    push_str(
+                        &mut cells,
+                        hint_row,
+                        (cols - hint_w) / 2,
+                        hint,
+                        t.hint_fg,
+                        bg,
+                    );
                 }
             }
         }
