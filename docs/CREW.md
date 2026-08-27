@@ -416,7 +416,10 @@ The docked command bar supports:
   rotates through — that palette's page with its accent across the top half,
   since a dark pool's pages are all nearly black and would otherwise be one
   smudge. Reading a colour's name and pressing Enter to find out what it looks
-  like is the one thing a picker exists to prevent. (`/shell` and
+  like is the one thing a picker exists to prevent. Pickers also **mark the
+  value you are already on** (· current), and `/gradient` groups its named
+  pairs under a heading of their own so the levels and the colours do not
+  read as one list. (`/shell` and
   `/run <cmd>` still dispatch if typed, but bare text and `!` replaced their
   palette rows.)
 - **`/broadcast`, `/zoom`, `/sidebar`** — palette-discoverable toggles that mirror

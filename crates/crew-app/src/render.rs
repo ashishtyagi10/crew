@@ -240,7 +240,16 @@ impl CrewApp {
         // slash palette has no rows for), so this branch is only ever reached
         // for non-slash input. An overlay scene so the overlay pass backs it
         // with black — a box on the canvas, fully opaque.
-        let slash_matches = crate::suggest::menu_items(&self.input.text);
+        let mut slash_matches = crate::suggest::menu_items(&self.input.text);
+        // Which of a picker's values you are already on.
+        let cmd = self
+            .input
+            .text
+            .split_whitespace()
+            .next()
+            .unwrap_or_default();
+        let current = crate::suggestvalues::current_value(cmd, &self.config);
+        crate::suggest::mark_current(&mut slash_matches, current.as_deref());
         let (matches, title) = if !slash_matches.is_empty() {
             (slash_matches, "commands")
         } else {

@@ -78,6 +78,21 @@ pub(crate) fn step_sel(items: &[MenuItem], sel: usize, down: bool) -> usize {
 /// typed with a trailing space (`/theme …`), its value options are shown
 /// (filtered by any partial value); otherwise the matching command names are
 /// shown, and a value-picker command expands into its picker rather than running.
+/// Mark the row a closed-set picker is already on, so it says which of its
+/// values you have. A picker that does not is asking you to remember the
+/// choice it exists to save you from making twice.
+pub(crate) fn mark_current(items: &mut [MenuItem], current: Option<&str>) {
+    let Some(cur) = current else { return };
+    for item in items.iter_mut().filter(|i| !i.header) {
+        if item.label.eq_ignore_ascii_case(cur) {
+            item.desc = match item.desc.is_empty() {
+                true => "current".to_string(),
+                false => format!("{} \u{b7} current", item.desc),
+            };
+        }
+    }
+}
+
 pub(crate) fn menu_items(text: &str) -> Vec<MenuItem> {
     if !text.starts_with('/') {
         return Vec::new();

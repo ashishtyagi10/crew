@@ -142,8 +142,9 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
                 ),
             ]
             .into_iter()
-            // …then the shelf of named pairs, so choosing a gradient is a list
-            // to arrow through rather than a hex code to invent.
+            // …then the shelf of named pairs under a heading of their own, so
+            // the levels and the colours do not read as one list.
+            .chain(std::iter::once((String::new(), "named pairs".to_string())))
             .chain(
                 crew_theme::gradients::GRADIENTS
                     .iter()
@@ -211,6 +212,35 @@ pub(crate) fn expands(cmd: &str) -> bool {
     )
 }
 
+/// The value a command is currently set to, so the picker can say which of
+/// its rows is the one you are already on.
+///
+/// A closed-set picker that does not mark the current value asks you to
+/// remember what you chose — which is the thing the picker exists to save you
+/// from. `None` for commands whose "current" is not a single value.
+pub(crate) fn current_value(cmd: &str, cfg: &crate::config::CrewConfig) -> Option<String> {
+    let s = match cmd {
+        "/theme" => cfg.theme.clone().unwrap_or_default(),
+        "/gradient" => cfg
+            .gradient_poles
+            .clone()
+            .and_then(|p| crew_theme::gradients::name_of(crate::gradientcmd::parse_poles(&p)?))
+            .map(str::to_string)
+            .unwrap_or_else(|| cfg.gradient.clone()),
+        "/motion" => cfg.motion.clone(),
+        "/density" => cfg.density.clone(),
+        "/contrast" => cfg.contrast.clone(),
+        "/shapes" => cfg.shape_cues.clone(),
+        "/marks" => match cfg.border_marks {
+            true => "on".to_string(),
+            false => "off".to_string(),
+        },
+        _ => return None,
+    };
+    (!s.is_empty()).then_some(s)
+}
+
+#[cfg(test)]
 #[cfg(test)]
 #[path = "suggestvalues_tests.rs"]
 mod tests;
