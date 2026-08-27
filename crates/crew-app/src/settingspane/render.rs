@@ -62,6 +62,7 @@ fn control(buf: &mut Buffer, p: &SettingsPane, f: Field, r: Rect, focused: bool)
     let check = |buf: &mut Buffer, on| form::checkbox(buf, r, label_of(f), on, focused);
     match f {
         Field::ShowNav => check(buf, d.show_nav),
+        Field::BorderMarks => check(buf, d.border_marks),
         Field::PaperTexture => check(buf, d.paper_texture),
         Field::AmbientDrift => check(buf, d.ambient_drift),
         Field::Maximized => check(buf, d.maximized),

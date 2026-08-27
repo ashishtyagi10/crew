@@ -66,6 +66,8 @@ pub(super) fn appearance(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16)
     // and its values are words rather than numbers.
     rects.push((Field::Gradient, Rect::new(ix, cy, iw, 3)));
     cy += 3;
+    rects.push((Field::BorderMarks, Rect::new(ix, cy, iw, 1)));
+    cy += 1;
     rects.push((Field::PaperTexture, Rect::new(ix, cy, iw, 1)));
     cy += 1;
     rects.push((Field::AmbientDrift, Rect::new(ix, cy, iw, 1)));

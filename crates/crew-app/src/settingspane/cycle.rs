@@ -10,6 +10,7 @@ pub(crate) fn cycle_value(p: &mut SettingsPane, back: bool) {
     let d = &mut p.draft;
     match field {
         Field::ShowNav => d.show_nav = !d.show_nav,
+        Field::BorderMarks => d.border_marks = !d.border_marks,
         Field::PaperTexture => d.paper_texture = !d.paper_texture,
         Field::AmbientDrift => d.ambient_drift = !d.ambient_drift,
         Field::Maximized => d.maximized = !d.maximized,

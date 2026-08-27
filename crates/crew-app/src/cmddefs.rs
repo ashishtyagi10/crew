@@ -27,6 +27,10 @@ pub(crate) const COMMANDS: &[Cmd] = &[
         desc: "Search scrollback, highlighting matches (/find <text>)",
     },
     Cmd {
+        name: "/marks",
+        desc: "Card border marks — command ticks and error bars (on|off)",
+    },
+    Cmd {
         name: "/pin",
         desc: "Keep the focused pane on the grid (never demoted to the strip)",
     },

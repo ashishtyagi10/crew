@@ -368,6 +368,8 @@ impl CrewApp {
         // "live" would otherwise be true (still Mode(Auto)) and a config edit
         // pairing night with the CRT pool wouldn't show until the next OS
         // flip or rotation tick.
+        // The border markings ride config like the other look switches.
+        crate::bordermarks::set(self.config.border_marks);
         let (pool_dark, pool_light) = self.config.auto_pool_selections();
         let pools_changed = (pool_dark, pool_light) != old_pools;
         crew_theme::set_auto_pools(pool_dark, pool_light);

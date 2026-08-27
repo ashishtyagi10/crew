@@ -677,6 +677,14 @@ longer aim at.
 - Panes crew opens on generated files — `/out`, `/diff`, `/about` — are
   **named after what they are** (`out · cargo build`, `diff · crew`, `what's
   new · 0.18.75`) rather than after the temp file the text happens to live in.
+- **`/marks [on|off]`** — the two things a pane's card draws on its border
+  about the pane's own output: the ticks where each command began and the bars
+  beside error lines. On by default — a grid of panes saying where the failures
+  are without being read is most of their value — but they are crew drawing on
+  its own chrome about someone else's output, and a plain frame is a reasonable
+  thing to want. `/errors` and `/out` still work with the marks off; they read
+  the same thing, they just do not draw it. Also a checkbox in `/settings`
+  (**Card border marks**).
 - **`/pin`** — keeps the focused pane **on the grid**: pinned panes are exempt
   from the LRU demotion that sends the least-recently-active pane to the
   minimized strip. The LRU is right about which pane you have not touched and

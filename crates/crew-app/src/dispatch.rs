@@ -16,6 +16,7 @@ impl CrewApp {
             // The last command's output, on its own, in a pane you can read.
             "out" => self.open_last_output(),
             "pin" => self.toggle_pin(),
+            "marks" => self.marks_command(""),
             "far" => self.spawn_far_pane(),
             "goal" => self.spawn_goal_pane(""), // show usage hint
             "model" => self.set_model_cmd(""),  // show usage hint
@@ -97,6 +98,8 @@ impl CrewApp {
                     self.weight_command(w.trim());
                 } else if let Some(s) = other.strip_prefix("smooth ") {
                     self.smooth_command(s.trim());
+                } else if let Some(m) = other.strip_prefix("marks ") {
+                    self.marks_command(m.trim());
                 } else if let Some(m) = other.strip_prefix("motion ") {
                     self.motion_command(m.trim());
                 } else if let Some(d) = other.strip_prefix("density ") {
@@ -396,6 +399,28 @@ impl CrewApp {
     /// wants less motion has almost certainly already said so. A bare
     /// `/motion` reports the preference AND what it currently resolves to,
     /// because "auto" alone does not answer the question the user asked.
+    /// `/marks [on|off]` — the ticks and bars pane cards draw on their
+    /// borders. No argument reports the current setting, like every other
+    /// look switch.
+    pub(crate) fn marks_command(&mut self, arg: &str) {
+        let state = |on: bool| if on { "on" } else { "off" };
+        if arg.trim().is_empty() {
+            self.set_status(format!(
+                "card border marks {} (/marks [on|off])",
+                state(self.config.border_marks)
+            ));
+            return;
+        }
+        let Some(on) = crate::bordermarks::parse(arg) else {
+            self.set_status("usage: /marks [on|off]");
+            return;
+        };
+        self.config.border_marks = on;
+        self.config.save();
+        crate::bordermarks::set(on);
+        self.set_status(format!("card border marks {}", state(on)));
+    }
+
     pub(crate) fn motion_command(&mut self, arg: &str) {
         use crate::motion::MotionPref;
         if arg.is_empty() {

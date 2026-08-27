@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.80
+
+**`/marks` turns the border markings off.** The last few releases taught pane
+cards to draw on their own borders — a tick where each command began, a bar
+beside every error line — and both are on by default because a grid that says
+where the failures are without being read is most of the point.
+
+They are still crew drawing on its own chrome about someone else's output, and
+a plain frame is a reasonable thing to want. `/marks off` (or the **Card border
+marks** checkbox in `/settings`) puts the borders back. `/errors` and `/out`
+are unaffected: they read the same thing, they simply stop drawing it.
+
 ## 0.18.79
 
 **The first frame says what this build brought.** Crew ships a release most
