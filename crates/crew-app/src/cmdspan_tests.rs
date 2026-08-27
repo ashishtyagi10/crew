@@ -5,7 +5,7 @@ fn a_command_that_ran_leaves_a_span_from_its_start_to_its_end() {
     let mut s = Spans::default();
     s.started("cargo".into(), 100);
     s.close(180);
-    let span = s.latest(180).expect("a finished command has output");
+    let span = s.nth_back(0, 180).expect("a finished command has output");
     assert_eq!(
         (span.name.as_str(), span.from, span.to),
         ("cargo", 100, Some(180))
@@ -19,11 +19,11 @@ fn a_command_that_ran_leaves_a_span_from_its_start_to_its_end() {
 fn a_running_command_reports_what_it_has_printed_so_far() {
     let mut s = Spans::default();
     s.started("cargo".into(), 10);
-    assert_eq!(Spans::range(s.latest(45).unwrap(), 45), (10, 45));
+    assert_eq!(Spans::range(s.nth_back(0, 45).unwrap(), 45), (10, 45));
     // …but not before it has printed anything at all.
     let mut fresh = Spans::default();
     fresh.started("ls".into(), 10);
-    assert!(fresh.latest(10).is_none());
+    assert!(fresh.nth_back(0, 10).is_none());
 }
 
 /// A missed end (a poll that saw two transitions at once) must not leave a
@@ -33,7 +33,7 @@ fn an_unclosed_span_is_closed_when_the_next_command_starts() {
     let mut s = Spans::default();
     s.started("first".into(), 10);
     s.started("second".into(), 50);
-    let span = s.latest(80).unwrap();
+    let span = s.nth_back(0, 80).unwrap();
     assert_eq!(span.name, "second");
     assert_eq!(Spans::range(span, 80), (50, 80));
 }
@@ -45,7 +45,7 @@ fn a_range_is_clamped_to_what_the_buffer_still_holds() {
     let mut s = Spans::default();
     s.started("cargo".into(), 100);
     s.close(500);
-    let span = s.latest(500).unwrap();
+    let span = s.nth_back(0, 500).unwrap();
     assert_eq!(Spans::range(span, 300), (100, 300));
     assert_eq!(
         Spans::range(span, 50),
@@ -62,7 +62,7 @@ fn a_close_never_ends_before_its_own_start() {
     s.started("weird".into(), 100);
     s.close(20);
     assert_eq!(
-        s.latest(100).map(|x| x.to),
+        s.nth_back(0, 100).map(|x| x.to),
         None,
         "an empty span is not output"
     );
@@ -76,12 +76,15 @@ fn only_the_last_few_are_remembered() {
         s.close(i * 10 + 5);
     }
     assert_eq!(s.len(), CAP);
-    assert_eq!(s.latest(usize::MAX).unwrap().name, format!("c{}", CAP + 9));
+    assert_eq!(
+        s.nth_back(0, usize::MAX).unwrap().name,
+        format!("c{}", CAP + 9)
+    );
 }
 
 #[test]
 fn a_pane_that_has_run_nothing_has_nothing_to_show() {
-    assert!(Spans::default().latest(100).is_none());
+    assert!(Spans::default().nth_back(0, 100).is_none());
 }
 
 /// The ticks are placed against the WINDOW, not the buffer: the same span is
@@ -109,4 +112,66 @@ fn a_start_above_the_window_is_not_pinned_to_its_top() {
     s.started("old".into(), 5);
     s.close(6);
     assert!(s.start_rows(500, 20, 0).is_empty());
+}
+
+/// A pane keeps a few dozen commands, so `/out 3` reaches the run before the
+/// three you have tried since.
+#[test]
+fn counting_back_walks_the_history_newest_first() {
+    let mut s = Spans::default();
+    for (i, name) in ["first", "second", "third"].iter().enumerate() {
+        s.started((*name).to_string(), i * 10);
+        s.close(i * 10 + 5);
+    }
+    let name = |n: usize| s.nth_back(n, 100).map(|x| x.name.clone());
+    assert_eq!(name(0).as_deref(), Some("third"));
+    assert_eq!(name(1).as_deref(), Some("second"));
+    assert_eq!(name(2).as_deref(), Some("first"));
+    assert_eq!(name(3), None, "past the history is nothing, not a wrap");
+}
+
+/// `/out` and `/out 0` must agree: a command still running with nothing
+/// printed is not the latest output either way.
+#[test]
+fn a_silent_running_command_is_skipped_by_both_readings() {
+    let mut s = Spans::default();
+    s.started("old".into(), 10);
+    s.close(30);
+    s.started("running".into(), 30);
+    assert_eq!(
+        s.nth_back(0, 30).map(|x| x.name.clone()).as_deref(),
+        Some("old")
+    );
+    assert_eq!(
+        s.nth_back(0, 30).map(|x| x.name.clone()).as_deref(),
+        Some("old")
+    );
+    assert_eq!(s.nth_back(1, 30).map(|x| x.name.clone()).as_deref(), None);
+    // …and once it prints, both see it.
+    assert_eq!(
+        s.nth_back(0, 45).map(|x| x.name.clone()).as_deref(),
+        Some("running")
+    );
+    assert_eq!(
+        s.nth_back(0, 45).map(|x| x.name.clone()).as_deref(),
+        Some("running")
+    );
+    assert_eq!(
+        s.nth_back(1, 45).map(|x| x.name.clone()).as_deref(),
+        Some("old")
+    );
+}
+
+/// The summary is what `/out` says when asked for something that is not
+/// there: newest first, numbered the way the argument is.
+#[test]
+fn the_summary_numbers_what_the_argument_would_reach() {
+    let mut s = Spans::default();
+    for name in ["a", "b", "c"] {
+        s.started(name.to_string(), 0);
+        s.close(1);
+    }
+    assert_eq!(s.summary(4), vec!["0:c", "1:b", "2:a"]);
+    assert_eq!(s.summary(2), vec!["0:c", "1:b"]);
+    assert!(Spans::default().summary(4).is_empty());
 }

@@ -14,7 +14,7 @@ impl CrewApp {
             // back to it. Repeating steps to the one before.
             "errors" => self.find_error_in_terminal(),
             // The last command's output, on its own, in a pane you can read.
-            "out" => self.open_last_output(),
+            "out" => self.open_last_output(""),
             "pin" => self.toggle_pin(),
             "marks" => self.marks_command(""),
             "far" => self.spawn_far_pane(),
@@ -99,6 +99,8 @@ impl CrewApp {
                     self.weight_command(w.trim());
                 } else if let Some(s) = other.strip_prefix("smooth ") {
                     self.smooth_command(s.trim());
+                } else if let Some(n) = other.strip_prefix("out ") {
+                    self.open_last_output(n.trim());
                 } else if let Some(m) = other.strip_prefix("marks ") {
                     self.marks_command(m.trim());
                 } else if let Some(m) = other.strip_prefix("motion ") {

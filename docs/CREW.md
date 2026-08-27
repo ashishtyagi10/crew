@@ -699,7 +699,7 @@ longer aim at.
   its top border; running `/pin` again gives the pane back to the LRU. More
   pins than tiles is not an error and cannot make room that does not exist: the
   oldest pins keep their tiles and the rest demote like anything else.
-- **`/out`** — opens the focused pane's **last command's output on its own**,
+- **`/out [n]`** — opens the focused pane's **last command's output on its own**,
   in the file viewer. A long build's output is buried the moment the prompt
   comes back: mixed in with what you ran before it and whatever the shell
   printed after. Crew knows where that output started and ended without any
@@ -708,6 +708,11 @@ longer aim at.
   two edges of the output — so `/out` slices exactly those lines into a pane
   you can scroll, search, and walk with `]`/`[` while the terminal carries on
   underneath. A command still running reports what it has printed so far.
+  An argument counts back — `/out 1` is the run before the last one, `/out 3`
+  the one before the three you have tried since — through the few dozen each
+  pane remembers; a command that printed nothing is skipped rather than
+  counted, so the numbers mean what they look like. Asked for one that is not
+  there, `/out` lists what is (`0:cargo · 1:ls · 2:git`).
 
   The granularity is one second, and honestly so: a command that starts and
   finishes between two polls leaves no span, and one still flushing output when

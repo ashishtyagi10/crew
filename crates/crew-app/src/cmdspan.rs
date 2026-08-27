@@ -54,11 +54,35 @@ impl Spans {
         }
     }
 
-    /// The most recent span with output to show: the finished one, or the
-    /// running one when it has produced anything yet.
-    pub(crate) fn latest(&self, now: usize) -> Option<&Span> {
-        let s = self.0.last()?;
-        (s.to.unwrap_or(now) > s.from).then_some(s)
+    /// Whether this span has any output in a buffer of `now` lines. A
+    /// command that has printed nothing — still running, or finished without
+    /// a word — is not something to show.
+    fn has_output(s: &Span, now: usize) -> bool {
+        s.to.unwrap_or(now) > s.from
+    }
+
+    /// The `n`th span with output, counting back from the most recent (`0` is
+    /// the latest). Spans that printed nothing are skipped rather than
+    /// counted, so `/out 1` means "the command before the one `/out` shows"
+    /// rather than "the one before whatever happens to be last".
+    pub(crate) fn nth_back(&self, n: usize, now: usize) -> Option<&Span> {
+        self.0
+            .iter()
+            .rev()
+            .filter(|s| Self::has_output(s, now))
+            .nth(n)
+    }
+
+    /// What a pane has run lately, newest first — the answer `/out` gives
+    /// when asked for a command that is not there.
+    pub(crate) fn summary(&self, limit: usize) -> Vec<String> {
+        self.0
+            .iter()
+            .rev()
+            .take(limit)
+            .enumerate()
+            .map(|(i, s)| format!("{i}:{}", s.name))
+            .collect()
     }
 
     /// The `[from, to)` line range of `span` in a buffer that currently holds
