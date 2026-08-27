@@ -8,6 +8,35 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.11
+
+**A named palette in the `/theme` picker showed one chip.** That is the same
+amount of information each member of a rotation's pool gets, and it is enough
+to pick a *pool* out of four and far too little to pick a *palette* out of
+twelve: the dark pool's pages are all nearly black, and the accent on top is
+the one colour a user is most likely to have overridden anyway.
+
+**A named palette now shows its hand** — the ink it writes in, its accent, and
+the four ANSI slots every program in a pane is about to paint with. Red and
+green are the ones that carry meaning (a failure, a passing test); yellow and
+blue are where two palettes sharing a page most visibly disagree. All six ride
+that palette's own page, so the strip is a small picture of what the screen
+will look like rather than a list of values. The settings form's theme fields
+get the same strip, from the same function.
+
+Two contracts came with it: **no two of the twelve palettes may draw the same
+strip** (a new palette landing on another's colours is a row the picker cannot
+tell you anything with), and **every face has to read at 3.0 against its own
+page** — a chip nobody can see says the palette has no such colour, and these
+are the slots programs actually paint with.
+
+**Also:** the settings test that claimed to prove a bogus theme value draws no
+chips could not have. `theme_label` resolves an unknown name to the default
+before the field is ever drawn, so the renderer never sees one — and the
+assertion, a difference between two whole-form chip counts, was being satisfied
+by other fields' chips moving. It now asserts what is actually observable
+there: which palette the drawn chips came from.
+
 ## 0.19.10
 
 **The pointer knew nothing about links.** URLs and file references have been
