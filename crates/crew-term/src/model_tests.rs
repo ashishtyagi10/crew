@@ -444,3 +444,67 @@ mod deco_tests {
         assert!(at('c').is_blank());
     }
 }
+
+/// OSC 8 hyperlinks: the text a program shows and the target it points at are
+/// different things, and the grid is the only place that knows the second one.
+#[cfg(test)]
+mod link_tests {
+    use super::super::{GridSize, HeadlessTerm, TermModel};
+    use crew_theme::deco::DecoLine;
+
+    const URI: &str = "https://example.com/notes";
+
+    fn linked() -> HeadlessTerm {
+        let mut t = HeadlessTerm::new(GridSize { cols: 40, rows: 4 });
+        t.feed(format!("\x1b]8;;{URI}\x1b\\see notes\x1b]8;;\x1b\\ plain").as_bytes());
+        t
+    }
+
+    #[test]
+    fn the_target_is_readable_under_every_cell_of_the_link_and_nowhere_else() {
+        let t = linked();
+        for col in 0..9 {
+            assert_eq!(t.link_at(col, 0).as_deref(), Some(URI), "col {col}");
+        }
+        assert_eq!(t.link_at(9, 0), None, "the space after the link is not it");
+        assert_eq!(t.link_at(12, 0), None, "and neither is the prose");
+        assert_eq!(t.link_at(0, 3), None, "nor an empty row");
+    }
+
+    /// A click lands on a cell, so an out-of-range cell must answer rather
+    /// than index the grid and panic.
+    #[test]
+    fn a_cell_outside_the_grid_has_no_link() {
+        let t = linked();
+        assert_eq!(t.link_at(500, 0), None);
+        assert_eq!(t.link_at(0, 90), None);
+    }
+
+    /// The words are prose — "see notes" — so nothing about the text says it
+    /// is a link. Being drawn as one is the only cue there is.
+    #[test]
+    fn link_text_is_tinted_and_ruled_even_though_it_is_not_a_url() {
+        let t = linked();
+        let cells = t.cells(false);
+        let at = |col: u16| cells.iter().find(|c| c.col == col && c.row == 0).unwrap();
+        let link_fg = at(0).fg;
+        assert_eq!(at(0).deco.line, DecoLine::Single, "the link is not ruled");
+        assert_eq!(at(8).deco.line, DecoLine::Single);
+        let plain = at(12);
+        assert_eq!(plain.deco.line, DecoLine::None, "prose got ruled too");
+        assert_ne!(plain.fg, link_fg, "the link is not tinted apart");
+    }
+
+    /// A hyperlink spanning two words carries the space between them; without
+    /// it the rule under the link breaks in half.
+    #[test]
+    fn a_space_inside_a_hyperlink_is_kept() {
+        let t = linked();
+        let cells = t.cells(false);
+        assert!(cells.iter().any(|c| c.col == 3 && c.c == ' '));
+        assert_eq!(
+            cells.iter().find(|c| c.col == 3).unwrap().deco.line,
+            DecoLine::Single
+        );
+    }
+}

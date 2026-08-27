@@ -34,6 +34,11 @@ impl HeadlessTerm {
         self.core.scheme_notify_enabled()
     }
 
+    /// The OSC 8 hyperlink target under viewport cell `(col, row)`.
+    pub fn link_at(&self, col: u16, row: u16) -> Option<String> {
+        self.core.link_at(col, row)
+    }
+
     pub fn take_bell(&self) -> bool {
         self.core.take_bell()
     }

@@ -766,6 +766,16 @@ they stay visible at large font sizes and never smear at small ones.
 URLs in terminal panes are **underlined as well as tinted**, so a link is
 legible without depending on hue (Cmd+click still opens it).
 
+**OSC 8 hyperlinks** work too — the escape that lets a program attach a target
+to arbitrary text (`ls --hyperlink`, `gh`, `cargo`, test runners linking a
+failing file). Those cells are tinted and ruled like a URL even when the words
+are prose, and **Cmd+click opens the program's target, not the text**. Because
+that target is chosen by whatever is writing to the pane rather than by the
+person clicking, crew opens only `http://`, `https://`, `mailto:` and `file://`
+links (case-insensitively) and refuses the rest by name on the status line —
+which always shows the URL actually opening, since link text can say one thing
+and point at another.
+
 ## Markdown
 
 Crew renders markdown natively: a `pulldown-cmark`-based engine (`md/`) folds

@@ -66,7 +66,7 @@ impl TermCore {
             // the underline under the space between two underlined words is
             // part of the same rule, and dropping it breaks the rule in two.
             .filter(|ind| {
-                (ind.c != ' ' || crate::celldeco::decorated(ind.flags))
+                (ind.c != ' ' || crate::celldeco::decorated(ind.flags) || ind.hyperlink().is_some())
                     && ind.c != '\0'
                     && ind.point.line.0 + off >= 0
             })
@@ -104,6 +104,23 @@ impl TermCore {
                 // SGR 58's colour resolves against the same palette the text
                 // does; without one the renderer falls back to the cell's fg.
                 let uc = ind.underline_color().map(|c| resolve_color(c, palette, fg));
+                // An OSC 8 hyperlink reads as a link whatever its text says —
+                // the visible words are usually prose ("release notes"), so
+                // the only thing marking it is how it is drawn. Tinted AND
+                // ruled, for the same reason plain URLs are (`linkhl`).
+                let mut deco = crate::celldeco::deco_of(ind.flags, uc);
+                let fg = match ind.hyperlink().is_some() {
+                    true => {
+                        if deco.line == crew_theme::deco::DecoLine::None {
+                            deco.line = crew_theme::deco::DecoLine::Single;
+                        }
+                        crate::contrast::ensure_min_contrast(
+                            crew_theme::readable::link(crew_theme::theme()),
+                            bg,
+                        )
+                    }
+                    false => fg,
+                };
                 RenderCell {
                     col: ind.point.column.0 as u16,
                     row: (ind.point.line.0 + off) as u16,
@@ -112,11 +129,28 @@ impl TermCore {
                     bg,
                     bold,
                     italic,
-                    deco: crate::celldeco::deco_of(ind.flags, uc),
+                    deco,
                 }
             })
             .collect();
         crate::cursor::apply(&mut out, &cursor, off, focused);
         out
+    }
+}
+
+impl TermCore {
+    /// The OSC 8 hyperlink target under viewport cell `(col, row)`, if any.
+    ///
+    /// Rows are viewport rows the way [`TermCore::cells`] emits them, so a
+    /// click resolves against what is on screen rather than against the
+    /// grid's own scrolled coordinates.
+    pub(crate) fn link_at(&self, col: u16, row: u16) -> Option<String> {
+        let grid = self.term.grid();
+        if usize::from(row) >= grid.screen_lines() || usize::from(col) >= grid.columns() {
+            return None;
+        }
+        let line = Line(i32::from(row) - grid.display_offset() as i32);
+        let point = Point::new(line, Column(usize::from(col)));
+        grid[point].hyperlink().map(|h| h.uri().to_string())
     }
 }

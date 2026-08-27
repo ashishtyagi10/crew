@@ -43,3 +43,41 @@ fn url_at_ignores_bare_scheme_and_trailing_punctuation() {
     assert_eq!(url_at(line, 1).as_deref(), Some("https://a.io"));
     assert_eq!(url_at(line, line.len() - 1), None);
 }
+
+/// The four schemes a document can reasonably mean. Everything else is a
+/// program on the other end of a PTY choosing what the system opener runs.
+#[test]
+fn only_document_schemes_are_openable_from_a_hyperlink() {
+    use super::safe_link;
+    for ok in [
+        "https://example.com/x",
+        "http://example.com",
+        "mailto:someone@example.com",
+        "file:///Users/me/notes.md",
+    ] {
+        assert_eq!(safe_link(ok), Some(ok), "{ok} should open");
+    }
+    for no in [
+        "javascript:alert(1)",
+        "vbscript:msgbox",
+        "data:text/html,<script>x</script>",
+        "ssh://box/rm",
+        "x-open://anything",
+        "notascheme",
+        "",
+    ] {
+        assert_eq!(safe_link(no), None, "{no} must not open");
+    }
+}
+
+/// `HTTPS://` is a URL; a filter that only knows lowercase is a filter that
+/// `JAVASCRIPT:` walks around from the other direction.
+#[test]
+fn scheme_matching_ignores_case() {
+    use super::safe_link;
+    assert_eq!(
+        super::safe_link("HTTPS://Example.COM/Path"),
+        Some("HTTPS://Example.COM/Path")
+    );
+    assert_eq!(safe_link("JavaScript:alert(1)"), None);
+}
