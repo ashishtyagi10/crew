@@ -1235,3 +1235,117 @@ fn cmd_f_outside_a_chat_pane_opens_find_in_the_bar() {
     chat.handle_super_chord("f");
     assert!(chat.input.text.is_empty(), "{:?}", chat.input.text);
 }
+
+/// Every `.rs` file of this crate, as `(name, source)`.
+///
+/// `include_str!` cannot take a glob, and a test that reads the source tree
+/// through `std::fs` needs a root: `CARGO_MANIFEST_DIR` is the one path cargo
+/// guarantees, and it is what the docs-parity tests already walk from.
+pub(crate) fn crate_sources() -> Vec<(String, String)> {
+    fn walk(dir: &std::path::Path, out: &mut Vec<(String, String)>) {
+        let Ok(entries) = std::fs::read_dir(dir) else {
+            return;
+        };
+        for e in entries.flatten() {
+            let p = e.path();
+            if p.is_dir() {
+                walk(&p, out);
+            } else if p.extension().is_some_and(|x| x == "rs") {
+                if let Ok(s) = std::fs::read_to_string(&p) {
+                    let name = p
+                        .file_name()
+                        .map(|n| n.to_string_lossy().into_owned())
+                        .unwrap_or_default();
+                    out.push((name, s));
+                }
+            }
+        }
+    }
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    let mut out = Vec::new();
+    walk(&root, &mut out);
+    out
+}
+
+/// Every `#[test] fn name() { … }` in `src`, as `(name, body)`. Brace-matched
+/// rather than line-scanned, so a test containing a nested block or a string
+/// with a brace in it still yields its whole body and nothing after it.
+pub(crate) fn test_bodies(src: &str) -> Vec<(String, String)> {
+    let mut out = Vec::new();
+    let mut at = 0;
+    while let Some(i) = src[at..].find("#[test]") {
+        let i = at + i;
+        let Some(fname) = src[i..].find("fn ") else {
+            break;
+        };
+        let head = i + fname + 3;
+        let Some(paren) = src[head..].find('(') else {
+            break;
+        };
+        let name = src[head..head + paren].trim().to_string();
+        let Some(open) = src[head..].find('{') else {
+            break;
+        };
+        let mut depth = 1;
+        let mut j = head + open + 1;
+        for c in src[j..].chars() {
+            match c {
+                '{' => depth += 1,
+                '}' => depth -= 1,
+                _ => {}
+            }
+            j += c.len_utf8();
+            if depth == 0 {
+                break;
+            }
+        }
+        out.push((name, src[head + open + 1..j.saturating_sub(1)].to_string()));
+        at = j;
+    }
+    out
+}
+
+/// Every test that reads the process-wide theme is serialised against every
+/// test that changes it.
+///
+/// The theme, its accent and its gradient poles are process globals: a test
+/// that paints cells from one palette and then compares them against
+/// `theme()` is comparing against whatever palette is in force *now*, which
+/// under a parallel runner is not necessarily the one it painted with. That
+/// is not a hypothetical — `alert_toasts_border_in_the_bell_color` and
+/// `version_stamp_present` both failed exactly this way (the second only on
+/// Windows CI, where the runner schedules differently), and neither took the
+/// guard.
+///
+/// Read out of this crate's own sources, because the alternative is
+/// remembering: a new test that compares a colour is the easiest thing in the
+/// world to write without a guard, and it passes locally every time until it
+/// does not.
+#[test]
+fn every_test_that_reads_the_theme_takes_the_guard() {
+    let mut unguarded: Vec<String> = Vec::new();
+    for (path, src) in crate_sources() {
+        for (name, body) in test_bodies(&src) {
+            let reads = [
+                "crew_theme::theme()",
+                "crew_theme::current_id",
+                "poleshift::",
+                "theme().",
+            ]
+            .iter()
+            .any(|needle| body.contains(needle));
+            // A helper the test calls may hold it instead — the guard is not
+            // re-entrant, so a test that both takes it AND calls such a
+            // helper would deadlock rather than race.
+            let guarded = body.contains("theme_test_guard") || body.contains("let _g = guard()");
+            if reads && !guarded {
+                unguarded.push(format!("{path}::{name}"));
+            }
+        }
+    }
+    assert!(
+        unguarded.is_empty(),
+        "these tests read the theme without serialising against the tests that change it:\n  {}",
+        unguarded.join("\n  ")
+    );
+}

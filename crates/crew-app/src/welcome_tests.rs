@@ -12,6 +12,7 @@ fn welcome_cells_in_bounds() {
 
 #[test]
 fn hint_present() {
+    let _g = crate::app::theme_test_guard();
     let cells = welcome_cells_animated(80, 24, 0, None);
     let hint_fg = crew_theme::theme().hint_fg;
     assert!(
@@ -22,6 +23,7 @@ fn hint_present() {
 
 #[test]
 fn version_stamp_present() {
+    let _g = crate::app::theme_test_guard();
     let cells = welcome_cells_animated(80, 24, 0, None);
     let dim = crew_theme::theme().dim;
     assert!(
@@ -142,6 +144,7 @@ fn restore_hint_singular_and_in_bounds_on_tight_rows() {
 
 #[test]
 fn restore_hint_never_shares_the_version_stamp_row() {
+    let _g = crate::app::theme_test_guard();
     // cols=50 rows=28 puts the naive restore row exactly on rows-1, where
     // the centred line's tail met "v0.x.y" (last-write-wins garbling) —
     // review-found collision band. The row is skipped there instead.

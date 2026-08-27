@@ -263,6 +263,7 @@ mod tests {
 
     #[test]
     fn git_cells_show_branch_and_marker() {
+        let _g = crate::app::theme_test_guard();
         let info = GitInfo {
             branch: "main".into(),
             changed: 2,

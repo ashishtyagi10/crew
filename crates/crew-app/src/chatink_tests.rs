@@ -12,6 +12,7 @@ use super::*;
 /// preset. This is the assertion whose absence let the CRT regression ship.
 #[test]
 fn semantic_colours_separate_from_body_text() {
+    let _g = crate::app::theme_test_guard();
     for id in ALL_THEMES {
         let t = id.theme();
         let d = derive(t);
@@ -29,6 +30,7 @@ fn semantic_colours_separate_from_body_text() {
 /// Separation is never bought by fading into the page.
 #[test]
 fn semantic_colours_stay_readable_on_the_page() {
+    let _g = crate::app::theme_test_guard();
     for id in ALL_THEMES {
         let t = id.theme();
         let d = derive(t);
@@ -47,6 +49,7 @@ fn semantic_colours_stay_readable_on_the_page() {
 /// and bloom, where the old 0.08 mix measured 1.10:1 and disappeared.
 #[test]
 fn code_card_reads_as_a_card() {
+    let _g = crate::app::theme_test_guard();
     for id in ALL_THEMES {
         let t = id.theme();
         let got = contrast_ratio(derive(t).code_bg, t.page_bg);
@@ -62,6 +65,7 @@ fn code_card_reads_as_a_card() {
 /// the floor must not restyle themes that were never broken.
 #[test]
 fn already_separated_themes_are_untouched() {
+    let _g = crate::app::theme_test_guard();
     let t = crew_theme::ThemeId::PaperDark.theme();
     if contrast_ratio(t.ansi[6], t.ink) >= SEPARATION_FLOOR {
         assert_eq!(
@@ -76,6 +80,7 @@ fn already_separated_themes_are_untouched() {
 /// same colour as its `ink`, and must not survive derivation unchanged.
 #[test]
 fn crt_green_code_colour_moves() {
+    let _g = crate::app::theme_test_guard();
     let t = crew_theme::ThemeId::CrtGreen.theme();
     let raw = contrast_ratio(t.ansi[6], t.ink);
     assert!(
@@ -122,6 +127,7 @@ fn active_theme_selects_its_own_row() {
 /// four colours instead of one.
 #[test]
 fn every_syntax_colour_separates_from_body_text() {
+    let _g = crate::app::theme_test_guard();
     for id in ALL_THEMES {
         let t = id.theme();
         let d = derive(t);
@@ -162,6 +168,7 @@ fn every_syntax_colour_separates_from_body_text() {
 /// keep there in the only currency available.
 #[test]
 fn the_syntax_ladder_holds_where_hue_cannot_help() {
+    let _g = crate::app::theme_test_guard();
     for id in ALL_THEMES {
         let t = id.theme();
         let d = derive(t);

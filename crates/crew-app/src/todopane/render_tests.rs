@@ -88,6 +88,7 @@ fn scroll_offsets_the_click_mapping() {
 
 #[test]
 fn rows_render_checkbox_title_tag_due_and_delete_affordance() {
+    let _g = crate::app::theme_test_guard();
     let mut it = item(1, "pay rent");
     it.project = Some("home".into());
     // Overdue by construction: any past stamp.
@@ -223,6 +224,7 @@ fn clicking_the_done_button_toggles_the_done_items() {
 
 #[test]
 fn the_composer_legend_previews_a_recognised_due() {
+    let _g = crate::app::theme_test_guard();
     let mut p = test_pane(vec![]);
     p.input = "pay rent tomorrow".into();
     p.cursor = p.input.chars().count();
@@ -310,6 +312,7 @@ fn composer_growth_caps_and_keeps_the_tail_visible() {
 
 #[test]
 fn a_date_fragment_stays_tinted_on_a_wrapped_row() {
+    let _g = crate::app::theme_test_guard();
     let mut p = test_pane(vec![]);
     // Pad so "tomorrow" lands on the second wrapped line.
     p.input = "alpha bravo charlie delta echo golf hotel tomorrow".into();
@@ -335,6 +338,7 @@ fn a_date_fragment_stays_tinted_on_a_wrapped_row() {
 /// composer's live `@tag` tint agrees with the row chip for that tag.
 #[test]
 fn project_chips_and_composer_tint_share_per_tag_colors() {
+    let _g = crate::app::theme_test_guard();
     let mut a = item(1, "one");
     a.project = Some("crew".into());
     let mut b = item(2, "two");
@@ -371,6 +375,7 @@ fn project_chips_and_composer_tint_share_per_tag_colors() {
 /// the ` · N items` tail stays muted.
 #[test]
 fn the_filter_header_colors_the_tag_but_not_the_tail() {
+    let _g = crate::app::theme_test_guard();
     let mut a = item(1, "one");
     a.project = Some("crew".into());
     let mut b = item(2, "two");
@@ -424,6 +429,7 @@ fn the_cursor_beam_tracks_a_mid_string_cursor() {
 /// triple the row chips use, so the picker previews what you'll get.
 #[test]
 fn tag_popup_rows_carry_their_project_colors() {
+    let _g = crate::app::theme_test_guard();
     let mut a = item(1, "one");
     a.project = Some("crew".into());
     let mut b = item(2, "two");

@@ -7,14 +7,9 @@ fn row(fill: &str) -> MenuItem {
     }
 }
 
-/// Serialises with everything else that moves the process-wide theme.
-fn guard() -> crate::app::ThemeGuard {
-    crate::app::theme_test_guard()
-}
-
 #[test]
 fn arrowing_onto_a_palette_puts_it_on() {
-    let _g = guard();
+    let _g = crate::app::theme_test_guard();
     crew_theme::set_theme(ThemeId::PaperDark);
     let menu = [row("/theme crt-green")];
     assert!(sync(&menu, 0), "the screen changed");
@@ -29,7 +24,7 @@ fn arrowing_onto_a_palette_puts_it_on() {
 /// theme.
 #[test]
 fn leaving_the_picker_puts_the_real_theme_back() {
-    let _g = guard();
+    let _g = crate::app::theme_test_guard();
     crew_theme::set_theme(ThemeId::PaperLight);
     sync(&[row("/theme crt-green")], 0);
     assert_eq!(crew_theme::current_id(), ThemeId::CrtGreen);
@@ -43,7 +38,7 @@ fn leaving_the_picker_puts_the_real_theme_back() {
 /// started, not on the eleventh palette.
 #[test]
 fn walking_the_list_still_restores_where_you_started() {
-    let _g = guard();
+    let _g = crate::app::theme_test_guard();
     crew_theme::set_theme(ThemeId::PaperDark);
     for id in crew_theme::ALL_THEMES {
         sync(&[row(&format!("/theme {}", id.as_str()))], 0);
@@ -58,7 +53,7 @@ fn walking_the_list_still_restores_where_you_started() {
 /// something the choice does not promise.
 #[test]
 fn a_rotation_mode_is_not_previewed() {
-    let _g = guard();
+    let _g = crate::app::theme_test_guard();
     crew_theme::set_theme(ThemeId::PaperDark);
     for mode in ["dark", "light", "crt", "auto"] {
         assert!(!sync(&[row(&format!("/theme {mode}"))], 0), "{mode}");
@@ -69,7 +64,7 @@ fn a_rotation_mode_is_not_previewed() {
 /// Every row that names no colour leaves everything alone.
 #[test]
 fn a_row_that_names_no_colour_previews_nothing() {
-    let _g = guard();
+    let _g = crate::app::theme_test_guard();
     crew_theme::set_theme(ThemeId::PaperDark);
     crew_theme::poleshift::set_custom(None);
     for fill in [
@@ -91,7 +86,7 @@ fn a_row_that_names_no_colour_previews_nothing() {
 /// not the light that pair puts on the canvas.
 #[test]
 fn arrowing_onto_a_gradient_puts_its_poles_on() {
-    let _g = guard();
+    let _g = crate::app::theme_test_guard();
     crew_theme::poleshift::set_custom(None);
     let name = crew_theme::gradients::GRADIENTS[0].name;
     let want = crew_theme::gradients::by_name(name).expect("a named pair");
@@ -105,7 +100,7 @@ fn arrowing_onto_a_gradient_puts_its_poles_on() {
 /// PAIR you had, not just whichever one was previewed last.
 #[test]
 fn walking_between_two_pickers_restores_both() {
-    let _g = guard();
+    let _g = crate::app::theme_test_guard();
     crew_theme::set_theme(ThemeId::PaperLight);
     crew_theme::poleshift::set_custom(None);
     sync(&[row("/theme crt-green")], 0);
@@ -122,7 +117,7 @@ fn walking_between_two_pickers_restores_both() {
 /// the old palette back.
 #[test]
 fn accepting_keeps_the_previewed_palette() {
-    let _g = guard();
+    let _g = crate::app::theme_test_guard();
     crew_theme::set_theme(ThemeId::PaperDark);
     sync(&[row("/theme crt-green")], 0);
     accept();
@@ -136,7 +131,7 @@ fn accepting_keeps_the_previewed_palette() {
 /// selection that has not been reset yet.
 #[test]
 fn a_selection_past_the_end_lands_on_the_last_row() {
-    let _g = guard();
+    let _g = crate::app::theme_test_guard();
     crew_theme::set_theme(ThemeId::PaperDark);
     sync(&[row("/theme crt-green")], 99);
     assert_eq!(crew_theme::current_id(), ThemeId::CrtGreen);

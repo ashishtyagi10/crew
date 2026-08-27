@@ -151,6 +151,7 @@ mod tests {
 
     #[test]
     fn fill_color_thresholds() {
+        let _g = crate::app::theme_test_guard();
         let t = crew_theme::theme();
         assert_eq!(fill_color(0.5), crate::palette::accent());
         assert_eq!(fill_color(0.8), t.status_fg);

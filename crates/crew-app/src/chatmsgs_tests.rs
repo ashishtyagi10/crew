@@ -48,6 +48,7 @@ fn multiline_reply_renders_each_line() {
 
 #[test]
 fn fenced_code_renders_as_bordered_card() {
+    let _g = crate::app::theme_test_guard();
     let cells = message_cells(
         &[&msg("coder", "fix:\n```rust\nlet x = 1;\n```")],
         40,
@@ -92,6 +93,7 @@ fn header_tail_keeps_relative_time_but_drops_latency() {
 
 #[test]
 fn handoff_sender_colours_each_name_separately() {
+    let _g = crate::app::theme_test_guard();
     let cells = message_cells(
         &[&msg("planner \u{2192} coder", "x")],
         40,
@@ -112,6 +114,7 @@ fn handoff_sender_colours_each_name_separately() {
 
 #[test]
 fn system_sender_is_muted_and_agents_are_not() {
+    let _g = crate::app::theme_test_guard();
     assert_eq!(sender_color("crew"), crew_theme::theme().text_muted);
     assert_ne!(sender_color("planner"), crew_theme::theme().text_muted);
 }
@@ -182,6 +185,7 @@ fn wide_glyphs_advance_two_columns() {
 
 #[test]
 fn header_line_shows_a_dim_chip_for_task_tagged_messages() {
+    let _g = crate::app::theme_test_guard();
     let m = Message {
         sender: "planner \u{2192} user".into(),
         text: "done".into(),
@@ -334,6 +338,7 @@ fn test_pane(messages: Vec<Message>) -> ChatPane {
 
 #[test]
 fn italic_cardcell_threads_through_to_cellview() {
+    let _g = crate::app::theme_test_guard();
     // `line_cells` is the per-row mapper `message_cells` maps over; a
     // hand-built italic cell pins that the flag survives to `CellView`
     // even before Task 4 wires a producer for it (markdown emphasis).
@@ -472,6 +477,7 @@ fn msg_rows_budget_shrinks_by_one_when_a_message_is_queued() {
 
 #[test]
 fn compact_view_clamps_multiline_body_and_appends_hidden_suffix() {
+    let _g = crate::app::theme_test_guard();
     let m = [msg("coder", "one\ntwo\nthree")];
     let refs: Vec<&Message> = m.iter().collect();
     let full = card_lines(

@@ -119,6 +119,7 @@ mod tests {
     /// The ladder climbs, and never past what the theme layer will store.
     #[test]
     fn the_ladder_climbs_and_stays_in_range() {
+        let _g = crate::app::theme_test_guard();
         let (o, s, l) = (
             GradientLevel::Off.span_deg(),
             GradientLevel::Subtle.span_deg(),

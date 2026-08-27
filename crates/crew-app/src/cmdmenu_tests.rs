@@ -26,6 +26,7 @@ fn card_has_fieldset_border_legend_and_command_text() {
 
 #[test]
 fn card_bg_uniform_no_highlight_bar() {
+    let _g = crate::app::theme_test_guard();
     let matches = crate::suggest::menu_items("/s");
     let cells = menu_card("commands", &matches, 0, 40, menu_rows(matches.len()));
     // No selection bar that could wash out text: every cell background is

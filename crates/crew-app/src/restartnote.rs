@@ -72,6 +72,7 @@ mod tests {
 
     #[test]
     fn legend_blinks_through_the_pulse_window_then_holds_accent() {
+        let _g = crate::app::theme_test_guard();
         let _g = crate::palette::test_guard();
         let accent = crate::palette::accent();
         let t0 = 10_000u64;
@@ -89,6 +90,7 @@ mod tests {
 
     #[test]
     fn legend_fg_does_not_panic_when_now_precedes_parked_at() {
+        let _g = crate::app::theme_test_guard();
         let _g = crate::palette::test_guard();
         let accent = crate::palette::accent();
         let parked_at = 10_000u64;

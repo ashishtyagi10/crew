@@ -3,6 +3,7 @@ use crate::palette::accent;
 
 #[test]
 fn empty_focused_shows_placeholder() {
+    let _g = crate::app::theme_test_guard();
     let bar = InputBar {
         focused: true,
         ..Default::default()
@@ -59,6 +60,7 @@ fn cells_long_text_follows_cursor_tail() {
 
 #[test]
 fn cells_shows_dim_ghost_suggestion() {
+    let _g = crate::app::theme_test_guard();
     let bar = InputBar {
         text: "/se".into(),
         focused: true,
@@ -83,6 +85,7 @@ fn cells_unfocused_has_no_cursor() {
 
 #[test]
 fn cells_unfocused_prompt_is_dim() {
+    let _g = crate::app::theme_test_guard();
     let bar = InputBar {
         text: String::new(),
         focused: false,
@@ -116,6 +119,7 @@ fn history_up_down_recalls_entries() {
 
 #[test]
 fn broadcast_prompt_is_magenta() {
+    let _g = crate::app::theme_test_guard();
     let bar = InputBar {
         focused: true,
         broadcast: true,
@@ -183,6 +187,7 @@ fn cells_with_empty_cwd_shows_solid_top_border() {
 
 #[test]
 fn cells_show_status_on_bottom_border() {
+    let _g = crate::app::theme_test_guard();
     let bar = InputBar {
         focused: true,
         ..Default::default()
@@ -202,6 +207,7 @@ fn cells_show_status_on_bottom_border() {
 /// on the top one.
 #[test]
 fn the_focused_pane_names_itself_on_the_bottom_border() {
+    let _g = crate::app::theme_test_guard();
     let bar = InputBar {
         focused: true,
         ..Default::default()

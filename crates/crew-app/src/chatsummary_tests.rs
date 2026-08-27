@@ -120,6 +120,7 @@ fn line3_swarm_by_default_relay_when_mentioning() {
 
 #[test]
 fn segments_are_colored_separators_muted() {
+    let _g = crate::app::theme_test_guard();
     let agents = [agent("smith", "qwen3-coder-plus")];
     let lines = footer_lines(&fc(&agents, &ctx(&[])), 120);
     let th = crew_theme::theme();
@@ -406,6 +407,7 @@ fn line3_fits_and_never_teaches_half_an_answer() {
 /// used to gesture at with the ENTIRE roster.
 #[test]
 fn active_agents_show_on_line3_in_their_roster_colours() {
+    let _g = crate::app::theme_test_guard();
     let empty_ctx = HashMap::new();
     let mut f = fc(&[], &empty_ctx);
     f.active = vec!["analyst", "coder"];

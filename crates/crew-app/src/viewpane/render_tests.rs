@@ -45,6 +45,7 @@ fn a_zero_sized_grid_draws_nothing_and_does_not_panic() {
 // while its true extent reaches column 5, one past the last valid column.
 #[test]
 fn a_double_width_glyph_never_straddles_the_grid_edge() {
+    let _g = crate::app::theme_test_guard();
     use crate::chatbody::plain;
     use crate::viewpane::ViewCache;
     let ink = crew_theme::theme().ink;
