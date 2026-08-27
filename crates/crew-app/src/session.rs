@@ -117,6 +117,7 @@ pub fn to_cellviews(cells: &[RenderCell]) -> Vec<crew_render::CellView> {
             bold: c.bold,
             italic: c.italic,
             deco: c.deco,
+            cursor: c.cursor,
         })
         .collect()
 }

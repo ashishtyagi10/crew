@@ -170,6 +170,12 @@ pub(crate) fn build_scene(
                     quads.push(Quad { x, y, w, h, color });
                 }
             }
+            if cell.cursor.is_rule() {
+                let color = crate::color::target_rgba(cell.cursor.color, 1.0, srgb);
+                for (x, y, w, h) in crate::deco::cursor_rects(&cell.cursor, x, y, cell_w, cell_h) {
+                    quads.push(Quad { x, y, w, h, color });
+                }
+            }
         }
 
         // The frosted sheet this pane sits on. Only card scenes get one — a

@@ -148,3 +148,65 @@ fn the_rule_thickens_with_the_cell_and_never_vanishes() {
     assert!(thickness(40.0) > thickness(14.0));
     assert!(thickness(1.0) >= 1.0);
 }
+
+fn mark(shape: CursorShape) -> CursorMark {
+    CursorMark {
+        shape,
+        color: (255, 255, 255),
+    }
+}
+
+#[test]
+fn the_filled_block_draws_no_rule_because_it_is_drawn_by_inverting_the_cell() {
+    for shape in [CursorShape::None, CursorShape::Block] {
+        assert!(
+            cursor_rects(&mark(shape), 0.0, 0.0, W, H).is_empty(),
+            "{shape:?}"
+        );
+    }
+    assert!(!mark(CursorShape::Block).is_rule());
+    assert!(mark(CursorShape::Beam).is_rule());
+}
+
+/// A bar sits on the leading edge and is thin — a bar as wide as the cell is a
+/// block, and one drawn a third of the way in points at the wrong character.
+#[test]
+fn the_bar_is_a_thin_full_height_rule_on_the_leading_edge() {
+    let r = cursor_rects(&mark(CursorShape::Beam), 7.0, 3.0, W, H);
+    assert_eq!(r.len(), 1);
+    let (x, y, w, h) = r[0];
+    assert_eq!((x, y, h), (7.0, 3.0, H));
+    assert!(
+        (2.0..W / 3.0).contains(&w),
+        "a bar {w} wide in a cell {W} wide"
+    );
+}
+
+#[test]
+fn the_underline_cursor_spans_the_cell_at_its_foot_and_is_thicker_than_a_text_rule() {
+    let r = cursor_rects(&mark(CursorShape::Underline), 0.0, 0.0, W, H);
+    assert_eq!(r.len(), 1);
+    let (x, y, w, h) = r[0];
+    assert_eq!((x, w), (0.0, W));
+    assert_eq!(y + h, H, "the cursor rule sits on the cell's foot");
+    assert!(h > thickness(H), "it reads the same as an underlined word");
+}
+
+/// The point of the outline is the hole in it. Four edges, and nothing over
+/// the glyph in the middle.
+#[test]
+fn the_outline_is_four_edges_around_an_empty_middle() {
+    let r = cursor_rects(&mark(CursorShape::Hollow), 0.0, 0.0, W, H);
+    assert_eq!(r.len(), 4);
+    let covers = |px: f32, py: f32| {
+        r.iter()
+            .any(|(x, y, w, h)| px >= *x && px < x + w && py >= *y && py < y + h)
+    };
+    assert!(covers(0.5, 0.5), "the top-left corner is not drawn");
+    assert!(
+        covers(W - 0.5, H - 0.5),
+        "the bottom-right corner is not drawn"
+    );
+    assert!(covers(W / 2.0, 0.5), "the top edge is not drawn");
+    assert!(!covers(W / 2.0, H / 2.0), "the outline is filled in");
+}

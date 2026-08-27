@@ -130,6 +130,7 @@ impl TermCore {
                     bold,
                     italic,
                     deco,
+                    ..Default::default()
                 }
             })
             .collect();

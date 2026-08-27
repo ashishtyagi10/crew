@@ -48,6 +48,8 @@ pub struct CellView {
     /// Underline family, strikethrough and SGR 58's colour. Drawn as quads,
     /// not glyphs — see [`crate::deco`].
     pub deco: crew_theme::deco::Deco,
+    /// The cursor, when this is the cell it sits on.
+    pub cursor: crew_theme::deco::CursorMark,
 }
 
 /// Renders a scene of panes: per-cell bg quads, rounded borders, per-pane text.

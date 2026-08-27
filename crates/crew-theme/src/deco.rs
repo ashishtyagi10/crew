@@ -57,3 +57,42 @@ impl Deco {
         self.line == DecoLine::None && !self.strike
     }
 }
+
+/// How the terminal cursor is drawn on the cell it sits on.
+///
+/// A cursor is not a glyph — every shape but the filled block is a rule
+/// against the cell's edges — so it travels with the cell and is drawn by the
+/// same quad pass the underlines are.
+#[derive(Hash, Clone, Copy, PartialEq, Eq, Default, Debug)]
+pub enum CursorShape {
+    /// No cursor on this cell, which is true of all but one of them.
+    #[default]
+    None,
+    /// A filled block. Drawn by swapping the cell's colours rather than
+    /// painting over it, so the glyph underneath stays readable.
+    Block,
+    /// A vertical bar at the cell's leading edge — DECSCUSR 5/6, and what
+    /// every editor uses to say "insert mode".
+    Beam,
+    /// A thick rule along the cell's bottom — DECSCUSR 3/4.
+    Underline,
+    /// An outline. What a pane that is not focused shows, so the canvas has
+    /// exactly one filled cursor on it however many panes are open.
+    Hollow,
+}
+
+/// The cursor drawn on a cell, and the colour to draw it in — resolved
+/// against the theme where the terminal builds the cell, not at draw time.
+#[derive(Hash, Clone, Copy, PartialEq, Eq, Default, Debug)]
+pub struct CursorMark {
+    pub shape: CursorShape,
+    pub color: (u8, u8, u8),
+}
+
+impl CursorMark {
+    /// Whether this cell draws a cursor rule. The filled block is drawn by
+    /// inverting the cell instead, so it is not one.
+    pub fn is_rule(&self) -> bool {
+        !matches!(self.shape, CursorShape::None | CursorShape::Block)
+    }
+}

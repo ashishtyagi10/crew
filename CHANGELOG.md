@@ -8,6 +8,29 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.50
+
+**The cursor has a shape again.** Every cursor in every pane was a filled
+block. Programs have been asking for other shapes for forty years — `ESC[6 q`
+for a bar, `ESC[4 q` for an underline — and vim, helix, zsh's vi-mode and the
+agent CLIs all use them to say which mode they are in. Crew read the escape,
+kept it in the grid, and drew a block anyway, so insert mode and normal mode
+looked identical.
+
+Now the cell carries the cursor: block, bar or underline, drawn as quads on the
+cell's edges. **Only the block repaints the cell it lands on** — it inverts it,
+so the glyph stays readable — while the bar and the underline are rules beside
+the glyph, which keeps its own colours. A bar that recoloured its neighbour
+would make the character it points at change colour when the cursor arrived.
+
+**An unfocused pane draws an outline.** The old cue was a dimmer block, and it
+was the wrong cue twice over: on a canvas of panes the question is which one
+takes the keys, and *dimmer* is a hard comparison to make across a grid, while
+*hollow versus filled* is one you make without looking for it. It also means
+the unfocused cursors are now easy to find rather than nearly invisible — the
+outline's colour is floored against the page, because an outline is a fraction
+of the ink a block is and the old colour was chosen for a block.
+
 ## 0.18.49
 
 **Hyperlinks that are links.** OSC 8 is how a program attaches a URL to
