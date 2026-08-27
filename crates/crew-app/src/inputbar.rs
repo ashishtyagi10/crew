@@ -89,7 +89,8 @@ impl InputBar {
             if self.text.starts_with("cd ") {
                 return crate::suggest::dir_suggest(&self.text, &self.cwd);
             }
-            // `/dump` completes file and directory paths.
+            // Every command whose argument is a path completes files and
+            // directories \u{2014} see `pathcomplete::PATH_COMMANDS`.
             if let Some(p) = crate::pathcomplete::path_suggest(&self.text, &self.cwd) {
                 return Some(p);
             }

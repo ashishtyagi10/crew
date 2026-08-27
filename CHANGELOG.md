@@ -8,6 +8,30 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.8
+
+**`/view`, `/md` and `/batch` had no path completion at all.** The bar's
+ghost completion knew about exactly one command — `/dump` — and had since
+before the other three existed, so the commands people type a path into most
+often were the three that silently completed nothing. The palette's own
+descriptions and the completion list are now held against each other by a
+test: a command that says `<path>` or `<file>` and is not in the list is a
+completion that quietly never happens, which is exactly how this drifted.
+
+**And a path is now a picker, not just a ghost.** Every command with a closed
+set of values already opens one — type `/theme ` and the palettes are listed
+with the current one marked — while the *path* commands, whose argument is the
+one you are least likely to be able to type from memory, got a single ghosted
+guess and no way to see what else was there. Typing `/view ` now lists the
+directory: folders first, then files by name, filtered as you type. Picking a
+folder fills `<cmd> dir/` and leaves the bar open, so the next listing is what
+is inside it — the same key walks into a tree and picks out of it. Hidden
+entries appear only once the partial asks for them.
+
+One `read_dir` of one directory per keystroke, never a walk — the same read
+the ghost already did, bounded for the same reason: it runs on the thread
+every pane is drawn from.
+
 ## 0.19.7
 
 **`/leading` — how much air sits between rows of text.** Crew's cell height

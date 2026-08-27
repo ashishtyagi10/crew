@@ -196,6 +196,7 @@ mod pastesafe;
 mod pathcomplete;
 mod pathexpand;
 mod pathhl;
+mod pathmenu;
 mod pointer;
 mod poll;
 mod procname;

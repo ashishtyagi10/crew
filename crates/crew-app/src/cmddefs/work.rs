@@ -87,6 +87,6 @@ pub(crate) const WORK: &[Cmd] = &[
     },
     Cmd {
         name: "/dump",
-        desc: "Save scrollback to a file (/dump [file])",
+        desc: "Save scrollback to a file (/dump <file>)",
     },
 ];

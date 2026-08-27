@@ -93,7 +93,17 @@ pub(crate) fn mark_current(items: &mut [MenuItem], current: Option<&str>) {
     }
 }
 
+/// [`menu_items_in`] with no working directory — the picker for commands
+/// whose values do not depend on one. Every path command's rows come back
+/// empty, which is what a caller with nowhere to look should get.
+#[cfg(test)]
 pub(crate) fn menu_items(text: &str) -> Vec<MenuItem> {
+    menu_items_in(text, std::path::Path::new(""))
+}
+
+/// The rows the command bar shows for `text`, with `cwd` as the directory a
+/// relative path argument is resolved against.
+pub(crate) fn menu_items_in(text: &str, cwd: &std::path::Path) -> Vec<MenuItem> {
     if !text.starts_with('/') {
         return Vec::new();
     }
@@ -101,6 +111,12 @@ pub(crate) fn menu_items(text: &str) -> Vec<MenuItem> {
         let cmd = &text[..sp];
         let arg = text[sp + 1..].trim_start().to_lowercase();
         let Some(opts) = options_for(cmd) else {
+            // A path argument has no closed set of values, but it does have a
+            // directory to list — the one argument you are least likely to be
+            // able to type from memory (see `pathmenu`).
+            if let Some(rows) = crate::pathmenu::rows(text, cwd) {
+                return rows;
+            }
             return Vec::new(); // freeform arg (e.g. /run cargo …) → no picker
         };
         let items = opts

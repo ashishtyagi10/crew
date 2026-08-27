@@ -240,7 +240,7 @@ impl CrewApp {
         // slash palette has no rows for), so this branch is only ever reached
         // for non-slash input. An overlay scene so the overlay pass backs it
         // with black — a box on the canvas, fully opaque.
-        let mut slash_matches = crate::suggest::menu_items(&self.input.text);
+        let mut slash_matches = crate::suggest::menu_items_in(&self.input.text, &self.input.cwd);
         // Which of a picker's values you are already on.
         let cmd = self
             .input
