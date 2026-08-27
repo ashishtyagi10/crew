@@ -400,3 +400,23 @@ fn the_typed_text_survives_every_width_that_can_hold_it() {
         );
     }
 }
+
+/// A chord that stands for a command with an argument leaves the bar typed
+/// and waiting, not merely focused.
+#[test]
+fn a_prefill_types_the_command_and_takes_focus() {
+    let mut bar = InputBar {
+        text: "half-typed".into(),
+        hist_pos: Some(3),
+        hist_prefix: "half".into(),
+        menu_sel: 4,
+        ..InputBar::default()
+    };
+    bar.prefill("/find ");
+    assert_eq!(bar.text, "/find ");
+    assert!(bar.focused);
+    // A prefill is a fresh line, not a history browse continued.
+    assert_eq!(bar.hist_pos, None);
+    assert!(bar.hist_prefix.is_empty());
+    assert_eq!(bar.menu_sel, 0);
+}

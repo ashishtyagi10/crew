@@ -1213,3 +1213,21 @@ fn focusing_ignites_the_ring_on_every_theme() {
         );
     }
 }
+
+/// Cmd+F did nothing at all outside a chat pane — including in the pane kind
+/// crew has most of. It opens the bar's `/find`, typed and waiting.
+#[test]
+fn cmd_f_outside_a_chat_pane_opens_find_in_the_bar() {
+    let mut app = CrewApp::default();
+    app.panes.push(tests_far_pane("far"));
+    app.focused = 0;
+    app.handle_super_chord("f");
+    assert_eq!(app.input.text, "/find ");
+    assert!(app.input.focused);
+    // A chat pane keeps its own in-transcript find rather than the bar's.
+    let mut chat = CrewApp::default();
+    chat.panes.push(tests_chat_pane());
+    chat.focused = 0;
+    chat.handle_super_chord("f");
+    assert!(chat.input.text.is_empty(), "{:?}", chat.input.text);
+}
