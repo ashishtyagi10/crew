@@ -205,12 +205,15 @@ pub(crate) fn for_state(
     raw: bool,
     cols: usize,
     invisibles: bool,
+    split: bool,
 ) -> (Vec<CardLine>, Vec<Mark>) {
     let t = crew_theme::theme();
     match state {
         LoadState::Loading { .. } => (vec![banner("loading…", cols)], Vec::new()),
         LoadState::Failed(msg) => (vec![row(msg, t.ink, false)], Vec::new()),
-        LoadState::Ready { format, loaded } => ready_lines(*format, loaded, raw, cols, invisibles),
+        LoadState::Ready { format, loaded } => {
+            ready_lines(*format, loaded, raw, cols, invisibles, split)
+        }
     }
 }
 
@@ -231,6 +234,7 @@ fn ready_lines(
     raw: bool,
     cols: usize,
     invisibles: bool,
+    split: bool,
 ) -> (Vec<CardLine>, Vec<Mark>) {
     let t = crew_theme::theme();
     let mut out = Vec::new();
@@ -288,8 +292,17 @@ fn ready_lines(
             // prose lifted out of a PDF or a Word doc, not source.
             numbered(text, cols, "", t.ink, t.text_muted, ws)
         }
+        // A pane too narrow for two honest columns answers `None` and the
+        // unified rung takes it — the toggle is a request, not a promise the
+        // width can always keep.
         Format::Diff => {
-            let (lines, found) = diff_lines(text, cols, ws);
+            let (lines, found) = match split
+                .then(|| super::diffsplitdraw::lines(text, cols))
+                .flatten()
+            {
+                Some(pair) => pair,
+                None => diff_lines(text, cols, ws),
+            };
             marks = shifted(found, out.len());
             lines
         }

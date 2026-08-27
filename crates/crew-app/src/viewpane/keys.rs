@@ -34,6 +34,8 @@ pub(crate) enum ViewInput {
     OpenExternal,
     Reload,
     ToggleRaw,
+    /// `v` — lay a diff out side by side, or unified again.
+    ToggleSplit,
     /// `/` — start (or restart) a search in typing mode.
     Slash,
     /// `n` outside typing — jump to the next hit.
@@ -91,6 +93,7 @@ pub(crate) fn view_key(logical: &Key, pressed: bool, ctrl: bool) -> ViewInput {
             "o" => ViewInput::OpenExternal,
             "r" => ViewInput::Reload,
             "s" => ViewInput::ToggleRaw,
+            "v" => ViewInput::ToggleSplit,
             _ => s
                 .chars()
                 .next()
@@ -153,6 +156,13 @@ pub(crate) fn apply(
             // than clear: unlike `reload` (where the file itself changed
             // and the old hits are meaningless), the needle the user typed
             // is still exactly what they asked for.
+            search_apply::recompute_hits(p, cols);
+        }
+        // The same shape change `s` makes, for the same reason: the search's
+        // hits are line indexes into a rendering that no longer exists.
+        ViewInput::ToggleSplit => {
+            p.split = !p.split;
+            p.cache.replace(None);
             search_apply::recompute_hits(p, cols);
         }
         ViewInput::Slash => {
