@@ -698,7 +698,8 @@ longer aim at.
   matches" in the alarm colour; the hits are marked down the card's **gutter**
   in the search's own colour, over the landmark ticks and under the thumb),
   **`]`/`[` step the document's structure** — in a diff,
-  file to file and hunk to hunk; in markdown, heading to heading — `e`
+  file to file and hunk to hunk; in markdown, heading to heading — **`v`
+  lays a diff out side by side** (see `/diff` below), `e`
   opens `$EDITOR`, `o` hands the file to the OS default app, **Cmd+click**
   opens a rendered markdown link, `Esc` closes. At either end `]`/`[` do
   nothing rather than wrapping: a document has an end, and jumping back to the
@@ -810,6 +811,26 @@ longer aim at.
   clean tree says so instead of opening an empty pane. Pairs with the crew
   pane's automatic checkpoints (`/restore` lists them) for reviewing what
   agents changed.
+
+  **`v` splits the review into two columns**: what was there on the left, what
+  is there now on the right, on the same row. A unified diff is a compression —
+  the two versions of a file interleaved into one column, which is what makes
+  it fit in an email and what makes it hard to read — and the one thing crew's
+  pairing cannot recover from it is *position*: a removed line and its
+  replacement occupy the same place in the file, and stacking them says they
+  happen one after another. Everything the unified rung knows comes with the
+  split, because both read the same paint: the pairing, the word-level
+  refinement, the hunk headings. Each side also carries **its own file's line
+  numbers**, tracked from the hunk header — a unified gutter can only count
+  rows of the diff, and the number you quote to someone is the one in the file.
+
+  A pair wraps *both* sides at the half width and pads the shorter to the
+  taller, so the two versions never slide out of step exactly where the lines
+  are long enough to need the help; a side with no line is blank rather than a
+  copy of its partner. Below about 61 columns there is no honest split and the
+  unified rung takes it back — the toggle is a request, not a promise the width
+  can always keep. It is per pane rather than a setting: it is a way of reading
+  *this* review at *this* width.
 - Panes crew opens on generated files — `/out`, `/diff`, `/about` — are
   **named after what they are** (`out · cargo build`, `diff · crew`, `what's
   new · 0.18.75`) rather than after the temp file the text happens to live in.

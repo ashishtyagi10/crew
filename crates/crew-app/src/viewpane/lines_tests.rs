@@ -24,6 +24,7 @@ fn code_lines_carry_a_numbered_gutter() {
         false,
         40,
         false,
+        false,
     );
     assert!(text(&ls[0]).starts_with("    1 "), "got {:?}", text(&ls[0]));
     assert!(text(&ls[1]).starts_with("    2 "));
@@ -32,7 +33,13 @@ fn code_lines_carry_a_numbered_gutter() {
 #[test]
 fn a_wrapped_row_does_not_reprint_its_line_number() {
     let long = "x".repeat(60);
-    let (ls, _marks) = for_state(&ready(Format::Code { lang: "" }, &long), false, 20, false);
+    let (ls, _marks) = for_state(
+        &ready(Format::Code { lang: "" }, &long),
+        false,
+        20,
+        false,
+        false,
+    );
     assert!(text(&ls[0]).starts_with("    1 "));
     // No number on a continuation — the gutter carries the continuation
     // marker there instead, which says the same thing more directly.
@@ -56,7 +63,7 @@ fn truncation_is_announced_in_a_banner_row() {
             meta: None,
         },
     };
-    let (ls, _marks) = for_state(&state, false, 60, false);
+    let (ls, _marks) = for_state(&state, false, 60, false, false);
     let banner = text(&ls[0]);
     // Ordered, not two unordered substring checks: "8 MB" and "39" swapped
     // still both appear ("showing first 39 MB of 8 MB"), which is backwards
@@ -81,6 +88,7 @@ fn an_extract_says_it_is_an_extract() {
         false,
         60,
         false,
+        false,
     );
     let banner = text(&ls[0]);
     assert!(banner.contains("text extract"), "got {banner}");
@@ -95,7 +103,7 @@ fn a_missing_extractor_names_what_to_install() {
         },
         "",
     );
-    let (ls, _marks) = for_state(&state, false, 60, false);
+    let (ls, _marks) = for_state(&state, false, 60, false, false);
     let card: String = ls.iter().map(text).collect::<Vec<_>>().join("\n");
     assert!(card.contains("poppler"), "names the install: {card}");
 }
@@ -108,6 +116,7 @@ fn a_loading_pane_draws_a_skeleton_not_an_empty_page() {
         },
         false,
         40,
+        false,
         false,
     );
     // `!ls.is_empty()` alone is satisfied by `vec![CardLine::new()]` — one
@@ -127,6 +136,7 @@ fn a_failure_is_drawn_in_the_pane() {
         false,
         40,
         false,
+        false,
     );
     let card: String = ls.iter().map(text).collect::<Vec<_>>().join("\n");
     assert!(card.contains("gone.txt"), "got {card}");
@@ -134,7 +144,13 @@ fn a_failure_is_drawn_in_the_pane() {
 
 #[test]
 fn raw_mode_shows_markdown_source_verbatim() {
-    let (ls, _marks) = for_state(&ready(Format::Markdown, "# Heading\n"), true, 40, false);
+    let (ls, _marks) = for_state(
+        &ready(Format::Markdown, "# Heading\n"),
+        true,
+        40,
+        false,
+        false,
+    );
     assert!(text(&ls[0]).contains("# Heading"), "raw keeps the hash");
 }
 
@@ -151,7 +167,13 @@ fn diff_ink_differs_between_added_and_removed() {
     // (Code/Data never syntax-colouring anything) went unnoticed for eleven
     // reviews.
     let t = crew_theme::theme();
-    let (ls, _marks) = for_state(&ready(Format::Diff, "+added\n-gone\n"), false, 40, false);
+    let (ls, _marks) = for_state(
+        &ready(Format::Diff, "+added\n-gone\n"),
+        false,
+        40,
+        false,
+        false,
+    );
     let add = ls[0].iter().find(|c| c.c == 'a').unwrap().fg;
     let del = ls[1].iter().find(|c| c.c == 'g').unwrap().fg;
     assert_eq!(add, t.ansi[2], "an addition draws from ansi[2]");
@@ -169,7 +191,7 @@ fn a_wrapped_added_diff_line_keeps_its_colour_on_the_continuation_row() {
     // text, not a marker). 30 columns leaves a 24-char body width (30 minus
     // the 6-column gutter), so this line wraps into at least two rows.
     let long = format!("+{}", "a".repeat(50));
-    let (ls, _marks) = for_state(&ready(Format::Diff, &long), false, 30, false);
+    let (ls, _marks) = for_state(&ready(Format::Diff, &long), false, 30, false, false);
     assert!(
         ls.len() >= 2,
         "expected the line to wrap: got {} rows",
@@ -188,7 +210,7 @@ fn a_wrapped_diff_row_blanks_its_gutter_like_numbered_does() {
     // Fix 7: `diff_lines` used to reprint the line number on every wrapped
     // row instead of blanking continuations the way `numbered` does.
     let long = format!("+{}", "a".repeat(50));
-    let (ls, _marks) = for_state(&ready(Format::Diff, &long), false, 30, false);
+    let (ls, _marks) = for_state(&ready(Format::Diff, &long), false, 30, false, false);
     assert!(
         ls.len() >= 2,
         "expected the line to wrap: got {} rows",
@@ -217,6 +239,7 @@ fn a_keyword_is_coloured_differently_from_a_plain_identifier() {
         &ready(Format::Code { lang: "rust" }, "let x = 1;\n"),
         false,
         60,
+        false,
         false,
     );
     let kw = ls[0].iter().find(|c| c.c == 'l').unwrap(); // "let"
@@ -249,6 +272,7 @@ fn a_data_rung_is_syntax_coloured_too() {
         false,
         60,
         false,
+        false,
     );
     let kw = ls[0].iter().find(|c| c.c == 'n').unwrap(); // "null"
     assert_eq!(
@@ -259,7 +283,13 @@ fn a_data_rung_is_syntax_coloured_too() {
 
 #[test]
 fn zero_width_never_panics() {
-    let _ = for_state(&ready(Format::Code { lang: "" }, "x\n"), false, 0, false);
+    let _ = for_state(
+        &ready(Format::Code { lang: "" }, "x\n"),
+        false,
+        0,
+        false,
+        false,
+    );
 }
 
 /// Low item 2: `row_paint` is the guard between `numbered`'s indexing and a
@@ -295,7 +325,13 @@ fn a_huge_line_count_is_capped_and_announced_in_a_banner() {
     // rows fit on screen" concern.
     let total = MAX_RENDER_LINES * 2;
     let body = vec!["x"; total].join("\n");
-    let (ls, _marks) = for_state(&ready(Format::Code { lang: "" }, &body), false, 60, false);
+    let (ls, _marks) = for_state(
+        &ready(Format::Code { lang: "" }, &body),
+        false,
+        60,
+        false,
+        false,
+    );
     let banner = text(&ls[0]);
     assert!(
         banner.contains(&format!("first {MAX_RENDER_LINES} of {total} lines")),
@@ -333,7 +369,7 @@ fn banner_says_at_least_when_the_text_was_already_byte_capped() {
             meta: None,
         },
     };
-    let (ls, _marks) = for_state(&state, false, 60, false);
+    let (ls, _marks) = for_state(&state, false, 60, false, false);
     // ls[0] is the byte-cap banner (`loaded.truncated`), ls[1] the line-cap
     // banner (`capped_from`) — see `truncation_is_announced_in_a_banner_row`
     // and `a_huge_line_count_is_capped_and_announced_in_a_banner` for each in
@@ -355,7 +391,13 @@ fn banner_says_at_least_when_the_text_was_already_byte_capped() {
 fn banner_states_an_exact_count_when_the_text_was_not_byte_capped() {
     let total = MAX_RENDER_LINES * 2;
     let body = vec!["x"; total].join("\n");
-    let (ls, _marks) = for_state(&ready(Format::Code { lang: "" }, &body), false, 60, false);
+    let (ls, _marks) = for_state(
+        &ready(Format::Code { lang: "" }, &body),
+        false,
+        60,
+        false,
+        false,
+    );
     let banner = text(&ls[0]);
     assert!(
         banner.contains(&format!("first {MAX_RENDER_LINES} of {total} lines")),
@@ -374,7 +416,7 @@ fn the_line_cap_bounds_a_markdown_render_too() {
     // many lines that was. Confirm the cap applies before the markdown
     // renderer runs, not just on the gutter rungs.
     let body = vec!["line"; MAX_RENDER_LINES * 2].join("\n");
-    let (ls, _marks) = for_state(&ready(Format::Markdown, &body), false, 60, false);
+    let (ls, _marks) = for_state(&ready(Format::Markdown, &body), false, 60, false, false);
     let banner = text(&ls[0]);
     assert!(
         banner.contains(&format!("first {MAX_RENDER_LINES}")),
@@ -389,7 +431,13 @@ fn the_line_cap_bounds_a_markdown_render_too() {
 fn a_wrapped_row_says_it_is_a_continuation() {
     let _g = crate::app::theme_test_guard();
     let long = "x".repeat(80);
-    let (ls, _marks) = for_state(&ready(Format::Code { lang: "" }, &long), false, 30, false);
+    let (ls, _marks) = for_state(
+        &ready(Format::Code { lang: "" }, &long),
+        false,
+        30,
+        false,
+        false,
+    );
     assert!(ls.len() >= 2, "the line did not wrap");
     let gutter = |row: usize| -> String { ls[row][..6].iter().map(|c| c.c).collect() };
     assert!(gutter(0).contains('1'), "{:?}", gutter(0));
@@ -402,7 +450,7 @@ fn a_wrapped_row_says_it_is_a_continuation() {
 fn trailing_space_on_an_added_line_is_shown() {
     let _g = crate::app::theme_test_guard();
     let text = "@@ -1 +1 @@\n-let a = 1;\n+let a = 2;   \n context   \n";
-    let (ls, _marks) = for_state(&ready(Format::Diff, text), false, 60, false);
+    let (ls, _marks) = for_state(&ready(Format::Diff, text), false, 60, false, false);
     let row = |n: usize| -> String { ls[n].iter().map(|c| c.c).collect() };
     assert!(
         row(2).contains('\u{b7}'),
@@ -437,6 +485,7 @@ fn an_added_line_that_is_only_whitespace_keeps_its_marker() {
         false,
         60,
         false,
+        false,
     );
     let row: String = ls[1].iter().map(|c| c.c).collect();
     assert!(row.contains('+'), "{row:?}");
@@ -453,7 +502,7 @@ fn an_empty_file_says_it_is_empty() {
         (Format::Markdown, "   \n\n"),
         (Format::Diff, ""),
     ] {
-        let (ls, _marks) = for_state(&ready(fmt, body), false, 40, false);
+        let (ls, _marks) = for_state(&ready(fmt, body), false, 40, false, false);
         let all: String = ls.iter().map(text).collect::<Vec<_>>().join("\n");
         assert!(all.contains("this file is empty"), "{fmt:?}: {all:?}");
     }
@@ -470,7 +519,7 @@ fn a_metadata_card_is_not_called_an_empty_file() {
         },
         "",
     );
-    let (ls, _marks) = for_state(&state, false, 60, false);
+    let (ls, _marks) = for_state(&state, false, 60, false, false);
     let all: String = ls.iter().map(text).collect::<Vec<_>>().join("\n");
     assert!(!all.contains("this file is empty"), "{all}");
 }
@@ -483,6 +532,7 @@ fn a_file_with_anything_in_it_is_not_empty() {
         &ready(Format::Code { lang: "" }, "\n\n  x\n\n"),
         false,
         40,
+        false,
         false,
     );
     let all: String = ls.iter().map(text).collect::<Vec<_>>().join("\n");

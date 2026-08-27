@@ -132,6 +132,13 @@ pub(crate) fn paint(text: &str) -> Vec<Vec<CharPaint>> {
         .collect()
 }
 
+/// A file or hunk header's paint, for a rung that already knows the kind —
+/// [`super::diffsplit`] lays headers out itself (they span both columns) and
+/// needs them coloured the same way the unified rung colours them.
+pub(crate) fn header_paint(line: &str, kind: Kind) -> Vec<CharPaint> {
+    line_paint(line, kind, None, crew_theme::theme())
+}
+
 /// One line's characters, given its kind and the range that changed.
 fn line_paint(
     line: &str,

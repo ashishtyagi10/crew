@@ -31,6 +31,10 @@ pub(crate) struct ViewCache {
     /// key in spirit: turning blame on or off changes the width the text was
     /// wrapped at, so the cache must be rebuilt, not merely re-decorated.
     pub blame_w: usize,
+    /// Whether this rendering is the side-by-side review. Part of the cache
+    /// key for the same reason `blame_w` is: the two rungs wrap at different
+    /// widths, so one cannot be turned into the other.
+    pub split: bool,
     /// Whether the invisibles were revealed in this rendering. Part of the
     /// cache key: the toggle changes the TEXT (a revealed tab wears an arrow
     /// in its first column), so the rendering has to be rebuilt, not
@@ -46,6 +50,11 @@ pub(crate) struct ViewPane {
     /// `s`: show the text unrendered. The escape hatch for when the render is
     /// the thing being debugged.
     pub raw: bool,
+    /// `v`: lay a diff out side by side rather than unified (see
+    /// [`super::diffsplit`]). Per pane rather than a setting: it is a way of
+    /// reading THIS review at THIS width, and a pane too narrow to hold two
+    /// columns falls back on its own.
+    pub split: bool,
     /// A live `/` search: `None` when no search is in progress. Cleared on
     /// `reload` — a search over text that is about to change is stale.
     pub search: Option<Search>,
@@ -84,6 +93,7 @@ impl ViewPane {
             state: LoadState::Loading { rx },
             scroll: 0,
             raw: false,
+            split: false,
             search: None,
             cache: RefCell::new(None),
             editor_born: None,

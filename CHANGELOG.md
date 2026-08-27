@@ -8,6 +8,32 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.12
+
+**`v` in the viewer lays a review out side by side.** A unified diff is a
+compression — the two versions of a file interleaved into one column, which is
+what makes it fit in an email and what makes it hard to read. Crew's diff rung
+already recovers most of what that costs: it pairs each removed line with the
+added line that replaced it and dims the text the two share, so the change is
+the only thing at full strength. What it cannot recover is *position*. A
+removed line and its replacement occupy the same place in the file, and
+stacking them says they happen one after another.
+
+So the pairs are laid out where they belong: the old line on the left, the new
+one on the right, on the same row. Everything the unified rung knows comes with
+them — the pairing, the word-level refinement, the hunk headings — because both
+rungs read the same paint. Each side also carries **its own file's line
+numbers**, tracked from the hunk header: a unified gutter can only count rows
+of the diff, and the number you quote to someone is the one in the file.
+
+A pair wraps *both* sides at the half width and pads the shorter to the taller,
+so the two versions never slide out of step exactly where the lines are long
+enough to need the help; a side with no line is blank rather than a copy of its
+partner, because that is where one version of the file simply has nothing.
+Below two honest columns the unified rung takes it back — the toggle is a
+request, not a promise the width can always keep — and it is per pane rather
+than a setting, since it is a way of reading *this* review at *this* width.
+
 ## 0.19.11
 
 **A named palette in the `/theme` picker showed one chip.** That is the same

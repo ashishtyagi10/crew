@@ -8,6 +8,8 @@ mod codepaint;
 pub(crate) mod csv;
 pub(crate) mod detect;
 pub(crate) mod diffpaint;
+pub(crate) mod diffsplit;
+pub(crate) mod diffsplitdraw;
 pub(crate) mod keys;
 pub(crate) mod lines;
 pub(crate) mod load;
