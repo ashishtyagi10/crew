@@ -8,6 +8,21 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.64
+
+**The settings form shows the colours it is offering.** The theme pickers list
+palette and pool names, and the accent field holds a hex code; both left you to
+Save and look. They now draw the colours inside the right end of their boxes —
+one chip per palette in a pool (its page with its accent across the top half),
+and the accent's own hex as a block. These are exactly the chips the command
+palette's `/theme` picker draws, which is the point: the same question gets the
+same answer wherever it is asked.
+
+The chips answer to the *value*, not to the field, so a picker showing
+something that names no palette draws nothing rather than the last thing that
+did — and a box too narrow to hold both the value and the chips keeps the
+value, which is what is being edited.
+
 ## 0.18.63
 
 **File references look like the links they already were.** `src/main.rs:42`,

@@ -85,3 +85,13 @@ fn a_value_that_is_not_a_colour_has_no_swatch() {
     assert!(for_value("/weight", "bold").is_empty());
     assert!(for_value("/motion", "full").is_empty());
 }
+
+/// The accent field holds a hex colour, which is its own swatch.
+#[test]
+fn a_hex_value_is_a_chip_and_anything_else_is_not() {
+    assert_eq!(hex_chip("#ff8800").map(|c| c.fg), Some((255, 136, 0)));
+    assert_eq!(hex_chip("  #00FF00 ").map(|c| c.fg), Some((0, 255, 0)));
+    for no in ["", "#fff", "ff8800", "#gggggg", "#ff88000", "follow"] {
+        assert!(hex_chip(no).is_none(), "{no} became a chip");
+    }
+}

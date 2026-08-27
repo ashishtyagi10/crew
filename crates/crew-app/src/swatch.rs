@@ -50,6 +50,22 @@ pub(crate) fn for_value(cmd: &str, value: &str) -> Vec<Chip> {
     }
 }
 
+/// A `#rrggbb` value as its own chip — what the Accent field holds. `None`
+/// for anything that is not a full six-digit hex colour, including the empty
+/// field (which means "follow the theme" and has no one colour to show).
+pub(crate) fn hex_chip(value: &str) -> Option<Chip> {
+    let hex = value.trim().strip_prefix('#')?;
+    if hex.len() != 6 || !hex.chars().all(|c| c.is_ascii_hexdigit()) {
+        return None;
+    }
+    let byte = |i: usize| u8::from_str_radix(&hex[i..i + 2], 16).ok();
+    Some(Chip {
+        c: '\u{2588}',
+        fg: (byte(0)?, byte(2)?, byte(4)?),
+        bg: None,
+    })
+}
+
 /// One chip per palette this mode rotates through, in `ALL_THEMES` order.
 fn pool_chips(m: RandomMode) -> Vec<Chip> {
     ALL_THEMES

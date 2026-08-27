@@ -152,3 +152,63 @@ fn each_pairing_picker_shows_its_own_side() {
     let (v, _) = value_of(&pane(), Field::ThemeDark);
     assert!(v.contains("default"), "unset shows: {v}");
 }
+
+/// The form shows the colours it is offering, the same way the command
+/// palette's pickers do — reading `harbor` and pressing Save to find out what
+/// it looks like is the form failing at its job.
+#[test]
+fn the_theme_field_draws_the_palettes_it_would_rotate() {
+    let _g = crate::app::theme_test_guard();
+    let mut p = pane();
+    p.draft.theme = Some("dark".to_string());
+    assert!(
+        value_of(&p, Field::Theme).0.contains("dark"),
+        "the fixture does not show the theme under test"
+    );
+    let cells = super::render(&p, 120, 40);
+    let chips = crate::swatch::for_value("/theme", "dark");
+    assert!(!chips.is_empty());
+    for chip in &chips {
+        assert!(
+            cells
+                .iter()
+                .any(|c| c.c == chip.c && c.fg == chip.fg && c.bg == chip.bg.unwrap()),
+            "no chip drawn for {chip:?}"
+        );
+    }
+}
+
+/// A hex accent is its own chip, drawn inside its box.
+#[test]
+fn a_hex_accent_draws_its_colour() {
+    let _g = crate::app::theme_test_guard();
+    let mut p = pane();
+    p.accent_buf = "#ff8800".into();
+    let cells = super::render(&p, 120, 40);
+    assert!(
+        cells
+            .iter()
+            .any(|c| c.c == '\u{2588}' && c.fg == (255, 136, 0)),
+        "the accent's own colour is not shown"
+    );
+}
+
+/// The chips answer to the VALUE, not to the field: a theme picker showing
+/// something that names no palette draws nothing rather than the last thing
+/// that did.
+#[test]
+fn a_field_that_is_not_a_colour_draws_no_chips() {
+    let _g = crate::app::theme_test_guard();
+    let mut p = pane();
+    p.draft.theme = Some("not-a-palette".to_string());
+    let with_theme = super::render(&p, 120, 40);
+    let chip_count = |cells: &[crew_render::CellView]| {
+        // `▀` is the palette chip; `█` is the text caret, which is not one.
+        cells.iter().filter(|c| c.c == '\u{2580}').count()
+    };
+    // The two auto-pairing pickers still name real pools, so what must drop
+    // is the Theme field's own chips — count them by difference.
+    p.draft.theme = Some("dark".to_string());
+    let real = chip_count(&super::render(&p, 120, 40));
+    assert!(real > chip_count(&with_theme), "a bogus theme drew chips");
+}

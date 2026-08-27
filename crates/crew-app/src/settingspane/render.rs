@@ -74,7 +74,44 @@ fn control(buf: &mut Buffer, p: &SettingsPane, f: Field, r: Rect, focused: bool)
         _ => {
             let (value, cursor) = value_of(p, f);
             form::input_box(buf, r, label_of(f), &value, focused, cursor);
+            swatch(buf, r, f, &value);
         }
+    }
+}
+
+/// The colours a field's value stands for, drawn inside the right end of its
+/// box — the same chips the command palette's pickers show
+/// ([`crate::swatch`]), for the same reason: reading `harbor` and pressing
+/// Save to find out what it looks like is the form failing at its job.
+///
+/// Nothing is drawn for a value that names no colour, which is most of them,
+/// and nothing is drawn when the box is too narrow to hold both the value and
+/// the chips — the value is what you are editing.
+fn swatch(buf: &mut Buffer, r: Rect, f: Field, value: &str) {
+    // Picker values are drawn as `‹ dark ›`; the name is what stands for a
+    // colour, not the chevrons that say it can be stepped.
+    let name =
+        value.trim_matches(|c: char| c.is_whitespace() || c == '\u{2039}' || c == '\u{203a}');
+    let chips = match f {
+        Field::Theme | Field::ThemeDark | Field::ThemeLight => {
+            crate::swatch::for_value("/theme", name)
+        }
+        // The accent is a hex colour, so it is its own swatch.
+        Field::Accent => crate::swatch::hex_chip(value).into_iter().collect(),
+        _ => return,
+    };
+    let n = chips.len() as u16;
+    if n == 0 || r.width < value.chars().count() as u16 + n + 5 || r.height < 2 {
+        return;
+    }
+    let (y, mut x) = (r.y + 1, r.x + r.width - 2 - n);
+    for chip in chips {
+        let mut style = Style::new().fg(Color::Rgb(chip.fg.0, chip.fg.1, chip.fg.2));
+        if let Some((cr, cg, cb)) = chip.bg {
+            style = style.bg(Color::Rgb(cr, cg, cb));
+        }
+        buf.set_line(x, y, &Line::styled(chip.c.to_string(), style), 1);
+        x += 1;
     }
 }
 

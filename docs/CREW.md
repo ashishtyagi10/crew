@@ -1508,7 +1508,18 @@ under the pointer brightens to say so. The panel's **card legend shows the runni
 `/settings` opens a **two-column bento form** covering **every configurable
 property** — an APPEARANCE card in the left column, WINDOW and NOTIFICATIONS
 stacked on the right (collapsing to one column on a narrow pane); Tab/wheel
-move focus, Enter commits a field, **Cmd+S / Alt+S** saves and closes:
+move focus, Enter commits a field, **Cmd+S / Alt+S** saves and closes.
+
+Fields whose value names a colour **draw it** inside the right end of their
+box — the theme pickers show one chip per palette in the rotation (that
+palette's page with its accent across the top half) and the accent field shows
+its own hex. The same chips the command palette's pickers use, for the same
+reason: reading a name and pressing Save to find out what it looks like is the
+form failing at its job. The chips answer to the value, so a field showing
+something that names no palette draws nothing rather than the last thing that
+did, and a box too narrow to hold both the value and the chips keeps the
+value.
+
 
 - **APPEARANCE** — **Font family** (type-to-search over installed monospace
   families), **Font size**, **Paper grain** (0–2 amplitude), **Smoothing**
