@@ -59,6 +59,7 @@ pub fn push_ghost(
                 assemble_t,
                 git: None,
                 ticks: &[],
+                unread: 0,
                 doc: false,
             },
         ),

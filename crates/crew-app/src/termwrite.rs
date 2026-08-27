@@ -21,6 +21,10 @@ impl CrewApp {
                 // Typing invalidates any mouse selection — drop the stale
                 // highlight so it doesn't linger painted over fresh output.
                 t.pty.sel_clear();
+                // Answering is reading: the unread divider ([`crate::unread`])
+                // has served its purpose the moment you type into the pane it
+                // is drawn in.
+                t.read_at = t.pty.scrollable_lines();
                 if let Err(e) = t.input.write_all(bytes).and_then(|_| t.input.flush()) {
                     eprintln!("terminal write error: {e}");
                 } else {
