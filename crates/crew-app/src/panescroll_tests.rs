@@ -1,4 +1,4 @@
-use super::{count, position, thumb, MIN_ROWS};
+use super::{count, position, thumb, ticks, MIN_ROWS};
 use crate::panecard::Bar;
 use crew_render::CellView;
 
@@ -16,6 +16,8 @@ fn bar(scroll: usize, total: usize) -> Bar<'static> {
         assemble_t: 1.0,
         focus_t: 1.0,
         git: None,
+        ticks: &[],
+        doc: false,
     }
 }
 
@@ -191,4 +193,108 @@ fn both_readings_of_the_position_share_one_colour() {
     );
     let count_fg = count_cells.first().expect("a count should be drawn").fg;
     assert_eq!(thumb_fg, count_fg);
+}
+
+/// A document's gutter answers "where am I", which is a question you have at
+/// the top of the file too — unlike a shell's, which only says how much is
+/// behind you.
+#[test]
+fn a_document_draws_its_thumb_before_it_is_scrolled() {
+    let _g = crate::app::theme_test_guard();
+    let doc = Bar {
+        scroll: 0,
+        total: 400,
+        doc: true,
+        ..bar(0, 400)
+    };
+    let shell = Bar { doc: false, ..doc };
+    let drawn = |b: &Bar| {
+        let mut v = Vec::new();
+        thumb(&mut v, 40, 20, b);
+        v.len()
+    };
+    assert!(drawn(&doc) > 0, "a document at the top shows no position");
+    assert_eq!(drawn(&shell), 0, "a shell grew a permanent gutter");
+}
+
+/// Landmarks are placed proportionally down the gutter, one cell per row, and
+/// several landing in one cell make one mark rather than a stack of them.
+#[test]
+fn landmark_ticks_are_placed_down_the_gutter_and_deduplicated() {
+    let _g = crate::app::theme_test_guard();
+    let rows = 20u16;
+    let ticks_at: Vec<usize> = vec![0, 100, 101, 102, 399];
+    let b = Bar {
+        scroll: 0,
+        total: 400,
+        doc: true,
+        ticks: &ticks_at,
+        ..bar(0, 400)
+    };
+    let mut v = Vec::new();
+    ticks(&mut v, 40, rows, &b);
+    let mut ys: Vec<u16> = v.iter().map(|c| c.row).collect();
+    ys.sort_unstable();
+    let before = ys.len();
+    ys.dedup();
+    assert_eq!(ys.len(), before, "two ticks landed in one cell");
+    assert!(ys.len() >= 3, "the three separated landmarks collapsed");
+    assert!(v.iter().all(|c| c.col == 39), "a tick left the gutter");
+    assert!(
+        ys.iter().all(|&y| (1..rows - 1).contains(&y)),
+        "a tick landed on a corner: {ys:?}"
+    );
+    // The first landmark is at the top and the last near the bottom.
+    assert_eq!(*ys.first().unwrap(), 1);
+    assert!(*ys.last().unwrap() >= rows - 3, "{ys:?}");
+}
+
+/// The thumb wins the cell it shares with a landmark: where you ARE is the
+/// answer, and a tick under it would read as a second position.
+#[test]
+fn the_thumb_covers_the_landmark_it_sits_on() {
+    let _g = crate::app::theme_test_guard();
+    let ticks_at: Vec<usize> = vec![0];
+    // Scrolled to the very top of the document (the gutter counts rows BACK
+    // from the bottom), which is where the first landmark also sits.
+    let b = Bar {
+        scroll: 400 - 18,
+        total: 400,
+        doc: true,
+        ticks: &ticks_at,
+        ..bar(0, 400)
+    };
+    let mut v = Vec::new();
+    ticks(&mut v, 40, 20, &b);
+    thumb(&mut v, 40, 20, &b);
+    let at_top: Vec<char> = v
+        .iter()
+        .filter(|c| c.col == 39 && c.row == 1)
+        .map(|c| c.c)
+        .collect();
+    assert_eq!(at_top, vec!['\u{2503}'], "{at_top:?}");
+}
+
+/// A pane with nothing worth marking draws nothing, and a tiny card draws no
+/// gutter at all rather than a mark on a corner.
+#[test]
+fn no_landmarks_and_no_room_both_draw_nothing() {
+    let _g = crate::app::theme_test_guard();
+    let none = Bar {
+        total: 400,
+        doc: true,
+        ..bar(0, 400)
+    };
+    let mut v = Vec::new();
+    ticks(&mut v, 40, 20, &none);
+    assert!(v.is_empty());
+    let ticks_at: Vec<usize> = vec![1, 2];
+    let tiny = Bar {
+        total: 400,
+        doc: true,
+        ticks: &ticks_at,
+        ..none
+    };
+    ticks(&mut v, 40, 4, &tiny);
+    assert!(v.is_empty(), "a four-row card drew a gutter");
 }

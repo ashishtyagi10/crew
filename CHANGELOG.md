@@ -8,6 +8,31 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.59
+
+**The viewer knows where it is, and shows it.** Two gaps closed at once.
+
+`]` and `[` now step **markdown headings** as well as diff hunks. The markdown
+renderer already decides which lines are headings, so the landmarks come from
+it rather than from a second pass over the source — which also means they are
+rendered rows, already wrapped, and land exactly where they are drawn. Raw mode
+(`s`) has no landmarks, because it has no rendered headings: it is the escape
+hatch for reading the bytes.
+
+And the viewer's card **draws a scroll thumb at all**, which it never has. It
+had the one pane kind most likely to be longer than its window and the only one
+with no position indicator on it. A document's gutter appears as soon as the
+content is longer than the pane rather than waiting to be scrolled — a shell's
+gutter is a scrollback affordance ("there is something behind you"), a
+document's is an answer to *where am I*, and that question exists at the top of
+the file too.
+
+Beside the thumb, the landmarks are drawn as **dim ticks**: a long file shows
+its shape — how many sections, how far apart, where you sit among them —
+before you move. Ticks that land in the same cell are one mark, and the thumb
+is drawn over the tick it shares a cell with, because where you are is the
+answer that wins.
+
 ## 0.18.58
 
 **Two new palettes: `harbor` and `fern`.** The dark pool was neutral

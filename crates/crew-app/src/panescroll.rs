@@ -70,7 +70,10 @@ const MIN_ROWS: u16 = 5;
 /// No-op at the bottom of the buffer, on a card with no scrollback to speak
 /// of, or on one too short to read.
 pub(crate) fn thumb(v: &mut Vec<CellView>, cols: u16, rows: u16, b: &Bar) {
-    if b.scroll == 0 || rows < MIN_ROWS || cols < 2 {
+    // A shell's gutter is a scrollback affordance — nothing behind you, no
+    // gutter. A document's is where you ARE in it, which is a question worth
+    // answering at the top of the file too.
+    if (b.scroll == 0 && !b.doc) || rows < MIN_ROWS || cols < 2 {
         return;
     }
     let visible = usize::from(rows - 2);
@@ -82,6 +85,31 @@ pub(crate) fn thumb(v: &mut Vec<CellView>, cols: u16, rows: u16, b: &Bar) {
     let fg = position_fg(position(b.total, visible, b.scroll));
     for i in top..(top + len).min(visible) {
         put(v, cols - 1, 1 + i as u16, '\u{2503}', fg, true);
+    }
+}
+
+/// Landmark ticks down the right border: one dim mark per rendered row worth
+/// jumping to (`]` / `[`), placed proportionally. Drawn BEFORE the thumb, so
+/// the landmark you are sitting on is covered by the thumb rather than the
+/// other way round — the thumb is where you are, and that answer wins.
+///
+/// Ticks are deduplicated by row: a long document has more headings than the
+/// gutter has cells, and two landmarks in one cell is one mark, not two.
+pub(crate) fn ticks(v: &mut Vec<CellView>, cols: u16, rows: u16, b: &Bar) {
+    if b.ticks.is_empty() || rows < MIN_ROWS || cols < 2 || b.total == 0 {
+        return;
+    }
+    let inner = usize::from(rows - 2);
+    let fg = crew_theme::theme().legend_off;
+    let mut drawn: Vec<u16> = Vec::new();
+    for &row in b.ticks {
+        let at = (row.min(b.total.saturating_sub(1)) * inner) / b.total.max(1);
+        let y = 1 + at.min(inner.saturating_sub(1)) as u16;
+        if drawn.contains(&y) {
+            continue;
+        }
+        drawn.push(y);
+        put(v, cols - 1, y, '\u{2508}', fg, false);
     }
 }
 

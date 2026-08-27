@@ -14,6 +14,8 @@ fn bar(focused: bool) -> Bar<'static> {
         focus_t: 1.0,
         assemble_t: 1.0,
         git: None,
+        ticks: &[],
+        doc: false,
     }
 }
 
@@ -234,6 +236,8 @@ fn only_the_focused_card_gets_brackets() {
         focus_t: 1.0,
         assemble_t: 1.0,
         git: None,
+        ticks: &[],
+        doc: false,
     };
     assert_eq!(
         bracket_cells(&crate::panecard::pane_card(40, 20, &bar(false))),
@@ -263,6 +267,8 @@ fn brackets_grow_with_progress() {
                 focus_t: t,
                 assemble_t: 1.0,
                 git: None,
+                ticks: &[],
+                doc: false,
             },
         ))
     };
@@ -291,6 +297,8 @@ fn tiny_cards_get_no_brackets() {
             focus_t: 1.0,
             assemble_t: 1.0,
             git: None,
+            ticks: &[],
+            doc: false,
         },
     );
     assert_eq!(bracket_cells(&cells), 0);
@@ -316,6 +324,8 @@ fn brackets_leave_the_legend_row_alone() {
             focus_t: 1.0,
             assemble_t: 1.0,
             git: None,
+            ticks: &[],
+            doc: false,
         },
     );
     assert!(
@@ -345,6 +355,8 @@ fn card_at(assemble_t: f32) -> Vec<crew_render::CellView> {
             focus_t: 0.0,
             assemble_t,
             git: None,
+            ticks: &[],
+            doc: false,
         },
     )
 }

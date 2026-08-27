@@ -488,3 +488,38 @@ fn brackets_do_nothing_in_a_document_with_no_landmarks() {
     apply(&mut p, ViewInput::PrevMark, cols, rows);
     assert_eq!(p.scroll, at);
 }
+
+/// A long document is walked by its headings, the same way a review is walked
+/// by its hunks — and the renderer, which already decided which lines are
+/// headings, is what says where they are.
+#[test]
+fn brackets_step_a_markdown_document_by_its_headings() {
+    let _g = crate::app::theme_test_guard();
+    let body = "text\n".repeat(6);
+    let text = format!("# One\n\n{body}\n## Two\n\n{body}\n## Three\n\n{body}");
+    let mut p = ready_pane(crate::viewpane::detect::Format::Markdown, &text);
+    let (cols, rows) = (60, 6);
+    let marks: Vec<(usize, String)> = p
+        .lines_for(cols)
+        .marks
+        .iter()
+        .map(|m| (m.row, m.label.clone()))
+        .collect();
+    let labels: Vec<&str> = marks.iter().map(|(_, l)| l.as_str()).collect();
+    assert_eq!(labels, vec!["One", "Two", "Three"], "{marks:?}");
+    apply(&mut p, ViewInput::NextMark, cols, rows);
+    assert_eq!(p.scroll, marks[1].0);
+    apply(&mut p, ViewInput::PrevMark, cols, rows);
+    assert_eq!(p.scroll, marks[0].0);
+}
+
+/// Raw mode is the escape hatch for reading the bytes; there are no rendered
+/// headings there, so there is nothing to step.
+#[test]
+fn the_raw_view_of_a_document_has_no_landmarks() {
+    let _g = crate::app::theme_test_guard();
+    let mut p = ready_pane(crate::viewpane::detect::Format::Markdown, "# One\n\nbody\n");
+    p.raw = true;
+    p.cache.replace(None);
+    assert!(p.lines_for(60).marks.is_empty());
+}
