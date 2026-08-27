@@ -22,6 +22,7 @@ fn bar(focused: bool) -> Bar<'static> {
         elapsed: None,
         pinned: false,
         at_cmd: None,
+        fail_rows: &[],
         cmd_rows: &[],
         err_rows: &[],
         unread: 0,

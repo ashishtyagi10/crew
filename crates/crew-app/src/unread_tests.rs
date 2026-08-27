@@ -124,6 +124,7 @@ fn the_card_shows_the_count_and_only_when_there_is_one() {
         elapsed: None,
         pinned: false,
         at_cmd: None,
+        fail_rows: &[],
         cmd_rows: &[],
         err_rows: &[],
         unread,

@@ -97,6 +97,7 @@ fn bar(err_rows: &[u16]) -> crate::panecard::Bar<'_> {
         elapsed: None,
         pinned: false,
         at_cmd: None,
+        fail_rows: &[],
         cmd_rows: &[],
         err_rows,
         unread: 0,
@@ -136,6 +137,7 @@ fn an_error_outranks_a_command_start_on_the_same_row() {
     let _g = crate::app::theme_test_guard();
     let both = crate::panecard::Bar {
         at_cmd: None,
+        fail_rows: &[],
         cmd_rows: &[2],
         err_rows: &[2],
         ..bar(&[])
@@ -148,6 +150,7 @@ fn an_error_outranks_a_command_start_on_the_same_row() {
     assert_eq!(at2, vec!['\u{258c}'], "{at2:?}");
     let only_start = crate::panecard::Bar {
         at_cmd: None,
+        fail_rows: &[],
         cmd_rows: &[2],
         ..bar(&[])
     };

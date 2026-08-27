@@ -72,6 +72,13 @@ impl PtyTerm {
 
     /// The directory the program reported via OSC 7 if it changed since the last
     /// call, else `None` — used to retitle the pane when the user `cd`s inside it.
+    /// The OSC 133 semantic marks seen since the last call, oldest first.
+    /// Empty for every shell with no integration configured, which is the
+    /// point: this is an upgrade, not a requirement.
+    pub fn take_shell(&mut self) -> Vec<crate::osc::ShellMark> {
+        self.core.take_shell()
+    }
+
     pub fn take_cwd(&mut self) -> Option<std::path::PathBuf> {
         self.core.take_cwd()
     }

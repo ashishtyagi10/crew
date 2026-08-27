@@ -63,6 +63,11 @@ pub(crate) struct Bar<'a> {
     /// the left border. Drawn under the error bars: a row can be both, and
     /// "this failed" outranks "this began".
     pub cmd_rows: &'a [u16],
+    /// Visible rows where a command the shell reported a FAILURE for began
+    /// ([`crate::cmdspan`]). The same tick as `cmd_rows`, in the alarm
+    /// colour: where a block began is chrome, and where a block began badly
+    /// is news.
+    pub fail_rows: &'a [u16],
     /// Visible rows holding an error, marked down the LEFT border
     /// ([`crate::errscan`]) — where the failures are, without spending a
     /// column of the program's own grid to say it.
@@ -312,13 +317,17 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
     crate::panescroll::thumb(&mut v, cols, rows, b);
     crate::panescroll::progress(&mut v, cols, rows, b, crate::anim::now_ms());
     // Where each thing you ran began. Quieter than the error bars, and drawn
-    // first so an error on the same row replaces it.
-    if !b.cmd_rows.is_empty() {
-        let fg = crew_theme::theme().legend_off;
-        for &r in b.cmd_rows {
+    // first so an error on the same row replaces it. A block the shell
+    // reported a failure for wears the same tick in the alarm colour — it is
+    // still "here is where this began", said about a command that went wrong.
+    for (rows_of, fg, bold) in [
+        (b.cmd_rows, crew_theme::theme().legend_off, false),
+        (b.fail_rows, crew_theme::theme().bell, true),
+    ] {
+        for &r in rows_of {
             let row = r + 1;
             if row + 1 < rows {
-                put(&mut v, 0, row, '\u{2576}', fg, false);
+                put(&mut v, 0, row, '\u{2576}', fg, bold);
             }
         }
     }

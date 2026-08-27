@@ -11,6 +11,6 @@ mod pty;
 mod schemenotify;
 pub use model::{GridSize, HeadlessTerm, RenderCell, TermModel};
 pub use modes::InputModes;
-pub use osc::Progress;
+pub use osc::{Progress, ShellMark};
 pub use pty::PtyTerm;
 pub use schemenotify::scheme_report;
