@@ -24,6 +24,7 @@ use glyphon::cosmic_text::{CacheKey, CacheKeyFlags, SwashCache, SwashContent};
 use glyphon::FontSystem;
 
 use crate::scene::PaneBuffer;
+use crate::sizeramp::strength_at;
 use crate::smoothmask::smooth_mask;
 use crate::textgamma::Curve;
 
@@ -95,7 +96,12 @@ pub(crate) fn presmooth(
                         // statements about alpha, so they pass through.
                         return image;
                     }
-                    let strength = strength_of(&key);
+                    // The strength the ladder names is the one calibrated at
+                    // body size; a smaller glyph takes proportionally less of
+                    // it (see `size_scale`). The size is right here in the
+                    // key — no plumbing needed to ask what it was shaped at.
+                    let strength =
+                        strength_at(strength_of(&key), f32::from_bits(key.font_size_bits));
                     let mut image = if strength > 0 {
                         smooth_mask(&image, strength)
                     } else {

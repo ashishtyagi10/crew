@@ -22,6 +22,7 @@ mod roundborder;
 mod scene;
 mod scenecache;
 mod scenetarget;
+mod sizeramp;
 mod smoothing;
 mod smoothmask;
 mod textgamma;
