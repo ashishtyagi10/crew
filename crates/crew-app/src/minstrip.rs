@@ -179,6 +179,33 @@ mod tests {
         assert_eq!(cells.iter().filter(|c| c.row == 0).count(), 8);
     }
 
+    /// A thumbnail is the narrowest card crew draws — the strip fits as many
+    /// as it can — so it is where a marker and a count are likeliest to land
+    /// on each other.
+    #[test]
+    fn a_thumbnail_never_draws_two_glyphs_in_one_cell() {
+        let _g = crate::app::theme_test_guard();
+        let marker = Some(('\u{25cf}', crew_theme::theme().activity));
+        for cols in 0..=40u16 {
+            for unread in [0usize, 7, 128] {
+                let cells = strip_row(cols, marker, unread);
+                assert!(
+                    cells.iter().all(|c| c.col < cols.max(1)),
+                    "{cols}: a cell escaped a thumbnail"
+                );
+                let mut used: Vec<u16> = cells.iter().map(|c| c.col).collect();
+                used.sort_unstable();
+                let before = used.len();
+                used.dedup();
+                assert_eq!(
+                    used.len(),
+                    before,
+                    "{cols}/{unread}: two glyphs in one cell"
+                );
+            }
+        }
+    }
+
     #[test]
     fn attention_supersedes_the_activity_dot() {
         let a = Attention {
