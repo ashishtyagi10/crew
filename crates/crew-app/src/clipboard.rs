@@ -47,6 +47,18 @@ fn paste_into_chat(c: &mut crate::chat::ChatPane, text: &str) {
     }
 }
 
+/// A pane's drawn cells as text, trailing blanks trimmed — the same reading
+/// `screen_text` gives a terminal grid, for the panes crew draws itself.
+fn rendered_text(cells: &[crew_render::CellView], cols: u16, rows: u16) -> String {
+    crate::gridrows::grid_lines(cells, cols, rows)
+        .into_iter()
+        .map(|line| line.iter().collect::<String>().trim_end().to_string())
+        .collect::<Vec<_>>()
+        .join("\n")
+        .trim_end()
+        .to_string()
+}
+
 impl CrewApp {
     /// Paste the system clipboard into the focused surface: the command input
     /// bar, a chat pane's input (multiline), or the focused terminal (using
@@ -124,15 +136,26 @@ impl CrewApp {
         let Some(pane) = self.panes.get(self.focused) else {
             return;
         };
-        if let PaneContent::Terminal(t) = &pane.content {
-            let text = screen_text(&t.pty.cells(false), pane.grid.cols, pane.grid.rows);
-            if !text.is_empty() {
-                if let Ok(mut cb) = arboard::Clipboard::new() {
-                    let lines = text.lines().count();
-                    let _ = cb.set_text(text);
-                    self.set_status(format!("copied {lines} lines"));
-                }
+        let (cols, rows) = (pane.grid.cols, pane.grid.rows);
+        // Whatever the pane is, copy what it SHOWS. Only terminals used to
+        // answer this chord: in a viewer, a diff, a transcript or a todo list
+        // — every pane kind crew has that is worth reading — Cmd+C did
+        // nothing at all and said nothing about it.
+        let text = match &pane.content {
+            PaneContent::Terminal(t) => screen_text(&t.pty.cells(false), cols, rows),
+            _ => rendered_text(&pane.cells(true), cols, rows),
+        };
+        if text.trim().is_empty() {
+            self.set_status("nothing on screen to copy");
+            return;
+        }
+        match arboard::Clipboard::new() {
+            Ok(mut cb) => {
+                let lines = text.lines().count();
+                let _ = cb.set_text(text);
+                self.set_status(format!("copied {lines} lines"));
             }
+            Err(_) => self.set_status("clipboard unavailable"),
         }
     }
 
@@ -200,6 +223,44 @@ impl CrewApp {
             PaneContent::Terminal(t) => t.pty.take_clipboard(),
             _ => None,
         })
+    }
+}
+
+#[cfg(test)]
+mod screen_tests {
+    use super::rendered_text;
+    use crew_render::CellView;
+
+    fn cell(col: u16, row: u16, c: char) -> CellView {
+        CellView {
+            col,
+            row,
+            c,
+            ..Default::default()
+        }
+    }
+
+    /// Every pane crew draws itself can be copied now, and what comes out is
+    /// what is on the screen — rows in order, gaps as spaces, no trailing
+    /// padding.
+    #[test]
+    fn a_drawn_pane_reads_back_as_its_rows() {
+        let cells = vec![cell(0, 0, 'h'), cell(1, 0, 'i'), cell(2, 1, 'x')];
+        assert_eq!(rendered_text(&cells, 6, 3), "hi\n  x");
+    }
+
+    /// A blank pane copies nothing rather than a block of spaces.
+    #[test]
+    fn a_blank_pane_reads_back_empty() {
+        assert_eq!(rendered_text(&[], 10, 4), "");
+        assert_eq!(rendered_text(&[cell(3, 1, ' ')], 10, 4), "");
+    }
+
+    /// Cells outside the grid are not part of the screen.
+    #[test]
+    fn cells_past_the_grid_are_left_out() {
+        let cells = vec![cell(0, 0, 'a'), cell(99, 0, 'b'), cell(0, 99, 'c')];
+        assert_eq!(rendered_text(&cells, 4, 2), "a");
     }
 }
 

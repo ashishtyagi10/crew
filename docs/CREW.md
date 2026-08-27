@@ -751,6 +751,11 @@ longer aim at.
   marker in column zero would overwrite the first character of the message it
   is pointing at — so a failing build shows *where* its failures are from
   across the grid, with nothing typed.
+- **Cmd+C** copies **what the focused pane shows**, whatever kind it is — a
+  terminal screen, a rendered diff, a transcript, a todo list. It used to
+  answer only in terminal panes and do nothing at all, silently, everywhere
+  else. A mouse selection still wins over the whole screen, and a pane with
+  nothing on it says so.
 - **`/copy out`** — copies just the **last command's output**, the same slice
   `/out` opens. What you actually want when you are about to paste a failure
   into an issue: the run that failed, without the four before it.
