@@ -54,6 +54,8 @@ fn params() -> FontParams {
         family: None,
         weight: 400,
         smooth: 0,
+        gamma: 0,
+        dark: true,
     }
 }
 

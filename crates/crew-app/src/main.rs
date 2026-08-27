@@ -115,6 +115,7 @@ mod fontcmd;
 mod fontrotate;
 mod fonttick;
 mod framegeo;
+mod gammalvl;
 mod gauges;
 mod ghost;
 mod git;

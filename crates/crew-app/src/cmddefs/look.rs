@@ -34,6 +34,10 @@ pub(crate) const LOOK: &[Cmd] = &[
         desc: "Font smoothing — CoreText-style stem darkening (/smooth [off|light|medium|heavy|<0-255>])",
     },
     Cmd {
+        name: "/gamma",
+        desc: "Text gamma — take back the ink the encoded blend eats (/gamma [off|light|medium|full|<0-255>])",
+    },
+    Cmd {
         name: "/motion",
         desc: "How much crew moves — auto follows the OS Reduce Motion switch (/motion [auto|off|subtle|full])",
     },

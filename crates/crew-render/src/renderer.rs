@@ -99,6 +99,12 @@ impl Renderer {
     }
 
     /// Enable or disable the paper grain + vignette background pass.
+    /// Override the coverage-curve amount (0–255, 0 = off; `None` follows
+    /// [`crew_render::DEFAULT_TEXT_GAMMA`](crate::DEFAULT_TEXT_GAMMA)).
+    pub fn set_text_gamma(&mut self, amount: Option<u8>) {
+        self.cell_grid.set_text_gamma(amount);
+    }
+
     pub fn set_paper_texture(&mut self, enabled: bool) {
         self.paper_texture = enabled;
     }

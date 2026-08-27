@@ -127,6 +127,11 @@ fn default_font_smooth() -> u8 {
     crew_render::DEFAULT_SMOOTH
 }
 
+fn default_font_gamma() -> u8 {
+    // About half the full sRGB correction — Apple's historical text gamma.
+    crew_render::DEFAULT_TEXT_GAMMA
+}
+
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CrewConfig {
     /// The version that last ran. Compared at startup so a build the user
@@ -301,6 +306,12 @@ pub struct CrewConfig {
     /// same font reads as full here as in Terminal.app; `/smooth` tunes it.
     #[serde(default = "default_font_smooth")]
     pub font_smooth: u8,
+    /// How much of the encoded blend's gamma error the coverage curve takes
+    /// back (0–255, 0 = off). Crew blends text on gamma-encoded values, which
+    /// costs light ink on a dark page its luminance and hands dark ink on a
+    /// bright page too much; `/gamma` tunes the correction.
+    #[serde(default = "default_font_gamma")]
+    pub font_gamma: u8,
     /// Token budgets for the footer's rolling usage windows (the `%` the
     /// bars are drawn against). Approximate by nature — tune to taste.
     #[serde(default = "default_usage_budget_5h")]
@@ -356,6 +367,7 @@ impl Default for CrewConfig {
             window_opacity: default_window_opacity(),
             font_weight: default_font_weight(),
             font_smooth: default_font_smooth(),
+            font_gamma: default_font_gamma(),
             usage_budget_5h: default_usage_budget_5h(),
             usage_budget_7d: default_usage_budget_7d(),
             model_recents: Vec::new(),

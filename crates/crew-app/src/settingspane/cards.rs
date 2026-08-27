@@ -42,8 +42,7 @@ pub(super) fn appearance(rects: &mut Vec<(Field, Rect)>, x: u16, y: u16, w: u16)
     rects.push((Field::FontFamily, Rect::new(ix, cy, iw, 3)));
     cy += 3;
     cy += pair(rects, ix, iw, cy, Field::FontSize, Field::PaperGrain);
-    rects.push((Field::Smooth, Rect::new(ix, cy, iw, 3)));
-    cy += 3;
+    cy += pair(rects, ix, iw, cy, Field::Smooth, Field::FontGamma);
     rects.push((Field::Theme, Rect::new(ix, cy, iw, 3)));
     cy += 3;
     // `auto`'s settings, under the Theme they belong to and in the order they

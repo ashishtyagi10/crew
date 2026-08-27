@@ -15,6 +15,11 @@ pub(crate) enum Field {
     FontFamily,
     FontSize,
     Smooth,
+    /// How much of the encoded blend's gamma error the coverage curve takes
+    /// back (see `gammalvl`). Beside Smoothing because they are the two
+    /// halves of one thing: smoothing says how wide a stroke is drawn, this
+    /// says how much light its antialiased rim is allowed to emit.
+    FontGamma,
     NavWidth,
     ShowNav,
     Theme,
@@ -77,10 +82,11 @@ pub(crate) enum Field {
     Cancel,
 }
 
-pub(crate) const FIELDS: [Field; 35] = [
+pub(crate) const FIELDS: [Field; 36] = [
     Field::FontFamily,
     Field::FontSize,
     Field::Smooth,
+    Field::FontGamma,
     Field::NavWidth,
     Field::WindowOpacity,
     Field::ShowNav,

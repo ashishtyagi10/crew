@@ -130,6 +130,8 @@ fn curves_take_nearly_as_much_darkening_as_stems() {
             family: None,
             weight: 400,
             smooth: crate::smoothing::DEFAULT_SMOOTH,
+            gamma: 0,
+            dark: true,
         };
         let buf = build_pane_buffer(fs, &cells, 1, 1, cell_w, cell_h, &p);
         let key = buf

@@ -408,6 +408,7 @@ impl CrewApp {
             r.set_leading(self.config.leading().ratio());
             r.set_font_weight(Some(self.config.font_weight));
             r.set_text_smoothing(Some(self.config.font_smooth));
+            r.set_text_gamma(Some(self.config.font_gamma));
             r.set_paper_texture(self.config.paper_texture);
             r.set_paper_grain(self.config.paper_grain);
         }

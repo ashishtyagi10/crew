@@ -568,7 +568,8 @@ trips. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
 ## Settings
 
 `/settings` opens a **two-column bento form** covering every configurable
-property: font family/size, font smoothing (the `/smooth` ladder), line spacing
+property: font family/size, font smoothing (the `/smooth` ladder), text gamma
+(the `/gamma` ladder), line spacing
 (`/leading`), density, nav width + visibility, theme, accent, paper texture +
 grain, card border marks, revealed invisibles, launch-maximized, and the whole
 notification block (master + per-event toggles, min-secs threshold, watched

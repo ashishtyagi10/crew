@@ -91,6 +91,9 @@ pub struct CellGrid {
     /// CoreText-style smoothing strength override (0–255, 0 = off). `None`
     /// follows [`crate::smoothing::DEFAULT_SMOOTH`].
     smooth_override: Option<u8>,
+    /// Text-gamma amount override (0–255, 0 = off). `None` follows
+    /// [`crate::textgamma::DEFAULT_TEXT_GAMMA`].
+    gamma_override: Option<u8>,
     /// Whether the render target is sRGB (colours must be fed linear).
     srgb: bool,
     /// Arms the glyph-atlas prewarm: set at construction and by every
@@ -156,6 +159,7 @@ impl CellGrid {
             font_family,
             weight_override: None,
             smooth_override: None,
+            gamma_override: None,
             srgb: format.is_srgb(),
             needs_prewarm: true,
         }
@@ -178,6 +182,12 @@ impl CellGrid {
             smooth: self
                 .smooth_override
                 .unwrap_or(crate::smoothing::DEFAULT_SMOOTH),
+            gamma: self
+                .gamma_override
+                .unwrap_or(crate::textgamma::DEFAULT_TEXT_GAMMA),
+            // Per-frame theme read, same as the weight above: the polarity
+            // the coverage curve bends toward IS the page's.
+            dark: crew_theme::theme().dark,
         }
     }
 
@@ -236,6 +246,15 @@ impl CellGrid {
     /// `trim` and age out under LRU pressure.
     pub fn set_text_smoothing(&mut self, strength: Option<u8>) {
         self.smooth_override = strength;
+        self.swash.image_cache.clear();
+        self.needs_prewarm = true;
+    }
+
+    /// Override the coverage-curve amount (0–255, 0 = off). Like the
+    /// smoothing strength this re-keys every glyph, so the cached bitmaps go
+    /// with it and the atlas re-warms.
+    pub fn set_text_gamma(&mut self, amount: Option<u8>) {
+        self.gamma_override = amount;
         self.swash.image_cache.clear();
         self.needs_prewarm = true;
     }
