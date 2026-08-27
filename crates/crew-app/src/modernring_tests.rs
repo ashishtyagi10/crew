@@ -23,6 +23,7 @@ fn bar(focused: bool) -> Bar<'static> {
         min_btn: false,
         focus_t: 1.0,
         assemble_t: 1.0,
+        git: None,
     }
 }
 

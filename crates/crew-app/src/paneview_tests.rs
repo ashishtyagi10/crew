@@ -13,6 +13,7 @@ fn bar(focused: bool) -> Bar<'static> {
         min_btn: false,
         focus_t: 1.0,
         assemble_t: 1.0,
+        git: None,
     }
 }
 
@@ -232,6 +233,7 @@ fn only_the_focused_card_gets_brackets() {
         min_btn: false,
         focus_t: 1.0,
         assemble_t: 1.0,
+        git: None,
     };
     assert_eq!(
         bracket_cells(&crate::panecard::pane_card(40, 20, &bar(false))),
@@ -260,6 +262,7 @@ fn brackets_grow_with_progress() {
                 min_btn: false,
                 focus_t: t,
                 assemble_t: 1.0,
+                git: None,
             },
         ))
     };
@@ -287,6 +290,7 @@ fn tiny_cards_get_no_brackets() {
             min_btn: false,
             focus_t: 1.0,
             assemble_t: 1.0,
+            git: None,
         },
     );
     assert_eq!(bracket_cells(&cells), 0);
@@ -311,6 +315,7 @@ fn brackets_leave_the_legend_row_alone() {
             min_btn: true,
             focus_t: 1.0,
             assemble_t: 1.0,
+            git: None,
         },
     );
     assert!(
@@ -339,6 +344,7 @@ fn card_at(assemble_t: f32) -> Vec<crew_render::CellView> {
             min_btn: false,
             focus_t: 0.0,
             assemble_t,
+            git: None,
         },
     )
 }
@@ -420,8 +426,17 @@ fn only_a_working_pane_carries_a_scan() {
         born_ms: 0,
     };
     assert!(!crate::paneview::pane_busy(&idle), "fixture must be idle");
-    let scenes =
-        crate::paneview::build_scenes(&[idle], Some(0), false, None, None, 1.0, 10.0, 16.0);
+    let scenes = crate::paneview::build_scenes(
+        &[idle],
+        Some(0),
+        false,
+        None,
+        None,
+        1.0,
+        10.0,
+        16.0,
+        &Default::default(),
+    );
     let card = scenes.iter().find(|s| s.glass).expect("a card");
     assert!(card.scan < 0.0, "an idle card must not sweep");
 }

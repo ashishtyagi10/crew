@@ -272,6 +272,12 @@ rates with a **throughput sparkline**, a git section for the working directory,
 and a list of open panes (click a row to focus it). The sparklines scroll on the
 sidebar's once-a-second refresh, so the charts animate at no extra redraw cost.
 
+## Git on the card
+
+Each pane's border shows the git state of the directory that pane is in —
+`main ●3 ↑2 ↓1` — sized to whatever room the card has, and queried off-thread
+so a slow repo never stalls the UI.
+
 ## The cursor
 
 The cursor takes the shape the program asks for — block, bar or underline

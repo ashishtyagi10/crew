@@ -40,6 +40,10 @@ pub(crate) struct Bar<'a> {
     /// brackets grow out of the four corners as focus arrives; `1.0` is the
     /// resting focused state (and what Motion=off draws immediately).
     pub focus_t: f32,
+    /// Git state of the directory this pane is in, when it is a repo and the
+    /// answer has arrived ([`crate::gitfleet`]). Drawn on the top border
+    /// after the status glyphs, in whatever room is left before the legend.
+    pub git: Option<&'a crate::git::GitInfo>,
 }
 
 /// Whether `c` is part of a card's frame stroke (as opposed to its legend or a
@@ -273,6 +277,19 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
             put(&mut v, rx, 0, c, fg, false);
             rx = rx.saturating_sub(2);
         }
+    }
+    // The git badge takes what is left of the top border. Its floor is the
+    // legend's own last column, read off the cells that were just drawn —
+    // the legend is width-clipped by `titled_card`, so asking the drawing is
+    // the only way to know where it actually ended.
+    if let Some(g) = b.git {
+        let legend_end = v
+            .iter()
+            .filter(|c| c.row == 0 && c.fg == legend)
+            .map(|c| c.col)
+            .max()
+            .unwrap_or(2);
+        crate::gitbadge::draw(&mut v, rx, legend_end + 1, g);
     }
     v
 }

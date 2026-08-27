@@ -8,6 +8,31 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.51
+
+**Every card says which branch it is on.** Crew has known how to read git
+status for a while, but only ever asked about its own working directory, and
+only ever showed the answer in the sidebar. Panes have their own directories —
+that is the point of them — so the fleet could have an agent committing in one
+worktree and a test run in another and the two cards looked identical.
+
+Now the top border of each pane carries `main ●3 ↑2 ↓1`: branch, changed
+files, ahead and behind. A clean repo is just its branch; there is no tick and
+no run of zeroes to read past, because nothing to report is nothing to draw.
+
+The border is a row already carrying a legend, a scroll count and status
+glyphs, so the badge **degrades in a fixed order** rather than by eye: behind,
+ahead, dirty count, then the branch truncates, and under four columns it draws
+nothing at all — `m…` is not a branch name. A test sweeps every width from 0 to
+60 for four repo states and asserts the badge never exceeds its budget and
+never shows *less* as the card gets wider. The last time a per-field width was
+decided by eye, at whatever width the pane happened to be, two fields shipped
+clipped.
+
+Queries are **off the winit thread**, one at a time across the whole fleet,
+throttled per directory — and directories no pane holds any more are forgotten,
+so a long session's map stays the size of the fleet rather than of its history.
+
 ## 0.18.50
 
 **The cursor has a shape again.** Every cursor in every pane was a filled
