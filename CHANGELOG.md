@@ -8,6 +8,16 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.83
+
+**`/copy out` copies the last command's output.** `/copy` takes the whole
+scrollback, which is rarely what you are reaching for: pasting a failure into
+an issue means the run that failed, not the four runs before it and the shell
+prompt in between.
+
+It is the same slice `/out` opens in the viewer — one span, two destinations —
+so the two can never disagree about where a command's output starts.
+
 ## 0.18.82
 
 **Two invisible things made visible** (and a release that forgot to say so).

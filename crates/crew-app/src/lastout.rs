@@ -33,27 +33,24 @@ pub(crate) fn slice(lines: &[String], from: usize, to: usize) -> String {
 }
 
 impl CrewApp {
-    /// `/out` — open the focused pane's last command output in the viewer.
-    pub(crate) fn open_last_output(&mut self) {
+    /// The focused pane's last command output as `(command, text)`, or why
+    /// there is none. Shared by `/out`, which opens it, and `/copy out`,
+    /// which hands it to the clipboard — the same slice either way.
+    pub(crate) fn last_output(&mut self) -> Result<(String, String), String> {
         let focused = self.focused;
         let Some(pane) = self.panes.get_mut(focused) else {
-            return;
+            return Err("no pane focused".into());
         };
         let (cols, rows) = (pane.grid.cols, pane.grid.rows);
         let PaneContent::Terminal(t) = &mut pane.content else {
-            self.set_status("out: not a terminal pane");
-            return;
+            return Err("not a terminal pane".into());
         };
         let now = t.pty.scrollable_lines();
         let Some((name, from, to)) = t.spans.latest(now).map(|s| {
-            (
-                s.name.clone(),
-                Spans::range(s, now).0,
-                Spans::range(s, now).1,
-            )
+            let (from, to) = Spans::range(s, now);
+            (s.name.clone(), from, to)
         }) else {
-            self.set_status("out: nothing has run in this pane yet");
-            return;
+            return Err("nothing has run in this pane yet".into());
         };
         // The whole buffer, once, then the slice: paging the terminal is the
         // expensive part and doing it per line would be quadratic.
@@ -63,10 +60,23 @@ impl CrewApp {
         // returns can start later than the buffer's own. Anchor on the end.
         let drop = now.saturating_sub(lines.len());
         let body = slice(&lines, from.saturating_sub(drop), to.saturating_sub(drop));
-        if body.trim().is_empty() {
-            self.set_status(format!("out: {name} printed nothing"));
-            return;
+        match body.trim().is_empty() {
+            true => Err(format!("{name} printed nothing")),
+            false => Ok((name, body)),
         }
+    }
+
+    /// `/out` — open the focused pane's last command output in the viewer.
+    pub(crate) fn open_last_output(&mut self) {
+        let focused = self.focused;
+        let (name, body) = match self.last_output() {
+            Ok(v) => v,
+            Err(why) => {
+                self.set_status(format!("out: {why}"));
+                return;
+            }
+        };
+        let lines = body.lines().count();
         let path = temp_path(focused, &name);
         if let Err(e) = std::fs::write(&path, format!("{body}\n")) {
             self.set_status(format!("out: cannot write: {e}"));
@@ -76,7 +86,7 @@ impl CrewApp {
         self.open_view(&path.to_string_lossy());
         self.name_last_view(&format!("out \u{b7} {name}"));
         self.mark_last_view_ephemeral(before);
-        self.set_status(format!("{name}: {} lines", to.saturating_sub(from)));
+        self.set_status(format!("{name}: {lines} lines"));
     }
 }
 
