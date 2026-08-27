@@ -75,6 +75,10 @@ fn rain_width_falls_back_when_nothing_fits() {
 
 #[test]
 fn rain_sits_above_tagline_and_hint() {
+    // The rows are told apart BY COLOUR, so the theme must not change under
+    // the test: another test switching palettes mid-run makes `t` disagree
+    // with the cells that were just built, and the filters come back empty.
+    let _g = crate::app::theme_test_guard();
     let cells = welcome_cells_animated(80, 30, 0, None);
     let t = crew_theme::theme();
     let rain_max_row = cells

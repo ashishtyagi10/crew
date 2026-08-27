@@ -40,7 +40,7 @@ fn the_phosphors_have_distinct_personalities() {
         .iter()
         .filter_map(|id| id.theme().crt.map(|s| (id.as_str(), s)))
         .collect();
-    assert_eq!(styles.len(), 9);
+    assert_eq!(styles.len(), 11);
     for (i, (an, a)) in styles.iter().enumerate() {
         for (bn, b) in &styles[i + 1..] {
             assert_ne!(a, b, "{an} and {bn} share an identical CrtStyle");
@@ -395,7 +395,7 @@ fn every_pool_survives_the_cut() {
     let crt = count(|id: ThemeId| id.is_crt());
     assert_eq!(
         (dark, light, crt),
-        (3, 3, 3),
+        (4, 4, 3),
         "pools are dark {dark}, light {light}, crt {crt} — `auto` needs both \
          appearances and the tubes are their own rotation"
     );
@@ -437,9 +437,13 @@ fn every_retired_theme_name_still_resolves() {
             "{name} resolves to nothing"
         );
     }
+    // 24 palettes went into the cut and 15 came out of it retired; `harbor`
+    // and `fern` were drawn afterwards, so the roster is the survivors plus
+    // them. Written as a sum rather than a difference so adding a palette
+    // does not read as retiring one.
     assert_eq!(
-        RETIRED.len(),
-        24 - ALL_THEMES.len(),
+        RETIRED.len() + ALL_THEMES.len(),
+        26,
         "every retiree is listed"
     );
 }
@@ -838,8 +842,9 @@ fn light_modern_poles_read_on_a_white_page() {
         // protects readability.
     }
     assert_eq!(
-        seen, 3,
-        "every light palette carries a gradient now — blossom, paper-light, sepia-light"
+        seen, 4,
+        "every light palette carries a gradient now — blossom, paper-light, \
+         sepia-light, fern"
     );
 }
 
