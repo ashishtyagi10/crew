@@ -50,7 +50,17 @@ fn scroll_pane(pane: &mut Pane, lines: i32) {
     let cols = pane.grid.cols;
     let rows = pane.grid.rows;
     match &mut pane.content {
-        PaneContent::Terminal(t) => t.pty.scroll(lines),
+        PaneContent::Terminal(t) => {
+            t.pty.scroll(lines);
+            // Reading is reading, however you did it: arriving back at the
+            // live bottom means you have seen everything above it, so the
+            // unread divider has served its purpose. Only at the bottom —
+            // scrolling THROUGH the new lines is what you are doing when the
+            // mark is still useful.
+            if t.pty.display_offset() == 0 {
+                t.read_at = t.pty.scrollable_lines();
+            }
+        }
         PaneContent::Chat(c) => c.scroll(lines, pane.grid.cols, pane.grid.rows),
         PaneContent::Settings(s) => s.scroll(lines),
         PaneContent::Far(f) => f.scroll(lines),

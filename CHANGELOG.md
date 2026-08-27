@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.68
+
+**The unread count reaches the sidebar, and scrolling counts as reading.**
+
+The PANES list is the one view that names panes you cannot see anywhere else —
+minimized, zoomed out of, behind the strip's overflow tile — so it is the place
+the count was most missing. Each row carries it now, between the title and the
+dot slot, and never on the row you are focused on: the pane you are looking at
+cannot have unread lines. A long title gives way to the count rather than
+overprinting it.
+
+And the mark now clears when you **scroll back to the live bottom** of a pane,
+not only when you type into it. Arriving at the bottom means you have been past
+everything above it; a mark that survives that is a mark you have to dismiss by
+hand, which is not what it is for. Only at the bottom, though — scrolling
+*through* the new lines is exactly when the divider is still doing its job.
+
 ## 0.18.67
 
 **Programs can say things for themselves now.** Crew's notifications have all
