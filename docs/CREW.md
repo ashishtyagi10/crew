@@ -748,6 +748,21 @@ arrow-marked: `(#2 →#4 #7)`). **Repeating `/findall`** with the same term
 granularity — while a follow-up `/find <text>` steps upward through the
 focused pane's matches as usual.
 
+## What programs paint
+
+A TUI draws with **coloured spaces**: a status line, a progress bar, a selected
+row in `fzf`, a diff block, the panel behind a menu. Crew keeps those now. The
+flat-canvas rule it has always had is unchanged — the near-grey an agent CLI
+paints behind the line you just sent is still flattened to the page, along with
+any low-saturation or bright "highlight" background on a dark theme — but a
+background that carries meaning survives, and a blank cell that carries one is
+drawn.
+
+Selecting empty space is visible for the same reason.
+
+Plain blank cells are still dropped before any colour work happens: a terminal
+is mostly empty, and every kept blank is a cell shaped and a quad drawn.
+
 ## Git on the card
 
 Every pane's top border carries the git state of **the directory that pane is

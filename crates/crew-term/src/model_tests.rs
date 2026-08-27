@@ -569,3 +569,69 @@ mod cursor_shape_tests {
         );
     }
 }
+
+/// What a TUI draws with is a coloured space. Every one of them used to be
+/// dropped before its background was even resolved, so a status line, a
+/// progress bar, a selected row and a diff block were all invisible.
+#[cfg(test)]
+mod painted_background_tests {
+    use super::super::{GridSize, HeadlessTerm, TermModel};
+
+    fn feed(seq: &[u8]) -> Vec<crate::model::RenderCell> {
+        let mut t = HeadlessTerm::new(GridSize { cols: 20, rows: 3 });
+        t.feed(seq);
+        t.cells(false)
+    }
+
+    #[test]
+    fn a_run_of_coloured_spaces_is_drawn() {
+        let cells = feed(b"\x1b[41m   \x1b[0m");
+        let painted: Vec<&crate::model::RenderCell> =
+            cells.iter().filter(|c| c.col < 3 && c.row == 0).collect();
+        assert_eq!(painted.len(), 3, "the red block vanished");
+        assert!(painted.iter().all(|c| c.c == ' '));
+        assert!(
+            painted.iter().all(|c| c.bg != crate::color::default_bg()),
+            "kept, but with the colour thrown away"
+        );
+    }
+
+    /// The flat-canvas rule still holds: the near-grey an agent CLI paints
+    /// behind the line you just sent is flattened, so it does not come back as
+    /// a run of grey boxes now that blanks survive.
+    #[test]
+    fn the_echo_grey_a_cli_paints_is_still_dropped() {
+        let cells = feed(b"\x1b[48;2;55;55;55m   \x1b[0m");
+        assert!(
+            !cells.iter().any(|c| c.col < 3 && c.row == 0 && c.c == ' '),
+            "the flattened grey was kept as an empty cell"
+        );
+    }
+
+    /// Dragging across empty space used to highlight nothing at all: the
+    /// selection sets a background, and a blank cell had already been thrown
+    /// away by the time it did.
+    #[test]
+    fn a_selection_over_blank_space_is_visible() {
+        let mut t = HeadlessTerm::new(GridSize { cols: 20, rows: 3 });
+        t.feed(b"ab");
+        t.sel_start(0, 0, false);
+        t.sel_update(6, 0);
+        let cells = t.cells(false);
+        let blank = cells
+            .iter()
+            .find(|c| c.col == 4 && c.row == 0)
+            .expect("the blank inside the selection is drawn");
+        assert_eq!(blank.c, ' ');
+        assert_ne!(blank.bg, crate::color::default_bg());
+    }
+
+    /// And an ordinary empty screen still costs nothing: a terminal is mostly
+    /// blank, and every kept blank is a cell shaped and a quad drawn.
+    #[test]
+    fn plain_spaces_are_still_dropped() {
+        let cells = feed(b"a   b");
+        let spaces = cells.iter().filter(|c| c.c == ' ' && c.col < 5).count();
+        assert_eq!(spaces, 0, "{} plain spaces were kept", spaces);
+    }
+}
