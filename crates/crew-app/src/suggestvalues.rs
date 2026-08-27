@@ -13,13 +13,26 @@
 /// picker for free (its rows run on Enter; unknown text still submits freeform).
 pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
     match cmd {
-        // The four themes — each a rotation over its own palette pool, auto's
-        // following the OS appearance. The individual palettes and the legacy
-        // `random-*` names still parse but aren't offered here.
+        // The four rotations first — they are what most people want — then
+        // every individual palette under a heading. The palettes have always
+        // PARSED; not offering them meant you had to already know the name of
+        // the one you wanted, which is the opposite of what a picker is for.
+        // The legacy `random-*` names still parse and are still not offered.
         "/theme" => Some(
             crew_theme::THEME_MODES
                 .iter()
                 .map(|m| (m.as_str().to_string(), m.describe().to_string()))
+                // An empty value is a heading, not a choice (see
+                // `suggest::menu_items`).
+                .chain(std::iter::once((
+                    String::new(),
+                    "one palette, pinned".to_string(),
+                )))
+                .chain(
+                    crew_theme::ALL_THEMES
+                        .iter()
+                        .map(|t| (t.as_str().to_string(), t.describe().to_string())),
+                )
                 .collect(),
         ),
         // `/copy` alone takes the whole scrollback; the one value it offers

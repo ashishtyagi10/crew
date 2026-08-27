@@ -1787,7 +1787,10 @@ cut; `crt-violet` was retired in that cut and has since come back); they're no l
 name still resolves if you type it. A palette's own appearance decides its
 pool — the modern glow palettes are dark and light *pages* like any other, so
 they rotate inside `dark` and `light` rather than standing apart as themes of
-their own.
+their own. The picker offers the four rotations first and then **every
+palette by name**, under a heading — they have always parsed, and not offering
+them meant you had to know the name of the one you wanted, which is the
+opposite of what a picker is for.
 
 - **`paper-dark`** (default dark-pool member) — a high-contrast "newspaper" look: a near-black
   page (`#0c0805`) with near-white ink (`#ececec`) and grey rules. Terminal

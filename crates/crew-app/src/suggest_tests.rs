@@ -106,30 +106,29 @@ fn theme_command_expands_into_a_value_picker() {
 }
 
 #[test]
-fn theme_space_lists_the_modes_as_runnable_values() {
+fn theme_space_lists_the_rotations_first_then_every_palette() {
     let items = menu_items("/theme ");
     let labels: Vec<&str> = items.iter().map(|m| m.label.as_str()).collect();
-    // Exactly the consolidated themes — three looks plus the OS-follower, no
-    // individual palettes and no per-family modes (the modern glow palettes
-    // rotate inside dark/light).
+    // The four rotations lead — they are what most people want — then a
+    // heading, then every individual palette. The palettes have always
+    // parsed; not offering them meant you had to know the name already.
     assert_eq!(
-        labels,
-        vec!["dark", "light", "crt", "auto"],
-        "picker: {labels:?}"
+        &labels[..4],
+        &["dark", "light", "crt", "auto"],
+        "{labels:?}"
     );
-    for name in [
-        "paper-dark",
-        "crt-green",
-        "sepia-dark",
-        "modern",
-        "modern-light",
-    ] {
+    assert!(items[4].header, "the palettes need a heading: {labels:?}");
+    for name in ["paper-dark", "crt-green", "crt-violet", "harbor", "fern"] {
+        assert!(labels.contains(&name), "{name} is missing: {labels:?}");
+    }
+    // The legacy rotation names still parse and are still not offered.
+    for name in ["modern", "modern-light", "random-dark"] {
         assert!(!labels.contains(&name), "{name} must not be a picker entry");
     }
-    // Each value fills the full command and submits on Enter.
-    let crt = items.iter().find(|m| m.label == "crt").unwrap();
-    assert_eq!(crt.fill, "/theme crt");
-    assert!(crt.submit);
+    // Every offered row runs on Enter, and a heading is not a row.
+    for item in &items {
+        assert_eq!(item.submit, !item.header, "{}", item.label);
+    }
 }
 
 #[test]
@@ -201,7 +200,10 @@ fn theme_partial_value_filters_and_ghosts() {
         .into_iter()
         .map(|m| m.label)
         .collect();
-    assert_eq!(labels, vec!["crt".to_string()], "picker: {labels:?}");
+    // …to the crt rotation and, under the heading, the tubes themselves.
+    assert_eq!(labels[0], "crt", "picker: {labels:?}");
+    assert!(labels.contains(&"crt-violet".to_string()), "{labels:?}");
+    assert!(!labels.contains(&"dark".to_string()), "{labels:?}");
     // …and ghost-completes it like a command.
     assert_eq!(suggest("/theme cr", &[]).as_deref(), Some("t"));
 }
@@ -456,4 +458,15 @@ fn palette_rows_carry_their_marks_and_their_chord() {
         .find(|i| i.label != "/clear" && i.key.is_none())
         .map(|i| i.key);
     assert_eq!(plain.flatten(), None, "a chordless command shows no chord");
+}
+
+/// A heading with nothing under it is a lie about where you are in the list —
+/// the same rule the `/keys` filter follows.
+#[test]
+fn a_heading_with_no_palettes_under_it_is_dropped() {
+    // "au" matches the `auto` rotation and no palette name.
+    let items = menu_items("/theme au");
+    let labels: Vec<&str> = items.iter().map(|m| m.label.as_str()).collect();
+    assert_eq!(labels, vec!["auto"], "{labels:?}");
+    assert!(!items.iter().any(|i| i.header), "an empty heading survived");
 }

@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.91
+
+**`/theme` offers the palettes, not just the rotations.** Twelve palettes ship;
+the picker listed four. The individual names have always parsed — the docs even
+said so — which meant the only way to pin `crt-violet` or `harbor` was to
+already know it was there. That is the opposite of what a picker is for.
+
+The four rotations still lead, since they are what most people want, and every
+palette follows under a heading, each with the swatch that shows what it
+actually looks like. Typing narrows both halves at once (`/theme crt` gives the
+rotation and the four tubes), and a heading with nothing left under it is
+dropped rather than left standing over an empty space — the same rule the
+`/keys` filter follows.
+
 ## 0.18.90
 
 **A fourth phosphor: `crt-violet`.** Green, amber and blue are the tubes
