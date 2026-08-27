@@ -25,6 +25,16 @@ impl CrewApp {
         let Some((cw, ch, sw, sh, scale)) = self.frame_geometry() else {
             return Vec::new();
         };
+        // The `/theme` picker's live preview, settled BEFORE a single cell is
+        // built — a theme applied halfway through a frame would draw the top
+        // of the window in one palette and the bottom in another. Once per
+        // frame rather than once per key, so every way the picker can go away
+        // (Esc, a click landing elsewhere, a pane taking focus) puts the real
+        // theme back without each of them having to know about previews.
+        // See `themepeek`; a no-op on every frame with nothing selected.
+        let peek = crate::suggest::menu_items_in(&self.input.text, &self.input.cwd);
+        let shown = if self.input.focused { &peek[..] } else { &[] };
+        crate::themepeek::sync(shown, self.input.menu_sel);
         // Focus bookkeeping (bracket travel + the CRT ignition sweep) lives
         // in `panecardglow::focus_fx`, diffed there once per frame.
         let now = crate::anim::now_ms();

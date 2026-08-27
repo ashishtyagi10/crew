@@ -8,6 +8,30 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.19
+
+**The `/theme` picker puts the palette on while you look at it.** Arrow onto a
+named palette and the whole window wears it; arrow off, or dismiss the picker
+without choosing, and the one you had comes straight back. The strip of
+swatches beside each name tells you what a palette *is*; only wearing it tells
+you what the screen you are actually looking at will look like — your panes,
+your code, your agent's output — and those are different questions.
+
+Three things it deliberately does not do. It does not preview a **rotation
+mode**: `dark` names a pool of four, and the one crew would land on is a choice
+it makes later, so showing one of them would be promising something the choice
+does not. It does not **do what choosing does** — no config write, no accent
+re-resolution, no CRT/glass pin clearing, no DECSET-2031 push to the programs
+in the panes; a preview that did those would be a choice with an undo rather
+than a look. And it does not start a **crossfade**, which at one fade per arrow
+key would lag a whole step behind the selection.
+
+The preview settles once per frame, before a single cell is built — a theme
+applied halfway through a frame draws the top of the window in one palette and
+the bottom in another — which also means every way the picker can go away
+(Esc, a click landing elsewhere, a pane taking focus) puts the real theme back
+without any of them having to know previews exist.
+
 ## 0.19.18
 
 **`/blocks` — what you ran in this pane, and how it went.** A pane's

@@ -246,6 +246,7 @@ mod swarmshot_tests;
 mod swatch;
 mod termwrite;
 mod themefade;
+mod themepeek;
 mod themereport;
 mod toast;
 mod todopane;
