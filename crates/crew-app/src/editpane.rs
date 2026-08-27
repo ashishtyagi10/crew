@@ -143,6 +143,7 @@ mod tests {
                 cmd: Some("vim".to_string()),
                 cmd_since: None,
                 tail: Default::default(),
+                read_at: 0,
             })),
             grid: FALLBACK_SIZE,
             rect: PLACEHOLDER_RECT,

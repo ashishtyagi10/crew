@@ -164,6 +164,24 @@ fn push_pane_scenes(
         PaneContent::View(v) => v.mark_rows(p.grid.cols),
         _ => Vec::new(),
     };
+    let unread = match &p.content {
+        PaneContent::Terminal(t) => crate::unread::count(t.pty.scrollable_lines(), t.read_at),
+        _ => 0,
+    };
+    // The boundary between what you had read in this pane and what arrived
+    // while you were reading another one.
+    if let PaneContent::Terminal(t) = &p.content {
+        let total = t.pty.scrollable_lines();
+        let row = crate::unread::divider_row(
+            total,
+            t.read_at,
+            usize::from(p.grid.rows),
+            t.pty.display_offset(),
+        );
+        if let Some(row) = row {
+            crate::unread::mark(&mut cells, row, p.grid.cols);
+        }
+    }
     // Tint http(s) URLs blue so they read as clickable (Cmd+click opens).
     if is_term {
         crate::linkhl::colorize(&mut cells, p.grid.cols, p.grid.rows);
@@ -230,6 +248,7 @@ fn push_pane_scenes(
                 assemble_t,
                 git: git.info(p.dir.as_deref()),
                 ticks: &ticks,
+                unread,
                 doc: matches!(p.content, PaneContent::View(_)),
             },
         ),

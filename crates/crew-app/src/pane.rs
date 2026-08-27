@@ -29,6 +29,11 @@ pub struct TermPane {
     /// plus the last prompt-match verdict, stepped ~1×/s by
     /// [`crate::blocked::observe`] (see `blocked.rs`).
     pub tail: crate::blocked::TailWatch,
+    /// How many lines this pane's buffer held when you last read it — the
+    /// boundary [`crate::unread`] draws, and what the card's `N new` counts
+    /// from. Updated while the pane is focused and caught up, and whenever
+    /// you type into it (answering is reading).
+    pub read_at: usize,
 }
 
 /// Discriminated union of pane kinds. A handful of instances exist at once
@@ -193,6 +198,7 @@ pub fn spawn_pane(
             cmd: None,
             cmd_since: None,
             tail: Default::default(),
+            read_at: 0,
         })),
         grid,
         rect: Rect {

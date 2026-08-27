@@ -367,10 +367,10 @@ The docked command bar supports:
   as a two-keystroke prefix. Non-terminal focus or an empty pane gets a
   status hint; the same one-ask-at-a-time and worker-thread rules as `?` apply.
 - **Coloured input** — the bar paints what you type, so it says what it makes
-  of it before you press Enter: a leading `/command` reads **accent** when it
+  of it before you press Enter: a leading slash command reads **accent** when it
   resolves, muted while it is still being typed, and in the **alarm colour when
-  nothing begins with it** (`/them` is on its way to `/theme`; `/zzz` is on its
-  way to nothing). Flags recede, and a quoted run is marked from its opening
+  nothing begins with it** (half of a real command is muted on its
+  way there; a word no command starts with is marked as one that will not run). Flags recede, and a quoted run is marked from its opening
   quote to its closing one — an unterminated quote marks to the end of the
   line, which is how you see that it is unterminated. Three marks and no more:
   the bar is one row, and a syntax highlighter's worth of colour on twelve
@@ -767,6 +767,24 @@ longer aim at.
   `@"path" ` when the path has spaces, cwd-relative when it can be), a
   terminal gets the shell-quoted absolute path. Multiple files land
   space-separated in arrival order.
+
+## What arrived while you were away
+
+A grid means most panes are producing output while you read one of the others,
+and coming back to one always asks the same question: *where does the new part
+start?* Each terminal pane remembers how many lines it held when you last read
+it and draws the boundary as a **rule under the last line you had seen** — not
+a banner row, which would cover a line of output; the thing being marked is the
+gap *between* two lines, and an underline on the row above is exactly that.
+
+The card's border carries the **count** beside its activity dot: the dot has
+always said "something happened here", and the number is the difference between
+glancing over and going back. It caps at `99+`.
+
+The mark follows the tail while you are watching a pane and nothing new is
+below what you have seen — so looking away now marks everything up to here as
+read — and it resets the moment you **type into** the pane, because answering
+is reading.
 
 ## Scrollback
 

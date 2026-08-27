@@ -48,6 +48,9 @@ pub(crate) struct Bar<'a> {
     /// review's files and hunks. Drawn under the thumb, so a landmark you are
     /// currently sitting on is not hidden by it.
     pub ticks: &'a [usize],
+    /// Lines that arrived since this pane was last read, drawn beside the
+    /// activity dot ([`crate::unread`]). `0` draws nothing.
+    pub unread: usize,
     /// This pane is a document: its gutter is drawn whenever the content is
     /// longer than the pane, not only once it has been scrolled. A shell's
     /// gutter is a scrollback affordance; a document's is where you ARE.
@@ -286,6 +289,26 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
         if on && rx > 1 {
             put(&mut v, rx, 0, c, fg, false);
             rx = rx.saturating_sub(2);
+        }
+    }
+    // How much arrived while you were reading something else. The dot has
+    // always said "something happened here"; the number says how much, which
+    // is the difference between glancing over and going back.
+    if let Some(n) = crate::unread::badge(b.unread) {
+        let w = n.chars().count() as u16;
+        if rx > w {
+            let start = rx + 1 - w;
+            for (i, ch) in n.chars().enumerate() {
+                put(
+                    &mut v,
+                    start + i as u16,
+                    0,
+                    ch,
+                    crew_theme::theme().activity,
+                    true,
+                );
+            }
+            rx = start.saturating_sub(2);
         }
     }
     // The git badge takes what is left of the top border. Its floor is the

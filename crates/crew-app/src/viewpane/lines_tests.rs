@@ -225,6 +225,8 @@ fn a_keyword_is_coloured_differently_from_a_plain_identifier() {
 
 #[test]
 fn a_data_rung_is_syntax_coloured_too() {
+    // The assertion is a colour, so the theme must hold still under it.
+    let _g = crate::app::theme_test_guard();
     // The brief names both `Code` and `Data` as the rungs that silently did
     // nothing — this covers `Data` specifically so a fix that only wires up
     // `Code` still fails here.

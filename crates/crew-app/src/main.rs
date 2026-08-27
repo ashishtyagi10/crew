@@ -231,6 +231,7 @@ mod toast;
 mod todopane;
 mod toggles;
 mod tui;
+mod unread;
 mod update;
 mod updatecard;
 mod updatefetch;

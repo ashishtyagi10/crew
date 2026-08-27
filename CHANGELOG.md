@@ -8,6 +8,33 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.18.61
+
+**Where the new part starts.** A grid of panes means most of them are producing
+output while you are reading one of the others, and every return to a pane
+asked the same question — *what of this have I already seen?* — with scrolling
+up until something looked familiar as the only answer.
+
+Each terminal pane now remembers how many lines its buffer held when you last
+read it, and draws the boundary as a **rule under the last line you had seen**.
+Not a banner row: a banner covers a line of output, and what is being marked is
+the *gap between* two lines — which is precisely what an underline on the row
+above is. (The underline machinery that landed three releases ago turns out to
+have been the right primitive for this.)
+
+The card's top border carries the **count** beside its activity dot, capped at
+`99+`. The dot has always said "something happened here"; the number is the
+difference between glancing over and going back.
+
+The mark follows the tail while you are watching a pane with nothing new below
+what you have seen — so looking away marks everything up to that point as read
+— and resets when you **type into** the pane, because answering is reading.
+
+Also fixed: the previous release's documentation used `/them` as an example of
+a half-typed command, and the docs-drift guard is right that a backticked
+slash-token in the prose has to be a command that exists. That test was red on
+0.18.60 because the docs were written after the test run rather than before it.
+
 ## 0.18.60
 
 **The command bar colours what you type.** Every character in it was `ink`, so

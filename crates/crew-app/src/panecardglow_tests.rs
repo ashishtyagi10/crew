@@ -17,6 +17,7 @@ fn bar(focused: bool) -> Bar<'static> {
         assemble_t: 1.0,
         git: None,
         ticks: &[],
+        unread: 0,
         doc: false,
     }
 }

@@ -17,6 +17,7 @@ fn bar(scroll: usize, total: usize) -> Bar<'static> {
         focus_t: 1.0,
         git: None,
         ticks: &[],
+        unread: 0,
         doc: false,
     }
 }
@@ -229,6 +230,7 @@ fn landmark_ticks_are_placed_down_the_gutter_and_deduplicated() {
         total: 400,
         doc: true,
         ticks: &ticks_at,
+        unread: 0,
         ..bar(0, 400)
     };
     let mut v = Vec::new();
@@ -262,6 +264,7 @@ fn the_thumb_covers_the_landmark_it_sits_on() {
         total: 400,
         doc: true,
         ticks: &ticks_at,
+        unread: 0,
         ..bar(0, 400)
     };
     let mut v = Vec::new();
@@ -293,6 +296,7 @@ fn no_landmarks_and_no_room_both_draw_nothing() {
         total: 400,
         doc: true,
         ticks: &ticks_at,
+        unread: 0,
         ..none
     };
     ticks(&mut v, 40, 4, &tiny);
