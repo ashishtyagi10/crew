@@ -80,6 +80,7 @@ mod tests {
             bg: (10, 20, 30),
             bold: false,
             italic: false,
+            ..Default::default()
         }];
         let before = cells[0].fg;
         wash(&mut cells, DIM);

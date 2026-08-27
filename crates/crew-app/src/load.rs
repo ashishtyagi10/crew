@@ -62,6 +62,7 @@ pub fn load_cells(one: f64, five: f64, fifteen: f64, cores: f64, cols: u16) -> V
             bg: t.page_bg,
             bold: false,
             italic: false,
+            ..Default::default()
         });
     }
     // Trailing "1m 5m 15m" hint when the row has spare width.
@@ -77,6 +78,7 @@ pub fn load_cells(one: f64, five: f64, fifteen: f64, cores: f64, cols: u16) -> V
                 bg: t.page_bg,
                 bold: false,
                 italic: false,
+                ..Default::default()
             });
         }
     }

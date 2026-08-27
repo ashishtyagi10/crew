@@ -272,6 +272,13 @@ rates with a **throughput sparkline**, a git section for the working directory,
 and a list of open panes (click a row to focus it). The sparklines scroll on the
 sidebar's once-a-second refresh, so the charts animate at no extra redraw cost.
 
+## Text decorations
+
+The full underline family — single, double, curly (the spell-check squiggle),
+dotted, dashed — plus strikethrough and SGR 58's separate underline colour,
+drawn as GPU rules that stay continuous across cells. URLs are underlined as
+well as tinted, so a link doesn't depend on hue to read as one.
+
 ## Markdown
 
 Crew renders markdown natively (a `pulldown-cmark`-based engine drawn straight

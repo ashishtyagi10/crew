@@ -62,7 +62,14 @@ impl TermCore {
         let dark = crate::contrast::luminance(default_bg()) < 0.5;
         let mut out: Vec<RenderCell> = content
             .display_iter
-            .filter(|ind| ind.c != ' ' && ind.c != '\0' && ind.point.line.0 + off >= 0)
+            // Blank cells are dropped — except a blank the program decorated:
+            // the underline under the space between two underlined words is
+            // part of the same rule, and dropping it breaks the rule in two.
+            .filter(|ind| {
+                (ind.c != ' ' || crate::celldeco::decorated(ind.flags))
+                    && ind.c != '\0'
+                    && ind.point.line.0 + off >= 0
+            })
             .map(|ind| {
                 let bold = ind.flags.contains(Flags::BOLD);
                 let italic = ind.flags.contains(Flags::ITALIC);
@@ -94,6 +101,9 @@ impl TermCore {
                 // (or guessed wrong) keeps painting for the other theme after a
                 // live switch — nudge any too-close fg until it reads.
                 let fg = crate::contrast::ensure_min_contrast(fg, bg);
+                // SGR 58's colour resolves against the same palette the text
+                // does; without one the renderer falls back to the cell's fg.
+                let uc = ind.underline_color().map(|c| resolve_color(c, palette, fg));
                 RenderCell {
                     col: ind.point.column.0 as u16,
                     row: (ind.point.line.0 + off) as u16,
@@ -102,6 +112,7 @@ impl TermCore {
                     bg,
                     bold,
                     italic,
+                    deco: crate::celldeco::deco_of(ind.flags, uc),
                 }
             })
             .collect();

@@ -43,6 +43,7 @@ fn glyph(col: u16, row: u16, c: char, fg: (u8, u8, u8), bg: (u8, u8, u8)) -> Cel
         bg,
         bold: false,
         italic: false,
+        ..Default::default()
     }
 }
 

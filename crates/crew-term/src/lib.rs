@@ -1,4 +1,5 @@
 //! crew-term: terminal model + PTY, behind a stable TermModel interface.
+mod celldeco;
 mod color;
 mod contrast;
 mod cursor;

@@ -256,6 +256,7 @@ fn push_str(
             bg,
             bold: false,
             italic: false,
+            ..Default::default()
         });
     });
 }

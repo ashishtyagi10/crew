@@ -59,7 +59,7 @@ pub fn anim_should_redraw(tick: u64) -> bool {
 #[rustfmt::skip]
 fn push_str(cells: &mut Vec<CellView>, row: u16, col: u16, s: &str, fg: (u8,u8,u8), bg: (u8,u8,u8)) {
     for (i, ch) in s.chars().enumerate() {
-        cells.push(CellView { col: col + i as u16, row, c: ch, fg, bg, bold: false, italic: false });
+        cells.push(CellView { col: col + i as u16, row, c: ch, fg, bg, bold: false, italic: false, ..Default::default() });
     }
 }
 
@@ -87,7 +87,7 @@ fn frame(cells: &mut Vec<CellView>, top: u16, left: u16, w: u16, h: u16, fg: (u8
     if w < 2 || h < 2 { return; }
     let (bot, right) = (top + h - 1, left + w - 1);
     let mut put = |row: u16, col: u16, c: char| {
-        cells.push(CellView { col, row, c, fg, bg, bold: false, italic: false });
+        cells.push(CellView { col, row, c, fg, bg, bold: false, italic: false, ..Default::default() });
     };
     for c in left + 1..right {
         put(top, c, '\u{2500}');
@@ -118,7 +118,7 @@ fn nameplate(cells: &mut Vec<CellView>, top: u16, left: u16, w: u16, h: u16, ink
     let ptop = top + (h - bh) / 2;
     let pleft = left + (w - bw) / 2;
     let mut put = |row: u16, col: u16, c: char, bold: bool| {
-        cells.push(CellView { col, row, c, fg: ink, bg, bold, italic: false });
+        cells.push(CellView { col, row, c, fg: ink, bg, bold, italic: false, ..Default::default() });
     };
     for i in 0..inner {
         put(ptop, pleft + 1 + i, '\u{2550}', false);
@@ -201,7 +201,7 @@ pub fn welcome_cells_animated(cols: u16, rows: u16, tick: u64, restore: Option<u
             let row   = rows / 2;
             let start = (cols - span) / 2;
             for (i, &ch) in letters.iter().enumerate() {
-                cells.push(CellView { col: start + i as u16 * 2, row, c: ch, fg: t.ink, bg, bold: true, italic: false });
+                cells.push(CellView { col: start + i as u16 * 2, row, c: ch, fg: t.ink, bg, bold: true, italic: false, ..Default::default() });
             }
             let hint_row = row + 2;
             if hint_row < rows {

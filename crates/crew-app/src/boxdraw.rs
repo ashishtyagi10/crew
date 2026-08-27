@@ -13,6 +13,7 @@ fn cell(col: u16, row: u16, c: char, fg: (u8, u8, u8), bg: (u8, u8, u8)) -> Cell
         bg,
         bold: false,
         italic: false,
+        ..Default::default()
     }
 }
 

@@ -5,6 +5,7 @@ mod celltext;
 pub mod color;
 mod crt;
 mod crtchain;
+mod deco;
 mod embedfont;
 mod fadepass;
 mod fontlist;

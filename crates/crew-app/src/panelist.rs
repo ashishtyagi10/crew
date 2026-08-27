@@ -157,6 +157,7 @@ fn write(
             bg,
             bold: false,
             italic: false,
+            ..Default::default()
         });
     });
 }

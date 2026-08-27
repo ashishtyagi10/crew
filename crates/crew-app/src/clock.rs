@@ -54,6 +54,7 @@ fn put_centered(
             bg,
             bold,
             italic: false,
+            ..Default::default()
         });
     }
 }

@@ -151,6 +151,7 @@ mod tests {
             bg: (0, 0, 0),
             bold: false,
             italic: false,
+            ..Default::default()
         }
     }
 

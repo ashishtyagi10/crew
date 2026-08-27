@@ -96,6 +96,7 @@ pub fn line_cells(
             bg: crew_theme::theme().page_bg,
             bold: false,
             italic: false,
+            ..Default::default()
         });
     }
     cells

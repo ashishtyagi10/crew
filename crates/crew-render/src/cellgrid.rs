@@ -31,7 +31,12 @@ pub(crate) fn atlas_color_mode(srgb: bool) -> ColorMode {
 }
 
 /// A single terminal cell to be rendered.
-#[derive(Hash)]
+///
+/// `Default` exists so every construction site can end in
+/// `..Default::default()` and keep compiling when a new cell attribute lands —
+/// there are eighty of them. Clippy's `needless_update` guards the other
+/// direction: a literal that does name every field is told to drop the update.
+#[derive(Hash, Default)]
 pub struct CellView {
     pub col: u16,
     pub row: u16,
@@ -40,6 +45,9 @@ pub struct CellView {
     pub bg: (u8, u8, u8),
     pub bold: bool,
     pub italic: bool,
+    /// Underline family, strikethrough and SGR 58's colour. Drawn as quads,
+    /// not glyphs — see [`crate::deco`].
+    pub deco: crew_theme::deco::Deco,
 }
 
 /// Renders a scene of panes: per-cell bg quads, rounded borders, per-pane text.

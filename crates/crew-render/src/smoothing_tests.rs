@@ -38,6 +38,7 @@ fn shaped_glyphs_carry_the_flags_through_to_their_cache_keys() {
         bg: (0, 0, 0),
         bold: false,
         italic: false,
+        ..Default::default()
     }];
     let p = FontParams {
         font_size: 14.0,
@@ -128,6 +129,7 @@ fn presmooth_seeds_the_cache_with_padded_heavier_masks() {
         bg: (0, 0, 0),
         bold: false,
         italic: false,
+        ..Default::default()
     }];
     let p = FontParams {
         font_size: 14.0,
@@ -184,6 +186,7 @@ fn presmooth_at_zero_strength_seeds_untouched_masks() {
         bg: (0, 0, 0),
         bold: false,
         italic: false,
+        ..Default::default()
     }];
     let p = FontParams {
         font_size: 14.0,

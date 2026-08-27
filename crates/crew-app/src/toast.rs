@@ -316,6 +316,7 @@ fn card_cells(
             bg: t.page_bg,
             bold: false,
             italic: false,
+            ..Default::default()
         });
     });
     cells

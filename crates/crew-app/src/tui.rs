@@ -50,6 +50,7 @@ fn convert(buf: &Buffer, opaque: bool) -> Vec<CellView> {
                 bg: bg_opt.unwrap_or_else(|| crew_theme::theme().page_bg),
                 bold: cell.modifier.contains(Modifier::BOLD),
                 italic: cell.modifier.contains(Modifier::ITALIC),
+                ..Default::default()
             });
         }
     }

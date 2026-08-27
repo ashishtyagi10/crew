@@ -492,6 +492,7 @@ fn welcome_worker(
                     bg,
                     bold: false,
                     italic: false,
+                    ..Default::default()
                 });
             }
         }
@@ -545,6 +546,7 @@ fn build_welcome_scene(cols: u16, rows: u16, tick: u64, pw: f32, ph: f32) -> Vec
                     bg,
                     bold,
                     italic: false,
+                    ..Default::default()
                 });
             }
         }
@@ -561,6 +563,7 @@ fn build_welcome_scene(cols: u16, rows: u16, tick: u64, pw: f32, ph: f32) -> Vec
                     bg,
                     bold: false,
                     italic: false,
+                    ..Default::default()
                 });
             }
         }
@@ -577,6 +580,7 @@ fn build_welcome_scene(cols: u16, rows: u16, tick: u64, pw: f32, ph: f32) -> Vec
                     bg,
                     bold: false,
                     italic: false,
+                    ..Default::default()
                 });
             }
         }
@@ -608,6 +612,7 @@ fn build_welcome_scene(cols: u16, rows: u16, tick: u64, pw: f32, ph: f32) -> Vec
                 bg,
                 bold: false,
                 italic: false,
+                ..Default::default()
             });
         }
     }
@@ -724,6 +729,7 @@ fn place_str(
             bg: crew_theme::theme().page_bg,
             bold,
             italic: false,
+            ..Default::default()
         });
     }
 }

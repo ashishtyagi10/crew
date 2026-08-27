@@ -22,6 +22,7 @@ fn cell(col: u16, row: u16, c: char, fg: (u8, u8, u8), bold: bool) -> CellView {
         bg: crew_theme::theme().page_bg,
         bold,
         italic: false,
+        ..Default::default()
     }
 }
 

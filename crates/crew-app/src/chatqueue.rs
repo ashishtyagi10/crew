@@ -71,6 +71,7 @@ pub(crate) fn indicator_cells(pane: &ChatPane, cols: u16, row: u16) -> Vec<CellV
             bg: theme.page_bg,
             bold: false,
             italic: false,
+            ..Default::default()
         });
     }
     cells

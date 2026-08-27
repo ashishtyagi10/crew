@@ -64,6 +64,7 @@ pub(crate) fn build_buffer(font_system: &mut FontSystem, params: &FontParams) ->
             bg: (0, 0, 0),
             bold,
             italic: false,
+            ..Default::default()
         })
         .collect();
     let rows = set.len().div_ceil(COLS);

@@ -748,6 +748,24 @@ arrow-marked: `(#2 →#4 #7)`). **Repeating `/findall`** with the same term
 granularity — while a follow-up `/find <text>` steps upward through the
 focused pane's matches as usual.
 
+## Text decorations
+
+Crew draws the whole underline family, not just the one: **SGR 4** (single),
+**4:2** (double), **4:3** (the spell-check squiggle), **4:4** (dotted), **4:5**
+(dashed) and **SGR 9** (strikethrough), each in the cell's own colour or in the
+separate colour **SGR 58** sets. Language servers, `git diff --word-diff`,
+`rustc`'s inline diagnostics and every TUI that marks a misspelling reach for
+these; a terminal that drops them shows a diagnostic as plain text.
+
+The rules are drawn as GPU quads rather than glyphs, phased on the pane's own
+pixel grid — so a squiggle running across six columns is **one continuous
+wave**, not six restarts, and the underlined space between two words carries
+the rule instead of breaking it. Rule thickness follows the cell height, so
+they stay visible at large font sizes and never smear at small ones.
+
+URLs in terminal panes are **underlined as well as tinted**, so a link is
+legible without depending on hue (Cmd+click still opens it).
+
 ## Markdown
 
 Crew renders markdown natively: a `pulldown-cmark`-based engine (`md/`) folds

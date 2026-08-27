@@ -61,6 +61,7 @@ fn bold_glyphs_snap_to_the_same_cell_advance() {
         bg: (0, 0, 0),
         bold,
         italic: false,
+        ..Default::default()
     };
     let mut fs = crate::embedfont::font_system();
     let cells = vec![
@@ -102,6 +103,7 @@ fn medium_weight_glyphs_snap_to_the_same_cell_advance() {
         bg: (0, 0, 0),
         bold: false,
         italic: false,
+        ..Default::default()
     };
     let mut fs = crate::embedfont::font_system();
     let cells = vec![style(0, 'W'), style(1, 'i'), style(2, 'm'), style(3, '0')];
@@ -142,6 +144,7 @@ fn semibold_weight_glyphs_snap_to_the_same_cell_advance() {
         bg: (0, 0, 0),
         bold: false,
         italic: false,
+        ..Default::default()
     };
     let mut fs = crate::embedfont::font_system();
     let cells = vec![style(0, 'W'), style(1, 'i'), style(2, 'm'), style(3, '0')];
@@ -186,6 +189,7 @@ fn a_heavier_weight_rasterizes_more_ink() {
             bg: (0, 0, 0),
             bold: false,
             italic: false,
+            ..Default::default()
         }];
         let p = FontParams {
             font_size: 14.0,
@@ -227,6 +231,7 @@ fn build_pane_buffer_lays_out_grid_with_styles() {
             bg: (0, 0, 0),
             bold: true,
             italic: false,
+            ..Default::default()
         },
         CellView {
             col: 1,
@@ -236,6 +241,7 @@ fn build_pane_buffer_lays_out_grid_with_styles() {
             bg: (0, 0, 0),
             bold: false,
             italic: true,
+            ..Default::default()
         },
         // row 1 left empty at col 0 → exercises the None-gap branch
         CellView {
@@ -246,6 +252,7 @@ fn build_pane_buffer_lays_out_grid_with_styles() {
             bg: (0, 0, 0),
             bold: false,
             italic: false,
+            ..Default::default()
         },
     ];
     let buf = build_pane_buffer(&mut fs, &cells, 3, 2, 24.0, 36.0, &params(None));
@@ -274,6 +281,7 @@ fn adjacent_same_style_cells_coalesce_into_one_span() {
         bg: (0, 0, 0),
         bold: false,
         italic: false,
+        ..Default::default()
     };
     let mut fs = crate::embedfont::font_system();
     let cells = vec![style(0, 'a'), style(1, 'b'), style(2, 'c')];
@@ -303,6 +311,7 @@ fn build_pane_buffer_ignores_out_of_range_cells() {
         bg: (0, 0, 0),
         bold: false,
         italic: false,
+        ..Default::default()
     }];
     let _ = build_pane_buffer(&mut fs, &cells, 2, 2, 16.0, 32.0, &params(None));
 }
@@ -362,6 +371,7 @@ fn roster_symbol_glyphs_stay_on_cell_grid() {
         bg: (0, 0, 0),
         bold: false,
         italic: false,
+        ..Default::default()
     };
     let (cell_w, cell_h) = cell_metrics(14.0);
     let chars: Vec<char> =

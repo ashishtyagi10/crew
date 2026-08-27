@@ -21,6 +21,7 @@ fn cell(col: u16, row: u16, c: char, bg: (u8, u8, u8)) -> CellView {
         bg,
         bold: false,
         italic: false,
+        ..Default::default()
     }
 }
 

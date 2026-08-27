@@ -30,6 +30,7 @@ fn push(
             bg,
             bold,
             italic: false,
+            ..Default::default()
         });
     })
 }
