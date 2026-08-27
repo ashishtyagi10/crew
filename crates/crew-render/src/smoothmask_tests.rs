@@ -154,3 +154,80 @@ fn curves_take_nearly_as_much_darkening_as_stems() {
         curved / stem
     );
 }
+
+/// The two corrections must not double-count. Crew blends on gamma-encoded
+/// values, so a glyph delivers about 74% of its outline's linear light; the
+/// stem darkening was calibrated by eye before the blend was corrected, and
+/// was quietly making up part of that deficit on top of its own job. Once
+/// `textgamma` fixed the blend honestly, the pair at the old strength
+/// delivered 106% of the outline's own light — past what the glyph asks
+/// for, which reads as bloat rather than fullness.
+///
+/// This is the contract the two defaults are set against: together they
+/// land on the outline's light, and neither may drift without the other
+/// answering for it.
+#[test]
+fn the_default_pair_delivers_the_outlines_light() {
+    use crate::cellgrid::CellView;
+    use crate::celltext::{build_pane_buffer, cell_metrics, FontParams, CELL_H_RATIO};
+    use glyphon::cosmic_text::SwashCache;
+
+    let mut fs = crate::embedfont::font_system();
+    let mut swash = SwashCache::new();
+    let (cell_w, cell_h) = cell_metrics(14.0, CELL_H_RATIO);
+    // What the outline asks for, and what the encoded blend actually emits
+    // for the coverage crew hands it (light ink, so the blend raises the
+    // stored alpha to the display gamma).
+    let asked = |d: &[u8]| d.iter().map(|&a| f64::from(a) / 255.0).sum::<f64>();
+    let delivered = |d: &[u8]| {
+        d.iter()
+            .map(|&a| (f64::from(a) / 255.0).powf(2.2))
+            .sum::<f64>()
+    };
+    let (mut want, mut got) = (0.0, 0.0);
+    for c in ['l', 'o', 'e', 'H', 'n', 'a', 's', 't'] {
+        let cells = [CellView {
+            col: 0,
+            row: 0,
+            c,
+            fg: (255, 255, 255),
+            bg: (0, 0, 0),
+            ..Default::default()
+        }];
+        let p = FontParams {
+            font_size: 14.0,
+            line_height: cell_h,
+            cell_w,
+            family: None,
+            weight: 500,
+            smooth: crate::smoothing::DEFAULT_SMOOTH,
+            gamma: crate::textgamma::DEFAULT_TEXT_GAMMA,
+            dark: true,
+        };
+        let buf = build_pane_buffer(&mut fs, &cells, 1, 1, cell_w, cell_h, &p);
+        let key = buf
+            .layout_runs()
+            .flat_map(|r| r.glyphs.to_vec())
+            .next()
+            .expect("one glyph")
+            .physical((0.0, 0.0), 1.0)
+            .cache_key;
+        let raw = swash.get_image_uncached(&mut fs, key).expect("rasterizes");
+        want += asked(&raw.data);
+        let strength = crate::sizeramp::strength_at(crate::smoothing::DEFAULT_SMOOTH, 14.0);
+        let mut img = smooth_mask(&raw, strength);
+        crate::textgamma::Curve::new().apply(
+            &mut img.data,
+            true,
+            crate::textgamma::DEFAULT_TEXT_GAMMA,
+        );
+        got += delivered(&img.data);
+    }
+    let pct = got * 100.0 / want;
+    assert!(
+        (95.0..=103.0).contains(&pct),
+        "the default pair delivers {pct:.1}% of the outline's light — below \
+         95% the text is still thin, above 103% the two corrections are \
+         stacking on each other"
+    );
+}

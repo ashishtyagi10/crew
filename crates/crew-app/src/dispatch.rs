@@ -790,9 +790,9 @@ mod tests {
         app.smooth_command("off");
         assert_eq!(app.config.font_smooth, 0);
         app.smooth_command("heavy");
-        assert_eq!(app.config.font_smooth, 170);
+        assert_eq!(app.config.font_smooth, 120);
         app.smooth_command("light");
-        assert_eq!(app.config.font_smooth, 60);
+        assert_eq!(app.config.font_smooth, 40);
         app.smooth_command("medium");
         assert_eq!(app.config.font_smooth, crew_render::DEFAULT_SMOOTH);
     }
@@ -824,19 +824,19 @@ mod tests {
             panic!("save must apply");
         };
         app.apply_settings(*cfg);
-        assert_eq!(app.config.font_smooth, 170);
+        assert_eq!(app.config.font_smooth, 120);
         app.smooth_command("");
         let s = app.active_status().unwrap();
-        assert!(s.contains("170"), "/smooth reports the form's value: {s}");
+        assert!(s.contains("120"), "/smooth reports the form's value: {s}");
     }
 
     #[test]
     fn smooth_bad_arg_leaves_it_untouched() {
         let mut app = CrewApp::default();
-        app.smooth_command("170");
+        app.smooth_command("120");
         app.smooth_command("glassy");
         assert_eq!(
-            app.config.font_smooth, 170,
+            app.config.font_smooth, 120,
             "bad arg must not change smoothing"
         );
     }

@@ -550,7 +550,13 @@ The docked command bar supports:
   strength — including `off`). Live and persisted; no argument reports the
   current strength; selecting `/smooth` in the palette opens a value picker.
   The named ladder is also the **Smoothing** field in `/settings` — both write
-  the same `font_smooth` key. The darkening *accumulates* coverage rather than
+  the same `font_smooth` key. The default came down from 100 to 70 in 0.19.28:
+  the darkening had been calibrated by eye while the encoded blend was still
+  eating a quarter of the glyph's light, so it was making up part of that
+  deficit as well as doing its own job. `/gamma` corrects the blend honestly
+  now, and the two at their old values delivered more light than the outline
+  asks for. A config still carrying the old default is moved once on upgrade; a
+  strength you chose is left alone. The darkening *accumulates* coverage rather than
   taking the brighter of a pixel and its neighbour's spill, so the letters
   built from curves take the same widening as the ones built from stems — a
   saturating dilation cannot darken a pixel whose own coverage already beats

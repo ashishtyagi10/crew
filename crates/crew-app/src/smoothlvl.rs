@@ -4,12 +4,15 @@
 //! keeps them from ever disagreeing about what "medium" means.
 
 /// The named steps, in picker order. `medium` is the renderer's calibrated
-/// CoreText-style default.
+/// CoreText-style default. The ladder was respaced when that default came
+/// down to 70 — the text-gamma correction took over the half of the job the
+/// darkening had been quietly doing — so the steps stay evenly spread either
+/// side of it instead of bunching against the top.
 pub(crate) const SMOOTH_LEVELS: [(&str, u8); 4] = [
     ("off", 0),
-    ("light", 60),
+    ("light", 40),
     ("medium", crew_render::DEFAULT_SMOOTH),
-    ("heavy", 170),
+    ("heavy", 120),
 ];
 
 /// The strength behind a `/smooth` keyword, if it is one.
@@ -53,9 +56,9 @@ mod tests {
     #[test]
     fn keywords_map_to_their_strengths() {
         assert_eq!(strength_of("off"), Some(0));
-        assert_eq!(strength_of("light"), Some(60));
+        assert_eq!(strength_of("light"), Some(40));
         assert_eq!(strength_of("medium"), Some(crew_render::DEFAULT_SMOOTH));
-        assert_eq!(strength_of("heavy"), Some(170));
+        assert_eq!(strength_of("heavy"), Some(120));
         assert_eq!(strength_of("glassy"), None);
     }
 
@@ -68,9 +71,9 @@ mod tests {
 
     #[test]
     fn cycle_wraps_both_ways_and_adopts_custom_values() {
-        assert_eq!(cycle(0, false), 60);
-        assert_eq!(cycle(170, false), 0, "forward wraps heavy → off");
-        assert_eq!(cycle(0, true), 170, "backward wraps off → heavy");
-        assert_eq!(cycle(42, false), 60, "custom joins from the ladder top");
+        assert_eq!(cycle(0, false), 40);
+        assert_eq!(cycle(120, false), 0, "forward wraps heavy → off");
+        assert_eq!(cycle(0, true), 120, "backward wraps off → heavy");
+        assert_eq!(cycle(42, false), 40, "custom joins from the ladder top");
     }
 }

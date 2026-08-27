@@ -199,13 +199,13 @@ fn glass_level_and_window_opacity_are_independent() {
 fn smooth_cycles_the_named_ladder_both_ways() {
     let mut p = pane();
     focus(&mut p, Field::Smooth);
-    // Default is medium (100); forward wraps heavy → off.
-    for want in [170u8, 0, 60, crew_render::DEFAULT_SMOOTH] {
+    // Default is medium; forward wraps heavy → off.
+    for want in [120u8, 0, 40, crew_render::DEFAULT_SMOOTH] {
         super::cycle::cycle_value(&mut p, false);
         assert_eq!(p.draft.font_smooth, want);
     }
     super::cycle::cycle_value(&mut p, true);
-    assert_eq!(p.draft.font_smooth, 60, "Left must step backward");
+    assert_eq!(p.draft.font_smooth, 40, "Left must step backward");
 }
 
 /// A `/smooth 42` custom strength survives opening the form untouched — the
@@ -221,7 +221,7 @@ fn smooth_custom_strength_is_kept_until_cycled() {
     commit_field(&mut p); // focus-commit must not disturb it
     assert_eq!(p.draft.font_smooth, 42);
     super::cycle::cycle_value(&mut p, false);
-    assert_eq!(p.draft.font_smooth, 60, "cycling joins the named ladder");
+    assert_eq!(p.draft.font_smooth, 40, "cycling joins the named ladder");
 }
 
 /// The saved config must carry the smoothing pick through `clamped()` — a
@@ -235,7 +235,7 @@ fn save_applies_the_smooth_pick_through_clamped() {
     let SettingsAction::Apply(cfg) = p.save() else {
         panic!("save must apply");
     };
-    assert_eq!(cfg.font_smooth, 170);
+    assert_eq!(cfg.font_smooth, 120);
 }
 
 /// Parity with `/smooth`: both surfaces read and write `font_smooth`, so a
@@ -247,7 +247,7 @@ fn smooth_field_and_command_share_the_config_key() {
         ..Default::default()
     };
     let mut p = SettingsPane::new(cfg, Vec::new());
-    assert_eq!(p.draft.font_smooth, 170, "command's value reaches the form");
+    assert_eq!(p.draft.font_smooth, 120, "command's value reaches the form");
     focus(&mut p, Field::Smooth);
     super::cycle::cycle_value(&mut p, false); // heavy wraps → off
     let SettingsAction::Apply(out) = p.save() else {

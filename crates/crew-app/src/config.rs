@@ -375,7 +375,26 @@ impl Default for CrewConfig {
     }
 }
 
+/// What `font_smooth` defaulted to before 0.19.28. Back then the stem
+/// darkening was the only correction crew had, and its calibration was
+/// quietly covering the gamma-encoded blend's deficit as well as doing its
+/// own job (see [`crew_render::DEFAULT_SMOOTH`]).
+pub const SMOOTH_BEFORE_GAMMA: u8 = 100;
+
 impl CrewConfig {
+    /// One-shot upgrade heal: a config still carrying the pre-gamma default
+    /// takes the rebalanced one, because `/gamma` now does the half of the
+    /// job that strength was silently doing and the two together overshoot.
+    /// A strength the user actually chose is left alone. Returns true when
+    /// anything changed.
+    pub fn adopt_rebalanced_smoothing(&mut self) -> bool {
+        if self.font_smooth == SMOOTH_BEFORE_GAMMA {
+            self.font_smooth = crew_render::DEFAULT_SMOOTH;
+            return true;
+        }
+        false
+    }
+
     /// Clear the look-killing overrides so the newly chosen theme shows as
     /// designed: a `/crt on|off` pin returns to auto (follow the theme), and a
     /// glass strength of `off` returns to the frosted default. A deliberate
