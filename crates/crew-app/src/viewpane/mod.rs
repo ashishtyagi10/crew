@@ -4,7 +4,7 @@
 mod codepaint;
 pub(crate) mod csv;
 pub(crate) mod detect;
-mod diffpaint;
+pub(crate) mod diffpaint;
 pub(crate) mod keys;
 mod lines;
 pub(crate) mod load;

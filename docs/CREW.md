@@ -944,7 +944,13 @@ headings, lists, block quotes, tables (columns aligned by display width, so
 CJK/emoji don't skew them), fenced code as bordered cards, and links. Task
 lists render as **checklists**: `- [ ]` draws a ☐, `- [x]` a green ✓ with the
 item text dimmed — done reads as done. ```` ```diff ````/```` ```patch ````
-fences colour added/removed/hunk lines like the viewer's diff view, and an
+fences colour added/removed/hunk lines like the viewer's diff view — **and
+carry its word-level marks**: each removed line is paired with the added line
+that replaced it and only the run that differs is drawn at full strength, so a
+diff an agent pastes into chat reads the same way `/diff` does. The pairing is
+read back off the ink the renderer already gave each line, which is why one
+refinement serves both surfaces. Unequal runs are not paired and a wholesale
+rewrite is left plain, exactly as in the viewer. An
 **untagged fence that reads as a diff** (a `diff --git` opener, or a `@@` hunk
 header alongside real `+`/`-` change lines) is auto-detected and coloured the
 same — agents rarely tag their patches. Nesting
