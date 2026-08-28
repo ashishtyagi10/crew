@@ -97,3 +97,44 @@ fn empty_or_narrow_renders_nothing() {
     assert!(log_cells(&[info("x")], 24, 0, 0).is_empty());
     assert!(log_cells(&[info("x")], 3, 5, 0).is_empty());
 }
+
+/// A line too long for the nav ends in `…`, not mid-word. The nav is narrow
+/// enough that most real lines overflow, so the clip is the common case and
+/// "updated to cr" is what it used to look like.
+#[test]
+fn an_overflowing_line_ends_in_an_ellipsis() {
+    let _g = crate::app::theme_test_guard();
+    let e = [info("23:20 updated to crew v0.19.38")];
+    let row: String = {
+        let mut v: Vec<_> = log_cells(&e, 24, 5, 0)
+            .into_iter()
+            .filter(|c| c.row == 1)
+            .collect();
+        v.sort_by_key(|c| c.col);
+        v.iter().map(|c| c.c).collect()
+    };
+    assert!(row.starts_with("23:20 "), "the stamp survives: {row:?}");
+    assert!(row.ends_with('\u{2026}'), "the message is clipped: {row:?}");
+    assert!(
+        !row.contains("v0.19.38"),
+        "…because it did not fit: {row:?}"
+    );
+}
+
+/// The stamp is furniture — same six columns on every line — so it is dimmed
+/// and the message keeps the ink. A line with no stamp gives all of it away.
+#[test]
+fn the_stamp_is_dimmed_and_the_message_is_not() {
+    let _g = crate::app::theme_test_guard();
+    let t = crew_theme::theme();
+    let cells = log_cells(&[info("23:20 ok")], 24, 5, 0);
+    let row1 = |col: u16| cells.iter().find(|c| c.row == 1 && c.col == col);
+    assert_eq!(row1(2).map(|c| c.fg), Some(t.dim), "stamp is dim");
+    assert_eq!(row1(8).map(|c| c.fg), Some(t.text_muted), "message is not");
+
+    let plain = log_cells(&[info("ok")], 24, 5, 0);
+    assert!(
+        plain.iter().filter(|c| c.row == 1).all(|c| c.fg != t.dim),
+        "an unstamped line gives no columns to a stamp"
+    );
+}

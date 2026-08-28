@@ -51,13 +51,34 @@ pub fn paint(
     let mut c = Canvas::new(width, ROWS, aspect);
     let (w, h) = c.size();
     let half = h / 2.0;
+    // How loud each direction is against the floor. A flat curve still costs
+    // a full-strength stroke plus a head dot, and at zero both strokes land
+    // on the centre line together — which drew a solid, near-opaque band the
+    // full width of the nav and read as a saturated link on an idle machine.
+    // Fading a direction out as it approaches silence leaves the axis alone
+    // on the row, which is what "nothing is moving" should look like.
+    let voice = |h: &crate::spark::History| -> f32 {
+        (h.peak(span) as f32 / FLOOR as f32).clamp(0.0, 1.0).sqrt()
+    };
+    let (rx_v, tx_v) = (voice(rx), voice(tx));
     // Down grows up out of the centre line; up grows down from it. `area`
     // always fills toward the bottom of the box it is given, so the upper half
     // is drawn into its own box and the lower half into a box of its own with
     // the series flipped… which would put its baseline at the wrong edge.
     // Instead the lower half is drawn upside down and mirrored back.
     let style = area::Style::anchored();
-    area::draw_styled(&mut c, (0.0, 0.0, w, half), &norm(rx), down, style);
+    let mut upper = Canvas::new(width, ROWS, aspect);
+    area::draw_styled(&mut upper, (0.0, 0.0, w, half), &norm(rx), down, style);
+    for p in upper.paint() {
+        c.rect(
+            p.x,
+            p.y * aspect,
+            p.w,
+            p.h * aspect,
+            p.color,
+            p.alpha * rx_v,
+        );
+    }
     let mut lower = Canvas::new(width, ROWS, aspect);
     area::draw_styled(&mut lower, (0.0, 0.0, w, half), &norm(tx), up, style);
     for p in lower.paint() {
@@ -71,19 +92,15 @@ pub fn paint(
             p.w,
             hgt,
             p.color,
-            p.alpha,
+            p.alpha * tx_v,
         );
     }
     // The centre line the two halves grow from, so an idle network still has
-    // an axis rather than a blank gap.
-    c.rect(
-        0.0,
-        half - 0.03,
-        w,
-        0.06,
-        crew_theme::theme().border_normal,
-        0.9,
-    );
+    // an axis rather than a blank gap. A hairline, not a `rect`: at 0.06 units
+    // it was thinner than a canvas pixel and fell between the coverage
+    // samples, so what looked like an axis on an idle link was really the two
+    // flat curves' own strokes lying on top of each other.
+    c.hairline(0.0, half, w, crew_theme::theme().border_normal, 0.7);
 
     c.paint()
         .into_iter()
@@ -180,18 +197,32 @@ mod tests {
     }
 
     #[test]
-    fn an_idle_network_still_draws_its_axis() {
+    fn an_idle_network_draws_its_axis_and_nothing_else() {
         let _g = crate::app::theme_test_guard();
+        let axis = crew_theme::theme().border_normal;
         let p = paint(&hist(&[0; 8]), &hist(&[0; 8]), 24, 0, 2.0, DOWN, UP);
-        assert!(!p.is_empty(), "the centre line is drawn");
+        // Named by colour, not by "something was drawn": the old assertion
+        // passed on the two curves' strokes while the axis itself was thinner
+        // than a canvas pixel and never rendered at all.
+        let rule: Vec<_> = p.iter().filter(|r| r.color == axis).collect();
+        assert!(!rule.is_empty(), "the centre line is drawn: {p:?}");
+        assert!(
+            rule.iter().any(|r| r.w >= 19.0),
+            "and spans the chart: {rule:?}"
+        );
         let mid = f32::from(ROWS) / 2.0;
-        // Everything drawn hugs the centre line: the two flat curves and the
-        // axis itself, within a stroke's thickness.
         assert!(
             p.iter().all(|r| (r.y - mid).abs() < 0.35),
             "and everything drawn sits on it: {:?}",
             p.iter().map(|r| r.y).collect::<Vec<_>>()
         );
+        // The direction curves have faded out: an idle link is an axis, not a
+        // full-width saturated band.
+        let loud = p
+            .iter()
+            .filter(|r| r.color != axis && r.alpha > 0.3)
+            .count();
+        assert_eq!(loud, 0, "idle traffic still drew: {p:?}");
     }
 
     #[test]

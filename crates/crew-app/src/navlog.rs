@@ -68,17 +68,56 @@ pub fn log_cells(entries: &[LogEntry], cols: u16, max_lines: usize, back: usize)
             LogLevel::Info => t.text_muted,
             LogLevel::Error => t.bell,
         };
-        write(
-            &mut out,
-            &e.text,
-            2,
-            1 + k as u16,
-            fg,
-            cols.saturating_sub(1),
-            t.page_bg,
-        );
+        let (stamp, msg) = split_stamp(&e.text);
+        // The stamp is fixed furniture on every line — same six columns, same
+        // shape — so it is dimmed out of the way and the message keeps the
+        // ink. What is left after it is the message's clip budget, and the
+        // clip is the same `…` every card legend uses: a nav two columns too
+        // narrow used to end a line mid-word ("updated to cr"), which reads
+        // as a bug rather than as a line that did not fit.
+        let max_col = cols.saturating_sub(1);
+        let room = max_col.saturating_sub(TEXT_COL) as usize;
+        let stamp_w = crate::chatwidth::str_w(stamp).min(room);
+        let body = crate::chatwidth::clip_w(msg, room - stamp_w);
+        let styled = stamp
+            .chars()
+            .map(|c| (c, t.dim))
+            .chain(body.chars().map(|c| (c, fg)));
+        crate::chatwidth::place_row(TEXT_COL, max_col, styled, |x, c, fg| {
+            out.push(CellView {
+                col: x,
+                row: 1 + k as u16,
+                c,
+                fg,
+                bg: t.page_bg,
+                ..Default::default()
+            });
+        });
     }
     out
+}
+
+/// Column the entry text starts on, under the `LOG` rule's own indent.
+const TEXT_COL: u16 = 2;
+
+/// Split a buffered entry into its `HH:MM ` stamp and the message. The stamp
+/// is prepended when the line is buffered, so it is a prefix of the text
+/// rather than a field — recognised by shape, and absent (`""`) on any line
+/// that does not carry one.
+fn split_stamp(s: &str) -> (&str, &str) {
+    let b = s.as_bytes();
+    let stamped = b.len() > 6
+        && b[0].is_ascii_digit()
+        && b[1].is_ascii_digit()
+        && b[2] == b':'
+        && b[3].is_ascii_digit()
+        && b[4].is_ascii_digit()
+        && b[5] == b' ';
+    if stamped {
+        s.split_at(6)
+    } else {
+        ("", s)
+    }
 }
 
 /// Write `s` at `(col, row)`, stopping before `max_col`.

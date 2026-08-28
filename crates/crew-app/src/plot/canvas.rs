@@ -174,6 +174,33 @@ impl Canvas {
         });
     }
 
+    /// One canvas pixel, in units. Anything thinner than this can fall
+    /// entirely between the 3×3 coverage samples and draw *nothing* — which is
+    /// what happened to the NET chart's centre line, described in a module doc
+    /// and invisible on screen since the day it was written.
+    pub fn px(&self) -> f32 {
+        1.0 / self.scale
+    }
+
+    /// A one-pixel horizontal rule from `x` for `w` units, snapped onto the
+    /// pixel grid so it lands on sample points instead of between them. The
+    /// thinnest mark the canvas can reliably make, and the one every widget's
+    /// axis and baseline should use.
+    pub fn hairline(&mut self, x: f32, y: f32, w: f32, color: (u8, u8, u8), alpha: f32) {
+        let p = self.px();
+        // Clamped into the grid so a baseline asked for at the box's bottom
+        // edge lands on the last pixel row rather than one row past it.
+        let last = (self.h as f32 - 1.0) * p;
+        self.rect(
+            x,
+            ((y / p).floor() * p).clamp(0.0, last),
+            w,
+            p,
+            color,
+            alpha,
+        );
+    }
+
     /// Centre of pixel `(ix, iy)` in units.
     fn centre(&self, ix: usize, iy: usize) -> (f32, f32) {
         (

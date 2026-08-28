@@ -22,6 +22,9 @@ use crate::stats::SysSampler;
 const SYS_BLOCK: u16 = 1 + crate::sysrings::ROWS + CHART_ROWS + 1;
 /// Rows the CPU chart occupies, and where it starts inside the SYSTEM block.
 const CHART_ROWS: u16 = 2;
+/// The smallest peak the CPU chart's axis scales to, in percent — below it the
+/// trace draws small rather than being magnified into a busy-looking minute.
+const CHART_FLOOR: u64 = 25;
 const CHART_OFF: u16 = 1 + crate::sysrings::ROWS;
 /// Rows the LOAD section occupies (rule + 1 line + a one-row gap below it).
 const LOAD_BLOCK: u16 = 3;
@@ -50,6 +53,19 @@ impl StatsPane {
             git: GitWatch::default(),
             cpu_hist: crate::spark::History::new(64),
             pulse_hist: crate::spark::History::new(64),
+        }
+    }
+
+    /// Push a minute of synthetic CPU / busy-pane history, so an off-screen
+    /// shot of the nav shows the traces a running machine would have rather
+    /// than the single sample one `refresh` leaves behind.
+    #[cfg(test)]
+    pub fn seed_history(&mut self, cpu: &[u64], busy: &[u64]) {
+        for &v in cpu {
+            self.cpu_hist.push(v);
+        }
+        for &v in busy {
+            self.pulse_hist.push(v);
         }
     }
 
@@ -158,6 +174,15 @@ impl StatsPane {
     }
 
     /// The SYSTEM section's CPU history chart.
+    ///
+    /// Scaled to the window's own peak with [`CHART_FLOOR`] under it, not to a
+    /// flat 0–100. The gauge directly above already answers "how loaded, out
+    /// of everything" — pinned to 100 the chart under it could only repeat
+    /// that answer, and on a laptop that idles under 10% it repeated it as a
+    /// two-pixel smear along the bottom with no shape at all. Against a
+    /// rolling peak the same machine draws the *shape* of its last minute,
+    /// which is the question the gauge cannot answer, and the floor keeps a
+    /// quiet minute from being magnified into a busy-looking one.
     fn cpu_chart(&self, cols: u16, rows: u16, aspect: f32) -> Vec<Paint> {
         let row0 = clock::CLOCK_H + CHART_OFF;
         // Indented under the section legend like the gauges above it, one
@@ -166,15 +191,20 @@ impl StatsPane {
         if width == 0 || rows < row0 + CHART_ROWS || self.cpu_hist.is_empty() {
             return Vec::new();
         }
+        let span = width as usize * 2;
+        let peak = self.cpu_hist.peak(span).max(CHART_FLOOR) as f32;
         let samples: Vec<f32> = self
             .cpu_hist
-            .tail(width as usize * 2)
+            .tail(span)
             .into_iter()
-            .map(|v| (v as f32 / 100.0).clamp(0.0, 1.0))
+            .map(|v| (v as f32 / peak).clamp(0.0, 1.0))
             .collect();
         let mut c = crate::plot::Canvas::new(width, CHART_ROWS, aspect);
         let (w, h) = c.size();
         crate::plot::area::draw(&mut c, (0.0, 0.0, w, h), &samples, crate::palette::accent());
+        // The line the curve stands on. Without it a flat trace and an empty
+        // block look the same, and the section ends in what reads as a gap.
+        c.hairline(0.0, h, w, crew_theme::theme().border_normal, 0.7);
         c.paint()
             .into_iter()
             .map(|p| p.shifted(f32::from(col0), f32::from(row0)))
