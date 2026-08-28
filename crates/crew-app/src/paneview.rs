@@ -272,7 +272,7 @@ fn push_pane_scenes(
             t.pty.display_offset(),
         );
         if let Some(row) = row {
-            crate::unread::mark(&mut cells, row, p.grid.cols);
+            crate::unread::mark(&mut cells, row, p.grid.cols, unread);
         }
     }
     // An agent cites files in prose as often as a compiler does, and a chat

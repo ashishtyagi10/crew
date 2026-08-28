@@ -34,8 +34,9 @@ pub struct TermPane {
     pub tail: crate::blocked::TailWatch,
     /// How many lines this pane's buffer held when you last read it — the
     /// boundary [`crate::unread`] draws, and what the card's `N new` counts
-    /// from. Updated while the pane is focused and caught up, and whenever
-    /// you type into it (answering is reading).
+    /// from. Follows the tail while the pane is focused at its live bottom
+    /// (watching is reading), and is stamped whenever you type into it
+    /// (answering is reading) or scroll back down to the bottom.
     pub read_at: usize,
     /// Where each command's output started and ended in this pane's buffer
     /// ([`crate::cmdspan`]) — what `/out` slices.
