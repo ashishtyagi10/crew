@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.34
+
+**`/usage` — what crew has spent, drawn.** The ledger behind the footer's 5h/7d
+countdowns has always held seven days of detail; nothing showed it. The new
+pane draws it three ways: a **heatmap** of tokens by hour (a row per day, a
+column per hour, shaded against the week's own peak so a quiet week reads as
+clearly as a busy one), a **donut** splitting tokens sent from tokens
+received, and an **area chart** of cost per day — under the week's spend,
+split and peak day.
+
+Hours count back from now rather than from midnight, so the last cell is the
+hour you are in. The pane follows the ledger while it is open.
+
 ## 0.19.33
 
 **The footer's meters are drawn.** The crew pane's statusline had two dithered
