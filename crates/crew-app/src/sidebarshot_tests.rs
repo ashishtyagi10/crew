@@ -2,7 +2,7 @@
 //! narrow card, the shape the app actually docks — so the column can be looked
 //! at as a column. The per-widget shots in `chartshot_tests` each pass on a
 //! wide card and still stack into something that reads badly: a chart that is
-//! a smear at 2 rows, a log line that clips mid-word, a donut that overpowers
+//! a smear at 2 rows, a log line that clips mid-word, a mark that overpowers
 //! the legend beside it. Only the full stack shows that.
 //!
 //! `#[ignore]`d (needs a GPU adapter, writes PNGs):

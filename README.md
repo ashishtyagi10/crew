@@ -279,7 +279,9 @@ A docked left panel (toggle with **Cmd+G**) with a live clock, CPU/MEM/DISK
 **ring gauges**, a moving **CPU curve** under them, load average, host info,
 network rates over a **twin chart** that draws the two directions apart, a git
 section for the working directory, a **LOG** tail, and a list of open panes
-(click a row to focus it) headed by the **crew donut**. The charts scroll on the
+(click a row to focus it) headed by the **crew mix** — one chip per pane on a
+row per state, working / waiting / idle, with the crew total on the section
+rule. The charts scroll on the
 sidebar's once-a-second refresh, so they animate at no extra redraw cost.
 
 Every part of it answers to the width you give it (drag the inner edge):

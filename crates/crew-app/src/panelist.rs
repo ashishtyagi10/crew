@@ -1,12 +1,10 @@
 //! Sidebar PANES section: a live list of open panes (index, name/title, a `▸`
 //! focus marker, and an activity dot) so the whole grid is visible at a glance —
 //! handy when a single pane is zoomed. Under the header sits the **crew
-//! donut** ([`crate::crewpie`]) — working / waiting / idle as one ring with the
-//! pane count in its hole — and busy rows carry a live spinner in the accent
-//! color.
+//! mix** ([`crate::crewmix`]) — working / waiting / idle as one chip per
+//! pane, with the crew total on the section's own rule — and busy rows carry
+//! a live spinner in the accent color.
 use crew_render::CellView;
-
-use crate::boxdraw::section_header;
 
 use crate::palette::accent;
 
@@ -40,18 +38,32 @@ pub struct PaneRow {
     pub hovered: bool,
 }
 
-/// Render the PANES section: a `PANES` rule on row 0, the crew donut on the
-/// [`crate::crewpie::ROWS`] rows under it (always reserved, so the click →
+/// Render the PANES section: a `PANES n` rule on row 0, the crew mix on the
+/// [`crate::crewmix::ROWS`] rows under it (always reserved, so the click →
 /// pane-row mapping in `hit.rs` stays static), then one row per pane (up to
 /// `limit`) beneath it.
 pub fn pane_cells(panes: &[PaneRow], cols: u16, limit: usize, spin: char) -> Vec<CellView> {
     let t = crew_theme::theme();
-    let mut out = section_header("PANES", cols, t.border_normal, accent(), t.page_bg);
-    // The donut's text; its ring is drawn (see `crate::crewpie::paint`, reached
-    // from the sidebar's paint layer).
-    out.extend(crate::crewpie::cells(&crate::crewpie::mix(panes), cols, 1));
+    // The crew size rides the rule, the way the LOG's depth and the charts'
+    // peaks do. It used to sit in the donut's hole; the mix has no hole any
+    // more, and the total is the one number a glance wants before it reads
+    // three rows of states.
+    let mix = crate::crewmix::mix(panes);
+    let key = mix.total().to_string();
+    let mut out = crate::boxdraw::section_header_key(
+        "PANES",
+        &key,
+        cols,
+        t.border_normal,
+        accent(),
+        t.text_muted,
+        t.page_bg,
+    );
+    // The legend's text; its chips are drawn (see `crate::crewmix::paint`,
+    // reached from the sidebar's paint layer).
+    out.extend(crate::crewmix::cells(&mix, cols, 1));
     for (k, p) in panes.iter().take(limit).enumerate() {
-        let row = 1 + crate::crewpie::ROWS + k as u16;
+        let row = 1 + crate::crewmix::ROWS + k as u16;
         let head = format!("{} {}", if p.focused { '▸' } else { ' ' }, p.index);
         let head_fg = if p.focused || p.hovered {
             accent()
@@ -286,8 +298,8 @@ mod tests {
         pane_cells(panes, cols, limit, '⠋')
     }
 
-    /// First row of the pane list: under the header and the donut block.
-    const R0: u16 = 1 + crate::crewpie::ROWS;
+    /// First row of the pane list: under the header and the mix block.
+    const R0: u16 = 1 + crate::crewmix::ROWS;
 
     /// The row under the pointer must look different from the quiet rows
     /// around it — the whole row focuses (and restores) its pane on a click,
@@ -328,7 +340,7 @@ mod tests {
         let cells = cells_of(&panes, 24, 10);
         // The minimized pane's row carries a right-aligned [+] restore button
         // ending one cell left of the activity-dot slot: cols 18..=20. Pane
-        // rows start under the header and the crew donut.
+        // rows start under the header and the crew mix.
         let at = |col: u16, row: u16| {
             cells
                 .iter()
@@ -366,6 +378,10 @@ mod tests {
 
     #[test]
     fn busy_row_spins_in_the_accent_color_and_attention_still_wins() {
+        // Reads the process-wide accent, so it is serialised against the
+        // tests that set one (`palette`'s own floor checks walk every theme's
+        // default through `set_accent`).
+        let _a = crate::palette::test_guard();
         let mut busy = row(1, "swarm", false, true);
         busy.busy = true;
         let cells = cells_of(&[busy], 24, 10);
@@ -387,7 +403,7 @@ mod tests {
     }
 
     #[test]
-    fn the_crew_donut_owns_the_rows_between_the_header_and_the_list() {
+    fn the_crew_mix_owns_the_rows_between_the_header_and_the_list() {
         let _g = crate::app::theme_test_guard();
         let cells = cells_of(&[row(1, "x", false, false)], 24, 10);
         // The block's only text is the pane total in the ring's hole and the

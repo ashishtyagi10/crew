@@ -84,6 +84,43 @@ pub fn accent() -> (u8, u8, u8) {
     })
 }
 
+/// How far the FOCUS accent must sit from `text_muted` — the colour it
+/// replaces when a control takes focus.
+///
+/// [`accent`] is floored against the page, which says it can be read; it says
+/// nothing about whether it can be told from the colour it is standing in for.
+/// Measured across the set: sepia-dark **1.04** and crt-violet **1.06** —
+/// accent and muted at the same lightness, so a focused input's border was
+/// distinguishable by hue alone, and on a tube not at all.
+const FOCUS_FLOOR: f32 = 1.6;
+
+/// Stiffer where hue is not available. A single-phosphor screen has one hue
+/// and lightness is the whole of the signal, so "different colour" has to
+/// mean "different brightness" there or it means nothing.
+const TUBE_FOCUS_FLOOR: f32 = 1.8;
+
+/// The accent as a FOCUS marker: [`accent`], pushed until it clears
+/// [`FOCUS_FLOOR`] against `text_muted`. A floor, not a restyle — most presets
+/// clear it untouched and are handed their own accent back.
+///
+/// Use this wherever focus is drawn by swapping muted ink for accent ink (the
+/// settings form's boxed inputs, its card legends and its buttons). Use plain
+/// [`accent`] where the accent is the subject rather than a state.
+pub fn focus_accent() -> (u8, u8, u8) {
+    let t = crew_theme::theme();
+    let floor = match t.is_tube() {
+        true => TUBE_FOCUS_FLOOR,
+        false => FOCUS_FLOOR,
+    };
+    crew_theme::readable::enforced(accent(), t.text_muted, floor)
+}
+
+/// [`focus_accent`] as a ratatui colour.
+pub fn focus_color() -> ratatui::style::Color {
+    let (r, g, b) = focus_accent();
+    ratatui::style::Color::Rgb(r, g, b)
+}
+
 thread_local! {
     /// `(accent, page, floor bits, floored)`. The render path is one thread;
     /// a second one simply keeps its own.
@@ -185,5 +222,45 @@ mod tests {
         }
         set_accent(DEFAULT_ACCENT);
         assert!(bad.is_empty(), "{}", bad.join("\n  "));
+    }
+    /// Focus in a form is drawn by swapping muted ink for accent ink, so the
+    /// two have to be tellable apart. `accent()` is floored against the PAGE
+    /// — it says the colour can be read, not that it can be told from the one
+    /// it stands in for. Measured before this floor: sepia-dark **1.04** and
+    /// crt-violet **1.06**, i.e. the same lightness, so the focused input's
+    /// border differed by hue alone — and on a single-phosphor tube, not at
+    /// all.
+    #[test]
+    fn the_focus_accent_can_be_told_from_the_ink_it_replaces() {
+        let _a = crate::palette::test_guard();
+        let _g = crate::app::theme_test_guard();
+        let mut tubes = 0;
+        for id in crew_theme::ALL_THEMES {
+            crew_theme::set_theme(id);
+            crate::palette::set_accent(crew_theme::theme().accent_default);
+            let t = crew_theme::theme();
+            let want = match t.is_tube() {
+                true => {
+                    tubes += 1;
+                    super::TUBE_FOCUS_FLOOR
+                }
+                false => super::FOCUS_FLOOR,
+            };
+            let got = crew_theme::contrast_ratio(super::focus_accent(), t.text_muted);
+            assert!(
+                got >= want,
+                "{}: focus accent vs muted = {got:.2} (want {want})",
+                id.as_str(),
+            );
+            // …and it must still read on the page it is drawn on.
+            let page = crew_theme::contrast_ratio(super::focus_accent(), t.page_bg);
+            assert!(
+                page >= crew_theme::contrast::mark_floor(),
+                "{}: and it stays legible: {page:.2}",
+                id.as_str(),
+            );
+        }
+        assert_eq!(tubes, 4, "every tube was actually checked");
+        crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
     }
 }

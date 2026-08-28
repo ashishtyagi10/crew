@@ -1,44 +1,55 @@
-//! The crew donut: the PANES section's one-glance answer to *what is the crew
-//! doing right now* — a ring split into working / waiting / idle, the pane
-//! count in its hole, and a legend beside it.
+//! The crew mix: the PANES section's one-glance answer to *what is the crew
+//! doing right now* — one chip per pane, on a row per state, with the state's
+//! name and count beside it.
 //!
-//! It replaces a one-row pulse sparkline that could only say how many panes
-//! were busy, in eight height levels, with no way to show what the rest were.
+//! It replaced a donut, and the donut replaced a sparkline. The donut could
+//! say what the sparkline could not (three states, not one), but it answered
+//! with an ANGLE, and the two things a crew is actually asked are "how many"
+//! and "doing what" — both of them counts. A ring of one pane is a solid
+//! disc, which is a large black circle spending three rows and seven columns
+//! to say "1". A chip per pane says it by being one chip, stays exactly
+//! countable to a dozen, and gives the three states a common baseline to be
+//! compared along, which a pie never has.
+//!
 //! The pulse history did not go away: it is drawn as a faint fill behind the
-//! legend, so the ring says the present and the wash behind it says the last
-//! minute. Fill only, and only to the right of the ring — a stroke crossing a
-//! word is a scribble however faint it is, and the donut is the one thing in
-//! the block the eye is meant to land on.
+//! legend, so the chips say the present and the wash behind them says the
+//! last minute.
 use crew_render::{CellView, Paint};
 
 use crate::palette::accent;
 use crate::panelist::PaneRow;
-use crate::plot::pie::{self, Slice};
 use crate::plot::Canvas;
 
 /// Rows the block occupies, under the PANES header.
 pub const ROWS: u16 = 3;
 
-/// Where the donut sits and how big it is, in canvas units (one unit = one
-/// cell width). Deliberately small: the sidebar is narrow, and the ring has to
-/// leave the legend enough columns to name its own colours.
-const CENTRE_X: f32 = 3.3;
-const R_OUT: f32 = 2.4;
-const R_IN: f32 = 1.25;
-/// First column of the legend — clear of the ring, with a column of air.
-const LEGEND_COL: u16 = 7;
+/// First column of the chip gutter — one column of margin, matching the rest
+/// of the nav's indent.
+const CHIP_COL: f32 = 1.0;
+/// Columns the chips may claim. Six is what a docked nav can spare beside a
+/// label and a count, and a crew of six is already a busy screen.
+const CHIP_COLS: usize = 6;
+/// Chip side and pitch, in canvas units (one unit = one cell width). The gap
+/// is what makes them countable: chips that touch read as a bar.
+const CHIP: f32 = 0.62;
+const PITCH: f32 = 1.0;
+/// Corner radius — a square with the corners taken off, so a chip reads as a
+/// tile rather than a dot (a dot is what the legend swatch used to be, and
+/// two round marks in one block said they meant the same thing).
+const CHIP_R: f32 = 0.16;
+/// First column of the legend — clear of the chips, with a column of air.
+const LEGEND_COL: u16 = CHIP_COL as u16 + CHIP_COLS as u16 + 1;
 /// Columns the legend claims right of its text column: the longest label
 /// ("working") plus air and a count wide enough for any crew.
 const BLOCK_W: u16 = 12;
-/// Where the pulse backdrop starts: past the ring, so the two never overlap.
-const WASH_X: f32 = CENTRE_X + R_OUT + 0.4;
-/// Canvas pixels per column for the ring and the legend dots.
+/// Where the pulse backdrop starts: past the chips, so the two never overlap.
+const WASH_X: f32 = CHIP_COL + CHIP_COLS as f32 * PITCH + 0.4;
+/// Canvas pixels per column for the chips.
 ///
 /// The default four puts a canvas pixel at about two device pixels, and a
-/// ring twenty pixels across rasterized on a grid half that fine steps in
-/// blocks you can count. The wash behind the legend keeps the default — it is
-/// a soft gradient with no edge to stair-step, and it covers most of the
-/// block, so paying four times the pixels for it would buy nothing.
+/// corner radius of 0.16 units is a fraction of one of those — exactly the
+/// case a sampled predicate cannot express. The wash behind the legend keeps
+/// the default: it is a soft gradient with no edge to stair-step.
 const FG_SUB: usize = 8;
 
 /// How the crew divides up right now. `waiting` is a pane that has raised a
@@ -84,24 +95,20 @@ fn entries(m: &Mix) -> [(&'static str, usize, (u8, u8, u8)); 3] {
     ]
 }
 
-/// The block's text: the total in the ring's hole, and the legend lines.
+/// The block's text: one legend line per state, its count right-aligned.
 /// `row0` is the row the block starts on inside the card.
+///
+/// The total no longer has a place of its own here. It used to sit in the
+/// donut's hole, which is a hole this widget does not have; it is the sum of
+/// three numbers already on screen, and the section's own rule carries it
+/// (`PANES 8`) for the glance that wants it without reading three rows.
 pub fn cells(m: &Mix, cols: u16, row0: u16) -> Vec<CellView> {
     let t = crew_theme::theme();
     let mut out = Vec::new();
-    // The count in the hole, centred on the ring's middle row. It is the one
-    // number the whole widget is *about*, so it goes where the eye lands.
-    let total = m.total().to_string();
-    let start = (CENTRE_X - total.chars().count() as f32 / 2.0)
-        .round()
-        .max(0.0) as u16;
-    for (i, ch) in total.chars().enumerate() {
-        out.push(cell(start + i as u16, row0 + 1, ch, t.ink, t.page_bg));
-    }
     if cols <= LEGEND_COL + 4 {
-        return out; // too narrow for a legend: the ring alone still reads
+        return out; // too narrow for a legend: the chips alone still read
     }
-    let text_col = LEGEND_COL + 2; // the swatch dot owns the two columns left of it
+    let text_col = LEGEND_COL;
     for (k, (label, n, fg)) in entries(m).into_iter().enumerate() {
         let row = row0 + k as u16;
         // A category with no members is dimmed rather than dropped: the legend
@@ -125,6 +132,19 @@ pub fn cells(m: &Mix, cols: u16, row0: u16) -> Vec<CellView> {
         }
     }
     out
+}
+
+/// How many chips a state of `n` panes draws, and whether the last one stands
+/// for more than itself.
+///
+/// Past [`CHIP_COLS`] the gutter is full, so the final chip becomes an
+/// overflow mark rather than the row silently under-counting: the number
+/// beside it is exact, and the chips stop claiming to be.
+fn chips(n: usize) -> (usize, bool) {
+    match n > CHIP_COLS {
+        true => (CHIP_COLS, true),
+        false => (n, false),
+    }
 }
 
 /// The block's drawing: the pulse wash, the ring, and the legend swatches.
@@ -158,7 +178,7 @@ pub fn paint(
         // Fill only, and starting clear of the ring. With its stroke on, the
         // curve ran a faint line straight through "working" and "waiting" —
         // a scribble across the legend, not a backdrop behind it — and its
-        // left end crossed the donut, which is the one thing in the block the
+        // left end crossed the chips, which are the marks in the block the
         // eye is meant to land on.
         crate::plot::area::draw_styled(
             &mut back,
@@ -172,25 +192,34 @@ pub fn paint(
         }
     }
 
-    // The shapes go on their own, finer canvas, composited over the wash by
+    // The chips go on their own, finer canvas, composited over the wash by
     // being emitted after it.
     let mut fg = Canvas::with_sub(cols, ROWS, aspect, FG_SUB);
-    let centre = (CENTRE_X, h / 2.0);
-    let slices = [
-        Slice::new(m.working as f32, accent()),
-        Slice::new(m.waiting as f32, t.bell),
-        Slice::new(m.idle as f32, t.text_muted),
-    ];
-    pie::donut(&mut fg, centre, R_OUT, R_IN, &slices, t.border_normal);
-    // The hole is punched back out to the page so the number in it reads
-    // against the page and not through the wash behind the block.
-    pie::dot(&mut fg, centre, R_IN, t.page_bg, 1.0);
-
-    if cols > LEGEND_COL + 4 {
-        for (k, (_, n, col)) in entries(m).into_iter().enumerate() {
-            let cy = (k as f32 + 0.5) * aspect;
-            let col = if n == 0 { t.border_normal } else { col };
-            pie::dot(&mut fg, (f32::from(LEGEND_COL) + 0.5, cy), 0.36, col, 1.0);
+    for (k, (_, n, col)) in entries(m).into_iter().enumerate() {
+        // Vertically centred in the row, and square: the canvas is
+        // aspect-corrected, so one unit is one cell WIDTH in both axes and a
+        // chip given the same extent twice comes out square on screen.
+        let cy = (k as f32 + 0.5) * aspect - CHIP * 0.5;
+        let (count, over) = chips(n);
+        for i in 0..count {
+            let cx = CHIP_COL + i as f32 * PITCH;
+            // An empty state still shows its baseline: one hollow chip, so
+            // the three rows share a left edge to be compared along and a
+            // crew with nothing waiting does not look like a missing row.
+            let last = over && i + 1 == count;
+            let colour = if last { t.ink } else { col };
+            fg.fill_sdf((cx, cy, CHIP, CHIP), colour, 1.0, move |px, py| {
+                crate::plot::sdf::round_box((px, py), cx, cy, CHIP, CHIP, CHIP_R)
+            });
+        }
+        if count == 0 {
+            // The empty marker: the chip's outline only, in the border
+            // colour — present enough to hold the row's left edge, quiet
+            // enough that nobody counts it as a pane.
+            let cx = CHIP_COL;
+            fg.fill_sdf((cx, cy, CHIP, CHIP), t.border_normal, 1.0, move |px, py| {
+                crate::plot::sdf::round_box((px, py), cx, cy, CHIP, CHIP, CHIP_R).abs() - 0.06
+            });
         }
     }
     c.paint()
@@ -246,8 +275,12 @@ mod tests {
         assert_eq!(m.total(), 3);
     }
 
+    /// One row per state, its own count on the end of it. The total is not
+    /// here: it rides the section rule (`PANES 13`), because it is the sum of
+    /// three numbers already on screen and the block has no hole to put it in
+    /// any more.
     #[test]
-    fn the_hole_carries_the_pane_count_and_the_legend_carries_the_split() {
+    fn each_state_gets_a_row_and_its_own_count() {
         let _g = crate::app::theme_test_guard();
         let m = Mix {
             waiting: 1,
@@ -260,10 +293,21 @@ mod tests {
             v.sort_by_key(|c| c.col);
             v.iter().map(|c| c.c).collect()
         };
-        assert!(row(1).starts_with("13"), "total in the hole: {:?}", row(1));
         assert!(row(0).contains("working") && row(0).ends_with("12"));
         assert!(row(1).contains("waiting") && row(1).ends_with('1'));
         assert!(row(2).contains("idle") && row(2).ends_with('0'));
+    }
+
+    /// The chips are countable up to the gutter, and past it the last one
+    /// says so instead of the row quietly under-counting. The number beside
+    /// them stays exact either way.
+    #[test]
+    fn chips_count_the_panes_and_mark_their_own_overflow() {
+        assert_eq!(super::chips(0), (0, false));
+        assert_eq!(super::chips(1), (1, false));
+        assert_eq!(super::chips(super::CHIP_COLS), (super::CHIP_COLS, false));
+        assert_eq!(super::chips(super::CHIP_COLS + 1), (super::CHIP_COLS, true));
+        assert_eq!(super::chips(400), (super::CHIP_COLS, true));
     }
 
     #[test]
@@ -297,7 +341,9 @@ mod tests {
             working: 2,
             idle: 1,
         };
-        let cells = cells(&m, 18, 0);
+        // One column narrower than "working" needs beside its count, now
+        // that the chips claim the gutter the ring used to.
+        let cells = cells(&m, 17, 0);
         let row: String = {
             let mut v: Vec<_> = cells.iter().filter(|c| c.row == 0).collect();
             v.sort_by_key(|c| c.col);
@@ -321,7 +367,7 @@ mod tests {
     }
 
     #[test]
-    fn a_narrow_sidebar_keeps_the_ring_and_drops_the_legend() {
+    fn a_narrow_sidebar_keeps_the_chips_and_drops_the_legend() {
         let _g = crate::app::theme_test_guard();
         let m = Mix {
             waiting: 0,
@@ -329,9 +375,10 @@ mod tests {
             idle: 1,
         };
         let text: String = cells(&m, 9, 0).iter().map(|c| c.c).collect();
-        assert_eq!(text, "2", "only the count in the hole survives");
-        // The ring itself is still drawn: the widget degrades, it does not
-        // disappear.
+        assert_eq!(text, "", "no room for a label and a count");
+        // The chips themselves are still drawn: the widget degrades, it does
+        // not disappear — and a column of marks still says how many panes
+        // there are and what they are doing.
         let hist = crate::spark::History::new(8);
         assert!(!paint(&m, 9, 0, 2.0, &hist).is_empty());
     }
@@ -356,11 +403,11 @@ mod tests {
         }
     }
 
-    /// The wash is a backdrop, and a backdrop that crosses the ring is a
-    /// smudge on the one mark the block is about. Nothing it draws may reach
-    /// the donut, and it may not draw a curve at all.
+    /// The wash is a backdrop, and a backdrop that crosses the chips is a
+    /// smudge on the marks the block is about. Nothing it draws may reach the
+    /// gutter, and it may not draw a curve at all.
     #[test]
-    fn the_pulse_wash_never_reaches_the_ring() {
+    fn the_pulse_wash_never_reaches_the_chips() {
         let _g = crate::app::theme_test_guard();
         let mut hist = crate::spark::History::new(64);
         for v in 0..40 {
@@ -373,10 +420,10 @@ mod tests {
             .filter(|r| r.color == crate::palette::accent())
             .collect();
         assert!(!wash.is_empty(), "there is a wash to test");
-        let ring_right = super::CENTRE_X + super::R_OUT;
+        let gutter_right = super::CHIP_COL + super::CHIP_COLS as f32 * super::PITCH;
         assert!(
-            wash.iter().all(|r| r.x >= ring_right),
-            "wash crosses the ring (right edge {ring_right}): {wash:?}"
+            wash.iter().all(|r| r.x >= gutter_right),
+            "wash crosses the chips (gutter ends {gutter_right}): {wash:?}"
         );
     }
 

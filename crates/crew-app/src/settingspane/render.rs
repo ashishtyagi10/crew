@@ -7,6 +7,8 @@
 //! What each field is CALLED and what it SHOWS lives in `labels`, split out
 //! for the 200-line cap when `auto` gained its pairing pickers.
 use crew_render::CellView;
+
+use crate::palette::focus_color;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
@@ -14,7 +16,6 @@ use ratatui::text::{Line, Span};
 
 use super::labels::{label_of, value_of};
 use super::{form, Field, SettingsPane};
-use crate::palette::accent_color;
 
 /// Render the form into a ratatui buffer, then hand the cells to the GPU.
 pub(crate) fn render(p: &SettingsPane, cols: u16, rows: u16) -> Vec<CellView> {
@@ -190,7 +191,7 @@ fn buttons(buf: &mut Buffer, cols: u16, rows: u16, f: Field) {
 fn button_span(text: &str, focused: bool) -> Span<'static> {
     let t = crew_theme::theme();
     let dim_col = Color::Rgb(t.text_muted.0, t.text_muted.1, t.text_muted.2);
-    let mut style = Style::new().fg(if focused { accent_color() } else { dim_col });
+    let mut style = Style::new().fg(if focused { focus_color() } else { dim_col });
     if focused {
         style = style.add_modifier(Modifier::BOLD);
     }

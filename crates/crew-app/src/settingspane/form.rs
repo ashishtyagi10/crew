@@ -12,7 +12,7 @@ use ratatui::widgets::{Block, BorderType, Widget};
 
 use super::cards::{appearance, notifications, usage, window};
 use super::Field;
-use crate::palette::accent_color;
+use crate::palette::focus_color;
 
 /// Pane width below which the two card columns stack vertically.
 pub(crate) const STACK_BELOW: u16 = 64;
@@ -113,7 +113,7 @@ pub(crate) fn ink() -> Color {
 /// A bento card: rounded border, legend on the top edge (accent while the
 /// focused field lives inside it).
 pub(crate) fn card(buf: &mut Buffer, c: &Card, active: bool) {
-    let legend = if active { accent_color() } else { dim() };
+    let legend = if active { focus_color() } else { dim() };
     Block::bordered()
         .border_type(BorderType::Rounded)
         .border_style(Style::new().fg(dim()))
@@ -148,7 +148,7 @@ pub(crate) fn input_box(
 pub(crate) fn checkbox(buf: &mut Buffer, rect: Rect, label: &str, on: bool, focused: bool) {
     let mark = if on { "[x]" } else { "[ ]" };
     let lead = if focused { "\u{203a} " } else { "  " };
-    let mut style = Style::new().fg(if focused { accent_color() } else { ink() });
+    let mut style = Style::new().fg(if focused { focus_color() } else { ink() });
     if focused {
         style = style.add_modifier(Modifier::BOLD);
     }
@@ -177,7 +177,7 @@ pub(crate) fn text_area(buf: &mut Buffer, rect: Rect, label: &str, value: &str, 
 
 /// Rounded input frame with the label as legend, accent while focused.
 fn frame(buf: &mut Buffer, rect: Rect, label: &str, focused: bool) {
-    let col = if focused { accent_color() } else { dim() };
+    let col = if focused { focus_color() } else { dim() };
     Block::bordered()
         .border_type(BorderType::Rounded)
         .border_style(Style::new().fg(col))

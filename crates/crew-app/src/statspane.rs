@@ -139,12 +139,12 @@ impl StatsPane {
                 crate::net::up_color(),
             ));
         }
-        // The crew donut, under the PANES header — the same offset
+        // The crew mix, under the PANES header — the same offset
         // `cells` lays the list out from, so ring and rows cannot drift apart.
         let panes_off = l.panes_top;
-        if !panes.is_empty() && rows > panes_off + 1 + crate::crewpie::ROWS {
-            out.extend(crate::crewpie::paint(
-                &crate::crewpie::mix(panes),
+        if !panes.is_empty() && rows > panes_off + 1 + crate::crewmix::ROWS {
+            out.extend(crate::crewmix::paint(
+                &crate::crewmix::mix(panes),
                 cols,
                 panes_off + 1,
                 aspect,
@@ -278,7 +278,7 @@ impl StatsPane {
 
         // PANES list fills the remaining height below the LOG section (header
         // + pulse chart + one row per pane).
-        let list_off = 1 + crate::crewpie::ROWS;
+        let list_off = 1 + crate::crewmix::ROWS;
         if !panes.is_empty() && rows > panes_off + list_off {
             let limit = (rows - panes_off - list_off) as usize;
             // A busy pane's row spins; with motion off it holds one frame.
@@ -402,7 +402,7 @@ mod tests {
         for (k, p) in panes.iter().enumerate() {
             // The row this pane's own TITLE was drawn on, found in the frame
             // rather than recomputed from the offsets under test. The title,
-            // not the index: the donut writes the crew total at column 3 too,
+            // not the index: the mix draws its chips in the gutter too,
             // and a finder that cannot tell them apart proves nothing.
             let drawn = cells
                 .iter()

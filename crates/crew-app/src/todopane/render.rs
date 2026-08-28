@@ -26,10 +26,33 @@ fn cell(col: u16, row: u16, c: char, fg: (u8, u8, u8), bold: bool) -> CellView {
     }
 }
 
+/// Widest the list is laid out, however wide the pane is.
+///
+/// A row puts its title on the left and its `@project` and due label on the
+/// right, so on a full-window pane the due date sat ninety columns from the
+/// task it belonged to with nothing in between — the same way the command
+/// palette's chords did before they were given a measure. A list has a
+/// measure; past it, it is two lists that happen to share a row.
+///
+/// Applied at every public entry rather than once at the top of [`cells`]:
+/// the scroll math (`list_height`, `row_h`) and the click hit-test read the
+/// same widths, and a wrapped title's HEIGHT depends on the width it wrapped
+/// at, so a capped draw over an uncapped measurement is a list whose rows are
+/// not where it thinks they are. Idempotent, so nesting these calls is safe.
+pub(crate) fn content(cols: u16) -> u16 {
+    cols.min(MAX_LIST_W)
+}
+
+/// See [`content`]. Wide enough for a real task, a project and a due stamp
+/// with air between them; narrow enough that they stay one row.
+const MAX_LIST_W: u16 = 92;
+
 /// Composer rows at this pane size: a bordered card whose interior grows
 /// with the wrapped input ([`input_lines`], capped by [`composer_cap`]), or
 /// a single bare prompt row on very short panes.
 pub(crate) fn composer_h(p: &TodoPane, cols: u16, rows: u16) -> u16 {
+    let cols = content(cols);
+
     if rows >= 6 {
         2 + input_lines(p, cols).len().min(composer_cap(rows)) as u16
     } else {
@@ -47,6 +70,8 @@ fn composer_cap(rows: u16) -> usize {
 /// ranges into `p.input`, always at least one (possibly empty) line. The
 /// budget leaves the cursor column free, so a full line never clips `▏`.
 pub(crate) fn input_lines(p: &TodoPane, cols: u16) -> Vec<(usize, usize)> {
+    let cols = content(cols);
+
     let chars: Vec<char> = p.input.chars().collect();
     let w = (cols.saturating_sub(6)).max(1) as usize;
     wrap_ranges(&chars, w, w)
@@ -102,6 +127,8 @@ pub(crate) fn popup_h(p: &TodoPane, rows: u16) -> u16 {
 
 /// Rows left for the item list.
 pub(crate) fn list_height(p: &TodoPane, cols: u16, rows: u16) -> u16 {
+    let cols = content(cols);
+
     rows.saturating_sub(composer_h(p, cols, rows) + popup_h(p, rows) + header_h(p, cols))
 }
 
@@ -180,6 +207,8 @@ fn wrap_ranges(chars: &[char], w0: usize, wc: usize) -> Vec<(usize, usize)> {
 
 /// Rows item `it` occupies at this pane width.
 pub(crate) fn item_h(it: &TodoItem, cols: u16, now_ms: u64, done_view: bool) -> u16 {
+    let cols = content(cols);
+
     title_lines(it, cols, now_ms, done_view).len() as u16
 }
 
@@ -214,6 +243,7 @@ pub(crate) fn row_h(
     cols: u16,
     now_ms: u64,
 ) -> u16 {
+    let cols = content(cols);
     item_h(&items[order[di]], cols, now_ms, done_view)
         + u16::from(starts_day_group(items, done_view, order, di))
 }
@@ -242,6 +272,7 @@ pub(crate) fn click_at(
     cols: u16,
     rows: u16,
 ) -> Option<TodoClick> {
+    let cols = content(cols);
     if row >= rows.saturating_sub(composer_h(p, cols, rows)) {
         return Some(TodoClick::Composer);
     }
@@ -289,6 +320,8 @@ pub(crate) fn click_at(
 
 /// Render the pane's `cols × rows` content grid.
 pub(crate) fn cells(p: &TodoPane, cols: u16, rows: u16) -> Vec<CellView> {
+    let cols = content(cols);
+
     if cols < 8 || rows < 2 {
         return Vec::new();
     }
