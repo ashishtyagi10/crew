@@ -127,7 +127,7 @@ pub(crate) fn render_stats(stats: Stats, cols: u16, rows: u16) -> Vec<CellView> 
     // Wide enough, the three readings are drawn as rings (see
     // `crate::sysrings`); this section then contributes only their text.
     if crate::sysrings::fits(cols) {
-        out.extend(crate::sysrings::cells(stats, 1));
+        out.extend(crate::sysrings::cells(stats, cols, 1));
         return out;
     }
 

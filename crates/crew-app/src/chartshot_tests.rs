@@ -105,7 +105,7 @@ fn chart_shot_sys_rings() {
     };
     let px = shot("rings", "SYSTEM", |cols, _rows, aspect| {
         (
-            crate::sysrings::cells(stats, 0),
+            crate::sysrings::cells(stats, cols, 0),
             crate::sysrings::paint(stats, cols, 0, aspect),
         )
     });

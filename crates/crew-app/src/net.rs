@@ -58,9 +58,27 @@ pub fn net_cells(rx: u64, tx: u64, cols: u16) -> Vec<CellView> {
         format!("{arrow} {busier}"),
     ];
     let refs: Vec<&str> = ladder.iter().map(String::as_str).collect();
-    crate::navtext::put(&mut out, crate::navtext::fit(&refs, cols), 1, cols, t.ink);
+    let shown = crate::navtext::fit(&refs, cols);
+    // Both directions and room to spare: the up rate goes to the right edge
+    // instead of trailing the down rate, so a wide nav reads as two readings
+    // on one row rather than one short run and a lot of nothing. The two are
+    // opposite directions — putting them at opposite ends says so.
+    let split = crate::navtext::budget(cols) >= shown.chars().count() + SPREAD_AIR;
+    if split && shown.starts_with('↓') && shown.contains('↑') {
+        let (d, u) = (format!("↓ {down}"), format!("↑ {up}"));
+        crate::navtext::put(&mut out, &d, 1, cols, t.ink);
+        let right = cols.saturating_sub(1);
+        let at = right.saturating_sub(crate::chatwidth::str_w(&u) as u16);
+        crate::navtext::put_at(&mut out, &u, at, 1, right, t.ink);
+        return out;
+    }
+    crate::navtext::put(&mut out, shown, 1, cols, t.ink);
     out
 }
+
+/// Extra columns beyond the tight form before the two rates move apart. Below
+/// this they are close enough that spreading them looks like a mistake.
+const SPREAD_AIR: usize = 6;
 
 #[cfg(test)]
 mod tests {
@@ -109,6 +127,36 @@ mod tests {
         // Down is carrying more, so down is what survives — whole.
         assert_eq!(row(18), "↓ 3.8 MB/s");
         assert!(!row(18).contains('…'), "a value is dropped, never clipped");
+    }
+
+    /// Dragged wide, the two rates go to opposite ends of the row — they are
+    /// opposite directions, and a wide nav used to read as one short run at
+    /// the left with twenty columns of nothing after it.
+    #[test]
+    fn a_wide_nav_puts_the_two_directions_at_opposite_ends() {
+        let _g = crate::app::theme_test_guard();
+        let cells = net_cells(4_000_000, 900, 38);
+        let row: Vec<_> = {
+            let mut v: Vec<_> = cells.iter().filter(|c| c.row == 1).collect();
+            v.sort_by_key(|c| c.col);
+            v
+        };
+        assert_eq!(row.first().map(|c| (c.col, c.c)), Some((3, '↓')));
+        assert_eq!(row.last().map(|c| c.col), Some(36), "up ends at the edge");
+        assert!(row.iter().any(|c| c.c == '↑'));
+        // …but at the default width they stay together: two readings six
+        // columns apart look spread by accident, not on purpose.
+        let mut tight: Vec<_> = net_cells(4_000_000, 900, 26)
+            .into_iter()
+            .filter(|c| c.row == 1)
+            .collect();
+        tight.sort_by_key(|c| c.col);
+        let gap = tight
+            .windows(2)
+            .map(|w| w[1].col - w[0].col)
+            .max()
+            .unwrap_or(0);
+        assert!(gap <= 2, "still one run: biggest gap {gap} columns");
     }
 
     /// …and when it is the upload that is busy, the upload is what survives.
