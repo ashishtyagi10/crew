@@ -24,6 +24,7 @@ impl CrewApp {
                 PaneContent::Todo(_) => "Todo — Crew".into(),
                 PaneContent::Usage(_) => "Usage — Crew".into(),
                 PaneContent::Disk(_) => "Disk — Crew".into(),
+                PaneContent::Dash(_) => "Dashboard — Crew".into(),
             },
             None => "Crew".into(),
         }

@@ -50,6 +50,8 @@ impl CrewApp {
                 PaneContent::Usage(_) => {}
                 // The disk map picks tiles and walks into them.
                 PaneContent::Disk(d) => disk_action = d.on_key(event),
+                // The dashboard is a picture: nothing in it takes a key.
+                PaneContent::Dash(_) => {}
                 PaneContent::Todo(t) => {
                     todo_action = t.on_key(
                         event,

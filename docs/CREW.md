@@ -1053,6 +1053,14 @@ longer aim at.
   typing to edit` hint: `Enter` runs it like any typed command, `Esc`
   restores the original `!` text, and typing further just edits the
   suggestion as plain text.
+- **`/dash`** — opens the **dashboard**: one screen of the machine and the
+  week, composed from the same widgets the sidebar uses at a size worth
+  looking at. Three **ring gauges** (CPU, memory, disk) beside a four-minute
+  **CPU curve**; the **network** with both directions on one axis (down above
+  the line, up below); a **heatmap** of the last seven days of token use by
+  hour; and an **area chart** of what each day cost. Bands are drawn in
+  priority order, so a short pane keeps the machine and loses the history, and
+  everything follows its own clock — the sampler's second, the ledger's five.
 - **`/disk`** — opens the **disk** pane: the current directory as a
   **treemap**, one tile per entry with its area equal to its share of the
   bytes, so the thing filling your disk is the thing filling the pane. The
