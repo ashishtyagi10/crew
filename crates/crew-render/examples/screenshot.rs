@@ -627,6 +627,7 @@ fn build_welcome_scene(cols: u16, rows: u16, tick: u64, pw: f32, ph: f32) -> Vec
         glass: false,
         scan: -1.0,
         overlay: false,
+        paint: Vec::new(),
     }]
 }
 
@@ -656,6 +657,7 @@ fn build_scene(cell_w: f32, cell_h: f32) -> Vec<PaneScene> {
         glass: true,
         scan: -1.0,
         overlay: false,
+        paint: Vec::new(),
     });
 
     // --- main terminal (focused) ---
@@ -674,6 +676,7 @@ fn build_scene(cell_w: f32, cell_h: f32) -> Vec<PaneScene> {
         glass: true,
         scan: -1.0,
         overlay: false,
+        paint: Vec::new(),
     });
 
     // --- auxiliary terminal (unfocused) ---
@@ -692,6 +695,7 @@ fn build_scene(cell_w: f32, cell_h: f32) -> Vec<PaneScene> {
         glass: true,
         scan: -1.0,
         overlay: false,
+        paint: Vec::new(),
     });
 
     // --- input bar ---
@@ -706,6 +710,7 @@ fn build_scene(cell_w: f32, cell_h: f32) -> Vec<PaneScene> {
         glass: true,
         scan: -1.0,
         overlay: false,
+        paint: Vec::new(),
     });
 
     panes

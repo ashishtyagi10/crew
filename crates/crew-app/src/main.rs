@@ -29,6 +29,9 @@ mod bordermarks;
 mod boxdraw;
 mod channel;
 mod charrain;
+#[cfg(test)]
+#[path = "chartshot_tests.rs"]
+mod chartshot_tests;
 mod chat;
 mod chataction;
 mod chatbody;
@@ -201,6 +204,7 @@ mod pathcomplete;
 mod pathexpand;
 mod pathhl;
 mod pathmenu;
+mod plot;
 mod pointer;
 mod poll;
 mod procname;

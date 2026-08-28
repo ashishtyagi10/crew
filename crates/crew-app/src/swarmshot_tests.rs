@@ -135,6 +135,7 @@ fn render(pane: &ChatPane) -> Option<(Vec<u8>, u16, u16, f32)> {
             glass: false,
             scan: -1.0,
             overlay: false,
+            paint: Vec::new(),
         }],
     );
     grid.prepare(&device, &queue, W, H);

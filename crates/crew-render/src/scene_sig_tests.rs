@@ -39,6 +39,7 @@ fn pane(cells: Vec<CellView>, bordered: bool, overlay: bool) -> PaneScene {
         glass: false,
         scan: -1.0,
         overlay,
+        paint: Vec::new(),
     }
 }
 

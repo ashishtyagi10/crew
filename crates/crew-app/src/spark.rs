@@ -37,7 +37,7 @@ impl History {
 
     /// The most recent `width` samples (or fewer), oldest first — what fills the
     /// chart left→right so the newest reading sits at the right edge.
-    fn tail(&self, width: usize) -> Vec<u64> {
+    pub fn tail(&self, width: usize) -> Vec<u64> {
         let start = self.data.len().saturating_sub(width);
         self.data.iter().skip(start).copied().collect()
     }
@@ -100,17 +100,6 @@ pub fn line_cells(
         });
     }
     cells
-}
-
-/// Sidebar convenience: render `hist` as a percentage (0–100) continuous line
-/// chart indented under the section legend (col 3), spanning the rest of `cols`
-/// on `row`.
-pub fn cpu_row(hist: &History, cols: u16, row: u16) -> Vec<CellView> {
-    if cols <= 5 {
-        return Vec::new();
-    }
-    let fg = crate::palette::accent();
-    line_cells(hist, cols.saturating_sub(4), 3, row, 100, fg)
 }
 
 #[cfg(test)]

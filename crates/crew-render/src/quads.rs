@@ -86,7 +86,10 @@ impl QuadLayer {
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
                 targets: &[Some(wgpu::ColorTargetState {
                     format,
-                    blend: Some(wgpu::BlendState::REPLACE),
+                    // Alpha blending, not REPLACE: cell backgrounds and rules
+                    // are all opaque (identical under either mode), but the
+                    // paint layer draws translucent chart fills over them.
+                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
             }),

@@ -191,6 +191,7 @@ impl CrewApp {
             glass: true,
             scan: -1.0,
             overlay: false,
+            paint: Vec::new(),
         });
 
         // The page's light follows the focused card. Stepped HERE, after the
@@ -237,6 +238,7 @@ impl CrewApp {
                 glass: false,
                 scan: -1.0,
                 overlay: true,
+                paint: Vec::new(),
             });
             return scenes;
         }
@@ -280,6 +282,7 @@ impl CrewApp {
                 glass: false,
                 scan: -1.0,
                 overlay: true,
+                paint: Vec::new(),
             });
         }
 
@@ -301,6 +304,7 @@ impl CrewApp {
                 glass: false,
                 scan: -1.0,
                 overlay: true,
+                paint: Vec::new(),
             });
         }
 
@@ -350,6 +354,7 @@ impl CrewApp {
                                 glass: false,
                                 scan: -1.0,
                                 overlay: true,
+                                paint: Vec::new(),
                             });
                         }
                     }
@@ -387,6 +392,7 @@ impl CrewApp {
                             glass: false,
                             scan: -1.0,
                             overlay: true,
+                            paint: Vec::new(),
                         });
                     } else if let Some(f) = &c.find {
                         // Cmd+F transcript find: same placement as the Ctrl+R
@@ -415,6 +421,7 @@ impl CrewApp {
                             glass: false,
                             scan: -1.0,
                             overlay: true,
+                            paint: Vec::new(),
                         });
                     } else if let Some(h) = &c.histsearch {
                         // Ctrl+R history search: same placement as the
@@ -441,6 +448,7 @@ impl CrewApp {
                             glass: false,
                             scan: -1.0,
                             overlay: true,
+                            paint: Vec::new(),
                         });
                     } else if let Some(p) = c.palette.as_ref().filter(|p| !p.items.is_empty()) {
                         // `after_edit` clears `palette` whenever it would be
@@ -474,6 +482,7 @@ impl CrewApp {
                             glass: false,
                             scan: -1.0,
                             overlay: true,
+                            paint: Vec::new(),
                         });
                     }
                 }

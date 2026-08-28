@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crew_render::CellView;
+use crew_render::{CellView, Paint};
 
 use crate::clock;
 use crate::gauges::render_stats;
@@ -13,8 +13,14 @@ use crate::net;
 use crate::panelist::{self, PaneRow};
 use crate::stats::SysSampler;
 
-/// Rows the SYSTEM section occupies (rule + 3 gauges + CPU sparkline + gap).
-const SYS_BLOCK: u16 = 6;
+/// Rows the SYSTEM section occupies (rule + 3 gauges + the 2-row CPU area
+/// chart + gap). The chart got its second row when it stopped being a line of
+/// block glyphs: a curve with a filled body needs the height to say anything
+/// the gauge above it does not already say.
+const SYS_BLOCK: u16 = 7;
+/// Rows the CPU chart occupies, and where it starts inside the SYSTEM block.
+const CHART_ROWS: u16 = 2;
+const CHART_OFF: u16 = 4;
 /// Rows the LOAD section occupies (rule + 1 line + a one-row gap below it).
 const LOAD_BLOCK: u16 = 3;
 /// Rows a section with a rule + 2 content rows + one-row gap occupies (HOST, NET, GIT).
@@ -91,6 +97,37 @@ impl StatsPane {
         self.log_top() + navlog::log_block(log_len)
     }
 
+    /// The sidebar's drawn layer: sub-cell [`Paint`] for the charts, in the
+    /// card interior's own cell coordinates. `aspect` is the frame's
+    /// `cell_h / cell_w`, without which a circle would come out an ellipse and
+    /// a chart's proportions would change with the font.
+    ///
+    /// Kept beside [`Self::cells`] rather than folded into it because the two
+    /// layers are drawn by different passes; both read the same section
+    /// offsets, which is what keeps a chart under the section it belongs to.
+    pub fn chart_paint(&self, cols: u16, rows: u16, aspect: f32) -> Vec<Paint> {
+        let row0 = clock::CLOCK_H + CHART_OFF;
+        // Indented under the section legend like the gauges above it, one
+        // column of air kept on the right.
+        let (col0, width) = (3u16, cols.saturating_sub(4));
+        if width == 0 || rows < row0 + CHART_ROWS || self.cpu_hist.is_empty() {
+            return Vec::new();
+        }
+        let samples: Vec<f32> = self
+            .cpu_hist
+            .tail(width as usize * 2)
+            .into_iter()
+            .map(|v| (v as f32 / 100.0).clamp(0.0, 1.0))
+            .collect();
+        let mut c = crate::plot::Canvas::new(width, CHART_ROWS, aspect);
+        let (w, h) = c.size();
+        crate::plot::area::draw(&mut c, (0.0, 0.0, w, h), &samples, crate::palette::accent());
+        c.paint()
+            .into_iter()
+            .map(|p| p.shifted(f32::from(col0), f32::from(row0)))
+            .collect()
+    }
+
     pub fn cells(
         &self,
         cols: u16,
@@ -110,10 +147,8 @@ impl StatsPane {
                 out.push(c);
             }
         }
-        // a moving CPU sparkline on the row below the three gauges
-        if rows > sys_off + 4 {
-            out.extend(crate::spark::cpu_row(&self.cpu_hist, cols, sys_off + 4));
-        }
+        // The CPU history chart lives below the three gauges. It is *drawn*,
+        // not spelled — see `chart_paint`; nothing is emitted here.
 
         let load_off = clock::CLOCK_H + SYS_BLOCK;
         if rows > load_off + 1 {
@@ -193,17 +228,17 @@ mod tests {
     #[test]
     fn panes_top_accounts_for_git_and_log() {
         let mut s = StatsPane::new();
-        // clock(4) + system(6) + load(3) + host(4) + net(4) = 21
-        assert_eq!(s.panes_top(0), 21);
+        // clock(4) + system(7) + load(3) + host(4) + net(4) = 22
+        assert_eq!(s.panes_top(0), 22);
         s.git.set_info(Some(git::GitInfo {
             branch: "main".into(),
             changed: 0,
             ahead: 0,
             behind: 0,
         }));
-        assert_eq!(s.panes_top(0), 25); // + git(4)
+        assert_eq!(s.panes_top(0), 26); // + git(4)
                                         // a non-empty log adds its block: rule + min(n, LOG_LINES) + gap.
-        assert_eq!(s.panes_top(2), 25 + 4); // 2 entries -> 2 + 2
-        assert_eq!(s.panes_top(99), 25 + navlog::LOG_LINES as u16 + 2); // capped
+        assert_eq!(s.panes_top(2), 26 + 4); // 2 entries -> 2 + 2
+        assert_eq!(s.panes_top(99), 26 + navlog::LOG_LINES as u16 + 2); // capped
     }
 }
