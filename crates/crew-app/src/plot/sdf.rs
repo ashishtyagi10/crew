@@ -59,6 +59,34 @@ pub fn arc(p: (f32, f32), c: (f32, f32), r: f32, w: f32, from: f32, to: f32) -> 
     }
 }
 
+/// Distance to an annulus sector: the band between `r_in` and `r_out`, from
+/// angle `from` clockwise to `to`. `r_in` of zero gives a pie slice.
+///
+/// Square ends, unlike [`arc`] — a slice of a pie is cut on a radius, not
+/// rounded off. Composed as the annulus intersected with the angular wedge:
+/// `max` of two distances, which slightly overstates the distance just
+/// outside the two corners and nowhere else.
+pub fn sector(p: (f32, f32), c: (f32, f32), r_out: f32, r_in: f32, from: f32, to: f32) -> f32 {
+    let sweep = (to - from).max(0.0);
+    let (u, v) = (p.0 - c.0, -(p.1 - c.1));
+    let full = sweep >= TAU - 1e-4;
+    let (sm, cm) = ((from + to) * 0.5).sin_cos();
+    let (px, py) = ((u * cm - v * sm).abs(), v * cm + u * sm);
+    let rad = px.hypot(py);
+    // A hole of nothing is a disc, and the band expression would call the
+    // exact centre an edge rather than the deepest point inside.
+    let band = if r_in <= 0.0 {
+        rad - r_out
+    } else {
+        (rad - (r_out + r_in) * 0.5).abs() - (r_out - r_in) * 0.5
+    };
+    if full {
+        return band;
+    }
+    let (sa, ca) = (sweep * 0.5).clamp(0.0, PI).sin_cos();
+    band.max(px * ca - py * sa)
+}
+
 /// Distance to a round-capped line from `a` to `b` of half-thickness `r`.
 pub fn capsule(p: (f32, f32), a: (f32, f32), b: (f32, f32), r: f32) -> f32 {
     let (pax, pay) = (p.0 - a.0, p.1 - a.1);
@@ -171,6 +199,28 @@ mod tests {
             let p = polar(c, 3.0, a);
             assert!(arc(p, c, 3.0, 0.4, 0.0, TAU) < 0.0, "angle {a}");
         }
+    }
+
+    /// A slice is cut on its radii: the ends are straight, and a slice of
+    /// nothing is nothing rather than a dot (which is what [`arc`]'s round
+    /// caps would leave behind).
+    #[test]
+    fn a_sector_is_a_wedge_of_the_band_with_square_ends() {
+        let c = (0.0, 0.0);
+        let q = |p| sector(p, c, 4.0, 2.0, 0.0, TAU * 0.25);
+        assert!(q(polar(c, 3.0, TAU * 0.125)) < 0.0, "mid-slice, mid-band");
+        // Its two radii are the boundary, not the inside: a slice ends on
+        // them, and the next slice begins.
+        assert!(q((0.0, -3.0)).abs() < 1e-5, "noon is the cut");
+        assert!(q((3.0, 0.0)).abs() < 1e-5, "and so is three o'clock");
+        assert!(q(polar(c, 3.0, TAU * 0.6)) > 0.0, "past it is outside");
+        assert!(q((0.0, -1.0)) > 0.0, "the hole is outside the band");
+        assert!(q((0.0, -5.0)) > 0.0, "as is past the rim");
+        // Whole circle: every angle is in, and the hole is still a hole.
+        let all = |p| sector(p, c, 4.0, 2.0, 0.0, TAU);
+        assert!(all((-3.0, 0.0)) < 0.0 && all((0.0, 1.0)) > 0.0);
+        // No hole asked for: the centre is the deepest point in, not an edge.
+        assert!((sector((0.0, 0.0), c, 4.0, 0.0, 0.0, TAU) + 4.0).abs() < 1e-5);
     }
 
     #[test]
