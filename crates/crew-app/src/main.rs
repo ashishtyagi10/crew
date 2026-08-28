@@ -55,6 +55,7 @@ mod chatlayout;
 mod chatmd;
 mod chatmention;
 
+mod cardpaint;
 mod chatmsgs;
 mod chatpalette;
 mod chatplace;

@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.37
+
+**The card's own readings are drawn.** The scroll thumb on a pane's right
+border and the progress bar on its bottom border were runs of box-drawing
+glyphs, so both moved a cell at a time: a thumb had 38 stops in a 200,000-line
+scrollback, and a build at 3% drew nothing.
+
+Both are drawn now — the thumb slides to a fraction of a cell, the bar lands
+where the number says, and an indeterminate report sweeps as a comet whose
+leading edge is brightest, so it says which way it is going. Landmark ticks
+and search hits stay glyphs: they mark particular rows, and a row is exactly
+one cell.
+
 ## 0.19.36
 
 **`/disk` — where the space went.** A new pane draws the current directory as

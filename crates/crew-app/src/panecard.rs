@@ -346,10 +346,11 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
     // …and the same fact as a shape, down the right border: where you are in
     // the scrollback, not just how far from its bottom. Landmarks first, so
     // the thumb draws over the one you are on.
+    // Landmarks and search hits stay glyphs: they mark discrete rows, and a
+    // row is exactly one cell. The thumb and the progress bar are continuous
+    // readings and are drawn instead — see [`crate::cardpaint`].
     crate::panescroll::ticks(&mut v, cols, rows, b);
     crate::panescroll::hit_ticks(&mut v, cols, rows, b);
-    crate::panescroll::thumb(&mut v, cols, rows, b);
-    crate::panescroll::progress(&mut v, cols, rows, b, crate::anim::now_ms());
     // Where each thing you ran began. Quieter than the error bars, and drawn
     // first so an error on the same row replaces it. A block the shell
     // reported a failure for wears the same tick in the alarm colour — it is

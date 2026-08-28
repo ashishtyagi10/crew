@@ -10,6 +10,11 @@
 //! columns whether or not anyone has scrolled. It also draws only while
 //! scrolled back — a permanent gutter on every card would be chrome for a
 //! question nobody is asking at the bottom of the buffer.
+//!
+//! What is left here is the discrete part: landmark ticks and search hits,
+//! which mark particular *rows* and so are exactly one cell each. The thumb
+//! and the program's progress bar are continuous readings and moved a whole
+//! cell at a time as glyphs; they are drawn now, in [`crate::cardpaint`].
 use crew_render::CellView;
 
 use crate::panecard::{put, Bar};
@@ -26,7 +31,7 @@ use crate::panecard::{put, Bar};
 ///
 /// Falls back to `status_fg` — what both wore before — on a theme with no
 /// gradient to sample.
-fn position_fg(t: f32) -> (u8, u8, u8) {
+pub(crate) fn position_fg(t: f32) -> (u8, u8, u8) {
     crate::modernring::pole_mix(t).unwrap_or(crew_theme::theme().status_fg)
 }
 
@@ -66,28 +71,6 @@ pub(crate) fn count(v: &mut Vec<CellView>, rx: u16, min_col: u16, scroll: usize,
 /// Rows of the right border a thumb may occupy: everything between the two
 /// corners. A card shorter than this has no gutter worth drawing.
 const MIN_ROWS: u16 = 5;
-
-/// Draw the proportional thumb down the right border of a `cols`×`rows` card.
-/// No-op at the bottom of the buffer, on a card with no scrollback to speak
-/// of, or on one too short to read.
-pub(crate) fn thumb(v: &mut Vec<CellView>, cols: u16, rows: u16, b: &Bar) {
-    // A shell's gutter is a scrollback affordance — nothing behind you, no
-    // gutter. A document's is where you ARE in it, which is a question worth
-    // answering at the top of the file too.
-    if (b.scroll == 0 && !b.doc) || rows < MIN_ROWS || cols < 2 {
-        return;
-    }
-    let visible = usize::from(rows - 2);
-    // How far down the buffer the top of the window sits.
-    let first = b.total.saturating_sub(visible).saturating_sub(b.scroll);
-    let Some((top, len)) = crate::chatscroll::thumb(b.total, visible, first) else {
-        return;
-    };
-    let fg = position_fg(position(b.total, visible, b.scroll));
-    for i in top..(top + len).min(visible) {
-        put(v, cols - 1, 1 + i as u16, '\u{2503}', fg, true);
-    }
-}
 
 /// Landmark ticks down the right border: one dim mark per rendered row worth
 /// jumping to (`]` / `[`), placed proportionally. Drawn BEFORE the thumb, so
@@ -130,43 +113,6 @@ pub(crate) fn hit_ticks(v: &mut Vec<CellView>, cols: u16, rows: u16, b: &Bar) {
         put(v, cols - 1, y, '\u{2501}', fg, false);
     }
 }
-
-/// A program's own progress (OSC 9;4) along the card's BOTTOM border.
-///
-/// The border rather than a content row for the same reason the scroll thumb
-/// rides one: a terminal's columns belong to the program running in it, and a
-/// bar that stole a row would resize the grid under it. An indeterminate
-/// report (state 3 — "working, no number") sweeps a short block back and
-/// forth on the shared clock instead of filling.
-pub(crate) fn progress(v: &mut Vec<CellView>, cols: u16, rows: u16, b: &Bar, now: u64) {
-    let Some(p) = b.progress else { return };
-    if cols < 4 || rows < 3 {
-        return;
-    }
-    let (y, inner) = (rows - 1, cols - 2);
-    let t = crew_theme::theme();
-    let fg = match p.alarm {
-        true => t.bell,
-        false => t.activity,
-    };
-    let (from, to) = match p.percent {
-        Some(pct) => (0, u32::from(inner) * u32::from(pct) / 100),
-        // A sweep a fifth of the border wide, bouncing on the same triangle
-        // wave the busy scan uses.
-        None => {
-            let w = (u32::from(inner) / 5).max(1);
-            let span = u32::from(inner).saturating_sub(w);
-            let at = (crate::anim::tri(now, SWEEP_MS) * span as f32).round() as u32;
-            (at, at + w)
-        }
-    };
-    for i in from..to.min(u32::from(inner)) {
-        put(v, 1 + i as u16, y, '\u{2501}', fg, true);
-    }
-}
-
-/// One full bounce of an indeterminate progress sweep, in ms.
-const SWEEP_MS: u64 = 1400;
 
 /// The scroll offset that puts the top of the window on the line a pointer
 /// `frac` of the way down the gutter is pointing at: 0.0 is the top of the

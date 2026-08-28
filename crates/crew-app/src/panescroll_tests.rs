@@ -1,6 +1,26 @@
-use super::{count, hit_ticks, position, progress, thumb, ticks, MIN_ROWS};
+use super::{count, hit_ticks, position, ticks, MIN_ROWS};
 use crate::panecard::Bar;
 use crew_render::CellView;
+
+/// The rows the DRAWN thumb touches on the right border of a `cols`×`rows`
+/// card. The thumb is a paint rectangle at a fractional position now, so the
+/// same questions these tests always asked — where is it, how long is it —
+/// are answered by which rows its rectangle covers.
+fn thumb_rows_of(b: &Bar, cols: u16, rows: u16) -> Vec<u16> {
+    let paint = crate::cardpaint::card_paint(cols, rows, b, 2.0, 0);
+    let mut out: Vec<u16> = Vec::new();
+    for p in paint.iter().filter(|p| p.x >= f32::from(cols - 1) - 0.01) {
+        let first = p.y.floor() as u16;
+        let last = (p.y + p.h - 1e-3).floor() as u16;
+        for r in first..=last {
+            if !out.contains(&r) {
+                out.push(r);
+            }
+        }
+    }
+    out.sort_unstable();
+    out
+}
 
 fn bar(scroll: usize, total: usize) -> Bar<'static> {
     Bar {
@@ -30,17 +50,9 @@ fn bar(scroll: usize, total: usize) -> Bar<'static> {
     }
 }
 
-/// The thumb cells on the right border of a `cols`×`rows` card.
+/// The thumb rows for a card scrolled `scroll` back in a `total`-line buffer.
 fn thumb_rows(cols: u16, rows: u16, scroll: usize, total: usize) -> Vec<u16> {
-    let mut v: Vec<CellView> = Vec::new();
-    thumb(&mut v, cols, rows, &bar(scroll, total));
-    let mut rows: Vec<u16> = v
-        .iter()
-        .filter(|c| c.col == cols - 1)
-        .map(|c| c.row)
-        .collect();
-    rows.sort_unstable();
-    rows
+    thumb_rows_of(&bar(scroll, total), cols, rows)
 }
 
 #[test]
@@ -190,9 +202,11 @@ fn both_readings_of_the_position_share_one_colour() {
     let (total, visible) = (1_000usize, 8usize);
     let rows = (visible + 2) as u16;
     let b = bar(400, total);
-    let mut thumb_cells = Vec::new();
-    thumb(&mut thumb_cells, 40, rows, &b);
-    let thumb_fg = thumb_cells.first().expect("a thumb should be drawn").fg;
+    let thumb_fg = crate::cardpaint::card_paint(40, rows, &b, 2.0, 0)
+        .into_iter()
+        .find(|p| p.x >= 39.0)
+        .expect("a thumb should be drawn")
+        .color;
     let mut count_cells = Vec::new();
     count(
         &mut count_cells,
@@ -221,11 +235,7 @@ fn a_document_draws_its_thumb_before_it_is_scrolled() {
         doc: false,
         ..bar(0, 400)
     };
-    let drawn = |b: &Bar| {
-        let mut v = Vec::new();
-        thumb(&mut v, 40, 20, b);
-        v.len()
-    };
+    let drawn = |b: &Bar| thumb_rows_of(b, 40, 20).len();
     assert!(drawn(&doc) > 0, "a document at the top shows no position");
     assert_eq!(drawn(&shell), 0, "a shell grew a permanent gutter");
 }
@@ -295,15 +305,21 @@ fn the_thumb_covers_the_landmark_it_sits_on() {
         unread: 0,
         ..bar(0, 400)
     };
+    // The landmark tick at the top of the gutter is still a glyph, and the
+    // thumb — drawn now — covers the same row, so a landmark you are sitting
+    // on is hidden by where you are rather than the other way round.
     let mut v = Vec::new();
     ticks(&mut v, 40, 20, &b);
-    thumb(&mut v, 40, 20, &b);
     let at_top: Vec<char> = v
         .iter()
         .filter(|c| c.col == 39 && c.row == 1)
         .map(|c| c.c)
         .collect();
-    assert_eq!(at_top, vec!['\u{2503}'], "{at_top:?}");
+    assert_eq!(at_top, vec!['\u{2508}'], "{at_top:?}");
+    assert!(
+        thumb_rows_of(&b, 40, 20).contains(&1),
+        "the thumb covers the landmark it is sitting on"
+    );
 }
 
 /// A pane with nothing worth marking draws nothing, and a tiny card draws no
@@ -430,23 +446,38 @@ fn a_progress_report_fills_the_bottom_border() {
         progress: p,
         ..bar(0, 0)
     };
-    let drawn = |p| {
-        let mut v = Vec::new();
-        progress(&mut v, 42, 10, &bar_at(p), 0);
-        v
+    // The bar is drawn now, so its reading is its WIDTH rather than a count
+    // of cells — which is the point: 50% is half the border, not four glyphs.
+    let bar_paint = |p| {
+        crate::cardpaint::card_paint(42, 10, &bar_at(p), 2.0, 0)
+            .into_iter()
+            .filter(|q| q.y >= 9.0)
+            .collect::<Vec<_>>()
     };
-    assert!(drawn(None).is_empty(), "a quiet pane drew a bar");
-    let half = drawn(pct(50));
+    let width = |p| {
+        let v = bar_paint(p);
+        let lo = v.iter().map(|q| q.x).fold(f32::MAX, f32::min);
+        let hi = v.iter().map(|q| q.x + q.w).fold(0.0f32, f32::max);
+        if v.is_empty() {
+            0.0
+        } else {
+            hi - lo
+        }
+    };
+    assert!(bar_paint(None).is_empty(), "a quiet pane drew a bar");
+    let half = bar_paint(pct(50));
     assert!(!half.is_empty());
-    assert!(half.iter().all(|c| c.row == 9), "the bar left the border");
     assert!(
-        half.iter().all(|c| (1..41).contains(&c.col)),
+        half.iter().all(|q| q.x >= 1.0 && q.x + q.w <= 41.0),
         "the bar overran the corners"
     );
-    let full = drawn(pct(100));
-    assert!(full.len() > half.len(), "100% is no wider than 50%");
-    assert_eq!(full.len(), 40, "100% does not span the border");
-    assert!(drawn(pct(0)).is_empty(), "0% drew something");
+    assert!((width(pct(50)) - 20.0).abs() < 0.3, "half the border");
+    assert!((width(pct(100)) - 40.0).abs() < 0.3, "all of it");
+    // The reading the glyph bar could not show at all: at 3% it drew one
+    // whole cell — 2.5% of the border — or nothing.
+    assert!(width(pct(3)) > 0.9, "3% is drawn");
+    assert!(width(pct(3)) < width(pct(6)), "3% and 6% differ");
+    assert!(bar_paint(pct(0)).is_empty(), "0% drew something");
 }
 
 /// An error or warning state is the same bar in the alarm colour: the number
@@ -461,9 +492,10 @@ fn an_alarming_report_is_drawn_in_the_alarm_colour() {
         }),
         ..bar(0, 0)
     };
-    let mut v = Vec::new();
-    progress(&mut v, 42, 10, &alarm, 0);
-    assert!(v.iter().all(|c| c.fg == crew_theme::theme().bell));
+    let bell = crew_theme::theme().bell;
+    let v = crate::cardpaint::card_paint(42, 10, &alarm, 2.0, 0);
+    assert!(!v.is_empty());
+    assert!(v.iter().all(|q| q.color == bell));
 }
 
 /// "Working, with no number" sweeps rather than filling — and it moves, or it
@@ -478,15 +510,27 @@ fn an_indeterminate_report_sweeps_instead_of_filling() {
         }),
         ..bar(0, 0)
     };
-    let at = |now| {
-        let mut v = Vec::new();
-        progress(&mut v, 42, 10, &b, now);
-        v.iter().map(|c| c.col).min().unwrap_or(0)
+    let at = |now: u64| {
+        crate::cardpaint::card_paint(42, 10, &b, 2.0, now)
+            .into_iter()
+            .map(|q| q.x)
+            .fold(f32::MAX, f32::min)
     };
     assert!(at(0) < at(700), "the sweep does not move");
-    let mut v = Vec::new();
-    progress(&mut v, 42, 10, &b, 700);
-    assert!(v.len() < 20, "the sweep is a block, not a fill");
+    let span = |now: u64| {
+        let v = crate::cardpaint::card_paint(42, 10, &b, 2.0, now);
+        let lo = v.iter().map(|q| q.x).fold(f32::MAX, f32::min);
+        let hi = v.iter().map(|q| q.x + q.w).fold(0.0f32, f32::max);
+        hi - lo
+    };
+    assert!(span(700) < 20.0, "the sweep is a comet, not a fill");
+    // It fades toward its tail — a block of constant brightness cannot say
+    // which way it is going.
+    let v = crate::cardpaint::card_paint(42, 10, &b, 2.0, 700);
+    let alphas: Vec<f32> = v.iter().map(|q| q.alpha).collect();
+    let lo = alphas.iter().cloned().fold(f32::MAX, f32::min);
+    let hi = alphas.iter().cloned().fold(0.0f32, f32::max);
+    assert!(hi - lo > 0.3, "the sweep has a tail: {lo}..{hi}");
 }
 
 /// A card too small to hold a border bar draws none rather than a corner.
@@ -497,8 +541,6 @@ fn a_tiny_card_draws_no_bar() {
         progress: pct(50),
         ..bar(0, 0)
     };
-    let mut v = Vec::new();
-    progress(&mut v, 3, 10, &b, 0);
-    progress(&mut v, 42, 2, &b, 0);
-    assert!(v.is_empty());
+    assert!(crate::cardpaint::card_paint(3, 10, &b, 2.0, 0).is_empty());
+    assert!(crate::cardpaint::card_paint(42, 2, &b, 2.0, 0).is_empty());
 }

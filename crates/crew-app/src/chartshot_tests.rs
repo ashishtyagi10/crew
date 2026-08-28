@@ -580,3 +580,63 @@ fn chart_shot_disk_treemap() {
         .count();
     assert!(ink > 5000, "the treemap drew something: {ink} ink pixels");
 }
+
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn chart_shot_card_indicators() {
+    let _g = crate::app::theme_test_guard();
+    let px = shot("card", "build \u{00b7} cargo", |cols, rows, aspect| {
+        // The card's own frame, with a program reporting 34% and a buffer
+        // scrolled a third of the way back.
+        let bar = crate::panecard::Bar {
+            index: Some(1),
+            title: "build \u{00b7} cargo",
+            focused: true,
+            scroll: 4_000,
+            total: 12_000,
+            activity: false,
+            bell: false,
+            broadcast: false,
+            min_btn: true,
+            assemble_t: 1.0,
+            focus_t: 1.0,
+            git: None,
+            ticks: &[],
+            hits: &[],
+            progress: Some(crew_term::Progress {
+                percent: Some(34),
+                alarm: false,
+            }),
+            elapsed: Some("12s".into()),
+            pinned: false,
+            at_cmd: None,
+            fail_rows: &[],
+            cmd_rows: &[],
+            err_rows: &[],
+            unread: 0,
+            doc: false,
+        };
+        (
+            crate::panecard::pane_card(cols.saturating_sub(2), rows.saturating_sub(2), &bar),
+            crate::cardpaint::card_paint(cols, rows, &bar, aspect, 0),
+        )
+    });
+    let Some(px) = px else {
+        eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+        return;
+    };
+    let bg = crew_theme::theme().page_bg;
+    let ink = px
+        .chunks_exact(4)
+        .filter(|p| {
+            (p[0] as i32 - bg.0 as i32).abs()
+                + (p[1] as i32 - bg.1 as i32).abs()
+                + (p[2] as i32 - bg.2 as i32).abs()
+                > 40
+        })
+        .count();
+    assert!(
+        ink > 500,
+        "the card indicators drew something: {ink} ink pixels"
+    );
+}

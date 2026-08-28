@@ -337,35 +337,40 @@ fn push_pane_scenes(
     });
     // Border card: the rounded frame + legend + status, drawn over the rect.
     let title = p.title_text();
+    let bar = Bar {
+        index,
+        title: &title,
+        focused: foc,
+        scroll,
+        total,
+        activity: p.activity && !foc,
+        bell: p.bell && !foc,
+        broadcast: broadcast && is_term,
+        min_btn,
+        focus_t,
+        assemble_t,
+        git: git.info(p.dir.as_deref()),
+        ticks: &ticks,
+        hits: &hits,
+        progress,
+        elapsed,
+        pinned,
+        at_cmd: at_cmd.as_deref(),
+        cmd_rows: &cmd_rows,
+        fail_rows: &fail_rows,
+        err_rows: &err_rows,
+        unread,
+        doc: matches!(p.content, PaneContent::View(_) | PaneContent::Chat(_)),
+    };
+    // The card's own grid: the pane's content grid plus its border ring —
+    // the same `(cols + 2, rows + 2)` `pane_card` lays its cells out on, so
+    // the drawing and the frame agree about where the borders are.
+    let (ccols, crows) = (p.grid.cols + 2, p.grid.rows + 2);
     scenes.push(PaneScene {
-        cells: crate::panecardglow::pane_card_glowing(
-            p,
-            &Bar {
-                index,
-                title: &title,
-                focused: foc,
-                scroll,
-                total,
-                activity: p.activity && !foc,
-                bell: p.bell && !foc,
-                broadcast: broadcast && is_term,
-                min_btn,
-                focus_t,
-                assemble_t,
-                git: git.info(p.dir.as_deref()),
-                ticks: &ticks,
-                hits: &hits,
-                progress,
-                elapsed,
-                pinned,
-                at_cmd: at_cmd.as_deref(),
-                cmd_rows: &cmd_rows,
-                fail_rows: &fail_rows,
-                err_rows: &err_rows,
-                unread,
-                doc: matches!(p.content, PaneContent::View(_) | PaneContent::Chat(_)),
-            },
-        ),
+        cells: crate::panecardglow::pane_card_glowing(p, &bar),
+        // The frame's continuous readings — the scroll thumb and the
+        // program's progress bar — drawn rather than spelled.
+        paint: crate::cardpaint::card_paint(ccols, crows, &bar, ch / cw, now),
         x: r.x,
         y: r.y,
         w: r.w,
@@ -377,7 +382,6 @@ fn push_pane_scenes(
         glass: true,
         scan,
         overlay: false,
-        paint: Vec::new(),
     });
 }
 
