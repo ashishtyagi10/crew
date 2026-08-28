@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.33
+
+**The footer's meters are drawn.** The crew pane's statusline had two dithered
+eight-cell gauges — the 5h budget and the context fill — and eight cells only
+have eight stops: 12% and 24% drew the same first cell, and small movements
+moved nothing at all.
+
+They are capsules now, with the theme's gradient along the fill, landing where
+the number says to a fraction of a cell. A meter barely started still draws a
+mark rather than reading as empty.
+
+This is the first drawing on a pane rather than a sidebar panel: panes carry a
+paint layer from here on, which is what the next widgets need.
+
 ## 0.19.32
 
 **NET says which way the bytes went.** The section traced a single line of
