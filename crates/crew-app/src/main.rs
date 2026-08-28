@@ -174,6 +174,9 @@ mod modelroute;
 mod modernring;
 mod motion;
 mod navcard;
+#[cfg(test)]
+#[path = "navcontrast_tests.rs"]
+mod navcontrast_tests;
 mod navlayout;
 mod navlog;
 mod navlogscroll;

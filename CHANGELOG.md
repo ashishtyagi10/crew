@@ -8,6 +8,41 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.40
+
+**The accent could take the whole nav with it.** Every theme's own
+`accent_default` clears the contrast floor against its page — that is what
+picking it meant. The accent the *user* sets never had to. Crew's own brand
+green, `#00ffa0`, and the value anyone carries over from a dark theme, reads
+at **1.2 against every light page in the set**: on paper-light the section
+legends, the clock, the load, the PANES key and the CPU trace were all a mint
+that is not there. `spark`, `warn`, `danger`, `cursor` and `link` each grew a
+floor of their own; the accent was the one colour on the canvas that never
+did, and the only one the user can change. `palette::accent()` is now floored
+against the page it lands on (memoised per accent+page), with `raw_accent()`
+kept for round-trips. A saturated yellow cannot reach the floor at *any*
+lightness on a cream page, so the new `readable::enforced` gives up chroma
+instead of giving up the floor.
+
+Held by a contract that walks the nav's **drawn cells** on all twelve themes —
+including with a hostile accent — rather than a list of colours someone
+remembered to add.
+
+**And the sections say what they are measuring.** LOAD shipped with a trailing
+`1·5·15m` hint behind a width check the docked nav has never passed, so three
+bare numbers have never said what they were. The rule is the widest and
+emptiest part of a narrow section, so the key goes there
+(`─ LOAD 1·5·15m ───`). The three loads are one measurement at three ages, so
+they differ by rank rather than hue now: the 1-minute figure keeps the load
+colour, the two history figures step back through `readable::secondary`.
+
+**The PANES backdrop stopped scribbling.** The pulse chart was drawing its
+curve — a faint line straight through "working" and "waiting", and across the
+donut. A line crossing a word is a scribble however faint it is. It is fill
+only now, starting clear of the ring, which no longer touches the card border.
+LOG lines from the same minute print their stamp once, so the stamps read as a
+scale instead of a stack of identical `23:12`s.
+
 ## 0.19.39
 
 **The left nav, looked at as a column.** Ten releases of drawing built the

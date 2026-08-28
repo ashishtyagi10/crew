@@ -215,14 +215,16 @@ fn asking_for_contrast_actually_moves_the_derived_colours() {
     );
 }
 
-/// `secondary` is quieter than what it is given but never invisible: it keeps
-/// the hue (so it still reads as the same measurement) and never falls under
-/// the mark floor (so it is still a mark).
+/// `secondary` never out-reads what it ranks below, and never falls under the
+/// mark floor. On the light pages in this set the primaries only reach 4.6-4.9
+/// themselves, so there the rank collapses to equal weight — what it must
+/// never do is invert, which asking for the text floor made it do.
 #[test]
-fn secondary_is_quieter_but_never_below_the_mark_floor() {
+fn secondary_never_out_reads_its_primary_nor_drops_below_the_mark_floor() {
     let _g = crate::contrast::test_lock();
     crate::contrast::set_high_contrast(false);
     let mut bad: Vec<String> = Vec::new();
+    let mut ranked = 0;
     for id in ALL_THEMES {
         let t = id.theme();
         for (name, want) in [
@@ -235,9 +237,9 @@ fn secondary_is_quieter_but_never_below_the_mark_floor() {
                 contrast_ratio(want, t.page_bg),
                 contrast_ratio(q, t.page_bg),
             );
-            if quiet >= full {
+            if quiet > full + 0.01 {
                 bad.push(format!(
-                    "{}: {name} not quieter ({quiet:.2} vs {full:.2})",
+                    "{}: {name} INVERTED ({quiet:.2} over {full:.2})",
                     id.as_str()
                 ));
             }
@@ -246,6 +248,9 @@ fn secondary_is_quieter_but_never_below_the_mark_floor() {
                     "{}: {name} is {quiet:.2}, floor {MARK_FLOOR}",
                     id.as_str()
                 ));
+            }
+            if quiet < full - 0.5 {
+                ranked += 1;
             }
             // Same measurement, so the same hue — a chromatic colour must not
             // walk into a different one on its way down.
@@ -257,4 +262,42 @@ fn secondary_is_quieter_but_never_below_the_mark_floor() {
         }
     }
     assert!(bad.is_empty(), "{}", bad.join("\n  "));
+    // …and on the pages that DO have headroom it is a visible rank, not a
+    // no-op that would pass every assertion above.
+    assert!(ranked >= 12, "only {ranked} of 36 were visibly ranked");
+}
+
+/// `against` is allowed to give up — it hands back the best it reached when
+/// the hue cannot get there. `enforced` is not: it spends chroma instead, and
+/// fully grey always clears. The case that made it necessary is a saturated
+/// yellow on a cream page, which tops out around 1.2 at every lightness.
+#[test]
+fn enforced_clears_the_floor_even_where_against_cannot() {
+    let _g = crate::contrast::test_lock();
+    crate::contrast::set_high_contrast(false);
+    let floor = TEXT_FLOOR;
+    let mut gave_up = 0;
+    let mut bad: Vec<String> = Vec::new();
+    for id in ALL_THEMES {
+        let page = id.theme().page_bg;
+        for want in [
+            (255, 240, 90),
+            (0, 255, 160),
+            (30, 30, 40),
+            (255, 255, 255),
+            (120, 200, 255),
+        ] {
+            if contrast_ratio(against(want, page, floor), page) < floor {
+                gave_up += 1;
+            }
+            let r = contrast_ratio(enforced(want, page, floor), page);
+            if r < floor - 0.01 {
+                bad.push(format!("{}: {want:?} enforced to only {r:.2}", id.as_str()));
+            }
+        }
+    }
+    assert!(bad.is_empty(), "{}", bad.join("\n  "));
+    // …and the test is testing something: `against` really does give up on
+    // some of these, which is the whole reason `enforced` exists.
+    assert!(gave_up > 0, "no case here actually defeats `against`");
 }

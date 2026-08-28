@@ -91,19 +91,76 @@ pub fn against(want: (u8, u8, u8), page: (u8, u8, u8), floor: f32) -> (u8, u8, u
     best
 }
 
-/// One rank quieter than `want` on `page`: the same hue and chroma, pulled
-/// part of the way toward the page's own lightness, then floored back to
-/// [`MARK_FLOOR`] if the pull took it under.
+/// [`against`] that does not give up. Where the hue simply cannot reach
+/// `floor` at any lightness — a saturated yellow on a cream page tops out
+/// around 1.2 — it gives up **chroma** rather than the floor, walking toward
+/// grey until it clears. Fully grey always can, so this always returns
+/// something readable.
 ///
-/// For a reading that is the *same kind* of reading as the one beside it but
+/// For the one colour on the canvas the user picks and the app cannot
+/// re-pick: the accent. Every other role here is chosen per theme by someone
+/// who could check it against the page.
+pub fn enforced(want: (u8, u8, u8), page: (u8, u8, u8), floor: f32) -> (u8, u8, u8) {
+    let first = against(want, page, floor);
+    let mut best_r = contrast_ratio(first, page);
+    if best_r >= floor {
+        return first;
+    }
+    // `against` walks one way — away from the page — and stops at the end of
+    // the ramp. That is right for a role someone picked against a page, and
+    // wrong here twice over: pure white on a cream page is already past the
+    // page and has nowhere further to go (it has to cross to the dark side),
+    // and a saturated hue can be short of the floor at every lightness there
+    // is. So this searches both directions, and gives up chroma a step at a
+    // time until it finds one that clears. Fully grey at one end of the ramp
+    // always does.
+    let c = oklch::from_srgb(want);
+    let mut best = first;
+    for k in 0..=10 {
+        let chroma = c.c * (1.0 - k as f32 / 10.0);
+        // Out from the colour's own lightness, nearest first, so the result
+        // stays as close to what was asked for as the floor allows.
+        for step in 1..=((1.0 / STEP) as i32) {
+            for dir in [-1.0f32, 1.0] {
+                let l = (c.l + dir * step as f32 * STEP).clamp(0.0, 1.0);
+                let rgb = oklch::Oklch::new(l, chroma, c.h).to_srgb();
+                let r = contrast_ratio(rgb, page);
+                if r > best_r {
+                    (best, best_r) = (rgb, r);
+                }
+                if r >= floor {
+                    return rgb;
+                }
+            }
+        }
+    }
+    best
+}
+
+/// One rank quieter than `want` on `page`: the same hue and chroma, pulled
+/// part of the way toward the page's own lightness, floored at [`MARK_FLOOR`],
+/// and never allowed to come back *louder* than what it is ranking below.
+///
+/// For a reading that is the same kind of reading as the one beside it but
 /// older or less important — the 5- and 15-minute load next to the 1-minute
 /// one. Changing the hue instead would say the three measure different things,
-/// and dropping to `text_muted` would throw away the warning colour they are
-/// all carrying.
+/// and dropping them to `text_muted` would throw away the warning they share.
+///
+/// The floor is the mark floor, not the text floor, because on the light pages
+/// in this set the primaries themselves only reach 4.6–4.9 against the page:
+/// there is no room under the text floor to be quieter in. Asking for one made
+/// `against` walk the colour *away* from the page to clear 4.5 and hand back
+/// something louder than the primary — an inverted rank, which is worse than
+/// no rank. Where the page has no headroom the two collapse to the same
+/// weight; they never swap.
 pub fn secondary(want: (u8, u8, u8), page: (u8, u8, u8)) -> (u8, u8, u8) {
     let (c, p) = (oklch::from_srgb(want), oklch::from_srgb(page));
     let pulled = c.with_l(c.l + (p.l - c.l) * 0.42).to_srgb();
-    against(pulled, page, MARK_FLOOR)
+    let out = against(pulled, page, MARK_FLOOR);
+    if contrast_ratio(out, page) > contrast_ratio(want, page) {
+        return want;
+    }
+    out
 }
 
 /// The block cursor. Focused, it is the page's own ink inverted — the highest

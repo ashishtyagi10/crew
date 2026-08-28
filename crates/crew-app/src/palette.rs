@@ -37,9 +37,51 @@ pub fn set_accent(rgb: (u8, u8, u8)) {
     ACCENT.store(pack(rgb), Ordering::Relaxed);
 }
 
-/// The active accent colour — [`DEFAULT_ACCENT`] until [`set_accent`] is called.
-pub fn accent() -> (u8, u8, u8) {
+/// The accent exactly as the user set it — [`DEFAULT_ACCENT`] until
+/// [`set_accent`] is called. For round-trips: the settings swatch, `/accent`'s
+/// own report, config save. Everything that *draws* wants [`accent`].
+pub fn raw_accent() -> (u8, u8, u8) {
     unpack(ACCENT.load(Ordering::Relaxed))
+}
+
+/// The accent as it is drawn: [`raw_accent`] floored against the page it will
+/// land on.
+///
+/// Every theme's own `accent_default` already clears the floor — that is what
+/// picking it *meant*. A user-set one does not have to, and the app's own
+/// brand green (`#00ffa0`, and the value a user carries over from a dark
+/// theme) reads at **1.2 against every light page in the set**: on paper-light
+/// the whole left nav — section legends, the clock, the load, the PANES key,
+/// the CPU trace — went to a mint that is not there. `spark`, `warn`,
+/// `danger`, `cursor` and `link` each grew this floor of their own; the accent
+/// is the one colour on the canvas that never did, and it is the one the user
+/// can change.
+///
+/// Floored with [`crew_theme::readable::enforced`] rather than `against`,
+/// because a saturated yellow cannot reach the floor at *any* lightness on a
+/// cream page — it has to give up chroma, and giving up chroma is better than
+/// giving up the floor for the one colour the app cannot re-pick.
+///
+/// Computed once per (accent, page) rather than per call: the walk is an oklch
+/// search, and this is read a few dozen times a frame.
+pub fn accent() -> (u8, u8, u8) {
+    let (raw, page) = (raw_accent(), crew_theme::theme().page_bg);
+    MEMO.with(|m| {
+        let (k_raw, k_page, val) = m.get();
+        if (k_raw, k_page) == (pack(raw), pack(page)) {
+            return unpack(val);
+        }
+        let fixed = crew_theme::readable::enforced(raw, page, crew_theme::contrast::text_floor());
+        m.set((pack(raw), pack(page), pack(fixed)));
+        fixed
+    })
+}
+
+thread_local! {
+    /// `(accent, page, floored)`, all packed. The render path is one thread;
+    /// a second one simply keeps its own.
+    static MEMO: std::cell::Cell<(u32, u32, u32)> =
+        const { std::cell::Cell::new((u32::MAX, u32::MAX, 0)) };
 }
 
 /// The active accent as a ratatui [`Color`](ratatui::style::Color), for the
@@ -99,13 +141,42 @@ mod tests {
     }
 
     #[test]
-    fn set_then_accent_round_trips() {
+    fn set_then_raw_accent_round_trips() {
         // Serialise with any other test that reads the accent global.
         let _g = crate::palette::test_guard();
         set_accent((10, 20, 30));
-        assert_eq!(accent(), (10, 20, 30));
-        assert_eq!(accent_color(), ratatui::style::Color::Rgb(10, 20, 30));
+        assert_eq!(raw_accent(), (10, 20, 30));
         set_accent(DEFAULT_ACCENT); // restore so other tests see the default
-        assert_eq!(accent(), DEFAULT_ACCENT);
+        assert_eq!(raw_accent(), DEFAULT_ACCENT);
+    }
+
+    /// The defect: crew's own brand green, and the value anyone carries over
+    /// from a dark theme, reads at 1.2 against every light page in the set.
+    /// Every theme's own default already clears the floor and must come back
+    /// untouched — the floor is for the colour the *user* can set.
+    #[test]
+    fn a_user_accent_is_floored_against_the_page_it_lands_on() {
+        let _a = crate::palette::test_guard();
+        let _g = crate::app::theme_test_guard();
+        let floor = crew_theme::contrast::text_floor();
+        let mut bad: Vec<String> = Vec::new();
+        for id in crew_theme::ALL_THEMES {
+            crew_theme::set_theme(id);
+            let page = crew_theme::theme().page_bg;
+
+            set_accent(DEFAULT_ACCENT);
+            let r = crew_theme::contrast_ratio(accent(), page);
+            if r < floor {
+                bad.push(format!("{}: crew green floored to {r:.2}", id.as_str()));
+            }
+
+            let d = crew_theme::theme().accent_default;
+            set_accent(d);
+            if accent() != d {
+                bad.push(format!("{}: its own default was moved", id.as_str()));
+            }
+        }
+        set_accent(DEFAULT_ACCENT);
+        assert!(bad.is_empty(), "{}", bad.join("\n  "));
     }
 }
