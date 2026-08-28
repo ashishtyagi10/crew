@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.31
+
+**SYSTEM reads as three rings.** CPU, MEM and DISK were three labelled bars
+with a track behind each and a number at the end of the row. They are arc
+gauges now — the sweep from twelve o'clock says "a third" or "nearly full"
+without measuring, the percentage sits in the hole, and the name sits under
+it. Same tier colours (accent → amber past 70% → red past 90%) and the same
+shape cues as before.
+
+A nav too narrow for three rings keeps the bars, and both take the same rows,
+so dragging the nav changes the shape of the answer and never moves the
+sections below it.
+
 ## 0.19.30
 
 **The crew is a pie now.** Under the sidebar's PANES header sat a one-row pulse
