@@ -98,9 +98,20 @@ fn sidebar_shot_busy_crew() {
     sp.refresh(std::path::Path::new("."), 3);
     sp.seed_history(&cpu_trace(), &[0, 0, 1, 3, 4, 4, 2, 1, 1, 2, 3, 3, 2, 2]);
     let entries = log(&[
+        ("23:11 crew v0.19.38 started", LogLevel::Info),
+        ("23:12 restored 4 panes from session", LogLevel::Info),
+        ("23:12 shell probe: zsh, 41 vars", LogLevel::Info),
+        ("23:13 mcp server 'files' connected", LogLevel::Info),
+        ("23:13 mcp server 'github' connected", LogLevel::Info),
+        ("23:14 provider anthropic → claude-opus-5", LogLevel::Info),
+        ("23:14 roster: 6 agents, 3 skills", LogLevel::Info),
+        ("23:15 rclone remote 'gdrive' ready", LogLevel::Info),
+        ("23:16 relay listening on crew.sock", LogLevel::Info),
+        ("23:17 update check: up to date", LogLevel::Info),
         ("23:18 swarm planner started", LogLevel::Info),
-        ("23:19 mcp server 'files' connected", LogLevel::Info),
-        ("23:19 provider anthropic → claude-opus-5", LogLevel::Info),
+        ("23:18 swarm: 4 tasks, width 3", LogLevel::Info),
+        ("23:19 cargo check finished in 4.2s", LogLevel::Info),
+        ("23:19 git: main ↑1, 9 changed", LogLevel::Info),
         ("23:20 build failed: 2 errors in crew-app", LogLevel::Error),
         ("23:20 font → MonoLisa 13px", LogLevel::Info),
     ]);

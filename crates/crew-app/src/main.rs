@@ -174,6 +174,7 @@ mod modelroute;
 mod modernring;
 mod motion;
 mod navcard;
+mod navlayout;
 mod navlog;
 mod navlogscroll;
 mod navresize;

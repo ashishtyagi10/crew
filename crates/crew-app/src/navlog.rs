@@ -9,20 +9,6 @@ use crate::boxdraw::section_header;
 
 use crate::palette::accent;
 
-/// Most recent log entries shown in the LOG section (older ones scroll off).
-pub const LOG_LINES: usize = 5;
-
-/// Rows the LOG section occupies for `n` buffered entries: a rule, up to
-/// [`LOG_LINES`] entry rows, and a one-row gap — or 0 when the log is empty.
-/// The sidebar uses this to reserve the block and keep hit-testing aligned.
-pub fn log_block(n: usize) -> u16 {
-    if n == 0 {
-        0
-    } else {
-        n.min(LOG_LINES) as u16 + 2
-    }
-}
-
 /// The window of `entries` a LOG scrolled `back` lines shows in `max_lines`
 /// rows: `(start, shown)`. `back` is clamped to what there is, so a wheel
 /// spun past the oldest entry stops on it instead of scrolling into nothing.
