@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.32
+
+**NET says which way the bytes went.** The section traced a single line of
+rx + tx summed, so pulling a container image and pushing a backup drew the
+same chart. It is a twin chart now: **down** grows up out of a centre line,
+**up** grows down from it, both on one shared scale so a trickle of uploads
+can never look as tall as a flood of downloads. An idle network draws its
+axis rather than a gap.
+
+This retires the last block-glyph chart in crew — every chart in the app is
+drawn now, and the `▁`–`█` sparkline ramp is gone.
+
 ## 0.19.31
 
 **SYSTEM reads as three rings.** CPU, MEM and DISK were three labelled bars
