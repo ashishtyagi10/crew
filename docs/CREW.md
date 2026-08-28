@@ -1917,6 +1917,15 @@ every frame on a worker-thread event bridge):
   back to the deterministic stub backend, so the whole flow works offline.
 - **`/batch <file>`** — a file of jobs (one per line) as a flat all-parallel swarm.
 
+A running swarm pane draws a **timeline** down its right third: one bar per
+task on a shared axis, coloured as its state glyph is, with running tasks
+reaching the "now" rule and growing while you watch. It answers the question
+the task list cannot — whether the scheduler really ran things at once, since
+six tasks run one after another and six run together produce identical lists.
+The bars give way to the task names on a pane too narrow for both. Timings are
+observed by the pane, not reported by the engine (which has no clock), so a
+task that starts and finishes between two frames reads as instantaneous.
+
 Real-LLM `/goal`/`/batch` runs are capped by the `budget_governor` (default
 $1.00), and the pane surfaces a cancellation notice when the cap trips. The agent
 factory family is complete — `StubFactory`, `ApiFactory`, and `RemoteFactory`

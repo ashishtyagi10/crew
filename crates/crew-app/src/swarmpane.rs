@@ -42,8 +42,14 @@ pub(crate) enum SwarmState {
         factory: Arc<dyn AgentFactory>,
         budget: Option<Budget>,
     },
-    /// Executing a graph; `handle` drives the engine, `fleet` accumulates events.
-    Running { handle: SwarmHandle, fleet: Fleet },
+    /// Executing a graph; `handle` drives the engine, `fleet` accumulates
+    /// events, and `timeline` stamps when each task ran (the engine has no
+    /// clock — see [`crate::swarm::timeline`]).
+    Running {
+        handle: SwarmHandle,
+        fleet: Fleet,
+        timeline: crate::swarm::timeline::Timeline,
+    },
     /// Planning failed; `msg` is shown in the banner.
     Failed { msg: String },
 }
@@ -142,7 +148,18 @@ impl SwarmPane {
                 }
                 None => false,
             },
-            SwarmState::Running { handle, fleet } => handle.drain(fleet) > 0,
+            SwarmState::Running {
+                handle,
+                fleet,
+                timeline,
+            } => {
+                let changed = handle.drain(fleet) > 0;
+                // Stamped every frame, not only on change: a task's bar grows
+                // toward `now` while it runs, and the pane is already
+                // repainting for it.
+                timeline.observe(fleet, crate::anim::now_ms());
+                changed
+            }
             SwarmState::Failed { .. } => false,
         }
     }
@@ -152,7 +169,7 @@ impl SwarmPane {
     pub fn is_busy(&self) -> bool {
         match &self.state {
             SwarmState::Planning { .. } => true,
-            SwarmState::Running { handle, fleet } => {
+            SwarmState::Running { handle, fleet, .. } => {
                 !handle.is_cancelled() && fleet.totals().live > 0
             }
             SwarmState::Failed { .. } => false,
@@ -168,14 +185,51 @@ impl SwarmPane {
         match &self.state {
             SwarmState::Planning { goal, .. } => banner(&format!("planning: {goal}…"), cols),
             SwarmState::Failed { msg } => banner(&format!("plan failed: {msg}"), cols),
-            SwarmState::Running { handle, fleet } => {
-                let mut cells = swarm_cells(handle.graph(), fleet, cols, rows);
+            SwarmState::Running { handle, fleet, .. } => {
+                // The task list gives up the columns the timeline draws in.
+                let list_w = cols - crate::swarm::view::timeline_cols(cols);
+                let mut cells = swarm_cells(handle.graph(), fleet, list_w, rows);
+                cells.extend(crate::swarm::view::timeline_cells(cols, rows, self.axis()));
                 if handle.is_cancelled() {
                     cells.extend(crate::swarm::view::cancelled_notice(cols, rows));
                 }
                 cells
             }
         }
+    }
+}
+
+impl SwarmPane {
+    /// The timeline's axis right now — `None` unless a run is under way.
+    fn axis(&self) -> Option<(u64, u64)> {
+        match &self.state {
+            SwarmState::Running { timeline, .. } if !timeline.is_empty() => {
+                Some(timeline.axis(crate::anim::now_ms()))
+            }
+            _ => None,
+        }
+    }
+
+    /// The task bars, drawn (see [`crate::plot::gantt`]). Empty until a task
+    /// has started, and on a pane too narrow for both halves.
+    pub fn paint(&self, cols: u16, rows: u16, aspect: f32) -> Vec<crew_render::Paint> {
+        let SwarmState::Running {
+            handle,
+            fleet,
+            timeline,
+        } = &self.state
+        else {
+            return Vec::new();
+        };
+        let w = crate::swarm::view::timeline_cols(cols);
+        if w == 0 || rows < 3 || timeline.is_empty() {
+            return Vec::new();
+        }
+        let now = crate::anim::now_ms();
+        let (t0, t1) = timeline.axis(now);
+        let ids: Vec<_> = handle.graph().tasks().iter().map(|t| t.id).collect();
+        let spans = timeline.spans_for(&ids, fleet, now, crate::swarm::view::state_color);
+        crate::swarm::view::timeline_paint(&spans, cols, rows, aspect, (t0, t1), now)
     }
 }
 

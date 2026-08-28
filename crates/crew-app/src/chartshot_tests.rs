@@ -12,7 +12,7 @@
 //! draws frames with, on a real card over the real paper background.
 use crew_render::{CellGrid, CellView, Paint, PaneScene, PaperBgPass};
 
-const W: u32 = 480;
+const W: u32 = 760;
 const H: u32 = 560;
 const FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8Unorm;
 const BPP: u32 = 4;
@@ -444,4 +444,99 @@ fn chart_shot_usage_pane() {
         ink > 3000,
         "the usage pane drew something: {ink} ink pixels"
     );
+}
+
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn chart_shot_swarm_timeline() {
+    let _g = crate::app::theme_test_guard();
+    use crate::plot::gantt::Span;
+    let t = crew_theme::theme();
+    let acc = crate::palette::accent();
+    // A swarm that fanned out four ways, then joined: the shape a task list
+    // cannot show.
+    let spans: Vec<Option<Span>> = vec![
+        Some(Span {
+            start_ms: 0,
+            end_ms: 1_200,
+            color: t.ansi[2],
+        }),
+        Some(Span {
+            start_ms: 1_300,
+            end_ms: 5_400,
+            color: t.ansi[2],
+        }),
+        Some(Span {
+            start_ms: 1_320,
+            end_ms: 6_100,
+            color: t.ansi[2],
+        }),
+        Some(Span {
+            start_ms: 1_340,
+            end_ms: 3_900,
+            color: t.ansi[9],
+        }),
+        Some(Span {
+            start_ms: 1_360,
+            end_ms: 8_800,
+            color: acc,
+        }),
+        None,
+    ];
+    let px = shot("timeline", "swarm", |cols, rows, aspect| {
+        let mut cells: Vec<CellView> = Vec::new();
+        let names = [
+            " \u{2713} read the crate",
+            " \u{2713} map the render path",
+            " \u{2713} map the theme path",
+            " \u{2717} bench the atlas",
+            " \u{25cf} write the report",
+            " \u{25cb} review",
+        ];
+        let put = |cells: &mut Vec<CellView>, s: &str, row: u16, fg: (u8, u8, u8)| {
+            for (i, ch) in s.chars().enumerate() {
+                cells.push(CellView {
+                    col: i as u16,
+                    row,
+                    c: ch,
+                    fg,
+                    bg: t.page_bg,
+                    ..Default::default()
+                });
+            }
+        };
+        put(&mut cells, " live:1 done:3 failed:1 cost:$0.0421", 0, t.ink);
+        for (i, n) in names.iter().enumerate() {
+            let fg = match i {
+                3 => t.ansi[9],
+                4 => acc,
+                5 => t.text_muted,
+                _ => t.ansi[2],
+            };
+            put(&mut cells, n, i as u16 + 1, fg);
+        }
+        cells.extend(crate::swarm::view::timeline_cells(
+            cols,
+            rows,
+            Some((0, 8_800)),
+        ));
+        let paint =
+            crate::swarm::view::timeline_paint(&spans, cols, rows, aspect, (0, 8_800), 8_800);
+        (cells, paint)
+    });
+    let Some(px) = px else {
+        eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+        return;
+    };
+    let bg = crew_theme::theme().page_bg;
+    let ink = px
+        .chunks_exact(4)
+        .filter(|p| {
+            (p[0] as i32 - bg.0 as i32).abs()
+                + (p[1] as i32 - bg.1 as i32).abs()
+                + (p[2] as i32 - bg.2 as i32).abs()
+                > 40
+        })
+        .count();
+    assert!(ink > 1000, "the timeline drew something: {ink} ink pixels");
 }

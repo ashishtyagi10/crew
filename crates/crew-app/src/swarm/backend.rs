@@ -52,6 +52,7 @@ pub(crate) fn running(
     SwarmState::Running {
         handle: SwarmHandle::spawn(graph, factory, 4, budget),
         fleet: Fleet::new(),
+        timeline: crate::swarm::timeline::Timeline::default(),
     }
 }
 
