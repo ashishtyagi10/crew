@@ -158,6 +158,33 @@ fn sidebar_shot_light_theme() {
     crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
 }
 
+/// The same column on the phosphor tubes. The dial's scale is the finest
+/// thing the nav draws — a tick a device pixel wide — and the CRT pass puts
+/// bloom, scanlines and curvature over it, which is exactly the combination
+/// that can turn a scale into a smear. Shot so it can be looked at.
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn sidebar_shot_crt_themes() {
+    let _a = crate::palette::test_guard();
+    let _g = crate::app::theme_test_guard();
+    for (name, id) in [
+        ("sidebar-crt-green", crew_theme::ThemeId::CrtGreen),
+        ("sidebar-crt-amber", crew_theme::ThemeId::CrtAmber),
+    ] {
+        crew_theme::set_theme(id);
+        // Each tube's own accent, not whichever one a previous shot left
+        // behind: a fresh install on the amber tube is amber throughout, and
+        // a green needle on it would be the user's choice, not the theme's.
+        crate::palette::set_accent(crew_theme::theme().accent_default);
+        let Some(px) = nav_shot(name, 210 + 24) else {
+            eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+            return;
+        };
+        assert!(crate::shotgpu_tests::ink(&px) > 4000, "{name} drew");
+    }
+    crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
+}
+
 /// A fresh launch: two log lines, one pane, no history behind any chart. The
 /// state the bug report's screenshot was taken in.
 #[test]
