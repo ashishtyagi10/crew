@@ -8,6 +8,28 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.39
+
+**The left nav, looked at as a column.** Ten releases of drawing built the
+sidebar's widgets one at a time, each with its own off-screen shot on its own
+wide card — and each passing. Shot as the tall narrow column it actually is,
+three of them were drawing wrong. NET's centre line was thinner than a canvas
+pixel and had never rendered at all, so what looked like an axis on an idle
+link was the two direction curves' full-alpha strokes lying on each other: a
+solid saturated band on a machine doing nothing. The CPU chart was pinned to
+0–100, the one question the gauge above it already answers, which on a laptop
+idling under 10% made it a two-pixel smear. LOG lines cut mid-word. Now: each
+direction fades toward silence and the axis is a real hairline; the CPU trace
+is scaled to its own rolling minute and stands on a baseline; log lines
+ellipsize, with the fixed `HH:MM` stamp dimmed so the message keeps the ink.
+
+**And the third of the nav that was empty.** The column's row offsets were
+`+` chains re-derived in four places — the draw, the paint layer, and two hit
+paths — agreeing only by hand. They are now one `navlayout::layout`, which is
+also where the column's slack gets spent: the LOG grows into whatever the
+fixed sections and the pane list leave, up to twenty lines, instead of showing
+five onto sixty-four buffered ones under a third of a screen of nothing.
+
 ## 0.19.38
 
 **`/dash` — the machine and the week on one screen.** The last of ten drawing

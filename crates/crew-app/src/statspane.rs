@@ -8,27 +8,15 @@ use crate::gauges::render_stats;
 use crate::git::{self, GitWatch};
 use crate::host;
 use crate::load;
+use crate::navlayout::{self, NavLayout, CHART_OFF, CHART_ROWS};
 use crate::navlog;
 use crate::net;
 use crate::panelist::{self, PaneRow};
 use crate::stats::SysSampler;
 
-/// Rows the SYSTEM section occupies: the rule, the three readings (arc gauges
-/// on a wide nav, bars on a narrow one — both `sysrings::ROWS` tall so the
-/// sections below never move when the nav is dragged), the 2-row CPU area
-/// chart, and a gap. The chart got its second row when it stopped being a line
-/// of block glyphs: a curve with a filled body needs the height to say
-/// anything the gauge above it does not already say.
-const SYS_BLOCK: u16 = 1 + crate::sysrings::ROWS + CHART_ROWS + 1;
-/// Rows the CPU chart occupies, and where it starts inside the SYSTEM block.
-const CHART_ROWS: u16 = 2;
-const CHART_OFF: u16 = 1 + crate::sysrings::ROWS;
-/// Rows the LOAD section occupies (rule + 1 line + a one-row gap below it).
-const LOAD_BLOCK: u16 = 3;
-/// Rows a section with a rule + 2 content rows + one-row gap occupies (HOST, GIT).
-const CARD_BLOCK: u16 = 4;
-/// NET: rule + rates + the twin chart's two rows + gap.
-const NET_BLOCK: u16 = 2 + crate::nettwin::ROWS + 1;
+/// The smallest peak the CPU chart's axis scales to, in percent — below it the
+/// trace draws small rather than being magnified into a busy-looking minute.
+const CHART_FLOOR: u64 = 25;
 
 /// The docked sidebar: a live clock card stacked above the system-stats card.
 pub struct StatsPane {
@@ -50,6 +38,19 @@ impl StatsPane {
             git: GitWatch::default(),
             cpu_hist: crate::spark::History::new(64),
             pulse_hist: crate::spark::History::new(64),
+        }
+    }
+
+    /// Push a minute of synthetic CPU / busy-pane history, so an off-screen
+    /// shot of the nav shows the traces a running machine would have rather
+    /// than the single sample one `refresh` leaves behind.
+    #[cfg(test)]
+    pub fn seed_history(&mut self, cpu: &[u64], busy: &[u64]) {
+        for &v in cpu {
+            self.cpu_hist.push(v);
+        }
+        for &v in busy {
+            self.pulse_hist.push(v);
         }
     }
 
@@ -80,25 +81,11 @@ impl StatsPane {
         stats_changed || clock_changed || git_changed
     }
 
-    /// Content row where the LOG section's rule sits — everything above it is
-    /// the fixed stat cards. The hit path for scrolling the log reads it, so
-    /// draw and wheel agree about which rows are the log's.
-    pub fn log_top(&self) -> u16 {
-        let stats = clock::CLOCK_H + SYS_BLOCK + LOAD_BLOCK + CARD_BLOCK + NET_BLOCK;
-        stats
-            + if self.git.info().is_some() {
-                CARD_BLOCK
-            } else {
-                0
-            }
-    }
-
-    /// The cell-row where the PANES section header sits — used to hit-test
-    /// clicks on the pane list. Must track the section offsets in `cells`,
-    /// including the conditional GIT and LOG blocks (`log_len` = buffered
-    /// entries, so the caller passes `app.log.len()`).
-    pub fn panes_top(&self, log_len: usize) -> u16 {
-        self.log_top() + navlog::log_block(log_len)
+    /// How this nav divides `rows` content rows right now — the one derivation
+    /// the draw, the paint layer and both hit paths read, so a click can never
+    /// land on a row the frame put something else on. See [`crate::navlayout`].
+    pub fn layout(&self, rows: u16, log_len: usize, panes: usize) -> NavLayout {
+        navlayout::layout(rows, self.git.info().is_some(), log_len, panes)
     }
 
     /// The sidebar's drawn layer: sub-cell [`Paint`] for the charts, in the
@@ -117,6 +104,7 @@ impl StatsPane {
         panes: &[PaneRow],
         log_len: usize,
     ) -> Vec<Paint> {
+        let l = self.layout(rows, log_len, panes.len());
         let mut out = self.cpu_chart(cols, rows, aspect);
         // The SYSTEM section's three arc gauges (their text comes from
         // `gauges::render_stats`, which yields the rings the same width test).
@@ -129,7 +117,8 @@ impl StatsPane {
             ));
         }
         // The NET twin chart, under that section's rates.
-        let net_off = clock::CLOCK_H + SYS_BLOCK + LOAD_BLOCK + CARD_BLOCK;
+        let net_off =
+            clock::CLOCK_H + navlayout::SYS_BLOCK + navlayout::LOAD_BLOCK + navlayout::CARD_BLOCK;
         if rows > net_off + 1 + crate::nettwin::ROWS {
             let (rx, tx) = self.sampler.net_dirs();
             out.extend(crate::nettwin::paint(
@@ -144,7 +133,7 @@ impl StatsPane {
         }
         // The crew donut, under the PANES header — the same offset
         // `cells` lays the list out from, so ring and rows cannot drift apart.
-        let panes_off = self.panes_top(log_len);
+        let panes_off = l.panes_top;
         if !panes.is_empty() && rows > panes_off + 1 + crate::crewpie::ROWS {
             out.extend(crate::crewpie::paint(
                 &crate::crewpie::mix(panes),
@@ -158,6 +147,15 @@ impl StatsPane {
     }
 
     /// The SYSTEM section's CPU history chart.
+    ///
+    /// Scaled to the window's own peak with [`CHART_FLOOR`] under it, not to a
+    /// flat 0–100. The gauge directly above already answers "how loaded, out
+    /// of everything" — pinned to 100 the chart under it could only repeat
+    /// that answer, and on a laptop that idles under 10% it repeated it as a
+    /// two-pixel smear along the bottom with no shape at all. Against a
+    /// rolling peak the same machine draws the *shape* of its last minute,
+    /// which is the question the gauge cannot answer, and the floor keeps a
+    /// quiet minute from being magnified into a busy-looking one.
     fn cpu_chart(&self, cols: u16, rows: u16, aspect: f32) -> Vec<Paint> {
         let row0 = clock::CLOCK_H + CHART_OFF;
         // Indented under the section legend like the gauges above it, one
@@ -166,15 +164,20 @@ impl StatsPane {
         if width == 0 || rows < row0 + CHART_ROWS || self.cpu_hist.is_empty() {
             return Vec::new();
         }
+        let span = width as usize * 2;
+        let peak = self.cpu_hist.peak(span).max(CHART_FLOOR) as f32;
         let samples: Vec<f32> = self
             .cpu_hist
-            .tail(width as usize * 2)
+            .tail(span)
             .into_iter()
-            .map(|v| (v as f32 / 100.0).clamp(0.0, 1.0))
+            .map(|v| (v as f32 / peak).clamp(0.0, 1.0))
             .collect();
         let mut c = crate::plot::Canvas::new(width, CHART_ROWS, aspect);
         let (w, h) = c.size();
         crate::plot::area::draw(&mut c, (0.0, 0.0, w, h), &samples, crate::palette::accent());
+        // The line the curve stands on. Without it a flat trace and an empty
+        // block look the same, and the section ends in what reads as a gap.
+        c.hairline(0.0, h, w, crew_theme::theme().border_normal, 0.7);
         c.paint()
             .into_iter()
             .map(|p| p.shifted(f32::from(col0), f32::from(row0)))
@@ -203,7 +206,7 @@ impl StatsPane {
         // The CPU history chart lives below the three gauges. It is *drawn*,
         // not spelled — see `chart_paint`; nothing is emitted here.
 
-        let load_off = clock::CLOCK_H + SYS_BLOCK;
+        let load_off = clock::CLOCK_H + navlayout::SYS_BLOCK;
         if rows > load_off + 1 {
             let (one, five, fifteen) = load::load_avg();
             for mut c in load::load_cells(one, five, fifteen, load::cores(), cols) {
@@ -212,7 +215,7 @@ impl StatsPane {
             }
         }
 
-        let host_off = load_off + LOAD_BLOCK;
+        let host_off = load_off + navlayout::LOAD_BLOCK;
         if rows > host_off + 3 {
             let (name, uptime) = host::host_strings();
             for mut c in host::host_cells(&name, &uptime, cols) {
@@ -221,7 +224,7 @@ impl StatsPane {
             }
         }
 
-        let net_off = host_off + CARD_BLOCK;
+        let net_off = host_off + navlayout::CARD_BLOCK;
         if rows > net_off + 3 {
             let s = self.sampler.stats();
             for mut c in net::net_cells(s.net_rx, s.net_tx, cols) {
@@ -230,8 +233,7 @@ impl StatsPane {
             }
         }
 
-        let git_off = net_off + NET_BLOCK;
-        let mut next = git_off;
+        let git_off = net_off + navlayout::NET_BLOCK;
         if let Some(info) = self.git.info() {
             if rows > git_off + 3 {
                 for mut c in git::git_cells(info, cols) {
@@ -239,19 +241,18 @@ impl StatsPane {
                     out.push(c);
                 }
             }
-            next = git_off + CARD_BLOCK; // only reserve the GIT block when shown
         }
 
-        // LIVE LOG: recent status messages in their own section, above the panes.
-        let log_h = navlog::log_block(log.len());
-        if log_h > 0 && rows > next + 1 {
-            let fit = ((rows - next - 1) as usize).min(navlog::LOG_LINES);
-            for mut c in navlog::log_cells(log, cols, fit, log_back) {
-                c.row += next;
+        // LIVE LOG: recent status messages in their own section, above the
+        // panes, as many lines as the nav has rows to spare for them.
+        let l = self.layout(rows, log.len(), panes.len());
+        if l.log_lines > 0 {
+            for mut c in navlog::log_cells(log, cols, l.log_lines, log_back) {
+                c.row += l.log_top;
                 out.push(c);
             }
         }
-        let panes_off = next + log_h;
+        let panes_off = l.panes_top;
 
         // PANES list fills the remaining height below the LOG section (header
         // + pulse chart + one row per pane).
@@ -279,20 +280,45 @@ impl Default for StatsPane {
 mod tests {
     use super::*;
 
+    /// The section offsets `cells` walks down must land the LOG exactly where
+    /// [`crate::navlayout`] says it does — the draw and the hit paths read the
+    /// same numbers from two different code paths, and this is the seam.
     #[test]
-    fn panes_top_accounts_for_git_and_log() {
+    fn the_drawn_log_starts_on_the_row_the_layout_reserved() {
+        let _g = crate::app::theme_test_guard();
         let mut s = StatsPane::new();
-        // clock(4) + system(8) + load(3) + host(4) + net(5) = 24
-        assert_eq!(s.panes_top(0), 24);
         s.git.set_info(Some(git::GitInfo {
             branch: "main".into(),
             changed: 0,
             ahead: 0,
             behind: 0,
         }));
-        assert_eq!(s.panes_top(0), 28); // + git(4)
-                                        // a non-empty log adds its block: rule + min(n, LOG_LINES) + gap.
-        assert_eq!(s.panes_top(2), 28 + 4); // 2 entries -> 2 + 2
-        assert_eq!(s.panes_top(99), 28 + navlog::LOG_LINES as u16 + 2); // capped
+        let log: Vec<crate::applog::LogEntry> = (0..6)
+            .map(|i| crate::applog::LogEntry {
+                level: crate::applog::LogLevel::Info,
+                text: format!("12:00 line{i}"),
+            })
+            .collect();
+        let panes = Vec::new();
+        let (cols, rows) = (26u16, 48u16);
+        let l = s.layout(rows, log.len(), 0);
+        assert!(l.log_lines > 0, "the fixture has room for a LOG");
+        let cells = s.cells(cols, rows, &panes, &log, 0);
+        // The `LOG` legend sits on the rule row the layout named.
+        let legend: String = {
+            let mut v: Vec<_> = cells.iter().filter(|c| c.row == l.log_top).collect();
+            v.sort_by_key(|c| c.col);
+            v.iter().map(|c| c.c).collect()
+        };
+        assert!(legend.contains("LOG"), "row {}: {legend:?}", l.log_top);
+        // The block's last row is its gap: the PANES rule below it needs air,
+        // and a LOG that grew into the gap would sit flush against it.
+        let gap_row = l.log_top + l.log_block() - 1;
+        assert!(
+            !cells.iter().any(|c| c.row == gap_row),
+            "row {gap_row} is the LOG block's trailing gap and must stay empty"
+        );
+        // …and the PANES rule is on the very next row.
+        assert_eq!(l.panes_top, gap_row + 1);
     }
 }

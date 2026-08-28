@@ -64,6 +64,30 @@ impl CrewApp {
         });
     }
 
+    /// The docked nav's rect and its row division for the frame on screen —
+    /// the one place a hit path turns a cursor position into a nav row. `None`
+    /// when the nav is hidden or the renderer has not reported geometry yet.
+    ///
+    /// The rect must be the same one `push_sidebar` draws into, LOUD-update
+    /// shift included: a silent background run draws no card, so counting it
+    /// would offset every row by the height of a card that isn't on screen.
+    pub(crate) fn nav_hit_geometry(&self) -> Option<(Rect, f32, crate::navlayout::NavLayout)> {
+        if !self.config.show_nav {
+            return None;
+        }
+        let (cw, ch, _sw, sh, scale) = self.frame_geometry()?;
+        let sb = chrome::stats_card_rect(
+            sh,
+            self.nav_px(scale),
+            gap(),
+            ch,
+            self.update.as_ref().is_some_and(|u| !u.silent),
+        );
+        let (_, rows) = crate::layout::card_inner_cells(sb.w, sb.h, cw, ch);
+        let l = self.sidebar.layout(rows, self.log.len(), self.panes.len());
+        Some((sb, ch, l))
+    }
+
     /// One row per open pane for the sidebar PANES list. A row carries the
     /// `[+]` restore marker whenever its pane is NOT visible in the content
     /// area — minimized into the nav, covered while another pane is zoomed,

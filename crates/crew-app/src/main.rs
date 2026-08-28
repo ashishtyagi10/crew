@@ -174,6 +174,7 @@ mod modelroute;
 mod modernring;
 mod motion;
 mod navcard;
+mod navlayout;
 mod navlog;
 mod navlogscroll;
 mod navresize;
@@ -238,6 +239,12 @@ mod sessionsave;
 mod settingspane;
 mod shapecues;
 mod shellprobe;
+#[cfg(test)]
+#[path = "shotgpu_tests.rs"]
+mod shotgpu_tests;
+#[cfg(test)]
+#[path = "sidebarshot_tests.rs"]
+mod sidebarshot_tests;
 mod smoothlvl;
 mod spark;
 mod spawn;
