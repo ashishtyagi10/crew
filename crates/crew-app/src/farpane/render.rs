@@ -13,8 +13,16 @@ use ratatui::widgets::{
 use super::{FarPane, Panel, Side};
 
 use crate::palette::accent_color;
-/// Blue-cyan for directory entries (semantic file type indicator).
-const DIR: Color = Color::Rgb(120, 200, 255);
+/// Directory entries, from the theme's own cyan slot rather than one fixed
+/// blue-cyan. All sixteen presets tune that slot, and the single-phosphor
+/// tubes tune it to a colour the tube can actually draw — a `(120, 200, 255)`
+/// folder on a green screen is a colour that phosphor does not have.
+fn dir_color() -> Color {
+    let t = crew_theme::theme();
+    let (r, g, b) =
+        crew_theme::readable::against(t.ansi[6], t.page_bg, crew_theme::contrast::text_floor());
+    Color::Rgb(r, g, b)
+}
 
 pub(crate) fn render(p: &FarPane, cols: u16, rows: u16) -> Vec<CellView> {
     if cols < 16 || rows < 6 {
@@ -233,7 +241,7 @@ fn panel(buf: &mut Buffer, area: Rect, panel: &Panel, active: bool) {
             let width = inner.width as usize;
             let glyph = super::icons::icon(e);
             let (mut name, fg) = if e.is_dir {
-                (format!("{glyph} {}/", e.name), DIR)
+                (format!("{glyph} {}/", e.name), dir_color())
             } else {
                 (format!("{glyph} {}", e.name), text_col)
             };

@@ -169,6 +169,7 @@ fn every_syntax_colour_separates_from_body_text() {
 #[test]
 fn the_syntax_ladder_holds_where_hue_cannot_help() {
     let _g = crate::app::theme_test_guard();
+    let mut tubes = 0;
     for id in ALL_THEMES {
         let t = id.theme();
         let d = derive(t);
@@ -183,9 +184,16 @@ fn the_syntax_ladder_holds_where_hue_cannot_help() {
         // halo vehicle (`RandomMode::Crt` draws the same line with the same
         // guard) and has a full 16-slot palette, so hue does the separating
         // there and the stiffer rung would only distort its cyan.
-        if t.crt.is_none() || t.modern.is_some() {
+        //
+        // Spelled `is_tube` — the theme's own predicate — because every
+        // preset now carries a `ModernStyle`, and the `modern.is_some()`
+        // spelling this used to have excluded all twelve. The stiffer rungs
+        // below had not been asserted on anything for as long as that was
+        // true; the counter at the end is what says so out loud.
+        if !t.is_tube() {
             continue;
         }
+        tubes += 1;
         assert!(
             comment >= 1.6,
             "{} is single-phosphor, so lightness is all there is: comment vs \
@@ -199,6 +207,7 @@ fn the_syntax_ladder_holds_where_hue_cannot_help() {
             id.as_str(),
         );
     }
+    assert_eq!(tubes, 4, "every tube was actually checked");
 }
 
 /// A fenced block is a rectangle of `code_bg` — that field IS the block, now

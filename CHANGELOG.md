@@ -8,6 +8,34 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.44
+
+**The menu card, shot whole — and a guard that had stopped guarding.** One
+widget draws the slash palette, the attach popup, the model picker, `/todo`'s
+tag menu and every value suggestion. None of its five callers had ever looked
+at it rendered. `menu_shot` does, across widths and presets.
+
+**A wide palette is a list, not a band.** The chord right-aligns to the row's
+far edge, so on a full-window pane `Cmd+D` sat ninety columns from the `/dash`
+it belongs to with nothing in between. The list is laid out at the width its
+own rows need (`cmdrow::content_w`) and centred in what is left. **A clipped
+description now ellipsizes** — `Write the frame's cells to a fi` read as a
+rendering fault where `…to a f…` reads as a narrow card.
+
+**Two colours the palette never got to decide.** Every menu description and
+chord was `(120, 130, 140)`, compiled into `cmdmenu`; every directory in the
+file manager was `(120, 200, 255)`. Both cleared every contrast floor and were
+still wrong: a single-phosphor tube can draw one hue, and neither of those is
+it. They come from the theme's own muted and cyan roles now.
+
+**And the guard that should have caught that had stopped running.** The
+single-phosphor exclusion was spelled `crt.is_none() || modern.is_some()` —
+but every preset now carries a `ModernStyle` as a bloom vehicle, so it excluded
+all twelve. `chatink`'s syntax-ladder assertions, the stiffest colour contract
+in the app, had not been applied to a single tube for as long as that was true.
+It is `is_tube()` now, the theme's own predicate, and both tests count the
+tubes they checked and fail at zero.
+
 ## 0.19.43
 
 **The crew pane, shot whole.** Every chat test so far asserted on cells, which

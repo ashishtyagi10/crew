@@ -546,3 +546,37 @@ fn command_bar_no_longer_carries_the_selected_name() {
         "selected name must not render on the command row: {line:?}"
     );
 }
+
+/// A directory's colour comes from the theme's own cyan slot, not from one
+/// fixed blue-cyan. The constant it replaced measured fine against every page
+/// and was still wrong on the tubes: a single-phosphor screen can draw one
+/// hue, and `(120, 200, 255)` is not it.
+#[test]
+fn a_directory_is_coloured_in_ink_the_tube_can_actually_make() {
+    let _g = crate::app::theme_test_guard();
+    let mut tubes = 0;
+    for id in crew_theme::ALL_THEMES {
+        if !id.is_crt() {
+            continue;
+        }
+        crew_theme::set_theme(id);
+        let t = crew_theme::theme();
+        let ratatui::style::Color::Rgb(r, g, b) = super::dir_color() else {
+            panic!("dir_color is an rgb colour");
+        };
+        let (want, got) = (
+            crew_theme::oklch::from_srgb(t.ink),
+            crew_theme::oklch::from_srgb((r, g, b)),
+        );
+        let off = (want.h - got.h).abs().min(360.0 - (want.h - got.h).abs());
+        assert!(
+            off <= 40.0,
+            "{}: directory hue {:.0} is {off:.0} deg off the phosphor's {:.0}",
+            id.as_str(),
+            got.h,
+            want.h,
+        );
+        tubes += 1;
+    }
+    assert_eq!(tubes, 4, "every tube was actually checked");
+}
