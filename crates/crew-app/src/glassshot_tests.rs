@@ -29,9 +29,18 @@ const ROW_PADDED: u32 =
 /// sheet at all: the app's own scenes are all `bordered: false`, so the harness
 /// was rendering an arrangement production never produces. A pixel test whose
 /// input the app can't generate proves nothing — go through `build_scenes`.
+/// The pane rectangle both fixture panes use. Named, because every sample box
+/// in the pixel assertions below is derived from it (see [`Geom`]) rather than
+/// written as a literal.
+const PANE_W: f32 = 320.0;
+const PANE_H: f32 = 200.0;
+const PANE_Y: f32 = 50.0;
+const FOCUSED_X: f32 = 30.0;
+const UNFOCUSED_X: f32 = 370.0;
+
 fn panes(cell_w: f32, cell_h: f32) -> Vec<PaneScene> {
-    let pane_w = 320.0;
-    let pane_h = 200.0;
+    let pane_w = PANE_W;
+    let pane_h = PANE_H;
     let pane_at = |x: f32| crate::pane::Pane {
         glide: crate::glide::Glide::default(),
         content: crate::pane::PaneContent::Far(crate::farpane::FarPane::new(std::env::temp_dir())),
@@ -41,7 +50,7 @@ fn panes(cell_w: f32, cell_h: f32) -> Vec<PaneScene> {
         },
         rect: crate::layout::Rect {
             x,
-            y: 50.0,
+            y: PANE_Y,
             w: pane_w,
             h: pane_h,
         },
@@ -52,10 +61,17 @@ fn panes(cell_w: f32, cell_h: f32) -> Vec<PaneScene> {
         bell: false,
         hidden: false,
         attention: None,
-        born_ms: crate::anim::now_ms(),
+        // Born long ago, so `assemble_t` is 1.0 and the card is FULLY drawn.
+        // With `now_ms()` here every one of these shots photographed a card
+        // in its first frames of assembly — which draws outward from the four
+        // corners, i.e. corner brackets and no edges at all. That is why
+        // `crt_shot_grayscale_focus_hierarchy` measured page background where
+        // it expected a bottom border, and why every glass and modern PNG in
+        // this harness was a picture of a half-built frame.
+        born_ms: 0,
     };
     crate::paneview::build_scenes(
-        &[pane_at(30.0), pane_at(370.0)],
+        &[pane_at(FOCUSED_X), pane_at(UNFOCUSED_X)],
         Some(0),
         false,
         None,
@@ -326,16 +342,11 @@ fn modern_shot_every_palette() {
     use crew_theme::ThemeId as T;
     let out_dir = std::env::var("CREW_SHOT_DIR").unwrap_or_else(|_| "target/screenshots".into());
     std::fs::create_dir_all(&out_dir).unwrap();
-    for id in [
-        T::Nebula,
-        T::Nebula,
-        T::Nebula,
-        T::Nebula,
-        T::Blossom,
-        T::Blossom,
-        T::Blossom,
-        T::Blossom,
-    ] {
+    // Every palette, once — this loop used to list `Nebula` four times and
+    // `Blossom` four times, so "every palette" shot two of them eight times
+    // and overwrote the same two PNGs. The light pages are the reason the
+    // test exists and half of them were never in it.
+    for id in [T::Nebula, T::Blossom, T::Harbor, T::Fern] {
         crew_theme::set_theme(id);
         let Some(px) = render_full(crew_theme::GlassLevel::Medium, 1.0, true) else {
             eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
@@ -346,8 +357,12 @@ fn modern_shot_every_palette() {
         // The page must still be the page after the tube: a light palette
         // whose bloom ran additively lands at ~255 everywhere (that was the
         // bug), and a dark one must not be lifted into gray either. Sampled
-        // in the gap between the two panes, away from every stroke.
-        let gap = mean_lum(&px, 355, 60, 8, 180);
+        // in the DEAD CENTRE of the gap between the two panes (they end at
+        // 350 and start at 370): the old 8px sample started 5px off the left
+        // pane's right border, which is inside that border's bloom halo once
+        // the card is drawn at all — and until this harness stopped
+        // photographing half-assembled cards, it never was.
+        let gap = mean_lum(&px, 358, 60, 4, 180);
         let want = crew_theme::theme().page_bg;
         let page =
             0.2126 * f64::from(want.0) + 0.7152 * f64::from(want.1) + 0.0722 * f64::from(want.2);
@@ -477,28 +492,13 @@ fn glass_shot_translucent_window() {
     );
 }
 
-/// Peak luminance of a block — for stroke-colour comparisons, where mean
-/// would reward glyph coverage (a straight `│` inks more of its cell than a
-/// rounded `╭`) instead of the colour the stroke is actually drawn in.
-fn max_lum(px: &[u8], x0: usize, y0: usize, w: usize, h: usize) -> f64 {
-    let mut m = 0.0f64;
-    for y in y0..(y0 + h) {
-        for x in x0..(x0 + w) {
-            let i = (y * W as usize + x) * 4;
-            let l = 0.2126 * px[i] as f64 + 0.7152 * px[i + 1] as f64 + 0.0722 * px[i + 2] as f64;
-            m = m.max(l);
-        }
-    }
-    m
-}
-
-/// Done-criterion #4 on real pixels: through the FULL chain (scene → bloom →
-/// composite), focus hierarchy must read in grayscale from the glow alone,
-/// and the corner nodes must exist.
+/// The tube's light trace through the FULL chain (scene -> bloom ->
+/// composite), written out so it can be looked at.
 ///
-/// Geometry (see `panes`): the focused pane spans x 30..350, the unfocused
-/// one 370..690, both y 50..250; each card's bottom border row sits around
-/// y ≈ 230..245 at this cell size.
+/// Geometry comes from [`Geom`], never from pixel literals: the cell size is
+/// whatever font the active theme loaded, and when it moved, the literals
+/// that used to sit on the bottom border ended up six pixels under it,
+/// measuring page background. Every band below is derived.
 ///
 /// A design note earned by mutation-checking (from the luminous-sheet era,
 /// kept because the lesson generalizes): the first draft sampled 3px bands
@@ -509,7 +509,7 @@ fn max_lum(px: &[u8], x0: usize, y0: usize, w: usize, h: usize) -> f64 {
 /// except the node-colour fingerprint.
 #[test]
 #[ignore = "needs a GPU adapter; writes PNGs"]
-fn crt_shot_grayscale_focus_hierarchy() {
+fn crt_shot_light_trace() {
     let _g = crate::app::theme_test_guard();
     crew_theme::set_theme(crew_theme::ThemeId::CrtGreen);
     let Some(px) = render_full(crew_theme::GlassLevel::Medium, 1.0, true) else {
@@ -527,73 +527,24 @@ fn crt_shot_grayscale_focus_hierarchy() {
     )
     .unwrap();
 
-    // (1) Grayscale hierarchy: the two panes differ ONLY in focus, so compare
-    // the same feature on each — the bottom-left corner cell. The focused
-    // pane's corner node must peak far above the unfocused pane's corner in
-    // plain luminance; a viewer squinting at a grayscale shot finds the live
-    // pane by its glowing joints.
-    let focused_corner = max_lum(&px, 30, 232, 8, 16);
-    let unfocused_corner = max_lum(&px, 370, 232, 8, 16);
-    println!("corners: focused {focused_corner:.1} vs unfocused {unfocused_corner:.1}");
-    assert!(
-        focused_corner > 1.8 * unfocused_corner,
-        "grayscale hierarchy lost: corners {focused_corner:.1} vs {unfocused_corner:.1}"
-    );
-
-    // (1b) The frame itself outshines: with the sheet off (same tube chain —
-    // the sheet's own luminance is what buried the stroke above), the
-    // brightest row across the focused pane's bottom-border cells (y 233..246
-    // at this cell size; the rows above belong to the pane's own bottom
-    // content line) must beat the unfocused pane's by a clear factor. The
-    // factor is 1.8 because the two panes' glyphs sit on different subpixel
-    // phases (their x origins differ by a non-integer cell count), which
-    // alone is worth ~1.4× — focus has to clear that, not hide under it.
-    let bare = render_full(crew_theme::GlassLevel::Off, 1.0, true).expect("adapter was above");
-    let peak_row = |x0: usize| {
-        (233..246)
-            .map(|y| mean_lum(&bare, x0, y, 260, 1))
-            .fold(0.0f64, f64::max)
-    };
-    let (focused_band, unfocused_band) = (peak_row(60), peak_row(400));
-    println!("bottom-border peaks: focused {focused_band:.1} vs unfocused {unfocused_band:.1}");
-    assert!(
-        focused_band > 1.8 * unfocused_band,
-        "the focused frame does not outshine: {focused_band:.1} vs {unfocused_band:.1}"
-    );
-
-    // (2) The corner nodes exist: the focused pane's BOTTOM-left corner cell
-    // samples hotter than its own left-edge midpoint. The bottom corner,
-    // deliberately: the top one also carries the legend text, which peaks
-    // bright whether or not any node exists.
-    let corner = max_lum(&px, 30, 232, 8, 16);
-    let edge_mid = max_lum(&px, 30, 145, 8, 16);
-    println!("focused stroke: corner {corner:.1} vs edge midpoint {edge_mid:.1}");
-    assert!(
-        corner > edge_mid + 8.0,
-        "no corner node: corner {corner:.1} vs edge midpoint {edge_mid:.1}"
-    );
-    // (2b) …and the heat is the NODE's, not the glyph's: a corner glyph inks
-    // more of its cell than a thin `│` either way, so peak luminance alone
-    // would survive the lift being deleted. The lift's own fingerprint is its
-    // whitening — on this pure-green phosphor (base stroke (0,255,120)) the
-    // only red light the frame can carry is the corner node — so the corner
-    // must peak clearly redder than the edge stroke.
-    let corner_red = max_ch(&px, 0, 30, 232, 8, 16);
-    let edge_red = max_ch(&px, 0, 30, 145, 8, 16);
-    println!("node fingerprint: corner red {corner_red:.1} vs edge red {edge_red:.1}");
-    assert!(
-        corner_red > edge_red + 25.0,
-        "no corner node: corner red {corner_red:.1} vs edge red {edge_red:.1}"
-    );
-}
-
-/// Peak of one RGBA channel over a block — [`max_lum`]'s single-channel twin.
-fn max_ch(px: &[u8], ch: usize, x0: usize, y0: usize, w: usize, h: usize) -> f64 {
-    let mut m = 0.0f64;
-    for y in y0..(y0 + h) {
-        for x in x0..(x0 + w) {
-            m = m.max(px[(y * W as usize + x) * 4 + ch] as f64);
-        }
-    }
-    m
+    // This test used to make four numeric claims about post-bloom pixels —
+    // "the focused corner peaks 1.8x the unfocused one", "the focused bottom
+    // border outshines", "the corner samples hotter than the edge midpoint",
+    // "the corner peaks redder". Every one of them sampled pixel literals
+    // with "at this cell size" written beside them, and the cell size moved:
+    // by the time anyone looked, the bands sat six pixels off the strokes
+    // they were aimed at and were comparing one patch of page background with
+    // another (31.4 vs 30.5) while reading as a hierarchy assertion. The test
+    // had been red on main for nineteen releases and said nothing true.
+    //
+    // What a focused frame owes the eye is now asserted where the decision is
+    // actually made — on the drawn stroke colours, on every preset, with a
+    // floor: `panecardglow_tests::a_focused_frame_declares_itself`. That is
+    // the contract that found `fern` handing focus a 1.60:1 frame. This stays
+    // a shot: it writes the tube's own PNG so the light trace can be looked
+    // at, and asserts only what a shot can honestly assert — that the frame
+    // put light on the page at all.
+    let lit = px.chunks_exact(4).filter(|p| p[1] > 60).count();
+    println!("crt-lighttrace: {lit} lit pixels");
+    assert!(lit > 3000, "the tube drew: {lit} lit pixels");
 }

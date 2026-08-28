@@ -66,16 +66,36 @@ impl CrewApp {
             self.focus_prev = self.focus_drawn;
             self.focus_drawn = self.focused;
             self.focus_anim = crate::ease::Timeline::start(now, 260, self.config.motion_level());
-            // Ignition is CRT-only: a paper frame's pixels never change with
-            // it, so spending 600ms of redraws there would buy nothing.
-            if crew_theme::theme().crt.is_some() {
-                self.ignite_anim =
-                    crate::ease::Timeline::start(now, IGNITE_MS, self.config.motion_level());
-            }
+            // Ignition used to be gated on `crt.is_some()`, back when a paper
+            // frame's pixels genuinely did not change with it. Every preset
+            // carries a gradient ring now and every ring takes the ignition
+            // lift, so the gate was both always true and no longer meaningful.
+            self.ignite_anim =
+                crate::ease::Timeline::start(now, IGNITE_MS, self.config.motion_level());
         }
         set_ignite_t(self.ignite_anim.eased(now, crate::ease::out_cubic));
         self.focus_anim.eased(now, crate::ease::out_cubic)
     }
+}
+
+/// How far a FOCUSED frame must sit from an unfocused one. Focus is a
+/// question the eye asks constantly — which pane am I typing into — and the
+/// frame is the only thing that answers it.
+///
+/// Measured across the set when this floor was added: paper-dark 8.33,
+/// crt-green 6.28, crt-blue 5.36, sepia-dark 5.24, crt-amber 4.29, nebula
+/// 3.76, crt-violet 3.25, harbor 2.77, paper-light 2.74, sepia-light 2.66,
+/// blossom 2.59 — and **fern 1.60**, which is not an answer. The floor is
+/// 2.5: below it the light presets would have to be restyled, at it fern is
+/// brought up to where its own family already sits.
+pub(crate) const FOCUS_FLOOR: f32 = 2.5;
+
+/// The stroke a focused card is drawn in: the theme's own `border_focused`,
+/// pushed until it clears [`FOCUS_FLOOR`] against the unfocused stroke. A
+/// floor, not a restyling — eleven of the twelve presets clear it untouched
+/// and are handed back exactly what their author tuned.
+pub(crate) fn focused_stroke(t: &crew_theme::Theme) -> (u8, u8, u8) {
+    crew_theme::readable::against(t.border_focused, t.border_normal, FOCUS_FLOOR)
 }
 
 /// [`pane_card`] plus the light-trace treatment: on a CRT theme the FOCUSED
@@ -87,9 +107,17 @@ impl CrewApp {
 pub(crate) fn pane_card_glowing(p: &Pane, b: &Bar) -> Vec<CellView> {
     let mut v = pane_card(p.grid.cols, p.grid.rows, b);
     let theme = crew_theme::theme();
-    if b.focused && theme.crt.is_some() {
+    if b.focused {
         let busy = crate::paneview::pane_animating(p);
-        if theme.modern.is_some() {
+        // `is_tube` — the theme's OWN single-phosphor predicate. This branch
+        // was spelled `theme.modern.is_some()`, and since "every theme gets
+        // the gradient" (0.18.25) every preset carries a `ModernStyle`: the
+        // tubes had been taking the modern ring and the light-trace `else`
+        // had been dead code for nineteen releases. The trace is what a tube
+        // is FOR — corner nodes the bloom turns into joints, the ignition
+        // decay, the breathing — and `crt_shot_grayscale_focus_hierarchy` had
+        // been red on main that whole time saying so.
+        if !theme.is_tube() {
             crate::modernring::ring(
                 &mut v,
                 p.grid.cols + 2,
@@ -116,7 +144,7 @@ pub(crate) fn pane_card_glowing(p: &Pane, b: &Bar) -> Vec<CellView> {
 /// plain `border_focused` colour are touched — the legend, focus brackets and
 /// status glyphs ride the same border rows and keep their own colours.
 fn trace(v: &mut [CellView], cols: u16, rows: u16, busy: bool, ignite_t: f32, now: u64) {
-    let base = crew_theme::theme().border_focused;
+    let base = focused_stroke(crew_theme::theme());
     let hot = corner_hot(base);
     // Breathing rides the busy redraw cadence and follows the same Motion
     // gate as the scan sweep; an idle pane's breath is exactly zero, so the

@@ -254,7 +254,10 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
     let (border, legend) = if drop_target {
         (crate::palette::accent(), crate::palette::accent())
     } else if b.focused {
-        (crew_theme::theme().border_focused, hue)
+        (
+            crate::panecardglow::focused_stroke(crew_theme::theme()),
+            hue,
+        )
     } else {
         (
             crew_theme::theme().border_normal,

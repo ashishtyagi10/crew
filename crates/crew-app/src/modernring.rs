@@ -46,7 +46,11 @@ const HOT_POLE: (u8, u8, u8) = (255, 255, 255);
 pub(crate) fn ring(v: &mut [CellView], cols: u16, rows: u16, busy: bool, ignite_t: f32, now: u64) {
     let t = crew_theme::theme();
     let Some(style) = t.modern else { return };
-    let base = t.border_focused;
+    // The stroke the card was actually DRAWN in, floored against the
+    // unfocused one (`panecardglow::focused_stroke`): the ring recolours only
+    // cells still wearing it, so reading the raw theme field here would miss
+    // every cell on a preset the floor had to move.
+    let base = crate::panecardglow::focused_stroke(t);
     // Drift rides the busy redraw cadence and follows the Motion gate; an
     // idle pane's phase is exactly zero, so the resting gradient is a pure
     // function of cell position and idle frames stay byte-identical.

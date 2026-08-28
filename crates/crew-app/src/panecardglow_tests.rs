@@ -140,3 +140,66 @@ fn an_unfocused_frame_stays_a_plain_quiet_trace_on_every_theme() {
         );
     }
 }
+
+/// Which pane am I typing into? The frame is the only thing that answers, so
+/// a focused stroke has to be visibly different from an unfocused one on
+/// every preset. `fern` handed focus a **1.60:1** frame — the two cards were
+/// as good as identical — and nothing measured it, because the pixel test
+/// that claimed to had been sampling page background for nineteen releases.
+#[test]
+fn a_focused_frame_declares_itself() {
+    for id in crew_theme::ALL_THEMES {
+        let t = id.theme();
+        let got = crew_theme::contrast_ratio(focused_stroke(t), t.border_normal);
+        assert!(
+            got >= FOCUS_FLOOR,
+            "{}: focused frame vs unfocused = {got:.2}",
+            id.as_str(),
+        );
+    }
+}
+
+/// …and the floor is a floor, not a restyle: a preset that already clears it
+/// is handed back exactly what its author tuned.
+#[test]
+fn a_preset_that_already_separates_keeps_its_own_stroke() {
+    let t = crew_theme::ThemeId::PaperDark.theme();
+    assert_eq!(focused_stroke(t), t.border_focused);
+}
+
+/// The wiring, not the unit. `trace` had its own tests and passed all of them
+/// while `pane_card_glowing` never called it: the branch was spelled
+/// `theme.modern.is_some()`, and since "every theme gets the gradient" every
+/// preset carries a `ModernStyle`, so the tubes silently took the modern ring
+/// and the light trace was dead for nineteen releases. This asserts on the
+/// frame the app actually builds.
+#[test]
+fn a_tube_gets_the_light_trace_and_a_paper_page_gets_the_ring() {
+    let _g = crate::app::theme_test_guard();
+    let p = far_pane();
+    let corner = |cols: u16, rows: u16, v: &[CellView]| fg_at(v, cols - 1, rows - 1);
+    let (cols, rows) = (p.grid.cols + 2, p.grid.rows + 2);
+
+    crew_theme::set_theme(crew_theme::ThemeId::CrtGreen);
+    let node = corner_hot(focused_stroke(crew_theme::theme()));
+    let v = pane_card_glowing(&p, &bar(true));
+    assert_eq!(
+        corner(cols, rows, &v),
+        node,
+        "a tube's focused frame carries its corner node"
+    );
+
+    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+    let v = pane_card_glowing(&p, &bar(true));
+    let paper_corner = corner(cols, rows, &v);
+    assert_ne!(
+        paper_corner,
+        corner_hot(focused_stroke(crew_theme::theme())),
+        "a paper page takes the gradient ring, not the trace"
+    );
+    assert_ne!(
+        paper_corner,
+        crew_theme::theme().border_focused,
+        "…and the ring did recolour it"
+    );
+}
