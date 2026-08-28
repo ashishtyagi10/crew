@@ -370,11 +370,30 @@ Inside that:
   peaks, which is what lets an idle machine draw a shape at all — so each
   rule carries the ceiling it is drawn against, and LOAD's carries `1·5·15m`,
   naming exactly the averages that are on the row.
-- The three **rings spread up to a cap and then centre**; past the cap they
+- The three **dials spread up to a cap and then centre**; past the cap they
   would stop reading as one answer in three parts. The two **network rates go
   to opposite ends of the row** once there is real room for it.
 - LOG lines from the same minute **print their stamp once**, so the stamps read
   as a scale rather than a stack of identical `23:12`s.
+
+**SYSTEM reads as three instrument dials.** Each is a needle on a fixed 240°
+scale — eight o'clock round to four — with the reading in the open bottom of
+its own face and its name under it. A dial says a load the way a clock says a
+time: by *position* against marks you already know, so half is half without
+reading the number, and the ticks the needle has passed light in the band's
+colour so length says it too. Below the width three faces need, the section
+still falls back to labelled bars.
+
+Two things underneath it are worth knowing. The shapes are drawn as **signed
+distance fields** rather than inside/outside tests, so a twenty-pixel arc gets
+a continuous coverage ramp instead of a ten-step staircase and a tick thinner
+than a canvas pixel comes out dim rather than missing — and the section
+rasterizes at **one canvas pixel per device pixel** rather than the chart
+canvas's default of one per two, which is where the stepping actually came
+from. And the scale's two greys are **derived against the page**, not taken
+from the palette: the recessed border shade the ring gauge used reads under
+1.3 on every light theme, which drew a needle with no scale to read it
+against.
 
 **Motion and contrast reach it.** With motion off (or `auto` under an OS
 reduce-motion request) the attention marker holds still instead of blinking and
@@ -1984,7 +2003,7 @@ graphs through one interface. Design rationale and roadmap:
 ## Sidebar
 
 A docked left panel (toggle with **Cmd+G**) with stacked, line-divided sections:
-a live **TIME** clock, **SYSTEM** CPU/MEM/DISK gauges followed by a moving
+a live **TIME** clock, **SYSTEM** CPU/MEM/DISK dials followed by a moving
 **CPU sparkline**, a **LOAD** section (1/5/15-minute load average, coloured by
 load-per-core), a **HOST** section (hostname, OS, uptime), a **NET** section
 (down/up byte rates plus an auto-scaled throughput sparkline), and — when the

@@ -7,11 +7,14 @@
 //! `aspect` (`cell_h / cell_w`) once, and converts back to the cell units
 //! [`Paint`] speaks when the drawing is done.
 //!
-//! **Anti-aliasing.** Shapes are described as inside/outside predicates and
-//! sampled on a 3×3 grid inside each pixel, so an edge lands on one of ten
-//! coverage levels instead of snapping to the pixel. That is what keeps an
-//! arc from looking like a staircase at sidebar sizes, where a whole donut is
-//! only a few dozen pixels across.
+//! **Anti-aliasing**, two ways. A shape can be an inside/outside predicate,
+//! sampled on a 3×3 grid inside each pixel — ten coverage levels, enough for
+//! an area fill's roof or a heat cell's edge. Or it can be a [signed
+//! distance](crate::plot::sdf), where coverage is computed from the distance
+//! to the edge and the ramp is continuous. Curves want the second: at the
+//! size the nav draws a gauge, ten levels on a grid coarser than the screen's
+//! own pixels is a staircase you can see, and a mark thinner than a canvas
+//! pixel can miss all nine samples and draw *nothing*.
 //!
 //! **Output.** [`Canvas::paint`] run-length-merges the buffer horizontally
 //! *and* vertically, so a solid region costs one rectangle rather than one per
@@ -149,6 +152,68 @@ impl Canvas {
                     continue;
                 }
                 let (cx, cy) = self.centre(ix, iy);
+                let (rgb, a) = shade(cx, cy);
+                let a = a * cov;
+                if a <= 0.0 {
+                    continue;
+                }
+                let src = Px {
+                    r: rgb.0 as f32 / 255.0 * a,
+                    g: rgb.1 as f32 / 255.0 * a,
+                    b: rgb.2 as f32 / 255.0 * a,
+                    a,
+                };
+                let i = iy * self.w + ix;
+                self.px[i] = self.px[i].over(src);
+            }
+        }
+    }
+
+    /// Fill a shape given as a [signed distance](crate::plot::sdf): coverage
+    /// comes off the distance analytically instead of out of a 3×3 sample
+    /// grid.
+    ///
+    /// The sampled path snaps an edge to one of ten levels on the canvas
+    /// grid, and canvas pixels are coarser than device pixels — which is the
+    /// staircase visible on any arc the nav draws, and the reason a mark
+    /// thinner than a canvas pixel could fall between all nine samples and
+    /// draw nothing at all. A distance says how far the edge is, so it lands
+    /// anywhere on a continuous ramp and a hairline comes out grey rather
+    /// than absent.
+    pub fn fill_sdf(
+        &mut self,
+        bbox: (f32, f32, f32, f32),
+        color: (u8, u8, u8),
+        alpha: f32,
+        sd: impl Fn(f32, f32) -> f32,
+    ) {
+        self.fill_sdf_shaded(bbox, sd, |_, _| (color, alpha));
+    }
+
+    /// [`fill_sdf`](Self::fill_sdf), taking colour and alpha per pixel.
+    pub fn fill_sdf_shaded(
+        &mut self,
+        bbox: (f32, f32, f32, f32),
+        sd: impl Fn(f32, f32) -> f32,
+        shade: impl Fn(f32, f32) -> ((u8, u8, u8), f32),
+    ) {
+        let (bx, by, bw, bh) = bbox;
+        if bw <= 0.0 || bh <= 0.0 {
+            return;
+        }
+        let x0 = ((bx * self.scale).floor() as isize).max(0) as usize;
+        let y0 = ((by * self.scale).floor() as isize).max(0) as usize;
+        let x1 = (((bx + bw) * self.scale).ceil() as isize).clamp(0, self.w as isize) as usize;
+        let y1 = (((by + bh) * self.scale).ceil() as isize).clamp(0, self.h as isize) as usize;
+        for iy in y0..y1 {
+            for ix in x0..x1 {
+                let (cx, cy) = self.centre(ix, iy);
+                // Distance in units, expressed in pixels: half a pixel inside
+                // the edge is fully covered, half a pixel outside is empty.
+                let cov = (0.5 - sd(cx, cy) * self.scale).clamp(0.0, 1.0);
+                if cov <= 0.0 {
+                    continue;
+                }
                 let (rgb, a) = shade(cx, cy);
                 let a = a * cov;
                 if a <= 0.0 {
@@ -348,6 +413,75 @@ mod tests {
         // pixel at alpha 1.0 and stair-step at these sizes.
         let graded = c.paint().iter().filter(|p| p.alpha < 0.95).count();
         assert!(graded > 8, "anti-aliased edge pixels: {graded}");
+    }
+
+    /// The point of the distance path: an edge that lands between two canvas
+    /// pixels comes out as a partial one, and a mark thinner than a pixel
+    /// comes out *grey* rather than missing. The sampled path cannot do
+    /// either — nine samples on a grid give nine chances to miss.
+    #[test]
+    fn a_distance_fill_grades_edges_the_sample_grid_would_snap_or_miss() {
+        let (cx, cy, r) = (3.0, 3.0, 2.0);
+        let bbox = (cx - r, cy - r, 2.0 * r, 2.0 * r);
+        let disc = move |x: f32, y: f32| super::super::sdf::disc((x, y), (cx, cy), r);
+        let levels = |c: &Canvas| {
+            let mut steps: Vec<f32> = c
+                .paint()
+                .iter()
+                .map(|p| p.alpha)
+                .filter(|a| *a < 0.99)
+                .collect();
+            steps.sort_by(|a, b| a.partial_cmp(b).unwrap());
+            steps.dedup();
+            steps.len()
+        };
+
+        let mut sdf = Canvas::new(6, 3, 2.0);
+        sdf.fill_sdf(bbox, (0, 255, 0), 1.0, disc);
+        let a = painted_area(&sdf);
+        let want = std::f32::consts::PI * r * r;
+        assert!((a - want).abs() / want < 0.02, "disc area {a} vs {want}");
+
+        // The same disc, sampled: nine samples can only ever land on ten
+        // levels, and the same circle's edge lands on a handful of them.
+        let mut sampled = Canvas::new(6, 3, 2.0);
+        sampled.fill(bbox, (0, 255, 0), 1.0, move |x, y| disc(x, y) <= 0.0);
+        assert!(
+            levels(&sdf) > levels(&sampled),
+            "distance edge {} levels vs sampled {}",
+            levels(&sdf),
+            levels(&sampled)
+        );
+    }
+
+    /// A hairline thinner than a canvas pixel: the sample grid draws nothing
+    /// unless it happens to straddle a sample row, the distance field always
+    /// draws it, dimmed in proportion to how thin it is.
+    #[test]
+    fn a_sub_pixel_line_survives_the_distance_path() {
+        let thin = |use_sdf: bool| {
+            let mut c = Canvas::new(8, 2, 2.0);
+            // A tenth of a pixel wide, deliberately placed off the sample rows.
+            let (y, half) = (1.507, 0.05 * c.px());
+            if use_sdf {
+                c.fill_sdf(
+                    (0.0, y - 0.5, 8.0, 1.0),
+                    (255, 255, 255),
+                    1.0,
+                    move |_, py| (py - y).abs() - half,
+                );
+            } else {
+                c.fill(
+                    (0.0, y - 0.5, 8.0, 1.0),
+                    (255, 255, 255),
+                    1.0,
+                    move |_, py| (py - y).abs() <= half,
+                );
+            }
+            painted_area(&c)
+        };
+        assert_eq!(thin(false), 0.0, "the sample grid misses it entirely");
+        assert!(thin(true) > 0.0, "the distance field keeps it");
     }
 
     #[test]

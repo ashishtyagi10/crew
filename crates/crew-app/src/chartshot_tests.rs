@@ -95,7 +95,7 @@ fn chart_shot_crew_donut() {
 
 #[test]
 #[ignore = "needs a GPU adapter; writes PNGs"]
-fn chart_shot_sys_rings() {
+fn chart_shot_sys_dials() {
     let _g = crate::app::theme_test_guard();
     let stats = crate::stats::Stats {
         cpu: 0.34,
@@ -103,10 +103,10 @@ fn chart_shot_sys_rings() {
         disk: 0.94,
         ..Default::default()
     };
-    let px = shot("rings", "SYSTEM", |cols, _rows, aspect| {
+    let px = shot("dials", "SYSTEM", |cols, _rows, aspect| {
         (
-            crate::sysrings::cells(stats, cols, 0),
-            crate::sysrings::paint(stats, cols, 0, aspect),
+            crate::sysdials::cells(stats, cols, 0),
+            crate::sysdials::paint(stats, cols, 0, aspect),
         )
     });
     let Some(px) = px else {
@@ -114,7 +114,7 @@ fn chart_shot_sys_rings() {
         return;
     };
     let ink = ink(&px);
-    assert!(ink > 2000, "the rings drew something: {ink} ink pixels");
+    assert!(ink > 2000, "the dials drew something: {ink} ink pixels");
 }
 
 #[test]

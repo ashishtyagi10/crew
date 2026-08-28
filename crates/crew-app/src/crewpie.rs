@@ -32,6 +32,14 @@ const LEGEND_COL: u16 = 7;
 const BLOCK_W: u16 = 12;
 /// Where the pulse backdrop starts: past the ring, so the two never overlap.
 const WASH_X: f32 = CENTRE_X + R_OUT + 0.4;
+/// Canvas pixels per column for the ring and the legend dots.
+///
+/// The default four puts a canvas pixel at about two device pixels, and a
+/// ring twenty pixels across rasterized on a grid half that fine steps in
+/// blocks you can count. The wash behind the legend keeps the default — it is
+/// a soft gradient with no edge to stair-step, and it covers most of the
+/// block, so paying four times the pixels for it would buy nothing.
+const FG_SUB: usize = 8;
 
 /// How the crew divides up right now. `waiting` is a pane that has raised a
 /// marker for you (a bell, a finished command); `working` is one doing
@@ -164,26 +172,30 @@ pub fn paint(
         }
     }
 
+    // The shapes go on their own, finer canvas, composited over the wash by
+    // being emitted after it.
+    let mut fg = Canvas::with_sub(cols, ROWS, aspect, FG_SUB);
     let centre = (CENTRE_X, h / 2.0);
     let slices = [
         Slice::new(m.working as f32, accent()),
         Slice::new(m.waiting as f32, t.bell),
         Slice::new(m.idle as f32, t.text_muted),
     ];
-    pie::donut(&mut c, centre, R_OUT, R_IN, &slices, t.border_normal);
+    pie::donut(&mut fg, centre, R_OUT, R_IN, &slices, t.border_normal);
     // The hole is punched back out to the page so the number in it reads
     // against the page and not through the wash behind the block.
-    pie::dot(&mut c, centre, R_IN, t.page_bg, 1.0);
+    pie::dot(&mut fg, centre, R_IN, t.page_bg, 1.0);
 
     if cols > LEGEND_COL + 4 {
         for (k, (_, n, col)) in entries(m).into_iter().enumerate() {
             let cy = (k as f32 + 0.5) * aspect;
             let col = if n == 0 { t.border_normal } else { col };
-            pie::dot(&mut c, (f32::from(LEGEND_COL) + 0.5, cy), 0.36, col, 1.0);
+            pie::dot(&mut fg, (f32::from(LEGEND_COL) + 0.5, cy), 0.36, col, 1.0);
         }
     }
     c.paint()
         .into_iter()
+        .chain(fg.paint())
         .map(|p| p.shifted(0.0, f32::from(row0)))
         .collect()
 }

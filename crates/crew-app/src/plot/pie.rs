@@ -11,7 +11,7 @@
 //! adjacent slices of similar colour still read as two.
 use std::f32::consts::TAU;
 
-use crate::plot::Canvas;
+use crate::plot::{sdf, Canvas};
 
 /// Angular gap between slices, in radians — about a degree and a half at the
 /// sizes crew draws, which separates without eating a small slice.
@@ -28,17 +28,6 @@ pub struct Slice {
 impl Slice {
     pub fn new(value: f32, color: (u8, u8, u8)) -> Self {
         Self { value, color }
-    }
-}
-
-/// Angle of `(dx, dy)` measured clockwise from twelve o'clock, in `0..TAU`.
-/// `dy` grows downward on a screen, hence the negation.
-fn angle_at(dx: f32, dy: f32) -> f32 {
-    let a = dx.atan2(-dy);
-    if a < 0.0 {
-        a + TAU
-    } else {
-        a
     }
 }
 
@@ -59,16 +48,14 @@ pub fn donut(
     let (cx, cy) = centre;
     let r_in = r_in.clamp(0.0, r_out.max(0.0));
     let bbox = (cx - r_out, cy - r_out, 2.0 * r_out, 2.0 * r_out);
-    let in_ring = move |x: f32, y: f32| {
-        let d2 = (x - cx).powi(2) + (y - cy).powi(2);
-        d2 <= r_out * r_out && d2 >= r_in * r_in
-    };
     let total: f32 = slices.iter().map(|s| s.value.max(0.0)).sum();
     if r_out <= 0.0 {
         return;
     }
     if total <= 0.0 {
-        c.fill(bbox, empty_color, 0.5, in_ring);
+        c.fill_sdf(bbox, empty_color, 0.5, move |x, y| {
+            sdf::sector((x, y), centre, r_out, r_in, 0.0, TAU)
+        });
         return;
     }
 
@@ -88,17 +75,11 @@ pub fn donut(
         if a1 <= a0 {
             continue;
         }
-        c.fill(bbox, s.color, 1.0, move |x, y| {
-            if !in_ring(x, y) {
-                return false;
-            }
-            let a = angle_at(x - cx, y - cy);
-            // A slice may cross twelve o'clock, where the angle wraps.
-            if a1 <= TAU {
-                a >= a0 && a <= a1
-            } else {
-                a >= a0 || a <= a1 - TAU
-            }
+        // The sector is described about its own mid-angle, so a slice that
+        // crosses twelve o'clock needs no wrap case: `a1` past `TAU` is just
+        // a mid-angle past `TAU`.
+        c.fill_sdf(bbox, s.color, 1.0, move |x, y| {
+            sdf::sector((x, y), centre, r_out, r_in, a0, a1)
         });
     }
 }
@@ -107,11 +88,11 @@ pub fn donut(
 /// scatter or a series head is drawn with.
 pub fn dot(c: &mut Canvas, centre: (f32, f32), r: f32, color: (u8, u8, u8), alpha: f32) {
     let (cx, cy) = centre;
-    c.fill(
+    c.fill_sdf(
         (cx - r, cy - r, 2.0 * r, 2.0 * r),
         color,
         alpha,
-        move |x, y| (x - cx).powi(2) + (y - cy).powi(2) <= r * r,
+        move |x, y| sdf::disc((x, y), centre, r),
     );
 }
 
