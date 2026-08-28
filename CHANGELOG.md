@@ -8,6 +8,28 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.51
+
+**Transparency you can dial, and it knows what to leave solid.** Crew could
+already be made translucent — Settings → WINDOW → Opacity % — but it was a
+number in a form, and what it did was uniform: the window's alpha rides the
+page colour, so the desktop came through everything at once, the card being
+read and the bar being typed into included. `/opacity
+[off|subtle|medium|sheer|<35-100>]` now puts the knob on the input bar, live
+and persisted, and a new scene pass decides what stays solid: **the focused
+card, the input bar and the left nav**. The desktop shows through the canvas
+around your panes and through the cards you are *not* reading; the surface
+your eye is on never has a wallpaper behind its text, and the solidity follows
+focus the way the spotlight and the page's light already do.
+
+The named steps are deliberately shy — 97%, 93%, 88% — because translucency is
+a texture, not a window into the wallpaper; any percent down to the 35% floor
+still works if you want the aquarium. The pass writes **only the alpha
+channel**, so the gradient wash, the dot lattice and the paper grain inside a
+solidified card are exactly what they would be in an opaque window — a
+page-coloured sheet under the cells would have flattened the backdrop precisely
+where the wash gathers its light, on the focused card.
+
 ## 0.19.50
 
 **The line across your output was the unread divider, and it could not clear
