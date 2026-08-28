@@ -25,8 +25,10 @@ const CHART_ROWS: u16 = 2;
 const CHART_OFF: u16 = 1 + crate::sysrings::ROWS;
 /// Rows the LOAD section occupies (rule + 1 line + a one-row gap below it).
 const LOAD_BLOCK: u16 = 3;
-/// Rows a section with a rule + 2 content rows + one-row gap occupies (HOST, NET, GIT).
+/// Rows a section with a rule + 2 content rows + one-row gap occupies (HOST, GIT).
 const CARD_BLOCK: u16 = 4;
+/// NET: rule + rates + the twin chart's two rows + gap.
+const NET_BLOCK: u16 = 2 + crate::nettwin::ROWS + 1;
 
 /// The docked sidebar: a live clock card stacked above the system-stats card.
 pub struct StatsPane {
@@ -82,7 +84,7 @@ impl StatsPane {
     /// the fixed stat cards. The hit path for scrolling the log reads it, so
     /// draw and wheel agree about which rows are the log's.
     pub fn log_top(&self) -> u16 {
-        let stats = clock::CLOCK_H + SYS_BLOCK + LOAD_BLOCK + CARD_BLOCK + CARD_BLOCK;
+        let stats = clock::CLOCK_H + SYS_BLOCK + LOAD_BLOCK + CARD_BLOCK + NET_BLOCK;
         stats
             + if self.git.info().is_some() {
                 CARD_BLOCK
@@ -124,6 +126,20 @@ impl StatsPane {
                 cols,
                 clock::CLOCK_H + 1,
                 aspect,
+            ));
+        }
+        // The NET twin chart, under that section's rates.
+        let net_off = clock::CLOCK_H + SYS_BLOCK + LOAD_BLOCK + CARD_BLOCK;
+        if rows > net_off + 1 + crate::nettwin::ROWS {
+            let (rx, tx) = self.sampler.net_dirs();
+            out.extend(crate::nettwin::paint(
+                rx,
+                tx,
+                cols,
+                net_off + 2,
+                aspect,
+                crate::net::spark(),
+                crate::net::up_color(),
             ));
         }
         // The crew donut, under the PANES header — the same offset
@@ -208,13 +224,13 @@ impl StatsPane {
         let net_off = host_off + CARD_BLOCK;
         if rows > net_off + 3 {
             let s = self.sampler.stats();
-            for mut c in net::net_cells(s.net_rx, s.net_tx, self.sampler.net_hist(), cols) {
+            for mut c in net::net_cells(s.net_rx, s.net_tx, cols) {
                 c.row += net_off;
                 out.push(c);
             }
         }
 
-        let git_off = net_off + CARD_BLOCK;
+        let git_off = net_off + NET_BLOCK;
         let mut next = git_off;
         if let Some(info) = self.git.info() {
             if rows > git_off + 3 {
@@ -266,17 +282,17 @@ mod tests {
     #[test]
     fn panes_top_accounts_for_git_and_log() {
         let mut s = StatsPane::new();
-        // clock(4) + system(8) + load(3) + host(4) + net(4) = 23
-        assert_eq!(s.panes_top(0), 23);
+        // clock(4) + system(8) + load(3) + host(4) + net(5) = 24
+        assert_eq!(s.panes_top(0), 24);
         s.git.set_info(Some(git::GitInfo {
             branch: "main".into(),
             changed: 0,
             ahead: 0,
             behind: 0,
         }));
-        assert_eq!(s.panes_top(0), 27); // + git(4)
+        assert_eq!(s.panes_top(0), 28); // + git(4)
                                         // a non-empty log adds its block: rule + min(n, LOG_LINES) + gap.
-        assert_eq!(s.panes_top(2), 27 + 4); // 2 entries -> 2 + 2
-        assert_eq!(s.panes_top(99), 27 + navlog::LOG_LINES as u16 + 2); // capped
+        assert_eq!(s.panes_top(2), 28 + 4); // 2 entries -> 2 + 2
+        assert_eq!(s.panes_top(99), 28 + navlog::LOG_LINES as u16 + 2); // capped
     }
 }

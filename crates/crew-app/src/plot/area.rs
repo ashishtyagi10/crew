@@ -19,11 +19,54 @@ const STROKE: f32 = 0.2;
 const FILL_TOP: f32 = 0.38;
 const FILL_BOTTOM: f32 = 0.04;
 
+/// Which end of the fill carries the weight.
+///
+/// A chart standing on the bottom of its own box wants the weight at the
+/// curve, where the shape is. A chart hanging off a shared axis — the two
+/// halves of the NET twin — wants it at the axis instead: fading *toward* the
+/// line leaves a pale gap either side of it, and the two halves stop reading
+/// as one chart about one thing.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Style {
+    pub at_curve: f32,
+    pub at_base: f32,
+}
+
+impl Default for Style {
+    fn default() -> Self {
+        Self {
+            at_curve: FILL_TOP,
+            at_base: FILL_BOTTOM,
+        }
+    }
+}
+
+impl Style {
+    /// The weight at the baseline instead of the curve.
+    pub fn anchored() -> Self {
+        Self {
+            at_curve: 0.08,
+            at_base: 0.42,
+        }
+    }
+}
+
 /// Draw `samples` (each `0.0..=1.0`, oldest first) as an area chart filling
 /// `(x, y, w, h)` in canvas units. The newest sample lands on the right edge —
 /// the chart scrolls left as readings arrive, like every other live series in
 /// the sidebar.
 pub fn draw(c: &mut Canvas, rect: (f32, f32, f32, f32), samples: &[f32], color: (u8, u8, u8)) {
+    draw_styled(c, rect, samples, color, Style::default());
+}
+
+/// [`draw`] with the fill's weight placed explicitly — see [`Style`].
+pub fn draw_styled(
+    c: &mut Canvas,
+    rect: (f32, f32, f32, f32),
+    samples: &[f32],
+    color: (u8, u8, u8),
+    style: Style,
+) {
     let (x, y, w, h) = rect;
     if w <= 0.0 || h <= 0.0 || samples.is_empty() {
         return;
@@ -44,7 +87,7 @@ pub fn draw(c: &mut Canvas, rect: (f32, f32, f32, f32), samples: &[f32], color: 
         |px, py| px >= x && px <= x + w && py >= curve(px) && py <= base,
         |_, py| {
             let k = ((base - py) / span).clamp(0.0, 1.0);
-            (color, FILL_BOTTOM + (FILL_TOP - FILL_BOTTOM) * k)
+            (color, style.at_base + (style.at_curve - style.at_base) * k)
         },
     );
 

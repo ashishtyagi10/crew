@@ -175,6 +175,7 @@ mod navlog;
 mod navlogscroll;
 mod navresize;
 mod net;
+mod nettwin;
 mod notify;
 mod oauth;
 mod openurl;

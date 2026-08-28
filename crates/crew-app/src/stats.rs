@@ -27,6 +27,8 @@ pub struct SysSampler {
     last: Option<Instant>,
     stats: Stats,
     net_hist: crate::spark::History, // total throughput per sample, for the chart
+    rx_hist: crate::spark::History,  // down, for the twin chart's upper half
+    tx_hist: crate::spark::History,  // up, for its lower half
 }
 
 impl SysSampler {
@@ -38,6 +40,8 @@ impl SysSampler {
             last: None,
             stats: Stats::default(),
             net_hist: crate::spark::History::new(64),
+            rx_hist: crate::spark::History::new(64),
+            tx_hist: crate::spark::History::new(64),
         };
         sampler.sample();
         sampler.last = Some(Instant::now());
@@ -48,9 +52,16 @@ impl SysSampler {
         self.stats
     }
 
-    /// Recent total (rx+tx) network throughput, for the sidebar NET sparkline.
+    /// Recent total (rx+tx) network throughput.
     pub fn net_hist(&self) -> &crate::spark::History {
         &self.net_hist
+    }
+
+    /// The two directions kept apart, for the NET twin chart. A single total
+    /// cannot say which way the bytes went, which is most of what you want to
+    /// know when a pane suddenly starts moving data.
+    pub fn net_dirs(&self) -> (&crate::spark::History, &crate::spark::History) {
+        (&self.rx_hist, &self.tx_hist)
     }
 
     pub fn refresh(&mut self) -> bool {
@@ -86,6 +97,8 @@ impl SysSampler {
         });
 
         self.net_hist.push(net_rx.saturating_add(net_tx));
+        self.rx_hist.push(net_rx);
+        self.tx_hist.push(net_tx);
         self.stats = Stats {
             cpu,
             mem,

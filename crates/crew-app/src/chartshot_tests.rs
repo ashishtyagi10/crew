@@ -293,3 +293,48 @@ fn chart_shot_sys_rings() {
         .count();
     assert!(ink > 2000, "the rings drew something: {ink} ink pixels");
 }
+
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn chart_shot_net_twin() {
+    let _g = crate::app::theme_test_guard();
+    let mut rx = crate::spark::History::new(64);
+    let mut tx = crate::spark::History::new(64);
+    for i in 0..48u64 {
+        let t = i as f32 / 48.0;
+        rx.push((900_000.0 * (0.35 + 0.5 * (t * 7.0).sin().abs())) as u64);
+        tx.push((900_000.0 * (0.10 + 0.25 * (t * 4.0).cos().abs())) as u64);
+    }
+    let px = shot("nettwin", "NET", |cols, _rows, aspect| {
+        (
+            crate::net::net_cells(842_000, 121_000, cols),
+            crate::nettwin::paint(
+                &rx,
+                &tx,
+                cols,
+                2,
+                aspect,
+                crate::net::spark(),
+                crate::net::up_color(),
+            ),
+        )
+    });
+    let Some(px) = px else {
+        eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+        return;
+    };
+    let bg = crew_theme::theme().page_bg;
+    let ink = px
+        .chunks_exact(4)
+        .filter(|p| {
+            (p[0] as i32 - bg.0 as i32).abs()
+                + (p[1] as i32 - bg.1 as i32).abs()
+                + (p[2] as i32 - bg.2 as i32).abs()
+                > 40
+        })
+        .count();
+    assert!(
+        ink > 2000,
+        "the twin chart drew something: {ink} ink pixels"
+    );
+}
