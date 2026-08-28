@@ -198,6 +198,7 @@ mod net;
 mod nettwin;
 mod notify;
 mod oauth;
+mod opacitycmd;
 mod openurl;
 mod openview;
 mod osappearance;

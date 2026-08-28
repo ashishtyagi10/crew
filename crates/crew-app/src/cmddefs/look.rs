@@ -66,6 +66,10 @@ pub(crate) const LOOK: &[Cmd] = &[
         desc: "Canvas gradient — how far its colour breathes, or poles of your own (/gradient [off|subtle|lively|<#a> <#b>|reset])",
     },
     Cmd {
+        name: "/opacity",
+        desc: "How much desktop shows through \u{2014} the card you read and the bar you type in stay solid (/opacity [off|subtle|medium|sheer|<35-100>])",
+    },
+    Cmd {
         name: "/notify",
         desc: "Notification settings (/notify [on|off|add <text>|clear])",
     },

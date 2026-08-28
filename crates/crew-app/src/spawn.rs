@@ -486,9 +486,10 @@ impl CrewApp {
             r.set_paper_texture(self.config.paper_texture);
             r.set_paper_grain(self.config.paper_grain);
         }
-        // Glass rides the same path: the settings form is the only place these
-        // two are set, so a save that didn't push them would leave the sheet
-        // and the window opacity a restart behind.
+        // Glass rides the same path: a save that didn't push these two would
+        // leave the sheet and the window opacity a restart behind. `/opacity`
+        // sets the same value from the input bar and calls `apply_glass` for
+        // exactly the same reason.
         self.apply_glass();
         crate::motion::set_level(self.config.motion_level());
         crate::density::set_level(self.config.density());

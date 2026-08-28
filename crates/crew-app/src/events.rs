@@ -283,6 +283,9 @@ impl CrewApp {
                 crew_theme::poleshift::set_shift(
                     self.wash.hue_deg(crate::gradientlvl::level().span_deg()),
                 );
+                // Taken before the renderer is borrowed; `build_frame` above
+                // refilled it this frame.
+                let chrome = std::mem::take(&mut self.solid_chrome);
                 if let Some(r) = &mut self.renderer {
                     // Flicker amplitude is the style's own — each phosphor
                     // jitters with its own nerve, not one global 0.06.
@@ -297,6 +300,7 @@ impl CrewApp {
                     let (focus, pull) = self.wash_focus.uniform();
                     r.set_wash_focus(focus, pull);
                     r.set_theme_fade(fade);
+                    r.set_solid_chrome(chrome);
                     r.frame(&scenes);
                 }
             }

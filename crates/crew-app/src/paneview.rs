@@ -420,6 +420,37 @@ mod tests {
         }
     }
 
+    /// The card scene is what a sheer window solidifies (crew-render's
+    /// `focused_card_rect` looks for `glass && focused && !overlay`), so
+    /// exactly one card per frame may carry focus — and it must be the FOCUSED
+    /// pane's, spanning its whole rect. Focus living only on the cell-inset
+    /// content scene would leave the frame see-through around solid content.
+    #[test]
+    fn exactly_one_card_carries_focus() {
+        let scenes = build_scenes(
+            &[test_pane(), test_pane()],
+            Some(1),
+            false,
+            None,
+            None,
+            1.0,
+            10.0,
+            16.0,
+            &Default::default(),
+            &[],
+        );
+        let focused: Vec<_> = scenes
+            .iter()
+            .filter(|s| s.glass && s.focused && !s.overlay)
+            .collect();
+        assert_eq!(focused.len(), 1, "one card holds focus");
+        assert_eq!(
+            (focused[0].w, focused[0].h),
+            (820.0, 416.0),
+            "the focused card spans the pane rect"
+        );
+    }
+
     fn test_pane() -> Pane {
         Pane {
             glide: crate::glide::Glide::default(),
