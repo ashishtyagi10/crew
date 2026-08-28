@@ -8,6 +8,19 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.36
+
+**`/disk` — where the space went.** A new pane draws the current directory as
+a **treemap**: one tile per entry, its area its share of the bytes, so the
+thing filling your disk is the thing filling the pane. The walk runs off the
+UI thread and the map fills in as totals land; symlinks count as themselves
+rather than as the tree they point at.
+
+Arrows pick tiles in size order (the next key is the next biggest thing),
+`Enter` descends, `Backspace` goes up, `r` rescans, `Esc` closes — and the
+mouse works the way a map should: click a tile to pick it, click it again to
+go in.
+
 ## 0.19.35
 
 **The swarm pane shows *when*.** A task list says what ran and how it ended;
