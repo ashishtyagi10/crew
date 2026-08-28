@@ -48,7 +48,7 @@ pub fn net_cells(rx: u64, tx: u64, ceiling: u64, cols: u16) -> Vec<CellView> {
     // value and not only as a shape.
     let mut out = crate::boxdraw::section_header_key(
         "NET",
-        &format!("\u{2195}{}", rate(ceiling).trim_end_matches("/s")),
+        &format!("peak {}", rate(ceiling)),
         cols,
         t.border_normal,
         accent(),
@@ -152,8 +152,8 @@ mod tests {
             v.sort_by_key(|c| c.col);
             v.iter().map(|c| c.c).collect::<String>().trim().to_string()
         };
-        assert_eq!(rule(64 * 1024), "NET ↕64 KB");
-        assert_eq!(rule(9_000_000), "NET ↕8.6 MB");
+        assert_eq!(rule(64 * 1024), "NET peak 64 KB/s");
+        assert_eq!(rule(9_000_000), "NET peak 8.6 MB/s");
     }
 
     /// Dragged wide, the two rates go to opposite ends of the row — they are

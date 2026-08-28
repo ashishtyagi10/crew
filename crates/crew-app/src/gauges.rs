@@ -120,7 +120,7 @@ pub(crate) fn render_stats(stats: Stats, cols: u16, rows: u16, peak: Option<u64>
     // 0-100 — that is what lets a machine idling under 10% draw a shape at
     // all. A chart with a moving ceiling and no ceiling written down is a
     // chart you cannot read a number off, so the rule carries it.
-    let key = peak.map(|p| format!("\u{2191}{p}%")).unwrap_or_default();
+    let key = peak.map(|p| format!("peak {p}%")).unwrap_or_default();
     out.extend(boxdraw::section_header_key(
         HEADER,
         &key,
@@ -311,7 +311,7 @@ mod tests {
             v.sort_by_key(|c| c.col);
             v.iter().map(|c| c.c).collect::<String>().trim().to_string()
         };
-        assert_eq!(rule(Some(47)), "SYSTEM ↑47%");
+        assert_eq!(rule(Some(47)), "SYSTEM peak 47%");
         // No history yet: the section is still itself, without a claim about a
         // ceiling it has not measured.
         assert_eq!(rule(None), "SYSTEM");

@@ -276,10 +276,27 @@ overdue items surface to the top, and a toast fires when an item comes due.
 ## Sidebar
 
 A docked left panel (toggle with **Cmd+G**) with a live clock, CPU/MEM/DISK
-gauges, a moving **CPU sparkline** under them, load average, host info, network
-rates with a **throughput sparkline**, a git section for the working directory,
-and a list of open panes (click a row to focus it). The sparklines scroll on the
-sidebar's once-a-second refresh, so the charts animate at no extra redraw cost.
+**ring gauges**, a moving **CPU curve** under them, load average, host info,
+network rates over a **twin chart** that draws the two directions apart, a git
+section for the working directory, a **LOG** tail, and a list of open panes
+(click a row to focus it) headed by the **crew donut**. The charts scroll on the
+sidebar's once-a-second refresh, so they animate at no extra redraw cost.
+
+Every part of it answers to the width you give it (drag the inner edge):
+
+- **A chart with a moving ceiling writes the ceiling down.** The CPU curve is
+  scaled to its own rolling minute and the network twin to the louder
+  direction, so a machine idling under 10% still draws a shape — and each
+  section's rule carries the scale it is drawn against (`─ SYSTEM peak 55% ──`,
+  `─ NET peak 64 KB/s ──`).
+- **Prose ellipsizes; a row of values drops whole values.** A narrow nav shows
+  two load averages, or the busier network direction, whole — never half a
+  number. The LOAD rule's key names exactly the averages that survived.
+- **The LOG grows into whatever the column has spare**, up to twenty lines, and
+  its rule says how much of the buffer is showing (`─ LOG 8/64 ──`). A wheel
+  over it scrolls back.
+- **The rings spread and then centre** rather than staying pinned left, and the
+  two network rates go to opposite ends of the row once there is room.
 
 ## What a pane tells you
 
