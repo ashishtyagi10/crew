@@ -47,7 +47,8 @@ fn is_restorable_pane(p: &Pane) -> bool {
         PaneContent::Terminal(_)
         | PaneContent::Far(_)
         | PaneContent::Todo(_)
-        | PaneContent::Usage(_) => true,
+        | PaneContent::Usage(_)
+        | PaneContent::Disk(_) => true,
         // Fix 4: an ephemeral viewer (`/about`, `??`) is not what this flag
         // exists to protect — it opens on a changelog/explanation, not
         // something the user asked to view, which is exactly the
@@ -319,6 +320,9 @@ impl CrewApp {
                 // True when a request landed and the buckets moved: the
                 // charts follow the ledger while the pane is open.
                 PaneContent::Usage(u) => u.refresh(),
+                // True while the disk walk is still reporting totals: the map
+                // fills in rather than waiting for the whole tree.
+                PaneContent::Disk(d) => d.poll(),
             };
             // Follow `cd` inside the pane: a new OSC 7 cwd report retitles the
             // pane to that folder (a `/name` override still wins in title_text).
@@ -338,7 +342,10 @@ impl CrewApp {
                 let is_activity = changed
                     && !matches!(
                         &p.content,
-                        PaneContent::View(_) | PaneContent::Todo(_) | PaneContent::Usage(_)
+                        PaneContent::View(_)
+                            | PaneContent::Todo(_)
+                            | PaneContent::Usage(_)
+                            | PaneContent::Disk(_)
                     );
                 p.activity |= is_activity;
                 p.bell |= rang;

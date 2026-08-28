@@ -1053,6 +1053,16 @@ longer aim at.
   typing to edit` hint: `Enter` runs it like any typed command, `Esc`
   restores the original `!` text, and typing further just edits the
   suggestion as plain text.
+- **`/disk`** — opens the **disk** pane: the current directory as a
+  **treemap**, one tile per entry with its area equal to its share of the
+  bytes, so the thing filling your disk is the thing filling the pane. The
+  walk runs on a worker thread and the map fills in as totals land (the header
+  counts files while it scans), symlinks count as themselves rather than as
+  the tree they point at, and each directory keeps its colour across a rescan.
+  `←`/`→` pick tiles in size order (the next key is the next biggest thing),
+  `Enter` descends into a directory, `Backspace` goes up, `r` rescans and
+  `Esc` closes. The mouse works the way a map should: click a tile to pick it,
+  click it again to go in.
 - **`/usage`** — opens the **usage** pane: what crew has spent over the last
   seven days, drawn rather than totalled. A **heatmap** of tokens by hour (a
   row per day, a column per hour, shaded against the week's own peak, so a

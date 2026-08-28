@@ -32,6 +32,7 @@ impl CrewApp {
             "settings" => self.spawn_settings_pane(),
             "todo" => self.spawn_todo_pane(),
             "usage" => self.spawn_usage_pane(),
+            "disk" => self.spawn_disk_pane(None),
             "shell" => self.spawn_new_pane(),
             // Reopen last session's shells (their cwds snapshot on quit).
             "restore" => self.restore_session(),
