@@ -472,7 +472,16 @@ fn a_progress_report_fills_the_bottom_border() {
         "the bar overran the corners"
     );
     assert!((width(pct(50)) - 20.0).abs() < 0.3, "half the border");
-    assert!((width(pct(100)) - 40.0).abs() < 0.3, "all of it");
+    assert!((width(pct(99)) - 39.6).abs() < 0.3, "nearly all of it");
+    // …and a FULL bar draws nothing. A bar at 100 is not a reading, it is a
+    // line, and almost nothing clears its OSC 9;4 before exiting — so a
+    // program that finished and kept running left a saturated stroke pinned
+    // under the pane for the rest of the session with nothing saying what it
+    // was. Every progress bar outside a terminal vanishes when it fills.
+    assert!(
+        bar_paint(pct(100)).is_empty(),
+        "a full bar is a line, not a bar"
+    );
     // The reading the glyph bar could not show at all: at 3% it drew one
     // whole cell — 2.5% of the border — or nothing.
     assert!(width(pct(3)) > 0.9, "3% is drawn");

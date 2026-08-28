@@ -8,6 +8,17 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.48
+
+**A pane's progress bar disappears when it fills.** A program reports progress
+over OSC 9;4 and almost none of them clear it before exiting, so a pane whose
+program had reached 100 carried a saturated `activity`-coloured stroke pinned
+along its bottom border for the rest of the session — a full-width line with
+nothing on screen saying what it was. A bar at 100 is not a reading; it is a
+line. Every progress bar outside a terminal vanishes when it fills, and this
+one does too. The indeterminate comet is untouched: it moves, so it reads as
+activity rather than as chrome.
+
 ## 0.19.47
 
 **The PANES donut is one chip per pane.** A ring of one pane is a solid disc:
