@@ -10,6 +10,7 @@
 //! and get a circle.
 pub mod area;
 pub mod canvas;
+pub mod gantt;
 pub mod gauge;
 pub mod heatmap;
 pub mod meter;

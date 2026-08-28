@@ -28,6 +28,24 @@ fn style(fg: (u8, u8, u8), bold: bool) -> Style {
     }
 }
 
+/// Columns the timeline claims on the right of a swarm pane, and the width
+/// below which it is not drawn at all (a pane too narrow for both loses the
+/// chart, never the task names).
+pub fn timeline_cols(cols: u16) -> u16 {
+    match cols {
+        // Below this the task titles would be cut to a few characters, and a
+        // chart of tasks you cannot name is worth less than the names.
+        0..=45 => 0,
+        _ => (cols / 3).clamp(14, 40),
+    }
+}
+
+/// The colour a task's bar takes on the timeline — the same colour its glyph
+/// wears in the list, so the two halves of the pane agree.
+pub fn state_color(state: TaskState) -> (u8, u8, u8) {
+    state_style(state).1
+}
+
 /// Glyph, colour, and bold flag for a task state.
 fn state_style(state: TaskState) -> (char, (u8, u8, u8), bool) {
     let t = crew_theme::theme();
@@ -106,6 +124,88 @@ pub fn swarm_cells(graph: &TaskGraph, fleet: &Fleet, cols: u16, rows: u16) -> Ve
         );
     }
     crate::tui::to_cells(&buf)
+}
+
+/// The timeline's own text: the axis' span on the HUD row, over the bars.
+/// `axis` is `(t0, t1)` in wall milliseconds; nothing is drawn without one.
+pub fn timeline_cells(cols: u16, rows: u16, axis: Option<(u64, u64)>) -> Vec<CellView> {
+    let w = timeline_cols(cols);
+    let Some((t0, t1)) = axis else {
+        return vec![];
+    };
+    if w == 0 || rows == 0 {
+        return vec![];
+    }
+    let t = crew_theme::theme();
+    let x0 = cols - w;
+    // "0s" at the left of the axis and the elapsed span at its right: two
+    // labels are all a chart this narrow can carry, and they are the two that
+    // say what the bars are measured against.
+    let elapsed = format!("{:.0}s", (t1.saturating_sub(t0)) as f64 / 1000.0);
+    let mut out = Vec::new();
+    let put = |out: &mut Vec<CellView>, s: &str, col: u16| {
+        for (i, c) in s.chars().enumerate() {
+            let col = col + i as u16;
+            if col >= cols {
+                break;
+            }
+            out.push(CellView {
+                col,
+                row: 0,
+                c,
+                fg: t.text_muted,
+                bg: t.page_bg,
+                ..Default::default()
+            });
+        }
+    };
+    put(&mut out, "0s", x0 + 1);
+    put(
+        &mut out,
+        &elapsed,
+        cols.saturating_sub(elapsed.chars().count() as u16 + 1),
+    );
+    out
+}
+
+/// The bars themselves. One row per task, lined up with the list beside them,
+/// with a rule at the newest instant so a live swarm shows its own edge.
+pub fn timeline_paint(
+    spans: &[Option<crate::plot::gantt::Span>],
+    cols: u16,
+    rows: u16,
+    aspect: f32,
+    axis: (u64, u64),
+    now: u64,
+) -> Vec<crew_render::Paint> {
+    let w = timeline_cols(cols);
+    if w == 0 || rows < 2 || spans.is_empty() {
+        return Vec::new();
+    }
+    let t = crew_theme::theme();
+    // Rows 1.. are the task rows; row 0 is the HUD.
+    let lanes = (rows - 1).min(spans.len() as u16);
+    let mut c = crate::plot::Canvas::new(w, lanes, aspect);
+    let (cw, ch) = c.size();
+    let inset = 1.0; // a column of air either side, so bars clear the list
+    crate::plot::gantt::draw(
+        &mut c,
+        (inset, 0.0, cw - 2.0 * inset),
+        ch / f32::from(lanes),
+        &spans[..lanes as usize],
+        axis.0,
+        axis.1,
+        t.border_normal,
+    );
+    // Where "now" is on the axis — at the right edge while anything runs, and
+    // wherever the last task ended once nothing does.
+    let span = axis.1.saturating_sub(axis.0).max(1) as f32;
+    let x = inset + (now.saturating_sub(axis.0) as f32 / span).clamp(0.0, 1.0) * (cw - 2.0 * inset);
+    crate::plot::gantt::rule(&mut c, x, 0.0, ch, crate::palette::accent(), 0.5);
+    c.paint()
+        .into_iter()
+        .map(|p| p.shifted(f32::from(cols - w), 1.0))
+        .collect()
 }
 
 /// An amber notice on the last row when the budget governor stopped a swarm, so
