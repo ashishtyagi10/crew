@@ -7,6 +7,7 @@ pub(crate) mod blamejob;
 mod codepaint;
 pub(crate) mod csv;
 pub(crate) mod detect;
+mod diffnums;
 pub(crate) mod diffpaint;
 pub(crate) mod diffsplit;
 pub(crate) mod diffsplitdraw;

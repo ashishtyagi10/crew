@@ -290,6 +290,9 @@ mod updatefetch;
 mod usageledger;
 mod usagepane;
 mod viewpane;
+#[cfg(test)]
+#[path = "viewshot_tests.rs"]
+mod viewshot_tests;
 mod washfocus;
 mod washphase;
 mod welcome;

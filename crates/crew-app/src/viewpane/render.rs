@@ -53,10 +53,12 @@ impl ViewPane {
             .lines()
             .and_then(|_| crate::viewpane::blame::width_for(cols as usize))
             .unwrap_or(0);
+        let theme = crew_theme::current_id();
         let stale = self.cache.borrow().as_ref().is_none_or(|c| {
             c.cols != cols
                 || c.raw != self.raw
                 || c.blame_w != blame_w
+                || c.theme != theme
                 || c.invisibles != crate::invisibles::on()
                 || c.split != self.split
         });
@@ -77,6 +79,7 @@ impl ViewPane {
                 blame_w,
                 invisibles,
                 split: self.split,
+                theme,
             }));
         }
         Ref::map(self.cache.borrow(), |c| c.as_ref().expect("just filled"))

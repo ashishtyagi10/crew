@@ -110,6 +110,44 @@ fn diff_tokens_match_the_viewers_diff_rung() {
     assert_eq!(token_fg(Token::Hunk), t.ansi[6], "hunk header is cyan");
 }
 
+/// …but a single-phosphor tube has no red to be. Added and removed were drawn
+/// in two shades of one phosphor that measured **1.00:1** against each other:
+/// a review on a tube said what changed only through the marker glyph in
+/// column one. Lightness is the only axis a tube has, so the pair takes a
+/// rung on it — and the paper presets, where hue already answers, are handed
+/// their own slots back untouched (asserted above).
+#[test]
+fn a_tube_separates_added_from_removed_where_hue_cannot() {
+    let _g = crate::app::theme_test_guard();
+    let mut tubes = 0;
+    for id in crew_theme::ALL_THEMES {
+        let t = id.theme();
+        if !t.is_tube() {
+            assert_eq!(
+                derive(t).removed,
+                t.ansi[1],
+                "{} is not a tube",
+                id.as_str()
+            );
+            continue;
+        }
+        let d = derive(t);
+        let got = contrast_ratio(d.removed, t.ansi[2]);
+        assert!(
+            got >= DIFF_FLOOR,
+            "{}: removed vs added = {got:.2}",
+            id.as_str(),
+        );
+        assert!(
+            contrast_ratio(d.removed, t.page_bg) >= REMOVED_PAGE_FLOOR,
+            "{}: and it stays readable on the page",
+            id.as_str(),
+        );
+        tubes += 1;
+    }
+    assert_eq!(tubes, 4, "every tube was actually checked");
+}
+
 /// The derived table is per-preset, not per-call: the active theme must pick
 /// its own row rather than always answering with the first one.
 #[test]

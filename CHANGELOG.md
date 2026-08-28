@@ -8,6 +8,40 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.46
+
+**The file viewer, shot whole.** It is the largest surface in the app — a
+source rung, a markdown rung, a CSV table, a unified diff, a side-by-side
+review, a blame gutter, an outline — and the only one of that size with no
+picture of itself. `view_shot` renders each rung at a full window and a half
+tile, on a light page and on a tube.
+
+**A `/theme` no longer leaves an open viewer wearing the old palette.** The
+viewer caches its rendering, and those lines carry BAKED colours — `ink`,
+`text_muted`, the whole syntax ladder — decided once when the cache was
+built. The cache key was width, raw, blame width, invisibles and split; it was
+never the theme. So `/theme` (and the auto theme flipping at dusk, and the OS
+switching appearance) left every open viewer in the previous palette until
+something else happened to resize the pane. Dark to light, that is a file
+drawn in **(232, 232, 232) ink on a (26, 22, 20) page**: not dimmer, gone.
+
+**A diff's gutter counts the file, not the patch.** Every other rung numbers
+rows by their position in the file, which for a diff meant numbering the
+patch — `diff --git` was line 1, the first real code line 6. The
+side-by-side rung has always shown the source's own numbers from the `@@`
+arithmetic, so the two views of one review disagreed about what line you were
+looking at depending on which way you had pressed `v`. `diffnums` gives the
+unified rung the same numbers: the new file's for context and additions, the
+old file's for a deletion, and none at all for the headers.
+
+**Added and removed are two different colours on a tube.** They were red and
+green from the theme's raw slots — hue as the signal, which is the right call
+on paper and no call at all on a single-phosphor screen, where they measured
+**1.00:1** against each other and a review said what changed only through the
+marker glyph in column one. On the four tubes the deletion now takes a rung
+below the addition (1.70–1.74:1), with its own lower page floor for the same
+reason comments have one: a deletion is what the code no longer says.
+
 ## 0.19.45
 
 **The tube got its light trace back.** `pane_card_glowing` chose between the
