@@ -1,8 +1,9 @@
 //! Sidebar PANES section: a live list of open panes (index, name/title, a `▸`
 //! focus marker, and an activity dot) so the whole grid is visible at a glance —
-//! handy when a single pane is zoomed. A one-row **pulse** chart under the
-//! header traces how many panes were busy each second — the crew's workload
-//! as a moving line — and busy rows carry a live spinner in the accent color.
+//! handy when a single pane is zoomed. Under the header sits the **crew
+//! donut** ([`crate::crewpie`]) — working / waiting / idle as one ring with the
+//! pane count in its hole — and busy rows carry a live spinner in the accent
+//! color.
 use crew_render::CellView;
 
 use crate::boxdraw::section_header;
@@ -39,32 +40,18 @@ pub struct PaneRow {
     pub hovered: bool,
 }
 
-/// Render the PANES section: a `PANES` rule on row 0, the crew-pulse chart on
-/// row 1 (always reserved, so the click → pane-row mapping in `hit.rs` stays
-/// static), then one row per pane (up to `limit`) beneath it.
-pub fn pane_cells(
-    panes: &[PaneRow],
-    cols: u16,
-    limit: usize,
-    pulse: &crate::spark::History,
-    spin: char,
-) -> Vec<CellView> {
+/// Render the PANES section: a `PANES` rule on row 0, the crew donut on the
+/// [`crate::crewpie::ROWS`] rows under it (always reserved, so the click →
+/// pane-row mapping in `hit.rs` stays static), then one row per pane (up to
+/// `limit`) beneath it.
+pub fn pane_cells(panes: &[PaneRow], cols: u16, limit: usize, spin: char) -> Vec<CellView> {
     let t = crew_theme::theme();
     let mut out = section_header("PANES", cols, t.border_normal, accent(), t.page_bg);
-    if cols > 5 {
-        // Auto-scaled to its own peak: one busy pane still draws a full-height
-        // blip, a swarm of six reads as a mountain range.
-        out.extend(crate::spark::line_cells(
-            pulse,
-            cols.saturating_sub(4),
-            3,
-            1,
-            0,
-            accent(),
-        ));
-    }
+    // The donut's text; its ring is drawn (see `crate::crewpie::paint`, reached
+    // from the sidebar's paint layer).
+    out.extend(crate::crewpie::cells(&crate::crewpie::mix(panes), cols, 1));
     for (k, p) in panes.iter().take(limit).enumerate() {
-        let row = 2 + k as u16;
+        let row = 1 + crate::crewpie::ROWS + k as u16;
         let head = format!("{} {}", if p.focused { '▸' } else { ' ' }, p.index);
         let head_fg = if p.focused || p.hovered {
             accent()
@@ -214,7 +201,7 @@ mod tests {
         };
         let text = |p: &PaneRow| -> String {
             let cells = cells_of(std::slice::from_ref(p), 30, 4);
-            let mut v: Vec<&crew_render::CellView> = cells.iter().filter(|c| c.row == 2).collect();
+            let mut v: Vec<&crew_render::CellView> = cells.iter().filter(|c| c.row == R0).collect();
             v.sort_by_key(|c| c.col);
             v.iter().map(|c| c.c).collect()
         };
@@ -235,11 +222,11 @@ mod tests {
             ..row(1, "a-very-long-pane-title-indeed", false, false)
         };
         let cells = cells_of(std::slice::from_ref(&long), 30, 4);
-        let at = |col: u16| cells.iter().filter(|c| c.row == 2 && c.col == col).count();
+        let at = |col: u16| cells.iter().filter(|c| c.row == R0 && c.col == col).count();
         assert!(at(26) <= 1, "two glyphs share a cell on the count's row");
         let digit = cells
             .iter()
-            .find(|c| c.row == 2 && c.c == '7')
+            .find(|c| c.row == R0 && c.c == '7')
             .expect("the count was pushed off the row");
         assert!(digit.col >= 26, "the count moved out of its slot");
     }
@@ -289,10 +276,13 @@ mod tests {
         }
     }
 
-    /// `pane_cells` with an empty pulse history and a fixed spinner glyph.
+    /// `pane_cells` with a fixed spinner glyph.
     fn cells_of(panes: &[PaneRow], cols: u16, limit: usize) -> Vec<crew_render::CellView> {
-        pane_cells(panes, cols, limit, &crate::spark::History::new(8), '⠋')
+        pane_cells(panes, cols, limit, '⠋')
     }
+
+    /// First row of the pane list: under the header and the donut block.
+    const R0: u16 = 1 + crate::crewpie::ROWS;
 
     /// The row under the pointer must look different from the quiet rows
     /// around it — the whole row focuses (and restores) its pane on a click,
@@ -308,7 +298,7 @@ mod tests {
         let ink_of = |rows: &[PaneRow]| -> Vec<(u8, u8, u8)> {
             cells_of(rows, 24, 10)
                 .iter()
-                .filter(|c| c.row == 2)
+                .filter(|c| c.row == R0)
                 .map(|c| c.fg)
                 .collect()
         };
@@ -333,18 +323,18 @@ mod tests {
         let cells = cells_of(&panes, 24, 10);
         // The minimized pane's row carries a right-aligned [+] restore button
         // ending one cell left of the activity-dot slot: cols 18..=20. Pane
-        // rows start at row 2 — row 1 belongs to the pulse chart.
+        // rows start under the header and the crew donut.
         let at = |col: u16, row: u16| {
             cells
                 .iter()
                 .find(|c| c.row == row && c.col == col)
                 .map(|c| c.c)
         };
-        assert_eq!(at(18, 3), Some('['));
-        assert_eq!(at(19, 3), Some('+'));
-        assert_eq!(at(20, 3), Some(']'));
+        assert_eq!(at(18, R0 + 1), Some('['));
+        assert_eq!(at(19, R0 + 1), Some('+'));
+        assert_eq!(at(20, R0 + 1), Some(']'));
         // …and only on minimized rows.
-        assert!(!cells.iter().any(|c| c.c == '+' && c.row == 2));
+        assert!(!cells.iter().any(|c| c.c == '+' && c.row == R0));
     }
 
     #[test]
@@ -355,18 +345,18 @@ mod tests {
         // PANES rule on row 0
         assert!(cells.iter().any(|c| c.c == '─' && c.row == 0));
         assert!(cells.iter().any(|c| c.c == 'P' && c.row == 0));
-        // focus marker + title for the focused pane on row 2 (row 1 = pulse)
-        assert!(cells.iter().any(|c| c.c == '▸' && c.row == 2));
+        // focus marker + title for the focused pane on the first list row
+        assert!(cells.iter().any(|c| c.c == '▸' && c.row == R0));
         assert!(cells
             .iter()
-            .any(|c| c.c == 'b' && c.row == 2 && c.fg == crew_theme::theme().ink));
-        // the unfocused pane's title is dimmed on row 3, with an activity dot
+            .any(|c| c.c == 'b' && c.row == R0 && c.fg == crew_theme::theme().ink));
+        // the unfocused pane's title is dimmed on the next row, with a dot
         assert!(cells
             .iter()
-            .any(|c| c.c == 's' && c.row == 3 && c.fg == crew_theme::theme().text_muted));
+            .any(|c| c.c == 's' && c.row == R0 + 1 && c.fg == crew_theme::theme().text_muted));
         assert!(cells
             .iter()
-            .any(|c| c.c == '●' && c.row == 3 && c.fg == crew_theme::theme().activity));
+            .any(|c| c.c == '●' && c.row == R0 + 1 && c.fg == crew_theme::theme().activity));
     }
 
     #[test]
@@ -378,8 +368,8 @@ mod tests {
         // activity dot yields to it.
         assert!(cells
             .iter()
-            .any(|c| c.c == '⠋' && c.row == 2 && c.col == 22 && c.fg == accent()));
-        assert!(!cells.iter().any(|c| c.c == '●' && c.row == 2));
+            .any(|c| c.c == '⠋' && c.row == R0 && c.col == 22 && c.fg == accent()));
+        assert!(!cells.iter().any(|c| c.c == '●' && c.row == R0));
         // Attention beats the spinner: the needs-you marker is the loudest.
         let mut both = row(1, "swarm", false, false);
         both.busy = true;
@@ -387,22 +377,25 @@ mod tests {
         let cells = cells_of(&[both], 24, 10);
         assert!(cells
             .iter()
-            .any(|c| c.c == '!' && c.row == 2 && c.col == 22));
+            .any(|c| c.c == '!' && c.row == R0 && c.col == 22));
         assert!(!cells.iter().any(|c| c.c == '⠋'));
     }
 
     #[test]
-    fn pulse_chart_traces_history_under_the_header() {
-        let mut h = crate::spark::History::new(8);
-        for v in [0, 2, 4] {
-            h.push(v);
-        }
-        let cells = pane_cells(&[row(1, "x", false, false)], 24, 10, &h, '⠋');
-        // Three samples land right-aligned on row 1; the newest (peak) column
-        // draws the tallest block.
-        let chart: Vec<_> = cells.iter().filter(|c| c.row == 1).collect();
-        assert_eq!(chart.len(), 3);
-        assert_eq!(chart.iter().map(|c| c.c).max(), Some('█'));
+    fn the_crew_donut_owns_the_rows_between_the_header_and_the_list() {
+        let _g = crate::app::theme_test_guard();
+        let cells = cells_of(&[row(1, "x", false, false)], 24, 10);
+        // The block's only text is the pane total in the ring's hole and the
+        // legend: nothing of the list creeps into those rows.
+        let block: Vec<char> = (1..R0)
+            .flat_map(|r| cells.iter().filter(move |c| c.row == r).map(|c| c.c))
+            .collect();
+        let text: String = block.iter().collect();
+        assert!(
+            text.contains('1'),
+            "the pane count is in the hole: {text:?}"
+        );
+        assert!(text.contains("working") && text.contains("idle"));
     }
 
     #[test]
@@ -420,13 +413,13 @@ mod tests {
         // marker glyph in the dot slot, in the bell (needs-you) colour
         assert!(cells
             .iter()
-            .any(|c| c.c == '!' && c.row == 3 && c.col == 22 && c.fg == bell));
+            .any(|c| c.c == '!' && c.row == R0 + 1 && c.col == 22 && c.fg == bell));
         // the title is tinted too, so the row is findable at a glance
         assert!(cells
             .iter()
-            .any(|c| c.c == 's' && c.row == 3 && c.fg == bell));
+            .any(|c| c.c == 's' && c.row == R0 + 1 && c.fg == bell));
         // attention supersedes the quiet activity dot
-        assert!(!cells.iter().any(|c| c.c == '●' && c.row == 3));
+        assert!(!cells.iter().any(|c| c.c == '●' && c.row == R0 + 1));
     }
 
     #[test]
@@ -438,17 +431,17 @@ mod tests {
         }];
         let cells = cells_of(&panes, 24, 10);
         let bell = crew_theme::theme().bell;
-        assert!(!cells.iter().any(|c| c.c == '!' && c.row == 2));
+        assert!(!cells.iter().any(|c| c.c == '!' && c.row == R0));
         assert!(cells
             .iter()
-            .any(|c| c.c == 's' && c.row == 2 && c.fg == bell));
+            .any(|c| c.c == 's' && c.row == R0 && c.fg == bell));
     }
 
     #[test]
     fn pane_cells_respects_limit() {
         let panes: Vec<PaneRow> = (1..=5).map(|i| row(i, "x", false, false)).collect();
         let cells = cells_of(&panes, 24, 2);
-        // only two pane rows (2 and 3) are drawn; nothing reaches row 4
-        assert!(!cells.iter().any(|c| c.row == 4));
+        // only two pane rows are drawn; nothing reaches the row below them
+        assert!(!cells.iter().any(|c| c.row == R0 + 2));
     }
 }

@@ -90,6 +90,7 @@ mod cmdspan;
 pub mod config;
 mod confirm;
 mod crashlog;
+mod crewpie;
 mod ctxlimit;
 mod cwd;
 mod daemon;
