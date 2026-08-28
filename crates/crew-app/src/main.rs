@@ -95,6 +95,7 @@ mod crewpie;
 mod ctxlimit;
 mod cwd;
 mod daemon;
+mod dashpane;
 mod daylight;
 mod density;
 mod detach;

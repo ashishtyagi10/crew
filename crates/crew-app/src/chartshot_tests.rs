@@ -640,3 +640,29 @@ fn chart_shot_card_indicators() {
         "the card indicators drew something: {ink} ink pixels"
     );
 }
+
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn chart_shot_dashboard() {
+    let _g = crate::app::theme_test_guard();
+    let mut d = crate::dashpane::DashPane::new();
+    d.seed_for_test();
+    let px = shot("dash", "dash", |cols, rows, aspect| {
+        (d.cells(cols, rows), d.paint(cols, rows, aspect))
+    });
+    let Some(px) = px else {
+        eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+        return;
+    };
+    let bg = crew_theme::theme().page_bg;
+    let ink = px
+        .chunks_exact(4)
+        .filter(|p| {
+            (p[0] as i32 - bg.0 as i32).abs()
+                + (p[1] as i32 - bg.1 as i32).abs()
+                + (p[2] as i32 - bg.2 as i32).abs()
+                > 40
+        })
+        .count();
+    assert!(ink > 4000, "the dashboard drew something: {ink} ink pixels");
+}

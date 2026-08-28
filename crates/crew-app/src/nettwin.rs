@@ -15,6 +15,10 @@ use crate::plot::{area, Canvas};
 /// Rows the chart occupies: one per direction.
 pub const ROWS: u16 = 2;
 
+/// The smallest peak the axis will scale to, in bytes per second. Anything
+/// quieter draws small rather than full.
+const FLOOR: u64 = 64 * 1024;
+
 /// Draw the twin chart across `cols` starting at `row0`, indented under the
 /// section legend like the rates above it. `rx`/`tx` are the two histories.
 pub fn paint(
@@ -31,8 +35,12 @@ pub fn paint(
         return Vec::new();
     }
     let span = width as usize * 2;
-    // One scale for both halves — see the module note.
-    let peak = rx.peak(span).max(tx.peak(span)).max(1);
+    // One scale for both halves — see the module note — with a floor under
+    // it. Auto-scaling to the window's own peak makes an idle machine's
+    // background chatter (a few hundred bytes a second) fill the chart, which
+    // reads as a saturated link. Below the floor the chart stays small,
+    // because below the floor nothing is happening.
+    let peak = rx.peak(span).max(tx.peak(span)).max(FLOOR);
     let norm = |h: &crate::spark::History| -> Vec<f32> {
         h.tail(span)
             .into_iter()
@@ -140,7 +148,16 @@ mod tests {
         // head dot cost the same on both halves whatever the reading is.
         // Scaled independently the two would reach equally far and say the
         // traffic was balanced.
-        let p = paint(&hist(&[1000; 8]), &hist(&[100; 8]), 24, 0, 2.0, DOWN, UP);
+        // Both well above the chart's floor, so the axis is theirs.
+        let p = paint(
+            &hist(&[4_000_000; 8]),
+            &hist(&[400_000; 8]),
+            24,
+            0,
+            2.0,
+            DOWN,
+            UP,
+        );
         let mid = f32::from(ROWS) / 2.0;
         let near = |a: (u8, u8, u8), b: (u8, u8, u8)| {
             let d = |x: u8, y: u8| (x as i32 - y as i32).abs();
@@ -175,6 +192,40 @@ mod tests {
             "and everything drawn sits on it: {:?}",
             p.iter().map(|r| r.y).collect::<Vec<_>>()
         );
+    }
+
+    #[test]
+    fn an_idle_link_does_not_fill_the_chart() {
+        let _g = crate::app::theme_test_guard();
+        // A few hundred bytes a second of background chatter. Scaled to its
+        // own peak this drew a full-height band and read as a saturated link.
+        let p = paint(&hist(&[300; 8]), &hist(&[120; 8]), 24, 0, 2.0, DOWN, UP);
+        let mid = f32::from(ROWS) / 2.0;
+        let reach = p
+            .iter()
+            .filter(|r| r.color == DOWN)
+            .map(|r| mid - r.y)
+            .fold(0.0f32, f32::max);
+        // Not zero — the curve keeps its stroke and its head dot at the
+        // baseline — but a fraction of what a real transfer draws.
+        assert!(reach < 0.3, "an idle link drew {reach} rows of chart");
+        // …and a real transfer still fills it.
+        let busy = paint(
+            &hist(&[9_000_000; 8]),
+            &hist(&[10; 8]),
+            24,
+            0,
+            2.0,
+            DOWN,
+            UP,
+        );
+        let loud = busy
+            .iter()
+            .filter(|r| r.color == DOWN)
+            .map(|r| mid - r.y)
+            .fold(0.0f32, f32::max);
+        assert!(loud > 0.8, "a saturated link drew only {loud} rows");
+        assert!(loud > reach * 3.0, "idle {reach} vs busy {loud}");
     }
 
     #[test]

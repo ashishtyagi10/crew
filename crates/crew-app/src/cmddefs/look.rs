@@ -102,6 +102,10 @@ pub(crate) const LOOK: &[Cmd] = &[
         desc: "What crew has spent, drawn — a week of tokens by hour, the in/out split, and cost per day",
     },
     Cmd {
+        name: "/dash",
+        desc: "One screen of the machine and the week — ring gauges, the CPU curve, both directions of the network, and a heatmap of token usage",
+    },
+    Cmd {
         name: "/disk",
         desc: "Where the space went — this directory as a treemap; arrows pick, enter opens, backspace up",
     },

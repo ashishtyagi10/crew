@@ -156,6 +156,7 @@ impl CrewApp {
             "todo" => self.spawn_todo_pane(),
             "usage" => self.spawn_usage_pane(),
             "disk" => self.spawn_disk_pane(None),
+            "dash" => self.spawn_dash_pane(),
             "view" => {
                 if let Some(path) = sp.dir.as_deref() {
                     self.open_view(path);
