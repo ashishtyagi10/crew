@@ -12,10 +12,8 @@ use crate::panelist::PaneRow;
 use crate::shotgpu_tests::shot_at;
 use crate::statspane::StatsPane;
 
-/// The nav at its default docked width and a full-height window: 260×1000 at
-/// 13px is ~24 cols × ~57 rows, which is what the screenshot in the bug report
-/// shows.
-const W: u32 = 268;
+/// A full-height window. Widths come from the resize edge's own range
+/// (`navresize::MIN_W`..`MAX_W`), which is the only range a user can produce.
 const H: u32 = 1000;
 
 fn log(lines: &[(&str, LogLevel)]) -> Vec<LogEntry> {
@@ -55,23 +53,24 @@ fn pane(index: usize, title: &str, focused: bool, busy: bool) -> PaneRow {
     }
 }
 
-/// The column as the report shows it: one idle pane, two log lines long enough
-/// to overflow the nav, a live git repo.
-#[test]
-#[ignore = "needs a GPU adapter; writes PNGs"]
-fn sidebar_shot_full_column() {
-    let _g = crate::app::theme_test_guard();
+/// One nav shot: a full session's worth of state, at `w` logical px and
+/// whatever theme is set, so the same column can be looked at across the
+/// widths the resize edge allows and the themes it can be wearing.
+fn nav_shot(name: &str, w: u32) -> Option<Vec<u8>> {
     let mut sp = StatsPane::new();
-    sp.refresh(std::path::Path::new("."), 0);
-    sp.seed_history(&cpu_trace(), &[0; 64]);
-    let entries = log(&[
-        ("23:20 updated to crew v0.19.38", LogLevel::Info),
-        ("23:20 font → MonoLisa 13px", LogLevel::Info),
-    ]);
-    let panes = vec![pane(1, "dash", true, false)];
-    let px = shot_at(
-        "sidebar-full",
-        W,
+    sp.refresh(std::path::Path::new("."), 3);
+    sp.seed_history(&cpu_trace(), &[0, 0, 1, 3, 4, 4, 2, 1, 1, 2, 3, 3, 2, 2]);
+    let entries = session_log();
+    let mut panes = vec![
+        pane(1, "claude — crew", true, true),
+        pane(2, "cargo watch", false, true),
+        pane(3, "zsh", false, false),
+        pane(4, "dash", false, false),
+    ];
+    panes[2].attention = Some(('!', true));
+    shot_at(
+        name,
+        w,
         H,
         13.0,
         concat!("crew v", env!("CARGO_PKG_VERSION")),
@@ -81,23 +80,11 @@ fn sidebar_shot_full_column() {
                 sp.chart_paint(cols, rows, aspect, &panes, entries.len()),
             )
         },
-    );
-    let Some(px) = px else {
-        eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
-        return;
-    };
-    assert!(crate::shotgpu_tests::ink(&px) > 4000, "the column drew");
+    )
 }
 
-/// The same column with a busy crew: several panes, a bell, a deep log.
-#[test]
-#[ignore = "needs a GPU adapter; writes PNGs"]
-fn sidebar_shot_busy_crew() {
-    let _g = crate::app::theme_test_guard();
-    let mut sp = StatsPane::new();
-    sp.refresh(std::path::Path::new("."), 3);
-    sp.seed_history(&cpu_trace(), &[0, 0, 1, 3, 4, 4, 2, 1, 1, 2, 3, 3, 2, 2]);
-    let entries = log(&[
+fn session_log() -> Vec<LogEntry> {
+    log(&[
         ("23:11 crew v0.19.38 started", LogLevel::Info),
         ("23:12 restored 4 panes from session", LogLevel::Info),
         ("23:12 shell probe: zsh, 41 vars", LogLevel::Info),
@@ -114,17 +101,71 @@ fn sidebar_shot_busy_crew() {
         ("23:19 git: main ↑1, 9 changed", LogLevel::Info),
         ("23:20 build failed: 2 errors in crew-app", LogLevel::Error),
         ("23:20 font → MonoLisa 13px", LogLevel::Info),
+    ])
+}
+
+/// The nav at every width its resize edge allows, on the default theme. A
+/// section that only reads at one width is a section that reads at no width
+/// the user actually chose — this repo has shipped a badge invisible for four
+/// releases behind exactly that.
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn sidebar_shot_width_sweep() {
+    let _g = crate::app::theme_test_guard();
+    // MIN_W / the default / MAX_W, plus the card's own 24px of margin.
+    for (name, w) in [
+        ("sidebar-narrow", 160 + 24),
+        ("sidebar-default", 210 + 24),
+        ("sidebar-wide", 320 + 24),
+    ] {
+        let Some(px) = nav_shot(name, w) else {
+            eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+            return;
+        };
+        assert!(crate::shotgpu_tests::ink(&px) > 4000, "{name} drew");
+    }
+}
+
+/// The same column on a light page, twice: once with the theme's own accent,
+/// and once with crew's brand green — which reads at 1.2 against every light
+/// page in the set, and took the whole nav with it before `palette::accent`
+/// grew a floor.
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn sidebar_shot_light_theme() {
+    let _a = crate::palette::test_guard();
+    let _g = crate::app::theme_test_guard();
+    crew_theme::set_theme(crew_theme::ThemeId::PaperLight);
+    for (name, accent) in [
+        ("sidebar-light", crew_theme::theme().accent_default),
+        ("sidebar-light-crewgreen", crate::palette::DEFAULT_ACCENT),
+    ] {
+        crate::palette::set_accent(accent);
+        let Some(px) = nav_shot(name, 210 + 24) else {
+            eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+            return;
+        };
+        assert!(crate::shotgpu_tests::ink(&px) > 4000, "{name} drew");
+    }
+    crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
+}
+
+/// A fresh launch: two log lines, one pane, no history behind any chart. The
+/// state the bug report's screenshot was taken in.
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn sidebar_shot_fresh_launch() {
+    let _g = crate::app::theme_test_guard();
+    let mut sp = StatsPane::new();
+    sp.refresh(std::path::Path::new("."), 0);
+    let entries = log(&[
+        ("23:20 updated to crew v0.19.38", LogLevel::Info),
+        ("23:20 font → MonoLisa 13px", LogLevel::Info),
     ]);
-    let mut panes = vec![
-        pane(1, "claude — crew", true, true),
-        pane(2, "cargo watch", false, true),
-        pane(3, "zsh", false, false),
-        pane(4, "dash", false, false),
-    ];
-    panes[2].attention = Some(('!', true));
+    let panes = vec![pane(1, "dash", true, false)];
     let px = shot_at(
-        "sidebar-busy",
-        W,
+        "sidebar-fresh",
+        210 + 24,
         H,
         13.0,
         concat!("crew v", env!("CARGO_PKG_VERSION")),
@@ -139,5 +180,5 @@ fn sidebar_shot_busy_crew() {
         eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
         return;
     };
-    assert!(crate::shotgpu_tests::ink(&px) > 4000, "the column drew");
+    assert!(crate::shotgpu_tests::ink(&px) > 2000, "the column drew");
 }

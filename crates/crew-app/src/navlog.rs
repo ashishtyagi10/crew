@@ -49,12 +49,20 @@ pub fn log_cells(entries: &[LogEntry], cols: u16, max_lines: usize, back: usize)
             t.page_bg,
         );
     }
+    let mut last_stamp = "";
     for (k, e) in entries[start..start + shown].iter().enumerate() {
         let fg = match e.level {
             LogLevel::Info => t.text_muted,
             LogLevel::Error => t.bell,
         };
         let (stamp, msg) = split_stamp(&e.text);
+        // A run of lines from the same minute prints its stamp once. The
+        // column stays the message's — the lines still align — but a stack of
+        // identical `23:12`s is furniture repeating itself, and blanking the
+        // repeats turns the column into a scale you can see the minutes on.
+        let repeat = !stamp.is_empty() && stamp == last_stamp;
+        last_stamp = stamp;
+        let stamp = if repeat { BLANK_STAMP } else { stamp };
         // The stamp is fixed furniture on every line — same six columns, same
         // shape — so it is dimmed out of the way and the message keeps the
         // ink. What is left after it is the message's clip budget, and the
@@ -85,6 +93,9 @@ pub fn log_cells(entries: &[LogEntry], cols: u16, max_lines: usize, back: usize)
 
 /// Column the entry text starts on, under the `LOG` rule's own indent.
 const TEXT_COL: u16 = 2;
+/// What a repeated stamp leaves behind: the same six columns, empty, so the
+/// messages beside it stay in one column.
+const BLANK_STAMP: &str = "      ";
 
 /// Split a buffered entry into its `HH:MM ` stamp and the message. The stamp
 /// is prepended when the line is buffered, so it is a prefix of the text
