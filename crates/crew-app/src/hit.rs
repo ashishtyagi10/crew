@@ -127,7 +127,7 @@ impl CrewApp {
 /// `PANES` header sits at content row `panes_top`, the crew donut on the
 /// [`crate::crewpie::ROWS`] rows below it, and pane `k` under that. `None` for
 /// the border, header, donut, and everything above.
-fn sidebar_pane_index(rel_row: u16, panes_top: u16) -> Option<usize> {
+pub(crate) fn sidebar_pane_index(rel_row: u16, panes_top: u16) -> Option<usize> {
     Some(rel_row.checked_sub(panes_top + 2 + crate::crewpie::ROWS)? as usize)
 }
 
