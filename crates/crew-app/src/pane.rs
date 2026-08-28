@@ -6,6 +6,7 @@ use crew_render::CellView;
 use crew_term::{GridSize, PtyTerm, TermModel};
 
 use crate::chat::ChatPane;
+use crate::diskpane::DiskPane;
 use crate::farpane::FarPane;
 use crate::layout::Rect;
 use crate::session::to_cellviews;
@@ -54,6 +55,8 @@ pub enum PaneContent {
     Todo(TodoPane),
     /// `/usage` — the spend ledger, drawn (heatmap, split, cost per day).
     Usage(UsagePane),
+    /// `/disk` — where the space went, as a treemap.
+    Disk(DiskPane),
 }
 
 /// A single pane: owns its content, grid size, and pixel rect.
@@ -142,6 +145,12 @@ impl Pane {
                 .unwrap_or_else(|| v.path.to_string_lossy().into_owned()),
             PaneContent::Todo(_) => "todo".into(),
             PaneContent::Usage(_) => "usage".into(),
+            // The map is always OF somewhere: the card's legend says which
+            // folder, the way a terminal pane's does.
+            PaneContent::Disk(d) => match d.root().file_name() {
+                Some(n) => format!("disk · {}", n.to_string_lossy()),
+                None => "disk".into(),
+            },
         }
     }
 
@@ -169,6 +178,10 @@ impl Pane {
                 u.cells(self.grid.cols, self.grid.rows),
                 u.paint(self.grid.cols, self.grid.rows, aspect),
             ),
+            PaneContent::Disk(d) => (
+                d.cells(self.grid.cols, self.grid.rows),
+                d.paint(self.grid.cols, self.grid.rows, aspect),
+            ),
             _ => (self.cells_only(focused), Vec::new()),
         }
     }
@@ -183,6 +196,7 @@ impl Pane {
             PaneContent::View(v) => v.cells(self.grid.cols, self.grid.rows),
             PaneContent::Todo(t) => t.cells(self.grid.cols, self.grid.rows),
             PaneContent::Usage(u) => u.cells(self.grid.cols, self.grid.rows),
+            PaneContent::Disk(d) => d.cells(self.grid.cols, self.grid.rows),
         }
     }
 }

@@ -23,6 +23,7 @@ impl CrewApp {
         let mut todo_action: Option<crate::todopane::TodoAction> = None;
         let mut is_terminal = false;
         let mut swarm_close = false;
+        let mut disk_action: Option<crate::diskpane::DiskAction> = None;
         if let Some(pane) = self.panes.get_mut(focused) {
             match &mut pane.content {
                 // Terminal input is written below (so broadcast can reach all panes).
@@ -47,6 +48,8 @@ impl CrewApp {
                 }
                 // The usage pane is a picture: nothing in it takes a key.
                 PaneContent::Usage(_) => {}
+                // The disk map picks tiles and walks into them.
+                PaneContent::Disk(d) => disk_action = d.on_key(event),
                 PaneContent::Todo(t) => {
                     todo_action = t.on_key(
                         event,
@@ -56,6 +59,14 @@ impl CrewApp {
                         alt,
                     )
                 }
+            }
+        }
+        if let Some(action) = disk_action {
+            match action {
+                crate::diskpane::DiskAction::Close => {
+                    self.close_pane(focused);
+                }
+                crate::diskpane::DiskAction::Redraw => self.redraw(),
             }
         }
         if swarm_close {

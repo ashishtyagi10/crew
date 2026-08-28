@@ -126,6 +126,8 @@ pub(crate) fn pane_busy(p: &Pane) -> bool {
         PaneContent::Swarm(s) => s.is_busy(),
         PaneContent::Chat(c) => c.is_busy(),
         PaneContent::Far(f) => f.is_busy(),
+        // A walk of a big tree is work the card should show it is doing.
+        PaneContent::Disk(d) => d.is_scanning(),
         _ => false,
     }
 }

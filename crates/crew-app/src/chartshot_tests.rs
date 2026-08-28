@@ -540,3 +540,43 @@ fn chart_shot_swarm_timeline() {
         .count();
     assert!(ink > 1000, "the timeline drew something: {ink} ink pixels");
 }
+
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn chart_shot_disk_treemap() {
+    let _g = crate::app::theme_test_guard();
+    // A repo's own shape: target dominating, then the crates, then the small
+    // stuff that a `du | sort` would have you reading line by line.
+    let mut p = crate::diskpane::DiskPane::new(std::env::temp_dir());
+    p.set_children_for_test(
+        &[
+            ("target", 4_509_715_660, true),
+            ("crates", 812_000_000, true),
+            (".git", 402_000_000, true),
+            ("vendor", 121_000_000, true),
+            ("docs", 24_000_000, true),
+            ("Cargo.lock", 310_000, false),
+            ("CHANGELOG.md", 96_000, false),
+            ("README.md", 12_000, false),
+        ],
+        1,
+    );
+    let px = shot("treemap", "disk", |cols, rows, aspect| {
+        (p.cells(cols, rows), p.paint(cols, rows, aspect))
+    });
+    let Some(px) = px else {
+        eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+        return;
+    };
+    let bg = crew_theme::theme().page_bg;
+    let ink = px
+        .chunks_exact(4)
+        .filter(|p| {
+            (p[0] as i32 - bg.0 as i32).abs()
+                + (p[1] as i32 - bg.1 as i32).abs()
+                + (p[2] as i32 - bg.2 as i32).abs()
+                > 40
+        })
+        .count();
+    assert!(ink > 5000, "the treemap drew something: {ink} ink pixels");
+}

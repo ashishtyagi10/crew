@@ -66,7 +66,7 @@ fn scroll_pane(pane: &mut Pane, lines: i32) {
         PaneContent::Far(f) => f.scroll(lines),
         // The swarm view always renders the current fleet; nothing to
         // scroll. The usage pane draws one screen of charts, likewise.
-        PaneContent::Swarm(_) | PaneContent::Usage(_) => {}
+        PaneContent::Swarm(_) | PaneContent::Usage(_) | PaneContent::Disk(_) => {}
         PaneContent::View(v) => v.scroll_wheel(cols, rows, lines),
         PaneContent::Todo(t) => t.scroll_wheel(lines, cols, rows),
     }

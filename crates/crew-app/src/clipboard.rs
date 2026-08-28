@@ -124,6 +124,7 @@ impl CrewApp {
                 | PaneContent::Far(_)
                 | PaneContent::Swarm(_)
                 | PaneContent::Usage(_)
+                | PaneContent::Disk(_)
                 | PaneContent::View(_) => {}
             }
         }

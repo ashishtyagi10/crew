@@ -167,6 +167,12 @@ impl CrewApp {
                     self.redraw();
                     return;
                 }
+                // A click on a disk map picks the tile under the pointer, and
+                // a second click on the same tile walks into it.
+                if self.disk_click_at_cursor() {
+                    self.redraw();
+                    return;
+                }
                 // A plain click on a foldable system card in a chat pane
                 // toggles its collapse — armed here, fired on RELEASE and
                 // only if the gesture never became a drag (see `chatfold`):

@@ -99,6 +99,7 @@ mod density;
 mod detach;
 mod diffjob;
 mod diffrefine;
+mod diskpane;
 mod dispatch;
 mod dockicon;
 mod dump;

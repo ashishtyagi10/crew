@@ -23,6 +23,7 @@ impl CrewApp {
                 PaneContent::View(_) => format!("{} — Crew", p.title_text()),
                 PaneContent::Todo(_) => "Todo — Crew".into(),
                 PaneContent::Usage(_) => "Usage — Crew".into(),
+                PaneContent::Disk(_) => "Disk — Crew".into(),
             },
             None => "Crew".into(),
         }

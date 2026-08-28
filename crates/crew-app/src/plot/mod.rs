@@ -15,5 +15,6 @@ pub mod gauge;
 pub mod heatmap;
 pub mod meter;
 pub mod pie;
+pub mod treemap;
 
 pub use canvas::Canvas;
