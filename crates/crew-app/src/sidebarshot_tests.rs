@@ -59,6 +59,14 @@ fn pane(index: usize, title: &str, focused: bool, busy: bool) -> PaneRow {
 fn nav_shot(name: &str, w: u32) -> Option<Vec<u8>> {
     let mut sp = StatsPane::new();
     sp.refresh(std::path::Path::new("."), 3);
+    // GIT is polled off the main thread and has not answered by the time a
+    // shot is taken, so it was the one section never in any of these frames.
+    sp.set_git(Some(crate::git::GitInfo {
+        branch: "main".into(),
+        changed: 9,
+        ahead: 1,
+        behind: 0,
+    }));
     sp.seed_history(&cpu_trace(), &[0, 0, 1, 3, 4, 4, 2, 1, 1, 2, 3, 3, 2, 2]);
     let entries = session_log();
     let mut panes = vec![

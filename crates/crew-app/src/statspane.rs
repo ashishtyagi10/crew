@@ -41,6 +41,14 @@ impl StatsPane {
         }
     }
 
+    /// Pin a git status, so an off-screen shot of the nav includes the GIT
+    /// section — it is polled off the main thread and has not answered by the
+    /// time a shot is taken, which made it the one section never in frame.
+    #[cfg(test)]
+    pub fn set_git(&mut self, info: Option<git::GitInfo>) {
+        self.git.set_info(info);
+    }
+
     /// Push a minute of synthetic CPU / busy-pane history, so an off-screen
     /// shot of the nav shows the traces a running machine would have rather
     /// than the single sample one `refresh` leaves behind.
@@ -146,6 +154,15 @@ impl StatsPane {
         out
     }
 
+    /// The ceiling the CPU chart is currently drawn against, in percent, or
+    /// `None` when there is no history to scale. The number the SYSTEM rule
+    /// writes down: a chart with a moving ceiling and no ceiling written down
+    /// is a shape you cannot read a value off.
+    fn cpu_ceiling(&self, cols: u16) -> Option<u64> {
+        let span = cols.saturating_sub(4) as usize * 2;
+        (!self.cpu_hist.is_empty()).then(|| self.cpu_hist.peak(span).max(CHART_FLOOR))
+    }
+
     /// The SYSTEM section's CPU history chart.
     ///
     /// Scaled to the window's own peak with [`CHART_FLOOR`] under it, not to a
@@ -165,7 +182,9 @@ impl StatsPane {
             return Vec::new();
         }
         let span = width as usize * 2;
-        let peak = self.cpu_hist.peak(span).max(CHART_FLOOR) as f32;
+        // The same ceiling the SYSTEM rule writes down — one derivation, so
+        // the number beside the section and the shape under it agree.
+        let peak = self.cpu_ceiling(cols).unwrap_or(CHART_FLOOR) as f32;
         let samples: Vec<f32> = self
             .cpu_hist
             .tail(span)
@@ -198,7 +217,8 @@ impl StatsPane {
 
         let sys_off = clock::CLOCK_H;
         if rows > sys_off {
-            for mut c in render_stats(self.sampler.stats(), cols, rows - sys_off) {
+            let peak = self.cpu_ceiling(cols);
+            for mut c in render_stats(self.sampler.stats(), cols, rows - sys_off, peak) {
                 c.row += sys_off;
                 out.push(c);
             }
@@ -227,7 +247,9 @@ impl StatsPane {
         let net_off = host_off + navlayout::CARD_BLOCK;
         if rows > net_off + 3 {
             let s = self.sampler.stats();
-            for mut c in net::net_cells(s.net_rx, s.net_tx, cols) {
+            let (rxh, txh) = self.sampler.net_dirs();
+            let ceiling = crate::nettwin::ceiling(rxh, txh, cols);
+            for mut c in net::net_cells(s.net_rx, s.net_tx, ceiling, cols) {
                 c.row += net_off;
                 out.push(c);
             }

@@ -110,17 +110,24 @@ fn cell(col: u16, row: u16, c: char, fg: (u8, u8, u8), bg: (u8, u8, u8)) -> Cell
 /// columns for them ([`crate::sysrings`], which draws the rings and leaves
 /// their text here), and as the labelled bars below when it does not.
 /// Sidebar sections stack as their own dividers below.
-pub(crate) fn render_stats(stats: Stats, cols: u16, rows: u16) -> Vec<CellView> {
+pub(crate) fn render_stats(stats: Stats, cols: u16, rows: u16, peak: Option<u64>) -> Vec<CellView> {
     let mut out = Vec::new();
     if cols < 8 || rows < 4 {
         return out;
     }
     let t = crew_theme::theme();
-    out.extend(boxdraw::section_header(
+    // The CPU curve under the gauges is scaled to its own rolling peak, not to
+    // 0-100 — that is what lets a machine idling under 10% draw a shape at
+    // all. A chart with a moving ceiling and no ceiling written down is a
+    // chart you cannot read a number off, so the rule carries it.
+    let key = peak.map(|p| format!("\u{2191}{p}%")).unwrap_or_default();
+    out.extend(boxdraw::section_header_key(
         HEADER,
+        &key,
         cols,
         t.border_normal,
         accent(),
+        t.dim,
         t.page_bg,
     ));
 
@@ -198,7 +205,7 @@ mod tests {
             ..Default::default()
         };
         // A narrow nav keeps the bars.
-        let cells = render_stats(stats, 16, 12);
+        let cells = render_stats(stats, 16, 12, None);
         // flat divider, not a box
         assert!(cells.iter().any(|c| c.c == '─' && c.row == 0));
         assert!(!cells.iter().any(|c| matches!(c.c, '╭' | '╮' | '╰' | '╯')));
@@ -221,7 +228,7 @@ mod tests {
             disk: 0.34,
             ..Default::default()
         };
-        let cells = render_stats(stats, 24, 12);
+        let cells = render_stats(stats, 24, 12, None);
         assert!(!cells.iter().any(|c| c.c == '█' || c.c == '░'), "no bars");
         let text = |r: u16| -> String {
             let mut v: Vec<_> = cells.iter().filter(|c| c.row == r).collect();
@@ -283,5 +290,30 @@ mod tests {
         assert_ne!(w, n);
         assert_ne!(c, n);
         assert_ne!(w, c);
+    }
+
+    /// The CPU curve under the gauges is scaled to its own rolling peak, so
+    /// the rule says what that peak is. Without it the shape has no units.
+    #[test]
+    fn the_system_rule_names_the_curves_ceiling() {
+        let _g = crate::app::theme_test_guard();
+        let stats = Stats {
+            cpu: 0.24,
+            mem: 0.6,
+            disk: 0.77,
+            ..Default::default()
+        };
+        let rule = |peak| -> String {
+            let mut v: Vec<_> = render_stats(stats, 28, 12, peak)
+                .into_iter()
+                .filter(|c| c.row == 0 && c.c != '─')
+                .collect();
+            v.sort_by_key(|c| c.col);
+            v.iter().map(|c| c.c).collect::<String>().trim().to_string()
+        };
+        assert_eq!(rule(Some(47)), "SYSTEM ↑47%");
+        // No history yet: the section is still itself, without a claim about a
+        // ceiling it has not measured.
+        assert_eq!(rule(None), "SYSTEM");
     }
 }

@@ -130,7 +130,7 @@ fn chart_shot_net_twin() {
     }
     let px = shot("nettwin", "NET", |cols, _rows, aspect| {
         (
-            crate::net::net_cells(842_000, 121_000, cols),
+            crate::net::net_cells(842_000, 121_000, 842_000, cols),
             crate::nettwin::paint(
                 &rx,
                 &tx,
