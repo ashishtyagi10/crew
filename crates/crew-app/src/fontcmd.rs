@@ -50,6 +50,11 @@ impl CrewApp {
                     Some(f) => format!(" — rotating (now: {f})"),
                     None => " — rotating".to_string(),
                 }
+            } else if let Some(fam) = &self.config.font_family {
+                // A pin outranks the theme's own font (`tick_theme_font`), so
+                // say which face is holding: otherwise the only sign that
+                // themes stopped changing the typeface is that they stopped.
+                format!(" — pinned: {fam} (themes keep it)")
             } else {
                 String::new()
             };

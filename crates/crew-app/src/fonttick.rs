@@ -8,6 +8,9 @@ impl CrewApp {
     /// Apply the live theme's font when the theme has changed since last tick.
     /// Returns whether a family was applied.
     ///
+    /// A `config.font_family` the user pinned wins outright while rotation is
+    /// off — the theme states a preference, an explicit pin is an answer.
+    ///
     /// Ordered AFTER `tick_font_rotation` in `poll_panes` so that when both
     /// fire on the same tick — which they will, since both hang off the same
     /// 10-minute clock — the theme's font lands on top. Every other tick each
@@ -20,6 +23,23 @@ impl CrewApp {
         // Stamp first: an unresolvable preference must not retry every tick at
         // ~62 Hz, and a theme with no installed pick keeps the current font.
         self.font_rotate.themed = Some(id);
+        // A family the user pinned in config OUTRANKS the theme's preference.
+        // `apply_config` already stops the `/font random` rotation when a pin
+        // arrives, but nothing guarded this path — so a pin survived one
+        // override and not the other, and since `theme = "light"` is a
+        // *rotation* the theme re-rolled (and re-fonted) on every launch and
+        // every rotation tick. The pin is never written back from here
+        // (`apply_rotated_family` deliberately touches the renderer only), so
+        // config kept saying one family while the screen showed another, with
+        // no way to get back: a pinned face need not appear in ANY theme's
+        // `font_prefs`, and the resolution only ever draws from those lists.
+        //
+        // Only while rotation is OFF: `/font random` is the user asking for
+        // the font to move, and the theme must still win that tie (see
+        // `the_theme_font_beats_the_rotation_on_a_shared_tick`).
+        if !self.font_rotate.on && self.config.font_family.is_some() {
+            return false;
+        }
         let Some(fam) = self.resolve_family(crew_theme::font_prefs(id)) else {
             return false;
         };
