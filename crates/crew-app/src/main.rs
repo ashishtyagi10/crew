@@ -96,7 +96,7 @@ mod cmdspan;
 pub mod config;
 mod confirm;
 mod crashlog;
-mod crewpie;
+mod crewmix;
 mod ctxlimit;
 mod cwd;
 mod daemon;
@@ -126,6 +126,9 @@ mod focusmode;
 mod fontcmd;
 mod fontrotate;
 mod fonttick;
+#[cfg(test)]
+#[path = "formshot_tests.rs"]
+mod formshot_tests;
 mod framegeo;
 mod gammalvl;
 mod gauges;

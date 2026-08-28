@@ -8,6 +8,41 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.47
+
+**The PANES donut is one chip per pane.** A ring of one pane is a solid disc:
+a large black circle spending three rows and seven columns of a docked nav to
+say "1". The donut answered with an ANGLE, and the two things a crew is
+actually asked — how many, and doing what — are both counts. Each state now
+gets a row of chips, one per pane, with its name and count beside it; the
+three rows share a left edge, so the states can be compared along a common
+baseline the way a pie never allows. Past six the last chip marks its own
+overflow and the number beside it stays exact, an empty state keeps a hollow
+chip so its row still has an edge, and the crew total rides the section rule
+(`PANES 4`) the way the LOG's depth and the charts' peaks already do.
+
+**Settings and /todo, shot whole.** The two form-shaped panes — a bento of
+fieldset cards with boxed inputs, pickers and a pinned Save/Cancel row, and a
+list negotiating a checkbox, a title, a project chip and a due label for the
+same columns — reflow with width, which is exactly the shape that passes every
+unit test and still reads badly on a tile. Neither had ever been looked at.
+
+**A focused control declares itself on every preset.** Focus in the settings
+form is drawn by swapping muted ink for accent ink. `palette::accent` is
+floored against the PAGE — that says the colour can be READ, not that it can
+be told from the one it is standing in for. Measured across the set: sepia-dark
+**1.04** and crt-violet **1.06**, accent and muted at the same lightness, so a
+focused input's border differed by hue alone and on a single-phosphor tube not
+at all. `focus_accent` floors it at 1.6, and at 1.8 on the tubes, where
+lightness is the whole of the signal.
+
+**The /todo list has a measure.** A row puts its title on the left and its
+`@project` and due label on the right, so on a full-window pane the due date
+sat ninety columns from the task it belonged to — the same defect the command
+palette's chords had. The cap is applied at every entry rather than once at
+the draw, because the scroll math and the click hit-test read the same widths
+and a wrapped title's HEIGHT depends on the width it wrapped at.
+
 ## 0.19.46
 
 **The file viewer, shot whole.** It is the largest surface in the app — a

@@ -66,9 +66,9 @@ fn chart_shot_area() {
 
 #[test]
 #[ignore = "needs a GPU adapter; writes PNGs"]
-fn chart_shot_crew_donut() {
+fn chart_shot_crew_mix() {
     let _g = crate::app::theme_test_guard();
-    let m = crate::crewpie::Mix {
+    let m = crate::crewmix::Mix {
         working: 3,
         waiting: 1,
         idle: 2,
@@ -78,11 +78,11 @@ fn chart_shot_crew_donut() {
         let _ = i;
         pulse.push(v);
     }
-    let px = shot("donut", "PANES", |cols, rows, aspect| {
+    let px = shot("crewmix", "PANES", |cols, rows, aspect| {
         let _ = rows;
         (
-            crate::crewpie::cells(&m, cols, 0),
-            crate::crewpie::paint(&m, cols, 0, aspect, &pulse),
+            crate::crewmix::cells(&m, cols, 0),
+            crate::crewmix::paint(&m, cols, 0, aspect, &pulse),
         )
     });
     let Some(px) = px else {
@@ -90,7 +90,7 @@ fn chart_shot_crew_donut() {
         return;
     };
     let ink = ink(&px);
-    assert!(ink > 2000, "the donut drew something: {ink} ink pixels");
+    assert!(ink > 2000, "the mix drew something: {ink} ink pixels");
 }
 
 #[test]

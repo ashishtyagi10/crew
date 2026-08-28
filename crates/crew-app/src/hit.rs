@@ -124,11 +124,11 @@ impl CrewApp {
 
 /// Map a cursor cell-row measured from the sidebar card's OUTER top edge to a
 /// pane-list index. The card content is inset one cell (the border row), the
-/// `PANES` header sits at content row `panes_top`, the crew donut on the
-/// [`crate::crewpie::ROWS`] rows below it, and pane `k` under that. `None` for
-/// the border, header, donut, and everything above.
+/// `PANES` header sits at content row `panes_top`, the crew mix on the
+/// [`crate::crewmix::ROWS`] rows below it, and pane `k` under that. `None` for
+/// the border, header, mix, and everything above.
 pub(crate) fn sidebar_pane_index(rel_row: u16, panes_top: u16) -> Option<usize> {
-    Some(rel_row.checked_sub(panes_top + 2 + crate::crewpie::ROWS)? as usize)
+    Some(rel_row.checked_sub(panes_top + 2 + crate::crewmix::ROWS)? as usize)
 }
 
 #[cfg(test)]
@@ -141,11 +141,11 @@ mod tests {
                       // Border row 0 … header (outer row 22) → no pane.
         assert_eq!(sidebar_pane_index(0, top), None);
         assert_eq!(sidebar_pane_index(top + 1, top), None, "header row");
-        for r in 2..2 + crate::crewpie::ROWS {
-            assert_eq!(sidebar_pane_index(top + r, top), None, "donut row {r}");
+        for r in 2..2 + crate::crewmix::ROWS {
+            assert_eq!(sidebar_pane_index(top + r, top), None, "mix row {r}");
         }
-        // First pane row sits under the header + the donut block.
-        let first = top + 2 + crate::crewpie::ROWS;
+        // First pane row sits under the header + the mix block.
+        let first = top + 2 + crate::crewmix::ROWS;
         assert_eq!(sidebar_pane_index(first, top), Some(0));
         assert_eq!(sidebar_pane_index(first + 1, top), Some(1));
         assert_eq!(sidebar_pane_index(first + 2, top), Some(2));
