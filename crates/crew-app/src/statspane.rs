@@ -105,7 +105,32 @@ impl StatsPane {
     /// Kept beside [`Self::cells`] rather than folded into it because the two
     /// layers are drawn by different passes; both read the same section
     /// offsets, which is what keeps a chart under the section it belongs to.
-    pub fn chart_paint(&self, cols: u16, rows: u16, aspect: f32) -> Vec<Paint> {
+    pub fn chart_paint(
+        &self,
+        cols: u16,
+        rows: u16,
+        aspect: f32,
+        panes: &[PaneRow],
+        log_len: usize,
+    ) -> Vec<Paint> {
+        let mut out = self.cpu_chart(cols, rows, aspect);
+        // The crew donut, under the PANES header — the same offset
+        // `cells` lays the list out from, so ring and rows cannot drift apart.
+        let panes_off = self.panes_top(log_len);
+        if !panes.is_empty() && rows > panes_off + 1 + crate::crewpie::ROWS {
+            out.extend(crate::crewpie::paint(
+                &crate::crewpie::mix(panes),
+                cols,
+                panes_off + 1,
+                aspect,
+                &self.pulse_hist,
+            ));
+        }
+        out
+    }
+
+    /// The SYSTEM section's CPU history chart.
+    fn cpu_chart(&self, cols: u16, rows: u16, aspect: f32) -> Vec<Paint> {
         let row0 = clock::CLOCK_H + CHART_OFF;
         // Indented under the section legend like the gauges above it, one
         // column of air kept on the right.
@@ -202,11 +227,12 @@ impl StatsPane {
 
         // PANES list fills the remaining height below the LOG section (header
         // + pulse chart + one row per pane).
-        if !panes.is_empty() && rows > panes_off + 2 {
-            let limit = (rows - panes_off - 2) as usize;
+        let list_off = 1 + crate::crewpie::ROWS;
+        if !panes.is_empty() && rows > panes_off + list_off {
+            let limit = (rows - panes_off - list_off) as usize;
             let spin = crate::update::SPINNER
                 [(crate::anim::now_ms() / 100) as usize % crate::update::SPINNER.len()];
-            for mut c in panelist::pane_cells(panes, cols, limit, &self.pulse_hist, spin) {
+            for mut c in panelist::pane_cells(panes, cols, limit, spin) {
                 c.row += panes_off;
                 out.push(c);
             }

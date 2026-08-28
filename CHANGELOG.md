@@ -8,6 +8,25 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.29
+
+**Crew can draw now, not just spell.** Every chart in the app was assembled out
+of glyphs — the gauges from `█`, the sparklines from the eighth-block ramp — so
+a chart had eight height levels, one sample per column, and no way to draw a
+curve, an arc or a slice at all.
+
+There is a layer under the text now: a *paint* rectangle addressed in
+fractional cells, drawn over a pane's backgrounds and under its text, blended
+rather than replaced. On top of it sits a canvas whose pixels are a quarter of
+a cell wide, in square units so a circle comes out round whatever shape the
+cell is, with coverage-sampled edges and a run merge that turns a solid fill
+into one rectangle instead of thousands.
+
+The first thing drawn with it: the sidebar's CPU sparkline is now an **area
+chart** — a smooth curve through the samples (clamped so it never spikes where
+the machine did not), a gradient fill to the baseline, and a dot on the newest
+reading.
+
 ## 0.19.28
 
 **The two font corrections were double-counting, and the defaults now say so.**

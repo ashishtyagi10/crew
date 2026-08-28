@@ -10,5 +10,6 @@
 //! and get a circle.
 pub mod area;
 pub mod canvas;
+pub mod pie;
 
 pub use canvas::Canvas;

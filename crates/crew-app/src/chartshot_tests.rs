@@ -192,6 +192,7 @@ fn series(n: usize) -> Vec<f32> {
 #[test]
 #[ignore = "needs a GPU adapter; writes PNGs"]
 fn chart_shot_area() {
+    let _g = crate::app::theme_test_guard();
     let px = shot("area", "SYSTEM", |cols, rows, aspect| {
         let mut c = crate::plot::Canvas::new(cols, rows, aspect);
         let (w, h) = c.size();
@@ -220,4 +221,42 @@ fn chart_shot_area() {
         })
         .count();
     assert!(ink > 2000, "the chart drew something: {ink} ink pixels");
+}
+
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn chart_shot_crew_donut() {
+    let _g = crate::app::theme_test_guard();
+    let m = crate::crewpie::Mix {
+        working: 3,
+        waiting: 1,
+        idle: 2,
+    };
+    let mut pulse = crate::spark::History::new(64);
+    for (i, v) in (0..48).map(|i| (i, (i % 7) as u64)) {
+        let _ = i;
+        pulse.push(v);
+    }
+    let px = shot("donut", "PANES", |cols, rows, aspect| {
+        let _ = rows;
+        (
+            crate::crewpie::cells(&m, cols, 0),
+            crate::crewpie::paint(&m, cols, 0, aspect, &pulse),
+        )
+    });
+    let Some(px) = px else {
+        eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+        return;
+    };
+    let bg = crew_theme::theme().page_bg;
+    let ink = px
+        .chunks_exact(4)
+        .filter(|p| {
+            (p[0] as i32 - bg.0 as i32).abs()
+                + (p[1] as i32 - bg.1 as i32).abs()
+                + (p[2] as i32 - bg.2 as i32).abs()
+                > 40
+        })
+        .count();
+    assert!(ink > 2000, "the donut drew something: {ink} ink pixels");
 }
