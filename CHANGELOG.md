@@ -8,6 +8,25 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.30
+
+**The crew is a pie now.** Under the sidebar's PANES header sat a one-row pulse
+sparkline: eight height levels saying how many panes were busy, with no way to
+say what the rest of them were doing.
+
+In its place is a **donut** — working, waiting on you, idle — with the pane
+count in its hole and a legend beside it naming each colour and its count. A
+category with no members dims rather than disappearing, so the key never
+reorders itself under you, and a sidebar too narrow for the legend keeps the
+ring. The pulse history did not go away: it is drawn behind the whole block as
+a faint area chart, so the ring says the present and the wash behind it says
+the last minute.
+
+`plot::pie` is general — slices from twelve o'clock clockwise, a hairline gap
+between neighbours (and none around a lone slice), a dim track ring when there
+is nothing to show, and a `dot` primitive for legend swatches and series
+heads.
+
 ## 0.19.29
 
 **Crew can draw now, not just spell.** Every chart in the app was assembled out
