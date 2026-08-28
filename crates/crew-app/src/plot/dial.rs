@@ -30,8 +30,16 @@ pub const SPAN: f32 = 2.0 / 3.0 * TAU;
 /// Negative because the scale straddles noon — which is the point of the
 /// layout, since noon is where an instrument puts the middle of its range.
 pub const START: f32 = -0.5 * SPAN;
-/// Ticks on the scale, ends included — one every tenth.
+/// Ticks on the scale, ends included: one every tenth on a small face, one
+/// every twentieth once there is room to tell them apart.
+///
+/// Both put a major tick every fifth one, so a small face is marked at
+/// nothing/half/full and a large one at each quarter — the divisions a scale
+/// is actually read against.
 const TICKS: usize = 11;
+const TICKS_LARGE: usize = 21;
+/// Face radius, in columns, at which the finer scale is worth drawing.
+const LARGE_R: f32 = 4.0;
 
 /// One dial. Colours come from the caller so a tier's hue, the theme's track
 /// and the card's own plate are all decided in one place, beside the reading.
@@ -112,8 +120,9 @@ pub fn draw(c: &mut Canvas, d: Dial) {
     // the answer is said in position *and* in how much of the scale is lit —
     // the second reading is the one that survives a glance.
     let tw = (0.045 * r).max(px * 0.5);
-    for i in 0..TICKS {
-        let t = i as f32 / (TICKS - 1) as f32;
+    let ticks = if r >= LARGE_R { TICKS_LARGE } else { TICKS };
+    for i in 0..ticks {
+        let t = i as f32 / (ticks - 1) as f32;
         let major = i % 5 == 0;
         let inner = if major { 0.70 } else { 0.80 };
         let a = angle_of(t);
@@ -143,10 +152,13 @@ pub fn draw(c: &mut Canvas, d: Dial) {
     // version of this looked like. Widest at the pivot, a point at the tip,
     // a stub the other way for balance.
     let a = angle_of(frac);
-    let hub = (0.085 * r).max(px * 0.6);
-    let tip = sdf::polar(centre, r * 0.74, a);
+    // The hand's width does not follow the radius all the way: a big face
+    // wants a *slimmer* hand reaching further, the way a real instrument's
+    // does, not the small one's silhouette enlarged.
+    let hub = (0.085 * r).clamp(px * 0.6, 0.34);
+    let tip = sdf::polar(centre, r * 0.80, a);
     let tail = sdf::polar(centre, r * 0.15, a + TAU * 0.5);
-    let point = (0.02 * r).max(px * 0.5);
+    let point = (0.02 * r).clamp(px * 0.5, 0.09);
     let hb = sdf::bounds(&[centre, tip, tail], hub + px);
     c.fill_sdf(hb, color, 1.0, move |x, y| {
         sdf::cone((x, y), centre, tip, hub, point).min(sdf::cone(
@@ -273,6 +285,40 @@ mod tests {
         assert_eq!(lit(0.0), 1, "empty lights only the tick at zero");
         assert_eq!(lit(0.5), 6, "half lights half of them");
         assert_eq!(lit(1.0), TICKS, "full lights the scale");
+    }
+
+    /// A face with room for it gets a finer scale — every twentieth rather
+    /// than every tenth — and the small one must not, or its ticks would run
+    /// into each other.
+    #[test]
+    fn a_large_face_gets_a_finer_scale() {
+        let ticks_on = |r: f32| {
+            let mut c = Canvas::with_sub(16, 6, 2.0, 16);
+            draw(
+                &mut c,
+                Dial {
+                    centre: (8.0, 6.0),
+                    r,
+                    frac: 1.0,
+                    color: FILL,
+                    track: TRACK,
+                    track_dim: DIM,
+                    plate: PLATE,
+                },
+            );
+            // Count the lit ticks out past where the hand reaches.
+            (0..TICKS_LARGE)
+                .filter(|i| {
+                    let t = *i as f32 / (TICKS_LARGE - 1) as f32;
+                    let (x, y) = sdf::polar((8.0, 6.0), r * 0.87, angle_of(t));
+                    ink_in(&c, FILL, (x - 0.2, (y - 0.2) / 2.0, 0.4, 0.4 / 2.0)) > 0.01
+                })
+                .count()
+        };
+        assert_eq!(ticks_on(LARGE_R + 1.0), TICKS_LARGE, "the large scale");
+        // On a small face only the every-tenth marks exist, so half the
+        // large scale's positions are bare.
+        assert_eq!(ticks_on(LARGE_R - 1.5), TICKS, "the small one");
     }
 
     /// The bottom of the face is deliberately open — it is where the digits
