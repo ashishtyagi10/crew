@@ -181,6 +181,7 @@ mod navlayout;
 mod navlog;
 mod navlogscroll;
 mod navresize;
+mod navtext;
 mod net;
 mod nettwin;
 mod notify;

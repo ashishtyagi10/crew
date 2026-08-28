@@ -36,37 +36,30 @@ pub fn up_color() -> (u8, u8, u8) {
 /// Render the network section: a `NET` rule on row 0 and the `↓ rx  ↑ tx`
 /// rates on row 1. The chart under them is drawn, not spelled — see
 /// [`crate::nettwin`], reached from the sidebar's paint layer.
+///
+/// The rates are values, so a nav too narrow for both gives up a whole one
+/// (the quieter direction) rather than half of one: `↑ 0 B` is not a smaller
+/// reading than `↑ 0 B/s`, it is a different unit.
 pub fn net_cells(rx: u64, tx: u64, cols: u16) -> Vec<CellView> {
     if cols < 10 {
         return Vec::new();
     }
     let t = crew_theme::theme();
     let mut out = section_header("NET", cols, t.border_normal, accent(), t.page_bg);
-    put(
-        &mut out,
-        &format!("↓ {}  ↑ {}", rate(rx), rate(tx)),
-        1,
-        cols,
-        t.ink,
-        t.page_bg,
-    );
+    let (down, up) = (rate(rx), rate(tx));
+    // Longest first: both with air, both tight, then whichever direction is
+    // carrying more — on a link doing nothing that is `↓`, which is the one
+    // you would ask about anyway.
+    let busier = if tx > rx { &up } else { &down };
+    let arrow = if tx > rx { '↑' } else { '↓' };
+    let ladder = [
+        format!("↓ {down}  ↑ {up}"),
+        format!("↓ {down} ↑ {up}"),
+        format!("{arrow} {busier}"),
+    ];
+    let refs: Vec<&str> = ladder.iter().map(String::as_str).collect();
+    crate::navtext::put(&mut out, crate::navtext::fit(&refs, cols), 1, cols, t.ink);
     out
-}
-
-fn put(out: &mut Vec<CellView>, s: &str, row: u16, cols: u16, fg: (u8, u8, u8), bg: (u8, u8, u8)) {
-    let max = cols.saturating_sub(4) as usize;
-    for (i, c) in s.chars().take(max).enumerate() {
-        out.push(CellView {
-            col: 3 + i as u16,
-            row,
-            c,
-            fg,
-            bg,
-            bold: false,
-            italic: false,
-            ..Default::default()
-        });
-    }
 }
 
 #[cfg(test)]
@@ -96,5 +89,38 @@ mod tests {
         // drawn on the paint layer, and a leftover block ramp here would show
         // through it.
         assert!(!cells.iter().any(|c| c.row >= 2));
+    }
+
+    /// A nav too narrow for both rates shows the busier direction whole, not
+    /// both of them cut. `↑ 0 B` is a different unit, not a smaller reading.
+    #[test]
+    fn a_narrow_nav_drops_a_direction_rather_than_its_unit() {
+        let _g = crate::app::theme_test_guard();
+        let row = |cols| -> String {
+            let mut v: Vec<_> = net_cells(4_000_000, 900, cols)
+                .into_iter()
+                .filter(|c| c.row == 1)
+                .collect();
+            v.sort_by_key(|c| c.col);
+            v.iter().map(|c| c.c).collect()
+        };
+        assert_eq!(row(28), "↓ 3.8 MB/s  ↑ 900 B/s");
+        assert_eq!(row(24), "↓ 3.8 MB/s ↑ 900 B/s");
+        // Down is carrying more, so down is what survives — whole.
+        assert_eq!(row(18), "↓ 3.8 MB/s");
+        assert!(!row(18).contains('…'), "a value is dropped, never clipped");
+    }
+
+    /// …and when it is the upload that is busy, the upload is what survives.
+    #[test]
+    fn the_direction_that_survives_is_the_one_carrying_more() {
+        let _g = crate::app::theme_test_guard();
+        let mut v: Vec<_> = net_cells(900, 4_000_000, 18)
+            .into_iter()
+            .filter(|c| c.row == 1)
+            .collect();
+        v.sort_by_key(|c| c.col);
+        let row: String = v.iter().map(|c| c.c).collect();
+        assert_eq!(row, "↑ 3.8 MB/s");
     }
 }

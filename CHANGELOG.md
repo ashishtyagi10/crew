@@ -36,6 +36,15 @@ emptiest part of a narrow section, so the key goes there
 they differ by rank rather than hue now: the 1-minute figure keeps the load
 colour, the two history figures step back through `readable::secondary`.
 
+**Nothing in the nav is cut in half any more.** Every section drew its own
+copy of "write at column 3, `.take(cols - 4)`" — a *character* clip. At the
+narrow end of what the resize edge allows, the nav showed `Mac.lan · Darw`,
+`↑ 0 B` and a load average of `3.`, and a half-written number is not a smaller
+reading, it is a wrong one. One `navtext` now holds both rules: **prose
+ellipsizes** (host name, pane title, log line), and **a row of values drops
+whole values** — a narrow nav shows two load averages, or the busier network
+direction, whole. LOAD's key names exactly the averages that survived.
+
 **The PANES backdrop stopped scribbling.** The pulse chart was drawing its
 curve — a faint line straight through "working" and "waiting", and across the
 donut. A line crossing a word is a scribble however faint it is. It is fill

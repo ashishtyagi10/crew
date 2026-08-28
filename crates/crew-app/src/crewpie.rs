@@ -97,12 +97,13 @@ pub fn cells(m: &Mix, cols: u16, row0: u16) -> Vec<CellView> {
         // is a fixed key, and a key that reorders itself as the crew changes
         // is harder to read than one that stays put.
         let fg = if n == 0 { t.text_muted } else { fg };
-        let budget = cols.saturating_sub(text_col + 3);
-        for (i, ch) in label.chars().take(budget as usize).enumerate() {
-            out.push(cell(text_col + i as u16, row, ch, fg, t.page_bg));
-        }
         let count = n.to_string();
         let cx = cols.saturating_sub(1 + count.chars().count() as u16);
+        // The count is the reading, so it is placed first and the label gets
+        // what is left, with a column of air between them — and it ellipsizes,
+        // because a narrow nav used to read `workin 2`, which is a word that
+        // does not exist sitting flush against a number.
+        crate::navtext::put_at(&mut out, label, text_col, row, cx.saturating_sub(1), fg);
         for (i, ch) in count.chars().enumerate() {
             out.push(cell(cx + i as u16, row, ch, fg, t.page_bg));
         }
@@ -263,6 +264,40 @@ mod tests {
         let waiting: Vec<_> = out.iter().filter(|c| c.row == 1 && c.c == 'w').collect();
         assert!(!waiting.is_empty(), "the waiting line is still drawn");
         assert!(waiting.iter().all(|c| c.fg == t.text_muted));
+    }
+
+    /// A legend label too wide for the nav ends in `…`, one column clear of
+    /// its count. `workin 2` — a word that does not exist, flush against a
+    /// number — is what the narrow end of the resize range used to show.
+    #[test]
+    fn a_narrow_legend_ellipsizes_and_keeps_its_air() {
+        let _g = crate::app::theme_test_guard();
+        let m = Mix {
+            waiting: 0,
+            working: 2,
+            idle: 1,
+        };
+        let cells = cells(&m, 18, 0);
+        let row: String = {
+            let mut v: Vec<_> = cells.iter().filter(|c| c.row == 0).collect();
+            v.sort_by_key(|c| c.col);
+            let mut out = String::new();
+            let mut at = v[0].col;
+            for c in v {
+                for _ in at..c.col {
+                    out.push(' ');
+                }
+                out.push(c.c);
+                at = c.col + 1;
+            }
+            out
+        };
+        assert!(row.ends_with(" 2"), "the count is whole: {row:?}");
+        assert!(
+            row.contains('\u{2026}'),
+            "and the label says it was cut: {row:?}"
+        );
+        assert!(!row.contains("\u{2026}2"), "with air between them: {row:?}");
     }
 
     #[test]

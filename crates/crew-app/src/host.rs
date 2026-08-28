@@ -30,33 +30,18 @@ fn fmt_uptime(secs: u64) -> String {
     }
 }
 
-/// Render the host section: a `HOST` rule on row 0, `name` and `uptime` beneath.
+/// Render the host section: a `HOST` rule on row 0, `name` and `uptime`
+/// beneath. Both are prose, so both ellipsize rather than cutting mid-word —
+/// at the narrow end of the resize range this read `Mac.lan · Darw`.
 pub fn host_cells(name: &str, uptime: &str, cols: u16) -> Vec<CellView> {
     if cols < 10 {
         return Vec::new();
     }
     let t = crew_theme::theme();
     let mut out = section_header("HOST", cols, t.border_normal, accent(), t.page_bg);
-    put(&mut out, name, 1, cols, t.ink, t.page_bg);
-    put(&mut out, uptime, 2, cols, t.text_muted, t.page_bg);
+    crate::navtext::put(&mut out, name, 1, cols, t.ink);
+    crate::navtext::put(&mut out, uptime, 2, cols, t.text_muted);
     out
-}
-
-/// Draw `s` at `row`, indented to align under the section legend, clipped to `cols`.
-fn put(out: &mut Vec<CellView>, s: &str, row: u16, cols: u16, fg: (u8, u8, u8), bg: (u8, u8, u8)) {
-    let max = cols.saturating_sub(4) as usize;
-    for (i, c) in s.chars().take(max).enumerate() {
-        out.push(CellView {
-            col: 3 + i as u16,
-            row,
-            c,
-            fg,
-            bg,
-            bold: false,
-            italic: false,
-            ..Default::default()
-        });
-    }
 }
 
 #[cfg(test)]
@@ -73,10 +58,29 @@ mod tests {
 
     #[test]
     fn host_section_has_rule_and_name() {
+        let _g = crate::app::theme_test_guard();
         let cells = host_cells("mbp · macOS", "up 1h 2m", 24);
         assert!(cells.iter().any(|c| c.c == '─' && c.row == 0));
         assert!(!cells.iter().any(|c| c.c == '╭'));
         assert!(cells.iter().any(|c| c.c == 'H' && c.row == 0)); // HOST legend
         assert!(cells.iter().any(|c| c.c == 'm' && c.row == 1)); // name
+    }
+
+    /// A name too long for a narrow nav says so, rather than stopping in the
+    /// middle of a word and looking like the machine is called `Darw`.
+    #[test]
+    fn a_long_host_name_ellipsizes() {
+        let _g = crate::app::theme_test_guard();
+        let cells = host_cells("Mac.lan · Darwin", "up 2h 6m", 18);
+        let row: String = {
+            let mut v: Vec<_> = cells.iter().filter(|c| c.row == 1).collect();
+            v.sort_by_key(|c| c.col);
+            v.iter().map(|c| c.c).collect()
+        };
+        assert!(row.ends_with('…'), "{row:?}");
+        assert!(
+            row.starts_with("Mac.lan"),
+            "the head still names it: {row:?}"
+        );
     }
 }

@@ -93,7 +93,12 @@ pub fn pane_cells(panes: &[PaneRow], cols: u16, limit: usize, spin: char) -> Vec
         let count = crate::unread::badge(p.unread)
             .filter(|_| !p.focused)
             .and_then(|n| claim(n.chars().count() as u16).map(|x| (x, n)));
-        write(&mut out, &p.title, tstart, row, title_fg, rx, t.page_bg);
+        // Ellipsized, not cut: the row's own markers are placed from the right
+        // edge inward and the title takes what is left, so on a narrow nav it
+        // is the title that runs short — and a title that stops mid-word looks
+        // like a pane that is called that.
+        let fit = crate::chatwidth::clip_w(&p.title, rx.saturating_sub(tstart) as usize);
+        write(&mut out, &fit, tstart, row, title_fg, rx, t.page_bg);
         if let Some(x) = plus {
             write(&mut out, "[+]", x, row, accent(), cols, t.page_bg);
         }
