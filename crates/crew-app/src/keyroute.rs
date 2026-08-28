@@ -45,6 +45,8 @@ impl CrewApp {
                     view_action =
                         v.on_key(event, pane.grid.cols, pane.grid.rows, mstate.control_key())
                 }
+                // The usage pane is a picture: nothing in it takes a key.
+                PaneContent::Usage(_) => {}
                 PaneContent::Todo(t) => {
                     todo_action = t.on_key(
                         event,

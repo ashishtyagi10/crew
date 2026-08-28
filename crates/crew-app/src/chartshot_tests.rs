@@ -13,7 +13,7 @@
 use crew_render::{CellGrid, CellView, Paint, PaneScene, PaperBgPass};
 
 const W: u32 = 480;
-const H: u32 = 260;
+const H: u32 = 560;
 const FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Bgra8Unorm;
 const BPP: u32 = 4;
 const ROW_UNPADDED: u32 = W * BPP;
@@ -391,4 +391,57 @@ fn chart_shot_footer_meters() {
         })
         .count();
     assert!(ink > 500, "the meters drew something: {ink} ink pixels");
+}
+
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn chart_shot_usage_pane() {
+    let _g = crate::app::theme_test_guard();
+    // A plausible week: work in office hours, a quiet weekend, one long
+    // evening session.
+    let mut hourly = vec![0u64; crate::usageledger::DAYS * crate::usageledger::HOURS];
+    for d in 0..crate::usageledger::DAYS {
+        for h in 0..crate::usageledger::HOURS {
+            let weekend = d == 2 || d == 3;
+            let work = (9..19).contains(&h);
+            let v = match (weekend, work) {
+                (true, _) => 0,
+                (false, true) => 4_000 + (d * 900 + h * 700) as u64 % 9_000,
+                (false, false) => (h as u64 % 5) * 400,
+            };
+            hourly[d * crate::usageledger::HOURS + h] = v;
+        }
+    }
+    hourly[5 * crate::usageledger::HOURS + 22] = 26_000;
+    let b = crate::usageledger::Buckets {
+        hourly,
+        daily_cost: vec![120_000, 340_000, 0, 20_000, 810_000, 430_000, 260_000],
+        tok_in: 1_840_000,
+        tok_out: 410_000,
+        cost_microusd: 1_980_000,
+    };
+    let px = shot("usage", "usage", |cols, rows, aspect| {
+        (
+            crate::usagepane::cells(&b, cols, rows),
+            crate::usagepane::paint(&b, cols, rows, aspect),
+        )
+    });
+    let Some(px) = px else {
+        eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+        return;
+    };
+    let bg = crew_theme::theme().page_bg;
+    let ink = px
+        .chunks_exact(4)
+        .filter(|p| {
+            (p[0] as i32 - bg.0 as i32).abs()
+                + (p[1] as i32 - bg.1 as i32).abs()
+                + (p[2] as i32 - bg.2 as i32).abs()
+                > 40
+        })
+        .count();
+    assert!(
+        ink > 3000,
+        "the usage pane drew something: {ink} ink pixels"
+    );
 }

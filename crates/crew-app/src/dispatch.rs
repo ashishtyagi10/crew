@@ -31,6 +31,7 @@ impl CrewApp {
             "smith" | "crew" => self.spawn_crew_pane(), // /crew kept as an alias
             "settings" => self.spawn_settings_pane(),
             "todo" => self.spawn_todo_pane(),
+            "usage" => self.spawn_usage_pane(),
             "shell" => self.spawn_new_pane(),
             // Reopen last session's shells (their cwds snapshot on quit).
             "restore" => self.restore_session(),

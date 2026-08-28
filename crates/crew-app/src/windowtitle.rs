@@ -22,6 +22,7 @@ impl CrewApp {
                 PaneContent::Swarm(_) => "Swarm — Crew".into(),
                 PaneContent::View(_) => format!("{} — Crew", p.title_text()),
                 PaneContent::Todo(_) => "Todo — Crew".into(),
+                PaneContent::Usage(_) => "Usage — Crew".into(),
             },
             None => "Crew".into(),
         }
