@@ -13,10 +13,18 @@
 use crew_render::Paint;
 
 use crate::panecard::Bar;
-use crate::plot::Canvas;
+use crate::plot::{sdf, Canvas};
 
 /// Thickness of a border indicator, in cell widths.
 const WEIGHT: f32 = 0.34;
+/// Canvas pixels per column for a border indicator.
+///
+/// A third of a column is 1.4 pixels on the chart canvas's default grid, so
+/// the pill these are drawn as had a corner radius smaller than a pixel and
+/// came out a blunt rectangle. Twelve gives the cap something to round with,
+/// and costs nothing here because each indicator now gets a strip its own
+/// size rather than a buffer the size of the card.
+const SUB: usize = 12;
 /// One full bounce of the indeterminate sweep, in ms — the same clock the
 /// glyph sweep used, so nothing about the motion changed but its smoothness.
 const SWEEP_MS: u64 = 1400;
@@ -29,21 +37,24 @@ pub fn card_paint(cols: u16, rows: u16, b: &Bar, aspect: f32, now: u64) -> Vec<P
     if cols < 4 || rows < 3 {
         return Vec::new();
     }
-    let mut c = Canvas::new(cols, rows, aspect);
-    thumb(&mut c, cols, rows, b, aspect);
-    progress(&mut c, cols, rows, b, aspect, now);
-    c.paint()
+    // A strip each, not one buffer the size of the card: the old shared
+    // canvas allocated and zeroed `cols * rows * SUB^2` pixels every frame
+    // for every pane — megabytes on a wide card — to put ink on two edges of
+    // it.
+    let mut out = thumb(cols, rows, b, aspect);
+    out.extend(progress(cols, rows, b, aspect, now));
+    out
 }
 
 /// The scroll thumb, down the right border — a rounded bar at a fractional
 /// position, so a long buffer scrolls smoothly instead of in cell steps.
-fn thumb(c: &mut Canvas, cols: u16, rows: u16, b: &Bar, aspect: f32) {
+fn thumb(cols: u16, rows: u16, b: &Bar, aspect: f32) -> Vec<Paint> {
     if (b.scroll == 0 && !b.doc) || rows < MIN_ROWS || cols < 2 || b.total == 0 {
-        return;
+        return Vec::new();
     }
     let visible = usize::from(rows - 2);
     if b.total <= visible {
-        return;
+        return Vec::new();
     }
     let first = b.total.saturating_sub(visible).saturating_sub(b.scroll);
     // Where the window sits in the buffer, and how much of it it covers.
@@ -53,27 +64,44 @@ fn thumb(c: &mut Canvas, cols: u16, rows: u16, b: &Bar, aspect: f32) {
     let track_h = (rows - 2) as f32 * aspect;
     let h = (track_h * span).max(aspect * 0.6);
     let y = track_top + at * (track_h - h);
-    let x = f32::from(cols - 1) + (1.0 - WEIGHT) * 0.5;
+    // The strip is the border column itself; the bar is placed inside it.
+    let x = (1.0 - WEIGHT) * 0.5;
     let fg =
         crate::panescroll::position_fg(crate::panescroll::position(b.total, visible, b.scroll));
-    rounded_v(c, x, y, WEIGHT, h, fg, 0.95);
+    let mut c = Canvas::with_sub(1, rows, aspect, SUB);
+    c.fill_sdf((x, y, WEIGHT, h), fg, 0.95, move |px, py| {
+        sdf::round_box((px, py), x, y, WEIGHT, h, WEIGHT * 0.5)
+    });
+    c.paint()
+        .into_iter()
+        .map(|p| p.shifted(f32::from(cols - 1), 0.0))
+        .collect()
 }
 
 /// The program's own progress (OSC 9;4) along the bottom border.
-fn progress(c: &mut Canvas, cols: u16, rows: u16, b: &Bar, aspect: f32, now: u64) {
-    let Some(p) = b.progress else { return };
+fn progress(cols: u16, rows: u16, b: &Bar, aspect: f32, now: u64) -> Vec<Paint> {
+    let Some(p) = b.progress else {
+        return Vec::new();
+    };
     let t = crew_theme::theme();
     let fg = match p.alarm {
         true => t.bell,
         false => t.activity,
     };
     let inner = f32::from(cols - 2);
-    let y = f32::from(rows - 1) * aspect + (aspect - WEIGHT) * 0.5;
+    // One row tall, at the card's last row: `y` is inside the strip.
+    let y = (aspect - WEIGHT) * 0.5;
+    let mut c = Canvas::with_sub(cols, 1, aspect, SUB);
     match p.percent {
         Some(pct) => {
             let w = inner * f32::from(pct.min(100)) / 100.0;
             if w > 0.0 {
-                c.rect(1.0, y, w, WEIGHT, fg, 0.95);
+                // A pill, like every other bar in the app: at a third of a
+                // column the cap is a pixel and a half, which is a rounded
+                // end the sampled path could not draw at all.
+                c.fill_sdf((1.0, y, w, WEIGHT), fg, 0.95, move |px, py| {
+                    sdf::round_box((px, py), 1.0, y, w, WEIGHT, WEIGHT * 0.5)
+                });
             }
         }
         None => {
@@ -87,10 +115,10 @@ fn progress(c: &mut Canvas, cols: u16, rows: u16, b: &Bar, aspect: f32, now: u64
             let x0 = 1.0 + phase * travel;
             // Which way it is heading, from the wave a moment later.
             let forward = crate::anim::tri(now + SWEEP_MS / 64, SWEEP_MS) >= phase;
-            c.fill_shaded(
+            c.fill_sdf_shaded(
                 (x0, y, w, WEIGHT),
-                |px, py| px >= x0 && px <= x0 + w && py >= y && py <= y + WEIGHT,
-                |px, _| {
+                move |px, py| sdf::round_box((px, py), x0, y, w, WEIGHT, WEIGHT * 0.5),
+                move |px, _| {
                     let t = ((px - x0) / w).clamp(0.0, 1.0);
                     let lead = if forward { t } else { 1.0 - t };
                     (fg, lead.powf(1.6) * 0.95)
@@ -98,23 +126,8 @@ fn progress(c: &mut Canvas, cols: u16, rows: u16, b: &Bar, aspect: f32, now: u64
             );
         }
     }
-}
-
-/// A vertical rounded bar (the thumb's shape).
-fn rounded_v(c: &mut Canvas, x: f32, y: f32, w: f32, h: f32, color: (u8, u8, u8), alpha: f32) {
-    let r = (w * 0.5).min(h * 0.5);
-    c.fill((x, y, w, h), color, alpha, move |px, py| {
-        if px < x || px > x + w || py < y || py > y + h {
-            return false;
-        }
-        let dy = if py < y + r {
-            y + r - py
-        } else if py > y + h - r {
-            py - (y + h - r)
-        } else {
-            0.0
-        };
-        let dx = (px - (x + w * 0.5)).abs();
-        dx * dx + dy * dy <= r * r || dy == 0.0
-    });
+    c.paint()
+        .into_iter()
+        .map(|p| p.shifted(0.0, f32::from(rows - 1)))
+        .collect()
 }

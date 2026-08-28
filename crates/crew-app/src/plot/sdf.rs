@@ -59,6 +59,27 @@ pub fn arc(p: (f32, f32), c: (f32, f32), r: f32, w: f32, from: f32, to: f32) -> 
     }
 }
 
+/// Distance to a rounded rectangle: the box from `(x, y)` spanning `(w, h)`,
+/// with corners of radius `r`. `r` at half the shorter side is a capsule —
+/// the pill every meter, thumb and progress bar in the app is.
+///
+/// The corner radius on those is often *smaller than a canvas pixel*, which
+/// is exactly the case a sampled predicate cannot express: the corner either
+/// snaps square or vanishes, and a pill drawn on a four-pixel grid comes back
+/// a blunt rectangle. As a distance it rounds by the fraction of a pixel it
+/// asked for.
+pub fn round_box(p: (f32, f32), x: f32, y: f32, w: f32, h: f32, r: f32) -> f32 {
+    let r = r.min(w * 0.5).min(h * 0.5).max(0.0);
+    // Distance from the centre, folded into one quadrant, measured against
+    // the box shrunk by the corner radius.
+    let (qx, qy) = (
+        (p.0 - (x + w * 0.5)).abs() - (w * 0.5 - r),
+        (p.1 - (y + h * 0.5)).abs() - (h * 0.5 - r),
+    );
+    let outside = qx.max(0.0).hypot(qy.max(0.0));
+    outside + qx.max(qy).min(0.0) - r
+}
+
 /// Distance to an annulus sector: the band between `r_in` and `r_out`, from
 /// angle `from` clockwise to `to`. `r_in` of zero gives a pie slice.
 ///
@@ -221,6 +242,24 @@ mod tests {
         assert!(all((-3.0, 0.0)) < 0.0 && all((0.0, 1.0)) > 0.0);
         // No hole asked for: the centre is the deepest point in, not an edge.
         assert!((sector((0.0, 0.0), c, 4.0, 0.0, 0.0, TAU) + 4.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn a_round_box_is_the_box_with_its_corners_cut() {
+        // A 10x2 pill at the origin: fully round ends, straight sides.
+        let pill = |p| round_box(p, 0.0, 0.0, 10.0, 2.0, 1.0);
+        assert!(
+            (pill((5.0, 1.0)) + 1.0).abs() < 1e-5,
+            "the middle is r deep"
+        );
+        assert!(pill((5.0, 0.0)).abs() < 1e-5, "the flat side is the edge");
+        assert!(pill((0.0, 0.0)) > 0.0, "the square corner is cut away");
+        assert!((pill((0.0, 1.0))).abs() < 1e-5, "the cap's tip is the edge");
+        // Outside, it measures the real distance, corners included.
+        assert!((pill((13.0, 1.0)) - 3.0).abs() < 1e-5);
+        // Radius zero is a plain rectangle.
+        let sq = |p| round_box(p, 0.0, 0.0, 10.0, 2.0, 0.0);
+        assert!(sq((0.0, 0.0)).abs() < 1e-5, "its corner is on the edge");
     }
 
     #[test]
