@@ -14,19 +14,13 @@ use crate::md::{LineKind, MdLine, MdSpan};
 pub(crate) fn map_lines(md_lines: Vec<MdLine>, width: usize, fg: Color) -> Vec<CardLine> {
     let muted = crew_theme::theme().text_muted;
     let mut out = Vec::new();
-    let mut prev_kind: Option<LineKind> = None;
-    let mut iter = md_lines.into_iter().peekable();
-    while let Some(line) = iter.next() {
-        if line.kind == LineKind::Blank {
-            // The fenced-code card already draws its own chrome (╭─/╰─) to
-            // separate itself from surrounding prose, so the block
-            // separator blank the md engine inserts around every top-level
-            // block would just be a redundant dead row here — drop it.
-            let borders_code = matches!(prev_kind, Some(LineKind::CodeFooter))
-                || matches!(iter.peek().map(|l| l.kind), Some(LineKind::CodeHeader));
-            if borders_code {
-                continue;
-            }
+    // Where each fenced block's mapped lines start, so `chatfield` can lay
+    // the whole run into one tinted rectangle once its widest line is known.
+    let mut runs: Vec<(usize, usize)> = Vec::new();
+    let mut block_start: Option<usize> = None;
+    for line in md_lines {
+        if line.kind == LineKind::CodeHeader {
+            block_start = Some(out.len());
         }
         let line_fg = match line.kind {
             LineKind::CodeHeader | LineKind::CodeFooter | LineKind::Rule => muted,
@@ -39,11 +33,17 @@ pub(crate) fn map_lines(md_lines: Vec<MdLine>, width: usize, fg: Color) -> Vec<C
             .flat_map(|s| span_cells(s, line.kind, fg, muted))
             .collect();
         push_chunked(&mut out, &cells, width, line_fg);
-        prev_kind = Some(line.kind);
+        if line.kind == LineKind::CodeFooter {
+            if let Some(start) = block_start.take() {
+                runs.push((start, out.len()));
+            }
+        }
     }
     // A ```diff fence gets the same word-level marks the viewer's diff
-    // rung draws, read back off the ink each line was given.
+    // rung draws, read back off the ink each line was given. Before the
+    // field, which only touches backgrounds — refining reads the ink.
     crate::diffrefine::refine_lines(&mut out);
+    crate::chatfield::fill(&mut out, &runs, width);
     out
 }
 

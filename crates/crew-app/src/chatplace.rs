@@ -7,7 +7,14 @@ use crate::chat::ChatPane;
 use crate::chatbody::{CardCell, CardLine, Color};
 
 /// Scroll-window `lines` into `rows` rows, tagging each surviving line with
-/// its absolute row (`top_row` + its offset in the window).
+/// its absolute row.
+///
+/// A transcript shorter than its window sits on the BOTTOM of it, against the
+/// composer, and the slack goes above — the way a shell's output sits above
+/// its prompt and the way every chat reads. Anchoring it to the top instead
+/// left a session's first few turns floating with eight blank rows between
+/// the newest card and the box you answer it in, so the two things that
+/// belong together were the two furthest apart on screen.
 pub(crate) fn window(
     lines: Vec<CardLine>,
     rows: u16,
@@ -17,13 +24,26 @@ pub(crate) fn window(
     let max_start = lines.len().saturating_sub(rows as usize);
     let start = max_start.saturating_sub(scroll);
     let end = (start + rows as usize).min(lines.len());
+    let pad = top_pad(lines.len(), rows);
     lines
         .into_iter()
         .skip(start)
         .take(end - start)
         .enumerate()
-        .map(|(i, line)| (top_row + i as u16, line))
+        .map(|(i, line)| (top_row + pad + i as u16, line))
         .collect()
+}
+
+/// Rows of slack above a transcript that does not fill its window — where
+/// [`window`] puts its first line. Only ever positive when the whole
+/// transcript fits, so a scrolled-back or overflowing view is placed exactly
+/// where it always was.
+///
+/// ONE definition, read by the draw and by every path that resolves a click
+/// back to a line (`chatfold::line_index_at`). Two row divisions is how the
+/// left nav shipped a hit-test one row off its own frame.
+pub(crate) fn top_pad(total: usize, rows: u16) -> u16 {
+    (rows as usize).saturating_sub(total) as u16
 }
 
 /// Map one already-placed `CardLine` to its `CellView`s at `row`, clipped to

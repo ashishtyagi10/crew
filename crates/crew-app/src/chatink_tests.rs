@@ -200,3 +200,27 @@ fn the_syntax_ladder_holds_where_hue_cannot_help() {
         );
     }
 }
+
+/// A fenced block is a rectangle of `code_bg` — that field IS the block, now
+/// that no corner glyphs draw one. So it has to be visible on every preset,
+/// and it has to stay a backdrop: on the tubes a fixed 0.18 mix measured
+/// 1.39:1 against the page, which bloom and scanlines finish off.
+#[test]
+fn the_code_field_reads_on_every_preset_without_swallowing_its_code() {
+    for id in crew_theme::ALL_THEMES {
+        let t = id.theme();
+        let d = derive(t);
+        let field = contrast_ratio(d.code_bg, t.page_bg);
+        assert!(
+            field >= FIELD_FLOOR,
+            "{}: code field vs page = {field:.3}",
+            id.as_str(),
+        );
+        let on_field = contrast_ratio(d.code, d.code_bg);
+        assert!(
+            on_field >= CODE_ON_FIELD_FLOOR,
+            "{}: code vs its own field = {on_field:.3}",
+            id.as_str(),
+        );
+    }
+}

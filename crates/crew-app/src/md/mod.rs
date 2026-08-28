@@ -66,9 +66,9 @@ pub(crate) struct MdSpan {
 pub(crate) enum LineKind {
     Body,
     Quote,      // a line of blockquote prose (bar + quoted text)
-    CodeHeader, // "╭─ lang" chrome line (chat draws it muted, no bg)
+    CodeHeader, // the fence's language label; drawn on the code field
     Code,       // verbatim code content (chat draws it on code_bg)
-    CodeFooter, // "╰─"
+    CodeFooter, // the field's closing blank row
     Rule,       // horizontal rule
     Blank,      // paragraph separator
 }

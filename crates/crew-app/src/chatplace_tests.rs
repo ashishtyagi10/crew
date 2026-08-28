@@ -160,3 +160,36 @@ fn granted_surfaces_never_share_a_row() {
         }
     }
 }
+
+/// A transcript shorter than its window sits against the composer, not
+/// against the header. The two things that belong together — the newest reply
+/// and the box you answer it in — were the two furthest apart on screen for
+/// as long as this was top-anchored.
+#[test]
+fn a_short_transcript_sits_on_the_bottom_of_its_window() {
+    let lines: Vec<CardLine> = (0..3)
+        .map(|i| vec![crate::chatbody::plain('a', (9, 9, 9), false); i + 1])
+        .collect();
+    let placed = window(lines, 10, 1, 0);
+    assert_eq!(placed.len(), 3);
+    // Rows 1..8 are the slack; the last line lands on the window's last row.
+    assert_eq!(placed[0].0, 8);
+    assert_eq!(placed[2].0, 10);
+}
+
+/// …and a transcript that fills or overflows its window is placed exactly
+/// where it always was: the slack is the only thing that moved.
+#[test]
+fn a_full_transcript_still_starts_on_the_windows_first_row() {
+    let lines: Vec<CardLine> = (0..12)
+        .map(|_| vec![crate::chatbody::plain('a', (9, 9, 9), false)])
+        .collect();
+    let placed = window(lines, 10, 1, 0);
+    assert_eq!(placed[0].0, 1);
+    assert_eq!(placed.last().unwrap().0, 10);
+    // Scrolled back, too — `top_pad` is zero the moment there is no slack.
+    let lines: Vec<CardLine> = (0..12)
+        .map(|_| vec![crate::chatbody::plain('a', (9, 9, 9), false)])
+        .collect();
+    assert_eq!(window(lines, 10, 1, 2)[0].0, 1);
+}

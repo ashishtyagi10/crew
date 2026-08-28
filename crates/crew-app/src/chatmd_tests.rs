@@ -14,9 +14,10 @@ fn lines(text: &str, width: usize, fg: Color) -> Vec<CardLine> {
 fn fenced_code_takes_the_code_colour() {
     let _guard = crate::app::theme_test_guard();
     let out = lines("```rust\nfn x() {}\n```", 40, (9, 9, 9));
-    // 0 = "╭─ rust" chrome, 1 = code content, 2 = "╰─" chrome.
-    assert_eq!(row_text(&out[1]), " fn x() {}");
-    let cell = &out[1][1];
+    // 0 = the language row, 1 = code content, 2 = the closing blank row —
+    // all three on the field, padded to one width (see `chatfield`).
+    assert_eq!(row_text(&out[1]), "  fn x() {} ");
+    let cell = &out[1][2];
     // The DERIVED code colour, not raw `ansi[6]`. `chatink` pushes every ink through
     // `separated()` so it clears the card background's contrast floor, and on a theme where
     // that floor bites, the two differ — which made this assertion depend on which theme
@@ -25,13 +26,16 @@ fn fenced_code_takes_the_code_colour() {
     assert_eq!(cell.bg, Some(crate::chatink::code_bg()));
 }
 
+/// The language names the block from inside it, muted, on the same field the
+/// code sits on — the block's edge is the field, so a label off it would read
+/// as a stray word above a rectangle.
 #[test]
-fn code_chrome_stays_muted() {
+fn the_fences_language_sits_muted_on_the_field() {
     let _guard = crate::app::theme_test_guard();
     let out = lines("```rust\nfn x() {}\n```", 40, (9, 9, 9));
-    assert_eq!(row_text(&out[0]), " ╭─ rust");
-    assert_eq!(out[0][1].fg, crew_theme::theme().text_muted);
-    assert_eq!(out[0][1].bg, None);
+    assert_eq!(row_text(&out[0]), "  rust      ");
+    assert_eq!(out[0][2].fg, crew_theme::theme().text_muted);
+    assert_eq!(out[0][2].bg, Some(crate::chatink::code_bg()));
 }
 
 #[test]
@@ -142,9 +146,19 @@ fn fenced_code_inside_a_quote_still_renders_as_code() {
         .collect();
     assert!(
         !code_cells.is_empty(),
-        "a quoted fence still gets a code card"
+        "a quoted fence still gets a code field"
     );
-    assert!(code_cells.iter().all(|c| c.fg == crate::chatink::code_fg()));
+    // The code itself, not the field's language row or its padding.
+    let code_row = out
+        .iter()
+        .find(|l| row_text(l).contains("x = 1"))
+        .expect("the code line");
+    // The bar in front of it stays off the field and stays a marker — see
+    // `the_bar_of_a_quoted_fence_is_a_marker_not_code`.
+    assert!(code_row
+        .iter()
+        .filter(|c| !c.c.is_whitespace() && c.bg.is_some())
+        .all(|c| c.fg == crate::chatink::code_fg()));
 }
 
 #[test]

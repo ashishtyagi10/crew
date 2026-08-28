@@ -51,7 +51,9 @@ pub(crate) fn line_index_at(
 ) -> Option<usize> {
     let start = total.saturating_sub(rows as usize).saturating_sub(scroll);
     let shown = total.min(start + rows as usize) - start;
-    let offset = (row >= top).then(|| (row - top) as usize)?;
+    // A transcript shorter than its window sits on the bottom of it.
+    let first = top + crate::chatplace::top_pad(total, rows);
+    let offset = (row >= first).then(|| (row - first) as usize)?;
     (offset < shown).then(|| start + offset)
 }
 

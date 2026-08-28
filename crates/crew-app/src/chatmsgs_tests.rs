@@ -13,6 +13,19 @@ fn msg(sender: &str, text: &str) -> Message {
     }
 }
 
+/// Row `n` of the TRANSCRIPT, counted from its first drawn row. A transcript
+/// shorter than its window sits on the bottom of it, against the composer
+/// (see `chatplace::window`), so absolute row 0 is blank in most of these
+/// fixtures and what row a card is on is only ever a relative fact.
+fn card_row(cells: &[CellView], n: u16) -> String {
+    row_text(cells, card_top(cells) + n)
+}
+
+/// The absolute row the transcript's first drawn line landed on.
+fn card_top(cells: &[CellView]) -> u16 {
+    cells.iter().map(|c| c.row).min().unwrap_or(0)
+}
+
 fn row_text(cells: &[CellView], row: u16) -> String {
     let mut v: Vec<(u16, char)> = cells
         .iter()
@@ -26,8 +39,8 @@ fn row_text(cells: &[CellView], row: u16) -> String {
 #[test]
 fn card_has_header_then_indented_body() {
     let cells = message_cells(&[&msg("planner", "hello")], 40, 10, 0, 0, View::default());
-    assert_eq!(row_text(&cells, 0), format!("{GUTTER}planner"));
-    assert_eq!(row_text(&cells, 1), " hello");
+    assert_eq!(card_row(&cells, 0), format!("{GUTTER}planner"));
+    assert_eq!(card_row(&cells, 1), " hello");
 }
 
 #[test]
@@ -35,15 +48,15 @@ fn cards_are_separated_by_a_blank_line() {
     let m = [msg("planner", "a"), msg("coder", "b")];
     let refs: Vec<&Message> = m.iter().collect();
     let cells = message_cells(&refs, 40, 10, 0, 0, View::default());
-    assert_eq!(row_text(&cells, 2), ""); // spacer
-    assert_eq!(row_text(&cells, 3), format!("{GUTTER}coder"));
+    assert_eq!(card_row(&cells, 2), ""); // spacer
+    assert_eq!(card_row(&cells, 3), format!("{GUTTER}coder"));
 }
 
 #[test]
 fn multiline_reply_renders_each_line() {
     let cells = message_cells(&[&msg("coder", "one\ntwo")], 40, 10, 0, 0, View::default());
-    assert_eq!(row_text(&cells, 1), " one");
-    assert_eq!(row_text(&cells, 2), " two");
+    assert_eq!(card_row(&cells, 1), " one");
+    assert_eq!(card_row(&cells, 2), " two");
 }
 
 #[test]
@@ -57,16 +70,18 @@ fn fenced_code_renders_as_bordered_card() {
         0,
         View::default(),
     );
-    assert_eq!(row_text(&cells, 1), " fix:");
-    assert_eq!(row_text(&cells, 2), " \u{256d}\u{2500} rust");
-    assert_eq!(row_text(&cells, 3), " let x = 1;");
-    assert_eq!(row_text(&cells, 4), " \u{2570}\u{2500}");
+    assert_eq!(card_row(&cells, 1), " fix:");
+    assert_eq!(card_row(&cells, 2), " ", "a blank row before the field");
+    assert_eq!(card_row(&cells, 3), "  rust       ");
+    assert_eq!(card_row(&cells, 4), "  let x = 1; ");
+    assert_eq!(card_row(&cells, 5), "             ");
     // The code row sits on a bg different from the page background.
     let page = crew_theme::theme().page_bg;
+    let code_row = card_top(&cells) + 4;
     assert!(
         cells
             .iter()
-            .any(|c| c.row == 3 && c.col > 0 && c.bg != page),
+            .any(|c| c.row == code_row && c.col > 0 && c.bg != page),
         "code should be on a dimmed card background"
     );
 }
@@ -103,11 +118,12 @@ fn handoff_sender_colours_each_name_separately() {
         View::default(),
     );
     assert_eq!(
-        row_text(&cells, 0),
+        card_row(&cells, 0),
         format!("{GUTTER}planner \u{2192} coder")
     );
     let muted = crew_theme::theme().text_muted;
-    let cell_at = |col: u16| cells.iter().find(|c| c.row == 0 && c.col == col).unwrap();
+    let hdr = card_top(&cells);
+    let cell_at = |col: u16| cells.iter().find(|c| c.row == hdr && c.col == col).unwrap();
     assert_ne!(cell_at(1).fg, muted, "planner keeps its agent colour");
     assert_ne!(cell_at(11).fg, muted, "coder keeps its agent colour");
 }
@@ -122,7 +138,7 @@ fn system_sender_is_muted_and_agents_are_not() {
 #[test]
 fn crew_message_uses_the_dotted_system_gutter() {
     let cells = message_cells(&[&msg("crew", "hello")], 40, 10, 0, 0, View::default());
-    assert_eq!(row_text(&cells, 0), "\u{2506}crew");
+    assert_eq!(card_row(&cells, 0), "\u{2506}crew");
 }
 
 #[test]
@@ -136,7 +152,7 @@ fn agent_message_keeps_the_solid_gutter() {
         View::default(),
     );
     assert_eq!(
-        row_text(&cells, 0),
+        card_row(&cells, 0),
         format!("{GUTTER}planner \u{2192} user")
     );
 }
@@ -149,7 +165,7 @@ fn count_matches_rendered_lines_and_scroll_shows_older() {
     assert_eq!(card_line_count(&refs, 40, View::default()), 5);
     // A 2-row window scrolled 3 up from the bottom shows the first card.
     let cells = message_cells(&refs, 40, 2, 0, 3, View::default());
-    assert_eq!(row_text(&cells, 0), format!("{GUTTER}a"));
+    assert_eq!(card_row(&cells, 0), format!("{GUTTER}a"));
 }
 
 #[test]
@@ -170,9 +186,10 @@ fn wide_glyphs_advance_two_columns() {
     // "中x": the wide glyph sits at its column and `x` lands TWO columns
     // later, so it can't overlap the glyph's second cell.
     let cells = message_cells(&[&msg("a", "\u{4e2d}x")], 20, 4, 0, 0, View::default());
+    let body_row = card_top(&cells) + 1;
     let body: Vec<(u16, char)> = cells
         .iter()
-        .filter(|c| c.row == 1 && c.c != ' ')
+        .filter(|c| c.row == body_row && c.c != ' ')
         .map(|c| (c.col, c.c))
         .collect();
     let wide = body
@@ -281,15 +298,15 @@ fn same_task_cards_chain_with_a_tree_connector_and_no_spacer() {
     let cells = message_cells(&refs, 60, 12, 0, 0, View::default());
     // Card 1: header + body. Card 2 chains directly underneath (no spacer),
     // its header led by the muted └ connector and without a repeated #2.
-    let follow = row_text(&cells, 2);
+    let follow = card_row(&cells, 2);
     assert!(
         follow.starts_with("\u{2514} coder"),
         "chained header connects with \u{2514}: {follow:?}"
     );
     assert!(!follow.contains("#2"), "no repeated task chip: {follow:?}");
     // Card 3 is a different task: spacer, then a fresh gutter header with #3.
-    assert_eq!(row_text(&cells, 4), "", "unrelated cards keep the spacer");
-    let fresh = row_text(&cells, 5);
+    assert_eq!(card_row(&cells, 4), "", "unrelated cards keep the spacer");
+    let fresh = card_row(&cells, 5);
     assert!(fresh.contains("#3"), "chain root keeps its chip: {fresh:?}");
 }
 
@@ -377,9 +394,12 @@ fn message_cells_is_a_thin_map_over_placed_lines_in_both_modes() {
             compact,
             streaming_from: pane.messages.len(),
         };
-        let top = pane.status_rows(cols, rows);
-        let bottom = crate::chatinput::composer_rows(&pane.input, cols, rows);
-        let msg_rows = rows.saturating_sub(top + bottom);
+        // Both budgets from the ONE allotment, not re-derived here: a
+        // transcript is bottom-anchored inside the rows it is given (see
+        // `chatplace::window`), so a hand-rolled row count that is one off
+        // shifts every line and this comparison stops meaning anything.
+        let g = crate::chatplace::grants(&pane, cols, rows);
+        let (top, msg_rows) = (g.top, g.msg);
         let refs: Vec<&Message> = pane.messages.iter().collect();
         let cells = message_cells(&refs, cols, msg_rows, top, pane.scroll, view);
         let placed = placed_lines(&pane, cols, rows);
@@ -725,8 +745,8 @@ fn usage_trailer_renders_muted_under_the_body() {
     let _g = crate::app::theme_test_guard();
     let m = msg_with_usage("coder", "hello");
     let cells = message_cells(&[&m], 40, 10, 0, 0, View::default());
-    assert_eq!(row_text(&cells, 1), " hello");
-    assert_eq!(row_text(&cells, 2), " 900 in / 50 out \u{00b7} $0.012");
+    assert_eq!(card_row(&cells, 1), " hello");
+    assert_eq!(card_row(&cells, 2), " 900 in / 50 out \u{00b7} $0.012");
     let muted = crew_theme::theme().text_muted;
     assert!(
         cells.iter().filter(|c| c.row == 2).all(|c| c.fg == muted),
@@ -768,13 +788,13 @@ fn compact_view_excludes_the_usage_trailer_from_the_clamp() {
     };
     let cells = message_cells(&[&m], 40, 10, 0, 0, view);
     assert_eq!(
-        row_text(&cells, 1),
+        card_row(&cells, 1),
         " hello",
         "a single-line reply renders unclamped, as pre-0.10.6"
     );
     assert!(
         !(0..10).any(|r| {
-            let t = row_text(&cells, r);
+            let t = card_row(&cells, r);
             t.contains("in /") || t.contains('\u{2026}')
         }),
         "no trailer text and no hidden-count stamp in compact view"
@@ -783,7 +803,7 @@ fn compact_view_excludes_the_usage_trailer_from_the_clamp() {
     let m = msg_with_usage("coder", "one\ntwo");
     let cells = message_cells(&[&m], 40, 10, 0, 0, view);
     assert_eq!(
-        row_text(&cells, 1),
+        card_row(&cells, 1),
         " one \u{2026} +1",
         "the trailer is not part of the hidden-line count"
     );

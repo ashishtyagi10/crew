@@ -119,10 +119,12 @@ fn line_index_at_mirrors_the_bottom_anchored_window() {
     assert_eq!(line_index_at(10, 4, 1, 0, 5), None, "below the window");
     // Scrolled 2 up: the window slides back to lines 4..8.
     assert_eq!(line_index_at(10, 4, 1, 2, 1), Some(4));
-    // Fewer lines than rows: top-anchored, rows past the content miss.
-    assert_eq!(line_index_at(3, 10, 2, 0, 2), Some(0));
-    assert_eq!(line_index_at(3, 10, 2, 0, 4), Some(2));
-    assert_eq!(line_index_at(3, 10, 2, 0, 5), None, "past the last line");
+    // Fewer lines than rows: the three lines sit on the BOTTOM of the ten,
+    // so rows 2..9 are the slack above them and row 9 is the last line.
+    assert_eq!(line_index_at(3, 10, 2, 0, 2), None, "slack above the cards");
+    assert_eq!(line_index_at(3, 10, 2, 0, 9), Some(0));
+    assert_eq!(line_index_at(3, 10, 2, 0, 11), Some(2));
+    assert_eq!(line_index_at(3, 10, 2, 0, 12), None, "past the last line");
     // An overshooting scroll clamps like `window` does.
     assert_eq!(line_index_at(10, 4, 1, 100, 1), Some(0));
 }

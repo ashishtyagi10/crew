@@ -51,12 +51,25 @@ const COMMENT_FLOOR: f32 = 3.1;
 /// comment and code), which is the failure this whole ladder exists to avoid.
 const COMMENT_PAGE_FLOOR: f32 = 3.5;
 
-/// How far the code card's background is nudged from the page toward `ink`.
-/// Was 0.08, which measured 1.10-1.12:1 against the page on the CRT presets —
-/// nothing survives scanlines and bloom at that distance. The card is the
-/// second half of "this is code": foreground separation alone is a thin
-/// signal for a one-line snippet.
+/// Where the code field's background STARTS: the page nudged this far toward
+/// `ink`. Was 0.08, which measured 1.10-1.12:1 against the page on the CRT
+/// presets — nothing survives scanlines and bloom at that distance. The field
+/// is the second half of "this is code": foreground separation alone is a
+/// thin signal for a one-line snippet.
 const CODE_BG_MIX: f32 = 0.18;
+
+/// How far the field must sit from the page. A fixed mix is not a floor: the
+/// same 0.18 measured 1.65:1 on sepia-dark and 1.39:1 on the tubes, and the
+/// tubes are exactly where bloom and scanlines eat the difference — so the
+/// preset that needed the field most had the faintest one. Walked up per
+/// preset instead, to the level the dark papers already reached on their own.
+const FIELD_FLOOR: f32 = 1.55;
+
+/// How readable code stays on its own field. The field is a backdrop for
+/// code, so it never grows past the point where it starts swallowing it —
+/// on a preset with no headroom the field stays faint rather than the code
+/// going grey-on-grey.
+const CODE_ON_FIELD_FLOOR: f32 = 4.0;
 
 /// The four derived colours for one theme. Computed once per preset (see
 /// [`table`]) rather than per span: [`separated`] walks a lerp and
@@ -120,14 +133,31 @@ fn separated_to(c: Color, t: &Theme, floor: f32, page_floor: f32) -> Color {
     best
 }
 
+/// The code field's background: the page walked toward `ink` until it clears
+/// [`FIELD_FLOOR`], stopping early if `code` would stop reading on it.
+fn code_field(t: &Theme, code: Color) -> Color {
+    let mut best = crate::anim::lerp_rgb(t.page_bg, t.ink, CODE_BG_MIX);
+    let mut mix = CODE_BG_MIX;
+    while mix < 1.0 && contrast_ratio(best, t.page_bg) < FIELD_FLOOR {
+        mix += 0.01;
+        let cand = crate::anim::lerp_rgb(t.page_bg, t.ink, mix);
+        if contrast_ratio(code, cand) < CODE_ON_FIELD_FLOOR {
+            break;
+        }
+        best = cand;
+    }
+    best
+}
+
 /// Derive one preset's semantic colours. Pure in `t` so the floor can be
 /// asserted for all 16 presets without touching the global theme atomic.
 fn derive(t: &Theme) -> Ink {
+    let code = separated(t.ansi[6], t);
     Ink {
-        code: separated(t.ansi[6], t),
+        code,
         marker: separated(t.ansi[3], t),
         quote: separated(t.text_muted, t),
-        code_bg: crate::anim::lerp_rgb(t.page_bg, t.ink, CODE_BG_MIX),
+        code_bg: code_field(t, code),
         // Syntax classes, from the theme's own slots for the same reason the
         // rest are: 16 presets already tune them, and a single-phosphor tube
         // keeps its hue for free. Each still goes through `separated`, so a

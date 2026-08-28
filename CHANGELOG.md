@@ -8,6 +8,44 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.43
+
+**The crew pane, shot whole.** Every chat test so far asserted on cells, which
+say what the layout decided and nothing about what the frame looks like — the
+same blind spot that let the left nav ship three widgets that each passed alone
+and drew wrong stacked. `chat_shot` renders the WHOLE pane — header, transcript,
+composer, summary footer — at a quarter tile, a half and a full window, on a
+light page and on a tube. Three things were wrong in the first frame it took.
+
+**The transcript sits against the composer.** A session shorter than its pane
+was pinned to the top with eight blank rows under it, so the newest reply and
+the box you answer it in were the two things furthest apart on screen. It is
+bottom-anchored now, the way a shell's output sits above its prompt. The slack
+moving revealed that three separate places re-derived where the first line
+lands — the fold hit-test, the find wash and the draw — so `chatplace::top_pad`
+is now the one of them anybody reads.
+
+**A fenced code block is a block.** It used to draw `╭─ rust`, then a background
+that stopped at the end of each line, then a lone `╰─`: two stub corners and a
+ragged right edge. It is one tinted rectangle now — uniform width, the language
+on its top row, a blank row closing it, the quote bar of a fence inside a
+blockquote left outside it. The field's colour was a fixed 18% mix that measured
+1.65:1 against the page on sepia-dark and **1.39:1 on the tubes**, where bloom
+and scanlines finish it off; it is walked per preset to a floor now, capped so
+it never starts swallowing the code standing on it. Cmd+click still copies the
+code and only the code.
+
+## 0.19.42
+
+**The SYSTEM gauges became analog instrument dials.** Rings gave way to a 240°
+scale with lit ticks and a tapered hand, drawn from signed distance fields
+(`plot/sdf.rs`) rather than a 3×3 inside/outside predicate sampled on a canvas
+coarser than the screen — which is why every curve stepped in 2px blocks and
+anything thinner than a canvas pixel drew nothing at all. `round_box` gave the
+footer meters, the scroll thumb and the progress bar the corners they always
+claimed to have. Bounding each shape to its own box took a build from 452µs to
+167µs for byte-identical output.
+
 ## 0.19.41
 
 **The nav answers to the width you give it, and both accessibility switches
