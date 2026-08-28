@@ -125,6 +125,30 @@ fn painted(
     (out, src)
 }
 
+/// Rewrite the gutter of every row that STARTS a source line with `nums`,
+/// right-aligned in [`GUTTER_W`]; a `None` leaves the gutter blank. Wrapped
+/// continuations are left alone — they already carry the `\u{21aa}` that
+/// distinguishes them from an empty numbered line.
+fn renumber(lines: &mut [CardLine], src: &[usize], nums: &[Option<usize>], muted: (u8, u8, u8)) {
+    let mut last = usize::MAX;
+    for (row, line) in lines.iter_mut().enumerate() {
+        let n = src.get(row).copied().unwrap_or(0);
+        let first = n != last;
+        last = n;
+        if !first {
+            continue;
+        }
+        let text = match nums.get(n).copied().flatten() {
+            Some(v) => format!("{v:>5} "),
+            None => " ".repeat(GUTTER_W),
+        };
+        for (cell, c) in line.iter_mut().zip(text.chars()) {
+            cell.c = c;
+            cell.fg = muted;
+        }
+    }
+}
+
 /// Trailing whitespace on an ADDED line, shown as middle dots.
 ///
 /// It is the review nit every diff tool marks, because it is invisible by
@@ -158,6 +182,14 @@ fn diff_lines(text: &str, cols: usize, ws: &[Vec<bool>]) -> (Vec<CardLine>, Vec<
     let mut paints = super::diffpaint::paint(text);
     super::whitespace::dim(&mut paints, ws, t.text_muted);
     let (mut lines, src) = painted(text, cols, &paints, t.ink, t.text_muted);
+    // The gutter says where in the SOURCE you are, not where in the patch —
+    // the same numbers the side-by-side rung has always shown (`diffnums`).
+    renumber(
+        &mut lines,
+        &src,
+        &super::diffnums::numbers(text),
+        t.text_muted,
+    );
     // Only the row a source line STARTS on carries its marker, so only that
     // row can be an added line whose tail is worth marking.
     let kinds: Vec<super::diffpaint::Kind> =

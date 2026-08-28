@@ -40,6 +40,14 @@ pub(crate) struct ViewCache {
     /// in its first column), so the rendering has to be rebuilt, not
     /// recoloured.
     pub invisibles: bool,
+    /// The theme the ink in `lines` was taken from. Part of the cache key
+    /// because these lines carry BAKED colours — `t.ink`, `text_muted`, the
+    /// whole `chatink` syntax ladder — decided once when the rendering was
+    /// built. Without it a `/theme` (or the auto theme flipping at dusk, or
+    /// the OS switching appearance) left every open viewer wearing the old
+    /// palette's ink until something else happened to resize the pane: on a
+    /// dark-to-light switch that is a file drawn in near-white on paper.
+    pub theme: crew_theme::ThemeId,
 }
 
 pub(crate) struct ViewPane {

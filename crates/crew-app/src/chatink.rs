@@ -71,6 +71,21 @@ const FIELD_FLOOR: f32 = 1.55;
 /// going grey-on-grey.
 const CODE_ON_FIELD_FLOOR: f32 = 4.0;
 
+/// How far a REMOVED line must sit from an added one. On the paper presets
+/// hue answers this for free — red against green — and the raw slots are
+/// handed back untouched. A single-phosphor tube has one hue and no red at
+/// all, so `+` and `-` were drawn in the same colour and a review said what
+/// changed only through the marker glyph in column one. Lightness is the only
+/// axis a tube has; this is the rung between them on it.
+const DIFF_FLOOR: f32 = 1.7;
+
+/// A removed line's own readability floor. Lower than [`PAGE_FLOOR`], and for
+/// the same reason `COMMENT_PAGE_FLOOR` is: a deletion is the one class in a
+/// review meant to recede — it is what the code no longer says. Without the
+/// concession the amber tube ran out of headroom at 1.43 and the rung
+/// collapsed, which is the failure this exists to avoid.
+const REMOVED_PAGE_FLOOR: f32 = 3.5;
+
 /// The four derived colours for one theme. Computed once per preset (see
 /// [`table`]) rather than per span: [`separated`] walks a lerp and
 /// `contrast_ratio` calls `powf` six times a step, which is not something to
@@ -81,6 +96,9 @@ struct Ink {
     marker: Color,
     quote: Color,
     code_bg: Color,
+    /// A removed line, separated from an added one where hue cannot do it
+    /// (see [`DIFF_FLOOR`]). Identical to `ansi[1]` on every paper preset.
+    removed: Color,
     comment: Color,
     string: Color,
     keyword: Color,
@@ -118,7 +136,7 @@ fn separated_to(c: Color, t: &Theme, floor: f32, page_floor: f32) -> Color {
     let mut best = c;
     let mut mix = 0.0_f32;
     while mix < 1.0 {
-        mix += 0.02;
+        mix += 0.005;
         let cand = crate::anim::lerp_rgb(c, t.page_bg, mix);
         // Stop before readability goes: a preset with no room to separate
         // keeps the last legible candidate rather than fading into the page.
@@ -127,6 +145,36 @@ fn separated_to(c: Color, t: &Theme, floor: f32, page_floor: f32) -> Color {
         }
         best = cand;
         if contrast_ratio(cand, t.ink) >= floor {
+            break;
+        }
+    }
+    best
+}
+
+/// A removed line's colour. Untouched on a theme whose `ansi[1]` already
+/// reads apart from its `ansi[2]` — every paper preset, where the two are red
+/// and green. On a tube they are two shades of one phosphor, so this walks
+/// the removed colour toward the page until the pair clears [`DIFF_FLOOR`],
+/// never below the page floor: dimmer is the tube's word for "gone".
+fn diff_removed(t: &Theme) -> Color {
+    let (removed, added) = (t.ansi[1], t.ansi[2]);
+    // Contrast is a LUMINANCE ratio, so it cannot be the gate here: red and
+    // green sit at nearly the same lightness and measure ~1.0 against each
+    // other while being unmistakable. The gate is whether the screen has more
+    // than one hue to say it with.
+    if !t.is_tube() || contrast_ratio(removed, added) >= DIFF_FLOOR {
+        return removed;
+    }
+    let mut best = removed;
+    let mut mix = 0.0_f32;
+    while mix < 1.0 {
+        mix += 0.005;
+        let cand = crate::anim::lerp_rgb(removed, t.page_bg, mix);
+        if contrast_ratio(cand, t.page_bg) < REMOVED_PAGE_FLOOR {
+            break;
+        }
+        best = cand;
+        if contrast_ratio(cand, added) >= DIFF_FLOOR {
             break;
         }
     }
@@ -158,6 +206,7 @@ fn derive(t: &Theme) -> Ink {
         marker: separated(t.ansi[3], t),
         quote: separated(t.text_muted, t),
         code_bg: code_field(t, code),
+        removed: diff_removed(t),
         // Syntax classes, from the theme's own slots for the same reason the
         // rest are: 16 presets already tune them, and a single-phosphor tube
         // keeps its hue for free. Each still goes through `separated`, so a
@@ -190,7 +239,7 @@ pub(crate) fn token_fg(token: crate::md::syntax::Token) -> Color {
         // apart from prose, hue is the signal, and the raw slots answer to
         // `crew-theme`'s own `contrast_thresholds` for readability.
         Token::Added => crew_theme::theme().ansi[2],
-        Token::Removed => crew_theme::theme().ansi[1],
+        Token::Removed => i.removed,
         Token::Hunk => crew_theme::theme().ansi[6],
     }
 }

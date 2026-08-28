@@ -128,7 +128,7 @@ fn run(kinds: &[Kind], from: usize, want: Kind) -> usize {
 /// parse: the header opens with `@@` and often closes with a function name,
 /// and a header crew cannot read leaves the counters where they were rather
 /// than resetting them to nothing.
-fn hunk_start(line: &str) -> Option<(usize, usize)> {
+pub(super) fn hunk_start(line: &str) -> Option<(usize, usize)> {
     let mut old = None;
     let mut new = None;
     for tok in line.split_whitespace() {

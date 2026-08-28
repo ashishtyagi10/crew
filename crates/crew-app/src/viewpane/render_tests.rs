@@ -62,6 +62,7 @@ fn a_double_width_glyph_never_straddles_the_grid_edge() {
         blame_w: 0,
         invisibles: false,
         split: false,
+        theme: crew_theme::current_id(),
     }));
     for c in p.cells(5, 1) {
         let w = crate::chatwidth::char_w(c.c) as u16;
@@ -187,4 +188,35 @@ fn without_a_search_the_last_row_is_content() {
     p.search = None;
     let line = row_text(&p.cells(40, 6), 5);
     assert!(!line.starts_with('/'), "{line:?}");
+}
+
+/// The viewer's lines carry BAKED colours — `t.ink`, `text_muted`, the whole
+/// `chatink` syntax ladder — decided once when the rendering was built and
+/// cached. Nothing invalidated that on a theme change, so `/theme` (and the
+/// auto theme flipping at dusk, and the OS switching appearance) left every
+/// open viewer wearing the previous palette until something else happened to
+/// resize the pane. Dark to light, that is a file drawn in near-white ink on
+/// paper: not dimmer, GONE.
+#[test]
+fn a_theme_switch_repaints_an_open_viewer() {
+    let _g = crate::app::theme_test_guard();
+    crew_theme::set_theme(crew_theme::ThemeId::PaperDark);
+    let p = pane_with("let x = 1;\n");
+    let ink_of = |p: &ViewPane| {
+        p.cells(40, 4)
+            .into_iter()
+            .find(|c| c.c == 'x')
+            .expect("the source line drew")
+            .fg
+    };
+    let dark = ink_of(&p);
+    assert_eq!(dark, crew_theme::ThemeId::PaperDark.theme().ink);
+    crew_theme::set_theme(crew_theme::ThemeId::PaperLight);
+    let light = ink_of(&p);
+    assert_eq!(
+        light,
+        crew_theme::ThemeId::PaperLight.theme().ink,
+        "the cached rendering kept the old palette's ink"
+    );
+    assert_ne!(dark, light);
 }
