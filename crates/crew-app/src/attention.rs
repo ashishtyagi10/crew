@@ -34,15 +34,33 @@ impl Attention {
     }
 
     /// Still inside the blink window (drives redraws)?
+    ///
+    /// Never, with motion off: a marker that does not blink does not need the
+    /// frames, and the poll loop keeps redrawing only while something is
+    /// pulsing.
     pub fn pulsing(&self, now: u64) -> bool {
-        now.saturating_sub(self.at_ms) < PULSE_MS
+        !steady() && now.saturating_sub(self.at_ms) < PULSE_MS
     }
 
     /// Is the marker drawn at `now`? Blinks during the pulse, steady after.
+    ///
+    /// With motion off it is simply *there*, from the first frame. Reduce
+    /// motion is an accessibility request and blinking is the one kind of
+    /// motion it is most specifically about — and the marker loses nothing by
+    /// standing still, because what it has to say is that it exists.
     pub fn visible(&self, now: u64) -> bool {
+        if steady() {
+            return true;
+        }
         let dt = now.saturating_sub(self.at_ms);
         dt >= PULSE_MS || (dt / BLINK_MS).is_multiple_of(2)
     }
+}
+
+/// Whether markers hold still instead of blinking — motion `Off`, which is
+/// also what `auto` resolves to when the OS is asking for reduced motion.
+fn steady() -> bool {
+    crate::motion::level() == crate::motion::MotionLevel::Off
 }
 
 /// Raise a marker on `p` at `now`. The newest event wins (restarts the pulse).
@@ -109,6 +127,8 @@ mod tests {
 
     #[test]
     fn blinks_during_the_pulse_and_holds_steady_after() {
+        let _g = crate::app::motion_test_guard();
+        crate::motion::set_level(crate::motion::MotionLevel::Full);
         let a = Attention {
             kind: NotifyKind::Bell,
             at_ms: 0,
@@ -143,5 +163,50 @@ mod tests {
         let panes = [a, b];
         assert!(any_pulsing(&panes, 1000 + PULSE_MS - 1));
         assert!(!any_pulsing(&panes, 1000 + PULSE_MS));
+    }
+
+    /// Reduce motion is an accessibility request, and blinking is the kind of
+    /// motion it is most specifically about. With motion off the marker is
+    /// simply *there*, from the first frame — it loses nothing, because what
+    /// it has to say is that it exists — and it asks for no frames to say it.
+    #[test]
+    fn a_marker_holds_still_when_motion_is_off() {
+        let _g = crate::app::motion_test_guard();
+        crate::motion::set_level(crate::motion::MotionLevel::Off);
+        let a = Attention {
+            kind: NotifyKind::Bell,
+            at_ms: 0,
+        };
+        for t in [0, BLINK_MS, 2 * BLINK_MS, PULSE_MS] {
+            assert!(a.visible(t), "off phase at {t} would have been a blink");
+        }
+        assert!(!a.pulsing(0), "and it costs no redraws");
+        assert!(!any_pulsing(&[], 0));
+
+        // …and with motion on it still blinks, so the test above is not just
+        // agreeing with the default.
+        crate::motion::set_level(crate::motion::MotionLevel::Full);
+        assert!(!a.visible(BLINK_MS), "off phase");
+        assert!(a.pulsing(0));
+    }
+
+    /// The busy-pane spinner holds one frame too — one derivation for every
+    /// spinner in the app, so a new one cannot be added that ignores it.
+    #[test]
+    fn the_spinner_holds_one_frame_when_motion_is_off() {
+        let _g = crate::app::motion_test_guard();
+        crate::motion::set_level(crate::motion::MotionLevel::Off);
+        let frames: std::collections::HashSet<char> = (0..20)
+            .map(|i| crate::update::spinner_frame(i * 100))
+            .collect();
+        assert_eq!(frames.len(), 1, "{frames:?}");
+        crate::motion::set_level(crate::motion::MotionLevel::Full);
+        let spun: std::collections::HashSet<char> = (0..20)
+            .map(|i| crate::update::spinner_frame(i * 100))
+            .collect();
+        assert!(
+            spun.len() > 5,
+            "and it really does spin otherwise: {spun:?}"
+        );
     }
 }

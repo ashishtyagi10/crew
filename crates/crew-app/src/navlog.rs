@@ -5,7 +5,6 @@
 use crew_render::CellView;
 
 use crate::applog::{LogEntry, LogLevel};
-use crate::boxdraw::section_header;
 
 use crate::palette::accent;
 
@@ -33,8 +32,25 @@ pub fn log_cells(entries: &[LogEntry], cols: u16, max_lines: usize, back: usize)
         return Vec::new();
     }
     let t = crew_theme::theme();
-    let mut out = section_header("LOG", cols, t.border_normal, accent(), t.page_bg);
     let (start, shown) = window(entries.len(), max_lines, back);
+    // The LOG is a window onto a buffer and scrolls under the wheel, and
+    // nothing on it said either thing: a tail showing eight of sixty-four
+    // looked exactly like a log with eight lines in it. The rule carries the
+    // depth, so the section says there is more before you go looking.
+    let key = if entries.len() > shown {
+        format!("{shown}/{}", entries.len())
+    } else {
+        String::new()
+    };
+    let mut out = crate::boxdraw::section_header_key(
+        "LOG",
+        &key,
+        cols,
+        t.border_normal,
+        accent(),
+        t.dim,
+        t.page_bg,
+    );
     // Scrolled back, the rule says so — the tail is no longer live, and a log
     // that silently stops following looks like a log that stopped.
     if back > 0 {

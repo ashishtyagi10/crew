@@ -27,6 +27,9 @@ const R_OUT: f32 = 2.4;
 const R_IN: f32 = 1.25;
 /// First column of the legend — clear of the ring, with a column of air.
 const LEGEND_COL: u16 = 7;
+/// Columns the legend claims right of its text column: the longest label
+/// ("working") plus air and a count wide enough for any crew.
+const BLOCK_W: u16 = 12;
 /// Where the pulse backdrop starts: past the ring, so the two never overlap.
 const WASH_X: f32 = CENTRE_X + R_OUT + 0.4;
 
@@ -98,7 +101,12 @@ pub fn cells(m: &Mix, cols: u16, row0: u16) -> Vec<CellView> {
         // is harder to read than one that stays put.
         let fg = if n == 0 { t.text_muted } else { fg };
         let count = n.to_string();
-        let cx = cols.saturating_sub(1 + count.chars().count() as u16);
+        // The counts right-align, but to the *block's* right edge, not the
+        // nav's: dragged wide, "working" sat at column 9 and its 2 at column
+        // 35, and a key with twenty columns of nothing between the label and
+        // the number stops reading as a pair.
+        let right = cols.min(text_col + BLOCK_W);
+        let cx = right.saturating_sub(1 + count.chars().count() as u16);
         // The count is the reading, so it is placed first and the label gets
         // what is left, with a column of air between them — and it ellipsizes,
         // because a narrow nav used to read `workin 2`, which is a word that

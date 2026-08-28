@@ -66,22 +66,29 @@ pub fn raw_accent() -> (u8, u8, u8) {
 /// search, and this is read a few dozen times a frame.
 pub fn accent() -> (u8, u8, u8) {
     let (raw, page) = (raw_accent(), crew_theme::theme().page_bg);
+    // The floor is part of the key, not just the computation: the OS's high-
+    // contrast switch raises it without touching either the accent or the
+    // theme, and a memo keyed only on those two answered the old floor for the
+    // rest of the session — the accessibility request landing everywhere in
+    // the palette except the one colour the user picked.
+    let floor = crew_theme::contrast::text_floor();
+    let key = (pack(raw), pack(page), floor.to_bits());
     MEMO.with(|m| {
-        let (k_raw, k_page, val) = m.get();
-        if (k_raw, k_page) == (pack(raw), pack(page)) {
+        let (k_raw, k_page, k_floor, val) = m.get();
+        if (k_raw, k_page, k_floor) == key {
             return unpack(val);
         }
-        let fixed = crew_theme::readable::enforced(raw, page, crew_theme::contrast::text_floor());
-        m.set((pack(raw), pack(page), pack(fixed)));
+        let fixed = crew_theme::readable::enforced(raw, page, floor);
+        m.set((key.0, key.1, key.2, pack(fixed)));
         fixed
     })
 }
 
 thread_local! {
-    /// `(accent, page, floored)`, all packed. The render path is one thread;
+    /// `(accent, page, floor bits, floored)`. The render path is one thread;
     /// a second one simply keeps its own.
-    static MEMO: std::cell::Cell<(u32, u32, u32)> =
-        const { std::cell::Cell::new((u32::MAX, u32::MAX, 0)) };
+    static MEMO: std::cell::Cell<(u32, u32, u32, u32)> =
+        const { std::cell::Cell::new((u32::MAX, u32::MAX, u32::MAX, 0)) };
 }
 
 /// The active accent as a ratatui [`Color`](ratatui::style::Color), for the

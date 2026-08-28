@@ -353,6 +353,36 @@ Settings form and nowhere else; it is now also a handle, clamped to the same
 changes shape — it is handed a narrower content rect exactly as it is when the
 window is resized. The width persists when you let go.
 
+**What the nav does with the width.** Every row division in the column comes
+from one `navlayout::layout` — the draw, the paint layer and both hit paths
+read it, so a click can never land on a row the frame put something else on.
+Inside that:
+
+- The pane list is served first (a row scrolled off it is a pane you cannot
+  click); the **LOG takes what is left**, two to twenty lines, and its rule
+  says how much of the sixty-four-entry buffer is showing.
+- **Prose ellipsizes** — host name, pane title, legend label, log line. **A row
+  of values drops whole values**: `navtext::fit` takes the widest form that
+  fits from a ladder each section writes longest-first, so a narrow nav shows
+  two load averages, or the busier network direction, whole. A half-written
+  number is not a smaller reading, it is a wrong one.
+- The **CPU curve** and the **network twin** are scaled to their own rolling
+  peaks, which is what lets an idle machine draw a shape at all — so each
+  rule carries the ceiling it is drawn against, and LOAD's carries `1·5·15m`,
+  naming exactly the averages that are on the row.
+- The three **rings spread up to a cap and then centre**; past the cap they
+  would stop reading as one answer in three parts. The two **network rates go
+  to opposite ends of the row** once there is real room for it.
+- LOG lines from the same minute **print their stamp once**, so the stamps read
+  as a scale rather than a stack of identical `23:12`s.
+
+**Motion and contrast reach it.** With motion off (or `auto` under an OS
+reduce-motion request) the attention marker holds still instead of blinking and
+the busy-pane spinner holds one frame. The **accent is floored against the page
+it lands on** — every theme's own default already clears it, but the one the
+user sets does not have to, and crew's brand green reads at 1.2 against every
+light page in the set.
+
 **The `+N` tile** now **names the panes behind it** — numbered the way `Cmd+N`
 numbers them — instead of only counting them. Which panes are hidden is the one
 thing you would look at that tile to find out.

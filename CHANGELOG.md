@@ -8,6 +8,39 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.41
+
+**The nav answers to the width you give it, and both accessibility switches
+reach it.**
+
+The sections used the left half of a wide nav and nothing else: the rings
+pinned at column 3, the network rates one short run with twenty columns after
+them, the PANES legend with "working" at column 9 and its count at column 35.
+The rings now spread up to a cap and then *centre* — past the cap they stop
+reading as one answer in three parts — the two rates go to opposite ends of the
+row once there is real room for it, and the legend's counts right-align to the
+legend's own edge.
+
+**A chart with a moving ceiling writes the ceiling down.** Scaling the CPU
+curve to its own rolling minute and the network twin to the louder direction is
+what lets an idle machine draw a shape at all; it also took the units off both.
+Each rule carries the scale now — `─ SYSTEM peak 55% ──`, `─ NET peak
+64 KB/s ──` — from the same derivation the shape is drawn with. The **LOG**'s
+rule says how much of the buffer is showing (`─ LOG 8/64 ──`), because a tail
+showing eight of sixty-four looked exactly like a log with eight lines in it.
+
+**Reduce motion** now reaches the nav: the attention marker holds still instead
+of blinking (and costs no redraws doing it) and the busy-pane spinner holds one
+frame, through one derivation so a new spinner cannot be added that ignores the
+setting. **High contrast** found a bug in 0.19.40's accent floor — the memo was
+keyed on (accent, page), and the OS switch raises the text floor without
+touching either, so the request landed everywhere in the palette except the one
+colour the user picked.
+
+And the seam `navlayout` was built for is asserted end to end: the row a pane's
+title is actually *drawn* on is fed back through the click hit-test, across
+every nav height, log depth, git state and crew size.
+
 ## 0.19.40
 
 **The accent could take the whole nav with it.** Every theme's own

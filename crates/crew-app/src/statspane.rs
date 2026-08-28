@@ -41,6 +41,14 @@ impl StatsPane {
         }
     }
 
+    /// Pin a git status, so an off-screen shot of the nav includes the GIT
+    /// section — it is polled off the main thread and has not answered by the
+    /// time a shot is taken, which made it the one section never in frame.
+    #[cfg(test)]
+    pub fn set_git(&mut self, info: Option<git::GitInfo>) {
+        self.git.set_info(info);
+    }
+
     /// Push a minute of synthetic CPU / busy-pane history, so an off-screen
     /// shot of the nav shows the traces a running machine would have rather
     /// than the single sample one `refresh` leaves behind.
@@ -146,6 +154,15 @@ impl StatsPane {
         out
     }
 
+    /// The ceiling the CPU chart is currently drawn against, in percent, or
+    /// `None` when there is no history to scale. The number the SYSTEM rule
+    /// writes down: a chart with a moving ceiling and no ceiling written down
+    /// is a shape you cannot read a value off.
+    fn cpu_ceiling(&self, cols: u16) -> Option<u64> {
+        let span = cols.saturating_sub(4) as usize * 2;
+        (!self.cpu_hist.is_empty()).then(|| self.cpu_hist.peak(span).max(CHART_FLOOR))
+    }
+
     /// The SYSTEM section's CPU history chart.
     ///
     /// Scaled to the window's own peak with [`CHART_FLOOR`] under it, not to a
@@ -165,7 +182,9 @@ impl StatsPane {
             return Vec::new();
         }
         let span = width as usize * 2;
-        let peak = self.cpu_hist.peak(span).max(CHART_FLOOR) as f32;
+        // The same ceiling the SYSTEM rule writes down — one derivation, so
+        // the number beside the section and the shape under it agree.
+        let peak = self.cpu_ceiling(cols).unwrap_or(CHART_FLOOR) as f32;
         let samples: Vec<f32> = self
             .cpu_hist
             .tail(span)
@@ -198,7 +217,8 @@ impl StatsPane {
 
         let sys_off = clock::CLOCK_H;
         if rows > sys_off {
-            for mut c in render_stats(self.sampler.stats(), cols, rows - sys_off) {
+            let peak = self.cpu_ceiling(cols);
+            for mut c in render_stats(self.sampler.stats(), cols, rows - sys_off, peak) {
                 c.row += sys_off;
                 out.push(c);
             }
@@ -227,7 +247,9 @@ impl StatsPane {
         let net_off = host_off + navlayout::CARD_BLOCK;
         if rows > net_off + 3 {
             let s = self.sampler.stats();
-            for mut c in net::net_cells(s.net_rx, s.net_tx, cols) {
+            let (rxh, txh) = self.sampler.net_dirs();
+            let ceiling = crate::nettwin::ceiling(rxh, txh, cols);
+            for mut c in net::net_cells(s.net_rx, s.net_tx, ceiling, cols) {
                 c.row += net_off;
                 out.push(c);
             }
@@ -259,8 +281,11 @@ impl StatsPane {
         let list_off = 1 + crate::crewpie::ROWS;
         if !panes.is_empty() && rows > panes_off + list_off {
             let limit = (rows - panes_off - list_off) as usize;
-            let spin = crate::update::SPINNER
-                [(crate::anim::now_ms() / 100) as usize % crate::update::SPINNER.len()];
+            // A busy pane's row spins; with motion off it holds one frame.
+            // The row still says "working" — the glyph is not the animation,
+            // the animation is — and a nav that spins through a reduce-motion
+            // request is spinning where it was asked not to.
+            let spin = crate::update::spinner_frame(crate::anim::now_ms());
             for mut c in panelist::pane_cells(panes, cols, limit, spin) {
                 c.row += panes_off;
                 out.push(c);
@@ -320,5 +345,91 @@ mod tests {
         );
         // …and the PANES rule is on the very next row.
         assert_eq!(l.panes_top, gap_row + 1);
+    }
+
+    /// The seam [`crate::navlayout`] exists for, asserted end to end: for
+    /// every nav height, log depth and crew size, the row a pane's number is
+    /// DRAWN on is the row `hit::sidebar_pane_index` maps back to that pane.
+    ///
+    /// The two used to be independent `+` chains, and the arithmetic test
+    /// beside the hit function only ever checked the chain against itself.
+    #[test]
+    fn a_click_lands_on_the_pane_row_the_frame_drew() {
+        let _g = crate::app::theme_test_guard();
+        for git in [false, true] {
+            for log_len in [0usize, 1, 4, 40] {
+                for n in [1usize, 3, 7] {
+                    for rows in [20u16, 34, 48, 70] {
+                        check_seam(git, log_len, n, rows);
+                    }
+                }
+            }
+        }
+    }
+
+    fn check_seam(git: bool, log_len: usize, n: usize, rows: u16) {
+        let mut s = StatsPane::new();
+        if git {
+            s.set_git(Some(git::GitInfo {
+                branch: "main".into(),
+                changed: 0,
+                ahead: 0,
+                behind: 0,
+            }));
+        }
+        let log: Vec<crate::applog::LogEntry> = (0..log_len)
+            .map(|i| crate::applog::LogEntry {
+                level: crate::applog::LogLevel::Info,
+                text: format!("12:00 line{i}"),
+            })
+            .collect();
+        let panes: Vec<PaneRow> = (0..n)
+            .map(|i| PaneRow {
+                index: i + 1,
+                title: format!("{}pane", (b'a' + i as u8) as char),
+                focused: false,
+                activity: false,
+                minimized: false,
+                attention: None,
+                busy: false,
+                unread: 0,
+                hovered: false,
+            })
+            .collect();
+        let cols = 26u16;
+        let l = s.layout(rows, log.len(), n);
+        let cells = s.cells(cols, rows, &panes, &log, 0);
+        for (k, p) in panes.iter().enumerate() {
+            // The row this pane's own TITLE was drawn on, found in the frame
+            // rather than recomputed from the offsets under test. The title,
+            // not the index: the donut writes the crew total at column 3 too,
+            // and a finder that cannot tell them apart proves nothing.
+            let drawn = cells
+                .iter()
+                .filter(|c| c.row >= l.panes_top && c.col >= 5)
+                .find(|c| {
+                    // The whole title, in consecutive columns: single glyphs
+                    // collide with the crew legend written on the same rows
+                    // ("waiting" has an `a` in it), and a finder that cannot
+                    // tell the two apart proves nothing.
+                    p.title.chars().enumerate().all(|(i, ch)| {
+                        cells
+                            .iter()
+                            .any(|d| d.row == c.row && d.col == c.col + i as u16 && d.c == ch)
+                    })
+                });
+            let Some(drawn) = drawn else {
+                continue; // this nav had no room for row k; nothing to click
+            };
+            // `rel_row` is measured from the card's OUTER top edge: +1 border.
+            let hit = crate::hit::sidebar_pane_index(drawn.row + 1, l.panes_top);
+            assert_eq!(
+                hit,
+                Some(k),
+                "git={git} log={log_len} panes={n} rows={rows}: \
+                 pane {k} drawn on content row {} maps to {hit:?}",
+                drawn.row
+            );
+        }
     }
 }

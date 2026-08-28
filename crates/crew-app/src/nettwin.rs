@@ -19,6 +19,20 @@ pub const ROWS: u16 = 2;
 /// quieter draws small rather than full.
 const FLOOR: u64 = 64 * 1024;
 
+/// Samples of each history the chart at `cols` wide draws from.
+fn span(cols: u16) -> usize {
+    cols.saturating_sub(4) as usize * 2
+}
+
+/// The scale both halves are drawn against, in bytes per second — the larger
+/// direction's peak, never below [`FLOOR`]. The NET rule writes it down: the
+/// chart's ceiling moves with the traffic, and a shape with a moving ceiling
+/// and no ceiling written down is a shape you cannot read a value off.
+pub fn ceiling(rx: &crate::spark::History, tx: &crate::spark::History, cols: u16) -> u64 {
+    let s = span(cols);
+    rx.peak(s).max(tx.peak(s)).max(FLOOR)
+}
+
 /// Draw the twin chart across `cols` starting at `row0`, indented under the
 /// section legend like the rates above it. `rx`/`tx` are the two histories.
 pub fn paint(
@@ -34,13 +48,14 @@ pub fn paint(
     if width == 0 || (rx.is_empty() && tx.is_empty()) {
         return Vec::new();
     }
-    let span = width as usize * 2;
+    let span = span(cols);
     // One scale for both halves — see the module note — with a floor under
     // it. Auto-scaling to the window's own peak makes an idle machine's
     // background chatter (a few hundred bytes a second) fill the chart, which
     // reads as a saturated link. Below the floor the chart stays small,
-    // because below the floor nothing is happening.
-    let peak = rx.peak(span).max(tx.peak(span)).max(FLOOR);
+    // because below the floor nothing is happening. Same derivation the NET
+    // rule's key reads, so the number and the shape cannot disagree.
+    let peak = ceiling(rx, tx, cols);
     let norm = |h: &crate::spark::History| -> Vec<f32> {
         h.tail(span)
             .into_iter()

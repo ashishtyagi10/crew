@@ -105,14 +105,14 @@ impl DashPane {
         );
 
         // SYSTEM: the three rings, plus the CPU curve's own label.
-        out.extend(
-            crate::sysrings::cells(self.sampler.stats(), SYS_TOP)
-                .into_iter()
-                .map(|mut c| {
-                    c.col += 0;
-                    c
-                }),
-        );
+        // RING_W, not `cols`: the dash gives the rings a fixed block and puts
+        // the CPU curve beside them, so they spread inside their own width
+        // rather than across the whole pane.
+        out.extend(crate::sysrings::cells(
+            self.sampler.stats(),
+            RING_W,
+            SYS_TOP,
+        ));
         if cols > RING_W + 12 {
             put(
                 &mut out,

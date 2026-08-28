@@ -162,3 +162,25 @@ fn a_repeated_stamp_is_printed_once() {
     assert_eq!(row(3), "23:13 three", "a new minute prints again");
     assert_eq!(row(4), "      four");
 }
+
+/// The LOG is a window onto a buffer and scrolls under the wheel, and nothing
+/// on it said either thing — a tail showing eight of sixty-four looked exactly
+/// like a log with eight lines in it. The rule carries the depth.
+#[test]
+fn the_rule_says_how_much_of_the_buffer_is_showing() {
+    let _g = crate::app::theme_test_guard();
+    let rule = |n: usize, lines: usize| -> String {
+        let e: Vec<LogEntry> = (0..n).map(|i| info(&format!("12:00 l{i}"))).collect();
+        let mut v: Vec<_> = log_cells(&e, 28, lines, 0)
+            .into_iter()
+            .filter(|c| c.row == 0 && c.c != '─')
+            .collect();
+        v.sort_by_key(|c| c.col);
+        v.iter().map(|c| c.c).collect::<String>().trim().to_string()
+    };
+    assert_eq!(rule(64, 8), "LOG 8/64");
+    // Everything it has is on screen: there is nothing to go looking for, so
+    // the rule says nothing rather than "8/8".
+    assert_eq!(rule(8, 8), "LOG");
+    assert_eq!(rule(3, 8), "LOG");
+}

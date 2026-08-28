@@ -14,6 +14,16 @@ use crate::app::CrewApp;
 pub(crate) const SPINNER: [char; 10] = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 /// Poll ticks per spinner frame (~62 Hz loop → ~10 fps).
 const SPINNER_DIV: u64 = 6;
+
+/// The spinner glyph for `now_ms`, held on its first frame when motion is off.
+/// One derivation for every spinner in the app, so a new one cannot be added
+/// that ignores the setting.
+pub(crate) fn spinner_frame(now_ms: u64) -> char {
+    if crate::motion::level() == crate::motion::MotionLevel::Off {
+        return SPINNER[0];
+    }
+    SPINNER[(now_ms / 100) as usize % SPINNER.len()]
+}
 /// How long a terminal card (installed / up-to-date / failed) lingers before
 /// auto-dismiss.
 const NOTE_TTL: Duration = Duration::from_secs(5);

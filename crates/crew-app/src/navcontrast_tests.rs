@@ -117,3 +117,56 @@ fn a_hostile_user_accent_cannot_take_the_nav_below_the_floor() {
     crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
     assert!(bad.is_empty(), "{}", bad.join("\n  "));
 }
+
+/// The other OS accessibility switch. High contrast raises the text floor the
+/// whole palette is derived against, and the accent's own floor is read from
+/// the same place — so asking for more contrast must not leave the one colour
+/// the user picked sitting at the old floor.
+#[test]
+fn high_contrast_raises_the_navs_floor_too() {
+    let _a = crate::palette::test_guard();
+    // `theme_test_guard` is this crate's one serializer for the derived-colour
+    // globals, and the high-contrast flag changes what every one of them comes
+    // out as — crew-theme's own `contrast::test_lock` is `cfg(test)`-private to
+    // that crate, and would not serialize these callers anyway.
+    let _g = crate::app::theme_test_guard();
+    crew_theme::contrast::set_high_contrast(true);
+    let floor = crew_theme::readable::MARK_FLOOR;
+    let mut bad: Vec<String> = Vec::new();
+    let mut lifted = 0;
+    for id in crew_theme::ALL_THEMES {
+        crew_theme::set_theme(id);
+        crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
+        let hi = crew_theme::contrast_ratio(crate::palette::accent(), crew_theme::theme().page_bg);
+        crew_theme::contrast::set_high_contrast(false);
+        let normal =
+            crew_theme::contrast_ratio(crate::palette::accent(), crew_theme::theme().page_bg);
+        crew_theme::contrast::set_high_contrast(true);
+        if hi < normal - 0.01 {
+            bad.push(format!(
+                "{}: high contrast LOWERED it ({hi:.2} < {normal:.2})",
+                id.as_str()
+            ));
+        }
+        if hi > normal + 0.5 {
+            lifted += 1;
+        }
+        let (sp, log, panes) = fixture();
+        for c in sp
+            .cells(26, 48, &panes, &log, 0)
+            .iter()
+            .filter(|c| c.c != ' ' && !FURNITURE.contains(c.c))
+        {
+            let r = crew_theme::contrast_ratio(c.fg, c.bg);
+            if r < floor - 0.01 {
+                bad.push(format!("{}: {:?} reads {r:.2}", id.as_str(), c.c));
+            }
+        }
+    }
+    crew_theme::contrast::set_high_contrast(false);
+    crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
+    assert!(bad.is_empty(), "{}", bad.join("\n  "));
+    // …and the switch actually moved something, on the pages where crew green
+    // needed the help. Otherwise this test agrees with nothing.
+    assert!(lifted > 0, "high contrast changed no theme's accent");
+}
