@@ -8,6 +8,39 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.45
+
+**The tube got its light trace back.** `pane_card_glowing` chose between the
+CRT light trace and the modern gradient ring on `theme.modern.is_some()` —
+and since "every theme gets the gradient" (0.19.25's ancestor, 0.18.25) every
+preset carries a `ModernStyle`. The tubes had been taking the ring and the
+trace had been dead code for nineteen releases: no corner nodes, no ignition
+decay, no breathing, on the four themes that exist for exactly that. The
+branch is `is_tube()` now — the theme's own predicate — and there is a test on
+the frame the app actually builds, not on the function nobody was calling.
+
+**Which pane am I typing into?** The frame is the only thing that answers, and
+on **fern** a focused frame read **1.60:1** against an unfocused one — two
+cards as good as identical. `focused_stroke` floors it at 2.5 for every
+preset, a floor and not a restyle: eleven of the twelve clear it untouched.
+Measured across the set: paper-dark 8.33, crt-green 6.28, sepia-dark 5.24,
+nebula 3.76, harbor 2.77, blossom 2.59 — and fern, alone, under.
+
+**The pixel harness had been photographing half-built frames.** Its fixture
+panes were born at shot time, so `assemble_t` was ~0 and every glass, modern
+and CRT PNG in this repo showed a card in its first frames of assembly —
+corner brackets, no edges. `crt_shot_grayscale_focus_hierarchy` had been red on
+main that whole time, and its four numeric claims were sampling pixel literals
+that had drifted six pixels off the strokes they were aimed at: it was
+comparing one patch of page background with another (31.4 vs 30.5) and calling
+it a hierarchy. It writes its PNG and asserts what a shot can honestly assert;
+the hierarchy claim moved to the stroke colours, where it found fern.
+
+**And `modern_shot_every_palette` shot two palettes eight times.** Its loop
+listed `Nebula` four times and `Blossom` four times, overwriting the same two
+files. Harbor and Fern — half the family, and the light pages the test says it
+exists for — had never been in a frame.
+
 ## 0.19.44
 
 **The menu card, shot whole — and a guard that had stopped guarding.** One

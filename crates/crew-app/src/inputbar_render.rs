@@ -57,7 +57,7 @@ impl InputBar {
             legend
         };
         let border = if self.focused {
-            crew_theme::theme().border_focused
+            crate::panecardglow::focused_stroke(crew_theme::theme())
         } else {
             crew_theme::theme().border_normal
         };
