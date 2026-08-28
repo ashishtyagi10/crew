@@ -1,14 +1,16 @@
-//! Sidebar network section: a `NET` divider above down/up byte rates.
+//! Sidebar network section: a `NET` divider above down/up byte rates, over a
+//! twin chart ([`crate::nettwin`]) that draws the two directions apart —
+//! down growing up out of a centre line, up growing down from it.
 use crew_render::CellView;
 
 use crate::boxdraw::section_header;
 
 use crate::palette::accent;
-/// Blue-cyan for the throughput sparkline (distinct from the green CPU chart).
+/// Blue-cyan for the throughput chart (distinct from the green CPU chart).
 /// The throughput trace's blue, lightened or darkened until the page it sits
 /// on can show it. As the flat constant `(120, 200, 255)` it read at 1.6 on
 /// every light theme — a sparkline nobody could see.
-fn spark() -> (u8, u8, u8) {
+pub fn spark() -> (u8, u8, u8) {
     crew_theme::readable::spark(crew_theme::theme())
 }
 
@@ -24,9 +26,17 @@ pub fn rate(bytes: u64) -> String {
     }
 }
 
-/// Render the network section: a `NET` rule on row 0, the `↓ rx  ↑ tx` rates on
-/// row 1, and a moving throughput line chart on row 2 (auto-scaled to its peak).
-pub fn net_cells(rx: u64, tx: u64, hist: &crate::spark::History, cols: u16) -> Vec<CellView> {
+/// The colour bytes *up* are drawn in — the accent, against the down
+/// direction's blue, so the two halves of the twin chart are told apart by
+/// hue as well as by which side of the line they are on.
+pub fn up_color() -> (u8, u8, u8) {
+    accent()
+}
+
+/// Render the network section: a `NET` rule on row 0 and the `↓ rx  ↑ tx`
+/// rates on row 1. The chart under them is drawn, not spelled — see
+/// [`crate::nettwin`], reached from the sidebar's paint layer.
+pub fn net_cells(rx: u64, tx: u64, cols: u16) -> Vec<CellView> {
     if cols < 10 {
         return Vec::new();
     }
@@ -40,14 +50,6 @@ pub fn net_cells(rx: u64, tx: u64, hist: &crate::spark::History, cols: u16) -> V
         t.ink,
         t.page_bg,
     );
-    out.extend(crate::spark::line_cells(
-        hist,
-        cols.saturating_sub(4),
-        3,
-        2,
-        0,
-        spark(),
-    ));
     out
 }
 
@@ -80,23 +82,19 @@ mod tests {
     }
 
     #[test]
-    fn net_section_has_rule_arrows_and_chart() {
+    fn net_section_has_rule_and_both_rates() {
         // The colours are derived from the live theme now, so two reads of
         // the process global must not straddle another test switching it.
         let _g = crate::app::theme_test_guard();
-        let mut hist = crate::spark::History::new(16);
-        for v in [1000, 5000, 20000, 2000] {
-            hist.push(v);
-        }
-        let cells = net_cells(2048, 1024, &hist, 24);
+        let cells = net_cells(2048, 1024, 24);
         assert!(cells.iter().any(|c| c.c == '─' && c.row == 0));
         assert!(!cells.iter().any(|c| c.c == '╭'));
-        // both rates now share row 1
+        // both rates share row 1
         assert!(cells.iter().any(|c| c.c == '↓' && c.row == 1));
         assert!(cells.iter().any(|c| c.c == '↑' && c.row == 1));
-        // the throughput line chart draws vertical block glyphs on row 2
-        assert!(cells
-            .iter()
-            .any(|c| c.row == 2 && c.fg == spark() && ('\u{2581}'..='\u{2588}').contains(&c.c)));
+        // and the chart rows below carry no glyphs at all: the twin chart is
+        // drawn on the paint layer, and a leftover block ramp here would show
+        // through it.
+        assert!(!cells.iter().any(|c| c.row >= 2));
     }
 }
