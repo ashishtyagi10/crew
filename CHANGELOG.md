@@ -8,6 +8,28 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.50
+
+**The line across your output was the unread divider, and it could not clear
+itself.** Crew rules the row under "the last line you had read" so that coming
+back to a pane shows where the new part starts. The mark was supposed to
+follow the tail in the pane you are focused on — but the guard asked for
+`count(total, read_at) == 0` before advancing, which is only true when the mark
+is *already* at the tail. It could never fire once a single line had arrived.
+So output landed in the pane you were watching, the rule was stamped under the
+last line you had "read", and it sat there in `theme.activity` for the rest of
+the session: a full-width hairline in the middle of your own scrollback, with
+nothing on screen saying what it was. Only typing into the pane or scrolling
+back to the bottom cleared it.
+
+Watching is reading. A focused pane at its live bottom now marks the tail read
+every frame — the same rule `scroll` and `termwrite` already state, which is
+what that guard was written to say. And wherever the rule does still draw (a
+pane you are not in, or one you have scrolled back in) it names itself: `12
+new`, right-aligned in the row's trailing blanks, in the rule's own colour,
+dropped entirely rather than covering a glyph. An anonymous full-width line
+reads as damage; a labelled one reads as a boundary.
+
 ## 0.19.49
 
 **The font you pinned stops changing with the theme.** `font_family` in config

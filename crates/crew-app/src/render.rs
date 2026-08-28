@@ -44,17 +44,19 @@ impl CrewApp {
         let dirs: Vec<std::path::PathBuf> =
             self.panes.iter().filter_map(|p| p.dir.clone()).collect();
         self.git_fleet.poll(&dirs, now / 1000);
-        // Reading is reading: while the focused pane has nothing new below
-        // what you have seen, its mark follows the tail — so looking away now
-        // marks everything up to here as read, and only what arrives after
-        // that is divided off when you come back.
+        // Watching is reading: the pane you are looking at, at its live
+        // bottom, has everything above the tail in front of you — so its mark
+        // follows the tail, and looking away freezes it there. The divider
+        // ([`crate::unread`]) is for the panes you are NOT reading.
         if let Some(crate::pane::PaneContent::Terminal(t)) =
             self.panes.get_mut(self.focused).map(|p| &mut p.content)
         {
-            let total = t.pty.scrollable_lines();
-            if crate::unread::count(total, t.read_at) == 0 {
-                t.read_at = total;
-            }
+            t.read_at = crate::unread::follow_tail(
+                t.read_at,
+                true,
+                t.pty.display_offset() == 0,
+                t.pty.scrollable_lines(),
+            );
         }
         let focus_t = self.focus_fx(now);
         self.theme_fade_tick(now);
