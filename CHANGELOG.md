@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.38
+
+**`/dash` — the machine and the week on one screen.** The last of ten drawing
+releases, and the one that says what the others were for: nothing in this pane
+is new data and nothing in it is a new widget. Three **ring gauges** beside a
+four-minute **CPU curve**, the **network** with both directions on one axis, a
+**heatmap** of seven days of token use, and an **area chart** of what each day
+cost — the sidebar's questions asked at a size worth looking at, out of parts
+built to be composed.
+
+Bands draw in priority order, so a short pane keeps the machine and loses the
+history rather than disappearing.
+
+The twin network chart also gets a floor under its auto-scale: scaling to the
+window's own peak made an idle machine's background chatter fill the chart and
+read as a saturated link. Below 64 KB/s it draws small now, because below that
+nothing is happening.
+
 ## 0.19.37
 
 **The card's own readings are drawn.** The scroll thumb on a pane's right
