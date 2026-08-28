@@ -11,6 +11,7 @@
 pub mod area;
 pub mod canvas;
 pub mod gauge;
+pub mod meter;
 pub mod pie;
 
 pub use canvas::Canvas;

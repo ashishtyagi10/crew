@@ -338,3 +338,57 @@ fn chart_shot_net_twin() {
         "the twin chart drew something: {ink} ink pixels"
     );
 }
+
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn chart_shot_footer_meters() {
+    let _g = crate::app::theme_test_guard();
+    let px = shot("meters", "crew", |_cols, _rows, aspect| {
+        let t = crew_theme::theme();
+        let mut cells: Vec<CellView> = Vec::new();
+        let mut put = |text: &str, col: u16, row: u16, fg: (u8, u8, u8)| {
+            for (i, ch) in text.chars().enumerate() {
+                cells.push(CellView {
+                    col: col + i as u16,
+                    row,
+                    c: ch,
+                    fg,
+                    bg: t.page_bg,
+                    ..Default::default()
+                });
+            }
+        };
+        // The footer's line 2, as it is placed: countdowns, then the two
+        // reserved meter runs with their labels.
+        put("5h:2h14m \u{00b7} 7d:5d02h \u{00b7} ", 1, 1, t.ansi[12]);
+        put(
+            "\u{2591}\u{2591}\u{2591}\u{2591}\u{2591}\u{2591}\u{2591}\u{2591} 34% (5h) \u{00b7} ",
+            25,
+            1,
+            t.text_muted,
+        );
+        put(
+            "\u{2591}\u{2591}\u{2591}\u{2591}\u{2591}\u{2591}\u{2591}\u{2591} 71% (ctx)",
+            44,
+            1,
+            t.text_muted,
+        );
+        let paint = crate::chatsummary::draw_meters(&mut cells, &[0.34, 0.71], aspect);
+        (cells, paint)
+    });
+    let Some(px) = px else {
+        eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+        return;
+    };
+    let bg = crew_theme::theme().page_bg;
+    let ink = px
+        .chunks_exact(4)
+        .filter(|p| {
+            (p[0] as i32 - bg.0 as i32).abs()
+                + (p[1] as i32 - bg.1 as i32).abs()
+                + (p[2] as i32 - bg.2 as i32).abs()
+                > 40
+        })
+        .count();
+    assert!(ink > 500, "the meters drew something: {ink} ink pixels");
+}

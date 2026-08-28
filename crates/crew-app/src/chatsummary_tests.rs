@@ -520,60 +520,115 @@ fn meter_runs(line: &[Cell]) -> Vec<Vec<Cell>> {
     runs
 }
 
-/// The line-2 meters are lit by the theme gradient, not one flat muted
-/// colour: each gauge starts at `pole_a`, ends at `pole_b`, and is a run of
-/// distinct colours in between — so a filling bar walks the theme's own ramp.
-/// Both gauges get the full ramp independently, which is what makes them
-/// comparable at a glance.
+/// The line-2 meters are DRAWN now — a capsule with the theme's gradient
+/// along it — and the reserved glyph run they used to be is blanked as it is
+/// found. A `▓` showing through a drawn meter would be two charts for one
+/// number.
 #[test]
-fn meters_run_the_theme_gradient_end_to_end() {
-    // Take the guard but do NOT pin a theme of our own. The guard's default
-    // (paper-dark) is also what an unguarded test in this module sees, so this
-    // test never swaps the global palette out from under one — `agent_color`
-    // reads the theme's tag pool, and the line-3 roster-colour test next door
-    // fails when it does.
+fn meters_are_drawn_over_a_blanked_run() {
+    let _g = crate::app::theme_test_guard();
+    let mut cells = run_cells(4, 6, 8);
+    let paint = super::draw_meters(&mut cells, &[0.5], 2.0);
+    assert!(
+        !cells.iter().any(|c| c.c == '\u{2593}' || c.c == '\u{2591}'),
+        "the glyph run is blanked"
+    );
+    assert!(!paint.is_empty(), "and drawn instead");
+    for p in &paint {
+        assert!(
+            p.x >= 6.0 && p.x + p.w <= 14.0 + 1e-3,
+            "inside the run: {p:?}"
+        );
+        assert!(p.y >= 4.0 && p.y + p.h <= 5.0 + 1e-3, "on its row: {p:?}");
+    }
+}
+
+/// Each meter runs the theme's own ramp end to end, which is what makes two
+/// of them comparable at a glance.
+#[test]
+fn the_drawn_meter_walks_the_theme_gradient() {
     let _g = crate::app::theme_test_guard();
     let style = crew_theme::theme()
         .modern
         .expect("every theme is modern now");
+    let mut cells = run_cells(0, 0, 8);
+    let paint = super::draw_meters(&mut cells, &[1.0], 2.0);
+    let colors: std::collections::HashSet<_> = paint.iter().map(|p| p.color).collect();
+    assert!(
+        colors.len() >= 6,
+        "a meter with {} colours is not a gradient",
+        colors.len()
+    );
+    let close = |a: (u8, u8, u8), b: (u8, u8, u8)| {
+        let d = |x: u8, y: u8| (x as i32 - y as i32).abs();
+        d(a.0, b.0) + d(a.1, b.1) + d(a.2, b.2) < 40
+    };
+    let leftmost = paint
+        .iter()
+        .min_by(|a, b| a.x.total_cmp(&b.x))
+        .expect("some paint");
+    let rightmost = paint
+        .iter()
+        .max_by(|a, b| (a.x + a.w).total_cmp(&(b.x + b.w)))
+        .expect("some paint");
+    assert!(close(leftmost.color, style.pole_a), "left end is pole_a");
+    assert!(close(rightmost.color, style.pole_b), "right end is pole_b");
+}
+
+/// The reading the eight-cell gauge could not show. At 3% it drew one whole
+/// filled cell — an eighth of the meter, four times the truth.
+#[test]
+fn the_fill_lands_where_the_percentage_says() {
+    let _g = crate::app::theme_test_guard();
+    let end_of = |frac: f32| -> f32 {
+        let mut cells = run_cells(0, 0, 8);
+        let paint = super::draw_meters(&mut cells, &[frac], 2.0);
+        let track = super::meter_track();
+        paint
+            .iter()
+            .filter(|p| p.color != track)
+            .map(|p| p.x + p.w)
+            .fold(0.0f32, f32::max)
+    };
+    let three = end_of(0.03);
+    assert!(
+        three < 1.0,
+        "3% ends at {three}, well inside the first cell"
+    );
+    assert!((end_of(0.5) - 4.0).abs() < 0.3, "half is half");
+}
+
+/// A meter dropped by the width budget takes its fraction with it, or the
+/// remaining meter would be drawn with the wrong number.
+#[test]
+fn a_dropped_meter_drops_its_fraction() {
+    let _g = crate::app::theme_test_guard();
     let agents = [agent("smith", "anthropic/claude-opus-4-8")];
-    let lines = footer_lines(&fc(&agents, &ctx(&[("smith", 100_000)])), 120);
-    let runs = meter_runs(&lines[1]);
-    assert_eq!(runs.len(), 2, "line 2 should carry the 5h and ctx gauges");
-    for run in &runs {
-        assert_eq!(run.len(), 8, "a gauge is 8 cells");
-        // Ends are the exact poles (the filled/empty dim is applied on top of
-        // the ramp, so an empty end cell is the pole pulled toward the page —
-        // compare against whichever the glyph says it is).
-        let want = |cell: Cell, pole: (u8, u8, u8)| {
-            if cell.0 == '\u{2593}' {
-                pole
-            } else {
-                crate::anim::lerp_rgb(pole, crew_theme::theme().page_bg, super::TROUGH_FADE)
-            }
-        };
-        assert_eq!(run[0].1, want(run[0], style.pole_a), "left end is pole_a");
-        assert_eq!(run[7].1, want(run[7], style.pole_b), "right end is pole_b");
-        let distinct: std::collections::HashSet<_> = run.iter().map(|c| c.1).collect();
-        assert!(
-            distinct.len() >= 6,
-            "a gauge with {} distinct colours is not a gradient",
-            distinct.len()
+    let ctx = ctx(&[("smith", 100_000)]);
+    for cols in [60usize, 72, 84, 96, 120] {
+        let mut meters = Vec::new();
+        let lines = super::footer_lines_with(&fc(&agents, &ctx), cols, &mut meters);
+        let runs = meter_runs(&lines[1]).len();
+        assert_eq!(
+            runs,
+            meters.len(),
+            "{cols} columns: {runs} runs, {} fractions",
+            meters.len()
         );
     }
-    // The 5h gauge is at 3%: one filled cell, seven empty. The filled cell
-    // must read brighter than the trough beside it, or the gauge has stopped
-    // showing a level.
-    let five_h = &runs[0];
-    assert_eq!(five_h[0].0, '\u{2593}');
-    assert_eq!(five_h[1].0, '\u{2591}');
-    let luma = |c: (u8, u8, u8)| {
-        0.2126 * f32::from(c.0) + 0.7152 * f32::from(c.1) + 0.0722 * f32::from(c.2)
-    };
-    assert!(
-        luma(five_h[0].1) > luma(five_h[1].1) + 20.0,
-        "filled {:?} vs trough {:?} — the fill level stopped reading",
-        five_h[0].1,
-        five_h[1].1
-    );
+}
+
+/// A row of `n` reserved meter glyphs at `(row, col)`, as the footer places
+/// them.
+fn run_cells(row: u16, col: u16, n: u16) -> Vec<crew_render::CellView> {
+    (0..n)
+        .map(|i| crew_render::CellView {
+            col: col + i,
+            row,
+            c: '\u{2591}',
+            fg: (200, 200, 200),
+            bg: crew_theme::theme().page_bg,
+            ..Default::default()
+        })
+        .collect()
 }
