@@ -32,6 +32,7 @@ mod charrain;
 #[cfg(test)]
 #[path = "chartshot_tests.rs"]
 mod chartshot_tests;
+
 mod chat;
 mod chataction;
 mod chatbody;
@@ -40,6 +41,7 @@ mod chatcomplete;
 mod chatempty;
 mod chatevents;
 mod chatexport;
+mod chatfield;
 mod chatfind;
 mod chatflow;
 mod chatfold;
@@ -54,6 +56,9 @@ mod chatkeystore;
 mod chatlayout;
 mod chatmd;
 mod chatmention;
+#[cfg(test)]
+#[path = "chatshot_tests.rs"]
+mod chatshot_tests;
 
 mod cardpaint;
 mod chatmsgs;

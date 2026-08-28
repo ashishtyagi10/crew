@@ -26,6 +26,10 @@ fn heading_line_is_marked_and_bold() {
     assert_eq!(flat(&lines[0]), "Title");
 }
 
+/// The engine states a fence's structure — a language, the code, a close —
+/// and draws none of it. The box is the tinted field the renderer lays these
+/// lines into (`chatfield`), so corner glyphs here would be a second, worse
+/// one drawn on top of it.
 #[test]
 fn code_block_chrome_lines() {
     let lines = render("```rust\nfn x() {}\n```", 40);
@@ -34,9 +38,9 @@ fn code_block_chrome_lines() {
         kinds,
         vec![LineKind::CodeHeader, LineKind::Code, LineKind::CodeFooter]
     );
-    assert_eq!(flat(&lines[0]), "\u{256d}\u{2500} rust");
+    assert_eq!(flat(&lines[0]), "rust");
     assert_eq!(flat(&lines[1]), "fn x() {}");
-    assert_eq!(flat(&lines[2]), "\u{2570}\u{2500}");
+    assert_eq!(flat(&lines[2]), "");
 }
 
 #[test]

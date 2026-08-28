@@ -299,14 +299,17 @@ fn find_wash(pane: &ChatPane, cols: u16, rows: u16, cells: &mut [CellView]) {
     };
     let (lines, spans) = crate::chatmsgs::card_lines_spanned(&visible, cols as usize, 0, view);
     let Some(span) = spans.get(mi) else { return };
-    // The drawn window, exactly as `chatplace::window` slices it.
+    // The drawn window, exactly as `chatplace::window` slices AND places it —
+    // a short transcript sits on the bottom of its rows, so its first line is
+    // `top_pad` below the header, not on it.
     let start = lines
         .len()
         .saturating_sub(budget)
         .saturating_sub(pane.scroll);
     let end = (start + budget).min(lines.len());
+    let first = top + crate::chatplace::top_pad(lines.len(), budget as u16);
     for idx in span.start.max(start)..span.end.min(end) {
-        wash_row(cells, top + (idx - start) as u16, &f.query, cols);
+        wash_row(cells, first + (idx - start) as u16, &f.query, cols);
     }
 }
 
@@ -381,30 +384,41 @@ pub(crate) fn row_text_at(pane: &ChatPane, cols: u16, rows: u16, row: u16) -> Op
 /// than a line. Cmd+click already means "act on what is under the cursor"
 /// for links; this gives it the other thing worth acting on.
 ///
-/// A block is the run of contiguous rows whose cells carry the code
-/// background. The `╭─ lang` and `╰─` chrome deliberately do not (see
-/// `chatmd::span_style`), so the run is exactly the code — no fence markers,
-/// no language tag, nothing to strip after pasting.
+/// A block is the run of contiguous rows laid onto the code FIELD — every
+/// cell past the indent tinted, which `chatfield` only ever does to a fence.
+/// A prose line merely carrying an inline `code` span has tinted cells among
+/// untinted ones and is correctly not a block; asking whether ANY cell was
+/// tinted made every such line one, and made one next to a fence extend it.
+///
+/// The run's first row is the language and its last is the field's closing
+/// blank, so the copy is the code between them — no language tag, nothing to
+/// strip after pasting.
 pub(crate) fn code_block_at(pane: &ChatPane, cols: u16, rows: u16, row: u16) -> Option<String> {
     let code_bg = Some(crate::chatink::code_bg());
     let placed = crate::chatplace::placed_lines(pane, cols, rows);
-    let is_code = |r: u16| {
+    let is_field = |r: u16| {
         placed
             .iter()
             .find(|(pr, _)| *pr == r)
             .is_some_and(|(_, line)| {
-                !line.is_empty() && line.iter().any(|c: &CardCell| c.bg == code_bg)
+                line.len() > 1 && line[1..].iter().all(|c: &CardCell| c.bg == code_bg)
             })
     };
-    if !is_code(row) {
+    if !is_field(row) {
         return None;
     }
     let (mut first, mut last) = (row, row);
-    while first > 0 && is_code(first - 1) {
+    while first > 0 && is_field(first - 1) {
         first -= 1;
     }
-    while last + 1 < rows && is_code(last + 1) {
+    while last + 1 < rows && is_field(last + 1) {
         last += 1;
+    }
+    // Drop the language row and the closing blank row: they are the field's
+    // chrome, not the agent's code.
+    let (first, last) = (first + 1, last.checked_sub(1)?);
+    if first > last {
+        return None;
     }
     let text = |r: u16| -> String {
         placed

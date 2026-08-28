@@ -124,9 +124,14 @@ fn code_block_lines(lang: String, src_lines: Vec<String>, cols: usize) -> Vec<Md
     } else {
         lang
     };
-    let cw = cols.max(1);
+    // Two columns narrower than the card: the chat renderer lays these lines
+    // into a padded field (`chatfield::PAD` each side), and a code line that
+    // used the full width would push its own right-hand pad off the card.
+    let cw = cols.saturating_sub(crate::chatfield::PAD * 2).max(1);
     let label = if lang.is_empty() { "code" } else { &lang };
-    let header_text = format!("╭─ {label}").chars().take(cw).collect::<String>();
+    // The label alone: the block's edges are drawn by the tinted FIELD the
+    // chat card lays these lines into (`chatfield`), not by corner glyphs.
+    let header_text = label.chars().take(cw).collect::<String>();
     let mut out = vec![MdLine {
         spans: vec![plain_span(header_text)],
         kind: LineKind::CodeHeader,
@@ -153,9 +158,10 @@ fn code_block_lines(lang: String, src_lines: Vec<String>, cols: usize) -> Vec<Md
             }
         }
     }
-    let footer_text = "╰─".chars().take(cw).collect::<String>();
+    // Closed by a blank row of the field rather than a corner — see the
+    // header above.
     out.push(MdLine {
-        spans: vec![plain_span(footer_text)],
+        spans: vec![plain_span(String::new())],
         kind: LineKind::CodeFooter,
     });
     out

@@ -528,7 +528,10 @@ system/telemetry cards (turn summaries, `/doctor` output) **auto-fold** to a
 header + first line + ` … +N` — click to expand, click the header to fold
 back. New cards fade in from the page colour;
 fenced ```code``` in replies renders as a
-bordered card with a language tag on a dimmed background; a composer with
+solid tinted field — one rectangle, the language on its top row, the same width
+on every line — whose colour is walked per theme so it reads on paper and on a
+phosphor tube alike; the transcript sits against the composer rather than
+floating at the top of the pane; a composer with
 `@agent` chips and key hints frames the input (a valid `@mention` lights up in
 the agent's colour); a proportional scrollbar plus a `↓ N new` pill keep long
 transcripts navigable; and a fresh pane opens with onboarding — the detected

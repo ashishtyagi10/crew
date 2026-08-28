@@ -89,35 +89,60 @@ mod tests {
         assert_eq!(text(&lines[1]), " two");
     }
 
+    /// The block is one padded rectangle: a language row, the code, a closing
+    /// blank row, every one of them the same width and every cell on the code
+    /// field. The corner glyphs it used to draw instead (`\u{256d}\u{2500} rust` over a
+    /// background that stopped at the end of each line) read as an unfinished
+    /// box, not a block.
     #[test]
-    fn code_block_gets_borders_language_tag_and_bg() {
+    fn code_block_is_one_padded_field_with_its_language_on_top() {
         let lines = body_lines("see:\n```rust\nfn x() {}\n```", 40, (9, 9, 9), false);
         let all: Vec<String> = lines.iter().map(text).collect();
         assert_eq!(all[0], " see:");
-        assert_eq!(all[1], " \u{256d}\u{2500} rust");
-        assert_eq!(all[2], " fn x() {}");
-        assert_eq!(all[3], " \u{2570}\u{2500}");
-        // The code line sits on the dimmed card background; borders don't.
-        assert!(lines[2][1].bg.is_some(), "code line should carry a bg");
-        assert!(lines[1][1].bg.is_none(), "border stays on the page bg");
+        assert_eq!(all[1], " ", "a blank row separates prose from the field");
+        assert_eq!(all[2], "  rust      ");
+        assert_eq!(all[3], "  fn x() {} ");
+        assert_eq!(all[4], "            ", "a blank row closes it");
+        let bg = Some(crate::chatink::code_bg());
+        for row in &lines[2..5] {
+            assert!(
+                row[1..].iter().all(|c| c.bg == bg),
+                "every cell past the indent is on the field"
+            );
+            assert!(row[0].bg.is_none(), "the indent column keeps the page");
+        }
     }
 
     #[test]
     fn untagged_fence_is_labelled_code() {
         let lines = body_lines("```\nx\n```", 40, (9, 9, 9), false);
-        assert_eq!(text(&lines[0]), " \u{256d}\u{2500} code");
+        assert_eq!(text(&lines[0]), "  code ");
     }
 
     #[test]
     fn long_code_lines_hard_wrap_verbatim() {
         let lines = body_lines("```\nlet a = 1;\n```", 6, (9, 9, 9), false);
-        assert!(lines.iter().all(|l| l.len() <= 6));
-        // Every character — including the spaces — survives the wrap.
+        // The field's own padding is part of the card's width, never past it.
+        assert!(
+            lines.iter().all(|l| l.len() <= 6),
+            "{:?}",
+            lines.iter().map(text).collect::<Vec<_>>()
+        );
+        // Every character — including the spaces — survives the wrap. Read
+        // from inside the field: column 0 is the indent, then the pad, then
+        // the code itself, which is the card's width less both pads.
+        let code_w = 6 - 1 - crate::chatfield::PAD * 2;
         let joined: String = lines[1..lines.len() - 1]
             .iter()
-            .map(|l| text(l)[1..].to_string())
+            .map(|l| {
+                l[1 + crate::chatfield::PAD..]
+                    .iter()
+                    .take(code_w)
+                    .map(|c| c.c)
+                    .collect::<String>()
+            })
             .collect();
-        assert_eq!(joined, "let a = 1;");
+        assert_eq!(joined.trim_end(), "let a = 1;");
     }
 
     // -- Task 4: full markdown, not just fenced code -----------------------
@@ -166,8 +191,8 @@ mod tests {
         );
         let all: Vec<String> = lines.iter().map(text).collect();
         assert!(
-            all.iter().any(|l| l.contains("\u{256d}\u{2500} bash")),
-            "missing code header chrome: {all:?}"
+            all.iter().any(|l| l.trim() == "bash"),
+            "missing the fence's language row: {all:?}"
         );
         let cmd_row = all
             .iter()
