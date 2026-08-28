@@ -93,8 +93,14 @@ fn progress(cols: u16, rows: u16, b: &Bar, aspect: f32, now: u64) -> Vec<Paint> 
     let y = (aspect - WEIGHT) * 0.5;
     let mut c = Canvas::with_sub(cols, 1, aspect, SUB);
     match p.percent {
-        Some(pct) => {
-            let w = inner * f32::from(pct.min(100)) / 100.0;
+        // A FULL bar is not a reading, it is a line. A program that reports
+        // 100 and then keeps working — which is most of them, since almost
+        // nobody clears OSC 9;4 before exiting — left a saturated stroke
+        // pinned under the pane for the rest of the session, with nothing on
+        // screen saying what it was. Every progress bar outside a terminal
+        // disappears when it fills; this one does too.
+        Some(pct) if pct < 100 => {
+            let w = inner * f32::from(pct) / 100.0;
             if w > 0.0 {
                 // A pill, like every other bar in the app: at a third of a
                 // column the cap is a pixel and a half, which is a rounded
@@ -104,6 +110,7 @@ fn progress(cols: u16, rows: u16, b: &Bar, aspect: f32, now: u64) -> Vec<Paint> 
                 });
             }
         }
+        Some(_) => {}
         None => {
             // A comet: a block of the same width the glyph sweep used, but
             // shaded so its LEADING edge is brightest and it fades away
