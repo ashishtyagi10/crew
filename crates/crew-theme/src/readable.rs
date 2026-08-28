@@ -91,6 +91,21 @@ pub fn against(want: (u8, u8, u8), page: (u8, u8, u8), floor: f32) -> (u8, u8, u
     best
 }
 
+/// One rank quieter than `want` on `page`: the same hue and chroma, pulled
+/// part of the way toward the page's own lightness, then floored back to
+/// [`MARK_FLOOR`] if the pull took it under.
+///
+/// For a reading that is the *same kind* of reading as the one beside it but
+/// older or less important — the 5- and 15-minute load next to the 1-minute
+/// one. Changing the hue instead would say the three measure different things,
+/// and dropping to `text_muted` would throw away the warning colour they are
+/// all carrying.
+pub fn secondary(want: (u8, u8, u8), page: (u8, u8, u8)) -> (u8, u8, u8) {
+    let (c, p) = (oklch::from_srgb(want), oklch::from_srgb(page));
+    let pulled = c.with_l(c.l + (p.l - c.l) * 0.42).to_srgb();
+    against(pulled, page, MARK_FLOOR)
+}
+
 /// The block cursor. Focused, it is the page's own ink inverted — the highest
 /// contrast the palette has, in either direction. Unfocused it is the same
 /// colour pulled most of the way back to the page: present, clearly secondary,

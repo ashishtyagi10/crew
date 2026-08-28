@@ -40,6 +40,26 @@ pub fn section_header(
     title_fg: (u8, u8, u8),
     bg: (u8, u8, u8),
 ) -> Vec<CellView> {
+    section_header_key(title, "", cols, border, title_fg, title_fg, bg)
+}
+
+/// [`section_header`] with a quiet `key` after the title — a unit, a scale, a
+/// legend — so a row of bare numbers underneath can say what it is measuring
+/// without spending any of its own columns saying it: `─ LOAD 1·5·15m ───`.
+///
+/// The rule is the widest part of a narrow section and the emptiest; a key
+/// there costs nothing, where the same key trailing the values needed eight
+/// columns the docked nav has never had. (LOAD shipped with exactly that
+/// trailing hint, behind a width check the nav has never passed.)
+pub fn section_header_key(
+    title: &str,
+    key: &str,
+    cols: u16,
+    border: (u8, u8, u8),
+    title_fg: (u8, u8, u8),
+    key_fg: (u8, u8, u8),
+    bg: (u8, u8, u8),
+) -> Vec<CellView> {
     let mut v = Vec::new();
     if cols < 4 {
         return v;
@@ -48,7 +68,18 @@ pub fn section_header(
     let mut col = 1u16;
     v.push(cell(col, 0, '─', border, bg));
     col += 1;
-    let title = crate::chatwidth::clip_w(title, title_budget(cols));
+    // The title is never dropped to make room for the key: the key is the
+    // afterthought, so it is what goes when the rule runs short.
+    let budget = title_budget(cols);
+    let title = crate::chatwidth::clip_w(title, budget);
+    let key = {
+        let room = budget.saturating_sub(crate::chatwidth::str_w(&title) + 1);
+        if key.is_empty() || crate::chatwidth::str_w(key) > room {
+            ""
+        } else {
+            key
+        }
+    };
     if title.is_empty() {
         // No title (or no room for one): fill the row with solid border.
         while col <= right {
@@ -61,12 +92,13 @@ pub fn section_header(
     col += 1;
     // Width-aware placement: a wide (emoji/CJK) glyph advances two columns,
     // so the trailing rule resumes on the right cell instead of overlapping.
-    col = crate::chatwidth::place_row(
-        col,
-        right,
-        title.chars().map(|c| (c, title_fg)),
-        |x, c, fg| v.push(cell(x, 0, c, fg, bg)),
-    );
+    let spacer = (!key.is_empty()).then_some((' ', bg));
+    let styled = title
+        .chars()
+        .map(|c| (c, title_fg))
+        .chain(spacer)
+        .chain(key.chars().map(|c| (c, key_fg)));
+    col = crate::chatwidth::place_row(col, right, styled, |x, c, fg| v.push(cell(x, 0, c, fg, bg)));
     if col <= right {
         v.push(cell(col, 0, ' ', border, bg));
         col += 1;

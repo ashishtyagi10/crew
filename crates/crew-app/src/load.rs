@@ -3,8 +3,6 @@
 //! instantaneous SYSTEM gauges with a sense of sustained pressure.
 use crew_render::CellView;
 
-use crate::boxdraw::section_header;
-
 use crate::palette::accent;
 /// The two warning colours, darkened until the page can carry them. They
 /// shipped as the flat constants `(230, 180, 90)` and `(230, 90, 90)`, which
@@ -45,41 +43,52 @@ fn load_color(one: f64, cores: f64) -> (u8, u8, u8) {
     }
 }
 
-/// Render the load section: a `LOAD` rule on row 0 and the three averages on
-/// row 1, the trio coloured by the 1-minute load relative to `cores`.
+/// Render the load section: a `LOAD 1·5·15m` rule on row 0 and the three
+/// averages on row 1, coloured by the 1-minute load relative to `cores`.
+///
+/// The three are the same measurement at three ages, so they keep one colour
+/// and differ by rank instead: the 1-minute figure — the only one that says
+/// anything about *now* — carries the load colour at full strength, and the
+/// two history figures step back with [`crew_theme::readable::secondary`].
+/// Giving them different hues would say they measured different things;
+/// dropping them to `text_muted` would throw away the warning they share.
 pub fn load_cells(one: f64, five: f64, fifteen: f64, cores: f64, cols: u16) -> Vec<CellView> {
     let t = crew_theme::theme();
-    let mut out = section_header("LOAD", cols, t.border_normal, accent(), t.page_bg);
+    let mut out = crate::boxdraw::section_header_key(
+        "LOAD",
+        "1·5·15m",
+        cols,
+        t.border_normal,
+        accent(),
+        t.dim,
+        t.page_bg,
+    );
     let fg = load_color(one, cores);
-    let nums = format!("{one:.2}  {five:.2}  {fifteen:.2}");
+    let past = crew_theme::readable::secondary(fg, t.page_bg);
     let max = cols.saturating_sub(4) as usize;
-    for (i, c) in nums.chars().take(max).enumerate() {
-        out.push(CellView {
-            col: 3 + i as u16,
-            row: 1,
-            c,
-            fg,
-            bg: t.page_bg,
-            bold: false,
-            italic: false,
-            ..Default::default()
-        });
-    }
-    // Trailing "1m 5m 15m" hint when the row has spare width.
-    let hint = "1·5·15m";
-    let hstart = nums.chars().count() + 5;
-    if hstart + hint.len() <= max {
-        for (i, c) in hint.chars().enumerate() {
+    let mut col = 3usize;
+    for (i, (v, fg)) in [(one, fg), (five, past), (fifteen, past)]
+        .into_iter()
+        .enumerate()
+    {
+        if i > 0 {
+            col += 2;
+        }
+        for c in format!("{v:.2}").chars() {
+            if col >= 3 + max {
+                return out;
+            }
             out.push(CellView {
-                col: 3 + (hstart + i) as u16,
+                col: col as u16,
                 row: 1,
                 c,
-                fg: t.text_muted,
+                fg,
                 bg: t.page_bg,
                 bold: false,
                 italic: false,
                 ..Default::default()
             });
+            col += 1;
         }
     }
     out

@@ -214,3 +214,47 @@ fn asking_for_contrast_actually_moves_the_derived_colours() {
         "only {moved} of {checked} roles moved — the floor is not reaching them"
     );
 }
+
+/// `secondary` is quieter than what it is given but never invisible: it keeps
+/// the hue (so it still reads as the same measurement) and never falls under
+/// the mark floor (so it is still a mark).
+#[test]
+fn secondary_is_quieter_but_never_below_the_mark_floor() {
+    let _g = crate::contrast::test_lock();
+    crate::contrast::set_high_contrast(false);
+    let mut bad: Vec<String> = Vec::new();
+    for id in ALL_THEMES {
+        let t = id.theme();
+        for (name, want) in [
+            ("accent", t.accent_default),
+            ("warn", warn(t)),
+            ("danger", danger(t)),
+        ] {
+            let q = secondary(want, t.page_bg);
+            let (full, quiet) = (
+                contrast_ratio(want, t.page_bg),
+                contrast_ratio(q, t.page_bg),
+            );
+            if quiet >= full {
+                bad.push(format!(
+                    "{}: {name} not quieter ({quiet:.2} vs {full:.2})",
+                    id.as_str()
+                ));
+            }
+            if quiet < MARK_FLOOR - 0.01 {
+                bad.push(format!(
+                    "{}: {name} is {quiet:.2}, floor {MARK_FLOOR}",
+                    id.as_str()
+                ));
+            }
+            // Same measurement, so the same hue — a chromatic colour must not
+            // walk into a different one on its way down.
+            let (a, b) = (crate::oklch::from_srgb(want), crate::oklch::from_srgb(q));
+            let dh = (a.h - b.h).abs().min(360.0 - (a.h - b.h).abs());
+            if a.c > 0.02 && dh > 4.0 {
+                bad.push(format!("{}: {name} hue moved {dh:.1} degrees", id.as_str()));
+            }
+        }
+    }
+    assert!(bad.is_empty(), "{}", bad.join("\n  "));
+}

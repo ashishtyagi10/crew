@@ -138,3 +138,27 @@ fn the_stamp_is_dimmed_and_the_message_is_not() {
         "an unstamped line gives no columns to a stamp"
     );
 }
+
+/// A run of lines from the same minute prints its stamp once — a stack of
+/// identical `23:12`s is furniture repeating itself. The messages stay in
+/// their column either way, so the lines still align.
+#[test]
+fn a_repeated_stamp_is_printed_once() {
+    let _g = crate::app::theme_test_guard();
+    let e = [
+        info("23:12 one"),
+        info("23:12 two"),
+        info("23:13 three"),
+        info("23:13 four"),
+    ];
+    let cells = log_cells(&e, 24, 5, 0);
+    let row = |r: u16| -> String {
+        let mut v: Vec<_> = cells.iter().filter(|c| c.row == r).collect();
+        v.sort_by_key(|c| c.col);
+        v.iter().map(|c| c.c).collect()
+    };
+    assert_eq!(row(1), "23:12 one");
+    assert_eq!(row(2), "      two", "the repeat is blanked, not shifted");
+    assert_eq!(row(3), "23:13 three", "a new minute prints again");
+    assert_eq!(row(4), "      four");
+}

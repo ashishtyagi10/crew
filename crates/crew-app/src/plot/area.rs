@@ -30,6 +30,12 @@ const FILL_BOTTOM: f32 = 0.04;
 pub struct Style {
     pub at_curve: f32,
     pub at_base: f32,
+    /// Whether to draw the curve itself and the dot on its newest reading.
+    /// A chart you *read* wants both. A chart drawn as a backdrop under text
+    /// wants neither: the fill is texture and the eye passes over it, but a
+    /// stroke is a line, and a line crossing a word is a scribble however
+    /// faint it is.
+    pub outline: bool,
 }
 
 impl Default for Style {
@@ -37,6 +43,7 @@ impl Default for Style {
         Self {
             at_curve: FILL_TOP,
             at_base: FILL_BOTTOM,
+            outline: true,
         }
     }
 }
@@ -47,6 +54,16 @@ impl Style {
         Self {
             at_curve: 0.08,
             at_base: 0.42,
+            ..Self::default()
+        }
+    }
+
+    /// Fill only, weighted at the floor: a backdrop for text drawn over it.
+    pub fn wash() -> Self {
+        Self {
+            at_curve: 0.30,
+            at_base: 0.02,
+            outline: false,
         }
     }
 }
@@ -90,6 +107,10 @@ pub fn draw_styled(
             (color, style.at_base + (style.at_curve - style.at_base) * k)
         },
     );
+
+    if !style.outline {
+        return;
+    }
 
     // The curve itself, drawn as a vertical band around it: at these sizes a
     // true distance-to-segment stroke and a vertical thickness are within a

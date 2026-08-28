@@ -4,9 +4,11 @@
 //!
 //! It replaces a one-row pulse sparkline that could only say how many panes
 //! were busy, in eight height levels, with no way to show what the rest were.
-//! The pulse history did not go away: it is drawn as a faint area chart
-//! *behind* the whole block, so the ring says the present and the wash behind
-//! it says the last minute.
+//! The pulse history did not go away: it is drawn as a faint fill behind the
+//! legend, so the ring says the present and the wash behind it says the last
+//! minute. Fill only, and only to the right of the ring — a stroke crossing a
+//! word is a scribble however faint it is, and the donut is the one thing in
+//! the block the eye is meant to land on.
 use crew_render::{CellView, Paint};
 
 use crate::palette::accent;
@@ -20,11 +22,13 @@ pub const ROWS: u16 = 3;
 /// Where the donut sits and how big it is, in canvas units (one unit = one
 /// cell width). Deliberately small: the sidebar is narrow, and the ring has to
 /// leave the legend enough columns to name its own colours.
-const CENTRE_X: f32 = 3.0;
-const R_OUT: f32 = 2.6;
-const R_IN: f32 = 1.35;
+const CENTRE_X: f32 = 3.3;
+const R_OUT: f32 = 2.4;
+const R_IN: f32 = 1.25;
 /// First column of the legend — clear of the ring, with a column of air.
 const LEGEND_COL: u16 = 7;
+/// Where the pulse backdrop starts: past the ring, so the two never overlap.
+const WASH_X: f32 = CENTRE_X + R_OUT + 0.4;
 
 /// How the crew divides up right now. `waiting` is a pane that has raised a
 /// marker for you (a bell, a finished command); `working` is one doing
@@ -122,10 +126,10 @@ pub fn paint(
     let mut c = Canvas::new(cols, ROWS, aspect);
     let (w, h) = c.size();
 
-    // The last minute of crew workload, behind everything: quiet enough to
-    // read the legend through (0.18 of the chart's own alpha — at full
-    // strength it fights the text it sits under), present enough to see the
-    // shape of a swarm that has since finished.
+    // The last minute of crew workload, behind the legend: quiet enough to
+    // read through (half the chart's own alpha — at full strength it fights
+    // the text it sits under), present enough to see the shape of a swarm
+    // that has since finished.
     let peak = pulse.peak(cols as usize).max(1);
     let samples: Vec<f32> = pulse
         .tail(cols as usize * 2)
@@ -134,16 +138,20 @@ pub fn paint(
         .collect();
     if !samples.is_empty() {
         let mut back = Canvas::new(cols, ROWS, aspect);
-        crate::plot::area::draw(&mut back, (0.0, 0.0, w, h), &samples, accent());
+        // Fill only, and starting clear of the ring. With its stroke on, the
+        // curve ran a faint line straight through "working" and "waiting" —
+        // a scribble across the legend, not a backdrop behind it — and its
+        // left end crossed the donut, which is the one thing in the block the
+        // eye is meant to land on.
+        crate::plot::area::draw_styled(
+            &mut back,
+            (WASH_X, 0.0, (w - WASH_X).max(0.0), h),
+            &samples,
+            accent(),
+            crate::plot::area::Style::wash(),
+        );
         for p in back.paint() {
-            c.rect(
-                p.x,
-                p.y * aspect,
-                p.w,
-                p.h * aspect,
-                p.color,
-                p.alpha * 0.18,
-            );
+            c.rect(p.x, p.y * aspect, p.w, p.h * aspect, p.color, p.alpha * 0.5);
         }
     }
 
@@ -291,6 +299,30 @@ mod tests {
                 "and stays inside it: {r:?}"
             );
         }
+    }
+
+    /// The wash is a backdrop, and a backdrop that crosses the ring is a
+    /// smudge on the one mark the block is about. Nothing it draws may reach
+    /// the donut, and it may not draw a curve at all.
+    #[test]
+    fn the_pulse_wash_never_reaches_the_ring() {
+        let _g = crate::app::theme_test_guard();
+        let mut hist = crate::spark::History::new(64);
+        for v in 0..40 {
+            hist.push(v % 5);
+        }
+        let m = Mix::default(); // no ring of its own: every accent quad is wash
+        let p = paint(&m, 24, 0, 2.0, &hist);
+        let wash: Vec<_> = p
+            .iter()
+            .filter(|r| r.color == crate::palette::accent())
+            .collect();
+        assert!(!wash.is_empty(), "there is a wash to test");
+        let ring_right = super::CENTRE_X + super::R_OUT;
+        assert!(
+            wash.iter().all(|r| r.x >= ring_right),
+            "wash crosses the ring (right edge {ring_right}): {wash:?}"
+        );
     }
 
     #[test]
