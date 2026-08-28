@@ -276,3 +276,95 @@ fn rotation_never_touches_the_pinned_config_family() {
     assert_eq!(app.config.font_family.as_deref(), Some("Pinned Mono"));
     assert_eq!(app.font_rotate.current.as_deref(), Some("Rotated Mono"));
 }
+
+#[test]
+fn a_pinned_family_outranks_the_themes_font() {
+    // The bug this pins: `config.font_family` was applied once at startup
+    // (`handler`) and then overridden by the very first `tick_theme_font`.
+    // `apply_config` stops the ROTATION when a pin arrives but nothing
+    // guarded the theme path, and `theme = "light"` is itself a rotation —
+    // so the pinned face was lost on every launch and every 10-minute roll,
+    // while config went on claiming it. Worse, a pinned face need not appear
+    // in any theme's `font_prefs`, so there was no way back to it.
+    let _g = crate::app::theme_test_guard();
+    let mut app = CrewApp::default();
+    app.font_rotate.pool = Some(vec!["Lilex".into(), "Intel One Mono".into()]);
+    app.config.font_family = Some("Intel One Mono".into());
+    crew_theme::apply_selection(
+        crew_theme::Selection::Fixed(crew_theme::ThemeId::CrtGreen),
+        0,
+    );
+
+    assert!(
+        !app.tick_theme_font(),
+        "a pinned family must survive a theme change"
+    );
+    assert_eq!(
+        app.font_rotate.current, None,
+        "nothing may be applied over the pin"
+    );
+    assert_eq!(
+        app.current_family().as_deref(),
+        Some("Intel One Mono"),
+        "the theme replaced the family the user pinned"
+    );
+    assert_eq!(
+        app.font_rotate.themed,
+        Some(crew_theme::ThemeId::CrtGreen),
+        "the theme must still be stamped, or this re-runs at ~62 Hz"
+    );
+}
+
+#[test]
+fn a_pin_holds_across_every_later_theme_change() {
+    // One skip is not the property — the pin has to hold as the theme keeps
+    // rolling, which is exactly what `theme = "light"` does on its own clock.
+    let _g = crate::app::theme_test_guard();
+    let mut app = CrewApp::default();
+    app.font_rotate.pool = Some(vec!["Lilex".into(), "IBM Plex Mono".into()]);
+    app.config.font_family = Some("Intel One Mono".into());
+    for id in [
+        crew_theme::ThemeId::CrtGreen,
+        crew_theme::ThemeId::PaperDark,
+        crew_theme::ThemeId::SepiaLight,
+        crew_theme::ThemeId::CrtAmber,
+    ] {
+        crew_theme::apply_selection(crew_theme::Selection::Fixed(id), 0);
+        assert!(!app.tick_theme_font(), "{id:?} overrode the pin");
+    }
+    assert_eq!(app.current_family().as_deref(), Some("Intel One Mono"));
+}
+
+#[test]
+fn a_pin_does_not_freeze_the_font_while_rotation_is_on() {
+    // `/font random` is the user asking for the font to move, and the theme
+    // still wins that tie (`the_theme_font_beats_the_rotation_on_a_shared_tick`).
+    // Guarding on the pin alone would have made a pinned config — which most
+    // users have — silently kill both.
+    let _g = crate::app::theme_test_guard();
+    let mut app = rotating_app();
+    app.font_rotate.pool = Some(vec!["Lilex".into(), "IBM Plex Mono".into()]);
+    app.config.font_family = Some("Intel One Mono".into());
+    crew_theme::apply_selection(
+        crew_theme::Selection::Fixed(crew_theme::ThemeId::CrtGreen),
+        0,
+    );
+    assert!(
+        app.tick_theme_font(),
+        "rotation is on — the theme's font must still land"
+    );
+    assert_eq!(app.font_rotate.current.as_deref(), Some("Lilex"));
+}
+
+#[test]
+fn the_font_report_names_the_pin_that_is_holding() {
+    let mut app = CrewApp::default();
+    app.config.font_family = Some("Intel One Mono".into());
+    app.set_font_cmd("");
+    let msg = app.active_status().unwrap_or_default();
+    assert!(
+        msg.contains("Intel One Mono"),
+        "/font must name the pinned face — a theme that stops changing the \
+         typeface is otherwise indistinguishable from a broken one: {msg:?}"
+    );
+}
