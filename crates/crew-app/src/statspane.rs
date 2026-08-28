@@ -281,8 +281,11 @@ impl StatsPane {
         let list_off = 1 + crate::crewpie::ROWS;
         if !panes.is_empty() && rows > panes_off + list_off {
             let limit = (rows - panes_off - list_off) as usize;
-            let spin = crate::update::SPINNER
-                [(crate::anim::now_ms() / 100) as usize % crate::update::SPINNER.len()];
+            // A busy pane's row spins; with motion off it holds one frame.
+            // The row still says "working" — the glyph is not the animation,
+            // the animation is — and a nav that spins through a reduce-motion
+            // request is spinning where it was asked not to.
+            let spin = crate::update::spinner_frame(crate::anim::now_ms());
             for mut c in panelist::pane_cells(panes, cols, limit, spin) {
                 c.row += panes_off;
                 out.push(c);
