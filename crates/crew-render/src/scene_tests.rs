@@ -71,6 +71,7 @@ fn pane(cells: Vec<CellView>, bordered: bool, overlay: bool) -> PaneScene {
         glass: false,
         scan: -1.0,
         overlay,
+        paint: Vec::new(),
     }
 }
 
@@ -316,4 +317,61 @@ fn the_rule_is_drawn_in_the_underline_colour_not_the_text_colour() {
         quads[0].color,
         crate::color::target_rgba((200, 200, 200), 1.0, false)
     );
+}
+
+/// Paint is addressed in cell units, so the same widget draws the same picture
+/// at any font size: the scene multiplies by this frame's cell box.
+#[test]
+fn paint_scales_by_the_cell_box_and_lands_at_the_pane_origin() {
+    let mut p = pane(Vec::new(), false, false);
+    p.x = 100.0;
+    p.y = 50.0;
+    p.paint = vec![crate::Paint::solid(2.0, 1.0, 0.5, 0.25, (10, 20, 30))];
+    let mut fs = crate::embedfont::font_system();
+    let (quads, ..) = build(&[p], &mut fs, false, no_glass());
+    let q = quads
+        .iter()
+        .find(|q| q.color[0] > 0.0 || q.color[1] > 0.0 || q.color[2] > 0.0)
+        .expect("the paint quad");
+    assert_eq!((q.x, q.y), (100.0 + 2.0 * 8.0, 50.0 + 1.0 * 16.0));
+    assert_eq!((q.w, q.h), (0.5 * 8.0, 0.25 * 16.0));
+}
+
+/// Translucent paint must reach the GPU translucent: the quad pipeline blends
+/// alpha for exactly this layer (it was `REPLACE` while everything drawn was
+/// opaque, which would have painted a chart fill as a solid slab).
+#[test]
+fn paint_alpha_survives_into_the_quad() {
+    let mut p = pane(Vec::new(), false, false);
+    p.paint = vec![crate::Paint::solid(0.0, 0.0, 1.0, 1.0, (200, 100, 50)).at(0.25)];
+    let mut fs = crate::embedfont::font_system();
+    let (quads, ..) = build(&[p], &mut fs, false, no_glass());
+    let q = quads.first().expect("the paint quad");
+    assert!((q.color[3] - 0.25).abs() < 1e-6, "alpha reached the quad");
+}
+
+/// Order matters: the chart sits over the page it is drawn on and under the
+/// labels written across it. Cell backgrounds come first, text is a later
+/// pass entirely, so paint only has to land after the cell quads.
+#[test]
+fn paint_is_drawn_over_cell_backgrounds() {
+    let mut p = pane(
+        vec![CellView {
+            col: 0,
+            row: 0,
+            c: ' ',
+            fg: (255, 255, 255),
+            bg: (9, 9, 9),
+            ..Default::default()
+        }],
+        false,
+        false,
+    );
+    p.paint = vec![crate::Paint::solid(0.0, 0.0, 1.0, 1.0, (200, 100, 50))];
+    let mut fs = crate::embedfont::font_system();
+    let (quads, ..) = build(&[p], &mut fs, false, no_glass());
+    assert_eq!(quads.len(), 2, "one cell background, one paint rectangle");
+    let bg_i = quads.iter().position(|q| q.color[0] < 0.1).unwrap();
+    let paint_i = quads.len() - 1;
+    assert!(bg_i < paint_i, "paint is emitted after the cell background");
 }

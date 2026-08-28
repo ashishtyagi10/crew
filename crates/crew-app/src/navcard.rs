@@ -52,8 +52,15 @@ impl CrewApp {
                 crew_theme::theme().legend_off,
             ),
         };
-        crate::panelcard::push_card_titled(scenes, sb, cw, ch, &legend, legend_fg, |cols, rows| {
-            sidebar.cells(cols, rows, &pane_rows, log, log_back)
+        // The card carries two layers: the cells, and the sub-cell paint its
+        // charts are drawn on. `ch / cw` goes with them so a chart's circles
+        // stay round and its proportions survive a font change.
+        let aspect = ch / cw;
+        crate::panelcard::push_card_art(scenes, sb, cw, ch, &legend, legend_fg, |cols, rows| {
+            (
+                sidebar.cells(cols, rows, &pane_rows, log, log_back),
+                sidebar.chart_paint(cols, rows, aspect),
+            )
         });
     }
 

@@ -330,6 +330,7 @@ fn push_pane_scenes(
         glass: false,
         scan: -1.0,
         overlay: false,
+        paint: Vec::new(),
     });
     // Border card: the rounded frame + legend + status, drawn over the rect.
     let title = p.title_text();
@@ -373,6 +374,7 @@ fn push_pane_scenes(
         glass: true,
         scan,
         overlay: false,
+        paint: Vec::new(),
     });
 }
 

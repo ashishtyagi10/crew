@@ -6,6 +6,7 @@ use glyphon::Buffer;
 use crate::cellgrid::{default_bg, CellView};
 use crate::celltext::{build_pane_buffer, FontParams};
 use crate::glass::GlassCard;
+use crate::paint::Paint;
 use crate::quads::Quad;
 use crate::roundborder::Border;
 use crate::scenecache::{pane_sig, PrevPass};
@@ -38,6 +39,10 @@ pub struct PaneScene {
     /// pane already repaints (see the app's `poll`), so the sweep costs no
     /// extra frames, and an idle crew never draws it at all.
     pub scan: f32,
+    /// Sub-cell vector rectangles drawn between this pane's cell backgrounds
+    /// and its text — the layer charts are painted on. Cell units; see
+    /// [`Paint`].
+    pub paint: Vec<Paint>,
     /// Overlay popups (command palette, help) drawn on top of everything. Their
     /// backgrounds and text are rendered in a second pass *after* base panes, so
     /// nothing behind them can bleed through — they are fully opaque.
@@ -176,6 +181,19 @@ pub(crate) fn build_scene(
                     quads.push(Quad { x, y, w, h, color });
                 }
             }
+        }
+
+        // The pane's vector paint: cell-unit rectangles scaled by this frame's
+        // cell size. After the cell backgrounds so a chart is not buried by the
+        // page it sits on, and before the text pass so labels read on top of it.
+        for p in pane.paint.iter().filter(|p| p.visible()) {
+            quads.push(Quad {
+                x: pane.x + p.x * cell_w,
+                y: pane.y + p.y * cell_h,
+                w: p.w * cell_w,
+                h: p.h * cell_h,
+                color: crate::color::target_rgba(p.color, p.alpha, srgb),
+            });
         }
 
         // The frosted sheet this pane sits on. Only card scenes get one — a

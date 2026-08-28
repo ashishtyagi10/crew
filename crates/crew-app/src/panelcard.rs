@@ -3,7 +3,7 @@
 //! legend, pushed as two [`PaneScene`]s so the border never shifts the content.
 //! The pane version (with focus, status glyphs) lives in
 //! [`crate::panecard`]; this is the plain box on the one canvas.
-use crew_render::{CellView, PaneScene};
+use crew_render::{CellView, Paint, PaneScene};
 
 use crate::layout::Rect;
 
@@ -62,6 +62,7 @@ pub fn push_ghost(
         glass: true,
         scan: -1.0,
         overlay: false,
+        paint: Vec::new(),
     });
 }
 
@@ -77,9 +78,30 @@ pub fn push_card_titled(
     title_fg: (u8, u8, u8),
     content: impl FnOnce(u16, u16) -> Vec<CellView>,
 ) {
+    push_card_art(scenes, rect, cw, ch, legend, title_fg, |cols, rows| {
+        (content(cols, rows), Vec::new())
+    });
+}
+
+/// [`push_card_titled`] for a card that also *draws*: `content` returns its
+/// cells and the sub-cell [`Paint`] rectangles beneath them (see
+/// [`crate::plot`]). Paint is in the interior's own cell coordinates — the
+/// same origin the cells are laid out from — so a widget never has to know
+/// where the card sits or how thick its frame is.
+pub fn push_card_art(
+    scenes: &mut Vec<PaneScene>,
+    rect: Rect,
+    cw: f32,
+    ch: f32,
+    legend: &str,
+    title_fg: (u8, u8, u8),
+    content: impl FnOnce(u16, u16) -> (Vec<CellView>, Vec<Paint>),
+) {
     let (icols, irows) = crate::layout::card_inner_cells(rect.w, rect.h, cw, ch);
+    let (cells, paint) = content(icols, irows);
     scenes.push(PaneScene {
-        cells: content(icols, irows),
+        cells,
+        paint,
         x: rect.x + cw,
         y: rect.y + ch,
         w: (rect.w - 2.0 * cw).max(0.0),
@@ -111,5 +133,6 @@ pub fn push_card_titled(
         glass: true,
         scan: -1.0,
         overlay: false,
+        paint: Vec::new(),
     });
 }

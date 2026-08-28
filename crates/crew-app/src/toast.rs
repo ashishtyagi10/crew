@@ -293,6 +293,7 @@ pub(crate) fn push_toasts(
             glass: false,
             scan: -1.0,
             overlay: true,
+            paint: Vec::new(),
         });
         y += h + gap;
     }
