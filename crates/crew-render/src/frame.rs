@@ -9,6 +9,7 @@ use crate::fadepass::FadePass;
 use crate::gpu::Gpu;
 use crate::paperbg::PaperBgPass;
 use crate::scene::PaneScene;
+use crate::solidcard::SolidCardPass;
 
 /// Upload the scene, render, and present. Skips the frame on surface errors
 /// (Outdated/Lost). `paper` is `None` with the paper texture disabled;
@@ -26,6 +27,8 @@ pub(crate) fn render(
     crt: &CrtChain,
     fade_pass: &mut FadePass,
     fade: Option<f32>,
+    solid_card: &mut SolidCardPass,
+    solid_chrome: &[[f32; 4]],
     window_opacity: f32,
     grain: f32,
     wash_phase: f32,
@@ -104,8 +107,25 @@ pub(crate) fn render(
         crt.update_uniforms(&gpu.queue, w, h, !crew_theme::theme().dark);
     }
 
+    // Where the window stops being see-through, and only while it IS sheer:
+    // the card being read, plus the chrome the app holds solid (the input bar
+    // and the nav — see `solidcard`). At full opacity there is nothing to hand
+    // back and the pass never runs. The CRT chain carries `scene.a` through
+    // its composite, so this reads the same through the tube.
+    let mut solid: Vec<[f32; 4]> = Vec::new();
+    if window_opacity < 1.0 {
+        solid.extend_from_slice(solid_chrome);
+        solid.extend(crate::scene::focused_card_rect(
+            panes,
+            cell_grid.cell_w,
+            cell_grid.cell_h,
+        ));
+    }
+    solid_card.set_rects(&gpu.queue, &solid, (w, h));
+    let solid_card = (!solid_card.is_empty()).then_some(&*solid_card);
+
     let scene_view = if use_crt { crt.scene_view() } else { &view };
-    encode_scene(&mut enc, scene_view, bg_f32, paper, cell_grid);
+    encode_scene(&mut enc, scene_view, bg_f32, paper, cell_grid, solid_card);
     if use_crt {
         crt.encode(&mut enc, &view);
     }
@@ -131,6 +151,7 @@ fn encode_scene(
     bg_f32: [f32; 4],
     paper: Option<&PaperBgPass>,
     cell_grid: &CellGrid,
+    solid_card: Option<&SolidCardPass>,
 ) {
     let mut pass = enc.begin_render_pass(&wgpu::RenderPassDescriptor {
         label: Some("crew frame"),
@@ -161,4 +182,10 @@ fn encode_scene(
         paper.draw(&mut pass);
     }
     cell_grid.draw(&mut pass);
+    // Last, and only in the alpha channel: everything above has finished
+    // writing colour, so solidifying the focused card cannot change any of it
+    // (see [`crate::solidcard`]).
+    if let Some(solid) = solid_card {
+        solid.draw(&mut pass);
+    }
 }

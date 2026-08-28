@@ -790,6 +790,30 @@ longer aim at.
   under your text with 4-16% contrast headroom over the page it lifts — that
   is not headroom a colour picker gets to spend. You choose the colour; crew
   chooses how bright it is.
+- **`/opacity [off|subtle|medium|sheer|<35-100>]`** — how much of the desktop
+  shows through crew. The same knob as **Settings → WINDOW → Opacity %**, on
+  the input bar and applied live; the ladder's rungs are `off` (100%),
+  `subtle` (97%), `medium` (93%) and `sheer` (88%), and any percent down to
+  the **35% floor** works too (`/opacity 60`). A window that could be dialled
+  to nothing is a window you cannot find again, so the floor holds.
+
+  **The named steps are deliberately shy.** Translucency is a texture, not a
+  window into the wallpaper — past a tenth or so of desktop the canvas starts
+  competing with the work on it, and the ladder is where a first `/opacity`
+  lands. The aquarium look is still one typed number away.
+
+  **What goes sheer is the page, not the work.** The window's alpha rides the
+  page colour and everything crew draws blends on top of it, so text, cell
+  backgrounds and the frames stay solid — and **the card you are reading, the
+  input bar and the left nav are solidified outright**: the desktop comes
+  through the canvas around your panes and through every card you are *not*
+  reading, while the surface your eye is on, the bar you type into and the
+  nav beside them never have a wallpaper behind their text. Move focus and the
+  solidity moves with it, the same way the spotlight and the page's light
+  already do. Alpha is all that changes there, so the gradient wash, the dot
+  lattice and the paper grain inside the focused card are exactly what they
+  would be in an opaque window.
+
 - **`/only`** — closes every pane except the focused one (a quick "focus mode");
   a no-op when only one pane is open.
 - **File operations live in Far and Cmd+click**, not slash commands: the old

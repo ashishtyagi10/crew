@@ -8,6 +8,7 @@ use crate::fadepass::FadePass;
 use crate::gpu::Gpu;
 use crate::paperbg::PaperBgPass;
 use crate::scene::PaneScene;
+use crate::solidcard::SolidCardPass;
 
 /// Never let the window go so sheer that crew becomes unreadable (or, worse,
 /// unclickable-looking) — a translucency slider that can reach 0 is a way to
@@ -24,6 +25,13 @@ pub struct Renderer {
     /// Alpha the page background is cleared/drawn with. `1.0` is the opaque
     /// window; lower lets the desktop through (see [`Self::set_window_opacity`]).
     window_opacity: f32,
+    /// Hands the focused card and crew's own chrome their opacity back while
+    /// the window is sheer, so neither the surface being read nor the bar
+    /// being typed into has the desktop behind it.
+    solid_card: SolidCardPass,
+    /// Rects that stay solid however sheer the window is, in physical px —
+    /// see [`Self::set_solid_chrome`].
+    solid_chrome: Vec<[f32; 4]>,
     // CRT post-process: when a style is set, the frame renders into the
     // chain's scene target then reprojects (bloom + composite); otherwise it
     // draws straight to the surface.
@@ -45,6 +53,7 @@ impl Renderer {
         let gpu = Gpu::new(window)?;
         let cell_grid = CellGrid::new(&gpu.device, &gpu.queue, gpu.format, font_size);
         let paper_bg = PaperBgPass::new(&gpu.device, gpu.format);
+        let solid_card = SolidCardPass::new(&gpu.device, gpu.format);
         let crt = CrtChain::new(&gpu.device, gpu.format, gpu.config.width, gpu.config.height);
         let fade = FadePass::new(
             &gpu.device,
@@ -62,6 +71,8 @@ impl Renderer {
             // right after construction, so this is just a sane standalone default.
             paper_grain: 1.3,
             window_opacity: 1.0,
+            solid_card,
+            solid_chrome: Vec::new(),
             crt,
             fade,
             theme_fade: None,
@@ -124,6 +135,14 @@ impl Renderer {
     /// shows through everything crew draws.
     pub fn set_window_opacity(&mut self, opacity: f32) {
         self.window_opacity = opacity.clamp(MIN_WINDOW_OPACITY, 1.0);
+    }
+
+    /// The rects a sheer window keeps solid whatever has focus — crew's own
+    /// furniture, in physical px. The app sets them each frame because the
+    /// layout is its to know; an empty list leaves only the focused card
+    /// solid. Ignored entirely at full opacity.
+    pub fn set_solid_chrome(&mut self, rects: Vec<[f32; 4]>) {
+        self.solid_chrome = rects;
     }
 
     /// Set the grain amplitude multiplier (0.0 = no grain, 1.0 = default ~±3%, 2.0 = double).
@@ -206,6 +225,8 @@ impl Renderer {
             &self.crt,
             &mut self.fade,
             self.theme_fade,
+            &mut self.solid_card,
+            &self.solid_chrome,
             self.window_opacity,
             // Newsprint: light themes multiply the user's grain knob
             // (theme().grain = 1.2 on light AND dark; the dark-grain

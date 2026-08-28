@@ -261,6 +261,34 @@ pub(crate) fn build_scene(
     (quads, buffers, sigs, borders, cards)
 }
 
+/// The rect of the card the eye is on — `[x, y, w, h]` in physical px — or
+/// `None` when nothing focused asks for one. What the frame layer solidifies
+/// when the window is sheer (see [`crate::solidcard`]).
+///
+/// Two rules, and both are about matching what is actually DRAWN:
+///
+/// * **Quantized to whole cells**, for the same reason the glass sheet is: a
+///   card's frame is drawn as cells, so it ends at `floor(px / cell)`, and the
+///   raw rect overhangs it by up to a cell — a band of solid page outside the
+///   frame, which reads as a second, misaligned box.
+/// * **The largest focused card wins.** Typing in the input bar leaves both
+///   the bar and the pane it acts on focused (the spotlight deliberately keeps
+///   that pane lit), and the surface being READ is the big one.
+pub(crate) fn focused_card_rect(panes: &[PaneScene], cell_w: f32, cell_h: f32) -> Option<[f32; 4]> {
+    if cell_w <= 0.0 || cell_h <= 0.0 {
+        return None;
+    }
+    panes
+        .iter()
+        .filter(|p| p.focused && p.glass && !p.overlay)
+        .map(|p| {
+            let cols = (p.w / cell_w).floor().max(1.0);
+            let rows = (p.h / cell_h).floor().max(1.0);
+            [p.x, p.y, cols * cell_w, rows * cell_h]
+        })
+        .max_by(|a, b| (a[2] * a[3]).total_cmp(&(b[2] * b[3])))
+}
+
 #[cfg(test)]
 #[path = "scene_tests.rs"]
 mod tests;

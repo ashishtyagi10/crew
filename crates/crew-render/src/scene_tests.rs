@@ -375,3 +375,77 @@ fn paint_is_drawn_over_cell_backgrounds() {
     let paint_i = quads.len() - 1;
     assert!(bg_i < paint_i, "paint is emitted after the cell background");
 }
+
+/// `focused_card_rect` — what a sheer window hands its opacity back to.
+mod focus_rect {
+    use super::*;
+
+    /// Cells are 8 × 16 in these tests (see [`build`]).
+    fn at(x: f32, y: f32, w: f32, h: f32, focused: bool) -> PaneScene {
+        PaneScene {
+            x,
+            y,
+            w,
+            h,
+            focused,
+            ..card(vec![], false, false)
+        }
+    }
+
+    #[test]
+    fn nothing_focused_solidifies_nothing() {
+        let panes = [at(0.0, 0.0, 80.0, 48.0, false)];
+        assert_eq!(focused_card_rect(&panes, 8.0, 16.0), None);
+    }
+
+    /// The raw rect would overhang the drawn frame by most of a cell on each
+    /// axis: 85px of pane is ten 8px columns and five px of nothing.
+    #[test]
+    fn the_rect_is_the_drawn_card_not_the_raw_one() {
+        let panes = [at(12.0, 30.0, 85.0, 55.0, true)];
+        assert_eq!(
+            focused_card_rect(&panes, 8.0, 16.0),
+            Some([12.0, 30.0, 80.0, 48.0])
+        );
+    }
+
+    /// Typing in the input bar focuses the bar AND leaves the pane it acts on
+    /// lit. The pane is the surface being read, so it is the one that solidifies.
+    #[test]
+    fn the_reading_surface_wins_over_the_input_bar() {
+        let panes = [
+            at(0.0, 400.0, 800.0, 48.0, true), // the input bar: wide, three rows
+            at(0.0, 0.0, 800.0, 384.0, true),  // the pane above it
+        ];
+        assert_eq!(
+            focused_card_rect(&panes, 8.0, 16.0),
+            Some([0.0, 0.0, 800.0, 384.0])
+        );
+    }
+
+    /// Overlay popups are opaque already (they lay their own black backdrop),
+    /// and a focused one must not drag the solid rect off the card behind it.
+    #[test]
+    fn overlays_are_not_cards() {
+        let overlay = PaneScene {
+            overlay: true,
+            ..at(0.0, 0.0, 800.0, 384.0, true)
+        };
+        let panes = [overlay, at(0.0, 400.0, 80.0, 48.0, true)];
+        assert_eq!(
+            focused_card_rect(&panes, 8.0, 16.0),
+            Some([0.0, 400.0, 80.0, 48.0])
+        );
+    }
+
+    /// Content scenes set `glass: false` — one card per pane is the whole
+    /// point, and the content scene is inset a cell inside the frame.
+    #[test]
+    fn only_card_scenes_count() {
+        let content = PaneScene {
+            glass: false,
+            ..at(8.0, 16.0, 784.0, 352.0, true)
+        };
+        assert_eq!(focused_card_rect(&[content], 8.0, 16.0), None);
+    }
+}

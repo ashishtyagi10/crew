@@ -26,6 +26,7 @@ mod scenetarget;
 mod sizeramp;
 mod smoothing;
 mod smoothmask;
+mod solidcard;
 mod textgamma;
 mod textprep;
 pub use cellgrid::CellGrid;
@@ -40,6 +41,7 @@ pub use paperbg::{ModernPaper, PaperBgPass};
 pub use renderer::Renderer;
 pub use scene::PaneScene;
 pub use smoothing::DEFAULT_SMOOTH;
+pub use solidcard::SolidCardPass;
 pub use textgamma::DEFAULT_TEXT_GAMMA;
 
 /// Sorted, de-duplicated names of every installed monospace font family —
