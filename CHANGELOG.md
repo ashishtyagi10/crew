@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.49
+
+**The font you pinned stops changing with the theme.** `font_family` in config
+was applied once at startup and then overwritten by the first theme tick.
+Pinning a face already turned off the `/font random` rotation, so a pin
+defeated one override and not the other — and `theme = "light"` is itself a
+rotation, re-rolling a palette on every launch and every ten minutes, each one
+leading with a different face. The rotation deliberately never writes config,
+so config went on naming the family you chose while the screen showed Comic
+Mono, then MonoLisa, then whatever came next. There was no way back either: a
+pinned face need not appear in any theme's preference list, and resolution only
+ever draws from those. A theme states a preference; an explicit pin is an
+answer. `/font random` is untouched — that is the user asking for the font to
+move, and the theme still wins that tie — and `/font` now names the pin that is
+holding, so a theme that has stopped changing the typeface reads differently
+from a broken one.
+
 ## 0.19.48
 
 **A pane's progress bar disappears when it fills.** A program reports progress
