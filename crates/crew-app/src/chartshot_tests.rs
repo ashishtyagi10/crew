@@ -105,8 +105,8 @@ fn chart_shot_sys_dials() {
     };
     let px = shot("dials", "SYSTEM", |cols, _rows, aspect| {
         (
-            crate::sysdials::cells(stats, cols, 0),
-            crate::sysdials::paint(stats, cols, 0, aspect),
+            crate::sysdials::NAV.cells(stats, cols, 0),
+            crate::sysdials::NAV.paint(stats, cols, 0, aspect),
         )
     });
     let Some(px) = px else {

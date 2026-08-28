@@ -387,6 +387,9 @@ fn meter_shade(t: f32) -> (u8, u8, u8) {
 }
 
 /// The track colour under it — the same ramp, pulled toward the page.
+/// Canvas pixels per column for the footer meters.
+const METER_SUB: usize = 12;
+
 fn meter_track() -> (u8, u8, u8) {
     crate::anim::lerp_rgb(meter_shade(0.5), crew_theme::theme().page_bg, TROUGH_FADE)
 }
@@ -510,7 +513,11 @@ pub(crate) fn draw_meters(cells: &mut [CellView], meters: &[f32], aspect: f32) -
     let track = meter_track();
     let mut out = Vec::new();
     for ((row, col, w), &frac) in runs.iter().zip(meters) {
-        let mut c = crate::plot::Canvas::new(*w, 1, aspect);
+        // One row, a handful of columns: a fine grid costs nothing here, and
+        // the pill's end caps are a fraction of a column across — on the
+        // default grid they had under two pixels to round with and came out
+        // square.
+        let mut c = crate::plot::Canvas::with_sub(*w, 1, aspect, METER_SUB);
         crate::plot::meter::capsule(
             &mut c,
             0.0,

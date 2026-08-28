@@ -4,7 +4,7 @@
 //! and eight steps deep, so a budget crossing 6% moved nothing at all and a
 //! meter at 12% and one at 24% drew the same first cell. A drawn capsule is
 //! continuous — the fill lands where the number says, to a fraction of a cell.
-use crate::plot::Canvas;
+use crate::plot::{sdf, Canvas};
 
 /// How tall the capsule is inside its row, as a fraction of the row.
 const HEIGHT: f32 = 0.30;
@@ -57,30 +57,9 @@ fn rounded(
     shade: impl Fn(f32) -> (u8, u8, u8),
     alpha: f32,
 ) {
-    let r = r.min(w * 0.5).min(h * 0.5).max(0.0);
-    c.fill_shaded(
+    c.fill_sdf_shaded(
         (x, y, w, h),
-        move |px, py| {
-            if px < x || px > x + w || py < y || py > y + h {
-                return false;
-            }
-            // Inside the straight middle, or inside one of the end caps.
-            let dx = if px < x + r {
-                x + r - px
-            } else if px > x + w - r {
-                px - (x + w - r)
-            } else {
-                0.0
-            };
-            let dy = if py < y + r {
-                y + r - py
-            } else if py > y + h - r {
-                py - (y + h - r)
-            } else {
-                0.0
-            };
-            dx * dx + dy * dy <= r * r
-        },
+        move |px, py| sdf::round_box((px, py), x, y, w, h, r),
         move |px, _| {
             let t = if w > 0.0 {
                 ((px - x) / w).clamp(0.0, 1.0)

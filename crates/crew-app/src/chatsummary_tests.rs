@@ -563,11 +563,16 @@ fn the_drawn_meter_walks_the_theme_gradient() {
         let d = |x: u8, y: u8| (x as i32 - y as i32).abs();
         d(a.0, b.0) + d(a.1, b.1) + d(a.2, b.2) < 40
     };
-    let leftmost = paint
+    // Only the fully-covered quads: the meter's own end pixels are partly
+    // covered now that the pill is drawn from a distance field, and a
+    // half-covered pixel is honestly a blend of the fill and the track under
+    // it. The ramp's ends are the first and last pixels that are *all* fill.
+    let solid: Vec<_> = paint.iter().filter(|p| p.alpha > 0.9).collect();
+    let leftmost = solid
         .iter()
         .min_by(|a, b| a.x.total_cmp(&b.x))
         .expect("some paint");
-    let rightmost = paint
+    let rightmost = solid
         .iter()
         .max_by(|a, b| (a.x + a.w).total_cmp(&(b.x + b.w)))
         .expect("some paint");

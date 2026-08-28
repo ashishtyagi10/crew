@@ -117,7 +117,7 @@ impl StatsPane {
         // The SYSTEM section's three arc gauges (their text comes from
         // `gauges::render_stats`, which yields the rings the same width test).
         if rows > clock::CLOCK_H + crate::sysdials::ROWS {
-            out.extend(crate::sysdials::paint(
+            out.extend(crate::sysdials::NAV.paint(
                 self.sampler.stats(),
                 cols,
                 clock::CLOCK_H + 1,

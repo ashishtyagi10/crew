@@ -382,7 +382,10 @@ its own face and its name under it. A dial says a load the way a clock says a
 time: by *position* against marks you already know, so half is half without
 reading the number, and the ticks the needle has passed light in the band's
 colour so length says it too. Below the width three faces need, the section
-still falls back to labelled bars.
+still falls back to labelled bars. The **dashboard draws the same three at
+twice the size** — it has the rows the nav does not — and a face with the room
+for it carries a finer scale: a tick every twentieth marked at each quarter,
+rather than every tenth marked at nothing/half/full.
 
 Two things underneath it are worth knowing. The shapes are drawn as **signed
 distance fields** rather than inside/outside tests, so a twenty-pixel arc gets

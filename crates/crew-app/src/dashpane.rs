@@ -73,16 +73,27 @@ fn wall_ms() -> u64 {
 /// drawn only when the pane has the rows for it — the order is the priority,
 /// so a short pane keeps the machine and loses the history.
 const SYS_TOP: u16 = 1;
-const SYS_ROWS: u16 = crate::sysdials::ROWS;
+const SYS_ROWS: u16 = crate::sysdials::DASH.rows;
 const NET_TOP: u16 = SYS_TOP + SYS_ROWS + 1;
 const NET_ROWS: u16 = 3;
 const USE_TOP: u16 = NET_TOP + NET_ROWS + 1;
 const USE_ROWS: u16 = crate::usageledger::DAYS as u16 + 1;
 const COST_TOP: u16 = USE_TOP + USE_ROWS + 1;
 const COST_ROWS: u16 = 4;
-/// Columns the ring block claims on the left of the SYSTEM band; the CPU
+/// Columns the CPU curve keeps beside the dials, at minimum. A curve narrower
+/// than this is a shape you cannot read a trend off.
+const CURVE_MIN: u16 = 18;
+
+/// Columns the dial block claims on the left of the SYSTEM band; the CPU
 /// curve fills what is left.
-const RING_W: u16 = 3 + 3 * 6;
+///
+/// The dials give width back rather than squeezing the curve out: in a
+/// narrow dash they draw smaller and keep their block within what is left.
+fn ring_w(cols: u16) -> u16 {
+    crate::sysdials::DASH_COLS
+        .min(cols.saturating_sub(CURVE_MIN))
+        .max(crate::sysdials::MIN_COLS)
+}
 /// Minimum pane the dashboard will draw in at all.
 const MIN_COLS: u16 = 46;
 
@@ -104,20 +115,16 @@ impl DashPane {
             cols,
         );
 
-        // SYSTEM: the three rings, plus the CPU curve's own label.
-        // RING_W, not `cols`: the dash gives the rings a fixed block and puts
-        // the CPU curve beside them, so they spread inside their own width
+        // SYSTEM: the three dials, plus the CPU curve's own label.
+        // `ring_w`, not `cols`: the dash gives the dials their own block and
+        // puts the CPU curve beside them, so they spread inside that width
         // rather than across the whole pane.
-        out.extend(crate::sysdials::cells(
-            self.sampler.stats(),
-            RING_W,
-            SYS_TOP,
-        ));
-        if cols > RING_W + 12 {
+        out.extend(crate::sysdials::DASH.cells(self.sampler.stats(), ring_w(cols), SYS_TOP));
+        if cols > ring_w(cols) + 12 {
             put(
                 &mut out,
                 "CPU \u{00b7} 4 min",
-                RING_W + 1,
+                ring_w(cols) + 1,
                 SYS_TOP,
                 t.text_muted,
                 cols,
@@ -188,14 +195,10 @@ impl DashPane {
         if cols < MIN_COLS || rows < SYS_TOP + SYS_ROWS {
             return out;
         }
-        // The three rings, and the CPU curve beside them.
-        out.extend(crate::sysdials::paint(
-            self.sampler.stats(),
-            RING_W,
-            SYS_TOP,
-            aspect,
-        ));
-        let curve_w = cols.saturating_sub(RING_W + 2);
+        // The three dials, and the CPU curve beside them.
+        let ring = ring_w(cols);
+        out.extend(crate::sysdials::DASH.paint(self.sampler.stats(), ring, SYS_TOP, aspect));
+        let curve_w = cols.saturating_sub(ring + 2);
         if curve_w > 8 && !self.cpu.is_empty() {
             let samples: Vec<f32> = self
                 .cpu
@@ -209,7 +212,7 @@ impl DashPane {
             out.extend(
                 c.paint()
                     .into_iter()
-                    .map(|p| p.shifted(f32::from(RING_W + 1), f32::from(SYS_TOP + 1))),
+                    .map(|p| p.shifted(f32::from(ring + 1), f32::from(SYS_TOP + 1))),
             );
         }
 
@@ -379,14 +382,20 @@ mod tests {
     fn every_band_stays_in_its_own_rows() {
         let _g = crate::app::theme_test_guard();
         let d = DashPane::new();
-        // The rings own the SYSTEM band; nothing they draw may reach the NET
-        // header a row below it.
-        let rings = crate::sysdials::paint(d.sampler.stats(), 21, SYS_TOP, 2.0);
-        for p in rings {
+        // The dials own the SYSTEM band; nothing they draw may reach the NET
+        // header a row below it — at any pane width, since the block gives
+        // width back to the curve rather than squeezing it out.
+        let dials: Vec<_> = [MIN_COLS, 60, 120]
+            .into_iter()
+            .flat_map(|cols| {
+                crate::sysdials::DASH.paint(d.sampler.stats(), super::ring_w(cols), SYS_TOP, 2.0)
+            })
+            .collect();
+        for p in dials {
             assert!(p.y >= f32::from(SYS_TOP), "{p:?}");
             assert!(
                 p.y + p.h <= f32::from(NET_TOP - 1) + 1e-3,
-                "a ring reached the NET band: {p:?}"
+                "a dial reached the NET band: {p:?}"
             );
         }
     }

@@ -134,7 +134,7 @@ pub(crate) fn render_stats(stats: Stats, cols: u16, rows: u16, peak: Option<u64>
     // Wide enough, the three readings are drawn as dials (see
     // `crate::sysdials`); this section then contributes only their text.
     if crate::sysdials::fits(cols) {
-        out.extend(crate::sysdials::cells(stats, cols, 1));
+        out.extend(crate::sysdials::NAV.cells(stats, cols, 1));
         return out;
     }
 
