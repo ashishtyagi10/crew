@@ -8,6 +8,18 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.35
+
+**The swarm pane shows *when*.** A task list says what ran and how it ended;
+six tasks run one after another and six run at once look identical in it. A
+running swarm now draws a **timeline** down its right third — one bar per task
+on a shared axis, coloured as its state glyph is, with running tasks reaching
+a "now" rule and growing while you watch.
+
+So `/goal` fan-out is visible rather than inferred. The bars give way to the
+task names on a pane too narrow for both, and the axis stops growing once
+everything has finished.
+
 ## 0.19.34
 
 **`/usage` — what crew has spent, drawn.** The ledger behind the footer's 5h/7d
