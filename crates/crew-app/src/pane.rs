@@ -144,6 +144,24 @@ impl Pane {
     /// Render this pane to a flat list of `CellView`s. `focused` brightens the
     /// terminal cursor (dim in unfocused panes).
     pub fn cells(&self, focused: bool) -> Vec<CellView> {
+        self.art(focused, 2.0).0
+    }
+
+    /// This pane's cells *and* the sub-cell paint drawn under them (see
+    /// [`crew_render::Paint`] and [`crate::plot`]). `aspect` is the frame's
+    /// `cell_h / cell_w`; only content that draws uses it.
+    ///
+    /// One call, not two: a chat pane's footer ticks animated readouts while
+    /// it is built, so building it once for the glyphs and again for the
+    /// drawing would advance them twice a frame.
+    pub fn art(&self, focused: bool, aspect: f32) -> (Vec<CellView>, Vec<crew_render::Paint>) {
+        match &self.content {
+            PaneContent::Chat(c) => crate::chatview::art(c, self.grid.cols, self.grid.rows, aspect),
+            _ => (self.cells_only(focused), Vec::new()),
+        }
+    }
+
+    fn cells_only(&self, focused: bool) -> Vec<CellView> {
         match &self.content {
             PaneContent::Terminal(t) => to_cellviews(&t.pty.cells(focused)),
             PaneContent::Chat(c) => c.cells(self.grid.cols, self.grid.rows),

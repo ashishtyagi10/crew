@@ -3,10 +3,11 @@
 //! spend (model/roster · branch · $cost · token split), line 2 is the rolling
 //! 5h/7d usage windows plus budget & context bars, and line 3 is the live
 //! routing mode (swarm vs. `@agent` relay), the agents working right now, and the running-task/hint tail. The builder (`footer_lines`) is pure so it
-//! unit-tests without a live pane; `summary_rows`/`summary_cells` gate the
-//! height and place the rows.
+//! unit-tests without a live pane; `summary_rows`/`summary_art` gate the
+//! height and place the rows. The line-2 meters are drawn, not spelled — see
+//! `draw_meters` and [`crate::plot::meter`].
 use crew_plugin::AgentInfo;
-use crew_render::CellView;
+use crew_render::{CellView, Paint};
 use std::collections::HashMap;
 
 use crate::chat::ChatPane;
@@ -219,7 +220,22 @@ fn ctx_fill(agents: &[AgentInfo], ctx: &HashMap<String, u64>) -> Option<u8> {
 /// The Claude-Code-style statusline: up to three colored lines (identity &
 /// spend / rolling windows & bars / routing mode & hints). Pure — everything
 /// it shows arrives via `FooterCtx`, so it unit-tests without a live pane.
+#[cfg(test)]
 pub(crate) fn footer_lines(fc: &FooterCtx, cols: usize) -> Vec<Vec<(char, Fg)>> {
+    footer_lines_with(fc, cols, &mut Vec::new())
+}
+
+/// [`footer_lines`], also reporting each line-2 meter's exact fill in
+/// `meters`, left to right.
+///
+/// The reserved glyph run says where a meter goes and how long it is; it
+/// cannot say where the fill lands, because eight cells only have eight
+/// stops. The drawn meter needs the real number ([`crate::plot::meter`]).
+pub(crate) fn footer_lines_with(
+    fc: &FooterCtx,
+    cols: usize,
+    meters: &mut Vec<f32>,
+) -> Vec<Vec<(char, Fg)>> {
     let th = crew_theme::theme();
     let (cyan, blue, green, magenta, yellow) = (
         th.ansi[14],
@@ -277,17 +293,27 @@ pub(crate) fn footer_lines(fc: &FooterCtx, cols: usize) -> Vec<Vec<(char, Fg)>> 
         // as a glitch, the same bar sliding reads as a gauge.
         if let Some(w) = fc.windows.five_h {
             let pct = ((w.spent.saturating_mul(100)) / w.budget.max(1)).min(100) as u8;
-            let pct = fc.readouts.bar_5h.tick(f64::from(pct), now).round() as u8;
+            let pct = fc.readouts.bar_5h.tick(f64::from(pct), now);
+            meters.push((pct / 100.0).clamp(0.0, 1.0) as f32);
+            let pct = pct.round() as u8;
             l2.push(((format!("{} {pct}% (5h)", bar(pct)), muted), 2));
         }
         if let Some(fill) = ctx_fill(fc.agents, fc.ctx) {
-            let fill = fc.readouts.ctx.tick(f64::from(fill), now).round() as u8;
+            let fill = fc.readouts.ctx.tick(f64::from(fill), now);
+            meters.push((fill / 100.0).clamp(0.0, 1.0) as f32);
+            let fill = fill.round() as u8;
             l2.push(((format!("{} {fill}% (ctx)", bar(fill)), muted), 3));
         }
     }
 
     let l1 = budget(l1, cols);
+    // The budget drops the meters first on a narrow pane. Their fractions go
+    // with them, or the drawn meters would be paired with the wrong runs.
+    let kept = l2.len();
     let l2 = budget(l2, cols);
+    if l2.len() < kept {
+        meters.truncate(l2.iter().filter(|(text, _)| text.contains(FILLED)).count());
+    }
 
     // Line 3: live routing mode, then either what is RUNNING or — when
     // nothing is — the hints. Work in flight outranks teaching: the hints are
@@ -344,54 +370,26 @@ pub(crate) fn footer_lines(fc: &FooterCtx, cols: usize) -> Vec<Vec<(char, Fg)>> 
     // Line 1 priorities: who is answering, then the spend, then the cost,
     // then the branch; the directory is the first thing to go (it is also
     // gated on width above, so on a wide pane nothing is lost at all).
-    let mut l2 = join(&l2);
-    gradient_meters(&mut l2);
-    vec![join(&l1), l2, l3]
+    vec![join(&l1), join(&l2), l3]
 }
 
-/// Light the line-2 meters with the theme gradient instead of one flat muted
-/// colour: each 8-cell gauge runs `pole_a` at its left edge to `pole_b` at its
-/// right, so a filling bar walks across the theme's own colour ramp.
-///
-/// Runs are found by glyph (`▓`/`░`), not by colour, and every meter is lit
-/// independently — the 5h gauge and the context gauge each get the full ramp,
-/// which is what makes them comparable at a glance. The empty tail keeps the
-/// same hue pulled most of the way back to the page, so "how full" still reads
-/// as brightness and not only as glyph density.
-///
-/// No-op on a theme without a `ModernStyle`; the meters keep their muted grey.
-fn gradient_meters(line: &mut [(char, Fg)]) {
-    let is_meter = |c: char| c == FILLED || c == EMPTY;
-    let bg = crew_theme::theme().page_bg;
-    let mut i = 0;
-    while i < line.len() {
-        if !is_meter(line[i].0) {
-            i += 1;
-            continue;
-        }
-        let start = i;
-        while i < line.len() && is_meter(line[i].0) {
-            i += 1;
-        }
-        let last = (i - start - 1) as f32;
-        for (k, cell) in line[start..i].iter_mut().enumerate() {
-            let t = if last > 0.0 { k as f32 / last } else { 0.0 };
-            let Some(g) = crate::modernring::pole_mix(t) else {
-                return;
-            };
-            cell.1 = if cell.0 == FILLED {
-                g
-            } else {
-                crate::anim::lerp_rgb(g, bg, TROUGH_FADE)
-            };
-        }
-    }
-}
-
-/// How far an unfilled meter cell is pulled back toward the page. Far enough
-/// that the fill level reads without counting glyphs, not so far that the
-/// trough disappears and the gauge loses its length.
+/// How far an unfilled meter is pulled back toward the page. Far enough that
+/// the fill level reads without measuring, not so far that the track
+/// disappears and the meter loses its length.
 const TROUGH_FADE: f32 = 0.6;
+
+/// The colour a drawn meter's fill has at `t` along its length: the theme's
+/// own gradient, `pole_a` at the left edge to `pole_b` at the right, so a
+/// filling meter walks the ramp the rest of the app is lit by. Falls back to
+/// the muted ink on a theme without a `ModernStyle`.
+fn meter_shade(t: f32) -> (u8, u8, u8) {
+    crate::modernring::pole_mix(t).unwrap_or_else(|| crew_theme::theme().text_muted)
+}
+
+/// The track colour under it — the same ramp, pulled toward the page.
+fn meter_track() -> (u8, u8, u8) {
+    crate::anim::lerp_rgb(meter_shade(0.5), crew_theme::theme().page_bg, TROUGH_FADE)
+}
 
 /// The most rows the footer ever claims (identity/spend, windows/bars,
 /// routing mode).
@@ -436,18 +434,28 @@ pub(crate) fn summary_rows(pane: &ChatPane, cols: u16, rows: u16) -> u16 {
     budget.min(MAX_BLOCK)
 }
 
-/// Render the footer's `height` lines starting at `top`, each indented one
-/// column so it reads as a footer rather than a continuation of the composer
-/// border. Clipped to `cols`; empty when `height` is 0.
-pub(crate) fn summary_cells(pane: &ChatPane, cols: u16, top: u16, height: u16) -> Vec<CellView> {
+/// The footer's cells *and* the meters drawn under them. `aspect` is the
+/// frame's `cell_h / cell_w`, so the capsules keep their proportions at any
+/// font size.
+///
+/// One pass, not two: the readouts animating the numbers are ticked here, and
+/// building the footer twice a frame would tick them twice.
+pub(crate) fn summary_art(
+    pane: &ChatPane,
+    cols: u16,
+    top: u16,
+    height: u16,
+    aspect: f32,
+) -> (Vec<CellView>, Vec<Paint>) {
     if height == 0 {
-        return Vec::new();
+        return (Vec::new(), Vec::new());
     }
     let now_ms = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_millis() as u64)
         .unwrap_or(0);
-    let lines = footer_lines(&footer_ctx(pane, now_ms), cols as usize);
+    let mut meters: Vec<f32> = Vec::new();
+    let lines = footer_lines_with(&footer_ctx(pane, now_ms), cols as usize, &mut meters);
     let bg = crew_theme::theme().page_bg;
     let mut cells = Vec::new();
     for (i, line) in lines.into_iter().take(height as usize).enumerate() {
@@ -465,7 +473,61 @@ pub(crate) fn summary_cells(pane: &ChatPane, cols: u16, top: u16, height: u16) -
             });
         });
     }
-    cells
+    let paint = draw_meters(&mut cells, &meters, aspect);
+    (cells, paint)
+}
+
+/// Replace each reserved glyph run with a drawn capsule.
+///
+/// The run is found in the *placed* cells, so the meter lands exactly where
+/// the line budget put it — nothing here has to know how the line was laid
+/// out. The glyphs are blanked as they are found: a `▓` showing through a
+/// drawn meter is the same bug as two charts for one number.
+pub(crate) fn draw_meters(cells: &mut [CellView], meters: &[f32], aspect: f32) -> Vec<Paint> {
+    let is_meter = |c: char| c == FILLED || c == EMPTY;
+    let mut runs: Vec<(u16, u16, u16)> = Vec::new(); // row, col, width
+    let mut idx: Vec<usize> = (0..cells.len()).collect();
+    idx.sort_by_key(|&i| (cells[i].row, cells[i].col));
+    let mut k = 0;
+    while k < idx.len() {
+        if !is_meter(cells[idx[k]].c) {
+            k += 1;
+            continue;
+        }
+        let (row, col) = (cells[idx[k]].row, cells[idx[k]].col);
+        let start = k;
+        while k < idx.len()
+            && is_meter(cells[idx[k]].c)
+            && cells[idx[k]].row == row
+            && cells[idx[k]].col == col + (k - start) as u16
+        {
+            cells[idx[k]].c = ' ';
+            k += 1;
+        }
+        runs.push((row, col, (k - start) as u16));
+    }
+
+    let track = meter_track();
+    let mut out = Vec::new();
+    for ((row, col, w), &frac) in runs.iter().zip(meters) {
+        let mut c = crate::plot::Canvas::new(*w, 1, aspect);
+        crate::plot::meter::capsule(
+            &mut c,
+            0.0,
+            0.0,
+            f32::from(*w),
+            aspect,
+            frac,
+            meter_shade,
+            track,
+        );
+        out.extend(
+            c.paint()
+                .into_iter()
+                .map(|p| p.shifted(f32::from(*col), f32::from(*row))),
+        );
+    }
+    out
 }
 
 #[cfg(test)]

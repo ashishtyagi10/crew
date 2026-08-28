@@ -76,6 +76,22 @@ impl ChatPane {
 
 /// Render `pane` into a `cols` × `rows` grid.
 pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
+    art(pane, cols, rows, 2.0).0
+}
+
+/// The pane's cells *and* what is drawn under them — currently the footer's
+/// capsule meters ([`crate::plot::meter`]). `aspect` is the frame's
+/// `cell_h / cell_w`.
+///
+/// Built together in one pass because the footer's animated readouts are
+/// ticked while it is built: rendering it a second time to collect the paint
+/// would tick them twice a frame.
+pub(crate) fn art(
+    pane: &ChatPane,
+    cols: u16,
+    rows: u16,
+    aspect: f32,
+) -> (Vec<CellView>, Vec<crew_render::Paint>) {
     // One allotment for the whole frame: `grants` is the same source
     // `msg_rows_budget` reads, and it already resolves `top`/`bottom`, so
     // taking them from it keeps this function from computing `status_rows` a
@@ -83,13 +99,16 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
     let g = crate::chatplace::grants(pane, cols, rows);
     let top = g.top;
     if top == 0 {
-        return layout_cells(
-            &pane.messages,
-            &pane.input,
-            cols,
-            rows,
-            pane.scroll,
-            pane.connected,
+        return (
+            layout_cells(
+                &pane.messages,
+                &pane.input,
+                cols,
+                rows,
+                pane.scroll,
+                pane.connected,
+            ),
+            Vec::new(),
         );
     }
     let names = pane.active_names();
@@ -240,19 +259,18 @@ pub(crate) fn cells(pane: &ChatPane, cols: u16, rows: u16) -> Vec<CellView> {
         cols,
         rows - summary_h,
     ));
+    let mut paint = Vec::new();
     if summary_h > 0 {
         // The block occupies the last `summary_h` rows, drawn top-down from
         // where the composer ends.
-        cells.extend(crate::chatsummary::summary_cells(
-            pane,
-            cols,
-            rows - summary_h,
-            summary_h,
-        ));
+        let (fcells, fpaint) =
+            crate::chatsummary::summary_art(pane, cols, rows - summary_h, summary_h, aspect);
+        cells.extend(fcells);
+        paint = fpaint;
     }
     // Cmd+F find: wash the current match's substring cells (see `chatfind`).
     find_wash(pane, cols, rows, &mut cells);
-    cells
+    (cells, paint)
 }
 
 /// Wash the CURRENT `chatfind` match's on-screen substring cells with the

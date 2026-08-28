@@ -162,7 +162,8 @@ fn push_pane_scenes(
     git: &crate::gitfleet::GitFleet,
     pinned: bool,
 ) {
-    let mut cells = p.cells(foc);
+    // Cells and the sub-cell paint under them, in one pass — see `Pane::art`.
+    let (mut cells, paint) = p.art(foc, ch / cw);
     let is_term = matches!(&p.content, PaneContent::Terminal(_));
     let (scroll, total) = match &p.content {
         PaneContent::Terminal(t) => (t.pty.display_offset(), t.pty.scrollable_lines()),
@@ -321,6 +322,7 @@ fn push_pane_scenes(
     // starts exactly on the grid (no leading border glyph to push it).
     scenes.push(PaneScene {
         cells,
+        paint,
         x: r.x + cw,
         y: r.y + ch,
         w: (r.w - 2.0 * cw).max(0.0),
@@ -330,7 +332,6 @@ fn push_pane_scenes(
         glass: false,
         scan: -1.0,
         overlay: false,
-        paint: Vec::new(),
     });
     // Border card: the rounded frame + legend + status, drawn over the rect.
     let title = p.title_text();
