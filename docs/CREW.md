@@ -1053,6 +1053,15 @@ longer aim at.
   typing to edit` hint: `Enter` runs it like any typed command, `Esc`
   restores the original `!` text, and typing further just edits the
   suggestion as plain text.
+- **`/usage`** — opens the **usage** pane: what crew has spent over the last
+  seven days, drawn rather than totalled. A **heatmap** of tokens by hour (a
+  row per day, a column per hour, shaded against the week's own peak, so a
+  quiet week reads as clearly as a busy one), a **donut** splitting the tokens
+  sent from the tokens received, and an **area chart** of what each day cost —
+  with the week's spend, token split and peak day named above them. The pane
+  follows the ledger while it is open, so a request landing now moves the
+  charts. Everything it shows comes from `usage.jsonl` beside your config,
+  which crew was already keeping for the chat footer's rolling 5h/7d windows.
 - **`/todo`** — opens a **todo list** pane over one global list (stored in
   `$XDG_CONFIG/crew/todos.toml`, shared by every window and pane). Type into
   its composer and press `Enter` to add an item; a **natural-language due

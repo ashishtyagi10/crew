@@ -265,6 +265,7 @@ mod update;
 mod updatecard;
 mod updatefetch;
 mod usageledger;
+mod usagepane;
 mod viewpane;
 mod washfocus;
 mod washphase;

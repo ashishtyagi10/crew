@@ -12,6 +12,7 @@ use crate::session::to_cellviews;
 use crate::settingspane::SettingsPane;
 use crate::swarmpane::SwarmPane;
 use crate::todopane::TodoPane;
+use crate::usagepane::UsagePane;
 use crate::viewpane::ViewPane;
 
 /// Raw terminal pane: owns its PTY and writer.
@@ -51,6 +52,8 @@ pub enum PaneContent {
     Swarm(SwarmPane),
     View(ViewPane),
     Todo(TodoPane),
+    /// `/usage` — the spend ledger, drawn (heatmap, split, cost per day).
+    Usage(UsagePane),
 }
 
 /// A single pane: owns its content, grid size, and pixel rect.
@@ -138,6 +141,7 @@ impl Pane {
                 .map(|n| n.to_string_lossy().into_owned())
                 .unwrap_or_else(|| v.path.to_string_lossy().into_owned()),
             PaneContent::Todo(_) => "todo".into(),
+            PaneContent::Usage(_) => "usage".into(),
         }
     }
 
@@ -157,6 +161,10 @@ impl Pane {
     pub fn art(&self, focused: bool, aspect: f32) -> (Vec<CellView>, Vec<crew_render::Paint>) {
         match &self.content {
             PaneContent::Chat(c) => crate::chatview::art(c, self.grid.cols, self.grid.rows, aspect),
+            PaneContent::Usage(u) => (
+                u.cells(self.grid.cols, self.grid.rows),
+                u.paint(self.grid.cols, self.grid.rows, aspect),
+            ),
             _ => (self.cells_only(focused), Vec::new()),
         }
     }
@@ -170,6 +178,7 @@ impl Pane {
             PaneContent::Swarm(s) => s.cells(self.grid.cols, self.grid.rows),
             PaneContent::View(v) => v.cells(self.grid.cols, self.grid.rows),
             PaneContent::Todo(t) => t.cells(self.grid.cols, self.grid.rows),
+            PaneContent::Usage(u) => u.cells(self.grid.cols, self.grid.rows),
         }
     }
 }

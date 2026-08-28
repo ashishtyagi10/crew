@@ -98,6 +98,10 @@ pub(crate) const LOOK: &[Cmd] = &[
         desc: "Todo list — due dates (tomorrow 5pm) & @project while typing; /todo show|hide = ticked items, /todo done = the log",
     },
     Cmd {
+        name: "/usage",
+        desc: "What crew has spent, drawn — a week of tokens by hour, the in/out split, and cost per day",
+    },
+    Cmd {
         name: "/model",
         desc: "Set the model for agent smith's agents — pick from the list",
     },

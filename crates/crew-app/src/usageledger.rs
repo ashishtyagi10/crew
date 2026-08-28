@@ -88,6 +88,63 @@ impl Ledger {
     }
 }
 
+/// Seven days of usage, bucketed for the drawn views in [`crate::usagepane`].
+///
+/// Hours are counted back from *now*, not from midnight: the grid's last cell
+/// is the hour you are in, so "the last week" means the last week and not
+/// "since Sunday".
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct Buckets {
+    /// Tokens (in + out) per hour, oldest first — 7 × 24 of them, row-major
+    /// by day.
+    pub hourly: Vec<u64>,
+    /// Cost in micro-USD per day, oldest first.
+    pub daily_cost: Vec<u64>,
+    pub tok_in: u64,
+    pub tok_out: u64,
+    pub cost_microusd: u64,
+}
+
+pub(crate) const DAYS: usize = 7;
+pub(crate) const HOURS: usize = 24;
+
+impl Ledger {
+    /// Bucket the last seven days ending at `now_ms`.
+    pub(crate) fn buckets(&self, now_ms: u64) -> Buckets {
+        const HOUR: u64 = 3_600_000;
+        let cells = DAYS * HOURS;
+        let mut hourly = vec![0u64; cells];
+        let mut daily_cost = vec![0u64; DAYS];
+        let (mut tok_in, mut tok_out, mut cost) = (0u64, 0u64, 0u64);
+        // The window ends at the end of the hour we are in, so the newest
+        // entry always lands in the last cell.
+        let end = now_ms / HOUR * HOUR + HOUR;
+        let start = end.saturating_sub(cells as u64 * HOUR);
+        for e in &self.entries {
+            if e.ts_ms < start || e.ts_ms >= end {
+                continue;
+            }
+            let idx = ((e.ts_ms - start) / HOUR) as usize;
+            if let Some(cell) = hourly.get_mut(idx) {
+                *cell += e.tok_in + e.tok_out;
+            }
+            if let Some(day) = daily_cost.get_mut(idx / HOURS) {
+                *day += e.cost_microusd;
+            }
+            tok_in += e.tok_in;
+            tok_out += e.tok_out;
+            cost += e.cost_microusd;
+        }
+        Buckets {
+            hourly,
+            daily_cost,
+            tok_in,
+            tok_out,
+            cost_microusd: cost,
+        }
+    }
+}
+
 /// `usage.jsonl` beside the config file.
 fn path() -> Option<PathBuf> {
     dirs::config_dir().map(|d| d.join("crew").join("usage.jsonl"))
@@ -175,6 +232,21 @@ pub(crate) fn record(tok_in: u64, tok_out: u64, cost_microusd: u64) {
 
 /// The current rolling windows, for the footer. Cheap: a scan over ≤7d of
 /// per-turn entries under a mutex — fine on the render path.
+/// The process-wide ledger's [`Ledger::buckets`].
+pub(crate) fn buckets(now_ms: u64) -> Buckets {
+    LEDGER
+        .lock()
+        .ok()
+        .and_then(|l| l.as_ref().map(|l| l.buckets(now_ms)))
+        .unwrap_or(Buckets {
+            hourly: vec![0; DAYS * HOURS],
+            daily_cost: vec![0; DAYS],
+            tok_in: 0,
+            tok_out: 0,
+            cost_microusd: 0,
+        })
+}
+
 pub(crate) fn windows(now_ms: u64) -> Windows {
     let guard = LEDGER.lock().unwrap_or_else(|e| e.into_inner());
     guard

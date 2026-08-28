@@ -232,6 +232,30 @@ impl CrewApp {
         self.focus_new_pane();
     }
 
+    /// Spawn the `/usage` pane — seven days of spend, drawn.
+    pub(crate) fn spawn_usage_pane(&mut self) {
+        let grid = self
+            .renderer
+            .as_ref()
+            .map(Self::current_grid)
+            .unwrap_or(FALLBACK_SIZE);
+        self.panes.push(Pane {
+            glide: crate::glide::Glide::default(),
+            content: PaneContent::Usage(crate::usagepane::UsagePane::new()),
+            grid,
+            rect: PLACEHOLDER_RECT,
+            label: None,
+            name: None,
+            dir: None,
+            activity: false,
+            bell: false,
+            hidden: false,
+            attention: None,
+            born_ms: crate::anim::now_ms(),
+        });
+        self.focus_new_pane();
+    }
+
     /// Spawn a todo pane already open on the done-history view (`/todo
     /// done`), optionally pre-filtered to one `@project`.
     pub(crate) fn spawn_todo_pane_done(&mut self, filter: Option<String>) {

@@ -154,6 +154,7 @@ impl CrewApp {
             "far" => self.spawn_far_pane(),
             "crew" => self.spawn_crew_pane(),
             "todo" => self.spawn_todo_pane(),
+            "usage" => self.spawn_usage_pane(),
             "view" => {
                 if let Some(path) = sp.dir.as_deref() {
                     self.open_view(path);
