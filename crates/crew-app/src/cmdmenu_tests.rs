@@ -177,3 +177,32 @@ fn unserveable_rows_render_dim_distinct_from_both_normal_and_header() {
     // And unlike a header, it keeps its desc column.
     assert!(cells.iter().any(|c| c.row == 2 && c.c == 'n')); // "needs …"
 }
+
+/// On a pane far wider than the list, the rows keep their measure and the
+/// block centres. Laid out at the pane's width the chord right-aligned to the
+/// far edge, ninety columns from its own command.
+#[test]
+fn a_wide_card_centres_the_list_at_its_own_measure() {
+    let matches = crate::suggest::menu_items("/s");
+    let wide = 200u16;
+    let cells = menu_cells(&matches, 0, wide, menu_rows(matches.len()) - 2);
+    let left = cells.iter().map(|c| c.col).min().expect("rows drew");
+    let right = cells.iter().map(|c| c.col).max().unwrap();
+    let measure = crate::cmdrow::content_w(&matches) as u16;
+    assert!(right - left < measure, "the rows kept their measure");
+    // Centred: the gutters either side agree to within a column.
+    assert!(
+        left.abs_diff(wide - 1 - right) <= 1,
+        "left {left}, right gutter {}",
+        wide - 1 - right
+    );
+}
+
+/// A narrow pane gets the whole of itself — the measure is a cap, not a
+/// minimum that would push the list off a small tile.
+#[test]
+fn a_narrow_card_still_uses_every_column_it_has() {
+    let matches = crate::suggest::menu_items("/s");
+    let cells = menu_cells(&matches, 0, 24, menu_rows(matches.len()) - 2);
+    assert_eq!(cells.iter().map(|c| c.col).min(), Some(0));
+}

@@ -5,16 +5,18 @@
 use crew_render::CellView;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::{Modifier, Style};
 use ratatui::widgets::{List, ListItem, ListState, StatefulWidget};
 
 use crate::suggest::MenuItem;
 
-const DIM: Color = Color::Rgb(120, 130, 140);
-
 /// Most command rows shown at once; beyond this the palette scrolls to keep the
 /// selection in view (the list grew past a comfortable popup height).
 const MAX_ROWS: usize = 10;
+
+/// Never narrower than this, so a one-word list is still a card and not a
+/// sliver floating in the middle of a pane.
+const MIN_ROW_W: u16 = 24;
 
 /// Total cell rows the "commands" card needs for `n` commands: the visible list
 /// rows (capped at [`MAX_ROWS`]) plus the top/bottom fieldset border. The caller
@@ -53,6 +55,7 @@ pub fn menu_card(
         cell.row += 1;
         cells.push(cell);
     }
+
     cells
 }
 
@@ -60,19 +63,25 @@ pub fn menu_card(
 /// transparent over the card's black backdrop — the selected row is marked by the
 /// `›` symbol and bold text, never a background bar (a bar washed out the dim
 /// description text).
-fn menu_cells(matches: &[MenuItem], sel: usize, cols: u16, rows: u16) -> Vec<CellView> {
+pub(crate) fn menu_cells(matches: &[MenuItem], sel: usize, cols: u16, rows: u16) -> Vec<CellView> {
     if cols < 2 || rows < 1 || matches.is_empty() {
         return Vec::new();
     }
-    let mut buf = Buffer::empty(Rect::new(0, 0, cols, rows));
+    // Laid out at the width the rows need, and CENTRED in what is left: the
+    // chord right-aligns to the row's edge, so a row as wide as the pane put
+    // it a screen away from its own command (see `cmdrow::content_w`).
+    let w = (crate::cmdrow::content_w(matches) as u16).clamp(MIN_ROW_W.min(cols), cols);
+    let pad = (cols - w) / 2;
+    let mut buf = Buffer::empty(Rect::new(0, 0, w, rows));
     // Two columns of the row go to the selection marker; every row is laid out
     // in what is left, so the description column and the chord agree with the
     // width the list actually draws in.
-    let avail = usize::from(cols).saturating_sub(2);
+    let avail = usize::from(w).saturating_sub(2);
     let label_w = crate::cmdrow::label_col(matches, avail);
+    let dim = crate::menuink::desc_color();
     let items: Vec<ListItem> = matches
         .iter()
-        .map(|c| ListItem::new(crate::cmdrow::spans(c, label_w, avail, DIM)))
+        .map(|c| ListItem::new(crate::cmdrow::spans(c, label_w, avail, dim)))
         .collect();
     let list = List::new(items)
         // No background bar — bold the selected row so its text stays fully legible.
@@ -82,6 +91,12 @@ fn menu_cells(matches: &[MenuItem], sel: usize, cols: u16, rows: u16) -> Vec<Cel
     state.select(Some(sel.min(matches.len() - 1)));
     StatefulWidget::render(list, buf.area, &mut buf, &mut state);
     crate::tui::to_cells(&buf)
+        .into_iter()
+        .map(|mut c| {
+            c.col += pad;
+            c
+        })
+        .collect()
 }
 
 #[cfg(test)]

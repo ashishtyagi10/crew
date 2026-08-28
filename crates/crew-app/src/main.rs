@@ -172,6 +172,10 @@ mod linkhover;
 mod load;
 mod md;
 mod mentionrange;
+mod menuink;
+#[cfg(test)]
+#[path = "menushot_tests.rs"]
+mod menushot_tests;
 mod minstrip;
 mod modelfetch;
 mod modelpick;

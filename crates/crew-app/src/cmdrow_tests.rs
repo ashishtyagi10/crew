@@ -195,3 +195,29 @@ fn a_row_with_a_swatch_still_never_exceeds_its_columns() {
         assert!(n <= avail, "took {n} of {avail}");
     }
 }
+
+/// A description that does not fit says so. `"…to a fi"` reads as a rendering
+/// fault; `"…to a f…"` reads as a narrow card, which is what it is.
+#[test]
+fn a_clipped_description_ends_in_an_ellipsis() {
+    let i = item("/dump", "Write the frame's cells to a file", vec![], None);
+    let line = text(&spans(&i, 5, 24, Color::Reset));
+    assert!(line.ends_with('\u{2026}'), "{line:?}");
+    assert!(crate::chatwidth::str_w(&line) <= 24, "{line:?}");
+}
+
+/// The list is laid out at its own measure, not the pane's: the chord
+/// right-aligns to the row's edge, and a row as wide as a full window put the
+/// chord a screen away from the command it belongs to.
+#[test]
+fn content_w_counts_the_marker_label_desc_and_chord() {
+    let items = [
+        item("/dash", "Open the dashboard pane", vec![], Some("Cmd+D")),
+        item("/disk", "Where the disk went", vec![], None),
+    ];
+    // 2 marker + 5 label + 2 + 23 desc + 2 + 5 chord.
+    assert_eq!(content_w(&items), 39);
+    // A list with no chords and no descriptions asks for only its labels.
+    let bare = [item("/dash", "", vec![], None)];
+    assert_eq!(content_w(&bare), 7);
+}
