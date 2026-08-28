@@ -260,3 +260,36 @@ fn chart_shot_crew_donut() {
         .count();
     assert!(ink > 2000, "the donut drew something: {ink} ink pixels");
 }
+
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn chart_shot_sys_rings() {
+    let _g = crate::app::theme_test_guard();
+    let stats = crate::stats::Stats {
+        cpu: 0.34,
+        mem: 0.78,
+        disk: 0.94,
+        ..Default::default()
+    };
+    let px = shot("rings", "SYSTEM", |cols, _rows, aspect| {
+        (
+            crate::sysrings::cells(stats, 0),
+            crate::sysrings::paint(stats, cols, 0, aspect),
+        )
+    });
+    let Some(px) = px else {
+        eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+        return;
+    };
+    let bg = crew_theme::theme().page_bg;
+    let ink = px
+        .chunks_exact(4)
+        .filter(|p| {
+            (p[0] as i32 - bg.0 as i32).abs()
+                + (p[1] as i32 - bg.1 as i32).abs()
+                + (p[2] as i32 - bg.2 as i32).abs()
+                > 40
+        })
+        .count();
+    assert!(ink > 2000, "the rings drew something: {ink} ink pixels");
+}

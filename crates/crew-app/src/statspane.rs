@@ -13,14 +13,16 @@ use crate::net;
 use crate::panelist::{self, PaneRow};
 use crate::stats::SysSampler;
 
-/// Rows the SYSTEM section occupies (rule + 3 gauges + the 2-row CPU area
-/// chart + gap). The chart got its second row when it stopped being a line of
-/// block glyphs: a curve with a filled body needs the height to say anything
-/// the gauge above it does not already say.
-const SYS_BLOCK: u16 = 7;
+/// Rows the SYSTEM section occupies: the rule, the three readings (arc gauges
+/// on a wide nav, bars on a narrow one — both `sysrings::ROWS` tall so the
+/// sections below never move when the nav is dragged), the 2-row CPU area
+/// chart, and a gap. The chart got its second row when it stopped being a line
+/// of block glyphs: a curve with a filled body needs the height to say
+/// anything the gauge above it does not already say.
+const SYS_BLOCK: u16 = 1 + crate::sysrings::ROWS + CHART_ROWS + 1;
 /// Rows the CPU chart occupies, and where it starts inside the SYSTEM block.
 const CHART_ROWS: u16 = 2;
-const CHART_OFF: u16 = 4;
+const CHART_OFF: u16 = 1 + crate::sysrings::ROWS;
 /// Rows the LOAD section occupies (rule + 1 line + a one-row gap below it).
 const LOAD_BLOCK: u16 = 3;
 /// Rows a section with a rule + 2 content rows + one-row gap occupies (HOST, NET, GIT).
@@ -114,6 +116,16 @@ impl StatsPane {
         log_len: usize,
     ) -> Vec<Paint> {
         let mut out = self.cpu_chart(cols, rows, aspect);
+        // The SYSTEM section's three arc gauges (their text comes from
+        // `gauges::render_stats`, which yields the rings the same width test).
+        if rows > clock::CLOCK_H + crate::sysrings::ROWS {
+            out.extend(crate::sysrings::paint(
+                self.sampler.stats(),
+                cols,
+                clock::CLOCK_H + 1,
+                aspect,
+            ));
+        }
         // The crew donut, under the PANES header — the same offset
         // `cells` lays the list out from, so ring and rows cannot drift apart.
         let panes_off = self.panes_top(log_len);
@@ -254,17 +266,17 @@ mod tests {
     #[test]
     fn panes_top_accounts_for_git_and_log() {
         let mut s = StatsPane::new();
-        // clock(4) + system(7) + load(3) + host(4) + net(4) = 22
-        assert_eq!(s.panes_top(0), 22);
+        // clock(4) + system(8) + load(3) + host(4) + net(4) = 23
+        assert_eq!(s.panes_top(0), 23);
         s.git.set_info(Some(git::GitInfo {
             branch: "main".into(),
             changed: 0,
             ahead: 0,
             behind: 0,
         }));
-        assert_eq!(s.panes_top(0), 26); // + git(4)
+        assert_eq!(s.panes_top(0), 27); // + git(4)
                                         // a non-empty log adds its block: rule + min(n, LOG_LINES) + gap.
-        assert_eq!(s.panes_top(2), 26 + 4); // 2 entries -> 2 + 2
-        assert_eq!(s.panes_top(99), 26 + navlog::LOG_LINES as u16 + 2); // capped
+        assert_eq!(s.panes_top(2), 27 + 4); // 2 entries -> 2 + 2
+        assert_eq!(s.panes_top(99), 27 + navlog::LOG_LINES as u16 + 2); // capped
     }
 }

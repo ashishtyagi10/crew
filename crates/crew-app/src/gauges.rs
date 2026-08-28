@@ -10,11 +10,11 @@ const HEADER: &str = "SYSTEM";
 /// Empty-track colour: the theme's recessed border shade, so the track sits
 /// back like an unfocused card edge — and stays in-palette on the monochrome
 /// CRT phosphor themes instead of a fixed grey.
-fn track_color() -> (u8, u8, u8) {
+pub(crate) fn track_color() -> (u8, u8, u8) {
     crew_theme::theme().border_normal
 }
 
-/// Bar colour by load: accent when low, the theme's status amber past 70%,
+/// Bar (and ring) colour by load: accent when low, the theme's status amber past 70%,
 /// its bright-red ANSI slot past 90% — every tier drawn from the active
 /// palette so a phosphor theme's gauges glow in that phosphor's hues.
 pub(crate) fn fill_color(frac: f32) -> (u8, u8, u8) {
@@ -106,8 +106,10 @@ fn cell(col: u16, row: u16, c: char, fg: (u8, u8, u8), bg: (u8, u8, u8)) -> Cell
 }
 
 /// Render the stats section: a `SYSTEM` rule on row 0 (fieldset-legend style)
-/// with CPU/MEM/DISK gauges on rows 1/2/3 beneath it. Sidebar sections stack as
-/// their own dividers below.
+/// with the three readings under it — as arc gauges when the nav has the
+/// columns for them ([`crate::sysrings`], which draws the rings and leaves
+/// their text here), and as the labelled bars below when it does not.
+/// Sidebar sections stack as their own dividers below.
 pub(crate) fn render_stats(stats: Stats, cols: u16, rows: u16) -> Vec<CellView> {
     let mut out = Vec::new();
     if cols < 8 || rows < 4 {
@@ -121,6 +123,13 @@ pub(crate) fn render_stats(stats: Stats, cols: u16, rows: u16) -> Vec<CellView> 
         accent(),
         t.page_bg,
     ));
+
+    // Wide enough, the three readings are drawn as rings (see
+    // `crate::sysrings`); this section then contributes only their text.
+    if crate::sysrings::fits(cols) {
+        out.extend(crate::sysrings::cells(stats, 1));
+        return out;
+    }
 
     // Content indented to align under the section legend (col 3).
     let cstart = 3u16;
@@ -188,7 +197,8 @@ mod tests {
             disk: 0.3,
             ..Default::default()
         };
-        let cells = render_stats(stats, 24, 12);
+        // A narrow nav keeps the bars.
+        let cells = render_stats(stats, 16, 12);
         // flat divider, not a box
         assert!(cells.iter().any(|c| c.c == '─' && c.row == 0));
         assert!(!cells.iter().any(|c| matches!(c.c, '╭' | '╮' | '╰' | '╯')));
@@ -198,6 +208,29 @@ mod tests {
         assert!(cells.iter().any(|c| c.c == '█' || c.c == '░'));
         let rows: std::collections::HashSet<u16> = cells.iter().map(|c| c.row).collect();
         assert!(rows.contains(&1) && rows.contains(&2) && rows.contains(&3));
+    }
+
+    /// The same section, wide: the readings become rings, and the bars they
+    /// replace leave no glyphs behind.
+    #[test]
+    fn a_wide_nav_draws_rings_instead_of_bars() {
+        let _g = crate::app::theme_test_guard();
+        let stats = Stats {
+            cpu: 0.1,
+            mem: 0.2,
+            disk: 0.34,
+            ..Default::default()
+        };
+        let cells = render_stats(stats, 24, 12);
+        assert!(!cells.iter().any(|c| c.c == '█' || c.c == '░'), "no bars");
+        let text = |r: u16| -> String {
+            let mut v: Vec<_> = cells.iter().filter(|c| c.row == r).collect();
+            v.sort_by_key(|c| c.col);
+            v.iter().map(|c| c.c).collect()
+        };
+        // Readings in the holes on row 1, names on row 3.
+        assert!(text(2).contains("10") && text(2).contains("20") && text(2).contains("34"));
+        assert!(text(4).contains("cpu") && text(4).contains("mem") && text(4).contains("dsk"));
     }
 
     /// The tier mark has to reach the drawn row, and cost nothing when it is
