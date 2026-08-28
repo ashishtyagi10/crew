@@ -116,8 +116,8 @@ impl StatsPane {
         let mut out = self.cpu_chart(cols, rows, aspect);
         // The SYSTEM section's three arc gauges (their text comes from
         // `gauges::render_stats`, which yields the rings the same width test).
-        if rows > clock::CLOCK_H + crate::sysrings::ROWS {
-            out.extend(crate::sysrings::paint(
+        if rows > clock::CLOCK_H + crate::sysdials::ROWS {
+            out.extend(crate::sysdials::paint(
                 self.sampler.stats(),
                 cols,
                 clock::CLOCK_H + 1,

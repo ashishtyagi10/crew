@@ -15,13 +15,13 @@
 use crate::clock;
 
 /// Rows the SYSTEM section occupies: the rule, the three readings (arc gauges
-/// on a wide nav, bars on a narrow one — both `sysrings::ROWS` tall so the
+/// on a wide nav, bars on a narrow one — both `sysdials::ROWS` tall so the
 /// sections below never move when the nav is dragged), the CPU area chart,
 /// and a gap.
-pub const SYS_BLOCK: u16 = 1 + crate::sysrings::ROWS + CHART_ROWS + 1;
+pub const SYS_BLOCK: u16 = 1 + crate::sysdials::ROWS + CHART_ROWS + 1;
 /// Rows the CPU chart occupies, and where it starts inside the SYSTEM block.
 pub const CHART_ROWS: u16 = 2;
-pub const CHART_OFF: u16 = 1 + crate::sysrings::ROWS;
+pub const CHART_OFF: u16 = 1 + crate::sysdials::ROWS;
 /// Rows the LOAD section occupies (rule + 1 line + a one-row gap below it).
 pub const LOAD_BLOCK: u16 = 3;
 /// Rows a section with a rule + 2 content rows + one-row gap occupies (HOST, GIT).

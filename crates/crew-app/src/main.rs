@@ -265,7 +265,7 @@ mod swarmpane;
 #[path = "swarmshot_tests.rs"]
 mod swarmshot_tests;
 mod swatch;
-mod sysrings;
+mod sysdials;
 mod termwrite;
 mod themefade;
 mod themepeek;

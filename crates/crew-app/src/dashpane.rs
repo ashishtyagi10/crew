@@ -73,7 +73,7 @@ fn wall_ms() -> u64 {
 /// drawn only when the pane has the rows for it — the order is the priority,
 /// so a short pane keeps the machine and loses the history.
 const SYS_TOP: u16 = 1;
-const SYS_ROWS: u16 = crate::sysrings::ROWS;
+const SYS_ROWS: u16 = crate::sysdials::ROWS;
 const NET_TOP: u16 = SYS_TOP + SYS_ROWS + 1;
 const NET_ROWS: u16 = 3;
 const USE_TOP: u16 = NET_TOP + NET_ROWS + 1;
@@ -108,7 +108,7 @@ impl DashPane {
         // RING_W, not `cols`: the dash gives the rings a fixed block and puts
         // the CPU curve beside them, so they spread inside their own width
         // rather than across the whole pane.
-        out.extend(crate::sysrings::cells(
+        out.extend(crate::sysdials::cells(
             self.sampler.stats(),
             RING_W,
             SYS_TOP,
@@ -189,7 +189,7 @@ impl DashPane {
             return out;
         }
         // The three rings, and the CPU curve beside them.
-        out.extend(crate::sysrings::paint(
+        out.extend(crate::sysdials::paint(
             self.sampler.stats(),
             RING_W,
             SYS_TOP,
@@ -381,7 +381,7 @@ mod tests {
         let d = DashPane::new();
         // The rings own the SYSTEM band; nothing they draw may reach the NET
         // header a row below it.
-        let rings = crate::sysrings::paint(d.sampler.stats(), 21, SYS_TOP, 2.0);
+        let rings = crate::sysdials::paint(d.sampler.stats(), 21, SYS_TOP, 2.0);
         for p in rings {
             assert!(p.y >= f32::from(SYS_TOP), "{p:?}");
             assert!(

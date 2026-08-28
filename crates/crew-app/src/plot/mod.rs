@@ -8,13 +8,18 @@
 //! shapes at sub-cell resolution and hands the frame a list of
 //! [`Paint`](crew_render::Paint) rectangles, so a widget can describe a circle
 //! and get a circle.
+//!
+//! Curves are described as [signed distances](sdf) rather than as
+//! inside/outside tests: the canvas can sample either, but only a distance
+//! anti-aliases a twenty-pixel arc without a staircase on it.
 pub mod area;
 pub mod canvas;
+pub mod dial;
 pub mod gantt;
-pub mod gauge;
 pub mod heatmap;
 pub mod meter;
 pub mod pie;
+pub mod sdf;
 pub mod treemap;
 
 pub use canvas::Canvas;

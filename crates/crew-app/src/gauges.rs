@@ -106,9 +106,9 @@ fn cell(col: u16, row: u16, c: char, fg: (u8, u8, u8), bg: (u8, u8, u8)) -> Cell
 }
 
 /// Render the stats section: a `SYSTEM` rule on row 0 (fieldset-legend style)
-/// with the three readings under it — as arc gauges when the nav has the
-/// columns for them ([`crate::sysrings`], which draws the rings and leaves
-/// their text here), and as the labelled bars below when it does not.
+/// with the three readings under it — as instrument dials when the nav has
+/// the columns for them ([`crate::sysdials`], which draws the faces and
+/// leaves their text here), and as the labelled bars below when it does not.
 /// Sidebar sections stack as their own dividers below.
 pub(crate) fn render_stats(stats: Stats, cols: u16, rows: u16, peak: Option<u64>) -> Vec<CellView> {
     let mut out = Vec::new();
@@ -131,10 +131,10 @@ pub(crate) fn render_stats(stats: Stats, cols: u16, rows: u16, peak: Option<u64>
         t.page_bg,
     ));
 
-    // Wide enough, the three readings are drawn as rings (see
-    // `crate::sysrings`); this section then contributes only their text.
-    if crate::sysrings::fits(cols) {
-        out.extend(crate::sysrings::cells(stats, cols, 1));
+    // Wide enough, the three readings are drawn as dials (see
+    // `crate::sysdials`); this section then contributes only their text.
+    if crate::sysdials::fits(cols) {
+        out.extend(crate::sysdials::cells(stats, cols, 1));
         return out;
     }
 
@@ -217,10 +217,10 @@ mod tests {
         assert!(rows.contains(&1) && rows.contains(&2) && rows.contains(&3));
     }
 
-    /// The same section, wide: the readings become rings, and the bars they
+    /// The same section, wide: the readings become dials, and the bars they
     /// replace leave no glyphs behind.
     #[test]
-    fn a_wide_nav_draws_rings_instead_of_bars() {
+    fn a_wide_nav_draws_dials_instead_of_bars() {
         let _g = crate::app::theme_test_guard();
         let stats = Stats {
             cpu: 0.1,
@@ -235,8 +235,9 @@ mod tests {
             v.sort_by_key(|c| c.col);
             v.iter().map(|c| c.c).collect()
         };
-        // Readings in the holes on row 1, names on row 3.
-        assert!(text(2).contains("10") && text(2).contains("20") && text(2).contains("34"));
+        // Readings in the faces' windows on the block's third row, names on
+        // its fourth.
+        assert!(text(3).contains("10") && text(3).contains("20") && text(3).contains("34"));
         assert!(text(4).contains("cpu") && text(4).contains("mem") && text(4).contains("dsk"));
     }
 
