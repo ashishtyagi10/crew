@@ -426,3 +426,63 @@ fn a_prefill_types_the_command_and_takes_focus() {
     assert!(bar.hist_prefix.is_empty());
     assert_eq!(bar.menu_sel, 0);
 }
+
+/// A line longer than the field scrolls to follow the caret. It used to do so
+/// in silence — the bar showed the tail with nothing saying a head existed.
+#[test]
+fn a_scrolled_line_says_its_head_is_off_screen() {
+    let long = "rg --hidden --glob '!target' 'fn build_frame' crates/crew-app/src | head -40";
+    let bar = InputBar {
+        text: long.into(),
+        focused: true,
+        ..InputBar::default()
+    };
+    let cols = 52u16;
+    let scrolled = row_text(&bar.cells(cols, 3, None, None), 1);
+    assert!(
+        scrolled.contains("\u{2026}"),
+        "no marker on a scrolled line: {scrolled:?}"
+    );
+    assert!(
+        !scrolled.contains("rg --hidden"),
+        "the head is genuinely off screen: {scrolled:?}"
+    );
+
+    // A line that fits keeps its plain gutter — the mark means something.
+    let short = InputBar {
+        text: "ls".into(),
+        focused: true,
+        ..InputBar::default()
+    };
+    let plain = row_text(&short.cells(cols, 3, None, None), 1);
+    assert!(plain.contains("\u{2502}> ls"), "plain gutter: {plain:?}");
+}
+
+/// Focus is a property of the whole card. The legend is the loudest mark on
+/// it, and while it stayed full accent on a blurred bar the brightest thing
+/// on screen belonged to the surface you had just left.
+#[test]
+fn the_legend_recedes_with_the_rest_of_the_bar() {
+    let _g = crate::app::theme_test_guard();
+    let cols = 52u16;
+    let legend_fg = |focused: bool| {
+        let bar = InputBar {
+            focused,
+            cwd: "/tmp/somewhere".into(),
+            ..InputBar::default()
+        };
+        let cells = bar.cells(cols, 3, None, None);
+        // The legend's own cells are the alphabetic ones on the top rule.
+        cells
+            .iter()
+            .find(|c| c.row == 0 && c.c.is_alphabetic())
+            .map(|c| c.fg)
+            .expect("the cwd rides the top border")
+    };
+    assert_ne!(
+        legend_fg(true),
+        legend_fg(false),
+        "the legend never dimmed on blur"
+    );
+    assert_eq!(legend_fg(false), crew_theme::theme().legend_off);
+}

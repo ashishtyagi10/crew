@@ -156,6 +156,10 @@ pub(crate) mod inputbar;
 mod inputbar_render;
 mod inputink;
 mod inputkeys;
+mod inputlegend;
+#[cfg(test)]
+#[path = "inputshot_tests.rs"]
+mod inputshot_tests;
 mod invisibles;
 mod ipc;
 mod ipc_types;
@@ -256,6 +260,9 @@ mod sessionsave;
 mod settingspane;
 mod shapecues;
 mod shellprobe;
+#[cfg(test)]
+#[path = "shotdraw_tests.rs"]
+mod shotdraw_tests;
 #[cfg(test)]
 #[path = "shotgpu_tests.rs"]
 mod shotgpu_tests;

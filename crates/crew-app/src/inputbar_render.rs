@@ -4,7 +4,7 @@
 //! right-aligned status stay put.
 use crew_render::CellView;
 
-use crate::chatwidth::{char_w, clip_w, place_row, str_w};
+use crate::chatwidth::{char_w, place_row, str_w};
 use crate::inputbar::InputBar;
 use crate::palette::accent;
 
@@ -30,43 +30,29 @@ impl InputBar {
         }
         // Interior row between the top (legend) and bottom borders.
         let row = rows / 2;
-        // The card frame with the cwd riding the top border as its legend.
-        let legend = if self.cwd.as_os_str().is_empty() {
-            String::new()
-        } else {
-            // Keep the tail (current dir) when the path is deeper than the card.
-            crate::cwd::fit_legend(
-                &crate::cwd::display(&self.cwd),
-                crate::boxdraw::title_budget(cols),
-            )
-        };
-        // Focus mode is a MODE: the one thing a mode owes the user is a
-        // standing sign that it is on, or they will spend the afternoon
-        // wondering why nothing pops. The bar's legend is the only chrome
-        // always on screen, and the word rides in front of the path.
-        let legend = if crate::focusmode::on() {
-            let budget = crate::boxdraw::title_budget(cols);
-            let tag = "\u{25c9} focus";
-            if legend.is_empty() {
-                tag.to_string()
-            } else {
-                let room = budget.saturating_sub(tag.chars().count() + 3);
-                format!("{tag} \u{b7} {}", crate::cwd::fit_legend(&legend, room))
-            }
-        } else {
-            legend
-        };
+        // The card frame with the cwd riding the top border as its legend
+        // (and the focus-mode tag in front of it) — see `inputlegend`.
+        let legend = crate::inputlegend::top(&self.cwd, cols);
         let border = if self.focused {
             crate::panecardglow::focused_stroke(crew_theme::theme())
         } else {
             crew_theme::theme().border_normal
+        };
+        // The legend follows focus with everything else. It is the loudest
+        // thing on the card, and while it stayed full accent on a blurred bar
+        // the brightest mark on screen belonged to the surface you had just
+        // left — the border dimmed, the prompt dimmed, the path did not.
+        let legend_fg = if self.focused {
+            accent()
+        } else {
+            crew_theme::theme().legend_off
         };
         let mut out = crate::modernring::gradient_card(
             cols,
             rows,
             &legend,
             border,
-            accent(),
+            legend_fg,
             crew_theme::theme().page_bg,
         );
 
@@ -109,14 +95,22 @@ impl InputBar {
             total -= char_w(body[skip].0);
             skip += 1;
         }
-        place_row(
-            pstart,
-            cols,
-            prompt.chars().map(|c| (c, prompt_fg)),
-            |x, ch, fg| {
-                out.push(cell(x, row, ch, fg));
-            },
-        );
+        // A line longer than the field scrolls to follow the caret, and until
+        // now it did so in silence: the bar showed the tail of your command
+        // with nothing saying the head existed. The prompt's own gutter — the
+        // blank column between `>` and the text — carries the mark.
+        let gutter = if skip > 0 {
+            ('\u{2026}', crew_theme::theme().dim)
+        } else {
+            (' ', prompt_fg)
+        };
+        let mut prompt_cells = prompt.chars().map(|c| (c, prompt_fg)).collect::<Vec<_>>();
+        if let Some(last) = prompt_cells.last_mut() {
+            *last = gutter;
+        }
+        place_row(pstart, cols, prompt_cells, |x, ch, fg| {
+            out.push(cell(x, row, ch, fg));
+        });
         place_row(
             tstart,
             cols - 1,
@@ -137,21 +131,10 @@ impl InputBar {
             );
         }
 
-        // Transient status flashed on the bottom border, right-aligned — and
-        // when nothing is flashing, the focused pane's name in the same spot.
-        // A status is a moment; the pane legend is the bar's standing answer to
-        // "where does this go?", so the flash borrows the slot and gives it back.
-        let bottom = match status {
-            Some(s) => Some((format!(" {s} "), crew_theme::theme().status_fg)),
-            None => pane
-                .map(str::trim)
-                .filter(|n| !n.is_empty())
-                .map(|n| (format!(" {n} "), crew_theme::theme().legend_off)),
-        };
+        // The bottom rule's tag: a flashing status, else the focused pane's
+        // name, both budgeted so the rule stays a rule (see `inputlegend`).
+        let bottom = crate::inputlegend::bottom(status, pane, cols);
         if let Some((label, fg)) = bottom {
-            // Clip to the columns the bottom rule actually owns, so a long pane
-            // title can never overrun the `╯` corner.
-            let label = clip_w(&label, cols.saturating_sub(4) as usize);
             let w = str_w(&label) as u16;
             if w + 3 < cols {
                 place_row(
