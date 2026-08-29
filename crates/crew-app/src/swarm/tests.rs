@@ -329,3 +329,25 @@ fn bridge_forward_survives_a_lagged_subscriber() {
         "{got:?}"
     );
 }
+
+/// The pane's list shows the title; the prompt is kept whole beside it. A cut
+/// title should look cut.
+#[test]
+fn a_long_batch_line_gets_a_marked_title_and_a_whole_prompt() {
+    let line = "review every crate for the render-path allocation we talked about on Tuesday";
+    let jobs = crate::swarm::backend::jobs_from_lines(line);
+    assert_eq!(jobs.len(), 1);
+    assert!(
+        jobs[0].title.ends_with('\u{2026}'),
+        "title {:?} was cut without saying so",
+        jobs[0].title
+    );
+    assert_eq!(jobs[0].prompt, line, "the prompt is kept whole");
+}
+
+/// A line that fits keeps every word, and no ellipsis.
+#[test]
+fn a_short_batch_line_is_its_own_title() {
+    let jobs = crate::swarm::backend::jobs_from_lines("run the tests");
+    assert_eq!(jobs[0].title, "run the tests");
+}

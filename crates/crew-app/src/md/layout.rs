@@ -131,7 +131,7 @@ fn code_block_lines(lang: String, src_lines: Vec<String>, cols: usize) -> Vec<Md
     let label = if lang.is_empty() { "code" } else { &lang };
     // The label alone: the block's edges are drawn by the tinted FIELD the
     // chat card lays these lines into (`chatfield`), not by corner glyphs.
-    let header_text = label.chars().take(cw).collect::<String>();
+    let header_text = crate::chatwidth::clip_w(label, cw);
     let mut out = vec![MdLine {
         spans: vec![plain_span(header_text)],
         kind: LineKind::CodeHeader,

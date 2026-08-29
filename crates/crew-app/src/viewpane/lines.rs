@@ -216,7 +216,7 @@ fn diff_lines(text: &str, cols: usize, ws: &[Vec<bool>]) -> (Vec<CardLine>, Vec<
 
 fn banner(msg: &str, cols: usize) -> CardLine {
     let t = crew_theme::theme();
-    let mut s: String = msg.chars().take(cols.max(1)).collect();
+    let mut s = crate::chatwidth::clip_w(msg, cols.max(1));
     while s.chars().count() < cols {
         s.push(' ');
     }

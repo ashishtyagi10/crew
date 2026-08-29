@@ -110,6 +110,16 @@ impl DiskPane {
         &self.children
     }
 
+    /// Put a finished scan in without a worker, so the tile renderer can be
+    /// exercised on names of a chosen length (the same seam `DashPane` uses).
+    #[cfg(test)]
+    pub(crate) fn seed_children(&mut self, children: Vec<Child>) {
+        self.total = children.iter().map(|c| c.bytes).sum();
+        self.files = children.len() as u64;
+        self.scanning = false;
+        self.children = children;
+    }
+
     /// Take the worker's latest numbers. Returns true when they moved.
     pub fn poll(&mut self) -> bool {
         let seen = self.scan.seen.load(Ordering::Relaxed);
@@ -342,7 +352,10 @@ impl DiskPane {
             let selected = tile.index == self.selected;
             let fg = if selected { t.ink } else { t.page_bg };
             let room = (tile.w - 1.0) as usize;
-            let name: String = child.name.chars().take(room).collect();
+            // `vend` is not a directory anybody has. A tile that cuts a name
+            // without saying so reads as a complete, wrong name; `ven…` reads
+            // as a name that did not fit — which is the truth.
+            let name = crate::chatwidth::clip_w(&child.name, room);
             put(
                 &mut out,
                 &name,
@@ -617,5 +630,36 @@ mod tests {
         let p = DiskPane::new(std::env::temp_dir());
         assert!(p.cells(12, 20).is_empty());
         assert!(p.paint(12, 20, 2.0).is_empty());
+    }
+
+    /// A treemap tile that cuts a name without saying so reads as a complete,
+    /// wrong name: `vendor` in a small tile drew `vend`, which is not a
+    /// directory anybody has.
+    #[test]
+    fn a_tile_too_narrow_for_a_name_says_the_name_is_cut() {
+        let _g = crate::app::theme_test_guard();
+        let mut p = DiskPane::new(std::env::temp_dir());
+        // One huge tile and one small one, so the small tile is narrow.
+        p.seed_children(kids(&[("target", 760, true), ("vendor", 240, true)]));
+        let text = |cells: &[crew_render::CellView]| -> String {
+            let mut v: Vec<&crew_render::CellView> = cells.iter().collect();
+            v.sort_by_key(|c| (c.row, c.col));
+            v.iter().map(|c| c.c).collect()
+        };
+        let drawn = text(&p.cells(26, 14));
+        assert!(
+            drawn.contains("target"),
+            "the big tile keeps its whole name: {drawn:?}"
+        );
+        // The narrow tile marks its cut rather than drawing `vend`, which
+        // would read as a complete name for a directory nobody has.
+        assert!(
+            drawn.contains("ven\u{2026}"),
+            "a cut name drew as a complete wrong one: {drawn:?}"
+        );
+        assert!(
+            !drawn.contains("vendor"),
+            "it really did not fit: {drawn:?}"
+        );
     }
 }

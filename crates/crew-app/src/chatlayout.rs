@@ -123,7 +123,12 @@ pub fn layout_cells(
         } else {
             CONNECTING_HINT
         };
-        for (i, c) in hint.chars().take(cols as usize).enumerate() {
+        // A clipped instruction teaches the half that fits and nobody can
+        // see that the rest existed (the `/keys` lesson) — say it is cut.
+        for (i, c) in crate::chatwidth::clip_w(hint, cols as usize)
+            .chars()
+            .enumerate()
+        {
             cells.push(CellView {
                 col: i as u16,
                 row: 0,
