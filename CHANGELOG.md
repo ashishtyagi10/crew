@@ -8,6 +8,34 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.56
+
+**The shortcuts panel finally has a shortcut.** `Cmd+/` (and `Cmd+?` on the
+shifted key) opens the keys overlay. It had spent its entire life reachable
+only by typing `/keys` into the input bar — a keyboard-shortcuts panel with no
+keyboard shortcut — while `Cmd+/` is the chord every other application on the
+machine uses for exactly this. It is listed in the overlay's own table and in
+both manuals now, because the docs-parity test would not have it otherwise.
+
+Reaching for it exposed a second thing. Typing while the overlay is open
+filters the list, which is a good rule that was being applied to *every* key,
+super chords included: `Cmd+T` with the panel up put a "t" in the filter box
+and opened no shell, and so did `Cmd+W`, `Cmd+J` and every other command crew
+has. A Cmd chord is a command, not a keystroke for a search box. A held super
+key now closes the overlay and lets the chord through — except `Cmd+/`, which
+*is* this overlay, and so simply puts it away.
+
+**The pane card, drawn all at once.** The frame every pane wears is the
+busiest surface in crew — twenty-odd readings share its four borders, each
+with its own test, and nothing had ever drawn them together. `cardshot_tests`
+now does: the numbered hue legend, `[-][x]`, the activity dot and unread
+count, bell, broadcast, pin, git badge, elapsed clock, the OSC 9;4 progress
+bar, the scroll thumb and its landmark/search/command/error ticks, the focus
+brackets, the command-at-top label — loaded, focused and quiet, at two tile
+widths. No defects found: the card is exact under load, and the `[-][x]`
+buttons that *look* brighter than the legend on an unfocused card measure the
+same colour to the byte. Denser glyphs, not a colour bug.
+
 ## 0.19.55
 
 **The `+N` tile answers the whole question.** When the grid runs out of full
