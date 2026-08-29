@@ -8,6 +8,28 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.57
+
+**The question stands as long as the answer does.** `/closeall` and `/only`
+ask before doing something you cannot take back: run the command, read the
+question, run it again to mean yes. The window in which that second run counts
+is **ten seconds**. The question was on screen for **three**. For the other
+seven, nothing anywhere said that pressing Enter on `/closeall` again would
+close every pane in the window, and nothing said when the window had shut
+either — a trigger you cannot see is worse than a question you cannot see.
+
+The ask is a *state* now, not a flash. While the window stands, the input
+bar's bottom rule carries the question in the bell colour, outranking both a
+transient status and the standing pane name, and it goes the instant the
+command is answered or the window expires: the bar stops saying it in the same
+moment the second run stops meaning yes.
+
+And a confirmation you have moved on from is no longer armed. `/closeall`
+asks, you go and change the gradient instead, and ten seconds later a second
+`/closeall` used to fire on the first press, because nothing in between
+disarmed it. Any other slash command now does — `/only` and `/closeall`
+themselves still answer their own question.
+
 ## 0.19.56
 
 **The shortcuts panel finally has a shortcut.** `Cmd+/` (and `Cmd+?` on the
