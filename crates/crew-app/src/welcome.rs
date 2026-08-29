@@ -4,31 +4,9 @@
 use crew_render::CellView;
 
 use crate::charrain::{rain, RAIN_H, RAIN_MIN_H, RAIN_MIN_W, RAIN_W};
+use crate::welcomeart::{frame, nameplate, push_hint, push_spans, push_str};
+use crate::welcometext::{chord_fg, fits, hint_spans, restore_hint, whats_new, TAGLINE};
 
-const TAGLINE: &str = "fast terminals. clean flow.";
-/// The opening hint, widest form first. It named the shell and the command
-/// palette and not the agents, which are the reason crew is not just a
-/// terminal — and a first run that never mentions them is a first run that
-/// never finds them.
-///
-/// Chosen by width rather than dropped: the whole line used to vanish on a
-/// narrow window, which is the wrong trade for the one piece of guidance a
-/// new user gets.
-const HINTS: &[&str] = &[
-    "Cmd+T  shell    \u{00b7}    Cmd+J  agents    \u{00b7}    /  commands",
-    "Cmd+T  shell  \u{00b7}  Cmd+J  agents  \u{00b7}  /  commands",
-    "Cmd+T shell \u{00b7} Cmd+J agents \u{00b7} / commands",
-    "Cmd+J  agents    \u{00b7}    /  commands",
-    "Cmd+J agents",
-];
-
-/// The widest hint that fits `cols`, or `None` when even the shortest does not.
-fn hint_for(cols: u16) -> Option<&'static str> {
-    HINTS
-        .iter()
-        .copied()
-        .find(|h| (h.chars().count() as u16) < cols)
-}
 /// Poll ticks per rendered frame. The tick doubles as the rain's clock, so this
 /// sets the fall speed as well as the frame rate: at the loop's ~62 Hz this
 /// lands the welcome field on the same calm few-cells-per-second cadence as the
@@ -54,15 +32,6 @@ pub fn anim_should_redraw(tick: u64) -> bool {
     tick.is_multiple_of(ANIM_DIV)
 }
 
-/// Push every character of `s` as cells starting at `(col, row)`.
-// rustfmt::skip keeps the CellView struct literal on one line.
-#[rustfmt::skip]
-fn push_str(cells: &mut Vec<CellView>, row: u16, col: u16, s: &str, fg: (u8,u8,u8), bg: (u8,u8,u8)) {
-    for (i, ch) in s.chars().enumerate() {
-        cells.push(CellView { col: col + i as u16, row, c: ch, fg, bg, bold: false, italic: false, ..Default::default() });
-    }
-}
-
 /// Largest even rain-box width `w` (rendered at height `w/2`) such that the
 /// box + blank row + tagline + hint stack (`h + 3` rows) centres within
 /// `rows`, and `w` (plus a 2-col margin) fits within `cols` — capped at
@@ -80,116 +49,12 @@ fn rain_width(cols: u16, rows: u16) -> Option<u16> {
     None
 }
 
-/// The rectangular frame on the rain box's outer ring: a muted single-line
-/// border, so the rain reads as a bounded field rather than loose glyphs.
-#[rustfmt::skip]
-fn frame(cells: &mut Vec<CellView>, top: u16, left: u16, w: u16, h: u16, fg: (u8,u8,u8), bg: (u8,u8,u8)) {
-    if w < 2 || h < 2 { return; }
-    let (bot, right) = (top + h - 1, left + w - 1);
-    let mut put = |row: u16, col: u16, c: char| {
-        cells.push(CellView { col, row, c, fg, bg, bold: false, italic: false, ..Default::default() });
-    };
-    for c in left + 1..right {
-        put(top, c, '\u{2500}');
-        put(bot, c, '\u{2500}');
-    }
-    for r in top + 1..bot {
-        put(r, left, '\u{2502}');
-        put(r, right, '\u{2502}');
-    }
-    put(top, left, '\u{250c}');
-    put(top, right, '\u{2510}');
-    put(bot, left, '\u{2514}');
-    put(bot, right, '\u{2518}');
-}
-
-/// The internal `C R E W` nameplate centred in the rain box — the same
-/// double-line box the smith splash wears. Every cell (borders, padding,
-/// letters) is pushed, so the plate occludes the rain behind it
-/// (crew-render's last-write-wins merge) and the glyphs fall AROUND it.
-/// Skipped when the box hasn't the room to hold it with a rain margin.
-#[rustfmt::skip]
-fn nameplate(cells: &mut Vec<CellView>, top: u16, left: u16, w: u16, h: u16, ink: (u8,u8,u8), bg: (u8,u8,u8)) {
-    const PLATE: &str = "C R E W";
-    const PAD: u16 = 3;
-    let inner = PLATE.len() as u16 + PAD * 2;
-    let (bw, bh) = (inner + 2, 3u16);
-    if w < bw + 4 || h < bh + 2 { return; }
-    let ptop = top + (h - bh) / 2;
-    let pleft = left + (w - bw) / 2;
-    let mut put = |row: u16, col: u16, c: char, bold: bool| {
-        cells.push(CellView { col, row, c, fg: ink, bg, bold, italic: false, ..Default::default() });
-    };
-    for i in 0..inner {
-        put(ptop, pleft + 1 + i, '\u{2550}', false);
-        put(ptop + 2, pleft + 1 + i, '\u{2550}', false);
-        let c = if (PAD..PAD + PLATE.len() as u16).contains(&i) {
-            PLATE.as_bytes()[(i - PAD) as usize] as char
-        } else {
-            ' '
-        };
-        put(ptop + 1, pleft + 1 + i, c, c != ' ');
-    }
-    for (row, l, r) in [
-        (ptop, '\u{2554}', '\u{2557}'),
-        (ptop + 1, '\u{2551}', '\u{2551}'),
-        (ptop + 2, '\u{255a}', '\u{255d}'),
-    ] {
-        put(row, pleft, l, false);
-        put(row, pleft + bw - 1, r, false);
-    }
-}
-
-/// One extra hint row when a saved session exists: `restore` carries the
-/// snapshot's shell count (cleared once `/restore` spends it).
-fn restore_hint(n: usize) -> String {
-    format!(
-        "{n} pane{} from last session    \u{00b7}    /restore",
-        if n == 1 { "" } else { "s" }
-    )
-}
-
 /// Render one animation frame: the rain field centred, tagline + hint below
 /// it (plus a `/restore` hint when a session snapshot exists), version stamp
 /// bottom-right. Falls back to a spaced single-line "CREW" when nothing
 /// rain-sized fits. All cells stay within `cols × rows`.
 // rustfmt::skip preserves compact inline struct literals.
 #[rustfmt::skip]
-/// The current release's headline, as one centred line — the first bold
-/// sentence of the newest changelog entry, which is written to be exactly
-/// that. `None` when there is no room for it or nothing to say.
-///
-/// Trimmed to a sentence: the entries themselves run to paragraphs, and a
-/// welcome screen is not where anyone reads one.
-pub(crate) fn whats_new(cols: usize) -> Option<String> {
-    let body = crate::appregister::CHANGELOG;
-    let heading = body.find("\n## ")? + 4;
-    let rest = &body[heading..];
-    let bold = rest.find("**")? + 2;
-    let end = rest[bold..].find("**")?;
-    let head: String = rest[bold..bold + end]
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ");
-    let version = rest[..rest.find('\n')?].trim();
-    let lead = format!("new in {version} \u{b7} ");
-    let head = head.trim_end_matches('.');
-    // The window has to hold the version and something worth reading of the
-    // headline; below that there is nothing useful to say. A headline longer
-    // than the window is the changelog's doing, not the window's, so it is
-    // clipped rather than dropped — the first clause is the part that names
-    // the release.
-    let room = cols.checked_sub(lead.chars().count() + 4)?;
-    if room < 12 {
-        return None;
-    }
-    let head = match head.chars().count() > room {
-        true => format!("{}\u{2026}", head.chars().take(room - 1).collect::<String>()),
-        false => head.to_string(),
-    };
-    Some(format!("{lead}{head}"))
-}
-
 pub fn welcome_cells_animated(
     cols: u16,
     rows: u16,
@@ -225,7 +90,7 @@ pub fn welcome_cells_animated(
 
         let tl_row = top + h + 1;
         let tl_w = TAGLINE.chars().count() as u16;
-        if tl_row < rows && tl_w < cols {
+        if tl_row < rows && fits(tl_w as usize, cols) {
             push_str(
                 &mut cells,
                 tl_row,
@@ -237,17 +102,7 @@ pub fn welcome_cells_animated(
         }
         let hint_row = tl_row + 1;
         if hint_row < rows {
-            if let Some(hint) = hint_for(cols) {
-                let hint_w = hint.chars().count() as u16;
-                push_str(
-                    &mut cells,
-                    hint_row,
-                    (cols - hint_w) / 2,
-                    hint,
-                    t.hint_fg,
-                    bg,
-                );
-            }
+            push_hint(&mut cells, hint_row, cols, t.hint_fg, bg);
         }
         // What this build brought. Crew ships often and every release's
         // headline is compiled in already; a first frame that says what is
@@ -267,8 +122,11 @@ pub fn welcome_cells_animated(
             let (row, w) = (hint_row + 3, line.chars().count() as u16);
             // `row + 1 < rows`: the bottom row belongs to the version stamp
             // (drawn after, last-write-wins) — skip rather than collide.
-            if row + 1 < rows && w < cols {
-                push_str(&mut cells, row, (cols - w) / 2, &line, t.hint_fg, bg);
+            if row + 1 < rows && fits(w as usize, cols) {
+                // `/restore` is a thing to type, so it wears the accent the
+                // opening hint's chords do.
+                let spans = hint_spans(&line, chord_fg(), t.hint_fg);
+                push_spans(&mut cells, row, (cols - w) / 2, &spans, bg);
             }
         }
     } else {
@@ -293,17 +151,7 @@ pub fn welcome_cells_animated(
             }
             let hint_row = row + 2;
             if hint_row < rows {
-                if let Some(hint) = hint_for(cols) {
-                    let hint_w = hint.chars().count() as u16;
-                    push_str(
-                        &mut cells,
-                        hint_row,
-                        (cols - hint_w) / 2,
-                        hint,
-                        t.hint_fg,
-                        bg,
-                    );
-                }
+                push_hint(&mut cells, hint_row, cols, t.hint_fg, bg);
             }
         }
     }
