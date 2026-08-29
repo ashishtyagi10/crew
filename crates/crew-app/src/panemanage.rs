@@ -65,7 +65,9 @@ impl CrewApp {
         let others = self.panes.len().saturating_sub(1);
         if others > 0 && !self.pending.answered("only", std::time::Instant::now()) {
             let s = if others == 1 { "" } else { "s" };
-            self.set_status(format!("close the other {others} pane{s}? /only again"));
+            let ask = format!("close the other {others} pane{s}? /only again");
+            self.pending.asking(&ask);
+            self.set_status(ask);
             return;
         }
         if self.panes.len() <= 1 {
@@ -99,7 +101,9 @@ impl CrewApp {
         // A closed pane takes its scrollback, its running command and its
         // agent with it, and `/closeall` is one fuzzy keystroke from `/clear`.
         if !self.pending.answered("closeall", std::time::Instant::now()) {
-            self.set_status(format!("close all {n} panes? /closeall again"));
+            let ask = format!("close all {n} panes? /closeall again");
+            self.pending.asking(&ask);
+            self.set_status(ask);
             return;
         }
         // Reuse close_pane so the grid LRU and empty-state modes stay consistent.
@@ -223,5 +227,43 @@ mod tests {
         app.close_other_panes();
         assert_eq!(app.panes.len(), 1);
         assert_eq!(app.panes[0].name.as_deref(), Some("solo"));
+    }
+
+    /// The ask stood for ten seconds and was *visible* for three. It is a
+    /// state now, and the bar carries it for the whole window.
+    #[test]
+    fn the_question_reaches_the_bar_for_as_long_as_it_stands() {
+        let mut app = CrewApp::default();
+        app.panes.push(far_pane("a"));
+        app.panes.push(far_pane("b"));
+        app.close_all_panes();
+        assert_eq!(app.panes.len(), 2, "the first run only asks");
+        let q = app
+            .pending
+            .question(std::time::Instant::now())
+            .expect("the question stands");
+        assert!(q.contains("close all 2 panes"), "{q:?}");
+        app.close_all_panes();
+        assert!(app.panes.is_empty(), "the second run answers it");
+        assert!(
+            app.pending.question(std::time::Instant::now()).is_none(),
+            "and the bar stops saying it"
+        );
+    }
+
+    /// A confirmation you have moved on from is not still armed. `/closeall`
+    /// asks, you go and change the gradient instead, and a second `/closeall`
+    /// used to fire on the first press.
+    #[test]
+    fn an_unrelated_command_disarms_a_pending_confirmation() {
+        let mut app = CrewApp::default();
+        app.panes.push(far_pane("a"));
+        app.panes.push(far_pane("b"));
+        app.run_slash_command("closeall");
+        assert!(app.pending.armed(), "the first run asks");
+        app.run_slash_command("gradient");
+        assert!(!app.pending.armed(), "going elsewhere disarmed it");
+        app.run_slash_command("closeall");
+        assert_eq!(app.panes.len(), 2, "so it has to ask again");
     }
 }

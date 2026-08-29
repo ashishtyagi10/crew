@@ -31,6 +31,7 @@ fn input_shot(
     name: &str,
     w: u32,
     b: &InputBar,
+    pending: Option<&str>,
     status: Option<&str>,
     pane: Option<&str>,
 ) -> Option<Vec<u8>> {
@@ -42,7 +43,7 @@ fn input_shot(
         let bw = w as f32 - 2.0 * PAD;
         let cols = (bw / cw).floor() as u16;
         vec![PaneScene {
-            cells: b.cells(cols, 3, status, pane),
+            cells: b.cells(cols, 3, pending, status, pane),
             x: PAD,
             y: (h as f32 - bh) / 2.0,
             w: bw,
@@ -59,6 +60,16 @@ fn input_shot(
     Some(px)
 }
 
+/// One shot's inputs: the name to write, the bar itself, and the three
+/// things that can claim the bottom rule.
+type Case = (
+    &'static str,
+    InputBar,
+    Option<&'static str>,
+    Option<&'static str>,
+    Option<&'static str>,
+);
+
 /// The states that share the bar's three rows, at the width a full window
 /// gives it. A state that only ever draws in the same columns as another is a
 /// state one of them silently wins.
@@ -66,16 +77,18 @@ fn input_shot(
 #[ignore = "needs a GPU adapter; writes PNGs"]
 fn input_shot_states() {
     let _g = crate::app::theme_test_guard();
-    let cases: Vec<(&str, InputBar, Option<&str>, Option<&str>)> = vec![
+    let cases: Vec<Case> = vec![
         (
             "input-empty",
             bar("", "/Users/me/code/crew"),
+            None,
             None,
             Some("zsh"),
         ),
         (
             "input-typing",
             bar("/das", "/Users/me/code/crew"),
+            None,
             None,
             Some("zsh"),
         ),
@@ -86,12 +99,14 @@ fn input_shot_states() {
                 ..bar("git status", "/Users/me/code/crew")
             },
             None,
+            None,
             Some("claude"),
         ),
         (
             "input-status",
             bar("/theme light", "/Users/me/code/crew"),
-            Some("theme → paper light"),
+            None,
+            Some("theme \u{2192} paper light"),
             Some("zsh"),
         ),
         (
@@ -100,6 +115,7 @@ fn input_shot_states() {
                 focused: false,
                 ..bar("cargo test --workspace", "/Users/me/code/crew")
             },
+            None,
             None,
             Some("cargo test --workspace -p crew-app --bin crew"),
         ),
@@ -110,11 +126,21 @@ fn input_shot_states() {
                 "/Users/me/code/crew/crates/crew-app/src/settingspane",
             ),
             None,
+            None,
+            Some("zsh"),
+        ),
+        // A ten-second window in which running the command again closes every
+        // pane. It used to be visible for three of those seconds.
+        (
+            "input-pending",
+            bar("", "/Users/me/code/crew"),
+            Some("close all 4 panes? /closeall again"),
+            None,
             Some("zsh"),
         ),
     ];
-    for (name, b, status, pane) in &cases {
-        let Some(px) = input_shot(name, 1000, b, *status, *pane) else {
+    for (name, b, pending, status, pane) in &cases {
+        let Some(px) = input_shot(name, 1000, b, *pending, *status, *pane) else {
             eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
             return;
         };
@@ -130,7 +156,7 @@ fn input_shot_width_sweep() {
     let _g = crate::app::theme_test_guard();
     for (name, w) in [("input-narrow", 380), ("input-wide", 1400)] {
         let b = bar("/model claude-opus", "/Users/me/code/crew");
-        let Some(px) = input_shot(name, w, &b, None, Some("claude")) else {
+        let Some(px) = input_shot(name, w, &b, None, None, Some("claude")) else {
             eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
             return;
         };
@@ -153,7 +179,7 @@ fn input_shot_themes() {
         crew_theme::set_theme(id);
         crate::palette::set_accent(crew_theme::theme().accent_default);
         let b = bar("/gradient dusk", "/Users/me/code/crew");
-        let Some(px) = input_shot(name, 1000, &b, None, Some("zsh")) else {
+        let Some(px) = input_shot(name, 1000, &b, None, None, Some("zsh")) else {
             eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
             return;
         };
@@ -176,6 +202,7 @@ fn input_dump_rows() {
     let cells = b.cells(
         cols,
         3,
+        None,
         None,
         Some("cargo test --workspace -p crew-app --bin crew"),
     );
