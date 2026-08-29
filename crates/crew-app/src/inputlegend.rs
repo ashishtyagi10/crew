@@ -22,8 +22,11 @@ pub(crate) fn tag_budget(cols: u16) -> usize {
 /// The top-border legend: the working directory, with a standing `focus` tag
 /// in front of it while focus mode is on (a mode owes the user a sign it is
 /// on, and this legend is the only chrome always on screen).
-pub(crate) fn top(cwd: &std::path::Path, cols: u16) -> String {
-    let budget = crate::boxdraw::title_budget(cols);
+/// `reserved` is what something else has already claimed on this rule — the
+/// history tag at its right end. Without it a deep path fills the budget all
+/// the way to the corner and the tag, drawn after, silently eats its tail.
+pub(crate) fn top(cwd: &std::path::Path, cols: u16, reserved: usize) -> String {
+    let budget = crate::boxdraw::title_budget(cols).saturating_sub(reserved);
     let path = if cwd.as_os_str().is_empty() {
         String::new()
     } else {
@@ -82,6 +85,48 @@ pub(crate) fn bottom(
         ),
     };
     Some((format!(" {} ", clip_w(text, budget)), fg))
+}
+
+/// Where you are while browsing the bar's history with Up/Down — the one
+/// border slot in crew that was always empty, at the right end of the top
+/// rule.
+///
+/// Up does not simply walk back through everything typed: it recalls only
+/// lines starting with whatever was in the bar when browsing began (the
+/// zsh/fish rule). Both halves of that were invisible. The recalled line
+/// looks exactly like a line you typed, so nothing said you were in history
+/// at all; nothing said a prefix was filtering it; and at the oldest match Up
+/// stops doing anything, which is indistinguishable from a broken key.
+///
+/// `hist 2/5 · git` says all three. `None` when not browsing.
+pub(crate) fn history_tag(
+    history: &[String],
+    prefix: &str,
+    pos: Option<usize>,
+    cols: u16,
+) -> Option<(String, (u8, u8, u8))> {
+    let pos = pos?;
+    // Matches are counted oldest-first, so `n of total` counts *back* from
+    // the most recent — the direction Up travels.
+    let matches: Vec<usize> = history
+        .iter()
+        .enumerate()
+        .filter(|(_, h)| h.starts_with(prefix))
+        .map(|(i, _)| i)
+        .collect();
+    let total = matches.len();
+    let back = matches.iter().rev().position(|&i| i == pos)? + 1;
+    let label = match prefix.is_empty() {
+        true => format!("hist {back}/{total}"),
+        false => format!(
+            "hist {back}/{total} \u{b7} {}",
+            clip_w(prefix, tag_budget(cols) / 2)
+        ),
+    };
+    Some((
+        format!(" {} ", clip_w(&label, tag_budget(cols))),
+        crew_theme::theme().status_fg,
+    ))
 }
 
 #[cfg(test)]

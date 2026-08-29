@@ -217,6 +217,7 @@ the arrow and page keys, and any other key closes it.
 | Focus the pane that way on the grid | **Cmd+←↑→↓** |
 | Swap the focused pane with that neighbour | **Cmd+Shift+←↑→↓** |
 | Focus the input bar | **Cmd+I** |
+| Recall a line you typed before | **↑** / **↓** — filtered by what is already in the bar; the top border says `hist 2/5 · git` |
 | New shell pane | **Cmd+T** |
 | Reopen last session's panes (shells, Far, /crew) | `/restore` |
 | Settings / chat pane | **Cmd+,** / **Cmd+J** |

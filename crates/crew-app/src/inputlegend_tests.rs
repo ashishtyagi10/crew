@@ -72,7 +72,7 @@ fn a_narrow_bar_keeps_a_readable_tag() {
 #[test]
 fn the_top_legend_keeps_the_current_directory() {
     let deep = PathBuf::from("/one/two/three/four/five/six/seven/eight/settingspane");
-    let legend = top(&deep, 40);
+    let legend = top(&deep, 40, 0);
     assert!(
         legend.ends_with("settingspane"),
         "the tail survived: {legend:?}"
@@ -96,4 +96,59 @@ fn a_pending_confirmation_owns_the_slot_and_wears_the_bell() {
 fn the_slot_goes_back_when_nothing_is_pending() {
     let _g = crate::app::theme_test_guard();
     assert_eq!(bottom(None, None, Some("zsh"), 60).unwrap().0, " zsh ");
+}
+
+/// Up does not walk back through everything typed: it recalls only lines
+/// starting with what was in the bar when browsing began. Both halves of that
+/// were invisible — the recalled line looks exactly like one you typed.
+#[test]
+fn browsing_history_says_where_you_are_and_what_is_filtering_it() {
+    let _g = crate::app::theme_test_guard();
+    let hist: Vec<String> = ["git status", "ls -la", "git push", "cargo test", "git log"]
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
+    // Not browsing: the slot stays empty, as it always has been.
+    assert!(history_tag(&hist, "", None, 60).is_none());
+
+    // One Up with "git" typed lands on the newest match (index 4 of 5) —
+    // which is the FIRST step back, not the fifth.
+    let (label, fg) = history_tag(&hist, "git", Some(4), 60).unwrap();
+    assert!(label.contains("hist 1/3"), "{label:?}");
+    assert!(label.contains("git"), "the prefix is named: {label:?}");
+    assert_eq!(fg, crew_theme::theme().status_fg);
+
+    // Two more Ups reach the oldest match, which is where Up stops doing
+    // anything — the state that used to be indistinguishable from a dead key.
+    assert!(history_tag(&hist, "git", Some(0), 60)
+        .unwrap()
+        .0
+        .contains("hist 3/3"));
+}
+
+/// Plain recall (nothing typed) counts the whole history and names no filter.
+#[test]
+fn plain_recall_needs_no_prefix_in_the_tag() {
+    let _g = crate::app::theme_test_guard();
+    let hist: Vec<String> = (0..12).map(|i| format!("cmd{i}")).collect();
+    let label = history_tag(&hist, "", Some(9), 60).unwrap().0;
+    assert_eq!(label.trim(), "hist 3/12", "{label:?}");
+}
+
+/// A deep path gives way to the tag rather than being overwritten by it.
+#[test]
+fn the_path_makes_room_for_the_tag() {
+    let _g = crate::app::theme_test_guard();
+    let deep = std::path::PathBuf::from("/one/two/three/four/five/six/seven/settingspane");
+    let cols = 44u16;
+    let (tag, _) = history_tag(&[String::from("x")], "", Some(0), cols).unwrap();
+    let reserved = crate::chatwidth::str_w(&tag) + 1;
+    let with = top(&deep, cols, reserved);
+    let without = top(&deep, cols, 0);
+    assert!(
+        crate::chatwidth::str_w(&with) < crate::chatwidth::str_w(&without),
+        "the legend did not give way: {with:?}"
+    );
+    // Both still end in the directory you are actually in.
+    assert!(with.ends_with("settingspane"), "{with:?}");
 }
