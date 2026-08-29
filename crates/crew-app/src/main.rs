@@ -312,6 +312,11 @@ mod viewshot_tests;
 mod washfocus;
 mod washphase;
 mod welcome;
+mod welcomeart;
+#[cfg(test)]
+#[path = "welcomeshot_tests.rs"]
+mod welcomeshot_tests;
+mod welcometext;
 mod wincon;
 mod windowtitle;
 
