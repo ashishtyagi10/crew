@@ -8,6 +8,29 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.52
+
+**The bar you type into, shot whole.** The docked input bar is on screen in
+every session and was the only surface never rendered off-screen and *looked
+at*. Three tells were missing the moment it was. A line longer than the field
+scrolls to follow the caret, and did so in silence — a 76-character `rg`
+invocation read as if it began at `fn build_frame'`; the prompt's gutter (the
+blank column after `>`) now carries a `…` while the head is off screen, and
+stays blank when it is not. The focused pane's name rides the bottom border as
+a tag, clipped to `cols - 4` — the whole bar — so a pane titled with a command
+line turned the border into a second line of prose; a tag now gets a tag's
+budget (a third of the bar, capped at 28 columns) while a *status flash* keeps
+the generous one, because a sentence the bar says once is not a standing
+label. And blurring the bar dimmed its border and its prompt but left the cwd
+at full accent, so the brightest mark on the canvas belonged to the surface
+you had just left — the legend now recedes to `legend_off` with the rest of
+the card.
+
+Under it: `inputlegend` owns both border slots, `inputshot_tests` shoots the
+bar in nine states across three themes and two widths, and `shotdraw_tests`
+carries the GPU plumbing split out of `shotgpu_tests` so a widget drawing its
+OWN card is shot at the full canvas instead of nested inside the harness's.
+
 ## 0.19.51
 
 **Transparency you can dial, and it knows what to leave solid.** Crew could
