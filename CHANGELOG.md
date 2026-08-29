@@ -8,6 +8,26 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.58
+
+**Browsing history says where you are, and what is filtering it.** Up in the
+input bar does not walk back through everything you have typed — it recalls
+only lines starting with whatever was in the bar when browsing began, the
+zsh/fish rule. Both halves of that were invisible. A recalled line looks
+exactly like a line you typed, so nothing said you were in history at all;
+nothing said a prefix was filtering the walk, so pressing Up twice and getting
+two `git` commands out of a mixed history looked arbitrary; and at the oldest
+match Up simply stops doing anything, which is indistinguishable from a key
+that has stopped working.
+
+`hist 2/5 · git` now rides the **right end of the top rule** — the one border
+slot in crew that was always empty, and the mirror of the focused-pane tag on
+the bottom one. It says you are browsing, how far back among the *matches* you
+have gone (counted the way Up travels), and what the filter is; at `5/5` the
+reason Up does nothing is on screen. A deep working directory gives way to it
+rather than being overwritten by it, and still keeps the directory you are
+actually in.
+
 ## 0.19.57
 
 **The question stands as long as the answer does.** `/closeall` and `/only`
