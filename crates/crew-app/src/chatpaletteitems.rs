@@ -12,7 +12,7 @@ use crate::suggest::MenuItem;
 /// palette does and why its longer list reads shorter. Anything not named
 /// here still appears, under "other": a construct must never be invisible
 /// because someone forgot to file it.
-const SECTIONS: &[(&str, &[&str])] = &[
+pub(crate) const SECTIONS: &[(&str, &[&str])] = &[
     // `/fan`, `/loop`, `/goal`, `/plan`, `/skill`, `/memory`, `/mcp`,
     // `/commit`, `/review`, `/standup` and `/resume` are retired: plain
     // language reaches each capability through the broker's intent router,

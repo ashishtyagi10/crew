@@ -26,10 +26,12 @@ fn f32s_as_bytes(data: &[f32]) -> &[u8] {
     unsafe { std::slice::from_raw_parts(data.as_ptr() as *const u8, data.len() * 4) }
 }
 
-/// How many rects one frame may solidify. The frame asks for at most three
-/// (the focused card, the input bar, the nav); the slack is for a look that
-/// wants a couple more without a shader change.
-pub const MAX_SOLID_RECTS: usize = 8;
+/// How many rects one frame may solidify. The frame asks for the focused
+/// card, the input bar, the nav, and every overlay on screen — a full toast
+/// stack plus an open palette is nine on a busy frame; the slack above that is
+/// for a look that wants a couple more without a shader change. Keep in step
+/// with the array length in `solidcard.wgsl`.
+pub const MAX_SOLID_RECTS: usize = 16;
 
 /// Floats in the uniform: `res` (4) + [`MAX_SOLID_RECTS`] × 4.
 const UNIFORM_FLOATS: usize = 4 + MAX_SOLID_RECTS * 4;

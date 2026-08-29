@@ -502,8 +502,32 @@ impl CrewApp {
             }
         }
 
+        // Anything drawn as an OVERLAY is, by definition, the surface on top:
+        // the palette you are choosing from, the `/keys` panel you are
+        // reading, the toast you were meant to see. A sheer window let the
+        // wallpaper through every one of them while holding the card *behind*
+        // them solid — which is backwards. Collected here, after the scenes
+        // exist, because an overlay's rect is only known once it is placed.
+        self.solid_chrome
+            .extend(overlay_rects(&scenes, self.config.window_opacity));
+
         scenes
     }
+}
+
+/// The rects a sheer window must hold solid on top of its chrome: every
+/// overlay on the frame. At full opacity the list is empty — there is nothing
+/// to hand back, which is what keeps an opaque window's frame byte-identical
+/// to the one before any of this existed.
+fn overlay_rects(scenes: &[PaneScene], opacity: f32) -> Vec<[f32; 4]> {
+    if opacity >= 1.0 {
+        return Vec::new();
+    }
+    scenes
+        .iter()
+        .filter(|s| s.overlay)
+        .map(|s| [s.x, s.y, s.w, s.h])
+        .collect()
 }
 
 /// The one full-content tile the zoomed view draws — the same gap-inset rect

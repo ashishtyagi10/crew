@@ -117,3 +117,41 @@ fn agent_palette_card_shows_attach_legend_and_name_row() {
     assert!(legend(&cells).contains("attach"));
     assert!(cells.iter().any(|c| c.c == 'c')); // "coder" row text
 }
+
+/// A sheer window hands the opacity back where reading happens — and an
+/// overlay is, by definition, the surface on top. Toasts, the command palette
+/// and the `/keys` panel were all left see-through while the card *behind*
+/// them was held solid.
+#[test]
+fn every_overlay_is_held_solid_in_a_sheer_window() {
+    let scenes = vec![
+        scene(0.0, 0.0, 100.0, 100.0, false),
+        scene(10.0, 10.0, 40.0, 12.0, true),
+        scene(60.0, 4.0, 30.0, 8.0, true),
+    ];
+    let solid: Vec<[f32; 4]> = overlay_rects(&scenes, 0.88);
+    assert_eq!(
+        solid,
+        vec![[10.0, 10.0, 40.0, 12.0], [60.0, 4.0, 30.0, 8.0]],
+        "only the overlays, and all of them"
+    );
+    // At full opacity there is nothing to hand back, which is what keeps an
+    // opaque window's frame byte-identical to the one before this existed.
+    assert!(overlay_rects(&scenes, 1.0).is_empty());
+}
+
+fn scene(x: f32, y: f32, w: f32, h: f32, overlay: bool) -> crew_render::PaneScene {
+    crew_render::PaneScene {
+        cells: Vec::new(),
+        x,
+        y,
+        w,
+        h,
+        focused: false,
+        bordered: false,
+        glass: false,
+        scan: -1.0,
+        overlay,
+        paint: Vec::new(),
+    }
+}

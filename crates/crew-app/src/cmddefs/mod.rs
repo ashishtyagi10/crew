@@ -27,3 +27,7 @@ const GROUPS: &[&[Cmd]] = &[work::WORK, look::LOOK];
 pub(crate) fn commands() -> impl Iterator<Item = &'static Cmd> {
     GROUPS.iter().copied().flatten()
 }
+
+#[cfg(test)]
+#[path = "parity_tests.rs"]
+mod parity_tests;
