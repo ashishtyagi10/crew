@@ -129,6 +129,29 @@ fn input_shot_states() {
             None,
             Some("zsh"),
         ),
+        // Browsing history: where you are, and the prefix filtering it — the
+        // right end of the top rule, which the bar never used before.
+        (
+            "input-history",
+            InputBar {
+                text: "git push --force-with-lease".into(),
+                history: [
+                    "git status",
+                    "ls -la",
+                    "git push --force-with-lease",
+                    "cargo test",
+                ]
+                .iter()
+                .map(|s| s.to_string())
+                .collect(),
+                hist_pos: Some(2),
+                hist_prefix: "git".into(),
+                ..bar("", "/Users/me/code/crew")
+            },
+            None,
+            None,
+            Some("zsh"),
+        ),
         // A ten-second window in which running the command again closes every
         // pane. It used to be visible for three of those seconds.
         (

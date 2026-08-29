@@ -31,9 +31,17 @@ impl InputBar {
         }
         // Interior row between the top (legend) and bottom borders.
         let row = rows / 2;
+        // Where you are in history, at the right end of the TOP rule — the
+        // one border slot the bar never used (see `inputlegend::history_tag`).
+        // Measured before the legend is fitted, so a deep path gives way to it
+        // rather than being silently overwritten by it.
+        let history =
+            crate::inputlegend::history_tag(&self.history, &self.hist_prefix, self.hist_pos, cols);
+        let reserved = history.as_ref().map_or(0, |(l, _)| str_w(l) + 1);
+
         // The card frame with the cwd riding the top border as its legend
         // (and the focus-mode tag in front of it) — see `inputlegend`.
-        let legend = crate::inputlegend::top(&self.cwd, cols);
+        let legend = crate::inputlegend::top(&self.cwd, cols, reserved);
         let border = if self.focused {
             crate::panecardglow::focused_stroke(crew_theme::theme())
         } else {
@@ -132,22 +140,36 @@ impl InputBar {
             );
         }
 
+        // Where you are in history, at the right end of the TOP rule — the
+        // one border slot the bar never used (see `inputlegend::history_tag`).
+        let history =
+            crate::inputlegend::history_tag(&self.history, &self.hist_prefix, self.hist_pos, cols);
+        if let Some((label, fg)) = history {
+            place_tag(&mut out, &label, fg, cols, 0);
+        }
+
         // The bottom rule's tag: a flashing status, else the focused pane's
         // name, both budgeted so the rule stays a rule (see `inputlegend`).
         let bottom = crate::inputlegend::bottom(pending, status, pane, cols);
         if let Some((label, fg)) = bottom {
-            let w = str_w(&label) as u16;
-            if w + 3 < cols {
-                place_row(
-                    cols - 2 - w,
-                    cols,
-                    label.chars().map(|c| (c, fg)),
-                    |x, ch, fg| out.push(cell(x, rows - 1, ch, fg)),
-                );
-            }
+            place_tag(&mut out, &label, fg, cols, rows - 1);
         }
         out
     }
+}
+
+/// Right-align `label` on one of the card's border rows, clear of the corner.
+fn place_tag(out: &mut Vec<CellView>, label: &str, fg: (u8, u8, u8), cols: u16, row: u16) {
+    let w = str_w(label) as u16;
+    if w + 3 >= cols {
+        return;
+    }
+    place_row(
+        cols - 2 - w,
+        cols,
+        label.chars().map(|c| (c, fg)),
+        |x, ch, fg| out.push(cell(x, row, ch, fg)),
+    );
 }
 
 fn cell(col: u16, row: u16, c: char, fg: (u8, u8, u8)) -> CellView {

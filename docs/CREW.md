@@ -294,6 +294,7 @@ a letter, a space or Backspace), and the filter is forgotten on the way out.
 | Focus the pane that way on the grid | **Cmd+←↑→↓** |
 | Swap the focused pane with that neighbour | **Cmd+Shift+←↑→↓** |
 | Focus the input bar | **Cmd+I** |
+| Recall a line you typed before | **↑** / **↓** — filtered by what is already in the bar; the top border says `hist 2/5 · git` |
 | Find: in a chat transcript, or `/find` in the bar | **Cmd+F** |
 | New shell pane | **Cmd+T** |
 | Settings / chat pane | **Cmd+,** / **Cmd+J** |
