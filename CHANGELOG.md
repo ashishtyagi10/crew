@@ -8,6 +8,32 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.53
+
+**`/keys`, shot whole — nothing collides, nothing is clipped.** The surface
+whose entire job is to teach the app had five bindings whose keys ran straight
+into their own descriptions: the key column was the constant 26 and
+`{left:<26}` pads to a *minimum*, never to a gap, so every binding wider than
+that read `Cmd+wheelFont size + / - / reset` or `Triple-clickSelect the word`.
+The column is now measured from the widest key there is — capped at 45% of the
+panel, because the description is the half that teaches — and a key that still
+overruns takes two spaces of its own.
+
+Worse, at any window narrower than the size the panel asks for, ratatui was
+cutting descriptions off in silence: "Find: in a chat transcript, or /find in
+the ba". That is the exact lesson this module's own doc comment records from
+v0.6.57, and it had only ever been fixed for the preferred width. Descriptions
+now **wrap**, indented under themselves — the list scrolls, so extra rows cost
+nothing. And a section heading (`in an agent pane`) was one more dim row at
+the keys' indent; it now carries a rule to the panel's edge, the way every
+card in crew states an edge.
+
+Under it: `helplayout` owns the row model and lays the list out in *display*
+lines, so `max_scroll` counts what is on screen rather than what is in the
+table; `helpkeys` takes the scroll/filter keys, putting `help.rs` back under
+the 200-line cap (284 → 172); `helpshot_tests` shoots the panel at three
+widths, three states and two themes.
+
 ## 0.19.52
 
 **The bar you type into, shot whole.** The docked input bar is on screen in
