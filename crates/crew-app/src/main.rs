@@ -122,6 +122,9 @@ mod events;
 mod exereplace;
 mod faraction;
 mod farpane;
+#[cfg(test)]
+#[path = "farshot_tests.rs"]
+mod farshot_tests;
 mod filedrop;
 mod fileindex;
 mod findhl;

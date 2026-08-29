@@ -157,9 +157,12 @@ fn file_rows_show_a_right_aligned_size() {
     // Right-aligned: the size's final glyph sits flush against a `│` border
     // cell. (Padding renders as absent blank cells, so text order alone
     // cannot show the gap.)
+    // Row 0 is the panel header, which now carries a `· N · 3.3K` of its own
+    // (it used to lose that `K` to the block's clip — see
+    // `the_panel_header_fits_inside_its_own_rule`). The listing starts below.
     let k = cells
         .iter()
-        .filter(|c| c.c == 'K')
+        .filter(|c| c.c == 'K' && c.row > 0)
         .min_by_key(|c| (c.row, c.col))
         .expect("size unit cell rendered");
     assert!(
@@ -203,10 +206,25 @@ fn overflowing_panel_paints_a_scroll_thumb_on_its_border() {
 
 #[test]
 fn short_listing_paints_no_scroll_thumb() {
-    let cells = render(&fixture_pane("no_thumb"), 40, 24);
+    let cols = 40u16;
+    let cells = render(&fixture_pane("no_thumb"), cols, 24);
+    // The thumb rides a panel's right border column — the outer edge for the
+    // right panel, the shared middle column for the left. Blocks *inside* a
+    // panel are the cursor bar's highlighted spaces, which are not this.
+    // The thumb rides a panel's right border column — the shared middle for
+    // the left panel, the far right for the right one (the same columns
+    // `overflowing_panel_paints_a_scroll_thumb_on_its_border` looks at).
+    // Blocks *inside* a panel are the header bar and the cursor bar's
+    // highlighted spaces, which are not this.
+    let edges = [cols / 2, cols - 1];
+    let stray: Vec<(u16, u16)> = cells
+        .iter()
+        .filter(|c| c.c == '\u{2588}' && edges.contains(&c.col))
+        .map(|c| (c.col, c.row))
+        .collect();
     assert!(
-        cells.iter().all(|c| c.c != '\u{2588}'),
-        "thumb painted though everything fits"
+        stray.is_empty(),
+        "thumb painted though everything fits: {stray:?}"
     );
 }
 
@@ -347,11 +365,14 @@ fn suggested_command_highlights_the_bar_and_shows_the_accept_hint() {
         .collect();
     row.sort_unstable_by_key(|(col, _)| *col);
     let line: String = row.iter().map(|(_, c)| *c).collect();
-    // `to_cells` drops blank cells regardless of style (see
-    // `function_bar_highlights_actions_far_style`'s `"F10▐Quit▌"`
-    // precedent), so a column-order reconstruction loses inter-word spaces —
-    // check the squished form, not the literal spaced text.
-    assert!(line.contains("ls-la"), "suggestion missing: {line:?}");
+    // `to_cells` drops a blank cell only when it is the page's own colour, so
+    // a column-order reconstruction loses the spaces in ordinary text but
+    // KEEPS the ones inside a highlight — the suggestion sits on an accent
+    // bar, and its space comes back as the block that paints that bar.
+    assert!(
+        line.contains("ls\u{2588}-la"),
+        "suggestion missing: {line:?}"
+    );
     assert!(line.contains("Enterrun"), "accept hint missing: {line:?}");
     let dash = cells
         .iter()
@@ -579,4 +600,53 @@ fn a_directory_is_coloured_in_ink_the_tube_can_actually_make() {
         tubes += 1;
     }
     assert_eq!(tubes, 4, "every tube was actually checked");
+}
+
+/// A ratatui block title owns only what is between the borders, and the
+/// header was being fitted to the panel's whole width. At a tile width it
+/// read `· 3.3` — the block clipped the size's unit off the end, with nothing
+/// on screen saying so, and the old `max == 0` branch handed the block the
+/// whole title on purpose.
+#[test]
+fn the_panel_header_fits_inside_its_own_rule() {
+    use super::legend;
+    for width in 10u16..90 {
+        let l = legend("/Users/me/code/crew/crates/crew-app", 4, 3_400, width);
+        assert!(
+            l.chars().count() + 3 <= width as usize || l.is_empty(),
+            "{width}: header {l:?} is wider than the rule that holds it"
+        );
+        // Whenever it says anything, it ends in a whole token — never half a
+        // size, which is what the clip used to leave.
+        if l.contains('\u{b7}') {
+            assert!(l.ends_with("3.3K "), "{width}: clipped suffix {l:?}");
+        }
+        // A panel too narrow for the count and size keeps the directory.
+        if !l.is_empty() && !l.contains('\u{b7}') {
+            assert!(
+                l.contains("crew-app") || l.contains('\u{2026}'),
+                "{width}: {l:?}"
+            );
+        }
+    }
+}
+
+/// …and the corners survive it at every width the panel is opened at.
+#[test]
+fn the_panel_header_never_reaches_a_corner() {
+    for cols in [28u16, 40, 60, 120] {
+        let cells = render(&fixture_pane("hdrfit"), cols, 12);
+        let at = |col: u16| {
+            cells
+                .iter()
+                .find(|c| c.row == 0 && c.col == col)
+                .map(|c| c.c)
+        };
+        assert_eq!(at(0), Some('\u{256d}'), "{cols}: left corner survived");
+        assert_eq!(
+            at(cols - 1),
+            Some('\u{256e}'),
+            "{cols}: right corner survived"
+        );
+    }
 }

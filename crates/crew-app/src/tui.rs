@@ -6,8 +6,17 @@ use ratatui::buffer::Buffer;
 use ratatui::style::{Color, Modifier};
 
 /// Convert a laid-out ratatui buffer into `CellView`s (origin-relative coords).
-/// Fully-blank cells (a space with the default background) are skipped so we
-/// don't emit useless glyphs/quads.
+/// Fully-blank cells (a space with no background of its own, or the page's)
+/// are skipped so we don't emit useless glyphs/quads.
+///
+/// A blank cell carrying a background that is NOT the page's own is a
+/// different thing entirely: it is a **highlight** — a cursor bar, a selected
+/// row, an inverted header — and dropping it shattered every one of them.
+/// `/far`'s active-panel header drew as three disconnected green blocks with
+/// its ` · ` separators knocked out, and its cursor bar covered the glyphs of
+/// the selected row rather than the row. (The function-key bar already knew:
+/// its pills are padded with half-block glyphs rather than spaces, a
+/// workaround for exactly this, in the one place somebody noticed.)
 pub fn to_cells(buf: &Buffer) -> Vec<CellView> {
     convert(buf, false)
 }
@@ -34,6 +43,10 @@ fn convert(buf: &Buffer, opaque: bool) -> Vec<CellView> {
                 match (opaque, bg_opt) {
                     // Opaque overlay: paint blank cells as a solid block in their bg.
                     (true, Some(bg)) => ('█', bg),
+                    // In-pane: only a blank coloured differently from the page
+                    // is worth a quad — that one is a highlight, and it has to
+                    // survive or the bar it belongs to comes apart.
+                    (false, Some(bg)) if bg != crew_theme::theme().page_bg => ('█', bg),
                     _ => continue,
                 }
             } else {
@@ -109,12 +122,52 @@ mod tests {
     #[test]
     fn opaque_fills_blank_bg_cells_with_blocks() {
         use ratatui::style::{Color, Style};
+        let _g = crate::app::theme_test_guard();
+        // A popup's own sheet colour, which is the PAGE colour: the in-pane
+        // path has nothing to say about it (there is nothing behind an
+        // in-pane surface to bleed through), the overlay path fills it.
+        let page = crew_theme::theme().page_bg;
         let mut buf = Buffer::empty(Rect::new(0, 0, 6, 2));
-        buf.set_style(buf.area, Style::new().bg(Color::Rgb(18, 18, 30)));
-        // transparent variant skips the (blank) cells; opaque fills them solid
+        buf.set_style(
+            buf.area,
+            Style::new().bg(Color::Rgb(page.0, page.1, page.2)),
+        );
         assert!(to_cells(&buf).is_empty());
         let cells = to_cells_opaque(&buf);
         assert_eq!(cells.len(), 12);
-        assert!(cells.iter().all(|c| c.c == '█' && c.fg == (18, 18, 30)));
+        assert!(cells.iter().all(|c| c.c == '█' && c.fg == page));
+    }
+
+    /// A blank cell carrying a background that is not the page's own is a
+    /// highlight — a cursor bar, a selected row, an inverted header — and
+    /// dropping it took the middle out of every one of them.
+    #[test]
+    fn a_highlight_survives_its_own_spaces() {
+        use ratatui::style::{Color, Style};
+        let _g = crate::app::theme_test_guard();
+        let page = crew_theme::theme().page_bg;
+        let mut buf = Buffer::empty(Rect::new(0, 0, 7, 1));
+        // "a b" on a bar: the space between the glyphs is part of the bar.
+        let bar = Style::new()
+            .fg(Color::Rgb(0, 0, 0))
+            .bg(Color::Rgb(0, 200, 120));
+        buf.set_string(0, 0, "a b", bar);
+        let cells = to_cells(&buf);
+        let bar_cells: Vec<char> = (0..3)
+            .filter_map(|x| cells.iter().find(|c| c.col == x).map(|c| c.c))
+            .collect();
+        assert_eq!(bar_cells.len(), 3, "the bar came apart: {bar_cells:?}");
+        assert_eq!(bar_cells[1], '█', "the space is filled, not dropped");
+
+        // A blank at the PAGE colour is still nothing worth drawing.
+        let mut plain = Buffer::empty(Rect::new(0, 0, 4, 1));
+        plain.set_style(
+            plain.area,
+            Style::new().bg(Color::Rgb(page.0, page.1, page.2)),
+        );
+        assert!(
+            to_cells(&plain).is_empty(),
+            "a page-coloured blank is not a highlight"
+        );
     }
 }
