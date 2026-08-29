@@ -178,6 +178,7 @@ impl CrewApp {
             cells: self.input.cells(
                 ic,
                 ir,
+                self.pending.question(std::time::Instant::now()),
                 self.active_status(),
                 self.focused_pane_name().as_deref(),
             ),

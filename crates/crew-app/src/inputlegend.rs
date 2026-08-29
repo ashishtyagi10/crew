@@ -46,7 +46,12 @@ pub(crate) fn top(cwd: &std::path::Path, cols: u16) -> String {
 /// legend is the bar's standing answer to "where does this go?", so the flash
 /// borrows the slot and gives it back.
 ///
-/// The two get different budgets, because they are different kinds of thing.
+/// A *pending confirmation* outranks both: `/closeall` and `/only` arm a
+/// ten-second window in which running them again does the irreversible
+/// thing, and that is a state the bar owes you a standing sign of, not a
+/// three-second flash. It wears the bell colour, because it is a warning.
+///
+/// The other two get different budgets, because they are different kinds of thing.
 /// A status is a sentence the bar is saying to you once — it may have the
 /// whole rule if it needs it. A pane name is a standing label you read at a
 /// glance, so it takes [`tag_budget`] and the rule keeps the rest.
@@ -54,11 +59,17 @@ pub(crate) fn top(cwd: &std::path::Path, cols: u16) -> String {
 /// Returns the already-clipped label (spaces included, so the rule breaks
 /// cleanly around it) and its colour.
 pub(crate) fn bottom(
+    pending: Option<&str>,
     status: Option<&str>,
     pane: Option<&str>,
     cols: u16,
 ) -> Option<(String, (u8, u8, u8))> {
-    let (text, budget, fg) = match status {
+    let (text, budget, fg) = match pending.or(status) {
+        Some(s) if pending.is_some() => (
+            s,
+            (cols as usize).saturating_sub(4),
+            crew_theme::theme().bell,
+        ),
         Some(s) => (
             s,
             (cols as usize).saturating_sub(4),

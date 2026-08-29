@@ -8,7 +8,7 @@ fn empty_focused_shows_placeholder() {
         focused: true,
         ..Default::default()
     };
-    let cells = bar.cells(40, 3, None, None);
+    let cells = bar.cells(40, 3, None, None, None);
     // the placeholder hint renders in the faint placeholder colour
     assert!(cells
         .iter()
@@ -20,7 +20,7 @@ fn empty_focused_shows_placeholder() {
         ..Default::default()
     };
     assert!(!typed
-        .cells(40, 3, None, None)
+        .cells(40, 3, None, None, None)
         .iter()
         .any(|c| c.fg == crew_theme::theme().placeholder));
 }
@@ -34,7 +34,7 @@ fn cells_focused_shows_accent_prompt_and_text() {
         focused: true,
         ..Default::default()
     };
-    let cells = bar.cells(40, 3, None, None);
+    let cells = bar.cells(40, 3, None, None, None);
     assert!(cells.iter().any(|c| c.c == '>'));
     assert!(cells.iter().any(|c| c.c == 'l'));
     assert!(cells.iter().any(|c| c.c == 's'));
@@ -52,7 +52,7 @@ fn cells_long_text_follows_cursor_tail() {
         focused: true,
         ..Default::default()
     };
-    let cells = bar.cells(20, 3, None, None);
+    let cells = bar.cells(20, 3, None, None, None);
     assert!(cells.iter().any(|c| c.c == 'E'));
     assert!(cells.iter().any(|c| c.c == '█'));
     assert!(!cells.iter().any(|c| c.c == 'S'));
@@ -66,7 +66,7 @@ fn cells_shows_dim_ghost_suggestion() {
         focused: true,
         ..Default::default()
     };
-    let cells = bar.cells(40, 3, None, None);
+    let cells = bar.cells(40, 3, None, None, None);
     assert!(cells
         .iter()
         .any(|c| c.c == 't' && c.fg == crew_theme::theme().dim));
@@ -80,7 +80,10 @@ fn cells_unfocused_has_no_cursor() {
         focused: false,
         ..Default::default()
     };
-    assert!(!bar.cells(40, 3, None, None).iter().any(|c| c.c == '█'));
+    assert!(!bar
+        .cells(40, 3, None, None, None)
+        .iter()
+        .any(|c| c.c == '█'));
 }
 
 #[test]
@@ -92,7 +95,7 @@ fn cells_unfocused_prompt_is_dim() {
         ..Default::default()
     };
     let prompt = bar
-        .cells(40, 3, None, None)
+        .cells(40, 3, None, None, None)
         .into_iter()
         .find(|c| c.c == '>')
         .unwrap();
@@ -125,7 +128,7 @@ fn broadcast_prompt_is_magenta() {
         broadcast: true,
         ..Default::default()
     };
-    let cells = bar.cells(40, 3, None, None);
+    let cells = bar.cells(40, 3, None, None, None);
     assert!(cells
         .iter()
         .any(|c| c.c == '»' && c.fg == crew_theme::theme().broadcast));
@@ -141,7 +144,7 @@ fn cells_show_cwd_legend_on_top_border() {
         cwd: "/code/crew".into(),
         ..Default::default()
     };
-    let cells = bar.cells(40, 3, None, None);
+    let cells = bar.cells(40, 3, None, None, None);
     // the cwd legend rides the top border (row 0) in the accent colour
     assert!(cells
         .iter()
@@ -159,7 +162,7 @@ fn cells_with_empty_cwd_shows_solid_top_border() {
         cwd: Default::default(), // empty cwd
         ..Default::default()
     };
-    let cells = bar.cells(40, 3, None, None);
+    let cells = bar.cells(40, 3, None, None, None);
     // the card still has rounded corners
     assert!(cells.iter().any(|c| c.c == '╭' && c.row == 0));
     assert!(cells.iter().any(|c| c.c == '╮' && c.row == 0));
@@ -192,13 +195,13 @@ fn cells_show_status_on_bottom_border() {
         focused: true,
         ..Default::default()
     };
-    let cells = bar.cells(40, 3, Some("copied 4 lines"), None);
+    let cells = bar.cells(40, 3, None, Some("copied 4 lines"), None);
     // status characters appear on the bottom border row in the amber colour
     assert!(cells
         .iter()
         .any(|c| c.c == 'c' && c.row == 2 && c.fg == crew_theme::theme().status_fg));
     // without a status, the bottom row carries no amber text
-    let plain = bar.cells(40, 3, None, None);
+    let plain = bar.cells(40, 3, None, None, None);
     assert!(!plain.iter().any(|c| c.fg == crew_theme::theme().status_fg));
 }
 
@@ -212,7 +215,7 @@ fn the_focused_pane_names_itself_on_the_bottom_border() {
         focused: true,
         ..Default::default()
     };
-    let cells = bar.cells(40, 3, None, Some("agent smith"));
+    let cells = bar.cells(40, 3, None, None, Some("agent smith"));
     let bottom: String = row_text(&cells, 2);
     assert!(bottom.contains("agent smith"), "{bottom}");
     // Drawn as a legend, not as a status flash.
@@ -229,7 +232,7 @@ fn a_status_flash_supersedes_the_pane_legend() {
         focused: true,
         ..Default::default()
     };
-    let cells = bar.cells(40, 3, Some("copied 4 lines"), Some("agent smith"));
+    let cells = bar.cells(40, 3, None, Some("copied 4 lines"), Some("agent smith"));
     let bottom = row_text(&cells, 2);
     assert!(bottom.contains("copied 4 lines"), "{bottom}");
     assert!(!bottom.contains("agent smith"), "{bottom}");
@@ -240,7 +243,7 @@ fn a_status_flash_supersedes_the_pane_legend() {
 fn a_long_pane_name_clips_inside_the_border() {
     let bar = InputBar::default();
     let long = "a-really-very-extremely-long-pane-title-that-cannot-fit";
-    let cells = bar.cells(30, 3, None, Some(long));
+    let cells = bar.cells(30, 3, None, None, Some(long));
     assert!(
         cells.iter().all(|c| c.col < 30),
         "legend overran the card width"
@@ -256,7 +259,7 @@ fn a_long_pane_name_clips_inside_the_border() {
 fn no_pane_leaves_the_bottom_rule_intact() {
     let bar = InputBar::default();
     for name in [None, Some(""), Some("   ")] {
-        let cells = bar.cells(40, 3, None, name);
+        let cells = bar.cells(40, 3, None, None, name);
         let bottom = row_text(&cells, 2);
         assert!(
             bottom.chars().filter(|c| *c == '\u{2500}').count() >= 36,
@@ -277,8 +280,10 @@ fn row_text(cells: &[crew_render::CellView], row: u16) -> String {
 
 #[test]
 fn cells_tiny_returns_empty() {
-    assert!(InputBar::default().cells(3, 3, None, None).is_empty());
-    assert!(InputBar::default().cells(40, 0, None, None).is_empty());
+    assert!(InputBar::default().cells(3, 3, None, None, None).is_empty());
+    assert!(InputBar::default()
+        .cells(40, 0, None, None, None)
+        .is_empty());
 }
 
 #[test]
@@ -311,7 +316,7 @@ fn the_drawn_bar_colours_the_command_apart_from_its_argument() {
         focused: true,
         ..InputBar::default()
     };
-    let cells = bar.cells(60, 3, None, None);
+    let cells = bar.cells(60, 3, None, None, None);
     let at = |ch: char| {
         cells
             .iter()
@@ -338,7 +343,7 @@ fn a_command_that_does_not_exist_is_marked_as_it_is_typed() {
         ..InputBar::default()
     };
     let first = |b: &InputBar| {
-        b.cells(60, 3, None, None)
+        b.cells(60, 3, None, None, None)
             .into_iter()
             .find(|c| c.c == '/' && c.row == 1)
             .unwrap()
@@ -365,7 +370,13 @@ fn nothing_in_the_input_bar_escapes_it_or_eats_a_corner() {
         ..InputBar::default()
     };
     for cols in 12..=140u16 {
-        let cells = bar.cells(cols, 3, Some("saved settings"), Some("crew \u{b7} claude"));
+        let cells = bar.cells(
+            cols,
+            3,
+            None,
+            Some("saved settings"),
+            Some("crew \u{b7} claude"),
+        );
         assert!(
             cells.iter().all(|c| c.col < cols && c.row < 3),
             "{cols}: a cell escaped the bar"
@@ -396,7 +407,7 @@ fn the_typed_text_survives_every_width_that_can_hold_it() {
         ..InputBar::default()
     };
     for cols in 20..=140u16 {
-        let cells = bar.cells(cols, 3, None, None);
+        let cells = bar.cells(cols, 3, None, None, None);
         let mut row: Vec<&crew_render::CellView> = cells.iter().filter(|c| c.row == 1).collect();
         row.sort_by_key(|c| c.col);
         let text: String = row.iter().map(|c| c.c).collect();
@@ -438,7 +449,7 @@ fn a_scrolled_line_says_its_head_is_off_screen() {
         ..InputBar::default()
     };
     let cols = 52u16;
-    let scrolled = row_text(&bar.cells(cols, 3, None, None), 1);
+    let scrolled = row_text(&bar.cells(cols, 3, None, None, None), 1);
     assert!(
         scrolled.contains("\u{2026}"),
         "no marker on a scrolled line: {scrolled:?}"
@@ -454,7 +465,7 @@ fn a_scrolled_line_says_its_head_is_off_screen() {
         focused: true,
         ..InputBar::default()
     };
-    let plain = row_text(&short.cells(cols, 3, None, None), 1);
+    let plain = row_text(&short.cells(cols, 3, None, None, None), 1);
     assert!(plain.contains("\u{2502}> ls"), "plain gutter: {plain:?}");
 }
 
@@ -471,7 +482,7 @@ fn the_legend_recedes_with_the_rest_of_the_bar() {
             cwd: "/tmp/somewhere".into(),
             ..InputBar::default()
         };
-        let cells = bar.cells(cols, 3, None, None);
+        let cells = bar.cells(cols, 3, None, None, None);
         // The legend's own cells are the alphabetic ones on the top rule.
         cells
             .iter()

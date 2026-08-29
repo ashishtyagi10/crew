@@ -22,6 +22,7 @@ impl InputBar {
         &self,
         cols: u16,
         rows: u16,
+        pending: Option<&str>,
         status: Option<&str>,
         pane: Option<&str>,
     ) -> Vec<CellView> {
@@ -133,7 +134,7 @@ impl InputBar {
 
         // The bottom rule's tag: a flashing status, else the focused pane's
         // name, both budgeted so the rule stays a rule (see `inputlegend`).
-        let bottom = crate::inputlegend::bottom(status, pane, cols);
+        let bottom = crate::inputlegend::bottom(pending, status, pane, cols);
         if let Some((label, fg)) = bottom {
             let w = str_w(&label) as u16;
             if w + 3 < cols {

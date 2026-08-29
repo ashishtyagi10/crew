@@ -16,10 +16,17 @@ use std::time::{Duration, Instant};
 /// you have forgotten typing.
 const WINDOW: Duration = Duration::from_secs(10);
 
-/// The command awaiting a second run.
+/// The command awaiting a second run, and the question it asked.
 #[derive(Default)]
 pub(crate) struct Pending {
     cmd: Option<String>,
+    /// The question, kept for as long as the window stands. It used to live
+    /// only in a three-second status flash — which guarded a **ten**-second
+    /// window, so for seven of those seconds nothing on screen said that
+    /// running the command again would close every pane, and nothing said
+    /// when the window had shut either. A question you cannot see is not one
+    /// you can answer.
+    prompt: Option<String>,
     at: Option<Instant>,
 }
 
@@ -43,7 +50,29 @@ impl Pending {
 
     pub(crate) fn clear(&mut self) {
         self.cmd = None;
+        self.prompt = None;
         self.at = None;
+    }
+
+    /// Remember the question this ask put on screen, so the bar can keep
+    /// showing it for the whole window rather than three seconds of it.
+    pub(crate) fn asking(&mut self, prompt: impl Into<String>) {
+        self.prompt = Some(prompt.into());
+    }
+
+    /// The standing question, while one is standing. `None` once it has been
+    /// answered or the window has shut — the bar stops saying it in the same
+    /// instant the second run stops meaning "yes".
+    pub(crate) fn question(&self, now: Instant) -> Option<&str> {
+        self.at
+            .filter(|at| now.saturating_duration_since(*at) <= WINDOW)
+            .and(self.prompt.as_deref())
+    }
+
+    /// Whether anything is armed at all — asked by the dispatcher so it can
+    /// disarm on the way into an unrelated command.
+    pub(crate) fn armed(&self) -> bool {
+        self.cmd.is_some()
     }
 }
 
