@@ -334,14 +334,38 @@ fn fmt_size(bytes: u64) -> String {
 /// word reads faster than two zeros. The suffix stays intact whenever
 /// there's room for it at all; the path truncates from the left (keeping the
 /// tail) to fit `width`, same as before the count/size were added.
+///
+/// `width` is the panel's whole width, borders included — a ratatui block
+/// title only owns what is between them, and it was being fitted to all of
+/// it. So the rightmost characters were clipped by the block with nothing to
+/// show for it: at a tile width the header read `· 3.3` and the size lost its
+/// unit. Three columns come off the top: the two border cells, plus one of
+/// rule after the title, which is the breath every other card in crew keeps
+/// (`boxdraw::title_budget` takes six for the same reason).
+/// Columns the path keeps for itself before the count and size are worth
+/// showing at all.
+const MIN_PATH: usize = 6;
+
 fn legend(display: &str, count: usize, total: u64, width: u16) -> String {
     let suffix = if count == 0 {
         " \u{00b7} empty ".to_string()
     } else {
         format!(" \u{00b7} {count} \u{00b7} {} ", fmt_size(total))
     };
-    let max = (width as usize).saturating_sub(1 + suffix.chars().count());
-    if display.chars().count() <= max || max == 0 {
+    let usable = (width as usize).saturating_sub(3);
+    // A panel too narrow for the count and the size keeps the thing you
+    // actually navigate by. The suffix is dropped rather than clipped — the
+    // old `max == 0` branch returned the whole title anyway and let the block
+    // cut it, which is how `· 3.3` came to be a thing the header said.
+    let suffix = match suffix.chars().count() + MIN_PATH <= usable {
+        true => suffix,
+        false => " ".to_string(),
+    };
+    let max = usable.saturating_sub(1 + suffix.chars().count());
+    if max == 0 {
+        return String::new();
+    }
+    if display.chars().count() <= max {
         return format!(" {display}{suffix}");
     }
     let tail: String = display
