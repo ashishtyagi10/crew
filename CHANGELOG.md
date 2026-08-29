@@ -8,6 +8,27 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.55
+
+**The `+N` tile answers the whole question.** When the grid runs out of full
+tiles a pane is demoted to the minimized strip, and when the strip runs out
+too, one `+N` tile stands in for the rest. Its entire job is to say *which*
+panes are behind it — and it was answering about two-thirds of that.
+`overflow_cells` did `take(rows)` and `take(cols)` and said nothing about
+either: under a legend reading `+6` the tile listed four panes, and a long
+title read `8 crew · claude-opus-5 revi`, as if the pane were called "revi".
+Names now ellipsize like every other clipped string in crew, the last row is
+spent on `+3 more` when the list outruns the tile, and the leading pane number
+— which is how `Cmd+N` reaches it — wears the accent, the way the welcome
+hint's chords and the `/keys` key column now do.
+
+**The toast stack held still.** Four cards, hovered and at rest, on three
+pages: no defects — the card is structurally exact and the ordinary card that
+*looks* faint beside an alert on a light page measures 5.9:1, which is the
+hierarchy working rather than a fault. That is now a contract across all
+twelve themes (`every_page_carries_the_toast`): the legend ≥ 4.5, the card's
+text ≥ 7.0, an alert's bell stroke ≥ 3.0.
+
 ## 0.19.54
 
 **The first screen, shot whole — text not markdown, air, and colour.** The
