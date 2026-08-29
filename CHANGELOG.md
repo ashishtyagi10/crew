@@ -8,6 +8,32 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.59
+
+**A highlight survives its own spaces.** `/far` — crew's dual-pane file
+manager, five thousand lines across twenty-one modules — had never been
+rendered off-screen and looked at. One PNG was enough.
+
+`tui::to_cells`, the bridge from a ratatui buffer to crew's cells, skipped
+every space cell, background or no background. So any bar drawn with a `bg`
+**shattered around its own spaces** and never reached past its last glyph: the
+active panel's header drew as three disconnected green blocks with its ` · `
+separators knocked out, and the cursor bar covered the glyphs of the selected
+row rather than the row. The function-key bar already knew — its pills are
+padded with half-block glyphs instead of spaces, a workaround applied in the
+one place somebody had noticed. A blank whose background is not the page's own
+is a *highlight*, and it is emitted now, which repairs every bar in every
+ratatui-backed surface at once rather than only this pane.
+
+The panel header had a second fault: it was fitted to the panel's **whole**
+width, and a ratatui block title owns only what is between the borders. The
+last two columns were clipped by the block with nothing to show for it — at a
+tile width the header read `· 3.3` and the size lost its unit. It now budgets
+three columns off, the two borders plus one of rule, the breath every other
+card in crew keeps; and a panel too narrow for the count and size drops them
+and keeps the directory, instead of handing the block a title it was certain
+to cut.
+
 ## 0.19.58
 
 **Browsing history says where you are, and what is filtering it.** Up in the
