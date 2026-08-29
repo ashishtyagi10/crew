@@ -188,6 +188,9 @@ mod menuink;
 #[cfg(test)]
 #[path = "menushot_tests.rs"]
 mod menushot_tests;
+#[cfg(test)]
+#[path = "minshot_tests.rs"]
+mod minshot_tests;
 mod minstrip;
 mod modelfetch;
 mod modelpick;
@@ -296,6 +299,9 @@ mod themefade;
 mod themepeek;
 mod themereport;
 mod toast;
+#[cfg(test)]
+#[path = "toastshot_tests.rs"]
+mod toastshot_tests;
 mod todopane;
 mod toggles;
 mod tui;
