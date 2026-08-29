@@ -8,6 +8,31 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.60
+
+**A sheer window holds every overlay solid.** v0.19.51 decided what a
+translucent window keeps opaque — the focused card, the input bar and the nav
+— on the rule that "the surface your eye is on never has a wallpaper behind
+its text". Overlays were not on the list. So the command palette you are
+choosing from, the `/keys` panel you are reading and the toast you were meant
+to see all had the desktop coming through them, while the card *behind* them
+was held solid. An overlay is by definition the surface on top, and every one
+of them is now handed to the solidity pass — collected after the scenes exist,
+because an overlay's rect is only known once it is placed. The cap rose from 8
+rects to 16 (a full toast stack plus an open palette is nine on a busy frame),
+and the focused card goes in first so it is never what the clamp drops.
+
+**The README was missing twelve shipped commands.** `/dash`, `/disk`,
+`/usage`, `/log`, `/focus`, `/opacity`, `/density`, `/motion`, `/contrast`,
+`/shapes`, `/weight` and `/smith` are all in the palette and all in
+docs/CREW.md — and were absent from the page most people actually read.
+Shipping a feature into a list nobody updated is how it stays invisible after
+it exists. The keybindings have had a parity test against the manual for
+releases; the commands never did. Three tests now hold it in both directions:
+every command in either palette (the bar's and the agent composer's) appears
+in README.md and docs/CREW.md, and neither manual advertises a name no palette
+offers.
+
 ## 0.19.59
 
 **A highlight survives its own spaces.** `/far` — crew's dual-pane file
