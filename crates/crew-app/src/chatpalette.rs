@@ -7,7 +7,7 @@ use crate::chatkeys::ChatInput;
 use crate::suggest::MenuItem;
 
 #[path = "chatpaletteitems.rs"]
-mod chatpaletteitems;
+pub(crate) mod chatpaletteitems;
 use chatpaletteitems::{attach_items, slash_items};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

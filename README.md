@@ -258,11 +258,16 @@ recent output and opens its explanation in the zoomed file viewer, rendered
 as markdown — `??why did this fail` after a broken build gets you a
 formatted post-mortem.
 
-Slash commands complete the bar (type `/` for a fuzzy palette): `/crew`,
-`/goal <text>`, `/batch <file>`, `/view <file>`, `/md <file>`, `/diff`, `/settings`,
-`/find <text>`, `/findall <text>`, `/name <text>`, `/clear`, `/clearall`, `/clearlog`, `/only`,
-`/copy`, `/dump`, `/closeall`, `/reopen`, `/blocks`, `/blame`, `/leading`, `/invisibles`, `/pwd`, `/about`, `/font`, `/theme`, `/notify`,
-`/update`, `/broadcast`, `/zoom`, `/sidebar`, `/keys`, `/far`, `/todo`,
+Slash commands complete the bar (type `/` for a fuzzy palette): `/crew`
+(`/smith`), `/goal <text>`, `/batch <file>`, `/view <file>`, `/md <file>`,
+`/diff`, `/settings`, `/find <text>`, `/findall <text>`, `/errors`,
+`/errorsall`, `/out`, `/blocks`, `/marks`, `/name <text>`, `/pin`, `/clear`,
+`/clearall`, `/clearlog`, `/only`, `/copy`, `/dump`, `/closeall`, `/reopen`,
+`/restore`, `/blame`, `/leading`, `/invisibles`, `/pwd`, `/about`, `/log`,
+`/model`, `/update`, `/broadcast`, `/zoom`, `/sidebar`, `/keys`, `/far`,
+`/todo`, `/dash`, `/usage`, `/disk`, and the look: `/theme`, `/gradient`,
+`/font`, `/weight`, `/smooth`, `/gamma`, `/leading`, `/density`, `/opacity`,
+`/crt`, `/motion`, `/contrast`, `/shapes`, `/focus`, `/notify` — then
 `/exit`. Commands with a fixed value set (like `/theme`) expand into an
 arrow-selectable **value picker**. Fish-style autosuggest from history, `cd`
 completion with `$VAR` expansion, and `Up`/`Down` history recall persisted to

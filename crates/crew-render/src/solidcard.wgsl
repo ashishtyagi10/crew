@@ -9,7 +9,7 @@ struct Uniform {
     res: vec4<f32>,
     // xy = a rect's top-left in physical px, zw = its size. One instance is
     // drawn per rect the frame asked for, so unused slots are never read.
-    rects: array<vec4<f32>, 8>,
+    rects: array<vec4<f32>, 16>,
 }
 @group(0) @binding(0) var<uniform> u: Uniform;
 
