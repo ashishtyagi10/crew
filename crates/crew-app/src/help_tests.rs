@@ -66,12 +66,14 @@ fn every_binding_is_reachable_even_when_the_list_outgrows_the_window() {
     // A window shorter than the list, which is now the normal case.
     let h = 24u16;
     assert!(
-        max_scroll(h, "") > 0,
+        max_scroll(h, w, "") > 0,
         "premise: {} rows do not fit in {h}",
-        lines().len()
+        crate::helplayout::logical().len()
     );
-    let last = *lines().last().expect("a non-empty list");
-    let cells = help_cells(w, h, max_scroll(h, ""), "");
+    let last = *crate::helplayout::logical()
+        .last()
+        .expect("a non-empty list");
+    let cells = help_cells(w, h, max_scroll(h, w, ""), "");
     assert!(
         shows(&cells, last.1),
         "the last row ({:?}) is unreachable at max scroll",
@@ -87,14 +89,16 @@ fn every_binding_is_reachable_even_when_the_list_outgrows_the_window() {
 #[test]
 fn scrolling_stops_at_the_end_of_the_list() {
     let (w, h) = (size().0, 24u16);
-    let at_end = rows_of(&help_cells(w, h, max_scroll(h, ""), ""));
+    let at_end = rows_of(&help_cells(w, h, max_scroll(h, w, ""), ""));
     assert_eq!(
-        rows_of(&help_cells(w, h, max_scroll(h, "") + 50, "")),
+        rows_of(&help_cells(w, h, max_scroll(h, w, "") + 50, "")),
         at_end,
         "scrolling past the end must draw the same thing"
     );
-    let last = *lines().last().expect("a non-empty list");
-    assert!(shows(&help_cells(w, h, max_scroll(h, ""), ""), last.1));
+    let last = *crate::helplayout::logical()
+        .last()
+        .expect("a non-empty list");
+    assert!(shows(&help_cells(w, h, max_scroll(h, w, ""), ""), last.1));
 }
 
 /// A scrollable thing that never says so is one nobody scrolls.
@@ -104,7 +108,7 @@ fn the_overlay_says_when_there_is_more_below() {
     assert!(rows_of(&help_cells(w, h, 0, ""))
         .join("")
         .contains('\u{2193}'));
-    let end = rows_of(&help_cells(w, h, max_scroll(h, ""), "")).join("");
+    let end = rows_of(&help_cells(w, h, max_scroll(h, w, ""), "")).join("");
     assert!(!end.contains('\u{2193}'), "nothing more below at the end");
     assert!(end.contains('\u{2191}'), "but there is more above");
 }
@@ -307,8 +311,8 @@ fn the_scroll_limit_follows_the_filter() {
     let (w, _h) = (super::size().0, 24);
     let h = 12u16;
     let _ = w;
-    assert!(max_scroll(h, "") > max_scroll(h, "zoom"));
-    assert_eq!(max_scroll(h, "zzzznope"), 0);
+    assert!(max_scroll(h, w, "") > max_scroll(h, w, "zoom"));
+    assert_eq!(max_scroll(h, w, "zzzznope"), 0);
 }
 
 /// The keys a source file's key map answers to, as the overlay would have to

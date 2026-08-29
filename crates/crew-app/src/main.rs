@@ -147,6 +147,11 @@ mod gridrows;
 mod gridsel;
 mod handler;
 mod help;
+mod helpkeys;
+mod helplayout;
+#[cfg(test)]
+#[path = "helpshot_tests.rs"]
+mod helpshot_tests;
 mod helptable;
 mod history;
 mod histsearch;
