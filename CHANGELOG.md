@@ -8,6 +8,29 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.61
+
+**Every name crew cuts now says it was cut.** Two of the last three releases
+fixed a surface that shortened a name and drew the result as though it were
+the whole thing — the `+N` tile's `8 crew · claude-opus-5 revi`, `/far`'s
+header saying `· 3.3`. Grepping for the shape that causes it — a
+`chars().take(n)` with nothing appended — found six more, all of them text a
+person reads.
+
+`/disk`'s treemap drew `vend` in a narrow tile, which is not a directory
+anybody has; `ven…` reads as a name that did not fit, which is the truth.
+`/blame`'s author column turned "Ashish Tyagi" into "Ashish T", inventing a
+person (the label is still exactly the gutter's width, so the text column
+cannot shift). A batch job's title is what the pane lists while the prompt is
+kept whole beside it, so a cut title should look cut. And a markdown code
+block's language label, a fresh agent pane's one line of guidance, and the
+file viewer's banner round it out — the last two being the `/keys` lesson in
+miniature: a clipped instruction teaches the half that fits, and nobody can
+see that the rest existed.
+
+All six go through `chatwidth::clip_w`, which is width-aware and is what every
+honest clip in crew already used.
+
 ## 0.19.60
 
 **A sheer window holds every overlay solid.** v0.19.51 decided what a
