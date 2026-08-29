@@ -8,6 +8,21 @@ use crate::help::{max_scroll, size};
 const PAGE: i32 = 8;
 
 impl crate::app::CrewApp {
+    /// Show the keys overlay, from the top of an unfiltered list.
+    pub(crate) fn open_help(&mut self) {
+        self.help_open = true;
+        self.help_scroll = 0;
+        self.help_filter.clear();
+    }
+
+    /// Put it away, forgetting where it was read to and what was typed into
+    /// it — the next `Cmd+/` is a fresh question, not the last one resumed.
+    pub(crate) fn close_help(&mut self) {
+        self.help_open = false;
+        self.help_scroll = 0;
+        self.help_filter.clear();
+    }
+
     /// The rows a key moves the open help by, or `None` when the key means
     /// "close" — which is every key that is not a way of moving through a
     /// list, so the overlay keeps its press-anything-to-dismiss habit.
@@ -77,3 +92,7 @@ impl crate::app::CrewApp {
         self.help_scroll = want.clamp(0, max) as usize;
     }
 }
+
+#[cfg(test)]
+#[path = "helpkeys_tests.rs"]
+mod tests;

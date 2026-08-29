@@ -25,10 +25,26 @@ impl CrewApp {
         // The help overlay: arrows and page keys walk its list, anything else
         // dismisses it. It is longer than a window and always has been — it
         // used to answer that by silently cutting the bottom off.
+        //
+        // A Cmd chord is a command, not a keystroke for the filter box. Every
+        // one of them used to be typed into the search instead: with the
+        // overlay up, Cmd+T put a "t" in the filter and opened no shell. A
+        // held super key closes the overlay and lets the chord through —
+        // except Cmd+/, which IS this overlay, and so simply puts it away.
         if self.help_open && event.state.is_pressed() {
-            self.help_key(&event.logical_key);
-            self.redraw();
-            return;
+            if mstate.super_key() {
+                self.close_help();
+                let toggled = matches!(&event.logical_key,
+                    Key::Character(s) if s.as_str() == "/" || s.as_str() == "?");
+                if toggled {
+                    self.redraw();
+                    return;
+                }
+            } else {
+                self.help_key(&event.logical_key);
+                self.redraw();
+                return;
+            }
         }
 
         // Shift+PageUp/Down scroll a page; Shift+Home/End jump to top/bottom.

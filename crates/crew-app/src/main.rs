@@ -61,6 +61,9 @@ mod chatmention;
 mod chatshot_tests;
 
 mod cardpaint;
+#[cfg(test)]
+#[path = "cardshot_tests.rs"]
+mod cardshot_tests;
 mod chatmsgs;
 mod chatpalette;
 mod chatplace;

@@ -221,6 +221,7 @@ the arrow and page keys, and any other key closes it.
 | Reopen last session's panes (shells, Far, /crew) | `/restore` |
 | Settings / chat pane | **Cmd+,** / **Cmd+J** |
 | Toggle sidebar | **Cmd+G** |
+| These keys, on screen | **Cmd+/** (or `/keys`) — type to filter, ↑↓ to scroll, Esc to close |
 | Zoom focused pane | **Cmd+Z** (or double-click its top border) |
 | Broadcast input to all panes | **Cmd+S** |
 | Font bigger / smaller / reset | **Cmd+=** / **Cmd+-** / **Cmd+0** |

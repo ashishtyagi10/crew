@@ -145,6 +145,11 @@ impl CrewApp {
             "=" | "+" => self.set_font(self.config.font_size + 1.0),
             "-" | "_" => self.set_font(self.config.font_size - 1.0),
             "0" => self.set_font(14.0),
+            // Cmd+/ (and Cmd+? on the shifted key): the keyboard-shortcuts
+            // overlay, which for its whole life had no keyboard shortcut —
+            // `/keys` typed into the bar was the only way to it. The chord
+            // every other app on the machine uses for the same panel.
+            "/" | "?" => self.open_help(),
             s if s.len() == 1 => {
                 if let Some(d) = s.chars().next().and_then(|c| c.to_digit(10)) {
                     if d >= 1 {
