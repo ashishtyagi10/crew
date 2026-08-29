@@ -57,6 +57,7 @@ pub(crate) const BINDINGS: &[(&str, &str)] = &[
         "On a card's top border",
         "Double-click zooms \u{b7} drag it onto another card to swap them",
     ),
+    ("Cmd+/", "These keys"),
     ("/ (in input)", "Command palette"),
     (
         "! · * · ? · ?? (in input)",
