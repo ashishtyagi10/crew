@@ -8,6 +8,30 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.54
+
+**The first screen, shot whole — text not markdown, air, and colour.** The
+empty-screen welcome is what anybody sees first, and rendered off-screen at
+four window shapes it was doing three things wrong. Its "new in …" line is
+lifted from the newest changelog entry's bold headline *verbatim*, so the
+app's first frame was showing its own markdown — ``new in 0.19.53 · `/keys`,
+shot whole``, backticks and all. There is no markdown renderer on this
+surface; a backtick here is a character to look past.
+
+Every centred line was admitted on `w < cols`, which allows a line exactly one
+column narrower than the card — so in a tall narrow window the opening hint
+sat *touching* both frame strokes, which reads as a rendering fault rather
+than a layout. Two columns of air on each side now, for the hint, the
+tagline, the headline and the restore offer alike.
+
+And nothing on it was crew's own colour. The one line that tells a new user
+what to press — `Cmd+T  shell · Cmd+J  agents · /  commands` — was the same
+muted grey as the prose around it. The **chords now wear the accent** and the
+words stay muted, so the characters you type are the ones that stand out;
+`/restore` on the relaunch offer is a chord by the same rule. Structurally,
+`welcometext` takes the words and `welcomeart` the drawing, putting
+`welcome.rs` under the 200-line cap (322 → 170).
+
 ## 0.19.53
 
 **`/keys`, shot whole — nothing collides, nothing is clipped.** The surface
