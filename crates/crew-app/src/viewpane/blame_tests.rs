@@ -126,3 +126,33 @@ fn the_column_is_never_more_than_a_third_of_the_pane() {
     assert_eq!(width_for(WIDE * 3), Some(WIDE));
     assert_eq!(width_for(WIDE * 3 - 1), Some(NARROW));
 }
+
+/// A gutter that cuts "Ashish Tyagi" to "Ashish T" has invented a person.
+/// Every clipped name in crew says it is clipped.
+#[test]
+fn a_long_author_is_marked_as_cut_not_silently_renamed() {
+    let lines = vec![Line {
+        sha: "3f2a1b0".into(),
+        author: "Ashish Tyagi".into(),
+    }];
+    let label = labels(&lines, WIDE).remove(0);
+    assert!(
+        label.contains('\u{2026}'),
+        "the name was cut without saying so: {label:?}"
+    );
+    assert!(label.starts_with("3f2a1b0 "), "{label:?}");
+    // Still exactly the gutter's width, so the text column cannot shift.
+    assert_eq!(label.chars().count(), WIDE, "{label:?}");
+}
+
+/// A name that fits is untouched — the mark has to mean something.
+#[test]
+fn a_short_author_keeps_every_letter() {
+    let lines = vec![Line {
+        sha: "a10ff32".into(),
+        author: "claude".into(),
+    }];
+    let label = labels(&lines, WIDE).remove(0);
+    assert!(label.starts_with("a10ff32 claude"), "{label:?}");
+    assert!(!label.contains('\u{2026}'), "{label:?}");
+}

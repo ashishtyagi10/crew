@@ -172,3 +172,25 @@ fn input_reduce_control_char_ignored() {
     input_reduce(&mut s, Some('\u{7}'), false, false);
     assert_eq!(s, "");
 }
+
+/// A fresh agent pane's one line of guidance is the `/keys` lesson in
+/// miniature: a clipped instruction teaches the half that fits, and nobody
+/// can see that the rest existed.
+#[test]
+fn a_narrow_agent_pane_says_its_hint_is_cut() {
+    let _g = crate::app::theme_test_guard();
+    let cells = super::layout_cells(&[], "", 24, 10, 0, true);
+    let row: String = {
+        let mut v: Vec<&crew_render::CellView> = cells.iter().filter(|c| c.row == 0).collect();
+        v.sort_by_key(|c| c.col);
+        v.iter().map(|c| c.c).collect()
+    };
+    assert!(!row.is_empty(), "a fresh pane shows a hint");
+    assert!(
+        row.chars().count() <= 24,
+        "the hint overran the pane: {row:?}"
+    );
+    if row.chars().count() == 24 {
+        assert!(row.ends_with('\u{2026}'), "clipped in silence: {row:?}");
+    }
+}

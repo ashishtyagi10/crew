@@ -76,12 +76,19 @@ pub(crate) fn executor() -> (Arc<dyn AgentFactory>, Option<Budget>) {
 
 /// Parse batch jobs from text: one job per non-blank line, the line serving as
 /// both the (truncated) title and the prompt. Empty input yields no jobs.
+///
+/// Columns a job title keeps — the prompt is stored whole beside it, so this
+/// is only what the pane shows in its list.
+const TITLE_COLS: usize = 40;
+
 pub(crate) fn jobs_from_lines(text: &str) -> Vec<Job> {
     text.lines()
         .map(str::trim)
         .filter(|l| !l.is_empty())
         .map(|l| Job {
-            title: l.chars().take(40).collect(),
+            // The prompt is kept whole below; the title is what the pane
+            // shows, and a cut one should look cut.
+            title: crate::chatwidth::clip_w(l, TITLE_COLS),
             prompt: l.to_string(),
             tier: BATCH_TIER,
         })

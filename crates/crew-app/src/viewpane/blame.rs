@@ -117,12 +117,14 @@ pub(crate) fn labels(lines: &[Line], width: usize) -> Vec<String> {
         prev = Some(&l.sha);
         let mut s = l.sha.clone();
         if width >= WIDE {
-            let author: String = l.author.chars().take(AUTHOR).collect();
+            // A gutter that cuts "Ashish Tyagi" to "Ashish T" has invented a
+            // person; the ellipsis says the name goes on.
+            let author = crate::chatwidth::clip_w(&l.author, AUTHOR);
             s = format!("{s} {author}");
         }
         // Clip before padding: a wide author on a narrow budget must not
         // push the text column right and desynchronise every row.
-        let s: String = s.chars().take(width).collect();
+        let s = crate::chatwidth::clip_w(&s, width);
         out.push(format!("{s:<width$}"));
     }
     out

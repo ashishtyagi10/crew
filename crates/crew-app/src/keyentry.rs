@@ -187,7 +187,7 @@ impl KeyEntry {
             // would make the leak assertion (which scopes itself to row 1)
             // vacuous. A test pins it here.
             let hint = "waiting for browser · or paste the key";
-            for (i, ch) in hint.chars().take(inner).enumerate() {
+            for (i, ch) in crate::chatwidth::clip_w(hint, inner).chars().enumerate() {
                 cells.push(CellView {
                     col: 1 + i as u16,
                     row: 2,
