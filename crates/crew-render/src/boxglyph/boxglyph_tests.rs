@@ -96,13 +96,26 @@ fn heavy_lines_are_thicker_than_light_ones() {
 }
 
 /// The stroke tracks the cell, so a Retina rescale or a display font size
-/// gets a proportionally thicker rule rather than a lone hairline.
+/// gets a proportionally thicker rule rather than a lone hairline — and it
+/// steps where the letters' own stems step, not once at double size. The old
+/// `ch / 16` truncating gave ONE pixel from a 16-pixel cell all the way to a
+/// 31-pixel one: every font from 13 up to 25 framed with the same hairline.
 #[test]
 fn the_stroke_thickens_with_the_cell() {
     assert_eq!(light_thickness(16), 1);
+    assert_eq!(light_thickness(24), 2, "font 19 is not framed with a wire");
     assert_eq!(light_thickness(32), 2);
     assert_eq!(light_thickness(48), 3);
     assert_eq!(light_thickness(4), 1, "never vanishes");
+    // One answer for the whole renderer: a `─` and an underlined word in the
+    // same pane are both rules, and must be the same weight.
+    for ch in [12u32, 16, 20, 24, 33, 40, 64] {
+        assert_eq!(
+            light_thickness(ch),
+            crate::deco::thickness(ch as f32) as u32,
+            "a rule and an underline disagree at ch={ch}"
+        );
+    }
 }
 
 /// Shades are a flat tint at a known fraction — a heatmap reads its value

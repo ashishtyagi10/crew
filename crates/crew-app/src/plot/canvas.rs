@@ -311,20 +311,43 @@ impl Canvas {
         )
     }
 
-    /// Fraction of pixel `(ix, iy)` the shape covers, from a 3×3 sample grid.
+    /// Fraction of pixel `(ix, iy)` the shape covers.
+    ///
+    /// Two passes. The first is the 3×3 grid this has always used, and for
+    /// the pixels wholly inside a shape or wholly outside it — which is very
+    /// nearly all of them — that is the whole answer. A pixel whose nine
+    /// samples DISAGREE is on the edge, and nine samples can only tell an
+    /// edge apart in ninths: on a near-horizontal roof, where coverage slides
+    /// slowly along the row, ten levels is a terrace you can see. Those
+    /// pixels are re-sampled at 7×7 for fifty.
+    ///
+    /// The refinement is bounded by the shape's PERIMETER rather than its
+    /// area, so it costs a fraction of the fill, and the coarse pass is
+    /// unchanged — a mark thin enough to fall between the nine samples was
+    /// invisible before this and is invisible after it, no more and no less.
+    /// (Thin marks want [`fill_sdf`](Self::fill_sdf); axis-aligned ones want
+    /// [`rect`](Self::rect), which computes its coverage outright.)
     fn coverage(&self, ix: usize, iy: usize, inside: &impl Fn(f32, f32) -> bool) -> f32 {
-        const S: usize = 3;
-        let mut hits = 0;
-        for sy in 0..S {
-            for sx in 0..S {
-                let px = (ix as f32 + (sx as f32 + 0.5) / S as f32) / self.scale;
-                let py = (iy as f32 + (sy as f32 + 0.5) / S as f32) / self.scale;
-                if inside(px, py) {
-                    hits += 1;
+        let grid = |n: usize| {
+            let mut hits = 0;
+            for sy in 0..n {
+                for sx in 0..n {
+                    let px = (ix as f32 + (sx as f32 + 0.5) / n as f32) / self.scale;
+                    let py = (iy as f32 + (sy as f32 + 0.5) / n as f32) / self.scale;
+                    if inside(px, py) {
+                        hits += 1;
+                    }
                 }
             }
+            hits
+        };
+        const COARSE: usize = 3;
+        const FINE: usize = 7;
+        match grid(COARSE) {
+            0 => 0.0,
+            n if n == COARSE * COARSE => 1.0,
+            _ => grid(FINE) as f32 / (FINE * FINE) as f32,
         }
-        hits as f32 / (S * S) as f32
     }
 
     /// The drawing as [`Paint`] rectangles in cell units, merged along both
@@ -454,8 +477,10 @@ mod tests {
 
     /// The point of the distance path: an edge that lands between two canvas
     /// pixels comes out as a partial one, and a mark thinner than a pixel
-    /// comes out *grey* rather than missing. The sampled path cannot do
-    /// either — nine samples on a grid give nine chances to miss.
+    /// comes out *grey* rather than missing. The sampled path can do the
+    /// first now — an edge pixel is re-sampled at 7×7 for fifty levels — but
+    /// never the second: a mark that falls between the coarse samples is
+    /// never refined, because nothing noticed it was there.
     #[test]
     fn a_distance_fill_grades_edges_the_sample_grid_would_snap_or_miss() {
         let (cx, cy, r) = (3.0, 3.0, 2.0);
@@ -479,15 +504,23 @@ mod tests {
         let want = std::f32::consts::PI * r * r;
         assert!((a - want).abs() / want < 0.02, "disc area {a} vs {want}");
 
-        // The same disc, sampled: nine samples can only ever land on ten
-        // levels, and the same circle's edge lands on a handful of them.
+        // The same disc, sampled. This used to land on a handful of levels —
+        // nine samples can only ever say ninths — and a near-horizontal edge
+        // graded in ninths terraces visibly now that a canvas pixel IS a
+        // screen pixel. The edge pixels are refined, so both paths grade.
         let mut sampled = Canvas::new(6, 3, 2.0);
         sampled.fill(bbox, (0, 255, 0), 1.0, move |x, y| disc(x, y) <= 0.0);
         assert!(
-            levels(&sdf) > levels(&sampled),
-            "distance edge {} levels vs sampled {}",
-            levels(&sdf),
+            levels(&sampled) > 4,
+            "a sampled edge came out in {} levels",
             levels(&sampled)
+        );
+        assert!(levels(&sdf) > 4, "a distance edge lost its grading");
+        // Both describe the same circle to within a pixel of area.
+        let sa = painted_area(&sampled);
+        assert!(
+            (sa - want).abs() / want < 0.06,
+            "sampled disc area {sa} vs {want}"
         );
     }
 

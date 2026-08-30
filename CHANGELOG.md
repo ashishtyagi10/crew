@@ -8,6 +8,37 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.66
+
+**One answer to "how thick is a rule", and it tracks the font.** The drawn box
+glyphs derived their stroke as `cell_height / 16` TRUNCATING — one pixel from
+a 16-pixel cell all the way to a 31-pixel one, so every font size from 13 up
+to 25 framed its cards with the identical hairline while the text inside them
+nearly doubled. A card at a display size read as a thin wire around big
+letters. It is [`deco::thickness`](crates/crew-render/src/deco.rs) now — the
+same answer an underline already got, because a `─` and an underlined word in
+the same pane are both rules and there is no reading of "crisp" under which
+they should be different weights. A new sweep shoots the same card at 10, 13,
+16, 19, 22 and 26px and holds the rule hard-edged at every one, never thinner
+at a larger size, and thicker by the time the text has doubled.
+
+**Edges are graded in fiftieths, not ninths.** A shape given as an
+inside/outside predicate was sampled on a 3×3 grid, which can only ever say
+ninths — and a near-horizontal roof graded in ninths terraces visibly now that
+a canvas pixel is a screen pixel. The coarse pass is unchanged and still
+answers for the pixels wholly inside a shape or wholly outside it, which is
+nearly all of them; a pixel whose nine samples DISAGREE is on the edge and is
+re-sampled at 7×7. The extra work is bounded by the shape's perimeter, and a
+mark thin enough to fall between the coarse samples is exactly as invisible as
+it was before — that case wants the distance path, which is what its own
+contract says.
+
+Also rejected, with numbers: choosing each glyph's subpixel phase to land its
+stems on the pixel grid — autohinting by search, since crew renders unhinted.
+Swept over 62 glyphs at two sizes it buys **2.0%** and **1.1%** more ink
+concentration, which does not pay for up to three quarters of a pixel of
+horizontal jitter between neighbouring letters.
+
 ## 0.19.65
 
 **`/grain` — the one look knob you could not type.** The paper grain measures

@@ -1456,8 +1456,9 @@ near side, or the corner comes out as a lattice with its corner missing; and a
 T-junction's inner stroke has to step aside for the branch rather than walling
 it off. `╬` is four corners around a hole, not a thick `┼`.
 
-The stroke tracks the cell height, so a Retina rescale or a display font size
-gets a proportionally thicker rule rather than a lone hairline. Characters
+The stroke tracks the cell height — the same derivation an underline uses, so
+a `─` and an underlined word in the same pane are the same weight — and it
+steps where the letters' own stems step rather than once at double size. Characters
 outside the drawn set — the mixed single/double junctions (`╪ ╫`), `╱`, `●` —
 fall through to the font exactly as before.
 
