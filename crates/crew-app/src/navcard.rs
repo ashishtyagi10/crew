@@ -59,7 +59,7 @@ impl CrewApp {
         crate::panelcard::push_card_art(scenes, sb, cw, ch, &legend, legend_fg, |cols, rows| {
             (
                 sidebar.cells(cols, rows, &pane_rows, log, log_back),
-                sidebar.chart_paint(cols, rows, aspect, &pane_rows, log.len()),
+                sidebar.chart_paint(cols, rows, aspect),
             )
         });
     }

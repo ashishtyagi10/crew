@@ -77,11 +77,11 @@ pub fn fixed_rows(has_git: bool) -> u16 {
 /// there are entries to show.
 pub fn layout(rows: u16, has_git: bool, log_len: usize, panes: usize) -> NavLayout {
     let log_top = fixed_rows(has_git);
-    // Header + crew mix + one row per pane. An empty crew costs nothing.
+    // Header + one row per pane. An empty crew costs nothing.
     let panes_block = if panes == 0 {
         0
     } else {
-        1 + crate::crewmix::ROWS + panes.min(usize::from(u16::MAX)) as u16
+        1 + panes.min(usize::from(u16::MAX)) as u16
     };
     let slack = rows
         .saturating_sub(log_top)

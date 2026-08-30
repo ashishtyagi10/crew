@@ -99,7 +99,6 @@ mod cmdspan;
 pub mod config;
 mod confirm;
 mod crashlog;
-mod crewmix;
 #[cfg(test)]
 #[path = "crispshot_tests.rs"]
 mod crispshot_tests;
