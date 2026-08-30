@@ -145,6 +145,7 @@ mod tests {
                 tail: Default::default(),
                 read_at: 0,
                 spans: Default::default(),
+                trail: Default::default(),
             })),
             grid: FALLBACK_SIZE,
             rect: PLACEHOLDER_RECT,

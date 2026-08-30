@@ -165,7 +165,12 @@ fn push_pane_scenes(
     pinned: bool,
 ) {
     // Cells and the sub-cell paint under them, in one pass — see `Pane::art`.
-    let (mut cells, paint) = p.art(foc, ch / cw);
+    let (mut cells, mut paint) = p.art(foc, ch / cw);
+    // The caret's wake, over this pane's own paint: only the focused pane has
+    // one, and it is drawn under the text so the glyph it crosses stays read.
+    if foc {
+        paint.extend(crate::cursortrail::paint_for(p, crate::anim::now_ms()));
+    }
     let is_term = matches!(&p.content, PaneContent::Terminal(_));
     let (scroll, total) = match &p.content {
         PaneContent::Terminal(t) => (t.pty.display_offset(), t.pty.scrollable_lines()),

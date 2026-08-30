@@ -59,6 +59,14 @@ impl CrewApp {
             );
         }
         let focus_t = self.focus_fx(now);
+        // Where the caret is *this* frame, for the wake it drags (see
+        // `cursortrail`). Read before the scenes are built, because the wake is
+        // a difference between frames and the scene only knows about one.
+        crate::cursortrail::step(
+            &mut self.panes,
+            (!self.input.focused).then_some(self.focused),
+            now,
+        );
         self.theme_fade_tick(now);
         // Grid glide clock: measured between frames, clamped after idle.
         let glide_dt = crate::glide::frame_dt(now, self.glide_prev_ms);

@@ -91,6 +91,7 @@ fn a_shell_is_remembered_by_its_tracked_directory() {
         tail: Default::default(),
         read_at: 0,
         spans: Default::default(),
+        trail: Default::default(),
     })));
     assert_eq!(saved_for(&p), None, "no tracked directory, nothing to say");
     p.dir = Some(tmp());

@@ -195,6 +195,8 @@ impl TermCore {
     }
 }
 
+#[path = "cursorpos.rs"]
+mod cursorpos;
 #[path = "headless.rs"]
 mod headless;
 #[path = "modelcells.rs"]

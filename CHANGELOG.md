@@ -8,6 +8,37 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.79
+
+**The caret leaves a wake.**
+
+A cursor in a cell grid is a teleporting object: it is in one cell on one frame
+and a different cell on the next, and nothing on the page says the two were the
+same thing. At a prompt that is invisible — you are looking at the character
+you just typed — but the moment it jumps (a `Ctrl+A` to the head of the line, a
+TUI moving its selection, a paste landing) the eye has to *find* the caret
+again.
+
+The focused pane's caret now drags a short streak behind it: quads in the
+cursor's own colour over the ground it just covered, sliced along the travel
+with the alpha ramping into the caret so the same rectangle reads as speed
+rather than as a selection. It is gone in 130ms — shorter than the gap between
+two keystrokes at speed — and nothing is ever drawn *later* than the program
+asked for: the cursor is exactly where it belongs on the very first frame, and
+the wake is a trace of a move that already happened.
+
+* A jump too long to join with a bar (>24 columns, or across rows) leaves a
+  ghost on the cell the caret **left** instead — the same statement in the
+  space of one cell, rather than a flash across the whole pane.
+* Only the focused pane's caret is followed. An unfocused pane draws the
+  hollow cursor, and a background program stepping its own must never be a
+  reason for crew to schedule a frame.
+* Bounded like every other animation here, so the "an idle crew never repaints"
+  invariant holds, and at `/motion off` no wake is drawn at all.
+* The terminal shot harness grew two frames for it (`term-wake`,
+  `term-wake-jump`) — it lives on the paint layer, which is the one layer a
+  cell assertion cannot see.
+
 ## 0.19.78
 
 **Three things a terminal has to get right, all found by looking at one.**

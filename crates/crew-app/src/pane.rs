@@ -41,6 +41,10 @@ pub struct TermPane {
     /// Where each command's output started and ended in this pane's buffer
     /// ([`crate::cmdspan`]) — what `/out` slices.
     pub spans: crate::cmdspan::Spans,
+    /// The fading streak the caret drags behind it ([`crate::cursortrail`]).
+    /// Fed only while this pane is focused, so an unfocused program moving its
+    /// cursor never asks crew for a frame.
+    pub(crate) trail: crate::cursortrail::Trail,
 }
 
 /// Discriminated union of pane kinds. A handful of instances exist at once
@@ -258,6 +262,7 @@ pub fn spawn_pane(
             tail: Default::default(),
             read_at: 0,
             spans: Default::default(),
+            trail: Default::default(),
         })),
         grid,
         rect: Rect {

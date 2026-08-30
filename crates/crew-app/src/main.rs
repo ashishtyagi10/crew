@@ -103,6 +103,7 @@ mod crashlog;
 #[path = "crispshot_tests.rs"]
 mod crispshot_tests;
 mod ctxlimit;
+mod cursortrail;
 mod cwd;
 mod daemon;
 mod dashpane;

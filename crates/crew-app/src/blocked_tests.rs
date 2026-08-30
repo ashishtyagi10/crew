@@ -340,6 +340,7 @@ fn live_pty_claude_style_dialog_autofocuses() {
             tail: Default::default(),
             read_at: 0,
             spans: Default::default(),
+            trail: Default::default(),
         })),
         grid,
         rect: Rect {

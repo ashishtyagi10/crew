@@ -75,6 +75,7 @@ impl CrewApp {
             || crate::attention::any_pulsing(&self.panes, now)
             || self.toasts.any_live(now)
             || self.glide_active
+            || crate::cursortrail::any_live(&self.panes, now)
             || self.wash_focus.moving()
             // 150ms grace past expiry: the crossfade draws at whatever
             // strength the LAST frame sampled, so one more frame must land

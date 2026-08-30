@@ -138,6 +138,7 @@ impl CrewApp {
                         tail: Default::default(),
                         read_at: 0,
                         spans: Default::default(),
+                        trail: Default::default(),
                     })),
                     grid,
                     rect: PLACEHOLDER_RECT,

@@ -110,6 +110,11 @@ struct Overlay {
     select: bool,
     find: Option<&'static str>,
     links: bool,
+    /// A caret wake mid-fade: the cell the cursor came from and the cell it is
+    /// in now (see [`crate::cursortrail`]). The one thing on a terminal pane
+    /// drawn on the paint layer rather than as cells, so it is also the one
+    /// thing a cell assertion cannot see.
+    wake: Option<((u16, u16), (u16, u16))>,
 }
 
 fn term_shot(name: &str, body: &str, w: u32, h: u32, o: Overlay) -> Option<Vec<u8>> {
@@ -126,7 +131,19 @@ fn term_shot(name: &str, body: &str, w: u32, h: u32, o: Overlay) -> Option<Vec<u
         if o.links {
             crate::linkhl::colorize(&mut cells, cols, rows);
         }
-        (cells, Vec::new())
+        let paint = o
+            .wake
+            .map(|(from, at)| {
+                let mut trail = crate::cursortrail::Trail::default();
+                trail.observe(Some(from), 1_000);
+                trail.observe(Some(at), 1_000);
+                trail.paint(
+                    1_030,
+                    crew_theme::readable::cursor(crew_theme::theme(), true),
+                )
+            })
+            .unwrap_or_default();
+        (cells, paint)
     })
 }
 
@@ -144,6 +161,10 @@ fn sweep(suffix: &str, w: u32, h: u32) -> bool {
         links: true,
         ..Default::default()
     };
+    let wake = |from, at| Overlay {
+        wake: Some((from, at)),
+        ..Default::default()
+    };
     for (kind, body, o) in [
         ("palette", palette(), Overlay::default()),
         ("attrs", attributes(), Overlay::default()),
@@ -154,6 +175,8 @@ fn sweep(suffix: &str, w: u32, h: u32) -> bool {
         ("find", session(), find("crew")),
         ("find-wide", WIDE.to_string(), find("\u{5168}\u{89d2}")),
         ("links", LINKS.to_string(), links),
+        ("wake", session(), wake((14, 10), (2, 10))),
+        ("wake-jump", session(), wake((30, 1), (2, 6))),
     ] {
         let name = format!("term-{kind}-{suffix}");
         if let Some(px) = term_shot(&name, &body, w, h, o) {

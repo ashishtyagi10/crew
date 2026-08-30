@@ -13,6 +13,12 @@ impl PtyTerm {
         self.core.scroll_to_bottom();
     }
 
+    /// The live cursor's viewport cell — `None` when the program hid it or
+    /// the view is scrolled into history. What a caret animation follows.
+    pub fn cursor_cell(&self) -> Option<(u16, u16)> {
+        self.core.cursor_cell()
+    }
+
     /// Lines currently scrolled back from the live bottom (0 = at the bottom).
     pub fn display_offset(&self) -> usize {
         self.core.display_offset()

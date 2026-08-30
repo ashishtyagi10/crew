@@ -142,6 +142,18 @@ status glyphs:
 The focused pane has a near-white border and a bright block cursor; unfocused
 panes are grey with a dim cursor.
 
+**The caret leaves a wake.** A cursor in a cell grid teleports: it is in one
+cell on one frame and another on the next, with nothing on the page saying the
+two were the same thing. So the focused pane's caret drags a short streak
+behind it — sliced quads in the cursor's own colour, brightest against the
+caret and thinning away behind it, gone in about a tenth of a second. Nothing
+is drawn *later* than the program asked for: the cursor itself is exactly where
+it is on the very first frame, and the wake is a trace of the move that already
+happened. A jump too far to bar across (a full-screen redraw) leaves a mark on
+the cell the caret *left* instead. Only the focused pane has one, so a
+background program stepping its own cursor never asks crew for a frame, and at
+`/motion off` there is no wake at all.
+
 **Busy indicator.** While a pane is doing background work — a swarm planning or
 running with live tasks, or an agent chat awaiting a reply — an **indeterminate
 progress sweep** glides back and forth along its bottom border. It animates only
