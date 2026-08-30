@@ -95,26 +95,35 @@ pub(crate) fn build_pane_buffer(
     // First sighting of a misbehaving glyph: measure it from the shaped
     // layout, cache its correction, and rebuild this buffer with it applied.
     // Steady-state frames hit the cache inside `fill_rich_text` directly.
-    if banish_broken_faces(&buffer, font_system) || detect_corrections(&buffer, font_system, params)
-    {
+    // Two rebuilds, not one `||`: banishing a face CHANGES what the next
+    // shape produces, so the advances `detect_corrections` measures have to
+    // come from a layout the banished face is already out of. Short-circuiting
+    // skipped detection entirely on the frame that banished, which is the
+    // first frame a fresh `FontSystem` ever draws.
+    if banish_broken_faces(&buffer, font_system) {
+        fill_rich_text(&mut buffer, font_system, cells, cols, rows, params);
+    }
+    if detect_corrections(&buffer, font_system, params) {
         fill_rich_text(&mut buffer, font_system, cells, cols, rows, params);
     }
     buffer
 }
 
 /// Extra letter-spacing (em units, added pre-rounding at shape time) that
-/// lands a width-1 glyph's advance exactly on one cell, or `None` when the
-/// natural advance already rounds there. Needed because the monospace
-/// rounding snaps to the NEAREST cell multiple: a glyph narrower than half a
-/// cell (ComicMono Nerd Font Mono's `·`) rounds to a ZERO advance and every
-/// glyph after it drifts one cell left; one wider than 1.5 cells rounds to
-/// two and drifts the row right. Non-finite advances (GB18030 Bitmap CJK
-/// quirk) are left alone.
-fn cell_correction_em(a_em: f32, cell_em: f32) -> Option<f32> {
-    if !a_em.is_finite() || (a_em / cell_em).round() as i64 == 1 {
+/// lands a glyph's advance exactly on the `cells` columns it was placed in,
+/// or `None` when the natural advance already rounds there. Needed because
+/// the monospace rounding snaps to the NEAREST cell multiple: a glyph
+/// narrower than half a cell (ComicMono Nerd Font Mono's `·`) rounds to a
+/// ZERO advance and every glyph after it drifts one cell left; one wider than
+/// 1.5 cells drifts the row right; and a full-width glyph under 1.5 cells
+/// wide snaps to one column when the grid gave it two. Non-finite advances
+/// (GB18030 Bitmap CJK quirk) are left alone.
+fn cell_correction_em(a_em: f32, cell_em: f32, cells: u16) -> Option<f32> {
+    let want = f32::from(cells) * cell_em;
+    if !a_em.is_finite() || (a_em / cell_em).round() as i64 == i64::from(cells) {
         None
     } else {
-        Some(cell_em - a_em)
+        Some(want - a_em)
     }
 }
 
@@ -130,18 +139,32 @@ thread_local! {
         RefCell::new(HashMap::new());
 }
 
-/// Whether a cell char is even eligible for correction: ASCII always shares
-/// the face's base advance (that's what fixed-pitch means), and wide glyphs
-/// keep their existing two-cell behavior — only width-1 symbols qualify.
-fn correctable(c: char) -> bool {
-    !c.is_ascii() && UnicodeWidthChar::width(c) == Some(1)
+/// How many cells a char is supposed to occupy, or `None` when it is not
+/// eligible for correction at all. ASCII always shares the face's base
+/// advance (that's what fixed-pitch means), so it never needs one; everything
+/// else is measured against the grid it was placed on.
+///
+/// Wide glyphs were excluded here on the belief that they "keep their
+/// existing two-cell behavior". They do not. `set_monospace_width` snaps to
+/// the NEAREST cell multiple, and the CJK face the fallback reaches for at
+/// weight 500 — the weight every light theme uses — advances under 1.5 cells,
+/// so it snapped to ONE and drew a two-column character overlapping its
+/// neighbour. It looked survivable only because the blank in the spacer
+/// column made the row add up.
+fn cells_for(c: char) -> Option<u16> {
+    if c.is_ascii() {
+        return None;
+    }
+    match UnicodeWidthChar::width(c) {
+        Some(1) => Some(1),
+        Some(2) => Some(2),
+        _ => None,
+    }
 }
 
 /// Cached letter-spacing correction for one cell's char, if known.
 fn correction_for(params: &FontParams, c: char, weight: u16) -> Option<f32> {
-    if !correctable(c) {
-        return None;
-    }
+    cells_for(c)?;
     let key = (params.family.clone().unwrap_or_default(), weight, c);
     CORRECTION_CACHE.with(|cache| cache.borrow().get(&key).copied().flatten())
 }
@@ -188,29 +211,31 @@ fn banish_broken_faces(buffer: &Buffer, font_system: &mut FontSystem) -> bool {
     true
 }
 
-/// Walk the shaped layout looking for width-1 glyphs whose rounded advance
-/// is not one cell (a narrow fallback glyph rounds to ZERO and shifts the
-/// row left; an over-wide one rounds to two and shifts it right). Each
+/// Walk the shaped layout looking for glyphs whose rounded advance is not the
+/// number of cells the grid placed them in (a narrow fallback glyph rounds to
+/// ZERO and shifts the row left; an over-wide one rounds to two and shifts it
+/// right; a full-width glyph can round to one when it was given two). Each
 /// offender's natural advance is measured from the font that actually
 /// shaped it and its correction cached. Returns whether anything new was
 /// cached — i.e. whether the caller must rebuild the buffer.
 fn detect_corrections(buffer: &Buffer, font_system: &mut FontSystem, params: &FontParams) -> bool {
     let cell_em = params.cell_w / params.font_size;
     // Collect offenders first: (char, weight, font_id, glyph_id).
-    let mut offenders: Vec<(char, u16, fontdb::ID, u16)> = Vec::new();
+    let mut offenders: Vec<(char, u16, u16, fontdb::ID, u16)> = Vec::new();
     for run in buffer.layout_runs() {
         for g in run.glyphs {
             let Some(c) = run.text[g.start..g.end].chars().next() else {
                 continue;
             };
-            if !correctable(c) || (g.w / params.cell_w).round() as i64 == 1 {
+            let Some(cells) = cells_for(c) else { continue };
+            if (g.w / params.cell_w).round() as i64 == i64::from(cells) {
                 continue;
             }
-            offenders.push((c, g.font_weight.0, g.font_id, g.glyph_id));
+            offenders.push((c, cells, g.font_weight.0, g.font_id, g.glyph_id));
         }
     }
     let mut cached_new = false;
-    for (c, weight, font_id, glyph_id) in offenders {
+    for (c, cells, weight, font_id, glyph_id) in offenders {
         let key = (params.family.clone().unwrap_or_default(), weight, c);
         let known = CORRECTION_CACHE.with(|cache| cache.borrow().contains_key(&key));
         if known {
@@ -224,7 +249,7 @@ fn detect_corrections(buffer: &Buffer, font_system: &mut FontSystem, params: &Fo
                     .glyph_metrics(&[])
                     .scale(1.0)
                     .advance_width(glyph_id);
-                cell_correction_em(a_em, cell_em)
+                cell_correction_em(a_em, cell_em, cells)
             });
         cached_new |= ls.is_some();
         // Tradeoff: a `None` here (get_font failed, or the measured advance
@@ -299,8 +324,21 @@ pub(crate) fn fill_rich_text(
     let mut text = String::with_capacity(rows * (cols + 1));
     let mut runs: Vec<(usize, usize, RunKey)> = Vec::new();
     for row_i in 0..rows {
+        // Set after a full-width character: the column its second half sits in
+        // carries no cell of its own (the terminal drops alacritty's spacer,
+        // and every in-app widget places one `CellView` per character), and
+        // the blank this loop would otherwise put there gives a TWO-cell
+        // character a THREE-cell advance — pushing the rest of the row one
+        // cell right per wide glyph, which is what turned a line of Japanese
+        // into `日 本 語`. A cell that IS there wins: that is malformed input,
+        // and dropping content is worse than drifting.
+        let mut in_wide_tail = false;
         for c in 0..cols {
-            let (ch, key) = match grid[row_i * cols + c] {
+            let at = grid[row_i * cols + c];
+            if std::mem::take(&mut in_wide_tail) && at.is_none() {
+                continue;
+            }
+            let (ch, key) = match at {
                 Some(cell) => {
                     let w = if cell.bold {
                         Weight::BOLD.0
@@ -322,6 +360,7 @@ pub(crate) fn fill_rich_text(
                 }
                 None => (' ', RunKey::Default),
             };
+            in_wide_tail = UnicodeWidthChar::width(ch) == Some(2);
             let start = text.len();
             text.push(ch);
             match runs.last_mut() {

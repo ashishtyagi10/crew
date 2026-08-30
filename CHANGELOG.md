@@ -8,6 +8,39 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.76
+
+**A line of Japanese was drawn wrong three different ways.**
+
+The one surface never in a frame was the one crew is: a real terminal grid.
+Every shot harness here photographs something crew draws itself — the chat
+transcript, the left nav, the drawn panes, Far, the menus, the todo list — and
+the glass and CRT shots put a *Far* pane in the window because a Far pane is
+easy to build. So the ansi palette, bold, the underline family, the block
+cursor, a live selection and full-width glyphs on the terminal's own grid had
+all been asserted on as cells and never looked at. They are now swept at three
+tile sizes and on light and green pages, and the first frame showed CJK text
+spaced out like `日 本 語`.
+
+Three separate faults, stacked:
+
+* **The spacer column got a blank.** A full-width character occupies two
+  columns and the second carries no cell of its own, so the blank the shaper
+  was handed there gave a two-cell character a **three**-cell advance.
+* **Full-width glyphs were exempt from the advance correction**, on the belief
+  that they "keep their existing two-cell behavior". They do not:
+  `monospace_width` snaps to the *nearest* cell multiple, and the CJK face the
+  fallback reaches at **weight 500 — the weight every light theme uses** —
+  advances under 1.5 cells, so it snapped to **one** and drew a two-column
+  character over its neighbour. The two faults cancelled into a row that added
+  up while every glyph sat in the wrong place.
+* **The first frame after a bad font was banished skipped correction
+  entirely** — the two passes were joined by a `||`, so the frame that dropped
+  a broken face never went on to measure anything.
+
+Nothing else moved: ASCII, bold and the box-drawing range were already on the
+grid and stay there.
+
 ## 0.19.75
 
 **A Japanese character in a reply took the whole frame down.**

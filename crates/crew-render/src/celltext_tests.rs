@@ -335,30 +335,41 @@ fn build_pane_buffer_ignores_out_of_range_cells() {
 fn cell_correction_snaps_off_grid_advances_only() {
     let cell_em = 0.6;
     // Advances that already round to one cell need no correction.
-    assert_eq!(cell_correction_em(0.6, cell_em), None);
+    assert_eq!(cell_correction_em(0.6, cell_em, 1), None);
     assert_eq!(
-        cell_correction_em(0.55, cell_em),
+        cell_correction_em(0.55, cell_em, 1),
         None,
         "rounds to 1 anyway"
     );
     assert_eq!(
-        cell_correction_em(0.85, cell_em),
+        cell_correction_em(0.85, cell_em, 1),
         None,
         "rounds to 1 anyway"
     );
     // A narrow glyph (< half a cell) would round to a ZERO advance and shift
     // the whole row left — the reproduced ComicMono `·` bug.
-    let ls = cell_correction_em(0.2, cell_em).expect("narrow glyph needs correction");
+    let ls = cell_correction_em(0.2, cell_em, 1).expect("narrow glyph needs correction");
     assert!(
         (0.2 + ls - cell_em).abs() < 1e-6,
         "corrected advance is exactly one cell"
     );
     // An over-wide width-1 glyph (> 1.5 cells) would round to TWO cells and
     // shift the row right; correction pulls it back to one.
-    let ls = cell_correction_em(1.0, cell_em).expect("over-wide glyph needs correction");
+    let ls = cell_correction_em(1.0, cell_em, 1).expect("over-wide glyph needs correction");
     assert!((1.0 + ls - cell_em).abs() < 1e-6);
     // Non-finite advances (GB18030 Bitmap CJK quirk) are left alone.
-    assert_eq!(cell_correction_em(f32::INFINITY, cell_em), None);
+    assert_eq!(cell_correction_em(f32::INFINITY, cell_em, 1), None);
+
+    // A full-width glyph was placed in TWO columns and is measured against
+    // two. The CJK face the fallback reaches at weight 500 advances ~1.1
+    // cells, which the monospace rounding snaps to ONE — a two-column
+    // character drawn over its neighbour.
+    assert_eq!(cell_correction_em(1.2, cell_em, 2), None, "rounds to 2");
+    let ls = cell_correction_em(0.66, cell_em, 2).expect("a narrow wide glyph needs correction");
+    assert!(
+        (0.66 + ls - 2.0 * cell_em).abs() < 1e-6,
+        "corrected advance is exactly two cells"
+    );
 }
 
 #[test]
@@ -485,5 +496,60 @@ fn a_fallback_face_with_broken_metrics_never_reaches_the_layout() {
                 g.w
             );
         }
+    }
+}
+
+/// A full-width character occupies TWO columns of the grid, and it has to
+/// advance exactly two — at every weight the app can be wearing.
+///
+/// Two separate things broke this. The column a wide glyph's second half sits
+/// in carries no cell of its own (the terminal drops alacritty's spacer, and
+/// every in-app widget places one `CellView` per character), and the blank
+/// `fill_rich_text` put there gave a two-cell character a THREE-cell advance.
+/// Underneath that, `set_monospace_width` snaps to the nearest cell multiple
+/// and the CJK face the fallback reaches at weight 500 — the weight every
+/// light theme uses — advances under 1.5 cells, so it snapped to ONE. The two
+/// cancelled out into a row that added up while every glyph sat over its
+/// neighbour; with only the first fixed, a line of Japanese came out crammed.
+#[test]
+fn a_wide_glyph_advances_exactly_two_cells_at_every_weight() {
+    // Both axes matter. The snap is to the nearest CELL multiple, so it turns
+    // on the cell-to-em ratio, which the whole-pixel rounding in
+    // `cell_metrics` moves with the font size: at 14px a cell is 0.571em and
+    // the CJK advance rounds to two on its own; at 13px it is 0.615em and
+    // rounds to one. Weight picks the face, and the two faces do not agree.
+    for (size, weight) in [(13.0f32, 400u16), (13.0, 500), (13.0, 600), (26.0, 500)] {
+        let mut fs = crate::embedfont::font_system();
+        let (cell_w, cell_h) = cell_metrics(size, CELL_H_RATIO);
+        let mut p = params(None);
+        p.font_size = size;
+        p.cell_w = cell_w;
+        p.line_height = cell_h;
+        p.weight = weight;
+        let at = |col: u16, c: char| CellView {
+            col,
+            row: 0,
+            c,
+            fg: (200, 200, 200),
+            bg: (0, 0, 0),
+            ..Default::default()
+        };
+        // 日 at 0-1, 本 at 2-3, then an ASCII marker at 4.
+        let cells = vec![at(0, '\u{65e5}'), at(2, '\u{672c}'), at(4, 'x')];
+        let cols = 6;
+        let buf = build_pane_buffer(&mut fs, &cells, cols, 1, cols as f32 * cell_w, cell_h, &p);
+        let run = buf.layout_runs().next().expect("one row");
+        let marker = run
+            .glyphs
+            .iter()
+            .find(|g| run.text[g.start..g.end].starts_with('x'))
+            .expect("the marker shaped");
+        assert_eq!(
+            (marker.x / cell_w).round() as i32,
+            4,
+            "at {size}px weight {weight} the marker is in column 4; it shaped at x={} ({} cells)",
+            marker.x,
+            marker.x / cell_w
+        );
     }
 }

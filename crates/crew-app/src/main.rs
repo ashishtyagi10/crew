@@ -309,6 +309,9 @@ mod swarmpane;
 mod swarmshot_tests;
 mod swatch;
 mod sysdials;
+#[cfg(test)]
+#[path = "termshot_tests.rs"]
+mod termshot_tests;
 mod termwrite;
 mod themefade;
 mod themepeek;

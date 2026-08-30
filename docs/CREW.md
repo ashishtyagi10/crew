@@ -13,7 +13,12 @@ successor to this repo's original terminal file-manager project; the crates unde
   whole physical pixels and independent of the font family (every glyph advance
   — bold and wide CJK/emoji runs included — snaps to a whole number of cells
   via cosmic-text's `monospace_width`, so switching fonts never moves a pane, a
-  border, or a column); **colours convert to linear once** at the GPU boundary
+  border, or a column; that snap is to the *nearest* multiple, so a glyph whose
+  face disagrees with the grid — a narrow symbol from a fallback face, a
+  full-width character under 1.5 cells wide — is measured once and pulled onto
+  its column count with letter-spacing, and a face whose metrics come back
+  non-finite at all is dropped from the font database and the line re-shaped);
+  **colours convert to linear once** at the GPU boundary
   (`crew_render::color`) because the surface is sRGB; **unchanged panes reuse
   last frame's shaped text** (content signatures in `scenecache`); and all cell
   placement is **display-width aware** (`chatwidth` — emoji/CJK advance two
