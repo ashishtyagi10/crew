@@ -15,6 +15,9 @@ impl CrewApp {
         if cw <= 0.0 || ch <= 0.0 {
             return None;
         }
+        // Every drawn widget rasterizes at one canvas pixel per device pixel,
+        // and this is the one place per frame that knows how big one is.
+        crate::plot::device::set_cell_w(cw);
         let (sw, sh) = r.surface_size();
         let scale = self
             .window

@@ -44,14 +44,6 @@ const LEGEND_COL: u16 = CHIP_COL as u16 + CHIP_COLS as u16 + 1;
 const BLOCK_W: u16 = 12;
 /// Where the pulse backdrop starts: past the chips, so the two never overlap.
 const WASH_X: f32 = CHIP_COL + CHIP_COLS as f32 * PITCH + 0.4;
-/// Canvas pixels per column for the chips.
-///
-/// The default four puts a canvas pixel at about two device pixels, and a
-/// corner radius of 0.16 units is a fraction of one of those — exactly the
-/// case a sampled predicate cannot express. The wash behind the legend keeps
-/// the default: it is a soft gradient with no edge to stair-step.
-const FG_SUB: usize = 8;
-
 /// How the crew divides up right now. `waiting` is a pane that has raised a
 /// marker for you (a bell, a finished command); `working` is one doing
 /// background work; everything else is idle.
@@ -194,7 +186,7 @@ pub fn paint(
 
     // The chips go on their own, finer canvas, composited over the wash by
     // being emitted after it.
-    let mut fg = Canvas::with_sub(cols, ROWS, aspect, FG_SUB);
+    let mut fg = Canvas::new(cols, ROWS, aspect);
     for (k, (_, n, col)) in entries(m).into_iter().enumerate() {
         // Vertically centred in the row, and square: the canvas is
         // aspect-corrected, so one unit is one cell WIDTH in both axes and a

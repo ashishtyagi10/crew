@@ -17,14 +17,6 @@ use crate::plot::{sdf, Canvas};
 
 /// Thickness of a border indicator, in cell widths.
 const WEIGHT: f32 = 0.34;
-/// Canvas pixels per column for a border indicator.
-///
-/// A third of a column is 1.4 pixels on the chart canvas's default grid, so
-/// the pill these are drawn as had a corner radius smaller than a pixel and
-/// came out a blunt rectangle. Twelve gives the cap something to round with,
-/// and costs nothing here because each indicator now gets a strip its own
-/// size rather than a buffer the size of the card.
-const SUB: usize = 12;
 /// One full bounce of the indeterminate sweep, in ms — the same clock the
 /// glyph sweep used, so nothing about the motion changed but its smoothness.
 const SWEEP_MS: u64 = 1400;
@@ -68,7 +60,7 @@ fn thumb(cols: u16, rows: u16, b: &Bar, aspect: f32) -> Vec<Paint> {
     let x = (1.0 - WEIGHT) * 0.5;
     let fg =
         crate::panescroll::position_fg(crate::panescroll::position(b.total, visible, b.scroll));
-    let mut c = Canvas::with_sub(1, rows, aspect, SUB);
+    let mut c = Canvas::new(1, rows, aspect);
     c.fill_sdf((x, y, WEIGHT, h), fg, 0.95, move |px, py| {
         sdf::round_box((px, py), x, y, WEIGHT, h, WEIGHT * 0.5)
     });
@@ -91,7 +83,7 @@ fn progress(cols: u16, rows: u16, b: &Bar, aspect: f32, now: u64) -> Vec<Paint> 
     let inner = f32::from(cols - 2);
     // One row tall, at the card's last row: `y` is inside the strip.
     let y = (aspect - WEIGHT) * 0.5;
-    let mut c = Canvas::with_sub(cols, 1, aspect, SUB);
+    let mut c = Canvas::new(cols, 1, aspect);
     match p.percent {
         // A FULL bar is not a reading, it is a line. A program that reports
         // 100 and then keeps working — which is most of them, since almost
