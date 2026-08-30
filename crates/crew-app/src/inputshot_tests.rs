@@ -35,10 +35,22 @@ fn input_shot(
     status: Option<&str>,
     pane: Option<&str>,
 ) -> Option<Vec<u8>> {
+    input_shot_at(name, w, 13.0, b, pending, status, pane)
+}
+
+fn input_shot_at(
+    name: &str,
+    w: u32,
+    font: f32,
+    b: &InputBar,
+    pending: Option<&str>,
+    status: Option<&str>,
+    pane: Option<&str>,
+) -> Option<Vec<u8>> {
     // Cell height is only known once the grid exists, so the canvas is sized
     // for the tallest plausible cell and the card is drawn at its real height.
-    let h = 3 * 24 + 2 * PAD as u32;
-    let px = crate::shotdraw_tests::draw(w, h, 13.0, |cw, ch| {
+    let h = 3 * (font * 1.35).ceil() as u32 + 2 * PAD as u32;
+    let px = crate::shotdraw_tests::draw(w, h, font, |cw, ch| {
         let bh = 3.0 * ch;
         let bw = w as f32 - 2.0 * PAD;
         let cols = (bw / cw).floor() as u16;
@@ -237,5 +249,40 @@ fn input_dump_rows() {
             }
         }
         println!("{r}|{}|", line.into_iter().collect::<String>());
+    }
+}
+
+/// The bar at every font size crew is read at.
+///
+/// Its three rows carry the cwd on the top border, the prompt and the ghost
+/// completion in the middle, and the focused pane, the history state and any
+/// status flash on the bottom — all of them measured in COLUMNS, and a column
+/// is a different number of pixels at every size. A budget that fits at 13px
+/// and overflows at 22 is exactly the class of bug a fixed-size shot cannot
+/// see, and the bar is the one surface on screen in every session.
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn input_shot_font_sweep() {
+    let _g = crate::app::theme_test_guard();
+    let b = bar(
+        "cargo test -p crew-app --bin crew",
+        "~/code/crew/crates/crew-app",
+    );
+    for font in [10.0f32, 13.0, 16.0, 19.0, 22.0, 26.0] {
+        let name = format!("input-font-{font:.0}");
+        if input_shot_at(
+            &name,
+            900,
+            font,
+            &b,
+            None,
+            Some("saved 3 files"),
+            Some("2 claude"),
+        )
+        .is_none()
+        {
+            eprintln!("no GPU adapter — skipped");
+            return;
+        }
     }
 }
