@@ -299,28 +299,6 @@ impl CrewApp {
             });
         }
 
-        // Shortcut hints: one row above the input bar while a bare modifier
-        // is rested on. Pushed after the command palette so a held Cmd during
-        // a slash command sits above it rather than under it — the newer
-        // thing on the canvas is the one being asked about.
-        if let Some(text) = self.peek_line(now) {
-            let ph = 3.0 * ch;
-            let py = (ib.y - ph - gap()).max(0.0);
-            scenes.push(PaneScene {
-                cells: crate::keypeek::peek_card(&text, ic),
-                x: ib.x,
-                y: py,
-                w: ib.w,
-                h: ph,
-                focused: false,
-                bordered: false,
-                glass: false,
-                scan: -1.0,
-                overlay: true,
-                paint: Vec::new(),
-            });
-        }
-
         // Attach picker popup: an "attach" fieldset card (agents · skills · files) sitting above the focused
         // crew pane's composer while a mention is being typed. Overlay scene, so
         // the overlay pass backs it with an opaque page background.

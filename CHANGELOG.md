@@ -8,6 +8,20 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.72
+
+**The hold panel is gone.** Resting a thumb on `Cmd` for 450ms put a card of
+shortcut chips on the canvas above the input bar. It was meant to answer
+"what does this modifier reach from here" without making anyone open `/keys`
+— but a modifier is held for a moment in the middle of half the things you do,
+and a panel that appears while you are still deciding is in the way of the
+decision. `Cmd` is inert again until it is half of a chord.
+
+Removed rather than defaulted off: the module, both state fields, the dwell
+check in the poll tick, the scene push, and the manual's section on it — 437
+lines out, 6 in. `/keys` (and `Cmd+/`) is still the answer to what the
+bindings are.
+
 ## 0.19.71
 
 **Font sweeps for the two surfaces a reader changes the font on.** The card

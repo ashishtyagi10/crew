@@ -54,22 +54,12 @@ impl CrewApp {
                     self.redraw();
                 }
             }
-            WindowEvent::ModifiersChanged(mods) => {
-                self.mods = mods;
-                // Resting on a bare modifier arms the shortcut hints; letting
-                // go, or reaching for a second modifier, disarms them. The
-                // dwell itself is checked in `poll`, which is already ticking.
-                let was = self.peek_since.is_some();
-                self.peek_since =
-                    crate::keypeek::held_alone(mods.state()).map(|_| crate::anim::now_ms());
-                self.peek_drawn = false;
-                // Only repaint on the CLOSING edge — the opening edge has
-                // nothing to show yet, and an idle crew must not repaint
-                // because a thumb touched Cmd.
-                if was && self.peek_since.is_none() {
-                    self.redraw();
-                }
-            }
+            // Recorded, and nothing more: a modifier going down is not an
+            // event crew acts on. Holding one used to arm a row of shortcut
+            // hints after a dwell, which meant a thumb resting on Cmd put a
+            // card on the canvas — removed, so the key is inert until it is
+            // half of a chord.
+            WindowEvent::ModifiersChanged(mods) => self.mods = mods,
             // Losing the OS focus stops the ambient drift (and regaining it
             // starts it again) — the redraw it asks for is the one thing in
             // crew that would otherwise run for a window nobody is looking at.

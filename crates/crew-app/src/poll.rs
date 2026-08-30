@@ -517,14 +517,6 @@ impl CrewApp {
         for (idx, action) in far_actions.drain(..) {
             self.apply_far_action(action, idx);
         }
-        // The shortcut hints open once a bare modifier has been held past the
-        // dwell. Checked here rather than on a timer: poll is already ticking,
-        // and the cost is one comparison against an `Option` that is `None`
-        // whenever nobody is holding anything.
-        if self.peek_open(crate::anim::now_ms()) && !self.peek_drawn {
-            self.peek_drawn = true;
-            any_changed = true;
-        }
         // Blocked-on-a-human detection: badge panes waiting for the user and
         // maybe auto-focus one. Throttled inside to ~1 Hz, and it only returns
         // true when something actually changed — an idle app stays idle (the
