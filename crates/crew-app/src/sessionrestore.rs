@@ -1,4 +1,4 @@
-//! The app side of session restore: `save_session` snapshots the restorable
+//! The app side of session restore: the snapshot of restorable
 //! panes at quit (`handler::exiting`), `/restore` replays the snapshot.
 //! Persistence format + file I/O live in `sessionsave`.
 use std::path::{Path, PathBuf};
@@ -7,7 +7,7 @@ use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind};
 
 use crate::app::CrewApp;
 use crate::pane::PaneContent;
-use crate::sessionsave::{load_at, path, save_at, SavedPane};
+use crate::sessionsave::{load_at, path, SavedPane};
 
 /// The tracked cwd to restore `sp` into for its spawn iteration: a
 /// dir-backed entry's own directory, or `kept` for anything whose `dir`
@@ -99,13 +99,6 @@ impl CrewApp {
     /// only when this session actually ran restorable panes — otherwise a
     /// welcome-screen quit or a GPU-init failure exit would wipe the very
     /// snapshot /restore exists to keep.
-    pub(crate) fn save_session(&self) {
-        let panes = self.session_panes();
-        if !panes.is_empty() || self.had_restorable {
-            save_at(path(), panes);
-        }
-    }
-
     /// `/restore` — reopen the saved panes, consuming the snapshot (so a
     /// second `/restore` can't double the panes; the next quit re-saves
     /// from the live panes anyway).
@@ -117,7 +110,12 @@ impl CrewApp {
             }
         }
         self.restore_hint = None;
-        self.restore_from(panes);
+        // A session can have been more than one WINDOW. This canvas takes the
+        // first window's panes; the rest are handed to `canvas`, which is the
+        // only thing that can make a window (see `crate::canvas`).
+        let (mine, others) = split_windows(panes);
+        self.pending_windows.extend(others);
+        self.restore_from(mine);
     }
 
     /// Reopen ONE saved pane through its normal spawn path (grid sizing,
@@ -244,3 +242,18 @@ impl CrewApp {
 #[cfg(test)]
 #[path = "sessionrestore_tests.rs"]
 mod tests;
+
+/// Split saved panes into the first window's and each further window's, in
+/// the order the windows appear. See [`CrewApp::restore_session`].
+pub(crate) fn split_windows(panes: Vec<SavedPane>) -> (Vec<SavedPane>, Vec<Vec<SavedPane>>) {
+    let mut groups: Vec<(usize, Vec<SavedPane>)> = Vec::new();
+    for p in panes {
+        match groups.iter_mut().find(|(w, _)| *w == p.window) {
+            Some((_, g)) => g.push(p),
+            None => groups.push((p.window, vec![p])),
+        }
+    }
+    groups.sort_by_key(|(w, _)| *w);
+    let mut it = groups.into_iter().map(|(_, g)| g);
+    (it.next().unwrap_or_default(), it.collect())
+}

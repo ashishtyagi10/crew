@@ -31,6 +31,17 @@ pub(crate) struct SavedPane {
     /// files keep loading exactly as before.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub remote: bool,
+    /// Which crew WINDOW this pane was in — `0` for the first, which is also
+    /// what every session file written before there could be a second one
+    /// says by omission, so an old file restores into one window exactly as
+    /// it always did.
+    #[serde(default, skip_serializing_if = "crate::sessionsave::is_zero")]
+    pub window: usize,
+}
+
+/// `serde` skip helper: a pane in the first window says nothing about it.
+pub(crate) fn is_zero(n: &usize) -> bool {
+    *n == 0
 }
 
 impl SavedPane {
@@ -40,6 +51,7 @@ impl SavedPane {
             dir: Some(dir),
             min: false,
             remote: false,
+            window: 0,
         }
     }
     pub(crate) fn far(dir: String) -> Self {
@@ -48,6 +60,7 @@ impl SavedPane {
             dir: Some(dir),
             min: false,
             remote: false,
+            window: 0,
         }
     }
     /// A Far pane whose active panel was browsing an rclone remote —
@@ -58,6 +71,7 @@ impl SavedPane {
             dir: Some(addr),
             min: false,
             remote: true,
+            window: 0,
         }
     }
     pub(crate) fn crew() -> Self {
@@ -66,6 +80,7 @@ impl SavedPane {
             dir: None,
             min: false,
             remote: false,
+            window: 0,
         }
     }
     /// A todo pane — its list lives in the global store, so presence is all
@@ -76,6 +91,7 @@ impl SavedPane {
             dir: None,
             min: false,
             remote: false,
+            window: 0,
         }
     }
     /// A file-viewer pane. `dir` carries the **full resolved path** of the
@@ -87,6 +103,7 @@ impl SavedPane {
             dir: Some(path),
             min: false,
             remote: false,
+            window: 0,
         }
     }
 
@@ -138,7 +155,7 @@ pub(crate) fn save_at(p: Option<PathBuf>, panes: Vec<SavedPane>) {
     let mut seen = std::collections::HashSet::new();
     let panes: Vec<SavedPane> = panes
         .into_iter()
-        .filter(|sp| seen.insert((sp.kind.clone(), sp.dir.clone(), sp.min, sp.remote)))
+        .filter(|sp| seen.insert(dedupe_key(sp)))
         .take(MAX_PANES)
         .collect();
     if panes.is_empty() {
@@ -174,9 +191,26 @@ pub(crate) fn load_at(p: Option<PathBuf>) -> Vec<SavedPane> {
     panes
         .into_iter()
         .filter(SavedPane::restorable)
-        .filter(|sp| seen.insert((sp.kind.clone(), sp.dir.clone(), sp.min, sp.remote)))
+        .filter(|sp| seen.insert(dedupe_key(sp)))
         .take(MAX_PANES)
         .collect()
+}
+
+/// What makes two saved panes "the same one twice".
+///
+/// The WINDOW is part of it. Without it, two windows each holding a shell in
+/// the same directory — which is what happens the moment you open a second
+/// window and start working in the same project — save as one pane and
+/// restore as one window. Found by planting a two-window session and
+/// counting the windows that came back: there was one.
+fn dedupe_key(sp: &SavedPane) -> (String, Option<String>, bool, bool, usize) {
+    (
+        sp.kind.clone(),
+        sp.dir.clone(),
+        sp.min,
+        sp.remote,
+        sp.window,
+    )
 }
 
 /// How many panes the current snapshot would reopen — drives the welcome
@@ -188,3 +222,48 @@ pub(crate) fn saved_count() -> usize {
 #[cfg(test)]
 #[path = "sessionsave_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+mod window_tests {
+    use super::*;
+
+    fn at(window: usize, dir: &str) -> SavedPane {
+        SavedPane {
+            window,
+            ..SavedPane::shell(dir.into())
+        }
+    }
+
+    /// Two windows, each with a shell in the same directory — which is what
+    /// happens the moment you open a second window and go on working in the
+    /// same project. They are two panes, not one.
+    #[test]
+    fn the_same_pane_in_two_windows_is_two_panes() {
+        let dir = std::env::temp_dir().join("crew-session-windows.toml");
+        save_at(Some(dir.clone()), vec![at(0, "/tmp"), at(1, "/tmp")]);
+        let back = load_at(Some(dir.clone()));
+        assert_eq!(back.len(), 2, "one of the windows was deduped away");
+        assert_eq!(back[0].window, 0);
+        assert_eq!(back[1].window, 1);
+        let _ = std::fs::remove_file(dir);
+    }
+
+    /// …while the same pane twice in the SAME window is still one pane.
+    #[test]
+    fn the_same_pane_twice_in_one_window_is_still_one() {
+        let dir = std::env::temp_dir().join("crew-session-dedupe.toml");
+        save_at(Some(dir.clone()), vec![at(0, "/tmp"), at(0, "/tmp")]);
+        assert_eq!(load_at(Some(dir.clone())).len(), 1);
+        let _ = std::fs::remove_file(dir);
+    }
+
+    /// A file from before windows existed says nothing about them.
+    #[test]
+    fn a_pane_in_the_first_window_writes_no_window_key() {
+        let dir = std::env::temp_dir().join("crew-session-old.toml");
+        save_at(Some(dir.clone()), vec![at(0, "/tmp")]);
+        let text = std::fs::read_to_string(&dir).expect("written");
+        assert!(!text.contains("window"), "wrote: {text}");
+        let _ = std::fs::remove_file(dir);
+    }
+}

@@ -48,8 +48,11 @@ impl CrewApp {
             // accident, and unlike a keystroke it can't be typed into a pane
             // instead. A second click within the window still closes.
             WindowEvent::CloseRequested => {
+                // Not `event_loop.exit()`: this closes THIS canvas. Whether
+                // that ends the process is `canvas`'s question, and the
+                // answer is "only if it was the last one".
                 if self.confirm_quit() {
-                    event_loop.exit();
+                    self.closing = true;
                 } else {
                     self.redraw();
                 }

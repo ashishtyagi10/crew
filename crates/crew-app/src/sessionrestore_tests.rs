@@ -51,6 +51,7 @@ fn unknown_kind_spawns_nothing() {
         dir: None,
         min: false,
         remote: false,
+        window: 0,
     }]);
     assert!(app.panes.is_empty());
 }

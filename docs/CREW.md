@@ -193,6 +193,19 @@ want, and it gets the cheapest key. Esc ends the mode, and so does any letter
 that starts no label: a mode that sits there swallowing keys is worse than no
 mode. A pane with nothing to reach says so instead of opening.
 
+**A window is a whole canvas (`Cmd+N`).** Crew is a grid of panes in a window;
+`Cmd+N` opens **another one** — its own grid, its own focus, its own zoom, its
+own input bar and nav, in the same process. Panes belong to the window they
+were opened in and go on running while you work in the other. **Closing a
+window closes that window**; closing the last one quits, and Cmd+Q still takes
+the app — with the confirmation counting the panes in *every* window, because
+that is what is at stake. A session remembers which window each pane was in
+and `/restore` brings the windows back. The config is one thing about you
+rather than about a window, so changing the font, the theme or any setting in
+one reaches the other immediately.
+One thing is deliberately not per-window yet: the inter-pane `crew ask` socket
+is served by the launch window, so `crew ask` addresses its panes.
+
 **The caret leaves a wake.** A cursor in a cell grid teleports: it is in one
 cell on one frame and another on the next, with nothing on the page saying the
 two were the same thing. So the focused pane's caret drags a short streak

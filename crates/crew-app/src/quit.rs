@@ -35,14 +35,20 @@ impl CrewApp {
     /// the close button — can't kill live sessions.
     pub(crate) fn confirm_quit(&mut self) -> bool {
         let now = Instant::now();
-        if quit_decision(!self.panes.is_empty(), self.quit_armed, now) {
+        // Cmd+Q takes the whole app, so what is at stake is every pane in
+        // every window — not just this one's. `canvas` stamps the others'
+        // count before routing the event, because a prompt that says "1 pane
+        // open" while a second window is running three agents is worse than
+        // no prompt at all.
+        let open = self.panes.len() + self.other_panes;
+        if quit_decision(open > 0, self.quit_armed, now) {
             return true;
         }
         self.quit_armed = Some(now);
         // Deliberately action-neutral: this same prompt answers Cmd+Q and the
         // window close button, so it can't say "press" or "click". Naming the
         // count is the part that makes it a decision rather than a nag.
-        self.set_status(quit_prompt(self.panes.len()));
+        self.set_status(quit_prompt(open));
         false
     }
 }
@@ -50,6 +56,23 @@ impl CrewApp {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A second window's panes are at stake too: Cmd+Q takes the app.
+    #[test]
+    fn panes_in_another_window_count() {
+        let mut app = CrewApp {
+            other_panes: 2,
+            ..Default::default()
+        };
+        assert!(!app.confirm_quit(), "armed rather than quitting");
+        let said = app
+            .status
+            .as_ref()
+            .map(|(s, _)| s.clone())
+            .unwrap_or_default();
+        assert!(said.contains('2'), "said: {said:?}");
+        assert!(app.confirm_quit(), "a second ask goes through");
+    }
 
     #[test]
     fn no_panes_exits_immediately() {

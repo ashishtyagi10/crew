@@ -2,7 +2,6 @@
 //! delegation of the per-tick poll (`poll.rs`) and window events (`events.rs`).
 use std::sync::Arc;
 
-use winit::application::ApplicationHandler;
 use winit::dpi::LogicalSize;
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, EventLoop};
@@ -13,8 +12,11 @@ use crate::config::CrewConfig;
 use crate::inputbar::InputBar;
 use crew_render::Renderer;
 
-impl ApplicationHandler for CrewApp {
-    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+impl CrewApp {
+    /// Give this canvas a window and a renderer. Called by [`crate::canvas`]
+    /// for every canvas that does not have one yet — at startup for the
+    /// first, and on `Cmd+N` for each one after it.
+    pub(crate) fn open_window(&mut self, event_loop: &ActiveEventLoop) {
         // Restore the last window size (logical px), defaulting to 1200x800.
         let w = self.config.win_w.unwrap_or(1200.0).max(400.0);
         let h = self.config.win_h.unwrap_or(800.0).max(300.0);
@@ -56,9 +58,19 @@ impl ApplicationHandler for CrewApp {
         // (an update landed and then the run died) neither is dropped, because
         // `last_seen_version` is stamped below either way and a suppressed
         // version note would never come back.
-        let crash = crate::crashlog::take_report().map(|s| crate::crashlog::crash_note(&s));
-        let version =
-            crate::appregister::version_change_note(self.config.last_seen_version.as_deref());
+        // Everything from here to the renderer is ONE-SHOT, per process: the
+        // crash note, the version note and the upgrade migrations are about
+        // this launch, not about this window. A second canvas skips them.
+        let crash = match self.first {
+            true => crate::crashlog::take_report().map(|s| crate::crashlog::crash_note(&s)),
+            false => None,
+        };
+        let version = match self.first {
+            true => {
+                crate::appregister::version_change_note(self.config.last_seen_version.as_deref())
+            }
+            false => None,
+        };
         // Held for the first FRAME, not flashed now: a status expires after
         // three seconds and a cold launch takes far longer than that to draw
         // anything, so flashing here would lose the note on exactly the launch
@@ -74,11 +86,12 @@ impl ApplicationHandler for CrewApp {
         // pins once restores the theme-intended look; anyone who truly wants
         // them off is one `/crt off` away. Runs before the renderer exists, so
         // the first frame already draws the healed config.
-        if self
-            .config
-            .last_seen_version
-            .as_deref()
-            .is_some_and(|prev| crate::appregister::version_lt(prev, "0.12.6"))
+        if self.first
+            && self
+                .config
+                .last_seen_version
+                .as_deref()
+                .is_some_and(|prev| crate::appregister::version_lt(prev, "0.12.6"))
         {
             self.config.reset_look_overrides();
         }
@@ -87,11 +100,12 @@ impl ApplicationHandler for CrewApp {
         // as well as doing its own darkening; `/gamma` corrects that honestly
         // now, and the two at their old values deliver more light than the
         // outline asks for. Only the untouched default moves.
-        if self
-            .config
-            .last_seen_version
-            .as_deref()
-            .is_some_and(|prev| crate::appregister::version_lt(prev, "0.19.28"))
+        if self.first
+            && self
+                .config
+                .last_seen_version
+                .as_deref()
+                .is_some_and(|prev| crate::appregister::version_lt(prev, "0.19.28"))
             && self.config.adopt_rebalanced_smoothing()
         {
             self.config.save();
@@ -100,16 +114,19 @@ impl ApplicationHandler for CrewApp {
         // on: with the blend corrected in full, the stem darkening only
         // spreads the same light over 45% more pixels. Only the untouched
         // pair moves.
-        if self
-            .config
-            .last_seen_version
-            .as_deref()
-            .is_some_and(|prev| crate::appregister::version_lt(prev, "0.19.62"))
+        if self.first
+            && self
+                .config
+                .last_seen_version
+                .as_deref()
+                .is_some_and(|prev| crate::appregister::version_lt(prev, "0.19.62"))
             && self.config.adopt_undilated_text()
         {
             self.config.save();
         }
-        if self.config.last_seen_version.as_deref() != Some(crate::appregister::VERSION) {
+        if self.first
+            && self.config.last_seen_version.as_deref() != Some(crate::appregister::VERSION)
+        {
             self.config.last_seen_version = Some(crate::appregister::VERSION.to_string());
             self.config.save();
         }
@@ -161,7 +178,8 @@ impl ApplicationHandler for CrewApp {
         }
     }
 
-    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+    /// One tick for this canvas.
+    pub(crate) fn tick(&mut self, event_loop: &ActiveEventLoop) {
         self.poll_panes(event_loop);
         // A document window's file is read on a worker; this is the only
         // thing that lands it. Windows asked for elsewhere are opened here
@@ -170,8 +188,13 @@ impl ApplicationHandler for CrewApp {
         self.poll_doc_windows();
     }
 
-    fn window_event(&mut self, event_loop: &ActiveEventLoop, id: WindowId, event: WindowEvent) {
-        // The id was discarded for as long as there was only ever one window.
+    /// Whether `id` is this canvas's own window.
+    pub(crate) fn owns(&self, id: WindowId) -> bool {
+        self.window.as_ref().is_some_and(|w| w.id() == id)
+    }
+
+    /// Route one event that belongs to this canvas.
+    pub(crate) fn route(&mut self, event_loop: &ActiveEventLoop, id: WindowId, event: WindowEvent) {
         // A document window is a second surface with its own renderer and its
         // own keys (see `docwin`), and every event that belongs to one must
         // never reach the grid's handler — a resize routed to the wrong
@@ -181,13 +204,6 @@ impl ApplicationHandler for CrewApp {
             return;
         }
         self.handle_window_event(event_loop, event);
-    }
-
-    /// Fires once when the event loop winds down (any quit path — Cmd+Q,
-    /// window close, `/exit`): snapshot the open shells' directories so
-    /// `/restore` can reopen them next launch.
-    fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
-        self.save_session();
     }
 }
 
@@ -272,6 +288,8 @@ pub fn run() -> anyhow::Result<()> {
         restore_hint,
         ..Default::default()
     };
-    event_loop.run_app(&mut app)?;
+    app.first = true;
+    let mut crew = crate::canvas::Crew::new(app);
+    event_loop.run_app(&mut crew)?;
     Ok(())
 }

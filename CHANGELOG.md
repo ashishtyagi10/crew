@@ -8,6 +8,50 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.94
+
+**`Cmd+N`: a window is a whole canvas.**
+
+Crew has been one window holding a grid of panes since it existed. It can now
+hold as many as you open: `Cmd+N` gives you another **canvas** — its own grid,
+its own focus, its own zoom, its own input bar and nav — in the same process,
+sharing one broker, one theme and one config. Panes belong to the window they
+were opened in and go on running while you work in the other.
+
+This is Pillar 1 of
+`docs/superpowers/goals/2026-08-30-markdown-editor-in-its-own-window.md`, and
+the shape of it is the point: **the canvas type is `CrewApp` itself,
+unchanged.** Everything per-window was already a field on it and every method
+that reads `self.panes` is already a method *of one canvas*, so a second
+window is a second `CrewApp` rather than two hundred call sites learning which
+window they meant. What moved up into the new owner is only what a second one
+must not duplicate.
+
+* **Closing a window closes that window.** The close button used to call
+  `event_loop.exit()`; it asks the owner now, and the owner quits only when
+  the last canvas goes. Cmd+Q still takes the app — and its confirmation
+  counts the panes in **every** window, because a prompt that says "1 pane
+  open" while a second window runs three agents is worse than no prompt.
+* **A session remembers which window each pane was in**, and `/restore` brings
+  the windows back. A file written before there could be a second window says
+  nothing about windows and restores into one, exactly as it always did.
+* **The config is one thing about you, not about a window.** Change the font
+  in one and the other adopts it, rather than going on at the old size and
+  then saving the old value over yours.
+* **The bug a planted session caught:** two windows each holding a shell in
+  the same directory — which is what happens the moment you open a second
+  window and go on working in the same project — saved as *one* pane and
+  restored as *one* window. The dedupe key had every field of a saved pane
+  except the window it was in.
+* The launch notes, the crash report and the upgrade migrations belong to the
+  launch rather than to a window, so a second canvas does not repeat them.
+
+Verified by running it: two windows on screen from one process, and a planted
+two-window session coming back as two.
+
+**Not per-window yet:** the inter-pane `crew ask` socket is served by the
+launch window, so `crew ask` addresses its panes.
+
 ## 0.19.93
 
 **Cut, paste, and the URL you cannot see.**

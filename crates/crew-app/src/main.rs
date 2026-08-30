@@ -60,6 +60,7 @@ mod chatmention;
 #[path = "chatshot_tests.rs"]
 mod chatshot_tests;
 
+mod canvas;
 mod cardpaint;
 #[cfg(test)]
 #[path = "cardshot_tests.rs"]

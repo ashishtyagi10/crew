@@ -34,6 +34,24 @@ pub struct CrewApp {
     /// panes: a document window holds no grid, so none of the app's
     /// pane-shaped state applies to it.
     pub(crate) docs: Vec<crate::docwin::DocWindow>,
+    /// The first canvas of the process. The launch note, the crash report and
+    /// the upgrade migrations are about this LAUNCH, not about this window, so
+    /// a second canvas does not repeat them (see [`crate::canvas`]).
+    pub(crate) first: bool,
+    /// This canvas asked for another window (`Cmd+N`). A window can only be
+    /// created from a callback holding the active event loop, so the ask is a
+    /// flag `canvas` answers on the next tick.
+    pub(crate) want_window: bool,
+    /// Panes a `/restore` found belonging to windows this canvas is not —
+    /// handed to [`crate::canvas`], which opens a window for each group.
+    pub(crate) pending_windows: Vec<Vec<crate::sessionsave::SavedPane>>,
+    /// This canvas's window was closed. Closing the LAST one quits; closing
+    /// any other just removes it.
+    pub(crate) closing: bool,
+    /// How many panes the OTHER canvases are holding, stamped by
+    /// [`crate::canvas`] before each event. Read by the quit guard, which
+    /// speaks for the whole app.
+    pub(crate) other_panes: usize,
     /// Documents asked for a window since the last tick. A window can only be
     /// created from a winit callback holding the ACTIVE event loop, and the
     /// key handler is not one — so the ask is queued here and drained in

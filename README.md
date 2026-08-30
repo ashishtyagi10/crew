@@ -412,6 +412,10 @@ cards, links):
   bar, no tiles: one file, framed, filling its own window, sized to a reading
   measure. `w` inside the viewer pops the document you are already reading out
   of the grid and into one. The grid goes on being a grid.
+- **`Cmd+N` opens another crew window** — a whole second canvas: its own grid
+  of panes, its own focus and zoom, its own input bar. Closing a window closes
+  that window; the last one quits. A session remembers which window each pane
+  was in.
 - **A markdown document in a window is an editor.** It opens rendered with a
   cursor in it; the arrows move through the *render*, typing goes in where you
   are looking, Enter continues the block you are in, and **Cmd+S** writes the
