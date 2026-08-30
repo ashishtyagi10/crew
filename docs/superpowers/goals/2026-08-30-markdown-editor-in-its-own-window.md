@@ -155,3 +155,40 @@ The invariant is asserted directly, at three widths over the whole grammar:
 for every rendered character, the byte it claims holds that character.
 
 Pillar 3's other half stands unchanged: on save, only what was edited moves.
+
+---
+
+### Pillar 1 as built (2026-08-30, v0.19.94)
+
+Built, and built smaller than the plan above expected. The plan said
+`WindowId` becomes the key into a `Vec<CrewWindow>` and warned this "touches
+the most call sites — every `self.window`/`self.renderer` read in `crew-app`".
+It touched none of them.
+
+**The canvas type is `CrewApp` itself.** Everything the plan lists as
+per-window was already a field on it, and every method that reads `self.panes`
+is already a method *of one canvas* — so a second window is a second
+`CrewApp`, and the 211 call sites never learn there is more than one. A new
+`canvas::Crew` owns `Vec<CrewApp>`, implements `ApplicationHandler`, and
+routes each event to the canvas whose window it came from.
+
+What actually had to move up:
+
+* **Quitting.** The close button set `event_loop.exit()`; it sets
+  `canvas.closing` now and the owner decides — the last one out quits. Cmd+Q's
+  confirmation reads `other_panes`, stamped before each event, so it speaks
+  for every window.
+* **The config**, which is one thing about the user rather than about a
+  window: compared after each event and published to the other canvases.
+* **The launch**: the crash note, the version note and the upgrade migrations
+  are about this *process*, so a second canvas skips them (`CrewApp::first`).
+* **The session**: `SavedPane.window`, grouped on restore, one canvas per
+  group.
+
+Deliberately **not** done, and the honest cost of the smaller shape:
+
+* `Gpu` was not split into shared/per-window — each canvas builds its own
+  wgpu device. A second window costs a second device rather than a second
+  surface. Worth doing when a third window is a normal thing to have.
+* The `crew ask` socket and the federation relay are held by the launch
+  canvas, so `crew ask` addresses its panes only.
