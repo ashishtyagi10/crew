@@ -84,12 +84,20 @@ impl Mask {
     }
 }
 
-/// The stroke width of a *light* line in a cell this tall: one pixel at the
-/// sizes a terminal is read at, and thicker in step on a Retina rescale or at
-/// a display font size. Keyed on the cell HEIGHT because that is the one
-/// dimension that tracks the font size directly (the width is 0.6 of it).
+/// The stroke width of a *light* line in a cell this tall.
+///
+/// The same answer [`crate::deco`] gives an underline, and deliberately so: a
+/// `─` and an underlined word in the same pane are both rules, and there is no
+/// reading of "crisp" under which they should be different weights.
+///
+/// It also has to track the font, not step once. This was `ch / 16`
+/// TRUNCATING, which is one pixel from a 16-pixel cell all the way to a
+/// 31-pixel one — so every font size from 13 up to 25 got the same hairline
+/// while the text it framed nearly doubled, and a card at a display size read
+/// as a thin wire around big letters. Rounding the same ratio steps it where
+/// the letters' own stems step.
 pub(crate) fn light_thickness(ch: u32) -> u32 {
-    (ch / 16).max(1)
+    crate::deco::thickness(ch as f32) as u32
 }
 
 /// The pixel span `[lo, lo + t)` that centres a `t`-thick stroke in `extent`,

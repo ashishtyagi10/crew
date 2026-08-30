@@ -18,6 +18,16 @@ use crew_render::PaneScene;
 
 const PAD: f32 = 14.0;
 
+/// Where along the top rule to sample it, and for how far.
+///
+/// Deliberately past the legend: `─ CRISP ─` is nine cells, and nine cells is
+/// 72px at a 13px font but 144px at a 26px one — so a window starting at 100
+/// reads clean at the size it was written against and picks up the legend's
+/// own antialiasing at every larger one. (It did: the font sweep reported
+/// nine fringe pixels at font 22, all of them the letter C.)
+const RULE_X: u32 = 250;
+const RULE_RUNS: u32 = 300;
+
 /// Perceptual luminance of the pixel at `(x, y)` in an RGBA buffer.
 fn luma_at(px: &[u8], w: u32, x: u32, y: u32) -> f32 {
     let i = ((y * w + x) * 4) as usize;
@@ -58,8 +68,8 @@ fn fringe(p: &[f32], lo: f32, hi: f32) -> usize {
     p.iter().filter(|v| **v > lo && **v < hi).count()
 }
 
-fn card_px(w: u32, h: u32) -> Option<Vec<u8>> {
-    crate::shotdraw_tests::draw(w, h, 13.0, |cw, ch| {
+fn card_px_at(w: u32, h: u32, font: f32) -> Option<Vec<u8>> {
+    crate::shotdraw_tests::draw(w, h, font, |cw, ch| {
         let cols = ((w as f32 - 2.0 * PAD) / cw).floor() as u16;
         let rows = ((h as f32 - 2.0 * PAD) / ch).floor() as u16;
         vec![PaneScene {
@@ -90,12 +100,12 @@ fn card_px(w: u32, h: u32) -> Option<Vec<u8>> {
 fn card_rules_are_hard_edged() {
     let _g = crate::app::theme_test_guard();
     let (w, h) = (600u32, 300u32);
-    let Some(px) = card_px(w, h) else {
+    let Some(px) = card_px_at(w, h, 13.0) else {
         eprintln!("no GPU adapter — skipped");
         return;
     };
     crate::shotdraw_tests::write_png("crisp_card", &px, w, h);
-    let top = profile(&px, w, |i, k| (100 + k, i), 40, 300);
+    let top = profile(&px, w, |i, k| (RULE_X + k, i), 40, RULE_RUNS);
     println!("top rule, averaged over 300 columns, rows 0..40:");
     for (y, v) in top.iter().enumerate() {
         println!("  y={y:2} {v:.3} {}", "#".repeat((v * 40.0) as usize));
@@ -241,4 +251,44 @@ fn specimen_of_every_drawn_glyph() {
         return;
     };
     crate::shotdraw_tests::write_png("crisp_specimen", &px, w, h);
+}
+
+/// The same card at every font size crew is actually read at.
+///
+/// A rule's thickness is derived from the cell, and a derivation is exactly
+/// the kind of thing that is right at the size it was written against and
+/// quietly wrong either side of it: `ch / 16` truncating held a ONE-pixel
+/// rule from a 16-pixel cell all the way to a 31-pixel one, so every font
+/// from 13 up to 25 framed its cards with the same hairline while the text
+/// inside them nearly doubled.
+#[test]
+#[ignore = "needs a GPU adapter"]
+fn the_frame_holds_its_weight_across_font_sizes() {
+    let _g = crate::app::theme_test_guard();
+    let (w, h) = (600u32, 300u32);
+    let mut seen: Vec<(u32, usize)> = Vec::new();
+    for font in [10.0f32, 13.0, 16.0, 19.0, 22.0, 26.0] {
+        let Some(px) = card_px_at(w, h, font) else {
+            eprintln!("no GPU adapter — skipped");
+            return;
+        };
+        crate::shotdraw_tests::write_png(&format!("crisp_font_{font:.0}"), &px, w, h);
+        let top = profile(&px, w, |i, k| (RULE_X + k, i), 40, RULE_RUNS);
+        let solid = top.iter().filter(|v| **v > 0.95).count();
+        let fringe = fringe(&top, 0.05, 0.95);
+        println!("font {font:>4}: rule {solid}px solid, {fringe} fringe");
+        assert_eq!(fringe, 0, "font {font} draws a soft rule");
+        assert!(solid >= 1, "font {font} draws no rule at all");
+        seen.push((font as u32, solid));
+    }
+    // The rule tracks the font: it is never thinner at a larger size, and it
+    // has grown by the time the text has doubled.
+    assert!(
+        seen.windows(2).all(|w| w[0].1 <= w[1].1),
+        "the rule thins as the font grows: {seen:?}"
+    );
+    assert!(
+        seen.last().unwrap().1 > seen.first().unwrap().1,
+        "the rule never grew across a 10→26px sweep: {seen:?}"
+    );
 }
