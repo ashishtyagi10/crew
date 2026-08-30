@@ -1,5 +1,6 @@
 //! crew-render: winit window + wgpu surface + glyphon text.
 mod bloom;
+mod boxglyph;
 mod cellgrid;
 mod celltext;
 pub mod color;

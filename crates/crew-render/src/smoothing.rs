@@ -96,9 +96,34 @@ pub(crate) fn presmooth(
     let mut curve = Curve::new();
     for (buf, ox, oy, _, _) in buffers {
         for run in buf.layout_runs() {
+            // Where the cell's top edge sits above this run's baseline — the
+            // placement a synthesized glyph needs so its box covers exactly
+            // the cell the character was laid into.
+            let cell_top = (run.line_y.round() - run.line_top) as i32;
             for glyph in run.glyphs.iter() {
                 let key = glyph.physical((*ox, *oy), 1.0).cache_key;
                 if swash.image_cache.contains_key(&key) {
+                    continue;
+                }
+                // Frames, rules, bars and shades are drawn, not read from the
+                // font: `boxglyph` says so first, and what it returns skips
+                // both the darkening and the coverage curve below — a
+                // rectangle asked for neither. The cell box comes off the
+                // layout itself (the advance is snapped to one cell, the line
+                // height IS the cell height), so nothing has to be plumbed in.
+                if let Some(image) = run.text[glyph.start..glyph.end]
+                    .chars()
+                    .next()
+                    .and_then(|c| {
+                        crate::boxglyph::synth(
+                            c,
+                            glyph.w.round() as u32,
+                            run.line_height.round() as u32,
+                            cell_top,
+                        )
+                    })
+                {
+                    swash.image_cache.insert(key, Some(image));
                     continue;
                 }
                 let image = swash.get_image_uncached(font_system, key).map(|image| {
