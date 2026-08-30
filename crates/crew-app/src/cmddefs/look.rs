@@ -142,6 +142,10 @@ pub(crate) const LOOK: &[Cmd] = &[
         desc: "view any file — code, markdown, data, csv, diffs (/view <path>)",
     },
     Cmd {
+        name: "/doc",
+        desc: "open a file in a window of its own \u{2014} a document, not a tile (/doc <path>)",
+    },
+    Cmd {
         name: "/md",
         desc: "view a file \u{2014} alias for /view (/md <path>)",
     },

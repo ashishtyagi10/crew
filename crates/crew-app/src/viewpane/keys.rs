@@ -36,6 +36,8 @@ pub(crate) enum ViewInput {
     ToggleRaw,
     /// `v` — lay a diff out side by side, or unified again.
     ToggleSplit,
+    /// `w` — take this document out of the grid and give it a window.
+    PopOut,
     /// `/` — start (or restart) a search in typing mode.
     Slash,
     /// `n` outside typing — jump to the next hit.
@@ -61,6 +63,8 @@ pub(crate) enum ViewAction {
     Edit(PathBuf),
     /// `o` — hand this path to the OS default application.
     OpenExternal(PathBuf),
+    /// `w` — reopen this document in a window of its own ([`crate::docwin`]).
+    PopOut(PathBuf),
     Reload,
 }
 
@@ -94,6 +98,8 @@ pub(crate) fn view_key(logical: &Key, pressed: bool, ctrl: bool) -> ViewInput {
             "r" => ViewInput::Reload,
             "s" => ViewInput::ToggleRaw,
             "v" => ViewInput::ToggleSplit,
+            // `w` — take this document out of the grid and give it a window.
+            "w" => ViewInput::PopOut,
             _ => s
                 .chars()
                 .next()
@@ -146,6 +152,7 @@ pub(crate) fn apply(
         ViewInput::Bottom => scroll(p, i32::MAX / 2),
         ViewInput::Edit => return Some(ViewAction::Edit(p.path.clone())),
         ViewInput::OpenExternal => return Some(ViewAction::OpenExternal(p.path.clone())),
+        ViewInput::PopOut => return Some(ViewAction::PopOut(p.path.clone())),
         ViewInput::Reload => return Some(ViewAction::Reload),
         ViewInput::ToggleRaw => {
             p.raw = !p.raw;

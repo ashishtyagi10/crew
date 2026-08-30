@@ -404,6 +404,10 @@ cards, links):
   ```` ```diff ````/```` ```patch ```` fences colour added/removed/hunk lines
   (an untagged fence that reads as a diff is auto-detected and coloured the
   same).
+- **`/doc <file>` opens a document in a window of its own** — no nav, no input
+  bar, no tiles: one file, framed, filling its own window, sized to a reading
+  measure. `w` inside the viewer pops the document you are already reading out
+  of the grid and into one. The grid goes on being a grid.
 - **`Cmd+E` labels everything on the pane worth reaching** — every URL, file
   reference and hash wears a letter; pressing it copies, pressing its capital
   opens (a URL in the browser, a file in the viewer). Labels come off the home

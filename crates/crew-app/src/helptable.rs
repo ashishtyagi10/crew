@@ -132,6 +132,10 @@ pub(crate) const VIEW_BINDINGS: &[(&str, &str)] = &[
     ("s", "Markdown and CSV: show the raw text instead"),
     ("r", "Re-read the file from disk"),
     ("e / o", "Open in $EDITOR · hand to the OS default app"),
+    (
+        "w",
+        "Take the document out of the grid, into a window of its own",
+    ),
     ("Cmd+Click", "Follow a rendered markdown link"),
     ("Esc", "Close the viewer (a live search first)"),
 ];

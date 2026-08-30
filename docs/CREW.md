@@ -940,6 +940,23 @@ longer aim at.
   shell's only says how much is behind you) with the landmarks marked as dim
   ticks beside it, so a long file shows its shape before you move.
   Chat panes render markdown too — see [Markdown](#markdown).
+- **`/doc <file>`** — the same file viewer, in a **window of its own**. Crew is
+  one window holding a grid of panes, which is the right shape for a shell
+  beside an agent beside a diff and the wrong shape for the one thing you read
+  for twenty minutes: a document wants a window you can put on the other
+  screen, size to a comfortable measure, and leave open while the grid goes on
+  being a grid. A document window holds no nav, no input bar and no tiles —
+  one file, framed, filling it, with the frame's legend naming the file and how
+  far through it you are. Every viewer key works there (scroll, `/` search,
+  `]`/`[`, `s`, `r`, `e`, `o`); **`w` inside a viewer pane pops that document
+  out into a window** — the document moves, it is not copied — and `Esc` or the
+  window's close button ends it. Opening a file already in a window raises that
+  window rather than stacking a second copy of it.
+  It is a second *surface*, not a second app: one process, one broker, one
+  theme, one font. Making crew's windows plural all the way down — panes, focus
+  and zoom per window — is the first pillar of
+  `docs/superpowers/goals/2026-08-30-markdown-editor-in-its-own-window.md`, and
+  a document window deliberately needs none of it.
 - **`/view` shows pictures.** A PNG, JPEG, GIF, BMP or WebP opens as the
   picture itself, not as a metadata card saying there is one. Every other rung
   of the ladder ends in glyphs, because a cell can only say one character —

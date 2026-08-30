@@ -98,6 +98,15 @@ impl CrewApp {
                     self.set_status(format!("opening {}", p.display()));
                 }
                 ViewAction::Edit(p) => self.apply_view_edit(focused, &p),
+                // A window cannot be created outside a winit callback that
+                // holds the ACTIVE event loop, and this is not one — so the
+                // request is queued and `about_to_wait` opens it (see
+                // `docwin`). The pane closes: the document moved, it was not
+                // copied.
+                ViewAction::PopOut(p) => {
+                    self.pending_docs.push(p);
+                    self.close_pane(focused);
+                }
             }
         }
         if let Some(crate::todopane::TodoAction::Close) = todo_action {

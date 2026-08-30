@@ -33,6 +33,7 @@ impl CrewApp {
             "model" => self.set_model_cmd(""),  // show usage hint
             "batch" => self.spawn_batch_pane(""), // show usage hint
             "md" | "view" => self.open_view(""), // show usage hint
+            "doc" => self.set_status("usage: /doc <path>"),
             // Who last touched each line of the file in the viewer.
             "blame" => self.blame_command(),
             "smith" | "crew" => self.spawn_crew_pane(), // /crew kept as an alias
@@ -112,6 +113,11 @@ impl CrewApp {
                     self.open_view(f.trim());
                 } else if let Some(f) = other.strip_prefix("view ") {
                     self.open_view(f.trim());
+                } else if let Some(f) = other.strip_prefix("doc ") {
+                    // The window is opened on the next tick: only a winit
+                    // callback holding the ACTIVE event loop can make one,
+                    // and a command dispatch is not one (see `docwin`).
+                    self.queue_doc_window(f.trim());
                 } else if let Some(n) = other.strip_prefix("notify ") {
                     self.notify_command(n.trim());
                 } else if let Some(t) = other.strip_prefix("theme ") {

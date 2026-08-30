@@ -30,6 +30,15 @@ pub(crate) fn gap() -> f32 {
 pub struct CrewApp {
     pub(crate) window: Option<Arc<Window>>,
     pub(crate) renderer: Option<Renderer>,
+    /// Documents opened into windows of their own ([`crate::docwin`]). Not
+    /// panes: a document window holds no grid, so none of the app's
+    /// pane-shaped state applies to it.
+    pub(crate) docs: Vec<crate::docwin::DocWindow>,
+    /// Documents asked for a window since the last tick. A window can only be
+    /// created from a winit callback holding the ACTIVE event loop, and the
+    /// key handler is not one — so the ask is queued here and drained in
+    /// `about_to_wait`.
+    pub(crate) pending_docs: Vec<std::path::PathBuf>,
     pub(crate) panes: Vec<Pane>,
     pub(crate) focused: usize,
     /// Which pane the focus brackets were last drawn around, and the timeline

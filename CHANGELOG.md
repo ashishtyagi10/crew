@@ -8,6 +8,43 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.84
+
+**A document gets a window of its own.**
+
+Crew is one window holding a grid of panes, and that is the right shape for the
+work — a shell beside an agent beside a diff. It is the wrong shape for the one
+thing you read for twenty minutes at a time. `/doc <file>` (and `w` inside a
+viewer pane, which pops the document you are already reading out of the grid)
+opens that file in a **window**: no nav, no input bar, no tiles — one file,
+framed, filling it, sized to a reading measure rather than a canvas.
+
+* Every viewer key works there: scroll, `/` search, `]`/`[`, `s`, `r`, `e`,
+  `o`. Esc or the close button ends it; opening a file already in a window
+  raises that window instead of stacking a second copy.
+* The frame's legend names the file **and how far through it you are** — a
+  window has no card border to draw a scroll thumb on.
+* `window_event`'s `WindowId` was discarded for as long as there was only ever
+  one window (`_id`, since 0.4). It routes now: an event that belongs to a
+  document window never reaches the grid's handler, because a resize sent to
+  the wrong window resizes the wrong surface.
+* A window can only be created inside a winit callback holding the *active*
+  event loop, and a key handler is not one — so the ask is queued and opened on
+  the next tick. A path that is not a file says so where it was typed, rather
+  than silently doing nothing a tick later.
+* The picture has a shot of its own (`doc_shot_window`, three window shapes).
+  A surface that exists only on a real display is a surface with no picture of
+  itself, so the frame, the legend and the document are rendered off-screen
+  through the same path the window draws.
+
+This is the first slice of
+`docs/superpowers/goals/2026-08-30-markdown-editor-in-its-own-window.md`, which
+is also new in this release: a markdown document in a crew window, rendered on
+arrival, **edited in the render** — no `**` on screen, images drawn, and a save
+whose diff touches only what was edited. A document window deliberately holds
+no panes, so none of that goal's per-window canvas refactor was needed to get
+the window itself.
+
 ## 0.19.83
 
 **Cmd+E: reach anything on the pane with one letter.**

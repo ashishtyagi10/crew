@@ -115,6 +115,10 @@ mod diffrefine;
 mod diskpane;
 mod dispatch;
 mod dockicon;
+#[cfg(test)]
+#[path = "docshot_tests.rs"]
+mod docshot_tests;
+mod docwin;
 mod dump;
 mod ease;
 mod editpane;

@@ -163,9 +163,23 @@ impl ApplicationHandler for CrewApp {
 
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
         self.poll_panes(event_loop);
+        // A document window's file is read on a worker; this is the only
+        // thing that lands it. Windows asked for elsewhere are opened here
+        // too — this is where the active event loop is.
+        self.open_pending_docs(event_loop);
+        self.poll_doc_windows();
     }
 
-    fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
+    fn window_event(&mut self, event_loop: &ActiveEventLoop, id: WindowId, event: WindowEvent) {
+        // The id was discarded for as long as there was only ever one window.
+        // A document window is a second surface with its own renderer and its
+        // own keys (see `docwin`), and every event that belongs to one must
+        // never reach the grid's handler — a resize routed to the wrong
+        // window resizes the wrong surface.
+        if self.is_doc_window(id) {
+            self.doc_window_event(id, event);
+            return;
+        }
         self.handle_window_event(event_loop, event);
     }
 

@@ -50,7 +50,7 @@ pub(crate) fn complete_path(arg: &str, base: &Path, files_too: bool) -> Option<S
 /// `cd` is deliberately absent: it completes DIRECTORIES only, through
 /// [`crate::suggest::dir_suggest`], and folding it in here would start
 /// offering it files.
-pub(crate) const PATH_COMMANDS: [&str; 4] = ["/dump", "/view", "/md", "/batch"];
+pub(crate) const PATH_COMMANDS: [&str; 5] = ["/dump", "/view", "/md", "/doc", "/batch"];
 
 /// Path completion for a `<command> <partial>` line (files and directories),
 /// or `None` when `text` is not one of [`PATH_COMMANDS`].
