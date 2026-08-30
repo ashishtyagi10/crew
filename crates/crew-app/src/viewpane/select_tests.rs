@@ -224,3 +224,50 @@ fn a_click_clears_the_selection() {
     p.click_caret(0, 2, 60, 20);
     assert_eq!(range(&p), None);
 }
+
+/// A link's target is invisible in a render — that is what rendering a link
+/// means — so the window has to say it while the cursor is inside one.
+#[test]
+fn the_caret_reports_the_url_it_is_standing_in() {
+    let mut p = doc("see the [manual](https://example.invalid/docs) for more\n");
+    assert_eq!(p.caret_link(60), None, "not in a link yet");
+    // Into the link text.
+    for _ in 0..10 {
+        p.move_caret(Step::Right, 60, 20);
+    }
+    assert_eq!(
+        p.caret_link(60).as_deref(),
+        Some("https://example.invalid/docs")
+    );
+    // …and out the other side of it again.
+    for _ in 0..10 {
+        p.move_caret(Step::Right, 60, 20);
+    }
+    assert_eq!(p.caret_link(60), None);
+}
+
+/// Cut is copy and delete, and it is one undo step.
+#[test]
+fn cut_takes_the_text_and_can_be_put_back() {
+    let mut p = doc("keep this cut that\n");
+    p.anchor = Some(10);
+    p.caret_at = Some(13);
+    let taken = p.selected_text();
+    assert_eq!(taken.as_deref(), Some("cut"));
+    p.delete_selection(60, 20);
+    assert_eq!(text_of(&p), "keep this  that\n");
+    while p.undo(60, 20) {}
+    assert_eq!(text_of(&p), "keep this cut that\n");
+}
+
+/// Pasting is an insert, so it replaces a selection and is one undo step.
+#[test]
+fn a_paste_goes_in_at_the_caret_and_comes_back_out() {
+    let mut p = doc("one two\n");
+    p.anchor = Some(4);
+    p.caret_at = Some(7);
+    p.insert("three\nfour", 60, 20);
+    assert_eq!(text_of(&p), "one three\nfour\n");
+    while p.undo(60, 20) {}
+    assert_eq!(text_of(&p), "one two\n");
+}

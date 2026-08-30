@@ -296,6 +296,61 @@ fn doc_shot_selection() {
     }
 }
 
+/// The goal's last condition: everything above holds on a light page and in
+/// a window narrow enough that the document has to wrap. Shot with a caret, a
+/// selection and a link readout all in the frame at once.
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn doc_shot_editor_themes_and_widths() {
+    let _a = crate::palette::test_guard();
+    let _g = crate::app::theme_test_guard();
+    let body = "\
+# Editing here
+
+A paragraph with a [link](https://example.invalid/docs) in it, long enough
+that a narrow window has to wrap it more than once.
+
+- one item
+- another item
+";
+    for (suffix, id) in [
+        ("light", crew_theme::ThemeId::PaperLight),
+        ("crt-green", crew_theme::ThemeId::CrtGreen),
+    ] {
+        crew_theme::set_theme(id);
+        crate::palette::set_accent(crew_theme::theme().accent_default);
+        for (shape, w, h) in [("", 700u32, 340u32), ("-narrow", 380, 340)] {
+            let mut view = doc(body);
+            view.start_editing(40);
+            for _ in 0..24 {
+                view.move_caret(crate::viewpane::caret::Step::Right, 40, 18);
+            }
+            view.anchor_here();
+            for _ in 0..8 {
+                view.move_caret(crate::viewpane::caret::Step::Right, 40, 18);
+            }
+            let px = crate::shotdraw_tests::draw(w, h, 13.0, |cw, ch| {
+                let m = 12.0;
+                let rect = Rect {
+                    x: m,
+                    y: m,
+                    w: w as f32 - m * 2.0,
+                    h: h as f32 - m * 2.0,
+                };
+                crate::docwin::draw::scenes(rect, cw, ch, "editing.md \u{25cf}", &view)
+            });
+            let Some(px) = px else {
+                eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+                return;
+            };
+            let name = format!("doc-editor-{suffix}{shape}");
+            crate::shotdraw_tests::write_png(&name, &px, w, h);
+            assert!(crate::shotgpu_tests::ink(&px) > 2_000, "{name} drew");
+        }
+    }
+    crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
+}
+
 /// The document window on a light page and through a green tube — the two
 /// places a surface built and eyed on the dark theme goes wrong.
 #[test]

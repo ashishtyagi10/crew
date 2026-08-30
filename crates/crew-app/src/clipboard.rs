@@ -40,6 +40,12 @@ fn multiline(s: &str) -> String {
 /// pasted while it's up must never land in the visible transcript-bound
 /// input. Only once no prompt is open does a paste fall through to the
 /// ordinary multiline composer.
+/// The clipboard's text, or `None` when there is none (or no clipboard).
+/// The one system read, so every surface that pastes asks the same question.
+pub(crate) fn system_text() -> Option<String> {
+    arboard::Clipboard::new().ok()?.get_text().ok()
+}
+
 fn paste_into_chat(c: &mut crate::chat::ChatPane, text: &str) {
     match c.keyentry.as_mut() {
         Some(entry) => entry.paste(text),

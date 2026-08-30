@@ -27,6 +27,8 @@ pub(crate) enum Edit {
     /// Wrap (or unwrap) the selection in this marker — `**` or `*`.
     Wrap(&'static str),
     Copy,
+    Cut,
+    Paste,
 }
 
 /// Classify a key press for an editing window. `None` leaves it to the
@@ -62,6 +64,8 @@ pub(crate) fn edit_for(key: &Key, pressed: bool, mods: ModifiersState) -> Option
             "s" => Some(Edit::Save),
             "a" => Some(Edit::SelectAll),
             "c" => Some(Edit::Copy),
+            "x" => Some(Edit::Cut),
+            "v" => Some(Edit::Paste),
             // The markers never appear on screen, so this is the way one gets
             // into the file at all.
             "b" => Some(Edit::Wrap("**")),
@@ -142,6 +146,7 @@ impl CrewApp {
         let mut save = false;
         let mut copy: Option<String> = None;
         let mut refused = false;
+        let mut paste = false;
         let mut edit: Option<std::path::PathBuf> = None;
         let mut external: Option<std::path::PathBuf> = None;
         let mods = self.docs[i].mods;
@@ -222,6 +227,16 @@ impl CrewApp {
                             Some(Edit::Copy) => {
                                 copy = d.view.selected_text();
                             }
+                            Some(Edit::Cut) => {
+                                copy = d.view.selected_text();
+                                d.view.delete_selection(cols, rows);
+                                d.warned = false;
+                                d.window.request_redraw();
+                            }
+                            Some(Edit::Paste) => {
+                                paste = true;
+                                d.warned = false;
+                            }
                             // Typing again after a refused close puts the
                             // guard back: the next Esc asks once more rather
                             // than throwing away what was typed since.
@@ -278,6 +293,17 @@ impl CrewApp {
                     d.window.request_redraw();
                 }
                 _ => {}
+            }
+        }
+        if paste {
+            // The clipboard is read HERE rather than in the match above: it
+            // is a system call, and the pane is borrowed there.
+            let text = crate::clipboard::system_text();
+            let d = &mut self.docs[i];
+            if let Some(text) = text {
+                let (cols, rows) = (d.grid.cols, d.grid.rows);
+                d.view.insert(&text, cols, rows);
+                d.window.request_redraw();
             }
         }
         if refused {

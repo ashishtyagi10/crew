@@ -8,6 +8,30 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.93
+
+**Cut, paste, and the URL you cannot see.**
+
+* **Cmd+V pastes and Cmd+X cuts**, as markdown. A paste is an insert, so it
+  replaces a selection and comes back out in one undo, and pasting a document
+  into a document keeps its markers rather than a rendering of them.
+* **The frame names the link the cursor is inside.** A link's target is
+  invisible in a render — that is what rendering a link *means* — so the one
+  place with room to say it does. Nothing new had to be tracked: the cells
+  already carry the URL, so a click can recover it without re-parsing.
+* **The goal's last condition has a picture now.** The editor — caret,
+  selection, link and unsaved mark in one frame — on a light page and through
+  a green tube, at a comfortable width and at one narrow enough that the
+  document wraps twice.
+
+That closes the part of
+`docs/superpowers/goals/2026-08-30-markdown-editor-in-its-own-window.md` this
+run set out to build: a markdown file opens in a window of its own, rendered,
+with a cursor already in it, and you write in the render. What the goal still
+lists as unbuilt is the per-window canvas (Pillar 1, deliberately sidestepped
+by a document window that holds no panes), Tab through table cells, and
+editing a link's URL in place.
+
 ## 0.19.92
 
 **Selection, and the bold that has nowhere else to come from.**

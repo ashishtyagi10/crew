@@ -69,6 +69,11 @@ impl DocWindow {
             true => format!("{name} \u{25cf}"),
             false => name,
         };
+        // A link's target is invisible in a render; while the cursor is
+        // inside one, the frame is where it says so.
+        if let Some(url) = self.view.caret_link(self.grid.cols) {
+            return format!("{name} \u{00b7} \u{2192} {url}");
+        }
         let (back, total) = self.view.position(self.grid.cols, self.grid.rows);
         if total == 0 || total <= usize::from(self.grid.rows) {
             return name;

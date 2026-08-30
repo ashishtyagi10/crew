@@ -1022,7 +1022,11 @@ longer aim at.
   closing delimiter preceded by a space does not flank), and a selection that
   runs out of its block is refused rather than half-wrapped — emphasis is an
   inline thing, and a `**` opened in a heading has no partner in the
-  paragraph below it. Making crew's windows plural all the way down — panes, focus
+  paragraph below it.
+  **Cmd+X** cuts and **Cmd+V** pastes, as markdown — a paste is an insert, so
+  it replaces a selection and comes back out with one undo. And because a
+  link's target is invisible in a render (that is what rendering a link
+  *means*), the frame names it while the cursor is inside one. Making crew's windows plural all the way down — panes, focus
   and zoom per window — is the first pillar of
   `docs/superpowers/goals/2026-08-30-markdown-editor-in-its-own-window.md`, and
   a document window deliberately needs none of it.
