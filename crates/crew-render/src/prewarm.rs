@@ -52,19 +52,17 @@ pub(crate) fn working_set() -> Vec<(char, bool)> {
 /// (0, 0): pane rects snap to device pixels (v0.13.6) and cell metrics are
 /// whole pixels, so all glyphs land in the same zero subpixel bin.
 ///
-/// The cells are painted in the page's own polarity — white on black for a
-/// dark page, black on white for a bright one. That is not decoration: a
-/// run's colours decide which way [`crate::textgamma`] bends its coverage
-/// curve, and the answer rides in the cache key. Prewarming in the wrong
-/// polarity would seed keys no real frame ever looks up, and every glyph on
-/// screen would pay full freight anyway.
+/// The cells are painted in the theme's OWN body pair — [`FontParams::body`],
+/// its `ink` on its `page_bg`. That is not decoration: a run's colours decide both which way
+/// [`crate::textgamma`] bends its coverage curve and how far, and both
+/// answers ride in the cache key. Prewarming in some other pair seeds keys no
+/// real frame ever looks up, and every glyph on screen pays full freight
+/// anyway. (It used to prewarm in flat white-on-black, which was the right
+/// polarity and, once the correction became contrast-aware, the wrong
+/// amount — a whole prewarm's worth of glyphs missed by one byte.)
 pub(crate) fn build_buffer(font_system: &mut FontSystem, params: &FontParams) -> PaneBuffer {
     let set = working_set();
-    let (fg, bg) = if params.dark {
-        ((255, 255, 255), (0, 0, 0))
-    } else {
-        ((0, 0, 0), (255, 255, 255))
-    };
+    let (fg, bg) = params.body;
     let cells: Vec<CellView> = set
         .iter()
         .enumerate()

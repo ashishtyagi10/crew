@@ -140,6 +140,7 @@ fn curves_take_nearly_as_much_darkening_as_stems() {
             smooth: KERNEL_STRENGTH,
             gamma: 0,
             dark: true,
+            body: ((255, 255, 255), (0, 0, 0)),
         };
         let buf = build_pane_buffer(fs, &cells, 1, 1, cell_w, cell_h, &p);
         let key = buf
@@ -232,6 +233,7 @@ fn the_default_pair_delivers_the_outlines_light() {
                 smooth: crate::smoothing::DEFAULT_SMOOTH,
                 gamma: crate::textgamma::DEFAULT_TEXT_GAMMA,
                 dark,
+                body: ((255, 255, 255), (0, 0, 0)),
             };
             let buf = build_pane_buffer(&mut fs, &cells, 1, 1, cell_w, cell_h, &p);
             let key = buf

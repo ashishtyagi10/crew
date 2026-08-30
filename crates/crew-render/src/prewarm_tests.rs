@@ -21,6 +21,7 @@ fn params(font_size: f32, smooth: u8) -> FontParams {
         smooth,
         gamma: 0,
         dark: true,
+        body: ((255, 255, 255), (0, 0, 0)),
     }
 }
 
@@ -239,17 +240,26 @@ fn set_leading_moves_the_cell_height_and_only_the_height() {
 }
 
 /// The prewarm has to seed the keys a real frame will ask for, and a run's
-/// polarity is part of a key. Painted in a fixed polarity, every glyph on a
-/// page of the other one would miss the warm cache and pay full freight —
-/// rasterization, packing, and at Retina sizes the atlas grow that
-/// re-uploads everything already in it.
+/// COLOURS are part of a key twice over: they set the polarity the coverage
+/// curve bends in, and — since the correction became contrast-aware — the
+/// amount of it the run takes. Painted in any pair but the theme's own, every
+/// body glyph misses the warm cache and pays full freight: rasterization,
+/// packing, and at Retina sizes the atlas grow that re-uploads everything
+/// already in it.
+///
+/// Flat white-on-black passed the polarity half of this for as long as the
+/// amount was the same for every pair, and would have gone on passing it.
 #[test]
-fn the_prewarm_is_painted_in_the_pages_own_polarity() {
+fn the_prewarm_is_painted_in_the_themes_own_body_pair() {
     let mut fs = crate::embedfont::font_system();
-    for dark in [true, false] {
+    for (ink, page) in [
+        ((228, 224, 216), (24, 20, 17)),
+        ((32, 28, 24), (246, 243, 236)),
+    ] {
         let mut p = params(14.0, 100);
         p.gamma = 130;
-        p.dark = dark;
+        p.dark = crate::textgamma::light_ink(ink, page);
+        p.body = (ink, page);
         let (buf, ..) = crate::prewarm::build_buffer(&mut fs, &p);
         let keys: Vec<_> = buf
             .layout_runs()
@@ -257,10 +267,21 @@ fn the_prewarm_is_painted_in_the_pages_own_polarity() {
             .map(|g| g.physical((0.0, 0.0), 1.0).cache_key)
             .collect();
         assert!(!keys.is_empty(), "the working set shapes to glyphs");
+        let want = crate::smoothing::text_flags(
+            p.smooth,
+            crate::textgamma::amount_for(p.gamma, ink, page),
+            crate::textgamma::light_ink(ink, page),
+        );
         assert!(
-            keys.iter().all(|k| crate::smoothing::dark_of(k) == dark),
-            "a {} page prewarmed in the other polarity",
-            if dark { "dark" } else { "bright" }
+            keys.iter().all(|k| k.flags == want),
+            "prewarmed in a pair {ink:?}-on-{page:?} body text never uses"
+        );
+        // A real theme's pair is not the extreme one, so the amount it asks
+        // for is not the whole correction — which is the half of this that
+        // a flat white-on-black prewarm used to get silently wrong.
+        assert!(
+            crate::textgamma::amount_for(p.gamma, ink, page) < p.gamma,
+            "a real body pair takes less than the full correction"
         );
     }
 }

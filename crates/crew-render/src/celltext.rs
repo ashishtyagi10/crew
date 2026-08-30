@@ -31,8 +31,16 @@ pub(crate) struct FontParams {
     /// Whether the PAGE is dark, i.e. its own ink is light. Styled runs
     /// derive their polarity from their own fg/bg instead (a bright badge
     /// in a dark theme wants the bright answer); this is what blank cells
-    /// and the prewarm are painted in, and it re-keys on a theme switch.
+    /// are painted in, and it re-keys on a theme switch.
     pub dark: bool,
+    /// The theme's own body pair, `(ink, page_bg)`. What
+    /// [`crate::prewarm`] paints its working set in, so the keys it seeds
+    /// are the keys body text actually looks up — a run's colours decide
+    /// both the polarity of its coverage curve and how much of the
+    /// correction it takes, and both ride in the cache key. Carried here
+    /// rather than read from the global theme at the point of use, so the
+    /// params a buffer was built with fully describe it.
+    pub body: ((u8, u8, u8), (u8, u8, u8)),
 }
 
 /// Base text weight for every theme: Medium (500), so ink reads crisp and
@@ -191,12 +199,14 @@ fn detect_corrections(buffer: &Buffer, font_system: &mut FontSystem, params: &Fo
 enum RunKey {
     Default,
     /// fg, bold, italic, letter-spacing correction (f32 bits — `None` for
-    /// glyphs whose natural advance already snaps to their cell), and whether
-    /// the cell paints light ink on a darker ground. The last one is not a
-    /// style: it is which way [`crate::textgamma`] bends this run's coverage
-    /// curve, and runs split on it so a bright badge in a dark theme gets the
-    /// correction its own colours ask for.
-    Styled((u8, u8, u8), bool, bool, Option<u32>, bool),
+    /// glyphs whose natural advance already snaps to their cell), whether the
+    /// cell paints light ink on a darker ground, and how much of the
+    /// configured gamma correction this run's own colours ask for. The last
+    /// two are not styles: they are which way [`crate::textgamma`] bends this
+    /// run's coverage curve and how far, and runs split on both so a bright
+    /// badge in a dark theme, and a muted comment beside solid body text, each
+    /// get the correction their own colours ask for.
+    Styled((u8, u8, u8), bool, bool, Option<u32>, bool, u8),
 }
 
 /// Fill an existing `Buffer` with rich-text spans for `cells` laid out in cols×rows.
@@ -226,8 +236,16 @@ pub(crate) fn fill_rich_text(
         }
     }
 
-    // Blank cells sit on the page, so the page's own polarity is theirs.
-    let default_flags = crate::smoothing::text_flags(params.smooth, params.gamma, params.dark);
+    // Blank cells sit on the page, so the page's own body pair is theirs —
+    // the same polarity AND the same share of the coverage correction that
+    // ordinary text on this page takes. (Keying them off the unscaled amount
+    // instead would mint a second set of atlas entries for the space, which
+    // has no ink to correct in the first place.)
+    let default_flags = crate::smoothing::text_flags(
+        params.smooth,
+        crate::textgamma::amount_for(params.gamma, params.body.0, params.body.1),
+        params.dark,
+    );
     let default_attrs = Attrs::new()
         .family(fam)
         .weight(base)
@@ -255,6 +273,7 @@ pub(crate) fn fill_rich_text(
                             cell.italic,
                             ls.map(f32::to_bits),
                             crate::textgamma::light_ink(cell.fg, cell.bg),
+                            crate::textgamma::amount_for(params.gamma, cell.fg, cell.bg),
                         ),
                     )
                 }
@@ -279,14 +298,14 @@ pub(crate) fn fill_rich_text(
         .map(|(s, e, key)| {
             let attrs = match key {
                 RunKey::Default => default_attrs.clone(),
-                RunKey::Styled(fg, bold, italic, ls, light) => {
+                RunKey::Styled(fg, bold, italic, ls, light, gamma) => {
                     let mut a = Attrs::new()
                         .family(fam)
                         .color(Color::rgb(fg.0, fg.1, fg.2))
                         .weight(if *bold { Weight::BOLD } else { base })
                         .cache_key_flags(crate::smoothing::text_flags(
                             params.smooth,
-                            params.gamma,
+                            *gamma,
                             *light,
                         ));
                     if *italic {

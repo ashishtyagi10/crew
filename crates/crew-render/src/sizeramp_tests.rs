@@ -56,6 +56,7 @@ fn small_text_takes_the_same_share_of_darkening_as_body_text() {
                 smooth: crate::smoothing::DEFAULT_SMOOTH,
                 gamma: 0,
                 dark: true,
+                body: ((255, 255, 255), (0, 0, 0)),
             };
             let buf = build_pane_buffer(fs, &cells, 1, 1, cell_w, cell_h, &p);
             let key = buf

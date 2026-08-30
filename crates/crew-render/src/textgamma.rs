@@ -53,6 +53,61 @@ const GAMMA: f32 = 2.2;
 /// *crisper*, not bolder.
 pub const DEFAULT_TEXT_GAMMA: u8 = 255;
 
+/// The share of the full correction a run's OWN colours ask for, as a
+/// 0.0–1.0 factor on the amount.
+///
+/// The curve above is exact for the extreme pair — white ink on a black page
+/// or the reverse — because that is the pair `a^(1/2.2)` describes. Crew's
+/// pages are not that pair. Its dark page is (24, 20, 17) under ink around
+/// (230, 226, 218), and a muted comment, a dim border legend or a badge sits
+/// closer still. Over a narrower span the encoded blend loses proportionally
+/// less light, so the full correction OVERSHOOTS, and it overshoots most at
+/// the low end: a coverage of 0.05 is lifted to 0.26 when the pair only
+/// asks for 0.19. That lift lands on the outermost pixel of every stroke,
+/// which is exactly where a halo comes from.
+///
+/// The exact per-pair correction is not a power curve at all — it is
+///
+/// ```text
+/// a' = ((a·Lf + (1−a)·Lb)^(1/γ) − Gb) / (Gf − Gb)
+/// ```
+///
+/// — but across a whole glyph it tracks the power curve scaled toward the
+/// identity, within a couple of percent. Matching the two at half coverage
+/// gives the factor, and scaling the AMOUNT by it needs no new plumbing at
+/// all: the amount is already a byte in every glyph's cache key, so a run
+/// whose colours ask for less correction simply mints its own keys.
+///
+/// Colours are compared by relative luminance. A mask is one channel and the
+/// error is per-channel, so no single number can be right for all three;
+/// luminance is the one the eye weights the answer by.
+pub(crate) fn contrast_factor(fg: (u8, u8, u8), bg: (u8, u8, u8)) -> f32 {
+    let (lf, lb) = (
+        crew_theme::relative_luminance(fg),
+        crew_theme::relative_luminance(bg),
+    );
+    let (gf, gb) = (lf.powf(1.0 / GAMMA), lb.powf(1.0 / GAMMA));
+    let span = gf - gb;
+    // Ink the same luminance as its ground has no visible rim to correct.
+    if span.abs() < 1e-3 {
+        return 0.0;
+    }
+    let half = (0.5 * lf + 0.5 * lb).powf(1.0 / GAMMA);
+    let exact = (half - gb) / span;
+    let full = if lf > lb {
+        0.5_f32.powf(1.0 / GAMMA)
+    } else {
+        1.0 - 0.5_f32.powf(1.0 / GAMMA)
+    };
+    ((exact - 0.5) / (full - 0.5)).clamp(0.0, 1.0)
+}
+
+/// The amount one run takes of the configured correction — [`contrast_factor`]
+/// applied to it and rounded back to the byte the cache key carries.
+pub(crate) fn amount_for(base: u8, fg: (u8, u8, u8), bg: (u8, u8, u8)) -> u8 {
+    (f32::from(base) * contrast_factor(fg, bg)).round() as u8
+}
+
 /// The 256-entry coverage curve for one polarity and amount. Cheap enough
 /// (256 `powf`) to build once per frame per distinct pair; [`Curve`] does the
 /// remembering.
