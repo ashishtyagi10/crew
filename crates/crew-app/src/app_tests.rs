@@ -221,21 +221,22 @@ fn batch_slash_command_spawns_swarm_pane_from_a_file() {
 }
 
 #[test]
-fn md_slash_command_opens_a_zoomed_markdown_pane() {
-    use crate::pane::PaneContent;
+fn md_slash_command_opens_a_document_window() {
     let mut app = CrewApp::default();
-    // bare /md → usage hint, no pane.
+    // bare /md → usage hint, no pane and no window.
     assert!(!app.submit_input("/md".to_string()));
     assert!(app.panes.is_empty(), "bare /md opens no pane");
+    assert!(app.pending_docs.is_empty(), "…and asks for no window");
     assert!(!app.zoomed);
 
     let path = std::env::temp_dir().join("crew_md_slash_test.md");
     std::fs::write(&path, "# Title\n").unwrap();
     assert!(!app.submit_input(format!("/md {}", path.display())));
-    assert_eq!(app.panes.len(), 1);
-    assert!(matches!(app.panes[0].content, PaneContent::View(_)));
-    assert!(app.zoomed, "/md spawns a zoomed pane");
-    assert_eq!(app.panes[0].title_text(), "crew_md_slash_test.md");
+    // `/md` is the markdown-shaped door: a document in a window of its own,
+    // where it can be edited. The window itself is opened on the next tick,
+    // which is the only place an active event loop exists.
+    assert_eq!(app.pending_docs, vec![path.clone()]);
+    assert!(app.panes.is_empty(), "and no pane in the grid");
     let _ = std::fs::remove_file(&path);
 }
 

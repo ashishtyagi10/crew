@@ -110,7 +110,11 @@ impl CrewApp {
                 } else if let Some(f) = other.strip_prefix("batch ") {
                     self.spawn_batch_pane(f.trim());
                 } else if let Some(f) = other.strip_prefix("md ") {
-                    self.open_view(f.trim());
+                    // `/md` is the markdown-shaped door: a document, in a
+                    // window, where it can be edited. `/view` keeps opening a
+                    // pane, which is what Cmd+click on a path, `/diff` and
+                    // `/out` all want.
+                    self.queue_doc_window(f.trim());
                 } else if let Some(f) = other.strip_prefix("view ") {
                     self.open_view(f.trim());
                 } else if let Some(f) = other.strip_prefix("doc ") {

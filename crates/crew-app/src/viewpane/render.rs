@@ -97,6 +97,7 @@ impl ViewPane {
             super::caret::at_cell(&cache.lines, self.scroll + row, col)
         };
         if to.is_some() {
+            self.clear_selection();
             self.set_caret(to, cols);
             // Moving the caret by hand ends the run of typing: what is typed
             // next is a separate thing you did.
@@ -319,6 +320,30 @@ impl ViewPane {
                     });
                 },
             );
+        }
+        // What is selected, washed the way every other selection in crew is:
+        // a range of BYTES, so the wash follows the text through a re-wrap
+        // instead of being a rectangle of the screen.
+        if let Some((lo, hi)) = super::select::range(self) {
+            let bg = crew_theme::theme().find_hl_bg;
+            let mut col = 0u16;
+            for (r, line) in cache.lines.iter().skip(top).take(rows as usize).enumerate() {
+                col = 0;
+                for cell in line {
+                    let w = crate::chatwidth::char_w(cell.c) as u16;
+                    if w == 0 {
+                        continue;
+                    }
+                    if cell.src.is_some_and(|s| s >= lo && s < hi) {
+                        if let Some(c) = out.iter_mut().find(|c| c.row == r as u16 && c.col == col)
+                        {
+                            c.bg = bg;
+                        }
+                    }
+                    col += w;
+                }
+            }
+            let _ = col;
         }
         // The caret, on the cell it is standing on. A beam rather than a
         // block: the character under it is the document, and a block would

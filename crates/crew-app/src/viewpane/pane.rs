@@ -77,6 +77,11 @@ pub(crate) struct ViewPane {
     pub dirty: bool,
     /// What has been typed, so it can be taken back ([`super::undo`]).
     pub history: super::undo::History,
+    /// The other end of a selection, as a source byte — the caret is one end
+    /// and this is where it was when the selecting began. `None` when nothing
+    /// is selected, which is not the same as an empty selection: a click
+    /// clears it, a shifted arrow starts one.
+    pub anchor: Option<u32>,
     /// `v`: lay a diff out side by side rather than unified (see
     /// [`super::diffsplit`]). Per pane rather than a setting: it is a way of
     /// reading THIS review at THIS width, and a pane too narrow to hold two
@@ -124,6 +129,7 @@ impl ViewPane {
             caret_at: None,
             dirty: false,
             history: Default::default(),
+            anchor: None,
             split: false,
             search: None,
             cache: RefCell::new(None),

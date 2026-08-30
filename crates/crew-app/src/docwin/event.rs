@@ -15,12 +15,18 @@ use winit::keyboard::{Key, NamedKey};
 pub(crate) enum Edit {
     Move(Step),
     Type(String),
+    /// The same movement, dragging a selection behind it.
+    Select(Step),
+    SelectAll,
     Backspace,
     Delete,
     Newline,
     Save,
     Undo,
     Redo,
+    /// Wrap (or unwrap) the selection in this marker — `**` or `*`.
+    Wrap(&'static str),
+    Copy,
 }
 
 /// Classify a key press for an editing window. `None` leaves it to the
@@ -36,13 +42,17 @@ pub(crate) fn edit_for(key: &Key, pressed: bool, mods: ModifiersState) -> Option
         return None;
     }
     let cmd = mods.super_key() || mods.control_key();
+    let moved = |s: Step| match mods.shift_key() {
+        true => Some(Edit::Select(s)),
+        false => Some(Edit::Move(s)),
+    };
     match key {
-        Key::Named(NamedKey::ArrowLeft) => Some(Edit::Move(Step::Left)),
-        Key::Named(NamedKey::ArrowRight) => Some(Edit::Move(Step::Right)),
-        Key::Named(NamedKey::ArrowUp) => Some(Edit::Move(Step::Up)),
-        Key::Named(NamedKey::ArrowDown) => Some(Edit::Move(Step::Down)),
-        Key::Named(NamedKey::Home) => Some(Edit::Move(Step::Home)),
-        Key::Named(NamedKey::End) => Some(Edit::Move(Step::End)),
+        Key::Named(NamedKey::ArrowLeft) => moved(Step::Left),
+        Key::Named(NamedKey::ArrowRight) => moved(Step::Right),
+        Key::Named(NamedKey::ArrowUp) => moved(Step::Up),
+        Key::Named(NamedKey::ArrowDown) => moved(Step::Down),
+        Key::Named(NamedKey::Home) => moved(Step::Home),
+        Key::Named(NamedKey::End) => moved(Step::End),
         Key::Named(NamedKey::Backspace) if !cmd => Some(Edit::Backspace),
         Key::Named(NamedKey::Delete) if !cmd => Some(Edit::Delete),
         Key::Named(NamedKey::Enter) if !cmd => Some(Edit::Newline),
@@ -50,6 +60,12 @@ pub(crate) fn edit_for(key: &Key, pressed: bool, mods: ModifiersState) -> Option
         Key::Named(NamedKey::Tab) if !cmd => Some(Edit::Type("  ".into())),
         Key::Character(s) if cmd => match s.as_str() {
             "s" => Some(Edit::Save),
+            "a" => Some(Edit::SelectAll),
+            "c" => Some(Edit::Copy),
+            // The markers never appear on screen, so this is the way one gets
+            // into the file at all.
+            "b" => Some(Edit::Wrap("**")),
+            "i" => Some(Edit::Wrap("*")),
             "z" => Some(Edit::Undo),
             // Cmd+Shift+Z arrives as the shifted character, exactly like the
             // `{`/`}` and `T` chords the grid uses.
@@ -124,6 +140,8 @@ impl CrewApp {
         };
         let mut close = false;
         let mut save = false;
+        let mut copy: Option<String> = None;
+        let mut refused = false;
         let mut edit: Option<std::path::PathBuf> = None;
         let mut external: Option<std::path::PathBuf> = None;
         let mods = self.docs[i].mods;
@@ -180,9 +198,29 @@ impl CrewApp {
                     if d.view.caret.is_some() {
                         match edit_key(&k, mods) {
                             Some(Edit::Move(dir)) => {
+                                d.view.clear_selection();
                                 d.view.move_caret(dir, cols, rows);
                                 d.window.request_redraw();
                                 return;
+                            }
+                            Some(Edit::Select(dir)) => {
+                                d.view.anchor_here();
+                                d.view.move_caret(dir, cols, rows);
+                                d.window.request_redraw();
+                                return;
+                            }
+                            Some(Edit::SelectAll) => {
+                                d.view.select_all(cols, rows);
+                                d.window.request_redraw();
+                                return;
+                            }
+                            Some(Edit::Wrap(marker)) => {
+                                refused = !d.view.wrap_selection(marker, cols, rows);
+                                d.warned = false;
+                                d.window.request_redraw();
+                            }
+                            Some(Edit::Copy) => {
+                                copy = d.view.selected_text();
                             }
                             // Typing again after a refused close puts the
                             // guard back: the next Esc asks once more rather
@@ -241,6 +279,12 @@ impl CrewApp {
                 }
                 _ => {}
             }
+        }
+        if refused {
+            self.set_status("select inside one paragraph to make it bold or italic");
+        }
+        if let Some(text) = copy {
+            self.copy_text(text);
         }
         if save {
             let d = &mut self.docs[i];

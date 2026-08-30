@@ -21,6 +21,25 @@
 use super::{LoadState, ViewPane};
 
 impl ViewPane {
+    /// The document's source, to read.
+    pub(crate) fn source_str(&self) -> Option<&str> {
+        match &self.state {
+            LoadState::Ready { loaded, .. } => Some(&loaded.text),
+            _ => None,
+        }
+    }
+
+    /// How many bytes the document has.
+    pub(crate) fn source_len(&self) -> Option<u32> {
+        self.source_str().map(|s| s.len() as u32)
+    }
+
+    /// Replace `[from, to)` with `text`, recording it for undo.
+    pub(crate) fn replace_range(&mut self, from: u32, to: u32, text: &str, cols: u16, rows: u16) {
+        let from = from as usize;
+        self.splice(from, (to as usize).saturating_sub(from), text, cols, rows);
+    }
+
     /// The document's source, when there is one to edit.
     fn source(&mut self) -> Option<&mut String> {
         match &mut self.state {
@@ -29,8 +48,10 @@ impl ViewPane {
         }
     }
 
-    /// Insert `text` at the caret, and leave the caret after it.
+    /// Insert `text` at the caret, and leave the caret after it. Typing with
+    /// a selection replaces it, as it does everywhere else.
     pub(crate) fn insert(&mut self, text: &str, cols: u16, rows: u16) {
+        self.delete_selection(cols, rows);
         let Some(at) = self.caret_at else { return };
         self.splice(at as usize, 0, text, cols, rows);
     }
@@ -88,6 +109,9 @@ impl ViewPane {
 
     /// Delete the character AT the caret (forward delete), leaving it put.
     pub(crate) fn delete(&mut self, cols: u16, rows: u16) {
+        if self.delete_selection(cols, rows) {
+            return;
+        }
         let Some(at) = self.caret_at else { return };
         let Some(src) = self.source() else { return };
         let at = (at as usize).min(src.len());
@@ -102,6 +126,9 @@ impl ViewPane {
     /// and nothing happens — including no scroll, which is the thing an
     /// editor that "does nothing" usually still gets wrong.
     pub(crate) fn backspace(&mut self, cols: u16, rows: u16) {
+        if self.delete_selection(cols, rows) {
+            return;
+        }
         let Some(at) = self.caret_at else { return };
         let Some(src) = self.source() else { return };
         let at = (at as usize).min(src.len());
@@ -135,6 +162,7 @@ impl ViewPane {
     /// Re-read the document at `offset` and put the caret there.
     fn after_edit(&mut self, offset: usize, cols: u16, rows: u16) {
         self.dirty = true;
+        self.anchor = None;
         // The layout cache is keyed by width and theme, not by the text — so
         // an edit has to throw it away explicitly, or the pane would draw the
         // document as it was before the keystroke.

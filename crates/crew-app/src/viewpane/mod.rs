@@ -28,6 +28,7 @@ mod render;
 mod rendercap;
 pub(crate) mod search;
 mod search_apply;
+pub(crate) mod select;
 pub(crate) mod sticky;
 pub(crate) mod undo;
 pub(crate) mod whitespace;

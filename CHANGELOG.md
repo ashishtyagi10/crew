@@ -8,6 +8,38 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.92
+
+**Selection, and the bold that has nowhere else to come from.**
+
+The editor promises that no `**` ever appears on screen — which means there
+has to be some other way to put one in the file. **Shift+arrows** select,
+**Cmd+B** and **Cmd+I** wrap the selection (or take the markers off again),
+Cmd+A selects the document, Cmd+C copies, and typing or Backspace replaces
+what is selected. A selection is a pair of **source bytes**, so its wash
+follows the text through a re-wrap instead of being a rectangle of screen.
+
+**Two bugs, both found by looking at a picture of it**, both of which put the
+markers on screen — the one thing this is all for:
+
+* **A selection that leaves its block is refused.** Emphasis is an *inline*
+  thing: a `**` opened in a heading has no partner in the paragraph below it,
+  so markdown renders it as two asterisks. The first shot of this feature had
+  `The document w**indow` in its title. A selection crossing a blank line, a
+  heading, a list, a quote, a table row or a fence is now refused, and says so
+  — while a selection across the wrapped lines of ONE paragraph is still
+  allowed, because refusing that would make the key useless in every document
+  written at 80 columns.
+* **The selection is trimmed before it is wrapped.** Markdown will not read
+  `**word **` as bold either — a closing delimiter preceded by a space does
+  not flank — so the second shot still had asterisks in it. Selecting a word
+  and its trailing space now bolds the word, which is what every other editor
+  does.
+
+Also: **`/md <file>` opens a document window** rather than a pane. It is the
+markdown-shaped door, and the thing behind it is now an editor; `/view` keeps
+opening a pane, which is what Cmd+click on a path, `/diff` and `/out` want.
+
 ## 0.19.91
 
 **Undo, and a click that puts the cursor where you are looking.**

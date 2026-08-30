@@ -967,7 +967,10 @@ longer aim at.
   file is read on a worker and lands a frame later, never on the frame thread,
   and a path that is not a picture fails once rather than being retried on
   every frame.
-- **`/doc <file>`** — the same file viewer, in a **window of its own**. Crew is
+- **`/doc <file>`** (and **`/md <file>`**, which is the markdown-shaped door
+  to the same place) — the file viewer, in a **window of its own**. `/view`
+  keeps opening a pane, which is what Cmd+click on a path, `/diff` and `/out`
+  all want. Crew is
   one window holding a grid of panes, which is the right shape for a shell
   beside an agent beside a diff and the wrong shape for the one thing you read
   for twenty minutes: a document wants a window you can put on the other
@@ -1008,7 +1011,18 @@ longer aim at.
   not a re-rendering of something that meant the same. **Click** to put the
   cursor where you are looking (past the end of a line puts it at the end),
   and **Delete** removes the character at the caret as Backspace removes the
-  one behind it. Making crew's windows plural all the way down — panes, focus
+  one behind it.
+  **Shift+arrows select**, Cmd+A selects the document, Cmd+C copies — the
+  *markdown*, not the rendering, so what you paste into another document is
+  still markdown — and typing or Backspace replaces what is selected.
+  **Cmd+B** and **Cmd+I** wrap the selection in `**`/`*`, or take them off
+  again if they are already there: with no markers on screen, that is how one
+  gets into the file at all. The selection is trimmed to what it is actually
+  emphasizing first (markdown will not read `**word **` as bold, because a
+  closing delimiter preceded by a space does not flank), and a selection that
+  runs out of its block is refused rather than half-wrapped — emphasis is an
+  inline thing, and a `**` opened in a heading has no partner in the
+  paragraph below it. Making crew's windows plural all the way down — panes, focus
   and zoom per window — is the first pillar of
   `docs/superpowers/goals/2026-08-30-markdown-editor-in-its-own-window.md`, and
   a document window deliberately needs none of it.
