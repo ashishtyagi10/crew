@@ -916,6 +916,6 @@ mod tests {
         }
         // …and the floor is real: below it the reading stands alone rather
         // than sharing with an ellipsis and two characters.
-        assert!(MIN_PATH_W >= 4);
+        const { assert!(MIN_PATH_W >= 4) };
     }
 }

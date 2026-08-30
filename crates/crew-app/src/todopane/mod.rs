@@ -14,10 +14,12 @@
 //! due items app-side once a minute — event-driven, no per-frame work.
 use crew_render::CellView;
 
+mod composer;
 pub(crate) mod duedate;
+mod gutter;
 pub(crate) mod item;
 mod keys;
-mod render;
+pub(crate) mod render;
 pub(crate) mod store;
 mod tagmenu;
 
@@ -343,7 +345,7 @@ impl TodoPane {
     /// list (Up on the first line, Down on the last).
     pub(crate) fn cursor_vertical(&mut self, up: bool, cols: u16) -> bool {
         let chars: Vec<char> = self.input.chars().collect();
-        let lines = render::input_lines(self, cols);
+        let lines = composer::input_lines(self, cols);
         let cur = self.cursor.min(chars.len());
         let line = lines
             .iter()

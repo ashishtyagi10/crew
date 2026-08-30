@@ -313,7 +313,11 @@ mod toast;
 #[cfg(test)]
 #[path = "toastshot_tests.rs"]
 mod toastshot_tests;
+
 mod todopane;
+#[cfg(test)]
+#[path = "todoshot_tests.rs"]
+mod todoshot_tests;
 mod toggles;
 mod tui;
 mod unread;

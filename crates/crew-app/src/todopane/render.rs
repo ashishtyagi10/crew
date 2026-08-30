@@ -5,7 +5,7 @@
 use crew_render::CellView;
 
 use super::item::TodoItem;
-use super::{duedate, TodoPane};
+use super::{composer, duedate, gutter, TodoPane};
 
 /// Column where the `[ ]` checkbox starts; the title follows two past it.
 const BOX_COL: u16 = 2;
@@ -13,7 +13,7 @@ const TITLE_COL: u16 = 6;
 /// Cap on visible popup rows (incl. its 2 border rows).
 const POPUP_MAX: u16 = 8;
 
-fn cell(col: u16, row: u16, c: char, fg: (u8, u8, u8), bold: bool) -> CellView {
+pub(super) fn cell(col: u16, row: u16, c: char, fg: (u8, u8, u8), bold: bool) -> CellView {
     CellView {
         col,
         row,
@@ -46,36 +46,6 @@ pub(crate) fn content(cols: u16) -> u16 {
 /// See [`content`]. Wide enough for a real task, a project and a due stamp
 /// with air between them; narrow enough that they stay one row.
 const MAX_LIST_W: u16 = 92;
-
-/// Composer rows at this pane size: a bordered card whose interior grows
-/// with the wrapped input ([`input_lines`], capped by [`composer_cap`]), or
-/// a single bare prompt row on very short panes.
-pub(crate) fn composer_h(p: &TodoPane, cols: u16, rows: u16) -> u16 {
-    let cols = content(cols);
-
-    if rows >= 6 {
-        2 + input_lines(p, cols).len().min(composer_cap(rows)) as u16
-    } else {
-        1
-    }
-}
-
-/// Most interior (text) rows the composer may take before it stops growing
-/// and tail-follows by line — keeps some list rows visible on short panes.
-fn composer_cap(rows: u16) -> usize {
-    (rows.saturating_sub(4) as usize).clamp(1, 4)
-}
-
-/// The composer input wrapped at the card's interior width: absolute char
-/// ranges into `p.input`, always at least one (possibly empty) line. The
-/// budget leaves the cursor column free, so a full line never clips `▏`.
-pub(crate) fn input_lines(p: &TodoPane, cols: u16) -> Vec<(usize, usize)> {
-    let cols = content(cols);
-
-    let chars: Vec<char> = p.input.chars().collect();
-    let w = (cols.saturating_sub(6)).max(1) as usize;
-    wrap_ranges(&chars, w, w)
-}
 
 /// The header row's done button: the visible, clickable way to reach ticked
 /// items. `h` on the list has always done this, but a key that only works
@@ -129,7 +99,14 @@ pub(crate) fn popup_h(p: &TodoPane, rows: u16) -> u16 {
 pub(crate) fn list_height(p: &TodoPane, cols: u16, rows: u16) -> u16 {
     let cols = content(cols);
 
-    rows.saturating_sub(composer_h(p, cols, rows) + popup_h(p, rows) + header_h(p, cols))
+    rows.saturating_sub(composer::height(p, cols, rows) + popup_h(p, rows) + header_h(p, cols))
+}
+
+/// Column of a row's `✗`. One in from the gutter column ([`gutter`]) rather
+/// than hard against it: a thumb drawn flush against the delete affordance
+/// reads as a mark ON it.
+fn del_col(cols: u16) -> u16 {
+    cols.saturating_sub(3)
 }
 
 /// Mirror of [`place_right`]'s arithmetic without the cells: the next free
@@ -144,11 +121,17 @@ fn place_w(end: u16, w: u16) -> u16 {
     }
 }
 
-/// Column past the title's first line — where the right-side chips (due,
-/// `@tag`, `✗`; in the done view the tick time instead of the due) begin,
-/// one-column gap included.
-fn first_line_max(it: &TodoItem, cols: u16, now_ms: u64, done_view: bool) -> u16 {
-    let mut right = cols.saturating_sub(4);
+/// Column the title's first line stops before when the chips ride beside it:
+/// where the right-side chips (due, `@tag`, `✗`; in the done view the tick
+/// time instead of the due) begin, minus the same two-column gap the chips
+/// keep between each other.
+///
+/// Two, not one. At one the title and the chip beside it read as one phrase
+/// the moment a title happens to fill its budget — `…and reverts @crew` — and
+/// every other gap on the row was already two, so the one place it mattered
+/// was the tightest.
+fn inline_max(it: &TodoItem, cols: u16, now_ms: u64, done_view: bool) -> u16 {
+    let mut right = del_col(cols).saturating_sub(2);
     if done_view {
         if it.done_ms.is_some() {
             right = place_w(right, 5); // "HH:MM"
@@ -160,7 +143,41 @@ fn first_line_max(it: &TodoItem, cols: u16, now_ms: u64, done_view: bool) -> u16
     if let Some(tag) = &it.project {
         right = place_w(right, crate::chatwidth::str_w(&format!("@{tag}")) as u16);
     }
-    right + 1
+    right
+}
+
+/// Whether the item carries anything on its right side at all.
+fn has_chips(it: &TodoItem, done_view: bool) -> bool {
+    it.project.is_some()
+        || if done_view {
+            it.done_ms.is_some()
+        } else {
+            it.due_ms.is_some()
+        }
+}
+
+/// Most of a first line the row will fight for before it STACKS — chips off
+/// the title line and onto a row of their own beneath it.
+///
+/// A narrow tile is where a right-aligned column stops being a column: the
+/// chips are laid out first and take what they need, so on a 36-cell pane
+/// `ship the release notes` was left three cells and hard-broke into `shi` /
+/// `p the release notes`. Past that the row gives up on sharing the line and
+/// becomes two bands, which is what it already looks like.
+const MIN_TITLE_W: u16 = 20;
+
+/// Whether this item stacks. Measured against the title it actually has, not
+/// only [`MIN_TITLE_W`]: `pay rent` beside a tag and a due on a 40-cell pane
+/// has eight cells of title and sixteen to put them in, and moving that down
+/// a row would buy nothing. Never for an item with nothing on its right —
+/// there is nothing to move down.
+fn stacked(it: &TodoItem, cols: u16, now_ms: u64, done_view: bool) -> bool {
+    if !has_chips(it, done_view) {
+        return false;
+    }
+    let budget = inline_max(it, cols, now_ms, done_view).saturating_sub(TITLE_COL);
+    let want = (crate::chatwidth::str_w(&it.title) as u16).min(MIN_TITLE_W);
+    budget < want
 }
 
 /// The title's wrapped lines as char-index ranges: greedy word wrap, the
@@ -168,15 +185,18 @@ fn first_line_max(it: &TodoItem, cols: u16, now_ms: u64, done_view: bool) -> u16
 /// the pane. Always at least one range, so every item owns a row.
 fn title_lines(it: &TodoItem, cols: u16, now_ms: u64, done_view: bool) -> Vec<(usize, usize)> {
     let chars: Vec<char> = it.title.chars().collect();
-    let w0 =
-        (first_line_max(it, cols, now_ms, done_view).saturating_sub(TITLE_COL)).max(1) as usize;
     let wc = (cols.saturating_sub(2 + TITLE_COL)).max(1) as usize;
+    let w0 = if stacked(it, cols, now_ms, done_view) {
+        wc
+    } else {
+        (inline_max(it, cols, now_ms, done_view).saturating_sub(TITLE_COL)).max(1) as usize
+    };
     wrap_ranges(&chars, w0, wc)
 }
 
 /// Greedy word wrap over `chars` into (start, end) char ranges: the first
 /// line `w0` cells wide, continuations `wc`. Always at least one range.
-fn wrap_ranges(chars: &[char], w0: usize, wc: usize) -> Vec<(usize, usize)> {
+pub(super) fn wrap_ranges(chars: &[char], w0: usize, wc: usize) -> Vec<(usize, usize)> {
     let mut lines = Vec::new();
     let mut start = 0;
     loop {
@@ -210,6 +230,7 @@ pub(crate) fn item_h(it: &TodoItem, cols: u16, now_ms: u64, done_view: bool) -> 
     let cols = content(cols);
 
     title_lines(it, cols, now_ms, done_view).len() as u16
+        + u16::from(stacked(it, cols, now_ms, done_view))
 }
 
 /// Local calendar day of a done item's tick; `None` groups every legacy
@@ -273,7 +294,7 @@ pub(crate) fn click_at(
     rows: u16,
 ) -> Option<TodoClick> {
     let cols = content(cols);
-    if row >= rows.saturating_sub(composer_h(p, cols, rows)) {
+    if row >= rows.saturating_sub(composer::height(p, cols, rows)) {
         return Some(TodoClick::Composer);
     }
     let header = header_h(p, cols);
@@ -302,12 +323,18 @@ pub(crate) fn click_at(
                 return None;
             }
             let first = top + head;
-            // Continuation rows carry no checkbox or ✗ — they just select.
-            return Some(if row > first {
-                TodoClick::Select(di)
-            } else if (BOX_COL..BOX_COL + 3).contains(&col) {
+            // The checkbox rides the title's first row; the ✗ rides whichever
+            // row the chips are on — the same row on a wide pane, the item's
+            // last one where the row stacked. Everything else just selects.
+            let it = &p.items[idx];
+            let del_row = if stacked(it, cols, now_ms, p.done_view) {
+                top + h - 1
+            } else {
+                first
+            };
+            return Some(if row == first && (BOX_COL..BOX_COL + 3).contains(&col) {
                 TodoClick::Toggle(di)
-            } else if col >= cols.saturating_sub(3) {
+            } else if row == del_row && col >= cols.saturating_sub(3) {
                 TodoClick::Delete(di)
             } else {
                 TodoClick::Select(di)
@@ -413,6 +440,12 @@ pub(crate) fn cells(p: &TodoPane, cols: u16, rows: u16) -> Vec<CellView> {
         }
     }
 
+    // The list's own scroll reading, over the rows the list was given.
+    let row_of = |di: usize| row_h(&p.items, p.done_view, &order, di, cols, now_ms);
+    let total: u16 = (0..order.len()).map(row_of).sum();
+    let above: u16 = (0..p.scroll.min(order.len())).map(row_of).sum();
+    out.extend(gutter::cells(above, total, header, lh as u16, cols - 1));
+
     let ph = popup_h(p, rows);
     if let (Some(m), true) = (&p.tagmenu, ph > 0) {
         let items: Vec<crate::suggest::MenuItem> = m
@@ -430,14 +463,14 @@ pub(crate) fn cells(p: &TodoPane, cols: u16, rows: u16) -> Vec<CellView> {
                 ..Default::default()
             })
             .collect();
-        let top = rows - composer_h(p, cols, rows) - ph;
+        let top = rows - composer::height(p, cols, rows) - ph;
         for mut c in crate::cmdmenu::menu_card("projects", &items, m.sel, cols, ph) {
             c.row += top;
             out.push(c);
         }
     }
 
-    composer_cells(&mut out, p, cols, rows);
+    composer::cells(&mut out, p, cols, rows);
     out
 }
 
@@ -470,54 +503,61 @@ fn row_cells(
         out.push(cell(BOX_COL + i as u16, row, c, ink, selected));
     }
 
+    // The title's lines, then the right side beside the first of them — or,
+    // on a pane too narrow to share a line, on a row of its own below.
+    let lines = title_lines(it, cols, now_ms, p.done_view);
+    let stack = stacked(it, cols, now_ms, p.done_view);
+    let chip_row = row + if stack { lines.len() as u16 } else { 0 };
+
     // Right side, laid right-to-left: ✗, due, @tag.
-    let del_col = cols - 2;
-    out.push(cell(
-        del_col,
-        row,
-        '\u{2717}', // ✗
-        if selected { t.ink } else { t.text_muted },
-        false,
-    ));
+    let del_col = del_col(cols);
     let mut right = del_col.saturating_sub(2);
-    if p.done_view {
-        // The history shows WHEN it was ticked; the day is the header's.
-        if let Some(d) = it.done_ms.and_then(duedate::from_epoch_ms) {
-            use chrono::Timelike;
-            let lbl = format!("{:02}:{:02}", d.time().hour(), d.time().minute());
-            right = place_right(out, &lbl, right, row, t.text_muted, false);
+    if chip_row < bottom {
+        out.push(cell(
+            del_col,
+            chip_row,
+            '\u{2717}', // ✗
+            if selected { t.ink } else { t.text_muted },
+            false,
+        ));
+        if p.done_view {
+            // The history shows WHEN it was ticked; the day is the header's.
+            if let Some(d) = it.done_ms.and_then(duedate::from_epoch_ms) {
+                use chrono::Timelike;
+                let lbl = format!("{:02}:{:02}", d.time().hour(), d.time().minute());
+                right = place_right(out, &lbl, right, chip_row, t.text_muted, false);
+            }
+        } else if let Some(due) = it.due_ms {
+            let lbl = duedate::label(due, it.due_has_time, now_ms);
+            let overdue = due <= now_ms;
+            let today = duedate::days_from_now(due, now_ms) == Some(0);
+            let fg = if overdue {
+                t.bell
+            } else if today {
+                t.status_fg
+            } else {
+                t.text_muted
+            };
+            right = place_right(out, &lbl, right, chip_row, fg, overdue);
         }
-    } else if let Some(due) = it.due_ms {
-        let lbl = duedate::label(due, it.due_has_time, now_ms);
-        let overdue = due <= now_ms;
-        let today = duedate::days_from_now(due, now_ms) == Some(0);
-        let fg = if overdue {
-            t.bell
-        } else if today {
-            t.status_fg
-        } else {
-            t.text_muted
-        };
-        right = place_right(out, &lbl, right, row, fg, overdue);
+        if let Some(tag) = &it.project {
+            let chip = format!("@{tag}");
+            let fg = crew_theme::tag_color(tag, t);
+            right = place_right(out, &chip, right, chip_row, fg, false);
+        }
     }
-    if let Some(tag) = &it.project {
-        let chip = format!("@{tag}");
-        right = place_right(out, &chip, right, row, crew_theme::tag_color(tag, t), false);
-    }
-    // `right` is the next free slot two left of the leftmost right-side
-    // text; the title keeps a one-column gap before that text and wraps
-    // onto full-width rows below.
-    debug_assert_eq!(right + 1, first_line_max(it, cols, now_ms, p.done_view));
+    // `right` is the last column the title's first line may use when the
+    // chips ride beside it — a two-column gap before their text.
+    debug_assert!(
+        stack || chip_row >= bottom || right == inline_max(it, cols, now_ms, p.done_view)
+    );
     let chars: Vec<char> = it.title.chars().collect();
-    for (li, &(s, e)) in title_lines(it, cols, now_ms, p.done_view)
-        .iter()
-        .enumerate()
-    {
+    for (li, &(s, e)) in lines.iter().enumerate() {
         let r = row + li as u16;
         if r >= bottom {
             break;
         }
-        let max = if li == 0 { right + 1 } else { cols - 2 };
+        let max = if li == 0 && !stack { right } else { cols - 2 };
         let styled = chars[s..e].iter().map(|&c| (c, ()));
         crate::chatwidth::place_row(TITLE_COL, max, styled, |x, c, ()| {
             out.push(cell(x, r, c, ink, selected))
@@ -545,191 +585,6 @@ fn place_right(
         out.push(cell(x, row, c, fg, bold))
     });
     start.saturating_sub(2)
-}
-
-/// The bordered composer at the bottom: legend carries live feedback (a
-/// recognised due date, an edit in progress, the active filter), the
-/// interior the `❯ input▏` prompt — wrapping onto further rows as the text
-/// fills the width ([`input_lines`]), the last rows kept once the cap is
-/// hit (editing happens at the end) — with the date fragment and `@tags`
-/// tinted as they're typed. Very short panes get one bare tail-follow row.
-fn composer_cells(out: &mut Vec<CellView>, p: &TodoPane, cols: u16, rows: u16) {
-    let t = crew_theme::theme();
-    let accent = crate::palette::accent();
-    let ch = composer_h(p, cols, rows);
-    let top = rows - ch;
-    let now = duedate::now_local();
-    let hit = duedate::find(&p.input, now);
-
-    let chars: Vec<char> = p.input.chars().collect();
-    let in_date = |i: usize| hit.as_ref().is_some_and(|h| i >= h.start && i < h.end);
-    // Each span carries its tag's own color (one hash per tag per redraw),
-    // so typing `@crew` tints live in the same color its row chip will get.
-    let tag_tints: Vec<(usize, usize, (u8, u8, u8))> = tag_spans(&chars)
-        .into_iter()
-        .map(|(s, e)| {
-            let name: String = chars[s + 1..e].iter().collect();
-            (s, e, crew_theme::tag_color(&name, t))
-        })
-        .collect();
-    let in_tag = |i: usize| {
-        tag_tints
-            .iter()
-            .find(|&&(s, e, _)| i >= s && i < e)
-            .map(|&(_, _, fg)| fg)
-    };
-    let style = |i: usize| {
-        if in_date(i) {
-            (accent, true)
-        } else if let Some(fg) = in_tag(i) {
-            (fg, false)
-        } else {
-            (t.ink, false)
-        }
-    };
-
-    let cursor = p.cursor.min(chars.len());
-    if ch == 1 {
-        // Bare row: no room to grow — follow the CURSOR, not the tail, so a
-        // mid-string edit stays under the eye.
-        out.push(cell(0, top, '\u{276f}', accent, true)); // ❯
-        let (text_x, max) = (2u16, cols);
-        let avail = (max.saturating_sub(text_x)).saturating_sub(1) as usize;
-        let mut start = cursor;
-        let mut used = 0;
-        while start > 0 {
-            let w = crate::chatwidth::char_w(chars[start - 1]);
-            if used + w > avail {
-                break;
-            }
-            used += w;
-            start -= 1;
-        }
-        let styled = chars[start..]
-            .iter()
-            .enumerate()
-            .map(|(j, &c)| (c, style(start + j)));
-        crate::chatwidth::place_row(text_x, max, styled, |x, c, (fg, bold)| {
-            out.push(cell(x, top, c, fg, bold))
-        });
-        let bar_x = text_x + used as u16;
-        if bar_x < max {
-            out.push(cell(bar_x, top, '\u{258f}', accent, false)); // ▏
-        }
-        return;
-    }
-
-    let legend = if p.done_view {
-        match &p.filter {
-            Some(f) => format!("done @{f}"),
-            None => "done".to_string(),
-        }
-    } else if p.editing.is_some() {
-        "edit".to_string()
-    } else if let Some(h) = &hit {
-        format!("due {}", duedate::label_naive(h.due, h.has_time, now))
-    } else if let Some(f) = &p.filter {
-        format!("@{f}")
-    } else {
-        "new".to_string()
-    };
-    // Color follows what the legend actually says: due dates in accent, an
-    // active `@filter` in that tag's color, edit/new in the resting tone.
-    let legend_fg = if p.done_view {
-        match &p.filter {
-            Some(f) => crew_theme::tag_color(f, t),
-            None => t.legend_off,
-        }
-    } else if p.editing.is_some() {
-        t.legend_off
-    } else if hit.is_some() {
-        accent
-    } else if let Some(f) = &p.filter {
-        crew_theme::tag_color(f, t)
-    } else {
-        t.legend_off
-    };
-    for mut c in
-        crate::boxdraw::titled_card(cols, ch, &legend, t.border_normal, legend_fg, t.page_bg)
-    {
-        c.row += top;
-        out.push(c);
-    }
-
-    let (text_x, max) = (4u16, cols - 1);
-    out.push(cell(2, top + 1, '\u{276f}', accent, true)); // ❯
-    if p.input.is_empty() {
-        let hint = if p.done_view {
-            "filter with @project \u{b7} esc leaves"
-        } else {
-            "type a todo"
-        };
-        let styled = hint.chars().map(|c| (c, ()));
-        crate::chatwidth::place_row(text_x, max, styled, |x, c, ()| {
-            out.push(cell(x, top + 1, c, t.text_muted, false))
-        });
-        return;
-    }
-
-    // Show `ch - 2` wrapped lines, the window anchored so the CURSOR's line
-    // is always visible (with the cursor at the end this is the old
-    // tail-follow; mid-draft edits keep their line on screen instead).
-    let lines = input_lines(p, cols);
-    let visible = (ch - 2) as usize;
-    let cur_line = lines
-        .iter()
-        .position(|&(_, e)| cursor <= e)
-        .unwrap_or(lines.len() - 1);
-    let skip = cur_line
-        .saturating_sub(visible.saturating_sub(1))
-        .min(lines.len().saturating_sub(visible));
-    let (mut bar_x, mut bar_row) = (text_x, top + 1);
-    for (vi, &(s, e)) in lines[skip..].iter().take(visible).enumerate() {
-        let r = top + 1 + vi as u16;
-        let styled = chars[s..e]
-            .iter()
-            .enumerate()
-            .map(|(j, &c)| (c, style(s + j)));
-        let end_x = crate::chatwidth::place_row(text_x, max, styled, |x, c, (fg, bold)| {
-            out.push(cell(x, r, c, fg, bold))
-        });
-        if skip + vi == cur_line {
-            let w: usize = chars[s..cursor.min(e).max(s)]
-                .iter()
-                .map(|&c| crate::chatwidth::char_w(c))
-                .sum();
-            bar_x = (text_x + w as u16).min(max.saturating_sub(1));
-            bar_row = r;
-        } else if cursor > e && skip + vi == lines.len().saturating_sub(1) {
-            // Cursor past the last visible glyph (trailing-space wrap gap):
-            // park the bar after the line's text.
-            bar_x = end_x;
-            bar_row = r;
-        }
-    }
-    // Drawn last, over the glyph it sits on — a beam at the cursor. The
-    // wrap budget leaves the end column free ([`input_lines`]).
-    out.push(cell(bar_x, bar_row, '\u{258f}', accent, false)); // ▏
-}
-
-/// Char ranges of every `@tag` token (length ≥ 2) in the composer.
-fn tag_spans(chars: &[char]) -> Vec<(usize, usize)> {
-    let mut spans = Vec::new();
-    let mut i = 0;
-    while i < chars.len() {
-        if chars[i].is_whitespace() {
-            i += 1;
-            continue;
-        }
-        let start = i;
-        while i < chars.len() && !chars[i].is_whitespace() {
-            i += 1;
-        }
-        if chars[start] == '@' && i - start > 1 {
-            spans.push((start, i));
-        }
-    }
-    spans
 }
 
 #[cfg(test)]

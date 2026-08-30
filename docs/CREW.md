@@ -1206,6 +1206,13 @@ longer aim at.
   When an item's due time passes while crew runs, a one-time **`due` toast**
   fires (persisted, so restarts don't re-toast). `Esc` walks back one layer
   at a time — popup, draft, then the pane. Restored by `/restore`.
+  The list reads its own size: when it is taller than the rows the tile has,
+  a **scroll thumb** rides the list's rightmost column (proportional, and
+  drawn only while there is something off-screen — a list that fits has no
+  gutter). On a **narrow** tile, where the right-hand `@project` and due
+  would leave the title only a few columns, the row **stacks** instead: the
+  title takes the full width and its chips (and the `✗`) drop to a row of
+  their own beneath it, so a task title is never broken mid-word.
 - **`/smith`** — opens **agent smith**, a **multi-agent pane** where the
   installed CLI coding agents (claude, codex, opencode) message each other to
   work a task. See [Multi-agent relay](#multi-agent-relay-smith-alias-crew) below.

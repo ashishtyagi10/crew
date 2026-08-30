@@ -463,7 +463,7 @@ mod tests {
                 );
                 // And its legend sits on a row the heatmap above it has let go.
                 assert!(
-                    l.cost_top - 1 >= USE_TOP + crate::usageledger::DAYS as u16 * l.heat_h,
+                    l.cost_top > USE_TOP + crate::usageledger::DAYS as u16 * l.heat_h,
                     "{rows}: the legend is on the heatmap: {l:?}"
                 );
             }

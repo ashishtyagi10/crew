@@ -118,8 +118,8 @@ fn a_long_title_wraps_and_shows_every_word() {
         assert!(rows.iter().any(|r| r.contains(w)), "{w} missing: {rows:?}");
     }
     assert!(rows[0].contains("[ ] alpha"), "{rows:?}");
-    // At 40 cols the title takes two rows; "second" starts right below.
-    assert!(rows[2].contains("[ ] second"), "{rows:?}");
+    // At 40 cols the title takes three rows; "second" starts right below.
+    assert!(rows[3].contains("[ ] second"), "{rows:?}");
 }
 
 #[test]
@@ -128,9 +128,9 @@ fn clicks_on_wrapped_rows_map_to_the_owning_item() {
     // A continuation row has no checkbox — anywhere on it selects.
     assert_eq!(click_at(&p, 1, 2, COLS, ROWS), Some(TodoClick::Select(0)));
     // The second item's zones sit below the wrapped block.
-    assert_eq!(click_at(&p, 2, 2, COLS, ROWS), Some(TodoClick::Toggle(1)));
+    assert_eq!(click_at(&p, 3, 2, COLS, ROWS), Some(TodoClick::Toggle(1)));
     assert_eq!(
-        click_at(&p, 2, COLS - 2, COLS, ROWS),
+        click_at(&p, 3, COLS - 2, COLS, ROWS),
         Some(TodoClick::Delete(1))
     );
 }
@@ -274,7 +274,7 @@ fn a_long_composer_input_wraps_onto_a_second_row() {
     // 49 cells > the 34-cell interior budget at 40 cols → two lines.
     p.input = "alpha bravo charlie delta echo foxtrot golf hotel".into();
     p.cursor = p.input.chars().count();
-    assert_eq!(composer_h(&p, COLS, ROWS), 4);
+    assert_eq!(super::super::composer::height(&p, COLS, ROWS), 4);
     assert_eq!(list_height(&p, COLS, ROWS), ROWS - 4);
     let cells = cells(&p, COLS, ROWS);
     let first = row_text(&cells, ROWS - 3);
@@ -300,7 +300,7 @@ fn composer_growth_caps_and_keeps_the_tail_visible() {
     // 40 words wrap to 6 lines at 40 cols — past the 4-line cap.
     p.input = "word ".repeat(39) + "last";
     p.cursor = p.input.chars().count();
-    assert_eq!(composer_h(&p, COLS, ROWS), 2 + 4);
+    assert_eq!(super::super::composer::height(&p, COLS, ROWS), 2 + 4);
     let cells = cells(&p, COLS, ROWS);
     let bottom = row_text(&cells, ROWS - 2);
     assert!(bottom.contains("last"), "{bottom:?}");
@@ -317,7 +317,7 @@ fn a_date_fragment_stays_tinted_on_a_wrapped_row() {
     // Pad so "tomorrow" lands on the second wrapped line.
     p.input = "alpha bravo charlie delta echo golf hotel tomorrow".into();
     p.cursor = p.input.chars().count();
-    assert_eq!(composer_h(&p, COLS, ROWS), 4);
+    assert_eq!(super::super::composer::height(&p, COLS, ROWS), 4);
     let cells = cells(&p, COLS, ROWS);
     let accent = crate::palette::accent();
     let tinted: String = {
@@ -549,7 +549,7 @@ fn a_narrow_pane_spends_no_row_on_a_button_it_cannot_draw() {
     let mut done = item(1, "ticked");
     done.done = true;
     let p = test_pane(vec![done, item(2, "open")]);
-    let narrow = 14; // "[show 1 done]" needs more than this
+    let narrow = 18; // "[show 1 done]" needs more than this
     let cells = cells(&p, narrow, ROWS);
     assert!(!row_text(&cells, 0).contains("done]"), "no room for it");
     assert!(
@@ -560,5 +560,85 @@ fn a_narrow_pane_spends_no_row_on_a_button_it_cannot_draw() {
     assert_eq!(
         click_at(&p, 0, 10, narrow, ROWS),
         Some(TodoClick::Select(0))
+    );
+}
+
+/// The title and the chip beside it keep the same two columns of air every
+/// other pair on the row keeps. At one, a title that happens to fill its
+/// budget reads straight into the tag — `…and reverts @crew` was one phrase.
+#[test]
+fn the_title_keeps_two_columns_before_the_chip_beside_it() {
+    let mut it = item(1, &"x".repeat(80)); // fills the first line exactly
+    it.project = Some("home".into());
+    let p = test_pane(vec![it]);
+    let row = row_text(&cells(&p, 60, ROWS), 0);
+    let at = row
+        .find('@')
+        .expect("the tag rides the first row at 60 cols");
+    let title_end = row[..at].trim_end().len();
+    assert!(
+        at - title_end >= 2,
+        "one column of air reads as one phrase: {row:?}"
+    );
+}
+
+/// On a pane too narrow to share the line, the chips drop to a row of their
+/// own rather than squeezing the title into a hard break: at 30 cols
+/// `ship the release notes` had three columns and came out as `shi` / `p the
+/// release notes`.
+#[test]
+fn a_narrow_row_stacks_its_chips_below_the_title() {
+    let _g = crate::app::theme_test_guard();
+    let mut it = item(1, "ship the release notes");
+    it.project = Some("crew".into());
+    let p = test_pane(vec![it]);
+    let cells = cells(&p, 30, ROWS);
+    let rows: Vec<String> = (0..5).map(|r| row_text(&cells, r)).collect();
+    assert!(
+        !rows[0].contains('@'),
+        "the chips leave the title's line: {rows:?}"
+    );
+    assert!(
+        rows.iter()
+            .any(|r| r.contains("@crew") && !r.contains("[ ]")),
+        "and land on a row of their own: {rows:?}"
+    );
+    for w in "ship the release notes".split_whitespace() {
+        assert!(rows.iter().any(|r| r.contains(w)), "{w} broken: {rows:?}");
+    }
+}
+
+/// The stacked row's `✗` moves with it, and the checkbox does not.
+#[test]
+fn a_stacked_row_takes_its_delete_target_down_with_it() {
+    let mut it = item(1, "ship the release notes");
+    it.project = Some("crew".into());
+    let p = test_pane(vec![it]);
+    let cols = 30;
+    // Two title rows at this width, then the chips.
+    assert_eq!(click_at(&p, 0, 2, cols, ROWS), Some(TodoClick::Toggle(0)));
+    assert_eq!(
+        click_at(&p, 0, cols - 3, cols, ROWS),
+        Some(TodoClick::Select(0)),
+        "the first row's right end is no longer the ✗"
+    );
+    let last = item_h(&p.items[0], cols, crate::chattime::unix_now_ms(), false) - 1;
+    assert_eq!(
+        click_at(&p, last, cols - 3, cols, ROWS),
+        Some(TodoClick::Delete(0))
+    );
+}
+
+/// A row wide enough to share keeps everything on one line — stacking a
+/// short title beside a tag and a due would buy nothing and cost a row.
+#[test]
+fn a_short_title_never_stacks_just_because_the_pane_is_narrowish() {
+    let mut it = item(1, "pay rent");
+    it.project = Some("home".into());
+    it.due_ms = Some(1_000);
+    let p = test_pane(vec![it]);
+    assert_eq!(
+        item_h(&p.items[0], 40, crate::chattime::unix_now_ms(), false),
+        1
     );
 }
