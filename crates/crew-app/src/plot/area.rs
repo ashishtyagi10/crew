@@ -57,15 +57,6 @@ impl Style {
             ..Self::default()
         }
     }
-
-    /// Fill only, weighted at the floor: a backdrop for text drawn over it.
-    pub fn wash() -> Self {
-        Self {
-            at_curve: 0.30,
-            at_base: 0.02,
-            outline: false,
-        }
-    }
 }
 
 /// Draw `samples` (each `0.0..=1.0`, oldest first) as an area chart filling

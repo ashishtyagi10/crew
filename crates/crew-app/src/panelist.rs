@@ -1,9 +1,13 @@
 //! Sidebar PANES section: a live list of open panes (index, name/title, a `▸`
 //! focus marker, and an activity dot) so the whole grid is visible at a glance —
-//! handy when a single pane is zoomed. Under the header sits the **crew
-//! mix** ([`crate::crewmix`]) — working / waiting / idle as one chip per
-//! pane, with the crew total on the section's own rule — and busy rows carry
-//! a live spinner in the accent color.
+//! handy when a single pane is zoomed. The crew total rides the section's own
+//! rule (`PANES 3`) and busy rows carry a live spinner in the accent color.
+//!
+//! There used to be a working / waiting / idle breakdown under the header —
+//! three rows of chips and counts. It went: the rows below already SAY which
+//! pane is which (the spinner, the bell, the unread count), so the tally only
+//! restated them a second time, three rows further from the pane it was about,
+//! and those three rows are pane rows now.
 use crew_render::CellView;
 
 use crate::palette::accent;
@@ -38,18 +42,13 @@ pub struct PaneRow {
     pub hovered: bool,
 }
 
-/// Render the PANES section: a `PANES n` rule on row 0, the crew mix on the
-/// [`crate::crewmix::ROWS`] rows under it (always reserved, so the click →
-/// pane-row mapping in `hit.rs` stays static), then one row per pane (up to
-/// `limit`) beneath it.
+/// Render the PANES section: a `PANES n` rule on row 0, then one row per pane
+/// (up to `limit`) directly beneath it.
 pub fn pane_cells(panes: &[PaneRow], cols: u16, limit: usize, spin: char) -> Vec<CellView> {
     let t = crew_theme::theme();
     // The crew size rides the rule, the way the LOG's depth and the charts'
-    // peaks do. It used to sit in the donut's hole; the mix has no hole any
-    // more, and the total is the one number a glance wants before it reads
-    // three rows of states.
-    let mix = crate::crewmix::mix(panes);
-    let key = mix.total().to_string();
+    // peaks do — and it is the one number a glance wants.
+    let key = panes.len().to_string();
     let mut out = crate::boxdraw::section_header_key(
         "PANES",
         &key,
@@ -59,11 +58,8 @@ pub fn pane_cells(panes: &[PaneRow], cols: u16, limit: usize, spin: char) -> Vec
         t.text_muted,
         t.page_bg,
     );
-    // The legend's text; its chips are drawn (see `crate::crewmix::paint`,
-    // reached from the sidebar's paint layer).
-    out.extend(crate::crewmix::cells(&mix, cols, 1));
     for (k, p) in panes.iter().take(limit).enumerate() {
-        let row = 1 + crate::crewmix::ROWS + k as u16;
+        let row = 1 + k as u16;
         let head = format!("{} {}", if p.focused { '▸' } else { ' ' }, p.index);
         let head_fg = if p.focused || p.hovered {
             accent()
@@ -299,7 +295,7 @@ mod tests {
     }
 
     /// First row of the pane list: under the header and the mix block.
-    const R0: u16 = 1 + crate::crewmix::ROWS;
+    const R0: u16 = 1;
 
     /// The row under the pointer must look different from the quiet rows
     /// around it — the whole row focuses (and restores) its pane on a click,
@@ -402,21 +398,26 @@ mod tests {
         assert!(!cells.iter().any(|c| c.c == '⠋'));
     }
 
+    /// The list starts on the row under the rule, and the working / waiting /
+    /// idle tally that used to hold three rows there is gone — the rows below
+    /// already say which pane is which.
     #[test]
-    fn the_crew_mix_owns_the_rows_between_the_header_and_the_list() {
+    fn the_list_starts_directly_under_the_header() {
         let _g = crate::app::theme_test_guard();
-        let cells = cells_of(&[row(1, "x", false, false)], 24, 10);
-        // The block's only text is the pane total in the ring's hole and the
-        // legend: nothing of the list creeps into those rows.
-        let block: Vec<char> = (1..R0)
-            .flat_map(|r| cells.iter().filter(move |c| c.row == r).map(|c| c.c))
-            .collect();
-        let text: String = block.iter().collect();
-        assert!(
-            text.contains('1'),
-            "the pane count is in the hole: {text:?}"
-        );
-        assert!(text.contains("working") && text.contains("idle"));
+        let cells = cells_of(&[row(1, "solo", false, false)], 24, 10);
+        let text_on = |r: u16| -> String {
+            let mut v: Vec<_> = cells.iter().filter(|c| c.row == r).collect();
+            v.sort_by_key(|c| c.col);
+            v.iter().map(|c| c.c).collect()
+        };
+        assert_eq!(R0, 1, "no block between the rule and the first pane");
+        assert!(text_on(1).contains("solo"), "{:?}", text_on(1));
+        let all: String = cells.iter().map(|c| c.c).collect();
+        for word in ["working", "waiting", "idle"] {
+            assert!(!all.contains(word), "the tally is gone: {word}");
+        }
+        // The crew size still rides the rule.
+        assert!(text_on(0).contains("PANES") && text_on(0).contains('1'));
     }
 
     #[test]

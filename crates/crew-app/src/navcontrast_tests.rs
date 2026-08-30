@@ -15,8 +15,8 @@ use crate::statspane::StatsPane;
 
 fn fixture() -> (StatsPane, Vec<LogEntry>, Vec<PaneRow>) {
     let mut sp = StatsPane::new();
-    sp.refresh(std::path::Path::new("."), 2);
-    sp.seed_history(&[9, 12, 40, 18, 11], &[0, 1, 2, 1]);
+    sp.refresh(std::path::Path::new("."));
+    sp.seed_history(&[9, 12, 40, 18, 11]);
     let log = ["12:00 started", "12:01 connected", "12:01 build failed"]
         .iter()
         .enumerate()

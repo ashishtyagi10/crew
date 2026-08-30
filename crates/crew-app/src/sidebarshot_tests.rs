@@ -58,7 +58,7 @@ fn pane(index: usize, title: &str, focused: bool, busy: bool) -> PaneRow {
 /// widths the resize edge allows and the themes it can be wearing.
 fn nav_shot(name: &str, w: u32) -> Option<Vec<u8>> {
     let mut sp = StatsPane::new();
-    sp.refresh(std::path::Path::new("."), 3);
+    sp.refresh(std::path::Path::new("."));
     // GIT is polled off the main thread and has not answered by the time a
     // shot is taken, so it was the one section never in any of these frames.
     sp.set_git(Some(crate::git::GitInfo {
@@ -67,7 +67,7 @@ fn nav_shot(name: &str, w: u32) -> Option<Vec<u8>> {
         ahead: 1,
         behind: 0,
     }));
-    sp.seed_history(&cpu_trace(), &[0, 0, 1, 3, 4, 4, 2, 1, 1, 2, 3, 3, 2, 2]);
+    sp.seed_history(&cpu_trace());
     let entries = session_log();
     let mut panes = vec![
         pane(1, "claude — crew", true, true),
@@ -85,7 +85,7 @@ fn nav_shot(name: &str, w: u32) -> Option<Vec<u8>> {
         |cols, rows, aspect| {
             (
                 sp.cells(cols, rows, &panes, &entries, 0),
-                sp.chart_paint(cols, rows, aspect, &panes, entries.len()),
+                sp.chart_paint(cols, rows, aspect),
             )
         },
     )
@@ -192,7 +192,7 @@ fn sidebar_shot_crt_themes() {
 fn sidebar_shot_fresh_launch() {
     let _g = crate::app::theme_test_guard();
     let mut sp = StatsPane::new();
-    sp.refresh(std::path::Path::new("."), 0);
+    sp.refresh(std::path::Path::new("."));
     let entries = log(&[
         ("23:20 updated to crew v0.19.38", LogLevel::Info),
         ("23:20 font → MonoLisa 13px", LogLevel::Info),
@@ -207,7 +207,7 @@ fn sidebar_shot_fresh_launch() {
         |cols, rows, aspect| {
             (
                 sp.cells(cols, rows, &panes, &entries, 0),
-                sp.chart_paint(cols, rows, aspect, &panes, entries.len()),
+                sp.chart_paint(cols, rows, aspect),
             )
         },
     );

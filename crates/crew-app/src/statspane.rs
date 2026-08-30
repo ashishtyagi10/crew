@@ -26,8 +26,6 @@ pub struct StatsPane {
     /// Git status for the working directory, queried off the main thread.
     git: GitWatch,
     cpu_hist: crate::spark::History, // recent CPU %, drawn as a moving sparkline
-    /// Busy-pane count per second — the crew-pulse chart under PANES.
-    pulse_hist: crate::spark::History,
 }
 
 impl StatsPane {
@@ -37,7 +35,6 @@ impl StatsPane {
             last_sec: 0,
             git: GitWatch::default(),
             cpu_hist: crate::spark::History::new(64),
-            pulse_hist: crate::spark::History::new(64),
         }
     }
 
@@ -49,16 +46,13 @@ impl StatsPane {
         self.git.set_info(info);
     }
 
-    /// Push a minute of synthetic CPU / busy-pane history, so an off-screen
-    /// shot of the nav shows the traces a running machine would have rather
-    /// than the single sample one `refresh` leaves behind.
+    /// Push a minute of synthetic CPU history, so an off-screen shot of the
+    /// nav shows the trace a running machine would have rather than the
+    /// single sample one `refresh` leaves behind.
     #[cfg(test)]
-    pub fn seed_history(&mut self, cpu: &[u64], busy: &[u64]) {
+    pub fn seed_history(&mut self, cpu: &[u64]) {
         for &v in cpu {
             self.cpu_hist.push(v);
-        }
-        for &v in busy {
-            self.pulse_hist.push(v);
         }
     }
 
@@ -70,13 +64,12 @@ impl StatsPane {
         self.git.info().map(|g| g.branch.as_str())
     }
 
-    pub fn refresh(&mut self, cwd: &Path, busy_now: u64) -> bool {
+    pub fn refresh(&mut self, cwd: &Path) -> bool {
         let stats_changed = self.sampler.refresh();
         if stats_changed {
-            // One reading per sample → the sparklines scroll ~1 Hz.
+            // One reading per sample → the sparkline scrolls ~1 Hz.
             let cpu = (self.sampler.stats().cpu.clamp(0.0, 1.0) * 100.0).round() as u64;
             self.cpu_hist.push(cpu);
-            self.pulse_hist.push(busy_now);
         }
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -104,15 +97,7 @@ impl StatsPane {
     /// Kept beside [`Self::cells`] rather than folded into it because the two
     /// layers are drawn by different passes; both read the same section
     /// offsets, which is what keeps a chart under the section it belongs to.
-    pub fn chart_paint(
-        &self,
-        cols: u16,
-        rows: u16,
-        aspect: f32,
-        panes: &[PaneRow],
-        log_len: usize,
-    ) -> Vec<Paint> {
-        let l = self.layout(rows, log_len, panes.len());
+    pub fn chart_paint(&self, cols: u16, rows: u16, aspect: f32) -> Vec<Paint> {
         let mut out = self.cpu_chart(cols, rows, aspect);
         // The SYSTEM section's three arc gauges (their text comes from
         // `gauges::render_stats`, which yields the rings the same width test).
@@ -137,18 +122,6 @@ impl StatsPane {
                 aspect,
                 crate::net::spark(),
                 crate::net::up_color(),
-            ));
-        }
-        // The crew mix, under the PANES header — the same offset
-        // `cells` lays the list out from, so ring and rows cannot drift apart.
-        let panes_off = l.panes_top;
-        if !panes.is_empty() && rows > panes_off + 1 + crate::crewmix::ROWS {
-            out.extend(crate::crewmix::paint(
-                &crate::crewmix::mix(panes),
-                cols,
-                panes_off + 1,
-                aspect,
-                &self.pulse_hist,
             ));
         }
         out
@@ -276,11 +249,11 @@ impl StatsPane {
         }
         let panes_off = l.panes_top;
 
-        // PANES list fills the remaining height below the LOG section (header
-        // + pulse chart + one row per pane).
-        let list_off = 1 + crate::crewmix::ROWS;
-        if !panes.is_empty() && rows > panes_off + list_off {
-            let limit = (rows - panes_off - list_off) as usize;
+        // PANES list fills the remaining height below the LOG section
+        // (header + one row per pane).
+        const LIST_OFF: u16 = 1;
+        if !panes.is_empty() && rows > panes_off + LIST_OFF {
+            let limit = (rows - panes_off - LIST_OFF) as usize;
             // A busy pane's row spins; with motion off it holds one frame.
             // The row still says "working" — the glyph is not the animation,
             // the animation is — and a nav that spins through a reduce-motion

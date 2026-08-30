@@ -6,7 +6,7 @@ use super::*;
 fn the_pane_list_is_served_before_the_log() {
     let fixed = fixed_rows(true);
     // Exactly enough for the fixed sections and a 4-pane block, no more.
-    let rows = fixed + 1 + crate::crewmix::ROWS + 4;
+    let rows = fixed + 1 + 4;
     let l = layout(rows, true, 40, 4);
     assert_eq!(l.log_lines, 0, "no room for a LOG at all");
     assert_eq!(l.panes_top, fixed, "and the list starts right where it can");

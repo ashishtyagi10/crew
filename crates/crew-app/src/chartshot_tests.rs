@@ -66,35 +66,6 @@ fn chart_shot_area() {
 
 #[test]
 #[ignore = "needs a GPU adapter; writes PNGs"]
-fn chart_shot_crew_mix() {
-    let _g = crate::app::theme_test_guard();
-    let m = crate::crewmix::Mix {
-        working: 3,
-        waiting: 1,
-        idle: 2,
-    };
-    let mut pulse = crate::spark::History::new(64);
-    for (i, v) in (0..48).map(|i| (i, (i % 7) as u64)) {
-        let _ = i;
-        pulse.push(v);
-    }
-    let px = shot("crewmix", "PANES", |cols, rows, aspect| {
-        let _ = rows;
-        (
-            crate::crewmix::cells(&m, cols, 0),
-            crate::crewmix::paint(&m, cols, 0, aspect, &pulse),
-        )
-    });
-    let Some(px) = px else {
-        eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
-        return;
-    };
-    let ink = ink(&px);
-    assert!(ink > 2000, "the mix drew something: {ink} ink pixels");
-}
-
-#[test]
-#[ignore = "needs a GPU adapter; writes PNGs"]
 fn chart_shot_sys_dials() {
     let _g = crate::app::theme_test_guard();
     let stats = crate::stats::Stats {
