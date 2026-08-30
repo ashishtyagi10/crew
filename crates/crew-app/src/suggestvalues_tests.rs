@@ -66,3 +66,39 @@ fn only_the_matching_row_is_marked() {
     crate::suggest::mark_current(&mut none, None);
     assert!(none.iter().all(|i| !i.desc.ends_with("current")));
 }
+
+/// A value picker that says "the default" beside the wrong step teaches the
+/// wrong thing, and it drifts silently: the defaults it names live in
+/// another crate, so changing one of them leaves the description behind and
+/// nothing complains. (Both `/smooth` and `/gamma` did exactly that when
+/// their defaults moved in 0.19.62 — the picker went on offering the old
+/// step as "the default" for a release.)
+///
+/// Exactly one step per ladder may claim it, and it has to be the step whose
+/// value the code actually starts at.
+#[test]
+fn every_ladder_marks_its_real_default_and_only_that() {
+    for (cmd, want) in [
+        (
+            "/smooth",
+            crate::smoothlvl::label_of(crew_render::DEFAULT_SMOOTH),
+        ),
+        (
+            "/gamma",
+            crate::gammalvl::label_of(crew_render::DEFAULT_TEXT_GAMMA),
+        ),
+        (
+            "/grain",
+            crate::graincmd::label_of(crate::config::default_paper_grain()),
+        ),
+    ] {
+        let vals = options_for(cmd).unwrap_or_else(|| panic!("{cmd} has no picker"));
+        let marked: Vec<&String> = vals
+            .iter()
+            .filter(|(_, about)| about.contains("the default"))
+            .map(|(name, _)| name)
+            .collect();
+        assert_eq!(marked.len(), 1, "{cmd} marks {marked:?} as the default");
+        assert_eq!(*marked[0], want, "{cmd}'s picker names the wrong default");
+    }
+}

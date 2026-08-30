@@ -771,6 +771,19 @@ longer aim at.
   size. Live and persisted — the same `leading` key as **Settings →
   APPEARANCE → Line spacing**.
 
+- **`/grain [off|light|medium|heavy|<0-2>]`** — how much newsprint texture the
+  page carries. The grain is a deliberate part of crew's look: a per-pixel
+  hash plus a coarser fibre octave, calibrated so the near-black "newspaper"
+  pages and the bright "paper" ones carry the same texture. At the default it
+  measures a standard deviation of about **six levels** on a dark page, which
+  is a lot of texture next to a terminal that has none — whether that reads as
+  paper or as noise is taste, and this is where you exercise it. Live and
+  persisted; no argument reports the current amount; a custom `/grain 0.4`
+  reports as its number rather than the nearest name. It is the same knob as
+  the **Grain (0-2)** field in `/settings` — one `paper_grain` key, two
+  surfaces — and it had only ever been reachable through that numeric field,
+  while every other look knob crew has is a ladder you can type.
+
 - **`/motion [auto|off|subtle|full]`** — how much crew moves. **`auto` is the
   default and follows the operating system**: macOS's *Settings → Accessibility
   → Display → Reduce motion* is where a user has almost certainly already said

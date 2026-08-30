@@ -151,6 +151,7 @@ mod glassshot_tests;
 mod glide;
 mod gradientcmd;
 mod gradientlvl;
+mod graincmd;
 pub(crate) mod grid;
 mod gridrows;
 mod gridsel;
