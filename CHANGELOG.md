@@ -8,6 +8,33 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.64
+
+**Braille is drawn now too — which is what the monitors in the panes plot
+with.** btop, gotop, bandwhich and every other tool of that generation draw
+their graphs out of braille, because eight dots per cell is four times the
+vertical resolution a block ramp gives. A whole chart made of font glyphs is a
+whole chart taking the letterform pipeline: rasterized wherever the typeface
+put its dots, dilated sideways, lifted at the rim. Crew draws the 2×4 grid
+itself now, on a grid the cell owns, so two adjacent cells' dots sit in the
+same columns and a rising line reads as a rising line. Each dot is a square,
+not a disc — at the four-pixel sub-cell a terminal actually gives it, a disc
+is a square with its corners smudged, and the smudge is what the plotted line
+would be made of. crew's own spinner comes along for the ride.
+
+A rectangle's coverage is the overlap of two intervals, and `Canvas::rect`
+was **guessing at it** — a predicate sampled on a 3×3 grid, whose samples sit
+at a sixth, a half and five sixths of the pixel, so an edge inside the first
+sixth read as FULL coverage and one in the last sixth as none. That ninth is a
+screen pixel now that the canvas rasterizes at device resolution, so it is
+computed exactly: every bar, heat cell, treemap tile and snapped rule gets its
+true edge, and a whole-pixel rectangle still picks up no fringe at all.
+
+Also: `the_cache_survives_an_unrelated_state_mutation_at_the_same_width` had
+been failing about one run in three. The view cache is keyed on the theme,
+the theme is a global, and any test switching one in parallel invalidated the
+cache between this test's two renders. It takes the theme guard now.
+
 ## 0.19.63
 
 **The drawn widgets are drawn at the screen's resolution now — and the box

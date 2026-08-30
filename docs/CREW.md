@@ -1421,6 +1421,15 @@ fall out of it:
   junctions meet exactly, and the rounded corners keep one whole pixel of
   straight tail on each arm so they join their neighbours at full ink.
 
+**Braille** (U+2800–28FF) is drawn as well, and for the same reason one step
+further out: btop, gotop, bandwhich and every other monitor of that generation
+plot their graphs in braille, because eight dots per cell is four times the
+vertical resolution a block ramp gives. Crew draws the 2×4 grid itself, so two
+adjacent cells' dots sit in the same columns and a rising line reads as one.
+Each dot is a square rather than a disc — at the four-pixel sub-cell a
+terminal gives it, a disc is a square with its corners smudged. crew's own
+spinner comes along for the ride.
+
 The **double** (`═ ║ ╔ ╬`) and **dashed** (`┄ ┈ ╌ ┆`) runs are drawn too, and
 those are not crew's own furniture — crew frames with the light set. They are
 what a great many of the programs living in crew's panes frame with: lazygit,
