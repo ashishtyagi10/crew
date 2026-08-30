@@ -199,13 +199,13 @@ fn glass_level_and_window_opacity_are_independent() {
 fn smooth_cycles_the_named_ladder_both_ways() {
     let mut p = pane();
     focus(&mut p, Field::Smooth);
-    // Default is medium; forward wraps heavy → off.
-    for want in [120u8, 0, 40, crew_render::DEFAULT_SMOOTH] {
+    // Default is off; forward wraps heavy → off.
+    for want in [40u8, 70, 120, crew_render::DEFAULT_SMOOTH] {
         super::cycle::cycle_value(&mut p, false);
         assert_eq!(p.draft.font_smooth, want);
     }
     super::cycle::cycle_value(&mut p, true);
-    assert_eq!(p.draft.font_smooth, 40, "Left must step backward");
+    assert_eq!(p.draft.font_smooth, 120, "Left must step backward");
 }
 
 /// A `/smooth 42` custom strength survives opening the form untouched — the
@@ -231,11 +231,11 @@ fn smooth_custom_strength_is_kept_until_cycled() {
 fn save_applies_the_smooth_pick_through_clamped() {
     let mut p = pane();
     focus(&mut p, Field::Smooth);
-    super::cycle::cycle_value(&mut p, false); // medium → heavy
+    super::cycle::cycle_value(&mut p, false); // off → light
     let SettingsAction::Apply(cfg) = p.save() else {
         panic!("save must apply");
     };
-    assert_eq!(cfg.font_smooth, 120);
+    assert_eq!(cfg.font_smooth, 40);
 }
 
 /// Parity with `/smooth`: both surfaces read and write `font_smooth`, so a

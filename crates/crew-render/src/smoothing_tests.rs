@@ -69,6 +69,7 @@ fn shaped_glyphs_carry_the_flags_through_to_their_cache_keys() {
         smooth: 137,
         gamma: 0,
         dark: true,
+        body: ((255, 255, 255), (0, 0, 0)),
     };
     let buf = build_pane_buffer(&mut fs, &cells, 1, 1, cell_w, cell_h, &p);
     let glyph = buf
@@ -105,6 +106,7 @@ fn presmooth_seeds_the_cache_with_padded_heavier_masks() {
         smooth: 200,
         gamma: 0,
         dark: true,
+        body: ((255, 255, 255), (0, 0, 0)),
     };
     let buf = build_pane_buffer(&mut fs, &cells, 1, 1, cell_w, cell_h, &p);
     let buffers = vec![(buf, 0.0f32, 0.0f32, cell_w, cell_h)];
@@ -164,6 +166,7 @@ fn presmooth_at_zero_strength_seeds_untouched_masks() {
         smooth: 0,
         gamma: 0,
         dark: true,
+        body: ((255, 255, 255), (0, 0, 0)),
     };
     let buf = build_pane_buffer(&mut fs, &cells, 1, 1, cell_w, cell_h, &p);
     let buffers = vec![(buf, 0.0f32, 0.0f32, cell_w, cell_h)];
@@ -237,6 +240,7 @@ fn each_run_carries_the_polarity_of_its_own_colours() {
         // The theme says dark; the badge says otherwise, and the badge wins
         // for its own cells.
         dark: true,
+        body: ((255, 255, 255), (0, 0, 0)),
     };
     let buf = build_pane_buffer(&mut fs, &cells, 2, 1, cell_w, cell_h, &p);
     let keys: Vec<_> = buf

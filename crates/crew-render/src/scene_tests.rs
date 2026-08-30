@@ -56,6 +56,7 @@ fn params() -> FontParams {
         smooth: 0,
         gamma: 0,
         dark: true,
+        body: ((255, 255, 255), (0, 0, 0)),
     }
 }
 

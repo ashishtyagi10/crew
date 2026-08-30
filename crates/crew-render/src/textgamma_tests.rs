@@ -1,5 +1,4 @@
-use super::{build, Curve, DEFAULT_TEXT_GAMMA, GAMMA};
-
+use super::{amount_for, build, contrast_factor, Curve, DEFAULT_TEXT_GAMMA, GAMMA};
 /// Both curves must fix the endpoints: an empty pixel stays empty and a
 /// solid one stays solid, at every amount and either polarity. Only the
 /// antialiased rim is the blend's problem, and only the rim may move.
@@ -137,4 +136,70 @@ fn polarity_weighs_the_channels_the_way_the_eye_does() {
         "green ink on blue ground is light ink"
     );
     assert!(!super::light_ink(blue, green));
+}
+
+/// The curve `a^(1/2.2)` is exact for the extreme pair and only that pair.
+/// Anything narrower loses proportionally less light to the encoded blend,
+/// so it asks for proportionally less correction.
+#[test]
+fn only_the_extreme_pair_asks_for_the_whole_correction() {
+    let white = (255, 255, 255);
+    let black = (0, 0, 0);
+    assert!(
+        (contrast_factor(white, black) - 1.0).abs() < 0.01,
+        "white on black is the pair the curve was derived for"
+    );
+    assert!(
+        (contrast_factor(black, white) - 1.0).abs() < 0.01,
+        "and so is its mirror"
+    );
+    // Crew's own dark body pair sits well inside it.
+    let body = contrast_factor((228, 224, 216), (24, 20, 17));
+    assert!(
+        (0.7..0.95).contains(&body),
+        "crew's body pair asks for {body:.3} of the correction"
+    );
+    // A muted comment on the same page is narrower still, and must ask for
+    // less than the body text beside it — the whole point of measuring per
+    // run rather than per theme.
+    let muted = contrast_factor((120, 114, 104), (24, 20, 17));
+    assert!(
+        muted < body,
+        "muted {muted:.3} must ask for less than body {body:.3}"
+    );
+    // Ink the colour of its own ground has no rim to correct at all.
+    assert_eq!(contrast_factor((80, 80, 80), (80, 80, 80)), 0.0);
+}
+
+/// The factor scales the AMOUNT, which is already a byte in every glyph's
+/// cache key — that is what lets the correction vary per run with nothing
+/// plumbed anywhere.
+#[test]
+fn the_amount_scales_with_the_pair_and_stays_a_byte() {
+    assert_eq!(amount_for(255, (255, 255, 255), (0, 0, 0)), 255);
+    assert_eq!(amount_for(0, (255, 255, 255), (0, 0, 0)), 0);
+    let body = amount_for(255, (228, 224, 216), (24, 20, 17));
+    assert!((178..=242).contains(&body), "body pair amount {body}");
+    assert_eq!(amount_for(255, (80, 80, 80), (80, 80, 80)), 0);
+}
+
+/// What the scaling is FOR: the full correction lifts a stroke's outermost
+/// pixel far more than crew's actual pages ask for, and that lift is a halo.
+#[test]
+fn the_scaled_curve_lifts_a_faint_rim_less_than_the_full_one() {
+    let mut full = Curve::new();
+    let mut scaled = Curve::new();
+    let (fg, bg) = ((228, 224, 216), (24, 20, 17));
+    let rim = |c: &mut Curve, amount: u8| {
+        let mut d = [13u8];
+        c.apply(&mut d, true, amount);
+        d[0]
+    };
+    let f = rim(&mut full, 255);
+    let s = rim(&mut scaled, amount_for(255, fg, bg));
+    assert!(
+        f > s,
+        "the full correction lifts 13 to {f}, the pair's to {s}"
+    );
+    assert!(s > 13, "but the rim is still corrected, not dropped");
 }

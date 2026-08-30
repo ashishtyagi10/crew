@@ -28,21 +28,34 @@ use crate::sizeramp::strength_at;
 use crate::smoothmask::smooth_mask;
 use crate::textgamma::Curve;
 
-/// Default smoothing strength (0–255).
+/// Default smoothing strength (0–255) — **off**.
 ///
-/// This was 100 for as long as the darkening was the only correction crew
-/// had, and 100 was doing two jobs. Crew blends on gamma-encoded values, so
-/// a glyph delivers only about 74% of its outline's linear light; the stem
-/// darkening, calibrated by eye against Terminal.app, was quietly making up
-/// part of that deficit as well as doing its own work — it reached 88%.
+/// The stem darkening was added when it was the only correction crew had,
+/// and it was doing two jobs: its own optical widening, and quietly covering
+/// the deficit of the gamma-encoded blend. [`crate::textgamma`] took the
+/// second job over honestly in 0.19.25, and 0.19.28 rebalanced the pair to
+/// stop them double-counting. What that rebalance did not ask is whether the
+/// darkening was still earning its place at all.
 ///
-/// [`crate::textgamma`] now corrects the blend honestly, and reaches 85% on
-/// its own with no darkening at all. Leaving the strength at 100 stacked the
-/// two: 106% of the outline's own light, which is past what the glyph asks
-/// for and reads as bloat rather than fullness. At 70 the pair lands on 99%
-/// — the outline's light, plus what is genuinely left of the optical
-/// darkening. `the_default_pair_delivers_the_outlines_light` holds it there.
-pub const DEFAULT_SMOOTH: u8 = 70;
+/// Swept over eight glyphs at two sizes and both polarities, it is not:
+///
+/// | pair | light delivered | inked pixels |
+/// |------|-----------------|--------------|
+/// | smooth 70, gamma 130 (the old default) | 98% dark / **145% light** | 584 |
+/// | smooth 0, gamma 255 | **100% / 100%** | **322** |
+///
+/// The curve alone lands on the outline's own light exactly, on both a dark
+/// page and a bright one, and puts that light on 45% FEWER pixels. Every one
+/// of those extra pixels is a fraction of a stem's coverage sitting one
+/// pixel out from the stem — which is the definition of a soft edge. (The
+/// bright-page overshoot had never been measured: the calibration contract
+/// only ever rendered white ink on a black page, and the same pair delivers
+/// half again the ink it should the other way up.)
+///
+/// `/smooth` keeps the whole ladder for anyone who wants the fatter
+/// Terminal.app look back; what changed is which end of it is the default.
+/// `the_default_pair_delivers_the_outlines_light` holds both polarities now.
+pub const DEFAULT_SMOOTH: u8 = 0;
 
 /// Strength byte's position inside the cache-key flag bits. Bits 0–2 are
 /// cosmic-text's own flags; 8..16 are unused by it and survive the trip
@@ -96,9 +109,34 @@ pub(crate) fn presmooth(
     let mut curve = Curve::new();
     for (buf, ox, oy, _, _) in buffers {
         for run in buf.layout_runs() {
+            // Where the cell's top edge sits above this run's baseline — the
+            // placement a synthesized glyph needs so its box covers exactly
+            // the cell the character was laid into.
+            let cell_top = (run.line_y.round() - run.line_top) as i32;
             for glyph in run.glyphs.iter() {
                 let key = glyph.physical((*ox, *oy), 1.0).cache_key;
                 if swash.image_cache.contains_key(&key) {
+                    continue;
+                }
+                // Frames, rules, bars and shades are drawn, not read from the
+                // font: `boxglyph` says so first, and what it returns skips
+                // both the darkening and the coverage curve below — a
+                // rectangle asked for neither. The cell box comes off the
+                // layout itself (the advance is snapped to one cell, the line
+                // height IS the cell height), so nothing has to be plumbed in.
+                if let Some(image) = run.text[glyph.start..glyph.end]
+                    .chars()
+                    .next()
+                    .and_then(|c| {
+                        crate::boxglyph::synth(
+                            c,
+                            glyph.w.round() as u32,
+                            run.line_height.round() as u32,
+                            cell_top,
+                        )
+                    })
+                {
+                    swash.image_cache.insert(key, Some(image));
                     continue;
                 }
                 let image = swash.get_image_uncached(font_system, key).map(|image| {

@@ -8,6 +8,46 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.62
+
+**Crisp: the frames are drawn now, and the text is the weight its outline
+asked for.** Three measurements, each one a thing the eye had been reporting
+and nothing had been counting.
+
+A card frame's `─` spanned **four rows of pixels with one row at full ink** —
+0.20 / 0.78 / 1.00 / 0.25, averaged along the rule so the paper grain cancels.
+Every frame, divider, meter and shade in crew is a box-drawing character, and
+every one of them was travelling the letterform pipeline: the font's outline,
+then the CoreText-style stem darkening spilling coverage sideways, then the
+coverage curve lifting the spill. All three are right for a letter and wrong
+for a rectangle. Crew draws them now — U+2500–254B, the rounded corners, and
+the whole block/shade range — as pixel rectangles in the cell's own box.
+Same frame after: **one row at 1.000, zero fringe pixels**, both axes. A row
+of `─` is the identical bitmap in every cell, so a long rule cannot wobble,
+and `┼` is cut from the same centred span as `─` and `│`, so junctions meet.
+
+The stem darkening is **off by default**. It was added when it was crew's only
+text correction and was quietly covering the encoded blend's deficit as well
+as doing its own job; `/gamma` took that over honestly, 0.19.28 rebalanced the
+pair, and this release asks the question that rebalance did not. Swept over
+eight glyphs at two sizes and both polarities: the curve alone delivers 100%
+of the outline's light on a dark page and 100% on a bright one, on **45% fewer
+inked pixels**, where the old pair delivered 98% and **145%**. The 145% had
+never been looked at — the calibration contract only ever rendered white ink
+on a black page, so the bright-page overshoot that made paper themes read
+blotted went five releases unmeasured. It asserts both polarities now.
+
+And the curve itself now bends by **each run's own colours**. `a^(1/2.2)` is
+exact for white on black and for nothing else; over crew's actual pairs it
+overshoots, most at the low end, and that overshoot lands on the outermost
+pixel of every stroke — which is where a halo comes from. Crew's body pair
+asks for about 84% of the correction, a muted comment for less. It needed
+nothing plumbed: the amount is already a byte in every glyph's cache key. Two
+things had to follow it — the prewarm, which had been painting its whole
+working set in flat white-on-black and would have missed every body glyph by
+one byte, and the blank cell, which would have minted a second set of atlas
+entries for a character with no ink to correct.
+
 ## 0.19.61
 
 **Every name crew cuts now says it was cut.** Two of the last three releases

@@ -188,6 +188,7 @@ impl CellGrid {
             // Per-frame theme read, same as the weight above: the polarity
             // the coverage curve bends toward IS the page's.
             dark: crew_theme::theme().dark,
+            body: (crew_theme::theme().ink, crew_theme::theme().page_bg),
         }
     }
 

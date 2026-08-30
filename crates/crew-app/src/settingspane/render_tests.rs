@@ -95,9 +95,9 @@ fn tiny_pane_renders_nothing() {
 
 #[test]
 fn smooth_value_names_the_level_or_shows_the_raw_number() {
-    // Default strength is the ladder's `medium`.
+    // Default strength is the ladder's `off`.
     let (v, cursor) = value_of(&pane(), Field::Smooth);
-    assert!(v.contains("medium"), "got: {v}");
+    assert!(v.contains("off"), "got: {v}");
     assert!(!cursor, "smoothing is a picker, not a text field");
     // A custom `/smooth 42` strength shows as its number, not a nearby name.
     let cfg = CrewConfig {

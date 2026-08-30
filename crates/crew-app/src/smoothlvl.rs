@@ -3,17 +3,14 @@
 //! write the same `font_smooth` config key; sharing the table here is what
 //! keeps them from ever disagreeing about what "medium" means.
 
-/// The named steps, in picker order. `medium` is the renderer's calibrated
-/// CoreText-style default. The ladder was respaced when that default came
-/// down to 70 — the text-gamma correction took over the half of the job the
-/// darkening had been quietly doing — so the steps stay evenly spread either
-/// side of it instead of bunching against the top.
-pub(crate) const SMOOTH_LEVELS: [(&str, u8); 4] = [
-    ("off", 0),
-    ("light", 40),
-    ("medium", crew_render::DEFAULT_SMOOTH),
-    ("heavy", 120),
-];
+/// The named steps, in picker order. `off` is the renderer's default now:
+/// the coverage curve behind `/gamma` delivers the outline's own light on
+/// its own, and the darkening on top of it only spread that light over 45%
+/// more pixels (see [`crew_render::DEFAULT_SMOOTH`]). The rest of the ladder
+/// is unchanged, for anyone who wants the fatter Terminal.app look back —
+/// `medium` is still the strength that look was calibrated at.
+pub(crate) const SMOOTH_LEVELS: [(&str, u8); 4] =
+    [("off", 0), ("light", 40), ("medium", 70), ("heavy", 120)];
 
 /// The strength behind a `/smooth` keyword, if it is one.
 pub(crate) fn strength_of(name: &str) -> Option<u8> {
@@ -57,7 +54,7 @@ mod tests {
     fn keywords_map_to_their_strengths() {
         assert_eq!(strength_of("off"), Some(0));
         assert_eq!(strength_of("light"), Some(40));
-        assert_eq!(strength_of("medium"), Some(crew_render::DEFAULT_SMOOTH));
+        assert_eq!(strength_of("medium"), Some(70));
         assert_eq!(strength_of("heavy"), Some(120));
         assert_eq!(strength_of("glassy"), None);
     }
@@ -65,7 +62,12 @@ mod tests {
     #[test]
     fn labels_name_the_ladder_and_number_the_rest() {
         assert_eq!(label_of(0), "off");
-        assert_eq!(label_of(crew_render::DEFAULT_SMOOTH), "medium");
+        assert_eq!(label_of(70), "medium");
+        assert_eq!(
+            label_of(crew_render::DEFAULT_SMOOTH),
+            "off",
+            "the default is a named step"
+        );
         assert_eq!(label_of(42), "42");
     }
 
