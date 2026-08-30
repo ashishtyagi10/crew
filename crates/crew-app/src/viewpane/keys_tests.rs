@@ -21,6 +21,7 @@ fn pane_with(text: &str) -> crate::viewpane::ViewPane {
             text: text.into(),
             truncated: None,
             meta: None,
+            image: None,
         },
     };
     p
@@ -335,6 +336,7 @@ fn markdown_pane_with(text: &str) -> crate::viewpane::ViewPane {
             text: text.into(),
             truncated: None,
             meta: None,
+            image: None,
         },
     };
     p
@@ -413,6 +415,7 @@ fn ready_pane(format: crate::viewpane::detect::Format, text: &str) -> crate::vie
             text: text.into(),
             truncated: None,
             meta: None,
+            image: None,
         },
     };
     p.cache.replace(None);

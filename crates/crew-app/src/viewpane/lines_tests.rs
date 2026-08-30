@@ -13,6 +13,7 @@ fn ready(format: Format, body: &str) -> LoadState {
             text: body.into(),
             truncated: None,
             meta: None,
+            image: None,
         },
     }
 }
@@ -61,6 +62,7 @@ fn truncation_is_announced_in_a_banner_row() {
             text: "head\n".into(),
             truncated: Some(41_000_000),
             meta: None,
+            image: None,
         },
     };
     let (ls, _marks) = for_state(&state, false, 60, false, false);
@@ -367,6 +369,7 @@ fn banner_says_at_least_when_the_text_was_already_byte_capped() {
             text: body,
             truncated: Some(41_000_000),
             meta: None,
+            image: None,
         },
     };
     let (ls, _marks) = for_state(&state, false, 60, false, false);

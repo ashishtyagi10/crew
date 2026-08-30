@@ -11,6 +11,7 @@ fn pane_with(text: &str) -> ViewPane {
             text: text.into(),
             truncated: None,
             meta: None,
+            image: None,
         },
     };
     p
@@ -125,6 +126,7 @@ fn searching(text: &str, needle: &str, typing: bool) -> ViewPane {
             text: text.into(),
             truncated: None,
             meta: None,
+            image: None,
         },
     };
     p.cache.replace(None);

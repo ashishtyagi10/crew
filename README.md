@@ -411,7 +411,10 @@ cards, links):
   PageUp/PageDown/Home/End scroll, **r** reloads from disk, **s** toggles raw
   text (markdown and CSV files), **/** searches with `n`/`N` for next/previous
   hit, **e** opens `$EDITOR`, **o** hands the file to the OS default app,
-  **Cmd+Click** opens a rendered markdown link, **Esc** closes.
+  **Cmd+Click** opens a rendered markdown link, **Esc** closes. **A picture
+  opens as the picture** — PNG, JPEG, GIF, BMP and WebP are drawn on the
+  sub-cell paint layer, fitted to the pane and centred, decoded off the winit
+  thread; transparent pixels let the page through.
 
 ## Multi-agent panes (`/crew`)
 

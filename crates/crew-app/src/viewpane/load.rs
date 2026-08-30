@@ -29,6 +29,10 @@ pub(crate) struct Loaded {
     /// `stat` in `read_capped` already has it, so this is free — but only
     /// the opaque rung draws it today.
     pub meta: Option<FileMeta>,
+    /// The decoded picture, for the image rung. Decoded and downscaled HERE,
+    /// on the worker: a 40-megapixel photo run through `image` on the winit
+    /// thread would freeze every pane in the grid for as long as it took.
+    pub image: Option<super::bitmap::Bitmap>,
 }
 
 /// A file's size and modification time, captured once on the worker
@@ -154,7 +158,20 @@ pub(crate) fn load_now(path: &Path, probe: Probe) -> LoadDone {
             text: String::new(),
             truncated: None,
             meta: Some(meta),
+            image: None,
         }),
+        // A file too big for the read cap arrives here half-read, and half a
+        // PNG decodes to nothing — which is the honest answer, and the one
+        // the caption gives.
+        Format::Image { kind } => match super::bitmap::decode(&head) {
+            Some(bm) => Ok(Loaded {
+                text: String::new(),
+                truncated: None,
+                meta: Some(meta),
+                image: Some(bm),
+            }),
+            None => Err(format!("{name}: not a {kind} this build can decode")),
+        },
         Format::Extract { via } => extract(via, path)
             .map(|text| {
                 let (text, truncated) = cap_text(text);
@@ -162,6 +179,7 @@ pub(crate) fn load_now(path: &Path, probe: Probe) -> LoadDone {
                     text,
                     truncated,
                     meta: Some(meta),
+                    image: None,
                 }
             })
             .map_err(|e| format!("{name}: {e}")),
@@ -169,6 +187,7 @@ pub(crate) fn load_now(path: &Path, probe: Probe) -> LoadDone {
             text: String::from_utf8_lossy(&head).into_owned(),
             truncated,
             meta: Some(meta),
+            image: None,
         }),
     };
     LoadDone { format, result }

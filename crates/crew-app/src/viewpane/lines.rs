@@ -6,7 +6,7 @@ use crate::chatbody::{plain, CardLine};
 use crate::viewpane::codepaint::{line_paint, CharPaint};
 use crate::viewpane::detect::Format;
 use crate::viewpane::load::{Loaded, MAX_VIEW_BYTES};
-use crate::viewpane::metacard::opaque_card;
+use crate::viewpane::metacard::{fmt_size, opaque_card};
 use crate::viewpane::outline::Mark;
 use crate::viewpane::rendercap::{cap_render_lines, MAX_RENDER_LINES};
 use crate::viewpane::LoadState;
@@ -312,6 +312,18 @@ fn ready_lines(
     let mut marks = Vec::new();
     let body = match format {
         Format::Opaque { why } => opaque_card(why, loaded.meta.as_ref(), cols),
+        // The picture itself is drawn, not spelled (see `super::bitmap`) —
+        // all this rung writes is the banner over it, which is also what the
+        // scroll, the search and the position readout count.
+        Format::Image { kind } => {
+            let size = loaded.meta.map_or(String::new(), |m| {
+                format!("  \u{00b7}  {}", fmt_size(m.size))
+            });
+            let dims = loaded.image.as_ref().map_or(String::new(), |b| {
+                format!("  {}\u{00d7}{}", b.src.0, b.src.1)
+            });
+            vec![banner(&format!("{kind}{dims}{size}"), cols)]
+        }
         Format::Extract { via } => {
             out.push(banner(
                 &format!(
@@ -353,10 +365,13 @@ fn ready_lines(
     };
     // A file with nothing in it renders as an empty pane, which is
     // indistinguishable from one that failed to render — and from one still
-    // loading, since the "loading…" banner is gone by then. The opaque rung
-    // is exempt: it draws a card ABOUT a file rather than the file, and has
-    // plenty to say with no text at all.
-    if text.trim().is_empty() && !matches!(format, Format::Opaque { .. }) {
+    // loading, since the "loading…" banner is gone by then. Two rungs are
+    // exempt: the opaque card is ABOUT a file rather than the file, and an
+    // image's bytes are a picture drawn on the paint layer — both have plenty
+    // to say with no text at all, and claiming a photo is "empty" is simply
+    // false.
+    let wordless = matches!(format, Format::Opaque { .. } | Format::Image { .. });
+    if text.trim().is_empty() && !wordless {
         out.push(banner("this file is empty", cols));
         return (out, marks);
     }

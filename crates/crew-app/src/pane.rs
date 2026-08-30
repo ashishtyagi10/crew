@@ -195,6 +195,7 @@ impl Pane {
                 d.cells(self.grid.cols, self.grid.rows),
                 d.paint(self.grid.cols, self.grid.rows, aspect),
             ),
+            PaneContent::View(v) => v.art(self.grid.cols, self.grid.rows, aspect),
             _ => (self.cells_only(focused), Vec::new()),
         }
     }

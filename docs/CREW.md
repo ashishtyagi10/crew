@@ -897,6 +897,19 @@ longer aim at.
   shell's only says how much is behind you) with the landmarks marked as dim
   ticks beside it, so a long file shows its shape before you move.
   Chat panes render markdown too — see [Markdown](#markdown).
+- **`/view` shows pictures.** A PNG, JPEG, GIF, BMP or WebP opens as the
+  picture itself, not as a metadata card saying there is one. Every other rung
+  of the ladder ends in glyphs, because a cell can only say one character —
+  but crew draws *below* the cell (the layer the charts are on), so the image
+  is laid down as a grid of small rectangles fitted to the pane and centred,
+  at about three samples per cell and independent of the font. It is decoded
+  and downscaled on the viewer's worker thread, so a forty-megapixel photo
+  never touches the frame; runs of one colour become one rectangle, so a
+  screenshot costs hundreds of quads rather than tens of thousands; and
+  transparent pixels are not drawn at all, so a logo with no background lands
+  on whatever page you are reading it on. The banner over it names the format
+  and the file's real size. The format is read from the bytes, not the name: a
+  JPEG called `notes.md` is shown as a JPEG.
 - **The pointer knows a link when it is over one.** URLs and file references
   are drawn as links — tinted, and ruled underneath, so they read as clickable
   without depending on hue — but the pointer over one wore the same I-beam as

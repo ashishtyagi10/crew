@@ -71,13 +71,28 @@ impl Probe {
 /// for "text, no keywords".
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Format {
-    Code { lang: &'static str },
+    Code {
+        lang: &'static str,
+    },
     Markdown,
-    Data { lang: &'static str },
-    Csv { delim: char },
+    Data {
+        lang: &'static str,
+    },
+    Csv {
+        delim: char,
+    },
     Diff,
-    Extract { via: Extractor },
-    Opaque { why: Opaque },
+    Extract {
+        via: Extractor,
+    },
+    /// A picture, drawn rather than spelled (see [`super::bitmap`]). `kind` is
+    /// what to call it in the caption.
+    Image {
+        kind: &'static str,
+    },
+    Opaque {
+        why: Opaque,
+    },
 }
 
 /// Extension → rung. Kept as a flat table because it is read once per open
@@ -107,6 +122,28 @@ fn by_extension(ext: &str) -> Option<Format> {
         _ => return None,
     };
     Some(f)
+}
+
+/// The picture formats this build can decode, by magic bytes. Content, not
+/// extension: an image is an image whatever it has been called, and the one
+/// thing a `.txt` full of PNG bytes must not get is a text rendering.
+fn by_magic(head: &[u8]) -> Option<Format> {
+    let kind = if head.starts_with(b"\x89PNG\r\n\x1a\n") {
+        "PNG"
+    } else if head.starts_with(&[0xff, 0xd8, 0xff]) {
+        "JPEG"
+    } else if head.starts_with(b"GIF87a") || head.starts_with(b"GIF89a") {
+        "GIF"
+    } else if head.starts_with(b"BM") && head.len() > 10 && head[6..10] == [0, 0, 0, 0] {
+        // A two-letter prefix is not a format. A real bitmap's four reserved
+        // bytes are zero, and a sentence starting "BM" has letters there.
+        "BMP"
+    } else if head.len() > 12 && head.starts_with(b"RIFF") && &head[8..12] == b"WEBP" {
+        "WebP"
+    } else {
+        return None;
+    };
+    Some(Format::Image { kind })
 }
 
 /// A NUL byte in the head. The cheapest reliable "this is not text" signal,
@@ -157,6 +194,11 @@ pub(crate) fn detect(path: &Path, head: &[u8], probe: Probe) -> Format {
                 why: Opaque::NoExtractor(via),
             }
         };
+    }
+    // Before the binary sniff, which every image would trip: a picture is
+    // binary and is still going to be shown.
+    if let Some(img) = by_magic(head) {
+        return img;
     }
     if looks_binary(head) {
         return Format::Opaque {

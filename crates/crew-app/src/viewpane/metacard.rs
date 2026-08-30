@@ -12,7 +12,7 @@ fn row(s: &str, fg: (u8, u8, u8), bold: bool) -> CardLine {
 /// `bytes` in compact units, the same convention `farpane/render.rs::fmt_size`
 /// uses for directory listings — duplicated locally rather than exported
 /// across a module boundary for one function used by only one caller there.
-fn fmt_size(bytes: u64) -> String {
+pub(crate) fn fmt_size(bytes: u64) -> String {
     const UNITS: [char; 4] = ['K', 'M', 'G', 'T'];
     if bytes < 1024 {
         return format!("{bytes} B");

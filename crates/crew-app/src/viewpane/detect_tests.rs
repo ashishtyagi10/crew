@@ -34,14 +34,40 @@ fn extension_picks_the_rung() {
 
 #[test]
 fn a_nul_byte_outranks_the_extension() {
-    // A .md file that is really a JPEG must not be handed to the markdown
-    // engine — the binary verdict is the one sniff that beats the name.
-    let jpeg = [0xFF, 0xD8, 0xFF, 0x00, 0x10];
+    // A .md file that is really a compiled object must not be handed to the
+    // markdown engine — the binary verdict is the one sniff that beats the
+    // name. (It used to be written with JPEG bytes, which now have a rung of
+    // their own: an image is drawn, not refused.)
+    let obj = [0xCF, 0xFA, 0xED, 0xFE, 0x00, 0x10];
     assert!(matches!(
-        detect(Path::new("notes.md"), &jpeg, all()),
+        detect(Path::new("notes.md"), &obj, all()),
         Format::Opaque {
             why: Opaque::Binary
         }
+    ));
+}
+
+/// A picture is a picture whatever it has been called, and it is recognised
+/// before the binary sniff that would otherwise refuse it — every image format
+/// is "binary" and every one of them is going to be shown.
+#[test]
+fn a_picture_is_read_from_its_bytes_not_its_name() {
+    for (head, kind) in [
+        (&b"\x89PNG\r\n\x1a\n\x00\x00"[..], "PNG"),
+        (&[0xFF, 0xD8, 0xFF, 0x00, 0x10][..], "JPEG"),
+        (&b"GIF89a\x00\x01"[..], "GIF"),
+        (&b"RIFF\x00\x00\x00\x00WEBPVP8 "[..], "WebP"),
+    ] {
+        assert_eq!(
+            detect(Path::new("notes.md"), head, all()),
+            Format::Image { kind },
+            "{kind} named .md"
+        );
+    }
+    // …and text that merely starts with two letters is not a bitmap.
+    assert!(!matches!(
+        detect(Path::new("a.txt"), b"BM is a fine abbreviation", all()),
+        Format::Image { .. }
     ));
 }
 

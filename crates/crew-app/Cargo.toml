@@ -37,7 +37,7 @@ reqwest = { workspace = true }
 # Staging directory for an update download. Runtime, not just dev: the archive
 # is unpacked beside the binary it replaces (same volume, and out of %TEMP%).
 tempfile = "3"
-image = { version = "0.25", default-features = false, features = ["png"] }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "bmp", "webp"] }
 
 # setsid(2) for `--detach` (new session, so a closed terminal can't SIGHUP us).
 [target.'cfg(unix)'.dependencies]

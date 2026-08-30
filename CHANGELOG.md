@@ -8,6 +8,40 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.80
+
+**The viewer shows pictures.**
+
+`/view photo.png` used to draw a card *about* the file: "binary file — nothing
+to render". Every rung of the viewer's ladder ends in glyphs, because a
+terminal's unit is a cell and a cell can only say one character.
+
+But crew has drawn *below* the cell since 0.19.29 — `Paint` is a rectangle in
+fractional cell units, the layer every chart is on — so a picture can be laid
+down as a grid of small quads at whatever resolution the pane can carry,
+independent of the font. PNG, JPEG, GIF, BMP and WebP now open as themselves,
+fitted to the pane and centred, with a banner naming the format and the file's
+real dimensions.
+
+* **Decoded and downscaled on the viewer's worker thread**, the same place
+  every other rung's bytes are read. A forty-megapixel photo run through a
+  decoder on the winit thread would freeze every pane in the grid, agents
+  included.
+* **Runs of one colour become one quad.** A screenshot or a logo is mostly
+  flat, so the merge takes a frame from tens of thousands of rectangles to
+  hundreds without changing a pixel of the result.
+* **Transparent samples are not drawn at all** — a logo with no background
+  lands on the page it is being read on, and stays right when the theme
+  changes.
+* **Cells are twice as tall as they are wide**, so the fit is computed in
+  square units and converted back into rows; a square picture comes out square.
+* **The format is read from the bytes, not the name**, and before the binary
+  sniff that used to refuse it: a JPEG called `notes.md` is shown as a JPEG.
+  (The BMP sniff checks the header's reserved bytes, so a sentence beginning
+  "BM" is still a sentence.)
+* `image`'s `jpeg`, `gif`, `bmp` and `webp` decoders were switched on — the
+  crate was already a dependency, for the app icon and the shot harness.
+
 ## 0.19.79
 
 **The caret leaves a wake.**

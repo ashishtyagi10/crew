@@ -25,6 +25,7 @@ fn pane(name: &str, format: Format, text: &str) -> ViewPane {
             text: text.into(),
             truncated: None,
             meta: None,
+            image: None,
         },
     };
     p
@@ -114,9 +115,64 @@ fn blame_lines(n: usize) -> Vec<crate::viewpane::blame::Line> {
 }
 
 fn view_shot(name: &str, p: &ViewPane, w: u32) -> Option<Vec<u8>> {
-    shot_at(name, w, H, 13.0, "dial.rs", |cols, rows, _| {
-        (p.cells(cols, rows), Vec::new())
+    shot_at(name, w, H, 13.0, "dial.rs", |cols, rows, aspect| {
+        p.art(cols, rows, aspect)
     })
+}
+
+/// A test picture with something of everything a photo has: a smooth two-axis
+/// ramp, a hard-edged shape, a flat field for the run merge to eat, and a
+/// transparent corner that has to let the page through.
+fn picture(w: u32, h: u32) -> crate::viewpane::bitmap::Bitmap {
+    let px = (0..h)
+        .flat_map(|y| {
+            (0..w).map(move |x| {
+                let (fx, fy) = (x as f32 / w as f32, y as f32 / h as f32);
+                let ring = ((fx - 0.5).powi(2) + (fy - 0.5).powi(2)).sqrt();
+                match (ring < 0.22, fx > 0.86 && fy < 0.14, fy > 0.82) {
+                    (_, true, _) => [0, 0, 0, 0],
+                    (true, _, _) => [250, 240, 210, 255],
+                    (_, _, true) => [30, 60, 90, 255],
+                    _ => [(fx * 255.0) as u8, (fy * 200.0) as u8, 140, 255],
+                }
+            })
+        })
+        .collect();
+    crate::viewpane::bitmap::Bitmap {
+        w,
+        h,
+        px,
+        src: (w * 3, h * 3),
+    }
+}
+
+/// The rung that is not text at all: a picture, drawn as quads on the paint
+/// layer under a banner naming the file. Shot at three shapes — wider than the
+/// pane, taller than it, and a tile too small to be generous — because fitting
+/// is the whole job and every failure mode is a fit that went wrong.
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn view_shot_image() {
+    let _g = crate::app::theme_test_guard();
+    for (name, (iw, ih), w) in [
+        ("view-image-wide", (320u32, 180u32), 900u32),
+        ("view-image-tall", (180, 320), 900),
+        ("view-image-square", (240, 240), 480),
+    ] {
+        let mut p = pane("shot.png", Format::Image { kind: "PNG" }, "");
+        if let LoadState::Ready { loaded, .. } = &mut p.state {
+            loaded.image = Some(picture(iw, ih));
+            loaded.meta = None;
+        }
+        let Some(px) = view_shot(name, &p, w) else {
+            eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+            return;
+        };
+        assert!(
+            crate::shotgpu_tests::ink(&px) > 20_000,
+            "{name} drew a picture"
+        );
+    }
 }
 
 /// Each rung at the width a tile actually gets. A viewer that only reads on

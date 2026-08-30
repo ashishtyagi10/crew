@@ -125,6 +125,34 @@ impl ViewPane {
             .unwrap_or_default()
     }
 
+    /// The decoded picture this pane is holding, if it is holding one.
+    pub(crate) fn image(&self) -> Option<&super::bitmap::Bitmap> {
+        match &self.state {
+            crate::viewpane::LoadState::Ready { loaded, .. } => loaded.image.as_ref(),
+            _ => None,
+        }
+    }
+
+    /// Cells *and* the paint under them. Every rung but one draws nothing on
+    /// the paint layer; the image rung draws almost nothing on the cell one —
+    /// a banner naming the file, and the picture itself in the rows below it.
+    pub(crate) fn art(
+        &self,
+        cols: u16,
+        rows: u16,
+        aspect: f32,
+    ) -> (Vec<CellView>, Vec<crew_render::Paint>) {
+        let cells = self.cells(cols, rows);
+        let Some(bm) = self.image() else {
+            return (cells, Vec::new());
+        };
+        let paint = super::bitmap::paint(bm, cols, rows.saturating_sub(1), aspect)
+            .into_iter()
+            .map(|p| p.shifted(0.0, 1.0))
+            .collect();
+        (cells, paint)
+    }
+
     pub(crate) fn cells(&self, cols: u16, rows: u16) -> Vec<CellView> {
         if cols == 0 || rows == 0 {
             return Vec::new();
