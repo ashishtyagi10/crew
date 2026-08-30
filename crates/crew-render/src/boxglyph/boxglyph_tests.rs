@@ -446,3 +446,53 @@ fn the_stroked_marks_are_one_family() {
         }
     }
 }
+
+/// Sextants are the 2×3 grid, sixty of them, and the encoding has four holes
+/// in it — the empty and full patterns are `space` and `█`, the two
+/// single-column ones are `▌` and `▐`, so every code point after each hole
+/// shifts down. Getting that off by one draws the wrong sixths for half the
+/// range, and every one of them still looks like a plausible sextant.
+#[test]
+fn the_sextant_range_maps_onto_its_patterns_with_the_holes_in() {
+    let (w, h) = (8u32, 18u32);
+    let sixth =
+        |img: &SwashImage, cx: u32, cy: u32| at(img, cx * (w / 2) + 1, cy * (h / 3) + 1) == 255;
+    // The first code point is pattern 1: the top-left sixth alone.
+    let first = cell('\u{1FB00}', w, h);
+    assert!(sixth(&first, 0, 0), "U+1FB00 is not the top-left sixth");
+    assert!(!sixth(&first, 1, 0) && !sixth(&first, 0, 1));
+    // The last is pattern 62: everything but the top-left.
+    let last = cell('\u{1FB3B}', w, h);
+    assert!(!sixth(&last, 0, 0), "U+1FB3B still has its top-left sixth");
+    for (cx, cy) in [(1, 0), (0, 1), (1, 1), (0, 2), (1, 2)] {
+        assert!(sixth(&last, cx, cy), "U+1FB3B is missing ({cx}, {cy})");
+    }
+    // Sixty of them, all distinct, none blank, and no two the same.
+    let mut seen: Vec<Vec<u8>> = Vec::new();
+    for code in 0x1FB00..=0x1FB3Bu32 {
+        let img = cell(char::from_u32(code).unwrap(), w, h);
+        assert!(img.data.iter().any(|v| *v > 0), "U+{code:X} drew nothing");
+        assert!(
+            !seen.contains(&img.data),
+            "U+{code:X} repeats an earlier one"
+        );
+        seen.push(img.data);
+    }
+    assert_eq!(seen.len(), 60);
+    // And the patterns another character already owns are NOT in the range.
+    let half = cell('\u{258C}', w, h);
+    assert!(!seen.contains(&half.data), "▌'s pattern got a sextant too");
+}
+
+/// The three rows tile the cell exactly: a remainder stripe at the bottom is
+/// what makes a plot built out of these look striped.
+#[test]
+fn a_full_sextant_column_fills_its_half_of_the_cell() {
+    // Pattern 0b010101 is `▌`, so the nearest full-height column in the
+    // range is the one beside it: 0b101010 → also taken. Use the full
+    // pattern minus one sixth and check the column it keeps whole.
+    let img = cell('\u{1FB3B}', 9, 17);
+    for y in 0..17 {
+        assert_eq!(at(&img, 8, y), 255, "the right column breaks at y={y}");
+    }
+}
