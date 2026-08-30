@@ -38,6 +38,10 @@ pub(crate) const LOOK: &[Cmd] = &[
         desc: "Text gamma — take back the ink the encoded blend eats (/gamma [off|light|medium|full|<0-255>])",
     },
     Cmd {
+        name: "/grain",
+        desc: "Paper grain — how much newsprint texture the page carries (/grain [off|light|medium|heavy|<0-2>])",
+    },
+    Cmd {
         name: "/motion",
         desc: "How much crew moves — auto follows the OS Reduce Motion switch (/motion [auto|off|subtle|full])",
     },

@@ -8,6 +8,26 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.65
+
+**`/grain` — the one look knob you could not type.** The paper grain measures
+a standard deviation of about **six levels** on a dark page at its default,
+which is a lot of texture next to a terminal that has none. Whether that reads
+as *paper* or as *noise* is taste, not a bug — but it was taste you could only
+exercise by opening `/settings` and finding a numeric field called
+"Grain (0-2)", while `/smooth`, `/gamma`, `/weight`, `/leading`, `/opacity`
+and `/density` are all named ladders you can type at the input bar and watch
+change under you. `/grain [off|light|medium|heavy|<0-2>]` is the same knob
+those all are: one `paper_grain` key, two surfaces, applied live. A custom
+`/grain 0.4` reports as its number, not as the nearest name.
+
+And the two pickers that had gone stale: 0.19.62 moved `/smooth`'s default to
+`off` and `/gamma`'s to `full`, and both value pickers went on offering the
+OLD step as "the default" — the descriptions name constants that live in
+another crate, so nothing complained. A parity test holds all three ladders
+now: exactly one step may claim the default, and it must be the step whose
+value the code actually starts at.
+
 ## 0.19.64
 
 **Braille is drawn now too — which is what the monitors in the panes plot

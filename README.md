@@ -266,8 +266,8 @@ Slash commands complete the bar (type `/` for a fuzzy palette): `/crew`
 `/restore`, `/blame`, `/leading`, `/invisibles`, `/pwd`, `/about`, `/log`,
 `/model`, `/update`, `/broadcast`, `/zoom`, `/sidebar`, `/keys`, `/far`,
 `/todo`, `/dash`, `/usage`, `/disk`, and the look: `/theme`, `/gradient`,
-`/font`, `/weight`, `/smooth`, `/gamma`, `/leading`, `/density`, `/opacity`,
-`/crt`, `/motion`, `/contrast`, `/shapes`, `/focus`, `/notify` — then
+`/font`, `/weight`, `/smooth`, `/gamma`, `/grain`, `/leading`, `/density`,
+`/opacity`, `/crt`, `/motion`, `/contrast`, `/shapes`, `/focus`, `/notify` — then
 `/exit`. Commands with a fixed value set (like `/theme`) expand into an
 arrow-selectable **value picker**. Fish-style autosuggest from history, `cd`
 completion with `$VAR` expansion, and `Up`/`Down` history recall persisted to

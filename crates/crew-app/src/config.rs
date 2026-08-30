@@ -27,7 +27,7 @@ fn default_usage_budget_7d() -> u64 {
     25_000_000
 }
 
-fn default_paper_grain() -> f32 {
+pub(crate) fn default_paper_grain() -> f32 {
     // ~2.6% luminance grain — clearly reads as paper texture without looking
     // noisy (chosen by comparing a rendered 0.0/0.6/1.0/1.6 sweep). Tunable in
     // config; 0.0 disables grain, paper_texture=false disables the whole pass.

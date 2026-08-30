@@ -192,21 +192,24 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
         "/smooth" => Some(vec![
             (
                 "off".to_string(),
-                "0 — raw outlines, no darkening".to_string(),
-            ),
-            ("light".to_string(), "40 — a hint of fullness".to_string()),
-            (
-                "medium".to_string(),
                 format!(
-                    "{} — the default, Terminal.app-like",
+                    "{} — the default: the outline's own weight",
                     crew_render::DEFAULT_SMOOTH
                 ),
             ),
+            ("light".to_string(), "40 — a hint of fullness".to_string()),
+            ("medium".to_string(), "70 — Terminal.app-like".to_string()),
             (
                 "heavy".to_string(),
                 "120 — thick, high-contrast".to_string(),
             ),
         ]),
+        "/grain" => Some(
+            crate::graincmd::LADDER
+                .iter()
+                .map(|(name, _, about)| (name.to_string(), about.to_string()))
+                .collect(),
+        ),
         "/gamma" => Some(vec![
             (
                 "off".to_string(),
@@ -218,14 +221,14 @@ pub(crate) fn options_for(cmd: &str) -> Option<Vec<(String, String)>> {
             ),
             (
                 "medium".to_string(),
-                format!(
-                    "{} — the default, Apple’s text gamma",
-                    crew_render::DEFAULT_TEXT_GAMMA
-                ),
+                "130 — Apple’s historical text gamma".to_string(),
             ),
             (
                 "full".to_string(),
-                "255 — the whole sRGB correction".to_string(),
+                format!(
+                    "{} — the default: the whole sRGB correction",
+                    crew_render::DEFAULT_TEXT_GAMMA
+                ),
             ),
         ]),
         // Model picker for the agent smith pane — the catalog grouped by
@@ -259,6 +262,7 @@ pub(crate) fn expands(cmd: &str) -> bool {
             | "/crt"
             | "/weight"
             | "/smooth"
+            | "/grain"
             | "/gamma"
             | "/marks"
             | "/invisibles"
