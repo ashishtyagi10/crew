@@ -363,7 +363,9 @@ impl DiskPane {
         // A label per tile that has the room for one: name on the first row,
         // size under it. A tile too small for its own name gets none — the
         // area is still the reading.
-        for tile in tiles(&self.children, cols, rows) {
+        let map = tiles(&self.children, cols, rows);
+        let colors = tile_colors(&self.children, &map);
+        for (i, tile) in map.iter().enumerate() {
             let Some(child) = self.children.get(tile.index) else {
                 continue;
             };
@@ -376,7 +378,11 @@ impl DiskPane {
             // tile wrote near-white on a bright pastel fill and was the one
             // label on the map you could not read. The ring already says which
             // tile is picked; the label only has to be legible.
-            let fg = label_ink(tile_bg(child, tile.index == self.selected));
+            let fg = label_ink(tile_bg(
+                colors[i],
+                child.is_dir,
+                tile.index == self.selected,
+            ));
             let room = (tile.w - 1.0) as usize;
             // `vend` is not a directory anybody has. A tile that cuts a name
             // without saying so reads as a complete, wrong name; `ven…` reads
@@ -420,14 +426,14 @@ impl DiskPane {
             return Vec::new();
         }
         let mut c = Canvas::new(cols, rows, aspect);
-        for tile in tiles(&self.children, cols, rows) {
+        let map = tiles(&self.children, cols, rows);
+        let colors = tile_colors(&self.children, &map);
+        for (i, tile) in map.iter().enumerate() {
             let Some(child) = self.children.get(tile.index) else {
                 continue;
             };
-            // Colour by the roster's tag pool, keyed by name — the same
-            // directory keeps its colour across a rescan and between panes,
-            // and the pool is already tuned for this page.
-            let color = crate::chatroster::agent_color(&child.name);
+            // The roster's tag pool, dealt so no two touching tiles match.
+            let color = colors[i];
             let (x, y) = (tile.x, tile.y * aspect);
             let (w, h) = (
                 (tile.w - 0.08).max(0.05),
@@ -549,16 +555,76 @@ const MIN_PATH_W: u16 = 8;
 /// page at the alpha the fill is actually drawn with, which is the background
 /// the eye sees — not the raw pool colour, which a 0.55-alpha file tile never
 /// shows.
-fn tile_bg(child: &Child, selected: bool) -> (u8, u8, u8) {
+fn tile_bg(color: (u8, u8, u8), is_dir: bool, selected: bool) -> (u8, u8, u8) {
     let page = crew_theme::theme().page_bg;
-    let color = crate::chatroster::agent_color(&child.name);
-    let a = tile_alpha(child.is_dir, selected);
+    let a = tile_alpha(is_dir, selected);
     let mix = |c: u8, p: u8| (f32::from(c) * a + f32::from(p) * (1.0 - a)).round() as u8;
     (
         mix(color.0, page.0),
         mix(color.1, page.1),
         mix(color.2, page.2),
     )
+}
+
+/// Whether two tiles share an edge or a corner — laid out edge to edge, so
+/// "touching" is what a treemap's neighbours always are.
+fn touches(a: &treemap::Tile, b: &treemap::Tile) -> bool {
+    const E: f32 = 0.01;
+    a.x < b.x + b.w + E && b.x < a.x + a.w + E && a.y < b.y + b.h + E && b.y < a.y + a.h + E
+}
+
+/// A colour per tile, chosen so that no two tiles that touch share one.
+///
+/// The pool is six entries picked by hashing the name, which on a directory
+/// with eight children collides by the pigeonhole principle long before it
+/// collides by bad luck: in the repo's own root `crates` and `.git` came out
+/// byte-identical, and so did `target` and `docs`. Two neighbouring tiles the
+/// same colour read as one region, which is the one thing a map of areas is
+/// for. On a single-phosphor tube, where the whole pool is four shades of the
+/// same green, it is the only thing keeping the regions apart at all.
+///
+/// The name still picks first, so a directory keeps its colour when you
+/// rescan the parent it is in; only a tile that would touch a twin steps
+/// along the pool to the next free entry.
+fn tile_colors(children: &[Child], tiles: &[treemap::Tile]) -> Vec<(u8, u8, u8)> {
+    let pool: Vec<(u8, u8, u8)> = {
+        let t = crew_theme::theme();
+        let mut v: Vec<(u8, u8, u8)> = Vec::new();
+        for c in &t.ansi[9..=14] {
+            if !v.contains(c) {
+                v.push(*c);
+            }
+        }
+        v
+    };
+    let mut picked: Vec<Option<usize>> = vec![None; tiles.len()];
+    for (i, tile) in tiles.iter().enumerate() {
+        let Some(child) = children.get(tile.index) else {
+            continue;
+        };
+        let first = pool
+            .iter()
+            .position(|&c| c == crate::chatroster::agent_color(&child.name))
+            .unwrap_or(0);
+        // The neighbours that already have one. Tiles are visited in the
+        // layout's own order, so this is deterministic for a given listing.
+        let taken: Vec<usize> = tiles
+            .iter()
+            .enumerate()
+            .filter(|&(j, t)| j != i && touches(tile, t))
+            .filter_map(|(j, _)| picked[j])
+            .collect();
+        picked[i] = Some(
+            (0..pool.len())
+                .map(|d| (first + d) % pool.len())
+                // A tile with more neighbours than the pool has colours keeps
+                // the one its name asked for: a repeat somewhere beats a
+                // colour nothing chose.
+                .find(|k| !taken.contains(k))
+                .unwrap_or(first),
+        );
+    }
+    picked.into_iter().map(|k| pool[k.unwrap_or(0)]).collect()
 }
 
 /// How solid a tile is drawn. Directories carry their colour; plain files sit
@@ -750,15 +816,59 @@ mod tests {
                 ("vendor", 121_000_000, true),
                 ("Cargo.lock", 310_000, false),
             ]);
+            let map = tiles(&children, 120, 40);
+            let colors = super::tile_colors(&children, &map);
             for (i, child) in children.iter().enumerate() {
                 for selected in [false, true] {
-                    let bg = tile_bg(child, selected);
+                    let bg = tile_bg(colors[i], child.is_dir, selected);
                     let ratio = crew_theme::contrast_ratio(label_ink(bg), bg);
                     assert!(
                         ratio >= crew_theme::contrast::text_floor(),
                         "{id:?} tile {i} ({}) selected={selected}: {ratio:.2}",
                         child.name
                     );
+                }
+            }
+        }
+    }
+
+    /// No two tiles that touch may share a colour. The pool is six entries
+    /// picked by name hash; a directory with eight children collides by the
+    /// pigeonhole principle, and two neighbouring tiles the same colour read
+    /// as one region — the one thing a map of areas is for.
+    #[test]
+    fn touching_tiles_never_share_a_colour() {
+        let _g = crate::app::theme_test_guard();
+        for id in [
+            crew_theme::ThemeId::PaperDark,
+            crew_theme::ThemeId::PaperLight,
+            crew_theme::ThemeId::CrtGreen,
+        ] {
+            crew_theme::set_theme(id);
+            // The repo's own root, which is where the collision was found.
+            let children = kids(&[
+                ("target", 4_509_715_660, true),
+                ("crates", 812_000_000, true),
+                (".git", 402_000_000, true),
+                ("vendor", 121_000_000, true),
+                ("docs", 24_000_000, true),
+                ("Cargo.lock", 310_000, false),
+                ("CHANGELOG.md", 96_000, false),
+                ("README.md", 12_000, false),
+            ]);
+            for (cols, rows) in [(40u16, 20u16), (80, 30), (160, 50)] {
+                let map = tiles(&children, cols, rows);
+                let colors = super::tile_colors(&children, &map);
+                for (i, a) in map.iter().enumerate() {
+                    for (j, b) in map.iter().enumerate() {
+                        if i < j && super::touches(a, b) {
+                            assert_ne!(
+                                colors[i], colors[j],
+                                "{id:?} {cols}x{rows}: {} and {} touch and match",
+                                children[a.index].name, children[b.index].name
+                            );
+                        }
+                    }
                 }
             }
         }
