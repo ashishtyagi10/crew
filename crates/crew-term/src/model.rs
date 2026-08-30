@@ -161,7 +161,7 @@ impl TermCore {
         for seg in scanner.feed(bytes) {
             match seg {
                 crate::graphics::Seg::Bytes(b) => self.parser.advance(&mut self.term, b),
-                crate::graphics::Seg::Esc => self.parser.advance(&mut self.term, &[0x1b]),
+                crate::graphics::Seg::Held(b) => self.parser.advance(&mut self.term, &b),
                 crate::graphics::Seg::Image(cmd) => self.place_image(cmd),
             }
         }

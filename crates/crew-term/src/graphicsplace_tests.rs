@@ -122,3 +122,19 @@ fn a_probe_for_a_format_crew_cannot_draw_is_refused() {
     let reply = t.take_replies().unwrap_or_default();
     assert!(reply.contains("ENOTSUPPORTED"), "answered {reply:?}");
 }
+
+/// The iTerm2 spelling lands the same way the kitty one does: at the cursor,
+/// reserving its rows, with nothing on screen.
+#[test]
+fn an_iterm_picture_lands_where_the_cursor_is() {
+    use base64::Engine;
+    let b64 = base64::engine::general_purpose::STANDARD.encode(png(100, 40));
+    let mut t = term();
+    t.feed(format!("one\r\n\x1b]1337;File=inline=1:{b64}\x07done\r\n").as_bytes());
+    let imgs = t.take_images();
+    assert_eq!(imgs.len(), 1);
+    assert_eq!(imgs[0].line, 1, "the second line, where the cursor was");
+    assert_eq!(imgs[0].cells, (10, 2), "sized from its own pixels");
+    let text: String = t.cells(true).iter().map(|c| c.c).collect();
+    assert!(!text.contains("1337"), "escape text on screen: {text:?}");
+}

@@ -27,6 +27,13 @@ const BEL: u8 = 0x07;
 /// against a sequence that never terminates growing the buffer forever.
 const MAX_PAYLOAD: usize = 16 * 1024 * 1024;
 
+/// What the OSC prefix probe has decided so far.
+enum Probe {
+    More,
+    Picture,
+    No,
+}
+
 #[derive(Default, Clone, Copy, PartialEq)]
 enum St {
     #[default]
@@ -37,7 +44,18 @@ enum St {
     Apc,
     /// Inside an APC and saw `ESC` — one byte from the string terminator.
     ApcEsc,
+    /// Saw `ESC ]` and is reading just enough of the OSC to know whether it
+    /// is iTerm2's picture (`1337;File=`) or somebody else's sequence.
+    OscProbe,
+    /// Inside an `ESC ] 1337 ; File=…` picture.
+    Osc,
+    /// Inside one, and saw `ESC` — one byte from the string terminator.
+    OscEsc,
 }
+
+/// How much of an OSC is read before deciding it is not a picture. Exactly
+/// the length of the prefix that says it is one.
+const OSC_PROBE: &[u8] = b"1337;File=";
 
 /// One piece of the split stream.
 pub(crate) enum Seg<'a> {
@@ -45,10 +63,11 @@ pub(crate) enum Seg<'a> {
     Bytes(&'a [u8]),
     /// A complete graphics command, at this point in the stream.
     Image(ImageCmd),
-    /// A lone `ESC` held over from the previous chunk that turned out not to
-    /// start a picture. Its own variant because it is not a slice of the
+    /// Bytes held back across a chunk boundary that turned out not to start a
+    /// picture after all — a lone `ESC`, or the first bytes of an OSC that is
+    /// somebody else's. Its own variant because they are not a slice of the
     /// chunk being split.
-    Esc,
+    Held(Vec<u8>),
 }
 
 /// The incremental splitter. One per terminal; a sequence divided across
@@ -75,19 +94,11 @@ impl GraphicsScanner {
     pub(crate) fn feed<'a>(&mut self, chunk: &'a [u8]) -> Vec<Seg<'a>> {
         let mut out = Vec::new();
         let mut i = 0;
-        // An `ESC` at the end of the last chunk was held back: it starts a
-        // picture only if this chunk opens with `_`, and it belongs to the
-        // parser otherwise. It cannot be handed over as a slice of THIS
-        // chunk, which is why a lone escape is a segment of its own.
-        if self.st == St::Esc {
-            self.st = St::Ground;
-            match chunk.first() {
-                Some(b'_') => {
-                    self.open();
-                    i = 1;
-                }
-                _ => out.push(Seg::Esc),
-            }
+        // Bytes held back at the end of the last chunk, waiting to learn what
+        // they were the start of. They cannot be handed over as a slice of
+        // THIS chunk, which is why held bytes are a segment of their own.
+        if matches!(self.st, St::Esc | St::OscProbe) {
+            i = self.resume(chunk, &mut out);
         }
         // Start of the run of plain bytes we are currently inside, and where
         // the `ESC` we may yet have to cut it at sits.
@@ -107,37 +118,65 @@ impl GraphicsScanner {
                     if run < esc_at {
                         out.push(Seg::Bytes(&chunk[run..esc_at]));
                     }
-                    self.open();
+                    self.open(St::Apc);
                     run = i + 1;
+                }
+                // An OSC might be a picture (iTerm2's `1337;File=`) or might
+                // be any of the four crew already listens for. Nothing is cut
+                // until the prefix says which.
+                St::Esc if b == b']' => {
+                    self.st = St::OscProbe;
+                    self.buf.clear();
                 }
                 St::Esc if b == ESC => esc_at = i,
                 // Some other escape sequence: it stays inside the plain run.
                 St::Esc => self.st = St::Ground,
-                St::Apc if b == ESC => self.st = St::ApcEsc,
-                St::Apc if b == BEL => {
+                St::OscProbe => match self.probe(b) {
+                    Probe::More => {}
+                    Probe::Picture => {
+                        if run < esc_at {
+                            out.push(Seg::Bytes(&chunk[run..esc_at]));
+                        }
+                        self.open(St::Osc);
+                        run = i + 1;
+                    }
+                    // Somebody else's OSC: everything since the ESC is still
+                    // inside the run, untouched, and goes on as text.
+                    Probe::No => self.st = St::Ground,
+                },
+                St::Apc | St::Osc if b == ESC => {
+                    self.st = match self.st {
+                        St::Apc => St::ApcEsc,
+                        _ => St::OscEsc,
+                    }
+                }
+                St::Apc | St::Osc if b == BEL => {
                     self.finish(&mut out);
                     run = i + 1;
                 }
-                St::Apc => self.push(b),
-                St::ApcEsc if b == b'\\' => {
+                St::Apc | St::Osc => self.push(b),
+                St::ApcEsc | St::OscEsc if b == b'\\' => {
                     self.finish(&mut out);
                     run = i + 1;
                 }
-                St::ApcEsc => {
+                St::ApcEsc | St::OscEsc => {
                     // A stray ESC inside the string: keep both bytes and
                     // stay in the sequence.
                     self.push(ESC);
                     self.push(b);
-                    self.st = St::Apc;
+                    self.st = match self.st {
+                        St::ApcEsc => St::Apc,
+                        _ => St::Osc,
+                    };
                 }
             }
             i += 1;
         }
         // Whatever is still plain text goes on now. A half-seen sequence — or
-        // a trailing `ESC` that may yet open one — is held for the next chunk.
+        // bytes that may yet open one — is held for the next chunk.
         let tail = match self.st {
             St::Ground => &chunk[run..],
-            St::Esc => &chunk[run..esc_at],
+            St::Esc | St::OscProbe => &chunk[run..esc_at.max(run)],
             _ => &[][..],
         };
         if !tail.is_empty() {
@@ -146,9 +185,76 @@ impl GraphicsScanner {
         out
     }
 
+    /// Continue a hold from the previous chunk. Returns where in `chunk` the
+    /// ordinary scan should start.
+    fn resume<'a>(&mut self, chunk: &'a [u8], out: &mut Vec<Seg<'a>>) -> usize {
+        let mut held = vec![ESC];
+        if self.st == St::OscProbe {
+            held.push(b']');
+            held.extend_from_slice(&self.buf);
+        }
+        let was_probe = self.st == St::OscProbe;
+        self.st = St::Ground;
+        let mut i = 0;
+        while i < chunk.len() {
+            let b = chunk[i];
+            i += 1;
+            if !was_probe && held.len() == 1 {
+                // Deciding what the held ESC opened.
+                match b {
+                    b'_' => {
+                        self.open(St::Apc);
+                        return i;
+                    }
+                    b']' => {
+                        held.push(b);
+                        self.st = St::OscProbe;
+                        self.buf.clear();
+                        continue;
+                    }
+                    _ => {
+                        held.push(b);
+                        break;
+                    }
+                }
+            }
+            match self.probe(b) {
+                Probe::More => held.push(b),
+                Probe::Picture => {
+                    self.open(St::Osc);
+                    return i;
+                }
+                Probe::No => {
+                    held.push(b);
+                    break;
+                }
+            }
+        }
+        if self.st == St::OscProbe && i == chunk.len() {
+            // Still undecided at the end of this chunk too: keep holding.
+            return i;
+        }
+        self.st = St::Ground;
+        out.push(Seg::Held(held));
+        i
+    }
+
+    /// Feed one byte to the OSC prefix probe.
+    fn probe(&mut self, b: u8) -> Probe {
+        self.buf.push(b);
+        let n = self.buf.len();
+        if self.buf[..] != OSC_PROBE[..n.min(OSC_PROBE.len())] {
+            return Probe::No;
+        }
+        match n >= OSC_PROBE.len() {
+            true => Probe::Picture,
+            false => Probe::More,
+        }
+    }
+
     /// Begin collecting a sequence.
-    fn open(&mut self) {
-        self.st = St::Apc;
+    fn open(&mut self, st: St) {
+        self.st = st;
         self.buf.clear();
         self.flooded = false;
     }
@@ -164,13 +270,18 @@ impl GraphicsScanner {
     /// End the sequence in `buf`: parse it, join it to any chunked
     /// predecessor, and emit it unless more chunks are promised.
     fn finish(&mut self, out: &mut Vec<Seg<'_>>) {
+        let was_osc = matches!(self.st, St::Osc | St::OscEsc);
         self.st = St::Ground;
         let buf = std::mem::take(&mut self.buf);
         if self.flooded {
             self.partial = None;
             return;
         }
-        let Some(cmd) = ImageCmd::parse(&buf) else {
+        let cmd = match was_osc {
+            true => ImageCmd::parse_iterm(&buf),
+            false => ImageCmd::parse(&buf),
+        };
+        let Some(cmd) = cmd else {
             return;
         };
         let joined = match self.partial.take() {

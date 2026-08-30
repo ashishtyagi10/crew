@@ -169,6 +169,14 @@ and open.
   file), `ENOTSUPPORTED` for the rest, so a producer can fall back instead of
   writing a picture into a void.
 * `a=d` takes the pictures back; the last 32 in a pane are kept.
+* **iTerm2's spelling is read too** — `OSC 1337 ; File=inline=1:<base64>`,
+  which is what `imgcat` and a good deal of scripting writes. `width=`/
+  `height=` are cells bare and pixels with `px`; `inline=0` (the default in
+  the protocol) means *download this file*, which a terminal has no business
+  doing because a program said so, and crew does not. The four OSC sequences
+  crew already listens for — the cwd report, notifications, progress and the
+  shell marks — reach the parser untouched: nothing is taken out of the stream
+  until the prefix says it is a picture.
 
 **Reach anything on the pane with one letter (`Cmd+E`).** A terminal's output
 is full of things you want to *do something with* — the URL a server printed,

@@ -8,6 +8,28 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.87
+
+**The other spelling of "here is a picture".**
+
+0.19.81 taught crew kitty's graphics protocol. Plenty of tools write iTerm2's
+instead — `imgcat` and a great deal of scripting — so crew reads that one now
+as well: `OSC 1337 ; File=inline=1:<base64>`, landing in the same command, at
+the cursor, reserving the same rows, decoded on the same worker.
+
+* `width=`/`height=` are read in the units they were written in: cells bare,
+  pixels with `px`, a share of the window with `%` (which is not an answer the
+  parser has, so the picture comes as big as it is and is fitted).
+* `inline=0` — the protocol's own default — means *download this file*. A
+  terminal has no business doing that because a program said so, and crew does
+  not.
+* **The four OSC sequences crew already listens for are untouched.** The cwd
+  report, notifications, progress and the shell marks reach the ANSI parser as
+  they always did: the splitter reads only far enough into an OSC to know
+  whether it says `1337;File=`, and takes nothing out of the stream until it
+  does. Both halves of that are asserted by cutting the stream at **every byte
+  offset** — an OSC 7 survives every cut, and so does a picture.
+
 ## 0.19.86
 
 **The heading you are underneath, kept where the address is.**

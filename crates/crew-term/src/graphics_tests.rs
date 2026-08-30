@@ -17,7 +17,7 @@ fn run(chunks: &[&[u8]]) -> (Vec<u8>, Vec<ImageCmd>) {
         for seg in sc.feed(c) {
             match seg {
                 Seg::Bytes(b) => text.extend_from_slice(b),
-                Seg::Esc => text.push(0x1b),
+                Seg::Held(b) => text.extend_from_slice(&b),
                 Seg::Image(i) => imgs.push(i),
             }
         }
@@ -127,4 +127,86 @@ fn a_non_graphics_apc_is_swallowed_quietly() {
     let (text, imgs) = run(&[b"a\x1b_qsomething\x1b\\b"]);
     assert_eq!(text, b"ab");
     assert!(imgs.is_empty());
+}
+
+fn iterm(payload: &[u8], keys: &str) -> Vec<u8> {
+    format!("\x1b]1337;File={keys}:{}\x07", b64(payload)).into_bytes()
+}
+
+/// The other spelling of the same request: several tools write iTerm2's and
+/// not kitty's, and a terminal that reads one should read both.
+#[test]
+fn an_iterm_inline_image_is_a_picture_too() {
+    let (text, imgs) = run(&[&iterm(b"PNGBYTES", "inline=1;size=8")]);
+    assert!(text.is_empty(), "none of it is text");
+    assert_eq!(imgs.len(), 1);
+    assert_eq!(imgs[0].data, b"PNGBYTES");
+    assert!(imgs[0].displays());
+}
+
+/// `inline=0` — the default — means *download this file*, which a terminal
+/// has no business doing because a program said so.
+#[test]
+fn an_iterm_file_that_is_not_inline_is_not_displayed() {
+    let (_, imgs) = run(&[&iterm(b"x", "size=1;name=Zm9v")]);
+    assert!(imgs.is_empty());
+    let (_, off) = run(&[&iterm(b"x", "inline=0")]);
+    assert!(off.is_empty());
+}
+
+/// `width=`/`height=` are cells bare, pixels with `px`, and a share of the
+/// window with `%` — which is not an answer crew has at parse time.
+#[test]
+fn an_iterm_size_request_is_read_in_the_units_it_was_written_in() {
+    let (_, cells) = run(&[&iterm(b"x", "inline=1;width=20;height=6")]);
+    assert_eq!(cells[0].cells, (20, 6));
+    let (_, pixels) = run(&[&iterm(b"x", "inline=1;width=200px;height=100px")]);
+    assert_eq!(pixels[0].cells, (0, 0), "pixels are not cells");
+    let (_, pct) = run(&[&iterm(b"x", "inline=1;width=50%")]);
+    assert_eq!(pct[0].cells, (0, 0));
+}
+
+/// THE regression this whole path can cause: crew listens for four other OSC
+/// sequences (the cwd report, notifications, progress, the shell marks) and
+/// they reach the parser, not this. Not one byte of them may be eaten.
+#[test]
+fn every_other_osc_reaches_the_parser_untouched() {
+    for s in [
+        &b"\x1b]7;file://host/Users/you/code\x07"[..],
+        &b"\x1b]9;something finished\x07"[..],
+        &b"\x1b]777;notify;title;body\x1b\\"[..],
+        &b"\x1b]133;A\x07"[..],
+        &b"\x1b]0;a window title\x07"[..],
+        &b"\x1b]1337;SetBadgeFormat=x\x07"[..],
+        &b"\x1b]13;not a picture\x07"[..],
+    ] {
+        let (text, imgs) = run(&[s]);
+        assert_eq!(text, s, "an OSC crew listens for was eaten");
+        assert!(imgs.is_empty());
+    }
+}
+
+/// …including when the reader thread cuts one in half anywhere at all, which
+/// is where a probe that holds bytes goes wrong.
+#[test]
+fn another_osc_survives_being_cut_anywhere() {
+    let s = b"before\x1b]7;file://host/tmp\x07after";
+    for at in 1..s.len() {
+        let (text, imgs) = run(&[&s[..at], &s[at..]]);
+        assert_eq!(text, s, "split at {at} changed the stream");
+        assert!(imgs.is_empty(), "split at {at} invented a picture");
+    }
+}
+
+#[test]
+fn an_iterm_picture_survives_being_cut_anywhere() {
+    let mut stream = b"x".to_vec();
+    stream.extend(iterm(b"CUTME", "inline=1"));
+    stream.extend(b"y");
+    for at in 1..stream.len() {
+        let (text, imgs) = run(&[&stream[..at], &stream[at..]]);
+        assert_eq!(text, b"xy", "split at {at} lost or duplicated text");
+        assert_eq!(imgs.len(), 1, "split at {at} lost the picture");
+        assert_eq!(imgs[0].data, b"CUTME", "split at {at}");
+    }
 }
