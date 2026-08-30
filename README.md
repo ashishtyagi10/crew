@@ -412,6 +412,11 @@ cards, links):
   bar, no tiles: one file, framed, filling its own window, sized to a reading
   measure. `w` inside the viewer pops the document you are already reading out
   of the grid and into one. The grid goes on being a grid.
+- **A markdown document in a window is an editor.** It opens rendered with a
+  cursor in it; the arrows move through the *render*, typing goes in where you
+  are looking, Enter continues the block you are in, and **Cmd+S** writes the
+  file **with only your edit in it** — no re-wrapped paragraphs, no rewritten
+  bullets. No `#` or `**` ever appears on screen.
 - **`Cmd+E` labels everything on the pane worth reaching** — every URL, file
   reference and hash wears a letter; pressing it copies, pressing its capital
   opens (a URL in the browser, a file in the viewer). Labels come off the home

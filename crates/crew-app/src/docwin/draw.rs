@@ -64,6 +64,11 @@ impl DocWindow {
             .file_name()
             .map(|n| n.to_string_lossy().into_owned())
             .unwrap_or_else(|| self.view.path.to_string_lossy().into_owned());
+        // An editor owes you a standing answer to "is what I typed on disk".
+        let name = match self.view.dirty {
+            true => format!("{name} \u{25cf}"),
+            false => name,
+        };
         let (back, total) = self.view.position(self.grid.cols, self.grid.rows);
         if total == 0 || total <= usize::from(self.grid.rows) {
             return name;

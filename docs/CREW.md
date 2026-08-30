@@ -980,7 +980,27 @@ longer aim at.
   window's close button ends it. Opening a file already in a window raises that
   window rather than stacking a second copy of it.
   It is a second *surface*, not a second app: one process, one broker, one
-  theme, one font. Making crew's windows plural all the way down — panes, focus
+  theme, one font.
+- **A markdown document in a window is an EDITOR.** It opens rendered, with a
+  cursor already in it — that is the difference between reading a file and
+  writing one, and it is what "preview mode" means here: the state you arrive
+  in is the finished-looking one, and editing does not change the view. The
+  arrows, Home and End move the caret through the **rendered** document; type
+  and the character goes in where you are looking; Backspace deletes the one
+  behind it; Enter ends the block and starts another **of the same kind** (a
+  new paragraph after prose, another item in a list, the next number in a
+  numbered one, the same indent in a nested one, the bar in a quote). No `#`,
+  no `**`, no `](` ever appears on screen. **Cmd+S** writes it; the frame's
+  legend carries a `●` while there is anything unsaved, and Esc on unsaved
+  changes asks once before discarding them.
+  **What it writes is what it read, with the edit spliced in.** The caret is a
+  *byte* of the file (every rendered character knows the byte it came from),
+  so an edit is a splice and nothing else can move: no re-wrapped paragraphs,
+  no `*` bullets rewritten as `-`, no setext heading turned into ATX. A save
+  with nothing typed writes the file unchanged, byte for byte.
+  A character the renderer put there itself — a list bullet, a table's rules,
+  a code field's border — is not a place the caret can go, because the file
+  does not contain it and there is nothing there to type into. Making crew's windows plural all the way down — panes, focus
   and zoom per window — is the first pillar of
   `docs/superpowers/goals/2026-08-30-markdown-editor-in-its-own-window.md`, and
   a document window deliberately needs none of it.

@@ -5,6 +5,11 @@ use crate::app::CrewApp;
 use crate::viewpane::keys::{view_key, ViewInput};
 use winit::keyboard::{Key, SmolStr};
 
+/// A character key, as the classifier sees it.
+fn ch(s: &str) -> Key {
+    Key::Character(SmolStr::new(s))
+}
+
 fn tmp_file(name: &str) -> std::path::PathBuf {
     let p = std::env::temp_dir().join(name);
     std::fs::write(&p, "# a document\n\nwith a line in it.\n").expect("write");
@@ -55,4 +60,45 @@ fn w_is_the_pop_out_key_and_the_others_are_untouched() {
     assert_eq!(k("r"), ViewInput::Reload);
     assert_eq!(k("s"), ViewInput::ToggleRaw);
     assert_eq!(k("v"), ViewInput::ToggleSplit);
+}
+
+/// While a document has a caret the window is an EDITOR, and the keys mean
+/// what they mean in one — a letter is a letter, not a viewer command.
+#[test]
+fn a_letter_types_itself_rather_than_running_the_viewers_command() {
+    use super::event::{edit_for, Edit};
+    use winit::keyboard::ModifiersState;
+    let plain = ModifiersState::empty();
+    for c in ["o", "r", "w", "s", "v", "n"] {
+        assert_eq!(
+            edit_for(&ch(c), true, plain),
+            Some(Edit::Type(c.into())),
+            "{c} is a letter while editing, not a viewer command"
+        );
+    }
+}
+
+/// …and the one chord that is not typing.
+#[test]
+fn cmd_s_saves_and_cmd_letters_do_not_type() {
+    use super::event::{edit_for, Edit};
+    use winit::keyboard::ModifiersState;
+    assert_eq!(
+        edit_for(&ch("s"), true, ModifiersState::SUPER),
+        Some(Edit::Save)
+    );
+    assert_eq!(
+        edit_for(&ch("s"), true, ModifiersState::CONTROL),
+        Some(Edit::Save)
+    );
+    assert_eq!(
+        edit_for(&ch("q"), true, ModifiersState::SUPER),
+        None,
+        "a chord crew has no answer for is left alone, not typed"
+    );
+    assert_eq!(
+        edit_for(&ch("s"), false, ModifiersState::empty()),
+        None,
+        "a key going UP types nothing"
+    );
 }

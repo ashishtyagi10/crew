@@ -221,6 +221,39 @@ fn doc_shot_caret() {
     }
 }
 
+/// A document being TYPED into: the caret mid-word, the text that was typed,
+/// and the unsaved mark on the frame.
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn doc_shot_edited() {
+    let _g = crate::app::theme_test_guard();
+    let mut view = doc(MD);
+    view.start_editing(80);
+    for _ in 0..40 {
+        view.move_caret(crate::viewpane::caret::Step::Right, 80, 24);
+    }
+    for c in "(and typed into) ".chars() {
+        view.insert(&c.to_string(), 80, 24);
+    }
+    let (w, h) = (720u32, 420u32);
+    let px = crate::shotdraw_tests::draw(w, h, 13.0, |cw, ch| {
+        let m = 12.0;
+        let rect = Rect {
+            x: m,
+            y: m,
+            w: w as f32 - m * 2.0,
+            h: h as f32 - m * 2.0,
+        };
+        crate::docwin::draw::scenes(rect, cw, ch, "window.md \u{25cf}", &view)
+    });
+    let Some(px) = px else {
+        eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+        return;
+    };
+    crate::shotdraw_tests::write_png("doc-edited", &px, w, h);
+    assert!(crate::shotgpu_tests::ink(&px) > 3_000);
+}
+
 /// The document window on a light page and through a green tube — the two
 /// places a surface built and eyed on the dark theme goes wrong.
 #[test]

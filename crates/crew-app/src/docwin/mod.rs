@@ -39,6 +39,11 @@ pub(crate) struct DocWindow {
     pub window: Arc<Window>,
     pub renderer: Renderer,
     pub view: ViewPane,
+    /// This window's own modifier state — it is a separate surface, so the
+    /// grid's never reaches it.
+    pub mods: winit::keyboard::ModifiersState,
+    /// Whether an Esc on unsaved changes has already been refused once.
+    pub warned: bool,
     /// The grid the document was last laid out at. Recomputed on every resize,
     /// because a document wraps to its window and nothing else.
     pub grid: GridSize,
@@ -70,6 +75,8 @@ impl DocWindow {
             window,
             renderer,
             view: ViewPane::open(path),
+            mods: Default::default(),
+            warned: false,
             grid: GridSize { cols: 80, rows: 40 },
         };
         me.refit();

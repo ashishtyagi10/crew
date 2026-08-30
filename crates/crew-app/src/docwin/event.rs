@@ -2,25 +2,56 @@
 //! the three a window has that a tile does not — resize, close, and redraw.
 use winit::event::{MouseScrollDelta, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
+use winit::keyboard::ModifiersState;
 use winit::window::WindowId;
 
 use crate::app::CrewApp;
 use crate::viewpane::caret::Step;
 use crate::viewpane::ViewAction;
+use winit::keyboard::{Key, NamedKey};
 
-/// The caret movement a key asks for, if it asks for one.
-fn caret_step(k: &winit::event::KeyEvent) -> Option<Step> {
-    use winit::keyboard::{Key, NamedKey};
-    if !k.state.is_pressed() {
+/// What a key means to a document being edited.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum Edit {
+    Move(Step),
+    Type(String),
+    Backspace,
+    Newline,
+    Save,
+}
+
+/// Classify a key press for an editing window. `None` leaves it to the
+/// viewer's own keys (Esc, the search, the scroll), which still apply.
+pub(crate) fn edit_key(k: &winit::event::KeyEvent, mods: ModifiersState) -> Option<Edit> {
+    edit_for(&k.logical_key, k.state.is_pressed(), mods)
+}
+
+/// [`edit_key`] over a key the tests can build — winit's `KeyEvent` is
+/// `#[non_exhaustive]` and carries a platform field with no `Default`.
+pub(crate) fn edit_for(key: &Key, pressed: bool, mods: ModifiersState) -> Option<Edit> {
+    if !pressed {
         return None;
     }
-    match k.logical_key {
-        Key::Named(NamedKey::ArrowLeft) => Some(Step::Left),
-        Key::Named(NamedKey::ArrowRight) => Some(Step::Right),
-        Key::Named(NamedKey::ArrowUp) => Some(Step::Up),
-        Key::Named(NamedKey::ArrowDown) => Some(Step::Down),
-        Key::Named(NamedKey::Home) => Some(Step::Home),
-        Key::Named(NamedKey::End) => Some(Step::End),
+    let cmd = mods.super_key() || mods.control_key();
+    match key {
+        Key::Named(NamedKey::ArrowLeft) => Some(Edit::Move(Step::Left)),
+        Key::Named(NamedKey::ArrowRight) => Some(Edit::Move(Step::Right)),
+        Key::Named(NamedKey::ArrowUp) => Some(Edit::Move(Step::Up)),
+        Key::Named(NamedKey::ArrowDown) => Some(Edit::Move(Step::Down)),
+        Key::Named(NamedKey::Home) => Some(Edit::Move(Step::Home)),
+        Key::Named(NamedKey::End) => Some(Edit::Move(Step::End)),
+        Key::Named(NamedKey::Backspace) if !cmd => Some(Edit::Backspace),
+        Key::Named(NamedKey::Enter) if !cmd => Some(Edit::Newline),
+        Key::Named(NamedKey::Space) if !cmd => Some(Edit::Type(" ".into())),
+        Key::Named(NamedKey::Tab) if !cmd => Some(Edit::Type("  ".into())),
+        Key::Character(s) if cmd => match s.as_str() {
+            "s" => Some(Edit::Save),
+            _ => None,
+        },
+        // A letter is a letter. Without the caret this is `r` for reload and
+        // `o` for open-externally; with one, the window is an editor and
+        // typing `o` has to type an `o`.
+        Key::Character(s) => Some(Edit::Type(s.to_string())),
         _ => None,
     }
 }
@@ -72,12 +103,22 @@ impl CrewApp {
 
     /// Handle one event for the document window `id`.
     pub(crate) fn doc_window_event(&mut self, id: WindowId, event: WindowEvent) {
+        // A document window keeps its own modifier state: it is a separate
+        // surface, and the grid's `ModifiersChanged` never reaches it.
+        if let WindowEvent::ModifiersChanged(m) = &event {
+            if let Some(d) = self.docs.iter_mut().find(|d| d.id() == id) {
+                d.mods = m.state();
+            }
+            return;
+        }
         let Some(i) = self.docs.iter().position(|d| d.id() == id) else {
             return;
         };
         let mut close = false;
+        let mut save = false;
         let mut edit: Option<std::path::PathBuf> = None;
         let mut external: Option<std::path::PathBuf> = None;
+        let mods = self.docs[i].mods;
         {
             let d = &mut self.docs[i];
             match event {
@@ -109,14 +150,43 @@ impl CrewApp {
                 }
                 WindowEvent::KeyboardInput { event: k, .. } => {
                     let (cols, rows) = (d.grid.cols, d.grid.rows);
-                    // While there is a caret, the arrows move IT. In a viewer
-                    // pane they scroll, which is right for a window onto a
-                    // file and wrong for a document you are editing.
-                    if let Some(dir) = caret_step(&k) {
-                        if d.view.caret.is_some() {
-                            d.view.move_caret(dir, cols, rows);
-                            d.window.request_redraw();
-                            return;
+                    // While there is a caret this window is an EDITOR, and
+                    // the keys mean what they mean in one: the arrows move
+                    // the cursor rather than scrolling, and a letter is a
+                    // letter rather than a viewer command.
+                    if d.view.caret.is_some() {
+                        match edit_key(&k, mods) {
+                            Some(Edit::Move(dir)) => {
+                                d.view.move_caret(dir, cols, rows);
+                                d.window.request_redraw();
+                                return;
+                            }
+                            // Typing again after a refused close puts the
+                            // guard back: the next Esc asks once more rather
+                            // than throwing away what was typed since.
+                            Some(Edit::Type(text)) => {
+                                d.view.insert(&text, cols, rows);
+                                d.warned = false;
+                                d.window.request_redraw();
+                                return;
+                            }
+                            Some(Edit::Backspace) => {
+                                d.view.backspace(cols, rows);
+                                d.warned = false;
+                                d.window.request_redraw();
+                                return;
+                            }
+                            Some(Edit::Newline) => {
+                                d.view.newline(cols, rows);
+                                d.warned = false;
+                                d.window.request_redraw();
+                                return;
+                            }
+                            // NOT an early return: the write happens below,
+                            // where the pane is no longer borrowed and the
+                            // status line can be set.
+                            Some(Edit::Save) => save = true,
+                            None => {}
                         }
                     }
                     match d.view.on_key(&k, cols, rows, false) {
@@ -132,8 +202,29 @@ impl CrewApp {
                 _ => {}
             }
         }
+        if save {
+            let d = &mut self.docs[i];
+            let name = d.view.path.display().to_string();
+            d.warned = false;
+            match d.view.save() {
+                Ok(()) => self.set_status(format!("saved {name}")),
+                Err(e) => self.set_status(format!("could not save {name}: {e}")),
+            }
+        }
         if close {
-            self.docs.remove(i);
+            // Esc on a document with unsaved edits asks once rather than
+            // throwing the typing away: the second press closes it.
+            let d = &mut self.docs[i];
+            match d.view.dirty && !d.warned {
+                true => {
+                    d.warned = true;
+                    self.set_status("unsaved changes — Cmd+S to save, Esc again to discard");
+                    self.docs[i].window.request_redraw();
+                }
+                false => {
+                    self.docs.remove(i);
+                }
+            }
         }
         // `$EDITOR` and the OS opener both belong to the app, not to the
         // window: an editor spawns a terminal pane in the grid, which is

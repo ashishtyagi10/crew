@@ -73,6 +73,8 @@ pub(crate) struct ViewPane {
     /// again. Keeping the row would put the cursor on a different word every
     /// time the window changed width.
     pub caret_at: Option<u32>,
+    /// Edited since it was read or last saved.
+    pub dirty: bool,
     /// `v`: lay a diff out side by side rather than unified (see
     /// [`super::diffsplit`]). Per pane rather than a setting: it is a way of
     /// reading THIS review at THIS width, and a pane too narrow to hold two
@@ -118,6 +120,7 @@ impl ViewPane {
             raw: false,
             caret: None,
             caret_at: None,
+            dirty: false,
             split: false,
             search: None,
             cache: RefCell::new(None),

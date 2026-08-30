@@ -27,11 +27,19 @@ pub(crate) struct Caret {
     pub want: u16,
 }
 
-/// The display column of each character of `line`, paired with its source
-/// offset — the row's editable positions, in order.
+/// The row's caret positions, in order, as `(display column, source byte)`.
+///
+/// A caret sits **before** the character it is drawn on, which is what makes
+/// typing insert where you are looking. That leaves one position no character
+/// can provide: the one *after* the last character, where a line is extended
+/// and a document is appended to. So each row ends with a stop the renderer
+/// drew nothing at — one column past its last sourced character, holding the
+/// byte just after it. Without it there is nowhere to stand at the end of a
+/// document, and nothing can ever be added to one.
 fn stops(line: &CardLine) -> Vec<(u16, u32)> {
     let mut out = Vec::new();
     let mut col: u16 = 0;
+    let mut end: Option<(u16, u32)> = None;
     for cell in line {
         let w = crate::chatwidth::char_w(cell.c) as u16;
         if w == 0 {
@@ -39,9 +47,11 @@ fn stops(line: &CardLine) -> Vec<(u16, u32)> {
         }
         if let Some(src) = cell.src {
             out.push((col, src));
+            end = Some((col + w, src + cell.c.len_utf8() as u32));
         }
         col += w;
     }
+    out.extend(end);
     out
 }
 

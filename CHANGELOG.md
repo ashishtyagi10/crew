@@ -8,6 +8,43 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.90
+
+**You can type into the render.**
+
+0.19.89 put a cursor in a rendered document. This one lets you write with it:
+in a `/doc` window, a letter goes in where you are looking, Backspace takes
+out the one behind it, Enter ends the block and starts **another of the same
+kind**, and **Cmd+S** writes the file.
+
+* **Enter knows what block it is in.** A single newline inside a paragraph is
+  a *soft* break — CommonMark joins the two sides with a space — so pressing
+  Enter in prose and getting one would look like nothing happened; prose gets
+  a blank line. A list gets another item, a numbered list gets the next
+  number, a nested item keeps its indent, a quote keeps its bar. That is read
+  off the source line the caret is on, which is the one place the markers are
+  still visible — and the reason the buffer is the source.
+* **What it writes is what it read, with the edit spliced in.** The caret is a
+  byte, so an edit is a splice and nothing else *can* move: no re-wrapped
+  paragraphs, no `*` bullets rewritten as `-`, no setext heading turned into
+  ATX, no odd spacing tidied. The test opens a document written in every style
+  a formatter likes to "fix", types one character, saves, and asserts the diff
+  is **one line**. A save with nothing typed writes the file unchanged, byte
+  for byte.
+* **A caret can stand after the last character.** It sits *before* the one it
+  is drawn on, so each row ends with a position no character provides — the
+  place a line is extended and a document is appended to. Without it there is
+  nowhere to stand at the end of a file and nothing can ever be added to one.
+* **While a document has a caret, the window is an editor**: `o`, `r`, `w`,
+  `s` type themselves instead of running the viewer's commands. A chord crew
+  has no answer for is left alone rather than typed.
+* The frame's legend carries a `●` while anything is unsaved, and Esc on
+  unsaved changes asks once before discarding — and typing again after that
+  puts the guard back.
+
+**Not yet:** undo, selection, Cmd+B/I, and clicking to place the caret. The
+next slice is the one that makes it comfortable rather than possible.
+
 ## 0.19.89
 
 **A cursor in the render — the markdown editor starts here.**

@@ -13,6 +13,7 @@ mod diffnums;
 pub(crate) mod diffpaint;
 pub(crate) mod diffsplit;
 pub(crate) mod diffsplitdraw;
+pub(crate) mod edit;
 #[cfg(test)]
 #[path = "editpane_tests.rs"]
 mod editpane_tests;

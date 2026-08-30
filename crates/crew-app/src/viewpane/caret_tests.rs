@@ -9,7 +9,8 @@ fn lines(text: &str, cols: usize) -> Vec<CardLine> {
     crate::chatmd::map_lines(render(text, cols), cols, fg)
 }
 
-/// The character the caret is on, read back out of the row it is in.
+/// The character the caret is on — `None` at a row's end stop, where the
+/// caret stands after the last character and there is no cell.
 fn char_at(ls: &[CardLine], c: Caret) -> Option<char> {
     let mut col = 0u16;
     for cell in ls.get(c.row)? {
@@ -49,14 +50,15 @@ fn the_caret_steps_over_what_the_renderer_added() {
     let ls = lines("- one\n- two\n", 40);
     let mut c = first(&ls).expect("start");
     assert_eq!(char_at(&ls, c), Some('o'), "not the bullet");
-    // Six characters of document: the two items' text and nothing else. The
-    // bullets, the spaces after them and the line breaks are all furniture.
+    // Six characters of document and two end stops: the two items' text, the
+    // place after each, and nothing else. The bullets, the spaces after them
+    // and the line breaks are all furniture.
     let mut seen = String::new();
-    for _ in 0..6 {
-        seen.push(char_at(&ls, c).unwrap_or('?'));
+    for _ in 0..8 {
+        seen.push(char_at(&ls, c).unwrap_or('\u{2423}'));
         c = step(&ls, c, Step::Right);
     }
-    assert_eq!(seen, "onetwo", "walked: {seen:?}");
+    assert_eq!(seen, "one\u{2423}two\u{2423}", "walked: {seen:?}");
     assert!(!seen.contains('\u{2022}'), "the caret sat on a bullet");
 }
 
@@ -103,7 +105,17 @@ fn the_ends_of_the_document_hold() {
         c = step(&ls, c, Step::Right);
     }
     assert_eq!(step(&ls, c, Step::Right), c, "the last place holds");
-    assert_eq!(char_at(&ls, c), Some('.'), "…which is the last character");
+    assert_eq!(
+        char_at(&ls, c),
+        None,
+        "…which is the place AFTER the last character, where a document is \
+         appended to"
+    );
+    assert_eq!(
+        offset_at(&ls, c),
+        Some(DOC.len() as u32 - 1),
+        "one past the final `.`, before the trailing newline"
+    );
 }
 
 /// Vertical movement aims for the column it started from, not the one the
@@ -133,7 +145,8 @@ fn home_and_end_land_on_the_ends_of_the_row() {
     let ls = lines("Some prose here.\n", 40);
     let c = first(&ls).expect("start");
     let end = step(&ls, c, Step::End);
-    assert_eq!(char_at(&ls, end), Some('.'));
+    assert_eq!(char_at(&ls, end), None, "End is past the last character");
+    assert_eq!(char_at(&ls, step(&ls, end, Step::Left)), Some('.'));
     assert_eq!(step(&ls, end, Step::Home), c);
 }
 
