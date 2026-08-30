@@ -604,13 +604,21 @@ The docked command bar supports:
   strength — including `off`). Live and persisted; no argument reports the
   current strength; selecting `/smooth` in the palette opens a value picker.
   The named ladder is also the **Smoothing** field in `/settings` — both write
-  the same `font_smooth` key. The default came down from 100 to 70 in 0.19.28:
-  the darkening had been calibrated by eye while the encoded blend was still
-  eating a quarter of the glyph's light, so it was making up part of that
-  deficit as well as doing its own job. `/gamma` corrects the blend honestly
-  now, and the two at their old values delivered more light than the outline
-  asks for. A config still carrying the old default is moved once on upgrade; a
-  strength you chose is left alone. The darkening *accumulates* coverage rather than
+  the same `font_smooth` key. **The default is `off` as of 0.19.62.** The
+  darkening was added when it was crew's only text correction and was quietly
+  covering the encoded blend's deficit as well as doing its own job; `/gamma`
+  took that over honestly in 0.19.25, and 0.19.28 rebalanced the pair from 100
+  to 70 so they stopped stacking. What that rebalance never asked is whether
+  the darkening still earned anything. Swept over eight glyphs at two sizes and
+  both polarities, it does not: the curve alone delivers **100%** of the
+  outline's light on a dark page and 100% on a bright one, where `smooth 70,
+  gamma 130` delivered 98% and **145%** — and it does it on **45% fewer inked
+  pixels**. Every one of those extra pixels was a fraction of a stem's coverage
+  sitting one pixel out from the stem, which is a soft edge with nothing bought
+  for it. A config still carrying either old default is moved once on upgrade,
+  and only when both halves are untouched; a strength you chose is left alone.
+  The ladder is unchanged for anyone who wants the fuller Terminal.app look
+  back — `medium` is still the strength that look was calibrated at. The darkening *accumulates* coverage rather than
   taking the brighter of a pixel and its neighbour's spill, so the letters
   built from curves take the same widening as the ones built from stems — a
   saturating dilation cannot darken a pixel whose own coverage already beats
@@ -627,9 +635,22 @@ The docked command bar supports:
   its correct linear luminance**, and reads thin for it; dark text on a bright
   page has the same error with the sign flipped and reads blotted. `/gamma`
   bends the mask back, by polarity: up on a dark page, down on a bright one.
-  `full` is the whole sRGB correction — the coverage a glyph asks for is
-  exactly the light it gets. `medium` (the default) is about half of it, which
-  puts the midtone at Apple's historical text gamma. Both curves fix 0 and 1,
+  `full` (**the default** as of 0.19.62) is the whole sRGB correction — the
+  coverage a glyph asks for is exactly the light it gets. `medium` is about
+  half of it, which puts the midtone at Apple's historical text gamma; half was
+  the right answer only while the stem darkening was on by default and
+  delivering the other half.
+
+  The amount is then scaled by **each run's own contrast**. `a^(1/2.2)` is
+  exact for white ink on a black page and for nothing else: over a narrower
+  span the blend loses proportionally less light, so the full correction
+  overshoots, and it overshoots most at the low end — a coverage of 0.05 lifted
+  to 0.26 where crew's own body pair asks for 0.19. That lift lands on the
+  outermost pixel of every stroke, which is where a halo comes from. Crew's
+  body pair takes about 84% of the amount you set; a muted comment or a dim
+  legend takes less. Nothing is plumbed for it: the amount is already a byte in
+  every glyph's cache key, so a run whose colours ask for less simply mints its
+  own. Both curves fix 0 and 1,
   so a glyph's empty pixels and its solid interior never move and only the
   antialiased rim — most of a small glyph — is touched. Live and persisted; no
   argument reports the current amount. The named ladder is also the **Text
@@ -1349,6 +1370,40 @@ Selecting empty space is visible for the same reason.
 
 Plain blank cells are still dropped before any colour work happens: a terminal
 is mostly empty, and every kept blank is a cell shaped and a quad drawn.
+
+## Rules, frames and blocks are drawn, not read
+
+Every frame, divider, meter and shade in crew is a box-drawing character —
+`─ │ ╭ █ ▍ ░` — and until 0.19.62 every one of them travelled the same pipeline
+a letter does. The font's outline was rasterized, the CoreText-style stem
+darkening spilled its coverage into the neighbouring pixels, and the coverage
+curve lifted what was left. All three are right for a letterform and wrong for
+a rectangle.
+
+Measured on a card frame, averaged along the rule so the paper grain cancels,
+one `─` spanned **four rows of pixels with a single row at full ink** — 0.20 /
+0.78 / 1.00 / 0.25 — and the left rule the same across. That is what "the
+frames look soft" was, in numbers.
+
+Crew now draws them. U+2500–254B (light and heavy lines, junctions and
+corners), U+256D–2570 (the rounded corners crew's own cards wear) and
+U+2580–259F (blocks, eighths, quadrants, shades) are synthesized as pixel
+rectangles in the cell's own box and seeded straight into the glyph cache,
+skipping the darkening and the curve entirely. The same frame after: **one row
+at 1.000 and zero fringe pixels**, both axes. Every native terminal does this
+— ghostty, kitty and WezTerm all synthesize the range — and two more things
+fall out of it:
+
+- a row of `─` is the identical bitmap in every cell, so a long rule cannot
+  wobble by a pixel the way independently-rasterized glyphs can;
+- `┼`'s strokes are cut from the same centred span as `─` and `│`, so
+  junctions meet exactly, and the rounded corners keep one whole pixel of
+  straight tail on each arm so they join their neighbours at full ink.
+
+The stroke tracks the cell height, so a Retina rescale or a display font size
+gets a proportionally thicker rule rather than a lone hairline. Characters
+outside the drawn set — the dashed and double runs, `╱`, `●` — fall through to
+the font exactly as before.
 
 ## How long it has been going
 
