@@ -8,6 +8,49 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.73
+
+**The PANES section lost its tally, and the three drawn panes got looked at.**
+
+The working / waiting / idle breakdown under the `PANES` rule is gone. It held
+three rows — a chip gutter, three state labels, three counts and a pulse wash
+behind them — to say what the pane rows directly below it already say, one
+pane at a time and in the place you act on it: the spinner IS working, the
+bell IS waiting, and a row with neither is idle. `PANES n` on the rule keeps
+the one number a glance wants, and the list starts on the row under it, so a
+nav shows three more panes before it runs out of height.
+
+Then a **width and theme sweep for `/usage`, `/dash` and `/disk`** — the three
+panes that are pure drawing. Each had one shot: one width, one height, one
+theme, which is the size a widget is designed at. Nine now, and they found:
+
+* **Both drawn panes were one layout for every pane.** On a full window they
+  finished halfway down and left the rest paper — a week of hours drawn as a
+  one-row strip, seven days of cost as a four-row smear — while at a quarter
+  tile the cost band asked for five rows, could not have them, and was dropped
+  whole with six rows sitting empty above it. Both now divide the rows they
+  have, the way the left nav does: every band at its floor, then the slack to
+  the histories — the heatmap up to three rows a day, then the cost curve.
+* **The `/usage` donut** was painted one column right of where the total in its
+  hole was written, so `2.2M` put its first character on the ring; and at
+  nearly two rows of radius it was drawn from the same row as the word TOKENS
+  and ran its top arc through it. Its two swatch dots were placed outside the
+  canvas they were drawn on and had never once appeared — dropped, since `in`
+  and `out` are already written in their slice's colour.
+* **The `/disk` map's picked tile** wrote the page's own near-white ink on a
+  bright pastel fill: the one tile you had selected was the one label you could
+  not read. Ink is chosen against the tile now, composited at the alpha it is
+  actually drawn with.
+* **Its header** was one string clipped at the pane's edge, so a narrow pane
+  showed a path cut mid-component and no total at all. The reading is placed
+  first now and the path takes what is left, elided from the left so the tail
+  survives.
+* **Its tiles collided.** Six colours picked by name hash, eight children: in
+  this repo's own root `crates` and `.git` came out byte-identical, and so did
+  `target` and `docs`. Two touching tiles the same colour read as one region,
+  which is the one thing a map of areas is for. The colours are dealt now, so
+  no two that touch match.
+
 ## 0.19.72
 
 **The hold panel is gone.** Resting a thumb on `Cmd` for 450ms put a card of
