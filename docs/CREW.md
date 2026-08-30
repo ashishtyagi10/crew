@@ -1371,6 +1371,27 @@ Selecting empty space is visible for the same reason.
 Plain blank cells are still dropped before any colour work happens: a terminal
 is mostly empty, and every kept blank is a cell shaped and a quad drawn.
 
+## Charts are drawn at the screen's resolution
+
+Everything crew draws rather than spells — the dials, the gauges, the area
+charts, the treemap, the meters, the card's own progress bar and scroll thumb
+— is rasterized on a sub-cell canvas and handed to the frame as rectangles.
+That canvas picked a fixed four pixels per cell width. A cell is about eight
+device pixels across at crew's default font, and sixteen on a Retina display,
+so **every drawn widget was rasterized at half the screen's resolution and
+blown up** — a quarter of it on Retina. No amount of coverage maths rescues
+that: the smallest thing the canvas can address is the block, so a chart's
+roof steps in blocks however carefully its edge is computed.
+
+Going *finer* than the device is the same defect wearing the other hat, and
+three surfaces had walked into it by hard-coding twelve. Quads are rasterized
+at pixel centres with no multisampling, so a canvas pixel narrower than a
+device pixel is not blended into its neighbour — it is kept or dropped, and a
+third of the coverage those surfaces computed never reached the screen.
+
+The canvas now asks the frame how wide a cell is and rasterizes one pixel per
+device pixel, at any font size and on any display.
+
 ## Rules, frames and blocks are drawn, not read
 
 Every frame, divider, meter and shade in crew is a box-drawing character —
@@ -1400,10 +1421,23 @@ fall out of it:
   junctions meet exactly, and the rounded corners keep one whole pixel of
   straight tail on each arm so they join their neighbours at full ink.
 
+The **double** (`═ ║ ╔ ╬`) and **dashed** (`┄ ┈ ╌ ┆`) runs are drawn too, and
+those are not crew's own furniture — crew frames with the light set. They are
+what a great many of the programs living in crew's panes frame with: lazygit,
+ncdu, midnight commander, half the ncurses dialogs ever written. A pane
+running one of those was drawing its whole frame out of the font, and there is
+no reason the crispness should stop at crew's own borders.
+
+The doubles are the hard half: at a turn the OUTER stroke of each arm has to
+run past the far side of the other's band and the INNER stroke stop at its
+near side, or the corner comes out as a lattice with its corner missing; and a
+T-junction's inner stroke has to step aside for the branch rather than walling
+it off. `╬` is four corners around a hole, not a thick `┼`.
+
 The stroke tracks the cell height, so a Retina rescale or a display font size
 gets a proportionally thicker rule rather than a lone hairline. Characters
-outside the drawn set — the dashed and double runs, `╱`, `●` — fall through to
-the font exactly as before.
+outside the drawn set — the mixed single/double junctions (`╪ ╫`), `╱`, `●` —
+fall through to the font exactly as before.
 
 ## How long it has been going
 

@@ -387,7 +387,6 @@ fn meter_shade(t: f32) -> (u8, u8, u8) {
 }
 
 /// The track colour under it — the same ramp, pulled toward the page.
-
 fn meter_track() -> (u8, u8, u8) {
     crate::anim::lerp_rgb(meter_shade(0.5), crew_theme::theme().page_bg, TROUGH_FADE)
 }
