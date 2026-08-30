@@ -165,6 +165,13 @@ impl ViewPane {
             return Vec::new();
         }
         let top = self.scroll;
+        // Rows a picture must not enter: the sticky heading band owns the
+        // first, a live search owns the last. Both are chrome the document
+        // scrolls UNDER, and paint is drawn over a cell's background — so
+        // without this a picture scrolled halfway off the top is drawn over
+        // the band naming the section it is in.
+        let y0 = f32::from(u16::from(sticky::label_for(&cache.marks, top).is_some()));
+        let y1 = f32::from(rows) - f32::from(u16::from(self.search.is_some()));
         let mut out = Vec::new();
         for p in &cache.pictures {
             // Wholly above or below the window: not merely invisible, but not
@@ -186,7 +193,7 @@ impl ViewPane {
                 f32::from(cols).max(2.0) - 2.0,
                 p.rows as f32,
                 aspect,
-                (f32::from(cols), f32::from(rows)),
+                (0.0, y0, f32::from(cols), y1),
             ));
         }
         out

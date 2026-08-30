@@ -148,3 +148,20 @@ fn bytes_that_are_not_a_picture_decode_to_nothing() {
     assert!(decode(b"not an image at all").is_none());
     assert!(decode(&[]).is_none());
 }
+
+/// The clip is a box, not a size, because a pane has rows a picture must not
+/// enter at BOTH ends: the sticky heading band owns the first row, a live
+/// search owns the last. Found by looking at a document scrolled so its
+/// picture was half off the top — it was drawn over the band naming the
+/// section it was in.
+#[test]
+fn a_picture_is_kept_out_of_the_rows_reserved_at_either_end() {
+    let img = bm(40, 40, |_, _| [200, 60, 60, 255]);
+    // A box spanning the whole pane, clipped to everything but the first and
+    // last rows.
+    let ps = paint_at(&img, 0.0, -3.0, 20.0, 20.0, ASPECT, (0.0, 1.0, 20.0, 19.0));
+    assert!(!ps.is_empty(), "still drawn, just trimmed");
+    let (_, y0, _, y1) = bounds(&ps);
+    assert!(y0 >= 0.99, "entered the sticky row: {y0}");
+    assert!(y1 <= 19.01, "entered the search row: {y1}");
+}

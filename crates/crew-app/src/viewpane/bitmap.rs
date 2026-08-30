@@ -94,16 +94,19 @@ fn downscale(img: image::DynamicImage, src: (u32, u32)) -> Option<Bitmap> {
 /// keeps a photo from coming out twice as tall as it is.
 pub(crate) fn paint(bm: &Bitmap, cols: u16, rows: u16, aspect: f32) -> Vec<Paint> {
     let (w, h) = (f32::from(cols), f32::from(rows));
-    paint_at(bm, 0.0, 0.0, w, h, aspect, (w, h))
+    paint_at(bm, 0.0, 0.0, w, h, aspect, (0.0, 0.0, w, h))
 }
 
 /// The picture fitted into an arbitrary box of the pane's grid and clipped to
-/// `clip` — what a terminal needs, where the box is wherever the program's
-/// cursor was and half of it may have scrolled off the top.
+/// `clip` (`x0, y0, x1, y1` in cells) — what a terminal needs, where the box
+/// is wherever the program's cursor was and half of it may have scrolled off
+/// the top.
 ///
 /// Nothing else clips: a pane's cells cannot be drawn outside it, but paint is
 /// free rectangles, and a quad reaching past the pane would be drawn over the
-/// pane beside it.
+/// pane beside it. The clip is a full box rather than a size because a pane
+/// can have rows a picture must not enter at either end — the sticky heading
+/// band on the first, a live search on the last.
 pub(crate) fn paint_at(
     bm: &Bitmap,
     x0: f32,
@@ -111,7 +114,7 @@ pub(crate) fn paint_at(
     box_w: f32,
     box_h: f32,
     aspect: f32,
-    clip: (f32, f32),
+    clip: (f32, f32, f32, f32),
 ) -> Vec<Paint> {
     if box_w < 0.5 || box_h < 0.5 || bm.w == 0 || bm.h == 0 || aspect <= 0.0 {
         return Vec::new();
@@ -157,10 +160,10 @@ pub(crate) fn paint_at(
     out
 }
 
-/// `p` trimmed to the pane box, or nothing when it falls outside it.
-fn clipped(p: Paint, clip: (f32, f32)) -> Option<Paint> {
-    let (x0, y0) = (p.x.max(0.0), p.y.max(0.0));
-    let (x1, y1) = ((p.x + p.w).min(clip.0), (p.y + p.h).min(clip.1));
+/// `p` trimmed to the box, or nothing when it falls outside it.
+fn clipped(p: Paint, clip: (f32, f32, f32, f32)) -> Option<Paint> {
+    let (x0, y0) = (p.x.max(clip.0), p.y.max(clip.1));
+    let (x1, y1) = ((p.x + p.w).min(clip.2), (p.y + p.h).min(clip.3));
     (x1 > x0 && y1 > y0).then_some(Paint {
         x: x0,
         y: y0,

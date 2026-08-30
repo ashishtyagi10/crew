@@ -133,6 +133,25 @@ fn doc_shot_illustrated() {
     };
     crate::shotdraw_tests::write_png("doc-illustrated", &px, w, h);
     assert!(crate::shotgpu_tests::ink(&px) > 3_000);
+
+    // Scrolled so the picture is half off the top: paint is free rectangles
+    // and nothing else clips it, so this is the frame that says whether it is
+    // cut to the pane or drawn over the frame above it.
+    let mut half = view;
+    half.scroll = 8;
+    let px = crate::shotdraw_tests::draw(w, h, 13.0, |cw, ch| {
+        let m = 12.0;
+        let rect = Rect {
+            x: m,
+            y: m,
+            w: w as f32 - m * 2.0,
+            h: h as f32 - m * 2.0,
+        };
+        crate::docwin::draw::scenes(rect, cw, ch, "README.md \u{00b7} 60%", &half)
+    });
+    if let Some(px) = px {
+        crate::shotdraw_tests::write_png("doc-illustrated-cut", &px, w, h);
+    }
 }
 
 /// Scrolled into a section: the heading you are underneath, on the top row.
@@ -167,6 +186,42 @@ fn doc_shot_sticky_heading() {
     };
     crate::shotdraw_tests::write_png("doc-sticky", &px, w, h);
     assert!(crate::shotgpu_tests::ink(&px) > 3_000);
+}
+
+/// The document window on a light page and through a green tube — the two
+/// places a surface built and eyed on the dark theme goes wrong.
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn doc_shot_themes() {
+    let _a = crate::palette::test_guard();
+    let _g = crate::app::theme_test_guard();
+    let mut view = doc(MD);
+    view.scroll = 6;
+    for (suffix, id) in [
+        ("light", crew_theme::ThemeId::PaperLight),
+        ("crt-green", crew_theme::ThemeId::CrtGreen),
+    ] {
+        crew_theme::set_theme(id);
+        crate::palette::set_accent(crew_theme::theme().accent_default);
+        let (w, h) = (720u32, 560u32);
+        let px = crate::shotdraw_tests::draw(w, h, 13.0, |cw, ch| {
+            let m = 12.0;
+            let rect = Rect {
+                x: m,
+                y: m,
+                w: w as f32 - m * 2.0,
+                h: h as f32 - m * 2.0,
+            };
+            crate::docwin::draw::scenes(rect, cw, ch, "window.md \u{00b7} 22%", &view)
+        });
+        let Some(px) = px else {
+            eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+            return;
+        };
+        crate::shotdraw_tests::write_png(&format!("doc-{suffix}"), &px, w, h);
+        assert!(crate::shotgpu_tests::ink(&px) > 3_000, "doc-{suffix} drew");
+    }
+    crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
 }
 
 /// A document window at the proportions it opens at (a reading measure, taller

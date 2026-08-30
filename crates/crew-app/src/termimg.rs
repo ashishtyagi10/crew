@@ -125,7 +125,7 @@ impl TermImages {
                 f32::from(s.cells.0),
                 f32::from(s.cells.1),
                 aspect,
-                (cw, ch),
+                (0.0, 0.0, cw, ch),
             ));
         }
         out

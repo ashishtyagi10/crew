@@ -8,6 +8,32 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.88
+
+**A picture stopped being drawn over the heading that names where it is.**
+
+The close of a ten-release loop is the frame nobody had taken: every surface
+the last nine added, on a light page and through a green tube, at three window
+shapes, and scrolled to the awkward places. One thing was wrong, and only in
+the state that puts two of the new features on the same row.
+
+* **The clip is a box now, not a size.** A document scrolled so its picture is
+  half off the top drew the picture **over the sticky heading band** — paint is
+  drawn over a cell's background, and the picture's clip only knew the pane's
+  width and height, so it had no way to be told about a row it must not enter.
+  It takes a full box, and the viewer keeps pictures out of the first row when
+  a heading band is up and the last when a search is open. Both are chrome the
+  document scrolls *under*.
+* Shots added for the document window on the light theme and the green tube,
+  for a picture cut by the top of the pane, and for hint mode on both themes.
+
+**Judged and not changed:** a picture keeps its own colours on a CRT theme.
+The tubes look monochrome because their *ansi table* is one phosphor ramp, not
+because crew collapses what a program sends — a truecolour run comes out
+orange on the green tube today, and has since the tubes shipped. A picture is
+the strongest possible case of a program sending exact colours, so it keeps
+them, and the tube stays a palette rather than a filter.
+
 ## 0.19.87
 
 **The other spelling of "here is a picture".**
