@@ -3,6 +3,8 @@
 //! unchanged (see [`crate::scenecache`]).
 use glyphon::Buffer;
 
+use unicode_width::UnicodeWidthChar;
+
 use crate::cellgrid::{default_bg, CellView};
 use crate::celltext::{build_pane_buffer, FontParams};
 use crate::glass::GlassCard;
@@ -15,6 +17,16 @@ use crate::scenecache::{pane_sig, PrevPass};
 pub(crate) type PaneBuffer = (Buffer, f32, f32, f32, f32);
 
 /// One pane to be rendered: its cell data, pixel rect, and focus state.
+/// Columns a cell's character occupies — the same one-or-two the layout
+/// advances it by (see `celltext::cells_for`), as a multiplier for the marks
+/// drawn under it.
+fn cell_cols(c: char) -> f32 {
+    match UnicodeWidthChar::width(c) {
+        Some(2) => 2.0,
+        _ => 1.0,
+    }
+}
+
 pub struct PaneScene {
     pub cells: Vec<CellView>,
     pub x: f32,
@@ -159,11 +171,20 @@ pub(crate) fn build_scene(
         for cell in &pane.cells {
             let x = pane.x + f32::from(cell.col) * cell_w;
             let y = pane.y + f32::from(cell.row) * cell_h;
+            // Everything a cell wears has to cover every column the cell
+            // occupies. A full-width character owns TWO, and the second
+            // carries no `CellView` of its own — the terminal drops
+            // alacritty's spacer and every widget places one cell per
+            // character — so a mark measured in one cell left a gap on the
+            // other: a selection over Japanese was a row of stripes, an
+            // underline broke under every wide glyph, and a TUI's painted
+            // status bar came out perforated.
+            let w = cell_cols(cell.c) * cell_w;
             if cell.bg != default_bg() {
                 quads.push(Quad {
                     x,
                     y,
-                    w: cell_w,
+                    w,
                     h: cell_h,
                     color: crate::color::target_rgba(cell.bg, 1.0, srgb),
                 });
@@ -171,13 +192,13 @@ pub(crate) fn build_scene(
             if !cell.deco.is_blank() {
                 let rgb = crate::deco::color(&cell.deco, cell.fg);
                 let color = crate::color::target_rgba(rgb, 1.0, srgb);
-                for (x, y, w, h) in crate::deco::rects(&cell.deco, x, y, cell_w, cell_h) {
+                for (x, y, w, h) in crate::deco::rects(&cell.deco, x, y, w, cell_h) {
                     quads.push(Quad { x, y, w, h, color });
                 }
             }
             if cell.cursor.is_rule() {
                 let color = crate::color::target_rgba(cell.cursor.color, 1.0, srgb);
-                for (x, y, w, h) in crate::deco::cursor_rects(&cell.cursor, x, y, cell_w, cell_h) {
+                for (x, y, w, h) in crate::deco::cursor_rects(&cell.cursor, x, y, w, cell_h) {
                     quads.push(Quad { x, y, w, h, color });
                 }
             }

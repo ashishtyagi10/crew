@@ -75,6 +75,13 @@ fn session() -> String {
         .into()
 }
 
+/// Marks laid ON full-width text: a selection, the block cursor, an
+/// underline and a painted background all have to cover BOTH columns the
+/// character occupies.
+const WIDE: &str = "\x1b[4munderlined 日本語 text\x1b[0m\r\n\
+     \x1b[44m painted 全角 background \x1b[0m\r\n\
+     plain ascii for scale\r\n";
+
 fn term(body: &str, cols: u16, rows: u16) -> HeadlessTerm {
     let mut t = HeadlessTerm::new(GridSize { cols, rows });
     t.feed(body.as_bytes());
@@ -99,6 +106,7 @@ fn sweep(suffix: &str, w: u32, h: u32) -> bool {
         ("attrs", attributes(), false),
         ("session", session(), false),
         ("select", session(), true),
+        ("wide", WIDE.to_string(), true),
     ] {
         let name = format!("term-{kind}-{suffix}");
         if let Some(px) = term_shot(&name, &body, w, h, sel) {
@@ -142,4 +150,14 @@ fn term_shot_themes() {
         sweep(suffix, 700, 560);
     }
     crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
+}
+
+#[test]
+#[ignore = "scratch"]
+fn attrs_zoom() {
+    let _g = crate::app::theme_test_guard();
+    crate::shotgpu_tests::shot_at("term-attrs-zoom", 900, 300, 24.0, "zsh", |cols, rows, _| {
+        let t = term(&attributes(), cols, rows);
+        (to_cellviews(&t.cells(true)), Vec::new())
+    });
 }

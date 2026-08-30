@@ -22,7 +22,8 @@ successor to this repo's original terminal file-manager project; the crates unde
   (`crew_render::color`) because the surface is sRGB; **unchanged panes reuse
   last frame's shaped text** (content signatures in `scenecache`); and all cell
   placement is **display-width aware** (`chatwidth` — emoji/CJK advance two
-  columns everywhere).
+  columns everywhere, and everything a wide cell wears — its background, the
+  underline family, the block cursor — is drawn across both of them).
 - **Terminal model** — `alacritty_terminal` + `portable-pty` (`crates/smith-term`).
 - **In-pane UI** — `ratatui` widgets are laid out into a `Buffer` and converted to
   GPU cells (the settings form, command palette, and help overlay use this).

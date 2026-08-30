@@ -8,6 +8,28 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.77
+
+**Everything a full-width character wears now covers both of its columns.**
+
+A wide glyph owns two columns of the grid, and alacritty parks a SPACE in the
+second one carrying the character's own colours and flags. Crew passed that
+space on as a cell of its own, which meant a two-column character shaped a
+two-column glyph and then advanced a **third** column for the blank behind it.
+It only survived the "drop empty cells" filter on rows that were underlined,
+selected or painted by a TUI — which is to say, on exactly the rows where it
+showed. A full-width character is now one cell, and the renderer knows it owns
+two columns, so its background, its underline and the block cursor on it all
+span both: a selection over Japanese was a row of stripes, an underline broke
+under every wide glyph, and a TUI's painted status bar came out perforated.
+
+**The UPDATE card stopped clipping the one thing it exists to say.** A note
+was written on a single row of a narrow nav column and cut mid-word, with the
+card's second row left blank — and `update failed: …` is a note. Notes now
+wrap over every row the card has and ellipsise when there is still more, and a
+failure wears the bell colour and a `!` lead instead of the same quiet `·` as
+"already up to date".
+
 ## 0.19.76
 
 **A line of Japanese was drawn wrong three different ways.**

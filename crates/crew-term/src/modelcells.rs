@@ -62,7 +62,21 @@ impl TermCore {
         let dark = crate::contrast::luminance(default_bg()) < 0.5;
         let mut out: Vec<RenderCell> = content
             .display_iter
-            .filter(|ind| ind.c != '\0' && ind.point.line.0 + off >= 0)
+            // The spacer cells a full-width character reserves are not cells:
+            // alacritty parks a SPACE in the second column carrying the wide
+            // character's own colours and flags, and one character has to be
+            // one `RenderCell` or the renderer shapes a two-column glyph and
+            // then advances a third column for the blank behind it. Every
+            // mark the pair wears — background, underline, the cursor —
+            // covers both columns because the renderer knows the width
+            // (`scene::cell_cols`), not because a second cell was sent.
+            .filter(|ind| {
+                ind.c != '\0'
+                    && ind.point.line.0 + off >= 0
+                    && !ind
+                        .flags
+                        .intersects(Flags::WIDE_CHAR_SPACER | Flags::LEADING_WIDE_CHAR_SPACER)
+            })
             .filter_map(|ind| {
                 let mut bg = resolve_color(ind.bg, palette, default_bg());
                 // Reverse-video (SGR 7) is intentionally NOT honoured: programs

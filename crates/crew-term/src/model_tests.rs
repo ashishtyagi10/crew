@@ -719,3 +719,52 @@ mod quiet_tests {
         assert!(cells.iter().any(|c| c.col == 4 && c.c == 's'));
     }
 }
+
+/// A full-width character is ONE cell that owns two columns.
+///
+/// alacritty parks a space in the second column carrying the wide
+/// character's own colours and flags. Passing that on as a second
+/// `RenderCell` makes the renderer shape a two-column glyph and then advance
+/// a third column for the blank behind it — every wide glyph pushed the rest
+/// of its row one cell right. It only showed up on rows where the blank
+/// survives the "drop empty cells" filter, which is exactly the rows that
+/// matter: anything underlined, selected, or painted by a TUI.
+#[cfg(test)]
+mod wide_tests {
+    use super::super::{GridSize, HeadlessTerm, TermModel};
+
+    fn cols_on_row_0(seq: &[u8]) -> Vec<(u16, char)> {
+        let mut t = HeadlessTerm::new(GridSize { cols: 30, rows: 3 });
+        t.feed(seq);
+        let mut v: Vec<(u16, char)> = t
+            .cells(false)
+            .into_iter()
+            // Past the text, the cursor cell inherits the active attributes.
+            .filter(|c| c.row == 0 && c.col < 5)
+            .map(|c| (c.col, c.c))
+            .collect();
+        v.sort_unstable();
+        v
+    }
+
+    #[test]
+    fn a_wide_char_is_one_cell_even_when_the_row_is_decorated() {
+        // Plain: the spacer is a blank on the default page and would be
+        // dropped anyway.
+        assert_eq!(
+            cols_on_row_0("\u{65e5}\u{672c}x".as_bytes()),
+            vec![(0, '\u{65e5}'), (2, '\u{672c}'), (4, 'x')]
+        );
+        // Underlined: the spacer carries the underline, so it survives the
+        // blank-cell filter — and used to arrive as a cell of its own.
+        assert_eq!(
+            cols_on_row_0("\u{1b}[4m\u{65e5}\u{672c}x".as_bytes()),
+            vec![(0, '\u{65e5}'), (2, '\u{672c}'), (4, 'x')]
+        );
+        // Painted: same, through a background instead.
+        assert_eq!(
+            cols_on_row_0("\u{1b}[44m\u{65e5}\u{672c}x".as_bytes()),
+            vec![(0, '\u{65e5}'), (2, '\u{672c}'), (4, 'x')]
+        );
+    }
+}

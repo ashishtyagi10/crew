@@ -124,6 +124,39 @@ fn bg_quads_only_for_non_default_cells() {
     assert_eq!(quads[0].color[3], 1.0); // opaque
 }
 
+/// A full-width character owns TWO columns, and everything it wears has to
+/// cover both. The second column carries no cell of its own — the terminal
+/// drops alacritty's spacer and every widget places one cell per character —
+/// so a mark measured in one cell left the other bare: a selection over
+/// Japanese was a row of stripes, an underline broke under every wide glyph,
+/// and a TUI's painted status bar came out perforated.
+#[test]
+fn a_wide_cell_wears_its_marks_across_both_columns() {
+    let mut fs = crate::embedfont::font_system();
+    let mut wide = cell(0, 0, '\u{65e5}', (10, 20, 30));
+    wide.deco = crew_theme::deco::Deco {
+        line: crew_theme::deco::DecoLine::Single,
+        ..crew_theme::deco::Deco::NONE
+    };
+    let narrow = cell(2, 0, 'x', (10, 20, 30));
+    let panes = vec![pane(vec![wide, narrow], false, false)];
+    let (quads, _b, _s, _bd, _c) = build(&panes, &mut fs, false, no_glass());
+    let bg_at = |x: f32| {
+        quads
+            .iter()
+            .find(|q| q.x == x && q.h == 16.0)
+            .unwrap_or_else(|| panic!("no background quad at x={x}"))
+    };
+    assert_eq!(bg_at(0.0).w, 16.0, "the wide cell covers two columns");
+    assert_eq!(bg_at(16.0).w, 8.0, "the narrow one still covers one");
+    // The underline is a thin rule, not the full-height background.
+    let rule = quads
+        .iter()
+        .find(|q| q.x == 0.0 && q.h < 16.0)
+        .expect("the underline");
+    assert_eq!(rule.w, 16.0, "and so does the rule it wears");
+}
+
 #[test]
 fn bordered_pane_emits_a_border() {
     let mut fs = crate::embedfont::font_system();
