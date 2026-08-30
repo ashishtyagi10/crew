@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.70
+
+**Sextants.** U+1FB00–1FB3B, the 2×3 half-cell grid — the newest of the cell
+graphics families and the reason a modern charting library can plot at six
+times a cell's resolution with none of braille's dot gaps. A pane running one
+of those was drawing every cell of its plot from a font: sixty characters
+whose entire definition is "these sixths of the cell are on".
+
+The encoding has four holes in it. The empty and full patterns are `space` and
+`█`, and the two single-column ones are `▌` and `▐`, so those four never got
+sextant code points and every code point after each hole shifts down. Getting
+that off by one draws the wrong sixths for half the range — and every one of
+them still looks like a plausible sextant, which is why the contract walks all
+sixty and checks that none of them repeats another, that the first is the
+top-left sixth alone, that the last is everything but it, and that `▌`'s own
+pattern did not sneak in.
+
 ## 0.19.69
 
 **Nobody had ever looked at a crew frame through the tube.** Three of crew's

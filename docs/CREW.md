@@ -1451,6 +1451,15 @@ capped line segment of the rules' own weight. `⚑ ↵ ⇡ ⌘` are left to the 
 on purpose — a flag, a return arrow and the command loop are drawings, not
 constructions.
 
+**Sextants** (U+1FB00–1FB3B) are drawn too — the 2×3 half-cell grid a modern
+charting library plots into, six times a cell's resolution with none of
+braille's dot gaps. Their encoding has four holes in it: the empty and full
+patterns are `space` and `█`, and the two single-column ones are `▌` and `▐`,
+so those four never got sextant code points and everything after each hole
+shifts down. Getting that off by one draws the wrong sixths for half the
+range, and every one of them still looks like a plausible sextant — so the
+contract walks all sixty and checks that none repeats another.
+
 **Braille** (U+2800–28FF) is drawn as well, and for the same reason one step
 further out: btop, gotop, bandwhich and every other monitor of that generation
 plot their graphs in braille, because eight dots per cell is four times the

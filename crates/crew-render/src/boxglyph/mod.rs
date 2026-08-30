@@ -31,6 +31,7 @@ mod braille;
 mod doubles;
 mod marks;
 mod round;
+mod sextants;
 mod strokes;
 
 use glyphon::cosmic_text::{Placement, SwashImage};
@@ -178,6 +179,7 @@ pub(crate) fn synth(c: char, cw: u32, ch: u32, top: i32) -> Option<SwashImage> {
         && !braille::draw(&mut m, c)
         && !marks::draw(&mut m, c)
         && !strokes::draw(&mut m, c)
+        && !sextants::draw(&mut m, c)
     {
         return None;
     }
