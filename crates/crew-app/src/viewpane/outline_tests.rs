@@ -49,6 +49,7 @@ fn marks(rows: &[usize]) -> Vec<Mark> {
         .map(|&row| Mark {
             row,
             label: format!("m{row}"),
+            depth: 0,
         })
         .collect()
 }

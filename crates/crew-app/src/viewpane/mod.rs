@@ -23,6 +23,7 @@ mod render;
 mod rendercap;
 pub(crate) mod search;
 mod search_apply;
+pub(crate) mod sticky;
 pub(crate) mod whitespace;
 pub(crate) use keys::ViewAction;
 pub(crate) use pane::{LoadState, ViewCache, ViewPane};

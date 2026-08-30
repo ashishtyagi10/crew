@@ -208,7 +208,11 @@ fn diff_lines(text: &str, cols: usize, ws: &[Vec<bool>]) -> (Vec<CardLine>, Vec<
         .into_iter()
         .filter_map(|(line, label)| {
             let row = src.iter().position(|&s| s == line)?;
-            Some(Mark { row, label })
+            Some(Mark {
+                row,
+                label,
+                depth: 0,
+            })
         })
         .collect();
     (lines, marks)

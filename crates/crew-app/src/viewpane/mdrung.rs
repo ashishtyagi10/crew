@@ -26,11 +26,17 @@ pub(crate) fn lines(
         .iter()
         .enumerate()
         .filter_map(|(row, line)| {
-            line.spans.first().filter(|s| s.style.heading > 0)?;
+            let level = line
+                .spans
+                .first()
+                .filter(|s| s.style.heading > 0)?
+                .style
+                .heading;
             let label: String = line.spans.iter().map(|s| s.text.as_str()).collect();
             Some(Mark {
                 row,
                 label: label.trim().to_string(),
+                depth: level,
             })
         })
         .collect();

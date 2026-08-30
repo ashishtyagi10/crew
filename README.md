@@ -404,6 +404,8 @@ cards, links):
   ```` ```diff ````/```` ```patch ```` fences colour added/removed/hunk lines
   (an untagged fence that reads as a diff is auto-detected and coloured the
   same).
+- **The heading you are underneath stays on the top row** while you scroll a
+  document, with the ladder above it (`crew › Themes › CRT`).
 - **A picture a document names is drawn** — `![alt](src)` in markdown renders
   as the picture, resolved against the document and read off the frame thread.
 - **`/doc <file>` opens a document in a window of its own** — no nav, no input

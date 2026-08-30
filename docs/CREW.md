@@ -940,6 +940,16 @@ longer aim at.
   shell's only says how much is behind you) with the landmarks marked as dim
   ticks beside it, so a long file shows its shape before you move.
   Chat panes render markdown too — see [Markdown](#markdown).
+- **The heading you are underneath stays on the top row.** A document is read
+  in sections, and the moment a section is longer than the window the one thing
+  the window stops telling you is which section you are in — the gutter's
+  landmark ticks answer *how far*, never *under what*. Scrolled into a
+  document, the top row becomes a band naming the heading above you **with the
+  ladder it sits under** (`crew › Themes › CRT`), so the address is complete
+  rather than merely nearest. Nothing sticks at the top of a file, or when the
+  heading is already on screen — a title repeated one row above itself is
+  noise. A diff's landmarks have no nesting (a hunk is *after* a file header,
+  not inside it), so there the band is the one landmark.
 - **A picture a document *names* is drawn.** `![alt](src)` in markdown — a
   README's screenshot, a chart an agent just wrote — renders as the picture,
   in the rows the layout reserves for it, on the same paint layer the image

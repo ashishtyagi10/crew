@@ -4,6 +4,7 @@ use std::cell::Ref;
 use crew_render::CellView;
 
 use crate::viewpane::lines;
+use crate::viewpane::sticky;
 use crate::viewpane::{ViewCache, ViewPane};
 
 /// The live search, drawn on the pane's last row: what you are typing and how
@@ -228,6 +229,12 @@ impl ViewPane {
                     });
                 },
             );
+        }
+        // The heading this row is underneath, kept where the address is
+        // (see `sticky`). Before the search line, which owns the LAST row and
+        // must win over nothing here.
+        if let Some(label) = sticky::label_for(&cache.marks, top) {
+            sticky::draw(&mut out, &label, cols);
         }
         search_line(&mut out, self, cols, rows);
         out

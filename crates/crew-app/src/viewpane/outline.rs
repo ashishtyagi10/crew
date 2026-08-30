@@ -9,6 +9,10 @@
 pub(crate) struct Mark {
     pub row: usize,
     pub label: String,
+    /// How deep this landmark is: a markdown heading's level, `0` for a
+    /// landmark with no nesting (a diff's file or hunk row). Read by
+    /// [`super::sticky`] to show an inner heading under its parents.
+    pub depth: u8,
 }
 
 /// The jumpable lines of a unified diff, as `(source line index, label)`:

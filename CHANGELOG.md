@@ -8,6 +8,29 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.86
+
+**The heading you are underneath, kept where the address is.**
+
+A document is read in sections, and the moment a section is longer than the
+window the one thing the window stops telling you is which section you are in.
+The card's gutter has always marked *where* the headings are — that answers
+"how far", and never "under what". Scroll into the middle of a long spec and
+the pane is prose with no address.
+
+The top row now carries the heading above you, as a band in the page's own
+hand, **with the ladder it sits under collapsed into it** — `crew › Themes ›
+CRT`, not just `CRT`. It costs a row of the document and returns the question
+that row was raising.
+
+* Nothing sticks at the top of a file, where the document's own first line is
+  the address, and nothing sticks when the heading is already on screen — a
+  title repeated one row above itself is noise.
+* A landmark with no nesting has no ladder: a diff's hunk is *after* its file
+  header, not inside it, so there the band is the one landmark and no more.
+* `Mark` learned its `depth` from the heading level the renderer already knew,
+  rather than from parsing `#`s back out of a label the renderer had stripped.
+
 ## 0.19.85
 
 **A picture a document names is the picture.**

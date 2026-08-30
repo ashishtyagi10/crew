@@ -135,6 +135,40 @@ fn doc_shot_illustrated() {
     assert!(crate::shotgpu_tests::ink(&px) > 3_000);
 }
 
+/// Scrolled into a section: the heading you are underneath, on the top row.
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn doc_shot_sticky_heading() {
+    let _g = crate::app::theme_test_guard();
+    let mut body = String::from("# crew\n\nthe manual.\n\n## Themes\n\n");
+    for i in 0..6 {
+        body.push_str(&format!("A line of prose about themes, number {i}.\n\n"));
+    }
+    body.push_str("### CRT\n\n");
+    for i in 0..14 {
+        body.push_str(&format!("The tube does this, item {i}.\n\n"));
+    }
+    let mut view = doc(&body);
+    view.scroll = 26;
+    let (w, h) = (720u32, 460u32);
+    let px = crate::shotdraw_tests::draw(w, h, 13.0, |cw, ch| {
+        let m = 12.0;
+        let rect = Rect {
+            x: m,
+            y: m,
+            w: w as f32 - m * 2.0,
+            h: h as f32 - m * 2.0,
+        };
+        crate::docwin::draw::scenes(rect, cw, ch, "CREW.md \u{00b7} 41%", &view)
+    });
+    let Some(px) = px else {
+        eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+        return;
+    };
+    crate::shotdraw_tests::write_png("doc-sticky", &px, w, h);
+    assert!(crate::shotgpu_tests::ink(&px) > 3_000);
+}
+
 /// A document window at the proportions it opens at (a reading measure, taller
 /// than wide) and at a shape somebody has dragged it into.
 #[test]

@@ -136,6 +136,7 @@ pub(crate) fn lines(text: &str, cols: usize) -> Option<(Vec<CardLine>, Vec<Mark>
             marks.push(Mark {
                 row: out.len(),
                 label: label.clone(),
+                depth: 0,
             });
         }
         match r {
