@@ -53,6 +53,51 @@ const TABLE: &[(char, Arms)] = &[
     ('\u{254B}', [2, 2, 2, 2]),
 ];
 
+/// `(char, dashes, heavy, vertical)` for the dashed runs — U+2504–250B
+/// (three and four dashes) and U+254C–254F (two). A dashed rule is the same
+/// stroke as its solid sibling with the ink taken out in even steps, and it
+/// wants the same pixel snapping for the same reason: a dash that lands
+/// between two pixels is two grey dashes.
+const DASHED: &[(char, u32, bool, bool)] = &[
+    ('\u{2504}', 3, false, false),
+    ('\u{2505}', 3, true, false),
+    ('\u{2506}', 3, false, true),
+    ('\u{2507}', 3, true, true),
+    ('\u{2508}', 4, false, false),
+    ('\u{2509}', 4, true, false),
+    ('\u{250A}', 4, false, true),
+    ('\u{250B}', 4, true, true),
+    ('\u{254C}', 2, false, false),
+    ('\u{254D}', 2, true, false),
+    ('\u{254E}', 2, false, true),
+    ('\u{254F}', 2, true, true),
+];
+
+/// Draw `c` if it is a dashed rule: `n` marks evenly spaced along the cell,
+/// each two thirds of its step, so the gaps read at a terminal's size
+/// without the rule breaking up into dots.
+fn dashed(m: &mut Mask, c: char) -> bool {
+    let Some(&(_, n, heavy, vertical)) = DASHED.iter().find(|(k, ..)| *k == c) else {
+        return false;
+    };
+    let light = light_thickness(m.h);
+    let t = if heavy { light * 2 } else { light };
+    let extent = if vertical { m.h } else { m.w };
+    let step = extent / n;
+    let mark = (step * 2 / 3).max(1);
+    let (a0, a1) = centre(if vertical { m.w } else { m.h }, t);
+    for i in 0..n {
+        let lo = (i * step) as f32;
+        let hi = lo + mark as f32;
+        if vertical {
+            m.rect(a0 as f32, lo, a1 as f32, hi);
+        } else {
+            m.rect(lo, a0 as f32, hi, a1 as f32);
+        }
+    }
+    true
+}
+
 /// The arms of `c`, if this module draws it.
 pub(super) fn arms_of(c: char) -> Option<Arms> {
     TABLE.iter().find(|(k, _)| *k == c).map(|(_, a)| *a)
@@ -70,6 +115,9 @@ pub(super) fn span(extent: u32, weight: u8, light: u32) -> (u32, u32) {
 /// are cut from the widest arm on each axis, so `┝` (light vertical, heavy
 /// right) keeps each stroke its own weight while still meeting cleanly.
 pub(super) fn draw(m: &mut Mask, c: char) -> bool {
+    if dashed(m, c) {
+        return true;
+    }
     let Some(a) = arms_of(c) else {
         return false;
     };

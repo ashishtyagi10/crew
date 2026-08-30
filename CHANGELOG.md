@@ -8,6 +8,35 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.63
+
+**The drawn widgets are drawn at the screen's resolution now — and the box
+glyphs cover what the programs in the panes draw with.**
+
+`Canvas` picked a fixed four pixels per cell width. A cell is about eight
+device pixels across at crew's default font and sixteen on a Retina display,
+so every dial, gauge, area chart, treemap and meter crew draws was
+**rasterized at half the screen's resolution and blown up** — a quarter of it
+on Retina. Shot side by side, `/net`'s twin chart goes from a visible 2px
+staircase along its curve to a clean one. Going FINER is the same defect the
+other way up, and three surfaces had walked into it by hard-coding twelve:
+quads rasterize at pixel centres with no multisampling, so a canvas pixel
+narrower than a device pixel is kept or dropped, not blended — a third of the
+coverage those surfaces computed never reached the screen. The canvas asks the
+frame how wide a cell is now, and all four local guesses are gone.
+
+The box glyphs gained the **double** and **dashed** runs. Those are not crew's
+own furniture — crew frames with the light set — but they are what lazygit,
+ncdu, midnight commander and half the ncurses dialogs ever written frame with,
+and a pane running one of those was drawing its whole frame out of the font.
+The doubles are the hard half: at a turn the outer stroke of each arm runs
+past the far side of the other's band and the inner stroke stops at its near
+side, and a T-junction's inner stroke steps aside for the branch rather than
+walling it off. `╬` is four corners around a hole, not a thick `┼`.
+
+Two of those junction rules were wrong in ways every geometric assertion in
+the suite still passed. What found them was printing the masks out and looking.
+
 ## 0.19.62
 
 **Crisp: the frames are drawn now, and the text is the weight its outline

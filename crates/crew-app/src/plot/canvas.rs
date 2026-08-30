@@ -22,12 +22,6 @@
 //! quads, next to the ~1500 the cell backgrounds already push every frame.
 use crew_render::Paint;
 
-/// Pixels per cell width. Four puts a canvas pixel at roughly two device
-/// pixels at the default font size — fine enough that the 3×3 coverage
-/// sampling carries the edges, coarse enough that a full-pane chart stays a
-/// few thousand rectangles.
-pub const SUB: usize = 4;
-
 /// One horizontal run of identical pixels on one row: `(x, width, rgb, alpha)`.
 type Run = (usize, usize, (u8, u8, u8), f32);
 /// A run that is still growing downward: the run plus the row it started on.
@@ -82,9 +76,11 @@ pub struct Canvas {
 }
 
 impl Canvas {
-    /// A canvas covering `cols` × `rows` cells, at `aspect = cell_h / cell_w`.
+    /// A canvas covering `cols` × `rows` cells, at `aspect = cell_h / cell_w`,
+    /// rasterized at one pixel per device pixel — see
+    /// [`device`](crate::plot::device).
     pub fn new(cols: u16, rows: u16, aspect: f32) -> Self {
-        Self::with_sub(cols, rows, aspect, SUB)
+        Self::with_sub(cols, rows, aspect, crate::plot::device::sub())
     }
 
     pub fn with_sub(cols: u16, rows: u16, aspect: f32, sub: usize) -> Self {
@@ -364,7 +360,7 @@ impl Canvas {
 
 #[cfg(test)]
 mod tests {
-    use super::{Canvas, SUB};
+    use super::Canvas;
 
     /// Total painted area, in square units — the invariant every shape test
     /// below leans on. Alpha counts: a half-covered edge pixel is half a
@@ -550,6 +546,6 @@ mod tests {
         assert_eq!(tall.size().0, wide.size().0);
         assert!(tall.size().1 > wide.size().1);
         assert_eq!(wide.size().0, 4.0);
-        assert_eq!(tall.w, 4 * SUB);
+        assert_eq!(tall.w, 4 * crate::plot::device::sub());
     }
 }

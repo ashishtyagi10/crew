@@ -27,6 +27,7 @@
 //! skipping the darkening and the curve, which is the whole point.
 mod arms;
 mod blocks;
+mod doubles;
 mod round;
 
 use glyphon::cosmic_text::{Placement, SwashImage};
@@ -107,7 +108,11 @@ pub(crate) fn synth(c: char, cw: u32, ch: u32, top: i32) -> Option<SwashImage> {
         return None;
     }
     let mut m = Mask::new(cw, ch);
-    if !arms::draw(&mut m, c) && !blocks::draw(&mut m, c) && !round::draw(&mut m, c) {
+    if !arms::draw(&mut m, c)
+        && !doubles::draw(&mut m, c)
+        && !blocks::draw(&mut m, c)
+        && !round::draw(&mut m, c)
+    {
         return None;
     }
     if !m.inked() {

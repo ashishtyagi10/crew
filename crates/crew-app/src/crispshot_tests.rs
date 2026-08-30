@@ -181,3 +181,61 @@ fn a_stem_reaches_full_ink() {
     println!("stem: {full} px at full ink, {fr} fringe px");
     assert!(full >= 1, "the stem never reaches full ink: {stem:?}");
 }
+
+/// Every character `crew_render::boxglyph` draws, laid out as a specimen
+/// sheet so the set can be LOOKED at rather than only asserted on — a
+/// junction that fails to meet, a corner drawn inside out, a block whose
+/// fraction is off by a pixel are all things a test can miss and an eye
+/// cannot.
+#[test]
+#[ignore = "needs a GPU adapter"]
+fn specimen_of_every_drawn_glyph() {
+    let _g = crate::app::theme_test_guard();
+    let rows: &[&str] = &[
+        "\u{250C}\u{2500}\u{252C}\u{2500}\u{2510}  \u{250F}\u{2501}\u{2533}\u{2501}\u{2513}  \u{2554}\u{2550}\u{2566}\u{2550}\u{2557}  \u{256D}\u{2500}\u{2500}\u{2500}\u{256E}",
+        "\u{2502} \u{2502} \u{2502}  \u{2503} \u{2503} \u{2503}  \u{2551} \u{2551} \u{2551}  \u{2502}   \u{2502}",
+        "\u{251C}\u{2500}\u{253C}\u{2500}\u{2524}  \u{2523}\u{2501}\u{254B}\u{2501}\u{252B}  \u{2560}\u{2550}\u{256C}\u{2550}\u{2563}  \u{2502}   \u{2502}",
+        "\u{2502} \u{2502} \u{2502}  \u{2503} \u{2503} \u{2503}  \u{2551} \u{2551} \u{2551}  \u{2502}   \u{2502}",
+        "\u{2514}\u{2500}\u{2534}\u{2500}\u{2518}  \u{2517}\u{2501}\u{253B}\u{2501}\u{251B}  \u{255A}\u{2550}\u{2569}\u{2550}\u{255D}  \u{2570}\u{2500}\u{2500}\u{2500}\u{256F}",
+        "",
+        "\u{2581}\u{2582}\u{2583}\u{2584}\u{2585}\u{2586}\u{2587}\u{2588}  \u{258F}\u{258E}\u{258D}\u{258C}\u{258B}\u{258A}\u{2589}\u{2588}  \u{2591}\u{2592}\u{2593}\u{2588}  \u{2580}\u{2584}\u{258C}\u{2590}\u{2594}\u{2595}",
+        "\u{2596}\u{2597}\u{2598}\u{2599}\u{259A}\u{259B}\u{259C}\u{259D}\u{259E}\u{259F}",
+    ];
+    let (w, h) = (560u32, 260u32);
+    let Some(px) = crate::shotdraw_tests::draw(w, h, 13.0, |_cw, _ch| {
+        let t = crew_theme::theme();
+        let cells: Vec<crew_render::CellView> = rows
+            .iter()
+            .enumerate()
+            .flat_map(|(r, line)| {
+                line.chars()
+                    .enumerate()
+                    .map(move |(c, ch)| crew_render::CellView {
+                        col: c as u16,
+                        row: r as u16,
+                        c: ch,
+                        fg: t.ink,
+                        bg: t.page_bg,
+                        ..Default::default()
+                    })
+            })
+            .collect();
+        vec![PaneScene {
+            cells,
+            x: PAD,
+            y: PAD,
+            w: w as f32 - 2.0 * PAD,
+            h: h as f32 - 2.0 * PAD,
+            focused: false,
+            bordered: false,
+            glass: false,
+            scan: -1.0,
+            overlay: false,
+            paint: Vec::new(),
+        }]
+    }) else {
+        eprintln!("no GPU adapter — skipped");
+        return;
+    };
+    crate::shotdraw_tests::write_png("crisp_specimen", &px, w, h);
+}

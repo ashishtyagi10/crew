@@ -65,19 +65,6 @@ pub const DASH: Dials = Dials {
 /// indent every section is written under.
 pub const DASH_COLS: u16 = 3 + 3 * 12;
 
-/// Canvas pixels per column. The default ([`crate::plot::canvas::SUB`]) is
-/// four, which puts a canvas pixel at about *two* device pixels — a grid
-/// coarser than the screen, which an area chart's roof survives and a dial's
-/// needle does not: it steps in visible blocks whatever the coverage maths
-/// says, because the block is the smallest thing the canvas can address.
-///
-/// Eight is one canvas pixel per device pixel at the default font, and shot
-/// side by side against 4, 6 and 16 it is where the stepping stops; 16 is not
-/// visibly better and costs twice the quads. The whole block is ~1400 of them
-/// — `the_three_faces_cost_the_frame_a_bounded_number_of_quads` holds the
-/// line.
-const SUB: usize = 8;
-
 /// The scale's two colours: the bezel and major ticks, and the minor ticks a
 /// rank under them.
 ///
@@ -211,7 +198,7 @@ impl Dials {
         }
         let t = crew_theme::theme();
         let (track, track_dim) = scale_colors();
-        let mut c = Canvas::with_sub(cols, self.face_rows(), aspect, SUB);
+        let mut c = Canvas::new(cols, self.face_rows(), aspect);
         let r = self.radius(cols, aspect);
         for (i, (_, frac)) in readings(stats).into_iter().enumerate() {
             dial::draw(
