@@ -96,6 +96,19 @@ impl ApplicationHandler for CrewApp {
         {
             self.config.save();
         }
+        // One-shot again across 0.19.62, for the same reason one step further
+        // on: with the blend corrected in full, the stem darkening only
+        // spreads the same light over 45% more pixels. Only the untouched
+        // pair moves.
+        if self
+            .config
+            .last_seen_version
+            .as_deref()
+            .is_some_and(|prev| crate::appregister::version_lt(prev, "0.19.62"))
+            && self.config.adopt_undilated_text()
+        {
+            self.config.save();
+        }
         if self.config.last_seen_version.as_deref() != Some(crate::appregister::VERSION) {
             self.config.last_seen_version = Some(crate::appregister::VERSION.to_string());
             self.config.save();

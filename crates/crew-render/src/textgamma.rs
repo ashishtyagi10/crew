@@ -36,10 +36,22 @@ pub(crate) fn light_ink(fg: (u8, u8, u8), bg: (u8, u8, u8)) -> bool {
 /// Display gamma the encoded blend is losing to.
 const GAMMA: f32 = 2.2;
 
-/// Default correction amount (0–255). About half the full sRGB correction,
-/// which puts the midtone at Apple's historical 1/1.45 text gamma — enough to
-/// return the ink the blend eats without tipping body text into looking bold.
-pub const DEFAULT_TEXT_GAMMA: u8 = 130;
+/// Default correction amount (0–255) — the **full** sRGB correction.
+///
+/// This was 130, about half, and half was the right answer while the stem
+/// darkening in [`crate::smoothmask`] was still on by default and delivering
+/// the other half. With the darkening off (see [`crate::smoothing::DEFAULT_SMOOTH`])
+/// the blend's error is this curve's alone to cancel, and cancelling it
+/// completely is what puts a glyph's delivered light exactly on the light
+/// its outline asked for — 100.0% on a dark page and 100.0% on a bright one,
+/// measured over eight glyphs at two sizes.
+///
+/// Full does not mean heavy: the curve fixes 0 and 1, so it moves only the
+/// antialiased rim, and it moves it in whichever direction that rim is
+/// wrong. On a bright page it takes ink AWAY (the old pair delivered 145% of
+/// what the outline asked for there), which is the correction reading as
+/// *crisper*, not bolder.
+pub const DEFAULT_TEXT_GAMMA: u8 = 255;
 
 /// The 256-entry coverage curve for one polarity and amount. Cheap enough
 /// (256 `powf`) to build once per frame per distinct pair; [`Curve`] does the

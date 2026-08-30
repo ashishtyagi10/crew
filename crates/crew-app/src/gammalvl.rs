@@ -4,14 +4,16 @@
 //! them from ever disagreeing about what "medium" means. Sibling of
 //! [`crate::smoothlvl`], which does the same for `/smooth`.
 
-/// The named steps, in picker order. `medium` is the renderer's default:
-/// about half the full sRGB correction. `full` is the whole of it — the
-/// coverage a glyph asks for is the linear luminance it gets.
+/// The named steps, in picker order. `full` is the renderer's default now —
+/// the whole sRGB correction, so the coverage a glyph asks for is the linear
+/// luminance it gets. Half was right only while the stem darkening was on by
+/// default and delivering the other half; it is off now, so the curve is the
+/// only thing cancelling the blend's error and it has to cancel all of it.
 pub(crate) const GAMMA_LEVELS: [(&str, u8); 4] = [
     ("off", 0),
     ("light", 65),
-    ("medium", crew_render::DEFAULT_TEXT_GAMMA),
-    ("full", 255),
+    ("medium", 130),
+    ("full", crew_render::DEFAULT_TEXT_GAMMA),
 ];
 
 /// The amount behind a `/gamma` keyword, if it is one.
@@ -56,16 +58,20 @@ mod tests {
     fn keywords_map_to_their_amounts() {
         assert_eq!(amount_of("off"), Some(0));
         assert_eq!(amount_of("light"), Some(65));
-        assert_eq!(amount_of("medium"), Some(crew_render::DEFAULT_TEXT_GAMMA));
-        assert_eq!(amount_of("full"), Some(255));
+        assert_eq!(amount_of("medium"), Some(130));
+        assert_eq!(amount_of("full"), Some(crew_render::DEFAULT_TEXT_GAMMA));
         assert_eq!(amount_of("heavy"), None);
     }
 
     #[test]
     fn labels_name_the_ladder_and_number_the_rest() {
         assert_eq!(label_of(0), "off");
-        assert_eq!(label_of(crew_render::DEFAULT_TEXT_GAMMA), "medium");
-        assert_eq!(label_of(255), "full");
+        assert_eq!(label_of(130), "medium");
+        assert_eq!(
+            label_of(crew_render::DEFAULT_TEXT_GAMMA),
+            "full",
+            "the default is a named step"
+        );
         assert_eq!(label_of(42), "42");
     }
 

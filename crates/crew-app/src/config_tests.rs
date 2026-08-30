@@ -363,3 +363,33 @@ fn the_smoothing_heal_moves_the_old_default_and_nothing_else() {
         assert_eq!(cfg.font_smooth, chosen);
     }
 }
+
+/// The 0.19.62 heal: a config left on the 0.19.28 pair takes the undilated
+/// one, and a chosen half of that pair pins both.
+#[test]
+fn upgrading_adopts_the_undilated_text_pair() {
+    let mut cfg = CrewConfig {
+        font_smooth: crate::config::SMOOTH_AFTER_GAMMA,
+        font_gamma: crate::config::GAMMA_WITH_DILATION,
+        ..Default::default()
+    };
+    assert!(cfg.adopt_undilated_text());
+    assert_eq!(cfg.font_smooth, crew_render::DEFAULT_SMOOTH);
+    assert_eq!(cfg.font_gamma, crew_render::DEFAULT_TEXT_GAMMA);
+    assert!(!cfg.adopt_undilated_text(), "the heal is one-shot");
+
+    for (smooth, gamma) in [
+        (42, crate::config::GAMMA_WITH_DILATION),
+        (crate::config::SMOOTH_AFTER_GAMMA, 42),
+    ] {
+        let mut cfg = CrewConfig {
+            font_smooth: smooth,
+            font_gamma: gamma,
+            ..Default::default()
+        };
+        assert!(
+            !cfg.adopt_undilated_text(),
+            "moved a chosen pair ({smooth}, {gamma})"
+        );
+    }
+}

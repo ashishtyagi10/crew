@@ -73,8 +73,9 @@ fn prewarm_buffer_seeds_smoothed_masks_for_every_glyph() {
             "prewarm glyph {c:?} was not seeded"
         );
     }
-    // The seeds went through smooth_mask, not a raw raster: a sample stroke
-    // glyph is 2px padded (1px dilation border per side) vs the raw image.
+    // The seeds went through smooth_mask, not a raw raster: at this test's
+    // strength of 200 a sample stroke glyph is 2px padded (1px dilation
+    // border per side) vs the raw image.
     let (_, key) = keys
         .iter()
         .find(|(c, _)| *c == 'M')
@@ -163,7 +164,9 @@ fn cellgrid_prepare_prewarms_before_any_scene() {
             "prewarm missed {c:?}"
         );
     }
-    // Smoothed, not raw: the seeded 'M' carries the 2px dilation padding.
+    // The seeded 'M' is the finished glyph, not a raw rasterization: at the
+    // default strength of 0 the dilation is a no-op and it is the same size
+    // as the outline, but the coverage curve has already been applied to it.
     let (_, key) = keys.iter().find(|(c, _)| *c == 'M').expect("has M");
     let seeded = grid
         .swash
@@ -175,8 +178,9 @@ fn cellgrid_prepare_prewarms_before_any_scene() {
     let raw = SwashCache::new()
         .get_image_uncached(&mut grid.font_system, *key)
         .expect("M rasters raw");
-    assert_eq!(seeded.placement.width, raw.placement.width + 2);
-    assert_eq!(seeded.placement.height, raw.placement.height + 2);
+    assert_eq!(seeded.placement.width, raw.placement.width);
+    assert_eq!(seeded.placement.height, raw.placement.height);
+    assert_ne!(seeded.data, raw.data, "the seeded glyph is not the raw one");
 
     // The warm is one-shot until a font-affecting knob re-arms it.
     assert!(!grid.needs_prewarm, "prepare must consume the arm flag");

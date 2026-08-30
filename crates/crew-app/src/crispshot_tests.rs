@@ -121,3 +121,63 @@ fn card_rules_are_hard_edged() {
         "a light rule is one pixel of full ink, no more and no less"
     );
 }
+
+/// A column of one character, so a stem can be averaged down its own length.
+fn text_px(w: u32, h: u32, c: char, rows: u16) -> Option<Vec<u8>> {
+    crate::shotdraw_tests::draw(w, h, 13.0, move |cw, ch| {
+        let t = crew_theme::theme();
+        let cells: Vec<crew_render::CellView> = (0..rows)
+            .map(|row| crew_render::CellView {
+                col: 0,
+                row,
+                c,
+                fg: t.ink,
+                bg: t.page_bg,
+                ..Default::default()
+            })
+            .collect();
+        vec![PaneScene {
+            cells,
+            x: PAD,
+            y: PAD,
+            w: cw * 4.0,
+            h: ch * rows as f32,
+            focused: false,
+            bordered: false,
+            glass: false,
+            scan: -1.0,
+            overlay: false,
+            paint: Vec::new(),
+        }]
+    })
+}
+
+/// The letterform half of the same question: how many pixels does a vertical
+/// STEM take to go from page to ink?
+///
+/// A stem is not a rule — it is a typeface's own shape at a typeface's own
+/// position, so some fringe is correct and the number here is a watch rather
+/// than a target. What it is watching for is the stem darkening quietly
+/// widening: the dilation in `crew_render::smoothmask` spills coverage a
+/// fraction of a pixel sideways, and a stem that reads across five pixels
+/// with none at full ink is a stem that has been smeared, not darkened.
+#[test]
+#[ignore = "needs a GPU adapter"]
+fn a_stem_reaches_full_ink() {
+    let _g = crate::app::theme_test_guard();
+    let (w, h) = (200u32, 300u32);
+    let Some(px) = text_px(w, h, 'l', 16) else {
+        eprintln!("no GPU adapter — skipped");
+        return;
+    };
+    crate::shotdraw_tests::write_png("crisp_stem", &px, w, h);
+    let stem = profile(&px, w, |i, k| (i, PAD as u32 + 4 + k), 24, 200);
+    println!("stem of 'l', averaged over 200 rows:");
+    for (x, v) in stem.iter().enumerate() {
+        println!("  x={x:2} {v:.3} {}", "#".repeat((v * 40.0) as usize));
+    }
+    let full = stem.iter().filter(|v| **v > 0.95).count();
+    let fr = fringe(&stem, 0.08, 0.95);
+    println!("stem: {full} px at full ink, {fr} fringe px");
+    assert!(full >= 1, "the stem never reaches full ink: {stem:?}");
+}

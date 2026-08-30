@@ -104,6 +104,14 @@ fn accumulated_coverage_saturates_at_full() {
 /// stems. With the old `max()` kernel `s` gained only 82% of what `l` did,
 /// which is why round letters read a shade lighter than upright ones in
 /// the same word. Measured on the embedded font at the default body size.
+///
+/// Pinned to a fixed strength rather than the default: this is a property of
+/// the KERNEL, and the default is now 0 (see
+/// `the_default_pair_delivers_the_outlines_light`) — the ladder still runs
+/// through this code for anyone who turns it on.
+/// A representative `/smooth` setting to exercise the kernel at.
+const KERNEL_STRENGTH: u8 = 70;
+
 #[test]
 fn curves_take_nearly_as_much_darkening_as_stems() {
     use crate::cellgrid::CellView;
@@ -129,7 +137,7 @@ fn curves_take_nearly_as_much_darkening_as_stems() {
             cell_w,
             family: None,
             weight: 400,
-            smooth: crate::smoothing::DEFAULT_SMOOTH,
+            smooth: KERNEL_STRENGTH,
             gamma: 0,
             dark: true,
         };
@@ -142,7 +150,7 @@ fn curves_take_nearly_as_much_darkening_as_stems() {
             .physical((0.0, 0.0), 1.0)
             .cache_key;
         let raw = SwashCache::get_image_uncached(swash, fs, key).expect("rasterizes");
-        let smoothed = smooth_mask(&raw, crate::smoothing::DEFAULT_SMOOTH);
+        let smoothed = smooth_mask(&raw, KERNEL_STRENGTH);
         (ink(&smoothed.data) - ink(&raw.data)) / ink(&raw.data)
     };
     let curved = gain('s', &mut fs, &mut swash);
@@ -155,17 +163,25 @@ fn curves_take_nearly_as_much_darkening_as_stems() {
     );
 }
 
-/// The two corrections must not double-count. Crew blends on gamma-encoded
-/// values, so a glyph delivers about 74% of its outline's linear light; the
-/// stem darkening was calibrated by eye before the blend was corrected, and
-/// was quietly making up part of that deficit on top of its own job. Once
-/// `textgamma` fixed the blend honestly, the pair at the old strength
-/// delivered 106% of the outline's own light — past what the glyph asks
-/// for, which reads as bloat rather than fullness.
+/// The contract the two text defaults are set against: together they land on
+/// the outline's own light, on BOTH polarities, and they put that light on as
+/// few pixels as it can go on.
 ///
-/// This is the contract the two defaults are set against: together they
-/// land on the outline's light, and neither may drift without the other
-/// answering for it.
+/// Two corrections have stood here. The stem darkening came first, when it
+/// was the only one, and its calibration was quietly covering the encoded
+/// blend's deficit as well as doing its own optical widening. `textgamma`
+/// took that job over honestly, 0.19.28 rebalanced the pair so they stopped
+/// stacking, and this measurement is what asks the question that rebalance
+/// did not: whether the darkening still earns anything.
+///
+/// It does not. `smooth 0, gamma 255` delivers 100% of the asked light both
+/// ways up on 322 inked pixels; `smooth 70, gamma 130` delivered 98% on a
+/// dark page, **145% on a bright one**, and needed 584 pixels to do it. The
+/// 262 extra were fractions of a stem's coverage sitting a pixel out from
+/// the stem, which is a soft edge with nothing bought for it.
+///
+/// The bright-page number is the one that had never been looked at: this
+/// test only ever rendered white ink on a black page.
 #[test]
 fn the_default_pair_delivers_the_outlines_light() {
     use crate::cellgrid::CellView;
@@ -175,59 +191,84 @@ fn the_default_pair_delivers_the_outlines_light() {
     let mut fs = crate::embedfont::font_system();
     let mut swash = SwashCache::new();
     let (cell_w, cell_h) = cell_metrics(14.0, CELL_H_RATIO);
-    // What the outline asks for, and what the encoded blend actually emits
-    // for the coverage crew hands it (light ink, so the blend raises the
-    // stored alpha to the display gamma).
     let asked = |d: &[u8]| d.iter().map(|&a| f64::from(a) / 255.0).sum::<f64>();
-    let delivered = |d: &[u8]| {
+    // What the encoded blend actually emits for the coverage crew hands it:
+    // light ink raises the stored alpha to the display gamma, dark ink on a
+    // bright page has the same error with the sign flipped.
+    let delivered = |d: &[u8], dark: bool| {
         d.iter()
-            .map(|&a| (f64::from(a) / 255.0).powf(2.2))
+            .map(|&a| {
+                let a = f64::from(a) / 255.0;
+                if dark {
+                    a.powf(2.2)
+                } else {
+                    1.0 - (1.0 - a).powf(2.2)
+                }
+            })
             .sum::<f64>()
     };
-    let (mut want, mut got) = (0.0, 0.0);
-    for c in ['l', 'o', 'e', 'H', 'n', 'a', 's', 't'] {
-        let cells = [CellView {
-            col: 0,
-            row: 0,
-            c,
-            fg: (255, 255, 255),
-            bg: (0, 0, 0),
-            ..Default::default()
-        }];
-        let p = FontParams {
-            font_size: 14.0,
-            line_height: cell_h,
-            cell_w,
-            family: None,
-            weight: 500,
-            smooth: crate::smoothing::DEFAULT_SMOOTH,
-            gamma: crate::textgamma::DEFAULT_TEXT_GAMMA,
-            dark: true,
-        };
-        let buf = build_pane_buffer(&mut fs, &cells, 1, 1, cell_w, cell_h, &p);
-        let key = buf
-            .layout_runs()
-            .flat_map(|r| r.glyphs.to_vec())
-            .next()
-            .expect("one glyph")
-            .physical((0.0, 0.0), 1.0)
-            .cache_key;
-        let raw = swash.get_image_uncached(&mut fs, key).expect("rasterizes");
-        want += asked(&raw.data);
-        let strength = crate::sizeramp::strength_at(crate::smoothing::DEFAULT_SMOOTH, 14.0);
-        let mut img = smooth_mask(&raw, strength);
-        crate::textgamma::Curve::new().apply(
-            &mut img.data,
-            true,
-            crate::textgamma::DEFAULT_TEXT_GAMMA,
+    for dark in [true, false] {
+        let (mut want, mut got, mut inked, mut outline_px) = (0.0, 0.0, 0usize, 0usize);
+        for c in ['l', 'o', 'e', 'H', 'n', 'a', 's', 't'] {
+            let (fg, bg) = if dark {
+                ((255, 255, 255), (0, 0, 0))
+            } else {
+                ((0, 0, 0), (255, 255, 255))
+            };
+            let cells = [CellView {
+                col: 0,
+                row: 0,
+                c,
+                fg,
+                bg,
+                ..Default::default()
+            }];
+            let p = FontParams {
+                font_size: 14.0,
+                line_height: cell_h,
+                cell_w,
+                family: None,
+                weight: 500,
+                smooth: crate::smoothing::DEFAULT_SMOOTH,
+                gamma: crate::textgamma::DEFAULT_TEXT_GAMMA,
+                dark,
+            };
+            let buf = build_pane_buffer(&mut fs, &cells, 1, 1, cell_w, cell_h, &p);
+            let key = buf
+                .layout_runs()
+                .flat_map(|r| r.glyphs.to_vec())
+                .next()
+                .expect("one glyph")
+                .physical((0.0, 0.0), 1.0)
+                .cache_key;
+            let raw = swash.get_image_uncached(&mut fs, key).expect("rasterizes");
+            want += asked(&raw.data);
+            outline_px += raw.data.iter().filter(|a| **a > 0).count();
+            let strength = crate::sizeramp::strength_at(crate::smoothing::DEFAULT_SMOOTH, 14.0);
+            let mut img = if strength > 0 {
+                smooth_mask(&raw, strength)
+            } else {
+                raw.clone()
+            };
+            crate::textgamma::Curve::new().apply(
+                &mut img.data,
+                dark,
+                crate::textgamma::DEFAULT_TEXT_GAMMA,
+            );
+            got += delivered(&img.data, dark);
+            inked += img.data.iter().filter(|a| **a > 0).count();
+        }
+        let pct = got * 100.0 / want;
+        assert!(
+            (97.0..=103.0).contains(&pct),
+            "on a {} page the defaults deliver {pct:.1}% of the outline's light",
+            if dark { "dark" } else { "bright" }
         );
-        got += delivered(&img.data);
+        // Nothing may put ink on a pixel the outline did not reach. A
+        // dilation does exactly that, and every pixel it adds is a soft edge.
+        assert!(
+            inked <= outline_px,
+            "the defaults ink {inked} pixels where the outline reached {outline_px}"
+        );
     }
-    let pct = got * 100.0 / want;
-    assert!(
-        (95.0..=103.0).contains(&pct),
-        "the default pair delivers {pct:.1}% of the outline's light — below \
-         95% the text is still thin, above 103% the two corrections are \
-         stacking on each other"
-    );
 }
