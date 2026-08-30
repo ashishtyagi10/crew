@@ -8,7 +8,7 @@ fn text(l: &CardLine) -> String {
 fn markdown_renders_rather_than_showing_its_markers() {
     // The whole point of deleting the source half: a heading reads as a
     // heading, not as "# heading".
-    let (ls, _marks) = lines("# Title\n\nbody text\n", 40);
+    let (ls, _marks, _pics) = lines("# Title\n\nbody text\n", 40);
     let all: String = ls.iter().map(text).collect::<Vec<_>>().join("\n");
     assert!(all.contains("Title"));
     assert!(!all.contains("# Title"), "markers are rendered away: {all}");
@@ -16,7 +16,7 @@ fn markdown_renders_rather_than_showing_its_markers() {
 
 #[test]
 fn a_heading_is_bold_and_the_body_is_not() {
-    let (ls, _marks) = lines("# Title\n\nbody\n", 40);
+    let (ls, _marks, _pics) = lines("# Title\n\nbody\n", 40);
     let head = ls.iter().find(|l| text(l).contains("Title")).unwrap();
     let body = ls.iter().find(|l| text(l).contains("body")).unwrap();
     assert!(head.iter().any(|c| c.bold), "heading is emphasised");
@@ -29,7 +29,7 @@ fn content_wraps_inside_the_pane_width() {
     // content width — the only case where the one-column indent
     // compensation is observable. Word-wrapped prose leaves slack at the
     // line end and passes whether or not the compensation is there.
-    let (ls, _marks) = lines(&format!("{}\n", "x".repeat(200)), 30);
+    let (ls, _marks, _pics) = lines(&format!("{}\n", "x".repeat(200)), 30);
     for l in &ls {
         let w: usize = l.iter().map(|c| crate::chatwidth::char_w(c.c)).sum();
         assert!(w <= 30, "line of width {w} exceeds 30: {:?}", text(l));
@@ -43,7 +43,7 @@ fn a_link_keeps_its_url_on_the_cells() {
     // even if EVERY cell on the line — including "before"/"after" outside
     // the link — were (wrongly) tagged with the link. Assert the label
     // cells carry it and a neighbouring non-link cell does not.
-    let (ls, _marks) = lines("before [crew](https://example.com) after\n", 40);
+    let (ls, _marks, _pics) = lines("before [crew](https://example.com) after\n", 40);
     let line = &ls[0];
     let s = text(line);
     let start = s.find("crew").expect("the link label is rendered as text");

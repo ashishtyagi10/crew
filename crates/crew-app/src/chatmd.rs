@@ -11,7 +11,40 @@ use crate::md::{LineKind, MdLine, MdSpan};
 
 /// Maps one rendered markdown document to card lines, indented one column
 /// and re-chunked to `width` display columns per row.
+/// One picture the mapped lines reserved room for: where its box starts in
+/// the OUTPUT rows, how tall it is, and what to draw there.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct Picture {
+    pub row: usize,
+    pub rows: usize,
+    pub src: String,
+}
+
 pub(crate) fn map_lines(md_lines: Vec<MdLine>, width: usize, fg: Color) -> Vec<CardLine> {
+    with_pictures(md_lines, width, fg).0
+}
+
+/// [`map_lines`], plus where the pictures ended up.
+///
+/// The row a picture claims has to be counted HERE and nowhere else: the
+/// engine wraps by character and this re-chunks by display column, so a row
+/// index taken before the mapping is one a wide glyph can move.
+pub(crate) fn with_pictures(
+    md_lines: Vec<MdLine>,
+    width: usize,
+    fg: Color,
+) -> (Vec<CardLine>, Vec<Picture>) {
+    let mut pics: Vec<Picture> = Vec::new();
+    let lines = map_lines_inner(md_lines, width, fg, &mut pics);
+    (lines, pics)
+}
+
+fn map_lines_inner(
+    md_lines: Vec<MdLine>,
+    width: usize,
+    fg: Color,
+    pics: &mut Vec<Picture>,
+) -> Vec<CardLine> {
     let muted = crew_theme::theme().text_muted;
     let mut out = Vec::new();
     // Where each fenced block's mapped lines start, so `chatfield` can lay
@@ -19,6 +52,22 @@ pub(crate) fn map_lines(md_lines: Vec<MdLine>, width: usize, fg: Color) -> Vec<C
     let mut runs: Vec<(usize, usize)> = Vec::new();
     let mut block_start: Option<usize> = None;
     for line in md_lines {
+        if let LineKind::Picture { i, .. } = line.kind {
+            // Every row of the block carries the source; the first one opens
+            // the record and the rest extend it, so a picture is one entry
+            // however the block was cut.
+            let src = crate::md::picture::src_of(&line).unwrap_or_default();
+            match pics.last_mut().filter(|_| i > 0) {
+                Some(p) => p.rows += 1,
+                None => pics.push(Picture {
+                    row: out.len(),
+                    rows: 1,
+                    src: src.to_string(),
+                }),
+            }
+            out.push(vec![plain(' ', fg, false)]);
+            continue;
+        }
         if line.kind == LineKind::CodeHeader {
             block_start = Some(out.len());
         }
@@ -121,7 +170,9 @@ fn span_style(
             Some(chatink::code_bg()),
             None,
         ),
-        LineKind::Blank => (fg, false, false, None, None),
+        // A picture's rows carry only the sentinel span, which is never
+        // drawn — the picture itself is paint, laid under these rows.
+        LineKind::Blank | LineKind::Picture { .. } => (fg, false, false, None, None),
         LineKind::Body => body_span_style(span, fg),
         LineKind::Quote => body_span_style(span, chatink::quote_fg()),
     }

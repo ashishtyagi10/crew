@@ -60,6 +60,7 @@ fn a_double_width_glyph_never_straddles_the_grid_edge() {
         raw: false,
         lines: vec![line],
         marks: Vec::new(),
+        pictures: Vec::new(),
         blame_w: 0,
         invisibles: false,
         split: false,

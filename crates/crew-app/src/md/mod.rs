@@ -3,6 +3,7 @@
 //! inline styling.
 mod layout;
 mod parse;
+pub(crate) mod picture;
 pub(crate) mod syntax;
 mod syntaxdiff;
 mod tasklist;
@@ -94,6 +95,13 @@ pub(crate) enum LineKind {
     CodeFooter, // the field's closing blank row
     Rule,       // horizontal rule
     Blank,      // paragraph separator
+    /// One row of the box a `![alt](src)` picture is drawn into: `i` of `n`,
+    /// so a renderer seeing only part of the block still knows the whole of
+    /// it (see [`picture`]).
+    Picture {
+        i: u16,
+        n: u16,
+    },
 }
 
 /// One wrapped, drawable line of a rendered markdown document.

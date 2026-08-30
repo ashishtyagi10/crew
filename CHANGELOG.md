@@ -8,6 +8,40 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.85
+
+**A picture a document names is the picture.**
+
+`![alt](chart.png)` in markdown rendered as the words `alt` and nothing else:
+the one part of a document that is not words came out as words. Crew draws
+real pictures now — the `/view` image rung, a program's own output — so a
+picture a document *names* is drawn too, in the viewer and in a document
+window.
+
+* **The engine reserves the room; the renderer fills it.** The markdown engine
+  has no pixels, no cell size and no worker thread, so an image paragraph
+  becomes twelve rows that say *a picture belongs here, this is row 3 of 12,
+  and here is its source*. A renderer that can only see the rows currently on
+  screen still knows the whole box to fit the picture into.
+* **The rows are counted after the mapping, not before.** The engine wraps by
+  character and the card layout re-chunks by display column; a row index taken
+  before that is one a wide glyph can move.
+* **The source resolves against the document**, so a README opened from
+  anywhere finds its own images. A remote `https://` source stays alt text — a
+  terminal should not make a network fetch because a document said so.
+* **Read on a worker, cached per path, process-wide.** The frame never touches
+  a file: the first ask starts a read and returns nothing, the next frame has
+  the picture, and something that is not a picture fails once instead of
+  spawning a worker on every frame forever.
+* The height is fixed rather than derived from the file, and the picture is
+  letterboxed inside it: a document whose lines moved once the pictures landed
+  would reflow under the reader.
+
+`doc_shot_illustrated` is the frame this shipped from — a README with its chart
+in it. (The first take of that fixture photographed a code block instead: four
+spaces of Rust source indentation inside a continued string literal is four
+spaces of markdown, which is an indented code block.)
+
 ## 0.19.84
 
 **A document gets a window of its own.**

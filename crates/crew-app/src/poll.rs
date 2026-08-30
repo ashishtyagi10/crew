@@ -76,6 +76,9 @@ impl CrewApp {
             || self.toasts.any_live(now)
             || self.glide_active
             || crate::cursortrail::any_live(&self.panes, now)
+            // A picture a document named, still being read on a worker: the
+            // frame it lands in is owed to it, and the wait is bounded.
+            || crate::imgcache::loading()
             // A picture still being decoded on a worker: the frame it lands
             // in is owed to it, and the wait is bounded by the decode.
             || self.panes.iter().any(|p| match &p.content {

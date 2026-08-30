@@ -11,7 +11,10 @@ use crate::viewpane::outline::Mark;
 /// line (it is shared with the chat card layout), so content is wrapped one
 /// column narrower — without that, every width-filling row loses its last
 /// column when `cells` draws at `cols`.
-pub(crate) fn lines(text: &str, cols: usize) -> (Vec<CardLine>, Vec<Mark>) {
+pub(crate) fn lines(
+    text: &str,
+    cols: usize,
+) -> (Vec<CardLine>, Vec<Mark>, Vec<crate::chatmd::Picture>) {
     let fg = crew_theme::theme().ink;
     let content_w = cols.saturating_sub(1);
     let rendered = crate::md::render(text, content_w);
@@ -31,7 +34,8 @@ pub(crate) fn lines(text: &str, cols: usize) -> (Vec<CardLine>, Vec<Mark>) {
             })
         })
         .collect();
-    (crate::chatmd::map_lines(rendered, content_w, fg), marks)
+    let (lines, pics) = crate::chatmd::with_pictures(rendered, content_w, fg);
+    (lines, marks, pics)
 }
 
 #[cfg(test)]

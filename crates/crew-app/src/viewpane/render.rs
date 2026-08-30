@@ -65,7 +65,7 @@ impl ViewPane {
         if stale {
             let text_cols = (cols as usize).saturating_sub(blame_w);
             let invisibles = crate::invisibles::on();
-            let (mut lines, marks) =
+            let (mut lines, marks, pictures) =
                 lines::for_state(&self.state, self.raw, text_cols, invisibles, self.split);
             if let Some(b) = self.blame.lines().filter(|_| blame_w > 0) {
                 let labels = crate::viewpane::blame::labels(b, blame_w);
@@ -76,6 +76,7 @@ impl ViewPane {
                 raw: self.raw,
                 lines,
                 marks,
+                pictures,
                 blame_w,
                 invisibles,
                 split: self.split,
@@ -144,13 +145,50 @@ impl ViewPane {
     ) -> (Vec<CellView>, Vec<crew_render::Paint>) {
         let cells = self.cells(cols, rows);
         let Some(bm) = self.image() else {
-            return (cells, Vec::new());
+            // Not a picture FILE, but the document may still name some.
+            return (cells, self.named_pictures(cols, rows, aspect));
         };
         let paint = super::bitmap::paint(bm, cols, rows.saturating_sub(1), aspect)
             .into_iter()
             .map(|p| p.shifted(0.0, 1.0))
             .collect();
         (cells, paint)
+    }
+
+    /// The pictures this document NAMES, drawn into the rows the layout
+    /// reserved for them — clipped to the pane, because a document scrolls and
+    /// paint is not clipped by anything else.
+    fn named_pictures(&self, cols: u16, rows: u16, aspect: f32) -> Vec<crew_render::Paint> {
+        let cache = self.lines_for(cols);
+        if cache.pictures.is_empty() {
+            return Vec::new();
+        }
+        let top = self.scroll;
+        let mut out = Vec::new();
+        for p in &cache.pictures {
+            // Wholly above or below the window: not merely invisible, but not
+            // worth resolving a path or rasterizing for.
+            if p.row + p.rows <= top || p.row >= top + usize::from(rows) {
+                continue;
+            }
+            let Some(path) = crate::imgcache::resolve(&p.src, &self.path) else {
+                continue;
+            };
+            let Some(bm) = crate::imgcache::get(&path) else {
+                continue;
+            };
+            let y = p.row as f32 - top as f32;
+            out.extend(super::bitmap::paint_at(
+                &bm,
+                1.0,
+                y,
+                f32::from(cols).max(2.0) - 2.0,
+                p.rows as f32,
+                aspect,
+                (f32::from(cols), f32::from(rows)),
+            ));
+        }
+        out
     }
 
     pub(crate) fn cells(&self, cols: u16, rows: u16) -> Vec<CellView> {

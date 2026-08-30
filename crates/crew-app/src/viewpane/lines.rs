@@ -238,11 +238,11 @@ pub(crate) fn for_state(
     cols: usize,
     invisibles: bool,
     split: bool,
-) -> (Vec<CardLine>, Vec<Mark>) {
+) -> (Vec<CardLine>, Vec<Mark>, Vec<crate::chatmd::Picture>) {
     let t = crew_theme::theme();
     match state {
-        LoadState::Loading { .. } => (vec![banner("loading…", cols)], Vec::new()),
-        LoadState::Failed(msg) => (vec![row(msg, t.ink, false)], Vec::new()),
+        LoadState::Loading { .. } => (vec![banner("loading…", cols)], Vec::new(), Vec::new()),
+        LoadState::Failed(msg) => (vec![row(msg, t.ink, false)], Vec::new(), Vec::new()),
         LoadState::Ready { format, loaded } => {
             ready_lines(*format, loaded, raw, cols, invisibles, split)
         }
@@ -267,9 +267,12 @@ fn ready_lines(
     cols: usize,
     invisibles: bool,
     split: bool,
-) -> (Vec<CardLine>, Vec<Mark>) {
+) -> (Vec<CardLine>, Vec<Mark>, Vec<crate::chatmd::Picture>) {
     let t = crew_theme::theme();
     let mut out = Vec::new();
+    // Pictures a document NAMES (`![alt](src)`), in output rows. Only the
+    // markdown rung reserves any; every other rung leaves this empty.
+    let mut pictures: Vec<crate::chatmd::Picture> = Vec::new();
     if let Some(real) = loaded.truncated {
         out.push(banner(
             &format!(
@@ -351,8 +354,18 @@ fn ready_lines(
             lines
         }
         Format::Markdown if !raw => {
-            let (lines, found) = super::mdrung::lines(text, cols);
+            let (lines, found, pics) = super::mdrung::lines(text, cols);
             marks = shifted(found, out.len());
+            // A banner above the render (a truncation notice) shifts every
+            // row under it, pictures included.
+            let top = out.len();
+            pictures = pics
+                .into_iter()
+                .map(|p| crate::chatmd::Picture {
+                    row: p.row + top,
+                    ..p
+                })
+                .collect();
             lines
         }
         Format::Csv { delim } if !raw => super::csv::lines(text, delim, cols),
@@ -373,10 +386,10 @@ fn ready_lines(
     let wordless = matches!(format, Format::Opaque { .. } | Format::Image { .. });
     if text.trim().is_empty() && !wordless {
         out.push(banner("this file is empty", cols));
-        return (out, marks);
+        return (out, marks, Vec::new());
     }
     out.extend(body);
-    (out, marks)
+    (out, marks, pictures)
 }
 
 /// The `md::syntax` language tag for a rung, `""` when it has none. Only

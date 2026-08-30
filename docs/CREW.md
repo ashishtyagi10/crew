@@ -940,6 +940,15 @@ longer aim at.
   shell's only says how much is behind you) with the landmarks marked as dim
   ticks beside it, so a long file shows its shape before you move.
   Chat panes render markdown too — see [Markdown](#markdown).
+- **A picture a document *names* is drawn.** `![alt](src)` in markdown — a
+  README's screenshot, a chart an agent just wrote — renders as the picture,
+  in the rows the layout reserves for it, on the same paint layer the image
+  rung uses. The source resolves **against the document**, so a README opened
+  from anywhere finds its own images; a remote `https://` source stays alt text
+  (a terminal should not make a network fetch because a document said so). The
+  file is read on a worker and lands a frame later, never on the frame thread,
+  and a path that is not a picture fails once rather than being retried on
+  every frame.
 - **`/doc <file>`** — the same file viewer, in a **window of its own**. Crew is
   one window holding a grid of panes, which is the right shape for a shell
   beside an agent beside a diff and the wrong shape for the one thing you read

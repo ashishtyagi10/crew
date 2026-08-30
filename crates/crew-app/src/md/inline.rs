@@ -12,6 +12,8 @@ pub(super) struct InlineState {
     bold: u32,
     italic: u32,
     link: Vec<String>,
+    /// Open `![…](…)` images: the source, and where this run's spans began.
+    image: Vec<(String, usize)>,
     // Whether a `SoftBreak` becomes a hard line-break (`chat`) or, per
     // CommonMark, a plain space joining the two sides (default `render`).
     keep_soft_breaks: bool,
@@ -84,6 +86,18 @@ pub(super) fn apply_inline_event(
         Event::Start(Tag::Link { dest_url, .. }) => state.link.push(dest_url.into_string()),
         Event::End(TagEnd::Link) => {
             state.link.pop();
+        }
+        // An image's alt text arrives as ordinary `Text` between these two,
+        // so the run is collected and then replaced by one sentinel span:
+        // what the document names is a picture, not the words for one.
+        Event::Start(Tag::Image { dest_url, .. }) => {
+            state.image.push((dest_url.into_string(), spans.len()));
+        }
+        Event::End(TagEnd::Image) => {
+            if let Some((src, at)) = state.image.pop() {
+                let alt: String = spans.drain(at..).map(|s| s.text).collect();
+                spans.push(crate::md::picture::sentinel(src, alt));
+            }
         }
         Event::Html(t) | Event::InlineHtml(t) => state.push_text(spans, t.into_string(), false),
         // Never rendered: `tasklist::item` extracts it back off the item's

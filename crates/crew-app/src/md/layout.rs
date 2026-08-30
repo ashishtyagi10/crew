@@ -45,7 +45,10 @@ pub(super) fn lines(blocks: Vec<Block>, cols: usize) -> Vec<MdLine> {
 
 fn block_lines(block: Block, cols: usize) -> Vec<MdLine> {
     match block {
-        Block::Paragraph(spans) => wrap_prose_lines(spans, cols),
+        Block::Paragraph(spans) => match super::picture::lines(&spans) {
+            Some(rows) => rows,
+            None => wrap_prose_lines(spans, cols),
+        },
         Block::Heading(level, mut spans) => {
             for s in spans.iter_mut() {
                 s.style.bold = true;

@@ -27,6 +27,10 @@ pub(crate) struct ViewCache {
     /// Rows `]` / `[` step between, in this rendering (see
     /// [`super::outline`]). Empty for a rung with no structure to step.
     pub marks: Vec<super::outline::Mark>,
+    /// Pictures this rendering reserved room for (`![alt](src)`), in rendered
+    /// rows — filled by the markdown rung, empty everywhere else. Part of the
+    /// cache because the rows are a property of THIS wrap at THIS width.
+    pub pictures: Vec<crate::chatmd::Picture>,
     /// Columns the blame gutter claimed in this rendering. Part of the cache
     /// key in spirit: turning blame on or off changes the width the text was
     /// wrapped at, so the cache must be rebuilt, not merely re-decorated.

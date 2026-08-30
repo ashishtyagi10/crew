@@ -20,7 +20,7 @@ fn ready(format: Format, body: &str) -> LoadState {
 
 #[test]
 fn code_lines_carry_a_numbered_gutter() {
-    let (ls, _marks) = for_state(
+    let (ls, _marks, _pics) = for_state(
         &ready(Format::Code { lang: "rust" }, "fn a() {}\nfn b() {}\n"),
         false,
         40,
@@ -34,7 +34,7 @@ fn code_lines_carry_a_numbered_gutter() {
 #[test]
 fn a_wrapped_row_does_not_reprint_its_line_number() {
     let long = "x".repeat(60);
-    let (ls, _marks) = for_state(
+    let (ls, _marks, _pics) = for_state(
         &ready(Format::Code { lang: "" }, &long),
         false,
         20,
@@ -65,7 +65,7 @@ fn truncation_is_announced_in_a_banner_row() {
             image: None,
         },
     };
-    let (ls, _marks) = for_state(&state, false, 60, false, false);
+    let (ls, _marks, _pics) = for_state(&state, false, 60, false, false);
     let banner = text(&ls[0]);
     // Ordered, not two unordered substring checks: "8 MB" and "39" swapped
     // still both appear ("showing first 39 MB of 8 MB"), which is backwards
@@ -80,7 +80,7 @@ fn truncation_is_announced_in_a_banner_row() {
 
 #[test]
 fn an_extract_says_it_is_an_extract() {
-    let (ls, _marks) = for_state(
+    let (ls, _marks, _pics) = for_state(
         &ready(
             Format::Extract {
                 via: Extractor::PdfToText,
@@ -105,14 +105,14 @@ fn a_missing_extractor_names_what_to_install() {
         },
         "",
     );
-    let (ls, _marks) = for_state(&state, false, 60, false, false);
+    let (ls, _marks, _pics) = for_state(&state, false, 60, false, false);
     let card: String = ls.iter().map(text).collect::<Vec<_>>().join("\n");
     assert!(card.contains("poppler"), "names the install: {card}");
 }
 
 #[test]
 fn a_loading_pane_draws_a_skeleton_not_an_empty_page() {
-    let (ls, _marks) = for_state(
+    let (ls, _marks, _pics) = for_state(
         &LoadState::Loading {
             rx: std::sync::mpsc::channel().1,
         },
@@ -133,7 +133,7 @@ fn a_loading_pane_draws_a_skeleton_not_an_empty_page() {
 
 #[test]
 fn a_failure_is_drawn_in_the_pane() {
-    let (ls, _marks) = for_state(
+    let (ls, _marks, _pics) = for_state(
         &LoadState::Failed("gone.txt: not found".into()),
         false,
         40,
@@ -146,7 +146,7 @@ fn a_failure_is_drawn_in_the_pane() {
 
 #[test]
 fn raw_mode_shows_markdown_source_verbatim() {
-    let (ls, _marks) = for_state(
+    let (ls, _marks, _pics) = for_state(
         &ready(Format::Markdown, "# Heading\n"),
         true,
         40,
@@ -169,7 +169,7 @@ fn diff_ink_differs_between_added_and_removed() {
     // (Code/Data never syntax-colouring anything) went unnoticed for eleven
     // reviews.
     let t = crew_theme::theme();
-    let (ls, _marks) = for_state(
+    let (ls, _marks, _pics) = for_state(
         &ready(Format::Diff, "+added\n-gone\n"),
         false,
         40,
@@ -193,7 +193,7 @@ fn a_wrapped_added_diff_line_keeps_its_colour_on_the_continuation_row() {
     // text, not a marker). 30 columns leaves a 24-char body width (30 minus
     // the 6-column gutter), so this line wraps into at least two rows.
     let long = format!("+{}", "a".repeat(50));
-    let (ls, _marks) = for_state(&ready(Format::Diff, &long), false, 30, false, false);
+    let (ls, _marks, _pics) = for_state(&ready(Format::Diff, &long), false, 30, false, false);
     assert!(
         ls.len() >= 2,
         "expected the line to wrap: got {} rows",
@@ -212,7 +212,7 @@ fn a_wrapped_diff_row_blanks_its_gutter_like_numbered_does() {
     // Fix 7: `diff_lines` used to reprint the line number on every wrapped
     // row instead of blanking continuations the way `numbered` does.
     let long = format!("+{}", "a".repeat(50));
-    let (ls, _marks) = for_state(&ready(Format::Diff, &long), false, 30, false, false);
+    let (ls, _marks, _pics) = for_state(&ready(Format::Diff, &long), false, 30, false, false);
     assert!(
         ls.len() >= 2,
         "expected the line to wrap: got {} rows",
@@ -237,7 +237,7 @@ fn a_keyword_is_coloured_differently_from_a_plain_identifier() {
     // character `ink` regardless of what the lexer would have called it —
     // `md::syntax::tokenize` was never called from `viewpane/` at all.
     let t = crew_theme::theme();
-    let (ls, _marks) = for_state(
+    let (ls, _marks, _pics) = for_state(
         &ready(Format::Code { lang: "rust" }, "let x = 1;\n"),
         false,
         60,
@@ -269,7 +269,7 @@ fn a_data_rung_is_syntax_coloured_too() {
     // The brief names both `Code` and `Data` as the rungs that silently did
     // nothing — this covers `Data` specifically so a fix that only wires up
     // `Code` still fails here.
-    let (ls, _marks) = for_state(
+    let (ls, _marks, _pics) = for_state(
         &ready(Format::Data { lang: "json" }, "{\"a\": null}\n"),
         false,
         60,
@@ -327,7 +327,7 @@ fn a_huge_line_count_is_capped_and_announced_in_a_banner() {
     // rows fit on screen" concern.
     let total = MAX_RENDER_LINES * 2;
     let body = vec!["x"; total].join("\n");
-    let (ls, _marks) = for_state(
+    let (ls, _marks, _pics) = for_state(
         &ready(Format::Code { lang: "" }, &body),
         false,
         60,
@@ -372,7 +372,7 @@ fn banner_says_at_least_when_the_text_was_already_byte_capped() {
             image: None,
         },
     };
-    let (ls, _marks) = for_state(&state, false, 60, false, false);
+    let (ls, _marks, _pics) = for_state(&state, false, 60, false, false);
     // ls[0] is the byte-cap banner (`loaded.truncated`), ls[1] the line-cap
     // banner (`capped_from`) — see `truncation_is_announced_in_a_banner_row`
     // and `a_huge_line_count_is_capped_and_announced_in_a_banner` for each in
@@ -394,7 +394,7 @@ fn banner_says_at_least_when_the_text_was_already_byte_capped() {
 fn banner_states_an_exact_count_when_the_text_was_not_byte_capped() {
     let total = MAX_RENDER_LINES * 2;
     let body = vec!["x"; total].join("\n");
-    let (ls, _marks) = for_state(
+    let (ls, _marks, _pics) = for_state(
         &ready(Format::Code { lang: "" }, &body),
         false,
         60,
@@ -419,7 +419,7 @@ fn the_line_cap_bounds_a_markdown_render_too() {
     // many lines that was. Confirm the cap applies before the markdown
     // renderer runs, not just on the gutter rungs.
     let body = vec!["line"; MAX_RENDER_LINES * 2].join("\n");
-    let (ls, _marks) = for_state(&ready(Format::Markdown, &body), false, 60, false, false);
+    let (ls, _marks, _pics) = for_state(&ready(Format::Markdown, &body), false, 60, false, false);
     let banner = text(&ls[0]);
     assert!(
         banner.contains(&format!("first {MAX_RENDER_LINES}")),
@@ -434,7 +434,7 @@ fn the_line_cap_bounds_a_markdown_render_too() {
 fn a_wrapped_row_says_it_is_a_continuation() {
     let _g = crate::app::theme_test_guard();
     let long = "x".repeat(80);
-    let (ls, _marks) = for_state(
+    let (ls, _marks, _pics) = for_state(
         &ready(Format::Code { lang: "" }, &long),
         false,
         30,
@@ -453,7 +453,7 @@ fn a_wrapped_row_says_it_is_a_continuation() {
 fn trailing_space_on_an_added_line_is_shown() {
     let _g = crate::app::theme_test_guard();
     let text = "@@ -1 +1 @@\n-let a = 1;\n+let a = 2;   \n context   \n";
-    let (ls, _marks) = for_state(&ready(Format::Diff, text), false, 60, false, false);
+    let (ls, _marks, _pics) = for_state(&ready(Format::Diff, text), false, 60, false, false);
     let row = |n: usize| -> String { ls[n].iter().map(|c| c.c).collect() };
     assert!(
         row(2).contains('\u{b7}'),
@@ -483,7 +483,7 @@ fn trailing_space_on_an_added_line_is_shown() {
 #[test]
 fn an_added_line_that_is_only_whitespace_keeps_its_marker() {
     let _g = crate::app::theme_test_guard();
-    let (ls, _marks) = for_state(
+    let (ls, _marks, _pics) = for_state(
         &ready(Format::Diff, "@@ -1 +1 @@\n+   \n"),
         false,
         60,
@@ -505,7 +505,7 @@ fn an_empty_file_says_it_is_empty() {
         (Format::Markdown, "   \n\n"),
         (Format::Diff, ""),
     ] {
-        let (ls, _marks) = for_state(&ready(fmt, body), false, 40, false, false);
+        let (ls, _marks, _pics) = for_state(&ready(fmt, body), false, 40, false, false);
         let all: String = ls.iter().map(text).collect::<Vec<_>>().join("\n");
         assert!(all.contains("this file is empty"), "{fmt:?}: {all:?}");
     }
@@ -522,7 +522,7 @@ fn a_metadata_card_is_not_called_an_empty_file() {
         },
         "",
     );
-    let (ls, _marks) = for_state(&state, false, 60, false, false);
+    let (ls, _marks, _pics) = for_state(&state, false, 60, false, false);
     let all: String = ls.iter().map(text).collect::<Vec<_>>().join("\n");
     assert!(!all.contains("this file is empty"), "{all}");
 }
@@ -531,7 +531,7 @@ fn a_metadata_card_is_not_called_an_empty_file() {
 #[test]
 fn a_file_with_anything_in_it_is_not_empty() {
     let _g = crate::app::theme_test_guard();
-    let (ls, _marks) = for_state(
+    let (ls, _marks, _pics) = for_state(
         &ready(Format::Code { lang: "" }, "\n\n  x\n\n"),
         false,
         40,
