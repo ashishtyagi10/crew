@@ -404,6 +404,11 @@ cards, links):
   ```` ```diff ````/```` ```patch ```` fences colour added/removed/hunk lines
   (an untagged fence that reads as a diff is auto-detected and coloured the
   same).
+- **`Cmd+E` labels everything on the pane worth reaching** — every URL, file
+  reference and hash wears a letter; pressing it copies, pressing its capital
+  opens (a URL in the browser, a file in the viewer). Labels come off the home
+  row and go to the newest output first, so the thing a program just printed is
+  the cheapest key. Esc — or any letter that starts no label — ends the mode.
 - **A program can show you a picture.** Crew speaks the terminal graphics
   protocol (kitty's `APC G` form — `kitten icat`, `timg`, matplotlib's kitty
   backend), so a plot or a screenshot arrives inside the output: anchored to

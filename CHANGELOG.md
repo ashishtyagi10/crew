@@ -8,6 +8,41 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.83
+
+**Cmd+E: reach anything on the pane with one letter.**
+
+A terminal's output is full of things you want to *do something with* — the URL
+a server printed, the file a compiler named, the hash a commit came back as.
+Crew has always known where they are (it draws a rule under every one of them),
+and the only ways to act on one were the mouse and the scrollback search: both
+ask you to leave the keyboard for something already on the screen.
+
+`Cmd+E` labels them. Every URL, file reference and hash on the focused pane
+wears a letter; pressing it **copies**, pressing its **capital opens** — a URL
+in the browser, a file in the viewer, a hash to the clipboard, which is what a
+commit id was wanted for anyway.
+
+* **Labels go to the newest output first.** They come off the home row and are
+  handed out from the bottom of the pane up: the last thing a program printed
+  is what you almost always want, and it should be the cheapest key to press.
+* **No label is a prefix of another.** Single letters while they last, then
+  pairs — never a mix, or the first press would have to guess whether you were
+  finished.
+* **The pane's own text leans toward the page** while the labels are up, so the
+  tags are what the eye lands on. It lasts exactly as long as the mode does.
+* **A miss ends the mode**, as does Esc, as does any key that is not a label.
+  A mode that sits there swallowing keys is worse than no mode — and a pane
+  with nothing to reach says so rather than opening one.
+* A number is not a hash: a run of digits is a port, a byte count or a line
+  number, and labelling every one of those would bury the two things on screen
+  that really are object ids.
+
+Also in this release: a goal doc for the next big piece —
+`docs/superpowers/goals/2026-08-30-markdown-editor-in-its-own-window.md`, a
+markdown document in a crew window of its own, rendered on arrival, edited in
+the render.
+
 ## 0.19.82
 
 **Bold text stopped being a different typeface.**

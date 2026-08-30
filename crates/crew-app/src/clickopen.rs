@@ -177,6 +177,10 @@ impl CrewApp {
 
     /// If `tok` resolves (against the cwd) to a file, show it in the viewer;
     /// to a directory, cd.
+    pub(crate) fn open_hint_path(&mut self, tok: &str) -> bool {
+        self.open_path_token(tok)
+    }
+
     fn open_path_token(&mut self, tok: &str) -> bool {
         let base = if self.cwd.as_os_str().is_empty() {
             std::path::PathBuf::from(".")

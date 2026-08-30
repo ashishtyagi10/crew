@@ -163,6 +163,8 @@ mod helplayout;
 #[path = "helpshot_tests.rs"]
 mod helpshot_tests;
 mod helptable;
+mod hintact;
+mod hints;
 mod history;
 mod histsearch;
 mod hit;

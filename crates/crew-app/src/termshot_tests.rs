@@ -92,6 +92,14 @@ const ALTSCREEN: &str = "\x1b[?1049h\x1b[2J\x1b[H\
      \x1b[34m docs/\x1b[0m\r\n\
      \x1b[2m 3 entries \u{00b7} q to quit\x1b[0m";
 
+/// A pane with plenty to reach: the shape hint mode is for.
+const HINTY: &str = "\x1b[2m$\x1b[0m cargo test\r\n\
+     \x1b[1;31merror\x1b[0m: cannot find `table` in crates/crew-app/src/md/fold.rs:25\r\n\
+     \x1b[33mwarning\x1b[0m: unused import in src/main.rs:7\r\n\
+     see https://doc.rust-lang.org/error_codes/E0433.html\r\n\
+     \x1b[2mHEAD is now at 9f3ab1c7 the caret leaves a wake\x1b[0m\r\n\
+     docs/CREW.md README.md Cargo.toml\r\n";
+
 /// Lines with URLs in them, which crew tints and rules itself.
 const LINKS: &str = "see https://example.invalid/crew/docs for the rest\r\n\
      mirror at http://localhost:8080/status (no tls)\r\n\
@@ -119,6 +127,9 @@ struct Overlay {
     /// as bytes, placed by the terminal, decoded on a worker, drawn on the
     /// paint layer. The whole path, in one frame.
     picture: bool,
+    /// Hint mode over this pane's output (Cmd+E): every URL, file reference
+    /// and hash wearing the letter that reaches it.
+    hints: bool,
 }
 
 /// A small PNG with a shape in it, written the way a program would have.
@@ -182,6 +193,12 @@ fn term_shot(name: &str, body: &str, w: u32, h: u32, o: Overlay) -> Option<Vec<u
                 )
             })
             .unwrap_or_default();
+        if o.hints {
+            let rows_of_text = crate::gridrows::grid_lines(&cells, cols, rows);
+            if let Some(h) = crate::hints::Hints::scan(&rows_of_text) {
+                h.mark(&mut cells);
+            }
+        }
         if o.picture {
             let mut store = crate::termimg::TermImages::default();
             store.collect(t.take_images());
@@ -237,6 +254,14 @@ fn sweep(suffix: &str, w: u32, h: u32) -> bool {
             pic_body.clone(),
             Overlay {
                 picture: true,
+                ..Default::default()
+            },
+        ),
+        (
+            "hints",
+            HINTY.to_string(),
+            Overlay {
+                hints: true,
                 ..Default::default()
             },
         ),

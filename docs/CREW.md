@@ -170,6 +170,21 @@ and open.
   writing a picture into a void.
 * `a=d` takes the pictures back; the last 32 in a pane are kept.
 
+**Reach anything on the pane with one letter (`Cmd+E`).** A terminal's output
+is full of things you want to *do something with* — the URL a server printed,
+the file a compiler named, the hash a commit came back as — and the only ways
+to get at them were the mouse and the scrollback search, both of which ask you
+to leave the keyboard for something already on the screen. `Cmd+E` labels every
+URL, file reference and hash on the focused pane with a letter: pressing it
+**copies**, pressing its **capital opens** (a URL in the browser, a file in the
+viewer, a hash to the clipboard since it has nowhere to go). The pane's own
+text leans toward the page while the labels are up, so the tags are what the
+eye lands on. Labels come off the home row and are handed out from the BOTTOM
+of the pane up — the last thing a program printed is what you almost always
+want, and it gets the cheapest key. Esc ends the mode, and so does any letter
+that starts no label: a mode that sits there swallowing keys is worse than no
+mode. A pane with nothing to reach says so instead of opening.
+
 **The caret leaves a wake.** A cursor in a cell grid teleports: it is in one
 cell on one frame and another on the next, with nothing on the page saying the
 two were the same thing. So the focused pane's caret drags a short streak

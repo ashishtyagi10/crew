@@ -322,6 +322,9 @@ fn push_pane_scenes(
     // Focus spotlight: unfocused content leans toward the page (frame cells
     // keep their own focus colors — this is about the ink, not the box).
     crate::spotlight::wash(&mut cells, dim);
+    // Hint labels, if this is the labelled pane — after the wash, because the
+    // tags are the one thing on the pane that must not be dimmed.
+    crate::hints::mark_pane(&mut cells, pane);
     // The card draws itself in over its first moments. Read from the pane's own
     // birth stamp, so panes that appear together (a restored session) assemble
     // together, and one spawned later assembles on its own clock.

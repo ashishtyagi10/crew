@@ -195,6 +195,12 @@ impl CrewApp {
             return;
         }
 
+        // Hint mode takes every key while it is on: the letters ARE the
+        // interface, exactly as the `/find` bar's are.
+        if self.hint_key(event) {
+            return;
+        }
+
         // When the input bar is focused, all non-super keys go to it.
         if self.input.focused {
             if event.state.is_pressed()

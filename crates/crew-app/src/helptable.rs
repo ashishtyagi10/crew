@@ -30,6 +30,10 @@ pub(crate) const BINDINGS: &[(&str, &str)] = &[
     ),
     ("Cmd+C / Cmd+V", "Copy screen / paste"),
     (
+        "Cmd+E",
+        "Label every URL, file and hash on the pane \u{00b7} a letter copies it, its capital opens it",
+    ),
+    (
         "Cmd+Click",
         "open URL/file/dir · copy a code block in an agent pane",
     ),

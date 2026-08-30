@@ -123,6 +123,9 @@ impl CrewApp {
                     self.input.prefill("/find ");
                 }
             }
+            // Cmd+E: label everything on the focused pane worth reaching —
+            // URLs, file references, hashes — and reach it with one letter.
+            "e" => self.open_hints(),
             "k" => self.clear_focused_scrollback(),
             "m" => self.toggle_maximize(),
             "[" => self.focus_visible_step(-1),
