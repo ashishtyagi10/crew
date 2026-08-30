@@ -8,6 +8,24 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.69
+
+**Nobody had ever looked at a crew frame through the tube.** Three of crew's
+twelve themes wear the CRT post-process — an off-screen scene target, a
+half-res bloom chain, and a composite that adds the halo back over the top —
+and every shot crew has ever taken went straight from the cell grid to the
+readback, which is the path a NON-CRT theme takes. The chain had a headless
+test, but it drives synthetic patterns; the shot suite skipped the chain
+outright. So the look a quarter of the palette ships had never been in a
+picture, and a card whose rules are now exactly one pixel had never been
+through the one pass whose job is to spread light sideways.
+
+The harness runs it now (`draw_crt`), and the answer is good: the rule keeps
+its hard core at **1.000** through the tube, the halo lifts the surround about
+three levels, and the scanlines take alternate rows down and up on a
+three-pixel period. A halo that had eaten the core would have stopped being a
+halo and started being a blur — that is what the new contract holds.
+
 ## 0.19.68
 
 **The tick and the cross came from two different typefaces.** With the

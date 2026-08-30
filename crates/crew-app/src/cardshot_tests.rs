@@ -47,28 +47,45 @@ fn quiet(title: &'static str, focused: bool) -> Bar<'static> {
 }
 
 fn card_shot(name: &str, w: u32, h: u32, b: &Bar) -> Option<Vec<u8>> {
-    let px = crate::shotdraw_tests::draw(w, h, 13.0, |cw, ch| {
-        let iw = w as f32 - 2.0 * PAD;
-        let ih = h as f32 - 2.0 * PAD;
-        let cols = (iw / cw).floor() as u16;
-        let rows = (ih / ch).floor() as u16;
-        vec![PaneScene {
-            cells: pane_card(cols.saturating_sub(2), rows.saturating_sub(2), b),
-            x: PAD,
-            y: PAD,
-            w: cols as f32 * cw,
-            h: rows as f32 * ch,
-            focused: b.focused,
-            bordered: false,
-            glass: true,
-            scan: -1.0,
-            overlay: false,
-            // The thumb and the progress bar are Paint, not cells — a card
-            // shot without its paint layer is missing two of the readings it
-            // exists to give (see `cardpaint`).
-            paint: crate::cardpaint::card_paint(cols, rows, b, ch / cw, 0),
-        }]
-    })?;
+    card_shot_via(name, w, h, b, false)
+}
+
+/// The same card through the CRT tube — the bloom, the scanlines and the
+/// composite three of crew's themes wear. Every card shot before this took
+/// the non-CRT path, so the look a third of the palette ships had never been
+/// in the suite at all.
+fn card_shot_crt(name: &str, w: u32, h: u32, b: &Bar) -> Option<Vec<u8>> {
+    card_shot_via(name, w, h, b, true)
+}
+
+fn card_scene(w: u32, h: u32, cw: f32, ch: f32, b: &Bar) -> Vec<PaneScene> {
+    let iw = w as f32 - 2.0 * PAD;
+    let ih = h as f32 - 2.0 * PAD;
+    let cols = (iw / cw).floor() as u16;
+    let rows = (ih / ch).floor() as u16;
+    vec![PaneScene {
+        cells: pane_card(cols.saturating_sub(2), rows.saturating_sub(2), b),
+        x: PAD,
+        y: PAD,
+        w: cols as f32 * cw,
+        h: rows as f32 * ch,
+        focused: b.focused,
+        bordered: false,
+        glass: true,
+        scan: -1.0,
+        overlay: false,
+        // The thumb and the progress bar are Paint, not cells — a card shot
+        // without its paint layer is missing two of the readings it exists to
+        // give (see `cardpaint`).
+        paint: crate::cardpaint::card_paint(cols, rows, b, ch / cw, 0),
+    }]
+}
+
+fn card_shot_via(name: &str, w: u32, h: u32, b: &Bar, crt: bool) -> Option<Vec<u8>> {
+    let px = match crt {
+        true => crate::shotdraw_tests::draw_crt(w, h, 13.0, |cw, ch| card_scene(w, h, cw, ch, b)),
+        false => crate::shotdraw_tests::draw(w, h, 13.0, |cw, ch| card_scene(w, h, cw, ch, b)),
+    }?;
     crate::shotdraw_tests::write_png(name, &px, w, h);
     Some(px)
 }
@@ -156,4 +173,38 @@ fn card_shot_width_sweep() {
         };
         assert!(crate::shotgpu_tests::ink(&px) > 200, "{name} drew");
     }
+}
+
+/// The busiest card, through the tube. Nothing had ever looked at a real
+/// frame this way: the headless chain test drives synthetic patterns, and
+/// every shot went straight from the cell grid to the readback — the path a
+/// NON-CRT theme takes.
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn card_shot_through_the_tube() {
+    let _g = crate::app::theme_test_guard();
+    crew_theme::set_theme(crew_theme::ThemeId::CrtGreen);
+    let git = crate::git::GitInfo {
+        branch: "feat/crisp".into(),
+        changed: 3,
+        ahead: 1,
+        behind: 0,
+    };
+    let bar = Bar {
+        scroll: 40,
+        total: 400,
+        activity: true,
+        git: Some(&git),
+        unread: 5,
+        ..quiet("claude — crew", true)
+    };
+    let Some(px) = card_shot_crt("card-crt-green", 760, 420, &bar) else {
+        eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+        return;
+    };
+    // The tube adds light; it must not have taken the card away.
+    assert!(
+        crate::shotgpu_tests::ink(&px) > 2000,
+        "the card vanished through the tube"
+    );
 }

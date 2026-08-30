@@ -23,6 +23,34 @@ pub fn draw(
     font_px: f32,
     scenes: impl FnOnce(f32, f32) -> Vec<PaneScene>,
 ) -> Option<Vec<u8>> {
+    draw_with(w, h, font_px, false, scenes)
+}
+
+/// [`draw`], but through the CRT tube — the bloom, the scanlines and the
+/// composite the real frame runs when the theme asks for them.
+///
+/// Every shot crew has ever taken went straight from the cell grid to the
+/// readback, which is the path a NON-CRT theme takes. The tube is the look
+/// three of crew's twelve themes wear, and nothing had looked at a real frame
+/// through it: the headless chain test drives synthetic patterns, and the shot
+/// suite skipped the chain entirely. A card whose rules are now exactly one
+/// pixel is exactly the thing a halo can undo.
+pub fn draw_crt(
+    w: u32,
+    h: u32,
+    font_px: f32,
+    scenes: impl FnOnce(f32, f32) -> Vec<PaneScene>,
+) -> Option<Vec<u8>> {
+    draw_with(w, h, font_px, true, scenes)
+}
+
+fn draw_with(
+    w: u32,
+    h: u32,
+    font_px: f32,
+    crt: bool,
+    scenes: impl FnOnce(f32, f32) -> Vec<PaneScene>,
+) -> Option<Vec<u8>> {
     let instance = wgpu::Instance::default();
     let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
         power_preference: wgpu::PowerPreference::None,
@@ -48,6 +76,20 @@ pub fn draw(
         view_formats: &[],
     });
     let view = tex.create_view(&Default::default());
+    // With the tube on, the scene is drawn into the chain's own off-screen
+    // target and composited onto `view` — exactly what `frame.rs` does.
+    let mut chain = crt.then(|| crew_render::CrtChain::new(&device, FORMAT, w, h));
+    if let Some(c) = chain.as_mut() {
+        // The theme's own tube, or the default one when a paper theme is
+        // asked to wear it — the same fallback `effective_crt` makes.
+        c.set_style(Some(
+            crew_theme::theme()
+                .crt
+                .unwrap_or(crew_theme::CrtStyle::DEFAULT),
+        ));
+        c.set_anim(0.0, 0.0);
+        c.update_uniforms(&queue, w as f32, h as f32, !crew_theme::theme().dark);
+    }
     let padded = row_padded(w);
     let readback = device.create_buffer(&wgpu::BufferDescriptor {
         label: Some("readback"),
@@ -78,7 +120,7 @@ pub fn draw(
         let mut pass = enc.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("shotdraw_pass"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: &view,
+                view: chain.as_ref().map_or(&view, |c| c.scene_view()),
                 depth_slice: None,
                 resolve_target: None,
                 ops: wgpu::Operations {
@@ -98,6 +140,9 @@ pub fn draw(
         });
         paper.draw(&mut pass);
         grid.draw(&mut pass);
+    }
+    if let Some(c) = chain.as_ref() {
+        c.encode(&mut enc, &view);
     }
     enc.copy_texture_to_buffer(
         wgpu::TexelCopyTextureInfo {
