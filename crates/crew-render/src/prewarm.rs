@@ -24,10 +24,10 @@ use crate::textprep::prepare_renderer;
 /// literals): pane borders and reply-chain connectors, block/bar meters,
 /// braille spinner frames, markers, arrows, and the typographic punctuation
 /// the chat pane leans on.
-const CHROME: &str = "─│┌┐└┘├┤┬┴┼╭╮╯╰┃┆═║╔╗╚╝\
+pub(crate) const CHROME: &str = "─│┌┐└┘├┤┬┴┼╭╮╯╰┃┆═║╔╗╚╝\
                       ▁▂▃▄▅▆▇█▉▊▋▌▍▎▏▐░▒▓\
                       ⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏\
-                      ▶▸○●⏺✓✗⚑☐•·…–—‘’“”›❯←↑→↓↔↵⇡⌘×≤≥";
+                      ▶▸▴▾◂◀▲▼○●⏺◆◇■□▪▫✓✗⚑☐•·…–—‘’“”›❯←↑→↓↔↵⇡⌘×≤≥";
 
 /// Grid width of the prewarm buffer — only affects its shape, not its
 /// contents; wide enough to keep the buffer a handful of rows tall.

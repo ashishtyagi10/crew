@@ -8,6 +8,36 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.67
+
+**crew's own marks were coming from five different typefaces, and one of them
+was Apple Color Emoji.** Shaped through crew's stack on a stock Mac with Lilex
+chosen, the geometric characters its chrome is written in resolve like this:
+
+```text
+Lilex               ○ ●
+SF Mono             ▶ ▸ ▴ ▾ ◂ ◀ ▲ ▼ ■ □
+Stelo               ◆ ◇ ▪ ▫
+Apple Color Emoji   ⏺
+```
+
+Five faces is five ideas of how big a mark is, how heavy it is, and where it
+sits above the baseline — in one row of chrome, next to each other. And the
+emoji one is worse than inconsistent: a colour glyph carries its own pixels,
+so the activity dot was the same red-and-white bitmap on every theme crew has,
+ignoring the palette outright.
+
+Every one of those characters is *defined* as a shape rather than drawn as a
+letterform, so crew draws them: discs, rings, triangles in four directions and
+two sizes, squares filled and hollow, diamonds — one size relationship, one
+weight taken from the same derivation the rules use, centred on the same
+centre, so a `●` in a list lines up with the `─` above it. The same on any
+machine and under any font.
+
+A new contract asserts that **no character in crew's chrome may resolve to a
+colour glyph**, and prints the face census when it runs. crew now draws 55 of
+the 74; what is left over goes to monochrome outline faces.
+
 ## 0.19.66
 
 **One answer to "how thick is a rule", and it tracks the font.** The drawn box
