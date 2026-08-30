@@ -323,21 +323,42 @@ impl DiskPane {
             accent(),
             t.page_bg,
         ));
-        let head = match self.scanning {
+        // The reading is placed first and the path takes what is left. Both
+        // used to be one string clipped at the pane's edge, so a narrow tile
+        // showed a path cut mid-component and no total at all — the two
+        // numbers the header exists to say, gone, on the pane where the map is
+        // hardest to read. And the path elides from the LEFT: the tail is the
+        // directory you are in, the head is the road you took to it.
+        let reading = match self.scanning {
             true => format!(
-                "{}  \u{2014}  {} so far, {} files scanned\u{2026}",
-                short_path(&self.root),
+                "{} so far, {} files scanned\u{2026}",
                 bytes(self.total),
                 self.files
             ),
-            false => format!(
-                "{}  \u{2014}  {} in {} entries",
-                short_path(&self.root),
-                bytes(self.total),
-                self.children.len()
-            ),
+            false => format!("{} in {} entries", bytes(self.total), self.children.len()),
         };
-        put(&mut out, &head, 1, 1, t.ink, cols);
+        let sep = "  \u{2014}  ";
+        let reading_w = crate::chatwidth::str_w(&reading) as u16;
+        let path_room = (cols.saturating_sub(2))
+            .checked_sub(reading_w + sep.chars().count() as u16)
+            .filter(|&r| r >= MIN_PATH_W);
+        match path_room {
+            Some(room) => {
+                let path = crate::cwd::fit_legend(&short_path(&self.root), room as usize);
+                put(
+                    &mut out,
+                    &format!("{path}{sep}{reading}"),
+                    1,
+                    1,
+                    t.ink,
+                    cols,
+                );
+            }
+            // Too narrow to say both: the reading wins. A path you cannot
+            // read is not a path, and the map under it already says where
+            // you are by what is in it.
+            None => put(&mut out, &reading, 1, 1, t.ink, cols),
+        }
 
         // A label per tile that has the room for one: name on the first row,
         // size under it. A tile too small for its own name gets none — the
@@ -349,8 +370,13 @@ impl DiskPane {
             if tile.w < 5.0 || tile.h < 1.0 {
                 continue;
             }
-            let selected = tile.index == self.selected;
-            let fg = if selected { t.ink } else { t.page_bg };
+            // Ink chosen against the TILE, not against the page. It used to
+            // be the page's own ink on the selected tile and the page's own
+            // background on every other one — so on a dark theme the picked
+            // tile wrote near-white on a bright pastel fill and was the one
+            // label on the map you could not read. The ring already says which
+            // tile is picked; the label only has to be legible.
+            let fg = label_ink(tile_bg(child, tile.index == self.selected));
             let room = (tile.w - 1.0) as usize;
             // `vend` is not a directory anybody has. A tile that cuts a name
             // without saying so reads as a complete, wrong name; `ven…` reads
@@ -408,13 +434,7 @@ impl DiskPane {
                 (tile.h * aspect - 0.08).max(0.05),
             );
             let selected = tile.index == self.selected;
-            // Directories carry their colour; plain files sit back, so a tree
-            // full of one big file still reads as different from a subtree.
-            let alpha = match (child.is_dir, selected) {
-                (_, true) => 1.0,
-                (true, false) => 0.85,
-                (false, false) => 0.55,
-            };
+            let alpha = tile_alpha(child.is_dir, selected);
             c.rect(x, y, w, h, color, alpha);
             if selected {
                 // A ring around the picked tile, drawn as four thin bars: the
@@ -505,6 +525,53 @@ fn put(out: &mut Vec<CellView>, s: &str, col: u16, row: u16, fg: (u8, u8, u8), c
     }
 }
 
+/// The ink a tile's label is written in: the page's own background pushed
+/// until it clears the reading floor against `bg`.
+///
+/// `enforced`, not `against`: a tile's fill is a colour the app composited,
+/// not one anybody picked against this page, and the pool has hues that top
+/// out short of the floor at every lightness — a file tile at 0.55 alpha over
+/// a dark page reached 4.34 and stopped there. `enforced` gives up chroma
+/// rather than the floor, so every tile on the map is readable, not most.
+fn label_ink(bg: (u8, u8, u8)) -> (u8, u8, u8) {
+    crew_theme::readable::enforced(
+        crew_theme::theme().page_bg,
+        bg,
+        crew_theme::contrast::text_floor(),
+    )
+}
+
+/// Columns the header keeps for the path before it gives up and shows the
+/// reading alone — fewer than this and the leading `\u{2026}` is most of it.
+const MIN_PATH_W: u16 = 8;
+
+/// The colour a tile's label is read against: its fill composited over the
+/// page at the alpha the fill is actually drawn with, which is the background
+/// the eye sees — not the raw pool colour, which a 0.55-alpha file tile never
+/// shows.
+fn tile_bg(child: &Child, selected: bool) -> (u8, u8, u8) {
+    let page = crew_theme::theme().page_bg;
+    let color = crate::chatroster::agent_color(&child.name);
+    let a = tile_alpha(child.is_dir, selected);
+    let mix = |c: u8, p: u8| (f32::from(c) * a + f32::from(p) * (1.0 - a)).round() as u8;
+    (
+        mix(color.0, page.0),
+        mix(color.1, page.1),
+        mix(color.2, page.2),
+    )
+}
+
+/// How solid a tile is drawn. Directories carry their colour; plain files sit
+/// back, so a tree full of one big file still reads as different from a
+/// subtree — and the picked tile is solid whichever it is.
+fn tile_alpha(is_dir: bool, selected: bool) -> f32 {
+    match (is_dir, selected) {
+        (_, true) => 1.0,
+        (true, false) => 0.85,
+        (false, false) => 0.55,
+    }
+}
+
 /// `~/code/crew` rather than `/Users/you/code/crew`.
 fn short_path(p: &Path) -> String {
     let s = p.to_string_lossy();
@@ -519,7 +586,7 @@ fn short_path(p: &Path) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{bytes, tiles, Child, DiskPane};
+    use super::{bytes, label_ink, tile_bg, tiles, Child, DiskPane, MIN_PATH_W};
 
     fn kids(sizes: &[(&str, u64, bool)]) -> Vec<Child> {
         sizes
@@ -661,5 +728,84 @@ mod tests {
             !drawn.contains("vendor"),
             "it really did not fit: {drawn:?}"
         );
+    }
+
+    /// Every tile's label must read against the tile it is written on. The
+    /// picked tile used to take the page's own ink — near-white on a dark
+    /// theme — and write it on a bright pastel fill, which made the one tile
+    /// you had selected the one label on the map you could not read.
+    #[test]
+    fn every_tile_label_reads_against_its_own_tile() {
+        let _g = crate::app::theme_test_guard();
+        for id in [
+            crew_theme::ThemeId::PaperDark,
+            crew_theme::ThemeId::PaperLight,
+            crew_theme::ThemeId::CrtGreen,
+        ] {
+            crew_theme::set_theme(id);
+            let children = kids(&[
+                ("target", 4_509_715_660, true),
+                ("crates", 812_000_000, true),
+                (".git", 402_000_000, true),
+                ("vendor", 121_000_000, true),
+                ("Cargo.lock", 310_000, false),
+            ]);
+            for (i, child) in children.iter().enumerate() {
+                for selected in [false, true] {
+                    let bg = tile_bg(child, selected);
+                    let ratio = crew_theme::contrast_ratio(label_ink(bg), bg);
+                    assert!(
+                        ratio >= crew_theme::contrast::text_floor(),
+                        "{id:?} tile {i} ({}) selected={selected}: {ratio:.2}",
+                        child.name
+                    );
+                }
+            }
+        }
+    }
+
+    /// The header's two numbers are what it exists to say. They used to be
+    /// glued to the front of a path and clipped off the right edge of a narrow
+    /// pane together with half the path.
+    #[test]
+    fn the_header_keeps_its_reading_however_narrow_the_pane() {
+        let _g = crate::app::theme_test_guard();
+        let mut p = DiskPane::new(std::path::PathBuf::from(
+            "/var/folders/wm/z5pvj2457dqfv9c1kzfcb1y00000gn/T/scratch",
+        ));
+        p.set_children_for_test(
+            &[("target", 4_000_000_000, true), ("docs", 24_000, true)],
+            0,
+        );
+        for cols in [24u16, 40, 60, 120] {
+            let row: String = {
+                let mut v: Vec<_> = p
+                    .cells(cols, 30)
+                    .into_iter()
+                    .filter(|c| c.row == 1)
+                    .collect();
+                v.sort_by_key(|c| c.col);
+                v.iter().map(|c| c.c).collect()
+            };
+            assert!(
+                row.contains("2 entries"),
+                "{cols} cols lost the reading: {row:?}"
+            );
+            assert!(
+                crate::chatwidth::str_w(&row) < usize::from(cols),
+                "{cols} cols overflowed: {row:?}"
+            );
+            // Wide enough for a path, and it is the TAIL that survives: the
+            // directory you are in, not the road you took to it.
+            if cols >= 40 {
+                assert!(
+                    row.contains("scratch"),
+                    "{cols} cols lost the tail: {row:?}"
+                );
+            }
+        }
+        // …and the floor is real: below it the reading stands alone rather
+        // than sharing with an ellipsis and two characters.
+        assert!(MIN_PATH_W >= 4);
     }
 }
