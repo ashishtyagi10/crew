@@ -191,6 +191,10 @@ mod linkhl;
 mod linkhover;
 mod load;
 mod md;
+#[cfg(test)]
+#[path = "mdshot_tests.rs"]
+mod mdshot_tests;
+
 mod mentionrange;
 mod menuink;
 #[cfg(test)]

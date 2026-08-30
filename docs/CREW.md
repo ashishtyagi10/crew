@@ -1598,7 +1598,11 @@ and point at another.
 Crew renders markdown natively: a `pulldown-cmark`-based engine (`md/`) folds
 the event stream into styled blocks and lays them out straight onto GPU cells —
 headings, lists, block quotes, tables (columns aligned by display width, so
-CJK/emoji don't skew them), fenced code as bordered cards, and links. Task
+CJK/emoji don't skew them, and **placed by the table's own delimiter row** —
+`|---:|` right-aligns a column, `|:--:|` centres it, header included), fenced
+code as bordered cards, and links. Nested bullet lists step through
+**`•` → `◦` → `▪`** by depth (cycling past three), so a sub-point is not
+two spaces and a guess away from the point above it. Task
 lists render as **checklists**: `- [ ]` draws a ☐, `- [x]` a green ✓ with the
 item text dimmed — done reads as done. ```` ```diff ````/```` ```patch ````
 fences colour added/removed/hunk lines like the viewer's diff view — **and

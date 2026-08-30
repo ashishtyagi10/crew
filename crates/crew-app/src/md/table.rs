@@ -1,8 +1,29 @@
 //! Table layout: column widths, padded cells, header rule. Split out of
 //! `layout.rs` to keep that file under its line budget.
-use crate::md::{LineKind, MdLine, MdSpan};
+use crate::md::{ColAlign, LineKind, MdLine, MdSpan};
 
 const SEP: &str = " │ ";
+
+/// Spaces before and after a `cell_w`-wide cell in a `w`-wide column.
+fn pads(align: ColAlign, w: usize, cell_w: usize) -> (usize, usize) {
+    let gap = w.saturating_sub(cell_w);
+    match align {
+        ColAlign::Left => (0, gap),
+        ColAlign::Right => (gap, 0),
+        // The odd cell goes to the right, so a centred column's text starts
+        // on the same side every row when the widths are odd.
+        ColAlign::Center => (gap / 2, gap - gap / 2),
+    }
+}
+
+/// Append `n` spaces, clipped to what is left of the `cols` budget.
+fn push_pad(spans: &mut Vec<MdSpan>, acc: &mut usize, n: usize, cols: usize) {
+    let n = n.min(cols.saturating_sub(*acc));
+    if n > 0 {
+        spans.push(super::wrap::plain_span(" ".repeat(n)));
+        *acc += n;
+    }
+}
 
 fn cell_text(spans: &[MdSpan]) -> String {
     spans.iter().map(|s| s.text.as_str()).collect()
@@ -44,7 +65,13 @@ fn total_width(widths: &[usize]) -> usize {
 /// (and caps any padding string) as soon as `cols` is reached, rather than
 /// materializing full-width padding for every column first and truncating
 /// after. Keeps the cost bounded by `cols`, not by the widest cell.
-fn row_line(cells: &[Vec<MdSpan>], widths: &[usize], bold: bool, cols: usize) -> MdLine {
+fn row_line(
+    cells: &[Vec<MdSpan>],
+    widths: &[usize],
+    aligns: &[ColAlign],
+    bold: bool,
+    cols: usize,
+) -> MdLine {
     let mut spans = Vec::new();
     let mut acc = 0usize;
     let empty = Vec::new();
@@ -58,21 +85,19 @@ fn row_line(cells: &[Vec<MdSpan>], widths: &[usize], bold: bool, cols: usize) ->
         // wide glyph (CJK/emoji) actually occupies on the cell grid, or the
         // `│` separator drifts out of alignment against other rows.
         let cell_w = cell_width(cell);
-        for s in cell {
-            let mut s = s.clone();
-            if bold {
-                s.style.bold = true;
+        let (lead, trail) = pads(aligns.get(i).copied().unwrap_or_default(), w, cell_w);
+        push_pad(&mut spans, &mut acc, lead, cols);
+        if acc < cols {
+            for s in cell {
+                let mut s = s.clone();
+                if bold {
+                    s.style.bold = true;
+                }
+                spans.push(s);
             }
-            spans.push(s);
+            acc += cell_w;
         }
-        acc += cell_w;
-        if cell_w < w {
-            let pad = (w - cell_w).min(cols.saturating_sub(acc));
-            if pad > 0 {
-                spans.push(super::wrap::plain_span(" ".repeat(pad)));
-                acc += pad;
-            }
-        }
+        push_pad(&mut spans, &mut acc, trail, cols);
         if i + 1 < widths.len() {
             spans.push(super::wrap::plain_span(SEP.to_string()));
             acc += SEP.chars().count();
@@ -99,15 +124,19 @@ fn rule_line(widths: &[usize], cols: usize) -> MdLine {
 /// at `cols` if the table is wider than that.
 pub(super) fn lines(
     header: Vec<Vec<MdSpan>>,
+    aligns: Vec<ColAlign>,
     rows: Vec<Vec<Vec<MdSpan>>>,
     cols: usize,
 ) -> Vec<MdLine> {
     let widths = col_widths(&header, &rows);
     let mut out = vec![
-        row_line(&header, &widths, true, cols),
+        row_line(&header, &widths, &aligns, true, cols),
         rule_line(&widths, cols),
     ];
-    out.extend(rows.iter().map(|row| row_line(row, &widths, false, cols)));
+    out.extend(
+        rows.iter()
+            .map(|row| row_line(row, &widths, &aligns, false, cols)),
+    );
     out
 }
 
@@ -132,6 +161,41 @@ mod tests {
             s.push_str("| 1 | x |\n");
         }
         s
+    }
+
+    /// The delimiter row is the only thing in table syntax that exists purely
+    /// to say how a column reads, and it was parsed away: an agent writing
+    /// `---:` under a column of numbers got them left-aligned like prose.
+    #[test]
+    fn the_delimiter_row_places_each_column() {
+        let src = "| left | right | mid |\n|:---|----:|:--:|\n| a | b | d |\n";
+        let rows: Vec<String> = crate::md::render(src, 40)
+            .iter()
+            .map(|l| l.spans.iter().map(|s| s.text.as_str()).collect())
+            .collect();
+        // Every header is wider than its body cell, so each body cell lands
+        // somewhere different in its column depending on the alignment.
+        let body = rows.iter().find(|r| r.contains('a')).expect("a body row");
+        assert!(body.starts_with("a   "), "left hugs the left: {body:?}");
+        assert!(body.contains("    b │"), "right hugs its rule: {body:?}");
+        assert!(
+            body.contains("│  d"),
+            "centred with a space each side: {body:?}"
+        );
+    }
+
+    /// The header follows the column it heads — a right-aligned column whose
+    /// title stays left is two columns wearing one rule.
+    #[test]
+    fn the_header_is_placed_like_its_column() {
+        let src = "| n |\n|----:|\n| 1 |\n| 22 |\n";
+        let rows: Vec<String> = crate::md::render(src, 40)
+            .iter()
+            .map(|l| l.spans.iter().map(|s| s.text.as_str()).collect())
+            .collect();
+        assert!(rows.iter().any(|r| r.trim_end() == " 1"), "{rows:?}");
+        assert!(rows.iter().any(|r| r.trim_end() == "22"), "{rows:?}");
+        assert!(rows.iter().any(|r| r.trim_end() == " n"), "{rows:?}");
     }
 
     #[test]
@@ -231,7 +295,7 @@ mod tests {
         let time_it = |width: usize| {
             let (header, rows) = table(width);
             let start = std::time::Instant::now();
-            let out = lines(header, rows, 80);
+            let out = lines(header, Vec::new(), rows, 80);
             (start.elapsed(), out)
         };
 

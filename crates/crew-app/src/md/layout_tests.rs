@@ -63,7 +63,8 @@ fn lists_indent_and_number() {
         .map(flat)
         .collect();
     assert!(texts.contains(&"• a".to_string()), "{texts:?}");
-    assert!(texts.contains(&"  • b".to_string()), "{texts:?}");
+    // The nested level wears its own bullet — see `tasklist::BULLETS`.
+    assert!(texts.contains(&"  \u{25e6} b".to_string()), "{texts:?}");
     assert!(texts.contains(&"1. one".to_string()), "{texts:?}");
 }
 

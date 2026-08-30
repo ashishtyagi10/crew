@@ -40,6 +40,15 @@ use glyphon::cosmic_text::{Placement, SwashImage};
 /// edge. Shared by the rounded corners and the geometric marks.
 pub(crate) const SUB: u32 = 8;
 
+/// Largest cell box [`synth`] will allocate a mask for, per axis. A cell is a
+/// character on a screen; anything past this is not a cell but a bad number,
+/// and the shaper hands out bad numbers — a fallback face with an INFINITE
+/// advance (the GB18030 Bitmap CJK quirk `celltext::cell_correction_em`
+/// already sidesteps) reaches `glyph.w.round() as u32` as `u32::MAX`, and
+/// `w * h` for the mask then overflows. One Japanese character in an agent's
+/// reply was enough.
+const MAX_CELL: u32 = 512;
+
 /// A cell-sized coverage mask under construction.
 pub(crate) struct Mask {
     pub(crate) w: u32,
@@ -168,7 +177,7 @@ pub(crate) fn centre(extent: u32, t: u32) -> (u32, u32) {
 /// offset — the caller measures it from the layout run so the mask covers
 /// exactly the cell the character was laid into.
 pub(crate) fn synth(c: char, cw: u32, ch: u32, top: i32) -> Option<SwashImage> {
-    if cw < 2 || ch < 2 {
+    if cw < 2 || ch < 2 || cw > MAX_CELL || ch > MAX_CELL {
         return None;
     }
     let mut m = Mask::new(cw, ch);

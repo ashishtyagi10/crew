@@ -185,7 +185,7 @@ fn blockquote_wraps_inner_blocks() {
 #[test]
 fn table_splits_header_and_rows() {
     let blocks = parse("| a | b |\n|---|---|\n| 1 | 2 |");
-    let Block::Table { header, rows } = &blocks[0] else {
+    let Block::Table { header, rows, .. } = &blocks[0] else {
         panic!("{blocks:?}")
     };
     assert_eq!(header.len(), 2);

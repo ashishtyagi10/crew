@@ -48,6 +48,8 @@ pub(super) enum Block {
     BlockQuote(Vec<Block>),
     Table {
         header: Vec<Vec<MdSpan>>,
+        /// Per-column alignment from the delimiter row (`|---:|:--:|`).
+        aligns: Vec<super::ColAlign>,
         rows: Vec<Vec<Vec<MdSpan>>>,
     },
     Rule,
@@ -102,7 +104,10 @@ fn collect_blocks<'a>(
             Event::Start(Tag::BlockQuote(_)) => inert += 1,
             Event::End(TagEnd::BlockQuote(_)) if inert > 0 => inert -= 1,
             Event::End(TagEnd::BlockQuote(_)) => break,
-            Event::Start(Tag::Table(_)) => blocks.push(collect_table(events, keep_soft_breaks)),
+            Event::Start(Tag::Table(aligns)) => {
+                let aligns = aligns.into_iter().map(super::ColAlign::from).collect();
+                blocks.push(collect_table(events, aligns, keep_soft_breaks))
+            }
             Event::Start(Tag::HtmlBlock) => blocks.push(collect_html_block(events)),
             Event::Rule => blocks.push(Block::Rule),
             _ => {} // stray leaf/garbage events at block level: ignore

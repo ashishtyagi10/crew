@@ -95,7 +95,8 @@ pub(crate) fn build_pane_buffer(
     // First sighting of a misbehaving glyph: measure it from the shaped
     // layout, cache its correction, and rebuild this buffer with it applied.
     // Steady-state frames hit the cache inside `fill_rich_text` directly.
-    if detect_corrections(&buffer, font_system, params) {
+    if banish_broken_faces(&buffer, font_system) || detect_corrections(&buffer, font_system, params)
+    {
         fill_rich_text(&mut buffer, font_system, cells, cols, rows, params);
     }
     buffer
@@ -143,6 +144,48 @@ fn correction_for(params: &FontParams, c: char, weight: u16) -> Option<f32> {
     }
     let key = (params.family.clone().unwrap_or_default(), weight, c);
     CORRECTION_CACHE.with(|cache| cache.borrow().get(&key).copied().flatten())
+}
+
+/// Drop any face that shaped a glyph with a NON-FINITE advance or position,
+/// and say whether anything was dropped (the caller re-shapes without it).
+///
+/// macOS ships `GB18030 Bitmap`, a bitmap-only face whose em is zero, so
+/// every metric scaled out of it comes back infinite: the glyph's own
+/// advance, every `x` after it on the row, and — three layers down, in the
+/// shaper's subpixel binning — an `f32 as i32` that overflows and takes the
+/// frame with it. One Japanese character in an agent's reply was enough, and
+/// `cell_correction_em` cannot help: letter-spacing is ADDED to the advance,
+/// and nothing finite fixes infinity. The face has to go.
+///
+/// Never crew's own embedded family — if that ever shaped like this the
+/// answer is a broken build, not a fontless window.
+fn banish_broken_faces(buffer: &Buffer, font_system: &mut FontSystem) -> bool {
+    let mut bad: Vec<fontdb::ID> = Vec::new();
+    for run in buffer.layout_runs() {
+        for g in run.glyphs {
+            if (g.w.is_finite() && g.x.is_finite()) || bad.contains(&g.font_id) {
+                continue;
+            }
+            bad.push(g.font_id);
+        }
+    }
+    bad.retain(|&id| {
+        font_system.db().face(id).is_some_and(|f| {
+            !f.families
+                .iter()
+                .any(|(n, _)| n == crew_theme::EMBEDDED_FAMILY)
+        })
+    });
+    if bad.is_empty() {
+        return false;
+    }
+    for id in bad {
+        font_system.db_mut().remove_face(id);
+    }
+    // `db_mut` clears the font-MATCH cache on the way out, which is what the
+    // re-shape reads; the shaped-run cache that would also need clearing is
+    // off in this build (cosmic-text's `shape-run-cache` feature).
+    true
 }
 
 /// Walk the shaped layout looking for width-1 glyphs whose rounded advance

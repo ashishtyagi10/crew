@@ -496,3 +496,20 @@ fn a_full_sextant_column_fills_its_half_of_the_cell() {
         assert_eq!(at(&img, 8, y), 255, "the right column breaks at y={y}");
     }
 }
+
+/// A cell box bigger than any cell is a bad number, not a cell. The shaper
+/// hands them out: a fallback face with an infinite advance reaches
+/// `glyph.w.round() as u32` as `u32::MAX` (the cast saturates rather than
+/// erroring), and `Mask::new`'s `w * h` then overflows — one Japanese
+/// character in an agent's reply panicked the whole frame.
+#[test]
+fn an_impossible_cell_box_is_declined_not_allocated() {
+    for (cw, ch) in [(u32::MAX, 16), (16, u32::MAX), (u32::MAX, u32::MAX)] {
+        assert!(
+            synth('\u{2500}', cw, ch, 0).is_none(),
+            "{cw}x{ch} is not a cell"
+        );
+    }
+    // The largest box that IS a cell still draws.
+    assert!(synth('\u{2500}', 512, 512, 0).is_some());
+}

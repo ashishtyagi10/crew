@@ -54,15 +54,22 @@ fn extract(spans: Vec<MdSpan>) -> (Option<bool>, Vec<MdSpan>) {
     )
 }
 
+/// Bullet glyphs by nesting depth, cycling past the end. One glyph at every
+/// level leaves two spaces of indent as the only thing separating a sub-point
+/// from the point above it, and an agent's plan is nested three deep by the
+/// second paragraph. This is what every prose typographer and every other
+/// markdown renderer does; the ordered levels already renumber from 1.
+const BULLETS: [char; 3] = ['\u{2022}', '\u{25e6}', '\u{25aa}']; // • ◦ ▪
+
 /// The item's lead glyph: a checkbox for a task item, the usual
 /// bullet/ordinal otherwise. Same trailing space either way, so task and
 /// plain items share one hanging-indent computation in `layout::list_lines`.
-pub(super) fn bullet(task: Option<bool>, ordered_idx: Option<u64>) -> String {
+pub(super) fn bullet(task: Option<bool>, ordered_idx: Option<u64>, depth: u8) -> String {
     match (task, ordered_idx) {
         (Some(true), _) => "\u{2713} ".into(),  // ✓
         (Some(false), _) => "\u{2610} ".into(), // ☐
         (None, Some(n)) => format!("{n}. "),
-        (None, None) => "\u{2022} ".into(), // •
+        (None, None) => format!("{} ", BULLETS[depth as usize % BULLETS.len()]),
     }
 }
 

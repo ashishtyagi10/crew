@@ -439,3 +439,51 @@ fn roster_symbol_glyphs_stay_on_cell_grid() {
         }
     }
 }
+
+/// Every shaped glyph lands somewhere finite, whatever face the fallback
+/// chain reaches for.
+///
+/// macOS ships `GB18030 Bitmap`, a bitmap-only face whose em is zero, so
+/// every metric scaled out of it is infinite. One Japanese character in an
+/// agent's reply was enough: the glyph's advance came back `inf`, every `x`
+/// after it on the row followed, and the shaper's subpixel binning overflowed
+/// an `f32 as i32` and took the frame down. Nothing in crew could correct it
+/// — letter-spacing is ADDED to an advance — so `banish_broken_faces` drops
+/// the face and re-shapes. This test only fails on a machine that has such a
+/// font installed, which is exactly the machine it has to pass on.
+#[test]
+fn a_fallback_face_with_broken_metrics_never_reaches_the_layout() {
+    let mut fs = crate::embedfont::font_system();
+    let (cell_w, cell_h) = cell_metrics(14.0, CELL_H_RATIO);
+    let mut p = params(None);
+    p.cell_w = cell_w;
+    p.line_height = cell_h;
+    // Han, hiragana, katakana, hangul and an emoji — the scripts the embedded
+    // family does not cover, so every one of them shapes through fallback.
+    let text = "日本語のカナと한글と🙂";
+    let cells: Vec<CellView> = text
+        .chars()
+        .enumerate()
+        .map(|(i, c)| CellView {
+            col: i as u16,
+            row: 0,
+            c,
+            fg: (200, 200, 200),
+            bg: (0, 0, 0),
+            ..Default::default()
+        })
+        .collect();
+    let cols = cells.len();
+    let buf = build_pane_buffer(&mut fs, &cells, cols, 1, cols as f32 * cell_w, cell_h, &p);
+    for run in buf.layout_runs() {
+        for g in run.glyphs {
+            assert!(
+                g.x.is_finite() && g.w.is_finite(),
+                "{:?} shaped to x={} w={}",
+                &run.text[g.start..g.end],
+                g.x,
+                g.w
+            );
+        }
+    }
+}

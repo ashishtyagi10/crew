@@ -7,6 +7,29 @@ pub(crate) mod syntax;
 mod syntaxdiff;
 mod tasklist;
 
+/// A column's alignment, as the table's own `|---|---:|:--:|` row declares
+/// it. Discarded until now: the delimiter row is the only thing in the table
+/// syntax that exists purely to say how a column reads, and an agent asked
+/// for a comparison writes `---:` under every number it means you to compare.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub(crate) enum ColAlign {
+    #[default]
+    Left,
+    Right,
+    Center,
+}
+
+impl From<pulldown_cmark::Alignment> for ColAlign {
+    fn from(a: pulldown_cmark::Alignment) -> Self {
+        match a {
+            pulldown_cmark::Alignment::Right => Self::Right,
+            pulldown_cmark::Alignment::Center => Self::Center,
+            // `None` is the unstyled column, which reads left like text does.
+            _ => Self::Left,
+        }
+    }
+}
+
 /// Parses `text` and lays it out into wrapped, styled lines ready to draw at
 /// `cols` columns. Never panics, regardless of input. CommonMark semantics:
 /// a single line break (soft break) joins with a space — the right default

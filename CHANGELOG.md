@@ -8,6 +8,67 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.75
+
+**A Japanese character in a reply took the whole frame down.**
+
+macOS ships `GB18030 Bitmap`, a bitmap-only face whose em is zero, so every
+metric scaled out of it comes back **infinite**. Crew already knew the face
+misbehaved — the cell-advance correction has sidestepped non-finite advances
+since it was written — but sidestepping is not enough: the infinite advance
+flowed into the glyph's own box, into every `x` after it on the row, and, three
+layers down in the shaper's subpixel binning, into an `f32 as i32` that
+overflowed. One `日` in an agent's reply was enough. Nothing finite can correct
+an infinite advance (letter-spacing is *added* to it), so the face is now
+dropped from the font database on sight and the line re-shaped through whatever
+else covers the script. The synthesised box-glyph path grew a matching floor:
+a cell box larger than any cell is declined, not allocated.
+
+Found by giving the markdown engine its first look in a frame. Every other
+surface has a shot harness; the half of the markdown grammar an agent actually
+replies with — tables, nested and ordered lists, task lists, block quotes,
+rules, unbreakable URLs, CJK — had only ever been asserted on as data. It is
+now swept at three tile widths and on light and green pages, and the sweep
+also found:
+
+* **Table column alignment was parsed away.** The delimiter row is the only
+  thing in table syntax that exists purely to say how a column reads, and an
+  agent writing `---:` under a column of numbers got them left-aligned like
+  prose. `|---:|` now right-aligns, `|:--:|` centres, and the header is placed
+  like the column it heads.
+* **Every nesting level wore the same bullet.** Two spaces of indent was the
+  only thing separating a sub-point from its point; the levels now step
+  `•` → `◦` → `▪` and cycle.
+
+## 0.19.74
+
+**The todo pane got shot at five sizes, and three things fell out.**
+
+`/todo` was the one whole pane in the app with no pixel coverage at all —
+every other surface has a shot harness, and every one of those sweeps found
+something. It is now swept at five tile sizes (a narrow column, a short strip,
+quarter, half and the whole window) in four states (the list, the `@project`
+popup, the done history and an empty pane) on the dark page, a light page and
+a green tube.
+
+* **The title kept one column before the chip beside it** while every other
+  pair on the row kept two — so a title that happened to fill its budget read
+  straight into its tag: `…and reverts @crew` was one phrase. Two now,
+  everywhere.
+* **A narrow tile hard-broke titles in half.** The right-hand `@project` and
+  due are laid out first and take what they need, so on a 36-cell pane
+  `ship the release notes` was left three columns and came out as `shi` /
+  `p the release notes`. Rows now **stack** below a floor measured against the
+  title they actually carry: the title takes the full width on its own lines
+  and its chips — with the `✗` that deletes the item — drop to a row beneath
+  it. A short title beside a tag and a due still shares one line, because
+  moving it down would buy nothing.
+* **A short tile showed three of six items and looked exactly like a list of
+  three.** The list now carries a **scroll thumb** down its rightmost column,
+  proportional to how much is off-screen and reaching both ends of the track —
+  drawn only while the list overflows, the same rule the terminal card's own
+  border thumb follows.
+
 ## 0.19.73
 
 **The PANES section lost its tally, and the three drawn panes got looked at.**

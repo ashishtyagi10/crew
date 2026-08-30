@@ -22,7 +22,9 @@ pub(super) fn table_lines(
     rows: Vec<Vec<Vec<MdSpan>>>,
     cols: usize,
 ) -> Vec<MdLine> {
-    table::lines(header, rows, cols)
+    // A CSV has no delimiter row to declare alignment with; every column
+    // reads left, which is what it did before there was a choice.
+    table::lines(header, Vec::new(), rows, cols)
 }
 
 /// Turns parsed blocks into drawable lines, inserting exactly one
@@ -54,7 +56,11 @@ fn block_lines(block: Block, cols: usize) -> Vec<MdLine> {
         Block::CodeBlock { lang, lines } => code_block_lines(lang, lines, cols),
         Block::List(items) => list_lines(items, cols),
         Block::BlockQuote(inner) => quote_lines(inner, cols),
-        Block::Table { header, rows } => table::lines(header, rows, cols),
+        Block::Table {
+            header,
+            aligns,
+            rows,
+        } => table::lines(header, aligns, rows, cols),
         Block::Rule => vec![MdLine {
             spans: vec![plain_span("─".repeat(cols))],
             kind: LineKind::Rule,
@@ -171,7 +177,7 @@ fn list_lines(items: Vec<ListItem>, cols: usize) -> Vec<MdLine> {
     let mut out = Vec::new();
     for item in items {
         let indent = "  ".repeat(item.depth as usize);
-        let bullet = super::tasklist::bullet(item.task, item.ordered_idx);
+        let bullet = super::tasklist::bullet(item.task, item.ordered_idx, item.depth);
         let prefix = format!("{indent}{bullet}");
         let prefix_len = prefix.chars().count();
         let avail = cols.saturating_sub(prefix_len).max(1);

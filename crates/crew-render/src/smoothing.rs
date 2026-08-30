@@ -124,16 +124,15 @@ pub(crate) fn presmooth(
                 // rectangle asked for neither. The cell box comes off the
                 // layout itself (the advance is snapped to one cell, the line
                 // height IS the cell height), so nothing has to be plumbed in.
+                // A non-finite advance saturates the cast below to `u32::MAX`
+                // rather than erroring, so it is checked here as a float.
+                let box_px = (glyph.w.round(), run.line_height.round());
                 if let Some(image) = run.text[glyph.start..glyph.end]
                     .chars()
                     .next()
+                    .filter(|_| box_px.0.is_finite() && box_px.1.is_finite())
                     .and_then(|c| {
-                        crate::boxglyph::synth(
-                            c,
-                            glyph.w.round() as u32,
-                            run.line_height.round() as u32,
-                            cell_top,
-                        )
+                        crate::boxglyph::synth(c, box_px.0 as u32, box_px.1 as u32, cell_top)
                     })
                 {
                     swash.image_cache.insert(key, Some(image));

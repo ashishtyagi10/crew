@@ -22,6 +22,7 @@ pub(super) fn newline_marker() -> MdSpan {
 
 pub(super) fn collect_table<'a>(
     events: &mut impl Iterator<Item = Event<'a>>,
+    aligns: Vec<crate::md::ColAlign>,
     keep_soft_breaks: bool,
 ) -> Block {
     let mut header = Vec::new();
@@ -38,7 +39,11 @@ pub(super) fn collect_table<'a>(
             _ => {}
         }
     }
-    Block::Table { header, rows }
+    Block::Table {
+        header,
+        aligns,
+        rows,
+    }
 }
 
 fn collect_row<'a>(

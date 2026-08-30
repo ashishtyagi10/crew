@@ -37,8 +37,23 @@ fn extract_strips_stray_sentinels_without_claiming_them() {
 
 #[test]
 fn bullet_covers_all_four_shapes() {
-    assert_eq!(bullet(Some(true), None), "\u{2713} ");
-    assert_eq!(bullet(Some(false), None), "\u{2610} ");
-    assert_eq!(bullet(None, Some(3)), "3. ");
-    assert_eq!(bullet(None, None), "\u{2022} ");
+    assert_eq!(bullet(Some(true), None, 0), "\u{2713} ");
+    assert_eq!(bullet(Some(false), None, 0), "\u{2610} ");
+    assert_eq!(bullet(None, Some(3), 0), "3. ");
+    assert_eq!(bullet(None, None, 0), "\u{2022} ");
+}
+
+/// Two spaces of indent is not enough to tell a sub-point from its point;
+/// the glyph has to change too. It cycles rather than running out.
+#[test]
+fn each_nesting_level_gets_its_own_bullet() {
+    let at = |d| bullet(None, None, d);
+    assert_ne!(at(0), at(1));
+    assert_ne!(at(1), at(2));
+    assert_ne!(at(0), at(2));
+    assert_eq!(at(0), at(3), "the pool cycles rather than running out");
+    // A checkbox and an ordinal say their own level; only the plain bullet
+    // has nothing else to say it with.
+    assert_eq!(bullet(Some(false), None, 1), bullet(Some(false), None, 0));
+    assert_eq!(bullet(None, Some(2), 1), bullet(None, Some(2), 0));
 }
