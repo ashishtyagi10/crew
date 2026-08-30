@@ -134,7 +134,7 @@ fn shades_are_flat_and_ordered() {
 /// module claiming a letter would replace it with a rectangle.
 #[test]
 fn only_the_drawn_set_is_claimed() {
-    for c in ['a', 'W', '·', '●', '╱', '╪', '╫'] {
+    for c in ['a', 'W', '·', '╱', '╪', '╫', '\u{25B3}', '\u{2713}'] {
         assert!(synth(c, 8, 16, 12).is_none(), "{c:?} was claimed");
     }
     assert!(arms_of('─').is_some());
@@ -346,4 +346,67 @@ fn a_mark_that_rounds_away_is_declined() {
     // narrow cell keeps its pixel rather than vanishing.
     let thin = cell('\u{258F}', 3, 8);
     assert!(thin.data.iter().any(|v| *v > 0), "▏ vanished on a 3px cell");
+}
+
+/// The marks are one family: every one of them centred on the same centre
+/// the rules use, so a `●` in a list lines up with the `─` above it, and the
+/// big ones bigger than the small ones of the same shape.
+#[test]
+fn the_geometric_marks_share_one_centre_and_one_scale() {
+    let (w, h) = (9u32, 17u32);
+    let ink = |c: char| {
+        let img = cell(c, w, h);
+        let on: Vec<(u32, u32)> = (0..h)
+            .flat_map(|y| (0..w).map(move |x| (x, y)))
+            .filter(|(x, y)| at(&img, *x, *y) > 128)
+            .collect();
+        assert!(!on.is_empty(), "{c:?} drew nothing");
+        // The BOUNDING BOX's centre, not the centroid: a triangle's centroid
+        // is two thirds of the way from its tip, which is a fact about
+        // triangles rather than about where the mark sits.
+        let mid = |v: Vec<u32>| {
+            (v.iter().copied().min().unwrap() + v.iter().copied().max().unwrap()) as f32 / 2.0
+        };
+        let cx = mid(on.iter().map(|(x, _)| *x).collect());
+        let cy = mid(on.iter().map(|(_, y)| *y).collect());
+        (on.len(), cx, cy)
+    };
+    for c in "●⏺○▲▼◀▶▴▾◂▸■□▪▫◆◇".chars() {
+        let (_, cx, cy) = ink(c);
+        assert!(
+            (cx - 4.0).abs() <= 0.6 && (cy - 8.0).abs() <= 0.6,
+            "{c:?} sits at ({cx:.1}, {cy:.1}), not on the cell's centre"
+        );
+    }
+    for (big, small) in [('▲', '▴'), ('▼', '▾'), ('◀', '◂'), ('▶', '▸'), ('■', '▪')]
+    {
+        assert!(
+            ink(big).0 > ink(small).0,
+            "{big:?} is not bigger than {small:?}"
+        );
+    }
+    // A hollow mark is lighter than its filled twin and still closed.
+    for (solid, hollow) in [('●', '○'), ('■', '□'), ('◆', '◇')] {
+        assert!(
+            ink(hollow).0 < ink(solid).0,
+            "{hollow:?} is not lighter than {solid:?}"
+        );
+    }
+}
+
+/// `⏺` resolves to Apple Color Emoji on a stock Mac, and a colour glyph
+/// carries its own pixels — it would be the same red-and-white dot on every
+/// theme crew has. It is drawn here, so it is an alpha mask like every other
+/// mark and wears whatever colour the cell asks for.
+#[test]
+fn the_record_dot_is_a_mask_not_a_colour_bitmap() {
+    let img = cell('\u{23FA}', 9, 17);
+    assert_eq!(img.content, glyphon::cosmic_text::SwashContent::Mask);
+    let big = img.data.iter().filter(|v| **v > 128).count();
+    let dot = cell('\u{25CF}', 9, 17)
+        .data
+        .iter()
+        .filter(|v| **v > 128)
+        .count();
+    assert!(big > dot, "⏺ should read heavier than ● ({big} vs {dot})");
 }

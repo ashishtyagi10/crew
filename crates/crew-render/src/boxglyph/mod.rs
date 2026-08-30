@@ -29,9 +29,14 @@ mod arms;
 mod blocks;
 mod braille;
 mod doubles;
+mod marks;
 mod round;
 
 use glyphon::cosmic_text::{Placement, SwashImage};
+
+/// Samples per axis inside one pixel when integrating a curved or diagonal
+/// edge. Shared by the rounded corners and the geometric marks.
+pub(crate) const SUB: u32 = 8;
 
 /// A cell-sized coverage mask under construction.
 pub(crate) struct Mask {
@@ -73,6 +78,34 @@ impl Mask {
                 let cov = (ax * ay * a * 255.0).round() as u8;
                 let i = (py * self.w + px) as usize;
                 self.data[i] = self.data[i].max(cov);
+            }
+        }
+    }
+
+    /// Union in whatever `inside` covers, integrated over `SUB`×`SUB` points
+    /// per pixel. Curves and diagonals are the only shapes here that need it
+    /// — a rectangle's coverage is computed outright by [`Mask::rect`] — and
+    /// the mask is cached for the life of an atlas entry, so this can afford
+    /// to be generous.
+    pub(crate) fn sample(&mut self, inside: impl Fn(f32, f32) -> bool) {
+        let step = 1.0 / SUB as f32;
+        for py in 0..self.h {
+            for px in 0..self.w {
+                let mut hits = 0u32;
+                for sy in 0..SUB {
+                    let y = py as f32 + (sy as f32 + 0.5) * step;
+                    for sx in 0..SUB {
+                        let x = px as f32 + (sx as f32 + 0.5) * step;
+                        if inside(x, y) {
+                            hits += 1;
+                        }
+                    }
+                }
+                if hits > 0 {
+                    let cov = (hits * 255 / (SUB * SUB)) as u8;
+                    let i = (py * self.w + px) as usize;
+                    self.data[i] = self.data[i].max(cov);
+                }
             }
         }
     }
@@ -122,6 +155,7 @@ pub(crate) fn synth(c: char, cw: u32, ch: u32, top: i32) -> Option<SwashImage> {
         && !blocks::draw(&mut m, c)
         && !round::draw(&mut m, c)
         && !braille::draw(&mut m, c)
+        && !marks::draw(&mut m, c)
     {
         return None;
     }

@@ -1434,6 +1434,16 @@ fall out of it:
   junctions meet exactly, and the rounded corners keep one whole pixel of
   straight tail on each arm so they join their neighbours at full ink.
 
+The **geometric marks** — `● ○ ⏺ ▲ ▼ ◀ ▶ ▴ ▾ ◂ ▸ ■ □ ▪ ▫ ◆ ◇` — are drawn
+for a different reason: crew's own chrome is written in them, and asking a
+font for them is a lottery. On a stock Mac with Lilex chosen they came back
+from **five different typefaces** — Lilex for `○ ●`, SF Mono for the triangles
+and squares, Stelo for the diamonds, and Apple Color Emoji for `⏺`. Five faces
+is five ideas of how big a mark is and where it sits, in one row of chrome;
+and a colour glyph carries its own pixels, so the activity dot was the same
+red-and-white bitmap on every theme. Drawn, they are one family: one size
+relationship, the rules' own stroke weight, and the cell's own colour.
+
 **Braille** (U+2800–28FF) is drawn as well, and for the same reason one step
 further out: btop, gotop, bandwhich and every other monitor of that generation
 plot their graphs in braille, because eight dots per cell is four times the

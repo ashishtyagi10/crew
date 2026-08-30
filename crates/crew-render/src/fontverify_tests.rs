@@ -89,3 +89,80 @@ fn a_genuine_monospace_face_still_passes() {
          would strip real fonts out of the picker"
     );
 }
+
+/// Which face actually draws each of crew's chrome symbols — and the one
+/// answer that is never acceptable.
+///
+/// A **colour** glyph carries its own pixels. It ignores the cell's
+/// foreground entirely, so a chrome mark that resolves to an emoji face is
+/// the same red-and-white dot on every theme crew has, arriving as a scaled
+/// bitmap next to hinted-off outlines. `⏺` did exactly that on a stock Mac
+/// (it has an emoji presentation, and nothing was asking for the text one);
+/// it is drawn by [`crate::boxglyph`] now, so it comes back as a mask.
+///
+/// Prints the census as well: crew's marks used to come from five different
+/// typefaces at once, which is five ideas of how big a mark is and where it
+/// sits, in one row of chrome.
+#[test]
+fn no_chrome_symbol_is_drawn_as_a_colour_bitmap() {
+    use crate::cellgrid::CellView;
+    use crate::celltext::{build_pane_buffer, cell_metrics, FontParams, CELL_H_RATIO};
+    use glyphon::cosmic_text::{SwashCache, SwashContent};
+    let mut fs = crate::embedfont::font_system();
+    let mut swash = SwashCache::new();
+    let (cw, ch) = cell_metrics(13.0, CELL_H_RATIO);
+    let p = FontParams {
+        font_size: 13.0,
+        line_height: ch,
+        cell_w: cw,
+        family: None,
+        weight: 500,
+        smooth: 0,
+        gamma: 0,
+        dark: true,
+        body: ((255, 255, 255), (0, 0, 0)),
+    };
+    let mut by_face: std::collections::BTreeMap<String, String> = Default::default();
+    for c in crate::prewarm::CHROME.chars() {
+        let cells = [CellView {
+            col: 0,
+            row: 0,
+            c,
+            fg: (255, 255, 255),
+            bg: (0, 0, 0),
+            ..Default::default()
+        }];
+        let buf = build_pane_buffer(&mut fs, &cells, 1, 1, cw, ch, &p);
+        let Some(g) = buf
+            .layout_runs()
+            .next()
+            .and_then(|r| r.glyphs.first().cloned())
+        else {
+            continue;
+        };
+        let key = g.physical((0.0, 0.0), 1.0).cache_key;
+        let drawn = crate::boxglyph::synth(c, cw as u32, ch as u32, 12).is_some();
+        let content = swash
+            .get_image_uncached(&mut fs, key)
+            .map(|i| i.content)
+            .unwrap_or(SwashContent::Mask);
+        assert!(
+            drawn || content == SwashContent::Mask,
+            "{c:?} resolves to a COLOUR glyph — it will be the same pixels on \
+             every theme. Draw it in `boxglyph`, or use a character the body \
+             face actually has."
+        );
+        let name = fs
+            .db()
+            .face(g.font_id)
+            .and_then(|f| f.families.first().map(|(n, _)| n.clone()))
+            .unwrap_or_else(|| "?".into());
+        by_face
+            .entry(if drawn { "crew (drawn)".into() } else { name })
+            .or_default()
+            .push(c);
+    }
+    for (face, chars) in by_face {
+        println!("{face:32} {chars}");
+    }
+}

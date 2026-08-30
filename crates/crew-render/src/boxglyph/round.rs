@@ -7,12 +7,7 @@
 //! the tails are whole-pixel rectangles that line up with the `─` and `│`
 //! next to them, the stroke is exactly as thick as its neighbours instead of
 //! whatever the dilation made of it, and the arc's ends meet the tails.
-use super::{centre, light_thickness, Mask};
-
-/// Samples per axis inside one pixel when integrating the arc's coverage.
-/// The arc is the only curved thing here and the mask is cached for the life
-/// of the atlas entry, so this can afford to be generous.
-const SUB: u32 = 8;
+use super::{centre, light_thickness, Mask, SUB};
 
 /// `(char, [right_of_centre, below_centre])` — which way the arc's centre
 /// lies from the corner, i.e. which two arms the character has. `╭` turns
