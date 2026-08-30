@@ -177,6 +177,39 @@ fn vertical(lines: &[CardLine], c: Caret, down: bool) -> Caret {
     c
 }
 
+/// The caret nearest a clicked cell: the last position at or before `col` on
+/// that row, or the row's end when the click was past everything on it.
+///
+/// A click that lands on a row of pure furniture — a rule, a code field's
+/// border — finds the nearest row that has somewhere to stand, rather than
+/// doing nothing: a click always means "put it here", and the nearest here is
+/// the honest answer.
+pub(crate) fn at_cell(lines: &[CardLine], row: usize, col: u16) -> Option<Caret> {
+    for r in (0..=row.min(lines.len().saturating_sub(1))).rev() {
+        let s = stops(&lines[r]);
+        if s.is_empty() {
+            continue;
+        }
+        let at = match r == row {
+            true => s
+                .iter()
+                .rev()
+                .find(|&&(c, _)| c <= col)
+                .or(s.first())
+                .copied(),
+            // A click below the last row with anything on it lands at its end.
+            false => s.last().copied(),
+        };
+        let (col, _) = at?;
+        return Some(Caret {
+            row: r,
+            col,
+            want: col,
+        });
+    }
+    first(lines)
+}
+
 /// Where the caret should be after the document was laid out again (a resize,
 /// an edit): the position now holding `offset`, or the nearest one after it.
 ///

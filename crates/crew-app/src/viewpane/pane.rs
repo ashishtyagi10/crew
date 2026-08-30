@@ -75,6 +75,8 @@ pub(crate) struct ViewPane {
     pub caret_at: Option<u32>,
     /// Edited since it was read or last saved.
     pub dirty: bool,
+    /// What has been typed, so it can be taken back ([`super::undo`]).
+    pub history: super::undo::History,
     /// `v`: lay a diff out side by side rather than unified (see
     /// [`super::diffsplit`]). Per pane rather than a setting: it is a way of
     /// reading THIS review at THIS width, and a pane too narrow to hold two
@@ -121,6 +123,7 @@ impl ViewPane {
             caret: None,
             caret_at: None,
             dirty: false,
+            history: Default::default(),
             split: false,
             search: None,
             cache: RefCell::new(None),

@@ -16,8 +16,11 @@ pub(crate) enum Edit {
     Move(Step),
     Type(String),
     Backspace,
+    Delete,
     Newline,
     Save,
+    Undo,
+    Redo,
 }
 
 /// Classify a key press for an editing window. `None` leaves it to the
@@ -41,11 +44,16 @@ pub(crate) fn edit_for(key: &Key, pressed: bool, mods: ModifiersState) -> Option
         Key::Named(NamedKey::Home) => Some(Edit::Move(Step::Home)),
         Key::Named(NamedKey::End) => Some(Edit::Move(Step::End)),
         Key::Named(NamedKey::Backspace) if !cmd => Some(Edit::Backspace),
+        Key::Named(NamedKey::Delete) if !cmd => Some(Edit::Delete),
         Key::Named(NamedKey::Enter) if !cmd => Some(Edit::Newline),
         Key::Named(NamedKey::Space) if !cmd => Some(Edit::Type(" ".into())),
         Key::Named(NamedKey::Tab) if !cmd => Some(Edit::Type("  ".into())),
         Key::Character(s) if cmd => match s.as_str() {
             "s" => Some(Edit::Save),
+            "z" => Some(Edit::Undo),
+            // Cmd+Shift+Z arrives as the shifted character, exactly like the
+            // `{`/`}` and `T` chords the grid uses.
+            "Z" => Some(Edit::Redo),
             _ => None,
         },
         // A letter is a letter. Without the caret this is `r` for reload and
@@ -135,6 +143,21 @@ impl CrewApp {
                     d.window.request_redraw();
                 }
                 WindowEvent::RedrawRequested => d.draw(),
+                WindowEvent::CursorMoved { position, .. } => {
+                    d.pointer = (position.x as f32, position.y as f32);
+                }
+                WindowEvent::MouseInput {
+                    state: winit::event::ElementState::Pressed,
+                    button: winit::event::MouseButton::Left,
+                    ..
+                } => {
+                    // A click means "put the cursor here": the pointer's
+                    // pixels, over the frame's one-cell ring, in cells.
+                    if let Some((row, col)) = d.cell_at(d.pointer) {
+                        d.view.click_caret(row, col, d.grid.cols, d.grid.rows);
+                        d.window.request_redraw();
+                    }
+                }
                 WindowEvent::MouseWheel { delta, .. } => {
                     // A document scrolls by lines whichever way the mouse
                     // reports; a trackpad's pixel delta is divided by the cell
@@ -173,6 +196,23 @@ impl CrewApp {
                             Some(Edit::Backspace) => {
                                 d.view.backspace(cols, rows);
                                 d.warned = false;
+                                d.window.request_redraw();
+                                return;
+                            }
+                            Some(Edit::Delete) => {
+                                d.view.delete(cols, rows);
+                                d.warned = false;
+                                d.window.request_redraw();
+                                return;
+                            }
+                            Some(Edit::Undo) => {
+                                d.view.undo(cols, rows);
+                                d.warned = false;
+                                d.window.request_redraw();
+                                return;
+                            }
+                            Some(Edit::Redo) => {
+                                d.view.redo(cols, rows);
                                 d.window.request_redraw();
                                 return;
                             }

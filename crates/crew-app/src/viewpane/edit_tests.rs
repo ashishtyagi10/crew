@@ -236,3 +236,129 @@ fn saving_an_untouched_document_changes_nothing() {
     p.save().expect("save");
     assert_eq!(std::fs::read_to_string(&path).expect("read"), original);
 }
+
+/// Undo through the pane, not just the history: the file must come back
+/// byte-for-byte, which is the thing a re-serializing editor cannot promise.
+#[test]
+fn undo_gives_the_document_back_exactly() {
+    let mut p = doc(DOC);
+    at(&mut p, 20);
+    for c in "hello".chars() {
+        p.insert(&c.to_string(), 60, 20);
+    }
+    assert_ne!(text_of(&p), DOC);
+    assert!(p.undo(60, 20), "there was something to undo");
+    assert_eq!(text_of(&p), DOC, "the file came back changed");
+    assert!(!p.undo(60, 20), "and there is nothing further back");
+}
+
+#[test]
+fn redo_puts_it_back() {
+    let mut p = doc(DOC);
+    at(&mut p, 20);
+    p.insert("Q", 60, 20);
+    let typed = text_of(&p);
+    p.undo(60, 20);
+    assert!(p.redo(60, 20));
+    assert_eq!(text_of(&p), typed);
+}
+
+/// The caret comes back with the text — undoing into a document while the
+/// cursor stays where the text used to be is how an editor loses your place.
+#[test]
+fn undo_puts_the_caret_back_where_the_typing_started() {
+    let mut p = doc(DOC);
+    at(&mut p, 20);
+    let before = p.caret_at;
+    for c in "words".chars() {
+        p.insert(&c.to_string(), 60, 20);
+    }
+    p.undo(60, 20);
+    assert_eq!(p.caret_at, before);
+}
+
+/// Backspacing is undone as a run too, and gives back what was deleted.
+#[test]
+fn undo_puts_back_a_run_of_backspaces() {
+    let mut p = doc(DOC);
+    at(&mut p, 6);
+    for _ in 0..4 {
+        p.backspace(60, 20);
+    }
+    assert_ne!(text_of(&p), DOC);
+    // However the deletions were grouped into changes, undoing them all has
+    // to give the file back exactly — that is the property, not the grouping.
+    while p.undo(60, 20) {}
+    assert_eq!(text_of(&p), DOC);
+}
+
+#[test]
+fn forward_delete_takes_the_character_at_the_caret() {
+    let mut p = doc("abc\n");
+    p.delete(60, 20);
+    assert_eq!(text_of(&p), "bc\n");
+    p.undo(60, 20);
+    assert_eq!(text_of(&p), "abc\n");
+}
+
+/// A click puts the caret where it landed — and on the nearest place to
+/// stand when the click was past the end of a line.
+#[test]
+fn a_click_places_the_caret_where_it_landed() {
+    let mut p = doc(DOC);
+    let cols = 60;
+    p.click_caret(0, 4, cols, 20);
+    let on_heading = p.caret_at.expect("placed");
+    assert_eq!(&DOC[on_heading as usize..on_heading as usize + 1], "l");
+    // Past the end of the row: the end of it, not nothing.
+    p.click_caret(0, 200, cols, 20);
+    let at_end = p.caret_at.expect("placed");
+    assert!(at_end > on_heading);
+    assert_eq!(&DOC[..at_end as usize], "# Title");
+}
+
+/// Moving the caret by hand ends the run: what you type next is a separate
+/// thing you did, and undo gives it back on its own.
+#[test]
+fn typing_after_a_click_is_its_own_undo_step() {
+    let mut p = doc(DOC);
+    p.insert("A", 60, 20);
+    p.click_caret(2, 3, 60, 20);
+    p.insert("B", 60, 20);
+    p.undo(60, 20);
+    assert!(
+        text_of(&p).contains('A'),
+        "the first edit survived the undo"
+    );
+    assert!(!text_of(&p).contains('B'));
+}
+
+/// The property the whole history exists for, over a long mixed session:
+/// however the changes were grouped, undoing all of them gives back the file
+/// that was read, byte for byte.
+#[test]
+fn undoing_everything_gives_back_the_file_that_was_read() {
+    let mut p = doc(DOC);
+    at(&mut p, 12);
+    for c in "one two\nthree ".chars() {
+        match c {
+            '\n' => p.newline(60, 20),
+            _ => p.insert(&c.to_string(), 60, 20),
+        }
+    }
+    for _ in 0..5 {
+        p.backspace(60, 20);
+    }
+    p.move_caret(Step::Down, 60, 20);
+    p.insert("more", 60, 20);
+    p.delete(60, 20);
+    assert_ne!(text_of(&p), DOC, "the session actually changed something");
+    while p.undo(60, 20) {}
+    assert_eq!(text_of(&p), DOC);
+    // …and redoing all of it returns to where the session ended.
+    let undone = text_of(&p);
+    while p.redo(60, 20) {}
+    assert_ne!(text_of(&p), undone, "redo put the session back");
+    while p.undo(60, 20) {}
+    assert_eq!(text_of(&p), DOC, "and undo still gives the file back");
+}

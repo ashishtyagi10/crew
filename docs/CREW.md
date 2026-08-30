@@ -1000,7 +1000,15 @@ longer aim at.
   with nothing typed writes the file unchanged, byte for byte.
   A character the renderer put there itself — a list bullet, a table's rules,
   a code field's border — is not a place the caret can go, because the file
-  does not contain it and there is nothing there to type into. Making crew's windows plural all the way down — panes, focus
+  does not contain it and there is nothing there to type into.
+  **Cmd+Z** takes it back and **Cmd+Shift+Z** puts it forward, a *word* at a
+  time rather than a letter: a run of typing ends where a person expects it
+  to — at a space, at a newline, and wherever you moved the cursor by hand.
+  Because the buffer is the file, an undo restores the bytes that were there,
+  not a re-rendering of something that meant the same. **Click** to put the
+  cursor where you are looking (past the end of a line puts it at the end),
+  and **Delete** removes the character at the caret as Backspace removes the
+  one behind it. Making crew's windows plural all the way down — panes, focus
   and zoom per window — is the first pillar of
   `docs/superpowers/goals/2026-08-30-markdown-editor-in-its-own-window.md`, and
   a document window deliberately needs none of it.

@@ -44,6 +44,9 @@ pub(crate) struct DocWindow {
     pub mods: winit::keyboard::ModifiersState,
     /// Whether an Esc on unsaved changes has already been refused once.
     pub warned: bool,
+    /// Last pointer position, in this window's physical pixels — winit
+    /// reports the position and the button press as separate events.
+    pub pointer: (f32, f32),
     /// The grid the document was last laid out at. Recomputed on every resize,
     /// because a document wraps to its window and nothing else.
     pub grid: GridSize,
@@ -77,10 +80,27 @@ impl DocWindow {
             view: ViewPane::open(path),
             mods: Default::default(),
             warned: false,
+            pointer: (0.0, 0.0),
             grid: GridSize { cols: 80, rows: 40 },
         };
         me.refit();
         Some(me)
+    }
+
+    /// The document row and column under a pointer position, or `None` when
+    /// it is on the frame rather than in the text.
+    pub(crate) fn cell_at(&self, (x, y): (f32, f32)) -> Option<(usize, u16)> {
+        let (cw, ch) = self.renderer.cell_size();
+        let scale = self.window.scale_factor() as f32;
+        // The document starts one cell inside the frame, which itself starts
+        // `MARGIN` from the window's edge (see `draw`).
+        let (x0, y0) = (MARGIN * scale + cw, MARGIN * scale + ch);
+        if x < x0 || y < y0 || cw <= 0.0 || ch <= 0.0 {
+            return None;
+        }
+        let col = ((x - x0) / cw) as u16;
+        let row = ((y - y0) / ch) as usize;
+        (col < self.grid.cols && row < usize::from(self.grid.rows)).then_some((row, col))
     }
 
     pub(crate) fn id(&self) -> WindowId {

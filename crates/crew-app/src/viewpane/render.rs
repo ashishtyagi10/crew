@@ -87,6 +87,24 @@ impl ViewPane {
         Ref::map(self.cache.borrow(), |c| c.as_ref().expect("just filled"))
     }
 
+    /// Put the caret where a click landed, in rendered rows and columns.
+    pub(crate) fn click_caret(&mut self, row: usize, col: u16, cols: u16, rows: u16) {
+        if self.caret.is_none() {
+            return;
+        }
+        let to = {
+            let cache = self.lines_for(cols);
+            super::caret::at_cell(&cache.lines, self.scroll + row, col)
+        };
+        if to.is_some() {
+            self.set_caret(to, cols);
+            // Moving the caret by hand ends the run of typing: what is typed
+            // next is a separate thing you did.
+            self.history.breaks();
+            self.scroll_to_caret(rows);
+        }
+    }
+
     /// Move the caret one step and scroll to keep it on screen. `None` when
     /// this document is not being edited.
     pub(crate) fn move_caret(&mut self, dir: super::caret::Step, cols: u16, rows: u16) {
@@ -96,6 +114,7 @@ impl ViewPane {
             super::caret::step(&cache.lines, here, dir)
         };
         self.set_caret(Some(moved), cols);
+        self.history.breaks();
         self.scroll_to_caret(rows);
     }
 

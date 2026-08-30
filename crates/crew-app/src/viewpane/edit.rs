@@ -32,13 +32,69 @@ impl ViewPane {
     /// Insert `text` at the caret, and leave the caret after it.
     pub(crate) fn insert(&mut self, text: &str, cols: u16, rows: u16) {
         let Some(at) = self.caret_at else { return };
+        self.splice(at as usize, 0, text, cols, rows);
+    }
+
+    /// The one mutation. Replace `remove` bytes at `at` with `text`, record
+    /// it so it can be taken back, and put the caret after what was written.
+    fn splice(&mut self, at: usize, remove: usize, text: &str, cols: u16, rows: u16) {
+        let caret = self.caret_at.unwrap_or(at as u32);
         let Some(src) = self.source() else { return };
-        let at = (at as usize).min(src.len());
-        if !src.is_char_boundary(at) {
+        let at = at.min(src.len());
+        let end = (at + remove).min(src.len());
+        if !src.is_char_boundary(at) || !src.is_char_boundary(end) {
             return;
         }
-        src.insert_str(at, text);
+        let removed = src[at..end].to_string();
+        src.replace_range(at..end, text);
+        self.history.record(super::undo::Change {
+            at: at as u32,
+            removed,
+            inserted: text.to_string(),
+            caret,
+        });
         self.after_edit(at + text.len(), cols, rows);
+    }
+
+    /// Apply a change from the history, without recording it again.
+    fn apply(&mut self, c: super::undo::Change, cols: u16, rows: u16) {
+        let Some(src) = self.source() else { return };
+        let at = (c.at as usize).min(src.len());
+        let end = (at + c.removed.len()).min(src.len());
+        if !src.is_char_boundary(at) || !src.is_char_boundary(end) {
+            return;
+        }
+        src.replace_range(at..end, &c.inserted);
+        self.after_edit(c.caret as usize, cols, rows);
+    }
+
+    /// Take back the last run of typing. `false` when there is nothing left.
+    pub(crate) fn undo(&mut self, cols: u16, rows: u16) -> bool {
+        let Some(c) = self.history.undo() else {
+            return false;
+        };
+        self.apply(c, cols, rows);
+        true
+    }
+
+    /// Put back what undo took.
+    pub(crate) fn redo(&mut self, cols: u16, rows: u16) -> bool {
+        let Some(c) = self.history.redo() else {
+            return false;
+        };
+        self.apply(c, cols, rows);
+        true
+    }
+
+    /// Delete the character AT the caret (forward delete), leaving it put.
+    pub(crate) fn delete(&mut self, cols: u16, rows: u16) {
+        let Some(at) = self.caret_at else { return };
+        let Some(src) = self.source() else { return };
+        let at = (at as usize).min(src.len());
+        let Some(next) = src[at..].chars().next() else {
+            return;
+        };
+        self.splice(at, next.len_utf8(), "", cols, rows);
     }
 
     /// Delete the character before the caret, and leave the caret where it
@@ -53,8 +109,7 @@ impl ViewPane {
             return;
         };
         let from = at - prev.len_utf8();
-        src.replace_range(from..at, "");
-        self.after_edit(from, cols, rows);
+        self.splice(from, prev.len_utf8(), "", cols, rows);
     }
 
     /// Enter: end this block and start another of the same kind.
@@ -74,8 +129,7 @@ impl ViewPane {
             Some(prefix) => format!("\n{prefix}"),
             None => "\n\n".to_string(),
         };
-        src.insert_str(at, &insert);
-        self.after_edit(at + insert.len(), cols, rows);
+        self.splice(at, 0, &insert, cols, rows);
     }
 
     /// Re-read the document at `offset` and put the caret there.
@@ -106,6 +160,9 @@ impl ViewPane {
         let text = src.clone();
         std::fs::write(path, text)?;
         self.dirty = false;
+        // A save is a place you might come back to: the next keystroke starts
+        // its own change rather than joining the run that ended here.
+        self.history.breaks();
         Ok(())
     }
 }

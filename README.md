@@ -416,7 +416,8 @@ cards, links):
   cursor in it; the arrows move through the *render*, typing goes in where you
   are looking, Enter continues the block you are in, and **Cmd+S** writes the
   file **with only your edit in it** — no re-wrapped paragraphs, no rewritten
-  bullets. No `#` or `**` ever appears on screen.
+  bullets. Click to place the cursor, **Cmd+Z** to take a word back. No `#` or
+  `**` ever appears on screen.
 - **`Cmd+E` labels everything on the pane worth reaching** — every URL, file
   reference and hash wears a letter; pressing it copies, pressing its capital
   opens (a URL in the browser, a file in the viewer). Labels come off the home

@@ -8,6 +8,35 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.91
+
+**Undo, and a click that puts the cursor where you are looking.**
+
+Typing into a document (0.19.90) is only usable if you can take it back, so:
+**Cmd+Z** undoes and **Cmd+Shift+Z** redoes, a *word* at a time rather than a
+letter — undoing a sentence one keystroke at a time is the same as having no
+undo. A run ends where a person expects it to: at a space, at a newline, when
+the cursor is moved by hand, and where typing turns into deleting.
+
+* **An undo restores bytes, not a re-rendering.** A change is a byte range,
+  the text that was there and the text that replaced it, so reverting one puts
+  the file back exactly — which an editor that re-serializes a tree can only
+  approximate. The test runs a long mixed session (typing, Enter, five
+  backspaces, a caret move, a forward delete), undoes all of it, and asserts
+  the file is the one that was read, byte for byte.
+* **A newline being deleted ends the run it is in.** It did not: the break was
+  checked against the character coming in rather than the one the run had most
+  recently taken, so backspacing over a line ending glued the letters before
+  it into the same change — and undoing gave back one newline short. Runs of
+  deletion grow from their front, and the rule is now symmetric with typing:
+  a run ends when a break character is **consumed**.
+* **Click to place the cursor.** Past the end of a line it goes to the end of
+  it; on a row of pure furniture (a rule, a code field's border) it finds the
+  nearest row with somewhere to stand — a click always means *put it here*,
+  and the nearest here is the honest answer.
+* **Delete** removes the character at the caret, as Backspace removes the one
+  behind it.
+
 ## 0.19.90
 
 **You can type into the render.**
