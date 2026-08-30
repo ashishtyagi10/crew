@@ -27,7 +27,7 @@ use crate::textprep::prepare_renderer;
 pub(crate) const CHROME: &str = "─│┌┐└┘├┤┬┴┼╭╮╯╰┃┆═║╔╗╚╝\
                       ▁▂▃▄▅▆▇█▉▊▋▌▍▎▏▐░▒▓\
                       ⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏\
-                      ▶▸▴▾◂◀▲▼○●⏺◆◇■□▪▫✓✗⚑☐•·…–—‘’“”›❯←↑→↓↔↵⇡⌘×≤≥";
+                      ▶▸▴▾◂◀▲▼○●⏺◆◇■□▪▫✓✔✗✘⚑☐☑☒❮•·…–—‘’“”›❯←↑→↓↔↵⇡⌘×≤≥";
 
 /// Grid width of the prewarm buffer — only affects its shape, not its
 /// contents; wide enough to keep the buffer a handful of rows tall.
