@@ -95,6 +95,11 @@ fn clamp_scroll_pulls_a_wild_offset_back_to_the_last_page() {
 // holds width 30 too.
 #[test]
 fn the_cache_survives_an_unrelated_state_mutation_at_the_same_width() {
+    // The cache is keyed on the THEME among other things, and the theme is a
+    // global: without this guard a test running in parallel that switches
+    // themes invalidates the cache between the two renders below, and this
+    // fails intermittently for a reason that has nothing to do with it.
+    let _g = crate::app::theme_test_guard();
     let mut p = pane_with("first\n");
     let _ = p.cells(30, 5);
     if let crate::viewpane::LoadState::Ready { loaded, .. } = &mut p.state {

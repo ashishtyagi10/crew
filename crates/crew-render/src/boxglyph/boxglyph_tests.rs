@@ -280,3 +280,57 @@ fn dashed_rules_break_where_they_should() {
     let col = (0..24).find(|x| at(&vert, *x, 0) == 255).expect("no rule");
     assert!((0..16).any(|y| at(&vert, col, y) == 0), "┆ never breaks");
 }
+
+/// Braille is a 2×4 dot grid the CELL owns, so two adjacent cells' dots line
+/// up and a plotted line reads as a line. Each bit of the code point turns
+/// its own dot on and nothing else's.
+#[test]
+fn every_braille_dot_lands_in_its_own_eighth() {
+    let (w, h) = (8u32, 16u32);
+    let mut seen: Vec<(u32, u32)> = Vec::new();
+    for bit in 0..8u32 {
+        let c = char::from_u32(0x2800 + (1 << bit)).unwrap();
+        let img = cell(c, w, h);
+        let on: Vec<(u32, u32)> = (0..h)
+            .flat_map(|y| (0..w).map(move |x| (x, y)))
+            .filter(|(x, y)| at(&img, *x, *y) > 0)
+            .collect();
+        assert!(!on.is_empty(), "{c:?} drew no dot");
+        let cx = on.iter().map(|(x, _)| *x).sum::<u32>() / on.len() as u32;
+        let cy = on.iter().map(|(_, y)| *y).sum::<u32>() / on.len() as u32;
+        assert!(
+            !seen.contains(&(cx, cy)),
+            "{c:?} shares a cell with another"
+        );
+        seen.push((cx, cy));
+    }
+    // Two columns and four rows, and nothing else.
+    let cols: std::collections::BTreeSet<u32> = seen.iter().map(|(x, _)| *x).collect();
+    let rows: std::collections::BTreeSet<u32> = seen.iter().map(|(_, y)| *y).collect();
+    assert_eq!((cols.len(), rows.len()), (2, 4), "{seen:?}");
+}
+
+/// A full braille cell is eight dots, and an empty one is a real character
+/// that draws nothing — falling back to the font for it would put a blank of
+/// a different width in the middle of a spinner.
+#[test]
+fn braille_spans_empty_to_full() {
+    let full = cell('\u{28FF}', 8, 16);
+    let ink = full.data.iter().filter(|v| **v > 0).count();
+    assert!(ink > 24, "a full braille cell drew only {ink} pixels");
+    let blank = synth('\u{2800}', 8, 16, 12).expect("U+2800 is claimed, not declined");
+    assert!(
+        blank.data.iter().all(|v| *v == 0),
+        "an empty pattern drew ink"
+    );
+}
+
+/// A character this module claims but which rounds away to nothing at a tiny
+/// cell must be handed back to the font rather than drawn as a blank.
+#[test]
+fn a_mark_that_rounds_away_is_declined() {
+    // …and one that does NOT round away is still drawn: an eighth block on a
+    // narrow cell keeps its pixel rather than vanishing.
+    let thin = cell('\u{258F}', 3, 8);
+    assert!(thin.data.iter().any(|v| *v > 0), "▏ vanished on a 3px cell");
+}

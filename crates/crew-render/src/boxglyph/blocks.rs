@@ -31,9 +31,12 @@ const QUADRANTS: &[(char, [bool; 4])] = &[
     ('\u{259F}', [false, true, true, true]),
 ];
 
-/// `n` eighths of `extent`, rounded to a whole pixel.
+/// `n` eighths of `extent`, rounded to a whole pixel — never to none. On a
+/// narrow cell several eighths round to the same width, which is what a
+/// pixel grid can honestly say; rounding one of them to ZERO would draw a
+/// blank where the character asks for a mark.
 fn eighths(extent: u32, n: u32) -> f32 {
-    (extent as f32 * n as f32 / 8.0).round()
+    (extent as f32 * n as f32 / 8.0).round().max(1.0)
 }
 
 /// Draw `c` if it is a block element or a shade.
