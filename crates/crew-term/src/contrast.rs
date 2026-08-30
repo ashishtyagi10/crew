@@ -10,6 +10,21 @@ use std::sync::OnceLock;
 /// Minimum WCAG-style contrast ratio enforced between a cell's fg and bg.
 pub(crate) const MIN_CONTRAST: f32 = 3.0;
 
+/// The floor for text the program painted a background BEHIND.
+///
+/// [`MIN_CONTRAST`] is a *rescue*: it exists for a program that guessed the
+/// page wrong and is painting for the other theme. A cell whose background
+/// the program also set is not a guess — it is a TUI's selected row, a status
+/// bar, a diff block — and it is the thing on screen most meant to be read.
+///
+/// The two floors have to differ because the ansi table's own contract works
+/// against this one. `black` is LIFTED so `\x1b[30m` reads on the page, which
+/// hands a mid-grey to a cell whose background is a light green: a file
+/// picker's selected row (`\x1b[42;30m`) came out at **2.98:1** while the
+/// plain rows around it sat at 9.65, so the row the program was pointing at
+/// was the least legible line on the screen.
+pub(crate) const PAINTED_CONTRAST: f32 = 4.5;
+
 /// sRGB byte → linear-light, via a table (this runs for every rendered cell).
 fn to_linear(c: u8) -> f32 {
     static LUT: OnceLock<[f32; 256]> = OnceLock::new();
@@ -57,6 +72,17 @@ pub(crate) fn ratio(a: (u8, u8, u8), b: (u8, u8, u8)) -> f32 {
 /// so hue survives; already-readable colours pass through untouched.
 pub(crate) fn ensure_min_contrast(fg: (u8, u8, u8), bg: (u8, u8, u8)) -> (u8, u8, u8) {
     ensure_contrast(fg, bg, MIN_CONTRAST)
+}
+
+/// The floor for `fg` on `bg`, chosen by whether the program painted that
+/// background itself (see [`PAINTED_CONTRAST`]).
+pub(crate) fn ensure_readable(fg: (u8, u8, u8), bg: (u8, u8, u8), painted: bool) -> (u8, u8, u8) {
+    let min = if painted {
+        PAINTED_CONTRAST
+    } else {
+        MIN_CONTRAST
+    };
+    ensure_contrast(fg, bg, min)
 }
 
 /// How far SGR 2 moves a foreground toward its background, in linear light.

@@ -15,6 +15,30 @@ pub(crate) fn grid_lines(cells: &[CellView], cols: u16, rows: u16) -> Vec<Vec<ch
     lines
 }
 
+/// A grid row as the characters actually ON it, with the column each one
+/// sits in: the blank column a full-width character's second half owns is
+/// dropped rather than read as a space.
+///
+/// The grid is column-indexed, so `日本` is `['日', ' ', '本', ' ']` — and a
+/// search for `日本` therefore matched nothing, ever. `/find` could not find
+/// any text containing a full-width character. The column each kept character
+/// sits in comes back with it, so a hit maps straight back onto the cells it
+/// has to wash.
+pub(crate) fn row_runs(line: &[char]) -> (Vec<char>, Vec<u16>) {
+    let mut chars = Vec::with_capacity(line.len());
+    let mut cols = Vec::with_capacity(line.len());
+    let mut skip = false;
+    for (i, &c) in line.iter().enumerate() {
+        if std::mem::take(&mut skip) {
+            continue;
+        }
+        skip = unicode_width::UnicodeWidthChar::width(c) == Some(2);
+        chars.push(c);
+        cols.push(i as u16);
+    }
+    (chars, cols)
+}
+
 #[cfg(test)]
 mod tests {
     use super::grid_lines;
@@ -40,6 +64,25 @@ mod tests {
         assert_eq!(lines.len(), 2);
         assert_eq!(lines[0], vec!['h', ' ', 'i']);
         assert_eq!(lines[1], vec![' ', 'x', ' ']);
+    }
+
+    #[test]
+    fn row_runs_drops_the_column_a_wide_glyph_owns() {
+        let line: Vec<char> = "\u{65e5}\u{672c} x"
+            .chars()
+            .flat_map(|c| {
+                if unicode_width::UnicodeWidthChar::width(c) == Some(2) {
+                    vec![c, ' ']
+                } else {
+                    vec![c]
+                }
+            })
+            .collect();
+        // The grid: 日 _ 本 _ ␠ x  — six columns, four characters.
+        assert_eq!(line.len(), 6);
+        let (chars, cols) = super::row_runs(&line);
+        assert_eq!(chars, vec!['\u{65e5}', '\u{672c}', ' ', 'x']);
+        assert_eq!(cols, vec![0, 2, 4, 5]);
     }
 
     #[test]

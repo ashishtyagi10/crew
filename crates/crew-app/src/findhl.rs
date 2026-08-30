@@ -23,26 +23,45 @@ pub(crate) fn highlight(cells: &mut [CellView], term: &str, cols: u16, rows: u16
     if needle.is_empty() || needle.len() > cols as usize {
         return 0;
     }
-    // Collect matched (row, [start,end)) ranges from one pass over the rows.
+    // Collect matched (row, [start,end)) COLUMN ranges from one pass over the
+    // rows. Matching runs over the row's characters, not its columns: the
+    // grid is column-indexed, so `日本` sits there as `日 _ 本 _` and a needle
+    // written `日本` never matched anything — `/find` could not find any text
+    // holding a full-width character. `row_runs` drops the column a wide
+    // glyph's second half owns and hands back where each kept character sits,
+    // which is what the wash is applied by.
     let mut ranges: Vec<(u16, usize, usize)> = Vec::new();
     for (r, line) in grid_lines(cells, cols, rows).iter().enumerate() {
-        let folded: Vec<char> = line.iter().map(|&c| fold(c)).collect();
-        let mut col = 0usize;
-        while col + needle.len() <= cols as usize {
-            if folded[col..col + needle.len()] == needle[..] {
-                ranges.push((r as u16, col, col + needle.len()));
-                col += needle.len();
+        let (chars, at) = crate::gridrows::row_runs(line);
+        let folded: Vec<char> = chars.into_iter().map(fold).collect();
+        let mut i = 0usize;
+        while i + needle.len() <= folded.len() {
+            if folded[i..i + needle.len()] == needle[..] {
+                // One cell per character: the second column a full-width one
+                // owns carries none, and the renderer widens the wash it
+                // wears (`scene::cell_cols`).
+                let last = at[i + needle.len() - 1] as usize;
+                ranges.push((r as u16, at[i] as usize, last + 1));
+                i += needle.len();
             } else {
-                col += 1;
+                i += 1;
             }
         }
     }
+    // The wash replaces the background the terminal already floored the
+    // foreground against, so the ink has to be re-floored against the wash —
+    // otherwise the one thing you searched for is the one thing you cannot
+    // read. It showed on a TUI's painted row: the match came out as a solid
+    // block with the text invisible inside it.
+    let hl = crew_theme::theme().find_hl_bg;
+    let floor = crew_theme::contrast::text_floor();
     for c in cells.iter_mut() {
         if ranges
             .iter()
             .any(|&(r, a, b)| c.row == r && (a..b).contains(&(c.col as usize)))
         {
-            c.bg = crew_theme::theme().find_hl_bg;
+            c.fg = crew_theme::readable::enforced(c.fg, hl, floor);
+            c.bg = hl;
         }
     }
     ranges.len()
@@ -96,6 +115,74 @@ mod tests {
         // a term with uppercase → case-sensitive (no match here).
         let mut cells = row("error: boom", 0);
         assert_eq!(highlight(&mut cells, "Error", 11, 1), 0);
+    }
+
+    /// `/find` could not find any text holding a full-width character: the
+    /// grid is column-indexed, so `全角` sits on it as `全 _ 角 _` and a
+    /// needle written `全角` never matched.
+    #[test]
+    fn a_needle_with_a_full_width_character_matches() {
+        let _g = crate::app::theme_test_guard();
+        // The grid as the terminal hands it over: one cell per character,
+        // the column after a wide one left blank.
+        let cells_of = |pairs: &[(u16, char)]| -> Vec<CellView> {
+            pairs
+                .iter()
+                .map(|&(col, c)| CellView {
+                    col,
+                    row: 0,
+                    c,
+                    fg: (200, 200, 200),
+                    bg: (0, 0, 0),
+                    ..Default::default()
+                })
+                .collect()
+        };
+        // `ab全角cd` — 全 at 2-3, 角 at 4-5.
+        let grid = [
+            (0, 'a'),
+            (1, 'b'),
+            (2, '\u{5168}'),
+            (4, '\u{89d2}'),
+            (6, 'c'),
+            (7, 'd'),
+        ];
+        let mut cells = cells_of(&grid);
+        assert_eq!(highlight(&mut cells, "\u{5168}\u{89d2}", 8, 1), 1);
+        let hl = crew_theme::theme().find_hl_bg;
+        let washed: Vec<u16> = cells.iter().filter(|c| c.bg == hl).map(|c| c.col).collect();
+        assert_eq!(washed, vec![2, 4], "both wide cells, and only those");
+
+        // The neighbours are not swept in with them.
+        let mut cells = cells_of(&grid);
+        assert_eq!(highlight(&mut cells, "b\u{5168}", 8, 1), 1);
+        let washed: Vec<u16> = cells.iter().filter(|c| c.bg == hl).map(|c| c.col).collect();
+        assert_eq!(washed, vec![1, 2]);
+    }
+
+    /// The wash replaces the background the terminal floored the ink
+    /// against. A match inside a TUI's painted row came out as a solid block
+    /// with the text invisible in it — the one thing you searched for.
+    #[test]
+    fn a_match_stays_readable_over_the_wash() {
+        let _g = crate::app::theme_test_guard();
+        let hl = crew_theme::theme().find_hl_bg;
+        // Ink the terminal picked to read on a LIGHT painted row, matched
+        // inside it: over the wash it would be invisible.
+        let mut cells = row("boom", 0);
+        for c in cells.iter_mut() {
+            c.fg = hl;
+            c.bg = (230, 240, 255);
+        }
+        assert_eq!(highlight(&mut cells, "boom", 4, 1), 1);
+        for c in &cells {
+            let r = crew_theme::contrast_ratio(c.fg, c.bg);
+            assert!(
+                r >= crew_theme::contrast::text_floor() - 0.05,
+                "{:?} reads at {r}",
+                c.fg
+            );
+        }
     }
 
     #[test]

@@ -768,3 +768,54 @@ mod wide_tests {
         );
     }
 }
+
+/// Text the program painted a background BEHIND is the text it most means you
+/// to read, and it was coming out the least legible line on the screen.
+#[cfg(test)]
+mod painted_tests {
+    use super::super::{GridSize, HeadlessTerm, TermModel};
+    use crate::contrast::{ratio, MIN_CONTRAST, PAINTED_CONTRAST};
+
+    fn first_cell(seq: &[u8]) -> crate::model::RenderCell {
+        let mut t = HeadlessTerm::new(GridSize { cols: 30, rows: 3 });
+        t.feed(seq);
+        t.cells(false)
+            .into_iter()
+            .find(|c| c.row == 0 && c.col == 0)
+            .expect("a cell")
+    }
+
+    /// A file picker draws its selected row as `black on green`. The ansi
+    /// table LIFTS black so `\x1b[30m` reads on the page, which hands a
+    /// mid-grey to a cell whose background is a light green: the row came out
+    /// at 2.98:1 while the plain rows around it sat at 9.65.
+    #[test]
+    fn a_painted_row_is_held_to_a_higher_floor_than_the_page() {
+        let picked = first_cell(b"\x1b[42;30mx");
+        let plain = first_cell(b"\x1b[32mx");
+        let r = ratio(picked.fg, picked.bg);
+        assert!(
+            r >= PAINTED_CONTRAST - 0.1,
+            "the selected row reads at {r}, under the painted floor"
+        );
+        assert!(
+            ratio(plain.fg, plain.bg) >= MIN_CONTRAST,
+            "and the plain rows are untouched"
+        );
+    }
+
+    /// The higher floor is for the painted cell only — ordinary output keeps
+    /// the rescue floor, which is deliberately lower so a program's own
+    /// quieter colours survive.
+    #[test]
+    fn unpainted_text_keeps_the_rescue_floor() {
+        // A grey the program chose, on the page: over 3, under 4.5.
+        let c = first_cell(b"\x1b[38;2;110;110;110mx");
+        let r = ratio(c.fg, c.bg);
+        assert!(r >= MIN_CONTRAST, "still rescued: {r}");
+        assert!(
+            r < PAINTED_CONTRAST,
+            "but not pushed to the painted floor: {r}"
+        );
+    }
+}

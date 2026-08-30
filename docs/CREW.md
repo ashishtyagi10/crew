@@ -2523,6 +2523,14 @@ program-painted text (à la iTerm2's Minimum Contrast): any foreground within a
 3.0 WCAG ratio of its background is darkened (light page) or lightened (dark
 page) in linear light — hue preserved — just enough to read. White-on-white
 after switching a running claude/codex pane to `paper-light` stays legible.
+Text the program painted a **background behind** is held to a higher floor
+(**4.5**): that pair is not a guess but a TUI's selected row, a status bar or
+a diff block — the thing on the screen most meant to be read — and the ansi
+table's own lift (which makes `\x1b[30m` legible *on the page*) works against
+it there. A `/find` match is re-floored against its own wash for the same
+reason, and `/find` matches text with **full-width characters** in it: the
+grid is column-indexed, so the needle is compared against the row's
+characters, not its columns.
 
 **Config keys** (`$XDG_CONFIG/crew/config.toml`, applied on launch — quit and reopen to pick up external edits):
 

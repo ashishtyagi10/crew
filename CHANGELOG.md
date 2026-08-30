@@ -8,6 +8,32 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.78
+
+**Three things a terminal has to get right, all found by looking at one.**
+
+The terminal shot harness grew the layers crew draws *over* a pane's own
+cells — a live selection, `/find` washes, URL tinting — plus a full-screen TUI
+on the alternate screen. Links were already perfect. The rest were not:
+
+* **The selected row of a TUI was the least legible line on the screen.** A
+  file picker draws it `black on green`; crew's ansi table LIFTS black so
+  `\x1b[30m` reads on the page, which hands a mid-grey to a cell whose
+  background is a light green. Measured: the picked row at **2.98:1**, the
+  plain rows around it at **9.65**. Text the program painted a background
+  behind now has its own, higher floor (4.5) — that pair is not a guess but
+  the thing most meant to be read. Ordinary output keeps the lower rescue
+  floor, so a program's own quieter colours still survive.
+* **`/find` could not find any text containing a full-width character.** The
+  grid is column-indexed, so `全角` sits on it as `全 _ 角 _` and a needle
+  written `全角` never matched. Matching now runs over the row's characters
+  and maps each hit back to the columns it has to wash.
+* **A match could be washed invisible.** The highlight replaces the background
+  the terminal had already floored the foreground against, and nothing
+  re-checked it: a match inside a painted row came out as a solid block with
+  the text gone. The one thing you searched for was the one thing you could
+  not read.
+
 ## 0.19.77
 
 **Everything a full-width character wears now covers both of its columns.**

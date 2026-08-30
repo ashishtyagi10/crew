@@ -132,8 +132,10 @@ impl TermCore {
                 // answer" — half of what an agent prints is in it. Dropping
                 // it made every line equally loud.
                 let fg = match ind.flags.contains(Flags::DIM) {
+                    // A dim on a bar is a deliberate whisper; it keeps its
+                    // own, lower floor.
                     true => crate::contrast::dimmed(fg, bg),
-                    false => crate::contrast::ensure_min_contrast(fg, bg),
+                    false => crate::contrast::ensure_readable(fg, bg, bg != default_bg()),
                 };
                 // SGR 58's colour resolves against the same palette the text
                 // does; without one the renderer falls back to the cell's fg.

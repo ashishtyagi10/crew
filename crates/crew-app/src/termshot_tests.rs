@@ -82,34 +82,81 @@ const WIDE: &str = "\x1b[4munderlined 日本語 text\x1b[0m\r\n\
      \x1b[44m painted 全角 background \x1b[0m\r\n\
      plain ascii for scale\r\n";
 
+/// A full-screen TUI on the alternate screen: the shape `less`, `htop`,
+/// `lazygit` and every agent CLI's picker put on a pane.
+const ALTSCREEN: &str = "\x1b[?1049h\x1b[2J\x1b[H\
+     \x1b[1;36m FILES \x1b[0m\x1b[2m  ~/code/crew\x1b[0m\r\n\
+     \x1b[2m\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\x1b[0m\r\n\
+     \x1b[42;30m src/main.rs \x1b[0m\r\n\
+     \x1b[32m src/lib.rs\x1b[0m\r\n\
+     \x1b[34m docs/\x1b[0m\r\n\
+     \x1b[2m 3 entries \u{00b7} q to quit\x1b[0m";
+
+/// Lines with URLs in them, which crew tints and rules itself.
+const LINKS: &str = "see https://example.invalid/crew/docs for the rest\r\n\
+     mirror at http://localhost:8080/status (no tls)\r\n\
+     not a link: example.invalid/crew\r\n";
+
 fn term(body: &str, cols: u16, rows: u16) -> HeadlessTerm {
     let mut t = HeadlessTerm::new(GridSize { cols, rows });
     t.feed(body.as_bytes());
     t
 }
 
-fn term_shot(name: &str, body: &str, w: u32, h: u32, select: bool) -> Option<Vec<u8>> {
+/// What crew lays over a pane's own cells each frame, after the terminal has
+/// had its say: a live selection, `/find` match washes, URL tinting.
+#[derive(Clone, Copy, Default)]
+struct Overlay {
+    select: bool,
+    find: Option<&'static str>,
+    links: bool,
+}
+
+fn term_shot(name: &str, body: &str, w: u32, h: u32, o: Overlay) -> Option<Vec<u8>> {
     shot_at(name, w, h, 13.0, "zsh", |cols, rows, _| {
         let mut t = term(body, cols, rows);
-        if select {
+        if o.select {
             t.sel_start(2, 1, false);
             t.sel_update(cols.saturating_sub(6), 2);
         }
-        (to_cellviews(&t.cells(true)), Vec::new())
+        let mut cells = to_cellviews(&t.cells(true));
+        if let Some(term) = o.find {
+            crate::findhl::highlight(&mut cells, term, cols, rows);
+        }
+        if o.links {
+            crate::linkhl::colorize(&mut cells, cols, rows);
+        }
+        (cells, Vec::new())
     })
 }
 
 fn sweep(suffix: &str, w: u32, h: u32) -> bool {
     let mut any = false;
-    for (kind, body, sel) in [
-        ("palette", palette(), false),
-        ("attrs", attributes(), false),
-        ("session", session(), false),
-        ("select", session(), true),
-        ("wide", WIDE.to_string(), true),
+    let sel = Overlay {
+        select: true,
+        ..Default::default()
+    };
+    let find = |t| Overlay {
+        find: Some(t),
+        ..Default::default()
+    };
+    let links = Overlay {
+        links: true,
+        ..Default::default()
+    };
+    for (kind, body, o) in [
+        ("palette", palette(), Overlay::default()),
+        ("attrs", attributes(), Overlay::default()),
+        ("session", session(), Overlay::default()),
+        ("select", session(), sel),
+        ("wide", WIDE.to_string(), sel),
+        ("alt", ALTSCREEN.to_string(), Overlay::default()),
+        ("find", session(), find("crew")),
+        ("find-wide", WIDE.to_string(), find("\u{5168}\u{89d2}")),
+        ("links", LINKS.to_string(), links),
     ] {
         let name = format!("term-{kind}-{suffix}");
-        if let Some(px) = term_shot(&name, &body, w, h, sel) {
+        if let Some(px) = term_shot(&name, &body, w, h, o) {
             any = true;
             let n = ink(&px);
             eprintln!("{name}: {n} ink px");
@@ -150,14 +197,4 @@ fn term_shot_themes() {
         sweep(suffix, 700, 560);
     }
     crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
-}
-
-#[test]
-#[ignore = "scratch"]
-fn attrs_zoom() {
-    let _g = crate::app::theme_test_guard();
-    crate::shotgpu_tests::shot_at("term-attrs-zoom", 900, 300, 24.0, "zsh", |cols, rows, _| {
-        let t = term(&attributes(), cols, rows);
-        (to_cellviews(&t.cells(true)), Vec::new())
-    });
 }
