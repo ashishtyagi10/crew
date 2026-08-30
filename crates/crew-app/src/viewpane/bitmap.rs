@@ -65,7 +65,13 @@ pub(crate) fn decode(bytes: &[u8]) -> Option<Bitmap> {
     if sw == 0 || sh == 0 {
         return None;
     }
-    let scaled = match sw.max(sh) > MAX_SAMPLES {
+    downscale(img, (sw, sh))
+}
+
+/// Reduce to at most [`MAX_SAMPLES`] per axis and flatten to RGBA samples,
+/// remembering what size the source really was.
+fn downscale(img: image::DynamicImage, src: (u32, u32)) -> Option<Bitmap> {
+    let scaled = match src.0.max(src.1) > MAX_SAMPLES {
         true => img.resize(
             MAX_SAMPLES,
             MAX_SAMPLES,
@@ -75,11 +81,11 @@ pub(crate) fn decode(bytes: &[u8]) -> Option<Bitmap> {
     };
     let rgba = scaled.into_rgba8();
     let (w, h) = rgba.dimensions();
-    Some(Bitmap {
+    (w > 0 && h > 0).then(|| Bitmap {
         w,
         h,
         px: rgba.pixels().map(|p| p.0).collect(),
-        src: (sw, sh),
+        src,
     })
 }
 
@@ -87,17 +93,35 @@ pub(crate) fn decode(bytes: &[u8]) -> Option<Bitmap> {
 /// `aspect` is the frame's `cell_h / cell_w`, which is the only thing that
 /// keeps a photo from coming out twice as tall as it is.
 pub(crate) fn paint(bm: &Bitmap, cols: u16, rows: u16, aspect: f32) -> Vec<Paint> {
-    let (cols, rows) = (f32::from(cols), f32::from(rows));
-    if cols < 1.0 || rows < 1.0 || bm.w == 0 || bm.h == 0 || aspect <= 0.0 {
+    let (w, h) = (f32::from(cols), f32::from(rows));
+    paint_at(bm, 0.0, 0.0, w, h, aspect, (w, h))
+}
+
+/// The picture fitted into an arbitrary box of the pane's grid and clipped to
+/// `clip` — what a terminal needs, where the box is wherever the program's
+/// cursor was and half of it may have scrolled off the top.
+///
+/// Nothing else clips: a pane's cells cannot be drawn outside it, but paint is
+/// free rectangles, and a quad reaching past the pane would be drawn over the
+/// pane beside it.
+pub(crate) fn paint_at(
+    bm: &Bitmap,
+    x0: f32,
+    y0: f32,
+    box_w: f32,
+    box_h: f32,
+    aspect: f32,
+    clip: (f32, f32),
+) -> Vec<Paint> {
+    if box_w < 0.5 || box_h < 0.5 || bm.w == 0 || bm.h == 0 || aspect <= 0.0 {
         return Vec::new();
     }
     // Fit in *square* units — columns across, rows × aspect down — then
     // convert the height back into rows to place it.
     let (iw, ih) = (bm.w as f32, bm.h as f32);
-    let (box_w, box_h) = (cols, rows * aspect);
-    let scale = (box_w / iw).min(box_h / ih);
+    let scale = (box_w / iw).min(box_h * aspect / ih);
     let (draw_w, draw_h) = (iw * scale, ih * scale / aspect);
-    let (x0, y0) = ((cols - draw_w) / 2.0, (rows - draw_h) / 2.0);
+    let (x0, y0) = (x0 + (box_w - draw_w) / 2.0, y0 + (box_h - draw_h) / 2.0);
     // Sample grid: as many columns of quads as the pane can carry, and enough
     // rows that each quad is square — the picture's own proportions, not the
     // cell's.
@@ -122,15 +146,45 @@ pub(crate) fn paint(bm: &Bitmap, cols: u16, rows: u16, aspect: f32) -> Vec<Paint
             if let Some((start, c)) = run.take() {
                 if c[3] >= MIN_ALPHA {
                     let color = (c[0], c[1], c[2]);
-                    out.push(
-                        Paint::solid(start, y, x - start, qh, color).at(f32::from(c[3]) / 255.0),
-                    );
+                    let p =
+                        Paint::solid(start, y, x - start, qh, color).at(f32::from(c[3]) / 255.0);
+                    out.extend(clipped(p, clip));
                 }
             }
             run = s.map(|c| (x, c));
         }
     }
     out
+}
+
+/// `p` trimmed to the pane box, or nothing when it falls outside it.
+fn clipped(p: Paint, clip: (f32, f32)) -> Option<Paint> {
+    let (x0, y0) = (p.x.max(0.0), p.y.max(0.0));
+    let (x1, y1) = ((p.x + p.w).min(clip.0), (p.y + p.h).min(clip.1));
+    (x1 > x0 && y1 > y0).then_some(Paint {
+        x: x0,
+        y: y0,
+        w: x1 - x0,
+        h: y1 - y0,
+        ..p
+    })
+}
+
+/// Wrap raw pixels — the graphics protocol's `f=24`/`f=32` transmissions,
+/// which carry no header — and downscale them the same way a decoded file is.
+pub(crate) fn from_raw(data: &[u8], w: u32, h: u32, channels: usize) -> Option<Bitmap> {
+    let want = (w as usize)
+        .checked_mul(h as usize)?
+        .checked_mul(channels)?;
+    if w == 0 || h == 0 || data.len() < want {
+        return None;
+    }
+    let px: Vec<u8> = data[..want]
+        .chunks_exact(channels)
+        .flat_map(|c| [c[0], c[1], c[2], *c.get(3).unwrap_or(&255)])
+        .collect();
+    let img = image::RgbaImage::from_raw(w, h, px)?;
+    downscale(image::DynamicImage::ImageRgba8(img), (w, h))
 }
 
 #[cfg(test)]

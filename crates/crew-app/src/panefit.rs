@@ -8,6 +8,12 @@ use crew_term::{GridSize, TermModel};
 /// derived grid changes. Reserves a one-cell border ring (fieldset card).
 pub fn relayout_one(pane: &mut Pane, rect: Rect, cell_w: f32, cell_h: f32) {
     pane.rect = rect;
+    if let PaneContent::Terminal(t) = &mut pane.content {
+        // How big a cell is in pixels decides how many rows a picture the
+        // program sends has to reserve (see `crew_term::PlacedImage`).
+        t.pty
+            .set_cell_px(cell_w.round() as u32, cell_h.round() as u32);
+    }
     let (cols, rows) = crate::layout::card_inner_cells(rect.w, rect.h, cell_w, cell_h);
     if cols != pane.grid.cols || rows != pane.grid.rows {
         let new_grid = GridSize { cols, rows };

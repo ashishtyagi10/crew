@@ -142,6 +142,34 @@ status glyphs:
 The focused pane has a near-white border and a bright block cursor; unfocused
 panes are grey with a dim cursor.
 
+### Pictures in a terminal pane
+
+A program can put an **image** on a pane. Crew speaks the terminal graphics
+protocol (kitty's `APC G` form — what `kitten icat`, `matplotlib`'s kitty
+backend, `timg`, `chafa` and most 2026 tooling write), so a plot, a diagram or
+a screenshot arrives as part of the output rather than as a path you have to go
+and open.
+
+* **Where the cursor was.** The escape sequence is split *out* of the byte
+  stream before the parser sees it, so the bytes ahead of a picture land first
+  and it goes where the program left the cursor — not where the read happened
+  to end.
+* **It belongs to the text it arrived in.** The anchor is an absolute buffer
+  line, so the picture scrolls with the output, off the top of the pane and
+  back again when you scroll up. It is clipped to the pane on the way past.
+* **Nothing decodes on the frame thread.** A screenshot arrives inside a read;
+  decoding one where the frames are built would freeze every pane in the grid,
+  agents included. Each picture goes to a worker and lands a frame or two
+  later, and the wait for it is the only reason crew repaints while it waits.
+* **It is drawn, not spelled.** Same paint layer the charts and the `/view`
+  image rung use: small rectangles under the text, about three samples per
+  cell, runs of one colour merged into one quad.
+* **Programs ask before they send** (`a=q`), and crew answers — `OK` for the
+  formats it can draw (PNG and raw RGB/RGBA, transmitted directly or as a
+  file), `ENOTSUPPORTED` for the rest, so a producer can fall back instead of
+  writing a picture into a void.
+* `a=d` takes the pictures back; the last 32 in a pane are kept.
+
 **The caret leaves a wake.** A cursor in a cell grid teleports: it is in one
 cell on one frame and another on the next, with nothing on the page saying the
 two were the same thing. So the focused pane's caret drags a short streak

@@ -19,6 +19,23 @@ impl PtyTerm {
         self.core.cursor_cell()
     }
 
+    /// Take the pictures this pane's program asked to show since the last
+    /// call. Raw payloads: decoding one on this thread would freeze the grid.
+    pub fn take_images(&mut self) -> Vec<crate::model::PlacedImage> {
+        self.core.take_images()
+    }
+
+    /// Publish the frame's cell size in pixels (see [`PlacedImage::cells`]).
+    pub fn set_cell_px(&mut self, w: u32, h: u32) {
+        self.core.set_cell_px(w, h);
+    }
+
+    /// Lines of scrollback above the screen — the offset that maps an image's
+    /// absolute anchor line onto the row it is drawn at now.
+    pub fn history_lines(&self) -> usize {
+        self.core.history_lines()
+    }
+
     /// Lines currently scrolled back from the live bottom (0 = at the bottom).
     pub fn display_offset(&self) -> usize {
         self.core.display_offset()

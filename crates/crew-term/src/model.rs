@@ -74,6 +74,27 @@ pub(crate) struct TermCore {
     /// depend on the drag's DIRECTION, which only the anchor can tell us, and
     /// `Selection` doesn't hand its anchor back. See `sel_update`.
     sel_anchor: Option<(Point, SelectionType)>,
+    /// The splitter that lifts graphics sequences out of the byte stream.
+    graphics: crate::graphics::GraphicsScanner,
+    /// Pictures placed since the app last collected them.
+    images: Vec<PlacedImage>,
+    /// The frame's cell size in pixels, for turning a picture's pixel size
+    /// into the rows it has to reserve. Published by the app on every resize;
+    /// the default is a plausible 8×16 so a picture that arrives before the
+    /// first resize is still roughly the right size.
+    cell_px: (u32, u32),
+}
+
+/// A picture the program asked for, and where in the buffer it goes.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PlacedImage {
+    /// Absolute buffer line: scrollback above the screen plus the cursor's
+    /// row. Stable as the screen scrolls, which a viewport row is not.
+    pub line: u64,
+    pub col: u16,
+    /// How many columns and rows of the grid it covers.
+    pub cells: (u16, u16),
+    pub cmd: crate::graphicscmd::ImageCmd,
 }
 
 impl TermCore {
@@ -91,6 +112,9 @@ impl TermCore {
             osc7: crate::osc::OscScanner::default(),
             scheme: crate::schemenotify::SchemeNotify::default(),
             sel_anchor: None,
+            graphics: crate::graphics::GraphicsScanner::default(),
+            images: Vec::new(),
+            cell_px: (8, 16),
         }
     }
 
@@ -130,7 +154,92 @@ impl TermCore {
         if !replies.is_empty() {
             self.events.replies.lock().unwrap().push_str(&replies);
         }
-        self.parser.advance(&mut self.term, bytes);
+        // Pictures are split OUT of the stream rather than parsed from it:
+        // an image lands where the cursor is, so the bytes before it must
+        // reach the parser first (see `crate::graphics`).
+        let mut scanner = std::mem::take(&mut self.graphics);
+        for seg in scanner.feed(bytes) {
+            match seg {
+                crate::graphics::Seg::Bytes(b) => self.parser.advance(&mut self.term, b),
+                crate::graphics::Seg::Esc => self.parser.advance(&mut self.term, &[0x1b]),
+                crate::graphics::Seg::Image(cmd) => self.place_image(cmd),
+            }
+        }
+        self.graphics = scanner;
+    }
+
+    /// Record where a picture goes, and move the cursor past it.
+    ///
+    /// The anchor is an ABSOLUTE line — history plus the cursor's screen row —
+    /// so the picture scrolls with the text it arrived in instead of staying
+    /// at a screen position the output has long since left.
+    fn place_image(&mut self, cmd: crate::graphicscmd::ImageCmd) {
+        // A producer asks before it sends: `a=q` is "can you draw one of
+        // these?", and a terminal that never answers is one every image tool
+        // treats as unable. The answer is per-command, so a format crew
+        // cannot decode is refused rather than accepted and dropped.
+        if cmd.action == b'q' {
+            let body = match cmd.supported() {
+                true => "OK",
+                false => "ENOTSUPPORTED:unsupported format",
+            };
+            let reply = format!("\x1b_Gi={};{body}\x1b\\", cmd.id);
+            self.events.replies.lock().unwrap().push_str(&reply);
+            return;
+        }
+        if cmd.deletes() {
+            self.images.clear();
+            return;
+        }
+        if !cmd.displays() || cmd.data.is_empty() {
+            return;
+        }
+        let point = self.term.grid().cursor.point;
+        let line = self.term.grid().history_size() as u64 + point.line.0.max(0) as u64;
+        // How much of the grid the picture claims. The sender may say (`c`,
+        // `r`); otherwise it is the picture's own pixel size over the cell's,
+        // which is why the header is read before the bytes are decoded.
+        let cells = match cmd.cells {
+            (c, r) if c > 0 && r > 0 => (c, r),
+            _ => {
+                let Some((w, h)) = cmd.pixel_size() else {
+                    return;
+                };
+                let up = |n: u32, d: u32| n.div_ceil(d.max(1)).clamp(1, u16::MAX.into()) as u16;
+                (up(w, self.cell_px.0), up(h, self.cell_px.1))
+            }
+        };
+        let rows = cells.1;
+        self.images.push(crate::model::PlacedImage {
+            line,
+            col: point.column.0 as u16,
+            cells,
+            cmd,
+        });
+        // The protocol leaves the cursor past the picture; a line feed at the
+        // bottom of the screen scrolls, which is exactly what reserves the
+        // room the picture is drawn over.
+        for _ in 0..rows {
+            self.parser.advance(&mut self.term, b"\n");
+        }
+    }
+
+    /// Take the pictures placed since the last call — `crew-app` decodes them
+    /// off this thread.
+    pub(crate) fn take_images(&mut self) -> Vec<crate::model::PlacedImage> {
+        std::mem::take(&mut self.images)
+    }
+
+    /// Publish the frame's cell size, so a picture's pixel dimensions can be
+    /// turned into the rows it reserves.
+    pub(crate) fn set_cell_px(&mut self, w: u32, h: u32) {
+        self.cell_px = (w.max(1), h.max(1));
+    }
+
+    /// Lines of scrollback above the screen, for mapping an image's absolute
+    /// anchor back to the row it is on now.
+    pub(crate) fn history_lines(&self) -> usize {
+        self.term.grid().history_size()
     }
 
     /// Whether the program enabled DECSET 2031 (wants scheme-change reports).
@@ -205,6 +314,9 @@ mod modelcells;
 mod modelsel;
 pub use headless::HeadlessTerm;
 
+#[cfg(test)]
+#[path = "graphicsplace_tests.rs"]
+mod graphicsplace_tests;
 #[cfg(test)]
 #[path = "model_tests.rs"]
 mod model_tests;

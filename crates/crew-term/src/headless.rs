@@ -25,6 +25,21 @@ impl HeadlessTerm {
         self.core.title()
     }
 
+    /// Pictures the fed program asked to show (see [`crate::graphics`]).
+    pub fn take_images(&mut self) -> Vec<crate::model::PlacedImage> {
+        self.core.take_images()
+    }
+
+    /// Scrollback above the screen, for placing those pictures.
+    pub fn history_lines(&self) -> usize {
+        self.core.history_lines()
+    }
+
+    /// Publish the frame's cell size, as the app does on resize.
+    pub fn set_cell_px(&mut self, w: u32, h: u32) {
+        self.core.set_cell_px(w, h);
+    }
+
     pub fn take_shell(&mut self) -> Vec<crate::osc::ShellMark> {
         self.core.take_shell()
     }

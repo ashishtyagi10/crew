@@ -404,6 +404,11 @@ cards, links):
   ```` ```diff ````/```` ```patch ```` fences colour added/removed/hunk lines
   (an untagged fence that reads as a diff is auto-detected and coloured the
   same).
+- **A program can show you a picture.** Crew speaks the terminal graphics
+  protocol (kitty's `APC G` form — `kitten icat`, `timg`, matplotlib's kitty
+  backend), so a plot or a screenshot arrives inside the output: anchored to
+  the line it came in on, scrolling with it, clipped to the pane, decoded off
+  the frame thread and drawn on the sub-cell paint layer.
 - **`/view <file>`** (alias `/md`) opens a zoomed **file viewer** pane — a
   single, read-only pane over the file, rendered by format: markdown
   (headings/lists/links/code fences), a numbered-gutter code view, aligned

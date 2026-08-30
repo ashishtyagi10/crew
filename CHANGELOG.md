@@ -8,6 +8,41 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.81
+
+**A program can put a picture on a pane.**
+
+Crew speaks the terminal graphics protocol — kitty's `APC G` form, which is
+what `kitten icat`, `timg`, `chafa` and matplotlib's kitty backend all write —
+so a plot, a diagram or a screenshot arrives as part of a program's output
+instead of as a path you have to go and open. 0.19.80 taught the viewer to draw
+a picture; this is the same layer, reached from the other end.
+
+* **The stream is split, not sniffed.** An image lands where the cursor is, so
+  the bytes ahead of the sequence are handed to the parser *first* and the
+  placement is recorded between them — not at wherever the read happened to
+  end. A sequence cut in half by a buffer boundary is still one picture, and a
+  chunked transmission (`m=1`, which is how every real screenshot arrives) is
+  joined back into one.
+* **The anchor is an absolute buffer line**, so a picture scrolls with the
+  text it arrived in — off the top of the pane, and back when you scroll up.
+  Paint is free rectangles and nothing else clips it, so it is cut to the pane
+  on the way past rather than drawn over the pane above.
+* **Nothing decodes on the frame thread.** A PNG arrives inside a `try_read`;
+  running a decoder there would freeze every pane in the grid. Each picture
+  goes to a worker and lands a frame or two later — and that wait is the only
+  reason crew repaints while it waits.
+* **The terminal makes room.** How many rows a picture claims is read from its
+  own header before it is decoded, and the screen scrolls past it, so the next
+  line of output does not print on top of it.
+* **Producers ask first, and crew answers.** `a=q` gets `OK` for the formats
+  it can draw and `ENOTSUPPORTED` for the rest, so a tool can fall back rather
+  than write a picture into a void.
+* Not one byte of a sequence ever reaches the screen — a terminal that prints
+  the base64 is worse than one that ignores the picture entirely — and an APC
+  that is not a graphics command (a keyboard-protocol probe, tmux passthrough)
+  is swallowed the same way.
+
 ## 0.19.80
 
 **The viewer shows pictures.**

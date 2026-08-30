@@ -171,6 +171,17 @@ fn push_pane_scenes(
     if foc {
         paint.extend(crate::cursortrail::paint_for(p, crate::anim::now_ms()));
     }
+    // Pictures the program in this pane sent, anchored to the lines they
+    // arrived on and clipped to the pane (see `termimg`).
+    if let PaneContent::Terminal(t) = &p.content {
+        paint.extend(t.images.paint(
+            t.pty.history_lines(),
+            t.pty.display_offset(),
+            p.grid.cols,
+            p.grid.rows,
+            ch / cw,
+        ));
+    }
     let is_term = matches!(&p.content, PaneContent::Terminal(_));
     let (scroll, total) = match &p.content {
         PaneContent::Terminal(t) => (t.pty.display_offset(), t.pty.scrollable_lines()),

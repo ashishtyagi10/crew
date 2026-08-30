@@ -41,6 +41,8 @@ pub struct TermPane {
     /// Where each command's output started and ended in this pane's buffer
     /// ([`crate::cmdspan`]) — what `/out` slices.
     pub spans: crate::cmdspan::Spans,
+    /// Pictures this pane's program asked to show ([`crate::termimg`]).
+    pub(crate) images: crate::termimg::TermImages,
     /// The fading streak the caret drags behind it ([`crate::cursortrail`]).
     /// Fed only while this pane is focused, so an unfocused program moving its
     /// cursor never asks crew for a frame.
@@ -264,6 +266,7 @@ pub fn spawn_pane(
             read_at: 0,
             spans: Default::default(),
             trail: Default::default(),
+            images: Default::default(),
         })),
         grid,
         rect: Rect {

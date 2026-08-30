@@ -115,6 +115,45 @@ struct Overlay {
     /// drawn on the paint layer rather than as cells, so it is also the one
     /// thing a cell assertion cannot see.
     wake: Option<((u16, u16), (u16, u16))>,
+    /// A picture the program sent, in the graphics protocol's own form — fed
+    /// as bytes, placed by the terminal, decoded on a worker, drawn on the
+    /// paint layer. The whole path, in one frame.
+    picture: bool,
+}
+
+/// A small PNG with a shape in it, written the way a program would have.
+fn picture_png(w: u32, h: u32) -> Vec<u8> {
+    let img = image::RgbaImage::from_fn(w, h, |x, y| {
+        let (fx, fy) = (x as f32 / w as f32, y as f32 / h as f32);
+        let r = ((fx - 0.5).powi(2) + (fy - 0.5).powi(2)).sqrt();
+        match r < 0.34 {
+            true => image::Rgba([250, 236, 200, 255]),
+            false => image::Rgba([(fx * 220.0) as u8, 40, (fy * 220.0) as u8, 255]),
+        }
+    });
+    let mut buf = std::io::Cursor::new(Vec::new());
+    image::DynamicImage::ImageRgba8(img)
+        .write_to(&mut buf, image::ImageFormat::Png)
+        .expect("encode");
+    buf.into_inner()
+}
+
+/// The escape sequence a program writes to show `png`.
+fn graphics_seq(png: &[u8], cols: u16, rows: u16) -> String {
+    const A: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut b64 = String::new();
+    for c in png.chunks(3) {
+        let n = (u32::from(c[0]) << 16)
+            | (u32::from(*c.get(1).unwrap_or(&0)) << 8)
+            | u32::from(*c.get(2).unwrap_or(&0));
+        for i in 0..4 {
+            match i <= c.len() {
+                true => b64.push(A[(n >> (18 - 6 * i)) as usize & 63] as char),
+                false => b64.push('='),
+            }
+        }
+    }
+    format!("\x1b_Ga=T,f=100,c={cols},r={rows};{b64}\x1b\\")
 }
 
 fn term_shot(name: &str, body: &str, w: u32, h: u32, o: Overlay) -> Option<Vec<u8>> {
@@ -131,7 +170,7 @@ fn term_shot(name: &str, body: &str, w: u32, h: u32, o: Overlay) -> Option<Vec<u
         if o.links {
             crate::linkhl::colorize(&mut cells, cols, rows);
         }
-        let paint = o
+        let mut paint = o
             .wake
             .map(|(from, at)| {
                 let mut trail = crate::cursortrail::Trail::default();
@@ -143,6 +182,19 @@ fn term_shot(name: &str, body: &str, w: u32, h: u32, o: Overlay) -> Option<Vec<u
                 )
             })
             .unwrap_or_default();
+        if o.picture {
+            let mut store = crate::termimg::TermImages::default();
+            store.collect(t.take_images());
+            // The decode is on a worker, as it is in the app; a shot has to
+            // wait for it rather than photograph a pane mid-load.
+            for _ in 0..400 {
+                if store.poll() || !store.loading() {
+                    break;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(5));
+            }
+            paint.extend(store.paint(t.history_lines(), t.display_offset(), cols, rows, 2.1));
+        }
         (cells, paint)
     })
 }
@@ -161,6 +213,11 @@ fn sweep(suffix: &str, w: u32, h: u32) -> bool {
         links: true,
         ..Default::default()
     };
+    // What `icat` puts on a pane: a line of text, a picture, a line of text.
+    let pic_body = format!(
+        "\x1b[36m$\x1b[0m plot --last 7d\r\n{}\r\n\x1b[2msaved to ~/plot.png\x1b[0m\r\n",
+        graphics_seq(&picture_png(240, 120), 24, 6)
+    );
     let wake = |from, at| Overlay {
         wake: Some((from, at)),
         ..Default::default()
@@ -175,6 +232,14 @@ fn sweep(suffix: &str, w: u32, h: u32) -> bool {
         ("find", session(), find("crew")),
         ("find-wide", WIDE.to_string(), find("\u{5168}\u{89d2}")),
         ("links", LINKS.to_string(), links),
+        (
+            "picture",
+            pic_body.clone(),
+            Overlay {
+                picture: true,
+                ..Default::default()
+            },
+        ),
         ("wake", session(), wake((14, 10), (2, 10))),
         ("wake-jump", session(), wake((30, 1), (2, 6))),
     ] {

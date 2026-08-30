@@ -77,6 +77,7 @@ fn live_terminal_pane_answers_through_the_full_pipeline() {
             read_at: 0,
             spans: Default::default(),
             trail: Default::default(),
+            images: Default::default(),
         })),
         grid: GridSize { cols: 80, rows: 24 },
         rect: Rect {

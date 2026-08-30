@@ -76,6 +76,12 @@ impl CrewApp {
             || self.toasts.any_live(now)
             || self.glide_active
             || crate::cursortrail::any_live(&self.panes, now)
+            // A picture still being decoded on a worker: the frame it lands
+            // in is owed to it, and the wait is bounded by the decode.
+            || self.panes.iter().any(|p| match &p.content {
+                PaneContent::Terminal(t) => t.images.loading(),
+                _ => false,
+            })
             || self.wash_focus.moving()
             // 150ms grace past expiry: the crossfade draws at whatever
             // strength the LAST frame sampled, so one more frame must land
@@ -211,6 +217,10 @@ impl CrewApp {
                 PaneContent::Terminal(t) => {
                     let n = t.pty.try_read() > 0;
                     more_pending |= t.pty.has_pending();
+                    // Pictures the program sent, off to a worker to be
+                    // decoded; `poll` lands them a frame or two later.
+                    t.images.collect(t.pty.take_images());
+                    let landed = t.images.poll();
                     rang = t.pty.take_bell();
                     // A program can ask for a notification outright (OSC 9 /
                     // OSC 777). No heuristic involved: it said so.
@@ -237,7 +247,10 @@ impl CrewApp {
                             crew_term::ShellMark::OutputStart => {}
                         }
                     }
-                    n
+                    // A picture that just finished decoding is a change with
+                    // nothing else to announce it: no bytes arrived that
+                    // frame, so without this the frame is never drawn.
+                    n || landed
                 }
                 PaneContent::Chat(c) => {
                     let result = c.poll();

@@ -310,6 +310,7 @@ mod swarmpane;
 mod swarmshot_tests;
 mod swatch;
 mod sysdials;
+mod termimg;
 #[cfg(test)]
 #[path = "termshot_tests.rs"]
 mod termshot_tests;
