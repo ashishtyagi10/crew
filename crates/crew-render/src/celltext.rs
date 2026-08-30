@@ -128,6 +128,11 @@ fn cell_correction_em(a_em: f32, cell_em: f32, cells: u16) -> Option<f32> {
 }
 
 thread_local! {
+    /// `(family, wanted weight) → the weight that family can really shape`.
+    /// See [`weight_in_family`]; a db scan per pane per frame would be silly,
+    /// and the answer only changes when the font database does.
+    static WEIGHT_CACHE: RefCell<HashMap<(String, u16), u16>> = RefCell::new(HashMap::new());
+
     /// `(family, weight, char) → letter-spacing correction` (em units;
     /// `None` = the glyph behaves, cached so it isn't re-measured). Filled by
     /// `detect_corrections` from real shaped layouts — the char may resolve
@@ -260,6 +265,43 @@ fn detect_corrections(buffer: &Buffer, font_system: &mut FontSystem, params: &Fo
     cached_new
 }
 
+/// The weight `family` can actually shape, nearest to `want`.
+///
+/// **The bug this exists for:** cosmic-text answers a family+weight query by
+/// *distance*, and a family with no face at the weight asked for loses to a
+/// different family that has one. Six of the seventeen coding faces installed
+/// on the machine this was found on — Cascadia Code, MonoLisa, Geist Mono,
+/// Google Sans Code, ComicMono, Operator Mono — ship Regular and Medium and
+/// no Bold, so every bold cell in crew shaped from **Menlo**: the focused
+/// pane's legend, an agent's `**emphasis**`, a code fence's header, all in a
+/// different typeface from the text around them, and only on the panes that
+/// happened to be bold. A weight a family does not have is not a request it
+/// can answer, so crew stops making it: bold shapes at the heaviest weight
+/// the family really has, and a single-weight face simply stays its own
+/// weight rather than becoming somebody else's.
+fn weight_in_family(font_system: &FontSystem, family: &Option<String>, want: u16) -> Weight {
+    let Some(name) = family.as_deref().filter(|f| !f.is_empty()) else {
+        // No family means the monospace default, which is the family crew
+        // embeds — and it ships every weight it is ever asked for.
+        return Weight(want);
+    };
+    let key = (name.to_string(), want);
+    if let Some(w) = WEIGHT_CACHE.with(|c| c.borrow().get(&key).copied()) {
+        return Weight(w);
+    }
+    let best = font_system
+        .db()
+        .faces()
+        .filter(|f| f.families.iter().any(|(n, _)| n.eq_ignore_ascii_case(name)))
+        .map(|f| f.weight.0)
+        // Nearest to what was asked for, the heavier one on a tie: bold
+        // should still be as bold as the family can be.
+        .min_by_key(|&w| (w.abs_diff(want), u16::MAX - w))
+        .unwrap_or(want);
+    WEIGHT_CACHE.with(|c| c.borrow_mut().insert(key, best));
+    Weight(best)
+}
+
 /// Per-column styling key, used to coalesce horizontally-adjacent cells that
 /// share a style into one shaping span. `Default` = an empty cell (rendered as a
 /// space in the buffer's default attrs).
@@ -292,7 +334,9 @@ pub(crate) fn fill_rich_text(
     params: &FontParams,
 ) {
     let fam = family_from(&params.family);
-    let base = Weight(params.weight);
+    let base = weight_in_family(font_system, &params.family, params.weight);
+    // What "bold" means in THIS family (see `weight_in_family`).
+    let bold = weight_in_family(font_system, &params.family, Weight::BOLD.0);
     // Bucket cells into a single flat rows×cols grid — one allocation per pane
     // per frame, instead of a Vec-of-Vecs (one inner Vec allocated per row).
     let mut grid: Vec<Option<&CellView>> = vec![None; rows * cols];
@@ -340,11 +384,7 @@ pub(crate) fn fill_rich_text(
             }
             let (ch, key) = match at {
                 Some(cell) => {
-                    let w = if cell.bold {
-                        Weight::BOLD.0
-                    } else {
-                        params.weight
-                    };
+                    let w = if cell.bold { bold.0 } else { base.0 };
                     let ls = correction_for(params, cell.c, w);
                     (
                         cell.c,
@@ -380,11 +420,11 @@ pub(crate) fn fill_rich_text(
         .map(|(s, e, key)| {
             let attrs = match key {
                 RunKey::Default => default_attrs.clone(),
-                RunKey::Styled(fg, bold, italic, ls, light, gamma) => {
+                RunKey::Styled(fg, is_bold, italic, ls, light, gamma) => {
                     let mut a = Attrs::new()
                         .family(fam)
                         .color(Color::rgb(fg.0, fg.1, fg.2))
-                        .weight(if *bold { Weight::BOLD } else { base })
+                        .weight(if *is_bold { bold } else { base })
                         .cache_key_flags(crate::smoothing::text_flags(
                             params.smooth,
                             *gamma,
@@ -437,3 +477,6 @@ pub(crate) fn cell_metrics(font_size: f32, leading: f32) -> (f32, f32) {
 #[cfg(test)]
 #[path = "celltext_tests.rs"]
 mod tests;
+#[cfg(test)]
+#[path = "weightfit_tests.rs"]
+mod weightfit_tests;

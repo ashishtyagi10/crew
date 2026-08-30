@@ -8,6 +8,34 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.82
+
+**Bold text stopped being a different typeface.**
+
+Reported from a live window: the focused pane's legend was in a different font
+from the pane's own text — and only while it was focused. The legend was not
+the problem. It is the one part of the frame drawn **bold**, and cosmic-text
+answers a family+weight query by *distance*: a family with no Bold face loses
+to any family that has one, silently, with no error anywhere.
+
+Six of the seventeen coding faces installed on the machine this was found on —
+**Cascadia Code, MonoLisa, Geist Mono, Google Sans Code, ComicMono, Operator
+Mono** — ship Regular and Medium and no Bold. Under any of them, *every* bold
+cell in crew shaped from **Menlo**: the pane legend, an agent's `**emphasis**`,
+a code fence's header, a heading in the viewer. With `/font random` on, which
+face you got changed every ten minutes.
+
+A weight a family does not have is not a request it can answer, so crew stops
+making it. Bold now shapes at the heaviest weight the family really has, and a
+single-weight face simply stays its own weight instead of becoming somebody
+else's. The base weight is resolved the same way, so `/weight medium` on a
+Regular-only family is exact rather than nearly-right.
+
+The regression test shapes bold in **every allowlisted family installed on the
+machine** and asserts the glyphs came back from the family that was asked for
+— it fails with `bold in Cascadia Code shaped from Menlo` if the clamp is
+removed.
+
 ## 0.19.81
 
 **A program can put a picture on a pane.**
