@@ -14,7 +14,18 @@ use crew_render::PaneScene;
 const PAD: f32 = 12.0;
 
 fn help_shot(name: &str, w: u32, h: u32, scroll: usize, needle: &str) -> Option<Vec<u8>> {
-    let px = crate::shotdraw_tests::draw(w, h, 13.0, |cw, ch| {
+    help_shot_at(name, w, h, 13.0, scroll, needle)
+}
+
+fn help_shot_at(
+    name: &str,
+    w: u32,
+    h: u32,
+    font: f32,
+    scroll: usize,
+    needle: &str,
+) -> Option<Vec<u8>> {
+    let px = crate::shotdraw_tests::draw(w, h, font, |cw, ch| {
         let iw = w as f32 - 2.0 * PAD;
         let ih = h as f32 - 2.0 * PAD;
         let cols = (iw / cw).floor() as u16;
@@ -96,4 +107,24 @@ fn help_shot_themes() {
         assert!(crate::shotgpu_tests::ink(&px) > 3000, "{name} drew");
     }
     crate::palette::set_accent(crate::palette::DEFAULT_ACCENT);
+}
+
+/// `/keys` at every font size, in one window.
+///
+/// The panel's key column is a fixed 26 COLUMNS and its descriptions take
+/// whatever is left; a column is a different number of pixels at every font
+/// size, so the same window is a wide panel at 10px and a cramped one at 26.
+/// The width sweep above says the same thing in pixels — this says it the way
+/// a reader actually changes it, with `/font`.
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn help_shot_font_sweep() {
+    let _g = crate::app::theme_test_guard();
+    for font in [10.0f32, 13.0, 16.0, 19.0, 22.0, 26.0] {
+        let name = format!("help-font-{font:.0}");
+        if help_shot_at(&name, 900, 460, font, 0, "").is_none() {
+            eprintln!("no GPU adapter — skipped");
+            return;
+        }
+    }
 }

@@ -8,6 +8,23 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.71
+
+**Font sweeps for the two surfaces a reader changes the font on.** The card
+already had one; the input bar and `/keys` did not, and both are laid out in
+COLUMNS — a column is a different number of pixels at every size, so the same
+window is a wide panel at 10px and a cramped one at 26. A budget that fits at
+13 and overflows at 22 is exactly the class of bug a fixed-size shot cannot
+see, and the input bar is the one surface on screen in every session.
+
+Both hold, at 10, 13, 16, 19, 22 and 26px: the bar's cwd stays on the top
+rule, its status flash stays on the bottom one, and `/keys` gives its key
+column no more than the 45% of the panel it promises and wraps every
+description under itself rather than clipping it. That is a null result, and
+the sweeps are worth having anyway — the two shots that DID find something in
+this loop found it the same way, by being pointed at a size nobody had
+rendered.
+
 ## 0.19.70
 
 **Sextants.** U+1FB00–1FB3B, the 2×3 half-cell grid — the newest of the cell
