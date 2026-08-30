@@ -8,6 +8,47 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.89
+
+**A cursor in the render — the markdown editor starts here.**
+
+`/doc README.md` opens the document rendered, and now with a **caret already
+in it**: the arrow keys, Home and End move a cursor through the *rendered*
+document — no `#`, no `**`, no `](` anywhere on screen — and it scrolls to
+follow. This is the first slice of
+`docs/superpowers/goals/2026-08-30-markdown-editor-in-its-own-window.md`.
+
+The whole thing rests on one field, and this release is mostly that field:
+
+* **Every rendered character knows the byte it came from.** pulldown-cmark
+  hands a source range to every event; `md::source` stamps it where the inline
+  fold can read it, `MdSpan` carries it, a wrap **splits it by the bytes it
+  dropped** (not the characters, or every wrapped line after a non-ASCII
+  character points at the wrong byte), and every `CardCell` ends up holding
+  the byte its character came from.
+* **A run that is not a verbatim copy of its source carries nothing.** An
+  entity is one character from five bytes; an escape one from two; the space
+  CommonMark puts where a soft break was is a space where the file has a
+  newline — and that last one has the *same length*, so the length test alone
+  was not enough and the test caught it. Claiming a byte four out is far worse
+  than admitting there is none.
+* **A cell with no byte is not a place the caret can be.** A list bullet, a
+  table's rules, a code field's border: the renderer put them there and the
+  file does not contain them, so the caret steps over them. That is not a
+  limitation worked around — it falls out of the provenance.
+* **The caret IS its byte.** The row and column are only where the current
+  width happens to put it, so a resize re-wraps the document, throws the
+  position away and finds the byte again — by binary search over rows, because
+  a hundred-thousand-row document must not be walked to answer it.
+* The invariant is asserted directly: for every rendered character of a
+  document containing every shape in the grammar, at three widths, the byte it
+  claims holds that character.
+
+**Not yet:** typing. This slice moves a cursor and saves nothing — the next
+one splices at the offset, which is where the "untouched bytes never move"
+guarantee gets to be structural rather than promised. The goal doc records why
+the buffer ended up being the source text rather than the parsed tree.
+
 ## 0.19.88
 
 **A picture stopped being drawn over the heading that names where it is.**

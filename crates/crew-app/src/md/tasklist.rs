@@ -20,6 +20,7 @@ pub(super) fn sentinel(checked: bool) -> MdSpan {
             ..MdStyle::default()
         },
         link: None,
+        src: None,
     }
 }
 
@@ -90,6 +91,7 @@ pub(super) fn head_span(prefix: String, task: Option<bool>) -> MdSpan {
             ..MdStyle::default()
         },
         link: None,
+        src: None,
     }
 }
 

@@ -32,6 +32,7 @@ pub(super) fn sentinel(src: String, alt: String) -> MdSpan {
             ..MdStyle::default()
         },
         link: Some(src),
+        src: None,
     }
 }
 

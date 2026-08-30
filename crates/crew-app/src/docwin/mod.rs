@@ -93,13 +93,39 @@ impl DocWindow {
         let (cols, rows) = crate::layout::card_inner_cells(iw, ih, cw, ch);
         self.grid = GridSize { cols, rows };
         self.view.clamp_scroll(cols, rows);
+        // The document just re-wrapped: the caret's row and column belonged
+        // to the old width, and only its byte survives the change.
+        self.view.relayout_caret(cols, rows);
     }
 
     /// Drain the worker that is loading the file. Returns whether anything
     /// changed — the document window's whole reason to want a frame while
     /// nobody is typing.
     pub(crate) fn poll(&mut self) -> bool {
-        self.view.poll()
+        if !self.view.poll() {
+            return false;
+        }
+        // The file has landed: if it is a document rather than a listing of
+        // bytes, it opens with a cursor already in it. That IS the difference
+        // between a viewer and an editor, and it is why a document window
+        // shows a caret and a viewer pane does not.
+        if self.editable() {
+            self.view.start_editing(self.grid.cols);
+        }
+        true
+    }
+
+    /// Whether this window holds something the caret belongs in. Markdown
+    /// only, for now: the rung whose render carries the provenance a cursor
+    /// is made of (see `crate::md::source`).
+    pub(crate) fn editable(&self) -> bool {
+        matches!(
+            &self.view.state,
+            crate::viewpane::LoadState::Ready {
+                format: crate::viewpane::detect::Format::Markdown,
+                ..
+            }
+        ) && !self.view.raw
     }
 }
 

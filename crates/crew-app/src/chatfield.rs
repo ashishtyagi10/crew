@@ -23,6 +23,7 @@ fn tinted(bg: (u8, u8, u8), fg: (u8, u8, u8)) -> CardCell {
         italic: false,
         bg: Some(bg),
         link: None,
+        src: None,
     }
 }
 

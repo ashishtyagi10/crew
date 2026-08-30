@@ -46,6 +46,7 @@ fn spans(field: &str) -> Vec<MdSpan> {
         text: field.to_string(),
         style: MdStyle::default(),
         link: None,
+        src: None,
     }]
 }
 

@@ -188,6 +188,39 @@ fn doc_shot_sticky_heading() {
     assert!(crate::shotgpu_tests::ink(&px) > 3_000);
 }
 
+/// The document window as an EDITOR: the render, with a cursor in it. No
+/// markers on screen, and the caret standing on a character of the document
+/// rather than on the bullet beside it.
+#[test]
+#[ignore = "needs a GPU adapter; writes PNGs"]
+fn doc_shot_caret() {
+    let _g = crate::app::theme_test_guard();
+    let (w, h) = (720u32, 460u32);
+    for (name, steps) in [("doc-caret", 0usize), ("doc-caret-in-a-list", 120)] {
+        let mut view = doc(MD);
+        view.start_editing(80);
+        for _ in 0..steps {
+            view.move_caret(crate::viewpane::caret::Step::Right, 80, 24);
+        }
+        let px = crate::shotdraw_tests::draw(w, h, 13.0, |cw, ch| {
+            let m = 12.0;
+            let rect = Rect {
+                x: m,
+                y: m,
+                w: w as f32 - m * 2.0,
+                h: h as f32 - m * 2.0,
+            };
+            crate::docwin::draw::scenes(rect, cw, ch, "window.md", &view)
+        });
+        let Some(px) = px else {
+            eprintln!("no GPU adapter — skipping (this is a skip, not a pass)");
+            return;
+        };
+        crate::shotdraw_tests::write_png(name, &px, w, h);
+        assert!(crate::shotgpu_tests::ink(&px) > 3_000, "{name} drew");
+    }
+}
+
 /// The document window on a light page and through a green tube — the two
 /// places a surface built and eyed on the dark theme goes wrong.
 #[test]

@@ -120,3 +120,38 @@ buildable, and still the one that makes it survive contact with a git repo:
 - **Phase 2 starts before the window exists.** The window is the smaller, more separable half and
   it is what the user actually asked for first; a WYSIWYG editor inside the existing pane grid
   answers a question that was not asked.
+
+---
+
+### Decision taken in implementation (2026-08-30, v0.19.89) — the buffer
+
+Pillar 3 above says the buffer is the parsed document and markdown is a
+serialization produced on save. **Built the other way round, and here is why.**
+
+The reason Pillar 3 gives for its model is sound — inverting a rendered edit
+back into bytes is where the ambiguity lives — but it needs source byte ranges
+on every block *anyway*, to splice untouched blocks back verbatim. Once the
+provenance exists, the simpler arrangement is available: **the buffer is the
+source text, and the cursor is a byte offset in it.** Then
+
+* a typed character is a splice at that offset — untouched bytes do not merely
+  *tend* not to move, they cannot move, and the minimal-diff guarantee is
+  structural rather than something the serializer has to keep promising;
+* there is no serializer at all, so there is no marker-convention sniffing, no
+  `*` vs `-` bullet drift, no re-wrapping;
+* what the cursor cannot do is exactly what the render cannot account for,
+  which turns out to be the right rule rather than a limitation (below).
+
+What is carried is one field: `MdSpan.src` / `CardCell.src`, the byte a
+rendered character came from, split with the span when a line wraps. It is
+`None` wherever the render is **not** a verbatim copy of the file — an entity
+(`&amp;` is one character from five bytes), an escape, the space CommonMark
+puts where a soft break was, and every glyph the renderer invented (a bullet,
+a table rule, a code field's border). A caret cannot stand in those places,
+which is correct: there is nothing there to type into. Claiming an offset that
+is four bytes out would be far worse than admitting there is none.
+
+The invariant is asserted directly, at three widths over the whole grammar:
+for every rendered character, the byte it claims holds that character.
+
+Pillar 3's other half stands unchanged: on save, only what was edited moves.

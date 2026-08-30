@@ -62,6 +62,17 @@ pub(crate) struct ViewPane {
     /// `s`: show the text unrendered. The escape hatch for when the render is
     /// the thing being debugged.
     pub raw: bool,
+    /// The cursor in the render, when this document is being EDITED rather
+    /// than read (see [`super::caret`]). `None` in a viewer pane: a pane is a
+    /// window onto a file, and the arrow keys there scroll it. A document
+    /// window turns it on, which is what makes the window an editor.
+    pub caret: Option<super::caret::Caret>,
+    /// The BYTE the caret is on — its durable identity. The rendered position
+    /// above is derived from this and the current layout, and a re-wrap
+    /// (a resize, an edit) throws that position away and finds this offset
+    /// again. Keeping the row would put the cursor on a different word every
+    /// time the window changed width.
+    pub caret_at: Option<u32>,
     /// `v`: lay a diff out side by side rather than unified (see
     /// [`super::diffsplit`]). Per pane rather than a setting: it is a way of
     /// reading THIS review at THIS width, and a pane too narrow to hold two
@@ -105,6 +116,8 @@ impl ViewPane {
             state: LoadState::Loading { rx },
             scroll: 0,
             raw: false,
+            caret: None,
+            caret_at: None,
             split: false,
             search: None,
             cache: RefCell::new(None),

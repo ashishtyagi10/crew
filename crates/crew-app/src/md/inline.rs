@@ -38,16 +38,37 @@ impl InlineState {
         }
     }
 
+    /// An inline `` `code` `` run, whose source range covers its backticks.
+    fn push_code(&self, spans: &mut Vec<MdSpan>, text: String) {
+        if text.is_empty() {
+            return;
+        }
+        let src = crate::md::source::offset_for_code(&text);
+        let mut style = self.style();
+        style.code = true;
+        spans.push(MdSpan {
+            text,
+            style,
+            link: self.link.last().cloned(),
+            src,
+        });
+    }
+
     fn push_text(&self, spans: &mut Vec<MdSpan>, text: String, code: bool) {
         if text.is_empty() {
             return;
         }
         let mut style = self.style();
         style.code = code;
+        // Where in the file this run came from — the one field a cursor in
+        // the render is made of. `None` when the render is not a verbatim
+        // copy of the source (an entity, an escape); see `md::source`.
+        let src = crate::md::source::offset_for(&text);
         spans.push(MdSpan {
             text,
             style,
             link: self.link.last().cloned(),
+            src,
         });
     }
 }
@@ -62,7 +83,7 @@ pub(super) fn apply_inline_event(
 ) {
     match event {
         Event::Text(t) => state.push_text(spans, t.into_string(), false),
-        Event::Code(t) => state.push_text(spans, t.into_string(), true),
+        Event::Code(t) => state.push_code(spans, t.into_string()),
         // CommonMark joins a soft break with a single space; chat prose
         // (`keep_soft_breaks`) instead treats it as an intentional line
         // break, since users press Enter meaning "new line".
@@ -70,12 +91,23 @@ pub(super) fn apply_inline_event(
             text: "\n".into(),
             style: MdStyle::default(),
             link: None,
+            src: None,
         }),
-        Event::SoftBreak => state.push_text(spans, " ".into(), false),
+        // CommonMark joins the two sides with a space — a character the file
+        // does not contain, so it carries no offset. The length test cannot
+        // catch this one: a space and the newline it replaced are both one
+        // byte, which is why it does not go through `push_text` at all.
+        Event::SoftBreak => spans.push(MdSpan {
+            text: " ".into(),
+            style: state.style(),
+            link: state.link.last().cloned(),
+            src: None,
+        }),
         Event::HardBreak => spans.push(MdSpan {
             text: "\n".into(),
             style: MdStyle::default(),
             link: None,
+            src: None,
         }),
         Event::Start(Tag::Strong) => state.bold += 1,
         Event::End(TagEnd::Strong) => state.bold = state.bold.saturating_sub(1),

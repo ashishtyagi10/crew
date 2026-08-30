@@ -224,6 +224,7 @@ mod tests {
         text.chars()
             .map(|c| CardCell {
                 link: Some(std::sync::Arc::from(url)),
+                src: None,
                 ..plain(c, (0, 0, 0), false)
             })
             .collect()

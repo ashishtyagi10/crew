@@ -6,6 +6,7 @@ fn plain(text: &str) -> MdSpan {
         text: text.into(),
         style: MdStyle::default(),
         link: None,
+        src: None,
     }
 }
 

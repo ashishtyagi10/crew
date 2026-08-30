@@ -105,6 +105,7 @@ fn push_caret(lines: &mut [CardLine], now_ms: u64, cols: usize) {
         italic: false,
         bg: None,
         link: None,
+        src: None,
     });
 }
 

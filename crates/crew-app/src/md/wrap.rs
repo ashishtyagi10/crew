@@ -13,6 +13,7 @@ pub(super) fn plain_span(text: String) -> MdSpan {
         text,
         style: MdStyle::default(),
         link: None,
+        src: None,
     }
 }
 
@@ -26,6 +27,7 @@ pub(super) fn marker_span(text: String) -> MdSpan {
             ..MdStyle::default()
         },
         link: None,
+        src: None,
     }
 }
 
@@ -54,6 +56,7 @@ pub(super) fn truncate_spans(spans: Vec<MdSpan>, cols: usize) -> Vec<MdSpan> {
             continue;
         }
         let mut text = String::new();
+        let src = s.src;
         for c in s.text.chars() {
             let cw = crate::chatwidth::char_w(c);
             if used + cw > cols || kept + 1 > cols {
@@ -68,6 +71,8 @@ pub(super) fn truncate_spans(spans: Vec<MdSpan>, cols: usize) -> Vec<MdSpan> {
                 text,
                 style: s.style,
                 link: s.link,
+                // A clamp keeps the span's head, so it keeps its offset.
+                src,
             });
         }
         break;
@@ -126,11 +131,17 @@ fn spans_for_range(spans: &[MdSpan], bounds: &[usize], s: usize, e: usize) -> Ve
         let (sp_start, sp_end) = (bounds[i], bounds[i + 1]);
         let (lo, hi) = (s.max(sp_start), e.min(sp_end));
         if lo < hi {
-            let text: String = sp.text.chars().skip(lo - sp_start).take(hi - lo).collect();
+            let skipped = lo - sp_start;
+            let text: String = sp.text.chars().skip(skipped).take(hi - lo).collect();
+            // The cut moves the span's head forward by the BYTES of the
+            // characters it dropped — not by their count, or every wrapped
+            // line after a non-ASCII character would point at the wrong byte.
+            let dropped: usize = sp.text.chars().take(skipped).map(char::len_utf8).sum();
             out.push(MdSpan {
                 text,
                 style: sp.style,
                 link: sp.link.clone(),
+                src: sp.src.map(|s| s + dropped as u32),
             });
         }
     }

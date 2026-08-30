@@ -116,6 +116,7 @@ fn code_spans(
                 ..MdStyle::default()
             },
             link: None,
+            src: None,
         });
     }
     if out.is_empty() {

@@ -87,6 +87,70 @@ impl ViewPane {
         Ref::map(self.cache.borrow(), |c| c.as_ref().expect("just filled"))
     }
 
+    /// Move the caret one step and scroll to keep it on screen. `None` when
+    /// this document is not being edited.
+    pub(crate) fn move_caret(&mut self, dir: super::caret::Step, cols: u16, rows: u16) {
+        let Some(here) = self.caret else { return };
+        let moved = {
+            let cache = self.lines_for(cols);
+            super::caret::step(&cache.lines, here, dir)
+        };
+        self.set_caret(Some(moved), cols);
+        self.scroll_to_caret(rows);
+    }
+
+    /// Put the caret on the document's first editable place, if it has one.
+    pub(crate) fn start_editing(&mut self, cols: u16) {
+        if self.caret.is_some() {
+            return;
+        }
+        let at = {
+            let cache = self.lines_for(cols);
+            super::caret::first(&cache.lines)
+        };
+        self.set_caret(at, cols);
+    }
+
+    /// Move the caret and stamp the byte it is now on.
+    fn set_caret(&mut self, to: Option<super::caret::Caret>, cols: u16) {
+        let at = to.and_then(|c| {
+            let cache = self.lines_for(cols);
+            super::caret::offset_at(&cache.lines, c)
+        });
+        self.caret = to;
+        self.caret_at = at;
+    }
+
+    /// Find the caret again after the document was laid out at a new width.
+    /// The byte is what the caret IS; the row and column are only where this
+    /// layout happens to put it.
+    pub(crate) fn relayout_caret(&mut self, cols: u16, rows: u16) {
+        let Some(at) = self.caret_at else { return };
+        let found = {
+            let cache = self.lines_for(cols);
+            super::caret::find(&cache.lines, at)
+        };
+        if let Some(c) = found {
+            self.caret = Some(c);
+            self.scroll_to_caret(rows);
+        }
+    }
+
+    /// Scroll the least that puts the caret back in view. A caret you cannot
+    /// see is a caret you cannot type at.
+    fn scroll_to_caret(&mut self, rows: u16) {
+        let Some(c) = self.caret else { return };
+        let rows = usize::from(rows).max(1);
+        // One row of slack at each edge, so the line being typed on is never
+        // the very first or very last thing on screen.
+        let margin = usize::from(rows > 4);
+        if c.row < self.scroll + margin {
+            self.scroll = c.row.saturating_sub(margin);
+        } else if c.row + margin >= self.scroll + rows {
+            self.scroll = c.row + margin + 1 - rows;
+        }
+    }
+
     /// Cap the stored offset to the last full page — not merely the drawn
     /// view, or a big jump leaves later scroll ticks dead.
     pub(crate) fn clamp_scroll(&mut self, cols: u16, rows: u16) {
@@ -236,6 +300,24 @@ impl ViewPane {
                     });
                 },
             );
+        }
+        // The caret, on the cell it is standing on. A beam rather than a
+        // block: the character under it is the document, and a block would
+        // hide the very letter you are about to type beside.
+        if let Some(caret) = self.caret {
+            let row = caret.row.checked_sub(top);
+            if let Some(row) = row.filter(|r| *r < usize::from(rows)) {
+                let mark = crew_theme::deco::CursorMark {
+                    shape: crew_theme::deco::CursorShape::Beam,
+                    color: crate::palette::accent(),
+                };
+                if let Some(cell) = out
+                    .iter_mut()
+                    .find(|c| c.row == row as u16 && c.col == caret.col)
+                {
+                    cell.cursor = mark;
+                }
+            }
         }
         // The heading this row is underneath, kept where the address is
         // (see `sticky`). Before the search line, which owns the LAST row and

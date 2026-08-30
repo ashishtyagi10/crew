@@ -4,6 +4,10 @@
 mod layout;
 mod parse;
 pub(crate) mod picture;
+mod source;
+#[cfg(test)]
+#[path = "source_tests.rs"]
+mod source_tests;
 pub(crate) mod syntax;
 mod syntaxdiff;
 mod tasklist;
@@ -82,6 +86,12 @@ pub(crate) struct MdSpan {
     pub text: String,
     pub style: MdStyle,
     pub link: Option<String>, // absolute URL this span links to
+    /// Byte offset in the SOURCE where this span's first character begins —
+    /// `None` when the text is not a verbatim copy of its source (see
+    /// [`source`]). Split with the span when a line wraps, so the offset a
+    /// rendered character carries is the byte it came from however the
+    /// document was laid out. This is what a cursor in the render is.
+    pub src: Option<u32>,
 }
 
 /// What a rendered line represents, so the chat pane knows how to draw it

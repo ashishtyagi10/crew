@@ -57,6 +57,7 @@ pub(super) fn autolink(spans: Vec<MdSpan>) -> Vec<MdSpan> {
                 text: url.clone(),
                 style: span.style,
                 link: Some(url),
+                src: None,
             });
             cursor = b;
         }
@@ -72,5 +73,6 @@ fn plain(chars: &[char], style: MdStyle) -> MdSpan {
         text: chars.iter().collect(),
         style,
         link: None,
+        src: None,
     }
 }

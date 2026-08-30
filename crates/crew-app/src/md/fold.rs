@@ -17,6 +17,7 @@ pub(super) fn newline_marker() -> MdSpan {
         text: "\n".into(),
         style: MdStyle::default(),
         link: None,
+        src: None,
     }
 }
 
@@ -93,6 +94,7 @@ pub(super) fn collect_html_block<'a>(events: &mut impl Iterator<Item = Event<'a>
                 text: line.to_string(),
                 style: MdStyle::default(),
                 link: None,
+                src: None,
             });
         }
     }

@@ -19,6 +19,12 @@ pub(crate) struct CardCell {
     /// The URL a markdown link span resolves to; read by `clickopen`'s click
     /// hit-test (`chatview::link_at`) to recover it without re-parsing.
     pub link: Option<std::sync::Arc<str>>,
+    /// The byte in the SOURCE this character came from, when it came from one
+    /// verbatim (see [`crate::md::source`]). `None` for a character the
+    /// renderer added — a bullet, a table rule, a code field's border, the
+    /// space a soft break became — and those are exactly the places a cursor
+    /// cannot go, because there is nothing there to type into.
+    pub src: Option<u32>,
 }
 
 /// One rendered line of a message card.
@@ -33,6 +39,7 @@ pub(crate) fn plain(c: char, fg: Color, bold: bool) -> CardCell {
         italic: false,
         bg: None,
         link: None,
+        src: None,
     }
 }
 

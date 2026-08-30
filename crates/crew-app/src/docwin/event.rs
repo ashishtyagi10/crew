@@ -5,7 +5,25 @@ use winit::event_loop::ActiveEventLoop;
 use winit::window::WindowId;
 
 use crate::app::CrewApp;
+use crate::viewpane::caret::Step;
 use crate::viewpane::ViewAction;
+
+/// The caret movement a key asks for, if it asks for one.
+fn caret_step(k: &winit::event::KeyEvent) -> Option<Step> {
+    use winit::keyboard::{Key, NamedKey};
+    if !k.state.is_pressed() {
+        return None;
+    }
+    match k.logical_key {
+        Key::Named(NamedKey::ArrowLeft) => Some(Step::Left),
+        Key::Named(NamedKey::ArrowRight) => Some(Step::Right),
+        Key::Named(NamedKey::ArrowUp) => Some(Step::Up),
+        Key::Named(NamedKey::ArrowDown) => Some(Step::Down),
+        Key::Named(NamedKey::Home) => Some(Step::Home),
+        Key::Named(NamedKey::End) => Some(Step::End),
+        _ => None,
+    }
+}
 
 impl CrewApp {
     /// Open `path` in a window of its own. Returns whether one appeared.
@@ -91,6 +109,16 @@ impl CrewApp {
                 }
                 WindowEvent::KeyboardInput { event: k, .. } => {
                     let (cols, rows) = (d.grid.cols, d.grid.rows);
+                    // While there is a caret, the arrows move IT. In a viewer
+                    // pane they scroll, which is right for a window onto a
+                    // file and wrong for a document you are editing.
+                    if let Some(dir) = caret_step(&k) {
+                        if d.view.caret.is_some() {
+                            d.view.move_caret(dir, cols, rows);
+                            d.window.request_redraw();
+                            return;
+                        }
+                    }
                     match d.view.on_key(&k, cols, rows, false) {
                         Some(ViewAction::Close) => close = true,
                         Some(ViewAction::Edit(p)) => edit = Some(p),

@@ -367,6 +367,7 @@ fn italic_cardcell_threads_through_to_cellview() {
         italic: true,
         bg: None,
         link: None,
+        src: None,
     }];
     let cells = line_cells(0, &line, 40, page);
     assert_eq!(cells.len(), 1);

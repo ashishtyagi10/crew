@@ -121,15 +121,23 @@ fn push_chunked(out: &mut Vec<CardLine>, cells: &[CardCell], width: usize, line_
 /// lines override span style entirely; body spans map `MdStyle`).
 fn span_cells(span: &MdSpan, kind: LineKind, fg: Color, muted: Color) -> Vec<CardCell> {
     let (cell_fg, bold, italic, bg, link) = span_style(span, kind, fg, muted);
+    // Each character carries the byte it came from: the span's offset plus
+    // the bytes of the characters before it in the span.
+    let mut at = span.src;
     span.text
         .chars()
-        .map(|c| CardCell {
-            c,
-            fg: cell_fg,
-            bold,
-            italic,
-            bg,
-            link: link.clone(),
+        .map(|c| {
+            let src = at;
+            at = at.map(|n| n + c.len_utf8() as u32);
+            CardCell {
+                c,
+                fg: cell_fg,
+                bold,
+                italic,
+                bg,
+                link: link.clone(),
+                src,
+            }
         })
         .collect()
 }

@@ -5,6 +5,7 @@ pub(crate) mod bitmap;
 pub(crate) mod blame;
 pub(crate) mod blamegutter;
 pub(crate) mod blamejob;
+pub(crate) mod caret;
 mod codepaint;
 pub(crate) mod csv;
 pub(crate) mod detect;
@@ -12,6 +13,9 @@ mod diffnums;
 pub(crate) mod diffpaint;
 pub(crate) mod diffsplit;
 pub(crate) mod diffsplitdraw;
+#[cfg(test)]
+#[path = "editpane_tests.rs"]
+mod editpane_tests;
 pub(crate) mod keys;
 pub(crate) mod lines;
 pub(crate) mod load;

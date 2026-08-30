@@ -63,7 +63,10 @@ pub(super) fn parse(text: &str) -> Vec<Block> {
 /// Same, but `keep_soft_breaks` keeps each line break as its own line — chat prose (`md::render_chat`).
 pub(super) fn parse_with(text: &str, keep_soft_breaks: bool) -> Vec<Block> {
     let opts = Options::ENABLE_TABLES | Options::ENABLE_STRIKETHROUGH | Options::ENABLE_TASKLISTS;
-    let mut events = Parser::new_ext(text, opts);
+    // `into_offset_iter` is what makes the render editable: every event
+    // arrives with the source range it came from, and `source::ranged` stamps
+    // it where the inline fold can read it (see `md::source`).
+    let mut events = super::source::ranged(Parser::new_ext(text, opts).into_offset_iter());
     collect_blocks(&mut events, 0, keep_soft_breaks)
 }
 
