@@ -8,6 +8,25 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.68
+
+**The tick and the cross came from two different typefaces.** With the
+geometry drawn, the census showed what crew's chrome still borrowed: `✗` and
+`⌘` from SF Mono, `❯` from Stelo, `☐` from a Nerd Font, `⚑ ↵ ⇡` from Menlo —
+while `✓`, which sits *next to* `✗` in every confirm prompt crew draws, came
+from the body face. A tick and a cross side by side are the pair the eye is
+most likely to compare, and they were two designers' work at two weights.
+
+`✓ ✔ ✗ ✘ ☐ ☑ ☒ ❯ ❮` are drawn now, all from one primitive — a capped line
+segment of the rules' own weight — so they share a colour, a stroke and an
+optical size with every other mark and every rule around them. A checked
+ballot is its box plus its tick, built rather than borrowed.
+
+`⚑ ↵ ⇡ ⌘` are deliberately left to the font: a flag, a return arrow and the
+command loop are drawings, not constructions, and a hand-built one reads worse
+than a designed one. Four characters of crew's 74-symbol chrome now come from
+somewhere else; it was thirty.
+
 ## 0.19.67
 
 **crew's own marks were coming from five different typefaces, and one of them

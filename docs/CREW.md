@@ -1444,6 +1444,13 @@ and a colour glyph carries its own pixels, so the activity dot was the same
 red-and-white bitmap on every theme. Drawn, they are one family: one size
 relationship, the rules' own stroke weight, and the cell's own colour.
 
+The stroked marks — `✓ ✔ ✗ ✘ ☐ ☑ ☒ ❯ ❮` — follow for the same reason one step
+along: `✓` came from the body face and `✗`, which sits next to it in every
+confirm prompt, from somewhere else. They are built from one primitive, a
+capped line segment of the rules' own weight. `⚑ ↵ ⇡ ⌘` are left to the font
+on purpose — a flag, a return arrow and the command loop are drawings, not
+constructions.
+
 **Braille** (U+2800–28FF) is drawn as well, and for the same reason one step
 further out: btop, gotop, bandwhich and every other monitor of that generation
 plot their graphs in braille, because eight dots per cell is four times the

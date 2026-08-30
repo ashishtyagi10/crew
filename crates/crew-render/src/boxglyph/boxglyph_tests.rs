@@ -134,7 +134,9 @@ fn shades_are_flat_and_ordered() {
 /// module claiming a letter would replace it with a rectangle.
 #[test]
 fn only_the_drawn_set_is_claimed() {
-    for c in ['a', 'W', '·', '╱', '╪', '╫', '\u{25B3}', '\u{2713}'] {
+    for c in [
+        'a', 'W', '·', '╱', '╪', '╫', '\u{25B3}', '\u{2691}', '\u{2318}',
+    ] {
         assert!(synth(c, 8, 16, 12).is_none(), "{c:?} was claimed");
     }
     assert!(arms_of('─').is_some());
@@ -409,4 +411,38 @@ fn the_record_dot_is_a_mask_not_a_colour_bitmap() {
         .filter(|v| **v > 128)
         .count();
     assert!(big > dot, "⏺ should read heavier than ● ({big} vs {dot})");
+}
+
+/// A tick and a cross sit next to each other in every confirm prompt crew
+/// draws, which makes them the pair the eye is most likely to compare — and
+/// they used to come from two different typefaces (`✓` from the body face,
+/// `✗` from whatever the system offered). One construction, one weight now.
+#[test]
+fn the_stroked_marks_are_one_family() {
+    let (w, h) = (9u32, 17u32);
+    let ink = |c: char| cell(c, w, h).data.iter().filter(|v| **v > 128).count();
+    let (tick, cross) = (ink('\u{2713}'), ink('\u{2717}'));
+    let ratio = tick as f32 / cross as f32;
+    assert!(
+        (0.6..1.5).contains(&ratio),
+        "✓ and ✗ read at different weights ({tick} vs {cross})"
+    );
+    assert!(ink('\u{2714}') > tick, "✔ is not heavier than ✓");
+    assert!(ink('\u{2718}') > cross, "✘ is not heavier than ✗");
+    // A checked ballot is its box plus its mark, and both survive.
+    let ballot = ink('\u{2610}');
+    assert!(ink('\u{2611}') > ballot, "☑ lost its tick");
+    assert!(ink('\u{2611}') > tick, "☑ lost its box");
+    assert!(ink('\u{2612}') > ballot, "☒ lost its cross");
+    // The chevrons mirror each other exactly.
+    let (r, l) = (cell('\u{276F}', w, h), cell('\u{276E}', w, h));
+    for y in 0..h {
+        for x in 0..w {
+            assert_eq!(
+                at(&r, x, y),
+                at(&l, w - 1 - x, y),
+                "❯ and ❮ are not mirrors at ({x}, {y})"
+            );
+        }
+    }
 }

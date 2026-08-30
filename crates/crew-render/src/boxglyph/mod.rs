@@ -31,6 +31,7 @@ mod braille;
 mod doubles;
 mod marks;
 mod round;
+mod strokes;
 
 use glyphon::cosmic_text::{Placement, SwashImage};
 
@@ -110,6 +111,26 @@ impl Mask {
         }
     }
 
+    /// Union in a stroked line segment of width `t`, in pixel coordinates.
+    /// The one primitive the pictographic marks are all built from — a check
+    /// is two of these, a cross is two, a chevron is two.
+    pub(crate) fn stroke(&mut self, p0: (f32, f32), p1: (f32, f32), t: f32) {
+        let (dx, dy) = (p1.0 - p0.0, p1.1 - p0.1);
+        let len2 = dx * dx + dy * dy;
+        let half = t / 2.0;
+        self.sample(move |x, y| {
+            // Distance to the segment, capped ends: the caps are what make
+            // two strokes meet cleanly at a corner.
+            let s = if len2 <= 0.0 {
+                0.0
+            } else {
+                (((x - p0.0) * dx + (y - p0.1) * dy) / len2).clamp(0.0, 1.0)
+            };
+            let (qx, qy) = (p0.0 + s * dx, p0.1 + s * dy);
+            ((x - qx).powi(2) + (y - qy).powi(2)).sqrt() <= half
+        });
+    }
+
     /// Whether anything was drawn — a character this module claims but which
     /// rounds away to nothing at this cell size is better left to the font.
     fn inked(&self) -> bool {
@@ -156,6 +177,7 @@ pub(crate) fn synth(c: char, cw: u32, ch: u32, top: i32) -> Option<SwashImage> {
         && !round::draw(&mut m, c)
         && !braille::draw(&mut m, c)
         && !marks::draw(&mut m, c)
+        && !strokes::draw(&mut m, c)
     {
         return None;
     }
