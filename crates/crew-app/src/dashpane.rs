@@ -69,17 +69,62 @@ fn wall_ms() -> u64 {
         .unwrap_or(0)
 }
 
-/// The dashboard's bands, top to bottom, and the rows each claims. A band is
-/// drawn only when the pane has the rows for it — the order is the priority,
-/// so a short pane keeps the machine and loses the history.
+/// The dashboard's bands, top to bottom. The three above the history are
+/// fixed — they draw a machine, and a machine's readings do not get truer with
+/// more rows. A band is drawn only when the pane has the rows for it, and the
+/// order is the priority: a short pane keeps the machine and loses the
+/// history.
 const SYS_TOP: u16 = 1;
 const SYS_ROWS: u16 = crate::sysdials::DASH.rows;
 const NET_TOP: u16 = SYS_TOP + SYS_ROWS + 1;
 const NET_ROWS: u16 = 3;
 const USE_TOP: u16 = NET_TOP + NET_ROWS + 1;
-const USE_ROWS: u16 = crate::usageledger::DAYS as u16 + 1;
-const COST_TOP: u16 = USE_TOP + USE_ROWS + 1;
-const COST_ROWS: u16 = 4;
+/// The two below it are the histories, and they DO get truer with more rows —
+/// so they take the pane's slack, in this order. See [`layout`].
+const HEAT_ROW_MAX: u16 = 3;
+const COST_MIN: u16 = 3;
+const COST_MAX: u16 = 12;
+
+/// How the dashboard divides `rows` below the machine, for one frame — the one
+/// derivation the text and the drawing both read.
+///
+/// The bands were four `const`s, which is one layout for every pane: on a full
+/// window they finished 55% of the way down and left 340 pixels of paper under
+/// them, with a week of hours drawn as a one-row strip and seven days of cost
+/// as a three-row smear. Same division `usagepane` makes, for the same reason.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct Layout {
+    /// Rows one day of the heatmap claims.
+    heat_h: u16,
+    /// Row the cost curve starts on; its legend is on the row above.
+    cost_top: u16,
+    /// Chart rows the cost curve gets — `0` when the pane cannot hold it.
+    cost_rows: u16,
+}
+
+fn layout(rows: u16) -> Layout {
+    const DAYS: u16 = crate::usageledger::DAYS as u16;
+    // Both histories at their floor, plus the cost band's legend row and a row
+    // of air under the pane's last chart.
+    let floor = USE_TOP + DAYS + 2 + COST_MIN + 1;
+    let slack = rows.saturating_sub(floor);
+    // The heatmap has first claim: it is the one chart here with a week of
+    // readings in it, and at one row a day it is a strip you squint at.
+    let heat_h = (1 + slack / DAYS).min(HEAT_ROW_MAX);
+    let slack = slack.saturating_sub((heat_h - 1) * DAYS);
+    let cost_top = USE_TOP + DAYS * heat_h + 2;
+    // …and the cost curve takes what is left, between its floor and a cap:
+    // past that, seven readings are a blob with a stroke on it.
+    let cost_rows = match rows.checked_sub(cost_top + 1) {
+        Some(room) if room >= COST_MIN => (COST_MIN + slack).min(COST_MAX).min(room),
+        _ => 0,
+    };
+    Layout {
+        heat_h,
+        cost_top,
+        cost_rows,
+    }
+}
 /// Columns the CPU curve keeps beside the dials, at minimum. A curve narrower
 /// than this is a shape you cannot read a trend off.
 const CURVE_MIN: u16 = 18;
@@ -149,7 +194,9 @@ impl DashPane {
             );
         }
 
-        if rows > USE_TOP + USE_ROWS {
+        let l = layout(rows);
+        let heat_end = USE_TOP + crate::usageledger::DAYS as u16 * l.heat_h;
+        if rows > heat_end {
             let b = &self.buckets;
             put(
                 &mut out,
@@ -164,15 +211,18 @@ impl DashPane {
                 t.text_muted,
                 cols,
             );
+            // Each label centred on the band it names: a three-row day must
+            // not read as a label with two unlabelled stripes under it.
             for (i, label) in ["6d", "5d", "4d", "3d", "2d", "1d", "now"]
                 .iter()
                 .enumerate()
             {
-                put(&mut out, label, 1, USE_TOP + i as u16, t.text_muted, cols);
+                let row = USE_TOP + i as u16 * l.heat_h + (l.heat_h - 1) / 2;
+                put(&mut out, label, 1, row, t.text_muted, cols);
             }
         }
 
-        if rows > COST_TOP + COST_ROWS {
+        if l.cost_rows > 0 {
             let peak = self.buckets.daily_cost.iter().copied().max().unwrap_or(0);
             put(
                 &mut out,
@@ -181,7 +231,7 @@ impl DashPane {
                     crate::usagepane::money(peak)
                 ),
                 1,
-                COST_TOP - 1,
+                l.cost_top - 1,
                 t.text_muted,
                 cols,
             );
@@ -230,10 +280,13 @@ impl DashPane {
             ));
         }
 
-        // A week of tokens by hour.
-        if rows > USE_TOP + USE_ROWS {
+        // A week of tokens by hour. The grid is always DAYS x HOURS cells;
+        // what the pane's height buys is the rows each of them is drawn over.
+        let l = layout(rows);
+        let heat_rows = crate::usageledger::DAYS as u16 * l.heat_h;
+        if rows > USE_TOP + heat_rows {
             let grid_w = cols.saturating_sub(6);
-            let mut c = Canvas::new(grid_w, crate::usageledger::DAYS as u16, aspect);
+            let mut c = Canvas::new(grid_w, heat_rows, aspect);
             let (w, h) = c.size();
             crate::plot::heatmap::draw(
                 &mut c,
@@ -254,8 +307,8 @@ impl DashPane {
             );
         }
 
-        // What each day cost.
-        if rows > COST_TOP + COST_ROWS {
+        // What each day cost, over whatever rows the division left it.
+        if l.cost_rows > 0 {
             let peak = self
                 .buckets
                 .daily_cost
@@ -270,13 +323,13 @@ impl DashPane {
                 .iter()
                 .map(|&v| (v as f32 / peak as f32).clamp(0.0, 1.0))
                 .collect();
-            let mut c = Canvas::new(cols.saturating_sub(2), COST_ROWS - 1, aspect);
+            let mut c = Canvas::new(cols.saturating_sub(2), l.cost_rows, aspect);
             let (w, h) = c.size();
             crate::plot::area::draw(&mut c, (0.0, 0.0, w, h), &samples, t.ansi[11]);
             out.extend(
                 c.paint()
                     .into_iter()
-                    .map(|p| p.shifted(1.0, f32::from(COST_TOP))),
+                    .map(|p| p.shifted(1.0, f32::from(l.cost_top))),
             );
         }
         out
@@ -333,7 +386,9 @@ fn put(out: &mut Vec<CellView>, s: &str, col: u16, row: u16, fg: (u8, u8, u8), c
 
 #[cfg(test)]
 mod tests {
-    use super::{DashPane, COST_TOP, MIN_COLS, NET_TOP, SYS_TOP, USE_TOP};
+    use super::{
+        layout, DashPane, COST_MAX, COST_MIN, HEAT_ROW_MAX, MIN_COLS, NET_TOP, SYS_TOP, USE_TOP,
+    };
 
     /// The bands are drawn in priority order, so a pane that cannot hold the
     /// history still holds the machine. A dashboard that vanishes below some
@@ -359,7 +414,7 @@ mod tests {
         };
         let tall = rows_of(40);
         assert!(
-            tall.iter().any(|&r| r >= COST_TOP),
+            tall.iter().any(|&r| r >= layout(40).cost_top),
             "the tall pane has every band"
         );
         let short = rows_of(NET_TOP + 1);
@@ -368,6 +423,51 @@ mod tests {
             short.iter().all(|&r| r < USE_TOP),
             "a short pane drew a band it has no room for: {short:?}"
         );
+    }
+
+    /// A tall dashboard spends its height on the two bands that get truer with
+    /// rows, instead of finishing 55% of the way down.
+    #[test]
+    fn a_tall_pane_gives_its_slack_to_the_histories() {
+        let short = layout(30);
+        let tall = layout(56);
+        assert!(
+            tall.heat_h > short.heat_h,
+            "the heatmap grew: {} vs {}",
+            tall.heat_h,
+            short.heat_h
+        );
+        assert!(
+            tall.cost_rows > short.cost_rows,
+            "and so did the cost curve: {} vs {}",
+            tall.cost_rows,
+            short.cost_rows
+        );
+        let huge = layout(300);
+        assert_eq!(huge.heat_h, HEAT_ROW_MAX, "but not without a cap");
+        assert_eq!(huge.cost_rows, COST_MAX);
+    }
+
+    /// At every height a tile can be: the cost curve stays inside the pane,
+    /// and it is given up rather than drawn as a one-row smear.
+    #[test]
+    fn the_cost_curve_never_runs_past_the_last_row() {
+        for rows in 0..140u16 {
+            let l = layout(rows);
+            assert!((1..=HEAT_ROW_MAX).contains(&l.heat_h), "{rows}: {l:?}");
+            if l.cost_rows > 0 {
+                assert!(l.cost_rows >= COST_MIN, "{rows}: {l:?}");
+                assert!(
+                    l.cost_top + l.cost_rows < rows,
+                    "{rows}: the curve is off the pane: {l:?}"
+                );
+                // And its legend sits on a row the heatmap above it has let go.
+                assert!(
+                    l.cost_top - 1 >= USE_TOP + crate::usageledger::DAYS as u16 * l.heat_h,
+                    "{rows}: the legend is on the heatmap: {l:?}"
+                );
+            }
+        }
     }
 
     #[test]
