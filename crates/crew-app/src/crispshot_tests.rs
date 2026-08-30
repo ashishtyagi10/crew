@@ -69,7 +69,16 @@ fn fringe(p: &[f32], lo: f32, hi: f32) -> usize {
 }
 
 fn card_px_at(w: u32, h: u32, font: f32) -> Option<Vec<u8>> {
-    crate::shotdraw_tests::draw(w, h, font, |cw, ch| {
+    crate::shotdraw_tests::draw(w, h, font, |cw, ch| card_scene(w, h, cw, ch))
+}
+
+/// The same card, through the CRT tube.
+fn card_px_crt(w: u32, h: u32, font: f32) -> Option<Vec<u8>> {
+    crate::shotdraw_tests::draw_crt(w, h, font, |cw, ch| card_scene(w, h, cw, ch))
+}
+
+fn card_scene(w: u32, h: u32, cw: f32, ch: f32) -> Vec<PaneScene> {
+    {
         let cols = ((w as f32 - 2.0 * PAD) / cw).floor() as u16;
         let rows = ((h as f32 - 2.0 * PAD) / ch).floor() as u16;
         vec![PaneScene {
@@ -92,7 +101,7 @@ fn card_px_at(w: u32, h: u32, font: f32) -> Option<Vec<u8>> {
             overlay: false,
             paint: Vec::new(),
         }]
-    })
+    }
 }
 
 #[test]
@@ -291,5 +300,52 @@ fn the_frame_holds_its_weight_across_font_sizes() {
     assert!(
         seen.last().unwrap().1 > seen.first().unwrap().1,
         "the rule never grew across a 10→26px sweep: {seen:?}"
+    );
+}
+
+/// The same card, read through the tube.
+///
+/// Three of crew's twelve themes wear the CRT post-process — an off-screen
+/// scene target, a half-res bloom chain and a composite that adds the halo
+/// back over the top. Every shot crew has ever taken went straight from the
+/// cell grid to the readback, which is the path a NON-CRT theme takes: the
+/// headless chain test drives synthetic patterns, and the shot suite skipped
+/// the chain outright. So a card whose rules are now exactly one pixel had
+/// never been looked at through the one pass whose whole job is to spread
+/// light sideways.
+///
+/// The halo is the point of the tube and is not a defect — what this holds is
+/// that the rule still has a HARD CORE inside it. A bloom that has eaten the
+/// core has stopped being a halo and started being a blur.
+#[test]
+#[ignore = "needs a GPU adapter"]
+fn the_tube_haloes_the_rules_without_softening_them() {
+    let _g = crate::app::theme_test_guard();
+    crew_theme::set_theme(crew_theme::ThemeId::CrtGreen);
+    let (w, h) = (600u32, 300u32);
+    let (Some(flat), Some(tube)) = (card_px_at(w, h, 13.0), card_px_crt(w, h, 13.0)) else {
+        eprintln!("no GPU adapter — skipped");
+        return;
+    };
+    crate::shotdraw_tests::write_png("crisp_crt_flat", &flat, w, h);
+    crate::shotdraw_tests::write_png("crisp_crt_tube", &tube, w, h);
+    let at = |px: &[u8]| profile(px, w, |i, k| (RULE_X + k, i), 40, RULE_RUNS);
+    let (a, b) = (at(&flat), at(&tube));
+    for (y, (f, t)) in a.iter().zip(b.iter()).enumerate() {
+        if *f > 0.02 || *t > 0.02 {
+            println!("  y={y:2} flat {f:.3}  tube {t:.3}");
+        }
+    }
+    let peak = |p: &[f32]| p.iter().cloned().fold(0.0_f32, f32::max);
+    assert!(
+        peak(&b) > 0.9,
+        "the tube ate the rule's core: {:.3}",
+        peak(&b)
+    );
+    let spread = |p: &[f32]| p.iter().filter(|v| **v > 0.08).count();
+    println!("rows above 8%: flat {} tube {}", spread(&a), spread(&b));
+    assert!(
+        spread(&b) >= spread(&a),
+        "the tube is supposed to ADD a halo, not take one away"
     );
 }
