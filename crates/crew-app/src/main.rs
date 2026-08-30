@@ -238,6 +238,9 @@ mod panegutter;
 mod panehover;
 mod panelcard;
 mod panelist;
+#[cfg(test)]
+#[path = "panelshot_tests.rs"]
+mod panelshot_tests;
 mod panemanage;
 mod panes_roster;
 mod panescroll;

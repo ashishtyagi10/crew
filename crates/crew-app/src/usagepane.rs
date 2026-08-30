@@ -75,9 +75,30 @@ fn wall_ms() -> u64 {
 /// Row the heatmap's first day sits on, and the rows each section owns.
 const HEAT_TOP: u16 = 2;
 const SPLIT_TOP: u16 = HEAT_TOP + DAYS as u16 + 2;
-const SPLIT_ROWS: u16 = 5;
+/// The TOKENS band: its legend row, then [`RING_ROWS`] the donut is drawn on.
+/// The ring used to share the legend's row with it — at radius 3.6 canvas
+/// units it is nearly two rows tall in each direction, and its top arc landed
+/// on the word TOKENS.
+const RING_ROWS: u16 = 5;
+const SPLIT_ROWS: u16 = 1 + RING_ROWS;
 const COST_TOP: u16 = SPLIT_TOP + SPLIT_ROWS + 1;
 const COST_ROWS: u16 = 5;
+/// The donut's centre column, and the row of the band the label in its hole
+/// sits on — ONE derivation, read by both the drawing and the text.
+///
+/// They used to be two: the ring was painted on a canvas shifted one column
+/// right of the column the hole's label was centred on, so the total's first
+/// character sat on the ring's left arc instead of inside the hole. A hole is
+/// exactly wide enough for the number it was sized for; one column of drift
+/// is the whole margin.
+const RING_CX: f32 = 7.0;
+/// Radii of the ring, in canvas units (one unit = one cell width).
+const RING_R_OUT: f32 = 3.6;
+const RING_R_IN: f32 = 2.2;
+/// Row, within the band, the ring is centred on — the middle of [`RING_ROWS`],
+/// which is a row's centre because the count is odd, so the hole's label lands
+/// on a whole row rather than straddling two.
+const RING_ROW: u16 = 1 + RING_ROWS / 2;
 /// Columns of labels down the left of the heatmap (`Mon `), and the air kept
 /// to the right of every chart.
 const LABEL_W: u16 = 4;
@@ -193,25 +214,30 @@ pub fn cells(b: &Buckets, cols: u16, rows: u16) -> Vec<CellView> {
         put(&mut out, "TOKENS", 1, SPLIT_TOP, t.text_muted);
         let total = b.tok_in + b.tok_out;
         let hole = compact(total);
-        let cx = 6.0f32;
-        let start = (cx - hole.chars().count() as f32 / 2.0).round().max(0.0) as u16;
-        put(&mut out, &hole, start, SPLIT_TOP + 2, t.ink);
+        let start = (RING_CX - hole.chars().count() as f32 / 2.0)
+            .round()
+            .max(0.0) as u16;
+        put(&mut out, &hole, start, SPLIT_TOP + RING_ROW, t.ink);
         let pct = |v: u64| match total {
             0 => 0,
             _ => (v * 100 / total).min(100),
         };
+        // The two readings flank the ring's own centre row, so each sits
+        // opposite the arc it is naming. Each is written in its slice's
+        // colour: the words ARE the key, which is why the ring no longer
+        // carries a pair of swatch dots beside it.
         put(
             &mut out,
             &format!("in   {}  {}%", compact(b.tok_in), pct(b.tok_in)),
             13,
-            SPLIT_TOP + 1,
+            SPLIT_TOP + RING_ROW - 1,
             accent(),
         );
         put(
             &mut out,
             &format!("out  {}  {}%", compact(b.tok_out), pct(b.tok_out)),
             13,
-            SPLIT_TOP + 3,
+            SPLIT_TOP + RING_ROW + 1,
             t.ansi[13],
         );
     }
@@ -271,22 +297,33 @@ pub fn paint(b: &Buckets, cols: u16, rows: u16, aspect: f32) -> Vec<Paint> {
         );
     }
 
-    // In / out donut.
+    // In / out donut, on the band's own rows under the TOKENS legend. Its
+    // centre column is `RING_CX` measured in the PANE, so the canvas is
+    // shifted to put it there rather than each end guessing.
     if rows > SPLIT_TOP + SPLIT_ROWS {
-        let mut c = Canvas::new(12, SPLIT_ROWS, aspect);
+        const SHIFT: f32 = 1.0;
+        let mut c = Canvas::new(14, RING_ROWS, aspect);
         let (_, h) = c.size();
+        let centre = (RING_CX - SHIFT, h / 2.0);
         let slices = [
             Slice::new(b.tok_in as f32, accent()),
             Slice::new(b.tok_out as f32, t.ansi[13]),
         ];
-        pie::donut(&mut c, (6.0, h / 2.0), 3.6, 2.2, &slices, t.border_normal);
-        pie::dot(&mut c, (6.0, h / 2.0), 2.2, t.page_bg, 1.0);
-        pie::dot(&mut c, (12.5, h / 2.0 - aspect), 0.34, accent(), 1.0);
-        pie::dot(&mut c, (12.5, h / 2.0 + aspect), 0.34, t.ansi[13], 1.0);
+        pie::donut(
+            &mut c,
+            centre,
+            RING_R_OUT,
+            RING_R_IN,
+            &slices,
+            t.border_normal,
+        );
+        // Punch the hole back to the page, so the total written in it is read
+        // off the page rather than off the ring's inner edge.
+        pie::dot(&mut c, centre, RING_R_IN, t.page_bg, 1.0);
         out.extend(
             c.paint()
                 .into_iter()
-                .map(|p| p.shifted(1.0, f32::from(SPLIT_TOP))),
+                .map(|p| p.shifted(SHIFT, f32::from(SPLIT_TOP + 1))),
         );
     }
 
@@ -313,7 +350,10 @@ pub fn paint(b: &Buckets, cols: u16, rows: u16, aspect: f32) -> Vec<Paint> {
 
 #[cfg(test)]
 mod tests {
-    use super::{cells, compact, money, paint, HEAT_TOP, LABEL_W};
+    use super::{
+        cells, compact, money, paint, COST_TOP, HEAT_TOP, LABEL_W, RING_CX, RING_ROW, RING_R_IN,
+        SPLIT_ROWS, SPLIT_TOP,
+    };
     use crate::usageledger::{Buckets, DAYS, HOURS};
 
     /// A week with exactly one busy hour, in a named day/hour.
@@ -400,6 +440,88 @@ mod tests {
         assert_eq!(money(1_500_000), "$1.50");
         // A session that cost a third of a cent is not free.
         assert_eq!(money(3_400), "$0.003");
+    }
+
+    /// The total written in the ring's hole must sit INSIDE the hole. It used
+    /// to be centred on canvas column 6 while the ring was painted on a canvas
+    /// shifted one column right of that, so at four characters — which is what
+    /// `compact` is built to produce — its first one landed on the ring's left
+    /// arc.
+    #[test]
+    fn the_total_sits_inside_the_hole_not_on_the_ring() {
+        let _g = crate::app::theme_test_guard();
+        let b = Buckets {
+            hourly: vec![0; DAYS * HOURS],
+            daily_cost: vec![0; DAYS],
+            tok_in: 1_840_000,
+            tok_out: 410_000,
+            cost_microusd: 10,
+        };
+        let mut hole: Vec<(u16, char)> = cells(&b, 60, 40)
+            .into_iter()
+            .filter(|c| c.row == SPLIT_TOP + RING_ROW && c.col < 13)
+            .map(|c| (c.col, c.c))
+            .collect();
+        hole.sort_by_key(|&(col, _)| col);
+        let text: String = hole.iter().map(|&(_, c)| c).collect();
+        assert_eq!(text, compact(2_250_000), "the total is in the hole");
+        // The centre is measured off the RING ITSELF — the horizontal extent
+        // of what `paint` actually emitted in the band — rather than read back
+        // out of the same constant the text was placed from. Both ends
+        // agreeing with one constant is not the property under test; both ends
+        // agreeing with EACH OTHER is, and that is what a stray shift breaks.
+        let band: Vec<_> = paint(&b, 60, 40, 2.0)
+            .into_iter()
+            .filter(|p| p.y >= f32::from(SPLIT_TOP) && p.y < f32::from(COST_TOP))
+            .collect();
+        assert!(!band.is_empty(), "the ring drew something to measure");
+        let left = band.iter().fold(f32::MAX, |a, p| a.min(p.x));
+        let right = band.iter().fold(0.0f32, |a, p| a.max(p.x + p.w));
+        let centre = (left + right) / 2.0;
+        // A cell is claimed from its left edge, so the character at `col`
+        // spans `col..col+1`; both of its edges must clear the inner wall.
+        for &(col, _) in &hole {
+            let lo = f32::from(col) - centre;
+            let hi = lo + 1.0;
+            assert!(
+                lo.abs() < RING_R_IN && hi.abs() < RING_R_IN,
+                "column {col} of {text:?} is on the ring, not in its hole: \
+                 the ring runs {left}..{right}, so the hole spans {RING_R_IN} \
+                 either side of {centre}"
+            );
+        }
+    }
+
+    /// The ring is nearly two rows tall in each direction. Painted from the
+    /// legend's own row it put its top arc through the word TOKENS; it starts
+    /// on the row below now, and the band grew a row to hold it.
+    #[test]
+    fn the_ring_never_reaches_the_legend_that_names_it() {
+        let _g = crate::app::theme_test_guard();
+        let b = Buckets {
+            hourly: vec![0; DAYS * HOURS],
+            daily_cost: vec![0; DAYS],
+            tok_in: 3,
+            tok_out: 1,
+            cost_microusd: 10,
+        };
+        for aspect in [1.6f32, 2.0, 2.4] {
+            let ring: Vec<_> = paint(&b, 60, 40, aspect)
+                .into_iter()
+                .filter(|p| p.y >= f32::from(SPLIT_TOP) && p.y < f32::from(COST_TOP))
+                .collect();
+            assert!(!ring.is_empty(), "the ring drew something at {aspect}");
+            let top = ring.iter().fold(f32::MAX, |a, p| a.min(p.y));
+            assert!(
+                top >= f32::from(SPLIT_TOP + 1),
+                "the ring is on the legend row at aspect {aspect}: top {top}"
+            );
+            let bottom = ring.iter().fold(0.0f32, |a, p| a.max(p.y + p.h));
+            assert!(
+                bottom <= f32::from(SPLIT_TOP + SPLIT_ROWS) + 1e-3,
+                "and stays in its band at aspect {aspect}: bottom {bottom}"
+            );
+        }
     }
 
     #[test]
