@@ -453,5 +453,5 @@ pub(crate) fn pane_card(gcols: u16, grows: u16, b: &Bar) -> Vec<CellView> {
 }
 
 #[cfg(test)]
-#[path = "paneview_tests.rs"]
+#[path = "panecard_tests.rs"]
 mod tests;

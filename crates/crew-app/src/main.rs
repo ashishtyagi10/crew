@@ -258,6 +258,7 @@ mod oscontrast;
 mod palette;
 mod pane;
 mod panebtn;
+mod panebusy;
 mod panecard;
 #[cfg(test)]
 #[path = "panecard_budget_tests.rs"]
@@ -275,6 +276,7 @@ mod panelist;
 mod panelshot_tests;
 mod panemanage;
 mod panes_roster;
+mod panescenes;
 mod panescroll;
 mod paneview;
 mod pastesafe;
@@ -330,6 +332,8 @@ mod statspane;
 mod status;
 mod suggest;
 mod suggestvalues;
+mod summaryfit;
+mod summarymeter;
 mod swarm;
 mod swarmpane;
 #[cfg(test)]

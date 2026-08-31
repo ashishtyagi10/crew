@@ -36,7 +36,7 @@ src/chatmsgs_tests.rs 950
 src/chatpalette.rs 222
 src/chatpalette_tests.rs 348
 src/chatplace.rs 205
-src/chatsummary.rs 539
+src/chatsummary.rs 296
 src/chatsummary_tests.rs 639
 src/chatswarm.rs 232
 src/chatswarm_tests.rs 331
@@ -102,11 +102,11 @@ src/oauth.rs 339
 src/oauth_tests.rs 293
 src/pane.rs 291
 src/panecard.rs 457
+src/panecard_tests.rs 512
 src/panecardglow_tests.rs 205
 src/panelist_tests.rs 283
 src/panescroll_tests.rs 555
-src/paneview.rs 533
-src/paneview_tests.rs 512
+src/paneview.rs 262
 src/plot/canvas.rs 349
 src/poll.rs 877
 src/render.rs 561
