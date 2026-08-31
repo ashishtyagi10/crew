@@ -4,7 +4,11 @@ use super::*;
 fn no_file_grows_past_its_recorded_length_or_crosses_the_cap() {
     let debt: std::collections::HashMap<&str, usize> = debt().into_iter().collect();
     let (mut grew, mut crossed, mut finished) = (Vec::new(), Vec::new(), Vec::new());
+    let exempt: std::collections::HashSet<&str> = EXEMPT.iter().map(|(f, _)| *f).collect();
     for (name, len) in sources() {
+        if exempt.contains(name.as_str()) {
+            continue;
+        }
         match debt.get(name.as_str()) {
             Some(&was) if len > was => grew.push(format!("{name}: {was} \u{2192} {len}")),
             Some(&was) if len <= LINE_CAP => finished.push(format!("{name}: {was} \u{2192} {len}")),
@@ -44,4 +48,18 @@ fn every_recorded_file_still_exists() {
         .filter(|n| !present.contains(*n))
         .collect();
     assert!(stale.is_empty(), "rows for files that are gone: {stale:?}");
+}
+
+/// An exemption states a reason, and names a file that is really there.
+#[test]
+fn every_exemption_is_justified_and_real() {
+    let present: std::collections::HashSet<String> =
+        sources().into_iter().map(|(n, _)| n).collect();
+    for (file, why) in EXEMPT {
+        assert!(present.contains(*file), "exempt file is gone: {file}");
+        assert!(
+            why.len() > 20,
+            "exemption needs a reason, not a shrug: {file}"
+        );
+    }
 }

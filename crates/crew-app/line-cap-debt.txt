@@ -4,7 +4,7 @@
 #
 # This list is the debt, written down. It cannot grow; every row removed is a
 # file that can never drift back.
-src/app.rs 680
+src/app.rs 443
 src/app_tests.rs 1354
 src/appregister.rs 291
 src/blocked.rs 267
@@ -91,7 +91,6 @@ src/ipc_win.rs 244
 src/keyentry.rs 209
 src/keyentry_tests.rs 246
 src/keys.rs 228
-src/main.rs 563
 src/md/fold.rs 201
 src/md/layout.rs 233
 src/md/layout_tests.rs 324
@@ -145,7 +144,6 @@ src/todopane/duedate.rs 363
 src/todopane/duedate_tests.rs 225
 src/todopane/keys.rs 224
 src/todopane/keys_tests.rs 614
-src/todopane/mod.rs 676
 src/todopane/mod_tests.rs 260
 src/todopane/render.rs 592
 src/todopane/render_tests.rs 644
