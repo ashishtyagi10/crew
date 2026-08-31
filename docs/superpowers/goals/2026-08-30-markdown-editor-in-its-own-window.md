@@ -187,8 +187,9 @@ What actually had to move up:
 
 Deliberately **not** done, and the honest cost of the smaller shape:
 
-* `Gpu` was not split into shared/per-window — each canvas builds its own
-  wgpu device. A second window costs a second device rather than a second
-  surface. Worth doing when a third window is a normal thing to have.
+* ~~`Gpu` was not split into shared/per-window~~ — **done in v0.19.95.** The
+  instance, adapter, device and queue are built once on the first window;
+  every window after it gets a surface. Measured: the second window went from
+  ~55 MB to ~9 MB. The glyph atlas and the pipelines are still per-window.
 * The `crew ask` socket and the federation relay are held by the launch
   canvas, so `crew ask` addresses its panes only.

@@ -8,6 +8,45 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.95
+
+**A second window costs a surface, not a second GPU.**
+
+`Cmd+N` shipped last release with an honest gap written into the goal doc:
+each canvas built its own wgpu instance, adapter, device and queue — a whole
+parallel driver context for the same card. The device is the expensive half
+and the one thing that cannot be shared *after* the fact, since resources
+belong to the device that made them.
+
+What is genuinely per-window is the **surface**: the swapchain the compositor
+hands you, its configuration, its pixel format and its size. Everything
+upstream of that is per-process, and is now built once on the first window.
+
+Measured on this machine, two windows open (debug build, RSS):
+
+| | one window | two windows | the second window cost |
+|---|---|---|---|
+| before | 178 MB | 233 MB | **~55 MB** |
+| after | 178 MB | 187 MB | **~9 MB** |
+
+* **The awkward part is the order.** Choosing an adapter wants a surface to be
+  compatible with, and a surface wants an instance — so the instance is made
+  first and alone, the first window's surface next, and the adapter and device
+  from that. Every window after it is measured against the adapter that
+  already exists.
+* **The format and the alpha mode stay per surface.** Two windows can be on
+  displays that offer different ones, and each window's pipelines are built
+  for its own.
+* The test asks for the shared handles three times and asserts they are the
+  same handle — not that a counter says one, which would still pass if every
+  ask built a device and threw it away. It fails with *"a window built its own
+  device instead of taking the one that exists"* when the memoization is
+  removed.
+
+Still per-window and still worth sharing one day: the glyph atlas and the
+render pipelines, which are cheap enough now that the second window's whole
+cost is nine megabytes.
+
 ## 0.19.94
 
 **`Cmd+N`: a window is a whole canvas.**

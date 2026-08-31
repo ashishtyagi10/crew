@@ -51,12 +51,17 @@ pub struct Renderer {
 impl Renderer {
     pub fn new(window: Arc<Window>, font_size: f32) -> anyhow::Result<Self> {
         let gpu = Gpu::new(window)?;
-        let cell_grid = CellGrid::new(&gpu.device, &gpu.queue, gpu.format, font_size);
-        let paper_bg = PaperBgPass::new(&gpu.device, gpu.format);
-        let solid_card = SolidCardPass::new(&gpu.device, gpu.format);
-        let crt = CrtChain::new(&gpu.device, gpu.format, gpu.config.width, gpu.config.height);
+        let cell_grid = CellGrid::new(gpu.device(), gpu.queue(), gpu.format, font_size);
+        let paper_bg = PaperBgPass::new(gpu.device(), gpu.format);
+        let solid_card = SolidCardPass::new(gpu.device(), gpu.format);
+        let crt = CrtChain::new(
+            gpu.device(),
+            gpu.format,
+            gpu.config.width,
+            gpu.config.height,
+        );
         let fade = FadePass::new(
-            &gpu.device,
+            gpu.device(),
             gpu.format,
             gpu.config.width,
             gpu.config.height,
@@ -190,12 +195,12 @@ impl Renderer {
         self.cell_grid.resize(w as f32, h as f32);
         // The off-screen CRT + bloom targets track the surface size.
         self.crt.resize(
-            &self.gpu.device,
+            self.gpu.device(),
             self.gpu.config.width,
             self.gpu.config.height,
         );
         self.fade.resize(
-            &self.gpu.device,
+            self.gpu.device(),
             self.gpu.config.width,
             self.gpu.config.height,
         );

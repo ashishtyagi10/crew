@@ -35,8 +35,13 @@ pub(crate) fn render(
     wash_focus: ((f32, f32), f32),
     panes: &[PaneScene],
 ) {
-    cell_grid.set_scene(&gpu.device, panes);
-    cell_grid.prepare(&gpu.device, &gpu.queue, gpu.config.width, gpu.config.height);
+    cell_grid.set_scene(gpu.device(), panes);
+    cell_grid.prepare(
+        gpu.device(),
+        gpu.queue(),
+        gpu.config.width,
+        gpu.config.height,
+    );
 
     let frame = match gpu.surface.get_current_texture() {
         wgpu::CurrentSurfaceTexture::Success(t) => t,
@@ -52,7 +57,7 @@ pub(crate) fn render(
 
     let view = frame.texture.create_view(&Default::default());
     let mut enc = gpu
-        .device
+        .device()
         .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
 
     // CRT on → scene renders off-screen then reprojects; off → straight to
@@ -100,11 +105,11 @@ pub(crate) fn render(
                 focus_pull: wash_focus.1,
             }
         });
-        paper.update_uniform(&gpu.queue, bg_f32, (w, h), 1.0, grain, modern.as_ref());
+        paper.update_uniform(gpu.queue(), bg_f32, (w, h), 1.0, grain, modern.as_ref());
     }
     if use_crt {
         // A light page inverts the halo: see `CrtChain::update_uniforms`.
-        crt.update_uniforms(&gpu.queue, w, h, !crew_theme::theme().dark);
+        crt.update_uniforms(gpu.queue(), w, h, !crew_theme::theme().dark);
     }
 
     // Where the window stops being see-through, and only while it IS sheer:
@@ -124,7 +129,7 @@ pub(crate) fn render(
         ));
         solid.extend_from_slice(solid_chrome);
     }
-    solid_card.set_rects(&gpu.queue, &solid, (w, h));
+    solid_card.set_rects(gpu.queue(), &solid, (w, h));
     let solid_card = (!solid_card.is_empty()).then_some(&*solid_card);
 
     let scene_view = if use_crt { crt.scene_view() } else { &view };
@@ -138,11 +143,11 @@ pub(crate) fn render(
     // it must keep holding the old theme's final frame; otherwise the frame
     // that just rendered becomes the next fade's "old" frame.
     match fade {
-        Some(a) => fade_pass.draw(&mut enc, &gpu.queue, &view, a),
+        Some(a) => fade_pass.draw(&mut enc, gpu.queue(), &view, a),
         None => fade_pass.capture(&mut enc, &frame.texture),
     }
 
-    gpu.queue.submit(Some(enc.finish()));
+    gpu.queue().submit(Some(enc.finish()));
     frame.present();
 }
 

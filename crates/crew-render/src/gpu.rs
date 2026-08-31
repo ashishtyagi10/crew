@@ -1,16 +1,85 @@
-use std::sync::Arc;
+//! The GPU, split into the part there is one of and the part there is one of
+//! *per window*.
+//!
+//! A second crew window used to cost a second everything: its own wgpu
+//! instance, its own adapter, its own device and its own queue — a whole
+//! parallel driver context for the same card, with no way for anything in one
+//! window to be shared with the other, because resources belong to the device
+//! that made them.
+//!
+//! What is genuinely per-window is the **surface**: the swapchain the
+//! compositor hands you, its configuration, its pixel format and its size.
+//! Everything upstream of that is per-process. So the instance, the adapter,
+//! the device and the queue are built once, on the first window, and every
+//! window after it gets a surface and nothing else.
+//!
+//! The adapter is what makes the order awkward: choosing one wants a surface
+//! to be compatible with, and a surface wants an instance. So the instance is
+//! made first and alone, the first window's surface next, and the adapter and
+//! device from that — after which they are kept, and the next window's surface
+//! is measured against the adapter that already exists.
+use std::sync::{Arc, OnceLock};
 
 use winit::window::Window;
 
-pub struct Gpu {
+/// The part of the GPU there is one of per process.
+pub struct GpuShared {
+    /// Kept because every surface is created from it and must not outlive it.
+    #[allow(dead_code)]
+    instance: &'static wgpu::Instance,
+    /// Kept because each new window's surface is measured against it
+    /// (`get_capabilities`).
+    adapter: wgpu::Adapter,
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
+}
+
+/// One window's swapchain.
+pub struct Gpu {
+    shared: Arc<GpuShared>,
     pub surface: wgpu::Surface<'static>,
     pub config: wgpu::SurfaceConfiguration,
     pub format: wgpu::TextureFormat,
     /// Whether the surface supports `COPY_SRC` — the theme-crossfade snapshot
     /// copies the presented frame; without it the fade degrades to a hard cut.
     pub surface_copy: bool,
+}
+
+/// The one instance. `'static` because a surface borrows from it for as long
+/// as it exists, and surfaces outlive any scope this could otherwise sit in.
+fn instance() -> &'static wgpu::Instance {
+    static INSTANCE: OnceLock<wgpu::Instance> = OnceLock::new();
+    INSTANCE.get_or_init(wgpu::Instance::default)
+}
+
+/// The adapter, device and queue — chosen once, on the first surface, and
+/// handed to every window after it.
+///
+/// `surface` is what the adapter choice is measured against, and it is an
+/// option so the memoization can be tested without a window — there is no
+/// headless way to make a surface, and "the second window gets the first
+/// window's device" is the whole point of this file.
+fn shared_for(surface: Option<&wgpu::Surface<'static>>) -> anyhow::Result<Arc<GpuShared>> {
+    static SHARED: OnceLock<Arc<GpuShared>> = OnceLock::new();
+    if let Some(s) = SHARED.get() {
+        return Ok(Arc::clone(s));
+    }
+    let adapter = pollster::block_on(instance().request_adapter(&wgpu::RequestAdapterOptions {
+        power_preference: wgpu::PowerPreference::HighPerformance,
+        compatible_surface: surface,
+        force_fallback_adapter: false,
+    }))?;
+    let (device, queue) =
+        pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default()))?;
+    let shared = Arc::new(GpuShared {
+        instance: instance(),
+        adapter,
+        device,
+        queue,
+    });
+    // `get_or_init` rather than `set`: two windows opening in the same instant
+    // would both have built one, and the loser's is simply dropped.
+    Ok(Arc::clone(SHARED.get_or_init(|| shared)))
 }
 
 /// Prefer a NON-sRGB surface so alpha blending happens on gamma-encoded
@@ -46,20 +115,13 @@ pub(crate) fn pick_alpha_mode(modes: &[wgpu::CompositeAlphaMode]) -> wgpu::Compo
 impl Gpu {
     pub fn new(window: Arc<Window>) -> anyhow::Result<Self> {
         let size = window.inner_size();
-        let instance = wgpu::Instance::default();
+        let surface = instance().create_surface(window.clone())?;
+        let shared = shared_for(Some(&surface))?;
 
-        let surface = instance.create_surface(window.clone())?;
-
-        let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
-            power_preference: wgpu::PowerPreference::HighPerformance,
-            compatible_surface: Some(&surface),
-            force_fallback_adapter: false,
-        }))?;
-
-        let (device, queue) =
-            pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default()))?;
-
-        let caps = surface.get_capabilities(&adapter);
+        // Per SURFACE, not per process: two windows can be on displays that
+        // offer different formats and different alpha modes, and each one's
+        // pipelines are built for its own.
+        let caps = surface.get_capabilities(&shared.adapter);
         let format = pick_surface_format(&caps.formats);
         let surface_copy = caps.usages.contains(wgpu::TextureUsages::COPY_SRC);
         let mut usage = wgpu::TextureUsages::RENDER_ATTACHMENT;
@@ -76,11 +138,10 @@ impl Gpu {
             view_formats: vec![],
             desired_maximum_frame_latency: 2,
         };
-        surface.configure(&device, &config);
+        surface.configure(&shared.device, &config);
 
         Ok(Self {
-            device,
-            queue,
+            shared,
             surface,
             config,
             format,
@@ -88,69 +149,21 @@ impl Gpu {
         })
     }
 
+    pub fn device(&self) -> &wgpu::Device {
+        &self.shared.device
+    }
+
+    pub fn queue(&self) -> &wgpu::Queue {
+        &self.shared.queue
+    }
+
     pub fn resize(&mut self, w: u32, h: u32) {
         self.config.width = w.max(1);
         self.config.height = h.max(1);
-        self.surface.configure(&self.device, &self.config);
+        self.surface.configure(self.device(), &self.config);
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use wgpu::TextureFormat as F;
-
-    use super::pick_surface_format;
-
-    #[test]
-    fn prefers_a_non_srgb_format_for_gamma_space_blending() {
-        // Whatever order the platform lists them, non-sRGB wins.
-        assert_eq!(
-            pick_surface_format(&[F::Bgra8UnormSrgb, F::Bgra8Unorm]),
-            F::Bgra8Unorm
-        );
-        assert_eq!(
-            pick_surface_format(&[F::Bgra8Unorm, F::Bgra8UnormSrgb]),
-            F::Bgra8Unorm
-        );
-    }
-
-    #[test]
-    fn falls_back_to_the_first_format_when_all_are_srgb() {
-        assert_eq!(
-            pick_surface_format(&[F::Bgra8UnormSrgb, F::Rgba8UnormSrgb]),
-            F::Bgra8UnormSrgb
-        );
-    }
-
-    mod alpha {
-        use wgpu::CompositeAlphaMode as M;
-
-        use super::super::pick_alpha_mode;
-
-        /// Our shaders write straight alpha, so PostMultiplied is the mode that
-        /// composites a translucent window correctly.
-        #[test]
-        fn prefers_post_multiplied() {
-            assert_eq!(
-                pick_alpha_mode(&[M::Opaque, M::PostMultiplied]),
-                M::PostMultiplied
-            );
-            assert_eq!(
-                pick_alpha_mode(&[M::PostMultiplied, M::PreMultiplied, M::Opaque]),
-                M::PostMultiplied
-            );
-        }
-
-        #[test]
-        fn falls_back_to_premultiplied_then_to_whatever_exists() {
-            assert_eq!(
-                pick_alpha_mode(&[M::Opaque, M::PreMultiplied]),
-                M::PreMultiplied
-            );
-            // An Opaque-only platform still has to produce a working surface —
-            // the window simply cannot go translucent there.
-            assert_eq!(pick_alpha_mode(&[M::Opaque]), M::Opaque);
-            assert_eq!(pick_alpha_mode(&[]), M::Auto);
-        }
-    }
-}
+#[path = "gpu_tests.rs"]
+mod tests;

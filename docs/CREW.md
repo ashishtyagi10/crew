@@ -203,8 +203,11 @@ that is what is at stake. A session remembers which window each pane was in
 and `/restore` brings the windows back. The config is one thing about you
 rather than about a window, so changing the font, the theme or any setting in
 one reaches the other immediately.
-One thing is deliberately not per-window yet: the inter-pane `crew ask` socket
-is served by the launch window, so `crew ask` addresses its panes.
+A second window costs a **surface**, not a second GPU: the wgpu instance,
+adapter, device and queue are built once on the first window and every window
+after it gets a swapchain and nothing else. One thing is deliberately not
+per-window yet: the inter-pane `crew ask` socket is served by the launch
+window, so `crew ask` addresses its panes.
 
 **The caret leaves a wake.** A cursor in a cell grid teleports: it is in one
 cell on one frame and another on the next, with nothing on the page saying the
