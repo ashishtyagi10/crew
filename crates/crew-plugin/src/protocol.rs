@@ -448,4 +448,32 @@ mod tests {
         let back: PluginEvent = serde_json::from_str(&s).unwrap();
         assert!(matches!(back, PluginEvent::Hive { .. }));
     }
+
+    /// The tool events cross the broker↔app process boundary like every other
+    /// hive event, and an enum variant has no `#[serde(default)]` escape: a
+    /// shape that does not round-trip is a pane that shows nothing while an
+    /// agent runs commands on the machine.
+    #[test]
+    fn tool_events_round_trip_across_the_wire() {
+        for ev in [
+            crew_hive::HiveEvent::ToolCall {
+                agent: crew_hive::AgentId(1),
+                label: "sys:run".into(),
+                args: r#"{"cmd":"uname -sr"}"#.into(),
+            },
+            crew_hive::HiveEvent::ToolResult {
+                agent: crew_hive::AgentId(1),
+                label: "sys:run".into(),
+                ok: false,
+                text: "exit 1".into(),
+            },
+        ] {
+            let s = serde_json::to_string(&PluginEvent::Hive { event: ev.clone() }).unwrap();
+            let back: PluginEvent = serde_json::from_str(&s).unwrap();
+            match back {
+                PluginEvent::Hive { event } => assert_eq!(event, ev, "{s}"),
+                other => panic!("{other:?}"),
+            }
+        }
+    }
 }

@@ -55,9 +55,20 @@ the provider layer grew native tool-use — `CompletionRequest.tools`/`.turns`, 
 `Provider::supports_tools`, mapped to Anthropic's `tool_use`/`tool_result` blocks and the OpenAI
 shape's `tool_calls`/`role:"tool"`. `ToolCatalog` owns the `server:tool` ↔ wire-name encoding in one
 place. MCP schemas are no longer discarded, and the four `sys` tools ship hand-written ones. The
-text convention remains the fallback for providers without tool support. NOT DONE: the `@agent`
-relay still uses the text path (its adapters include CLI agents that are not `Provider`s), and none
-of it has been driven against a live key yet.
+text convention remains the fallback for providers without tool support.
+
+VERIFIED LIVE 2026-08-31 against qwen-max (DashScope, the OpenAI shape): "find the weather in Oslo
+and in Tokyo via wttr.in" planned TWO tasks with no dependency between them, and both agents called
+`sys:run` — the second call went out while the first was still in flight, which is the
+`spawn_blocking` decision earning its keep — then each fed the real API response back into its own
+answer. The native path is identifiable in the event log: arguments arrive as compact
+`Value::to_string()` output, and the run publishes NO `OutputDelta` at all, because the OpenAI-shape
+provider drops to non-streaming whenever `tools` is on the wire.
+
+NOT DONE: the `@agent` relay still uses the text path (its adapters include CLI agents that are not
+`Provider`s), and the GUI itself has not been driven — macOS assistive access is denied to
+`osascript` on this machine, so the verification ran against the real broker binary over its real
+stdio protocol rather than through the window.
 
 `CompletionRequest` is `{model, system, prompt, max_tokens}` (`provider/mod.rs:53`) — a single-shot
 string in, a string out. It CANNOT EXPRESS A TOOL-USE TURN, which is why the existing tool path had
