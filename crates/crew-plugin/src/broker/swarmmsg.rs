@@ -95,6 +95,43 @@ pub(super) fn translate(
         HiveEvent::OutputChunk { agent, text } => {
             vec![msg(agent_name(agent, agent_task).as_str(), text.clone())]
         }
+        // Tool use is shown in the transcript with the SAME `[tool]` line the
+        // relay uses (`toolline::call_line` — subject-first, so a reader sees
+        // which file or which command, not 200 characters of JSON). Two
+        // engines rendering the same action two ways would read as two
+        // different features.
+        HiveEvent::ToolCall { agent, label, args } => {
+            vec![msg(
+                agent_name(agent, agent_task).as_str(),
+                format!(
+                    "[tool] {}",
+                    crate::broker::toolline::call_line(label, args, 200)
+                ),
+            )]
+        }
+        // A successful result is NOT echoed: the agent's own next message says
+        // what it made of it, and pasting raw tool output into the transcript
+        // would bury that under a page of JSON. A failure is echoed, because
+        // nothing else will ever mention it — including an approval the gate
+        // refused, which is the case a person most needs to see.
+        HiveEvent::ToolResult {
+            agent,
+            label,
+            ok,
+            text,
+        } => {
+            if *ok {
+                vec![]
+            } else {
+                vec![msg(
+                    agent_name(agent, agent_task).as_str(),
+                    format!(
+                        "[tool] {label} \u{2717} {}",
+                        crate::broker::route::clip(text, 400)
+                    ),
+                )]
+            }
+        }
         // A task failure is chat-visible content, not a connection loss: the
         // app's chat pane treats `PluginEvent::Error` as the broker connection
         // dropping (sets connected=false and discards the text), so surface

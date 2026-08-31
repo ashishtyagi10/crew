@@ -653,3 +653,149 @@ fn output_delta_gates_stay_separate_even_when_two_agents_share_a_specialty() {
         "agent 20's flush must never contain agent 10's buffered text"
     );
 }
+
+// ---------------------------------------------------------------------------
+// Tools reach the swarm
+// ---------------------------------------------------------------------------
+
+/// A provider that asks for a tool the first time it sees a task and answers
+/// once the result comes back. Keyed off the prompt rather than a call
+/// counter, so it stays deterministic with `CONCURRENCY` agents interleaving.
+struct AskThenAnswer;
+
+impl crew_hive::Provider for AskThenAnswer {
+    fn complete(
+        &self,
+        req: crew_hive::CompletionRequest,
+    ) -> std::pin::Pin<
+        Box<
+            dyn std::future::Future<
+                    Output = Result<crew_hive::Completion, crew_hive::ProviderError>,
+                > + Send,
+        >,
+    > {
+        let answered = req.prompt.contains("TOOL EXCHANGES SO FAR");
+        Box::pin(async move {
+            Ok(crew_hive::Completion {
+                text: if answered {
+                    "the forecast is 4C".to_string()
+                } else {
+                    "@tool weather:current {\"q\":\"Oslo\"}".to_string()
+                },
+                input_tokens: 1,
+                output_tokens: 1,
+                cost_microusd: 0,
+            })
+        })
+    }
+}
+
+struct CountingTools(Arc<std::sync::Mutex<Vec<String>>>);
+
+impl crew_hive::Tools for CountingTools {
+    fn hint(&self) -> String {
+        "TOOLS: @tool weather:current".into()
+    }
+    fn call(&self, server: &str, tool: &str, _args: &str) -> Result<String, String> {
+        self.0.lock().unwrap().push(format!("{server}:{tool}"));
+        Ok("Oslo 4C clear".into())
+    }
+}
+
+#[test]
+fn a_swarm_agent_calls_a_tool_and_the_transcript_shows_it() {
+    let _env = testenv::mock("unused");
+    let calls = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let factory = Arc::new(
+        crew_hive::ApiFactory::new(Arc::new(AskThenAnswer), 256)
+            .with_tools(Arc::new(CountingTools(Arc::clone(&calls)))),
+    );
+
+    let mut evs = Vec::new();
+    run_with(
+        "what is the weather",
+        Arc::new(StubPlanner { fanout: 2 }),
+        factory,
+        None,
+        "test-model",
+        Arc::new(AtomicBool::new(false)),
+        None,
+        &mut |ev| {
+            evs.push(ev);
+            Ok(())
+        },
+    )
+    .unwrap();
+
+    // Every task in the plan reached the tool — this is the whole point of
+    // Pillar 1: the PARALLEL engine can now touch the world.
+    let calls = calls.lock().unwrap();
+    assert_eq!(calls.len(), 3, "one call per planned task: {calls:?}");
+    assert!(calls.iter().all(|c| c == "weather:current"));
+
+    // And it is visible: the pane shows the call, not just the answer.
+    let texts: Vec<&str> = evs
+        .iter()
+        .filter_map(|e| match e {
+            PluginEvent::Message { text, .. } => Some(text.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert!(
+        texts
+            .iter()
+            .any(|t| t.starts_with("[tool] weather:current")),
+        "no tool line in transcript: {texts:?}"
+    );
+    // A successful result is not echoed as its own message; the agent's answer
+    // is what the reader gets.
+    assert!(texts.iter().any(|t| t.contains("the forecast is 4C")));
+}
+
+/// The mock provider must never execute a tool.
+///
+/// `CREW_BROKER_MOCK_REPLY` is a FIXED string returned to every agent, and the
+/// GUI screenshot harness sets it. If that string ever ends in something the
+/// parser reads as `@tool sys:run …` — a reply about tools, a pasted example,
+/// a doc snippet — attaching tools here would turn a screenshot test into a
+/// shell command. `swarmconf::backend` withholds them on this arm for that
+/// reason; this pins it, because the withholding is invisible in the type.
+#[test]
+fn the_mock_arm_gets_no_tools_even_when_the_session_has_them() {
+    let _env = testenv::mock("@tool weather:current {}");
+    let calls = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let tools: Arc<dyn crew_hive::Tools> = Arc::new(CountingTools(Arc::clone(&calls)));
+
+    let (_planner, factory, _budget, model, _replan) = super::swarmconf::backend(Some(tools));
+    assert_eq!(
+        model, "mock",
+        "this test is only meaningful on the mock arm"
+    );
+
+    // Run one agent from that factory: its reply IS a tool directive.
+    let bus = crew_hive::EventBus::new(32);
+    let agent = factory.make(&crew_hive::AgentKind::Api { system: None });
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    let out = rt.block_on(agent.run(crew_hive::AgentContext {
+        agent: crew_hive::AgentId(0),
+        task: crew_hive::TaskSpec {
+            id: crew_hive::TaskId(0),
+            title: "t".into(),
+            agent: crew_hive::AgentKind::Api { system: None },
+            model: crew_hive::ModelTier::Cheap,
+            deps: vec![],
+            prompt: "anything".into(),
+            specialty: String::new(),
+            expertise: String::new(),
+        },
+        deps: vec![],
+        bus,
+    }));
+
+    assert!(calls.lock().unwrap().is_empty(), "the mock arm ran a tool");
+    // The directive comes back as plain text, which is all it is here.
+    assert_eq!(out.output, "@tool weather:current {}");
+}

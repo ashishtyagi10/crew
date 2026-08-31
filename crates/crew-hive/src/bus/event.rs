@@ -36,6 +36,26 @@ pub enum HiveEvent {
         agent: AgentId,
         text: String,
     },
+    /// An agent asked for a tool, published BEFORE it runs. Emitted as its own
+    /// event rather than folded into the agent's output text because a tool
+    /// call is a different kind of thing from a reply: it is an action against
+    /// the world, it is what the ledger records, and a pane that shows it as
+    /// prose cannot style it, count it, or let a person stop it.
+    ToolCall {
+        agent: AgentId,
+        /// `server:tool`.
+        label: String,
+        args: String,
+    },
+    /// The outcome of the matching [`HiveEvent::ToolCall`]. `ok` is false for
+    /// a refusal or an error — including one the approval gate returned, which
+    /// is a normal outcome and not a task failure.
+    ToolResult {
+        agent: AgentId,
+        label: String,
+        ok: bool,
+        text: String,
+    },
     Failed {
         agent: AgentId,
         error: String,

@@ -117,10 +117,13 @@ impl SwarmStatus {
             }
             // CostDelta is no longer surfaced (the folded cost summary is gone);
             // Failed also arrives as TaskStateChanged(Failed); chunks land in
-            // the transcript via the broker's Message translation.
+            // the transcript via the broker's Message translation; tool events
+            // are rendered by the broker too and change no task state here.
             HiveEvent::CostDelta { .. }
             | HiveEvent::OutputChunk { .. }
             | HiveEvent::OutputDelta { .. }
+            | HiveEvent::ToolCall { .. }
+            | HiveEvent::ToolResult { .. }
             | HiveEvent::Failed { .. } => {}
         }
     }
@@ -210,6 +213,17 @@ pub(crate) fn log_line(swarm: Option<&SwarmStatus>, ev: &HiveEvent) -> Option<(b
         HiveEvent::Failed { agent, error } => {
             Some((true, format!("smith: agent {} failed: {error}", agent.0)))
         }
+        // A tool call IS lifecycle — it is the swarm touching something
+        // outside crew — so it earns a LOG line where output deltas do not.
+        HiveEvent::ToolCall { agent, label, .. } => {
+            Some((false, format!("smith: agent {} called {label}", agent.0)))
+        }
+        // Only failures: a successful call is already announced by its
+        // ToolCall line, and repeating every one would double the volume of
+        // the busiest thing a tool-using run does.
+        HiveEvent::ToolResult {
+            label, ok, text, ..
+        } => (!ok).then(|| (true, format!("smith: {label} failed: {text}"))),
         HiveEvent::TokenDelta { .. }
         | HiveEvent::CostDelta { .. }
         | HiveEvent::OutputDelta { .. }
