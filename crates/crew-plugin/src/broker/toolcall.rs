@@ -13,17 +13,19 @@ use super::toolclip::clip_result;
 use super::{Broker, Envelope};
 use crate::mcp::McpTool;
 
-/// Executes tool calls for the engine. Implemented over the session's shared
+/// Executes tool calls. Implemented over the session's shared
 /// [`crate::mcp::McpHost`]; tests use fakes.
-pub trait ToolRunner: Send + Sync {
-    /// The prompt section advertising available tools (empty = none).
-    fn hint(&self) -> String;
-    /// Run one tool; both sides of the result flow back to the agent.
-    fn call(&self, server: &str, tool: &str, args: &str) -> Result<String, String>;
-}
+///
+/// THE TRAIT LIVES IN CREW-HIVE, and this is an alias for it. The swarm needs
+/// the same surface the relay has, crew-hive sits below both, and two
+/// definitions of "a thing that runs a tool" would have meant two `@tool`
+/// dialects drifting apart — the relay's and the swarm's — with the MCP host
+/// implementing each separately.
+pub use crew_hive::tools::Tools as ToolRunner;
 
-/// Most tool rounds one agent may take within a single hop.
-pub(crate) const MAX_TOOL_ROUNDS: u32 = 4;
+/// Most tool rounds one agent may take within a single hop. Shared with the
+/// swarm so both engines stop at the same number.
+pub(crate) use crew_hive::tools::MAX_TOOL_ROUNDS;
 
 /// The TOOLS prompt section for `tools` (empty when there are none).
 pub(crate) fn hint_for(tools: &[McpTool]) -> String {
@@ -33,12 +35,11 @@ pub(crate) fn hint_for(tools: &[McpTool]) -> String {
     let lines: Vec<String> = tools
         .iter()
         .map(|t| {
-            format!(
-                "- {}:{} \u{2014} {}",
-                t.server,
-                t.name,
-                clip(&t.description, 100)
-            )
+            // FIRST LINE, then clipped. `McpTool::description` is now the
+            // server's whole description — paragraphs and all — and pasting
+            // that into a one-line-per-tool list would break the list.
+            let one = t.description.lines().next().unwrap_or("");
+            format!("- {}:{} \u{2014} {}", t.server, t.name, clip(one, 100))
         })
         .collect();
     format!(
@@ -52,38 +53,12 @@ pub(crate) fn hint_for(tools: &[McpTool]) -> String {
 /// The task text an agent sees: the body, plus the tools section when tools
 /// are attached.
 pub(crate) fn augment(body: &str, tools: Option<&dyn ToolRunner>) -> String {
-    match tools.map(|t| t.hint()) {
-        Some(h) if !h.is_empty() => format!("{body}\n\n{h}"),
-        _ => body.to_string(),
-    }
+    crew_hive::tools::augment(body, &tools.map(|t| t.hint()).unwrap_or_default())
 }
 
-/// A parsed `@tool server:tool {json}` directive.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct ToolCall {
-    pub server: String,
-    pub tool: String,
-    pub args: String,
-}
-
-/// Read a tool directive off the reply's last non-empty line (tolerating the
-/// same markdown wrappers as routing directives). `None` = no tool call.
-pub(crate) fn parse_tool_call(reply: &str) -> Option<ToolCall> {
-    let last = reply.lines().rev().find(|l| !l.trim().is_empty())?.trim();
-    let last = last.trim_start_matches(['*', '`', '_', ' ']);
-    if !last.to_ascii_lowercase().starts_with("@tool ") {
-        return None;
-    }
-    let rest = last[6..].trim();
-    let (target, args) = rest.split_once(char::is_whitespace).unwrap_or((rest, ""));
-    let target = target.trim_matches(['`', '*', '_']);
-    let (server, tool) = target.split_once(':')?;
-    (!server.is_empty() && !tool.is_empty()).then(|| ToolCall {
-        server: server.to_string(),
-        tool: tool.to_string(),
-        args: args.trim().trim_matches('`').to_string(),
-    })
-}
+/// The parser, shared with the swarm for the same reason the trait is: one
+/// spelling of `@tool`, or an agent that works on one engine and not the other.
+pub(crate) use crew_hive::tools::parse_tool_call;
 
 impl Broker {
     /// Let agents call tools mid-relay through `runner`.

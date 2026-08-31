@@ -10,6 +10,7 @@ use std::pin::Pin;
 use super::openai_http::{request_with_retry, request_with_retry_streaming};
 use super::{
     http_client, request_timeout, ChunkFn, Completion, CompletionRequest, Provider, ProviderError,
+    Turn,
 };
 
 const ENDPOINT: &str = "https://openrouter.ai/api/v1/chat/completions";
@@ -45,15 +46,88 @@ fn attempt_chain(primary: &str, fallbacks: &[String]) -> Vec<String> {
 }
 
 /// The `messages` array shared by [`Provider::complete`] and
-/// [`Provider::complete_streaming`]: an optional system prompt, then the
-/// user prompt.
+/// [`Provider::complete_streaming`]: an optional system prompt, the user
+/// prompt, then every turn since.
+///
+/// The assistant's `tool_calls` are replayed in the history, and each result
+/// goes back as its own `role: "tool"` message keyed by `tool_call_id` — the
+/// OpenAI shape pairs them by that id, so one message per result, never one
+/// message carrying several.
 fn build_messages(req: &CompletionRequest) -> Vec<serde_json::Value> {
     let mut messages = Vec::new();
     if let Some(sys) = &req.system {
         messages.push(serde_json::json!({"role": "system", "content": sys}));
     }
     messages.push(serde_json::json!({"role": "user", "content": req.prompt}));
+    for turn in &req.turns {
+        match turn {
+            Turn::Assistant { text, calls } => {
+                let mut m = serde_json::json!({"role": "assistant"});
+                // `content` must be present even when empty; null is what the
+                // API itself sends for a tool-only reply and what it expects
+                // back.
+                m["content"] = if text.is_empty() {
+                    serde_json::Value::Null
+                } else {
+                    serde_json::json!(text)
+                };
+                if !calls.is_empty() {
+                    m["tool_calls"] = calls
+                        .iter()
+                        .map(|c| {
+                            serde_json::json!({
+                                "id": c.id,
+                                "type": "function",
+                                "function": {
+                                    "name": c.name,
+                                    // Back to a STRING: the shape sends
+                                    // arguments serialised in both directions.
+                                    "arguments": c.input.to_string(),
+                                },
+                            })
+                        })
+                        .collect();
+                }
+                messages.push(m);
+            }
+            Turn::ToolResults(results) => {
+                for r in results {
+                    // No `is_error` flag exists here, so a failure has to say
+                    // so in the content or the model reads it as data.
+                    let content = if r.is_error {
+                        format!("ERROR: {}", r.content)
+                    } else {
+                        r.content.clone()
+                    };
+                    messages.push(serde_json::json!({
+                        "role": "tool",
+                        "tool_call_id": r.id,
+                        "content": content,
+                    }));
+                }
+            }
+        }
+    }
     messages
+}
+
+/// The `tools` array in the OpenAI shape, or `None` when there are none.
+fn build_tools(req: &CompletionRequest) -> Option<serde_json::Value> {
+    (!req.tools.is_empty()).then(|| {
+        req.tools
+            .iter()
+            .map(|t| {
+                serde_json::json!({
+                    "type": "function",
+                    "function": {
+                        "name": t.name,
+                        "description": t.description,
+                        "parameters": t.input_schema,
+                    },
+                })
+            })
+            .collect()
+    })
 }
 
 /// OpenRouter reports exact request cost when asked. Other OpenAI-compatible
@@ -78,6 +152,9 @@ fn build_body(
     });
     if report_cost {
         body["usage"] = serde_json::json!({"include": true});
+    }
+    if let Some(tools) = build_tools(req) {
+        body["tools"] = tools;
     }
     body
 }
@@ -128,6 +205,10 @@ impl OpenRouterProvider {
 }
 
 impl Provider for OpenRouterProvider {
+    fn supports_tools(&self) -> bool {
+        true
+    }
+
     fn complete(
         &self,
         req: CompletionRequest,
@@ -169,6 +250,17 @@ impl Provider for OpenRouterProvider {
         req: CompletionRequest,
         on_chunk: ChunkFn,
     ) -> Pin<Box<dyn Future<Output = Result<Completion, ProviderError>> + Send>> {
+        // A TOOL REQUEST IS NOT STREAMED. In this shape `tool_calls` arrive as
+        // index-keyed fragments that have to be reassembled across frames, and
+        // `consume_sse` reads only `delta.content` — so a streamed tool reply
+        // comes back with empty text and NO CALLS, which reads as the model
+        // declining to use a tool rather than as a decoding gap. Falling back
+        // to the non-streamed path costs liveness on tool rounds (which emit
+        // little text anyway) and is the difference between working and
+        // silently doing nothing.
+        if !req.tools.is_empty() {
+            return self.complete(req);
+        }
         let client = self.client.clone();
         let key = self.api_key.clone();
         let endpoint = self.endpoint.clone();

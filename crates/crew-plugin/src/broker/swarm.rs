@@ -35,7 +35,7 @@ pub(crate) fn run_task(
     // weave in first, matched on the raw task, exactly as on the relay path.
     let task_owned = fold_resume(session, &super::skillframe::with_skills(task));
     super::sessionlog::append("user", task);
-    let (planner, factory, budget, model, replan) = backend();
+    let (planner, factory, budget, model, replan) = backend(session.tools());
     run_with(
         &task_owned,
         planner,

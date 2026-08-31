@@ -52,29 +52,74 @@ pub(crate) fn mode_label() -> &'static str {
     }
 }
 
-/// The four `sys` tool descriptors, in the shape the TOOLS hint renders.
+/// The four `sys` tool descriptors: prose for the text hint, JSON Schema for
+/// native tool-use.
+///
+/// The descriptions keep their inline `{"cmd": …}` examples even though the
+/// schema now says the same thing formally. They are what the TEXT convention
+/// has to work from — a provider without tool support sees only this line —
+/// and a model reading both is not harmed by the agreement.
+///
+/// Every schema names its required arguments. `sys:run` with no `cmd` used to
+/// come back as "missing string argument", one wasted round; the provider now
+/// refuses to emit the call at all.
 pub(crate) fn tools() -> Vec<McpTool> {
-    let mk = |name: &str, desc: &str| McpTool {
+    let mk = |name: &str, desc: &str, schema: serde_json::Value| McpTool {
         server: "sys".into(),
         name: name.into(),
         description: desc.into(),
+        input_schema: schema,
     };
     vec![
         mk(
             "run",
             "run a shell command, non-interactive: {\"cmd\": \"zip -r out.zip docs/\"}",
+            serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "cmd": {
+                        "type": "string",
+                        "description": "the shell command, run non-interactively with a 120s deadline",
+                    },
+                },
+                "required": ["cmd"],
+            }),
         ),
         mk(
             "read_file",
             "read a UTF-8 text file, 64 KB per call: {\"path\": \"README.md\", \"offset\": 0}",
+            serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string", "description": "path, relative to the working directory"},
+                    "offset": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "byte offset to start at, for reading past the 64 KB cap",
+                    },
+                },
+                "required": ["path"],
+            }),
         ),
         mk(
             "write_file",
             "create/overwrite a text file: {\"path\": …, \"content\": …}",
+            serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string"},
+                    "content": {"type": "string", "description": "the WHOLE file; it is overwritten, not appended"},
+                },
+                "required": ["path", "content"],
+            }),
         ),
         mk(
             "list_dir",
             "list a directory (default .): {\"path\": \"src\"}",
+            serde_json::json!({
+                "type": "object",
+                "properties": {"path": {"type": "string", "default": "."}},
+            }),
         ),
     ]
 }

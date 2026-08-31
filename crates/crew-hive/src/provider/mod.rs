@@ -49,15 +49,82 @@ pub(crate) fn http_client(timeout: Duration) -> reqwest::Client {
         .unwrap_or_else(|_| reqwest::Client::new())
 }
 
-#[derive(Clone, Debug)]
+/// One tool a model may call, with the JSON Schema for its arguments.
+///
+/// The schema is the point. crew's previous tool surface handed the model a
+/// name and a 100-character description CLIP and asked it to write JSON by
+/// guesswork; here the provider validates the shape and the model chooses on
+/// the argument structure rather than on half a sentence.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ToolDef {
+    /// The WIRE name — `[a-zA-Z0-9_-]{1,64}`, which `server:tool` is not.
+    /// See `crate::tools::wire_name`, which owns the encoding and the map back.
+    pub name: String,
+    pub description: String,
+    /// JSON Schema object for the arguments. An empty object is legal and
+    /// means "no arguments"; it must never be `null`, which some providers
+    /// reject outright.
+    pub input_schema: serde_json::Value,
+}
+
+/// A tool call the model made, as the provider reported it.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ToolInvocation {
+    /// The provider's own id for this call. It is echoed back verbatim in the
+    /// result and is how a provider pairs the two across a parallel batch —
+    /// never reconstruct it, and never assume one call per turn.
+    pub id: String,
+    pub name: String,
+    /// Arguments as the model produced them. Kept as `Value`, not `String`,
+    /// so nothing re-parses provider-validated JSON.
+    pub input: serde_json::Value,
+}
+
+/// The outcome of one [`ToolInvocation`], on its way back to the model.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ToolOutcome {
+    pub id: String,
+    pub name: String,
+    pub content: String,
+    /// A refusal or failure. Providers have a flag for this; without it a
+    /// model reads "ERROR: connection refused" as data it should use.
+    pub is_error: bool,
+}
+
+/// One exchange after the opening user prompt.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Turn {
+    /// What the model said, and anything it asked to call.
+    Assistant {
+        text: String,
+        calls: Vec<ToolInvocation>,
+    },
+    /// Results for the calls in the immediately preceding assistant turn.
+    /// Providers require these to arrive together, in one turn, covering
+    /// EVERY call — a missing result is a protocol error, not a partial answer.
+    ToolResults(Vec<ToolOutcome>),
+}
+
+/// `Default` is derived so a new field can be added here without touching
+/// every construction site again; the existing ones all spell
+/// `..Default::default()`.
+#[derive(Clone, Debug, Default)]
 pub struct CompletionRequest {
     pub model: String,
     pub system: Option<String>,
+    /// The opening user message.
     pub prompt: String,
     pub max_tokens: u32,
+    /// Everything after `prompt`. Empty for a one-shot completion, which is
+    /// what every caller but the tool loop wants.
+    pub turns: Vec<Turn>,
+    /// Tools the model may call. Empty = a plain completion, and providers
+    /// must then send NO tools field at all: an empty array is not the same
+    /// as absent, and some endpoints reject it.
+    pub tools: Vec<ToolDef>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Completion {
     pub text: String,
     pub input_tokens: u32,
@@ -65,6 +132,9 @@ pub struct Completion {
     /// Exact provider-reported cost in micro-USD (OpenRouter `usage.cost`);
     /// 0 when the provider doesn't report cost.
     pub cost_microusd: u64,
+    /// Tool calls the model made in this reply. Empty on every provider that
+    /// does not support tools, and on every reply that simply answered.
+    pub calls: Vec<ToolInvocation>,
 }
 
 #[derive(Debug)]
@@ -147,6 +217,18 @@ fn one_line(s: &str) -> String {
 pub type ChunkFn = std::sync::Arc<dyn Fn(&str) + Send + Sync>;
 
 pub trait Provider: Send + Sync {
+    /// Whether this provider speaks native tool-use — `tools` on the request
+    /// and structured calls on the reply.
+    ///
+    /// Defaults to FALSE so a provider that has not been taught the mapping
+    /// cannot silently drop a `tools` array and return prose. The caller
+    /// (`crate::apiagent`) reads this to choose between the native path and
+    /// the `@tool` text convention, so a wrong `true` here is a swarm that
+    /// advertises tools no model was ever shown.
+    fn supports_tools(&self) -> bool {
+        false
+    }
+
     fn complete(
         &self,
         req: CompletionRequest,
@@ -169,6 +251,10 @@ pub trait Provider: Send + Sync {
 /// that hold a dynamically-discovered provider (the broker) can feed it to
 /// generic consumers like `LlmPlanner<P: Provider>` without re-wrapping.
 impl<P: Provider + ?Sized> Provider for std::sync::Arc<P> {
+    fn supports_tools(&self) -> bool {
+        (**self).supports_tools()
+    }
+
     fn complete(
         &self,
         req: CompletionRequest,

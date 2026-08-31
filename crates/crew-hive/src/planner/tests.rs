@@ -234,6 +234,7 @@ async fn llm_planner_model_override_reaches_request() {
                     input_tokens: 1,
                     output_tokens: 1,
                     cost_microusd: 0,
+                    ..Default::default()
                 })
             })
         }

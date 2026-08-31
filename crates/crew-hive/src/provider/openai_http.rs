@@ -282,6 +282,7 @@ async fn consume_sse(
         input_tokens,
         output_tokens,
         cost_microusd,
+        ..Default::default()
     }))
 }
 
@@ -395,10 +396,34 @@ pub(crate) fn parse_sse_line(line: &str) -> SseItem {
     SseItem::Skip
 }
 
+#[derive(Deserialize)]
+struct FnCall {
+    #[serde(default)]
+    name: String,
+    /// A JSON *string*, not an object — the OpenAI shape sends arguments
+    /// serialised, and models sometimes send `""` for a no-argument call.
+    #[serde(default)]
+    arguments: String,
+}
+
+#[derive(Deserialize)]
+struct RawToolCall {
+    #[serde(default)]
+    id: String,
+    #[serde(default)]
+    function: Option<FnCall>,
+}
+
 #[derive(Deserialize, Default)]
 struct Msg {
+    /// `Option`, not a defaulted `String`: a reply that ONLY calls tools sends
+    /// an explicit `"content": null`, and `#[serde(default)]` does not cover
+    /// an explicit null — it would fail the whole parse at exactly the moment
+    /// tool use started working.
     #[serde(default)]
-    content: String,
+    content: Option<String>,
+    #[serde(default)]
+    tool_calls: Vec<RawToolCall>,
 }
 
 #[derive(Deserialize)]
@@ -439,7 +464,30 @@ pub(super) fn parse_response(body: &str) -> Result<Completion, ProviderError> {
     let text = r
         .choices
         .first()
-        .map(|c| c.message.content.clone())
+        .and_then(|c| c.message.content.clone())
+        .unwrap_or_default();
+    let calls: Vec<super::ToolInvocation> = r
+        .choices
+        .first()
+        .map(|c| {
+            c.message
+                .tool_calls
+                .iter()
+                .filter_map(|tc| {
+                    let f = tc.function.as_ref()?;
+                    Some(super::ToolInvocation {
+                        id: tc.id.clone(),
+                        name: f.name.clone(),
+                        // Arguments arrive as a JSON string. An unparseable or
+                        // empty one becomes `{}` rather than failing the reply:
+                        // the tool will reject it with a message the agent can
+                        // act on, which beats losing the whole completion.
+                        input: serde_json::from_str(&f.arguments)
+                            .unwrap_or_else(|_| serde_json::json!({})),
+                    })
+                })
+                .collect()
+        })
         .unwrap_or_default();
     let usage = r
         .usage
@@ -449,5 +497,6 @@ pub(super) fn parse_response(body: &str) -> Result<Completion, ProviderError> {
         input_tokens: usage.prompt_tokens,
         output_tokens: usage.completion_tokens,
         cost_microusd: (usage.cost.unwrap_or(0.0) * 1_000_000.0) as u64,
+        calls,
     })
 }

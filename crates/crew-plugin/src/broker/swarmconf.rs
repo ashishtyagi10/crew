@@ -15,6 +15,13 @@ use super::{Session, STUB_FANOUT, WORK_MAX_TOKENS};
 /// mock, so replies stay deterministic while the full pipeline runs. The
 /// REPLANNER is `Some` only on the real-provider arm — keyless and mock runs
 /// keep pure cascade-cancel on failure, exactly as before.
+///
+/// `tools` is the session's surface (see [`Session::tools`]), attached to the
+/// REAL-PROVIDER arm only. The stub factory has no model to decide with, and
+/// the mock arm must stay byte-deterministic for the GUI harness — a mock
+/// reply that happened to end in `@tool` would otherwise start executing shell
+/// commands during a screenshot test. `None` here leaves the swarm exactly as
+/// it was before tools existed.
 pub(super) type Backend = (
     Arc<dyn Planner>,
     Arc<dyn AgentFactory>,
@@ -23,7 +30,7 @@ pub(super) type Backend = (
     Option<Arc<dyn Planner>>,
 );
 
-pub(super) fn backend() -> Backend {
+pub(super) fn backend(tools: Option<Arc<dyn crew_hive::tools::Tools>>) -> Backend {
     match crate::broker::discover::provider_and_model() {
         None => (
             Arc::new(StubPlanner {
@@ -52,11 +59,14 @@ pub(super) fn backend() -> Backend {
                 }
                 .with_model(model.clone()),
             );
+            let mut factory =
+                crew_hive::ApiFactory::new(provider, WORK_MAX_TOKENS).with_model(model.clone());
+            if let Some(t) = tools {
+                factory = factory.with_tools(t);
+            }
             (
                 Arc::clone(&planner),
-                Arc::new(
-                    crew_hive::ApiFactory::new(provider, WORK_MAX_TOKENS).with_model(model.clone()),
-                ),
+                Arc::new(factory),
                 Some(Budget {
                     max_micros_usd: Budget::DEFAULT_MICROS_USD,
                 }),

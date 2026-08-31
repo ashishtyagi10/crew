@@ -107,9 +107,26 @@ fn hint_for_lists_each_tool_once() {
         server: "fs".into(),
         name: "read".into(),
         description: "Read a file".into(),
+        input_schema: serde_json::json!({"type": "object"}),
     }]);
     assert!(h.contains("- fs:read \u{2014} Read a file"), "got: {h}");
     assert!(h.contains("@tool"), "directive syntax is explained");
+}
+
+/// Descriptions are now stored WHOLE (native tool-use wants the detail), so
+/// the one-line-per-tool list has to do the shortening itself or a server with
+/// a paragraph of documentation breaks the list it is listed in.
+#[test]
+fn a_multi_line_description_stays_one_line_in_the_hint() {
+    let h = hint_for(&[crate::mcp::McpTool {
+        server: "fs".into(),
+        name: "read".into(),
+        description: "Read a file\n\nSupports offsets, globs, and\nmuch more besides.".into(),
+        input_schema: serde_json::json!({"type": "object"}),
+    }]);
+    let listed: Vec<&str> = h.lines().filter(|l| l.starts_with("- ")).collect();
+    assert_eq!(listed.len(), 1, "{h}");
+    assert!(!h.contains("much more besides"), "{h}");
 }
 
 #[test]

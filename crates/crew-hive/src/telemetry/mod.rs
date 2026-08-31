@@ -89,6 +89,31 @@ impl Fleet {
             }
             // Fragments are liveness only; `last_line` tracks settled output.
             HiveEvent::OutputDelta { .. } => {}
+            // A waiting agent is the one a fleet view most needs to explain.
+            // Between asking for a tool and getting an answer an agent
+            // produces no text at all, so without this its row shows whatever
+            // it last said — which reads as "stuck" during the one part of a
+            // run that legitimately takes seconds.
+            HiveEvent::ToolCall { agent, label, .. } => {
+                if let Some(rec) = self.agents.get_mut(&agent.0) {
+                    rec.last_line = format!("calling {label}");
+                }
+            }
+            // A refusal or an error is worth keeping on the row; a successful
+            // result is not — the agent's own next reply says what it made of
+            // it, and overwriting that with raw tool output would bury it.
+            HiveEvent::ToolResult {
+                agent,
+                label,
+                ok,
+                text,
+            } => {
+                if let Some(rec) = self.agents.get_mut(&agent.0) {
+                    if !*ok {
+                        rec.last_line = format!("{label}: {text}");
+                    }
+                }
+            }
             HiveEvent::Failed { agent, error } => {
                 if let Some(rec) = self.agents.get_mut(&agent.0) {
                     rec.state = TaskState::Failed;

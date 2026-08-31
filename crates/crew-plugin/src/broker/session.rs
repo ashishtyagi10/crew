@@ -50,6 +50,14 @@ pub(crate) struct Session {
     /// changed nothing does not write an identical restore point. Shared with
     /// worker snapshots because the checkpoint is taken ON the worker.
     pub last_tree: Arc<Mutex<Option<String>>>,
+    /// The approval gate, owned by the SESSION rather than by each broker.
+    ///
+    /// It has to be one gate per pane, not one per construct and certainly not
+    /// one per agent: a swarm runs up to `CONCURRENCY` agents at once, and a
+    /// gate each would mean being asked to approve the same irreversible tool
+    /// four times for one task. Sharing it here is also what lets an approval
+    /// opened by one call be answered after another has moved on.
+    pub gate: Arc<Mutex<super::approval::Gate>>,
     /// Whether this session has already mentioned that checkpoints exist.
     /// Once, at the moment the first one is actually taken — an undo nobody
     /// knows about is an undo nobody uses, and a note on every task would be
@@ -74,6 +82,7 @@ impl Default for Session {
             commit: Arc::new(Mutex::new(None)),
             resume: Arc::new(Mutex::new(None)),
             last_tree: Arc::new(Mutex::new(None)),
+            gate: Arc::new(Mutex::new(super::approval::Gate::new())),
             announced_ckpt: Arc::new(AtomicBool::new(false)),
             announced_changes: Arc::new(AtomicBool::new(false)),
         }
@@ -99,6 +108,7 @@ impl Session {
             commit: Arc::clone(&self.commit),
             resume: Arc::clone(&self.resume),
             last_tree: Arc::clone(&self.last_tree),
+            gate: Arc::clone(&self.gate),
             announced_ckpt: Arc::clone(&self.announced_ckpt),
             announced_changes: Arc::clone(&self.announced_changes),
         }
@@ -123,11 +133,38 @@ impl Session {
             .with_budget(token_budget())
             .with_cancel_flag(Arc::clone(&self.cancel))
             .with_summarizer(super::compact::live_summarizer());
-        let sys = super::systools::enabled();
-        if !sys && self.lock_mcp().is_empty() {
-            return b;
+        match self.tools() {
+            Some(t) => b.with_tools(t),
+            None => b,
         }
-        b.with_tools(Arc::new(SessionTools::new(Arc::clone(&self.mcp), sys)))
+    }
+
+    /// This session's tool surface, or `None` when there is nothing to call.
+    ///
+    /// Built fresh per use rather than cached, because `systools::enabled()`
+    /// and the MCP host both change under the session's feet — `mcp.json`
+    /// hot-reloads — and a cached `None` from before a server was configured
+    /// would be a tool surface that never appears until the pane is reopened.
+    /// The GATE is what persists (a session field), not this wrapper.
+    ///
+    /// The relay reaches this through [`Self::broker`]; the swarm attaches the
+    /// same value to its agent factory, so both engines call the same tools
+    /// through the same gate into the same ledger.
+    pub fn tools(&self) -> Option<Arc<dyn crew_hive::tools::Tools>> {
+        self.tools_with_sys(super::systools::enabled())
+    }
+
+    /// [`Self::tools`] with the `sys` verdict handed in, so a test can build
+    /// the real surface without the process-wide env that decides it.
+    pub fn tools_with_sys(&self, sys: bool) -> Option<Arc<dyn crew_hive::tools::Tools>> {
+        if !sys && self.lock_mcp().is_empty() {
+            return None;
+        }
+        Some(Arc::new(SessionTools::new(
+            Arc::clone(&self.mcp),
+            sys,
+            Arc::clone(&self.gate),
+        )))
     }
 
     /// The shared MCP host, poison-tolerant.
@@ -154,7 +191,8 @@ struct SessionTools {
     sys: bool,
     /// Who this session's tool calls are made on behalf of.
     requester: super::approval::Requester,
-    /// The approval gate. Shared, so approvals opened by one call are answerable later.
+    /// The approval gate, shared with the session (and so with every other
+    /// agent and construct in this pane) — see [`Session::gate`].
     gate: Arc<Mutex<super::approval::Gate>>,
     policy: super::approval::Policy,
     /// Where decisions are recorded. `None` in tests that must not touch the user's ledger.
@@ -162,12 +200,16 @@ struct SessionTools {
 }
 
 impl SessionTools {
-    fn new(mcp: Arc<Mutex<crate::mcp::McpHost>>, sys: bool) -> Self {
+    fn new(
+        mcp: Arc<Mutex<crate::mcp::McpHost>>,
+        sys: bool,
+        gate: Arc<Mutex<super::approval::Gate>>,
+    ) -> Self {
         Self {
             mcp,
             sys,
             requester: super::approval::Requester::from_env(),
-            gate: Arc::new(Mutex::new(super::approval::Gate::new())),
+            gate,
             policy: super::approval::Policy::default(),
             // Never under test. The suite ran once with this unguarded and put twelve
             // records into the real ledger at ~/…/crew/ledger.jsonl — an audit trail that
@@ -175,6 +217,13 @@ impl SessionTools {
             // someone reading it later cannot tell which lines were a person.
             ledger: (!cfg!(test)).then(|| super::ledger::Ledger::at(super::ledger::default_path())),
         }
+    }
+
+    /// A runner with a gate of its own, for tests that do not care which
+    /// gate — the session-shared one is not reachable from here.
+    #[cfg(test)]
+    fn for_test(mcp: Arc<Mutex<crate::mcp::McpHost>>, sys: bool) -> Self {
+        Self::new(mcp, sys, Arc::new(Mutex::new(super::approval::Gate::new())))
     }
 
     /// The same runner answering to somebody who is NOT at the keyboard. Unused until a channel
@@ -188,7 +237,7 @@ impl SessionTools {
         Self {
             requester,
             ledger: None,
-            ..Self::new(mcp, sys)
+            ..Self::for_test(mcp, sys)
         }
     }
 
@@ -211,6 +260,30 @@ impl super::toolcall::ToolRunner for SessionTools {
         };
         tools.extend(self.mcp.lock().unwrap_or_else(|e| e.into_inner()).tools());
         super::toolcall::hint_for(&tools)
+    }
+
+    /// Structured definitions for native tool-use: the same merged surface
+    /// [`Self::hint`] describes in prose, with each tool's real JSON Schema.
+    ///
+    /// Both must stay in step, because the PROVIDER decides which of the two a
+    /// given run uses — a tool present in one and not the other is a tool that
+    /// appears and disappears depending on which model is serving.
+    fn specs(&self) -> Vec<crew_hive::tools::ToolSpec> {
+        let mut tools = if self.sys {
+            super::systools::tools()
+        } else {
+            Vec::new()
+        };
+        tools.extend(self.mcp.lock().unwrap_or_else(|e| e.into_inner()).tools());
+        tools
+            .into_iter()
+            .map(|t| crew_hive::tools::ToolSpec {
+                server: t.server,
+                tool: t.name,
+                description: t.description,
+                input_schema: t.input_schema,
+            })
+            .collect()
     }
 
     /// Every tool call in the running broker passes through here — `sys` and MCP alike — which
@@ -366,7 +439,7 @@ mod tests {
         // set, so sys tools are on" — true of this suite running alone, and
         // false whenever a mocked test held CREW_BROKER_MOCK_REPLY, which is
         // about one full run in six.
-        let t = SessionTools::new(host, true);
+        let t = SessionTools::for_test(host, true);
         let h = t.hint();
         assert!(h.contains("sys:run"), "{h}");
         assert!(h.contains("sys:read_file"), "{h}");
@@ -377,15 +450,65 @@ mod tests {
     fn session_tools_hint_omits_sys_when_the_surface_is_off() {
         use super::super::toolcall::ToolRunner;
         let host = Arc::new(Mutex::new(crate::mcp::McpHost::default()));
-        let h = SessionTools::new(host, false).hint();
+        let h = SessionTools::for_test(host, false).hint();
         assert!(!h.contains("sys:"), "{h}");
+    }
+
+    /// The native surface and the text surface must describe the SAME tools.
+    /// The provider picks which one a run uses, so a tool in one and not the
+    /// other appears or disappears depending on which model is serving.
+    #[test]
+    fn specs_and_hint_cover_the_same_tools() {
+        use super::super::toolcall::ToolRunner;
+        let host = Arc::new(Mutex::new(crate::mcp::McpHost::default()));
+        let t = SessionTools::for_test(host, true);
+        let hint = t.hint();
+        let specs = t.specs();
+        assert!(!specs.is_empty());
+        for s in &specs {
+            assert!(
+                hint.contains(&format!("{}:{}", s.server, s.tool)),
+                "{}:{} is callable natively but unadvertised in the hint",
+                s.server,
+                s.tool
+            );
+        }
+    }
+
+    /// Every native tool ships a schema a provider will accept: an object with
+    /// a `type`. A `null` or a bare `{}` is rejected by the API, which would
+    /// take down the whole request — not just that one tool.
+    #[test]
+    fn every_spec_carries_a_usable_schema() {
+        use super::super::toolcall::ToolRunner;
+        let host = Arc::new(Mutex::new(crate::mcp::McpHost::default()));
+        for s in SessionTools::for_test(host, true).specs() {
+            assert_eq!(
+                s.input_schema["type"], "object",
+                "{}:{} schema: {}",
+                s.server, s.tool, s.input_schema
+            );
+        }
+    }
+
+    /// `sys:run` without a command was a wasted round: the model emitted the
+    /// call, the dispatcher answered "missing string argument", and the agent
+    /// tried again. The schema now makes the provider refuse it first.
+    #[test]
+    fn sys_run_declares_its_command_required() {
+        use super::super::toolcall::ToolRunner;
+        let host = Arc::new(Mutex::new(crate::mcp::McpHost::default()));
+        let specs = SessionTools::for_test(host, true).specs();
+        let run = specs.iter().find(|s| s.tool == "run").expect("sys:run");
+        assert_eq!(run.input_schema["required"][0], "cmd");
+        assert_eq!(run.input_schema["properties"]["cmd"]["type"], "string");
     }
 
     #[test]
     fn session_tools_dispatches_sys_locally() {
         use super::super::toolcall::ToolRunner;
         let host = Arc::new(Mutex::new(crate::mcp::McpHost::default()));
-        let t = SessionTools::new(host, true);
+        let t = SessionTools::for_test(host, true);
         let r = t
             .call("sys", "run", r#"{"cmd":"echo via-session"}"#)
             .unwrap();
@@ -395,7 +518,8 @@ mod tests {
         assert!(e.contains("unknown MCP server"), "{e}");
         // With the surface off, `sys` is not special — it is just another
         // server the empty MCP host has never heard of.
-        let off = SessionTools::new(Arc::new(Mutex::new(crate::mcp::McpHost::default())), false);
+        let off =
+            SessionTools::for_test(Arc::new(Mutex::new(crate::mcp::McpHost::default())), false);
         let e = off.call("sys", "run", r#"{"cmd":"echo x"}"#).unwrap_err();
         assert!(e.contains("unknown MCP server"), "{e}");
     }

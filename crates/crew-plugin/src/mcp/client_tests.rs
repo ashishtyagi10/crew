@@ -28,7 +28,11 @@ fn connect_lists_tools_and_calls_one() {
     let tools = c.tools().unwrap();
     assert_eq!(tools.len(), 1);
     assert_eq!(tools[0].0, "echo");
-    assert_eq!(tools[0].1, "Echo text back."); // first line only
+    // The WHOLE description, not just its first line: native tool-use wants
+    // the detail, and shortening for a prompt is the prompt's job.
+    assert_eq!(tools[0].1, "Echo text back.\nSecond line ignored.");
+    // A bare `{}` schema is filled in — providers reject one without a type.
+    assert_eq!(tools[0].2, serde_json::json!({"type": "object"}));
     let out = c.call("echo", serde_json::json!({"text": "hi"})).unwrap();
     assert_eq!(out, "hello\nworld");
 }

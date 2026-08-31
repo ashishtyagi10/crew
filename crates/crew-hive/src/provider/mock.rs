@@ -21,6 +21,7 @@ impl Provider for MockProvider {
                 input_tokens: req.prompt.split_whitespace().count() as u32,
                 output_tokens: reply.split_whitespace().count() as u32,
                 cost_microusd: 0,
+                ..Default::default()
             })
         })
     }

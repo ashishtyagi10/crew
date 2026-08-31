@@ -19,6 +19,7 @@
 //! - [`provider`] — LLM provider abstraction: [`Provider`], [`MockProvider`], [`AnthropicProvider`]
 //! - [`planner`] — goal → task-graph: [`Planner`], [`StubPlanner`], [`LlmPlanner`]
 //! - [`apiagent`] — native LLM agent (futures, no PTY): [`ApiAgent`]
+//! - [`tools`] — the tool surface both engines share: [`Tools`], [`parse_tool_call`]
 //!
 //! Scale & control:
 //! - [`batch`] — flat parallel-job graph: [`batch_graph`], [`Job`]
@@ -56,6 +57,7 @@ pub mod provider;
 pub mod remoteagent;
 pub mod sched;
 pub mod telemetry;
+pub mod tools;
 pub mod wire;
 pub mod worker;
 
@@ -86,7 +88,7 @@ pub use sched::{RunOutcome, Scheduler};
 // Provider
 pub use provider::{
     AnthropicProvider, ChunkFn, Completion, CompletionRequest, MockProvider, OpenRouterProvider,
-    Provider, ProviderError,
+    Provider, ProviderError, ToolDef, ToolInvocation, ToolOutcome, Turn,
 };
 
 // Planner
@@ -100,6 +102,9 @@ pub use govern::{budget_governor, Budget};
 
 // OAuth
 pub use oauth::{authorize_url, exchange_openrouter_code, pkce, random_token, Pkce};
+
+// Tools
+pub use tools::{parse_tool_call, ToolCall, ToolCatalog, ToolSpec, Tools, MAX_TOOL_ROUNDS};
 
 // Wire
 pub use wire::{DepResult, RemoteReply, RemoteTask, Transport, TransportError};

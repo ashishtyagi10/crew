@@ -120,6 +120,7 @@ impl Adapter for ApiAdapter {
             system: self.system.clone(),
             prompt: body.to_string(),
             max_tokens: MAX_TOKENS,
+            ..Default::default()
         };
         let fut = self.provider.complete(req);
         match self
@@ -164,6 +165,7 @@ impl Adapter for ApiAdapter {
             system: self.system.clone(),
             prompt: body.to_string(),
             max_tokens: MAX_TOKENS,
+            ..Default::default()
         };
         let chars = Arc::new(std::sync::atomic::AtomicU64::new(0));
         let counter = chars.clone();
