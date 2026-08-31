@@ -23,6 +23,13 @@ use crate::mcp::McpTool;
 /// implementing each separately.
 pub use crew_hive::tools::Tools as ToolRunner;
 
+/// Chars of tool output a result hop carries. The same budget the swarm's
+/// result card uses, for the same reason: the card is folded to its outcome
+/// line until clicked, so a long result costs scroll the reader asked for.
+/// It was 400 — a display clip from before results were foldable, which cut
+/// most real output off mid-word.
+pub(crate) const RESULT_CLIP: usize = 4_000;
+
 /// Most tool rounds one agent may take within a single hop. Shared with the
 /// swarm so both engines stop at the same number.
 pub(crate) use crew_hive::tools::MAX_TOOL_ROUNDS;
@@ -130,7 +137,10 @@ impl Broker {
                 ),
                 usage: Default::default(),
             });
-            let text = match runner.call(&call.server, &call.tool, &call.args) {
+            let started = std::time::Instant::now();
+            let called = runner.call(&call.server, &call.tool, &call.args);
+            let ok = called.is_ok();
+            let text = match called {
                 Ok(t) if t.is_empty() => "(empty result)".to_string(),
                 Ok(t) => t,
                 Err(e) => format!("ERROR: {e}"),
@@ -141,7 +151,17 @@ impl Broker {
                 to: env.to.clone(),
                 hop: env.hop,
                 kind: HopKind::Reply,
-                text: clip(&text, 400),
+                // The `[tool]` marker and the outcome line, exactly as the
+                // swarm builds them. Without the marker this card was not a
+                // tool card to the app at all: the CALL was styled quiet and
+                // folded, and its RESULT rendered beside it as a full,
+                // brightly-coloured agent reply. One action, two looks,
+                // depending on which engine ran it.
+                text: format!(
+                    "[tool] {}\n{}",
+                    super::toolline::result_line(&label, ok, started.elapsed().as_millis() as u64),
+                    clip_result(text.trim_end(), RESULT_CLIP)
+                ),
                 usage: Default::default(),
             });
             exchanges.push(format!(

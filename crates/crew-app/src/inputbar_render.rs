@@ -8,6 +8,10 @@ use crate::chatwidth::{char_w, place_row, str_w};
 use crate::inputbar::InputBar;
 use crate::palette::accent;
 
+#[cfg(test)]
+#[path = "inputbar_render_tests.rs"]
+mod tests;
+
 const PLACEHOLDER_TEXT: &str = "type / for commands";
 
 impl InputBar {

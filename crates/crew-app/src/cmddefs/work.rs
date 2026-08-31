@@ -35,7 +35,7 @@ pub(crate) const WORK: &[Cmd] = &[
     },
     Cmd {
         name: "/tools",
-        desc: "What agents ran through the tool gate: tier, outcome, who asked",
+        desc: "What agents ran through the tool gate \u{b7} /tools <term> narrows it",
     },
     Cmd {
         name: "/out",

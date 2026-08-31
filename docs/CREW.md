@@ -1230,6 +1230,15 @@ longer aim at.
   reported rather than silently skipped. It opens in the file viewer, like
   `/blocks` and `/out`.
 
+  **`/tools <term>`** narrows it. One term against every column a person
+  searches by — the tool, the tier, the requester, the decision, the outcome
+  and the note — because the questions this listing gets asked are "what did
+  `sys:run` do", "what was denied" and "what did the phone ask for", and each
+  of those is one word that happens to live in a different column. A term that
+  matches nothing says so in its own words: "there is no history" and "your
+  search found none of it" are different answers, and only one of them means
+  you typed it wrong.
+
 - **`/blocks`** — what you ran in this pane, newest first: how long each took,
   which of them failed, and the number that reaches its output. A pane's
   scrollback is one long column in which everything that ever ran is mixed

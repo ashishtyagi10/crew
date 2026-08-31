@@ -8,6 +8,34 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.19.99
+
+**One action, one look — and a way to search the ledger.**
+
+`/tools` shipped last release with no way to narrow a thousand rows. **`/tools
+<term>`** matches one term against every column a person searches by: the tool,
+the tier, the requester, the decision, the outcome and the note. A term that
+matches nothing says so in its own words, because "there is no history" and
+"your search found none of it" are different answers and only one of them means
+you typed it wrong.
+
+**A tool result on the relay looked nothing like the same result in a swarm.**
+The relay's result hop carried raw output with no `[tool]` marker, so the app
+never classified it as a tool card: the *call* rendered quiet and folded while
+its *result* sat beside it as a full, brightly-coloured agent reply. Both
+engines now build the same card, from the same function, and the relay gains
+the duration the swarm already had. Its result budget went from 400 chars to
+4000 to match — 400 was a display clip from before results could fold, and it
+cut most real output off mid-word.
+
+**The input bar has tests.** The most-used surface in the app had none of any
+kind. Six now shoot it across widths and read the cells back: nothing outside
+the card, nothing colliding on the row you type into, the tail-and-ellipsis for
+an overlong line, and the tag on the bottom rule winning the cells it rides —
+which only reads correctly because later cells paint over earlier ones, an
+ordering that was an accident of two call sites' sequence and is now a stated
+contract.
+
 ## 0.19.98
 
 **What the agents did to your machine, and what they are waiting on.**

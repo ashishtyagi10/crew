@@ -637,3 +637,57 @@ fn run_tools_follow_up_dial_ticks_past_the_hops_running_estimate() {
         "follow-up ticks must exceed the primed value: {ticks:?}"
     );
 }
+
+/// Run one tool round and hand back the hops it emitted.
+fn run_tools_hops(b: &Broker, agent: &Scripted, reply: &str) -> Vec<Hop> {
+    let mut stats = RunStats::default();
+    let mut usage = Usage::default();
+    let stream = HopStream::noop();
+    let mut hops = Vec::new();
+    b.run_tools(
+        agent,
+        "task",
+        reply.to_string(),
+        &mut stats,
+        &mut usage,
+        &env(),
+        &stream,
+        &mut |h| hops.push(h),
+    );
+    hops
+}
+
+/// The relay and the swarm must produce the SAME card for the same action.
+///
+/// The relay's result hop carried raw output with no `[tool]` marker, so the
+/// app did not classify it as a tool card at all: the CALL rendered quiet and
+/// folded while its RESULT sat beside it as a full, brightly-coloured agent
+/// reply. One action, two looks, depending on which engine ran it.
+#[test]
+fn a_relay_tool_result_is_marked_the_way_the_swarm_marks_it() {
+    let b = broker_with(FakeTools(Ok("FILE CONTENTS".into())));
+    let agent = Scripted::new(&["done\n@done"]);
+    let hops = run_tools_hops(&b, &agent, "reading\n@tool fs:read {\"path\":\"x\"}");
+    let result = hops
+        .iter()
+        .find(|h| h.from == "fs:read")
+        .expect("a result hop");
+    let mut lines = result.text.lines();
+    let head = lines.next().unwrap();
+    assert!(head.starts_with("[tool] fs:read \u{2713} "), "{head:?}");
+    assert_eq!(lines.next(), Some("FILE CONTENTS"));
+}
+
+#[test]
+fn a_relay_tool_failure_carries_the_failure_mark() {
+    let b = broker_with(FakeTools(Err("connection refused".into())));
+    let agent = Scripted::new(&["gave up\n@done"]);
+    let hops = run_tools_hops(&b, &agent, "trying\n@tool fs:read {\"path\":\"x\"}");
+    let result = hops.iter().find(|h| h.from == "fs:read").unwrap();
+    assert!(
+        result.text.starts_with("[tool] fs:read \u{2717} "),
+        "{:?}",
+        result.text
+    );
+    assert!(result.text.contains("connection refused"));
+}

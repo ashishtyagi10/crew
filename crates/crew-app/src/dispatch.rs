@@ -25,7 +25,7 @@ impl CrewApp {
             "out" => self.open_last_output(""),
             // …and the list the number in `/out <n>` counts through.
             "blocks" => self.open_blocks(),
-            "tools" => self.open_tools(),
+            "tools" => self.open_tools(""),
             "pin" => self.toggle_pin(),
             "marks" => self.marks_command(""),
             "invisibles" => self.invisibles_command(""),
@@ -135,6 +135,8 @@ impl CrewApp {
                     self.smooth_command(s.trim());
                 } else if let Some(s) = other.strip_prefix("gamma ") {
                     self.gamma_command(s.trim());
+                } else if let Some(f) = other.strip_prefix("tools ") {
+                    self.open_tools(f.trim());
                 } else if let Some(n) = other.strip_prefix("out ") {
                     self.open_last_output(n.trim());
                 } else if let Some(m) = other.strip_prefix("marks ") {
