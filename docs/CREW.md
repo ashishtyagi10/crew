@@ -1224,7 +1224,21 @@ longer aim at.
   shows `·` rather than a tick, for the same reason `/blocks` does: the gate
   writes the decision when it makes it and the outcome when the call ends, so a
   crash between the two leaves a real row with nothing after it, and drawing
-  that as success would invent an answer. The ledger is append-only and
+  that as success would invent an answer.
+
+  A row is one quiet line — how long ago, a mark, the tool, its tier — and the
+  common call (a person at this keyboard, running something that worked) says
+  no more than that. What was unusual goes on a wrapped detail line beneath:
+  how it ended when that was not plainly "it ran", who asked when it was not
+  the person reading, and the note. Times are RELATIVE (`30s ago`, `2d ago`)
+  like every other time crew shows you, which is what makes them right without
+  crew owning a timezone; the header says they were taken when the listing was
+  opened, since a view left on screen would otherwise freeze at `30s ago` while
+  the agents kept working. The whole row fits about fifty columns, so it stays
+  readable in a viewer opened as one tile of a grid, and a long tool name is
+  cut in the MIDDLE — both ends are what tell two calls apart.
+
+  The ledger is append-only and
   machine-wide rather than per-session, so the view takes the most recent
   thousand rows and says how many it left out; unreadable lines are counted and
   reported rather than silently skipped. It opens in the file viewer, like

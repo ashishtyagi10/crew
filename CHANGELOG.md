@@ -8,6 +8,34 @@ The top entry must always name the current version — `changelog_covers_the_
 current_version` in `crew-app` asserts it, so a release cannot ship without a
 line saying what it was.
 
+## 0.20.0
+
+**`/tools` becomes readable where it is actually opened.**
+
+Three faults in the listing shipped over the last two releases, all found by
+asking what it looks like rather than whether it compiles.
+
+Its rows were **eighty columns wide** — a clock, a padded tier, a padded
+outcome, a padded tool and a requester. A viewer opened as one tile of a 2×2
+grid is nearer fifty, so every row wrapped and the listing was unreadable in
+the place it is most often opened. A row is now one quiet line — how long ago,
+a mark, the tool, its tier — with what was *unusual* on a wrapped detail line
+beneath it. The common call (a person at this keyboard, running something that
+worked) says no more than that: spelling `ran` beside a tick and `pane` on
+every row spent the width saying "normal". A long tool name is cut in the
+MIDDLE, since both ends are what tell two calls apart.
+
+Its clock was **wrong**. The time was computed as seconds into the epoch day —
+which is UTC — under a doc comment claiming local. Every row was off by the
+reader's distance from Greenwich. Times are now relative (`30s ago`, `2d ago`)
+like every other time crew shows you, which is right everywhere and needs no
+timezone database crew does not have.
+
+And relative times introduced a fault of their own: a listing left open freezes
+at `30s ago` while the agents keep working. The header says so, and says how
+many calls it is showing — a filtered view of three rows out of nine hundred
+should not read as the whole history.
+
 ## 0.19.99
 
 **One action, one look — and a way to search the ledger.**
