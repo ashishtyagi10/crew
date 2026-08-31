@@ -1,4 +1,10 @@
 use super::*;
+// Named here rather than pulled in through `chat`'s own imports: the split
+// moved these types' only non-test users into sibling modules, so `chat` no
+// longer imports them and an import prune would take the tests' names with it.
+use crate::chatevents::classify;
+use crate::chatkeys::{ChatAction, ChatInput};
+use crew_plugin::PluginEvent;
 
 #[test]
 fn classify_spawn_pane_returns_host_action() {
@@ -605,8 +611,8 @@ fn classify_send_pane_returns_host_action() {
 #[test]
 fn hive_events_are_pane_state_not_host_actions() {
     use crew_plugin::PluginEvent;
-    assert!(crate::chat::classify(&PluginEvent::HivePlan { tasks: vec![] }).is_none());
-    assert!(crate::chat::classify(&PluginEvent::Hive {
+    assert!(crate::chatevents::classify(&PluginEvent::HivePlan { tasks: vec![] }).is_none());
+    assert!(crate::chatevents::classify(&PluginEvent::Hive {
         event: crew_hive::HiveEvent::TaskStateChanged {
             task: crew_hive::TaskId(0),
             state: crew_hive::TaskState::Running,
