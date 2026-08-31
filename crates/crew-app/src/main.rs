@@ -73,6 +73,7 @@ mod cardshot_tests;
 mod chatmsgs;
 mod chatpalette;
 mod chatplace;
+mod chatprobe;
 mod chatprog;
 mod chatpulse;
 mod chatqueue;
@@ -351,6 +352,7 @@ mod themefade;
 mod themepeek;
 mod themereport;
 mod toast;
+mod toastcard;
 #[cfg(test)]
 #[path = "toastshot_tests.rs"]
 mod toastshot_tests;
@@ -367,6 +369,7 @@ mod unread;
 mod update;
 mod updatecard;
 mod updatefetch;
+mod usagelayout;
 mod usageledger;
 mod usagepane;
 mod viewpane;

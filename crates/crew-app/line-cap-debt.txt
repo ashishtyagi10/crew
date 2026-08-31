@@ -43,7 +43,7 @@ src/chatswarm_tests.rs 331
 src/chatswarmview.rs 307
 src/chatswarmview_tests.rs 460
 src/chattype.rs 319
-src/chatview.rs 451
+src/chatview.rs 278
 src/chatview_tests.rs 788
 src/clickopen.rs 216
 src/clipboard.rs 301
@@ -135,8 +135,8 @@ src/swarmpane.rs 258
 src/swarmshot_tests.rs 271
 src/sysdials.rs 252
 src/termshot_tests.rs 313
-src/toast.rs 416
-src/toast_tests.rs 435
+src/toast.rs 334
+src/toast_tests.rs 240
 src/toastshot_tests.rs 212
 src/todopane/composer.rs 225
 src/todopane/duedate.rs 363
@@ -149,7 +149,7 @@ src/todopane/render_tests.rs 644
 src/toolsview_tests.rs 271
 src/update.rs 295
 src/usageledger.rs 260
-src/usagepane.rs 417
+src/usagepane.rs 289
 src/usagepane_tests.rs 293
 src/viewpane/caret.rs 247
 src/viewpane/detect.rs 218
